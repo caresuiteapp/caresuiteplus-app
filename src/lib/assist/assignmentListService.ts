@@ -6,7 +6,9 @@ import {
   isAssignmentUpcoming,
 } from '@/data/demo/assistAssignments';
 import { enforcePermission } from '@/lib/permissions';
+import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
 
 function buildDashboardStats(items: AssignmentListItem[]): AssistDashboardStats {
   const todayItems = items.filter((item) => isAssignmentToday(item.scheduledStart));
@@ -34,6 +36,10 @@ export async function fetchAssignmentList(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  if (getServiceMode() === 'supabase') {
+    return assignmentSupabaseRepository.list(tenantId);
+  }
+
   await new Promise((r) => setTimeout(r, 260));
   return { ok: true, data: getDemoAssignmentListItems() };
 }
@@ -48,7 +54,6 @@ export async function fetchAssistDashboardStats(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  await new Promise((r) => setTimeout(r, 220));
   const listResult = await fetchAssignmentList(tenantId, actorRoleKey);
   if (!listResult.ok) return listResult;
 

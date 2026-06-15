@@ -25,6 +25,8 @@ export const APP_ROUTES: AppRoute[] = [
   { path: '/auth/client-login', label: 'Klient:innen-Anmeldung', group: 'auth', requiresAuth: false },
   { path: '/auth/portal-code-login', label: 'Portal-Code Login', group: 'auth', requiresAuth: false },
   { path: '/auth/forgot-password', label: 'Passwort vergessen', group: 'auth', requiresAuth: false },
+  { path: '/auth/reset-password', label: 'Neues Passwort', group: 'auth', requiresAuth: false },
+  { path: '/auth/recovery-bridge', label: 'Reset-Link übernehmen', group: 'auth', requiresAuth: false },
   { path: '/auth/demo', label: 'Demo-Login', group: 'auth', requiresAuth: false },
 
   { path: '/settings/data-request', label: 'Datenauskunft', group: 'settings', requiresAuth: true },

@@ -1,5 +1,6 @@
 import type { RoleKey } from '../core/auth';
 import type { ProductKey } from '../core/tenant';
+import type { ModuleScopeKey, ModuleVisibilityStatus } from '../modules/visibility';
 
 export type AppShellArea =
   | 'business'
@@ -19,6 +20,8 @@ export type ShellTabConfig = {
   href: string;
   /** Nur für bestimmte Rollen sichtbar */
   allowedRoles?: RoleKey[];
+  /** Modul-Sichtbarkeit — fehlt = immer sichtbar (z. B. Dashboard) */
+  moduleScopeKey?: ModuleScopeKey;
 };
 
 export type ModuleSwitcherItem = {
@@ -29,4 +32,8 @@ export type ModuleSwitcherItem = {
   path: string;
   accentColor: string;
   isActive: boolean;
+  visibilityStatus: ModuleVisibilityStatus;
+  isVisible: boolean;
+  isNavigable: boolean;
+  badgeLabel?: string;
 };

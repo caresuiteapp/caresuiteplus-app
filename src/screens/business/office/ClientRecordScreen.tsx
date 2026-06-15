@@ -14,6 +14,10 @@ import {
 } from '@/components/ui';
 import { useClientRecord } from '@/hooks/useClientRecord';
 import { useClientFullDetail } from '@/hooks/useClientFullDetail';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { archiveClient } from '@/lib/office';
 import { fetchClientRecord } from '@/lib/clients/clientRecordService';
 import { CLIENT_RECORD_TAB_LABELS, type ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
@@ -71,8 +75,13 @@ function StammdatenTab({
 
 export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?: ClientRecordTabKey } = {}) {
   const { id, tab: tabParam } = useLocalSearchParams<{ id: string; tab?: string }>();
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+  const { can } = usePermissions();
   const { detail, careContexts, tabs, loading, error, refresh } = useClientRecord(id);
   const fullQuery = useClientFullDetail(id);
+  const [archiving, setArchiving] = useState(false);
+  const [archiveError, setArchiveError] = useState<string | null>(null);
   const resolvedTabParam = initialTabOverride ?? tabParam;
   const initialTab =
     resolvedTabParam && tabs.includes(resolvedTabParam as ClientRecordTabKey)
@@ -118,12 +127,40 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
     await Promise.all([refresh(), fullQuery.refresh()]);
   }
 
+  async function handleArchive() {
+    if (!detail || !tenantId) return;
+    setArchiving(true);
+    setArchiveError(null);
+    const result = await archiveClient(
+      detail.id,
+      tenantId,
+      profile?.roleKey,
+      profile?.id,
+      profile?.displayName,
+    );
+    setArchiving(false);
+    if (result.ok) {
+      await handleRecordRefresh();
+      return;
+    }
+    setArchiveError(result.error);
+  }
+
   return (
-    <CareLightPageShell title={`${detail.firstName} ${detail.lastName}`} subtitle={contextLabels}>
+    <CareLightPageShell
+      title={`${detail.firstName} ${detail.lastName}`}
+      subtitle={contextLabels}
+      rightSlot={
+        can('office.clients.archive') && detail.status !== 'archiviert' ? (
+          <PremiumButton title="Archivieren" size="sm" variant="ghost" loading={archiving} onPress={handleArchive} />
+        ) : null
+      }
+    >
       <PremiumCard>
         <Text style={styles.headerMeta}>
           {formatCareLevel(detail.careLevel)} · {detail.city} · Status: {detail.status}
         </Text>
+        {archiveError ? <Text style={styles.archiveError}>{archiveError}</Text> : null}
       </PremiumCard>
       <View style={styles.kpiRow}>
         <CareLightKpiCard label="Dokumente" value={String(detail.contextCounts?.documents ?? 0)} />
@@ -169,6 +206,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
 
 const styles = StyleSheet.create({
   headerMeta: { ...typography.caption, color: colors.textMuted },
+  archiveError: { ...typography.caption, color: '#FF6B6B', marginTop: spacing.xs },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginVertical: spacing.sm },
   scroll: { flex: 1 },
   scrollContent: { paddingBottom: spacing.xxl },

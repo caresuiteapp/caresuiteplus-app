@@ -1,9 +1,31 @@
+import { FunctionsHttpError } from '@supabase/supabase-js';
 import { getSupabaseClient } from './client';
 import { getSupabaseConfig, isSupabaseConfigured } from './config';
 
 export type EdgeFunctionResult<T> =
   | { ok: true; data: T }
   | { ok: false; error: string };
+
+async function readEdgeFunctionError(error: unknown): Promise<string> {
+  if (error instanceof FunctionsHttpError) {
+    try {
+      const payload = (await error.context.json()) as { error?: string; message?: string };
+      if (payload?.error?.trim()) return payload.error.trim();
+      if (payload?.message?.trim()) return payload.message.trim();
+    } catch {
+      // Response body not JSON — fall through to generic message.
+    }
+  }
+
+  if (error && typeof error === 'object' && 'message' in error) {
+    const message = String((error as { message?: unknown }).message ?? '').trim();
+    if (message && message !== 'Edge Function returned a non-2xx status code') {
+      return message;
+    }
+  }
+
+  return 'Edge Function fehlgeschlagen.';
+}
 
 export async function invokeEdgeFunction<TResponse>(
   functionName: string,
@@ -21,7 +43,7 @@ export async function invokeEdgeFunction<TResponse>(
   const { data, error } = await client.functions.invoke(functionName, { body });
 
   if (error) {
-    return { ok: false, error: error.message ?? 'Edge Function fehlgeschlagen.' };
+    return { ok: false, error: await readEdgeFunctionError(error) };
   }
 
   const payload = data as { ok?: boolean; error?: string } & TResponse;

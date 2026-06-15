@@ -68,8 +68,10 @@ describe('Assist Einsatzplanung list', () => {
     expect(source).toContain('cardSelected');
   });
 
-  it('assignmentListService nutzt guardServiceTenant', () => {
+  it('assignmentListService nutzt guardServiceTenant und Supabase-Pfad', () => {
     const source = readSrc('src/lib/assist/assignmentListService.ts');
     expect(source).toContain('guardServiceTenant');
+    expect(source).toContain('getServiceMode');
+    expect(source).toContain('assignmentSupabaseRepository');
   });
 });

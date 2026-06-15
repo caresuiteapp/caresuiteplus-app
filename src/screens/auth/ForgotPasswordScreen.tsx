@@ -2,14 +2,37 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { fetchPasswordResetInfo } from '@/lib/auth/passwordResetService';
+import {
+  fetchPasswordResetInfo,
+  requestBusinessPasswordReset,
+} from '@/lib/auth/passwordResetService';
+import { getServiceMode } from '@/lib/services/mode';
 
 export function ForgotPasswordScreen() {
   const router = useRouter();
-  const [contactHint, setContactHint] = useState('');
+  const [email, setEmail] = useState('');
+  const [error, setError] = useState<string | null>(null);
+  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
   const query = useAsyncQuery(() => fetchPasswordResetInfo(), []);
+  const isLive = getServiceMode() === 'supabase';
+
+  const handleSubmit = async () => {
+    setError(null);
+    setSuccessMessage(null);
+    setLoading(true);
+    const result = await requestBusinessPasswordReset(email);
+    setLoading(false);
+
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+
+    setSuccessMessage(result.data.message);
+  };
 
   if (query.loading && !query.data) {
     return (
@@ -34,28 +57,43 @@ export function ForgotPasswordScreen() {
       <AuthLoginHero
         eyebrow="PASSWORT"
         title="Passwort vergessen"
-        subtitle={info?.message ?? 'Passwort-Rücksetzungen werden über CareSuite+ Office ausgelöst.'}
-        portalLabel="Nur für interne Benutzer"
+        subtitle={info?.message ?? 'Passwort zurücksetzen'}
+        portalLabel={isLive ? 'Supabase Auth' : 'Nur für interne Benutzer'}
         portalVariant="orange"
         icon="🔑"
-        hint="Bitte wenden Sie sich an Ihre Administratorin oder Ihren Administrator."
+        hint={
+          isLive
+            ? 'Der Link zum neuen Passwort wird an Ihre E-Mail-Adresse gesendet.'
+            : 'Bitte wenden Sie sich an Ihre Administratorin oder Ihren Administrator.'
+        }
       />
-      {!contactHint.trim() ? (
-        <EmptyState
-          title="Kontakt erforderlich"
-          message="E-Mail oder Benutzername unten erfassen — Rücksetzung erfolgt über Office."
+      {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
+      {successMessage ? <SuccessState message={successMessage} /> : null}
+      {successMessage && isLive ? (
+        <PremiumButton
+          title="SSL-Fehler? Link lokal übernehmen"
+          variant="secondary"
+          onPress={() => router.push('/auth/recovery-bridge' as never)}
+          fullWidth
         />
       ) : null}
       <PremiumInput
-        label="E-Mail oder Benutzername"
-        value={contactHint}
-        onChangeText={setContactHint}
+        label="E-Mail-Adresse"
+        value={email}
+        onChangeText={setEmail}
         placeholder="name@einrichtung.de"
         autoCapitalize="none"
+        keyboardType="email-address"
       />
+      {isLive ? (
+        <PremiumButton
+          title="Link zum Zurücksetzen senden"
+          onPress={handleSubmit}
+          loading={loading}
+          fullWidth
+        />
+      ) : null}
       <PremiumButton title="Zurück zum Login" variant="secondary" onPress={() => router.back()} fullWidth />
     </ScreenShell>
   );
 }
-
-void fetchPasswordResetInfo;

@@ -1,5 +1,6 @@
 import { usePathname } from 'expo-router';
 import { Stack } from 'expo-router';
+import { RequireModuleVisibility } from '@/components/ui/RequireModuleVisibility';
 import { RequireAuth, RequireDevOrAdmin, RequireRole } from '@/lib/auth';
 import { routeLayoutContentStyle } from '@/design/routeLayoutStyle';
 
@@ -24,13 +25,15 @@ export default function BusinessLayout() {
   return (
     <RequireAuth redirectTo={'/auth/business-login' as never}>
       <RequireRole>
-        <Stack
-          screenOptions={{
-            headerShown: false,
-            contentStyle: routeLayoutContentStyle,
-            animation: 'slide_from_right',
-          }}
-        />
+        <RequireModuleVisibility>
+          <Stack
+            screenOptions={{
+              headerShown: false,
+              contentStyle: routeLayoutContentStyle,
+              animation: 'slide_from_right',
+            }}
+          />
+        </RequireModuleVisibility>
       </RequireRole>
     </RequireAuth>
   );

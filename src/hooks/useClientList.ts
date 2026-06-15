@@ -3,6 +3,7 @@ import type { ClientListItem } from '@/types/modules/office';
 import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
 import { fetchClientList } from '@/lib/office';
+import { getServiceMode } from '@/lib/services/mode';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -24,6 +25,12 @@ export const CLIENT_STATUS_FILTERS: { key: WorkflowStatus | 'all'; label: string
   { key: 'gesperrt', label: WORKFLOW_STATUS_LABELS.gesperrt },
 ];
 
+export const CLIENT_LIFECYCLE_FILTERS: { key: 'all' | 'active' | 'archived'; label: string }[] = [
+  { key: 'all', label: 'Alle' },
+  { key: 'active', label: 'Aktiv' },
+  { key: 'archived', label: 'Archiviert' },
+];
+
 export const CLIENT_SORT_OPTIONS: ListSortOption<'lastName' | 'city'>[] = [
   { key: 'name_asc', label: 'Name A–Z', field: 'lastName', direction: 'asc' },
   { key: 'name_desc', label: 'Name Z–A', field: 'lastName', direction: 'desc' },
@@ -33,36 +40,76 @@ export const CLIENT_SORT_OPTIONS: ListSortOption<'lastName' | 'city'>[] = [
 const PAGE_SIZE = 8;
 
 export function useClientList() {
+  const isLive = getServiceMode() === 'supabase';
   const [showSuccess, setShowSuccess] = useState(false);
   const [careLevelFilter, setCareLevelFilter] = useState<ClientCareLevelFilterKey>('all');
+  const [lifecycleFilter, setLifecycleFilter] = useState<'all' | 'active' | 'archived'>(
+    isLive ? 'active' : 'all',
+  );
+  const [costBearerFilter, setCostBearerFilter] = useState<string>('all');
+  const [liveSearch, setLiveSearch] = useState('');
+  const [liveStatusFilter, setLiveStatusFilter] = useState<WorkflowStatus | 'all'>('all');
   const { profile } = useAuth();
-
   const tenantId = useServiceTenantId();
 
   const query = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return fetchClientList(tenantId, profile?.roleKey);
+      return fetchClientList(
+        tenantId,
+        profile?.roleKey,
+        isLive
+          ? {
+              search: liveSearch || undefined,
+              statusFilter: liveStatusFilter,
+              careLevelFilter,
+              costBearerFilter,
+              lifecycleFilter,
+            }
+          : undefined,
+      );
     },
-    [tenantId, profile?.roleKey],
+    [
+      tenantId,
+      profile?.roleKey,
+      isLive,
+      liveSearch,
+      liveStatusFilter,
+      careLevelFilter,
+      costBearerFilter,
+      lifecycleFilter,
+    ],
     { enabled: !!tenantId },
   );
 
   const allItems = query.data ?? [];
 
   const itemsForList = useMemo(
-    () => filterClientsByCareLevel(allItems, careLevelFilter),
-    [allItems, careLevelFilter],
+    () => (isLive ? allItems : filterClientsByCareLevel(allItems, careLevelFilter)),
+    [allItems, careLevelFilter, isLive],
   );
 
   const list = useListState<ClientListItem, 'lastName' | 'city'>({
     items: itemsForList,
     pageSize: PAGE_SIZE,
-    searchFields: ['firstName', 'lastName', 'city', 'zip'],
-    statusField: 'status',
+    searchFields: isLive ? [] : ['firstName', 'lastName', 'city', 'zip'],
+    statusField: isLive ? undefined : 'status',
     sortOptions: CLIENT_SORT_OPTIONS,
     defaultSortKey: 'name_asc',
   });
+
+  const costBearerFilters = useMemo(() => {
+    const values = new Set<string>();
+    allItems.forEach((item) => {
+      if (item.costCarrier?.trim()) values.add(item.costCarrier.trim());
+    });
+    return [
+      { key: 'all', label: 'Alle Kostenträger' },
+      ...Array.from(values)
+        .sort((a, b) => a.localeCompare(b, 'de'))
+        .map((value) => ({ key: value, label: value })),
+    ];
+  }, [allItems]);
 
   const refresh = useCallback(async () => {
     await query.refresh();
@@ -71,12 +118,30 @@ export function useClientList() {
   }, [query]);
 
   const resetFilters = useCallback(() => {
-    list.resetFilters();
+    if (isLive) {
+      setLiveSearch('');
+      setLiveStatusFilter('all');
+      setLifecycleFilter('active');
+      setCostBearerFilter('all');
+    } else {
+      list.resetFilters();
+    }
     setCareLevelFilter('all');
-  }, [list]);
+  }, [isLive, list]);
+
+  const search = isLive ? liveSearch : list.search;
+  const setSearch = isLive ? setLiveSearch : list.setSearch;
+  const statusFilter = isLive ? liveStatusFilter : (list.statusFilter as WorkflowStatus | 'all');
+  const setStatusFilter = isLive
+    ? setLiveStatusFilter
+    : (list.setStatusFilter as (v: WorkflowStatus | 'all') => void);
 
   const hasActiveFilters =
-    list.hasActiveFilters || careLevelFilter !== 'all';
+    search.length > 0 ||
+    statusFilter !== 'all' ||
+    careLevelFilter !== 'all' ||
+    lifecycleFilter !== (isLive ? 'active' : 'all') ||
+    costBearerFilter !== 'all';
 
   return {
     items: list.paginated.items,
@@ -87,20 +152,26 @@ export function useClientList() {
     error: query.error,
     refreshing: query.refreshing,
     showSuccess,
-    search: list.search,
-    setSearch: list.setSearch,
-    statusFilter: list.statusFilter as WorkflowStatus | 'all',
-    setStatusFilter: list.setStatusFilter as (v: WorkflowStatus | 'all') => void,
+    search,
+    setSearch,
+    statusFilter,
+    setStatusFilter,
     careLevelFilter,
     setCareLevelFilter,
+    lifecycleFilter,
+    setLifecycleFilter,
+    costBearerFilter,
+    setCostBearerFilter,
     sortKey: list.sortKey,
     setSortKey: list.setSortKey,
     sortOptions: CLIENT_SORT_OPTIONS,
     statusFilters: CLIENT_STATUS_FILTERS,
+    lifecycleFilters: CLIENT_LIFECYCLE_FILTERS,
     careLevelFilters: CLIENT_CARE_LEVEL_FILTERS.map((f) => ({
       key: f.key,
       label: f.label,
     })),
+    costBearerFilters,
     hasMore: list.paginated.hasMore,
     loadMore: list.loadMore,
     refresh,
@@ -109,5 +180,6 @@ export function useClientList() {
     isEmpty: !query.loading && !query.error && allItems.length === 0,
     isFilterEmpty:
       !query.loading && !query.error && list.filtered.length === 0 && hasActiveFilters,
+    isLive,
   };
 }

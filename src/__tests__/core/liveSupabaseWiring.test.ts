@@ -123,7 +123,8 @@ describe('Live Supabase wiring', () => {
 
   it('executionService uses supabase repo in live path', () => {
     const source = readSrc('lib/assist/executionService.ts');
-    expect(source).toContain('executionSupabaseRepository');
+    expect(source).toContain('assignmentSupabaseRepository');
+    expect(source).toContain('markOnTheWay');
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 

@@ -28,10 +28,12 @@ export function CareLightModuleTile({
   return (
     <Pressable
       onPress={onPress}
+      disabled={!onPress}
       style={({ pressed }) => [
         styles.tile,
         isActive && { borderColor: `${accentColor}55` },
-        pressed && styles.pressed,
+        !onPress && styles.disabled,
+        pressed && onPress && styles.pressed,
         style,
       ]}
       accessibilityRole="button"
@@ -61,6 +63,9 @@ const styles = StyleSheet.create({
   },
   pressed: {
     opacity: 0.9,
+  },
+  disabled: {
+    opacity: 0.65,
   },
   iconBadge: {
     width: 44,

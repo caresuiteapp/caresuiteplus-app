@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useState, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CareLightModuleDashboard, CareLightScreen } from '@/components/layout';
@@ -15,51 +15,66 @@ import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useDashboard } from '@/hooks/useDashboard';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
+import { MODULE_NAV_CONFIG } from '@/data/demo/navigation';
+import { PRODUCT_LABELS } from '@/data/demo/products';
+import { resolveModuleNavState } from '@/lib/modules/moduleVisibilityService';
 import { wp138A11y } from '@/lib/a11y/wp138-business';
 import type { DashboardQuickAction } from '@/types/dashboard';
+import type { ProductKey } from '@/types';
 
-const BUSINESS_QUICK_TILES = [
-  {
-    id: 'office',
-    title: 'CareSuite+ Office',
-    description: 'Klient:innen, Team, Rechnungen, Termine',
-    route: '/office',
-    icon: '🏢',
-    accentColor: '#FF7A1A',
-  },
-  {
-    id: 'modules',
-    title: 'Module verwalten',
-    description: 'Free Platform — Modulstatus & Rechte',
-    route: '/business/modules',
-    icon: '🧩',
-    accentColor: '#22C55E',
-  },
-  {
-    id: 'pflege',
-    title: 'Pflege',
-    description: 'Pflegepläne, Vitalwerte, Medikation',
-    route: '/pflege',
-    icon: '💊',
-    accentColor: '#22C55E',
-  },
-  {
-    id: 'assist',
-    title: 'Assist',
-    description: 'Einsätze, Durchführung, Fahrten',
-    route: '/assist',
-    icon: '🤝',
-    accentColor: '#0EA5E9',
-  },
-] as const;
+const DASHBOARD_MODULE_TILES: ProductKey[] = ['office', 'pflege', 'assist'];
 
 export function BusinessDashboardScreen() {
   const router = useRouter();
   const { profile, signOut, user } = useAuth();
+  const tenantId = useServiceTenantId();
   const { data, loading, error, refresh } = useDashboard('business');
   const [showSuccess, setShowSuccess] = useState(false);
   const businessAccent = moduleColor('office');
+
+  const moduleTiles = useMemo(() => {
+    const context = { tenantId, roleKey: profile?.roleKey ?? null };
+    type DashboardTile = {
+      id: string;
+      title: string;
+      description: string;
+      route: string;
+      icon: string;
+      accentColor: string;
+      navState: ReturnType<typeof resolveModuleNavState>;
+    };
+
+    const tiles: DashboardTile[] = DASHBOARD_MODULE_TILES.map((key) => {
+      const config = MODULE_NAV_CONFIG[key];
+      const navState = resolveModuleNavState(key, context);
+      return {
+        id: key,
+        title: PRODUCT_LABELS[key],
+        description: config.description,
+        route: config.path,
+        icon: config.icon,
+        accentColor: config.accentColor,
+        navState,
+      };
+    }).filter((tile) => tile.navState.isVisible);
+
+    const modulesHub = resolveModuleNavState('modules_hub', context);
+    if (modulesHub.isVisible) {
+      tiles.push({
+        id: 'modules_hub',
+        title: 'Module verwalten',
+        description: 'Free Platform — Modulstatus & Rechte',
+        route: '/business/modules',
+        icon: '🧩',
+        accentColor: '#22C55E',
+        navState: modulesHub,
+      });
+    }
+
+    return tiles;
+  }, [tenantId, profile?.roleKey]);
 
   const displayName = profile?.displayName ?? user?.displayName ?? 'Willkommen';
 
@@ -150,15 +165,20 @@ export function BusinessDashboardScreen() {
                 accentColor={businessAccent}
               />
             ))}
-            {BUSINESS_QUICK_TILES.map((tile) => (
+            {moduleTiles.map((tile) => (
               <CareLightModuleTile
                 key={tile.id}
                 icon={tile.icon}
                 title={tile.title}
                 description={tile.description}
                 accentColor={tile.accentColor}
-                isActive
-                onPress={() => router.push(tile.route as never)}
+                isActive={tile.navState.isNavigable}
+                preparedOnly={tile.navState.effectiveStatus === 'coming_soon'}
+                onPress={
+                  tile.navState.isNavigable
+                    ? () => router.push(tile.route as never)
+                    : undefined
+                }
               />
             ))}
             <CareLightButton

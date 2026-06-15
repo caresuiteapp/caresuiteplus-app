@@ -60,7 +60,7 @@ describe('Office Klient:innen list', () => {
     expect(source).toContain('EmptyState');
     expect(source).toContain('ErrorState');
     expect(source).toContain('LoadingState');
-    expect(source).toContain('CLIENT_INTAKE_NEW_ROUTE');
+    expect(source).toContain('clientCreateRoute');
     expect(source).toContain('clientRecordRoute');
     expect(source).not.toContain("'/office/clients/create'");
     expect(source).not.toContain('Coming Soon');

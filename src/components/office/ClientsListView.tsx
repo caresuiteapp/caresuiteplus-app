@@ -26,7 +26,7 @@ import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
-import { CLIENT_INTAKE_NEW_ROUTE, clientRecordRoute } from '@/lib/navigation/clientRoutes';
+import { clientCreateRoute, clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { colors, spacing, typography } from '@/theme';
 
 type ClientsListViewProps = {
@@ -73,11 +73,17 @@ export function ClientsListView({
     setStatusFilter,
     careLevelFilter,
     setCareLevelFilter,
+    lifecycleFilter,
+    setLifecycleFilter,
+    costBearerFilter,
+    setCostBearerFilter,
     sortKey,
     setSortKey,
     sortOptions,
     statusFilters,
+    lifecycleFilters,
     careLevelFilters,
+    costBearerFilters,
     hasMore,
     loadMore,
     refresh,
@@ -112,7 +118,7 @@ export function ClientsListView({
           totalCount={totalCount}
           canCreate={canCreate}
           isReadOnly={isReadOnly}
-          onCreatePress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+          onCreatePress={() => router.push(clientCreateRoute() as never)}
           compact={compactHero}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -134,6 +140,13 @@ export function ClientsListView({
         hint={`${filteredCount} von ${totalCount} Klient:innen`}
       />
 
+      <Text style={styles.filterLabel}>Lebenszyklus</Text>
+      <FilterChipGroup
+        options={lifecycleFilters}
+        value={lifecycleFilter}
+        onChange={(value) => setLifecycleFilter(value as 'all' | 'active' | 'archived')}
+      />
+
       <Text style={styles.filterLabel}>Status</Text>
       <FilterChipGroup
         options={statusFilters}
@@ -147,6 +160,17 @@ export function ClientsListView({
         value={careLevelFilter}
         onChange={(value) => setCareLevelFilter(value as ClientCareLevelFilterKey)}
       />
+
+      {costBearerFilters.length > 1 ? (
+        <>
+          <Text style={styles.filterLabel}>Kostenträger</Text>
+          <FilterChipGroup
+            options={costBearerFilters}
+            value={costBearerFilter}
+            onChange={setCostBearerFilter}
+          />
+        </>
+      ) : null}
 
       <Text style={styles.filterLabel}>Sortierung</Text>
       <FilterChipGroup
@@ -183,7 +207,7 @@ export function ClientsListView({
           : `Noch keine Klient:innen vorhanden. Anlegen ist für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
       }
       actionLabel={canCreate ? 'Klient:in anlegen' : undefined}
-      onAction={canCreate ? () => router.push(CLIENT_INTAKE_NEW_ROUTE as never) : undefined}
+      onAction={canCreate ? () => router.push(clientCreateRoute() as never) : undefined}
     />
   ) : isFilterEmpty ? (
     <EmptyState
@@ -269,7 +293,7 @@ export function ClientsListView({
                   <PremiumButton
                     title="+ Neu"
                     size="sm"
-                    onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+                    onPress={() => router.push(clientCreateRoute() as never)}
                   />
                 ) : undefined
               }
@@ -281,7 +305,7 @@ export function ClientsListView({
             <PremiumButton
               title="+ Neu"
               size="sm"
-              onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+              onPress={() => router.push(clientCreateRoute() as never)}
             />
           </View>
         ) : null}
@@ -320,7 +344,7 @@ export function ClientsListView({
           <PremiumButton
             title="+ Neu"
             size="sm"
-            onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+            onPress={() => router.push(clientCreateRoute() as never)}
           />
         </View>
       ) : null}

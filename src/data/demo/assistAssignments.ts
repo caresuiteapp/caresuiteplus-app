@@ -282,4 +282,36 @@ export function isAssignmentUpcoming(scheduledStart: string): boolean {
   return new Date(scheduledStart) > endOfToday();
 }
 
+export function createDemoAssignmentSeed(input: {
+  clientId: string;
+  employeeId: string;
+  title: string;
+  scheduledStart: string;
+  scheduledEnd: string;
+  location: string;
+  notes?: string | null;
+}): AssignmentSeed {
+  const id = `assign-${Date.now()}`;
+  const now = new Date().toISOString();
+  const seed: AssignmentSeed = {
+    id,
+    tenantId: DEMO_TENANT_ID,
+    clientId: input.clientId,
+    employeeId: input.employeeId,
+    appointmentId: null,
+    title: input.title,
+    scheduledStart: input.scheduledStart,
+    scheduledEnd: input.scheduledEnd,
+    status: 'entwurf',
+    location: input.location,
+    notes: input.notes ?? null,
+    createdAt: now,
+    updatedAt: now,
+    visibility: 'team',
+    sensitivity: 'care',
+  };
+  assignmentStore = [seed, ...assignmentStore];
+  return { ...seed };
+}
+
 export const demoAssignments = ASSIGNMENT_SEEDS.map(enrichPlan);

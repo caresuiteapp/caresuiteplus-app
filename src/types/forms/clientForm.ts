@@ -13,6 +13,8 @@ export type ClientFormData = {
   phone: string;
   email: string;
   careLevel: string;
+  costCarrier: string;
+  insuranceNumber: string;
   status: WorkflowStatus;
   notes: string;
   sensitivity: SensitivityLevel;
@@ -39,6 +41,8 @@ export const EMPTY_CLIENT_FORM: ClientFormData = {
   phone: '',
   email: '',
   careLevel: '',
+  costCarrier: '',
+  insuranceNumber: '',
   status: 'entwurf',
   notes: '',
   sensitivity: 'care',

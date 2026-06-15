@@ -1,25 +1,34 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useReducer } from 'react';
+import { useMemo, useReducer } from 'react';
 import { PremiumPreparedNotice } from '@/components/billing/PremiumPreparedNotice';
 import { BusinessModuleHubHero, ModuleCard } from '@/components/modules';
 import { CareLightPageShell } from '@/components/layout';
 import { PremiumButton, SectionPanel } from '@/components/ui';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/lib/auth/context';
+import { isModuleScopeVisible } from '@/lib/modules/moduleVisibilityService';
 import { spacing } from '@/theme';
 
 export function ModuleOverviewScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const roleKey = profile?.roleKey ?? 'business_admin';
-  const { modules, billing } = useModuleAccess();
+  const { modules, billing, tenantId } = useModuleAccess();
   const [, refresh] = useReducer((x: number) => x + 1, 0);
+
+  const visibleModules = useMemo(
+    () =>
+      modules.filter((module) =>
+        isModuleScopeVisible(module.productKey, { tenantId, roleKey }),
+      ),
+    [modules, tenantId, roleKey],
+  );
 
   return (
     <CareLightPageShell title="Module verwalten" subtitle="CareSuite+ Free Platform — 0 €">
       <ScrollView contentContainerStyle={styles.scroll}>
-        <BusinessModuleHubHero modules={modules} billing={billing} roleKey={roleKey} />
+        <BusinessModuleHubHero modules={visibleModules} billing={billing} roleKey={roleKey} />
 
         <PremiumPreparedNotice compact />
 
@@ -28,7 +37,7 @@ export function ModuleOverviewScreen() {
           subtitle="CareSuite+ Office ist Basisverwaltung — alle Hauptmodule kostenlos aktivieren"
         >
           <View style={styles.list}>
-            {modules.map((module) => (
+            {visibleModules.map((module) => (
               <ModuleCard key={module.productKey} module={module} onActivated={refresh} />
             ))}
           </View>

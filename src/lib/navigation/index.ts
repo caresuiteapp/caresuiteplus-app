@@ -28,6 +28,7 @@ export {
   isProductActive,
   checkRoleAccess,
   checkProductAccess,
+  checkModuleAccess,
 } from './redirects';
 export type { RedirectDecision, RedirectReason } from './redirects';
 export {

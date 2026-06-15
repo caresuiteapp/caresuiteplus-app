@@ -1,7 +1,12 @@
 import type { AppShellArea, ModuleSwitcherItem, ShellTabConfig } from '@/types/navigation/shell';
+import type { RoleKey } from '@/types';
 import { MODULE_NAV_CONFIG } from '@/data/demo/navigation';
 import { PRODUCT_LABELS } from '@/data/demo/products';
 import { getEffectiveModuleAccess } from '@/lib/modules/moduleAccessService';
+import {
+  isModuleScopeVisible,
+  resolveModuleNavState,
+} from '@/lib/modules/moduleVisibilityService';
 import type { ProductKey } from '@/types';
 
 export const OFFICE_TABS: ShellTabConfig[] = [
@@ -47,15 +52,45 @@ export const STATIONAER_TABS: ShellTabConfig[] = [
 
 export const BUSINESS_TABS: ShellTabConfig[] = [
   { key: 'index', label: 'Dashboard', icon: '📊', href: '/business' },
-  { key: 'office', label: 'Office', icon: '🏢', href: '/office' },
-  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/business/messages' },
-  { key: 'templates', label: 'Vorlagen', icon: '📝', href: '/business/templates' },
-  { key: 'reporting', label: 'PDL', icon: '📈', href: '/business/reporting' },
-  { key: 'ops', label: 'Betrieb', icon: '🚀', href: '/business/ops' },
-  { key: 'modules', label: 'Module', icon: '🧩', href: '/business/modules' },
-  { key: 'subscription', label: 'Plattform', icon: '🆓', href: '/business/subscription' },
-  { key: 'platform', label: 'Plattform', icon: '🤖', href: '/business/platform' },
-  { key: 'integrations', label: 'Integrationen', icon: '🔌', href: '/business/integrations' },
+  { key: 'office', label: 'Office', icon: '🏢', href: '/office', moduleScopeKey: 'office' },
+  {
+    key: 'messages',
+    label: 'Nachrichten',
+    icon: '💬',
+    href: '/business/messages',
+    moduleScopeKey: 'communication',
+  },
+  { key: 'templates', label: 'Vorlagen', icon: '📝', href: '/business/templates', moduleScopeKey: 'templates' },
+  {
+    key: 'reporting',
+    label: 'PDL',
+    icon: '📈',
+    href: '/business/reporting',
+    moduleScopeKey: 'reporting',
+  },
+  { key: 'ops', label: 'Betrieb', icon: '🚀', href: '/business/ops', moduleScopeKey: 'ops' },
+  { key: 'modules', label: 'Module', icon: '🧩', href: '/business/modules', moduleScopeKey: 'modules_hub' },
+  {
+    key: 'subscription',
+    label: 'Plattform',
+    icon: '🆓',
+    href: '/business/subscription',
+    moduleScopeKey: 'subscription',
+  },
+  {
+    key: 'platform',
+    label: 'Plattform',
+    icon: '🤖',
+    href: '/business/platform',
+    moduleScopeKey: 'platform',
+  },
+  {
+    key: 'integrations',
+    label: 'Integrationen',
+    icon: '🔌',
+    href: '/business/integrations',
+    moduleScopeKey: 'integrations',
+  },
 ];
 
 export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = [
@@ -74,47 +109,72 @@ export const PORTAL_CLIENT_TABS: ShellTabConfig[] = [
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile' },
 ];
 
-export function getTabsForArea(area: AppShellArea): ShellTabConfig[] {
-  switch (area) {
-    case 'business':
-      return BUSINESS_TABS;
-    case 'office':
-      return OFFICE_TABS;
-    case 'assist':
-      return ASSIST_TABS;
-    case 'pflege':
-      return PFLEGE_TABS;
-    case 'beratung':
-      return BERATUNG_TABS;
-    case 'akademie':
-      return AKADEMIE_TABS;
-    case 'stationaer':
-      return STATIONAER_TABS;
-    case 'portal_employee':
-      return PORTAL_EMPLOYEE_TABS;
-    case 'portal_client':
-      return PORTAL_CLIENT_TABS;
-    default:
-      return [];
-  }
+export function getTabsForArea(
+  area: AppShellArea,
+  context: { tenantId?: string | null; roleKey?: RoleKey | null } = {},
+): ShellTabConfig[] {
+  const tabs = (() => {
+    switch (area) {
+      case 'business':
+        return BUSINESS_TABS;
+      case 'office':
+        return OFFICE_TABS;
+      case 'assist':
+        return ASSIST_TABS;
+      case 'pflege':
+        return PFLEGE_TABS;
+      case 'beratung':
+        return BERATUNG_TABS;
+      case 'akademie':
+        return AKADEMIE_TABS;
+      case 'stationaer':
+        return STATIONAER_TABS;
+      case 'portal_employee':
+        return PORTAL_EMPLOYEE_TABS;
+      case 'portal_client':
+        return PORTAL_CLIENT_TABS;
+      default:
+        return [];
+    }
+  })();
+
+  return tabs.filter((tab) => {
+    if (tab.allowedRoles?.length && context.roleKey) {
+      if (!tab.allowedRoles.includes(context.roleKey)) return false;
+    }
+    if (!tab.moduleScopeKey) return true;
+    return isModuleScopeVisible(tab.moduleScopeKey, context);
+  });
 }
 
-export function getModuleSwitcherItems(tenantId: string): ModuleSwitcherItem[] {
+export function getModuleSwitcherItems(
+  tenantId: string,
+  roleKey?: RoleKey | null,
+): ModuleSwitcherItem[] {
   if (!tenantId?.trim()) return [];
   const access = getEffectiveModuleAccess(tenantId);
-  return (Object.keys(MODULE_NAV_CONFIG) as ProductKey[]).map((key) => {
-    const config = MODULE_NAV_CONFIG[key];
-    const moduleAccess = access.find((entry) => entry.productKey === key);
-    return {
-      productKey: key,
-      label: PRODUCT_LABELS[key],
-      icon: config.icon,
-      description: config.description,
-      path: config.path,
-      accentColor: config.accentColor,
-      isActive: moduleAccess?.isEffective ?? false,
-    };
-  });
+  const context = { tenantId, roleKey };
+
+  return (Object.keys(MODULE_NAV_CONFIG) as ProductKey[])
+    .map((key) => {
+      const config = MODULE_NAV_CONFIG[key];
+      const moduleAccess = access.find((entry) => entry.productKey === key);
+      const navState = resolveModuleNavState(key, context);
+      return {
+        productKey: key,
+        label: PRODUCT_LABELS[key],
+        icon: config.icon,
+        description: config.description,
+        path: config.path,
+        accentColor: config.accentColor,
+        isActive: moduleAccess?.isEffective ?? false,
+        visibilityStatus: navState.effectiveStatus,
+        isVisible: navState.isVisible,
+        isNavigable: navState.isNavigable,
+        badgeLabel: navState.badgeLabel,
+      };
+    })
+    .filter((item) => item.isVisible);
 }
 
 /** Ermittelt aktiven Tab-Key aus dem Pfad (für Custom TabBar). */

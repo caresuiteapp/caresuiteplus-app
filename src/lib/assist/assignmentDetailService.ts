@@ -1,6 +1,8 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { AssignmentPlan } from '@/types/modules/assist';
 import type { WorkflowStatus } from '@/types/core/base';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import {
   getDemoAssignmentSeedById,
   updateDemoAssignmentSeedStatus,
@@ -8,12 +10,17 @@ import {
 import { demoClients } from '@/data/demo/clients';
 import { demoEmployees } from '@/data/demo/employees';
 import { enforcePermission } from '@/lib/permissions';
+import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import {
-  CLIENT_STATUS_HINTS,
-  getAllowedStatusActions,
-  validateTransition,
-} from '@/lib/services';
+  getAllowedAssignmentTransitions,
+  validateAssignmentTransition,
+} from '@/lib/assist/assignmentStatusMachine';
+import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
+import {
+  assignmentSupabaseRepository,
+  type AssignmentDetail,
+} from '@/lib/assist/repositories/assignmentRepository.supabase';
 
 function clientName(clientId: string): string {
   const client = demoClients.find((c) => c.id === clientId);
@@ -25,13 +32,57 @@ function employeeName(employeeId: string): string {
   return employee ? `${employee.firstName} ${employee.lastName}` : 'Unbekannt';
 }
 
+function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
+  const map: Partial<Record<AssignmentStatus, WorkflowStatus>> = {
+    geplant: 'entwurf',
+    bestaetigt: 'aktiv',
+    unterwegs: 'aktiv',
+    angekommen: 'in_bearbeitung',
+    gestartet: 'in_bearbeitung',
+    pausiert: 'in_bearbeitung',
+    beendet: 'in_bearbeitung',
+    dokumentation_offen: 'in_bearbeitung',
+    unterschrift_offen: 'in_bearbeitung',
+    abgeschlossen: 'abgeschlossen',
+    storniert: 'fehlerhaft',
+    nicht_erschienen: 'fehlerhaft',
+  };
+  return map[status] ?? 'aktiv';
+}
+
 function applyWorkflowMeta(seed: NonNullable<ReturnType<typeof getDemoAssignmentSeedById>>): AssignmentPlan {
+  const assignmentStatus = remoteStatusToAssignment(seed.status);
+  const allowed = getAllowedAssignmentTransitions(assignmentStatus);
   return {
     ...seed,
     clientName: clientName(seed.clientId),
     employeeName: employeeName(seed.employeeId),
-    nextActionHint: CLIENT_STATUS_HINTS[seed.status],
-    allowedStatusActions: getAllowedStatusActions(seed.status),
+    nextActionHint: ASSIGNMENT_STATUS_LABELS[assignmentStatus],
+    allowedStatusActions: allowed.map(assignmentStatusToWorkflowFilter),
+  };
+}
+
+function detailToPlan(detail: AssignmentDetail): AssignmentPlan {
+  return {
+    id: detail.id,
+    tenantId: detail.tenantId,
+    clientId: detail.clientId,
+    employeeId: detail.employeeId,
+    appointmentId: detail.appointmentId,
+    title: detail.title,
+    scheduledStart: detail.scheduledStart,
+    scheduledEnd: detail.scheduledEnd,
+    status: detail.status,
+    location: detail.location,
+    notes: detail.notes,
+    clientName: detail.clientName,
+    employeeName: detail.employeeName,
+    nextActionHint: detail.nextActionHint,
+    allowedStatusActions: detail.allowedStatusActions,
+    createdAt: detail.createdAt,
+    updatedAt: detail.updatedAt,
+    visibility: detail.visibility,
+    sensitivity: detail.sensitivity,
   };
 }
 
@@ -45,6 +96,13 @@ export async function fetchAssignmentDetail(
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'supabase') {
+    const result = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
+    if (!result.ok) return result;
+    if (!result.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    return { ok: true, data: detailToPlan(result.data) };
+  }
 
   await new Promise((r) => setTimeout(r, 240));
 
@@ -71,12 +129,34 @@ export async function updateAssignmentStatus(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  if (getServiceMode() === 'supabase') {
+    const existing = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
+    if (!existing.ok) return existing;
+    if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const targetStatus = remoteStatusToAssignment(newStatus);
+    const validation = validateAssignmentTransition(existing.data.assignmentStatus, targetStatus);
+    if (!validation.valid) {
+      return { ok: false, error: validation.error ?? 'Statuswechsel nicht erlaubt.' };
+    }
+
+    const updated = await assignmentSupabaseRepository.updateStatus(
+      tenantId,
+      assignmentId,
+      targetStatus,
+    );
+    if (!updated.ok) return updated;
+    return { ok: true, data: detailToPlan(updated.data) };
+  }
+
   const current = getDemoAssignmentSeedById(assignmentId);
   if (!current) {
     return { ok: false, error: 'Einsatz nicht gefunden.' };
   }
 
-  const validation = validateTransition(current.status, newStatus);
+  const fromStatus = remoteStatusToAssignment(current.status);
+  const toStatus = remoteStatusToAssignment(newStatus);
+  const validation = validateAssignmentTransition(fromStatus, toStatus);
   if (!validation.valid) {
     return { ok: false, error: validation.error ?? 'Statuswechsel nicht erlaubt.' };
   }
@@ -89,4 +169,46 @@ export async function updateAssignmentStatus(
   }
 
   return { ok: true, data: applyWorkflowMeta(updated) };
+}
+
+export async function fetchAssignmentDetailWithTasks(
+  assignmentId: string,
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<AssignmentDetail>> {
+  const denied = enforcePermission<AssignmentDetail>(actorRoleKey, 'assist.assignments.view');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'supabase') {
+    return assignmentSupabaseRepository.getById(tenantId, assignmentId).then((result) => {
+      if (!result.ok) return result;
+      if (!result.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+      return { ok: true, data: result.data };
+    });
+  }
+
+  const seed = getDemoAssignmentSeedById(assignmentId);
+  if (!seed) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+  const plan = applyWorkflowMeta(seed);
+  const assignmentStatus = remoteStatusToAssignment(seed.status);
+  return {
+    ok: true,
+    data: {
+      ...plan,
+      assignmentStatus,
+      tasks: [],
+      onTheWayAt: null,
+      arrivedAt: null,
+      finishedAt: null,
+      documentationNotes: null,
+      plannedStartAt: seed.scheduledStart,
+      plannedEndAt: seed.scheduledEnd,
+      actualStartAt: null,
+      actualEndAt: null,
+    },
+  };
 }

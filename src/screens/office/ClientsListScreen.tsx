@@ -6,7 +6,7 @@ import { CareLightButton, EmptyState, ErrorState, LoadingState } from '@/compone
 import { moduleColor } from '@/design/tokens/modules';
 import { useClientList } from '@/hooks/useClientList';
 import { usePermissions } from '@/hooks/usePermissions';
-import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
+import { clientCreateRoute } from '@/lib/navigation/clientRoutes';
 import { fetchClientList } from '@/lib/office/clientListService';
 
 export function ClientsListScreen({
@@ -58,7 +58,7 @@ export function ClientsListScreen({
         canCreate ? (
           <CareLightButton
             title="+ Neu"
-            onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+            onPress={() => router.push(clientCreateRoute() as never)}
             accentColor={officeAccent}
           />
         ) : null
@@ -69,9 +69,9 @@ export function ClientsListScreen({
         {list.isEmpty && !list.hasActiveFilters ? (
           <EmptyState
             title="Keine Klient:innen"
-            message="Legen Sie die erste Klient:in im Demo-Mandanten an."
+            message="Legen Sie die erste Klient:in an, um mit der Verwaltung zu beginnen."
             actionLabel={canCreate ? 'Klient:in anlegen' : undefined}
-            onAction={canCreate ? () => router.push(CLIENT_INTAKE_NEW_ROUTE as never) : undefined}
+            onAction={canCreate ? () => router.push(clientCreateRoute() as never) : undefined}
           />
         ) : (
           <ClientsListView onClientPress={onClientPress} selectedId={selectedId} />

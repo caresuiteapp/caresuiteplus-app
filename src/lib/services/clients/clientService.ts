@@ -7,7 +7,12 @@ import { getServiceMode } from '../mode';
 import { runService } from '../serviceRunner';
 import { demoClientRepository } from './clientRepository.demo';
 import { supabaseClientRepository } from './clientRepository.supabase';
-import type { ClientListOptions, ClientRepository, ClientUpdateInput } from './types';
+import type {
+  ClientListOptions,
+  ClientMutationContext,
+  ClientRepository,
+  ClientUpdateInput,
+} from './types';
 
 const DELAYS = {
   list: 350,
@@ -35,16 +40,18 @@ export const clientService = {
   async create(
     tenantId: string,
     form: ClientFormData,
+    context?: ClientMutationContext,
   ): Promise<ServiceResult<{ id: string; detail: ClientDetail }>> {
-    return runService(() => getRepository().create(tenantId, form), { delayMs: DELAYS.create });
+    return runService(() => getRepository().create(tenantId, form, context), { delayMs: DELAYS.create });
   },
 
   async update(
     tenantId: string,
     clientId: string,
     input: ClientUpdateInput,
+    context?: ClientMutationContext,
   ): Promise<ServiceResult<ClientDetail>> {
-    return runService(() => getRepository().update(tenantId, clientId, input), {
+    return runService(() => getRepository().update(tenantId, clientId, input, context), {
       delayMs: DELAYS.mutate,
     });
   },
@@ -53,13 +60,18 @@ export const clientService = {
     tenantId: string,
     clientId: string,
     newStatus: WorkflowStatus,
+    context?: ClientMutationContext,
   ): Promise<ServiceResult<ClientDetail>> {
-    return runService(() => getRepository().changeStatus(tenantId, clientId, newStatus), {
+    return runService(() => getRepository().changeStatus(tenantId, clientId, newStatus, context), {
       delayMs: DELAYS.mutate,
     });
   },
 
-  async archive(tenantId: string, clientId: string): Promise<ServiceResult<ClientDetail>> {
-    return runService(() => getRepository().archive(tenantId, clientId), { delayMs: DELAYS.mutate });
+  async archive(
+    tenantId: string,
+    clientId: string,
+    context?: ClientMutationContext,
+  ): Promise<ServiceResult<ClientDetail>> {
+    return runService(() => getRepository().archive(tenantId, clientId, context), { delayMs: DELAYS.mutate });
   },
 };
