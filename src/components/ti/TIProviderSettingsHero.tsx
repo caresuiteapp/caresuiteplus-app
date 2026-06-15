@@ -1,0 +1,80 @@
+import { useMemo } from 'react';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { StyleSheet, Text, View } from 'react-native';
+import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { isTILiveReady } from '@/lib/ti/tiModuleConfig';
+import { isDemoMode } from '@/lib/supabase/config';
+import { designTokens, spacing } from '@/theme';
+
+type TIProviderSettingsHeroProps = {
+  providerCount: number;
+  connectedCount: number;
+};
+
+export function TIProviderSettingsHero({ providerCount, connectedCount }: TIProviderSettingsHeroProps) {
+  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+  topRow: { flexDirection: 'row', gap: spacing.md },
+  textCol: { flex: 1, gap: 2 },
+  eyebrow: {
+    ...typography.caption,
+    color: colors.cyan,
+    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
+  },
+  title: { ...typography.h2 },
+  meta: { ...typography.caption, color: colors.textMuted },
+  iconBadge: {
+    width: iconSize,
+    height: iconSize,
+    borderRadius: iconSize / 2,
+    backgroundColor: colors.bgElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(98,243,255,0.35)',
+  },
+  iconText: { fontSize: 22 },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  kpiItem: { flex: 1, minWidth: 100 },
+  hint: { ...typography.caption, color: colors.textMuted },
+}),
+    [colors, typography, gradients],
+  );
+
+
+  return (
+    <PremiumListHeroFrame>
+      <View style={styles.topRow}>
+        <View style={styles.textCol}>
+          <Text style={styles.eyebrow}>TELEMATIK · TI</Text>
+          <Text style={styles.title}>TI-Provider</Text>
+          <Text style={styles.meta}>
+            {providerCount} Provider konfiguriert · {connectedCount} verbunden
+          </Text>
+        </View>
+        <View style={styles.iconBadge}>
+          <Text style={styles.iconText}>🏥</Text>
+        </View>
+      </View>
+      <View style={styles.badges}>
+        <PremiumBadge label="TI-Gateway" variant="cyan" dot />
+        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="orange" /> : null}
+        {!isTILiveReady() ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
+      </View>
+      <View style={styles.kpiRow}>
+        <PremiumKpiCard label="Provider" value={String(providerCount)} subValue="Konfiguriert" icon="🔌" accentColor={colors.cyan} style={styles.kpiItem} />
+        <PremiumKpiCard label="Verbindung" value={String(connectedCount)} subValue="Aktiv" icon="✅" accentColor={colors.success} style={styles.kpiItem} />
+        <PremiumKpiCard label="Status" value="Prep." subValue="Kein Live-TI" icon="📡" accentColor={colors.violet} style={styles.kpiItem} />
+      </View>
+      <Text style={styles.hint}>
+        TI-Provider-Verbindungen sind im Demo-Modus simuliert — kein produktives TI-Gateway.
+      </Text>
+    </PremiumListHeroFrame>
+  );
+}
+
+const iconSize = designTokens.hero.iconBadgeSize;
+

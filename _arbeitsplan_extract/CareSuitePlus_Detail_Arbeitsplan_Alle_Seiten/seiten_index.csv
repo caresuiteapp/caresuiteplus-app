@@ -1,0 +1,105 @@
+nr;modul;route;titel;zweck
+1;OFFICE;/business/office/dashboard;Office Dashboard;Zentrale Verwaltungsstartseite mit Tagesübersicht, Aufgaben, Rechnungen, Dokumenten, QM, Portalen und Modulstatus.
+2;OFFICE;/business/office/clients;Klient:innenliste;Alle Klient:innen suchen, filtern, öffnen und neu aufnehmen.
+3;OFFICE;/business/office/clients/new;Klient:innenaufnahme Wizard;Kontextbasierte Neuaufnahme mit Leistungsart-Auswahl zuerst.
+4;OFFICE;/business/office/clients/[id];Klient:innenakte;Zentrale Personenakte als Hauptarbeitswerkzeug.
+5;OFFICE;/business/office/clients/[id]/edit;Klient:in bearbeiten;Stammdaten, Kontakt, Kasse, Leistungsarten, Module bearbeiten.
+6;OFFICE;/business/office/clients/[id]/documents;Klient:innen Dokumente;Dokumentenakte der Person mit Upload, Kategorien, Portal-Freigabe.
+7;OFFICE;/business/office/clients/[id]/contracts;Klient:innen Verträge;Verträge aus Vorlagen erstellen, befüllen, signieren, speichern.
+8;OFFICE;/business/office/clients/[id]/consents;Einwilligungen;Datenschutz, Schweigepflicht, Portal, Foto, Abrechnungsvollmacht.
+9;OFFICE;/business/office/clients/[id]/modules;Module der Klient:in;Assist/Pflege/Beratung/Stationär/Akademie zuordnen.
+10;OFFICE;/business/office/clients/[id]/timeline;Timeline;Alle Aktenereignisse chronologisch anzeigen.
+11;OFFICE;/business/office/clients/[id]/medication;Medikation in Akte;Medikationsplan und Einnahmeschema in der Akte.
+12;OFFICE;/business/office/clients/[id]/vitals;Vitalwerte in Akte;Messungen, Verlauf, Grenzwerte.
+13;OFFICE;/business/office/employees;Mitarbeitende;Mitarbeitendenliste, Zugänge, Rollen, Module.
+14;OFFICE;/business/office/employees/new;Mitarbeitende anlegen;Neue Mitarbeitende inklusive generiertem Zugang.
+15;OFFICE;/business/office/employees/[id];Mitarbeitendenakte;Profil, Qualifikationen, Einsätze, Dokumente, Schulungen.
+16;OFFICE;/business/office/documents;Dokumentenzentrale;Alle Dokumente zentral verwalten.
+17;OFFICE;/business/office/documents/upload;Dokument hochladen;Datei/Fotos/Scan vorbereitet mit Metadaten speichern.
+18;OFFICE;/business/office/invoices;Rechnungen;Rechnungen und Abrechnungsstatus zentral.
+19;OFFICE;/business/office/invoices/new;Rechnung erstellen;Rechnung aus Modul-Abrechnungsquellen erzeugen.
+20;OFFICE;/business/office/invoices/[id];Rechnung Detail;Positionen, Zahlung, Mahnung, PDF vorbereitet.
+21;OFFICE;/business/office/templates;Vorlagenübersicht;System- und eigene Vorlagen.
+22;OFFICE;/business/office/templates/new;Vorlage erstellen;Neue Vorlage mit Platzhaltern, Kategorie und Version.
+23;OFFICE;/business/office/templates/[id];Vorlage Detail;Vorlage bearbeiten, Vorschau, aktivieren, versionieren.
+24;OFFICE;/business/office/qm;QM Übersicht;QM-Handbuch, Maßnahmen, Richtlinien, Prüfpakete.
+25;OFFICE;/business/office/qm/manual;QM-Handbuch;Kapitelbaum, Inhalte, Versionen.
+26;OFFICE;/business/office/qm/manual/[id];QM-Kapitel;Kapitel bearbeiten, Version freigeben, Lesebestätigung.
+27;OFFICE;/business/office/qm/md-check;MD-Kontrolle;Unterlagen für MD-/Prüfung zusammenstellen.
+28;OFFICE;/business/office/modules;Module & Zuordnung;Zentrale Modulsteuerung.
+29;OFFICE;/business/office/modules/clients;Klient:innen je Modul;Klient:innen Modulen zuordnen.
+30;OFFICE;/business/office/modules/employees;Mitarbeitende je Modul;Rollen und Rechte pro Modul.
+31;OFFICE;/business/office/modules/billing;Abrechnungsquellen;Quellen aus Modulen prüfen und an Rechnungen übergeben.
+32;OFFICE;/business/office/portals;Portalverwaltung;Zugänge für Mitarbeitende, Klient:innen, Angehörige.
+33;OFFICE;/business/office/permissions;Benutzer & Rechte;Rollen, Rechte, Module und Berechtigungen.
+34;OFFICE;/business/office/settings;Office Einstellungen;Mandant, Module, Kataloge, Sicherheit.
+35;OFFICE;/business/office/reporting;Office Reporting;Kennzahlen, Filter, Drilldowns.
+36;ASSIST;/assist;Assist Dashboard;Heutige Einsätze, offene Nachweise, fehlende Signaturen, Fahrten, Qualität.
+37;ASSIST;/assist/einsaetze;Einsätze;Einsatzliste mit Suche, Filter, Detailpanel.
+38;ASSIST;/assist/einsaetze/new;Einsatz anlegen;Einsatz mit Office-Klient:in und Mitarbeitenden planen.
+39;ASSIST;/assist/einsaetze/[id];Einsatzdetail;Einsatzdaten, Aufgaben, Hinweise, Durchführungsstart.
+40;ASSIST;/assist/einsaetze/[id]/edit;Einsatz bearbeiten;Zeit, Aufgaben, Mitarbeitende und Status ändern.
+41;ASSIST;/assist/durchfuehrung/[id];Einsatz durchführen;Unterwegs → Angekommen → Start → Aufgaben → Doku → Signatur → Abschluss.
+42;ASSIST;/assist/aufgaben;Aufgaben;Aufgaben aus Einsätzen und Standardaufgaben.
+43;ASSIST;/assist/nachweise;Leistungsnachweise;Nachweise prüfen, signieren, abrechnungsbereit machen.
+44;ASSIST;/assist/fahrten;Fahrten;Fahrtenbuch mit km, Zweck und Klient:in.
+45;ASSIST;/assist/touren;Touren;Tourenplanung und Reihenfolge.
+46;ASSIST;/assist/kalender;Kalender;Tages- und Wochenkalender.
+47;ASSIST;/assist/live-status;Live-Status;Laufende Einsätze und Status.
+48;ASSIST;/assist/abrechnungsquellen;Abrechnungsquellen;Assist-Leistungen an Office übergeben.
+49;PFLEGE;/pflege;Pflege Dashboard;Pflegepläne, Vitalwerte, Medikation, Wunden, Risiken, SIS, Berichte.
+50;PFLEGE;/pflege/sis;SIS Liste;Strukturierte Informationssammlung als Liste.
+51;PFLEGE;/pflege/sis/new;SIS anlegen;Echte SIS mit 6 Themenfeldern und Risikomatrix.
+52;PFLEGE;/pflege/sis/[id];SIS Detail;SIS anzeigen, Risiken bewerten, Maßnahmen ableiten.
+53;PFLEGE;/pflege/planung;Pflegeplanung;Pflegepläne und Maßnahmen.
+54;PFLEGE;/pflege/planung/new;Pflegeplanung anlegen;Plan aus SIS/Risiken/Maßnahmen erstellen.
+55;PFLEGE;/pflege/planung/[id];Pflegeplanung Detail;Ziele, Maßnahmen, Evaluation.
+56;PFLEGE;/pflege/vitalwerte;Vitalwerte;Messungen und Verlauf.
+57;PFLEGE;/pflege/vitalwerte/new;Vitalwert erfassen;Messart-Dropdown und dynamische Felder.
+58;PFLEGE;/pflege/medikation;Medikation;Medikamentenplan.
+59;PFLEGE;/pflege/medikation/new;Medikament hinzufügen;Einnahmeschema morgens/mittags/abends/nachts.
+60;PFLEGE;/pflege/wunden;Wunddokumentation;Wunden, BodyMap und Verlauf.
+61;PFLEGE;/pflege/wunden/new;Wunde anlegen;Wunde mit BodyMap-Marker und Fachfeldern.
+62;PFLEGE;/pflege/wunden/[id];Wunde Detail;Wundverlauf, Fotos, Maßnahmen, Kontrolle.
+63;PFLEGE;/pflege/bodymap;BodyMap;Interaktive klinische Körperkarte mit Marker-Speicherung.
+64;PFLEGE;/pflege/risiken;Risiken;Risiken, Stufen, Maßnahmen.
+65;PFLEGE;/pflege/berichte;Pflegeberichte;Berichte, Übergaben, Beobachtungen.
+66;PFLEGE;/pflege/berichte/new;Pflegebericht erstellen;Berichtstyp, Vorlage, Text, Aktenablage.
+67;PFLEGE;/pflege/dienstplaene;Dienstpläne;Schichten und Planung.
+68;PFLEGE;/pflege/dienstplaene/new;Schicht anlegen;Schichttyp, Mitarbeitende, Zeitraum.
+69;PFLEGE;/pflege/verordnungen;Verordnungen;Rezepte, Verordnungen, Arztbriefe.
+70;BERATUNG;/beratung;Beratung Dashboard;Offene Fälle, Wiedervorlagen, Protokolle, Maßnahmen.
+71;BERATUNG;/beratung/faelle;Fälle;Beratungsfallliste.
+72;BERATUNG;/beratung/faelle/new;Fall anlegen;Neuen Beratungsfall mit Office-Klient:in.
+73;BERATUNG;/beratung/faelle/[id];Fallakte;Protokolle, Maßnahmen, Dokumente.
+74;BERATUNG;/beratung/protokolle;Protokolle;Beratungsprotokolle.
+75;BERATUNG;/beratung/protokolle/new;Protokoll erstellen;Vorlage, Empfehlungen, Maßnahmen.
+76;BERATUNG;/beratung/massnahmen;Maßnahmen;Maßnahmen und Status.
+77;BERATUNG;/beratung/wiedervorlagen;Wiedervorlagen;Fällige Kontakte und Aufgaben.
+78;STATIONAER;/stationaer;Stationär Dashboard;Bewohner:innen, Wohnbereiche, Belegung, Übergaben.
+79;STATIONAER;/stationaer/bewohner;Bewohner:innen;Bewohnerliste aus Office-Zuordnung.
+80;STATIONAER;/stationaer/bewohner/[id];Bewohnerdetail;Bewohnerdaten, Zimmer, Tagesstruktur.
+81;STATIONAER;/stationaer/wohnbereiche;Wohnbereiche;Wohnbereiche verwalten.
+82;STATIONAER;/stationaer/zimmer;Zimmer;Zimmerstatus und Belegung.
+83;STATIONAER;/stationaer/belegung;Belegung;Einzug/Auszug/Reservierung.
+84;STATIONAER;/stationaer/tagesstruktur;Tagesstruktur;Tagesablauf je Bewohner:in.
+85;STATIONAER;/stationaer/mahlzeiten;Mahlzeiten;Kostformen und Mahlzeitenhinweise.
+86;STATIONAER;/stationaer/uebergabe;Übergabe;Schicht-/Wohnbereichsübergabe.
+87;AKADEMIE;/akademie;Akademie Dashboard;Kurse, Pflichtschulungen, Fortschritt.
+88;AKADEMIE;/akademie/kurse;Kurse;Kursliste.
+89;AKADEMIE;/akademie/kurse/new;Kurs erstellen;Kurs mit Lektionen und Zielgruppe.
+90;AKADEMIE;/akademie/kurse/[id];Kursdetail;Lektionen, Teilnehmende, Prüfung.
+91;AKADEMIE;/akademie/lektionen;Lektionen;Lerninhalte.
+92;AKADEMIE;/akademie/teilnehmende;Teilnehmende;Teilnehmende und Fortschritt.
+93;AKADEMIE;/akademie/pruefungen;Prüfungen;Fragen, Antworten, Ergebnisse.
+94;AKADEMIE;/akademie/zertifikate;Zertifikate;Zertifikate erzeugen und ablegen.
+95;WEITERE;/business/messages;Nachrichtenübersicht;Threads und Kommunikation.
+96;WEITERE;/business/messages/[threadId];Chat / Thread;Nachrichtenverlauf.
+97;WEITERE;/business/documents;Globale Dokumente;Dokumentenzentrale.
+98;WEITERE;/business/qm;QM Center;QM-Zentrale.
+99;WEITERE;/business/insight;InsightCenter;Kennzahlen und Drilldowns.
+100;WEITERE;/business/settings;Einstellungen;Mandant und System.
+101;WEITERE;/business/ti;TI Vorbereitung;Externe TI-Anbindungen.
+102;WEITERE;/portal/employee;Mitarbeiterportal;Portal für Mitarbeitende.
+103;WEITERE;/portal/client;Klient:innenportal;Portal für Klient:innen.
+104;WEITERE;/portal/relative;Angehörigenportal;Portal für Angehörige.

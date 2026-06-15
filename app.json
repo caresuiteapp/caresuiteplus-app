@@ -1,0 +1,64 @@
+{
+  "expo": {
+    "name": "CareSuite+",
+    "slug": "caresuite-plus",
+    "version": "1.0.0",
+    "orientation": "default",
+    "icon": "./assets/icon.png",
+    "scheme": "caresuiteplus",
+    "userInterfaceStyle": "dark",
+    "newArchEnabled": true,
+    "splash": {
+      "image": "./assets/splash-icon.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#070B12"
+    },
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "de.caresuiteplus.app",
+      "buildNumber": "1"
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/android-icon-foreground.png",
+        "backgroundImage": "./assets/android-icon-background.png",
+        "monochromeImage": "./assets/android-icon-monochrome.png",
+        "backgroundColor": "#070B12"
+      },
+      "package": "de.caresuiteplus.app",
+      "versionCode": 1,
+      "permissions": [
+        "INTERNET"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "output": "static",
+      "favicon": "./assets/favicon.png"
+    },
+    "plugins": [
+      "expo-router",
+      "expo-asset",
+      "expo-font"
+    ],
+    "experiments": {
+      "typedRoutes": true,
+      "tsconfigPaths": true
+    },
+    "extra": {
+      "supportLinks": {
+        "help": "https://caresuiteplus.de/hilfe",
+        "privacy": "https://caresuiteplus.de/datenschutz",
+        "imprint": "https://caresuiteplus.de/impressum",
+        "terms": "https://caresuiteplus.de/nutzungsbedingungen",
+        "supportEmail": "support@caresuiteplus.de"
+      },
+      "router": {
+        "origin": false
+      },
+      "eas": {
+        "projectId": "567bda34-8356-4de8-9349-a0de3143567e"
+      }
+    }
+  }
+}

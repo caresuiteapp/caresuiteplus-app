@@ -1,0 +1,10 @@
+export { StationaerIndexScreen } from './StationaerIndexScreen';
+export { ResidentsListScreen } from './ResidentsListScreen';
+export { ResidentsAdaptiveScreen } from './ResidentsAdaptiveScreen';
+export { ResidentDetailScreen } from './ResidentDetailScreen';
+export { LivingAreasScreen } from './LivingAreasScreen';
+export { LivingAreaDetailScreen } from './LivingAreaDetailScreen';
+export { HandoverReportScreen } from './HandoverReportScreen';
+export { HandoverDetailScreen } from './HandoverDetailScreen';
+export { StationaerSettingsScreen } from './StationaerSettingsScreen';
+export { StationaerReportsScreen } from './StationaerReportsScreen';

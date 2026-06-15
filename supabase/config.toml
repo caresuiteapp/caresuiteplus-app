@@ -1,0 +1,26 @@
+# CareSuite+ — lokale Supabase-Konfiguration
+# Start: supabase start  |  Migrationen: supabase db push
+
+[project]
+id = "caresuite-plus"
+
+[api]
+port = 54321
+schemas = ["public", "storage"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+major_version = 15
+
+[studio]
+port = 54323
+
+[auth]
+site_url = "http://localhost:8081"
+additional_redirect_urls = ["exp://localhost:8081"]
+
+[auth.email]
+enable_signup = true
+enable_confirmations = false

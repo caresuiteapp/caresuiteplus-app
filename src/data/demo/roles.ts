@@ -1,0 +1,95 @@
+import type { Role, RoleKey } from '@/types';
+
+export const ROLE_LABELS: Record<RoleKey, string> = {
+  business_admin: 'Geschäftsführung / Admin',
+  business_manager: 'Bereichsleitung',
+  billing: 'Abrechnung',
+  dispatch: 'Einsatzplanung',
+  nurse: 'Pflegefachkraft',
+  caregiver: 'Alltagsbegleiter:in',
+  counselor: 'Beratungskraft',
+  akademie_admin: 'Akademie-Admin',
+  employee_portal: 'Mitarbeiterportal',
+  client_portal: 'Klient:innenportal',
+  family_portal: 'Angehörigenportal',
+};
+
+export const demoRoles: Role[] = [
+  {
+    id: 'role-001',
+    key: 'business_admin',
+    name: ROLE_LABELS.business_admin,
+    description: 'Voller Zugriff auf Unternehmenskonto und Module',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-002',
+    key: 'business_manager',
+    name: ROLE_LABELS.business_manager,
+    description: 'Verwaltung von Teams und Einsatzplanung',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-003',
+    key: 'billing',
+    name: ROLE_LABELS.billing,
+    description: 'Rechnungen und Abrechnung',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-004',
+    key: 'dispatch',
+    name: ROLE_LABELS.dispatch,
+    description: 'Einsatzplanung und Touren',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-005',
+    key: 'nurse',
+    name: ROLE_LABELS.nurse,
+    description: 'Pflegefachliche Dokumentation',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-006',
+    key: 'caregiver',
+    name: ROLE_LABELS.caregiver,
+    description: 'Alltagsbegleitung und Betreuung',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-007',
+    key: 'counselor',
+    name: ROLE_LABELS.counselor,
+    description: 'Beratungsfälle und Protokolle',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-008',
+    key: 'akademie_admin',
+    name: ROLE_LABELS.akademie_admin,
+    description: 'Kurse und Schulungen verwalten',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-009',
+    key: 'employee_portal',
+    name: ROLE_LABELS.employee_portal,
+    description: 'Mitarbeiterportal-Zugang',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-010',
+    key: 'client_portal',
+    name: ROLE_LABELS.client_portal,
+    description: 'Klient:innenportal-Zugang',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+  {
+    id: 'role-011',
+    key: 'family_portal',
+    name: ROLE_LABELS.family_portal,
+    description: 'Angehörigenportal-Zugang',
+    createdAt: '2025-01-01T00:00:00.000Z',
+  },
+];

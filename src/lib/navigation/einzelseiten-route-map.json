@@ -1,0 +1,1046 @@
+[
+  {
+    "id": "0001",
+    "prompt": "/",
+    "target": "/",
+    "tab": null
+  },
+  {
+    "id": "0002",
+    "prompt": "/auth",
+    "target": "/auth",
+    "tab": null
+  },
+  {
+    "id": "0003",
+    "prompt": "/auth/business-login",
+    "target": "/auth/business-login",
+    "tab": null
+  },
+  {
+    "id": "0004",
+    "prompt": "/auth/employee-login",
+    "target": "/auth/employee-login",
+    "tab": null
+  },
+  {
+    "id": "0005",
+    "prompt": "/auth/employee-first-login",
+    "target": "/auth/employee-first-login",
+    "tab": null
+  },
+  {
+    "id": "0006",
+    "prompt": "/auth/portal-code-login",
+    "target": "/auth/portal-code-login",
+    "tab": null
+  },
+  {
+    "id": "0007",
+    "prompt": "/auth/register-business",
+    "target": "/auth/register-business",
+    "tab": null
+  },
+  {
+    "id": "0008",
+    "prompt": "/auth/forgot-password",
+    "target": "/auth/forgot-password",
+    "tab": null
+  },
+  {
+    "id": "0009",
+    "prompt": "/business/office/dashboard",
+    "target": "/office",
+    "tab": null
+  },
+  {
+    "id": "0010",
+    "prompt": "/business/office/clients",
+    "target": "/office/clients",
+    "tab": null
+  },
+  {
+    "id": "0011",
+    "prompt": "/business/office/clients/new",
+    "target": "/business/office/clients/new",
+    "tab": null
+  },
+  {
+    "id": "0012",
+    "prompt": "/business/office/clients/[id]",
+    "target": "/business/office/clients/[id]",
+    "tab": null
+  },
+  {
+    "id": "0013",
+    "prompt": "/business/office/clients/[id]/edit",
+    "target": "/office/clients/[id]/edit",
+    "tab": null
+  },
+  {
+    "id": "0014",
+    "prompt": "/business/office/clients/[id]/documents",
+    "target": "/business/office/clients/[id]",
+    "tab": "dokumente"
+  },
+  {
+    "id": "0015",
+    "prompt": "/business/office/clients/[id]/contracts",
+    "target": "/business/office/clients/[id]",
+    "tab": "vertrag"
+  },
+  {
+    "id": "0016",
+    "prompt": "/business/office/clients/[id]/consents",
+    "target": "/business/office/clients/[id]",
+    "tab": "einwilligungen"
+  },
+  {
+    "id": "0017",
+    "prompt": "/business/office/clients/[id]/care",
+    "target": "/business/office/clients/[id]",
+    "tab": "pflege"
+  },
+  {
+    "id": "0018",
+    "prompt": "/business/office/clients/[id]/billing",
+    "target": "/business/office/clients/[id]",
+    "tab": "abrechnung"
+  },
+  {
+    "id": "0019",
+    "prompt": "/business/office/clients/[id]/modules",
+    "target": "/business/office/clients/[id]",
+    "tab": "module"
+  },
+  {
+    "id": "0020",
+    "prompt": "/business/office/clients/[id]/portal",
+    "target": "/business/office/clients/[id]",
+    "tab": "portal"
+  },
+  {
+    "id": "0021",
+    "prompt": "/business/office/clients/[id]/timeline",
+    "target": "/business/office/clients/[id]",
+    "tab": "verlauf"
+  },
+  {
+    "id": "0022",
+    "prompt": "/business/office/clients/[id]/medical",
+    "target": "/business/office/clients/[id]",
+    "tab": "icd"
+  },
+  {
+    "id": "0023",
+    "prompt": "/business/office/clients/[id]/medication",
+    "target": "/business/office/clients/[id]",
+    "tab": "medikation"
+  },
+  {
+    "id": "0024",
+    "prompt": "/business/office/clients/[id]/vitals",
+    "target": "/business/office/clients/[id]",
+    "tab": "vitalwerte"
+  },
+  {
+    "id": "0025",
+    "prompt": "/business/office/clients/[id]/service-records",
+    "target": "/business/office/clients/[id]",
+    "tab": "nachweise"
+  },
+  {
+    "id": "0026",
+    "prompt": "/business/office/clients/[id]/communication",
+    "target": "/business/office/clients/[id]",
+    "tab": "nachrichten"
+  },
+  {
+    "id": "0027",
+    "prompt": "/business/office/employees",
+    "target": "/office/employees",
+    "tab": null
+  },
+  {
+    "id": "0028",
+    "prompt": "/business/office/employees/new",
+    "target": "/office/employees/create",
+    "tab": null
+  },
+  {
+    "id": "0029",
+    "prompt": "/business/office/employees/[id]",
+    "target": "/office/employees/[id]",
+    "tab": null
+  },
+  {
+    "id": "0030",
+    "prompt": "/business/office/employees/[id]/edit",
+    "target": "/office/employees/[id]/edit",
+    "tab": null
+  },
+  {
+    "id": "0031",
+    "prompt": "/business/office/documents",
+    "target": "/office/documents",
+    "tab": null
+  },
+  {
+    "id": "0032",
+    "prompt": "/business/office/documents/[id]",
+    "target": "/office/documents",
+    "tab": null
+  },
+  {
+    "id": "0033",
+    "prompt": "/business/office/documents/upload",
+    "target": "/office/documents/upload",
+    "tab": null
+  },
+  {
+    "id": "0034",
+    "prompt": "/business/office/documents/categories",
+    "target": "/office/catalogs",
+    "tab": null
+  },
+  {
+    "id": "0035",
+    "prompt": "/business/office/invoices",
+    "target": "/office/invoices",
+    "tab": null
+  },
+  {
+    "id": "0036",
+    "prompt": "/business/office/invoices/new",
+    "target": "/office/invoices/create",
+    "tab": null
+  },
+  {
+    "id": "0037",
+    "prompt": "/business/office/invoices/[id]",
+    "target": "/office/invoices/[id]",
+    "tab": null
+  },
+  {
+    "id": "0038",
+    "prompt": "/business/office/invoices/runs",
+    "target": "/business/office/modules/billing",
+    "tab": null
+  },
+  {
+    "id": "0039",
+    "prompt": "/business/office/invoices/payments",
+    "target": "/office/invoices",
+    "tab": null
+  },
+  {
+    "id": "0040",
+    "prompt": "/business/office/invoices/dunning",
+    "target": "/office/invoices",
+    "tab": null
+  },
+  {
+    "id": "0041",
+    "prompt": "/business/office/templates",
+    "target": "/business/office/modules/templates",
+    "tab": null
+  },
+  {
+    "id": "0042",
+    "prompt": "/business/office/templates/new",
+    "target": "/business/templates",
+    "tab": null
+  },
+  {
+    "id": "0043",
+    "prompt": "/business/office/templates/[id]",
+    "target": "/business/templates/[id]",
+    "tab": null
+  },
+  {
+    "id": "0044",
+    "prompt": "/business/office/templates/categories",
+    "target": "/business/templates",
+    "tab": null
+  },
+  {
+    "id": "0045",
+    "prompt": "/business/office/qm",
+    "target": "/business/office/qm",
+    "tab": null
+  },
+  {
+    "id": "0046",
+    "prompt": "/business/office/qm/manual",
+    "target": "/business/office/qm/handbook",
+    "tab": null
+  },
+  {
+    "id": "0047",
+    "prompt": "/business/office/qm/manual/[id]",
+    "target": "/business/office/qm/handbook/[id]",
+    "tab": null
+  },
+  {
+    "id": "0048",
+    "prompt": "/business/office/qm/policies",
+    "target": "/business/office/qm/compliance",
+    "tab": null
+  },
+  {
+    "id": "0049",
+    "prompt": "/business/office/qm/audit-packages",
+    "target": "/business/office/qm/audits",
+    "tab": null
+  },
+  {
+    "id": "0050",
+    "prompt": "/business/office/qm/md-check",
+    "target": "/business/office/qm/md-audit",
+    "tab": null
+  },
+  {
+    "id": "0051",
+    "prompt": "/business/office/modules",
+    "target": "/business/office/modules",
+    "tab": null
+  },
+  {
+    "id": "0052",
+    "prompt": "/business/office/modules/clients",
+    "target": "/business/office/modules/clients",
+    "tab": null
+  },
+  {
+    "id": "0053",
+    "prompt": "/business/office/modules/employees",
+    "target": "/business/office/modules/employees",
+    "tab": null
+  },
+  {
+    "id": "0054",
+    "prompt": "/business/office/modules/services",
+    "target": "/business/office/modules/services",
+    "tab": null
+  },
+  {
+    "id": "0055",
+    "prompt": "/business/office/modules/documents",
+    "target": "/business/office/modules/documents",
+    "tab": null
+  },
+  {
+    "id": "0056",
+    "prompt": "/business/office/modules/templates",
+    "target": "/business/office/modules/templates",
+    "tab": null
+  },
+  {
+    "id": "0057",
+    "prompt": "/business/office/modules/permissions",
+    "target": "/business/office/modules/permissions",
+    "tab": null
+  },
+  {
+    "id": "0058",
+    "prompt": "/business/office/modules/billing",
+    "target": "/business/office/modules/billing",
+    "tab": null
+  },
+  {
+    "id": "0059",
+    "prompt": "/business/office/portals",
+    "target": "/business/office/access",
+    "tab": null
+  },
+  {
+    "id": "0060",
+    "prompt": "/business/office/portals/employees",
+    "target": "/business/office/access/employee-portal",
+    "tab": null
+  },
+  {
+    "id": "0061",
+    "prompt": "/business/office/portals/clients",
+    "target": "/business/office/access/client-portal",
+    "tab": null
+  },
+  {
+    "id": "0062",
+    "prompt": "/business/office/portals/relatives",
+    "target": "/business/office/access/relative-portal",
+    "tab": null
+  },
+  {
+    "id": "0063",
+    "prompt": "/business/office/portals/access-codes",
+    "target": "/business/office/access/employee-portal/new",
+    "tab": null
+  },
+  {
+    "id": "0064",
+    "prompt": "/business/office/permissions",
+    "target": "/business/office/modules/permissions",
+    "tab": null
+  },
+  {
+    "id": "0065",
+    "prompt": "/business/office/settings",
+    "target": "/business/office/settings",
+    "tab": null
+  },
+  {
+    "id": "0066",
+    "prompt": "/business/office/reporting",
+    "target": "/business/office/reporting",
+    "tab": null
+  },
+  {
+    "id": "0067",
+    "prompt": "/business/office/audit-log",
+    "target": "/business/office/audit-log",
+    "tab": null
+  },
+  {
+    "id": "0068",
+    "prompt": "/assist",
+    "target": "/assist",
+    "tab": null
+  },
+  {
+    "id": "0069",
+    "prompt": "/assist/einsaetze",
+    "target": "/assist/assignments",
+    "tab": null
+  },
+  {
+    "id": "0070",
+    "prompt": "/assist/einsaetze/new",
+    "target": "/assist/assignments",
+    "tab": null
+  },
+  {
+    "id": "0071",
+    "prompt": "/assist/einsaetze/[id]",
+    "target": "/assist/assignments/[id]",
+    "tab": null
+  },
+  {
+    "id": "0072",
+    "prompt": "/assist/einsaetze/[id]/edit",
+    "target": "/assist/assignments/[id]",
+    "tab": null
+  },
+  {
+    "id": "0073",
+    "prompt": "/assist/durchfuehrung/[id]",
+    "target": "/assist/assignments/[id]/execute",
+    "tab": null
+  },
+  {
+    "id": "0074",
+    "prompt": "/assist/aufgaben",
+    "target": "/assist/assignments",
+    "tab": null
+  },
+  {
+    "id": "0075",
+    "prompt": "/assist/nachweise",
+    "target": "/assist/nachweise",
+    "tab": null
+  },
+  {
+    "id": "0076",
+    "prompt": "/assist/nachweise/[id]",
+    "target": "/assist/nachweise/[id]",
+    "tab": null
+  },
+  {
+    "id": "0077",
+    "prompt": "/assist/signaturen",
+    "target": "/assist/nachweise",
+    "tab": null
+  },
+  {
+    "id": "0078",
+    "prompt": "/assist/fahrten",
+    "target": "/assist/fahrten",
+    "tab": null
+  },
+  {
+    "id": "0079",
+    "prompt": "/assist/touren",
+    "target": "/assist/fahrten",
+    "tab": null
+  },
+  {
+    "id": "0080",
+    "prompt": "/assist/kalender",
+    "target": "/assist/calendar",
+    "tab": null
+  },
+  {
+    "id": "0081",
+    "prompt": "/assist/live-status",
+    "target": "/assist/durchfuehrung",
+    "tab": null
+  },
+  {
+    "id": "0082",
+    "prompt": "/assist/qualitaet",
+    "target": "/assist/nachweise",
+    "tab": null
+  },
+  {
+    "id": "0083",
+    "prompt": "/assist/abrechnungsquellen",
+    "target": "/business/office/modules/billing",
+    "tab": null
+  },
+  {
+    "id": "0084",
+    "prompt": "/assist/einstellungen",
+    "target": "/assist",
+    "tab": null
+  },
+  {
+    "id": "0085",
+    "prompt": "/pflege",
+    "target": "/pflege",
+    "tab": null
+  },
+  {
+    "id": "0086",
+    "prompt": "/pflege/informationssammlung",
+    "target": "/pflege/sis",
+    "tab": null
+  },
+  {
+    "id": "0087",
+    "prompt": "/pflege/informationssammlung/new",
+    "target": "/pflege/sis/create",
+    "tab": null
+  },
+  {
+    "id": "0088",
+    "prompt": "/pflege/informationssammlung/[id]",
+    "target": "/pflege/sis/[id]",
+    "tab": null
+  },
+  {
+    "id": "0089",
+    "prompt": "/pflege/planung",
+    "target": "/pflege/plans",
+    "tab": null
+  },
+  {
+    "id": "0090",
+    "prompt": "/pflege/planung/new",
+    "target": "/pflege/plans/create",
+    "tab": null
+  },
+  {
+    "id": "0091",
+    "prompt": "/pflege/planung/[id]",
+    "target": "/pflege/plans/[id]",
+    "tab": null
+  },
+  {
+    "id": "0092",
+    "prompt": "/pflege/planung/[id]/edit",
+    "target": "/pflege/plans/[id]",
+    "tab": null
+  },
+  {
+    "id": "0093",
+    "prompt": "/pflege/massnahmen",
+    "target": "/pflege/plans",
+    "tab": null
+  },
+  {
+    "id": "0094",
+    "prompt": "/pflege/berichte",
+    "target": "/pflege/dokumentation",
+    "tab": null
+  },
+  {
+    "id": "0095",
+    "prompt": "/pflege/berichte/new",
+    "target": "/pflege/dokumentation",
+    "tab": null
+  },
+  {
+    "id": "0096",
+    "prompt": "/pflege/berichte/[id]",
+    "target": "/pflege/dokumentation/[id]",
+    "tab": null
+  },
+  {
+    "id": "0097",
+    "prompt": "/pflege/vitalwerte",
+    "target": "/pflege/vitalwerte",
+    "tab": null
+  },
+  {
+    "id": "0098",
+    "prompt": "/pflege/vitalwerte/new",
+    "target": "/pflege/vitalwerte/create",
+    "tab": null
+  },
+  {
+    "id": "0099",
+    "prompt": "/pflege/medikation",
+    "target": "/pflege/medikation",
+    "tab": null
+  },
+  {
+    "id": "0100",
+    "prompt": "/pflege/medikation/new",
+    "target": "/pflege/medikation",
+    "tab": null
+  },
+  {
+    "id": "0101",
+    "prompt": "/pflege/wunden",
+    "target": "/pflege/wunddokumentation",
+    "tab": null
+  },
+  {
+    "id": "0102",
+    "prompt": "/pflege/wunden/new",
+    "target": "/pflege/wunddokumentation",
+    "tab": null
+  },
+  {
+    "id": "0103",
+    "prompt": "/pflege/wunden/[id]",
+    "target": "/pflege/wunddokumentation/[id]",
+    "tab": null
+  },
+  {
+    "id": "0104",
+    "prompt": "/pflege/bodymap",
+    "target": "/pflege/wunddokumentation",
+    "tab": null
+  },
+  {
+    "id": "0105",
+    "prompt": "/pflege/risiken",
+    "target": "/pflege/sis",
+    "tab": null
+  },
+  {
+    "id": "0106",
+    "prompt": "/pflege/assessments",
+    "target": "/pflege/sis",
+    "tab": null
+  },
+  {
+    "id": "0107",
+    "prompt": "/pflege/sis",
+    "target": "/pflege/sis",
+    "tab": null
+  },
+  {
+    "id": "0108",
+    "prompt": "/pflege/sis/new",
+    "target": "/pflege/sis/create",
+    "tab": null
+  },
+  {
+    "id": "0109",
+    "prompt": "/pflege/sis/[id]",
+    "target": "/pflege/sis/[id]",
+    "tab": null
+  },
+  {
+    "id": "0110",
+    "prompt": "/pflege/verordnungen",
+    "target": "/pflege/medikation",
+    "tab": null
+  },
+  {
+    "id": "0111",
+    "prompt": "/pflege/evaluation",
+    "target": "/pflege/plans",
+    "tab": null
+  },
+  {
+    "id": "0112",
+    "prompt": "/pflege/visiten",
+    "target": "/pflege/dokumentation",
+    "tab": null
+  },
+  {
+    "id": "0113",
+    "prompt": "/pflege/uebergaben",
+    "target": "/pflege/dokumentation",
+    "tab": null
+  },
+  {
+    "id": "0114",
+    "prompt": "/pflege/dienstplaene",
+    "target": "/pflege/dienstplaene",
+    "tab": null
+  },
+  {
+    "id": "0115",
+    "prompt": "/pflege/dienstplaene/new",
+    "target": "/pflege/dienstplaene",
+    "tab": null
+  },
+  {
+    "id": "0116",
+    "prompt": "/pflege/reports",
+    "target": "/pflege/auswertungen",
+    "tab": null
+  },
+  {
+    "id": "0117",
+    "prompt": "/pflege/einstellungen",
+    "target": "/pflege/settings",
+    "tab": null
+  },
+  {
+    "id": "0118",
+    "prompt": "/beratung",
+    "target": "/beratung",
+    "tab": null
+  },
+  {
+    "id": "0119",
+    "prompt": "/beratung/faelle",
+    "target": "/beratung/cases",
+    "tab": null
+  },
+  {
+    "id": "0120",
+    "prompt": "/beratung/faelle/new",
+    "target": "/beratung/cases",
+    "tab": null
+  },
+  {
+    "id": "0121",
+    "prompt": "/beratung/faelle/[id]",
+    "target": "/beratung/cases/[id]",
+    "tab": null
+  },
+  {
+    "id": "0122",
+    "prompt": "/beratung/faelle/[id]/edit",
+    "target": "/beratung/cases/[id]",
+    "tab": null
+  },
+  {
+    "id": "0123",
+    "prompt": "/beratung/erstgespraech",
+    "target": "/beratung/cases",
+    "tab": null
+  },
+  {
+    "id": "0124",
+    "prompt": "/beratung/protokolle",
+    "target": "/beratung/protokolle",
+    "tab": null
+  },
+  {
+    "id": "0125",
+    "prompt": "/beratung/protokolle/new",
+    "target": "/beratung/protokolle",
+    "tab": null
+  },
+  {
+    "id": "0126",
+    "prompt": "/beratung/protokolle/[id]",
+    "target": "/beratung/protokolle/[id]",
+    "tab": null
+  },
+  {
+    "id": "0127",
+    "prompt": "/beratung/massnahmen",
+    "target": "/beratung/cases",
+    "tab": null
+  },
+  {
+    "id": "0128",
+    "prompt": "/beratung/wiedervorlagen",
+    "target": "/beratung/wiedervorlagen",
+    "tab": null
+  },
+  {
+    "id": "0129",
+    "prompt": "/beratung/leistungsberatung",
+    "target": "/beratung/cases",
+    "tab": null
+  },
+  {
+    "id": "0130",
+    "prompt": "/beratung/angehoerige",
+    "target": "/beratung/cases",
+    "tab": null
+  },
+  {
+    "id": "0131",
+    "prompt": "/beratung/kontaktverlauf",
+    "target": "/beratung/protokolle",
+    "tab": null
+  },
+  {
+    "id": "0132",
+    "prompt": "/beratung/berichte",
+    "target": "/beratung/auswertungen",
+    "tab": null
+  },
+  {
+    "id": "0133",
+    "prompt": "/beratung/abrechnungsquellen",
+    "target": "/business/office/modules/billing",
+    "tab": null
+  },
+  {
+    "id": "0134",
+    "prompt": "/beratung/einstellungen",
+    "target": "/beratung/settings",
+    "tab": null
+  },
+  {
+    "id": "0135",
+    "prompt": "/stationaer",
+    "target": "/stationaer",
+    "tab": null
+  },
+  {
+    "id": "0136",
+    "prompt": "/stationaer/bewohner",
+    "target": "/stationaer/bewohner",
+    "tab": null
+  },
+  {
+    "id": "0137",
+    "prompt": "/stationaer/bewohner/[id]",
+    "target": "/stationaer/bewohner/[id]",
+    "tab": null
+  },
+  {
+    "id": "0138",
+    "prompt": "/stationaer/wohnbereiche",
+    "target": "/stationaer/wohnbereiche",
+    "tab": null
+  },
+  {
+    "id": "0139",
+    "prompt": "/stationaer/zimmer",
+    "target": "/stationaer/wohnbereiche",
+    "tab": null
+  },
+  {
+    "id": "0140",
+    "prompt": "/stationaer/belegung",
+    "target": "/stationaer/wohnbereiche",
+    "tab": null
+  },
+  {
+    "id": "0141",
+    "prompt": "/stationaer/tagesstruktur",
+    "target": "/stationaer/bewohner",
+    "tab": null
+  },
+  {
+    "id": "0142",
+    "prompt": "/stationaer/mahlzeiten",
+    "target": "/stationaer/bewohner",
+    "tab": null
+  },
+  {
+    "id": "0143",
+    "prompt": "/stationaer/aktivitaeten",
+    "target": "/stationaer/bewohner",
+    "tab": null
+  },
+  {
+    "id": "0144",
+    "prompt": "/stationaer/uebergabe",
+    "target": "/stationaer/uebergabebericht",
+    "tab": null
+  },
+  {
+    "id": "0145",
+    "prompt": "/stationaer/risiken",
+    "target": "/stationaer/auswertungen",
+    "tab": null
+  },
+  {
+    "id": "0146",
+    "prompt": "/stationaer/bewohnerplanung",
+    "target": "/stationaer/bewohner",
+    "tab": null
+  },
+  {
+    "id": "0147",
+    "prompt": "/stationaer/reports",
+    "target": "/stationaer/auswertungen",
+    "tab": null
+  },
+  {
+    "id": "0148",
+    "prompt": "/stationaer/einstellungen",
+    "target": "/stationaer/settings",
+    "tab": null
+  },
+  {
+    "id": "0149",
+    "prompt": "/akademie",
+    "target": "/akademie",
+    "tab": null
+  },
+  {
+    "id": "0150",
+    "prompt": "/akademie/kurse",
+    "target": "/akademie/courses",
+    "tab": null
+  },
+  {
+    "id": "0151",
+    "prompt": "/akademie/kurse/new",
+    "target": "/akademie/courses",
+    "tab": null
+  },
+  {
+    "id": "0152",
+    "prompt": "/akademie/kurse/[id]",
+    "target": "/akademie/courses/[id]",
+    "tab": null
+  },
+  {
+    "id": "0153",
+    "prompt": "/akademie/lektionen",
+    "target": "/akademie/courses",
+    "tab": null
+  },
+  {
+    "id": "0154",
+    "prompt": "/akademie/teilnehmende",
+    "target": "/akademie/teilnehmer",
+    "tab": null
+  },
+  {
+    "id": "0155",
+    "prompt": "/akademie/pruefungen",
+    "target": "/akademie/courses",
+    "tab": null
+  },
+  {
+    "id": "0156",
+    "prompt": "/akademie/zertifikate",
+    "target": "/akademie/zertifikate",
+    "tab": null
+  },
+  {
+    "id": "0157",
+    "prompt": "/akademie/pflichtschulungen",
+    "target": "/akademie/courses",
+    "tab": null
+  },
+  {
+    "id": "0158",
+    "prompt": "/akademie/schulungsplan",
+    "target": "/akademie/courses",
+    "tab": null
+  },
+  {
+    "id": "0159",
+    "prompt": "/akademie/mediathek",
+    "target": "/akademie/courses",
+    "tab": null
+  },
+  {
+    "id": "0160",
+    "prompt": "/akademie/dozenten",
+    "target": "/akademie/teilnehmer",
+    "tab": null
+  },
+  {
+    "id": "0161",
+    "prompt": "/akademie/fortschritt",
+    "target": "/akademie/teilnehmer",
+    "tab": null
+  },
+  {
+    "id": "0162",
+    "prompt": "/akademie/reports",
+    "target": "/akademie/auswertungen",
+    "tab": null
+  },
+  {
+    "id": "0163",
+    "prompt": "/akademie/einstellungen",
+    "target": "/akademie/settings",
+    "tab": null
+  },
+  {
+    "id": "0164",
+    "prompt": "/business/messages",
+    "target": "/business/messages",
+    "tab": null
+  },
+  {
+    "id": "0165",
+    "prompt": "/business/messages/[threadId]",
+    "target": "/business/messages",
+    "tab": null
+  },
+  {
+    "id": "0166",
+    "prompt": "/business/messages/archived",
+    "target": "/business/messages/archived",
+    "tab": null
+  },
+  {
+    "id": "0167",
+    "prompt": "/business/documents",
+    "target": "/office/documents",
+    "tab": null
+  },
+  {
+    "id": "0168",
+    "prompt": "/business/qm",
+    "target": "/business/office/qm",
+    "tab": null
+  },
+  {
+    "id": "0169",
+    "prompt": "/business/insight",
+    "target": "/insight",
+    "tab": null
+  },
+  {
+    "id": "0170",
+    "prompt": "/business/settings",
+    "target": "/business/office/settings",
+    "tab": null
+  },
+  {
+    "id": "0171",
+    "prompt": "/business/ti",
+    "target": "/business/ti",
+    "tab": null
+  },
+  {
+    "id": "0172",
+    "prompt": "/portal/employee",
+    "target": "/portal/employee",
+    "tab": null
+  },
+  {
+    "id": "0173",
+    "prompt": "/portal/client",
+    "target": "/portal/client",
+    "tab": null
+  },
+  {
+    "id": "0174",
+    "prompt": "/portal/relative",
+    "target": "/portal/relative",
+    "tab": null
+  }
+]

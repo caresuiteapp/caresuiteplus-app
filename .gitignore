@@ -1,0 +1,45 @@
+﻿node_modules/
+.expo/
+.expo-*/
+dist/
+build/
+web-build/
+coverage/
+expo-env.d.ts
+*.orig.*
+*.jks
+*.p8
+*.p12
+*.key
+*.mobileprovision
+.metro-health-check*
+npm-debug.*
+yarn-debug.*
+yarn-error.*
+.DS_Store
+*.pem
+.env
+.env.*
+!.env.example
+*.tsbuildinfo
+.idea/
+.vscode/
+wp001-extract.txt
+wp002-extract.txt
+
+# Local logs and test artifacts
+*.log
+*-output.txt
+gate-*.txt
+full-test-output.txt
+test-out.txt
+.npm-run-logs/
+
+# Temporary files
+tmp-*
+
+# Supabase local CLI state (may contain project refs)
+supabase/.temp/
+
+# Optional local tooling (portable MinGit fallback only if Git for Windows is not on PATH)
+.tools/

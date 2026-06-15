@@ -1,0 +1,85 @@
+import { Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
+import { careLightColors } from '@/design/tokens/lightTheme';
+import { careRadius } from '@/design/tokens/radius';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careTypography } from '@/design/tokens/typography';
+
+type CareLightButtonProps = {
+  title: string;
+  onPress?: () => void;
+  variant?: 'primary' | 'secondary' | 'ghost';
+  accentColor?: string;
+  loading?: boolean;
+  style?: ViewStyle;
+};
+
+export function CareLightButton({
+  title,
+  onPress,
+  variant = 'primary',
+  accentColor = careLightColors.orange,
+  loading = false,
+  style,
+}: CareLightButtonProps) {
+  const isPrimary = variant === 'primary';
+  const isSecondary = variant === 'secondary';
+
+  return (
+    <Pressable
+      onPress={loading ? undefined : onPress}
+      style={({ pressed }) => [
+        styles.base,
+        isPrimary && { backgroundColor: accentColor },
+        isSecondary && styles.secondary,
+        variant === 'ghost' && styles.ghost,
+        pressed && styles.pressed,
+        loading && styles.loading,
+        style,
+      ]}
+      accessibilityRole="button"
+      accessibilityState={{ disabled: loading }}
+    >
+      <Text
+        style={[
+          styles.label,
+          isPrimary && styles.labelPrimary,
+          (isSecondary || variant === 'ghost') && { color: accentColor },
+        ]}
+      >
+        {loading ? '…' : title}
+      </Text>
+    </Pressable>
+  );
+}
+
+const styles = StyleSheet.create({
+  base: {
+    borderRadius: careRadius.md,
+    paddingHorizontal: careSpacing.md,
+    paddingVertical: careSpacing.sm + 2,
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 44,
+  },
+  secondary: {
+    backgroundColor: careLightColors.surface,
+    borderWidth: 1,
+    borderColor: careLightColors.borderStrong,
+  },
+  ghost: {
+    backgroundColor: 'transparent',
+  },
+  pressed: {
+    opacity: 0.88,
+  },
+  loading: {
+    opacity: 0.6,
+  },
+  label: {
+    ...careTypography.bodyStrong,
+    fontWeight: '700',
+  },
+  labelPrimary: {
+    color: careLightColors.surface,
+  },
+});

@@ -1,0 +1,15 @@
+export const careSpacing = {
+  xs: 4,
+  sm: 8,
+  md: 16,
+  lg: 24,
+  xl: 32,
+  xxl: 48,
+  shell: {
+    mobilePadding: 16,
+    tabletPadding: 20,
+    desktopPadding: 24,
+    sidebarWidth: 240,
+    railWidth: 72,
+  },
+} as const;

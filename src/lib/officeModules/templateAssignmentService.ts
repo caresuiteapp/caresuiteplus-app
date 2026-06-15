@@ -1,0 +1,20 @@
+import type { RoleKey, ServiceResult } from '@/types';
+import type { ModuleTemplateAssignment } from '@/lib/officeCore/types';
+import { officeCoreDemoRepository } from '@/lib/officeCore/demoRepository';
+import { enforcePermission } from '@/lib/permissions';
+import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
+
+export async function fetchModuleTemplateAssignments(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<ModuleTemplateAssignment[]>> {
+  const denied = enforcePermission<ModuleTemplateAssignment[]>(actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
+  const liveBlock = guardLiveDemoFeature<ModuleTemplateAssignment[]>(
+    tenantId,
+    'Modul-Vorlagen-Zuordnung',
+  );
+  if (liveBlock) return liveBlock;
+  await new Promise((r) => setTimeout(r, 200));
+  return { ok: true, data: officeCoreDemoRepository.listModuleTemplateAssignments() };
+}
