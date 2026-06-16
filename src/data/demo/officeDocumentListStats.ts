@@ -16,6 +16,8 @@ export const OFFICE_DOCUMENT_CATEGORY_FILTERS = [
   { key: 'invoice', label: PORTAL_DOCUMENT_CATEGORY_LABELS.invoice },
   { key: 'report', label: PORTAL_DOCUMENT_CATEGORY_LABELS.report },
   { key: 'consent', label: PORTAL_DOCUMENT_CATEGORY_LABELS.consent },
+  { key: 'contract', label: PORTAL_DOCUMENT_CATEGORY_LABELS.contract },
+  { key: 'assignment', label: PORTAL_DOCUMENT_CATEGORY_LABELS.assignment },
   { key: 'other', label: PORTAL_DOCUMENT_CATEGORY_LABELS.other },
 ] as const;
 

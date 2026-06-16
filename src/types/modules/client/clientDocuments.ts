@@ -18,6 +18,7 @@ export type ClientDocumentRecord = TenantScopedEntity & {
   previewHtml?: string | null;
   documentSource?: ClientDocumentSource;
   intakeDocumentId?: string | null;
+  intakeDocumentType?: string | null;
   intakeStatus?: string | null;
 };
 

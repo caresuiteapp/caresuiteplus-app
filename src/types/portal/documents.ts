@@ -6,6 +6,8 @@ export type PortalDocumentCategory =
   | 'invoice'
   | 'report'
   | 'consent'
+  | 'contract'
+  | 'assignment'
   | 'other';
 
 export type DocumentAudienceScope = 'portal' | 'office';
@@ -33,7 +35,15 @@ export type PortalDocumentListItem = Pick<
   | 'updatedAt'
   | 'visibility'
   | 'sensitivity'
->;
+> & {
+  clientId?: string | null;
+  clientName?: string | null;
+  previewHtml?: string | null;
+  documentSource?: 'upload' | 'intake' | 'generated';
+  sizeLabel?: string | null;
+  /** User-visible file name; hidden for intake template HTML artifacts */
+  displayFileName?: string | null;
+};
 
 export type PortalDocumentDetail = PortalDocumentListItem & {
   createdAt: string;
@@ -46,5 +56,7 @@ export const PORTAL_DOCUMENT_CATEGORY_LABELS: Record<PortalDocumentCategory, str
   invoice: 'Rechnung',
   report: 'Bericht',
   consent: 'Einwilligung',
+  contract: 'Vertrag',
+  assignment: 'Abtretung',
   other: 'Sonstiges',
 };

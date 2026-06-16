@@ -68,6 +68,7 @@ export function mapIntakeDocumentRow(row: IntakeDocumentRow): ClientDocumentReco
     previewHtml: html,
     documentSource: 'intake',
     intakeDocumentId: row.id,
+    intakeDocumentType: row.document_type,
     intakeStatus: row.status,
   };
 }

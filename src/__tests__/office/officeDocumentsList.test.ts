@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { mapIntakeDocumentRow } from '@/lib/clients/clientDocumentMerge';
 import {
   buildOfficeDocumentListKpis,
   filterOfficeDocumentsByCategory,
@@ -8,6 +9,13 @@ import {
 } from '@/data/demo/officeDocumentListStats';
 import { demoPortalDocuments } from '@/data/demo/documents';
 import { fetchOfficeDocumentList } from '@/lib/office/officeDocumentsService';
+import {
+  buildOfficeDocumentSubtitle,
+  isIntakeTemplateFileName,
+  mapClientDocumentToPortalItemForTest,
+  resolveOfficeDocumentTitle,
+  resolvePortalDocumentCategory,
+} from '@/lib/office/officeDocumentDisplay';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
 import {
@@ -34,6 +42,8 @@ const officeDocs = demoPortalDocuments
     updatedAt: d.updatedAt,
     visibility: d.visibility,
     sensitivity: d.sensitivity,
+    displayFileName: d.fileName,
+    sizeLabel: null,
   }));
 
 describe('Office Dokumente list', () => {
@@ -61,6 +71,8 @@ describe('Office Dokumente list', () => {
     const reports = filterOfficeDocumentsByCategory(officeDocs, 'report');
     expect(reports.every((d) => d.category === 'report')).toBe(true);
     expect(OFFICE_DOCUMENT_CATEGORY_FILTERS.some((f) => f.key === 'invoice')).toBe(true);
+    expect(OFFICE_DOCUMENT_CATEGORY_FILTERS.some((f) => f.key === 'contract')).toBe(true);
+    expect(OFFICE_DOCUMENT_CATEGORY_FILTERS.some((f) => f.key === 'assignment')).toBe(true);
   });
 
   it('Status- und Sortierfilter sind vollständig definiert', () => {
@@ -96,6 +108,7 @@ describe('Office Dokumente list', () => {
     expect(source).not.toMatch(/CLIENT_DOCUMENTS_SELECT\s*=\s*'[^']*visibility/);
     expect(source).not.toMatch(/\.select\([^)]*size_bytes[^)]*visibility/s);
     expect(source).toContain('client_intake_documents');
+    expect(source).toContain('fetchClientNameMap');
   });
 
   it('Upload-Route existiert und nutzt OfficeDocumentUploadScreen', () => {
@@ -104,5 +117,47 @@ describe('Office Dokumente list', () => {
     const upload = readSrc('src/screens/office/OfficeDocumentUploadScreen.tsx');
     expect(upload).toContain('expo-document-picker');
     expect(upload).not.toContain('WP 214');
+  });
+
+  it('Intake-Dokumente zeigen Klient:innenname statt template_key.html', () => {
+    const intakeDoc = mapIntakeDocumentRow({
+      id: 'intake-1',
+      tenant_id: DEMO_TENANT_ID,
+      client_id: 'client-001',
+      template_key: 'assignment_declaration_care_health_insurance',
+      document_type: 'assignment_declaration',
+      title: 'Abtretungserklärung / Direktabrechnung',
+      status: 'finalized',
+      finalized_html: '<p>Test</p>',
+      preview_html: null,
+      finalized_at: '2026-06-16T10:00:00.000Z',
+      created_at: '2026-06-16T09:00:00.000Z',
+      updated_at: '2026-06-16T10:00:00.000Z',
+    });
+
+    expect(isIntakeTemplateFileName(intakeDoc.fileName)).toBe(true);
+    expect(resolveOfficeDocumentTitle(intakeDoc)).toBe('Abtretungserklärung / Direktabrechnung');
+    expect(resolvePortalDocumentCategory(intakeDoc)).toBe('assignment');
+
+    const listItem = mapClientDocumentToPortalItemForTest(intakeDoc, 'Heinz-Peter Reinhardt');
+    const subtitle = buildOfficeDocumentSubtitle(listItem);
+
+    expect(subtitle).toContain('Heinz-Peter Reinhardt');
+    expect(subtitle).not.toContain('assignment_declaration');
+    expect(subtitle).not.toMatch(/\.html/);
+    expect(listItem.sizeLabel).toBe('HTML-Dokument');
+    expect(listItem.displayFileName).toBeNull();
+  });
+
+  it('keine assignment_declaration*.html in DocumentListCard', () => {
+    const source = readSrc('src/components/office/DocumentListCard.tsx');
+    expect(source).toContain('buildOfficeDocumentSubtitle');
+    expect(source).not.toContain('document.fileName');
+  });
+
+  it('OfficeDocumentsAdaptiveScreen nutzt ListDetail mit Vorschau-Panel', () => {
+    const source = readSrc('src/screens/office/OfficeDocumentsAdaptiveScreen.tsx');
+    expect(source).toContain('AdaptiveListDetail');
+    expect(source).toContain('OfficeDocumentDetailSummaryPanel');
   });
 });

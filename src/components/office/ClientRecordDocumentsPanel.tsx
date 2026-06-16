@@ -1,5 +1,7 @@
+import { DocumentHtmlPreview, documentPreviewFallback } from '@/components/office/DocumentHtmlPreview';
+import { resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
 import { useMemo, useState } from 'react';
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { CareCatalogSelect } from '@/components/inputs';
 import {
@@ -53,37 +55,13 @@ function documentStatusVariant(doc: ClientDocumentRecord): 'green' | 'cyan' | 'm
   return 'muted';
 }
 
-function DocumentPreview({ doc }: { doc: ClientDocumentRecord }) {
-  if (!doc.previewHtml) {
-    return (
-      <Text style={styles.previewMeta}>
-        {doc.fileName} · {doc.mimeType}
-        {doc.storagePath ? ` · ${doc.storagePath.split('/').pop()}` : ''}
-      </Text>
-    );
-  }
-
-  if (Platform.OS === 'web') {
-    return (
-      <View style={styles.previewFrame}>
-        {/* eslint-disable-next-line react/no-danger */}
-        <iframe
-          title={doc.title}
-          srcDoc={doc.previewHtml}
-          style={{ width: '100%', height: 360, border: 'none', backgroundColor: '#fff' }}
-          sandbox="allow-same-origin"
-        />
-      </View>
-    );
-  }
-
-  return (
-    <ScrollView style={styles.textPreview}>
-      <Text style={styles.previewText}>
-        {doc.previewHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 2500)}
-      </Text>
-    </ScrollView>
-  );
+function documentSecondaryLine(doc: ClientDocumentRecord): string {
+  const parts = [CLIENT_DOCUMENT_CATEGORY_LABELS[doc.category]];
+  const displayFileName = resolveOfficeDocumentDisplayFileName(doc);
+  if (displayFileName) parts.push(displayFileName);
+  if (doc.documentSource === 'intake') parts.push('Aufnahme');
+  else if (doc.documentSource === 'upload') parts.push('Upload');
+  return parts.join(' · ');
 }
 
 export function ClientRecordDocumentsPanel({
@@ -217,10 +195,7 @@ export function ClientRecordDocumentsPanel({
                 <Text style={styles.primary}>{doc.title}</Text>
                 <PremiumBadge label={documentStatusLabel(doc)} variant={documentStatusVariant(doc)} dot />
               </View>
-              <Text style={styles.secondary}>
-                {CLIENT_DOCUMENT_CATEGORY_LABELS[doc.category]} · {doc.fileName}
-                {doc.documentSource === 'intake' ? ' · Aufnahme' : doc.documentSource === 'upload' ? ' · Upload' : ''}
-              </Text>
+              <Text style={styles.secondary}>{documentSecondaryLine(doc)}</Text>
             </PremiumCard>
           ))
         )}
@@ -228,7 +203,24 @@ export function ClientRecordDocumentsPanel({
 
       {selectedDoc ? (
         <SectionPanel title="Vorschau" subtitle={selectedDoc.title}>
-          <DocumentPreview doc={selectedDoc} />
+          <DocumentHtmlPreview
+            title={selectedDoc.title}
+            previewHtml={selectedDoc.previewHtml}
+            fallbackLabel={documentPreviewFallback({
+              id: selectedDoc.id,
+              title: selectedDoc.title,
+              fileName: selectedDoc.fileName,
+              mimeType: selectedDoc.mimeType,
+              category: 'other',
+              fileSizeBytes: 0,
+              status: selectedDoc.status,
+              updatedAt: selectedDoc.updatedAt,
+              visibility: 'team',
+              sensitivity: selectedDoc.sensitivity,
+              displayFileName: resolveOfficeDocumentDisplayFileName(selectedDoc),
+              documentSource: selectedDoc.documentSource,
+            })}
+          />
         </SectionPanel>
       ) : null}
 
@@ -264,18 +256,4 @@ const styles = StyleSheet.create({
   cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: careSpacing.sm },
   primary: { ...typography.label, flex: 1 },
   secondary: { ...typography.caption, color: careLightColors.muted, marginTop: spacing.xs },
-  previewFrame: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: careLightColors.border,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  textPreview: {
-    maxHeight: 320,
-    backgroundColor: careLightColors.page,
-    padding: spacing.sm,
-    borderRadius: 8,
-  },
-  previewText: { ...typography.caption, color: careLightColors.text },
-  previewMeta: { ...typography.caption, color: careLightColors.muted },
 });

@@ -1,9 +1,17 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { PortalDocumentCategory, PortalDocumentListItem } from '@/types/portal/documents';
+import type { PortalDocumentListItem } from '@/types/portal/documents';
 import type { DataVisibilityScope } from '@/types/portal/visibility';
 import type { ClientDocumentRecord } from '@/types/modules/client';
+import { demoClients } from '@/data/demo/clients';
 import { demoPortalDocuments } from '@/data/demo/documents';
 import { mergeClientRecordDocuments } from '@/lib/clients/clientDocumentMerge';
+import {
+  formatOfficeClientName,
+  resolveOfficeDocumentDisplayFileName,
+  resolveOfficeDocumentSizeLabel,
+  resolveOfficeDocumentTitle,
+  resolvePortalDocumentCategory,
+} from '@/lib/office/officeDocumentDisplay';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { mapClientDocument } from '@/lib/supabase/mappers/clientExtendedMapper';
@@ -47,21 +55,15 @@ function mapDemoDocument(
     updatedAt: doc.updatedAt,
     visibility: doc.visibility,
     sensitivity: doc.sensitivity,
+    displayFileName: doc.fileName,
+    sizeLabel: null,
   };
 }
 
-function mapClientCategoryToPortal(category: ClientDocumentRecord['category']): PortalDocumentCategory {
-  switch (category) {
-    case 'pflegeplan':
-      return 'care_plan';
-    case 'einwilligung':
-      return 'consent';
-    case 'arztbrief':
-    case 'md_gutachten':
-      return 'report';
-    default:
-      return 'other';
-  }
+function resolveDemoClientName(clientId: string | null | undefined): string | null {
+  if (!clientId) return null;
+  const client = demoClients.find((entry) => entry.id === clientId);
+  return client ? `${client.firstName} ${client.lastName}` : null;
 }
 
 function resolveVisibility(row: Record<string, unknown>): DataVisibilityScope {
@@ -69,19 +71,54 @@ function resolveVisibility(row: Record<string, unknown>): DataVisibilityScope {
   return 'team';
 }
 
-function mapClientDocumentToPortalItem(doc: ClientDocumentRecord, row?: Record<string, unknown>): PortalDocumentListItem {
+function mapClientDocumentToPortalItem(
+  doc: ClientDocumentRecord,
+  row?: Record<string, unknown>,
+  clientName?: string | null,
+): PortalDocumentListItem {
+  const fileSizeBytes = Number(row?.size_bytes ?? 0);
   return {
     id: doc.id,
-    title: doc.title,
+    title: resolveOfficeDocumentTitle(doc),
     fileName: doc.fileName,
     mimeType: doc.mimeType,
-    category: mapClientCategoryToPortal(doc.category),
-    fileSizeBytes: Number(row?.size_bytes ?? 0),
+    category: resolvePortalDocumentCategory(doc),
+    fileSizeBytes,
     status: doc.status,
     updatedAt: doc.updatedAt,
     visibility: row ? resolveVisibility(row) : 'team',
     sensitivity: doc.sensitivity,
+    clientId: doc.clientId,
+    clientName: clientName ?? null,
+    previewHtml: doc.previewHtml ?? null,
+    documentSource: doc.documentSource,
+    displayFileName: resolveOfficeDocumentDisplayFileName(doc),
+    sizeLabel: resolveOfficeDocumentSizeLabel(doc, fileSizeBytes),
   };
+}
+
+async function fetchClientNameMap(
+  tenantId: string,
+  clientIds: string[],
+): Promise<Map<string, string>> {
+  if (clientIds.length === 0) return new Map();
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return new Map();
+
+  const { data, error } = await fromUnknownTable(supabase, 'clients')
+    .select('id, first_name, last_name')
+    .eq('tenant_id', tenantId)
+    .in('id', clientIds);
+
+  if (error || !data) return new Map();
+
+  return new Map(
+    (data as Array<{ id: string; first_name?: string | null; last_name?: string | null }>).map((row) => [
+      row.id,
+      formatOfficeClientName(row.first_name, row.last_name) ?? 'Unbekannt',
+    ]),
+  );
 }
 
 async function fetchTenantOfficeDocumentsFromSupabase(
@@ -107,9 +144,6 @@ async function fetchTenantOfficeDocumentsFromSupabase(
   if (intakeDocuments.error) return { ok: false, error: toGermanSupabaseError(intakeDocuments.error) };
 
   const storedRows = (documents.data ?? []) as Record<string, unknown>[];
-  const storedDocs = storedRows.map((row) =>
-    mapClientDocumentToPortalItem(mapClientDocument(row as Parameters<typeof mapClientDocument>[0]), row),
-  );
 
   const merged = mergeClientRecordDocuments(
     storedRows.map((row) => mapClientDocument(row as Parameters<typeof mapClientDocument>[0])),
@@ -117,11 +151,23 @@ async function fetchTenantOfficeDocumentsFromSupabase(
   );
 
   const storedIds = new Set(storedDocs.map((doc) => doc.id));
-  const intakeItems = merged
-    .filter((doc) => !storedIds.has(doc.id))
-    .map((doc) => mapClientDocumentToPortalItem(doc));
+  const intakeOnlyDocs = merged.filter((doc) => !storedIds.has(doc.id));
+  const clientIds = [...new Set(merged.map((doc) => doc.clientId).filter(Boolean))];
+  const clientNames = await fetchClientNameMap(tenantId, clientIds);
 
-  return { ok: true, data: [...storedDocs, ...intakeItems].slice(0, LIST_LIMIT) };
+  const storedItems = storedRows.map((row) =>
+    mapClientDocumentToPortalItem(
+      mapClientDocument(row as Parameters<typeof mapClientDocument>[0]),
+      row,
+      clientNames.get(String(row.client_id)) ?? null,
+    ),
+  );
+
+  const intakeItems = intakeOnlyDocs.map((doc) =>
+    mapClientDocumentToPortalItem(doc, undefined, clientNames.get(doc.clientId) ?? null),
+  );
+
+  return { ok: true, data: [...storedItems, ...intakeItems].slice(0, LIST_LIMIT) };
 }
 
 export async function fetchOfficeDocumentList(

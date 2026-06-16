@@ -1,3 +1,3 @@
-import { OfficeDocumentsListScreen } from '@/screens/office/OfficeDocumentsListScreen';
+import { OfficeDocumentsAdaptiveScreen } from '@/screens/office/OfficeDocumentsAdaptiveScreen';
 
-export default OfficeDocumentsListScreen;
+export default OfficeDocumentsAdaptiveScreen;
