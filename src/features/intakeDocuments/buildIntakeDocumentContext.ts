@@ -58,6 +58,9 @@ export function buildIntakePlaceholderContext(
     'contract.service_start': form.serviceStart.trim() || form.admissionDate.trim(),
     'document.date': new Date().toLocaleDateString('de-DE'),
     'document.location': form.city.trim() || tenantDisplay?.city?.trim() || '—',
+    'intake.date': form.serviceStart.trim() || form.admissionDate.trim() || new Date().toLocaleDateString('de-DE'),
+    'intake.location': form.city.trim() || tenantDisplay?.city?.trim() || '—',
+    'service.type': form.careContexts.join(', ') || form.intakeContractType || '—',
     'facility.name': form.facilityName.trim(),
     'facility.care_area': form.careArea,
     'facility.room_number': form.roomNumber.trim(),
@@ -95,39 +98,35 @@ export function listApplicableIntakeTemplates(
   form: ClientIntakeFormData,
   tenantTemplates: IntakeDocumentTemplate[] = [],
 ): IntakeDocumentTemplate[] {
-  const byKey = new Map<string, IntakeDocumentTemplate>();
-
-  for (const tenant of tenantTemplates) {
-    byKey.set(tenant.templateKey, tenant);
+  const lookup = new Map<string, IntakeDocumentTemplate>();
+  for (const template of tenantTemplates) {
+    lookup.set(template.templateKey, template);
   }
 
   const contractKey = resolveContractTemplateKey(form);
-  const requiredKeys = [PRIVACY_TEMPLATE_KEY, ...(contractKey ? [contractKey] : [])];
-
-  for (const key of requiredKeys) {
-    if (byKey.has(key)) continue;
-    const system = getSystemIntakeTemplateByKey(key);
-    if (system) byKey.set(key, system);
-  }
+  const applicableKeys: string[] = [
+    PRIVACY_TEMPLATE_KEY,
+    ...(contractKey ? [contractKey] : []),
+  ];
 
   if (form.intakeAssignmentEnabled) {
-    const assignmentKey = ASSIGNMENT_TEMPLATE_KEY;
-    if (!byKey.has(assignmentKey)) {
-      const system = getSystemIntakeTemplateByKey(assignmentKey);
-      if (system) byKey.set(assignmentKey, system);
-    }
+    applicableKeys.push(ASSIGNMENT_TEMPLATE_KEY);
   }
 
   for (const key of form.intakeOptionalConsents) {
-    if (!OPTIONAL_CONSENT_TEMPLATE_KEYS.includes(key as (typeof OPTIONAL_CONSENT_TEMPLATE_KEYS)[number])) {
-      continue;
+    if (OPTIONAL_CONSENT_TEMPLATE_KEYS.includes(key as (typeof OPTIONAL_CONSENT_TEMPLATE_KEYS)[number])) {
+      applicableKeys.push(key);
     }
-    if (byKey.has(key)) continue;
-    const system = getSystemIntakeTemplateByKey(key);
-    if (system) byKey.set(key, system);
   }
 
-  return [...byKey.values()].filter((t) => t.isActive);
+  const result: IntakeDocumentTemplate[] = [];
+  for (const key of applicableKeys) {
+    const template = lookup.get(key) ?? getSystemIntakeTemplateByKey(key);
+    if (template?.isActive) {
+      result.push(template);
+    }
+  }
+  return result;
 }
 
 export function listAvailableContractTypes(contexts: ClientCareContext[]): IntakeContractTypeKey[] {

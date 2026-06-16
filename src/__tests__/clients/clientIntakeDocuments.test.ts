@@ -105,6 +105,8 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
       expect(template.htmlContent.toLowerCase()).not.toContain('lorem ipsum');
       expect(template.plainTextContent.length).toBeGreaterThan(10);
       expect(template.htmlContent).toContain('{{client.full_name}}');
+      expect(template.htmlContent).toContain('document-section');
+      expect(template.version).toBeGreaterThanOrEqual(2);
     }
   });
 
@@ -153,6 +155,7 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form));
     expect(preview.missingPlaceholders.length).toBeGreaterThan(0);
     expect(preview.html).toContain('class="missing"');
+    expect(preview.html).toContain('[fehlend:');
   });
 
   it('10. blockiert Abschluss bei fehlenden Pflichtdaten', () => {
@@ -270,7 +273,28 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(types).toContain('care_consulting');
   });
 
-  it('24. Migration legt Tabellen und RLS/GRANTs an', () => {
+  it('25. listApplicableIntakeTemplates filtert nur passende Verträge', () => {
+    const form = baseForm({ careContexts: ['ambulatory_care'], intakeContractType: 'ambulatory_care' });
+    const allTemplates = INTAKE_DOCUMENT_SYSTEM_TEMPLATES;
+    const applicable = listApplicableIntakeTemplates(form, allTemplates);
+    const contractTemplates = applicable.filter((t) => t.documentType === 'client_contract');
+    expect(contractTemplates).toHaveLength(1);
+    expect(contractTemplates[0]?.templateKey).toBe('client_contract_ambulatory_care');
+    expect(applicable.some((t) => t.templateKey === 'privacy_consent_default')).toBe(true);
+    expect(applicable.some((t) => t.templateKey === 'client_contract_assist')).toBe(false);
+    expect(applicable.some((t) => t.templateKey === 'client_contract_stationary_care')).toBe(false);
+  });
+
+  it('26. Vorschau liefert vollständiges HTML-Dokument für iframe', () => {
+    const form = baseForm();
+    const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
+    const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form, { name: 'Demo Pflegedienst' }));
+    expect(preview.html).toContain('<!DOCTYPE html>');
+    expect(preview.html).toContain('document-legal');
+    expect(preview.html).toContain('Times New Roman');
+  });
+
+  it('27. Migration legt Tabellen und RLS/GRANTs an', () => {
     const migration = readFileSync(
       path.join(srcRoot, '..', 'supabase', 'migrations', '0058_client_intake_documents.sql'),
       'utf8',

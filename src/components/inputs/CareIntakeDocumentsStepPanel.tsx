@@ -8,6 +8,7 @@ import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/cli
 import {
   listAvailableContractTypes,
   listApplicableIntakeTemplates,
+  resolveContractTemplateKey,
 } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import {
   applyDocumentSignature,
@@ -98,8 +99,12 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
 
   const tenantMeta = { name: tenantName };
 
-  const requiredDocs = templates.filter(
-    (t) => t.documentType === 'privacy_consent' || t.documentType === 'client_contract',
+  const requiredDocs = useMemo(
+    () => templates.filter(
+      (t) => t.documentType === 'privacy_consent'
+        || (t.documentType === 'client_contract' && t.templateKey === resolveContractTemplateKey(form)),
+    ),
+    [templates, form.intakeContractType, form.careContexts],
   );
   const optionalDocs = templates.filter((t) => t.documentType === 'additional_consent');
   const assignmentTemplate = templates.find((t) => t.documentType === 'assignment_declaration');
@@ -118,8 +123,22 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
       const opened = openDocumentPreview(form, template, tenantMeta);
       onChange(updateIntakeDocumentInForm(form, opened));
       setActiveKey(template.templateKey);
+      setSignatureRole(template.signatureSlots[0]?.role ?? 'client');
     },
     [form, onChange, tenantMeta],
+  );
+
+  const handleSignDocument = useCallback(
+    (template: IntakeDocumentTemplate) => {
+      const doc = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
+      if (!doc?.previewHtml) {
+        handleOpenPreview(template);
+        return;
+      }
+      setActiveKey(template.templateKey);
+      setSignatureRole(template.signatureSlots[0]?.role ?? 'client');
+    },
+    [form.intakeDocuments, handleOpenPreview],
   );
 
   const handleSignature = useCallback(
@@ -190,11 +209,20 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
                   {INTAKE_DOCUMENT_STATUS_LABELS[status]}
                 </Text>
               </View>
-              <PremiumButton
-                title={status === 'finalized' ? 'Dokument ansehen' : 'Vorschau öffnen'}
-                variant="secondary"
-                onPress={() => handleOpenPreview(template)}
-              />
+              <View style={styles.docActions}>
+                <PremiumButton
+                  title={status === 'finalized' ? 'Dokument ansehen' : 'Vorschau öffnen'}
+                  variant="secondary"
+                  onPress={() => handleOpenPreview(template)}
+                />
+                {status !== 'finalized' && template.signatureSlots.length > 0 ? (
+                  <PremiumButton
+                    title="Unterschreiben"
+                    variant="primary"
+                    onPress={() => handleSignDocument(template)}
+                  />
+                ) : null}
+              </View>
             </PremiumCard>
           );
         })}
@@ -254,16 +282,24 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
               <iframe
                 title="Dokumentvorschau"
                 srcDoc={previewHtml}
-                style={{ width: '100%', height: 420, border: 'none', backgroundColor: '#fff' }}
+                style={{
+                  width: '100%',
+                  height: 560,
+                  border: 'none',
+                  backgroundColor: '#e8e8e8',
+                  display: 'block',
+                }}
                 sandbox="allow-same-origin"
               />
             </View>
-          ) : (
-            <ScrollView style={styles.textPreview}>
+          ) : previewHtml ? (
+            <ScrollView style={styles.textPreview} nestedScrollEnabled>
               <Text style={styles.previewText}>
-                {previewHtml?.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim().slice(0, 4000) ?? '—'}
+                {previewHtml.replace(/<[^>]+>/g, ' ').replace(/\s+/g, ' ').trim()}
               </Text>
             </ScrollView>
+          ) : (
+            <InfoBanner variant="info" message="Bitte „Vorschau öffnen" wählen, um das Dokument anzuzeigen." />
           )}
 
           {signatureSlots.length > 0 && activeDoc.status !== 'finalized' ? (
@@ -311,6 +347,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
 const styles = StyleSheet.create({
   wrap: { gap: spacing.md },
   docCard: { gap: spacing.sm, marginBottom: spacing.sm },
+  docActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   docHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
   docTitleWrap: { flex: 1 },
   docTitle: { ...typography.body, fontWeight: '600' },
@@ -324,9 +361,18 @@ const styles = StyleSheet.create({
   toggleCheck: { fontSize: 18 },
   toggleLabel: { ...typography.body, flex: 1 },
   subheading: { ...typography.body, fontWeight: '600', marginTop: spacing.sm },
-  previewFrame: { borderWidth: 1, borderColor: colors.borderSoft, borderRadius: 8, overflow: 'hidden' },
-  textPreview: { maxHeight: 320, backgroundColor: colors.bgElevated, padding: spacing.sm, borderRadius: 8 },
-  previewText: { ...typography.caption },
+  previewFrame: {
+    borderWidth: 1,
+    borderColor: colors.borderSoft,
+    borderRadius: 8,
+    overflow: 'hidden',
+    maxWidth: 820,
+    alignSelf: 'center',
+    width: '100%',
+    backgroundColor: '#e8e8e8',
+  },
+  textPreview: { maxHeight: 480, backgroundColor: colors.bgElevated, padding: spacing.sm, borderRadius: 8 },
+  previewText: { ...typography.caption, fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : undefined, lineHeight: 20 },
   sigSection: { gap: spacing.sm, marginTop: spacing.sm },
   checkItem: { ...typography.body, marginBottom: 4 },
   error: { ...typography.caption, color: colors.error },
