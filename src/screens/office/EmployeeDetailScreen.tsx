@@ -21,6 +21,7 @@ import {
   EMPLOYEE_DETAIL_PREPARED_MESSAGE,
   isEmployeeDetailLiveReady,
 } from '@/lib/office/employeeModuleConfig';
+import { fetchEmployeeEquipmentSummary, INVENTORY_PREPARED_MESSAGE } from '@/lib/inventory';
 import { spacing } from '@/theme';
 
 export function EmployeeDetailScreen() {
@@ -40,6 +41,15 @@ export function EmployeeDetailScreen() {
     },
     [tenantId, id, profile?.roleKey],
     { enabled: !!tenantId && !!id },
+  );
+
+  const equipmentQuery = useAsyncQuery(
+    () => {
+      if (!tenantId || !id) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchEmployeeEquipmentSummary(tenantId, id, profile?.roleKey);
+    },
+    [tenantId, id, profile?.roleKey],
+    { enabled: !!tenantId && !!id && can('inventory.view') },
   );
 
   if (!canView) {
@@ -105,6 +115,20 @@ export function EmployeeDetailScreen() {
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <EmployeeDetailHero employee={employee} roleKey={roleKey} isReadOnly={isReadOnly} />
 
+        <PremiumButton
+          title="Personalakte öffnen"
+          variant="secondary"
+          onPress={() => router.push(`/business/office/employees/${id}/personnel` as never)}
+        />
+
+        {canEdit ? (
+          <PremiumButton
+            title="Offboarding"
+            variant="secondary"
+            onPress={() => router.push(`/office/employees/${id}/offboarding` as never)}
+          />
+        ) : null}
+
         {!isEmployeeDetailLiveReady() ? (
           <InfoBanner title="Teilweise live" message={EMPLOYEE_DETAIL_PREPARED_MESSAGE} />
         ) : null}
@@ -144,6 +168,19 @@ export function EmployeeDetailScreen() {
           />
           {employee.notes ? <DetailInfoRow label="Hinweise" value={employee.notes} /> : null}
         </SectionPanel>
+
+        {can('inventory.view') && equipmentQuery.data ? (
+          <SectionPanel title="Arbeitsmittel & Inventar">
+            <DetailInfoRow label="Aktive Ausgaben" value={String(equipmentQuery.data.activeAssignments)} />
+            <DetailInfoRow label="Überfällige Rückgaben" value={String(equipmentQuery.data.overdueReturns)} />
+            <PremiumButton
+              title="Inventar & Rückgabe"
+              variant="secondary"
+              onPress={() => router.push('/business/office/inventory' as never)}
+            />
+            <InfoBanner title="Inventar" message={INVENTORY_PREPARED_MESSAGE} />
+          </SectionPanel>
+        ) : null}
       </ScrollView>
     </CareLightPageShell>
   );

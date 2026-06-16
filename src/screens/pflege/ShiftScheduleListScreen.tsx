@@ -1,4 +1,4 @@
-import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
+import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { ShiftScheduleListCard } from '@/components/pflege/ShiftScheduleListCard';
 import {
@@ -20,7 +20,8 @@ import {
   isShiftScheduleImportReady,
   SHIFT_SCHEDULE_IMPORT_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
-import { colors, spacing } from '@/theme';
+import { getActionAvailability } from '@/lib/ui/actionAvailability';
+import { colors, spacing, typography } from '@/theme';
 
 export function ShiftScheduleListScreen() {
   const { profile } = useAuth();
@@ -43,6 +44,13 @@ export function ShiftScheduleListScreen() {
 
   const items = query.data ?? [];
   const importReady = isShiftScheduleImportReady();
+  const importAvailability = getActionAvailability('shift.import', {
+    roleKey,
+    isPreparedOnly: !importReady,
+    hasProvider: importReady,
+    isReadOnly,
+    canExecute: false,
+  });
 
   if (query.loading && items.length === 0) {
     return (
@@ -80,11 +88,13 @@ export function ShiftScheduleListScreen() {
       ) : null}
       <PremiumButton
         title="Dienstplan importieren"
-        variant="secondary"
+        variant={importAvailability.isPreparedOnly ? 'prepared' : 'secondary'}
         fullWidth
-        disabled={!importReady || isReadOnly}
-        onPress={() => undefined}
+        disabled={!importAvailability.enabled}
       />
+      {importAvailability.disabledReason ? (
+        <Text style={styles.importHint}>{importAvailability.disabledReason}</Text>
+      ) : null}
     </View>
   );
 
@@ -137,4 +147,5 @@ const styles = StyleSheet.create({
   header: { marginBottom: spacing.sm, gap: spacing.sm },
   list: { paddingBottom: spacing.xxl },
   tableScroll: { paddingBottom: spacing.xxl, gap: spacing.sm },
+  importHint: { ...typography.caption, color: colors.textMuted },
 });

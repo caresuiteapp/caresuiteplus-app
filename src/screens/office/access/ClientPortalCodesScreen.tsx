@@ -5,18 +5,30 @@ import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useDemoData } from '@/hooks/useDemoData';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import type { AccessCredentialsReveal } from '@/lib/auth/auth.types';
 import { createClientPortalAccess, listClientPortalCodes } from '@/lib/auth/accessManagementService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { colors, spacing, typography } from '@/theme';
 
 export function ClientPortalCodesScreen() {
+  const tenantId = useServiceTenantId();
   const [refreshKey, setRefreshKey] = useState(0);
   const [credentials, setCredentials] = useState<AccessCredentialsReveal | null>(null);
   const { data: codes, loading, error, refresh } = useDemoData(
-    () => listClientPortalCodes(DEMO_TENANT_ID),
-    [refreshKey],
+    () => {
+      if (!tenantId) throw new Error('Kein Mandant.');
+      return listClientPortalCodes(tenantId);
+    },
+    [tenantId, refreshKey],
   );
+
+  if (!tenantId) {
+    return (
+      <ScreenShell title="Klient:innenportal" subtitle="Zugänge & Benutzer" scroll>
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </ScreenShell>
+    );
+  }
 
   const handleGenerate = async () => {
     const result = await createClientPortalAccess({

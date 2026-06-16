@@ -55,11 +55,11 @@ describe('store config', () => {
     expect(eas.build.preview.env?.APP_ENV).toBe('preview');
   });
 
-  it('eas-preflight Script und expo-location Plugin vorbereitet', () => {
+  it('eas-preflight Script vorhanden; GPS bleibt preparedOnly ohne Manifest-Plugin', () => {
     expect(existsSync(join(root, 'scripts/eas-preflight.mjs'))).toBe(true);
     const appConfig = readFileSync(join(root, 'app.config.ts'), 'utf8');
-    expect(appConfig).toContain('expo-location');
-    expect(readFileSync(join(root, 'src/lib/assist/gpsTrackingConfig.ts'), 'utf8')).toContain(
+    expect(appConfig).not.toContain('expo-location');
+    expect(readFileSync(join(root, 'src/lib/geo/geoModuleConfig.ts'), 'utf8')).toContain(
       'return false',
     );
   });

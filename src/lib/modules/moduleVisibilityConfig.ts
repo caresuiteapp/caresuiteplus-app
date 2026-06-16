@@ -132,6 +132,12 @@ export const MODULE_VISIBILITY_CATALOG: Record<ModuleScopeKey, ModuleVisibilityC
     label: 'Integrationen',
     hint: 'Demo-Provider — ausgeblendet.',
   },
+  connect: {
+    scopeKey: 'connect',
+    status: 'beta',
+    label: 'CareSuite+ Connect',
+    hint: 'Integrationskatalog — Schnittstellen vorbereitet, Live-Connect in Beta.',
+  },
   admin: {
     scopeKey: 'admin',
     status: 'internal',

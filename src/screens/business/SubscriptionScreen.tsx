@@ -144,7 +144,13 @@ export function SubscriptionScreen() {
           onPress={() => router.push('/business/modules' as never)}
         />
 
-        {can('integrations.view') ? (
+        {can('connect.view') ? (
+          <PremiumButton
+            title="CareSuite+ Connect"
+            variant="secondary"
+            onPress={() => router.push('/business/connect' as never)}
+          />
+        ) : can('integrations.view') ? (
           <PremiumButton
             title="Integrationen ansehen"
             variant="secondary"

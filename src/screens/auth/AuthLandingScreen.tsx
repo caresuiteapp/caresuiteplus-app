@@ -1,18 +1,20 @@
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightScreen } from '@/components/layout';
-import { CareLightModuleTile, EmptyState, ErrorState, LoadingState, PremiumInput } from '@/components/ui';
 import { CareSuiteBrandHeader } from '@/components/brand';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { AppScreen, InputField, PortalCard } from '@/design/components';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { fetchAuthPortalOptions } from '@/lib/auth/authLandingService';
 
 export function AuthLandingScreen() {
   const router = useRouter();
   const [search, setSearch] = useState('');
+  const { width } = useDeviceClass();
+  const type = useMemo(() => resolveGalaxyTypography(width), [width]);
   const query = useAsyncQuery(() => fetchAuthPortalOptions(), []);
 
   const tiles = useMemo(() => {
@@ -26,34 +28,36 @@ export function AuthLandingScreen() {
 
   if (query.loading && tiles.length === 0) {
     return (
-      <CareLightScreen>
+      <AppScreen scroll={false}>
         <LoadingState message="Login-Optionen werden geladen…" />
-      </CareLightScreen>
+      </AppScreen>
     );
   }
 
   if (query.error && tiles.length === 0) {
     return (
-      <CareLightScreen>
+      <AppScreen scroll={false}>
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightScreen>
+      </AppScreen>
     );
   }
 
   return (
-    <CareLightScreen>
+    <AppScreen>
       <CareSuiteBrandHeader
         title="CareSuite+ Login"
         subtitle="Mandanten-Software für Pflege & Betreuung"
       />
-      <Text style={styles.hint}>Nur Unternehmen registrieren sich öffentlich</Text>
-      <PremiumInput label="Login suchen" value={search} onChangeText={setSearch} placeholder="Unternehmen, Portal…" />
+      <Text style={[type.caption, styles.hint]} numberOfLines={2}>
+        Nur Unternehmen registrieren sich öffentlich
+      </Text>
+      <InputField label="Login suchen" value={search} onChangeText={setSearch} placeholder="Unternehmen, Portal…" />
       {tiles.length === 0 ? (
         <EmptyState title="Keine Treffer" message="Passen Sie die Suche an." />
       ) : (
         <View style={styles.grid}>
           {tiles.map((tile) => (
-            <CareLightModuleTile
+            <PortalCard
               key={tile.id}
               icon={tile.icon}
               title={tile.title}
@@ -64,16 +68,16 @@ export function AuthLandingScreen() {
           ))}
         </View>
       )}
-      <Text style={styles.note}>
+      <Text style={[type.caption, styles.note]} numberOfLines={4}>
         Mitarbeitende, Klient:innen und Angehörige erhalten ihren Zugang über CareSuite+ Office /
         Verwaltung.
       </Text>
-    </CareLightScreen>
+    </AppScreen>
   );
 }
 
 const styles = StyleSheet.create({
-  hint: { ...careTypography.caption, color: careLightColors.cyan, fontWeight: '700' },
+  hint: { fontWeight: '700', marginBottom: careSpacing.xs },
   grid: { gap: careSpacing.md },
-  note: { ...careTypography.caption, color: careLightColors.muted, marginTop: careSpacing.sm },
+  note: { marginTop: careSpacing.sm, flexShrink: 1 },
 });

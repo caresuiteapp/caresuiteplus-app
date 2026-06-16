@@ -147,7 +147,7 @@ export function TemplateListHero({
           <Text style={styles.eyebrow}>VORLAGENZENTRUM · PAKET F</Text>
           <Text style={styles.title}>{config.title}</Text>
           <Text style={styles.meta}>
-            {countLabel} · {serviceMode === 'demo' ? 'Demo' : 'Supabase'}
+            {countLabel} · {serviceMode === 'demo' ? 'Demo' : 'Live'}
           </Text>
           <Text style={styles.subtitle}>{config.subtitle}</Text>
         </View>

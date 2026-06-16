@@ -27,6 +27,13 @@ import {
   type InvoicePaymentItem,
   type InvoiceRunItem,
 } from '@/lib/office/invoiceExtensionService';
+import {
+  executeFinalizeRun,
+  executeGenerateDrafts,
+  executePrepareBillingRun,
+  fetchMonthEndClosingSummary,
+} from '@/lib/careBilling/monthEndClosingFacade';
+import { BILLING_RUN_STATUS_LABELS } from '@/types/careBilling';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import { colors, spacing, typography } from '@/theme';
 
@@ -225,6 +232,152 @@ export function InvoiceDunningScreen() {
           <PremiumButton title="Notiz speichern" onPress={() => setSaved(!!note.trim())} />
         </SectionPanel>
       ) : null}
+    </CareLightPageShell>
+  );
+}
+
+export function MonthEndClosingScreen() {
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+  const { isReadOnly } = usePermissions();
+  const [billingMonth, setBillingMonth] = useState('2026-06');
+  const [activeRunId, setActiveRunId] = useState<string | null>(null);
+  const [message, setMessage] = useState<string | null>(null);
+  const [previewConfirmed, setPreviewConfirmed] = useState(false);
+
+  const summaryQuery = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchMonthEndClosingSummary(tenantId, billingMonth, profile?.roleKey);
+    },
+    [tenantId, billingMonth, profile?.roleKey],
+    { enabled: !!tenantId },
+  );
+
+  const summary = summaryQuery.data;
+
+  async function handlePrepare() {
+    if (!tenantId) return;
+    setMessage(null);
+    const result = await executePrepareBillingRun(tenantId, billingMonth, profile?.roleKey);
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
+    setActiveRunId(result.data.billingRunId);
+    setMessage(`${result.data.itemCount} Position(en) in Rechnungslauf übernommen.`);
+    summaryQuery.refresh();
+  }
+
+  async function handleGenerateDrafts() {
+    if (!tenantId || !activeRunId) return;
+    setMessage(null);
+    const result = await executeGenerateDrafts(tenantId, activeRunId, profile?.roleKey);
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
+    setMessage(`${result.data.draftsCreated} Entwurf/entwürfe erstellt (${result.data.blockedCount} blockiert).`);
+    summaryQuery.refresh();
+  }
+
+  async function handleFinalize() {
+    if (!tenantId || !activeRunId) return;
+    setMessage(null);
+    const result = await executeFinalizeRun(tenantId, activeRunId, previewConfirmed, profile?.roleKey);
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
+    setMessage(
+      `${result.data.invoicesFinalized} Rechnung(en) finalisiert, ${result.data.receivablesCreated} Forderung(en) angelegt.`,
+    );
+    summaryQuery.refresh();
+  }
+
+  if (summaryQuery.loading && !summary) {
+    return (
+      <CareLightPageShell title="Monatsabschluss" subtitle="Wird geladen…">
+        <LoadingState message="Monatsabschluss wird geladen…" />
+      </CareLightPageShell>
+    );
+  }
+
+  if (summaryQuery.error && !summary) {
+    return (
+      <CareLightPageShell title="Monatsabschluss" subtitle="Fehler">
+        <ErrorState message={summaryQuery.error} onRetry={summaryQuery.refresh} />
+      </CareLightPageShell>
+    );
+  }
+
+  return (
+    <CareLightPageShell title="Monatsabschluss" subtitle="Rechnungslauf & Forderungen">
+      {message ? <SuccessState message={message} /> : null}
+      <SectionPanel title="Abrechnungsmonat">
+        <PremiumInput
+          label="Monat (YYYY-MM)"
+          value={billingMonth}
+          onChangeText={setBillingMonth}
+          placeholder="2026-06"
+        />
+        <Text style={styles.secondary}>
+          Abrechnungsbereit: {summary?.readyItemCount ?? 0} Position(en)
+        </Text>
+      </SectionPanel>
+
+      {!isReadOnly ? (
+        <SectionPanel title="Rechnungslauf">
+          <PremiumButton title="1. Lauf vorbereiten" onPress={handlePrepare} />
+          <PremiumButton
+            title="2. Rechnungsentwürfe erzeugen"
+            variant="secondary"
+            onPress={handleGenerateDrafts}
+            disabled={!activeRunId}
+          />
+          <PremiumButton
+            title="PDF-Vorschau bestätigen"
+            variant="secondary"
+            onPress={() => setPreviewConfirmed(true)}
+          />
+          <PremiumButton
+            title="3. Finalisieren & Forderungen anlegen"
+            onPress={handleFinalize}
+            disabled={!activeRunId || !previewConfirmed}
+          />
+        </SectionPanel>
+      ) : null}
+
+      <SectionPanel title="Läufe">
+        {(summary?.runs ?? []).length === 0 ? (
+          <EmptyState title="Keine Läufe" message="Starten Sie einen Monatsabschluss." />
+        ) : (
+          summary?.runs.map((run) => (
+            <PremiumCard key={run.id} style={styles.card} onPress={() => setActiveRunId(run.id)}>
+              <View style={styles.row}>
+                <Text style={styles.primary}>{run.title}</Text>
+                <Text style={styles.badge}>{BILLING_RUN_STATUS_LABELS[run.status]}</Text>
+              </View>
+              <Text style={styles.secondary}>
+                {run.serviceRecordsCount} Position(en) · {run.invoicesCount} Rechnung(en) ·{' '}
+                {formatCurrency(run.totalAmountCents)} · {formatDate(run.preparedAt ?? run.createdAt)}
+              </Text>
+            </PremiumCard>
+          ))
+        )}
+      </SectionPanel>
+
+      {summary?.recentAudit.length ? (
+        <SectionPanel title="Audit (letzte Ereignisse)">
+          {summary.recentAudit.map((e, idx) => (
+            <Text key={`${e.action}-${idx}`} style={styles.secondary}>
+              {formatDate(e.createdAt)} — {e.summary}
+            </Text>
+          ))}
+        </SectionPanel>
+      ) : null}
+
+      <PremiumButton title="Aktualisieren" variant="secondary" onPress={summaryQuery.refresh} />
     </CareLightPageShell>
   );
 }

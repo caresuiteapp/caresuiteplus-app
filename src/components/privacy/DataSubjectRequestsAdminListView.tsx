@@ -169,7 +169,7 @@ export function DataSubjectRequestsAdminListView() {
 
       {!liveReady ? (
         <InfoBanner
-          title="Live-Liste nach Migration 0031"
+          title="Live-Liste in Vorbereitung"
           message={DATA_SUBJECT_REQUEST_PREPARED_MESSAGE}
         />
       ) : null}
@@ -177,7 +177,7 @@ export function DataSubjectRequestsAdminListView() {
       {!exportLiveReady ? (
         <InfoBanner
           title="CSV-Export in Vorbereitung"
-          message="Der CSV-Export der Anfragenliste ist nach Migration 0031 und Live-Supabase verfügbar — kein E-Mail-Versand."
+          message="Der CSV-Export der Anfragenliste wird mit der Live-Anbindung verfügbar — kein E-Mail-Versand."
         />
       ) : null}
 
@@ -197,8 +197,8 @@ export function DataSubjectRequestsAdminListView() {
 
       {canManage && !liveReady ? (
         <InfoBanner
-          title="Status-Update nach Migration 0032"
-          message="Live-Statusänderungen erfordern Migration 0032 (Admin-UPDATE RLS). Demo-Modus unterstützt Status-Updates."
+          title="Status-Update in Vorbereitung"
+          message="Live-Statusänderungen folgen mit der nächsten Freigabe. Der Demo-Modus unterstützt Status-Updates."
         />
       ) : null}
 

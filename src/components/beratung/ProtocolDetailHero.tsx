@@ -70,7 +70,7 @@ export function ProtocolDetailHero({ protocol, roleKey }: ProtocolDetailHeroProp
         <PremiumBadge label={WORKFLOW_STATUS_LABELS[protocol.status]} variant="cyan" dot />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {!isBeratungExtensionLiveReady() ? (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         ) : null}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

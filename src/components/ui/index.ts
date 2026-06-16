@@ -37,6 +37,7 @@ export { PremiumDivider } from './PremiumDivider';
 export { PremiumListRow } from './PremiumListRow';
 export { PremiumDataTable, type DataTableColumn } from './PremiumDataTable';
 export { InfoBanner } from './InfoBanner';
+export { OfflineNotice } from './OfflineNotice';
 export {
   COMPONENT_CATALOG,
   getComponentsByCategory,

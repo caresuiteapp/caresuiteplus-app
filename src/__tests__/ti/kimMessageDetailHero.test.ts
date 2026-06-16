@@ -40,12 +40,14 @@ describe('KIM Message Detail Hero (Sprint 86)', () => {
   it('ResidentDetailHero zeigt ehrliches Live-Badge', () => {
     const hero = readSrc('src/components/stationaer/ResidentDetailHero.tsx');
     expect(hero).toContain('isStationaerResidentsLiveReady');
-    expect(hero).toContain('Demo / preparedOnly');
+    expect(hero).toContain('statusKind="live"');
+    expect(hero).toContain('statusKind="preparedOnly"');
   });
 
   it('CourseDetailHero zeigt ehrliches Live-Badge', () => {
     const hero = readSrc('src/components/akademie/CourseDetailHero.tsx');
     expect(hero).toContain('isAkademieCoursesLiveReady');
-    expect(hero).toContain('Demo / preparedOnly');
+    expect(hero).toContain('statusKind="live"');
+    expect(hero).toContain('statusKind="preparedOnly"');
   });
 });

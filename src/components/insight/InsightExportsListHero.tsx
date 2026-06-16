@@ -80,7 +80,7 @@ export function InsightExportsListHero({
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isInsightLiveReady() ? (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

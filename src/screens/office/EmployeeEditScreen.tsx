@@ -127,7 +127,7 @@ export function EmployeeEditScreen() {
           icon="✏️"
           formMode="edit"
           wpNumber={187}
-          preparedMessage="Live-HR-Felder nach Migration 0033 — derzeit Demo-Persistenz."
+          preparedMessage="Live-HR-Felder folgen in Kürze — derzeit Demo-Persistenz."
         />
         {successMessage ? <SuccessState message={successMessage} /> : null}
         <PremiumInput

@@ -83,7 +83,7 @@ export function AiJobDetailHero({ job, roleKey }: AiJobDetailHeroProps) {
         {isPlatformLiveReady() ? (
           <PremiumBadge label="Live Provider" variant="green" />
         ) : (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

@@ -73,7 +73,7 @@ export function EmployeeCreateScreen() {
         icon="🧑‍⚕️"
         formMode="create"
         wpNumber={186}
-        preparedMessage="HR-Vollprofil und Live-Backfill nach Migration 0033 — derzeit Demo-Persistenz."
+        preparedMessage="HR-Vollprofil folgt in Kürze — derzeit Demo-Persistenz."
       />
       {isFormEmpty ? (
         <EmptyState title="Neues Profil" message="Pflichtfelder unten ausfüllen und anlegen." />

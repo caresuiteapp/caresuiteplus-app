@@ -172,7 +172,7 @@ export async function fetchPortalAppointmentDetail(
         notes: assignment?.notes ?? null,
         tasks: assignment ? (ASSIGNMENT_TASKS[assignment.id] ?? []) : [],
         canStartExecution: canStart,
-        executionRoute: assignment ? `/assist/assignments/${assignment.id}` : null,
+        executionRoute: assignment ? `/assist/assignments/${assignment.id}/execute` : null,
       },
     };
   });

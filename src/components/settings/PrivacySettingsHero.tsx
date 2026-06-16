@@ -64,7 +64,7 @@ export function PrivacySettingsHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={articleLabel} variant="cyan" dot />
-        <PremiumBadge label="preparedOnly" variant="muted" />
+        <PremiumBadge statusKind="preparedOnly" />
         <PremiumBadge label="Support-Bearbeitung" variant="orange" dot />
       </View>
       <View style={styles.kpiRow}>

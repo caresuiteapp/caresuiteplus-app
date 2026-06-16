@@ -15,7 +15,7 @@ export function PreparedModeBanner({ mode = 'prepared', hint }: Props) {
     <View style={styles.wrap}>
       <PremiumBadge label={label} variant={variant} dot />
       <Text style={styles.hint}>
-        {hint ?? 'Live-Supabase-Anbindung folgt — Funktionen sind mit Demo-Daten nutzbar.'}
+        {hint ?? 'Live-Anbindung folgt — Funktionen sind mit Demo-Daten nutzbar.'}
       </Text>
     </View>
   );

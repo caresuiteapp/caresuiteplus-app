@@ -84,7 +84,7 @@ export function CareRecordsListHero({
         {isAssistTripsLiveReady() ? (
           <PremiumBadge label="Live Fahrtenbuch" variant="green" />
         ) : (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         )}
       </View>
       <View style={styles.kpiRow}>

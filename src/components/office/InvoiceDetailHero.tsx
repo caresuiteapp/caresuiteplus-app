@@ -7,6 +7,7 @@ import { ROLE_LABELS } from '@/data/demo';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { RoleKey } from '@/types';
 import type { InvoiceDetail } from '@/types/modules/invoiceDetail';
+import { INVOICE_ACCOUNTING_STATUS_LABELS } from '@/types/accounting';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { designTokens, spacing } from '@/theme';
 
@@ -116,7 +117,14 @@ export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetai
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isReadOnly ? <PremiumBadge label="Lesemodus" variant="muted" /> : null}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        <PremiumBadge label="DATEV preparedOnly" variant="muted" />
+        {invoice.accountingStatus ? (
+          <PremiumBadge
+            label={INVOICE_ACCOUNTING_STATUS_LABELS[invoice.accountingStatus]}
+            variant="cyan"
+            dot
+          />
+        ) : null}
+        <PremiumBadge label="Buchhaltung preparedOnly" variant="muted" />
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

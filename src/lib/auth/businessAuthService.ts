@@ -1,3 +1,4 @@
+import type { Session } from '@supabase/supabase-js';
 import type { ServiceResult } from '@/types';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { activateRegistrationModules } from '@/lib/billing/moduleActivationService';
@@ -148,6 +149,7 @@ export async function loginBusinessUser(
     tenantUser?: TenantUser;
     loginType: 'business';
     mustChangePassword: boolean;
+    supabaseSession?: Session;
   }>
 > {
   const normalized = identifier.trim().toLowerCase();
@@ -180,6 +182,7 @@ export async function loginBusinessUser(
       data: {
         loginType: 'business',
         mustChangePassword: false,
+        supabaseSession: sessionResult.data,
       },
     };
   }

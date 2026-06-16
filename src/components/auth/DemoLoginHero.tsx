@@ -4,7 +4,7 @@ import { CareLightKpiCard, CareLightListHeroFrame, PremiumBadge } from '@/compon
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { isDemoMode } from '@/lib/supabase/config';
+import { defaultPublicVisibility } from '@/lib/ui/uiVisibility';
 import { designTokens } from '@/theme';
 
 type DemoLoginHeroProps = {
@@ -14,6 +14,7 @@ type DemoLoginHeroProps = {
 };
 
 export function DemoLoginHero({ title, subtitle, roleCount }: DemoLoginHeroProps) {
+  const visibility = useMemo(() => defaultPublicVisibility(), []);
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -50,7 +51,7 @@ export function DemoLoginHero({ title, subtitle, roleCount }: DemoLoginHeroProps
     <CareLightListHeroFrame accentColor={careLightColors.orange}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>AUTH · DEMO · EINSTIEG</Text>
+          <Text style={styles.eyebrow}>DEMO</Text>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.meta}>{subtitle}</Text>
         </View>
@@ -60,38 +61,21 @@ export function DemoLoginHero({ title, subtitle, roleCount }: DemoLoginHeroProps
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Demo-Zugang" variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus aktiv" variant="cyan" /> : null}
-        <PremiumBadge label="preparedOnly Auth" variant="muted" />
       </View>
-      <View style={styles.kpiRow}>
-        <CareLightKpiCard
-          label="Rollen"
-          value={String(roleCount)}
-          subValue="Lokal wählbar"
-          icon="👤"
-          accentColor={careLightColors.orange}
-          style={styles.kpiItem}
-        />
-        <CareLightKpiCard
-          label="Session"
-          value="Lokal"
-          subValue="Kein Supabase"
-          icon="💾"
-          accentColor={careLightColors.cyan}
-          style={styles.kpiItem}
-        />
-        <CareLightKpiCard
-          label="Status"
-          value="Prototyp"
-          subValue="Kein Store-Release"
-          icon="📋"
-          accentColor={careLightColors.violet}
-          style={styles.kpiItem}
-        />
-      </View>
+      {visibility.showDeveloperDiagnostics ? (
+        <View style={styles.kpiRow}>
+          <CareLightKpiCard
+            label="Rollen"
+            value={String(roleCount)}
+            subValue="Lokal wählbar"
+            icon="👤"
+            accentColor={careLightColors.orange}
+            style={styles.kpiItem}
+          />
+        </View>
+      ) : null}
       <Text style={styles.hint}>
-        Demo-Anmeldung ohne Passwort — Session wird nur lokal simuliert. Für Live-Pilot Mandanten-Zugang
-        nutzen.
+        Demo-Anmeldung ohne Passwort — Beispieldaten zum Kennenlernen der Plattform.
       </Text>
     </CareLightListHeroFrame>
   );

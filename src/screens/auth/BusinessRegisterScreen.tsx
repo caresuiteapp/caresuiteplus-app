@@ -3,26 +3,65 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PremiumPreparedNotice } from '@/components/billing/PremiumPreparedNotice';
 import { AccessCredentialsPanel } from '@/components/auth/AccessCredentialsPanel';
-import { AuthRegisterHero } from '@/components/auth/AuthRegisterHero';
-import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import {
+  ErrorState,
+  GlassCard,
+  InputField,
+  ModuleCard,
+  PremiumButton,
+  RegisterLayout,
+} from '@/design/components';
+import type { CareModuleKey } from '@/design/tokens/modules';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+import { careSpacing } from '@/design/tokens/spacing';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import type { AccessCredentialsReveal, BusinessRegistrationInput } from '@/lib/auth/auth.types';
 import { registerBusinessTenant } from '@/lib/auth/businessAuthService';
-import { colors, spacing, typography } from '@/theme';
 
 const MODULE_OPTIONS = ['office', 'assist', 'pflege', 'beratung', 'akademie', 'stationaer'] as const;
 
-const MODULE_LABELS: Record<(typeof MODULE_OPTIONS)[number], string> = {
-  office: 'CareSuite+ Office (Basis)',
-  assist: 'Assist',
-  pflege: 'Pflege',
-  beratung: 'Beratung',
-  akademie: 'Akademie',
-  stationaer: 'Stationär',
+const PREMIUM_PREPARED_MODULES = new Set<(typeof MODULE_OPTIONS)[number]>(['akademie', 'stationaer']);
+
+const MODULE_META: Record<
+  (typeof MODULE_OPTIONS)[number],
+  { title: string; description: string; moduleKey: CareModuleKey }
+> = {
+  office: {
+    title: 'CareSuite+ Office',
+    description: 'Basis-Modul — immer inklusive',
+    moduleKey: 'office',
+  },
+  assist: {
+    title: 'Assist',
+    description: 'Einsätze, Touren und mobile Dokumentation',
+    moduleKey: 'assist',
+  },
+  pflege: {
+    title: 'Pflege',
+    description: 'Pflegeplanung, SIS und Vitalwerte',
+    moduleKey: 'pflege',
+  },
+  beratung: {
+    title: 'Beratung',
+    description: 'Fälle, Protokolle und Erstgespräche',
+    moduleKey: 'beratung',
+  },
+  akademie: {
+    title: 'Akademie',
+    description: 'Demnächst verfügbar — Schulungen, Kurse und Zertifikate',
+    moduleKey: 'akademie',
+  },
+  stationaer: {
+    title: 'Stationär',
+    description: 'Demnächst verfügbar — Bewohner, Übergaben und Wohnbereiche',
+    moduleKey: 'stationaer',
+  },
 };
 
 export function BusinessRegisterScreen() {
   const router = useRouter();
+  const { width } = useDeviceClass();
+  const type = resolveGalaxyTypography(width);
   const [form, setForm] = useState<BusinessRegistrationInput>({
     companyName: '',
     legalForm: '',
@@ -87,80 +126,108 @@ export function BusinessRegisterScreen() {
 
   if (credentials) {
     return (
-      <ScreenShell title="Registrierung erfolgreich" subtitle="Mandant angelegt" scroll>
+      <RegisterLayout title="Registrierung erfolgreich" subtitle="Ihr Zugang ist bereit">
         <AccessCredentialsPanel
           title="Zugang erfolgreich erstellt"
           credentials={credentials}
           onClose={() => router.replace('/onboarding' as never)}
         />
         <PremiumButton title="Zum Onboarding" onPress={() => router.replace('/onboarding' as never)} fullWidth />
-      </ScreenShell>
+      </RegisterLayout>
     );
   }
 
   return (
-    <ScreenShell title="Neues Unternehmen registrieren" subtitle="CareSuite+ Plattform" scroll>
-      <AuthRegisterHero />
+    <RegisterLayout
+      title="Neues Unternehmen registrieren"
+      subtitle="CareSuite+ einrichten und Module auswählen"
+    >
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
 
-      <SectionPanel title="Unternehmensdaten">
-        <PremiumInput label="Firmenname *" value={form.companyName} onChangeText={(v) => update('companyName', v)} />
-        <PremiumInput label="Rechtsform *" value={form.legalForm} onChangeText={(v) => update('legalForm', v)} />
-        <PremiumInput label="Branche / Einrichtungstyp *" value={form.industry} onChangeText={(v) => update('industry', v)} />
-        <PremiumInput label="Straße *" value={form.street} onChangeText={(v) => update('street', v)} />
-        <PremiumInput label="PLZ *" value={form.zip} onChangeText={(v) => update('zip', v)} />
-        <PremiumInput label="Ort *" value={form.city} onChangeText={(v) => update('city', v)} />
-        <PremiumInput label="Telefon *" value={form.phone} onChangeText={(v) => update('phone', v)} />
-        <PremiumInput label="E-Mail *" value={form.email} onChangeText={(v) => update('email', v)} autoCapitalize="none" />
-      </SectionPanel>
+      <GlassCard>
+        <Text style={[type.caption, styles.stepEyebrow]}>Schritt 1</Text>
+        <Text style={[type.h2, styles.sectionTitle]} numberOfLines={1}>
+          Unternehmen anlegen
+        </Text>
+        <View style={styles.fields}>
+          <InputField label="Firmenname *" value={form.companyName} onChangeText={(v) => update('companyName', v)} />
+          <InputField label="Rechtsform *" value={form.legalForm} onChangeText={(v) => update('legalForm', v)} />
+          <InputField label="Branche / Einrichtungstyp *" value={form.industry} onChangeText={(v) => update('industry', v)} />
+          <InputField label="Straße *" value={form.street} onChangeText={(v) => update('street', v)} />
+          <InputField label="PLZ *" value={form.zip} onChangeText={(v) => update('zip', v)} />
+          <InputField label="Ort *" value={form.city} onChangeText={(v) => update('city', v)} />
+          <InputField label="Telefon *" value={form.phone} onChangeText={(v) => update('phone', v)} />
+          <InputField label="E-Mail *" value={form.email} onChangeText={(v) => update('email', v)} autoCapitalize="none" />
+        </View>
+      </GlassCard>
 
-      <SectionPanel title="Admin-Benutzer (Owner)">
-        <PremiumInput label="Vorname *" value={form.adminFirstName} onChangeText={(v) => update('adminFirstName', v)} />
-        <PremiumInput label="Nachname *" value={form.adminLastName} onChangeText={(v) => update('adminLastName', v)} />
-        <PremiumInput label="E-Mail *" value={form.adminEmail} onChangeText={(v) => update('adminEmail', v)} autoCapitalize="none" />
-        <PremiumInput label="Passwort *" value={form.adminPassword} onChangeText={(v) => update('adminPassword', v)} secureTextEntry />
-        <PremiumInput label="Passwort bestätigen *" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
-      </SectionPanel>
-
-      <SectionPanel
-        title="Module aktivieren"
-        subtitle="Office ist immer enthalten — Fachmodule nach Bedarf wählen"
-      >
-        <Text style={styles.freeHint}>
-          CareSuite+ Office ist immer enthalten. Wählen Sie zusätzliche Fachmodule für Ihre Organisation.
+      <View style={styles.moduleSection}>
+        <Text style={[type.caption, styles.stepEyebrow]}>Schritt 2</Text>
+        <Text style={type.h2} numberOfLines={2}>
+          Module auswählen
+        </Text>
+        <Text style={[type.body, styles.moduleHint]} numberOfLines={2}>
+          Office ist immer enthalten — Fachmodule nach Bedarf wählen
         </Text>
         <View style={styles.modules}>
           {MODULE_OPTIONS.map((module) => {
+            const meta = MODULE_META[module];
             const selected = form.selectedModules.includes(module);
             const locked = module === 'office';
             return (
-              <PremiumButton
+              <ModuleCard
                 key={module}
-                title={
+                moduleKey={meta.moduleKey}
+                title={locked ? `${meta.title} — immer enthalten` : meta.title}
+                description={meta.description}
+                selected={selected || locked}
+                locked={locked}
+                statusKind={
                   locked
-                    ? `✓ ${MODULE_LABELS[module]} — immer aktiv`
-                    : selected
-                      ? `✓ ${MODULE_LABELS[module]}`
-                      : MODULE_LABELS[module]
+                    ? 'active'
+                    : PREMIUM_PREPARED_MODULES.has(module)
+                      ? 'comingSoon'
+                      : selected
+                        ? 'active'
+                        : undefined
                 }
-                variant={selected || locked ? 'primary' : 'secondary'}
                 onPress={() => toggleModule(module)}
-                disabled={locked}
-                fullWidth
               />
             );
           })}
         </View>
-      </SectionPanel>
+      </View>
+
+      <GlassCard>
+        <Text style={[type.caption, styles.stepEyebrow]}>Schritt 3</Text>
+        <Text style={[type.h2, styles.sectionTitle]} numberOfLines={1}>
+          Admin-Konto
+        </Text>
+        <View style={styles.fields}>
+          <InputField label="Vorname *" value={form.adminFirstName} onChangeText={(v) => update('adminFirstName', v)} />
+          <InputField label="Nachname *" value={form.adminLastName} onChangeText={(v) => update('adminLastName', v)} />
+          <InputField label="E-Mail *" value={form.adminEmail} onChangeText={(v) => update('adminEmail', v)} autoCapitalize="none" />
+          <InputField label="Passwort *" value={form.adminPassword} onChangeText={(v) => update('adminPassword', v)} secureTextEntry />
+          <InputField label="Passwort bestätigen *" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+        </View>
+      </GlassCard>
 
       <PremiumPreparedNotice compact />
 
-      <PremiumButton title="Registrieren" onPress={handleSubmit} loading={loading} fullWidth />
-    </ScreenShell>
+      <View style={styles.submitSection}>
+        <Text style={[type.caption, styles.stepEyebrow]}>Schritt 4</Text>
+        <PremiumButton title="Prüfen und registrieren" onPress={handleSubmit} loading={loading} fullWidth />
+      </View>
+    </RegisterLayout>
   );
 }
 
 const styles = StyleSheet.create({
-  freeHint: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.sm },
-  modules: { gap: spacing.sm },
+  stepEyebrow: { marginBottom: careSpacing.xs, opacity: 0.85 },
+  sectionTitle: { marginBottom: careSpacing.sm },
+  fields: { gap: careSpacing.md },
+  moduleSection: { gap: careSpacing.sm },
+  moduleHint: { flexShrink: 1 },
+  modules: { gap: careSpacing.sm },
+  submitSection: { gap: careSpacing.xs },
 });

@@ -3,6 +3,7 @@ export { BudgetDetailHero } from './BudgetDetailHero';
 export { BudgetsListHero } from './BudgetsListHero';
 export { ClientDetailHero } from './ClientDetailHero';
 export { InvoiceDetailHero } from './InvoiceDetailHero';
+export { InvoiceAccountingPanel } from './accounting/InvoiceAccountingPanel';
 export { OfficeBillingHero } from './OfficeBillingHero';
 export { ClientListCard } from './ClientListCard';
 export { EmployeeListCard } from './EmployeeListCard';

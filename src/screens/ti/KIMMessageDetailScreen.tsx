@@ -72,7 +72,7 @@ export function KIMMessageDetailScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <KIMMessageDetailHero message={data} roleKey={roleKey} />
 
-        <InfoBanner variant="warning" title="TI preparedOnly" message={TI_PREPARED_MESSAGE} />
+        <InfoBanner variant="warning" title="TI in Vorbereitung" message={TI_PREPARED_MESSAGE} />
 
         <PremiumCard accentColor={colors.cyan}>
           <Text style={styles.body}>{data.body}</Text>

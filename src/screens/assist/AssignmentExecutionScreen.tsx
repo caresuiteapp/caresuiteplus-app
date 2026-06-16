@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { VoiceFlowPanel } from '@/components/brand';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -17,6 +18,10 @@ import {
 import { useAssignmentDetail } from '@/hooks/useAssignmentDetail';
 import { useAssignmentExecution } from '@/hooks/useAssignmentExecution';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { startVoiceRecordingPrepared } from '@/features/communication/communication.voice';
+import { resolveVoiceFlowVisibility } from '@/lib/ui/voiceFlowVisibility';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 
@@ -33,7 +38,9 @@ function formatDateTime(iso: string | null): string {
 export function AssignmentExecutionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { can, check, roleLabel } = usePermissions();
+  const { user, profile } = useAuth();
+  const serviceTenantId = useServiceTenantId();
+  const { can, check, roleLabel, roleKey } = usePermissions();
   const canManage = can('assist.execution.manage');
   const canCreateRecord = can('assist.records.create');
 
@@ -77,6 +84,16 @@ export function AssignmentExecutionScreen() {
 
   const status = execution.status;
   const statusLabel = ASSIGNMENT_STATUS_LABELS[status];
+  const inDocumentationContext =
+    status === 'beendet' || status === 'dokumentation_offen' || status === 'unterschrift_offen';
+  const voiceFlow = resolveVoiceFlowVisibility({
+    isAuthenticated: Boolean(user),
+    roleKey: roleKey ?? profile?.roleKey ?? null,
+    assignmentId: id,
+    tenantId: assignment.tenantId,
+    sessionTenantId: profile?.tenantId ?? serviceTenantId,
+    documentationAllowed: inDocumentationContext && canManage,
+  });
 
   return (
     <ScreenShell title={assignment.title} subtitle={assignment.clientName}>
@@ -150,10 +167,20 @@ export function AssignmentExecutionScreen() {
           </SectionPanel>
         ) : null}
 
-        {(status === 'beendet' ||
-          status === 'dokumentation_offen' ||
-          status === 'unterschrift_offen') && (
+        {inDocumentationContext ? (
           <SectionPanel title="Dokumentation (Pflicht)">
+            {voiceFlow.showPanel ? (
+              <VoiceFlowPanel
+                compact
+                onStart={
+                  voiceFlow.showStartButton
+                    ? () => {
+                        void startVoiceRecordingPrepared();
+                      }
+                    : undefined
+                }
+              />
+            ) : null}
             <PremiumInput
               label="Leistungsdokumentation"
               value={documentationNotes || execution.documentationNotes || ''}
@@ -162,7 +189,7 @@ export function AssignmentExecutionScreen() {
               placeholder="Was wurde erbracht? Abweichungen dokumentieren…"
             />
           </SectionPanel>
-        )}
+        ) : null}
 
         {execution.documentationNotes ? (
           <SectionPanel title="Gespeicherte Dokumentation">

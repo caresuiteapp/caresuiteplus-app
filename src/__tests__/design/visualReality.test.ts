@@ -39,18 +39,18 @@ describe('Visual Reality — light premium main screens', () => {
     expect(kpis.find((k) => k.id === 'alerts')?.label).toBe('Hinweise / Risiken');
   });
 
-  it('AppStartScreen uses light background and cards', () => {
+  it('AppStartScreen uses space premium shell and glass portal cards', () => {
     const screen = readSrc('src/screens/AppStartScreen.tsx');
-    expect(screen).toContain('CareSuiteLightBackground');
-    expect(screen).toContain('CareLightCard');
-    expect(screen).not.toContain('CareSuiteBackground');
+    expect(screen).toContain('AppScreen');
+    expect(screen).toContain('PortalCard');
+    expect(screen).not.toContain('CareSuiteLightBackground');
     expect(screen).not.toContain('PremiumCard');
   });
 
-  it('AuthLandingScreen is light premium landing', () => {
+  it('AuthLandingScreen uses space premium landing', () => {
     const screen = readSrc('src/screens/auth/AuthLandingScreen.tsx');
-    expect(screen).toContain('CareLightScreen');
-    expect(screen).toContain('CareLightModuleTile');
+    expect(screen).toContain('AppScreen');
+    expect(screen).toContain('PortalCard');
     expect(screen).not.toContain('ScreenShell');
   });
 
@@ -117,10 +117,10 @@ describe('Visual Reality — light premium main screens', () => {
     }
   });
 
-  it('DemoLoginScreen uses CareLightPageShell and CareLightButton', () => {
+  it('DemoLoginScreen uses AuthPageShell and PremiumButton', () => {
     const screen = readSrc('src/screens/DemoLoginScreen.tsx');
-    expect(screen).toContain('CareLightPageShell');
-    expect(screen).toContain('CareLightButton');
+    expect(screen).toContain('AuthPageShell');
+    expect(screen).toContain('PremiumButton');
     expect(screen).not.toMatch(/import[^;]*ScreenShell[^;]*from '@\/components\/layout'/);
   });
 });
@@ -175,14 +175,14 @@ describe('Visual Reality — Phase 2 list/detail screens', () => {
     expect(hero).not.toContain('PremiumListHeroFrame');
   });
 
-  it('auth login screens use CareLightPageShell', () => {
+  it('auth login screens use AuthLayout', () => {
     for (const rel of [
       'src/screens/auth/BusinessLoginScreen.tsx',
       'src/screens/auth/EmployeePortalLoginScreen.tsx',
       'src/screens/auth/PortalCodeLoginScreen.tsx',
     ]) {
       const screen = readSrc(rel);
-      expect(screen).toContain('CareLightPageShell');
+      expect(screen).toContain('AuthLayout');
     }
   });
 });

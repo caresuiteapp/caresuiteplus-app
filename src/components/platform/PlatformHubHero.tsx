@@ -61,7 +61,7 @@ export function PlatformHubHero({ roleKey, ocrJobCount = 0, aiJobCount = 0 }: Pl
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        <PremiumBadge label="preparedOnly" variant="muted" />
+        <PremiumBadge statusKind="preparedOnly" />
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="OCR-Jobs" value={String(ocrJobCount)} icon="📄" accentColor="#62F3FF" style={styles.kpiItem} />

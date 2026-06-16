@@ -18,6 +18,7 @@ import {
   isMedicationEmpReady,
   MEDICATION_EMP_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
+import { getActionAvailability } from '@/lib/ui/actionAvailability';
 import { spacing, typography, colors } from '@/theme';
 
 export function MedicationDetailScreen() {
@@ -39,6 +40,25 @@ export function MedicationDetailScreen() {
 
   const detail = query.data;
   const empReady = isMedicationEmpReady();
+  const empSyncAvailability = getActionAvailability('medication.emp_sync', {
+    roleKey,
+    isPreparedOnly: !empReady,
+    hasProvider: empReady,
+    isReadOnly,
+    canExecute: false,
+  });
+  const prescriptionAvailability = getActionAvailability('medication.prescription', {
+    roleKey,
+    isPreparedOnly: !empReady,
+    isReadOnly,
+    canExecute: false,
+  });
+  const interactionsAvailability = getActionAvailability('medication.interactions', {
+    roleKey,
+    isPreparedOnly: !empReady,
+    isReadOnly,
+    canExecute: false,
+  });
 
   if (query.loading && !detail) {
     return (
@@ -80,22 +100,23 @@ export function MedicationDetailScreen() {
           <PremiumButton
             title="eMP abgleichen"
             fullWidth
-            disabled={!empReady || isReadOnly}
-            onPress={() => undefined}
+            variant={empSyncAvailability.isPreparedOnly ? 'prepared' : 'primary'}
+            disabled={!empSyncAvailability.enabled}
           />
+          {empSyncAvailability.disabledReason ? (
+            <Text style={styles.hint}>{empSyncAvailability.disabledReason}</Text>
+          ) : null}
           <PremiumButton
             title="Verordnung ändern"
-            variant="secondary"
+            variant={prescriptionAvailability.isPreparedOnly ? 'prepared' : 'secondary'}
             fullWidth
-            disabled={!empReady || isReadOnly}
-            onPress={() => undefined}
+            disabled={!prescriptionAvailability.enabled}
           />
           <PremiumButton
             title="Wechselwirkungen prüfen"
-            variant="secondary"
+            variant={interactionsAvailability.isPreparedOnly ? 'prepared' : 'secondary'}
             fullWidth
-            disabled={!empReady || isReadOnly}
-            onPress={() => undefined}
+            disabled={!interactionsAvailability.enabled}
           />
         </SectionPanel>
 
@@ -132,4 +153,5 @@ const styles = StyleSheet.create({
   body: { ...typography.body, marginBottom: spacing.sm },
   meta: { ...typography.caption, marginBottom: spacing.xs },
   note: { ...typography.caption, color: colors.textMuted },
+  hint: { ...typography.caption, color: colors.textMuted },
 });

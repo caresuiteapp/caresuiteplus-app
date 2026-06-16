@@ -10,7 +10,7 @@ import {
 import type { ProductKey } from '@/types';
 
 export const OFFICE_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Übersicht', icon: '🏠', href: '/office' },
+  { key: 'index', label: 'Office', icon: '🏢', href: '/office' },
   { key: 'clients', label: 'Klient:innen', icon: '👥', href: '/office/clients' },
   { key: 'employees', label: 'Team', icon: '👤', href: '/office/employees' },
   { key: 'appointments', label: 'Termine', icon: '📅', href: '/office/appointments' },
@@ -52,60 +52,60 @@ export const STATIONAER_TABS: ShellTabConfig[] = [
 
 export const BUSINESS_TABS: ShellTabConfig[] = [
   { key: 'index', label: 'Dashboard', icon: '📊', href: '/business' },
-  { key: 'office', label: 'Office', icon: '🏢', href: '/office', moduleScopeKey: 'office' },
+  {
+    key: 'schedule',
+    label: 'Dienstplan',
+    icon: '📅',
+    href: '/pflege/dienstplaene',
+    moduleScopeKey: 'pflege',
+    allowedRoles: ['business_admin', 'business_manager', 'dispatch', 'nurse', 'caregiver', 'counselor'],
+  },
+  {
+    key: 'clients',
+    label: 'Klient:innen',
+    icon: '👥',
+    href: '/office/clients',
+    moduleScopeKey: 'office',
+    allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
+  },
+  {
+    key: 'employees',
+    label: 'Mitarbeitende',
+    icon: '👤',
+    href: '/office/employees',
+    moduleScopeKey: 'office',
+    allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
+  },
   {
     key: 'messages',
     label: 'Nachrichten',
     icon: '💬',
     href: '/business/messages',
     moduleScopeKey: 'communication',
-  },
-  { key: 'templates', label: 'Vorlagen', icon: '📝', href: '/business/templates', moduleScopeKey: 'templates' },
-  {
-    key: 'reporting',
-    label: 'PDL',
-    icon: '📈',
-    href: '/business/reporting',
-    moduleScopeKey: 'reporting',
-  },
-  { key: 'ops', label: 'Betrieb', icon: '🚀', href: '/business/ops', moduleScopeKey: 'ops' },
-  { key: 'modules', label: 'Module', icon: '🧩', href: '/business/modules', moduleScopeKey: 'modules_hub' },
-  {
-    key: 'subscription',
-    label: 'Plattform',
-    icon: '🆓',
-    href: '/business/subscription',
-    moduleScopeKey: 'subscription',
+    allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
   },
   {
-    key: 'platform',
-    label: 'Plattform',
-    icon: '🤖',
-    href: '/business/platform',
-    moduleScopeKey: 'platform',
-  },
-  {
-    key: 'integrations',
-    label: 'Integrationen',
-    icon: '🔌',
-    href: '/business/integrations',
-    moduleScopeKey: 'integrations',
+    key: 'more',
+    label: 'Mehr',
+    icon: '⋯',
+    href: '/business/modules',
+    moduleScopeKey: 'modules_hub',
+    allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
   },
 ];
 
 export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Übersicht', icon: '🏠', href: '/portal/employee' },
+  { key: 'index', label: 'Heute', icon: '🏠', href: '/portal/employee' },
   { key: 'assignments', label: 'Einsätze', icon: '📅', href: '/portal/employee/assignments' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
-  { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/employee/documents' },
-  { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
+  { key: 'times', label: 'Zeiten', icon: '⏱️', href: '/portal/employee/documents' },
+  { key: 'more', label: 'Mehr', icon: '⋯', href: '/portal/employee/profile' },
 ];
 
 export const PORTAL_CLIENT_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Übersicht', icon: '🏠', href: '/portal/client' },
   { key: 'appointments', label: 'Termine', icon: '📅', href: '/portal/client/appointments' },
-  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
   { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents' },
+  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile' },
 ];
 
@@ -139,8 +139,8 @@ export function getTabsForArea(
   })();
 
   return tabs.filter((tab) => {
-    if (tab.allowedRoles?.length && context.roleKey) {
-      if (!tab.allowedRoles.includes(context.roleKey)) return false;
+    if (tab.allowedRoles?.length) {
+      if (!context.roleKey || !tab.allowedRoles.includes(context.roleKey)) return false;
     }
     if (!tab.moduleScopeKey) return true;
     return isModuleScopeVisible(tab.moduleScopeKey, context);

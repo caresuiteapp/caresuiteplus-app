@@ -23,7 +23,7 @@ function buildCareTypography(mode: ColorMode) {
     fontSize: 28,
     lineHeight: 34,
     fontWeight: '800',
-    letterSpacing: -0.3,
+    letterSpacing: 0,
     color: palette.text.primary,
   } as TextStyle,
   h2: {
@@ -49,6 +49,12 @@ function buildCareTypography(mode: ColorMode) {
     lineHeight: 22,
     fontWeight: '600',
     color: palette.text.primary,
+  } as TextStyle,
+  bodySmall: {
+    fontSize: 13,
+    lineHeight: 18,
+    fontWeight: '400',
+    color: palette.text.secondary,
   } as TextStyle,
   caption: {
     fontSize: 12,

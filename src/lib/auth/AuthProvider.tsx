@@ -1,4 +1,5 @@
 import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import {
   getSession,
@@ -128,6 +129,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  const signInWithSupabaseSession = useCallback(async (supabaseSession: Session) => {
+    if (authMode !== 'supabase') {
+      throw new Error('Supabase-Anmeldung nur im Live-Modus verfügbar.');
+    }
+    setIsLoading(true);
+    try {
+      const bootstrap = await bootstrapTenantContext(supabaseSession);
+      applyBootstrap(bootstrap, setUser, setProfile, setSession);
+      if (bootstrap.ok && bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
+        void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
+        void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+      }
+      if (!bootstrap.ok) {
+        await supabaseSignOut();
+        throw new Error(bootstrap.error);
+      }
+    } finally {
+      setIsLoading(false);
+    }
+  }, [authMode]);
+
   const signInPortalSession = useCallback(async (record: PortalSessionRecord) => {
     await savePortalSession(record);
     setPortalSession(record);
@@ -160,10 +182,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
       session,
       portalSession,
       signInDemo,
+      signInWithSupabaseSession,
       signInPortalSession,
       signOut,
     }),
-    [isInitialized, isLoading, authMode, user, profile, session, portalSession, signInDemo, signInPortalSession, signOut],
+    [isInitialized, isLoading, authMode, user, profile, session, portalSession, signInDemo, signInWithSupabaseSession, signInPortalSession, signOut],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

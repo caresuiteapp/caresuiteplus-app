@@ -63,7 +63,7 @@ export function MdShareViewHero({ packageTitle, documentCount, inspectionYear }:
       <View style={styles.badges}>
         <PremiumBadge label="Externe Freigabe" variant="cyan" dot />
         {!isQmExtensionLiveReady() ? (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

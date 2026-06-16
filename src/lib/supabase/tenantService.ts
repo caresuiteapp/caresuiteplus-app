@@ -1,4 +1,4 @@
-import type { Session } from '@supabase/supabase-js';
+import type { PostgrestError, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types/core/auth';
 import type { AuthBootstrapResult, TenantSummary } from '@/types/supabase/session';
 import { getSupabaseClient } from './client';
@@ -74,6 +74,39 @@ function buildAuthSession(session: Session, user: AuthUser): AuthSession {
 const PROFILE_SELECT =
   'id, tenant_id, role_id, role_key, display_name, email, phone, avatar_url, created_at, updated_at, roles(key)';
 
+async function queryProfileForAuthUser(
+  client: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  authUserId: string,
+): Promise<{ data: ProfileQueryRow | null; error: PostgrestError | null }> {
+  const byAuthUserId = await client
+    .from('profiles')
+    .select(PROFILE_SELECT)
+    .eq('auth_user_id', authUserId)
+    .maybeSingle();
+
+  if (byAuthUserId.error) {
+    return { data: null, error: byAuthUserId.error };
+  }
+  if (byAuthUserId.data) {
+    return { data: byAuthUserId.data as unknown as ProfileQueryRow, error: null };
+  }
+
+  const legacy = await client
+    .from('profiles')
+    .select(PROFILE_SELECT)
+    .eq('id', authUserId)
+    .maybeSingle();
+
+  if (legacy.error) {
+    return { data: null, error: legacy.error };
+  }
+
+  return {
+    data: legacy.data ? (legacy.data as unknown as ProfileQueryRow) : null,
+    error: null,
+  };
+}
+
 export async function fetchTenantProfile(userId: string): Promise<Profile | null> {
   if (isDemoMode()) {
     return null;
@@ -84,17 +117,13 @@ export async function fetchTenantProfile(userId: string): Promise<Profile | null
     return null;
   }
 
-  const { data, error } = await client
-    .from('profiles')
-    .select(PROFILE_SELECT)
-    .eq('id', userId)
-    .maybeSingle();
+  const { data, error } = await queryProfileForAuthUser(client, userId);
 
   if (error || !data) {
     return null;
   }
 
-  return mapProfileQueryRow(data as unknown as ProfileQueryRow);
+  return mapProfileQueryRow(data);
 }
 
 async function fetchTenantSummary(tenantId: string): Promise<TenantSummary | null> {
@@ -128,14 +157,10 @@ export async function bootstrapTenantContext(
     return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
   }
 
-  const { data, error } = await client
-    .from('profiles')
-    .select(PROFILE_SELECT)
-    .eq('id', supabaseSession.user.id)
-    .maybeSingle();
+  const { data, error } = await queryProfileForAuthUser(client, supabaseSession.user.id);
 
   if (error) {
-    return { ok: false, error: toGermanSupabaseError(error) };
+    return { ok: false, error: toGermanSupabaseError(error as PostgrestError) };
   }
 
   if (!data) {

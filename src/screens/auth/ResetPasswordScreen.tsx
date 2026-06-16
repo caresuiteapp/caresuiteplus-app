@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
-import { ScreenShell } from '@/components/layout';
-import { ErrorState, LoadingState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
+import { ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
+import { AuthPageShell, InputField } from '@/design/components';
 import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSession, signOut, updatePassword } from '@/lib/supabase/authService';
@@ -89,15 +89,15 @@ export function ResetPasswordScreen() {
 
   if (!ready) {
     return (
-      <ScreenShell title="Neues Passwort" subtitle="Wird geladen…" scroll>
+      <AuthPageShell title="Neues Passwort" subtitle="Wird geladen…">
         <LoadingState message="Rücksetz-Link wird geprüft…" />
-      </ScreenShell>
+      </AuthPageShell>
     );
   }
 
   if (!hasSession) {
     return (
-      <ScreenShell title="Neues Passwort" subtitle="Link ungültig" scroll>
+      <AuthPageShell title="Neues Passwort" subtitle="Link ungültig">
         <ErrorState
           message="Der Link ist ungültig oder abgelaufen. Bitte fordern Sie einen neuen Link an."
           onRetry={() => router.replace('/auth/forgot-password' as never)}
@@ -107,12 +107,12 @@ export function ResetPasswordScreen() {
           onPress={() => router.replace('/auth/forgot-password' as never)}
           fullWidth
         />
-      </ScreenShell>
+      </AuthPageShell>
     );
   }
 
   return (
-    <ScreenShell title="Neues Passwort" subtitle="Passwort festlegen" scroll>
+    <AuthPageShell title="Neues Passwort" subtitle="Passwort festlegen" keyboardAvoiding>
       <AuthLoginHero
         eyebrow="PASSWORT"
         title="Neues Passwort festlegen"
@@ -125,8 +125,8 @@ export function ResetPasswordScreen() {
       {success ? (
         <SuccessState message="Passwort gespeichert — Weiterleitung zum Login…" />
       ) : null}
-      <PremiumInput label="Neues Passwort" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-      <PremiumInput
+      <InputField label="Neues Passwort" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+      <InputField
         label="Passwort bestätigen"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
@@ -139,6 +139,6 @@ export function ResetPasswordScreen() {
         onPress={() => router.replace(resolvePostLoginRoute('business'))}
         fullWidth
       />
-    </ScreenShell>
+    </AuthPageShell>
   );
 }

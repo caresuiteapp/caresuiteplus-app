@@ -1,14 +1,27 @@
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { FeatureBadge } from '@/design/components';
+import type { StatusKind } from '@/design/components/StatusBadge';
+import {
+  defaultPublicVisibility,
+  sanitizeUiText,
+  shouldShowDebugBadges,
+  type UiVisibility,
+} from '@/lib/ui/uiVisibility';
 import { colors } from '@/theme';
 
 type Variant = 'orange' | 'cyan' | 'green' | 'muted' | 'red';
 
 type Props = {
-  label: string;
+  label?: string;
   variant?: Variant;
   style?: ViewStyle;
   dot?: boolean;
+  /** Maps to FeatureBadge — avoids raw status keys in UI literals. */
+  statusKind?: StatusKind;
+  visibility?: UiVisibility;
+  /** Developer diagnosis only — skips sanitization and production debug hide. */
+  allowTechnical?: boolean;
 };
 
 const CONFIG: Record<Variant, { text: string; bg: string; border: string }> = {
@@ -19,13 +32,40 @@ const CONFIG: Record<Variant, { text: string; bg: string; border: string }> = {
   red: { text: colors.danger, bg: 'rgba(239,68,68,0.14)', border: 'rgba(239,68,68,0.28)' },
 };
 
-export function PremiumBadge({ label, variant = 'orange', style, dot = false }: Props) {
+const DEBUG_LABEL_PATTERN = /__dev__|dev\/qa|kein store-release/i;
+
+export function PremiumBadge({
+  label = '',
+  variant = 'orange',
+  style,
+  dot = false,
+  statusKind,
+  visibility = defaultPublicVisibility(),
+  allowTechnical = false,
+}: Props) {
+  if (statusKind) {
+    return (
+      <FeatureBadge
+        kind={statusKind}
+        label={label || undefined}
+        dot={dot}
+        visibility={visibility}
+        rawKey={statusKind}
+      />
+    );
+  }
+
   const cfg = CONFIG[variant];
+  const displayLabel = allowTechnical ? label : sanitizeUiText(label);
+
+  if (!allowTechnical && !shouldShowDebugBadges() && DEBUG_LABEL_PATTERN.test(label)) {
+    return null;
+  }
 
   return (
     <View style={[styles.badge, { backgroundColor: cfg.bg, borderColor: cfg.border }, style]}>
       {dot ? <View style={[styles.dot, { backgroundColor: cfg.text }]} /> : null}
-      <Text style={[styles.label, { color: cfg.text }]}>{label}</Text>
+      <Text style={[styles.label, { color: cfg.text }]}>{displayLabel}</Text>
     </View>
   );
 }

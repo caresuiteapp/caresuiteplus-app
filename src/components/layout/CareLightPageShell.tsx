@@ -3,11 +3,14 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { usePathname } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CareSuiteLightBackground } from '@/components/brand/CareSuiteLightBackground';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { getBreadcrumbs } from '@/lib/navigation';
 import type { DomainA11yMeta } from '@/lib/a11y/domainScreenMeta';
+import { spacing } from '@/theme';
 import { CareLightScreenHeader } from './CareLightScreenHeader';
+import { ScreenHeader } from './ScreenHeader';
 
 type CareLightPageShellProps = {
   title: string;
@@ -21,7 +24,7 @@ type CareLightPageShellProps = {
   a11yMeta?: DomainA11yMeta;
 };
 
-/** Light premium page shell — replaces dark ScreenShell on list/detail/create routes. */
+/** Light premium page shell — theme-aware; galaxy header in dark mode. */
 export function CareLightPageShell({
   title,
   subtitle,
@@ -33,16 +36,16 @@ export function CareLightPageShell({
   showBreadcrumbs = true,
   a11yMeta,
 }: CareLightPageShellProps) {
+  const { mode } = useThemeMode();
   const pathname = usePathname();
+  const { colors } = useLegacyTheme();
   const breadcrumbTrail =
     showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
 
-  const styles = useMemo(
+  const lightStyles = useMemo(
     () =>
       StyleSheet.create({
-        safe: {
-          flex: 1,
-        },
+        safe: { flex: 1 },
         scroll: {
           padding: careSpacing.md,
           gap: careSpacing.md,
@@ -53,28 +56,76 @@ export function CareLightPageShell({
           padding: careSpacing.md,
           gap: careSpacing.md,
         },
-        a11yRoot: {
-          flex: 1,
-        },
+        a11yRoot: { flex: 1 },
       }),
     [],
   );
 
-  const content = scroll ? (
+  const darkStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        safe: { flex: 1, backgroundColor: colors.bgBase },
+        scroll: {
+          padding: spacing.md,
+          gap: spacing.md,
+          paddingBottom: spacing.xxl,
+        },
+        content: {
+          flex: 1,
+          padding: spacing.md,
+          gap: spacing.md,
+        },
+        a11yRoot: { flex: 1 },
+      }),
+    [colors.bgBase],
+  );
+
+  const pageContent = scroll ? (
     <ScrollView
-      contentContainerStyle={styles.scroll}
+      contentContainerStyle={mode === 'light' ? lightStyles.scroll : darkStyles.scroll}
       showsVerticalScrollIndicator={false}
     >
       {children}
     </ScrollView>
   ) : (
-    <View style={styles.content}>{children}</View>
+    <View style={mode === 'light' ? lightStyles.content : darkStyles.content}>{children}</View>
   );
+
+  const a11yWrap = (
+    <View
+      style={mode === 'light' ? lightStyles.a11yRoot : darkStyles.a11yRoot}
+      accessible={!!a11yMeta}
+      accessibilityRole={a11yMeta?.headingRole}
+      accessibilityHint={a11yMeta?.reduceMotionHint}
+    >
+      {pageContent}
+    </View>
+  );
+
+  if (mode !== 'light') {
+    return (
+      <SafeAreaView
+        style={darkStyles.safe}
+        edges={['top', 'bottom']}
+        accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
+      >
+        <ScreenHeader
+          title={title}
+          subtitle={subtitle}
+          breadcrumbTrail={breadcrumbTrail}
+          showBack={showBack}
+          onBack={onBack}
+          rightSlot={rightSlot}
+        />
+        {a11yWrap}
+      </SafeAreaView>
+    );
+  }
 
   return (
     <CareSuiteLightBackground>
       <SafeAreaView
-        style={styles.safe}
+        style={lightStyles.safe}
         edges={['top', 'bottom']}
         accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
       >
@@ -86,14 +137,7 @@ export function CareLightPageShell({
           onBack={onBack}
           rightSlot={rightSlot}
         />
-        <View
-          style={styles.a11yRoot}
-          accessible={!!a11yMeta}
-          accessibilityRole={a11yMeta?.headingRole}
-          accessibilityHint={a11yMeta?.reduceMotionHint}
-        >
-          {content}
-        </View>
+        {a11yWrap}
       </SafeAreaView>
     </CareSuiteLightBackground>
   );

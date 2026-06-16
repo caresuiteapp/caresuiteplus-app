@@ -1,6 +1,7 @@
 import type { WorkflowStatus } from '../core/base';
 import type { AuditEntry } from '../detail';
 import type { InvoiceLineItem, InvoiceListItem } from './billing';
+import type { InvoiceAccountingStatusKey } from '../accounting';
 
 export type InvoiceDetail = InvoiceListItem & {
   createdAt: string;
@@ -10,4 +11,5 @@ export type InvoiceDetail = InvoiceListItem & {
   auditEntries: AuditEntry[];
   allowedStatusActions: WorkflowStatus[];
   nextActionHint: string;
+  accountingStatus?: InvoiceAccountingStatusKey;
 };

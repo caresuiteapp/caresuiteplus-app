@@ -64,7 +64,7 @@ export function WorkflowBuilderHero({ stepCount }: WorkflowBuilderHeroProps) {
       <View style={styles.badges}>
         <PremiumBadge label="Katalog-Workflow" variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {!liveReady ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
+        {!liveReady ? <PremiumBadge statusKind="preparedOnly" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard
@@ -86,7 +86,7 @@ export function WorkflowBuilderHero({ stepCount }: WorkflowBuilderHeroProps) {
         <PremiumKpiCard
           label="Persistenz"
           value={liveReady ? 'Live' : 'Demo'}
-          subValue={liveReady ? 'Supabase' : 'Lokal'}
+          subValue={liveReady ? 'Cloud' : 'Lokal'}
           icon="💾"
           accentColor={colors.violet}
           style={styles.kpiItem}

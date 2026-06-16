@@ -69,7 +69,7 @@ export function InsightExportDetailHero({ exportItem, roleKey }: InsightExportDe
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        <PremiumBadge label="preparedOnly" variant="muted" />
+        <PremiumBadge statusKind="preparedOnly" />
         {!isInsightLiveReady() ? (
           <PremiumBadge label="Kein Live-Scheduler" variant="orange" dot />
         ) : null}

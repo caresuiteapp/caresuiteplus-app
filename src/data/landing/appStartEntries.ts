@@ -1,3 +1,5 @@
+import { moduleColor } from '@/design/tokens/modules';
+
 export type AppStartEntry = {
   path: string;
   label: string;
@@ -8,40 +10,34 @@ export type AppStartEntry = {
 
 export const DEMO_START_PATH = '/auth/demo';
 
+/** Four public portal entry cards — demo is footer-only. */
 export const APP_START_ENTRIES: AppStartEntry[] = [
   {
     path: '/auth/business-login',
     label: 'Unternehmen / Verwaltung',
-    description: 'Für Geschäftsführung, Verwaltung, PDL und Admins.',
+    description: 'Für Geschäftsführung, Verwaltung, Planung und Abrechnung.',
     icon: '🏢',
-    accentColor: '#FF9500',
+    accentColor: moduleColor('office'),
   },
   {
     path: '/auth/employee-login',
     label: 'Mitarbeiterportal',
-    description: 'Einsätze, Dokumentation und Nachrichten.',
+    description: 'Für Einsätze, Dokumentation, Zeiten und Nachrichten.',
     icon: '👤',
-    accentColor: '#62F3FF',
+    accentColor: moduleColor('assist'),
   },
   {
     path: '/auth/portal-code-login',
     label: 'Klient:innen / Angehörige',
-    description: 'Termine, Dokumente und Nachrichten per Portal-Code.',
+    description: 'Für Termine, Dokumente, Nachrichten und Freigaben.',
     icon: '🏠',
-    accentColor: '#FFD166',
+    accentColor: moduleColor('beratung'),
   },
   {
     path: '/auth/register-business',
-    label: 'Registrieren',
-    description: 'Neues Unternehmen anlegen — keine Kreditkarte.',
+    label: 'Neues Unternehmen registrieren',
+    description: 'CareSuite+ einrichten und passende Module auswählen.',
     icon: '✨',
-    accentColor: '#7C5CFF',
-  },
-  {
-    path: DEMO_START_PATH,
-    label: 'Demo mit Beispieldaten ansehen',
-    description: 'CareSuite+ ohne Passwort mit Beispieldaten erkunden.',
-    icon: '🎯',
-    accentColor: '#62F3FF',
+    accentColor: moduleColor('qm'),
   },
 ];

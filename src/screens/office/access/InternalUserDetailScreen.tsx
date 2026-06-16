@@ -2,14 +2,23 @@ import { StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, PremiumButton, PremiumCard } from '@/components/ui';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { listInternalUsers } from '@/lib/auth/accessManagementService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { colors, typography } from '@/theme';
 
 export function InternalUserDetailScreen() {
   const router = useRouter();
+  const tenantId = useServiceTenantId();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const user = listInternalUsers(DEMO_TENANT_ID).find((entry) => entry.id === id);
+  const user = tenantId ? listInternalUsers(tenantId).find((entry) => entry.id === id) : undefined;
+
+  if (!tenantId) {
+    return (
+      <ScreenShell title="Interner Benutzer" subtitle="Kein Mandant">
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </ScreenShell>
+    );
+  }
 
   if (!user) {
     return (

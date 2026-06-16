@@ -59,3 +59,4 @@ export {
   type CartOptions,
   type CartPreview,
 } from './billingPreviewService';
+export * from './connect';

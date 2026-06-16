@@ -2,11 +2,13 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { defaultPublicVisibility } from '@/lib/ui/uiVisibility';
 import { isDemoMode } from '@/lib/supabase/config';
 import { designTokens, spacing } from '@/theme';
 
 export function EmployeeFirstLoginHero() {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
+  const visibility = useMemo(() => defaultPublicVisibility(), []);
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -35,7 +37,7 @@ export function EmployeeFirstLoginHero() {
   kpiItem: { flex: 1, minWidth: 100 },
   hint: { ...typography.caption, color: colors.textMuted },
 }),
-    [colors, typography, gradients],
+    [colors, typography],
   );
 
 
@@ -43,7 +45,7 @@ export function EmployeeFirstLoginHero() {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>AUTH · MITARBEITERPORTAL · ERSTLOGIN</Text>
+          <Text style={styles.eyebrow}>MITARBEITERPORTAL</Text>
           <Text style={styles.title}>Passwort neu vergeben</Text>
           <Text style={styles.meta}>
             Einmalpasswort ersetzen, Datenschutz bestätigen und Zugang aktivieren
@@ -55,8 +57,9 @@ export function EmployeeFirstLoginHero() {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Mitarbeiterportal" variant="cyan" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="orange" /> : null}
-        <PremiumBadge label="preparedOnly Auth" variant="muted" />
+        {visibility.showDemoModeBanner && isDemoMode() ? (
+          <PremiumBadge label="Demo-Modus" variant="orange" />
+        ) : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard
@@ -85,11 +88,10 @@ export function EmployeeFirstLoginHero() {
         />
       </View>
       <Text style={styles.hint}>
-        Nach Abschluss wird das Einmalpasswort ungültig. Demo-Prototyp — kein Store-Release.
+        Nach Abschluss wird das Einmalpasswort ungültig und Ihr persönlicher Zugang ist aktiv.
       </Text>
     </PremiumListHeroFrame>
   );
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

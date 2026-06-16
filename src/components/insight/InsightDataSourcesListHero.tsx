@@ -76,7 +76,7 @@ export function InsightDataSourcesListHero({
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {!isInsightLiveReady() ? <PremiumBadge label="Demo / preparedOnly" variant="muted" /> : null}
+        {!isInsightLiveReady() ? <PremiumBadge statusKind="preparedOnly" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

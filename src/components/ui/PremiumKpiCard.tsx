@@ -104,7 +104,8 @@ export function PremiumKpiCard({
         value: {
           fontSize: 24,
           fontWeight: '800',
-          letterSpacing: -0.5,
+          letterSpacing: 0,
+          flexShrink: 0,
         },
         subValue: {
           ...typography.caption,
@@ -154,7 +155,9 @@ export function PremiumKpiCard({
         <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
           {label}
         </Text>
-        <Text style={[styles.value, { color: resolvedAccent }]}>{value}</Text>
+        <Text style={[styles.value, { color: resolvedAccent }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+          {value}
+        </Text>
         {subValue ? <Text style={styles.subValue}>{subValue}</Text> : null}
         {trendValue ? (
           <Text style={[styles.trend, { color: trendColor }]}>

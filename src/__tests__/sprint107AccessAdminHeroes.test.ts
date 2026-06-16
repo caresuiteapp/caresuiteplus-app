@@ -63,9 +63,9 @@ describe('Access Management Heroes (Sprint 107)', () => {
 });
 
 describe('Auth/Admin/TI Settings Heroes (Sprint 107)', () => {
-  it('AuthRegisterHero nutzt PremiumListHeroFrame', () => {
+  it('AuthRegisterHero uses AuthHero glass header', () => {
     const hero = readSrc('src/components/auth/AuthRegisterHero.tsx');
-    expect(hero).toContain('PremiumListHeroFrame');
+    expect(hero).toContain('AuthHero');
     expect(hero).toContain('REGISTRIERUNG');
     expect(hero).toContain('Unternehmen anlegen');
   });
@@ -73,12 +73,13 @@ describe('Auth/Admin/TI Settings Heroes (Sprint 107)', () => {
   it('OnboardingSetupHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/auth/OnboardingSetupHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('Demo-Prototyp');
+    expect(hero).toContain('defaultPublicVisibility');
+    expect(hero).not.toContain('Demo-Prototyp');
   });
 
-  it('BusinessRegisterScreen nutzt AuthRegisterHero statt flachem PremiumCard-Header', () => {
+  it('BusinessRegisterScreen nutzt RegisterLayout statt flachem PremiumCard-Header', () => {
     const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(screen).toContain('AuthRegisterHero');
+    expect(screen).toContain('RegisterLayout');
     expect(screen).not.toContain('<PremiumCard accentColor={colors.orange}>');
   });
 

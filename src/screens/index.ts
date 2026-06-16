@@ -51,5 +51,11 @@ export {
   StationaerReportsScreen,
 } from './stationaer';
 export { ModuleOverviewScreen } from './ModuleOverviewScreen';
+export {
+  ConnectHubScreen,
+  ConnectCategoryScreen,
+  ConnectIntegrationDetailScreen,
+  ConnectProviderConfigScreen,
+} from './connect';
 export { PlaceholderModuleScreen } from './PlaceholderModuleScreen';
 export { DataRequestScreen, AccountDeletionRequestScreen } from './settings';

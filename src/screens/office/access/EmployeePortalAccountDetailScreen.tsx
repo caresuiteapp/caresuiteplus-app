@@ -11,14 +11,25 @@ import {
   unblockEmployeeAccess,
 } from '@/lib/auth/employeePortalAuthService';
 import { listEmployeePortalAccounts } from '@/lib/auth/accessManagementService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { colors, typography } from '@/theme';
 
 export function EmployeePortalAccountDetailScreen() {
   const router = useRouter();
+  const tenantId = useServiceTenantId();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const account = listEmployeePortalAccounts(DEMO_TENANT_ID).find((entry) => entry.id === id);
+  const account = tenantId
+    ? listEmployeePortalAccounts(tenantId).find((entry) => entry.id === id)
+    : undefined;
   const [credentials, setCredentials] = useState<AccessCredentialsReveal | null>(null);
+
+  if (!tenantId) {
+    return (
+      <ScreenShell title="Mitarbeiterzugang" subtitle="Kein Mandant">
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </ScreenShell>
+    );
+  }
 
   if (!account) {
     return (

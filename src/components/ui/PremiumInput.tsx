@@ -36,7 +36,7 @@ const styles = StyleSheet.create({
     ...typography.label,
   },
   input: {
-    minHeight: 48,
+    minHeight: 44,
     borderRadius: radius.lg,
     borderWidth: 1,
     borderColor: colors.borderStrong,

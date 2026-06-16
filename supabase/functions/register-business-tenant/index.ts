@@ -413,7 +413,6 @@ serve(async (req) => {
         role_id: ownerRoleId,
         first_name: body.adminFirstName.trim(),
         last_name: body.adminLastName.trim(),
-        full_name: `${body.adminFirstName.trim()} ${body.adminLastName.trim()}`,
         email: adminEmail,
         status: 'active',
       })

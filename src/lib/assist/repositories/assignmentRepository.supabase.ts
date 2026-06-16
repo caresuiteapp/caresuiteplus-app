@@ -154,6 +154,8 @@ function mapListItem(row: AssignmentLiveRow): AssignmentListItem {
   return {
     id: row.id,
     tenantId: row.tenant_id,
+    clientId: row.client_id ?? '',
+    employeeId: row.employee_id ?? '',
     title: row.title?.trim() || 'Einsatz',
     scheduledStart: row.planned_start_at,
     scheduledEnd: row.planned_end_at,

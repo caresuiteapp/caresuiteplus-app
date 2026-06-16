@@ -18,27 +18,33 @@ const AUTH_ROUTE_PATHS = [
 ];
 
 describe('Auth & Onboarding Premium Polish (Sprint 106)', () => {
-  it('AuthLoginHero nutzt PremiumListHeroFrame', () => {
+  it('AuthLoginHero nutzt AuthHero ohne technische KPIs', () => {
     const hero = readSrc('src/components/auth/AuthLoginHero.tsx');
-    expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('preparedOnly Auth');
+    expect(hero).toContain('AuthHero');
+    expect(hero).not.toContain('PremiumKpiCard');
+    expect(hero).not.toContain('RLS');
+    expect(hero).toContain('sanitizeUiText');
   });
 
-  it('OnboardingWelcomeHero nutzt PremiumListHeroFrame', () => {
+  it('OnboardingWelcomeHero nutzt PremiumListHeroFrame ohne Demo-Prototyp', () => {
     const hero = readSrc('src/components/auth/OnboardingWelcomeHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('Demo-Prototyp');
+    expect(hero).not.toContain('Demo-Prototyp');
   });
 
-  it('BusinessLoginScreen nutzt AuthLoginHero statt flachem PremiumCard-Header', () => {
+  it('BusinessLoginScreen nutzt AuthLayout ohne technische Hero-Karten', () => {
     const screen = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
-    expect(screen).toContain('AuthLoginHero');
-    expect(screen).not.toContain('<PremiumCard accentColor={colors.orange}>');
+    expect(screen).toContain('AuthLayout');
+    expect(screen).not.toContain('AuthLoginHero');
+    expect(screen).not.toContain('AuthInfoCard');
+    expect(screen).not.toContain('preparedOnly');
   });
 
-  it('EmployeePortalLoginScreen und PortalCodeLoginScreen nutzen AuthLoginHero', () => {
-    expect(readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx')).toContain('AuthLoginHero');
-    expect(readSrc('src/screens/auth/PortalCodeLoginScreen.tsx')).toContain('AuthLoginHero');
+  it('EmployeePortalLoginScreen und PortalCodeLoginScreen nutzen minimale AuthLayout', () => {
+    expect(readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx')).toContain('AuthLayout');
+    expect(readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx')).not.toContain('AuthLoginHero');
+    expect(readSrc('src/screens/auth/PortalCodeLoginScreen.tsx')).toContain('AuthLayout');
+    expect(readSrc('src/screens/auth/PortalCodeLoginScreen.tsx')).not.toContain('AuthLoginHero');
     expect(readSrc('src/screens/auth/ForgotPasswordScreen.tsx')).toContain('AuthLoginHero');
   });
 

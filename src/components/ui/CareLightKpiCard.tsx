@@ -27,7 +27,9 @@ export function CareLightKpiCard({
         <Text style={styles.icon}>{icon ?? '📊'}</Text>
       </View>
       <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, { color: accentColor }]}>{String(value)}</Text>
+      <Text style={[styles.value, { color: accentColor }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
+        {String(value)}
+      </Text>
       {subValue ? <Text style={styles.subValue}>{subValue}</Text> : null}
     </View>
   );
@@ -63,6 +65,7 @@ const styles = StyleSheet.create({
     ...careTypography.h2,
     fontSize: 28,
     fontWeight: '800',
+    flexShrink: 0,
   },
   subValue: {
     ...careTypography.caption,

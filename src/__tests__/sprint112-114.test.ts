@@ -33,7 +33,8 @@ describe('Workflow Builder + Employee First Login Heroes (Sprint 112)', () => {
     expect(screen).not.toContain('PremiumCard accentColor={colors.cyan}');
     const hero = readSrc('src/components/auth/EmployeeFirstLoginHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('preparedOnly Auth');
+    expect(hero).toContain('defaultPublicVisibility');
+    expect(hero).toContain('Mitarbeiterportal');
   });
 });
 
@@ -41,7 +42,7 @@ describe('Create/Edit Form Headers (Sprint 113)', () => {
   it('FormScreenHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/forms/FormScreenHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('preparedOnly');
+    expect(hero).toContain('statusKind="preparedOnly"');
   });
 
   it('Client/Employee/Catalog Create-Edit Screens nutzen FormScreenHero', () => {

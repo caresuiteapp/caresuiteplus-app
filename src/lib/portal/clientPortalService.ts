@@ -1,22 +1,46 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { clientPortalDemo } from '@/data/demo/domains/clientPortalDemo';
+import type { ClientPortalDashboard } from '@/types/portal/clientPortalDomain';
 import { enforcePermission } from '@/lib/permissions';
+import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { getServiceMode } from '@/lib/services/mode';
+import {
+  fetchClientPortalDashboard as fetchDomainDashboard,
+  resolveClientPortalContext,
+} from './clientPortalDomainService';
 
-/** WP343 — Klient:innenportal Dashboard-Service */
+/** WP343 / Prompt 59 — Klient:innenportal Dashboard-Service */
 export async function fetchClientPortalDashboard(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<{ messages: number; requests: string[] }>> {
-  const denied = enforcePermission<{ messages: number; requests: string[] }>(actorRoleKey, 'portal.client.profile.view' as never);
+  options?: {
+    profileId?: string;
+    clientId?: string;
+    usesDemoFallback?: boolean;
+  },
+): Promise<ServiceResult<ClientPortalDashboard>> {
+  const denied = enforcePermission<ClientPortalDashboard>(
+    actorRoleKey,
+    'portal.client.profile.view' as never,
+  );
   if (denied) return denied;
-  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Mandant nicht gefunden.' };
-  await new Promise((r) => setTimeout(r, 120));
-  return {
-    ok: true,
-    data: {
-      messages: clientPortalDemo.records.length,
-      requests: clientPortalDemo.records.map((r) => r.label),
-    },
-  };
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (options?.usesDemoFallback && getServiceMode() === 'supabase') {
+    return { ok: false, error: 'Demo-Fallback im Production Mode blockiert.' };
+  }
+
+  const liveBlock = guardLiveDemoFeature(tenantId, 'Klient:innenportal-Dashboard');
+  if (liveBlock && !liveBlock.ok && options?.usesDemoFallback) return liveBlock;
+
+  const ctxResult = resolveClientPortalContext({
+    tenantId,
+    profileId: options?.profileId ?? 'profile-client-001',
+    roleKey: actorRoleKey ?? 'client_portal',
+    clientId: options?.clientId,
+  });
+  if (!ctxResult.ok) return ctxResult;
+
+  return fetchDomainDashboard(ctxResult.data);
 }

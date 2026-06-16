@@ -50,7 +50,7 @@ describe('gpsLocationService preparedOnly guards (Sprint 74)', () => {
     const result = await requestGpsForegroundPermission();
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toContain('Vorbereitung');
+      expect(result.error.toLowerCase()).toContain('vorbereit');
     }
     expect(locationMock.requestForegroundPermissionsAsync).not.toHaveBeenCalled();
   });
@@ -97,10 +97,10 @@ describe('Assist GPS UI wiring (Sprint 74)', () => {
     expect(service).toContain('getGpsPermissionStatus');
   });
 
-  it('app.config.ts deklariert expo-location Plugin', () => {
+  it('app.config.ts omits expo-location manifest plugin until GPS live', () => {
     const appConfig = readSrc('app.config.ts');
-    expect(appConfig).toContain('expo-location');
-    expect(appConfig).toContain('isIosBackgroundLocationEnabled: false');
+    expect(appConfig).not.toContain('expo-location');
+    expect(isGpsTrackingLiveReady()).toBe(false);
   });
 });
 

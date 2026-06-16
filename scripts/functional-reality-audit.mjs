@@ -59,8 +59,13 @@ const CORE_CHECKS = [
   },
   {
     label: 'Assist Execution',
-    files: ['src/screens/assist/AssignmentExecutionScreen.tsx', 'app/assist/durchfuehrung/[id].tsx'],
-    must: ['checkIn', 'startWork', 'checkOut', 'createCareRecordFromExecution'],
+    files: [
+      'src/screens/assist/AssignmentExecutionScreen.tsx',
+      'src/hooks/useAssignmentExecution.ts',
+      'src/lib/assist/careRecordService.ts',
+      'app/assist/durchfuehrung/[id].tsx',
+    ],
+    must: ['markOnTheWay', 'markStarted', 'completeAssignment', 'checkIn', 'startWork', 'createCareRecordFromExecution'],
     mustNot: ['onPress={() => undefined}'],
   },
   {

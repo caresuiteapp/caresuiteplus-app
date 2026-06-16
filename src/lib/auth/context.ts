@@ -1,4 +1,5 @@
 import { createContext, useContext } from 'react';
+import type { Session } from '@supabase/supabase-js';
 import type { AuthMode } from '@/lib/supabase/config';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import type { PortalSessionRecord } from './portalSessionStore';
@@ -15,6 +16,7 @@ export type AuthContextValue = {
   session: AuthSession | null;
   portalSession: PortalSessionRecord | null;
   signInDemo: (roleKey: RoleKey) => Promise<void>;
+  signInWithSupabaseSession: (session: Session) => Promise<void>;
   signInPortalSession: (session: PortalSessionRecord) => Promise<void>;
   signOut: () => Promise<void>;
 };

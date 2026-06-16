@@ -45,6 +45,7 @@ export function resolveModuleScopeFromPath(path: string): ModuleScopeKey | null 
   if (normalized.startsWith('/business/ti')) return 'ti';
   if (normalized.startsWith('/business/platform')) return 'platform';
   if (normalized.startsWith('/business/integrations')) return 'integrations';
+  if (normalized.startsWith('/business/connect')) return 'connect';
   if (normalized.startsWith('/business/ops')) return 'ops';
   if (normalized.startsWith('/business/reporting')) return 'reporting';
   if (normalized.startsWith('/business/qa')) return 'qa';

@@ -62,7 +62,7 @@ export function TIProviderSettingsHero({ providerCount, connectedCount }: TIProv
       <View style={styles.badges}>
         <PremiumBadge label="TI-Gateway" variant="cyan" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="orange" /> : null}
-        {!isTILiveReady() ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
+        {!isTILiveReady() ? <PremiumBadge statusKind="preparedOnly" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="Provider" value={String(providerCount)} subValue="Konfiguriert" icon="🔌" accentColor={colors.cyan} style={styles.kpiItem} />

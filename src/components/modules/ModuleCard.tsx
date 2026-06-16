@@ -7,6 +7,7 @@ import { activateFreeModuleForTenant } from '@/lib/billing/moduleActivationServi
 import { isFreePlatformEnabled } from '@/lib/billing/freePlatformService';
 import { OFFICE_MODULE_KEY } from '@/lib/modules/constants';
 import { resolveModuleNavState } from '@/lib/modules/moduleVisibilityService';
+import { userFriendlyLabel } from '@/lib/ui/uiVisibility';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import type { EffectiveModuleAccess } from '@/types';
@@ -42,7 +43,7 @@ function getStatusBadges(module: EffectiveModuleAccess): StatusBadge[] {
   } else if (module.accessSource === 'included_base') {
     badges.push({ label: 'Inklusive', variant: 'muted' });
   } else if (module.billingStatus === 'premium_prepared') {
-    badges.push({ label: 'Premium vorbereitet', variant: 'orange' });
+    badges.push({ label: userFriendlyLabel('premium_prepared'), variant: 'orange' });
   }
 
   return badges;
@@ -118,7 +119,12 @@ export function ModuleCard({ module, onActivated }: ModuleCardProps) {
           onPress={() => router.push(config.path as never)}
         />
       ) : module.isEffective && isComingSoon ? (
-        <PremiumButton title="In Vorbereitung" variant="secondary" size="sm" disabled />
+        <PremiumButton
+          title="In Vorbereitung"
+          variant="prepared"
+          size="sm"
+          disabled
+        />
       ) : canActivate ? (
         <PremiumButton title="Aktivieren" size="sm" onPress={handleActivate} />
       ) : isDisabled ? (

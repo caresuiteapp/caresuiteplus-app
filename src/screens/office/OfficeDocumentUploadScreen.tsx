@@ -121,7 +121,7 @@ export function OfficeDocumentUploadScreen() {
         <SuccessState
           message={
             isLive
-              ? 'Dokument in Supabase Storage hochgeladen.'
+              ? 'Dokument im Dokumentenspeicher hochgeladen.'
               : 'Dokument in Demo-Storage referenziert.'
           }
         />

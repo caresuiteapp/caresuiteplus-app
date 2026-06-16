@@ -1,14 +1,17 @@
 import { useState } from 'react';
+import { Linking } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
-import { CareLightPageShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { AuthLayout, ErrorState, GlassCard, InputField, PremiumButton } from '@/design/components';
 import { validatePortalCodeLogin } from '@/lib/auth/clientPortalAuthService';
 import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { useAuth } from '@/lib/auth/context';
+import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
-import { colors, typography } from '@/theme';
+
+function openHelp() {
+  void Linking.openURL(SUPPORT_LINKS.help).catch(() => undefined);
+}
 
 export function PortalCodeLoginScreen() {
   const router = useRouter();
@@ -37,24 +40,23 @@ export function PortalCodeLoginScreen() {
   };
 
   return (
-    <CareLightPageShell title="Klient:innen / Angehörige" subtitle="Portal-Code Login" scroll>
-      <AuthLoginHero
-        eyebrow="PORTAL-CODE"
-        title="Klient:innen / Angehörige"
-        subtitle="Der Portal-Code wird Ihnen von Ihrer Betreuungseinrichtung oder Verwaltung bereitgestellt."
-        portalLabel="6-stelliger Code"
-        portalVariant="orange"
-        icon="🏠"
-      />
+    <AuthLayout
+      title="Klient:innen / Angehörige"
+      subtitle="Portal-Code oder Einladung von Ihrer Einrichtung"
+      keyboardAvoiding
+    >
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      <PremiumInput
-        label="6-stelliger Code"
-        value={code}
-        onChangeText={(value) => setCode(normalizePortalCodeInput(value))}
-        autoCapitalize="characters"
-        maxLength={6}
-      />
-      <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
-    </CareLightPageShell>
+      <GlassCard>
+        <InputField
+          label="Portal-Code oder Einladung"
+          value={code}
+          onChangeText={(value) => setCode(normalizePortalCodeInput(value))}
+          autoCapitalize="characters"
+          maxLength={6}
+        />
+        <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
+        <PremiumButton title="Hilfe anfordern" variant="secondary" onPress={openHelp} fullWidth />
+      </GlassCard>
+    </AuthLayout>
   );
 }

@@ -87,9 +87,9 @@ export function PdlCockpitHero({
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isPdlCockpitLiveReady() ? (
-          <PremiumBadge label="Live Supabase" variant="green" />
+          <PremiumBadge statusKind="live" />
         ) : (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         )}
       </View>
       <AdaptiveKpiGrid

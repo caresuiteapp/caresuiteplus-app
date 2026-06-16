@@ -1,5 +1,6 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import { colors, radius, spacing, typography } from '@/theme';
 
 type Variant = 'info' | 'success' | 'warning' | 'danger';
@@ -55,6 +56,8 @@ export function InfoBanner({
 }: Props) {
   const cfg = CONFIG[variant];
   const displayIcon = icon ?? cfg.icon;
+  const displayTitle = title ? sanitizeUiText(title) : undefined;
+  const displayMessage = sanitizeUiText(message);
 
   return (
     <View
@@ -67,10 +70,10 @@ export function InfoBanner({
     >
       <Text style={styles.icon}>{displayIcon}</Text>
       <View style={styles.content}>
-        {title ? (
-          <Text style={[styles.title, { color: cfg.title }]}>{title}</Text>
+        {displayTitle ? (
+          <Text style={[styles.title, { color: cfg.title }]}>{displayTitle}</Text>
         ) : null}
-        <Text style={styles.message}>{message}</Text>
+        <Text style={styles.message}>{displayMessage}</Text>
       </View>
       {dismissible && onDismiss ? (
         <Pressable

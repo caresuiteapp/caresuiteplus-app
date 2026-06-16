@@ -68,7 +68,7 @@ export function FollowUpDetailHero({ followUp, roleKey }: FollowUpDetailHeroProp
         <PremiumBadge label={WORKFLOW_STATUS_LABELS[followUp.status]} variant="orange" dot />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {!isBeratungExtensionLiveReady() ? (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         ) : null}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

@@ -87,7 +87,7 @@ export function ClientCreateScreen() {
         step={{ current: step + 1, total: steps.length }}
         preparedMessage={
           isProduction
-            ? 'Klient:innen werden mandantenbezogen in Supabase angelegt.'
+            ? 'Klient:innen werden mandantenbezogen angelegt.'
             : 'Klient:innen werden im Demo-Mandanten angelegt — Live-Persistenz nach Remote-Migrationen.'
         }
       />

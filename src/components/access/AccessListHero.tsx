@@ -71,7 +71,7 @@ export function AccessListHero({ variant, itemCount }: AccessListHeroProps) {
         <PremiumBadge label={`${itemCount} Einträge`} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isAccessManagementLiveReady() ? (
-          <PremiumBadge label="preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

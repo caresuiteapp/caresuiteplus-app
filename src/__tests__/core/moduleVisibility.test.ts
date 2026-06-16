@@ -11,7 +11,7 @@ import {
   resolveModuleNavState,
   resolveModuleScopeFromPath,
 } from '@/lib/modules';
-import { checkModuleAccess, getModuleSwitcherItems, getTabsForArea } from '@/lib/navigation';
+import { checkModuleAccess, checkRoleAccess, getModuleSwitcherItems, getTabsForArea } from '@/lib/navigation';
 
 const TENANT = DEMO_TENANT_ID;
 const ADMIN = 'business_admin' as const;
@@ -63,6 +63,14 @@ describe('moduleVisibilityService', () => {
     expect(
       getTabsForArea('business', { tenantId: TENANT, roleKey: ADMIN }).some((t) => t.key === 'integrations'),
     ).toBe(false);
+  });
+
+  it('native Mehr-Tab verweist auf Module-Hub (Connect über Module erreichbar)', () => {
+    expect(isModuleScopeVisible('connect', { tenantId: TENANT, roleKey: ADMIN })).toBe(true);
+    expect(isModuleScopeNavigable('connect', { tenantId: TENANT, roleKey: ADMIN })).toBe(true);
+    expect(
+      getTabsForArea('business', { tenantId: TENANT, roleKey: ADMIN }).some((t) => t.key === 'more'),
+    ).toBe(true);
   });
 
   it('internal reporting nur für Admin sichtbar', () => {
@@ -125,6 +133,18 @@ describe('checkModuleAccess — Direkt-Routen', () => {
   it('resolveModuleScopeFromPath mappt Business-Bereiche', () => {
     expect(resolveModuleScopeFromPath('/business/platform/ai')).toBe('platform');
     expect(resolveModuleScopeFromPath('/business/messages')).toBe('communication');
+    expect(resolveModuleScopeFromPath('/business/connect')).toBe('connect');
     expect(resolveModuleScopeFromPath('/pflege/vitalwerte')).toBe('pflege');
+  });
+
+  it('erlaubt beta connect route für Admin', () => {
+    const decision = checkModuleAccess('/business/connect', ADMIN, TENANT);
+    expect(decision.shouldRedirect).toBe(false);
+  });
+
+  it('blockiert connect providers route für Pflegekraft (Rolle)', () => {
+    const decision = checkRoleAccess('/business/connect/providers', NURSE);
+    expect(decision.shouldRedirect).toBe(true);
+    expect(decision.reason).toBe('wrong_role');
   });
 });

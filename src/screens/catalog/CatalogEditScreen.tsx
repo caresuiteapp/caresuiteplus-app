@@ -65,7 +65,7 @@ export function CatalogEditScreen() {
         <FormScreenHero
           eyebrow="OFFICE · KATALOG"
           title={isCreate ? 'Katalog anlegen' : 'Katalog bearbeiten'}
-          meta="Name und Demo-Persistenz — Live nach Migration 0025–0026"
+          meta="Name und Demo-Persistenz — Live-Sync folgt"
           icon="📋"
           formMode={isCreate ? 'create' : 'edit'}
           wpNumber={446}

@@ -214,7 +214,13 @@ const FORBIDDEN_DARK_ONLY = [
   'useLegacyTheme-only',
 ];
 
-const LIGHT_SHELL_MARKERS = ['CareLightPageShell', 'CareLightScreen', 'CareLightModuleDashboard'];
+const LIGHT_SHELL_MARKERS = [
+  'CareLightPageShell',
+  'CareLightScreen',
+  'CareLightModuleDashboard',
+  'AppScreen',
+  'PortalCard',
+];
 
 const LIGHT_HERO_MARKERS = ['CareLightListHeroFrame', 'CareLightPageHeader', 'CareLightKpiCard'];
 
@@ -332,15 +338,19 @@ function assertDemoNavigationWiring() {
 }
 
 
+const AUTH_SHELL_MARKERS = ['AuthLayout', 'AuthPageShell', 'RegisterLayout'];
+
 function assertCareLightRoute(rel, requireHero = false) {
   const filePath = join(root, rel);
   if (!existsSync(filePath)) {
     fail(`Phase-2-Route fehlt: ${rel}`);
   }
   const src = readFileSync(filePath, 'utf8');
-  const hasShell = LIGHT_SHELL_MARKERS.some((m) => src.includes(m));
+  const hasShell =
+    LIGHT_SHELL_MARKERS.some((m) => src.includes(m)) ||
+    AUTH_SHELL_MARKERS.some((m) => src.includes(m));
   if (!hasShell) {
-    fail(`${rel}: kein CareLight-Shell (CareLightPageShell/CareLightScreen erwartet)`);
+    fail(`${rel}: kein premium Shell (CareLightPageShell/AuthLayout erwartet)`);
   }
   if (src.match(/import[^;]*ScreenShell[^;]*from '@\/components\/layout'/)) {
     fail(`${rel}: importiert noch ScreenShell direkt — CareLightPageShell verwenden`);
@@ -411,8 +421,8 @@ for (const rel of MAIN_INDEX_SCREENS) {
     }
   }
   const hasLight = LIGHT_SHELL_MARKERS.some((marker) => src.includes(marker));
-  if (!hasLight && !rel.includes('AppStartScreen')) {
-    fail(`${rel} nutzt keine CareLight-Hauptkomponenten`);
+  if (!hasLight) {
+    fail(`${rel} nutzt keine premium Hauptkomponenten`);
   }
 }
 
@@ -446,13 +456,13 @@ for (const marker of PFLEGE_MARKERS) {
 }
 
 const start = readFileSync(join(root, 'src/screens/AppStartScreen.tsx'), 'utf8');
-if (!start.includes('CareSuiteLightBackground') || !start.includes('CareLightCard')) {
-  fail('AppStartScreen: light premium Brand/Card fehlt');
+if (!start.includes('AppScreen') || !start.includes('PortalCard')) {
+  fail('AppStartScreen: space premium shell fehlt');
 }
 
 const auth = readFileSync(join(root, 'src/screens/auth/AuthLandingScreen.tsx'), 'utf8');
-if (!auth.includes('CareLightScreen') || !auth.includes('CareLightModuleTile')) {
-  fail('AuthLandingScreen: light landing fehlt');
+if (!auth.includes('AppScreen') || !auth.includes('PortalCard')) {
+  fail('AuthLandingScreen: space premium landing fehlt');
 }
 
 const screenShellBridge = readFileSync(join(root, 'src/components/layout/ScreenShell.tsx'), 'utf8');

@@ -5,6 +5,7 @@ import {
   isAssignmentToday,
   isAssignmentUpcoming,
 } from '@/data/demo/assistAssignments';
+import { buildWorkspaceAccessContext, canViewAssignment, filterAssignmentsForActor } from '@/lib/permissions';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
@@ -26,6 +27,7 @@ function buildDashboardStats(items: AssignmentListItem[]): AssistDashboardStats 
 export async function fetchAssignmentList(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  workspaceContext?: { userId?: string | null; employeeId?: string | null; clientId?: string | null },
 ): Promise<ServiceResult<AssignmentListItem[]>> {
   const denied = enforcePermission<AssignmentListItem[]>(
     actorRoleKey,
@@ -37,11 +39,28 @@ export async function fetchAssignmentList(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    return assignmentSupabaseRepository.list(tenantId);
+    const remote = await assignmentSupabaseRepository.list(tenantId);
+    if (!remote.ok) return remote;
+    const ctx = buildWorkspaceAccessContext({
+      tenantId,
+      roleKey: actorRoleKey ?? null,
+      userId: workspaceContext?.userId ?? 'demo-user',
+      employeeId: workspaceContext?.employeeId ?? null,
+      clientId: workspaceContext?.clientId ?? null,
+    });
+    return { ok: true, data: filterAssignmentsForActor(remote.data, ctx) };
   }
 
   await new Promise((r) => setTimeout(r, 260));
-  return { ok: true, data: getDemoAssignmentListItems() };
+  const ctx = buildWorkspaceAccessContext({
+    tenantId,
+    roleKey: actorRoleKey ?? null,
+    userId: workspaceContext?.userId ?? 'demo-user',
+    employeeId: workspaceContext?.employeeId ?? null,
+    clientId: workspaceContext?.clientId ?? null,
+  });
+  const filtered = filterAssignmentsForActor(getDemoAssignmentListItems(), ctx);
+  return { ok: true, data: filtered };
 }
 
 export async function fetchAssistDashboardStats(

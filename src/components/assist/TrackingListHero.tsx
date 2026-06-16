@@ -5,6 +5,7 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import type { TrackingListKpi } from '@/data/demo/trackingStats';
 import { ROLE_LABELS } from '@/data/demo';
 import { isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
+import { GeoPreparedBanner } from '@/components/geo/GeoPreparedBanner';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
@@ -107,6 +108,7 @@ export function TrackingListHero({
         ) : null}
         <PremiumBadge label="Geofence-Snapshot" variant="muted" />
       </View>
+      {!isGpsTrackingLiveReady() ? <GeoPreparedBanner compact={compact} /> : null}
       {!compact ? (
         <View style={styles.kpiRow}>
           {kpis.map((kpi) => (

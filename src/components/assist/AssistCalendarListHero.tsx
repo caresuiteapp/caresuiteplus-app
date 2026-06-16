@@ -70,7 +70,7 @@ export function AssistCalendarListHero({ groups, roleKey }: AssistCalendarListHe
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isAssistExtensionLiveReady() ? (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

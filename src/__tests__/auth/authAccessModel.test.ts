@@ -205,7 +205,7 @@ describe('authAccessModel', () => {
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
 
     expect(getServiceMode()).toBe('supabase');
-    expect(assertTenantForMode(DEMO_TENANT_ID)).toBeNull();
+    expect(assertTenantForMode(DEMO_TENANT_ID)?.error).toContain('Demo');
     expect(assertTenantForMode('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')).toBeNull();
   });
 });

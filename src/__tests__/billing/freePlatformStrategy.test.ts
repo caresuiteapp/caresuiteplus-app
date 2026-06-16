@@ -112,16 +112,18 @@ describe('Free Platform Strategy', () => {
     const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
     expect(screen).not.toContain('trialOrPurchase');
     expect(screen).not.toContain('Modul kaufen');
-    expect(screen).toContain('Registrieren');
-    expect(screen).toContain('Module aktivieren');
+    expect(screen).toContain('Prüfen und registrieren');
+    expect(screen).toContain('Module auswählen');
     expect(screen).not.toMatch(/€/);
     expect(screen).not.toMatch(/kostenlos/i);
   });
 
-  it('PremiumPreparedNotice component exists', () => {
+  it('PremiumPreparedNotice uses friendly status labels', () => {
     const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
-    expect(notice).toContain('preparedOnly');
+    expect(notice).toContain('StatusBadge');
+    expect(notice).toContain('Demnächst verfügbar');
     expect(notice).toContain('DATEV');
+    expect(notice).not.toContain('label="preparedOnly"');
   });
 
   it('SubscriptionScreen shows platform overview without prices', () => {

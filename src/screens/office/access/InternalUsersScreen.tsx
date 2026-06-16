@@ -4,16 +4,28 @@ import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useDemoData } from '@/hooks/useDemoData';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { listInternalUsers } from '@/lib/auth/accessManagementService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { colors, spacing, typography } from '@/theme';
 
 export function InternalUsersScreen() {
   const router = useRouter();
+  const tenantId = useServiceTenantId();
   const { data: users, loading, error, refresh } = useDemoData(
-    () => listInternalUsers(DEMO_TENANT_ID),
-    [],
+    () => {
+      if (!tenantId) throw new Error('Kein Mandant.');
+      return listInternalUsers(tenantId);
+    },
+    [tenantId],
   );
+
+  if (!tenantId) {
+    return (
+      <ScreenShell title="Interne Benutzer" subtitle="Zugänge & Benutzer" scroll>
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </ScreenShell>
+    );
+  }
 
   if (loading && !users) {
     return (

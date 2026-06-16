@@ -1,5 +1,6 @@
 import type { Href } from 'expo-router';
 import type { ProductKey, RoleKey } from '@/types';
+import { buildWorkspaceAccessContext, checkWorkspaceAreaAccess } from '@/lib/permissions';
 import { hasEffectiveModuleGateAccess } from '@/lib/modules/moduleAccessService';
 import {
   resolveModuleNavState,
@@ -68,9 +69,26 @@ export function isProductActive(
 export function checkRoleAccess(
   path: string,
   roleKey: RoleKey | null,
+  options?: { tenantId?: string | null; userId?: string | null },
 ): RedirectDecision {
   const route = getRouteByPath(path);
   if (!route?.allowedRoles || route.allowedRoles.length === 0) {
+    const workspace = checkWorkspaceAreaAccess(
+      path,
+      buildWorkspaceAccessContext({
+        roleKey,
+        tenantId: options?.tenantId ?? null,
+        userId: options?.userId ?? null,
+      }),
+    );
+    if (!workspace.allowed) {
+      return {
+        shouldRedirect: true,
+        target: '/' as Href,
+        reason: 'wrong_role',
+        message: workspace.message,
+      };
+    }
     return { shouldRedirect: false, target: path as Href };
   }
   if (!roleKey || !route.allowedRoles.includes(roleKey)) {
@@ -81,6 +99,24 @@ export function checkRoleAccess(
       message: 'Sie haben keine Berechtigung für diesen Bereich.',
     };
   }
+
+  const workspace = checkWorkspaceAreaAccess(
+    path,
+    buildWorkspaceAccessContext({
+      roleKey,
+      tenantId: options?.tenantId ?? null,
+      userId: options?.userId ?? null,
+    }),
+  );
+  if (!workspace.allowed) {
+    return {
+      shouldRedirect: true,
+      target: '/' as Href,
+      reason: 'wrong_role',
+      message: workspace.message,
+    };
+  }
+
   return { shouldRedirect: false, target: path as Href };
 }
 

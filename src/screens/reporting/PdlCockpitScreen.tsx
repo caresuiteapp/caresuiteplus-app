@@ -77,9 +77,14 @@ export function PdlCockpitScreen() {
       showBack={false}
       a11yMeta={wp501A11y}
       rightSlot={
-        <Pressable onPress={() => router.push('/business/reporting/list' as never)}>
-          <Text style={styles.link}>Berichte</Text>
-        </Pressable>
+        <View style={{ flexDirection: 'row', gap: spacing.md }}>
+          <Pressable onPress={() => router.push('/business/reporting/dashboard' as never)}>
+            <Text style={styles.link}>KPI-Dashboard</Text>
+          </Pressable>
+          <Pressable onPress={() => router.push('/business/reporting/list' as never)}>
+            <Text style={styles.link}>Berichte</Text>
+          </Pressable>
+        </View>
       }
     >
       <PdlCockpitHero

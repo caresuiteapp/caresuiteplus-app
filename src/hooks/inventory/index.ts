@@ -1,0 +1,1 @@
+export { useInventoryDashboard } from './useInventoryDashboard';

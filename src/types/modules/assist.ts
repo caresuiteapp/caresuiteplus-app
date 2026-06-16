@@ -34,6 +34,8 @@ export type AssignmentListItem = Pick<
   AssignmentPlan,
   | 'id'
   | 'tenantId'
+  | 'clientId'
+  | 'employeeId'
   | 'title'
   | 'scheduledStart'
   | 'scheduledEnd'

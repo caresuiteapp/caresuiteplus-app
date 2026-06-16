@@ -48,6 +48,12 @@ export function ModuleOverviewScreen() {
           variant="secondary"
           onPress={() => router.push('/business/office/access/module-permissions' as never)}
         />
+
+        <PremiumButton
+          title="CareSuite+ Connect"
+          variant="secondary"
+          onPress={() => router.push('/business/connect' as never)}
+        />
       </ScrollView>
     </CareLightPageShell>
   );

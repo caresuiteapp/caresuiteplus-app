@@ -1,12 +1,16 @@
 import { useState } from 'react';
+import { Linking } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
-import { CareLightPageShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { AuthLayout, ErrorState, GlassCard, InputField, PremiumButton } from '@/design/components';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
 import { resolveFirstLoginRoute, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
+import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
+
+function openHelp() {
+  void Linking.openURL(SUPPORT_LINKS.help).catch(() => undefined);
+}
 
 export function EmployeePortalLoginScreen() {
   const router = useRouter();
@@ -42,19 +46,28 @@ export function EmployeePortalLoginScreen() {
   };
 
   return (
-    <CareLightPageShell title="Mitarbeiterportal" subtitle="Persönlicher Mitarbeiterzugang" scroll>
-      <AuthLoginHero
-        eyebrow="MITARBEITERPORTAL"
-        title="Mitarbeiterportal"
-        subtitle="Ihr Benutzername und Ihr erstes Passwort werden von Ihrer Verwaltung bereitgestellt."
-        portalLabel="Keine öffentliche Registrierung"
-        portalVariant="cyan"
-        icon="👤"
-      />
+    <AuthLayout
+      title="Mitarbeiterportal"
+      subtitle="Einsätze, Dokumentation, Zeiten und Nachrichten"
+      keyboardAvoiding
+    >
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      <PremiumInput label="Benutzername" value={username} onChangeText={setUsername} autoCapitalize="none" />
-      <PremiumInput label="Passwort / Einmalpasswort" value={password} onChangeText={setPassword} secureTextEntry />
-      <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
-    </CareLightPageShell>
+      <GlassCard>
+        <InputField
+          label="E-Mail oder Mitarbeiter-ID"
+          value={username}
+          onChangeText={setUsername}
+          autoCapitalize="none"
+        />
+        <InputField
+          label="Passwort oder Portal-Code"
+          value={password}
+          onChangeText={setPassword}
+          secureTextEntry
+        />
+        <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
+        <PremiumButton title="Hilfe bei Zugang" variant="secondary" onPress={openHelp} fullWidth />
+      </GlassCard>
+    </AuthLayout>
   );
 }

@@ -31,6 +31,7 @@ export {
   checkModuleAccess,
 } from './redirects';
 export type { RedirectDecision, RedirectReason } from './redirects';
+export { resolveSessionHomeRoute, shouldShowPortalChoice } from './sessionRouting';
 export {
   EINZELSEITEN_ROUTE_MAP,
   getEinzelseitenEntry,

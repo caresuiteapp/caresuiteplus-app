@@ -82,7 +82,7 @@ export function FormScreenHero({
           <PremiumBadge label={`Schritt ${step.current}/${step.total}`} variant="cyan" />
         ) : null}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {preparedOnly ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
+        {preparedOnly ? <PremiumBadge statusKind="preparedOnly" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard
@@ -96,15 +96,15 @@ export function FormScreenHero({
         <PremiumKpiCard
           label="Mandant"
           value="Demo"
-          subValue="Tenant-Store"
+          subValue="Beispieldaten"
           icon="🏢"
           accentColor={colors.cyan}
           style={styles.kpiItem}
         />
         <PremiumKpiCard
           label="Status"
-          value="Prototyp"
-          subValue="Kein Store-Release"
+          value="Vorschau"
+          subValue="In Entwicklung"
           icon="⚠️"
           accentColor={colors.violet}
           style={styles.kpiItem}

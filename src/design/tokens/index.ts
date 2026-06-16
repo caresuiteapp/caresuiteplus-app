@@ -6,10 +6,12 @@ export {
 export {
   legacyColorsFromPalette,
   resolveLegacyGradients,
+  resolveSemanticTokens,
   useLegacyTheme,
   planPilotRoutes,
   type LegacyColors,
   type LegacyGradients,
+  type SemanticThemeTokens,
 } from './themeBridge';
 export { careTypography, resolveCareTypography } from './typography';
 export { careSpacing } from './spacing';
@@ -34,3 +36,11 @@ export {
   resolveResponsiveValue,
   type ResponsiveValueMap,
 } from './responsiveValue';
+export { galaxyPalette, galaxyGradients, galaxyGlow } from './galaxy';
+export { resolveGalaxyTypography, noBreakTextProps } from './responsiveTypography';
+export {
+  UI_AUTH_PREPARED_LABEL,
+  UI_PREPARED_LABEL,
+  UI_PROTOTYPE_LABEL,
+  UI_TENANT_LABEL,
+} from './uiStatusLabels';

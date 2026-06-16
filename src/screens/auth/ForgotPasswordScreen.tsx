@@ -1,8 +1,15 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
-import { ScreenShell } from '@/components/layout';
-import { ErrorState, LoadingState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
+import {
+  AuthLayout,
+  ErrorState,
+  GlassCard,
+  InputField,
+  LoadingState,
+  PremiumButton,
+  SuccessState,
+} from '@/design/components';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import {
   fetchPasswordResetInfo,
@@ -36,29 +43,29 @@ export function ForgotPasswordScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <ScreenShell title="Passwort vergessen" subtitle="Wird geladen…" scroll>
+      <AuthLayout title="Passwort vergessen" subtitle="Wird geladen…" scroll>
         <LoadingState message="Informationen werden geladen…" />
-      </ScreenShell>
+      </AuthLayout>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <ScreenShell title="Passwort vergessen" subtitle="Fehler" scroll>
+      <AuthLayout title="Passwort vergessen" subtitle="Fehler" scroll>
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </ScreenShell>
+      </AuthLayout>
     );
   }
 
   const info = query.data;
 
   return (
-    <ScreenShell title="Passwort vergessen" subtitle="Zugang zurücksetzen" scroll>
+    <AuthLayout title="Passwort vergessen" subtitle="Zugang zurücksetzen" scroll keyboardAvoiding>
       <AuthLoginHero
         eyebrow="PASSWORT"
         title="Passwort vergessen"
         subtitle={info?.message ?? 'Passwort zurücksetzen'}
-        portalLabel={isLive ? 'Supabase Auth' : 'Nur für interne Benutzer'}
+        portalLabel={isLive ? 'E-Mail-Zugang' : 'Nur für interne Benutzer'}
         portalVariant="orange"
         icon="🔑"
         hint={
@@ -77,23 +84,25 @@ export function ForgotPasswordScreen() {
           fullWidth
         />
       ) : null}
-      <PremiumInput
-        label="E-Mail-Adresse"
-        value={email}
-        onChangeText={setEmail}
-        placeholder="name@einrichtung.de"
-        autoCapitalize="none"
-        keyboardType="email-address"
-      />
-      {isLive ? (
-        <PremiumButton
-          title="Link zum Zurücksetzen senden"
-          onPress={handleSubmit}
-          loading={loading}
-          fullWidth
+      <GlassCard>
+        <InputField
+          label="E-Mail-Adresse"
+          value={email}
+          onChangeText={setEmail}
+          placeholder="name@einrichtung.de"
+          autoCapitalize="none"
+          keyboardType="email-address"
         />
-      ) : null}
-      <PremiumButton title="Zurück zum Login" variant="secondary" onPress={() => router.back()} fullWidth />
-    </ScreenShell>
+        {isLive ? (
+          <PremiumButton
+            title="Link zum Zurücksetzen senden"
+            onPress={handleSubmit}
+            loading={loading}
+            fullWidth
+          />
+        ) : null}
+        <PremiumButton title="Zurück zum Login" variant="secondary" onPress={() => router.back()} fullWidth />
+      </GlassCard>
+    </AuthLayout>
   );
 }

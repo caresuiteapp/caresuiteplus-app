@@ -47,13 +47,13 @@ describe('InsightCenter List/Detail (Sprint 91)', () => {
       { id: '1', title: 'Test', moduleLabel: 'Office', updatedAt: '2026-06-01' },
     ]);
     expect(kpis[0]?.value).toBe('1');
-    expect(kpis[2]?.subValue).toContain('preparedOnly');
+    expect(kpis[2]?.subValue).toContain('In Vorbereitung');
   });
 
   it('Demo-Snapshot-Detail ist preparedOnly', () => {
     const detail = getDemoInsightSnapshotDetail('snap-office-001');
     expect(detail?.status).toBe('prepared');
     const kpis = buildInsightSnapshotDetailKpis(detail!.kpiCount, detail!.periodLabel);
-    expect(kpis[2]?.subValue).toContain('preparedOnly');
+    expect(kpis[2]?.subValue).toContain('In Vorbereitung');
   });
 });

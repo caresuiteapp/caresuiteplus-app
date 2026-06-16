@@ -18,6 +18,7 @@ export type ModuleScopeKey =
   | 'ti'
   | 'platform'
   | 'integrations'
+  | 'connect'
   | 'insight'
   | 'qm'
   | 'release'

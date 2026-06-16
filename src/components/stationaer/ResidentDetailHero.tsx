@@ -120,9 +120,9 @@ export function ResidentDetailHero({ resident, roleKey }: ResidentDetailHeroProp
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isStationaerResidentsLiveReady() ? (
-          <PremiumBadge label="Live Supabase" variant="green" dot />
+          <PremiumBadge statusKind="live" dot />
         ) : (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
+          <PremiumBadge statusKind="preparedOnly" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

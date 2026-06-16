@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { PflegeCrossModuleLinksPanel } from '@/components/pflege/PflegeCrossModuleLinksPanel';
 import { SisPreparedFormHero } from '@/components/pflege/SisPreparedFormHero';
@@ -22,6 +22,7 @@ import {
   SIS_CREATE_PREPARED_MESSAGE,
   SIS_EDIT_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
+import { getActionAvailability } from '@/lib/ui/actionAvailability';
 import { spacing } from '@/theme';
 
 type SisPreparedFormScreenProps = {
@@ -54,6 +55,13 @@ export function SisPreparedFormScreen({ mode }: SisPreparedFormScreenProps) {
   const [score, setScore] = useState('');
   const [assessor, setAssessor] = useState('');
   const [notes, setNotes] = useState('');
+
+  const saveAvailability = getActionAvailability('sis.save', {
+    roleKey,
+    isPreparedOnly: preparedOnly,
+    isReadOnly,
+    canExecute: false,
+  });
 
   if (mode === 'edit' && query.loading) {
     return (
@@ -129,16 +137,19 @@ export function SisPreparedFormScreen({ mode }: SisPreparedFormScreenProps) {
           />
           <PremiumButton
             title={
-              preparedOnly
+              saveAvailability.isPreparedOnly
                 ? 'Demo-funktional'
                 : isReadOnly
                   ? 'Lesemodus — Speichern gesperrt'
                   : 'Assessment speichern'
             }
             fullWidth
-            disabled={preparedOnly || isReadOnly}
-            onPress={() => undefined}
+            variant={saveAvailability.isPreparedOnly ? 'prepared' : 'primary'}
+            disabled={!saveAvailability.enabled}
           />
+          {saveAvailability.disabledReason ? (
+            <Text style={styles.hint}>{saveAvailability.disabledReason}</Text>
+          ) : null}
           <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
         </SectionPanel>
 
@@ -150,4 +161,5 @@ export function SisPreparedFormScreen({ mode }: SisPreparedFormScreenProps) {
 
 const styles = StyleSheet.create({
   scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
+  hint: { fontSize: 13, color: '#64748b' },
 });

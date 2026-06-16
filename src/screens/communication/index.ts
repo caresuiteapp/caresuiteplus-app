@@ -5,6 +5,7 @@ export { NewConversationScreen } from './NewConversationScreen';
 export { ArchivedConversationsScreen } from './ArchivedConversationsScreen';
 export { MessageAssignmentsScreen } from './MessageAssignmentsScreen';
 export { CommunicationSettingsScreen } from './CommunicationSettingsScreen';
+export { CommunicationChannelSettingsScreen } from './CommunicationChannelSettingsScreen';
 export {
   EmployeePortalMessagesScreen,
   ClientPortalMessagesScreen,

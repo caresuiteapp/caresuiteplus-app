@@ -40,7 +40,8 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     expect(screen).toContain('InfoBanner');
     expect(screen).toContain('MEDICATION_EMP_PREPARED_MESSAGE');
     expect(screen).toContain('eMP abgleichen');
-    expect(screen).toContain('disabled={!empReady || isReadOnly}');
+    expect(screen).toContain("getActionAvailability('medication.emp_sync'");
+    expect(screen).not.toContain('onPress={() => undefined}');
   });
 
   it('Wunddetail verlinkt BodyMap wenn demo-funktional', () => {
@@ -54,7 +55,8 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     const screen = readSrc('src/screens/pflege/ShiftScheduleListScreen.tsx');
     expect(screen).toContain('SHIFT_SCHEDULE_IMPORT_PREPARED_MESSAGE');
     expect(screen).toContain('Dienstplan importieren');
-    expect(screen).toContain('disabled={!importReady || isReadOnly}');
+    expect(screen).toContain("getActionAvailability('shift.import'");
+    expect(screen).not.toContain('onPress={() => undefined}');
   });
 
   it('SIS create/edit demo-funktionale Formulare und Routen', () => {
@@ -85,8 +87,9 @@ describe('Pflege Sprint Batch 4 (Sprint 78)', () => {
     expect(screen).toContain('CARE_DOCUMENTATION_PDF_PREPARED_MESSAGE');
     expect(screen).toContain('Nachweis signieren');
     expect(screen).toContain('PDF exportieren');
-    expect(screen).toContain('disabled={!signReady || isReadOnly}');
-    expect(screen).toContain('disabled={!pdfReady || isReadOnly}');
+    expect(screen).toContain("getActionAvailability('signature.sign'");
+    expect(screen).toContain("getActionAvailability('signature.export_pdf'");
+    expect(screen).not.toContain('onPress={() => undefined}');
   });
 
   it('Batch 3 Live-Wiring bleibt intakt (Regression)', async () => {
