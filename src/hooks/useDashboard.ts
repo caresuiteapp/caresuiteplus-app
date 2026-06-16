@@ -2,9 +2,11 @@ import { useCallback, useEffect, useState } from 'react';
 import type { DashboardScope, DashboardSnapshot } from '@/types/dashboard';
 import { useAuth } from '@/lib/auth/context';
 import { fetchDashboardSnapshot } from '@/lib/dashboard';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 
 export function useDashboard(scope: DashboardScope) {
   const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
   const [data, setData] = useState<DashboardSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -14,7 +16,15 @@ export function useDashboard(scope: DashboardScope) {
       setLoading(true);
       setError(null);
 
+      if (!tenantId) {
+        setData(null);
+        setError('Kein Mandant am Profil hinterlegt. Bitte Administrator kontaktieren.');
+        setLoading(false);
+        return;
+      }
+
       const result = await fetchDashboardSnapshot(
+        tenantId,
         profile?.roleKey ?? null,
         scope,
         { simulateError },
@@ -29,7 +39,7 @@ export function useDashboard(scope: DashboardScope) {
 
       setLoading(false);
     },
-    [profile?.roleKey, scope],
+    [tenantId, profile?.roleKey, scope],
   );
 
   useEffect(() => {

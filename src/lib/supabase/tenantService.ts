@@ -186,7 +186,7 @@ export async function fetchTenantProfile(userId: string): Promise<Profile | null
   return mapProfileQueryRow(data, roleKey);
 }
 
-async function fetchTenantSummary(tenantId: string): Promise<TenantSummary | null> {
+export async function fetchTenantSummaryById(tenantId: string): Promise<TenantSummary | null> {
   const client = getSupabaseClient();
   if (!client) {
     return null;
@@ -239,7 +239,7 @@ export async function bootstrapTenantContext(
   const profile = mapProfileQueryRow(data as unknown as ProfileQueryRow, roleKey);
   const user = buildAuthUser(supabaseSession, profile);
   const session = buildAuthSession(supabaseSession, user);
-  const tenant = profile.tenantId ? await fetchTenantSummary(profile.tenantId) : null;
+  const tenant = profile.tenantId ? await fetchTenantSummaryById(profile.tenantId) : null;
 
   return { ok: true, user, profile, session, tenant };
 }
