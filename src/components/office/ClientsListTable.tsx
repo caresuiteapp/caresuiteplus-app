@@ -1,5 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, typography } from '@/theme';
@@ -92,7 +93,7 @@ export function ClientsListTable({
           flex: 0.9,
           render: (item) =>
             item.careLevel ? (
-              <PremiumBadge label={item.careLevel} variant="cyan" />
+              <PremiumBadge label={formatCareLevel(item.careLevel)} variant="cyan" />
             ) : (
               <Text style={styles.muted}>—</Text>
             ),

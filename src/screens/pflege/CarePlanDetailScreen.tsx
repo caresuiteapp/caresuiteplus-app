@@ -11,6 +11,7 @@ import { useCarePlanDetail } from '@/hooks/useCarePlanDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 function formatDate(iso: string): string {
@@ -105,7 +106,7 @@ export function CarePlanDetailScreen() {
 
         <SectionPanel title="Klient:in">
           <DetailInfoRow label="Name" value={plan.clientName} />
-          <DetailInfoRow label="Pflegegrad" value={plan.careLevel ?? '—'} />
+          <DetailInfoRow label="Pflegegrad" value={formatCareLevel(plan.careLevel) || '—'} />
           <DetailInfoRow label="Wohnort" value={plan.city} />
           <DetailInfoRow label="Zuständige Pflegekraft" value={plan.employeeName} />
         </SectionPanel>

@@ -17,6 +17,7 @@ import { useClientEditWizard } from '@/hooks/useClientEditWizard';
 import { usePermissions } from '@/hooks/usePermissions';
 import { fetchClientDetail } from '@/lib/office/clientDetailService';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { spacing, typography } from '@/theme';
 
@@ -200,7 +201,7 @@ export function ClientEditScreen() {
             <SummaryRow label="Geburtsdatum" value={form.dateOfBirth || '—'} />
             <SummaryRow label="Adresse" value={`${form.street}, ${form.zip} ${form.city}`} />
             <SummaryRow label="Telefon" value={form.phone || '—'} />
-            <SummaryRow label="Pflegegrad" value={form.careLevel} />
+            <SummaryRow label="Pflegegrad" value={formatCareLevel(form.careLevel) || '—'} />
             <SummaryRow label="Status" value={WORKFLOW_STATUS_LABELS[form.status]} />
           </PremiumCard>
         </SectionPanel>

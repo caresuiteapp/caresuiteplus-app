@@ -13,15 +13,10 @@ import {
   ASSIGNMENT_TEMPLATE_KEY,
   OPTIONAL_CONSENT_TEMPLATE_KEYS,
 } from './intakeDocumentTypes';
+import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
 import { getSystemIntakeTemplateByKey } from './intakeDocumentSystemTemplates';
 
 export type IntakePlaceholderContext = Record<string, string>;
-
-function formatCareLevel(level: string): string {
-  if (!level) return '';
-  if (level.startsWith('pg')) return level.replace('pg', 'Pflegegrad ').toUpperCase();
-  return level;
-}
 
 export function buildIntakePlaceholderContext(
   form: ClientIntakeFormData,
@@ -37,7 +32,7 @@ export function buildIntakePlaceholderContext(
     'tenant.street': tenantDisplay?.street?.trim() || '',
     'tenant.zip': tenantDisplay?.zip?.trim() || '',
     'tenant.city': tenantDisplay?.city?.trim() || '',
-    'client.salutation': form.salutation || '',
+    'client.salutation': formatSalutation(form.salutation),
     'client.first_name': form.firstName.trim(),
     'client.last_name': form.lastName.trim(),
     'client.full_name': fullName,

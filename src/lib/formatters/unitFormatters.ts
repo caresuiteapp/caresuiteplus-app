@@ -1,9 +1,13 @@
-/** PG 1–5, kein Pflegegrad, beantragt, … */
-export function formatCareLevel(grade: string | null | undefined): string {
-  if (!grade) return '';
+import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
+
+/** PG 1–5, kein Pflegegrad, beantragt, … — never lowercase "pg". */
+export function formatCareLevel(grade: string | number | null | undefined): string {
+  if (grade === null || grade === undefined || grade === '') return '';
+  const raw = String(grade).trim();
   const map: Record<string, string> = {
     kein: 'kein Pflegegrad',
     none: 'kein Pflegegrad',
+    unknown: 'unbekannt',
     beantragt: 'beantragt',
     pg1: 'PG 1',
     pg2: 'PG 2',
@@ -19,13 +23,24 @@ export function formatCareLevel(grade: string | null | undefined): string {
     unbekannt: 'unbekannt',
     hospiz: 'Hospiz',
   };
-  const key = grade.toLowerCase().replace(/\s+/g, '');
-  if (map[grade]) return map[grade];
+  const key = raw.toLowerCase().replace(/\s+/g, '');
+  if (map[raw]) return map[raw];
   if (map[key]) return map[key];
-  if (/^pg\s*(\d)$/i.test(grade)) {
-    return `PG ${grade.match(/\d/)?.[0] ?? ''}`.trim();
-  }
-  return grade;
+  const pgMatch = raw.match(/^pg\s*(\d)$/i);
+  if (pgMatch) return `PG ${pgMatch[1]}`;
+  const pflegegradMatch = raw.match(/^pflegegrad\s*(\d)$/i);
+  if (pflegegradMatch) return `PG ${pflegegradMatch[1]}`;
+  if (/^[1-5]$/.test(raw)) return `PG ${raw}`;
+  return raw;
+}
+
+/** Anrede aus Katalogschlüssel (z. B. herr → Herr). */
+export function formatSalutation(value: string | null | undefined): string {
+  if (!value?.trim()) return '';
+  const trimmed = value.trim();
+  const label = getCatalogLabel('salutation', trimmed);
+  if (label !== trimmed) return label;
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
 }
 
 /** Einnahmeschema: morgens / mittags / abends / nachts */

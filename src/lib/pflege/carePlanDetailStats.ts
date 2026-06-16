@@ -1,4 +1,5 @@
 import type { CarePlanDetail } from '@/types/modules/pflege';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { legacyColorsFromPalette, type ColorMode } from '@/design/tokens/themeBridge';
 
 export type CarePlanDetailKpi = {
@@ -59,7 +60,7 @@ export function buildCarePlanDetailKpis(plan: CarePlanDetail, mode: ColorMode = 
     {
       id: 'care-level',
       label: 'Pflegegrad',
-      value: plan.careLevel ?? '—',
+      value: formatCareLevel(plan.careLevel) || '—',
       icon: '🏥',
       accentColor: colors.violet,
     },

@@ -1,5 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import type { CarePlanListItem } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, typography } from '@/theme';
@@ -86,7 +87,7 @@ export function CarePlansListTable({
           label: 'Pflegegrad',
           flex: 0.9,
           render: (item) => (
-            <Text style={styles.cellText}>{item.careLevel ?? '—'}</Text>
+            <Text style={styles.cellText}>{formatCareLevel(item.careLevel) || '—'}</Text>
           ),
         },
         {

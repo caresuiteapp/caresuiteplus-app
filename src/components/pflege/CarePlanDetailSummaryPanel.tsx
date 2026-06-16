@@ -12,6 +12,7 @@ import {
 import { LockedActionBanner } from '@/components/permissions';
 import { useCarePlanDetail } from '@/hooks/useCarePlanDetail';
 import { usePermissions } from '@/hooks/usePermissions';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
@@ -85,7 +86,7 @@ export function CarePlanDetailSummaryPanel({ planId }: CarePlanDetailSummaryPane
             variant={statusVariant(plan.status)}
             dot
           />
-          {plan.careLevel ? <PremiumBadge label={plan.careLevel} variant="cyan" /> : null}
+          {plan.careLevel ? <PremiumBadge label={formatCareLevel(plan.careLevel)} variant="cyan" /> : null}
         </View>
         <Text style={styles.client}>{plan.clientName}</Text>
       </PremiumCard>

@@ -3,6 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildCarePlanDetailKpis } from '@/lib/pflege/carePlanDetailStats';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { ROLE_LABELS } from '@/data/demo';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { RoleKey } from '@/types';
@@ -103,7 +104,7 @@ export function CarePlanDetailHero({ plan, roleKey, isReadOnly }: CarePlanDetail
           <Text style={styles.title}>{plan.title}</Text>
           <Text style={styles.meta}>
             {plan.clientName}
-            {plan.careLevel ? ` · ${plan.careLevel}` : ''}
+            {plan.careLevel ? ` · ${formatCareLevel(plan.careLevel)}` : ''}
           </Text>
           <Text style={styles.subtitle}>{plan.nextActionHint}</Text>
         </View>

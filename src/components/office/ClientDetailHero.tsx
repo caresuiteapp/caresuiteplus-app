@@ -12,6 +12,7 @@ import { isDemoMode } from '@/lib/supabase/config';
 import type { RoleKey } from '@/types';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { designTokens, spacing } from '@/theme';
 
 type ClientDetailHeroProps = {
@@ -113,7 +114,7 @@ export function ClientDetailHero({
           <Text style={styles.eyebrow}>OFFICE · KLIENT:INNEN-AKTE</Text>
           <Text style={styles.title}>{fullName}</Text>
           <Text style={styles.meta}>
-            {client.careLevel ? `Pflegegrad ${client.careLevel}` : 'Kein Pflegegrad'}
+            {client.careLevel ? formatCareLevel(client.careLevel) : 'Kein Pflegegrad'}
             {client.city ? ` · ${client.city}` : ''}
           </Text>
           <Text style={styles.subtitle}>{buildClientDetailSubtitle(client)}</Text>

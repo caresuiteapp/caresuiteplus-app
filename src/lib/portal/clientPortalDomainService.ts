@@ -24,6 +24,7 @@ import {
 } from '@/lib/permissions';
 import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { getPortalProfileLink } from './portalVisibility';
 import {
   buildClientPortalContext,
@@ -323,7 +324,7 @@ export async function fetchClientDigitalFile(
         displayName: `${client.firstName} ${client.lastName}`,
         city: client.city ?? null,
         zip: client.zip ?? null,
-        careLevel: client.careLevel ?? null,
+        careLevel: formatCareLevel(client.careLevel) || null,
       },
       contracts: released.filter((d) => d.category === 'contract'),
       consents: released.filter((d) => d.category === 'consent'),

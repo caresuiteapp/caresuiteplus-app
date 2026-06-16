@@ -1,4 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import type { CarePlanListItem } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { careLightColors } from '@/design/tokens/lightTheme';
@@ -62,7 +63,7 @@ export function CareLightCarePlanCard({
       </View>
       <Text style={styles.meta}>
         {plan.clientName}
-        {plan.careLevel ? ` · Pflegegrad ${plan.careLevel}` : ''}
+        {plan.careLevel ? ` · ${formatCareLevel(plan.careLevel)}` : ''}
       </Text>
       <Text style={styles.period}>{formatDateRange(plan.validFrom, plan.validUntil)}</Text>
       {plan.alertCount > 0 ? (

@@ -21,6 +21,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { archiveClient } from '@/lib/office';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { CLIENT_RECORD_TAB_LABELS, type ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
 import { clientEditRoute } from '@/lib/navigation/clientRoutes';
@@ -60,7 +61,7 @@ function StammdatenTab({
     { label: 'Vorname', value: detail.firstName },
     { label: 'Nachname', value: detail.lastName },
     { label: 'Status', value: detail.status },
-    { label: 'Pflegegrad', value: detail.careLevel ?? '—' },
+    { label: 'Pflegegrad', value: formatCareLevel(detail.careLevel) || '—' },
     { label: 'Ort', value: `${detail.city ?? '—'}, ${detail.zip ?? '—'}` },
     { label: 'Telefon', value: detail.phone ?? detail.primaryContactPhone ?? '—' },
   ];

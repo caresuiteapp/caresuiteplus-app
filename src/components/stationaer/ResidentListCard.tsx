@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import type { ResidentListItem } from '@/types/modules/stationaer';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
@@ -50,7 +51,7 @@ export function ResidentListCard({ resident, onPress, selected = false }: Reside
         {resident.roomName}
         {resident.wing ? ` · ${resident.wing}` : ''}
       </Text>
-      {resident.careLevel ? <Text style={styles.careLevel}>{resident.careLevel}</Text> : null}
+      {resident.careLevel ? <Text style={styles.careLevel}>{formatCareLevel(resident.careLevel)}</Text> : null}
       <Text style={styles.date}>Aufnahme {formatDate(resident.admissionDate)}</Text>
     </>
   );

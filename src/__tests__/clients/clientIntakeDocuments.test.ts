@@ -149,6 +149,16 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(preview.html).not.toContain('{{client.full_name}}');
   });
 
+  it('8b. Vorschau formatiert Pflegegrad als PG 3 und Anrede als Herr', () => {
+    const form = baseForm({ careLevel: 'pg3', salutation: 'herr' });
+    const template = getSystemIntakeTemplateByKey('assignment_declaration_care_health_insurance')!;
+    const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form));
+    expect(preview.html).toContain('PG 3');
+    expect(preview.html).not.toContain('pg3');
+    expect(preview.html).toContain('Herr ');
+    expect(preview.html).not.toMatch(/\bherr\b/);
+  });
+
   it('9. markiert fehlende Pflicht-Platzhalter', () => {
     const form = baseForm({ firstName: '', lastName: '' });
     const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;

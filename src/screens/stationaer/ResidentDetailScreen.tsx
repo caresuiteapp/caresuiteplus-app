@@ -8,6 +8,7 @@ import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, Sect
 import { useResidentDetail } from '@/hooks/useResidentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { spacing, typography } from '@/theme';
 
 function formatDate(iso: string): string {
@@ -71,7 +72,7 @@ export function ResidentDetailScreen() {
           {resident.wing ? <DetailInfoRow label="Bereich" value={resident.wing} /> : null}
           <DetailInfoRow label="Aufnahme" value={formatDate(resident.admissionDate)} />
           {resident.careLevel ? (
-            <DetailInfoRow label="Pflegegrad" value={resident.careLevel} />
+            <DetailInfoRow label="Pflegegrad" value={formatCareLevel(resident.careLevel)} />
           ) : null}
         </SectionPanel>
 
