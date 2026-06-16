@@ -142,19 +142,10 @@ describe('Office Nachrichten list', () => {
       expect(result.ok).toBe(false);
     });
 
-    it('sendDomainMessage ist im Live-Modus blockiert', async () => {
-      const result = await sendDomainMessage({
-        wpNumber: 153,
-        domain: 'office',
-        tenantId: LIVE_TENANT,
-        actorRoleKey: 'business_admin',
-        permission: 'office.access',
-        audienceScope: 'office',
-        subject: 'Live Compose Test',
-        body: 'Dies ist eine Testnachricht im Live-Modus.',
-        senderName: 'Admin',
-      });
-      expect(result.ok).toBe(false);
+    it('sendDomainMessage nutzt communication_messages im Live-Pfad', () => {
+      const source = readSrc('src/lib/communication/domainMessageService.ts');
+      expect(source).toContain('messagesSupabaseRepository');
+      expect(source).not.toContain('guardLiveDemoFeature');
     });
 
     it('messageService nutzt getServiceMode für Live-Pfad', () => {
@@ -172,6 +163,7 @@ describe('Office Nachrichten list', () => {
     it('ComposeMessageForm blendet Demo-Hinweis im Live-Pfad aus', () => {
       const source = readSrc('src/screens/shared/ComposeMessageForm.tsx');
       expect(source).toContain('isLiveServiceMode');
+      expect(source).toContain('showDemoHint');
     });
   });
 

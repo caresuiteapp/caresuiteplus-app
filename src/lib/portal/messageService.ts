@@ -257,9 +257,6 @@ export async function replyToOfficeMessage(
     if (!replyBody.trim()) {
       return { ok: false, error: 'Bitte geben Sie eine Antwort ein.' };
     }
-    if (replyBody.trim().length < 10) {
-      return { ok: false, error: 'Antwort muss mindestens 10 Zeichen haben.' };
-    }
 
     const liveBlock = guardLiveDemoFeature<MessageDetail>(tenantId, 'Office-Nachrichten');
     if (liveBlock) return liveBlock;

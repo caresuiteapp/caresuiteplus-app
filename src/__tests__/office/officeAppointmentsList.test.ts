@@ -88,6 +88,21 @@ describe('Office Termine list', () => {
     expect(source).toContain('guardServiceTenant');
   });
 
+  it('appointmentRepository fragt public.appointments mit erwarteten Spalten ab', () => {
+    const source = readSrc('src/lib/services/repositories/appointmentRepository.supabase.ts');
+    expect(source).toContain("fromUnknownTable(supabase, 'appointments')");
+    expect(source).toContain(".select('*')");
+    expect(source).toContain(".eq('tenant_id', tenantId)");
+    expect(source).toContain(".order('starts_at', { ascending: true })");
+  });
+
+  it('Migration 0066 legt appointments-Tabelle mit RLS und GRANTs an', () => {
+    const migration = readSrc('supabase/migrations/0066_appointments_table_rls_grants.sql');
+    expect(migration).toContain('CREATE TABLE IF NOT EXISTS public.appointments');
+    expect(migration).toContain('appointments_tenant');
+    expect(migration).toContain('GRANT SELECT, INSERT, UPDATE ON public.appointments TO authenticated');
+  });
+
   it('appointmentDetailService nutzt guardServiceTenant', () => {
     const source = readSrc('src/lib/office/appointmentDetailService.ts');
     expect(source).toContain('guardServiceTenant');
