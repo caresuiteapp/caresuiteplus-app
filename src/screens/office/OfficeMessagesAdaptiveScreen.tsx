@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { MasterDetailLayout } from '@/components/layout';
+import { AdaptiveListDetail } from '@/components/adaptive';
 import { OfficeMessageDetailSummaryPanel } from '@/components/office/OfficeMessageDetailSummaryPanel';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { OfficeMessagesListScreen } from './OfficeMessagesListScreen';
@@ -13,8 +13,8 @@ export function OfficeMessagesAdaptiveScreen() {
   }
 
   return (
-    <MasterDetailLayout
-      master={
+    <AdaptiveListDetail
+      list={
         <OfficeMessagesListScreen
           embedded
           selectedId={selectedId}

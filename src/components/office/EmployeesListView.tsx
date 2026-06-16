@@ -46,7 +46,7 @@ export function EmployeesListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.employees');
-  const useTableLayout = isDesktop && viewMode === 'table';
+  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
   const canView = can('office.employees.view');
   const canCreate = can('office.employees.create');
   const roleKey = profile?.roleKey ?? 'business_admin';

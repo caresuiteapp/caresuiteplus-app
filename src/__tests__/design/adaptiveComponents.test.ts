@@ -5,12 +5,12 @@ import { join } from 'node:path';
 const root = join(process.cwd());
 
 describe('adaptive components foundation', () => {
-  it('AdaptiveListDetail delegiert an MasterDetailLayout', () => {
+  it('AdaptiveListDetail delegiert an ListDetailLayout', () => {
     const src = readFileSync(
       join(root, 'src/components/adaptive/AdaptiveListDetail.tsx'),
       'utf8',
     );
-    expect(src).toContain('MasterDetailLayout');
+    expect(src).toContain('ListDetailLayout');
   });
 
   it('AdaptiveCardGrid nutzt useResponsiveValue', () => {

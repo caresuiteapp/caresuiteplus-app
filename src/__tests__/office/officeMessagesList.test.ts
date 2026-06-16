@@ -77,16 +77,16 @@ describe('Office Nachrichten list', () => {
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('OfficeMessagesAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
+  it('OfficeMessagesAdaptiveScreen nutzt AdaptiveListDetail mit Summary-Panel', () => {
     const source = readSrc('src/screens/office/OfficeMessagesAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
+    expect(source).toContain('AdaptiveListDetail');
     expect(source).toContain('OfficeMessageDetailSummaryPanel');
   });
 
-  it('OfficeMessageListCard unterstützt Auswahlzustand für Master-Detail', () => {
-    const source = readSrc('src/components/office/OfficeMessageListCard.tsx');
+  it('OfficeMessageCompactRow unterstützt Auswahlzustand für List-Detail', () => {
+    const source = readSrc('src/components/office/OfficeMessageCompactRow.tsx');
     expect(source).toContain('selected');
-    expect(source).toContain('cardSelected');
+    expect(source).toContain('rowSelected');
   });
 
   it('messageService fetchOfficeMessages nutzt guardServiceTenant', () => {

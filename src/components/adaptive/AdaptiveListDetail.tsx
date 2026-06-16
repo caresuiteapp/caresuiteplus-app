@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { MasterDetailLayout } from '@/components/layout/MasterDetailLayout';
+import { ListDetailLayout } from '@/components/layout/ListDetailLayout';
 
 type AdaptiveListDetailProps = {
   list: ReactNode;
@@ -10,7 +10,7 @@ type AdaptiveListDetailProps = {
 
 /**
  * Phone: list only (detail via stack navigation).
- * Tablet/Desktop: master-detail split pane.
+ * Tablet/Desktop: vertical list-detail (list on top, detail below).
  */
 export function AdaptiveListDetail({
   list,
@@ -19,8 +19,8 @@ export function AdaptiveListDetail({
   showDetail,
 }: AdaptiveListDetailProps) {
   return (
-    <MasterDetailLayout
-      master={list}
+    <ListDetailLayout
+      list={list}
       detail={detail}
       detailPlaceholder={detailPlaceholder}
       showDetail={showDetail}

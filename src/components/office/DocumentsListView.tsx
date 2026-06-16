@@ -37,7 +37,7 @@ export function DocumentsListView() {
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.documents');
-  const useTableLayout = isDesktop && viewMode === 'table';
+  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
   const canView = can('office.documents.view');
   const canUpload = can('office.documents.upload' as never);
   const roleKey = profile?.roleKey ?? 'business_admin';
