@@ -3,6 +3,7 @@ import { useRouter } from 'expo-router';
 import { confirmAction } from '@/lib/platform/confirmAction';
 import { FormScreenHero } from '@/components/forms';
 import {
+  CareAddressSearch,
   CareCatalogSelect,
   CareCostCarrierTemplateSearch,
   CareDateInput,
@@ -72,10 +73,25 @@ function StepContent({
   if (section === 'adresse_kontakt') {
     return (
       <SectionPanel title="Adresse & Kontakt">
-        <PremiumInput label="Straße *" value={form.street} onChangeText={(v) => updateField('street', v)} error={errors.street} />
-        <PremiumInput label="Hausnummer" value={form.houseNumber} onChangeText={(v) => updateField('houseNumber', v)} />
-        <PremiumInput label="PLZ *" value={form.zip} onChangeText={(v) => updateField('zip', v)} error={errors.zip} />
-        <PremiumInput label="Ort *" value={form.city} onChangeText={(v) => updateField('city', v)} error={errors.city} />
+        <CareAddressSearch
+          values={{
+            street: form.street,
+            houseNumber: form.houseNumber,
+            zip: form.zip,
+            city: form.city,
+          }}
+          onChange={(address) => {
+            updateField('street', address.street);
+            updateField('houseNumber', address.houseNumber);
+            updateField('zip', address.zip);
+            updateField('city', address.city);
+          }}
+          errors={{
+            street: errors.street,
+            zip: errors.zip,
+            city: errors.city,
+          }}
+        />
         <PremiumInput label="Telefon" value={form.phone} onChangeText={(v) => updateField('phone', v)} error={errors.phone} />
         <PremiumInput label="Mobil" value={form.mobile} onChangeText={(v) => updateField('mobile', v)} />
         <PremiumInput label="E-Mail" value={form.email} onChangeText={(v) => updateField('email', v)} />
