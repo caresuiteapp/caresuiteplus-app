@@ -24,6 +24,7 @@ import { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard';
 import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import { submitClientIntake } from '@/lib/clients/clientIntakeService';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
+import { getServiceMode } from '@/lib/services/mode';
 import { spacing, typography } from '@/theme';
 
 function StepContent({
@@ -171,6 +172,7 @@ function StepContent({
 export function ClientIntakeWizardScreen() {
   const router = useRouter();
   const wizard = useClientIntakeWizard();
+  const isLive = getServiceMode() === 'supabase';
   const {
     steps,
     stepLabels,
@@ -214,7 +216,20 @@ export function ClientIntakeWizardScreen() {
       subtitle={`Schritt ${stepIndex + 1} von ${steps.length}`}
       onBack={() => router.back()}
     >
-      <FormScreenHero eyebrow="OFFICE · KLIENT:INNEN" title="Kontextbasierte Aufnahme" meta="Leistungsart zuerst" />
+      <FormScreenHero
+        eyebrow="OFFICE · KLIENT:INNEN"
+        title="Klient:in aufnehmen"
+        meta="Leistungsart wählen — danach passen sich die Schritte an"
+        icon="👤"
+        formMode="create"
+        step={{ current: stepIndex + 1, total: steps.length }}
+        preparedOnly={!isLive}
+        preparedMessage={
+          isLive
+            ? 'Klient:innen werden mandantenbezogen aufgenommen.'
+            : 'Klient:innen werden im Demo-Mandanten aufgenommen — Live-Persistenz nach Remote-Migrationen.'
+        }
+      />
       <FormStepper steps={stepLabels} currentStep={stepIndex} />
       <ScrollView style={styles.scroll}>
         {currentSection === 'leistungsart' && wizard.form.careContexts.length === 0 ? (

@@ -28,9 +28,15 @@ describe('Business-Dashboard Tour', () => {
     vi.mocked(AsyncStorage.removeItem).mockResolvedValue();
   });
 
-  it('definiert sechs deutsche Tour-Schritte', () => {
-    expect(DASHBOARD_TOUR_STEPS).toHaveLength(6);
+  it('definiert acht deutsche Tour-Schritte passend zum Dashboard-Layout', () => {
+    expect(DASHBOARD_TOUR_STEPS).toHaveLength(8);
     expect(DASHBOARD_TOUR_STEPS[0]?.title).toBe('Willkommen in CareSuite+');
+    expect(DASHBOARD_TOUR_STEPS.find((step) => step.id === 'moreActions')?.title).toBe(
+      'Mehr Aktionen',
+    );
+    expect(DASHBOARD_TOUR_STEPS.find((step) => step.id === 'modules')?.title).toBe(
+      'Ihre Module',
+    );
     expect(DASHBOARD_TOUR_STEPS.at(-1)?.title).toBe('Erste Klient:in anlegen');
   });
 

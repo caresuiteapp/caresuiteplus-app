@@ -1,3 +1,4 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumInput } from '@/components/ui/PremiumInput';
 import { formatDate, parseGermanDate } from '@/lib/formatters/dateTimeFormatters';
@@ -12,21 +13,43 @@ type Props = {
 };
 
 export function CareDateInput({ label, value, onChange, error, placeholder = 'TT.MM.JJJJ' }: Props) {
-  const display = value ? formatDate(value) : '';
+  const [draft, setDraft] = useState(() => (value ? formatDate(value) : ''));
+
+  useEffect(() => {
+    setDraft(value ? formatDate(value) : '');
+  }, [value]);
+
+  const commitDraft = (text: string) => {
+    const iso = parseGermanDate(text);
+    if (iso) {
+      onChange(iso);
+      setDraft(formatDate(iso));
+      return;
+    }
+    if (!text.trim()) {
+      onChange('');
+      setDraft('');
+      return;
+    }
+    setDraft(value ? formatDate(value) : '');
+  };
 
   return (
     <View style={styles.wrap}>
       <PremiumInput
         label={label ?? 'Datum'}
-        value={display}
+        value={draft}
         onChangeText={(text) => {
+          setDraft(text);
           const iso = parseGermanDate(text);
           if (iso) onChange(iso);
           else if (!text.trim()) onChange('');
         }}
+        onBlur={() => commitDraft(draft)}
         placeholder={placeholder}
         error={error}
-        keyboardType="numbers-and-punctuation"
+        keyboardType="default"
+        inputMode="text"
       />
       <Text style={styles.hint}>Format: TT.MM.JJJJ</Text>
     </View>

@@ -3,7 +3,9 @@ import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 export type DashboardTourAnchorKey =
   | 'welcome'
   | 'kpis'
+  | 'recent'
   | 'quickActions'
+  | 'moreActions'
   | 'modules'
   | 'nav'
   | 'firstClient';
@@ -26,7 +28,7 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     id: 'welcome',
     title: 'Willkommen in CareSuite+',
     body:
-      'Schön, dass Sie da sind. Diese kurze Tour zeigt Ihnen, wo Sie nach dem Login die wichtigsten Bereiche finden.',
+      'Kurz Überblick: Oben Kennzahlen, in der Mitte Ihre letzten Aktivitäten, rechts bzw. darunter Schnellzugriff und der Bereich „Ihre Module“.',
     placement: 'center',
     spotlight: false,
   },
@@ -34,7 +36,15 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     id: 'kpis',
     title: 'Kennzahlen',
     body:
-      'Hier sehen Sie die wichtigsten Zahlen Ihres Mandanten — zum Beispiel Klient:innen, Einsätze oder offene Aufgaben.',
+      'Hier sehen Sie die wichtigsten Zahlen Ihres Mandanten — zum Beispiel Klient:innen, Einsätze oder offene Aufgaben. Bei neuen Mandanten starten die Werte bei 0.',
+    placement: 'auto',
+    spotlight: true,
+  },
+  {
+    id: 'recent',
+    title: 'Letzte Aktivitäten',
+    body:
+      'Im Verlauf erscheinen neue Vorgänge — angelegte Klient:innen, Einsätze oder Rechnungen. Solange noch nichts passiert ist, bleibt die Liste leer.',
     placement: 'auto',
     spotlight: true,
   },
@@ -42,7 +52,15 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     id: 'quickActions',
     title: 'Schnellzugriff',
     body:
-      'Die wichtigsten Aktionen sind direkt sichtbar. Über „Mehr Aktionen“ erreichen Sie weitere häufig genutzte Funktionen.',
+      'Unter „Schnellzugriff“ finden Sie die zwei wichtigsten Aktionen direkt als Buttons — z. B. „Klient:in anlegen“ und „Einsatz planen“.',
+    placement: 'auto',
+    spotlight: true,
+  },
+  {
+    id: 'moreActions',
+    title: 'Mehr Aktionen',
+    body:
+      'Über „Mehr Aktionen“ öffnet sich ein Dropdown mit weiteren Funktionen — Klient:innenliste, Rechnung, Mitarbeitende oder Nachrichten.',
     placement: 'auto',
     spotlight: true,
   },
@@ -50,7 +68,7 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     id: 'modules',
     title: 'Ihre Module',
     body:
-      'Unter „Ihre Module“ wechseln Sie zwischen Office, Pflege und Assist — jedes Modul bündelt die passenden Funktionen für Ihren Alltag.',
+      'Der Bereich „Ihre Module“ ist bewusst getrennt vom Schnellzugriff: Hier wechseln Sie zwischen Office, Pflege und Assist.',
     placement: 'auto',
     spotlight: true,
   },
@@ -66,7 +84,7 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     id: 'firstClient',
     title: 'Erste Klient:in anlegen',
     body:
-      'Wenn Sie neu starten, legen Sie zuerst eine Klient:in an. Danach können Sie Einsätze planen und dokumentieren.',
+      'Starten Sie mit dem orangenen Button „Klient:in anlegen“. Die Klient:innenliste finden Sie im Dropdown unter „Mehr Aktionen“ — nicht noch einmal als zweiter Button.',
     placement: 'auto',
     spotlight: true,
     ctaRoute: CLIENT_INTAKE_NEW_ROUTE,

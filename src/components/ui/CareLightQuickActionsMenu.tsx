@@ -13,7 +13,12 @@ type CareLightQuickActionsMenuProps = {
   accentColor?: string;
   maxVisible?: number;
   moreLabel?: string;
+  /** Highlights the primary „Klient:in anlegen“ button in the tour. */
   actionRef?: RefObject<View>;
+  /** Highlights the „Mehr Aktionen“ dropdown in the tour. */
+  overflowRef?: RefObject<View>;
+  /** Tour control — opens the dropdown while the Mehr-Aktionen step is active. */
+  menuExpanded?: boolean;
   style?: ViewStyle;
 };
 
@@ -24,15 +29,26 @@ export function CareLightQuickActionsMenu({
   maxVisible = 2,
   moreLabel = 'Mehr Aktionen',
   actionRef,
+  overflowRef,
+  menuExpanded,
   style,
 }: CareLightQuickActionsMenuProps) {
-  const [expanded, setExpanded] = useState(false);
+  const [internalExpanded, setInternalExpanded] = useState(false);
+  const expanded = menuExpanded ?? internalExpanded;
   const visibleActions = actions.slice(0, maxVisible);
   const overflowActions = actions.slice(maxVisible);
 
   const handleOverflowPress = (action: DashboardQuickAction) => {
-    setExpanded(false);
+    if (menuExpanded === undefined) {
+      setInternalExpanded(false);
+    }
     onAction(action);
+  };
+
+  const toggleExpanded = () => {
+    if (menuExpanded === undefined) {
+      setInternalExpanded((open) => !open);
+    }
   };
 
   return (
@@ -53,11 +69,11 @@ export function CareLightQuickActionsMenu({
       ))}
 
       {overflowActions.length > 0 ? (
-        <View style={styles.overflowWrap}>
+        <View ref={overflowRef} collapsable={false} style={styles.overflowWrap}>
           <CareLightButton
             title={`${expanded ? '▴' : '▾'} ${moreLabel}`}
             variant="secondary"
-            onPress={() => setExpanded((open) => !open)}
+            onPress={toggleExpanded}
             accentColor={accentColor}
             style={styles.moreButton}
           />

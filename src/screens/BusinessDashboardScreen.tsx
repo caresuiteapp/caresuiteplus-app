@@ -151,6 +151,7 @@ export function BusinessDashboardScreen() {
         sectionRefs={{
           header: tour.refs.welcome,
           kpis: tour.refs.kpis,
+          recent: tour.refs.recent,
           quickActions: tour.refs.quickActions,
           modules: tour.refs.modules,
         }}
@@ -173,20 +174,8 @@ export function BusinessDashboardScreen() {
               accentColor={businessAccent}
               maxVisible={2}
               actionRef={tour.refs.firstClient}
-            />
-            {tour.tourFinished ? (
-              <CareLightButton
-                title="Tour starten"
-                variant="ghost"
-                onPress={tour.startTour}
-                accentColor={businessAccent}
-              />
-            ) : null}
-            <CareLightButton
-              title="Abmelden"
-              variant="ghost"
-              onPress={() => signOut().then(() => router.replace('/' as never))}
-              accentColor={careLightColors.muted}
+              overflowRef={tour.refs.moreActions}
+              menuExpanded={tour.expandQuickActionsMenu ? true : undefined}
             />
           </View>
         }
@@ -211,6 +200,22 @@ export function BusinessDashboardScreen() {
           </View>
         }
       />
+      <View style={styles.dashboardFooter}>
+        {tour.tourFinished ? (
+          <CareLightButton
+            title="Tour starten"
+            variant="ghost"
+            onPress={tour.startTour}
+            accentColor={businessAccent}
+          />
+        ) : null}
+        <CareLightButton
+          title="Abmelden"
+          variant="ghost"
+          onPress={() => signOut().then(() => router.replace('/' as never))}
+          accentColor={careLightColors.muted}
+        />
+      </View>
       <GuidedTourOverlay
         visible={tour.visible}
         step={tour.currentStep}
@@ -235,6 +240,10 @@ export function BusinessDashboardScreen() {
 const styles = StyleSheet.create({
   quickGrid: { gap: careSpacing.md },
   moduleGrid: { gap: careSpacing.sm },
+  dashboardFooter: {
+    gap: careSpacing.sm,
+    marginTop: careSpacing.sm,
+  },
   loading: {
     ...careTypography.body,
     color: careLightColors.muted,

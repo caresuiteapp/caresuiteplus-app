@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { designTokens, spacing } from '@/theme';
 
@@ -33,6 +35,61 @@ export function FormScreenHero({
   const { colors, typography, gradients } = useLegacyTheme();
   const accent = accentColor ?? colors.orange;
   const modeLabel = formMode === 'create' ? 'Anlegen' : 'Bearbeiten';
+  const isLive = getServiceMode() === 'supabase';
+  const tenantName = useTenantDisplayName();
+  const showPreparedUi = preparedOnly && !isLive;
+
+  const kpiCards = useMemo(() => {
+    if (isLive) {
+      return [
+        {
+          label: 'Modus',
+          value: modeLabel,
+          subValue: 'Live-Speicherung',
+          icon: '📋',
+          accentColor: accent,
+        },
+        {
+          label: 'Mandant',
+          value: tenantName,
+          subValue: 'Mandantengebunden',
+          icon: '🏢',
+          accentColor: colors.cyan,
+        },
+        {
+          label: 'Status',
+          value: 'Aktiv',
+          subValue: 'Bereit',
+          icon: '✓',
+          accentColor: colors.violet,
+        },
+      ] as const;
+    }
+
+    return [
+      {
+        label: 'Modus',
+        value: modeLabel,
+        subValue: 'Demo-Persistenz',
+        icon: '📋',
+        accentColor: accent,
+      },
+      {
+        label: 'Mandant',
+        value: 'Demo',
+        subValue: 'Beispieldaten',
+        icon: '🏢',
+        accentColor: colors.cyan,
+      },
+      {
+        label: 'Status',
+        value: 'Vorschau',
+        subValue: 'In Entwicklung',
+        icon: '⚠️',
+        accentColor: colors.violet,
+      },
+    ] as const;
+  }, [accent, colors.cyan, colors.violet, isLive, modeLabel, tenantName]);
 
   const styles = useMemo(
     () =>
@@ -82,35 +139,22 @@ export function FormScreenHero({
           <PremiumBadge label={`Schritt ${step.current}/${step.total}`} variant="cyan" />
         ) : null}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {preparedOnly ? <PremiumBadge statusKind="preparedOnly" /> : null}
+        {showPreparedUi ? <PremiumBadge statusKind="preparedOnly" /> : null}
       </View>
       <View style={styles.kpiRow}>
-        <PremiumKpiCard
-          label="Modus"
-          value={modeLabel}
-          subValue="Demo-Persistenz"
-          icon="📋"
-          accentColor={accent}
-          style={styles.kpiItem}
-        />
-        <PremiumKpiCard
-          label="Mandant"
-          value="Demo"
-          subValue="Beispieldaten"
-          icon="🏢"
-          accentColor={colors.cyan}
-          style={styles.kpiItem}
-        />
-        <PremiumKpiCard
-          label="Status"
-          value="Vorschau"
-          subValue="In Entwicklung"
-          icon="⚠️"
-          accentColor={colors.violet}
-          style={styles.kpiItem}
-        />
+        {kpiCards.map((card) => (
+          <PremiumKpiCard
+            key={card.label}
+            label={card.label}
+            value={card.value}
+            subValue={card.subValue}
+            icon={card.icon}
+            accentColor={card.accentColor}
+            style={styles.kpiItem}
+          />
+        ))}
       </View>
-      {preparedOnly && preparedMessage ? (
+      {showPreparedUi && preparedMessage ? (
         <Text style={styles.hint}>{preparedMessage}</Text>
       ) : null}
     </PremiumListHeroFrame>
