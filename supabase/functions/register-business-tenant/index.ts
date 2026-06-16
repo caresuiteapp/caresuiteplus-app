@@ -201,6 +201,75 @@ async function resolveTenant(
   return { tenant, error: null, resumed: false };
 }
 
+type AuthAdminUser = {
+  id: string;
+  email?: string;
+  app_metadata?: Record<string, unknown>;
+  user_metadata?: Record<string, unknown>;
+};
+
+async function findAuthUserByEmail(
+  supabase: ReturnType<typeof getServiceClient>,
+  adminEmail: string,
+): Promise<AuthAdminUser | null> {
+  const normalized = adminEmail.toLowerCase();
+  let page = 1;
+  const perPage = 200;
+
+  while (page <= 10) {
+    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
+    if (error) {
+      console.warn(`[edge] listUsers failed: ${error.message}`);
+      return null;
+    }
+
+    const match = data.users.find((user) => user.email?.toLowerCase() === normalized);
+    if (match) {
+      return {
+        id: match.id,
+        email: match.email,
+        app_metadata: match.app_metadata as Record<string, unknown>,
+        user_metadata: match.user_metadata as Record<string, unknown>,
+      };
+    }
+
+    if (data.users.length < perPage) break;
+    page += 1;
+  }
+
+  return null;
+}
+
+async function tenantHasOwner(
+  supabase: ReturnType<typeof getServiceClient>,
+  tenantId: string,
+): Promise<boolean> {
+  const { count, error } = await supabase
+    .from('tenant_users')
+    .select('id', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId);
+
+  if (error) {
+    console.warn(`[edge] tenant owner lookup failed: ${error.message}`);
+    return true;
+  }
+
+  return (count ?? 0) > 0;
+}
+
+async function canRelinkAuthUserToTenant(
+  supabase: ReturnType<typeof getServiceClient>,
+  existingTenantId: string | undefined,
+  targetTenantId: string,
+): Promise<boolean> {
+  if (!existingTenantId || existingTenantId === targetTenantId) {
+    return true;
+  }
+
+  const hasOwner = await tenantHasOwner(supabase, existingTenantId);
+  return !hasOwner;
+}
+
 async function resolveAuthUser(
   supabase: ReturnType<typeof getServiceClient>,
   body: RegisterBody,
@@ -238,32 +307,33 @@ async function resolveAuthUser(
     };
   }
 
-  const { data: existing, error: lookupError } = await supabase.auth.admin.getUserByEmail(adminEmail);
-  if (lookupError || !existing?.user) {
+  const existing = await findAuthUserByEmail(supabase, adminEmail);
+  if (!existing) {
     return {
       user: null,
       error: 'Diese Admin-E-Mail ist bereits registriert, konnte aber nicht verknüpft werden.',
     };
   }
 
-  const linkedTenantId = existing.user.app_metadata?.tenant_id as string | undefined;
-  if (linkedTenantId && linkedTenantId !== tenantId) {
+  const linkedTenantId = existing.app_metadata?.tenant_id as string | undefined;
+  const mayRelink = await canRelinkAuthUserToTenant(supabase, linkedTenantId, tenantId);
+  if (!mayRelink) {
     return {
       user: null,
       error: 'Diese Admin-E-Mail ist bereits einem anderen Mandanten zugeordnet.',
     };
   }
 
-  const { data: updated, error: updateError } = await supabase.auth.admin.updateUserById(existing.user.id, {
+  const { data: updated, error: updateError } = await supabase.auth.admin.updateUserById(existing.id, {
     password: body.adminPassword,
     email_confirm: true,
     app_metadata: {
-      ...existing.user.app_metadata,
+      ...existing.app_metadata,
       tenant_id: tenantId,
       role_key: 'business_admin',
     },
     user_metadata: {
-      ...existing.user.user_metadata,
+      ...existing.user_metadata,
       display_name: displayName,
     },
   });

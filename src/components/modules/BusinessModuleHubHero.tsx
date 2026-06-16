@@ -4,7 +4,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { ROLE_LABELS } from '@/data/demo';
 import { buildModuleHubKpis } from '@/lib/modules/moduleHubStats';
-import { formatFreePlatformPrice } from '@/lib/billing/freePlatformService';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { BillingPreview } from '@/lib/modules/moduleEntitlementService';
 import type { EffectiveModuleAccess, RoleKey } from '@/types';
@@ -85,13 +84,13 @@ export function BusinessModuleHubHero({ modules, billing, roleKey }: BusinessMod
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS · FREE PLATFORM</Text>
-          <Text style={styles.title}>Module — kostenlos aktivieren</Text>
+          <Text style={styles.eyebrow}>BUSINESS · MODULE</Text>
+          <Text style={styles.title}>Module aktivieren</Text>
           <Text style={styles.meta}>
-            {activeCount} aktiv · {modules.length} Produkte · {formatFreePlatformPrice()}
+            {activeCount} aktiv · {modules.length} Produkte
           </Text>
           <Text style={styles.subtitle}>
-            CareSuite+ Office ist immer enthalten. Fachmodule kostenlos aktivieren — kein Checkout.
+            CareSuite+ Office ist immer enthalten. Fachmodule direkt aktivieren — kein Checkout.
           </Text>
         </View>
         <View style={styles.iconBadge}>
@@ -100,7 +99,7 @@ export function BusinessModuleHubHero({ modules, billing, roleKey }: BusinessMod
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        <PremiumBadge label="0 € — kein Abo" variant="green" />
+        <PremiumBadge label="Kein Abo" variant="green" />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>

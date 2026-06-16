@@ -18,15 +18,15 @@ describe('Business Module Hub Hero (Sprint 63)', () => {
   it('BusinessModuleHubHero nutzt PremiumListHeroFrame mit Modul-KPIs', () => {
     const hero = readSrc('src/components/modules/BusinessModuleHubHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('kostenlos aktivieren');
+    expect(hero).toContain('Module aktivieren');
     expect(hero).toContain('buildModuleHubKpis');
     expect(hero).toContain('PremiumKpiCard');
   });
 
-  it('BusinessModuleHubHero zeigt Free Platform Badge', () => {
+  it('BusinessModuleHubHero zeigt keine Preise', () => {
     const hero = readSrc('src/components/modules/BusinessModuleHubHero.tsx');
-    expect(hero).toContain('FREE PLATFORM');
-    expect(hero).toContain('0 €');
+    expect(hero).not.toMatch(/€/);
+    expect(hero.toLowerCase()).not.toContain('kostenlos');
   });
 
   it('ModuleOverviewScreen nutzt Hero, ModuleCard und PremiumPreparedNotice', () => {
@@ -37,9 +37,9 @@ describe('Business Module Hub Hero (Sprint 63)', () => {
     expect(screen).toContain('/business/office/access/module-permissions');
   });
 
-  it('ModuleCard zeigt Kostenlos aktivieren / Modul öffnen', () => {
+  it('ModuleCard zeigt Aktivieren / Modul öffnen', () => {
     const card = readSrc('src/components/modules/ModuleCard.tsx');
-    expect(card).toContain('Kostenlos aktivieren');
+    expect(card).toContain('Aktivieren');
     expect(card).toContain('Modul öffnen');
     expect(card).not.toMatch(/Kaufen/i);
   });

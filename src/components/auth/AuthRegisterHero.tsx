@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { formatFreePlatformPrice } from '@/lib/billing/freePlatformService';
 import { designTokens, spacing, typography } from '@/theme';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
@@ -43,10 +42,10 @@ export function AuthRegisterHero() {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>REGISTRIERUNG · FREE PLATFORM</Text>
-          <Text style={styles.title}>Kostenlos starten</Text>
+          <Text style={styles.eyebrow}>REGISTRIERUNG</Text>
+          <Text style={styles.title}>Unternehmen anlegen</Text>
           <Text style={styles.meta}>
-            {formatFreePlatformPrice()} — keine Kreditkarte, kein Checkout
+            Mandant und Admin-Benutzer in wenigen Schritten einrichten
           </Text>
         </View>
         <View style={styles.iconBadge}>
@@ -54,17 +53,16 @@ export function AuthRegisterHero() {
         </View>
       </View>
       <View style={styles.badges}>
-        <PremiumBadge label="0 € — dauerhaft kostenlos" variant="green" dot />
         <PremiumBadge label="Office inklusive" variant="cyan" />
-        <PremiumBadge label="Kein Trial-Ablauf" variant="muted" />
+        <PremiumBadge label="Module wählbar" variant="muted" />
+        <PremiumBadge label="Sofort startklar" variant="green" dot />
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="Basis" value="Office" subValue="Automatisch aktiv" icon="📋" accentColor={colors.orange} style={styles.kpiItem} />
-        <PremiumKpiCard label="Module" value="6+" subValue="Kostenlos wählbar" icon="📦" accentColor={colors.cyan} style={styles.kpiItem} />
-        <PremiumKpiCard label="Preis" value="0 €" subValue="Kein Abo" icon="✨" accentColor={colors.violet} style={styles.kpiItem} />
+        <PremiumKpiCard label="Module" value="6+" subValue="Flexibel wählbar" icon="📦" accentColor={colors.cyan} style={styles.kpiItem} />
       </View>
       <Text style={styles.hint}>
-        Nach der Registrierung werden Mandant und Admin-Benutzer angelegt. Alle gewählten Module werden sofort kostenlos aktiviert.
+        Nach der Registrierung werden Mandant und Admin-Benutzer angelegt. Alle gewählten Module werden sofort aktiviert.
       </Text>
     </PremiumListHeroFrame>
   );

@@ -19,14 +19,13 @@ import { usePermissions } from '@/hooks/usePermissions';
 import {
   FREE_PLATFORM_FEATURE_KEYS,
   FREE_PLATFORM_PRODUCT_KEYS,
-  formatFreePlatformPrice,
   getFreePlatformModules,
 } from '@/lib/billing/freePlatformService';
 import { PRODUCT_LABELS } from '@/data/demo/products';
 import { colors, spacing, typography } from '@/theme';
 
 const STATUS_LABELS: Record<string, string> = {
-  free_active: 'Kostenlos aktiv',
+  free_active: 'Aktiv',
   active: 'Aktiv',
   trialing: 'Testphase (Legacy)',
   past_due: 'Überfällig',
@@ -41,7 +40,7 @@ export function SubscriptionScreen() {
 
   if (!can('business.subscription.view')) {
     return (
-      <ScreenShell title="Free Platform" subtitle={roleLabel ?? 'Business'} showBack={false}>
+      <ScreenShell title="Plattform" subtitle={roleLabel ?? 'Business'} showBack={false}>
         <LockedActionBanner
           message={check('business.subscription.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
@@ -52,7 +51,7 @@ export function SubscriptionScreen() {
 
   if (loading && !data) {
     return (
-      <ScreenShell title="Free Platform" subtitle="Wird geladen…" showBack={false}>
+      <ScreenShell title="Plattform" subtitle="Wird geladen…" showBack={false}>
         <LoadingState message="Plattform-Übersicht wird geladen…" />
       </ScreenShell>
     );
@@ -60,7 +59,7 @@ export function SubscriptionScreen() {
 
   if (error && !data) {
     return (
-      <ScreenShell title="Free Platform" subtitle="Fehler" showBack={false}>
+      <ScreenShell title="Plattform" subtitle="Fehler" showBack={false}>
         <ErrorState title="Fehler" message={error} onRetry={refresh} />
       </ScreenShell>
     );
@@ -69,7 +68,7 @@ export function SubscriptionScreen() {
   if (!data) return null;
 
   return (
-    <ScreenShell title="CareSuite+ Free Platform" subtitle={data.tenantName} showBack={false}>
+    <ScreenShell title="CareSuite+ Plattform" subtitle={data.tenantName} showBack={false}>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />
@@ -85,13 +84,13 @@ export function SubscriptionScreen() {
 
         <PremiumCard accentColor={colors.cyan}>
           <View style={styles.headerRow}>
-            <Text style={styles.plan}>{formatFreePlatformPrice()}</Text>
+            <Text style={styles.plan}>{data.planLabel}</Text>
             <PremiumBadge label={STATUS_LABELS[data.status] ?? data.status} variant="green" />
           </View>
           <DetailInfoRow label="Mandant" value={data.tenantName} />
-          <DetailInfoRow label="CareSuite+ Office" value="Immer enthalten — kostenlos aktiv" />
+          <DetailInfoRow label="CareSuite+ Office" value="Immer enthalten — aktiv" />
           <DetailInfoRow label="Kreditkarte" value="Nicht erforderlich" />
-          <DetailInfoRow label="Testphase" value="Keine — dauerhaft kostenlos" />
+          <DetailInfoRow label="Testphase" value="Keine — dauerhaft aktiv" />
         </PremiumCard>
 
         <View style={styles.kpiRow}>
@@ -101,28 +100,28 @@ export function SubscriptionScreen() {
             subValue={`${data.includedModuleCount} inklusive`}
           />
           <PremiumKpiCard
-            label="Monatlich"
-            value="0 €"
-            subValue="Alle Hauptmodule"
+            label="Hauptmodule"
+            value={String(FREE_PLATFORM_PRODUCT_KEYS.length)}
+            subValue="Verfügbar"
             accentColor={colors.orange}
           />
         </View>
 
         <SectionPanel
-          title="Hauptmodule — kostenlos"
+          title="Hauptmodule"
           subtitle="Alle Module ohne Checkout freischaltbar"
         >
           <View style={styles.moduleList}>
             {FREE_PLATFORM_PRODUCT_KEYS.map((key) => (
               <View key={key} style={styles.moduleRow}>
                 <Text style={styles.moduleLabel}>{PRODUCT_LABELS[key]}</Text>
-                <PremiumBadge label="Kostenlos" variant="green" />
+                <PremiumBadge label="Verfügbar" variant="green" />
               </View>
             ))}
           </View>
         </SectionPanel>
 
-        <SectionPanel title="Plattform-Funktionen — kostenlos" subtitle="In Free Platform enthalten">
+        <SectionPanel title="Plattform-Funktionen" subtitle="In der Plattform enthalten">
           <View style={styles.moduleList}>
             {FREE_PLATFORM_FEATURE_KEYS.map((key) => (
               <View key={key} style={styles.moduleRow}>
@@ -136,7 +135,7 @@ export function SubscriptionScreen() {
         <PremiumPreparedNotice />
 
         <Text style={styles.footerNote}>
-          CareSuite+ Free Platform: {getFreePlatformModules().length} Module und Funktionen — Premium-Connectors nur vorbereitet.
+          CareSuite+ Plattform: {getFreePlatformModules().length} Module und Funktionen — Premium-Connectors nur vorbereitet.
         </Text>
 
         <PremiumButton

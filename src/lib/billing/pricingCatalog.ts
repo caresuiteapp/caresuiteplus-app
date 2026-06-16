@@ -59,50 +59,50 @@ export const MODULE_PRICES: Record<ProductKey, ModulePrice> = {
   office: {
     productKey: 'office',
     label: PRODUCT_LABELS.office,
-    monthlyNetEur: 79,
+    monthlyNetEur: 0,
     includesOffice: false,
   },
   assist: {
     productKey: 'assist',
     label: PRODUCT_LABELS.assist,
-    monthlyNetEur: 149,
+    monthlyNetEur: 0,
     includesOffice: true,
   },
   pflege: {
     productKey: 'pflege',
     label: PRODUCT_LABELS.pflege,
-    monthlyNetEur: 229,
+    monthlyNetEur: 0,
     includesOffice: true,
   },
   stationaer: {
     productKey: 'stationaer',
     label: PRODUCT_LABELS.stationaer,
-    monthlyNetEur: 299,
+    monthlyNetEur: 0,
     includesOffice: true,
   },
   beratung: {
     productKey: 'beratung',
     label: PRODUCT_LABELS.beratung,
-    monthlyNetEur: 129,
+    monthlyNetEur: 0,
     includesOffice: true,
   },
   akademie: {
     productKey: 'akademie',
     label: PRODUCT_LABELS.akademie,
-    monthlyNetEur: 129,
+    monthlyNetEur: 0,
     includesOffice: true,
   },
 };
 
 export const ADD_ONS: AddOn[] = [
-  { key: 'ti_ready', label: 'TI-ready', monthlyNetEur: 49 },
+  { key: 'ti_ready', label: 'TI-ready', monthlyNetEur: 0 },
 ];
 
 export const USER_TIER_SURCHARGES: UserTierSurcharge[] = [
   { minUsers: 1, maxUsers: 5, monthlyNetEur: 0, label: 'Bis 5 Nutzer inklusive' },
-  { minUsers: 6, maxUsers: 15, monthlyNetEur: 29, label: '6–15 Nutzer' },
-  { minUsers: 16, maxUsers: 30, monthlyNetEur: 59, label: '16–30 Nutzer' },
-  { minUsers: 31, maxUsers: 50, monthlyNetEur: 99, label: '31–50 Nutzer' },
+  { minUsers: 6, maxUsers: 15, monthlyNetEur: 0, label: '6–15 Nutzer' },
+  { minUsers: 16, maxUsers: 30, monthlyNetEur: 0, label: '16–30 Nutzer' },
+  { minUsers: 31, maxUsers: 50, monthlyNetEur: 0, label: '31–50 Nutzer' },
 ];
 
 /** Öffentliche Pakete (Marktstart) + interner Enterprise-Katalog. */
@@ -111,7 +111,7 @@ export const PACKAGE_CATALOG: ProductPackage[] = [
     key: 'office_solo',
     label: 'Starter',
     publicLabel: 'Office Solo',
-    monthlyNetEur: 79,
+    monthlyNetEur: 0,
     modules: ['office'],
     isPublic: true,
     isContactSales: false,
@@ -121,7 +121,7 @@ export const PACKAGE_CATALOG: ProductPackage[] = [
     key: 'assist',
     label: 'Betreuung',
     publicLabel: 'Assist',
-    monthlyNetEur: 149,
+    monthlyNetEur: 0,
     modules: ['office', 'assist'],
     isPublic: true,
     isContactSales: false,
@@ -131,7 +131,7 @@ export const PACKAGE_CATALOG: ProductPackage[] = [
     key: 'pflege_pro',
     label: 'Pflege Pro',
     publicLabel: 'Pflege Pro',
-    monthlyNetEur: 299,
+    monthlyNetEur: 0,
     modules: ['office', 'assist', 'pflege'],
     isPublic: true,
     isContactSales: false,
@@ -141,7 +141,7 @@ export const PACKAGE_CATALOG: ProductPackage[] = [
     key: 'management',
     label: 'Management',
     publicLabel: 'Management',
-    monthlyNetEur: 399,
+    monthlyNetEur: 0,
     modules: ['office', 'assist', 'pflege', 'beratung', 'akademie'],
     isPublic: true,
     isContactSales: false,
@@ -155,7 +155,7 @@ export const PACKAGE_CATALOG: ProductPackage[] = [
     modules: [...SPECIALTY_MODULE_KEYS, OFFICE_MODULE_KEY],
     isPublic: true,
     isContactSales: true,
-    description: 'Alle Module — Preis auf Anfrage (ab 599 € intern).',
+    description: 'Alle Module — Kontakt auf Anfrage.',
   },
 ];
 
@@ -228,7 +228,7 @@ export function getUserTierSurcharge(userCount: number): UserTierSurcharge {
 }
 
 export function formatPriceEur(amount: number, interval: BillingInterval = 'monthly'): string {
-  if (amount <= 0 && interval === 'monthly') return 'Inklusive';
+  if (amount <= 0) return '';
   const formatted = new Intl.NumberFormat('de-DE', {
     style: 'currency',
     currency: 'EUR',

@@ -65,5 +65,5 @@ export function isPremiumPrepared(featureKey: string): boolean {
 }
 
 export function formatFreePlatformPrice(): string {
-  return '0 € / Monat — kostenlos';
+  return 'CareSuite+ Plattform';
 }

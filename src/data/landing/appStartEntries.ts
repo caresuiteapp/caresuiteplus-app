@@ -32,8 +32,8 @@ export const APP_START_ENTRIES: AppStartEntry[] = [
   },
   {
     path: '/auth/register-business',
-    label: 'Kostenlos starten',
-    description: 'CareSuite+ Free Platform — 0 €, keine Kreditkarte.',
+    label: 'Registrieren',
+    description: 'Neues Unternehmen anlegen — keine Kreditkarte.',
     icon: '✨',
     accentColor: '#7C5CFF',
   },

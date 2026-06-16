@@ -66,8 +66,8 @@ describe('Auth/Admin/TI Settings Heroes (Sprint 107)', () => {
   it('AuthRegisterHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/auth/AuthRegisterHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('FREE PLATFORM');
-    expect(hero).toContain('Kostenlos starten');
+    expect(hero).toContain('REGISTRIERUNG');
+    expect(hero).toContain('Unternehmen anlegen');
   });
 
   it('OnboardingSetupHero nutzt PremiumListHeroFrame', () => {

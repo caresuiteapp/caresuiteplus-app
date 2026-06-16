@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { OnboardingSetupHero } from '@/components/auth/OnboardingSetupHero';
@@ -13,8 +13,6 @@ import {
 import { MODULE_NAV_CONFIG } from '@/data/demo/navigation';
 import { PRODUCT_LABELS } from '@/data/demo/products';
 import {
-  calculateCartTotal,
-  formatPriceEur,
   getPublicPackages,
   resolvePackageModules,
   type PackageKey,
@@ -38,14 +36,6 @@ export function CompanySetupScreen() {
   const [success, setSuccess] = useState(false);
 
   const publicPackages = getPublicPackages().filter((pkg) => !pkg.isContactSales);
-
-  const cartPreview = useMemo(
-    () =>
-      calculateCartTotal(selectedModules, {
-        packageKey: useCustomModules ? null : selectedPackage,
-      }),
-    [selectedModules, selectedPackage, useCustomModules],
-  );
 
   const toggleModule = (key: ProductKey) => {
     setUseCustomModules(true);
@@ -87,7 +77,7 @@ export function CompanySetupScreen() {
     return (
       <ScreenShell title="Mandant eingerichtet" subtitle="Demo abgeschlossen" showBack={false}>
         <SuccessState
-          message={`„${companyName.trim()}" wurde als Demo-Mandant konfiguriert (${selectedModules.length} Module, ${formatPriceEur(cartPreview.totalMonthly)}/Monat) und lokal gespeichert.`}
+          message={`„${companyName.trim()}" wurde als Demo-Mandant konfiguriert (${selectedModules.length} Module) und lokal gespeichert.`}
         />
         <PremiumButton
           title="Zur Business-Anmeldung"
@@ -111,10 +101,7 @@ export function CompanySetupScreen() {
       subtitle="Demo-Konfiguration — ohne Speicherung"
       scroll
     >
-      <OnboardingSetupHero
-        moduleCount={selectedModules.length}
-        monthlyPreview={formatPriceEur(cartPreview.totalMonthly)}
-      />
+      <OnboardingSetupHero moduleCount={selectedModules.length} />
 
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
 
@@ -129,7 +116,7 @@ export function CompanySetupScreen() {
         />
       </SectionPanel>
 
-      <SectionPanel title="Paket wählen" subtitle="Empfohlene Startpakete mit Preisen">
+      <SectionPanel title="Paket wählen" subtitle="Empfohlene Startpakete">
         <View style={styles.packages}>
           {publicPackages.map((pkg) => {
             const selected = !useCustomModules && selectedPackage === pkg.key;
@@ -150,9 +137,6 @@ export function CompanySetupScreen() {
                     <Text style={styles.includedHint}>Office inklusive</Text>
                   ) : null}
                 </View>
-                <Text style={styles.packagePrice}>
-                  {formatPriceEur(pkg.monthlyNetEur ?? 0)}
-                </Text>
               </Pressable>
             );
           })}
@@ -161,7 +145,7 @@ export function CompanySetupScreen() {
 
       <SectionPanel
         title="Einzelmodule (optional)"
-        subtitle="Manuelle Auswahl — Office wird bei Fachmodulen nicht doppelt berechnet"
+        subtitle="Manuelle Auswahl — Office wird bei Fachmodulen automatisch enthalten"
       >
         <View style={styles.modules}>
           {(Object.keys(MODULE_NAV_CONFIG) as ProductKey[]).map((key) => {
@@ -190,8 +174,7 @@ export function CompanySetupScreen() {
           })}
         </View>
         <Text style={styles.moduleHint}>
-          {selectedModules.length} Modul{selectedModules.length === 1 ? '' : 'e'} ·{' '}
-          {formatPriceEur(cartPreview.totalMonthly)}/Monat (Vorschau)
+          {selectedModules.length} Modul{selectedModules.length === 1 ? '' : 'e'} ausgewählt
         </Text>
         {selectedModules.some((key) => isSpecialtyModuleKey(key)) && !selectedModules.includes('office') ? (
           <Text style={styles.includedHint}>
@@ -233,7 +216,6 @@ const styles = StyleSheet.create({
   packageText: { flex: 1, gap: 2 },
   packageTitle: { ...typography.bodyStrong },
   packageDesc: { ...typography.caption, color: colors.textSecondary },
-  packagePrice: { ...typography.bodyStrong, color: colors.cyan },
   modules: { gap: spacing.sm },
   moduleRow: {
     flexDirection: 'row',

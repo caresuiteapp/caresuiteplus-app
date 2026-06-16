@@ -78,26 +78,34 @@ function pushIncludedOffice(items: CartLineItem[]): void {
   });
 }
 
+function pushPricedLineItem(
+  items: CartLineItem[],
+  line: Omit<CartLineItem, 'type'> & { type?: CartLineType },
+): void {
+  items.push({
+    ...line,
+    type: line.type ?? (line.amount > 0 ? 'billable' : 'included'),
+  });
+}
+
 function buildManualLineItems(selectedModules: ProductKey[]): CartLineItem[] {
   const items: CartLineItem[] = [];
   const specialtyKeys = selectedModules.filter((key) => isSpecialtyModuleKey(key));
   const hasSpecialty = specialtyKeys.length > 0;
 
   if (!hasSpecialty && selectedModules.includes(OFFICE_MODULE_KEY)) {
-    items.push({
+    pushPricedLineItem(items, {
       label: PRODUCT_LABELS.office,
       amount: getModulePrice('office'),
-      type: 'billable',
       productKey: 'office',
     });
     return items;
   }
 
   for (const key of specialtyKeys) {
-    items.push({
+    pushPricedLineItem(items, {
       label: PRODUCT_LABELS[key],
       amount: getModulePrice(key),
-      type: 'billable',
       productKey: key,
     });
   }
@@ -115,10 +123,9 @@ function buildPackageLineItems(packageKey: PackageKey): CartLineItem[] {
   const moduleKeys = resolvePackageModules(packageKey);
 
   if (packageKey === 'office_solo') {
-    items.push({
+    pushPricedLineItem(items, {
       label: PRODUCT_LABELS.office,
       amount: pkgPrice ?? 0,
-      type: 'billable',
       productKey: 'office',
       packageKey,
     });
@@ -126,10 +133,9 @@ function buildPackageLineItems(packageKey: PackageKey): CartLineItem[] {
   }
 
   if (packageKey === 'assist') {
-    items.push({
+    pushPricedLineItem(items, {
       label: PRODUCT_LABELS.assist,
       amount: pkgPrice ?? 0,
-      type: 'billable',
       productKey: 'assist',
       packageKey,
     });
@@ -137,7 +143,7 @@ function buildPackageLineItems(packageKey: PackageKey): CartLineItem[] {
     return items;
   }
 
-  if (pkgPrice != null) {
+  if (pkgPrice != null && pkgPrice > 0) {
     items.push({
       label: moduleKeys.length > 2 ? `${getPackageLabel(packageKey)}` : PRODUCT_LABELS[moduleKeys.find(isSpecialtyModuleKey)!],
       amount: pkgPrice,

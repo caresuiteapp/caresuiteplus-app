@@ -27,8 +27,8 @@ const ACCESS_SOURCE_LABELS: Record<ModuleAccessSource, string> = {
   demo: 'Demo',
   expired: 'Abgelaufen',
   disabled: 'Deaktiviert',
-  free_active: 'Kostenlos aktiv',
-  free_available: 'Kostenlos verfügbar',
+  free_active: 'Aktiv',
+  free_available: 'Verfügbar',
 };
 
 type ModuleStore = Map<string, TenantProduct[]>;

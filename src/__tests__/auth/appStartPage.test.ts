@@ -42,9 +42,9 @@ describe('App start page', () => {
     expect(demo?.label).toBe('Demo mit Beispieldaten ansehen');
   });
 
-  it('includes Kostenlos starten registration entry', () => {
+  it('includes registration entry', () => {
     const register = APP_START_ENTRIES.find((e) => e.path === '/auth/register-business');
-    expect(register?.label).toBe('Kostenlos starten');
+    expect(register?.label).toBe('Registrieren');
   });
 
   it('AppStartScreen source has no dev-only navigation content', () => {

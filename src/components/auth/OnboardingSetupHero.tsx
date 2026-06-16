@@ -6,10 +6,9 @@ import { designTokens, spacing } from '@/theme';
 
 type OnboardingSetupHeroProps = {
   moduleCount: number;
-  monthlyPreview: string;
 };
 
-export function OnboardingSetupHero({ moduleCount, monthlyPreview }: OnboardingSetupHeroProps) {
+export function OnboardingSetupHero({ moduleCount }: OnboardingSetupHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
   const styles = useMemo(
     () =>
@@ -64,7 +63,6 @@ export function OnboardingSetupHero({ moduleCount, monthlyPreview }: OnboardingS
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="Module" value={String(moduleCount)} subValue="Ausgewählt" icon="📦" accentColor={colors.orange} style={styles.kpiItem} />
-        <PremiumKpiCard label="Preis" value={monthlyPreview} subValue="Monatlich (Vorschau)" icon="💶" accentColor={colors.cyan} style={styles.kpiItem} />
         <PremiumKpiCard label="Office" value="Basis" subValue="Bei Fachmodulen inkl." icon="📋" accentColor={colors.violet} style={styles.kpiItem} />
       </View>
       <Text style={styles.hint}>

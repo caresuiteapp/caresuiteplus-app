@@ -26,7 +26,7 @@ export function ModuleOverviewScreen() {
   );
 
   return (
-    <CareLightPageShell title="Module verwalten" subtitle="CareSuite+ Free Platform — 0 €">
+    <CareLightPageShell title="Module verwalten" subtitle="CareSuite+ Plattform">
       <ScrollView contentContainerStyle={styles.scroll}>
         <BusinessModuleHubHero modules={visibleModules} billing={billing} roleKey={roleKey} />
 
@@ -34,7 +34,7 @@ export function ModuleOverviewScreen() {
 
         <SectionPanel
           title="Modul-Status"
-          subtitle="CareSuite+ Office ist Basisverwaltung — alle Hauptmodule kostenlos aktivieren"
+          subtitle="CareSuite+ Office ist Basisverwaltung — Hauptmodule aktivieren"
         >
           <View style={styles.list}>
             {visibleModules.map((module) => (

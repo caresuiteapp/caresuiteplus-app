@@ -65,7 +65,7 @@ export function BusinessDashboardScreen() {
       tiles.push({
         id: 'modules_hub',
         title: 'Module verwalten',
-        description: 'Free Platform — Modulstatus & Rechte',
+        description: 'Modulstatus & Rechte',
         route: '/business/modules',
         icon: '🧩',
         accentColor: '#22C55E',

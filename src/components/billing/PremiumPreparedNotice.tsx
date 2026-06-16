@@ -23,8 +23,7 @@ export function PremiumPreparedNotice({ compact = false }: PremiumPreparedNotice
       </View>
       {!compact ? (
         <Text style={styles.body}>
-          Premium-Connectors sind technisch vorbereitet, aber noch nicht monetarisiert oder
-          freigeschaltet. CareSuite+ startet kostenlos — kein Checkout, keine Kreditkarte.
+          Premium-Connectors sind technisch vorbereitet, aber noch nicht freigeschaltet.
         </Text>
       ) : null}
       <View style={styles.connectorRow}>

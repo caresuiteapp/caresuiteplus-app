@@ -8,7 +8,6 @@ import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import type { AccessCredentialsReveal, BusinessRegistrationInput } from '@/lib/auth/auth.types';
 import { registerBusinessTenant } from '@/lib/auth/businessAuthService';
-import { formatFreePlatformPrice } from '@/lib/billing/freePlatformService';
 import { colors, spacing, typography } from '@/theme';
 
 const MODULE_OPTIONS = ['office', 'assist', 'pflege', 'beratung', 'akademie', 'stationaer'] as const;
@@ -88,7 +87,7 @@ export function BusinessRegisterScreen() {
 
   if (credentials) {
     return (
-      <ScreenShell title="Registrierung erfolgreich" subtitle="Mandant angelegt — kostenlos" scroll>
+      <ScreenShell title="Registrierung erfolgreich" subtitle="Mandant angelegt" scroll>
         <AccessCredentialsPanel
           title="Zugang erfolgreich erstellt"
           credentials={credentials}
@@ -100,7 +99,7 @@ export function BusinessRegisterScreen() {
   }
 
   return (
-    <ScreenShell title="Neues Unternehmen registrieren" subtitle="CareSuite+ Free Platform — 0 €" scroll>
+    <ScreenShell title="Neues Unternehmen registrieren" subtitle="CareSuite+ Plattform" scroll>
       <AuthRegisterHero />
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
 
@@ -124,11 +123,11 @@ export function BusinessRegisterScreen() {
       </SectionPanel>
 
       <SectionPanel
-        title="Module kostenlos aktivieren"
-        subtitle={`${formatFreePlatformPrice()} — keine Kreditkarte, kein Checkout`}
+        title="Module aktivieren"
+        subtitle="Office ist immer enthalten — Fachmodule nach Bedarf wählen"
       >
         <Text style={styles.freeHint}>
-          CareSuite+ Office ist immer enthalten. Wählen Sie zusätzliche Fachmodule — alle kostenlos.
+          CareSuite+ Office ist immer enthalten. Wählen Sie zusätzliche Fachmodule für Ihre Organisation.
         </Text>
         <View style={styles.modules}>
           {MODULE_OPTIONS.map((module) => {
@@ -156,7 +155,7 @@ export function BusinessRegisterScreen() {
 
       <PremiumPreparedNotice compact />
 
-      <PremiumButton title="Kostenlos registrieren" onPress={handleSubmit} loading={loading} fullWidth />
+      <PremiumButton title="Registrieren" onPress={handleSubmit} loading={loading} fullWidth />
     </ScreenShell>
   );
 }

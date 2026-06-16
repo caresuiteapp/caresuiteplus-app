@@ -122,10 +122,10 @@ export function AppStartScreen() {
         <CareSuiteWordmark size={isDesktopOrWide ? 'lg' : 'md'} />
       )}
       <Text style={[styles.claim, { color: palette.text.primary }]}>
-        CareSuite+ — kostenlos für alle Organisationen
+        CareSuite+ — für alle Organisationen
       </Text>
       <Text style={[styles.claimSub, { color: palette.text.secondary }]}>
-        0 € · Office inklusive · Module frei aktivieren · Kostenlos starten
+        Office inklusive · Module aktivieren · Jetzt registrieren
       </Text>
       <PremiumInput
         label="Modul suchen"
@@ -142,7 +142,7 @@ export function AppStartScreen() {
       {isDesktopOrWide ? (
         <View style={[styles.brandStripe, { borderColor: `${officeAccent}33` }]}>
           <Text style={[styles.brandStripeText, { color: palette.brand.orange }]}>
-            CareSuite+ Free Platform — adaptiv auf Phone, Tablet, Desktop und Web
+            CareSuite+ Plattform — adaptiv auf Phone, Tablet, Desktop und Web
           </Text>
         </View>
       ) : null}
