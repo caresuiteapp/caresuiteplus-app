@@ -259,5 +259,117 @@ export async function persistIntakeDocumentsForClient(
     return { ok: false, error: toGermanSupabaseError(consentError) };
   }
 
+  const promoteResult = await promoteFinalizedIntakeDocumentsToClientRecord(
+    tenantId,
+    clientId,
+    form,
+    actorProfileId,
+  );
+  if (!promoteResult.ok) return promoteResult;
+
+  return { ok: true, data: undefined };
+}
+
+function mapIntakeDocCategory(documentType: string): string {
+  if (documentType === 'privacy_consent' || documentType === 'additional_consent') return 'einwilligung';
+  if (documentType === 'client_contract' || documentType === 'assignment_declaration') return 'vertrag';
+  return 'sonstige';
+}
+
+export async function promoteFinalizedIntakeDocumentsToClientRecord(
+  tenantId: string,
+  clientId: string,
+  form?: ClientIntakeFormData,
+  actorProfileId?: string | null,
+): Promise<ServiceResult<void>> {
+  const db = getDb();
+  if (!db) return unavailable();
+
+  const finalizedDocs = form?.intakeDocuments.filter((doc) => doc.status === 'finalized' && doc.finalizedHtml)
+    ?? [];
+
+  if (form) {
+    for (const doc of finalizedDocs) {
+      const intakeRowQuery = db.from('client_intake_documents').select('id').eq('tenant_id', tenantId).eq('client_id', clientId).eq('template_key', doc.templateKey);
+      const { data: intakeRow } = await intakeRowQuery.single();
+      const intakeDocumentId = intakeRow?.id ?? null;
+      if (!intakeDocumentId) continue;
+
+      const { data: existing } = await db
+        .from('client_documents')
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .eq('intake_document_id', intakeDocumentId)
+        .single();
+
+      if (existing) continue;
+
+      const { error } = await db.from('client_documents').insert({
+        tenant_id: tenantId,
+        client_id: clientId,
+        title: doc.title,
+        file_name: `${doc.templateKey}.html`,
+        mime_type: 'text/html',
+        category: mapIntakeDocCategory(doc.documentType),
+        status: 'abgeschlossen',
+        sensitivity: 'care',
+        source: 'intake',
+        intake_document_id: intakeDocumentId,
+        uploaded_by: actorProfileId ?? null,
+      });
+      if (error && error.code !== '23505') {
+        return { ok: false, error: toGermanSupabaseError(error) };
+      }
+    }
+    return { ok: true, data: undefined };
+  }
+
+  const { data: intakeRows, error: intakeError } = await db
+    .from('client_intake_documents')
+    .select('id, template_key, document_type, title, status, finalized_html')
+    .eq('tenant_id', tenantId)
+    .eq('client_id', clientId)
+    .eq('status', 'finalized');
+
+  if (intakeError) {
+    return { ok: false, error: toGermanSupabaseError(intakeError) };
+  }
+
+  for (const row of (intakeRows as {
+    id: string;
+    template_key: string;
+    document_type: string;
+    title: string;
+    status: string;
+    finalized_html: string | null;
+  }[] | null) ?? []) {
+    const { data: existing } = await db
+      .from('client_documents')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('intake_document_id', row.id)
+      .single();
+    if (existing) continue;
+
+    const { error } = await db.from('client_documents').insert({
+      tenant_id: tenantId,
+      client_id: clientId,
+      title: row.title,
+      file_name: `${row.template_key}.html`,
+      mime_type: 'text/html',
+      category: mapIntakeDocCategory(row.document_type),
+      status: 'abgeschlossen',
+      sensitivity: 'care',
+      source: 'intake',
+      intake_document_id: row.id,
+      uploaded_by: actorProfileId ?? null,
+    });
+    if (error && error.code !== '23505') {
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
+  }
+
   return { ok: true, data: undefined };
 }

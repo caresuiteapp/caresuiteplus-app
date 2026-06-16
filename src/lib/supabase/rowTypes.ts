@@ -72,6 +72,7 @@ export type ClientHistoryRow = {
 export type ClientDetailRow = ClientRow & {
   created_at: string;
   date_of_birth: string | null;
+  admission_date?: string | null;
   primary_contact_phone: string | null;
   street: string | null;
   phone: string | null;

@@ -50,6 +50,7 @@ export type ClientDetail = Client & {
   phone: string | null;
   email: string | null;
   notes: string | null;
+  admissionDate?: string | null;
   contacts: ClientContact[];
   consents: ClientConsent[];
   auditEntries: AuditEntry[];

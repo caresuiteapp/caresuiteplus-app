@@ -91,6 +91,13 @@ describe('Office Dokumente list', () => {
     expect(source).toContain('fetchOfficeDocumentList');
   });
 
+  it('officeDocumentsService fragt keine unbekannten Spalten ab', () => {
+    const source = readSrc('src/lib/office/officeDocumentsService.ts');
+    expect(source).not.toMatch(/CLIENT_DOCUMENTS_SELECT\s*=\s*'[^']*visibility/);
+    expect(source).not.toMatch(/\.select\([^)]*size_bytes[^)]*visibility/s);
+    expect(source).toContain('client_intake_documents');
+  });
+
   it('Upload-Route existiert und nutzt OfficeDocumentUploadScreen', () => {
     const route = readSrc('app/office/documents/upload.tsx');
     expect(route).toContain('OfficeDocumentUploadScreen');

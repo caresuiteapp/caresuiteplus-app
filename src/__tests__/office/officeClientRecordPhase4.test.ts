@@ -7,6 +7,7 @@ import { addClientMedication, fetchClientMedications } from '@/lib/clients/clien
 import { uploadClientDocument, listClientDocuments } from '@/lib/clients/clientDocumentsService';
 import { fetchOfficeReportingSummary } from '@/lib/office/officeReportingService';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
+import { mergeClientRecordDocuments } from '@/lib/clients/clientDocumentMerge';
 import type { ClientFullDetail } from '@/types/modules/client';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -103,10 +104,46 @@ describe('Office ClientRecord rebuild', () => {
       path.join(root, 'src/screens/business/office/ClientRecordTabPanels.tsx'),
       'utf8',
     );
-    expect(source).toContain('uploadClientDocument');
+    expect(source).toContain('ClientRecordDocumentsPanel');
+    expect(source).not.toContain('Demo-Workflow');
     expect(source).toContain('updateClientConsent');
     expect(source).toContain('addClientMedication');
     expect(source).toContain('EmptyState');
+  });
+
+  it('production client record documents UI has no Demo strings', () => {
+    const legal = readFileSync(
+      path.join(root, 'src/screens/business/office/ClientLegalDocumentsScreen.tsx'),
+      'utf8',
+    );
+    const panel = readFileSync(
+      path.join(root, 'src/components/office/ClientRecordDocumentsPanel.tsx'),
+      'utf8',
+    );
+    expect(legal).not.toContain('Demo-Workflow');
+    expect(panel).not.toContain('Demo-Workflow');
+    expect(panel).toContain('DocumentPicker');
+    expect(panel).toContain('previewHtml');
+  });
+
+  it('mergeClientRecordDocuments includes finalized intake documents', () => {
+    const merged = mergeClientRecordDocuments([], [{
+      id: 'intake-1',
+      tenant_id: 't1',
+      client_id: 'c1',
+      template_key: 'privacy_consent_default',
+      document_type: 'privacy_consent',
+      title: 'Datenschutz',
+      status: 'finalized',
+      finalized_html: '<p>OK</p>',
+      preview_html: null,
+      finalized_at: '2026-06-01T10:00:00Z',
+      created_at: '2026-06-01T09:00:00Z',
+      updated_at: '2026-06-01T10:00:00Z',
+    }]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.previewHtml).toContain('OK');
+    expect(merged[0]?.documentSource).toBe('intake');
   });
 
   it('SegmentedTabs uses horizontal scroll bar layout', () => {

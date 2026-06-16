@@ -6,7 +6,7 @@ import {
   type IntakeSectionKey,
 } from '@/lib/clients/clientIntakeFieldRules';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
-import type { ClientFullDetail } from '@/types/modules/client';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { upsertDemoClientFullDetail } from '@/data/demo/clients';
@@ -28,6 +28,7 @@ import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildI
 import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
 import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { createClientFromIntake } from './repositories/clientIntakeRepository.supabase';
+import { persistIntakeClientExtendedData } from './clientIntakePersistence';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
   return getVisibleSectionsForClientContext(contexts);
@@ -155,6 +156,14 @@ export async function submitClientIntake(
       );
       if (!carrierResult.ok) return carrierResult;
 
+      const extendedResult = await persistIntakeClientExtendedData(
+        tenantId,
+        clientResult.data.id,
+        form,
+        options?.actorProfileId ?? null,
+      );
+      if (!extendedResult.ok) return extendedResult;
+
       const documentsResult = await persistClientIntakeDocuments(
         tenantId,
         clientResult.data.id,
@@ -196,7 +205,7 @@ function buildMinimalFullDetail(
     firstName: form.firstName,
     lastName: form.lastName,
     dateOfBirth: form.dateOfBirth,
-    careLevel: form.careLevel ? form.careLevel.replace('pg', 'PG ').toUpperCase() : null,
+    careLevel: formatCareLevel(form.careLevel) || null,
     status: 'aktiv',
     primaryContactPhone: form.phone || form.mobile,
     city: form.city,

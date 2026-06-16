@@ -2,12 +2,11 @@ import type { ServiceResult } from '@/types';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import { getClientRecordTabsForClientContext } from '@/lib/clients/clientIntakeFieldRules';
 import type { ClientFullDetail } from '@/types/modules/client';
-import { getDemoClientFullDetail } from '@/data/demo/clients';
 import { getDemoClientCareContexts } from '@/data/demo/clients/intakeRecords';
 import { fetchClientFullDetail } from './clientFullDetailService';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
-import { assertDemoTenant, isDemoClientBackend } from './clientBackend';
+import { assertDemoTenant, getClientExtendedRepository, isDemoClientBackend } from './clientBackend';
 
 export type ClientRecordView = {
   detail: ClientFullDetail;
@@ -28,7 +27,16 @@ const CONTEXT_MAP: Record<string, ClientCareContext[]> = {
   'client-010': ['daily_assistance', 'companionship'],
 };
 
-export function resolveCareContextsForClient(clientId: string): ClientCareContext[] {
+export async function resolveCareContextsForClient(
+  tenantId: string,
+  clientId: string,
+): Promise<ClientCareContext[]> {
+  if (!isDemoClientBackend()) {
+    const result = await getClientExtendedRepository().fetchCareContexts(tenantId, clientId);
+    if (result.ok && result.data.length > 0) return result.data;
+    return ['daily_assistance'];
+  }
+
   const fromIntake = getDemoClientCareContexts(clientId);
   if (fromIntake.length > 0) return fromIntake;
   return CONTEXT_MAP[clientId] ?? ['daily_assistance'];
@@ -42,7 +50,7 @@ export async function fetchClientRecord(
     const detailResult = await fetchClientFullDetail(tenantId, clientId);
     if (!detailResult.ok) return detailResult;
 
-    if (!isDemoClientBackend()) {
+    if (isDemoClientBackend()) {
       const denied = assertDemoTenant(tenantId);
       if (denied) return denied;
     }
@@ -50,7 +58,7 @@ export async function fetchClientRecord(
     const detail = detailResult.data;
     if (!detail) return { ok: false, error: SERVICE_ERRORS.clientNotFound };
 
-    const careContexts = resolveCareContextsForClient(clientId);
+    const careContexts = await resolveCareContextsForClient(tenantId, clientId);
     const tabs = getClientRecordTabsForClientContext(careContexts);
 
     return {
@@ -65,9 +73,10 @@ export async function fetchClientRecordKpis(
   clientId: string,
 ): Promise<ServiceResult<Record<string, number>>> {
   return runService(async () => {
-    const full = getDemoClientFullDetail(clientId);
-    if (!full) return { ok: false, error: SERVICE_ERRORS.clientNotFound };
+    const detailResult = await fetchClientFullDetail(tenantId, clientId);
+    if (!detailResult.ok) return detailResult;
 
+    const full = detailResult.data;
     return {
       ok: true,
       data: {

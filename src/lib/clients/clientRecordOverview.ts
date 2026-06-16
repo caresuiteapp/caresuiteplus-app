@@ -92,14 +92,14 @@ function buildSignedDocuments(detail: ClientFullDetail): ClientRecordSignedDocum
   }
 
   for (const doc of detail.documents ?? []) {
-    if (doc.category !== 'einwilligung' && doc.category !== 'vertrag') continue;
-    if (doc.status !== 'aktiv' && doc.status !== 'abgeschlossen') continue;
-    items.push({
-      id: doc.id,
-      title: doc.title,
-      signedAt: doc.updatedAt ?? doc.createdAt,
-      kind: 'document',
-    });
+    if (doc.intakeStatus === 'finalized' || doc.status === 'abgeschlossen' || doc.status === 'aktiv') {
+      items.push({
+        id: doc.id,
+        title: doc.title,
+        signedAt: doc.updatedAt ?? doc.createdAt,
+        kind: doc.category === 'einwilligung' ? 'consent' : doc.category === 'vertrag' ? 'contract' : 'document',
+      });
+    }
   }
 
   return items
@@ -133,7 +133,11 @@ export function buildClientRecordOverview(
     careLevel: formatCareLevel(detail.careLevel),
     serviceTypes,
     lastActivity: resolveLastActivity(detail),
-    admissionDate: detail.createdAt ? formatDate(detail.createdAt) : EMPTY,
+    admissionDate: detail.admissionDate
+      ? formatDate(detail.admissionDate)
+      : detail.createdAt
+        ? formatDate(detail.createdAt)
+        : EMPTY,
     signedDocuments: buildSignedDocuments(detail),
     quickLinks,
   };

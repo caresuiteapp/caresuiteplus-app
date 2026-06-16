@@ -4,6 +4,7 @@ export { BudgetsListHero } from './BudgetsListHero';
 export { ClientDetailHero } from './ClientDetailHero';
 export { ClientRecordHero } from './ClientRecordHero';
 export { ClientRecordOverviewPanel } from './ClientRecordOverviewPanel';
+export { ClientRecordDocumentsPanel } from './ClientRecordDocumentsPanel';
 export { InvoiceDetailHero } from './InvoiceDetailHero';
 export { InvoiceAccountingPanel } from './accounting/InvoiceAccountingPanel';
 export { OfficeBillingHero } from './OfficeBillingHero';

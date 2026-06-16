@@ -55,4 +55,11 @@ describe('getBreadcrumbs client record path', () => {
     expect(labels).toContain('Office');
     expect(labels[labels.length - 1]).toBe('Klient:innenakte');
   });
+
+  it('documents sub-route uses Dokumente label without duplicate Business-Bereich', () => {
+    const trail = getBreadcrumbs('/business/office/clients/b0241381-4933-4a89-8879-4ae31cc4340d/documents');
+    const labels = trail.map((item) => item.label);
+    expect(labels.filter((l) => l === 'Business-Bereich')).toHaveLength(1);
+    expect(labels[labels.length - 1]).toBe('Dokumente');
+  });
 });

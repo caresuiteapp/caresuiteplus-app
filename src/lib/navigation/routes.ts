@@ -451,6 +451,22 @@ export const APP_ROUTES: AppRoute[] = [
     ],
   },
   {
+    path: '/business/office/clients/[id]/documents',
+    label: 'Dokumente',
+    group: 'module',
+    productKey: 'office',
+    requiresAuth: true,
+    allowedRoles: [
+      'business_admin',
+      'business_manager',
+      'billing',
+      'dispatch',
+      'nurse',
+      'caregiver',
+      'counselor',
+    ],
+  },
+  {
     path: '/business/office/personal/work-times',
     label: 'Arbeitszeiten',
     group: 'module',

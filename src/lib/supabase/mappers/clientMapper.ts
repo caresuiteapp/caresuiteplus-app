@@ -100,6 +100,7 @@ export function mapClientDetail(row: ClientDetailRow): ClientDetail {
   return {
     ...base,
     createdAt: row.created_at,
+    admissionDate: row.admission_date ?? null,
     dateOfBirth: row.date_of_birth,
     primaryContactPhone: row.primary_contact_phone,
     street: row.street,

@@ -1,14 +1,17 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { PortalDocumentListItem } from '@/types/portal/documents';
+import type { PortalDocumentCategory, PortalDocumentListItem } from '@/types/portal/documents';
+import type { DataVisibilityScope } from '@/types/portal/visibility';
+import type { ClientDocumentRecord } from '@/types/modules/client';
 import { demoPortalDocuments } from '@/data/demo/documents';
+import { mergeClientRecordDocuments } from '@/lib/clients/clientDocumentMerge';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { mapClientDocument } from '@/lib/supabase/mappers/clientExtendedMapper';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import { buildTenantStoragePath } from '@/lib/storage/storagePaths';
 
 export type OfficeDocumentItem = {
   id: string;
@@ -17,9 +20,14 @@ export type OfficeDocumentItem = {
   status: string;
 };
 
-const BUCKET = 'office-documents';
-
 const SIMULATED_DELAY_MS = 280;
+const LIST_LIMIT = 100;
+
+const CLIENT_DOCUMENTS_SELECT =
+  'id, tenant_id, client_id, title, file_name, mime_type, category, storage_path, status, sensitivity, uploaded_by, valid_until, created_at, updated_at';
+
+const INTAKE_DOCUMENTS_SELECT =
+  'id, tenant_id, client_id, template_key, document_type, title, status, finalized_html, preview_html, finalized_at, created_at, updated_at';
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -42,19 +50,78 @@ function mapDemoDocument(
   };
 }
 
-function mapSupabaseRow(row: Record<string, unknown>): PortalDocumentListItem {
+function mapClientCategoryToPortal(category: ClientDocumentRecord['category']): PortalDocumentCategory {
+  switch (category) {
+    case 'pflegeplan':
+      return 'care_plan';
+    case 'einwilligung':
+      return 'consent';
+    case 'arztbrief':
+    case 'md_gutachten':
+      return 'report';
+    default:
+      return 'other';
+  }
+}
+
+function resolveVisibility(row: Record<string, unknown>): DataVisibilityScope {
+  if (row.portal_visible === true) return 'shared';
+  return 'team';
+}
+
+function mapClientDocumentToPortalItem(doc: ClientDocumentRecord, row?: Record<string, unknown>): PortalDocumentListItem {
   return {
-    id: String(row.id),
-    title: String(row.title ?? 'Dokument'),
-    fileName: String(row.file_name ?? row.title ?? 'dokument'),
-    mimeType: String(row.mime_type ?? 'application/octet-stream'),
-    category: (row.category as PortalDocumentListItem['category']) ?? 'other',
-    fileSizeBytes: Number(row.size_bytes ?? 0),
-    status: (row.status as PortalDocumentListItem['status']) ?? 'entwurf',
-    updatedAt: String(row.updated_at ?? new Date().toISOString()),
-    visibility: (row.visibility as PortalDocumentListItem['visibility']) ?? 'team',
-    sensitivity: (row.sensitivity as PortalDocumentListItem['sensitivity']) ?? 'internal',
+    id: doc.id,
+    title: doc.title,
+    fileName: doc.fileName,
+    mimeType: doc.mimeType,
+    category: mapClientCategoryToPortal(doc.category),
+    fileSizeBytes: Number(row?.size_bytes ?? 0),
+    status: doc.status,
+    updatedAt: doc.updatedAt,
+    visibility: row ? resolveVisibility(row) : 'team',
+    sensitivity: doc.sensitivity,
   };
+}
+
+async function fetchTenantOfficeDocumentsFromSupabase(
+  tenantId: string,
+): Promise<ServiceResult<PortalDocumentListItem[]>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const [documents, intakeDocuments] = await Promise.all([
+    fromUnknownTable(supabase, 'client_documents')
+      .select(CLIENT_DOCUMENTS_SELECT)
+      .eq('tenant_id', tenantId)
+      .order('updated_at', { ascending: false })
+      .limit(LIST_LIMIT),
+    fromUnknownTable(supabase, 'client_intake_documents')
+      .select(INTAKE_DOCUMENTS_SELECT)
+      .eq('tenant_id', tenantId)
+      .order('updated_at', { ascending: false })
+      .limit(LIST_LIMIT),
+  ]);
+
+  if (documents.error) return { ok: false, error: toGermanSupabaseError(documents.error) };
+  if (intakeDocuments.error) return { ok: false, error: toGermanSupabaseError(intakeDocuments.error) };
+
+  const storedRows = (documents.data ?? []) as Record<string, unknown>[];
+  const storedDocs = storedRows.map((row) =>
+    mapClientDocumentToPortalItem(mapClientDocument(row as Parameters<typeof mapClientDocument>[0]), row),
+  );
+
+  const merged = mergeClientRecordDocuments(
+    storedRows.map((row) => mapClientDocument(row as Parameters<typeof mapClientDocument>[0])),
+    (intakeDocuments.data ?? []) as Parameters<typeof mergeClientRecordDocuments>[1],
+  );
+
+  const storedIds = new Set(storedDocs.map((doc) => doc.id));
+  const intakeItems = merged
+    .filter((doc) => !storedIds.has(doc.id))
+    .map((doc) => mapClientDocumentToPortalItem(doc));
+
+  return { ok: true, data: [...storedDocs, ...intakeItems].slice(0, LIST_LIMIT) };
 }
 
 export async function fetchOfficeDocumentList(
@@ -71,17 +138,7 @@ export async function fetchOfficeDocumentList(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    const supabase = getSupabaseClient();
-    if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-    const { data, error } = await fromUnknownTable(supabase, 'client_documents')
-      .select(
-        'id, title, file_name, mime_type, category, size_bytes, status, updated_at, visibility, sensitivity',
-      )
-      .eq('tenant_id', tenantId)
-      .order('updated_at', { ascending: false })
-      .limit(100);
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: (data ?? []).map((row) => mapSupabaseRow(row as Record<string, unknown>)) };
+    return fetchTenantOfficeDocumentsFromSupabase(tenantId);
   }
 
   await delay(SIMULATED_DELAY_MS);
@@ -120,19 +177,13 @@ export async function fetchOfficeDocumentsDashboard(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    const supabase = getSupabaseClient();
-    if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-    const { data, error } = await fromUnknownTable(supabase, 'client_documents')
-      .select('id, title, category, status')
-      .eq('tenant_id', tenantId)
-      .order('updated_at', { ascending: false })
-      .limit(50);
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    const items: OfficeDocumentItem[] = (data ?? []).map((row) => ({
-      id: String((row as { id: string }).id),
-      title: String((row as { title: string }).title ?? 'Dokument'),
-      category: String((row as { category?: string }).category ?? 'Allgemein'),
-      status: String((row as { status?: string }).status ?? 'entwurf'),
+    const list = await fetchTenantOfficeDocumentsFromSupabase(tenantId);
+    if (!list.ok) return list;
+    const items: OfficeDocumentItem[] = list.data.map((row) => ({
+      id: row.id,
+      title: row.title,
+      category: row.category,
+      status: row.status,
     }));
     const byCategory = items.reduce<Record<string, number>>((acc, d) => {
       acc[d.category] = (acc[d.category] ?? 0) + 1;
@@ -167,48 +218,11 @@ export async function uploadOfficeDocument(
     return { ok: false, error: 'Dateiname ist Pflicht.' };
   }
 
-  if (getServiceMode() === 'supabase' && input.sizeBytes <= 0) {
-    return { ok: false, error: 'Datei ist leer oder wurde nicht ausgewählt.' };
-  }
-
-  if (getServiceMode() === 'supabase' && !input.contentBase64) {
-    return { ok: false, error: 'Dateiinhalt fehlt — bitte Dokument erneut auswählen.' };
-  }
-
   if (getServiceMode() === 'supabase') {
-    const supabase = getSupabaseClient();
-    if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-
-    const docId = `doc-${Date.now()}`;
-    const storagePath = buildTenantStoragePath(tenantId, 'office', 'documents', docId, input.filename);
-    const payload = input.contentBase64
-      ? Uint8Array.from(atob(input.contentBase64), (c) => c.charCodeAt(0))
-      : new Uint8Array();
-
-    const { error: uploadError } = await supabase.storage
-      .from(BUCKET)
-      .upload(storagePath, payload, {
-        contentType: input.mimeType,
-        upsert: false,
-      });
-    if (uploadError) return { ok: false, error: uploadError.message || 'Storage-Upload fehlgeschlagen.' };
-
-    const { data, error } = await fromUnknownTable(supabase, 'client_documents')
-      .insert({
-        id: docId,
-        tenant_id: tenantId,
-        title: input.filename,
-        category: input.category ?? 'Allgemein',
-        status: 'entwurf',
-        storage_path: storagePath,
-        mime_type: input.mimeType,
-        size_bytes: input.sizeBytes,
-      })
-      .select('id')
-      .single();
-
-    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: { id: String((data as { id: string }).id), storagePath } };
+    return {
+      ok: false,
+      error: 'Office-Uploads sind in Live derzeit über die Klientenakte verfügbar.',
+    };
   }
 
   await new Promise((r) => setTimeout(r, 300));
