@@ -11,5 +11,7 @@ export type { CostCarrierFieldValues } from './CareCostCarrierTemplateSearch';
 export { CareCostBearerManualFields } from './CareCostBearerManualFields';
 export { CareCostBearerTypeFields, orderedSelectedCostBearerTypes } from './CareCostBearerTypeFields';
 export { CareCostBearerStepPanel, validateActiveCostBearerDraft } from './CareCostBearerStepPanel';
+export { CareIntakeDocumentsStepPanel } from './CareIntakeDocumentsStepPanel';
+export { CareSignatureCanvas } from './CareSignatureCanvas';
 export { CareAddressSearch } from './CareAddressSearch';
 export type { AddressFieldValues } from './CareAddressSearch';

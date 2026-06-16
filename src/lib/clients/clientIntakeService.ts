@@ -24,6 +24,9 @@ import {
 } from './clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from './clientIntakeBilling';
 import { validateCostBearerEntry, persistIntakeCostCarriers } from '@/features/costCarriers/costCarrierService';
+import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
+import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
+import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { createClientFromIntake } from './repositories/clientIntakeRepository.supabase';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
@@ -122,8 +125,9 @@ export function validateIntakeStep(
   }
 
   if (section === 'vertraege_einwilligungen') {
-    if (!form.consentDatenschutz) errors.consentDatenschutz = 'Datenschutzeinwilligung erforderlich.';
-    if (!form.consentVertrag) errors.consentVertrag = 'Vertrag/Leistungsvereinbarung erforderlich.';
+    const templates = listApplicableIntakeTemplates(form);
+    const docValidation = validateIntakeDocumentsStep(form, templates);
+    Object.assign(errors, docValidation.errors);
   }
 
   return errors;
@@ -150,6 +154,14 @@ export async function submitClientIntake(
         options?.actorProfileId ?? null,
       );
       if (!carrierResult.ok) return carrierResult;
+
+      const documentsResult = await persistClientIntakeDocuments(
+        tenantId,
+        clientResult.data.id,
+        form,
+        options?.actorProfileId ?? null,
+      );
+      if (!documentsResult.ok) return documentsResult;
 
       return { ok: true, data: { id: clientResult.data.id } };
     }

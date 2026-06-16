@@ -6,6 +6,7 @@ import {
   CareAddressSearch,
   CareCatalogSelect,
   CareCostBearerStepPanel,
+  CareIntakeDocumentsStepPanel,
   CareDateInput,
   CareDocumentUpload,
   CareMultiCatalogSelect,
@@ -170,12 +171,12 @@ function StepContent({
   if (section === 'vertraege_einwilligungen') {
     return (
       <SectionPanel title="Verträge & Einwilligungen">
-        <PremiumCard>
-          <PremiumButton title={form.consentDatenschutz ? '✓ Datenschutz erteilt' : 'Datenschutz einwilligen'} variant="secondary" onPress={() => updateField('consentDatenschutz', !form.consentDatenschutz)} />
-          {errors.consentDatenschutz ? <Text style={styles.error}>{errors.consentDatenschutz}</Text> : null}
-          <PremiumButton title={form.consentVertrag ? '✓ Vertrag bestätigt' : 'Kundenvertrag bestätigen'} variant="secondary" onPress={() => updateField('consentVertrag', !form.consentVertrag)} />
-          {errors.consentVertrag ? <Text style={styles.error}>{errors.consentVertrag}</Text> : null}
-        </PremiumCard>
+        <CareIntakeDocumentsStepPanel
+          form={form}
+          errors={errors}
+          tenantId={wizard.tenantId}
+          onChange={replaceForm}
+        />
       </SectionPanel>
     );
   }

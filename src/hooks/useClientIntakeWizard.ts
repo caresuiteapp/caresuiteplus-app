@@ -278,6 +278,7 @@ export function useClientIntakeWizard() {
     stepIndex,
     currentSection,
     contextHint,
+    tenantId,
     submitting,
     submitError,
     createdId,
