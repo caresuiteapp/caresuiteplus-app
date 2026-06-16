@@ -2,6 +2,12 @@
   command = "npm ci && npx expo export --platform web"
   publish = "dist"
 
+[build.environment]
+  EXPO_PUBLIC_DEMO_MODE = "false"
+  EXPO_PUBLIC_SUPABASE_URL = "https://euagyyztvmemuaiumvxm.supabase.co"
+  EXPO_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1YWd5eXp0dm1lbXVhaXVtdnhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MjU5MDMsImV4cCI6MjA5NjUwMTkwM30.WlzLh30maRgWePjQFEj32mfW7DGqN8sFaroREbYsss0"
+  EXPO_PUBLIC_AUTH_REDIRECT_URL = "https://caresuiteplus.app"
+
 [[redirects]]
   from = "/*"
   to = "/index.html"

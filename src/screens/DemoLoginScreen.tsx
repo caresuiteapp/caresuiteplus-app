@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { DemoLoginHero } from '@/components/auth';
 import { CareLightErrorState, PremiumButton } from '@/components/ui';
 import { AuthPageShell } from '@/design/components';
@@ -11,7 +10,6 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { ROLE_LABELS } from '@/data/demo';
 import { getDemoLoginLabel } from '@/lib/auth';
 import { useAuth } from '@/lib/auth/context';
-import { getPostLoginRedirect } from '@/lib/navigation';
 import type { RoleKey } from '@/types';
 
 type DemoLoginScreenProps = {
@@ -21,7 +19,6 @@ type DemoLoginScreenProps = {
 };
 
 export function DemoLoginScreen({ title, subtitle, roles }: DemoLoginScreenProps) {
-  const router = useRouter();
   const { signInDemo, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
@@ -34,8 +31,6 @@ export function DemoLoginScreen({ title, subtitle, roles }: DemoLoginScreenProps
     try {
       await signInDemo(roleKey);
       setSuccess(true);
-      const target = getPostLoginRedirect(roleKey);
-      setTimeout(() => router.replace(target), 400);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
     }

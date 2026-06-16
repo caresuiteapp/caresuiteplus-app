@@ -14,7 +14,6 @@ import { galaxyPalette } from '@/design/tokens/galaxy';
 import { careSpacing } from '@/design/tokens/spacing';
 import type { InternalRoleKey } from '@/lib/auth/auth.types';
 import { loginBusinessUser } from '@/lib/auth/businessAuthService';
-import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -50,10 +49,14 @@ export function BusinessLoginScreen() {
         await signInDemo(resolveDemoRoleKey(result.data.tenantUser.roleKey));
       } else if (result.data.supabaseSession) {
         await signInWithSupabaseSession(result.data.supabaseSession);
+      } else {
+        setError(
+          'Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten oder kontaktieren Sie den Support.',
+        );
+        return;
       }
 
       setSuccess(true);
-      router.replace(resolvePostLoginRoute('business'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
     }

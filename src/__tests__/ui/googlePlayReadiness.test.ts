@@ -128,18 +128,21 @@ describe('Google Play readiness — public area', () => {
 });
 
 describe('Google Play readiness — auth flows', () => {
-  it('business login navigates after success', () => {
+  it('business login defers navigation to RedirectIfAuthenticated', () => {
     const login = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
-    expect(login).toContain('resolvePostLoginRoute');
-    expect(login).toContain("router.replace(resolvePostLoginRoute('business')");
+    expect(login).toContain('setSuccess(true)');
+    expect(login).not.toContain('resolvePostLoginRoute');
+    expect(login).not.toContain("router.replace('/business'");
     expect(login).toContain('/auth/forgot-password');
   });
 
-  it('employee and client login screens exist with navigation', () => {
+  it('employee and client login screens defer post-auth navigation to guard', () => {
     const employee = readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx');
     const client = readSrc('src/screens/auth/PortalCodeLoginScreen.tsx');
-    expect(employee).toContain('router.replace');
-    expect(client).toContain('router.replace');
+    expect(employee).toContain('setSuccess(true)');
+    expect(client).toContain('setSuccess(true)');
+    expect(employee).not.toContain('resolvePostLoginRoute');
+    expect(client).not.toContain('resolvePostLoginRoute');
   });
 
   it('register and forgot-password routes exist', () => {

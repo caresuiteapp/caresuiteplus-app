@@ -1,9 +1,16 @@
 import { useState } from 'react';
 import { Linking } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AuthLayout, ErrorState, GlassCard, InputField, PremiumButton } from '@/design/components';
+import {
+  AuthLayout,
+  ErrorState,
+  GlassCard,
+  InputField,
+  PremiumButton,
+  SuccessState,
+} from '@/design/components';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
-import { resolveFirstLoginRoute, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
+import { resolveFirstLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -19,9 +26,11 @@ export function EmployeePortalLoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
+    setSuccess(false);
     setLoading(true);
     const result = await loginEmployeePortal(username, password);
     setLoading(false);
@@ -31,18 +40,24 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
-    if (result.data.portalSession) {
-      await signInPortalSession(result.data.portalSession);
-    } else if (isDemoMode()) {
-      await signInDemo('employee_portal');
-    }
-
     if (result.data.mustChangePassword) {
       router.replace(`${resolveFirstLoginRoute('employee_portal')}?accountId=${result.data.account.id}` as never);
       return;
     }
 
-    router.replace(resolvePostLoginRoute('employee_portal'));
+    try {
+      if (result.data.portalSession) {
+        await signInPortalSession(result.data.portalSession);
+      } else if (isDemoMode()) {
+        await signInDemo('employee_portal');
+      } else {
+        setError('Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten.');
+        return;
+      }
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
+    }
   };
 
   return (
@@ -52,6 +67,7 @@ export function EmployeePortalLoginScreen() {
       keyboardAvoiding
     >
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
+      {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
       <GlassCard>
         <InputField
           label="E-Mail oder Mitarbeiter-ID"

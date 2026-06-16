@@ -1,9 +1,14 @@
 import { useState } from 'react';
 import { Linking } from 'react-native';
-import { useRouter } from 'expo-router';
-import { AuthLayout, ErrorState, GlassCard, InputField, PremiumButton } from '@/design/components';
+import {
+  AuthLayout,
+  ErrorState,
+  GlassCard,
+  InputField,
+  PremiumButton,
+  SuccessState,
+} from '@/design/components';
 import { validatePortalCodeLogin } from '@/lib/auth/clientPortalAuthService';
-import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { useAuth } from '@/lib/auth/context';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
@@ -14,14 +19,15 @@ function openHelp() {
 }
 
 export function PortalCodeLoginScreen() {
-  const router = useRouter();
   const { signInDemo, signInPortalSession } = useAuth();
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
+    setSuccess(false);
     setLoading(true);
     const result = await validatePortalCodeLogin(code, 'client');
     setLoading(false);
@@ -31,12 +37,19 @@ export function PortalCodeLoginScreen() {
       return;
     }
 
-    if (result.data.portalSession) {
-      await signInPortalSession(result.data.portalSession);
-    } else if (isDemoMode()) {
-      await signInDemo('client_portal');
+    try {
+      if (result.data.portalSession) {
+        await signInPortalSession(result.data.portalSession);
+      } else if (isDemoMode()) {
+        await signInDemo('client_portal');
+      } else {
+        setError('Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie den Portal-Code.');
+        return;
+      }
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
     }
-    router.replace(resolvePostLoginRoute('client_portal'));
   };
 
   return (
@@ -46,6 +59,7 @@ export function PortalCodeLoginScreen() {
       keyboardAvoiding
     >
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
+      {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
       <GlassCard>
         <InputField
           label="Portal-Code oder Einladung"

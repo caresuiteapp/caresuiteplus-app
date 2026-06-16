@@ -1,6 +1,8 @@
 import type { PostgrestError, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types/core/auth';
 import type { AuthBootstrapResult, TenantSummary } from '@/types/supabase/session';
+import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
+import type { CanonicalWorkspaceRoleKey } from '@/types/permissions/workspace';
 import { getSupabaseClient } from './client';
 import { isDemoMode } from './config';
 import { toGermanSupabaseError } from './errors';
@@ -23,8 +25,7 @@ type ProfileQueryRow = {
   id: string;
   tenant_id: string | null;
   role_id: string | null;
-  role_key: string | null;
-  display_name: string | null;
+  full_name: string | null;
   email: string | null;
   phone: string | null;
   avatar_url: string | null;
@@ -35,7 +36,10 @@ type ProfileQueryRow = {
 
 function parseRoleKey(value: string | null): RoleKey | null {
   if (!value) return null;
-  return ROLE_KEYS.includes(value as RoleKey) ? (value as RoleKey) : null;
+  if (ROLE_KEYS.includes(value as RoleKey)) {
+    return value as RoleKey;
+  }
+  return mapCanonicalRoleToRoleKey(value as CanonicalWorkspaceRoleKey);
 }
 
 function mapProfileQueryRow(row: ProfileQueryRow): Profile {
@@ -43,8 +47,8 @@ function mapProfileQueryRow(row: ProfileQueryRow): Profile {
     id: row.id,
     tenantId: row.tenant_id,
     roleId: row.role_id,
-    roleKey: parseRoleKey(row.roles?.key ?? row.role_key),
-    displayName: row.display_name?.trim() || null,
+    roleKey: parseRoleKey(row.roles?.key ?? null),
+    displayName: row.full_name?.trim() || null,
     email: row.email,
     phone: row.phone,
     avatarUrl: row.avatar_url,
@@ -72,7 +76,7 @@ function buildAuthSession(session: Session, user: AuthUser): AuthSession {
 }
 
 const PROFILE_SELECT =
-  'id, tenant_id, role_id, role_key, display_name, email, phone, avatar_url, created_at, updated_at, roles(key)';
+  'id, tenant_id, role_id, full_name, email, phone, avatar_url, created_at, updated_at, roles(key)';
 
 async function queryProfileForAuthUser(
   client: NonNullable<ReturnType<typeof getSupabaseClient>>,
