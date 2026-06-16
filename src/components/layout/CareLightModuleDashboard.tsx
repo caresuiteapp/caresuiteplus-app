@@ -1,4 +1,4 @@
-import { ReactNode } from 'react';
+import { ReactNode, type RefObject } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { careLightColors } from '@/design/tokens/lightTheme';
@@ -18,6 +18,13 @@ export type CareLightKpiItem = {
   accentColor?: string;
 };
 
+export type CareLightModuleDashboardSectionRefs = {
+  header?: RefObject<View>;
+  kpis?: RefObject<View>;
+  recent?: RefObject<View>;
+  quickActions?: RefObject<View>;
+};
+
 type CareLightModuleDashboardProps = {
   moduleKey: CareModuleKey;
   subtitle?: string;
@@ -28,6 +35,7 @@ type CareLightModuleDashboardProps = {
   recentSubtitle?: string;
   quickActions?: ReactNode;
   headerSlot?: ReactNode;
+  sectionRefs?: CareLightModuleDashboardSectionRefs;
   style?: ViewStyle;
 };
 
@@ -41,26 +49,31 @@ export function CareLightModuleDashboard({
   recentSubtitle,
   quickActions,
   headerSlot,
+  sectionRefs,
   style,
 }: CareLightModuleDashboardProps) {
   const { isPhone, isDesktopOrWide } = useDeviceClass();
 
   return (
     <View style={[styles.root, style]}>
-      {headerSlot ?? <CareLightModuleHeader moduleKey={moduleKey} subtitle={subtitle} />}
+      <View ref={sectionRefs?.header} collapsable={false}>
+        {headerSlot ?? <CareLightModuleHeader moduleKey={moduleKey} subtitle={subtitle} />}
+      </View>
 
       {kpis.length > 0 ? (
-        <CareLightSection title={kpiTitle} subtitle="Aktuelle Übersicht">
-          <View style={[styles.kpiGrid, isDesktopOrWide && styles.kpiGridWide]}>
-            {kpis.map((kpi) => (
-              <CareLightKpiCard key={kpi.id} {...kpi} />
-            ))}
-          </View>
-        </CareLightSection>
+        <View ref={sectionRefs?.kpis} collapsable={false}>
+          <CareLightSection title={kpiTitle} subtitle="Aktuelle Übersicht">
+            <View style={[styles.kpiGrid, isDesktopOrWide && styles.kpiGridWide]}>
+              {kpis.map((kpi) => (
+                <CareLightKpiCard key={kpi.id} {...kpi} />
+              ))}
+            </View>
+          </CareLightSection>
+        </View>
       ) : null}
 
       <View style={[styles.body, isDesktopOrWide && styles.bodyDesktop]}>
-        <View style={styles.main}>
+        <View style={styles.main} ref={sectionRefs?.recent} collapsable={false}>
           {recentSection ? (
             <CareLightSection title={recentTitle} subtitle={recentSubtitle}>
               {recentSection}
@@ -69,7 +82,11 @@ export function CareLightModuleDashboard({
         </View>
 
         {quickActions ? (
-          <View style={[styles.side, isPhone ? styles.sidePhone : styles.sideWide]}>
+          <View
+            style={[styles.side, isPhone ? styles.sidePhone : styles.sideWide]}
+            ref={sectionRefs?.quickActions}
+            collapsable={false}
+          >
             <CareLightSection title="Schnellzugriff" subtitle="Häufige Aktionen">
               {quickActions}
             </CareLightSection>
