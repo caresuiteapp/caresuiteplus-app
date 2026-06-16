@@ -13,6 +13,7 @@ import {
 import { LockedActionBanner } from '@/components/permissions';
 import { useOfficeMessageDetail } from '@/hooks/useOfficeMessageDetail';
 import { usePermissions } from '@/hooks/usePermissions';
+import { isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { VISIBILITY_LABELS } from '@/types/portal/visibility';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
@@ -109,7 +110,10 @@ export function OfficeMessageDetailSummaryPanel({ messageId }: OfficeMessageDeta
       </SectionPanel>
 
       {message.canReply && canReply ? (
-        <SectionPanel title="Antworten" subtitle="Demo-Versand mit Persistenz">
+        <SectionPanel
+          title="Antworten"
+          subtitle={isLiveServiceMode() ? 'Antwort an den Absender' : 'Demo-Versand mit Persistenz'}
+        >
           <PremiumInput
             label="Antwort"
             value={replyText}

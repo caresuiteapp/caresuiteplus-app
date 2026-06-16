@@ -1,6 +1,7 @@
 import { StyleSheet, Text } from 'react-native';
 import { TemplateDropdownSelect } from '@/components/templates';
 import { PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
+import { isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { spacing, typography } from '@/theme';
 
 type ComposeMessageFormProps = {
@@ -30,7 +31,9 @@ export function ComposeMessageForm({
 }: ComposeMessageFormProps) {
   return (
     <PremiumCard>
-      <Text style={styles.hint}>Arbeitspaket {wpNumber} — Demo-Versand mit Persistenz.</Text>
+      {!isLiveServiceMode() ? (
+        <Text style={styles.hint}>Arbeitspaket {wpNumber} — Demo-Versand mit Persistenz.</Text>
+      ) : null}
       {onMessageTemplateChange ? (
         <TemplateDropdownSelect
           filters={{ moduleKey: 'communication', templateType: 'message', status: 'active' }}

@@ -3,6 +3,8 @@ import type { PermissionKey } from '@/types/permissions';
 import { appendDomainMessage } from '@/data/demo/portalMessageStore';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
+import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
+import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
 
 export type DomainMessageInput = {
@@ -30,8 +32,11 @@ export async function sendDomainMessage(
   const denied = enforcePermission<DomainMessageResult>(input.actorRoleKey, input.permission);
   if (denied) return denied;
 
+  const liveBlock = guardLiveDemoFeature<DomainMessageResult>(input.tenantId, 'Office-Nachrichten');
+  if (liveBlock) return liveBlock;
+
   return runService(async () => {
-    if (input.tenantId !== DEMO_TENANT_ID) {
+    if (getServiceMode() === 'demo' && input.tenantId !== DEMO_TENANT_ID) {
       return { ok: false, error: 'Mandant nicht gefunden.' };
     }
 

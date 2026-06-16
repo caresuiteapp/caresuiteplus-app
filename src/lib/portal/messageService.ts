@@ -10,7 +10,8 @@ import {
 import { demoPortalMessages } from '@/data/demo/messages';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
-import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { guardLiveDemoFeature, guardServiceTenant, blockDemoOnlyInLiveMode } from '@/lib/services/liveServiceGuard';
+import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
 import { filterPortalEntities, resolvePortalScope } from './portalVisibility';
 
@@ -22,6 +23,10 @@ function isClientPortalRole(roleKey: RoleKey | null): boolean {
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
+}
+
+function usesDemoMessageStore(): boolean {
+  return getServiceMode() === 'demo';
 }
 
 type MessageSeed = (typeof demoPortalMessages)[number];
@@ -65,6 +70,10 @@ export async function fetchPortalMessages(
       return { ok: true, data: [] };
     }
 
+    if (!usesDemoMessageStore()) {
+      return { ok: true, data: [] };
+    }
+
     const employeeDenied = enforcePermission<MessageListItem[]>(
       roleKey,
       'portal.employee.messages.view',
@@ -104,6 +113,10 @@ export async function fetchPortalMessageDetail(
 
     if (!profileId || !roleKey) {
       return { ok: false, error: 'Kein Profil für Nachrichtenabruf vorhanden.' };
+    }
+
+    if (!usesDemoMessageStore()) {
+      return { ok: false, error: 'Nachricht nicht gefunden oder nicht freigegeben.' };
     }
 
     const scope = resolvePortalScope(roleKey);
@@ -159,6 +172,9 @@ export async function replyToPortalMessage(
       return { ok: false, error: 'Bitte geben Sie eine Antwort ein.' };
     }
 
+    const liveBlock = blockDemoOnlyInLiveMode<MessageDetail>('Portal-Nachrichten');
+    if (liveBlock) return liveBlock;
+
     const scope = resolvePortalScope(roleKey);
     const portalMessages = getMutablePortalMessages().filter((msg) => msg.audienceScope === 'portal');
     const visible = filterPortalEntities(portalMessages, profileId, scope);
@@ -210,6 +226,10 @@ export async function fetchOfficeMessages(
       return { ok: true, data: [] };
     }
 
+    if (!usesDemoMessageStore()) {
+      return { ok: true, data: [] };
+    }
+
     const data = getMutablePortalMessages()
       .filter((msg) => msg.audienceScope === 'office')
       .map(mapMessageListItem);
@@ -240,6 +260,9 @@ export async function replyToOfficeMessage(
     if (replyBody.trim().length < 10) {
       return { ok: false, error: 'Antwort muss mindestens 10 Zeichen haben.' };
     }
+
+    const liveBlock = guardLiveDemoFeature<MessageDetail>(tenantId, 'Office-Nachrichten');
+    if (liveBlock) return liveBlock;
 
     const msg = getMutablePortalMessages().find(
       (m) => m.id === messageId && m.audienceScope === 'office',
@@ -283,6 +306,10 @@ export async function fetchOfficeMessageDetail(
 
   return runService(async () => {
     await delay(SIMULATED_DELAY_MS);
+
+    if (!usesDemoMessageStore()) {
+      return { ok: false, error: 'Nachricht nicht gefunden.' };
+    }
 
     const msg = getMutablePortalMessages().find(
       (m) => m.id === messageId && m.audienceScope === 'office',
