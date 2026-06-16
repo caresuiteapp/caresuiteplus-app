@@ -11,6 +11,7 @@ import {
   loadClientIntakeDraft,
   saveClientIntakeDraft,
 } from '@/lib/clients/clientIntakeDraftStorage';
+import { clearDeselectedCostBearerTypes } from '@/lib/clients/clientIntakeCostBearerConfig';
 import {
   createEmptyIntakeForm,
   getIntakeStepsForContexts,
@@ -111,6 +112,26 @@ export function useClientIntakeWizard() {
     },
     [],
   );
+
+  const replaceForm = useCallback((nextForm: ClientIntakeFormData) => {
+    setForm(nextForm);
+    setErrors((prev) => {
+      const next = { ...prev };
+      for (const key of Object.keys(nextForm)) {
+        delete next[key];
+      }
+      return next;
+    });
+  }, []);
+
+  const updateCostBearerTypes = useCallback((nextTypes: string[]) => {
+    setForm((prev) => clearDeselectedCostBearerTypes(prev, nextTypes));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.costBearerTypes;
+      return next;
+    });
+  }, []);
 
   const toggleCareContext = useCallback((ctx: ClientCareContext) => {
     setForm((prev) => {
@@ -218,6 +239,8 @@ export function useClientIntakeWizard() {
     draftRestored,
     hasPersistedDraft: draftRestored || hasIntakeDraftContent({ form, stepIndex }),
     updateField,
+    updateCostBearerTypes,
+    replaceForm,
     toggleCareContext,
     toggleArrayField,
     nextStep,

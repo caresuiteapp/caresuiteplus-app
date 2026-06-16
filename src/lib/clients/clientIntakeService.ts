@@ -14,6 +14,11 @@ import { upsertDemoClientIntakeRecord } from '@/data/demo/clients/intakeRecords'
 import { helgaSchneiderFull } from '@/data/demo/clients/helga-schneider';
 import { runService } from '@/lib/services/serviceRunner';
 import { assertDemoTenant, isDemoClientBackend } from './clientBackend';
+import {
+  hasGkvCostBearerSelected,
+  resolvePrimaryCostBearerName,
+  resolvePrimaryCostBearerReference,
+} from './clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from './clientIntakeBilling';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
@@ -57,10 +62,13 @@ export function validateIntakeStep(
     if (required.includes('careLevel') && !form.careLevel) {
       errors.careLevel = 'Pflegegrad ist erforderlich.';
     }
-    if (required.includes('careFund') && !form.careFundName.trim()) {
+    if (required.includes('careFund') && form.costBearerTypes.includes('pflegekasse') && !form.careFundName.trim()) {
       errors.careFundName = 'Pflegekasse ist erforderlich.';
     }
-    if (required.includes('insuranceNumber') && !form.insuranceNumber.trim()) {
+    if (required.includes('healthInsurance') && form.costBearerTypes.includes('krankenkasse') && !form.healthInsurance.trim()) {
+      errors.healthInsurance = 'Krankenkasse ist erforderlich.';
+    }
+    if (required.includes('insuranceNumber') && hasGkvCostBearerSelected(form.costBearerTypes) && !form.insuranceNumber.trim()) {
       errors.insuranceNumber = 'Versichertennummer ist erforderlich.';
     }
   }
@@ -137,9 +145,8 @@ function buildMinimalFullDetail(
 ): ClientFullDetail {
   const base = { ...helgaSchneiderFull };
   const billingType = resolveIntakeBillingProfileType(form.billingTypes);
-  const careFundRef = form.costBearerIk
-    ? `IK ${form.costBearerIk}`
-    : [form.careFundStreet, form.careFundZip, form.careFundCity].filter(Boolean).join(', ') || null;
+  const primaryCostBearerName = resolvePrimaryCostBearerName(form);
+  const primaryCostBearerRef = resolvePrimaryCostBearerReference(form);
 
   return {
     ...base,
@@ -195,10 +202,10 @@ function buildMinimalFullDetail(
       billingType,
       hourlyRateCents: form.hourlyRate ? Math.round(parseFloat(form.hourlyRate.replace(',', '.')) * 100) : 3800,
       serviceType: 'betreuung',
-      invoiceRecipient: form.careFundName.trim() || form.healthInsurance.trim() || null,
+      invoiceRecipient: primaryCostBearerName,
       paymentTermsDays: 30,
-      costBearerName: form.careFundName.trim() || null,
-      costBearerReference: careFundRef,
+      costBearerName: primaryCostBearerName,
+      costBearerReference: primaryCostBearerRef,
       notes: form.billingTypes.join(', '),
       createdAt: now,
       updatedAt: now,

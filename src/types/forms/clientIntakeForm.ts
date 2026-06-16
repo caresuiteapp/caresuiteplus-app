@@ -41,6 +41,38 @@ export type ClientIntakeFormData = {
   healthInsuranceCity: string;
   costBearerIk: string;
   healthInsuranceIk: string;
+  privatversicherungName: string;
+  privatversicherungStreet: string;
+  privatversicherungZip: string;
+  privatversicherungCity: string;
+  privatversicherungIk: string;
+  sozialamtName: string;
+  sozialamtStreet: string;
+  sozialamtZip: string;
+  sozialamtCity: string;
+  sozialamtIk: string;
+  beihilfeName: string;
+  beihilfeStreet: string;
+  beihilfeZip: string;
+  beihilfeCity: string;
+  selbstzahlerName: string;
+  selbstzahlerStreet: string;
+  selbstzahlerZip: string;
+  selbstzahlerCity: string;
+  berufsgenossenschaftName: string;
+  berufsgenossenschaftStreet: string;
+  berufsgenossenschaftZip: string;
+  berufsgenossenschaftCity: string;
+  berufsgenossenschaftIk: string;
+  unfallversicherungName: string;
+  unfallversicherungStreet: string;
+  unfallversicherungZip: string;
+  unfallversicherungCity: string;
+  unfallversicherungIk: string;
+  sonstigerName: string;
+  sonstigerStreet: string;
+  sonstigerZip: string;
+  sonstigerCity: string;
   insuranceNumber: string;
   billingTypes: string[];
   costBearerTypes: string[];
@@ -135,6 +167,38 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   healthInsuranceCity: '',
   costBearerIk: '',
   healthInsuranceIk: '',
+  privatversicherungName: '',
+  privatversicherungStreet: '',
+  privatversicherungZip: '',
+  privatversicherungCity: '',
+  privatversicherungIk: '',
+  sozialamtName: '',
+  sozialamtStreet: '',
+  sozialamtZip: '',
+  sozialamtCity: '',
+  sozialamtIk: '',
+  beihilfeName: '',
+  beihilfeStreet: '',
+  beihilfeZip: '',
+  beihilfeCity: '',
+  selbstzahlerName: '',
+  selbstzahlerStreet: '',
+  selbstzahlerZip: '',
+  selbstzahlerCity: '',
+  berufsgenossenschaftName: '',
+  berufsgenossenschaftStreet: '',
+  berufsgenossenschaftZip: '',
+  berufsgenossenschaftCity: '',
+  berufsgenossenschaftIk: '',
+  unfallversicherungName: '',
+  unfallversicherungStreet: '',
+  unfallversicherungZip: '',
+  unfallversicherungCity: '',
+  unfallversicherungIk: '',
+  sonstigerName: '',
+  sonstigerStreet: '',
+  sonstigerZip: '',
+  sonstigerCity: '',
   insuranceNumber: '',
   billingTypes: [],
   costBearerTypes: [],

@@ -5,7 +5,8 @@ import { FormScreenHero } from '@/components/forms';
 import {
   CareAddressSearch,
   CareCatalogSelect,
-  CareCostCarrierTemplateSearch,
+  CareCostBearerTypeFields,
+  orderedSelectedCostBearerTypes,
   CareDateInput,
   CareDocumentUpload,
   CareMultiCatalogSelect,
@@ -25,7 +26,7 @@ import {
 } from '@/components/ui';
 import { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard';
 import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
-import { submitClientIntake } from '@/lib/clients/clientIntakeService';
+import { COST_BEARER_FIELD_ERRORS } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { getServiceMode } from '@/lib/services/mode';
 import { spacing, typography } from '@/theme';
@@ -37,7 +38,7 @@ function StepContent({
   section: IntakeSectionKey;
   wizard: ReturnType<typeof useClientIntakeWizard>;
 }) {
-  const { form, errors, updateField, toggleCareContext, toggleArrayField, contextHint } = wizard;
+  const { form, errors, updateField, updateCostBearerTypes, replaceForm, toggleCareContext, toggleArrayField, contextHint } = wizard;
 
   if (section === 'leistungsart') {
     return (
@@ -113,6 +114,10 @@ function StepContent({
   }
 
   if (section === 'kostentraeger') {
+    const selectedCostBearerTypes = orderedSelectedCostBearerTypes(form.costBearerTypes);
+    const showInsuranceNumber = form.costBearerTypes.includes('pflegekasse')
+      || form.costBearerTypes.includes('krankenkasse');
+
     return (
       <SectionPanel title="Kostenträger / Abrechnung">
         <CareMultiCatalogSelect
@@ -126,47 +131,26 @@ function StepContent({
           catalogKey="cost_bearer_type"
           label="Kostenträgertyp"
           values={form.costBearerTypes}
-          onChange={(v) => updateField('costBearerTypes', v)}
+          onChange={(v) => updateCostBearerTypes(v)}
           error={errors.costBearerTypes}
         />
-        <CareCostCarrierTemplateSearch
-          label="Pflegekasse"
-          carrierType="pflegekasse"
-          values={{
-            name: form.careFundName,
-            street: form.careFundStreet,
-            zip: form.careFundZip,
-            city: form.careFundCity,
-            ikNumber: form.costBearerIk,
-          }}
-          onChange={(v) => {
-            updateField('careFundName', v.name);
-            updateField('careFundStreet', v.street);
-            updateField('careFundZip', v.zip);
-            updateField('careFundCity', v.city);
-            updateField('costBearerIk', v.ikNumber);
-          }}
-          error={errors.careFundName}
-        />
-        <CareCostCarrierTemplateSearch
-          label="Krankenkasse"
-          carrierType="krankenkasse"
-          values={{
-            name: form.healthInsurance,
-            street: form.healthInsuranceStreet,
-            zip: form.healthInsuranceZip,
-            city: form.healthInsuranceCity,
-            ikNumber: form.healthInsuranceIk,
-          }}
-          onChange={(v) => {
-            updateField('healthInsurance', v.name);
-            updateField('healthInsuranceStreet', v.street);
-            updateField('healthInsuranceZip', v.zip);
-            updateField('healthInsuranceCity', v.city);
-            updateField('healthInsuranceIk', v.ikNumber);
-          }}
-        />
-        <PremiumInput label="Versichertennummer / KVNR" value={form.insuranceNumber} onChangeText={(v) => updateField('insuranceNumber', v)} error={errors.insuranceNumber} />
+        {selectedCostBearerTypes.map((type) => (
+          <CareCostBearerTypeFields
+            key={type}
+            type={type}
+            form={form}
+            onChange={replaceForm}
+            error={errors[COST_BEARER_FIELD_ERRORS[type]]}
+          />
+        ))}
+        {showInsuranceNumber ? (
+          <PremiumInput
+            label="Versichertennummer / KVNR"
+            value={form.insuranceNumber}
+            onChangeText={(v) => updateField('insuranceNumber', v)}
+            error={errors.insuranceNumber}
+          />
+        ) : null}
       </SectionPanel>
     );
   }
@@ -360,8 +344,6 @@ export function ClientIntakeWizardScreen() {
     </CareLightPageShell>
   );
 }
-
-void submitClientIntake;
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },

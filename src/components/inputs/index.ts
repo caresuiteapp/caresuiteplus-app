@@ -8,5 +8,7 @@ export { CareDocumentUpload } from './CareDocumentUpload';
 export { CarePhotoCapturePrepared } from './CarePhotoCapturePrepared';
 export { CareCostCarrierTemplateSearch } from './CareCostCarrierTemplateSearch';
 export type { CostCarrierFieldValues } from './CareCostCarrierTemplateSearch';
+export { CareCostBearerManualFields } from './CareCostBearerManualFields';
+export { CareCostBearerTypeFields, orderedSelectedCostBearerTypes } from './CareCostBearerTypeFields';
 export { CareAddressSearch } from './CareAddressSearch';
 export type { AddressFieldValues } from './CareAddressSearch';
