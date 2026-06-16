@@ -14,6 +14,7 @@ import { upsertDemoClientIntakeRecord } from '@/data/demo/clients/intakeRecords'
 import { helgaSchneiderFull } from '@/data/demo/clients/helga-schneider';
 import { runService } from '@/lib/services/serviceRunner';
 import { assertDemoTenant, isDemoClientBackend } from './clientBackend';
+import { resolveIntakeBillingProfileType } from './clientIntakeBilling';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
   return getVisibleSectionsForClientContext(contexts);
@@ -50,8 +51,8 @@ export function validateIntakeStep(
   const required = getRequiredFieldsForClientContext(form.careContexts);
 
   if (section === 'kostentraeger') {
-    if (required.includes('billingType') && !form.billingType) {
-      errors.billingType = 'Abrechnungsart ist erforderlich.';
+    if (required.includes('billingTypes') && form.billingTypes.length === 0) {
+      errors.billingTypes = 'Abrechnungsart ist erforderlich.';
     }
     if (required.includes('careLevel') && !form.careLevel) {
       errors.careLevel = 'Pflegegrad ist erforderlich.';
@@ -135,6 +136,11 @@ function buildMinimalFullDetail(
   now: string,
 ): ClientFullDetail {
   const base = { ...helgaSchneiderFull };
+  const billingType = resolveIntakeBillingProfileType(form.billingTypes);
+  const careFundRef = form.costBearerIk
+    ? `IK ${form.costBearerIk}`
+    : [form.careFundStreet, form.careFundZip, form.careFundCity].filter(Boolean).join(', ') || null;
+
   return {
     ...base,
     id,
@@ -166,6 +172,37 @@ function buildMinimalFullDetail(
       createdAt: now,
       updatedAt: now,
     },
+    careLevels: form.careFundName.trim()
+      ? [{
+          id: `cl-${id}`,
+          tenantId: DEMO_TENANT_ID,
+          clientId: id,
+          grade: form.careLevel || 'kein',
+          validFrom: form.careLevelValidFrom || now.slice(0, 10),
+          validUntil: null,
+          careFundName: form.careFundName.trim(),
+          careFundMemberId: form.insuranceNumber.trim() || null,
+          mdAssessmentDate: null,
+          notes: [form.careFundStreet, form.careFundZip, form.careFundCity].filter(Boolean).join(', ') || null,
+          createdAt: now,
+          updatedAt: now,
+        }]
+      : base.careLevels,
+    billingProfile: form.billingTypes.length > 0 ? {
+      id: `bill-${id}`,
+      tenantId: DEMO_TENANT_ID,
+      clientId: id,
+      billingType,
+      hourlyRateCents: form.hourlyRate ? Math.round(parseFloat(form.hourlyRate.replace(',', '.')) * 100) : 3800,
+      serviceType: 'betreuung',
+      invoiceRecipient: form.careFundName.trim() || form.healthInsurance.trim() || null,
+      paymentTermsDays: 30,
+      costBearerName: form.careFundName.trim() || null,
+      costBearerReference: careFundRef,
+      notes: form.billingTypes.join(', '),
+      createdAt: now,
+      updatedAt: now,
+    } : base.billingProfile,
     careContexts: form.careContexts,
   } as import('@/types/modules/client').ClientFullDetail & { careContexts?: ClientCareContext[] };
 }

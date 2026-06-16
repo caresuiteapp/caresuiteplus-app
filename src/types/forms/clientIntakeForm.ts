@@ -32,11 +32,18 @@ export type ClientIntakeFormData = {
   careLevelStatus: string;
   careLevelValidFrom: string;
   careFundName: string;
+  careFundStreet: string;
+  careFundZip: string;
+  careFundCity: string;
   healthInsurance: string;
+  healthInsuranceStreet: string;
+  healthInsuranceZip: string;
+  healthInsuranceCity: string;
   costBearerIk: string;
+  healthInsuranceIk: string;
   insuranceNumber: string;
-  billingType: string;
-  costBearerType: string;
+  billingTypes: string[];
+  costBearerTypes: string[];
   selfPay: boolean;
   familyDoctor: string;
   consultingReason: string;
@@ -119,11 +126,18 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   careLevelStatus: '',
   careLevelValidFrom: '',
   careFundName: '',
+  careFundStreet: '',
+  careFundZip: '',
+  careFundCity: '',
   healthInsurance: '',
+  healthInsuranceStreet: '',
+  healthInsuranceZip: '',
+  healthInsuranceCity: '',
   costBearerIk: '',
+  healthInsuranceIk: '',
   insuranceNumber: '',
-  billingType: '',
-  costBearerType: '',
+  billingTypes: [],
+  costBearerTypes: [],
   selfPay: false,
   familyDoctor: '',
   consultingReason: '',

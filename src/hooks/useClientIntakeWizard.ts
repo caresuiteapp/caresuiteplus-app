@@ -1,10 +1,16 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import {
   INTAKE_SECTION_LABELS,
   getSupportOnlyHint,
   type IntakeSectionKey,
 } from '@/lib/clients/clientIntakeFieldRules';
+import {
+  clearClientIntakeDraft,
+  hasIntakeDraftContent,
+  loadClientIntakeDraft,
+  saveClientIntakeDraft,
+} from '@/lib/clients/clientIntakeDraftStorage';
 import {
   createEmptyIntakeForm,
   getIntakeStepsForContexts,
@@ -14,16 +20,31 @@ import {
 } from '@/lib/clients/clientIntakeService';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+
+const DRAFT_SAVE_DEBOUNCE_MS = 400;
+
+function clampStepIndex(stepIndex: number, contexts: ClientCareContext[]): number {
+  const steps = getIntakeStepsForContexts(contexts);
+  const maxIndex = Math.max(0, steps.length - 1);
+  return Math.min(Math.max(0, stepIndex), maxIndex);
+}
 
 export function useClientIntakeWizard() {
+  const { user, profile } = useAuth();
   const tenantId = useServiceTenantId();
+  const userId = user?.id ?? profile?.id ?? null;
+
   const [form, setForm] = useState<ClientIntakeFormData>(createEmptyIntakeForm());
   const [stepIndex, setStepIndex] = useState(0);
   const [errors, setErrors] = useState<ClientIntakeErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
+  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [draftRestored, setDraftRestored] = useState(false);
   const submitLock = useRef(false);
+  const skipNextSave = useRef(false);
 
   const steps = useMemo(
     () => getIntakeStepsForContexts(form.careContexts),
@@ -32,6 +53,52 @@ export function useClientIntakeWizard() {
 
   const currentSection = steps[stepIndex] ?? 'leistungsart';
   const contextHint = getSupportOnlyHint(form.careContexts);
+
+  useEffect(() => {
+    if (!userId || !tenantId) {
+      setDraftLoaded(true);
+      return;
+    }
+
+    let cancelled = false;
+
+    void loadClientIntakeDraft(userId, tenantId).then((draft) => {
+      if (cancelled) return;
+
+      if (draft) {
+        skipNextSave.current = true;
+        setForm(draft.form);
+        setStepIndex(clampStepIndex(draft.stepIndex, draft.form.careContexts));
+        setDraftRestored(true);
+      }
+
+      setDraftLoaded(true);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [userId, tenantId]);
+
+  useEffect(() => {
+    if (!draftLoaded || !userId || !tenantId || createdId) return;
+
+    if (skipNextSave.current) {
+      skipNextSave.current = false;
+      return;
+    }
+
+    const timer = setTimeout(() => {
+      void saveClientIntakeDraft(userId, tenantId, { form, stepIndex });
+    }, DRAFT_SAVE_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [form, stepIndex, draftLoaded, userId, tenantId, createdId]);
+
+  useEffect(() => {
+    if (stepIndex <= steps.length - 1) return;
+    setStepIndex(Math.max(0, steps.length - 1));
+  }, [stepIndex, steps.length]);
 
   const updateField = useCallback(
     <K extends keyof ClientIntakeFormData>(key: K, value: ClientIntakeFormData[K]) => {
@@ -71,6 +138,22 @@ export function useClientIntakeWizard() {
     });
   }, []);
 
+  const resetWizard = useCallback(() => {
+    setForm(createEmptyIntakeForm());
+    setStepIndex(0);
+    setErrors({});
+    setSubmitError(null);
+    setDraftRestored(false);
+  }, []);
+
+  const discardDraft = useCallback(async () => {
+    if (userId && tenantId) {
+      await clearClientIntakeDraft(userId, tenantId);
+    }
+    skipNextSave.current = true;
+    resetWizard();
+  }, [resetWizard, tenantId, userId]);
+
   const nextStep = useCallback(() => {
     const stepErrors = validateIntakeStep(currentSection, form);
     if (hasIntakeErrors(stepErrors)) {
@@ -109,12 +192,16 @@ export function useClientIntakeWizard() {
     submitLock.current = false;
 
     if (result.ok) {
+      if (userId) {
+        await clearClientIntakeDraft(userId, tenantId);
+      }
+      skipNextSave.current = true;
       setCreatedId(result.data.id);
       return result.data.id;
     }
     setSubmitError(result.error);
     return null;
-  }, [form, steps, submitting, tenantId]);
+  }, [form, steps, submitting, tenantId, userId]);
 
   return {
     form,
@@ -127,12 +214,17 @@ export function useClientIntakeWizard() {
     submitting,
     submitError,
     createdId,
+    draftLoaded,
+    draftRestored,
+    hasPersistedDraft: draftRestored || hasIntakeDraftContent({ form, stepIndex }),
     updateField,
     toggleCareContext,
     toggleArrayField,
     nextStep,
     prevStep,
     submit,
+    discardDraft,
+    resetWizard,
     isFirstStep: stepIndex === 0,
     isLastStep: stepIndex === steps.length - 1,
     isSuccess: createdId !== null,

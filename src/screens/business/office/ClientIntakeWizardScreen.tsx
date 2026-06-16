@@ -1,8 +1,10 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { confirmAction } from '@/lib/platform/confirmAction';
 import { FormScreenHero } from '@/components/forms';
 import {
   CareCatalogSelect,
+  CareCostCarrierTemplateSearch,
   CareDateInput,
   CareDocumentUpload,
   CareMultiCatalogSelect,
@@ -97,10 +99,57 @@ function StepContent({
   if (section === 'kostentraeger') {
     return (
       <SectionPanel title="Kostenträger / Abrechnung">
-        <CareCatalogSelect catalogKey="billing_type" label="Abrechnungsart *" value={form.billingType} onChange={(v) => updateField('billingType', v)} error={errors.billingType} />
-        <CareCatalogSelect catalogKey="cost_bearer_type" label="Kostenträgertyp" value={form.costBearerType} onChange={(v) => updateField('costBearerType', v)} />
-        <PremiumInput label="Pflegekasse" value={form.careFundName} onChangeText={(v) => updateField('careFundName', v)} error={errors.careFundName} />
-        <PremiumInput label="Krankenkasse" value={form.healthInsurance} onChangeText={(v) => updateField('healthInsurance', v)} />
+        <CareMultiCatalogSelect
+          catalogKey="billing_type"
+          label="Abrechnungsart *"
+          values={form.billingTypes}
+          onChange={(v) => updateField('billingTypes', v)}
+          error={errors.billingTypes}
+        />
+        <CareMultiCatalogSelect
+          catalogKey="cost_bearer_type"
+          label="Kostenträgertyp"
+          values={form.costBearerTypes}
+          onChange={(v) => updateField('costBearerTypes', v)}
+          error={errors.costBearerTypes}
+        />
+        <CareCostCarrierTemplateSearch
+          label="Pflegekasse"
+          carrierType="pflegekasse"
+          values={{
+            name: form.careFundName,
+            street: form.careFundStreet,
+            zip: form.careFundZip,
+            city: form.careFundCity,
+            ikNumber: form.costBearerIk,
+          }}
+          onChange={(v) => {
+            updateField('careFundName', v.name);
+            updateField('careFundStreet', v.street);
+            updateField('careFundZip', v.zip);
+            updateField('careFundCity', v.city);
+            updateField('costBearerIk', v.ikNumber);
+          }}
+          error={errors.careFundName}
+        />
+        <CareCostCarrierTemplateSearch
+          label="Krankenkasse"
+          carrierType="krankenkasse"
+          values={{
+            name: form.healthInsurance,
+            street: form.healthInsuranceStreet,
+            zip: form.healthInsuranceZip,
+            city: form.healthInsuranceCity,
+            ikNumber: form.healthInsuranceIk,
+          }}
+          onChange={(v) => {
+            updateField('healthInsurance', v.name);
+            updateField('healthInsuranceStreet', v.street);
+            updateField('healthInsuranceZip', v.zip);
+            updateField('healthInsuranceCity', v.city);
+            updateField('healthInsuranceIk', v.ikNumber);
+          }}
+        />
         <PremiumInput label="Versichertennummer / KVNR" value={form.insuranceNumber} onChangeText={(v) => updateField('insuranceNumber', v)} error={errors.insuranceNumber} />
       </SectionPanel>
     );
@@ -181,9 +230,12 @@ export function ClientIntakeWizardScreen() {
     submitting,
     submitError,
     createdId,
+    draftLoaded,
+    draftRestored,
     nextStep,
     prevStep,
     submit,
+    discardDraft,
     isFirstStep,
     isLastStep,
     isSuccess,
@@ -194,10 +246,41 @@ export function ClientIntakeWizardScreen() {
     if (id) setTimeout(() => router.replace(clientRecordRoute(id) as never), 1200);
   };
 
+  const handleCancel = async () => {
+    const confirmed = await confirmAction({
+      title: 'Aufnahme abbrechen?',
+      message: 'Der Entwurf wird verworfen. Alle eingegebenen Daten gehen verloren.',
+      confirmLabel: 'Verwerfen',
+      cancelLabel: 'Weiter bearbeiten',
+    });
+    if (!confirmed) return;
+    await discardDraft();
+    router.replace('/office/clients' as never);
+  };
+
+  const handleStartFresh = async () => {
+    const confirmed = await confirmAction({
+      title: 'Neu beginnen?',
+      message: 'Der gespeicherte Entwurf wird gelöscht und Sie starten bei Schritt 1.',
+      confirmLabel: 'Neu beginnen',
+      cancelLabel: 'Fortsetzen',
+    });
+    if (!confirmed) return;
+    await discardDraft();
+  };
+
   if (isSuccess && createdId) {
     return (
       <CareLightPageShell title="Aufnahme abgeschlossen" showBack={false}>
         <SuccessState message="Klient:in wurde aufgenommen. Weiterleitung zur Akte…" />
+      </CareLightPageShell>
+    );
+  }
+
+  if (!draftLoaded) {
+    return (
+      <CareLightPageShell title="Neuaufnahme" subtitle="Entwurf laden…">
+        <LoadingState message="Entwurf wird geladen…" />
       </CareLightPageShell>
     );
   }
@@ -232,6 +315,14 @@ export function ClientIntakeWizardScreen() {
       />
       <FormStepper steps={stepLabels} currentStep={stepIndex} />
       <ScrollView style={styles.scroll}>
+        {draftRestored ? (
+          <PremiumCard accentColor="#007AFF">
+            <Text style={styles.draftBanner}>
+              Entwurf wiederhergestellt — Sie setzen bei Schritt {stepIndex + 1} fort.
+            </Text>
+            <PremiumButton title="Neu beginnen" variant="ghost" onPress={handleStartFresh} />
+          </PremiumCard>
+        ) : null}
         {currentSection === 'leistungsart' && wizard.form.careContexts.length === 0 ? (
           <EmptyState
             title="Leistungsart wählen"
@@ -242,11 +333,12 @@ export function ClientIntakeWizardScreen() {
         {submitError ? <ErrorState message={submitError} /> : null}
       </ScrollView>
       <View style={styles.actions}>
+        <PremiumButton title="Abbrechen" variant="ghost" onPress={handleCancel} />
         {!isFirstStep ? <PremiumButton title="Zurück" variant="secondary" onPress={prevStep} /> : null}
         {isLastStep ? (
-          <PremiumButton title="Aufnahme abschließen" loading={submitting} onPress={handleSubmit} />
+          <PremiumButton title="Aufnahme abschließen" loading={submitting} onPress={handleSubmit} style={styles.primaryAction} />
         ) : (
-          <PremiumButton title="Weiter" onPress={nextStep} />
+          <PremiumButton title="Weiter" onPress={nextStep} style={styles.primaryAction} />
         )}
       </View>
     </CareLightPageShell>
@@ -257,7 +349,9 @@ void submitClientIntake;
 
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  actions: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
+  actions: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md, alignItems: 'center' },
+  primaryAction: { flex: 1 },
+  draftBanner: { ...typography.body, marginBottom: spacing.sm },
   hint: { ...typography.caption, marginTop: spacing.sm, color: '#666' },
   error: { color: '#c00', marginTop: spacing.xs },
   review: { ...typography.body, marginBottom: spacing.xs },

@@ -6,3 +6,5 @@ export { CareMultiCatalogSelect } from './CareMultiCatalogSelect';
 export { CareMedicationScheduleInput } from './CareMedicationScheduleInput';
 export { CareDocumentUpload } from './CareDocumentUpload';
 export { CarePhotoCapturePrepared } from './CarePhotoCapturePrepared';
+export { CareCostCarrierTemplateSearch } from './CareCostCarrierTemplateSearch';
+export type { CostCarrierFieldValues } from './CareCostCarrierTemplateSearch';
