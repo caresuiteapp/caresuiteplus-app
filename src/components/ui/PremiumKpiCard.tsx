@@ -11,6 +11,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { CareLightKpiCard } from './CareLightKpiCard';
+import type { CareKpiIconKey } from './CareKpiIcon';
 import { radius } from '@/theme';
 
 type Props = {
@@ -18,6 +19,7 @@ type Props = {
   value: string | number;
   subValue?: string;
   icon?: string;
+  iconKey?: CareKpiIconKey;
   accentColor?: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
@@ -30,6 +32,7 @@ export function PremiumKpiCard({
   value,
   subValue,
   icon,
+  iconKey,
   accentColor,
   trend,
   trendValue,
@@ -45,6 +48,7 @@ export function PremiumKpiCard({
         value={String(value)}
         subValue={subValue}
         icon={icon}
+        iconKey={iconKey}
         accentColor={accentColor}
         style={style}
       />

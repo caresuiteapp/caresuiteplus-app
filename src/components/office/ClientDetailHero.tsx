@@ -143,6 +143,7 @@ export function ClientDetailHero({
             value={kpi.value}
             subValue={kpi.subValue}
             icon={kpi.icon}
+            iconKey={kpi.iconKey}
             accentColor={kpi.accentColor}
             style={styles.kpiItem}
           />

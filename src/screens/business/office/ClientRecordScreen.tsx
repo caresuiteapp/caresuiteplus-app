@@ -200,6 +200,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
             value={kpi.value}
             subValue={kpi.subValue}
             icon={kpi.icon}
+            iconKey={kpi.iconKey}
             accentColor={kpi.accentColor ?? careLightColors.orange}
             style={styles.kpiItem}
           />

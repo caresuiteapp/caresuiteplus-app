@@ -10,6 +10,7 @@ export {
 export { ModuleTile } from './ModuleTile';
 export { CareLightCard } from './CareLightCard';
 export { CareLightKpiCard } from './CareLightKpiCard';
+export { CareKpiIcon, type CareKpiIconKey } from './CareKpiIcon';
 export { CareLightButton } from './CareLightButton';
 export { CareLightSection } from './CareLightSection';
 export { CareLightListItem } from './CareLightListItem';

@@ -3,12 +3,14 @@ import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { CareKpiIcon, type CareKpiIconKey } from './CareKpiIcon';
 
 type CareLightKpiCardProps = {
   label: string;
   value: string | number;
   subValue?: string;
   icon?: string;
+  iconKey?: CareKpiIconKey;
   accentColor?: string;
   style?: ViewStyle;
 };
@@ -18,13 +20,18 @@ export function CareLightKpiCard({
   value,
   subValue,
   icon,
+  iconKey,
   accentColor = careLightColors.green,
   style,
 }: CareLightKpiCardProps) {
   return (
     <View style={[styles.card, style]}>
       <View style={[styles.iconBadge, { backgroundColor: `${accentColor}18` }]}>
-        <Text style={styles.icon}>{icon ?? '📊'}</Text>
+        {iconKey ? (
+          <CareKpiIcon iconKey={iconKey} color={accentColor} size={18} />
+        ) : (
+          <Text style={styles.icon}>{icon ?? '📊'}</Text>
+        )}
       </View>
       <Text style={styles.label}>{label}</Text>
       <Text style={[styles.value, { color: accentColor }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
