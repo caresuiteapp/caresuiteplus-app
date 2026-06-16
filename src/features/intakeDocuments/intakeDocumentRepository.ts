@@ -204,7 +204,7 @@ export async function persistIntakeDocumentsForClient(
       .single();
 
     if (docError || !inserted) {
-      return { ok: false, error: docError?.message ?? 'Dokument speichern fehlgeschlagen.' };
+      return { ok: false, error: toGermanSupabaseError(docError) };
     }
 
     await db.from('client_document_events').insert({

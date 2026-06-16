@@ -314,4 +314,16 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(migration).toContain('client_consent_status');
     expect(migration).toContain('GRANT SELECT ON public.intake_document_system_templates');
   });
+
+  it('28. Migration 0060 erlaubt Klient:innen-Anlage bei Intake-Abschluss', () => {
+    const migration = readFileSync(
+      path.join(srcRoot, '..', 'supabase', 'migrations', '0060_intake_completion_rls_grants.sql'),
+      'utf8',
+    );
+    expect(migration).toContain('clients_insert_tenant');
+    expect(migration).toContain("has_permission('office.clients.create')");
+    expect(migration).toContain('GRANT SELECT, INSERT, UPDATE ON public.clients TO authenticated');
+    expect(migration).toContain('client_intake_documents');
+    expect(migration).toContain('client_cost_carrier_assignments');
+  });
 });
