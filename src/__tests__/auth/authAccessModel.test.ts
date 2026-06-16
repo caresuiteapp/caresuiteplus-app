@@ -14,7 +14,7 @@ import {
 } from '@/lib/auth/employeePortalAuthService';
 import {
   generateClientPortalCode,
-  validatePortalCodeLogin,
+  loginClientPortal,
   blockPortalCode,
   regeneratePortalCode,
 } from '@/lib/auth/clientPortalAuthService';
@@ -147,16 +147,24 @@ describe('authAccessModel', () => {
     const created = await generateClientPortalCode({
       tenantId: DEMO_TENANT_ID,
       clientId: 'client-001',
+      firstName: 'Helga',
+      lastName: 'Schneider',
       createdBy: null,
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const login = await validatePortalCodeLogin(created.data.credentials.portalCode!, 'client');
+    const login = await loginClientPortal(
+      created.data.credentials.username!,
+      created.data.credentials.portalCode!,
+    );
     expect(login.ok).toBe(true);
 
     await blockPortalCode(created.data.code.id, null, 'Test');
-    const blockedLogin = await validatePortalCodeLogin(created.data.credentials.portalCode!, 'client');
+    const blockedLogin = await loginClientPortal(
+      created.data.credentials.username!,
+      created.data.credentials.portalCode!,
+    );
     expect(blockedLogin.ok).toBe(false);
   });
 
@@ -164,16 +172,18 @@ describe('authAccessModel', () => {
     const created = await generateClientPortalCode({
       tenantId: DEMO_TENANT_ID,
       clientId: 'client-002',
+      firstName: 'Werner',
+      lastName: 'Mueller',
       createdBy: null,
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
     const oldCode = created.data.credentials.portalCode!;
-    const regenerated = await regeneratePortalCode(created.data.code.id, 'client');
+    const regenerated = await regeneratePortalCode(created.data.code.id, 'client', 'Werner', 'Mueller');
     expect(regenerated.ok).toBe(true);
 
-    const oldLogin = await validatePortalCodeLogin(oldCode, 'client');
+    const oldLogin = await loginClientPortal(created.data.credentials.username!, oldCode);
     expect(oldLogin.ok).toBe(false);
   });
 

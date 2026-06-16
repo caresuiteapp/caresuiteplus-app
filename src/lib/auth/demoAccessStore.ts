@@ -44,6 +44,19 @@ export function getEmployeePortalAccounts(tenantId: string): EmployeePortalAccou
   return [...(employeeAccounts.get(tenantKey(tenantId)) ?? [])];
 }
 
+export function listClientPortalUsernames(tenantId: string): string[] {
+  return getClientPortalCodes(tenantId).map((entry) => entry.username);
+}
+
+export function findClientPortalCodeByUsername(
+  tenantId: string,
+  username: string,
+): ClientPortalCode | undefined {
+  return getClientPortalCodes(tenantId).find(
+    (entry) => entry.username.toLowerCase() === username.trim().toLowerCase(),
+  );
+}
+
 export function getClientPortalCodes(tenantId: string): ClientPortalCode[] {
   return [...(clientPortalCodes.get(tenantKey(tenantId)) ?? [])];
 }

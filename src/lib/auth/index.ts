@@ -46,6 +46,7 @@ export {
 } from './employeePortalAuthService';
 export {
   generateClientPortalCode,
+  loginClientPortal,
   validatePortalCodeLogin,
   regeneratePortalCode,
   blockPortalCode,
@@ -64,6 +65,13 @@ export {
   sanitizeUsername,
   validateUsername,
 } from './usernameGenerator';
+
+export {
+  generateClientPortalUsername,
+  pickUniqueClientPortalUsername,
+  buildClientPortalUsernameCandidates,
+  validateClientPortalUsername,
+} from './clientPortalUsernameGenerator';
 
 export {
   generateTemporaryPassword,

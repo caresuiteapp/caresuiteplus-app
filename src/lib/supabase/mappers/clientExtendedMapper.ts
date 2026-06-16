@@ -22,6 +22,7 @@ import type {
 } from '@/types/modules/client';
 import type { DataVisibilityScope, SensitivityLevel } from '@/types/portal/visibility';
 import { mapClientDetail } from './clientMapper';
+import { mergeClientRecordDocuments } from '@/lib/clients/clientDocumentMerge';
 import type { WorkflowStatus } from '@/types/core/base';
 import type {
   ClientAuditRow,
@@ -441,10 +442,14 @@ type PortalAccessRow = {
   tenant_id: string;
   client_id: string;
   contact_id: string | null;
-  email: string;
+  email: string | null;
+  portal_username: string | null;
+  portal_enabled: boolean | null;
   status: ClientPortalAccess['status'];
   last_login_at: string | null;
   invited_at: string | null;
+  code_created_at: string | null;
+  code_rotated_at: string | null;
   modules_enabled: string[];
   two_factor_enabled: boolean;
   created_at: string;
@@ -452,15 +457,22 @@ type PortalAccessRow = {
 };
 
 export function mapClientPortalAccess(row: PortalAccessRow): ClientPortalAccess {
+  const status =
+    row.status === 'eingeladen' ? 'nicht_eingerichtet' : row.status;
+
   return {
     id: row.id,
     tenantId: row.tenant_id,
     clientId: row.client_id,
     contactId: row.contact_id,
     email: row.email,
-    status: row.status,
+    portalUsername: row.portal_username,
+    portalEnabled: row.portal_enabled ?? false,
+    status,
     lastLoginAt: row.last_login_at,
     invitedAt: row.invited_at,
+    codeCreatedAt: row.code_created_at,
+    codeRotatedAt: row.code_rotated_at,
     modulesEnabled: row.modules_enabled ?? [],
     twoFactorEnabled: row.two_factor_enabled,
     createdAt: row.created_at,
@@ -544,6 +556,7 @@ export function mapClientFullDetail(input: {
   billingProfiles: unknown[];
   contracts: unknown[];
   documents: unknown[];
+  intakeDocuments?: unknown[];
   notes: unknown[];
   risks: unknown[];
   portalAccess: unknown[];
@@ -560,6 +573,7 @@ export function mapClientFullDetail(input: {
   const billingProfiles = input.billingProfiles as BillingProfileRow[];
   const contracts = input.contracts as ContractRow[];
   const documents = input.documents as DocumentRow[];
+  const intakeDocuments = (input.intakeDocuments ?? []) as Parameters<typeof mergeClientRecordDocuments>[1];
   const notes = input.notes as NoteRow[];
   const risks = input.risks as RiskRow[];
   const portalAccess = input.portalAccess as PortalAccessRow[];
@@ -579,9 +593,14 @@ export function mapClientFullDetail(input: {
   };
   const base: ClientDetail = mapClientDetail(detailRow);
   const core = mapClientCore(input.client);
+  const mergedDocuments = mergeClientRecordDocuments(
+    documents.map(mapClientDocument),
+    intakeDocuments,
+  );
 
   return {
     ...base,
+    admissionDate: typeof input.client.admission_date === 'string' ? input.client.admission_date : null,
     core,
     lifecycleStatus: core.lifecycleStatus,
     addresses: addresses.map(mapClientAddress),
@@ -595,9 +614,13 @@ export function mapClientFullDetail(input: {
     emergencyPlan: null,
     consents: consents.map((row) => mapClientConsentExtended(row as ClientConsentRow & { consent_type?: ConsentType | null })),
     portalAccess: portalAccess.map(mapClientPortalAccess),
-    documents: documents.map(mapClientDocument),
+    documents: mergedDocuments,
     tasks: tasks.map(mapClientTask),
     timeline: timeline.map(mapClientTimelineEvent),
     internalNotes: notes.filter((n) => n.is_internal).map(mapClientInternalNote),
+    contextCounts: {
+      ...base.contextCounts,
+      documents: mergedDocuments.length,
+    },
   };
 }

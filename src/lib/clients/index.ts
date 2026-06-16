@@ -11,7 +11,7 @@ export { fetchClientBilling, updateClientBillingProfile } from './clientBillingS
 export { fetchClientConsents, updateClientConsent, hasRequiredConsents } from './clientConsentsService';
 export { fetchClientTasks, addClientTaskFromCatalog, getTaskCatalog } from './clientTasksService';
 export { fetchClientRisks, addClientRisk } from './clientRisksService';
-export { fetchClientPortalAccess, invitePortalAccess } from './clientPortalAccessService';
+export { fetchClientPortalAccess, setupClientPortalAccess, regenerateClientPortalAccessCode } from './clientPortalAccessService';
 export { fetchClientTimeline, addTimelineEvent } from './clientTimelineService';
 export {
   getRequiredFieldsForClientContext,

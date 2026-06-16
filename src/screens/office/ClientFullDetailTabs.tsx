@@ -276,14 +276,24 @@ export function PortalTab({ client }: { client: ClientFullDetail }) {
     <View style={styles.tab}>
       <SectionPanel title="Portal-Zugänge">
         {client.portalAccess.length === 0 ? (
-          <Text style={styles.empty}>Keine Portal-Zugänge eingerichtet.</Text>
+          <Text style={styles.empty}>Kein Portal-Zugang eingerichtet.</Text>
         ) : (
           client.portalAccess.map((p) => (
             <PremiumCard key={p.id} style={styles.card}>
-              <Text style={styles.cardTitle}>{p.email}</Text>
-              <PremiumBadge label={PORTAL_ACCESS_STATUS_LABELS[p.status]} variant={p.status === 'aktiv' ? 'green' : 'muted'} dot />
+              <Text style={styles.cardTitle}>{p.portalUsername ?? '—'}</Text>
+              <PremiumBadge
+                label={
+                  p.portalEnabled
+                    ? PORTAL_ACCESS_STATUS_LABELS[p.status]
+                    : PORTAL_ACCESS_STATUS_LABELS.nicht_eingerichtet
+                }
+                variant={p.portalEnabled && p.status === 'aktiv' ? 'green' : 'muted'}
+                dot
+              />
               <Text style={styles.meta}>Module: {p.modulesEnabled.join(', ') || '—'}</Text>
-              {p.lastLoginAt ? <Text style={styles.meta}>Letzter Login: {new Date(p.lastLoginAt).toLocaleDateString('de-DE')}</Text> : null}
+              {p.lastLoginAt ? (
+                <Text style={styles.meta}>Letzter Login: {new Date(p.lastLoginAt).toLocaleDateString('de-DE')}</Text>
+              ) : null}
             </PremiumCard>
           ))
         )}

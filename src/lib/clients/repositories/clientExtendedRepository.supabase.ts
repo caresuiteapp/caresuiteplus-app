@@ -29,6 +29,11 @@ import {
 } from '@/lib/supabase/mappers';
 import type { ClientContactRow, ClientExtendedRow } from '@/lib/supabase/rowTypes';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
+import {
+  mergeClientRecordDocuments,
+} from '@/lib/clients/clientDocumentMerge';
+import { promoteFinalizedIntakeDocumentsToClientRecord } from '@/features/intakeDocuments/intakeDocumentRepository';
 import type { ClientContactInput } from '../clientContactsService';
 
 function castRows(rows: unknown[] | null | undefined): Record<string, unknown>[] {
@@ -86,6 +91,7 @@ async function loadFullDetailParts(
     billingProfiles,
     contracts,
     documents,
+    intakeDocuments,
     notes,
     risks,
     portalAccess,
@@ -102,6 +108,7 @@ async function loadFullDetailParts(
     fromUnknownTable(supabase, 'client_billing_profiles').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_contracts').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_documents').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
+    fromUnknownTable(supabase, 'client_intake_documents').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_notes').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_risks').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
     fromUnknownTable(supabase, 'client_portal_access').select('*').eq('client_id', clientId).eq('tenant_id', tenantId),
@@ -124,6 +131,7 @@ fromUnknownTable(supabase, 'client_timeline_events')
     billingProfiles.error ??
     contracts.error ??
     documents.error ??
+    intakeDocuments.error ??
     notes.error ??
     risks.error ??
     portalAccess.error ??
@@ -148,6 +156,7 @@ fromUnknownTable(supabase, 'client_timeline_events')
       billingProfiles: castRows(billingProfiles.data),
       contracts: castRows(contracts.data),
       documents: castRows(documents.data),
+      intakeDocuments: castRows(intakeDocuments.data),
       notes: castRows(notes.data),
       risks: castRows(risks.data),
       portalAccess: castRows(portalAccess.data),
@@ -610,8 +619,9 @@ export const supabaseClientExtendedRepository = {
         client_id: clientId,
         contact_id: contactId ?? null,
         email,
-        status: 'eingeladen',
+        status: 'nicht_eingerichtet',
         invited_at: now,
+        portal_enabled: false,
         modules_enabled: ['appointments', 'messages', 'documents'],
         two_factor_enabled: false,
       })
@@ -622,6 +632,110 @@ export const supabaseClientExtendedRepository = {
     return { ok: true, data: mapClientPortalAccess(castRow(data) as Parameters<typeof mapClientPortalAccess>[0]) };
   },
 
+  async listPortalUsernames(tenantId: string): Promise<string[]> {
+    const supabase = getClient();
+    if (!supabase) return [];
+
+    const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
+      .select('portal_username')
+      .eq('tenant_id', tenantId)
+      .not('portal_username', 'is', null);
+
+    if (error) return [];
+    return castRows(data)
+      .map((row) => String((row as { portal_username?: string }).portal_username ?? ''))
+      .filter(Boolean);
+  },
+
+  async setupPortalAccess(input: {
+    tenantId: string;
+    clientId: string;
+    username: string;
+    codeHash: string;
+  }): Promise<ServiceResult<ClientPortalAccess>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const exists = await assertClientExists(input.tenantId, input.clientId);
+    if (!exists.ok) return exists;
+
+    const now = new Date().toISOString();
+    const { data: existingRows } = await fromUnknownTable(supabase, 'client_portal_access')
+      .select('*')
+      .eq('tenant_id', input.tenantId)
+      .eq('client_id', input.clientId)
+      .limit(1);
+
+    const existing = castRows(existingRows)[0] as Record<string, unknown> | undefined;
+
+    const payload = {
+      portal_username: input.username,
+      portal_access_code_hash: input.codeHash,
+      portal_enabled: true,
+      status: 'aktiv',
+      code_created_at: now,
+      code_rotated_at: null,
+      email: null,
+      updated_at: now,
+    };
+
+    const query = existing
+      ? fromUnknownTable(supabase, 'client_portal_access')
+          .update(payload)
+          .eq('id', existing.id as string)
+      : fromUnknownTable(supabase, 'client_portal_access').insert({
+          tenant_id: input.tenantId,
+          client_id: input.clientId,
+          contact_id: null,
+          modules_enabled: ['appointments', 'messages', 'documents'],
+          two_factor_enabled: false,
+          invited_at: null,
+          ...payload,
+        });
+
+    const { data, error } = await query.select('*').single();
+    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const access = mapClientPortalAccess(castRow(data) as Parameters<typeof mapClientPortalAccess>[0]);
+    return { ok: true, data: access };
+  },
+
+  async regeneratePortalAccessCode(input: {
+    tenantId: string;
+    clientId: string;
+    accessId: string;
+    codeHash: string;
+  }): Promise<ServiceResult<ClientPortalAccess>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const exists = await assertClientExists(input.tenantId, input.clientId);
+    if (!exists.ok) return exists;
+
+    const now = new Date().toISOString();
+    const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
+      .update({
+        portal_access_code_hash: input.codeHash,
+        portal_enabled: true,
+        status: 'aktiv',
+        code_rotated_at: now,
+        updated_at: now,
+      })
+      .eq('tenant_id', input.tenantId)
+      .eq('client_id', input.clientId)
+      .eq('id', input.accessId)
+      .select('*')
+      .single();
+
+    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
+    const access = mapClientPortalAccess(castRow(data) as Parameters<typeof mapClientPortalAccess>[0]);
+    if (!access.portalUsername) {
+      return { ok: false, error: 'Portal-Zugang ist nicht eingerichtet.' };
+    }
+
+    return { ok: true, data: access };
+  },
+
   async fetchDocuments(tenantId: string, clientId: string): Promise<ServiceResult<ClientFullDetail['documents']>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
@@ -629,16 +743,98 @@ export const supabaseClientExtendedRepository = {
     const exists = await assertClientExists(tenantId, clientId);
     if (!exists.ok) return exists;
 
-    const { data, error } = await fromUnknownTable(supabase, 'client_documents')
-      .select('*')
+    await promoteFinalizedIntakeDocumentsToClientRecord(tenantId, clientId);
+
+    const [documents, intakeDocuments] = await Promise.all([
+      fromUnknownTable(supabase, 'client_documents')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false }),
+      fromUnknownTable(supabase, 'client_intake_documents')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .order('updated_at', { ascending: false }),
+    ]);
+
+    if (documents.error) return { ok: false, error: toGermanSupabaseError(documents.error) };
+    if (intakeDocuments.error) return { ok: false, error: toGermanSupabaseError(intakeDocuments.error) };
+
+    const merged = mergeClientRecordDocuments(
+      castRows(documents.data).map((row) => mapClientDocument(row as Parameters<typeof mapClientDocument>[0])),
+      castRows(intakeDocuments.data) as Parameters<typeof mergeClientRecordDocuments>[1],
+    );
+
+    return { ok: true, data: merged };
+  },
+
+  async fetchCareContexts(tenantId: string, clientId: string): Promise<ServiceResult<ClientCareContext[]>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const exists = await assertClientExists(tenantId, clientId);
+    if (!exists.ok) return exists;
+
+    const { data, error } = await fromUnknownTable(supabase, 'client_care_contexts')
+      .select('context_key, is_primary')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
+      .order('is_primary', { ascending: false });
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const contexts = castRows(data)
+      .map((row) => String((row as { context_key: string }).context_key) as ClientCareContext)
+      .filter(Boolean);
+
+    return { ok: true, data: contexts.length > 0 ? contexts : ['daily_assistance'] };
+  },
+
+  async insertDocument(
+    tenantId: string,
+    clientId: string,
+    input: {
+      title: string;
+      fileName: string;
+      mimeType: string;
+      category: ClientFullDetail['documents'][number]['category'];
+      storagePath: string;
+      sizeBytes?: number;
+      uploadedBy?: string | null;
+    },
+  ): Promise<ServiceResult<ClientFullDetail['documents'][number]>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const exists = await assertClientExists(tenantId, clientId);
+    if (!exists.ok) return exists;
+
+    const { data, error } = await fromUnknownTable(supabase, 'client_documents')
+      .insert({
+        tenant_id: tenantId,
+        client_id: clientId,
+        title: input.title,
+        file_name: input.fileName,
+        mime_type: input.mimeType,
+        category: input.category,
+        storage_path: input.storagePath,
+        status: 'aktiv',
+        sensitivity: 'care',
+        source: 'upload',
+        size_bytes: input.sizeBytes ?? null,
+        uploaded_by: input.uploadedBy ?? null,
+      })
+      .select('*')
+      .single();
+
+    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
     return {
       ok: true,
-      data: castRows(data).map((row) => mapClientDocument(row as Parameters<typeof mapClientDocument>[0])),
+      data: {
+        ...mapClientDocument(castRow(data) as Parameters<typeof mapClientDocument>[0]),
+        documentSource: 'upload',
+      },
     };
   },
 

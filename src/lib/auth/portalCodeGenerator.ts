@@ -1,10 +1,19 @@
 import { PORTAL_CODE_CHARSET, PORTAL_CODE_LENGTH } from './auth.types';
 import { hashSecret, verifySecret } from './passwordHash';
 
+function randomCharsetIndex(max: number): number {
+  if (typeof crypto !== 'undefined' && crypto.getRandomValues) {
+    const bucket = new Uint32Array(1);
+    crypto.getRandomValues(bucket);
+    return (bucket[0] ?? 0) % max;
+  }
+  return Math.floor(Math.random() * max);
+}
+
 export function generatePortalCode(length = PORTAL_CODE_LENGTH): string {
   let code = '';
   for (let index = 0; index < length; index += 1) {
-    const charIndex = Math.floor(Math.random() * PORTAL_CODE_CHARSET.length);
+    const charIndex = randomCharsetIndex(PORTAL_CODE_CHARSET.length);
     code += PORTAL_CODE_CHARSET[charIndex] ?? 'A';
   }
   return code;

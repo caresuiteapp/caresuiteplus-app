@@ -203,8 +203,9 @@ export const wernerMuellerFull: ClientFullDetail = {
   portalAccess: [
     {
       id: 'portal-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
-      contactId: 'contact-wm-1', email: 'klaus.mueller@demo.app', status: 'aktiv',
-      lastLoginAt: daysAgo(1), invitedAt: daysAgo(60),
+      contactId: 'contact-wm-1', email: null, portalUsername: 'werner.mueller',
+      portalEnabled: true, status: 'aktiv',
+      lastLoginAt: daysAgo(1), invitedAt: null, codeCreatedAt: daysAgo(60), codeRotatedAt: null,
       modulesEnabled: ['appointments', 'messages', 'documents', 'careplan', 'billing'],
       twoFactorEnabled: true, createdAt: daysAgo(60), updatedAt: now,
     },

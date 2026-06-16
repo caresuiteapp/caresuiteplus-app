@@ -191,8 +191,9 @@ export const helgaSchneiderFull: ClientFullDetail = {
   portalAccess: [
     {
       id: 'portal-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
-      contactId: 'contact-hs-1', email: 'petra.schneider@demo.app', status: 'aktiv',
-      lastLoginAt: daysAgo(3), invitedAt: daysAgo(30),
+      contactId: 'contact-hs-1', email: null, portalUsername: 'helga.schneider',
+      portalEnabled: true, status: 'aktiv',
+      lastLoginAt: daysAgo(3), invitedAt: null, codeCreatedAt: daysAgo(30), codeRotatedAt: null,
       modulesEnabled: ['appointments', 'messages', 'documents', 'careplan'],
       twoFactorEnabled: false, createdAt: daysAgo(30), updatedAt: now,
     },

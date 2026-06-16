@@ -1,10 +1,16 @@
 import type { TenantScopedEntity } from '../../core/base';
 
-export type PortalAccessStatus = 'aktiv' | 'eingeladen' | 'gesperrt' | 'deaktiviert';
+export type PortalAccessStatus =
+  | 'aktiv'
+  | 'nicht_eingerichtet'
+  | 'gesperrt'
+  | 'deaktiviert'
+  | 'eingeladen';
 
 export const PORTAL_ACCESS_STATUS_LABELS: Record<PortalAccessStatus, string> = {
   aktiv: 'Aktiv',
-  eingeladen: 'Eingeladen',
+  nicht_eingerichtet: 'Noch nicht eingerichtet',
+  eingeladen: 'Noch nicht eingerichtet',
   gesperrt: 'Gesperrt',
   deaktiviert: 'Deaktiviert',
 };
@@ -12,10 +18,19 @@ export const PORTAL_ACCESS_STATUS_LABELS: Record<PortalAccessStatus, string> = {
 export type ClientPortalAccess = TenantScopedEntity & {
   clientId: string;
   contactId: string | null;
-  email: string;
+  email: string | null;
+  portalUsername: string | null;
+  portalEnabled: boolean;
   status: PortalAccessStatus;
   lastLoginAt: string | null;
   invitedAt: string | null;
+  codeCreatedAt: string | null;
+  codeRotatedAt: string | null;
   modulesEnabled: string[];
   twoFactorEnabled: boolean;
+};
+
+export type ClientPortalCredentialsReveal = {
+  username: string;
+  accessCode: string;
 };

@@ -8,8 +8,9 @@ import {
   PremiumButton,
   SuccessState,
 } from '@/design/components';
-import { validatePortalCodeLogin } from '@/lib/auth/clientPortalAuthService';
+import { loginClientPortal } from '@/lib/auth/clientPortalAuthService';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
+import { sanitizeUsername } from '@/lib/auth/usernameGenerator';
 import { useAuth } from '@/lib/auth/context';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -20,6 +21,7 @@ function openHelp() {
 
 export function PortalCodeLoginScreen() {
   const { signInDemo, signInPortalSession } = useAuth();
+  const [username, setUsername] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -29,7 +31,7 @@ export function PortalCodeLoginScreen() {
     setError(null);
     setSuccess(false);
     setLoading(true);
-    const result = await validatePortalCodeLogin(code, 'client');
+    const result = await loginClientPortal(username, code);
     setLoading(false);
 
     if (!result.ok) {
@@ -43,7 +45,7 @@ export function PortalCodeLoginScreen() {
       } else if (isDemoMode()) {
         await signInDemo('client_portal');
       } else {
-        setError('Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie den Portal-Code.');
+        setError('Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Benutzername und Zugangscode.');
         return;
       }
       setSuccess(true);
@@ -54,15 +56,22 @@ export function PortalCodeLoginScreen() {
 
   return (
     <AuthLayout
-      title="Klient:innen / Angehörige"
-      subtitle="Portal-Code oder Einladung von Ihrer Einrichtung"
+      title="Klient:innenportal"
+      subtitle="Benutzername und Zugangscode von Ihrer Einrichtung"
       keyboardAvoiding
     >
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
       {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
       <GlassCard>
         <InputField
-          label="Portal-Code oder Einladung"
+          label="Benutzername"
+          value={username}
+          onChangeText={(value) => setUsername(sanitizeUsername(value))}
+          autoCapitalize="none"
+          autoCorrect={false}
+        />
+        <InputField
+          label="Zugangscode"
           value={code}
           onChangeText={(value) => setCode(normalizePortalCodeInput(value))}
           autoCapitalize="characters"

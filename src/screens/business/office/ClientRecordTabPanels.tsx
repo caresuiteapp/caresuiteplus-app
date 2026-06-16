@@ -1,7 +1,5 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { CareCatalogSelect } from '@/components/inputs';
 import {
   EmptyState,
   ErrorState,
@@ -21,9 +19,10 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { createContractFromTemplate, fetchClientContracts } from '@/lib/clients/clientContractsService';
 import { fetchClientConsents, updateClientConsent } from '@/lib/clients/clientConsentsService';
-import { listClientDocuments, uploadClientDocument } from '@/lib/clients/clientDocumentsService';
+import { ClientRecordDocumentsPanel } from '@/components/office/ClientRecordDocumentsPanel';
 import { addClientMedication, fetchClientMedications } from '@/lib/clients/clientMedicationService';
-import { fetchClientPortalAccess, invitePortalAccess } from '@/lib/clients/clientPortalAccessService';
+import { fetchClientPortalAccess } from '@/lib/clients/clientPortalAccessService';
+import { ClientPortalAccessPanel } from '@/components/clients/ClientPortalAccessPanel';
 import { addTimelineEvent, fetchClientTimeline } from '@/lib/clients/clientTimelineService';
 import { addClientVital, fetchClientVitals } from '@/lib/clients/clientVitalsService';
 import { fetchClientTasks, addClientTaskFromCatalog } from '@/lib/clients/clientTasksService';
@@ -33,11 +32,9 @@ import { PRODUCT_LABELS } from '@/data/demo/products';
 import { TASK_CATALOG } from '@/data/demo/clients';
 import {
   AngehoerigeTab,
-  DokumenteTab,
   EinwilligungenTab,
   EinsatzAufgabenTab,
   PflegegradBudgetTab,
-  PortalTab,
   RisikenNotfallTab,
   VerlaufTab,
   VertragAbrechnungTab,
@@ -66,77 +63,6 @@ function useClientTabQuery<T>(
     },
     [tenantId, clientId],
     { enabled: enabled && !!tenantId && !!clientId },
-  );
-}
-
-export function ClientRecordDocumentsPanel({ clientId, fullClient, onRecordRefresh }: TabPanelProps) {
-  const router = useRouter();
-  const { isReadOnly } = usePermissions();
-  const tenantId = useServiceTenantId();
-  const [title, setTitle] = useState('');
-  const [category, setCategory] = useState('vertrag');
-  const [fileName, setFileName] = useState('');
-  const [working, setWorking] = useState(false);
-  const [message, setMessage] = useState<string | null>(null);
-
-  const query = useClientTabQuery(clientId, listClientDocuments);
-
-  async function handleUpload() {
-    if (!tenantId || isReadOnly || !title.trim() || !fileName.trim()) return;
-    setWorking(true);
-    setMessage(null);
-    const result = await uploadClientDocument(tenantId, clientId, {
-      title: title.trim(),
-      category,
-      fileName: fileName.trim(),
-      mimeType: 'application/pdf',
-    });
-    setWorking(false);
-    if (!result.ok) {
-      setMessage(result.error);
-      return;
-    }
-    setTitle('');
-    setFileName('');
-    setMessage('Dokument hochgeladen.');
-    await query.refresh();
-    onRecordRefresh?.();
-  }
-
-  if (query.loading && !query.data) return <LoadingState message="Dokumente werden geladen…" />;
-  if (query.error && !query.data) return <ErrorState message={query.error} onRetry={query.refresh} />;
-
-  const documents = query.data ?? fullClient?.documents ?? [];
-
-  return (
-    <View style={styles.panel}>
-      {message ? <SuccessState message={message} /> : null}
-      <SectionPanel title="Dokumente in Akte">
-        {documents.length === 0 ? (
-          <EmptyState title="Keine Dokumente" message="Laden Sie ein Dokument hoch oder generieren Sie eines aus Vorlagen." />
-        ) : (
-          documents.map((doc) => (
-            <PremiumCard key={doc.id} style={styles.card}>
-              <Text style={styles.primary}>{doc.title}</Text>
-              <Text style={styles.secondary}>{doc.fileName} · {doc.category} · {doc.status}</Text>
-            </PremiumCard>
-          ))
-        )}
-      </SectionPanel>
-      {!isReadOnly ? (
-        <SectionPanel title="Dokument hochladen">
-          <PremiumInput label="Titel *" value={title} onChangeText={setTitle} />
-          <CareCatalogSelect catalogKey="document_category" label="Kategorie" value={category} onChange={setCategory} />
-          <PremiumInput label="Dateiname *" value={fileName} onChangeText={setFileName} placeholder="vertrag.pdf" />
-          <PremiumButton title={working ? 'Speichern…' : 'In Akte speichern'} onPress={handleUpload} disabled={working} />
-        </SectionPanel>
-      ) : null}
-      <PremiumButton
-        title="Rechtliche Dokumente (Vorlage → Signatur)"
-        variant="secondary"
-        onPress={() => router.push(`/business/office/clients/${clientId}/documents` as never)}
-      />
-    </View>
   );
 }
 
@@ -339,6 +265,7 @@ export function ClientRecordVitalsPanel({ clientId, onRecordRefresh }: TabPanelP
 
 export function ClientRecordTimelinePanel({ clientId }: TabPanelProps) {
   const { isReadOnly } = usePermissions();
+  const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [note, setNote] = useState('');
   const query = useClientTabQuery(clientId, (tid, cid) => fetchClientTimeline(tid, cid));
@@ -348,7 +275,7 @@ export function ClientRecordTimelinePanel({ clientId }: TabPanelProps) {
     await addTimelineEvent(tenantId, clientId, {
       title: note.trim(),
       subtitle: 'Office-Eintrag',
-      actorName: 'Office Demo',
+      actorName: profile?.displayName ?? 'Office',
       timestamp: new Date().toISOString(),
       icon: '📝',
       status: 'aktiv',
@@ -429,27 +356,17 @@ export function ClientRecordModulesPanel({ clientId }: TabPanelProps) {
 export function ClientRecordPortalPanel({ clientId, fullClient, onRecordRefresh }: TabPanelProps) {
   const { isReadOnly } = usePermissions();
   const tenantId = useServiceTenantId();
-  const [email, setEmail] = useState('');
   const query = useClientTabQuery(clientId, fetchClientPortalAccess);
 
-  async function handleInvite() {
-    if (!tenantId || isReadOnly || !email.trim()) return;
-    await invitePortalAccess(tenantId, clientId, email.trim());
-    setEmail('');
-    await query.refresh();
-    onRecordRefresh?.();
-  }
-
-  if (fullClient) {
+  if (fullClient && tenantId) {
     return (
       <View style={styles.panel}>
-        <PortalTab client={fullClient} />
-        {!isReadOnly ? (
-          <SectionPanel title="Portal einladen">
-            <PremiumInput label="E-Mail" value={email} onChangeText={setEmail} />
-            <PremiumButton title="Einladung senden" onPress={handleInvite} />
-          </SectionPanel>
-        ) : null}
+        <ClientPortalAccessPanel
+          client={fullClient}
+          tenantId={tenantId}
+          isReadOnly={isReadOnly}
+          onRefresh={onRecordRefresh}
+        />
       </View>
     );
   }
@@ -516,10 +433,11 @@ export function ClientRecordTabContent({
     if (tab === 'risiken') return <RisikenNotfallTab client={fullClient} canViewSensitive={canViewSensitive} />;
     if (tab === 'dokumente') {
       return (
-        <View style={styles.panel}>
-          <DokumenteTab client={fullClient} />
-          <ClientRecordDocumentsPanel {...panelProps} />
-        </View>
+        <ClientRecordDocumentsPanel
+          clientId={clientId}
+          initialDocuments={fullClient.documents}
+          onRecordRefresh={onRecordRefresh}
+        />
       );
     }
     if (tab === 'einwilligungen') {
@@ -543,7 +461,13 @@ export function ClientRecordTabContent({
 
   switch (tab) {
     case 'dokumente':
-      return <ClientRecordDocumentsPanel {...panelProps} />;
+      return (
+        <ClientRecordDocumentsPanel
+          clientId={clientId}
+          initialDocuments={fullClient?.documents}
+          onRecordRefresh={onRecordRefresh}
+        />
+      );
     case 'einwilligungen':
       return <ClientRecordConsentsPanel {...panelProps} />;
     case 'vertrag':
