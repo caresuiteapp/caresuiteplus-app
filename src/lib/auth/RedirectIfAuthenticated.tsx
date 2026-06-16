@@ -20,14 +20,15 @@ export function RedirectIfAuthenticated({
   const router = useRouter();
   const { isInitialized, isLoading, isAuthenticated, profile, portalSession } = useAuth();
 
+  const hasSessionTarget = Boolean(portalSession || profile?.roleKey);
   const homePath = String(
     resolveSessionHomeRoute(profile?.roleKey ?? null, portalSession),
   );
 
   useEffect(() => {
-    if (!isInitialized || isLoading || !isAuthenticated) return;
+    if (!isInitialized || isLoading || !isAuthenticated || !hasSessionTarget) return;
     router.replace(homePath as never);
-  }, [homePath, isAuthenticated, isInitialized, isLoading, router]);
+  }, [hasSessionTarget, homePath, isAuthenticated, isInitialized, isLoading, router]);
 
   useEffect(() => {
     if (!isAuthenticated) return undefined;

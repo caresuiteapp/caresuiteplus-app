@@ -25,6 +25,8 @@ type ProfileQueryRow = {
   id: string;
   tenant_id: string | null;
   role_id: string | null;
+  first_name: string | null;
+  last_name: string | null;
   full_name: string | null;
   email: string | null;
   phone: string | null;
@@ -42,13 +44,63 @@ function parseRoleKey(value: string | null): RoleKey | null {
   return mapCanonicalRoleToRoleKey(value as CanonicalWorkspaceRoleKey);
 }
 
-function mapProfileQueryRow(row: ProfileQueryRow): Profile {
+function readSessionRoleHint(session: Session): string | null {
+  const appRole = session.user.app_metadata?.role_key;
+  if (typeof appRole === 'string' && appRole.trim()) {
+    return appRole.trim();
+  }
+
+  const userRole = session.user.user_metadata?.role_key;
+  if (typeof userRole === 'string' && userRole.trim()) {
+    return userRole.trim();
+  }
+
+  return null;
+}
+
+function resolveDisplayName(row: ProfileQueryRow): string | null {
+  const fullName = row.full_name?.trim();
+  if (fullName) return fullName;
+
+  const composed = [row.first_name?.trim(), row.last_name?.trim()].filter(Boolean).join(' ');
+  return composed || null;
+}
+
+async function fetchRoleKeyById(
+  client: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  roleId: string | null,
+): Promise<string | null> {
+  if (!roleId) return null;
+
+  const { data, error } = await client.from('roles').select('key').eq('id', roleId).maybeSingle();
+  if (error || !data?.key) {
+    return null;
+  }
+
+  return data.key;
+}
+
+async function resolveProfileRoleKey(
+  client: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  row: ProfileQueryRow,
+  session: Session,
+): Promise<RoleKey | null> {
+  const fromJoin = parseRoleKey(row.roles?.key ?? null);
+  if (fromJoin) return fromJoin;
+
+  const fromRoleId = parseRoleKey(await fetchRoleKeyById(client, row.role_id));
+  if (fromRoleId) return fromRoleId;
+
+  return parseRoleKey(readSessionRoleHint(session));
+}
+
+function mapProfileQueryRow(row: ProfileQueryRow, roleKey: RoleKey | null): Profile {
   return {
     id: row.id,
     tenantId: row.tenant_id,
     roleId: row.role_id,
-    roleKey: parseRoleKey(row.roles?.key ?? null),
-    displayName: row.full_name?.trim() || null,
+    roleKey,
+    displayName: resolveDisplayName(row),
     email: row.email,
     phone: row.phone,
     avatarUrl: row.avatar_url,
@@ -76,7 +128,7 @@ function buildAuthSession(session: Session, user: AuthUser): AuthSession {
 }
 
 const PROFILE_SELECT =
-  'id, tenant_id, role_id, full_name, email, phone, avatar_url, created_at, updated_at, roles(key)';
+  'id, tenant_id, role_id, first_name, last_name, full_name, email, phone, avatar_url, created_at, updated_at, roles(key)';
 
 async function queryProfileForAuthUser(
   client: NonNullable<ReturnType<typeof getSupabaseClient>>,
@@ -127,7 +179,11 @@ export async function fetchTenantProfile(userId: string): Promise<Profile | null
     return null;
   }
 
-  return mapProfileQueryRow(data);
+  const roleKey =
+    parseRoleKey(data.roles?.key ?? null) ??
+    parseRoleKey(await fetchRoleKeyById(client, data.role_id));
+
+  return mapProfileQueryRow(data, roleKey);
 }
 
 async function fetchTenantSummary(tenantId: string): Promise<TenantSummary | null> {
@@ -171,7 +227,16 @@ export async function bootstrapTenantContext(
     return { ok: false, error: 'Benutzerprofil wurde nicht gefunden.' };
   }
 
-  const profile = mapProfileQueryRow(data as unknown as ProfileQueryRow);
+  const roleKey = await resolveProfileRoleKey(
+    client,
+    data as unknown as ProfileQueryRow,
+    supabaseSession,
+  );
+  if (!roleKey) {
+    return { ok: false, error: 'Benutzerrolle konnte nicht geladen werden.' };
+  }
+
+  const profile = mapProfileQueryRow(data as unknown as ProfileQueryRow, roleKey);
   const user = buildAuthUser(supabaseSession, profile);
   const session = buildAuthSession(supabaseSession, user);
   const tenant = profile.tenantId ? await fetchTenantSummary(profile.tenantId) : null;

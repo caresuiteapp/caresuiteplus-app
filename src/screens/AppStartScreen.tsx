@@ -28,15 +28,9 @@ export function AppStartScreen() {
   const hasSessionTarget = Boolean(portalSession || profile?.roleKey);
 
   useEffect(() => {
-    if (!isInitialized || isLoading || !isAuthenticated) return;
-
-    if (!hasSessionTarget) {
-      void signOut();
-      return;
-    }
-
+    if (!isInitialized || isLoading || !isAuthenticated || !hasSessionTarget) return;
     router.replace(homePath as never);
-  }, [hasSessionTarget, homePath, isAuthenticated, isInitialized, isLoading, router, signOut]);
+  }, [hasSessionTarget, homePath, isAuthenticated, isInitialized, isLoading, router]);
 
   useEffect(() => {
     if (!showPortalChoice) return undefined;
@@ -53,10 +47,24 @@ export function AppStartScreen() {
     );
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && hasSessionTarget) {
     return (
       <AppScreen scroll={false}>
         <LoadingState message="Weiterleitung zum Dashboard…" />
+      </AppScreen>
+    );
+  }
+
+  if (isAuthenticated && !hasSessionTarget) {
+    return (
+      <AppScreen scroll={false}>
+        <ErrorState
+          title="Sitzung unvollständig"
+          message="Ihr Profil konnte nicht geladen werden. Bitte melden Sie sich erneut an."
+          onRetry={() => {
+            void signOut().then(() => router.replace('/auth/business-login' as never));
+          }}
+        />
       </AppScreen>
     );
   }
