@@ -76,10 +76,12 @@ export function SuccessState({
 
 const styles = StyleSheet.create({
   container: {
+    flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
     gap: spacing.sm,
+    minHeight: 120,
   },
   title: {
     ...typography.h3,

@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { BackHandler } from 'react-native';
 import { useRouter } from 'expo-router';
-import { LoadingState } from '@/components/ui';
+import { FullScreenLoader } from '@/components/ui';
 import { resolveSessionHomeRoute } from '@/lib/navigation/sessionRouting';
 import { useAuth } from './context';
 
@@ -41,11 +41,11 @@ export function RedirectIfAuthenticated({
   }, [homePath, isAuthenticated, router]);
 
   if (!isInitialized || isLoading) {
-    return <LoadingState message="Sitzung wird geprüft…" />;
+    return <FullScreenLoader message="Sitzung wird geprüft…" />;
   }
 
   if (isAuthenticated) {
-    return <LoadingState message={loadingMessage} />;
+    return <FullScreenLoader message={loadingMessage} />;
   }
 
   return <>{children}</>;

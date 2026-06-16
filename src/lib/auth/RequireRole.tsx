@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { usePathname, useRouter } from 'expo-router';
-import { ErrorState } from '@/components/ui';
+import { ErrorState, FullScreenLoader } from '@/components/ui';
 import { checkRoleAccess } from '@/lib/navigation';
 import { resolveSessionHomeRoute } from '@/lib/navigation/sessionRouting';
 import { useAuth } from './context';
@@ -28,7 +28,9 @@ export function RequireRole({ children }: RequireRoleProps) {
     router.replace(target as never);
   }, [decision, isAuthenticated, isLoading, router, sessionHomePath]);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return <FullScreenLoader message="Berechtigungen werden geprüft…" />;
+  }
 
   if (decision.shouldRedirect) {
     const retryTarget = isAuthenticated ? sessionHomePath : '/';

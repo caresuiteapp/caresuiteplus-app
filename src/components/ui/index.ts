@@ -38,6 +38,7 @@ export { PremiumListRow } from './PremiumListRow';
 export { PremiumDataTable, type DataTableColumn } from './PremiumDataTable';
 export { InfoBanner } from './InfoBanner';
 export { OfflineNotice } from './OfflineNotice';
+export { FullScreenLoader } from './FullScreenLoader';
 export {
   COMPONENT_CATALOG,
   getComponentsByCategory,

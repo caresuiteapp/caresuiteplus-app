@@ -85,10 +85,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           if (supabaseSession) {
             const bootstrap = await bootstrapTenantContext(supabaseSession);
-            applyBootstrap(bootstrap, setUser, setProfile, setSession);
-            if (bootstrap.ok && bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
-              void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
-              void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+            if (bootstrap.ok) {
+              applyBootstrap(bootstrap, setUser, setProfile, setSession);
+              if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
+                void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
+                void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+              }
             }
             return;
           }
