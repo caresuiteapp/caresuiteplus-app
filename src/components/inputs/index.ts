@@ -13,5 +13,6 @@ export { CareCostBearerTypeFields, orderedSelectedCostBearerTypes } from './Care
 export { CareCostBearerStepPanel, validateActiveCostBearerDraft } from './CareCostBearerStepPanel';
 export { CareIntakeDocumentsStepPanel } from './CareIntakeDocumentsStepPanel';
 export { CareSignatureCanvas } from './CareSignatureCanvas';
+export { CareSignatureModal } from './CareSignatureModal';
 export { CareAddressSearch } from './CareAddressSearch';
 export type { AddressFieldValues } from './CareAddressSearch';

@@ -234,11 +234,17 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(panel).not.toContain('rechtssicher garantiert');
   });
 
-  it('20. Signature Canvas mit Löschen und Bestätigen', () => {
+  it('20. Signature Modal mit Löschen, Abbrechen und Bestätigen', () => {
+    const modal = readSrc('components/inputs/CareSignatureModal.tsx');
     const canvas = readSrc('components/inputs/CareSignatureCanvas.tsx');
+    const panel = readSrc('components/inputs/CareIntakeDocumentsStepPanel.tsx');
+    expect(modal).toContain('CareSignatureModal');
     expect(canvas).toContain('Löschen');
+    expect(canvas).toContain('Abbrechen');
     expect(canvas).toContain('Unterschrift bestätigen');
     expect(canvas).not.toContain('Demo');
+    expect(panel).toContain('CareSignatureModal');
+    expect(panel).toContain('signatureModalVisible');
   });
 
   it('21. kein Demo-Fallback in Production-Modus für Template-Laden', () => {

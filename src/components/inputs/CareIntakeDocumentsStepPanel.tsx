@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
+import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { FilterChipGroup, InfoBanner, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { getServiceMode } from '@/lib/services/mode';
@@ -58,6 +58,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeKey, setActiveKey] = useState<string | null>(null);
   const [signatureRole, setSignatureRole] = useState<IntakeSignatureRole>('client');
+  const [signatureModalVisible, setSignatureModalVisible] = useState(false);
 
   const contractOptions = useMemo(
     () => listAvailableContractTypes(form.careContexts).map((key) => ({
@@ -132,14 +133,19 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
     (template: IntakeDocumentTemplate) => {
       const doc = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
       if (!doc?.previewHtml) {
-        handleOpenPreview(template);
-        return;
+        const opened = openDocumentPreview(form, template, tenantMeta);
+        onChange(updateIntakeDocumentInForm(form, opened));
       }
       setActiveKey(template.templateKey);
       setSignatureRole(template.signatureSlots[0]?.role ?? 'client');
+      setSignatureModalVisible(true);
     },
-    [form.intakeDocuments, handleOpenPreview],
+    [form, onChange, tenantMeta],
   );
+
+  const openSignatureModal = useCallback(() => {
+    setSignatureModalVisible(true);
+  }, []);
 
   const handleSignature = useCallback(
     (dataUrl: string) => {
@@ -153,9 +159,18 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
         tenantMeta,
       );
       onChange(updateIntakeDocumentInForm(form, updated));
+      setSignatureModalVisible(false);
     },
     [activeDoc, activeTemplate, form, onChange, signatureRole, tenantMeta],
   );
+
+  const signatureRoleLabel = useMemo(() => {
+    if (signatureRole === 'client') return 'Klient:in';
+    if (signatureRole === 'employee') return 'Mitarbeitende:r';
+    return 'Vertretung';
+  }, [signatureRole]);
+
+  const hasRoleSignature = Boolean(activeDoc?.signatures[signatureRole]?.dataUrl);
 
   const handleFinalize = useCallback(() => {
     if (!activeTemplate || !activeDoc) return;
@@ -315,10 +330,19 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
                   onChange={(v) => setSignatureRole(v as IntakeSignatureRole)}
                 />
               ) : null}
-              <CareSignatureCanvas
-                label="Bitte hier unterschreiben — erst nach vollständiger Dokumentenlektüre."
-                onConfirm={handleSignature}
+              <PremiumButton
+                title={hasRoleSignature ? 'Unterschrift erneut erfassen' : 'Unterschrift erfassen'}
+                variant="primary"
+                onPress={openSignatureModal}
               />
+              {hasRoleSignature ? (
+                <InfoBanner variant="success" message={`Unterschrift (${signatureRoleLabel}) erfasst.`} />
+              ) : (
+                <InfoBanner
+                  variant="info"
+                  message="Bitte erst nach vollständiger Dokumentenlektüre unterschreiben."
+                />
+              )}
               <PremiumButton
                 title="Dokument abschließen und sperren"
                 onPress={handleFinalize}
@@ -332,6 +356,13 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
           ) : null}
         </SectionPanel>
       ) : null}
+
+      <CareSignatureModal
+        visible={signatureModalVisible && Boolean(activeTemplate && activeDoc)}
+        label={`${signatureRoleLabel} — Bitte im großen Feld unterschreiben.`}
+        onConfirm={handleSignature}
+        onClose={() => setSignatureModalVisible(false)}
+      />
 
       <SectionPanel title="Abschlussstatus">
         {validation.checklist.map((item) => (
