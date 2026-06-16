@@ -1,7 +1,9 @@
 import type { BreadcrumbItem, BreadcrumbTrail } from '@/types/navigation/breadcrumbs';
-import { APP_ROUTES, getRouteByPath } from './routes';
+import type { AppRoute } from '@/types/navigation/routes';
+import { APP_ROUTES } from './routes';
 
 const SEGMENT_LABELS: Record<string, string> = {
+  office: 'Office',
   create: 'Neu anlegen',
   edit: 'Bearbeiten',
   clients: 'Klient:innen',
@@ -48,8 +50,28 @@ function isDynamicSegment(segment: string): boolean {
   return segment.length > 24;
 }
 
+function matchDynamicRoutePath(routePath: string, actualPath: string): boolean {
+  const routeSegments = routePath.split('/').filter(Boolean);
+  const actualSegments = actualPath.split('/').filter(Boolean);
+  if (routeSegments.length !== actualSegments.length) return false;
+
+  return routeSegments.every((routeSegment, index) => {
+    if (routeSegment.startsWith('[') && routeSegment.endsWith(']')) return true;
+    return routeSegment === actualSegments[index];
+  });
+}
+
+/** Exakte oder dynamische Route — kein Prefix-Match (verhindert doppelte Segment-Labels). */
+function getBreadcrumbRoute(path: string): AppRoute | undefined {
+  const normalized = normalizePathname(path);
+  const exact = APP_ROUTES.find((route) => route.path === normalized);
+  if (exact) return exact;
+
+  return APP_ROUTES.find((route) => matchDynamicRoutePath(route.path, normalized));
+}
+
 function labelForSegment(segment: string, cumulativePath: string): string {
-  const route = getRouteByPath(cumulativePath);
+  const route = getBreadcrumbRoute(cumulativePath);
   if (route) return route.label;
 
   if (SEGMENT_LABELS[segment]) return SEGMENT_LABELS[segment];
