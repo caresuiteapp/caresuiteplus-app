@@ -14,8 +14,19 @@ import type {
 import { officeCoreDemoRepository } from '@/lib/officeCore/demoRepository';
 import { PRODUCT_LABELS } from '@/data/demo/products';
 import { enforcePermission } from '@/lib/permissions';
-import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
+import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { getServiceMode } from '@/lib/services/mode';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
+import {
+  loadClientModuleAssignmentsLive,
+  loadEmployeeModuleAssignmentsLive,
+  loadModuleAssignmentSectionCountLive,
+  loadModuleBillingSourcesLive,
+  loadModuleDocumentVisibilityLive,
+  loadModulePermissionProfilesLive,
+  loadModuleServiceCatalogLive,
+  loadModuleTemplateAssignmentsLive,
+} from '@/lib/officeModules/moduleAssignmentLiveLoader';
 
 const LOAD_DELAY_MS = 220;
 
@@ -29,13 +40,22 @@ function guardModuleAssignments<T>(
 ): ServiceResult<T> | null {
   const denied = enforcePermission<T>(actorRoleKey, 'office.access' as never);
   if (denied) return denied;
-  return guardLiveDemoFeature<T>(tenantId, 'Modulzuordnungen');
+  return guardServiceTenant(tenantId);
 }
 
 function toListItems(
   section: ModuleAssignmentSection,
   moduleFilter?: ProductKey | null,
   search?: string,
+  source?: {
+    clients?: ClientModuleAssignment[];
+    employees?: EmployeeModuleAssignment[];
+    services?: ModuleServiceCatalogEntry[];
+    billing?: ModuleBillingSource[];
+    documents?: ModuleDocumentVisibility[];
+    templates?: ModuleTemplateAssignment[];
+    permissions?: ModulePermissionProfile[];
+  },
 ): ModuleAssignmentListItem[] {
   const q = search?.trim().toLowerCase() ?? '';
 
@@ -110,25 +130,25 @@ function toListItems(
 
   switch (section) {
     case 'clients':
-      items = officeCoreDemoRepository.listClientModuleAssignments().map(mapClient);
+      items = (source?.clients ?? officeCoreDemoRepository.listClientModuleAssignments()).map(mapClient);
       break;
     case 'employees':
-      items = officeCoreDemoRepository.listEmployeeModuleAssignments().map(mapEmployee);
+      items = (source?.employees ?? officeCoreDemoRepository.listEmployeeModuleAssignments()).map(mapEmployee);
       break;
     case 'services':
-      items = officeCoreDemoRepository.listModuleServiceCatalog().map(mapService);
+      items = (source?.services ?? officeCoreDemoRepository.listModuleServiceCatalog()).map(mapService);
       break;
     case 'billing':
-      items = officeCoreDemoRepository.listModuleBillingSources().map(mapBilling);
+      items = (source?.billing ?? officeCoreDemoRepository.listModuleBillingSources()).map(mapBilling);
       break;
     case 'documents':
-      items = officeCoreDemoRepository.listModuleDocumentVisibility().map(mapDocument);
+      items = (source?.documents ?? officeCoreDemoRepository.listModuleDocumentVisibility()).map(mapDocument);
       break;
     case 'templates':
-      items = officeCoreDemoRepository.listModuleTemplateAssignments().map(mapTemplate);
+      items = (source?.templates ?? officeCoreDemoRepository.listModuleTemplateAssignments()).map(mapTemplate);
       break;
     case 'permissions':
-      items = officeCoreDemoRepository.listModulePermissionProfiles().map(mapPermission);
+      items = (source?.permissions ?? officeCoreDemoRepository.listModulePermissionProfiles()).map(mapPermission);
       break;
   }
 
@@ -146,6 +166,42 @@ function toListItems(
   return items;
 }
 
+async function loadSectionSource(
+  tenantId: string,
+  section: ModuleAssignmentSection,
+): Promise<ServiceResult<Parameters<typeof toListItems>[3]>> {
+  switch (section) {
+    case 'clients': {
+      const result = await loadClientModuleAssignmentsLive(tenantId);
+      return result.ok ? { ok: true, data: { clients: result.data } } : result;
+    }
+    case 'employees': {
+      const result = await loadEmployeeModuleAssignmentsLive(tenantId);
+      return result.ok ? { ok: true, data: { employees: result.data } } : result;
+    }
+    case 'services': {
+      const result = await loadModuleServiceCatalogLive(tenantId);
+      return result.ok ? { ok: true, data: { services: result.data } } : result;
+    }
+    case 'billing': {
+      const result = await loadModuleBillingSourcesLive(tenantId);
+      return result.ok ? { ok: true, data: { billing: result.data } } : result;
+    }
+    case 'documents': {
+      const result = await loadModuleDocumentVisibilityLive(tenantId);
+      return result.ok ? { ok: true, data: { documents: result.data } } : result;
+    }
+    case 'templates': {
+      const result = await loadModuleTemplateAssignmentsLive(tenantId);
+      return result.ok ? { ok: true, data: { templates: result.data } } : result;
+    }
+    case 'permissions': {
+      const result = await loadModulePermissionProfilesLive(tenantId);
+      return result.ok ? { ok: true, data: { permissions: result.data } } : result;
+    }
+  }
+}
+
 export async function fetchModuleAssignmentList(
   tenantId: string,
   section: ModuleAssignmentSection,
@@ -154,6 +210,15 @@ export async function fetchModuleAssignmentList(
 ): Promise<ServiceResult<ModuleAssignmentListItem[]>> {
   const blocked = guardModuleAssignments<ModuleAssignmentListItem[]>(tenantId, actorRoleKey);
   if (blocked) return blocked;
+
+  if (getServiceMode() === 'supabase') {
+    const source = await loadSectionSource(tenantId, section);
+    if (!source.ok) return source;
+    return {
+      ok: true,
+      data: toListItems(section, options?.moduleKey, options?.search, source.data),
+    };
+  }
 
   await delay(LOAD_DELAY_MS);
   return {
@@ -170,6 +235,13 @@ export async function fetchClientModuleAssignments(
   const blocked = guardModuleAssignments<ClientModuleAssignment[]>(tenantId, actorRoleKey);
   if (blocked) return blocked;
 
+  if (getServiceMode() === 'supabase') {
+    const result = await loadClientModuleAssignmentsLive(tenantId);
+    if (!result.ok) return result;
+    const data = moduleKey ? result.data.filter((a) => a.moduleKey === moduleKey) : result.data;
+    return { ok: true, data };
+  }
+
   await delay(LOAD_DELAY_MS);
   let data = officeCoreDemoRepository.listClientModuleAssignments();
   if (moduleKey) data = data.filter((a) => a.moduleKey === moduleKey);
@@ -183,6 +255,13 @@ export async function fetchEmployeeModuleAssignments(
 ): Promise<ServiceResult<EmployeeModuleAssignment[]>> {
   const blocked = guardModuleAssignments<EmployeeModuleAssignment[]>(tenantId, actorRoleKey);
   if (blocked) return blocked;
+
+  if (getServiceMode() === 'supabase') {
+    const result = await loadEmployeeModuleAssignmentsLive(tenantId);
+    if (!result.ok) return result;
+    const data = moduleKey ? result.data.filter((a) => a.moduleKey === moduleKey) : result.data;
+    return { ok: true, data };
+  }
 
   await delay(LOAD_DELAY_MS);
   let data = officeCoreDemoRepository.listEmployeeModuleAssignments();
@@ -198,6 +277,51 @@ export type ModuleAssignmentHubSection = {
   count: number;
 };
 
+const HUB_SECTIONS: Omit<ModuleAssignmentHubSection, 'count'>[] = [
+  {
+    key: 'clients',
+    label: 'Klient:innen-Zuordnung',
+    icon: '👥',
+    route: '/business/office/modules/clients',
+  },
+  {
+    key: 'employees',
+    label: 'Mitarbeitende-Zuordnung',
+    icon: '👤',
+    route: '/business/office/modules/employees',
+  },
+  {
+    key: 'services',
+    label: 'Leistungskatalog',
+    icon: '📋',
+    route: '/business/office/modules/services',
+  },
+  {
+    key: 'documents',
+    label: 'Dokument-Sichtbarkeit',
+    icon: '📄',
+    route: '/business/office/modules/documents',
+  },
+  {
+    key: 'templates',
+    label: 'Vorlagen-Zuordnung',
+    icon: '📝',
+    route: '/business/office/modules/templates',
+  },
+  {
+    key: 'permissions',
+    label: 'Berechtigungsprofile',
+    icon: '🔐',
+    route: '/business/office/modules/permissions',
+  },
+  {
+    key: 'billing',
+    label: 'Abrechnungsquellen',
+    icon: '🧾',
+    route: '/business/office/modules/billing',
+  },
+];
+
 export async function fetchModuleAssignmentHub(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
@@ -205,55 +329,50 @@ export async function fetchModuleAssignmentHub(
   const blocked = guardModuleAssignments<ModuleAssignmentHubSection[]>(tenantId, actorRoleKey);
   if (blocked) return blocked;
 
+  if (getServiceMode() === 'supabase') {
+    const counts = await Promise.all(
+      HUB_SECTIONS.map((section) => loadModuleAssignmentSectionCountLive(tenantId, section.key)),
+    );
+    const failed = counts.find((result) => !result.ok);
+    if (failed && !failed.ok) return failed;
+
+    return {
+      ok: true,
+      data: HUB_SECTIONS.map((section, index) => ({
+        ...section,
+        count: counts[index].ok ? counts[index].data : 0,
+      })),
+    };
+  }
+
   await delay(180);
   const sections: ModuleAssignmentHubSection[] = [
     {
-      key: 'clients',
-      label: 'Klient:innen-Zuordnung',
-      icon: '👥',
-      route: '/business/office/modules/clients',
+      ...HUB_SECTIONS[0],
       count: officeCoreDemoRepository.listClientModuleAssignments().length,
     },
     {
-      key: 'employees',
-      label: 'Mitarbeitende-Zuordnung',
-      icon: '👤',
-      route: '/business/office/modules/employees',
+      ...HUB_SECTIONS[1],
       count: officeCoreDemoRepository.listEmployeeModuleAssignments().length,
     },
     {
-      key: 'services',
-      label: 'Leistungskatalog',
-      icon: '📋',
-      route: '/business/office/modules/services',
+      ...HUB_SECTIONS[2],
       count: officeCoreDemoRepository.listModuleServiceCatalog().length,
     },
     {
-      key: 'documents',
-      label: 'Dokument-Sichtbarkeit',
-      icon: '📄',
-      route: '/business/office/modules/documents',
+      ...HUB_SECTIONS[3],
       count: officeCoreDemoRepository.listModuleDocumentVisibility().length,
     },
     {
-      key: 'templates',
-      label: 'Vorlagen-Zuordnung',
-      icon: '📝',
-      route: '/business/office/modules/templates',
+      ...HUB_SECTIONS[4],
       count: officeCoreDemoRepository.listModuleTemplateAssignments().length,
     },
     {
-      key: 'permissions',
-      label: 'Berechtigungsprofile',
-      icon: '🔐',
-      route: '/business/office/modules/permissions',
+      ...HUB_SECTIONS[5],
       count: officeCoreDemoRepository.listModulePermissionProfiles().length,
     },
     {
-      key: 'billing',
-      label: 'Abrechnungsquellen',
-      icon: '🧾',
-      route: '/business/office/modules/billing',
+      ...HUB_SECTIONS[6],
       count: officeCoreDemoRepository.listModuleBillingSources().length,
     },
   ];
