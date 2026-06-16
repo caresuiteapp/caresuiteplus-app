@@ -12,7 +12,7 @@ type RequireRoleProps = {
 export function RequireRole({ children }: RequireRoleProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, portalSession, isLoading, isAuthenticated } = useAuth();
+  const { profile, portalSession, isLoading, isAuthenticated, signOut } = useAuth();
   const sessionHome = resolveSessionHomeRoute(profile?.roleKey ?? null, portalSession);
   const sessionHomePath = String(sessionHome);
 
@@ -30,6 +30,18 @@ export function RequireRole({ children }: RequireRoleProps) {
 
   if (isLoading) {
     return <FullScreenLoader message="Berechtigungen werden geprüft…" />;
+  }
+
+  if (isAuthenticated && !profile?.roleKey && !portalSession) {
+    return (
+      <ErrorState
+        title="Sitzung unvollständig"
+        message="Ihr Profil konnte nicht geladen werden. Bitte melden Sie sich erneut an."
+        onRetry={() => {
+          void signOut().then(() => router.replace('/auth/business-login' as never));
+        }}
+      />
+    );
   }
 
   if (decision.shouldRedirect) {

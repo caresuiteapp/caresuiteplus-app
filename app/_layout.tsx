@@ -2,6 +2,7 @@ import 'react-native-reanimated';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet } from 'react-native';
+import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { ThemeModeProvider, useThemeMode } from '@/design/ThemeModeProvider';
 import { resolveCareSuitePalette } from '@/design/tokens/colors';
 import { AuthProvider } from '@/lib/auth';
@@ -26,11 +27,13 @@ function RootShell() {
 
 export default function RootLayout() {
   return (
-    <AuthProvider>
-      <ThemeModeProvider>
-        <RootShell />
-      </ThemeModeProvider>
-    </AuthProvider>
+    <SafeAreaProvider>
+      <AuthProvider>
+        <ThemeModeProvider>
+          <RootShell />
+        </ThemeModeProvider>
+      </AuthProvider>
+    </SafeAreaProvider>
   );
 }
 

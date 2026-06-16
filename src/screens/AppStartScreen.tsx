@@ -15,7 +15,7 @@ import { resolveSessionHomeRoute, shouldShowPortalChoice } from '@/lib/navigatio
 
 export function AppStartScreen() {
   const router = useRouter();
-  const { isInitialized, isLoading, isAuthenticated, profile, portalSession } = useAuth();
+  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, signOut } = useAuth();
   const { isPhone, isDesktopOrWide, width } = useDeviceClass();
   const type = useMemo(() => resolveGalaxyTypography(width), [width]);
 
@@ -25,11 +25,18 @@ export function AppStartScreen() {
     resolveSessionHomeRoute(profile?.roleKey ?? null, portalSession),
   );
   const showPortalChoice = shouldShowPortalChoice(isAuthenticated);
+  const hasSessionTarget = Boolean(portalSession || profile?.roleKey);
 
   useEffect(() => {
     if (!isInitialized || isLoading || !isAuthenticated) return;
+
+    if (!hasSessionTarget) {
+      void signOut();
+      return;
+    }
+
     router.replace(homePath as never);
-  }, [homePath, isAuthenticated, isInitialized, isLoading, router]);
+  }, [hasSessionTarget, homePath, isAuthenticated, isInitialized, isLoading, router, signOut]);
 
   useEffect(() => {
     if (!showPortalChoice) return undefined;
@@ -38,7 +45,7 @@ export function AppStartScreen() {
     return () => subscription.remove();
   }, [showPortalChoice]);
 
-  if (!isInitialized || isLoading || isAuthenticated) {
+  if (!isInitialized || isLoading) {
     return (
       <AppScreen scroll={false}>
         <LoadingState message="CareSuite+ wird geladen…" />
@@ -46,7 +53,15 @@ export function AppStartScreen() {
     );
   }
 
-  if ((entriesQuery.loading || isLoading) && mainEntries.length === 0) {
+  if (isAuthenticated) {
+    return (
+      <AppScreen scroll={false}>
+        <LoadingState message="Weiterleitung zum Dashboard…" />
+      </AppScreen>
+    );
+  }
+
+  if (entriesQuery.loading && mainEntries.length === 0) {
     return (
       <AppScreen scroll={false}>
         <LoadingState message="CareSuite+ wird geladen…" />
