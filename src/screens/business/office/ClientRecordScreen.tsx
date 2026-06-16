@@ -1,6 +1,8 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { ClientRecordHero } from '@/components/office/ClientRecordHero';
+import { ClientRecordOverviewPanel } from '@/components/office/ClientRecordOverviewPanel';
 import { CareLightKpiCard } from '@/components/ui/CareLightKpiCard';
 import { CareLightPageShell } from '@/components/layout';
 import {
@@ -8,27 +10,28 @@ import {
   ErrorState,
   LoadingState,
   PremiumButton,
-  PremiumCard,
   SectionPanel,
   SegmentedTabs,
 } from '@/components/ui';
 import { useClientRecord } from '@/hooks/useClientRecord';
 import { useClientFullDetail } from '@/hooks/useClientFullDetail';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { archiveClient } from '@/lib/office';
-import { fetchClientRecord } from '@/lib/clients/clientRecordService';
+import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
 import { CLIENT_RECORD_TAB_LABELS, type ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
-import { formatCareLevel } from '@/lib/formatters/unitFormatters';
-import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
+import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
 import { clientEditRoute } from '@/lib/navigation/clientRoutes';
 import { ClientRecordTabContent } from '@/screens/business/office/ClientRecordTabPanels';
 import {
   KontaktAdresseTab,
   StammdatenTab as FullStammdatenTab,
 } from '@/screens/office/ClientFullDetailTabs';
-import { colors, spacing, typography } from '@/theme';
+import { careLightColors } from '@/design/tokens/lightTheme';
+import { careSpacing } from '@/design/tokens/spacing';
+import { spacing } from '@/theme';
 
 function StammdatenTab({
   detail,
@@ -42,9 +45,13 @@ function StammdatenTab({
   const router = useRouter();
   if (fullClient) {
     return (
-      <View style={styles.tab}>
+      <View style={styles.tabPanel}>
         <FullStammdatenTab client={fullClient} canViewSensitive={canViewSensitive} />
-        <PremiumButton title="Stammdaten bearbeiten" variant="secondary" onPress={() => router.push(clientEditRoute(detail.id) as never)} />
+        <PremiumButton
+          title="Stammdaten bearbeiten"
+          variant="secondary"
+          onPress={() => router.push(clientEditRoute(detail.id) as never)}
+        />
       </View>
     );
   }
@@ -53,13 +60,13 @@ function StammdatenTab({
     { label: 'Vorname', value: detail.firstName },
     { label: 'Nachname', value: detail.lastName },
     { label: 'Status', value: detail.status },
-    { label: 'Pflegegrad', value: formatCareLevel(detail.careLevel) },
-    { label: 'Ort', value: `${detail.city}, ${detail.zip}` },
+    { label: 'Pflegegrad', value: detail.careLevel ?? '—' },
+    { label: 'Ort', value: `${detail.city ?? '—'}, ${detail.zip ?? '—'}` },
     { label: 'Telefon', value: detail.phone ?? detail.primaryContactPhone ?? '—' },
   ];
 
   return (
-    <View style={styles.tab}>
+    <View style={styles.tabPanel}>
       <SectionPanel title="Stammdaten">
         {fields.map((f) => (
           <View key={f.label} style={styles.fieldRow}>
@@ -67,7 +74,11 @@ function StammdatenTab({
             <Text style={styles.fieldValue}>{f.value}</Text>
           </View>
         ))}
-        <PremiumButton title="Stammdaten bearbeiten" variant="secondary" onPress={() => router.push(clientEditRoute(detail.id) as never)} />
+        <PremiumButton
+          title="Stammdaten bearbeiten"
+          variant="secondary"
+          onPress={() => router.push(clientEditRoute(detail.id) as never)}
+        />
       </SectionPanel>
     </View>
   );
@@ -78,6 +89,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can } = usePermissions();
+  const { isDesktopOrWide } = useDeviceClass();
   const { detail, careContexts, tabs, loading, error, refresh } = useClientRecord(id);
   const fullQuery = useClientFullDetail(id);
   const [archiving, setArchiving] = useState(false);
@@ -97,6 +109,16 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
 
   const tabOptions = tabs.map((t) => ({ key: t, label: CLIENT_RECORD_TAB_LABELS[t] ?? t }));
 
+  const overview = useMemo(
+    () => (detail ? buildClientRecordOverview(detail, careContexts, tabs) : null),
+    [detail, careContexts, tabs],
+  );
+
+  const kpis = useMemo(
+    () => (detail ? buildClientDetailKpis(detail, 'light') : []),
+    [detail],
+  );
+
   if (loading) {
     return (
       <CareLightPageShell title="Klient:innenakte" subtitle="Wird geladen…">
@@ -113,15 +135,13 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
     );
   }
 
-  if (!detail) {
+  if (!detail || !overview) {
     return (
       <CareLightPageShell title="Klient:innenakte" subtitle="Nicht gefunden">
         <EmptyState title="Nicht gefunden" message="Klient:in nicht gefunden." />
       </CareLightPageShell>
     );
   }
-
-  const contextLabels = careContexts.map((c) => getCatalogLabel('leistungsart', c)).join(' · ');
 
   async function handleRecordRefresh() {
     await Promise.all([refresh(), fullQuery.refresh()]);
@@ -148,46 +168,79 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
 
   return (
     <CareLightPageShell
-      title={`${detail.firstName} ${detail.lastName}`}
-      subtitle={contextLabels}
+      title="Klient:innenakte"
+      subtitle={`${detail.firstName} ${detail.lastName}`}
       rightSlot={
         can('office.clients.archive') && detail.status !== 'archiviert' ? (
-          <PremiumButton title="Archivieren" size="sm" variant="ghost" loading={archiving} onPress={handleArchive} />
+          <PremiumButton
+            title="Archivieren"
+            size="sm"
+            variant="ghost"
+            loading={archiving}
+            onPress={handleArchive}
+          />
         ) : null
       }
     >
-      <PremiumCard>
-        <Text style={styles.headerMeta}>
-          {formatCareLevel(detail.careLevel)} · {detail.city} · Status: {detail.status}
-        </Text>
-        {archiveError ? <Text style={styles.archiveError}>{archiveError}</Text> : null}
-      </PremiumCard>
-      <View style={styles.kpiRow}>
-        <CareLightKpiCard label="Dokumente" value={String(detail.contextCounts?.documents ?? 0)} />
-        <CareLightKpiCard label="Einsätze" value={String(detail.contextCounts?.assignments ?? 0)} />
-        <CareLightKpiCard label="Rechnungen" value={String(detail.contextCounts?.invoices ?? 0)} />
-        <CareLightKpiCard label="Termine" value={String(detail.contextCounts?.appointments ?? 0)} />
+      <ClientRecordHero
+        firstName={detail.firstName}
+        lastName={detail.lastName}
+        careLevel={detail.careLevel}
+        city={detail.city ?? null}
+        status={detail.status}
+        careContexts={careContexts}
+        archiveError={archiveError}
+      />
+
+      <View style={[styles.kpiGrid, isDesktopOrWide && styles.kpiGridWide]}>
+        {kpis.map((kpi) => (
+          <CareLightKpiCard
+            key={kpi.id}
+            label={kpi.label}
+            value={kpi.value}
+            subValue={kpi.subValue}
+            icon={kpi.icon}
+            accentColor={kpi.accentColor ?? careLightColors.orange}
+            style={styles.kpiItem}
+          />
+        ))}
       </View>
-      <SegmentedTabs tabs={tabOptions} activeKey={activeTab} onSelect={(k) => setActiveTab(k as ClientRecordTabKey)} />
-      <ScrollView style={styles.scroll} contentContainerStyle={styles.scrollContent}>
-        {activeTab === 'uebersicht' && (
-          <SectionPanel title="Übersicht">
-            <Text style={styles.body}>Leistungsarten: {contextLabels}</Text>
-            <Text style={styles.body}>Hauptkontakt: {detail.primaryContactPhone ?? '—'}</Text>
-            <Text style={styles.body}>Module: {careContexts.length} Kontext(e) aktiv</Text>
-          </SectionPanel>
-        )}
+
+      <SegmentedTabs
+        tabs={tabOptions}
+        activeKey={activeTab}
+        onSelect={(k) => setActiveTab(k as ClientRecordTabKey)}
+      />
+
+      <View style={styles.tabPanel}>
+        {activeTab === 'uebersicht' && overview ? (
+          <ClientRecordOverviewPanel overview={overview} onNavigateTab={setActiveTab} />
+        ) : null}
         {activeTab === 'stammdaten' && (
-          <StammdatenTab detail={detail} fullClient={fullQuery.data} canViewSensitive={fullQuery.canViewSensitive} />
+          <StammdatenTab
+            detail={detail}
+            fullClient={fullQuery.data}
+            canViewSensitive={fullQuery.canViewSensitive}
+          />
         )}
         {activeTab === 'kontakt' && fullQuery.data ? (
           <KontaktAdresseTab client={fullQuery.data} />
         ) : activeTab === 'kontakt' ? (
           <SectionPanel title="Kontakt & Adresse">
-            <Text>{detail.street}</Text>
-            <Text>{detail.zip} {detail.city}</Text>
-            <Text>{detail.phone}</Text>
-            <Text>{detail.email}</Text>
+            <View style={styles.fieldRow}>
+              <Text style={styles.fieldLabel}>Adresse</Text>
+              <Text style={styles.fieldValue}>
+                {[detail.street, detail.zip, detail.city].filter(Boolean).join(', ') || '—'}
+              </Text>
+            </View>
+            <View style={styles.fieldRow}>
+              <Text style={styles.fieldLabel}>Telefon</Text>
+              <Text style={styles.fieldValue}>{detail.phone ?? '—'}</Text>
+            </View>
+            <View style={styles.fieldRow}>
+              <Text style={styles.fieldLabel}>E-Mail</Text>
+              <Text style={styles.fieldValue}>{detail.email ?? '—'}</Text>
+            </View>
           </SectionPanel>
         ) : null}
         {!['uebersicht', 'stammdaten', 'kontakt'].includes(activeTab) ? (
@@ -199,26 +252,43 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
             onRecordRefresh={handleRecordRefresh}
           />
         ) : null}
-      </ScrollView>
+      </View>
     </CareLightPageShell>
   );
 }
 
 const styles = StyleSheet.create({
-  headerMeta: { ...typography.caption, color: colors.textMuted },
-  archiveError: { ...typography.caption, color: '#FF6B6B', marginTop: spacing.xs },
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginVertical: spacing.sm },
-  scroll: { flex: 1 },
-  scrollContent: { paddingBottom: spacing.xxl },
-  tab: { paddingBottom: spacing.lg },
+  kpiGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+  },
+  kpiGridWide: {
+    flexWrap: 'nowrap',
+  },
+  kpiItem: {
+    flex: 1,
+    minWidth: 140,
+  },
+  tabPanel: {
+    gap: careSpacing.md,
+    paddingBottom: spacing.xxl,
+  },
   fieldRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     paddingVertical: spacing.xs,
     borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: colors.borderSoft,
+    borderBottomColor: careLightColors.border,
   },
-  fieldLabel: { ...typography.caption, color: colors.textMuted, flex: 1 },
-  fieldValue: { ...typography.body, flex: 1, textAlign: 'right' },
-  body: { ...typography.body, marginBottom: spacing.xs },
+  fieldLabel: {
+    flex: 1,
+    color: careLightColors.muted,
+    fontWeight: '600',
+  },
+  fieldValue: {
+    flex: 1,
+    textAlign: 'right',
+    color: careLightColors.text,
+  },
 });

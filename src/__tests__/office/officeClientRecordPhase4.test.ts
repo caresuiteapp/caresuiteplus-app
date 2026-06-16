@@ -6,8 +6,83 @@ import { fetchClientConsents, updateClientConsent } from '@/lib/clients/clientCo
 import { addClientMedication, fetchClientMedications } from '@/lib/clients/clientMedicationService';
 import { uploadClientDocument, listClientDocuments } from '@/lib/clients/clientDocumentsService';
 import { fetchOfficeReportingSummary } from '@/lib/office/officeReportingService';
+import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
+import type { ClientFullDetail } from '@/types/modules/client';
 
 const root = path.join(__dirname, '..', '..', '..');
+
+function minimalDetail(overrides: Partial<ClientFullDetail> = {}): ClientFullDetail {
+  return {
+    id: 'client-test',
+    tenantId: 'tenant-1',
+    firstName: 'Heinz-Peter',
+    lastName: 'Reinhardt',
+    dateOfBirth: '1945-03-12',
+    careLevel: '3',
+    status: 'aktiv',
+    primaryContactPhone: '+49 123 456',
+    city: 'Herne',
+    zip: '44623',
+    street: 'Hauptstraße 1',
+    phone: '+49 123 456',
+    email: null,
+    notes: null,
+    sensitivity: 'internal',
+    costCarrier: 'AOK Nordwest',
+    contextCounts: { documents: 0, assignments: 0, invoices: 0, appointments: 0 },
+    nextActionHint: '',
+    allowedStatusActions: [],
+    contacts: [],
+    consents: [],
+    auditEntries: [],
+    history: [],
+    core: {} as ClientFullDetail['core'],
+    lifecycleStatus: 'aktiv',
+    addresses: [],
+    careLevels: [],
+    budgets: [],
+    billingProfile: null,
+    contracts: [],
+    preferences: null,
+    risks: [],
+    emergencyPlan: null,
+    portalAccess: [],
+    documents: [],
+    tasks: [],
+    timeline: [],
+    internalNotes: [],
+    createdAt: '2024-01-15T10:00:00Z',
+    updatedAt: '2025-06-01T14:30:00Z',
+    ...overrides,
+  };
+}
+
+describe('ClientRecord overview', () => {
+  it('buildClientRecordOverview liefert Stammdaten und Schnellzugriff', () => {
+    const overview = buildClientRecordOverview(
+      minimalDetail(),
+      ['ambulatory_care'],
+      ['uebersicht', 'stammdaten', 'dokumente', 'vertrag'],
+    );
+
+    expect(overview.fullName).toBe('Heinz-Peter Reinhardt');
+    expect(overview.careLevel).toContain('3');
+    expect(overview.primaryCostBearer).toBe('AOK Nordwest');
+    expect(overview.phone).toBe('+49 123 456');
+    expect(overview.quickLinks.map((l) => l.tab)).toEqual(['stammdaten', 'dokumente', 'vertrag']);
+  });
+
+  it('zeigt — für fehlende Felder', () => {
+    const overview = buildClientRecordOverview(
+      minimalDetail({ phone: null, primaryContactPhone: null, costCarrier: null }),
+      [],
+      ['uebersicht'],
+    );
+
+    expect(overview.phone).toBe('—');
+    expect(overview.serviceTypes).toBe('—');
+  });
+});
 
 describe('Office ClientRecord rebuild', () => {
   it('ClientRecordScreen uses dedicated tab panels instead of GenericListTab', () => {
@@ -17,6 +92,8 @@ describe('Office ClientRecord rebuild', () => {
     );
     expect(source).not.toContain('GenericListTab');
     expect(source).toContain('ClientRecordTabContent');
+    expect(source).toContain('ClientRecordHero');
+    expect(source).toContain('ClientRecordOverviewPanel');
     expect(source).toContain('LoadingState');
     expect(source).toContain('ErrorState');
   });
@@ -30,6 +107,13 @@ describe('Office ClientRecord rebuild', () => {
     expect(source).toContain('updateClientConsent');
     expect(source).toContain('addClientMedication');
     expect(source).toContain('EmptyState');
+  });
+
+  it('SegmentedTabs uses horizontal scroll bar layout', () => {
+    const source = readFileSync(path.join(root, 'src/components/ui/SegmentedTabs.tsx'), 'utf8');
+    expect(source).toContain('horizontal');
+    expect(source).toContain('flexShrink: 0');
+    expect(source).toContain('flexGrow: 0');
   });
 
   it('business office dashboard route has no Redirect', () => {

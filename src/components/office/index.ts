@@ -2,6 +2,8 @@ export { AppointmentDetailHero } from './AppointmentDetailHero';
 export { BudgetDetailHero } from './BudgetDetailHero';
 export { BudgetsListHero } from './BudgetsListHero';
 export { ClientDetailHero } from './ClientDetailHero';
+export { ClientRecordHero } from './ClientRecordHero';
+export { ClientRecordOverviewPanel } from './ClientRecordOverviewPanel';
 export { InvoiceDetailHero } from './InvoiceDetailHero';
 export { InvoiceAccountingPanel } from './accounting/InvoiceAccountingPanel';
 export { OfficeBillingHero } from './OfficeBillingHero';
