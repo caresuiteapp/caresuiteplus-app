@@ -1,11 +1,14 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PremiumInput } from '@/components/ui';
+import type { CostBearerTypeKey } from '@/lib/clients/clientIntakeCostBearerConfig';
 import {
-  formatSystemCostCarrierAddress,
-  type SystemCostCarrierType,
-} from '@/lib/catalogs/systemCostCarrierTemplates';
-import { searchSystemCostCarrierTemplates } from '@/lib/catalogs/systemCostCarrierSearchService';
+  COST_CARRIER_SEARCH_DEBOUNCE_MS,
+  COST_CARRIER_SEARCH_MIN_QUERY_LENGTH,
+  formatCostCarrierAddress,
+  searchCostCarrierTemplates,
+} from '@/features/costCarriers/costCarrierService';
+import type { CostCarrierSystemTemplate } from '@/features/costCarriers/costCarrierTypes';
 import { colors, radius, spacing, typography } from '@/theme';
 
 export type CostCarrierFieldValues = {
@@ -14,11 +17,13 @@ export type CostCarrierFieldValues = {
   zip: string;
   city: string;
   ikNumber: string;
+  systemTemplateId?: string;
+  carrierType?: string;
 };
 
 type Props = {
   label: string;
-  carrierType: SystemCostCarrierType;
+  uiCarrierType: CostBearerTypeKey;
   values: CostCarrierFieldValues;
   onChange: (values: CostCarrierFieldValues) => void;
   error?: string;
@@ -27,33 +32,75 @@ type Props = {
 
 export function CareCostCarrierTemplateSearch({
   label,
-  carrierType,
+  uiCarrierType,
   values,
   onChange,
   error,
   hint = 'Systemvorlage suchen — bei Auswahl werden Name und Adresse übernommen.',
 }: Props) {
   const [focused, setFocused] = useState(false);
+  const [loading, setLoading] = useState(false);
+  const [searchError, setSearchError] = useState<string | null>(null);
+  const [results, setResults] = useState<CostCarrierSystemTemplate[]>([]);
+  const abortRef = useRef<AbortController | null>(null);
 
-  const results = useMemo(() => {
-    if (!focused && !values.name.trim()) return [];
-    return searchSystemCostCarrierTemplates(values.name, carrierType);
-  }, [carrierType, focused, values.name]);
+  useEffect(() => {
+    if (!focused || values.name.trim().length < COST_CARRIER_SEARCH_MIN_QUERY_LENGTH) {
+      abortRef.current?.abort();
+      setResults([]);
+      setLoading(false);
+      setSearchError(null);
+      return;
+    }
 
-  const showResults = focused && values.name.trim().length > 0 && results.length > 0;
+    const timer = setTimeout(() => {
+      abortRef.current?.abort();
+      const controller = new AbortController();
+      abortRef.current = controller;
+      setLoading(true);
+      setSearchError(null);
+
+      void searchCostCarrierTemplates(uiCarrierType, values.name, 8).then((result) => {
+        if (controller.signal.aborted) return;
+        setLoading(false);
+        if (!result.ok) {
+          setResults([]);
+          setSearchError(result.error);
+          return;
+        }
+        setResults(result.data);
+        setSearchError(null);
+      });
+    }, COST_CARRIER_SEARCH_DEBOUNCE_MS);
+
+    return () => clearTimeout(timer);
+  }, [focused, uiCarrierType, values.name]);
+
+  const showResults =
+    focused
+    && values.name.trim().length >= COST_CARRIER_SEARCH_MIN_QUERY_LENGTH
+    && (loading || searchError || results.length > 0);
+
   const hasAddress = Boolean(values.street.trim() || values.zip.trim() || values.city.trim());
 
   const handleNameChange = (name: string) => {
-    onChange({ ...values, name });
+    onChange({
+      ...values,
+      name,
+      systemTemplateId: undefined,
+      carrierType: undefined,
+    });
   };
 
-  const handleSelect = (template: ReturnType<typeof searchSystemCostCarrierTemplates>[number]) => {
+  const handleSelect = (template: CostCarrierSystemTemplate) => {
     onChange({
       name: template.name,
       street: template.street,
       zip: template.zip,
       city: template.city,
       ikNumber: template.ikNumber,
+      systemTemplateId: template.id,
+      carrierType: template.carrierType,
     });
     setFocused(false);
   };
@@ -73,7 +120,13 @@ export function CareCostCarrierTemplateSearch({
 
       {showResults ? (
         <View style={styles.results}>
-          <Text style={styles.resultsTitle}>Systemvorlagen</Text>
+          <Text style={styles.resultsTitle}>
+            {loading ? 'Systemvorlagen werden gesucht …' : 'Systemvorlagen'}
+          </Text>
+          {searchError ? <Text style={styles.searchError}>{searchError}</Text> : null}
+          {!loading && !searchError && results.length === 0 ? (
+            <Text style={styles.empty}>Keine Treffer</Text>
+          ) : null}
           <ScrollView nestedScrollEnabled keyboardShouldPersistTaps="handled" style={styles.resultsList}>
             {results.map((entry) => (
               <Pressable
@@ -83,7 +136,7 @@ export function CareCostCarrierTemplateSearch({
               >
                 <Text style={styles.resultName}>{entry.name}</Text>
                 <Text style={styles.resultMeta}>
-                  {formatSystemCostCarrierAddress(entry)}
+                  {formatCostCarrierAddress(entry)}
                   {entry.ikNumber ? ` · IK ${entry.ikNumber}` : ''}
                 </Text>
               </Pressable>
@@ -128,6 +181,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingTop: spacing.sm,
     paddingBottom: spacing.xs,
+  },
+  searchError: {
+    ...typography.caption,
+    color: '#c00',
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.xs,
+  },
+  empty: {
+    ...typography.caption,
+    color: colors.textSecondary,
+    paddingHorizontal: spacing.md,
+    paddingBottom: spacing.sm,
   },
   resultsList: { maxHeight: 220 },
   resultRow: {

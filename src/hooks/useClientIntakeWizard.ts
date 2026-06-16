@@ -11,7 +11,14 @@ import {
   loadClientIntakeDraft,
   saveClientIntakeDraft,
 } from '@/lib/clients/clientIntakeDraftStorage';
-import { clearDeselectedCostBearerTypes } from '@/lib/clients/clientIntakeCostBearerConfig';
+import {
+  clearCostBearerTypeFields,
+  COST_BEARER_FIELD_ERRORS,
+  getCostBearerFieldValues,
+  isCostBearerTypeKey,
+  type CostBearerTypeKey,
+} from '@/lib/clients/clientIntakeCostBearerConfig';
+import { validateCostBearerEntry } from '@/features/costCarriers/costCarrierService';
 import {
   createEmptyIntakeForm,
   getIntakeStepsForContexts,
@@ -125,9 +132,48 @@ export function useClientIntakeWizard() {
   }, []);
 
   const updateCostBearerTypes = useCallback((nextTypes: string[]) => {
-    setForm((prev) => clearDeselectedCostBearerTypes(prev, nextTypes));
+    setForm((prev) => ({ ...prev, costBearerTypes: nextTypes }));
     setErrors((prev) => {
       const next = { ...prev };
+      delete next.costBearerTypes;
+      return next;
+    });
+  }, []);
+
+  const commitCostBearer = useCallback(() => {
+    setForm((prev) => {
+      if (!isCostBearerTypeKey(prev.activeCostBearerType)) return prev;
+      const type = prev.activeCostBearerType;
+      const validationError = validateCostBearerEntry(type, getCostBearerFieldValues(prev, type));
+      if (validationError) {
+        setErrors((current) => ({ ...current, costBearerDraft: validationError }));
+        return prev;
+      }
+
+      setErrors((current) => {
+        const next = { ...current };
+        delete next.costBearerDraft;
+        delete next.costBearerTypes;
+        delete next[COST_BEARER_FIELD_ERRORS[type]];
+        return next;
+      });
+
+      if (prev.costBearerTypes.includes(type)) {
+        return prev;
+      }
+
+      return {
+        ...prev,
+        costBearerTypes: [...prev.costBearerTypes, type],
+      };
+    });
+  }, []);
+
+  const removeCostBearer = useCallback((type: CostBearerTypeKey) => {
+    setForm((prev) => clearCostBearerTypeFields(prev, type));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next[COST_BEARER_FIELD_ERRORS[type]];
       delete next.costBearerTypes;
       return next;
     });
@@ -208,7 +254,7 @@ export function useClientIntakeWizard() {
       }
     }
 
-    const result = await submitClientIntake(tenantId, form);
+    const result = await submitClientIntake(tenantId, form, { actorProfileId: profile?.id ?? user?.id ?? null });
     setSubmitting(false);
     submitLock.current = false;
 
@@ -222,7 +268,7 @@ export function useClientIntakeWizard() {
     }
     setSubmitError(result.error);
     return null;
-  }, [form, steps, submitting, tenantId, userId]);
+  }, [form, profile?.id, steps, submitting, tenantId, user?.id]);
 
   return {
     form,
@@ -240,6 +286,8 @@ export function useClientIntakeWizard() {
     hasPersistedDraft: draftRestored || hasIntakeDraftContent({ form, stepIndex }),
     updateField,
     updateCostBearerTypes,
+    commitCostBearer,
+    removeCostBearer,
     replaceForm,
     toggleCareContext,
     toggleArrayField,

@@ -20,8 +20,10 @@ export function CareCostBearerTypeFields({ type, form, onChange, error }: Props)
 
   const config = COST_BEARER_TYPE_CONFIG[type];
   const values = getCostBearerFieldValues(form, type);
+  const systemTemplateId = form.costBearerTemplateIds[type];
+  const dbCarrierType = form.costBearerDbTypes[type];
 
-  const handleChange = (nextValues: typeof values) => {
+  const handleChange = (nextValues: typeof values & { systemTemplateId?: string; carrierType?: string }) => {
     const { fields } = config;
     const next: ClientIntakeFormData = {
       ...form,
@@ -29,9 +31,22 @@ export function CareCostBearerTypeFields({ type, form, onChange, error }: Props)
       [fields.street]: nextValues.street,
       [fields.zip]: nextValues.zip,
       [fields.city]: nextValues.city,
+      costBearerTemplateIds: { ...form.costBearerTemplateIds },
+      costBearerDbTypes: { ...form.costBearerDbTypes },
     };
+    if (nextValues.systemTemplateId) {
+      next.costBearerTemplateIds[type] = nextValues.systemTemplateId;
+    } else {
+      delete next.costBearerTemplateIds[type];
+    }
+    if (nextValues.carrierType) {
+      next.costBearerDbTypes[type] = nextValues.carrierType;
+    } else {
+      delete next.costBearerDbTypes[type];
+    }
     if (fields.ikNumber) {
-      next[fields.ikNumber] = nextValues.ikNumber;
+      onChange({ ...next, [fields.ikNumber]: nextValues.ikNumber });
+      return;
     }
     onChange(next);
   };
@@ -43,6 +58,11 @@ export function CareCostBearerTypeFields({ type, form, onChange, error }: Props)
         values={values}
         onChange={handleChange}
         error={error}
+        hint={
+          type === 'selbstzahler'
+            ? 'Rechnungsempfänger und Adresse manuell erfassen.'
+            : undefined
+        }
       />
     );
   }
@@ -50,8 +70,12 @@ export function CareCostBearerTypeFields({ type, form, onChange, error }: Props)
   return (
     <CareCostCarrierTemplateSearch
       label={config.label}
-      carrierType={config.templateType!}
-      values={values}
+      uiCarrierType={type}
+      values={{
+        ...values,
+        systemTemplateId,
+        carrierType: dbCarrierType,
+      }}
       onChange={handleChange}
       error={error}
     />

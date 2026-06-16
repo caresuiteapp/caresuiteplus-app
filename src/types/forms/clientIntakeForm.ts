@@ -76,6 +76,9 @@ export type ClientIntakeFormData = {
   insuranceNumber: string;
   billingTypes: string[];
   costBearerTypes: string[];
+  activeCostBearerType: string;
+  costBearerTemplateIds: Partial<Record<string, string>>;
+  costBearerDbTypes: Partial<Record<string, string>>;
   selfPay: boolean;
   familyDoctor: string;
   consultingReason: string;
@@ -202,6 +205,9 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   insuranceNumber: '',
   billingTypes: [],
   costBearerTypes: [],
+  activeCostBearerType: '',
+  costBearerTemplateIds: {},
+  costBearerDbTypes: {},
   selfPay: false,
   familyDoctor: '',
   consultingReason: '',

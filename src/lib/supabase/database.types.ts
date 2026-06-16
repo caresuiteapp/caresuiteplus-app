@@ -7066,6 +7066,93 @@ export type Database = {
           },
         ]
       }
+      client_cost_carrier_assignments: {
+        Row: {
+          address_snapshot: Json | null
+          archived_at: string | null
+          billing_relevant: boolean
+          care_level_relevant: boolean
+          carrier_type: string
+          client_id: string
+          created_at: string
+          created_by: string | null
+          id: string
+          ik_number_snapshot: string | null
+          insurance_number: string | null
+          is_primary: boolean
+          name_snapshot: string
+          policy_number: string | null
+          system_template_id: string | null
+          tenant_id: string
+          tenant_override_id: string | null
+          updated_at: string
+          updated_by: string | null
+          valid_from: string | null
+          valid_until: string | null
+        }
+        Insert: {
+          address_snapshot?: Json | null
+          archived_at?: string | null
+          billing_relevant?: boolean
+          care_level_relevant?: boolean
+          carrier_type: string
+          client_id: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ik_number_snapshot?: string | null
+          insurance_number?: string | null
+          is_primary?: boolean
+          name_snapshot: string
+          policy_number?: string | null
+          system_template_id?: string | null
+          tenant_id: string
+          tenant_override_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Update: {
+          address_snapshot?: Json | null
+          archived_at?: string | null
+          billing_relevant?: boolean
+          care_level_relevant?: boolean
+          carrier_type?: string
+          client_id?: string
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          ik_number_snapshot?: string | null
+          insurance_number?: string | null
+          is_primary?: boolean
+          name_snapshot?: string
+          policy_number?: string | null
+          system_template_id?: string | null
+          tenant_id?: string
+          tenant_override_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          valid_from?: string | null
+          valid_until?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_cost_carrier_assignments_system_template_id_fkey"
+            columns: ["system_template_id"]
+            isOneToOne: false
+            referencedRelation: "cost_carrier_system_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_cost_carrier_assignments_tenant_override_id_fkey"
+            columns: ["tenant_override_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_cost_carrier_overrides"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       client_portal_codes: {
         Row: {
           blocked_at: string | null
@@ -10956,6 +11043,189 @@ export type Database = {
             referencedColumns: ["tenant_id"]
           },
         ]
+      }
+      cost_carrier_audit_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string | null
+          entity_type: string
+          id: string
+          metadata: Json | null
+          new_value_hash: string | null
+          old_value_hash: string | null
+          tenant_id: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type: string
+          id?: string
+          metadata?: Json | null
+          new_value_hash?: string | null
+          old_value_hash?: string | null
+          tenant_id?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string | null
+          entity_type?: string
+          id?: string
+          metadata?: Json | null
+          new_value_hash?: string | null
+          old_value_hash?: string | null
+          tenant_id?: string | null
+        }
+        Relationships: []
+      }
+      cost_carrier_import_batches: {
+        Row: {
+          error_summary: string | null
+          id: string
+          imported_at: string
+          imported_by: string | null
+          metadata: Json
+          records_created: number
+          records_failed: number
+          records_skipped: number
+          records_total: number
+          records_updated: number
+          source_name: string
+          source_url: string | null
+          status: string
+        }
+        Insert: {
+          error_summary?: string | null
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          metadata?: Json
+          records_created?: number
+          records_failed?: number
+          records_skipped?: number
+          records_total?: number
+          records_updated?: number
+          source_name: string
+          source_url?: string | null
+          status?: string
+        }
+        Update: {
+          error_summary?: string | null
+          id?: string
+          imported_at?: string
+          imported_by?: string | null
+          metadata?: Json
+          records_created?: number
+          records_failed?: number
+          records_skipped?: number
+          records_total?: number
+          records_updated?: number
+          source_name?: string
+          source_url?: string | null
+          status?: string
+        }
+        Relationships: []
+      }
+      cost_carrier_system_templates: {
+        Row: {
+          additional_ik_numbers: Json | null
+          carrier_type: string
+          city: string | null
+          country: string
+          created_at: string
+          data_status: string
+          email: string | null
+          fax: string | null
+          federal_state: string | null
+          id: string
+          ik_number: string | null
+          is_system_template: boolean
+          legal_name: string | null
+          metadata: Json
+          name: string
+          notes: string | null
+          phone: string | null
+          postal_code: string | null
+          search_text: string | null
+          short_name: string | null
+          source_last_checked_at: string | null
+          source_name: string | null
+          source_url: string | null
+          street: string | null
+          template_key: string
+          ui_label: string
+          updated_at: string
+          validity_status: string
+          website: string | null
+        }
+        Insert: {
+          additional_ik_numbers?: Json | null
+          carrier_type: string
+          city?: string | null
+          country?: string
+          created_at?: string
+          data_status?: string
+          email?: string | null
+          fax?: string | null
+          federal_state?: string | null
+          id?: string
+          ik_number?: string | null
+          is_system_template?: boolean
+          legal_name?: string | null
+          metadata?: Json
+          name: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          search_text?: string | null
+          short_name?: string | null
+          source_last_checked_at?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          street?: string | null
+          template_key: string
+          ui_label: string
+          updated_at?: string
+          validity_status?: string
+          website?: string | null
+        }
+        Update: {
+          additional_ik_numbers?: Json | null
+          carrier_type?: string
+          city?: string | null
+          country?: string
+          created_at?: string
+          data_status?: string
+          email?: string | null
+          fax?: string | null
+          federal_state?: string | null
+          id?: string
+          ik_number?: string | null
+          is_system_template?: boolean
+          legal_name?: string | null
+          metadata?: Json
+          name?: string
+          notes?: string | null
+          phone?: string | null
+          postal_code?: string | null
+          search_text?: string | null
+          short_name?: string | null
+          source_last_checked_at?: string | null
+          source_name?: string | null
+          source_url?: string | null
+          street?: string | null
+          template_key?: string
+          ui_label?: string
+          updated_at?: string
+          validity_status?: string
+          website?: string | null
+        }
+        Relationships: []
       }
       course_enrollments: {
         Row: {
@@ -33477,6 +33747,77 @@ export type Database = {
           },
         ]
       }
+      tenant_cost_carrier_overrides: {
+        Row: {
+          carrier_type: string
+          created_at: string
+          created_by: string | null
+          custom_address_line_1: string | null
+          custom_city: string | null
+          custom_contact_name: string | null
+          custom_email: string | null
+          custom_ik_number: string | null
+          custom_name: string | null
+          custom_phone: string | null
+          custom_postal_code: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          system_template_id: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          carrier_type: string
+          created_at?: string
+          created_by?: string | null
+          custom_address_line_1?: string | null
+          custom_city?: string | null
+          custom_contact_name?: string | null
+          custom_email?: string | null
+          custom_ik_number?: string | null
+          custom_name?: string | null
+          custom_phone?: string | null
+          custom_postal_code?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          system_template_id?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          carrier_type?: string
+          created_at?: string
+          created_by?: string | null
+          custom_address_line_1?: string | null
+          custom_city?: string | null
+          custom_contact_name?: string | null
+          custom_email?: string | null
+          custom_ik_number?: string | null
+          custom_name?: string | null
+          custom_phone?: string | null
+          custom_postal_code?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          system_template_id?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_cost_carrier_overrides_system_template_id_fkey"
+            columns: ["system_template_id"]
+            isOneToOne: false
+            referencedRelation: "cost_carrier_system_templates"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       tenant_notification_settings: {
         Row: {
           created_at: string
@@ -53215,6 +53556,7 @@ export type Database = {
         Args: { input_assessment_run_id: string }
         Returns: Json
       }
+      caresuite_current_tenant_id: { Args: never; Returns: string }
       check_release_readiness: {
         Args: { input_release_id: string }
         Returns: Json
@@ -53499,6 +53841,30 @@ export type Database = {
           item_label: string
           item_type: string
           metadata: Json
+        }[]
+      }
+      search_cost_carrier_system_templates: {
+        Args: { p_carrier_type: string; p_limit?: number; p_query?: string }
+        Returns: {
+          carrier_type: string
+          city: string
+          country: string
+          data_status: string
+          email: string
+          fax: string
+          federal_state: string
+          id: string
+          ik_number: string
+          legal_name: string
+          name: string
+          notes: string
+          phone: string
+          postal_code: string
+          short_name: string
+          street: string
+          template_key: string
+          ui_label: string
+          website: string
         }[]
       }
       search_documentation_phrases: {

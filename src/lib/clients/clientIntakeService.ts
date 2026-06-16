@@ -15,11 +15,16 @@ import { helgaSchneiderFull } from '@/data/demo/clients/helga-schneider';
 import { runService } from '@/lib/services/serviceRunner';
 import { assertDemoTenant, isDemoClientBackend } from './clientBackend';
 import {
+  COST_BEARER_FIELD_ERRORS,
+  getCostBearerFieldValues,
   hasGkvCostBearerSelected,
+  isCostBearerTypeKey,
   resolvePrimaryCostBearerName,
   resolvePrimaryCostBearerReference,
 } from './clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from './clientIntakeBilling';
+import { validateCostBearerEntry, persistIntakeCostCarriers } from '@/features/costCarriers/costCarrierService';
+import { createClientFromIntake } from './repositories/clientIntakeRepository.supabase';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
   return getVisibleSectionsForClientContext(contexts);
@@ -62,11 +67,23 @@ export function validateIntakeStep(
     if (required.includes('careLevel') && !form.careLevel) {
       errors.careLevel = 'Pflegegrad ist erforderlich.';
     }
-    if (required.includes('careFund') && form.costBearerTypes.includes('pflegekasse') && !form.careFundName.trim()) {
-      errors.careFundName = 'Pflegekasse ist erforderlich.';
+
+    for (const type of form.costBearerTypes) {
+      if (!isCostBearerTypeKey(type)) continue;
+      const values = getCostBearerFieldValues(form, type);
+      const entryError = validateCostBearerEntry(type, values);
+      if (entryError) {
+        errors[COST_BEARER_FIELD_ERRORS[type]] = entryError;
+      }
     }
-    if (required.includes('healthInsurance') && form.costBearerTypes.includes('krankenkasse') && !form.healthInsurance.trim()) {
-      errors.healthInsurance = 'Krankenkasse ist erforderlich.';
+
+    if (required.includes('careFund') && form.costBearerTypes.includes('pflegekasse')) {
+      const name = getCostBearerFieldValues(form, 'pflegekasse').name.trim();
+      if (!name) errors.careFundName = 'Pflegekasse ist erforderlich.';
+    }
+    if (required.includes('healthInsurance') && form.costBearerTypes.includes('krankenkasse')) {
+      const name = getCostBearerFieldValues(form, 'krankenkasse').name.trim();
+      if (!name) errors.healthInsurance = 'Krankenkasse ist erforderlich.';
     }
     if (required.includes('insuranceNumber') && hasGkvCostBearerSelected(form.costBearerTypes) && !form.insuranceNumber.trim()) {
       errors.insuranceNumber = 'Versichertennummer ist erforderlich.';
@@ -119,10 +136,22 @@ export function hasIntakeErrors(errors: ClientIntakeErrors): boolean {
 export async function submitClientIntake(
   tenantId: string,
   form: ClientIntakeFormData,
+  options?: { actorProfileId?: string | null },
 ): Promise<ServiceResult<{ id: string }>> {
   return runService(async () => {
     if (!isDemoClientBackend()) {
-      return { ok: false, error: 'Live-Intake: Migration anwenden und Repository erweitern.' };
+      const clientResult = await createClientFromIntake(tenantId, form, options?.actorProfileId ?? null);
+      if (!clientResult.ok) return clientResult;
+
+      const carrierResult = await persistIntakeCostCarriers(
+        tenantId,
+        clientResult.data.id,
+        form,
+        options?.actorProfileId ?? null,
+      );
+      if (!carrierResult.ok) return carrierResult;
+
+      return { ok: true, data: { id: clientResult.data.id } };
     }
 
     const denied = assertDemoTenant(tenantId);

@@ -170,9 +170,9 @@ export function applyCostBearerFieldValues(
   values: { name: string; street: string; zip: string; city: string; ikNumber: string },
 ): ClientIntakeFormData {
   const { fields } = COST_BEARER_TYPE_CONFIG[type];
-  const next = { ...form, [fields.name]: values.name, [fields.street]: values.street, [fields.zip]: values.zip, [fields.city]: values.city };
+  const next: ClientIntakeFormData = { ...form, [fields.name]: values.name, [fields.street]: values.street, [fields.zip]: values.zip, [fields.city]: values.city };
   if (fields.ikNumber) {
-    next[fields.ikNumber] = values.ikNumber;
+    return { ...next, [fields.ikNumber]: values.ikNumber };
   }
   return next;
 }
@@ -181,7 +181,18 @@ export function clearCostBearerTypeFields(
   form: ClientIntakeFormData,
   type: CostBearerTypeKey,
 ): ClientIntakeFormData {
-  return applyCostBearerFieldValues(form, type, { name: '', street: '', zip: '', city: '', ikNumber: '' });
+  const next = applyCostBearerFieldValues(form, type, { name: '', street: '', zip: '', city: '', ikNumber: '' });
+  const costBearerTemplateIds = { ...next.costBearerTemplateIds };
+  const costBearerDbTypes = { ...next.costBearerDbTypes };
+  delete costBearerTemplateIds[type];
+  delete costBearerDbTypes[type];
+  return {
+    ...next,
+    costBearerTemplateIds,
+    costBearerDbTypes,
+    costBearerTypes: next.costBearerTypes.filter((entry) => entry !== type),
+    activeCostBearerType: next.activeCostBearerType === type ? '' : next.activeCostBearerType,
+  };
 }
 
 export function clearDeselectedCostBearerTypes(

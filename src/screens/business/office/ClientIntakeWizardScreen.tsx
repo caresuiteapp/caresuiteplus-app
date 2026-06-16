@@ -5,8 +5,7 @@ import { FormScreenHero } from '@/components/forms';
 import {
   CareAddressSearch,
   CareCatalogSelect,
-  CareCostBearerTypeFields,
-  orderedSelectedCostBearerTypes,
+  CareCostBearerStepPanel,
   CareDateInput,
   CareDocumentUpload,
   CareMultiCatalogSelect,
@@ -26,7 +25,6 @@ import {
 } from '@/components/ui';
 import { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard';
 import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
-import { COST_BEARER_FIELD_ERRORS } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { getServiceMode } from '@/lib/services/mode';
 import { spacing, typography } from '@/theme';
@@ -38,7 +36,17 @@ function StepContent({
   section: IntakeSectionKey;
   wizard: ReturnType<typeof useClientIntakeWizard>;
 }) {
-  const { form, errors, updateField, updateCostBearerTypes, replaceForm, toggleCareContext, toggleArrayField, contextHint } = wizard;
+  const {
+    form,
+    errors,
+    updateField,
+    replaceForm,
+    commitCostBearer,
+    removeCostBearer,
+    toggleCareContext,
+    toggleArrayField,
+    contextHint,
+  } = wizard;
 
   if (section === 'leistungsart') {
     return (
@@ -114,10 +122,6 @@ function StepContent({
   }
 
   if (section === 'kostentraeger') {
-    const selectedCostBearerTypes = orderedSelectedCostBearerTypes(form.costBearerTypes);
-    const showInsuranceNumber = form.costBearerTypes.includes('pflegekasse')
-      || form.costBearerTypes.includes('krankenkasse');
-
     return (
       <SectionPanel title="Kostenträger / Abrechnung">
         <CareMultiCatalogSelect
@@ -127,30 +131,14 @@ function StepContent({
           onChange={(v) => updateField('billingTypes', v)}
           error={errors.billingTypes}
         />
-        <CareMultiCatalogSelect
-          catalogKey="cost_bearer_type"
-          label="Kostenträgertyp"
-          values={form.costBearerTypes}
-          onChange={(v) => updateCostBearerTypes(v)}
-          error={errors.costBearerTypes}
+        <CareCostBearerStepPanel
+          form={form}
+          errors={errors}
+          onChange={replaceForm}
+          onFieldChange={updateField}
+          onCommitCostBearer={commitCostBearer}
+          onRemoveCostBearer={removeCostBearer}
         />
-        {selectedCostBearerTypes.map((type) => (
-          <CareCostBearerTypeFields
-            key={type}
-            type={type}
-            form={form}
-            onChange={replaceForm}
-            error={errors[COST_BEARER_FIELD_ERRORS[type]]}
-          />
-        ))}
-        {showInsuranceNumber ? (
-          <PremiumInput
-            label="Versichertennummer / KVNR"
-            value={form.insuranceNumber}
-            onChangeText={(v) => updateField('insuranceNumber', v)}
-            error={errors.insuranceNumber}
-          />
-        ) : null}
       </SectionPanel>
     );
   }
