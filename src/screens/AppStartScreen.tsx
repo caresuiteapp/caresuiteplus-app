@@ -10,27 +10,36 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useAuth } from '@/lib/auth/context';
+import { resolveAuthSessionTarget } from '@/lib/auth/sessionTarget';
 import { fetchAppStartSnapshot } from '@/lib/landing/appStartService';
-import { resolveSessionHomeRoute, shouldShowPortalChoice } from '@/lib/navigation/sessionRouting';
+import { shouldShowPortalChoice } from '@/lib/navigation/sessionRouting';
 
 export function AppStartScreen() {
   const router = useRouter();
-  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, signOut } = useAuth();
+  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, user } = useAuth();
   const { isPhone, isDesktopOrWide, width } = useDeviceClass();
   const type = useMemo(() => resolveGalaxyTypography(width), [width]);
 
   const entriesQuery = useAsyncQuery(() => fetchAppStartSnapshot(), []);
   const mainEntries = entriesQuery.data ?? [];
-  const homePath = String(
-    resolveSessionHomeRoute(profile?.roleKey ?? null, portalSession),
-  );
+  const { homePath, canRedirectHome } = resolveAuthSessionTarget({ profile, portalSession, user });
   const showPortalChoice = shouldShowPortalChoice(isAuthenticated);
-  const hasSessionTarget = Boolean(portalSession || profile?.roleKey);
 
   useEffect(() => {
-    if (!isInitialized || isLoading || !isAuthenticated || !hasSessionTarget) return;
+    if (!isInitialized || isLoading || !isAuthenticated || !canRedirectHome) return;
     router.replace(homePath as never);
-  }, [hasSessionTarget, homePath, isAuthenticated, isInitialized, isLoading, router]);
+  }, [canRedirectHome, homePath, isAuthenticated, isInitialized, isLoading, router]);
+
+  useEffect(() => {
+    if (!isAuthenticated || !canRedirectHome) return undefined;
+
+    const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+      router.replace(homePath as never);
+      return true;
+    });
+
+    return () => subscription.remove();
+  }, [canRedirectHome, homePath, isAuthenticated, router]);
 
   useEffect(() => {
     if (!showPortalChoice) return undefined;
@@ -47,24 +56,10 @@ export function AppStartScreen() {
     );
   }
 
-  if (isAuthenticated && hasSessionTarget) {
+  if (isAuthenticated) {
     return (
       <AppScreen scroll={false}>
         <LoadingState message="Weiterleitung zum Dashboard…" />
-      </AppScreen>
-    );
-  }
-
-  if (isAuthenticated && !hasSessionTarget) {
-    return (
-      <AppScreen scroll={false}>
-        <ErrorState
-          title="Sitzung unvollständig"
-          message="Ihr Profil konnte nicht geladen werden. Bitte melden Sie sich erneut an."
-          onRetry={() => {
-            void signOut().then(() => router.replace('/auth/business-login' as never));
-          }}
-        />
       </AppScreen>
     );
   }

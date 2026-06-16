@@ -20,13 +20,28 @@ describe('tenant bootstrap role resolution', () => {
 
   it('RedirectIfAuthenticated waits for session target before redirect', () => {
     const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
-    expect(guard).toContain('hasSessionTarget');
-    expect(guard).toContain('!hasSessionTarget');
+    expect(guard).toContain('canRedirectHome');
+    expect(guard).toContain('!canRedirectHome');
+    expect(guard).toContain('resolveAuthSessionTarget');
   });
 
-  it('AppStartScreen does not silently sign out incomplete sessions', () => {
+  it('AppStartScreen keeps authenticated users on start and never signs out', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
-    expect(start).toContain('Sitzung unvollständig');
+    expect(start).toContain('resolveAuthSessionTarget');
+    expect(start).toContain('Weiterleitung zum Dashboard');
+    expect(start).not.toContain('signOut');
     expect(start).not.toMatch(/if \(!hasSessionTarget\) \{\s*void signOut\(\)/);
+  });
+
+  it('session target uses profile and user roleKey and blocks redirect to /', () => {
+    const helper = readSrc('src/lib/auth/sessionTarget.ts');
+    expect(helper).toContain('profile?.roleKey ?? user?.roleKey');
+    expect(helper).toContain("homePath !== '/'");
+  });
+
+  it('AuthProvider repairs profile when session exists without roleKey', () => {
+    const provider = readSrc('src/lib/auth/AuthProvider.tsx');
+    expect(provider).toContain('repairProfileFromSession');
+    expect(provider).toContain('!user || !session || profile?.roleKey');
   });
 });

@@ -2,7 +2,7 @@ import { ReactNode, useEffect } from 'react';
 import { BackHandler } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FullScreenLoader } from '@/components/ui';
-import { resolveSessionHomeRoute } from '@/lib/navigation/sessionRouting';
+import { resolveAuthSessionTarget } from './sessionTarget';
 import { useAuth } from './context';
 
 type RedirectIfAuthenticatedProps = {
@@ -18,20 +18,17 @@ export function RedirectIfAuthenticated({
   loadingMessage = 'Weiterleitung zum Dashboard…',
 }: RedirectIfAuthenticatedProps) {
   const router = useRouter();
-  const { isInitialized, isLoading, isAuthenticated, profile, portalSession } = useAuth();
+  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, user } = useAuth();
 
-  const hasSessionTarget = Boolean(portalSession || profile?.roleKey);
-  const homePath = String(
-    resolveSessionHomeRoute(profile?.roleKey ?? null, portalSession),
-  );
+  const { homePath, canRedirectHome } = resolveAuthSessionTarget({ profile, portalSession, user });
 
   useEffect(() => {
-    if (!isInitialized || isLoading || !isAuthenticated || !hasSessionTarget) return;
+    if (!isInitialized || isLoading || !isAuthenticated || !canRedirectHome) return;
     router.replace(homePath as never);
-  }, [hasSessionTarget, homePath, isAuthenticated, isInitialized, isLoading, router]);
+  }, [canRedirectHome, homePath, isAuthenticated, isInitialized, isLoading, router]);
 
   useEffect(() => {
-    if (!isAuthenticated) return undefined;
+    if (!isAuthenticated || !canRedirectHome) return undefined;
 
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
       router.replace(homePath as never);
@@ -39,7 +36,7 @@ export function RedirectIfAuthenticated({
     });
 
     return () => subscription.remove();
-  }, [homePath, isAuthenticated, router]);
+  }, [canRedirectHome, homePath, isAuthenticated, router]);
 
   if (!isInitialized || isLoading) {
     return <FullScreenLoader message="Sitzung wird geprüft…" />;

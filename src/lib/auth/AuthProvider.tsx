@@ -121,6 +121,33 @@ export function AuthProvider({ children }: AuthProviderProps) {
     };
   }, [authMode]);
 
+  useEffect(() => {
+    if (authMode !== 'supabase' || !isInitialized || isLoading) return;
+    if (!user || !session || profile?.roleKey) return;
+
+    let cancelled = false;
+
+    async function repairProfileFromSession() {
+      const sessionResult = await getSession();
+      if (cancelled || !sessionResult.ok || !sessionResult.data) return;
+
+      const bootstrap = await bootstrapTenantContext(sessionResult.data);
+      if (cancelled || !bootstrap.ok) return;
+
+      applyBootstrap(bootstrap, setUser, setProfile, setSession);
+      if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
+        void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
+        void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+      }
+    }
+
+    void repairProfileFromSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authMode, isInitialized, isLoading, user, session, profile?.roleKey]);
+
   const signInDemo = useCallback(async (roleKey: RoleKey) => {
     if (!isDemoMode()) {
       throw new Error('Demo-Anmeldung nur im Demo-Modus verfügbar.');
