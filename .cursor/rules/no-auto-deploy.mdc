@@ -1,0 +1,29 @@
+---
+description: Kein automatisches Netlify-Deploy — nur auf explizite Anfrage
+alwaysApply: true
+---
+
+# Kein automatisches Deploy
+
+Deploy ist ein separater Schritt und darf **nur** auf explizite Anfrage des Nutzers erfolgen.
+
+## Verboten (ohne explizite Anfrage)
+
+- **Niemals** zu `origin/main` pushen, allein um ein Netlify-Deploy auszulösen
+- **Niemals** leere Commits als Deploy-Trigger erstellen
+- **Niemals** `netlify deploy` oder vergleichbare Deploy-Befehle ausführen
+
+## Erlaubt
+
+- Commits und Pushes von Code-Änderungen, wenn der Nutzer das ausdrücklich verlangt (z. B. „commit“, „pushen“)
+- Deploy **nur** wenn der Nutzer es klar sagt, z. B.:
+  - „deploy“ / „deployen“
+  - „netlify pushen“
+  - „[deploy]“ im Commit-Message-Kontext
+
+## Deploy auslösen (wenn angefragt)
+
+1. Commit-Message mit `[deploy]` erstellen und pushen, **oder**
+2. Im Netlify-Dashboard manuell „Trigger deploy“ ausführen
+
+Commit/Push und Deploy sind getrennte Schritte. Ein Push ohne `[deploy]` löst keinen Netlify-Build aus (siehe `netlify.toml`).
