@@ -16,6 +16,7 @@ import { CareLightPageShell } from '@/components/layout';
 import {
   ErrorState,
   FormStepper,
+  InfoBanner,
   LoadingState,
   EmptyState,
   PremiumButton,
@@ -221,10 +222,12 @@ export function ClientIntakeWizardScreen() {
     createdId,
     draftLoaded,
     draftRestored,
+    draftSaveFeedback,
     nextStep,
     prevStep,
     submit,
     discardDraft,
+    saveDraft,
     isFirstStep,
     isLastStep,
     isSuccess,
@@ -321,8 +324,16 @@ export function ClientIntakeWizardScreen() {
         <StepContent section={currentSection} wizard={wizard} />
         {submitError ? <ErrorState message={submitError} /> : null}
       </ScrollView>
+      {draftSaveFeedback ? (
+        <InfoBanner
+          variant={draftSaveFeedback.variant}
+          message={draftSaveFeedback.message}
+          style={styles.draftSaveBanner}
+        />
+      ) : null}
       <View style={styles.actions}>
         <PremiumButton title="Abbrechen" variant="ghost" onPress={handleCancel} />
+        <PremiumButton title="Als Entwurf speichern" variant="secondary" onPress={saveDraft} />
         {!isFirstStep ? <PremiumButton title="Zurück" variant="secondary" onPress={prevStep} /> : null}
         {isLastStep ? (
           <PremiumButton title="Aufnahme abschließen" loading={submitting} onPress={handleSubmit} style={styles.primaryAction} />
@@ -337,6 +348,7 @@ export function ClientIntakeWizardScreen() {
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
   actions: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md, alignItems: 'center' },
+  draftSaveBanner: { marginHorizontal: spacing.md, marginBottom: spacing.xs },
   primaryAction: { flex: 1 },
   draftBanner: { ...typography.body, marginBottom: spacing.sm },
   hint: { ...typography.caption, marginTop: spacing.sm, color: '#666' },

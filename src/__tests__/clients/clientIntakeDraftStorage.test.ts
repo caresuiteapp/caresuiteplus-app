@@ -50,6 +50,24 @@ describe('Client intake draft storage', () => {
     );
   });
 
+  it('speichert Schrittindex und Einwilligungsfelder im Entwurf', async () => {
+    const form = {
+      ...createEmptyIntakeForm(),
+      firstName: 'Lena',
+      careContexts: ['ambulatory_care'],
+      consentDatenschutz: true,
+      consentVertrag: true,
+      consentTypes: ['datenschutz'],
+    };
+
+    await saveClientIntakeDraft(userId, tenantId, { form, stepIndex: 7 });
+
+    const payload = vi.mocked(AsyncStorage.setItem).mock.calls[0]?.[1] as string;
+    expect(payload).toContain('"stepIndex":7');
+    expect(payload).toContain('"consentDatenschutz":true');
+    expect(payload).toContain('"consentVertrag":true');
+  });
+
   it('lädt und merged gespeicherten Entwurf mit Defaults', async () => {
     const stored = {
       form: { firstName: 'Erika', careContexts: ['ambulant'] },

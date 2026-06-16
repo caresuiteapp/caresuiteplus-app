@@ -51,8 +51,13 @@ export function useClientIntakeWizard() {
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [draftSaveFeedback, setDraftSaveFeedback] = useState<{
+    message: string;
+    variant: 'success' | 'warning';
+  } | null>(null);
   const submitLock = useRef(false);
   const skipNextSave = useRef(false);
+  const draftFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const steps = useMemo(
     () => getIntakeStepsForContexts(form.careContexts),
@@ -107,6 +112,14 @@ export function useClientIntakeWizard() {
     if (stepIndex <= steps.length - 1) return;
     setStepIndex(Math.max(0, steps.length - 1));
   }, [stepIndex, steps.length]);
+
+  useEffect(() => {
+    return () => {
+      if (draftFeedbackTimerRef.current) {
+        clearTimeout(draftFeedbackTimerRef.current);
+      }
+    };
+  }, []);
 
   const updateField = useCallback(
     <K extends keyof ClientIntakeFormData>(key: K, value: ClientIntakeFormData[K]) => {
@@ -221,6 +234,29 @@ export function useClientIntakeWizard() {
     resetWizard();
   }, [resetWizard, tenantId, userId]);
 
+  const saveDraft = useCallback(async () => {
+    if (!userId || !tenantId) {
+      setDraftSaveFeedback({
+        message: 'Entwurf konnte nicht gespeichert werden.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    await saveClientIntakeDraft(userId, tenantId, { form, stepIndex });
+
+    const hasContent = hasIntakeDraftContent({ form, stepIndex });
+    setDraftSaveFeedback({
+      message: hasContent ? 'Entwurf gespeichert.' : 'Kein Entwurf zum Speichern.',
+      variant: hasContent ? 'success' : 'warning',
+    });
+
+    if (draftFeedbackTimerRef.current) {
+      clearTimeout(draftFeedbackTimerRef.current);
+    }
+    draftFeedbackTimerRef.current = setTimeout(() => setDraftSaveFeedback(null), 2500);
+  }, [form, stepIndex, tenantId, userId]);
+
   const nextStep = useCallback(() => {
     const stepErrors = validateIntakeStep(currentSection, form);
     if (hasIntakeErrors(stepErrors)) {
@@ -284,6 +320,7 @@ export function useClientIntakeWizard() {
     createdId,
     draftLoaded,
     draftRestored,
+    draftSaveFeedback,
     hasPersistedDraft: draftRestored || hasIntakeDraftContent({ form, stepIndex }),
     updateField,
     updateCostBearerTypes,
@@ -296,6 +333,7 @@ export function useClientIntakeWizard() {
     prevStep,
     submit,
     discardDraft,
+    saveDraft,
     resetWizard,
     isFirstStep: stepIndex === 0,
     isLastStep: stepIndex === steps.length - 1,
