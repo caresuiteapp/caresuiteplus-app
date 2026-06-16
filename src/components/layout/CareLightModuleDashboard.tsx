@@ -23,6 +23,7 @@ export type CareLightModuleDashboardSectionRefs = {
   kpis?: RefObject<View>;
   recent?: RefObject<View>;
   quickActions?: RefObject<View>;
+  modules?: RefObject<View>;
 };
 
 type CareLightModuleDashboardProps = {
@@ -34,6 +35,9 @@ type CareLightModuleDashboardProps = {
   recentTitle?: string;
   recentSubtitle?: string;
   quickActions?: ReactNode;
+  modulesSection?: ReactNode;
+  modulesTitle?: string;
+  modulesSubtitle?: string;
   headerSlot?: ReactNode;
   sectionRefs?: CareLightModuleDashboardSectionRefs;
   style?: ViewStyle;
@@ -48,6 +52,9 @@ export function CareLightModuleDashboard({
   recentTitle = 'Aktuelle Vorgänge',
   recentSubtitle,
   quickActions,
+  modulesSection,
+  modulesTitle = 'Bereiche & Module',
+  modulesSubtitle = 'Wechseln Sie zwischen CareSuite+ Modulen',
   headerSlot,
   sectionRefs,
   style,
@@ -81,15 +88,22 @@ export function CareLightModuleDashboard({
           ) : null}
         </View>
 
-        {quickActions ? (
-          <View
-            style={[styles.side, isPhone ? styles.sidePhone : styles.sideWide]}
-            ref={sectionRefs?.quickActions}
-            collapsable={false}
-          >
-            <CareLightSection title="Schnellzugriff" subtitle="Häufige Aktionen">
-              {quickActions}
-            </CareLightSection>
+        {quickActions || modulesSection ? (
+          <View style={[styles.side, isPhone ? styles.sidePhone : styles.sideWide]}>
+            {quickActions ? (
+              <View ref={sectionRefs?.quickActions} collapsable={false}>
+                <CareLightSection title="Schnellzugriff" subtitle="Häufige Aktionen">
+                  {quickActions}
+                </CareLightSection>
+              </View>
+            ) : null}
+            {modulesSection ? (
+              <View ref={sectionRefs?.modules} collapsable={false}>
+                <CareLightSection title={modulesTitle} subtitle={modulesSubtitle}>
+                  {modulesSection}
+                </CareLightSection>
+              </View>
+            ) : null}
           </View>
         ) : null}
       </View>
@@ -128,6 +142,7 @@ const styles = StyleSheet.create({
   },
   side: {
     minWidth: 0,
+    gap: careSpacing.lg,
   },
   sidePhone: {
     width: '100%',

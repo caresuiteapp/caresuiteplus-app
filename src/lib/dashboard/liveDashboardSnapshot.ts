@@ -7,6 +7,7 @@ import type {
   DashboardStatusCard,
 } from '@/types/dashboard';
 import type { RoleKey } from '@/types';
+import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -71,9 +72,18 @@ function getBusinessQuickActions(roleKey: RoleKey, scope: DashboardScope): Dashb
     ];
   }
   return [
-    { id: 'qa-client', label: 'Klient:innen', icon: '👤', route: '/office/clients', variant: 'primary' },
+    {
+      id: 'qa-client-new',
+      label: 'Klient:in anlegen',
+      icon: '➕',
+      route: CLIENT_INTAKE_NEW_ROUTE,
+      variant: 'primary',
+    },
     { id: 'qa-assign', label: 'Einsatz planen', icon: '📅', route: '/assist', variant: 'secondary' },
+    { id: 'qa-clients-list', label: 'Klient:innenliste', icon: '👥', route: '/office/clients', variant: 'secondary' },
     { id: 'qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office', variant: 'secondary' },
+    { id: 'qa-employees', label: 'Mitarbeitende', icon: '👤', route: '/office/employees', variant: 'secondary' },
+    { id: 'qa-messages', label: 'Nachrichten', icon: '💬', route: '/office/messages', variant: 'secondary' },
   ];
 }
 

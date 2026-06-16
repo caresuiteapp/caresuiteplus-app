@@ -8,6 +8,7 @@ import {
   CareLightEmptyState,
   CareLightErrorState,
   CareLightModuleTile,
+  CareLightQuickActionsMenu,
   SuccessState,
   Timeline,
 } from '@/components/ui';
@@ -145,9 +146,13 @@ export function BusinessDashboardScreen() {
         kpis={kpis}
         recentTitle="Letzte Aktivitäten"
         recentSubtitle="Chronologischer Verlauf"
+        modulesTitle="Ihre Module"
+        modulesSubtitle="Wechseln Sie zwischen CareSuite+ Bereichen"
         sectionRefs={{
           header: tour.refs.welcome,
           kpis: tour.refs.kpis,
+          quickActions: tour.refs.quickActions,
+          modules: tour.refs.modules,
         }}
         recentSection={
           <>
@@ -158,53 +163,17 @@ export function BusinessDashboardScreen() {
               onPress={handleRefresh}
               accentColor={businessAccent}
             />
-            <CareLightButton
-              title={`${data.primaryAction.icon} ${data.primaryAction.label}`}
-              onPress={() => handleAction(data.primaryAction)}
-              accentColor={businessAccent}
-            />
           </>
         }
         quickActions={
           <View style={styles.quickGrid}>
-            <View ref={tour.refs.quickActions} collapsable={false} style={styles.quickGrid}>
-              {data.quickActions.map((action) => {
-                const isClientAction =
-                  action.id === 'qa-client' || action.route === '/office/clients';
-                return (
-                  <View
-                    key={action.id}
-                    ref={isClientAction ? tour.refs.firstClient : undefined}
-                    collapsable={false}
-                  >
-                    <CareLightButton
-                      title={`${action.icon} ${action.label}`}
-                      variant={action.variant === 'primary' ? 'primary' : 'secondary'}
-                      onPress={() => handleAction(action)}
-                      accentColor={businessAccent}
-                    />
-                  </View>
-                );
-              })}
-            </View>
-            <View ref={tour.refs.modules} collapsable={false} style={styles.quickGrid}>
-              {moduleTiles.map((tile) => (
-                <CareLightModuleTile
-                  key={tile.id}
-                  icon={tile.icon}
-                  title={tile.title}
-                  description={tile.description}
-                  accentColor={tile.accentColor}
-                  isActive={tile.navState.isNavigable}
-                  preparedOnly={tile.navState.effectiveStatus === 'coming_soon'}
-                  onPress={
-                    tile.navState.isNavigable
-                      ? () => router.push(tile.route as never)
-                      : undefined
-                  }
-                />
-              ))}
-            </View>
+            <CareLightQuickActionsMenu
+              actions={data.quickActions}
+              onAction={handleAction}
+              accentColor={businessAccent}
+              maxVisible={2}
+              actionRef={tour.refs.firstClient}
+            />
             {tour.tourFinished ? (
               <CareLightButton
                 title="Tour starten"
@@ -219,6 +188,26 @@ export function BusinessDashboardScreen() {
               onPress={() => signOut().then(() => router.replace('/' as never))}
               accentColor={careLightColors.muted}
             />
+          </View>
+        }
+        modulesSection={
+          <View style={styles.moduleGrid}>
+            {moduleTiles.map((tile) => (
+              <CareLightModuleTile
+                key={tile.id}
+                icon={tile.icon}
+                title={tile.title}
+                description={tile.description}
+                accentColor={tile.accentColor}
+                isActive={tile.navState.isNavigable}
+                preparedOnly={tile.navState.effectiveStatus === 'coming_soon'}
+                onPress={
+                  tile.navState.isNavigable
+                    ? () => router.push(tile.route as never)
+                    : undefined
+                }
+              />
+            ))}
           </View>
         }
       />
@@ -245,6 +234,7 @@ export function BusinessDashboardScreen() {
 
 const styles = StyleSheet.create({
   quickGrid: { gap: careSpacing.md },
+  moduleGrid: { gap: careSpacing.sm },
   loading: {
     ...careTypography.body,
     color: careLightColors.muted,

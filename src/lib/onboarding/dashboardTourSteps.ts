@@ -1,3 +1,5 @@
+import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
+
 export type DashboardTourAnchorKey =
   | 'welcome'
   | 'kpis'
@@ -40,15 +42,15 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     id: 'quickActions',
     title: 'Schnellzugriff',
     body:
-      'Mit diesen Schaltflächen starten Sie häufige Aufgaben direkt — ohne lange Suche im Menü.',
+      'Die wichtigsten Aktionen sind direkt sichtbar. Über „Mehr Aktionen“ erreichen Sie weitere häufig genutzte Funktionen.',
     placement: 'auto',
     spotlight: true,
   },
   {
     id: 'modules',
-    title: 'Module',
+    title: 'Ihre Module',
     body:
-      'Wechseln Sie hier zwischen Office, Pflege und Assist. Jedes Modul bündelt die passenden Funktionen für Ihren Alltag.',
+      'Unter „Ihre Module“ wechseln Sie zwischen Office, Pflege und Assist — jedes Modul bündelt die passenden Funktionen für Ihren Alltag.',
     placement: 'auto',
     spotlight: true,
   },
@@ -67,7 +69,7 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
       'Wenn Sie neu starten, legen Sie zuerst eine Klient:in an. Danach können Sie Einsätze planen und dokumentieren.',
     placement: 'auto',
     spotlight: true,
-    ctaRoute: '/office/clients',
-    ctaLabel: 'Zu Klient:innen',
+    ctaRoute: CLIENT_INTAKE_NEW_ROUTE,
+    ctaLabel: 'Klient:in anlegen',
   },
 ];

@@ -19,6 +19,7 @@ export { CareLightEmptyState } from './CareLightEmptyState';
 export { CareLightErrorState } from './CareLightErrorState';
 export { CareLightListHeroFrame } from './CareLightListHeroFrame';
 export { CareLightActionBar } from './CareLightActionBar';
+export { CareLightQuickActionsMenu } from './CareLightQuickActionsMenu';
 export { SectionPanel } from './SectionPanel';
 export { RequireProductAccess } from './RequireProductAccess';
 export { PremiumKpiCard } from './PremiumKpiCard';
