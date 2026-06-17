@@ -85,5 +85,11 @@ export async function getDropdownOptions(
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
   await demoDelay(80);
-  return repo().getDropdownOptions(tenantId, catalogType);
+  const result = await repo().getDropdownOptions(tenantId, catalogType);
+  if (result.ok) return result;
+  if (getServiceMode() === 'supabase') {
+    const fallback = await catalogDemoRepository.getDropdownOptions(tenantId, catalogType);
+    if (fallback.ok && fallback.data.length > 0) return fallback;
+  }
+  return result;
 }

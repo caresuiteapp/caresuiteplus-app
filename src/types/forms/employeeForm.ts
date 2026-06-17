@@ -5,6 +5,7 @@ export type EmployeeFormData = {
   phone: string;
   jobTitle: string;
   department: string;
+  status: string;
 };
 
 export type EmployeeFormErrors = Partial<Record<keyof EmployeeFormData, string>>;
@@ -16,4 +17,5 @@ export const EMPTY_EMPLOYEE_FORM: EmployeeFormData = {
   phone: '',
   jobTitle: '',
   department: '',
+  status: 'aktiv',
 };

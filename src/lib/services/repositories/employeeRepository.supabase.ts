@@ -92,10 +92,38 @@ export const employeeSupabaseRepository = {
 
   async create(
     tenantId: string,
-    input: { firstName: string; lastName: string; jobTitle?: string; email?: string },
+    input: {
+      firstName: string;
+      lastName: string;
+      jobTitle?: string;
+      email?: string;
+      phone?: string;
+      department?: string;
+      status?: string;
+    },
   ): Promise<ServiceResult<{ id: string }>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
+    const allowedStatuses = new Set([
+      'entwurf',
+      'aktiv',
+      'in_bearbeitung',
+      'abgeschlossen',
+      'archiviert',
+      'fehlerhaft',
+      'gesperrt',
+      'probezeit',
+      'einarbeitung',
+      'urlaub',
+      'krank',
+      'elternzeit',
+      'fortbildung',
+      'teilzeit',
+      'freigestellt',
+      'kuendigung_laeuft',
+      'ausgeschieden',
+    ]);
+    const status = allowedStatuses.has(input.status ?? 'aktiv') ? (input.status ?? 'aktiv') : 'aktiv';
     const { data, error } = await fromUnknownTable(supabase, 'employees')
       .insert({
         tenant_id: tenantId,
@@ -103,7 +131,9 @@ export const employeeSupabaseRepository = {
         last_name: input.lastName.trim(),
         job_title: input.jobTitle?.trim() ?? null,
         email: input.email?.trim() ?? null,
-        status: 'aktiv',
+        phone: input.phone?.trim() || null,
+        department: input.department?.trim() || null,
+        status,
       })
       .select('id')
       .single();

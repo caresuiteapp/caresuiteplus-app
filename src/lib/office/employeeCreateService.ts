@@ -29,6 +29,9 @@ export async function createEmployee(
       lastName: form.lastName,
       jobTitle: form.jobTitle,
       email: form.email,
+      phone: form.phone,
+      department: form.department,
+      status: form.status,
     });
   }
 
