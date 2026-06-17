@@ -5,6 +5,7 @@ import {
   buildIntakePlaceholderContext,
   listApplicableIntakeTemplates,
   listAvailableContractTypes,
+  resolveBillingHourlyRate,
   resolveContractTemplateKey,
   resolveIntakeContractType,
 } from '@/features/intakeDocuments/buildIntakeDocumentContext';
@@ -390,5 +391,45 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(preview.html).toContain('meine behandelnden Ärzt:innen');
     expect(preview.html).not.toContain('[fehlend:');
     expect(preview.html).not.toContain('Hausarzt');
+  });
+
+  it('33. Mandanten-Stundensatz erscheint in Assist-Vertrag wenn Klientensatz fehlt', () => {
+    const form = baseForm({
+      careContexts: ['daily_assistance'],
+      intakeContractType: 'assist',
+      hourlyRate: '',
+    });
+    const template = getSystemIntakeTemplateByKey('client_contract_assist')!;
+    const preview = renderIntakeDocumentHtml(
+      template,
+      buildIntakePlaceholderContext(form, {
+        name: 'Demo Pflegedienst',
+        defaultHourlyRate: '45,00',
+      }),
+    );
+    expect(preview.html).toContain('45,00 EUR');
+    expect(preview.html).not.toContain('— EUR');
+    expect(preview.html).not.toContain('[fehlend:');
+  });
+
+  it('34. Klientenspezifischer Stundensatz hat Vorrang vor Mandanten-Default', () => {
+    const form = baseForm({
+      careContexts: ['daily_assistance'],
+      intakeContractType: 'assist',
+      hourlyRate: '52,50',
+    });
+    expect(resolveBillingHourlyRate(form, { name: 'Demo', defaultHourlyRate: '45,00' })).toBe('52,50');
+  });
+
+  it('35. fehlender Stundensatz bleibt leer — kein Gedankenstrich im Dokument', () => {
+    const form = baseForm({
+      careContexts: ['daily_assistance'],
+      intakeContractType: 'assist',
+      hourlyRate: '',
+    });
+    const template = getSystemIntakeTemplateByKey('client_contract_assist')!;
+    const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form));
+    expect(preview.html).not.toContain('— EUR');
+    expect(preview.unresolvedKeys).toContain('billing.hourly_rate');
   });
 });

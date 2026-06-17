@@ -16,6 +16,10 @@ import {
   resolveTenantLogoUrlForSave,
   type TenantLogoValue,
 } from './tenantLogoService';
+import {
+  formatHourlyRateDocumentAmount,
+  parseHourlyRateEuro,
+} from '@/lib/formatters/numberFormatters';
 
 const DEMO_STORE = new Map<string, TenantSettingsSnapshot>();
 
@@ -45,6 +49,7 @@ function buildDemoSnapshot(tenantId: string, overrides?: Partial<TenantSettingsF
     email: demoTenant.email ?? '',
     website: demoTenant.website ?? '',
     logoUrl: tenantId === DEMO_TENANT_ID ? 'https://example.com/demo-logo.png' : '',
+    assistDefaultHourlyRate: '38,00',
     updatedAt: demoTenant.updatedAt,
   };
 
@@ -77,6 +82,7 @@ function mapRowToSnapshot(
     updated_at: string;
   },
   logoUrl: string | null,
+  defaultHourlyRate: string | null,
 ): TenantSettingsSnapshot {
   return {
     tenantId,
@@ -91,6 +97,7 @@ function mapRowToSnapshot(
     email: row.email ?? '',
     website: row.website ?? '',
     logoUrl: logoUrl ?? '',
+    assistDefaultHourlyRate: defaultHourlyRate ?? '',
     updatedAt: row.updated_at,
   };
 }
@@ -108,6 +115,59 @@ function mapFormToTenantPatch(form: TenantSettingsForm): Database['public']['Tab
     email: form.email.trim() || null,
     website: form.website.trim() || null,
   };
+}
+
+async function fetchBillingSettings(
+  tenantId: string,
+): Promise<{ defaultHourlyRate: string | null; error?: string }> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { defaultHourlyRate: null, error: 'Supabase ist nicht konfiguriert.' };
+  }
+
+  const { data, error } = await client
+    .from('tenant_billing_settings')
+    .select('default_hourly_rate')
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+
+  if (error) {
+    return { defaultHourlyRate: null, error: toGermanSupabaseError(error) };
+  }
+
+  return {
+    defaultHourlyRate: data?.default_hourly_rate != null
+      ? formatHourlyRateDocumentAmount(data.default_hourly_rate)
+      : null,
+  };
+}
+
+async function saveBillingSettings(
+  tenantId: string,
+  assistDefaultHourlyRate: string,
+): Promise<ServiceResult<null>> {
+  const client = getSupabaseClient();
+  if (!client) {
+    return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
+  }
+
+  const parsedRate = parseHourlyRateEuro(assistDefaultHourlyRate);
+  const { error } = await client
+    .from('tenant_billing_settings')
+    .upsert(
+      {
+        tenant_id: tenantId,
+        default_hourly_rate: parsedRate,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'tenant_id' },
+    );
+
+  if (error) {
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: null };
 }
 
 async function fetchFromSupabase(tenantId: string): Promise<ServiceResult<TenantSettingsSnapshot>> {
@@ -135,9 +195,19 @@ async function fetchFromSupabase(tenantId: string): Promise<ServiceResult<Tenant
     .eq('tenant_id', tenantId)
     .maybeSingle();
 
+  const billing = await fetchBillingSettings(tenantId);
+  if (billing.error) {
+    return { ok: false, error: billing.error };
+  }
+
   return {
     ok: true,
-    data: mapRowToSnapshot(tenantId, data, branding?.logo_url ?? null),
+    data: mapRowToSnapshot(
+      tenantId,
+      data,
+      branding?.logo_url ?? null,
+      billing.defaultHourlyRate,
+    ),
   };
 }
 
@@ -174,6 +244,9 @@ async function saveToSupabase(
   );
   if (!logoResult.ok) return logoResult;
 
+  const billingResult = await saveBillingSettings(tenantId, form.assistDefaultHourlyRate);
+  if (!billingResult.ok) return billingResult;
+
   const logoUrl = logoResult.data;
   if (!logo.pending && !logo.removed) {
     const brandingResult = await client
@@ -187,7 +260,12 @@ async function saveToSupabase(
 
   return {
     ok: true,
-    data: mapRowToSnapshot(tenantId, data, logoUrl),
+    data: mapRowToSnapshot(
+      tenantId,
+      data,
+      logoUrl,
+      formatHourlyRateDocumentAmount(parseHourlyRateEuro(form.assistDefaultHourlyRate)),
+    ),
   };
 }
 

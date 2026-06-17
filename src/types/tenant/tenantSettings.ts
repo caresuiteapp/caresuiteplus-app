@@ -13,6 +13,8 @@ export type TenantSettingsForm = {
   email: string;
   website: string;
   logoUrl: string;
+  /** Standard-Stundensatz Assist (netto, EUR) — z. B. „38,00“ */
+  assistDefaultHourlyRate: string;
 };
 
 export type TenantSettingsSnapshot = TenantSettingsForm & {
@@ -32,4 +34,5 @@ export const EMPTY_TENANT_SETTINGS_FORM: TenantSettingsForm = {
   email: '',
   website: '',
   logoUrl: '',
+  assistDefaultHourlyRate: '',
 };

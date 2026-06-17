@@ -10,7 +10,11 @@ import {
 export function useTenantDisplayMeta(): TenantDisplayMeta {
   const tenantId = useServiceTenantId();
   const isLive = getServiceMode() === 'supabase';
-  const [meta, setMeta] = useState<TenantDisplayMeta>(() => (isLive ? { ...demoTenantDisplayMeta(), name: 'Ihr Mandant' } : demoTenantDisplayMeta()));
+  const [meta, setMeta] = useState<TenantDisplayMeta>(() => (
+    isLive
+      ? { ...demoTenantDisplayMeta(), name: 'Ihr Mandant', defaultHourlyRate: '' }
+      : demoTenantDisplayMeta()
+  ));
 
   useEffect(() => {
     if (!isLive || !tenantId) {

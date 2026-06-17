@@ -180,6 +180,17 @@ export function TenantSettingsScreen() {
           />
         </SectionPanel>
 
+        <SectionPanel title="Abrechnung">
+          <PremiumInput
+            label="Stundensatz Assist (netto, EUR)"
+            value={form.assistDefaultHourlyRate}
+            onChangeText={(value) => patch('assistDefaultHourlyRate', value)}
+            keyboardType="decimal-pad"
+            placeholder="z. B. 38,00"
+            hint="Standard-Stundensatz für Assist-Verträge und Intake-Dokumente, sofern kein klientenspezifischer Satz gesetzt ist."
+          />
+        </SectionPanel>
+
         <SectionPanel title="Logo">
           <View style={styles.logoSection}>
             <TenantLogoPicker
