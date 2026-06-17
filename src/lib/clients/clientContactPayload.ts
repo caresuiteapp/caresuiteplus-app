@@ -14,10 +14,10 @@ export function buildClientContactWritePayload(input: ClientContactWriteInput) {
   const firstName = parts[0] ?? displayName;
   const lastName = parts.slice(1).join(' ') || '';
 
+  // Live: full_name is GENERATED from first_name + last_name — must not be sent on INSERT/UPDATE.
   return {
     tenant_id: input.tenantId,
     client_id: input.clientId,
-    full_name: displayName,
     first_name: firstName,
     last_name: lastName,
     relationship: input.relationship,

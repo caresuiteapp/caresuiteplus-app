@@ -208,18 +208,17 @@ export const supabaseClientExtendedRepository = {
     const exists = await assertClientExists(tenantId, clientId);
     if (!exists.ok) return exists;
 
-    const displayName = `${input.firstName.trim()} ${input.lastName.trim()}`.trim();
     const { data, error } = await fromUnknownTable(supabase, 'client_contacts')
       .insert({
         tenant_id: tenantId,
         client_id: clientId,
-        name: displayName,
         first_name: input.firstName.trim(),
         last_name: input.lastName.trim(),
         relationship: input.relationshipLabel ?? input.relationship,
         phone: input.phone,
         email: input.email,
-        is_emergency: input.isEmergency,
+        is_emergency_contact: input.isEmergency,
+        contact_type: input.isEmergency ? 'emergency_contact' : 'relative',
         is_portal_user: input.isPortalUser,
         portal_permissions: input.portalPermissions,
         notes: input.notes,
@@ -243,19 +242,15 @@ export const supabaseClientExtendedRepository = {
     const patch: Record<string, unknown> = {};
     if (input.firstName !== undefined) patch.first_name = input.firstName.trim();
     if (input.lastName !== undefined) patch.last_name = input.lastName.trim();
-    if (input.firstName !== undefined || input.lastName !== undefined) {
-      const first = input.firstName?.trim();
-      const last = input.lastName?.trim();
-      if (first || last) {
-        patch.name = `${first ?? ''} ${last ?? ''}`.trim();
-      }
-    }
     if (input.relationship !== undefined || input.relationshipLabel !== undefined) {
       patch.relationship = input.relationshipLabel ?? input.relationship;
     }
     if (input.phone !== undefined) patch.phone = input.phone;
     if (input.email !== undefined) patch.email = input.email;
-    if (input.isEmergency !== undefined) patch.is_emergency = input.isEmergency;
+    if (input.isEmergency !== undefined) {
+      patch.is_emergency_contact = input.isEmergency;
+      patch.contact_type = input.isEmergency ? 'emergency_contact' : 'relative';
+    }
     if (input.isPortalUser !== undefined) patch.is_portal_user = input.isPortalUser;
     if (input.portalPermissions !== undefined) patch.portal_permissions = input.portalPermissions;
     if (input.notes !== undefined) patch.notes = input.notes;

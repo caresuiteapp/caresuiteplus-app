@@ -19,7 +19,6 @@ describe('clientContactPayload', () => {
     ).toEqual({
       tenant_id: 'tenant-1',
       client_id: 'client-1',
-      full_name: 'Maria Reinhardt',
       first_name: 'Maria',
       last_name: 'Reinhardt',
       relationship: 'notfallkontakt',
@@ -28,6 +27,16 @@ describe('clientContactPayload', () => {
       is_emergency_contact: true,
       contact_type: 'emergency_contact',
     });
+    expect(
+      buildClientContactWritePayload({
+        tenantId: 'tenant-1',
+        clientId: 'client-1',
+        name: 'Maria Reinhardt',
+        phone: '0170123456',
+        relationship: 'notfallkontakt',
+        isEmergency: true,
+      }),
+    ).not.toHaveProperty('full_name');
   });
 
   it('liest full_name und is_emergency_contact aus Live-Zeilen', () => {

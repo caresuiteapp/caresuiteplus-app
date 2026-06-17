@@ -12,6 +12,28 @@ function getClient() {
   return getSupabaseClient();
 }
 
+const CARE_LEVEL_DB_VALUES = new Set([
+  'none',
+  'pg1',
+  'pg2',
+  'pg3',
+  'pg4',
+  'pg5',
+  'unknown',
+]);
+
+function normalizeCareLevelForDb(value: string): Database['public']['Enums']['care_level'] | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+
+  const catalogToDb: Record<string, Database['public']['Enums']['care_level']> = {
+    kein: 'none',
+    unbekannt: 'unknown',
+  };
+  const mapped = catalogToDb[trimmed] ?? trimmed;
+  return CARE_LEVEL_DB_VALUES.has(mapped) ? mapped : null;
+}
+
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
@@ -154,7 +176,7 @@ export async function persistClientEditData(
     last_name: form.lastName.trim(),
     date_of_birth: form.dateOfBirth || null,
     gender: form.gender || null,
-    care_level: (form.careLevel.trim() || null) as Database['public']['Enums']['care_level'] | null,
+    care_level: normalizeCareLevelForDb(form.careLevel),
     street: streetLine || null,
     house_number: form.houseNumber.trim() || null,
     postal_code: form.zip.trim() || null,
@@ -228,7 +250,8 @@ export async function persistClientEditData(
     if (billingError) return { ok: false, error: toGermanSupabaseError(billingError) };
   }
 
-  if (form.careLevel.trim()) {
+  const careLevelGrade = normalizeCareLevelForDb(form.careLevel);
+  if (careLevelGrade) {
     const { data: existingLevels } = await fromUnknownTable(supabase, 'client_care_levels')
       .select('id')
       .eq('tenant_id', tenantId)
@@ -238,7 +261,7 @@ export async function persistClientEditData(
 
     const latest = Array.isArray(existingLevels) ? existingLevels[0] : null;
     const carePayload = {
-      grade: form.careLevel.trim(),
+      grade: careLevelGrade,
       care_fund_name: form.costCarrier.trim() || 'Unbekannt',
       care_fund_member_id: form.insuranceNumber.trim() || null,
     };
@@ -253,7 +276,7 @@ export async function persistClientEditData(
       const { error } = await fromUnknownTable(supabase, 'client_care_levels').insert({
         tenant_id: tenantId,
         client_id: clientId,
-        grade: form.careLevel.trim(),
+        grade: careLevelGrade,
         valid_from: new Date().toISOString().slice(0, 10),
         care_fund_name: form.costCarrier.trim() || 'Unbekannt',
         care_fund_member_id: form.insuranceNumber.trim() || null,

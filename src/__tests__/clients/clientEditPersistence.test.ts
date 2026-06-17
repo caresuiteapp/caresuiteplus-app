@@ -33,7 +33,7 @@ const baseForm = {
   ...EMPTY_CLIENT_EDIT_FORM,
   firstName: 'Heinz-Peter',
   lastName: 'Reinhardt',
-  careLevel: '3',
+  careLevel: 'pg3',
   careContexts: ['daily_assistance'] as const,
   street: 'Ringstraße',
   houseNumber: '3',
@@ -137,7 +137,7 @@ describe('persistClientEditData', () => {
       expect.objectContaining({
         first_name: 'Heinz-Peter',
         last_name: 'Reinhardt',
-        care_level: '3',
+        care_level: 'pg3',
       }),
     );
     expect(mockUnknownTable).toHaveBeenCalledWith(expect.anything(), 'client_addresses');
