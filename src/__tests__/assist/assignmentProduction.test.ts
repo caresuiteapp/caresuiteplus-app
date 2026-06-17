@@ -194,6 +194,27 @@ describe('Assist assignment production stabilization', () => {
     expect(sql).toContain('assignment_audit_events');
   });
 
+  it('Migration 0070 spiegelt Live-Deploy für fehlende assignments-Spalten', () => {
+    const sql = readFileSync(
+      path.join(root, 'supabase/migrations/0070_assignments_production_live.sql'),
+      'utf8',
+    );
+    const listSelect = readFileSync(
+      path.join(root, 'src/lib/assist/repositories/assignmentRepository.supabase.ts'),
+      'utf8',
+    );
+    for (const column of [
+      'on_the_way_at',
+      'arrived_at',
+      'finished_at',
+      'documentation_notes',
+    ] as const) {
+      expect(sql).toContain(column);
+      expect(listSelect).toContain(column);
+    }
+    expect(sql).toContain('assignment_audit_events');
+  });
+
   describe('writeAssignmentAudit', () => {
     it('schreibt Audit-Eintrag bei Statuswechsel', async () => {
       const supabase = { from: mockFrom } as never;
