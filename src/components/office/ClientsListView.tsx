@@ -2,21 +2,20 @@ import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 're
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { AdaptiveActionBar } from '@/components/adaptive';
+import { ClientCompactRow } from './ClientCompactRow';
 import { ClientListCard } from './ClientListCard';
+import { ClientsFilterToolbar } from './ClientsFilterToolbar';
 import { ClientsListHero } from './ClientsListHero';
 import { ClientsListTable } from './ClientsListTable';
 import {
   EmptyState,
   ErrorState,
-  FilterChipGroup,
   LoadingState,
   PremiumButton,
-  PremiumInput,
   SuccessState,
 } from '@/components/ui';
 import {
   buildClientListKpis,
-  type ClientCareLevelFilterKey,
 } from '@/data/demo/clientListStats';
 import { useClientList } from '@/hooks/useClientList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
@@ -130,53 +129,29 @@ export function ClientsListView({
         <SuccessState message="Liste erfolgreich aktualisiert." />
       ) : null}
 
-      <PremiumInput
-        label="Suche"
-        placeholder="Name oder Ort suchen…"
-        value={search}
-        onChangeText={setSearch}
-        autoCapitalize="words"
-        autoCorrect={false}
-        hint={`${filteredCount} von ${totalCount} Klient:innen`}
-      />
-
-      <Text style={styles.filterLabel}>Lebenszyklus</Text>
-      <FilterChipGroup
-        options={lifecycleFilters}
-        value={lifecycleFilter}
-        onChange={(value) => setLifecycleFilter(value as 'all' | 'active' | 'archived')}
-      />
-
-      <Text style={styles.filterLabel}>Status</Text>
-      <FilterChipGroup
-        options={statusFilters}
-        value={statusFilter}
-        onChange={setStatusFilter}
-      />
-
-      <Text style={styles.filterLabel}>Pflegegrad</Text>
-      <FilterChipGroup
-        options={careLevelFilters}
-        value={careLevelFilter}
-        onChange={(value) => setCareLevelFilter(value as ClientCareLevelFilterKey)}
-      />
-
-      {costBearerFilters.length > 1 ? (
-        <>
-          <Text style={styles.filterLabel}>Kostenträger</Text>
-          <FilterChipGroup
-            options={costBearerFilters}
-            value={costBearerFilter}
-            onChange={setCostBearerFilter}
-          />
-        </>
-      ) : null}
-
-      <Text style={styles.filterLabel}>Sortierung</Text>
-      <FilterChipGroup
-        options={sortOptions}
-        value={sortKey}
-        onChange={setSortKey}
+      <ClientsFilterToolbar
+        compact={embedded}
+        search={search}
+        onSearchChange={setSearch}
+        filteredCount={filteredCount}
+        totalCount={totalCount}
+        lifecycleFilter={lifecycleFilter}
+        onLifecycleChange={(value) => setLifecycleFilter(value as 'all' | 'active' | 'archived')}
+        lifecycleFilters={lifecycleFilters}
+        statusFilter={statusFilter}
+        onStatusChange={setStatusFilter}
+        statusFilters={statusFilters}
+        careLevelFilter={careLevelFilter}
+        onCareLevelChange={setCareLevelFilter}
+        careLevelFilters={careLevelFilters}
+        costBearerFilter={costBearerFilter}
+        onCostBearerChange={setCostBearerFilter}
+        costBearerFilters={costBearerFilters}
+        sortKey={sortKey}
+        onSortChange={setSortKey}
+        sortOptions={sortOptions}
+        hasActiveFilters={hasActiveFilters}
+        onResetFilters={resetFilters}
       />
     </View>
   );
@@ -322,13 +297,21 @@ export function ClientsListView({
         ListHeaderComponent={toolbar}
         ListEmptyComponent={emptyContent}
         ListFooterComponent={footerContent}
-        renderItem={({ item }) => (
-          <ClientListCard
-            client={item}
-            selected={selectedId === item.id}
-            onPress={() => handleClientPress(item.id)}
-          />
-        )}
+        renderItem={({ item }) =>
+          embedded ? (
+            <ClientCompactRow
+              client={item}
+              selected={selectedId === item.id}
+              onPress={() => handleClientPress(item.id)}
+            />
+          ) : (
+            <ClientListCard
+              client={item}
+              selected={selectedId === item.id}
+              onPress={() => handleClientPress(item.id)}
+            />
+          )
+        }
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -362,10 +345,6 @@ const styles = StyleSheet.create({
   toolbar: {
     gap: spacing.sm,
     marginBottom: spacing.md,
-  },
-  filterLabel: {
-    ...typography.label,
-    marginTop: spacing.xs,
   },
   list: {
     paddingBottom: spacing.xxl,

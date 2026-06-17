@@ -10,6 +10,7 @@ import { demoClients } from '@/data/demo/clients';
 import { fetchClientList } from '@/lib/office/clientListService';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
+import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
 import { CLIENT_STATUS_FILTERS, CLIENT_SORT_OPTIONS } from '@/hooks/useClientList';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -54,9 +55,9 @@ describe('Office Klient:innen list', () => {
 
   it('ClientsListView hat Suche, Filter und States', () => {
     const source = readSrc('src/components/office/ClientsListView.tsx');
-    expect(source).toContain('PremiumInput');
-    expect(source).toContain('FilterChipGroup');
-    expect(source).toContain('Pflegegrad');
+    const filters = readSrc('src/components/office/ClientsFilterToolbar.tsx');
+    expect(source).toContain('ClientsFilterToolbar');
+    expect(filters).toContain('Pflegegrad');
     expect(source).toContain('EmptyState');
     expect(source).toContain('ErrorState');
     expect(source).toContain('LoadingState');
@@ -77,10 +78,26 @@ describe('Office Klient:innen list', () => {
 
   it('ClientDetailSummaryPanel zeigt Kontakt und Verknüpfungen', () => {
     const source = readSrc('src/components/office/ClientDetailSummaryPanel.tsx');
-    expect(source).toContain('Vollständige Akte öffnen');
-    expect(source).toContain('ContextCard');
-    expect(source).toContain('useClientDetail');
+    expect(source).toContain('Akte öffnen');
+    expect(source).toContain('ClientDetailLinkTile');
+    expect(source).toContain('useClientRecord');
+    expect(source).toContain('buildClientDetailKpis');
     expect(source).not.toContain('Coming Soon');
+  });
+
+  it('ClientCompactRow verhindert Textüberlappung in Master-Detail', () => {
+    const source = readSrc('src/components/office/ClientCompactRow.tsx');
+    expect(source).toContain('numberOfLines={1}');
+    expect(source).toContain('minWidth: 0');
+    expect(source).toContain('flex: 1');
+  });
+
+  it('ClientsListView nutzt Kompaktzeilen im eingebetteten Modus', () => {
+    const source = readSrc('src/components/office/ClientsListView.tsx');
+    expect(source).toContain('ClientCompactRow');
+    expect(source).toContain('embedded ?');
+    expect(source).toContain('ClientsFilterToolbar');
+    expect(source).toContain('compact={embedded}');
   });
 
   it('ClientListCard unterstützt Auswahlzustand für Master-Detail', () => {
@@ -124,5 +141,23 @@ describe('Office Klient:innen list', () => {
     const source = readSrc('src/components/office/ClientsListTable.tsx');
     expect(source).toContain('sortable: true');
     expect(source).toContain('onSortColumn');
+  });
+
+  it('buildClientDetailKpis nutzt Dokumentanzahl aus Akte', () => {
+    const kpis = buildClientDetailKpis(
+      {
+        firstName: 'Heinz-Peter',
+        lastName: 'Reinhardt',
+        status: 'aktiv',
+        careLevel: '3',
+        city: 'Herne',
+        sensitivity: 'internal',
+        nextActionHint: '',
+        contextCounts: { documents: 0, assignments: 0, invoices: 0, appointments: 0 },
+        documents: [{ id: '1' }, { id: '2' }, { id: '3' }],
+      },
+      'dark',
+    );
+    expect(kpis.find((k) => k.id === 'documents')?.value).toBe('3');
   });
 });
