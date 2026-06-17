@@ -234,7 +234,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
             ) : null}
             {canEdit ? (
               <PremiumButton
-                title="Bearbeiten"
+                title="Stammdaten bearbeiten"
                 size="sm"
                 variant="secondary"
                 onPress={() => router.push(clientEditRoute(detail.id) as never)}

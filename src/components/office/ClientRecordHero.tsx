@@ -78,7 +78,7 @@ export function ClientRecordHero({
       {showEdit && onEdit ? (
         <View style={styles.actions}>
           <CareLightButton
-            title="Bearbeiten"
+            title="Stammdaten bearbeiten"
             variant="secondary"
             accentColor={careLightColors.orange}
             onPress={onEdit}

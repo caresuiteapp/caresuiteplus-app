@@ -94,7 +94,7 @@ describe('Office ClientRecord rebuild', () => {
     expect(source).not.toContain('GenericListTab');
     expect(source).toContain('ClientRecordTabContent');
     expect(source).toContain('ClientRecordHero');
-    expect(source).toContain('Bearbeiten');
+    expect(source).toContain('Stammdaten bearbeiten');
     expect(source).toContain('clientEditRoute');
     expect(source).toContain('ClientRecordOverviewPanel');
     expect(source).toContain('LoadingState');

@@ -466,6 +466,51 @@ export const supabaseClientExtendedRepository = {
     return { ok: true, data: mapClientTask(castRow(data) as Parameters<typeof mapClientTask>[0]) };
   },
 
+  async updateTask(
+    tenantId: string,
+    clientId: string,
+    taskId: string,
+    input: Partial<Omit<ClientTask, 'id' | 'tenantId' | 'clientId' | 'createdAt' | 'updatedAt'>>,
+  ): Promise<ServiceResult<ClientTask>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const patch: Record<string, unknown> = { updated_at: new Date().toISOString() };
+    if (input.category !== undefined) patch.category = input.category;
+    if (input.title !== undefined) patch.title = input.title.trim();
+    if (input.description !== undefined) patch.description = input.description;
+    if (input.frequency !== undefined) patch.frequency = input.frequency;
+    if (input.durationMinutes !== undefined) patch.duration_minutes = input.durationMinutes;
+    if (input.isActive !== undefined) patch.is_active = input.isActive;
+    if (input.catalogTaskId !== undefined) patch.catalog_task_id = input.catalogTaskId;
+    if (input.assignedEmployeeIds !== undefined) patch.assigned_employee_ids = input.assignedEmployeeIds;
+
+    const { data, error } = await fromUnknownTable(supabase, 'client_tasks')
+      .update(patch)
+      .eq('id', taskId)
+      .eq('client_id', clientId)
+      .eq('tenant_id', tenantId)
+      .select('*')
+      .single();
+
+    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
+    return { ok: true, data: mapClientTask(castRow(data) as Parameters<typeof mapClientTask>[0]) };
+  },
+
+  async deleteTask(tenantId: string, clientId: string, taskId: string): Promise<ServiceResult<void>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const { error } = await fromUnknownTable(supabase, 'client_tasks')
+      .delete()
+      .eq('id', taskId)
+      .eq('client_id', clientId)
+      .eq('tenant_id', tenantId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    return { ok: true, data: undefined };
+  },
+
   async fetchTimeline(
     tenantId: string,
     clientId: string,

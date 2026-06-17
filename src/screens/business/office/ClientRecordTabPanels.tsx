@@ -25,15 +25,13 @@ import { fetchClientPortalAccess } from '@/lib/clients/clientPortalAccessService
 import { ClientPortalAccessPanel } from '@/components/clients/ClientPortalAccessPanel';
 import { addTimelineEvent, fetchClientTimeline } from '@/lib/clients/clientTimelineService';
 import { addClientVital, fetchClientVitals } from '@/lib/clients/clientVitalsService';
-import { fetchClientTasks, addClientTaskFromCatalog } from '@/lib/clients/clientTasksService';
+import { ClientTasksPanel } from '@/components/office/ClientTasksPanel';
 import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { fetchClientModuleAssignments } from '@/lib/officeModules/moduleAssignmentService';
 import { PRODUCT_LABELS } from '@/data/demo/products';
-import { TASK_CATALOG } from '@/data/demo/clients';
 import {
   AngehoerigeTab,
   EinwilligungenTab,
-  EinsatzAufgabenTab,
   PflegegradBudgetTab,
   RisikenNotfallTab,
   VerlaufTab,
@@ -383,37 +381,19 @@ export function ClientRecordPortalPanel({ clientId, fullClient, onRecordRefresh 
   );
 }
 
-export function ClientRecordTasksPanel({ clientId, fullClient }: TabPanelProps) {
-  const { isReadOnly } = usePermissions();
-  const tenantId = useServiceTenantId();
-  const [catalogId, setCatalogId] = useState(TASK_CATALOG[0]?.id ?? '');
-  const query = useClientTabQuery(clientId, fetchClientTasks);
-
-  async function handleAddTask() {
-    if (!tenantId || isReadOnly || !catalogId) return;
-    await addClientTaskFromCatalog(tenantId, clientId, catalogId);
-    await query.refresh();
-  }
-
-  if (fullClient) return <EinsatzAufgabenTab client={fullClient} />;
-  if (query.loading) return <LoadingState message="Aufgaben werden geladen…" />;
-
+export function ClientRecordTasksPanel({
+  clientId,
+  fullClient,
+  onRecordRefresh,
+  showShiftPreferences = false,
+}: TabPanelProps & { showShiftPreferences?: boolean }) {
   return (
-    <View style={styles.panel}>
-      <SectionPanel title="Aufgaben">
-        {(query.data ?? []).length === 0 ? <EmptyState title="Keine Aufgaben" /> : null}
-      </SectionPanel>
-      {!isReadOnly ? (
-        <SectionPanel title="Aus Katalog">
-          <FilterChipGroup
-            options={TASK_CATALOG.slice(0, 6).map((t) => ({ key: t.id, label: t.title }))}
-            value={catalogId}
-            onChange={setCatalogId}
-          />
-          <PremiumButton title="Aufgabe hinzufügen" onPress={handleAddTask} />
-        </SectionPanel>
-      ) : null}
-    </View>
+    <ClientTasksPanel
+      clientId={clientId}
+      fullClient={fullClient}
+      showShiftPreferences={showShiftPreferences}
+      onRecordRefresh={onRecordRefresh}
+    />
   );
 }
 
@@ -456,7 +436,12 @@ export function ClientRecordTabContent({
         </View>
       );
     }
-    if (tab === 'aufgaben' || tab === 'einsaetze') return <ClientRecordTasksPanel {...panelProps} />;
+    if (tab === 'aufgaben') {
+      return <ClientRecordTasksPanel {...panelProps} />;
+    }
+    if (tab === 'einsaetze') {
+      return <ClientRecordTasksPanel {...panelProps} showShiftPreferences />;
+    }
   }
 
   switch (tab) {
@@ -483,8 +468,9 @@ export function ClientRecordTabContent({
     case 'portal':
       return <ClientRecordPortalPanel {...panelProps} />;
     case 'aufgaben':
-    case 'einsaetze':
       return <ClientRecordTasksPanel {...panelProps} />;
+    case 'einsaetze':
+      return <ClientRecordTasksPanel {...panelProps} showShiftPreferences />;
     default:
       return (
         <SectionPanel title="Bereich">
