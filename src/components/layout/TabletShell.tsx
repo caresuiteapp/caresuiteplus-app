@@ -8,6 +8,7 @@ import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { colors, radius, spacing, typography } from '@/theme';
 import { ModuleSwitcher } from './ModuleSwitcher';
+import { TenantSettingsNavLink } from './TenantSettingsNavLink';
 
 type TabletShellProps = {
   area: AppShellArea;
@@ -63,6 +64,7 @@ export function TabletShell({
               <Text style={styles.railIcon}>🧩</Text>
             </Pressable>
           ) : null}
+          <TenantSettingsNavLink variant="rail" />
           <Pressable
             onPress={() => openExternal(SUPPORT_LINKS.help)}
             style={styles.railItem}

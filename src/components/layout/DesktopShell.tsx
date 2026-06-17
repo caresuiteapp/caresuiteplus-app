@@ -9,6 +9,7 @@ import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { colors, radius, spacing, typography } from '@/theme';
 import { ModuleSwitcher } from './ModuleSwitcher';
+import { TenantSettingsNavLink } from './TenantSettingsNavLink';
 
 type DesktopShellProps = {
   area: AppShellArea;
@@ -69,6 +70,7 @@ export function DesktopShell({
                 <Text style={styles.footerLinkText}>🧩 Module wechseln</Text>
               </Pressable>
             ) : null}
+            <TenantSettingsNavLink />
             <Pressable
               onPress={() => openExternal(SUPPORT_LINKS.help)}
               style={styles.footerLink}

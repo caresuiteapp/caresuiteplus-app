@@ -466,7 +466,15 @@ const MODULE_VIEW_ALL: PermissionKey[] = [
 ];
 
 export const ROLE_PERMISSIONS: RolePermissionMap = {
-  business_admin: [...OFFICE_FULL, ...ASSIST_MANAGE, ...PFLEGE_VIEW, ...MODULE_VIEW_ALL, 'connect.configure', 'geo.provider.configure'],
+  business_admin: [
+    ...OFFICE_FULL,
+    ...ASSIST_MANAGE,
+    ...PFLEGE_VIEW,
+    ...MODULE_VIEW_ALL,
+    'connect.configure',
+    'geo.provider.configure',
+    'business.tenant.manage',
+  ],
   business_manager: [...OFFICE_FULL, ...ASSIST_MANAGE, ...PFLEGE_VIEW, ...MODULE_VIEW_ALL],
   billing: [
     ...OFFICE_VIEW,

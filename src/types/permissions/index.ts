@@ -65,6 +65,7 @@ export type PermissionKey =
   | 'portal.client.appointments.request_change'
   | 'business.subscription.view'
   | 'business.subscription.manage'
+  | 'business.tenant.manage'
   | 'business.reporting.view'
   | 'business.reporting.create'
   | 'release.view'
