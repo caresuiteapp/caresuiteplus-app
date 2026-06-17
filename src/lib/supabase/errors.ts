@@ -13,7 +13,9 @@ export function toGermanSupabaseError(error: PostgrestError | null): string {
   if (msg.includes('Keine Berechtigung')) return msg;
   if (msg.includes('nicht gefunden')) return 'Klient:in wurde nicht gefunden.';
   if (msg.includes('Ungültiger Status')) return 'Der gewählte Status ist ungültig.';
-  if (error.code === '42501') return 'Kein Zugriff auf diesen Datensatz (RLS).';
+  if (error.code === '42501' || error.code === 'PGRST301') {
+    return 'Kein Zugriff auf diesen Datensatz (RLS).';
+  }
   if (error.code === 'PGRST116') return 'Datensatz wurde nicht gefunden.';
   if (error.code === 'PGRST205' || msg.includes('Could not find the table')) {
     return isDevEnvironment()
