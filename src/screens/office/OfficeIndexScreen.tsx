@@ -103,21 +103,15 @@ export function OfficeIndexScreen() {
         }
         quickActions={
           <View style={styles.quickGrid}>
-            <CareLightButton
-              title="Klient:innen"
-              variant="secondary"
-              onPress={() => router.push('/office/clients' as never)}
-              accentColor={officeAccent}
-            />
             {OFFICE_AREA_SHORTCUTS.map((area) => (
               <CareLightModuleTile
                 key={area.id}
                 icon={area.icon}
-                title={area.title}
+                title={area.label}
                 description={area.description}
                 accentColor={area.accentColor ?? officeAccent}
                 isActive
-                onPress={() => router.push(area.route as never)}
+                onPress={() => router.push(area.href as never)}
               />
             ))}
           </View>

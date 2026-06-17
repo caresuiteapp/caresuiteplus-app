@@ -20,6 +20,8 @@ import {
 } from '@/lib/officeCore/moduleAssignmentMapper';
 import { officeCoreSupabaseRepository } from '@/lib/officeCore/supabaseRepository';
 import { formatOfficeClientName } from '@/lib/office/officeDocumentDisplay';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 async function fetchClientNameMap(
   tenantId: string,
