@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge } from '@/components/ui';
+import { CareLightButton } from '@/components/ui/CareLightButton';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -18,6 +19,8 @@ type ClientRecordHeroProps = {
   status: WorkflowStatus;
   careContexts: ClientCareContext[];
   archiveError?: string | null;
+  showEdit?: boolean;
+  onEdit?: () => void;
 };
 
 function statusVariant(status: WorkflowStatus) {
@@ -44,6 +47,8 @@ export function ClientRecordHero({
   status,
   careContexts,
   archiveError,
+  showEdit = false,
+  onEdit,
 }: ClientRecordHeroProps) {
   const fullName = `${firstName} ${lastName}`.trim();
 
@@ -69,6 +74,18 @@ export function ClientRecordHero({
           <PremiumBadge key={ctx} label={getCatalogLabel('leistungsart', ctx)} variant="cyan" />
         ))}
       </View>
+
+      {showEdit && onEdit ? (
+        <View style={styles.actions}>
+          <CareLightButton
+            title="Bearbeiten"
+            variant="secondary"
+            accentColor={careLightColors.orange}
+            onPress={onEdit}
+            style={styles.editButton}
+          />
+        </View>
+      ) : null}
 
       {archiveError ? <Text style={styles.error}>{archiveError}</Text> : null}
     </View>
@@ -125,6 +142,16 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: careSpacing.xs,
     alignItems: 'center',
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+    marginTop: careSpacing.xs,
+  },
+  editButton: {
+    borderColor: careLightColors.orange,
+    minWidth: 140,
   },
   error: {
     ...careTypography.caption,

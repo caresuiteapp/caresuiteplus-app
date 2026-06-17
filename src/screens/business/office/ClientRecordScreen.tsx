@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { DetailInfoRow } from '@/components/detail';
 import { ClientRecordHero } from '@/components/office/ClientRecordHero';
 import { ClientRecordOverviewPanel } from '@/components/office/ClientRecordOverviewPanel';
 import { CareLightKpiCard } from '@/components/ui/CareLightKpiCard';
@@ -20,73 +21,118 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { archiveClient } from '@/lib/office';
+import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
-import { CLIENT_RECORD_TAB_LABELS, type ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
+import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
+import { CLIENT_RECORD_TAB_LABELS, type ClientCareContext, type ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
 import { clientEditRoute } from '@/lib/navigation/clientRoutes';
 import { ClientRecordTabContent } from '@/screens/business/office/ClientRecordTabPanels';
-import {
-  KontaktAdresseTab,
-  StammdatenTab as FullStammdatenTab,
-} from '@/screens/office/ClientFullDetailTabs';
+import { KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
+
+function resolvePrimaryAddress(
+  detail: NonNullable<ReturnType<typeof useClientRecord>['detail']>,
+  fullClient: ReturnType<typeof useClientFullDetail>['data'],
+): string {
+  const primary = fullClient?.addresses.find((a) => a.isPrimary) ?? fullClient?.addresses[0];
+  if (primary) {
+    return formatClientAddressLine(primary.street, primary.zip, primary.city) || '—';
+  }
+  return formatClientAddressLine(detail.street, detail.zip, detail.city) || '—';
+}
 
 function StammdatenTab({
   detail,
   fullClient,
   canViewSensitive,
+  careContexts,
 }: {
   detail: NonNullable<ReturnType<typeof useClientRecord>['detail']>;
   fullClient: ReturnType<typeof useClientFullDetail>['data'];
   canViewSensitive: boolean;
+  careContexts: ClientCareContext[];
 }) {
   const router = useRouter();
-  if (fullClient) {
-    return (
-      <View style={styles.tabPanel}>
-        <FullStammdatenTab client={fullClient} canViewSensitive={canViewSensitive} />
-        <PremiumButton
-          title="Stammdaten bearbeiten"
-          variant="secondary"
-          onPress={() => router.push(clientEditRoute(detail.id) as never)}
-        />
-      </View>
-    );
-  }
-
-  const fields = [
-    { label: 'Vorname', value: detail.firstName },
-    { label: 'Nachname', value: detail.lastName },
-    { label: 'Status', value: detail.status },
-    { label: 'Pflegegrad', value: formatCareLevel(detail.careLevel) || '—' },
-    { label: 'Ort', value: `${detail.city ?? '—'}, ${detail.zip ?? '—'}` },
-    { label: 'Telefon', value: detail.phone ?? detail.primaryContactPhone ?? '—' },
-  ];
+  const serviceTypes =
+    careContexts.length > 0
+      ? careContexts.map((ctx) => getCatalogLabel('leistungsart', ctx)).join(' · ')
+      : '—';
+  const phone = detail.phone ?? detail.primaryContactPhone ?? fullClient?.phone ?? '—';
+  const email = detail.email ?? fullClient?.email ?? '—';
 
   return (
     <View style={styles.tabPanel}>
       <SectionPanel title="Stammdaten">
-        {fields.map((f) => (
-          <View key={f.label} style={styles.fieldRow}>
-            <Text style={styles.fieldLabel}>{f.label}</Text>
-            <Text style={styles.fieldValue}>{f.value}</Text>
-          </View>
-        ))}
-        <PremiumButton
-          title="Stammdaten bearbeiten"
-          variant="secondary"
-          onPress={() => router.push(clientEditRoute(detail.id) as never)}
+        <DetailInfoRow label="Name" value={`${detail.firstName} ${detail.lastName}`.trim()} />
+        <DetailInfoRow
+          label="Geburtsdatum"
+          value={
+            detail.dateOfBirth
+              ? new Date(detail.dateOfBirth).toLocaleDateString('de-DE')
+              : fullClient?.core.dateOfBirth
+                ? new Date(fullClient.core.dateOfBirth).toLocaleDateString('de-DE')
+                : null
+          }
         />
+        <DetailInfoRow label="Adresse" value={resolvePrimaryAddress(detail, fullClient)} />
+        <DetailInfoRow label="Telefon" value={phone} />
+        <DetailInfoRow label="E-Mail" value={email} />
+        <DetailInfoRow label="Pflegegrad" value={formatCareLevel(detail.careLevel) || '—'} />
+        <DetailInfoRow label="Leistungsart" value={serviceTypes} />
       </SectionPanel>
+      {fullClient ? (
+        <SectionPanel title="Weitere Stammdaten">
+          <DetailInfoRow label="Anrede" value={fullClient.core.salutation} />
+          <DetailInfoRow label="Geschlecht" value={fullClient.core.gender} />
+          <DetailInfoRow label="Status" value={detail.status} />
+          <DetailInfoRow
+            label="Versichertennummer"
+            value={
+              fullClient.core.insuranceNumber
+                ? canViewSensitive
+                  ? fullClient.core.insuranceNumber
+                  : '••• Geschützt'
+                : null
+            }
+          />
+          <DetailInfoRow
+            label="Schlüsseltresor"
+            value={
+              fullClient.core.keySafeCode
+                ? canViewSensitive
+                  ? fullClient.core.keySafeCode
+                  : '••• Geschützt'
+                : null
+            }
+          />
+          {fullClient.core.diagnoses.length > 0 ? (
+            <DetailInfoRow
+              label="Diagnosen"
+              value={
+                canViewSensitive
+                  ? fullClient.core.diagnoses.join(', ')
+                  : '••• Geschützt'
+              }
+            />
+          ) : null}
+        </SectionPanel>
+      ) : null}
+      <PremiumButton
+        title="Stammdaten bearbeiten"
+        variant="secondary"
+        onPress={() => router.push(clientEditRoute(detail.id) as never)}
+      />
     </View>
   );
 }
 
 export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?: ClientRecordTabKey } = {}) {
   const { id, tab: tabParam } = useLocalSearchParams<{ id: string; tab?: string }>();
+  const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can } = usePermissions();
@@ -144,6 +190,9 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
     );
   }
 
+  const canEdit = can('office.clients.edit');
+  const canArchive = can('office.clients.archive') && detail.status !== 'archiviert';
+
   async function handleRecordRefresh() {
     await Promise.all([refresh(), fullQuery.refresh()]);
   }
@@ -172,14 +221,26 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
       title="Klient:innenakte"
       subtitle={`${detail.firstName} ${detail.lastName}`}
       rightSlot={
-        can('office.clients.archive') && detail.status !== 'archiviert' ? (
-          <PremiumButton
-            title="Archivieren"
-            size="sm"
-            variant="ghost"
-            loading={archiving}
-            onPress={handleArchive}
-          />
+        canArchive || canEdit ? (
+          <View style={styles.headerActions}>
+            {canArchive ? (
+              <PremiumButton
+                title="Archivieren"
+                size="sm"
+                variant="ghost"
+                loading={archiving}
+                onPress={handleArchive}
+              />
+            ) : null}
+            {canEdit ? (
+              <PremiumButton
+                title="Bearbeiten"
+                size="sm"
+                variant="secondary"
+                onPress={() => router.push(clientEditRoute(detail.id) as never)}
+              />
+            ) : null}
+          </View>
         ) : null
       }
     >
@@ -191,6 +252,8 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
         status={detail.status}
         careContexts={careContexts}
         archiveError={archiveError}
+        showEdit={canEdit}
+        onEdit={() => router.push(clientEditRoute(detail.id) as never)}
       />
 
       <View style={[styles.kpiGrid, isDesktopOrWide && styles.kpiGridWide]}>
@@ -223,6 +286,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
             detail={detail}
             fullClient={fullQuery.data}
             canViewSensitive={fullQuery.canViewSensitive}
+            careContexts={careContexts}
           />
         )}
         {activeTab === 'kontakt' && fullQuery.data ? (
@@ -232,7 +296,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
             <View style={styles.fieldRow}>
               <Text style={styles.fieldLabel}>Adresse</Text>
               <Text style={styles.fieldValue}>
-                {[detail.street, detail.zip, detail.city].filter(Boolean).join(', ') || '—'}
+                {formatClientAddressLine(detail.street, detail.zip, detail.city) || '—'}
               </Text>
             </View>
             <View style={styles.fieldRow}>
@@ -271,6 +335,11 @@ const styles = StyleSheet.create({
   kpiItem: {
     flex: 1,
     minWidth: 140,
+  },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
   },
   tabPanel: {
     gap: careSpacing.md,

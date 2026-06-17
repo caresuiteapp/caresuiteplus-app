@@ -1,5 +1,6 @@
 import type { ClientCareContext, ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { CLIENT_RECORD_TAB_LABELS } from '@/lib/clients/clientIntakeFieldRules';
+import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { formatDate, formatDateTime } from '@/lib/formatters/dateTimeFormatters';
@@ -40,8 +41,13 @@ function display(value: string | null | undefined): string {
 }
 
 function buildAddress(detail: ClientFullDetail): string {
-  const parts = [detail.street, [detail.zip, detail.city].filter(Boolean).join(' ')].filter(Boolean);
-  return parts.length > 0 ? parts.join(', ') : EMPTY;
+  const primary = detail.addresses.find((a) => a.isPrimary) ?? detail.addresses[0];
+  if (primary) {
+    const fromAddress = formatClientAddressLine(primary.street, primary.zip, primary.city);
+    if (fromAddress) return fromAddress;
+  }
+  const fromClient = formatClientAddressLine(detail.street, detail.zip, detail.city);
+  return fromClient || EMPTY;
 }
 
 function resolveCostBearer(detail: ClientFullDetail): string {

@@ -14,7 +14,14 @@ export function clientRecordRoute(clientId: string): `/business/office/clients/$
   return `/business/office/clients/${clientId}`;
 }
 
-/** Stammdaten bearbeiten — legacy edit form until a dedicated business edit route exists. */
-export function clientEditRoute(clientId: string): `/office/clients/${string}/edit` {
-  return `/office/clients/${clientId}/edit`;
+/** Stammdaten bearbeiten — business office edit route. */
+export function clientEditRoute(clientId: string): `/business/office/clients/${string}/edit` {
+  return `/business/office/clients/${clientId}/edit`;
+}
+
+export function clientRecordTabRoute(
+  clientId: string,
+  tab: string,
+): `/business/office/clients/${string}` {
+  return `/business/office/clients/${clientId}?tab=${tab}`;
 }

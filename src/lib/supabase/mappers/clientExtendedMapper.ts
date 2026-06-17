@@ -21,6 +21,7 @@ import type {
   ConsentType,
 } from '@/types/modules/client';
 import type { DataVisibilityScope, SensitivityLevel } from '@/types/portal/visibility';
+import { mergeClientAddresses } from '@/lib/clients/clientAddressResolver';
 import { mapClientDetail } from './clientMapper';
 import { mergeClientRecordDocuments } from '@/lib/clients/clientDocumentMerge';
 import type { WorkflowStatus } from '@/types/core/base';

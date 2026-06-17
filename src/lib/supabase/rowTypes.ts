@@ -75,6 +75,8 @@ export type ClientDetailRow = ClientRow & {
   admission_date?: string | null;
   primary_contact_phone: string | null;
   street: string | null;
+  house_number?: string | null;
+  mobile?: string | null;
   phone: string | null;
   email: string | null;
   notes: string | null;

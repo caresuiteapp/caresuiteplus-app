@@ -6,6 +6,7 @@ import {
   getAllowedStatusActions,
 } from '@/lib/services/workflow/clientStatus';
 import { remoteStatusToWorkflow } from '@/lib/services/clients/clientStatusBridge';
+import { resolveClientPhone, resolveClientStreetLine } from '@/lib/clients/clientAddressResolver';
 import type {
   ClientAuditRow,
   ClientConsentRow,
@@ -103,8 +104,8 @@ export function mapClientDetail(row: ClientDetailRow): ClientDetail {
     admissionDate: row.admission_date ?? null,
     dateOfBirth: row.date_of_birth,
     primaryContactPhone: row.primary_contact_phone,
-    street: row.street,
-    phone: row.phone,
+    street: resolveClientStreetLine(row) ?? row.street,
+    phone: resolveClientPhone(row) ?? row.phone,
     email: row.email,
     notes: normalized.notes,
     visibility: (row.visibility ?? 'internal') as DataVisibilityScope,
