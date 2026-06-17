@@ -2,7 +2,11 @@ import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import { SERVICE_ERRORS } from '../errors';
+import {
+  buildEmployeeInsertPayload,
+  buildEmployeeUpdatePayload,
+} from '@/lib/office/employeeSupabasePayload';
+import { mapDbStatusToCatalogStatus } from '@/lib/office/employeeStatusMapping';
 import {
   EMPLOYEE_DETAIL_SELECT_COLUMNS,
   mapEmployeeRowToDetail,
@@ -10,6 +14,7 @@ import {
 } from '@/lib/office/employeeDetailMapper';
 import type { EmployeeDetail } from '@/types/modules/employeeDetail';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
+import { SERVICE_ERRORS } from '../errors';
 
 function getClient() {
   return getSupabaseClient();
@@ -20,15 +25,16 @@ function unavailable<T>(): ServiceResult<T> {
 }
 
 function mapRow(row: Record<string, unknown>): EmployeeListItem {
+  const jobTitle = row.role_title ?? row.job_title;
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
     firstName: String(row.first_name ?? ''),
     lastName: String(row.last_name ?? ''),
-    jobTitle: String(row.job_title ?? ''),
+    jobTitle: String(jobTitle ?? ''),
     email: String(row.email ?? ''),
     phone: String(row.phone ?? ''),
-    status: row.status as EmployeeListItem['status'],
+    status: mapDbStatusToCatalogStatus(String(row.status ?? '')) as EmployeeListItem['status'],
     updatedAt: String(row.updated_at),
   };
 }
@@ -105,38 +111,8 @@ export const employeeSupabaseRepository = {
   ): Promise<ServiceResult<{ id: string }>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
-    const allowedStatuses = new Set([
-      'entwurf',
-      'aktiv',
-      'in_bearbeitung',
-      'abgeschlossen',
-      'archiviert',
-      'fehlerhaft',
-      'gesperrt',
-      'probezeit',
-      'einarbeitung',
-      'urlaub',
-      'krank',
-      'elternzeit',
-      'fortbildung',
-      'teilzeit',
-      'freigestellt',
-      'kuendigung_laeuft',
-      'ausgeschieden',
-    ]);
-    const status = allowedStatuses.has(input.status ?? 'aktiv') ? (input.status ?? 'aktiv') : 'aktiv';
     const { data, error } = await fromUnknownTable(supabase, 'employees')
-      .insert({
-        tenant_id: tenantId,
-        first_name: input.firstName.trim(),
-        last_name: input.lastName.trim(),
-        job_title: input.jobTitle?.trim() ?? null,
-        email: input.email?.trim() ?? null,
-        phone: input.phone?.trim() || null,
-        department: input.department?.trim() || null,
-        status,
-        avatar_url: input.avatarUrl?.trim() || null,
-      })
+      .insert(buildEmployeeInsertPayload(tenantId, input))
       .select('id')
       .single();
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
@@ -158,13 +134,7 @@ export const employeeSupabaseRepository = {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
-    const patch: Record<string, unknown> = {};
-    if (input.jobTitle !== undefined) patch.job_title = input.jobTitle?.trim() || null;
-    if (input.phone !== undefined) patch.phone = input.phone?.trim() || null;
-    if (input.department !== undefined) patch.department = input.department?.trim() || null;
-    if (input.notes !== undefined) patch.notes = input.notes?.trim() || null;
-    if (input.status !== undefined) patch.status = input.status;
-    if (input.avatarUrl !== undefined) patch.avatar_url = input.avatarUrl?.trim() || null;
+    const patch = buildEmployeeUpdatePayload(input);
 
     if (Object.keys(patch).length === 0) {
       return { ok: true, data: { id } };

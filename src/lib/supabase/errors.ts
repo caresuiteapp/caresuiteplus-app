@@ -20,6 +20,11 @@ export function toGermanSupabaseError(error: PostgrestError | null): string {
       ? `Tabelle nicht verfügbar (${msg})`
       : GENERIC_DB_ERROR;
   }
+  if (error.code === 'PGRST204' || msg.includes('Could not find the') && msg.includes('column')) {
+    return isDevEnvironment()
+      ? `Datenbankschema passt nicht (${msg})`
+      : GENERIC_DB_ERROR;
+  }
   if (error.code === '42P01' || msg.includes('relation') && msg.includes('does not exist')) {
     return isDevEnvironment()
       ? `Datenbankschema unvollständig (${msg})`

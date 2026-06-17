@@ -1,42 +1,48 @@
 import type { ServiceResult } from '@/types';
 import type { EmployeeDetail } from '@/types/modules/employeeDetail';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
+import { mapDbStatusToCatalogStatus } from './employeeStatusMapping';
 
-/** Basis-Spalten aus Migration 0005. */
+/** Live Supabase base columns (role_title + employee_status enum). */
 export const EMPLOYEE_BASE_SELECT_COLUMNS =
-  'id, tenant_id, first_name, last_name, job_title, email, phone, status, created_at, updated_at';
+  'id, tenant_id, first_name, last_name, role_title, email, phone, status, created_at, updated_at';
 
-/** Detail-Spalten aus Migration 0033 — SELECT nur wenn Migration angewendet. */
+/** Detail columns on live schema (internal_notes, entry_date; avatar from 0074). */
 export const EMPLOYEE_DETAIL_SELECT_COLUMNS =
-  `${EMPLOYEE_BASE_SELECT_COLUMNS}, department, start_date, notes, avatar_url`;
-
-export const EMPLOYEE_DETAIL_REQUIRED_FIELDS = ['department', 'start_date', 'notes'] as const;
+  `${EMPLOYEE_BASE_SELECT_COLUMNS}, internal_notes, entry_date, avatar_url`;
 
 export type EmployeeDetailLiveRow = {
   id: string;
   tenant_id: string;
   first_name: string;
   last_name: string;
+  role_title?: string | null;
+  /** Legacy migration 0005 — not present on live FlutterFlow schema. */
   job_title?: string | null;
   email?: string | null;
   phone?: string | null;
   status: string;
+  /** Legacy migration 0033 — not present on live schema. */
   department?: string | null;
+  entry_date?: string | null;
   start_date?: string | null;
+  internal_notes?: string | null;
   notes?: string | null;
   avatar_url?: string | null;
   created_at: string;
   updated_at: string;
 };
 
-function schemaMissingDetailFields(row: EmployeeDetailLiveRow): string[] {
-  const missing: string[] = [];
-  for (const field of EMPLOYEE_DETAIL_REQUIRED_FIELDS) {
-    if (row[field] === undefined) {
-      missing.push(field);
-    }
-  }
-  return missing;
+function resolveJobTitle(row: EmployeeDetailLiveRow): string {
+  return String(row.role_title ?? row.job_title ?? '');
+}
+
+function resolveNotes(row: EmployeeDetailLiveRow): string | null {
+  return (row.internal_notes ?? row.notes)?.trim() || null;
+}
+
+function resolveStartDate(row: EmployeeDetailLiveRow): string | null {
+  return (row.entry_date ?? row.start_date)?.trim() || null;
 }
 
 function mapListFields(row: EmployeeDetailLiveRow): EmployeeListItem {
@@ -45,10 +51,10 @@ function mapListFields(row: EmployeeDetailLiveRow): EmployeeListItem {
     tenantId: String(row.tenant_id),
     firstName: String(row.first_name ?? ''),
     lastName: String(row.last_name ?? ''),
-    jobTitle: String(row.job_title ?? ''),
+    jobTitle: resolveJobTitle(row),
     email: String(row.email ?? ''),
     phone: String(row.phone ?? ''),
-    status: row.status as EmployeeListItem['status'],
+    status: mapDbStatusToCatalogStatus(row.status) as EmployeeListItem['status'],
     updatedAt: String(row.updated_at),
   };
 }
@@ -60,8 +66,8 @@ function mapCompleteEmployeeDetailRow(row: EmployeeDetailLiveRow): EmployeeDetai
     ...listItem,
     createdAt: String(row.created_at ?? row.updated_at),
     department: row.department?.trim() || null,
-    startDate: row.start_date?.trim() || null,
-    notes: row.notes?.trim() || null,
+    startDate: resolveStartDate(row),
+    notes: resolveNotes(row),
     avatarUrl: row.avatar_url?.trim() || null,
   };
 }
@@ -69,14 +75,5 @@ function mapCompleteEmployeeDetailRow(row: EmployeeDetailLiveRow): EmployeeDetai
 export function mapEmployeeRowToDetail(
   row: EmployeeDetailLiveRow,
 ): ServiceResult<EmployeeDetail> {
-  const schemaMissing = schemaMissingDetailFields(row);
-  if (schemaMissing.length > 0) {
-    const fields = schemaMissing.join(', ');
-    return {
-      ok: false,
-      error: `Live-Mitarbeitenden-Detail: Supabase-Schema unvollständig (${fields} fehlen). Migration 0033 für employees anwenden.`,
-    };
-  }
-
   return { ok: true, data: mapCompleteEmployeeDetailRow(row) };
 }

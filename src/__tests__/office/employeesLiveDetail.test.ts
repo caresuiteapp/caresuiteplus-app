@@ -18,13 +18,13 @@ describe('employees live detail mapping (Sprint 72)', () => {
     tenant_id: DEMO_TENANT_ID,
     first_name: 'Anna',
     last_name: 'Schmidt',
-    job_title: 'Pflegefachkraft',
+    role_title: 'pflegefachkraft',
     email: 'anna@example.com',
     phone: '+49 123',
-    status: 'aktiv',
+    status: 'active',
     department: 'Ambulant',
-    start_date: '2024-03-01',
-    notes: 'Schichtleitung Mo–Mi.',
+    entry_date: '2024-03-01',
+    internal_notes: 'Schichtleitung Mo–Mi.',
     created_at: '2024-03-01T00:00:00.000Z',
     updated_at: '2026-06-12T00:00:00.000Z',
   };
@@ -42,23 +42,26 @@ describe('employees live detail mapping (Sprint 72)', () => {
     const result = mapEmployeeRowToDetail(completeRow);
     expect(result.ok).toBe(true);
     if (result.ok) {
+      expect(result.data.jobTitle).toBe('pflegefachkraft');
+      expect(result.data.status).toBe('aktiv');
       expect(result.data.department).toBe('Ambulant');
       expect(result.data.startDate).toBe('2024-03-01');
       expect(result.data.notes).toBe('Schichtleitung Mo–Mi.');
     }
   });
 
-  it('mapEmployeeRowToDetail meldet fehlendes Schema ehrlich', () => {
-    const incomplete: EmployeeDetailLiveRow = {
+  it('mapEmployeeRowToDetail akzeptiert leere optionale Detail-Felder', () => {
+    const result = mapEmployeeRowToDetail({
       ...completeRow,
-      notes: undefined,
-    };
-    const result = mapEmployeeRowToDetail(incomplete);
-    expect(result.ok).toBe(false);
-    if (!result.ok) {
-      expect(result.error).toContain('Schema unvollständig');
-      expect(result.error).toContain('notes');
-      expect(result.error).toContain('0033');
+      department: null,
+      entry_date: null,
+      internal_notes: null,
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.department).toBeNull();
+      expect(result.data.startDate).toBeNull();
+      expect(result.data.notes).toBeNull();
     }
   });
 
