@@ -113,6 +113,13 @@ export function AssistIndexScreen() {
             />
             {can('assist.assignments.manage') ? (
               <CareLightButton
+                title="Einsatz planen"
+                onPress={() => router.push('/assist/einsaetze/new' as never)}
+                accentColor={assistAccent}
+              />
+            ) : null}
+            {can('assist.assignments.manage') ? (
+              <CareLightButton
                 title="Einsätze verwalten"
                 onPress={() => router.push('/assist/assignments' as never)}
                 accentColor={assistAccent}

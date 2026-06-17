@@ -1,9 +1,10 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { buildAssignmentListKpis } from '@/data/demo/assignmentListStats';
 import { getDemoAssignmentListItems } from '@/data/demo/assistAssignments';
 import { fetchAssignmentList, fetchAssignmentDetail } from '@/lib/assist';
+import { getAssignmentListEmptyState, ASSIGNMENT_CREATE_ROUTE } from '@/lib/assist/assignmentListUi';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
 import { ASSIGNMENT_STATUS_FILTERS, ASSIGNMENT_SORT_OPTIONS } from '@/hooks/useAssignmentList';
@@ -15,6 +16,14 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Assist Einsatzplanung list', () => {
+  beforeEach(() => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('enforcePermission schützt Assignment-List-Service', () => {
     expect(enforcePermission(null, 'assist.assignments.view' as never)).not.toBeNull();
   });
@@ -53,7 +62,34 @@ describe('Assist Einsatzplanung list', () => {
     expect(source).toContain('PremiumInput');
     expect(source).toContain('FilterChipGroup');
     expect(source).toContain('EmptyState');
+    expect(source).toContain('getAssignmentListEmptyState');
+    expect(source).not.toContain('Demo-Mandanten hinterlegt');
     expect(source).not.toContain('Coming Soon');
+  });
+
+  it('Live-Leerzustand zeigt Planungs-CTA ohne Demo-Text', () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+    const empty = getAssignmentListEmptyState(true);
+    expect(empty.title).toBe('Noch keine Einsätze geplant');
+    expect(empty.message).not.toContain('Demo-Mandanten');
+    expect(empty.actionLabel).toBe('Einsatz planen');
+  });
+
+  it('Demo-Leerzustand behält Demo-Hinweis', () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+    const empty = getAssignmentListEmptyState(false);
+    expect(empty.message).toContain('Demo-Mandanten');
+  });
+
+  it('Einsatzplanung-Screens verlinken Create-Route', () => {
+    const einsaetze = readSrc('src/screens/assist/EinsaetzeListScreen.tsx');
+    const assignments = readSrc('src/screens/assist/AssignmentsListScreen.tsx');
+    const create = readSrc('src/screens/assist/AssignmentCreateScreen.tsx');
+    expect(einsaetze).toContain('ASSIGNMENT_CREATE_ROUTE');
+    expect(einsaetze).toContain('Einsatz planen');
+    expect(assignments).toContain('ASSIGNMENT_CREATE_ROUTE');
+    expect(create).toContain('createAssignment');
+    expect(ASSIGNMENT_CREATE_ROUTE).toBe('/assist/einsaetze/new');
   });
 
   it('AssignmentsAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
