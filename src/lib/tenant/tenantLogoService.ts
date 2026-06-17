@@ -104,7 +104,11 @@ export async function uploadTenantLogo(
     });
 
   if (uploadError) {
-    return { ok: false, error: uploadError.message || 'Logo-Upload fehlgeschlagen.' };
+    const msg = uploadError.message ?? '';
+    if (msg.includes('row-level security') || msg.includes('RLS')) {
+      return { ok: false, error: 'Kein Zugriff auf Logo-Speicher (Berechtigung fehlt).' };
+    }
+    return { ok: false, error: msg || 'Logo-Upload fehlgeschlagen.' };
   }
 
   const logoUrl = resolveTenantLogoPublicUrl(storagePath);
