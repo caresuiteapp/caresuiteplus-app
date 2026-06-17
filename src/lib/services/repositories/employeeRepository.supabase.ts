@@ -7,6 +7,7 @@ import {
   buildEmployeeUpdatePayload,
 } from '@/lib/office/employeeSupabasePayload';
 import { mapDbStatusToCatalogStatus } from '@/lib/office/employeeStatusMapping';
+import { assertNoActiveAssignmentsForEmployee } from '@/lib/office/officeDeleteGuard';
 import {
   EMPLOYEE_DETAIL_SELECT_COLUMNS,
   mapEmployeeRowToDetail,
@@ -26,6 +27,7 @@ function unavailable<T>(): ServiceResult<T> {
 
 function mapRow(row: Record<string, unknown>): EmployeeListItem {
   const jobTitle = row.role_title ?? row.job_title;
+  const avatarUrl = row.avatar_url;
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -36,6 +38,7 @@ function mapRow(row: Record<string, unknown>): EmployeeListItem {
     phone: String(row.phone ?? ''),
     status: mapDbStatusToCatalogStatus(String(row.status ?? '')) as EmployeeListItem['status'],
     updatedAt: String(row.updated_at),
+    avatarUrl: typeof avatarUrl === 'string' && avatarUrl.trim() ? avatarUrl.trim() : null,
   };
 }
 
@@ -50,6 +53,7 @@ export const employeeSupabaseRepository = {
       .from('employees')
       .select('*')
       .eq('tenant_id', tenantId)
+      .neq('status', 'deleted')
       .order('last_name', { ascending: true });
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     return { ok: true, data: (data ?? []).map(mapRow) };
@@ -65,7 +69,10 @@ export const employeeSupabaseRepository = {
       .eq('id', id)
       .maybeSingle();
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: data ? mapRow(data) : null };
+    if (!data || String(data.status ?? '') === 'deleted') {
+      return { ok: true, data: null };
+    }
+    return { ok: true, data: mapRow(data) };
   },
 
   async getByIdForDetail(
@@ -81,7 +88,10 @@ export const employeeSupabaseRepository = {
       .eq('id', id)
       .maybeSingle();
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: (data as EmployeeDetailLiveRow | null) ?? null };
+    if (!data || String((data as EmployeeDetailLiveRow).status ?? '') === 'deleted') {
+      return { ok: true, data: null };
+    }
+    return { ok: true, data: data as EmployeeDetailLiveRow };
   },
 
   async getDetailMapped(
@@ -149,5 +159,39 @@ export const employeeSupabaseRepository = {
 
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
     return { ok: true, data: { id: data.id } };
+  },
+
+  async delete(
+    tenantId: string,
+    id: string,
+    context?: { actorProfileId?: string | null; actorDisplayName?: string | null },
+  ): Promise<ServiceResult<void>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const assignmentBlock = await assertNoActiveAssignmentsForEmployee(tenantId, id);
+    if (assignmentBlock) return assignmentBlock;
+
+    const now = new Date().toISOString();
+    const { error } = await fromUnknownTable(supabase, 'employees')
+      .update({
+        status: 'deleted',
+        deleted_at: now,
+      })
+      .eq('tenant_id', tenantId)
+      .eq('id', id);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    await fromUnknownTable(supabase, 'employee_audit_events').insert({
+      tenant_id: tenantId,
+      employee_id: id,
+      action: 'employee_deleted',
+      actor_id: context?.actorProfileId ?? null,
+      summary: 'Mitarbeitende:r gelöscht (falsch angelegt)',
+      field_changes: { deleted_by: context?.actorDisplayName ?? 'System' },
+    });
+
+    return { ok: true, data: undefined };
   },
 };

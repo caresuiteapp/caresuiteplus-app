@@ -35,5 +35,10 @@ export async function fetchAssignmentEmployeeList(
   }
 
   await new Promise((r) => setTimeout(r, 280));
-  return { ok: true, data: filterAssignableEmployees(demoEmployees as EmployeeListItem[]) };
+  return {
+    ok: true,
+    data: filterAssignableEmployees(
+      demoEmployees.map((employee) => ({ ...employee, avatarUrl: null })),
+    ),
+  };
 }

@@ -10,13 +10,19 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { LockedActionBanner } from '@/components/permissions';
+import { EmployeeListAvatar } from '@/components/office/EmployeeListAvatar';
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { useEmployeeDetail } from '@/hooks/useEmployeeDetail';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/lib/auth/context';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { deleteEmployee } from '@/lib/office/employeeDeleteService';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
 type EmployeeDetailSummaryPanelProps = {
   employeeId: string;
+  onDeleted?: () => void;
 };
 
 function SummaryRow({ label, value }: { label: string; value: string | null | undefined }) {
@@ -43,8 +49,10 @@ function statusVariant(status: string) {
   }
 }
 
-export function EmployeeDetailSummaryPanel({ employeeId }: EmployeeDetailSummaryPanelProps) {
+export function EmployeeDetailSummaryPanel({ employeeId, onDeleted }: EmployeeDetailSummaryPanelProps) {
   const router = useRouter();
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
   const { can, roleLabel, isReadOnly } = usePermissions();
   const { data: employee, loading, error, refresh, notFound } = useEmployeeDetail(employeeId);
 
@@ -71,18 +79,28 @@ export function EmployeeDetailSummaryPanel({ employeeId }: EmployeeDetailSummary
   return (
     <View style={styles.panel}>
       <PremiumCard accentColor={colors.orange}>
-        <Text style={styles.name}>{fullName}</Text>
-        <View style={styles.badgeRow}>
-          <PremiumBadge
-            label={WORKFLOW_STATUS_LABELS[employee.status]}
-            variant={statusVariant(employee.status)}
-            dot
+        <View style={styles.headerRow}>
+          <EmployeeListAvatar
+            firstName={employee.firstName}
+            lastName={employee.lastName}
+            avatarUrl={employee.avatarUrl}
+            size="lg"
           />
-          {employee.department ? (
-            <PremiumBadge label={employee.department} variant="cyan" />
-          ) : null}
+          <View style={styles.headerMain}>
+            <Text style={styles.name}>{fullName}</Text>
+            <View style={styles.badgeRow}>
+              <PremiumBadge
+                label={WORKFLOW_STATUS_LABELS[employee.status]}
+                variant={statusVariant(employee.status)}
+                dot
+              />
+              {employee.department ? (
+                <PremiumBadge label={employee.department} variant="cyan" />
+              ) : null}
+            </View>
+            {employee.jobTitle ? <Text style={styles.role}>{employee.jobTitle}</Text> : null}
+          </View>
         </View>
-        {employee.jobTitle ? <Text style={styles.role}>{employee.jobTitle}</Text> : null}
       </PremiumCard>
 
       {isReadOnly ? (
@@ -124,6 +142,25 @@ export function EmployeeDetailSummaryPanel({ employeeId }: EmployeeDetailSummary
           fullWidth
           onPress={() => router.push(`/office/employees/${employee.id}` as never)}
         />
+        {can('office.employees.delete') ? (
+          <OfficeRecordDeleteButton
+            recordLabel="Mitarbeitende:r"
+            displayName={fullName}
+            onDelete={() => {
+              if (!tenantId) {
+                return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+              }
+              return deleteEmployee(
+                employee.id,
+                tenantId,
+                profile?.roleKey,
+                profile?.id,
+                profile?.displayName,
+              );
+            }}
+            onDeleted={onDeleted}
+          />
+        ) : null}
       </View>
     </View>
   );
@@ -135,15 +172,23 @@ const styles = StyleSheet.create({
     padding: spacing.md,
     gap: spacing.md,
   },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.md,
+  },
+  headerMain: {
+    flex: 1,
+    minWidth: 0,
+    gap: spacing.xs,
+  },
   name: {
     ...typography.h2,
-    marginBottom: spacing.sm,
   },
   badgeRow: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
-    marginBottom: spacing.xs,
   },
   role: {
     ...typography.caption,

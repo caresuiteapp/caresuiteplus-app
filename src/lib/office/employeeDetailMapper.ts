@@ -56,6 +56,7 @@ function mapListFields(row: EmployeeDetailLiveRow): EmployeeListItem {
     phone: String(row.phone ?? ''),
     status: mapDbStatusToCatalogStatus(row.status) as EmployeeListItem['status'],
     updatedAt: String(row.updated_at),
+    avatarUrl: row.avatar_url?.trim() || null,
   };
 }
 
