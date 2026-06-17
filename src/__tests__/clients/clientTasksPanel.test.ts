@@ -12,7 +12,7 @@ import {
 const root = path.join(__dirname, '..', '..', '..');
 
 describe('ClientTasksPanel wiring', () => {
-  it('ClientRecordTabPanels uses ClientTasksPanel instead of read-only EinsatzAufgabenTab', () => {
+  it('ClientRecordTabPanels routes Aufgaben tab to ClientTasksPanel', () => {
     const tabPanels = readFileSync(
       path.join(root, 'src/screens/business/office/ClientRecordTabPanels.tsx'),
       'utf8',
@@ -22,12 +22,34 @@ describe('ClientTasksPanel wiring', () => {
       'utf8',
     );
 
-    expect(tabPanels).toContain('ClientTasksPanel');
+    expect(tabPanels).toContain("tab === 'aufgaben'");
+    expect(tabPanels).toContain('ClientRecordTasksPanel');
     expect(tabPanels).not.toContain('EinsatzAufgabenTab');
     expect(tasksPanel).toContain('Aufgabe manuell hinzufügen');
     expect(tasksPanel).toContain('Aus Katalog hinzufügen');
     expect(tasksPanel).toContain('CareSuite+ Assist');
     expect(tasksPanel).not.toContain('clientEditRoute');
+  });
+
+  it('ClientRecordTabPanels routes Einsätze tab to ClientRecordShiftsPanel', () => {
+    const tabPanels = readFileSync(
+      path.join(root, 'src/screens/business/office/ClientRecordTabPanels.tsx'),
+      'utf8',
+    );
+    const shiftsPanel = readFileSync(
+      path.join(root, 'src/components/office/ClientRecordShiftsPanel.tsx'),
+      'utf8',
+    );
+
+    expect(tabPanels).toContain("tab === 'einsaetze'");
+    expect(tabPanels).toContain('ClientRecordShiftsTabPanel');
+    expect(tabPanels).toContain('ClientRecordShiftsPanel');
+    expect(tabPanels).not.toMatch(/einsaetze[\s\S]{0,120}ClientRecordTasksPanel/);
+    expect(shiftsPanel).toContain('title="Einsätze"');
+    expect(shiftsPanel).toContain('Keine Einsätze');
+    expect(shiftsPanel).toContain('Noch keine Einsätze geplant');
+    expect(shiftsPanel).not.toContain('Keine Aufgaben definiert');
+    expect(shiftsPanel).toContain('Einsatzpräferenzen');
   });
 
   it('hero edit action is labeled Stammdaten bearbeiten', () => {

@@ -27,6 +27,7 @@ import { addTimelineEvent, fetchClientTimeline } from '@/lib/clients/clientTimel
 import { buildTimelineEntrySubtitle } from '@/lib/clients/clientTimelineAggregation';
 import { addClientVital, fetchClientVitals } from '@/lib/clients/clientVitalsService';
 import { ClientTasksPanel } from '@/components/office/ClientTasksPanel';
+import { ClientRecordShiftsPanel } from '@/components/office/ClientRecordShiftsPanel';
 import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { fetchClientModuleAssignments } from '@/lib/officeModules/moduleAssignmentService';
 import { PRODUCT_LABELS } from '@/data/demo/products';
@@ -355,16 +356,21 @@ export function ClientRecordTasksPanel({
   clientId,
   fullClient,
   onRecordRefresh,
-  showShiftPreferences = false,
-}: TabPanelProps & { showShiftPreferences?: boolean }) {
+}: TabPanelProps) {
   return (
     <ClientTasksPanel
       clientId={clientId}
       fullClient={fullClient}
-      showShiftPreferences={showShiftPreferences}
       onRecordRefresh={onRecordRefresh}
     />
   );
+}
+
+export function ClientRecordShiftsTabPanel({
+  clientId,
+  fullClient,
+}: Pick<TabPanelProps, 'clientId' | 'fullClient'>) {
+  return <ClientRecordShiftsPanel clientId={clientId} fullClient={fullClient} />;
 }
 
 export function ClientRecordTabContent({
@@ -408,7 +414,7 @@ export function ClientRecordTabContent({
       return <ClientRecordTasksPanel {...panelProps} />;
     }
     if (tab === 'einsaetze') {
-      return <ClientRecordTasksPanel {...panelProps} showShiftPreferences />;
+      return <ClientRecordShiftsTabPanel clientId={clientId} fullClient={fullClient} />;
     }
   }
 
@@ -438,7 +444,7 @@ export function ClientRecordTabContent({
     case 'aufgaben':
       return <ClientRecordTasksPanel {...panelProps} />;
     case 'einsaetze':
-      return <ClientRecordTasksPanel {...panelProps} showShiftPreferences />;
+      return <ClientRecordShiftsTabPanel clientId={clientId} fullClient={fullClient} />;
     default:
       return (
         <SectionPanel title="Bereich">

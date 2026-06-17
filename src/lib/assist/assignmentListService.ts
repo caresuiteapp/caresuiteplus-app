@@ -95,3 +95,19 @@ export async function fetchTodayAssignments(
 
   return { ok: true, data: today };
 }
+
+export async function fetchClientAssignments(
+  tenantId: string,
+  clientId: string,
+  actorRoleKey?: RoleKey | null,
+  workspaceContext?: { userId?: string | null; employeeId?: string | null },
+): Promise<ServiceResult<AssignmentListItem[]>> {
+  const listResult = await fetchAssignmentList(tenantId, actorRoleKey, workspaceContext);
+  if (!listResult.ok) return listResult;
+
+  const items = listResult.data
+    .filter((item) => item.clientId === clientId)
+    .sort((a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime());
+
+  return { ok: true, data: items };
+}

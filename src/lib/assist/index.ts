@@ -1,6 +1,7 @@
 export {
   fetchAssignmentList,
   fetchAssistDashboardStats,
+  fetchClientAssignments,
   fetchTodayAssignments,
 } from './assignmentListService';
 export { fetchExecutionList } from './executionListService';

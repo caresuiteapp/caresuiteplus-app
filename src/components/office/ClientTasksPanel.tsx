@@ -11,7 +11,6 @@ import {
   PremiumInput,
   SectionPanel,
 } from '@/components/ui';
-import { DetailInfoRow } from '@/components/detail';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -48,7 +47,6 @@ import { colors, spacing, typography } from '@/theme';
 type ClientTasksPanelProps = {
   clientId: string;
   fullClient?: ClientFullDetail | null;
-  showShiftPreferences?: boolean;
   onRecordRefresh?: () => void;
 };
 
@@ -140,8 +138,6 @@ function groupTasksByLeistungsbereich(tasks: ClientTask[]): Map<string, ClientTa
 
 export function ClientTasksPanel({
   clientId,
-  fullClient,
-  showShiftPreferences = false,
   onRecordRefresh,
 }: ClientTasksPanelProps) {
   const { isReadOnly } = usePermissions();
@@ -311,17 +307,6 @@ export function ClientTasksPanel({
         <Text style={styles.disclaimerTitle}>CareSuite+ Assist</Text>
         <Text style={styles.disclaimerText}>{ASSIST_MODULE_DISCLAIMER}</Text>
       </PremiumCard>
-
-      {showShiftPreferences && fullClient?.preferences ? (
-        <SectionPanel title="Einsatzpräferenzen">
-          <DetailInfoRow
-            label="Bevorzugte Zeiten"
-            value={fullClient.preferences.preferredShifts.join(', ') || null}
-          />
-          <DetailInfoRow label="Mobilität" value={fullClient.preferences.mobilityNotes} />
-          <DetailInfoRow label="Zugang" value={fullClient.preferences.accessInstructions} />
-        </SectionPanel>
-      ) : null}
 
       {!isReadOnly ? (
         <SectionPanel title="Assist-Katalog" subtitle={`${getAssistTaskPackages().length} Aufgabenpakete`}>

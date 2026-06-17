@@ -112,6 +112,24 @@ describe('Office ClientRecord rebuild', () => {
     expect(source).toContain('updateClientConsent');
     expect(source).toContain('addClientMedication');
     expect(source).toContain('EmptyState');
+    expect(source).toContain('ClientRecordShiftsPanel');
+  });
+
+  it('Einsätze tab shows shift list instead of Aufgaben panel', () => {
+    const tabPanels = readFileSync(
+      path.join(root, 'src/screens/business/office/ClientRecordTabPanels.tsx'),
+      'utf8',
+    );
+    const shiftsPanel = readFileSync(
+      path.join(root, 'src/components/office/ClientRecordShiftsPanel.tsx'),
+      'utf8',
+    );
+
+    expect(tabPanels).toContain("return <ClientRecordShiftsTabPanel");
+    expect(shiftsPanel).toContain('fetchClientAssignments');
+    expect(shiftsPanel).toContain('title="Einsätze"');
+    expect(shiftsPanel).not.toContain('title="Aufgaben');
+    expect(shiftsPanel).not.toContain('Keine Aufgaben definiert');
   });
 
   it('production client record documents UI has no Demo strings', () => {
@@ -272,5 +290,18 @@ describe('Office client record services', () => {
     const result = await fetchOfficeReportingSummary(DEMO_TENANT_ID, 'business_admin');
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.data.length).toBeGreaterThan(0);
+  });
+
+  it('fetchClientAssignments liefert Einsätze für Demo-Klient client-001', async () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+    const { fetchClientAssignments } = await import('@/lib/assist/assignmentListService');
+    const result = await fetchClientAssignments(DEMO_TENANT_ID, 'client-001', 'dispatch');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data.every((item) => item.clientId === 'client-001')).toBe(true);
+      expect(result.data[0]?.title).toBeTruthy();
+    }
+    vi.unstubAllEnvs();
   });
 });
