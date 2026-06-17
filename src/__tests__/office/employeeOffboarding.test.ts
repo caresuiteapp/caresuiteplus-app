@@ -20,6 +20,7 @@ import {
 } from '@/lib/office/offboarding';
 import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile';
 import { savePeriod } from '@/lib/office/employeeTime/employeeTimeStore';
+import { employeeSupabaseRepository } from '@/lib/services/repositories/employeeRepository.supabase';
 import type { EmployeeTimePeriod } from '@/types/modules/employeeTime';
 
 const TENANT = DEMO_TENANT_ID;
@@ -28,6 +29,8 @@ const ADMIN = 'business_admin' as const;
 const EMPLOYEE = 'employee-001';
 const EMPLOYEE_WITH_RETURNS = 'employee-006';
 const PORTAL_USER = 'employee_portal' as const;
+const LIVE_TENANT_ID = '22222222-2222-4222-8222-222222222222';
+const LIVE_EMPLOYEE_ID = '11111111-1111-4111-8111-111111111111';
 
 function seedLockedTimePeriod(employeeId: string): void {
   const now = new Date().toISOString();
@@ -54,9 +57,9 @@ function seedLockedTimePeriod(employeeId: string): void {
   savePeriod(period);
 }
 
-function completeManualSteps(employeeId: string): void {
-  markOffboardingManualStep(TENANT, employeeId, 'completion_documents', 'completed', undefined, ADMIN);
-  markOffboardingManualStep(TENANT, employeeId, 'reference_prepared', 'completed', undefined, ADMIN);
+async function completeManualSteps(employeeId: string): Promise<void> {
+  await markOffboardingManualStep(TENANT, employeeId, 'completion_documents', 'completed', undefined, ADMIN);
+  await markOffboardingManualStep(TENANT, employeeId, 'reference_prepared', 'completed', undefined, ADMIN);
 }
 
 describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
@@ -83,18 +86,19 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     resetInventoryDemoStore();
   });
 
-  it('1. Offboarding starten setzt Status in_progress', () => {
-    const result = startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
+  it('1. Offboarding starten setzt Status in_progress', async () => {
+    const result = await startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
     expect(result.ok).toBe(true);
     if (!result.ok) return;
     expect(result.data.session.overallStatus).toBe('in_progress');
     expect(result.data.session.startedAt).toBeTruthy();
     expect(result.data.steps.length).toBe(20);
+    expect(result.data.employeeName).toContain('Keller');
   });
 
-  it('2. Austrittsdaten werden validiert und gespeichert', () => {
-    startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
-    const invalid = saveOffboardingExitDetails(
+  it('2. Austrittsdaten werden validiert und gespeichert', async () => {
+    await startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
+    const invalid = await saveOffboardingExitDetails(
       TENANT,
       EMPLOYEE,
       { exitDate: '', terminationType: 'voluntary' },
@@ -102,7 +106,7 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     );
     expect(invalid.ok).toBe(false);
 
-    const saved = saveOffboardingExitDetails(
+    const saved = await saveOffboardingExitDetails(
       TENANT,
       EMPLOYEE,
       {
@@ -119,17 +123,17 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
   });
 
   it('3. Endfreigabe blockiert bei offenen Rückgaben', async () => {
-    startOffboardingSession(TENANT, EMPLOYEE_WITH_RETURNS, ADMIN);
-    saveOffboardingExitDetails(
+    await startOffboardingSession(TENANT, EMPLOYEE_WITH_RETURNS, ADMIN);
+    await saveOffboardingExitDetails(
       TENANT,
       EMPLOYEE_WITH_RETURNS,
       { exitDate: '2026-06-30', terminationType: 'contract_end' },
       ADMIN,
     );
     seedLockedTimePeriod(EMPLOYEE_WITH_RETURNS);
-    lockOffboardingPortalAccess(TENANT, EMPLOYEE_WITH_RETURNS, ADMIN);
-    prepareOffboardingExternalAccess(TENANT, EMPLOYEE_WITH_RETURNS, ADMIN);
-    completeManualSteps(EMPLOYEE_WITH_RETURNS);
+    await lockOffboardingPortalAccess(TENANT, EMPLOYEE_WITH_RETURNS, ADMIN);
+    await prepareOffboardingExternalAccess(TENANT, EMPLOYEE_WITH_RETURNS, ADMIN);
+    await completeManualSteps(EMPLOYEE_WITH_RETURNS);
 
     const clearance = await completeOffboardingFinalClearance(
       TENANT,
@@ -141,9 +145,9 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     expect(clearance.error).toContain('Rückgabe');
   });
 
-  it('4. Rückgabe erfassen schließt Inventar-Blocker', () => {
-    startOffboardingSession(TENANT, EMPLOYEE_WITH_RETURNS, ADMIN);
-    saveOffboardingExitDetails(
+  it('4. Rückgabe erfassen schließt Inventar-Blocker', async () => {
+    await startOffboardingSession(TENANT, EMPLOYEE_WITH_RETURNS, ADMIN);
+    await saveOffboardingExitDetails(
       TENANT,
       EMPLOYEE_WITH_RETURNS,
       { exitDate: '2026-06-30', terminationType: 'contract_end' },
@@ -154,7 +158,7 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     const materialId = file?.workMaterials[0]?.id;
     expect(materialId).toBeTruthy();
 
-    const returned = recordOffboardingReturn(
+    const returned = await recordOffboardingReturn(
       TENANT,
       EMPLOYEE_WITH_RETURNS,
       materialId!,
@@ -168,15 +172,15 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
   });
 
   it('5. Endfreigabe blockiert ohne gesperrtes Portal', async () => {
-    startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
-    saveOffboardingExitDetails(
+    await startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
+    await saveOffboardingExitDetails(
       TENANT,
       EMPLOYEE,
       { exitDate: '2026-07-31', terminationType: 'voluntary' },
       ADMIN,
     );
     seedLockedTimePeriod(EMPLOYEE);
-    completeManualSteps(EMPLOYEE);
+    await completeManualSteps(EMPLOYEE);
 
     const clearance = await completeOffboardingFinalClearance(TENANT, EMPLOYEE, ADMIN);
     expect(clearance.ok).toBe(false);
@@ -184,21 +188,21 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     expect(clearance.error).toContain('Portal');
   });
 
-  it('6. Portal-Sperre und externe Zugänge vorbereiten', () => {
-    startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
-    saveOffboardingExitDetails(
+  it('6. Portal-Sperre und externe Zugänge vorbereiten', async () => {
+    await startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
+    await saveOffboardingExitDetails(
       TENANT,
       EMPLOYEE,
       { exitDate: '2026-07-31', terminationType: 'voluntary' },
       ADMIN,
     );
 
-    const portal = lockOffboardingPortalAccess(TENANT, EMPLOYEE, ADMIN);
+    const portal = await lockOffboardingPortalAccess(TENANT, EMPLOYEE, ADMIN);
     expect(portal.ok).toBe(true);
     if (!portal.ok) return;
     expect(getDemoEmployeePersonnelFile(EMPLOYEE)?.portalAccess.portalActive).toBe(false);
 
-    const external = prepareOffboardingExternalAccess(TENANT, EMPLOYEE, ADMIN);
+    const external = await prepareOffboardingExternalAccess(TENANT, EMPLOYEE, ADMIN);
     expect(external.ok).toBe(true);
     if (!external.ok) return;
     expect(
@@ -208,14 +212,14 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     ).toBe(true);
   });
 
-  it('7. Kein mandantenübergreifender Zugriff', () => {
-    startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
-    const cross = fetchOffboardingProgress(OTHER_TENANT, EMPLOYEE, ADMIN);
+  it('7. Kein mandantenübergreifender Zugriff', async () => {
+    await startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
+    const cross = await fetchOffboardingProgress(OTHER_TENANT, EMPLOYEE, ADMIN);
     expect(cross.ok).toBe(false);
   });
 
-  it('8. Unberechtigte Rollen sehen keine Personalakte', () => {
-    const denied = fetchOffboardingProgress(
+  it('8. Unberechtigte Rollen sehen keine Personalakte', async () => {
+    const denied = await fetchOffboardingProgress(
       TENANT,
       EMPLOYEE,
       PORTAL_USER,
@@ -224,33 +228,52 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     expect(denied.ok).toBe(false);
   });
 
-  it('9. Produktionsmodus blockiert Demo-Fallback', () => {
+  it('9. Live-Supabase lädt Mitarbeitende über Repository statt Demo-Personalakte', async () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
 
-    const result = startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
-    expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toMatch(/Live-Modus|Demo-Daten im Produktionsmodus/);
+    const getById = vi.spyOn(employeeSupabaseRepository, 'getById').mockResolvedValue({
+      ok: true,
+      data: {
+        id: LIVE_EMPLOYEE_ID,
+        tenantId: LIVE_TENANT_ID,
+        firstName: 'Mhi Aldeen',
+        lastName: 'Al Jlelati',
+        jobTitle: 'Pflegefachkraft',
+        email: 'mhi@example.com',
+        phone: '',
+        status: 'active',
+        updatedAt: '2026-06-01T00:00:00.000Z',
+      },
+    });
+
+    const result = await fetchOffboardingProgress(LIVE_TENANT_ID, LIVE_EMPLOYEE_ID, ADMIN);
+    expect(result.ok).toBe(true);
+    if (!result.ok) return;
+    expect(result.data.employeeName).toBe('Mhi Aldeen Al Jlelati');
+    expect(result.data.steps.length).toBe(20);
+    expect(getById).toHaveBeenCalledWith(LIVE_TENANT_ID, LIVE_EMPLOYEE_ID);
+
+    getById.mockRestore();
   });
 
   it('10. Vollständiger Abschluss: Protokoll, Endfreigabe, Archivierung', async () => {
-    startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
-    saveOffboardingExitDetails(
+    await startOffboardingSession(TENANT, EMPLOYEE, ADMIN);
+    await saveOffboardingExitDetails(
       TENANT,
       EMPLOYEE,
       { exitDate: '2026-07-31', terminationType: 'retirement' },
       ADMIN,
     );
     seedLockedTimePeriod(EMPLOYEE);
-    recordOffboardingReturn(TENANT, EMPLOYEE, `wm-uniform-${EMPLOYEE}`, ADMIN);
+    await recordOffboardingReturn(TENANT, EMPLOYEE, `wm-uniform-${EMPLOYEE}`, ADMIN);
     inventoryDemoRepository.updateAssignment(TENANT, 'inv-asg-001', { status: 'returned' });
-    lockOffboardingPortalAccess(TENANT, EMPLOYEE, ADMIN);
-    prepareOffboardingExternalAccess(TENANT, EMPLOYEE, ADMIN);
-    completeManualSteps(EMPLOYEE);
+    await lockOffboardingPortalAccess(TENANT, EMPLOYEE, ADMIN);
+    await prepareOffboardingExternalAccess(TENANT, EMPLOYEE, ADMIN);
+    await completeManualSteps(EMPLOYEE);
 
-    const protocol = generateOffboardingCompletionProtocol(TENANT, EMPLOYEE, ADMIN);
+    const protocol = await generateOffboardingCompletionProtocol(TENANT, EMPLOYEE, ADMIN);
     expect(protocol.ok).toBe(true);
 
     const clearance = await completeOffboardingFinalClearance(TENANT, EMPLOYEE, ADMIN);
@@ -258,7 +281,7 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
     if (!clearance.ok) return;
     expect(clearance.data.clearance?.clearedAt).toBeTruthy();
 
-    const archived = archiveOffboardingPersonnelFile(TENANT, EMPLOYEE, ADMIN);
+    const archived = await archiveOffboardingPersonnelFile(TENANT, EMPLOYEE, ADMIN);
     expect(archived.ok).toBe(true);
     if (!archived.ok) return;
     expect(archived.data.session.overallStatus).toBe('completed');

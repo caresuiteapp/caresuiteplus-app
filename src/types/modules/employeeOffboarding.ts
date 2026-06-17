@@ -229,6 +229,8 @@ export type OffboardingBlocker = {
 };
 
 export type OffboardingProgressSummary = {
+  employeeId: EntityId;
+  employeeName: string;
   session: EmployeeOffboardingSession;
   steps: EmployeeOffboardingStep[];
   checks: EmployeeOffboardingCheck[];

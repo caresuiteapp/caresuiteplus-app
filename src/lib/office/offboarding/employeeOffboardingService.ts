@@ -14,13 +14,18 @@ import {
   OFFBOARDING_STEP_ORDER,
 } from '@/types/modules/employeeOffboarding';
 import { enforcePermission } from '@/lib/permissions';
-import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import {
   buildPersonnelAccessContext,
   canViewEmployeePersonnelFile,
 } from '@/lib/office/employeePersonnelAccess';
 import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile';
+import {
+  formatOffboardingEmployeeName,
+  resolveOffboardingEmployee,
+  type ResolvedOffboardingEmployee,
+} from './employeeOffboardingEmployeeResolver';
 import {
   buildOffboardingIntegrationSnapshot,
   countOpenReturnsByCategory,
@@ -48,12 +53,12 @@ import {
 
 const EXTERNAL_ACCESS_KINDS = ['email', 'phone', 'cloud'] as const;
 
-function assertOffboardingAccess(
+async function assertOffboardingAccess(
   tenantId: string,
   employeeId: string,
   actorRoleKey: RoleKey | null,
   workspaceContext?: { userId?: string | null; employeeId?: string | null },
-): ServiceResult<never> | null {
+): Promise<ServiceResult<never> | null> {
   const denied = enforcePermission<never>(actorRoleKey, 'office.employees.edit');
   if (denied) return denied;
 
@@ -73,21 +78,18 @@ function assertOffboardingAccess(
     return { ok: false, error: access.reason ?? 'Kein Zugriff auf Personalakte.' };
   }
 
-  const file = getDemoEmployeePersonnelFile(employeeId);
-  if (!file) return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
-  if (file.tenantId !== tenantId) {
-    return { ok: false, error: 'Kein mandantenübergreifender Zugriff auf Personalakten.' };
-  }
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return employee;
 
   return null;
 }
 
-function assertOffboardingViewAccess(
+async function assertOffboardingViewAccess(
   tenantId: string,
   employeeId: string,
   actorRoleKey: RoleKey | null,
   workspaceContext?: { userId?: string | null; employeeId?: string | null },
-): ServiceResult<never> | null {
+): Promise<ServiceResult<never> | null> {
   const denied = enforcePermission<never>(actorRoleKey, 'office.employees.view');
   if (denied) return denied;
 
@@ -107,20 +109,29 @@ function assertOffboardingViewAccess(
     return { ok: false, error: access.reason ?? 'Kein Zugriff auf Personalakte.' };
   }
 
-  const file = getDemoEmployeePersonnelFile(employeeId);
-  if (!file) return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
-  if (file.tenantId !== tenantId) {
-    return { ok: false, error: 'Kein mandantenübergreifender Zugriff auf Personalakten.' };
-  }
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return employee;
 
   return null;
 }
 
-function guardOffboardingProduction<T>(): ServiceResult<T> | null {
-  if (getServiceMode() === 'supabase' && !isOffboardingLiveReady()) {
-    return guardLiveDemoFeature<T>('demo-tenant', 'Mitarbeiter-Offboarding');
+async function progressSummaryForEmployee(
+  tenantId: string,
+  employeeId: string,
+  resolved?: ResolvedOffboardingEmployee,
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  if (resolved) {
+    return {
+      ok: true,
+      data: buildOffboardingProgressSummary(tenantId, employeeId, resolved),
+    };
   }
-  return null;
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return employee;
+  return {
+    ok: true,
+    data: buildOffboardingProgressSummary(tenantId, employeeId, employee.data),
+  };
 }
 
 function stepStatusFromCheck(
@@ -422,6 +433,7 @@ function collectBlockers(checks: EmployeeOffboardingCheck[]): OffboardingBlocker
 export function buildOffboardingProgressSummary(
   tenantId: string,
   employeeId: string,
+  employee: ResolvedOffboardingEmployee,
 ): OffboardingProgressSummary {
   const session = readOffboardingSession(tenantId, employeeId);
   const checks = evaluateOffboardingChecks(tenantId, employeeId, session.id);
@@ -451,6 +463,8 @@ export function buildOffboardingProgressSummary(
   }
 
   return {
+    employeeId: employee.id,
+    employeeName: formatOffboardingEmployeeName(employee),
     session: readOffboardingSession(tenantId, employeeId),
     steps,
     checks,
@@ -463,13 +477,13 @@ export function buildOffboardingProgressSummary(
   };
 }
 
-export function fetchOffboardingProgress(
+export async function fetchOffboardingProgress(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
   workspaceContext?: { userId?: string | null; employeeId?: string | null },
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingViewAccess(
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingViewAccess(
     tenantId,
     employeeId,
     actorRoleKey ?? null,
@@ -477,20 +491,20 @@ export function fetchOffboardingProgress(
   );
   if (accessBlock) return accessBlock;
 
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return employee;
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId, employee.data) };
 }
 
-export function startOffboardingSession(
+export async function startOffboardingSession(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
   workspaceContext?: { userId?: string | null; employeeId?: string | null },
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingAccess(
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingAccess(
     tenantId,
     employeeId,
     actorRoleKey ?? null,
@@ -498,8 +512,8 @@ export function startOffboardingSession(
   );
   if (accessBlock) return accessBlock;
 
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return employee;
 
   const now = new Date().toISOString();
   const session = readOffboardingSession(tenantId, employeeId);
@@ -519,10 +533,10 @@ export function startOffboardingSession(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId, employee.data);
 }
 
-export function saveOffboardingExitDetails(
+export async function saveOffboardingExitDetails(
   tenantId: string,
   employeeId: string,
   input: {
@@ -533,17 +547,14 @@ export function saveOffboardingExitDetails(
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
   workspaceContext?: { userId?: string | null; employeeId?: string | null },
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingAccess(
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingAccess(
     tenantId,
     employeeId,
     actorRoleKey ?? null,
     workspaceContext,
   );
   if (accessBlock) return accessBlock;
-
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
 
   if (!input.exitDate?.trim()) {
     return { ok: false, error: 'Austrittsdatum ist erforderlich.' };
@@ -552,9 +563,11 @@ export function saveOffboardingExitDetails(
     return { ok: false, error: 'Kündigungsart ist erforderlich.' };
   }
 
-  const file = getDemoEmployeePersonnelFile(employeeId);
-  if (file) {
-    file.masterData.exitDate = input.exitDate.trim();
+  if (getServiceMode() !== 'supabase') {
+    const file = getDemoEmployeePersonnelFile(employeeId);
+    if (file) {
+      file.masterData.exitDate = input.exitDate.trim();
+    }
   }
 
   const session = readOffboardingSession(tenantId, employeeId);
@@ -575,21 +588,18 @@ export function saveOffboardingExitDetails(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId);
 }
 
-export function assignOffboardingResponsible(
+export async function assignOffboardingResponsible(
   tenantId: string,
   employeeId: string,
   responsibleUserId: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
-
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
 
   const session = readOffboardingSession(tenantId, employeeId);
   patchOffboardingSession(tenantId, employeeId, { responsibleUserId });
@@ -607,20 +617,17 @@ export function assignOffboardingResponsible(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId);
 }
 
-export function refreshOffboardingChecks(
+export async function refreshOffboardingChecks(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingViewAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingViewAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
-
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
 
   const session = readOffboardingSession(tenantId, employeeId);
   appendOffboardingAuditEvent({
@@ -632,21 +639,18 @@ export function refreshOffboardingChecks(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId);
 }
 
-export function recordOffboardingReturn(
+export async function recordOffboardingReturn(
   tenantId: string,
   employeeId: string,
   materialId: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
-
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
 
   const material = recordWorkMaterialReturn(tenantId, employeeId, materialId, 'returned');
   if (!material) {
@@ -664,7 +668,7 @@ export function recordOffboardingReturn(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId);
 }
 
 function ensureAccessRevocationRecords(
@@ -701,17 +705,14 @@ function ensureAccessRevocationRecords(
   return listAccessRevocations(sessionId);
 }
 
-export function lockOffboardingPortalAccess(
+export async function lockOffboardingPortalAccess(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
-
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
 
   const session = readOffboardingSession(tenantId, employeeId);
   ensureAccessRevocationRecords(session.id, tenantId, employeeId);
@@ -747,20 +748,17 @@ export function lockOffboardingPortalAccess(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId);
 }
 
-export function prepareOffboardingExternalAccess(
+export async function prepareOffboardingExternalAccess(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
-
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
 
   const session = readOffboardingSession(tenantId, employeeId);
   ensureAccessRevocationRecords(session.id, tenantId, employeeId);
@@ -798,10 +796,10 @@ export function prepareOffboardingExternalAccess(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId);
 }
 
-export function markOffboardingManualStep(
+export async function markOffboardingManualStep(
   tenantId: string,
   employeeId: string,
   stepKey: OffboardingStepKey,
@@ -809,12 +807,9 @@ export function markOffboardingManualStep(
   notes?: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
-
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
 
   const session = readOffboardingSession(tenantId, employeeId);
   updateOffboardingStep(session.id, stepKey, status, notes ?? null);
@@ -829,22 +824,22 @@ export function markOffboardingManualStep(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId);
 }
 
-export function generateOffboardingCompletionProtocol(
+export async function generateOffboardingCompletionProtocol(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
-): ServiceResult<OffboardingCompletionProtocol> {
-  const accessBlock = assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<OffboardingCompletionProtocol>> {
+  const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
-  const prodBlock = guardOffboardingProduction<OffboardingCompletionProtocol>();
-  if (prodBlock) return prodBlock;
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return employee;
 
-  const progress = buildOffboardingProgressSummary(tenantId, employeeId);
+  const progress = buildOffboardingProgressSummary(tenantId, employeeId, employee.data);
   if (progress.blockers.some((b) => b.checkKey !== 'reference_missing' && b.checkKey !== 'return_protocol_missing')) {
     const hardBlockers = progress.blockers.filter(
       (b) => !['reference_missing', 'return_protocol_missing', 'documents_incomplete'].includes(b.checkKey),
@@ -908,13 +903,13 @@ export async function completeOffboardingFinalClearance(
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
 ): Promise<ServiceResult<OffboardingProgressSummary>> {
-  const accessBlock = assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
+  const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return employee;
 
-  const progress = buildOffboardingProgressSummary(tenantId, employeeId);
+  const progress = buildOffboardingProgressSummary(tenantId, employeeId, employee.data);
 
   const hardBlockerKeys = new Set([
     'open_assignments',
@@ -975,22 +970,22 @@ export async function completeOffboardingFinalClearance(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId, employee.data);
 }
 
-export function archiveOffboardingPersonnelFile(
+export async function archiveOffboardingPersonnelFile(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
   actorId?: string | null,
-): ServiceResult<OffboardingProgressSummary> {
-  const accessBlock = assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<OffboardingProgressSummary>> {
+  const accessBlock = await assertOffboardingAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
-  const prodBlock = guardOffboardingProduction<OffboardingProgressSummary>();
-  if (prodBlock) return prodBlock;
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return employee;
 
-  const progress = buildOffboardingProgressSummary(tenantId, employeeId);
+  const progress = buildOffboardingProgressSummary(tenantId, employeeId, employee.data);
   const clearance = readFinalClearance(progress.session.id);
   if (!clearance?.clearedAt) {
     return { ok: false, error: 'Archivierung erst nach Endfreigabe möglich.' };
@@ -1022,22 +1017,24 @@ export function archiveOffboardingPersonnelFile(
     actorId: actorId ?? null,
   });
 
-  return { ok: true, data: buildOffboardingProgressSummary(tenantId, employeeId) };
+  return progressSummaryForEmployee(tenantId, employeeId, employee.data);
 }
 
-export function listOffboardingBlockers(
+export async function listOffboardingBlockers(
   tenantId: string,
   employeeId: string,
-): OffboardingBlocker[] {
-  return buildOffboardingProgressSummary(tenantId, employeeId).blockers;
+): Promise<OffboardingBlocker[]> {
+  const employee = await resolveOffboardingEmployee(tenantId, employeeId);
+  if (!employee.ok) return [];
+  return buildOffboardingProgressSummary(tenantId, employeeId, employee.data).blockers;
 }
 
-export function fetchOffboardingAuditTrail(
+export async function fetchOffboardingAuditTrail(
   tenantId: string,
   employeeId: string,
   actorRoleKey?: RoleKey | null,
-): ServiceResult<ReturnType<typeof listOffboardingAuditEvents>> {
-  const accessBlock = assertOffboardingViewAccess(tenantId, employeeId, actorRoleKey ?? null);
+): Promise<ServiceResult<ReturnType<typeof listOffboardingAuditEvents>>> {
+  const accessBlock = await assertOffboardingViewAccess(tenantId, employeeId, actorRoleKey ?? null);
   if (accessBlock) return accessBlock;
 
   const session = readOffboardingSession(tenantId, employeeId);

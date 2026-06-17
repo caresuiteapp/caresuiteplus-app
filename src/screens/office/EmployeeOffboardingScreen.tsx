@@ -134,7 +134,7 @@ export function EmployeeOffboardingScreen() {
   return (
     <ScreenShell
       title="Offboarding"
-      subtitle="Mehr → Personal → Offboarding"
+      subtitle={progress.employeeName || 'Mitarbeitende:r'}
       showBack
       onBack={() => router.back()}
       scroll
@@ -143,7 +143,7 @@ export function EmployeeOffboardingScreen() {
 
       <SectionPanel
         title="Status"
-        subtitle={`${progress.completedStepCount}/${progress.totalStepCount} Schritte (${progress.progressPercent} %)`}
+        subtitle={`${progress.employeeName} · ${progress.completedStepCount}/${progress.totalStepCount} Schritte (${progress.progressPercent} %)`}
       >
         <Text style={styles.statusLine}>Gesamtstatus: {progress.session.overallStatus}</Text>
         {progress.session.exitDate ? (
@@ -166,16 +166,25 @@ export function EmployeeOffboardingScreen() {
         </SectionPanel>
       ) : null}
 
-      <SectionPanel title="Checkliste" subtitle="20 Offboarding-Schritte">
-        <View style={styles.stepList}>
-          {progress.steps.map((step) => (
-            <View key={step.id} style={styles.stepRow}>
-              <Text style={styles.stepLabel}>{OFFBOARDING_STEP_LABELS[step.stepKey]}</Text>
-              <Text style={styles.stepStatus}>{step.status}</Text>
-            </View>
-          ))}
-        </View>
-      </SectionPanel>
+      {progress.steps.length === 0 ? (
+        <SectionPanel title="Checkliste" subtitle="Noch keine Offboarding-Schritte">
+          <EmptyState
+            title="Offboarding vorbereitet"
+            message="Die Checkliste wird beim Start des Offboardings angelegt. Persistenz in Supabase folgt mit Migration 0052."
+          />
+        </SectionPanel>
+      ) : (
+        <SectionPanel title="Checkliste" subtitle="20 Offboarding-Schritte">
+          <View style={styles.stepList}>
+            {progress.steps.map((step) => (
+              <View key={step.id} style={styles.stepRow}>
+                <Text style={styles.stepLabel}>{OFFBOARDING_STEP_LABELS[step.stepKey]}</Text>
+                <Text style={styles.stepStatus}>{step.status}</Text>
+              </View>
+            ))}
+          </View>
+        </SectionPanel>
+      )}
 
       {canManage ? (
         <SectionPanel title="Aktionen" subtitle="Offboarding steuern">
