@@ -27,15 +27,23 @@ type Props = {
 export function CareSignatureModal({ visible, label, onConfirm, onClose, disabled }: Props) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
+  const sheetWidth = useMemo(
+    () =>
+      Math.min(
+        screenWidth - spacing.lg * 2,
+        Math.max(DESKTOP_MIN_WIDTH, screenWidth * MOBILE_WIDTH_RATIO),
+      ),
+    [screenWidth],
+  );
+
   const canvasSize = useMemo(() => {
     const isWide = screenWidth >= 768;
-    const modalMaxWidth = isWide ? Math.max(DESKTOP_MIN_WIDTH, Math.min(720, screenWidth - 48)) : screenWidth * MOBILE_WIDTH_RATIO;
-    const canvasWidth = Math.floor(modalMaxWidth - spacing.lg * 2);
+    const canvasWidth = Math.floor(sheetWidth - spacing.lg * 2);
     const canvasHeight = isWide
       ? DESKTOP_CANVAS_HEIGHT
       : Math.floor(Math.min(screenHeight * MOBILE_HEIGHT_RATIO, 360));
     return { canvasWidth: Math.max(canvasWidth, 280), canvasHeight: Math.max(canvasHeight, 200) };
-  }, [screenWidth, screenHeight]);
+  }, [screenWidth, screenHeight, sheetWidth]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
@@ -65,7 +73,7 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
           style={[
             styles.sheet,
             {
-              width: Math.min(screenWidth - spacing.lg * 2, Math.max(DESKTOP_MIN_WIDTH, screenWidth * MOBILE_WIDTH_RATIO)),
+              width: sheetWidth,
               maxHeight: screenHeight * 0.92,
             },
           ]}

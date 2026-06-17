@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import { Platform, PanResponder, StyleSheet, Text, View } from 'react-native';
+import { clientToCanvasPoint } from '@/components/inputs/signatureCanvasCoords';
 import { PremiumButton } from '@/components/ui';
 import { colors, spacing, typography } from '@/theme';
 
@@ -105,9 +106,13 @@ function WebSignatureCanvas({
     const ctx = getCtx();
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
-    const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const { x, y } = clientToCanvasPoint(
+      clientX,
+      clientY,
+      canvas.getBoundingClientRect(),
+      dims.width,
+      dims.height,
+    );
     if (start) {
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -118,45 +123,45 @@ function WebSignatureCanvas({
     }
   };
 
+  const handlePointerDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (disabled) return;
+    drawing.current = true;
+    e.currentTarget.setPointerCapture(e.pointerId);
+    drawAt(e.clientX, e.clientY, true);
+  };
+
+  const handlePointerMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (!drawing.current || disabled) return;
+    drawAt(e.clientX, e.clientY, false);
+  };
+
+  const endStroke = (e: ReactPointerEvent<HTMLCanvasElement>) => {
+    if (drawing.current) {
+      drawing.current = false;
+      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
+        e.currentTarget.releasePointerCapture(e.pointerId);
+      }
+    }
+  };
+
   return (
     <View style={styles.wrap}>
       {showLabel && label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.canvasWrap, { height: dims.height }]}>
+      <View style={[styles.canvasWrap, { width: dims.width, height: dims.height }]}>
         <canvas
           ref={canvasRef}
           style={{
-            width: '100%',
+            width: dims.width,
             height: dims.height,
             touchAction: 'none',
             background: '#fff',
             borderRadius: 8,
             display: 'block',
           }}
-          onMouseDown={(e) => {
-            if (disabled) return;
-            drawing.current = true;
-            drawAt(e.clientX, e.clientY, true);
-          }}
-          onMouseMove={(e) => {
-            if (!drawing.current || disabled) return;
-            drawAt(e.clientX, e.clientY, false);
-          }}
-          onMouseUp={() => { drawing.current = false; }}
-          onMouseLeave={() => { drawing.current = false; }}
-          onTouchStart={(e) => {
-            if (disabled) return;
-            e.preventDefault();
-            drawing.current = true;
-            const touch = e.touches[0];
-            drawAt(touch.clientX, touch.clientY, true);
-          }}
-          onTouchMove={(e) => {
-            if (!drawing.current || disabled) return;
-            e.preventDefault();
-            const touch = e.touches[0];
-            drawAt(touch.clientX, touch.clientY, false);
-          }}
-          onTouchEnd={() => { drawing.current = false; }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={endStroke}
+          onPointerCancel={endStroke}
         />
       </View>
       <View style={styles.actions}>
