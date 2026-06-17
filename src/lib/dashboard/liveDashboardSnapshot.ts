@@ -9,6 +9,11 @@ import type {
 import type { RoleKey } from '@/types';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 import {
+  buildBusinessKpisFromMetrics,
+  emptyBusinessDashboardMetrics,
+  type BusinessDashboardMetrics,
+} from '@/lib/dashboard/businessDashboardMetrics';
+import {
   buildOfficeKpisFromMetrics,
   emptyOfficeDashboardMetrics,
   type OfficeDashboardMetrics,
@@ -148,7 +153,14 @@ export function buildLiveDashboardSnapshot(
   scope: DashboardScope,
   tenantId: string,
   tenantName: string,
+  businessMetrics: BusinessDashboardMetrics = emptyBusinessDashboardMetrics(),
+  activities: DashboardActivity[] = EMPTY_ACTIVITIES,
 ): DashboardSnapshot {
+  const kpis =
+    scope === 'business'
+      ? buildBusinessKpisFromMetrics(businessMetrics)
+      : buildEmptyBusinessKpis(roleKey, scope);
+
   return {
     scope,
     roleKey,
@@ -158,10 +170,10 @@ export function buildLiveDashboardSnapshot(
     heroSubtitle: getLiveHeroSubtitle(scope, tenantName),
     moduleLabel: getModuleLabel(scope),
     primaryAction: getPrimaryAction(roleKey, scope),
-    kpis: buildEmptyBusinessKpis(roleKey, scope),
+    kpis,
     statusCards: EMPTY_STATUS_CARDS,
     quickActions: getBusinessQuickActions(roleKey, scope),
-    activities: EMPTY_ACTIVITIES,
+    activities,
   };
 }
 

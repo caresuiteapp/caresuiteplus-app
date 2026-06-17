@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { emptyBusinessDashboardMetrics } from '@/lib/dashboard/businessDashboardMetrics';
 import { fetchDashboardSnapshot } from '@/lib/dashboard/dashboardService';
 import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
 import { emptyOfficeDashboardMetrics } from '@/lib/office/officeDashboardMetrics';
@@ -40,19 +41,55 @@ describe('live dashboard snapshots', () => {
     }
   });
 
-  it('returns empty live snapshot with real tenant name in supabase mode', async () => {
+  it('returns live business snapshot with real KPIs in supabase mode', async () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
+
+    vi.spyOn(officeDashboardSupabaseRepository, 'fetchBusinessMetrics').mockResolvedValue({
+      ok: true,
+      data: {
+        ...emptyBusinessDashboardMetrics(),
+        activeClients: 1,
+        totalClients: 1,
+        activeModules: 3,
+        totalModules: 6,
+        tableAvailability: {
+          clients: true,
+          assignments: true,
+          tasks: true,
+          modules: true,
+        },
+      },
+    });
+    vi.spyOn(officeDashboardSupabaseRepository, 'fetchRecentTimelineEvents').mockResolvedValue({
+      ok: true,
+      data: [
+        {
+          id: 'timeline-1',
+          title: 'Aufnahme abgeschlossen',
+          subtitle: 'Heinz-Peter Reinhardt',
+          icon: '📋',
+          status: 'abgeschlossen',
+          created_at: '2026-06-17T10:00:00.000Z',
+          event_type: 'sonstige',
+        },
+      ],
+    });
+    vi.spyOn(officeAuditLogSupabaseRepository, 'list').mockResolvedValue({
+      ok: true,
+      data: [],
+    });
 
     const result = await fetchDashboardSnapshot(LIVE_TENANT_ID, 'business_admin', 'business');
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.tenantName).toBe('Helferhasen+');
       expect(result.data.tenantId).toBe(LIVE_TENANT_ID);
-      expect(result.data.kpis.every((kpi) => kpi.value === 0 || kpi.value === '0')).toBe(true);
+      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'kpi-clients');
+      expect(clientsKpi?.value).toBe(1);
       expect(result.data.kpis.some((kpi) => String(kpi.subValue).includes('Demo'))).toBe(false);
-      expect(result.data.activities).toEqual([]);
+      expect(result.data.activities.length).toBeGreaterThan(0);
     }
   });
 

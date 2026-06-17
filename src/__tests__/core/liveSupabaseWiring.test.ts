@@ -191,6 +191,15 @@ describe('Live Supabase wiring', () => {
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 
+  it('dashboardService uses supabase repo for business live KPIs', () => {
+    const source = readSrc('lib/dashboard/dashboardService.ts');
+    expect(source).toContain('getServiceMode');
+    expect(source).toContain('officeDashboardSupabaseRepository');
+    expect(source).toContain('fetchBusinessMetrics');
+    expect(source).toContain('mergeDashboardActivities');
+    expect(source).not.toMatch(/DEMO_TENANT_ID/);
+  });
+
   it('templateService uses repo switch without DEMO_TENANT_ID', () => {
     const source = readSrc('lib/templates/templateService.ts');
     expect(source).toContain('getServiceMode');

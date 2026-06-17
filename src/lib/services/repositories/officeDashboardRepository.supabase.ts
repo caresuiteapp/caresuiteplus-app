@@ -1,4 +1,6 @@
 import type { ServiceResult } from '@/types';
+import type { BusinessDashboardMetrics } from '@/lib/dashboard/businessDashboardMetrics';
+import { emptyBusinessDashboardMetrics } from '@/lib/dashboard/businessDashboardMetrics';
 import type {
   ClientTimelineEventRow,
   OfficeDashboardMetrics,
@@ -99,6 +101,90 @@ export const officeDashboardSupabaseRepository = {
       const rows = (invoiceResult.data ?? []) as { status: string }[];
       metrics.openInvoices = rows.filter((row) => isOpenInvoiceStatus(row.status)).length;
       metrics.draftInvoices = rows.filter((row) => row.status === 'draft').length;
+    }
+
+    return { ok: true, data: metrics };
+  },
+
+  async fetchBusinessMetrics(tenantId: string): Promise<ServiceResult<BusinessDashboardMetrics>> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return unavailable();
+
+    const metrics = emptyBusinessDashboardMetrics();
+    const dayBounds = getLocalDayBounds();
+    const todayDate = dayBounds.start.slice(0, 10);
+
+    const [
+      totalClients,
+      activeClients,
+      assignmentsToday,
+      openAssignmentsToday,
+      openProductionTasks,
+      overdueProductionTasks,
+      totalModules,
+      activeModules,
+    ] = await Promise.all([
+      countByFilter('clients', tenantId),
+      countByFilter('clients', tenantId, (query) => query.eq('status', 'active')),
+      countByFilter('assignments', tenantId, (query) =>
+        query.gte('planned_start_at', dayBounds.start).lt('planned_start_at', dayBounds.end),
+      ),
+      countByFilter('assignments', tenantId, (query) =>
+        query
+          .gte('planned_start_at', dayBounds.start)
+          .lt('planned_start_at', dayBounds.end)
+          .not('status', 'in', '(completed,cancelled,no_show)'),
+      ),
+      countByFilter('production_tasks', tenantId, (query) =>
+        query.or('is_completed.is.null,is_completed.eq.false'),
+      ),
+      countByFilter('production_tasks', tenantId, (query) =>
+        query
+          .or('is_completed.is.null,is_completed.eq.false')
+          .lt('due_date', todayDate),
+      ),
+      countByFilter('tenant_products', tenantId),
+      countByFilter('tenant_products', tenantId, (query) =>
+        query.in('status', ['active', 'trial']),
+      ),
+    ]);
+
+    metrics.tableAvailability.clients = totalClients.available;
+    metrics.tableAvailability.assignments = assignmentsToday.available;
+
+    if (totalClients.available) {
+      metrics.totalClients = totalClients.count;
+      metrics.activeClients = activeClients.available ? activeClients.count : 0;
+    }
+
+    if (assignmentsToday.available) {
+      metrics.assignmentsToday = assignmentsToday.count;
+      metrics.openAssignmentsToday = openAssignmentsToday.available ? openAssignmentsToday.count : 0;
+    }
+
+    if (openProductionTasks.available) {
+      metrics.tableAvailability.tasks = true;
+      metrics.openTasks = openProductionTasks.count;
+      metrics.overdueTasks = overdueProductionTasks.available ? overdueProductionTasks.count : 0;
+    } else {
+      const [openQmTasks, overdueQmTasks] = await Promise.all([
+        countByFilter('qm_tasks', tenantId, (query) =>
+          query.in('status', ['open', 'in_progress', 'overdue']),
+        ),
+        countByFilter('qm_tasks', tenantId, (query) => query.eq('status', 'overdue')),
+      ]);
+
+      if (openQmTasks.available) {
+        metrics.tableAvailability.tasks = true;
+        metrics.openTasks = openQmTasks.count;
+        metrics.overdueTasks = overdueQmTasks.available ? overdueQmTasks.count : 0;
+      }
+    }
+
+    metrics.tableAvailability.modules = totalModules.available;
+    if (totalModules.available) {
+      metrics.totalModules = totalModules.count;
+      metrics.activeModules = activeModules.available ? activeModules.count : 0;
     }
 
     return { ok: true, data: metrics };
