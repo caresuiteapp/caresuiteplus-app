@@ -42,6 +42,7 @@ import {
   TASK_FREQUENCY_LABELS,
 } from '@/types/modules/client';
 import { getAssistTasksByPackage } from '@/data/assist/assistTaskCatalog';
+import { ClientSchedulingWishesPanel } from '@/components/office/ClientSchedulingWishesPanel';
 import { colors, spacing, typography } from '@/theme';
 
 type ClientTasksPanelProps = {
@@ -387,6 +388,8 @@ export function ClientTasksPanel({
           )}
         </SectionPanel>
       ) : null}
+
+      <ClientSchedulingWishesPanel clientId={clientId} onRecordRefresh={onRecordRefresh} />
 
       <SectionPanel
         title="Aufgaben & Wünsche"

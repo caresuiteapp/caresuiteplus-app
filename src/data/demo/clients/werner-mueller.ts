@@ -68,7 +68,7 @@ export const wernerMuellerFull: ClientFullDetail = {
     {
       id: 'addr-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
       addressType: 'hauptwohnsitz', street: 'Prenzlauer Allee 88', zip: '10437', city: 'Berlin',
-      country: 'DE', isPrimary: true, accessNotes: 'EG, Stufe am Eingang', floor: 'EG', doorCode: '1234',
+      country: 'DE', isPrimary: true, accessNotes: 'EG, Stufe am Eingang', floor: 'EG', apartmentNumber: '3', doorCode: '1234',
       createdAt: daysAgo(400), updatedAt: now,
     },
   ],
@@ -139,6 +139,7 @@ export const wernerMuellerFull: ClientFullDetail = {
     accessInstructions: 'Türklingel defekt — bitte klopfen',
     createdAt: daysAgo(350), updatedAt: now,
   },
+  schedulingWishes: null,
   risks: [
     {
       id: 'risk-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',

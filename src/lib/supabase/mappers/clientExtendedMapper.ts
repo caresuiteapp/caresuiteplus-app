@@ -184,6 +184,7 @@ type AddressRow = {
   is_primary: boolean;
   access_notes: string | null;
   floor: string | null;
+  apartment_number: string | null;
   door_code: string | null;
   created_at: string;
   updated_at: string;
@@ -202,6 +203,7 @@ export function mapClientAddress(row: AddressRow): ClientAddress {
     isPrimary: row.is_primary,
     accessNotes: row.access_notes,
     floor: row.floor,
+    apartmentNumber: row.apartment_number,
     doorCode: row.door_code,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
@@ -647,6 +649,7 @@ export function mapClientFullDetail(input: {
     billingProfile: billingProfiles[0] ? mapClientBillingProfile(billingProfiles[0]) : null,
     contracts: contracts.map(mapClientContract),
     preferences: null,
+    schedulingWishes: null,
     risks: risks.map(mapClientRisk),
     emergencyPlan: null,
     consents: consents.map((row) => mapClientConsentExtended(row as ClientConsentRow & { consent_type?: ConsentType | null })),

@@ -65,6 +65,9 @@ export function KontaktAdresseTab({ client }: { client: ClientFullDetail }) {
             <PremiumCard key={a.id} style={styles.card}>
               <Text style={styles.cardTitle}>{a.street}, {a.zip} {a.city}</Text>
               {a.isPrimary ? <PremiumBadge label="Hauptadresse" variant="green" dot /> : null}
+              {a.floor ? <DetailInfoRow label="Etage" value={a.floor} /> : null}
+              {a.apartmentNumber ? <DetailInfoRow label="Wohnungsnummer" value={a.apartmentNumber} /> : null}
+              {a.doorCode ? <DetailInfoRow label="Zugangscode" value={a.doorCode} /> : null}
               {a.accessNotes ? <Text style={styles.meta}>{a.accessNotes}</Text> : null}
             </PremiumCard>
           ))

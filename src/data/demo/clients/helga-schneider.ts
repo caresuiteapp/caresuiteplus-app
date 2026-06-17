@@ -71,7 +71,7 @@ export const helgaSchneiderFull: ClientFullDetail = {
     {
       id: 'addr-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
       addressType: 'hauptwohnsitz', street: 'Musterstraße 12', zip: '10115', city: 'Berlin',
-      country: 'DE', isPrimary: true, accessNotes: '2. OG, Aufzug vorhanden', floor: '2', doorCode: null,
+      country: 'DE', isPrimary: true, accessNotes: '2. OG, Aufzug vorhanden', floor: '2', apartmentNumber: '12', doorCode: null,
       createdAt: daysAgo(365), updatedAt: now,
     },
   ],
@@ -139,6 +139,18 @@ export const helgaSchneiderFull: ClientFullDetail = {
     language: 'de', mobilityNotes: 'Rollator, Treppen nur mit Hilfe',
     householdNotes: 'Katze im Haushalt (Minka)', petNotes: 'Katze — nicht aus dem Haus lassen',
     accessInstructions: 'Klingel „Schneider", Schlüssel beim Hausmeister',
+    createdAt: daysAgo(300), updatedAt: now,
+  },
+  schedulingWishes: {
+    id: 'wish-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
+    preferredDays: ['mo', 'mi', 'fr'],
+    preferredTimeSlots: ['morgens'],
+    timeFrom: '09:00',
+    timeTo: '12:00',
+    preferredEmployeeGender: 'weiblich',
+    hoursPerAssignment: 2,
+    assignmentsPerWeek: 3,
+    assignmentsPerMonth: 12,
     createdAt: daysAgo(300), updatedAt: now,
   },
   risks: [

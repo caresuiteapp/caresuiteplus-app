@@ -53,7 +53,7 @@ async function fetchDemoClientFullDetail(
       ? [{
           id: `addr-${basic.id}`, tenantId: basic.tenantId, clientId: basic.id,
           addressType: 'hauptwohnsitz', street: basic.street, zip: basic.zip ?? '', city: basic.city ?? '',
-          country: 'DE', isPrimary: true, accessNotes: null, floor: null, doorCode: null,
+          country: 'DE', isPrimary: true, accessNotes: null, floor: null, apartmentNumber: null, doorCode: null,
           createdAt: basic.createdAt, updatedAt: basic.updatedAt,
         }]
       : [],
@@ -78,6 +78,7 @@ async function fetchDemoClientFullDetail(
     billingProfile: null,
     contracts: [],
     preferences: null,
+    schedulingWishes: null,
     risks: [],
     emergencyPlan: null,
     consents: basic.consents.map((c) => ({

@@ -55,6 +55,7 @@ export function buildFallbackPrimaryAddress(client: ClientAddressSource): Client
     isPrimary: true,
     accessNotes: null,
     floor: null,
+    apartmentNumber: null,
     doorCode: null,
     createdAt: now,
     updatedAt: now,

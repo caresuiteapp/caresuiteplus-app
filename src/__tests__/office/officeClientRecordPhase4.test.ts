@@ -46,6 +46,7 @@ function minimalDetail(overrides: Partial<ClientFullDetail> = {}): ClientFullDet
     billingProfile: null,
     contracts: [],
     preferences: null,
+    schedulingWishes: null,
     risks: [],
     emergencyPlan: null,
     portalAccess: [],

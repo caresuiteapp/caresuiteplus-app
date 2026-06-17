@@ -253,7 +253,17 @@ export function ClientEditScreen() {
             onChangeText={(v) => updateField('floor', v)}
           />
           <PremiumInput
-            label="Klingel / Türcode"
+            label="Wohnungsnummer"
+            value={form.apartmentNumber}
+            onChangeText={(v) => updateField('apartmentNumber', v)}
+          />
+          <PremiumInput
+            label="Zugangscode"
+            value={form.accessCode}
+            onChangeText={(v) => updateField('accessCode', v)}
+          />
+          <PremiumInput
+            label="Klingel"
             value={form.bellName}
             onChangeText={(v) => updateField('bellName', v)}
           />

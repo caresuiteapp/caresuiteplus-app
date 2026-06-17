@@ -21,6 +21,10 @@ describe('ClientTasksPanel wiring', () => {
       path.join(root, 'src/components/office/ClientTasksPanel.tsx'),
       'utf8',
     );
+    const wishesPanel = readFileSync(
+      path.join(root, 'src/components/office/ClientSchedulingWishesPanel.tsx'),
+      'utf8',
+    );
 
     expect(tabPanels).toContain("tab === 'aufgaben'");
     expect(tabPanels).toContain('ClientRecordTasksPanel');
@@ -28,6 +32,8 @@ describe('ClientTasksPanel wiring', () => {
     expect(tasksPanel).toContain('Aufgabe manuell hinzufügen');
     expect(tasksPanel).toContain('Aus Katalog hinzufügen');
     expect(tasksPanel).toContain('CareSuite+ Assist');
+    expect(tasksPanel).toContain('ClientSchedulingWishesPanel');
+    expect(wishesPanel).toContain('Wünsche speichern');
     expect(tasksPanel).not.toContain('clientEditRoute');
   });
 
@@ -71,6 +77,8 @@ describe('ClientTasksPanel wiring', () => {
     expect(repo).toContain('async updateTask');
     expect(repo).toContain('async deleteTask');
     expect(repo).toContain("'client_tasks'");
+    expect(repo).toContain('fetchSchedulingWishes');
+    expect(repo).toContain('upsertSchedulingWishes');
   });
 });
 

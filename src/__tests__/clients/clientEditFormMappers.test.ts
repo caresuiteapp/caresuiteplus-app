@@ -75,7 +75,8 @@ function baseFullClient(detail: ClientDetail): ClientFullDetail {
       isPrimary: true,
       accessNotes: 'Hintereingang',
       floor: '2',
-      doorCode: 'Reinhardt',
+      apartmentNumber: '12',
+      doorCode: '4711',
       createdAt: detail.createdAt,
       updatedAt: detail.updatedAt,
     }],
@@ -121,6 +122,7 @@ function baseFullClient(detail: ClientDetail): ClientFullDetail {
     },
     contracts: [],
     preferences: null,
+    schedulingWishes: null,
     risks: [{ id: 'risk-1', tenantId: detail.tenantId, clientId: detail.id, category: 'sturz', level: 'mittel', description: 'Sturzgefahr im Bad', mitigation: null, createdAt: detail.createdAt, updatedAt: detail.updatedAt }],
     emergencyPlan: null,
     consents: [],
@@ -166,7 +168,8 @@ describe('clientEditFormMappers', () => {
       houseNumber: '12',
       accessNotes: '',
       floor: '',
-      doorbellName: '',
+      apartmentNumber: '',
+      doorbellName: 'Reinhardt',
       diagnosesNotes: '',
       mobilityNotes: 'Rollator',
       visibleNotesForEmployee: 'Türklingel defekt',
@@ -181,6 +184,8 @@ describe('clientEditFormMappers', () => {
     expect(form.houseNumber).toBe('12');
     expect(form.accessNotes).toBe('Hintereingang');
     expect(form.floor).toBe('2');
+    expect(form.apartmentNumber).toBe('12');
+    expect(form.accessCode).toBe('4711');
     expect(form.bellName).toBe('Reinhardt');
     expect(form.mobile).toBe('0171999888');
     expect(form.emergencyContactName).toBe('Maria Reinhardt');

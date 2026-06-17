@@ -8,6 +8,8 @@ import type {
   ClientInternalNote,
   ClientPortalAccess,
   ClientRisk,
+  ClientSchedulingWishes,
+  ClientSchedulingWishesInput,
   ClientTask,
   ClientTimelineEvent,
 } from '@/types/modules/client';
@@ -38,6 +40,10 @@ import {
 } from '@/lib/clients/clientDocumentMerge';
 import { promoteFinalizedIntakeDocumentsToClientRecord } from '@/features/intakeDocuments/intakeDocumentRepository';
 import type { ClientContactInput } from '../clientContactsService';
+import {
+  mapClientSchedulingWishes,
+  mapSchedulingWishesToRow,
+} from '../clientSchedulingWishesMapper';
 
 function castRows(rows: unknown[] | null | undefined): Record<string, unknown>[] {
   return (rows ?? []) as Record<string, unknown>[];
@@ -565,6 +571,60 @@ export const supabaseClientExtendedRepository = {
       details: typeof existing?.title === 'string' ? existing.title : taskId,
     });
     return { ok: true, data: undefined };
+  },
+
+  async fetchSchedulingWishes(
+    tenantId: string,
+    clientId: string,
+  ): Promise<ServiceResult<ClientSchedulingWishes | null>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const exists = await assertClientExists(tenantId, clientId);
+    if (!exists.ok) return exists;
+
+    const { data, error } = await fromUnknownTable(supabase, 'client_scheduling_wishes')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .maybeSingle();
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (!data) return { ok: true, data: null };
+    return {
+      ok: true,
+      data: mapClientSchedulingWishes(castRow(data) as Parameters<typeof mapClientSchedulingWishes>[0]),
+    };
+  },
+
+  async upsertSchedulingWishes(
+    tenantId: string,
+    clientId: string,
+    input: ClientSchedulingWishesInput,
+  ): Promise<ServiceResult<ClientSchedulingWishes>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const exists = await assertClientExists(tenantId, clientId);
+    if (!exists.ok) return exists;
+
+    const payload = mapSchedulingWishesToRow(tenantId, clientId, input);
+    const { data, error } = await fromUnknownTable(supabase, 'client_scheduling_wishes')
+      .upsert(payload, { onConflict: 'client_id' })
+      .select('*')
+      .single();
+
+    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
+    const wishes = mapClientSchedulingWishes(castRow(data) as Parameters<typeof mapClientSchedulingWishes>[0]);
+    await writeClientAudit(supabase, {
+      tenantId,
+      clientId,
+      action: 'Einsatz-Wünsche aktualisiert',
+      details: wishes.preferredDays.length > 0
+        ? `${wishes.preferredDays.length} Wunschtage`
+        : 'Präferenzen gespeichert',
+    });
+    return { ok: true, data: wishes };
   },
 
   async fetchTimeline(

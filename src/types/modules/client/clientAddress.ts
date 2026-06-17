@@ -20,5 +20,6 @@ export type ClientAddress = TenantScopedEntity & {
   isPrimary: boolean;
   accessNotes: string | null;
   floor: string | null;
+  apartmentNumber: string | null;
   doorCode: string | null;
 };

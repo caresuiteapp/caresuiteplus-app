@@ -162,7 +162,7 @@ export const demoClientRepository: ClientRepository = {
       addresses: [{
         id: `addr-${id}`, tenantId, clientId: id,
         addressType: 'hauptwohnsitz', street: form.street.trim(), zip: form.zip.trim(), city: form.city.trim(),
-        country: 'DE', isPrimary: true, accessNotes: null, floor: null, doorCode: null,
+        country: 'DE', isPrimary: true, accessNotes: null, floor: null, apartmentNumber: null, doorCode: null,
         createdAt: now, updatedAt: now,
       }],
       contacts: form.emergencyContactName.trim() ? [{
@@ -198,6 +198,7 @@ export const demoClientRepository: ClientRepository = {
         notes: null, createdAt: now, updatedAt: now,
       }] : [],
       preferences: null,
+      schedulingWishes: null,
       risks: [],
       emergencyPlan: form.emergencyContactName.trim() ? {
         id: `em-${id}`, tenantId, clientId: id,
