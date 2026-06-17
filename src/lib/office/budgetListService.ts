@@ -5,6 +5,7 @@ import { demoClients } from '@/data/demo/clients';
 import { demoInvoices } from '@/data/demo/invoices';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
+import { budgetSupabaseRepository } from '@/lib/services/repositories/budgetRepository.supabase';
 import { invoiceSupabaseRepository } from '@/lib/services/repositories/invoiceRepository.supabase';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 
@@ -13,26 +14,8 @@ function resolveClientName(clientId: string): string {
   return client ? `${client.firstName} ${client.lastName}` : 'Unbekannt';
 }
 
-export async function fetchBudgetList(
-  tenantId: string,
-  actorRoleKey?: RoleKey | null,
-): Promise<ServiceResult<BudgetListItem[]>> {
-  const denied = enforcePermission<BudgetListItem[]>(actorRoleKey, 'office.budgets.view');
-  if (denied) return denied;
-
-  const tenantErr = assertTenantForMode(tenantId);
-  if (tenantErr) return { ok: false, error: tenantErr.error };
-
-  if (getServiceMode() === 'supabase') {
-    return {
-      ok: false,
-      error: 'Budgets im Live-Modus noch nicht angebunden.',
-    };
-  }
-
-  await new Promise((r) => setTimeout(r, 320));
-
-  const data: BudgetListItem[] = demoBudgets.map((b) => {
+function mapDemoBudgets(): BudgetListItem[] {
+  return demoBudgets.map((b) => {
     const usagePercent =
       b.allocatedCents > 0 ? Math.round((b.usedCents / b.allocatedCents) * 100) : 0;
     return {
@@ -50,8 +33,24 @@ export async function fetchBudgetList(
       usagePercent,
     };
   });
+}
 
-  return { ok: true, data };
+export async function fetchBudgetList(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<BudgetListItem[]>> {
+  const denied = enforcePermission<BudgetListItem[]>(actorRoleKey, 'office.budgets.view');
+  if (denied) return denied;
+
+  const tenantErr = assertTenantForMode(tenantId);
+  if (tenantErr) return { ok: false, error: tenantErr.error };
+
+  if (getServiceMode() === 'supabase') {
+    return budgetSupabaseRepository.list(tenantId);
+  }
+
+  await new Promise((r) => setTimeout(r, 320));
+  return { ok: true, data: mapDemoBudgets() };
 }
 
 export async function fetchBillingDashboardStats(
@@ -65,20 +64,32 @@ export async function fetchBillingDashboardStats(
   if (tenantErr) return { ok: false, error: tenantErr.error };
 
   if (getServiceMode() === 'supabase') {
-    const result = await invoiceSupabaseRepository.list(tenantId);
-    if (!result.ok) return result;
+    const [invoiceResult, budgetResult] = await Promise.all([
+      invoiceSupabaseRepository.list(tenantId),
+      budgetSupabaseRepository.list(tenantId),
+    ]);
+
+    if (!invoiceResult.ok) return invoiceResult;
 
     const closedStatuses = new Set<string>(['paid', 'cancelled', 'written_off']);
-    const open = result.data.filter((i) => !closedStatuses.has(i.status));
+    const open = invoiceResult.data.filter((i) => !closedStatuses.has(i.status));
+    const budgets = budgetResult.ok ? budgetResult.data : [];
+    const activeBudgets = budgets.filter(
+      (b) => b.status === 'aktiv' || b.status === 'in_bearbeitung',
+    );
+    const nearLimit = activeBudgets.filter((b) => b.usagePercent >= 85);
 
     return {
       ok: true,
       data: {
         openInvoicesCount: open.length,
-        openInvoicesCents: 0,
+        openInvoicesCents: open.reduce(
+          (sum, inv) => sum + Math.round((inv.total_amount ?? 0) * 100),
+          0,
+        ),
         overdueCount: 0,
-        activeBudgetsCount: 0,
-        budgetsNearLimitCount: 0,
+        activeBudgetsCount: activeBudgets.length,
+        budgetsNearLimitCount: nearLimit.length,
       },
     };
   }

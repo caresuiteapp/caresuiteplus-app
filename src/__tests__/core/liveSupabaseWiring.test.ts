@@ -167,6 +167,14 @@ describe('Live Supabase wiring', () => {
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 
+  it('budgetListService uses supabase repo in live path', () => {
+    const source = readSrc('lib/office/budgetListService.ts');
+    expect(source).toContain('getServiceMode');
+    expect(source).toContain('budgetSupabaseRepository');
+    expect(source).not.toMatch(/DEMO_TENANT_ID/);
+    expect(source).not.toContain('Budgets im Live-Modus noch nicht angebunden');
+  });
+
   it('templateService uses repo switch without DEMO_TENANT_ID', () => {
     const source = readSrc('lib/templates/templateService.ts');
     expect(source).toContain('getServiceMode');
