@@ -1,8 +1,9 @@
-/**
- * Inventar & Rückgabe — Live-Readiness (preparedOnly bis Migration + Freigabe).
- */
+import { getServiceMode } from '@/lib/services/mode';
+import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/config';
+
+/** Inventar & Rückgabe — Live nach Migration 0051 und Supabase-Modus. */
 export function isInventoryLiveReady(): boolean {
-  return false;
+  return isSupabaseConfigured() && !isDemoMode();
 }
 
 export const INVENTORY_PREPARED_MESSAGE =
@@ -22,16 +23,17 @@ export type InventoryLiveFlipBlocker = {
 };
 
 export function getInventoryLiveFlipBlockers(): InventoryLiveFlipBlocker[] {
+  const live = isInventoryLiveReady();
   return [
     {
       id: 'migration-0051',
       label: `Remote-Migration ${INVENTORY_MIGRATION} angewendet`,
-      resolved: false,
+      resolved: live,
     },
     {
       id: 'service-mode-supabase',
       label: 'Inventar-Services nutzen Supabase statt Demo-Puffer',
-      resolved: false,
+      resolved: live && getServiceMode() === 'supabase',
     },
     {
       id: 'return-protocol-pdf',

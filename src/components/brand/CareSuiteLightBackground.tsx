@@ -16,8 +16,8 @@ export function CareSuiteLightBackground({ children, style }: CareSuiteLightBack
         colors={[careLightColors.page, careLightColors.surface, careLightColors.page]}
         style={StyleSheet.absoluteFillObject}
       />
-      <View style={styles.glow} />
-      {children}
+      <View style={styles.glow} pointerEvents="none" />
+      <View style={styles.content}>{children}</View>
     </View>
   );
 }
@@ -30,11 +30,16 @@ const styles = StyleSheet.create({
   },
   glow: {
     position: 'absolute',
-    top: '8%',
-    right: '-8%',
-    width: '50%',
-    height: '30%',
+    top: '6%',
+    right: '-18%',
+    width: '42%',
+    height: '24%',
     borderRadius: 999,
-    backgroundColor: `${careLightColors.cyan}14`,
+    backgroundColor: `${careLightColors.cyan}0A`,
+    zIndex: 0,
+  },
+  content: {
+    flex: 1,
+    zIndex: 1,
   },
 });

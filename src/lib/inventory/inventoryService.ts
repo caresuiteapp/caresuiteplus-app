@@ -15,6 +15,9 @@ import type {
 } from '@/types/inventory';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { inventoryDemoRepository, peekInventoryAuditEvents } from './inventoryRepository.demo';
 import { inventorySupabaseRepository } from './inventoryRepository.supabase';
 import {
@@ -314,6 +317,32 @@ export async function fetchInventoryAuditEvents(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+  if (getServiceMode() === 'supabase' && isInventoryLiveReady()) {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { ok: true, data: [] };
+    const { data, error } = await fromUnknownTable(supabase, 'inventory_audit_events')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('created_at', { ascending: false })
+      .limit(100);
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    return {
+      ok: true,
+      data: (data ?? []).map((row) => {
+        const r = row as Record<string, unknown>;
+        return {
+          id: String(r.id),
+          tenantId: String(r.tenant_id),
+          actorProfileId: r.actor_profile_id ? String(r.actor_profile_id) : null,
+          action: String(r.action),
+          entityType: r.entity_type as InventoryAuditEvent['entityType'],
+          entityId: String(r.entity_id),
+          metadata: (r.metadata as Record<string, unknown>) ?? {},
+          createdAt: String(r.created_at),
+        };
+      }),
+    };
+  }
   return { ok: true, data: peekInventoryAuditEvents(tenantId) };
 }
 

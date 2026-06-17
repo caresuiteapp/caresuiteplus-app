@@ -90,7 +90,14 @@ export function InventoryDashboardScreen() {
           data!.openReturnRequests + data!.overdueReturns > 0 ? (
             <Text style={styles.hint}>Rückgaben unter „Ausgaben" oder „Offboarding" bearbeiten.</Text>
           ) : (
-            <EmptyState title="Alles zurückgegeben" message="Keine offenen Rückgabefälle." />
+            <EmptyState
+              title="Alles zurückgegeben"
+              message={
+                isInventoryLiveReady() && data!.totalItems === 0
+                  ? 'Noch keine Inventarposten. Legen Sie unter „Inventarposten" den ersten Posten an — Kategorien werden automatisch angelegt.'
+                  : 'Keine offenen Rückgabefälle.'
+              }
+            />
           )
         }
         quickActions={

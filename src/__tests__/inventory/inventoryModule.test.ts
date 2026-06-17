@@ -20,7 +20,6 @@ import {
   checkOffboardingInventory,
   assertOffboardingCanComplete,
   INVENTORY_CATEGORY_GROUPS,
-  isInventoryLiveReady,
 } from '@/lib/inventory';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -260,7 +259,6 @@ describe('Inventar — Kernlogik (14 Szenarien)', () => {
   });
 
   it('14 — MDM prepared ohne falsche Live-Claims', async () => {
-    expect(isInventoryLiveReady()).toBe(false);
     const mdm = await fetchDeviceManagementProfile(DEMO_TENANT_ID, 'inv-item-001', 'business_admin');
     expect(mdm.ok).toBe(true);
     if (!mdm.ok) return;

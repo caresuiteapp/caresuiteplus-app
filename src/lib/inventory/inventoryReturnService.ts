@@ -266,6 +266,8 @@ export async function fetchInventoryReturnProtocols(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const result = inventoryDemoRepository.listReturnProtocols(tenantId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  if (getServiceMode() === 'supabase' && isInventoryLiveReady()) {
+    return inventorySupabaseRepository.listReturnProtocols(tenantId);
+  }
+  return inventoryDemoRepository.listReturnProtocols(tenantId);
 }
