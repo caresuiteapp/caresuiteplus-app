@@ -1,3 +1,4 @@
+import { DocumentDeliveryActions } from '@/components/office/DocumentDeliveryActions';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { buildClientDocumentPreviewFallback, buildDocumentPreviewStatusSubtitle, resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
 import { useEffect, useMemo, useState } from 'react';
@@ -48,6 +49,7 @@ type DocumentsView = 'overview' | 'category' | 'document';
 
 type ClientRecordDocumentsPanelProps = {
   clientId: string;
+  clientLastName?: string | null;
   initialDocuments?: ClientDocumentRecord[];
   onRecordRefresh?: () => void;
 };
@@ -161,6 +163,7 @@ function DocumentListItem({
 
 export function ClientRecordDocumentsPanel({
   clientId,
+  clientLastName,
   initialDocuments,
   onRecordRefresh,
 }: ClientRecordDocumentsPanelProps) {
@@ -393,6 +396,16 @@ export function ClientRecordDocumentsPanel({
             previewHtml={selectedDoc.previewHtml}
             fallbackLabel={buildClientDocumentPreviewFallback(selectedDoc)}
           />
+          {tenantId ? (
+            <DocumentDeliveryActions
+              tenantId={tenantId}
+              clientId={clientId}
+              document={selectedDoc}
+              clientLastName={clientLastName}
+              actorName={profile?.displayName ?? profile?.email ?? null}
+              onDeliveryComplete={onRecordRefresh}
+            />
+          ) : null}
           <PremiumButton title="Zurück zur Liste" variant="secondary" onPress={backToCategoryList} />
         </SectionPanel>
       ) : null}

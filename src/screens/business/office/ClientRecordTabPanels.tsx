@@ -394,6 +394,7 @@ export function ClientRecordTabContent({
       return (
         <ClientRecordDocumentsPanel
           clientId={clientId}
+          clientLastName={fullClient.lastName}
           initialDocuments={fullClient.documents}
           onRecordRefresh={onRecordRefresh}
         />
@@ -423,6 +424,7 @@ export function ClientRecordTabContent({
       return (
         <ClientRecordDocumentsPanel
           clientId={clientId}
+          clientLastName={fullClient?.lastName ?? null}
           initialDocuments={fullClient?.documents}
           onRecordRefresh={onRecordRefresh}
         />
