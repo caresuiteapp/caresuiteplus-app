@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FormScreenHero } from '@/components/forms';
@@ -7,6 +7,7 @@ import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
+  FilterChip,
   FilterChipGroup,
   LoadingState,
   PremiumButton,
@@ -19,7 +20,18 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAsyncQuery } from '@/hooks/core';
 import { fetchClientList } from '@/lib/office/clientListService';
-import { fetchEmployeeList } from '@/lib/office/employeeListService';
+import { fetchClientTasks } from '@/lib/clients/clientTasksService';
+import { fetchAssignmentEmployeeList } from '@/lib/assist/assignmentEmployeeListService';
+import {
+  ASSIGNMENT_BEZEICHNUNG_OPTIONS,
+  DEFAULT_ASSIGNMENT_BEZEICHNUNG,
+} from '@/lib/assist/assignmentBezeichnungOptions';
+import {
+  buildDefaultTaskSelections,
+  getActiveClientTasksForAssignment,
+  isTaskSelected,
+  toggleTaskSelection,
+} from '@/lib/assist/assignmentCreateFormHelpers';
 import {
   createAssignment,
   type AssignmentCreateFormData,
@@ -30,14 +42,19 @@ import {
 } from '@/lib/assist/assignmentProductionValidation';
 import { colors, spacing, typography } from '@/theme';
 
+const BEZEICHNUNG_OPTIONS = ASSIGNMENT_BEZEICHNUNG_OPTIONS.map((label) => ({
+  key: label,
+  label,
+}));
+
 const EMPTY_FORM: AssignmentCreateFormData = {
   clientId: '',
   employeeId: '',
   assignmentDate: new Date().toISOString().slice(0, 10),
   plannedStartTime: '09:00',
   plannedEndTime: '10:00',
-  title: '',
-  tasks: [''],
+  title: DEFAULT_ASSIGNMENT_BEZEICHNUNG,
+  selectedTasks: [],
 };
 
 /** WP246 — Einsatz anlegen (Produktion) */
@@ -66,10 +83,21 @@ export function AssignmentCreateScreen() {
   const employeesQuery = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return fetchEmployeeList(tenantId, profile?.roleKey);
+      return fetchAssignmentEmployeeList(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
     { enabled: Boolean(tenantId) && canCreate },
+  );
+
+  const clientTasksQuery = useAsyncQuery(
+    () => {
+      if (!tenantId || !form.clientId) {
+        return Promise.resolve({ ok: false as const, error: 'Keine Klient:in ausgewählt.' });
+      }
+      return fetchClientTasks(tenantId, form.clientId);
+    },
+    [tenantId, form.clientId],
+    { enabled: Boolean(tenantId) && Boolean(form.clientId) && canCreate },
   );
 
   useEffect(() => {
@@ -83,6 +111,14 @@ export function AssignmentCreateScreen() {
       setForm((prev) => ({ ...prev, employeeId: employeesQuery.data![0]!.id }));
     }
   }, [form.employeeId, employeesQuery.data]);
+
+  useEffect(() => {
+    if (!clientTasksQuery.data) return;
+    setForm((prev) => ({
+      ...prev,
+      selectedTasks: buildDefaultTaskSelections(clientTasksQuery.data!),
+    }));
+  }, [clientTasksQuery.data, form.clientId]);
 
   if (!canCreate) {
     return (
@@ -136,6 +172,10 @@ export function AssignmentCreateScreen() {
       label: `${e.firstName} ${e.lastName}`,
     })) ?? [];
 
+  const activeClientTasks = clientTasksQuery.data
+    ? getActiveClientTasksForAssignment(clientTasksQuery.data)
+    : [];
+
   const handleSubmit = async () => {
     if (!tenantId) {
       setSubmitError('Kein Mandant am Profil hinterlegt.');
@@ -167,18 +207,28 @@ export function AssignmentCreateScreen() {
     setCreatedId(result.data.id);
   };
 
-  const updateTask = (index: number, value: string) => {
-    setForm((prev) => {
-      const tasks = [...prev.tasks];
-      tasks[index] = value;
-      return { ...prev, tasks };
-    });
+  const handleClientChange = (clientId: string) => {
+    setForm((prev) => ({
+      ...prev,
+      clientId,
+      selectedTasks: [],
+    }));
   };
 
-  const addTask = () => setForm((prev) => ({ ...prev, tasks: [...prev.tasks, ''] }));
+  const handleTaskToggle = (taskId: string) => {
+    const task = activeClientTasks.find((entry) => entry.id === taskId);
+    if (!task) return;
+    setForm((prev) => ({
+      ...prev,
+      selectedTasks: toggleTaskSelection(prev.selectedTasks, task),
+    }));
+  };
 
   const isEmpty =
-    !form.title.trim() && !form.clientId && !form.employeeId && form.tasks.every((t) => !t.trim());
+    form.title === DEFAULT_ASSIGNMENT_BEZEICHNUNG &&
+    !form.clientId &&
+    !form.employeeId &&
+    form.selectedTasks.length === 0;
 
   return (
     <ScreenShell title="Einsatz anlegen" subtitle="WP 246">
@@ -205,14 +255,19 @@ export function AssignmentCreateScreen() {
             <FilterChipGroup
               options={clientOptions}
               value={form.clientId}
-              onChange={(value) => setForm((prev) => ({ ...prev, clientId: value }))}
+              onChange={handleClientChange}
             />
           )}
           {errors.clientId ? <Text style={styles.error}>{errors.clientId}</Text> : null}
 
           <Text style={styles.sectionLabel}>Mitarbeitende:r *</Text>
+          {employeesQuery.error ? (
+            <Text style={styles.error}>{employeesQuery.error}</Text>
+          ) : null}
           {employeeOptions.length === 0 ? (
-            <Text style={styles.hint}>Keine Mitarbeitende gefunden.</Text>
+            <Text style={styles.hint}>
+              Keine Mitarbeitende gefunden. Bitte Mitarbeitende im Office-Modul anlegen.
+            </Text>
           ) : (
             <FilterChipGroup
               options={employeeOptions}
@@ -222,12 +277,14 @@ export function AssignmentCreateScreen() {
           )}
           {errors.employeeId ? <Text style={styles.error}>{errors.employeeId}</Text> : null}
 
-          <PremiumInput
-            label="Bezeichnung *"
+          <Text style={styles.sectionLabel}>Bezeichnung *</Text>
+          <FilterChipGroup
+            options={BEZEICHNUNG_OPTIONS}
             value={form.title}
-            onChangeText={(title) => setForm((prev) => ({ ...prev, title }))}
-            error={errors.title}
+            onChange={(title) => setForm((prev) => ({ ...prev, title }))}
           />
+          {errors.title ? <Text style={styles.error}>{errors.title}</Text> : null}
+
           <PremiumInput
             label="Datum (JJJJ-MM-TT) *"
             value={form.assignmentDate}
@@ -257,17 +314,31 @@ export function AssignmentCreateScreen() {
             </View>
           </View>
 
-          <Text style={styles.sectionLabel}>Aufgaben *</Text>
-          {form.tasks.map((task, index) => (
-            <PremiumInput
-              key={`task-${index}`}
-              label={`Aufgabe ${index + 1}`}
-              value={task}
-              onChangeText={(value) => updateTask(index, value)}
-            />
-          ))}
-          {errors.tasks ? <Text style={styles.error}>{errors.tasks}</Text> : null}
-          <PremiumButton title="Weitere Aufgabe" variant="ghost" onPress={addTask} />
+          <Text style={styles.sectionLabel}>Aufgaben aus Klientenakte *</Text>
+          {clientTasksQuery.loading ? (
+            <Text style={styles.hint}>Aufgaben werden geladen…</Text>
+          ) : null}
+          {clientTasksQuery.error ? (
+            <Text style={styles.error}>{clientTasksQuery.error}</Text>
+          ) : null}
+          {!clientTasksQuery.loading && activeClientTasks.length === 0 ? (
+            <Text style={styles.hint}>
+              Keine aktiven Aufgaben in der Klientenakte. Bitte zuerst Aufgaben im Klientenprofil
+              anlegen.
+            </Text>
+          ) : (
+            <View style={styles.taskChips}>
+              {activeClientTasks.map((task) => (
+                <FilterChip
+                  key={task.id}
+                  label={task.title}
+                  selected={isTaskSelected(form.selectedTasks, task.id)}
+                  onPress={() => handleTaskToggle(task.id)}
+                />
+              ))}
+            </View>
+          )}
+          {errors.selectedTasks ? <Text style={styles.error}>{errors.selectedTasks}</Text> : null}
 
           {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}
           <PremiumButton title="Einsatz anlegen" fullWidth onPress={handleSubmit} />
@@ -284,4 +355,10 @@ const styles = StyleSheet.create({
   error: { ...typography.caption, color: colors.error, marginBottom: spacing.sm },
   row: { flexDirection: 'row', gap: spacing.sm },
   half: { flex: 1 },
+  taskChips: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.sm,
+    paddingVertical: spacing.xs,
+  },
 });

@@ -103,7 +103,7 @@ export const employeeSupabaseRepository = {
         last_name: input.lastName.trim(),
         job_title: input.jobTitle?.trim() ?? null,
         email: input.email?.trim() ?? null,
-        status: 'active',
+        status: 'aktiv',
       })
       .select('id')
       .single();

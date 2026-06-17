@@ -136,11 +136,11 @@ describe('Assist assignment production stabilization', () => {
         plannedStartTime: '',
         plannedEndTime: '',
         title: '',
-        tasks: [],
+        selectedTasks: [],
       });
       expect(hasAssignmentProductionErrors(errors)).toBe(true);
       expect(errors.clientId).toBeTruthy();
-      expect(errors.tasks).toBeTruthy();
+      expect(errors.selectedTasks).toBeTruthy();
     });
 
     it('akzeptiert gültiges Formular', () => {
@@ -151,7 +151,7 @@ describe('Assist assignment production stabilization', () => {
         plannedStartTime: '09:00',
         plannedEndTime: '10:30',
         title: 'Alltagsbegleitung',
-        tasks: ['Einkauf'],
+        selectedTasks: [{ clientTaskId: 'task-1', title: 'Einkauf' }],
       });
       expect(hasAssignmentProductionErrors(errors)).toBe(false);
     });
