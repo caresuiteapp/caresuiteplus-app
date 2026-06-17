@@ -51,7 +51,8 @@ export function getLoginRedirectForPath(path: string): string {
     path.startsWith('/stationaer') ||
     path.startsWith('/beratung') ||
     path.startsWith('/akademie') ||
-    path.startsWith('/insight')
+    path.startsWith('/insight') ||
+    path.startsWith('/settings')
   ) {
     return '/auth/business-login';
   }

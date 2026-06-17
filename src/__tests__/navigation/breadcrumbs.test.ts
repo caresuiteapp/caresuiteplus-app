@@ -38,4 +38,11 @@ describe('getBreadcrumbs', () => {
     expect(trail[trail.length - 1]?.isCurrent).toBe(true);
     expect(trail.slice(0, -1).every((item) => !item.isCurrent)).toBe(true);
   });
+
+  it('liefert Mandanten-Labels für /settings/tenant', () => {
+    const trail = getBreadcrumbs('/settings/tenant');
+
+    expect(formatBreadcrumbTrail(trail)).toBe('Start › Einstellungen › Mandant');
+    expect(trail[1]?.path).toBe('/settings');
+  });
 });

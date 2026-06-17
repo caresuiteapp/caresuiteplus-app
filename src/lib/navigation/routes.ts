@@ -29,6 +29,8 @@ export const APP_ROUTES: AppRoute[] = [
   { path: '/auth/recovery-bridge', label: 'Reset-Link übernehmen', group: 'auth', requiresAuth: false },
   { path: '/auth/demo', label: 'Demo-Login', group: 'auth', requiresAuth: false },
 
+  { path: '/settings', label: 'Einstellungen', group: 'settings', requiresAuth: true },
+  { path: '/settings/tenant', label: 'Mandant', group: 'settings', requiresAuth: true },
   { path: '/settings/data-request', label: 'Datenauskunft', group: 'settings', requiresAuth: true },
   { path: '/settings/account-deletion', label: 'Kontolöschung', group: 'settings', requiresAuth: true },
 
