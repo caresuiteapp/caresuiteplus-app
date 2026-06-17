@@ -8,17 +8,9 @@ import {
   resolveModuleNavState,
 } from '@/lib/modules/moduleVisibilityService';
 import type { ProductKey } from '@/types';
+import { buildOfficeTabs } from './officeNavigation';
 
-export const OFFICE_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Office', icon: '🏢', href: '/office' },
-  { key: 'clients', label: 'Klient:innen', icon: '👥', href: '/office/clients' },
-  { key: 'employees', label: 'Team', icon: '👤', href: '/office/employees' },
-  { key: 'appointments', label: 'Termine', icon: '📅', href: '/office/appointments' },
-  { key: 'invoices', label: 'Rechnungen', icon: '🧾', href: '/office/invoices' },
-  { key: 'documents', label: 'Dokumente', icon: '📄', href: '/office/documents' },
-  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/office/messages' },
-  { key: 'modules', label: 'Module', icon: '🧩', href: '/business/office/modules' },
-];
+export const OFFICE_TABS: ShellTabConfig[] = buildOfficeTabs();
 
 export const ASSIST_TABS: ShellTabConfig[] = [
   { key: 'index', label: 'Übersicht', icon: '🏠', href: '/assist' },

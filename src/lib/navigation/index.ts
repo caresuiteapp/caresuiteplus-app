@@ -23,6 +23,16 @@ export {
   resolveActiveTabKey,
 } from './shellConfig';
 export {
+  OFFICE_AREA_TABS,
+  OFFICE_INDEX_TAB,
+  OFFICE_NAV_AREAS,
+  OFFICE_QUICK_ACCESS_LABELS,
+  OFFICE_QUICK_ACCESS_ROUTES,
+  buildOfficeTabs,
+  officeNavAreaToTab,
+} from './officeNavigation';
+export type { OfficeNavArea } from './officeNavigation';
+export {
   getPostLoginRedirect,
   getLoginRedirectForPath,
   isProductActive,

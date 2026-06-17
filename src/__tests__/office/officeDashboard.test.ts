@@ -39,11 +39,11 @@ describe('Office dashboard', () => {
 
   it('Arbeitsbereiche haben echte Routen ohne Platzhalter', () => {
     for (const area of OFFICE_AREA_SHORTCUTS) {
-      expect(area.route.startsWith('/')).toBe(true);
-      expect(area.title.length).toBeGreaterThan(2);
+      expect(area.href.startsWith('/')).toBe(true);
+      expect(area.label.length).toBeGreaterThan(2);
     }
-    expect(OFFICE_AREA_SHORTCUTS.some((a) => a.route === '/office/clients')).toBe(true);
-    expect(OFFICE_AREA_SHORTCUTS.some((a) => a.route === '/office/invoices')).toBe(true);
+    expect(OFFICE_AREA_SHORTCUTS.some((a) => a.href === '/office/clients')).toBe(true);
+    expect(OFFICE_AREA_SHORTCUTS.some((a) => a.href === '/office/invoices')).toBe(true);
   });
 
   it('OfficeIndexScreen nutzt CareLightModuleDashboard', () => {

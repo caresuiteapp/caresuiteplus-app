@@ -76,7 +76,7 @@ export const DASHBOARD_TOUR_STEPS: DashboardTourStep[] = [
     id: 'nav',
     title: 'Navigation',
     body:
-      'Unten auf dem Smartphone oder links am Desktop erreichen Sie weitere Bereiche — Dashboard, Klient:innen, Team und mehr.',
+      'Unten auf dem Smartphone oder links am Desktop erreichen Sie weitere Bereiche — Dashboard, Klient:innen, Mitarbeitende und mehr.',
     placement: 'bottom',
     spotlight: false,
   },
