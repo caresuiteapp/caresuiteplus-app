@@ -10,7 +10,7 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { useOfficeDocuments } from '@/hooks/useOfficeDocuments';
-import { buildOfficeDocumentSubtitle } from '@/lib/office/officeDocumentDisplay';
+import { buildOfficeDocumentSubtitle, formatOfficeDocumentSizeDisplay } from '@/lib/office/officeDocumentDisplay';
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 import { VISIBILITY_LABELS } from '@/types/portal/visibility';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -43,16 +43,15 @@ export function OfficeDocumentDetailSummaryPanel({ documentId }: OfficeDocumentD
 
   const categoryLabel = PORTAL_DOCUMENT_CATEGORY_LABELS[document.category];
   const subtitle = buildOfficeDocumentSubtitle(document);
-  const sizeLabel = document.sizeLabel ?? `${document.fileSizeBytes} B`;
+  const sizeLabel = formatOfficeDocumentSizeDisplay(document.sizeLabel, document.fileSizeBytes);
+  const metaParts = [categoryLabel, sizeLabel, WORKFLOW_STATUS_LABELS[document.status]].filter(Boolean);
 
   return (
     <View style={styles.panel}>
       <PremiumCard accentColor={colors.orange}>
         <Text style={styles.title}>{document.title}</Text>
         <Text style={styles.subtitle}>{subtitle}</Text>
-        <Text style={styles.meta}>
-          {categoryLabel} · {sizeLabel} · {WORKFLOW_STATUS_LABELS[document.status]}
-        </Text>
+        <Text style={styles.meta}>{metaParts.join(' · ')}</Text>
         <View style={styles.badges}>
           <PremiumBadge label={categoryLabel} variant="muted" />
           <PremiumBadge label={VISIBILITY_LABELS[document.visibility]} variant="cyan" />

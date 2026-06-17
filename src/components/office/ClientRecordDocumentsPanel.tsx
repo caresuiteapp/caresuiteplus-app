@@ -1,5 +1,5 @@
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
-import { buildClientDocumentPreviewFallback, resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
+import { buildClientDocumentPreviewFallback, buildDocumentPreviewStatusSubtitle, resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
@@ -384,7 +384,10 @@ export function ClientRecordDocumentsPanel({
       ) : null}
 
       {view === 'document' && selectedDoc ? (
-        <SectionPanel title="Vorschau" subtitle={selectedDoc.title}>
+        <SectionPanel
+          title="Vorschau"
+          subtitle={buildDocumentPreviewStatusSubtitle(selectedDoc) ?? selectedDoc.title}
+        >
           <DocumentHtmlPreview
             title={selectedDoc.title}
             previewHtml={selectedDoc.previewHtml}

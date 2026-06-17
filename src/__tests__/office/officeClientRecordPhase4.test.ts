@@ -204,6 +204,7 @@ describe('Office ClientRecord rebuild', () => {
     }]);
     expect(merged).toHaveLength(1);
     expect(merged[0]?.id).toBe('stored-1');
+    expect(merged[0]?.previewHtml).toContain('OK');
   });
 
   it('Vertrag tab uses contract documents panel instead of empty contracts-only tab', () => {
@@ -222,14 +223,14 @@ describe('Office ClientRecord rebuild', () => {
       category: 'other',
       sizeLabel: null,
       fileName: 'scan.pdf',
-    })).toBe('Keine Vorschau verfügbar.');
+    })).toBe('Vorschau nicht verfügbar');
     expect(buildDocumentPreviewFallbackLabel({
       displayFileName: null,
       documentSource: 'intake',
       category: 'contract',
-      sizeLabel: 'HTML-Dokument',
+      sizeLabel: null,
       fileName: 'privacy_consent_default.html',
-    })).toBe('HTML-Dokument');
+    })).toBe('Vertrag');
     expect(buildDocumentPreviewFallbackLabel({
       displayFileName: 'scan.pdf',
       documentSource: 'upload',

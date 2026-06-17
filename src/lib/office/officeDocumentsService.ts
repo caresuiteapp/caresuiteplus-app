@@ -32,7 +32,7 @@ const SIMULATED_DELAY_MS = 280;
 const LIST_LIMIT = 100;
 
 const CLIENT_DOCUMENTS_SELECT =
-  'id, tenant_id, client_id, title, file_name, mime_type, category, storage_path, status, sensitivity, uploaded_by, valid_until, created_at, updated_at';
+  'id, tenant_id, client_id, title, file_name, mime_type, category, storage_path, status, sensitivity, uploaded_by, valid_until, created_at, updated_at, source, intake_document_id';
 
 const INTAKE_DOCUMENTS_SELECT =
   'id, tenant_id, client_id, template_key, document_type, title, status, finalized_html, preview_html, finalized_at, created_at, updated_at';
@@ -144,24 +144,30 @@ async function fetchTenantOfficeDocumentsFromSupabase(
   if (intakeDocuments.error) return { ok: false, error: toGermanSupabaseError(intakeDocuments.error) };
 
   const storedRows = (documents.data ?? []) as Record<string, unknown>[];
+  const storedMapped = storedRows.map((row) =>
+    mapClientDocument(row as Parameters<typeof mapClientDocument>[0]),
+  );
 
   const merged = mergeClientRecordDocuments(
-    storedRows.map((row) => mapClientDocument(row as Parameters<typeof mapClientDocument>[0])),
+    storedMapped,
     (intakeDocuments.data ?? []) as Parameters<typeof mergeClientRecordDocuments>[1],
   );
 
-  const storedIds = new Set(storedDocs.map((doc) => doc.id));
+  const mergedById = new Map(merged.map((doc) => [doc.id, doc]));
+  const storedIds = new Set(storedMapped.map((doc) => doc.id));
   const intakeOnlyDocs = merged.filter((doc) => !storedIds.has(doc.id));
   const clientIds = [...new Set(merged.map((doc) => doc.clientId).filter(Boolean))];
   const clientNames = await fetchClientNameMap(tenantId, clientIds);
 
-  const storedItems = storedRows.map((row) =>
-    mapClientDocumentToPortalItem(
-      mapClientDocument(row as Parameters<typeof mapClientDocument>[0]),
+  const storedItems = storedRows.map((row) => {
+    const doc = mergedById.get(String(row.id))
+      ?? mapClientDocument(row as Parameters<typeof mapClientDocument>[0]);
+    return mapClientDocumentToPortalItem(
+      doc,
       row,
       clientNames.get(String(row.client_id)) ?? null,
-    ),
-  );
+    );
+  });
 
   const intakeItems = intakeOnlyDocs.map((doc) =>
     mapClientDocumentToPortalItem(doc, undefined, clientNames.get(doc.clientId) ?? null),

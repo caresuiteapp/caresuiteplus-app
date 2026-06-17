@@ -64,15 +64,25 @@ export function resolvePortalDocumentCategory(doc: ClientDocumentRecord): Portal
 export function resolveOfficeDocumentSizeLabel(
   doc: Pick<ClientDocumentRecord, 'documentSource' | 'mimeType' | 'fileName'>,
   fileSizeBytes: number,
-): string {
+): string | null {
   const isIntakeHtml =
     doc.documentSource === 'intake' ||
     (doc.mimeType === 'text/html' && isIntakeTemplateFileName(doc.fileName));
 
-  if (isIntakeHtml) return 'HTML-Dokument';
+  if (isIntakeHtml) return null;
+  if (fileSizeBytes <= 0) return null;
   if (fileSizeBytes < 1024) return `${fileSizeBytes} B`;
   if (fileSizeBytes < 1024 * 1024) return `${(fileSizeBytes / 1024).toFixed(1)} KB`;
   return `${(fileSizeBytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+export function formatOfficeDocumentSizeDisplay(
+  sizeLabel: string | null | undefined,
+  fileSizeBytes: number,
+): string | null {
+  if (sizeLabel?.trim()) return sizeLabel.trim();
+  if (fileSizeBytes > 0) return `${fileSizeBytes} B`;
+  return null;
 }
 
 export function resolveOfficeDocumentDisplayFileName(
@@ -131,24 +141,40 @@ export function filterClientContractDocuments(docs: ClientDocumentRecord[]): Cli
   return docs.filter(isClientContractOrConsentDocument);
 }
 
+export const DOCUMENT_PREVIEW_UNAVAILABLE_LABEL = 'Vorschau nicht verfügbar';
+
+export function buildDocumentPreviewStatusSubtitle(
+  doc: Pick<ClientDocumentRecord, 'status' | 'intakeStatus' | 'documentSource'>,
+): string | null {
+  const parts: string[] = [];
+  if (doc.intakeStatus === 'finalized' || doc.status === 'abgeschlossen') {
+    parts.push('Finalisiert');
+  } else if (doc.status === 'aktiv') {
+    parts.push('Aktiv');
+  } else if (doc.status === 'in_bearbeitung') {
+    parts.push('In Bearbeitung');
+  } else if (doc.status === 'entwurf') {
+    parts.push('Entwurf');
+  }
+  if (doc.documentSource === 'intake') parts.push('Aufnahme');
+  else if (doc.documentSource === 'upload') parts.push('Upload');
+  return parts.length > 0 ? parts.join(' · ') : null;
+}
+
 export function buildDocumentPreviewFallbackLabel(
   document: Pick<
     PortalDocumentListItem,
     'displayFileName' | 'documentSource' | 'category' | 'sizeLabel' | 'fileName'
   >,
 ): string {
-  if (document.sizeLabel?.trim()) return document.sizeLabel.trim();
   if (document.displayFileName?.trim()) return document.displayFileName.trim();
-  if (document.documentSource === 'intake') return 'HTML-Dokument · Aufnahme';
   const categoryLabel = PORTAL_DOCUMENT_CATEGORY_LABELS[document.category];
   if (categoryLabel && document.category !== 'other') return categoryLabel;
-  return 'Keine Vorschau verfügbar.';
+  return DOCUMENT_PREVIEW_UNAVAILABLE_LABEL;
 }
 
-export function buildClientDocumentPreviewFallback(doc: ClientDocumentRecord): string {
-  return buildDocumentPreviewFallbackLabel(
-    mapClientDocumentToPortalItemForTest(doc),
-  );
+export function buildClientDocumentPreviewFallback(_doc: ClientDocumentRecord): string {
+  return DOCUMENT_PREVIEW_UNAVAILABLE_LABEL;
 }
 
 /** Test helper mirroring officeDocumentsService list mapping */

@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
-import { buildOfficeDocumentSubtitle } from '@/lib/office/officeDocumentDisplay';
+import { buildOfficeDocumentSubtitle, formatOfficeDocumentSizeDisplay } from '@/lib/office/officeDocumentDisplay';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 import { SENSITIVITY_LABELS, VISIBILITY_LABELS } from '@/types/portal/visibility';
@@ -30,7 +30,7 @@ function statusVariant(status: PortalDocumentListItem['status']) {
 
 export function DocumentListCard({ document, selected = false, onPress }: DocumentListCardProps) {
   const subtitle = buildOfficeDocumentSubtitle(document);
-  const sizeLabel = document.sizeLabel ?? `${document.fileSizeBytes} B`;
+  const sizeLabel = formatOfficeDocumentSizeDisplay(document.sizeLabel, document.fileSizeBytes);
 
   const inner = (
     <>
@@ -42,7 +42,7 @@ export function DocumentListCard({ document, selected = false, onPress }: Docume
         />
       </View>
       <Text style={styles.subtitle}>{subtitle}</Text>
-      <Text style={styles.meta}>{sizeLabel}</Text>
+      {sizeLabel ? <Text style={styles.meta}>{sizeLabel}</Text> : null}
       <View style={styles.badges}>
         <PremiumBadge
           label={WORKFLOW_STATUS_LABELS[document.status]}

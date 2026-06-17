@@ -1,6 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
 import { PremiumBadge, PremiumDataTable } from '@/components/ui';
-import { buildOfficeDocumentSubtitle } from '@/lib/office/officeDocumentDisplay';
+import { buildOfficeDocumentSubtitle, formatOfficeDocumentSizeDisplay } from '@/lib/office/officeDocumentDisplay';
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -80,9 +80,10 @@ export function DocumentsListTable({
           key: 'size',
           label: 'Größe',
           flex: 0.9,
-          render: (item) => (
-            <Text style={styles.meta}>{item.sizeLabel ?? `${item.fileSizeBytes} B`}</Text>
-          ),
+          render: (item) => {
+            const sizeLabel = formatOfficeDocumentSizeDisplay(item.sizeLabel, item.fileSizeBytes);
+            return <Text style={styles.meta}>{sizeLabel ?? '—'}</Text>;
+          },
         },
         {
           key: 'status',

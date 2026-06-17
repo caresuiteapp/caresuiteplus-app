@@ -16,6 +16,7 @@ import { listClientDocuments } from '@/lib/clients/clientDocumentsService';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import {
   buildClientDocumentPreviewFallback,
+  buildDocumentPreviewStatusSubtitle,
   filterClientContractDocuments,
   resolveOfficeDocumentDisplayFileName,
 } from '@/lib/office/officeDocumentDisplay';
@@ -137,7 +138,10 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
       </SectionPanel>
 
       {selectedDoc ? (
-        <SectionPanel title="Vorschau" subtitle={selectedDoc.title}>
+        <SectionPanel
+          title="Vorschau"
+          subtitle={buildDocumentPreviewStatusSubtitle(selectedDoc) ?? selectedDoc.title}
+        >
           <DocumentHtmlPreview
             title={selectedDoc.title}
             previewHtml={selectedDoc.previewHtml}

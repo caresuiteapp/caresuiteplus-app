@@ -361,6 +361,8 @@ type DocumentRow = {
   valid_until: string | null;
   created_at: string;
   updated_at: string;
+  source?: string | null;
+  intake_document_id?: string | null;
 };
 
 export function mapClientDocument(row: DocumentRow): ClientDocumentRecord {
@@ -379,6 +381,8 @@ export function mapClientDocument(row: DocumentRow): ClientDocumentRecord {
     validUntil: row.valid_until,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    documentSource: row.source === 'intake' ? 'intake' : 'upload',
+    intakeDocumentId: row.intake_document_id ?? null,
   };
 }
 

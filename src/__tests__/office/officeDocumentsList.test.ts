@@ -147,7 +147,7 @@ describe('Office Dokumente list', () => {
     expect(subtitle).toContain('Heinz-Peter Reinhardt');
     expect(subtitle).not.toContain('assignment_declaration');
     expect(subtitle).not.toMatch(/\.html/);
-    expect(listItem.sizeLabel).toBe('HTML-Dokument');
+    expect(listItem.sizeLabel).toBeNull();
     expect(listItem.displayFileName).toBeNull();
   });
 
@@ -200,7 +200,7 @@ describe('Office Dokumente list', () => {
       category: 'consent',
       sizeLabel: null,
       fileName: 'privacy_consent_default.html',
-    })).toBe('HTML-Dokument · Aufnahme');
+    })).toBe('Einwilligung');
   });
 
   it('keine assignment_declaration*.html in DocumentListCard', () => {

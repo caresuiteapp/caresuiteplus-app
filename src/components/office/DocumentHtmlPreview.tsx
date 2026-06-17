@@ -1,5 +1,8 @@
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { buildDocumentPreviewFallbackLabel } from '@/lib/office/officeDocumentDisplay';
+import {
+  DOCUMENT_PREVIEW_UNAVAILABLE_LABEL,
+  buildDocumentPreviewFallbackLabel,
+} from '@/lib/office/officeDocumentDisplay';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { spacing, typography } from '@/theme';
@@ -14,7 +17,7 @@ export function DocumentHtmlPreview({ title, previewHtml, fallbackLabel }: Docum
   if (!previewHtml) {
     return (
       <Text style={styles.previewMeta}>
-        {fallbackLabel ?? 'Keine Vorschau verfügbar.'}
+        {fallbackLabel ?? DOCUMENT_PREVIEW_UNAVAILABLE_LABEL}
       </Text>
     );
   }
