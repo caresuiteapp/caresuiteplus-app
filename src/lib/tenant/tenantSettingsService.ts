@@ -12,6 +12,10 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
+import {
+  resolveTenantLogoUrlForSave,
+  type TenantLogoValue,
+} from './tenantLogoService';
 
 const DEMO_STORE = new Map<string, TenantSettingsSnapshot>();
 
@@ -140,6 +144,7 @@ async function fetchFromSupabase(tenantId: string): Promise<ServiceResult<Tenant
 async function saveToSupabase(
   tenantId: string,
   form: TenantSettingsForm,
+  logo: TenantLogoValue,
 ): Promise<ServiceResult<TenantSettingsSnapshot>> {
   const client = getSupabaseClient();
   if (!client) {
@@ -161,16 +166,23 @@ async function saveToSupabase(
     return { ok: false, error: 'Mandant konnte nicht gespeichert werden.' };
   }
 
-  const logoUrl = form.logoUrl.trim() || null;
-  const brandingResult = await client
-    .from('tenant_branding')
-    .upsert({ tenant_id: tenantId, logo_url: logoUrl }, { onConflict: 'tenant_id' });
+  const logoResult = await resolveTenantLogoUrlForSave(
+    tenantId,
+    logo,
+    form.logoUrl,
+    true,
+  );
+  if (!logoResult.ok) return logoResult;
 
-  if (brandingResult.error) {
-    return {
-      ok: true,
-      data: mapRowToSnapshot(tenantId, data, logoUrl),
-    };
+  const logoUrl = logoResult.data;
+  if (!logo.pending && !logo.removed) {
+    const brandingResult = await client
+      .from('tenant_branding')
+      .upsert({ tenant_id: tenantId, logo_url: logoUrl }, { onConflict: 'tenant_id' });
+
+    if (brandingResult.error) {
+      return { ok: false, error: toGermanSupabaseError(brandingResult.error) };
+    }
   }
 
   return {
@@ -200,6 +212,7 @@ export async function saveTenantSettings(
   tenantId: string,
   form: TenantSettingsForm,
   actorRoleKey?: RoleKey | null,
+  logo?: TenantLogoValue,
 ): Promise<ServiceResult<TenantSettingsSnapshot>> {
   const denied = enforcePermission<TenantSettingsSnapshot>(actorRoleKey, TENANT_SETTINGS_PERMISSION);
   if (denied) return denied;
@@ -211,13 +224,29 @@ export async function saveTenantSettings(
     return { ok: false, error: 'Firmenname ist erforderlich.' };
   }
 
+  const logoState = logo ?? {
+    displayUri: form.logoUrl.trim() || null,
+    pending: null,
+    removed: false,
+  };
+
   if (isLiveServiceMode()) {
-    return saveToSupabase(tenantId, form);
+    return saveToSupabase(tenantId, form, logoState);
+  }
+
+  let logoUrl = form.logoUrl.trim();
+  if (logoState.removed) {
+    logoUrl = '';
+  } else if (logoState.pending) {
+    logoUrl = logoState.pending.localUri;
+  } else if (logoState.displayUri?.trim()) {
+    logoUrl = logoState.displayUri.trim();
   }
 
   const next: TenantSettingsSnapshot = {
     tenantId,
     ...form,
+    logoUrl,
     updatedAt: new Date().toISOString(),
   };
   DEMO_STORE.set(tenantId, next);

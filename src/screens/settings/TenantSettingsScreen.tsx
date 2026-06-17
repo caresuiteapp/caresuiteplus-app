@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareLightPageShell } from '@/components/layout';
+import { TenantLogoPicker } from '@/components/tenant/TenantLogoPicker';
 import {
   ErrorState,
   LoadingState,
@@ -19,6 +20,7 @@ import {
   saveTenantSettings,
   toTenantSettingsForm,
 } from '@/lib/tenant/tenantSettingsService';
+import { EMPTY_TENANT_LOGO, type TenantLogoValue } from '@/lib/tenant/tenantLogoService';
 import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
 import type { TenantSettingsForm } from '@/types/tenant/tenantSettings';
 import { spacing, typography } from '@/theme';
@@ -28,6 +30,7 @@ export function TenantSettingsScreen() {
   const tenantId = useServiceTenantId();
   const { can, check, roleLabel } = usePermissions();
   const [form, setForm] = useState<TenantSettingsForm | null>(null);
+  const [logo, setLogo] = useState<TenantLogoValue>(EMPTY_TENANT_LOGO);
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -44,6 +47,11 @@ export function TenantSettingsScreen() {
   useEffect(() => {
     if (!query.data) return;
     setForm(toTenantSettingsForm(query.data));
+    setLogo({
+      displayUri: query.data.logoUrl.trim() || null,
+      pending: null,
+      removed: false,
+    });
   }, [query.data?.updatedAt]);
 
   if (!can(TENANT_SETTINGS_PERMISSION)) {
@@ -85,11 +93,16 @@ export function TenantSettingsScreen() {
     if (!tenantId || !form) return;
     setSaving(true);
     setSaveError(null);
-    const result = await saveTenantSettings(tenantId, form, profile?.roleKey);
+    const result = await saveTenantSettings(tenantId, form, profile?.roleKey, logo);
     setSaving(false);
     if (result.ok) {
       setSaved(true);
       setForm(toTenantSettingsForm(result.data));
+      setLogo({
+        displayUri: result.data.logoUrl.trim() || null,
+        pending: null,
+        removed: false,
+      });
       await query.refresh();
       return;
     }
@@ -168,13 +181,37 @@ export function TenantSettingsScreen() {
         </SectionPanel>
 
         <SectionPanel title="Logo">
+          <View style={styles.logoSection}>
+            <TenantLogoPicker
+              companyName={form.name}
+              value={logo}
+              onChange={(next) => {
+                setLogo(next);
+                if (next.pending || next.removed) {
+                  patch('logoUrl', '');
+                }
+                setSaved(false);
+                setSaveError(null);
+              }}
+              disabled={saving}
+            />
+          </View>
           <PremiumInput
-            label="Logo-URL"
+            label="Logo-URL (optional)"
             value={form.logoUrl}
-            onChangeText={(value) => patch('logoUrl', value)}
+            onChangeText={(value) => {
+              patch('logoUrl', value);
+              if (value.trim()) {
+                setLogo({
+                  displayUri: value.trim(),
+                  pending: null,
+                  removed: false,
+                });
+              }
+            }}
             placeholder="https://…"
             autoCapitalize="none"
-            hint="URL zu Ihrem Firmenlogo (PNG/SVG) für Dokumente und Branding."
+            hint="Alternativ: externe Logo-URL statt Datei-Upload."
           />
         </SectionPanel>
 
@@ -196,5 +233,10 @@ const styles = StyleSheet.create({
   lead: {
     ...typography.body,
     marginBottom: spacing.xs,
+  },
+  logoSection: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.sm,
   },
 });
