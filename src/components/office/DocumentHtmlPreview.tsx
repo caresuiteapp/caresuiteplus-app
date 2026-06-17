@@ -1,4 +1,5 @@
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { buildDocumentPreviewFallbackLabel } from '@/lib/office/officeDocumentDisplay';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { spacing, typography } from '@/theme';
@@ -42,13 +43,7 @@ export function DocumentHtmlPreview({ title, previewHtml, fallbackLabel }: Docum
 }
 
 export function documentPreviewFallback(document: PortalDocumentListItem): string {
-  if (document.displayFileName) {
-    return `${document.displayFileName} · ${document.mimeType}`;
-  }
-  if (document.documentSource === 'intake') {
-    return 'HTML-Dokument · Aufnahme';
-  }
-  return document.mimeType;
+  return buildDocumentPreviewFallbackLabel(document);
 }
 
 const styles = StyleSheet.create({

@@ -17,9 +17,9 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { createContractFromTemplate, fetchClientContracts } from '@/lib/clients/clientContractsService';
 import { fetchClientConsents, updateClientConsent } from '@/lib/clients/clientConsentsService';
 import { ClientRecordDocumentsPanel } from '@/components/office/ClientRecordDocumentsPanel';
+import { ClientRecordContractsPanel } from '@/components/office/ClientRecordContractsPanel';
 import { addClientMedication, fetchClientMedications } from '@/lib/clients/clientMedicationService';
 import { fetchClientPortalAccess } from '@/lib/clients/clientPortalAccessService';
 import { ClientPortalAccessPanel } from '@/components/clients/ClientPortalAccessPanel';
@@ -104,55 +104,6 @@ export function ClientRecordConsentsPanel({ clientId, fullClient, onRecordRefres
           ))
         )}
       </SectionPanel>
-    </View>
-  );
-}
-
-export function ClientRecordContractsPanel({ clientId }: TabPanelProps) {
-  const { isReadOnly } = usePermissions();
-  const tenantId = useServiceTenantId();
-  const [contractType, setContractType] = useState('kundenvertrag');
-  const query = useClientTabQuery(clientId, fetchClientContracts);
-
-  async function handleCreate() {
-    if (!tenantId || isReadOnly) return;
-    await createContractFromTemplate(tenantId, clientId, contractType);
-    await query.refresh();
-  }
-
-  if (query.loading && !query.data) return <LoadingState message="Verträge werden geladen…" />;
-  if (query.error && !query.data) return <ErrorState message={query.error} onRetry={query.refresh} />;
-
-  return (
-    <View style={styles.panel}>
-      <SectionPanel title="Verträge">
-        {(query.data ?? []).length === 0 ? (
-          <EmptyState title="Keine Verträge" />
-        ) : (
-          query.data!.map((c) => (
-            <PremiumCard key={c.id} style={styles.card}>
-              <Text style={styles.primary}>{c.contractNumber}</Text>
-              <Text style={styles.secondary}>
-                {formatDate(c.contractStart)} · {c.status} · {c.signedAt ? 'signiert' : 'offen'}
-              </Text>
-            </PremiumCard>
-          ))
-        )}
-      </SectionPanel>
-      {!isReadOnly ? (
-        <SectionPanel title="Vertrag aus Vorlage">
-          <FilterChipGroup
-            options={[
-              { key: 'kundenvertrag', label: 'Kundenvertrag' },
-              { key: 'pflegevertrag', label: 'Pflegevertrag' },
-              { key: 'leistungsvereinbarung', label: 'Leistungsvereinbarung' },
-            ]}
-            value={contractType}
-            onChange={setContractType}
-          />
-          <PremiumButton title="Vertrag anlegen" variant="secondary" onPress={handleCreate} />
-        </SectionPanel>
-      ) : null}
     </View>
   );
 }
@@ -409,7 +360,10 @@ export function ClientRecordTabContent({
   if (fullClient) {
     if (tab === 'angehoerige') return <AngehoerigeTab client={fullClient} />;
     if (tab === 'pflegegrad') return <PflegegradBudgetTab client={fullClient} />;
-    if (tab === 'vertrag' || tab === 'abrechnung') return <VertragAbrechnungTab client={fullClient} />;
+    if (tab === 'abrechnung') return <VertragAbrechnungTab client={fullClient} />;
+    if (tab === 'vertrag') {
+      return <ClientRecordContractsPanel clientId={clientId} fullClient={fullClient} />;
+    }
     if (tab === 'risiken') return <RisikenNotfallTab client={fullClient} canViewSensitive={canViewSensitive} />;
     if (tab === 'dokumente') {
       return (
@@ -456,7 +410,7 @@ export function ClientRecordTabContent({
     case 'einwilligungen':
       return <ClientRecordConsentsPanel {...panelProps} />;
     case 'vertrag':
-      return <ClientRecordContractsPanel {...panelProps} />;
+      return <ClientRecordContractsPanel clientId={clientId} fullClient={fullClient} />;
     case 'medikation':
       return <ClientRecordMedicationPanel {...panelProps} />;
     case 'vitalwerte':

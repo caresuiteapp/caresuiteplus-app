@@ -8,6 +8,7 @@ import { uploadClientDocument, listClientDocuments } from '@/lib/clients/clientD
 import { fetchOfficeReportingSummary } from '@/lib/office/officeReportingService';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
 import { mergeClientRecordDocuments } from '@/lib/clients/clientDocumentMerge';
+import { buildDocumentPreviewFallbackLabel } from '@/lib/office/officeDocumentDisplay';
 import type { ClientFullDetail } from '@/types/modules/client';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -146,6 +147,76 @@ describe('Office ClientRecord rebuild', () => {
     expect(merged).toHaveLength(1);
     expect(merged[0]?.previewHtml).toContain('OK');
     expect(merged[0]?.documentSource).toBe('intake');
+  });
+
+  it('mergeClientRecordDocuments deduplicates promoted intake rows by template key', () => {
+    const stored = [{
+      id: 'stored-1',
+      tenantId: 't1',
+      clientId: 'c1',
+      title: 'Kundenvertrag',
+      fileName: 'client_contract_ambulatory.html',
+      mimeType: 'text/html',
+      category: 'vertrag' as const,
+      storagePath: null,
+      status: 'abgeschlossen' as const,
+      sensitivity: 'care' as const,
+      uploadedBy: null,
+      validUntil: null,
+      createdAt: '2026-06-01T10:00:00Z',
+      updatedAt: '2026-06-01T10:00:00Z',
+      documentSource: 'intake' as const,
+      intakeDocumentId: 'intake-1',
+    }];
+    const merged = mergeClientRecordDocuments(stored, [{
+      id: 'intake-1',
+      tenant_id: 't1',
+      client_id: 'c1',
+      template_key: 'client_contract_ambulatory',
+      document_type: 'client_contract',
+      title: 'Kundenvertrag',
+      status: 'finalized',
+      finalized_html: '<p>OK</p>',
+      preview_html: null,
+      finalized_at: '2026-06-01T10:00:00Z',
+      created_at: '2026-06-01T09:00:00Z',
+      updated_at: '2026-06-01T10:00:00Z',
+    }]);
+    expect(merged).toHaveLength(1);
+    expect(merged[0]?.id).toBe('stored-1');
+  });
+
+  it('Vertrag tab uses contract documents panel instead of empty contracts-only tab', () => {
+    const source = readFileSync(
+      path.join(root, 'src/screens/business/office/ClientRecordTabPanels.tsx'),
+      'utf8',
+    );
+    expect(source).toContain('ClientRecordContractsPanel');
+    expect(source).not.toMatch(/tab === 'vertrag' \|\| tab === 'abrechnung'/);
+  });
+
+  it('document preview fallback hides raw mime types', () => {
+    expect(buildDocumentPreviewFallbackLabel({
+      displayFileName: null,
+      documentSource: 'upload',
+      category: 'other',
+      sizeLabel: null,
+      fileName: 'scan.pdf',
+    })).toBe('Keine Vorschau verfügbar.');
+    expect(buildDocumentPreviewFallbackLabel({
+      displayFileName: null,
+      documentSource: 'intake',
+      category: 'contract',
+      sizeLabel: 'HTML-Dokument',
+      fileName: 'privacy_consent_default.html',
+    })).toBe('HTML-Dokument');
+    expect(buildDocumentPreviewFallbackLabel({
+      displayFileName: 'scan.pdf',
+      documentSource: 'upload',
+      category: 'other',
+      sizeLabel: null,
+      fileName: 'scan.pdf',
+    })).toBe('scan.pdf');
   });
 
   it('SegmentedTabs uses horizontal scroll bar layout', () => {

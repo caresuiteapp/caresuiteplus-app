@@ -101,19 +101,24 @@ export function mergeClientRecordDocuments(
   const promotedIntakeIds = new Set(
     stored.map((doc) => doc.intakeDocumentId).filter(Boolean) as string[],
   );
-  const promotedTemplateKeys = new Set(
-    stored
-      .filter((doc) => doc.documentSource === 'intake')
-      .map((doc) => doc.fileName.replace(/\.html$/, '')),
+  const storedTemplateKeys = new Set(
+    stored.map((doc) => doc.fileName.replace(/\.html$/i, '')),
   );
 
   const intakeDocs = intakeRows
     .filter((row) => !['not_started', 'declined', 'revoked', 'replaced'].includes(row.status))
     .filter((row) => !promotedIntakeIds.has(row.id))
-    .filter((row) => !promotedTemplateKeys.has(row.template_key))
+    .filter((row) => !storedTemplateKeys.has(row.template_key))
     .map(mapIntakeDocumentRow);
 
-  return [...stored, ...intakeDocs].sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  );
+  const seenIds = new Set<string>();
+  return [...stored, ...intakeDocs]
+    .filter((doc) => {
+      if (seenIds.has(doc.id)) return false;
+      seenIds.add(doc.id);
+      return true;
+    })
+    .sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
 }

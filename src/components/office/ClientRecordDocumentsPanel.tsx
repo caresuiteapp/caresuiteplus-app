@@ -1,5 +1,5 @@
-import { DocumentHtmlPreview, documentPreviewFallback } from '@/components/office/DocumentHtmlPreview';
-import { resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
+import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
+import { buildClientDocumentPreviewFallback, resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
@@ -206,20 +206,7 @@ export function ClientRecordDocumentsPanel({
           <DocumentHtmlPreview
             title={selectedDoc.title}
             previewHtml={selectedDoc.previewHtml}
-            fallbackLabel={documentPreviewFallback({
-              id: selectedDoc.id,
-              title: selectedDoc.title,
-              fileName: selectedDoc.fileName,
-              mimeType: selectedDoc.mimeType,
-              category: 'other',
-              fileSizeBytes: 0,
-              status: selectedDoc.status,
-              updatedAt: selectedDoc.updatedAt,
-              visibility: 'team',
-              sensitivity: selectedDoc.sensitivity,
-              displayFileName: resolveOfficeDocumentDisplayFileName(selectedDoc),
-              documentSource: selectedDoc.documentSource,
-            })}
+            fallbackLabel={buildClientDocumentPreviewFallback(selectedDoc)}
           />
         </SectionPanel>
       ) : null}

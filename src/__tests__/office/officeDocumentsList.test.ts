@@ -11,6 +11,8 @@ import { demoPortalDocuments } from '@/data/demo/documents';
 import { fetchOfficeDocumentList } from '@/lib/office/officeDocumentsService';
 import {
   buildOfficeDocumentSubtitle,
+  buildDocumentPreviewFallbackLabel,
+  filterClientContractDocuments,
   isIntakeTemplateFileName,
   mapClientDocumentToPortalItemForTest,
   resolveOfficeDocumentTitle,
@@ -147,6 +149,58 @@ describe('Office Dokumente list', () => {
     expect(subtitle).not.toMatch(/\.html/);
     expect(listItem.sizeLabel).toBe('HTML-Dokument');
     expect(listItem.displayFileName).toBeNull();
+  });
+
+  it('filterClientContractDocuments selects Vertrag and Einwilligung categories', () => {
+    const contractDoc = mapIntakeDocumentRow({
+      id: 'intake-contract',
+      tenant_id: DEMO_TENANT_ID,
+      client_id: 'client-001',
+      template_key: 'client_contract_ambulatory',
+      document_type: 'client_contract',
+      title: 'Kundenvertrag',
+      status: 'finalized',
+      finalized_html: '<p>Vertrag</p>',
+      preview_html: null,
+      finalized_at: '2026-06-16T10:00:00.000Z',
+      created_at: '2026-06-16T09:00:00.000Z',
+      updated_at: '2026-06-16T10:00:00.000Z',
+    });
+    const otherDoc = mapIntakeDocumentRow({
+      id: 'intake-other',
+      tenant_id: DEMO_TENANT_ID,
+      client_id: 'client-001',
+      template_key: 'care_plan_default',
+      document_type: 'care_plan',
+      title: 'Pflegeplan',
+      status: 'finalized',
+      finalized_html: '<p>Plan</p>',
+      preview_html: null,
+      finalized_at: '2026-06-16T10:00:00.000Z',
+      created_at: '2026-06-16T09:00:00.000Z',
+      updated_at: '2026-06-16T10:00:00.000Z',
+    });
+
+    const filtered = filterClientContractDocuments([contractDoc, otherDoc]);
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0]?.title).toBe('Kundenvertrag');
+  });
+
+  it('document preview fallback never exposes mime type strings', () => {
+    expect(buildDocumentPreviewFallbackLabel({
+      displayFileName: null,
+      documentSource: 'upload',
+      category: 'report',
+      sizeLabel: null,
+      fileName: 'report.pdf',
+    })).toBe('Bericht');
+    expect(buildDocumentPreviewFallbackLabel({
+      displayFileName: null,
+      documentSource: 'intake',
+      category: 'consent',
+      sizeLabel: null,
+      fileName: 'privacy_consent_default.html',
+    })).toBe('HTML-Dokument · Aufnahme');
   });
 
   it('keine assignment_declaration*.html in DocumentListCard', () => {

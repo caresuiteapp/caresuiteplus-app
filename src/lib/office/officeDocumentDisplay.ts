@@ -112,6 +112,45 @@ export function portalDocumentCategoryLabel(category: PortalDocumentCategory): s
   return PORTAL_DOCUMENT_CATEGORY_LABELS[category];
 }
 
+const CONTRACT_INTAKE_DOCUMENT_TYPES = new Set([
+  'client_contract',
+  'assignment_declaration',
+  'privacy_consent',
+  'additional_consent',
+]);
+
+export function isClientContractOrConsentDocument(
+  doc: Pick<ClientDocumentRecord, 'category' | 'intakeDocumentType'>,
+): boolean {
+  if (doc.category === 'vertrag' || doc.category === 'einwilligung') return true;
+  if (doc.intakeDocumentType && CONTRACT_INTAKE_DOCUMENT_TYPES.has(doc.intakeDocumentType)) return true;
+  return false;
+}
+
+export function filterClientContractDocuments(docs: ClientDocumentRecord[]): ClientDocumentRecord[] {
+  return docs.filter(isClientContractOrConsentDocument);
+}
+
+export function buildDocumentPreviewFallbackLabel(
+  document: Pick<
+    PortalDocumentListItem,
+    'displayFileName' | 'documentSource' | 'category' | 'sizeLabel' | 'fileName'
+  >,
+): string {
+  if (document.sizeLabel?.trim()) return document.sizeLabel.trim();
+  if (document.displayFileName?.trim()) return document.displayFileName.trim();
+  if (document.documentSource === 'intake') return 'HTML-Dokument · Aufnahme';
+  const categoryLabel = PORTAL_DOCUMENT_CATEGORY_LABELS[document.category];
+  if (categoryLabel && document.category !== 'other') return categoryLabel;
+  return 'Keine Vorschau verfügbar.';
+}
+
+export function buildClientDocumentPreviewFallback(doc: ClientDocumentRecord): string {
+  return buildDocumentPreviewFallbackLabel(
+    mapClientDocumentToPortalItemForTest(doc),
+  );
+}
+
 /** Test helper mirroring officeDocumentsService list mapping */
 export function mapClientDocumentToPortalItemForTest(
   doc: ClientDocumentRecord,
