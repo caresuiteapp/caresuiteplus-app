@@ -6,6 +6,7 @@ import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supaba
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { buildStreetLine } from '@/lib/clients/clientEditFormMappers';
+import { buildClientContactWritePayload } from '@/lib/clients/clientContactPayload';
 
 function getClient() {
   return getSupabaseClient();
@@ -13,16 +14,6 @@ function getClient() {
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-}
-
-function splitContactName(fullName: string): { firstName: string; lastName: string } {
-  const trimmed = fullName.trim();
-  if (!trimmed) return { firstName: '', lastName: '' };
-  const parts = trimmed.split(/\s+/);
-  return {
-    firstName: parts[0] ?? trimmed,
-    lastName: parts.slice(1).join(' ') || '',
-  };
 }
 
 async function upsertContact(
@@ -48,18 +39,14 @@ async function upsertContact(
     return { ok: true, data: null };
   }
 
-  const { firstName, lastName } = splitContactName(name);
-  const payload = {
-    tenant_id: tenantId,
-    client_id: clientId,
-    name: name.trim() || 'Kontakt',
-    first_name: firstName || name.trim(),
-    last_name: lastName,
+  const payload = buildClientContactWritePayload({
+    tenantId,
+    clientId,
+    name,
+    phone,
     relationship,
-    phone: phone.trim() || null,
-    email: null,
-    is_emergency: isEmergency,
-  };
+    isEmergency,
+  });
 
   if (contactId) {
     const { error } = await fromUnknownTable(supabase, 'client_contacts')

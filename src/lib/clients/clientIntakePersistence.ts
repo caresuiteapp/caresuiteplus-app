@@ -3,6 +3,7 @@ import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { buildClientContactWritePayload } from '@/lib/clients/clientContactPayload';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import {
   resolvePrimaryCostBearerName,
@@ -119,17 +120,16 @@ export async function persistIntakeClientExtendedData(
   if (insuranceError) return { ok: false, error: toGermanSupabaseError(insuranceError) };
 
   if (form.emergencyContactName.trim() || form.emergencyContactPhone.trim()) {
-    const { error } = await fromUnknownTable(supabase, 'client_contacts').insert({
-      tenant_id: tenantId,
-      client_id: clientId,
-      name: form.emergencyContactName.trim() || 'Notfallkontakt',
-      first_name: form.emergencyContactName.trim().split(' ')[0] ?? form.emergencyContactName.trim(),
-      last_name: form.emergencyContactName.trim().split(' ').slice(1).join(' ') || '',
-      relationship: 'notfallkontakt',
-      phone: form.emergencyContactPhone.trim() || null,
-      email: null,
-      is_emergency: true,
-    });
+    const { error } = await fromUnknownTable(supabase, 'client_contacts').insert(
+      buildClientContactWritePayload({
+        tenantId,
+        clientId,
+        name: form.emergencyContactName.trim() || 'Notfallkontakt',
+        phone: form.emergencyContactPhone,
+        relationship: 'notfallkontakt',
+        isEmergency: true,
+      }),
+    );
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
   }
 

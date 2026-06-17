@@ -31,11 +31,16 @@ export type ClientContactRow = {
   id: string;
   tenant_id?: string;
   client_id?: string;
-  name: string;
+  name?: string;
+  full_name?: string | null;
+  first_name?: string | null;
+  last_name?: string | null;
   relationship: string | null;
   phone: string | null;
   email: string | null;
-  is_emergency: boolean;
+  is_emergency?: boolean;
+  is_emergency_contact?: boolean | null;
+  contact_type?: string | null;
   created_at?: string;
 };
 

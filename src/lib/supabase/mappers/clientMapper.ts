@@ -7,6 +7,10 @@ import {
 } from '@/lib/services/workflow/clientStatus';
 import { remoteStatusToWorkflow } from '@/lib/services/clients/clientStatusBridge';
 import { resolveClientPhone, resolveClientStreetLine } from '@/lib/clients/clientAddressResolver';
+import {
+  resolveClientContactDisplayName,
+  resolveClientContactIsEmergency,
+} from '@/lib/clients/clientContactPayload';
 import type {
   ClientAuditRow,
   ClientConsentRow,
@@ -51,11 +55,11 @@ export function mapClientListItem(row: ClientRow): ClientListItem {
 function mapContact(row: ClientContactRow) {
   return {
     id: row.id,
-    name: row.name,
+    name: resolveClientContactDisplayName(row),
     relationship: row.relationship,
     phone: row.phone,
     email: row.email,
-    isEmergency: row.is_emergency,
+    isEmergency: resolveClientContactIsEmergency(row),
   };
 }
 

@@ -24,6 +24,10 @@ import type { DataVisibilityScope, SensitivityLevel } from '@/types/portal/visib
 import { mergeClientAddresses } from '@/lib/clients/clientAddressResolver';
 import { mapClientDetail } from './clientMapper';
 import { mergeClientRecordDocuments } from '@/lib/clients/clientDocumentMerge';
+import {
+  resolveClientContactDisplayName,
+  resolveClientContactIsEmergency,
+} from '@/lib/clients/clientContactPayload';
 import type { WorkflowStatus } from '@/types/core/base';
 import type {
   ClientAuditRow,
@@ -76,16 +80,17 @@ function parseRelationship(value: string): ContactRelation {
   return known.includes(value as ContactRelation) ? (value as ContactRelation) : 'sonstige';
 }
 
-function splitContactName(row: ClientContactRow & { first_name?: string | null; last_name?: string | null }) {
+function splitContactName(row: ClientContactRow) {
+  const displayName = resolveClientContactDisplayName(row);
   if (row.first_name || row.last_name) {
     return {
-      firstName: row.first_name?.trim() || row.name.split(' ')[0] || row.name,
-      lastName: row.last_name?.trim() || row.name.split(' ').slice(1).join(' ') || '',
+      firstName: row.first_name?.trim() || displayName.split(' ')[0] || displayName,
+      lastName: row.last_name?.trim() || displayName.split(' ').slice(1).join(' ') || '',
     };
   }
-  const parts = row.name.trim().split(/\s+/);
+  const parts = displayName.split(/\s+/);
   return {
-    firstName: parts[0] ?? row.name,
+    firstName: parts[0] ?? displayName,
     lastName: parts.slice(1).join(' ') || '',
   };
 }
@@ -111,7 +116,7 @@ export function mapClientContactExtended(
     relationshipLabel: row.relationship ?? '',
     phone: row.phone,
     email: row.email,
-    isEmergency: row.is_emergency,
+    isEmergency: resolveClientContactIsEmergency(row),
     isPortalUser: row.is_portal_user ?? false,
     portalPermissions: parsePortalPermissions(row.portal_permissions),
     notes: row.notes ?? null,

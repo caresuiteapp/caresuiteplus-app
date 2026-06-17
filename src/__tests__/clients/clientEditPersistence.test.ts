@@ -128,6 +128,8 @@ describe('persistClientEditData', () => {
     const result = await persistClientEditData(tenantId, clientId, {
       ...baseForm,
       careContexts: ['daily_assistance'],
+      emergencyContactName: 'Maria Reinhardt',
+      emergencyContactPhone: '0170123456',
     });
 
     expect(result.ok).toBe(true);
