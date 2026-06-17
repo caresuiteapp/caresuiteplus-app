@@ -1,8 +1,5 @@
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
-import {
-  getCostBearerFieldValues,
-  resolvePrimaryCostBearerName,
-} from '@/lib/clients/clientIntakeCostBearerConfig';
+import { resolvePrimaryCostBearerName } from '@/lib/clients/clientIntakeCostBearerConfig';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import {
   CARE_CONTEXT_TO_SERVICE_TYPE,
@@ -14,21 +11,29 @@ import {
   OPTIONAL_CONSENT_TEMPLATE_KEYS,
 } from './intakeDocumentTypes';
 import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
+import { formatDate } from '@/lib/formatters/dateTimeFormatters';
+import type { TenantDisplayMeta } from '@/lib/tenant/tenantDisplayMeta';
 import { getSystemIntakeTemplateByKey } from './intakeDocumentSystemTemplates';
+import {
+  buildCostCarrierMergeFields,
+  buildFamilyDoctorClause,
+} from './intakeCostCarrierMerge';
 
 export type IntakePlaceholderContext = Record<string, string>;
 
+export type IntakeTenantDisplay = Pick<TenantDisplayMeta, 'name' | 'street' | 'zip' | 'city'>;
+
 export function buildIntakePlaceholderContext(
   form: ClientIntakeFormData,
-  tenantDisplay?: { name?: string; street?: string; zip?: string; city?: string },
+  tenantDisplay?: IntakeTenantDisplay,
 ): IntakePlaceholderContext {
-  const careFund = getCostBearerFieldValues(form, 'pflegekasse');
-  const healthInsurance = getCostBearerFieldValues(form, 'krankenkasse');
   const fullName = [form.firstName, form.lastName].filter(Boolean).join(' ').trim();
   const streetLine = [form.street, form.houseNumber].filter(Boolean).join(' ').trim();
+  const tenantName = tenantDisplay?.name?.trim() || 'Pflegedienst (Mandant)';
+  const costCarrierFields = buildCostCarrierMergeFields(form, tenantName);
 
   return {
-    'tenant.name': tenantDisplay?.name?.trim() || 'Pflegedienst (Mandant)',
+    'tenant.name': tenantName,
     'tenant.street': tenantDisplay?.street?.trim() || '',
     'tenant.zip': tenantDisplay?.zip?.trim() || '',
     'tenant.city': tenantDisplay?.city?.trim() || '',
@@ -36,24 +41,22 @@ export function buildIntakePlaceholderContext(
     'client.first_name': form.firstName.trim(),
     'client.last_name': form.lastName.trim(),
     'client.full_name': fullName,
-    'client.date_of_birth': form.dateOfBirth,
+    'client.date_of_birth': formatDate(form.dateOfBirth),
     'client.street': streetLine,
     'client.zip': form.zip.trim(),
     'client.city': form.city.trim(),
     'client.phone': form.phone.trim() || form.mobile.trim(),
     'client.email': form.email.trim(),
     'client.insurance_number': form.insuranceNumber.trim(),
-    'cost_carrier.primary_name': resolvePrimaryCostBearerName(form) ?? '',
-    'cost_carrier.care_fund_name': careFund.name.trim() || form.careFundName.trim(),
-    'cost_carrier.care_fund_ik': careFund.ikNumber.trim() || form.costBearerIk.trim(),
-    'cost_carrier.health_insurance_name': healthInsurance.name.trim() || form.healthInsurance.trim(),
+    'cost_carrier.primary_name': resolvePrimaryCostBearerName(form) ?? costCarrierFields['cost_carrier.primary_name'],
+    ...costCarrierFields,
     'care.level': formatCareLevel(form.careLevel),
     'billing.types': form.billingTypes.join(', '),
     'billing.hourly_rate': form.hourlyRate.trim() || '—',
-    'contract.service_start': form.serviceStart.trim() || form.admissionDate.trim(),
-    'document.date': new Date().toLocaleDateString('de-DE'),
+    'contract.service_start': formatDate(form.serviceStart.trim() || form.admissionDate.trim()),
+    'document.date': formatDate(new Date()),
     'document.location': form.city.trim() || tenantDisplay?.city?.trim() || '—',
-    'intake.date': form.serviceStart.trim() || form.admissionDate.trim() || new Date().toLocaleDateString('de-DE'),
+    'intake.date': formatDate(form.serviceStart.trim() || form.admissionDate.trim()) || formatDate(new Date()),
     'intake.location': form.city.trim() || tenantDisplay?.city?.trim() || '—',
     'service.type': form.careContexts.join(', ') || form.intakeContractType || '—',
     'facility.name': form.facilityName.trim(),
@@ -62,6 +65,7 @@ export function buildIntakePlaceholderContext(
     'consulting.reason': form.consultingReason.trim(),
     'consulting.type': form.consultingType,
     'consulting.family_doctor': form.familyDoctor.trim(),
+    'consulting.family_doctor_clause': buildFamilyDoctorClause(form),
     'emergency.name': form.emergencyContactName.trim(),
     'emergency.phone': form.emergencyContactPhone.trim(),
     'signature.client': '',

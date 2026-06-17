@@ -106,7 +106,7 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
       expect(template.plainTextContent.length).toBeGreaterThan(10);
       expect(template.htmlContent).toContain('{{client.full_name}}');
       expect(template.htmlContent).toContain('document-section');
-      expect(template.version).toBeGreaterThanOrEqual(2);
+      expect(template.version).toBeGreaterThanOrEqual(3);
     }
   });
 
@@ -159,13 +159,13 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(preview.html).not.toMatch(/\bherr\b/);
   });
 
-  it('9. markiert fehlende Pflicht-Platzhalter', () => {
+  it('9. meldet fehlende Pflicht-Platzhalter außerhalb des Dokuments', () => {
     const form = baseForm({ firstName: '', lastName: '' });
     const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
     const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form));
     expect(preview.missingPlaceholders.length).toBeGreaterThan(0);
-    expect(preview.html).toContain('class="missing"');
-    expect(preview.html).toContain('[fehlend:');
+    expect(preview.html).not.toContain('[fehlend:');
+    expect(preview.html).not.toContain('class="missing"');
   });
 
   it('10. blockiert Abschluss bei fehlenden Pflichtdaten', () => {
@@ -203,10 +203,11 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(validation.errors.intakeAssignment).toBeTruthy();
   });
 
-  it('15. Unterschrift ohne Dokumentenkontext zeigt Platzhalter-Hinweis', () => {
+  it('15. fehlende Unterschrift erscheint nicht im Dokumententext', () => {
     const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
     const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(baseForm()));
-    expect(preview.html).toContain('Unterschrift ausstehend');
+    expect(preview.html).not.toContain('Unterschrift ausstehend');
+    expect(preview.missingPlaceholders.some((m) => m.includes('Unterschrift'))).toBe(true);
   });
 
   it('16. Finalisierung sperrt Dokument und setzt Status finalized', () => {
@@ -335,5 +336,59 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(migration).toContain('GRANT SELECT, INSERT, UPDATE ON public.clients TO authenticated');
     expect(migration).toContain('client_intake_documents');
     expect(migration).toContain('client_cost_carrier_assignments');
+  });
+
+  it('29. Beihilfe-only: Abtretungstext ohne Pflegekasse', () => {
+    const form = baseForm({
+      costBearerTypes: ['beihilfe'],
+      beihilfeName: 'Beihilfe Berlin',
+      careFundName: '',
+      healthInsurance: '',
+    });
+    const template = getSystemIntakeTemplateByKey('assignment_declaration_care_health_insurance')!;
+    const preview = renderIntakeDocumentHtml(
+      template,
+      buildIntakePlaceholderContext(form, { name: 'Demo Pflegedienst' }),
+    );
+    expect(preview.html).toContain('Beihilfe Berlin');
+    expect(preview.html).toContain('<strong>Beihilfe Berlin</strong>');
+    expect(preview.html).toContain('zur Direktabrechnung mit der Beihilfe-Stelle');
+    expect(preview.html).not.toContain('[fehlend: Pflegekasse]');
+    expect(preview.html).not.toContain('[fehlend:');
+  });
+
+  it('30. Mandantenadresse aus Tenant-Merge-Kontext', () => {
+    const form = baseForm();
+    const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
+    const preview = renderIntakeDocumentHtml(
+      template,
+      buildIntakePlaceholderContext(form, {
+        name: 'Helferhasen+ Pflegedienst',
+        street: 'Hasenweg 7',
+        zip: '12345',
+        city: 'Musterstadt',
+      }),
+    );
+    expect(preview.html).toContain('Hasenweg 7');
+    expect(preview.html).toContain('12345');
+    expect(preview.html).toContain('Musterstadt');
+    expect(preview.html).not.toContain('[fehlend: Mandantenstraße]');
+  });
+
+  it('31. Geburtsdatum im deutschen Format TT.MM.JJJJ', () => {
+    const form = baseForm({ dateOfBirth: '1935-01-11' });
+    const template = getSystemIntakeTemplateByKey('privacy_consent_default')!;
+    const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form));
+    expect(preview.html).toContain('11.01.1935');
+    expect(preview.html).not.toContain('1935-01-11');
+  });
+
+  it('32. Schweigepflicht ohne Hausarzt nutzt Allgemeinwording', () => {
+    const form = baseForm({ familyDoctor: '', intakeOptionalConsents: ['confidentiality_release_default'] });
+    const template = getSystemIntakeTemplateByKey('confidentiality_release_default')!;
+    const preview = renderIntakeDocumentHtml(template, buildIntakePlaceholderContext(form));
+    expect(preview.html).toContain('meine behandelnden Ärzt:innen');
+    expect(preview.html).not.toContain('[fehlend:');
+    expect(preview.html).not.toContain('Hausarzt');
   });
 });

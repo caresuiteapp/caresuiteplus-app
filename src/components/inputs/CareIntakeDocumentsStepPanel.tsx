@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { FilterChipGroup, InfoBanner, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
-import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { useTenantDisplayMeta } from '@/hooks/useTenantDisplayMeta';
 import { getServiceMode } from '@/lib/services/mode';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import {
@@ -53,7 +53,7 @@ function statusBadgeStyle(status: IntakeDocumentState['status']) {
 }
 
 export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange }: Props) {
-  const tenantName = useTenantDisplayName();
+  const tenantMeta = useTenantDisplayMeta();
   const [templates, setTemplates] = useState<IntakeDocumentTemplate[]>(() => listApplicableIntakeTemplates(form));
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeKey, setActiveKey] = useState<string | null>(null);
@@ -97,8 +97,6 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
   const activeDoc = activeKey
     ? form.intakeDocuments.find((d) => d.templateKey === activeKey)
     : undefined;
-
-  const tenantMeta = { name: tenantName };
 
   const requiredDocs = useMemo(
     () => templates.filter(
@@ -289,6 +287,12 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
             <InfoBanner
               variant="warning"
               message={`Fehlende Pflichtangaben: ${activeDoc.missingPlaceholders.join(', ')}`}
+            />
+          ) : null}
+          {(activeDoc.unresolvedKeys?.length ?? 0) > 0 ? (
+            <InfoBanner
+              variant="warning"
+              message={`Unvollständige optionale Angaben (im Dokument ausgelassen): ${activeDoc.unresolvedKeys!.join(', ')}`}
             />
           ) : null}
 

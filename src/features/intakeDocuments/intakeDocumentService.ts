@@ -5,6 +5,7 @@ import {
   buildIntakePlaceholderContext,
   listApplicableIntakeTemplates,
   resolveIntakeContractType,
+  type IntakeTenantDisplay,
 } from './buildIntakeDocumentContext';
 import {
   finalizeIntakeDocumentHtml,
@@ -33,6 +34,7 @@ export function createInitialDocumentState(template: IntakeDocumentTemplate): In
     tenantTemplateId: template.tenantTemplateId ?? null,
     version: template.version,
     missingPlaceholders: [],
+    unresolvedKeys: [],
     previewHtml: null,
     finalizedHtml: null,
     renderedPdfPath: null,
@@ -67,7 +69,7 @@ export function syncIntakeDocumentsWithTemplates(
 export function openDocumentPreview(
   form: ClientIntakeFormData,
   template: IntakeDocumentTemplate,
-  tenantDisplay?: { name?: string; street?: string; zip?: string; city?: string },
+  tenantDisplay?: IntakeTenantDisplay,
 ): IntakeDocumentState {
   const context = buildIntakePlaceholderContext(form, tenantDisplay);
   const existing = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
@@ -79,6 +81,7 @@ export function openDocumentPreview(
     status: 'preview_open',
     previewHtml: preview.html,
     missingPlaceholders: preview.missingPlaceholders,
+    unresolvedKeys: preview.unresolvedKeys,
     previewOpenedAt: new Date().toISOString(),
   };
 }
@@ -89,7 +92,7 @@ export function applyDocumentSignature(
   form: ClientIntakeFormData,
   role: IntakeSignatureRole,
   signature: IntakeDocumentSignature,
-  tenantDisplay?: { name?: string; street?: string; zip?: string; city?: string },
+  tenantDisplay?: IntakeTenantDisplay,
 ): IntakeDocumentState {
   const signatures = { ...doc.signatures, [role]: signature };
   const context = buildIntakePlaceholderContext(form, tenantDisplay);
@@ -103,6 +106,7 @@ export function applyDocumentSignature(
     signatures,
     previewHtml: preview.html,
     missingPlaceholders: preview.missingPlaceholders,
+    unresolvedKeys: preview.unresolvedKeys,
     status: allRequiredSigned ? 'signed' : 'pending_signature',
   };
 }
@@ -111,7 +115,7 @@ export function finalizeDocument(
   doc: IntakeDocumentState,
   template: IntakeDocumentTemplate,
   form: ClientIntakeFormData,
-  tenantDisplay?: { name?: string; street?: string; zip?: string; city?: string },
+  tenantDisplay?: IntakeTenantDisplay,
 ): { ok: true; document: IntakeDocumentState } | { ok: false; error: string } {
   if (doc.missingPlaceholders.length > 0) {
     return { ok: false, error: 'Pflichtangaben fehlen — bitte vorherige Schritte vervollständigen.' };

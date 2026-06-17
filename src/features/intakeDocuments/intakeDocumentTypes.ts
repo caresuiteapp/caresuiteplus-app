@@ -64,6 +64,7 @@ export type IntakeDocumentState = {
   tenantTemplateId?: string | null;
   version: number;
   missingPlaceholders: string[];
+  unresolvedKeys: string[];
   previewHtml: string | null;
   finalizedHtml: string | null;
   renderedPdfPath: string | null;
