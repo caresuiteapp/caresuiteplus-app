@@ -24,6 +24,7 @@ export function buildEmployeeInsertPayload(
     role_title: input.jobTitle?.trim() ?? null,
     email: input.email?.trim() ?? null,
     phone: input.phone?.trim() || null,
+    department: input.department?.trim() || null,
     status: mapCatalogStatusToDbStatus(input.status),
     avatar_url: input.avatarUrl?.trim() || null,
   };
@@ -35,6 +36,7 @@ export function buildEmployeeUpdatePayload(
   const patch: Record<string, unknown> = {};
 
   if (input.jobTitle !== undefined) patch.role_title = input.jobTitle?.trim() || null;
+  if (input.department !== undefined) patch.department = input.department?.trim() || null;
   if (input.phone !== undefined) patch.phone = input.phone?.trim() || null;
   if (input.notes !== undefined) patch.internal_notes = input.notes?.trim() || null;
   if (input.status !== undefined) patch.status = mapCatalogStatusToDbStatus(input.status);

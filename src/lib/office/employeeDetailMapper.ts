@@ -7,9 +7,9 @@ import { mapDbStatusToCatalogStatus } from './employeeStatusMapping';
 export const EMPLOYEE_BASE_SELECT_COLUMNS =
   'id, tenant_id, first_name, last_name, role_title, email, phone, status, created_at, updated_at';
 
-/** Detail columns on live schema (internal_notes, entry_date; avatar from 0074). */
+/** Detail columns on live schema (internal_notes, entry_date; avatar from 0074; department from 0075). */
 export const EMPLOYEE_DETAIL_SELECT_COLUMNS =
-  `${EMPLOYEE_BASE_SELECT_COLUMNS}, internal_notes, entry_date, avatar_url`;
+  `${EMPLOYEE_BASE_SELECT_COLUMNS}, department, internal_notes, entry_date, avatar_url`;
 
 export type EmployeeDetailLiveRow = {
   id: string;
@@ -22,7 +22,7 @@ export type EmployeeDetailLiveRow = {
   email?: string | null;
   phone?: string | null;
   status: string;
-  /** Legacy migration 0033 — not present on live schema. */
+  /** Katalog employee_department (0075 live). */
   department?: string | null;
   entry_date?: string | null;
   start_date?: string | null;

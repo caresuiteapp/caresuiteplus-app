@@ -38,6 +38,18 @@ describe('employees live detail mapping (Sprint 72)', () => {
     expect(sql).not.toMatch(/^\s*TRUNCATE\b/im);
   });
 
+  it('Migration 0075 fügt department auf Live-Schema hinzu', () => {
+    const sql = readSrc('supabase/migrations/0075_employees_department_live.sql');
+    expect(sql).toContain('ADD COLUMN IF NOT EXISTS department');
+    expect(sql).not.toMatch(/^\s*DROP\b/im);
+    expect(sql).not.toMatch(/^\s*TRUNCATE\b/im);
+  });
+
+  it('EMPLOYEE_DETAIL_SELECT_COLUMNS enthält department', () => {
+    const source = readSrc('src/lib/office/employeeDetailMapper.ts');
+    expect(source).toMatch(/EMPLOYEE_DETAIL_SELECT_COLUMNS[\s\S]*department/);
+  });
+
   it('mapEmployeeRowToDetail mappt vollständige Zeile', () => {
     const result = mapEmployeeRowToDetail(completeRow);
     expect(result.ok).toBe(true);

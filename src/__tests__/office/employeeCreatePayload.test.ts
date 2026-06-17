@@ -25,17 +25,18 @@ describe('employeeSupabasePayload', () => {
       role_title: 'alltagsbegleiter',
       email: 'mhialdeenaljlelati@gmail.com',
       phone: '01626074009',
+      department: 'assist_aussendienst',
       status: 'active',
       avatar_url: null,
     });
     expect(payload).not.toHaveProperty('job_title');
-    expect(payload).not.toHaveProperty('department');
   });
 
   it('buildEmployeeUpdatePayload maps editable live fields only', () => {
     expect(
       buildEmployeeUpdatePayload({
         jobTitle: 'pflegefachkraft',
+        department: 'assist_aussendienst',
         phone: '01626074009',
         notes: 'Notiz',
         status: 'krank',
@@ -43,6 +44,7 @@ describe('employeeSupabasePayload', () => {
       }),
     ).toEqual({
       role_title: 'pflegefachkraft',
+      department: 'assist_aussendienst',
       phone: '01626074009',
       internal_notes: 'Notiz',
       status: 'sick',
