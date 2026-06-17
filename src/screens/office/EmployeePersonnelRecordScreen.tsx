@@ -124,9 +124,34 @@ export function EmployeePersonnelRecordScreen() {
 
         {activeTab === 'qualifications' ? (
           <SectionPanel title="Qualifikationen">
-            {file.qualifications.map((q) => (
-              <DetailInfoRow key={q.id} label={q.title} value={q.status} />
-            ))}
+            {file.qualifications.length === 0 ? (
+              <EmptyState title="Keine Qualifikationen" message="Noch keine Qualifikationen hinterlegt." />
+            ) : (
+              file.qualifications.map((q) => (
+                <DetailInfoRow key={q.id} label={q.title} value={q.status} />
+              ))
+            )}
+          </SectionPanel>
+        ) : null}
+
+        {activeTab === 'employment' ? (
+          <SectionPanel title="Anstellung">
+            <DetailInfoRow label="Vertragsart" value={file.employment.contractType ?? '—'} />
+            <DetailInfoRow label="Anstellungsstatus" value={file.employment.employmentStatus} />
+            <DetailInfoRow label="Wochenstunden" value={file.employment.weeklyHours?.toString() ?? '—'} />
+            <DetailInfoRow label="Eintrittsdatum" value={file.masterData.entryDate ?? '—'} />
+          </SectionPanel>
+        ) : null}
+
+        {activeTab === 'documents' ? (
+          <SectionPanel title="Dokumente">
+            {file.documents.length === 0 ? (
+              <EmptyState title="Keine Dokumente" message="Noch keine Personalakten-Dokumente hinterlegt." />
+            ) : (
+              file.documents.map((doc) => (
+                <DetailInfoRow key={doc.id} label={doc.title} value={doc.fileName} />
+              ))
+            )}
           </SectionPanel>
         ) : null}
 

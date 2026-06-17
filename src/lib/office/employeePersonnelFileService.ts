@@ -7,9 +7,17 @@ import type {
 import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile';
 import { enforcePermission } from '@/lib/permissions';
 import { isEmployeePortalRole } from '@/lib/permissions/workspaceRoles';
-import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import {
+  getCachedEmployeePersonnelFile,
+  loadEmployeePersonnelFileLive,
+} from './employeePersonnelFileLiveLoader';
+import { buildMasterDataLiveUpdatePayload } from './employeePersonnelFileMapper';
 import { computeBackgroundCheckStatus } from './employeeBackgroundCheckService';
 import {
   buildDeployabilityOpenTasks,
@@ -94,8 +102,16 @@ export async function fetchEmployeePersonnelFile(
   }
 
   if (getServiceMode() === 'supabase') {
-    const liveBlock = guardLiveDemoFeature<EmployeePersonnelFile>(tenantId, 'Personalakte');
-    if (liveBlock) return liveBlock;
+    const liveResult = await loadEmployeePersonnelFileLive(tenantId, employeeId);
+    if (!liveResult.ok) return liveResult;
+
+    const enriched: EmployeePersonnelFile = {
+      ...liveResult.data,
+      auditEvents: getEmployeeAuditEvents(employeeId),
+      tabs: ALL_EMPLOYEE_PERSONNEL_TABS,
+    };
+
+    return { ok: true, data: filterPersonnelFileForPortal(enriched, accessCtx) };
   }
 
   return runService(async () => {
@@ -145,25 +161,58 @@ export async function updateEmployeeMasterData(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'supabase') {
-    const liveBlock = guardLiveDemoFeature<EmployeePersonnelFile>(tenantId, 'Personalakte');
-    if (liveBlock) return liveBlock;
-  }
+  const cached = getCachedEmployeePersonnelFile(tenantId, employeeId);
+  const demoFile = getDemoEmployeePersonnelFile(employeeId);
+  const existingFile =
+    getServiceMode() === 'supabase'
+      ? cached ?? (await loadEmployeePersonnelFileLive(tenantId, employeeId)).data
+      : demoFile;
 
-  const file = getDemoEmployeePersonnelFile(employeeId);
-  if (!file) return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
-  if (file.tenantId !== tenantId) {
+  if (!existingFile) return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
+  if (existingFile.tenantId !== tenantId) {
     return { ok: false, error: 'Kein mandantenübergreifender Zugriff auf Personalakten.' };
   }
 
-  const before = { ...file.masterData };
-  const after = { ...file.masterData, ...patch };
+  const before = { ...existingFile.masterData };
+  const after = { ...existingFile.masterData, ...patch };
   const errors = validateEmployeeMasterData(after, tenantId);
   if (Object.keys(errors).length > 0) {
     return { ok: false, error: Object.values(errors)[0] ?? 'Validierungsfehler.' };
   }
 
-  file.masterData = after;
+  if (getServiceMode() === 'supabase') {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return { ok: false, error: 'Supabase ist nicht verfügbar.' };
+    }
+
+    const updatePayload = buildMasterDataLiveUpdatePayload(patch);
+    if (Object.keys(updatePayload).length > 0) {
+      const { error } = await fromUnknownTable(supabase, 'employees')
+        .update(updatePayload)
+        .eq('tenant_id', tenantId)
+        .eq('id', employeeId);
+
+      if (error) {
+        return { ok: false, error: toGermanSupabaseError(error) };
+      }
+    }
+
+    auditEmployeeMasterDataChange({
+      tenantId,
+      employeeId,
+      actorId: actorId ?? null,
+      actorRole: actorRoleKey ?? null,
+      before,
+      after,
+    });
+
+    return fetchEmployeePersonnelFile(tenantId, employeeId, actorRoleKey);
+  }
+
+  if (!demoFile) return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
+
+  demoFile.masterData = after;
   auditEmployeeMasterDataChange({
     tenantId,
     employeeId,
@@ -173,13 +222,13 @@ export async function updateEmployeeMasterData(
     after,
   });
 
-  file.deployability = evaluateEmployeeDeployability({
-    employment: file.employment,
-    portalAccess: file.portalAccess,
-    qualifications: file.qualifications,
-    backgroundCheck: file.backgroundCheck,
-    documents: file.documents,
-    roleTitle: file.masterData.roleTitle,
+  demoFile.deployability = evaluateEmployeeDeployability({
+    employment: demoFile.employment,
+    portalAccess: demoFile.portalAccess,
+    qualifications: demoFile.qualifications,
+    backgroundCheck: demoFile.backgroundCheck,
+    documents: demoFile.documents,
+    roleTitle: demoFile.masterData.roleTitle,
     blocked: after.status === 'gesperrt',
     backgroundCheckRequired: true,
   });
@@ -191,6 +240,12 @@ export function getEmployeePersonnelFileForAssignmentCheck(
   tenantId: string,
   employeeId: string,
 ): EmployeePersonnelFile | null {
+  if (getServiceMode() === 'supabase') {
+    const cached = getCachedEmployeePersonnelFile(tenantId, employeeId);
+    if (cached) return cached;
+    return null;
+  }
+
   const file = getDemoEmployeePersonnelFile(employeeId);
   if (!file || file.tenantId !== tenantId) return null;
   return file;
