@@ -1,8 +1,8 @@
 import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
-import type { CommunicationThread } from '@/features/communication/communication.types';
 import type { OfficeRecipientType } from '@/types/office/officeCompose';
+import { buildOfficeThreadPayload } from '@/lib/communication/officeComposeRouting';
 import { appendDomainMessage } from '@/data/demo/portalMessageStore';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { messagesSupabaseRepository } from '@/features/communication/repositories/messages.supabase';
@@ -48,97 +48,6 @@ function resolveRecipientName(input: DomainMessageInput): string {
   return 'Empfänger';
 }
 
-function buildThreadPayload(
-  input: DomainMessageInput,
-  profileId?: string,
-): Partial<CommunicationThread> & { title: string; threadType: CommunicationThread['threadType'] } {
-  const subject = input.subject.trim();
-  const recipientLabel = resolveRecipientName(input);
-
-  if (input.recipientType === 'client') {
-    return {
-      threadType: 'client',
-      title: subject,
-      subject,
-      moduleKey: 'office',
-      clientId: input.recipientId ?? null,
-      employeeId: null,
-      isInternalOnly: false,
-      isPortalVisible: true,
-      allowClientReplies: true,
-      allowEmployeeReplies: false,
-      allowRelativeReplies: false,
-      createdByUserId: profileId ?? null,
-    };
-  }
-
-  if (input.recipientType === 'employee') {
-    return {
-      threadType: 'employee',
-      title: subject,
-      subject,
-      moduleKey: 'office',
-      clientId: null,
-      employeeId: input.recipientId ?? null,
-      isInternalOnly: false,
-      isPortalVisible: true,
-      allowClientReplies: false,
-      allowEmployeeReplies: true,
-      allowRelativeReplies: false,
-      createdByUserId: profileId ?? null,
-    };
-  }
-
-  if (input.recipientType === 'team') {
-    return {
-      threadType: 'internal',
-      title: `${subject} — ${recipientLabel}`,
-      subject,
-      moduleKey: 'office',
-      clientId: null,
-      employeeId: null,
-      isInternalOnly: true,
-      isPortalVisible: false,
-      allowClientReplies: false,
-      allowEmployeeReplies: false,
-      allowRelativeReplies: false,
-      createdByUserId: profileId ?? null,
-    };
-  }
-
-  if (input.recipientType === 'internal') {
-    return {
-      threadType: 'internal',
-      title: subject,
-      subject,
-      moduleKey: 'office',
-      clientId: null,
-      employeeId: null,
-      isInternalOnly: true,
-      isPortalVisible: false,
-      allowClientReplies: false,
-      allowEmployeeReplies: false,
-      allowRelativeReplies: false,
-      createdByUserId: profileId ?? null,
-    };
-  }
-
-  return {
-    threadType: 'internal',
-    title: subject,
-    subject,
-    moduleKey: 'office',
-    clientId: null,
-    employeeId: null,
-    isInternalOnly: input.audienceScope === 'office',
-    isPortalVisible: input.audienceScope !== 'office',
-    allowClientReplies: false,
-    allowEmployeeReplies: false,
-    allowRelativeReplies: false,
-    createdByUserId: profileId ?? null,
-  };
-}
-
 async function persistLiveOfficeMessage(
   tenantId: string,
   input: DomainMessageInput,
@@ -159,7 +68,7 @@ async function persistLiveOfficeMessage(
 
   const threadResult = await threadsSupabaseRepository.create(
     tenantId,
-    buildThreadPayload(input, input.profileId),
+    buildOfficeThreadPayload(input, input.profileId),
   );
   if (!threadResult.ok) return threadResult;
 

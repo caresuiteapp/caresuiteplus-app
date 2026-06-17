@@ -5,6 +5,11 @@ import {
   OFFICE_COMPOSE_MIN_BODY_LENGTH,
   validateOfficeComposeMessage,
 } from '@/lib/communication/officeComposeValidation';
+import {
+  buildOfficeThreadPayload,
+  canViewOfficeInternalMessages,
+  resolveOfficeMessageRecipientName,
+} from '@/lib/communication/officeComposeRouting';
 import { sendDomainMessage } from '@/lib/communication/domainMessageService';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 
@@ -69,16 +74,98 @@ describe('Office Compose Nachricht verfassen', () => {
     });
   });
 
+  describe('Empfänger-Routing', () => {
+    it('Team-Nachrichten nutzen employee-Thread für Team-Broadcast', () => {
+      const payload = buildOfficeThreadPayload({
+        subject: 'Schichtinfo',
+        audienceScope: 'office',
+        recipientType: 'team',
+        recipientId: 'team:allgemein',
+        recipientLabel: 'Allgemein',
+      });
+      expect(payload.threadType).toBe('employee');
+      expect(payload.employeeId).toBeNull();
+      expect(payload.allowEmployeeReplies).toBe(true);
+      expect(payload.isPortalVisible).toBe(true);
+      expect(payload.isInternalOnly).toBe(false);
+      expect(payload.title).toContain('Allgemein');
+    });
+
+    it('Intern-Nachrichten nutzen internal-Thread nur für Büropersonal', () => {
+      const payload = buildOfficeThreadPayload({
+        subject: 'Abrechnung',
+        audienceScope: 'office',
+        recipientType: 'internal',
+        recipientId: 'office-broadcast',
+        recipientLabel: 'Büro (alle)',
+      });
+      expect(payload.threadType).toBe('internal');
+      expect(payload.isInternalOnly).toBe(true);
+      expect(payload.isPortalVisible).toBe(false);
+      expect(payload.allowEmployeeReplies).toBe(false);
+    });
+
+    it('Intern-Threads sind nur für Büropersonal sichtbar', () => {
+      expect(canViewOfficeInternalMessages('business_admin')).toBe(true);
+      expect(canViewOfficeInternalMessages('billing')).toBe(true);
+      expect(canViewOfficeInternalMessages('nurse')).toBe(false);
+      expect(canViewOfficeInternalMessages('caregiver')).toBe(false);
+    });
+
+    it('Team-Broadcast-Empfänger wird aus Titel aufgelöst', () => {
+      const recipient = resolveOfficeMessageRecipientName({
+        id: 't1',
+        tenantId: 't',
+        threadType: 'employee',
+        status: 'open',
+        priority: 'normal',
+        subject: 'Info',
+        title: 'Info — Allgemein',
+        previewText: null,
+        moduleKey: 'office',
+        clientId: null,
+        employeeId: null,
+        relativeContactId: null,
+        assignmentId: null,
+        documentId: null,
+        invoiceId: null,
+        consultationCaseId: null,
+        courseId: null,
+        supportTicketId: null,
+        createdByUserId: null,
+        createdByPortalSessionId: null,
+        lastMessageId: null,
+        lastMessageAt: null,
+        lastMessageByDisplayName: null,
+        unreadCountBusiness: 1,
+        unreadCountEmployee: 0,
+        unreadCountClient: 0,
+        unreadCountRelative: 0,
+        isInternalOnly: false,
+        isPortalVisible: true,
+        allowClientReplies: false,
+        allowEmployeeReplies: true,
+        allowRelativeReplies: false,
+        archivedAt: null,
+        archivedBy: null,
+        deletedAt: null,
+        deletedBy: null,
+        createdAt: '2026-01-01',
+        updatedAt: '2026-01-01',
+      });
+      expect(recipient).toBe('Allgemein');
+    });
+  });
+
   describe('Produktions-UI', () => {
     beforeEach(() => {
       stubLiveEnv();
     });
 
-    it('ComposeMessageForm blendet Demo-Hinweis im Live-Pfad aus', () => {
+    it('ComposeMessageForm enthält keine Kurzantwort-Hinweiszeile', () => {
       const source = readSrc('src/screens/shared/ComposeMessageForm.tsx');
-      expect(source).toContain('isLiveServiceMode');
-      expect(source).toContain('showDemoHint');
-      expect(source).toContain('Empfänger wählen und Nachricht senden');
+      expect(source).not.toContain('Kurze Antworten');
+      expect(source).toContain('OFFICE_RECIPIENT_HINTS');
     });
 
     it('OfficeComposeMessageScreen aktiviert Empfängerauswahl', () => {

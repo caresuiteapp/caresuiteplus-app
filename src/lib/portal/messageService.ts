@@ -10,10 +10,15 @@ import {
 import { demoPortalMessages } from '@/data/demo/messages';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
-import { guardLiveDemoFeature, guardServiceTenant, blockDemoOnlyInLiveMode } from '@/lib/services/liveServiceGuard';
+import { guardServiceTenant, blockDemoOnlyInLiveMode } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
 import { filterPortalEntities, resolvePortalScope } from './portalVisibility';
+import {
+  fetchOfficeMessageDetailLive,
+  fetchOfficeMessagesLive,
+  replyToOfficeMessageLive,
+} from '@/lib/communication/officeMessageLiveService';
 
 const SIMULATED_DELAY_MS = 350;
 
@@ -227,7 +232,7 @@ export async function fetchOfficeMessages(
     }
 
     if (!usesDemoMessageStore()) {
-      return { ok: true, data: [] };
+      return fetchOfficeMessagesLive(tenantId, actorRoleKey);
     }
 
     const data = getMutablePortalMessages()
@@ -258,8 +263,15 @@ export async function replyToOfficeMessage(
       return { ok: false, error: 'Bitte geben Sie eine Antwort ein.' };
     }
 
-    const liveBlock = guardLiveDemoFeature<MessageDetail>(tenantId, 'Office-Nachrichten');
-    if (liveBlock) return liveBlock;
+    if (!usesDemoMessageStore()) {
+      return replyToOfficeMessageLive(
+        messageId,
+        tenantId,
+        replyBody,
+        senderName ?? 'Office CareSuite',
+        undefined,
+      );
+    }
 
     const msg = getMutablePortalMessages().find(
       (m) => m.id === messageId && m.audienceScope === 'office',
@@ -305,7 +317,7 @@ export async function fetchOfficeMessageDetail(
     await delay(SIMULATED_DELAY_MS);
 
     if (!usesDemoMessageStore()) {
-      return { ok: false, error: 'Nachricht nicht gefunden.' };
+      return fetchOfficeMessageDetailLive(messageId, tenantId, actorRoleKey);
     }
 
     const msg = getMutablePortalMessages().find(

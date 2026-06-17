@@ -58,6 +58,17 @@ export function useDomainComposeMessage(options: UseDomainComposeMessageOptions)
         setRecipientId(OFFICE_INTERNAL_RECIPIENT_ID);
         return;
       }
+      if (result.data.length === 1) {
+        setRecipientId(result.data[0].id);
+        return;
+      }
+      if (recipientType === 'team') {
+        const defaultTeam = result.data.find((option) => option.id === 'team:allgemein');
+        if (defaultTeam) {
+          setRecipientId(defaultTeam.id);
+          return;
+        }
+      }
       setRecipientId((current) =>
         result.data.some((option) => option.id === current) ? current : '',
       );

@@ -3,6 +3,7 @@ import { TemplateDropdownSelect } from '@/components/templates';
 import { FilterChipGroup, PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
 import { isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { OFFICE_RECIPIENT_TYPE_OPTIONS } from '@/types/office/officeCompose';
+import { OFFICE_RECIPIENT_HINTS } from '@/lib/communication/officeComposeRouting';
 import type { OfficeRecipientType } from '@/types/office/officeCompose';
 import { spacing, typography } from '@/theme';
 
@@ -69,35 +70,36 @@ export function ComposeMessageForm({
           />
 
           {recipientSelection.recipientType ? (
-            recipientSelection.recipientType === 'internal' ? (
-              <Text style={styles.recipientHint}>
-                Nachricht wird als interner Büro-Thread gespeichert.
-              </Text>
-            ) : (
-              <>
-                <PremiumInput
-                  label="Empfänger *"
-                  placeholder="Name suchen…"
-                  value={recipientSelection.recipientSearch}
-                  onChangeText={recipientSelection.setRecipientSearch}
-                  autoCapitalize="words"
-                  autoCorrect={false}
+            <Text style={styles.recipientHint}>
+              {OFFICE_RECIPIENT_HINTS[recipientSelection.recipientType]}
+            </Text>
+          ) : null}
+
+          {recipientSelection.recipientType &&
+          recipientSelection.recipientType !== 'internal' ? (
+            <>
+              <PremiumInput
+                label="Empfänger *"
+                placeholder="Name suchen…"
+                value={recipientSelection.recipientSearch}
+                onChangeText={recipientSelection.setRecipientSearch}
+                autoCapitalize="words"
+                autoCorrect={false}
+              />
+              {recipientSelection.loadingRecipients ? (
+                <Text style={styles.recipientHint}>Empfänger werden geladen…</Text>
+              ) : recipientSelection.recipientLoadError ? (
+                <Text style={styles.error}>{recipientSelection.recipientLoadError}</Text>
+              ) : recipientSelection.recipientOptions.length === 0 ? (
+                <Text style={styles.recipientHint}>Keine Empfänger gefunden.</Text>
+              ) : (
+                <FilterChipGroup
+                  options={recipientSelection.recipientOptions}
+                  value={recipientSelection.recipientId}
+                  onChange={recipientSelection.setRecipientId}
                 />
-                {recipientSelection.loadingRecipients ? (
-                  <Text style={styles.recipientHint}>Empfänger werden geladen…</Text>
-                ) : recipientSelection.recipientLoadError ? (
-                  <Text style={styles.error}>{recipientSelection.recipientLoadError}</Text>
-                ) : recipientSelection.recipientOptions.length === 0 ? (
-                  <Text style={styles.recipientHint}>Keine Empfänger gefunden.</Text>
-                ) : (
-                  <FilterChipGroup
-                    options={recipientSelection.recipientOptions}
-                    value={recipientSelection.recipientId}
-                    onChange={recipientSelection.setRecipientId}
-                  />
-                )}
-              </>
-            )
+              )}
+            </>
           ) : null}
         </View>
       ) : null}
@@ -124,7 +126,6 @@ export function ComposeMessageForm({
         value={body}
         onChangeText={setBody}
         multiline
-        hint="Kurze Antworten wie „ok“ sind möglich"
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <PremiumButton

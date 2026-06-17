@@ -126,14 +126,14 @@ describe('Office Nachrichten list', () => {
       stubLiveEnv();
     });
 
-    it('fetchOfficeMessages liefert keine Demo-Nachrichten', async () => {
+    it('fetchOfficeMessages nutzt Live-Service ohne Demo-Daten', async () => {
       const result = await fetchOfficeMessages(LIVE_TENANT, 'business_admin');
-      expect(result.ok).toBe(true);
       if (result.ok) {
-        expect(result.data).toEqual([]);
         for (const subject of DEMO_SUBJECTS) {
           expect(result.data.some((m) => m.subject.includes(subject))).toBe(false);
         }
+      } else {
+        expect(result.error).toMatch(/Datenbank|Supabase|Verbindung|Netzwerk/i);
       }
     });
 
@@ -148,10 +148,10 @@ describe('Office Nachrichten list', () => {
       expect(source).not.toContain('guardLiveDemoFeature');
     });
 
-    it('messageService nutzt getServiceMode für Live-Pfad', () => {
+    it('messageService nutzt officeMessageLiveService im Live-Pfad', () => {
       const source = readSrc('src/lib/portal/messageService.ts');
-      expect(source).toContain('getServiceMode');
-      expect(source).toContain('usesDemoMessageStore');
+      expect(source).toContain('fetchOfficeMessagesLive');
+      expect(source).toContain('fetchOfficeMessageDetailLive');
     });
 
     it('OfficeMessageDetailSummaryPanel zeigt keinen Demo-Versand-Text im Live-Pfad', () => {
@@ -164,6 +164,7 @@ describe('Office Nachrichten list', () => {
       const source = readSrc('src/screens/shared/ComposeMessageForm.tsx');
       expect(source).toContain('isLiveServiceMode');
       expect(source).toContain('showDemoHint');
+      expect(source).not.toContain('Kurze Antworten');
     });
   });
 
