@@ -175,6 +175,13 @@ describe('Live Supabase wiring', () => {
     expect(source).not.toContain('Budgets im Live-Modus noch nicht angebunden');
   });
 
+  it('auditLogService uses supabase repo in live path', () => {
+    const source = readSrc('lib/officeCore/auditLogService.ts');
+    expect(source).toContain('getServiceMode');
+    expect(source).toContain('officeAuditLogSupabaseRepository');
+    expect(source).not.toContain('Office-Audit-Log im Live-Modus noch nicht vollständig angebunden');
+  });
+
   it('templateService uses repo switch without DEMO_TENANT_ID', () => {
     const source = readSrc('lib/templates/templateService.ts');
     expect(source).toContain('getServiceMode');

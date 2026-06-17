@@ -1,6 +1,8 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import { enforcePermission } from '@/lib/permissions';
-import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
+import { getServiceMode } from '@/lib/services/mode';
+import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
+import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 
 export type OfficeAuditEntry = {
   id: string;
@@ -66,8 +68,14 @@ export async function fetchOfficeAuditLog(
 ): Promise<ServiceResult<OfficeAuditEntry[]>> {
   const denied = enforcePermission<OfficeAuditEntry[]>(actorRoleKey, 'office.access' as never);
   if (denied) return denied;
-  const liveBlock = guardLiveDemoFeature<OfficeAuditEntry[]>(tenantId, 'Office-Audit-Log');
-  if (liveBlock) return liveBlock;
+
+  const tenantErr = assertTenantForMode(tenantId);
+  if (tenantErr) return { ok: false, error: tenantErr.error };
+
+  if (getServiceMode() === 'supabase') {
+    return officeAuditLogSupabaseRepository.list(tenantId);
+  }
+
   await new Promise((r) => setTimeout(r, 200));
   return { ok: true, data: [...DEMO_AUDIT] };
 }
