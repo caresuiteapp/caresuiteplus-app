@@ -91,6 +91,14 @@ describe('Visual Reality — light premium main screens', () => {
     expect(hero).toContain("mode === 'light'");
   });
 
+  it('PremiumDataTable uses light surface tokens in light mode', () => {
+    const table = readSrc('src/components/ui/PremiumDataTable.tsx');
+    expect(table).toContain('careLightColors.surface');
+    expect(table).toContain('careLightColors.muted');
+    expect(table).toContain("isLight");
+    expect(table).not.toMatch(/StyleSheet\.create\([\s\S]*designTokens\.glass\.background/);
+  });
+
   it('visual-reality-audit script covers Phase 2 list/detail routes', () => {
     const audit = readSrc('scripts/visual-reality-audit.mjs');
     expect(audit).toContain('PHASE2_LIST_DETAIL_SCREENS');

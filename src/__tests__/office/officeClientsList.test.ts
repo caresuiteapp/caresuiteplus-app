@@ -132,7 +132,8 @@ describe('Office Klient:innen list', () => {
     const source = readSrc('src/components/ui/PremiumDataTable.tsx');
     expect(source).toContain('headerRow');
     expect(source).toContain('dataRowSelected');
-    expect(source).toContain('designTokens.glass');
+    expect(source).toContain('careLightColors');
+    expect(source).toContain('useThemeMode');
     expect(source).toContain('onSortColumn');
     expect(source).toContain('sortable');
   });
