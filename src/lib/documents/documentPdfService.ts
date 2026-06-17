@@ -1,5 +1,3 @@
-import html2canvas from 'html2canvas';
-import { jsPDF } from 'jspdf';
 import { Platform } from 'react-native';
 import type { ServiceResult } from '@/types';
 import type { ClientDocumentRecord } from '@/types/modules/client';
@@ -20,6 +18,26 @@ export {
 } from './documentPdfLogic';
 
 const STORAGE_BUCKET = 'office-documents';
+
+type PdfRenderer = {
+  html2canvas: typeof import('html2canvas').default;
+  jsPDF: typeof import('jspdf').jsPDF;
+};
+
+let pdfRendererPromise: Promise<PdfRenderer> | null = null;
+
+async function loadPdfRenderer(): Promise<PdfRenderer> {
+  if (!pdfRendererPromise) {
+    pdfRendererPromise = Promise.all([
+      import('html2canvas'),
+      import('jspdf/dist/jspdf.es.min.js'),
+    ]).then(([html2canvasModule, jsPDFModule]) => ({
+      html2canvas: html2canvasModule.default,
+      jsPDF: jsPDFModule.jsPDF,
+    }));
+  }
+  return pdfRendererPromise;
+}
 
 export type DocumentPdfPayload = {
   fileName: string;
@@ -79,6 +97,7 @@ async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
   document.body.appendChild(container);
 
   try {
+    const { html2canvas, jsPDF } = await loadPdfRenderer();
     const canvas = await html2canvas(container, {
       scale: 2,
       useCORS: true,
@@ -132,6 +151,7 @@ async function imageBytesToPdfBytes(imageBytes: Uint8Array, mimeType: string): P
     img.src = dataUrl;
   });
 
+  const { jsPDF } = await loadPdfRenderer();
   const pdf = new jsPDF('p', 'mm', 'a4');
   const pageWidth = pdf.internal.pageSize.getWidth();
   const pageHeight = pdf.internal.pageSize.getHeight();
