@@ -74,4 +74,12 @@ export const clientService = {
   ): Promise<ServiceResult<ClientDetail>> {
     return runService(() => getRepository().archive(tenantId, clientId, context), { delayMs: DELAYS.mutate });
   },
+
+  async delete(
+    tenantId: string,
+    clientId: string,
+    context?: ClientMutationContext,
+  ): Promise<ServiceResult<void>> {
+    return runService(() => getRepository().delete(tenantId, clientId, context), { delayMs: DELAYS.mutate });
+  },
 };

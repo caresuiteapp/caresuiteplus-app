@@ -8,6 +8,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'office.clients.edit': 'Stammdaten bearbeiten',
   'office.clients.status_change': 'Status ändern',
   'office.clients.archive': 'Klient:innen archivieren',
+  'office.clients.delete': 'Klient:innen löschen',
   'office.clients.view_sensitive': 'Sensible Gesundheitsdaten einsehen',
   'office.clients.manage_consents': 'Portal-Freigaben verwalten',
   'office.clients.manage_contacts': 'Kontakte & Angehörige verwalten',
@@ -90,6 +91,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'roadmap.manage': 'Roadmap & Markteintritt verwalten',
   'office.employees.create': 'Mitarbeitende anlegen',
   'office.employees.edit': 'Mitarbeitende bearbeiten',
+  'office.employees.delete': 'Mitarbeitende löschen',
   'office.employees.hr.view': 'Personalvorgänge ansehen',
   'office.employees.hr.manage': 'Personalvorgänge bearbeiten',
   'office.employees.hr.finalize': 'Personalvorgänge finalisieren',
@@ -178,6 +180,10 @@ export const PERMISSION_DENIED_MESSAGES: Partial<Record<PermissionKey, string>> 
     'Statusänderungen dürfen nur von Geschäftsführung, Bereichsleitung oder autorisiertem Büropersonal vorgenommen werden.',
   'office.clients.archive':
     'Archivierung ist nur für Geschäftsführung und Bereichsleitung erlaubt.',
+  'office.clients.delete':
+    'Löschen ist nur für Geschäftsführung und Bereichsleitung erlaubt.',
+  'office.employees.delete':
+    'Löschen ist nur für Geschäftsführung und Bereichsleitung erlaubt.',
   'office.clients.view_sensitive':
     'Gesundheits- und Schutzdaten sind für Ihre Rolle nicht sichtbar. Es werden nur pflegerelevante Basisinformationen angezeigt.',
   'office.clients.manage_consents':
@@ -350,12 +356,14 @@ const OFFICE_FULL: PermissionKey[] = [
   'office.clients.edit',
   'office.clients.status_change',
   'office.clients.archive',
+  'office.clients.delete',
   'office.clients.view_sensitive',
   'office.clients.manage_consents',
   'office.clients.manage_contacts',
   'office.invoices.status_change',
   'office.employees.create',
   'office.employees.edit',
+  'office.employees.delete',
   'office.employee_time.view',
   'office.employee_time.manage',
   'office.employee_time.export',

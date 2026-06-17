@@ -6,7 +6,8 @@ export type EmployeeDbStatus =
   | 'sick'
   | 'vacation'
   | 'terminated'
-  | 'blocked';
+  | 'blocked'
+  | 'deleted';
 
 const DB_STATUSES = new Set<string>([
   'draft',
@@ -16,6 +17,7 @@ const DB_STATUSES = new Set<string>([
   'vacation',
   'terminated',
   'blocked',
+  'deleted',
 ]);
 
 /** Catalog value_key (0073) → live DB enum. */
@@ -37,6 +39,7 @@ const CATALOG_TO_DB: Record<string, EmployeeDbStatus> = {
   freigestellt: 'inactive',
   kuendigung_laeuft: 'terminated',
   ausgeschieden: 'terminated',
+  geloescht: 'deleted',
 };
 
 /** Live DB enum → primary catalog value_key for UI chips. */
@@ -48,6 +51,7 @@ const DB_TO_CATALOG: Record<EmployeeDbStatus, string> = {
   vacation: 'urlaub',
   terminated: 'ausgeschieden',
   blocked: 'gesperrt',
+  deleted: 'geloescht',
 };
 
 export function isEmployeeDbStatus(value: string): value is EmployeeDbStatus {

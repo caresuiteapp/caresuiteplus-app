@@ -7,6 +7,7 @@ import { ClientsListScreen } from './ClientsListScreen';
 export function ClientsAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [listRefreshToken, setListRefreshToken] = useState(0);
 
   if (!useMasterDetail) {
     return <ClientsListScreen />;
@@ -19,11 +20,18 @@ export function ClientsAdaptiveScreen() {
           embedded
           selectedId={selectedId}
           onClientPress={setSelectedId}
+          refreshToken={listRefreshToken}
         />
       }
       detail={
         selectedId ? (
-          <ClientDetailSummaryPanel clientId={selectedId} />
+          <ClientDetailSummaryPanel
+            clientId={selectedId}
+            onDeleted={() => {
+              setSelectedId(null);
+              setListRefreshToken((value) => value + 1);
+            }}
+          />
         ) : undefined
       }
       showDetail={!!selectedId}

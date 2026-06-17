@@ -11,7 +11,9 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { ClientContactRow, ClientDetailRow, ClientRow } from '@/lib/supabase/rowTypes';
 import { SERVICE_ERRORS } from '../errors';
 import { writeClientAudit, writeClientHistory } from './clientAuditHelper';
-import { workflowStatusToRemote } from './clientStatusBridge';
+import { assertNoActiveAssignmentsForClient } from '@/lib/office/officeDeleteGuard';
+import { markDemoClientDeleted, isDemoClientDeleted } from '@/lib/office/demoDeleteStore';
+import { workflowStatusToRemote, REMOTE_CLIENT_DELETED_STATUS, isRemoteClientDeleted } from './clientStatusBridge';
 import type {
   ClientListOptions,
   ClientMutationContext,
@@ -113,6 +115,8 @@ export const supabaseClientRepository: ClientRepository = {
 
     let query = supabase.from('clients').select('*').eq('tenant_id', tenantId);
 
+    query = query.neq('status', REMOTE_CLIENT_DELETED_STATUS);
+
     if (options?.lifecycleFilter === 'active') {
       query = query.neq('status', 'archived');
     } else if (options?.lifecycleFilter === 'archived') {
@@ -167,6 +171,10 @@ export const supabaseClientRepository: ClientRepository = {
 
     if (error || !client) {
       return { ok: false, error: toGermanSupabaseError(error) };
+    }
+
+    if (isRemoteClientDeleted(String(client.status ?? ''))) {
+      return { ok: false, error: SERVICE_ERRORS.clientNotFound };
     }
 
     const [contacts, consents, audit, history] = await Promise.all([
@@ -384,5 +392,50 @@ export const supabaseClientRepository: ClientRepository = {
     ]);
 
     return supabaseClientRepository.getById(tenantId, clientId);
+  },
+
+  async delete(tenantId, clientId, context) {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const assignmentBlock = await assertNoActiveAssignmentsForClient(tenantId, clientId);
+    if (assignmentBlock) return assignmentBlock;
+
+    const now = new Date().toISOString();
+    const patch = {
+      status: REMOTE_CLIENT_DELETED_STATUS,
+      deleted_at: now,
+      updated_by: context?.actorProfileId ?? null,
+    };
+
+    const { error } = await supabase
+      .from('clients')
+      .update(patch as Database['public']['Tables']['clients']['Update'])
+      .eq('id', clientId)
+      .eq('tenant_id', tenantId);
+
+    if (error) {
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
+
+    await Promise.all([
+      writeClientHistory(supabase, {
+        tenantId,
+        clientId,
+        icon: '🗑️',
+        title: 'Klient:in gelöscht',
+        status: 'archiviert',
+        actor: context,
+      }),
+      writeClientAudit(supabase, {
+        tenantId,
+        clientId,
+        action: 'Klient:in gelöscht',
+        details: 'Soft-Löschung (falsch angelegt)',
+        actor: context,
+      }),
+    ]);
+
+    return { ok: true, data: undefined };
   },
 };

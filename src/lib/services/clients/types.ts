@@ -63,4 +63,9 @@ export type ClientRepository = {
     clientId: string,
     context?: ClientMutationContext,
   ): Promise<ServiceResult<ClientDetail>>;
+  delete(
+    tenantId: string,
+    clientId: string,
+    context?: ClientMutationContext,
+  ): Promise<ServiceResult<void>>;
 };

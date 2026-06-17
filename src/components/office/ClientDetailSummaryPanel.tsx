@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ClientDetailLinkTile } from './ClientDetailLinkTile';
+import { OfficeRecordDeleteButton } from './OfficeRecordDeleteButton';
 import {
   ErrorState,
   LoadingState,
@@ -14,6 +15,9 @@ import {
 import { LockedActionBanner } from '@/components/permissions';
 import { useClientRecord } from '@/hooks/useClientRecord';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/lib/auth/context';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { deleteClient } from '@/lib/office/clientDetailService';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
 import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
@@ -26,6 +30,7 @@ import { colors, spacing, typography } from '@/theme';
 
 type ClientDetailSummaryPanelProps = {
   clientId: string;
+  onDeleted?: () => void;
 };
 
 function SummaryRow({ label, value }: { label: string; value: string | null | undefined }) {
@@ -67,8 +72,10 @@ const LINKED_AREAS: Array<{
   { id: 'invoices', icon: '🧾', label: 'Rechnungen', tab: 'abrechnung', countKey: 'invoices', accentColor: colors.amber },
 ];
 
-export function ClientDetailSummaryPanel({ clientId }: ClientDetailSummaryPanelProps) {
+export function ClientDetailSummaryPanel({ clientId, onDeleted }: ClientDetailSummaryPanelProps) {
   const router = useRouter();
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
   const { mode } = useLegacyTheme();
   const { can, roleLabel, isReadOnly } = usePermissions();
   const { detail, careContexts, tabs, loading, error, refresh } = useClientRecord(clientId);
@@ -221,6 +228,26 @@ export function ClientDetailSummaryPanel({ clientId }: ClientDetailSummaryPanelP
           <Text style={styles.hintLabel}>Nächster Schritt</Text>
           <Text style={styles.hint}>{detail.nextActionHint}</Text>
         </PremiumCard>
+      ) : null}
+
+      {can('office.clients.delete') ? (
+        <OfficeRecordDeleteButton
+          recordLabel="Klient:in"
+          displayName={fullName}
+          onDelete={() => {
+            if (!tenantId) {
+              return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+            }
+            return deleteClient(
+              detail.id,
+              tenantId,
+              profile?.roleKey,
+              profile?.id,
+              profile?.displayName,
+            );
+          }}
+          onDeleted={onDeleted}
+        />
       ) : null}
     </View>
   );

@@ -1,7 +1,8 @@
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { EmployeeDetailHero } from '@/components/office';
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareLightPageShell } from '@/components/layout';
 import {
@@ -17,11 +18,14 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
+import { deleteEmployee } from '@/lib/office/employeeDeleteService';
+import { employeeEditRoute } from '@/lib/office/employeePersonnelLabels';
 import {
   EMPLOYEE_DETAIL_PREPARED_MESSAGE,
   isEmployeeDetailLiveReady,
 } from '@/lib/office/employeeModuleConfig';
 import { fetchEmployeeEquipmentSummary, INVENTORY_PREPARED_MESSAGE } from '@/lib/inventory';
+import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
 
 export function EmployeeDetailScreen() {
@@ -95,6 +99,7 @@ export function EmployeeDetailScreen() {
 
   const fullName = `${employee.firstName} ${employee.lastName}`;
   const canEdit = can('office.employees.edit');
+  const canDelete = can('office.employees.delete');
   const hasContact = Boolean(employee.email?.trim() || employee.phone?.trim());
 
   return (
@@ -102,18 +107,50 @@ export function EmployeeDetailScreen() {
       title={fullName}
       subtitle="Mitarbeitenden-Details"
       rightSlot={
-        canEdit ? (
-          <PremiumButton
-            title="Bearbeiten"
-            size="sm"
-            variant="ghost"
-            onPress={() => router.push(`/business/office/employees/${id}/edit` as never)}
-          />
+        canEdit || canDelete ? (
+          <View style={styles.headerActions}>
+            {canEdit ? (
+              <PremiumButton
+                title="Stammdaten bearbeiten"
+                size="sm"
+                variant="secondary"
+                onPress={() => router.push(employeeEditRoute(id!) as never)}
+              />
+            ) : null}
+            {canDelete ? (
+              <OfficeRecordDeleteButton
+                recordLabel="Mitarbeitende:r"
+                displayName={fullName}
+                fullWidth={false}
+                onDelete={() => {
+                  if (!tenantId || !id) {
+                    return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+                  }
+                  return deleteEmployee(
+                    id,
+                    tenantId,
+                    profile?.roleKey,
+                    profile?.id,
+                    profile?.displayName,
+                  );
+                }}
+                onDeleted={() => router.replace('/business/office/employees' as never)}
+              />
+            ) : null}
+          </View>
         ) : undefined
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <EmployeeDetailHero employee={employee} roleKey={roleKey} isReadOnly={isReadOnly} />
+
+        {canEdit ? (
+          <PremiumButton
+            title="Stammdaten bearbeiten"
+            variant="primary"
+            onPress={() => router.push(employeeEditRoute(id!) as never)}
+          />
+        ) : null}
 
         <PremiumButton
           title="Personalakte öffnen"
@@ -188,4 +225,11 @@ export function EmployeeDetailScreen() {
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+    flexWrap: 'wrap',
+    justifyContent: 'flex-end',
+  },
 });

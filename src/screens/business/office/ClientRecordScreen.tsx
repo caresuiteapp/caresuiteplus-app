@@ -3,6 +3,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { ClientRecordHero } from '@/components/office/ClientRecordHero';
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { ClientRecordOverviewPanel } from '@/components/office/ClientRecordOverviewPanel';
 import { CareLightKpiCard } from '@/components/ui/CareLightKpiCard';
 import { CareLightPageShell } from '@/components/layout';
@@ -20,7 +21,7 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { archiveClient } from '@/lib/office';
+import { archiveClient, deleteClient } from '@/lib/office';
 import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
@@ -192,6 +193,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
 
   const canEdit = can('office.clients.edit');
   const canArchive = can('office.clients.archive') && detail.status !== 'archiviert';
+  const canDelete = can('office.clients.delete');
 
   async function handleRecordRefresh() {
     await Promise.all([refresh(), fullQuery.refresh()]);
@@ -221,7 +223,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
       title="Klient:innenakte"
       subtitle={`${detail.firstName} ${detail.lastName}`}
       rightSlot={
-        canArchive || canEdit ? (
+        canArchive || canEdit || canDelete ? (
           <View style={styles.headerActions}>
             {canArchive ? (
               <PremiumButton
@@ -239,6 +241,28 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
                 variant="secondary"
                 onPress={() => router.push(clientEditRoute(detail.id) as never)}
               />
+            ) : null}
+            {canDelete ? (
+              <View style={styles.headerDelete}>
+                <OfficeRecordDeleteButton
+                  recordLabel="Klient:in"
+                  displayName={`${detail.firstName} ${detail.lastName}`}
+                  fullWidth={false}
+                  onDelete={() => {
+                    if (!tenantId) {
+                      return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+                    }
+                    return deleteClient(
+                      detail.id,
+                      tenantId,
+                      profile?.roleKey,
+                      profile?.id,
+                      profile?.displayName,
+                    );
+                  }}
+                  onDeleted={() => router.replace('/office/clients' as never)}
+                />
+              </View>
             ) : null}
           </View>
         ) : null
@@ -340,6 +364,9 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: careSpacing.sm,
+  },
+  headerDelete: {
+    minWidth: 96,
   },
   tabPanel: {
     gap: careSpacing.md,

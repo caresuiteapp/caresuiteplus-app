@@ -89,3 +89,23 @@ export async function archiveClient(
     buildMutationContext(actorProfileId, actorDisplayName),
   );
 }
+
+export async function deleteClient(
+  clientId: string,
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+  actorProfileId?: string | null,
+  actorDisplayName?: string | null,
+): Promise<ServiceResult<void>> {
+  const denied = enforcePermission<void>(actorRoleKey, 'office.clients.delete');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  return clientService.delete(
+    tenantId,
+    clientId,
+    buildMutationContext(actorProfileId, actorDisplayName),
+  );
+}

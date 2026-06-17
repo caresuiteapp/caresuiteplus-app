@@ -7,6 +7,7 @@ import { EmployeesListScreen } from './EmployeesListScreen';
 export function EmployeesAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [listRefreshToken, setListRefreshToken] = useState(0);
 
   if (!useMasterDetail) {
     return <EmployeesListScreen />;
@@ -19,10 +20,19 @@ export function EmployeesAdaptiveScreen() {
           embedded
           selectedId={selectedId}
           onEmployeePress={setSelectedId}
+          refreshToken={listRefreshToken}
         />
       }
       detail={
-        selectedId ? <EmployeeDetailSummaryPanel employeeId={selectedId} /> : undefined
+        selectedId ? (
+          <EmployeeDetailSummaryPanel
+            employeeId={selectedId}
+            onDeleted={() => {
+              setSelectedId(null);
+              setListRefreshToken((value) => value + 1);
+            }}
+          />
+        ) : undefined
       }
       showDetail={!!selectedId}
     />

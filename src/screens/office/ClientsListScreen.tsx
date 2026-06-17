@@ -13,10 +13,12 @@ export function ClientsListScreen({
   onClientPress,
   selectedId,
   embedded = false,
+  refreshToken = 0,
 }: {
   onClientPress?: (id: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
+  refreshToken?: number;
 } = {}) {
   const router = useRouter();
   const { can, isReadOnly } = usePermissions();
@@ -30,6 +32,7 @@ export function ClientsListScreen({
         onClientPress={onClientPress}
         selectedId={selectedId}
         embedded
+        refreshToken={refreshToken}
       />
     );
   }

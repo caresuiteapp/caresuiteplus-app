@@ -1,6 +1,6 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AdaptiveActionBar } from '@/components/adaptive';
 import { ClientCompactRow } from './ClientCompactRow';
 import { ClientListCard } from './ClientListCard';
@@ -32,12 +32,14 @@ type ClientsListViewProps = {
   onClientPress?: (id: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
+  refreshToken?: number;
 };
 
 export function ClientsListView({
   onClientPress,
   selectedId = null,
   embedded = false,
+  refreshToken = 0,
 }: ClientsListViewProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -92,6 +94,12 @@ export function ClientsListView({
     isFilterEmpty,
     allItems,
   } = useClientList();
+
+  useEffect(() => {
+    if (refreshToken > 0) {
+      void refresh();
+    }
+  }, [refreshToken, refresh]);
 
   const kpis = useMemo(() => buildClientListKpis(allItems), [allItems]);
   const compactHero = embedded || shellVariant === 'desktop';

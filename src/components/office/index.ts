@@ -23,6 +23,7 @@ export { EmployeesListHero } from './EmployeesListHero';
 export { EmployeesListView } from './EmployeesListView';
 export { EmployeesListTable } from './EmployeesListTable';
 export { EmployeeDetailSummaryPanel } from './EmployeeDetailSummaryPanel';
+export { OfficeRecordDeleteButton } from './OfficeRecordDeleteButton';
 export { EmployeeDetailHero } from './EmployeeDetailHero';
 export { DocumentsListHero } from './DocumentsListHero';
 export { DocumentsListView } from './DocumentsListView';
