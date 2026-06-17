@@ -27,6 +27,7 @@ import {
   mapClientTimelineEvent,
   mapClientDocument,
 } from '@/lib/supabase/mappers';
+import type { ClientPortalAccessListItem } from '@/lib/access/clientPortalAccessListMapper';
 import type { ClientContactRow, ClientExtendedRow } from '@/lib/supabase/rowTypes';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
@@ -578,6 +579,53 @@ export const supabaseClientExtendedRepository = {
 
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
     return { ok: true, data: mapClientRisk(castRow(data) as Parameters<typeof mapClientRisk>[0]) };
+  },
+
+  async listPortalAccessForTenant(tenantId: string): Promise<ServiceResult<ClientPortalAccessListItem[]>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .order('updated_at', { ascending: false });
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const rows = castRows(data).map((row) =>
+      mapClientPortalAccess(row as Parameters<typeof mapClientPortalAccess>[0]),
+    );
+
+    const clientIds = [...new Set(rows.map((entry) => entry.clientId))];
+    const clientNames = new Map<string, string>();
+
+    if (clientIds.length > 0) {
+      const { data: clientRows } = await fromUnknownTable(supabase, 'clients')
+        .select('id, first_name, last_name')
+        .eq('tenant_id', tenantId)
+        .in('id', clientIds);
+
+      for (const row of castRows(clientRows)) {
+        const id = String(row.id ?? '');
+        const name = `${String(row.first_name ?? '')} ${String(row.last_name ?? '')}`.trim();
+        if (id && name) clientNames.set(id, name);
+      }
+    }
+
+    return {
+      ok: true,
+      data: rows.map((access) => ({
+        id: access.id,
+        tenantId: access.tenantId,
+        clientId: access.clientId,
+        clientName: clientNames.get(access.clientId) ?? 'Unbekannt',
+        portalUsername: access.portalUsername,
+        portalEnabled: access.portalEnabled,
+        status: access.status,
+        lastLoginAt: access.lastLoginAt,
+        codeCreatedAt: access.codeCreatedAt,
+      })),
+    };
   },
 
   async fetchPortalAccess(tenantId: string, clientId: string): Promise<ServiceResult<ClientPortalAccess[]>> {

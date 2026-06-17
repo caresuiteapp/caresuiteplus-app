@@ -437,7 +437,7 @@ export function mapClientRisk(row: RiskRow): ClientRisk {
   };
 }
 
-type PortalAccessRow = {
+export type PortalAccessRow = {
   id: string;
   tenant_id: string;
   client_id: string;
@@ -597,13 +597,25 @@ export function mapClientFullDetail(input: {
     documents.map(mapClientDocument),
     intakeDocuments,
   );
+  const mappedAddresses = addresses.map(mapClientAddress);
+  const resolvedAddresses = mergeClientAddresses(mappedAddresses, {
+    id: input.client.id,
+    tenant_id: input.client.tenant_id,
+    street: typeof input.client.street === 'string' ? input.client.street : null,
+    house_number: typeof input.client.house_number === 'string' ? input.client.house_number : null,
+    postal_code: input.client.postal_code ?? input.client.zip ?? null,
+    zip: input.client.zip ?? null,
+    city: input.client.city,
+    created_at: input.client.created_at,
+    updated_at: input.client.updated_at,
+  });
 
   return {
     ...base,
     admissionDate: typeof input.client.admission_date === 'string' ? input.client.admission_date : null,
     core,
     lifecycleStatus: core.lifecycleStatus,
-    addresses: addresses.map(mapClientAddress),
+    addresses: resolvedAddresses,
     contacts: contacts.map(mapClientContactExtended),
     careLevels: careLevels.map(mapClientCareLevel),
     budgets: budgets.map(mapClientBudget),
