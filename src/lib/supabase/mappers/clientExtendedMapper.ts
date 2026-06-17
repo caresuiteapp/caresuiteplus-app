@@ -493,6 +493,16 @@ type TaskRow = {
   is_active: boolean;
   catalog_task_id: string | null;
   assigned_employee_ids: string[];
+  module_key: ClientTask['moduleKey'];
+  leistungsbereich: ClientTask['leistungsbereich'];
+  subcategory: ClientTask['subcategory'];
+  package_id: string | null;
+  leistungsart: ClientTask['leistungsart'];
+  is_mandatory: boolean | null;
+  proof_required: boolean | null;
+  documentation_required: boolean | null;
+  billing_relevant: boolean | null;
+  visible_to_client: boolean | null;
   created_at: string;
   updated_at: string;
 };
@@ -510,6 +520,16 @@ export function mapClientTask(row: TaskRow): ClientTask {
     isActive: row.is_active,
     catalogTaskId: row.catalog_task_id,
     assignedEmployeeIds: row.assigned_employee_ids ?? [],
+    moduleKey: row.module_key ?? 'assist',
+    leistungsbereich: row.leistungsbereich ?? null,
+    subcategory: row.subcategory ?? null,
+    packageId: row.package_id ?? null,
+    leistungsart: row.leistungsart ?? null,
+    isMandatory: row.is_mandatory ?? false,
+    proofRequired: row.proof_required ?? false,
+    documentationRequired: row.documentation_required ?? true,
+    billingRelevant: row.billing_relevant ?? true,
+    visibleToClient: row.visible_to_client ?? true,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };

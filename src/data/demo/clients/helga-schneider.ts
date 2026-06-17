@@ -1,4 +1,5 @@
 import type { ClientFullDetail } from '@/types/modules/client';
+import { CLIENT_TASK_ASSIST_DEFAULTS } from '@/lib/clients/clientTaskDefaults';
 import { DEMO_TENANT_ID } from '../tenant';
 import {
   CLIENT_STATUS_HINTS,
@@ -215,11 +216,11 @@ export const helgaSchneiderFull: ClientFullDetail = {
     },
   ],
   tasks: [
-    { id: 'task-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'haushalt', title: 'Staubsaugen', description: 'Wohnzimmer und Schlafzimmer', frequency: 'woechentlich', durationMinutes: 30, isActive: true, catalogTaskId: 'task-haushalt-1', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
-    { id: 'task-hs-2', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'waesche', title: 'Wäsche waschen', description: null, frequency: 'woechentlich', durationMinutes: 15, isActive: true, catalogTaskId: 'task-waesche-1', assignedEmployeeIds: [], createdAt: daysAgo(100), updatedAt: now },
-    { id: 'task-hs-3', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'einkauf', title: 'Lebensmitteleinkauf', description: 'Einkaufsliste liegt im Küchenschrank', frequency: 'zweimal_wöchentlich', durationMinutes: 60, isActive: true, catalogTaskId: 'task-einkauf-1', assignedEmployeeIds: ['employee-002'], createdAt: daysAgo(100), updatedAt: now },
-    { id: 'task-hs-4', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'ernaehrung', title: 'Mahlzeit zubereiten', description: 'Warme Mittagsmahlzeit', frequency: 'taeglich', durationMinutes: 40, isActive: true, catalogTaskId: 'task-ernaehr-1', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
-    { id: 'task-hs-5', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'begleitung', title: 'Spaziergang', description: 'Im Park nebenan', frequency: 'woechentlich', durationMinutes: 45, isActive: true, catalogTaskId: 'task-begleit-2', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
+    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'haushalt', title: 'Staubsaugen', description: 'Wohnzimmer und Schlafzimmer', frequency: 'woechentlich', durationMinutes: 30, isActive: true, catalogTaskId: 'task-haushalt-1', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
+    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-2', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'waesche', title: 'Wäsche waschen', description: null, frequency: 'woechentlich', durationMinutes: 15, isActive: true, catalogTaskId: 'task-waesche-1', assignedEmployeeIds: [], createdAt: daysAgo(100), updatedAt: now },
+    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-3', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'einkauf', title: 'Lebensmitteleinkauf', description: 'Einkaufsliste liegt im Küchenschrank', frequency: 'zweimal_wöchentlich', durationMinutes: 60, isActive: true, catalogTaskId: 'task-einkauf-1', assignedEmployeeIds: ['employee-002'], createdAt: daysAgo(100), updatedAt: now },
+    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-4', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'ernaehrung', title: 'Mahlzeit zubereiten', description: 'Warme Mittagsmahlzeit', frequency: 'taeglich', durationMinutes: 40, isActive: true, catalogTaskId: 'task-ernaehr-1', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
+    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-5', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'begleitung', title: 'Spaziergang', description: 'Im Park nebenan', frequency: 'woechentlich', durationMinutes: 45, isActive: true, catalogTaskId: 'task-begleit-2', assignedEmployeeIds: ['employee-001'], leistungsbereich: 'alltagsbegleitung', subcategory: 'aktivierung', createdAt: daysAgo(100), updatedAt: now },
   ],
   timeline: [
     { id: 'tl-hs-1', clientId: 'client-001', eventType: 'einsatz', icon: '📅', title: 'Einsatz dokumentiert', subtitle: 'Alltagsbegleitung 2 Std.', timestamp: daysAgo(1), status: 'abgeschlossen', actorName: 'Thomas Keller', isInternal: false, metadata: null },

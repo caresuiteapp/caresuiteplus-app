@@ -24,8 +24,9 @@ describe('ClientTasksPanel wiring', () => {
 
     expect(tabPanels).toContain('ClientTasksPanel');
     expect(tabPanels).not.toContain('EinsatzAufgabenTab');
-    expect(tasksPanel).toContain('Aufgabe hinzufügen');
-    expect(tasksPanel).toContain('Noch keine Aufgaben');
+    expect(tasksPanel).toContain('Aufgabe manuell hinzufügen');
+    expect(tasksPanel).toContain('Aus Katalog hinzufügen');
+    expect(tasksPanel).toContain('CareSuite+ Assist');
     expect(tasksPanel).not.toContain('clientEditRoute');
   });
 
@@ -70,6 +71,16 @@ describe('Client tasks service (demo)', () => {
       isActive: true,
       catalogTaskId: null,
       assignedEmployeeIds: [],
+      moduleKey: 'assist',
+      leistungsbereich: null,
+      subcategory: null,
+      packageId: null,
+      leistungsart: null,
+      isMandatory: false,
+      proofRequired: false,
+      documentationRequired: true,
+      billingRelevant: true,
+      visibleToClient: true,
     });
     expect(created.ok).toBe(true);
 

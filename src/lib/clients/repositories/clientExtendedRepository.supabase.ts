@@ -458,6 +458,16 @@ export const supabaseClientExtendedRepository = {
         is_active: input.isActive,
         catalog_task_id: input.catalogTaskId,
         assigned_employee_ids: input.assignedEmployeeIds,
+        module_key: input.moduleKey ?? 'assist',
+        leistungsbereich: input.leistungsbereich,
+        subcategory: input.subcategory,
+        package_id: input.packageId,
+        leistungsart: input.leistungsart,
+        is_mandatory: input.isMandatory,
+        proof_required: input.proofRequired,
+        documentation_required: input.documentationRequired,
+        billing_relevant: input.billingRelevant,
+        visible_to_client: input.visibleToClient,
       })
       .select('*')
       .single();
@@ -484,6 +494,16 @@ export const supabaseClientExtendedRepository = {
     if (input.isActive !== undefined) patch.is_active = input.isActive;
     if (input.catalogTaskId !== undefined) patch.catalog_task_id = input.catalogTaskId;
     if (input.assignedEmployeeIds !== undefined) patch.assigned_employee_ids = input.assignedEmployeeIds;
+    if (input.moduleKey !== undefined) patch.module_key = input.moduleKey;
+    if (input.leistungsbereich !== undefined) patch.leistungsbereich = input.leistungsbereich;
+    if (input.subcategory !== undefined) patch.subcategory = input.subcategory;
+    if (input.packageId !== undefined) patch.package_id = input.packageId;
+    if (input.leistungsart !== undefined) patch.leistungsart = input.leistungsart;
+    if (input.isMandatory !== undefined) patch.is_mandatory = input.isMandatory;
+    if (input.proofRequired !== undefined) patch.proof_required = input.proofRequired;
+    if (input.documentationRequired !== undefined) patch.documentation_required = input.documentationRequired;
+    if (input.billingRelevant !== undefined) patch.billing_relevant = input.billingRelevant;
+    if (input.visibleToClient !== undefined) patch.visible_to_client = input.visibleToClient;
 
     const { data, error } = await fromUnknownTable(supabase, 'client_tasks')
       .update(patch)
