@@ -145,6 +145,8 @@ describe('Office ClientRecord rebuild', () => {
     expect(panel).not.toContain('Demo-Workflow');
     expect(panel).toContain('DocumentPicker');
     expect(panel).toContain('previewHtml');
+    expect(panel).toContain('buildClientDocumentCategoryOverview');
+    expect(panel).toContain('Keine Dokumente in dieser Kategorie');
   });
 
   it('mergeClientRecordDocuments includes finalized intake documents', () => {
