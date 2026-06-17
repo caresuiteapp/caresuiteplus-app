@@ -2,7 +2,7 @@ import type { ServiceResult } from '@/types';
 import type { ClientEditFormData } from '@/types/forms/clientEditForm';
 import type { Database } from '@/lib/supabase/database.types';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { buildStreetLine } from '@/lib/clients/clientEditFormMappers';
@@ -90,7 +90,12 @@ async function syncCareContexts(
     .delete()
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId);
-  if (deleteError) return { ok: false, error: toGermanSupabaseError(deleteError) };
+  if (deleteError) {
+    if (isSupabaseMissingTableError(deleteError)) {
+      return { ok: true, data: undefined };
+    }
+    return { ok: false, error: toGermanSupabaseError(deleteError) };
+  }
 
   for (const [index, contextKey] of contexts.entries()) {
     const { error } = await fromUnknownTable(supabase, 'client_care_contexts').insert({

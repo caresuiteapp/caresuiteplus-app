@@ -21,7 +21,21 @@ describe('toGermanSupabaseError', () => {
     );
   });
 
-  it('shows generic message in production', () => {
+  it('shows helpful message for missing client_care_contexts in production', () => {
+    process.env.NODE_ENV = 'production';
+    expect(
+      toGermanSupabaseError({
+        code: 'PGRST205',
+        message: "Could not find the table 'public.client_care_contexts'",
+        details: '',
+        hint: '',
+      }),
+    ).toBe(
+      'Datenbank-Schema unvollständig. Leistungsarten konnten nicht gespeichert werden — bitte erneut versuchen.',
+    );
+  });
+
+  it('shows generic message in production for other missing tables', () => {
     process.env.NODE_ENV = 'production';
     expect(
       toGermanSupabaseError({
@@ -30,7 +44,9 @@ describe('toGermanSupabaseError', () => {
         details: '',
         hint: '',
       }),
-    ).toBe('Datenbankfehler: Bitte erneut versuchen.');
+    ).toBe(
+      'Datenbank-Schema unvollständig. Leistungsarten konnten nicht gespeichert werden — bitte erneut versuchen.',
+    );
   });
 
   it('shows table hint in development', () => {

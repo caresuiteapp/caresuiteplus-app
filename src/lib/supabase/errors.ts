@@ -1,9 +1,17 @@
 import type { PostgrestError } from '@supabase/supabase-js';
 
 const GENERIC_DB_ERROR = 'Datenbankfehler: Bitte erneut versuchen.';
+const MISSING_SCHEMA_ERROR =
+  'Datenbank-Schema unvollständig. Leistungsarten konnten nicht gespeichert werden — bitte erneut versuchen.';
 
 function isDevEnvironment(): boolean {
   return process.env.NODE_ENV !== 'production' || process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+}
+
+export function isSupabaseMissingTableError(error: PostgrestError | null): boolean {
+  if (!error) return false;
+  const msg = error.message ?? '';
+  return error.code === 'PGRST205' || msg.includes('Could not find the table');
 }
 
 export function toGermanSupabaseError(error: PostgrestError | null): string {
@@ -17,10 +25,11 @@ export function toGermanSupabaseError(error: PostgrestError | null): string {
     return 'Kein Zugriff auf diesen Datensatz (RLS).';
   }
   if (error.code === 'PGRST116') return 'Datensatz wurde nicht gefunden.';
-  if (error.code === 'PGRST205' || msg.includes('Could not find the table')) {
+  if (isSupabaseMissingTableError(error)) {
+    if (msg.includes('client_care_contexts')) return MISSING_SCHEMA_ERROR;
     return isDevEnvironment()
       ? `Tabelle nicht verfügbar (${msg})`
-      : GENERIC_DB_ERROR;
+      : MISSING_SCHEMA_ERROR;
   }
   if (error.code === 'PGRST204' || msg.includes('Could not find the') && msg.includes('column')) {
     return isDevEnvironment()
