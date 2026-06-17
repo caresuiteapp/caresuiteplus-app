@@ -1,9 +1,9 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { EMPTY_EMPLOYEE_PROFILE_PHOTO } from '@/types/forms/employeeForm';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
+import { mapEmployeeDetailToEditForm } from '@/lib/office/employeeEditFormMappers';
 import { updateEmployee } from '@/lib/office/employeeFormService';
 import { fetchInvoiceDetail, updateInvoice } from '@/lib/office/invoiceDetailService';
 import { createInvoice } from '@/lib/office/invoiceCreateService';
@@ -24,7 +24,7 @@ describe('Office employee & invoice CRUD audit screens', () => {
       if (file === 'EmployeeCreateScreen.tsx') {
         expect(source).toMatch(/useEmployeeWizard|createEmployee/);
       } else {
-        expect(source).toMatch(/updateEmployee|fetchEmployeeDetail/);
+        expect(source).toMatch(/useEmployeeEditWizard|saveEmployeeEdit|fetchEmployeeEditData/);
       }
     }
   });
@@ -71,16 +71,12 @@ describe('Office employee & invoice services', () => {
     const detail = await fetchEmployeeDetail('employee-001', DEMO_TENANT_ID, 'business_admin');
     expect(detail.ok).toBe(true);
     if (detail.ok) {
+      const form = mapEmployeeDetailToEditForm(detail.data);
+      form.notes = 'Phase4 test';
       const updated = await updateEmployee(
         'employee-001',
         DEMO_TENANT_ID,
-        {
-          jobTitle: detail.data.jobTitle ?? 'Test',
-          phone: detail.data.phone ?? '',
-          department: detail.data.department ?? 'Allgemein',
-          notes: 'Phase4 test',
-          profilePhoto: EMPTY_EMPLOYEE_PROFILE_PHOTO,
-        },
+        form,
         'business_admin',
       );
       expect(updated.ok).toBe(true);

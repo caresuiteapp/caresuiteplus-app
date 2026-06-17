@@ -1,77 +1,65 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { useEffect, useState } from 'react';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
+import { CareAddressSearch, CareDateInput } from '@/components/inputs';
 import { EmployeeProfilePhotoPicker } from '@/components/office/EmployeeProfilePhotoPicker';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareLightPageShell } from '@/components/layout';
 import {
-  EmptyState,
+  DetailInfoRow,
   ErrorState,
+  FilterChipGroup,
+  FormStepper,
   LoadingState,
   PremiumButton,
   PremiumInput,
+  SectionPanel,
   SuccessState,
 } from '@/components/ui';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useEmployeeEditWizard } from '@/hooks/useEmployeeEditWizard';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAuth } from '@/lib/auth/context';
-import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
-import { updateEmployee, type EmployeeEditInput } from '@/lib/office/employeeFormService';
+import { EMPLOYMENT_TYPE_OPTIONS } from '@/lib/office/employeeCatalogLabels';
+import { formatEmployeeEditSummary } from '@/lib/office/employeeEditFormMappers';
 import { getServiceMode } from '@/lib/services/mode';
-import { EMPTY_EMPLOYEE_PROFILE_PHOTO } from '@/types/forms/employeeForm';
-import { spacing } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 export function EmployeeEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { profile } = useAuth();
-  const tenantId = useServiceTenantId();
   const { can, check, roleLabel } = usePermissions();
-  const [form, setForm] = useState<EmployeeEditInput>({
-    jobTitle: '',
-    phone: '',
-    department: '',
-    notes: '',
-    profilePhoto: EMPTY_EMPLOYEE_PROFILE_PHOTO,
-  });
-  const [employeeStatus, setEmployeeStatus] = useState('aktiv');
-  const [saveError, setSaveError] = useState<string | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [successMessage, setSuccessMessage] = useState<string | null>(null);
+  const canEdit = can('office.employees.edit');
 
-  const query = useAsyncQuery(
-    () => {
-      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      if (!id) return Promise.resolve({ ok: false as const, error: 'Keine Mitarbeitenden-ID.' });
-      return fetchEmployeeDetail(id, tenantId, profile?.roleKey);
-    },
-    [tenantId, id, profile?.roleKey],
-    { enabled: !!tenantId && !!id },
-  );
+  const {
+    steps,
+    step,
+    form,
+    errors,
+    loading,
+    loadError,
+    notFound,
+    submitting,
+    submitError,
+    saved,
+    updateField,
+    nextStep,
+    prevStep,
+    submit,
+    isFirstStep,
+    isLastStep,
+    isSuccess,
+  } = useEmployeeEditWizard(id);
 
-  useEffect(() => {
-    if (query.data) {
-      setForm({
-        jobTitle: query.data.jobTitle ?? '',
-        phone: query.data.phone ?? '',
-        department: query.data.department ?? '',
-        notes: query.data.notes ?? '',
-        profilePhoto: {
-          displayUri: query.data.avatarUrl,
-          pending: null,
-          removed: false,
-        },
-      });
-      setEmployeeStatus(query.data.status ?? 'aktiv');
+  const handleSubmit = async () => {
+    const ok = await submit();
+    if (ok) {
+      setTimeout(() => router.replace(`/business/office/employees/${id}` as never), 1500);
     }
-  }, [query.data]);
+  };
 
-  if (!can('office.employees.edit')) {
+  if (!canEdit) {
     return (
-      <CareLightPageShell title="Bearbeiten" subtitle={roleLabel ?? 'Office'}>
+      <CareLightPageShell title="Bearbeiten" subtitle="Kein Zugriff">
         <LockedActionBanner
           message={check('office.employees.edit').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
@@ -80,56 +68,49 @@ export function EmployeeEditScreen() {
     );
   }
 
-  if (query.loading && !query.data) {
+  if (loading) {
     return (
-      <CareLightPageShell title="Bearbeiten" subtitle="Wird geladen…">
-        <LoadingState message="Daten werden geladen…" />
+      <CareLightPageShell title="Stammdaten bearbeiten" subtitle="Wird geladen…">
+        <LoadingState message="Mitarbeitende:r wird geladen…" />
       </CareLightPageShell>
     );
   }
 
-  if (query.error && !query.data) {
+  if (notFound || loadError) {
     return (
       <CareLightPageShell title="Bearbeiten" subtitle="Fehler">
-        <ErrorState title="Fehler" message={query.error} onRetry={query.refresh} />
+        <ErrorState
+          title={notFound ? 'Nicht gefunden' : 'Fehler'}
+          message={loadError ?? 'Der Datensatz existiert nicht.'}
+        />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
       </CareLightPageShell>
     );
   }
 
-  const employee = query.data;
-  if (!employee) {
+  if (isSuccess && saved) {
     return (
-      <CareLightPageShell title="Bearbeiten" subtitle="Nicht gefunden">
-        <EmptyState title="Nicht gefunden" message="Mitarbeitende:r existiert nicht." />
+      <CareLightPageShell title="Gespeichert" subtitle="Erfolgreich" showBack={false}>
+        <SuccessState message="Die Stammdaten wurden erfolgreich aktualisiert." />
+        <PremiumButton
+          title="Zur Detailansicht"
+          fullWidth
+          onPress={() => router.replace(`/business/office/employees/${id}` as never)}
+        />
       </CareLightPageShell>
     );
   }
 
-  const handleSave = async () => {
-    if (!tenantId || !id) return;
-    setSaving(true);
-    setSaveError(null);
-    const result = await updateEmployee(
-      id,
-      tenantId,
-      form,
-      profile?.roleKey,
-      employee.avatarUrl,
-    );
-    setSaving(false);
-    if (result.ok) {
-      setSuccessMessage('Mitarbeitende:r gespeichert.');
-      await query.refresh();
-    } else {
-      setSaveError(result.error);
-    }
-  };
+  const summaryRows = formatEmployeeEditSummary(form);
+  const employmentTypeOptions = EMPLOYMENT_TYPE_OPTIONS.map((option) => ({
+    key: option.key,
+    label: option.label,
+  }));
 
   return (
     <CareLightPageShell
-      title={`${employee.firstName} ${employee.lastName}`}
-      subtitle="Stammdaten bearbeiten"
+      title="Stammdaten bearbeiten"
+      subtitle={`Schritt ${step + 1} von ${steps.length}`}
       rightSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
       }
@@ -137,59 +118,207 @@ export function EmployeeEditScreen() {
       <ScrollView contentContainerStyle={styles.scroll}>
         <FormScreenHero
           eyebrow="OFFICE · MITARBEITENDE"
-          title={`${employee.firstName} ${employee.lastName}`}
+          title={`${form.firstName} ${form.lastName}`.trim() || 'Mitarbeitende:r'}
           meta={
             getServiceMode() === 'supabase'
-              ? 'Stammdaten und Profilbild bearbeiten'
+              ? 'Stammdaten, Anstellung und Qualifikationen im Mandanten speichern'
               : 'Stammdaten bearbeiten — Demo-Persistenz'
           }
           icon="✏️"
           formMode="edit"
           wpNumber={187}
-          preparedMessage="Live-HR-Felder folgen in Kürze — derzeit Demo-Persistenz."
         />
-        <View style={styles.profileSection}>
-          <EmployeeProfilePhotoPicker
-            firstName={employee.firstName}
-            lastName={employee.lastName}
-            value={form.profilePhoto}
-            onChange={(profilePhoto) => setForm((f) => ({ ...f, profilePhoto }))}
-            disabled={saving}
-          />
-        </View>
-        {successMessage ? <SuccessState message={successMessage} /> : null}
-        <PremiumInput
-          label="Funktion"
-          value={form.jobTitle}
-          onChangeText={(v) => setForm((f) => ({ ...f, jobTitle: v }))}
-        />
-        <PremiumInput
-          label="Telefon"
-          value={form.phone}
-          onChangeText={(v) => setForm((f) => ({ ...f, phone: v }))}
-        />
-        <PremiumInput
-          label="Abteilung"
-          value={form.department}
-          onChangeText={(v) => setForm((f) => ({ ...f, department: v }))}
-        />
-        <CatalogValueSelect
-          catalogType="employee_status"
-          label="Status (Katalog)"
-          value={employeeStatus}
-          onChange={setEmployeeStatus}
-        />
-        <PremiumInput
-          label="Notizen"
-          value={form.notes}
-          onChangeText={(v) => setForm((f) => ({ ...f, notes: v }))}
-          multiline
-        />
-        {!form.jobTitle.trim() && !form.phone.trim() && !form.department.trim() && !form.notes.trim() ? (
-          <EmptyState title="Leeres Profil" message="Ergänzen Sie mindestens ein Stammdatenfeld." />
+        <FormStepper steps={steps} currentStep={step} />
+        {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}
+
+        {step === 0 ? (
+          <SectionPanel title="Stammdaten" subtitle="Person, Rolle und Kontakt">
+            <View style={styles.profileSection}>
+              <EmployeeProfilePhotoPicker
+                firstName={form.firstName}
+                lastName={form.lastName}
+                value={form.profilePhoto}
+                onChange={(profilePhoto) => updateField('profilePhoto', profilePhoto)}
+                disabled={submitting}
+              />
+            </View>
+            <PremiumInput
+              label="Vorname *"
+              value={form.firstName}
+              onChangeText={(value) => updateField('firstName', value)}
+              error={errors.firstName}
+              autoCapitalize="words"
+            />
+            <PremiumInput
+              label="Nachname *"
+              value={form.lastName}
+              onChangeText={(value) => updateField('lastName', value)}
+              error={errors.lastName}
+              autoCapitalize="words"
+            />
+            <PremiumInput
+              label="E-Mail"
+              value={form.email}
+              onChangeText={(value) => updateField('email', value)}
+              error={errors.email}
+              keyboardType="email-address"
+              autoCapitalize="none"
+            />
+            <PremiumInput
+              label="Telefon"
+              value={form.phone}
+              onChangeText={(value) => updateField('phone', value)}
+              keyboardType="phone-pad"
+            />
+            <PremiumInput
+              label="Mobil"
+              value={form.mobile}
+              onChangeText={(value) => updateField('mobile', value)}
+              keyboardType="phone-pad"
+            />
+            <CatalogValueSelect
+              catalogType="employee_role"
+              label="Rolle / Funktion"
+              required
+              value={form.roleKey}
+              onChange={(value) => updateField('roleKey', value)}
+              error={errors.roleKey}
+            />
+            <CatalogValueSelect
+              catalogType="employee_department"
+              label="Abteilung"
+              value={form.departmentKey}
+              onChange={(value) => updateField('departmentKey', value)}
+            />
+            <CatalogValueSelect
+              catalogType="employee_status"
+              label="Status"
+              value={form.status}
+              onChange={(value) => updateField('status', value)}
+            />
+            <PremiumInput
+              label="Notizen"
+              value={form.notes}
+              onChangeText={(value) => updateField('notes', value)}
+              multiline
+              hint="Interne HR-Notizen"
+            />
+          </SectionPanel>
         ) : null}
-        {saveError ? <ErrorState title="Speichern" message={saveError} /> : null}
-        <PremiumButton title="Speichern" onPress={handleSave} loading={saving} />
+
+        {step === 1 ? (
+          <SectionPanel title="Anstellung & Adresse" subtitle="Vertrag, Einsatz und Wohnadresse">
+            <CareDateInput
+              label="Eintrittsdatum"
+              value={form.entryDate}
+              onChange={(value) => updateField('entryDate', value)}
+            />
+            <Text style={styles.fieldLabel}>Vertragsart</Text>
+            <FilterChipGroup
+              options={employmentTypeOptions}
+              value={form.employmentType || employmentTypeOptions[0]?.key || ''}
+              onChange={(value) => updateField('employmentType', value)}
+            />
+            <PremiumInput
+              label="Wochenstunden"
+              value={form.weeklyHours}
+              onChangeText={(value) => updateField('weeklyHours', value)}
+              error={errors.weeklyHours}
+              keyboardType="decimal-pad"
+              placeholder="z. B. 20"
+            />
+            <CareAddressSearch
+              values={{
+                street: form.street,
+                houseNumber: form.houseNumber,
+                zip: form.postalCode,
+                city: form.city,
+              }}
+              onChange={(address) => {
+                updateField('street', address.street);
+                updateField('houseNumber', address.houseNumber);
+                updateField('postalCode', address.zip);
+                updateField('city', address.city);
+              }}
+            />
+          </SectionPanel>
+        ) : null}
+
+        {step === 2 ? (
+          <SectionPanel title="Qualifikationen & Führungszeugnis" subtitle="Schnellerfassung">
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Erste Hilfe</Text>
+              <PremiumButton
+                title={form.hasFirstAidCertificate ? 'Erfasst' : 'Erfassen'}
+                size="sm"
+                variant={form.hasFirstAidCertificate ? 'primary' : 'secondary'}
+                onPress={() => updateField('hasFirstAidCertificate', !form.hasFirstAidCertificate)}
+              />
+            </View>
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Führerschein</Text>
+              <PremiumButton
+                title={form.hasDriverLicense ? 'Erfasst' : 'Erfassen'}
+                size="sm"
+                variant={form.hasDriverLicense ? 'primary' : 'secondary'}
+                onPress={() => updateField('hasDriverLicense', !form.hasDriverLicense)}
+              />
+            </View>
+            {form.hasDriverLicense ? (
+              <PremiumInput
+                label="Führerscheinklasse"
+                value={form.driverLicenseClass}
+                onChangeText={(value) => updateField('driverLicenseClass', value)}
+                placeholder="z. B. B"
+              />
+            ) : null}
+            <View style={styles.toggleRow}>
+              <Text style={styles.toggleLabel}>Führungszeugnis</Text>
+              <PremiumButton
+                title={form.hasPoliceClearance ? 'Vorhanden' : 'Nicht erfasst'}
+                size="sm"
+                variant={form.hasPoliceClearance ? 'primary' : 'secondary'}
+                onPress={() => updateField('hasPoliceClearance', !form.hasPoliceClearance)}
+              />
+            </View>
+            {form.hasPoliceClearance ? (
+              <CareDateInput
+                label="Ausstellungsdatum"
+                value={form.policeClearanceDate}
+                onChange={(value) => updateField('policeClearanceDate', value)}
+              />
+            ) : null}
+            <PremiumButton
+              title="Vollständige Personalakte öffnen"
+              variant="secondary"
+              onPress={() => router.push(`/business/office/employees/${id}/personnel` as never)}
+            />
+          </SectionPanel>
+        ) : null}
+
+        {step === 3 ? (
+          <SectionPanel title="Zusammenfassung" subtitle="Bitte prüfen und speichern">
+            {summaryRows.map((row) => (
+              <DetailInfoRow key={row.label} label={row.label} value={row.value} />
+            ))}
+            <PremiumButton
+              title="Personalakte öffnen"
+              variant="secondary"
+              onPress={() => router.push(`/business/office/employees/${id}/personnel` as never)}
+            />
+          </SectionPanel>
+        ) : null}
+
+        <View style={styles.actions}>
+          {!isFirstStep ? (
+            <PremiumButton title="Zurück" variant="secondary" onPress={prevStep} disabled={submitting} />
+          ) : null}
+          {!isLastStep ? (
+            <PremiumButton title="Weiter" onPress={nextStep} disabled={submitting} />
+          ) : (
+            <PremiumButton title="Speichern" onPress={handleSubmit} loading={submitting} />
+          )}
+        </View>
       </ScrollView>
     </CareLightPageShell>
   );
@@ -200,5 +329,19 @@ const styles = StyleSheet.create({
   profileSection: {
     alignItems: 'center',
     paddingVertical: spacing.sm,
+  },
+  fieldLabel: { ...typography.caption, marginBottom: spacing.xs },
+  toggleRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    gap: spacing.sm,
+    marginBottom: spacing.sm,
+  },
+  toggleLabel: { ...typography.body, flex: 1 },
+  actions: {
+    flexDirection: 'row',
+    gap: spacing.sm,
+    flexWrap: 'wrap',
   },
 });

@@ -25,6 +25,10 @@ import {
   isEmployeeDetailLiveReady,
 } from '@/lib/office/employeeModuleConfig';
 import { fetchEmployeeEquipmentSummary, INVENTORY_PREPARED_MESSAGE } from '@/lib/inventory';
+import {
+  resolveEmployeeDepartmentLabel,
+  resolveEmployeeRoleLabel,
+} from '@/lib/office/employeeCatalogLabels';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
 
@@ -183,6 +187,7 @@ export function EmployeeDetailScreen() {
             <>
               <DetailInfoRow label="E-Mail" value={employee.email} />
               <DetailInfoRow label="Telefon" value={employee.phone} />
+              {employee.mobile ? <DetailInfoRow label="Mobil" value={employee.mobile} /> : null}
             </>
           ) : (
             <EmptyState title="Keine Kontaktdaten" message="Telefon oder E-Mail in der Bearbeitung ergänzen." />
@@ -190,7 +195,14 @@ export function EmployeeDetailScreen() {
         </SectionPanel>
 
         <SectionPanel title="Anstellung">
-          <DetailInfoRow label="Abteilung" value={employee.department} />
+          <DetailInfoRow
+            label="Funktion"
+            value={resolveEmployeeRoleLabel(employee.jobTitle)}
+          />
+          <DetailInfoRow
+            label="Abteilung"
+            value={resolveEmployeeDepartmentLabel(employee.department)}
+          />
           <DetailInfoRow
             label="Eintrittsdatum"
             value={

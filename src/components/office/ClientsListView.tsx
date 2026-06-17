@@ -92,6 +92,7 @@ export function ClientsListView({
     hasActiveFilters,
     isEmpty,
     isFilterEmpty,
+    hasLocalOnlyIntakeDraft,
     allItems,
     kpiItems,
   } = useClientList();
@@ -182,7 +183,26 @@ export function ClientsListView({
     );
   }
 
-  const emptyContent = isEmpty ? (
+  const emptyContent = isFilterEmpty ? (
+    <EmptyState
+      title="Keine Treffer"
+      message={
+        hasLocalOnlyIntakeDraft && statusFilter === 'entwurf'
+          ? 'Entwurf nur lokal gespeichert? Bitte im Aufnahme-Assistenten erneut speichern oder kurz warten, bis der Entwurf synchronisiert wurde.'
+          : 'Für Ihre Suche oder Filter wurden keine Klient:innen gefunden.'
+      }
+      actionLabel={
+        hasLocalOnlyIntakeDraft && statusFilter === 'entwurf'
+          ? 'Zum Aufnahme-Assistenten'
+          : 'Filter zurücksetzen'
+      }
+      onAction={
+        hasLocalOnlyIntakeDraft && statusFilter === 'entwurf'
+          ? () => router.push(clientCreateRoute() as never)
+          : resetFilters
+      }
+    />
+  ) : isEmpty ? (
     <EmptyState
       title="Noch keine Klient:innen"
       message={
@@ -192,13 +212,6 @@ export function ClientsListView({
       }
       actionLabel={canCreate ? 'Klient:in anlegen' : undefined}
       onAction={canCreate ? () => router.push(clientCreateRoute() as never) : undefined}
-    />
-  ) : isFilterEmpty ? (
-    <EmptyState
-      title="Keine Treffer"
-      message="Für Ihre Suche oder Filter wurden keine Klient:innen gefunden."
-      actionLabel="Filter zurücksetzen"
-      onAction={resetFilters}
     />
   ) : null;
 

@@ -60,6 +60,7 @@ export function useClientIntakeWizard() {
   } | null>(null);
   const submitLock = useRef(false);
   const skipNextSave = useRef(false);
+  const needsRemoteSyncOnLoad = useRef(false);
   const draftFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const steps = useMemo(
@@ -87,6 +88,14 @@ export function useClientIntakeWizard() {
         setStepIndex(clampStepIndex(draft.stepIndex, draft.form.careContexts));
         setDraftClientId(draft.clientId ?? null);
         setDraftRestored(true);
+
+        if (
+          getServiceMode() === 'supabase'
+          && !draft.clientId
+          && hasIntakeDraftContent(draft)
+        ) {
+          needsRemoteSyncOnLoad.current = true;
+        }
       }
 
       setDraftLoaded(true);
@@ -97,6 +106,76 @@ export function useClientIntakeWizard() {
     };
   }, [userId, tenantId]);
 
+  const persistDraft = useCallback(
+    async (options?: { showFeedback?: boolean }) => {
+      if (!userId || !tenantId) {
+        if (options?.showFeedback) {
+          setDraftSaveFeedback({
+            message: 'Entwurf konnte nicht gespeichert werden.',
+            variant: 'warning',
+          });
+        }
+        return false;
+      }
+
+      const hasContent = hasIntakeDraftContent({ form, stepIndex });
+      if (!hasContent) {
+        if (options?.showFeedback) {
+          setDraftSaveFeedback({
+            message: 'Kein Entwurf zum Speichern.',
+            variant: 'warning',
+          });
+        }
+        return false;
+      }
+
+      let nextClientId = draftClientId;
+
+      if (getServiceMode() === 'supabase') {
+        const remoteResult = await upsertClientIntakeDraft(tenantId, form, {
+          clientId: draftClientId,
+          actorProfileId: profile?.id ?? user?.id ?? null,
+        });
+
+        if (!remoteResult.ok) {
+          if (options?.showFeedback) {
+            setDraftSaveFeedback({
+              message: remoteResult.error ?? 'Entwurf konnte nicht gespeichert werden.',
+              variant: 'warning',
+            });
+          }
+          return false;
+        }
+
+        nextClientId = remoteResult.data.id;
+        if (nextClientId !== draftClientId) {
+          setDraftClientId(nextClientId);
+        }
+      }
+
+      await saveClientIntakeDraft(userId, tenantId, {
+        form,
+        stepIndex,
+        clientId: nextClientId,
+      });
+
+      if (options?.showFeedback) {
+        setDraftSaveFeedback({
+          message: 'Entwurf gespeichert.',
+          variant: 'success',
+        });
+
+        if (draftFeedbackTimerRef.current) {
+          clearTimeout(draftFeedbackTimerRef.current);
+        }
+        draftFeedbackTimerRef.current = setTimeout(() => setDraftSaveFeedback(null), 2500);
+      }
+
+      return true;
+    },
+    [draftClientId, form, profile?.id, stepIndex, tenantId, user?.id, userId],
+  );
+
   useEffect(() => {
     if (!draftLoaded || !userId || !tenantId || createdId) return;
 
@@ -106,11 +185,17 @@ export function useClientIntakeWizard() {
     }
 
     const timer = setTimeout(() => {
-      void saveClientIntakeDraft(userId, tenantId, { form, stepIndex });
+      void persistDraft();
     }, DRAFT_SAVE_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [form, stepIndex, draftLoaded, userId, tenantId, createdId]);
+  }, [form, stepIndex, draftLoaded, userId, tenantId, createdId, persistDraft]);
+
+  useEffect(() => {
+    if (!draftLoaded || !needsRemoteSyncOnLoad.current) return;
+    needsRemoteSyncOnLoad.current = false;
+    void persistDraft();
+  }, [draftLoaded, persistDraft]);
 
   useEffect(() => {
     if (stepIndex <= steps.length - 1) return;
@@ -240,59 +325,8 @@ export function useClientIntakeWizard() {
   }, [resetWizard, tenantId, userId]);
 
   const saveDraft = useCallback(async () => {
-    if (!userId || !tenantId) {
-      setDraftSaveFeedback({
-        message: 'Entwurf konnte nicht gespeichert werden.',
-        variant: 'warning',
-      });
-      return;
-    }
-
-    const hasContent = hasIntakeDraftContent({ form, stepIndex });
-    if (!hasContent) {
-      setDraftSaveFeedback({
-        message: 'Kein Entwurf zum Speichern.',
-        variant: 'warning',
-      });
-      return;
-    }
-
-    let nextClientId = draftClientId;
-
-    if (getServiceMode() === 'supabase') {
-      const remoteResult = await upsertClientIntakeDraft(tenantId, form, {
-        clientId: draftClientId,
-        actorProfileId: profile?.id ?? user?.id ?? null,
-      });
-
-      if (!remoteResult.ok) {
-        setDraftSaveFeedback({
-          message: remoteResult.error ?? 'Entwurf konnte nicht gespeichert werden.',
-          variant: 'warning',
-        });
-        return;
-      }
-
-      nextClientId = remoteResult.data.id;
-      setDraftClientId(nextClientId);
-    }
-
-    await saveClientIntakeDraft(userId, tenantId, {
-      form,
-      stepIndex,
-      clientId: nextClientId,
-    });
-
-    setDraftSaveFeedback({
-      message: 'Entwurf gespeichert.',
-      variant: 'success',
-    });
-
-    if (draftFeedbackTimerRef.current) {
-      clearTimeout(draftFeedbackTimerRef.current);
-    }
-    draftFeedbackTimerRef.current = setTimeout(() => setDraftSaveFeedback(null), 2500);
-  }, [draftClientId, form, profile?.id, stepIndex, tenantId, user?.id, userId]);
+    await persistDraft({ showFeedback: true });
+  }, [persistDraft]);
 
   const nextStep = useCallback(() => {
     const stepErrors = validateIntakeStep(currentSection, form);

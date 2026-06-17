@@ -17,6 +17,10 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { deleteEmployee } from '@/lib/office/employeeDeleteService';
+import {
+  resolveEmployeeDepartmentLabel,
+  resolveEmployeeRoleLabel,
+} from '@/lib/office/employeeCatalogLabels';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
@@ -95,10 +99,15 @@ export function EmployeeDetailSummaryPanel({ employeeId, onDeleted }: EmployeeDe
                 dot
               />
               {employee.department ? (
-                <PremiumBadge label={employee.department} variant="cyan" />
+                <PremiumBadge
+                  label={resolveEmployeeDepartmentLabel(employee.department)}
+                  variant="cyan"
+                />
               ) : null}
             </View>
-            {employee.jobTitle ? <Text style={styles.role}>{employee.jobTitle}</Text> : null}
+            {employee.jobTitle ? (
+              <Text style={styles.role}>{resolveEmployeeRoleLabel(employee.jobTitle)}</Text>
+            ) : null}
           </View>
         </View>
       </PremiumCard>

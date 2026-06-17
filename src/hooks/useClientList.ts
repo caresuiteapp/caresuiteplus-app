@@ -1,10 +1,11 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ClientListItem } from '@/types/modules/office';
 import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
 import { fetchClientList } from '@/lib/office';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDraftStatusFilter } from '@/lib/services/clients/clientListQueryOptions';
+import { loadClientIntakeDraft } from '@/lib/clients/clientIntakeDraftStorage';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -50,8 +51,10 @@ export function useClientList() {
   const [costBearerFilter, setCostBearerFilter] = useState<string>('all');
   const [liveSearch, setLiveSearch] = useState('');
   const [liveStatusFilter, setLiveStatusFilter] = useState<WorkflowStatus | 'all'>('all');
-  const { profile } = useAuth();
+  const [hasLocalOnlyIntakeDraft, setHasLocalOnlyIntakeDraft] = useState(false);
+  const { profile, user } = useAuth();
   const tenantId = useServiceTenantId();
+  const intakeDraftUserId = user?.id ?? profile?.id ?? null;
 
   const query = useAsyncQuery(
     () => {
@@ -94,6 +97,36 @@ export function useClientList() {
 
   const allItems = query.data ?? [];
   const kpiItems = isLive ? (kpiQuery.data ?? []) : allItems;
+
+  useEffect(() => {
+    if (
+      !isLive
+      || !tenantId
+      || !intakeDraftUserId
+      || !isDraftStatusFilter(liveStatusFilter)
+    ) {
+      setHasLocalOnlyIntakeDraft(false);
+      return;
+    }
+
+    let cancelled = false;
+
+    void loadClientIntakeDraft(intakeDraftUserId, tenantId).then((draft) => {
+      if (cancelled) return;
+
+      if (!draft) {
+        setHasLocalOnlyIntakeDraft(false);
+        return;
+      }
+
+      const knownServerIds = new Set(allItems.map((item) => item.id));
+      setHasLocalOnlyIntakeDraft(!draft.clientId || !knownServerIds.has(draft.clientId));
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [allItems, intakeDraftUserId, isLive, liveStatusFilter, tenantId]);
 
   const itemsForList = useMemo(
     () => (isLive ? allItems : filterClientsByCareLevel(allItems, careLevelFilter)),
@@ -203,6 +236,7 @@ export function useClientList() {
     isEmpty: !query.loading && !query.error && allItems.length === 0,
     isFilterEmpty:
       !query.loading && !query.error && list.filtered.length === 0 && hasActiveFilters,
+    hasLocalOnlyIntakeDraft,
     isLive,
   };
 }

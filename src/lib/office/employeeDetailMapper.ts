@@ -8,8 +8,25 @@ export const EMPLOYEE_BASE_SELECT_COLUMNS =
   'id, tenant_id, first_name, last_name, role_title, email, phone, status, created_at, updated_at';
 
 /** Detail columns on live schema (internal_notes, entry_date; avatar from 0074; department from 0075). */
-export const EMPLOYEE_DETAIL_SELECT_COLUMNS =
-  `${EMPLOYEE_BASE_SELECT_COLUMNS}, department, internal_notes, entry_date, avatar_url`;
+export const EMPLOYEE_DETAIL_SELECT_COLUMNS = [
+  EMPLOYEE_BASE_SELECT_COLUMNS,
+  'department',
+  'internal_notes',
+  'entry_date',
+  'avatar_url',
+  'mobile',
+  'street',
+  'house_number',
+  'postal_code',
+  'city',
+  'employment_type',
+  'weekly_hours',
+  'has_first_aid_certificate',
+  'has_driver_license',
+  'driver_license_class',
+  'has_police_clearance',
+  'police_clearance_date',
+].join(', ');
 
 export type EmployeeDetailLiveRow = {
   id: string;
@@ -29,6 +46,18 @@ export type EmployeeDetailLiveRow = {
   internal_notes?: string | null;
   notes?: string | null;
   avatar_url?: string | null;
+  mobile?: string | null;
+  street?: string | null;
+  house_number?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+  employment_type?: string | null;
+  weekly_hours?: number | null;
+  has_first_aid_certificate?: boolean | null;
+  has_driver_license?: boolean | null;
+  driver_license_class?: string | null;
+  has_police_clearance?: boolean | null;
+  police_clearance_date?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -70,6 +99,18 @@ function mapCompleteEmployeeDetailRow(row: EmployeeDetailLiveRow): EmployeeDetai
     startDate: resolveStartDate(row),
     notes: resolveNotes(row),
     avatarUrl: row.avatar_url?.trim() || null,
+    mobile: row.mobile?.trim() || null,
+    street: row.street?.trim() || null,
+    houseNumber: row.house_number?.trim() || null,
+    postalCode: row.postal_code?.trim() || null,
+    city: row.city?.trim() || null,
+    employmentType: row.employment_type?.trim() || null,
+    weeklyHours: row.weekly_hours ?? null,
+    hasFirstAidCertificate: row.has_first_aid_certificate === true,
+    hasDriverLicense: row.has_driver_license === true,
+    driverLicenseClass: row.driver_license_class?.trim() || null,
+    hasPoliceClearance: row.has_police_clearance === true,
+    policeClearanceDate: row.police_clearance_date?.trim() || null,
   };
 }
 

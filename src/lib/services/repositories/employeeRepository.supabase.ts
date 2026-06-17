@@ -4,7 +4,6 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
   buildEmployeeInsertPayload,
-  buildEmployeeUpdatePayload,
 } from '@/lib/office/employeeSupabasePayload';
 import { mapDbStatusToCatalogStatus } from '@/lib/office/employeeStatusMapping';
 import { assertNoActiveAssignmentsForEmployee } from '@/lib/office/officeDeleteGuard';
@@ -132,26 +131,17 @@ export const employeeSupabaseRepository = {
   async update(
     tenantId: string,
     id: string,
-    input: {
-      jobTitle?: string | null;
-      phone?: string | null;
-      department?: string | null;
-      notes?: string | null;
-      status?: string;
-      avatarUrl?: string | null;
-    },
+    input: Record<string, unknown>,
   ): Promise<ServiceResult<{ id: string }>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
-    const patch = buildEmployeeUpdatePayload(input);
-
-    if (Object.keys(patch).length === 0) {
+    if (Object.keys(input).length === 0) {
       return { ok: true, data: { id } };
     }
 
     const { data, error } = await fromUnknownTable(supabase, 'employees')
-      .update(patch)
+      .update(input)
       .eq('tenant_id', tenantId)
       .eq('id', id)
       .select('id')

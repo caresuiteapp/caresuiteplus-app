@@ -28,26 +28,23 @@ export function EmployeeCreateScreen() {
     useEmployeeWizard();
   const isProduction = getServiceMode() === 'supabase';
   const { options: roleOptions } = useDropdownOptions('employee_role');
-  const { options: departmentOptions } = useDropdownOptions('employee_department');
   const [roleKey, setRoleKey] = useState('');
   const [departmentKey, setDepartmentKey] = useState('');
 
   const handleRoleChange = useCallback(
     (key: string) => {
       setRoleKey(key);
-      const label = roleOptions.find((option) => option.value === key)?.label ?? key;
-      updateField('jobTitle', label);
+      updateField('jobTitle', key);
     },
-    [roleOptions, updateField],
+    [updateField],
   );
 
   const handleDepartmentChange = useCallback(
     (key: string) => {
       setDepartmentKey(key);
-      const label = departmentOptions.find((option) => option.value === key)?.label ?? key;
-      updateField('department', label);
+      updateField('department', key);
     },
-    [departmentOptions, updateField],
+    [updateField],
   );
 
   useEffect(() => {

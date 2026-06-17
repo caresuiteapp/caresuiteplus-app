@@ -2,12 +2,12 @@ import type { EmployeeDetail } from '@/types/modules/employeeDetail';
 import { demoEmployees } from './employees';
 
 const DEPARTMENTS: Record<string, string> = {
-  'employee-001': 'Ambulante Pflege',
-  'employee-002': 'Ambulante Pflege',
-  'employee-003': 'Betreuung',
-  'employee-004': 'Verwaltung',
-  'employee-005': 'Ausbildung',
-  'employee-006': 'Ambulante Pflege',
+  'employee-001': 'pflege',
+  'employee-002': 'pflege',
+  'employee-003': 'assist_aussendienst',
+  'employee-004': 'buero_verwaltung',
+  'employee-005': 'akademie',
+  'employee-006': 'pflege',
 };
 
 function buildDetail(
@@ -24,7 +24,7 @@ function buildDetail(
     status: base.status,
     updatedAt: base.updatedAt,
     createdAt: base.createdAt,
-    department: DEPARTMENTS[base.id] ?? 'Allgemein',
+    department: DEPARTMENTS[base.id] ?? 'assist_aussendienst',
     startDate: base.createdAt.slice(0, 10),
     notes:
       base.status === 'gesperrt'
@@ -33,6 +33,18 @@ function buildDetail(
           ? 'Onboarding noch nicht abgeschlossen.'
           : null,
     avatarUrl: null,
+    mobile: null,
+    street: null,
+    houseNumber: null,
+    postalCode: null,
+    city: null,
+    employmentType: null,
+    weeklyHours: null,
+    hasFirstAidCertificate: false,
+    hasDriverLicense: false,
+    driverLicenseClass: null,
+    hasPoliceClearance: false,
+    policeClearanceDate: null,
   };
 }
 
@@ -44,7 +56,33 @@ export function getDemoEmployeeDetail(id: string): EmployeeDetail | null {
 
 export function updateDemoEmployeeDetail(
   id: string,
-  patch: Partial<Pick<EmployeeDetail, 'jobTitle' | 'phone' | 'department' | 'notes' | 'avatarUrl'>>,
+  patch: Partial<
+    Pick<
+      EmployeeDetail,
+      | 'firstName'
+      | 'lastName'
+      | 'email'
+      | 'jobTitle'
+      | 'phone'
+      | 'mobile'
+      | 'department'
+      | 'status'
+      | 'notes'
+      | 'avatarUrl'
+      | 'startDate'
+      | 'employmentType'
+      | 'weeklyHours'
+      | 'street'
+      | 'houseNumber'
+      | 'postalCode'
+      | 'city'
+      | 'hasFirstAidCertificate'
+      | 'hasDriverLicense'
+      | 'driverLicenseClass'
+      | 'hasPoliceClearance'
+      | 'policeClearanceDate'
+    >
+  >,
 ): EmployeeDetail | null {
   const current = detailMap.get(id);
   if (!current) return null;

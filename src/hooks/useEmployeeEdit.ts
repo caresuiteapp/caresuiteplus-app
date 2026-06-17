@@ -1,6 +1,8 @@
 import { useCallback, useEffect, useState } from 'react';
-import { updateEmployee, type EmployeeEditInput } from '@/lib/office/employeeFormService';
-import { EMPTY_EMPLOYEE_PROFILE_PHOTO } from '@/types/forms/employeeForm';
+import type { EmployeeEditFormData } from '@/types/forms/employeeEditForm';
+import { EMPTY_EMPLOYEE_EDIT_FORM } from '@/types/forms/employeeEditForm';
+import { saveEmployeeEdit } from '@/lib/office/employeeEditService';
+import { mapEmployeeDetailToEditForm } from '@/lib/office/employeeEditFormMappers';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useEmployeeDetail } from './useEmployeeDetail';
@@ -12,36 +14,20 @@ export function useEmployeeEdit(employeeId: string | undefined) {
   const roleKey = profile?.roleKey ?? null;
   const detail = useEmployeeDetail(employeeId);
 
-  const [form, setForm] = useState<EmployeeEditInput>({
-    jobTitle: '',
-    phone: '',
-    department: '',
-    notes: '',
-    profilePhoto: EMPTY_EMPLOYEE_PROFILE_PHOTO,
-  });
+  const [form, setForm] = useState<EmployeeEditFormData>(EMPTY_EMPLOYEE_EDIT_FORM);
 
   useEffect(() => {
     if (detail.data) {
-      setForm({
-        jobTitle: detail.data.jobTitle ?? '',
-        phone: detail.data.phone ?? '',
-        department: detail.data.department ?? '',
-        notes: detail.data.notes ?? '',
-        profilePhoto: {
-          displayUri: detail.data.avatarUrl,
-          pending: null,
-          removed: false,
-        },
-      });
+      setForm(mapEmployeeDetailToEditForm(detail.data));
     }
   }, [detail.data]);
 
   const saveMutation = useMutation(
-    (input: EmployeeEditInput) => {
+    (input: EmployeeEditFormData) => {
       if (!tenantId) {
         return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       }
-      return updateEmployee(
+      return saveEmployeeEdit(
         employeeId ?? '',
         tenantId,
         input,
@@ -62,12 +48,11 @@ export function useEmployeeEdit(employeeId: string | undefined) {
     employee: detail.data,
     form,
     setForm,
+    save,
+    saving: saveMutation.loading,
+    saveError: saveMutation.error,
     loading: detail.loading,
     error: detail.error,
-    save,
-    saveLoading: saveMutation.loading,
-    saveError: saveMutation.error,
-    successMessage: saveMutation.successMessage,
-    notFound: detail.notFound,
+    refresh: detail.refresh,
   };
 }
