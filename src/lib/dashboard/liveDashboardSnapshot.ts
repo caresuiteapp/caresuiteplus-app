@@ -8,6 +8,11 @@ import type {
 } from '@/types/dashboard';
 import type { RoleKey } from '@/types';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
+import {
+  buildOfficeKpisFromMetrics,
+  emptyOfficeDashboardMetrics,
+  type OfficeDashboardMetrics,
+} from '@/lib/office/officeDashboardMetrics';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -129,13 +134,6 @@ function buildEmptyBusinessKpis(roleKey: RoleKey, scope: DashboardScope): Dashbo
   ];
 }
 
-const OFFICE_LIVE_KPIS: DashboardKpi[] = [
-  { id: 'office-kpi-clients', label: 'Aktive Klient:innen', value: 0, subValue: 'Noch keine Klient:innen', icon: '👥', accentColor: '#62F3FF' },
-  { id: 'office-kpi-employees', label: 'Mitarbeitende', value: 0, subValue: 'Noch keine Mitarbeitende', icon: '👤', accentColor: '#FF9500' },
-  { id: 'office-kpi-invoices', label: 'Offene Rechnungen', value: 0, subValue: 'Keine Rechnungen', icon: '🧾', accentColor: '#FFD166' },
-  { id: 'office-kpi-appointments', label: 'Termine heute', value: 0, subValue: 'Keine Termine', icon: '📅', accentColor: '#7C5CFF' },
-];
-
 const OFFICE_LIVE_QUICK_ACTIONS: DashboardQuickAction[] = [
   { id: 'office-qa-client', label: 'Klient:in anlegen', icon: '👤', route: '/office/clients/new', variant: 'primary' },
   { id: 'office-qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office/invoices/new', variant: 'secondary' },
@@ -171,6 +169,8 @@ export function buildLiveOfficeDashboardSnapshot(
   roleKey: RoleKey,
   tenantId: string,
   tenantName: string,
+  metrics: OfficeDashboardMetrics = emptyOfficeDashboardMetrics(),
+  activities: DashboardActivity[] = EMPTY_ACTIVITIES,
 ): DashboardSnapshot {
   return {
     scope: 'office',
@@ -181,9 +181,9 @@ export function buildLiveOfficeDashboardSnapshot(
     heroSubtitle: 'Office · Zentrale Verwaltung & Stammdaten',
     moduleLabel: 'CareSuite+ Office',
     primaryAction: OFFICE_LIVE_QUICK_ACTIONS[0],
-    kpis: OFFICE_LIVE_KPIS,
+    kpis: buildOfficeKpisFromMetrics(metrics),
     statusCards: EMPTY_STATUS_CARDS,
     quickActions: OFFICE_LIVE_QUICK_ACTIONS,
-    activities: EMPTY_ACTIVITIES,
+    activities,
   };
 }

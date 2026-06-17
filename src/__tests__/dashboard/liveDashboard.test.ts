@@ -2,6 +2,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { fetchDashboardSnapshot } from '@/lib/dashboard/dashboardService';
 import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
+import { emptyOfficeDashboardMetrics } from '@/lib/office/officeDashboardMetrics';
+import { officeDashboardSupabaseRepository } from '@/lib/services/repositories/officeDashboardRepository.supabase';
+import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
 import * as tenantDisplayName from '@/lib/tenant/tenantDisplayName';
 
 vi.mock('react-native-url-polyfill/auto', () => ({}));
@@ -53,17 +56,41 @@ describe('live dashboard snapshots', () => {
     }
   });
 
-  it('returns empty office snapshot in supabase mode', async () => {
+  it('returns live office snapshot with real KPIs in supabase mode', async () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
+
+    vi.spyOn(officeDashboardSupabaseRepository, 'fetchMetrics').mockResolvedValue({
+      ok: true,
+      data: {
+        ...emptyOfficeDashboardMetrics(),
+        activeClients: 1,
+        totalClients: 1,
+        tableAvailability: {
+          clients: true,
+          employees: true,
+          invoices: true,
+          appointments: true,
+        },
+      },
+    });
+    vi.spyOn(officeDashboardSupabaseRepository, 'fetchRecentTimelineEvents').mockResolvedValue({
+      ok: true,
+      data: [],
+    });
+    vi.spyOn(officeAuditLogSupabaseRepository, 'list').mockResolvedValue({
+      ok: true,
+      data: [],
+    });
 
     const result = await fetchOfficeDashboard(LIVE_TENANT_ID, 'business_admin');
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.tenantName).toBe('Helferhasen+');
-      expect(result.data.activities).toEqual([]);
-      expect(result.data.kpis.every((kpi) => kpi.value === 0)).toBe(true);
+      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'office-kpi-clients');
+      expect(clientsKpi?.value).toBe(1);
+      expect(result.data.kpis.some((kpi) => String(kpi.subValue).includes('Demo'))).toBe(false);
     }
   });
 });
