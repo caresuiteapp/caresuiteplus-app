@@ -93,6 +93,7 @@ export function ClientsListView({
     isEmpty,
     isFilterEmpty,
     allItems,
+    kpiItems,
   } = useClientList();
 
   useEffect(() => {
@@ -101,7 +102,7 @@ export function ClientsListView({
     }
   }, [refreshToken, refresh]);
 
-  const kpis = useMemo(() => buildClientListKpis(allItems), [allItems]);
+  const kpis = useMemo(() => buildClientListKpis(kpiItems), [kpiItems]);
   const compactHero = embedded || shellVariant === 'desktop';
   const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
     name: 'lastName',

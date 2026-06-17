@@ -13,6 +13,10 @@ import { SERVICE_ERRORS } from '../errors';
 import { writeClientAudit, writeClientHistory } from './clientAuditHelper';
 import { assertNoActiveAssignmentsForClient } from '@/lib/office/officeDeleteGuard';
 import { markDemoClientDeleted, isDemoClientDeleted } from '@/lib/office/demoDeleteStore';
+import {
+  ACTIVE_CLIENT_LIFECYCLE_STATUSES,
+  resolveClientListQueryOptions,
+} from './clientListQueryOptions';
 import { workflowStatusToRemote, REMOTE_CLIENT_DELETED_STATUS, isRemoteClientDeleted } from './clientStatusBridge';
 import type {
   ClientListOptions,
@@ -113,33 +117,35 @@ export const supabaseClientRepository: ClientRepository = {
       return { ok: true, data: [] };
     }
 
+    const resolved = resolveClientListQueryOptions(options);
+
     let query = supabase.from('clients').select('*').eq('tenant_id', tenantId);
 
     query = query.neq('status', REMOTE_CLIENT_DELETED_STATUS);
 
-    if (options?.lifecycleFilter === 'active') {
-      query = query.neq('status', 'archived');
-    } else if (options?.lifecycleFilter === 'archived') {
+    if (resolved?.lifecycleFilter === 'active') {
+      query = query.in('status', [...ACTIVE_CLIENT_LIFECYCLE_STATUSES]);
+    } else if (resolved?.lifecycleFilter === 'archived') {
       query = query.eq('status', 'archived');
     }
 
-    if (options?.statusFilter && options.statusFilter !== 'all') {
-      query = query.eq('status', workflowStatusToRemote(options.statusFilter));
+    if (resolved?.statusFilter && resolved.statusFilter !== 'all') {
+      query = query.eq('status', workflowStatusToRemote(resolved.statusFilter));
     }
 
-    if (options?.careLevelFilter && options.careLevelFilter !== 'all') {
-      if (options.careLevelFilter === 'none') {
+    if (resolved?.careLevelFilter && resolved.careLevelFilter !== 'all') {
+      if (resolved.careLevelFilter === 'none') {
         query = query.is('care_level', null);
       } else {
-        query = query.eq('care_level', options.careLevelFilter as Database['public']['Enums']['care_level']);
+        query = query.eq('care_level', resolved.careLevelFilter as Database['public']['Enums']['care_level']);
       }
     }
 
-    if (options?.costBearerFilter && options.costBearerFilter !== 'all') {
-      query = query.eq('cost_bearer', options.costBearerFilter);
+    if (resolved?.costBearerFilter && resolved.costBearerFilter !== 'all') {
+      query = query.eq('cost_bearer', resolved.costBearerFilter);
     }
 
-    const searchTerm = options?.search?.trim();
+    const searchTerm = resolved?.search?.trim();
     if (searchTerm) {
       const term = `%${escapeIlikeTerm(searchTerm)}%`;
       query = query.or(

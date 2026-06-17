@@ -5,7 +5,6 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import {
-  isCostBearerTypeKey,
   resolvePrimaryCostBearerName,
 } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
@@ -18,19 +17,26 @@ function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
-function buildIntakeClientRecord(
+function resolveDraftNames(form: ClientIntakeFormData): { firstName: string; lastName: string } {
+  const firstName = form.firstName.trim() || 'Entwurf';
+  const lastName = form.lastName.trim() || '—';
+  return { firstName, lastName };
+}
+
+function buildIntakeClientPatch(
   tenantId: string,
   form: ClientIntakeFormData,
-  actorProfileId: string | null | undefined,
-  status: Database['public']['Enums']['client_status'],
+  actorProfileId?: string | null,
+  status: Database['public']['Enums']['client_status'] = 'lead',
 ): Database['public']['Tables']['clients']['Insert'] {
+  const { firstName, lastName } = resolveDraftNames(form);
   const primaryCostBearerName = resolvePrimaryCostBearerName(form);
   resolveIntakeBillingProfileType(form.billingTypes);
 
   return {
     tenant_id: tenantId,
-    first_name: form.firstName.trim(),
-    last_name: form.lastName.trim(),
+    first_name: firstName,
+    last_name: lastName,
     date_of_birth: form.dateOfBirth || null,
     care_level: (form.careLevel.trim() || null) as Database['public']['Enums']['care_level'] | null,
     status,
@@ -47,27 +53,25 @@ function buildIntakeClientRecord(
     cost_bearer: primaryCostBearerName,
     admission_date: form.admissionDate || null,
     gender: form.gender || null,
-    created_by: actorProfileId ?? null,
     updated_by: actorProfileId ?? null,
   };
 }
 
-export async function createClientFromIntake(
+export async function upsertClientIntakeDraft(
   tenantId: string,
   form: ClientIntakeFormData,
-  actorProfileId?: string | null,
-  draftClientId?: string | null,
+  options?: { clientId?: string | null; actorProfileId?: string | null },
 ): Promise<ServiceResult<{ id: string }>> {
   const supabase = getClient();
   if (!supabase) return unavailable();
 
-  const record = buildIntakeClientRecord(tenantId, form, actorProfileId, 'active');
+  const patch = buildIntakeClientPatch(tenantId, form, options?.actorProfileId ?? null, 'lead');
 
-  if (draftClientId) {
+  if (options?.clientId) {
     const { data, error } = await supabase
       .from('clients')
-      .update(record)
-      .eq('id', draftClientId)
+      .update(patch)
+      .eq('id', options.clientId)
       .eq('tenant_id', tenantId)
       .eq('status', 'lead')
       .select('id')
@@ -80,16 +84,18 @@ export async function createClientFromIntake(
     return { ok: true, data: { id: data.id } };
   }
 
-  const { data, error } = await supabase.from('clients').insert(record).select('id').single();
+  const { data, error } = await supabase
+    .from('clients')
+    .insert({
+      ...patch,
+      created_by: options?.actorProfileId ?? null,
+    })
+    .select('id')
+    .single();
+
   if (error || !data) {
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
   return { ok: true, data: { id: data.id } };
-}
-
-export function summarizeIntakeBillingType(form: ClientIntakeFormData): string {
-  const billingType = resolveIntakeBillingProfileType(form.billingTypes);
-  const committedTypes = form.costBearerTypes.filter(isCostBearerTypeKey);
-  return [billingType, ...committedTypes].filter(Boolean).join(', ');
 }

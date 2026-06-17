@@ -11,6 +11,8 @@ import {
   loadClientIntakeDraft,
   saveClientIntakeDraft,
 } from '@/lib/clients/clientIntakeDraftStorage';
+import { upsertClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase';
+import { getServiceMode } from '@/lib/services/mode';
 import {
   clearCostBearerTypeFields,
   COST_BEARER_FIELD_ERRORS,
@@ -51,6 +53,7 @@ export function useClientIntakeWizard() {
   const [createdId, setCreatedId] = useState<string | null>(null);
   const [draftLoaded, setDraftLoaded] = useState(false);
   const [draftRestored, setDraftRestored] = useState(false);
+  const [draftClientId, setDraftClientId] = useState<string | null>(null);
   const [draftSaveFeedback, setDraftSaveFeedback] = useState<{
     message: string;
     variant: 'success' | 'warning';
@@ -82,6 +85,7 @@ export function useClientIntakeWizard() {
         skipNextSave.current = true;
         setForm(draft.form);
         setStepIndex(clampStepIndex(draft.stepIndex, draft.form.careContexts));
+        setDraftClientId(draft.clientId ?? null);
         setDraftRestored(true);
       }
 
@@ -224,6 +228,7 @@ export function useClientIntakeWizard() {
     setErrors({});
     setSubmitError(null);
     setDraftRestored(false);
+    setDraftClientId(null);
   }, []);
 
   const discardDraft = useCallback(async () => {
@@ -243,19 +248,51 @@ export function useClientIntakeWizard() {
       return;
     }
 
-    await saveClientIntakeDraft(userId, tenantId, { form, stepIndex });
-
     const hasContent = hasIntakeDraftContent({ form, stepIndex });
+    if (!hasContent) {
+      setDraftSaveFeedback({
+        message: 'Kein Entwurf zum Speichern.',
+        variant: 'warning',
+      });
+      return;
+    }
+
+    let nextClientId = draftClientId;
+
+    if (getServiceMode() === 'supabase') {
+      const remoteResult = await upsertClientIntakeDraft(tenantId, form, {
+        clientId: draftClientId,
+        actorProfileId: profile?.id ?? user?.id ?? null,
+      });
+
+      if (!remoteResult.ok) {
+        setDraftSaveFeedback({
+          message: remoteResult.error ?? 'Entwurf konnte nicht gespeichert werden.',
+          variant: 'warning',
+        });
+        return;
+      }
+
+      nextClientId = remoteResult.data.id;
+      setDraftClientId(nextClientId);
+    }
+
+    await saveClientIntakeDraft(userId, tenantId, {
+      form,
+      stepIndex,
+      clientId: nextClientId,
+    });
+
     setDraftSaveFeedback({
-      message: hasContent ? 'Entwurf gespeichert.' : 'Kein Entwurf zum Speichern.',
-      variant: hasContent ? 'success' : 'warning',
+      message: 'Entwurf gespeichert.',
+      variant: 'success',
     });
 
     if (draftFeedbackTimerRef.current) {
       clearTimeout(draftFeedbackTimerRef.current);
     }
     draftFeedbackTimerRef.current = setTimeout(() => setDraftSaveFeedback(null), 2500);
-  }, [form, stepIndex, tenantId, userId]);
+  }, [draftClientId, form, profile?.id, stepIndex, tenantId, user?.id, userId]);
 
   const nextStep = useCallback(() => {
     const stepErrors = validateIntakeStep(currentSection, form);
@@ -290,7 +327,10 @@ export function useClientIntakeWizard() {
       }
     }
 
-    const result = await submitClientIntake(tenantId, form, { actorProfileId: profile?.id ?? user?.id ?? null });
+    const result = await submitClientIntake(tenantId, form, {
+      actorProfileId: profile?.id ?? user?.id ?? null,
+      draftClientId,
+    });
     setSubmitting(false);
     submitLock.current = false;
 
@@ -304,7 +344,7 @@ export function useClientIntakeWizard() {
     }
     setSubmitError(result.error);
     return null;
-  }, [form, profile?.id, steps, submitting, tenantId, user?.id]);
+  }, [draftClientId, form, profile?.id, steps, submitting, tenantId, user?.id, userId]);
 
   return {
     form,

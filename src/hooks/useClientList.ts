@@ -4,6 +4,7 @@ import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
 import { fetchClientList } from '@/lib/office';
 import { getServiceMode } from '@/lib/services/mode';
+import { isDraftStatusFilter } from '@/lib/services/clients/clientListQueryOptions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -82,7 +83,17 @@ export function useClientList() {
     { enabled: !!tenantId },
   );
 
+  const kpiQuery = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchClientList(tenantId, profile?.roleKey, { lifecycleFilter: 'all' });
+    },
+    [tenantId, profile?.roleKey],
+    { enabled: !!tenantId && isLive },
+  );
+
   const allItems = query.data ?? [];
+  const kpiItems = isLive ? (kpiQuery.data ?? []) : allItems;
 
   const itemsForList = useMemo(
     () => (isLive ? allItems : filterClientsByCareLevel(allItems, careLevelFilter)),
@@ -112,10 +123,10 @@ export function useClientList() {
   }, [allItems]);
 
   const refresh = useCallback(async () => {
-    await query.refresh();
+    await Promise.all([query.refresh(), isLive ? kpiQuery.refresh() : Promise.resolve()]);
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-  }, [query]);
+  }, [isLive, kpiQuery, query]);
 
   const resetFilters = useCallback(() => {
     if (isLive) {
@@ -132,9 +143,20 @@ export function useClientList() {
   const search = isLive ? liveSearch : list.search;
   const setSearch = isLive ? setLiveSearch : list.setSearch;
   const statusFilter = isLive ? liveStatusFilter : (list.statusFilter as WorkflowStatus | 'all');
-  const setStatusFilter = isLive
-    ? setLiveStatusFilter
-    : (list.setStatusFilter as (v: WorkflowStatus | 'all') => void);
+
+  const setStatusFilter = useCallback(
+    (value: WorkflowStatus | 'all') => {
+      if (isLive) {
+        setLiveStatusFilter(value);
+        if (isDraftStatusFilter(value)) {
+          setLifecycleFilter('all');
+        }
+        return;
+      }
+      list.setStatusFilter(value);
+    },
+    [isLive, list],
+  );
 
   const hasActiveFilters =
     search.length > 0 ||
@@ -146,6 +168,7 @@ export function useClientList() {
   return {
     items: list.paginated.items,
     allItems,
+    kpiItems,
     totalCount: allItems.length,
     filteredCount: list.filtered.length,
     loading: query.loading,

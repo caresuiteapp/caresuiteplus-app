@@ -17,6 +17,7 @@ const mockUpdate = vi.fn();
 const mockSelect = vi.fn();
 const mockEq = vi.fn();
 const mockNeq = vi.fn();
+const mockIn = vi.fn();
 const mockOr = vi.fn();
 const mockOrder = vi.fn();
 const mockSingle = vi.fn();
@@ -27,6 +28,7 @@ function createQueryChain(finalData: unknown = [], finalError: unknown = null) {
     select: mockSelect.mockReturnThis(),
     eq: mockEq.mockReturnThis(),
     neq: mockNeq.mockReturnThis(),
+    in: mockIn.mockReturnThis(),
     or: mockOr.mockReturnThis(),
     order: mockOrder.mockReturnThis(),
     is: mockIs.mockReturnThis(),
@@ -148,6 +150,46 @@ describe('Client production stabilization', () => {
       await supabaseClientRepository.list('tenant-a', { lifecycleFilter: 'archived' });
 
       expect(mockEq).toHaveBeenCalledWith('status', 'archived');
+    });
+
+    it('schließt Entwürfe aus aktivem Lebenszyklus aus', async () => {
+      mockFrom.mockImplementation(() => createQueryChain([]));
+
+      await supabaseClientRepository.list('tenant-a', { lifecycleFilter: 'active' });
+
+      expect(mockIn).toHaveBeenCalledWith('status', expect.arrayContaining(['active']));
+      expect(mockIn).toHaveBeenCalledWith('status', expect.not.arrayContaining(['lead']));
+    });
+
+    it('liefert Entwürfe bei Status Entwurf trotz aktivem Lebenszyklus-UI-Filter', async () => {
+      mockFrom.mockImplementation(() =>
+        createQueryChain([
+          {
+            id: 'c-draft',
+            tenant_id: 'tenant-a',
+            first_name: 'Draft',
+            last_name: 'Client',
+            status: 'lead',
+            care_level: null,
+            city: 'Berlin',
+            postal_code: '10115',
+            sensitivity: 'care',
+            updated_at: '2026-01-01T00:00:00.000Z',
+          },
+        ]),
+      );
+
+      const result = await supabaseClientRepository.list('tenant-a', {
+        lifecycleFilter: 'active',
+        statusFilter: 'entwurf',
+      });
+
+      expect(result.ok).toBe(true);
+      expect(mockEq).toHaveBeenCalledWith('status', 'lead');
+      expect(mockIn).not.toHaveBeenCalledWith('status', expect.arrayContaining(['active']));
+      if (result.ok) {
+        expect(result.data[0]?.status).toBe('entwurf');
+      }
     });
   });
 

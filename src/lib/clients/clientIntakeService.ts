@@ -141,11 +141,16 @@ export function hasIntakeErrors(errors: ClientIntakeErrors): boolean {
 export async function submitClientIntake(
   tenantId: string,
   form: ClientIntakeFormData,
-  options?: { actorProfileId?: string | null },
+  options?: { actorProfileId?: string | null; draftClientId?: string | null },
 ): Promise<ServiceResult<{ id: string }>> {
   return runService(async () => {
     if (!isDemoClientBackend()) {
-      const clientResult = await createClientFromIntake(tenantId, form, options?.actorProfileId ?? null);
+      const clientResult = await createClientFromIntake(
+        tenantId,
+        form,
+        options?.actorProfileId ?? null,
+        options?.draftClientId ?? null,
+      );
       if (!clientResult.ok) return clientResult;
 
       const carrierResult = await persistIntakeCostCarriers(
