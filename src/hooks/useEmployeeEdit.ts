@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { updateEmployee, type EmployeeEditInput } from '@/lib/office/employeeFormService';
+import { EMPTY_EMPLOYEE_PROFILE_PHOTO } from '@/types/forms/employeeForm';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useEmployeeDetail } from './useEmployeeDetail';
@@ -16,6 +17,7 @@ export function useEmployeeEdit(employeeId: string | undefined) {
     phone: '',
     department: '',
     notes: '',
+    profilePhoto: EMPTY_EMPLOYEE_PROFILE_PHOTO,
   });
 
   useEffect(() => {
@@ -25,6 +27,11 @@ export function useEmployeeEdit(employeeId: string | undefined) {
         phone: detail.data.phone ?? '',
         department: detail.data.department ?? '',
         notes: detail.data.notes ?? '',
+        profilePhoto: {
+          displayUri: detail.data.avatarUrl,
+          pending: null,
+          removed: false,
+        },
       });
     }
   }, [detail.data]);
@@ -34,7 +41,13 @@ export function useEmployeeEdit(employeeId: string | undefined) {
       if (!tenantId) {
         return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       }
-      return updateEmployee(employeeId ?? '', tenantId, input, roleKey);
+      return updateEmployee(
+        employeeId ?? '',
+        tenantId,
+        input,
+        roleKey,
+        detail.data?.avatarUrl ?? null,
+      );
     },
     { successMessage: 'Mitarbeitende:r gespeichert.' },
   );

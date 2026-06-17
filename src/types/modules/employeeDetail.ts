@@ -5,4 +5,5 @@ export type EmployeeDetail = EmployeeListItem & {
   department: string | null;
   startDate: string | null;
   notes: string | null;
+  avatarUrl: string | null;
 };

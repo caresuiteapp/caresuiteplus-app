@@ -1,6 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+import { EMPTY_EMPLOYEE_PROFILE_PHOTO } from '@/types/forms/employeeForm';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
 import { updateEmployee } from '@/lib/office/employeeFormService';
@@ -19,8 +20,12 @@ describe('Office employee & invoice CRUD audit screens', () => {
 
     for (const file of ['EmployeeCreateScreen.tsx', 'EmployeeEditScreen.tsx']) {
       const source = readFileSync(path.join(root, 'src/screens/office', file), 'utf8');
-      expect(source).toMatch(/PremiumInput|CatalogValueSelect/);
-      expect(source).toMatch(/createEmployee|updateEmployee|fetchEmployeeDetail/);
+      expect(source).toMatch(/PremiumInput|CatalogValueSelect|EmployeeProfilePhotoPicker/);
+      if (file === 'EmployeeCreateScreen.tsx') {
+        expect(source).toMatch(/useEmployeeWizard|createEmployee/);
+      } else {
+        expect(source).toMatch(/updateEmployee|fetchEmployeeDetail/);
+      }
     }
   });
 
@@ -74,6 +79,7 @@ describe('Office employee & invoice services', () => {
           phone: detail.data.phone ?? '',
           department: detail.data.department ?? 'Allgemein',
           notes: 'Phase4 test',
+          profilePhoto: EMPTY_EMPLOYEE_PROFILE_PHOTO,
         },
         'business_admin',
       );

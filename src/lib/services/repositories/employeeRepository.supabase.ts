@@ -100,6 +100,7 @@ export const employeeSupabaseRepository = {
       phone?: string;
       department?: string;
       status?: string;
+      avatarUrl?: string | null;
     },
   ): Promise<ServiceResult<{ id: string }>> {
     const supabase = getClient();
@@ -134,9 +135,48 @@ export const employeeSupabaseRepository = {
         phone: input.phone?.trim() || null,
         department: input.department?.trim() || null,
         status,
+        avatar_url: input.avatarUrl?.trim() || null,
       })
       .select('id')
       .single();
+    if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
+    return { ok: true, data: { id: data.id } };
+  },
+
+  async update(
+    tenantId: string,
+    id: string,
+    input: {
+      jobTitle?: string | null;
+      phone?: string | null;
+      department?: string | null;
+      notes?: string | null;
+      status?: string;
+      avatarUrl?: string | null;
+    },
+  ): Promise<ServiceResult<{ id: string }>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const patch: Record<string, unknown> = {};
+    if (input.jobTitle !== undefined) patch.job_title = input.jobTitle?.trim() || null;
+    if (input.phone !== undefined) patch.phone = input.phone?.trim() || null;
+    if (input.department !== undefined) patch.department = input.department?.trim() || null;
+    if (input.notes !== undefined) patch.notes = input.notes?.trim() || null;
+    if (input.status !== undefined) patch.status = input.status;
+    if (input.avatarUrl !== undefined) patch.avatar_url = input.avatarUrl?.trim() || null;
+
+    if (Object.keys(patch).length === 0) {
+      return { ok: true, data: { id } };
+    }
+
+    const { data, error } = await fromUnknownTable(supabase, 'employees')
+      .update(patch)
+      .eq('tenant_id', tenantId)
+      .eq('id', id)
+      .select('id')
+      .single();
+
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
     return { ok: true, data: { id: data.id } };
   },

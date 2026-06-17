@@ -5,7 +5,27 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { employeeSupabaseRepository } from '@/lib/services/repositories/employeeRepository.supabase';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
+import {
+  persistEmployeeAvatarUrl,
+  uploadEmployeeAvatar,
+} from './employeeAvatarService';
 import { validateEmployeeForm } from './employeeFormValidation';
+
+async function persistProfilePhotoAfterCreate(
+  tenantId: string,
+  employeeId: string,
+  form: EmployeeFormData,
+): Promise<ServiceResult<void>> {
+  const photo = form.profilePhoto;
+  if (photo.removed || !photo.pending) {
+    return { ok: true, data: undefined };
+  }
+
+  const uploaded = await uploadEmployeeAvatar(tenantId, employeeId, photo.pending);
+  if (!uploaded.ok) return uploaded;
+
+  return persistEmployeeAvatarUrl(tenantId, employeeId, uploaded.data.avatarUrl);
+}
 
 export async function createEmployee(
   tenantId: string,
@@ -24,7 +44,7 @@ export async function createEmployee(
   }
 
   if (getServiceMode() === 'supabase') {
-    return employeeSupabaseRepository.create(tenantId, {
+    const created = await employeeSupabaseRepository.create(tenantId, {
       firstName: form.firstName,
       lastName: form.lastName,
       jobTitle: form.jobTitle,
@@ -33,6 +53,14 @@ export async function createEmployee(
       department: form.department,
       status: form.status,
     });
+    if (!created.ok) return created;
+
+    const avatarResult = await persistProfilePhotoAfterCreate(tenantId, created.data.id, form);
+    if (!avatarResult.ok) {
+      return { ok: false, error: avatarResult.error };
+    }
+
+    return created;
   }
 
   await new Promise((r) => setTimeout(r, 350));

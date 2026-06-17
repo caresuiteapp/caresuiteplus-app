@@ -1,8 +1,9 @@
-import { ScrollView, StyleSheet } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
+import { EmployeeProfilePhotoPicker } from '@/components/office/EmployeeProfilePhotoPicker';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareLightPageShell } from '@/components/layout';
 import {
@@ -19,6 +20,8 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
 import { updateEmployee, type EmployeeEditInput } from '@/lib/office/employeeFormService';
+import { getServiceMode } from '@/lib/services/mode';
+import { EMPTY_EMPLOYEE_PROFILE_PHOTO } from '@/types/forms/employeeForm';
 import { spacing } from '@/theme';
 
 export function EmployeeEditScreen() {
@@ -32,6 +35,7 @@ export function EmployeeEditScreen() {
     phone: '',
     department: '',
     notes: '',
+    profilePhoto: EMPTY_EMPLOYEE_PROFILE_PHOTO,
   });
   const [employeeStatus, setEmployeeStatus] = useState('aktiv');
   const [saveError, setSaveError] = useState<string | null>(null);
@@ -55,6 +59,11 @@ export function EmployeeEditScreen() {
         phone: query.data.phone ?? '',
         department: query.data.department ?? '',
         notes: query.data.notes ?? '',
+        profilePhoto: {
+          displayUri: query.data.avatarUrl,
+          pending: null,
+          removed: false,
+        },
       });
       setEmployeeStatus(query.data.status ?? 'aktiv');
     }
@@ -101,7 +110,13 @@ export function EmployeeEditScreen() {
     if (!tenantId || !id) return;
     setSaving(true);
     setSaveError(null);
-    const result = await updateEmployee(id, tenantId, form, profile?.roleKey);
+    const result = await updateEmployee(
+      id,
+      tenantId,
+      form,
+      profile?.roleKey,
+      employee.avatarUrl,
+    );
     setSaving(false);
     if (result.ok) {
       setSuccessMessage('Mitarbeitende:r gespeichert.');
@@ -123,12 +138,25 @@ export function EmployeeEditScreen() {
         <FormScreenHero
           eyebrow="OFFICE · MITARBEITENDE"
           title={`${employee.firstName} ${employee.lastName}`}
-          meta="Stammdaten bearbeiten — Demo-Persistenz"
+          meta={
+            getServiceMode() === 'supabase'
+              ? 'Stammdaten und Profilbild bearbeiten'
+              : 'Stammdaten bearbeiten — Demo-Persistenz'
+          }
           icon="✏️"
           formMode="edit"
           wpNumber={187}
           preparedMessage="Live-HR-Felder folgen in Kürze — derzeit Demo-Persistenz."
         />
+        <View style={styles.profileSection}>
+          <EmployeeProfilePhotoPicker
+            firstName={employee.firstName}
+            lastName={employee.lastName}
+            value={form.profilePhoto}
+            onChange={(profilePhoto) => setForm((f) => ({ ...f, profilePhoto }))}
+            disabled={saving}
+          />
+        </View>
         {successMessage ? <SuccessState message={successMessage} /> : null}
         <PremiumInput
           label="Funktion"
@@ -169,4 +197,8 @@ export function EmployeeEditScreen() {
 
 const styles = StyleSheet.create({
   scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
+  profileSection: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+  },
 });

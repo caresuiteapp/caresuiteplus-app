@@ -8,7 +8,7 @@ export const EMPLOYEE_BASE_SELECT_COLUMNS =
 
 /** Detail-Spalten aus Migration 0033 — SELECT nur wenn Migration angewendet. */
 export const EMPLOYEE_DETAIL_SELECT_COLUMNS =
-  `${EMPLOYEE_BASE_SELECT_COLUMNS}, department, start_date, notes`;
+  `${EMPLOYEE_BASE_SELECT_COLUMNS}, department, start_date, notes, avatar_url`;
 
 export const EMPLOYEE_DETAIL_REQUIRED_FIELDS = ['department', 'start_date', 'notes'] as const;
 
@@ -24,6 +24,7 @@ export type EmployeeDetailLiveRow = {
   department?: string | null;
   start_date?: string | null;
   notes?: string | null;
+  avatar_url?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -61,6 +62,7 @@ function mapCompleteEmployeeDetailRow(row: EmployeeDetailLiveRow): EmployeeDetai
     department: row.department?.trim() || null,
     startDate: row.start_date?.trim() || null,
     notes: row.notes?.trim() || null,
+    avatarUrl: row.avatar_url?.trim() || null,
   };
 }
 

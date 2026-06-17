@@ -1,8 +1,9 @@
-import { StyleSheet } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useCallback, useEffect, useState } from 'react';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
+import { EmployeeProfilePhotoPicker } from '@/components/office/EmployeeProfilePhotoPicker';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareLightPageShell } from '@/components/layout';
 import {
@@ -122,9 +123,18 @@ export function EmployeeCreateScreen() {
         }
       />
       {isFormEmpty ? (
-        <EmptyState title="Neues Profil" message="Pflichtfelder unten ausfüllen und anlegen." />
+        <EmptyState title="Neues Profil" message="Profilbild wählen und Pflichtfelder ausfüllen." />
       ) : null}
       <PremiumCard style={styles.card}>
+        <View style={styles.profileSection}>
+          <EmployeeProfilePhotoPicker
+            firstName={form.firstName}
+            lastName={form.lastName}
+            value={form.profilePhoto}
+            onChange={(profilePhoto) => updateField('profilePhoto', profilePhoto)}
+            disabled={submitting}
+          />
+        </View>
         <PremiumInput
           label="Vorname"
           value={form.firstName}
@@ -186,4 +196,9 @@ export function EmployeeCreateScreen() {
 
 const styles = StyleSheet.create({
   card: { gap: spacing.sm },
+  profileSection: {
+    alignItems: 'center',
+    paddingVertical: spacing.sm,
+    marginBottom: spacing.xs,
+  },
 });

@@ -32,6 +32,7 @@ function buildDetail(
         : base.status === 'entwurf'
           ? 'Onboarding noch nicht abgeschlossen.'
           : null,
+    avatarUrl: null,
   };
 }
 
@@ -43,7 +44,7 @@ export function getDemoEmployeeDetail(id: string): EmployeeDetail | null {
 
 export function updateDemoEmployeeDetail(
   id: string,
-  patch: Partial<Pick<EmployeeDetail, 'jobTitle' | 'phone' | 'department' | 'notes'>>,
+  patch: Partial<Pick<EmployeeDetail, 'jobTitle' | 'phone' | 'department' | 'notes' | 'avatarUrl'>>,
 ): EmployeeDetail | null {
   const current = detailMap.get(id);
   if (!current) return null;
