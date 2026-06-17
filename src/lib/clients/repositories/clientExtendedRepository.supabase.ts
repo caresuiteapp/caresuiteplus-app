@@ -31,6 +31,8 @@ import type { ClientPortalAccessListItem } from '@/lib/access/clientPortalAccess
 import type { ClientContactRow, ClientExtendedRow } from '@/lib/supabase/rowTypes';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
+import { aggregateClientTimelineEvents } from '@/lib/clients/clientTimelineAggregation';
+import { writeClientAudit } from '@/lib/services/clients/clientAuditHelper';
 import {
   mergeClientRecordDocuments,
 } from '@/lib/clients/clientDocumentMerge';
@@ -415,7 +417,14 @@ export const supabaseClientExtendedRepository = {
       .single();
 
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: mapClientConsentExtended(castRow(data) as Parameters<typeof mapClientConsentExtended>[0]) };
+    const consent = mapClientConsentExtended(castRow(data) as Parameters<typeof mapClientConsentExtended>[0]);
+    await writeClientAudit(supabase, {
+      tenantId,
+      clientId,
+      action: 'Einwilligung geändert',
+      details: `${consent.title}: ${granted ? 'erteilt' : 'widerrufen'}`,
+    });
+    return { ok: true, data: consent };
   },
 
   async fetchTasks(tenantId: string, clientId: string): Promise<ServiceResult<ClientTask[]>> {
@@ -473,7 +482,14 @@ export const supabaseClientExtendedRepository = {
       .single();
 
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: mapClientTask(castRow(data) as Parameters<typeof mapClientTask>[0]) };
+    const task = mapClientTask(castRow(data) as Parameters<typeof mapClientTask>[0]);
+    await writeClientAudit(supabase, {
+      tenantId,
+      clientId,
+      action: 'Aufgabe angelegt',
+      details: task.title,
+    });
+    return { ok: true, data: task };
   },
 
   async updateTask(
@@ -514,12 +530,26 @@ export const supabaseClientExtendedRepository = {
       .single();
 
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: mapClientTask(castRow(data) as Parameters<typeof mapClientTask>[0]) };
+    const task = mapClientTask(castRow(data) as Parameters<typeof mapClientTask>[0]);
+    await writeClientAudit(supabase, {
+      tenantId,
+      clientId,
+      action: 'Aufgabe geändert',
+      details: task.title,
+    });
+    return { ok: true, data: task };
   },
 
   async deleteTask(tenantId: string, clientId: string, taskId: string): Promise<ServiceResult<void>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
+
+    const { data: existing } = await fromUnknownTable(supabase, 'client_tasks')
+      .select('title')
+      .eq('id', taskId)
+      .eq('client_id', clientId)
+      .eq('tenant_id', tenantId)
+      .maybeSingle();
 
     const { error } = await fromUnknownTable(supabase, 'client_tasks')
       .delete()
@@ -528,6 +558,12 @@ export const supabaseClientExtendedRepository = {
       .eq('tenant_id', tenantId);
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    await writeClientAudit(supabase, {
+      tenantId,
+      clientId,
+      action: 'Aufgabe gelöscht',
+      details: typeof existing?.title === 'string' ? existing.title : taskId,
+    });
     return { ok: true, data: undefined };
   },
 
@@ -542,21 +578,62 @@ export const supabaseClientExtendedRepository = {
     const exists = await assertClientExists(tenantId, clientId);
     if (!exists.ok) return exists;
 
-    let query = fromUnknownTable(supabase, 'client_timeline_events')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
-      .order('created_at', { ascending: false });
+    const timelineLimit = 200;
 
-    if (portalOnly) {
-      query = query.eq('is_internal', false);
+    const [timelineResult, auditResult, documentResult] = await Promise.all([
+      (() => {
+        let query = fromUnknownTable(supabase, 'client_timeline_events')
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('client_id', clientId)
+          .order('created_at', { ascending: false })
+          .limit(timelineLimit);
+        if (portalOnly) {
+          query = query.eq('is_internal', false);
+        }
+        return query;
+      })(),
+      fromUnknownTable(supabase, 'client_audit_entries')
+        .select('id, action, details, actor_name, created_at, client_id')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(timelineLimit),
+      fromUnknownTable(supabase, 'client_document_events')
+        .select('id, event_type, summary, created_at, client_id, profiles(display_name)')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .order('created_at', { ascending: false })
+        .limit(timelineLimit),
+    ]);
+
+    const firstError = timelineResult.error ?? auditResult.error ?? documentResult.error;
+    const hasData =
+      (timelineResult.data?.length ?? 0) > 0 ||
+      (auditResult.data?.length ?? 0) > 0 ||
+      (documentResult.data?.length ?? 0) > 0;
+
+    if (firstError && !hasData) {
+      return { ok: false, error: toGermanSupabaseError(firstError) };
     }
 
-    const { data, error } = await query;
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    const timelineEvents = castRows(timelineResult.data).map((row) =>
+      mapClientTimelineEvent(row as Parameters<typeof mapClientTimelineEvent>[0]),
+    );
+
     return {
       ok: true,
-      data: castRows(data).map((row) => mapClientTimelineEvent(row as Parameters<typeof mapClientTimelineEvent>[0])),
+      data: aggregateClientTimelineEvents({
+        clientId,
+        timelineEvents,
+        auditEntries: castRows(auditResult.data) as Parameters<
+          typeof aggregateClientTimelineEvents
+        >[0]['auditEntries'],
+        documentEvents: castRows(documentResult.data) as Parameters<
+          typeof aggregateClientTimelineEvents
+        >[0]['documentEvents'],
+        portalOnly,
+      }),
     };
   },
 
@@ -810,6 +887,12 @@ export const supabaseClientExtendedRepository = {
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
 
     const access = mapClientPortalAccess(castRow(data) as Parameters<typeof mapClientPortalAccess>[0]);
+    await writeClientAudit(supabase, {
+      tenantId: input.tenantId,
+      clientId: input.clientId,
+      action: 'Portal-Zugang eingerichtet',
+      details: `Benutzername: ${input.username}`,
+    });
     return { ok: true, data: access };
   },
 
@@ -845,6 +928,13 @@ export const supabaseClientExtendedRepository = {
     if (!access.portalUsername) {
       return { ok: false, error: 'Portal-Zugang ist nicht eingerichtet.' };
     }
+
+    await writeClientAudit(supabase, {
+      tenantId: input.tenantId,
+      clientId: input.clientId,
+      action: 'Portal-Zugangscode erneuert',
+      details: `Benutzername: ${access.portalUsername}`,
+    });
 
     return { ok: true, data: access };
   },

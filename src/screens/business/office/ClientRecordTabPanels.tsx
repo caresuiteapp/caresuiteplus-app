@@ -24,6 +24,7 @@ import { addClientMedication, fetchClientMedications } from '@/lib/clients/clien
 import { fetchClientPortalAccess } from '@/lib/clients/clientPortalAccessService';
 import { ClientPortalAccessPanel } from '@/components/clients/ClientPortalAccessPanel';
 import { addTimelineEvent, fetchClientTimeline } from '@/lib/clients/clientTimelineService';
+import { buildTimelineEntrySubtitle } from '@/lib/clients/clientTimelineAggregation';
 import { addClientVital, fetchClientVitals } from '@/lib/clients/clientVitalsService';
 import { ClientTasksPanel } from '@/components/office/ClientTasksPanel';
 import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
@@ -34,11 +35,10 @@ import {
   EinwilligungenTab,
   PflegegradBudgetTab,
   RisikenNotfallTab,
-  VerlaufTab,
   VertragAbrechnungTab,
 } from '@/screens/office/ClientFullDetailTabs';
 import type { ClientFullDetail } from '@/types/modules/client';
-import { formatDate } from '@/lib/formatters/dateTimeFormatters';
+import { formatDate, formatDateTime } from '@/lib/formatters/dateTimeFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 type TabPanelProps = {
@@ -212,7 +212,7 @@ export function ClientRecordVitalsPanel({ clientId, onRecordRefresh }: TabPanelP
   );
 }
 
-export function ClientRecordTimelinePanel({ clientId }: TabPanelProps) {
+export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProps) {
   const { isReadOnly } = usePermissions();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -223,7 +223,7 @@ export function ClientRecordTimelinePanel({ clientId }: TabPanelProps) {
     if (!tenantId || isReadOnly || !note.trim()) return;
     await addTimelineEvent(tenantId, clientId, {
       title: note.trim(),
-      subtitle: 'Office-Eintrag',
+      subtitle: 'Manuelle Notiz',
       actorName: profile?.displayName ?? 'Office',
       timestamp: new Date().toISOString(),
       icon: '📝',
@@ -243,17 +243,36 @@ export function ClientRecordTimelinePanel({ clientId }: TabPanelProps) {
     id: e.id,
     icon: e.icon,
     title: e.title,
-    subtitle: e.subtitle ?? e.actorName ?? undefined,
+    subtitle: `${formatDateTime(e.timestamp)} · ${buildTimelineEntrySubtitle(e)}`,
     timestamp: e.timestamp,
     status: e.status,
     type: 'care' as const,
   }));
 
+  const internalNotes = fullClient?.internalNotes ?? [];
+
   return (
     <View style={styles.panel}>
       <SectionPanel title="Verlauf / Timeline">
-        {items.length === 0 ? <EmptyState title="Keine Einträge" /> : <Timeline items={items} />}
+        {items.length === 0 ? (
+          <EmptyState
+            title="Noch keine Einträge"
+            message="Änderungen an Stammdaten, Dokumenten, Portal und Aufgaben erscheinen hier automatisch. Sie können auch manuelle Notizen hinzufügen."
+          />
+        ) : (
+          <Timeline items={items} maxItems={500} />
+        )}
       </SectionPanel>
+      {internalNotes.length > 0 ? (
+        <SectionPanel title="Interne Notizen" subtitle="Nur Office — nicht im Portal">
+          {internalNotes.map((n) => (
+            <PremiumCard key={n.id} accentColor={colors.violet} style={styles.card}>
+              <Text style={styles.secondary}>{n.category} · {n.createdBy}</Text>
+              <Text style={styles.primary}>{n.content}</Text>
+            </PremiumCard>
+          ))}
+        </SectionPanel>
+      ) : null}
       {!isReadOnly ? (
         <SectionPanel title="Eintrag hinzufügen">
           <PremiumInput label="Notiz" value={note} onChangeText={setNote} multiline />
@@ -383,12 +402,7 @@ export function ClientRecordTabContent({
       );
     }
     if (tab === 'verlauf') {
-      return (
-        <View style={styles.panel}>
-          <VerlaufTab client={fullClient} />
-          <ClientRecordTimelinePanel {...panelProps} />
-        </View>
-      );
+      return <ClientRecordTimelinePanel {...panelProps} />;
     }
     if (tab === 'aufgaben') {
       return <ClientRecordTasksPanel {...panelProps} />;
