@@ -1,6 +1,6 @@
 # Office Shell & Interaction Recovery Report
 
-**Date:** 2026-06-18  
+**Date:** 2026-06-18 (re-verified)  
 **Branch:** `recovery/hybrid-live-restore`  
 **Scope:** Shell/overlay interaction wiring only — no data service changes, no cosmetic token overrides
 
@@ -8,104 +8,90 @@
 
 ## Executive Summary
 
-The **PlatformShell + Aurora** desktop path was already active via `ShellLayout → CareAdaptiveShell → CareWebShell → CareDesktopShell (= PlatformShell)`. The regression was in the **content layer**: office screens wrapped themselves in `CareLightScreen` / `CareLightPageShell`, painting opaque white/light surfaces inside the dark shell. Detail modals (`ClientDetailModal`, `EmployeeDetailModal`) existed but were never wired.
+Initial shell recovery (commit `7a229e7`) fixed Aurora transparency and modal overlays for dashboard/clients/employees. Section 23 (commits `64d8735`–`ce9f1bd`) restored live messenger **data** flow but left **UI interaction gaps**: context panel breakpoint too high, thread header not using recovery gradient style, action toolbar labels incomplete, settings route 404, and CommunicationCenter empty-state replacing the full workspace shell.
 
-Fixes reconnect recovery UI patterns while keeping main-branch live data services intact.
-
----
-
-## 1. Investigation Findings
-
-### 1.1 Which shell was active?
-
-| Layer | Component | Status |
-|-------|-----------|--------|
-| `app/office/_layout.tsx` | `ShellLayout area="office"` | ✅ Correct entry |
-| `ShellLayout` | `CareAdaptiveShell` | ✅ |
-| Web dark (≥1024px) | `CareWebShell → CareDesktopShell (= PlatformShell)` | ✅ |
-| Aurora | `PlatformShell` renders `AuroraBackground` when `isDark` | ✅ |
-| Context panel | `RightContextPanel` at width ≥1280 | ✅ Present, not wired to screens |
-
-**Wrong layer:** Content screens used `CareLightScreen` / `CareLightPageShell` — these inject `CareSuiteLightBackground` (white card) over the shell.
-
-### 1.2 What rendered the white office card?
-
-- `OfficeIndexScreen` → `CareLightScreen` + `CareLightModuleDashboard`
-- `ClientsListScreen`, `EmployeesListScreen`, `OfficeMessengerScreen` → `CareLightPageShell`
-- `CareLightPageShell` / `CareLightScreen` always paint light backgrounds regardless of shell theme
-
-### 1.3 Recovery shell vs HEAD (fc3e823)
-
-`git diff fc3e823 -- src/components/layout/platform/` showed only a ScrollView→View change in `platformshell.tsx` (non-functional for theme). Recovery shell files were intact; content screens had regressed to light wrappers during hybrid data restore from main.
-
-### 1.4 Components that should be modal/overlay but were page-based
-
-| Feature | Recovery component | Was wired? | Now |
-|---------|-------------------|------------|-----|
-| Dashboard hero | `OfficeDashboardView` + `DashboardHero` | ❌ Used `CareLightModuleDashboard` | ✅ `ModuleDashboardShell` |
-| Client Akte | `ClientDetailModal` + `GradientModalHeader` | ❌ Route-only / inline panel | ✅ Modal on Aurora shell |
-| Employee profile | `EmployeeDetailModal` + `GradientModalHeader` | ❌ Route-only / inline panel | ✅ Modal on Aurora shell |
-| Broadcast | `OfficeBroadcastModal` | ✅ Already in `OfficeMessengerScreen` | ✅ Kept |
-| Messenger workspace | `OfficeMessagesInbox` + `OfficeMessageThread` | ✅ Logic present | ✅ `ScreenShell` (transparent) |
-| Context | `RightContextPanel` | ✅ In PlatformShell | ✅ Unchanged |
-
-### 1.5 Navigation / routing
-
-- `officenav.ts`, `officeNavigation.ts`, `shellConfig.ts` — recovery nav intact (prior commit)
-- `/office/messages` → `OfficeMessengerScreen` via `app/office/messages/index.tsx` — single canonical route
-- Broadcast via `?tab=broadcasts` + `OfficeBroadcastModal` on send action
+This pass completes the messenger workspace interaction model without touching live data services.
 
 ---
 
-## 2. Fixes Applied
+## 1. Gap Analysis (user-reported vs code state)
 
-### 2.1 Dashboard — gradient hero, not white card
+| # | User report | Root cause | Status |
+|---|-------------|------------|--------|
+| 1 | Office > Nachrichten shows flat empty page | `CommunicationCenterScreen` replaced entire view with `EmptyState` when no threads; office route was correct but business path and empty inbox column looked like full-page empty | **Fixed** |
+| 2 | Context panel (Kontext) not wired | Panel existed but only rendered at `width >= 1100px`; categories loaded via broken `useMemo` side effect | **Fixed** — desktop/≥960px, 320px column, `useEffect` + export action |
+| 3 | 404 Communication > Einstellungen | No `app/communication/settings` route; office settings was placeholder stub | **Fixed** — redirects + wired `CommunicationSettingsScreen` |
+| 4 | Thread missing GradientModalHeader style | `OfficeMessageThread` used plain text header | **Fixed** — `OfficeMessageThreadHeader` with gradient + status bar |
+| 5 | Wrong screen / routing | `app/office/messages/index.tsx` had extra indirection; `(tabs)/messages` duplicate already removed | **Fixed** — direct `OfficeMessengerScreen` export |
 
-**File:** `src/screens/office/OfficeIndexScreen.tsx`
+### Section 23 agent (c3e58a34) partial work integrated
 
-- Replaced `CareLightScreen` + `CareLightModuleDashboard`
-- Now uses `ModuleDashboardShell` + `ActionToolbar` + `OfficeDashboardView`
-- Live data via `useOfficeDashboard` unchanged
+| Already done (kept) | This pass (added) |
+|---------------------|-------------------|
+| `createOfficeMessageThread`, `patchOfficeMessageThread` | Gradient thread header component |
+| 3-column layout skeleton in `OfficeMessengerScreen` | Lower breakpoint, 320px context, action labels + broadcast on chats tab |
+| `OfficeMessageContextPanel` handlers wired | Export button, category fetch fix |
+| `NotificationBellWithCenter` in topbar | Settings route + nav entry |
+| `ScreenShell` transparent on Aurora | CommunicationCenter always shows toolbar |
 
-### 2.2 Page shells — transparent in Aurora context
+---
 
-**File:** `src/components/layout/ScreenShell.tsx`
+## 2. Fixes Applied (this commit)
 
-- Wired `useShellHostsAurora()` → transparent background when PlatformShell hosts Aurora
-- Light mode still delegates to `CareLightPageShell`
+### 2.1 Messenger workspace — always show 3-column shell
 
-**Files:** `ClientsListScreen.tsx`, `EmployeesListScreen.tsx`, `OfficeMessengerScreen.tsx`
+**File:** `src/screens/office/OfficeMessengerScreen.tsx`
 
-- Replaced direct `CareLightPageShell` usage with `ScreenShell` (theme-adaptive)
+- Context column: `shellVariant === 'desktop' || width >= 960`, width **320px**
+- Inbox column: **340px** fixed
+- Action row: **Neuer Klient:innen-Chat**, **Neuer Mitarbeitenden-Chat**, **Neuer interner Chat**, **Broadcast senden** (on chats tab when permitted)
+- Deep link: `?thread=` selects thread
+- Route: `app/office/messages/index.tsx` exports `OfficeMessengerScreen` directly
 
-### 2.3 CareWebShell — no duplicate browser chrome in dark mode
+### 2.2 Thread header — recovery gradient style
 
-**File:** `src/components/layout/CareWebShell.tsx`
+**Files:** `src/components/office/officemessagethreadheader.tsx`, `officemessagethread.tsx`
 
-- When `useLightShell=false` (dark PlatformShell): transparent root, skip duplicate browser topbar
-- PlatformShell's own `PlatformTopbar` remains the single top chrome
+- Participant label (e.g. **Mitarbeiter:in**) with gradient hero in dark mode
+- Status subtitle row (type · subject · status)
+- Empty thread pane keeps column chrome aligned via `officeMessengerEmptyStyles`
 
-### 2.4 Modal overlay reconnection
+### 2.3 Context panel — fully wired
 
-**Files:** `ClientsAdaptiveScreen.tsx`, `EmployeesAdaptiveScreen.tsx`
+**File:** `src/components/office/officemessagecontextpanel.tsx`
 
-- When `useShellHostsAurora()` is true (web/desktop dark): list stays in shell, row tap opens `ClientDetailModal` / `EmployeeDetailModal`
-- Tablet/phone paths unchanged: `AdaptiveListDetail` with summary panels
+- Fixed category fetch (`useEffect` not `useMemo`)
+- **Chat exportieren** → `exportOfficeMessageThread` (audit stub, no demo fallback)
+- Status / priority / category actions unchanged (live services untouched)
+
+### 2.4 Settings route 404
+
+**Files:** `app/communication/settings.tsx`, `app/communication/einstellungen.tsx`, `officemessagesettingsscreen.tsx`, `officenav.ts`, `routes.ts`
+
+- Redirect `/communication/settings` and `/communication/einstellungen` → `/business/messages/settings`
+- Office nav: **Einstellungen** → `/office/messages/settings` (renders `CommunicationSettingsScreen`)
+- Breadcrumb labels for `communication`, `settings`, `templates`
+
+### 2.5 Communication center empty state
+
+**File:** `src/screens/communication/CommunicationCenterScreen.tsx`
+
+- Removed full-page empty override; list view + toolbar always render (matches office messenger shell pattern)
 
 ---
 
 ## 3. Acceptance Criteria
 
-| # | Criterion | Status |
-|---|-----------|--------|
-| 1 | Aurora/Space background active | ✅ Yes — PlatformShell + transparent content |
-| 2 | Dashboard not white embedded card | ✅ Yes — `DashboardHero` gradient via `OfficeDashboardView` |
-| 3 | Messenger three-part workspace | ✅ Inbox + thread panes in shell; context via `RightContextPanel` at ≥1280px |
-| 4 | Broadcast opens as modal | ✅ `OfficeBroadcastModal` with `PlatformModal`/`GradientModalHeader` |
-| 5 | Context as panel/popup | ✅ `RightContextPanel` in PlatformShell (unchanged) |
-| 6 | Popup/overlay interaction model restored | ✅ Client/employee detail modals wired on Aurora shell |
-| 7 | Live user/tenant unchanged | ✅ No auth/tenant/config changes |
-| 8 | Client/employee data services still wired | ✅ `clientListService`, `employeeListService`, mappers untouched |
+| # | Criterion | Before | After |
+|---|-----------|--------|-------|
+| 1 | Aurora/Space background | ✅ PlatformShell + transparent ScreenShell (`7a229e7`) | ✅ Unchanged |
+| 2 | Dashboard not white card | ✅ ModuleDashboardShell (`7a229e7`) | ✅ Unchanged |
+| 3 | Messenger 3 columns (Inbox \| Thread \| Context) | ⚠️ 2 cols below 1100px; context fetch bug | ✅ Desktop/≥960px: 340 + flex + 320px |
+| 4 | Broadcast opens as OfficeBroadcastModal | ✅ Modal wired | ✅ Also on chats tab action row |
+| 5 | Context = OfficeMessageContextPanel | ⚠️ Panel present but narrow breakpoint | ✅ Wired with live patch handlers + export |
+| 6 | Action buttons functional | ⚠️ Labels shortened; no broadcast on chats | ✅ All four actions open modals / broadcast |
+| 7 | Live data services untouched | ✅ | ✅ No changes to `messageservice`, `broadcastService`, hooks data layer |
+| 8 | No demo/mock fallback | ⚠️ Settings placeholder | ✅ Settings uses `CommunicationSettingsScreen`; export uses audit service |
 
 ---
 
@@ -113,45 +99,45 @@ Fixes reconnect recovery UI patterns while keeping main-branch live data service
 
 | File | Change |
 |------|--------|
-| `src/screens/office/OfficeIndexScreen.tsx` | ModuleDashboardShell + OfficeDashboardView |
-| `src/screens/office/ClientsListScreen.tsx` | CareLightPageShell → ScreenShell |
-| `src/screens/office/EmployeesListScreen.tsx` | CareLightPageShell → ScreenShell |
-| `src/screens/office/OfficeMessengerScreen.tsx` | CareLightPageShell → ScreenShell |
-| `src/screens/office/ClientsAdaptiveScreen.tsx` | ClientDetailModal on Aurora shell |
-| `src/screens/office/EmployeesAdaptiveScreen.tsx` | EmployeeDetailModal on Aurora shell |
-| `src/components/layout/ScreenShell.tsx` | Transparent bg when shell hosts Aurora |
-| `src/components/layout/CareWebShell.tsx` | Skip duplicate topbar in dark PlatformShell |
+| `src/screens/office/OfficeMessengerScreen.tsx` | 3-col breakpoints, action labels, broadcast on chats, thread param |
+| `src/components/office/officemessagethreadheader.tsx` | **New** — gradient header + status bar |
+| `src/components/office/officemessagethread.tsx` | Uses gradient header; aligned empty state |
+| `src/components/office/officemessagecontextpanel.tsx` | useEffect categories, export button |
+| `src/screens/communication/CommunicationCenterScreen.tsx` | Remove full-page empty override |
+| `src/screens/office/officemessagesettingsscreen.tsx` | Delegate to CommunicationSettingsScreen |
+| `app/office/messages/index.tsx` | Direct OfficeMessengerScreen export |
+| `app/communication/settings.tsx` | **New** — redirect to business settings |
+| `app/communication/einstellungen.tsx` | **New** — German alias redirect |
+| `src/lib/navigation/modulenav/officenav.ts` | Einstellungen nav item |
+| `src/lib/navigation/routes.ts` | Settings/templates/communication route entries |
+| `src/lib/navigation/breadcrumbs.ts` | `communication` segment label |
 
 ---
 
 ## 5. Verification
 
-- `npx expo export --platform web` — **passed** (dist generated)
-- Data services (`clientMapper`, `fetchClientList`, `fetchEmployeeList`, `useOfficeDashboard`) — **not modified**
+- `npx expo export --platform web` — **passed**
+- Live services (`clientListService`, `employeeListService`, `messageservice`, `broadcastService`) — **not modified**
+- Prior commits retained: `7a229e7` (shell), `64d8735` (messenger data), `ce9f1bd` (bell)
 
 ---
 
-## 6. Remaining Open Items
+## 6. Architecture (post-fix)
 
-- Other office sub-screens (invoices, documents, access, QM) still use `CareLightPageShell` directly — follow-up if those routes show white cards on Aurora shell
-- `MasterDetailLayout` uses opaque `colors.bgBase` — only affects non-Aurora tablet split-pane path
-- Live DB smoke test with authenticated Kevin Reinhardt / Helferhasen+ UG session recommended post-deploy
+```
+app/office/messages/index.tsx → OfficeMessengerScreen
+  ScreenShell (transparent on Aurora)
+    ├── Action row → OfficeNewChatModal / OfficeBroadcastModal
+    └── 3-column messenger
+          ├── OfficeMessagesInbox (340px)
+          ├── OfficeMessageThread + OfficeMessageThreadHeader
+          └── OfficeMessageContextPanel (320px, desktop)
+```
 
 ---
 
-## 7. Architecture Diagram (post-fix)
+## 7. Remaining Open Items
 
-```
-app/office/_layout.tsx
-  └── ShellLayout (area=office)
-        └── CareAdaptiveShell
-              └── CareWebShell (transparent, dark)
-                    └── PlatformShell + AuroraBackground
-                          ├── MainModuleRail
-                          ├── ModuleNavSidebar
-                          ├── Main work area
-                          │     ├── ModuleDashboardShell → OfficeDashboardView (dashboard)
-                          │     ├── ScreenShell (transparent) → list/messenger content
-                          │     └── ClientDetailModal / EmployeeDetailModal (overlay)
-                          └── RightContextPanel (≥1280px)
-```
+- `OfficeMessageTemplatesScreen` still placeholder — templates content recovery is separate
+- Broadcast send on live still requires migration **0096** on Supabase (RLS)
+- Other office sub-screens (invoices, documents) still use `CareLightPageShell` directly on non-Aurora paths

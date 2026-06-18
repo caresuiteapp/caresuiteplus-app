@@ -33,6 +33,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   documents: 'Dokumente',
   appointments: 'Termine',
   messages: 'Nachrichten',
+  communication: 'Kommunikation',
   modules: 'Module verwalten',
 };
 

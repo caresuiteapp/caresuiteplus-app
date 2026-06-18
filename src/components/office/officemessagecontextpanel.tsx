@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -16,6 +16,7 @@ import {
   OFFICE_THREAD_STATUS_LABELS,
   PORTAL_THREAD_STATUS_LABELS,
 } from '@/lib/office/messagestatuslabels';
+import { exportOfficeMessageThread } from '@/lib/office/officemessageexportservice';
 import { fetchOfficeMessageCategories } from '@/lib/office/messagethreadservice';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -116,8 +117,11 @@ export function OfficeMessageContextPanel({
     [c, colors.bgPanel, typography],
   );
 
-  useMemo(() => {
-    if (!tenantId || !thread) return;
+  useEffect(() => {
+    if (!tenantId || !thread) {
+      setCategories([]);
+      return;
+    }
     void fetchOfficeMessageCategories(tenantId, profile?.roleKey).then((result) => {
       if (result.ok) {
         const audience =
@@ -134,6 +138,22 @@ export function OfficeMessageContextPanel({
       }
     });
   }, [tenantId, thread, profile?.roleKey]);
+
+  const handleExport = useCallback(async () => {
+    if (!tenantId || !thread) return;
+    setBusy(true);
+    setActionError(null);
+    const result = await exportOfficeMessageThread(
+      tenantId,
+      thread.id,
+      profile?.roleKey,
+      profile?.displayName,
+    );
+    setBusy(false);
+    if (!result.ok) {
+      setActionError(result.error ?? 'Export fehlgeschlagen.');
+    }
+  }, [tenantId, thread, profile?.roleKey, profile?.displayName]);
 
   const runAction = useCallback(
     async (action: () => Promise<{ ok: boolean; error?: string }>) => {
@@ -283,6 +303,13 @@ export function OfficeMessageContextPanel({
       ) : null}
 
       {actionError ? <Text style={styles.error}>{actionError}</Text> : null}
+
+      <PremiumButton
+        title="Chat exportieren"
+        variant="secondary"
+        onPress={() => void handleExport()}
+        disabled={busy || readOnly}
+      />
 
       <Text style={styles.hint}>
         Nachrichten im Office-Modul — keine direkte Klient:innen↔Mitarbeitende-Kommunikation.

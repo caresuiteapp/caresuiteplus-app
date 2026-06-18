@@ -1,3 +1,3 @@
-import { OfficeMessagesMessengerScreen } from '@/screens/office/officemessagesmessengerscreen';
+import { OfficeMessengerScreen } from '@/screens/office/OfficeMessengerScreen';
 
-export default OfficeMessagesMessengerScreen;
+export default OfficeMessengerScreen;

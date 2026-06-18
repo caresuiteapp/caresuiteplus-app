@@ -2,20 +2,14 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatBubble } from '@/components/communication/ChatBubble';
 import { ChatComposer } from '@/components/communication/ChatComposer';
+import { OfficeMessageThreadHeader } from '@/components/office/officemessagethreadheader';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { useOfficeMessageThreadDetail } from '@/hooks/useofficemessagethreaddetail';
 import { mapOfficeMessageToChatBubble } from '@/lib/office/officemessagemappers';
-
-const STATUS_LABELS: Record<string, string> = {
-  open: 'Offen',
-  waiting: 'Wartend',
-  resolved: 'Erledigt',
-  archived: 'Archiviert',
-  deleted: 'Gelöscht',
-};
+import { officeMessengerEmptyStyles } from '@/components/office/officemessengerlayout';
 
 type OfficeMessageThreadProps = {
   threadId: string | null;
@@ -39,14 +33,6 @@ export function OfficeMessageThread({
     () =>
       StyleSheet.create({
         root: { flex: 1, minWidth: 0 },
-        header: {
-          padding: spacing.md,
-          borderBottomWidth: 1,
-          borderBottomColor: c.border,
-          gap: spacing.xs,
-        },
-        title: { ...typography.h3, color: c.text },
-        meta: { ...typography.caption, color: c.muted },
         messages: { flex: 1 },
         messagesContent: { paddingVertical: spacing.md },
         closedBanner: {
@@ -64,10 +50,13 @@ export function OfficeMessageThread({
   if (!threadId) {
     return (
       <View style={styles.root}>
-        <EmptyState
-          title="Chat auswählen"
-          message="Wählen Sie einen Chat aus der Liste, um den Verlauf anzuzeigen."
-        />
+        <View style={officeMessengerEmptyStyles.threadHeader} />
+        <View style={officeMessengerEmptyStyles.emptyPane}>
+          <EmptyState
+            title="Chat auswählen"
+            message="Wählen Sie einen Chat aus der Liste, um den Verlauf anzuzeigen."
+          />
+        </View>
       </View>
     );
   }
@@ -113,15 +102,7 @@ export function OfficeMessageThread({
 
   return (
     <View style={styles.root}>
-      {!hideHeader ? (
-        <View style={styles.header}>
-          <Text style={styles.title}>{detail.subject}</Text>
-          <Text style={styles.meta}>
-            Status: {STATUS_LABELS[detail.status] ?? detail.status}
-            {detail.categoryLabel ? ` · ${detail.categoryLabel}` : ''}
-          </Text>
-        </View>
-      ) : null}
+      {!hideHeader ? <OfficeMessageThreadHeader detail={detail} /> : null}
 
       <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent}>
         {detail.messages.map((message) => (

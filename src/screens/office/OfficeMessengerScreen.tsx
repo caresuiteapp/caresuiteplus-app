@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
+import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { OfficeBroadcastDetail } from '@/components/office/officebroadcastdetail';
 import { OfficeBroadcastModal } from '@/components/office/officebroadcastmodal';
 import { OfficeBroadcastsList } from '@/components/office/officebroadcastslist';
@@ -24,8 +25,9 @@ import { spacing, radius } from '@/theme';
 type MessengerTab = 'messages' | 'broadcasts';
 
 const INBOX_FILTERS: OfficeInboxFilter[] = ['inbox', 'clients', 'employees', 'internal', 'closed'];
-const CONTEXT_COLUMN_BREAKPOINT = 1100;
-const CONTEXT_PANEL_WIDTH = 280;
+const CONTEXT_COLUMN_BREAKPOINT = 960;
+const CONTEXT_PANEL_WIDTH = 320;
+const INBOX_COLUMN_WIDTH = 340;
 
 function parseInboxFilter(value: unknown): OfficeInboxFilter {
   return INBOX_FILTERS.includes(value as OfficeInboxFilter) ? (value as OfficeInboxFilter) : 'inbox';
@@ -36,12 +38,13 @@ function parseMessengerTab(value: unknown): MessengerTab {
 }
 
 export function OfficeMessengerScreen() {
-  const params = useLocalSearchParams<{ filter?: string; tab?: string }>();
+  const params = useLocalSearchParams<{ filter?: string; tab?: string; thread?: string }>();
   const { height, width } = useWindowDimensions();
+  const { shellVariant } = usePlatformLayout();
   const { c } = useCareLightPalette();
   const { permissions, isReadOnly, roleKey } = usePermissions();
   const canBroadcast = canCreateBroadcast(roleKey, permissions);
-  const showContextColumn = width >= CONTEXT_COLUMN_BREAKPOINT;
+  const showContextColumn = shellVariant === 'desktop' || width >= CONTEXT_COLUMN_BREAKPOINT;
 
   const [tab, setTab] = useState<MessengerTab>(() => parseMessengerTab(params.tab));
   const [filter, setFilter] = useState<OfficeInboxFilter>(() => parseInboxFilter(params.filter));
@@ -68,6 +71,14 @@ export function OfficeMessengerScreen() {
   useEffect(() => {
     setFilter(parseInboxFilter(params.filter));
   }, [params.filter]);
+
+  useEffect(() => {
+    const threadParam = params.thread;
+    if (typeof threadParam === 'string' && threadParam.trim()) {
+      setSelectedThreadId(threadParam);
+      setTab('messages');
+    }
+  }, [params.thread]);
 
   const styles = useMemo(
     () =>
@@ -96,7 +107,7 @@ export function OfficeMessengerScreen() {
           backgroundColor: c.bgPanel,
         },
         listPane: {
-          width: 340,
+          width: INBOX_COLUMN_WIDTH,
           maxWidth: '38%',
           minWidth: 280,
           borderRightWidth: 1,
@@ -146,9 +157,28 @@ export function OfficeMessengerScreen() {
         <View style={styles.actions}>
           {tab === 'messages' ? (
             <>
-              <PremiumButton title="Klient:innen-Chat" onPress={() => setNewChatMode('client')} disabled={isReadOnly} />
-              <PremiumButton title="Mitarbeitenden-Chat" onPress={() => setNewChatMode('employee')} disabled={isReadOnly} />
-              <PremiumButton title="Interner Chat" onPress={() => setNewChatMode('internal')} disabled={isReadOnly} />
+              <PremiumButton
+                title="Neuer Klient:innen-Chat"
+                onPress={() => setNewChatMode('client')}
+                disabled={isReadOnly}
+              />
+              <PremiumButton
+                title="Neuer Mitarbeitenden-Chat"
+                onPress={() => setNewChatMode('employee')}
+                disabled={isReadOnly}
+              />
+              <PremiumButton
+                title="Neuer interner Chat"
+                onPress={() => setNewChatMode('internal')}
+                disabled={isReadOnly}
+              />
+              {canBroadcast ? (
+                <PremiumButton
+                  title="Broadcast senden"
+                  variant="secondary"
+                  onPress={() => setShowBroadcastModal(true)}
+                />
+              ) : null}
             </>
           ) : canBroadcast ? (
             <PremiumButton title="Broadcast senden" onPress={() => setShowBroadcastModal(true)} />

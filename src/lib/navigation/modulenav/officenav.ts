@@ -32,6 +32,7 @@ export const officeNav: ModuleNavConfig = {
         { key: 'messages-employees', label: 'Mitarbeitenden-Chats', icon: '👤', href: '/office/messages?filter=employees' },
         { key: 'broadcasts', label: 'Broadcast', icon: '📢', href: '/office/messages?tab=broadcasts' },
         { key: 'message-templates', label: 'Vorlagen', icon: '📝', href: '/office/messages/templates' },
+        { key: 'message-settings', label: 'Einstellungen', icon: '⚙️', href: '/office/messages/settings' },
       ],
     },
     {

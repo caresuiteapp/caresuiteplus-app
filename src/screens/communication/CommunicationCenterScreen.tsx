@@ -1,7 +1,7 @@
 import { StyleSheet, View } from 'react-native';
 import { ScreenShell } from '@/components/layout';
 import { CommunicationCenterListView } from '@/components/communication/CommunicationCenterListView';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import { useOfficeMessages } from '@/hooks/useOfficeMessages';
 import { fetchOfficeMessages } from '@/lib/portal/messageService';
 
@@ -45,11 +45,7 @@ export function CommunicationCenterScreen({
   return (
     <ScreenShell title="Nachrichten" subtitle="Kommunikationszentrum" showBack={false} scroll={false}>
       <View style={styles.content}>
-        {list.isEmpty && !list.hasActiveFilters ? (
-          <EmptyState title="Keine Nachrichten" message="Es sind noch keine Konversationen vorhanden." />
-        ) : (
-          <CommunicationCenterListView onThreadPress={onThreadPress} selectedId={selectedId} />
-        )}
+        <CommunicationCenterListView onThreadPress={onThreadPress} selectedId={selectedId} />
       </View>
     </ScreenShell>
   );
