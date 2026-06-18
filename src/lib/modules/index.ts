@@ -21,6 +21,7 @@ export {
   resetModuleAccessStore,
   resolveIncludedModules,
 } from './moduleAccessService';
+export { hydrateTenantModulesFromSupabase } from './moduleAccessHydration';
 export {
   calculateBillingItems,
   type BillingPreview,

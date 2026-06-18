@@ -5,10 +5,10 @@ import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { fetchAppStartSnapshot } from '@/lib/landing/appStartService';
 import {
   getTenantModules,
-  hydrateTenantModulesFromSupabase,
   initializeModuleAccessStore,
   resetModuleAccessStore,
 } from '@/lib/modules/moduleAccessService';
+import { hydrateTenantModulesFromSupabase } from '@/lib/modules/moduleAccessHydration';
 import { resolveTenantIdForService } from '@/lib/tenant/tenantResolver';
 import { assertLiveConfig, getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';

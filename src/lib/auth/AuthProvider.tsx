@@ -9,7 +9,7 @@ import {
   signOut as supabaseSignOut,
 } from '@/lib/supabase';
 import { bootstrapTenantContext } from '@/lib/supabase/tenantService';
-import { hydrateTenantModulesFromSupabase } from '@/lib/modules/moduleAccessService';
+import { hydrateTenantModulesFromSupabase } from '@/lib/modules/moduleAccessHydration';
 import { fetchRuntimePermissions } from '@/lib/supabase/permissionRepository';
 import { AuthContext, type AuthContextValue } from './context';
 import { buildDemoSession } from './demoSession';
