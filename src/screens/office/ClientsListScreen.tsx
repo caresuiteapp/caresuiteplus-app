@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ClientsListView } from '@/components/office/ClientsListView';
 import { CareLightButton, EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
@@ -36,22 +36,22 @@ export function ClientsListScreen({
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Klient:innen" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Klient:innen" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Klient:innen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Klient:innen" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Klient:innen" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Klient:innen"
       subtitle={`Office Stammdaten${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
@@ -77,7 +77,7 @@ export function ClientsListScreen({
           <ClientsListView onClientPress={onClientPress} selectedId={selectedId} />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

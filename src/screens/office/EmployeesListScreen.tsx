@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmployeesListView } from '@/components/office/EmployeesListView';
 import { CareLightButton, EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
@@ -38,22 +38,22 @@ export function EmployeesListScreen({
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Mitarbeitende" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Mitarbeitende" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Mitarbeitende werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Mitarbeitende" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Mitarbeitende" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Mitarbeitende"
       subtitle={`Office Teamverwaltung${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
@@ -83,7 +83,7 @@ export function EmployeesListScreen({
           />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

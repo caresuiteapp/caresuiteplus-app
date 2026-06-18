@@ -6,6 +6,7 @@ import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { getBreadcrumbs } from '@/lib/navigation';
 import type { DomainA11yMeta } from '@/lib/a11y/domainScreenMeta';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { spacing } from '@/theme';
 import { CareLightPageShell } from './CareLightPageShell';
 import { ScreenHeader } from './ScreenHeader';
@@ -35,6 +36,7 @@ export function ScreenShell({
   a11yMeta,
 }: ScreenShellProps) {
   const { mode } = useThemeMode();
+  const shellHostsAurora = useShellHostsAurora();
 
   if (mode === 'light') {
     return (
@@ -63,7 +65,7 @@ export function ScreenShell({
       StyleSheet.create({
         safe: {
           flex: 1,
-          backgroundColor: colors.bgBase,
+          backgroundColor: shellHostsAurora ? 'transparent' : colors.bgBase,
         },
         scroll: {
           padding: spacing.md,
@@ -79,7 +81,7 @@ export function ScreenShell({
           flex: 1,
         },
       }),
-    [colors.bgBase],
+    [colors.bgBase, shellHostsAurora],
   );
 
   const content = scroll ? (

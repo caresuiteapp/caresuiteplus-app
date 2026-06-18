@@ -36,8 +36,13 @@ export function CareWebShell({
   const DesktopShell = useLightShell ? CareLightDesktopShell : CareDesktopShell;
 
   return (
-    <View style={[styles.root, { backgroundColor: palette.background.app }]}>
-      {isWeb ? (
+    <View
+      style={[
+        styles.root,
+        useLightShell ? { backgroundColor: palette.background.app } : styles.transparentRoot,
+      ]}
+    >
+      {isWeb && useLightShell ? (
         <View
           style={[
             styles.topbar,
@@ -73,6 +78,9 @@ export function CareWebShell({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
+  },
+  transparentRoot: {
+    backgroundColor: 'transparent',
   },
   topbar: {
     flexDirection: 'row',

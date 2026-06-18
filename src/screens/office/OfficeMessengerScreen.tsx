@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { OfficeBroadcastDetail } from '@/components/office/officebroadcastdetail';
 import { OfficeBroadcastModal } from '@/components/office/officebroadcastmodal';
 import { OfficeBroadcastsList } from '@/components/office/officebroadcastslist';
@@ -96,7 +96,7 @@ export function OfficeMessengerScreen() {
   );
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={tab === 'broadcasts' ? 'Broadcast' : 'Nachrichten'}
       subtitle="Office Kommunikation"
       scroll={false}
@@ -194,6 +194,6 @@ export function OfficeMessengerScreen() {
           }}
         />
       ) : null}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
