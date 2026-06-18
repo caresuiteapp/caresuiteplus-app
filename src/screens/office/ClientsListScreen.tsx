@@ -37,7 +37,7 @@ export function ClientsListScreen({
   if (list.loading && list.allItems.length === 0) {
     return (
       <ScreenShell title="Klient:innen" subtitle="Wird geladen…" scroll={false}>
-        <LoadingState message="Klient:innen werden geladen…" />
+        <LoadingState message="Daten werden geladen…" />
       </ScreenShell>
     );
   }

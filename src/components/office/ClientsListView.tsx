@@ -161,7 +161,7 @@ export function ClientsListView({
     return (
       <View style={styles.container}>
         {!embedded ? toolbar : null}
-        <LoadingState message="Klient:innen werden geladen…" />
+        <LoadingState message="Daten werden geladen?" />
       </View>
     );
   }
