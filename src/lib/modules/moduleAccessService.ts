@@ -9,6 +9,8 @@ import type {
 import { demoProducts } from '@/data/demo/products';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { isFreePlatformEnabled } from '@/lib/billing/freePlatformService';
+import { fetchTenantModulesFromSupabase } from '@/lib/modules/moduleAccessRepository.supabase';
+import { getServiceMode } from '@/lib/services/mode';
 import {
   ALL_PRODUCT_KEYS,
   isPurchasedAccessSource,
@@ -199,6 +201,23 @@ export function resetModuleAccessStore(tenantId?: string): void {
     return;
   }
   tenantModuleStore.clear();
+}
+
+/** Live-Mandant: tenant_products aus Supabase in den In-Memory-Store laden. */
+export async function hydrateTenantModulesFromSupabase(
+  tenantId: string,
+): Promise<ServiceResult<TenantProduct[]>> {
+  if (!tenantId || tenantId === DEMO_TENANT_ID || getServiceMode() !== 'supabase') {
+    return { ok: true, data: getTenantModules(tenantId) };
+  }
+
+  const result = await fetchTenantModulesFromSupabase(tenantId);
+  if (!result.ok) {
+    return result;
+  }
+
+  initializeModuleAccessStore(tenantId, result.data);
+  return { ok: true, data: getTenantModules(tenantId) };
 }
 
 initializeModuleAccessStore(DEMO_TENANT_ID);
