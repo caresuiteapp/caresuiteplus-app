@@ -1,8 +1,9 @@
 import type { WorkflowStatus } from '@/types/core/base';
 import type { ClientListOptions } from './types';
 
-/** Live DB statuses included in Lebenszyklus „Aktiv“ (ohne Entwürfe/Archiv). */
+/** Live DB statuses included in Lebenszyklus „Aktiv“ (inkl. Aufnahme/Lead, ohne Archiv). */
 export const ACTIVE_CLIENT_LIFECYCLE_STATUSES = [
+  'lead',
   'active',
   'paused',
   'inactive',

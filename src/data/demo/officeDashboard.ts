@@ -7,6 +7,7 @@ import type {
 } from '@/types/dashboard';
 import type { RoleKey } from '@/types';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
+import { OFFICE_NAV_AREAS, type OfficeNavArea } from '@/lib/navigation/officeNavigation';
 import { demoAppointments, demoInvoices } from './seedCatalog';
 import { demoClients } from './clients';
 import { demoEmployees } from './employees';
@@ -158,102 +159,27 @@ const OFFICE_QUICK_ACTIONS: DashboardQuickAction[] = [
   },
 ];
 
-export type OfficeAreaShortcut = {
-  id: string;
+export type OfficeAreaShortcut = OfficeNavArea & {
+  /** Alias for dashboard list rows that expect `title`. */
   title: string;
-  description: string;
+  /** Alias for dashboard list rows that expect `route`. */
   route: string;
-  icon: string;
-  accentColor: string;
   count?: number;
 };
 
-export const OFFICE_AREA_SHORTCUTS: OfficeAreaShortcut[] = [
-  {
-    id: 'clients',
-    title: 'Klient:innen',
-    description: 'Liste, Suche, Filter und Status',
-    route: '/office/clients',
-    icon: '👥',
-    accentColor: '#FF9500',
-    count: demoClients.length,
-  },
-  {
-    id: 'employees',
-    title: 'Mitarbeitende',
-    description: 'Teamliste mit Qualifikationen',
-    route: '/office/employees',
-    icon: '👤',
-    accentColor: '#62F3FF',
-    count: demoEmployees.length,
-  },
-  {
-    id: 'invoices',
-    title: 'Rechnungen',
-    description: 'Abrechnung, Budgets und Mahnwesen',
-    route: '/office/invoices',
-    icon: '🧾',
-    accentColor: '#FFD166',
-    count: demoInvoices.length,
-  },
-  {
-    id: 'documents',
-    title: 'Dokumente',
-    description: 'Zentrale Akte und Uploads',
-    route: '/office/documents',
-    icon: '📁',
-    accentColor: '#7C5CFF',
-  },
-  {
-    id: 'appointments',
-    title: 'Termine',
-    description: 'Kalender und Planung',
-    route: '/office/appointments',
-    icon: '📅',
-    accentColor: '#FF9500',
-    count: demoAppointments.length,
-  },
-  {
-    id: 'messages',
-    title: 'Nachrichten',
-    description: 'Interne Kommunikation',
-    route: '/office/messages',
-    icon: '💬',
-    accentColor: '#62F3FF',
-  },
-  {
-    id: 'qm',
-    title: 'Qualitätsmanagement',
-    description: 'Handbuch, Prüfungen, Compliance',
-    route: '/business/office/qm',
-    icon: '✅',
-    accentColor: '#7C5CFF',
-  },
-  {
-    id: 'access',
-    title: 'Zugänge & Benutzer',
-    description: 'Portale, Rollen und Rechte',
-    route: '/business/office/access',
-    icon: '🔐',
-    accentColor: '#F97316',
-  },
-  {
-    id: 'modules',
-    title: 'Modulzuordnungen',
-    description: 'Klient:innen, MA, Leistungen je Fachmodul',
-    route: '/business/office/modules',
-    icon: '🧩',
-    accentColor: '#22C55E',
-  },
-  {
-    id: 'audit',
-    title: 'Audit-Log',
-    description: 'Office Änderungsprotokoll',
-    route: '/business/office/audit-log',
-    icon: '📋',
-    accentColor: '#94A3B8',
-  },
-];
+const OFFICE_AREA_DEMO_COUNTS: Partial<Record<string, number>> = {
+  clients: demoClients.length,
+  employees: demoEmployees.length,
+  invoices: demoInvoices.length,
+  appointments: demoAppointments.length,
+};
+
+export const OFFICE_AREA_SHORTCUTS: OfficeAreaShortcut[] = OFFICE_NAV_AREAS.map((area) => ({
+  ...area,
+  title: area.label,
+  route: area.href,
+  count: OFFICE_AREA_DEMO_COUNTS[area.id],
+}));
 
 function getGreeting(): string {
   const hour = new Date().getHours();

@@ -1,0 +1,61 @@
+CareSuite+ Hybrid Live Recovery — Client/Employee Data Audit
+Date: 2026-06-18
+Branch: recovery/hybrid-live-restore
+
+=== CLIENTS (Klient:innen) ===
+Service chain:
+  ClientsListScreen → useClientList → fetchClientList (clientListService.ts)
+  → clientService.list → supabaseClientRepository.list
+  → table: public.clients, filter: tenant_id = <profile.tenant_id>
+
+Root causes for empty list (code-level, no live credentials used):
+1. REGRESSION: clientMapper.ts on recovery branch dropped main's normalizeClientRow()
+   - status no longer mapped via remoteStatusToWorkflow (DB enum active/lead → UI aktiv/entwurf)
+   - postal_code/cost_bearer/internal_notes column aliases dropped
+   FIX: restored clientMapper.ts from main
+
+2. FILTER: useClientList defaults lifecycleFilter='active' in live mode
+   - Query uses .in('status', ACTIVE_CLIENT_LIFECYCLE_STATUSES)
+   - 'lead' (entwurf) was excluded → intake clients invisible
+   FIX: added 'lead' to ACTIVE_CLIENT_LIFECYCLE_STATUSES
+
+3. SILENT EMPTY: useAsyncQuery enabled:!!tenantId skipped fetch when tenant missing
+   - UI showed EmptyState instead of "Kein Mandant" error
+   FIX: enabled:true on useClientList primary query
+
+Expected live proof pattern (when authenticated):
+  service: fetchClientList / supabaseClientRepository.list
+  table: clients
+  tenant: first 8 chars of profile.tenant_id (e.g. aaaaaaaa-...)
+  filter: lifecycle=active includes lead,active,paused,inactive,blocked,deceased
+  mapping: remoteStatusToWorkflow on status, postal_code→zip, cost_bearer→costCarrier
+
+=== EMPLOYEES (Mitarbeitende) ===
+Service chain:
+  EmployeesListScreen → useEmployeeList → fetchEmployeeList (employeeListService.ts)
+  → employeeSupabaseRepository.list (live) | demoEmployees (demo)
+  → table: public.employees, filter: tenant_id = <profile.tenant_id>, status != deleted
+
+Root causes for empty list:
+1. SILENT EMPTY: same useAsyncQuery enabled:!!tenantId issue
+   FIX: enabled:true on useEmployeeList
+
+2. ROUTE MISMATCH: EmployeesListScreen linked to /business/office/employees/new (dead route)
+   FIX: corrected to /office/employees/create and routePrefix /office/employees
+
+3. Live mode requires getServiceMode()=supabase (EXPO_PUBLIC_DEMO_MODE=false + URL/key set)
+   Demo mode returns in-memory demoEmployees (non-empty unless all demo-deleted)
+
+Expected live proof pattern:
+  service: fetchEmployeeList / employeeSupabaseRepository.list
+  table: employees
+  tenant: first 8 chars of profile.tenant_id
+  mapping: mapDbStatusToCatalogStatus (active→aktiv)
+
+=== TENANT RESOLUTION ===
+  resolveTenantIdForService: demo → DEMO_TENANT_ID; live → profile.tenantId required
+  guardServiceTenant: blocks empty tenant; live allows any UUID
+
+=== MODE DETECTION ===
+  getServiceMode(): demo if EXPO_PUBLIC_DEMO_MODE=true OR missing Supabase URL/key
+  Live pilot requires EXPO_PUBLIC_DEMO_MODE=false + configured anon key + URL

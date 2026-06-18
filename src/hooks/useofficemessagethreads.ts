@@ -16,7 +16,7 @@ export function useOfficeMessageThreads(filter: OfficeInboxFilter = 'inbox') {
       return fetchOfficeMessageThreads(tenantId, profile?.roleKey, filter, profile?.id);
     },
     [tenantId, profile?.roleKey, profile?.id, filter],
-    { enabled: !!tenantId },
+    { enabled: true },
   );
 
   const refresh = useCallback(async () => {

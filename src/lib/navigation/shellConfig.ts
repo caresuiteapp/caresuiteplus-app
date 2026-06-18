@@ -172,9 +172,12 @@ export function getModuleSwitcherItems(
 /** Ermittelt aktiven Tab-Key aus dem Pfad (für Custom TabBar). */
 export function resolveActiveTabKey(pathname: string, tabs: ShellTabConfig[]): string {
   const normalized = pathname.split('?')[0].replace(/\/$/, '') || '/';
-  const sorted = [...tabs].sort((a, b) => b.href.length - a.href.length);
-  const match = sorted.find(
-    (tab) => normalized === tab.href || normalized.startsWith(`${tab.href}/`),
+  const sorted = [...tabs].sort(
+    (a, b) => b.href.split('?')[0].length - a.href.split('?')[0].length,
   );
+  const match = sorted.find((tab) => {
+    const href = tab.href.split('?')[0].replace(/\/$/, '') || '/';
+    return normalized === href || normalized.startsWith(`${href}/`);
+  });
   return match?.key ?? tabs[0]?.key ?? 'index';
 }

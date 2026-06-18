@@ -1,0 +1,256 @@
+﻿diff --git a/app/office/(tabs)/messages.tsx b/app/office/(tabs)/messages.tsx
+deleted file mode 100644
+index ae1b99f..0000000
+--- a/app/office/(tabs)/messages.tsx
++++ /dev/null
+@@ -1,3 +0,0 @@
+-import { OfficeMessagesAdaptiveScreen } from '@/screens/office/OfficeMessagesAdaptiveScreen';
+-
+-export default OfficeMessagesAdaptiveScreen;
+diff --git a/src/data/demo/officeDashboard.ts b/src/data/demo/officeDashboard.ts
+index 0a5fd8c..831f04a 100644
+--- a/src/data/demo/officeDashboard.ts
++++ b/src/data/demo/officeDashboard.ts
+@@ -7,6 +7,7 @@ import type {
+ } from '@/types/dashboard';
+ import type { RoleKey } from '@/types';
+ import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
++import { OFFICE_NAV_AREAS, type OfficeNavArea } from '@/lib/navigation/officeNavigation';
+ import { demoAppointments, demoInvoices } from './seedCatalog';
+ import { demoClients } from './clients';
+ import { demoEmployees } from './employees';
+diff --git a/src/hooks/useClientList.ts b/src/hooks/useClientList.ts
+index 9c29e3a..d861dfd 100644
+--- a/src/hooks/useClientList.ts
++++ b/src/hooks/useClientList.ts
+@@ -83,7 +83,7 @@ export function useClientList() {
+       costBearerFilter,
+       lifecycleFilter,
+     ],
+-    { enabled: !!tenantId },
++    { enabled: true },
+   );
+ 
+   const kpiQuery = useAsyncQuery(
+diff --git a/src/hooks/useEmployeeList.ts b/src/hooks/useEmployeeList.ts
+index b5ac093..f16e538 100644
+--- a/src/hooks/useEmployeeList.ts
++++ b/src/hooks/useEmployeeList.ts
+@@ -36,7 +36,7 @@ export function useEmployeeList() {
+       return fetchEmployeeList(tenantId, profile?.roleKey);
+     },
+     [tenantId, profile?.roleKey],
+-  { enabled: !!tenantId },
++  { enabled: true },
+   );
+ 
+   const allItems = query.data ?? [];
+diff --git a/src/lib/navigation/modulenav/index.ts b/src/lib/navigation/modulenav/index.ts
+index e8549c5..cf8a22a 100644
+--- a/src/lib/navigation/modulenav/index.ts
++++ b/src/lib/navigation/modulenav/index.ts
+@@ -25,13 +25,14 @@ export function getModuleNavConfig(mainModule: MainModuleKey): ModuleNavConfig {
+ 
+ export function resolveActiveModuleNavKey(pathname: string, config: ModuleNavConfig): string {
+   const path = pathname.split('?')[0].replace(/\/$/, '') || '/';
++  const items = config.groups
++    .flatMap((group) => group.items)
++    .sort((a, b) => b.href.split('?')[0].length - a.href.split('?')[0].length);
+ 
+-  for (const group of config.groups) {
+-    for (const item of group.items) {
+-      const href = item.href.replace(/\/$/, '') || '/';
+-      if (path === href || path.startsWith(`${href}/`)) {
+-        return item.key;
+-      }
++  for (const item of items) {
++    const href = item.href.split('?')[0].replace(/\/$/, '') || '/';
++    if (path === href || path.startsWith(`${href}/`)) {
++      return item.key;
+     }
+   }
+ 
+diff --git a/src/lib/navigation/officeNavigation.ts b/src/lib/navigation/officeNavigation.ts
+index 92ecd80..c9650cc 100644
+--- a/src/lib/navigation/officeNavigation.ts
++++ b/src/lib/navigation/officeNavigation.ts
+@@ -30,7 +30,7 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
+     icon: '­ƒæÑ',
+     href: '/office/clients',
+     description: 'Liste, Suche, Filter und Status',
+-    accentColor: '#FF9500',
++    accentColor: '#62F3FF',
+   },
+   {
+     id: 'employees',
+@@ -66,7 +66,7 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
+     icon: '­ƒôà',
+     href: '/office/appointments',
+     description: 'Kalender und Planung',
+-    accentColor: '#FF9500',
++    accentColor: '#62F3FF',
+   },
+   {
+     id: 'messages',
+@@ -77,6 +77,15 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
+     description: 'Interne Kommunikation',
+     accentColor: '#62F3FF',
+   },
++  {
++    id: 'broadcasts',
++    key: 'broadcasts',
++    label: 'Broadcast',
++    icon: '­ƒôó',
++    href: '/office/messages?tab=broadcasts',
++    description: 'Rundschreiben an Mitarbeitende',
++    accentColor: '#62F3FF',
++  },
+   {
+     id: 'qm',
+     key: 'qm',
+diff --git a/src/lib/services/clients/clientListQueryOptions.ts b/src/lib/services/clients/clientListQueryOptions.ts
+index 468ef58..351cad0 100644
+--- a/src/lib/services/clients/clientListQueryOptions.ts
++++ b/src/lib/services/clients/clientListQueryOptions.ts
+@@ -1,8 +1,9 @@
+ import type { WorkflowStatus } from '@/types/core/base';
+ import type { ClientListOptions } from './types';
+ 
+-/** Live DB statuses included in Lebenszyklus ÔÇ×AktivÔÇ£ (ohne Entw├╝rfe/Archiv). */
++/** Live DB statuses included in Lebenszyklus ÔÇ×AktivÔÇ£ (inkl. Aufnahme/Lead, ohne Archiv). */
+ export const ACTIVE_CLIENT_LIFECYCLE_STATUSES = [
++  'lead',
+   'active',
+   'paused',
+   'inactive',
+diff --git a/src/screens/office/EmployeesListScreen.tsx b/src/screens/office/EmployeesListScreen.tsx
+index 8c4af97..b84e6a1 100644
+--- a/src/screens/office/EmployeesListScreen.tsx
++++ b/src/screens/office/EmployeesListScreen.tsx
+@@ -60,7 +60,7 @@ export function EmployeesListScreen({
+         canCreate ? (
+           <CareLightButton
+             title="+ Neu"
+-            onPress={() => router.push('/business/office/employees/new' as never)}
++            onPress={() => router.push('/office/employees/create' as never)}
+             accentColor={officeAccent}
+           />
+         ) : null
+@@ -79,7 +79,7 @@ export function EmployeesListScreen({
+           <EmployeesListView
+             onEmployeePress={onEmployeePress}
+             selectedId={selectedId}
+-            routePrefix="/business/office/employees"
++            routePrefix="/office/employees"
+           />
+         )}
+       </View>
+diff --git a/src/lib/supabase/mappers/clientMapper.ts b/src/lib/supabase/mappers/clientMapper.ts
+index 4bed0a0..760d349 100644
+--- a/src/lib/supabase/mappers/clientMapper.ts
++++ b/src/lib/supabase/mappers/clientMapper.ts
+@@ -5,6 +5,12 @@ import {
+   CLIENT_STATUS_HINTS,
+   getAllowedStatusActions,
+ } from '@/lib/services/workflow/clientStatus';
++import { remoteStatusToWorkflow } from '@/lib/services/clients/clientStatusBridge';
++import { resolveClientPhone, resolveClientStreetLine } from '@/lib/clients/clientAddressResolver';
++import {
++  resolveClientContactDisplayName,
++  resolveClientContactIsEmergency,
++} from '@/lib/clients/clientContactPayload';
+ import type {
+   ClientAuditRow,
+   ClientConsentRow,
+@@ -14,16 +20,33 @@ import type {
+   ClientRow,
+ } from '../rowTypes';
+ 
++function normalizeClientRow(row: ClientRow) {
++  return {
++    zip: row.postal_code ?? row.zip ?? null,
++    notes: row.internal_notes ?? row.notes ?? null,
++    costCarrier: row.cost_bearer ?? null,
++    insuranceNumber: row.insurance_number ?? null,
++    archivedAt: row.archived_at ?? null,
++    createdBy: row.created_by ?? null,
++    status: remoteStatusToWorkflow(row.status),
++  };
++}
++
+ export function mapClientListItem(row: ClientRow): ClientListItem {
++  const normalized = normalizeClientRow(row);
+   return {
+     id: row.id,
+     tenantId: row.tenant_id,
+     firstName: row.first_name,
+     lastName: row.last_name,
+-    status: row.status,
++    status: normalized.status,
+     careLevel: row.care_level,
+     city: row.city,
+-    zip: row.zip,
++    zip: normalized.zip,
++    costCarrier: normalized.costCarrier,
++    insuranceNumber: normalized.insuranceNumber,
++    archivedAt: normalized.archivedAt,
++    createdBy: normalized.createdBy,
+     sensitivity: (row.sensitivity ?? 'standard') as SensitivityLevel,
+     updatedAt: row.updated_at,
+   };
+@@ -32,11 +55,11 @@ export function mapClientListItem(row: ClientRow): ClientListItem {
+ function mapContact(row: ClientContactRow) {
+   return {
+     id: row.id,
+-    name: row.name,
++    name: resolveClientContactDisplayName(row),
+     relationship: row.relationship,
+     phone: row.phone,
+     email: row.email,
+-    isEmergency: row.is_emergency,
++    isEmergency: resolveClientContactIsEmergency(row),
+   };
+ }
+ 
+@@ -68,25 +91,27 @@ function mapHistory(row: ClientHistoryRow) {
+     title: row.title,
+     subtitle: row.subtitle ?? undefined,
+     timestamp: row.created_at,
+-    status: row.status,
++    status: remoteStatusToWorkflow(row.status),
+     actorName: row.actor_name ?? undefined,
+   };
+ }
+ 
+ export function mapClientDetail(row: ClientDetailRow): ClientDetail {
+   const base = mapClientListItem(row);
++  const normalized = normalizeClientRow(row);
+   const history = (row.client_history_entries ?? []).map(mapHistory);
+   const audit = (row.client_audit_entries ?? []).map(mapAudit);
+ 
+   return {
+     ...base,
+     createdAt: row.created_at,
++    admissionDate: row.admission_date ?? null,
+     dateOfBirth: row.date_of_birth,
+     primaryContactPhone: row.primary_contact_phone,
+-    street: row.street,
+-    phone: row.phone,
++    street: resolveClientStreetLine(row) ?? row.street,
++    phone: resolveClientPhone(row) ?? row.phone,
+     email: row.email,
+-    notes: row.notes,
++    notes: normalized.notes,
+     visibility: (row.visibility ?? 'internal') as DataVisibilityScope,
+     ownedByProfileId: row.owned_by_profile_id ?? undefined,
+     sharedWithProfileIds: row.shared_with_profile_ids ?? [],
+@@ -103,7 +128,7 @@ export function mapClientDetail(row: ClientDetailRow): ClientDetail {
+       invoices: 0,
+       appointments: 0,
+     },
+-    nextActionHint: CLIENT_STATUS_HINTS[row.status],
+-    allowedStatusActions: getAllowedStatusActions(row.status),
++    nextActionHint: CLIENT_STATUS_HINTS[base.status],
++    allowedStatusActions: getAllowedStatusActions(base.status),
+   };
+ }

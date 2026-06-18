@@ -36,7 +36,7 @@ export function useEmployeeList() {
       return fetchEmployeeList(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+  { enabled: true },
   );
 
   const allItems = query.data ?? [];

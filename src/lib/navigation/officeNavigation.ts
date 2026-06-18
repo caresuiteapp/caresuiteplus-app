@@ -30,7 +30,7 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
     icon: '👥',
     href: '/office/clients',
     description: 'Liste, Suche, Filter und Status',
-    accentColor: '#FF9500',
+    accentColor: '#62F3FF',
   },
   {
     id: 'employees',
@@ -66,7 +66,7 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
     icon: '📅',
     href: '/office/appointments',
     description: 'Kalender und Planung',
-    accentColor: '#FF9500',
+    accentColor: '#62F3FF',
   },
   {
     id: 'messages',
@@ -75,6 +75,15 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
     icon: '💬',
     href: '/office/messages',
     description: 'Interne Kommunikation',
+    accentColor: '#62F3FF',
+  },
+  {
+    id: 'broadcasts',
+    key: 'broadcasts',
+    label: 'Broadcast',
+    icon: '📢',
+    href: '/office/messages?tab=broadcasts',
+    description: 'Rundschreiben an Mitarbeitende',
     accentColor: '#62F3FF',
   },
   {

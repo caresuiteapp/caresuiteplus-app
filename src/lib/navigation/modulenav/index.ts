@@ -25,13 +25,14 @@ export function getModuleNavConfig(mainModule: MainModuleKey): ModuleNavConfig {
 
 export function resolveActiveModuleNavKey(pathname: string, config: ModuleNavConfig): string {
   const path = pathname.split('?')[0].replace(/\/$/, '') || '/';
+  const items = config.groups
+    .flatMap((group) => group.items)
+    .sort((a, b) => b.href.split('?')[0].length - a.href.split('?')[0].length);
 
-  for (const group of config.groups) {
-    for (const item of group.items) {
-      const href = item.href.replace(/\/$/, '') || '/';
-      if (path === href || path.startsWith(`${href}/`)) {
-        return item.key;
-      }
+  for (const item of items) {
+    const href = item.href.split('?')[0].replace(/\/$/, '') || '/';
+    if (path === href || path.startsWith(`${href}/`)) {
+      return item.key;
     }
   }
 

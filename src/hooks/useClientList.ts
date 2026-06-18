@@ -83,7 +83,7 @@ export function useClientList() {
       costBearerFilter,
       lifecycleFilter,
     ],
-    { enabled: !!tenantId },
+    { enabled: true },
   );
 
   const kpiQuery = useAsyncQuery(

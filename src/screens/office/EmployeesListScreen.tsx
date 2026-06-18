@@ -60,7 +60,7 @@ export function EmployeesListScreen({
         canCreate ? (
           <CareLightButton
             title="+ Neu"
-            onPress={() => router.push('/business/office/employees/new' as never)}
+            onPress={() => router.push('/office/employees/create' as never)}
             accentColor={officeAccent}
           />
         ) : null
@@ -73,13 +73,13 @@ export function EmployeesListScreen({
             title="Noch keine Mitarbeitenden"
             message="Legen Sie die erste Person im Team an."
             actionLabel={canCreate ? 'Mitarbeitende anlegen' : undefined}
-            onAction={canCreate ? () => router.push('/business/office/employees/new' as never) : undefined}
+            onAction={canCreate ? () => router.push('/office/employees/create' as never) : undefined}
           />
         ) : (
           <EmployeesListView
             onEmployeePress={onEmployeePress}
             selectedId={selectedId}
-            routePrefix="/business/office/employees"
+            routePrefix="/office/employees"
           />
         )}
       </View>
