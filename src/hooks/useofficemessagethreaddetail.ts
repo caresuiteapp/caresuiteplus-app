@@ -1,10 +1,13 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { OfficeMessageThreadDetail } from '@/types/office/messaging';
+import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
 import {
   fetchOfficeMessageThreadDetail,
   sendOfficeMessage,
   startNewOfficeThreadFromClosed,
 } from '@/lib/office/messageservice';
+import { markOfficeThreadMessagesRead } from '@/lib/office/messagereadservice';
+import { subscribeToOfficeMessageThread } from '@/lib/office/officemessagerealtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { useAsyncQuery } from './core';
@@ -76,6 +79,28 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
     return result;
   }, [tenantId, threadId, profile?.roleKey, profile?.id]);
 
+  const markAsRead = useCallback(async () => {
+    if (!tenantId || !threadId || !profile?.id) return;
+    await markOfficeThreadMessagesRead(tenantId, threadId, profile.id);
+    await refresh();
+  }, [tenantId, threadId, profile?.id, refresh]);
+
+  const updateStatus = useCallback(async (_status: string) => {
+    return { ok: false as const, error: 'Statusänderung noch nicht wiederhergestellt.' };
+  }, []);
+
+  const assignSelf = useCallback(async () => {
+    return { ok: false as const, error: 'Zuweisung noch nicht wiederhergestellt.' };
+  }, []);
+
+  const updatePriority = useCallback(async (_priority: string) => {
+    return { ok: false as const, error: 'Priorität noch nicht wiederhergestellt.' };
+  }, []);
+
+  const updateCategory = useCallback(async (_categoryId: string) => {
+    return { ok: false as const, error: 'Kategorie noch nicht wiederhergestellt.' };
+  }, []);
+
   return {
     detail: query.data as OfficeMessageThreadDetail | undefined,
     loading: query.loading,
@@ -86,5 +111,10 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
     refresh,
     sendMessage,
     startNewChat,
+    markAsRead,
+    updateStatus,
+    assignSelf,
+    updatePriority,
+    updateCategory,
   };
 }

@@ -137,7 +137,6 @@ function applyDemoEdit(clientId: string, form: ClientEditFormData): ServiceResul
             : a
         ))
       : streetLine
-      ...(emergencyName || form.emergencyContactPhone.trim()
         ? [{
             id: `addr-${clientId}`,
             tenantId: full.tenantId,

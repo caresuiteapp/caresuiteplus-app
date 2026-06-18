@@ -315,7 +315,10 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
               </Text>
             </ScrollView>
           ) : (
-            <InfoBanner variant="info" message="Bitte „Vorschau öffnen" wählen, um das Dokument anzuzeigen." />
+            <InfoBanner
+              variant="info"
+              message={'Bitte „Vorschau öffnen" wählen, um das Dokument anzuzeigen.'}
+            />
           )}
 
           {signatureSlots.length > 0 && activeDoc.status !== 'finalized' ? (

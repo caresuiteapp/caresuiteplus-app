@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { BreadcrumbBar, CareLightScreen, PageHeader } from '@/components/layout';
+import { BreadcrumbBar, PageHeader } from '@/components/layout/platform';
+import { CareLightScreen } from '@/components/layout';
 import type { BreadcrumbSegment } from '@/components/layout/platform/breadcrumbbar';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -31,17 +32,17 @@ export function ModuleDashboardShell({
 
   if (mode === 'dark') {
     return (
-      <View style={[styles.page, fill && styles.pageFill]}>
+      <View style={styles.page}>
         {header}
-        {fill ? <View style={styles.bodyFill}>{children}</View> : children}
+        {children}
       </View>
     );
   }
 
   return (
-    <CareLightScreen scroll={scroll} embedded={fill}>
+    <CareLightScreen>
       {header}
-      {fill ? <View style={styles.bodyFill}>{children}</View> : children}
+      {children}
     </CareLightScreen>
   );
 }
