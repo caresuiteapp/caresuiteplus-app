@@ -39,7 +39,7 @@ export function EmployeesListScreen({
   if (list.loading && list.allItems.length === 0) {
     return (
       <ScreenShell title="Mitarbeitende" subtitle="Wird geladen…" scroll={false}>
-        <LoadingState message="Mitarbeitende werden geladen…" />
+        <LoadingState message="Daten werden geladen…" />
       </ScreenShell>
     );
   }

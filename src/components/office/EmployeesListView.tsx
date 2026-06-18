@@ -167,7 +167,7 @@ export function EmployeesListView({
     return (
       <View style={styles.container}>
         {!embedded ? toolbar : null}
-        <LoadingState message="Mitarbeitende werden geladen…" />
+        <LoadingState message="Daten werden geladen…" />
       </View>
     );
   }
