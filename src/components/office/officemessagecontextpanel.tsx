@@ -84,8 +84,8 @@ export function OfficeMessageContextPanel({
     () =>
       StyleSheet.create({
         root: {
-          width: 280,
-          minWidth: 240,
+          flex: 1,
+          minWidth: 0,
           borderLeftWidth: 1,
           borderLeftColor: c.border,
           padding: spacing.md,

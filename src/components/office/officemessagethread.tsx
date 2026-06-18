@@ -20,9 +20,14 @@ const STATUS_LABELS: Record<string, string> = {
 type OfficeMessageThreadProps = {
   threadId: string | null;
   onNewThreadStarted?: (newThreadId: string) => void;
+  hideHeader?: boolean;
 };
 
-export function OfficeMessageThread({ threadId, onNewThreadStarted }: OfficeMessageThreadProps) {
+export function OfficeMessageThread({
+  threadId,
+  onNewThreadStarted,
+  hideHeader = false,
+}: OfficeMessageThreadProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const [draft, setDraft] = useState('');
@@ -108,13 +113,15 @@ export function OfficeMessageThread({ threadId, onNewThreadStarted }: OfficeMess
 
   return (
     <View style={styles.root}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{detail.subject}</Text>
-        <Text style={styles.meta}>
-          Status: {STATUS_LABELS[detail.status] ?? detail.status}
-          {detail.categoryLabel ? ` · ${detail.categoryLabel}` : ''}
-        </Text>
-      </View>
+      {!hideHeader ? (
+        <View style={styles.header}>
+          <Text style={styles.title}>{detail.subject}</Text>
+          <Text style={styles.meta}>
+            Status: {STATUS_LABELS[detail.status] ?? detail.status}
+            {detail.categoryLabel ? ` · ${detail.categoryLabel}` : ''}
+          </Text>
+        </View>
+      ) : null}
 
       <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent}>
         {detail.messages.map((message) => (

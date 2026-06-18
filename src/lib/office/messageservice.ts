@@ -1,5 +1,10 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { OfficeMessage, OfficeMessageThreadDetail } from '@/types/office/messaging';
+import type {
+  CreateOfficeThreadInput,
+  OfficeMessage,
+  OfficeMessageThread,
+  OfficeMessageThreadDetail,
+} from '@/types/office/messaging';
 import {
   appendDemoOfficeMessage,
   appendDemoOfficeThread,
@@ -18,9 +23,11 @@ import {
   filterPortalVisibleMessages,
   isThreadClosed,
   toDbThreadType,
+  validateCreateThread,
   validateSendMessage,
 } from '@/lib/office/messagebusinessrules';
 import { fetchOfficeMessageThreadById } from '@/lib/office/messagethreadservice';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 function mapMessageRow(row: Record<string, unknown>): OfficeMessage {
   const senderProfileId = row.sender_profile_id ? String(row.sender_profile_id) : null;
@@ -395,6 +402,146 @@ export async function startNewOfficeThreadFromClosed(
   });
 
   return fetchOfficeMessageThreadDetail(tenantId, threadId, actorRoleKey);
+}
+
+export async function createOfficeMessageThread(
+  tenantId: string,
+  input: CreateOfficeThreadInput,
+  actorRoleKey?: RoleKey | null,
+  profileId?: string | null,
+  context?: { clientName?: string | null; employeeName?: string | null },
+): Promise<PreviewAwareResult<OfficeMessageThread>> {
+  const denied = enforcePermission<OfficeMessageThread>(actorRoleKey, 'office.access');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const subject = input.subject.trim();
+  if (!subject) return { ok: false, error: 'Betreff darf nicht leer sein.' };
+
+  const validation = validateCreateThread({
+    threadType: input.threadType,
+    clientId: input.clientId,
+    employeeId: input.employeeId,
+  });
+  if (!validation.ok) return validation;
+
+  const now = new Date().toISOString();
+  const priority = input.priority ?? 'normal';
+  const preview = input.initialMessage?.trim().slice(0, 120) ?? 'Neuer Chat';
+
+  if (getServiceMode() === 'demo') {
+    const thread: OfficeMessageThread = {
+      id: `thread-demo-${Date.now()}`,
+      tenantId,
+      threadType: input.threadType,
+      status: 'received',
+      priority,
+      subject,
+      categoryId: input.categoryId ?? null,
+      categoryLabel: null,
+      clientId: input.clientId ?? null,
+      clientName: context?.clientName ?? null,
+      employeeId: input.employeeId ?? null,
+      employeeName: context?.employeeName ?? null,
+      participantName: null,
+      lastMessageAt: now,
+      lastMessagePreview: preview,
+      unreadCount: 0,
+      archivedAt: null,
+      createdAt: now,
+      updatedAt: now,
+    };
+    appendDemoOfficeThread(thread);
+    if (input.initialMessage?.trim()) {
+      appendDemoOfficeMessage({
+        id: `msg-demo-${Date.now()}`,
+        tenantId,
+        threadId: thread.id,
+        body: input.initialMessage.trim(),
+        senderType: 'office_profile',
+        senderProfileId: profileId ?? null,
+        senderClientId: null,
+        senderEmployeeId: null,
+        senderDisplayName: 'Office',
+        isInternalNote: false,
+        isSystemMessage: false,
+        sentAt: now,
+        readAt: null,
+        status: 'sent',
+        createdAt: now,
+        updatedAt: now,
+      });
+    }
+    return { ok: true, data: thread, previewData: true };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const { data, error } = await supabase
+    .from('message_threads')
+    .insert({
+      tenant_id: tenantId,
+      thread_type: toDbThreadType(input.threadType),
+      status: 'received',
+      priority,
+      subject,
+      category_id: input.categoryId ?? null,
+      client_id: input.clientId ?? null,
+      employee_id: input.employeeId ?? null,
+      created_by_profile_id: profileId ?? null,
+      last_message_at: now,
+      last_message_preview: preview,
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    if (isMissingTableServiceError(toGermanSupabaseError(error))) {
+      return { ok: false, error: 'Office-Messaging-Tabellen fehlen (Migration 0089).' };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  const threadId = String(data.id);
+
+  if (input.threadType === 'internal' && input.participantProfileIds?.length) {
+    const participantIds = new Set(input.participantProfileIds);
+    if (profileId) participantIds.add(profileId);
+    const rows = Array.from(participantIds).map((participantProfileId) => ({
+      tenant_id: tenantId,
+      thread_id: threadId,
+      profile_id: participantProfileId,
+      is_active: true,
+    }));
+    await fromUnknownTable(supabase, 'message_thread_participants').insert(rows);
+  }
+
+  if (input.initialMessage?.trim()) {
+    await supabase.from('messages').insert({
+      tenant_id: tenantId,
+      thread_id: threadId,
+      body: input.initialMessage.trim(),
+      sender_profile_id: profileId ?? null,
+      sent_at: now,
+      status: 'sent',
+    });
+  }
+
+  const threadResult = await fetchOfficeMessageThreadById(tenantId, threadId, actorRoleKey);
+  if (!threadResult.ok || !threadResult.data) {
+    return { ok: false, error: 'Chat konnte nicht erstellt werden.' };
+  }
+
+  const created = {
+    ...threadResult.data,
+    clientName: context?.clientName ?? threadResult.data.clientName,
+    employeeName: context?.employeeName ?? threadResult.data.employeeName,
+  };
+
+  return { ok: true, data: created, previewData: threadResult.previewData };
 }
 
 /** Portal-facing message list — excludes internal notes (Rule 4). */

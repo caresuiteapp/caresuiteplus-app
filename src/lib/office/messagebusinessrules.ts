@@ -10,7 +10,12 @@ const OFFICE_THREAD_TYPES: OfficeThreadType[] = [
   'internal',
 ];
 
-const CLOSED_STATUSES = new Set<OfficeMessageThread['status']>(['resolved', 'archived', 'deleted']);
+const CLOSED_STATUSES = new Set<OfficeMessageThread['status']>([
+  'resolved',
+  'archived',
+  'deleted',
+  'closed',
+]);
 
 /** DB enum values used in message_threads.thread_type */
 export type DbThreadType = 'client' | 'employee' | 'internal';
@@ -87,6 +92,30 @@ export function validateSendMessage(
   }
   if (!canSendMessageToThread(thread.status)) {
     return { ok: false, error: 'Abgeschlossene Chats können keine neuen Nachrichten empfangen.' };
+  }
+  return { ok: true };
+}
+
+export function validateCreateThread(input: {
+  threadType: OfficeThreadType;
+  clientId?: string | null;
+  employeeId?: string | null;
+}): { ok: true } | { ok: false; error: string } {
+  if (!isOfficeModuleThread(input.threadType)) {
+    return { ok: false, error: 'Ungültiger Chat-Typ.' };
+  }
+  if (!assertNoDirectClientEmployeeComms({
+    threadType: input.threadType,
+    clientId: input.clientId ?? null,
+    employeeId: input.employeeId ?? null,
+  })) {
+    return { ok: false, error: 'Direkte Klient:innen↔Mitarbeitende-Kommunikation ist nicht erlaubt.' };
+  }
+  if (input.threadType === 'client_office' && !input.clientId) {
+    return { ok: false, error: 'Klient:in erforderlich.' };
+  }
+  if (input.threadType === 'employee_office' && !input.employeeId) {
+    return { ok: false, error: 'Mitarbeiter:in erforderlich.' };
   }
   return { ok: true };
 }

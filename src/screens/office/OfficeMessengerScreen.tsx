@@ -5,11 +5,13 @@ import { ScreenShell } from '@/components/layout';
 import { OfficeBroadcastDetail } from '@/components/office/officebroadcastdetail';
 import { OfficeBroadcastModal } from '@/components/office/officebroadcastmodal';
 import { OfficeBroadcastsList } from '@/components/office/officebroadcastslist';
+import { OfficeMessageContextPanel } from '@/components/office/officemessagecontextpanel';
 import { OfficeMessageThread } from '@/components/office/officemessagethread';
 import { OfficeMessagesInbox } from '@/components/office/officemessagesinbox';
 import { OfficeNewChatModal, type NewChatMode } from '@/components/office/officenewchatmodal';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { useOfficeMessageThreadDetail } from '@/hooks/useofficemessagethreaddetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { canCreateBroadcast } from '@/lib/office/broadcastpermissions';
 import {
@@ -22,6 +24,8 @@ import { spacing, radius } from '@/theme';
 type MessengerTab = 'messages' | 'broadcasts';
 
 const INBOX_FILTERS: OfficeInboxFilter[] = ['inbox', 'clients', 'employees', 'internal', 'closed'];
+const CONTEXT_COLUMN_BREAKPOINT = 1100;
+const CONTEXT_PANEL_WIDTH = 280;
 
 function parseInboxFilter(value: unknown): OfficeInboxFilter {
   return INBOX_FILTERS.includes(value as OfficeInboxFilter) ? (value as OfficeInboxFilter) : 'inbox';
@@ -33,10 +37,11 @@ function parseMessengerTab(value: unknown): MessengerTab {
 
 export function OfficeMessengerScreen() {
   const params = useLocalSearchParams<{ filter?: string; tab?: string }>();
-  const { height } = useWindowDimensions();
+  const { height, width } = useWindowDimensions();
   const { c } = useCareLightPalette();
   const { permissions, isReadOnly, roleKey } = usePermissions();
   const canBroadcast = canCreateBroadcast(roleKey, permissions);
+  const showContextColumn = width >= CONTEXT_COLUMN_BREAKPOINT;
 
   const [tab, setTab] = useState<MessengerTab>(() => parseMessengerTab(params.tab));
   const [filter, setFilter] = useState<OfficeInboxFilter>(() => parseInboxFilter(params.filter));
@@ -45,6 +50,16 @@ export function OfficeMessengerScreen() {
   const [search, setSearch] = useState('');
   const [newChatMode, setNewChatMode] = useState<NewChatMode | null>(null);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
+
+  const threadDetail = useOfficeMessageThreadDetail(selectedThreadId);
+  const { markAsRead, refresh: refreshThreadDetail, detail, updateStatus, assignSelf, updatePriority, updateCategory } =
+    threadDetail;
+
+  useEffect(() => {
+    if (selectedThreadId) {
+      void markAsRead();
+    }
+  }, [selectedThreadId, markAsRead]);
 
   useEffect(() => {
     setTab(parseMessengerTab(params.tab));
@@ -91,9 +106,20 @@ export function OfficeMessengerScreen() {
           flex: 1,
           minWidth: 0,
         },
+        contextPane: {
+          width: CONTEXT_PANEL_WIDTH,
+          maxWidth: '26%',
+          minWidth: 240,
+          borderLeftWidth: 1,
+          borderLeftColor: c.borderSoft,
+        },
       }),
     [c, height],
   );
+
+  const handleThreadUpdated = () => {
+    void refreshThreadDetail();
+  };
 
   return (
     <ScreenShell
@@ -150,6 +176,35 @@ export function OfficeMessengerScreen() {
                 }}
               />
             </View>
+            {showContextColumn ? (
+              <View style={[officeMessengerColumnStyles.columnRoot, styles.contextPane]}>
+                <OfficeMessageContextPanel
+                  thread={detail ?? null}
+                  readOnly={isReadOnly}
+                  onThreadUpdated={handleThreadUpdated}
+                  onUpdateStatus={async (status) => {
+                    const result = await updateStatus(status);
+                    handleThreadUpdated();
+                    return { ok: result.ok, error: result.ok ? undefined : result.error };
+                  }}
+                  onAssignSelf={async () => {
+                    const result = await assignSelf();
+                    handleThreadUpdated();
+                    return { ok: result.ok, error: result.ok ? undefined : result.error };
+                  }}
+                  onUpdatePriority={async (priority) => {
+                    const result = await updatePriority(priority);
+                    handleThreadUpdated();
+                    return { ok: result.ok, error: result.ok ? undefined : result.error };
+                  }}
+                  onUpdateCategory={async (categoryId) => {
+                    const result = await updateCategory(categoryId);
+                    handleThreadUpdated();
+                    return { ok: result.ok, error: result.ok ? undefined : result.error };
+                  }}
+                />
+              </View>
+            ) : null}
           </View>
         ) : (
           <View style={styles.messenger}>

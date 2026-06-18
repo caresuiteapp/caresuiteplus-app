@@ -3,7 +3,18 @@ import type { ISODateTime, TenantScopedEntity } from '@/types/core/base';
 /** Spec thread types — mapped to DB enum client | employee | internal */
 export type OfficeThreadType = 'client_office' | 'employee_office' | 'internal';
 
-export type OfficeThreadStatus = 'open' | 'waiting' | 'resolved' | 'archived' | 'deleted';
+export type OfficeThreadStatus =
+  | 'open'
+  | 'waiting'
+  | 'resolved'
+  | 'archived'
+  | 'deleted'
+  | 'new'
+  | 'received'
+  | 'in_progress'
+  | 'waiting_for_reply'
+  | 'internal_review'
+  | 'closed';
 
 export type OfficeMessagePriority = 'low' | 'normal' | 'high' | 'urgent';
 
@@ -30,6 +41,12 @@ export type OfficeMessageThread = TenantScopedEntity & {
   employeeName: string | null;
   /** Joined display names for internal thread participants (excluding current user when resolved). */
   participantName: string | null;
+  assignedToUserId?: string | null;
+  assignedToUserName?: string | null;
+  assignedAt?: ISODateTime | null;
+  closedAt?: ISODateTime | null;
+  closedByUserId?: string | null;
+  participantProfileIds?: string[];
   lastMessageAt: ISODateTime | null;
   lastMessagePreview: string | null;
   unreadCount: number;
@@ -68,4 +85,15 @@ export type OfficeMessageThreadDetail = OfficeMessageThread & {
   messages: OfficeMessage[];
   canReply: boolean;
   isClosed: boolean;
+};
+
+export type CreateOfficeThreadInput = {
+  threadType: OfficeThreadType;
+  subject: string;
+  categoryId?: string | null;
+  clientId?: string | null;
+  employeeId?: string | null;
+  participantProfileIds?: string[];
+  initialMessage?: string;
+  priority?: OfficeMessagePriority;
 };

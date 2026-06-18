@@ -2,7 +2,9 @@ import type { RoleKey, ServiceResult } from '@/types';
 import type {
   OfficeInboxFilter,
   OfficeMessageCategory,
+  OfficeMessagePriority,
   OfficeMessageThread,
+  OfficeThreadStatus,
 } from '@/types/office/messaging';
 import {
   demoOfficeMessageCategories,
@@ -18,7 +20,20 @@ import {
   type PreviewAwareResult,
 } from '@/lib/supabase/missingtablefallback';
 import { fromDbThreadType } from '@/lib/office/messagebusinessrules';
+import { fromDbThreadStatus, isClosedAppStatus, toDbThreadStatus } from '@/lib/office/messagestatuslabels';
 import { canViewOfficeInternalMessages } from '@/lib/communication/officeComposeRouting';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+
+export const OFFICE_MESSAGING_SCHEMA_ERROR =
+  'Office-Messaging: Supabase-Tabellen fehlen. Migration 0089_office_messaging_live anwenden.';
+
+export function sortThreads(threads: OfficeMessageThread[]): OfficeMessageThread[] {
+  return [...threads].sort((a, b) => {
+    const aTime = a.lastMessageAt ?? a.createdAt;
+    const bTime = b.lastMessageAt ?? b.createdAt;
+    return bTime.localeCompare(aTime);
+  });
+}
 
 function filterThreadsByInbox(
   threads: OfficeMessageThread[],
@@ -32,13 +47,11 @@ function filterThreadsByInbox(
     case 'internal':
       return threads.filter((thread) => thread.threadType === 'internal');
     case 'closed':
-      return threads.filter((thread) =>
-        ['resolved', 'archived', 'deleted'].includes(thread.status),
-      );
+      return threads.filter((thread) => isClosedAppStatus(thread.status) || thread.status === 'deleted');
     case 'inbox':
     default:
       return threads.filter(
-        (thread) => !['resolved', 'archived', 'deleted'].includes(thread.status),
+        (thread) => !isClosedAppStatus(thread.status) && thread.status !== 'deleted',
       );
   }
 }
@@ -63,7 +76,7 @@ function mapThreadRow(row: Record<string, unknown>): OfficeMessageThread | null 
     id: String(row.id),
     tenantId: String(row.tenant_id),
     threadType,
-    status: (row.status as OfficeMessageThread['status']) ?? 'open',
+    status: fromDbThreadStatus(String(row.status ?? 'open')),
     priority: (row.priority as OfficeMessageThread['priority']) ?? 'normal',
     subject: String(row.subject ?? ''),
     categoryId: row.category_id ? String(row.category_id) : null,
@@ -73,9 +86,15 @@ function mapThreadRow(row: Record<string, unknown>): OfficeMessageThread | null 
     employeeId: row.employee_id ? String(row.employee_id) : null,
     employeeName: null,
     participantName: null,
+    assignedToUserId: row.assigned_to_user_id ? String(row.assigned_to_user_id) : null,
+    assignedToUserName: null,
+    assignedAt: row.assigned_at ? String(row.assigned_at) : null,
+    closedAt: row.closed_at ? String(row.closed_at) : null,
+    closedByUserId: row.closed_by_user_id ? String(row.closed_by_user_id) : null,
+    participantProfileIds: [],
     lastMessageAt: row.last_message_at ? String(row.last_message_at) : null,
     lastMessagePreview: row.last_message_preview ? String(row.last_message_preview) : null,
-    unreadCount: 0,
+    unreadCount: Number(row.office_unread_count ?? 0),
     archivedAt: row.archived_at ? String(row.archived_at) : null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
@@ -233,6 +252,63 @@ export async function fetchOfficeMessageCategories(
   }));
 
   return { ok: true, data: categories, previewData: false };
+}
+
+export async function patchOfficeMessageThread(
+  tenantId: string,
+  threadId: string,
+  patch: {
+    status?: OfficeThreadStatus;
+    priority?: OfficeMessagePriority;
+    categoryId?: string | null;
+    assignedToUserId?: string | null;
+  },
+  actorRoleKey?: RoleKey | null,
+  profileId?: string | null,
+): Promise<ServiceResult<OfficeMessageThread>> {
+  const denied = enforcePermission<OfficeMessageThread>(actorRoleKey, 'office.messages.view');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'demo') {
+    return { ok: false, error: 'Statusänderung im Demo-Modus nicht verfügbar.' };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const now = new Date().toISOString();
+  const update: Record<string, unknown> = { updated_at: now };
+
+  if (patch.status !== undefined) {
+    update.status = toDbThreadStatus(patch.status);
+    if (isClosedAppStatus(patch.status) || patch.status === 'archived') {
+      update.closed_at = now;
+      update.closed_by_user_id = profileId ?? null;
+    }
+  }
+  if (patch.priority !== undefined) update.priority = patch.priority;
+  if (patch.categoryId !== undefined) update.category_id = patch.categoryId;
+  if (patch.assignedToUserId !== undefined) {
+    update.assigned_to_user_id = patch.assignedToUserId;
+    update.assigned_by_user_id = profileId ?? null;
+    update.assigned_at = patch.assignedToUserId ? now : null;
+  }
+
+  const { error } = await supabase
+    .from('message_threads')
+    .update(update)
+    .eq('tenant_id', tenantId)
+    .eq('id', threadId);
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+  const refreshed = await fetchThreadByIdLive(tenantId, threadId);
+  if (!refreshed.ok) return refreshed;
+  if (!refreshed.data) return { ok: false, error: 'Chat nicht gefunden.' };
+  return { ok: true, data: refreshed.data };
 }
 
 export { fetchThreadByIdLive, fetchThreadsLive };

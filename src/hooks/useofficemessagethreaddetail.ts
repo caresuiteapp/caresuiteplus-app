@@ -6,6 +6,8 @@ import {
   sendOfficeMessage,
   startNewOfficeThreadFromClosed,
 } from '@/lib/office/messageservice';
+import { patchOfficeMessageThread } from '@/lib/office/messagethreadservice';
+import type { OfficeMessagePriority, OfficeThreadStatus } from '@/types/office/messaging';
 import { markOfficeThreadMessagesRead } from '@/lib/office/messagereadservice';
 import { subscribeToOfficeMessageThread } from '@/lib/office/officemessagerealtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -85,21 +87,68 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
     await refresh();
   }, [tenantId, threadId, profile?.id, refresh]);
 
-  const updateStatus = useCallback(async (_status: string) => {
-    return { ok: false as const, error: 'Statusänderung noch nicht wiederhergestellt.' };
-  }, []);
+  const updateStatus = useCallback(
+    async (status: OfficeThreadStatus) => {
+      if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
+      const result = await patchOfficeMessageThread(
+        tenantId,
+        threadId,
+        { status },
+        profile?.roleKey,
+        profile?.id,
+      );
+      if (result.ok) await refresh();
+      return result;
+    },
+    [tenantId, threadId, profile?.roleKey, profile?.id, refresh],
+  );
 
   const assignSelf = useCallback(async () => {
-    return { ok: false as const, error: 'Zuweisung noch nicht wiederhergestellt.' };
-  }, []);
+    if (!tenantId || !threadId || !profile?.id) {
+      return { ok: false as const, error: 'Kein Profil für Zuweisung.' };
+    }
+    const result = await patchOfficeMessageThread(
+      tenantId,
+      threadId,
+      { assignedToUserId: profile.id },
+      profile.roleKey,
+      profile.id,
+    );
+    if (result.ok) await refresh();
+    return result;
+  }, [tenantId, threadId, profile?.id, profile?.roleKey, refresh]);
 
-  const updatePriority = useCallback(async (_priority: string) => {
-    return { ok: false as const, error: 'Priorität noch nicht wiederhergestellt.' };
-  }, []);
+  const updatePriority = useCallback(
+    async (priority: OfficeMessagePriority) => {
+      if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
+      const result = await patchOfficeMessageThread(
+        tenantId,
+        threadId,
+        { priority },
+        profile?.roleKey,
+        profile?.id,
+      );
+      if (result.ok) await refresh();
+      return result;
+    },
+    [tenantId, threadId, profile?.roleKey, profile?.id, refresh],
+  );
 
-  const updateCategory = useCallback(async (_categoryId: string) => {
-    return { ok: false as const, error: 'Kategorie noch nicht wiederhergestellt.' };
-  }, []);
+  const updateCategory = useCallback(
+    async (categoryId: string) => {
+      if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
+      const result = await patchOfficeMessageThread(
+        tenantId,
+        threadId,
+        { categoryId },
+        profile?.roleKey,
+        profile?.id,
+      );
+      if (result.ok) await refresh();
+      return result;
+    },
+    [tenantId, threadId, profile?.roleKey, profile?.id, refresh],
+  );
 
   return {
     detail: query.data as OfficeMessageThreadDetail | undefined,

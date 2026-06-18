@@ -177,7 +177,7 @@ export function OfficeMessagesInbox({
   if (loading && threads.length === 0) {
     return (
       <View style={styles.root}>
-        <LoadingState message="Chats werden geladen…" />
+        <LoadingState message="Daten werden geladen…" />
       </View>
     );
   }

@@ -29,6 +29,9 @@ const CLOSED_APP_STATUSES = new Set<OfficeThreadStatus>([
 
 /** Office UI labels (German) */
 export const OFFICE_THREAD_STATUS_LABELS: Record<OfficeThreadStatus, string> = {
+  open: 'Offen',
+  waiting: 'Wartend',
+  deleted: 'Gelöscht',
   new: 'Neu',
   received: 'Eingegangen',
   in_progress: 'In Bearbeitung',
@@ -41,6 +44,9 @@ export const OFFICE_THREAD_STATUS_LABELS: Record<OfficeThreadStatus, string> = {
 
 /** Portal-facing labels (German, simplified) */
 export const PORTAL_THREAD_STATUS_LABELS: Record<OfficeThreadStatus, string> = {
+  open: 'Offen',
+  waiting: 'Wartend',
+  deleted: 'Gelöscht',
   new: 'Neu',
   received: 'Eingegangen',
   in_progress: 'In Bearbeitung',
