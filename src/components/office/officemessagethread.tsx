@@ -4,6 +4,7 @@ import { ChatBubble } from '@/components/communication/ChatBubble';
 import { ChatComposer } from '@/components/communication/ChatComposer';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { useOfficeMessageThreadDetail } from '@/hooks/useofficemessagethreaddetail';
 import { mapOfficeMessageToChatBubble } from '@/lib/office/officemessagemappers';
@@ -23,6 +24,7 @@ type OfficeMessageThreadProps = {
 
 export function OfficeMessageThread({ threadId, onNewThreadStarted }: OfficeMessageThreadProps) {
   const { c } = useCareLightPalette();
+  const { typography } = useLegacyTheme();
   const [draft, setDraft] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
   const { detail, loading, error, sending, sendMessage, startNewChat, refresh } =
@@ -35,23 +37,23 @@ export function OfficeMessageThread({ threadId, onNewThreadStarted }: OfficeMess
         header: {
           padding: spacing.md,
           borderBottomWidth: 1,
-          borderBottomColor: c.borderSoft,
+          borderBottomColor: c.border,
           gap: spacing.xs,
         },
-        title: { ...c.typography.h3, color: c.textPrimary },
-        meta: { ...c.typography.caption, color: c.textMuted },
+        title: { ...typography.h3, color: c.text },
+        meta: { ...typography.caption, color: c.muted },
         messages: { flex: 1 },
         messagesContent: { paddingVertical: spacing.md },
         closedBanner: {
           margin: spacing.md,
           padding: spacing.md,
           borderRadius: 8,
-          backgroundColor: c.bgPanel,
+          backgroundColor: c.surfaceAlt,
           gap: spacing.sm,
         },
-        closedText: { ...c.typography.body, color: c.textSecondary },
+        closedText: { ...typography.body, color: c.muted },
       }),
-    [c],
+    [c, typography],
   );
 
   if (!threadId) {

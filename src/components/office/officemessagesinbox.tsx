@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumInput, EmptyState, LoadingState, ErrorState } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import type { OfficeInboxFilter, OfficeMessageThread } from '@/types/office/messaging';
 import { useOfficeMessageThreads } from '@/hooks/useofficemessagethreads';
@@ -46,38 +47,39 @@ function ThreadRow({
   onPress: () => void;
 }) {
   const { c } = useCareLightPalette();
+  const { typography } = useLegacyTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         row: {
           padding: spacing.md,
           borderBottomWidth: 1,
-          borderBottomColor: c.borderSoft,
-          backgroundColor: selected ? c.accentSoft : 'transparent',
+          borderBottomColor: c.border,
+          backgroundColor: selected ? `${c.violet}14` : 'transparent',
         },
         header: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
-        subject: { ...c.typography.body, fontWeight: '700', color: c.textPrimary, flex: 1 },
-        time: { ...c.typography.caption, color: c.textMuted },
-        preview: { ...c.typography.caption, color: c.textSecondary, marginTop: spacing.xs },
+        subject: { ...typography.body, fontWeight: '700', color: c.text, flex: 1 },
+        time: { ...typography.caption, color: c.muted },
+        preview: { ...typography.caption, color: c.muted, marginTop: spacing.xs },
         meta: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
         badge: {
           paddingHorizontal: spacing.sm,
           paddingVertical: 2,
           borderRadius: radius.capsule,
-          backgroundColor: c.bgPanel,
+          backgroundColor: c.surfaceAlt,
         },
-        badgeText: { ...c.typography.caption, color: c.textSecondary },
+        badgeText: { ...typography.caption, color: c.muted },
         unread: {
           minWidth: 20,
           height: 20,
           borderRadius: 10,
-          backgroundColor: c.accent,
+          backgroundColor: c.violet,
           alignItems: 'center',
           justifyContent: 'center',
         },
-        unreadText: { ...c.typography.caption, color: '#fff', fontWeight: '700', fontSize: 11 },
+        unreadText: { ...typography.caption, color: '#fff', fontWeight: '700', fontSize: 11 },
       }),
-    [c, selected],
+    [c, typography, selected],
   );
 
   const participant =
@@ -136,6 +138,7 @@ export function OfficeMessagesInbox({
   onSearchChange,
 }: OfficeMessagesInboxProps) {
   const { c } = useCareLightPalette();
+  const { typography } = useLegacyTheme();
   const { threads, loading, error, refresh, isEmpty } = useOfficeMessageThreads(filter);
 
   const styles = useMemo(
@@ -148,15 +151,15 @@ export function OfficeMessagesInbox({
           paddingVertical: spacing.xs,
           borderRadius: radius.capsule,
           borderWidth: 1,
-          borderColor: c.borderSoft,
+          borderColor: c.border,
         },
-        filterChipActive: { backgroundColor: c.accentSoft, borderColor: c.accent },
-        filterText: { ...c.typography.caption, color: c.textSecondary },
-        filterTextActive: { color: c.accent, fontWeight: '700' },
+        filterChipActive: { backgroundColor: `${c.violet}14`, borderColor: c.violet },
+        filterText: { ...typography.caption, color: c.muted },
+        filterTextActive: { color: c.violet, fontWeight: '700' },
         search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
         list: { flex: 1 },
       }),
-    [c],
+    [c, typography],
   );
 
   const filteredThreads = useMemo(() => {
