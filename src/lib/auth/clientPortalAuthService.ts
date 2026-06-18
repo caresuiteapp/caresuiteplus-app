@@ -12,13 +12,20 @@ import type {
 import {
   getClientPortalCodes,
   getPortalCodeHash,
+  getRelativePortalCodes,
+  listClientPortalUsernames,
   saveClientPortalCode,
   savePortalPermissions,
+  saveRelativePortalCode,
   setPortalCodeHash,
 } from './demoAccessStore';
 import { recordLoginAuditEvent } from './loginAuditService';
 import {
+  pickUniqueClientPortalUsername,
+} from './clientPortalUsernameGenerator';
+import {
   hashPortalCode,
+  maskPortalCodeHint,
   normalizePortalCodeInput,
   pickUniquePortalCode,
   validatePortalCodeFormat,
@@ -36,14 +43,22 @@ function createId(prefix: string): string {
 export async function generateClientPortalCode(input: {
   tenantId: string;
   clientId: string;
+  firstName: string;
+  lastName: string;
   createdBy: string | null;
   expiresAt?: string | null;
 }): Promise<ServiceResult<{ code: ClientPortalCode; credentials: AccessCredentialsReveal }>> {
+  const username = pickUniqueClientPortalUsername(
+    input.firstName,
+    input.lastName,
+    listClientPortalUsernames(input.tenantId),
+  );
   const plainCode = pickUniquePortalCode([]);
   const code: ClientPortalCode = {
     id: createId('cpc'),
     tenantId: input.tenantId,
     clientId: input.clientId,
+    username,
     status: 'active',
     expiresAt: input.expiresAt ?? null,
     lastUsedAt: null,
@@ -83,6 +98,7 @@ export async function generateClientPortalCode(input: {
     data: {
       code,
       credentials: {
+        username,
         portalCode: plainCode,
         expiresAt: code.expiresAt,
       },
@@ -90,10 +106,127 @@ export async function generateClientPortalCode(input: {
   };
 }
 
+export async function loginClientPortal(
+  usernameInput: string,
+  codeInput: string,
+): Promise<ServiceResult<{ portalAccountId: string; tenantId: string; portalSession?: PortalSessionRecord }>> {
+  const username = usernameInput.trim().toLowerCase();
+  if (!username) {
+    return { ok: false, error: 'Benutzername ist erforderlich.' };
+  }
+
+  const formatError = validatePortalCodeFormat(codeInput);
+  if (formatError) {
+    return { ok: false, error: formatError };
+  }
+
+  if (getServiceMode() === 'supabase') {
+    const login = await invokeEdgeFunction<{
+      portalAccountId: string;
+      tenantId: string;
+      clientId: string;
+      portalType: PortalAccessType;
+      sessionToken: string;
+      expiresAt: string;
+    }>('client-portal-login', { username, code: codeInput });
+
+    if (!login.ok) {
+      return { ok: false, error: login.error };
+    }
+
+    const portalSession: PortalSessionRecord = {
+      sessionToken: login.data.sessionToken,
+      tenantId: login.data.tenantId,
+      loginType: 'client_portal',
+      roleKey: 'client_portal',
+      expiresAt: login.data.expiresAt,
+      accountId: login.data.portalAccountId,
+    };
+
+    return {
+      ok: true,
+      data: {
+        portalAccountId: login.data.portalAccountId,
+        tenantId: login.data.tenantId,
+        portalSession,
+      },
+    };
+  }
+
+  const tenantId = DEMO_TENANT_ID;
+  const normalized = normalizePortalCodeInput(codeInput);
+  const codes = getClientPortalCodes(tenantId).filter(
+    (entry) => entry.username.toLowerCase() === username,
+  );
+
+  for (const entry of codes) {
+    const hash = getPortalCodeHash(entry.id);
+    if (!hash) continue;
+    const valid = await verifyPortalCode(normalized, hash);
+    if (!valid) continue;
+
+    if (entry.status === 'regenerated' || entry.status === 'expired' || entry.status === 'revoked') {
+      continue;
+    }
+
+    if (entry.status === 'blocked') {
+      await recordLoginAuditEvent({
+        tenantId,
+        loginType: 'client_portal',
+        accountId: entry.id,
+        usernameOrCodeHint: `${username} / ${maskPortalCodeHint(normalized)}`,
+        success: false,
+        failureReason: 'Code gesperrt.',
+      });
+      return { ok: false, error: 'Zugang gesperrt. Bitte wenden Sie sich an die Verwaltung.' };
+    }
+
+    if (entry.expiresAt && new Date(entry.expiresAt).getTime() < Date.now()) {
+      return { ok: false, error: 'Zugangscode ungültig oder abgelaufen.' };
+    }
+
+    entry.lastUsedAt = nowIso();
+    saveClientPortalCode(entry);
+
+    await recordLoginAuditEvent({
+      tenantId,
+      loginType: 'client_portal',
+      accountId: entry.id,
+      usernameOrCodeHint: `${username} / ${maskPortalCodeHint(normalized)}`,
+      success: true,
+      failureReason: null,
+    });
+
+    return {
+      ok: true,
+      data: {
+        portalAccountId: entry.id,
+        tenantId,
+      },
+    };
+  }
+
+  await recordLoginAuditEvent({
+    tenantId,
+    loginType: 'client_portal',
+    accountId: null,
+    usernameOrCodeHint: `${username} / ${maskPortalCodeHint(normalized)}`,
+    success: false,
+    failureReason: 'Zugangsdaten unbekannt.',
+  });
+
+  return { ok: false, error: 'Benutzername oder Zugangscode ist falsch.' };
+}
+
 export async function validatePortalCodeLogin(
   codeInput: string,
   portalType: PortalAccessType,
+  usernameInput?: string,
 ): Promise<ServiceResult<{ portalAccountId: string; tenantId: string; portalSession?: PortalSessionRecord }>> {
+  if (portalType === 'client') {
+    return loginClientPortal(usernameInput ?? '', codeInput);
+  }
+
   const formatError = validatePortalCodeFormat(codeInput);
   if (formatError) {
     return { ok: false, error: formatError };
@@ -115,8 +248,8 @@ export async function validatePortalCodeLogin(
     const portalSession: PortalSessionRecord = {
       sessionToken: login.data.sessionToken,
       tenantId: login.data.tenantId,
-      loginType: portalType === 'client' ? 'client_portal' : 'relative_portal',
-      roleKey: portalType === 'client' ? 'client_portal' : 'family_portal',
+      loginType: 'relative_portal',
+      roleKey: 'family_portal',
       expiresAt: login.data.expiresAt,
       accountId: login.data.portalAccountId,
     };
@@ -133,7 +266,7 @@ export async function validatePortalCodeLogin(
 
   const tenantId = DEMO_TENANT_ID;
   const normalized = normalizePortalCodeInput(codeInput);
-  const codes = getClientPortalCodes(tenantId);
+  const codes = getRelativePortalCodes(tenantId);
 
   for (const entry of codes) {
     const hash = getPortalCodeHash(entry.id);
@@ -148,9 +281,9 @@ export async function validatePortalCodeLogin(
     if (entry.status === 'blocked') {
       await recordLoginAuditEvent({
         tenantId,
-        loginType: portalType === 'client' ? 'client_portal' : 'relative_portal',
+        loginType: 'relative_portal',
         accountId: entry.id,
-        usernameOrCodeHint: `${normalized.slice(0, 2)}****`,
+        usernameOrCodeHint: maskPortalCodeHint(normalized),
         success: false,
         failureReason: 'Code gesperrt.',
       });
@@ -162,13 +295,13 @@ export async function validatePortalCodeLogin(
     }
 
     entry.lastUsedAt = nowIso();
-    saveClientPortalCode(entry);
+    saveRelativePortalCode(entry);
 
     await recordLoginAuditEvent({
       tenantId,
-      loginType: portalType === 'client' ? 'client_portal' : 'relative_portal',
+      loginType: 'relative_portal',
       accountId: entry.id,
-      usernameOrCodeHint: `${normalized.slice(0, 2)}****`,
+      usernameOrCodeHint: maskPortalCodeHint(normalized),
       success: true,
       failureReason: null,
     });
@@ -184,9 +317,9 @@ export async function validatePortalCodeLogin(
 
   await recordLoginAuditEvent({
     tenantId,
-    loginType: portalType === 'client' ? 'client_portal' : 'relative_portal',
+    loginType: 'relative_portal',
     accountId: null,
-    usernameOrCodeHint: `${normalized.slice(0, 2)}****`,
+    usernameOrCodeHint: maskPortalCodeHint(normalized),
     success: false,
     failureReason: 'Code unbekannt.',
   });
@@ -197,6 +330,8 @@ export async function validatePortalCodeLogin(
 export async function regeneratePortalCode(
   codeId: string,
   portalType: PortalAccessType,
+  firstName?: string,
+  lastName?: string,
 ): Promise<ServiceResult<AccessCredentialsReveal>> {
   const tenantId = DEMO_TENANT_ID;
   const codes = getClientPortalCodes(tenantId);
@@ -216,12 +351,16 @@ export async function regeneratePortalCode(
       ? await generateClientPortalCode({
           tenantId,
           clientId: entry.clientId,
+          firstName: firstName ?? entry.username.split('.')[0] ?? 'Klient',
+          lastName: lastName ?? entry.username.split('.').slice(1).join('.') ?? 'X',
           createdBy: null,
           expiresAt: entry.expiresAt,
         })
       : await generateClientPortalCode({
           tenantId,
           clientId: entry.clientId,
+          firstName: firstName ?? 'Angehoerige',
+          lastName: lastName ?? 'X',
           createdBy: null,
           expiresAt: entry.expiresAt,
         });

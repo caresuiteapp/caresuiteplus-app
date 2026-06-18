@@ -8,6 +8,8 @@ export type ClientIntakeDraft = {
   form: ClientIntakeFormData;
   stepIndex: number;
   updatedAt: string;
+  /** Live-Supabase-Klient:in mit status lead, falls Entwurf serverseitig persistiert wurde. */
+  clientId?: string | null;
 };
 
 function storageKey(userId: string, tenantId: string): string {
@@ -51,6 +53,7 @@ export async function loadClientIntakeDraft(
       form: mergeIntakeFormWithDefaults(parsed.form),
       stepIndex: Math.max(0, parsed.stepIndex),
       updatedAt: parsed.updatedAt ?? new Date().toISOString(),
+      clientId: typeof parsed.clientId === 'string' ? parsed.clientId : null,
     };
 
     return hasIntakeDraftContent(draft) ? draft : null;
@@ -68,6 +71,7 @@ export async function saveClientIntakeDraft(
     form: draft.form,
     stepIndex: draft.stepIndex,
     updatedAt: draft.updatedAt ?? new Date().toISOString(),
+    clientId: draft.clientId ?? null,
   };
 
   if (!hasIntakeDraftContent(payload)) {

@@ -4,6 +4,7 @@ import { getDemoEmployeeDetail } from '@/data/demo/employeeDetails';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { isDemoEmployeeDeleted } from '@/lib/office/demoDeleteStore';
 import { employeeSupabaseRepository } from '@/lib/services/repositories/employeeRepository.supabase';
 
 export async function fetchEmployeeDetail(
@@ -22,6 +23,10 @@ export async function fetchEmployeeDetail(
   }
 
   await new Promise((r) => setTimeout(r, 260));
+
+  if (isDemoEmployeeDeleted(employeeId)) {
+    return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
+  }
 
   const detail = getDemoEmployeeDetail(employeeId);
   if (!detail) {

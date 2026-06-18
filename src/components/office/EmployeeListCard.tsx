@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
+import { EmployeeListAvatar } from './EmployeeListAvatar';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
@@ -29,6 +30,11 @@ export function EmployeeListCard({ employee, onPress, selected = false }: Employ
 
   const inner = (
     <View style={styles.row}>
+      <EmployeeListAvatar
+        firstName={employee.firstName}
+        lastName={employee.lastName}
+        avatarUrl={employee.avatarUrl}
+      />
       <View style={styles.main}>
         <Text style={styles.name}>{fullName}</Text>
         <Text style={styles.meta}>{employee.jobTitle ?? '—'}</Text>
@@ -72,7 +78,7 @@ const styles = StyleSheet.create({
     borderWidth: 2,
     backgroundColor: 'rgba(255,149,0,0.08)',
   },
-  row: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+  row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   main: { flex: 1, gap: 2 },
   name: { ...typography.bodyStrong },
   meta: { ...typography.caption },

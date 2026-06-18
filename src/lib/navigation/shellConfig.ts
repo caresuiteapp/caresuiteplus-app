@@ -1,19 +1,16 @@
 import type { AppShellArea, ModuleSwitcherItem, ShellTabConfig } from '@/types/navigation/shell';
+import type { RoleKey } from '@/types';
 import { MODULE_NAV_CONFIG } from '@/data/demo/navigation';
 import { PRODUCT_LABELS } from '@/data/demo/products';
 import { getEffectiveModuleAccess } from '@/lib/modules/moduleAccessService';
+import {
+  isModuleScopeVisible,
+  resolveModuleNavState,
+} from '@/lib/modules/moduleVisibilityService';
 import type { ProductKey } from '@/types';
+import { buildOfficeTabs } from './officeNavigation';
 
-export const OFFICE_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Übersicht', icon: '🏠', href: '/office' },
-  { key: 'clients', label: 'Klient:innen', icon: '👥', href: '/office/clients' },
-  { key: 'employees', label: 'Team', icon: '👤', href: '/office/employees' },
-  { key: 'appointments', label: 'Termine', icon: '📅', href: '/office/appointments' },
-  { key: 'invoices', label: 'Rechnungen', icon: '🧾', href: '/office/invoices' },
-  { key: 'documents', label: 'Dokumente', icon: '📄', href: '/office/documents' },
-  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/office/messages' },
-  { key: 'modules', label: 'Module', icon: '🧩', href: '/business/office/modules' },
-];
+export const OFFICE_TABS: ShellTabConfig[] = buildOfficeTabs();
 
 export const ASSIST_TABS: ShellTabConfig[] = [
   { key: 'index', label: 'Übersicht', icon: '🏠', href: '/assist' },
@@ -47,74 +44,129 @@ export const STATIONAER_TABS: ShellTabConfig[] = [
 
 export const BUSINESS_TABS: ShellTabConfig[] = [
   { key: 'index', label: 'Dashboard', icon: '📊', href: '/business' },
-  { key: 'office', label: 'Office', icon: '🏢', href: '/office' },
-  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/business/messages' },
-  { key: 'templates', label: 'Vorlagen', icon: '📝', href: '/business/templates' },
-  { key: 'reporting', label: 'PDL', icon: '📈', href: '/business/reporting' },
-  { key: 'ops', label: 'Betrieb', icon: '🚀', href: '/business/ops' },
-  { key: 'modules', label: 'Module', icon: '🧩', href: '/business/modules' },
-  { key: 'subscription', label: 'Plattform', icon: '🆓', href: '/business/subscription' },
-  { key: 'platform', label: 'Plattform', icon: '🤖', href: '/business/platform' },
-  { key: 'integrations', label: 'Integrationen', icon: '🔌', href: '/business/integrations' },
+  {
+    key: 'schedule',
+    label: 'Dienstplan',
+    icon: '📅',
+    href: '/pflege/dienstplaene',
+    moduleScopeKey: 'pflege',
+    allowedRoles: ['business_admin', 'business_manager', 'dispatch', 'nurse', 'caregiver', 'counselor'],
+  },
+  {
+    key: 'clients',
+    label: 'Klient:innen',
+    icon: '👥',
+    href: '/office/clients',
+    moduleScopeKey: 'office',
+    allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
+  },
+  {
+    key: 'employees',
+    label: 'Mitarbeitende',
+    icon: '👤',
+    href: '/office/employees',
+    moduleScopeKey: 'office',
+    allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
+  },
+  {
+    key: 'messages',
+    label: 'Nachrichten',
+    icon: '💬',
+    href: '/business/messages',
+    moduleScopeKey: 'communication',
+    allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
+  },
+  {
+    key: 'more',
+    label: 'Mehr',
+    icon: '⋯',
+    href: '/business/modules',
+    moduleScopeKey: 'modules_hub',
+    allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
+  },
 ];
 
 export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Übersicht', icon: '🏠', href: '/portal/employee' },
+  { key: 'index', label: 'Heute', icon: '🏠', href: '/portal/employee' },
   { key: 'assignments', label: 'Einsätze', icon: '📅', href: '/portal/employee/assignments' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
-  { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/employee/documents' },
-  { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
+  { key: 'times', label: 'Zeiten', icon: '⏱️', href: '/portal/employee/documents' },
+  { key: 'more', label: 'Mehr', icon: '⋯', href: '/portal/employee/profile' },
 ];
 
 export const PORTAL_CLIENT_TABS: ShellTabConfig[] = [
-  { key: 'index', label: 'Übersicht', icon: '🏠', href: '/portal/client' },
   { key: 'appointments', label: 'Termine', icon: '📅', href: '/portal/client/appointments' },
-  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
   { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents' },
+  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile' },
 ];
 
-export function getTabsForArea(area: AppShellArea): ShellTabConfig[] {
-  switch (area) {
-    case 'business':
-      return BUSINESS_TABS;
-    case 'office':
-      return OFFICE_TABS;
-    case 'assist':
-      return ASSIST_TABS;
-    case 'pflege':
-      return PFLEGE_TABS;
-    case 'beratung':
-      return BERATUNG_TABS;
-    case 'akademie':
-      return AKADEMIE_TABS;
-    case 'stationaer':
-      return STATIONAER_TABS;
-    case 'portal_employee':
-      return PORTAL_EMPLOYEE_TABS;
-    case 'portal_client':
-      return PORTAL_CLIENT_TABS;
-    default:
-      return [];
-  }
+export function getTabsForArea(
+  area: AppShellArea,
+  context: { tenantId?: string | null; roleKey?: RoleKey | null } = {},
+): ShellTabConfig[] {
+  const tabs = (() => {
+    switch (area) {
+      case 'business':
+        return BUSINESS_TABS;
+      case 'office':
+        return OFFICE_TABS;
+      case 'assist':
+        return ASSIST_TABS;
+      case 'pflege':
+        return PFLEGE_TABS;
+      case 'beratung':
+        return BERATUNG_TABS;
+      case 'akademie':
+        return AKADEMIE_TABS;
+      case 'stationaer':
+        return STATIONAER_TABS;
+      case 'portal_employee':
+        return PORTAL_EMPLOYEE_TABS;
+      case 'portal_client':
+        return PORTAL_CLIENT_TABS;
+      default:
+        return [];
+    }
+  })();
+
+  return tabs.filter((tab) => {
+    if (tab.allowedRoles?.length) {
+      if (!context.roleKey || !tab.allowedRoles.includes(context.roleKey)) return false;
+    }
+    if (!tab.moduleScopeKey) return true;
+    return isModuleScopeVisible(tab.moduleScopeKey, context);
+  });
 }
 
-export function getModuleSwitcherItems(tenantId: string): ModuleSwitcherItem[] {
+export function getModuleSwitcherItems(
+  tenantId: string,
+  roleKey?: RoleKey | null,
+): ModuleSwitcherItem[] {
   if (!tenantId?.trim()) return [];
   const access = getEffectiveModuleAccess(tenantId);
-  return (Object.keys(MODULE_NAV_CONFIG) as ProductKey[]).map((key) => {
-    const config = MODULE_NAV_CONFIG[key];
-    const moduleAccess = access.find((entry) => entry.productKey === key);
-    return {
-      productKey: key,
-      label: PRODUCT_LABELS[key],
-      icon: config.icon,
-      description: config.description,
-      path: config.path,
-      accentColor: config.accentColor,
-      isActive: moduleAccess?.isEffective ?? false,
-    };
-  });
+  const context = { tenantId, roleKey };
+
+  return (Object.keys(MODULE_NAV_CONFIG) as ProductKey[])
+    .map((key) => {
+      const config = MODULE_NAV_CONFIG[key];
+      const moduleAccess = access.find((entry) => entry.productKey === key);
+      const navState = resolveModuleNavState(key, context);
+      return {
+        productKey: key,
+        label: PRODUCT_LABELS[key],
+        icon: config.icon,
+        description: config.description,
+        path: config.path,
+        accentColor: config.accentColor,
+        isActive: moduleAccess?.isEffective ?? false,
+        visibilityStatus: navState.effectiveStatus,
+        isVisible: navState.isVisible,
+        isNavigable: navState.isNavigable,
+        badgeLabel: navState.badgeLabel,
+      };
+    })
+    .filter((item) => item.isVisible);
 }
 
 /** Ermittelt aktiven Tab-Key aus dem Pfad (für Custom TabBar). */

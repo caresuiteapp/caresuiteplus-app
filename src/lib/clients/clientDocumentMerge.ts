@@ -48,8 +48,34 @@ function mapIntakeStatusToWorkflow(status: string): WorkflowStatus {
   return 'entwurf';
 }
 
+function resolveIntakeDocumentHtml(row: Pick<IntakeDocumentRow, 'finalized_html' | 'preview_html'>): string | null {
+  return row.finalized_html ?? row.preview_html;
+}
+
+function enrichStoredDocumentWithIntakeHtml(
+  doc: ClientDocumentRecord,
+  intakeById: Map<string, IntakeDocumentRow>,
+  intakeByTemplateKey: Map<string, IntakeDocumentRow>,
+): ClientDocumentRecord {
+  const intakeRow =
+    (doc.intakeDocumentId ? intakeById.get(doc.intakeDocumentId) : undefined)
+    ?? intakeByTemplateKey.get(doc.fileName.replace(/\.html$/i, ''));
+
+  if (!intakeRow) return doc;
+
+  const previewHtml = doc.previewHtml ?? resolveIntakeDocumentHtml(intakeRow);
+  return {
+    ...doc,
+    previewHtml,
+    documentSource: doc.documentSource ?? 'intake',
+    intakeDocumentId: doc.intakeDocumentId ?? intakeRow.id,
+    intakeDocumentType: doc.intakeDocumentType ?? intakeRow.document_type,
+    intakeStatus: doc.intakeStatus ?? intakeRow.status,
+  };
+}
+
 export function mapIntakeDocumentRow(row: IntakeDocumentRow): ClientDocumentRecord {
-  const html = row.finalized_html ?? row.preview_html;
+  const html = resolveIntakeDocumentHtml(row);
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -68,6 +94,7 @@ export function mapIntakeDocumentRow(row: IntakeDocumentRow): ClientDocumentReco
     previewHtml: html,
     documentSource: 'intake',
     intakeDocumentId: row.id,
+    intakeDocumentType: row.document_type,
     intakeStatus: row.status,
   };
 }
@@ -97,22 +124,33 @@ export function mergeClientRecordDocuments(
   stored: ClientDocumentRecord[],
   intakeRows: IntakeDocumentRow[],
 ): ClientDocumentRecord[] {
-  const promotedIntakeIds = new Set(
-    stored.map((doc) => doc.intakeDocumentId).filter(Boolean) as string[],
+  const intakeById = new Map(intakeRows.map((row) => [row.id, row]));
+  const intakeByTemplateKey = new Map(intakeRows.map((row) => [row.template_key, row]));
+  const enrichedStored = stored.map((doc) =>
+    enrichStoredDocumentWithIntakeHtml(doc, intakeById, intakeByTemplateKey),
   );
-  const promotedTemplateKeys = new Set(
-    stored
-      .filter((doc) => doc.documentSource === 'intake')
-      .map((doc) => doc.fileName.replace(/\.html$/, '')),
+
+  const promotedIntakeIds = new Set(
+    enrichedStored.map((doc) => doc.intakeDocumentId).filter(Boolean) as string[],
+  );
+  const storedTemplateKeys = new Set(
+    enrichedStored.map((doc) => doc.fileName.replace(/\.html$/i, '')),
   );
 
   const intakeDocs = intakeRows
     .filter((row) => !['not_started', 'declined', 'revoked', 'replaced'].includes(row.status))
     .filter((row) => !promotedIntakeIds.has(row.id))
-    .filter((row) => !promotedTemplateKeys.has(row.template_key))
+    .filter((row) => !storedTemplateKeys.has(row.template_key))
     .map(mapIntakeDocumentRow);
 
-  return [...stored, ...intakeDocs].sort(
-    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
-  );
+  const seenIds = new Set<string>();
+  return [...enrichedStored, ...intakeDocs]
+    .filter((doc) => {
+      if (seenIds.has(doc.id)) return false;
+      seenIds.add(doc.id);
+      return true;
+    })
+    .sort(
+      (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+    );
 }

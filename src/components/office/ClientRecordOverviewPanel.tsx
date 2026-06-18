@@ -44,10 +44,14 @@ export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRec
         <SectionPanel title="Unterschriebene Dokumente" subtitle="Aus Aufnahme & Akte">
           {overview.signedDocuments.length > 0 ? (
             overview.signedDocuments.map((doc) => (
-              <View key={doc.id} style={styles.docRow}>
+              <Pressable
+                key={doc.id}
+                style={styles.docRow}
+                onPress={() => onNavigateTab('dokumente')}
+              >
                 <Text style={styles.docTitle}>{doc.title}</Text>
                 <Text style={styles.docDate}>{formatDate(doc.signedAt)}</Text>
-              </View>
+              </Pressable>
             ))
           ) : (
             <EmptyState

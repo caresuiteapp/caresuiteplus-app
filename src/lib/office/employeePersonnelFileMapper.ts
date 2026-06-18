@@ -348,3 +348,59 @@ export function buildMasterDataLiveUpdatePayload(
 
   return out;
 }
+
+export type EmployeeQualificationFlagsPatch = {
+  hasFirstAidCertificate?: boolean;
+  firstAidValidUntil?: string | null;
+  hasDriverLicense?: boolean;
+  driverLicenseClass?: string | null;
+  qualification?: string | null;
+};
+
+export function buildQualificationFlagsLiveUpdatePayload(
+  patch: EmployeeQualificationFlagsPatch,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+
+  if (patch.hasFirstAidCertificate !== undefined) {
+    out.has_first_aid_certificate = patch.hasFirstAidCertificate;
+  }
+  if (patch.firstAidValidUntil !== undefined) {
+    out.first_aid_valid_until = patch.firstAidValidUntil;
+  }
+  if (patch.hasDriverLicense !== undefined) {
+    out.has_driver_license = patch.hasDriverLicense;
+  }
+  if (patch.driverLicenseClass !== undefined) {
+    out.driver_license_class = patch.driverLicenseClass?.trim() || null;
+  }
+  if (patch.qualification !== undefined) {
+    out.qualification = patch.qualification?.trim() || null;
+  }
+
+  return out;
+}
+
+export type EmployeeBackgroundCheckPatch = {
+  hasPoliceClearance?: boolean;
+  policeClearanceDate?: string | null;
+  policeClearanceValidUntil?: string | null;
+};
+
+export function buildBackgroundCheckLiveUpdatePayload(
+  patch: EmployeeBackgroundCheckPatch,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+
+  if (patch.hasPoliceClearance !== undefined) {
+    out.has_police_clearance = patch.hasPoliceClearance;
+  }
+  if (patch.policeClearanceDate !== undefined) {
+    out.police_clearance_date = patch.policeClearanceDate;
+  }
+  if (patch.policeClearanceValidUntil !== undefined) {
+    out.police_clearance_valid_until = patch.policeClearanceValidUntil;
+  }
+
+  return out;
+}

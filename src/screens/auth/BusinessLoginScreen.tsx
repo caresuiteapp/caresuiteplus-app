@@ -1,16 +1,32 @@
 import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
-import { CareLightPageShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
+import { CareSuiteLogo } from '@/components/brand';
+import {
+  AuthLayout,
+  ErrorState,
+  GlassCard,
+  InputField,
+  PremiumButton,
+  SuccessState,
+} from '@/design/components';
+import { galaxyPalette } from '@/design/tokens/galaxy';
+import { careSpacing } from '@/design/tokens/spacing';
+import type { InternalRoleKey } from '@/lib/auth/auth.types';
 import { loginBusinessUser } from '@/lib/auth/businessAuthService';
-import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
+import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
 import { isDemoMode } from '@/lib/supabase/config';
+import type { CanonicalWorkspaceRoleKey } from '@/types/permissions/workspace';
+import type { RoleKey } from '@/types';
+
+function resolveDemoRoleKey(internalRoleKey: InternalRoleKey): RoleKey {
+  return mapCanonicalRoleToRoleKey(internalRoleKey as CanonicalWorkspaceRoleKey);
+}
 
 export function BusinessLoginScreen() {
   const router = useRouter();
-  const { signInDemo } = useAuth();
+  const { signInDemo, signInWithSupabaseSession } = useAuth();
   const [identifier, setIdentifier] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -28,30 +44,59 @@ export function BusinessLoginScreen() {
       return;
     }
 
-    if (result.data.tenantUser && isDemoMode()) {
-      await signInDemo('business_admin');
-    }
+    try {
+      if (result.data.tenantUser && isDemoMode()) {
+        await signInDemo(resolveDemoRoleKey(result.data.tenantUser.roleKey));
+      } else if (result.data.supabaseSession) {
+        await signInWithSupabaseSession(result.data.supabaseSession);
+      } else {
+        setError(
+          'Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten oder kontaktieren Sie den Support.',
+        );
+        return;
+      }
 
-    setSuccess(true);
-    setTimeout(() => router.replace(resolvePostLoginRoute('business')), 400);
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
+    }
   };
 
   return (
-    <CareLightPageShell title="Unternehmen / Verwaltung" subtitle="Interner Mandantenzugang" scroll>
-      <AuthLoginHero
-        eyebrow="BUSINESS LOGIN"
-        title="Unternehmen / Verwaltung"
-        subtitle="Dieser Zugang ist für Unternehmen, Verwaltung und interne Benutzer."
-        portalLabel="Business Login"
-        portalVariant="orange"
-        icon="🏢"
-      />
+    <AuthLayout
+      title="Unternehmen / Verwaltung"
+      subtitle="Anmeldung für Verwaltung und Geschäftsführung"
+      keyboardAvoiding
+    >
+      <View style={styles.logoWrap}>
+        <CareSuiteLogo size="md" />
+      </View>
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
       {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
-      <PremiumInput label="Benutzername oder E-Mail" value={identifier} onChangeText={setIdentifier} autoCapitalize="none" />
-      <PremiumInput label="Passwort" value={password} onChangeText={setPassword} secureTextEntry />
-      <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
-      <PremiumButton title="Passwort vergessen" variant="secondary" onPress={() => router.push('/auth/forgot-password' as never)} fullWidth />
-    </CareLightPageShell>
+      <GlassCard glow accentColor={galaxyPalette.careOrange}>
+        <InputField label="E-Mail" value={identifier} onChangeText={setIdentifier} autoCapitalize="none" />
+        <InputField label="Passwort" value={password} onChangeText={setPassword} secureTextEntry />
+        <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
+        <PremiumButton
+          title="Passwort vergessen"
+          variant="secondary"
+          onPress={() => router.push('/auth/forgot-password' as never)}
+          fullWidth
+        />
+      </GlassCard>
+      <PremiumButton
+        title="Neues Unternehmen registrieren"
+        variant="secondary"
+        onPress={() => router.push('/auth/register-business' as never)}
+        fullWidth
+      />
+    </AuthLayout>
   );
 }
+
+const styles = StyleSheet.create({
+  logoWrap: {
+    alignItems: 'center',
+    marginBottom: careSpacing.xs,
+  },
+});

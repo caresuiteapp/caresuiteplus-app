@@ -1,19 +1,19 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import type { ClientFormData, ClientFormErrors } from '@/types/forms/clientForm';
-import { EMPTY_CLIENT_FORM } from '@/types/forms/clientForm';
-import { fetchClientDetail, hasErrors, updateClient, validateClientFormStep } from '@/lib/office';
-import { mapClientDetailToForm } from '@/lib/office/clientFormMappers';
+import type { ClientEditFormData, ClientEditFormErrors } from '@/types/forms/clientEditForm';
+import { EMPTY_CLIENT_EDIT_FORM } from '@/types/forms/clientEditForm';
+import { fetchClientEditData, saveClientEdit } from '@/lib/clients/clientEditService';
+import { hasClientEditErrors, validateClientEditStep } from '@/lib/clients/clientEditValidation';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 
-const STEPS = ['Stammdaten', 'Adresse', 'Pflege', 'Zusammenfassung'];
+const STEPS = ['Stammdaten', 'Adresse & Kontakt', 'Pflege & Kontext', 'Zusammenfassung'];
 
-export function useClientEditWizard(clientId: string | undefined) {
+export function useClientEditWizard(clientId: string | undefined, initialStep = 0) {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
-  const [step, setStep] = useState(0);
-  const [form, setForm] = useState<ClientFormData>(EMPTY_CLIENT_FORM);
-  const [errors, setErrors] = useState<ClientFormErrors>({});
+  const [step, setStep] = useState(initialStep);
+  const [form, setForm] = useState<ClientEditFormData>(EMPTY_CLIENT_EDIT_FORM);
+  const [errors, setErrors] = useState<ClientEditFormErrors>({});
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [notFound, setNotFound] = useState(false);
@@ -40,7 +40,7 @@ export function useClientEditWizard(clientId: string | undefined) {
       return;
     }
 
-    fetchClientDetail(clientId, tenantId, profile?.roleKey).then((result) => {
+    fetchClientEditData(clientId, tenantId, profile?.roleKey).then((result) => {
       if (cancelled) return;
       setLoading(false);
       if (!result.ok) {
@@ -51,7 +51,7 @@ export function useClientEditWizard(clientId: string | undefined) {
         }
         return;
       }
-      setForm(mapClientDetailToForm(result.data));
+      setForm(result.data.form);
     });
 
     return () => {
@@ -59,7 +59,7 @@ export function useClientEditWizard(clientId: string | undefined) {
     };
   }, [clientId, tenantId, profile?.roleKey]);
 
-  const updateField = useCallback(<K extends keyof ClientFormData>(key: K, value: ClientFormData[K]) => {
+  const updateField = useCallback(<K extends keyof ClientEditFormData>(key: K, value: ClientEditFormData[K]) => {
     setForm((prev) => ({ ...prev, [key]: value }));
     setErrors((prev) => {
       const next = { ...prev };
@@ -69,8 +69,8 @@ export function useClientEditWizard(clientId: string | undefined) {
   }, []);
 
   const nextStep = useCallback(() => {
-    const stepErrors = validateClientFormStep(step, form);
-    if (hasErrors(stepErrors)) {
+    const stepErrors = validateClientEditStep(step, form);
+    if (hasClientEditErrors(stepErrors)) {
       setErrors(stepErrors);
       return false;
     }
@@ -91,8 +91,8 @@ export function useClientEditWizard(clientId: string | undefined) {
     setSubmitError(null);
 
     for (let s = 0; s < 3; s++) {
-      const stepErrors = validateClientFormStep(s, form);
-      if (hasErrors(stepErrors)) {
+      const stepErrors = validateClientEditStep(s, form);
+      if (hasClientEditErrors(stepErrors)) {
         setErrors(stepErrors);
         setStep(s);
         setSubmitting(false);
@@ -108,23 +108,12 @@ export function useClientEditWizard(clientId: string | undefined) {
       return false;
     }
 
-    const result = await updateClient(
+    const result = await saveClientEdit(
       clientId,
       tenantId,
-      {
-        firstName: form.firstName,
-        lastName: form.lastName,
-        dateOfBirth: form.dateOfBirth || null,
-        street: form.street,
-        zip: form.zip,
-        city: form.city,
-        phone: form.phone || null,
-        email: form.email || null,
-        careLevel: form.careLevel,
-        notes: form.notes || null,
-        primaryContactPhone: form.phone || null,
-      },
+      form,
       profile?.roleKey,
+      profile?.id,
     );
 
     setSubmitting(false);
@@ -136,7 +125,7 @@ export function useClientEditWizard(clientId: string | undefined) {
     }
     setSubmitError(result.error);
     return false;
-  }, [clientId, form, submitting, profile?.roleKey]);
+  }, [clientId, form, submitting, profile?.roleKey, profile?.id, tenantId]);
 
   return {
     steps: STEPS,

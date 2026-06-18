@@ -39,10 +39,11 @@ export function evaluateEmployeeAssignmentEligibility(input: {
     backgroundCheck: personnelFile.backgroundCheck,
     documents: personnelFile.documents,
     roleTitle: personnelFile.masterData.roleTitle,
+    roleKey: input.roleKey ?? personnelFile.portalAccess.roleKey,
+    tenantId: input.tenantId,
+    employeeId: input.employeeId,
     blocked: input.blocked ?? personnelFile.masterData.status === 'gesperrt',
-    absent: input.absent ?? false,
-    backgroundCheckRequired: true,
-    portalRequired: false,
+    absent: input.absent,
     reference: input.reference,
   });
 

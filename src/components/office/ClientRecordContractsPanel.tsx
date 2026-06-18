@@ -1,3 +1,4 @@
+import { DocumentDeliveryActions } from '@/components/office/DocumentDeliveryActions';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
@@ -12,10 +13,12 @@ import {
 } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
 import { listClientDocuments } from '@/lib/clients/clientDocumentsService';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import {
   buildClientDocumentPreviewFallback,
+  buildDocumentPreviewStatusSubtitle,
   filterClientContractDocuments,
   resolveOfficeDocumentDisplayFileName,
 } from '@/lib/office/officeDocumentDisplay';
@@ -26,7 +29,7 @@ import {
   SERVICE_TYPE_LABELS,
   type ClientDocumentRecord,
 } from '@/types/modules/client';
-import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { colors, spacing, typography } from '@/theme';
 
@@ -55,6 +58,7 @@ function contractDocumentSecondaryLine(doc: ClientDocumentRecord): string {
 }
 
 export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecordContractsPanelProps) {
+  const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [selectedDocId, setSelectedDocId] = useState<string | null>(null);
 
@@ -137,12 +141,24 @@ export function ClientRecordContractsPanel({ clientId, fullClient }: ClientRecor
       </SectionPanel>
 
       {selectedDoc ? (
-        <SectionPanel title="Vorschau" subtitle={selectedDoc.title}>
+        <SectionPanel
+          title="Vorschau"
+          subtitle={buildDocumentPreviewStatusSubtitle(selectedDoc) ?? selectedDoc.title}
+        >
           <DocumentHtmlPreview
             title={selectedDoc.title}
             previewHtml={selectedDoc.previewHtml}
             fallbackLabel={buildClientDocumentPreviewFallback(selectedDoc)}
           />
+          {tenantId ? (
+            <DocumentDeliveryActions
+              tenantId={tenantId}
+              clientId={clientId}
+              document={selectedDoc}
+              clientLastName={fullClient?.lastName ?? null}
+              actorName={profile?.displayName ?? profile?.email ?? null}
+            />
+          ) : null}
         </SectionPanel>
       ) : null}
     </View>

@@ -142,7 +142,8 @@ async function upsertPrimaryAddress(
     is_primary: true,
     access_notes: form.accessNotes.trim() || null,
     floor: form.floor.trim() || null,
-    door_code: form.bellName.trim() || null,
+    apartment_number: form.apartmentNumber.trim() || null,
+    door_code: form.accessCode.trim() || null,
   };
 
   if (form.primaryAddressId) {
@@ -192,6 +193,7 @@ export async function persistClientEditData(
     cost_bearer: form.costCarrier.trim() || null,
     access_notes: form.accessNotes.trim() || null,
     floor: form.floor.trim() || null,
+    apartment_number: form.apartmentNumber.trim() || null,
     doorbell_name: form.bellName.trim() || null,
     diagnoses_notes: form.diagnosesNotes.trim() || null,
     mobility_notes: form.mobilityNotes.trim() || null,

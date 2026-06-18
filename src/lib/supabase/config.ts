@@ -23,3 +23,20 @@ export function resolveAuthMode(): AuthMode {
   }
   return 'supabase';
 }
+
+/** Basis-URL für Auth-Redirects (Passwort-Reset). Env hat Vorrang vor Browser-Origin. */
+export function getAuthRedirectBaseUrl(): string {
+  const configured = process.env.EXPO_PUBLIC_AUTH_REDIRECT_URL?.trim();
+  if (configured) {
+    return configured.replace(/\/$/, '');
+  }
+
+  if (typeof globalThis !== 'undefined') {
+    const location = (globalThis as { location?: { origin?: string } }).location;
+    if (location?.origin) {
+      return location.origin;
+    }
+  }
+
+  return 'http://localhost:8082';
+}

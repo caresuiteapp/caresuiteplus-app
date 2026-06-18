@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { CareLightPageShell } from '@/components/layout';
 import { FilterChipGroup, EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard } from '@/components/ui';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import {
   EMPLOYEE_TIME_ENTRY_TYPE_LABELS,
   WORK_TIME_STATUS_LABELS,
@@ -27,6 +27,7 @@ const VIEWS: { key: WorkTimeListView; label: string }[] = [
 
 export function EmployeeWorkTimesScreen() {
   const { can, check, roleLabel, roleKey } = usePermissions();
+  const tenantId = useServiceTenantId();
   const canView = can('office.employee_time.view');
   const canExport = can('office.employee_time.export');
   const [view, setView] = useState<WorkTimeListView>('daily');
@@ -34,20 +35,28 @@ export function EmployeeWorkTimesScreen() {
   const [error, setError] = useState<string | null>(null);
 
   const entriesResult = useMemo(() => {
-    if (!canView) return null;
-    return listEmployeeTimeEntries(DEMO_TENANT_ID, roleKey, { view });
-  }, [canView, view, roleKey]);
+    if (!canView || !tenantId) return null;
+    return listEmployeeTimeEntries(tenantId, roleKey, { view });
+  }, [canView, tenantId, view, roleKey]);
 
   const exportHistory = useMemo(() => {
-    if (!canExport || view !== 'export') return null;
-    return fetchPayrollExportHistory(DEMO_TENANT_ID, roleKey);
-  }, [canExport, view, roleKey]);
+    if (!canExport || view !== 'export' || !tenantId) return null;
+    return fetchPayrollExportHistory(tenantId, roleKey);
+  }, [canExport, tenantId, view, roleKey]);
 
   const refresh = useCallback(() => {
     setLoading(true);
     setError(null);
     setLoading(false);
   }, []);
+
+  if (!tenantId) {
+    return (
+      <CareLightPageShell title="Arbeitszeiten" subtitle="Personal" scroll={false}>
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </CareLightPageShell>
+    );
+  }
 
   if (!canView) {
     return (
