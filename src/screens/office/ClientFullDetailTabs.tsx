@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
+import { ClientRecordContactsPanel } from '@/components/office/ClientRecordContactsPanel';
 import { PremiumBadge, PremiumCard, SectionPanel, Timeline } from '@/components/ui';
 import type { ClientFullDetail } from '@/types/modules/client';
 import {
@@ -50,13 +51,16 @@ export function StammdatenTab({ client, canViewSensitive }: { client: ClientFull
   );
 }
 
-export function KontaktAdresseTab({ client }: { client: ClientFullDetail }) {
+export function KontaktAdresseTab({
+  client,
+  onRefresh,
+}: {
+  client: ClientFullDetail;
+  onRefresh?: () => void;
+}) {
   return (
     <View style={styles.tab}>
-      <SectionPanel title="Kontakt">
-        <DetailInfoRow label="Telefon" value={client.phone} />
-        <DetailInfoRow label="E-Mail" value={client.email} />
-      </SectionPanel>
+      <ClientRecordContactsPanel client={client} onRefresh={onRefresh} />
       <SectionPanel title="Adressen">
         {client.addresses.length === 0 ? (
           <Text style={styles.empty}>Keine Adressen hinterlegt.</Text>

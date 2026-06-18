@@ -33,16 +33,21 @@ export const EMPTY_CLIENT_EDIT_RAW: ClientEditRawFields = {
   keyManagementNotes: '',
 };
 
+
 function resolveEmergencyContact(fullClient: ClientFullDetail) {
-  return fullClient.contacts.find((c) => c.isEmergency) ?? null;
+  return fullClient.contacts.find((c) => c.contactType === 'emergency_contact' || c.isEmergency) ?? null;
 }
 
 function resolveRelativeContact(fullClient: ClientFullDetail) {
-  return (
-    fullClient.contacts.find(
-      (c) => !c.isEmergency && (c.relationship === 'angehoerige' || c.relationship === 'ehepartner' || c.relationship === 'kind'),
-    ) ?? fullClient.contacts.find((c) => !c.isEmergency) ?? null
-  );
+  return fullClient.contacts.find((c) => c.contactType === 'relative') ?? null;
+}
+
+function resolveDoctorContact(fullClient: ClientFullDetail) {
+  return fullClient.contacts.find((c) => c.contactType === 'doctor') ?? null;
+}
+
+function resolveCareServiceContact(fullClient: ClientFullDetail) {
+  return fullClient.contacts.find((c) => c.contactType === 'care_service') ?? null;
 }
 
 function resolvePrimaryAddress(fullClient: ClientFullDetail) {
@@ -77,6 +82,8 @@ export function mapClientToEditForm(
   const primaryAddress = resolvePrimaryAddress(fullClient);
   const emergency = resolveEmergencyContact(fullClient);
   const relative = resolveRelativeContact(fullClient);
+  const doctor = resolveDoctorContact(fullClient);
+  const careService = resolveCareServiceContact(fullClient);
 
   const streetSource = primaryAddress?.street ?? detail.street ?? '';
   const parsedStreet = splitStreetLine(streetSource);
@@ -122,6 +129,14 @@ export function mapClientToEditForm(
     relativeContactName: relative ? `${relative.firstName} ${relative.lastName}`.trim() : '',
     relativeContactPhone: relative?.phone ?? '',
     relativeContactId: relative?.id ?? null,
+    familyDoctorName: doctor ? `${doctor.firstName} ${doctor.lastName}`.trim() : '',
+    familyDoctorPhone: doctor?.phone ?? '',
+    familyDoctorEmail: doctor?.email ?? '',
+    familyDoctorId: doctor?.id ?? null,
+    careServiceName: careService ? `${careService.firstName} ${careService.lastName}`.trim() : '',
+    careServicePhone: careService?.phone ?? '',
+    careServiceEmail: careService?.email ?? '',
+    careServiceId: careService?.id ?? null,
     diagnosesNotes:
       rawFields.diagnosesNotes
       || (fullClient.core.diagnoses.length > 0 ? fullClient.core.diagnoses.join(', ') : ''),

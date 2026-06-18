@@ -7,6 +7,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { buildStreetLine } from '@/lib/clients/clientEditFormMappers';
 import { buildClientContactWritePayload } from '@/lib/clients/clientContactPayload';
+import type { ClientContactType } from '@/types/modules/client';
 
 function getClient() {
   return getSupabaseClient();
@@ -45,12 +46,13 @@ async function upsertContact(
   name: string,
   phone: string,
   relationship: string,
-  isEmergency: boolean,
+  contactType: ClientContactType,
+  email = '',
 ): Promise<ServiceResult<string | null>> {
   const supabase = getClient();
   if (!supabase) return unavailable();
 
-  if (!name.trim() && !phone.trim()) {
+  if (!name.trim() && !phone.trim() && !email.trim()) {
     if (contactId) {
       const { error } = await fromUnknownTable(supabase, 'client_contacts')
         .delete()
@@ -66,8 +68,9 @@ async function upsertContact(
     clientId,
     name,
     phone,
+    email,
     relationship,
-    isEmergency,
+    contactType,
   });
 
   if (contactId) {
@@ -223,7 +226,7 @@ export async function persistClientEditData(
     form.emergencyContactName,
     form.emergencyContactPhone,
     'notfallkontakt',
-    true,
+    'emergency_contact',
   );
   if (!emergencyResult.ok) return emergencyResult;
 
@@ -234,9 +237,33 @@ export async function persistClientEditData(
     form.relativeContactName,
     form.relativeContactPhone,
     'angehoerige',
-    false,
+    'relative',
   );
   if (!relativeResult.ok) return relativeResult;
+
+  const doctorResult = await upsertContact(
+    tenantId,
+    clientId,
+    form.familyDoctorId,
+    form.familyDoctorName,
+    form.familyDoctorPhone,
+    'arzt',
+    'doctor',
+    form.familyDoctorEmail,
+  );
+  if (!doctorResult.ok) return doctorResult;
+
+  const careServiceResult = await upsertContact(
+    tenantId,
+    clientId,
+    form.careServiceId,
+    form.careServiceName,
+    form.careServicePhone,
+    'pflegedienst',
+    'care_service',
+    form.careServiceEmail,
+  );
+  if (!careServiceResult.ok) return careServiceResult;
 
   if (form.billingProfileId && form.billingType && form.serviceType) {
     const { error: billingError } = await fromUnknownTable(supabase, 'client_billing_profiles')

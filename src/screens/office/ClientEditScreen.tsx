@@ -36,10 +36,14 @@ const BILLING_OPTIONS = Object.entries(BILLING_TYPE_LABELS) as [BillingType, str
 const SERVICE_OPTIONS = Object.entries(SERVICE_TYPE_LABELS) as [ServiceType, string][];
 
 export function ClientEditScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id, step: stepParam } = useLocalSearchParams<{ id: string; step?: string }>();
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
   const canEdit = can('office.clients.edit');
+  const initialStep = Number.parseInt(stepParam ?? '0', 10);
+  const resolvedInitialStep = Number.isFinite(initialStep) && initialStep >= 0 && initialStep <= 3
+    ? initialStep
+    : 0;
 
   const {
     steps,
@@ -59,7 +63,7 @@ export function ClientEditScreen() {
     isFirstStep,
     isLastStep,
     isSuccess,
-  } = useClientEditWizard(id);
+  } = useClientEditWizard(id, resolvedInitialStep);
 
   const handleSubmit = async () => {
     const ok = await submit();
@@ -308,6 +312,42 @@ export function ClientEditScreen() {
             value={form.relativeContactPhone}
             onChangeText={(v) => updateField('relativeContactPhone', v)}
             keyboardType="phone-pad"
+          />
+          <PremiumInput
+            label="Hausarzt Name"
+            value={form.familyDoctorName}
+            onChangeText={(v) => updateField('familyDoctorName', v)}
+          />
+          <PremiumInput
+            label="Hausarzt Telefon"
+            value={form.familyDoctorPhone}
+            onChangeText={(v) => updateField('familyDoctorPhone', v)}
+            keyboardType="phone-pad"
+          />
+          <PremiumInput
+            label="Hausarzt E-Mail"
+            value={form.familyDoctorEmail}
+            onChangeText={(v) => updateField('familyDoctorEmail', v)}
+            keyboardType="email-address"
+            autoCapitalize="none"
+          />
+          <PremiumInput
+            label="Pflegedienst Name"
+            value={form.careServiceName}
+            onChangeText={(v) => updateField('careServiceName', v)}
+          />
+          <PremiumInput
+            label="Pflegedienst Telefon"
+            value={form.careServicePhone}
+            onChangeText={(v) => updateField('careServicePhone', v)}
+            keyboardType="phone-pad"
+          />
+          <PremiumInput
+            label="Pflegedienst E-Mail"
+            value={form.careServiceEmail}
+            onChangeText={(v) => updateField('careServiceEmail', v)}
+            keyboardType="email-address"
+            autoCapitalize="none"
           />
         </SectionPanel>
       ) : null}

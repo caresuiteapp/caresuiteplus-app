@@ -76,6 +76,7 @@ export const wernerMuellerFull: ClientFullDetail = {
     {
       id: 'contact-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
       firstName: 'Klaus', lastName: 'Müller', relationship: 'kind', relationshipLabel: 'Sohn',
+      contactType: 'emergency_contact',
       phone: '+49 171 9876543', email: 'klaus.mueller@demo.app', isEmergency: true,
       isPortalUser: true,
       portalPermissions: { canViewAppointments: true, canViewDocuments: true, canViewCarePlan: true, canSendMessages: true, canViewBilling: true },
@@ -84,6 +85,7 @@ export const wernerMuellerFull: ClientFullDetail = {
     {
       id: 'contact-wm-2', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
       firstName: 'Ingrid', lastName: 'Müller', relationship: 'ehepartner', relationshipLabel: 'Ehefrau',
+      contactType: 'relative',
       phone: '+49 30 44556677', email: null, isEmergency: false, isPortalUser: false,
       portalPermissions: { canViewAppointments: false, canViewDocuments: false, canViewCarePlan: false, canSendMessages: false, canViewBilling: false },
       notes: 'Lebt im selben Haushalt', createdAt: daysAgo(350), updatedAt: now,

@@ -79,6 +79,7 @@ export const helgaSchneiderFull: ClientFullDetail = {
     {
       id: 'contact-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
       firstName: 'Petra', lastName: 'Schneider', relationship: 'kind', relationshipLabel: 'Tochter',
+      contactType: 'emergency_contact',
       phone: '+49 170 1234567', email: 'petra.schneider@demo.app', isEmergency: true,
       isPortalUser: true,
       portalPermissions: { canViewAppointments: true, canViewDocuments: true, canViewCarePlan: true, canSendMessages: true, canViewBilling: false },
@@ -87,6 +88,7 @@ export const helgaSchneiderFull: ClientFullDetail = {
     {
       id: 'contact-hs-2', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
       firstName: 'Dr. Martin', lastName: 'Weber', relationship: 'arzt', relationshipLabel: 'Hausarzt',
+      contactType: 'doctor',
       phone: '+49 30 5551234', email: null, isEmergency: false, isPortalUser: false,
       portalPermissions: { canViewAppointments: false, canViewDocuments: false, canViewCarePlan: false, canSendMessages: false, canViewBilling: false },
       notes: null, createdAt: daysAgo(200), updatedAt: now,

@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import {
   generateClientPortalUsername,
   pickUniqueClientPortalUsername,
+  sanitizePortalUsernameInput,
 } from '@/lib/auth/clientPortalUsernameGenerator';
 
 describe('clientPortalUsernameGenerator', () => {
@@ -26,5 +27,12 @@ describe('clientPortalUsernameGenerator', () => {
   it('normalizes umlauts and compound last names', () => {
     expect(generateClientPortalUsername('Jürgen', 'Groß')).toBe('juergen.gross');
     expect(generateClientPortalUsername('Ana', 'Do Nascimento')).toBe('ana.nascimento');
+  });
+
+  it('sanitizePortalUsernameInput keeps trailing dot while typing dotted usernames', () => {
+    expect(sanitizePortalUsernameInput('ellen.')).toBe('ellen.');
+    expect(sanitizePortalUsernameInput('ellen.zacharias')).toBe('ellen.zacharias');
+    expect(sanitizePortalUsernameInput('Ellen.Zacharias!')).toBe('ellen.zacharias');
+    expect(sanitizePortalUsernameInput('heinz-peter.')).toBe('heinz-peter.');
   });
 });

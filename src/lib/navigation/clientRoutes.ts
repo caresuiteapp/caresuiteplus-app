@@ -15,8 +15,13 @@ export function clientRecordRoute(clientId: string): `/business/office/clients/$
 }
 
 /** Stammdaten bearbeiten — business office edit route. */
-export function clientEditRoute(clientId: string): `/business/office/clients/${string}/edit` {
-  return `/business/office/clients/${clientId}/edit`;
+export function clientEditRoute(
+  clientId: string,
+  step?: number,
+): `/business/office/clients/${string}/edit` {
+  const base = `/business/office/clients/${clientId}/edit` as `/business/office/clients/${string}/edit`;
+  if (step === undefined) return base;
+  return `${base}?step=${step}` as `/business/office/clients/${string}/edit`;
 }
 
 export function clientRecordTabRoute(

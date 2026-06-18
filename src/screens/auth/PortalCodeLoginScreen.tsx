@@ -9,8 +9,8 @@ import {
   SuccessState,
 } from '@/design/components';
 import { loginClientPortal } from '@/lib/auth/clientPortalAuthService';
+import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
-import { sanitizeUsername } from '@/lib/auth/usernameGenerator';
 import { useAuth } from '@/lib/auth/context';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -66,7 +66,7 @@ export function PortalCodeLoginScreen() {
         <InputField
           label="Benutzername"
           value={username}
-          onChangeText={(value) => setUsername(sanitizeUsername(value))}
+          onChangeText={(value) => setUsername(sanitizePortalUsernameInput(value))}
           autoCapitalize="none"
           autoCorrect={false}
         />

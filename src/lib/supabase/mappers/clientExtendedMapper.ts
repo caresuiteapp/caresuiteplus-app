@@ -27,6 +27,7 @@ import { mergeClientRecordDocuments } from '@/lib/clients/clientDocumentMerge';
 import {
   resolveClientContactDisplayName,
   resolveClientContactIsEmergency,
+  resolveClientContactType,
 } from '@/lib/clients/clientContactPayload';
 import type { WorkflowStatus } from '@/types/core/base';
 import type {
@@ -112,6 +113,7 @@ export function mapClientContactExtended(
     clientId: row.client_id ?? '',
     firstName,
     lastName,
+    contactType: resolveClientContactType(row),
     relationship: parseRelationship(row.relationship ?? ''),
     relationshipLabel: row.relationship ?? '',
     phone: row.phone,

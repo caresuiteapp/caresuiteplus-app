@@ -35,6 +35,14 @@ export type ClientEditFormData = {
   relativeContactName: string;
   relativeContactPhone: string;
   relativeContactId: string | null;
+  familyDoctorName: string;
+  familyDoctorPhone: string;
+  familyDoctorEmail: string;
+  familyDoctorId: string | null;
+  careServiceName: string;
+  careServicePhone: string;
+  careServiceEmail: string;
+  careServiceId: string | null;
   diagnosesNotes: string;
   mobilityNotes: string;
   communicationNotes: string;
@@ -76,6 +84,14 @@ export const EMPTY_CLIENT_EDIT_FORM: ClientEditFormData = {
   relativeContactName: '',
   relativeContactPhone: '',
   relativeContactId: null,
+  familyDoctorName: '',
+  familyDoctorPhone: '',
+  familyDoctorEmail: '',
+  familyDoctorId: null,
+  careServiceName: '',
+  careServicePhone: '',
+  careServiceEmail: '',
+  careServiceId: null,
   diagnosesNotes: '',
   mobilityNotes: '',
   communicationNotes: '',

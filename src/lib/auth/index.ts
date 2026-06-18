@@ -70,6 +70,7 @@ export {
   generateClientPortalUsername,
   pickUniqueClientPortalUsername,
   buildClientPortalUsernameCandidates,
+  sanitizePortalUsernameInput,
   validateClientPortalUsername,
 } from './clientPortalUsernameGenerator';
 

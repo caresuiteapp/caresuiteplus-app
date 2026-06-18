@@ -8,10 +8,10 @@ import { useAuth } from '@/lib/auth/context';
 
 const STEPS = ['Stammdaten', 'Adresse & Kontakt', 'Pflege & Kontext', 'Zusammenfassung'];
 
-export function useClientEditWizard(clientId: string | undefined) {
+export function useClientEditWizard(clientId: string | undefined, initialStep = 0) {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
-  const [step, setStep] = useState(0);
+  const [step, setStep] = useState(initialStep);
   const [form, setForm] = useState<ClientEditFormData>(EMPTY_CLIENT_EDIT_FORM);
   const [errors, setErrors] = useState<ClientEditFormErrors>({});
   const [loading, setLoading] = useState(true);

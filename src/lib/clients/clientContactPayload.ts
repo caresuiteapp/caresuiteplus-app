@@ -1,10 +1,13 @@
+import type { ClientContactType } from '@/types/modules/client';
+
 type ClientContactWriteInput = {
   tenantId: string;
   clientId: string;
   name: string;
   phone: string;
+  email?: string | null;
   relationship: string;
-  isEmergency: boolean;
+  contactType: ClientContactType;
 };
 
 export function buildClientContactWritePayload(input: ClientContactWriteInput) {
@@ -22,9 +25,9 @@ export function buildClientContactWritePayload(input: ClientContactWriteInput) {
     last_name: lastName,
     relationship: input.relationship,
     phone: input.phone.trim() || null,
-    email: null,
-    is_emergency_contact: input.isEmergency,
-    contact_type: input.isEmergency ? 'emergency_contact' : 'relative',
+    email: input.email?.trim() || null,
+    is_emergency_contact: input.contactType === 'emergency_contact',
+    contact_type: input.contactType,
   };
 }
 
@@ -45,4 +48,25 @@ export function resolveClientContactIsEmergency(row: {
 }): boolean {
   if (row.is_emergency_contact === true || row.is_emergency === true) return true;
   return row.contact_type === 'emergency_contact';
+}
+
+export function resolveClientContactType(row: {
+  contact_type?: string | null;
+  is_emergency_contact?: boolean | null;
+  is_emergency?: boolean | null;
+  relationship?: string | null;
+}): ClientContactType {
+  const raw = row.contact_type?.trim();
+  if (raw === 'emergency_contact') return 'emergency_contact';
+  if (raw === 'relative') return 'relative';
+  if (raw === 'doctor') return 'doctor';
+  if (raw === 'care_service') return 'care_service';
+  if (raw === 'other') return 'other';
+
+  if (resolveClientContactIsEmergency(row)) return 'emergency_contact';
+  if (row.relationship === 'arzt') return 'doctor';
+  if (row.relationship === 'angehoerige' || row.relationship === 'ehepartner' || row.relationship === 'kind') {
+    return 'relative';
+  }
+  return 'other';
 }

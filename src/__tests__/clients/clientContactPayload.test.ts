@@ -3,6 +3,7 @@ import {
   buildClientContactWritePayload,
   resolveClientContactDisplayName,
   resolveClientContactIsEmergency,
+  resolveClientContactType,
 } from '@/lib/clients/clientContactPayload';
 
 describe('clientContactPayload', () => {
@@ -14,7 +15,7 @@ describe('clientContactPayload', () => {
         name: 'Maria Reinhardt',
         phone: '0170123456',
         relationship: 'notfallkontakt',
-        isEmergency: true,
+        contactType: 'emergency_contact',
       }),
     ).toEqual({
       tenant_id: 'tenant-1',
@@ -34,7 +35,7 @@ describe('clientContactPayload', () => {
         name: 'Maria Reinhardt',
         phone: '0170123456',
         relationship: 'notfallkontakt',
-        isEmergency: true,
+        contactType: 'emergency_contact',
       }),
     ).not.toHaveProperty('full_name');
   });
@@ -53,5 +54,11 @@ describe('clientContactPayload', () => {
         contact_type: 'emergency_contact',
       }),
     ).toBe(true);
+  });
+
+  it('leitet contact_type aus Legacy-Zeilen ab', () => {
+    expect(resolveClientContactType({ contact_type: 'care_service' })).toBe('care_service');
+    expect(resolveClientContactType({ relationship: 'arzt' })).toBe('doctor');
+    expect(resolveClientContactType({ is_emergency_contact: true })).toBe('emergency_contact');
   });
 });

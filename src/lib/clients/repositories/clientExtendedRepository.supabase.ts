@@ -217,8 +217,8 @@ export const supabaseClientExtendedRepository = {
         relationship: input.relationshipLabel ?? input.relationship,
         phone: input.phone,
         email: input.email,
-        is_emergency_contact: input.isEmergency,
-        contact_type: input.isEmergency ? 'emergency_contact' : 'relative',
+        is_emergency_contact: input.contactType === 'emergency_contact',
+        contact_type: input.contactType,
         is_portal_user: input.isPortalUser,
         portal_permissions: input.portalPermissions,
         notes: input.notes,
@@ -247,7 +247,10 @@ export const supabaseClientExtendedRepository = {
     }
     if (input.phone !== undefined) patch.phone = input.phone;
     if (input.email !== undefined) patch.email = input.email;
-    if (input.isEmergency !== undefined) {
+    if (input.contactType !== undefined) {
+      patch.is_emergency_contact = input.contactType === 'emergency_contact';
+      patch.contact_type = input.contactType;
+    } else if (input.isEmergency !== undefined) {
       patch.is_emergency_contact = input.isEmergency;
       patch.contact_type = input.isEmergency ? 'emergency_contact' : 'relative';
     }

@@ -314,7 +314,7 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
           />
         )}
         {activeTab === 'kontakt' && fullQuery.data ? (
-          <KontaktAdresseTab client={fullQuery.data} />
+          <KontaktAdresseTab client={fullQuery.data} onRefresh={handleRecordRefresh} />
         ) : activeTab === 'kontakt' ? (
           <SectionPanel title="Kontakt & Adresse">
             <View style={styles.fieldRow}>

@@ -38,12 +38,11 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
 
   const canvasSize = useMemo(() => {
     const isWide = screenWidth >= 768;
-    const canvasWidth = Math.floor(sheetWidth - spacing.lg * 2);
     const canvasHeight = isWide
       ? DESKTOP_CANVAS_HEIGHT
       : Math.floor(Math.min(screenHeight * MOBILE_HEIGHT_RATIO, 360));
-    return { canvasWidth: Math.max(canvasWidth, 280), canvasHeight: Math.max(canvasHeight, 200) };
-  }, [screenWidth, screenHeight, sheetWidth]);
+    return { canvasHeight: Math.max(canvasHeight, 200) };
+  }, [screenWidth, screenHeight]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
@@ -81,15 +80,16 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
           <View style={styles.accentBar} />
           <Text style={styles.title}>Unterschrift</Text>
           <Text style={styles.subtitle}>{label}</Text>
-          <CareSignatureCanvas
-            size="large"
-            width={canvasSize.canvasWidth}
-            height={canvasSize.canvasHeight}
-            onConfirm={handleConfirm}
-            onCancel={onClose}
-            disabled={disabled}
-            showLabel={false}
-          />
+          <View style={styles.canvasSlot}>
+            <CareSignatureCanvas
+              size="large"
+              height={canvasSize.canvasHeight}
+              onConfirm={handleConfirm}
+              onCancel={onClose}
+              disabled={disabled}
+              showLabel={false}
+            />
+          </View>
         </View>
       </View>
     </Modal>
@@ -129,4 +129,5 @@ const styles = StyleSheet.create({
   },
   title: { ...typography.h3, marginTop: spacing.xs },
   subtitle: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.xs },
+  canvasSlot: { width: '100%', alignSelf: 'stretch' },
 });

@@ -123,6 +123,17 @@ export function pickUniqueClientPortalUsername(
   return resolveUsernameCollision(base, Date.now() % 90 + 10);
 }
 
+/** Live input sanitizer — keeps trailing `.` / `-` so users can type `firstname.lastname`. */
+export function sanitizePortalUsernameInput(value: string): string {
+  return value
+    .toLowerCase()
+    .replace(/[^a-z0-9.-]/g, '')
+    .replace(/\.+/g, '.')
+    .replace(/-+/g, '-')
+    .replace(/^[.-]+/g, '')
+    .slice(0, USERNAME_MAX_LENGTH);
+}
+
 export function validateClientPortalUsername(
   value: string,
   existingUsernames: string[] = [],
