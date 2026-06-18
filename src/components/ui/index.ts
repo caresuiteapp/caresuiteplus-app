@@ -31,6 +31,7 @@ export {
 export { Timeline } from './Timeline';
 export { PremiumInput } from './PremiumInput';
 export { FilterChip, FilterChipGroup } from './FilterChip';
+export { ListFilterSelect, type ListFilterOption } from './ListFilterSelect';
 export { SegmentedTabs, type TabOption } from './SegmentedTabs';
 export { FormStepper } from './FormStepper';
 export { PremiumAvatar } from './PremiumAvatar';
