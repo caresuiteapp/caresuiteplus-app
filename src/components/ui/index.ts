@@ -7,6 +7,7 @@ export {
   ErrorState,
   SuccessState,
 } from './StateViews';
+export { FullScreenLoader } from './FullScreenLoader';
 export { ModuleTile } from './ModuleTile';
 export { CareLightCard } from './CareLightCard';
 export { CareLightKpiCard } from './CareLightKpiCard';
