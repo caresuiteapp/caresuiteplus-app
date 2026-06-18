@@ -142,7 +142,7 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
   return StyleSheet.create({
     root: {
       width: 76,
-      backgroundColor: isDark ? 'rgba(11,16,32,0.55)' : '#FFFFFF',
+      backgroundColor: isDark ? 'rgba(11,16,32,0.32)' : 'rgba(255,255,255,0.92)',
       borderRightWidth: 1,
       borderRightColor: glassBorder,
       alignItems: 'center',

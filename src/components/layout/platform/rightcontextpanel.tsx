@@ -175,7 +175,7 @@ function createStyles(
   return StyleSheet.create({
     root: {
       width: 280,
-      backgroundColor: isDark ? 'rgba(18,22,43,0.5)' : colors.bgSurface,
+      backgroundColor: isDark ? 'rgba(18,22,43,0.28)' : colors.bgSurface,
       borderLeftWidth: 1,
       borderLeftColor: glassBorder,
       paddingHorizontal: spacing.md,

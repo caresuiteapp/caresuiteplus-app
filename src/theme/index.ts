@@ -1,6 +1,7 @@
 export { colors, lightColors } from './colors';
 export { useLegacyTheme } from '@/design/tokens/themeBridge';
-export { typography } from './typography';
+export { typography, darkTypography } from './typography';
+export { resolveCareTypography } from '@/design/tokens/typography';
 export { typographyScale } from './typographyScale';
 export { spacing } from './spacing';
 export { radius } from './radius';

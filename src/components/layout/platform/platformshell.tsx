@@ -5,7 +5,7 @@ import { usePathname } from 'expo-router';
 import type { AppShellArea } from '@/types/navigation/shell';
 import { resolveMainModuleFromPath } from '@/lib/navigation/resolvemainmodule';
 import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
-import { AuroraBackground } from '@/components/ui/effects';
+import { GlobalAnimatedBackground } from '@/components/ui/effects';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { MainModuleRail } from './mainmodulerail';
@@ -55,7 +55,7 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
 
   return (
     <View style={styles.gradientRoot}>
-      <AuroraBackground />
+      <GlobalAnimatedBackground />
       {content}
     </View>
   );

@@ -192,7 +192,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
   return StyleSheet.create({
     root: {
       width: 248,
-      backgroundColor: isDark ? 'rgba(18,22,43,0.55)' : colors.bgPremium,
+      backgroundColor: isDark ? 'rgba(18,22,43,0.32)' : colors.bgPremium,
       borderRightWidth: 1,
       borderRightColor: glassBorder,
       paddingHorizontal: spacing.md,
