@@ -12,6 +12,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
@@ -137,16 +138,7 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
           ) : null}
         </View>
 
-        <Pressable
-          onPress={() => router.push('/business/messages' as never)}
-          style={[styles.iconBtn, webCursor]}
-          accessibilityRole="button"
-          accessibilityLabel="Benachrichtigungen"
-        >
-          <View style={styles.iconSlot}>
-            <Text style={styles.iconBtnText}>🔔</Text>
-          </View>
-        </Pressable>
+        <NotificationBellWithCenter size="topbar" />
 
         <View style={styles.profileWrap}>
           <Pressable
