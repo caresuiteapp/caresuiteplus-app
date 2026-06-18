@@ -1,11 +1,5 @@
-/** Systemvorlagen für Kostenträger-Stammdaten (Name, Adresse, IK). */
-export type SystemCostCarrierType =
-  | 'pflegekasse'
-  | 'krankenkasse'
-  | 'privatversicherung'
-  | 'sozialamt'
-  | 'berufsgenossenschaft'
-  | 'unfallversicherung';
+/** Systemvorlagen für Pflegekassen / Krankenkassen (Stammdaten inkl. Adresse). */
+export type SystemCostCarrierType = 'pflegekasse' | 'krankenkasse';
 
 export type SystemCostCarrierTemplate = {
   id: string;
@@ -178,86 +172,6 @@ export const SYSTEM_COST_CARRIER_TEMPLATES: SystemCostCarrierTemplate[] = [
     zip: '28195',
     city: 'Bremen',
     ikNumber: '103170002',
-  },
-  {
-    id: 'allianz-pv',
-    name: 'Allianz Private Krankenversicherungs-AG',
-    type: 'privatversicherung',
-    department: null,
-    street: 'Königinstraße 28',
-    zip: '80802',
-    city: 'München',
-    ikNumber: '168140017',
-  },
-  {
-    id: 'debeka-pv',
-    name: 'DEBEKA Krankenversicherungsverein a. G.',
-    type: 'privatversicherung',
-    department: null,
-    street: 'Im Metternich 4-6',
-    zip: '56073',
-    city: 'Koblenz',
-    ikNumber: '168140012',
-  },
-  {
-    id: 'sozialamt-berlin-mitte',
-    name: 'Sozialamt Berlin-Mitte',
-    type: 'sozialamt',
-    department: null,
-    street: 'Karl-Marx-Allee 31',
-    zip: '10178',
-    city: 'Berlin',
-    ikNumber: '',
-  },
-  {
-    id: 'sozialamt-hamburg-mitte',
-    name: 'Bezirksamt Hamburg-Mitte — Sozialamt',
-    type: 'sozialamt',
-    department: null,
-    street: 'Billstraße 80',
-    zip: '20539',
-    city: 'Hamburg',
-    ikNumber: '',
-  },
-  {
-    id: 'bgw',
-    name: 'BGW — Berufsgenossenschaft für Gesundheitsdienst und Wohlfahrtspflege',
-    type: 'berufsgenossenschaft',
-    department: null,
-    street: 'Kronenstraße 45-51',
-    zip: '70174',
-    city: 'Stuttgart',
-    ikNumber: '105830016',
-  },
-  {
-    id: 'bghw',
-    name: 'BGHW — Berufsgenossenschaft Handel und Warenlogistik',
-    type: 'berufsgenossenschaft',
-    department: null,
-    street: 'An der Feuerwehr 4',
-    zip: '30173',
-    city: 'Hannover',
-    ikNumber: '105830017',
-  },
-  {
-    id: 'uv-bund-bahn',
-    name: 'Unfallversicherung Bund und Bahn',
-    type: 'unfallversicherung',
-    department: null,
-    street: 'Glinkastraße 9',
-    zip: '10117',
-    city: 'Berlin',
-    ikNumber: '109905004',
-  },
-  {
-    id: 'uk-nord',
-    name: 'Unfallkasse Nord',
-    type: 'unfallversicherung',
-    department: null,
-    street: 'Hindenburgstraße 104',
-    zip: '24114',
-    city: 'Kiel',
-    ikNumber: '109905005',
   },
 ];
 

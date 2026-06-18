@@ -1,5 +1,5 @@
-import { Redirect, type Href } from 'expo-router';
+import { IntegrationsListScreen } from '@/screens/integrations/IntegrationsListScreen';
 
-export default function IntegrationsTabRedirect() {
-  return <Redirect href={'/business/connect' as Href} />;
+export default function IntegrationsRoute() {
+  return <IntegrationsListScreen />;
 }

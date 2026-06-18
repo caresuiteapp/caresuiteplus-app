@@ -85,9 +85,9 @@ export function CareRecordDetailHero({ record, roleKey }: CareRecordDetailHeroPr
         {record.hasSignature ? <PremiumBadge label="Signiert" variant="green" /> : null}
         {record.pdfReady ? <PremiumBadge label="PDF bereit" variant="cyan" /> : null}
         {isAssistExtensionLiveReady() ? (
-          <PremiumBadge statusKind="live" />
+          <PremiumBadge label="Live Supabase" variant="green" />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

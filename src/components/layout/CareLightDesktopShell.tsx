@@ -12,7 +12,6 @@ import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { ModuleSwitcher } from './ModuleSwitcher';
-import { TenantSettingsNavLink } from './TenantSettingsNavLink';
 
 type CareLightDesktopShellProps = {
   area: AppShellArea;
@@ -67,7 +66,6 @@ export function CareLightDesktopShell({
                 <Text style={styles.footerBtnText}>🧩 Module wechseln</Text>
               </Pressable>
             ) : null}
-            <TenantSettingsNavLink variant="footerLight" />
             <Pressable
               onPress={() => openExternal(SUPPORT_LINKS.help)}
               style={styles.footerBtn}

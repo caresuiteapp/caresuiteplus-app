@@ -1,13 +1,10 @@
-import { galaxyGlow, galaxyPalette } from './galaxy';
-
 export const careEffects = {
   glass: {
     blur: { light: 8, medium: 16, heavy: 24 },
     opacity: { panel: 0.72, overlay: 0.55, rim: 0.14 },
-    border: galaxyPalette.borderGlass,
-    background: galaxyPalette.cardGlass,
+    border: 'rgba(255,255,255,0.10)',
+    background: 'rgba(23,27,34,0.65)',
   },
-  glow: galaxyGlow,
   sheen: {
     height: 1,
     rimHeight: 2,

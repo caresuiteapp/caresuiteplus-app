@@ -1,5 +1,4 @@
 import type { ClientFullDetail } from '@/types/modules/client';
-import { CLIENT_TASK_ASSIST_DEFAULTS } from '@/lib/clients/clientTaskDefaults';
 import { DEMO_TENANT_ID } from '../tenant';
 import {
   CLIENT_STATUS_HINTS,
@@ -71,7 +70,7 @@ export const helgaSchneiderFull: ClientFullDetail = {
     {
       id: 'addr-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
       addressType: 'hauptwohnsitz', street: 'Musterstraße 12', zip: '10115', city: 'Berlin',
-      country: 'DE', isPrimary: true, accessNotes: '2. OG, Aufzug vorhanden', floor: '2', apartmentNumber: '12', doorCode: null,
+      country: 'DE', isPrimary: true, accessNotes: '2. OG, Aufzug vorhanden', floor: '2', doorCode: null,
       createdAt: daysAgo(365), updatedAt: now,
     },
   ],
@@ -79,7 +78,6 @@ export const helgaSchneiderFull: ClientFullDetail = {
     {
       id: 'contact-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
       firstName: 'Petra', lastName: 'Schneider', relationship: 'kind', relationshipLabel: 'Tochter',
-      contactType: 'emergency_contact',
       phone: '+49 170 1234567', email: 'petra.schneider@demo.app', isEmergency: true,
       isPortalUser: true,
       portalPermissions: { canViewAppointments: true, canViewDocuments: true, canViewCarePlan: true, canSendMessages: true, canViewBilling: false },
@@ -88,7 +86,6 @@ export const helgaSchneiderFull: ClientFullDetail = {
     {
       id: 'contact-hs-2', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
       firstName: 'Dr. Martin', lastName: 'Weber', relationship: 'arzt', relationshipLabel: 'Hausarzt',
-      contactType: 'doctor',
       phone: '+49 30 5551234', email: null, isEmergency: false, isPortalUser: false,
       portalPermissions: { canViewAppointments: false, canViewDocuments: false, canViewCarePlan: false, canSendMessages: false, canViewBilling: false },
       notes: null, createdAt: daysAgo(200), updatedAt: now,
@@ -143,18 +140,6 @@ export const helgaSchneiderFull: ClientFullDetail = {
     accessInstructions: 'Klingel „Schneider", Schlüssel beim Hausmeister',
     createdAt: daysAgo(300), updatedAt: now,
   },
-  schedulingWishes: {
-    id: 'wish-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
-    preferredDays: ['mo', 'mi', 'fr'],
-    preferredTimeSlots: ['morgens'],
-    timeFrom: '09:00',
-    timeTo: '12:00',
-    preferredEmployeeGender: 'weiblich',
-    hoursPerAssignment: 2,
-    assignmentsPerWeek: 3,
-    assignmentsPerMonth: 12,
-    createdAt: daysAgo(300), updatedAt: now,
-  },
   risks: [
     {
       id: 'risk-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
@@ -206,9 +191,8 @@ export const helgaSchneiderFull: ClientFullDetail = {
   portalAccess: [
     {
       id: 'portal-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
-      contactId: 'contact-hs-1', email: null, portalUsername: 'helga.schneider',
-      portalEnabled: true, status: 'aktiv',
-      lastLoginAt: daysAgo(3), invitedAt: null, codeCreatedAt: daysAgo(30), codeRotatedAt: null,
+      contactId: 'contact-hs-1', email: 'petra.schneider@demo.app', status: 'aktiv',
+      lastLoginAt: daysAgo(3), invitedAt: daysAgo(30),
       modulesEnabled: ['appointments', 'messages', 'documents', 'careplan'],
       twoFactorEnabled: false, createdAt: daysAgo(30), updatedAt: now,
     },
@@ -230,11 +214,11 @@ export const helgaSchneiderFull: ClientFullDetail = {
     },
   ],
   tasks: [
-    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'haushalt', title: 'Staubsaugen', description: 'Wohnzimmer und Schlafzimmer', frequency: 'woechentlich', durationMinutes: 30, isActive: true, catalogTaskId: 'task-haushalt-1', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
-    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-2', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'waesche', title: 'Wäsche waschen', description: null, frequency: 'woechentlich', durationMinutes: 15, isActive: true, catalogTaskId: 'task-waesche-1', assignedEmployeeIds: [], createdAt: daysAgo(100), updatedAt: now },
-    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-3', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'einkauf', title: 'Lebensmitteleinkauf', description: 'Einkaufsliste liegt im Küchenschrank', frequency: 'zweimal_wöchentlich', durationMinutes: 60, isActive: true, catalogTaskId: 'task-einkauf-1', assignedEmployeeIds: ['employee-002'], createdAt: daysAgo(100), updatedAt: now },
-    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-4', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'ernaehrung', title: 'Mahlzeit zubereiten', description: 'Warme Mittagsmahlzeit', frequency: 'taeglich', durationMinutes: 40, isActive: true, catalogTaskId: 'task-ernaehr-1', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
-    { ...CLIENT_TASK_ASSIST_DEFAULTS, id: 'task-hs-5', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'begleitung', title: 'Spaziergang', description: 'Im Park nebenan', frequency: 'woechentlich', durationMinutes: 45, isActive: true, catalogTaskId: 'task-begleit-2', assignedEmployeeIds: ['employee-001'], leistungsbereich: 'alltagsbegleitung', subcategory: 'aktivierung', createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'haushalt', title: 'Staubsaugen', description: 'Wohnzimmer und Schlafzimmer', frequency: 'woechentlich', durationMinutes: 30, isActive: true, catalogTaskId: 'task-haushalt-1', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-hs-2', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'waesche', title: 'Wäsche waschen', description: null, frequency: 'woechentlich', durationMinutes: 15, isActive: true, catalogTaskId: 'task-waesche-1', assignedEmployeeIds: [], createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-hs-3', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'einkauf', title: 'Lebensmitteleinkauf', description: 'Einkaufsliste liegt im Küchenschrank', frequency: 'zweimal_wöchentlich', durationMinutes: 60, isActive: true, catalogTaskId: 'task-einkauf-1', assignedEmployeeIds: ['employee-002'], createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-hs-4', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'ernaehrung', title: 'Mahlzeit zubereiten', description: 'Warme Mittagsmahlzeit', frequency: 'taeglich', durationMinutes: 40, isActive: true, catalogTaskId: 'task-ernaehr-1', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-hs-5', tenantId: DEMO_TENANT_ID, clientId: 'client-001', category: 'begleitung', title: 'Spaziergang', description: 'Im Park nebenan', frequency: 'woechentlich', durationMinutes: 45, isActive: true, catalogTaskId: 'task-begleit-2', assignedEmployeeIds: ['employee-001'], createdAt: daysAgo(100), updatedAt: now },
   ],
   timeline: [
     { id: 'tl-hs-1', clientId: 'client-001', eventType: 'einsatz', icon: '📅', title: 'Einsatz dokumentiert', subtitle: 'Alltagsbegleitung 2 Std.', timestamp: daysAgo(1), status: 'abgeschlossen', actorName: 'Thomas Keller', isInternal: false, metadata: null },

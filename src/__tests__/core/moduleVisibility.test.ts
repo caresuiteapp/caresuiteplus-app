@@ -45,14 +45,14 @@ describe('moduleVisibilityService', () => {
     expect(state.isNavigable).toBe(true);
   });
 
-  it('coming_soon stationaer ist sichtbar aber nicht navigierbar', () => {
+  it('beta stationaer ist sichtbar und navigierbar bei aktivem Mandant', () => {
     activatePurchasedModule(TENANT, 'stationaer');
     const state = resolveModuleNavState('stationaer', { tenantId: TENANT, roleKey: ADMIN });
-    expect(state.effectiveStatus).toBe('coming_soon');
+    expect(state.effectiveStatus).toBe('beta');
     expect(state.isVisible).toBe(true);
-    expect(state.isNavigable).toBe(false);
+    expect(state.isNavigable).toBe(true);
     expect(isModuleScopeVisible('stationaer', { tenantId: TENANT, roleKey: NURSE })).toBe(true);
-    expect(isModuleScopeNavigable('stationaer', { tenantId: TENANT, roleKey: NURSE })).toBe(false);
+    expect(isModuleScopeNavigable('stationaer', { tenantId: TENANT, roleKey: NURSE })).toBe(true);
   });
 
   it('disabled ti ist vollständig versteckt', () => {
@@ -65,11 +65,11 @@ describe('moduleVisibilityService', () => {
     ).toBe(false);
   });
 
-  it('native Mehr-Tab verweist auf Module-Hub (Connect über Module erreichbar)', () => {
+  it('connect Tab ist für Admin sichtbar (beta)', () => {
     expect(isModuleScopeVisible('connect', { tenantId: TENANT, roleKey: ADMIN })).toBe(true);
     expect(isModuleScopeNavigable('connect', { tenantId: TENANT, roleKey: ADMIN })).toBe(true);
     expect(
-      getTabsForArea('business', { tenantId: TENANT, roleKey: ADMIN }).some((t) => t.key === 'more'),
+      getTabsForArea('business', { tenantId: TENANT, roleKey: ADMIN }).some((t) => t.key === 'connect'),
     ).toBe(true);
   });
 
@@ -79,11 +79,11 @@ describe('moduleVisibilityService', () => {
     expect(isModuleScopeNavigable('reporting', { tenantId: TENANT, roleKey: ADMIN })).toBe(true);
   });
 
-  it('Modul-Switcher blendet disabled aus und markiert coming_soon', () => {
+  it('Modul-Switcher blendet disabled aus und markiert beta-Module', () => {
     const items = getModuleSwitcherItems(TENANT, NURSE);
     expect(items).toHaveLength(6);
     const stationaer = items.find((item) => item.productKey === 'stationaer');
-    expect(stationaer?.visibilityStatus).toBe('coming_soon');
+    expect(stationaer?.visibilityStatus).toBe('beta');
     expect(stationaer?.isNavigable).toBe(false);
   });
 });
@@ -106,11 +106,10 @@ describe('checkModuleAccess — Direkt-Routen', () => {
     expect(decision.shouldRedirect).toBe(false);
   });
 
-  it('blockiert coming_soon direkt route', () => {
+  it('erlaubt beta beratung route bei aktivem Mandant', () => {
     activatePurchasedModule(TENANT, 'beratung');
     const decision = checkModuleAccess('/beratung/cases', NURSE, TENANT);
-    expect(decision.shouldRedirect).toBe(true);
-    expect(decision.reason).toBe('module_coming_soon');
+    expect(decision.shouldRedirect).toBe(false);
   });
 
   it('blockiert disabled ti direkt route', () => {

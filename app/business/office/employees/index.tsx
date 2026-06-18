@@ -1,3 +1,3 @@
-import { EmployeesListScreen } from '@/screens/office/EmployeesListScreen';
+import { EmployeesAdaptiveScreen } from '@/screens/office/EmployeesAdaptiveScreen';
 
-export default EmployeesListScreen;
+export default EmployeesAdaptiveScreen;

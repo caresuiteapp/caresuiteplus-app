@@ -1,15 +1,12 @@
 import type { AssignmentConflict } from '@/types/modules/assignmentWorkflow';
 import type { RoleKey } from '@/types/core/auth';
-import { evaluateComplianceDeployability } from '@/lib/office/complianceTrainingService';
+import { getEmployeePersonnelFileForAssignmentCheck } from './employeePersonnelFileService';
 import {
   evaluateEmployeeDeployability,
   isEmployeeAssignable,
   roleCanPerformAssignment,
-} from '@/lib/office/employeeDeployabilityService';
-import { INACTIVE_EMPLOYMENT_STATUSES } from '@/lib/office/employeePersonnelFieldRules';
-import { evaluateEmployeeTrainingDeployability } from '@/lib/training/trainingService';
-import { trainingIssuesToAssignmentConflicts } from '@/lib/training/trainingAssignmentIntegration';
-import { getEmployeePersonnelFileForAssignmentCheck } from './employeePersonnelFileService';
+} from './employeeDeployabilityService';
+import { INACTIVE_EMPLOYMENT_STATUSES } from './employeepersonnelfieldrules';
 
 export function detectEmployeeEligibilityConflicts(input: {
   tenantId: string;
@@ -17,7 +14,6 @@ export function detectEmployeeEligibilityConflicts(input: {
   actorRoleKey?: RoleKey | null;
   absent?: boolean;
   availabilityOk?: boolean;
-  requiresQualification?: boolean;
 }): AssignmentConflict[] {
   const conflicts: AssignmentConflict[] = [];
   if (!input.employeeId?.trim()) return conflicts;
@@ -55,40 +51,11 @@ export function detectEmployeeEligibilityConflicts(input: {
     backgroundCheck: file.backgroundCheck,
     documents: file.documents,
     roleTitle: file.masterData.roleTitle,
-    roleKey: file.portalAccess.roleKey,
-    tenantId: input.tenantId,
-    employeeId: input.employeeId,
     blocked: file.masterData.status === 'gesperrt',
     absent: input.absent,
     availabilityOk: input.availabilityOk,
     backgroundCheckRequired: true,
-    portalRequired: false,
   });
-
-  const trainingDeployability = evaluateEmployeeTrainingDeployability({
-    tenantId: input.tenantId,
-    employeeId: input.employeeId,
-    roleKey: file.portalAccess.roleKey,
-    jobTitle: file.masterData.roleTitle,
-  });
-
-  conflicts.push(...trainingIssuesToAssignmentConflicts(trainingDeployability.blockers));
-  conflicts.push(...trainingIssuesToAssignmentConflicts(trainingDeployability.warnings));
-
-  const compliance = evaluateComplianceDeployability(
-    input.tenantId,
-    input.employeeId,
-    file.portalAccess.roleKey,
-  );
-  if (!compliance.ok) {
-    for (const message of compliance.blockers) {
-      conflicts.push({
-        code: 'mandatory_training_missing',
-        message,
-        severity: 'error',
-      });
-    }
-  }
 
   if (!deployability.qualificationOk) {
     conflicts.push({
@@ -104,16 +71,6 @@ export function detectEmployeeEligibilityConflicts(input: {
       message: 'Führungszeugnis fehlt oder abgelaufen.',
       severity: 'error',
     });
-  }
-
-  for (const blocker of deployability.blockers) {
-    if (blocker.code === 'compliance_training_missing') {
-      conflicts.push({
-        code: 'employee_not_assignable',
-        message: blocker.message,
-        severity: 'error',
-      });
-    }
   }
 
   if (input.absent) {
@@ -140,8 +97,8 @@ export function detectEmployeeEligibilityConflicts(input: {
     });
   }
 
-  if (!isEmployeeAssignable(deployability) || !trainingDeployability.deployable) {
-    const blocker = deployability.blockers[0] ?? trainingDeployability.blockers[0];
+  if (!isEmployeeAssignable(deployability)) {
+    const blocker = deployability.blockers[0];
     if (blocker && !conflicts.some((c) => c.message === blocker.message)) {
       conflicts.push({
         code: 'employee_not_assignable',

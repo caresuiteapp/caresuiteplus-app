@@ -3,7 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { ROLE_LABELS } from '@/data/demo';
-import { getFreePlatformModules } from '@/lib/billing/freePlatformService';
+import { formatFreePlatformPrice, getFreePlatformModules } from '@/lib/billing/freePlatformService';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
@@ -58,25 +58,27 @@ export function SubscriptionHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>CARESUITE+ · PLATTFORM</Text>
+          <Text style={styles.eyebrow}>CARESUITE+ · FREE PLATFORM</Text>
           <Text style={styles.title}>{planLabel}</Text>
-          <Text style={styles.meta}>{tenantName}</Text>
+          <Text style={styles.meta}>
+            {tenantName} · {formatFreePlatformPrice()}
+          </Text>
         </View>
         <View style={styles.iconBadge}>
-          <Text style={styles.iconText}>📦</Text>
+          <Text style={styles.iconText}>🆓</Text>
         </View>
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        <PremiumBadge label="Kein Checkout" variant="green" />
+        <PremiumBadge label="0 € — kein Checkout" variant="green" />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="Aktiv" value={String(moduleCount)} icon="📦" accentColor={colors.cyan} style={styles.kpiItem} />
         <PremiumKpiCard
           label="Plattform"
-          value="CareSuite+"
-          subValue="Alle Hauptmodule"
+          value="Kostenlos"
+          subValue="Keine Testphase"
           icon="✨"
           accentColor={colors.orange}
           style={styles.kpiItem}

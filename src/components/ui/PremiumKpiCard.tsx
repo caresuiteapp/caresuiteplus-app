@@ -11,7 +11,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { CareLightKpiCard } from './CareLightKpiCard';
-import type { CareKpiIconKey } from './CareKpiIcon';
 import { radius } from '@/theme';
 
 type Props = {
@@ -19,7 +18,6 @@ type Props = {
   value: string | number;
   subValue?: string;
   icon?: string;
-  iconKey?: CareKpiIconKey;
   accentColor?: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
@@ -32,7 +30,6 @@ export function PremiumKpiCard({
   value,
   subValue,
   icon,
-  iconKey,
   accentColor,
   trend,
   trendValue,
@@ -48,7 +45,6 @@ export function PremiumKpiCard({
         value={String(value)}
         subValue={subValue}
         icon={icon}
-        iconKey={iconKey}
         accentColor={accentColor}
         style={style}
       />
@@ -108,8 +104,7 @@ export function PremiumKpiCard({
         value: {
           fontSize: 24,
           fontWeight: '800',
-          letterSpacing: 0,
-          flexShrink: 0,
+          letterSpacing: -0.5,
         },
         subValue: {
           ...typography.caption,
@@ -159,9 +154,7 @@ export function PremiumKpiCard({
         <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
           {label}
         </Text>
-        <Text style={[styles.value, { color: resolvedAccent }]} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.85}>
-          {value}
-        </Text>
+        <Text style={[styles.value, { color: resolvedAccent }]}>{value}</Text>
         {subValue ? <Text style={styles.subValue}>{subValue}</Text> : null}
         {trendValue ? (
           <Text style={[styles.trend, { color: trendColor }]}>

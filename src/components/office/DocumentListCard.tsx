@@ -1,6 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
-import { buildOfficeDocumentSubtitle, formatOfficeDocumentSizeDisplay } from '@/lib/office/officeDocumentDisplay';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 import { SENSITIVITY_LABELS, VISIBILITY_LABELS } from '@/types/portal/visibility';
@@ -9,9 +8,22 @@ import { colors, spacing, typography } from '@/theme';
 
 type DocumentListCardProps = {
   document: PortalDocumentListItem;
-  selected?: boolean;
   onPress?: () => void;
 };
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function statusVariant(status: PortalDocumentListItem['status']) {
   switch (status) {
@@ -28,10 +40,7 @@ function statusVariant(status: PortalDocumentListItem['status']) {
   }
 }
 
-export function DocumentListCard({ document, selected = false, onPress }: DocumentListCardProps) {
-  const subtitle = buildOfficeDocumentSubtitle(document);
-  const sizeLabel = formatOfficeDocumentSizeDisplay(document.sizeLabel, document.fileSizeBytes);
-
+export function DocumentListCard({ document, onPress }: DocumentListCardProps) {
   const inner = (
     <>
       <View style={styles.cardHeader}>
@@ -41,8 +50,10 @@ export function DocumentListCard({ document, selected = false, onPress }: Docume
           variant="muted"
         />
       </View>
-      <Text style={styles.subtitle}>{subtitle}</Text>
-      {sizeLabel ? <Text style={styles.meta}>{sizeLabel}</Text> : null}
+      <Text style={styles.fileName}>{document.fileName}</Text>
+      <Text style={styles.meta}>
+        {formatFileSize(document.fileSizeBytes)} · {formatDate(document.updatedAt)}
+      </Text>
       <View style={styles.badges}>
         <PremiumBadge
           label={WORKFLOW_STATUS_LABELS[document.status]}
@@ -58,11 +69,9 @@ export function DocumentListCard({ document, selected = false, onPress }: Docume
     </>
   );
 
-  const cardStyle = [styles.card, selected ? styles.cardSelected : null];
-
   if (!onPress) {
     return (
-      <PremiumCard accentColor={colors.orange} style={cardStyle}>
+      <PremiumCard accentColor={colors.orange} style={styles.card}>
         {inner}
       </PremiumCard>
     );
@@ -70,7 +79,7 @@ export function DocumentListCard({ document, selected = false, onPress }: Docume
 
   return (
     <Pressable onPress={onPress}>
-      <PremiumCard accentColor={colors.orange} style={cardStyle} onPress={onPress}>
+      <PremiumCard accentColor={colors.orange} style={styles.card} onPress={onPress}>
         {inner}
       </PremiumCard>
     </Pressable>
@@ -80,10 +89,6 @@ export function DocumentListCard({ document, selected = false, onPress }: Docume
 const styles = StyleSheet.create({
   card: {
     marginBottom: spacing.sm,
-  },
-  cardSelected: {
-    borderColor: colors.orange,
-    borderWidth: 1,
   },
   cardHeader: {
     flexDirection: 'row',
@@ -96,7 +101,7 @@ const styles = StyleSheet.create({
     ...typography.bodyStrong,
     flex: 1,
   },
-  subtitle: {
+  fileName: {
     ...typography.caption,
     color: colors.textSecondary,
   },

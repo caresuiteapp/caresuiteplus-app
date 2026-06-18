@@ -82,7 +82,7 @@ export function OcrJobDetailHero({ job, roleKey }: OcrJobDetailHeroProps) {
         {isPlatformLiveReady() ? (
           <PremiumBadge label="Live Provider" variant="green" />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

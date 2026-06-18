@@ -46,7 +46,7 @@ export function InvoicesListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.invoices');
-  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
+  const useTableLayout = isDesktop && viewMode === 'table';
   const canView = can('office.invoices.view');
   const canCreate = can('office.invoices.view') && !isReadOnly;
   const roleKey = profile?.roleKey ?? 'business_admin';

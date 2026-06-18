@@ -30,7 +30,7 @@ export async function createAssignment(
   }
 
   const { plannedStartAt, plannedEndAt } = buildPlannedTimestamps(form);
-  const taskTitles = form.selectedTasks.map((task) => task.title.trim()).filter(Boolean);
+  const taskTitles = form.tasks.map((t) => t.trim()).filter(Boolean);
 
   if (getServiceMode() === 'supabase') {
     return assignmentSupabaseRepository.create(

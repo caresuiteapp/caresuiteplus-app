@@ -1,3 +1,5 @@
-import { OfficeAuditLogScreen } from '@/screens/business/office/OfficeAuditLogScreen';
+import { Redirect } from 'expo-router';
 
-export default OfficeAuditLogScreen;
+export default function BusinessOfficeAuditLogRedirect() {
+  return <Redirect href="/office/audit-log" />;
+}

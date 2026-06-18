@@ -1,13 +1,11 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
-import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
-import { defaultPublicVisibility } from '@/lib/ui/uiVisibility';
+import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { designTokens, spacing } from '@/theme';
 
 export function DemoModeHintHero() {
   const { colors, typography } = useLegacyTheme();
-  const visibility = useMemo(() => defaultPublicVisibility(), []);
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -32,6 +30,8 @@ export function DemoModeHintHero() {
         },
         iconText: { fontSize: 22 },
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+        kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+        kpiItem: { flex: 1, minWidth: 100 },
         hint: { ...typography.caption, color: colors.textMuted },
       }),
     [colors, typography],
@@ -41,31 +41,49 @@ export function DemoModeHintHero() {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>DEMO</Text>
+          <Text style={styles.eyebrow}>AUTH · DEMO · HINWEIS</Text>
           <Text style={styles.title}>Demo mit Beispieldaten</Text>
-          <Text style={styles.meta}>
-            Der Demo-Modus ist derzeit nicht aktiv. Nutzen Sie den Mandantenzugang oder kontaktieren Sie den Support.
-          </Text>
+          <Text style={styles.meta}>Demo-Modus ist derzeit deaktiviert — Live-Pilot nutzt Mandanten-Zugang</Text>
         </View>
         <View style={styles.iconBadge}>
           <Text style={styles.iconText}>ℹ️</Text>
         </View>
       </View>
       <View style={styles.badges}>
-        <PremiumBadge label="Demo nicht verfügbar" variant="orange" dot />
-        {visibility.showPrototypeInfo ? (
-          <PremiumBadge label="Interner Pilotbetrieb" variant="cyan" />
-        ) : null}
+        <PremiumBadge label="Demo deaktiviert" variant="orange" dot />
+        <PremiumBadge label="Live-Pilot" variant="cyan" />
+        <PremiumBadge label="preparedOnly Auth" variant="muted" />
       </View>
-      {visibility.showDeveloperDiagnostics ? (
-        <Text style={styles.hint}>
-          Entwickler: Setzen Sie EXPO_PUBLIC_DEMO_MODE=true in .env und starten Sie die App neu.
-        </Text>
-      ) : (
-        <Text style={styles.hint}>
-          Für eine geführte Demo wenden Sie sich an Ihre Ansprechperson oder nutzen Sie den Unternehmens-Login.
-        </Text>
-      )}
+      <View style={styles.kpiRow}>
+        <PremiumKpiCard
+          label="Env"
+          value="false"
+          subValue="EXPO_PUBLIC_DEMO_MODE"
+          icon="⚙️"
+          accentColor={colors.orange}
+          style={styles.kpiItem}
+        />
+        <PremiumKpiCard
+          label="Zugang"
+          value="Mandant"
+          subValue="Unternehmen / Verwaltung"
+          icon="🏢"
+          accentColor={colors.cyan}
+          style={styles.kpiItem}
+        />
+        <PremiumKpiCard
+          label="Status"
+          value="Prototyp"
+          subValue="Kein Store-Release"
+          icon="📋"
+          accentColor={colors.violet}
+          style={styles.kpiItem}
+        />
+      </View>
+      <Text style={styles.hint}>
+        Setzen Sie `EXPO_PUBLIC_DEMO_MODE=true` in `.env` und starten Sie die App neu, um die interaktive
+        Demo zu aktivieren.
+      </Text>
     </PremiumListHeroFrame>
   );
 }

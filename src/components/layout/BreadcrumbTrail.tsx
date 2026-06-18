@@ -1,8 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
-import { simplifyBreadcrumbTrailForMobile } from '@/lib/ui/uiVisibility';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { colors, typography } from '@/theme';
 
 type BreadcrumbTrailProps = {
@@ -11,15 +9,13 @@ type BreadcrumbTrailProps = {
 
 export function BreadcrumbTrail({ trail }: BreadcrumbTrailProps) {
   const router = useRouter();
-  const { isPhone } = useDeviceClass();
-  const displayTrail = isPhone ? simplifyBreadcrumbTrailForMobile(trail) : trail;
 
-  if (displayTrail.length <= 1) return null;
+  if (trail.length <= 1) return null;
 
   return (
     <View style={styles.row}>
-      {displayTrail.map((item, index) => {
-        const isLast = index === displayTrail.length - 1;
+      {trail.map((item, index) => {
+        const isLast = index === trail.length - 1;
         const canNavigate = !isLast && !item.isCurrent && item.path !== '/';
 
         return (

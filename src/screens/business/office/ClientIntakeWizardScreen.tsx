@@ -1,12 +1,8 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { confirmAction } from '@/lib/platform/confirmAction';
 import { FormScreenHero } from '@/components/forms';
 import {
-  CareAddressSearch,
   CareCatalogSelect,
-  CareCostBearerStepPanel,
-  CareIntakeDocumentsStepPanel,
   CareDateInput,
   CareDocumentUpload,
   CareMultiCatalogSelect,
@@ -16,7 +12,6 @@ import { CareLightPageShell } from '@/components/layout';
 import {
   ErrorState,
   FormStepper,
-  InfoBanner,
   LoadingState,
   EmptyState,
   PremiumButton,
@@ -27,8 +22,8 @@ import {
 } from '@/components/ui';
 import { useClientIntakeWizard } from '@/hooks/useClientIntakeWizard';
 import type { IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
+import { submitClientIntake } from '@/lib/clients/clientIntakeService';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
-import { getServiceMode } from '@/lib/services/mode';
 import { spacing, typography } from '@/theme';
 
 function StepContent({
@@ -38,17 +33,7 @@ function StepContent({
   section: IntakeSectionKey;
   wizard: ReturnType<typeof useClientIntakeWizard>;
 }) {
-  const {
-    form,
-    errors,
-    updateField,
-    replaceForm,
-    commitCostBearer,
-    removeCostBearer,
-    toggleCareContext,
-    toggleArrayField,
-    contextHint,
-  } = wizard;
+  const { form, errors, updateField, toggleCareContext, toggleArrayField, contextHint } = wizard;
 
   if (section === 'leistungsart') {
     return (
@@ -84,25 +69,10 @@ function StepContent({
   if (section === 'adresse_kontakt') {
     return (
       <SectionPanel title="Adresse & Kontakt">
-        <CareAddressSearch
-          values={{
-            street: form.street,
-            houseNumber: form.houseNumber,
-            zip: form.zip,
-            city: form.city,
-          }}
-          onChange={(address) => {
-            updateField('street', address.street);
-            updateField('houseNumber', address.houseNumber);
-            updateField('zip', address.zip);
-            updateField('city', address.city);
-          }}
-          errors={{
-            street: errors.street,
-            zip: errors.zip,
-            city: errors.city,
-          }}
-        />
+        <PremiumInput label="Straße *" value={form.street} onChangeText={(v) => updateField('street', v)} error={errors.street} />
+        <PremiumInput label="Hausnummer" value={form.houseNumber} onChangeText={(v) => updateField('houseNumber', v)} />
+        <PremiumInput label="PLZ *" value={form.zip} onChangeText={(v) => updateField('zip', v)} error={errors.zip} />
+        <PremiumInput label="Ort *" value={form.city} onChangeText={(v) => updateField('city', v)} error={errors.city} />
         <PremiumInput label="Telefon" value={form.phone} onChangeText={(v) => updateField('phone', v)} error={errors.phone} />
         <PremiumInput label="Mobil" value={form.mobile} onChangeText={(v) => updateField('mobile', v)} />
         <PremiumInput label="E-Mail" value={form.email} onChangeText={(v) => updateField('email', v)} />
@@ -126,21 +96,11 @@ function StepContent({
   if (section === 'kostentraeger') {
     return (
       <SectionPanel title="Kostenträger / Abrechnung">
-        <CareMultiCatalogSelect
-          catalogKey="billing_type"
-          label="Abrechnungsart *"
-          values={form.billingTypes}
-          onChange={(v) => updateField('billingTypes', v)}
-          error={errors.billingTypes}
-        />
-        <CareCostBearerStepPanel
-          form={form}
-          errors={errors}
-          onChange={replaceForm}
-          onFieldChange={updateField}
-          onCommitCostBearer={commitCostBearer}
-          onRemoveCostBearer={removeCostBearer}
-        />
+        <CareCatalogSelect catalogKey="billing_type" label="Abrechnungsart *" value={form.billingType} onChange={(v) => updateField('billingType', v)} error={errors.billingType} />
+        <CareCatalogSelect catalogKey="cost_bearer_type" label="Kostenträgertyp" value={form.costBearerType} onChange={(v) => updateField('costBearerType', v)} />
+        <PremiumInput label="Pflegekasse" value={form.careFundName} onChangeText={(v) => updateField('careFundName', v)} error={errors.careFundName} />
+        <PremiumInput label="Krankenkasse" value={form.healthInsurance} onChangeText={(v) => updateField('healthInsurance', v)} />
+        <PremiumInput label="Versichertennummer / KVNR" value={form.insuranceNumber} onChangeText={(v) => updateField('insuranceNumber', v)} error={errors.insuranceNumber} />
       </SectionPanel>
     );
   }
@@ -172,12 +132,12 @@ function StepContent({
   if (section === 'vertraege_einwilligungen') {
     return (
       <SectionPanel title="Verträge & Einwilligungen">
-        <CareIntakeDocumentsStepPanel
-          form={form}
-          errors={errors}
-          tenantId={wizard.tenantId}
-          onChange={replaceForm}
-        />
+        <PremiumCard>
+          <PremiumButton title={form.consentDatenschutz ? '✓ Datenschutz erteilt' : 'Datenschutz einwilligen'} variant="secondary" onPress={() => updateField('consentDatenschutz', !form.consentDatenschutz)} />
+          {errors.consentDatenschutz ? <Text style={styles.error}>{errors.consentDatenschutz}</Text> : null}
+          <PremiumButton title={form.consentVertrag ? '✓ Vertrag bestätigt' : 'Kundenvertrag bestätigen'} variant="secondary" onPress={() => updateField('consentVertrag', !form.consentVertrag)} />
+          {errors.consentVertrag ? <Text style={styles.error}>{errors.consentVertrag}</Text> : null}
+        </PremiumCard>
       </SectionPanel>
     );
   }
@@ -211,7 +171,6 @@ function StepContent({
 export function ClientIntakeWizardScreen() {
   const router = useRouter();
   const wizard = useClientIntakeWizard();
-  const isLive = getServiceMode() === 'supabase';
   const {
     steps,
     stepLabels,
@@ -220,14 +179,9 @@ export function ClientIntakeWizardScreen() {
     submitting,
     submitError,
     createdId,
-    draftLoaded,
-    draftRestored,
-    draftSaveFeedback,
     nextStep,
     prevStep,
     submit,
-    discardDraft,
-    saveDraft,
     isFirstStep,
     isLastStep,
     isSuccess,
@@ -238,41 +192,10 @@ export function ClientIntakeWizardScreen() {
     if (id) setTimeout(() => router.replace(clientRecordRoute(id) as never), 1200);
   };
 
-  const handleCancel = async () => {
-    const confirmed = await confirmAction({
-      title: 'Aufnahme abbrechen?',
-      message: 'Der Entwurf wird verworfen. Alle eingegebenen Daten gehen verloren.',
-      confirmLabel: 'Verwerfen',
-      cancelLabel: 'Weiter bearbeiten',
-    });
-    if (!confirmed) return;
-    await discardDraft();
-    router.replace('/office/clients' as never);
-  };
-
-  const handleStartFresh = async () => {
-    const confirmed = await confirmAction({
-      title: 'Neu beginnen?',
-      message: 'Der gespeicherte Entwurf wird gelöscht und Sie starten bei Schritt 1.',
-      confirmLabel: 'Neu beginnen',
-      cancelLabel: 'Fortsetzen',
-    });
-    if (!confirmed) return;
-    await discardDraft();
-  };
-
   if (isSuccess && createdId) {
     return (
       <CareLightPageShell title="Aufnahme abgeschlossen" showBack={false}>
         <SuccessState message="Klient:in wurde aufgenommen. Weiterleitung zur Akte…" />
-      </CareLightPageShell>
-    );
-  }
-
-  if (!draftLoaded) {
-    return (
-      <CareLightPageShell title="Neuaufnahme" subtitle="Entwurf laden…">
-        <LoadingState message="Entwurf wird geladen…" />
       </CareLightPageShell>
     );
   }
@@ -291,30 +214,9 @@ export function ClientIntakeWizardScreen() {
       subtitle={`Schritt ${stepIndex + 1} von ${steps.length}`}
       onBack={() => router.back()}
     >
-      <FormScreenHero
-        eyebrow="OFFICE · KLIENT:INNEN"
-        title="Klient:in aufnehmen"
-        meta="Leistungsart wählen — danach passen sich die Schritte an"
-        icon="👤"
-        formMode="create"
-        step={{ current: stepIndex + 1, total: steps.length }}
-        preparedOnly={!isLive}
-        preparedMessage={
-          isLive
-            ? 'Klient:innen werden mandantenbezogen aufgenommen.'
-            : 'Klient:innen werden im Demo-Mandanten aufgenommen — Live-Persistenz nach Remote-Migrationen.'
-        }
-      />
+      <FormScreenHero eyebrow="OFFICE · KLIENT:INNEN" title="Kontextbasierte Aufnahme" meta="Leistungsart zuerst" />
       <FormStepper steps={stepLabels} currentStep={stepIndex} />
       <ScrollView style={styles.scroll}>
-        {draftRestored ? (
-          <PremiumCard accentColor="#007AFF">
-            <Text style={styles.draftBanner}>
-              Entwurf wiederhergestellt — Sie setzen bei Schritt {stepIndex + 1} fort.
-            </Text>
-            <PremiumButton title="Neu beginnen" variant="ghost" onPress={handleStartFresh} />
-          </PremiumCard>
-        ) : null}
         {currentSection === 'leistungsart' && wizard.form.careContexts.length === 0 ? (
           <EmptyState
             title="Leistungsart wählen"
@@ -324,33 +226,23 @@ export function ClientIntakeWizardScreen() {
         <StepContent section={currentSection} wizard={wizard} />
         {submitError ? <ErrorState message={submitError} /> : null}
       </ScrollView>
-      {draftSaveFeedback ? (
-        <InfoBanner
-          variant={draftSaveFeedback.variant}
-          message={draftSaveFeedback.message}
-          style={styles.draftSaveBanner}
-        />
-      ) : null}
       <View style={styles.actions}>
-        <PremiumButton title="Abbrechen" variant="ghost" onPress={handleCancel} />
-        <PremiumButton title="Als Entwurf speichern" variant="secondary" onPress={saveDraft} />
         {!isFirstStep ? <PremiumButton title="Zurück" variant="secondary" onPress={prevStep} /> : null}
         {isLastStep ? (
-          <PremiumButton title="Aufnahme abschließen" loading={submitting} onPress={handleSubmit} style={styles.primaryAction} />
+          <PremiumButton title="Aufnahme abschließen" loading={submitting} onPress={handleSubmit} />
         ) : (
-          <PremiumButton title="Weiter" onPress={nextStep} style={styles.primaryAction} />
+          <PremiumButton title="Weiter" onPress={nextStep} />
         )}
       </View>
     </CareLightPageShell>
   );
 }
 
+void submitClientIntake;
+
 const styles = StyleSheet.create({
   scroll: { flex: 1 },
-  actions: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md, alignItems: 'center' },
-  draftSaveBanner: { marginHorizontal: spacing.md, marginBottom: spacing.xs },
-  primaryAction: { flex: 1 },
-  draftBanner: { ...typography.body, marginBottom: spacing.sm },
+  actions: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
   hint: { ...typography.caption, marginTop: spacing.sm, color: '#666' },
   error: { color: '#c00', marginTop: spacing.xs },
   review: { ...typography.body, marginBottom: spacing.xs },

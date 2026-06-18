@@ -1,4 +1,4 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { buildOfficeMessageListKpis } from '@/data/demo/officeMessageListStats';
@@ -15,21 +15,9 @@ import { OFFICE_MESSAGE_STATUS_FILTERS, OFFICE_MESSAGE_SORT_OPTIONS } from '@/ho
 import type { MessageListItem } from '@/types/portal/communication';
 
 const root = path.join(__dirname, '..', '..', '..');
-const LIVE_TENANT = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';
-const DEMO_SUBJECTS = ['MDK-Anfrage', 'Rechnungsfreigabe', 'Neue Klient:in'];
 
 function readSrc(relativePath: string): string {
   return readFileSync(path.join(root, relativePath), 'utf8');
-}
-
-function stubDemoEnv() {
-  vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
-}
-
-function stubLiveEnv() {
-  vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
-  vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
-  vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
 }
 
 const officeMessages: MessageListItem[] = demoPortalMessages
@@ -49,123 +37,25 @@ const officeMessages: MessageListItem[] = demoPortalMessages
   }));
 
 describe('Office Nachrichten list', () => {
-  afterEach(() => {
-    vi.unstubAllEnvs();
-  });
-
   it('enforcePermission schützt Office-Messages-Service', () => {
     expect(enforcePermission(null, 'office.messages.view' as never)).not.toBeNull();
   });
 
-  describe('Demo-Modus', () => {
-    beforeEach(() => {
-      stubDemoEnv();
-    });
-
-    it('fetchOfficeMessages liefert Demo-Office-Nachrichten', async () => {
-      const result = await fetchOfficeMessages(DEMO_TENANT_ID, 'business_admin');
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.data.length).toBeGreaterThan(0);
-        expect(result.data[0]?.subject).toBeTruthy();
-      }
-    });
-
-    it('fetchOfficeMessageDetail liefert Demo-Detail', async () => {
-      const result = await fetchOfficeMessageDetail('msg-007', DEMO_TENANT_ID, 'business_admin');
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        expect(result.data.subject).toContain('MDK-Anfrage');
-      }
-    });
-
-    it('sendDomainMessage persistiert Office-Nachricht', async () => {
-      const result = await sendDomainMessage({
-        wpNumber: 153,
-        domain: 'office',
-        tenantId: DEMO_TENANT_ID,
-        actorRoleKey: 'business_admin',
-        permission: 'office.access',
-        audienceScope: 'office',
-        subject: 'Test Office Compose',
-        body: 'Dies ist eine Testnachricht für Sprint 24.',
-        senderName: 'Admin',
-      });
-      expect(result.ok).toBe(true);
-      if (result.ok) {
-        const list = await fetchOfficeMessages(DEMO_TENANT_ID, 'business_admin');
-        expect(list.ok).toBe(true);
-        if (list.ok) {
-          expect(list.data.some((m) => m.subject === 'Test Office Compose')).toBe(true);
-        }
-      }
-    });
-
-    it('replyToOfficeMessage sendet Demo-Antwort', async () => {
-      const detail = await fetchOfficeMessageDetail('msg-007', DEMO_TENANT_ID, 'business_admin');
-      expect(detail.ok).toBe(true);
-      if (!detail.ok) return;
-
-      const reply = await replyToOfficeMessage(
-        'msg-007',
-        DEMO_TENANT_ID,
-        'business_admin',
-        'Vielen Dank für die Rückmeldung — wir bearbeiten die Anfrage.',
-        'Office Admin',
-      );
-      expect(reply.ok).toBe(true);
-      if (reply.ok) {
-        expect(reply.data.body).toContain('Vielen Dank');
-        expect(reply.data.canReply).toBe(true);
-      }
-    });
+  it('fetchOfficeMessages liefert Demo-Office-Nachrichten', async () => {
+    const result = await fetchOfficeMessages(DEMO_TENANT_ID, 'business_admin');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data[0]?.subject).toBeTruthy();
+    }
   });
 
-  describe('Live-Modus (Supabase)', () => {
-    beforeEach(() => {
-      stubLiveEnv();
-    });
-
-    it('fetchOfficeMessages nutzt Live-Service ohne Demo-Daten', async () => {
-      const result = await fetchOfficeMessages(LIVE_TENANT, 'business_admin');
-      if (result.ok) {
-        for (const subject of DEMO_SUBJECTS) {
-          expect(result.data.some((m) => m.subject.includes(subject))).toBe(false);
-        }
-      } else {
-        expect(result.error).toMatch(/Datenbank|Supabase|Verbindung|Netzwerk/i);
-      }
-    });
-
-    it('fetchOfficeMessageDetail findet keine Demo-Nachricht', async () => {
-      const result = await fetchOfficeMessageDetail('msg-007', LIVE_TENANT, 'business_admin');
-      expect(result.ok).toBe(false);
-    });
-
-    it('sendDomainMessage nutzt communication_messages im Live-Pfad', () => {
-      const source = readSrc('src/lib/communication/domainMessageService.ts');
-      expect(source).toContain('messagesSupabaseRepository');
-      expect(source).not.toContain('guardLiveDemoFeature');
-    });
-
-    it('messageService nutzt officeMessageLiveService im Live-Pfad', () => {
-      const source = readSrc('src/lib/portal/messageService.ts');
-      expect(source).toContain('fetchOfficeMessagesLive');
-      expect(source).toContain('fetchOfficeMessageDetailLive');
-    });
-
-    it('OfficeMessageDetailSummaryPanel zeigt keinen Demo-Versand-Text im Live-Pfad', () => {
-      const source = readSrc('src/components/office/OfficeMessageDetailSummaryPanel.tsx');
-      expect(source).toContain('isLiveServiceMode');
-      expect(source).not.toMatch(/subtitle="Demo-Versand mit Persistenz"/);
-    });
-
-    it('ComposeMessageForm blendet Demo-Hinweis im Live-Pfad aus', () => {
-      const source = readSrc('src/screens/shared/ComposeMessageForm.tsx');
-      expect(source).toContain('isLiveServiceMode');
-      expect(source).toContain('showDemoHint');
-      expect(source).not.toContain('Kurze Antworten');
-    });
+  it('fetchOfficeMessageDetail liefert Demo-Detail', async () => {
+    const result = await fetchOfficeMessageDetail('msg-007', DEMO_TENANT_ID, 'business_admin');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.subject).toContain('MDK-Anfrage');
+    }
   });
 
   it('buildOfficeMessageListKpis berechnet Kennzahlen aus Demo-Daten', () => {
@@ -187,22 +77,21 @@ describe('Office Nachrichten list', () => {
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('OfficeMessagesAdaptiveScreen nutzt AdaptiveListDetail mit Summary-Panel', () => {
+  it('OfficeMessagesAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
     const source = readSrc('src/screens/office/OfficeMessagesAdaptiveScreen.tsx');
-    expect(source).toContain('AdaptiveListDetail');
+    expect(source).toContain('MasterDetailLayout');
     expect(source).toContain('OfficeMessageDetailSummaryPanel');
   });
 
-  it('OfficeMessageCompactRow unterstützt Auswahlzustand für List-Detail', () => {
-    const source = readSrc('src/components/office/OfficeMessageCompactRow.tsx');
+  it('OfficeMessageListCard unterstützt Auswahlzustand für Master-Detail', () => {
+    const source = readSrc('src/components/office/OfficeMessageListCard.tsx');
     expect(source).toContain('selected');
-    expect(source).toContain('rowSelected');
+    expect(source).toContain('cardSelected');
   });
 
-  it('messageService fetchOfficeMessages nutzt guardServiceTenant und getServiceMode', () => {
+  it('messageService fetchOfficeMessages nutzt guardServiceTenant', () => {
     const source = readSrc('src/lib/portal/messageService.ts');
     expect(source).toContain('guardServiceTenant');
-    expect(source).toContain('getServiceMode');
   });
 
   it('OfficeMessagesListView bietet Compose-Navigation', () => {
@@ -215,7 +104,47 @@ describe('Office Nachrichten list', () => {
     const source = readSrc('src/components/office/OfficeMessageDetailSummaryPanel.tsx');
     expect(source).toContain('Antwort senden');
     expect(source).toContain('useOfficeMessageDetail');
-    expect(source).toContain('isLiveServiceMode');
+  });
+
+  it('sendDomainMessage persistiert Office-Nachricht', async () => {
+    const result = await sendDomainMessage({
+      wpNumber: 153,
+      domain: 'office',
+      tenantId: DEMO_TENANT_ID,
+      actorRoleKey: 'business_admin',
+      permission: 'office.access',
+      audienceScope: 'office',
+      subject: 'Test Office Compose',
+      body: 'Dies ist eine Testnachricht für Sprint 24.',
+      senderName: 'Admin',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      const list = await fetchOfficeMessages(DEMO_TENANT_ID, 'business_admin');
+      expect(list.ok).toBe(true);
+      if (list.ok) {
+        expect(list.data.some((m) => m.subject === 'Test Office Compose')).toBe(true);
+      }
+    }
+  });
+
+  it('replyToOfficeMessage sendet Demo-Antwort', async () => {
+    const detail = await fetchOfficeMessageDetail('msg-007', DEMO_TENANT_ID, 'business_admin');
+    expect(detail.ok).toBe(true);
+    if (!detail.ok) return;
+
+    const reply = await replyToOfficeMessage(
+      'msg-007',
+      DEMO_TENANT_ID,
+      'business_admin',
+      'Vielen Dank für die Rückmeldung — wir bearbeiten die Anfrage.',
+      'Office Admin',
+    );
+    expect(reply.ok).toBe(true);
+    if (reply.ok) {
+      expect(reply.data.body).toContain('Vielen Dank');
+      expect(reply.data.canReply).toBe(true);
+    }
   });
 
   it('Compose-Route nutzt OfficeComposeMessageScreen', () => {

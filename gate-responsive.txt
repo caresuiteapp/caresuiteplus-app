@@ -1,0 +1,25 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 responsive:audit
+> node scripts/responsive-audit.mjs
+
+CareSuite+ responsive:audit
+
+Ô£ô 18 Shell-/Hook-/Adaptive-Dateien vorhanden
+Ô£ô Adaptive + Platform Breakpoints definiert
+Ô£ô CareAdaptiveShell ÔåÆ Mobile/Tablet/Desktop/Web verdrahtet
+Ô£ô ShellLayout ÔåÆ CareAdaptiveShell verdrahtet
+Ô£ô ResponsiveLayout ÔåÆ CareAdaptiveShell (Alias) verdrahtet
+Ô£ô DesktopShell ohne Bottom-Tabs
+Ô£ô AdaptiveKpiGrid + AdaptiveListDetail vorhanden
+Ô£ô useResponsiveValue Hook + Resolver vorhanden
+Ô£ô 4 Master-Detail-Referenzscreens
+Ô£ô 8 Modul-Routen mit CareAdaptiveShell
+

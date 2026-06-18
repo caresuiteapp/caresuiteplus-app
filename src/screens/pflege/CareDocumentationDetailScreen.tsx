@@ -24,8 +24,7 @@ import {
   isCareDocumentationPdfReady,
   isCareDocumentationSignReady,
 } from '@/lib/pflege/pflegeModuleConfig';
-import { getActionAvailability } from '@/lib/ui/actionAvailability';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 export function CareDocumentationDetailScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -47,18 +46,6 @@ export function CareDocumentationDetailScreen() {
   const detail = query.data;
   const signReady = isCareDocumentationSignReady();
   const pdfReady = isCareDocumentationPdfReady();
-  const signAvailability = getActionAvailability('signature.sign', {
-    roleKey,
-    isPreparedOnly: !signReady,
-    isReadOnly,
-    canExecute: false,
-  });
-  const pdfAvailability = getActionAvailability('signature.export_pdf', {
-    roleKey,
-    isPreparedOnly: !pdfReady,
-    isReadOnly,
-    canExecute: false,
-  });
 
   if (query.loading && !detail) {
     return (
@@ -101,21 +88,16 @@ export function CareDocumentationDetailScreen() {
           <PremiumButton
             title="Nachweis signieren"
             fullWidth
-            variant={signAvailability.isPreparedOnly ? 'prepared' : 'primary'}
-            disabled={!signAvailability.enabled}
+            disabled={!signReady || isReadOnly}
+            onPress={() => undefined}
           />
-          {signAvailability.disabledReason ? (
-            <Text style={styles.hint}>{signAvailability.disabledReason}</Text>
-          ) : null}
           <PremiumButton
             title="PDF exportieren"
-            variant={pdfAvailability.isPreparedOnly ? 'prepared' : 'secondary'}
+            variant="secondary"
             fullWidth
-            disabled={!pdfAvailability.enabled}
+            disabled={!pdfReady || isReadOnly}
+            onPress={() => undefined}
           />
-          {pdfAvailability.disabledReason ? (
-            <Text style={styles.hint}>{pdfAvailability.disabledReason}</Text>
-          ) : null}
         </SectionPanel>
 
         <SectionPanel title="Inhalt" subtitle="Pflegenachweis">
@@ -137,5 +119,4 @@ export function CareDocumentationDetailScreen() {
 const styles = StyleSheet.create({
   content: { gap: spacing.md, paddingBottom: spacing.xxl },
   body: { ...typography.body },
-  hint: { ...typography.caption, color: colors.textMuted },
 });

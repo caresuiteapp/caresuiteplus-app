@@ -73,7 +73,7 @@ export const designTokens = {
     gradient: ['#1A2030', '#12182A', '#0D1220'] as const,
     gradientStart: { x: 0, y: 0 } as const,
     gradientEnd: { x: 1, y: 1 } as const,
-    eyebrowLetterSpacing: 0.6,
+    eyebrowLetterSpacing: 1,
     iconBadgeSize: 48,
   },
   table: {

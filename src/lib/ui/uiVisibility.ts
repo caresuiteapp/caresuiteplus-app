@@ -109,12 +109,12 @@ const LABEL_REPLACEMENTS: [RegExp, string][] = [
   [/demo-prototyp/gi, 'Demo'],
   [/kein\s+supabase/gi, 'Beispieldaten'],
   [/kein\s+store-release/gi, 'In Entwicklung'],
-  [/\brls\b/gi, 'Mandantentrennung'],
   [/supabase\s+auth/gi, 'Sicherer Zugang'],
   [/supabase\s+nicht\s+verbunden/gi, 'Offline-Demo'],
   [/an\s+supabase\s+übermittelt/gi, 'gespeichert'],
   [/supabase\s+storage/gi, 'Dokumentenspeicher'],
   [/supabase/gi, 'Cloud'],
+  [/\brls\b/gi, 'Mandantentrennung'],
   [/preparedonly/gi, UI_PREPARED_LABEL],
   [/prototyp/gi, 'Vorschau'],
   [/__dev__/gi, 'Entwicklung'],
@@ -134,8 +134,6 @@ const PREPARED_LABEL_KEYS = new Set([
   'Buchhaltung preparedOnly',
 ]);
 
-const TECHNICAL_LABEL_KEYS = new Set(['RLS', 'Supabase', 'Prototyp', 'Prototype', 'Kein Store-Release']);
-
 export function isTechnicalUiTerm(term: string): boolean {
   const lower = term.toLowerCase();
   return FORBIDDEN_UI_TERMS.some((forbidden) => lower.includes(forbidden.toLowerCase()));
@@ -148,23 +146,12 @@ export function userFriendlyLabel(raw: string): string {
 }
 
 export function resolveVisibleLabel(raw: string, visibility: UiVisibility): string | null {
+  const friendly = userFriendlyLabel(raw);
   const isPrepared = PREPARED_LABEL_KEYS.has(raw) || /preparedonly/i.test(raw);
 
   if (isPrepared && !visibility.showPreparedBadges) return null;
-
-  if (
-    isTechnicalUiTerm(raw) &&
-    !isPrepared &&
-    !visibility.showTechnicalSubtitles &&
-    !visibility.allowForbiddenTerms
-  ) {
-    return null;
-  }
-
-  const friendly = userFriendlyLabel(raw);
-
   if (visibility.allowForbiddenTerms) return raw;
-  if (isTechnicalUiTerm(friendly) && !visibility.showTechnicalSubtitles && !isPrepared) return null;
+  if (isTechnicalUiTerm(friendly) && !visibility.showTechnicalSubtitles) return null;
 
   return friendly;
 }
@@ -237,12 +224,6 @@ export function getUiVisibilityForRole(
     return baseVisibility({
       showDemoModeBanner: demo,
       showPreparedBadges: false,
-    });
-  }
-
-  if (isNormalUiRole(role)) {
-    return baseVisibility({
-      showDemoModeBanner: demo && environment !== 'production' && !isProductionMode(),
     });
   }
 

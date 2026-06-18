@@ -1,0 +1,22 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 content:audit
+> node scripts/content-architecture-audit.mjs
+
+CareSuite+ content:audit
+
+Ô£ô 11 Content-Library-Dateien vorhanden
+Ô£ô Migration 0037 mit 7 Tabellen + RLS
+Ô£ô 10 Office-Modul-Routen
+Ô£ô Demo-Daten: 20 Klient:innen, 15 Mitarbeitende
+Ô£ô Module-Zuordnungs-Screens mit Suche/Filter/States
+Ô£ô Navigation Office-zentriert
+Ô£ô Pflege-Demo-Minimums (5 Dom├ñnen)
+

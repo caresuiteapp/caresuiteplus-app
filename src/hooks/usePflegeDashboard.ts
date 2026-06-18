@@ -39,6 +39,7 @@ export function usePflegeDashboard() {
     activePlans: (activeQuery.data ?? []) as CarePlanListItem[],
     loading: statsQuery.loading || activeQuery.loading,
     error: statsQuery.error ?? activeQuery.error,
+    isPreviewData: statsQuery.previewData || activeQuery.previewData,
     refreshing: statsQuery.refreshing || activeQuery.refreshing,
     showSuccess,
     refresh,

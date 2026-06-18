@@ -18,8 +18,6 @@ export { CareLightMobileShell } from './CareLightMobileShell';
 export { CareLightTabletShell } from './CareLightTabletShell';
 export { CareLightDesktopShell } from './CareLightDesktopShell';
 export { DesktopShell } from './DesktopShell';
-export { ListDetailLayout } from './ListDetailLayout';
-export type { ListDetailLayoutProps } from './ListDetailLayout';
 export { MasterDetailLayout } from './MasterDetailLayout';
 export { MobileShell } from './MobileShell';
 export { ModuleSwitcher } from './ModuleSwitcher';

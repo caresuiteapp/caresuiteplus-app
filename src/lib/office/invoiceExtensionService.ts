@@ -4,8 +4,6 @@ import { demoInvoices } from '@/data/demo/invoices';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { getServiceMode } from '@/lib/services/mode';
-import { listBillingRuns, listOpenDueReceivables, listDunningLetters } from '@/lib/careBilling';
 import { formatCurrency } from '@/lib/office/invoiceListService';
 
 export type InvoiceRunItem = {
@@ -59,30 +57,8 @@ export async function fetchInvoiceRuns(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (getServiceMode() === 'supabase') {
-    return { ok: false, error: 'Live-Abrechnungsläufe: Migration 0054 anwenden.' };
-  }
-  if (tenantId !== DEMO_TENANT_ID) {
-    return { ok: false, error: 'Live-Abrechnungsläufe: Repository erweitern.' };
-  }
+  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Live-Abrechnungsläufe: Repository erweitern.' };
   await demoDelay();
-
-  const cycleRuns = listBillingRuns(tenantId);
-  if (cycleRuns.length > 0) {
-    return {
-      ok: true,
-      data: cycleRuns.map((run) => ({
-        id: run.id,
-        tenantId,
-        label: run.title,
-        runAt: run.preparedAt ?? run.createdAt,
-        invoiceCount: run.invoicesCount,
-        totalCents: run.totalAmountCents,
-        status: run.status,
-      })),
-    };
-  }
-
   const now = Date.now();
   return {
     ok: true,
@@ -146,31 +122,8 @@ export async function fetchInvoiceDunningCases(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (getServiceMode() === 'supabase') {
-    return { ok: false, error: 'Live-Mahnlauf: Migration 0054 anwenden.' };
-  }
   if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Live-Mahnlauf: Repository erweitern.' };
   await demoDelay();
-
-  const receivables = listOpenDueReceivables(tenantId);
-  if (receivables.length > 0) {
-    const letters = listDunningLetters(tenantId);
-    return {
-      ok: true,
-      data: receivables.map((r, index) => ({
-        id: `dun-${r.id}`,
-        tenantId,
-        invoiceId: r.invoiceId,
-        invoiceNumber: r.invoiceNumber,
-        clientName: clientName(r.clientId),
-        dunningLevel: letters.filter((l) => l.receivableId === r.id).length + 1,
-        dueDate: r.dueDate,
-        openCents: r.openAmountCents,
-        status: r.dunningStatus,
-      })),
-    };
-  }
-
   return {
     ok: true,
     data: demoInvoices

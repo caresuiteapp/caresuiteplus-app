@@ -6,6 +6,7 @@ import {
 } from '@/data/demo/accounting';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+
 import { maskConnectCredentialReference } from '@/lib/connect/gateway';
 
 const delay = (ms: number) => new Promise((r) => setTimeout(r, ms));

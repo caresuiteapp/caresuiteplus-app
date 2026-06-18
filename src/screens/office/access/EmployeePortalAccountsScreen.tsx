@@ -4,28 +4,16 @@ import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useDemoData } from '@/hooks/useDemoData';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import { listEmployeePortalAccounts } from '@/lib/auth/accessManagementService';
+import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { colors, spacing, typography } from '@/theme';
 
 export function EmployeePortalAccountsScreen() {
   const router = useRouter();
-  const tenantId = useServiceTenantId();
   const { data: accounts, loading, error, refresh } = useDemoData(
-    () => {
-      if (!tenantId) throw new Error('Kein Mandant.');
-      return listEmployeePortalAccounts(tenantId);
-    },
-    [tenantId],
+    () => listEmployeePortalAccounts(DEMO_TENANT_ID),
+    [],
   );
-
-  if (!tenantId) {
-    return (
-      <ScreenShell title="Mitarbeitendenportal" subtitle="Zugänge & Benutzer" scroll>
-        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
-      </ScreenShell>
-    );
-  }
 
   if (loading && !accounts) {
     return (

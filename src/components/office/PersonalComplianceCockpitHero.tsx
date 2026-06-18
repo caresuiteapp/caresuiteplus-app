@@ -92,7 +92,7 @@ export function PersonalComplianceCockpitHero({ snapshot }: PersonalComplianceCo
         <PremiumBadge label="Verwaltung · QM · GF" variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isPersonalComplianceLiveReady() || snapshot.preparedOnly ? (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="preparedOnly" variant="muted" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

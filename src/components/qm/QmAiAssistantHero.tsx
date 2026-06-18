@@ -67,7 +67,7 @@ export function QmAiAssistantHero({ draftCount, actionCount, roleKey }: QmAiAssi
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isQmExtensionLiveReady() ? (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

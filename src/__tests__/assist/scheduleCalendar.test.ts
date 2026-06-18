@@ -117,7 +117,7 @@ describe('schedule calendar (Prompt 61)', () => {
     createAssignmentWorkflow(
       {
         ...BASE_INPUT,
-        employeeId: 'employee-001',
+        employeeId: 'employee-002',
         title: 'Klient Doppel',
         plannedStartAt: '2026-07-01T09:30:00.000Z',
         plannedEndAt: '2026-07-01T10:30:00.000Z',

@@ -157,13 +157,6 @@ export {
 } from './eInvoiceService';
 
 export {
-  assertDocumentActionAllowed,
-  buildDocumentActionGateContext,
-  buildDocumentActionGateContextForRole,
-  isServiceProofLocked,
-} from './documentActionGate';
-
-export {
   createContractDraft,
   finalizeContract,
   confirmContractPreview,
@@ -234,4 +227,27 @@ export {
   documentationToDocumentContext,
   getDocumentationTemplateVersionId,
   validateDocumentationRecord,
+} from './documentationValidation';
+
+export {
+  assertDocumentActionAllowed,
+  buildDocumentActionGateContext,
+  buildDocumentActionGateContextForRole,
+  isServiceProofLocked,
+} from './documentActionGate';
+
+export { validateContractRecord, contractToDocumentContext, STANDARD_CONTRACT_HTML_TEMPLATE } from './contractValidation';
+
+export {
+  validateServiceProofRecord,
+  validateServiceProofForSignature,
+  sumDeploymentHours,
+  serviceProofToDocumentContext,
+  STANDARD_SERVICE_PROOF_HTML_TEMPLATE,
+} from './serviceProofValidation';
+
+export {
+  validateDocumentationRecord,
+  documentationToDocumentContext,
+  STANDARD_DOCUMENTATION_HTML_TEMPLATE,
 } from './documentationValidation';

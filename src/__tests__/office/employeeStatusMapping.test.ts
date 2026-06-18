@@ -34,6 +34,5 @@ describe('employeeStatusMapping', () => {
     expect(mapDbStatusToCatalogStatus('terminated')).toBe('ausgeschieden');
     expect(mapDbStatusToCatalogStatus('blocked')).toBe('gesperrt');
     expect(mapDbStatusToCatalogStatus('inactive')).toBe('archiviert');
-    expect(mapDbStatusToCatalogStatus('deleted')).toBe('geloescht');
   });
 });

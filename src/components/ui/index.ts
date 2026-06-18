@@ -10,7 +10,6 @@ export {
 export { ModuleTile } from './ModuleTile';
 export { CareLightCard } from './CareLightCard';
 export { CareLightKpiCard } from './CareLightKpiCard';
-export { CareKpiIcon, type CareKpiIconKey } from './CareKpiIcon';
 export { CareLightButton } from './CareLightButton';
 export { CareLightSection } from './CareLightSection';
 export { CareLightListItem } from './CareLightListItem';
@@ -20,7 +19,6 @@ export { CareLightEmptyState } from './CareLightEmptyState';
 export { CareLightErrorState } from './CareLightErrorState';
 export { CareLightListHeroFrame } from './CareLightListHeroFrame';
 export { CareLightActionBar } from './CareLightActionBar';
-export { CareLightQuickActionsMenu } from './CareLightQuickActionsMenu';
 export { SectionPanel } from './SectionPanel';
 export { RequireProductAccess } from './RequireProductAccess';
 export { PremiumKpiCard } from './PremiumKpiCard';
@@ -32,7 +30,6 @@ export {
 export { Timeline } from './Timeline';
 export { PremiumInput } from './PremiumInput';
 export { FilterChip, FilterChipGroup } from './FilterChip';
-export { ListFilterSelect, type ListFilterOption } from './ListFilterSelect';
 export { SegmentedTabs, type TabOption } from './SegmentedTabs';
 export { FormStepper } from './FormStepper';
 export { PremiumAvatar } from './PremiumAvatar';
@@ -40,8 +37,6 @@ export { PremiumDivider } from './PremiumDivider';
 export { PremiumListRow } from './PremiumListRow';
 export { PremiumDataTable, type DataTableColumn } from './PremiumDataTable';
 export { InfoBanner } from './InfoBanner';
-export { OfflineNotice } from './OfflineNotice';
-export { FullScreenLoader } from './FullScreenLoader';
 export {
   COMPONENT_CATALOG,
   getComponentsByCategory,

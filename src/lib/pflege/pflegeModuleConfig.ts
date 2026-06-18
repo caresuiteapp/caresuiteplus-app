@@ -132,7 +132,7 @@ export function isMedicationEmpReady(): boolean {
 }
 
 export function isWoundBodyMapReady(): boolean {
-  return isPflegeDemoFunctional() || isSupabaseLive();
+  return isPflegeDemoFunctional();
 }
 
 export const VITAL_WRITE_PREPARED_MESSAGE =
@@ -157,4 +157,4 @@ export const MEDICATION_EMP_PREPARED_MESSAGE =
   'eMP-Abgleich erfordert TI-Anbindung (externe Anbindung).';
 
 export const WOUND_BODYMAP_PREPARED_MESSAGE =
-  'BodyMap-Markierung ist live verfügbar — Verlaufsfoto-Upload erfordert Storage-Anbindung.';
+  'BodyMap-Markierung und Verlaufsfoto-Upload erfordern Storage-Anbindung.';

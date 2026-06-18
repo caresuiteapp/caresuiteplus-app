@@ -18,13 +18,13 @@ describe('employees live detail mapping (Sprint 72)', () => {
     tenant_id: DEMO_TENANT_ID,
     first_name: 'Anna',
     last_name: 'Schmidt',
-    role_title: 'pflegefachkraft',
+    job_title: 'Pflegefachkraft',
     email: 'anna@example.com',
     phone: '+49 123',
-    status: 'active',
+    status: 'aktiv',
     department: 'Ambulant',
-    entry_date: '2024-03-01',
-    internal_notes: 'Schichtleitung Mo–Mi.',
+    start_date: '2024-03-01',
+    notes: 'Schichtleitung Mo–Mi.',
     created_at: '2024-03-01T00:00:00.000Z',
     updated_at: '2026-06-12T00:00:00.000Z',
   };
@@ -38,42 +38,27 @@ describe('employees live detail mapping (Sprint 72)', () => {
     expect(sql).not.toMatch(/^\s*TRUNCATE\b/im);
   });
 
-  it('Migration 0075 fügt department auf Live-Schema hinzu', () => {
-    const sql = readSrc('supabase/migrations/0075_employees_department_live.sql');
-    expect(sql).toContain('ADD COLUMN IF NOT EXISTS department');
-    expect(sql).not.toMatch(/^\s*DROP\b/im);
-    expect(sql).not.toMatch(/^\s*TRUNCATE\b/im);
-  });
-
-  it('EMPLOYEE_DETAIL_SELECT_COLUMNS enthält department', () => {
-    const source = readSrc('src/lib/office/employeeDetailMapper.ts');
-    expect(source).toMatch(/EMPLOYEE_DETAIL_SELECT_COLUMNS[\s\S]*department/);
-  });
-
   it('mapEmployeeRowToDetail mappt vollständige Zeile', () => {
     const result = mapEmployeeRowToDetail(completeRow);
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.jobTitle).toBe('pflegefachkraft');
-      expect(result.data.status).toBe('aktiv');
       expect(result.data.department).toBe('Ambulant');
       expect(result.data.startDate).toBe('2024-03-01');
       expect(result.data.notes).toBe('Schichtleitung Mo–Mi.');
     }
   });
 
-  it('mapEmployeeRowToDetail akzeptiert leere optionale Detail-Felder', () => {
-    const result = mapEmployeeRowToDetail({
+  it('mapEmployeeRowToDetail meldet fehlendes Schema ehrlich', () => {
+    const incomplete: EmployeeDetailLiveRow = {
       ...completeRow,
-      department: null,
-      entry_date: null,
-      internal_notes: null,
-    });
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.department).toBeNull();
-      expect(result.data.startDate).toBeNull();
-      expect(result.data.notes).toBeNull();
+      notes: undefined,
+    };
+    const result = mapEmployeeRowToDetail(incomplete);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('Schema unvollständig');
+      expect(result.error).toContain('notes');
+      expect(result.error).toContain('0033');
     }
   });
 

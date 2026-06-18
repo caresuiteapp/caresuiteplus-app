@@ -2,7 +2,6 @@ export { AuthProvider } from './AuthProvider';
 export { useAuth, AuthContext, type AuthContextValue, type AuthMode } from './context';
 export { RequireAuth } from './RequireAuth';
 export { RequireRole } from './RequireRole';
-export { RedirectIfAuthenticated } from './RedirectIfAuthenticated';
 export { RequireDevOrAdmin } from './RequireDevOrAdmin';
 export { canAccessDeveloperTools } from './devAccess';
 export { buildDemoSession, getDemoLoginLabel } from './demoSession';
@@ -46,7 +45,6 @@ export {
 } from './employeePortalAuthService';
 export {
   generateClientPortalCode,
-  loginClientPortal,
   validatePortalCodeLogin,
   regeneratePortalCode,
   blockPortalCode,
@@ -65,14 +63,6 @@ export {
   sanitizeUsername,
   validateUsername,
 } from './usernameGenerator';
-
-export {
-  generateClientPortalUsername,
-  pickUniqueClientPortalUsername,
-  buildClientPortalUsernameCandidates,
-  sanitizePortalUsernameInput,
-  validateClientPortalUsername,
-} from './clientPortalUsernameGenerator';
 
 export {
   generateTemporaryPassword,

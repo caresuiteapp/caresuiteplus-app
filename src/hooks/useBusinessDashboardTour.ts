@@ -17,9 +17,7 @@ import {
 export type BusinessDashboardTourRefs = {
   welcome: RefObject<View>;
   kpis: RefObject<View>;
-  recent: RefObject<View>;
   quickActions: RefObject<View>;
-  moreActions: RefObject<View>;
   modules: RefObject<View>;
   firstClient: RefObject<View>;
 };
@@ -37,18 +35,14 @@ export function useBusinessDashboardTour({ ready, isEmptyTenant }: UseBusinessDa
 
   const welcomeRef = useRef<View>(null);
   const kpisRef = useRef<View>(null);
-  const recentRef = useRef<View>(null);
   const quickActionsRef = useRef<View>(null);
-  const moreActionsRef = useRef<View>(null);
   const modulesRef = useRef<View>(null);
   const firstClientRef = useRef<View>(null);
 
   const refs: BusinessDashboardTourRefs = {
     welcome: welcomeRef,
     kpis: kpisRef,
-    recent: recentRef,
     quickActions: quickActionsRef,
-    moreActions: moreActionsRef,
     modules: modulesRef,
     firstClient: firstClientRef,
   };
@@ -60,15 +54,12 @@ export function useBusinessDashboardTour({ ready, isEmptyTenant }: UseBusinessDa
   const [storageLoaded, setStorageLoaded] = useState(false);
 
   const currentStep = DASHBOARD_TOUR_STEPS[stepIndex];
-  const expandQuickActionsMenu = currentStep?.id === 'moreActions';
 
   const measureAnchor = useCallback((anchor: DashboardTourAnchorKey) => {
     const refMap: Record<DashboardTourAnchorKey, RefObject<View>> = {
       welcome: welcomeRef,
       kpis: kpisRef,
-      recent: recentRef,
       quickActions: quickActionsRef,
-      moreActions: moreActionsRef,
       modules: modulesRef,
       nav: welcomeRef,
       firstClient: firstClientRef,
@@ -83,8 +74,8 @@ export function useBusinessDashboardTour({ ready, isEmptyTenant }: UseBusinessDa
         setTargetLayout({ x, y, width, height });
         return;
       }
-      if (anchor === 'firstClient' && firstClientRef.current) {
-        firstClientRef.current.measureInWindow((fx, fy, fw, fh) => {
+      if (anchor === 'firstClient' && quickActionsRef.current) {
+        quickActionsRef.current.measureInWindow((fx, fy, fw, fh) => {
           if (fw > 0 && fh > 0) {
             setTargetLayout({ x: fx, y: fy, width: fw, height: fh });
           } else {
@@ -154,12 +145,11 @@ export function useBusinessDashboardTour({ ready, isEmptyTenant }: UseBusinessDa
 
   useEffect(() => {
     if (!visible) return;
-    const delay = currentStep.id === 'moreActions' ? 220 : 120;
     const timer = setTimeout(() => {
       measureAnchor(currentStep.id);
-    }, delay);
+    }, 120);
     return () => clearTimeout(timer);
-  }, [visible, stepIndex, currentStep.id, measureAnchor, expandQuickActionsMenu]);
+  }, [visible, stepIndex, currentStep.id, measureAnchor]);
 
   return {
     visible,
@@ -169,7 +159,6 @@ export function useBusinessDashboardTour({ ready, isEmptyTenant }: UseBusinessDa
     targetLayout,
     refs,
     tourFinished,
-    expandQuickActionsMenu,
     startTour,
     onNext,
     onSkip,

@@ -1,23 +1,25 @@
 import { useCallback } from 'react';
 import { fetchClientCarePlanSummaries, fetchClientPortalProfile } from '@/lib/portal';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 
 export function useClientPortalProfile() {
-  const { profile } = useAuth();
-  const profileId = profile?.id ?? '';
-  const roleKey = profile?.roleKey ?? null;
+  const actor = usePortalActor();
 
   const profileQuery = useAsyncQuery(
-    () => fetchClientPortalProfile(profileId, roleKey),
-    [profileId, roleKey],
-    { enabled: !!profileId && !!roleKey },
+    () =>
+      fetchClientPortalProfile(actor.actorId ?? '', actor.roleKey, {
+        clientId: actor.clientId,
+        tenantId: actor.tenantId,
+      }),
+    [actor.actorId, actor.roleKey, actor.clientId, actor.tenantId],
+    { enabled: actor.isReady },
   );
 
   const carePlanQuery = useAsyncQuery(
-    () => fetchClientCarePlanSummaries(profileId, roleKey),
-    [profileId, roleKey],
-    { enabled: !!profileId && !!roleKey },
+    () => fetchClientCarePlanSummaries(actor.actorId ?? '', actor.roleKey, { clientId: actor.clientId }),
+    [actor.actorId, actor.roleKey, actor.clientId],
+    { enabled: actor.isReady },
   );
 
   const refresh = useCallback(async () => {

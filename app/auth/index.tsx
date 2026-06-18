@@ -1,6 +1,3 @@
-import { Redirect } from 'expo-router';
+import { AuthLandingScreen } from '@/screens/auth/AuthLandingScreen';
 
-/** Canonical public portal choice lives at /. */
-export default function AuthIndex() {
-  return <Redirect href="/" />;
-}
+export default AuthLandingScreen;

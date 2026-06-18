@@ -12,12 +12,10 @@ export function EmployeesListScreen({
   onEmployeePress,
   selectedId,
   embedded = false,
-  refreshToken = 0,
 }: {
   onEmployeePress?: (id: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
-  refreshToken?: number;
 } = {}) {
   const router = useRouter();
   const { can, isReadOnly } = usePermissions();
@@ -31,7 +29,6 @@ export function EmployeesListScreen({
         onEmployeePress={onEmployeePress}
         selectedId={selectedId}
         embedded
-        refreshToken={refreshToken}
       />
     );
   }

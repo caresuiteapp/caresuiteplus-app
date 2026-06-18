@@ -69,7 +69,7 @@ export function AccessManagementDashboardHero({ stats }: AccessManagementDashboa
         <PremiumBadge label="Mandanten-Admin" variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isAccessManagementLiveReady() ? (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

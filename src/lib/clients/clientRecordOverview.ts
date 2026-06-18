@@ -1,6 +1,5 @@
 import type { ClientCareContext, ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { CLIENT_RECORD_TAB_LABELS } from '@/lib/clients/clientIntakeFieldRules';
-import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { formatDate, formatDateTime } from '@/lib/formatters/dateTimeFormatters';
@@ -41,13 +40,8 @@ function display(value: string | null | undefined): string {
 }
 
 function buildAddress(detail: ClientFullDetail): string {
-  const primary = detail.addresses.find((a) => a.isPrimary) ?? detail.addresses[0];
-  if (primary) {
-    const fromAddress = formatClientAddressLine(primary.street, primary.zip, primary.city);
-    if (fromAddress) return fromAddress;
-  }
-  const fromClient = formatClientAddressLine(detail.street, detail.zip, detail.city);
-  return fromClient || EMPTY;
+  const parts = [detail.street, [detail.zip, detail.city].filter(Boolean).join(' ')].filter(Boolean);
+  return parts.length > 0 ? parts.join(', ') : EMPTY;
 }
 
 function resolveCostBearer(detail: ClientFullDetail): string {
@@ -98,14 +92,14 @@ function buildSignedDocuments(detail: ClientFullDetail): ClientRecordSignedDocum
   }
 
   for (const doc of detail.documents ?? []) {
-    if (doc.intakeStatus === 'finalized' || doc.status === 'abgeschlossen' || doc.status === 'aktiv') {
-      items.push({
-        id: doc.id,
-        title: doc.title,
-        signedAt: doc.updatedAt ?? doc.createdAt,
-        kind: doc.category === 'einwilligung' ? 'consent' : doc.category === 'vertrag' ? 'contract' : 'document',
-      });
-    }
+    if (doc.category !== 'einwilligung' && doc.category !== 'vertrag') continue;
+    if (doc.status !== 'aktiv' && doc.status !== 'abgeschlossen') continue;
+    items.push({
+      id: doc.id,
+      title: doc.title,
+      signedAt: doc.updatedAt ?? doc.createdAt,
+      kind: 'document',
+    });
   }
 
   return items
@@ -139,11 +133,7 @@ export function buildClientRecordOverview(
     careLevel: formatCareLevel(detail.careLevel),
     serviceTypes,
     lastActivity: resolveLastActivity(detail),
-    admissionDate: detail.admissionDate
-      ? formatDate(detail.admissionDate)
-      : detail.createdAt
-        ? formatDate(detail.createdAt)
-        : EMPTY,
+    admissionDate: detail.createdAt ? formatDate(detail.createdAt) : EMPTY,
     signedDocuments: buildSignedDocuments(detail),
     quickLinks,
   };

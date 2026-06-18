@@ -68,7 +68,7 @@ export const wernerMuellerFull: ClientFullDetail = {
     {
       id: 'addr-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
       addressType: 'hauptwohnsitz', street: 'Prenzlauer Allee 88', zip: '10437', city: 'Berlin',
-      country: 'DE', isPrimary: true, accessNotes: 'EG, Stufe am Eingang', floor: 'EG', apartmentNumber: '3', doorCode: '1234',
+      country: 'DE', isPrimary: true, accessNotes: 'EG, Stufe am Eingang', floor: 'EG', doorCode: '1234',
       createdAt: daysAgo(400), updatedAt: now,
     },
   ],
@@ -76,7 +76,6 @@ export const wernerMuellerFull: ClientFullDetail = {
     {
       id: 'contact-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
       firstName: 'Klaus', lastName: 'Müller', relationship: 'kind', relationshipLabel: 'Sohn',
-      contactType: 'emergency_contact',
       phone: '+49 171 9876543', email: 'klaus.mueller@demo.app', isEmergency: true,
       isPortalUser: true,
       portalPermissions: { canViewAppointments: true, canViewDocuments: true, canViewCarePlan: true, canSendMessages: true, canViewBilling: true },
@@ -85,7 +84,6 @@ export const wernerMuellerFull: ClientFullDetail = {
     {
       id: 'contact-wm-2', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
       firstName: 'Ingrid', lastName: 'Müller', relationship: 'ehepartner', relationshipLabel: 'Ehefrau',
-      contactType: 'relative',
       phone: '+49 30 44556677', email: null, isEmergency: false, isPortalUser: false,
       portalPermissions: { canViewAppointments: false, canViewDocuments: false, canViewCarePlan: false, canSendMessages: false, canViewBilling: false },
       notes: 'Lebt im selben Haushalt', createdAt: daysAgo(350), updatedAt: now,
@@ -141,7 +139,6 @@ export const wernerMuellerFull: ClientFullDetail = {
     accessInstructions: 'Türklingel defekt — bitte klopfen',
     createdAt: daysAgo(350), updatedAt: now,
   },
-  schedulingWishes: null,
   risks: [
     {
       id: 'risk-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
@@ -206,9 +203,8 @@ export const wernerMuellerFull: ClientFullDetail = {
   portalAccess: [
     {
       id: 'portal-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
-      contactId: 'contact-wm-1', email: null, portalUsername: 'werner.mueller',
-      portalEnabled: true, status: 'aktiv',
-      lastLoginAt: daysAgo(1), invitedAt: null, codeCreatedAt: daysAgo(60), codeRotatedAt: null,
+      contactId: 'contact-wm-1', email: 'klaus.mueller@demo.app', status: 'aktiv',
+      lastLoginAt: daysAgo(1), invitedAt: daysAgo(60),
       modulesEnabled: ['appointments', 'messages', 'documents', 'careplan', 'billing'],
       twoFactorEnabled: true, createdAt: daysAgo(60), updatedAt: now,
     },
@@ -237,11 +233,11 @@ export const wernerMuellerFull: ClientFullDetail = {
     },
   ],
   tasks: [
-    { id: 'task-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'begleitung', title: 'Orientierungshilfe geben', description: 'Demenzsensible Betreuung', frequency: 'woechentlich', durationMinutes: 15, isActive: true, catalogTaskId: 'assist-task-dem-001', assignedEmployeeIds: ['employee-001'], moduleKey: 'assist', leistungsbereich: 'betreuung', subcategory: 'demenzbegleitung', packageId: 'assist-pkg-demenzbetreuung', leistungsart: 'betreuung', isMandatory: true, proofRequired: false, documentationRequired: true, billingRelevant: true, visibleToClient: true, createdAt: daysAgo(100), updatedAt: now },
-    { id: 'task-wm-2', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'begleitung', title: 'Spaziergang', description: 'Gemeinsamer Spaziergang', frequency: 'woechentlich', durationMinutes: 45, isActive: true, catalogTaskId: 'assist-task-sp-001', assignedEmployeeIds: ['employee-001'], moduleKey: 'assist', leistungsbereich: 'alltagsbegleitung', subcategory: 'aktivierung', packageId: 'assist-pkg-spaziergang-teilhabe', leistungsart: 'alltagsbegleitung', isMandatory: true, proofRequired: false, documentationRequired: true, billingRelevant: true, visibleToClient: true, createdAt: daysAgo(100), updatedAt: now },
-    { id: 'task-wm-3', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'medikation', title: 'Medikamentengabe', description: 'Morgenmedikation — Pflege-Modul', frequency: 'taeglich', durationMinutes: 10, isActive: true, catalogTaskId: 'task-med-1', assignedEmployeeIds: ['employee-003'], moduleKey: 'pflege', leistungsbereich: null, subcategory: null, packageId: null, leistungsart: null, isMandatory: true, proofRequired: false, documentationRequired: true, billingRelevant: true, visibleToClient: false, createdAt: daysAgo(100), updatedAt: now },
-    { id: 'task-wm-4', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'ernaehrung', title: 'Essen anreichen', description: 'Mittagessen', frequency: 'taeglich', durationMinutes: 30, isActive: true, catalogTaskId: 'task-ernaehr-2', assignedEmployeeIds: ['employee-001'], moduleKey: 'assist', leistungsbereich: 'alltagsbegleitung', subcategory: 'haeusliche_alltagsunterstuetzung', packageId: null, leistungsart: 'alltagsbegleitung', isMandatory: false, proofRequired: false, documentationRequired: true, billingRelevant: true, visibleToClient: true, createdAt: daysAgo(100), updatedAt: now },
-    { id: 'task-wm-5', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'haushalt', title: 'Geschirr spülen', description: null, frequency: 'taeglich', durationMinutes: 15, isActive: true, catalogTaskId: 'task-haushalt-3', assignedEmployeeIds: [], moduleKey: 'assist', leistungsbereich: 'hauswirtschaft', subcategory: 'hauswirtschaft', packageId: null, leistungsart: 'hauswirtschaft', isMandatory: false, proofRequired: false, documentationRequired: true, billingRelevant: true, visibleToClient: true, createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'koerperpflege', title: 'Ganzkörperwäsche', description: 'Dienstags und Freitags', frequency: 'zweimal_wöchentlich', durationMinutes: 45, isActive: true, catalogTaskId: 'task-koerper-1', assignedEmployeeIds: ['employee-003'], createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-wm-2', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'mobilisation', title: 'Transfer Bett-Stuhl', description: null, frequency: 'taeglich', durationMinutes: 15, isActive: true, catalogTaskId: 'task-mobil-1', assignedEmployeeIds: ['employee-003'], createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-wm-3', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'medikation', title: 'Medikamentengabe', description: 'Morgenmedikation', frequency: 'taeglich', durationMinutes: 10, isActive: true, catalogTaskId: 'task-med-1', assignedEmployeeIds: ['employee-003'], createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-wm-4', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'ernaehrung', title: 'Essen anreichen', description: 'Mittagessen', frequency: 'taeglich', durationMinutes: 30, isActive: true, catalogTaskId: 'task-ernaehr-2', assignedEmployeeIds: ['employee-003'], createdAt: daysAgo(100), updatedAt: now },
+    { id: 'task-wm-5', tenantId: DEMO_TENANT_ID, clientId: 'client-002', category: 'haushalt', title: 'Geschirr spülen', description: null, frequency: 'taeglich', durationMinutes: 15, isActive: true, catalogTaskId: 'task-haushalt-3', assignedEmployeeIds: [], createdAt: daysAgo(100), updatedAt: now },
   ],
   timeline: [
     { id: 'tl-wm-1', clientId: 'client-002', eventType: 'einsatz', icon: '⚠️', title: 'Sturzvorfall dokumentiert', subtitle: 'Im Badezimmer, keine schweren Verletzungen', timestamp: daysAgo(21), status: 'in_bearbeitung', actorName: 'Thomas Keller', isInternal: false, metadata: null },

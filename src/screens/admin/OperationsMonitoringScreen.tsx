@@ -14,7 +14,6 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import {
   fetchOperationsMonitoringDashboard,
   OPERATIONS_MONITORING_PREPARED_MESSAGE,
@@ -77,12 +76,10 @@ export function OperationsMonitoringScreen() {
               key={area.areaKey}
               icon={area.preparedOnly ? '🛠️' : '📋'}
               title={area.label}
-              description={`${area.openCount} Einträge · ${sanitizeUiText(area.statusLabel)}${area.preparedOnly ? ` · ${sanitizeUiText('In Vorbereitung')}` : ''}`}
+              description={`${area.openCount} Einträge · ${area.statusLabel}${area.preparedOnly ? ' · preparedOnly' : ''}`}
               accentColor={area.preparedOnly ? colors.warning : colors.cyan}
               isActive={!area.preparedOnly}
-              preparedOnly={area.preparedOnly}
-              isNavigable={!area.preparedOnly}
-              onPress={area.preparedOnly ? undefined : () => router.push(area.route as never)}
+              onPress={() => router.push(area.route as never)}
             />
           ))}
         </View>

@@ -54,7 +54,7 @@ export function useOfficeDocuments() {
   const list = useListState<PortalDocumentListItem, 'title' | 'updatedAt'>({
     items: itemsForList,
     pageSize: PAGE_SIZE,
-    searchFields: ['title', 'fileName', 'clientName'],
+    searchFields: ['title', 'fileName'],
     statusField: 'status',
     sortOptions: OFFICE_DOCUMENT_SORT_OPTIONS,
     defaultSortKey: 'updated_desc',

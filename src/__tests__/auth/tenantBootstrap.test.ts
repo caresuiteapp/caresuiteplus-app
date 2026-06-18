@@ -43,5 +43,12 @@ describe('tenant bootstrap role resolution', () => {
     const provider = readSrc('src/lib/auth/AuthProvider.tsx');
     expect(provider).toContain('repairProfileFromSession');
     expect(provider).toContain('!user || !session || profile?.roleKey');
+    expect(provider).toContain('profileRepairAttemptedRef');
+  });
+
+  it('RequireRole uses portal session roleKey for access checks', () => {
+    const guard = readSrc('src/lib/auth/RequireRole.tsx');
+    expect(guard).toContain('portalSession?.roleKey');
+    expect(guard).toContain('matchesNavigationTarget');
   });
 });

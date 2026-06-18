@@ -200,8 +200,6 @@ export type AssignmentConflictCode =
   | 'client_double_booked'
   | 'travel_time_implausible'
   | 'qualification_missing'
-  | 'mandatory_training_missing'
-  | 'training_expired'
   | 'employee_inactive'
   | 'background_check_missing'
   | 'employee_blocked'
@@ -209,97 +207,7 @@ export type AssignmentConflictCode =
   | 'module_permission_missing'
   | 'max_hours_exceeded'
   | 'missing_tasks'
-  | 'missing_address'
-  | 'no_employee'
-  | 'no_service_type';
-
-/** Kalendereintrag — abgeleitet aus Einsatz, nie freistehend */
-export type CalendarEntry = {
-  id: string;
-  tenantId: string;
-  assignmentId: string;
-  startsAt: string;
-  endsAt: string;
-  durationMinutes: number;
-  clientId: string;
-  clientName: string;
-  employeeId: string | null;
-  employeeName: string | null;
-  serviceType: string;
-  status: AssignmentStatus;
-  canonicalStatus: CanonicalAssignmentStatus;
-  address: string | null;
-  taskCount: number;
-  docStatus: 'ok' | 'missing' | 'na';
-  signatureStatus: 'ok' | 'missing' | 'na';
-  conflictWarning: boolean;
-  billingStatus: 'ready' | 'pending' | 'na';
-  title: string;
-  source: 'assignment_sync';
-};
-
-export type CalendarFilters = {
-  employeeId?: string;
-  clientId?: string;
-  status?: AssignmentStatus | CanonicalAssignmentStatus;
-  serviceType?: string;
-  location?: string;
-  openOnly?: boolean;
-  conflictsOnly?: boolean;
-  missingSignature?: boolean;
-  missingDoc?: boolean;
-  billingReady?: boolean;
-  tourId?: string;
-};
-
-export type CalendarViewPreferences = {
-  tenantId: string;
-  userId: string;
-  defaultView: CalendarViewMode;
-  defaultEmployeeId?: string | null;
-  compactMobile: boolean;
-  updatedAt: string;
-};
-
-export type ScheduleChangeAuditEvent = {
-  id: string;
-  tenantId: string;
-  assignmentId: string;
-  changeType:
-    | 'reschedule'
-    | 'reassign'
-    | 'duration_change'
-    | 'cancel'
-    | 'series_edit'
-    | 'drag_drop';
-  actorId: string | null;
-  actorRole: string | null;
-  previousStartAt: string | null;
-  previousEndAt: string | null;
-  previousEmployeeId: string | null;
-  newStartAt: string | null;
-  newEndAt: string | null;
-  newEmployeeId: string | null;
-  conflictCheckPassed: boolean;
-  summary: string;
-  createdAt: string;
-};
-
-export type SeriesRecurrencePattern = 'once' | 'daily' | 'weekly' | 'biweekly' | 'monthly' | 'custom';
-
-export type SeriesEditScope = 'this_only' | 'this_and_following' | 'entire_series';
-
-export type AssignmentSeries = {
-  id: string;
-  tenantId: string;
-  pattern: SeriesRecurrencePattern;
-  intervalDays: number;
-  startsOn: string;
-  endsOn: string | null;
-  assignmentTemplate: Omit<AssignmentWorkflowCreateInput, 'tenantId' | 'plannedStartAt' | 'plannedEndAt'>;
-  createdAt: string;
-  updatedAt: string;
-};
+  | 'missing_address';
 
 export type AssignmentConflict = {
   code: AssignmentConflictCode;

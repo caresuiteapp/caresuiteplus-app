@@ -2,8 +2,6 @@ import type { TenantScopedEntity } from '../../core/base';
 import type { WorkflowStatus } from '../../core/base';
 import type { SensitivityLevel } from '../../portal/visibility';
 
-export type ClientDocumentSource = 'upload' | 'intake' | 'generated';
-
 export type ClientDocumentRecord = TenantScopedEntity & {
   clientId: string;
   title: string;
@@ -15,19 +13,6 @@ export type ClientDocumentRecord = TenantScopedEntity & {
   sensitivity: SensitivityLevel;
   uploadedBy: string | null;
   validUntil: string | null;
-  previewHtml?: string | null;
-  documentSource?: ClientDocumentSource;
-  intakeDocumentId?: string | null;
-  intakeDocumentType?: string | null;
-  intakeStatus?: string | null;
-};
-
-export const CLIENT_DOCUMENT_STATUS_LABELS: Partial<Record<WorkflowStatus, string>> = {
-  entwurf: 'Entwurf',
-  in_bearbeitung: 'In Bearbeitung',
-  abgeschlossen: 'Finalisiert',
-  aktiv: 'Aktiv',
-  archiviert: 'Archiviert',
 };
 
 export const CLIENT_DOCUMENT_CATEGORY_LABELS: Record<ClientDocumentRecord['category'], string> = {

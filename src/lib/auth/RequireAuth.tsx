@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import type { Href } from 'expo-router';
 import { usePathname, useRouter } from 'expo-router';
-import { FullScreenLoader } from '@/components/ui';
+import { LoadingState } from '@/components/ui';
 import { getLoginRedirectForPath } from '@/lib/navigation';
 import { useAuth } from './context';
 
@@ -27,11 +27,11 @@ export function RequireAuth({
   }, [isAuthenticated, isInitialized, isLoading, pathname, redirectTo, router]);
 
   if (!isInitialized || isLoading) {
-    return <FullScreenLoader message={loadingMessage} />;
+    return <LoadingState message={loadingMessage} />;
   }
 
   if (!isAuthenticated) {
-    return <FullScreenLoader message="Weiterleitung zur Anmeldung…" />;
+    return <LoadingState message="Weiterleitung zur Anmeldung…" />;
   }
 
   return <>{children}</>;

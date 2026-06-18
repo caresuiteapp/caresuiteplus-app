@@ -1,10 +1,5 @@
-import { useCallback, useLayoutEffect, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, PanResponder, StyleSheet, Text, View } from 'react-native';
-import {
-  pointerToCanvasPoint,
-  readCanvasCoordinateSpace,
-  readPointerOffset,
-} from '@/components/inputs/signatureCanvasCoords';
 import { PremiumButton } from '@/components/ui';
 import { colors, spacing, typography } from '@/theme';
 
@@ -65,48 +60,27 @@ function WebSignatureCanvas({
   const [hasStroke, setHasStroke] = useState(false);
   const dims = resolveDimensions(size, widthProp, heightProp);
   const strokeWidth = size === 'large' ? STROKE_WIDTH_LARGE : STROKE_WIDTH_COMPACT;
-  const fillWidth = size === 'large' && widthProp == null;
 
-  const syncCanvasToDisplay = useCallback(() => {
+  const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas || typeof window === 'undefined') return;
-
-    const dpr = window.devicePixelRatio || 1;
-    const rect = canvas.getBoundingClientRect();
-    const cssW = Math.max(1, rect.width);
-    const cssH = Math.max(1, rect.height);
-    const bufferW = Math.round(cssW * dpr);
-    const bufferH = Math.round(cssH * dpr);
-
-    if (canvas.width !== bufferW || canvas.height !== bufferH) {
-      canvas.width = bufferW;
-      canvas.height = bufferH;
-    }
-
+    if (!canvas) return;
+    const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+    canvas.width = Math.round(dims.width * dpr);
+    canvas.height = Math.round(dims.height * dpr);
     const ctx = canvas.getContext('2d');
-    if (!ctx) return;
+    if (ctx) {
+      ctx.setTransform(1, 0, 0, 1, 0, 0);
+      ctx.scale(dpr, dpr);
+      ctx.lineCap = 'round';
+      ctx.lineJoin = 'round';
+      ctx.strokeStyle = '#111';
+      ctx.lineWidth = strokeWidth;
+    }
+  }, [dims.width, dims.height, strokeWidth]);
 
-    ctx.setTransform(1, 0, 0, 1, 0, 0);
-    ctx.scale(dpr, dpr);
-    ctx.lineCap = 'round';
-    ctx.lineJoin = 'round';
-    ctx.strokeStyle = '#111';
-    ctx.lineWidth = strokeWidth;
-  }, [strokeWidth]);
-
-  useLayoutEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || typeof window === 'undefined') return;
-
-    syncCanvasToDisplay();
-
-    const observer = new ResizeObserver(() => {
-      syncCanvasToDisplay();
-    });
-    observer.observe(canvas);
-
-    return () => observer.disconnect();
-  }, [syncCanvasToDisplay, dims.width, dims.height, fillWidth]);
+  useEffect(() => {
+    setupCanvas();
+  }, [setupCanvas]);
 
   const getCtx = () => canvasRef.current?.getContext('2d') ?? null;
 
@@ -114,8 +88,8 @@ function WebSignatureCanvas({
     const ctx = getCtx();
     const canvas = canvasRef.current;
     if (ctx && canvas) {
-      const { drawWidth, drawHeight } = readCanvasCoordinateSpace(canvas);
-      ctx.clearRect(0, 0, drawWidth, drawHeight);
+      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
+      ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
     }
     setHasStroke(false);
     onClear?.();
@@ -127,16 +101,13 @@ function WebSignatureCanvas({
     onConfirm(canvas.toDataURL('image/png'));
   };
 
-  const drawAt = (offsetX: number, offsetY: number, start: boolean) => {
+  const drawAt = (clientX: number, clientY: number, start: boolean) => {
     const ctx = getCtx();
     const canvas = canvasRef.current;
     if (!ctx || !canvas) return;
-
-    const space = readCanvasCoordinateSpace(canvas);
-    if (space.displayWidth <= 0 || space.displayHeight <= 0) return;
-
-    const { x, y } = pointerToCanvasPoint(offsetX, offsetY, space);
-
+    const rect = canvas.getBoundingClientRect();
+    const x = clientX - rect.left;
+    const y = clientY - rect.top;
     if (start) {
       ctx.beginPath();
       ctx.moveTo(x, y);
@@ -147,51 +118,45 @@ function WebSignatureCanvas({
     }
   };
 
-  const handlePointerDown = (e: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (disabled) return;
-    e.preventDefault();
-    drawing.current = true;
-    e.currentTarget.setPointerCapture(e.pointerId);
-    const { offsetX, offsetY } = readPointerOffset(e);
-    drawAt(offsetX, offsetY, true);
-  };
-
-  const handlePointerMove = (e: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (!drawing.current || disabled) return;
-    e.preventDefault();
-    const { offsetX, offsetY } = readPointerOffset(e);
-    drawAt(offsetX, offsetY, false);
-  };
-
-  const endStroke = (e: ReactPointerEvent<HTMLCanvasElement>) => {
-    if (drawing.current) {
-      drawing.current = false;
-      if (e.currentTarget.hasPointerCapture(e.pointerId)) {
-        e.currentTarget.releasePointerCapture(e.pointerId);
-      }
-    }
-  };
-
-  const hostStyle = fillWidth
-    ? { width: '100%' as const, height: dims.height }
-    : { width: dims.width, maxWidth: '100%' as const, height: dims.height };
-
   return (
     <View style={styles.wrap}>
       {showLabel && label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.canvasHost, styles.canvasHostBorder, hostStyle]}>
+      <View style={[styles.canvasWrap, { height: dims.height }]}>
         <canvas
           ref={canvasRef}
           style={{
             width: '100%',
-            height: '100%',
+            height: dims.height,
             touchAction: 'none',
+            background: '#fff',
+            borderRadius: 8,
             display: 'block',
           }}
-          onPointerDown={handlePointerDown}
-          onPointerMove={handlePointerMove}
-          onPointerUp={endStroke}
-          onPointerCancel={endStroke}
+          onMouseDown={(e) => {
+            if (disabled) return;
+            drawing.current = true;
+            drawAt(e.clientX, e.clientY, true);
+          }}
+          onMouseMove={(e) => {
+            if (!drawing.current || disabled) return;
+            drawAt(e.clientX, e.clientY, false);
+          }}
+          onMouseUp={() => { drawing.current = false; }}
+          onMouseLeave={() => { drawing.current = false; }}
+          onTouchStart={(e) => {
+            if (disabled) return;
+            e.preventDefault();
+            drawing.current = true;
+            const touch = e.touches[0];
+            drawAt(touch.clientX, touch.clientY, true);
+          }}
+          onTouchMove={(e) => {
+            if (!drawing.current || disabled) return;
+            e.preventDefault();
+            const touch = e.touches[0];
+            drawAt(touch.clientX, touch.clientY, false);
+          }}
+          onTouchEnd={() => { drawing.current = false; }}
         />
       </View>
       <View style={styles.actions}>
@@ -296,18 +261,8 @@ export function CareSignatureCanvas(props: Props) {
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: spacing.sm, width: '100%' },
+  wrap: { gap: spacing.sm },
   label: { ...typography.body, fontWeight: '600' },
-  canvasHost: {
-    alignSelf: 'stretch',
-    overflow: 'hidden',
-  },
-  canvasHostBorder: {
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-  },
   canvasWrap: {
     height: COMPACT_HEIGHT,
     borderWidth: 1,

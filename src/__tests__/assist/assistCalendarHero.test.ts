@@ -13,7 +13,7 @@ describe('Assist Calendar Hero (Sprint 90)', () => {
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('Wochenübersicht');
     expect(hero).toContain('isAssistExtensionLiveReady');
-    expect(hero).toContain('statusKind="preparedOnly"');
+    expect(hero).toContain('Demo / preparedOnly');
   });
 
   it('AssistCalendarScreen nutzt AssistCalendarListHero', () => {
@@ -31,8 +31,6 @@ describe('Assist Calendar Hero (Sprint 90)', () => {
           {
             id: 'a1',
             tenantId: 't1',
-            clientId: 'c1',
-            employeeId: 'e1',
             clientName: 'Müller',
             employeeName: 'Schmidt',
             title: 'Einsatz',

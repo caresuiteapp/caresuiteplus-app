@@ -20,7 +20,7 @@ describe('Office Billing Heroes (Sprint 90)', () => {
     const hero = readSrc('src/components/office/BudgetsListHero.tsx');
     expect(hero).toContain('CareLightListHeroFrame');
     expect(hero).toContain('Budgets');
-    expect(hero).toContain('statusKind="preparedOnly"');
+    expect(hero).toContain('Demo / preparedOnly');
   });
 
   it('OfficeBillingScreen und BudgetsListScreen nutzen Heroes', () => {

@@ -101,66 +101,53 @@ export function wrapIntakeDocumentHtml(bodyHtml: string): string {
 </html>`;
 }
 
-const SIGNATURE_LABELS: Record<string, string> = {
-  client: 'Klient:in',
-  employee: 'Mitarbeitende:r',
-  legal_representative: 'Vertretung',
-};
-
-function signatureHtml(sig: IntakeDocumentSignature | undefined): string {
+function signatureHtml(sig: IntakeDocumentSignature | undefined, placeholder: string): string {
   if (!sig?.dataUrl) {
-    return '';
+    return `<span class="missing">[Unterschrift ausstehend: ${placeholder}]</span>`;
   }
   return `<img class="sig-img" src="${sig.dataUrl}" alt="Unterschrift"/><br/><small>${new Date(sig.signedAt).toLocaleString('de-DE')}</small>`;
 }
 
-
-function collectMissingSignatures(
-  template: IntakeDocumentTemplate,
-  signatures: Partial<Record<'client' | 'employee' | 'legal_representative', IntakeDocumentSignature>>,
-): string[] {
-  const missing: string[] = [];
-  for (const slot of template.signatureSlots) {
-    if (!slot.required) continue;
-    if (!signatures[slot.role]?.dataUrl) {
-      missing.push(`Unterschrift ${SIGNATURE_LABELS[slot.role] ?? slot.role}`);
-    }
-  }
-  return missing;
+function missingLabel(key: string, template: IntakeDocumentTemplate): string {
+  const schema = template.placeholderSchema[key];
+  return schema?.label ?? key;
 }
 
 export function renderIntakeDocumentHtml(
   template: IntakeDocumentTemplate,
   context: IntakePlaceholderContext,
   signatures: Partial<Record<'client' | 'employee' | 'legal_representative', IntakeDocumentSignature>> = {},
-  options?: { wrapDocument?: boolean },
+  options?: { markMissing?: boolean; lockSignatures?: boolean; wrapDocument?: boolean },
 ): IntakePreviewResult {
+  const markMissing = options?.markMissing ?? true;
   const wrapDocument = options?.wrapDocument ?? true;
   const missingPlaceholders: string[] = [];
   const unresolvedKeys: string[] = [];
 
   const enriched: IntakePlaceholderContext = {
     ...context,
-    'signature.client': signatureHtml(signatures.client),
-    'signature.employee': signatureHtml(signatures.employee),
-    'signature.legal_representative': signatureHtml(signatures.legal_representative),
+    'signature.client': signatureHtml(signatures.client, 'Klient:in'),
+    'signature.employee': signatureHtml(signatures.employee, 'Mitarbeitende:r'),
+    'signature.legal_representative': signatureHtml(signatures.legal_representative, 'Vertretung'),
   };
 
   for (const [key, meta] of Object.entries(template.placeholderSchema)) {
     if (!meta.required) continue;
     const value = enriched[key]?.trim();
-    if (!value) {
+    if (!value || value.startsWith('[')) {
       missingPlaceholders.push(meta.label || key);
     }
   }
-
-  missingPlaceholders.push(...collectMissingSignatures(template, signatures));
 
   const bodyHtml = template.htmlContent.replace(PLACEHOLDER_PATTERN, (_match, key: string) => {
     const normalized = key.toLowerCase();
     const value = enriched[normalized];
     if (value === undefined || value === '') {
       unresolvedKeys.push(normalized);
+      if (markMissing) {
+        const label = missingLabel(normalized, template);
+        return `<span class="missing">[fehlend: ${label}]</span>`;
+      }
       return '';
     }
     return value;
@@ -176,7 +163,10 @@ export function finalizeIntakeDocumentHtml(
   context: IntakePlaceholderContext,
   signatures: Partial<Record<'client' | 'employee' | 'legal_representative', IntakeDocumentSignature>>,
 ): IntakePreviewResult {
-  const preview = renderIntakeDocumentHtml(template, context, signatures);
+  const preview = renderIntakeDocumentHtml(template, context, signatures, {
+    markMissing: false,
+    lockSignatures: true,
+  });
 
   const lockedNotice = `<p class="document-footer-note">Dokument abgeschlossen am ${new Date().toLocaleString('de-DE')} — Änderungen gesperrt.</p>`;
   const html = preview.html.replace('</div>\n</body>', `${lockedNotice}</div>\n</body>`);

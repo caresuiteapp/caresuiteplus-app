@@ -35,7 +35,7 @@ describe('clientContactPayload', () => {
         name: 'Maria Reinhardt',
         phone: '0170123456',
         relationship: 'notfallkontakt',
-        contactType: 'emergency_contact',
+        isEmergency: true,
       }),
     ).not.toHaveProperty('full_name');
   });

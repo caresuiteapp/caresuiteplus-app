@@ -5,7 +5,6 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import type { ModuleVisibilityStatus } from '@/types/modules/visibility';
 import { colors, motion, radius, typography } from '@/theme';
 import { PremiumBadge } from './PremiumBadge';
 
@@ -16,38 +15,8 @@ type ModuleTileProps = {
   accentColor: string;
   isActive?: boolean;
   preparedOnly?: boolean;
-  visibilityStatus?: ModuleVisibilityStatus;
-  badgeLabel?: string;
-  isNavigable?: boolean;
   onPress?: () => void;
 };
-
-function resolveBadge(
-  preparedOnly: boolean,
-  isActive: boolean,
-  visibilityStatus?: ModuleVisibilityStatus,
-  badgeLabel?: string,
-): { label: string; variant: 'green' | 'cyan' | 'orange' | 'muted' | 'red' } {
-  if (badgeLabel) {
-    if (visibilityStatus === 'coming_soon') {
-      return { label: badgeLabel, variant: 'orange' };
-    }
-    if (visibilityStatus === 'beta') {
-      return { label: badgeLabel, variant: 'cyan' };
-    }
-    if (visibilityStatus === 'internal') {
-      return { label: badgeLabel, variant: 'muted' };
-    }
-  }
-  if (preparedOnly) return { label: 'Vorbereitet', variant: 'orange' };
-  if (visibilityStatus === 'coming_soon') {
-    return { label: 'In Vorbereitung', variant: 'orange' };
-  }
-  return {
-    label: isActive ? 'Aktiv' : 'Inaktiv',
-    variant: isActive ? 'green' : 'muted',
-  };
-}
 
 export function ModuleTile({
   icon,
@@ -56,31 +25,25 @@ export function ModuleTile({
   accentColor,
   isActive = true,
   preparedOnly = false,
-  visibilityStatus,
-  badgeLabel,
-  isNavigable,
   onPress,
 }: ModuleTileProps) {
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
-  const navigable = isNavigable ?? isActive;
-  const badge = resolveBadge(preparedOnly, isActive, visibilityStatus, badgeLabel);
 
   return (
     <Animated.View style={[styles.shadow, { shadowColor: accentColor }, animStyle]}>
       <Pressable
         onPress={onPress}
-        disabled={!onPress || !navigable}
+        disabled={!onPress}
         onPressIn={() => {
-          if (!navigable) return;
           scale.value = withSpring(0.96, motion.spring);
         }}
         onPressOut={() => {
           scale.value = withSpring(1, motion.spring);
         }}
-        style={[styles.pressable, !navigable && styles.disabled]}
+        style={styles.pressable}
       >
         <LinearGradient
           colors={['#1E2330', '#171B22']}
@@ -93,7 +56,11 @@ export function ModuleTile({
         <Text style={styles.icon}>{icon}</Text>
         <Text style={styles.title}>{title}</Text>
         <Text style={styles.description}>{description}</Text>
-        <PremiumBadge label={badge.label} variant={badge.variant} dot />
+        <PremiumBadge
+          label={preparedOnly ? 'Vorbereitet' : isActive ? 'Aktiv' : 'Inaktiv'}
+          variant={preparedOnly ? 'orange' : isActive ? 'green' : 'muted'}
+          dot
+        />
       </Pressable>
     </Animated.View>
   );
@@ -115,9 +82,6 @@ const styles = StyleSheet.create({
     minHeight: 140,
     overflow: 'hidden',
     gap: 6,
-  },
-  disabled: {
-    opacity: 0.72,
   },
   topSheen: {
     position: 'absolute',

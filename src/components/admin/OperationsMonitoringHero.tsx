@@ -77,7 +77,7 @@ export function OperationsMonitoringHero({ dashboard }: OperationsMonitoringHero
         <PremiumBadge label="Mandanten-Admin" variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isOperationsMonitoringLiveReady() ? (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="preparedOnly" variant="muted" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

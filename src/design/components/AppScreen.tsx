@@ -41,8 +41,6 @@ export function AppScreen({
       ? careSpacing.lg
       : careSpacing.xl;
 
-  const widePadStyle = isDesktopOrWide ? { paddingHorizontal: careSpacing.xl } : undefined;
-
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -67,13 +65,14 @@ export function AppScreen({
           paddingBottom: careSpacing.xxl,
           gap: careSpacing.md,
         },
+        widePad: isDesktopOrWide ? { paddingHorizontal: careSpacing.xl } : undefined,
       }),
-    [horizontalPadding, maxWidth],
+    [horizontalPadding, isDesktopOrWide, maxWidth],
   );
 
   const body = scroll ? (
     <ScrollView
-      contentContainerStyle={[styles.scroll, widePadStyle, contentStyle]}
+      contentContainerStyle={[styles.scroll, styles.widePad, contentStyle]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >

@@ -17,7 +17,7 @@ import {
   restoreRoleDefaults,
   saveRoleMatrix,
 } from '@/lib/permissions/roleMatrixService';
-import { resetRoleMatrixStore, getTenantRoleMatrix } from '@/lib/permissions/roleMatrixStore';
+import { resetRoleMatrixStore } from '@/lib/permissions/roleMatrixStore';
 
 const TENANT = DEMO_TENANT_ID;
 const OTHER_TENANT = '00000000-0000-4000-8000-000000000099';
@@ -254,6 +254,7 @@ describe('Rollenmatrix Mandantenisolation', () => {
       'business_admin',
     );
 
+    const { getTenantRoleMatrix } = await import('@/lib/permissions/roleMatrixStore');
     const tenantOffice = getTenantRoleMatrix(TENANT, 'office');
     const otherOffice = getTenantRoleMatrix(OTHER_TENANT, 'office');
     expect(tenantOffice.qm_cockpit.administer).toBe(true);

@@ -156,16 +156,12 @@ export async function createEmployeePortalAccount(input: {
 export async function createClientPortalAccess(input: {
   tenantId?: string;
   clientId: string;
-  firstName: string;
-  lastName: string;
   createdBy?: string | null;
   expiresAt?: string | null;
 }) {
   return generateClientPortalCode({
     tenantId: input.tenantId ?? DEMO_TENANT_ID,
     clientId: input.clientId,
-    firstName: input.firstName,
-    lastName: input.lastName,
     createdBy: input.createdBy ?? null,
     expiresAt: input.expiresAt ?? null,
   });

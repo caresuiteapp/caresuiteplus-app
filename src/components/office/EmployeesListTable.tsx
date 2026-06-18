@@ -1,6 +1,5 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
-import { EmployeeListAvatar } from './EmployeeListAvatar';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, typography } from '@/theme';
@@ -58,17 +57,9 @@ export function EmployeesListTable({
           flex: 2,
           sortable: true,
           render: (item) => (
-            <View style={styles.nameCell}>
-              <EmployeeListAvatar
-                firstName={item.firstName}
-                lastName={item.lastName}
-                avatarUrl={item.avatarUrl}
-                size="sm"
-              />
-              <Text style={styles.name}>
-                {item.lastName}, {item.firstName}
-              </Text>
-            </View>
+            <Text style={styles.name}>
+              {item.lastName}, {item.firstName}
+            </Text>
           ),
         },
         {
@@ -130,16 +121,8 @@ export function EmployeesListTable({
 }
 
 const styles = StyleSheet.create({
-  nameCell: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-    flex: 1,
-    minWidth: 0,
-  },
   name: {
     ...typography.bodyStrong,
-    flex: 1,
   },
   cellText: {
     ...typography.body,

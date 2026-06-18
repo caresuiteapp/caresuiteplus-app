@@ -98,8 +98,8 @@ export function getActionAvailability(
       isPreparedOnly || featureStatus === 'preparedOnly' || featureStatus === 'coming_soon';
     return blocked(
       {
-        visible: !isPublic && !isClientPortalRole(role),
-        enabled: !prepared && canExecute && role != null && isEmployeePortalRole(role),
+        visible: !isPublic && !isClientPortalRole(roleKey ?? null),
+        enabled: !prepared && canExecute && isEmployeePortalRole(roleKey ?? null),
         disabledReason: prepared ? ACTION_DISABLED_REASONS.prepared : ACTION_DISABLED_REASONS.role,
         isPreparedOnly: prepared,
       },

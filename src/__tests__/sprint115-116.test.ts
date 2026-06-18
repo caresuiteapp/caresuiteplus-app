@@ -20,8 +20,7 @@ describe('Demo Entry Screen Heroes (Sprint 115)', () => {
     expect(screen).not.toContain('PremiumKpiCard');
     const hero = readSrc('src/components/pilot/PilotReadinessHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('statusKind="preparedOnly"');
-    expect(hero).toContain('Pilot in Vorbereitung');
+    expect(hero).toContain('preparedOnly Pilot');
   });
 
   it('DemoLoginScreen nutzt DemoLoginHero statt PremiumCard-Hint', () => {
@@ -30,8 +29,7 @@ describe('Demo Entry Screen Heroes (Sprint 115)', () => {
     expect(screen).not.toContain('PremiumCard accentColor');
     const hero = readSrc('src/components/auth/DemoLoginHero.tsx');
     expect(hero).toContain('CareLightListHeroFrame');
-    expect(hero).toContain('Demo-Zugang');
-    expect(hero).toContain('defaultPublicVisibility');
+    expect(hero).toContain('preparedOnly Auth');
   });
 
   it('DemoModeHintScreen nutzt DemoModeHintHero', () => {

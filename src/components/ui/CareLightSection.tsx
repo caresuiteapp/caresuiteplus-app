@@ -1,8 +1,11 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import {
+  useCareLightPalette,
+  type CareLightResolved,
+} from '@/design/tokens/carelightadaptive';
 
 type CareLightSectionProps = {
   title: string;
@@ -12,6 +15,9 @@ type CareLightSectionProps = {
 };
 
 export function CareLightSection({ title, subtitle, children, style }: CareLightSectionProps) {
+  const { c } = useCareLightPalette();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   return (
     <View style={[styles.root, style]}>
       <View style={styles.header}>
@@ -23,20 +29,22 @@ export function CareLightSection({ title, subtitle, children, style }: CareLight
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    gap: careSpacing.sm,
-  },
-  header: {
-    gap: 2,
-  },
-  title: {
-    ...careTypography.bodyStrong,
-    color: careLightColors.navy,
-    fontSize: 17,
-  },
-  subtitle: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-  },
-});
+function makeStyles(c: CareLightResolved) {
+  return StyleSheet.create({
+    root: {
+      gap: careSpacing.sm,
+    },
+    header: {
+      gap: 2,
+    },
+    title: {
+      ...careTypography.bodyStrong,
+      color: c.text,
+      fontSize: 17,
+    },
+    subtitle: {
+      ...careTypography.caption,
+      color: c.muted,
+    },
+  });
+}

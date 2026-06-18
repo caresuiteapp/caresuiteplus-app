@@ -5,7 +5,7 @@ import type {
   Subscription,
 } from '@supabase/supabase-js';
 import { getSupabaseClient } from './client';
-import { getAuthRedirectBaseUrl, isDemoMode, isSupabaseConfigured } from './config';
+import { isDemoMode, isSupabaseConfigured } from './config';
 
 export type AuthServiceResult<T> =
   | { ok: true; data: T }
@@ -33,18 +33,8 @@ export function toGermanAuthError(error: AuthError | Error | null | undefined): 
   if (msg.includes('Network') || msg.includes('fetch')) {
     return 'Netzwerkfehler. Bitte Verbindung prüfen und erneut versuchen.';
   }
-  if (msg.includes('For security purposes')) {
-    return 'Zu viele Anfragen. Bitte warten Sie einen Moment und versuchen Sie es erneut.';
-  }
-  if (msg.includes('Unable to validate email address')) {
-    return 'Bitte geben Sie eine gültige E-Mail-Adresse ein.';
-  }
 
   return 'Anmeldung fehlgeschlagen. Bitte erneut versuchen.';
-}
-
-export function getPasswordResetRedirectUrl(): string {
-  return `${getAuthRedirectBaseUrl()}/auth/reset-password`;
 }
 
 function demoBypassError(): AuthServiceResult<never> {
@@ -80,47 +70,6 @@ export async function signInWithPassword(
   }
 
   return { ok: true, data: data.session };
-}
-
-export async function requestPasswordResetEmail(
-  email: string,
-): Promise<AuthServiceResult<null>> {
-  if (isDemoMode()) {
-    return demoBypassError();
-  }
-
-  const client = getSupabaseClient();
-  if (!client) {
-    return notConfiguredError();
-  }
-
-  const { error } = await client.auth.resetPasswordForEmail(email.trim().toLowerCase(), {
-    redirectTo: getPasswordResetRedirectUrl(),
-  });
-
-  if (error) {
-    return { ok: false, error: toGermanAuthError(error) };
-  }
-
-  return { ok: true, data: null };
-}
-
-export async function updatePassword(newPassword: string): Promise<AuthServiceResult<null>> {
-  if (isDemoMode()) {
-    return demoBypassError();
-  }
-
-  const client = getSupabaseClient();
-  if (!client) {
-    return notConfiguredError();
-  }
-
-  const { error } = await client.auth.updateUser({ password: newPassword });
-  if (error) {
-    return { ok: false, error: toGermanAuthError(error) };
-  }
-
-  return { ok: true, data: null };
 }
 
 export async function signOut(): Promise<AuthServiceResult<null>> {

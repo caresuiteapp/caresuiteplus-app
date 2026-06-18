@@ -23,7 +23,6 @@ import {
 } from '@/types/modules/operationsMonitoring';
 import { createInternalTask } from '@/lib/tasks/internalTaskService';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { IN_PREPARATION_LABEL } from '@/lib/ui/uiVisibility';
 import { sanitizeLogMessage, sanitizeLogMetadata } from './logSanitizer';
 import {
   assertOperationsProductionSafety,
@@ -171,13 +170,13 @@ function summarizeArea(
       openCount = filterOperationsByTenant(OPERATIONS_MONITORING_STORE.backupRecords, tenantId).filter(
         (b) => b.status !== 'not_configured' && !b.preparedOnly,
       ).length;
-      statusLabel = IN_PREPARATION_LABEL;
+      statusLabel = 'preparedOnly';
       break;
     case 'restore_tests':
       openCount = filterOperationsByTenant(OPERATIONS_MONITORING_STORE.restoreTests, tenantId).filter(
         (r) => r.status === 'passed',
       ).length;
-      statusLabel = IN_PREPARATION_LABEL;
+      statusLabel = 'preparedOnly';
       break;
     case 'incident_tickets':
       openCount = listOpenIncidents(tenantId).length;
@@ -188,7 +187,7 @@ function summarizeArea(
         OPERATIONS_MONITORING_STORE.maintenanceWindows,
         tenantId,
       ).filter((m) => m.status === 'prepared' || m.status === 'scheduled').length;
-      statusLabel = IN_PREPARATION_LABEL;
+      statusLabel = 'preparedOnly';
       break;
     case 'release_notes':
       openCount = filterOperationsByTenant(OPERATIONS_MONITORING_STORE.releaseNotes, tenantId).length;

@@ -8,9 +8,6 @@ export function OfficeComposeMessageScreen() {
       domain="office"
       permission="office.access"
       audienceScope="office"
-      enableRecipientSelection
-      title="Nachricht verfassen"
-      subtitle="Empfänger wählen und Nachricht senden"
     />
   );
 }

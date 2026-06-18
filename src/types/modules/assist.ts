@@ -1,6 +1,5 @@
 import type { TenantScopedEntity, WorkflowStatus } from '../core/base';
 import type { PortalScopedEntity } from '../portal/visibility';
-import type { AssignmentStatus, AssignmentTaskStatus } from './assignmentStatus';
 
 export type Assignment = TenantScopedEntity &
   PortalScopedEntity & {
@@ -34,8 +33,6 @@ export type AssignmentListItem = Pick<
   AssignmentPlan,
   | 'id'
   | 'tenantId'
-  | 'clientId'
-  | 'employeeId'
   | 'title'
   | 'scheduledStart'
   | 'scheduledEnd'
@@ -57,39 +54,18 @@ export type AssistDashboardStats = {
 
 export type ExecutionPhase = 'pending' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled';
 
-export type AssignmentExecutionTask = {
-  id: string;
-  title: string;
-  status: AssignmentTaskStatus;
-  isRequired: boolean;
-  notDoneReason: string | null;
-  requiresNoteIfNotDone: boolean;
-};
-
 export type AssignmentExecution = {
   assignmentId: string;
   tenantId: string;
-  status: AssignmentStatus;
   phase: ExecutionPhase;
-  plannedStartAt: string | null;
-  plannedEndAt: string | null;
-  onTheWayAt: string | null;
-  arrivedAt: string | null;
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
   actualStartAt: string | null;
   actualEndAt: string | null;
-  finishedAt: string | null;
-  documentationNotes: string | null;
   durationMinutes: number | null;
   locationNote: string | null;
   activityNote: string | null;
-  tasks: AssignmentExecutionTask[];
-  allowedTransitions: AssignmentStatus[];
-  serviceRecordId: string | null;
   updatedAt: string;
-  /** @deprecated Legacy check-in timestamp — mapped from onTheWayAt/arrivedAt */
-  checkedInAt: string | null;
-  /** @deprecated Legacy check-out timestamp — mapped from finishedAt */
-  checkedOutAt: string | null;
 };
 
 export type ActiveExecutionItem = {

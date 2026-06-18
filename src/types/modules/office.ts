@@ -11,10 +11,6 @@ export type Client = TenantScopedEntity &
     primaryContactPhone: string | null;
     city?: string | null;
     zip?: string | null;
-    costCarrier?: string | null;
-    insuranceNumber?: string | null;
-    archivedAt?: string | null;
-    createdBy?: string | null;
   };
 
 /** Kompakte Darstellung für Listenansichten */
@@ -28,10 +24,6 @@ export type ClientListItem = Pick<
   | 'careLevel'
   | 'city'
   | 'zip'
-  | 'costCarrier'
-  | 'insuranceNumber'
-  | 'archivedAt'
-  | 'createdBy'
   | 'sensitivity'
   | 'updatedAt'
 >;

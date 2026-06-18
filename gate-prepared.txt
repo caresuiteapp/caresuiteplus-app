@@ -1,0 +1,38 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 prepared-only:audit
+> node scripts/prepared-only-audit.mjs
+
+CareSuite+ prepared-only:audit
+
+
+Ô£ù prepared-only:audit fehlgeschlagen: 63 Core-Datei(en) mit preparedOnly/In-Vorbereitung-Markern:
+  - src/components/akademie/AkademieDashboardHero.tsx
+  - src/components/assist/AssistDashboardHero.tsx
+  - src/components/assist/TrackingListHero.tsx
+  - src/components/assist/TrackingListView.tsx
+  - src/components/assist/TripsListHero.tsx
+  - src/components/assist/TripsListView.tsx
+  - src/components/beratung/BeratungDashboardHero.tsx
+  - src/components/office/EmployeeDetailHero.tsx
+  - src/components/ops/OpsHubHero.tsx
+  - src/components/pflege/CareDocumentationListHero.tsx
+  - src/components/pflege/PflegeReportsHero.tsx
+  - src/components/pflege/PflegeSettingsHero.tsx
+  - src/components/pflege/SisDetailHero.tsx
+  - src/components/pflege/SisOverviewHero.tsx
+  - src/components/pflege/SisPreparedFormHero.tsx
+  - src/components/pflege/VitalReadingCreateHero.tsx
+  - src/components/pflege/VitalReadingDetailHero.tsx
+  - src/components/pflege/VitalReadingsListHero.tsx
+  - src/components/pflege/VitalReadingsListView.tsx
+  - src/components/privacy/DataSubjectRequestsAdminHero.tsx
+  ÔÇª und 43 weitere
+

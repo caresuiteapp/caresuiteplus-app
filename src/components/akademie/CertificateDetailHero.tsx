@@ -67,9 +67,9 @@ export function CertificateDetailHero({ certificate, roleKey }: CertificateDetai
         <PremiumBadge label={WORKFLOW_STATUS_LABELS[certificate.status]} variant="green" dot />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isAkademieExtensionLiveReady() ? (
-          <PremiumBadge statusKind="live" dot />
+          <PremiumBadge label="Live Supabase" variant="green" dot />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

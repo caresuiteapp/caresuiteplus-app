@@ -19,8 +19,6 @@ import {
   getAllowedStatusActions,
 } from '../workflow/clientStatus';
 import type { ClientListOptions, ClientRepository, ClientUpdateInput } from './types';
-import { markDemoClientDeleted, isDemoClientDeleted } from '@/lib/office/demoDeleteStore';
-import { assertNoActiveAssignmentsForClient } from '@/lib/office/officeDeleteGuard';
 
 function applyStatusMeta(detail: ClientDetail): ClientDetail {
   return {
@@ -52,19 +50,12 @@ export const demoClientRepository: ClientRepository = {
     if (options?.simulateEmpty) {
       return { ok: true, data: [] };
     }
-    return {
-      ok: true,
-      data: getDemoClientListItems().filter((item) => !isDemoClientDeleted(item.id)),
-    };
+    return { ok: true, data: getDemoClientListItems() };
   },
 
   async getById(tenantId, clientId) {
     const denied = assertTenant(tenantId, DEMO_TENANT_ID);
     if (denied) return denied;
-
-    if (isDemoClientDeleted(clientId)) {
-      return { ok: false, error: SERVICE_ERRORS.clientNotFound };
-    }
 
     const detail = getDemoClientDetail(clientId);
     if (!detail) {
@@ -171,7 +162,7 @@ export const demoClientRepository: ClientRepository = {
       addresses: [{
         id: `addr-${id}`, tenantId, clientId: id,
         addressType: 'hauptwohnsitz', street: form.street.trim(), zip: form.zip.trim(), city: form.city.trim(),
-        country: 'DE', isPrimary: true, accessNotes: null, floor: null, apartmentNumber: null, doorCode: null,
+        country: 'DE', isPrimary: true, accessNotes: null, floor: null, doorCode: null,
         createdAt: now, updatedAt: now,
       }],
       contacts: form.emergencyContactName.trim() ? [{
@@ -207,7 +198,6 @@ export const demoClientRepository: ClientRepository = {
         notes: null, createdAt: now, updatedAt: now,
       }] : [],
       preferences: null,
-      schedulingWishes: null,
       risks: [],
       emergencyPlan: form.emergencyContactName.trim() ? {
         id: `em-${id}`, tenantId, clientId: id,
@@ -343,47 +333,5 @@ export const demoClientRepository: ClientRepository = {
 
   async archive(tenantId, clientId) {
     return demoClientRepository.changeStatus(tenantId, clientId, 'archiviert');
-  },
-
-  async delete(tenantId, clientId, context) {
-    const denied = assertTenant(tenantId, DEMO_TENANT_ID);
-    if (denied) return denied;
-
-    const assignmentBlock = await assertNoActiveAssignmentsForClient(tenantId, clientId);
-    if (assignmentBlock) return assignmentBlock;
-
-    const detail = getDemoClientDetail(clientId);
-    if (!detail) {
-      return { ok: false, error: SERVICE_ERRORS.clientNotFound };
-    }
-
-    markDemoClientDeleted(clientId);
-    updateDemoClientDetail(
-      appendHistory(
-        {
-          ...detail,
-          auditEntries: [
-            {
-              id: `audit-${clientId}-${Date.now()}`,
-              action: 'Klient:in gelöscht',
-              actorName: context?.actorDisplayName ?? 'System',
-              timestamp: new Date().toISOString(),
-              details: 'Soft-Löschung (falsch angelegt)',
-            },
-            ...detail.auditEntries,
-          ],
-        },
-        {
-          id: `hist-${Date.now()}`,
-          icon: '🗑️',
-          title: 'Klient:in gelöscht',
-          timestamp: new Date().toISOString(),
-          status: detail.status,
-          actorName: context?.actorDisplayName ?? 'System',
-        },
-      ),
-    );
-
-    return { ok: true, data: undefined };
   },
 };

@@ -41,16 +41,3 @@ export type PdlCockpitSnapshot = {
   risks: PdlRisk[];
   generatedAt: string;
 };
-
-export type {
-  ReportingDateRangePreset,
-  ReportingDateRange,
-  KpiCategory,
-  ReportingDashboardKind,
-  KpiAvailability,
-  KpiDataSource,
-  KpiDefinition,
-  KpiMetricValue,
-  ReportingDashboardSnapshot,
-  ReportingMetricsRawBundle,
-} from './metrics';

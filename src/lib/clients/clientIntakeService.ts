@@ -6,7 +6,7 @@ import {
   type IntakeSectionKey,
 } from '@/lib/clients/clientIntakeFieldRules';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
-import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import type { ClientFullDetail } from '@/types/modules/client';
 import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { upsertDemoClientFullDetail } from '@/data/demo/clients';
@@ -14,21 +14,6 @@ import { upsertDemoClientIntakeRecord } from '@/data/demo/clients/intakeRecords'
 import { helgaSchneiderFull } from '@/data/demo/clients/helga-schneider';
 import { runService } from '@/lib/services/serviceRunner';
 import { assertDemoTenant, isDemoClientBackend } from './clientBackend';
-import {
-  COST_BEARER_FIELD_ERRORS,
-  getCostBearerFieldValues,
-  hasGkvCostBearerSelected,
-  isCostBearerTypeKey,
-  resolvePrimaryCostBearerName,
-  resolvePrimaryCostBearerReference,
-} from './clientIntakeCostBearerConfig';
-import { resolveIntakeBillingProfileType } from './clientIntakeBilling';
-import { validateCostBearerEntry, persistIntakeCostCarriers } from '@/features/costCarriers/costCarrierService';
-import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
-import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
-import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
-import { createClientFromIntake } from './repositories/clientIntakeRepository.supabase';
-import { persistIntakeClientExtendedData } from './clientIntakePersistence';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
   return getVisibleSectionsForClientContext(contexts);
@@ -65,31 +50,16 @@ export function validateIntakeStep(
   const required = getRequiredFieldsForClientContext(form.careContexts);
 
   if (section === 'kostentraeger') {
-    if (required.includes('billingTypes') && form.billingTypes.length === 0) {
-      errors.billingTypes = 'Abrechnungsart ist erforderlich.';
+    if (required.includes('billingType') && !form.billingType) {
+      errors.billingType = 'Abrechnungsart ist erforderlich.';
     }
     if (required.includes('careLevel') && !form.careLevel) {
       errors.careLevel = 'Pflegegrad ist erforderlich.';
     }
-
-    for (const type of form.costBearerTypes) {
-      if (!isCostBearerTypeKey(type)) continue;
-      const values = getCostBearerFieldValues(form, type);
-      const entryError = validateCostBearerEntry(type, values);
-      if (entryError) {
-        errors[COST_BEARER_FIELD_ERRORS[type]] = entryError;
-      }
+    if (required.includes('careFund') && !form.careFundName.trim()) {
+      errors.careFundName = 'Pflegekasse ist erforderlich.';
     }
-
-    if (required.includes('careFund') && form.costBearerTypes.includes('pflegekasse')) {
-      const name = getCostBearerFieldValues(form, 'pflegekasse').name.trim();
-      if (!name) errors.careFundName = 'Pflegekasse ist erforderlich.';
-    }
-    if (required.includes('healthInsurance') && form.costBearerTypes.includes('krankenkasse')) {
-      const name = getCostBearerFieldValues(form, 'krankenkasse').name.trim();
-      if (!name) errors.healthInsurance = 'Krankenkasse ist erforderlich.';
-    }
-    if (required.includes('insuranceNumber') && hasGkvCostBearerSelected(form.costBearerTypes) && !form.insuranceNumber.trim()) {
+    if (required.includes('insuranceNumber') && !form.insuranceNumber.trim()) {
       errors.insuranceNumber = 'Versichertennummer ist erforderlich.';
     }
   }
@@ -126,9 +96,8 @@ export function validateIntakeStep(
   }
 
   if (section === 'vertraege_einwilligungen') {
-    const templates = listApplicableIntakeTemplates(form);
-    const docValidation = validateIntakeDocumentsStep(form, templates);
-    Object.assign(errors, docValidation.errors);
+    if (!form.consentDatenschutz) errors.consentDatenschutz = 'Datenschutzeinwilligung erforderlich.';
+    if (!form.consentVertrag) errors.consentVertrag = 'Vertrag/Leistungsvereinbarung erforderlich.';
   }
 
   return errors;
@@ -141,43 +110,10 @@ export function hasIntakeErrors(errors: ClientIntakeErrors): boolean {
 export async function submitClientIntake(
   tenantId: string,
   form: ClientIntakeFormData,
-  options?: { actorProfileId?: string | null; draftClientId?: string | null },
 ): Promise<ServiceResult<{ id: string }>> {
   return runService(async () => {
     if (!isDemoClientBackend()) {
-      const clientResult = await createClientFromIntake(
-        tenantId,
-        form,
-        options?.actorProfileId ?? null,
-        options?.draftClientId ?? null,
-      );
-      if (!clientResult.ok) return clientResult;
-
-      const carrierResult = await persistIntakeCostCarriers(
-        tenantId,
-        clientResult.data.id,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!carrierResult.ok) return carrierResult;
-
-      const extendedResult = await persistIntakeClientExtendedData(
-        tenantId,
-        clientResult.data.id,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!extendedResult.ok) return extendedResult;
-
-      const documentsResult = await persistClientIntakeDocuments(
-        tenantId,
-        clientResult.data.id,
-        form,
-        options?.actorProfileId ?? null,
-      );
-      if (!documentsResult.ok) return documentsResult;
-
-      return { ok: true, data: { id: clientResult.data.id } };
+      return { ok: false, error: 'Live-Intake: Migration anwenden und Repository erweitern.' };
     }
 
     const denied = assertDemoTenant(tenantId);
@@ -199,10 +135,6 @@ function buildMinimalFullDetail(
   now: string,
 ): ClientFullDetail {
   const base = { ...helgaSchneiderFull };
-  const billingType = resolveIntakeBillingProfileType(form.billingTypes);
-  const primaryCostBearerName = resolvePrimaryCostBearerName(form);
-  const primaryCostBearerRef = resolvePrimaryCostBearerReference(form);
-
   return {
     ...base,
     id,
@@ -210,7 +142,7 @@ function buildMinimalFullDetail(
     firstName: form.firstName,
     lastName: form.lastName,
     dateOfBirth: form.dateOfBirth,
-    careLevel: formatCareLevel(form.careLevel) || null,
+    careLevel: form.careLevel ? form.careLevel.replace('pg', 'PG ').toUpperCase() : null,
     status: 'aktiv',
     primaryContactPhone: form.phone || form.mobile,
     city: form.city,
@@ -234,37 +166,6 @@ function buildMinimalFullDetail(
       createdAt: now,
       updatedAt: now,
     },
-    careLevels: form.careFundName.trim()
-      ? [{
-          id: `cl-${id}`,
-          tenantId: DEMO_TENANT_ID,
-          clientId: id,
-          grade: form.careLevel || 'kein',
-          validFrom: form.careLevelValidFrom || now.slice(0, 10),
-          validUntil: null,
-          careFundName: form.careFundName.trim(),
-          careFundMemberId: form.insuranceNumber.trim() || null,
-          mdAssessmentDate: null,
-          notes: [form.careFundStreet, form.careFundZip, form.careFundCity].filter(Boolean).join(', ') || null,
-          createdAt: now,
-          updatedAt: now,
-        }]
-      : base.careLevels,
-    billingProfile: form.billingTypes.length > 0 ? {
-      id: `bill-${id}`,
-      tenantId: DEMO_TENANT_ID,
-      clientId: id,
-      billingType,
-      hourlyRateCents: form.hourlyRate ? Math.round(parseFloat(form.hourlyRate.replace(',', '.')) * 100) : 3800,
-      serviceType: 'betreuung',
-      invoiceRecipient: primaryCostBearerName,
-      paymentTermsDays: 30,
-      costBearerName: primaryCostBearerName,
-      costBearerReference: primaryCostBearerRef,
-      notes: form.billingTypes.join(', '),
-      createdAt: now,
-      updatedAt: now,
-    } : base.billingProfile,
     careContexts: form.careContexts,
   } as import('@/types/modules/client').ClientFullDetail & { careContexts?: ClientCareContext[] };
 }

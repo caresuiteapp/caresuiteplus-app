@@ -1,37 +1,26 @@
 import { useState } from 'react';
-import { Linking } from 'react-native';
-import {
-  AuthLayout,
-  ErrorState,
-  GlassCard,
-  InputField,
-  PremiumButton,
-  SuccessState,
-} from '@/design/components';
-import { loginClientPortal } from '@/lib/auth/clientPortalAuthService';
-import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
+import { useRouter } from 'expo-router';
+import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
+import { CareLightPageShell } from '@/components/layout';
+import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { validatePortalCodeLogin } from '@/lib/auth/clientPortalAuthService';
+import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { useAuth } from '@/lib/auth/context';
-import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
-
-function openHelp() {
-  void Linking.openURL(SUPPORT_LINKS.help).catch(() => undefined);
-}
+import { colors, typography } from '@/theme';
 
 export function PortalCodeLoginScreen() {
+  const router = useRouter();
   const { signInDemo, signInPortalSession } = useAuth();
-  const [username, setUsername] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
-    setSuccess(false);
     setLoading(true);
-    const result = await loginClientPortal(username, code);
+    const result = await validatePortalCodeLogin(code, 'client');
     setLoading(false);
 
     if (!result.ok) {
@@ -39,47 +28,33 @@ export function PortalCodeLoginScreen() {
       return;
     }
 
-    try {
-      if (result.data.portalSession) {
-        await signInPortalSession(result.data.portalSession);
-      } else if (isDemoMode()) {
-        await signInDemo('client_portal');
-      } else {
-        setError('Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Benutzername und Zugangscode.');
-        return;
-      }
-      setSuccess(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
+    if (result.data.portalSession) {
+      await signInPortalSession(result.data.portalSession);
+    } else if (isDemoMode()) {
+      await signInDemo('client_portal');
     }
+    router.replace(resolvePostLoginRoute('client_portal'));
   };
 
   return (
-    <AuthLayout
-      title="Klient:innenportal"
-      subtitle="Benutzername und Zugangscode von Ihrer Einrichtung"
-      keyboardAvoiding
-    >
+    <CareLightPageShell title="Klient:innen / Angehörige" subtitle="Portal-Code Login" scroll>
+      <AuthLoginHero
+        eyebrow="PORTAL-CODE"
+        title="Klient:innen / Angehörige"
+        subtitle="Der Portal-Code wird Ihnen von Ihrer Betreuungseinrichtung oder Verwaltung bereitgestellt."
+        portalLabel="6-stelliger Code"
+        portalVariant="orange"
+        icon="🏠"
+      />
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
-      <GlassCard>
-        <InputField
-          label="Benutzername"
-          value={username}
-          onChangeText={(value) => setUsername(sanitizePortalUsernameInput(value))}
-          autoCapitalize="none"
-          autoCorrect={false}
-        />
-        <InputField
-          label="Zugangscode"
-          value={code}
-          onChangeText={(value) => setCode(normalizePortalCodeInput(value))}
-          autoCapitalize="characters"
-          maxLength={6}
-        />
-        <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
-        <PremiumButton title="Hilfe anfordern" variant="secondary" onPress={openHelp} fullWidth />
-      </GlassCard>
-    </AuthLayout>
+      <PremiumInput
+        label="6-stelliger Code"
+        value={code}
+        onChangeText={(value) => setCode(normalizePortalCodeInput(value))}
+        autoCapitalize="characters"
+        maxLength={6}
+      />
+      <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
+    </CareLightPageShell>
   );
 }

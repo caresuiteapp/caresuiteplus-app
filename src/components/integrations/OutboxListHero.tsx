@@ -64,7 +64,7 @@ export function OutboxListHero({ items }: OutboxListHeroProps) {
         <PremiumBadge label="Integrations" variant="cyan" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="orange" /> : null}
         {!isIntegrationsLiveReady() ? (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="preparedOnly" variant="muted" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

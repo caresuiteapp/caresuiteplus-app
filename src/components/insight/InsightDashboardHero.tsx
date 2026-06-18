@@ -72,7 +72,7 @@ export function InsightDashboardHero({ stats, roleKey }: InsightDashboardHeroPro
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isInsightLiveReady() ? (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}
       </View>
       <AdaptiveKpiGrid items={dashboardKpisToGridItems(kpis)} />

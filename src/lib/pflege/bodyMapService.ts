@@ -7,24 +7,11 @@ import {
   updateDemoBodyMapMarker,
 } from '@/data/demo/bodyMapMarkers';
 import { enforcePermission } from '@/lib/permissions';
-import { bodyMapSupabaseRepository } from '@/lib/pflege/bodyMapRepository.supabase';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { getServiceMode } from '@/lib/services/mode';
+import { isPflegeDemoFunctional } from '@/lib/pflege/pflegeModuleConfig';
 
 async function demoDelay(ms = 200): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
-}
-
-function guardBodyMapWriteInput(
-  tenantId: string,
-  clientId: string,
-): ServiceResult<never> | null {
-  const tenantBlock = guardServiceTenant(tenantId);
-  if (tenantBlock) return tenantBlock;
-  if (!clientId?.trim()) {
-    return { ok: false, error: 'Klient:in fehlt.' };
-  }
-  return null;
 }
 
 export async function fetchBodyMapMarkers(
@@ -36,14 +23,9 @@ export async function fetchBodyMapMarkers(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (!clientId?.trim()) {
-    return { ok: false, error: 'Klient:in fehlt.' };
+  if (!isPflegeDemoFunctional()) {
+    return { ok: false, error: 'BodyMap im Live-Modus: Repository erweitern.' };
   }
-
-  if (getServiceMode() === 'supabase') {
-    return bodyMapSupabaseRepository.listByClient(tenantId, clientId);
-  }
-
   await demoDelay();
   return { ok: true, data: getDemoBodyMapMarkers(clientId) };
 }
@@ -62,20 +44,14 @@ export async function createBodyMapMarker(
     woundId?: string | null;
   },
   actorRoleKey?: RoleKey | null,
-  actorProfileId?: string | null,
 ): Promise<ServiceResult<BodyMapMarker>> {
   const denied = enforcePermission<BodyMapMarker>(actorRoleKey, 'pflege.plans.view');
   if (denied) return denied;
-  const inputBlock = guardBodyMapWriteInput(tenantId, input.clientId);
-  if (inputBlock) return inputBlock;
-
-  if (getServiceMode() === 'supabase') {
-    return bodyMapSupabaseRepository.create(tenantId, {
-      ...input,
-      createdBy: actorProfileId ?? null,
-    });
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (!isPflegeDemoFunctional()) {
+    return { ok: false, error: 'BodyMap speichern: Demo-Modus erforderlich.' };
   }
-
   await demoDelay(280);
   const marker = saveDemoBodyMapMarker(input.clientId, {
     tenantId,
@@ -101,13 +77,11 @@ export async function patchBodyMapMarker(
 ): Promise<ServiceResult<BodyMapMarker>> {
   const denied = enforcePermission<BodyMapMarker>(actorRoleKey, 'pflege.plans.view');
   if (denied) return denied;
-  const inputBlock = guardBodyMapWriteInput(tenantId, clientId);
-  if (inputBlock) return inputBlock;
-
-  if (getServiceMode() === 'supabase') {
-    return bodyMapSupabaseRepository.update(tenantId, clientId, markerId, patch);
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (!isPflegeDemoFunctional()) {
+    return { ok: false, error: 'BodyMap bearbeiten: Demo-Modus erforderlich.' };
   }
-
   await demoDelay(220);
   const updated = updateDemoBodyMapMarker(clientId, markerId, patch);
   if (!updated) return { ok: false, error: 'Marker nicht gefunden.' };
@@ -122,13 +96,11 @@ export async function removeBodyMapMarker(
 ): Promise<ServiceResult<{ removed: boolean }>> {
   const denied = enforcePermission<{ removed: boolean }>(actorRoleKey, 'pflege.plans.view');
   if (denied) return denied;
-  const inputBlock = guardBodyMapWriteInput(tenantId, clientId);
-  if (inputBlock) return inputBlock;
-
-  if (getServiceMode() === 'supabase') {
-    return bodyMapSupabaseRepository.remove(tenantId, clientId, markerId);
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (!isPflegeDemoFunctional()) {
+    return { ok: false, error: 'BodyMap löschen: Demo-Modus erforderlich.' };
   }
-
   await demoDelay(180);
   const removed = deleteDemoBodyMapMarker(clientId, markerId);
   if (!removed) return { ok: false, error: 'Marker nicht gefunden.' };

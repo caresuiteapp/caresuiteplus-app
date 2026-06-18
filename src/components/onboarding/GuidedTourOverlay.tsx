@@ -9,6 +9,7 @@ import {
   type LayoutRectangle,
 } from 'react-native';
 import { careLightColors } from '@/design/tokens/lightTheme';
+import { GradientModalHeader } from '@/components/layout/platform';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -160,13 +161,14 @@ export function GuidedTourOverlay({
           style={[styles.card, cardStyle]}
           onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
         >
-          <Text style={styles.stepLabel}>
-            Schritt {stepIndex + 1} von {totalSteps}
-          </Text>
-          <Text style={styles.title}>{step.title}</Text>
-          <Text style={styles.body}>{step.body}</Text>
+          <GradientModalHeader title={step.title} onClose={onSkip} />
+          <View style={styles.cardBody}>
+            <Text style={styles.stepLabel}>
+              Schritt {stepIndex + 1} von {totalSteps}
+            </Text>
+            <Text style={styles.body}>{step.body}</Text>
 
-          <View style={styles.actions}>
+            <View style={styles.actions}>
             <Pressable
               onPress={onSkip}
               style={styles.skipBtn}
@@ -196,6 +198,7 @@ export function GuidedTourOverlay({
               </Pressable>
             </View>
           </View>
+          </View>
         </View>
       </View>
     </Modal>
@@ -224,23 +227,21 @@ const styles = StyleSheet.create({
     borderRadius: careRadius.lg,
     borderWidth: 1,
     borderColor: careLightColors.borderStrong,
-    padding: careSpacing.lg,
+    overflow: 'hidden',
     shadowColor: careLightColors.navy,
     shadowOpacity: 0.12,
     shadowRadius: 24,
     shadowOffset: { width: 0, height: 8 },
     elevation: 8,
   },
+  cardBody: {
+    padding: careSpacing.lg,
+  },
   stepLabel: {
     ...careTypography.caption,
     color: careLightColors.muted,
     marginBottom: careSpacing.xs,
     fontWeight: '600',
-  },
-  title: {
-    ...careTypography.h3,
-    color: careLightColors.navy,
-    marginBottom: careSpacing.sm,
   },
   body: {
     ...careTypography.body,

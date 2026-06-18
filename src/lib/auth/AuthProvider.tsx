@@ -1,4 +1,4 @@
-import { ReactNode, useCallback, useEffect, useMemo, useState } from 'react';
+import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import {
@@ -50,6 +50,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [portalSession, setPortalSession] = useState<PortalSessionRecord | null>(null);
+  const profileRepairAttemptedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -122,9 +123,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, [authMode]);
 
   useEffect(() => {
-    if (authMode !== 'supabase' || !isInitialized || isLoading) return;
-    if (!user || !session || profile?.roleKey) return;
+    if (!user || !session) {
+      profileRepairAttemptedRef.current = false;
+    }
+  }, [user, session]);
 
+  useEffect(() => {
+    if (authMode !== 'supabase' || !isInitialized || isLoading) return;
+    if (!user || !session || profile?.roleKey || profileRepairAttemptedRef.current) return;
+
+    profileRepairAttemptedRef.current = true;
     let cancelled = false;
 
     async function repairProfileFromSession() {
@@ -150,7 +158,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInDemo = useCallback(async (roleKey: RoleKey) => {
     if (!isDemoMode()) {
-      throw new Error('Demo-Anmeldung nur im Demo-Modus verfügbar.');
+      throw new Error('Demo-Anmeldung nur im Demo-Modus verfÃ¼gbar.');
     }
     setIsLoading(true);
     try {
@@ -165,7 +173,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInWithSupabaseSession = useCallback(async (supabaseSession: Session) => {
     if (authMode !== 'supabase') {
-      throw new Error('Supabase-Anmeldung nur im Live-Modus verfügbar.');
+      throw new Error('Supabase-Anmeldung nur im Live-Modus verfÃ¼gbar.');
     }
     setIsLoading(true);
     try {
@@ -187,6 +195,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signInPortalSession = useCallback(async (record: PortalSessionRecord) => {
     await savePortalSession(record);
     setPortalSession(record);
+  }, []);
+
+  const updateProfile = useCallback((nextProfile: Profile) => {
+    setProfile(nextProfile);
+    setUser((prev) =>
+      prev
+        ? {
+            ...prev,
+            displayName: nextProfile.displayName,
+          }
+        : prev,
+    );
   }, []);
 
   const signOut = useCallback(async () => {
@@ -219,8 +239,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signInWithSupabaseSession,
       signInPortalSession,
       signOut,
+      updateProfile,
     }),
-    [isInitialized, isLoading, authMode, user, profile, session, portalSession, signInDemo, signInWithSupabaseSession, signInPortalSession, signOut],
+    [isInitialized, isLoading, authMode, user, profile, session, portalSession, signInDemo, signInWithSupabaseSession, signInPortalSession, signOut, updateProfile],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

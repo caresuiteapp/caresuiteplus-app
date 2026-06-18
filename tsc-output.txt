@@ -1,0 +1,194 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+src/__tests__/clients/clientEditFormMappers.test.ts(55,7): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+src/__tests__/clients/clientEditFormMappers.test.ts(59,7): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+src/__tests__/clients/clientEditFormMappers.test.ts(60,7): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+src/__tests__/clients/clientEditFormMappers.test.ts(83,16): error TS2322: Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string; email: null; isEmergency: true; isPortalUser: false; portalPermissions: { ...; }; notes: null; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+  Property 'contactType' is missing in type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string; email: null; isEmergency: true; isPortalUser: false; portalPermissions: { ...; }; notes: null; createdAt: string; updatedAt: string; }' but required in type '{ clientId: string; firstName: string; lastName: string; contactType: ClientContactType; relationship: ContactRelation; relationshipLabel: string | null; ... 5 more ...; notes: string | null; }'.
+src/__tests__/clients/clientEditFormMappers.test.ts(126,13): error TS2322: Type '{ id: string; tenantId: string; clientId: string; category: "sturz"; level: "mittel"; description: string; mitigation: null; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientRisk'.
+  Type '{ id: string; tenantId: string; clientId: string; category: "sturz"; level: "mittel"; description: string; mitigation: null; createdAt: string; updatedAt: string; }' is missing the following properties from type '{ clientId: string; category: "sonstige" | "medikation" | "sturz" | "ernaehrung" | "dekubitus" | "verhalten"; level: RiskLevel; description: string; mitigation: string | null; assessedAt: string; assessedBy: string | null; }': assessedAt, assessedBy
+src/__tests__/clients/clientEditFormMappers.test.ts(137,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(138,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(139,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(140,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(143,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(144,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(148,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(149,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(150,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(163,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(180,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(181,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(182,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(183,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(184,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(185,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(186,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(187,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(188,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(189,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(190,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(191,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(192,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(193,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(194,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(195,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(196,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditPersistence.test.ts(212,68): error TS2345: Argument of type '{ firstName: string; lastName: string; careLevel: string; careContexts: readonly ["daily_assistance"]; street: string; houseNumber: string; zip: string; city: string; costCarrier: string; insuranceNumber: string; ... 35 more ...; billingProfileId: string | null; }' is not assignable to parameter of type 'ClientEditFormData'.
+  Types of property 'careContexts' are incompatible.
+    The type 'readonly ["daily_assistance"]' is 'readonly' and cannot be assigned to the mutable type 'ClientCareContext[]'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(146,57): error TS2345: Argument of type '{ name: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Type '{ name: string; }' is missing the following properties from type 'IntakeTenantDisplay': city, zip, street, defaultHourlyRate
+src/__tests__/clients/clientIntakeDocuments.test.ts(309,92): error TS2345: Argument of type '{ name: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Type '{ name: string; }' is missing the following properties from type 'IntakeTenantDisplay': city, zip, street, defaultHourlyRate
+src/__tests__/clients/clientIntakeDocuments.test.ts(352,43): error TS2345: Argument of type '{ name: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Type '{ name: string; }' is missing the following properties from type 'IntakeTenantDisplay': city, zip, street, defaultHourlyRate
+src/__tests__/clients/clientIntakeDocuments.test.ts(366,43): error TS2345: Argument of type '{ name: string; street: string; zip: string; city: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Property 'defaultHourlyRate' is missing in type '{ name: string; street: string; zip: string; city: string; }' but required in type 'IntakeTenantDisplay'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(405,43): error TS2345: Argument of type '{ name: string; defaultHourlyRate: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Type '{ name: string; defaultHourlyRate: string; }' is missing the following properties from type 'IntakeTenantDisplay': city, zip, street
+src/__tests__/clients/clientIntakeDocuments.test.ts(421,43): error TS2345: Argument of type '{ name: string; defaultHourlyRate: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Type '{ name: string; defaultHourlyRate: string; }' is missing the following properties from type 'IntakeTenantDisplay': city, zip, street
+src/__tests__/clients/clientIntakeDraftStorage.test.ts(63,53): error TS2322: Type '{ firstName: string; careContexts: string[]; consentDatenschutz: boolean; consentVertrag: boolean; consentTypes: string[]; lastName: string; salutation: string; gender: string; dateOfBirth: string; ... 120 more ...; taskCategories: string[]; }' is not assignable to type 'ClientIntakeFormData'.
+  Types of property 'careContexts' are incompatible.
+    Type 'string[]' is not assignable to type 'ClientCareContext[]'.
+      Type 'string' is not assignable to type 'ClientCareContext'.
+src/__tests__/clients/clientSchedulingWishes.test.ts(36,3): error TS2304: Cannot find name 'beforeEach'.
+src/__tests__/clients/clientTasksPanel.test.ts(86,3): error TS2304: Cannot find name 'beforeEach'.
+src/__tests__/clients/clientTasksPanel.test.ts(90,3): error TS2304: Cannot find name 'afterEach'.
+src/__tests__/e2e/serviceFlows.test.ts(41,41): error TS2345: Argument of type '{ firstName: string; lastName: string; jobTitle: string; email: string; phone: string; department: string; }' is not assignable to parameter of type 'EmployeeFormData'.
+  Type '{ firstName: string; lastName: string; jobTitle: string; email: string; phone: string; department: string; }' is missing the following properties from type 'EmployeeFormData': status, profilePhoto
+src/__tests__/inputs/signatureCanvasCoords.test.ts(65,20): error TS2352: Conversion of type '{ target: HTMLCanvasElement; offsetX: number; offsetY: number; clientX: number; clientY: number; }' to type 'PointerEvent' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ target: HTMLCanvasElement; offsetX: number; offsetY: number; clientX: number; clientY: number; }' is missing the following properties from type 'PointerEvent': height, isPrimary, pointerId, pointerType, and 50 more.
+src/__tests__/office/clientContacts.test.ts(20,77): error TS2345: Argument of type '{ firstName: string; lastName: string; relationship: "nachbar"; relationshipLabel: string; phone: string; email: string; isEmergency: false; isPortalUser: false; portalPermissions: { canViewAppointments: false; canViewDocuments: false; canViewCarePlan: false; canSendMessages: false; canViewBilling: false; }; notes: ...' is not assignable to parameter of type 'ClientContactInput'.
+  Property 'contactType' is missing in type '{ firstName: string; lastName: string; relationship: "nachbar"; relationshipLabel: string; phone: string; email: string; isEmergency: false; isPortalUser: false; portalPermissions: { canViewAppointments: false; canViewDocuments: false; canViewCarePlan: false; canSendMessages: false; canViewBilling: false; }; notes: ...' but required in type 'ClientContactInput'.
+src/__tests__/office/employeeOffboarding.test.ts(246,9): error TS2322: Type '"active"' is not assignable to type 'WorkflowStatus'.
+src/__tests__/office/officeClientRecordPhase4.test.ts(17,3): error TS2322: Type '{ email: string | null; id: string; status: WorkflowStatus; updatedAt: string; visibility?: DataVisibilityScope | undefined; sensitivity: SensitivityLevel; ... 41 more ...; internalNotes: ClientInternalNote[]; }' is not assignable to type 'ClientFullDetail'.
+  Type '{ email: string | null; id: string; status: WorkflowStatus; updatedAt: string; visibility?: DataVisibilityScope | undefined; sensitivity: SensitivityLevel; ... 41 more ...; internalNotes: ClientInternalNote[]; }' is not assignable to type 'Omit<ClientDetail, "contacts" | "consents">'.
+    Types of property 'visibility' are incompatible.
+      Type 'DataVisibilityScope | undefined' is not assignable to type 'DataVisibilityScope'.
+        Type 'undefined' is not assignable to type 'DataVisibilityScope'.
+src/__tests__/office/officeClientRecordPhase4.test.ts(301,46): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/office/officeEmployeesList.test.ts(42,40): error TS2345: Argument of type 'Pick<Employee, "email" | "id" | "status" | "updatedAt" | "tenantId" | "createdAt" | "firstName" | "lastName" | "phone" | "jobTitle">[]' is not assignable to parameter of type 'EmployeeListItem[]'.
+  Type 'Pick<Employee, "email" | "id" | "status" | "updatedAt" | "tenantId" | "createdAt" | "firstName" | "lastName" | "phone" | "jobTitle">' is not assignable to type 'EmployeeListItem'.
+    Property 'avatarUrl' is missing in type 'Pick<Employee, "email" | "id" | "status" | "updatedAt" | "tenantId" | "createdAt" | "firstName" | "lastName" | "phone" | "jobTitle">' but required in type '{ avatarUrl: string | null; }'.
+src/__tests__/supabase/clientRecordFix.test.ts(9,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+src/__tests__/supabase/clientRecordFix.test.ts(13,34): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/supabase/clientRecordFix.test.ts(19,34): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/supabase/clientRecordFix.test.ts(25,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+src/__tests__/supabase/clientRecordFix.test.ts(27,29): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/supabase/clientRecordFix.test.ts(39,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+src/__tests__/supabase/clientRecordFix.test.ts(41,29): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/supabase/clientRecordFix.test.ts(53,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+src/__tests__/supabase/clientRecordFix.test.ts(55,29): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/components/layout/CareWebShell.tsx(9,27): error TS2304: Cannot find name 'CareDesktopShell'.
+src/components/office/ClientDetailSummaryPanel.tsx(203,29): error TS2339: Property 'name' does not exist on type 'ClientContactRecord'.
+src/components/office/ClientRecordDocumentsPanel.tsx(198,56): error TS2322: Type '"muted" | "green" | "cyan" | "amber"' is not assignable to type 'Variant | undefined'.
+  Type '"amber"' is not assignable to type 'Variant | undefined'.
+src/components/office/ClientRecordShiftsPanel.tsx(131,30): error TS2339: Property 'employeeId' does not exist on type 'Profile'.
+src/components/office/ClientRecordShiftsPanel.tsx(134,66): error TS2339: Property 'employeeId' does not exist on type 'Profile'.
+src/components/office/ClientsListView.tsx(203,9): error TS2322: Type '(value: WorkflowStatus | 'all') => void' is not assignable to type '(value: string) => void'.
+  Types of parameters 'value' and 'value' are incompatible.
+    Type 'string' is not assignable to type 'WorkflowStatus | "all"'.
+src/components/office/EmployeeProfilePhotoPicker.tsx(26,10): error TS2304: Cannot find name 'EmployeeProfilePhotoValue'.
+src/components/office/EmployeeProfilePhotoPicker.tsx(27,21): error TS2304: Cannot find name 'EmployeeProfilePhotoValue'.
+src/components/office/EmployeesListView.tsx(210,11): error TS2322: Type '(v: WorkflowStatus | "all") => void' is not assignable to type '(key: string) => void'.
+  Types of parameters 'v' and 'key' are incompatible.
+    Type 'string' is not assignable to type 'WorkflowStatus | "all"'.
+src/components/tenant/TenantLogoPicker.tsx(124,61): error TS2551: Property 'surface' does not exist on type '{ readonly bgDeep: "#0B1020"; readonly bgBase: "#EEF1F6" | "#0B1020"; readonly bgPremium: "#F5F7FB" | "#111827"; readonly bgSurface: "#FFFFFF" | "#171A2F"; readonly bgElevated: "#FFFFFF" | "#171A2F" | "#20242D"; ... 29 more ...; readonly error: "#EF4444"; }'. Did you mean 'bgSurface'?
+src/data/demo/permissions.ts(4,14): error TS2741: Property '"business.tenant.manage"' is missing in type '{ 'office.access': string; 'office.clients.view': string; 'office.clients.create': string; 'office.clients.edit': string; 'office.clients.status_change': string; 'office.clients.archive': string; ... 160 more ...; 'portal.employee.inventory.view': string; }' but required in type 'Record<PermissionKey, string>'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(293,130): error TS2339: Property 'eq' does not exist on type 'Promise<{ data: unknown; error: PostgrestError | null; }>'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(303,10): error TS2339: Property 'eq' does not exist on type 'Promise<{ data: unknown; error: PostgrestError | null; }>'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(333,6): error TS2339: Property 'eq' does not exist on type 'Promise<{ data: unknown; error: PostgrestError | null; }>'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(352,8): error TS2339: Property 'eq' does not exist on type 'Promise<{ data: unknown; error: PostgrestError | null; }>'.
+src/lib/clients/clientEditPersistence.ts(196,5): error TS2353: Object literal may only specify known properties, and 'apartment_number' does not exist in type '{ access_notes?: string | null | undefined; admission_date?: string | null | undefined; allergies?: string | null | undefined; billing_party?: "other" | "self_payer" | "health_insurance" | "social_welfare" | "care_insurance" | null | undefined; ... 36 more ...; visible_notes_for_employee?: string | ... 1 more ... | ...'.
+src/lib/clients/clientEditService.ts(159,5): error TS2322: Type '(ClientContactRecord | { id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; ... 7 more ...; updatedAt: string; })[]' is not assignable to type 'ClientContactRecord[]'.
+  Type 'ClientContactRecord | { id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; ... 7 more ...; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+    Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string | null; email: null; isEmergency: boolean; ... 4 more ...; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+      Property 'contactType' is missing in type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string | null; email: null; isEmergency: boolean; ... 4 more ...; updatedAt: string; }' but required in type '{ clientId: string; firstName: string; lastName: string; contactType: ClientContactType; relationship: ContactRelation; relationshipLabel: string | null; ... 5 more ...; notes: string | null; }'.
+src/lib/clients/clientEditService.ts(267,26): error TS2345: Argument of type 'ClientFullDetail' is not assignable to parameter of type 'ClientDetail'.
+  Type 'ClientFullDetail' is not assignable to type '{ street: string | null; phone: string | null; email: string | null; notes: string | null; admissionDate?: string | null | undefined; contacts: ClientContact[]; consents: ClientConsent[]; ... 4 more ...; allowedStatusActions: WorkflowStatus[]; }'.
+    Types of property 'contacts' are incompatible.
+      Type 'ClientContactRecord[]' is not assignable to type 'ClientContact[]'.
+        Property 'name' is missing in type 'ClientContactRecord' but required in type 'ClientContact'.
+src/lib/clients/clientFullDetailService.ts(60,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string | null; email: string | null; isEmergency: boolean; ... 4 more ...; updatedAt: string; }[]' is not assignable to type 'ClientContactRecord[]'.
+  Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string | null; email: string | null; isEmergency: boolean; ... 4 more ...; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+    Property 'contactType' is missing in type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string | null; email: string | null; isEmergency: boolean; ... 4 more ...; updatedAt: string; }' but required in type '{ clientId: string; firstName: string; lastName: string; contactType: ClientContactType; relationship: ContactRelation; relationshipLabel: string | null; ... 5 more ...; notes: string | null; }'.
+src/lib/clients/clientIntakeService.ts(200,4): error TS2304: Cannot find name 'ClientFullDetail'.
+src/lib/clients/clientTasksService.ts(53,75): error TS2345: Argument of type '{ category: TaskCategory; title: string; description: string; frequency: "woechentlich"; durationMinutes: number; isActive: boolean; catalogTaskId: string; assignedEmployeeIds: string[]; }' is not assignable to parameter of type 'Omit<ClientTask, "id" | "updatedAt" | "tenantId" | "createdAt" | "clientId">'.
+  Type '{ category: TaskCategory; title: string; description: string; frequency: "woechentlich"; durationMinutes: number; isActive: boolean; catalogTaskId: string; assignedEmployeeIds: string[]; }' is missing the following properties from type 'Omit<ClientTask, "id" | "updatedAt" | "tenantId" | "createdAt" | "clientId">': billingRelevant, isMandatory, moduleKey, leistungsbereich, and 6 more.
+src/lib/clients/clientTasksService.ts(124,7): error TS2783: 'moduleKey' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(125,7): error TS2783: 'leistungsbereich' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(126,7): error TS2783: 'subcategory' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(127,7): error TS2783: 'packageId' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(128,7): error TS2783: 'leistungsart' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(129,7): error TS2783: 'isMandatory' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(130,7): error TS2783: 'proofRequired' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(131,7): error TS2783: 'documentationRequired' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(132,7): error TS2783: 'billingRelevant' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(133,7): error TS2783: 'visibleToClient' is specified more than once, so this usage will be overwritten.
+src/lib/clients/clientTasksService.ts(157,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/lib/clients/clientTasksService.ts(158,9): error TS2322: Type 'ClientTaskModuleKey | null | undefined' is not assignable to type 'ClientTaskModuleKey | null'.
+  Type 'undefined' is not assignable to type 'ClientTaskModuleKey | null'.
+src/lib/documents/documentPdfService.ts(32,7): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/documents/documentPdfService.ts(33,7): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/documents/documentPdfService.ts(33,14): error TS7016: Could not find a declaration file for module 'jspdf/dist/jspdf.es.min.js'. 'C:/Users/Kevin Reinhardt/Documents/CareSuite+/node_modules/jspdf/dist/jspdf.es.min.js' implicitly has an 'any' type.
+  If the 'jspdf' package actually exposes this module, try adding a new declaration (.d.ts) file containing `declare module 'jspdf/dist/jspdf.es.min.js';`
+src/lib/inventory/inventoryRepository.supabase.ts(42,52): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'PostgrestError | null'.
+src/lib/office/employeePersonnelFileLiveLoader.ts(129,15): error TS2352: Conversion of type 'GenericStringError' to type 'EmployeePersonnelLiveRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ error: true; } & String' is missing the following properties from type 'EmployeePersonnelLiveRow': id, tenant_id, first_name, last_name, and 3 more.
+src/lib/office/employeePersonnelFileService.ts(168,79): error TS2339: Property 'data' does not exist on type 'ServiceResult<EmployeePersonnelFile>'.
+  Property 'data' does not exist on type '{ ok: false; error: string; }'.
+src/lib/office/officeComposeRecipientService.ts(52,33): error TS2339: Property 'department' does not exist on type 'EmployeeListItem'.
+src/lib/officeModules/moduleAssignmentService.ts(343,49): error TS2339: Property 'data' does not exist on type 'ServiceResult<number>'.
+  Property 'data' does not exist on type '{ ok: false; error: string; }'.
+src/lib/services/clients/clientRepository.demo.ts(177,7): error TS2322: Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string | null; email: null; isEmergency: true; ... 4 more ...; updatedAt: string; }[]' is not assignable to type 'ClientContactRecord[]'.
+  Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string | null; email: null; isEmergency: true; ... 4 more ...; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+    Property 'contactType' is missing in type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "angehoerige"; relationshipLabel: string; phone: string | null; email: null; isEmergency: true; ... 4 more ...; updatedAt: string; }' but required in type '{ clientId: string; firstName: string; lastName: string; contactType: ClientContactType; relationship: ContactRelation; relationshipLabel: string | null; ... 5 more ...; notes: string | null; }'.
+src/lib/services/clients/clientRepository.demo.ts(239,7): error TS2322: Type '{ id: string; tenantId: string; clientId: string; category: TaskCategory; title: TaskCategory; description: null; frequency: "woechentlich"; durationMinutes: null; ... 4 more ...; updatedAt: string; }[]' is not assignable to type 'ClientTask[]'.
+  Type '{ id: string; tenantId: string; clientId: string; category: TaskCategory; title: TaskCategory; description: null; frequency: "woechentlich"; durationMinutes: null; ... 4 more ...; updatedAt: string; }' is not assignable to type 'ClientTask'.
+    Type '{ id: string; tenantId: string; clientId: string; category: TaskCategory; title: TaskCategory; description: null; frequency: "woechentlich"; durationMinutes: null; ... 4 more ...; updatedAt: string; }' is missing the following properties from type '{ clientId: string; category: TaskCategory; title: string; description: string | null; frequency: TaskFrequency; durationMinutes: number | null; isActive: boolean; ... 11 more ...; visibleToClient: boolean; }': moduleKey, leistungsbereich, subcategory, packageId, and 6 more.
+src/lib/services/clients/clientRepository.supabase.ts(124,33): error TS2345: Argument of type '"deleted"' is not assignable to parameter of type '"active" | "inactive" | "paused" | "archived" | "blocked" | "lead" | "deceased"'.
+src/lib/services/clients/clientRepository.supabase.ts(419,15): error TS2352: Conversion of type '{ status: "deleted"; deleted_at: string; updated_by: string | null; }' to type '{ access_notes?: string | null | undefined; admission_date?: string | null | undefined; allergies?: string | null | undefined; billing_party?: "other" | "self_payer" | "health_insurance" | "social_welfare" | "care_insurance" | null | undefined; ... 36 more ...; visible_notes_for_employee?: string | ... 1 more ... | ...' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Types of property 'status' are incompatible.
+    Type '"deleted"' is not comparable to type '"active" | "inactive" | "paused" | "archived" | "blocked" | "lead" | "deceased" | undefined'.
+src/lib/services/repositories/employeeRepository.supabase.ts(55,22): error TS2345: Argument of type '"deleted"' is not assignable to parameter of type '"active" | "inactive" | "draft" | "blocked" | "sick" | "vacation" | "terminated"'.
+src/lib/services/repositories/employeeRepository.supabase.ts(90,26): error TS2352: Conversion of type 'GenericStringError' to type 'EmployeeDetailLiveRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ error: true; } & String' is missing the following properties from type 'EmployeeDetailLiveRow': id, tenant_id, first_name, last_name, and 3 more.
+src/lib/services/repositories/employeeRepository.supabase.ts(93,30): error TS2352: Conversion of type 'GenericStringError' to type 'EmployeeDetailLiveRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/lib/services/repositories/officeAuditLogRepository.supabase.ts(64,11): error TS2352: Conversion of type '{ id: any; event_type: any; summary: any; created_at: any; client_id: any; profiles: { display_name: any; }[]; }[]' to type 'ClientDocumentEventRow[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ id: any; event_type: any; summary: any; created_at: any; client_id: any; profiles: { display_name: any; }[]; }' is not comparable to type 'ClientDocumentEventRow'.
+    Types of property 'profiles' are incompatible.
+      Property 'display_name' is missing in type '{ display_name: any; }[]' but required in type '{ display_name: string | null; }'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(35,5): error TS2740: Type 'PostgrestQueryBuilder<any, any, any, string, unknown>' is missing the following properties from type 'PostgrestFilterBuilder<any, any, any, { id: any; }[], string, unknown, "GET", false>': throwOnError, eq, neq, gt, and 50 more.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(35,25): error TS2345: Argument of type 'PostgrestFilterBuilder<any, any, any, { id: any; }[], string, unknown, "GET", false>' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'PostgrestFilterBuilder<any, any, any, { id: any; }[], string, unknown, "GET", false>' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': cloneRequestState, insert, upsert, update, delete
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(64,59): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(65,59): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(67,61): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(70,15): error TS2339: Property 'gte' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(128,59): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(130,15): error TS2339: Property 'gte' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(134,12): error TS2339: Property 'gte' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(139,15): error TS2339: Property 'or' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(143,12): error TS2339: Property 'or' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(148,15): error TS2339: Property 'in' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(172,17): error TS2339: Property 'in' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(174,62): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/screens/office/access/ClientPortalCodesScreen.tsx(239,15): error TS2322: Type '{ options: { key: string; label: string; }[]; selectedKey: string; onSelect: Dispatch<SetStateAction<string>>; }' is not assignable to type 'IntrinsicAttributes & FilterChipGroupProps<string>'.
+  Property 'selectedKey' does not exist on type 'IntrinsicAttributes & FilterChipGroupProps<string>'.
+src/screens/office/access/RelativePortalCodesScreen.tsx(40,53): error TS2345: Argument of type '{ tenantId: string; clientId: string; createdBy: null; }' is not assignable to parameter of type '{ tenantId: string; clientId: string; firstName: string; lastName: string; createdBy: string | null; expiresAt?: string | null | undefined; }'.
+  Type '{ tenantId: string; clientId: string; createdBy: null; }' is missing the following properties from type '{ tenantId: string; clientId: string; firstName: string; lastName: string; createdBy: string | null; expiresAt?: string | null | undefined; }': firstName, lastName
+src/screens/office/EmployeeEditScreen.tsx(11,3): error TS2305: Module '"@/components/ui"' has no exported member 'DetailInfoRow'.

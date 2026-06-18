@@ -17,7 +17,6 @@ export {
   hasEffectiveModuleGateAccess,
   hasModuleAccess,
   hasOfficeBaseAccess,
-  hydrateTenantModulesFromSupabase,
   initializeModuleAccessStore,
   resetModuleAccessStore,
   resolveIncludedModules,
@@ -27,15 +26,3 @@ export {
   type BillingPreview,
   type BillingPreviewItem,
 } from './moduleEntitlementService';
-export {
-  MODULE_VISIBILITY_CATALOG,
-  MODULE_VISIBILITY_STATUS_LABELS,
-  getCatalogEntry,
-  isProductScopeKey,
-} from './moduleVisibilityConfig';
-export {
-  resolveModuleNavState,
-  resolveModuleScopeFromPath,
-  isModuleScopeVisible,
-  isModuleScopeNavigable,
-} from './moduleVisibilityService';

@@ -27,7 +27,7 @@ function SnapshotCard({ item, onPress }: { item: InsightSnapshotItem; onPress: (
         <Text style={styles.date}>
           Aktualisiert {new Date(item.updatedAt).toLocaleDateString('de-DE')}
         </Text>
-        <PremiumBadge statusKind="preparedOnly" />
+        <PremiumBadge label="preparedOnly" variant="muted" />
       </PremiumCard>
     </Pressable>
   );

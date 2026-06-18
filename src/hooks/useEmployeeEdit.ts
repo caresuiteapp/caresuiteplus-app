@@ -1,8 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { EmployeeEditFormData } from '@/types/forms/employeeEditForm';
-import { EMPTY_EMPLOYEE_EDIT_FORM } from '@/types/forms/employeeEditForm';
-import { saveEmployeeEdit } from '@/lib/office/employeeEditService';
-import { mapEmployeeDetailToEditForm } from '@/lib/office/employeeEditFormMappers';
+import { updateEmployee, type EmployeeEditInput } from '@/lib/office/employeeFormService';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useEmployeeDetail } from './useEmployeeDetail';
@@ -14,26 +11,30 @@ export function useEmployeeEdit(employeeId: string | undefined) {
   const roleKey = profile?.roleKey ?? null;
   const detail = useEmployeeDetail(employeeId);
 
-  const [form, setForm] = useState<EmployeeEditFormData>(EMPTY_EMPLOYEE_EDIT_FORM);
+  const [form, setForm] = useState<EmployeeEditInput>({
+    jobTitle: '',
+    phone: '',
+    department: '',
+    notes: '',
+  });
 
   useEffect(() => {
     if (detail.data) {
-      setForm(mapEmployeeDetailToEditForm(detail.data));
+      setForm({
+        jobTitle: detail.data.jobTitle ?? '',
+        phone: detail.data.phone ?? '',
+        department: detail.data.department ?? '',
+        notes: detail.data.notes ?? '',
+      });
     }
   }, [detail.data]);
 
   const saveMutation = useMutation(
-    (input: EmployeeEditFormData) => {
+    (input: EmployeeEditInput) => {
       if (!tenantId) {
         return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       }
-      return saveEmployeeEdit(
-        employeeId ?? '',
-        tenantId,
-        input,
-        roleKey,
-        detail.data?.avatarUrl ?? null,
-      );
+      return updateEmployee(employeeId ?? '', tenantId, input, roleKey);
     },
     { successMessage: 'Mitarbeitende:r gespeichert.' },
   );
@@ -48,11 +49,12 @@ export function useEmployeeEdit(employeeId: string | undefined) {
     employee: detail.data,
     form,
     setForm,
-    save,
-    saving: saveMutation.loading,
-    saveError: saveMutation.error,
     loading: detail.loading,
     error: detail.error,
-    refresh: detail.refresh,
+    save,
+    saveLoading: saveMutation.loading,
+    saveError: saveMutation.error,
+    successMessage: saveMutation.successMessage,
+    notFound: detail.notFound,
   };
 }

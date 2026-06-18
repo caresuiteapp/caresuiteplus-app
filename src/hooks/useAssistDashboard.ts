@@ -39,6 +39,7 @@ export function useAssistDashboard() {
     todayAssignments: (todayQuery.data ?? []) as AssignmentListItem[],
     loading: statsQuery.loading || todayQuery.loading,
     error: statsQuery.error ?? todayQuery.error,
+    isPreviewData: statsQuery.previewData || todayQuery.previewData,
     refreshing: statsQuery.refreshing || todayQuery.refreshing,
     showSuccess,
     refresh,

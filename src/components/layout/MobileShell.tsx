@@ -2,8 +2,7 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppShellArea } from '@/types/navigation/shell';
 import { useAppShell } from '@/hooks/useAppShell';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { radius, spacing, typography } from '@/theme';
+import { colors, radius, spacing, typography } from '@/theme';
 import { AppTabBar } from './AppTabBar';
 import { ModuleSwitcher } from './ModuleSwitcher';
 
@@ -31,7 +30,6 @@ export function MobileShell({
     area === 'stationaer',
 }: MobileShellProps) {
   const { tabs, switcherOpen, openSwitcher, closeSwitcher } = useAppShell(area);
-  const { colors } = useLegacyTheme();
 
   return (
     <View style={styles.root}>
@@ -39,17 +37,14 @@ export function MobileShell({
       {showModuleSwitcher ? (
         <Pressable
           onPress={openSwitcher}
-          style={[
-            styles.switcherFab,
-            { backgroundColor: colors.bgPremium, borderColor: colors.borderSoft },
-          ]}
+          style={styles.switcherFab}
           accessibilityRole="button"
           accessibilityLabel="Module wechseln"
         >
-          <Text style={[styles.switcherFabText, { color: colors.cyan }]}>🧩 Module</Text>
+          <Text style={styles.switcherFabText}>🧩 Module</Text>
         </Pressable>
       ) : null}
-      <AppTabBar tabs={tabs} accentColor={accentColor ?? colors.primary} />
+      <AppTabBar tabs={tabs} accentColor={accentColor} />
       {showModuleSwitcher ? (
         <ModuleSwitcher visible={switcherOpen} onClose={closeSwitcher} />
       ) : null}
@@ -64,7 +59,9 @@ const styles = StyleSheet.create({
     position: 'absolute',
     right: spacing.md,
     bottom: 72,
+    backgroundColor: colors.bgPremium,
     borderWidth: 1,
+    borderColor: colors.borderSoft,
     borderRadius: radius.capsule,
     paddingHorizontal: spacing.md,
     paddingVertical: spacing.xs,
@@ -76,5 +73,6 @@ const styles = StyleSheet.create({
   switcherFabText: {
     ...typography.caption,
     fontWeight: '700',
+    color: colors.cyan,
   },
 });

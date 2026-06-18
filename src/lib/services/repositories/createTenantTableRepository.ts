@@ -1,6 +1,6 @@
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '../errors';
 
@@ -28,7 +28,7 @@ type CreateTenantTableRepositoryOptions = {
   selectColumns?: string;
 };
 
-/** Factory für domain-spezifische Supabase-Repositories (WP ×10). */
+/** Factory fÃ¼r domain-spezifische Supabase-Repositories (WP Ã—10). */
 export function createTenantTableRepository({
   wpNumber,
   table,
@@ -47,7 +47,12 @@ export function createTenantTableRepository({
         .select(selectColumns)
         .eq('tenant_id', tenantId)
         .order('updated_at', { ascending: false });
-      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+      if (error) {
+        if (isSupabaseMissingTableError(error)) {
+          return { ok: true, data: [], tableMissing: true };
+        }
+        return { ok: false, error: toGermanSupabaseError(error) };
+      }
       return { ok: true, data: (data ?? []) as unknown as TenantTableRow[] };
     },
 
@@ -59,7 +64,12 @@ export function createTenantTableRepository({
         .eq('tenant_id', tenantId)
         .eq('id', id)
         .maybeSingle();
-      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+      if (error) {
+        if (isSupabaseMissingTableError(error)) {
+          return { ok: true, data: null, tableMissing: true };
+        }
+        return { ok: false, error: toGermanSupabaseError(error) };
+      }
       return { ok: true, data: (data as TenantTableRow | null) ?? null };
     },
 

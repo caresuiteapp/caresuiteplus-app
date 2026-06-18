@@ -32,6 +32,8 @@ export type Profile = {
   tenantId: string | null;
   roleId: string | null;
   roleKey: RoleKey | null;
+  firstName: string | null;
+  lastName: string | null;
   displayName: string | null;
   email: string | null;
   phone: string | null;

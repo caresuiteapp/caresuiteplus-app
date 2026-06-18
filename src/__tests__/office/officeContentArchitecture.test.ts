@@ -97,8 +97,8 @@ describe('Office content architecture', () => {
   });
 
   it('Dashboard-Arbeitsbereiche verlinken Modulzuordnungen und Audit-Log', () => {
-    expect(OFFICE_AREA_SHORTCUTS.some((a) => a.href === '/business/office/modules')).toBe(true);
-    expect(OFFICE_AREA_SHORTCUTS.some((a) => a.href === '/business/office/audit-log')).toBe(true);
+    expect(OFFICE_AREA_SHORTCUTS.some((a) => a.route === '/business/office/modules')).toBe(true);
+    expect(OFFICE_AREA_SHORTCUTS.some((a) => a.route === '/business/office/audit-log')).toBe(true);
   });
 
   it('OfficeModulesHubScreen hat echte Navigation ohne Platzhalter', () => {
@@ -132,13 +132,8 @@ describe('Office content architecture', () => {
 
   it('shellConfig enthält Office-Modul-Navigation', () => {
     const source = readSrc('src/lib/navigation/shellConfig.ts');
-    expect(source).toContain('buildOfficeTabs');
-    const navSource = readSrc('src/lib/navigation/officeNavigation.ts');
-    expect(navSource).toContain("label: 'Office'");
-    expect(navSource).toContain('/business/office/modules');
-    expect(navSource).toContain('Qualitätsmanagement');
-    expect(navSource).toContain('Zugänge & Benutzer');
-    expect(navSource).toContain('Audit-Log');
+    expect(source).toContain('/business/office/modules');
+    expect(source).toContain("label: 'Office'");
   });
 });
 

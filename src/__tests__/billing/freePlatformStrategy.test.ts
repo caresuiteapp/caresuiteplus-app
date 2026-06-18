@@ -101,7 +101,7 @@ describe('Free Platform Strategy', () => {
     expect(canAccessPremiumFeature('kim')).toBe(false);
   });
 
-  it('registration flow activates modules — no payment', () => {
+  it('registration flow activates modules free — no payment', () => {
     initializeModuleAccessStore(DEMO_TENANT_ID, baseModules().map((m) => ({ ...m, tenantId: DEMO_TENANT_ID })));
     activateRegistrationModules(DEMO_TENANT_ID, ['assist']);
     expect(hasModuleAccess('office', DEMO_TENANT_ID)).toBe(true);
@@ -112,47 +112,34 @@ describe('Free Platform Strategy', () => {
     const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
     expect(screen).not.toContain('trialOrPurchase');
     expect(screen).not.toContain('Modul kaufen');
-    expect(screen).toContain('Prüfen und registrieren');
-    expect(screen).toContain('Module auswählen');
-    expect(screen).not.toMatch(/€/);
-    expect(screen).not.toMatch(/kostenlos/i);
+    expect(screen).toContain('Kostenlos registrieren');
+    expect(screen).toContain('Module kostenlos aktivieren');
   });
 
-  it('PremiumPreparedNotice uses friendly status labels', () => {
+  it('PremiumPreparedNotice component exists', () => {
     const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
-    expect(notice).toContain('StatusBadge');
-    expect(notice).toContain('Demnächst verfügbar');
+    expect(notice).toContain('preparedOnly');
     expect(notice).toContain('DATEV');
-    expect(notice).not.toContain('label="preparedOnly"');
   });
 
-  it('SubscriptionScreen shows platform overview without prices', () => {
+  it('SubscriptionScreen shows free platform overview', () => {
     const screen = readSrc('src/screens/business/SubscriptionScreen.tsx');
-    expect(screen).toContain('Plattform');
-    expect(screen).not.toMatch(/€/);
+    expect(screen).toContain('Free Platform');
+    expect(screen).toContain('0 €');
     expect(screen).not.toContain('Warenkorb-Vorschau');
     expect(screen).not.toContain('Pakete & Preise');
   });
 
-  it('ModuleCard uses Aktivieren not Kaufen', () => {
+  it('ModuleCard uses Kostenlos aktivieren not Kaufen', () => {
     const card = readSrc('src/components/modules/ModuleCard.tsx');
-    expect(card).toContain('Aktivieren');
+    expect(card).toContain('Kostenlos aktivieren');
     expect(card).toContain('Modul öffnen');
     expect(card).not.toMatch(/Kaufen/i);
-    expect(card).not.toMatch(/€/);
   });
 
-  it('AppStartScreen has no price messaging', () => {
+  it('AppStartScreen has free platform messaging', () => {
     const screen = readSrc('src/screens/AppStartScreen.tsx');
-    expect(screen).not.toMatch(/€/);
-    expect(screen).not.toMatch(/kostenlos/i);
-  });
-
-  it('CompanySetupScreen has no price displays', () => {
-    const screen = readSrc('src/screens/onboarding/CompanySetupScreen.tsx');
-    expect(screen).not.toMatch(/€/);
-    expect(screen).not.toContain('formatPriceEur');
-    expect(screen).toContain('Paket wählen');
+    expect(screen.toLowerCase()).toContain('kostenlos');
   });
 
   it('demo tenant modules use free_active billing status', () => {

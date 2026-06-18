@@ -23,8 +23,6 @@ export type ClientEditFormData = {
   city: string;
   accessNotes: string;
   floor: string;
-  apartmentNumber: string;
-  accessCode: string;
   bellName: string;
   phone: string;
   mobile: string;
@@ -72,8 +70,6 @@ export const EMPTY_CLIENT_EDIT_FORM: ClientEditFormData = {
   city: '',
   accessNotes: '',
   floor: '',
-  apartmentNumber: '',
-  accessCode: '',
   bellName: '',
   phone: '',
   mobile: '',

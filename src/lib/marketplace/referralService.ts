@@ -12,10 +12,6 @@ import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import {
-  assertConnectFeatureAllowed,
-  buildConnectFeatureGateContextFromFeatureKey,
-} from '@/lib/connect/gateway/connectFeatureGate';
-import {
   assertCommissionBookingAllowed,
   assertNoCustomerDataTransfer,
   assertReferralSendAllowed,
@@ -190,24 +186,6 @@ export async function sendReferralRequest(
 
   if (!referral || !partner || referral.tenantId !== tenantId) {
     return { ok: false, error: 'Anfrage nicht gefunden.' };
-  }
-
-  const connectGate = assertConnectFeatureAllowed(
-    'marketplace.referral',
-    'partner_referral',
-    buildConnectFeatureGateContextFromFeatureKey('marketplace.referral', {
-      tenantId,
-      userId: actorRoleKey ?? 'demo-user',
-      role: actorRoleKey ?? 'business_admin',
-      featureReadiness: 'prepared',
-      integrationStatus: 'configured',
-      connectorStatus: 'sandbox_ready',
-      hasCredentialReference: true,
-      hasExternalTransferConsent: consent ? isConsentValid(consent) : false,
-    }),
-  );
-  if (!connectGate.allowed) {
-    return { ok: false, error: connectGate.message };
   }
 
   const guard = assertReferralSendAllowed({

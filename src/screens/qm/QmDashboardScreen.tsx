@@ -68,7 +68,7 @@ export function QmDashboardScreen() {
   return (
     <CareLightScreen>
       {!isQmDashboardLiveReady() ? (
-        <InfoBanner title="QM in Vorbereitung" message={QM_DASHBOARD_PREPARED_MESSAGE} />
+        <InfoBanner title="QM preparedOnly" message={QM_DASHBOARD_PREPARED_MESSAGE} />
       ) : null}
       <CareLightModuleDashboard
         moduleKey="qm"
@@ -95,8 +95,7 @@ export function QmDashboardScreen() {
                 title={area.title}
                 accentColor={qmAccent}
                 isActive={area.liveReady}
-                preparedOnly={!area.liveReady}
-                onPress={area.liveReady ? () => router.push(area.route as never) : undefined}
+                onPress={() => router.push(area.route as never)}
               />
             ))}
           </View>

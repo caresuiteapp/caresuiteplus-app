@@ -1,11 +1,11 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ThemeModeToggle } from '@/design/ThemeModeToggle';
 import { galaxyPalette } from '@/design/tokens/galaxy';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { DEMO_START_PATH } from '@/data/landing/appStartEntries';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { getGlobalEnvironmentMode } from '@/lib/environment/environmentModeService';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
 
@@ -15,19 +15,17 @@ function openExternal(url: string) {
   void Linking.openURL(url).catch(() => undefined);
 }
 
-/** Compact footer links for public/start screens. */
+/** Central footer links for public/start screens — theme tokens only. */
 export function FooterLinks() {
   const router = useRouter();
   const demoMode = isDemoMode();
-  const envMode = getGlobalEnvironmentMode();
-  const showDemoLink = !demoMode && envMode !== 'production';
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
 
   return (
     <View style={styles.root}>
       <View style={styles.links}>
-        {showDemoLink ? (
+        {!demoMode ? (
           <Pressable
             onPress={() => router.push(DEMO_START_PATH as never)}
             accessibilityRole="button"
@@ -48,6 +46,7 @@ export function FooterLinks() {
           <Text style={[type.caption, styles.link]}>Nutzungsbedingungen</Text>
         </Pressable>
       </View>
+      <ThemeModeToggle />
       <Text style={[type.caption, styles.version]}>Version {APP_VERSION}</Text>
     </View>
   );
@@ -70,5 +69,6 @@ const styles = StyleSheet.create({
   },
   version: {
     color: galaxyPalette.textMuted,
+    opacity: 0.72,
   },
 });

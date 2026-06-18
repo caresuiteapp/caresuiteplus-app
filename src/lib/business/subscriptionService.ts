@@ -51,7 +51,7 @@ export async function fetchSubscriptionOverview(
       data: {
         ...sub,
         tenantName: demoTenant.name,
-        planLabel: isFreePlatformEnabled() ? 'CareSuite+ Plattform' : 'Kein Plan',
+        planLabel: isFreePlatformEnabled() ? 'CareSuite+ Free Platform' : 'Kein Plan',
         moduleCount: billing.totalActiveCount,
         billableModuleCount: 0,
         includedModuleCount: billing.includedCount + billing.totalActiveCount,

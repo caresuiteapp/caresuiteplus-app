@@ -1,5 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
+import { CareCatalogSelect } from '@/components/inputs';
 import {
   EmptyState,
   ErrorState,
@@ -17,29 +19,31 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
+import { createContractFromTemplate, fetchClientContracts } from '@/lib/clients/clientContractsService';
 import { fetchClientConsents, updateClientConsent } from '@/lib/clients/clientConsentsService';
-import { ClientRecordDocumentsPanel } from '@/components/office/ClientRecordDocumentsPanel';
-import { ClientRecordContractsPanel } from '@/components/office/ClientRecordContractsPanel';
+import { listClientDocuments, uploadClientDocument } from '@/lib/clients/clientDocumentsService';
 import { addClientMedication, fetchClientMedications } from '@/lib/clients/clientMedicationService';
-import { fetchClientPortalAccess } from '@/lib/clients/clientPortalAccessService';
-import { ClientPortalAccessPanel } from '@/components/clients/ClientPortalAccessPanel';
+import { fetchClientPortalAccess, invitePortalAccess } from '@/lib/clients/clientPortalAccessService';
 import { addTimelineEvent, fetchClientTimeline } from '@/lib/clients/clientTimelineService';
-import { buildTimelineEntrySubtitle } from '@/lib/clients/clientTimelineAggregation';
 import { addClientVital, fetchClientVitals } from '@/lib/clients/clientVitalsService';
-import { ClientTasksPanel } from '@/components/office/ClientTasksPanel';
-import { ClientRecordShiftsPanel } from '@/components/office/ClientRecordShiftsPanel';
+import { fetchClientTasks, addClientTaskFromCatalog } from '@/lib/clients/clientTasksService';
 import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { fetchClientModuleAssignments } from '@/lib/officeModules/moduleAssignmentService';
 import { PRODUCT_LABELS } from '@/data/demo/products';
+import { TASK_CATALOG } from '@/data/demo/clients';
 import {
   AngehoerigeTab,
+  DokumenteTab,
   EinwilligungenTab,
+  EinsatzAufgabenTab,
   PflegegradBudgetTab,
+  PortalTab,
   RisikenNotfallTab,
+  VerlaufTab,
   VertragAbrechnungTab,
 } from '@/screens/office/ClientFullDetailTabs';
 import type { ClientFullDetail } from '@/types/modules/client';
-import { formatDate, formatDateTime } from '@/lib/formatters/dateTimeFormatters';
+import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 type TabPanelProps = {
@@ -62,6 +66,77 @@ function useClientTabQuery<T>(
     },
     [tenantId, clientId],
     { enabled: enabled && !!tenantId && !!clientId },
+  );
+}
+
+export function ClientRecordDocumentsPanel({ clientId, fullClient, onRecordRefresh }: TabPanelProps) {
+  const router = useRouter();
+  const { isReadOnly } = usePermissions();
+  const tenantId = useServiceTenantId();
+  const [title, setTitle] = useState('');
+  const [category, setCategory] = useState('vertrag');
+  const [fileName, setFileName] = useState('');
+  const [working, setWorking] = useState(false);
+  const [message, setMessage] = useState<string | null>(null);
+
+  const query = useClientTabQuery(clientId, listClientDocuments);
+
+  async function handleUpload() {
+    if (!tenantId || isReadOnly || !title.trim() || !fileName.trim()) return;
+    setWorking(true);
+    setMessage(null);
+    const result = await uploadClientDocument(tenantId, clientId, {
+      title: title.trim(),
+      category,
+      fileName: fileName.trim(),
+      mimeType: 'application/pdf',
+    });
+    setWorking(false);
+    if (!result.ok) {
+      setMessage(result.error);
+      return;
+    }
+    setTitle('');
+    setFileName('');
+    setMessage('Dokument hochgeladen.');
+    await query.refresh();
+    onRecordRefresh?.();
+  }
+
+  if (query.loading && !query.data) return <LoadingState message="Dokumente werden geladen…" />;
+  if (query.error && !query.data) return <ErrorState message={query.error} onRetry={query.refresh} />;
+
+  const documents = query.data ?? fullClient?.documents ?? [];
+
+  return (
+    <View style={styles.panel}>
+      {message ? <SuccessState message={message} /> : null}
+      <SectionPanel title="Dokumente in Akte">
+        {documents.length === 0 ? (
+          <EmptyState title="Keine Dokumente" message="Laden Sie ein Dokument hoch oder generieren Sie eines aus Vorlagen." />
+        ) : (
+          documents.map((doc) => (
+            <PremiumCard key={doc.id} style={styles.card}>
+              <Text style={styles.primary}>{doc.title}</Text>
+              <Text style={styles.secondary}>{doc.fileName} · {doc.category} · {doc.status}</Text>
+            </PremiumCard>
+          ))
+        )}
+      </SectionPanel>
+      {!isReadOnly ? (
+        <SectionPanel title="Dokument hochladen">
+          <PremiumInput label="Titel *" value={title} onChangeText={setTitle} />
+          <CareCatalogSelect catalogKey="document_category" label="Kategorie" value={category} onChange={setCategory} />
+          <PremiumInput label="Dateiname *" value={fileName} onChangeText={setFileName} placeholder="vertrag.pdf" />
+          <PremiumButton title={working ? 'Speichern…' : 'In Akte speichern'} onPress={handleUpload} disabled={working} />
+        </SectionPanel>
+      ) : null}
+      <PremiumButton
+        title="Rechtliche Dokumente (Vorlage → Signatur)"
+        variant="secondary"
+        onPress={() => router.push(`/business/office/clients/${clientId}/documents` as never)}
+      />
+    </View>
   );
 }
 
@@ -105,6 +180,55 @@ export function ClientRecordConsentsPanel({ clientId, fullClient, onRecordRefres
           ))
         )}
       </SectionPanel>
+    </View>
+  );
+}
+
+export function ClientRecordContractsPanel({ clientId }: TabPanelProps) {
+  const { isReadOnly } = usePermissions();
+  const tenantId = useServiceTenantId();
+  const [contractType, setContractType] = useState('kundenvertrag');
+  const query = useClientTabQuery(clientId, fetchClientContracts);
+
+  async function handleCreate() {
+    if (!tenantId || isReadOnly) return;
+    await createContractFromTemplate(tenantId, clientId, contractType);
+    await query.refresh();
+  }
+
+  if (query.loading && !query.data) return <LoadingState message="Verträge werden geladen…" />;
+  if (query.error && !query.data) return <ErrorState message={query.error} onRetry={query.refresh} />;
+
+  return (
+    <View style={styles.panel}>
+      <SectionPanel title="Verträge">
+        {(query.data ?? []).length === 0 ? (
+          <EmptyState title="Keine Verträge" />
+        ) : (
+          query.data!.map((c) => (
+            <PremiumCard key={c.id} style={styles.card}>
+              <Text style={styles.primary}>{c.contractNumber}</Text>
+              <Text style={styles.secondary}>
+                {formatDate(c.contractStart)} · {c.status} · {c.signedAt ? 'signiert' : 'offen'}
+              </Text>
+            </PremiumCard>
+          ))
+        )}
+      </SectionPanel>
+      {!isReadOnly ? (
+        <SectionPanel title="Vertrag aus Vorlage">
+          <FilterChipGroup
+            options={[
+              { key: 'kundenvertrag', label: 'Kundenvertrag' },
+              { key: 'pflegevertrag', label: 'Pflegevertrag' },
+              { key: 'leistungsvereinbarung', label: 'Leistungsvereinbarung' },
+            ]}
+            value={contractType}
+            onChange={setContractType}
+          />
+          <PremiumButton title="Vertrag anlegen" variant="secondary" onPress={handleCreate} />
+        </SectionPanel>
+      ) : null}
     </View>
   );
 }
@@ -213,9 +337,8 @@ export function ClientRecordVitalsPanel({ clientId, onRecordRefresh }: TabPanelP
   );
 }
 
-export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProps) {
+export function ClientRecordTimelinePanel({ clientId }: TabPanelProps) {
   const { isReadOnly } = usePermissions();
-  const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [note, setNote] = useState('');
   const query = useClientTabQuery(clientId, (tid, cid) => fetchClientTimeline(tid, cid));
@@ -224,8 +347,8 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
     if (!tenantId || isReadOnly || !note.trim()) return;
     await addTimelineEvent(tenantId, clientId, {
       title: note.trim(),
-      subtitle: 'Manuelle Notiz',
-      actorName: profile?.displayName ?? 'Office',
+      subtitle: 'Office-Eintrag',
+      actorName: 'Office Demo',
       timestamp: new Date().toISOString(),
       icon: '📝',
       status: 'aktiv',
@@ -244,36 +367,17 @@ export function ClientRecordTimelinePanel({ clientId, fullClient }: TabPanelProp
     id: e.id,
     icon: e.icon,
     title: e.title,
-    subtitle: `${formatDateTime(e.timestamp)} · ${buildTimelineEntrySubtitle(e)}`,
+    subtitle: e.subtitle ?? e.actorName ?? undefined,
     timestamp: e.timestamp,
     status: e.status,
     type: 'care' as const,
   }));
 
-  const internalNotes = fullClient?.internalNotes ?? [];
-
   return (
     <View style={styles.panel}>
       <SectionPanel title="Verlauf / Timeline">
-        {items.length === 0 ? (
-          <EmptyState
-            title="Noch keine Einträge"
-            message="Änderungen an Stammdaten, Dokumenten, Portal und Aufgaben erscheinen hier automatisch. Sie können auch manuelle Notizen hinzufügen."
-          />
-        ) : (
-          <Timeline items={items} maxItems={500} />
-        )}
+        {items.length === 0 ? <EmptyState title="Keine Einträge" /> : <Timeline items={items} />}
       </SectionPanel>
-      {internalNotes.length > 0 ? (
-        <SectionPanel title="Interne Notizen" subtitle="Nur Office — nicht im Portal">
-          {internalNotes.map((n) => (
-            <PremiumCard key={n.id} accentColor={colors.violet} style={styles.card}>
-              <Text style={styles.secondary}>{n.category} · {n.createdBy}</Text>
-              <Text style={styles.primary}>{n.content}</Text>
-            </PremiumCard>
-          ))}
-        </SectionPanel>
-      ) : null}
       {!isReadOnly ? (
         <SectionPanel title="Eintrag hinzufügen">
           <PremiumInput label="Notiz" value={note} onChangeText={setNote} multiline />
@@ -325,17 +429,27 @@ export function ClientRecordModulesPanel({ clientId }: TabPanelProps) {
 export function ClientRecordPortalPanel({ clientId, fullClient, onRecordRefresh }: TabPanelProps) {
   const { isReadOnly } = usePermissions();
   const tenantId = useServiceTenantId();
+  const [email, setEmail] = useState('');
   const query = useClientTabQuery(clientId, fetchClientPortalAccess);
 
-  if (fullClient && tenantId) {
+  async function handleInvite() {
+    if (!tenantId || isReadOnly || !email.trim()) return;
+    await invitePortalAccess(tenantId, clientId, email.trim());
+    setEmail('');
+    await query.refresh();
+    onRecordRefresh?.();
+  }
+
+  if (fullClient) {
     return (
       <View style={styles.panel}>
-        <ClientPortalAccessPanel
-          client={fullClient}
-          tenantId={tenantId}
-          isReadOnly={isReadOnly}
-          onRefresh={onRecordRefresh}
-        />
+        <PortalTab client={fullClient} />
+        {!isReadOnly ? (
+          <SectionPanel title="Portal einladen">
+            <PremiumInput label="E-Mail" value={email} onChangeText={setEmail} />
+            <PremiumButton title="Einladung senden" onPress={handleInvite} />
+          </SectionPanel>
+        ) : null}
       </View>
     );
   }
@@ -352,25 +466,38 @@ export function ClientRecordPortalPanel({ clientId, fullClient, onRecordRefresh 
   );
 }
 
-export function ClientRecordTasksPanel({
-  clientId,
-  fullClient,
-  onRecordRefresh,
-}: TabPanelProps) {
-  return (
-    <ClientTasksPanel
-      clientId={clientId}
-      fullClient={fullClient}
-      onRecordRefresh={onRecordRefresh}
-    />
-  );
-}
+export function ClientRecordTasksPanel({ clientId, fullClient }: TabPanelProps) {
+  const { isReadOnly } = usePermissions();
+  const tenantId = useServiceTenantId();
+  const [catalogId, setCatalogId] = useState(TASK_CATALOG[0]?.id ?? '');
+  const query = useClientTabQuery(clientId, fetchClientTasks);
 
-export function ClientRecordShiftsTabPanel({
-  clientId,
-  fullClient,
-}: Pick<TabPanelProps, 'clientId' | 'fullClient'>) {
-  return <ClientRecordShiftsPanel clientId={clientId} fullClient={fullClient} />;
+  async function handleAddTask() {
+    if (!tenantId || isReadOnly || !catalogId) return;
+    await addClientTaskFromCatalog(tenantId, clientId, catalogId);
+    await query.refresh();
+  }
+
+  if (fullClient) return <EinsatzAufgabenTab client={fullClient} />;
+  if (query.loading) return <LoadingState message="Aufgaben werden geladen…" />;
+
+  return (
+    <View style={styles.panel}>
+      <SectionPanel title="Aufgaben">
+        {(query.data ?? []).length === 0 ? <EmptyState title="Keine Aufgaben" /> : null}
+      </SectionPanel>
+      {!isReadOnly ? (
+        <SectionPanel title="Aus Katalog">
+          <FilterChipGroup
+            options={TASK_CATALOG.slice(0, 6).map((t) => ({ key: t.id, label: t.title }))}
+            value={catalogId}
+            onChange={setCatalogId}
+          />
+          <PremiumButton title="Aufgabe hinzufügen" onPress={handleAddTask} />
+        </SectionPanel>
+      ) : null}
+    </View>
+  );
 }
 
 export function ClientRecordTabContent({
@@ -385,19 +512,14 @@ export function ClientRecordTabContent({
   if (fullClient) {
     if (tab === 'angehoerige') return <AngehoerigeTab client={fullClient} />;
     if (tab === 'pflegegrad') return <PflegegradBudgetTab client={fullClient} />;
-    if (tab === 'abrechnung') return <VertragAbrechnungTab client={fullClient} />;
-    if (tab === 'vertrag') {
-      return <ClientRecordContractsPanel clientId={clientId} fullClient={fullClient} />;
-    }
+    if (tab === 'vertrag' || tab === 'abrechnung') return <VertragAbrechnungTab client={fullClient} />;
     if (tab === 'risiken') return <RisikenNotfallTab client={fullClient} canViewSensitive={canViewSensitive} />;
     if (tab === 'dokumente') {
       return (
-        <ClientRecordDocumentsPanel
-          clientId={clientId}
-          clientLastName={fullClient.lastName}
-          initialDocuments={fullClient.documents}
-          onRecordRefresh={onRecordRefresh}
-        />
+        <View style={styles.panel}>
+          <DokumenteTab client={fullClient} />
+          <ClientRecordDocumentsPanel {...panelProps} />
+        </View>
       );
     }
     if (tab === 'einwilligungen') {
@@ -409,30 +531,23 @@ export function ClientRecordTabContent({
       );
     }
     if (tab === 'verlauf') {
-      return <ClientRecordTimelinePanel {...panelProps} />;
+      return (
+        <View style={styles.panel}>
+          <VerlaufTab client={fullClient} />
+          <ClientRecordTimelinePanel {...panelProps} />
+        </View>
+      );
     }
-    if (tab === 'aufgaben') {
-      return <ClientRecordTasksPanel {...panelProps} />;
-    }
-    if (tab === 'einsaetze') {
-      return <ClientRecordShiftsTabPanel clientId={clientId} fullClient={fullClient} />;
-    }
+    if (tab === 'aufgaben' || tab === 'einsaetze') return <ClientRecordTasksPanel {...panelProps} />;
   }
 
   switch (tab) {
     case 'dokumente':
-      return (
-        <ClientRecordDocumentsPanel
-          clientId={clientId}
-          clientLastName={fullClient?.lastName ?? null}
-          initialDocuments={fullClient?.documents}
-          onRecordRefresh={onRecordRefresh}
-        />
-      );
+      return <ClientRecordDocumentsPanel {...panelProps} />;
     case 'einwilligungen':
       return <ClientRecordConsentsPanel {...panelProps} />;
     case 'vertrag':
-      return <ClientRecordContractsPanel clientId={clientId} fullClient={fullClient} />;
+      return <ClientRecordContractsPanel {...panelProps} />;
     case 'medikation':
       return <ClientRecordMedicationPanel {...panelProps} />;
     case 'vitalwerte':
@@ -444,9 +559,8 @@ export function ClientRecordTabContent({
     case 'portal':
       return <ClientRecordPortalPanel {...panelProps} />;
     case 'aufgaben':
-      return <ClientRecordTasksPanel {...panelProps} />;
     case 'einsaetze':
-      return <ClientRecordShiftsTabPanel clientId={clientId} fullClient={fullClient} />;
+      return <ClientRecordTasksPanel {...panelProps} />;
     default:
       return (
         <SectionPanel title="Bereich">

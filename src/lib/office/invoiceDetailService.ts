@@ -10,10 +10,6 @@ import {
   updateDemoInvoiceFields,
   updateDemoInvoiceStatus,
 } from '@/data/demo/invoiceExtras';
-import {
-  getDemoInvoiceAccountingStatus,
-} from '@/data/demo/accounting';
-import { assertInvoiceAccountingEditable } from '@/lib/accounting';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { invoiceSupabaseRepository } from '@/lib/services/repositories/invoiceRepository.supabase';
@@ -59,7 +55,6 @@ function buildDetailFromDemo(
     auditEntries: getDemoInvoiceAudit(invoice.id),
     allowedStatusActions: getAllowedStatusActions(invoice.status),
     nextActionHint: CLIENT_STATUS_HINTS[invoice.status],
-    accountingStatus: getDemoInvoiceAccountingStatus(invoice.id).accountingStatus,
   };
 }
 
@@ -209,16 +204,6 @@ export async function updateInvoice(
   }
 
   await new Promise((r) => setTimeout(r, 280));
-
-  const current = getDemoInvoiceById(invoiceId);
-  if (!current) {
-    return { ok: false, error: 'Rechnung nicht gefunden.' };
-  }
-
-  const gobdBlock = assertInvoiceAccountingEditable(
-    getDemoInvoiceAccountingStatus(invoiceId).accountingStatus,
-  );
-  if (gobdBlock) return gobdBlock;
 
   const updated = updateDemoInvoiceFields(
     invoiceId,

@@ -8,202 +8,114 @@ import type {
   EmployeeEmploymentDetails,
   EmployeePortalAccessRecord,
   EmployeeQualificationRecord,
-  EmployeeQualificationStatus,
 } from '@/types/modules/employeePersonnelFile';
-import { computeBackgroundCheckStatus } from './employeeBackgroundCheckService';
 import {
   ASSIGNABLE_EMPLOYMENT_STATUSES,
   getRequiredQualificationsForRole,
-  INACTIVE_EMPLOYMENT_STATUSES,
-  PORTAL_RELEASED_DOCUMENT_CATEGORIES,
 } from './employeePersonnelFieldRules';
-import {
-  computeQualificationStatus,
-  hasRequiredQualifications,
-  resolveQualificationOverview,
-} from './employeeQualificationService';
-import { evaluateComplianceDeployability } from './complianceTrainingService';
+import { isBackgroundCheckAssignable } from './employeeBackgroundCheckService';
+import { hasRequiredQualifications } from './employeeQualificationService';
 
-export type EvaluateEmployeeDeployabilityInput = {
+export type DeployabilityInput = {
   employment: EmployeeEmploymentDetails;
   portalAccess: EmployeePortalAccessRecord;
   qualifications: EmployeeQualificationRecord[];
   backgroundCheck: EmployeeBackgroundCheckRecord;
   documents: EmployeeDocumentRecord[];
-  roleTitle?: string | null;
-  roleKey?: RoleKey | null;
-  tenantId?: string;
-  employeeId?: string;
+  roleTitle: string | null;
   blocked?: boolean;
   absent?: boolean;
   availabilityOk?: boolean;
   backgroundCheckRequired?: boolean;
   portalRequired?: boolean;
-  reference?: Date;
 };
 
-export function evaluateEmployeeDeployability(
-  input: EvaluateEmployeeDeployabilityInput,
-): EmployeeDeployabilityCheck {
-  const reference = input.reference ?? new Date();
-  const blockers: EmployeeDeployabilityIssue[] = [];
+function issue(
+  code: string,
+  message: string,
+  severity: 'warning' | 'error',
+): EmployeeDeployabilityIssue {
+  return { code, message, severity };
+}
+
+export function evaluateEmployeeDeployability(input: DeployabilityInput): EmployeeDeployabilityCheck {
   const warnings: EmployeeDeployabilityIssue[] = [];
+  const blockers: EmployeeDeployabilityIssue[] = [];
 
   const active = ASSIGNABLE_EMPLOYMENT_STATUSES.has(input.employment.employmentStatus);
-  if (!active || INACTIVE_EMPLOYMENT_STATUSES.has(input.employment.employmentStatus)) {
-    blockers.push({
-      code: 'employment_inactive',
-      message: 'Mitarbeitende:r ist nicht einsatzfähig (Anstellungsstatus).',
-      severity: 'error',
-    });
-  }
-
-  if (input.blocked) {
-    blockers.push({
-      code: 'employee_blocked',
-      message: 'Mitarbeitende:r ist gesperrt.',
-      severity: 'error',
-    });
-  }
-
-  if (input.absent) {
-    blockers.push({
-      code: 'employee_absent',
-      message: 'Mitarbeitende:r ist abwesend.',
-      severity: 'error',
-    });
-  }
-
-  const requiredTypes = getRequiredQualificationsForRole(input.roleTitle ?? null);
-  const qualCheck = hasRequiredQualifications(input.qualifications, requiredTypes, reference);
-  if (!qualCheck.ok) {
-    for (const missing of qualCheck.missing) {
-      blockers.push({
-        code: 'qualification_missing',
-        message: `Pflichtqualifikation fehlt oder ungültig: ${missing}`,
-        severity: 'error',
-      });
-    }
-  }
-
-  for (const qualification of input.qualifications) {
-    const status = computeQualificationStatus(qualification, reference);
-    if (status === 'expires_soon') {
-      warnings.push({
-        code: 'qualification_expires_soon',
-        message: `Qualifikation läuft bald ab: ${qualification.title}`,
-        severity: 'warning',
-      });
-    }
-    if (status === 'pending_review') {
-      blockers.push({
-        code: 'qualification_unverified',
-        message: `Qualifikation nicht verifiziert: ${qualification.title}`,
-        severity: 'error',
-      });
-    }
-  }
-
-  const bgStatus = computeBackgroundCheckStatus(input.backgroundCheck);
-  const backgroundCheckOk =
-    !input.backgroundCheckRequired ||
-    bgStatus === 'verified' ||
-    (bgStatus !== 'missing' && bgStatus !== 'expired' && bgStatus !== 'rejected');
-
-  if (input.backgroundCheckRequired && !backgroundCheckOk) {
-    blockers.push({
-      code: 'background_check_missing',
-      message: 'Führungszeugnis fehlt, abgelaufen oder nicht verifiziert.',
-      severity: 'error',
-    });
-  } else if (bgStatus === 'requested' || bgStatus === 'submitted') {
-    warnings.push({
-      code: 'background_check_follow_up',
-      message: 'Führungszeugnis-Nachweis prüfen oder erneuern.',
-      severity: 'warning',
-    });
-  }
-
-  const portalOk = !input.portalRequired || input.portalAccess.portalActive;
-  if (input.portalRequired && !input.portalAccess.portalActive) {
-    blockers.push({
-      code: 'portal_inactive',
-      message: 'Portalzugang nicht aktiv.',
-      severity: 'error',
-    });
-  } else if (!input.portalAccess.portalActive) {
-    warnings.push({
-      code: 'portal_inactive',
-      message: 'Portalzugang nicht aktiv.',
-      severity: 'warning',
-    });
-  }
-
-  const requiredDocCategories = ['contract', 'privacy'] as const;
-  const requiredDocsOk = requiredDocCategories.every((category) =>
-    input.documents.some((doc) => doc.category === category),
-  );
-  if (!requiredDocsOk) {
-    blockers.push({
-      code: 'required_docs_missing',
-      message: 'Pflichtdokumente (Vertrag/Datenschutz) fehlen.',
-      severity: 'error',
-    });
-  }
-
-  const releasedDocs = input.documents.filter((doc) =>
-    PORTAL_RELEASED_DOCUMENT_CATEGORIES.has(doc.category),
-  );
-  if (releasedDocs.length === 0 && input.documents.length > 0) {
-    warnings.push({
-      code: 'portal_docs_limited',
-      message: 'Keine für das Portal freigegebenen Dokumente.',
-      severity: 'warning',
-    });
-  }
-
-  const availabilityOk = input.availabilityOk !== false;
-  if (!availabilityOk) {
-    warnings.push({
-      code: 'outside_availability',
-      message: 'Verfügbarkeit eingeschränkt.',
-      severity: 'warning',
-    });
-  }
-
-  if (input.tenantId && input.employeeId) {
-    const compliance = evaluateComplianceDeployability(
-      input.tenantId,
-      input.employeeId,
-      input.roleKey ?? input.portalAccess.roleKey,
-      reference,
+  if (!active) {
+    blockers.push(
+      issue('employment_inactive', 'Mitarbeitende:r ist nicht einsatzfähig (Status).', 'error'),
     );
-    if (!compliance.ok) {
-      for (const message of compliance.blockers) {
-        blockers.push({
-          code: 'compliance_training_missing',
-          message,
-          severity: 'error',
-        });
-      }
-    }
   }
 
-  const qualificationOverview = resolveQualificationOverview(input.qualifications, reference);
-  const qualificationOk = qualCheck.ok && qualificationOverview !== 'expired';
+  const portalOk =
+    !input.portalRequired || (input.portalAccess.portalActive && Boolean(input.portalAccess.profileId));
+  if (!portalOk) {
+    blockers.push(issue('portal_inactive', 'Portalzugang nicht aktiv.', 'error'));
+  } else if (!input.portalAccess.portalActive) {
+    warnings.push(issue('portal_inactive', 'Portalzugang inaktiv.', 'warning'));
+  }
 
-  const result: EmployeeDeployabilityResult =
-    blockers.length > 0 ? 'blocked' : warnings.length > 0 ? 'warning' : 'assignable';
+  const requiredTypes = getRequiredQualificationsForRole(input.roleTitle);
+  const qualCheck = hasRequiredQualifications(input.qualifications, requiredTypes);
+  const qualificationOk = qualCheck.ok;
+  if (!qualificationOk) {
+    blockers.push(
+      issue(
+        'qualification_missing',
+        `Qualifikation fehlt oder abgelaufen: ${qualCheck.missing.join(', ')}.`,
+        'error',
+      ),
+    );
+  }
+
+  const notAbsent = !input.absent;
+  if (input.absent) {
+    blockers.push(issue('employee_absent', 'Mitarbeitende:r ist abwesend.', 'error'));
+  }
+
+  const backgroundCheckOk = isBackgroundCheckAssignable(
+    input.backgroundCheck,
+    input.backgroundCheckRequired ?? true,
+  );
+  if (!backgroundCheckOk) {
+    blockers.push(
+      issue('background_check_missing', 'Führungszeugnis fehlt oder abgelaufen.', 'error'),
+    );
+  }
+
+  const availabilityOk = input.availabilityOk ?? true;
+  if (!availabilityOk) {
+    warnings.push(issue('outside_availability', 'Außerhalb hinterlegter Verfügbarkeit.', 'warning'));
+  }
+
+  const noBlock = !input.blocked;
+  if (input.blocked) {
+    blockers.push(issue('employee_blocked', 'Mitarbeitende:r ist gesperrt.', 'error'));
+  }
+
+  const missingRequiredDocs = input.documents.filter(
+    (d) => d.category === 'contract' && !d.storagePath,
+  );
+  const requiredDocsOk = missingRequiredDocs.length === 0;
+  if (!requiredDocsOk) {
+    warnings.push(issue('missing_contract', 'Arbeitsvertrag fehlt.', 'warning'));
+  }
+
+  let result: EmployeeDeployabilityResult = 'assignable';
+  if (blockers.length > 0) result = 'blocked';
+  else if (warnings.length > 0) result = 'warning';
 
   return {
     result,
     active,
     portalOk,
     qualificationOk,
-    notAbsent: !input.absent,
+    notAbsent,
     backgroundCheckOk,
     availabilityOk,
-    noBlock: !input.blocked,
+    noBlock,
     requiredDocsOk,
     warnings,
     blockers,
@@ -215,16 +127,7 @@ export function isEmployeeAssignable(deployability: EmployeeDeployabilityCheck):
 }
 
 export function buildDeployabilityOpenTasks(deployability: EmployeeDeployabilityCheck): string[] {
-  return [
-    ...deployability.blockers.map((issue) => issue.message),
-    ...deployability.warnings.map((issue) => issue.message),
-  ].slice(0, 8);
-}
-
-export function aggregateQualificationStatus(
-  qualifications: EmployeeQualificationRecord[],
-): EmployeeQualificationStatus | 'mixed' {
-  return resolveQualificationOverview(qualifications);
+  return [...deployability.blockers, ...deployability.warnings].map((i) => i.message);
 }
 
 export function roleCanPerformAssignment(roleKey: RoleKey | null): boolean {

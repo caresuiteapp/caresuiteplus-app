@@ -12,9 +12,9 @@ export function EmployeePortalOverviewScreen() {
   const displayName = profile?.displayName ?? user?.displayName ?? 'Portal';
 
   const query = useAsyncQuery(
-    () => fetchEmployeePortalDashboard(profile?.tenantId ?? '', profile?.id ?? '', profile?.roleKey),
-    [profile?.tenantId, profile?.id, profile?.roleKey],
-    { enabled: !!profile?.tenantId && !!profile?.id },
+    () => fetchEmployeePortalDashboard(profile?.tenantId ?? '', profile?.roleKey),
+    [profile?.tenantId, profile?.roleKey],
+    { enabled: !!profile?.tenantId },
   );
 
   if (query.loading && !query.data) {

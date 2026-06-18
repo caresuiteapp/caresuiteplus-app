@@ -14,6 +14,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
+import { GradientModalHeader } from '@/components/layout/platform';
 import type { ClientDocumentRecord } from '@/types/modules/client';
 import { downloadDocumentPdf, isDocumentPdfDownloadSupported } from '@/lib/documents/documentPdfService';
 import {
@@ -258,10 +259,12 @@ function DeliveryModal({
       <View style={styles.backdrop} accessibilityViewIsModal>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
         <View style={[styles.sheet, { width: Math.min(screenWidth - spacing.lg * 2, 560) }]}>
-          <Text style={styles.modalTitle}>{title}</Text>
-          <Text style={styles.modalSubtitle}>{subtitle}</Text>
-          <View style={styles.modalBody}>{children}</View>
-          <PremiumButton title="Abbrechen" variant="secondary" onPress={onClose} />
+          <GradientModalHeader title={title} onClose={onClose} />
+          <View style={styles.sheetBody}>
+            <Text style={styles.modalSubtitle}>{subtitle}</Text>
+            <View style={styles.modalBody}>{children}</View>
+            <PremiumButton title="Abbrechen" variant="secondary" onPress={onClose} />
+          </View>
         </View>
       </View>
     </Modal>

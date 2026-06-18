@@ -13,7 +13,6 @@ import {
 import { useResidentDetail } from '@/hooks/useResidentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 type ResidentDetailSummaryPanelProps = {
@@ -81,7 +80,7 @@ export function ResidentDetailSummaryPanel({ residentId }: ResidentDetailSummary
             dot
           />
           {resident.careLevel ? (
-            <PremiumBadge label={formatCareLevel(resident.careLevel)} variant="muted" />
+            <PremiumBadge label={resident.careLevel} variant="muted" />
           ) : null}
         </View>
         <Text style={styles.hint}>{resident.nextActionHint}</Text>

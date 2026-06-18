@@ -1,7 +1,7 @@
 import { useState } from 'react';
+import { createCareRecordFromExecution } from '@/lib/assist';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { VoiceFlowPanel } from '@/components/brand';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -17,13 +17,19 @@ import {
 } from '@/components/ui';
 import { useAssignmentDetail } from '@/hooks/useAssignmentDetail';
 import { useAssignmentExecution } from '@/hooks/useAssignmentExecution';
-import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { startVoiceRecordingPrepared } from '@/features/communication/communication.voice';
-import { resolveVoiceFlowVisibility } from '@/lib/ui/voiceFlowVisibility';
-import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
+import { usePermissions } from '@/hooks/usePermissions';
+import type { ExecutionPhase } from '@/types/modules/assist';
 import { colors, spacing, typography } from '@/theme';
+
+const PHASE_LABELS: Record<ExecutionPhase, string> = {
+  pending: 'Bereit zum Check-in',
+  checked_in: 'Eingecheckt — Einsatz starten',
+  in_progress: 'Einsatz läuft',
+  completed: 'Abgeschlossen',
+  cancelled: 'Abgebrochen',
+};
 
 function formatDateTime(iso: string | null): string {
   if (!iso) return '—';
@@ -38,14 +44,13 @@ function formatDateTime(iso: string | null): string {
 export function AssignmentExecutionScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
-  const { user, profile } = useAuth();
-  const serviceTenantId = useServiceTenantId();
-  const { can, check, roleLabel, roleKey } = usePermissions();
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+  const { can, check, roleLabel } = usePermissions();
   const canManage = can('assist.execution.manage');
   const canCreateRecord = can('assist.records.create');
-
-  const [documentationNotes, setDocumentationNotes] = useState('');
-  const [taskNotes, setTaskNotes] = useState<Record<string, string>>({});
+  const [activityNote, setActivityNote] = useState('');
+  const [creatingRecord, setCreatingRecord] = useState(false);
 
   const { data: assignment, loading: assignmentLoading } = useAssignmentDetail(id);
   const {
@@ -53,14 +58,9 @@ export function AssignmentExecutionScreen() {
     loading: executionLoading,
     actionLoading,
     successMessage,
-    markOnTheWay,
-    markArrived,
-    markStarted,
-    markPaused,
-    markFinished,
-    submitDocumentation,
-    completeAssignment,
-    updateTask,
+    checkIn,
+    startWork,
+    checkOut,
   } = useAssignmentExecution(id);
 
   const loading = assignmentLoading || executionLoading;
@@ -82,18 +82,7 @@ export function AssignmentExecutionScreen() {
     );
   }
 
-  const status = execution.status;
-  const statusLabel = ASSIGNMENT_STATUS_LABELS[status];
-  const inDocumentationContext =
-    status === 'beendet' || status === 'dokumentation_offen' || status === 'unterschrift_offen';
-  const voiceFlow = resolveVoiceFlowVisibility({
-    isAuthenticated: Boolean(user),
-    roleKey: roleKey ?? profile?.roleKey ?? null,
-    assignmentId: id,
-    tenantId: assignment.tenantId,
-    sessionTenantId: profile?.tenantId ?? serviceTenantId,
-    documentationAllowed: inDocumentationContext && canManage,
-  });
+  const phase = execution.phase;
 
   return (
     <ScreenShell title={assignment.title} subtitle={assignment.clientName}>
@@ -101,16 +90,14 @@ export function AssignmentExecutionScreen() {
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <PremiumCard accentColor={colors.amber}>
-          <Text style={styles.phase}>{statusLabel}</Text>
-          <PremiumBadge label={statusLabel} variant="orange" dot />
+          <Text style={styles.phase}>{PHASE_LABELS[phase]}</Text>
+          <PremiumBadge label={PHASE_LABELS[phase]} variant="orange" dot />
         </PremiumCard>
 
         <SectionPanel title="Zeiterfassung">
-          <DetailInfoRow label="Geplant" value={formatDateTime(execution.plannedStartAt)} />
-          <DetailInfoRow label="Unterwegs" value={formatDateTime(execution.onTheWayAt)} />
-          <DetailInfoRow label="Angekommen" value={formatDateTime(execution.arrivedAt)} />
-          <DetailInfoRow label="Gestartet" value={formatDateTime(execution.actualStartAt)} />
-          <DetailInfoRow label="Beendet" value={formatDateTime(execution.finishedAt)} />
+          <DetailInfoRow label="Check-in" value={formatDateTime(execution.checkedInAt)} />
+          <DetailInfoRow label="Einsatzstart" value={formatDateTime(execution.actualStartAt)} />
+          <DetailInfoRow label="Check-out" value={formatDateTime(execution.checkedOutAt)} />
           <DetailInfoRow
             label="Dauer"
             value={
@@ -124,76 +111,25 @@ export function AssignmentExecutionScreen() {
         <SectionPanel title="Ort">
           <DetailInfoRow label="Geplant" value={assignment.location} />
           {execution.locationNote ? (
-            <DetailInfoRow label="Einsatzort" value={execution.locationNote} />
+            <DetailInfoRow label="Vor Ort" value={execution.locationNote} />
           ) : null}
         </SectionPanel>
 
-        {execution.tasks.length > 0 ? (
-          <SectionPanel title="Aufgaben">
-            {execution.tasks.map((task) => (
-              <View key={task.id} style={styles.taskRow}>
-                <Text style={styles.taskTitle}>
-                  {task.title}
-                  {task.isRequired ? ' *' : ''}
-                </Text>
-                <Text style={styles.taskStatus}>{task.status}</Text>
-                {canManage && status !== 'abgeschlossen' && status !== 'storniert' ? (
-                  <View style={styles.taskActions}>
-                    <PremiumButton
-                      title="Erledigt"
-                      variant="ghost"
-                      onPress={() => updateTask(task.id, 'done')}
-                    />
-                    <PremiumButton
-                      title="Nicht erledigt"
-                      variant="ghost"
-                      onPress={() =>
-                        updateTask(task.id, 'not_done', taskNotes[task.id] || undefined)
-                      }
-                    />
-                    {task.requiresNoteIfNotDone ? (
-                      <PremiumInput
-                        label="Begründung bei Abweichung"
-                        value={taskNotes[task.id] ?? ''}
-                        onChangeText={(value) =>
-                          setTaskNotes((prev) => ({ ...prev, [task.id]: value }))
-                        }
-                      />
-                    ) : null}
-                  </View>
-                ) : null}
-              </View>
-            ))}
-          </SectionPanel>
-        ) : null}
-
-        {inDocumentationContext ? (
-          <SectionPanel title="Dokumentation (Pflicht)">
-            {voiceFlow.showPanel ? (
-              <VoiceFlowPanel
-                compact
-                onStart={
-                  voiceFlow.showStartButton
-                    ? () => {
-                        void startVoiceRecordingPrepared();
-                      }
-                    : undefined
-                }
-              />
-            ) : null}
+        {phase === 'in_progress' || phase === 'checked_in' ? (
+          <SectionPanel title="Tätigkeitsnotiz">
             <PremiumInput
-              label="Leistungsdokumentation"
-              value={documentationNotes || execution.documentationNotes || ''}
-              onChangeText={setDocumentationNotes}
+              label="Was wurde erledigt?"
+              value={activityNote}
+              onChangeText={setActivityNote}
               multiline
-              placeholder="Was wurde erbracht? Abweichungen dokumentieren…"
+              placeholder="Kurze Dokumentation für den Einsatz…"
             />
           </SectionPanel>
         ) : null}
 
-        {execution.documentationNotes ? (
-          <SectionPanel title="Gespeicherte Dokumentation">
-            <Text style={styles.note}>{execution.documentationNotes}</Text>
+        {execution.activityNote ? (
+          <SectionPanel title="Dokumentation">
+            <Text style={styles.note}>{execution.activityNote}</Text>
           </SectionPanel>
         ) : null}
 
@@ -201,105 +137,60 @@ export function AssignmentExecutionScreen() {
           <LockedActionBanner
             message={
               check('assist.execution.manage').reason ??
-              'Einsatzdurchführung ist für Ihre Rolle gesperrt.'
+              'Check-in/Check-out ist für Ihre Rolle gesperrt.'
             }
             roleLabel={roleLabel}
           />
         ) : (
           <View style={styles.actions}>
-            {status === 'geplant' || status === 'bestaetigt' ? (
+            {phase === 'pending' ? (
               <PremiumButton
-                title="Unterwegs melden"
+                title="Check-in (vor Ort)"
                 fullWidth
                 loading={actionLoading}
-                onPress={() => markOnTheWay()}
+                onPress={() => checkIn(assignment.location)}
               />
             ) : null}
-            {status === 'unterwegs' ? (
-              <PremiumButton
-                title="Angekommen"
-                fullWidth
-                loading={actionLoading}
-                onPress={() => markArrived()}
-              />
-            ) : null}
-            {status === 'angekommen' ? (
+            {phase === 'checked_in' ? (
               <PremiumButton
                 title="Einsatz starten"
                 fullWidth
                 loading={actionLoading}
-                onPress={() => markStarted()}
+                onPress={() => startWork()}
               />
             ) : null}
-            {status === 'gestartet' ? (
-              <>
-                <PremiumButton
-                  title="Pause"
-                  variant="secondary"
-                  fullWidth
-                  loading={actionLoading}
-                  onPress={() => markPaused()}
-                />
-                <PremiumButton
-                  title="Einsatz beenden"
-                  fullWidth
-                  loading={actionLoading}
-                  onPress={() => markFinished()}
-                />
-              </>
-            ) : null}
-            {status === 'pausiert' ? (
-              <>
-                <PremiumButton
-                  title="Fortsetzen"
-                  fullWidth
-                  loading={actionLoading}
-                  onPress={() => markStarted()}
-                />
-                <PremiumButton
-                  title="Einsatz beenden"
-                  variant="secondary"
-                  fullWidth
-                  loading={actionLoading}
-                  onPress={() => markFinished()}
-                />
-              </>
-            ) : null}
-            {status === 'beendet' ? (
+            {phase === 'in_progress' || phase === 'checked_in' ? (
               <PremiumButton
-                title="Dokumentation speichern"
+                title="Check-out (Einsatz beenden)"
+                variant="secondary"
                 fullWidth
                 loading={actionLoading}
-                onPress={() => submitDocumentation(documentationNotes)}
+                onPress={() => checkOut(activityNote || undefined)}
               />
             ) : null}
-            {status === 'dokumentation_offen' ? (
-              <PremiumButton
-                title="Einsatz abschließen"
-                fullWidth
-                loading={actionLoading}
-                onPress={() => completeAssignment()}
-              />
-            ) : null}
-            {status === 'unterschrift_offen' && execution.serviceRecordId ? (
-              <PremiumButton
-                title="Zur Unterschrift"
-                fullWidth
-                loading={actionLoading}
-                onPress={() =>
-                  router.push(`/assist/nachweise/${execution.serviceRecordId}` as never)
-                }
-              />
-            ) : null}
-            {status === 'abgeschlossen' ? (
+            {phase === 'completed' ? (
               <>
-                {canCreateRecord && execution.serviceRecordId ? (
+                {canCreateRecord ? (
                   <PremiumButton
-                    title="Leistungsnachweis öffnen"
+                    title="Leistungsnachweis anlegen"
                     fullWidth
-                    onPress={() =>
-                      router.push(`/assist/nachweise/${execution.serviceRecordId}` as never)
-                    }
+                    loading={creatingRecord}
+                    onPress={async () => {
+                      if (!id || !tenantId) return;
+                      setCreatingRecord(true);
+                      const result = await createCareRecordFromExecution(
+                        id,
+                        (execution.activityNote ?? activityNote) || 'Einsatz dokumentiert.',
+                        execution.durationMinutes,
+                        execution.locationNote ?? assignment.location,
+                        tenantId,
+                        profile?.roleKey,
+                      );
+                      setCreatingRecord(false);
+                      if (result.ok) {
+                        router.push(`/assist/nachweise/${result.data.id}` as never);
+                      }
+                    }}
                   />
                 ) : null}
                 <PremiumButton
@@ -329,8 +220,4 @@ const styles = StyleSheet.create({
   phase: { ...typography.body, marginBottom: spacing.sm },
   note: { ...typography.body },
   actions: { gap: spacing.sm },
-  taskRow: { marginBottom: spacing.md, gap: spacing.xs },
-  taskTitle: { ...typography.body },
-  taskStatus: { ...typography.caption, color: colors.textMuted },
-  taskActions: { gap: spacing.xs },
 });

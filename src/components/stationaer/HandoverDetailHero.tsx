@@ -67,9 +67,9 @@ export function HandoverDetailHero({ handover, roleKey }: HandoverDetailHeroProp
         <PremiumBadge label={WORKFLOW_STATUS_LABELS[handover.status]} variant="orange" dot />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isStationaerExtensionLiveReady() ? (
-          <PremiumBadge statusKind="live" dot />
+          <PremiumBadge label="Live Supabase" variant="green" dot />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

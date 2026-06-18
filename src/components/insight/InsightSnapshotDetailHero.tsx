@@ -69,7 +69,7 @@ export function InsightSnapshotDetailHero({ snapshot, roleKey }: InsightSnapshot
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        <PremiumBadge statusKind="preparedOnly" />
+        <PremiumBadge label="preparedOnly" variant="muted" />
         {!isInsightLiveReady() ? (
           <PremiumBadge label="Kein Live-Warehouse" variant="orange" dot />
         ) : null}

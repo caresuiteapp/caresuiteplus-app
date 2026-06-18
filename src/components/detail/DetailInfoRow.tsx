@@ -1,5 +1,8 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '@/theme';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careTypography } from '@/design/tokens/typography';
+import { spacing } from '@/theme';
 
 type DetailInfoRowProps = {
   label: string;
@@ -7,6 +10,29 @@ type DetailInfoRowProps = {
 };
 
 export function DetailInfoRow({ label, value }: DetailInfoRowProps) {
+  const { c } = useCareLightPalette();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          paddingVertical: spacing.sm,
+          borderBottomWidth: 1,
+          borderBottomColor: c.border,
+        },
+        label: {
+          ...careTypography.caption,
+          color: c.muted,
+          marginBottom: 2,
+        },
+        value: {
+          ...careTypography.bodyStrong,
+          color: c.text,
+        },
+      }),
+    [c],
+  );
+
   if (!value) return null;
   return (
     <View style={styles.row}>
@@ -15,18 +41,3 @@ export function DetailInfoRow({ label, value }: DetailInfoRowProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
-  },
-  label: {
-    ...typography.caption,
-    marginBottom: 2,
-  },
-  value: {
-    ...typography.bodyStrong,
-  },
-});

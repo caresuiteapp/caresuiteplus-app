@@ -1,7 +1,5 @@
-import { StyleSheet, Text, View, Platform, type ViewStyle } from 'react-native';
-import { BlurView } from 'expo-blur';
+import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { careRadius } from '@/design/tokens/radius';
-import { galaxyPalette } from '@/design/tokens/galaxy';
 
 type CareSuiteIconProps = {
   emoji: string;
@@ -10,47 +8,32 @@ type CareSuiteIconProps = {
   style?: ViewStyle;
 };
 
-/** Glass icon container for premium surfaces. */
 export function CareSuiteIcon({
   emoji,
-  accentColor = galaxyPalette.careOrange,
+  accentColor = '#FF7A1A',
   size = 40,
   style,
 }: CareSuiteIconProps) {
-  const inner = (
+  return (
     <View
       style={[
         styles.badge,
         {
           width: size,
           height: size,
-          borderRadius: size * 0.28,
-          backgroundColor: `${accentColor}18`,
-          borderColor: `${accentColor}40`,
+          borderRadius: size * 0.25,
+          backgroundColor: `${accentColor}22`,
+          borderColor: `${accentColor}44`,
         },
         style,
       ]}
     >
-      <Text style={[styles.emoji, { fontSize: size * 0.42 }]}>{emoji}</Text>
-    </View>
-  );
-
-  if (Platform.OS === 'web') {
-    return inner;
-  }
-
-  return (
-    <View style={[styles.wrap, { width: size, height: size, borderRadius: size * 0.28 }]}>
-      <BlurView intensity={24} tint="dark" style={StyleSheet.absoluteFillObject} />
-      {inner}
+      <Text style={[styles.emoji, { fontSize: size * 0.45 }]}>{emoji}</Text>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: {
-    overflow: 'hidden',
-  },
   badge: {
     alignItems: 'center',
     justifyContent: 'center',

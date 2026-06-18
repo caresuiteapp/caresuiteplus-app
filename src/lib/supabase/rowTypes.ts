@@ -10,19 +10,11 @@ export type ClientRow = {
   tenant_id: string;
   first_name: string;
   last_name: string;
-  status: WorkflowStatus | string;
+  status: WorkflowStatus;
   care_level: string | null;
   city: string | null;
   zip: string | null;
   postal_code?: string | null;
-  cost_bearer?: string | null;
-  insurance_number?: string | null;
-  insurance_name?: string | null;
-  internal_notes?: string | null;
-  notes?: string | null;
-  archived_at?: string | null;
-  created_by?: string | null;
-  updated_by?: string | null;
   sensitivity: string | null;
   updated_at: string;
 };
@@ -31,16 +23,11 @@ export type ClientContactRow = {
   id: string;
   tenant_id?: string;
   client_id?: string;
-  name?: string;
-  full_name?: string | null;
-  first_name?: string | null;
-  last_name?: string | null;
+  name: string;
   relationship: string | null;
   phone: string | null;
   email: string | null;
-  is_emergency?: boolean;
-  is_emergency_contact?: boolean | null;
-  contact_type?: string | null;
+  is_emergency: boolean;
   created_at?: string;
 };
 
@@ -77,11 +64,8 @@ export type ClientHistoryRow = {
 export type ClientDetailRow = ClientRow & {
   created_at: string;
   date_of_birth: string | null;
-  admission_date?: string | null;
   primary_contact_phone: string | null;
   street: string | null;
-  house_number?: string | null;
-  mobile?: string | null;
   phone: string | null;
   email: string | null;
   notes: string | null;

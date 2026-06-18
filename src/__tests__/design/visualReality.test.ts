@@ -39,18 +39,18 @@ describe('Visual Reality — light premium main screens', () => {
     expect(kpis.find((k) => k.id === 'alerts')?.label).toBe('Hinweise / Risiken');
   });
 
-  it('AppStartScreen uses space premium shell and glass portal cards', () => {
+  it('AppStartScreen uses light background and cards', () => {
     const screen = readSrc('src/screens/AppStartScreen.tsx');
-    expect(screen).toContain('AppScreen');
-    expect(screen).toContain('PortalCard');
-    expect(screen).not.toContain('CareSuiteLightBackground');
+    expect(screen).toContain('CareSuiteLightBackground');
+    expect(screen).toContain('CareLightCard');
+    expect(screen).not.toContain('CareSuiteBackground');
     expect(screen).not.toContain('PremiumCard');
   });
 
-  it('AuthLandingScreen uses space premium landing', () => {
+  it('AuthLandingScreen is light premium landing', () => {
     const screen = readSrc('src/screens/auth/AuthLandingScreen.tsx');
-    expect(screen).toContain('AppScreen');
-    expect(screen).toContain('PortalCard');
+    expect(screen).toContain('CareLightScreen');
+    expect(screen).toContain('CareLightModuleTile');
     expect(screen).not.toContain('ScreenShell');
   });
 
@@ -91,14 +91,6 @@ describe('Visual Reality — light premium main screens', () => {
     expect(hero).toContain("mode === 'light'");
   });
 
-  it('PremiumDataTable uses light surface tokens in light mode', () => {
-    const table = readSrc('src/components/ui/PremiumDataTable.tsx');
-    expect(table).toContain('careLightColors.surface');
-    expect(table).toContain('careLightColors.muted');
-    expect(table).toContain("isLight");
-    expect(table).not.toMatch(/StyleSheet\.create\([\s\S]*designTokens\.glass\.background/);
-  });
-
   it('visual-reality-audit script covers Phase 2 list/detail routes', () => {
     const audit = readSrc('scripts/visual-reality-audit.mjs');
     expect(audit).toContain('PHASE2_LIST_DETAIL_SCREENS');
@@ -125,10 +117,10 @@ describe('Visual Reality — light premium main screens', () => {
     }
   });
 
-  it('DemoLoginScreen uses AuthPageShell and PremiumButton', () => {
+  it('DemoLoginScreen uses CareLightPageShell and CareLightButton', () => {
     const screen = readSrc('src/screens/DemoLoginScreen.tsx');
-    expect(screen).toContain('AuthPageShell');
-    expect(screen).toContain('PremiumButton');
+    expect(screen).toContain('CareLightPageShell');
+    expect(screen).toContain('CareLightButton');
     expect(screen).not.toMatch(/import[^;]*ScreenShell[^;]*from '@\/components\/layout'/);
   });
 });
@@ -183,14 +175,14 @@ describe('Visual Reality — Phase 2 list/detail screens', () => {
     expect(hero).not.toContain('PremiumListHeroFrame');
   });
 
-  it('auth login screens use AuthLayout', () => {
+  it('auth login screens use CareLightPageShell', () => {
     for (const rel of [
       'src/screens/auth/BusinessLoginScreen.tsx',
       'src/screens/auth/EmployeePortalLoginScreen.tsx',
       'src/screens/auth/PortalCodeLoginScreen.tsx',
     ]) {
       const screen = readSrc(rel);
-      expect(screen).toContain('AuthLayout');
+      expect(screen).toContain('CareLightPageShell');
     }
   });
 });

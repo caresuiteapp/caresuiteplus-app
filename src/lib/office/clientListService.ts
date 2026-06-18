@@ -1,13 +1,13 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { ClientListItem } from '@/types/modules/office';
-import { clientService, type ClientListOptions } from '@/lib/services';
+import { clientService } from '@/lib/services';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 
 export async function fetchClientList(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
-  options?: ClientListOptions,
+  options?: { simulateError?: boolean; simulateEmpty?: boolean },
 ): Promise<ServiceResult<ClientListItem[]>> {
   const denied = enforcePermission<ClientListItem[]>(actorRoleKey, 'office.clients.view');
   if (denied) return denied;

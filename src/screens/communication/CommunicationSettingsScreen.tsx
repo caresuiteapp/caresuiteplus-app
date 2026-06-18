@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { LoadingState, PremiumButton } from '@/components/ui';
@@ -15,7 +14,6 @@ import { colors, spacing, typography } from '@/theme';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 
 export function CommunicationSettingsScreen() {
-  const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const perms = useCommunicationPermissions();
@@ -85,11 +83,6 @@ export function CommunicationSettingsScreen() {
           </View>
         ))}
         <PremiumButton title="Aktualisieren" variant="secondary" onPress={query.refresh} />
-        <PremiumButton
-          title="Kanal-Einstellungen (E-Mail, SMS, Push…)"
-          variant="secondary"
-          onPress={() => router.push('/business/messages/channels' as never)}
-        />
       </View>
     </ScreenShell>
   );

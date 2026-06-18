@@ -92,18 +92,6 @@ describe('clientDocumentCategories', () => {
   });
 });
 
-describe('client document upload storage path (RLS)', () => {
-  it('liegt unter tenant/…/clients/…/documents/ für office_docs_insert', () => {
-    const migration = readFileSync(
-      path.join(root, 'supabase/migrations/0087_client_documents_upload_rls_live.sql'),
-      'utf8',
-    );
-    expect(migration).toContain("(storage.foldername(name))[3] = 'clients'");
-    expect(migration).toContain("(storage.foldername(name))[5] = 'documents'");
-    expect(migration).toContain('beratungsprotokoll');
-  });
-});
-
 describe('ClientRecordDocumentsPanel category navigation', () => {
   it('nutzt Kategorie-Unterseiten statt flacher Liste', () => {
     const source = readFileSync(

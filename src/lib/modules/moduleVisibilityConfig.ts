@@ -26,21 +26,21 @@ export const MODULE_VISIBILITY_CATALOG: Record<ModuleScopeKey, ModuleVisibilityC
   },
   stationaer: {
     scopeKey: 'stationaer',
-    status: 'coming_soon',
+    status: 'beta',
     label: 'Stationär',
-    hint: 'Bewohner:innen und Übergaben — in Vorbereitung.',
+    hint: 'Bewohner:innen, Wohnbereiche und Übergaben — Beta-Pilot mit Demo-Daten.',
   },
   beratung: {
     scopeKey: 'beratung',
-    status: 'coming_soon',
+    status: 'beta',
     label: 'Beratung',
-    hint: 'Beratungsfälle — in Vorbereitung.',
+    hint: 'Beratungsfälle, Protokolle und Nachverfolgung — Beta-Pilot.',
   },
   akademie: {
     scopeKey: 'akademie',
-    status: 'coming_soon',
+    status: 'beta',
     label: 'Akademie',
-    hint: 'Kurse und Zertifikate — in Vorbereitung.',
+    hint: 'Kurse, Zertifikate und Schulungsplan — Beta-Pilot.',
   },
   communication: {
     scopeKey: 'communication',

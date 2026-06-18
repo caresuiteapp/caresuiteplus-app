@@ -72,7 +72,7 @@ export function BeratungReportsHero({ stats, roleKey }: BeratungReportsHeroProps
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isBeratungCasesLiveReady() ? <PremiumBadge label="Live Beratungsfälle" variant="green" /> : null}
         {!isBeratungExtensionLiveReady() ? (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}
       </View>
       <View style={styles.kpiRow}>

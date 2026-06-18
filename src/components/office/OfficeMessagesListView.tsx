@@ -2,7 +2,6 @@ import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 're
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { AdaptiveActionBar } from '@/components/adaptive';
-import { OfficeMessageCompactRow } from './OfficeMessageCompactRow';
 import { OfficeMessageListCard } from './OfficeMessageListCard';
 import { OfficeMessagesListHero } from './OfficeMessagesListHero';
 import { OfficeMessagesListTable } from './OfficeMessagesListTable';
@@ -45,8 +44,8 @@ export function OfficeMessagesListView({
   const { shellVariant } = usePlatformLayout();
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
-  const { viewMode, setViewMode } = useDesktopListViewPreference('office.messages', 'cards');
-  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
+  const { viewMode, setViewMode } = useDesktopListViewPreference('office.messages');
+  const useTableLayout = isDesktop && viewMode === 'table';
   const { mode } = useLegacyTheme();
   const canView = can('office.messages.view');
   const canCompose = can('office.access') && !isReadOnly;
@@ -176,7 +175,7 @@ export function OfficeMessagesListView({
   const emptyContent = isEmpty ? (
     <EmptyState
       title="Keine Nachrichten"
-      message="Es sind noch keine Office-Nachrichten vorhanden."
+      message="Es sind keine Office-Nachrichten im Demo-Mandanten vorhanden."
     />
   ) : isFilterEmpty ? (
     <EmptyState
@@ -274,21 +273,13 @@ export function OfficeMessagesListView({
         ListHeaderComponent={toolbar}
         ListEmptyComponent={emptyContent}
         ListFooterComponent={footerContent}
-        renderItem={({ item }) =>
-          embedded ? (
-            <OfficeMessageCompactRow
-              message={item}
-              selected={selectedId === item.id}
-              onPress={() => handleMessagePress(item.id)}
-            />
-          ) : (
-            <OfficeMessageListCard
-              message={item}
-              selected={selectedId === item.id}
-              onPress={onMessagePress ? () => onMessagePress(item.id) : undefined}
-            />
-          )
-        }
+        renderItem={({ item }) => (
+          <OfficeMessageListCard
+            message={item}
+            selected={selectedId === item.id}
+            onPress={onMessagePress ? () => onMessagePress(item.id) : undefined}
+          />
+        )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={

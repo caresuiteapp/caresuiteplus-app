@@ -75,16 +75,13 @@ export async function upsertClientIntakeDraft(
       .eq('tenant_id', tenantId)
       .eq('status', 'lead')
       .select('id')
-      .maybeSingle();
+      .single();
 
-    if (!error && data?.id) {
-      return { ok: true, data: { id: data.id } };
-    }
-
-    // Stale AsyncStorage clientId (z. B. nach Abschluss der Aufnahme) → neuen Lead anlegen.
-    if (error && !/0 rows|no rows|PGRST116/i.test(error.message ?? '')) {
+    if (error || !data) {
       return { ok: false, error: toGermanSupabaseError(error) };
     }
+
+    return { ok: true, data: { id: data.id } };
   }
 
   const { data, error } = await supabase

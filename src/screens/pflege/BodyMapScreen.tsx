@@ -73,7 +73,6 @@ export function BodyMapScreen() {
   const [selectedRegion, setSelectedRegion] = useState<BodyMapRegion | null>(null);
   const [markerType, setMarkerType] = useState<BodyMapMarkerType>('wunde');
   const [note, setNote] = useState('');
-  const [canvasSize, setCanvasSize] = useState({ width: 1, height: 1 });
   const [tapPoint, setTapPoint] = useState<{ x: number; y: number } | null>(null);
   const [selectedMarkerId, setSelectedMarkerId] = useState<string | null>(null);
   const [actionError, setActionError] = useState<string | null>(null);
@@ -104,12 +103,8 @@ export function BodyMapScreen() {
     if (!tenantId || isReadOnly || !selectedRegion) return;
     setSaving(true);
     setActionError(null);
-    const xPercent = tapPoint
-      ? Math.min(100, Math.max(0, (tapPoint.x / canvasSize.width) * 100))
-      : 50;
-    const yPercent = tapPoint
-      ? Math.min(100, Math.max(0, (tapPoint.y / canvasSize.height) * 100))
-      : 50;
+    const xPercent = tapPoint ? Math.min(100, Math.max(0, (tapPoint.x / 280) * 100)) : 50;
+    const yPercent = tapPoint ? Math.min(100, Math.max(0, (tapPoint.y / 420) * 100)) : 50;
     const result = await createBodyMapMarker(
       tenantId,
       {
@@ -124,7 +119,6 @@ export function BodyMapScreen() {
         woundId: woundId ?? null,
       },
       profile?.roleKey,
-      profile?.id,
     );
     setSaving(false);
     if (!result.ok) {
@@ -192,7 +186,7 @@ export function BodyMapScreen() {
         <InfoBanner
           variant="info"
           title="Interaktive BodyMap"
-          message="Region wählen, Marker-Typ setzen, speichern — Persistenz im Mandanten."
+          message="Region wählen, Marker-Typ setzen, speichern — Demo-Persistenz im Mandanten."
         />
         {actionError ? <InfoBanner variant="danger" title="Aktion fehlgeschlagen" message={actionError} /> : null}
 
@@ -217,16 +211,7 @@ export function BodyMapScreen() {
         </SectionPanel>
 
         <SectionPanel title="Körperregion" subtitle="Region antippen">
-          <Pressable
-            style={styles.canvas}
-            onLayout={(evt) => {
-              const { width, height } = evt.nativeEvent.layout;
-              if (width > 0 && height > 0) {
-                setCanvasSize({ width, height });
-              }
-            }}
-            onPress={handleCanvasPress}
-          >
+          <Pressable style={styles.canvas} onPress={handleCanvasPress}>
             {REGIONS.map((region) => (
               <Pressable
                 key={region.key}

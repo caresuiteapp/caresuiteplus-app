@@ -3,7 +3,7 @@ import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { colors, typography } from '@/theme';
 
-type Size = 'sm' | 'md' | 'lg';
+type Size = 'sm' | 'md' | 'lg' | 'xl';
 
 type Props = {
   name: string;
@@ -18,6 +18,7 @@ const SIZE_CONFIG: Record<Size, { dimension: number; fontSize: number; ring: num
   sm: { dimension: 32, fontSize: 12, ring: 2 },
   md: { dimension: 44, fontSize: 16, ring: 2 },
   lg: { dimension: 56, fontSize: 20, ring: 3 },
+  xl: { dimension: 104, fontSize: 36, ring: 3 },
 };
 
 function getInitials(name: string): string {

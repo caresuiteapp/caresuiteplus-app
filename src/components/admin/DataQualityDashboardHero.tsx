@@ -71,7 +71,7 @@ export function DataQualityDashboardHero({ overview }: DataQualityDashboardHeroP
       <View style={styles.badges}>
         <PremiumBadge label="Mandanten-Admin" variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {!isDataQualityLiveReady() ? <PremiumBadge statusKind="preparedOnly" /> : null}
+        {!isDataQualityLiveReady() ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

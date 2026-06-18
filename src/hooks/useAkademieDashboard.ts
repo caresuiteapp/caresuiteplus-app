@@ -39,6 +39,7 @@ export function useAkademieDashboard() {
     upcomingCourses: (upcomingQuery.data ?? []) as CourseListItem[],
     loading: statsQuery.loading || upcomingQuery.loading,
     error: statsQuery.error ?? upcomingQuery.error,
+    isPreviewData: statsQuery.previewData || upcomingQuery.previewData,
     refreshing: statsQuery.refreshing || upcomingQuery.refreshing,
     showSuccess,
     refresh,

@@ -242,32 +242,21 @@ export async function executeInvoiceAccountingExport(
   if (tenantBlock) return tenantBlock;
 
   const configured = await isAccountingProviderConfigured(tenantId, providerKey, actorRoleKey);
-  const featureKey = resolveAccountingFeatureKey(providerKey);
-  if (featureKey) {
-    const featureGate = assertConnectFeatureAllowed(
-      featureKey,
-      'accounting_export',
-      buildConnectFeatureGateContextFromFeatureKey(featureKey, {
-        userId: actorUserId,
-        tenantId,
-        role: actorRoleKey ?? 'business_admin',
-        integrationStatus: configured ? 'configured' : 'not_configured',
-        hasCredentialReference: configured,
-        connectorStatus: 'coming_soon',
-        hasExternalTransferConsent: false,
-      }),
-    );
-    if (!featureGate.allowed) {
-      recordAccountingExportFailure({
-        invoiceId,
-        tenantId,
-        providerKey,
-        message: featureGate.message,
-        configured,
-        eventType: 'export_blocked',
-      });
-      return { ok: false, error: featureGate.message };
-    }
+  const featureGate = assertConnectFeatureAllowed(
+    'accounting.datev',
+    'accounting_export',
+    buildConnectFeatureGateContextFromFeatureKey('accounting.datev', {
+      userId: actorUserId,
+      tenantId,
+      role: actorRoleKey ?? 'business_admin',
+      integrationStatus: configured ? 'configured' : 'not_configured',
+      hasCredentialReference: configured,
+      connectorStatus: 'coming_soon',
+      hasExternalTransferConsent: false,
+    }),
+  );
+  if (!featureGate.allowed) {
+    return { ok: false, error: featureGate.message };
   }
 
   const ctx = buildConnectExecutionContext({

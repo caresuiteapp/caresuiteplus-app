@@ -122,9 +122,9 @@ export function ReportsListHero({
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isReportsListLiveReady() ? (
-          <PremiumBadge statusKind="live" dot />
+          <PremiumBadge label="Live Supabase" variant="green" dot />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
       </View>
       {showViewToggle && onViewModeChange ? (

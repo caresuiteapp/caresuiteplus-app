@@ -9,10 +9,6 @@ import { demoInvoices } from '@/data/demo/invoices';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import {
-  assertConnectFeatureAllowed,
-  buildConnectFeatureGateContextFromFeatureKey,
-} from '@/lib/connect/gateway/connectFeatureGate';
 import { assertPaymentActionAllowed } from './paymentGuard';
 import { getDemoPaymentConfig } from './paymentProviderService';
 import {
@@ -90,25 +86,6 @@ export async function prepareInvoicePaymentLink(
   }
 
   const config = getDemoPaymentConfig(tenantId);
-  const featureGate = assertConnectFeatureAllowed(
-    'payments.link',
-    'create_payment_link',
-    buildConnectFeatureGateContextFromFeatureKey('payments.link', {
-      tenantId,
-      userId: actorRoleKey ?? 'demo-user',
-      role: actorRoleKey ?? 'business_admin',
-      featureReadiness: config?.isActive ? 'prepared' : 'coming_soon',
-      integrationStatus: config?.isActive ? 'configured' : 'not_configured',
-      hasCredentialReference: config?.hasCredentialReference ?? false,
-      connectorStatus: config?.isActive ? 'sandbox_ready' : 'coming_soon',
-      hasPaymentApproval: config?.isActive ?? false,
-      hasExternalTransferConsent: config?.isActive ?? false,
-    }),
-  );
-  if (!featureGate.allowed) {
-    return { ok: false, error: featureGate.message };
-  }
-
   const guard = assertPaymentActionAllowed({
     tenantId,
     providerKey: config?.providerKey ?? 'none',

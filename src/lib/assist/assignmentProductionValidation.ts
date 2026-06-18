@@ -1,5 +1,3 @@
-import type { AssignmentCreateTaskSelection } from '@/lib/assist/assignmentCreateFormHelpers';
-
 export type AssignmentCreateFormData = {
   clientId: string;
   employeeId: string;
@@ -7,7 +5,7 @@ export type AssignmentCreateFormData = {
   plannedStartTime: string;
   plannedEndTime: string;
   title: string;
-  selectedTasks: AssignmentCreateTaskSelection[];
+  tasks: string[];
 };
 
 export type AssignmentCreateFormErrors = Partial<
@@ -18,7 +16,7 @@ export type AssignmentCreateFormErrors = Partial<
     | 'plannedStartTime'
     | 'plannedEndTime'
     | 'title'
-    | 'selectedTasks',
+    | 'tasks',
     string
   >
 >;
@@ -70,9 +68,9 @@ export function validateAssignmentCreateForm(
     }
   }
 
-  const taskTitles = data.selectedTasks.map((task) => task.title.trim()).filter(Boolean);
+  const taskTitles = data.tasks.map((t) => t.trim()).filter(Boolean);
   if (taskTitles.length === 0) {
-    errors.selectedTasks = 'Mindestens eine Aufgabe aus der Klientenakte ist erforderlich.';
+    errors.tasks = 'Mindestens eine Aufgabe ist erforderlich.';
   }
 
   return errors;

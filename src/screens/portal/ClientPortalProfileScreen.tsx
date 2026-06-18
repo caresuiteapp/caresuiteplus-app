@@ -11,7 +11,6 @@ import {
   PremiumCard,
   SectionPanel,
 } from '@/components/ui';
-import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { useClientPortalProfile } from '@/hooks/useClientPortalProfile';
 import { usePermissions } from '@/hooks/usePermissions';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -74,7 +73,7 @@ export function ClientPortalProfileScreen() {
 
         <PremiumCard accentColor={colors.primary}>
           {profile.careLevel ? (
-            <DetailInfoRow label="Pflegegrad" value={formatCareLevel(profile.careLevel)} />
+            <DetailInfoRow label="Pflegegrad" value={profile.careLevel} />
           ) : null}
           {profile.city ? (
             <DetailInfoRow

@@ -39,6 +39,7 @@ export function useStationaerDashboard() {
     activeResidents: (activeQuery.data ?? []) as ResidentListItem[],
     loading: statsQuery.loading || activeQuery.loading,
     error: statsQuery.error ?? activeQuery.error,
+    isPreviewData: statsQuery.previewData || activeQuery.previewData,
     refreshing: statsQuery.refreshing || activeQuery.refreshing,
     showSuccess,
     refresh,

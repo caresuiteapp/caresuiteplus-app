@@ -2,7 +2,6 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { defaultPublicVisibility } from '@/lib/ui/uiVisibility';
 import { designTokens, spacing } from '@/theme';
 
 type OnboardingWelcomeHeroProps = {
@@ -11,8 +10,7 @@ type OnboardingWelcomeHeroProps = {
 };
 
 export function OnboardingWelcomeHero({ step, totalSteps }: OnboardingWelcomeHeroProps) {
-  const { colors, typography } = useLegacyTheme();
-  const visibility = useMemo(() => defaultPublicVisibility(), []);
+  const { colors, typography, gradients, mode } = useLegacyTheme();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -41,7 +39,7 @@ export function OnboardingWelcomeHero({ step, totalSteps }: OnboardingWelcomeHer
   kpiItem: { flex: 1, minWidth: 100 },
   hint: { ...typography.caption, color: colors.textMuted },
 }),
-    [colors, typography],
+    [colors, typography, gradients],
   );
 
 
@@ -49,7 +47,7 @@ export function OnboardingWelcomeHero({ step, totalSteps }: OnboardingWelcomeHer
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>ONBOARDING</Text>
+          <Text style={styles.eyebrow}>ONBOARDING · DEMO</Text>
           <Text style={styles.title}>Willkommen bei CareSuite+</Text>
           <Text style={styles.meta}>
             Schritt {step + 1} von {totalSteps} — Mandant in wenigen Minuten einrichten
@@ -60,21 +58,21 @@ export function OnboardingWelcomeHero({ step, totalSteps }: OnboardingWelcomeHer
         </View>
       </View>
       <View style={styles.badges}>
-        <PremiumBadge label="Einrichtung" variant="cyan" dot />
-        <PremiumBadge label="Module wählbar" variant="muted" />
+        <PremiumBadge label="Öffentliches Onboarding" variant="cyan" dot />
+        <PremiumBadge label="Keine Speicherung" variant="muted" />
+        <PremiumBadge label="Demo-Prototyp" variant="orange" />
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="Module" value="6+" subValue="Office · Assist · Pflege" icon="📦" accentColor={colors.orange} style={styles.kpiItem} />
         <PremiumKpiCard label="Portale" value="3" subValue="Team · Klient · Angehörige" icon="🌐" accentColor={colors.cyan} style={styles.kpiItem} />
-        <PremiumKpiCard label="Dauer" value="~5 Min" subValue="Geführte Einrichtung" icon="⏱️" accentColor={colors.violet} style={styles.kpiItem} />
+        <PremiumKpiCard label="Dauer" value="~5 Min" subValue="Demo-Einrichtung" icon="⏱️" accentColor={colors.violet} style={styles.kpiItem} />
       </View>
       <Text style={styles.hint}>
-        {visibility.showPrototypeInfo
-          ? 'Interner Pilotbetrieb — Demo-Einrichtung ohne produktiven Mandanten.'
-          : 'Diese Einrichtung führt Sie Schritt für Schritt durch die ersten Einstellungen.'}
+        Dieses Onboarding führt durch die Demo-Einrichtung — kein produktiver Mandant, kein Store-Release.
       </Text>
     </PremiumListHeroFrame>
   );
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
+

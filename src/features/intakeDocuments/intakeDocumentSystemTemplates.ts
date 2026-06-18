@@ -23,7 +23,7 @@ function partiesBlock(): string {
 <tr><td class="label">Leistungserbringer:</td><td><strong>{{tenant.name}}</strong><br/>{{tenant.street}}<br/>{{tenant.zip}} {{tenant.city}}</td></tr>
 <tr><td class="label">Klient:in:</td><td><strong>{{client.salutation}} {{client.full_name}}</strong><br/>geb. am {{client.date_of_birth}}<br/>{{client.street}}<br/>{{client.zip}} {{client.city}}</td></tr>
 <tr><td class="label">Pflegegrad:</td><td>{{care.level}}</td></tr>
-<tr><td class="label">Kostenträger:</td><td>{{cost_carrier.parties_line}}</td></tr>
+<tr><td class="label">Kostenträger:</td><td>{{cost_carrier.primary_name}} · Pflegekasse: {{cost_carrier.care_fund_name}}</td></tr>
 </table></div>`;
 }
 
@@ -67,7 +67,7 @@ export const INTAKE_DOCUMENT_SYSTEM_TEMPLATES: IntakeDocumentTemplate[] = [
     title: 'Datenschutz-Einwilligung',
     documentType: 'privacy_consent',
     serviceType: null,
-    version: 3,
+    version: 2,
     isRequired: true,
     requiresClientSignature: true,
     requiresEmployeeSignature: false,
@@ -112,7 +112,8 @@ ${metaLine()}
 <div class="document-section"><h2>§ 5 Empfänger und Kategorien von Empfängern</h2>
 <p class="document-paragraph">Empfänger Ihrer Daten können sein:</p>
 <ul class="document-paragraph">
-{{cost_carrier.recipients_list}}
+<li>Pflegekasse: {{cost_carrier.care_fund_name}} (IK: {{cost_carrier.care_fund_ik}});</li>
+<li>Krankenkasse: {{cost_carrier.health_insurance_name}};</li>
 <li>Behandelnde Ärzt:innen, Therapeut:innen, Apotheken und andere Leistungserbringer im Versorgungsnetzwerk;</li>
 <li>Mitarbeitende des Leistungserbringers, die zur Leistungserbringung befugt sind;</li>
 <li>IT-Dienstleister und Softwareanbieter im Rahmen von Auftragsverarbeitungsverträgen gemäß Art. 28 DSGVO;</li>
@@ -133,8 +134,9 @@ ${sigBlock({ client: true })}
     plainTextContent: 'Umfassende Einwilligung zur Verarbeitung personenbezogener Daten gemäß DSGVO inkl. Gesundheitsdaten.',
     placeholderSchema: {
       ...COMMON_PLACEHOLDERS,
-      'cost_carrier.parties_line': { label: 'Kostenträger', required: false },
-      'cost_carrier.recipients_list': { label: 'Empfänger Kostenträger', required: false },
+      'cost_carrier.care_fund_name': { label: 'Pflegekasse', required: false },
+      'cost_carrier.care_fund_ik': { label: 'Pflegekassen-IK', required: false },
+      'cost_carrier.health_insurance_name': { label: 'Krankenkasse', required: false },
     },
     signatureSlots: [{ role: 'client', placeholder: '{{signature.client}}', required: true }],
   }),
@@ -144,16 +146,16 @@ ${sigBlock({ client: true })}
     title: 'Abtretungserklärung / Direktabrechnung',
     documentType: 'assignment_declaration',
     serviceType: null,
-    version: 3,
+    version: 2,
     isRequired: false,
     requiresClientSignature: true,
     requiresEmployeeSignature: false,
     requiresRepresentativeSignature: false,
     allowsCustomTemplate: true,
-    htmlContent: `${docHeader('Abtretungserklärung und Erteilung eines Zahlungsauftrags', '{{cost_carrier.assignment_subtitle}}')}
+    htmlContent: `${docHeader('Abtretungserklärung und Erteilung eines Zahlungsauftrags', 'zur Direktabrechnung mit der Pflegekasse gemäß § 13 Abs. 3 SGB XI i. V. m. § 13 SGB V')}
 ${partiesBlock()}
 <div class="document-section"><h2>§ 1 Erklärung zur Anspruchsabtretung</h2>
-<p class="document-paragraph">{{cost_carrier.assignment_intro}}</p></div>
+<p class="document-paragraph">Ich, {{client.salutation}} {{client.full_name}}, geboren am {{client.date_of_birth}}, wohnhaft {{client.street}}, {{client.zip}} {{client.city}}, trete hiermit unwiderruflich — bis auf weiteres und unter Vorbehalt des Widerrufs gemäß § 7 — sämtliche Ansprüche auf Erstattung von Pflege- und Betreuungsleistungen, die mir gegenüber der Pflegekasse <strong>{{cost_carrier.care_fund_name}}</strong> (Institutionskennzeichen: {{cost_carrier.care_fund_ik}}) zustehen, an den Leistungserbringer <strong>{{tenant.name}}</strong> ab.</p></div>
 <div class="document-section"><h2>§ 2 Umfang der abgetretenen Ansprüche</h2>
 <p class="document-paragraph">Die Abtretung umfasst insbesondere Ansprüche auf:</p>
 <ul class="document-paragraph">
@@ -165,12 +167,12 @@ ${partiesBlock()}
 </ul>
 <p class="document-paragraph">Abgetreten werden ausschließlich Ansprüche für tatsächlich erbrachte und ordnungsgemäß dokumentierte Leistungen ab Leistungsbeginn {{contract.service_start}}.</p></div>
 <div class="document-section"><h2>§ 3 Zahlungsauftrag / Direktabrechnung</h2>
-<p class="document-paragraph">Ich bevollmächtige {{tenant.name}}, Rechnungen und Abrechnungsdatensätze unmittelbar bei {{cost_carrier.direct_billing_target}} einzureichen und Zahlungen an sich zu leiten. Meine Versichertennummer lautet: {{client.insurance_number}}.</p>
+<p class="document-paragraph">Ich bevollmächtige {{tenant.name}}, Rechnungen und Abrechnungsdatensätze unmittelbar bei meiner Pflegekasse einzureichen und Zahlungen an sich zu leiten. Meine Versichertennummer lautet: {{client.insurance_number}}.</p>
 <p class="document-paragraph">Ich verpflichte mich, den Leistungserbringer unverzüglich über Änderungen des Pflegegrades, des Kostenträgers oder der Versicherungsverhältnisse zu informieren.</p></div>
 <div class="document-section"><h2>§ 4 Leistungsnachweise und Budgetrahmen</h2>
 <p class="document-paragraph">Die Abrechnung erfolgt auf Grundlage ordnungsgemäßer Leistungsnachweise. Der Leistungserbringer weist mich darauf hin, dass Leistungen nur im Rahmen der bewilligten Budgets und Leistungsansprüche abgerechnet werden können. Nicht gedeckte Kosten (Eigenanteile, Zusatzleistungen, nicht erstattungsfähige Leistungen) sind von mir als Selbstzahler zu tragen.</p></div>
 <div class="document-section"><h2>§ 5 Nicht gedeckte Kosten</h2>
-<p class="document-paragraph">{{cost_carrier.uncovered_costs_clause}} Der Stundensatz für Selbstzahlerleistungen beträgt, soweit vereinbart: {{billing.hourly_rate}} EUR.</p></div>
+<p class="document-paragraph">Kosten, die nicht oder nicht vollständig von der Pflegekasse übernommen werden, werden mir gesondert in Rechnung gestellt. Der Stundensatz für Selbstzahlerleistungen beträgt, soweit vereinbart: {{billing.hourly_rate}} EUR.</p></div>
 <div class="document-section"><h2>§ 6 Widerruf</h2>
 <p class="document-paragraph">Diese Abtretungserklärung kann jederzeit schriftlich widerrufen werden. Der Widerruf wird erst wirksam, wenn er dem Leistungserbringer zugegangen ist. Bis zum Wirksamwerden des Widerrufs erbrachte Leistungen bleiben von der Abtretung erfasst.</p></div>
 <div class="document-section"><h2>§ 7 Bestätigung</h2>
@@ -179,8 +181,8 @@ ${sigBlock({ client: true })}`,
     plainTextContent: 'Abtretungserklärung und Zahlungsauftrag zur Direktabrechnung mit der Pflegekasse.',
     placeholderSchema: {
       ...COMMON_PLACEHOLDERS,
-      'cost_carrier.assignment_intro': { label: 'Abtretungserklärung', required: true },
-      'cost_carrier.primary_name': { label: 'Kostenträger', required: true },
+      'cost_carrier.care_fund_name': { label: 'Pflegekasse', required: true },
+      'cost_carrier.care_fund_ik': { label: 'Pflegekassen-IK', required: false },
       'client.insurance_number': { label: 'Versichertennummer', required: true },
       'care.level': { label: 'Pflegegrad', required: true },
       'contract.service_start': { label: 'Leistungsbeginn', required: true },
@@ -195,7 +197,7 @@ ${sigBlock({ client: true })}`,
     title: 'Kundenvertrag Alltagsbegleitung / Betreuung',
     documentType: 'client_contract',
     serviceType: 'assist',
-    version: 3,
+    version: 2,
     isRequired: true,
     requiresClientSignature: true,
     requiresEmployeeSignature: true,
@@ -226,7 +228,7 @@ ${partiesBlock()}
 <div class="document-section"><h2>§ 7 Datenschutz und Schweigepflicht</h2>
 <p class="document-paragraph">Die Verarbeitung personenbezogener Daten erfolgt gemäß der gesonderten Datenschutz-Einwilligung und den gesetzlichen Vorgaben. Mitarbeitende unterliegen der gesetzlichen Schweigepflicht (§ 203 StGB).</p></div>
 <div class="document-section"><h2>§ 8 Abrechnung und Kostenträger</h2>
-<p class="document-paragraph">Abrechnung erfolgt über {{billing.types}}. {{cost_carrier.billing_clause}} Stundensatz: {{billing.hourly_rate}} EUR (netto zzgl. gesetzlicher Umsatzsteuer, sofern anwendbar). Zahlungsziel: 14 Tage nach Rechnungsstellung, sofern keine Direktabrechnung mit Kostenträger vereinbart ist.</p></div>
+<p class="document-paragraph">Abrechnung erfolgt über {{billing.types}}. Kostenträger: {{cost_carrier.primary_name}}. Stundensatz: {{billing.hourly_rate}} EUR (netto zzgl. gesetzlicher Umsatzsteuer, sofern anwendbar). Zahlungsziel: 14 Tage nach Rechnungsstellung, sofern keine Direktabrechnung mit Kostenträger vereinbart ist.</p></div>
 <div class="document-section"><h2>§ 9 Haftung und Leistungsgrenzen</h2>
 <p class="document-paragraph">Der Leistungserbringer haftet für Schäden aus der Verletzung des Lebens, des Körpers oder der Gesundheit sowie bei Vorsatz und grober Fahrlässigkeit unbeschränkt. Im Übrigen ist die Haftung auf vorhersehbare, vertragstypische Schäden begrenzt. Höhere Gewalt und unverschuldete Verhinderung befreien vorübergehend von der Leistungspflicht.</p></div>
 <div class="document-section"><h2>§ 10 Notfall</h2>
@@ -257,7 +259,7 @@ ${sigBlock({ client: true, employee: true })}`,
     title: 'Kundenvertrag Ambulante Pflege',
     documentType: 'client_contract',
     serviceType: 'ambulatory_care',
-    version: 3,
+    version: 2,
     isRequired: true,
     requiresClientSignature: true,
     requiresEmployeeSignature: true,
@@ -268,7 +270,7 @@ ${partiesBlock()}
 <div class="document-section"><h2>§ 1 Vertragsparteien und Vertragsgegenstand</h2>
 <p class="document-paragraph">Zwischen {{tenant.name}} als zugelassenem Pflegedienst und {{client.full_name}} wird ein Versorgungsvertrag über ambulante Pflegeleistungen gemäß Sozialgesetzbuch XI geschlossen.</p></div>
 <div class="document-section"><h2>§ 2 Leistungsumfang und Pflegegrad</h2>
-<p class="document-paragraph">Der Leistungsumfang richtet sich nach dem festgestellten Pflegegrad {{care.level}}, dem individuellen Pflegebedarf, dem Pflegeplan und den Leistungskomplexen der Pflegeversicherung. {{cost_carrier.billing_clause}}</p>
+<p class="document-paragraph">Der Leistungsumfang richtet sich nach dem festgestellten Pflegegrad {{care.level}}, dem individuellen Pflegebedarf, dem Pflegeplan und den Leistungskomplexen der Pflegeversicherung. Pflegekasse: {{cost_carrier.care_fund_name}}.</p>
 <p class="document-paragraph">Erbracht werden können insbesondere: Grundpflege, behandlungspflegerische Maßnahmen (soweit verordnet), hauswirtschaftliche Versorgung im Rahmen der Ansprüche, Betreuungsleistungen und Anleitung pflegender Angehöriger.</p></div>
 <div class="document-section"><h2>§ 3 Leistungsbeginn und Einsatzplanung</h2>
 <p class="document-paragraph">Leistungsbeginn: {{contract.service_start}}. Einsätze werden nach Bedarf, ärztlicher Verordnung und Vereinbarung geplant. Änderungen des Pflegebedarfs werden durch regelmäßige Pflegevisiten und Anpassung des Pflegeplans berücksichtigt.</p></div>
@@ -281,7 +283,7 @@ ${partiesBlock()}
 <div class="document-section"><h2>§ 7 Datenschutz und Schweigepflicht</h2>
 <p class="document-paragraph">Die Verarbeitung personenbezogener und Gesundheitsdaten erfolgt gemäß DSGVO und der Datenschutz-Einwilligung. Alle Mitarbeitenden unterliegen der Schweigepflicht nach § 203 StGB.</p></div>
 <div class="document-section"><h2>§ 8 Abrechnung und Kostenträger</h2>
-<p class="document-paragraph">{{cost_carrier.billing_clause}} Eigenanteile und nicht erstattungsfähige Leistungen trägt die Klient:in als Selbstzahler.</p></div>
+<p class="document-paragraph">Abrechnung über {{billing.types}} mit der Pflegekasse {{cost_carrier.care_fund_name}}, sofern eine wirksame Abtretungserklärung vorliegt. Eigenanteile und nicht erstattungsfähige Leistungen trägt die Klient:in als Selbstzahler.</p></div>
 <div class="document-section"><h2>§ 9 Haftung und Leistungsgrenzen</h2>
 <p class="document-paragraph">Es gelten die gesetzlichen Haftungsregelungen. Der Pflegedienst haftet nicht für Schäden, die durch unzureichende Mitwirkung, unterlassene Information oder höhere Gewalt entstehen. Notfallmedizinische Versorgung obliegt dem Rettungsdienst.</p></div>
 <div class="document-section"><h2>§ 10 Notfall</h2>
@@ -295,7 +297,7 @@ ${sigBlock({ client: true, employee: true })}`,
     placeholderSchema: {
       ...COMMON_PLACEHOLDERS,
       'care.level': { label: 'Pflegegrad', required: true },
-      'cost_carrier.billing_clause': { label: 'Kostenträger Abrechnung', required: false },
+      'cost_carrier.care_fund_name': { label: 'Pflegekasse', required: true },
       'contract.service_start': { label: 'Leistungsbeginn', required: true },
       'billing.types': { label: 'Abrechnungsart', required: false },
       'emergency.name': { label: 'Notfallkontakt', required: false },
@@ -312,7 +314,7 @@ ${sigBlock({ client: true, employee: true })}`,
     title: 'Kundenvertrag Stationäre Pflege',
     documentType: 'client_contract',
     serviceType: 'stationary_care',
-    version: 3,
+    version: 2,
     isRequired: true,
     requiresClientSignature: true,
     requiresEmployeeSignature: true,
@@ -333,7 +335,7 @@ ${partiesBlock()}
 <div class="document-section"><h2>§ 6 Datenschutz und Schweigepflicht</h2>
 <p class="document-paragraph">Datenverarbeitung gemäß DSGVO und gesonderter Einwilligung. Alle Mitarbeitenden unterliegen der Schweigepflicht nach § 203 StGB.</p></div>
 <div class="document-section"><h2>§ 7 Entgelt, Abrechnung und Kostenträger</h2>
-<p class="document-paragraph">Abrechnung über {{billing.types}}. {{cost_carrier.billing_clause}} Investitionskosten, Unterkunft und Verpflegung sowie Eigenanteile werden gemäß Heimvereinbarung und gesetzlichen Regelungen berechnet.</p></div>
+<p class="document-paragraph">Abrechnung über {{billing.types}}. Pflegekasse: {{cost_carrier.care_fund_name}}. Investitionskosten, Unterkunft und Verpflegung sowie Eigenanteile werden gemäß Heimvereinbarung und gesetzlichen Regelungen berechnet.</p></div>
 <div class="document-section"><h2>§ 8 Haftung</h2>
 <p class="document-paragraph">Es gelten die gesetzlichen Haftungsvorschriften des Bürgerlichen Gesetzbuches und des Heimgesetzes. Haftung für leichte Fahrlässigkeit ist — außer bei Verletzung wesentlicher Vertragspflichten — ausgeschlossen, soweit gesetzlich zulässig.</p></div>
 <div class="document-section"><h2>§ 9 Notfall</h2>
@@ -367,7 +369,7 @@ ${sigBlock({ client: true, employee: true })}`,
     title: 'Kundenvertrag Pflegeberatung',
     documentType: 'client_contract',
     serviceType: 'care_consulting',
-    version: 3,
+    version: 2,
     isRequired: true,
     requiresClientSignature: true,
     requiresEmployeeSignature: true,
@@ -388,7 +390,7 @@ ${partiesBlock()}
 <div class="document-section"><h2>§ 6 Datenschutz und Schweigepflicht</h2>
 <p class="document-paragraph">Verarbeitung personenbezogener und Gesundheitsdaten gemäß DSGVO. Schweigepflicht nach § 203 StGB.</p></div>
 <div class="document-section"><h2>§ 7 Vergütung und Abrechnung</h2>
-<p class="document-paragraph">{{cost_carrier.billing_clause}} Andernfalls erfolgt die Abrechnung als Selbstzahlerleistung.</p></div>
+<p class="document-paragraph">Abrechnung über {{billing.types}} mit der Pflegekasse {{cost_carrier.care_fund_name}}, sofern ein Anspruch auf Pflegeberatung nach § 7a SGB XI besteht. Andernfalls erfolgt die Abrechnung als Selbstzahlerleistung.</p></div>
 <div class="document-section"><h2>§ 8 Haftung</h2>
 <p class="document-paragraph">Der Leistungserbringer haftet für Schäden aus vorsätzlichem oder grob fahrlässigem Verhalten. Die Beratung ersetzt keine medizinische Diagnose oder Therapie.</p></div>
 <div class="document-section"><h2>§ 9 Kündigung</h2>
@@ -416,7 +418,7 @@ ${sigBlock({ client: true, employee: true })}`,
     title: 'Kundenvertrag Tagespflege',
     documentType: 'client_contract',
     serviceType: 'day_care',
-    version: 3,
+    version: 2,
     isRequired: true,
     requiresClientSignature: true,
     requiresEmployeeSignature: true,
@@ -437,7 +439,7 @@ ${partiesBlock()}
 <div class="document-section"><h2>§ 6 Datenschutz und Schweigepflicht</h2>
 <p class="document-paragraph">DSGVO-konforme Datenverarbeitung. Schweigepflicht nach § 203 StGB.</p></div>
 <div class="document-section"><h2>§ 7 Abrechnung</h2>
-<p class="document-paragraph">{{cost_carrier.billing_clause}} Zuzahlungen und Eigenanteile trägt die Klient:in.</p></div>
+<p class="document-paragraph">Abrechnung über {{billing.types}} mit {{cost_carrier.care_fund_name}}. Zuzahlungen und Eigenanteile trägt die Klient:in.</p></div>
 <div class="document-section"><h2>§ 8 Haftung und Notfall</h2>
 <p class="document-paragraph">Haftung gemäß gesetzlichen Vorschriften. Notfallkontakt: {{emergency.name}} ({{emergency.phone}}).</p></div>
 <div class="document-section"><h2>§ 9 Kündigung</h2>
@@ -466,7 +468,7 @@ ${sigBlock({ client: true, employee: true })}`,
     title: 'Kundenvertrag Entlastungsleistungen',
     documentType: 'client_contract',
     serviceType: 'relief_services',
-    version: 3,
+    version: 2,
     isRequired: true,
     requiresClientSignature: true,
     requiresEmployeeSignature: true,
@@ -487,7 +489,7 @@ ${partiesBlock()}
 <div class="document-section"><h2>§ 6 Datenschutz</h2>
 <p class="document-paragraph">Verarbeitung gemäß DSGVO und Datenschutz-Einwilligung.</p></div>
 <div class="document-section"><h2>§ 7 Abrechnung</h2>
-<p class="document-paragraph">{{cost_carrier.billing_clause}}</p></div>
+<p class="document-paragraph">Abrechnung über {{billing.types}} mit {{cost_carrier.care_fund_name}} bei Vorliegen einer Abtretungserklärung.</p></div>
 <div class="document-section"><h2>§ 8 Kündigung</h2>
 <p class="document-paragraph">Kündigungsfrist: 4 Wochen zum Monatsende.</p></div>
 <div class="document-section"><h2>§ 9 Schlussbestimmungen</h2>
@@ -512,7 +514,7 @@ ${sigBlock({ client: true, employee: true })}`,
     title: 'Schweigepflichtentbindung',
     documentType: 'additional_consent',
     serviceType: null,
-    version: 3,
+    version: 2,
     isRequired: false,
     requiresClientSignature: true,
     requiresEmployeeSignature: false,
@@ -523,7 +525,7 @@ ${partiesBlock()}
 <div class="document-section"><h2>§ 1 Zweck</h2>
 <p class="document-paragraph">Zur Sicherstellung einer ganzheitlichen Versorgungsplanung ist es erforderlich, dass behandelnde Ärzt:innen und der Leistungserbringer {{tenant.name}} relevante Gesundheitsinformationen austauschen dürfen.</p></div>
 <div class="document-section"><h2>§ 2 Umfang der Entbindung</h2>
-<p class="document-paragraph">Ich, {{client.full_name}}, entbinde hiermit {{consulting.family_doctor_clause}} von der ärztlichen Schweigepflicht (§ 203 Abs. 1 Nr. 1 StGB) gegenüber dem Leistungserbringer {{tenant.name}} und dessen befugtem Personal.</p>
+<p class="document-paragraph">Ich, {{client.full_name}}, entbinde hiermit meine behandelnden Ärzt:innen — insbesondere {{consulting.family_doctor}} — von der ärztlichen Schweigepflicht (§ 203 Abs. 1 Nr. 1 StGB) gegenüber dem Leistungserbringer {{tenant.name}} und dessen befugtem Personal.</p>
 <p class="document-paragraph">Der Informationsaustausch umfasst Diagnosen, Medikation, Therapieempfehlungen, Pflegebedarf und verordnete Maßnahmen, soweit dies für die Planung und Durchführung der vereinbarten Leistungen erforderlich ist.</p></div>
 <div class="document-section"><h2>§ 3 Dauer und Widerruf</h2>
 <p class="document-paragraph">Diese Entbindung gilt bis auf schriftlichen Widerruf. Der Widerruf ist jederzeit möglich und wird mit Zugang beim Leistungserbringer wirksam.</p></div>
@@ -533,7 +535,7 @@ ${sigBlock({ client: true })}`,
     plainTextContent: 'Schweigepflichtentbindung gegenüber dem Leistungserbringer im Kontext von § 203 StGB.',
     placeholderSchema: {
       ...COMMON_PLACEHOLDERS,
-      'consulting.family_doctor_clause': { label: 'Hausarzt/Hausärztin', required: false },
+      'consulting.family_doctor': { label: 'Hausarzt/Hausärztin', required: false },
     },
     signatureSlots: [{ role: 'client', placeholder: '{{signature.client}}', required: true }],
   }),
@@ -543,7 +545,7 @@ ${sigBlock({ client: true })}`,
     title: 'Kommunikationseinwilligung',
     documentType: 'additional_consent',
     serviceType: null,
-    version: 3,
+    version: 2,
     isRequired: false,
     requiresClientSignature: true,
     requiresEmployeeSignature: false,
@@ -578,7 +580,7 @@ ${sigBlock({ client: true })}`,
     title: 'Foto- und Medien-Einwilligung',
     documentType: 'additional_consent',
     serviceType: null,
-    version: 3,
+    version: 2,
     isRequired: false,
     requiresClientSignature: true,
     requiresEmployeeSignature: false,
@@ -603,7 +605,7 @@ ${sigBlock({ client: true })}`,
     title: 'Einwilligung Notfallkontakt',
     documentType: 'additional_consent',
     serviceType: null,
-    version: 3,
+    version: 2,
     isRequired: false,
     requiresClientSignature: true,
     requiresEmployeeSignature: false,

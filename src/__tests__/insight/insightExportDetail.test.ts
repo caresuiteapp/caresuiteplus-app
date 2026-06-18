@@ -32,6 +32,6 @@ describe('InsightCenter Export Detail (Sprint 94)', () => {
     const detail = getDemoInsightExportDetail('export-csv-weekly');
     expect(detail?.lastRunLabel).toContain('preparedOnly');
     const kpis = buildInsightExportDetailKpis(detail!);
-    expect(kpis[2]?.subValue).toContain('In Vorbereitung');
+    expect(kpis[2]?.subValue).toContain('preparedOnly');
   });
 });

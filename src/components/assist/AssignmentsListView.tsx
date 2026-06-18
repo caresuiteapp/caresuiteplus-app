@@ -23,10 +23,6 @@ import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
-import {
-  ASSIGNMENT_CREATE_ROUTE,
-  getAssignmentListEmptyState,
-} from '@/lib/assist/assignmentListUi';
 import { colors, spacing, typography } from '@/theme';
 
 type AssignmentsListViewProps = {
@@ -49,7 +45,6 @@ export function AssignmentsListView({
   const { viewMode, setViewMode } = useDesktopListViewPreference('assist.assignments');
   const useTableLayout = isDesktop && viewMode === 'table';
   const canView = can('assist.assignments.view');
-  const canCreate = can('assist.assignments.manage') && !isReadOnly;
   const roleKey = profile?.roleKey ?? 'dispatch';
 
   const handleAssignmentPress = (id: string) => {
@@ -162,18 +157,10 @@ export function AssignmentsListView({
     );
   }
 
-  const emptyState = getAssignmentListEmptyState(canCreate);
-
   const emptyContent = isEmpty ? (
     <EmptyState
-      title={emptyState.title}
-      message={emptyState.message}
-      actionLabel={emptyState.actionLabel}
-      onAction={
-        emptyState.actionLabel
-          ? () => router.push(ASSIGNMENT_CREATE_ROUTE as never)
-          : undefined
-      }
+      title="Noch keine Einsätze"
+      message="Es sind keine Einsätze im Demo-Mandanten hinterlegt."
     />
   ) : isFilterEmpty ? (
     <EmptyState

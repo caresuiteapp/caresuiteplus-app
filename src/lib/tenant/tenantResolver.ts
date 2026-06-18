@@ -1,6 +1,5 @@
 import type { Profile } from '@/types';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { assertDemoDataNotInProduction, getGlobalEnvironmentMode, isDemo } from '@/lib/environment';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 
@@ -46,20 +45,11 @@ export function assertTenantForMode(tenantId: string): TenantResolveError | null
     return { ok: false, error: 'Mandant fehlt.' };
   }
 
-  if (getServiceMode() === 'demo' || isDemo()) {
+  if (getServiceMode() === 'demo') {
     if (tenantId !== DEMO_TENANT_ID) {
       return { ok: false, error: 'Mandant nicht gefunden.' };
     }
     return null;
-  }
-
-  const demoBlock = assertDemoDataNotInProduction(tenantId);
-  if (!demoBlock.ok) {
-    return { ok: false, error: demoBlock.error };
-  }
-
-  if (getGlobalEnvironmentMode() === 'production' && tenantId === DEMO_TENANT_ID) {
-    return { ok: false, error: 'Demo-Mandant im Produktionsmodus nicht erlaubt.' };
   }
 
   return null;

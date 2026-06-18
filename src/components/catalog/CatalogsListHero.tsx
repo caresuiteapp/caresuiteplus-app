@@ -90,7 +90,7 @@ export function CatalogsListHero({
         ))}
       </View>
       <Text style={styles.hint}>
-        Kataloge sind im Demo-Modus vollständig nutzbar — Live-Sync folgt.
+        Kataloge sind im Demo-Modus vollständig nutzbar — Live-Sync nach Migration 0025–0026.
       </Text>
       {showViewToggle && onViewModeChange ? (
         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />

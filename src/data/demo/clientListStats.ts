@@ -1,4 +1,3 @@
-import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import type { ClientListItem } from '@/types/modules/office';
 
 export type ClientListKpi = {
@@ -62,5 +61,5 @@ export function filterClientsByCareLevel(
 ): ClientListItem[] {
   if (careLevelFilter === 'all') return items;
   if (careLevelFilter === 'none') return items.filter((c) => !c.careLevel);
-  return items.filter((c) => formatCareLevel(c.careLevel) === careLevelFilter);
+  return items.filter((c) => c.careLevel === careLevelFilter);
 }

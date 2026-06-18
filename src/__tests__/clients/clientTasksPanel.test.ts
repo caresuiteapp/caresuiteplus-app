@@ -12,7 +12,7 @@ import {
 const root = path.join(__dirname, '..', '..', '..');
 
 describe('ClientTasksPanel wiring', () => {
-  it('ClientRecordTabPanels routes Aufgaben tab to ClientTasksPanel', () => {
+  it('ClientRecordTabPanels uses ClientTasksPanel instead of read-only EinsatzAufgabenTab', () => {
     const tabPanels = readFileSync(
       path.join(root, 'src/screens/business/office/ClientRecordTabPanels.tsx'),
       'utf8',
@@ -21,41 +21,12 @@ describe('ClientTasksPanel wiring', () => {
       path.join(root, 'src/components/office/ClientTasksPanel.tsx'),
       'utf8',
     );
-    const wishesPanel = readFileSync(
-      path.join(root, 'src/components/office/ClientSchedulingWishesPanel.tsx'),
-      'utf8',
-    );
 
-    expect(tabPanels).toContain("tab === 'aufgaben'");
-    expect(tabPanels).toContain('ClientRecordTasksPanel');
+    expect(tabPanels).toContain('ClientTasksPanel');
     expect(tabPanels).not.toContain('EinsatzAufgabenTab');
-    expect(tasksPanel).toContain('Aufgabe manuell hinzufügen');
-    expect(tasksPanel).toContain('Aus Katalog hinzufügen');
-    expect(tasksPanel).toContain('CareSuite+ Assist');
-    expect(tasksPanel).toContain('ClientSchedulingWishesPanel');
-    expect(wishesPanel).toContain('Wünsche speichern');
+    expect(tasksPanel).toContain('Aufgabe hinzufügen');
+    expect(tasksPanel).toContain('Noch keine Aufgaben');
     expect(tasksPanel).not.toContain('clientEditRoute');
-  });
-
-  it('ClientRecordTabPanels routes Einsätze tab to ClientRecordShiftsPanel', () => {
-    const tabPanels = readFileSync(
-      path.join(root, 'src/screens/business/office/ClientRecordTabPanels.tsx'),
-      'utf8',
-    );
-    const shiftsPanel = readFileSync(
-      path.join(root, 'src/components/office/ClientRecordShiftsPanel.tsx'),
-      'utf8',
-    );
-
-    expect(tabPanels).toContain("tab === 'einsaetze'");
-    expect(tabPanels).toContain('ClientRecordShiftsTabPanel');
-    expect(tabPanels).toContain('ClientRecordShiftsPanel');
-    expect(tabPanels).not.toMatch(/einsaetze[\s\S]{0,120}ClientRecordTasksPanel/);
-    expect(shiftsPanel).toContain('title="Einsätze"');
-    expect(shiftsPanel).toContain('Keine Einsätze');
-    expect(shiftsPanel).toContain('Noch keine Einsätze geplant');
-    expect(shiftsPanel).not.toContain('Keine Aufgaben definiert');
-    expect(shiftsPanel).toContain('Einsatzpräferenzen');
   });
 
   it('hero edit action is labeled Stammdaten bearbeiten', () => {
@@ -77,8 +48,6 @@ describe('ClientTasksPanel wiring', () => {
     expect(repo).toContain('async updateTask');
     expect(repo).toContain('async deleteTask');
     expect(repo).toContain("'client_tasks'");
-    expect(repo).toContain('fetchSchedulingWishes');
-    expect(repo).toContain('upsertSchedulingWishes');
   });
 });
 
@@ -101,16 +70,6 @@ describe('Client tasks service (demo)', () => {
       isActive: true,
       catalogTaskId: null,
       assignedEmployeeIds: [],
-      moduleKey: 'assist',
-      leistungsbereich: null,
-      subcategory: null,
-      packageId: null,
-      leistungsart: null,
-      isMandatory: false,
-      proofRequired: false,
-      documentationRequired: true,
-      billingRelevant: true,
-      visibleToClient: true,
     });
     expect(created.ok).toBe(true);
 

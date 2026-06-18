@@ -7,8 +7,6 @@ export { OfficeBillingScreen } from './OfficeBillingScreen';
 export { BudgetsListScreen } from './BudgetsListScreen';
 export { BudgetDetailScreen } from './BudgetDetailScreen';
 export { OfficeDocumentsListScreen } from './OfficeDocumentsListScreen';
-export { OfficeDocumentsAdaptiveScreen } from './OfficeDocumentsAdaptiveScreen';
-export { OfficeDocumentDetailScreen } from './OfficeDocumentDetailScreen';
 export { OfficeMessagesListScreen } from './OfficeMessagesListScreen';
 export { OfficeMessagesAdaptiveScreen } from './OfficeMessagesAdaptiveScreen';
 export { ClientDetailScreen } from './ClientDetailScreen';

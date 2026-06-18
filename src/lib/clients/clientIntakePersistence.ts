@@ -3,7 +3,6 @@ import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import { buildClientContactWritePayload } from '@/lib/clients/clientContactPayload';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import {
   resolvePrimaryCostBearerName,
@@ -103,57 +102,35 @@ export async function persistIntakeClientExtendedData(
   });
   if (billingError) return { ok: false, error: toGermanSupabaseError(billingError) };
 
-  const { data: existingInsurance } = await fromUnknownTable(supabase, 'client_insurance_profiles')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('client_id', clientId)
-    .eq('is_primary', true)
-    .maybeSingle();
-
-  if (!existingInsurance) {
-    const { error: insuranceError } = await fromUnknownTable(supabase, 'client_insurance_profiles').insert({
-      tenant_id: tenantId,
-      client_id: clientId,
-      care_level: form.careLevel.trim() || null,
-      care_level_status: form.careLevelStatus.trim() || null,
-      care_level_valid_from: form.careLevelValidFrom.trim() || null,
-      care_fund_name: form.careFundName.trim() || null,
-      health_insurance: form.healthInsurance.trim() || null,
-      cost_bearer_ik: form.costBearerIk.trim() || form.healthInsuranceIk.trim() || null,
-      insurance_number: form.insuranceNumber.trim() || null,
-      billing_type: billingType,
-      self_pay: form.selfPay,
-      is_primary: true,
-    });
-    if (insuranceError) return { ok: false, error: toGermanSupabaseError(insuranceError) };
-  }
+  const { error: insuranceError } = await fromUnknownTable(supabase, 'client_insurance_profiles').insert({
+    tenant_id: tenantId,
+    client_id: clientId,
+    care_level: form.careLevel.trim() || null,
+    care_level_status: form.careLevelStatus.trim() || null,
+    care_level_valid_from: form.careLevelValidFrom.trim() || null,
+    care_fund_name: form.careFundName.trim() || null,
+    health_insurance: form.healthInsurance.trim() || null,
+    cost_bearer_ik: form.costBearerIk.trim() || form.healthInsuranceIk.trim() || null,
+    insurance_number: form.insuranceNumber.trim() || null,
+    billing_type: billingType,
+    self_pay: form.selfPay,
+    is_primary: true,
+  });
+  if (insuranceError) return { ok: false, error: toGermanSupabaseError(insuranceError) };
 
   if (form.emergencyContactName.trim() || form.emergencyContactPhone.trim()) {
-    const { error } = await fromUnknownTable(supabase, 'client_contacts').insert(
-      buildClientContactWritePayload({
-        tenantId,
-        clientId,
-        name: form.emergencyContactName.trim() || 'Notfallkontakt',
-        phone: form.emergencyContactPhone,
-        relationship: 'notfallkontakt',
-        contactType: 'emergency_contact',
-      }),
-    );
+    const { error } = await fromUnknownTable(supabase, 'client_contacts').insert({
+      tenant_id: tenantId,
+      client_id: clientId,
+      name: form.emergencyContactName.trim() || 'Notfallkontakt',
+      first_name: form.emergencyContactName.trim().split(' ')[0] ?? form.emergencyContactName.trim(),
+      last_name: form.emergencyContactName.trim().split(' ').slice(1).join(' ') || '',
+      relationship: 'notfallkontakt',
+      phone: form.emergencyContactPhone.trim() || null,
+      email: null,
+      is_emergency: true,
+    });
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  }
-
-  if (form.familyDoctor.trim()) {
-    const { error } = await fromUnknownTable(supabase, 'client_contacts').insert(
-      buildClientContactWritePayload({
-        tenantId,
-        clientId,
-        name: form.familyDoctor.trim(),
-        phone: '',
-        relationship: 'arzt',
-        contactType: 'doctor',
-      }),
-    );
-    if (error && error.code !== '23505') return { ok: false, error: toGermanSupabaseError(error) };
   }
 
   const hasAmbulatoryData =
@@ -185,7 +162,7 @@ export async function persistIntakeClientExtendedData(
       infection_notes: form.infectionNotes.trim() || null,
       family_doctor: form.familyDoctor.trim() || null,
     });
-    if (error && error.code !== '23505') return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
   }
 
   if (form.facilityName.trim() || form.roomNumber.trim()) {
@@ -206,7 +183,7 @@ export async function persistIntakeClientExtendedData(
       meal_notes: form.mealNotes.trim() || null,
       daily_structure: form.dailyStructure.trim() || null,
     });
-    if (error && error.code !== '23505') return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
   }
 
   const { error: timelineError } = await fromUnknownTable(supabase, 'client_timeline_events').insert({

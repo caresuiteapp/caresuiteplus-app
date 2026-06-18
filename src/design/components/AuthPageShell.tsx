@@ -1,6 +1,5 @@
 import { ReactNode } from 'react';
 import { useRouter } from 'expo-router';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { AppScreen } from './AppScreen';
 import { AuthScreenHeader } from './AuthHero';
 
@@ -20,13 +19,11 @@ export function AuthPageShell({
   subtitle,
   children,
   scroll = true,
-  showBack,
+  showBack = true,
   onBack,
   keyboardAvoiding = false,
 }: AuthPageShellProps) {
   const router = useRouter();
-  const { isPhone } = useDeviceClass();
-  const resolvedShowBack = showBack ?? !isPhone;
   const handleBack = onBack ?? (() => router.back());
 
   return (
@@ -34,7 +31,7 @@ export function AuthPageShell({
       <AuthScreenHeader
         title={title}
         subtitle={subtitle}
-        showBack={resolvedShowBack}
+        showBack={showBack}
         onBack={handleBack}
       />
       {children}

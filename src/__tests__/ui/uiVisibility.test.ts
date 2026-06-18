@@ -91,10 +91,11 @@ describe('Public start page (Prompt 103)', () => {
 
   it('footer links stay compact without duplicate register CTA', () => {
     const footer = readSrc('src/design/components/FooterLinks.tsx');
-    expect(footer).toContain('Demo');
+    expect(footer).toContain('Demo ansehen');
     expect(footer).toContain('Datenschutz');
     expect(footer).toContain('Impressum');
     expect(footer).toContain('Nutzungsbedingungen');
+    expect(footer).toContain('Version');
     expect(footer).not.toContain('register-business');
   });
 });

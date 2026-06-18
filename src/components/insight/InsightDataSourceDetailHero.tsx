@@ -67,7 +67,7 @@ export function InsightDataSourceDetailHero({ source, roleKey }: InsightDataSour
         <PremiumBadge label={source.connectionStatus} variant="orange" dot />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {!isInsightLiveReady() ? <PremiumBadge statusKind="preparedOnly" /> : null}
+        {!isInsightLiveReady() ? <PremiumBadge label="Demo / preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

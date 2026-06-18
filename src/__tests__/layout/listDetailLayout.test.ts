@@ -40,13 +40,6 @@ describe('ListDetailLayout', () => {
     expect(source).toContain('AdaptiveListDetail');
     expect(source).toContain('OfficeMessageDetailSummaryPanel');
   });
-
-  it('ClientsAdaptiveScreen nutzt AdaptiveListDetail mit Summary-Panel', () => {
-    const source = readSrc('src/screens/office/ClientsAdaptiveScreen.tsx');
-    expect(source).toContain('AdaptiveListDetail');
-    expect(source).toContain('ClientDetailSummaryPanel');
-    expect(source).toContain('embedded');
-  });
 });
 
 describe('Office Nachrichten list layout', () => {

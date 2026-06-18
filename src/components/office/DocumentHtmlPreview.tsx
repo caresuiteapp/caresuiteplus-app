@@ -1,8 +1,5 @@
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
-import {
-  DOCUMENT_PREVIEW_UNAVAILABLE_LABEL,
-  buildDocumentPreviewFallbackLabel,
-} from '@/lib/office/officeDocumentDisplay';
+import { buildDocumentPreviewFallbackLabel } from '@/lib/office/officeDocumentDisplay';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { spacing, typography } from '@/theme';

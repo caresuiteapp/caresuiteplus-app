@@ -107,9 +107,9 @@ export function QmDocumentDetailHero({
         <QmStatusBadge kind="document" status={document.status} />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isLive ? (
-          <PremiumBadge statusKind="live" dot />
+          <PremiumBadge label="Live Supabase" variant="green" dot />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

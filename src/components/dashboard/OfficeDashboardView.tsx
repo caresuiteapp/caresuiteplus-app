@@ -119,7 +119,7 @@ function AreasSection({ onNavigate }: { onNavigate: (route: string) => void }) {
         {OFFICE_AREA_SHORTCUTS.map((area, index) => (
           <PremiumListRow
             key={area.id}
-            title={area.label}
+            title={area.title}
             subtitle={area.description}
             leading={
               <View style={[styles.areaIcon, { backgroundColor: `${area.accentColor}22` }]}>
@@ -133,7 +133,7 @@ function AreasSection({ onNavigate }: { onNavigate: (route: string) => void }) {
             }
             showChevron
             showDivider={index < OFFICE_AREA_SHORTCUTS.length - 1}
-            onPress={() => onNavigate(area.href)}
+            onPress={() => onNavigate(area.route)}
           />
         ))}
       </View>

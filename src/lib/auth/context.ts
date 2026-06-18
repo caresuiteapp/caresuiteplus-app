@@ -19,6 +19,7 @@ export type AuthContextValue = {
   signInWithSupabaseSession: (session: Session) => Promise<void>;
   signInPortalSession: (session: PortalSessionRecord) => Promise<void>;
   signOut: () => Promise<void>;
+  updateProfile: (profile: Profile) => void;
 };
 
 export const AuthContext = createContext<AuthContextValue | null>(null);

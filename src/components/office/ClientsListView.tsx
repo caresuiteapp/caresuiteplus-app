@@ -1,21 +1,22 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { AdaptiveActionBar } from '@/components/adaptive';
-import { ClientCompactRow } from './ClientCompactRow';
 import { ClientListCard } from './ClientListCard';
-import { ClientsFilterToolbar } from './ClientsFilterToolbar';
 import { ClientsListHero } from './ClientsListHero';
 import { ClientsListTable } from './ClientsListTable';
 import {
   EmptyState,
   ErrorState,
+  FilterChipGroup,
   LoadingState,
   PremiumButton,
+  PremiumInput,
   SuccessState,
 } from '@/components/ui';
 import {
   buildClientListKpis,
+  type ClientCareLevelFilterKey,
 } from '@/data/demo/clientListStats';
 import { useClientList } from '@/hooks/useClientList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
@@ -25,21 +26,19 @@ import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
-import { clientCreateRoute, clientRecordRoute } from '@/lib/navigation/clientRoutes';
+import { CLIENT_INTAKE_NEW_ROUTE, clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { colors, spacing, typography } from '@/theme';
 
 type ClientsListViewProps = {
   onClientPress?: (id: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
-  refreshToken?: number;
 };
 
 export function ClientsListView({
   onClientPress,
   selectedId = null,
   embedded = false,
-  refreshToken = 0,
 }: ClientsListViewProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -48,7 +47,7 @@ export function ClientsListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.clients');
-  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
+  const useTableLayout = isDesktop && viewMode === 'table';
   const canCreate = can('office.clients.create');
   const roleKey = profile?.roleKey ?? 'business_admin';
 
@@ -74,17 +73,11 @@ export function ClientsListView({
     setStatusFilter,
     careLevelFilter,
     setCareLevelFilter,
-    lifecycleFilter,
-    setLifecycleFilter,
-    costBearerFilter,
-    setCostBearerFilter,
     sortKey,
     setSortKey,
     sortOptions,
     statusFilters,
-    lifecycleFilters,
     careLevelFilters,
-    costBearerFilters,
     hasMore,
     loadMore,
     refresh,
@@ -92,18 +85,10 @@ export function ClientsListView({
     hasActiveFilters,
     isEmpty,
     isFilterEmpty,
-    hasLocalOnlyIntakeDraft,
     allItems,
-    kpiItems,
   } = useClientList();
 
-  useEffect(() => {
-    if (refreshToken > 0) {
-      void refresh();
-    }
-  }, [refreshToken, refresh]);
-
-  const kpis = useMemo(() => buildClientListKpis(kpiItems), [kpiItems]);
+  const kpis = useMemo(() => buildClientListKpis(allItems), [allItems]);
   const compactHero = embedded || shellVariant === 'desktop';
   const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
     name: 'lastName',
@@ -127,7 +112,7 @@ export function ClientsListView({
           totalCount={totalCount}
           canCreate={canCreate}
           isReadOnly={isReadOnly}
-          onCreatePress={() => router.push(clientCreateRoute() as never)}
+          onCreatePress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
           compact={compactHero}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -139,29 +124,35 @@ export function ClientsListView({
         <SuccessState message="Liste erfolgreich aktualisiert." />
       ) : null}
 
-      <ClientsFilterToolbar
-        compact={embedded}
-        search={search}
-        onSearchChange={setSearch}
-        filteredCount={filteredCount}
-        totalCount={totalCount}
-        lifecycleFilter={lifecycleFilter}
-        onLifecycleChange={(value) => setLifecycleFilter(value as 'all' | 'active' | 'archived')}
-        lifecycleFilters={lifecycleFilters}
-        statusFilter={statusFilter}
-        onStatusChange={setStatusFilter}
-        statusFilters={statusFilters}
-        careLevelFilter={careLevelFilter}
-        onCareLevelChange={setCareLevelFilter}
-        careLevelFilters={careLevelFilters}
-        costBearerFilter={costBearerFilter}
-        onCostBearerChange={setCostBearerFilter}
-        costBearerFilters={costBearerFilters}
-        sortKey={sortKey}
-        onSortChange={setSortKey}
-        sortOptions={sortOptions}
-        hasActiveFilters={hasActiveFilters}
-        onResetFilters={resetFilters}
+      <PremiumInput
+        label="Suche"
+        placeholder="Name oder Ort suchen…"
+        value={search}
+        onChangeText={setSearch}
+        autoCapitalize="words"
+        autoCorrect={false}
+        hint={`${filteredCount} von ${totalCount} Klient:innen`}
+      />
+
+      <Text style={styles.filterLabel}>Status</Text>
+      <FilterChipGroup
+        options={statusFilters}
+        value={statusFilter}
+        onChange={setStatusFilter}
+      />
+
+      <Text style={styles.filterLabel}>Pflegegrad</Text>
+      <FilterChipGroup
+        options={careLevelFilters}
+        value={careLevelFilter}
+        onChange={(value) => setCareLevelFilter(value as ClientCareLevelFilterKey)}
+      />
+
+      <Text style={styles.filterLabel}>Sortierung</Text>
+      <FilterChipGroup
+        options={sortOptions}
+        value={sortKey}
+        onChange={setSortKey}
       />
     </View>
   );
@@ -183,26 +174,7 @@ export function ClientsListView({
     );
   }
 
-  const emptyContent = isFilterEmpty ? (
-    <EmptyState
-      title="Keine Treffer"
-      message={
-        hasLocalOnlyIntakeDraft && statusFilter === 'entwurf'
-          ? 'Entwurf nur lokal gespeichert? Bitte im Aufnahme-Assistenten erneut speichern oder kurz warten, bis der Entwurf synchronisiert wurde.'
-          : 'Für Ihre Suche oder Filter wurden keine Klient:innen gefunden.'
-      }
-      actionLabel={
-        hasLocalOnlyIntakeDraft && statusFilter === 'entwurf'
-          ? 'Zum Aufnahme-Assistenten'
-          : 'Filter zurücksetzen'
-      }
-      onAction={
-        hasLocalOnlyIntakeDraft && statusFilter === 'entwurf'
-          ? () => router.push(clientCreateRoute() as never)
-          : resetFilters
-      }
-    />
-  ) : isEmpty ? (
+  const emptyContent = isEmpty ? (
     <EmptyState
       title="Noch keine Klient:innen"
       message={
@@ -211,7 +183,14 @@ export function ClientsListView({
           : `Noch keine Klient:innen vorhanden. Anlegen ist für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
       }
       actionLabel={canCreate ? 'Klient:in anlegen' : undefined}
-      onAction={canCreate ? () => router.push(clientCreateRoute() as never) : undefined}
+      onAction={canCreate ? () => router.push(CLIENT_INTAKE_NEW_ROUTE as never) : undefined}
+    />
+  ) : isFilterEmpty ? (
+    <EmptyState
+      title="Keine Treffer"
+      message="Für Ihre Suche oder Filter wurden keine Klient:innen gefunden."
+      actionLabel="Filter zurücksetzen"
+      onAction={resetFilters}
     />
   ) : null;
 
@@ -290,7 +269,7 @@ export function ClientsListView({
                   <PremiumButton
                     title="+ Neu"
                     size="sm"
-                    onPress={() => router.push(clientCreateRoute() as never)}
+                    onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
                   />
                 ) : undefined
               }
@@ -302,7 +281,7 @@ export function ClientsListView({
             <PremiumButton
               title="+ Neu"
               size="sm"
-              onPress={() => router.push(clientCreateRoute() as never)}
+              onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
             />
           </View>
         ) : null}
@@ -319,21 +298,13 @@ export function ClientsListView({
         ListHeaderComponent={toolbar}
         ListEmptyComponent={emptyContent}
         ListFooterComponent={footerContent}
-        renderItem={({ item }) =>
-          embedded ? (
-            <ClientCompactRow
-              client={item}
-              selected={selectedId === item.id}
-              onPress={() => handleClientPress(item.id)}
-            />
-          ) : (
-            <ClientListCard
-              client={item}
-              selected={selectedId === item.id}
-              onPress={() => handleClientPress(item.id)}
-            />
-          )
-        }
+        renderItem={({ item }) => (
+          <ClientListCard
+            client={item}
+            selected={selectedId === item.id}
+            onPress={() => handleClientPress(item.id)}
+          />
+        )}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -349,7 +320,7 @@ export function ClientsListView({
           <PremiumButton
             title="+ Neu"
             size="sm"
-            onPress={() => router.push(clientCreateRoute() as never)}
+            onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
           />
         </View>
       ) : null}
@@ -367,6 +338,10 @@ const styles = StyleSheet.create({
   toolbar: {
     gap: spacing.sm,
     marginBottom: spacing.md,
+  },
+  filterLabel: {
+    ...typography.label,
+    marginTop: spacing.xs,
   },
   list: {
     paddingBottom: spacing.xxl,

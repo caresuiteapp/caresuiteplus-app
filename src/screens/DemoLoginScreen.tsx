@@ -1,15 +1,16 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { DemoLoginHero } from '@/components/auth';
-import { CareLightErrorState, PremiumButton } from '@/components/ui';
-import { AuthPageShell } from '@/design/components';
-import { galaxyPalette } from '@/design/tokens/galaxy';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
-import { careSpacing } from '@/design/tokens/spacing';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { CareLightPageShell } from '@/components/layout';
+import { CareLightButton, CareLightErrorState } from '@/components/ui';
 import { ROLE_LABELS } from '@/data/demo';
+import { careLightColors } from '@/design/tokens/lightTheme';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careTypography } from '@/design/tokens/typography';
 import { getDemoLoginLabel } from '@/lib/auth';
 import { useAuth } from '@/lib/auth/context';
+import { getPostLoginRedirect } from '@/lib/navigation';
 import type { RoleKey } from '@/types';
 
 type DemoLoginScreenProps = {
@@ -19,11 +20,10 @@ type DemoLoginScreenProps = {
 };
 
 export function DemoLoginScreen({ title, subtitle, roles }: DemoLoginScreenProps) {
+  const router = useRouter();
   const { signInDemo, isLoading } = useAuth();
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState(false);
-  const { width } = useDeviceClass();
-  const type = resolveGalaxyTypography(width);
 
   const handleLogin = async (roleKey: RoleKey) => {
     setError(null);
@@ -31,47 +31,48 @@ export function DemoLoginScreen({ title, subtitle, roles }: DemoLoginScreenProps
     try {
       await signInDemo(roleKey);
       setSuccess(true);
+      const target = getPostLoginRedirect(roleKey);
+      setTimeout(() => router.replace(target), 400);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
     }
   };
 
   return (
-    <AuthPageShell title={title} subtitle={subtitle}>
+    <CareLightPageShell title={title} subtitle={subtitle} scroll>
       <DemoLoginHero title={title} subtitle={subtitle} roleCount={roles.length} />
 
       {error ? <CareLightErrorState message={error} onRetry={() => setError(null)} /> : null}
       {success ? (
-        <Text style={[type.body, styles.success]} numberOfLines={2}>
-          Anmeldung erfolgreich — Weiterleitung…
-        </Text>
+        <Text style={styles.success}>Anmeldung erfolgreich — Weiterleitung…</Text>
       ) : null}
 
       <View style={styles.roles}>
         {roles.map((roleKey) => (
-          <PremiumButton
+          <CareLightButton
             key={roleKey}
             title={getDemoLoginLabel(roleKey)}
             onPress={() => handleLogin(roleKey)}
             loading={isLoading}
-            fullWidth
+            style={styles.roleButton}
           />
         ))}
       </View>
 
-      <Text style={[type.caption, styles.roleHint]} numberOfLines={3}>
+      <Text style={styles.roleHint}>
         Verfügbare Rollen: {roles.map((r) => ROLE_LABELS[r]).join(' · ')}
       </Text>
-    </AuthPageShell>
+    </CareLightPageShell>
   );
 }
 
 const styles = StyleSheet.create({
   roles: { gap: careSpacing.sm },
-  roleHint: { textAlign: 'center', flexShrink: 1 },
+  roleButton: { width: '100%' },
+  roleHint: { ...careTypography.caption, color: careLightColors.muted, textAlign: 'center' },
   success: {
-    color: galaxyPalette.success,
+    ...careTypography.bodyStrong,
+    color: careLightColors.green,
     textAlign: 'center',
-    fontWeight: '600',
   },
 });

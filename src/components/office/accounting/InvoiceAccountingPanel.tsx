@@ -150,7 +150,7 @@ export function InvoiceAccountingPanel({ invoiceId, invoiceNumber }: InvoiceAcco
           {snapshot.isGobdArchived ? (
             <PremiumBadge label="GoBD geschützt" variant="red" dot />
           ) : (
-            <PremiumBadge statusKind="preparedOnly" />
+            <PremiumBadge label="preparedOnly" variant="muted" />
           )}
         </View>
 

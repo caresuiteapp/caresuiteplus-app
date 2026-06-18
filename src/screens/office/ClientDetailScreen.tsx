@@ -171,20 +171,9 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
       showBack={showBack}
       showBreadcrumbs={!embedded}
       rightSlot={
-        <View style={styles.headerActions}>
-          {can('office.clients.archive') && legacyQuery.data?.status !== 'archiviert' ? (
-            <PremiumButton
-              title="Archivieren"
-              size="sm"
-              variant="ghost"
-              loading={legacyQuery.actionLoading}
-              onPress={() => legacyQuery.archive()}
-            />
-          ) : null}
-          {can('office.clients.edit') ? (
-            <PremiumButton title="Bearbeiten" size="sm" variant="ghost" onPress={() => router.push(clientEditRoute(client.id) as never)} />
-          ) : null}
-        </View>
+        can('office.clients.edit') ? (
+          <PremiumButton title="Bearbeiten" size="sm" variant="ghost" onPress={() => router.push(clientEditRoute(client.id) as never)} />
+        ) : null
       }
     >
       {legacyQuery.successMessage ? <SuccessState message={legacyQuery.successMessage} /> : null}
@@ -235,7 +224,6 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
 }
 
 const styles = StyleSheet.create({
-  headerActions: { flexDirection: 'row', gap: spacing.sm, alignItems: 'center' },
   scroll: { paddingBottom: spacing.xxl, paddingTop: spacing.sm },
   tab: { gap: spacing.md },
   contextGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },

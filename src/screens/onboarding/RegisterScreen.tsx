@@ -107,7 +107,7 @@ export function RegisterScreen() {
       <PremiumCard accentColor={colors.orange}>
         <Text style={styles.hint}>
           Dieses Formular dient der Demo. Es werden keine Konten angelegt und keine Daten
-          gespeichert.
+          an Supabase übermittelt.
         </Text>
       </PremiumCard>
 

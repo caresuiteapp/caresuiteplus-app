@@ -1,8 +1,12 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import {
+  useCareLightPalette,
+  type CareLightResolved,
+} from '@/design/tokens/carelightadaptive';
 
 type CareLightListItemProps = {
   title: string;
@@ -21,6 +25,9 @@ export function CareLightListItem({
   onPress,
   style,
 }: CareLightListItemProps) {
+  const { c } = useCareLightPalette();
+  const styles = useMemo(() => makeStyles(c), [c]);
+
   const inner = (
     <View style={[styles.row, style]}>
       {icon ? (
@@ -45,43 +52,45 @@ export function CareLightListItem({
   );
 }
 
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: careSpacing.sm,
-    paddingVertical: careSpacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: careLightColors.border,
-  },
-  iconWrap: {
-    width: 40,
-    height: 40,
-    borderRadius: careRadius.sm,
-    backgroundColor: `${careLightColors.cyan}12`,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 18,
-  },
-  textCol: {
-    flex: 1,
-    gap: 2,
-  },
-  title: {
-    ...careTypography.bodyStrong,
-    color: careLightColors.text,
-  },
-  subtitle: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-  },
-  meta: {
-    ...careTypography.caption,
-    color: careLightColors.cyan,
-  },
-  pressed: {
-    opacity: 0.85,
-  },
-});
+function makeStyles(c: CareLightResolved) {
+  return StyleSheet.create({
+    row: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+      gap: careSpacing.sm,
+      paddingVertical: careSpacing.sm,
+      borderBottomWidth: 1,
+      borderBottomColor: c.border,
+    },
+    iconWrap: {
+      width: 40,
+      height: 40,
+      borderRadius: careRadius.sm,
+      backgroundColor: `${c.cyan}${c.isDark ? '22' : '12'}`,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    icon: {
+      fontSize: 18,
+    },
+    textCol: {
+      flex: 1,
+      gap: 2,
+    },
+    title: {
+      ...careTypography.bodyStrong,
+      color: c.text,
+    },
+    subtitle: {
+      ...careTypography.caption,
+      color: c.muted,
+    },
+    meta: {
+      ...careTypography.caption,
+      color: c.cyan,
+    },
+    pressed: {
+      opacity: 0.85,
+    },
+  });
+}

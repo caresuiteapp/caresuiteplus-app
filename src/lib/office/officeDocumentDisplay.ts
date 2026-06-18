@@ -141,40 +141,24 @@ export function filterClientContractDocuments(docs: ClientDocumentRecord[]): Cli
   return docs.filter(isClientContractOrConsentDocument);
 }
 
-export const DOCUMENT_PREVIEW_UNAVAILABLE_LABEL = 'Vorschau nicht verfügbar';
-
-export function buildDocumentPreviewStatusSubtitle(
-  doc: Pick<ClientDocumentRecord, 'status' | 'intakeStatus' | 'documentSource'>,
-): string | null {
-  const parts: string[] = [];
-  if (doc.intakeStatus === 'finalized' || doc.status === 'abgeschlossen') {
-    parts.push('Finalisiert');
-  } else if (doc.status === 'aktiv') {
-    parts.push('Aktiv');
-  } else if (doc.status === 'in_bearbeitung') {
-    parts.push('In Bearbeitung');
-  } else if (doc.status === 'entwurf') {
-    parts.push('Entwurf');
-  }
-  if (doc.documentSource === 'intake') parts.push('Aufnahme');
-  else if (doc.documentSource === 'upload') parts.push('Upload');
-  return parts.length > 0 ? parts.join(' · ') : null;
-}
-
 export function buildDocumentPreviewFallbackLabel(
   document: Pick<
     PortalDocumentListItem,
     'displayFileName' | 'documentSource' | 'category' | 'sizeLabel' | 'fileName'
   >,
 ): string {
+  if (document.sizeLabel?.trim()) return document.sizeLabel.trim();
   if (document.displayFileName?.trim()) return document.displayFileName.trim();
+  if (document.documentSource === 'intake') return 'HTML-Dokument · Aufnahme';
   const categoryLabel = PORTAL_DOCUMENT_CATEGORY_LABELS[document.category];
   if (categoryLabel && document.category !== 'other') return categoryLabel;
-  return DOCUMENT_PREVIEW_UNAVAILABLE_LABEL;
+  return 'Keine Vorschau verfügbar.';
 }
 
-export function buildClientDocumentPreviewFallback(_doc: ClientDocumentRecord): string {
-  return DOCUMENT_PREVIEW_UNAVAILABLE_LABEL;
+export function buildClientDocumentPreviewFallback(doc: ClientDocumentRecord): string {
+  return buildDocumentPreviewFallbackLabel(
+    mapClientDocumentToPortalItemForTest(doc),
+  );
 }
 
 /** Test helper mirroring officeDocumentsService list mapping */

@@ -1,12 +1,7 @@
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { CanonicalAssignmentStatus } from '@/types/modules/assignmentWorkflow';
 import type { LiveEventSource, LiveOperationEventType } from '@/types/modules/liveMonitor';
-import {
-  onAssignmentDocumentationMissing,
-  onAssignmentSignatureMissing,
-  onClientCancelRequested,
-  onClientRescheduleRequested,
-} from './managementTaskAutomationService';
+import { createManagementTask } from './managementTaskService';
 import {
   canonicalToLiveEventType,
   recordLiveOperationEvent,
@@ -62,11 +57,11 @@ export function handleStatusSideEffects(input: {
   });
 
   if (input.canonicalStatus === 'cancel_requested') {
-    onClientCancelRequested({
+    createManagementTask({
       tenantId: input.tenantId,
       assignmentId: input.assignmentId,
-      clientId: input.clientId,
-      reason: input.metadata?.reason,
+      taskType: 'cancel_review',
+      priority: 'high',
     });
     notifyAdmins(input.tenantId, input.assignmentId, 'assignment_cancel_requested', 'Absageanfrage', 'Klient:in hat Absage angefragt.', 'high');
     notifyClient(input.tenantId, input.assignmentId, input.clientId, 'assignment_cancel_requested', 'Absage eingegangen', 'Ihre Absageanfrage wird geprüft.');
@@ -74,11 +69,11 @@ export function handleStatusSideEffects(input: {
   }
 
   if (input.canonicalStatus === 'reschedule_requested') {
-    onClientRescheduleRequested({
+    createManagementTask({
       tenantId: input.tenantId,
       assignmentId: input.assignmentId,
-      clientId: input.clientId,
-      reason: input.metadata?.reason,
+      taskType: 'reschedule_review',
+      priority: 'high',
     });
     notifyAdmins(input.tenantId, input.assignmentId, 'assignment_reschedule_requested', 'Verschiebungsanfrage', 'Klient:in hat Verschiebung angefragt.', 'high');
     notifyClient(input.tenantId, input.assignmentId, input.clientId, 'assignment_reschedule_requested', 'Verschiebung eingegangen', 'Ihre Anfrage wird geprüft.');
@@ -86,21 +81,19 @@ export function handleStatusSideEffects(input: {
   }
 
   if (input.newStatus === 'dokumentation_offen') {
-    onAssignmentDocumentationMissing({
+    createManagementTask({
       tenantId: input.tenantId,
       assignmentId: input.assignmentId,
-      clientId: input.clientId,
-      employeeId: input.employeeId,
+      taskType: 'missing_documentation',
     });
     notifyAdmins(input.tenantId, input.assignmentId, 'documentation_added', 'Dokumentation fehlt', 'Einsatz beendet — Dokumentation ausstehend.');
   }
 
   if (input.newStatus === 'unterschrift_offen') {
-    onAssignmentSignatureMissing({
+    createManagementTask({
       tenantId: input.tenantId,
       assignmentId: input.assignmentId,
-      clientId: input.clientId,
-      employeeId: input.employeeId,
+      taskType: 'missing_signature',
     });
     notifyAdmins(input.tenantId, input.assignmentId, 'signature_added', 'Unterschrift fehlt', 'Unterschrift ausstehend.');
   }

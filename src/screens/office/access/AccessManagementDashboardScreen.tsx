@@ -32,8 +32,6 @@ const QUICK_ACTIONS = [
 
   { title: 'Rollen & Rechte verwalten', route: '/business/office/access/roles' },
 
-  { title: 'Aufgaben & Tickets', route: '/business/office/access/tasks' },
-
   { title: 'Login-Protokoll anzeigen', route: '/business/office/access/login-audit' },
 
 ] as const;

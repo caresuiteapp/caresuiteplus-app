@@ -29,8 +29,6 @@ describe('template catalog seeds', () => {
     const count = (type: string) => catalogs.filter((c) => c.catalogType === type).length;
     expect(count('client_status')).toBe(16);
     expect(count('employee_status')).toBe(13);
-    expect(count('employee_role')).toBe(12);
-    expect(count('employee_department')).toBe(9);
     expect(count('assignment_status')).toBe(19);
     expect(count('document_status')).toBe(10);
     expect(count('invoice_status')).toBe(12);

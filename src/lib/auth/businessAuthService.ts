@@ -1,8 +1,6 @@
-import type { Session } from '@supabase/supabase-js';
 import type { ServiceResult } from '@/types';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { activateRegistrationModules } from '@/lib/billing/moduleActivationService';
-import { hydrateTenantModulesFromSupabase } from '@/lib/modules/moduleAccessService';
 import { getServiceMode } from '@/lib/services/mode';
 import { signInWithPassword } from '@/lib/supabase/authService';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
@@ -60,8 +58,6 @@ export async function registerBusinessTenant(
         error: `Mandant angelegt, Anmeldung fehlgeschlagen: ${signIn.error}`,
       };
     }
-
-    await hydrateTenantModulesFromSupabase(registration.data.tenantId);
 
     const owner: TenantUser = {
       id: registration.data.owner.id,
@@ -149,7 +145,6 @@ export async function loginBusinessUser(
     tenantUser?: TenantUser;
     loginType: 'business';
     mustChangePassword: boolean;
-    supabaseSession?: Session;
   }>
 > {
   const normalized = identifier.trim().toLowerCase();
@@ -182,7 +177,6 @@ export async function loginBusinessUser(
       data: {
         loginType: 'business',
         mustChangePassword: false,
-        supabaseSession: sessionResult.data,
       },
     };
   }

@@ -17,10 +17,6 @@ import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { detectAssignmentConflicts, hasBlockingConflicts } from './assignmentConflictService';
 import { syncScheduleFromAssignments } from './scheduleFromAssignmentsService';
 import { emitWorkflowLiveEvent, handleStatusSideEffects } from './liveMonitorOrchestrator';
-import {
-  getEmployeeAvailabilityBlocks,
-  getPlanningBlockAbsences,
-} from '@/lib/office/absenceStore';
 
 type Store = {
   assignments: Map<string, AssignmentWorkflowRecord>;
@@ -98,16 +94,16 @@ function upsertAssignment(record: AssignmentWorkflowRecord): AssignmentWorkflowR
   return next;
 }
 
+/** Interner Patch für Live-Monitor-Statusübergänge */
+export function upsertAssignmentWorkflowRecord(record: AssignmentWorkflowRecord): AssignmentWorkflowRecord {
+  return upsertAssignment(record);
+}
+
 function conflictContext(tenantId: string) {
   return {
     employeeAbsences: getPlanningBlockAbsences(tenantId),
     employeeAvailability: getEmployeeAvailabilityBlocks(tenantId),
   };
-}
-
-/** Interner Upsert für abhängige Services (Mitarbeiterportal-Durchführung). */
-export function upsertAssignmentWorkflowRecord(record: AssignmentWorkflowRecord): AssignmentWorkflowRecord {
-  return upsertAssignment(record);
 }
 
 function buildTasks(

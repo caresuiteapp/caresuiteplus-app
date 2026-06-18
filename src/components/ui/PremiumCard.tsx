@@ -1,8 +1,10 @@
 import React, { useMemo } from 'react';
 import {
+  Platform,
   Pressable,
   StyleSheet,
   View,
+  type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -10,10 +12,11 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
+  withTiming,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { fxMotion, glassFx, withAlpha } from '@/design/tokens/motion';
 import { CareLightCard } from './CareLightCard';
 import { elevation, motion, radius, sheen as sheenTokens } from '@/theme';
 
@@ -26,6 +29,10 @@ type Props = {
   /** Glossy top sheen overlay via LinearGradient (WP 027). */
   sheen?: boolean;
 };
+
+type HoverProps = { onHoverIn?: () => void; onHoverOut?: () => void };
+const HoverPressable = Pressable as unknown as React.ComponentType<PressableProps & HoverProps>;
+const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
 export function PremiumCard({
   children,
@@ -45,22 +52,37 @@ export function PremiumCard({
     );
   }
 
-  const { colors, gradients } = useLegacyTheme();
   const scale = useSharedValue(1);
+  const hovered = useSharedValue(0);
+  const glow = accentColor ?? glassFx.borderStrong;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        shadowHost: {
+          borderRadius: radius.card,
+          shadowColor: glow,
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.16,
+          shadowRadius: 16,
+          elevation: 10,
+        },
         wrapper: {
           borderRadius: radius.card,
           borderWidth: 1,
-          borderColor: colors.borderSoft,
+          borderColor: accentColor ? withAlpha(accentColor, 0.32) : glassFx.border,
           overflow: 'hidden',
           position: 'relative',
         },
         gradient: {
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.card,
+        },
+        innerBorder: {
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: radius.card,
+          borderWidth: 1,
+          borderColor: glassFx.innerBorder,
         },
         topSheen: {
           position: 'absolute',
@@ -75,7 +97,7 @@ export function PremiumCard({
           top: 0,
           left: 0,
           right: 0,
-          height: '42%',
+          height: '46%',
           borderTopLeftRadius: radius.card,
           borderTopRightRadius: radius.card,
         },
@@ -91,29 +113,31 @@ export function PremiumCard({
           padding: 20,
         },
       }),
-    [colors.borderSoft],
+    [accentColor, glow],
   );
 
   const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
+    transform: [{ scale: scale.value }, { translateY: -5 * hovered.value }],
+    shadowOpacity: 0.16 + 0.3 * hovered.value,
+    shadowRadius: 16 + 14 * hovered.value,
   }));
 
-  const gradColors =
-    variant === 'elevated' ? gradients.card.elevated : gradients.card.default;
+  const gradColors = variant === 'elevated' ? glassFx.surfaceElevated : glassFx.surface;
 
   const inner = (
-    <View style={[styles.wrapper, elevation.card, style]}>
+    <View style={[styles.wrapper, elevation.card]}>
       <LinearGradient
-        colors={[...gradColors]}
+        colors={gradColors}
         start={sheenTokens.gradientStart}
         end={sheenTokens.gradientEnd}
         style={styles.gradient}
       />
+      <View style={styles.innerBorder} pointerEvents="none" />
       {sheen ? (
         <LinearGradient
-          colors={[...gradients.sheen.subtle]}
+          colors={glassFx.sheen}
           start={{ x: 0, y: 0 }}
-          end={{ x: 0, y: 0.35 }}
+          end={{ x: 0, y: 0.5 }}
           style={styles.sheenOverlay}
           pointerEvents="none"
         />
@@ -128,22 +152,29 @@ export function PremiumCard({
   );
 
   if (!onPress) {
-    return <Animated.View style={animStyle}>{inner}</Animated.View>;
+    return <Animated.View style={[styles.shadowHost, animStyle, style]}>{inner}</Animated.View>;
   }
 
   return (
-    <Animated.View style={animStyle}>
-      <Pressable
+    <Animated.View style={[styles.shadowHost, animStyle, style]}>
+      <HoverPressable
         onPress={onPress}
+        onHoverIn={() => {
+          hovered.value = withTiming(1, { duration: fxMotion.fast });
+        }}
+        onHoverOut={() => {
+          hovered.value = withTiming(0, { duration: fxMotion.base });
+        }}
         onPressIn={() => {
           scale.value = withSpring(0.987, motion.spring);
         }}
         onPressOut={() => {
           scale.value = withSpring(1, motion.spring);
         }}
+        style={webCursor}
       >
         {inner}
-      </Pressable>
+      </HoverPressable>
     </Animated.View>
   );
 }

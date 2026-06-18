@@ -1,12 +1,11 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { ROLE_LABELS } from '@/data/demo';
 import { isConnectLiveReady } from '@/lib/connect';
 import type { ConnectCategory } from '@/types/modules/connect';
 import type { RoleKey } from '@/types';
-import { designTokens, spacing } from '@/theme';
+import { colors, designTokens, spacing, typography } from '@/theme';
 
 type ConnectHubHeroProps = {
   categories: ConnectCategory[];
@@ -14,7 +13,6 @@ type ConnectHubHeroProps = {
 };
 
 export function ConnectHubHero({ categories, roleKey }: ConnectHubHeroProps) {
-  const { colors, typography } = useLegacyTheme();
   const integrationCount = categories.reduce(
     (sum, category) => sum + category.integrations.filter((item) => item.readiness !== 'disabled').length,
     0,
@@ -46,7 +44,7 @@ export function ConnectHubHero({ categories, roleKey }: ConnectHubHeroProps) {
         iconText: { fontSize: 22 },
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
       }),
-    [colors, typography],
+    [],
   );
 
   return (
@@ -69,10 +67,8 @@ export function ConnectHubHero({ categories, roleKey }: ConnectHubHeroProps) {
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {!isConnectLiveReady() ? (
-          <PremiumBadge statusKind="preparedOnly" label="Connect in Vorbereitung" dot />
-        ) : (
-          <PremiumBadge statusKind="live" dot />
-        )}
+          <PremiumBadge label="Live-Connect in Vorbereitung" variant="orange" dot />
+        ) : null}
       </View>
     </PremiumListHeroFrame>
   );

@@ -5,7 +5,6 @@ import { AdaptiveActionBar } from '@/components/adaptive';
 import { DocumentListCard } from './DocumentListCard';
 import { DocumentsListHero } from './DocumentsListHero';
 import { DocumentsListTable } from './DocumentsListTable';
-import { OfficeDocumentCompactRow } from './OfficeDocumentCompactRow';
 import { LockedActionBanner } from '@/components/permissions';
 import {
   EmptyState,
@@ -30,17 +29,7 @@ import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
 import { colors, spacing, typography } from '@/theme';
 
-type DocumentsListViewProps = {
-  onDocumentPress?: (id: string) => void;
-  selectedId?: string | null;
-  embedded?: boolean;
-};
-
-export function DocumentsListView({
-  onDocumentPress,
-  selectedId = null,
-  embedded = false,
-}: DocumentsListViewProps = {}) {
+export function DocumentsListView() {
   const router = useRouter();
   const { profile } = useAuth();
   const { can, isReadOnly, roleLabel, check } = usePermissions();
@@ -48,7 +37,7 @@ export function DocumentsListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.documents');
-  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
+  const useTableLayout = isDesktop && viewMode === 'table';
   const canView = can('office.documents.view');
   const canUpload = can('office.documents.upload' as never);
   const roleKey = profile?.roleKey ?? 'business_admin';
@@ -89,14 +78,6 @@ export function DocumentsListView({
     updated: 'updatedAt',
   });
 
-  const handleDocumentPress = (id: string) => {
-    if (onDocumentPress) {
-      onDocumentPress(id);
-      return;
-    }
-    router.push(`/office/documents/${id}` as never);
-  };
-
   if (!canView) {
     return (
       <LockedActionBanner
@@ -108,34 +89,25 @@ export function DocumentsListView({
 
   const toolbar = (
     <View style={styles.toolbar}>
-      {embedded ? (
-        <View style={styles.embeddedHeader}>
-          <Text style={styles.embeddedTitle}>Dokumente</Text>
-          <Text style={styles.embeddedMeta}>
-            {filteredCount} von {totalCount}
-          </Text>
-        </View>
-      ) : (
-        <DocumentsListHero
-          kpis={kpis}
-          roleKey={roleKey}
-          filteredCount={filteredCount}
-          totalCount={totalCount}
-          canUpload={canUpload}
-          isReadOnly={isReadOnly}
-          onUploadPress={() => router.push('/office/documents/upload' as never)}
-          compact={compactHero}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          showViewToggle={isDesktop}
-        />
-      )}
+      <DocumentsListHero
+        kpis={kpis}
+        roleKey={roleKey}
+        filteredCount={filteredCount}
+        totalCount={totalCount}
+        canUpload={canUpload}
+        isReadOnly={isReadOnly}
+        onUploadPress={() => router.push('/office/documents/upload' as never)}
+        compact={compactHero}
+        viewMode={viewMode}
+        onViewModeChange={setViewMode}
+        showViewToggle={isDesktop}
+      />
 
       {showSuccess ? <SuccessState message="Dokumente erfolgreich aktualisiert." /> : null}
 
       <PremiumInput
         label="Suche"
-        placeholder="Titel, Klient:in oder Dateiname…"
+        placeholder="Titel oder Dateiname…"
         value={search}
         onChangeText={setSearch}
         autoCorrect={false}
@@ -227,8 +199,6 @@ export function DocumentsListView({
             <>
               <DocumentsListTable
                 documents={items}
-                selectedId={selectedId}
-                onDocumentPress={handleDocumentPress}
                 sortColumnKey={tableSort.sortColumnKey}
                 sortDirection={tableSort.sortDirection}
                 onSortColumn={tableSort.onSortColumn}
@@ -236,7 +206,7 @@ export function DocumentsListView({
               {footerContent}
             </>
           )}
-          {useTableLayout && !embedded ? (
+          {useTableLayout ? (
             <AdaptiveActionBar
               tertiary={
                 <Text style={styles.actionMeta}>
@@ -280,21 +250,7 @@ export function DocumentsListView({
         ListHeaderComponent={toolbar}
         ListEmptyComponent={emptyContent}
         ListFooterComponent={footerContent}
-        renderItem={({ item }) =>
-          embedded ? (
-            <OfficeDocumentCompactRow
-              document={item}
-              selected={selectedId === item.id}
-              onPress={() => handleDocumentPress(item.id)}
-            />
-          ) : (
-            <DocumentListCard
-              document={item}
-              selected={selectedId === item.id}
-              onPress={() => handleDocumentPress(item.id)}
-            />
-          )
-        }
+        renderItem={({ item }) => <DocumentListCard document={item} />}
         contentContainerStyle={styles.list}
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -336,10 +292,4 @@ const styles = StyleSheet.create({
     ...typography.caption,
     color: colors.textMuted,
   },
-  embeddedHeader: {
-    marginBottom: spacing.xs,
-    paddingRight: spacing.xxl,
-  },
-  embeddedTitle: { ...typography.h3 },
-  embeddedMeta: { ...typography.caption, color: colors.textMuted },
 });

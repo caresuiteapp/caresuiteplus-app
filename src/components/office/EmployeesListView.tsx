@@ -1,6 +1,6 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { AdaptiveActionBar } from '@/components/adaptive';
 import { EmployeeListCard } from './EmployeeListCard';
 import { EmployeesListHero } from './EmployeesListHero';
@@ -9,7 +9,7 @@ import { LockedActionBanner } from '@/components/permissions';
 import {
   EmptyState,
   ErrorState,
-  ListFilterSelect,
+  FilterChipGroup,
   LoadingState,
   PremiumButton,
   PremiumInput,
@@ -31,7 +31,6 @@ type EmployeesListViewProps = {
   selectedId?: string | null;
   embedded?: boolean;
   routePrefix?: string;
-  refreshToken?: number;
 };
 
 export function EmployeesListView({
@@ -39,7 +38,6 @@ export function EmployeesListView({
   selectedId = null,
   embedded = false,
   routePrefix = '/business/office/employees',
-  refreshToken = 0,
 }: EmployeesListViewProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -48,7 +46,7 @@ export function EmployeesListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.employees');
-  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
+  const useTableLayout = isDesktop && viewMode === 'table';
   const canView = can('office.employees.view');
   const canCreate = can('office.employees.create');
   const roleKey = profile?.roleKey ?? 'business_admin';
@@ -86,12 +84,6 @@ export function EmployeesListView({
     isFilterEmpty,
     allItems,
   } = useEmployeeList();
-
-  useEffect(() => {
-    if (refreshToken > 0) {
-      void refresh();
-    }
-  }, [refreshToken, refresh]);
 
   const kpis = useMemo(() => buildEmployeeListKpis(allItems), [allItems]);
   const compactHero = embedded || shellVariant === 'desktop';
@@ -146,20 +138,11 @@ export function EmployeesListView({
         hint={`${filteredCount} von ${totalCount} Mitarbeitende`}
       />
 
-      <View style={styles.filterRow}>
-        <ListFilterSelect
-          label="Status"
-          value={statusFilter}
-          options={statusFilters}
-          onChange={setStatusFilter}
-        />
-        <ListFilterSelect
-          label="Sortierung"
-          value={sortKey}
-          options={sortOptions}
-          onChange={setSortKey}
-        />
-      </View>
+      <Text style={styles.filterLabel}>Status</Text>
+      <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
+
+      <Text style={styles.filterLabel}>Sortierung</Text>
+      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
     </View>
   );
 
@@ -343,10 +326,9 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: spacing.md,
   },
-  filterRow: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    alignItems: 'flex-start',
+  filterLabel: {
+    ...typography.label,
+    marginTop: spacing.xs,
   },
   list: {
     paddingBottom: spacing.xxl,

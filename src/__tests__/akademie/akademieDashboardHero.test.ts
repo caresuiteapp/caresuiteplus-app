@@ -37,6 +37,12 @@ describe('Akademie Dashboard Hero (Sprint 76)', () => {
     expect(screen).not.toContain('StatTile');
   });
 
+  it('AkademieIndexScreen zeigt Vorschaudaten bei fehlender Live-Tabelle', () => {
+    const screen = readSrc('src/screens/akademie/AkademieIndexScreen.tsx');
+    expect(screen).toContain('isPreviewData');
+    expect(screen).toContain('DEMO_DATA_BANNER');
+  });
+
   it('Erweiterungen sind demo-funktional', () => {
     expect(isAkademieExtensionLiveReady()).toBe(true);
   });

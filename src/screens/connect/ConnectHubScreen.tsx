@@ -1,16 +1,17 @@
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ConnectCategoryDashboardCard,
+import {
+  ConnectCategoryCard,
   ConnectHubHero,
   ConnectPreparedBanner,
-  ConnectRoadmapPanel,
 } from '@/components/connect';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { PremiumButton } from '@/components/ui';
-import { useConnectDashboard } from '@/hooks/useConnectDashboard';
+import { useConnectCatalog } from '@/hooks/useConnectCatalog';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
+import { getVisibleConnectIntegrations } from '@/lib/connect';
 import { spacing } from '@/theme';
 
 export function ConnectHubScreen() {
@@ -18,7 +19,7 @@ export function ConnectHubScreen() {
   const { profile } = useAuth();
   const { can, check, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? 'business_admin';
-  const { categories, categoryStats } = useConnectDashboard();
+  const { categories } = useConnectCatalog();
 
   if (!can('connect.view')) {
     return (
@@ -53,18 +54,14 @@ export function ConnectHubScreen() {
         {can('connect.configure') ? <ConnectRoadmapPanel /> : null}
 
         <View style={styles.grid}>
-          {categories.map((category) => {
-            const stats = categoryStats.find((item) => item.categoryKey === category.key);
-            if (!stats) return null;
-            return (
-              <ConnectCategoryDashboardCard
-                key={category.key}
-                category={category}
-                stats={stats}
-                onPress={() => router.push(`/business/connect/${category.key}` as never)}
-              />
-            );
-          })}
+          {categories.map((category) => (
+            <ConnectCategoryCard
+              key={category.key}
+              category={category}
+              visibleCount={getVisibleConnectIntegrations(category).length}
+              onPress={() => router.push(`/business/connect/${category.key}` as never)}
+            />
+          ))}
         </View>
       </ScrollView>
     </ScreenShell>

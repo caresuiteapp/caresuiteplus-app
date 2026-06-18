@@ -23,7 +23,7 @@ const WORKFLOW_TO_REMOTE: Record<WorkflowStatus, RemoteClientStatus> = {
   gesperrt: 'blocked',
 };
 
-const REMOTE_TO_WORKFLOW: Record<string, WorkflowStatus> = {
+const REMOTE_TO_WORKFLOW: Record<RemoteClientStatus, WorkflowStatus> = {
   lead: 'entwurf',
   active: 'aktiv',
   paused: 'in_bearbeitung',
@@ -31,14 +31,7 @@ const REMOTE_TO_WORKFLOW: Record<string, WorkflowStatus> = {
   archived: 'archiviert',
   deceased: 'abgeschlossen',
   blocked: 'gesperrt',
-  deleted: 'archiviert',
 };
-
-export const REMOTE_CLIENT_DELETED_STATUS = 'deleted' as const;
-
-export function isRemoteClientDeleted(status: string | null | undefined): boolean {
-  return status === REMOTE_CLIENT_DELETED_STATUS;
-}
 
 export function workflowStatusToRemote(status: WorkflowStatus): RemoteClientStatus {
   return WORKFLOW_TO_REMOTE[status] ?? 'active';
@@ -46,9 +39,8 @@ export function workflowStatusToRemote(status: WorkflowStatus): RemoteClientStat
 
 export function remoteStatusToWorkflow(status: string | null | undefined): WorkflowStatus {
   if (!status) return 'aktiv';
-  if (isRemoteClientDeleted(status)) return 'archiviert';
   if (status in REMOTE_TO_WORKFLOW) {
-    return REMOTE_TO_WORKFLOW[status];
+    return REMOTE_TO_WORKFLOW[status as RemoteClientStatus];
   }
   if (LOCAL_STATUSES.includes(status as WorkflowStatus)) {
     return status as WorkflowStatus;

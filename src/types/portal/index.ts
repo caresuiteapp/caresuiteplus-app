@@ -3,7 +3,6 @@ export * from './communication';
 export * from './documents';
 export * from './employee';
 export * from './client';
-export * from './clientPortalDomain';
 
 export type PortalScope = 'portal_employee' | 'portal_client' | 'portal_family';
 

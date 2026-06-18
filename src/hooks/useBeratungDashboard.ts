@@ -39,6 +39,7 @@ export function useBeratungDashboard() {
     recentCases: (recentQuery.data ?? []) as CounselingListItem[],
     loading: statsQuery.loading || recentQuery.loading,
     error: statsQuery.error ?? recentQuery.error,
+    isPreviewData: statsQuery.previewData || recentQuery.previewData,
     refreshing: statsQuery.refreshing || recentQuery.refreshing,
     showSuccess,
     refresh,

@@ -8,10 +8,6 @@ import type {
 } from '@/types/communication/channels';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { isDemoMode } from '@/lib/supabase/config';
-import {
-  assertConnectFeatureAllowed,
-  buildConnectFeatureGateContextFromFeatureKey,
-} from '@/lib/connect/gateway/connectFeatureGate';
 import { runService } from '@/lib/services/serviceRunner';
 import {
   assertCommunicationSendAllowed,
@@ -164,50 +160,6 @@ export async function prepareOutboundMessage(
   input: PrepareOutboundMessageInput,
 ): Promise<ServiceResult<PreparedOutboundMessage>> {
   return runService<PreparedOutboundMessage>(async () => {
-    if (input.channel === 'sms') {
-      const connectGate = assertConnectFeatureAllowed(
-        'communication.sms',
-        'send',
-        buildConnectFeatureGateContextFromFeatureKey('communication.sms', {
-          tenantId: input.tenantId,
-          userId: input.actorUserId,
-          role: 'business_admin',
-          integrationStatus: input.providerConfig ? 'configured' : 'not_configured',
-          hasCredentialReference: Boolean(input.providerConfig?.credentialReference),
-          hasExternalTransferConsent: Boolean(
-            input.consent?.proofReference && !input.consent.revokedAt,
-          ),
-          connectorStatus: 'coming_soon',
-        }),
-      );
-      if (!connectGate.allowed) {
-        recordCommunicationProviderAudit({
-          tenantId: input.tenantId,
-          actorUserId: input.actorUserId,
-          action: 'prepare_outbound_message',
-          entityType: 'communication_outbound_message',
-          entityId: `comm-out-${Date.now()}`,
-          channel: input.channel,
-          providerKey: input.providerConfig?.providerKey ?? null,
-          useCase: input.useCase,
-          summary: connectGate.message,
-          blocked: true,
-          demo: input.tenantId === DEMO_TENANT_ID,
-        });
-        return {
-          ok: true,
-          data: {
-            id: `comm-out-${Date.now()}`,
-            status: 'blocked' as const,
-            blockedReason: connectGate.message,
-            channel: input.channel,
-            useCase: input.useCase,
-            preparedOnly: true as const,
-          },
-        };
-      }
-    }
-
     const consentGuard = assertCommunicationSendAllowed(input);
     const liveGuard = assertSendNotBlockedByLiveGate();
 

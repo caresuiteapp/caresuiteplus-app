@@ -9,7 +9,7 @@ import type { PlanningAbsenceBlock } from '@/lib/office/absenceStore';
 import { detectEmployeeEligibilityConflicts } from './employeeAssignmentEligibilityService';
 import { absenceTypeToConflictCode, conflictCodeToMessage } from '@/lib/office/absenceConflictService';
 import { getEmployeePersonnelFileForAssignmentCheck } from '@/lib/assist/employeePersonnelFileService';
-import { INACTIVE_EMPLOYMENT_STATUSES } from '@/lib/office/employeePersonnelFieldRules';
+import { INACTIVE_EMPLOYMENT_STATUSES } from '@/lib/assist/employeepersonnelfieldrules';
 import { isGeoLiveReady } from '@/lib/geo/geoModuleConfig';
 
 function overlaps(aStart: string, aEnd: string, bStart: string, bEnd: string): boolean {

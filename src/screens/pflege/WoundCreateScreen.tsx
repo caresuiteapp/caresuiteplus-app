@@ -107,7 +107,6 @@ export function WoundCreateScreen() {
         woundId: result.data.id,
       },
       profile?.roleKey,
-      profile?.id,
     );
 
     setSaving(false);

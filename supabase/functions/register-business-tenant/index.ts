@@ -69,25 +69,6 @@ function validateBody(body: RegisterBody): string | null {
   return null;
 }
 
-function mapAuthError(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes('already been registered') || lower.includes('already registered')) {
-    return 'Diese Admin-E-Mail ist bereits registriert. Bitte melden Sie sich an oder nutzen Sie eine andere E-Mail.';
-  }
-  if (lower.includes('password')) {
-    return 'Passwort entspricht nicht den Sicherheitsanforderungen.';
-  }
-  return message;
-}
-
-function mapTenantError(message: string): string {
-  const lower = message.toLowerCase();
-  if (lower.includes('tenants_slug_unique') || (lower.includes('duplicate key') && lower.includes('slug'))) {
-    return 'Diese Firma wurde bereits registriert. Bitte melden Sie sich an oder wenden Sie sich an den Support.';
-  }
-  return message;
-}
-
 async function ensureOwnerRole(
   supabase: ReturnType<typeof getServiceClient>,
   tenantId: string,
@@ -122,232 +103,6 @@ async function ensureOwnerRole(
   return created?.id ?? null;
 }
 
-async function resolveTenant(
-  supabase: ReturnType<typeof getServiceClient>,
-  body: RegisterBody,
-  slug: string,
-): Promise<{ tenant: { id: string } | null; error: string | null; resumed: boolean }> {
-  const { data: existingTenant } = await supabase
-    .from('tenants')
-    .select('id')
-    .eq('slug', slug)
-    .maybeSingle();
-
-  if (existingTenant?.id) {
-    const { count, error: countError } = await supabase
-      .from('tenant_users')
-      .select('id', { count: 'exact', head: true })
-      .eq('tenant_id', existingTenant.id);
-
-    if (countError) {
-      return { tenant: null, error: countError.message, resumed: false };
-    }
-
-    if ((count ?? 0) > 0) {
-      return {
-        tenant: null,
-        error: 'Diese Firma ist bereits registriert. Bitte melden Sie sich an.',
-        resumed: false,
-      };
-    }
-
-    const { error: updateError } = await supabase
-      .from('tenants')
-      .update({
-        name: body.companyName.trim(),
-        legal_form: body.legalForm,
-        industry: body.industry,
-        phone: body.phone,
-        email: body.email,
-        website: body.website ?? null,
-        street: body.street,
-        postal_code: body.zip,
-        city: body.city,
-      })
-      .eq('id', existingTenant.id);
-
-    if (updateError) {
-      return { tenant: null, error: updateError.message, resumed: false };
-    }
-
-    return { tenant: existingTenant, error: null, resumed: true };
-  }
-
-  const { data: tenant, error: tenantError } = await supabase
-    .from('tenants')
-    .insert({
-      name: body.companyName.trim(),
-      slug,
-      legal_form: body.legalForm,
-      industry: body.industry,
-      phone: body.phone,
-      email: body.email,
-      website: body.website ?? null,
-      street: body.street,
-      postal_code: body.zip,
-      city: body.city,
-    })
-    .select('id')
-    .single();
-
-  if (tenantError || !tenant) {
-    return {
-      tenant: null,
-      error: mapTenantError(tenantError?.message ?? 'Mandant konnte nicht angelegt werden.'),
-      resumed: false,
-    };
-  }
-
-  return { tenant, error: null, resumed: false };
-}
-
-type AuthAdminUser = {
-  id: string;
-  email?: string;
-  app_metadata?: Record<string, unknown>;
-  user_metadata?: Record<string, unknown>;
-};
-
-async function findAuthUserByEmail(
-  supabase: ReturnType<typeof getServiceClient>,
-  adminEmail: string,
-): Promise<AuthAdminUser | null> {
-  const normalized = adminEmail.toLowerCase();
-  let page = 1;
-  const perPage = 200;
-
-  while (page <= 10) {
-    const { data, error } = await supabase.auth.admin.listUsers({ page, perPage });
-    if (error) {
-      console.warn(`[edge] listUsers failed: ${error.message}`);
-      return null;
-    }
-
-    const match = data.users.find((user) => user.email?.toLowerCase() === normalized);
-    if (match) {
-      return {
-        id: match.id,
-        email: match.email,
-        app_metadata: match.app_metadata as Record<string, unknown>,
-        user_metadata: match.user_metadata as Record<string, unknown>,
-      };
-    }
-
-    if (data.users.length < perPage) break;
-    page += 1;
-  }
-
-  return null;
-}
-
-async function tenantHasOwner(
-  supabase: ReturnType<typeof getServiceClient>,
-  tenantId: string,
-): Promise<boolean> {
-  const { count, error } = await supabase
-    .from('tenant_users')
-    .select('id', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId);
-
-  if (error) {
-    console.warn(`[edge] tenant owner lookup failed: ${error.message}`);
-    return true;
-  }
-
-  return (count ?? 0) > 0;
-}
-
-async function canRelinkAuthUserToTenant(
-  supabase: ReturnType<typeof getServiceClient>,
-  existingTenantId: string | undefined,
-  targetTenantId: string,
-): Promise<boolean> {
-  if (!existingTenantId || existingTenantId === targetTenantId) {
-    return true;
-  }
-
-  const hasOwner = await tenantHasOwner(supabase, existingTenantId);
-  return !hasOwner;
-}
-
-async function resolveAuthUser(
-  supabase: ReturnType<typeof getServiceClient>,
-  body: RegisterBody,
-  tenantId: string,
-  adminEmail: string,
-): Promise<{ user: { id: string } | null; error: string | null }> {
-  const displayName = `${body.adminFirstName.trim()} ${body.adminLastName.trim()}`;
-
-  const { data: created, error: createError } = await supabase.auth.admin.createUser({
-    email: adminEmail,
-    password: body.adminPassword,
-    email_confirm: true,
-    app_metadata: {
-      tenant_id: tenantId,
-      role_key: 'business_admin',
-    },
-    user_metadata: {
-      display_name: displayName,
-    },
-  });
-
-  if (created?.user) {
-    return { user: created.user, error: null };
-  }
-
-  const createMessage = createError?.message ?? '';
-  const alreadyExists =
-    createMessage.toLowerCase().includes('already been registered') ||
-    createMessage.toLowerCase().includes('already registered');
-
-  if (!alreadyExists) {
-    return {
-      user: null,
-      error: mapAuthError(createMessage || 'Auth-Benutzer konnte nicht angelegt werden.'),
-    };
-  }
-
-  const existing = await findAuthUserByEmail(supabase, adminEmail);
-  if (!existing) {
-    return {
-      user: null,
-      error: 'Diese Admin-E-Mail ist bereits registriert, konnte aber nicht verknüpft werden.',
-    };
-  }
-
-  const linkedTenantId = existing.app_metadata?.tenant_id as string | undefined;
-  const mayRelink = await canRelinkAuthUserToTenant(supabase, linkedTenantId, tenantId);
-  if (!mayRelink) {
-    return {
-      user: null,
-      error: 'Diese Admin-E-Mail ist bereits einem anderen Mandanten zugeordnet.',
-    };
-  }
-
-  const { data: updated, error: updateError } = await supabase.auth.admin.updateUserById(existing.id, {
-    password: body.adminPassword,
-    email_confirm: true,
-    app_metadata: {
-      ...existing.app_metadata,
-      tenant_id: tenantId,
-      role_key: 'business_admin',
-    },
-    user_metadata: {
-      ...existing.user_metadata,
-      display_name: displayName,
-    },
-  });
-
-  if (updateError || !updated?.user) {
-    return {
-      user: null,
-      error: mapAuthError(updateError?.message ?? 'Auth-Benutzer konnte nicht aktualisiert werden.'),
-    };
-  }
-
-  return { user: updated.user, error: null };
-}
-
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response('ok', { headers: corsHeaders });
@@ -368,41 +123,59 @@ serve(async (req) => {
     const adminEmail = body.adminEmail.trim().toLowerCase();
     const slug = slugify(body.companyName);
 
-    const tenantResult = await resolveTenant(supabase, body, slug);
-    if (tenantResult.error || !tenantResult.tenant) {
-      const status = tenantResult.error?.includes('bereits registriert') ? 409 : 500;
-      return jsonResponse({ ok: false, error: tenantResult.error ?? 'Mandant konnte nicht angelegt werden.' }, status);
-    }
-
-    const tenant = tenantResult.tenant;
-
-    if (!tenantResult.resumed) {
-      await tryInsert(supabase, 'tenant_addresses', {
-        tenant_id: tenant.id,
-        street: body.street,
-        zip: body.zip,
-        city: body.city,
-      });
-
-      await tryInsert(supabase, 'tenant_contacts', {
-        tenant_id: tenant.id,
-        first_name: body.contactFirstName,
-        last_name: body.contactLastName,
-        role: body.contactRole,
+    const { data: tenant, error: tenantError } = await supabase
+      .from('tenants')
+      .insert({
+        name: body.companyName.trim(),
+        slug,
+        legal_form: body.legalForm,
+        industry: body.industry,
+        phone: body.phone,
         email: body.email,
-        is_primary: true,
-      });
+        website: body.website ?? null,
+        street: body.street,
+        postal_code: body.zip,
+        city: body.city,
+      })
+      .select('id')
+      .single();
+
+    if (tenantError || !tenant) {
+      return jsonResponse({ ok: false, error: tenantError?.message ?? 'Mandant konnte nicht angelegt werden.' }, 500);
     }
 
-    const authResult = await resolveAuthUser(supabase, body, tenant.id, adminEmail);
-    if (authResult.error || !authResult.user) {
-      return jsonResponse(
-        { ok: false, error: authResult.error ?? 'Auth-Benutzer konnte nicht angelegt werden.' },
-        authResult.error?.includes('bereits') ? 409 : 500,
-      );
-    }
+    await tryInsert(supabase, 'tenant_addresses', {
+      tenant_id: tenant.id,
+      street: body.street,
+      zip: body.zip,
+      city: body.city,
+    });
 
-    const authUser = { user: authResult.user };
+    await tryInsert(supabase, 'tenant_contacts', {
+      tenant_id: tenant.id,
+      first_name: body.contactFirstName,
+      last_name: body.contactLastName,
+      role: body.contactRole,
+      email: body.email,
+      is_primary: true,
+    });
+
+    const { data: authUser, error: authError } = await supabase.auth.admin.createUser({
+      email: adminEmail,
+      password: body.adminPassword,
+      email_confirm: true,
+      app_metadata: {
+        tenant_id: tenant.id,
+        role_key: 'business_admin',
+      },
+      user_metadata: {
+        display_name: `${body.adminFirstName.trim()} ${body.adminLastName.trim()}`,
+      },
+    });
+
+    if (authError || !authUser.user) {
+      return jsonResponse({ ok: false, error: authError?.message ?? 'Auth-Benutzer konnte nicht angelegt werden.' }, 500);
+    }
 
     const ownerRoleId = await ensureOwnerRole(supabase, tenant.id);
 
@@ -455,10 +228,7 @@ serve(async (req) => {
       .single();
 
     if (ownerError || !owner) {
-      return jsonResponse(
-        { ok: false, error: ownerError?.message ?? 'Owner-Benutzer konnte nicht angelegt werden.' },
-        500,
-      );
+      return jsonResponse({ ok: false, error: ownerError?.message ?? 'Owner-Benutzer konnte nicht angelegt werden.' }, 500);
     }
 
     const moduleKeys = Array.from(new Set(['office', ...(body.selectedModules ?? [])]));
@@ -473,7 +243,12 @@ serve(async (req) => {
           tenant_id: tenant.id,
           product_id: product.id,
           product_key: product.product_key,
-          status: 'active',
+          is_active: true,
+          access_source: 'free_active',
+          access_type: 'free',
+          billing_status: 'free_active',
+          price_cents: 0,
+          premium_ready: false,
           is_default: product.product_key === 'office',
         })),
       );
@@ -484,7 +259,8 @@ serve(async (req) => {
 
     await tryInsert(supabase, 'tenant_subscriptions', {
       tenant_id: tenant.id,
-      status: 'active',
+      status: 'free_active',
+      plan_key: 'free_platform',
     });
 
     const meta = readClientMeta(req);

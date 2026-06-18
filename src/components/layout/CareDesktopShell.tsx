@@ -1,1 +1,1 @@
-export { DesktopShell as CareDesktopShell } from './DesktopShell';
+export { PlatformShell as CareDesktopShell } from './platform';

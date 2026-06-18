@@ -44,7 +44,7 @@ export function BudgetsListHero({ items, roleKey, filteredCount, totalCount }: B
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        <PremiumBadge statusKind="preparedOnly" />
+        <PremiumBadge label="Demo / preparedOnly" variant="muted" />
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

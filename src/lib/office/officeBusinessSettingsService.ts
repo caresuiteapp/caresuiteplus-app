@@ -16,18 +16,6 @@ export type OfficeSettingsSnapshot = {
 
 const SETTINGS_LINKS: OfficeSettingsLink[] = [
   {
-    id: 'document-live-preview',
-    label: 'Live-Vorschau (Dokumente)',
-    route: '/business/templates/live-preview',
-    description: 'HTML-Vorschau mit Beispieldatensätzen',
-  },
-  {
-    id: 'document-ci',
-    label: 'CI & Layout (Dokumente)',
-    route: '/business/templates/ci-layout',
-    description: 'Logo, Farben, A4-Layout und Geschäftsdokument-Fußzeilen',
-  },
-  {
     id: 'templates',
     label: 'Vorlagen & Kataloge',
     route: '/business/templates/settings',
@@ -52,22 +40,10 @@ const SETTINGS_LINKS: OfficeSettingsLink[] = [
     description: 'Klient:innen-, Angehörigen- und Mitarbeitendenportale',
   },
   {
-    id: 'inventory',
-    label: 'Inventar & Rückgabe',
-    route: '/business/office/inventory',
-    description: 'Geräte, Dienstkleidung, Ausgabe und Rückgabe',
-  },
-  {
     id: 'qm',
     label: 'QM Einstellungen',
     route: '/business/office/qm/settings',
     description: 'Qualitätsmanagement-Konfiguration',
-  },
-  {
-    id: 'payments',
-    label: 'Zahlungsanbieter',
-    route: '/business/office/payments/settings',
-    description: 'Stripe, Mollie, GoCardless, PayPal — Sandbox & Webhooks',
   },
 ];
 

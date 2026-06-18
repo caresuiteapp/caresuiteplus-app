@@ -52,7 +52,19 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     output: 'static',
     favicon: './assets/favicon.png',
   },
-  plugins: ['expo-router', 'expo-asset', 'expo-font'],
+  plugins: [
+    'expo-router',
+    'expo-asset',
+    'expo-font',
+    [
+      'expo-location',
+      {
+        locationWhenInUsePermission:
+          'CareSuite+ benötigt Ihren Standort für Einsatz- und Fahrtenverfolgung (Funktion in Vorbereitung).',
+        isIosBackgroundLocationEnabled: false,
+      },
+    ],
+  ],
   experiments: {
     typedRoutes: true,
     tsconfigPaths: true,

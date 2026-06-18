@@ -6,9 +6,6 @@ import { PRODUCT_LABELS } from '@/data/demo/products';
 import { activateFreeModuleForTenant } from '@/lib/billing/moduleActivationService';
 import { isFreePlatformEnabled } from '@/lib/billing/freePlatformService';
 import { OFFICE_MODULE_KEY } from '@/lib/modules/constants';
-import { resolveModuleNavState } from '@/lib/modules/moduleVisibilityService';
-import { userFriendlyLabel } from '@/lib/ui/uiVisibility';
-import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import type { EffectiveModuleAccess } from '@/types';
 import { colors, spacing, typography } from '@/theme';
@@ -37,13 +34,13 @@ function getStatusBadges(module: EffectiveModuleAccess): StatusBadge[] {
   }
 
   if (module.accessSource === 'free_active' || module.billingStatus === 'free_active') {
-    badges.push({ label: 'Aktiv', variant: 'cyan' });
+    badges.push({ label: 'Kostenlos aktiv', variant: 'cyan' });
   } else if (module.accessSource === 'free_available' || module.billingStatus === 'free_available') {
-    badges.push({ label: 'Bereit', variant: 'muted' });
+    badges.push({ label: 'Kostenlos verfügbar', variant: 'muted' });
   } else if (module.accessSource === 'included_base') {
     badges.push({ label: 'Inklusive', variant: 'muted' });
   } else if (module.billingStatus === 'premium_prepared') {
-    badges.push({ label: userFriendlyLabel('premium_prepared'), variant: 'orange' });
+    badges.push({ label: 'Premium vorbereitet', variant: 'orange' });
   }
 
   return badges;
@@ -57,23 +54,12 @@ type ModuleCardProps = {
 export function ModuleCard({ module, onActivated }: ModuleCardProps) {
   const router = useRouter();
   const tenantId = useServiceTenantId();
-  const { profile } = useAuth();
   const config = MODULE_NAV_CONFIG[module.productKey];
   const badges = getStatusBadges(module);
-  const navState = resolveModuleNavState(module.productKey, {
-    tenantId,
-    roleKey: profile?.roleKey ?? null,
-  });
   const freePlatform = isFreePlatformEnabled();
   const isDisabled = module.billingStatus === 'admin_disabled';
-  const isComingSoon = navState.effectiveStatus === 'coming_soon';
   const canActivate =
-    freePlatform &&
-    !module.isEffective &&
-    !isDisabled &&
-    !isComingSoon &&
-    navState.effectiveStatus !== 'disabled' &&
-    module.productKey !== OFFICE_MODULE_KEY;
+    freePlatform && !module.isEffective && !isDisabled && module.productKey !== OFFICE_MODULE_KEY;
 
   const handleActivate = () => {
     if (!tenantId || !canActivate) return;
@@ -93,6 +79,9 @@ export function ModuleCard({ module, onActivated }: ModuleCardProps) {
             <Text style={styles.subtitle}>{config.description}</Text>
           </View>
         </View>
+        <Text style={styles.price}>
+          {freePlatform ? 'Kostenlos' : module.accessSource === 'included_base' ? 'Inklusive (Basisverwaltung)' : '—'}
+        </Text>
       </View>
       <View style={styles.row}>
         <PremiumBadge
@@ -103,34 +92,24 @@ export function ModuleCard({ module, onActivated }: ModuleCardProps) {
         {badges.map((badge) => (
           <PremiumBadge key={badge.label} label={badge.label} variant={badge.variant} />
         ))}
-        {navState.badgeLabel ? (
-          <PremiumBadge label={navState.badgeLabel} variant="orange" />
-        ) : null}
       </View>
       {module.accessSource === 'included_base' && module.includedByModuleKey ? (
         <Text style={styles.hint}>
           Enthalten über {PRODUCT_LABELS[module.includedByModuleKey]}
         </Text>
       ) : null}
-      {module.isEffective && navState.isNavigable ? (
+      {module.isEffective ? (
         <PremiumButton
           title="Modul öffnen"
           size="sm"
           onPress={() => router.push(config.path as never)}
         />
-      ) : module.isEffective && isComingSoon ? (
-        <PremiumButton
-          title="In Vorbereitung"
-          variant="prepared"
-          size="sm"
-          disabled
-        />
       ) : canActivate ? (
-        <PremiumButton title="Aktivieren" size="sm" onPress={handleActivate} />
+        <PremiumButton title="Kostenlos aktivieren" size="sm" onPress={handleActivate} />
       ) : isDisabled ? (
         <PremiumButton title="Durch Admin deaktiviert" variant="secondary" size="sm" disabled />
       ) : (
-        <PremiumButton title="Aktivieren" variant="secondary" size="sm" disabled />
+        <PremiumButton title="Kostenlos aktivieren" variant="secondary" size="sm" disabled />
       )}
     </PremiumCard>
   );
@@ -143,6 +122,7 @@ const styles = StyleSheet.create({
   titleCol: { flex: 1 },
   title: { ...typography.bodyStrong, color: colors.textPrimary },
   subtitle: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
+  price: { ...typography.caption, color: colors.cyan, marginTop: spacing.xs },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
   hint: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.sm },
 });

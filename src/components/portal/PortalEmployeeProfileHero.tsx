@@ -79,9 +79,9 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
           dot
         />
         {isLive ? (
-          <PremiumBadge statusKind="live" dot />
+          <PremiumBadge label="Live Supabase" variant="green" dot />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

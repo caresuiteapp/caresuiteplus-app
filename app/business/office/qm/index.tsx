@@ -1,3 +1,5 @@
-import { QmDashboardScreen } from '@/screens/qm/QmDashboardScreen';
+import { Redirect } from 'expo-router';
 
-export default QmDashboardScreen;
+export default function BusinessOfficeQmRedirect() {
+  return <Redirect href="/office/qm" />;
+}

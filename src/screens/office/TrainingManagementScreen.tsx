@@ -2,9 +2,9 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, InfoBanner, LoadingState, PremiumCard, SectionPanel } from '@/components/ui';
+import { InfoBanner, LoadingState, PremiumCard, SectionPanel } from '@/components/ui';
+import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import {
   TRAINING_PREPARED_MESSAGE,
   TRAINING_VIEW_LABELS,
@@ -29,20 +29,14 @@ function Tile({ tile }: { tile: TrainingDashboardTile }) {
 export function TrainingManagementScreen() {
   const router = useRouter();
   const { roleKey } = usePermissions();
-  const tenantId = useServiceTenantId();
   const [loading, setLoading] = useState(true);
   const [tiles, setTiles] = useState<TrainingDashboardTile[]>([]);
   const [views, setViews] = useState<TrainingViewKey[]>([]);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!tenantId) {
-      setError('Kein Mandant.');
-      setLoading(false);
-      return;
-    }
     let active = true;
-    void fetchTrainingDashboard(tenantId, roleKey).then((result) => {
+    void fetchTrainingDashboard(DEMO_TENANT_ID, roleKey).then((result) => {
       if (!active) return;
       if (!result.ok) {
         setError(result.error);
@@ -55,7 +49,7 @@ export function TrainingManagementScreen() {
     return () => {
       active = false;
     };
-  }, [tenantId, roleKey]);
+  }, [roleKey]);
 
   if (loading) {
     return (

@@ -15,7 +15,7 @@ type PortalCardProps = {
   onPress?: () => void;
 };
 
-/** Start-page entry card — glass surface, icon container, responsive title. */
+/** Start-page entry card — glass surface, responsive title, no mid-word breaks. */
 export function PortalCard({ icon, title, description, accentColor, onPress }: PortalCardProps) {
   const { width } = useDeviceClass();
   const { mode } = useThemeMode();
@@ -25,7 +25,7 @@ export function PortalCard({ icon, title, description, accentColor, onPress }: P
   return (
     <GlassCard onPress={onPress} accentColor={accentColor}>
       <View style={styles.inner}>
-        <CareSuiteIcon emoji={icon} accentColor={accentColor} size={40} />
+        <CareSuiteIcon emoji={icon} accentColor={accentColor} size={44} />
         <Text
           style={[type.cardTitle, styles.title, { color: palette.text.primary }]}
           numberOfLines={2}
@@ -53,7 +53,6 @@ const styles = StyleSheet.create({
   title: {
     flexShrink: 1,
     minWidth: 0,
-    marginTop: careSpacing.sm,
   },
   description: {
     flexShrink: 1,

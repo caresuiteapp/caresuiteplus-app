@@ -74,7 +74,7 @@ export function QmDashboardHero({ data, roleKey }: QmDashboardHeroProps) {
         {isQmDashboardLiveReady() ? (
           <PremiumBadge label="Live QM-Dokumente" variant="green" />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
       </View>
       <AdaptiveKpiGrid items={dashboardKpisToGridItems(kpis)} />

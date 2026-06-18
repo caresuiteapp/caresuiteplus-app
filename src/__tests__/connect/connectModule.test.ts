@@ -24,14 +24,11 @@ const NURSE = 'nurse' as const;
 const TENANT = DEMO_TENANT_ID;
 
 function readConnectLibFiles(): string {
-  const root = path.join(process.cwd(), 'src/lib/connect');
-  const walk = (dir: string): string[] =>
-    fs.readdirSync(dir, { withFileTypes: true }).flatMap((entry) => {
-      const full = path.join(dir, entry.name);
-      return entry.isDirectory() ? walk(full) : entry.name.endsWith('.ts') ? [full] : [];
-    });
-  return walk(root)
-    .map((file) => fs.readFileSync(file, 'utf8'))
+  const dir = path.join(process.cwd(), 'src/lib/connect');
+  return fs
+    .readdirSync(dir)
+    .filter((file) => file.endsWith('.ts'))
+    .map((file) => fs.readFileSync(path.join(dir, file), 'utf8'))
     .join('\n');
 }
 

@@ -60,8 +60,6 @@ export type CareSuiteTemplate = {
 export type CatalogType =
   | 'client_status'
   | 'employee_status'
-  | 'employee_role'
-  | 'employee_department'
   | 'assignment_status'
   | 'document_status'
   | 'document_category'

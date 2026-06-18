@@ -16,13 +16,6 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
-  addAssistCatalogTaskToClient,
-  addAssistPackageToClient,
-  getAssistTaskPackages,
-  groupPackagesByLeistungsbereich,
-} from '@/lib/assist/assistTaskCatalogService';
-import { validateAssistTaskTitle } from '@/lib/assist/assistTaskGuardService';
-import {
   createClientTask,
   deleteClientTask,
   fetchClientTasks,
@@ -30,19 +23,15 @@ import {
   type ClientTaskInput,
 } from '@/lib/clients/clientTasksService';
 import { fetchEmployeeList } from '@/lib/office/employeeListService';
-import {
-  ASSIST_LEISTUNGSBEREICH_LABELS,
-  ASSIST_MODULE_DISCLAIMER,
-  ASSIST_SUBCATEGORY_LABELS,
-  type AssistLeistungsbereichKey,
-} from '@/types/modules/assist/assistTaskCatalog';
+
+function formatEmployeeLabel(firstName: string, lastName: string): string {
+  return `${firstName} ${lastName}`.trim();
+}
 import type { ClientFullDetail, ClientTask, TaskCategory, TaskFrequency } from '@/types/modules/client';
 import {
   TASK_CATEGORY_LABELS,
   TASK_FREQUENCY_LABELS,
 } from '@/types/modules/client';
-import { getAssistTasksByPackage } from '@/data/assist/assistTaskCatalog';
-import { ClientSchedulingWishesPanel } from '@/components/office/ClientSchedulingWishesPanel';
 import { colors, spacing, typography } from '@/theme';
 
 type ClientTasksPanelProps = {
@@ -86,10 +75,6 @@ const EMPTY_FORM: TaskFormState = {
   durationMinutes: '',
 };
 
-function formatEmployeeLabel(firstName: string, lastName: string): string {
-  return `${firstName} ${lastName}`.trim();
-}
-
 function toFormState(task: ClientTask): TaskFormState {
   return {
     title: task.title,
@@ -113,28 +98,7 @@ function toTaskInput(form: TaskFormState): ClientTaskInput {
     isActive: form.isActive,
     catalogTaskId: null,
     assignedEmployeeIds: form.assignedEmployeeId ? [form.assignedEmployeeId] : [],
-    moduleKey: 'assist',
-    leistungsbereich: null,
-    subcategory: null,
-    packageId: null,
-    leistungsart: null,
-    isMandatory: false,
-    proofRequired: false,
-    documentationRequired: true,
-    billingRelevant: true,
-    visibleToClient: true,
   };
-}
-
-function groupTasksByLeistungsbereich(tasks: ClientTask[]): Map<string, ClientTask[]> {
-  const map = new Map<string, ClientTask[]>();
-  for (const task of tasks) {
-    const key = task.leistungsbereich ?? 'sonstige';
-    const list = map.get(key) ?? [];
-    list.push(task);
-    map.set(key, list);
-  }
-  return map;
 }
 
 export function ClientTasksPanel({
@@ -147,13 +111,8 @@ export function ClientTasksPanel({
   const [form, setForm] = useState<TaskFormState>(EMPTY_FORM);
   const [editingId, setEditingId] = useState<string | null>(null);
   const [showForm, setShowForm] = useState(false);
-  const [showCatalog, setShowCatalog] = useState(false);
-  const [expandedPackageId, setExpandedPackageId] = useState<string | null>(null);
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState<string | null>(null);
-  const [catalogError, setCatalogError] = useState<string | null>(null);
-
-  const packagesByBereich = useMemo(() => groupPackagesByLeistungsbereich(), []);
 
   const query = useAsyncQuery(
     () => {
@@ -170,7 +129,7 @@ export function ClientTasksPanel({
       return fetchEmployeeList(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-    { enabled: Boolean(tenantId) && (showForm || showCatalog) && !isReadOnly },
+    { enabled: Boolean(tenantId) && showForm && !isReadOnly },
   );
 
   const employeeOptions = useMemo(() => {
@@ -201,15 +160,12 @@ export function ClientTasksPanel({
 
   useEffect(() => {
     resetForm();
-    setShowCatalog(false);
-    setCatalogError(null);
   }, [clientId, resetForm]);
 
   function startCreate() {
     setEditingId(null);
     setForm(EMPTY_FORM);
     setShowForm(true);
-    setShowCatalog(false);
     setFormError(null);
   }
 
@@ -223,12 +179,6 @@ export function ClientTasksPanel({
   async function handleSave() {
     if (!tenantId || isReadOnly || !form.title.trim()) {
       setFormError('Bitte einen Titel eingeben.');
-      return;
-    }
-
-    const validation = validateAssistTaskTitle(form.title, form.description);
-    if (!validation.ok) {
-      setFormError(validation.error);
       return;
     }
 
@@ -262,34 +212,6 @@ export function ClientTasksPanel({
     onRecordRefresh?.();
   }
 
-  async function handleAddPackage(packageId: string) {
-    if (!tenantId || isReadOnly) return;
-    setSaving(true);
-    setCatalogError(null);
-    const result = await addAssistPackageToClient(tenantId, clientId, packageId);
-    setSaving(false);
-    if (!result.ok) {
-      setCatalogError(result.error);
-      return;
-    }
-    await query.refresh();
-    onRecordRefresh?.();
-  }
-
-  async function handleAddCatalogTask(catalogTaskId: string) {
-    if (!tenantId || isReadOnly) return;
-    setSaving(true);
-    setCatalogError(null);
-    const result = await addAssistCatalogTaskToClient(tenantId, clientId, catalogTaskId);
-    setSaving(false);
-    if (!result.ok) {
-      setCatalogError(result.error);
-      return;
-    }
-    await query.refresh();
-    onRecordRefresh?.();
-  }
-
   if (query.loading && !query.data) {
     return <LoadingState message="Aufgaben werden geladen…" />;
   }
@@ -299,97 +221,19 @@ export function ClientTasksPanel({
   }
 
   const tasks = query.data ?? [];
-  const groupedTasks = groupTasksByLeistungsbereich(tasks);
-  const bereichOrder = Object.keys(ASSIST_LEISTUNGSBEREICH_LABELS) as AssistLeistungsbereichKey[];
 
   return (
     <View style={styles.panel}>
-      <PremiumCard style={styles.disclaimerCard}>
-        <Text style={styles.disclaimerTitle}>CareSuite+ Assist</Text>
-        <Text style={styles.disclaimerText}>{ASSIST_MODULE_DISCLAIMER}</Text>
-      </PremiumCard>
-
-      {!isReadOnly ? (
-        <SectionPanel title="Assist-Katalog" subtitle={`${getAssistTaskPackages().length} Aufgabenpakete`}>
-          {!showCatalog ? (
-            <PremiumButton
-              title="Aus Katalog hinzufügen"
-              variant="secondary"
-              onPress={() => setShowCatalog(true)}
-            />
-          ) : (
-            <View style={styles.catalogPanel}>
-              {catalogError ? <Text style={styles.error}>{catalogError}</Text> : null}
-              {bereichOrder.map((bereich) => {
-                const packages = packagesByBereich[bereich];
-                if (!packages?.length) return null;
-                return (
-                  <View key={bereich} style={styles.catalogGroup}>
-                    <Text style={styles.catalogGroupTitle}>
-                      {ASSIST_LEISTUNGSBEREICH_LABELS[bereich]}
-                    </Text>
-                    {packages.map((pkg) => (
-                      <PremiumCard key={pkg.id} style={styles.catalogCard}>
-                        <View style={styles.packageHeader}>
-                          <View style={styles.packageInfo}>
-                            <Text style={styles.packageTitle}>{pkg.title}</Text>
-                            <Text style={styles.secondary}>{pkg.description}</Text>
-                            <Text style={styles.meta}>
-                              {pkg.taskIds.length} Einzelaufgabe{pkg.taskIds.length === 1 ? '' : 'n'}
-                            </Text>
-                          </View>
-                          <View style={styles.packageActions}>
-                            <PremiumButton
-                              title="Paket übernehmen"
-                              variant="secondary"
-                              loading={saving}
-                              onPress={() => handleAddPackage(pkg.id)}
-                            />
-                            <Pressable
-                              onPress={() =>
-                                setExpandedPackageId((current) => (current === pkg.id ? null : pkg.id))
-                              }
-                              accessibilityRole="button"
-                            >
-                              <Text style={styles.linkAction}>
-                                {expandedPackageId === pkg.id ? 'Ausblenden' : 'Einzelaufgaben'}
-                              </Text>
-                            </Pressable>
-                          </View>
-                        </View>
-                        {expandedPackageId === pkg.id ? (
-                          <View style={styles.taskList}>
-                            {getAssistTasksByPackage(pkg.id).map((template) => (
-                              <View key={template.id} style={styles.catalogTaskRow}>
-                                <View style={styles.catalogTaskInfo}>
-                                  <Text style={styles.catalogTaskTitle}>{template.title}</Text>
-                                  <Text style={styles.meta}>
-                                    {ASSIST_SUBCATEGORY_LABELS[template.subcategory]} ·{' '}
-                                    {template.plannedDurationMinutes} Min.
-                                  </Text>
-                                </View>
-                                <PremiumButton
-                                  title="+"
-                                  variant="secondary"
-                                  loading={saving}
-                                  onPress={() => handleAddCatalogTask(template.id)}
-                                />
-                              </View>
-                            ))}
-                          </View>
-                        ) : null}
-                      </PremiumCard>
-                    ))}
-                  </View>
-                );
-              })}
-              <PremiumButton title="Katalog schließen" variant="secondary" onPress={() => setShowCatalog(false)} />
-            </View>
-          )}
+      {showShiftPreferences && fullClient?.preferences ? (
+        <SectionPanel title="Einsatzpräferenzen">
+          <DetailInfoRow
+            label="Bevorzugte Zeiten"
+            value={fullClient.preferences.preferredShifts.join(', ') || null}
+          />
+          <DetailInfoRow label="Mobilität" value={fullClient.preferences.mobilityNotes} />
+          <DetailInfoRow label="Zugang" value={fullClient.preferences.accessInstructions} />
         </SectionPanel>
       ) : null}
-
-      <ClientSchedulingWishesPanel clientId={clientId} onRecordRefresh={onRecordRefresh} />
 
       <SectionPanel
         title="Aufgaben & Wünsche"
@@ -398,109 +242,53 @@ export function ClientTasksPanel({
         {tasks.length === 0 ? (
           <EmptyState
             title="Noch keine Aufgaben"
-            message="Übernehmen Sie ein Aufgabenpaket aus dem Assist-Katalog oder legen Sie eine Aufgabe manuell an."
+            message="Legen Sie Aufgaben und Wünsche für diese Akte an."
           />
         ) : (
-          bereichOrder.map((bereich) => {
-            const bereichTasks = groupedTasks.get(bereich);
-            if (!bereichTasks?.length) return null;
-            return (
-              <View key={bereich} style={styles.taskGroup}>
-                <Text style={styles.taskGroupTitle}>{ASSIST_LEISTUNGSBEREICH_LABELS[bereich]}</Text>
-                {bereichTasks.map((task) => (
-                  <PremiumCard key={task.id} style={styles.card}>
-                    <View style={styles.taskHeader}>
-                      <Text style={styles.taskTitle}>{task.title}</Text>
-                      {!isReadOnly ? (
-                        <View style={styles.taskActions}>
-                          <Pressable onPress={() => startEdit(task)} accessibilityRole="button">
-                            <Text style={styles.linkAction}>Bearbeiten</Text>
-                          </Pressable>
-                          <Pressable onPress={() => handleDelete(task.id)} accessibilityRole="button">
-                            <Text style={styles.deleteAction}>Löschen</Text>
-                          </Pressable>
-                        </View>
-                      ) : null}
-                    </View>
-                    {task.description ? <Text style={styles.secondary}>{task.description}</Text> : null}
-                    <View style={styles.badgeRow}>
-                      {task.subcategory ? (
-                        <PremiumBadge
-                          label={ASSIST_SUBCATEGORY_LABELS[task.subcategory]}
-                          variant="cyan"
-                        />
-                      ) : (
-                        <PremiumBadge label={TASK_CATEGORY_LABELS[task.category]} variant="cyan" />
-                      )}
-                      <PremiumBadge label={TASK_FREQUENCY_LABELS[task.frequency]} variant="muted" />
-                      {task.isMandatory ? <PremiumBadge label="Pflicht" variant="orange" /> : null}
-                      {task.proofRequired ? <PremiumBadge label="Nachweis" variant="muted" /> : null}
-                      {task.isActive ? (
-                        <PremiumBadge label="Aktiv" variant="green" dot />
-                      ) : (
-                        <PremiumBadge label="Inaktiv" variant="muted" />
-                      )}
-                      {task.moduleKey === 'pflege' ? (
-                        <PremiumBadge label="Pflege" variant="muted" />
-                      ) : (
-                        <PremiumBadge label="Assist" variant="muted" />
-                      )}
-                    </View>
-                    {task.durationMinutes ? (
-                      <Text style={styles.meta}>{task.durationMinutes} Min.</Text>
-                    ) : null}
-                    {task.assignedEmployeeIds[0] ? (
-                      <Text style={styles.meta}>
-                        Zuständig: {employeeNameById.get(task.assignedEmployeeIds[0]) ?? 'Mitarbeiter:in'}
-                      </Text>
-                    ) : null}
-                  </PremiumCard>
-                ))}
+          tasks.map((task) => (
+            <PremiumCard key={task.id} style={styles.card}>
+              <View style={styles.taskHeader}>
+                <Text style={styles.taskTitle}>{task.title}</Text>
+                {!isReadOnly ? (
+                  <View style={styles.taskActions}>
+                    <Pressable onPress={() => startEdit(task)} accessibilityRole="button">
+                      <Text style={styles.linkAction}>Bearbeiten</Text>
+                    </Pressable>
+                    <Pressable onPress={() => handleDelete(task.id)} accessibilityRole="button">
+                      <Text style={styles.deleteAction}>Löschen</Text>
+                    </Pressable>
+                  </View>
+                ) : null}
               </View>
-            );
-          }).concat(
-            groupedTasks.has('sonstige')
-              ? [
-                  <View key="sonstige" style={styles.taskGroup}>
-                    <Text style={styles.taskGroupTitle}>Sonstige</Text>
-                    {(groupedTasks.get('sonstige') ?? []).map((task) => (
-                      <PremiumCard key={task.id} style={styles.card}>
-                        <View style={styles.taskHeader}>
-                          <Text style={styles.taskTitle}>{task.title}</Text>
-                          {!isReadOnly ? (
-                            <View style={styles.taskActions}>
-                              <Pressable onPress={() => startEdit(task)} accessibilityRole="button">
-                                <Text style={styles.linkAction}>Bearbeiten</Text>
-                              </Pressable>
-                              <Pressable onPress={() => handleDelete(task.id)} accessibilityRole="button">
-                                <Text style={styles.deleteAction}>Löschen</Text>
-                              </Pressable>
-                            </View>
-                          ) : null}
-                        </View>
-                        {task.description ? <Text style={styles.secondary}>{task.description}</Text> : null}
-                        <View style={styles.badgeRow}>
-                          <PremiumBadge label={TASK_CATEGORY_LABELS[task.category]} variant="cyan" />
-                          <PremiumBadge label={TASK_FREQUENCY_LABELS[task.frequency]} variant="muted" />
-                        </View>
-                      </PremiumCard>
-                    ))}
-                  </View>,
-                ]
-              : [],
-          )
+              {task.description ? <Text style={styles.secondary}>{task.description}</Text> : null}
+              <View style={styles.badgeRow}>
+                <PremiumBadge label={TASK_CATEGORY_LABELS[task.category]} variant="cyan" />
+                <PremiumBadge label={TASK_FREQUENCY_LABELS[task.frequency]} variant="muted" />
+                {task.isActive ? (
+                  <PremiumBadge label="Aktiv" variant="green" dot />
+                ) : (
+                  <PremiumBadge label="Inaktiv" variant="muted" />
+                )}
+              </View>
+              {task.durationMinutes ? (
+                <Text style={styles.meta}>{task.durationMinutes} Min.</Text>
+              ) : null}
+              {task.assignedEmployeeIds[0] ? (
+                <Text style={styles.meta}>
+                  Zuständig: {employeeNameById.get(task.assignedEmployeeIds[0]) ?? 'Mitarbeiter:in'}
+                </Text>
+              ) : null}
+            </PremiumCard>
+          ))
         )}
 
         {!isReadOnly && !showForm ? (
-          <PremiumButton title="Aufgabe manuell hinzufügen" onPress={startCreate} style={styles.addButton} />
+          <PremiumButton title="Aufgabe hinzufügen" onPress={startCreate} style={styles.addButton} />
         ) : null}
       </SectionPanel>
 
       {!isReadOnly && showForm ? (
         <SectionPanel title={editingId ? 'Aufgabe bearbeiten' : 'Neue Aufgabe'}>
-          <Text style={styles.fieldHint}>
-            Manuelle Aufgaben werden dem Assist-Modul zugeordnet. Medizinische Leistungen sind nicht erlaubt.
-          </Text>
           <PremiumInput
             label="Titel *"
             value={form.title}
@@ -563,34 +351,6 @@ export function ClientTasksPanel({
 
 const styles = StyleSheet.create({
   panel: { gap: spacing.md, paddingBottom: spacing.lg },
-  disclaimerCard: {
-    backgroundColor: colors.bgSurface,
-    borderColor: colors.border,
-  },
-  disclaimerTitle: { ...typography.bodyStrong, marginBottom: spacing.xs },
-  disclaimerText: { ...typography.caption, color: colors.textSecondary },
-  catalogPanel: { gap: spacing.sm },
-  catalogGroup: { gap: spacing.sm, marginBottom: spacing.sm },
-  catalogGroupTitle: { ...typography.label, marginBottom: spacing.xs },
-  catalogCard: { marginBottom: spacing.xs },
-  packageHeader: { flexDirection: 'row', gap: spacing.sm, alignItems: 'flex-start' },
-  packageInfo: { flex: 1 },
-  packageTitle: { ...typography.bodyStrong },
-  packageActions: { gap: spacing.xs, alignItems: 'flex-end' },
-  taskList: { marginTop: spacing.sm, gap: spacing.xs },
-  catalogTaskRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: colors.border,
-  },
-  catalogTaskInfo: { flex: 1 },
-  catalogTaskTitle: { ...typography.body },
-  taskGroup: { marginBottom: spacing.md },
-  taskGroupTitle: { ...typography.label, marginBottom: spacing.sm },
   card: { marginBottom: spacing.sm },
   taskHeader: {
     flexDirection: 'row',
@@ -607,7 +367,6 @@ const styles = StyleSheet.create({
   meta: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
   addButton: { marginTop: spacing.sm },
   fieldLabel: { ...typography.label, marginBottom: spacing.xs, marginTop: spacing.sm },
-  fieldHint: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.sm },
   formActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.md },
   error: { ...typography.caption, color: colors.danger, marginTop: spacing.sm },
 });

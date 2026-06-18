@@ -1,168 +1,227 @@
-import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { resetLiveMonitorStore } from '@/lib/assist/liveMonitorStore';
+import { PERSONAL_COMPLIANCE_KPI_LABELS } from '@/types/modules/personalComplianceCockpit';
 import { createManagementTask } from '@/lib/assist/managementTaskService';
-import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
+import { resetLiveMonitorStore } from '@/lib/assist/liveMonitorStore';
+import { resetQmCockpitStore, QM_COCKPIT_STORE, nextQmCorrectionId } from '@/lib/assist/qmCockpitStore';
+import { resetComplianceTrainingStore } from '@/lib/office/complianceTrainingStore';
 import {
-  createPersonalComplianceTaskFromRisk,
-  fetchPersonalComplianceSnapshot,
-  listPersonalComplianceAuditEvents,
-  resetPersonalComplianceCockpitState,
+  assignComplianceTraining,
+  seedDefaultComplianceItemsForTenant,
+} from '@/lib/office/complianceTrainingService';
+import {
+  buildPersonalComplianceSnapshot,
+  filterPersonalComplianceSnapshot,
+} from '@/lib/office/personalComplianceCockpitBuilder';
+import {
+  createPersonalComplianceTask,
+  fetchPersonalComplianceCockpit,
 } from '@/lib/office/personalComplianceCockpitService';
-import { buildPersonalComplianceSnapshot } from '@/lib/office/personalComplianceCockpitBuilder';
-import { seedPersonalComplianceDemoStore } from '@/lib/office/personalComplianceStore';
-import { seedTrainingDemoStore } from '@/lib/training/trainingStore';
+import {
+  filterPersonalComplianceRisksForViewer,
+  canViewPersonalComplianceCockpit,
+  buildPersonalComplianceAccessContext,
+} from '@/lib/office/personalComplianceAccess';
+import {
+  listPersonalComplianceAuditEvents,
+  resetPersonalComplianceAuditStore,
+} from '@/lib/office/personalcomplianceauditservice';
+import { resetPersonalComplianceStore, seedPersonalComplianceDemoStore } from '@/lib/office/personalComplianceStore';
+import { resetAbsenceStore } from '@/lib/office/absenceStore';
+import { evaluateEmployeeAssignmentEligibility } from '@/lib/office/employeeAssignmentEligibility';
+import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile';
+import { __resetTrainingServiceForTests, __seedTrainingServiceForTests } from '@/lib/training/trainingService';
 
 const TENANT = DEMO_TENANT_ID;
-const OTHER_TENANT = 'tenant-pc-isolation';
+const OTHER_TENANT = '00000000-0000-4000-8000-000000000099';
 
 describe('Personal-Compliance-Cockpit (Prompt 79)', () => {
   beforeEach(() => {
-    resetPersonalComplianceCockpitState();
+    vi.unstubAllEnvs();
+    resetPersonalComplianceStore();
+    resetPersonalComplianceAuditStore();
+    resetComplianceTrainingStore();
     resetLiveMonitorStore();
-    seedTrainingDemoStore();
+    resetQmCockpitStore();
+    resetAbsenceStore();
+    __resetTrainingServiceForTests();
     seedPersonalComplianceDemoStore();
+    __seedTrainingServiceForTests();
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
   });
 
-  it('1. liefert 14 KPIs für business_admin aus echten Mandantendaten', () => {
-    const result = fetchPersonalComplianceSnapshot(TENANT, 'business_admin');
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    resetPersonalComplianceStore();
+    resetPersonalComplianceAuditStore();
+    resetComplianceTrainingStore();
+    resetLiveMonitorStore();
+    resetQmCockpitStore();
+    resetAbsenceStore();
+    __resetTrainingServiceForTests();
+  });
+
+  it('1. liefert alle 14 KPIs mit Datenquellen', async () => {
+    await seedDefaultComplianceItemsForTenant(TENANT, 'business_admin');
+    const result = await fetchPersonalComplianceCockpit(TENANT, 'business_admin');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+
     expect(result.data.kpis).toHaveLength(14);
-    expect(result.data.kpis.every((k) => k.value >= 0)).toBe(true);
-    expect(result.data.kpis.every((k) => k.dataSource)).toBeTruthy();
-    expect(result.data.employees.length).toBeGreaterThan(0);
+    for (const kpi of result.data.kpis) {
+      expect(kpi.dataSource).toBeTruthy();
+      expect(PERSONAL_COMPLIANCE_KPI_LABELS[kpi.key]).toBe(kpi.label);
+      expect(typeof kpi.value).toBe('number');
+      expect(kpi.value).toBeGreaterThanOrEqual(0);
+    }
+    expect(result.data.risks.every((r) => r.dataSource)).toBe(true);
   });
 
-  it('2. blockiert Klient:innenportal', () => {
-    const result = fetchPersonalComplianceSnapshot(TENANT, 'client_portal');
+  it('2. blockiert Klient:innenportale', async () => {
+    const access = canViewPersonalComplianceCockpit(
+      buildPersonalComplianceAccessContext({ tenantId: TENANT, roleKey: 'client_portal' }),
+    );
+    expect(access.allowed).toBe(false);
+
+    const result = await fetchPersonalComplianceCockpit(TENANT, 'client_portal');
     expect(result.ok).toBe(false);
-    if (result.ok) return;
-    expect(result.error).toMatch(/Klient/i);
   });
 
-  it('3. blockiert Mitarbeitendenportal', () => {
-    const result = fetchPersonalComplianceSnapshot(TENANT, 'employee_portal');
-    expect(result.ok).toBe(false);
-  });
-
-  it('4. isoliert Mandanten — leerer Snapshot ohne Demo-Mitarbeitende', () => {
-    const snapshot = buildPersonalComplianceSnapshot({ tenantId: OTHER_TENANT });
+  it('3. erzwingt Mandantentrennung', async () => {
+    const snapshot = buildPersonalComplianceSnapshot({ tenantId: OTHER_TENANT, ensureDemoSeed: true });
     expect(snapshot.employees).toHaveLength(0);
     expect(snapshot.kpis.find((k) => k.key === 'active_employees')?.value).toBe(0);
   });
 
-  it('5. jede Warnung hat eine Datenquelle', () => {
-    const result = fetchPersonalComplianceSnapshot(TENANT, 'business_admin');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    for (const risk of result.data.risks) {
-      expect(risk.dataSource).toBeTruthy();
-      expect(risk.id).toBeTruthy();
-      expect(risk.employeeId).toBeTruthy();
-    }
-  });
+  it('4. prüft Einsatzfähigkeit nur mit vollständigem Eligibility-Check', () => {
+    const file = getDemoEmployeePersonnelFile('employee-003');
+    expect(file).toBeTruthy();
+    if (!file) return;
 
-  it('6. Einsatzfähigkeit wird über Assignment-Eligibility geprüft', () => {
-    const result = fetchPersonalComplianceSnapshot(TENANT, 'business_admin');
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-
-    const employee003 = result.data.employees.find((e) => e.employeeId === 'employee-003');
-    expect(employee003).toBeDefined();
-    expect(employee003?.deployable).toBe(false);
-
-    const deployableKpi = result.data.kpis.find((k) => k.key === 'deployable');
-    const notDeployableKpi = result.data.kpis.find((k) => k.key === 'not_deployable');
-    const activeKpi = result.data.kpis.find((k) => k.key === 'active_employees');
-    expect(deployableKpi!.value + notDeployableKpi!.value).toBeLessThanOrEqual(activeKpi!.value);
-  });
-
-  it('7. sensible HR-Risiken für dispatch ohne Detailtext', () => {
-    const admin = fetchPersonalComplianceSnapshot(TENANT, 'business_admin');
-    const dispatch = fetchPersonalComplianceSnapshot(TENANT, 'dispatch');
-    expect(admin.ok && dispatch.ok).toBe(true);
-    if (!admin.ok || !dispatch.ok) return;
-
-    const adminBg = admin.data.risks.filter((r) => r.code.startsWith('background_check'));
-    const dispatchBg = dispatch.data.risks.filter((r) => r.code.startsWith('background_check'));
-    expect(adminBg.length).toBeGreaterThan(0);
-    expect(dispatchBg.length).toBe(adminBg.length);
-    expect(dispatchBg.some((r) => r.message.includes('autorisierte Rollen'))).toBe(true);
-  });
-
-  it('8. KPI-Filter qualification_missing schränkt Risiken ein', () => {
-    const result = fetchPersonalComplianceSnapshot(TENANT, 'business_admin', {
-      kpiKey: 'qualification_missing',
-    });
-    expect(result.ok).toBe(true);
-    if (!result.ok) return;
-    expect(result.data.risks.every((r) => r.code === 'qualification_missing')).toBe(true);
-  });
-
-  it('9. erstellt Verwaltungsaufgabe aus Risiko', () => {
-    const snapshot = fetchPersonalComplianceSnapshot(TENANT, 'business_admin');
-    expect(snapshot.ok).toBe(true);
-    if (!snapshot.ok) return;
-
-    const risk = snapshot.data.risks.find((r) => r.code === 'document_missing');
-    expect(risk).toBeDefined();
-
-    const created = createPersonalComplianceTaskFromRisk({
+    const eligibility = evaluateEmployeeAssignmentEligibility({
       tenantId: TENANT,
-      riskId: risk!.id,
-      actorRoleKey: 'business_admin',
-      actorId: 'demo-user',
+      employeeId: 'employee-003',
+      personnelFile: file,
+      roleKey: file.portalAccess.roleKey,
     });
-    expect(created.ok).toBe(true);
-    if (!created.ok) return;
-    expect(created.data.taskId).toMatch(/^mgmt-task-/);
 
-    const audit = listPersonalComplianceAuditEvents(TENANT);
-    expect(audit.some((e) => e.action === 'management_task.created')).toBe(true);
+    expect(eligibility.deployable).toBe(false);
+    expect(eligibility.blockers.length).toBeGreaterThan(0);
+
+    const snapshot = buildPersonalComplianceSnapshot({ tenantId: TENANT });
+    const row = snapshot.employees.find((e) => e.employeeId === 'employee-003');
+    expect(row?.deployable).toBe(false);
   });
 
-  it('10. Live-Modus blockiert Demo-Fallback', () => {
+  it('5. liefert im Live-Modus keine Demo-Fallback-Zahlen', async () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
-    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'test-anon-key');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
 
-    const block = guardLiveDemoFeature(TENANT, 'Personal-Compliance-Cockpit');
-    expect(block?.ok).toBe(false);
-
-    vi.unstubAllEnvs();
-  });
-});
-
-describe('Personal-Compliance-Cockpit — Offboarding & Abwesenheit', () => {
-  beforeEach(() => {
-    resetPersonalComplianceCockpitState();
-    seedTrainingDemoStore();
-    seedPersonalComplianceDemoStore();
-  });
-
-  it('zählt offene Offboardings und kranke Abwesenheiten aus Demo-Quellen', () => {
-    const result = fetchPersonalComplianceSnapshot(TENANT, 'business_manager');
+    const result = await fetchPersonalComplianceCockpit(TENANT, 'business_admin');
     expect(result.ok).toBe(true);
     if (!result.ok) return;
+    expect(result.data.preparedOnly).toBe(true);
+    expect(result.data.kpis).toHaveLength(0);
+  });
 
-    const offboardingKpi = result.data.kpis.find((k) => k.key === 'offboarding_open');
-    const sickKpi = result.data.kpis.find((k) => k.key === 'sick_absent');
-    expect(offboardingKpi!.value).toBeGreaterThanOrEqual(1);
-    expect(sickKpi!.value).toBeGreaterThanOrEqual(1);
+  it('6. filtert sensible HR-Risiken für nicht autorisierte Rollen', () => {
+    const snapshot = buildPersonalComplianceSnapshot({ tenantId: TENANT });
+    const sensitive = snapshot.risks.filter((r) => r.sensitive);
+    expect(sensitive.length).toBeGreaterThan(0);
+
+    const ctx = buildPersonalComplianceAccessContext({ tenantId: TENANT, roleKey: 'dispatch' });
+    const filtered = filterPersonalComplianceRisksForViewer(ctx, sensitive);
+    expect(filtered.every((r) => r.message.includes('Sensible HR-Information'))).toBe(true);
+  });
+
+  it('7. unterstützt Drilldown-Filter nach KPI und Status', () => {
+    const snapshot = buildPersonalComplianceSnapshot({ tenantId: TENANT });
+    const filtered = filterPersonalComplianceSnapshot(snapshot, { kpiKey: 'not_deployable' });
+    expect(filtered.employees.every((e) => !e.deployable)).toBe(true);
+
+    const byRole = filterPersonalComplianceSnapshot(snapshot, { roleTitle: 'Pflegefachkraft' });
+    expect(byRole.employees.every((e) => e.roleTitle?.includes('Pflegefachkraft'))).toBe(true);
+  });
+
+  it('8. erstellt Personalaufgabe mit Audit-Eintrag', async () => {
+    const created = await createPersonalComplianceTask({
+      tenantId: TENANT,
+      employeeId: 'employee-001',
+      title: 'Qualifikation nachweisen',
+      description: 'Erste-Hilfe-Nachweis hochladen',
+      actorRole: 'business_admin',
+      actorId: 'admin-1',
+    });
+    expect(created.ok).toBe(true);
+
+    const audits = listPersonalComplianceAuditEvents(TENANT, 'employee-001');
+    expect(audits.some((a) => a.action === 'personnel_task_created')).toBe(true);
+  });
+
+  it('9. integriert compliance_training für fehlende Unterweisungen', async () => {
+    await seedDefaultComplianceItemsForTenant(TENANT, 'business_admin');
+    const items = await import('@/lib/office/complianceTrainingStore').then((m) =>
+      m.listComplianceItemsForTenant(TENANT),
+    );
+    const item = items[0];
+    expect(item).toBeDefined();
+    await assignComplianceTraining(
+      {
+        tenantId: TENANT,
+        employeeId: 'employee-001',
+        trainingItemId: item!.id,
+        mandatory: true,
+      },
+      'business_admin',
+    );
+
+    const snapshot = buildPersonalComplianceSnapshot({ tenantId: TENANT });
+    const briefingKpi = snapshot.kpis.find((k) => k.key === 'briefing_missing');
+    expect(briefingKpi?.value).toBeGreaterThan(0);
+    expect(
+      snapshot.risks.some(
+        (r) => r.code === 'briefing_missing' && r.dataSource === 'compliance_training',
+      ),
+    ).toBe(true);
+  });
+
+  it('10. zählt Korrekturen, Offboarding und Abwesenheiten aus Quellen', async () => {
+    QM_COCKPIT_STORE.qmCorrectionRequests.push({
+      id: nextQmCorrectionId(),
+      tenantId: TENANT,
+      assignmentId: 'asg-pc-1',
+      serviceRecordId: null,
+      requestedBy: 'admin',
+      assignedToEmployeeId: 'employee-002',
+      affectedArea: 'documentation',
+      reason: 'Doku unvollständig',
+      requiredResponse: 'Ergänzen',
+      dueAt: new Date().toISOString(),
+      status: 'open',
+      createdAt: new Date().toISOString(),
+      updatedAt: new Date().toISOString(),
+      resolvedAt: null,
+      resolvedBy: null,
+      documentVersion: 1,
+      correctedFromDocumentId: null,
+    });
 
     createManagementTask({
       tenantId: TENANT,
       taskType: 'master_data_review',
-      employeeId: 'employee-001',
-      title: 'Stammdaten prüfen',
-      description: 'Test',
+      employeeId: 'employee-004',
+      description: 'Stammdaten prüfen',
+      priority: 'normal',
     });
 
-    const refreshed = fetchPersonalComplianceSnapshot(TENANT, 'business_manager');
-    expect(refreshed.ok).toBe(true);
-    if (!refreshed.ok) return;
-    const tasksKpi = refreshed.data.kpis.find((k) => k.key === 'open_personnel_tasks');
-    expect(tasksKpi!.value).toBeGreaterThanOrEqual(1);
+    const snapshot = buildPersonalComplianceSnapshot({ tenantId: TENANT });
+
+    expect(snapshot.kpis.find((k) => k.key === 'offboarding_open')?.value).toBeGreaterThan(0);
+    expect(snapshot.kpis.find((k) => k.key === 'sick_absent')?.value).toBeGreaterThan(0);
+    expect(snapshot.kpis.find((k) => k.key === 'open_corrections')?.value).toBeGreaterThan(0);
+    expect(snapshot.kpis.find((k) => k.key === 'open_personnel_tasks')?.value).toBeGreaterThan(0);
   });
 });

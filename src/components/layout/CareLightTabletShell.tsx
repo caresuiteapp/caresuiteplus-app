@@ -11,7 +11,6 @@ import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { ModuleSwitcher } from './ModuleSwitcher';
-import { TenantSettingsNavLink } from './TenantSettingsNavLink';
 
 type CareLightTabletShellProps = {
   area: AppShellArea;
@@ -64,7 +63,6 @@ export function CareLightTabletShell({
               <Text style={styles.railIcon}>🧩</Text>
             </Pressable>
           ) : null}
-          <TenantSettingsNavLink variant="rail" />
           <Pressable
             onPress={() => openExternal(SUPPORT_LINKS.help)}
             style={styles.railItem}

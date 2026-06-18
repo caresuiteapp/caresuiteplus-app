@@ -4,7 +4,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import { PremiumBadge, PremiumButton, PremiumListHeroFrame } from '@/components/ui';
 import { dashboardKpisToGridItems } from '@/lib/adaptive/kpiGridItems';
-import { bindActionPress } from '@/lib/ui/actionAvailability';
 import {
   isOfficeDashboardLiveReady,
   OFFICE_DASHBOARD_PREPARED_MESSAGE,
@@ -78,9 +77,9 @@ export function OfficeDashboardHero({
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isLive ? (
-          <PremiumBadge statusKind="live" dot />
+          <PremiumBadge label="Live Mandant" variant="green" dot />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
@@ -95,10 +94,7 @@ export function OfficeDashboardHero({
       {!isLive ? <Text style={styles.preparedHint}>{OFFICE_DASHBOARD_PREPARED_MESSAGE}</Text> : null}
       <PremiumButton
         title={`${snapshot.primaryAction.icon} ${snapshot.primaryAction.label}`}
-        onPress={bindActionPress(
-          { visible: true, enabled: Boolean(onPrimaryAction), isPreparedOnly: false, isDangerousAction: false },
-          () => onPrimaryAction?.(snapshot.primaryAction),
-        )}
+        onPress={() => onPrimaryAction?.(snapshot.primaryAction)}
         fullWidth
       />
     </PremiumListHeroFrame>

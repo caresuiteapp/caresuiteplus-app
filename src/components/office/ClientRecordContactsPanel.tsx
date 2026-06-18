@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
+import { GradientModalHeader } from '@/components/layout/platform';
 import { PremiumButton, PremiumCard, PremiumInput, SectionPanel } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -189,15 +190,20 @@ export function ClientRecordContactsPanel({ client, onRefresh }: Props) {
       <Modal visible={modalOpen} transparent animationType="fade" onRequestClose={() => setModalOpen(false)}>
         <Pressable style={styles.modalBackdrop} onPress={() => setModalOpen(false)}>
           <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Sonstigen Kontakt hinzufügen</Text>
-            <PremiumInput label="Name" value={name} onChangeText={setName} />
-            <PremiumInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-            <PremiumInput label="E-Mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-            <PremiumInput label="Hinweis / Beziehung" value={notes} onChangeText={setNotes} multiline />
-            {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
-            <View style={styles.modalActions}>
-              <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setModalOpen(false)} />
-              <PremiumButton title="Speichern" onPress={handleAddOther} loading={saving} />
+            <GradientModalHeader
+              title="Sonstigen Kontakt hinzufügen"
+              onClose={() => setModalOpen(false)}
+            />
+            <View style={styles.modalBody}>
+              <PremiumInput label="Name" value={name} onChangeText={setName} />
+              <PremiumInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+              <PremiumInput label="E-Mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+              <PremiumInput label="Hinweis / Beziehung" value={notes} onChangeText={setNotes} multiline />
+              {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
+              <View style={styles.modalActions}>
+                <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setModalOpen(false)} />
+                <PremiumButton title="Speichern" onPress={handleAddOther} loading={saving} />
+              </View>
             </View>
           </Pressable>
         </Pressable>

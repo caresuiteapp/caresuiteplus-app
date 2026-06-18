@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerBusinessTenant, loginBusinessUser } from '@/lib/auth/businessAuthService';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
-import { loginClientPortal, validatePortalCodeLogin } from '@/lib/auth/clientPortalAuthService';
+import { validatePortalCodeLogin } from '@/lib/auth/clientPortalAuthService';
 import { getServiceMode } from '@/lib/services/mode';
 
 vi.mock('react-native-url-polyfill/auto', () => ({}));
@@ -124,43 +124,22 @@ describe('liveSupabaseAuthServices', () => {
     }
   });
 
-  it('validates client portal login via edge function', async () => {
+  it('validates portal code via edge function', async () => {
     invokeEdgeFunction.mockResolvedValue({
       ok: true,
       data: {
-        portalAccountId: 'cpa-1',
+        portalAccountId: 'cpc-1',
         tenantId: 'tenant-1',
-        clientId: 'client-1',
         portalType: 'client',
         sessionToken: 'portal-token',
         expiresAt: '2026-01-02T00:00:00.000Z',
       },
     });
 
-    const result = await loginClientPortal('heinz-peter.reinhardt', 'AB12CD');
-    expect(invokeEdgeFunction).toHaveBeenCalledWith('client-portal-login', {
-      username: 'heinz-peter.reinhardt',
-      code: 'AB12CD',
-    });
-    expect(result.ok).toBe(true);
-  });
-
-  it('validates relative portal code via edge function', async () => {
-    invokeEdgeFunction.mockResolvedValue({
-      ok: true,
-      data: {
-        portalAccountId: 'rpc-1',
-        tenantId: 'tenant-1',
-        portalType: 'relative',
-        sessionToken: 'portal-token',
-        expiresAt: '2026-01-02T00:00:00.000Z',
-      },
-    });
-
-    const result = await validatePortalCodeLogin('AB12CD', 'relative');
+    const result = await validatePortalCodeLogin('AB12CD', 'client');
     expect(invokeEdgeFunction).toHaveBeenCalledWith('portal-code-login', {
       code: 'AB12CD',
-      portalType: 'relative',
+      portalType: 'client',
     });
     expect(result.ok).toBe(true);
   });

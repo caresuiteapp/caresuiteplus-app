@@ -57,13 +57,13 @@ export function DeveloperHubHero() {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Nur Admins" variant="orange" dot />
-        <PremiumBadge label="__DEV__ only" variant="muted" allowTechnical />
+        <PremiumBadge label="__DEV__ only" variant="muted" />
         <PremiumBadge label="Nicht öffentlich" variant="cyan" />
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="Tools" value={String(toolCount)} subValue="Interne Routen" icon="🔧" accentColor={colors.cyan} style={styles.kpiItem} />
         <PremiumKpiCard label="Design" value="DS" subValue="Token-Katalog" icon="🎨" accentColor={colors.orange} style={styles.kpiItem} />
-        <PremiumKpiCard label="Status" value="Dev" subValue="Intern" icon="📋" accentColor={colors.violet} style={styles.kpiItem} />
+        <PremiumKpiCard label="Status" value="Dev" subValue="Kein Store-Release" icon="📋" accentColor={colors.violet} style={styles.kpiItem} />
       </View>
       <Text style={styles.hint}>
         Diese Bereiche sind nur für Entwicklung und interne Reviews — nicht Teil des öffentlichen Onboardings.

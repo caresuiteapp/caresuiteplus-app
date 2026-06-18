@@ -3,27 +3,15 @@ import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard } from '@/components/ui';
 import { useDemoData } from '@/hooks/useDemoData';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import { listAccessAuditEvents } from '@/lib/auth/accessManagementService';
+import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { colors, spacing, typography } from '@/theme';
 
 export function LoginAuditScreen() {
-  const tenantId = useServiceTenantId();
   const { data: events, loading, error, refresh } = useDemoData(
-    () => {
-      if (!tenantId) throw new Error('Kein Mandant.');
-      return listAccessAuditEvents(tenantId);
-    },
-    [tenantId],
+    () => listAccessAuditEvents(DEMO_TENANT_ID),
+    [],
   );
-
-  if (!tenantId) {
-    return (
-      <ScreenShell title="Login-Protokoll" subtitle="Zugänge & Benutzer" scroll>
-        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
-      </ScreenShell>
-    );
-  }
 
   if (loading && !events) {
     return (

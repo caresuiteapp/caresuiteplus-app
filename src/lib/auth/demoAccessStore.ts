@@ -1,5 +1,4 @@
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { isDemoMode } from '@/lib/supabase/config';
 import type {
   ClientPortalCode,
   EmployeePortalAccount,
@@ -22,10 +21,7 @@ const passwordHashes = new Map<string, string>();
 const portalCodeHashes = new Map<string, string>();
 
 function tenantKey(tenantId: string): string {
-  const trimmed = tenantId.trim();
-  if (trimmed) return trimmed;
-  if (isDemoMode()) return DEMO_TENANT_ID;
-  return '__missing_tenant__';
+  return tenantId.trim() || DEMO_TENANT_ID;
 }
 
 export function listTenantUsernames(tenantId: string): string[] {
@@ -42,19 +38,6 @@ export function getTenantUsers(tenantId: string): TenantUser[] {
 
 export function getEmployeePortalAccounts(tenantId: string): EmployeePortalAccount[] {
   return [...(employeeAccounts.get(tenantKey(tenantId)) ?? [])];
-}
-
-export function listClientPortalUsernames(tenantId: string): string[] {
-  return getClientPortalCodes(tenantId).map((entry) => entry.username);
-}
-
-export function findClientPortalCodeByUsername(
-  tenantId: string,
-  username: string,
-): ClientPortalCode | undefined {
-  return getClientPortalCodes(tenantId).find(
-    (entry) => entry.username.toLowerCase() === username.trim().toLowerCase(),
-  );
 }
 
 export function getClientPortalCodes(tenantId: string): ClientPortalCode[] {

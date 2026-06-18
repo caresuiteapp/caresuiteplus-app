@@ -9,7 +9,9 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
-import { colors, radius, spacing, typography } from '@/theme';
+import { GradientModalHeader } from '@/components/layout/platform';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { radius, spacing } from '@/theme';
 
 const DESKTOP_MIN_WIDTH = 600;
 const DESKTOP_CANVAS_HEIGHT = 320;
@@ -25,6 +27,35 @@ type Props = {
 };
 
 export function CareSignatureModal({ visible, label, onConfirm, onClose, disabled }: Props) {
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        backdrop: {
+          flex: 1,
+          backgroundColor: 'rgba(0,0,0,0.55)',
+          justifyContent: 'center',
+          alignItems: 'center',
+          padding: spacing.lg,
+        },
+        sheet: {
+          backgroundColor: colors.bgPremium,
+          borderRadius: radius.lg,
+          overflow: 'hidden',
+          ...Platform.select({
+            web: { boxShadow: '0 12px 40px rgba(0,0,0,0.25)' as unknown as undefined },
+            default: {},
+          }),
+        },
+        body: {
+          padding: spacing.lg,
+          gap: spacing.sm,
+        },
+        subtitle: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.xs },
+        canvasSlot: { width: '100%', alignSelf: 'stretch' },
+      }),
+    [colors, typography],
+  );
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const sheetWidth = useMemo(
@@ -77,57 +108,22 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
             },
           ]}
         >
-          <View style={styles.accentBar} />
-          <Text style={styles.title}>Unterschrift</Text>
-          <Text style={styles.subtitle}>{label}</Text>
-          <View style={styles.canvasSlot}>
-            <CareSignatureCanvas
-              size="large"
-              height={canvasSize.canvasHeight}
-              onConfirm={handleConfirm}
-              onCancel={onClose}
-              disabled={disabled}
-              showLabel={false}
-            />
+          <GradientModalHeader title="Unterschrift" onClose={onClose} />
+          <View style={styles.body}>
+            <Text style={styles.subtitle}>{label}</Text>
+            <View style={styles.canvasSlot}>
+              <CareSignatureCanvas
+                size="large"
+                height={canvasSize.canvasHeight}
+                onConfirm={handleConfirm}
+                onCancel={onClose}
+                disabled={disabled}
+                showLabel={false}
+              />
+            </View>
           </View>
         </View>
       </View>
     </Modal>
   );
 }
-
-const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'center',
-    alignItems: 'center',
-    padding: spacing.lg,
-  },
-  sheet: {
-    backgroundColor: colors.bgPremium,
-    borderRadius: radius.lg,
-    padding: spacing.lg,
-    gap: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    overflow: 'hidden',
-    ...Platform.select({
-      web: { boxShadow: '0 12px 40px rgba(0,0,0,0.25)' as unknown as undefined },
-      default: {},
-    }),
-  },
-  accentBar: {
-    position: 'absolute',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: 4,
-    backgroundColor: colors.orange,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-  },
-  title: { ...typography.h3, marginTop: spacing.xs },
-  subtitle: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.xs },
-  canvasSlot: { width: '100%', alignSelf: 'stretch' },
-});

@@ -14,7 +14,7 @@ import {
 } from '@/lib/auth/employeePortalAuthService';
 import {
   generateClientPortalCode,
-  loginClientPortal,
+  validatePortalCodeLogin,
   blockPortalCode,
   regeneratePortalCode,
 } from '@/lib/auth/clientPortalAuthService';
@@ -147,24 +147,16 @@ describe('authAccessModel', () => {
     const created = await generateClientPortalCode({
       tenantId: DEMO_TENANT_ID,
       clientId: 'client-001',
-      firstName: 'Helga',
-      lastName: 'Schneider',
       createdBy: null,
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const login = await loginClientPortal(
-      created.data.credentials.username!,
-      created.data.credentials.portalCode!,
-    );
+    const login = await validatePortalCodeLogin(created.data.credentials.portalCode!, 'client');
     expect(login.ok).toBe(true);
 
     await blockPortalCode(created.data.code.id, null, 'Test');
-    const blockedLogin = await loginClientPortal(
-      created.data.credentials.username!,
-      created.data.credentials.portalCode!,
-    );
+    const blockedLogin = await validatePortalCodeLogin(created.data.credentials.portalCode!, 'client');
     expect(blockedLogin.ok).toBe(false);
   });
 
@@ -172,18 +164,16 @@ describe('authAccessModel', () => {
     const created = await generateClientPortalCode({
       tenantId: DEMO_TENANT_ID,
       clientId: 'client-002',
-      firstName: 'Werner',
-      lastName: 'Mueller',
       createdBy: null,
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
     const oldCode = created.data.credentials.portalCode!;
-    const regenerated = await regeneratePortalCode(created.data.code.id, 'client', 'Werner', 'Mueller');
+    const regenerated = await regeneratePortalCode(created.data.code.id, 'client');
     expect(regenerated.ok).toBe(true);
 
-    const oldLogin = await loginClientPortal(created.data.credentials.username!, oldCode);
+    const oldLogin = await validatePortalCodeLogin(oldCode, 'client');
     expect(oldLogin.ok).toBe(false);
   });
 
@@ -215,7 +205,7 @@ describe('authAccessModel', () => {
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
 
     expect(getServiceMode()).toBe('supabase');
-    expect(assertTenantForMode(DEMO_TENANT_ID)?.error).toContain('Demo');
+    expect(assertTenantForMode(DEMO_TENANT_ID)).toBeNull();
     expect(assertTenantForMode('aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee')).toBeNull();
   });
 });

@@ -1,9 +1,4 @@
 import type { TenantScopedEntity } from '../../core/base';
-import type {
-  AssistLeistungsart,
-  AssistLeistungsbereichKey,
-  AssistSubcategoryKey,
-} from '../assist/assistTaskCatalog';
 
 export type TaskCategory =
   | 'haushalt'
@@ -40,8 +35,6 @@ export const TASK_FREQUENCY_LABELS: Record<TaskFrequency, string> = {
   bei_bedarf: 'Bei Bedarf',
 };
 
-export type ClientTaskModuleKey = 'assist' | 'pflege' | 'general';
-
 export type ClientTask = TenantScopedEntity & {
   clientId: string;
   category: TaskCategory;
@@ -52,17 +45,6 @@ export type ClientTask = TenantScopedEntity & {
   isActive: boolean;
   catalogTaskId: string | null;
   assignedEmployeeIds: string[];
-  /** CareSuite+ Assist — Modulzuordnung */
-  moduleKey: ClientTaskModuleKey | null;
-  leistungsbereich: AssistLeistungsbereichKey | null;
-  subcategory: AssistSubcategoryKey | null;
-  packageId: string | null;
-  leistungsart: AssistLeistungsart | null;
-  isMandatory: boolean;
-  proofRequired: boolean;
-  documentationRequired: boolean;
-  billingRelevant: boolean;
-  visibleToClient: boolean;
 };
 
 export type TaskCatalogItem = {

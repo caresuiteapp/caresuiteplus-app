@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge } from '@/components/ui';
-import { buildOfficeDocumentSubtitle } from '@/lib/office/officeDocumentDisplay';
+
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 import { colors, spacing, typography } from '@/theme';
@@ -27,9 +27,11 @@ export function OfficeDocumentCompactRow({
         <Text style={styles.title} numberOfLines={1}>
           {document.title}
         </Text>
-        <Text style={styles.meta} numberOfLines={1}>
-          {buildOfficeDocumentSubtitle(document)}
-        </Text>
+        {document.clientName?.trim() ? (
+          <Text style={styles.meta} numberOfLines={1}>
+            {document.clientName.trim()}
+          </Text>
+        ) : null}
       </View>
       <PremiumBadge label={PORTAL_DOCUMENT_CATEGORY_LABELS[document.category]} variant="muted" />
     </Pressable>

@@ -1,4 +1,3 @@
-import { assertMockProviderAllowed } from '@/lib/environment';
 import type {
   PaymentEnvironment,
   PaymentGuardCode,
@@ -33,13 +32,11 @@ export function assertPaymentActionAllowed(
   if (!context.providerActive) {
     return deny('provider_inactive', 'Zahlungsanbieter ist nicht aktiv.');
   }
-  const mockBlock = assertMockProviderAllowed(
-    context.isMockProvider,
-    context.environment === 'production' ? 'production' : 'sandbox',
-    context.tenantId,
-  );
-  if (!mockBlock.ok) {
-    return deny('production_mock_blocked', mockBlock.error);
+  if (context.environment === 'production' && context.isMockProvider) {
+    return deny(
+      'production_mock_blocked',
+      'Mock-Anbieter in Produktion blockiert — keine echten Zahlungen.',
+    );
   }
   if (context.environment === 'production' && context.demoMode) {
     return deny(

@@ -1,6 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
 import { PremiumBadge, PremiumDataTable } from '@/components/ui';
-import { buildOfficeDocumentSubtitle, formatOfficeDocumentSizeDisplay } from '@/lib/office/officeDocumentDisplay';
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -8,12 +7,24 @@ import { colors, typography } from '@/theme';
 
 type DocumentsListTableProps = {
   documents: PortalDocumentListItem[];
-  selectedId?: string | null;
-  onDocumentPress?: (id: string) => void;
   sortColumnKey?: string | null;
   sortDirection?: 'asc' | 'desc';
   onSortColumn?: (columnKey: string) => void;
 };
+
+function formatDate(iso: string): string {
+  return new Date(iso).toLocaleDateString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+  });
+}
+
+function formatFileSize(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
 
 function statusVariant(status: PortalDocumentListItem['status']) {
   switch (status) {
@@ -32,8 +43,6 @@ function statusVariant(status: PortalDocumentListItem['status']) {
 
 export function DocumentsListTable({
   documents,
-  selectedId = null,
-  onDocumentPress,
   sortColumnKey = null,
   sortDirection = 'asc',
   onSortColumn,
@@ -45,8 +54,6 @@ export function DocumentsListTable({
       sortColumnKey={sortColumnKey}
       sortDirection={sortDirection}
       onSortColumn={onSortColumn}
-      onRowPress={onDocumentPress ? (item) => onDocumentPress(item.id) : undefined}
-      selectedId={selectedId}
       columns={[
         {
           key: 'title',
@@ -54,16 +61,6 @@ export function DocumentsListTable({
           flex: 2,
           sortable: true,
           render: (item) => <Text style={styles.name}>{item.title}</Text>,
-        },
-        {
-          key: 'client',
-          label: 'Klient:in',
-          flex: 1.5,
-          render: (item) => (
-            <Text style={styles.meta} numberOfLines={1}>
-              {item.clientName ?? '—'}
-            </Text>
-          ),
         },
         {
           key: 'category',
@@ -77,13 +74,20 @@ export function DocumentsListTable({
           ),
         },
         {
+          key: 'fileName',
+          label: 'Datei',
+          flex: 1.5,
+          render: (item) => (
+            <Text style={styles.meta} numberOfLines={1}>
+              {item.fileName}
+            </Text>
+          ),
+        },
+        {
           key: 'size',
           label: 'Größe',
           flex: 0.9,
-          render: (item) => {
-            const sizeLabel = formatOfficeDocumentSizeDisplay(item.sizeLabel, item.fileSizeBytes);
-            return <Text style={styles.meta}>{sizeLabel ?? '—'}</Text>;
-          },
+          render: (item) => <Text style={styles.meta}>{formatFileSize(item.fileSizeBytes)}</Text>,
         },
         {
           key: 'status',
@@ -100,13 +104,9 @@ export function DocumentsListTable({
         {
           key: 'updated',
           label: 'Aktualisiert',
-          flex: 1.2,
+          flex: 1,
           sortable: true,
-          render: (item) => (
-            <Text style={styles.meta} numberOfLines={1}>
-              {buildOfficeDocumentSubtitle(item)}
-            </Text>
-          ),
+          render: (item) => <Text style={styles.meta}>{formatDate(item.updatedAt)}</Text>,
         },
       ]}
     />

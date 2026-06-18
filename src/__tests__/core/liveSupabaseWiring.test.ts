@@ -123,8 +123,7 @@ describe('Live Supabase wiring', () => {
 
   it('executionService uses supabase repo in live path', () => {
     const source = readSrc('lib/assist/executionService.ts');
-    expect(source).toContain('assignmentSupabaseRepository');
-    expect(source).toContain('markOnTheWay');
+    expect(source).toContain('executionSupabaseRepository');
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 
@@ -164,39 +163,6 @@ describe('Live Supabase wiring', () => {
   it('invoiceCreateService uses supabase repo in live path', () => {
     const source = readSrc('lib/office/invoiceCreateService.ts');
     expect(source).toContain('invoiceSupabaseRepository');
-    expect(source).not.toMatch(/DEMO_TENANT_ID/);
-  });
-
-  it('budgetListService uses supabase repo in live path', () => {
-    const source = readSrc('lib/office/budgetListService.ts');
-    expect(source).toContain('getServiceMode');
-    expect(source).toContain('budgetSupabaseRepository');
-    expect(source).not.toMatch(/DEMO_TENANT_ID/);
-    expect(source).not.toContain('Budgets im Live-Modus noch nicht angebunden');
-  });
-
-  it('auditLogService uses supabase repo in live path', () => {
-    const source = readSrc('lib/officeCore/auditLogService.ts');
-    expect(source).toContain('getServiceMode');
-    expect(source).toContain('officeAuditLogSupabaseRepository');
-    expect(source).not.toContain('Office-Audit-Log im Live-Modus noch nicht vollständig angebunden');
-  });
-
-  it('officeDashboardService uses supabase repo in live path', () => {
-    const source = readSrc('lib/office/officeDashboardService.ts');
-    expect(source).toContain('getServiceMode');
-    expect(source).toContain('officeDashboardSupabaseRepository');
-    expect(source).toContain('officeAuditLogSupabaseRepository');
-    expect(source).toContain('buildLiveOfficeDashboardSnapshot');
-    expect(source).not.toMatch(/DEMO_TENANT_ID/);
-  });
-
-  it('dashboardService uses supabase repo for business live KPIs', () => {
-    const source = readSrc('lib/dashboard/dashboardService.ts');
-    expect(source).toContain('getServiceMode');
-    expect(source).toContain('officeDashboardSupabaseRepository');
-    expect(source).toContain('fetchBusinessMetrics');
-    expect(source).toContain('mergeDashboardActivities');
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 

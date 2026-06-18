@@ -3,7 +3,6 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CareLightPageShell } from '@/components/layout';
 import { PremiumButton, PremiumCard, PremiumInput, SuccessState } from '@/components/ui';
-import { isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { spacing, typography } from '@/theme';
 
 type DomainComposeMessageScreenProps = {
@@ -25,13 +24,7 @@ export function DomainComposeMessageScreen({
   if (sent) {
     return (
       <CareLightPageShell title={title} subtitle={`WP ${wpNumber}`}>
-        <SuccessState
-          message={
-            isLiveServiceMode()
-              ? 'Nachricht wurde gespeichert.'
-              : 'Nachricht wurde in der Demo-Warteschlange gespeichert.'
-          }
-        />
+        <SuccessState message="Nachricht wurde in der Demo-Warteschlange gespeichert." />
         <PremiumButton title="Zurück" onPress={() => router.back()} />
       </CareLightPageShell>
     );
@@ -40,9 +33,7 @@ export function DomainComposeMessageScreen({
   return (
     <CareLightPageShell title={title} subtitle={`${domain} · Kommunikation`}>
       <PremiumCard>
-        {!isLiveServiceMode() ? (
-          <Text style={styles.hint}>Arbeitspaket {wpNumber} — Demo-Versand ohne externen Provider.</Text>
-        ) : null}
+        <Text style={styles.hint}>Arbeitspaket {wpNumber} — Demo-Versand ohne externen Provider.</Text>
         <PremiumInput label="Betreff" value={subject} onChangeText={setSubject} />
         <PremiumInput
           label="Nachricht"

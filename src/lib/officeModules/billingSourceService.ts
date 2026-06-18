@@ -2,9 +2,7 @@ import type { RoleKey, ServiceResult } from '@/types';
 import type { ModuleBillingSource } from '@/lib/officeCore/types';
 import { officeCoreDemoRepository } from '@/lib/officeCore/demoRepository';
 import { enforcePermission } from '@/lib/permissions';
-import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { getServiceMode } from '@/lib/services/mode';
-import { loadModuleBillingSourcesLive } from '@/lib/officeModules/moduleAssignmentLiveLoader';
+import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
 
 export async function fetchModuleBillingSources(
   tenantId: string,
@@ -12,14 +10,8 @@ export async function fetchModuleBillingSources(
 ): Promise<ServiceResult<ModuleBillingSource[]>> {
   const denied = enforcePermission<ModuleBillingSource[]>(actorRoleKey, 'office.access' as never);
   if (denied) return denied;
-
-  const tenantBlock = guardServiceTenant(tenantId);
-  if (tenantBlock) return tenantBlock;
-
-  if (getServiceMode() === 'supabase') {
-    return loadModuleBillingSourcesLive(tenantId);
-  }
-
+  const liveBlock = guardLiveDemoFeature<ModuleBillingSource[]>(tenantId, 'Modul-Abrechnungsquellen');
+  if (liveBlock) return liveBlock;
   await new Promise((r) => setTimeout(r, 200));
   return { ok: true, data: officeCoreDemoRepository.listModuleBillingSources() };
 }

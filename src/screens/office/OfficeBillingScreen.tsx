@@ -20,25 +20,21 @@ const BILLING_TABS: TabOption[] = [
 ];
 
 function InvoicesTabContent() {
-  const { useMasterDetail } = usePlatformLayout();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
-
-  if (!useMasterDetail) {
-    return <InvoicesListView embedded />;
-  }
+  const [modalInvoiceId, setModalInvoiceId] = useState<string | null>(null);
 
   return (
-    <MasterDetailLayout
-      master={
-        <InvoicesListView
-          embedded
-          selectedId={selectedId}
-          onInvoicePress={setSelectedId}
-        />
-      }
-      detail={selectedId ? <InvoiceDetailSummaryPanel invoiceId={selectedId} /> : undefined}
-      showDetail={!!selectedId}
-    />
+    <>
+      <InvoicesListView
+        embedded
+        selectedId={modalInvoiceId}
+        onInvoicePress={setModalInvoiceId}
+      />
+      <InvoiceDetailModal
+        visible={modalInvoiceId !== null}
+        invoiceId={modalInvoiceId}
+        onClose={() => setModalInvoiceId(null)}
+      />
+    </>
   );
 }
 

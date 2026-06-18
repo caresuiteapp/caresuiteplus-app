@@ -18,5 +18,5 @@ export type TenantScopedEntity = {
 };
 
 export type ServiceResult<T> =
-  | { ok: true; data: T }
+  | { ok: true; data: T; tableMissing?: boolean; usedDemoFallback?: boolean }
   | { ok: false; error: string };

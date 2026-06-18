@@ -1,8 +1,17 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import Animated, {
+  Easing,
+  useAnimatedStyle,
+  useSharedValue,
+  withRepeat,
+  withSequence,
+  withTiming,
+} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { fxMotion, neonGlow, withAlpha } from '@/design/tokens/motion';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
 import { ROLE_LABELS } from '@/data/demo';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -15,14 +24,34 @@ type DashboardHeroProps = {
   showDemoBadge?: boolean;
 };
 
+/** Vivid violet→pink→cyan liquid-glass hero banner (dark) with floating depth. */
+const HERO_GRADIENT_DARK: [string, string, string] = ['#7C3AED', '#EC4899', '#06B6D4'];
+
 export function DashboardHero({
   snapshot,
   displayName,
   onPrimaryAction,
   showDemoBadge = isDemoMode(),
 }: DashboardHeroProps) {
-  const { colors, typography, gradients } = useLegacyTheme();
+  const { colors, typography, gradients, isDark } = useLegacyTheme();
   const moduleLabel = snapshot.moduleLabel ?? 'CareSuite+';
+
+  const float = useSharedValue(0);
+  useEffect(() => {
+    if (!isDark) return;
+    float.value = withRepeat(
+      withSequence(
+        withTiming(1, { duration: fxMotion.float, easing: Easing.inOut(Easing.sin) }),
+        withTiming(0, { duration: fxMotion.float, easing: Easing.inOut(Easing.sin) }),
+      ),
+      -1,
+      false,
+    );
+  }, [float, isDark]);
+
+  const floatStyle = useAnimatedStyle(() => ({
+    transform: [{ translateY: -3 * float.value }],
+  }));
 
   const styles = useMemo(
     () =>
@@ -30,82 +59,103 @@ export function DashboardHero({
         wrapper: {
           borderRadius: radius.card,
           borderWidth: 1,
-          borderColor: colors.borderSoft,
+          borderColor: isDark ? withAlpha('#EC4899', 0.35) : colors.borderSoft,
           overflow: 'hidden',
           marginBottom: spacing.sm,
+          ...(isDark ? neonGlow('#EC4899', 0.35, 28, 16) : null),
         },
-        gradient: {
-          ...StyleSheet.absoluteFillObject,
-        },
+        gradient: { ...StyleSheet.absoluteFillObject },
+        overlay: { ...StyleSheet.absoluteFillObject },
         sheen: {
           position: 'absolute',
           top: 0,
           left: 0,
           right: 0,
-          height: 1,
-          backgroundColor: 'rgba(255,255,255,0.12)',
+          height: '52%',
         },
-        content: {
-          padding: spacing.md,
-          gap: spacing.sm,
+        orbA: {
+          position: 'absolute',
+          top: -60,
+          right: -30,
+          width: 220,
+          height: 220,
+          borderRadius: 110,
+          backgroundColor: withAlpha('#FFFFFF', 0.12),
         },
-        topRow: {
-          flexDirection: 'row',
-          gap: spacing.md,
+        orbB: {
+          position: 'absolute',
+          bottom: -80,
+          left: '30%',
+          width: 200,
+          height: 200,
+          borderRadius: 100,
+          backgroundColor: withAlpha('#06B6D4', 0.22),
         },
-        textCol: {
-          flex: 1,
-          gap: 2,
-        },
+        content: { padding: spacing.md, gap: spacing.sm },
+        topRow: { flexDirection: 'row', gap: spacing.md },
+        textCol: { flex: 1, gap: 2 },
         eyebrow: {
           ...typography.caption,
-          color: colors.cyan,
-          letterSpacing: 1,
+          color: isDark ? withAlpha('#FFFFFF', 0.85) : colors.cyan,
+          letterSpacing: 1.4,
+          fontWeight: '700',
         },
         greeting: {
           ...typography.h2,
+          color: isDark ? '#FFFFFF' : colors.textPrimary,
         },
         tenant: {
           ...typography.bodyStrong,
-          color: colors.orange,
+          color: isDark ? withAlpha('#FFFFFF', 0.92) : colors.orange,
         },
         meta: {
           ...typography.caption,
-          color: colors.textMuted,
+          color: isDark ? withAlpha('#FFFFFF', 0.75) : colors.textMuted,
         },
         avatar: {
-          width: 52,
-          height: 52,
-          borderRadius: 26,
-          backgroundColor: colors.orange,
+          width: 56,
+          height: 56,
+          borderRadius: 28,
+          backgroundColor: isDark ? withAlpha('#FFFFFF', 0.16) : colors.orange,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 2,
-          borderColor: 'rgba(255,149,0,0.4)',
+          borderColor: withAlpha('#FFFFFF', 0.4),
         },
-        avatarText: {
-          fontSize: 22,
-          fontWeight: '800',
-          color: '#0A0500',
-        },
-        badges: {
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          gap: spacing.sm,
-        },
+        avatarText: { fontSize: 24, fontWeight: '800', color: '#FFFFFF' },
+        badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
       }),
-    [colors, typography, gradients],
+    [colors, typography, gradients, isDark],
   );
 
   return (
-    <View style={styles.wrapper}>
+    <Animated.View style={[styles.wrapper, floatStyle]}>
       <LinearGradient
-        colors={[...gradients.hero.list]}
+        colors={isDark ? HERO_GRADIENT_DARK : [...gradients.hero.list]}
         start={{ x: 0, y: 0 }}
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       />
-      <View style={styles.sheen} />
+      {isDark ? (
+        <>
+          <View style={styles.orbA} pointerEvents="none" />
+          <View style={styles.orbB} pointerEvents="none" />
+          <LinearGradient
+            colors={['rgba(11,16,32,0.10)', 'rgba(11,16,32,0.45)']}
+            start={{ x: 0, y: 0 }}
+            end={{ x: 0, y: 1 }}
+            style={styles.overlay}
+            pointerEvents="none"
+          />
+        </>
+      ) : null}
+      <LinearGradient
+        colors={[withAlpha('#FFFFFF', isDark ? 0.22 : 0.12), 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={styles.sheen}
+        pointerEvents="none"
+      />
       <View style={styles.content}>
         <View style={styles.topRow}>
           <View style={styles.textCol}>
@@ -130,6 +180,6 @@ export function DashboardHero({
           fullWidth
         />
       </View>
-    </View>
+    </Animated.View>
   );
 }

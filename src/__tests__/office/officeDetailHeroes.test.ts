@@ -15,13 +15,12 @@ describe('Office Detail Heroes (Sprint 85)', () => {
     expect(hero).toContain('PremiumKpiCard');
   });
 
-  it('InvoiceDetailHero nutzt PremiumListHeroFrame mit Buchhaltung preparedOnly', () => {
+  it('InvoiceDetailHero nutzt PremiumListHeroFrame mit DATEV preparedOnly', () => {
     const hero = readSrc('src/components/office/InvoiceDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('OFFICE · RECHNUNG');
     expect(hero).toContain('buildInvoiceDetailKpis');
-    expect(hero).toContain('Buchhaltung preparedOnly');
-    expect(hero).toContain('INVOICE_ACCOUNTING_STATUS_LABELS');
+    expect(hero).toContain('DATEV preparedOnly');
   });
 
   it('BudgetDetailHero nutzt PremiumListHeroFrame mit Auslastungs-KPIs', () => {
@@ -38,10 +37,10 @@ describe('Office Detail Heroes (Sprint 85)', () => {
     expect(screen).not.toContain('headerCard');
   });
 
-  it('InvoiceDetailScreen nutzt InvoiceAccountingPanel', () => {
+  it('InvoiceDetailScreen nutzt InvoiceDetailHero statt PremiumCard', () => {
     const screen = readSrc('src/screens/office/InvoiceDetailScreen.tsx');
-    expect(screen).toContain('InvoiceAccountingPanel');
-    expect(screen).not.toContain('DATEV-Export (Outbox)');
+    expect(screen).toContain('InvoiceDetailHero');
+    expect(screen).not.toContain('nextActionHint}</Text>');
   });
 
   it('BudgetDetailScreen nutzt BudgetDetailHero statt PremiumCard', () => {

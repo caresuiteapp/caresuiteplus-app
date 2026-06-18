@@ -54,7 +54,7 @@ export function IntegrationDetailScreen() {
 
         <IntegrationDetailHero integration={data} roleKey={roleKey} />
 
-        <InfoBanner variant="warning" title="Integration in Vorbereitung" message={INTEGRATIONS_PREPARED_MESSAGE} />
+        <InfoBanner variant="warning" title="Integration preparedOnly" message={INTEGRATIONS_PREPARED_MESSAGE} />
 
         <DetailInfoRow label="Provider" value={data.providerKey} />
         <DetailInfoRow

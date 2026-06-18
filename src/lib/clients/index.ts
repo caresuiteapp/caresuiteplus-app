@@ -9,9 +9,9 @@ export {
 export { fetchClientBudgets, updateClientBudget } from './clientBudgetService';
 export { fetchClientBilling, updateClientBillingProfile } from './clientBillingService';
 export { fetchClientConsents, updateClientConsent, hasRequiredConsents } from './clientConsentsService';
-export { fetchClientTasks, addClientTaskFromCatalog, createClientTask, updateClientTask, deleteClientTask, getTaskCatalog, type ClientTaskInput } from './clientTasksService';
+export { fetchClientTasks, addClientTaskFromCatalog, getTaskCatalog } from './clientTasksService';
 export { fetchClientRisks, addClientRisk } from './clientRisksService';
-export { fetchClientPortalAccess, setupClientPortalAccess, regenerateClientPortalAccessCode } from './clientPortalAccessService';
+export { fetchClientPortalAccess, invitePortalAccess } from './clientPortalAccessService';
 export { fetchClientTimeline, addTimelineEvent } from './clientTimelineService';
 export {
   getRequiredFieldsForClientContext,

@@ -130,22 +130,10 @@ const VARIANT_META = (
   },
 });
 
-export type AccessListKpiContext = {
-  tenantName?: string;
-  isLive?: boolean;
-};
-
-export function buildAccessListKpis(
-  variant: AccessListHeroVariant,
-  itemCount: number,
-  mode: ColorMode = 'dark',
-  context?: AccessListKpiContext,
-): AccessKpi[]  {
+export function buildAccessListKpis(variant: AccessListHeroVariant,
+  itemCount: number, mode: ColorMode = 'dark'): AccessKpi[]  {
   const colors = legacyColorsFromPalette(mode);
   const meta = VARIANT_META(colors)[variant];
-  const isLive = context?.isLive ?? false;
-  const tenantName = context?.tenantName?.trim() || 'Ihr Mandant';
-
   return [
     {
       id: 'count',
@@ -158,16 +146,16 @@ export function buildAccessListKpis(
     {
       id: 'scope',
       label: 'Mandant',
-      value: isLive ? tenantName : 'Demo',
-      subValue: isLive ? 'Live-Mandant' : 'Lokaler Store',
+      value: 'Demo',
+      subValue: 'Lokaler Store',
       icon: '🏢',
       accentColor: colors.orange,
     },
     {
       id: 'status',
       label: 'Backend',
-      value: isLive ? 'Live' : 'Prep.',
-      subValue: isLive ? 'Supabase' : 'Kein Live-Sync',
+      value: 'Prep.',
+      subValue: 'Kein Live-Sync',
       icon: '📡',
       accentColor: colors.violet,
     },

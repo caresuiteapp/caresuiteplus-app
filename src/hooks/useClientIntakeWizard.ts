@@ -1,26 +1,10 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import {
   INTAKE_SECTION_LABELS,
   getSupportOnlyHint,
   type IntakeSectionKey,
 } from '@/lib/clients/clientIntakeFieldRules';
-import {
-  clearClientIntakeDraft,
-  hasIntakeDraftContent,
-  loadClientIntakeDraft,
-  saveClientIntakeDraft,
-} from '@/lib/clients/clientIntakeDraftStorage';
-import { upsertClientIntakeDraft } from '@/lib/clients/repositories/clientIntakeDraftRepository.supabase';
-import { getServiceMode } from '@/lib/services/mode';
-import {
-  clearCostBearerTypeFields,
-  COST_BEARER_FIELD_ERRORS,
-  getCostBearerFieldValues,
-  isCostBearerTypeKey,
-  type CostBearerTypeKey,
-} from '@/lib/clients/clientIntakeCostBearerConfig';
-import { validateCostBearerEntry } from '@/features/costCarriers/costCarrierService';
 import {
   createEmptyIntakeForm,
   getIntakeStepsForContexts,
@@ -30,38 +14,16 @@ import {
 } from '@/lib/clients/clientIntakeService';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAuth } from '@/lib/auth/context';
-
-const DRAFT_SAVE_DEBOUNCE_MS = 400;
-
-function clampStepIndex(stepIndex: number, contexts: ClientCareContext[]): number {
-  const steps = getIntakeStepsForContexts(contexts);
-  const maxIndex = Math.max(0, steps.length - 1);
-  return Math.min(Math.max(0, stepIndex), maxIndex);
-}
 
 export function useClientIntakeWizard() {
-  const { user, profile } = useAuth();
   const tenantId = useServiceTenantId();
-  const userId = user?.id ?? profile?.id ?? null;
-
   const [form, setForm] = useState<ClientIntakeFormData>(createEmptyIntakeForm());
   const [stepIndex, setStepIndex] = useState(0);
   const [errors, setErrors] = useState<ClientIntakeErrors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
-  const [draftLoaded, setDraftLoaded] = useState(false);
-  const [draftRestored, setDraftRestored] = useState(false);
-  const [draftClientId, setDraftClientId] = useState<string | null>(null);
-  const [draftSaveFeedback, setDraftSaveFeedback] = useState<{
-    message: string;
-    variant: 'success' | 'warning';
-  } | null>(null);
   const submitLock = useRef(false);
-  const skipNextSave = useRef(false);
-  const needsRemoteSyncOnLoad = useRef(false);
-  const draftFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const steps = useMemo(
     () => getIntakeStepsForContexts(form.careContexts),
@@ -70,145 +32,6 @@ export function useClientIntakeWizard() {
 
   const currentSection = steps[stepIndex] ?? 'leistungsart';
   const contextHint = getSupportOnlyHint(form.careContexts);
-
-  useEffect(() => {
-    if (!userId || !tenantId) {
-      setDraftLoaded(true);
-      return;
-    }
-
-    let cancelled = false;
-
-    void loadClientIntakeDraft(userId, tenantId).then((draft) => {
-      if (cancelled) return;
-
-      if (draft) {
-        skipNextSave.current = true;
-        setForm(draft.form);
-        setStepIndex(clampStepIndex(draft.stepIndex, draft.form.careContexts));
-        setDraftClientId(draft.clientId ?? null);
-        setDraftRestored(true);
-
-        if (
-          getServiceMode() === 'supabase'
-          && !draft.clientId
-          && hasIntakeDraftContent(draft)
-        ) {
-          needsRemoteSyncOnLoad.current = true;
-        }
-      }
-
-      setDraftLoaded(true);
-    });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [userId, tenantId]);
-
-  const persistDraft = useCallback(
-    async (options?: { showFeedback?: boolean }) => {
-      if (!userId || !tenantId) {
-        if (options?.showFeedback) {
-          setDraftSaveFeedback({
-            message: 'Entwurf konnte nicht gespeichert werden.',
-            variant: 'warning',
-          });
-        }
-        return false;
-      }
-
-      const hasContent = hasIntakeDraftContent({ form, stepIndex });
-      if (!hasContent) {
-        if (options?.showFeedback) {
-          setDraftSaveFeedback({
-            message: 'Kein Entwurf zum Speichern.',
-            variant: 'warning',
-          });
-        }
-        return false;
-      }
-
-      let nextClientId = draftClientId;
-
-      if (getServiceMode() === 'supabase') {
-        const remoteResult = await upsertClientIntakeDraft(tenantId, form, {
-          clientId: draftClientId,
-          actorProfileId: profile?.id ?? user?.id ?? null,
-        });
-
-        if (!remoteResult.ok) {
-          if (options?.showFeedback) {
-            setDraftSaveFeedback({
-              message: remoteResult.error ?? 'Entwurf konnte nicht gespeichert werden.',
-              variant: 'warning',
-            });
-          }
-          return false;
-        }
-
-        nextClientId = remoteResult.data.id;
-        if (nextClientId !== draftClientId) {
-          setDraftClientId(nextClientId);
-        }
-      }
-
-      await saveClientIntakeDraft(userId, tenantId, {
-        form,
-        stepIndex,
-        clientId: nextClientId,
-      });
-
-      if (options?.showFeedback) {
-        setDraftSaveFeedback({
-          message: 'Entwurf gespeichert.',
-          variant: 'success',
-        });
-
-        if (draftFeedbackTimerRef.current) {
-          clearTimeout(draftFeedbackTimerRef.current);
-        }
-        draftFeedbackTimerRef.current = setTimeout(() => setDraftSaveFeedback(null), 2500);
-      }
-
-      return true;
-    },
-    [draftClientId, form, profile?.id, stepIndex, tenantId, user?.id, userId],
-  );
-
-  useEffect(() => {
-    if (!draftLoaded || !userId || !tenantId || createdId) return;
-
-    if (skipNextSave.current) {
-      skipNextSave.current = false;
-      return;
-    }
-
-    const timer = setTimeout(() => {
-      void persistDraft();
-    }, DRAFT_SAVE_DEBOUNCE_MS);
-
-    return () => clearTimeout(timer);
-  }, [form, stepIndex, draftLoaded, userId, tenantId, createdId, persistDraft]);
-
-  useEffect(() => {
-    if (!draftLoaded || !needsRemoteSyncOnLoad.current) return;
-    needsRemoteSyncOnLoad.current = false;
-    void persistDraft();
-  }, [draftLoaded, persistDraft]);
-
-  useEffect(() => {
-    if (stepIndex <= steps.length - 1) return;
-    setStepIndex(Math.max(0, steps.length - 1));
-  }, [stepIndex, steps.length]);
-
-  useEffect(() => {
-    return () => {
-      if (draftFeedbackTimerRef.current) {
-        clearTimeout(draftFeedbackTimerRef.current);
-      }
-    };
-  }, []);
 
   const updateField = useCallback(
     <K extends keyof ClientIntakeFormData>(key: K, value: ClientIntakeFormData[K]) => {
@@ -221,65 +44,6 @@ export function useClientIntakeWizard() {
     },
     [],
   );
-
-  const replaceForm = useCallback((nextForm: ClientIntakeFormData) => {
-    setForm(nextForm);
-    setErrors((prev) => {
-      const next = { ...prev };
-      for (const key of Object.keys(nextForm)) {
-        delete next[key];
-      }
-      return next;
-    });
-  }, []);
-
-  const updateCostBearerTypes = useCallback((nextTypes: string[]) => {
-    setForm((prev) => ({ ...prev, costBearerTypes: nextTypes }));
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next.costBearerTypes;
-      return next;
-    });
-  }, []);
-
-  const commitCostBearer = useCallback(() => {
-    setForm((prev) => {
-      if (!isCostBearerTypeKey(prev.activeCostBearerType)) return prev;
-      const type = prev.activeCostBearerType;
-      const validationError = validateCostBearerEntry(type, getCostBearerFieldValues(prev, type));
-      if (validationError) {
-        setErrors((current) => ({ ...current, costBearerDraft: validationError }));
-        return prev;
-      }
-
-      setErrors((current) => {
-        const next = { ...current };
-        delete next.costBearerDraft;
-        delete next.costBearerTypes;
-        delete next[COST_BEARER_FIELD_ERRORS[type]];
-        return next;
-      });
-
-      if (prev.costBearerTypes.includes(type)) {
-        return prev;
-      }
-
-      return {
-        ...prev,
-        costBearerTypes: [...prev.costBearerTypes, type],
-      };
-    });
-  }, []);
-
-  const removeCostBearer = useCallback((type: CostBearerTypeKey) => {
-    setForm((prev) => clearCostBearerTypeFields(prev, type));
-    setErrors((prev) => {
-      const next = { ...prev };
-      delete next[COST_BEARER_FIELD_ERRORS[type]];
-      delete next.costBearerTypes;
-      return next;
-    });
-  }, []);
 
   const toggleCareContext = useCallback((ctx: ClientCareContext) => {
     setForm((prev) => {
@@ -306,27 +70,6 @@ export function useClientIntakeWizard() {
       };
     });
   }, []);
-
-  const resetWizard = useCallback(() => {
-    setForm(createEmptyIntakeForm());
-    setStepIndex(0);
-    setErrors({});
-    setSubmitError(null);
-    setDraftRestored(false);
-    setDraftClientId(null);
-  }, []);
-
-  const discardDraft = useCallback(async () => {
-    if (userId && tenantId) {
-      await clearClientIntakeDraft(userId, tenantId);
-    }
-    skipNextSave.current = true;
-    resetWizard();
-  }, [resetWizard, tenantId, userId]);
-
-  const saveDraft = useCallback(async () => {
-    await persistDraft({ showFeedback: true });
-  }, [persistDraft]);
 
   const nextStep = useCallback(() => {
     const stepErrors = validateIntakeStep(currentSection, form);
@@ -361,24 +104,17 @@ export function useClientIntakeWizard() {
       }
     }
 
-    const result = await submitClientIntake(tenantId, form, {
-      actorProfileId: profile?.id ?? user?.id ?? null,
-      draftClientId,
-    });
+    const result = await submitClientIntake(tenantId, form);
     setSubmitting(false);
     submitLock.current = false;
 
     if (result.ok) {
-      if (userId) {
-        await clearClientIntakeDraft(userId, tenantId);
-      }
-      skipNextSave.current = true;
       setCreatedId(result.data.id);
       return result.data.id;
     }
     setSubmitError(result.error);
     return null;
-  }, [draftClientId, form, profile?.id, steps, submitting, tenantId, user?.id, userId]);
+  }, [form, steps, submitting, tenantId]);
 
   return {
     form,
@@ -388,27 +124,15 @@ export function useClientIntakeWizard() {
     stepIndex,
     currentSection,
     contextHint,
-    tenantId,
     submitting,
     submitError,
     createdId,
-    draftLoaded,
-    draftRestored,
-    draftSaveFeedback,
-    hasPersistedDraft: draftRestored || hasIntakeDraftContent({ form, stepIndex }),
     updateField,
-    updateCostBearerTypes,
-    commitCostBearer,
-    removeCostBearer,
-    replaceForm,
     toggleCareContext,
     toggleArrayField,
     nextStep,
     prevStep,
     submit,
-    discardDraft,
-    saveDraft,
-    resetWizard,
     isFirstStep: stepIndex === 0,
     isLastStep: stepIndex === steps.length - 1,
     isSuccess: createdId !== null,

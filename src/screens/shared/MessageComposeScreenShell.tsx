@@ -10,9 +10,6 @@ type MessageComposeScreenShellProps = {
   domain: string;
   permission: PermissionKey;
   audienceScope: 'office' | 'portal';
-  enableRecipientSelection?: boolean;
-  title?: string;
-  subtitle?: string;
 };
 
 export function MessageComposeScreenShell({
@@ -20,43 +17,18 @@ export function MessageComposeScreenShell({
   domain,
   permission,
   audienceScope,
-  enableRecipientSelection = false,
-  title = 'Nachricht',
-  subtitle,
 }: MessageComposeScreenShellProps) {
   const router = useRouter();
-  const {
-    sent,
-    subject,
-    setSubject,
-    body,
-    setBody,
-    error,
-    isSending,
-    send,
-    recipientType,
-    setRecipientType,
-    recipientId,
-    setRecipientId,
-    recipientSearch,
-    setRecipientSearch,
-    filteredRecipientOptions,
-    loadingRecipients,
-    recipientLoadError,
-  } = useDomainComposeMessage({
+  const { sent, subject, setSubject, body, setBody, error, isSending, send } = useDomainComposeMessage({
     wpNumber,
     domain,
     permission,
     audienceScope,
-    enableRecipientSelection,
   });
-
-  const resolvedSubtitle =
-    subtitle ?? (enableRecipientSelection ? 'Empfänger wählen und Nachricht senden' : `${domain} · Kommunikation`);
 
   if (sent) {
     return (
-      <CareLightPageShell title={title} subtitle={resolvedSubtitle}>
+      <CareLightPageShell title="Nachricht" subtitle={`WP ${wpNumber}`}>
         <SuccessState message="Nachricht wurde gespeichert." />
         <PremiumButton title="Zurück" onPress={() => router.back()} />
       </CareLightPageShell>
@@ -64,7 +36,7 @@ export function MessageComposeScreenShell({
   }
 
   return (
-    <CareLightPageShell title={title} subtitle={resolvedSubtitle}>
+    <CareLightPageShell title="Nachricht" subtitle={`${domain} · Kommunikation`}>
       <ComposeMessageForm
         wpNumber={wpNumber}
         subject={subject}
@@ -74,24 +46,6 @@ export function MessageComposeScreenShell({
         error={error}
         isSending={isSending}
         send={send}
-        recipientSelection={
-          enableRecipientSelection
-            ? {
-                recipientType,
-                setRecipientType,
-                recipientId,
-                setRecipientId,
-                recipientSearch,
-                setRecipientSearch,
-                recipientOptions: filteredRecipientOptions.map((option) => ({
-                  key: option.id,
-                  label: option.label,
-                })),
-                loadingRecipients,
-                recipientLoadError,
-              }
-            : undefined
-        }
       />
     </CareLightPageShell>
   );

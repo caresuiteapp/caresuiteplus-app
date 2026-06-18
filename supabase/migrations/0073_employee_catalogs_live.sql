@@ -1,6 +1,6 @@
 -- ==========================================================================
--- CareSuite+ — Migration 0073: Mitarbeitenden-Kataloge & Live-Anlage
--- PostgREST GET /rest/v1/catalog_entries → 404 PGRST205 on employee create
+-- CareSuite+ â€” Migration 0073: Mitarbeitenden-Kataloge & Live-Anlage
+-- PostgREST GET /rest/v1/catalog_entries â†’ 404 PGRST205 on employee create
 -- (CatalogValueSelect for employee_status). Pattern: 0014 + 0066 GRANT idempotency.
 -- ==========================================================================
 
@@ -53,7 +53,7 @@ ALTER TABLE public.employees ADD CONSTRAINT employees_status_check CHECK (status
   'freigestellt', 'kuendigung_laeuft', 'ausgeschieden'
 ));
 
--- Berechtigungen für Mitarbeitenden-Anlage
+-- Berechtigungen fÃ¼r Mitarbeitenden-Anlage
 INSERT INTO public.role_permissions (role_id, permission_key)
 SELECT r.id, p.key
 FROM public.roles r
@@ -81,15 +81,15 @@ INSERT INTO public.catalog_entries (tenant_id, catalog_type, value_key, label, d
 SELECT NULL, v.catalog_type, v.value_key, v.label, v.description, 'office', TRUE, v.sort_order
 FROM (VALUES
   ('employee_status', 'aktiv', 'Aktiv', 'Im Einsatz', 1),
-  ('employee_status', 'probezeit', 'Probezeit', 'Probezeit läuft', 2),
+  ('employee_status', 'probezeit', 'Probezeit', 'Probezeit lÃ¤uft', 2),
   ('employee_status', 'einarbeitung', 'Einarbeitung', 'Einarbeitungsphase', 3),
   ('employee_status', 'urlaub', 'Im Urlaub', 'Genehmigter Urlaub', 4),
   ('employee_status', 'krank', 'Krankgemeldet', 'AU / Krankmeldung', 5),
   ('employee_status', 'elternzeit', 'Elternzeit', 'Elternzeit / Mutterschutz', 6),
   ('employee_status', 'fortbildung', 'Fortbildung', 'Schulung / Fortbildung', 7),
   ('employee_status', 'teilzeit', 'Teilzeit', 'Reduzierte Arbeitszeit', 8),
-  ('employee_status', 'freigestellt', 'Freigestellt', 'Vorübergehend freigestellt', 9),
-  ('employee_status', 'kuendigung_laeuft', 'Kündigung läuft', 'Kündigungsfrist', 10),
+  ('employee_status', 'freigestellt', 'Freigestellt', 'VorÃ¼bergehend freigestellt', 9),
+  ('employee_status', 'kuendigung_laeuft', 'KÃ¼ndigung lÃ¤uft', 'KÃ¼ndigungsfrist', 10),
   ('employee_status', 'ausgeschieden', 'Ausgeschieden', 'Nicht mehr im Unternehmen', 11),
   ('employee_status', 'gesperrt', 'Gesperrt', 'Zugang gesperrt', 12),
   ('employee_status', 'archiviert', 'Archiviert', 'Archivierter Datensatz', 13)
@@ -105,15 +105,15 @@ SELECT NULL, v.catalog_type, v.value_key, v.label, v.description, 'office', TRUE
 FROM (VALUES
   ('employee_role', 'pflegefachkraft', 'Pflegefachkraft', 'Examinierte Pflegefachkraft', 1),
   ('employee_role', 'pflegehelfer', 'Pflegehelfer:in', 'Pflegehilfskraft / Pflegeassistent:in', 2),
-  ('employee_role', 'betreuungskraft', 'Betreuungskraft', 'Betreuung nach § 45b SGB XI', 3),
+  ('employee_role', 'betreuungskraft', 'Betreuungskraft', 'Betreuung nach Â§ 45b SGB XI', 3),
   ('employee_role', 'alltagsbegleiter', 'Alltagsbegleiter:in', 'Alltagsbegleitung / Assistenz', 4),
   ('employee_role', 'hauswirtschaft', 'Hauswirtschaft', 'Haushalt und Versorgung', 5),
   ('employee_role', 'disponent', 'Disponent:in', 'Einsatz- und Tourenplanung', 6),
-  ('employee_role', 'buerokraft', 'Bürokraft', 'Verwaltung und Empfang', 7),
-  ('employee_role', 'teamleitung', 'Teamleitung', 'Führung eines Teams / Bereichs', 8),
-  ('employee_role', 'geschaeftsfuehrung', 'Geschäftsführung', 'Leitung / Geschäftsführung', 9),
+  ('employee_role', 'buerokraft', 'BÃ¼rokraft', 'Verwaltung und Empfang', 7),
+  ('employee_role', 'teamleitung', 'Teamleitung', 'FÃ¼hrung eines Teams / Bereichs', 8),
+  ('employee_role', 'geschaeftsfuehrung', 'GeschÃ¤ftsfÃ¼hrung', 'Leitung / GeschÃ¤ftsfÃ¼hrung', 9),
   ('employee_role', 'praktikant', 'Praktikant:in', 'Praktikum / Ausbildung', 10),
-  ('employee_role', 'qualitaetsmanagement', 'QM-Beauftragte:r', 'Qualitätsmanagement', 11),
+  ('employee_role', 'qualitaetsmanagement', 'QM-Beauftragte:r', 'QualitÃ¤tsmanagement', 11),
   ('employee_role', 'ausbildung', 'Auszubildende:r', 'Pflegeausbildung', 12)
 ) AS v(catalog_type, value_key, label, description, sort_order)
 WHERE NOT EXISTS (
@@ -125,13 +125,13 @@ WHERE NOT EXISTS (
 INSERT INTO public.catalog_entries (tenant_id, catalog_type, value_key, label, description, module_key, is_system, sort_order)
 SELECT NULL, v.catalog_type, v.value_key, v.label, v.description, 'office', TRUE, v.sort_order
 FROM (VALUES
-  ('employee_department', 'assist_aussendienst', 'Assist / Außendienst', 'Assistenz und Außendienst', 1),
-  ('employee_department', 'pflege', 'Pflege', 'Ambulante und stationäre Pflege', 2),
-  ('employee_department', 'buero_verwaltung', 'Büro / Verwaltung', 'Backoffice und Verwaltung', 3),
+  ('employee_department', 'assist_aussendienst', 'Assist / AuÃŸendienst', 'Assistenz und AuÃŸendienst', 1),
+  ('employee_department', 'pflege', 'Pflege', 'Ambulante und stationÃ¤re Pflege', 2),
+  ('employee_department', 'buero_verwaltung', 'BÃ¼ro / Verwaltung', 'Backoffice und Verwaltung', 3),
   ('employee_department', 'disposition', 'Disposition', 'Einsatzplanung und Touren', 4),
   ('employee_department', 'abrechnung', 'Abrechnung', 'Leistungsabrechnung und Faktura', 5),
-  ('employee_department', 'qm', 'QM', 'Qualitätsmanagement', 6),
-  ('employee_department', 'geschaeftsfuehrung', 'Geschäftsführung', 'Unternehmensleitung', 7),
+  ('employee_department', 'qm', 'QM', 'QualitÃ¤tsmanagement', 6),
+  ('employee_department', 'geschaeftsfuehrung', 'GeschÃ¤ftsfÃ¼hrung', 'Unternehmensleitung', 7),
   ('employee_department', 'recruiting', 'Recruiting / HR', 'Personalgewinnung und HR', 8),
   ('employee_department', 'akademie', 'Akademie / Schulung', 'Fort- und Weiterbildung', 9)
 ) AS v(catalog_type, value_key, label, description, sort_order)
@@ -140,4 +140,4 @@ WHERE NOT EXISTS (
   WHERE e.tenant_id IS NULL AND e.catalog_type = v.catalog_type AND e.value_key = v.value_key
 );
 
-COMMENT ON TABLE public.catalog_entries IS 'Dropdown-Katalogwerte für alle Module (Office HR, Status, etc.)';
+COMMENT ON TABLE public.catalog_entries IS 'Dropdown-Katalogwerte fÃ¼r alle Module (Office HR, Status, etc.)';

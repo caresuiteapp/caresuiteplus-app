@@ -1,36 +1,25 @@
-import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ClientDetailLinkTile } from './ClientDetailLinkTile';
-import { OfficeRecordDeleteButton } from './OfficeRecordDeleteButton';
+import { ContextCard } from '@/components/detail';
 import {
+  EmptyState,
   ErrorState,
   LoadingState,
   PremiumBadge,
   PremiumButton,
   PremiumCard,
-  PremiumKpiCard,
   SectionPanel,
 } from '@/components/ui';
 import { LockedActionBanner } from '@/components/permissions';
-import { useClientRecord } from '@/hooks/useClientRecord';
+import { useClientDetail } from '@/hooks/useClientDetail';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useAuth } from '@/lib/auth/context';
-import { useServiceTenantId } from '@/hooks/useTenantId';
-import { deleteClient } from '@/lib/office/clientDetailService';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
-import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
-import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
-import { clientEditRoute, clientRecordRoute, clientRecordTabRoute } from '@/lib/navigation/clientRoutes';
-import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { clientEditRoute, clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { colors, spacing, typography } from '@/theme';
 
 type ClientDetailSummaryPanelProps = {
   clientId: string;
-  onDeleted?: () => void;
 };
 
 function SummaryRow({ label, value }: { label: string; value: string | null | undefined }) {
@@ -43,61 +32,10 @@ function SummaryRow({ label, value }: { label: string; value: string | null | un
   );
 }
 
-function statusVariant(status: string) {
-  switch (status) {
-    case 'aktiv':
-      return 'green' as const;
-    case 'fehlerhaft':
-    case 'gesperrt':
-      return 'red' as const;
-    case 'in_bearbeitung':
-    case 'entwurf':
-      return 'orange' as const;
-    default:
-      return 'muted' as const;
-  }
-}
-
-const LINKED_AREAS: Array<{
-  id: string;
-  icon: string;
-  label: string;
-  tab: ClientRecordTabKey;
-  countKey: 'documents' | 'assignments' | 'appointments' | 'invoices';
-  accentColor: string;
-}> = [
-  { id: 'documents', icon: '📄', label: 'Dokumente', tab: 'dokumente', countKey: 'documents', accentColor: colors.cyan },
-  { id: 'assignments', icon: '📅', label: 'Einsätze', tab: 'einsaetze', countKey: 'assignments', accentColor: colors.orange },
-  { id: 'appointments', icon: '🗓️', label: 'Termine', tab: 'uebersicht', countKey: 'appointments', accentColor: colors.violet },
-  { id: 'invoices', icon: '🧾', label: 'Rechnungen', tab: 'abrechnung', countKey: 'invoices', accentColor: colors.amber },
-];
-
-export function ClientDetailSummaryPanel({ clientId, onDeleted }: ClientDetailSummaryPanelProps) {
+export function ClientDetailSummaryPanel({ clientId }: ClientDetailSummaryPanelProps) {
   const router = useRouter();
-  const { profile } = useAuth();
-  const tenantId = useServiceTenantId();
-  const { mode } = useLegacyTheme();
   const { can, roleLabel, isReadOnly } = usePermissions();
-  const { detail, careContexts, tabs, loading, error, refresh } = useClientRecord(clientId);
-  const notFound = !loading && !error && !detail;
-
-  const overview = useMemo(
-    () => (detail ? buildClientRecordOverview(detail, careContexts, tabs) : null),
-    [detail, careContexts, tabs],
-  );
-
-  const kpis = useMemo(
-    () => (detail ? buildClientDetailKpis(detail, mode) : []),
-    [detail, mode],
-  );
-
-  const kpiCountMap = useMemo(() => {
-    const map: Record<string, number> = {};
-    for (const kpi of kpis) {
-      map[kpi.id] = Number(kpi.value) || 0;
-    }
-    return map;
-  }, [kpis]);
+  const { data: client, loading, error, refresh, notFound } = useClientDetail(clientId);
 
   if (loading) {
     return <LoadingState message="Klient:in wird geladen…" />;
@@ -115,56 +53,27 @@ export function ClientDetailSummaryPanel({ clientId, onDeleted }: ClientDetailSu
     );
   }
 
-  if (!detail || !overview) return null;
+  if (!client) return null;
 
-  const fullName = `${detail.firstName} ${detail.lastName}`;
-  const location = [detail.zip, detail.city].filter(Boolean).join(' ');
+  const fullName = `${client.firstName} ${client.lastName}`;
+  const location = [client.zip, client.city].filter(Boolean).join(' ');
   const canViewSensitive = can('office.clients.view_sensitive');
-  const isSensitive = detail.sensitivity === 'health' || detail.sensitivity === 'restricted';
-  const addressLine = [detail.street, location].filter(Boolean).join(', ') || null;
-  const contactPerson = detail.contacts[0]
-    ? `${detail.contacts[0].name} (${detail.contacts[0].relationship})`
-    : null;
-
-  const openRecordTab = (tab: ClientRecordTabKey) => {
-    router.push(clientRecordTabRoute(detail.id, tab) as never);
-  };
+  const isSensitive = client.sensitivity === 'health' || client.sensitivity === 'restricted';
 
   return (
     <View style={styles.panel}>
       <PremiumCard accentColor={colors.orange}>
         <Text style={styles.name}>{fullName}</Text>
         <View style={styles.badgeRow}>
-          <PremiumBadge
-            label={WORKFLOW_STATUS_LABELS[detail.status]}
-            variant={statusVariant(detail.status)}
-            dot
-          />
-          {detail.careLevel ? (
-            <PremiumBadge label={formatCareLevel(detail.careLevel)} variant="cyan" />
+          <PremiumBadge label={WORKFLOW_STATUS_LABELS[client.status]} variant="orange" dot />
+          {client.careLevel ? (
+            <PremiumBadge label={client.careLevel} variant="cyan" />
           ) : null}
-          {canViewSensitive && isSensitive ? (
-            <PremiumBadge label={SENSITIVITY_LABELS[detail.sensitivity]} variant="muted" />
+          {canViewSensitive ? (
+            <PremiumBadge label={SENSITIVITY_LABELS[client.sensitivity]} variant="muted" />
           ) : null}
         </View>
         {location ? <Text style={styles.location}>{location}</Text> : null}
-
-        <View style={styles.heroActions}>
-          <PremiumButton
-            title="Akte öffnen"
-            variant="primary"
-            onPress={() => router.push(clientRecordRoute(detail.id) as never)}
-            style={styles.heroActionPrimary}
-          />
-          {can('office.clients.edit') ? (
-            <PremiumButton
-              title="Bearbeiten"
-              variant="secondary"
-              onPress={() => router.push(clientEditRoute(detail.id) as never)}
-              style={styles.heroActionSecondary}
-            />
-          ) : null}
-        </View>
       </PremiumCard>
 
       {isReadOnly ? (
@@ -183,72 +92,75 @@ export function ClientDetailSummaryPanel({ clientId, onDeleted }: ClientDetailSu
         />
       ) : null}
 
-      <View style={styles.kpiRow}>
-        {kpis.map((kpi) => (
-          <PremiumKpiCard
-            key={kpi.id}
-            label={kpi.label}
-            value={kpi.value}
-            iconKey={kpi.iconKey}
-            accentColor={kpi.accentColor}
-            style={styles.kpiItem}
-          />
-        ))}
-      </View>
-
       <SectionPanel title="Kontakt" subtitle="Erreichbarkeit und Adresse">
-        <SummaryRow label="Telefon" value={detail.phone ?? detail.primaryContactPhone} />
-        <SummaryRow label="E-Mail" value={detail.email} />
-        <SummaryRow label="Adresse" value={addressLine} />
-        {contactPerson ? <SummaryRow label="Angehörige:r" value={contactPerson} /> : null}
+        <SummaryRow label="Telefon" value={client.phone ?? client.primaryContactPhone} />
+        <SummaryRow label="E-Mail" value={client.email} />
+        <SummaryRow
+          label="Adresse"
+          value={[client.street, location].filter(Boolean).join(', ') || null}
+        />
+        {client.contacts[0] ? (
+          <SummaryRow
+            label="Angehörige:r"
+            value={`${client.contacts[0].name} (${client.contacts[0].relationship})`}
+          />
+        ) : (
+          <EmptyState title="Keine Angehörigen" message="Noch keine Kontaktperson hinterlegt." />
+        )}
       </SectionPanel>
 
-      <SectionPanel title="Versorgung" subtitle="Kostenträger und Leistungsart">
-        <SummaryRow label="Kostenträger" value={overview.primaryCostBearer !== '—' ? overview.primaryCostBearer : null} />
-        <SummaryRow label="Leistungsart" value={overview.serviceTypes !== '—' ? overview.serviceTypes : null} />
-      </SectionPanel>
-
-      <SectionPanel title="Verknüpfte Bereiche" subtitle="Direkt in der Akte öffnen">
-        <View style={styles.linkGrid}>
-          {LINKED_AREAS.map((area) => (
-            <ClientDetailLinkTile
-              key={area.id}
-              icon={area.icon}
-              label={area.label}
-              count={kpiCountMap[area.countKey] ?? 0}
-              accentColor={area.accentColor}
-              onPress={() => openRecordTab(area.tab)}
-            />
-          ))}
+      <SectionPanel title="Verknüpfte Bereiche" subtitle="Aktuelle Vorgänge">
+        <View style={styles.contextGrid}>
+          <ContextCard
+            icon="📅"
+            label="Einsätze"
+            count={client.contextCounts.assignments}
+            accentColor={colors.orange}
+          />
+          <ContextCard
+            icon="📄"
+            label="Dokumente"
+            count={client.contextCounts.documents}
+            accentColor={colors.cyan}
+          />
+          <ContextCard
+            icon="🧾"
+            label="Rechnungen"
+            count={client.contextCounts.invoices}
+            accentColor={colors.amber}
+          />
+          <ContextCard
+            icon="🗓️"
+            label="Termine"
+            count={client.contextCounts.appointments}
+            accentColor={colors.violet}
+          />
         </View>
       </SectionPanel>
 
-      {detail.nextActionHint ? (
+      {client.nextActionHint ? (
         <PremiumCard accentColor={colors.amber}>
           <Text style={styles.hintLabel}>Nächster Schritt</Text>
-          <Text style={styles.hint}>{detail.nextActionHint}</Text>
+          <Text style={styles.hint}>{client.nextActionHint}</Text>
         </PremiumCard>
       ) : null}
 
-      {can('office.clients.delete') ? (
-        <OfficeRecordDeleteButton
-          recordLabel="Klient:in"
-          displayName={fullName}
-          onDelete={() => {
-            if (!tenantId) {
-              return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-            }
-            return deleteClient(
-              detail.id,
-              tenantId,
-              profile?.roleKey,
-              profile?.id,
-              profile?.displayName,
-            );
-          }}
-          onDeleted={onDeleted}
+      <View style={styles.actions}>
+        {can('office.clients.edit') ? (
+          <PremiumButton
+            title="Stammdaten bearbeiten"
+            variant="primary"
+            fullWidth
+            onPress={() => router.push(clientEditRoute(client.id) as never)}
+          />
+        ) : null}
+        <PremiumButton
+          title="Vollständige Akte öffnen"
+          variant="secondary"
+          fullWidth
+          onPress={() => router.push(clientRecordRoute(client.id) as never)}
         />
-      ) : null}
+      </View>
     </View>
   );
 }
@@ -272,27 +184,6 @@ const styles = StyleSheet.create({
   location: {
     ...typography.caption,
     color: colors.textMuted,
-    marginBottom: spacing.sm,
-  },
-  heroActions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    marginTop: spacing.xs,
-  },
-  heroActionPrimary: {
-    flex: 1,
-  },
-  heroActionSecondary: {
-    flex: 1,
-  },
-  kpiRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  kpiItem: {
-    flex: 1,
-    minWidth: 120,
   },
   row: {
     marginBottom: spacing.sm,
@@ -305,7 +196,7 @@ const styles = StyleSheet.create({
   rowValue: {
     ...typography.body,
   },
-  linkGrid: {
+  contextGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: spacing.sm,
@@ -317,5 +208,9 @@ const styles = StyleSheet.create({
   },
   hint: {
     ...typography.body,
+  },
+  actions: {
+    gap: spacing.sm,
+    paddingBottom: spacing.xl,
   },
 });

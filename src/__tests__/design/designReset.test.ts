@@ -50,11 +50,11 @@ describe('Design Reset (Prompt 101)', () => {
     expect(source).toContain('locked={locked}');
   });
 
-  it('PremiumPreparedNotice shows friendly labels not raw preparedOnly in UI', () => {
+  it('PremiumPreparedNotice shows Vorbereitet not raw preparedOnly in UI', () => {
     const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
     expect(notice).toContain('StatusBadge');
-    expect(notice).toContain('Demnächst verfügbar');
-    expect(notice).not.toMatch(/kind="preparedOnly"/);
+    expect(notice).toContain('kind="preparedOnly"');
+    expect(notice).not.toMatch(/label="preparedOnly"/);
     expect(notice).toContain('DATEV');
     expect(notice).toContain('KIM');
   });

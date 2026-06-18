@@ -53,7 +53,7 @@ describe('Office Mitarbeitende list', () => {
   it('EmployeesListView hat Suche, Filter und States', () => {
     const source = readSrc('src/components/office/EmployeesListView.tsx');
     expect(source).toContain('PremiumInput');
-    expect(source).toContain('ListFilterSelect');
+    expect(source).toContain('FilterChipGroup');
     expect(source).toContain('EmptyState');
     expect(source).toContain('ErrorState');
     expect(source).toContain('LoadingState');
@@ -109,19 +109,6 @@ describe('Office Mitarbeitende list', () => {
     expect(source).toContain("label: 'E-Mail'");
     expect(source).toContain("label: 'Aktionen'");
     expect(source).toContain('PremiumDataTable');
-    expect(source).toContain('EmployeeListAvatar');
-  });
-
-  it('EmployeeListCard zeigt Profilbild-Avatar', () => {
-    const source = readSrc('src/components/office/EmployeeListCard.tsx');
-    expect(source).toContain('EmployeeListAvatar');
-    expect(source).toContain('avatarUrl');
-  });
-
-  it('EmployeeDetailSummaryPanel zeigt Avatar im Header', () => {
-    const source = readSrc('src/components/office/EmployeeDetailSummaryPanel.tsx');
-    expect(source).toContain('EmployeeListAvatar');
-    expect(source).toContain('avatarUrl');
   });
 
   it('EmployeesListTable nutzt sortierbare Spalten', () => {

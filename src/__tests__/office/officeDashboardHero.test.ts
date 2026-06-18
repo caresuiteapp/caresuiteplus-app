@@ -16,10 +16,10 @@ describe('Office Dashboard Hero + AdaptiveModuleDashboard (Sprint 96)', () => {
     expect(hero).toContain('AdaptiveKpiGrid');
   });
 
-  it('OfficeIndexScreen nutzt CareLightModuleDashboard (light premium)', () => {
+  it('OfficeIndexScreen nutzt ModuleDashboardShell mit ActionToolbar', () => {
     const screen = readSrc('src/screens/office/OfficeIndexScreen.tsx');
-    expect(screen).toContain('CareLightScreen');
-    expect(screen).toContain('CareLightModuleDashboard');
+    expect(screen).toContain('ModuleDashboardShell');
+    expect(screen).toContain('ActionToolbar');
     expect(screen).toContain('useOfficeDashboard');
     expect(screen).not.toContain('AdaptiveModuleDashboard');
     expect(screen).not.toContain('OfficeDashboardHero');

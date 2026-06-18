@@ -1,44 +1,7 @@
 import { useMemo } from 'react';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { careSuiteColors, type ColorMode } from './colors';
-import { galaxyPalette } from './galaxy';
 import { resolveCareTypography } from './typography';
-
-export type SemanticThemeTokens = {
-  background: string;
-  surface: string;
-  glassSurface: string;
-  border: string;
-  textPrimary: string;
-  textSecondary: string;
-  textMuted: string;
-  accentOrange: string;
-  accentCyan: string;
-  accentViolet: string;
-  success: string;
-  warning: string;
-  danger: string;
-};
-
-/** Semantic color aliases for design-system components — prefer over inline hex. */
-export function resolveSemanticTokens(mode: ColorMode = 'dark'): SemanticThemeTokens {
-  const p = careSuiteColors[mode];
-  return {
-    background: p.background.app,
-    surface: p.background.elevated,
-    glassSurface: galaxyPalette.cardGlass,
-    border: galaxyPalette.borderGlass,
-    textPrimary: p.text.primary,
-    textSecondary: p.text.secondary,
-    textMuted: p.text.muted,
-    accentOrange: p.brand.orange,
-    accentCyan: p.brand.cyan,
-    accentViolet: p.brand.violet,
-    success: p.status.success,
-    warning: p.status.warning,
-    danger: p.status.danger,
-  };
-}
 
 export type { ColorMode };
 
@@ -83,8 +46,6 @@ export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
     info: p.status.info,
 
     borderSoft: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(7,18,42,0.08)',
-    border: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(7,18,42,0.08)',
-    surfaceElevated: isDark ? '#20242D' : p.background.elevated,
     borderStrong: isDark ? 'rgba(255,255,255,0.14)' : 'rgba(7,18,42,0.14)',
     borderOrange: `rgba(${isDark ? '255,149,0' : '255,122,26'},0.34)`,
     borderCyan: isDark ? 'rgba(98,243,255,0.24)' : 'rgba(53,215,255,0.24)',

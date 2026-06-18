@@ -119,7 +119,7 @@ export function BudgetsListScreen({ embedded = false }: BudgetsListScreenProps) 
       ListHeaderComponent={header}
       ListEmptyComponent={
         isEmpty ? (
-          <EmptyState title="Keine Budgets" message="Für diesen Mandanten sind noch keine Budgets hinterlegt." />
+          <EmptyState title="Keine Budgets" message="Noch keine Budgets im Demo-Mandanten." />
         ) : isFilterEmpty ? (
           <EmptyState
             title="Keine Treffer"

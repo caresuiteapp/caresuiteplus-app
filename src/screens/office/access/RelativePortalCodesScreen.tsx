@@ -5,28 +5,23 @@ import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useDemoData } from '@/hooks/useDemoData';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import type { AccessCredentialsReveal } from '@/lib/auth/auth.types';
 import { generateRelativePortalCode } from '@/lib/auth/relativePortalAuthService';
 import { getRelativePortalCodes } from '@/lib/auth/demoAccessStore';
+import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { colors, spacing, typography } from '@/theme';
 
 export function RelativePortalCodesScreen() {
-  const tenantId = useServiceTenantId();
   const [refreshKey, setRefreshKey] = useState(0);
   const [credentials, setCredentials] = useState<AccessCredentialsReveal | null>(null);
   const { data: codes, loading, error, refresh } = useDemoData(
-    () => {
-      if (!tenantId) throw new Error('Kein Mandant.');
-      return getRelativePortalCodes(tenantId);
-    },
-    [tenantId, refreshKey],
+    () => getRelativePortalCodes(DEMO_TENANT_ID),
+    [refreshKey],
   );
 
   const handleGenerate = async () => {
-    if (!tenantId) return;
     const result = await generateRelativePortalCode({
-      tenantId,
+      tenantId: DEMO_TENANT_ID,
       clientId: `client-${Date.now().toString(36)}`,
       createdBy: null,
     });
@@ -35,14 +30,6 @@ export function RelativePortalCodesScreen() {
       setRefreshKey((value) => value + 1);
     }
   };
-
-  if (!tenantId) {
-    return (
-      <ScreenShell title="Angehörigenportal" subtitle="Zugänge & Benutzer" scroll>
-        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
-      </ScreenShell>
-    );
-  }
 
   if (credentials) {
     return (

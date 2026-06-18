@@ -73,7 +73,7 @@ export function AssistServiceCatalogHero({
         {isLiveReady ? (
           <PremiumBadge label="Live bereit" variant="cyan" />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="preparedOnly" variant="muted" />
         )}
       </View>
 

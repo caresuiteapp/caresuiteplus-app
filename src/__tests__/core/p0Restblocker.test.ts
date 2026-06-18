@@ -87,11 +87,12 @@ describe('P0 Restblocker Sprint', () => {
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 
-  it('executionService persists status transitions via supabase repo in live path', () => {
+  it('executionService persists check-in/out via supabase repo in live path', () => {
     const source = readSrc('lib/assist/executionService.ts');
     expect(source).toContain('getServiceMode');
-    expect(source).toContain('assignmentSupabaseRepository');
-    expect(source).toMatch(/markOnTheWay|markStarted|completeAssignment/);
+    expect(source).toContain('executionSupabaseRepository');
+    expect(source).toMatch(/checkIn|checkInAssignment/);
+    expect(source).toMatch(/checkOut|checkOutAssignment/);
     expect(source).not.toMatch(/DEMO_TENANT_ID/);
   });
 

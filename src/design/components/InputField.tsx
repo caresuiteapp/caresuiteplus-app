@@ -51,7 +51,7 @@ const styles = StyleSheet.create({
     flexShrink: 0,
   },
   input: {
-    minHeight: 44,
+    minHeight: 48,
     borderRadius: careRadius.lg,
     borderWidth: 1,
     borderColor: galaxyPalette.borderGlass,

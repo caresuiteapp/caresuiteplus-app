@@ -4,6 +4,7 @@ import { pflegeDemo } from '@/data/demo/domains/pflegeDemo';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import { pflegeSupabaseRepository } from '@/lib/services/repositories/pflegeRepository.supabase';
+import { resolveMissingTableList } from '@/lib/supabase/missingtablefallback';
 
 export type CarePlanDashboardSnapshot = {
   wp: number;
@@ -13,7 +14,7 @@ export type CarePlanDashboardSnapshot = {
   highlights: string[];
 };
 
-/** WP363 — CarePlan Dashboard-Service */
+/** WP363 â€” CarePlan Dashboard-Service */
 export async function fetchCarePlanDashboard(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
@@ -26,7 +27,52 @@ export async function fetchCarePlanDashboard(
 
   if (getServiceMode() === 'supabase') {
     const result = await pflegeSupabaseRepository.list(tenantId);
-    if (!result.ok) return result;
+    if (result.ok && result.tableMissing) {
+      const resolved = resolveMissingTableList(result, tenantId, () => pflegeDemo.records.map((record, index) => ({
+        id: `demo-${index}`,
+        tenant_id: tenantId,
+        title: record.label,
+        status: record.status ?? 'aktiv',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })));
+      if (!resolved.ok) return resolved;
+      const records = resolved.data;
+      return {
+        ok: true,
+        data: {
+          wp: 363,
+          domain: 'pflege',
+          activeCount: records.filter((r) => r.status === 'aktiv').length,
+          draftCount: records.filter((r) => r.status === 'entwurf').length,
+          highlights: records.slice(0, 3).map((r) => r.title),
+        },
+        usedDemoFallback: resolved.usedDemoFallback,
+      };
+    }
+    if (!result.ok) {
+      const resolved = resolveMissingTableList(result, tenantId, () => pflegeDemo.records.map((record, index) => ({
+        id: `demo-${index}`,
+        tenant_id: tenantId,
+        title: record.label,
+        status: record.status ?? 'aktiv',
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString(),
+      })));
+      if (!resolved.ok) return resolved;
+      const records = resolved.data;
+      return {
+        ok: true,
+        data: {
+          wp: 363,
+          domain: 'pflege',
+          activeCount: records.filter((r) => r.status === 'aktiv').length,
+          draftCount: records.filter((r) => r.status === 'entwurf').length,
+          highlights: records.slice(0, 3).map((r) => r.title),
+        },
+        usedDemoFallback: resolved.usedDemoFallback,
+      };
+    }
     const records = result.data;
     return {
       ok: true,

@@ -12,7 +12,6 @@ import {
 } from './intakeDocumentTypes';
 import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
-import { formatHourlyRateDocumentAmount } from '@/lib/formatters/numberFormatters';
 import type { TenantDisplayMeta } from '@/lib/tenant/tenantDisplayMeta';
 import { getSystemIntakeTemplateByKey } from './intakeDocumentSystemTemplates';
 import {
@@ -22,21 +21,7 @@ import {
 
 export type IntakePlaceholderContext = Record<string, string>;
 
-export type IntakeTenantDisplay = Pick<
-  TenantDisplayMeta,
-  'name' | 'street' | 'zip' | 'city' | 'defaultHourlyRate'
->;
-
-export function resolveBillingHourlyRate(
-  form: ClientIntakeFormData,
-  tenantDisplay?: IntakeTenantDisplay,
-): string {
-  const fromForm = formatHourlyRateDocumentAmount(form.hourlyRate);
-  if (fromForm) return fromForm;
-  const fromTenant = tenantDisplay?.defaultHourlyRate?.trim();
-  if (fromTenant) return fromTenant;
-  return '';
-}
+export type IntakeTenantDisplay = Pick<TenantDisplayMeta, 'name' | 'street' | 'zip' | 'city'>;
 
 export function buildIntakePlaceholderContext(
   form: ClientIntakeFormData,
@@ -67,7 +52,7 @@ export function buildIntakePlaceholderContext(
     ...costCarrierFields,
     'care.level': formatCareLevel(form.careLevel),
     'billing.types': form.billingTypes.join(', '),
-    'billing.hourly_rate': resolveBillingHourlyRate(form, tenantDisplay),
+    'billing.hourly_rate': form.hourlyRate.trim() || '—',
     'contract.service_start': formatDate(form.serviceStart.trim() || form.admissionDate.trim()),
     'document.date': formatDate(new Date()),
     'document.location': form.city.trim() || tenantDisplay?.city?.trim() || '—',

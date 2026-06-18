@@ -41,7 +41,7 @@ function mapRow(row: Record<string, unknown>): EmployeeListItem {
   };
 }
 
-/** WP190 — Live Supabase Repository (employees) */
+/** WP190 â€” Live Supabase Repository (employees) */
 export const employeeSupabaseRepository = {
   wpNumber: 190 as const,
 
@@ -178,7 +178,7 @@ export const employeeSupabaseRepository = {
       employee_id: id,
       action: 'employee_deleted',
       actor_id: context?.actorProfileId ?? null,
-      summary: 'Mitarbeitende:r gelöscht (falsch angelegt)',
+      summary: 'Mitarbeitende:r gelÃ¶scht (falsch angelegt)',
       field_changes: { deleted_by: context?.actorDisplayName ?? 'System' },
     });
 

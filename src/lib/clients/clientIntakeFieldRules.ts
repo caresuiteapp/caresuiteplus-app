@@ -73,7 +73,7 @@ const BASE_REQUIRED = [
   'city',
   'phoneOrContact',
   'serviceStart',
-  'billingTypes',
+  'billingType',
   'emergencyContact',
   'consentDatenschutz',
   'consentVertrag',

@@ -1,9 +1,5 @@
 import type { EmployeeDetail } from '@/types/modules/employeeDetail';
 import { legacyColorsFromPalette, type ColorMode } from '@/design/tokens/themeBridge';
-import {
-  resolveEmployeeDepartmentLabel,
-  resolveEmployeeRoleLabel,
-} from './employeeCatalogLabels';
 
 export type EmployeeDetailKpi = {
   id: string;
@@ -30,12 +26,10 @@ export function buildEmployeeDetailSubtitle(employee: EmployeeDetail, mode: Colo
   if (employee.notes) return employee.notes;
   if (employee.status === 'entwurf') return 'Onboarding noch nicht abgeschlossen.';
   if (employee.status === 'gesperrt') return 'Zugang vorübergehend gesperrt — HR kontaktieren.';
-  if (employee.jobTitle?.trim() && employee.department?.trim()) {
-    return `${resolveEmployeeRoleLabel(employee.jobTitle)} · ${resolveEmployeeDepartmentLabel(employee.department)}`;
+  if (employee.jobTitle && employee.department) {
+    return `${employee.jobTitle} · ${employee.department}`;
   }
-  if (employee.jobTitle?.trim()) return resolveEmployeeRoleLabel(employee.jobTitle);
-  if (employee.department?.trim()) return resolveEmployeeDepartmentLabel(employee.department);
-  return 'Mitarbeitenden-Stammdaten';
+  return employee.jobTitle ?? employee.department ?? 'Mitarbeitenden-Stammdaten';
 }
 
 export function buildEmployeeDetailKpis(employee: EmployeeDetail, mode: ColorMode = 'dark'): EmployeeDetailKpi[]  {
@@ -69,7 +63,7 @@ export function buildEmployeeDetailKpis(employee: EmployeeDetail, mode: ColorMod
     {
       id: 'department',
       label: 'Abteilung',
-      value: resolveEmployeeDepartmentLabel(employee.department),
+      value: employee.department ?? '—',
       icon: '🏢',
       accentColor: colors.orange,
     },

@@ -1,3 +1,5 @@
-import { OfficeBusinessReportingScreen } from '@/screens/business/office/OfficeBusinessReportingScreen';
+import { Redirect } from 'expo-router';
 
-export default OfficeBusinessReportingScreen;
+export default function BusinessOfficeReportingRedirect() {
+  return <Redirect href="/office/reporting" />;
+}

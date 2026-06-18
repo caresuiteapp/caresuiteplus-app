@@ -18,10 +18,6 @@ import {
   runGeoGuardChain,
 } from '@/lib/geo/geoGuard';
 import {
-  assertConnectFeatureAllowed,
-  buildConnectFeatureGateContextFromFeatureKey,
-} from '@/lib/connect/gateway/connectFeatureGate';
-import {
   computeClientPortalVisibilityWindow,
 } from '@/lib/geo/geoModuleConfig';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
@@ -48,34 +44,6 @@ async function captureAssignmentLocation(
 ): Promise<ServiceResult<AssignmentLocationEvent>> {
   const tenantBlock = guardServiceTenant(input.tenantId);
   if (tenantBlock) return tenantBlock;
-
-  const connectGate = assertConnectFeatureAllowed(
-    'geo.gps',
-    'capture',
-    buildConnectFeatureGateContextFromFeatureKey('geo.gps', {
-      tenantId: input.tenantId,
-      userId: actorRoleKey ?? 'demo-user',
-      role: actorRoleKey ?? null,
-      integrationStatus: 'not_configured',
-      connectorStatus: 'coming_soon',
-      hasPrivacyApproval: input.consent.employeeConsentGranted,
-      hasExternalTransferConsent: input.consent.employeeConsentGranted,
-    }),
-  );
-  if (!connectGate.allowed) {
-    await auditBlockedGeoAction(
-      {
-        tenantId: input.tenantId,
-        action: `${input.eventType}_blocked`,
-        entityType: 'assignment_location_event',
-        purpose: input.purpose,
-        blockedReason: connectGate.message,
-        metadata: { assignmentId: input.assignmentId, eventType: input.eventType },
-      },
-      actorRoleKey,
-    );
-    return { ok: false, error: connectGate.message };
-  }
 
   const rolePerms = ROLE_PERMISSIONS[actorRoleKey ?? 'caregiver'] ?? [];
   const portalWindow = computeClientPortalVisibilityWindow(

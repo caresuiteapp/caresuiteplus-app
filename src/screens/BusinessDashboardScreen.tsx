@@ -1,14 +1,12 @@
-import { useState, useMemo } from 'react';
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CareLightModuleDashboard, CareLightScreen } from '@/components/layout';
-import { GuidedTourOverlay } from '@/components/onboarding/GuidedTourOverlay';
 import {
   CareLightButton,
   CareLightEmptyState,
   CareLightErrorState,
   CareLightModuleTile,
-  CareLightQuickActionsMenu,
   SuccessState,
   Timeline,
 } from '@/components/ui';
@@ -17,72 +15,51 @@ import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useDashboard } from '@/hooks/useDashboard';
-import { useBusinessDashboardTour } from '@/hooks/useBusinessDashboardTour';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { MODULE_NAV_CONFIG } from '@/data/demo/navigation';
-import { PRODUCT_LABELS } from '@/data/demo/products';
-import { resolveModuleNavState } from '@/lib/modules/moduleVisibilityService';
 import { wp138A11y } from '@/lib/a11y/wp138-business';
 import type { DashboardQuickAction } from '@/types/dashboard';
-import type { ProductKey } from '@/types';
 
-const DASHBOARD_MODULE_TILES: ProductKey[] = ['office', 'pflege', 'assist'];
+const BUSINESS_QUICK_TILES = [
+  {
+    id: 'office',
+    title: 'CareSuite+ Office',
+    description: 'Klient:innen, Team, Rechnungen, Termine',
+    route: '/office',
+    icon: '🏢',
+    accentColor: '#FF7A1A',
+  },
+  {
+    id: 'modules',
+    title: 'Module verwalten',
+    description: 'Free Platform — Modulstatus & Rechte',
+    route: '/business/modules',
+    icon: '🧩',
+    accentColor: '#22C55E',
+  },
+  {
+    id: 'pflege',
+    title: 'Pflege',
+    description: 'Pflegepläne, Vitalwerte, Medikation',
+    route: '/pflege',
+    icon: '💊',
+    accentColor: '#22C55E',
+  },
+  {
+    id: 'assist',
+    title: 'Assist',
+    description: 'Einsätze, Durchführung, Fahrten',
+    route: '/assist',
+    icon: '🤝',
+    accentColor: '#0EA5E9',
+  },
+] as const;
 
 export function BusinessDashboardScreen() {
   const router = useRouter();
   const { profile, signOut, user } = useAuth();
-  const tenantId = useServiceTenantId();
-  const { data, loading, error, refresh, isEmpty } = useDashboard('business');
+  const { data, loading, error, refresh } = useDashboard('business');
   const [showSuccess, setShowSuccess] = useState(false);
   const businessAccent = moduleColor('office');
-
-  const tour = useBusinessDashboardTour({
-    ready: Boolean(data) && !loading,
-    isEmptyTenant: isEmpty,
-  });
-
-  const moduleTiles = useMemo(() => {
-    const context = { tenantId, roleKey: profile?.roleKey ?? null };
-    type DashboardTile = {
-      id: string;
-      title: string;
-      description: string;
-      route: string;
-      icon: string;
-      accentColor: string;
-      navState: ReturnType<typeof resolveModuleNavState>;
-    };
-
-    const tiles: DashboardTile[] = DASHBOARD_MODULE_TILES.map((key) => {
-      const config = MODULE_NAV_CONFIG[key];
-      const navState = resolveModuleNavState(key, context);
-      return {
-        id: key,
-        title: PRODUCT_LABELS[key],
-        description: config.description,
-        route: config.path,
-        icon: config.icon,
-        accentColor: config.accentColor,
-        navState,
-      };
-    }).filter((tile) => tile.navState.isVisible);
-
-    const modulesHub = resolveModuleNavState('modules_hub', context);
-    if (modulesHub.isVisible) {
-      tiles.push({
-        id: 'modules_hub',
-        title: 'Module verwalten',
-        description: 'Modulstatus & Rechte',
-        route: '/business/modules',
-        icon: '🧩',
-        accentColor: '#22C55E',
-        navState: modulesHub,
-      });
-    }
-
-    return tiles;
-  }, [tenantId, profile?.roleKey]);
 
   const displayName = profile?.displayName ?? user?.displayName ?? 'Willkommen';
 
@@ -146,15 +123,6 @@ export function BusinessDashboardScreen() {
         kpis={kpis}
         recentTitle="Letzte Aktivitäten"
         recentSubtitle="Chronologischer Verlauf"
-        modulesTitle="Ihre Module"
-        modulesSubtitle="Wechseln Sie zwischen CareSuite+ Bereichen"
-        sectionRefs={{
-          header: tour.refs.welcome,
-          kpis: tour.refs.kpis,
-          recent: tour.refs.recent,
-          quickActions: tour.refs.quickActions,
-          modules: tour.refs.modules,
-        }}
         recentSection={
           <>
             <Timeline items={data.activities} />
@@ -164,68 +132,43 @@ export function BusinessDashboardScreen() {
               onPress={handleRefresh}
               accentColor={businessAccent}
             />
+            <CareLightButton
+              title={`${data.primaryAction.icon} ${data.primaryAction.label}`}
+              onPress={() => handleAction(data.primaryAction)}
+              accentColor={businessAccent}
+            />
           </>
         }
         quickActions={
           <View style={styles.quickGrid}>
-            <CareLightQuickActionsMenu
-              actions={data.quickActions}
-              onAction={handleAction}
-              accentColor={businessAccent}
-              maxVisible={2}
-              actionRef={tour.refs.firstClient}
-              overflowRef={tour.refs.moreActions}
-              menuExpanded={tour.expandQuickActionsMenu ? true : undefined}
-            />
-          </View>
-        }
-        modulesSection={
-          <View style={styles.moduleGrid}>
-            {moduleTiles.map((tile) => (
+            {data.quickActions.map((action) => (
+              <CareLightButton
+                key={action.id}
+                title={`${action.icon} ${action.label}`}
+                variant={action.variant === 'primary' ? 'primary' : 'secondary'}
+                onPress={() => handleAction(action)}
+                accentColor={businessAccent}
+              />
+            ))}
+            {BUSINESS_QUICK_TILES.map((tile) => (
               <CareLightModuleTile
                 key={tile.id}
                 icon={tile.icon}
                 title={tile.title}
                 description={tile.description}
                 accentColor={tile.accentColor}
-                isActive={tile.navState.isNavigable}
-                preparedOnly={tile.navState.effectiveStatus === 'coming_soon'}
-                onPress={
-                  tile.navState.isNavigable
-                    ? () => router.push(tile.route as never)
-                    : undefined
-                }
+                isActive
+                onPress={() => router.push(tile.route as never)}
               />
             ))}
+            <CareLightButton
+              title="Abmelden"
+              variant="ghost"
+              onPress={() => signOut().then(() => router.replace('/' as never))}
+              accentColor={careLightColors.muted}
+            />
           </View>
         }
-      />
-      <View style={styles.dashboardFooter}>
-        {tour.tourFinished ? (
-          <CareLightButton
-            title="Tour starten"
-            variant="ghost"
-            onPress={tour.startTour}
-            accentColor={businessAccent}
-          />
-        ) : null}
-        <CareLightButton
-          title="Abmelden"
-          variant="ghost"
-          onPress={() => signOut().then(() => router.replace('/' as never))}
-          accentColor={careLightColors.muted}
-        />
-      </View>
-      <GuidedTourOverlay
-        visible={tour.visible}
-        step={tour.currentStep}
-        stepIndex={tour.stepIndex}
-        totalSteps={tour.totalSteps}
-        targetLayout={tour.targetLayout}
-        accentColor={businessAccent}
-        onNext={tour.onNext}
-        onSkip={tour.onSkip}
-        onCta={tour.currentStep.ctaRoute ? tour.onCta : undefined}
       />
       <View
         accessible
@@ -239,11 +182,6 @@ export function BusinessDashboardScreen() {
 
 const styles = StyleSheet.create({
   quickGrid: { gap: careSpacing.md },
-  moduleGrid: { gap: careSpacing.sm },
-  dashboardFooter: {
-    gap: careSpacing.sm,
-    marginTop: careSpacing.sm,
-  },
   loading: {
     ...careTypography.body,
     color: careLightColors.muted,

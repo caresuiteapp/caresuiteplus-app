@@ -17,7 +17,6 @@ import { useVitalReadingDetail } from '@/hooks/useVitalReadingDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { VITAL_READINGS_PREPARED_MESSAGE, isVitalWriteReady, VITAL_WRITE_PREPARED_MESSAGE } from '@/lib/pflege/pflegeModuleConfig';
-import { getActionAvailability } from '@/lib/ui/actionAvailability';
 import { colors, spacing, typography } from '@/theme';
 
 function SummaryRow({ label, value }: { label: string; value: string | null | undefined }) {
@@ -70,25 +69,6 @@ export function VitalReadingDetailScreen() {
   if (!reading) return null;
 
   const writeReady = isVitalWriteReady();
-  const roleKey = profile?.roleKey ?? 'nurse';
-  const correctAvailability = getActionAvailability('vital.correct', {
-    roleKey,
-    isPreparedOnly: !writeReady,
-    isReadOnly,
-    canExecute: false,
-  });
-  const thresholdAvailability = getActionAvailability('vital.threshold', {
-    roleKey,
-    isPreparedOnly: !writeReady,
-    isReadOnly,
-    canExecute: false,
-  });
-  const carePlanAvailability = getActionAvailability('vital.care_plan_link', {
-    roleKey,
-    isPreparedOnly: !writeReady,
-    isReadOnly,
-    canExecute: false,
-  });
 
   return (
     <CareLightPageShell title="Vitalwert" subtitle={reading.typeLabel} scroll>
@@ -111,23 +91,22 @@ export function VitalReadingDetailScreen() {
           <PremiumButton
             title="Messung korrigieren"
             fullWidth
-            variant={correctAvailability.isPreparedOnly ? 'prepared' : 'primary'}
-            disabled={!correctAvailability.enabled}
+            disabled={!writeReady || isReadOnly}
+            onPress={() => undefined}
           />
-          {correctAvailability.disabledReason ? (
-            <Text style={styles.hint}>{correctAvailability.disabledReason}</Text>
-          ) : null}
           <PremiumButton
             title="Schwellenwert setzen"
-            variant={thresholdAvailability.isPreparedOnly ? 'prepared' : 'secondary'}
+            variant="secondary"
             fullWidth
-            disabled={!thresholdAvailability.enabled}
+            disabled={!writeReady || isReadOnly}
+            onPress={() => undefined}
           />
           <PremiumButton
             title="Pflegeplan verknüpfen"
-            variant={carePlanAvailability.isPreparedOnly ? 'prepared' : 'secondary'}
+            variant="secondary"
             fullWidth
-            disabled={!carePlanAvailability.enabled}
+            disabled={!writeReady || isReadOnly}
+            onPress={() => undefined}
           />
         </SectionPanel>
 

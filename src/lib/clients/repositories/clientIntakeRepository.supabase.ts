@@ -69,7 +69,7 @@ export async function createClientFromIntake(
       .update(record)
       .eq('id', draftClientId)
       .eq('tenant_id', tenantId)
-      .in('status', ['lead', 'active'])
+      .eq('status', 'lead')
       .select('id')
       .single();
 

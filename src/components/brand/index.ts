@@ -1,4 +1,5 @@
 export { CareSuiteLogo } from './CareSuiteLogo';
+export { CareSuiteMascot } from './caresuitemascot';
 export { CareSuiteWordmark } from './CareSuiteWordmark';
 export { CareSuiteHeader } from './CareSuiteHeader';
 export { CareSuiteModuleHeader } from './CareSuiteModuleHeader';

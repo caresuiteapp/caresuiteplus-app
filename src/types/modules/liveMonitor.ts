@@ -128,81 +128,35 @@ export type NotificationDelivery = {
 };
 
 export type ManagementTaskType =
-  | 'missing_documentation'
-  | 'missing_signature'
-  | 'review_service_record'
-  | 'review_exception'
-  | 'correction_requested'
-  | 'billing_blocker'
-  | 'client_cancel_request'
-  | 'client_reschedule_request'
-  | 'problem_report'
-  | 'emergency_follow_up'
-  | 'complaint'
-  | 'missing_contract'
-  | 'missing_consent'
-  | 'budget_warning'
-  | 'employee_late'
-  | 'no_show_follow_up'
-  | 'audit_review'
-  | 'billing_release'
-  | 'service_proof_review'
-  | 'master_data_review'
-  /** Legacy Prompt-60-Aliase */
   | 'cancel_review'
   | 'reschedule_review'
+  | 'missing_documentation'
+  | 'missing_signature'
   | 'problem_review'
   | 'emergency_review'
   | 'correction_review'
-  | 'absence_replacement'
-  | 'absence_conflict';
-
-export type ManagementTaskPriority = 'low' | 'normal' | 'high' | 'critical';
+  | 'billing_release'
+  | 'service_proof_review';
 
 export type ManagementTaskStatus =
   | 'open'
   | 'in_progress'
   | 'waiting_for_employee'
   | 'waiting_for_client'
-  | 'waiting_for_management'
   | 'resolved'
-  | 'rejected'
   | 'archived';
-
-export type ManagementTaskRelatedEntityType =
-  | 'assignment'
-  | 'service_record'
-  | 'documentation'
-  | 'signature'
-  | 'billable_item'
-  | 'document'
-  | 'client'
-  | 'employee'
-  | 'correction_request';
 
 export type ManagementTask = {
   id: string;
   tenantId: string;
+  assignmentId: string;
   taskType: ManagementTaskType;
-  priority: ManagementTaskPriority;
   status: ManagementTaskStatus;
   title: string;
   description: string;
-  relatedEntityType: ManagementTaskRelatedEntityType | null;
-  relatedEntityId: string | null;
-  clientId: string | null;
-  employeeId: string | null;
-  assignmentId: string | null;
-  dueAt: string | null;
-  assignedTo: string | null;
-  createdBy: string | null;
+  priority: NotificationPriority;
   createdAt: string;
-  updatedBy: string | null;
-  updatedAt: string;
-  resolvedBy: string | null;
   resolvedAt: string | null;
-  archivedAt: string | null;
-  metadata?: Record<string, string>;
 };
 
 export type ProblemReportType =

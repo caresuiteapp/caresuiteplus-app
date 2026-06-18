@@ -4,7 +4,6 @@ import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import {
   buildReplacementSuggestions,
   detectRoutePlanningConflicts,
@@ -12,11 +11,12 @@ import {
 } from '@/lib/assist/routePlanningService';
 import type { OpenAssignmentSummary, ReplacementSuggestion } from '@/types/modules/routePlanning';
 import { colors, spacing, typography } from '@/theme';
+import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 
 export function ToursReplacementScreen() {
   const router = useRouter();
   const { profile } = useAuth();
-  const tenantId = useServiceTenantId();
+  const tenantId = profile?.tenantId ?? DEMO_TENANT_ID;
   const roleKey = profile?.roleKey ?? 'dispatch';
 
   const [loading, setLoading] = useState(true);
@@ -27,11 +27,6 @@ export function ToursReplacementScreen() {
   const [conflictCount, setConflictCount] = useState(0);
 
   const load = useCallback(async () => {
-    if (!tenantId) {
-      setError('Kein Mandant.');
-      setLoading(false);
-      return;
-    }
     setLoading(true);
     setError(null);
     const open = listOpenAssignmentsForPlanning(tenantId, roleKey);

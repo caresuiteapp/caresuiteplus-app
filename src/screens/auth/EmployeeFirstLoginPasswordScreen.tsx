@@ -1,16 +1,15 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { EmployeeFirstLoginHero } from '@/components/auth/EmployeeFirstLoginHero';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { completeFirstLogin } from '@/lib/auth/employeePortalAuthService';
-import { useAuth } from '@/lib/auth/context';
-import { isDemoMode } from '@/lib/supabase/config';
+import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { spacing } from '@/theme';
 
 export function EmployeeFirstLoginPasswordScreen() {
-  const { signInDemo } = useAuth();
+  const router = useRouter();
   const params = useLocalSearchParams<{ accountId?: string }>();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
@@ -18,7 +17,6 @@ export function EmployeeFirstLoginPasswordScreen() {
   const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [completed, setCompleted] = useState(false);
 
   const handleSubmit = async () => {
     if (!acceptedTerms) {
@@ -45,14 +43,7 @@ export function EmployeeFirstLoginPasswordScreen() {
       return;
     }
 
-    try {
-      if (isDemoMode()) {
-        await signInDemo('employee_portal');
-      }
-      setCompleted(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
-    }
+    router.replace(resolvePostLoginRoute('employee_portal'));
   };
 
   return (
@@ -71,11 +62,7 @@ export function EmployeeFirstLoginPasswordScreen() {
         fullWidth
       />
       <PremiumButton title="Login abschließen" onPress={handleSubmit} loading={loading} fullWidth />
-      {completed ? (
-        <SuccessState message="Passwort gesetzt — Weiterleitung zum Mitarbeiterportal…" />
-      ) : (
-        <SuccessState message="Nach Abschluss wird das Einmalpasswort ungültig." />
-      )}
+      <SuccessState message="Nach Abschluss wird das Einmalpasswort ungültig." />
     </ScreenShell>
   );
 }

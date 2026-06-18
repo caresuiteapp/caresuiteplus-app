@@ -71,7 +71,7 @@ export function PilotReadinessHero({
       <View style={styles.badges}>
         <PremiumBadge label="Dev/QA" variant="cyan" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        <PremiumBadge statusKind="preparedOnly" label="Pilot in Vorbereitung" />
+        <PremiumBadge label="preparedOnly Pilot" variant="muted" />
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard

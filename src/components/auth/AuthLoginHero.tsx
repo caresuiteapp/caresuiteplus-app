@@ -1,10 +1,9 @@
 import { useMemo } from 'react';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
-import { AuthHero } from '@/design/components';
-import { galaxyPalette } from '@/design/tokens/galaxy';
-import { careSpacing } from '@/design/tokens/spacing';
-import type { StatusKind } from '@/design/components/StatusBadge';
-import { shouldShowDemoHints, sanitizeUiText } from '@/lib/ui/uiVisibility';
+import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { isDemoMode } from '@/lib/supabase/config';
+import { designTokens, spacing } from '@/theme';
 
 type AuthLoginHeroProps = {
   eyebrow: string;
@@ -16,14 +15,6 @@ type AuthLoginHeroProps = {
   hint?: string;
 };
 
-const PORTAL_ACCENT: Record<NonNullable<AuthLoginHeroProps['portalVariant']>, string> = {
-  orange: galaxyPalette.careOrange,
-  cyan: galaxyPalette.galaxyCyan,
-  green: galaxyPalette.success,
-  muted: galaxyPalette.textMuted,
-  red: galaxyPalette.danger,
-};
-
 export function AuthLoginHero({
   eyebrow,
   title,
@@ -33,47 +24,65 @@ export function AuthLoginHero({
   portalVariant = 'orange',
   hint,
 }: AuthLoginHeroProps) {
-  const accent = PORTAL_ACCENT[portalVariant];
-  const badges = useMemo(() => {
-    const items: { kind: StatusKind; label?: string }[] = [
-      { kind: 'info', label: sanitizeUiText(portalLabel) },
-    ];
-    if (shouldShowDemoHints()) {
-      items.push({ kind: 'info', label: 'Demo-Modus' });
-    }
-    return items;
-  }, [portalLabel]);
+  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+  topRow: { flexDirection: 'row', gap: spacing.md },
+  textCol: { flex: 1, gap: 2 },
+  eyebrow: {
+    ...typography.caption,
+    color: colors.cyan,
+    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
+  },
+  title: { ...typography.h2 },
+  meta: { ...typography.caption, color: colors.textMuted },
+  iconBadge: {
+    width: iconSize,
+    height: iconSize,
+    borderRadius: iconSize / 2,
+    backgroundColor: colors.bgElevated,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 2,
+    borderColor: 'rgba(98,243,255,0.35)',
+  },
+  iconText: { fontSize: 22 },
+  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  kpiItem: { flex: 1, minWidth: 100 },
+  hint: { ...typography.caption, color: colors.textMuted },
+}),
+    [colors, typography, gradients],
+  );
+
 
   return (
-    <AuthHero
-      eyebrow={eyebrow}
-      title={title}
-      subtitle={subtitle}
-      iconEmoji={icon}
-      accentColor={accent}
-      badges={badges.map((b) => ({
-        ...b,
-        kind: b.kind,
-      }))}
-      footer={
-        hint ? (
-          <View style={styles.hintWrap}>
-            <Text style={styles.hint} numberOfLines={4}>
-              {hint}
-            </Text>
-          </View>
-        ) : undefined
-      }
-    />
+    <PremiumListHeroFrame>
+      <View style={styles.topRow}>
+        <View style={styles.textCol}>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
+          <Text style={styles.title}>{title}</Text>
+          <Text style={styles.meta}>{subtitle}</Text>
+        </View>
+        <View style={styles.iconBadge}>
+          <Text style={styles.iconText}>{icon}</Text>
+        </View>
+      </View>
+      <View style={styles.badges}>
+        <PremiumBadge label={portalLabel} variant={portalVariant} dot />
+        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
+        <PremiumBadge label="preparedOnly Auth" variant="muted" />
+      </View>
+      <View style={styles.kpiRow}>
+        <PremiumKpiCard label="Zugang" value="Mandant" subValue="Demo / Pilot" icon="🏢" accentColor={colors.orange} style={styles.kpiItem} />
+        <PremiumKpiCard label="Sicherheit" value="RLS" subValue="Supabase Auth" icon="🛡️" accentColor={colors.cyan} style={styles.kpiItem} />
+        <PremiumKpiCard label="Status" value="Prototyp" subValue="Kein Store-Release" icon="📋" accentColor={colors.violet} style={styles.kpiItem} />
+      </View>
+      {hint ? <Text style={styles.hint}>{hint}</Text> : null}
+    </PremiumListHeroFrame>
   );
 }
 
-const styles = StyleSheet.create({
-  hintWrap: { marginTop: careSpacing.md },
-  hint: {
-    fontSize: 13,
-    lineHeight: 18,
-    color: galaxyPalette.textMuted,
-    flexShrink: 1,
-  },
-});
+const iconSize = designTokens.hero.iconBadgeSize;
+

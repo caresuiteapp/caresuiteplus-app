@@ -44,6 +44,7 @@ import {
 import { detectAbsenceAssignmentConflicts } from '@/lib/office/absenceConflictService';
 import { getEmployeePersonnelFileForAssignmentCheck } from './employeePersonnelFileService';
 import { evaluateEmployeeDeployability, isEmployeeAssignable } from './employeeDeployabilityService';
+import { isBackgroundCheckAssignable } from '@/lib/office/employeeBackgroundCheckService';
 
 const CANDIDATE_EMPLOYEES = [
   'employee-001',
@@ -350,16 +351,20 @@ export function checkEmployeeQualificationForAssignment(
     return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
   }
 
+  const backgroundCheckOk = isBackgroundCheckAssignable(file.backgroundCheck, true);
+  const missingContract = file.documents.some((d) => d.category === 'contract' && !d.storagePath);
+
   const deployability = evaluateEmployeeDeployability({
-    employment: file.employment,
-    portalAccess: file.portalAccess,
-    qualifications: file.qualifications,
-    backgroundCheck: file.backgroundCheck,
-    documents: file.documents,
+    tenantId,
+    employeeId,
+    employmentStatus: file.employment.employmentStatus,
     roleTitle: file.masterData.roleTitle,
-    blocked: file.masterData.status === 'gesperrt',
-    backgroundCheckRequired: true,
-    portalRequired: false,
+    roleKey: file.portalAccess.roleKey,
+    portalActive: file.portalAccess.portalActive,
+    backgroundCheckOk,
+    noBlock: file.masterData.status !== 'gesperrt',
+    requiredDocsOk: !missingContract,
+    qualifications: file.qualifications,
   });
 
   const assignable = isEmployeeAssignable(deployability);
@@ -707,11 +712,10 @@ export function confirmRoutePlanningChange(
     if (!qualification.ok) {
       return { ok: false, error: qualification.error };
     }
-    const qualificationResult = qualification.data;
-    if (!qualificationResult.assignable) {
+    if (!qualification.data.assignable) {
       return {
         ok: false,
-        error: qualificationResult.blockers[0] ?? 'Mitarbeitende:r nicht qualifiziert oder verfügbar.',
+        error: qualification.data.blockers[0] ?? 'Mitarbeitende:r nicht qualifiziert oder verfügbar.',
       };
     }
 
@@ -724,11 +728,10 @@ export function confirmRoutePlanningChange(
     if (!availability.ok) {
       return { ok: false, error: availability.error };
     }
-    const availabilityResult = availability.data;
-    if (!availabilityResult.available) {
+    if (!availability.data.available) {
       return {
         ok: false,
-        error: availabilityResult.reason ?? 'Mitarbeitende:r nicht verfügbar.',
+        error: availability.data.reason ?? 'Mitarbeitende:r nicht verfügbar.',
       };
     }
 

@@ -35,6 +35,8 @@ describe('Stationaer Dashboard Hero (Sprint 75)', () => {
     expect(screen).toContain('CareLightScreen');
     expect(screen).toContain('CareLightModuleDashboard');
     expect(screen).toContain('InfoBanner');
+    expect(screen).toContain('DEMO_DATA_BANNER');
+    expect(screen).toContain('isPreviewData');
     expect(screen).toContain('STATIONAER_EXTENSION_PREPARED_MESSAGE');
     expect(screen).not.toContain('AdaptiveModuleDashboard');
     expect(screen).not.toContain('StatTile');

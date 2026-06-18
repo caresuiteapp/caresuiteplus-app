@@ -87,11 +87,10 @@ export function ListFilterSelect({
         <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
           <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
             <Pressable style={styles.modalSheet} onPress={(event) => event.stopPropagation()}>
-              <Text style={styles.modalTitle}>{label}</Text>
-              {optionList}
-              <Pressable onPress={() => setOpen(false)} style={styles.modalClose}>
-                <Text style={styles.modalCloseText}>Schließen</Text>
-              </Pressable>
+              <GradientModalHeader title={label} onClose={() => setOpen(false)} />
+              <View style={styles.modalBody}>
+                {optionList}
+              </View>
             </Pressable>
           </Pressable>
         </Modal>

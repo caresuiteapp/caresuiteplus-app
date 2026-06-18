@@ -4,11 +4,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { buildWorkspaceAccessContext, canStartAssignment } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getAssignmentWorkflow } from './assignmentWorkflowService';
-import {
-  onEmergencyReported,
-  onNoShowReported,
-  onProblemReported,
-} from './managementTaskAutomationService';
+import { createManagementTask } from './managementTaskService';
 import {
   LIVE_MONITOR_STORE,
   filterByTenant,
@@ -90,13 +86,12 @@ export function reportProblem(input: {
     reason: input.description,
   });
 
-  onProblemReported({
+  createManagementTask({
     tenantId: input.tenantId,
     assignmentId: input.assignmentId,
-    clientId: assignment.clientId,
-    employeeId: input.employeeId,
+    taskType: 'problem_review',
     description: input.description,
-    reportType: input.reportType,
+    priority: 'high',
   });
 
   notifyAdmins(
@@ -119,12 +114,6 @@ export function reportProblem(input: {
   });
 
   if (input.reportType === 'no_show') {
-    onNoShowReported({
-      tenantId: input.tenantId,
-      assignmentId: input.assignmentId,
-      clientId: assignment.clientId,
-      employeeId: input.employeeId,
-    });
     handleStatusSideEffects({
       tenantId: input.tenantId,
       assignmentId: input.assignmentId,
@@ -206,12 +195,12 @@ export function reportEmergency(input: {
     reason: input.description,
   });
 
-  onEmergencyReported({
+  createManagementTask({
     tenantId: input.tenantId,
     assignmentId: input.assignmentId,
-    clientId: assignment.clientId,
-    employeeId: input.employeeId,
+    taskType: 'emergency_review',
     description: input.description,
+    priority: 'critical',
   });
 
   notifyAdmins(

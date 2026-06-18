@@ -1,6 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
-import { ClientRecordContactsPanel } from '@/components/office/ClientRecordContactsPanel';
 import { PremiumBadge, PremiumCard, SectionPanel, Timeline } from '@/components/ui';
 import type { ClientFullDetail } from '@/types/modules/client';
 import {
@@ -51,16 +50,13 @@ export function StammdatenTab({ client, canViewSensitive }: { client: ClientFull
   );
 }
 
-export function KontaktAdresseTab({
-  client,
-  onRefresh,
-}: {
-  client: ClientFullDetail;
-  onRefresh?: () => void;
-}) {
+export function KontaktAdresseTab({ client }: { client: ClientFullDetail }) {
   return (
     <View style={styles.tab}>
-      <ClientRecordContactsPanel client={client} onRefresh={onRefresh} />
+      <SectionPanel title="Kontakt">
+        <DetailInfoRow label="Telefon" value={client.phone} />
+        <DetailInfoRow label="E-Mail" value={client.email} />
+      </SectionPanel>
       <SectionPanel title="Adressen">
         {client.addresses.length === 0 ? (
           <Text style={styles.empty}>Keine Adressen hinterlegt.</Text>
@@ -69,9 +65,6 @@ export function KontaktAdresseTab({
             <PremiumCard key={a.id} style={styles.card}>
               <Text style={styles.cardTitle}>{a.street}, {a.zip} {a.city}</Text>
               {a.isPrimary ? <PremiumBadge label="Hauptadresse" variant="green" dot /> : null}
-              {a.floor ? <DetailInfoRow label="Etage" value={a.floor} /> : null}
-              {a.apartmentNumber ? <DetailInfoRow label="Wohnungsnummer" value={a.apartmentNumber} /> : null}
-              {a.doorCode ? <DetailInfoRow label="Zugangscode" value={a.doorCode} /> : null}
               {a.accessNotes ? <Text style={styles.meta}>{a.accessNotes}</Text> : null}
             </PremiumCard>
           ))
@@ -283,24 +276,14 @@ export function PortalTab({ client }: { client: ClientFullDetail }) {
     <View style={styles.tab}>
       <SectionPanel title="Portal-Zugänge">
         {client.portalAccess.length === 0 ? (
-          <Text style={styles.empty}>Kein Portal-Zugang eingerichtet.</Text>
+          <Text style={styles.empty}>Keine Portal-Zugänge eingerichtet.</Text>
         ) : (
           client.portalAccess.map((p) => (
             <PremiumCard key={p.id} style={styles.card}>
-              <Text style={styles.cardTitle}>{p.portalUsername ?? '—'}</Text>
-              <PremiumBadge
-                label={
-                  p.portalEnabled
-                    ? PORTAL_ACCESS_STATUS_LABELS[p.status]
-                    : PORTAL_ACCESS_STATUS_LABELS.nicht_eingerichtet
-                }
-                variant={p.portalEnabled && p.status === 'aktiv' ? 'green' : 'muted'}
-                dot
-              />
+              <Text style={styles.cardTitle}>{p.email}</Text>
+              <PremiumBadge label={PORTAL_ACCESS_STATUS_LABELS[p.status]} variant={p.status === 'aktiv' ? 'green' : 'muted'} dot />
               <Text style={styles.meta}>Module: {p.modulesEnabled.join(', ') || '—'}</Text>
-              {p.lastLoginAt ? (
-                <Text style={styles.meta}>Letzter Login: {new Date(p.lastLoginAt).toLocaleDateString('de-DE')}</Text>
-              ) : null}
+              {p.lastLoginAt ? <Text style={styles.meta}>Letzter Login: {new Date(p.lastLoginAt).toLocaleDateString('de-DE')}</Text> : null}
             </PremiumCard>
           ))
         )}

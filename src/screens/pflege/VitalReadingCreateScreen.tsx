@@ -6,8 +6,8 @@ import { VitalReadingCreateHero } from '@/components/pflege/VitalReadingCreateHe
 import { CareLightPageShell } from '@/components/layout';
 import { EmptyState, ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SegmentedTabs } from '@/components/ui';
 import { demoClients } from '@/data/demo/clients';
+import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { usePermissions } from '@/hooks/usePermissions';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { isVitalWriteReady } from '@/lib/pflege/pflegeModuleConfig';
 import { createVitalReading } from '@/lib/pflege/vitalService';
@@ -37,7 +37,6 @@ function resolveVitalTypeKey(label: string): (typeof VITAL_TYPE_OPTIONS)[number]
 export function VitalReadingCreateScreen() {
   const router = useRouter();
   const { profile } = useAuth();
-  const tenantId = useServiceTenantId();
   const { isReadOnly, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? 'nurse';
   const writeReady = isVitalWriteReady();
@@ -55,11 +54,11 @@ export function VitalReadingCreateScreen() {
   const [error, setError] = useState<string | null>(null);
 
   async function handleSave() {
-    if (!writeReady || isReadOnly || !value.trim() || !tenantId) return;
+    if (!writeReady || isReadOnly || !value.trim()) return;
     setSaving(true);
     setError(null);
     const result = await createVitalReading(
-      tenantId,
+      profile?.tenantId ?? DEMO_TENANT_ID,
       {
         clientId,
         type: typeKey,
@@ -73,14 +72,6 @@ export function VitalReadingCreateScreen() {
       return;
     }
     router.replace(`/pflege/vitalwerte/${result.data.id}` as never);
-  }
-
-  if (!tenantId) {
-    return (
-      <CareLightPageShell title="Vitalwert erfassen" subtitle="Kein Mandant">
-        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
-      </CareLightPageShell>
-    );
   }
 
   return (

@@ -189,7 +189,7 @@ describe('Live Monitor (Prompt 60)', () => {
     });
 
     const tasks = listManagementTasks(TENANT, { assignmentId: created.data.id });
-    expect(tasks.some((t) => t.taskType === 'client_cancel_request')).toBe(true);
+    expect(tasks.some((t) => t.taskType === 'cancel_review')).toBe(true);
   });
 
   it('8. Verschiebungsanfrage erzeugt Aufgabe', async () => {
@@ -209,7 +209,7 @@ describe('Live Monitor (Prompt 60)', () => {
     });
 
     const tasks = listManagementTasks(TENANT, { assignmentId: created.data.id });
-    expect(tasks.some((t) => t.taskType === 'client_reschedule_request')).toBe(true);
+    expect(tasks.some((t) => t.taskType === 'reschedule_review')).toBe(true);
   });
 
   it('9. Problem-Meldung erzeugt kritische Benachrichtigung', () => {
@@ -291,7 +291,7 @@ describe('Live Monitor (Prompt 60)', () => {
     const monitor = fetchDayMonitor(TENANT, ADMIN);
     expect(monitor.ok).toBe(false);
     if (!monitor.ok) {
-      expect(monitor.error).toMatch(/Produktionsmodus|Live-Monitor/);
+      expect(monitor.error).toContain('Live-Monitor');
     }
   });
 

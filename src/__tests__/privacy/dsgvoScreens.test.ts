@@ -53,12 +53,10 @@ describe('DSGVO data-subject screens (Sprint 47)', () => {
     expect(panel).toContain('SUPPORT_LINKS.supportEmail');
   });
 
-  it('Shell-Footer verlinken Betroffenenrechte in App-Shells, nicht auf der Startseite', () => {
+  it('Shell-Footer verlinken Betroffenenrechte', () => {
     expect(readSrc('src/components/layout/DesktopShell.tsx')).toContain('/settings/data-request');
     expect(readSrc('src/components/layout/TabletShell.tsx')).toContain('/settings/data-request');
-    const publicFooter = readSrc('src/design/components/FooterLinks.tsx');
-    expect(publicFooter).not.toContain('/settings/data-request');
-    expect(publicFooter).toContain('Datenschutz');
+    expect(readSrc('src/components/layout/AppStartFooter.tsx')).toContain('/settings/data-request');
   });
 
   it('AccountDeletionScreen warnt vor unwiderruflicher Löschung', () => {

@@ -85,7 +85,7 @@ export function TenantOnboardingDashboardHero({ progress }: TenantOnboardingDash
       <View style={styles.badges}>
         <PremiumBadge label="Admin-only" variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {!isTenantOnboardingLiveReady() ? <PremiumBadge statusKind="preparedOnly" /> : null}
+        {!isTenantOnboardingLiveReady() ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

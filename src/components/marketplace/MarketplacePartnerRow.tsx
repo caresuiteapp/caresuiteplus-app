@@ -5,7 +5,7 @@ import { colors, spacing, typography } from '@/theme';
 
 type MarketplacePartnerRowProps = {
   partner: MarketplacePartner;
-  onPress?: () => void;
+  onPress: () => void;
 };
 
 export function MarketplacePartnerRow({ partner, onPress }: MarketplacePartnerRowProps) {

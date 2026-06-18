@@ -1,7 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InvoiceDetailHero } from '@/components/office';
-import { InvoiceAccountingPanel } from '@/components/office/accounting/InvoiceAccountingPanel';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareLightPageShell } from '@/components/layout';
@@ -14,14 +13,7 @@ import {
   SuccessState,
   Timeline,
 } from '@/components/ui';
-import { useCallback, useEffect, useState } from 'react';
-import { InvoicePaymentPanel } from '@/components/payments';
-import {
-  fetchInvoicePaymentSnapshot,
-  prepareInvoicePaymentLink,
-  reconcileInvoicePayment,
-} from '@/lib/payments';
-import type { InvoicePaymentSnapshot } from '@/types/payments';
+import { useCallback, useState } from 'react';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchInvoiceDetail, updateInvoiceStatus } from '@/lib/office/invoiceDetailService';
@@ -29,6 +21,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { formatCurrency } from '@/lib/office';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
+import { queueInvoiceExport } from '@/lib/integrations';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
@@ -47,13 +40,12 @@ export function InvoiceDetailScreen() {
   const { profile } = useAuth();
   const roleKey = profile?.roleKey ?? 'business_admin';
   const tenantId = useServiceTenantId();
+  const [exportMessage, setExportMessage] = useState<string | null>(null);
+  const [exportLoading, setExportLoading] = useState(false);
   const [actionLoading, setActionLoading] = useState(false);
-  const [paymentLoading, setPaymentLoading] = useState(false);
-  const [paymentSnapshot, setPaymentSnapshot] = useState<InvoicePaymentSnapshot | undefined>(
-    undefined,
-  );
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
   const canView = can('office.invoices.view');
+  const canExport = can('integrations.manage');
   const canChangeStatus = can('office.invoices.status_change');
   const canEdit = can('office.invoices.view') && !isReadOnly;
 
@@ -72,43 +64,6 @@ export function InvoiceDetailScreen() {
   const error = query.error;
   const notFound = !query.loading && !query.error && !query.data;
   const refresh = query.refresh;
-
-  const loadPaymentSnapshot = useCallback(async () => {
-    if (!tenantId || !id) return;
-    const result = await fetchInvoicePaymentSnapshot(tenantId, id, profile?.roleKey);
-    if (result.ok) setPaymentSnapshot(result.data);
-  }, [tenantId, id, profile?.roleKey]);
-
-  useEffect(() => {
-    void loadPaymentSnapshot();
-  }, [loadPaymentSnapshot]);
-
-  const handlePreparePaymentLink = useCallback(async () => {
-    if (!tenantId || !id) return;
-    setPaymentLoading(true);
-    const result = await prepareInvoicePaymentLink(
-      tenantId,
-      id,
-      'one_time',
-      profile?.roleKey,
-    );
-    setPaymentLoading(false);
-    if (result.ok) {
-      setPaymentSnapshot(result.data);
-      setSuccessMessage('Zahlungslink vorbereitet (Demo — keine echte Zahlung).');
-    }
-  }, [tenantId, id, profile?.roleKey]);
-
-  const handleReconcilePayment = useCallback(async () => {
-    if (!tenantId || !id) return;
-    setPaymentLoading(true);
-    const result = await reconcileInvoicePayment(tenantId, id, profile?.roleKey);
-    setPaymentLoading(false);
-    if (result.ok) {
-      setPaymentSnapshot(result.data);
-      setSuccessMessage('Abgleich vorbereitet — Status bleibt bis Provider-Bestätigung offen.');
-    }
-  }, [tenantId, id, profile?.roleKey]);
 
   const changeStatus = useCallback(
     async (newStatus: Parameters<typeof updateInvoiceStatus>[2]) => {
@@ -129,6 +84,17 @@ export function InvoiceDetailScreen() {
     },
     [tenantId, id, profile?.roleKey, profile?.displayName, refresh],
   );
+
+  const handleDatevExport = useCallback(async () => {
+    if (!invoice) return;
+    setExportLoading(true);
+    const result = await queueInvoiceExport(invoice.invoiceNumber, profile?.roleKey);
+    setExportLoading(false);
+    if (result.ok) {
+      setExportMessage('DATEV-Export in Outbox eingereiht.');
+      setTimeout(() => setExportMessage(null), 2500);
+    }
+  }, [invoice, profile?.roleKey]);
 
   if (!canView) {
     return (
@@ -180,6 +146,7 @@ export function InvoiceDetailScreen() {
       }
     >
       {successMessage ? <SuccessState message={successMessage} /> : null}
+      {exportMessage ? <SuccessState message={exportMessage} /> : null}
 
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
         <InvoiceDetailHero invoice={invoice} roleKey={roleKey} isReadOnly={isReadOnly} />
@@ -215,18 +182,6 @@ export function InvoiceDetailScreen() {
             <EmptyState title="Keine Positionen" message="Für diese Demo-Rechnung sind keine Posten hinterlegt." />
           </SectionPanel>
         )}
-
-        {paymentSnapshot ? (
-          <InvoicePaymentPanel
-            snapshot={paymentSnapshot}
-            loading={paymentLoading}
-            readOnly={isReadOnly}
-            onPrepareLink={handlePreparePaymentLink}
-            onReconcile={handleReconcilePayment}
-          />
-        ) : null}
-
-        <InvoiceAccountingPanel invoiceId={invoice.id} invoiceNumber={invoice.invoiceNumber} />
 
         {invoice.auditEntries.length > 0 ? (
           <SectionPanel title="Audit-Verlauf">
@@ -270,6 +225,16 @@ export function InvoiceDetailScreen() {
             </View>
           )}
         </SectionPanel>
+
+        {canExport ? (
+          <PremiumButton
+            title="DATEV-Export (Outbox)"
+            variant="secondary"
+            fullWidth
+            loading={exportLoading}
+            onPress={handleDatevExport}
+          />
+        ) : null}
 
         <PremiumButton
           title="Zur Klient:in"

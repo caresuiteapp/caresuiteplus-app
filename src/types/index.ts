@@ -9,7 +9,6 @@ export * from './modules/assist';
 export * from './modules/pflege';
 export * from './modules/stationaer';
 export * from './modules/beratung';
-export * from './modules/consultation';
 export * from './modules/akademie';
 export * from './modules/integrations';
 export * from './modules/platform';

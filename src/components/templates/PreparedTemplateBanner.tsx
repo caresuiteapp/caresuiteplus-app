@@ -19,7 +19,7 @@ export function PreparedTemplateBanner({ hint }: Props) {
         {hint ??
           (mode === 'demo'
             ? 'Vorlagen und Kataloge werden im Demo-Mandanten persistiert.'
-            : 'Live-Anbindung aktiv — System- und Mandantenvorlagen aus der Datenbank.')}
+            : 'Live-Supabase-Anbindung aktiv — System- und Mandantenvorlagen aus der Datenbank.')}
       </Text>
     </View>
   );

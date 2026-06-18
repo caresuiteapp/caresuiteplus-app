@@ -98,6 +98,8 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
     ? form.intakeDocuments.find((d) => d.templateKey === activeKey)
     : undefined;
 
+  const tenantMeta = { name: tenantName };
+
   const requiredDocs = useMemo(
     () => templates.filter(
       (t) => t.documentType === 'privacy_consent'
@@ -131,19 +133,14 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
     (template: IntakeDocumentTemplate) => {
       const doc = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
       if (!doc?.previewHtml) {
-        const opened = openDocumentPreview(form, template, tenantMeta);
-        onChange(updateIntakeDocumentInForm(form, opened));
+        handleOpenPreview(template);
+        return;
       }
       setActiveKey(template.templateKey);
       setSignatureRole(template.signatureSlots[0]?.role ?? 'client');
-      setSignatureModalVisible(true);
     },
-    [form, onChange, tenantMeta],
+    [form.intakeDocuments, handleOpenPreview],
   );
-
-  const openSignatureModal = useCallback(() => {
-    setSignatureModalVisible(true);
-  }, []);
 
   const handleSignature = useCallback(
     (dataUrl: string) => {
@@ -318,7 +315,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
               </Text>
             </ScrollView>
           ) : (
-            <InfoBanner variant="info" message={'Bitte „Vorschau öffnen“ wählen, um das Dokument anzuzeigen.'} />
+            <InfoBanner variant="info" message="Bitte „Vorschau öffnen" wählen, um das Dokument anzuzeigen." />
           )}
 
           {signatureSlots.length > 0 && activeDoc.status !== 'finalized' ? (

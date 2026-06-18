@@ -44,7 +44,7 @@ export function AppointmentsListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.appointments');
-  const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
+  const useTableLayout = isDesktop && viewMode === 'table';
   const canView = can('office.appointments.view');
   const canCreate = can('office.appointments.view') && !isReadOnly;
   const roleKey = profile?.roleKey ?? 'business_admin';

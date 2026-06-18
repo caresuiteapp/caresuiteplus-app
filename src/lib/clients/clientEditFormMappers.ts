@@ -10,7 +10,6 @@ export type ClientEditRawFields = {
   houseNumber: string;
   accessNotes: string;
   floor: string;
-  apartmentNumber: string;
   doorbellName: string;
   diagnosesNotes: string;
   mobilityNotes: string;
@@ -24,7 +23,6 @@ export const EMPTY_CLIENT_EDIT_RAW: ClientEditRawFields = {
   houseNumber: '',
   accessNotes: '',
   floor: '',
-  apartmentNumber: '',
   doorbellName: '',
   diagnosesNotes: '',
   mobilityNotes: '',
@@ -61,7 +59,6 @@ export function mapClientEditRawFields(raw: Record<string, unknown> | null | und
     houseNumber: typeof raw.house_number === 'string' ? raw.house_number : '',
     accessNotes: typeof raw.access_notes === 'string' ? raw.access_notes : '',
     floor: typeof raw.floor === 'string' ? raw.floor : '',
-    apartmentNumber: typeof raw.apartment_number === 'string' ? raw.apartment_number : '',
     doorbellName: typeof raw.doorbell_name === 'string' ? raw.doorbell_name : '',
     diagnosesNotes: typeof raw.diagnoses_notes === 'string' ? raw.diagnoses_notes : '',
     mobilityNotes: typeof raw.mobility_notes === 'string' ? raw.mobility_notes : '',
@@ -117,9 +114,7 @@ export function mapClientToEditForm(
     city: primaryAddress?.city ?? detail.city ?? fullClient.core.city ?? '',
     accessNotes: primaryAddress?.accessNotes ?? rawFields.accessNotes,
     floor: primaryAddress?.floor ?? rawFields.floor,
-    apartmentNumber: primaryAddress?.apartmentNumber ?? rawFields.apartmentNumber,
-    accessCode: primaryAddress?.doorCode ?? '',
-    bellName: rawFields.doorbellName,
+    bellName: primaryAddress?.doorCode ?? rawFields.doorbellName,
     phone: detail.phone ?? detail.primaryContactPhone ?? '',
     mobile: rawFields.mobile,
     email: detail.email ?? '',

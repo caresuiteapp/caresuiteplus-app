@@ -33,33 +33,3 @@ export function formatHourlyRate(cents: number | null | undefined): string {
   if (cents == null || Number.isNaN(cents)) return '';
   return `${currencyFormatter.format(cents / 100)}/Std.`;
 }
-
-const documentAmountFormatter = new Intl.NumberFormat(APP_LOCALE, {
-  minimumFractionDigits: 2,
-  maximumFractionDigits: 2,
-});
-
-/** 45,00 — für Dokument-Platzhalter ohne Währungssymbol */
-export function formatHourlyRateDocumentAmount(
-  value: number | string | null | undefined,
-): string {
-  if (value == null) return '';
-  if (typeof value === 'string') {
-    const normalized = value.replace(',', '.').trim();
-    if (!normalized) return '';
-    const parsed = Number.parseFloat(normalized);
-    if (!Number.isFinite(parsed) || parsed <= 0) return '';
-    return documentAmountFormatter.format(parsed);
-  }
-  if (!Number.isFinite(value) || value <= 0) return '';
-  return documentAmountFormatter.format(value);
-}
-
-/** Parst Stundensatz-Eingabe (z. B. „45,00“) in Euro-Betrag oder null */
-export function parseHourlyRateEuro(value: string): number | null {
-  const normalized = value.replace(',', '.').trim();
-  if (!normalized) return null;
-  const parsed = Number.parseFloat(normalized);
-  if (!Number.isFinite(parsed) || parsed <= 0) return null;
-  return parsed;
-}

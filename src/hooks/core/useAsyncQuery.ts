@@ -14,6 +14,7 @@ export function useAsyncQuery<T>(
   const [data, setDataState] = useState<T | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [previewData, setPreviewData] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(
@@ -26,9 +27,12 @@ export function useAsyncQuery<T>(
       const result = await fetcher();
       if (result.ok) {
         setDataState(result.data);
+        const previewResult = result as { previewData?: boolean; usedDemoFallback?: boolean };
+        setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
         options?.onSuccess?.();
       } else {
         setDataState(null);
+        setPreviewData(false);
         setError(result.error);
       }
 
@@ -39,8 +43,12 @@ export function useAsyncQuery<T>(
   );
 
   useEffect(() => {
+    if (options?.enabled === false) {
+      setLoading(false);
+      return;
+    }
     load();
-  }, [load]);
+  }, [load, options?.enabled]);
 
   const refresh = useCallback(async () => {
     setRefreshing(true);
@@ -61,6 +69,7 @@ export function useAsyncQuery<T>(
     setData,
     loading,
     error,
+    previewData,
     refreshing,
     refresh,
     reload: load,

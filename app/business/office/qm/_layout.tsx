@@ -1,30 +1,19 @@
 import { Stack } from 'expo-router';
-import { StyleSheet, View } from 'react-native';
-import { ShellLayout } from '@/components/layout';
-import { moduleColor } from '@/design/tokens/modules';
 import { RequireAuth, RequireRole } from '@/lib/auth';
+import { routeLayoutContentStyle } from '@/design/routeLayoutStyle';
 
 export default function OfficeQmLayout() {
-  const qmAccent = moduleColor('qm');
-
   return (
     <RequireAuth redirectTo={'/auth/business-login' as never}>
       <RequireRole>
-        <ShellLayout area="office" accentColor={qmAccent}>
-          <View style={styles.slot}>
-            <Stack
-              screenOptions={{
-                headerShown: false,
-                animation: 'slide_from_right',
-              }}
-            />
-          </View>
-        </ShellLayout>
+        <Stack
+          screenOptions={{
+            headerShown: false,
+            contentStyle: routeLayoutContentStyle,
+            animation: 'slide_from_right',
+          }}
+        />
       </RequireRole>
     </RequireAuth>
   );
 }
-
-const styles = StyleSheet.create({
-  slot: { flex: 1 },
-});

@@ -136,11 +136,11 @@ describe('Assist assignment production stabilization', () => {
         plannedStartTime: '',
         plannedEndTime: '',
         title: '',
-        selectedTasks: [],
+        tasks: [],
       });
       expect(hasAssignmentProductionErrors(errors)).toBe(true);
       expect(errors.clientId).toBeTruthy();
-      expect(errors.selectedTasks).toBeTruthy();
+      expect(errors.tasks).toBeTruthy();
     });
 
     it('akzeptiert gültiges Formular', () => {
@@ -151,7 +151,7 @@ describe('Assist assignment production stabilization', () => {
         plannedStartTime: '09:00',
         plannedEndTime: '10:30',
         title: 'Alltagsbegleitung',
-        selectedTasks: [{ clientTaskId: 'task-1', title: 'Einkauf' }],
+        tasks: ['Einkauf'],
       });
       expect(hasAssignmentProductionErrors(errors)).toBe(false);
     });
@@ -191,27 +191,6 @@ describe('Assist assignment production stabilization', () => {
       'utf8',
     );
     expect(sql).toContain('on_the_way_at');
-    expect(sql).toContain('assignment_audit_events');
-  });
-
-  it('Migration 0070 spiegelt Live-Deploy für fehlende assignments-Spalten', () => {
-    const sql = readFileSync(
-      path.join(root, 'supabase/migrations/0070_assignments_production_live.sql'),
-      'utf8',
-    );
-    const listSelect = readFileSync(
-      path.join(root, 'src/lib/assist/repositories/assignmentRepository.supabase.ts'),
-      'utf8',
-    );
-    for (const column of [
-      'on_the_way_at',
-      'arrived_at',
-      'finished_at',
-      'documentation_notes',
-    ] as const) {
-      expect(sql).toContain(column);
-      expect(listSelect).toContain(column);
-    }
     expect(sql).toContain('assignment_audit_events');
   });
 

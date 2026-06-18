@@ -41,7 +41,7 @@ export function InsightSnapshotsListTable({ items, onItemPress }: InsightSnapsho
           key: 'status',
           label: 'Status',
           flex: 1,
-          render: () => <PremiumBadge statusKind="preparedOnly" />,
+          render: () => <PremiumBadge label="preparedOnly" variant="muted" />,
         },
         {
           key: 'actions',

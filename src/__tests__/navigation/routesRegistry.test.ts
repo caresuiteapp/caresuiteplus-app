@@ -17,8 +17,6 @@ const REQUIRED_ROUTE_PATHS = [
   '/business/ti',
   '/business/templates',
   '/business/integrations',
-  '/business/connect',
-  '/business/connect/providers',
   '/business/platform',
   '/business/platform/ocr',
   '/business/platform/ai',

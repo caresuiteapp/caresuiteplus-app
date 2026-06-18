@@ -38,7 +38,7 @@ async function fetchRawClientFields(
   const { data } = await supabase
     .from('clients')
     .select(
-      'mobile, house_number, access_notes, floor, apartment_number, doorbell_name, diagnoses_notes, mobility_notes, visible_notes_for_employee, emergency_notes, key_management_notes',
+      'mobile, house_number, access_notes, floor, doorbell_name, diagnoses_notes, mobility_notes, visible_notes_for_employee, emergency_notes, key_management_notes',
     )
     .eq('id', clientId)
     .eq('tenant_id', tenantId)
@@ -131,13 +131,13 @@ function applyDemoEdit(clientId: string, form: ClientEditFormData): ServiceResul
                 city: form.city.trim(),
                 accessNotes: form.accessNotes.trim() || null,
                 floor: form.floor.trim() || null,
-                apartmentNumber: form.apartmentNumber.trim() || null,
-                doorCode: form.accessCode.trim() || null,
+                doorCode: form.bellName.trim() || null,
                 updatedAt: now,
               }
             : a
         ))
       : streetLine
+      ...(emergencyName || form.emergencyContactPhone.trim()
         ? [{
             id: `addr-${clientId}`,
             tenantId: full.tenantId,
@@ -150,8 +150,7 @@ function applyDemoEdit(clientId: string, form: ClientEditFormData): ServiceResul
             isPrimary: true,
             accessNotes: form.accessNotes.trim() || null,
             floor: form.floor.trim() || null,
-            apartmentNumber: form.apartmentNumber.trim() || null,
-            doorCode: form.accessCode.trim() || null,
+            doorCode: form.bellName.trim() || null,
             createdAt: now,
             updatedAt: now,
           }]

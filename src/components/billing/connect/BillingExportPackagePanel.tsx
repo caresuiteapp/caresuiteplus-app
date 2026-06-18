@@ -15,7 +15,7 @@ export function BillingExportPackagePanel({ batch, providers }: Props) {
       <Text style={styles.title}>Exportpaket</Text>
       <InfoBanner
         title="Nicht als eingereicht markierbar"
-        message={'Ohne konfigurierten Abrechnungsanbieter bleibt jedes Paket im Status „vorbereitet“.'}
+        message="Ohne konfigurierten Abrechnungsanbieter bleibt jedes Paket im Status „vorbereitet“."
       />
       {batch ? (
         <View style={styles.card}>

@@ -17,3 +17,4 @@ export { CommunicationPermissionWarning } from './CommunicationPermissionWarning
 export { CommunicationConsentWarning } from './CommunicationConsentWarning';
 export { MessageAttachmentCard } from './MessageAttachmentCard';
 export { EmojiPickerButton } from './EmojiPickerButton';
+export { CareEmojiPicker } from './careemojipicker';

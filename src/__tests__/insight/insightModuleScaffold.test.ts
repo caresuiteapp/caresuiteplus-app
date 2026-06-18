@@ -18,7 +18,7 @@ describe('InsightCenter Module Scaffold (Sprint 89)', () => {
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('INSIGHTCENTER');
     expect(hero).toContain('isInsightLiveReady');
-    expect(hero).toContain('statusKind="preparedOnly"');
+    expect(hero).toContain('Demo / preparedOnly');
   });
 
   it('InsightIndexScreen nutzt CareLightModuleDashboard (light premium)', () => {

@@ -5,7 +5,6 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { employeeSupabaseRepository } from '@/lib/services/repositories/employeeRepository.supabase';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { isDemoEmployeeDeleted } from '@/lib/office/demoDeleteStore';
 
 export async function fetchEmployeeList(
   tenantId: string,
@@ -22,10 +21,5 @@ export async function fetchEmployeeList(
   }
 
   await new Promise((r) => setTimeout(r, 280));
-  return {
-    ok: true,
-    data: demoEmployees
-      .filter((employee) => !isDemoEmployeeDeleted(employee.id))
-      .map((employee) => ({ ...employee, avatarUrl: null })),
-  };
+  return { ok: true, data: demoEmployees };
 }

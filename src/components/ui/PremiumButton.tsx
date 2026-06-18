@@ -14,13 +14,12 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
-import { galaxyGradients, galaxyPalette } from '@/design/tokens/galaxy';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { CareLightButton } from './CareLightButton';
 import { buttonHeights, colors, elevation, motion, radius, typography } from '@/theme';
 
-type Variant = 'primary' | 'secondary' | 'ghost' | 'danger' | 'success' | 'prepared';
+type Variant = 'primary' | 'secondary' | 'ghost';
 type Size = 'sm' | 'md';
 
 type Props = {
@@ -32,13 +31,6 @@ type Props = {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   fullWidth?: boolean;
-};
-
-const VARIANT_GRADIENTS: Partial<Record<Variant, readonly [string, string]>> = {
-  primary: galaxyGradients.primaryCta,
-  danger: [galaxyPalette.danger, '#F87171'],
-  success: [galaxyPalette.success, '#4ADE80'],
-  prepared: [galaxyPalette.glowViolet, galaxyPalette.glowBlue],
 };
 
 export function PremiumButton({
@@ -54,10 +46,6 @@ export function PremiumButton({
   const { mode } = useThemeMode();
 
   if (mode === 'light') {
-    const lightVariant =
-      variant === 'danger' || variant === 'success' || variant === 'prepared'
-        ? 'secondary'
-        : variant;
     const lightStyle = fullWidth
       ? StyleSheet.flatten([styles.fullWidth, style])
       : StyleSheet.flatten(style);
@@ -65,7 +53,7 @@ export function PremiumButton({
       <CareLightButton
         title={title}
         onPress={onPress}
-        variant={lightVariant as 'primary' | 'secondary' | 'ghost'}
+        variant={variant}
         loading={loading}
         style={lightStyle ?? undefined}
       />
@@ -78,13 +66,12 @@ export function PremiumButton({
     transform: [{ scale: scale.value }],
   }));
 
-  const gradientVariant = VARIANT_GRADIENTS[variant];
-  const isFilled = Boolean(gradientVariant);
+  const isPrimary = variant === 'primary';
   const height = size === 'sm' ? buttonHeights.sm : buttonHeights.md;
   const isDisabled = disabled || loading;
   const labelStyle = {
-    fontSize: scaleFontSize(16),
-    lineHeight: scaleFontSize(22),
+    fontSize: scaleFontSize(typography.button.fontSize ?? 16),
+    lineHeight: scaleFontSize(typography.button.lineHeight ?? 22),
   };
 
   const content = (
@@ -93,32 +80,31 @@ export function PremiumButton({
         styles.inner,
         { height, minWidth: fullWidth ? undefined : 120 },
         fullWidth && styles.fullWidth,
-        variant === 'secondary' && styles.secondary,
-        variant === 'ghost' && styles.ghost,
+        !isPrimary && variant === 'secondary' && styles.secondary,
+        !isPrimary && variant === 'ghost' && styles.ghost,
         isDisabled && styles.disabled,
-        isFilled && variant === 'primary' && elevation.orangeGlow,
+        isPrimary && elevation.orangeGlow,
         style,
       ]}
     >
-      {gradientVariant ? (
+      {isPrimary ? (
         <LinearGradient
-          colors={[...gradientVariant]}
+          colors={['#FF9500', '#FFB020']}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
         />
       ) : null}
       {loading ? (
-        <ActivityIndicator color={isFilled ? '#0A0500' : colors.textPrimary} />
+        <ActivityIndicator color={isPrimary ? '#0A0500' : colors.textPrimary} />
       ) : (
         <Text
           allowFontScaling
-          numberOfLines={1}
           style={[
             typography.button,
             labelStyle,
-            isFilled && styles.filledText,
-            !isFilled && styles.secondaryText,
+            isPrimary && styles.primaryText,
+            !isPrimary && styles.secondaryText,
           ]}
         >
           {title}
@@ -159,22 +145,20 @@ const styles = StyleSheet.create({
     width: '100%',
   },
   secondary: {
-    backgroundColor: galaxyPalette.cardGlass,
-    borderColor: galaxyPalette.borderGlass,
+    backgroundColor: colors.bgPanel,
+    borderColor: colors.borderStrong,
   },
   ghost: {
     backgroundColor: 'transparent',
-    borderColor: galaxyPalette.borderGlass,
+    borderColor: colors.borderSoft,
   },
   disabled: {
     opacity: 0.5,
   },
-  filledText: {
+  primaryText: {
     color: '#0A0500',
-    fontWeight: '600',
   },
   secondaryText: {
     color: colors.textPrimary,
-    fontWeight: '600',
   },
 });

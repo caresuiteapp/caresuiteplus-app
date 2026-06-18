@@ -42,7 +42,7 @@ export function FooterLinks({ showDemo = true, showVersion = true }: FooterLinks
           <Text style={styles.link}>Impressum</Text>
         </Pressable>
         <Pressable onPress={() => openExternal(SUPPORT_LINKS.terms)} accessibilityRole="link">
-          <Text style={styles.link}>Nutzungsbedingungen</Text>
+          <Text style={styles.link}>AGB</Text>
         </Pressable>
       </View>
       {showVersion ? <Text style={styles.version}>Version {APP_VERSION}</Text> : null}

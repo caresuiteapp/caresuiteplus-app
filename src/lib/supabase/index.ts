@@ -6,7 +6,15 @@ export {
   resolveAuthMode,
 } from './config';
 export type { AuthMode } from './config';
-export { toGermanSupabaseError } from './errors';
+export { toGermanSupabaseError, isSupabaseMissingTableError, isMissingTableServiceError } from './errors';
+export {
+  DEMO_DATA_BANNER,
+  PREVIEW_DATA_BANNER_MESSAGE,
+  handleMissingTableQuery,
+  isMissingTableError,
+  resolveMissingTableList,
+} from './missingtablefallback';
+export type { PreviewAwareResult } from './missingtablefallback';
 export {
   signInWithPassword,
   signOut,

@@ -1,5 +1,4 @@
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
-import type { IntakeDocumentState } from '@/features/intakeDocuments/intakeDocumentTypes';
 
 export type ClientIntakeFormData = {
   careContexts: ClientCareContext[];
@@ -33,53 +32,11 @@ export type ClientIntakeFormData = {
   careLevelStatus: string;
   careLevelValidFrom: string;
   careFundName: string;
-  careFundStreet: string;
-  careFundZip: string;
-  careFundCity: string;
   healthInsurance: string;
-  healthInsuranceStreet: string;
-  healthInsuranceZip: string;
-  healthInsuranceCity: string;
   costBearerIk: string;
-  healthInsuranceIk: string;
-  privatversicherungName: string;
-  privatversicherungStreet: string;
-  privatversicherungZip: string;
-  privatversicherungCity: string;
-  privatversicherungIk: string;
-  sozialamtName: string;
-  sozialamtStreet: string;
-  sozialamtZip: string;
-  sozialamtCity: string;
-  sozialamtIk: string;
-  beihilfeName: string;
-  beihilfeStreet: string;
-  beihilfeZip: string;
-  beihilfeCity: string;
-  selbstzahlerName: string;
-  selbstzahlerStreet: string;
-  selbstzahlerZip: string;
-  selbstzahlerCity: string;
-  berufsgenossenschaftName: string;
-  berufsgenossenschaftStreet: string;
-  berufsgenossenschaftZip: string;
-  berufsgenossenschaftCity: string;
-  berufsgenossenschaftIk: string;
-  unfallversicherungName: string;
-  unfallversicherungStreet: string;
-  unfallversicherungZip: string;
-  unfallversicherungCity: string;
-  unfallversicherungIk: string;
-  sonstigerName: string;
-  sonstigerStreet: string;
-  sonstigerZip: string;
-  sonstigerCity: string;
   insuranceNumber: string;
-  billingTypes: string[];
-  costBearerTypes: string[];
-  activeCostBearerType: string;
-  costBearerTemplateIds: Partial<Record<string, string>>;
-  costBearerDbTypes: Partial<Record<string, string>>;
+  billingType: string;
+  costBearerType: string;
   selfPay: boolean;
   familyDoctor: string;
   consultingReason: string;
@@ -123,10 +80,6 @@ export type ClientIntakeFormData = {
   assignedModules: string[];
   consentDatenschutz: boolean;
   consentVertrag: boolean;
-  intakeContractType: string;
-  intakeAssignmentEnabled: boolean;
-  intakeOptionalConsents: string[];
-  intakeDocuments: IntakeDocumentState[];
   consentTypes: string[];
   contractTypes: string[];
   documentCategories: string[];
@@ -166,53 +119,11 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   careLevelStatus: '',
   careLevelValidFrom: '',
   careFundName: '',
-  careFundStreet: '',
-  careFundZip: '',
-  careFundCity: '',
   healthInsurance: '',
-  healthInsuranceStreet: '',
-  healthInsuranceZip: '',
-  healthInsuranceCity: '',
   costBearerIk: '',
-  healthInsuranceIk: '',
-  privatversicherungName: '',
-  privatversicherungStreet: '',
-  privatversicherungZip: '',
-  privatversicherungCity: '',
-  privatversicherungIk: '',
-  sozialamtName: '',
-  sozialamtStreet: '',
-  sozialamtZip: '',
-  sozialamtCity: '',
-  sozialamtIk: '',
-  beihilfeName: '',
-  beihilfeStreet: '',
-  beihilfeZip: '',
-  beihilfeCity: '',
-  selbstzahlerName: '',
-  selbstzahlerStreet: '',
-  selbstzahlerZip: '',
-  selbstzahlerCity: '',
-  berufsgenossenschaftName: '',
-  berufsgenossenschaftStreet: '',
-  berufsgenossenschaftZip: '',
-  berufsgenossenschaftCity: '',
-  berufsgenossenschaftIk: '',
-  unfallversicherungName: '',
-  unfallversicherungStreet: '',
-  unfallversicherungZip: '',
-  unfallversicherungCity: '',
-  unfallversicherungIk: '',
-  sonstigerName: '',
-  sonstigerStreet: '',
-  sonstigerZip: '',
-  sonstigerCity: '',
   insuranceNumber: '',
-  billingTypes: [],
-  costBearerTypes: [],
-  activeCostBearerType: '',
-  costBearerTemplateIds: {},
-  costBearerDbTypes: {},
+  billingType: '',
+  costBearerType: '',
   selfPay: false,
   familyDoctor: '',
   consultingReason: '',
@@ -256,10 +167,6 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   assignedModules: ['office'],
   consentDatenschutz: false,
   consentVertrag: false,
-  intakeContractType: '',
-  intakeAssignmentEnabled: false,
-  intakeOptionalConsents: [],
-  intakeDocuments: [],
   consentTypes: [],
   contractTypes: [],
   documentCategories: [],

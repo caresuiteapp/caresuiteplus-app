@@ -44,7 +44,7 @@ async function verifyCallerTenant(req: Request, tenantId: string): Promise<boole
   const { data: profile } = await service
     .from('profiles')
     .select('tenant_id')
-    .eq('id', authData.user.id)
+    .eq('auth_user_id', authData.user.id)
     .maybeSingle();
 
   return profile?.tenant_id === tenantId;

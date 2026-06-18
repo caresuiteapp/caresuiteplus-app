@@ -1,6 +1,6 @@
-import { galaxyPalette } from '@/design/tokens/galaxy';
+import { careLightColors } from '@/design/tokens/lightTheme';
 
-/** Default auth route stack background — deep space premium. */
+/** Default demo route stack background — always light CareSuite+. */
 export const routeLayoutContentStyle = {
-  backgroundColor: galaxyPalette.deepSpace,
+  backgroundColor: careLightColors.page,
 } as const;

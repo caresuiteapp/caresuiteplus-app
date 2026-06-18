@@ -61,9 +61,9 @@ export function ExecutiveDashboardHero({ snapshot, roleKey }: ExecutiveDashboard
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {snapshot.preparedOnly ? (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : (
-          <PremiumBadge statusKind="live" />
+          <PremiumBadge label="Live Supabase" variant="green" />
         )}
       </View>
       <AdaptiveKpiGrid items={kpiItems} />

@@ -10,7 +10,6 @@ import {
 import { demoClients } from '@/data/demo/clients';
 import { demoEmployees } from '@/data/demo/employees';
 import { enforcePermission } from '@/lib/permissions';
-import { buildWorkspaceAccessContext, canViewAssignment } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import {
@@ -91,7 +90,6 @@ export async function fetchAssignmentDetail(
   assignmentId: string,
   tenantId: string,
   actorRoleKey?: RoleKey | null,
-  workspaceContext?: { userId?: string | null; employeeId?: string | null; clientId?: string | null },
 ): Promise<ServiceResult<AssignmentPlan>> {
   const denied = enforcePermission<AssignmentPlan>(actorRoleKey, 'assist.assignments.view');
   if (denied) return denied;
@@ -103,19 +101,7 @@ export async function fetchAssignmentDetail(
     const result = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
     if (!result.ok) return result;
     if (!result.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
-    const plan = detailToPlan(result.data);
-    const access = canViewAssignment(
-      buildWorkspaceAccessContext({
-        tenantId,
-        roleKey: actorRoleKey ?? null,
-        userId: workspaceContext?.userId ?? 'demo-user',
-        employeeId: workspaceContext?.employeeId ?? null,
-        clientId: workspaceContext?.clientId ?? null,
-      }),
-      { tenantId: plan.tenantId, employeeId: plan.employeeId, clientId: plan.clientId },
-    );
-    if (!access.allowed) return { ok: false, error: access.message };
-    return { ok: true, data: plan };
+    return { ok: true, data: detailToPlan(result.data) };
   }
 
   await new Promise((r) => setTimeout(r, 240));
@@ -124,18 +110,6 @@ export async function fetchAssignmentDetail(
   if (!seed) {
     return { ok: false, error: 'Einsatz nicht gefunden.' };
   }
-
-  const access = canViewAssignment(
-    buildWorkspaceAccessContext({
-      tenantId,
-      roleKey: actorRoleKey ?? null,
-      userId: workspaceContext?.userId ?? 'demo-user',
-      employeeId: workspaceContext?.employeeId ?? null,
-      clientId: workspaceContext?.clientId ?? null,
-    }),
-    { tenantId: seed.tenantId, employeeId: seed.employeeId, clientId: seed.clientId },
-  );
-  if (!access.allowed) return { ok: false, error: access.message };
 
   return { ok: true, data: applyWorkflowMeta(seed) };
 }

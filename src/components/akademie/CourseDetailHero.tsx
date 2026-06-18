@@ -121,9 +121,9 @@ export function CourseDetailHero({ course, roleKey, isReadOnly }: CourseDetailHe
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isReadOnly ? <PremiumBadge label="Lesemodus" variant="muted" /> : null}
         {isAkademieCoursesLiveReady() ? (
-          <PremiumBadge statusKind="live" dot />
+          <PremiumBadge label="Live Supabase" variant="green" dot />
         ) : (
-          <PremiumBadge statusKind="preparedOnly" />
+          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>

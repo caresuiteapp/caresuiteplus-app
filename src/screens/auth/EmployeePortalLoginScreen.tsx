@@ -1,23 +1,12 @@
 import { useState } from 'react';
-import { Linking } from 'react-native';
 import { useRouter } from 'expo-router';
-import {
-  AuthLayout,
-  ErrorState,
-  GlassCard,
-  InputField,
-  PremiumButton,
-  SuccessState,
-} from '@/design/components';
+import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
+import { CareLightPageShell } from '@/components/layout';
+import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
-import { resolveFirstLoginRoute } from '@/lib/auth/loginRouter';
+import { resolveFirstLoginRoute, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
-import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
-
-function openHelp() {
-  void Linking.openURL(SUPPORT_LINKS.help).catch(() => undefined);
-}
 
 export function EmployeePortalLoginScreen() {
   const router = useRouter();
@@ -26,11 +15,9 @@ export function EmployeePortalLoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
-    setSuccess(false);
     setLoading(true);
     const result = await loginEmployeePortal(username, password);
     setLoading(false);
@@ -40,50 +27,34 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
+    if (result.data.portalSession) {
+      await signInPortalSession(result.data.portalSession);
+    } else if (isDemoMode()) {
+      await signInDemo('employee_portal');
+    }
+
     if (result.data.mustChangePassword) {
       router.replace(`${resolveFirstLoginRoute('employee_portal')}?accountId=${result.data.account.id}` as never);
       return;
     }
 
-    try {
-      if (result.data.portalSession) {
-        await signInPortalSession(result.data.portalSession);
-      } else if (isDemoMode()) {
-        await signInDemo('employee_portal');
-      } else {
-        setError('Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten.');
-        return;
-      }
-      setSuccess(true);
-    } catch (e) {
-      setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
-    }
+    router.replace(resolvePostLoginRoute('employee_portal'));
   };
 
   return (
-    <AuthLayout
-      title="Mitarbeiterportal"
-      subtitle="Einsätze, Dokumentation, Zeiten und Nachrichten"
-      keyboardAvoiding
-    >
+    <CareLightPageShell title="Mitarbeiterportal" subtitle="Persönlicher Mitarbeiterzugang" scroll>
+      <AuthLoginHero
+        eyebrow="MITARBEITERPORTAL"
+        title="Mitarbeiterportal"
+        subtitle="Ihr Benutzername und Ihr erstes Passwort werden von Ihrer Verwaltung bereitgestellt."
+        portalLabel="Keine öffentliche Registrierung"
+        portalVariant="cyan"
+        icon="👤"
+      />
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
-      <GlassCard>
-        <InputField
-          label="E-Mail oder Mitarbeiter-ID"
-          value={username}
-          onChangeText={setUsername}
-          autoCapitalize="none"
-        />
-        <InputField
-          label="Passwort oder Portal-Code"
-          value={password}
-          onChangeText={setPassword}
-          secureTextEntry
-        />
-        <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
-        <PremiumButton title="Hilfe bei Zugang" variant="secondary" onPress={openHelp} fullWidth />
-      </GlassCard>
-    </AuthLayout>
+      <PremiumInput label="Benutzername" value={username} onChangeText={setUsername} autoCapitalize="none" />
+      <PremiumInput label="Passwort / Einmalpasswort" value={password} onChangeText={setPassword} secureTextEntry />
+      <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
+    </CareLightPageShell>
   );
 }
