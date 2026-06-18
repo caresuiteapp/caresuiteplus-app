@@ -72,7 +72,7 @@ export const BUSINESS_TABS: ShellTabConfig[] = [
     key: 'messages',
     label: 'Nachrichten',
     icon: '💬',
-    href: '/business/messages',
+    href: '/office/messages?filter=inbox',
     moduleScopeKey: 'communication',
     allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
   },

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
 import type { AppShellArea } from '@/types/navigation/shell';
@@ -42,13 +42,7 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
         <MainModuleRail activeModule={mainModule} />
         {showModuleNav ? <ModuleNavSidebar mainModule={mainModule} accentColor={accent} /> : null}
         <View style={styles.main}>
-          <ScrollView
-            style={styles.mainScroll}
-            contentContainerStyle={styles.mainContent}
-            showsVerticalScrollIndicator={false}
-          >
-            {children}
-          </ScrollView>
+          <View style={styles.mainContent}>{children}</View>
         </View>
         {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}
       </View>
@@ -72,8 +66,9 @@ const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
   body: { flex: 1, flexDirection: 'row', minHeight: 0 },
   main: { flex: 1, minWidth: 0 },
-  mainScroll: { flex: 1 },
   mainContent: {
+    flex: 1,
+    minHeight: 0,
     padding: spacing.lg,
     gap: spacing.lg,
     paddingBottom: spacing.xxl,

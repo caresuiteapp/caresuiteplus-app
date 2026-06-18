@@ -25,6 +25,16 @@ export const officeNav: ModuleNavConfig = {
       ],
     },
     {
+      title: 'Kommunikation',
+      items: [
+        { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/office/messages?filter=inbox' },
+        { key: 'messages-clients', label: 'Klient:innen-Chats', icon: '👥', href: '/office/messages?filter=clients' },
+        { key: 'messages-employees', label: 'Mitarbeitenden-Chats', icon: '👤', href: '/office/messages?filter=employees' },
+        { key: 'broadcasts', label: 'Broadcast', icon: '📢', href: '/office/messages?tab=broadcasts' },
+        { key: 'message-templates', label: 'Vorlagen', icon: '📝', href: '/office/messages/templates' },
+      ],
+    },
+    {
       title: 'Organisation',
       items: [
         { key: 'qm', label: 'Qualitätsmanagement', icon: '✅', href: '/business/office/qm' },
