@@ -16,10 +16,12 @@ describe('Assist Calendar Hero (Sprint 90)', () => {
     expect(hero).toContain('Demo / preparedOnly');
   });
 
-  it('AssistCalendarScreen nutzt AssistCalendarListHero', () => {
+  it('AssistCalendarScreen nutzt vollen Assist-Kalender und Detail-Modal', () => {
     const screen = readSrc('src/screens/assist/AssistCalendarScreen.tsx');
-    expect(screen).toContain('AssistCalendarListHero');
-    expect(screen).not.toContain('PreparedModeBanner');
+    expect(screen).toContain('AssistCalendarView');
+    expect(screen).toContain('AssignmentDetailGlassModal');
+    expect(screen).toContain('CareLightPageShell');
+    expect(screen).not.toContain('AssistCalendarListHero');
   });
 
   it('buildAssistCalendarKpis zählt Einsätze', () => {

@@ -76,6 +76,25 @@ export const DEFAULT_VISIBLE_TYPES: Record<CalendarEventType, boolean> = {
   weiterbildung: true,
 };
 
+/** Event types shown in Assist Kalender (no Office-only reminders). */
+export const ASSIST_CALENDAR_EVENT_TYPES: CalendarEventType[] = [
+  'termin',
+  'einsatz',
+  'urlaub',
+  'krank',
+  'abwesenheit',
+  'team_meeting',
+  'uebergabe',
+  'weiterbildung',
+];
+
+export const DEFAULT_ASSIST_VISIBLE_TYPES: Record<CalendarEventType, boolean> = {
+  ...DEFAULT_VISIBLE_TYPES,
+  erinnerung: false,
+};
+
+export type CalendarModuleScope = 'office' | 'assist';
+
 export function buildDefaultTenantCalendarSettings(tenantId: string): TenantCalendarSettings {
   return {
     tenantId,
@@ -86,5 +105,12 @@ export function buildDefaultTenantCalendarSettings(tenantId: string): TenantCale
     maxCollapsedEvents: 3,
     visibleTypes: { ...DEFAULT_VISIBLE_TYPES },
     updatedAt: new Date().toISOString(),
+  };
+}
+
+export function buildDefaultAssistCalendarSettings(tenantId: string): TenantCalendarSettings {
+  return {
+    ...buildDefaultTenantCalendarSettings(tenantId),
+    visibleTypes: { ...DEFAULT_ASSIST_VISIBLE_TYPES },
   };
 }

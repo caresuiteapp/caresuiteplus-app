@@ -41,11 +41,12 @@ describe('Calendar Grouping', () => {
     expect(source).not.toContain('Mandant nicht gefunden');
   });
 
-  it('AssistCalendarScreen nutzt CareLightPageShell und Detail-Modal', () => {
+  it('AssistCalendarScreen nutzt vollen Kalender und Detail-Modal', () => {
     const source = readSrc('src/screens/assist/AssistCalendarScreen.tsx');
     expect(source).toContain('CareLightPageShell');
+    expect(source).toContain('AssistCalendarView');
     expect(source).toContain('AssignmentDetailGlassModal');
     expect(source).toContain('showBack={false}');
-    expect(source).not.toContain('ScreenShell');
+    expect(source).not.toContain('AssistCalendarListHero');
   });
 });

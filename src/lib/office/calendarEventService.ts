@@ -1,9 +1,15 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { AppointmentListItem } from '@/types/modules/appointmentList';
+import type { AssignmentListItem } from '@/types/modules/assist';
 import type { AbsenceType } from '@/types/modules/employeeAbsence';
 import type { CalendarEvent, CalendarEventType } from '@/types/modules/calendarEvent';
-import { CALENDAR_EVENT_TYPE_COLORS } from '@/types/modules/calendarEvent';
+import {
+  ASSIST_CALENDAR_EVENT_TYPES,
+  CALENDAR_EVENT_TYPE_COLORS,
+} from '@/types/modules/calendarEvent';
+import { fetchAssignmentList } from '@/lib/assist/assignmentListService';
 import { enforcePermission } from '@/lib/permissions';
+import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { fetchAppointmentList } from './appointmentListService';
 import { listAbsenceScheduleEntries } from './absenceScheduleService';
@@ -46,6 +52,31 @@ function mapAssignment(entry: {
     color: CALENDAR_EVENT_TYPE_COLORS.einsatz,
     sourceId: entry.id,
     href: `/assist/assignments/${entry.id}`,
+  };
+}
+
+function mapAssistAssignmentListItem(item: AssignmentListItem): CalendarEvent {
+  return mapAssignment({
+    id: item.id,
+    title: item.title,
+    startsAt: item.scheduledStart,
+    endsAt: item.scheduledEnd,
+    clientName: item.clientName,
+  });
+}
+
+function mapEmployeeAppointment(item: AppointmentListItem): CalendarEvent {
+  const employeeLabel = item.employeeName ? ` · ${item.employeeName}` : '';
+  return {
+    id: `mitarbeiter-termin-${item.id}`,
+    title: item.clientName
+      ? `${item.title} · ${item.clientName}${employeeLabel}`
+      : `${item.title}${employeeLabel}`,
+    start: item.startsAt,
+    end: item.endsAt,
+    type: 'termin',
+    color: CALENDAR_EVENT_TYPE_COLORS.termin,
+    sourceId: item.id,
   };
 }
 
@@ -110,6 +141,35 @@ function buildDemoStubEvents(tenantId: string, anchor: Date): CalendarEvent[] {
   ];
 }
 
+function buildAssistDemoStubEvents(tenantId: string, anchor: Date): CalendarEvent[] {
+  return buildDemoStubEvents(tenantId, anchor).filter((event) =>
+    ASSIST_CALENDAR_EVENT_TYPES.includes(event.type),
+  );
+}
+
+function filterEventsByDateRange(
+  events: CalendarEvent[],
+  options?: FetchCalendarEventsOptions,
+): CalendarEvent[] {
+  return events.filter((event) => {
+    if (!options?.rangeStart && !options?.rangeEnd) return true;
+    const start = new Date(event.start).getTime();
+    const end = new Date(event.end).getTime();
+    const rangeStart = options.rangeStart ? new Date(options.rangeStart).getTime() : -Infinity;
+    const rangeEnd = options.rangeEnd ? new Date(options.rangeEnd).getTime() : Infinity;
+    return start <= rangeEnd && end >= rangeStart;
+  });
+}
+
+function dedupeEvents(events: CalendarEvent[]): CalendarEvent[] {
+  const seen = new Set<string>();
+  return events.filter((event) => {
+    if (seen.has(event.id)) return false;
+    seen.add(event.id);
+    return true;
+  });
+}
+
 export type FetchCalendarEventsOptions = {
   rangeStart?: string;
   rangeEnd?: string;
@@ -152,17 +212,75 @@ export async function fetchCalendarEvents(
     events.push(...buildDemoStubEvents(tenantId, anchor));
   }
 
-  const filtered = events.filter((event) => {
-    if (!options?.rangeStart && !options?.rangeEnd) return true;
-    const start = new Date(event.start).getTime();
-    const end = new Date(event.end).getTime();
-    const rangeStart = options.rangeStart ? new Date(options.rangeStart).getTime() : -Infinity;
-    const rangeEnd = options.rangeEnd ? new Date(options.rangeEnd).getTime() : Infinity;
-    return start <= rangeEnd && end >= rangeStart;
-  });
-
+  const filtered = filterEventsByDateRange(events, options);
   filtered.sort((a, b) => a.start.localeCompare(b.start));
   return { ok: true, data: filtered };
+}
+
+export async function fetchAssistCalendarEvents(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+  options?: FetchCalendarEventsOptions,
+): Promise<ServiceResult<CalendarEvent[]>> {
+  const denied = enforcePermission<CalendarEvent[]>(actorRoleKey, 'assist.assignments.view');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const isLive = getServiceMode() === 'supabase';
+  const events: CalendarEvent[] = [];
+  const seenAssignmentIds = new Set<string>();
+
+  const assignmentsResult = await fetchAssignmentList(tenantId, actorRoleKey);
+  if (!assignmentsResult.ok) return assignmentsResult;
+
+  for (const item of assignmentsResult.data) {
+    seenAssignmentIds.add(item.id);
+    events.push(mapAssistAssignmentListItem(item));
+  }
+
+  if (!isLive) {
+    for (const entry of listScheduleEntries(tenantId)) {
+      const assignmentId = entry.assignmentId ?? entry.id;
+      if (seenAssignmentIds.has(assignmentId)) continue;
+      events.push(
+        mapAssignment({
+          id: assignmentId,
+          title: entry.title,
+          startsAt: entry.startsAt,
+          endsAt: entry.endsAt,
+        }),
+      );
+    }
+
+    for (const entry of listAbsenceScheduleEntries(tenantId)) {
+      events.push(mapAbsence(entry));
+    }
+
+    const appointmentsResult = await fetchAppointmentList(tenantId, actorRoleKey);
+    if (appointmentsResult.ok) {
+      for (const item of appointmentsResult.data) {
+        if (item.employeeId || item.employeeName) {
+          events.push(mapEmployeeAppointment(item));
+        }
+      }
+    }
+
+    if (options?.includeDemoStubs !== false) {
+      const anchor = options?.rangeStart ? new Date(options.rangeStart) : new Date();
+      events.push(...buildAssistDemoStubEvents(tenantId, anchor));
+    }
+  }
+
+  const scoped = filterEventsForAssistModule(dedupeEvents(events));
+  const filtered = filterEventsByDateRange(scoped, options);
+  filtered.sort((a, b) => a.start.localeCompare(b.start));
+  return { ok: true, data: filtered };
+}
+
+export function filterEventsForAssistModule(events: CalendarEvent[]): CalendarEvent[] {
+  return events.filter((event) => ASSIST_CALENDAR_EVENT_TYPES.includes(event.type));
 }
 
 export function filterEventsByVisibleTypes(

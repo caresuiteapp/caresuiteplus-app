@@ -20,6 +20,7 @@ type OfficeCalendarMonthViewProps = {
   events: CalendarEvent[];
   weekStartDay: WeekStartDay;
   maxCollapsedEvents: number;
+  onEventPress?: (event: CalendarEvent) => void;
 };
 
 export function OfficeCalendarMonthView({
@@ -27,6 +28,7 @@ export function OfficeCalendarMonthView({
   events,
   weekStartDay,
   maxCollapsedEvents,
+  onEventPress,
 }: OfficeCalendarMonthViewProps) {
   const text = useAuroraAdaptiveText();
   const today = new Date();
@@ -78,7 +80,12 @@ export function OfficeCalendarMonthView({
               <Text style={[styles.dayNum, { color: !inMonth ? text.muted : text.primary }]}>{date.getDate()}</Text>
               <View style={styles.events}>
                 {visible.map((event) => (
-                  <OfficeCalendarEventChip key={event.id} event={event} compact />
+                  <OfficeCalendarEventChip
+                    key={event.id}
+                    event={event}
+                    compact
+                    onEventPress={onEventPress}
+                  />
                 ))}
               </View>
               {hiddenCount > 0 ? (

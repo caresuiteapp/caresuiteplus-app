@@ -1,5 +1,9 @@
 import { useCallback, useEffect, useState } from 'react';
-import type { TenantCalendarSettings, TenantCalendarSettingsForm } from '@/types/modules/calendarEvent';
+import type {
+  CalendarModuleScope,
+  TenantCalendarSettings,
+  TenantCalendarSettingsForm,
+} from '@/types/modules/calendarEvent';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import {
@@ -8,7 +12,7 @@ import {
   toTenantCalendarSettingsForm,
 } from '@/lib/office/tenantCalendarSettingsService';
 
-export function useTenantCalendarSettings() {
+export function useTenantCalendarSettings(scope: CalendarModuleScope = 'office') {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [settings, setSettings] = useState<TenantCalendarSettings | null>(null);
@@ -24,14 +28,14 @@ export function useTenantCalendarSettings() {
     }
     setLoading(true);
     setError(null);
-    const result = await fetchTenantCalendarSettings(tenantId, profile?.roleKey);
+    const result = await fetchTenantCalendarSettings(tenantId, profile?.roleKey, { scope });
     if (result.ok) {
       setSettings(result.data);
     } else {
       setError(result.error);
     }
     setLoading(false);
-  }, [tenantId, profile?.roleKey]);
+  }, [tenantId, profile?.roleKey, scope]);
 
   useEffect(() => {
     void refresh();
@@ -42,7 +46,7 @@ export function useTenantCalendarSettings() {
       if (!tenantId) return { ok: false as const, error: 'Kein Mandant.' };
       setSaving(true);
       setError(null);
-      const result = await saveTenantCalendarSettings(tenantId, form, profile?.roleKey);
+      const result = await saveTenantCalendarSettings(tenantId, form, profile?.roleKey, { scope });
       if (result.ok) {
         setSettings(result.data);
       } else {
@@ -51,7 +55,7 @@ export function useTenantCalendarSettings() {
       setSaving(false);
       return result;
     },
-    [tenantId, profile?.roleKey],
+    [tenantId, profile?.roleKey, scope],
   );
 
   return {

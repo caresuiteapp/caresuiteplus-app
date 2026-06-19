@@ -8,9 +8,14 @@ import { formatTime } from '@/lib/office/calendarDateUtils';
 type OfficeCalendarEventChipProps = {
   event: CalendarEvent;
   compact?: boolean;
+  onEventPress?: (event: CalendarEvent) => void;
 };
 
-export function OfficeCalendarEventChip({ event, compact = false }: OfficeCalendarEventChipProps) {
+export function OfficeCalendarEventChip({
+  event,
+  compact = false,
+  onEventPress,
+}: OfficeCalendarEventChipProps) {
   const text = useAuroraAdaptiveText();
   const router = useRouter();
   const timeLabel = event.allDay ? 'Ganztägig' : formatTime(event.start);
@@ -25,6 +30,14 @@ export function OfficeCalendarEventChip({ event, compact = false }: OfficeCalend
       </Text>
     </View>
   );
+
+  if (onEventPress) {
+    return (
+      <Pressable onPress={() => onEventPress(event)} accessibilityRole="button">
+        {content}
+      </Pressable>
+    );
+  }
 
   if (!event.href) return content;
 

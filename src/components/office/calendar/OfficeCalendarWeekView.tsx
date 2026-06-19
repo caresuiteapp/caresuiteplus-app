@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -20,6 +20,7 @@ type OfficeCalendarWeekViewProps = {
   weekStartDay: WeekStartDay;
   weekFullDay: boolean;
   dayViewStartHour: number;
+  onEventPress?: (event: CalendarEvent) => void;
 };
 
 const HOUR_HEIGHT = 48;
@@ -60,6 +61,7 @@ export function OfficeCalendarWeekView({
   weekStartDay,
   weekFullDay,
   dayViewStartHour,
+  onEventPress,
 }: OfficeCalendarWeekViewProps) {
   const text = useAuroraAdaptiveText();
   const gridScrollRef = useRef<ScrollView>(null);
@@ -106,7 +108,12 @@ export function OfficeCalendarWeekView({
               return (
                 <View key={`allday-${toDateKey(day)}`} style={styles.allDayCol}>
                   {allDay.map((event) => (
-                    <OfficeCalendarEventChip key={event.id} event={event} compact />
+                    <OfficeCalendarEventChip
+                      key={event.id}
+                      event={event}
+                      compact
+                      onEventPress={onEventPress}
+                    />
                   ))}
                 </View>
               );
@@ -135,24 +142,38 @@ export function OfficeCalendarWeekView({
                     {dayEvents.map((event) => {
                       const pos = eventTopAndHeight(event, day, hours);
                       if (!pos) return null;
-                      return (
-                        <View
-                          key={event.id}
-                          style={[
-                            styles.timedEvent,
-                            {
-                              top: pos.top,
-                              height: pos.height,
-                              borderLeftColor: event.color,
-                            },
-                          ]}
-                        >
+                      const eventStyle = [
+                        styles.timedEvent,
+                        {
+                          top: pos.top,
+                          height: pos.height,
+                          borderLeftColor: event.color,
+                        },
+                      ];
+                      const inner = (
+                        <>
                           <Text style={[styles.timedTitle, { color: text.primary }]} numberOfLines={2}>
                             {event.title}
                           </Text>
                           <Text style={[styles.timedMeta, { color: text.muted }]}>
                             {formatTime(event.start)} – {formatTime(event.end)}
                           </Text>
+                        </>
+                      );
+                      if (onEventPress) {
+                        return (
+                          <Pressable
+                            key={event.id}
+                            onPress={() => onEventPress(event)}
+                            style={eventStyle}
+                          >
+                            {inner}
+                          </Pressable>
+                        );
+                      }
+                      return (
+                        <View key={event.id} style={eventStyle}>
+                          {inner}
                         </View>
                       );
                     })}

@@ -9,6 +9,7 @@ import type {
 } from '@/types/modules/calendarEvent';
 import {
   buildDefaultTenantCalendarSettings,
+  buildDefaultAssistCalendarSettings,
   DEFAULT_VISIBLE_TYPES,
 } from '@/types/modules/calendarEvent';
 import { enforcePermission } from '@/lib/permissions';
@@ -48,8 +49,12 @@ function parseVisibleTypes(raw: unknown): Record<CalendarEventType, boolean> {
 function normalizeSettings(
   tenantId: string,
   partial?: Partial<TenantCalendarSettingsForm>,
+  scope: 'office' | 'assist' = 'office',
 ): TenantCalendarSettings {
-  const base = buildDefaultTenantCalendarSettings(tenantId);
+  const base =
+    scope === 'assist'
+      ? buildDefaultAssistCalendarSettings(tenantId)
+      : buildDefaultTenantCalendarSettings(tenantId);
   if (!partial) return base;
   return {
     tenantId,
@@ -69,28 +74,41 @@ function normalizeSettings(
   };
 }
 
-function mapRowToSettings(tenantId: string, row: Record<string, unknown>): TenantCalendarSettings {
+function mapRowToSettings(
+  tenantId: string,
+  row: Record<string, unknown>,
+  scope: 'office' | 'assist' = 'office',
+): TenantCalendarSettings {
   const settingsJson = row.settings ?? row;
   const partial =
     typeof settingsJson === 'object' && settingsJson !== null
       ? (settingsJson as Partial<TenantCalendarSettingsForm>)
       : undefined;
-  return normalizeSettings(tenantId, partial);
+  return normalizeSettings(tenantId, partial, scope);
 }
 
-function ensureDemoSettings(tenantId: string): TenantCalendarSettings {
-  if (!DEMO_STORE.has(tenantId)) {
-    DEMO_STORE.set(tenantId, buildDefaultTenantCalendarSettings(tenantId));
+function ensureDemoSettings(tenantId: string, scope: 'office' | 'assist' = 'office'): TenantCalendarSettings {
+  const key = `${scope}:${tenantId}`;
+  if (!DEMO_STORE.has(key)) {
+    DEMO_STORE.set(
+      key,
+      scope === 'assist'
+        ? buildDefaultAssistCalendarSettings(tenantId)
+        : buildDefaultTenantCalendarSettings(tenantId),
+    );
   }
-  return DEMO_STORE.get(tenantId)!;
+  return DEMO_STORE.get(key)!;
 }
 
-async function loadFromStorage(tenantId: string): Promise<TenantCalendarSettings | null> {
+async function loadFromStorage(
+  tenantId: string,
+  scope: 'office' | 'assist' = 'office',
+): Promise<TenantCalendarSettings | null> {
   try {
     const raw = await AsyncStorage.getItem(storageKey(tenantId));
     if (!raw) return null;
     const parsed = JSON.parse(raw) as Partial<TenantCalendarSettingsForm>;
-    return normalizeSettings(tenantId, parsed);
+    return normalizeSettings(tenantId, parsed, scope);
   } catch {
     return null;
   }
@@ -105,11 +123,19 @@ async function saveToStorage(settings: TenantCalendarSettings): Promise<void> {
   }
 }
 
-async function fetchFromSupabase(tenantId: string): Promise<ServiceResult<TenantCalendarSettings>> {
+async function fetchFromSupabase(
+  tenantId: string,
+  scope: 'office' | 'assist' = 'office',
+): Promise<ServiceResult<TenantCalendarSettings>> {
   const supabase = getSupabaseClient();
+  const fallback =
+    scope === 'assist'
+      ? buildDefaultAssistCalendarSettings(tenantId)
+      : buildDefaultTenantCalendarSettings(tenantId);
+
   if (!supabase) {
-    const cached = await loadFromStorage(tenantId);
-    return { ok: true, data: cached ?? buildDefaultTenantCalendarSettings(tenantId) };
+    const cached = await loadFromStorage(tenantId, scope);
+    return { ok: true, data: cached ?? fallback };
   }
 
   const { data, error } = await fromUnknownTable(supabase, 'tenant_calendar_settings')
@@ -118,28 +144,33 @@ async function fetchFromSupabase(tenantId: string): Promise<ServiceResult<Tenant
     .maybeSingle();
 
   if (error) {
-    const cached = await loadFromStorage(tenantId);
+    const cached = await loadFromStorage(tenantId, scope);
     if (cached) return { ok: true, data: cached };
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
   if (!data) {
-    const cached = await loadFromStorage(tenantId);
-    return { ok: true, data: cached ?? buildDefaultTenantCalendarSettings(tenantId) };
+    const cached = await loadFromStorage(tenantId, scope);
+    return { ok: true, data: cached ?? fallback };
   }
 
   const row = data as Record<string, unknown>;
-  const settings = mapRowToSettings(tenantId, row);
+  const settings = mapRowToSettings(tenantId, row, scope);
   await saveToStorage(settings);
   return { ok: true, data: settings };
 }
 
-async function saveToSupabase(settings: TenantCalendarSettings): Promise<ServiceResult<TenantCalendarSettings>> {
+async function saveToSupabase(
+  settings: TenantCalendarSettings,
+  scope: 'office' | 'assist' = 'office',
+): Promise<ServiceResult<TenantCalendarSettings>> {
   const supabase = getSupabaseClient();
   await saveToStorage(settings);
 
+  const demoKey = `${scope}:${settings.tenantId}`;
+
   if (!supabase) {
-    DEMO_STORE.set(settings.tenantId, settings);
+    DEMO_STORE.set(demoKey, settings);
     return { ok: true, data: settings };
   }
 
@@ -151,68 +182,77 @@ async function saveToSupabase(settings: TenantCalendarSettings): Promise<Service
   } as Record<string, unknown>);
 
   if (error) {
-    DEMO_STORE.set(settings.tenantId, settings);
+    DEMO_STORE.set(demoKey, settings);
     return { ok: true, data: settings };
   }
 
   return { ok: true, data: settings };
 }
 
+export type TenantCalendarSettingsOptions = {
+  scope?: 'office' | 'assist';
+};
+
 export async function fetchTenantCalendarSettings(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  options?: TenantCalendarSettingsOptions,
 ): Promise<ServiceResult<TenantCalendarSettings>> {
-  const denied = enforcePermission<TenantCalendarSettings>(actorRoleKey, 'office.appointments.view');
+  const scope = options?.scope ?? 'office';
+  const viewPermission = scope === 'assist' ? 'assist.assignments.view' : 'office.appointments.view';
+  const denied = enforcePermission<TenantCalendarSettings>(actorRoleKey, viewPermission);
   if (denied) return denied;
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  const demoKey = `${scope}:${tenantId}`;
+
   if (!isLiveServiceMode()) {
-    const cached = await loadFromStorage(tenantId);
+    const cached = await loadFromStorage(tenantId, scope);
     if (cached) {
-      DEMO_STORE.set(tenantId, cached);
+      DEMO_STORE.set(demoKey, cached);
       return { ok: true, data: cached };
     }
-    return { ok: true, data: ensureDemoSettings(tenantId) };
+    return { ok: true, data: ensureDemoSettings(tenantId, scope) };
   }
 
-  if (DEMO_STORE.has(tenantId)) {
-    return { ok: true, data: DEMO_STORE.get(tenantId)! };
+  if (DEMO_STORE.has(demoKey)) {
+    return { ok: true, data: DEMO_STORE.get(demoKey)! };
   }
 
-  return fetchFromSupabase(tenantId);
+  return fetchFromSupabase(tenantId, scope);
 }
 
 export async function saveTenantCalendarSettings(
   tenantId: string,
   form: TenantCalendarSettingsForm,
   actorRoleKey?: RoleKey | null,
+  options?: TenantCalendarSettingsOptions,
 ): Promise<ServiceResult<TenantCalendarSettings>> {
+  const scope = options?.scope ?? 'office';
   const denied = enforcePermission<TenantCalendarSettings>(
     actorRoleKey,
     TENANT_SETTINGS_PERMISSION,
   );
   if (denied) {
-    const viewDenied = enforcePermission<TenantCalendarSettings>(
-      actorRoleKey,
-      'office.appointments.view',
-    );
+    const viewPermission = scope === 'assist' ? 'assist.assignments.view' : 'office.appointments.view';
+    const viewDenied = enforcePermission<TenantCalendarSettings>(actorRoleKey, viewPermission);
     if (viewDenied) return viewDenied;
   }
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  const settings = normalizeSettings(tenantId, form);
-  DEMO_STORE.set(tenantId, settings);
+  const settings = normalizeSettings(tenantId, form, scope);
+  DEMO_STORE.set(`${scope}:${tenantId}`, settings);
 
   if (!isLiveServiceMode()) {
     await saveToStorage(settings);
     return { ok: true, data: settings };
   }
 
-  return saveToSupabase(settings);
+  return saveToSupabase(settings, scope);
 }
 
 export function toTenantCalendarSettingsForm(

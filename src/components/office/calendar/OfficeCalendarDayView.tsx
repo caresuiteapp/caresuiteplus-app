@@ -1,5 +1,5 @@
 import { useMemo, useRef, useEffect } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -16,6 +16,7 @@ type OfficeCalendarDayViewProps = {
   anchor: Date;
   events: CalendarEvent[];
   dayViewStartHour: number;
+  onEventPress?: (event: CalendarEvent) => void;
 };
 
 const HOUR_HEIGHT = 56;
@@ -24,6 +25,7 @@ export function OfficeCalendarDayView({
   anchor,
   events,
   dayViewStartHour,
+  onEventPress,
 }: OfficeCalendarDayViewProps) {
   const text = useAuroraAdaptiveText();
   const scrollRef = useRef<ScrollView>(null);
@@ -49,7 +51,7 @@ export function OfficeCalendarDayView({
         <View style={styles.allDay}>
           <Text style={[styles.allDayLabel, { color: text.muted }]}>Ganztägig</Text>
           {allDay.map((event) => (
-            <OfficeCalendarEventChip key={event.id} event={event} />
+            <OfficeCalendarEventChip key={event.id} event={event} onEventPress={onEventPress} />
           ))}
         </View>
       ) : null}
@@ -65,17 +67,33 @@ export function OfficeCalendarDayView({
               <View key={h} style={[styles.row, { minHeight: HOUR_HEIGHT }]}>
                 <Text style={[styles.hour, { color: text.muted }]}>{String(h).padStart(2, '0')}:00</Text>
                 <View style={styles.slot}>
-                  {slotEvents.map((event) => (
-                    <View
-                      key={event.id}
-                      style={[styles.eventBlock, { borderLeftColor: event.color }]}
-                    >
-                      <Text style={[styles.eventTitle, { color: text.primary }]}>{event.title}</Text>
-                      <Text style={[styles.eventMeta, { color: text.muted }]}>
-                        {formatTime(event.start)} – {formatTime(event.end)}
-                      </Text>
-                    </View>
-                  ))}
+                  {slotEvents.map((event) => {
+                    const blockStyle = [styles.eventBlock, { borderLeftColor: event.color }];
+                    const inner = (
+                      <>
+                        <Text style={[styles.eventTitle, { color: text.primary }]}>{event.title}</Text>
+                        <Text style={[styles.eventMeta, { color: text.muted }]}>
+                          {formatTime(event.start)} – {formatTime(event.end)}
+                        </Text>
+                      </>
+                    );
+                    if (onEventPress) {
+                      return (
+                        <Pressable
+                          key={event.id}
+                          onPress={() => onEventPress(event)}
+                          style={blockStyle}
+                        >
+                          {inner}
+                        </Pressable>
+                      );
+                    }
+                    return (
+                      <View key={event.id} style={blockStyle}>
+                        {inner}
+                      </View>
+                    );
+                  })}
                 </View>
               </View>
             );
