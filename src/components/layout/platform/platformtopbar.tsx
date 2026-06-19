@@ -251,6 +251,15 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
   const glassBorder = isDark ? glassTokens.border : colors.borderSoft;
   const glass = glassSurface(isDark);
 
+  const topbarPrimaryNameText: TextStyle = {
+    ...typography.bodyStrong,
+    color: isDark ? '#FFFFFF' : colors.textPrimary,
+    fontWeight: '700',
+    lineHeight: 20,
+    textAlign: 'center',
+    paddingVertical: 0,
+  };
+
   const topbarControl: ViewStyle = {
     minHeight: TOPBAR_CONTROL_HEIGHT,
     maxHeight: TOPBAR_CONTROL_HEIGHT,
@@ -365,14 +374,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       textAlign: 'center',
       paddingVertical: 0,
     },
-    tenantName: {
-      ...typography.bodyStrong,
-      color: isDark ? '#FFFFFF' : colors.textPrimary,
-      fontWeight: '700',
-      lineHeight: 20,
-      textAlign: 'center',
-      paddingVertical: 0,
-    },
+    tenantName: topbarPrimaryNameText,
     chevronSlot: {
       width: TOPBAR_ICON_SIZE,
       height: TOPBAR_ICON_SIZE,
@@ -443,12 +445,9 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       alignItems: 'center',
     },
     profileName: {
-      ...typography.caption,
-      color: isDark ? '#FFFFFF' : colors.textPrimary,
-      fontWeight: '700',
+      ...topbarPrimaryNameText,
       flex: 1,
       minWidth: 0,
-      textAlign: 'center',
     },
   });
 }
