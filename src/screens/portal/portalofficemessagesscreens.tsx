@@ -11,6 +11,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { careSpacing } from '@/design/tokens/spacing';
 
 function ClientPortalVerwaltungMessages() {
+  const { compose } = useLocalSearchParams<{ compose?: string }>();
+  const initialComposeOpen = compose === '1' || compose === 'true';
   const { threads } = usePortalOfficeMessages('open');
   const unreadCount = threads.reduce((sum, thread) => sum + (thread.unreadCount ?? 0), 0);
 
@@ -24,7 +26,11 @@ function ClientPortalVerwaltungMessages() {
           meta={`${threads.length} ${threads.length === 1 ? 'Chat' : 'Chats'}${unreadCount > 0 ? ` · ${unreadCount} ungelesen` : ''}`}
           badge="Live"
         />
-        <PortalOfficeMessenger audience="client" variant="glass" />
+        <PortalOfficeMessenger
+          audience="client"
+          variant="glass"
+          initialComposeOpen={initialComposeOpen}
+        />
       </View>
     </AssistPortalShell>
   );

@@ -16,6 +16,8 @@ type PortalOfficeMessengerProps = {
   title?: string;
   variant?: 'default' | 'glass';
   composeLabel?: string;
+  /** Open compose modal on mount (e.g. from overview KPI deep link). */
+  initialComposeOpen?: boolean;
 };
 
 export function PortalOfficeMessenger({
@@ -23,6 +25,7 @@ export function PortalOfficeMessenger({
   title = 'Nachrichten an die Verwaltung',
   variant = 'default',
   composeLabel = 'Verwaltung anschreiben',
+  initialComposeOpen = false,
 }: PortalOfficeMessengerProps) {
   const { width } = useWindowDimensions();
   const { c } = useCareLightPalette();
@@ -30,9 +33,13 @@ export function PortalOfficeMessenger({
   const [filter, setFilter] = useState<PortalOfficeInboxFilter>('open');
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
-  const [showNewChat, setShowNewChat] = useState(false);
+  const [showNewChat, setShowNewChat] = useState(initialComposeOpen);
   const isGlass = variant === 'glass';
   const isCompact = width < 768;
+
+  useEffect(() => {
+    if (initialComposeOpen) setShowNewChat(true);
+  }, [initialComposeOpen]);
 
   const styles = useMemo(
     () =>

@@ -57,6 +57,17 @@ describe('Portal Verwaltung messaging', () => {
     expect(actorResult.data.clientId).toBe(CLIENT_ID);
   });
 
+  it('communication index routes portal tabs through live Verwaltung messenger', () => {
+    const index = readSrc('src/screens/communication/index.ts');
+    expect(index).toContain('./portalmessagingscreens');
+    expect(index).not.toMatch(/ClientPortalMessagesScreen[\s\S]*PortalMessagesScreens/);
+  });
+
+  it('overview KPI deep-links to compose modal', () => {
+    const overview = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
+    expect(overview).toContain("'/portal/client/messages?compose=1'");
+  });
+
   it('portal feature matrix describes Verwaltung chat', () => {
     const matrix = readSrc('src/lib/portal/engine/portalFeatureMatrix.ts');
     expect(matrix).toContain('Chat mit der Verwaltung');

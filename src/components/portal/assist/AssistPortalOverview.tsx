@@ -266,7 +266,7 @@ export function AssistPortalOverview({
             value={data.kpis.messages}
             emptyMessage="Noch keine Nachrichten."
             ctaLabel="Verwaltung anschreiben"
-            onCta={() => router.push('/portal/client/messages' as never)}
+            onCta={() => router.push('/portal/client/messages?compose=1' as never)}
             onPress={() => router.push('/portal/client/messages' as never)}
           />
           <PortalKpiCard

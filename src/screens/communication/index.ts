@@ -8,10 +8,8 @@ export { CommunicationSettingsScreen } from './CommunicationSettingsScreen';
 export {
   EmployeePortalMessagesScreen,
   ClientPortalMessagesScreen,
-  RelativePortalMessagesScreen,
-} from './PortalMessagesScreens';
-export {
   EmployeePortalConversationScreen,
   ClientPortalConversationScreen,
-  RelativePortalConversationScreen,
-} from './PortalConversationScreens';
+  RelativePortalMessagesScreen,
+} from './portalmessagingscreens';
+export { RelativePortalConversationScreen } from './PortalConversationScreens';
