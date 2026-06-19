@@ -14,12 +14,33 @@ import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
 
 const logoUrlByTenantId = new Map<string, string>();
 
+type TenantBrandingLogoListener = (tenantId: string, logoUrl: string) => void;
+const brandingLogoListeners = new Set<TenantBrandingLogoListener>();
+
+function notifyTenantBrandingLogoChanged(tenantId: string, logoUrl: string): void {
+  for (const listener of brandingLogoListeners) {
+    listener(tenantId, logoUrl);
+  }
+}
+
+export function subscribeToTenantBrandingLogoChanges(
+  listener: TenantBrandingLogoListener,
+): () => void {
+  brandingLogoListeners.add(listener);
+  return () => brandingLogoListeners.delete(listener);
+}
+
 export function getCachedTenantBrandingLogoUrl(tenantId: string): string | undefined {
   return logoUrlByTenantId.get(tenantId);
 }
 
 export function setCachedTenantBrandingLogoUrl(tenantId: string, logoUrl: string): void {
-  logoUrlByTenantId.set(tenantId, logoUrl.trim());
+  const trimmed = logoUrl.trim();
+  const previous = logoUrlByTenantId.get(tenantId);
+  logoUrlByTenantId.set(tenantId, trimmed);
+  if (previous !== trimmed) {
+    notifyTenantBrandingLogoChanged(tenantId, trimmed);
+  }
 }
 
 export async function saveTenantBrandingProfile(

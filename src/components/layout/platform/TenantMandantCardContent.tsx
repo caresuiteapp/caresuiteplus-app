@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { CareSuiteLogo } from '@/components/brand';
 import { withAlpha } from '@/design/tokens/motion';
@@ -25,6 +25,11 @@ export function TenantMandantCardContent({
 }: TenantMandantCardContentProps) {
   const [logoFailed, setLogoFailed] = useState(false);
   const trimmedLogo = logoUrl?.trim() ?? '';
+
+  useEffect(() => {
+    setLogoFailed(false);
+  }, [trimmedLogo]);
+
   const showRemoteLogo = trimmedLogo.length > 0 && !logoFailed;
   const showFallbackLogo = !logoLoading && !showRemoteLogo;
 

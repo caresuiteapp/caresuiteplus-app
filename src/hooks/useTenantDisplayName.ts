@@ -6,6 +6,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import {
   fetchTenantBrandingLogoUrl,
   getCachedTenantBrandingLogoUrl,
+  subscribeToTenantBrandingLogoChanges,
 } from '@/lib/tenant/tenantBrandingService';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 
@@ -110,6 +111,16 @@ export function useTenantBranding(): TenantBranding {
     return () => {
       cancelled = true;
     };
+  }, [isLive, tenantId]);
+
+  useEffect(() => {
+    if (!isLive || !tenantId) return;
+
+    return subscribeToTenantBrandingLogoChanges((changedTenantId, nextLogoUrl) => {
+      if (changedTenantId !== tenantId) return;
+      setLogoUrl(nextLogoUrl);
+      setLogoLoading(false);
+    });
   }, [isLive, tenantId]);
 
   return { name, logoUrl, logoLoading };
