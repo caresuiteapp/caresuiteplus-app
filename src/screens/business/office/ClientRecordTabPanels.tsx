@@ -354,13 +354,11 @@ export function ClientRecordPortalPanel({ clientId, fullClient, onRecordRefresh 
 
 export function ClientRecordTasksPanel({
   clientId,
-  fullClient,
   onRecordRefresh,
-}: TabPanelProps) {
+}: Pick<TabPanelProps, 'clientId' | 'onRecordRefresh'>) {
   return (
     <ClientTasksPanel
       clientId={clientId}
-      fullClient={fullClient}
       onRecordRefresh={onRecordRefresh}
     />
   );

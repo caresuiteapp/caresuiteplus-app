@@ -27,7 +27,7 @@ import { fetchEmployeeList } from '@/lib/office/employeeListService';
 function formatEmployeeLabel(firstName: string, lastName: string): string {
   return `${firstName} ${lastName}`.trim();
 }
-import type { ClientFullDetail, ClientTask, TaskCategory, TaskFrequency } from '@/types/modules/client';
+import type { ClientTask, TaskCategory, TaskFrequency } from '@/types/modules/client';
 import {
   TASK_CATEGORY_LABELS,
   TASK_FREQUENCY_LABELS,
@@ -36,7 +36,6 @@ import { colors, spacing, typography } from '@/theme';
 
 type ClientTasksPanelProps = {
   clientId: string;
-  fullClient?: ClientFullDetail | null;
   onRecordRefresh?: () => void;
 };
 
@@ -224,17 +223,6 @@ export function ClientTasksPanel({
 
   return (
     <View style={styles.panel}>
-      {showShiftPreferences && fullClient?.preferences ? (
-        <SectionPanel title="Einsatzpräferenzen">
-          <DetailInfoRow
-            label="Bevorzugte Zeiten"
-            value={fullClient.preferences.preferredShifts.join(', ') || null}
-          />
-          <DetailInfoRow label="Mobilität" value={fullClient.preferences.mobilityNotes} />
-          <DetailInfoRow label="Zugang" value={fullClient.preferences.accessInstructions} />
-        </SectionPanel>
-      ) : null}
-
       <SectionPanel
         title="Aufgaben & Wünsche"
         subtitle={tasks.length > 0 ? `${tasks.length} Aufgabe${tasks.length === 1 ? '' : 'n'}` : undefined}
