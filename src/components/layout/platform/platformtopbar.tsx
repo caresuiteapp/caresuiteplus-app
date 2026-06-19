@@ -234,6 +234,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     flexDirection: 'row',
     alignItems: 'center',
     paddingHorizontal: spacing.md,
+    paddingVertical: 0,
   };
 
   return StyleSheet.create({
@@ -255,6 +256,8 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     },
     center: {
       position: 'absolute',
+      top: 0,
+      bottom: 0,
       left: 0,
       right: 0,
       alignItems: 'center',
@@ -324,21 +327,26 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       minWidth: 0,
       alignItems: 'center',
       justifyContent: 'center',
+      paddingVertical: 0,
     },
     tenantLabel: {
       ...typography.caption,
       color: colors.textMuted,
       fontSize: 10,
+      lineHeight: 12,
       textTransform: 'uppercase',
       letterSpacing: 0.6,
       fontWeight: '600',
       textAlign: 'center',
+      paddingVertical: 0,
     },
     tenantName: {
       ...typography.bodyStrong,
       color: isDark ? '#FFFFFF' : colors.textPrimary,
       fontWeight: '700',
+      lineHeight: 20,
       textAlign: 'center',
+      paddingVertical: 0,
     },
     chevronSlot: {
       width: TOPBAR_ICON_SIZE,
