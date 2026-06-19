@@ -1,6 +1,6 @@
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import {
@@ -31,13 +31,21 @@ export const trackingSupabaseRepository = {
       .select(TRACKING_DASHBOARD_SELECT_COLUMNS)
       .eq('tenant_id', tenantId)
       .maybeSingle();
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (isSupabaseMissingTableError(error)) {
+        return { ok: true, data: null, tableMissing: true };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
     return { ok: true, data: (data as TrackingDashboardLiveRow | null) ?? null };
   },
 
   async getDashboardMapped(tenantId: string) {
     const result = await this.getDashboardForTenant(tenantId);
     if (!result.ok) return result;
+    if (result.tableMissing) {
+      return { ok: true as const, data: emptyTrackingDashboard(), tableMissing: true };
+    }
     if (!result.data) {
       return { ok: true as const, data: emptyTrackingDashboard() };
     }

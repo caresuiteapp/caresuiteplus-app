@@ -12,6 +12,8 @@ import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { tripSupabaseRepository } from '@/lib/services/repositories/tripRepository.supabase';
 import { trackingSupabaseRepository } from '@/lib/services/repositories/trackingRepository.supabase';
+import { isMissingTableServiceError } from '@/lib/supabase/errors';
+import { emptyTrackingDashboard } from '@/lib/assist/trackingDashboardMapper';
 
 function tenantDenied<T>(tenantId: string): ServiceResult<T> | null {
   const block = guardServiceTenant(tenantId);
@@ -37,7 +39,14 @@ export async function fetchTripLogList(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    return tripSupabaseRepository.listMapped(tenantId);
+    const result = await tripSupabaseRepository.listMapped(tenantId);
+    if (result.ok && result.tableMissing) {
+      return { ok: true, data: [] };
+    }
+    if (!result.ok && isMissingTableServiceError(result.error)) {
+      return { ok: true, data: [] };
+    }
+    return result;
   }
 
   await new Promise((r) => setTimeout(r, 300));
@@ -56,7 +65,14 @@ export async function fetchTripDetail(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    return tripSupabaseRepository.getDetailMapped(tripId, tenantId);
+    const result = await tripSupabaseRepository.getDetailMapped(tripId, tenantId);
+    if (result.ok && result.tableMissing) {
+      return { ok: false, error: 'Fahrt nicht gefunden.' };
+    }
+    if (!result.ok && isMissingTableServiceError(result.error)) {
+      return { ok: false, error: 'Fahrt nicht gefunden.' };
+    }
+    return result;
   }
 
   await new Promise((r) => setTimeout(r, 260));
@@ -97,7 +113,14 @@ export async function fetchTrackingDashboard(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    return trackingSupabaseRepository.getDashboardMapped(tenantId);
+    const result = await trackingSupabaseRepository.getDashboardMapped(tenantId);
+    if (result.ok && result.tableMissing) {
+      return { ok: true, data: emptyTrackingDashboard() };
+    }
+    if (!result.ok && isMissingTableServiceError(result.error)) {
+      return { ok: true, data: emptyTrackingDashboard() };
+    }
+    return result;
   }
 
   await new Promise((r) => setTimeout(r, 320));

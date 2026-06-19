@@ -1,6 +1,6 @@
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { TenantTableRow } from './createTenantTableRepository';
@@ -48,14 +48,24 @@ export const tripSupabaseRepository = {
       .select(TRIP_LIVE_SELECT_COLUMNS)
       .eq('tenant_id', tenantId)
       .order('updated_at', { ascending: false });
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (isSupabaseMissingTableError(error)) {
+        return { ok: true, data: [], tableMissing: true };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
     return { ok: true, data: (data ?? []) as unknown as TripLiveRow[] };
   },
 
   async listMapped(tenantId: string) {
     const result = await this.listForTripLog(tenantId);
     if (!result.ok) return result;
-    return mapTripRowsToListItems(result.data);
+    const mapped = mapTripRowsToListItems(result.data);
+    if (!mapped.ok) return mapped;
+    if (result.tableMissing) {
+      return { ...mapped, tableMissing: true };
+    }
+    return mapped;
   },
 
   async getByIdForTripLog(
@@ -69,13 +79,21 @@ export const tripSupabaseRepository = {
       .eq('tenant_id', tenantId)
       .eq('id', tripId)
       .maybeSingle();
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (isSupabaseMissingTableError(error)) {
+        return { ok: true, data: null, tableMissing: true };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
     return { ok: true, data: (data as TripDetailLiveRow | null) ?? null };
   },
 
   async getDetailMapped(tripId: string, tenantId: string) {
     const result = await this.getByIdForTripLog(tripId, tenantId);
     if (!result.ok) return result;
+    if (result.tableMissing) {
+      return { ok: false as const, error: 'Fahrt nicht gefunden.' };
+    }
     if (!result.data) {
       return { ok: false as const, error: 'Fahrt nicht gefunden.' };
     }

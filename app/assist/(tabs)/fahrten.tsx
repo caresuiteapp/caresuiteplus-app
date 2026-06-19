@@ -1,3 +1,3 @@
-import { TripsListScreen } from '@/screens/assist/TripsListScreen';
+import { TripsAdaptiveScreen } from '@/screens/assist/TripsAdaptiveScreen';
 
-export default TripsListScreen;
+export default TripsAdaptiveScreen;
