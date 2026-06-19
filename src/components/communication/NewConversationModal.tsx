@@ -13,7 +13,10 @@ import { useCommunicationPermissions } from '@/hooks/communication';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchOfficeComposeRecipients } from '@/lib/office/officeComposeRecipientService';
 import { useAuth } from '@/lib/auth/context';
-import { renderTemplateWithVariables, getSampleVariableValues } from '@/lib/templates/templateVariables';
+import {
+  getComposeVariableValues,
+  renderTemplateWithVariables,
+} from '@/lib/templates/templateVariables';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import type { OfficeRecipientType } from '@/types/office/officeCompose';
@@ -32,6 +35,9 @@ const RECIPIENT_TYPES: { key: OfficeRecipientType; label: string }[] = [
 ];
 
 const PRIORITIES = Object.entries(PRIORITY_LABELS) as [CommunicationPriority, string][];
+
+/** 2× PremiumInput default minHeight (48). */
+const COMPOSE_MULTILINE_MIN_HEIGHT = 96;
 
 function mapRecipientToThreadType(type: OfficeRecipientType): CommunicationThreadType {
   if (type === 'client') return 'client';
@@ -116,8 +122,22 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
     })();
   }, [visible, tenantId, recipientType, profile?.roleKey]);
 
+  const selectedRecipientLabel = useMemo(
+    () => recipientOptions.find((option) => option.key === recipientId)?.label ?? null,
+    [recipientOptions, recipientId],
+  );
+
+  const templateVariables = useMemo(
+    () =>
+      getComposeVariableValues({
+        recipientType: recipientType === 'internal' ? undefined : recipientType,
+        recipientName: recipientType !== 'internal' ? selectedRecipientLabel : null,
+      }),
+    [recipientType, selectedRecipientLabel],
+  );
+
   const previewBody = messageBody
-    ? renderTemplateWithVariables(messageBody, getSampleVariableValues())
+    ? renderTemplateWithVariables(messageBody, templateVariables)
     : '';
   const effectiveTitle = title.trim() || previewBody.slice(0, 80).trim() || '';
   const canSubmit = Boolean(effectiveTitle) && !loading && perms.canCreateThread;
@@ -293,6 +313,7 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
           onChangeText={setMessageBody}
           placeholder="Ihre Nachricht…"
           multiline
+          style={{ minHeight: COMPOSE_MULTILINE_MIN_HEIGHT }}
           hint="Mindestens 10 Zeichen bei Versand"
         />
 
@@ -302,6 +323,7 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
             value={previewBody}
             editable={false}
             multiline
+            style={{ minHeight: COMPOSE_MULTILINE_MIN_HEIGHT }}
             hint="Variablen mit Beispielwerten"
           />
         ) : null}

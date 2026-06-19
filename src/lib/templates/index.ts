@@ -5,6 +5,7 @@ export {
   TEMPLATE_VARIABLES,
   getTemplateVariableKeys,
   getSampleVariableValues,
+  getComposeVariableValues,
   type TemplateVariableDefinition,
 } from './templateVariables';
 export * from './templatePermissions';

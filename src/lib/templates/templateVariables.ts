@@ -86,3 +86,37 @@ export function getTemplateVariableKeys(): string[] {
 export function getSampleVariableValues(): Record<string, string> {
   return Object.fromEntries(TEMPLATE_VARIABLES.map((v) => [v.key, v.example]));
 }
+
+type ComposeRecipientType = 'client' | 'employee';
+
+/** Vorlagenvariablen für Compose: Empfängername überschreibt Beispielwerte in der Vorschau. */
+export function getComposeVariableValues(options?: {
+  recipientType?: ComposeRecipientType;
+  recipientName?: string | null;
+}): Record<string, string> {
+  const variables = getSampleVariableValues();
+  const name = options?.recipientName?.trim();
+  if (!name || !options?.recipientType) return variables;
+
+  const [firstName, ...lastParts] = name.split(/\s+/);
+  const lastName = lastParts.join(' ');
+
+  if (options.recipientType === 'client') {
+    return {
+      ...variables,
+      clientName: name,
+      clientFirstName: firstName,
+      clientLastName: lastName || firstName,
+      name,
+      toPerson: name,
+    };
+  }
+
+  return {
+    ...variables,
+    employeeName: name,
+    clientName: name,
+    name,
+    toPerson: name,
+  };
+}
