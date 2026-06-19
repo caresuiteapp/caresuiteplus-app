@@ -11,6 +11,10 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
+import {
+  formatHourlyRateDocumentAmount,
+  parseHourlyRateEuro,
+} from '@/lib/formatters/numberFormatters';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
 
 const DEMO_STORE = new Map<string, TenantSettingsSnapshot>();
@@ -238,6 +242,9 @@ async function saveToSupabase(
       data: mapRowToSnapshot(tenantId, data, logoUrl),
     };
   }
+
+  const billingResult = await saveBillingSettings(tenantId, form.assistDefaultHourlyRate);
+  if (!billingResult.ok) return billingResult;
 
   return {
     ok: true,
