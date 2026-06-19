@@ -123,36 +123,52 @@ export async function persistTenantLogoUrl(
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const { error } = await fromUnknownTable(supabase, 'tenant_branding')
-    .upsert({ tenant_id: tenantId, logo_url: logoUrl }, { onConflict: 'tenant_id' });
+    .upsert(
+      {
+        tenant_id: tenantId,
+        logo_url: logoUrl,
+        updated_at: new Date().toISOString(),
+      },
+      { onConflict: 'tenant_id' },
+    );
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   return { ok: true, data: undefined };
 }
 
+/** True when the user requested a logo upload or removal. */
+export function hasTenantLogoChanges(logo: TenantLogoValue, currentLogoUrl: string): boolean {
+  if (logo.pending) return true;
+  if (logo.removed) return currentLogoUrl.trim().length > 0;
+  return false;
+}
+
 export async function resolveTenantLogoUrlForSave(
   tenantId: string,
   logo: TenantLogoValue,
-  manualLogoUrl: string,
+  currentLogoUrl: string,
   isLive: boolean,
 ): Promise<ServiceResult<string | null>> {
   if (logo.removed) {
-    if (isLive) {
-      const cleared = await persistTenantLogoUrl(tenantId, null);
-      if (!cleared.ok) return cleared;
-    }
     return { ok: true, data: null };
   }
 
   if (logo.pending) {
+    if (!isLive) {
+      return { ok: true, data: logo.pending.localUri };
+    }
     const uploaded = await uploadTenantLogo(tenantId, logo.pending);
     if (!uploaded.ok) return uploaded;
-    if (isLive) {
-      const persisted = await persistTenantLogoUrl(tenantId, uploaded.data.logoUrl);
-      if (!persisted.ok) return persisted;
-    }
     return { ok: true, data: uploaded.data.logoUrl };
   }
 
-  const trimmed = manualLogoUrl.trim();
-  return { ok: true, data: trimmed || null };
+  const displayChanged = (logo.displayUri ?? '').trim() !== currentLogoUrl.trim();
+  if (displayChanged) {
+    return {
+      ok: false,
+      error: 'Logo-Datei ist nicht bereit. Bitte erneut auswählen.',
+    };
+  }
+
+  return { ok: true, data: currentLogoUrl.trim() || null };
 }

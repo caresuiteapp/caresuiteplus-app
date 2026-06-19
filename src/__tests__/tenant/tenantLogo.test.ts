@@ -1,6 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import {
   buildTenantLogoStoragePath,
+  EMPTY_TENANT_LOGO,
+  hasTenantLogoChanges,
+  resolveTenantLogoUrlForSave,
   TENANT_LOGO_MAX_BYTES,
   validateTenantLogoFile,
 } from '@/lib/tenant/tenantLogoService';
@@ -53,5 +56,72 @@ describe('tenant logo service', () => {
   it('rejects empty files', () => {
     const result = validateTenantLogoFile('image/jpeg', 0);
     expect(result.ok).toBe(false);
+  });
+});
+
+describe('hasTenantLogoChanges', () => {
+  it('detects pending uploads and removals', () => {
+    expect(hasTenantLogoChanges(EMPTY_TENANT_LOGO, '')).toBe(false);
+    expect(
+      hasTenantLogoChanges(
+        {
+          ...EMPTY_TENANT_LOGO,
+          pending: {
+            localUri: 'blob:test',
+            fileName: 'logo.png',
+            mimeType: 'image/png',
+            sizeBytes: 1,
+            contentBase64: 'a',
+          },
+        },
+        '',
+      ),
+    ).toBe(true);
+    expect(
+      hasTenantLogoChanges({ ...EMPTY_TENANT_LOGO, removed: true }, 'https://example.com/logo.png'),
+    ).toBe(true);
+    expect(
+      hasTenantLogoChanges({ ...EMPTY_TENANT_LOGO, removed: true }, ''),
+    ).toBe(false);
+  });
+});
+
+describe('resolveTenantLogoUrlForSave', () => {
+  it('rejects display changes without pending upload payload', async () => {
+    const result = await resolveTenantLogoUrlForSave(
+      'tenant-1',
+      { ...EMPTY_TENANT_LOGO, displayUri: 'blob:new-logo' },
+      '',
+      true,
+    );
+
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/nicht bereit/);
+    }
+  });
+
+  it('returns local uri in demo mode for pending uploads', async () => {
+    const result = await resolveTenantLogoUrlForSave(
+      'tenant-1',
+      {
+        displayUri: 'blob:demo-logo',
+        pending: {
+          localUri: 'blob:demo-logo',
+          fileName: 'logo.png',
+          mimeType: 'image/png',
+          sizeBytes: 1,
+          contentBase64: 'a',
+        },
+        removed: false,
+      },
+      '',
+      false,
+    );
+
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data).toBe('blob:demo-logo');
+    }
   });
 });

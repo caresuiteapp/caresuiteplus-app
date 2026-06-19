@@ -623,6 +623,18 @@ async function replaceMultiRow(
   return fetchTenantCenter(tenantId, actorRoleKey);
 }
 
+export function patchDemoTenantBrandingLogo(
+  tenantId: string,
+  logoUrl: string,
+): TenantBrandingProfile {
+  const snap = ensureDemoSnapshot(tenantId);
+  snap.branding = { ...snap.branding, logoUrl };
+  snap.updatedAt = new Date().toISOString();
+  snap.sections = buildTenantCenterSections(snap);
+  DEMO_STORE.set(tenantId, snap);
+  return snap.branding;
+}
+
 export function resetTenantCenterStore(): void {
   DEMO_STORE.clear();
 }

@@ -27,6 +27,7 @@ type Props = {
   companyName: string;
   value?: TenantLogoValue;
   onChange: (value: TenantLogoValue) => void;
+  onPickingChange?: (picking: boolean) => void;
   disabled?: boolean;
   style?: ViewStyle;
   error?: string | null;
@@ -89,6 +90,7 @@ export function TenantLogoPicker({
   companyName,
   value = EMPTY_TENANT_LOGO,
   onChange,
+  onPickingChange,
   disabled = false,
   style,
   error,
@@ -164,6 +166,7 @@ export function TenantLogoPicker({
     if (disabled || picking) return;
     setPickError(null);
     setPicking(true);
+    onPickingChange?.(true);
     try {
       const result = await DocumentPicker.getDocumentAsync({
         type: [...TENANT_LOGO_ALLOWED_MIME_TYPES],
@@ -185,6 +188,7 @@ export function TenantLogoPicker({
       });
     } finally {
       setPicking(false);
+      onPickingChange?.(false);
     }
   };
 

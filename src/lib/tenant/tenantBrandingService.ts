@@ -1,8 +1,8 @@
 import type { ServiceResult } from '@/types';
 import type { TenantBrandingProfile } from '@/types/tenant/tenantCenter';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import {
+  hasTenantLogoChanges,
   persistTenantLogoUrl,
   resolveTenantLogoUrlForSave,
   type TenantLogoValue,
@@ -10,6 +10,7 @@ import {
 import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { enforcePermission } from '@/lib/permissions';
 import type { RoleKey } from '@/types';
+import { patchDemoTenantBrandingLogo } from './tenantCenterService';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
 
 const logoUrlByTenantId = new Map<string, string>();
@@ -54,44 +55,29 @@ export async function saveTenantBrandingProfile(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  if (!hasTenantLogoChanges(logo, profile.logoUrl)) {
+    return { ok: false, error: 'Keine Logo-Änderungen zum Speichern.' };
+  }
+
+  const isLive = isLiveServiceMode();
   const logoResult = await resolveTenantLogoUrlForSave(
     tenantId,
     logo,
     profile.logoUrl,
-    isLiveServiceMode(),
+    isLive,
   );
   if (!logoResult.ok) return logoResult;
 
   const nextLogoUrl = logoResult.data;
 
-  if (!isLiveServiceMode()) {
+  if (!isLive) {
+    const branding = patchDemoTenantBrandingLogo(tenantId, nextLogoUrl ?? '');
     setCachedTenantBrandingLogoUrl(tenantId, nextLogoUrl ?? '');
-    return {
-      ok: true,
-      data: {
-        ...profile,
-        logoUrl: nextLogoUrl ?? '',
-      },
-    };
+    return { ok: true, data: branding };
   }
 
-  const client = getSupabaseClient();
-  if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
-
-  const { error } = await client.from('tenant_branding').upsert(
-    {
-      tenant_id: tenantId,
-      logo_url: nextLogoUrl,
-      updated_at: new Date().toISOString(),
-    },
-    { onConflict: 'tenant_id' },
-  );
-
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-
-  if (nextLogoUrl !== profile.logoUrl.trim()) {
-    await persistTenantLogoUrl(tenantId, nextLogoUrl);
-  }
+  const persisted = await persistTenantLogoUrl(tenantId, nextLogoUrl);
+  if (!persisted.ok) return persisted;
 
   setCachedTenantBrandingLogoUrl(tenantId, nextLogoUrl ?? '');
 

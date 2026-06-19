@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { TenantCenterGlassModal } from '@/components/tenant/TenantCenterGlassModal';
 import {
@@ -27,7 +27,7 @@ import {
   saveTenantTaxProfile,
 } from '@/lib/tenant/tenantCenterService';
 import { saveTenantBrandingProfile } from '@/lib/tenant/tenantBrandingService';
-import { EMPTY_TENANT_LOGO, type TenantLogoValue } from '@/lib/tenant/tenantLogoService';
+import { EMPTY_TENANT_LOGO, hasTenantLogoChanges, type TenantLogoValue } from '@/lib/tenant/tenantLogoService';
 import { usePermissions } from '@/hooks/usePermissions';
 
 type Props = {
@@ -63,6 +63,19 @@ export function TenantCenterSectionModals({
     ...EMPTY_TENANT_LOGO,
     displayUri: snapshot.branding.logoUrl || null,
   });
+  const [logoPicking, setLogoPicking] = useState(false);
+
+  const brandingDirty = hasTenantLogoChanges(logo, snapshot.branding.logoUrl);
+
+  useEffect(() => {
+    if (activeSection !== 'branding') return;
+    setLogo({
+      ...EMPTY_TENANT_LOGO,
+      displayUri: snapshot.branding.logoUrl || null,
+    });
+    setError(null);
+    setLogoPicking(false);
+  }, [activeSection, snapshot.branding.logoUrl]);
 
   const runSave = async (action: () => Promise<{ ok: boolean; error?: string }>) => {
     setSaving(true);
@@ -168,11 +181,17 @@ export function TenantCenterSectionModals({
         {...common}
         visible={activeSection === 'branding'}
         title="Logo"
+        primaryDisabled={saving || logoPicking || !brandingDirty}
         onPrimary={() =>
           runSave(async () => saveTenantBrandingProfile(tenantId, snapshot.branding, logo, roleKey))
         }
       >
-        <TenantLogoPicker companyName={company.name} value={logo} onChange={setLogo} />
+        <TenantLogoPicker
+          companyName={company.name}
+          value={logo}
+          onChange={setLogo}
+          onPickingChange={setLogoPicking}
+        />
         {error ? <Text style={{ color: '#F87171' }}>{error}</Text> : null}
       </TenantCenterGlassModal>
 
