@@ -22,6 +22,8 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
     expect(hook).toContain('resolvePortalContext');
     const service = readSrc('src/lib/portal/clientModuleAssignmentService.ts');
     expect(service).toContain('client_module_assignments');
+    expect(service).toContain('upsert');
+    expect(service).toContain('onConflict: \'tenant_id,client_id,module_key\'');
   });
 
   it('fetches live widget data for active modules', () => {

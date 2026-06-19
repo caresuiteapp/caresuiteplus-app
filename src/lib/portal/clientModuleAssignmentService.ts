@@ -67,12 +67,13 @@ export async function saveClientModuleAssignments(
 
   const uniqueModules = sortPortalModules(filterPortalModuleKeys([...new Set(moduleKeys)]));
   const primaryModule = uniqueModules[0] ?? null;
+  const selectedModules = new Set(uniqueModules);
 
   const { data: existing, error: readError } = await fromUnknownTable(
     supabase,
     'client_module_assignments',
   )
-    .select('id, module_key')
+    .select('module_key')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId);
 
@@ -80,25 +81,12 @@ export async function saveClientModuleAssignments(
     return { ok: false, error: toGermanSupabaseError(readError) };
   }
 
-  const existingRows = (existing ?? []) as Record<string, unknown>[];
-  const existingKeys = new Set(existingRows.map((row) => String(row.module_key ?? '')));
+  const existingKeys = ((existing ?? []) as Record<string, unknown>[])
+    .map((row) => String(row.module_key ?? ''))
+    .filter((key): key is PortalModuleKey => isPortalModuleKey(key));
 
-  for (const row of existingRows) {
-    const key = String(row.module_key ?? '');
-    if (!isPortalModuleKey(key)) continue;
-    if (uniqueModules.includes(key)) continue;
-    const { error } = await fromUnknownTable(supabase, 'client_module_assignments')
-      .delete()
-      .eq('id', String(row.id));
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  }
-
-  if (uniqueModules.length === 0) {
-    return { ok: true, data: { saved: [] } };
-  }
-
-  for (const moduleKey of uniqueModules) {
-    const payload = {
+  if (uniqueModules.length > 0) {
+    const upsertPayloads = uniqueModules.map((moduleKey) => ({
       tenant_id: tenantId,
       client_id: clientId,
       module_key: moduleKey,
@@ -107,19 +95,23 @@ export async function saveClientModuleAssignments(
       assigned_by: assignedBy ?? null,
       assigned_at: new Date().toISOString(),
       status: 'active',
-    };
+    }));
 
-    if (existingKeys.has(moduleKey)) {
-      const { error } = await fromUnknownTable(supabase, 'client_module_assignments')
-        .update(payload)
-        .eq('tenant_id', tenantId)
-        .eq('client_id', clientId)
-        .eq('module_key', moduleKey);
-      if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    } else {
-      const { error } = await fromUnknownTable(supabase, 'client_module_assignments').insert(payload);
-      if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    }
+    const { error: upsertError } = await fromUnknownTable(supabase, 'client_module_assignments').upsert(
+      upsertPayloads,
+      { onConflict: 'tenant_id,client_id,module_key' },
+    );
+    if (upsertError) return { ok: false, error: toGermanSupabaseError(upsertError) };
+  }
+
+  const toDeactivate = existingKeys.filter((moduleKey) => !selectedModules.has(moduleKey));
+  if (toDeactivate.length > 0) {
+    const { error: deactivateError } = await fromUnknownTable(supabase, 'client_module_assignments')
+      .update({ is_active: false, is_primary: false, status: 'inactive' })
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .in('module_key', toDeactivate);
+    if (deactivateError) return { ok: false, error: toGermanSupabaseError(deactivateError) };
   }
 
   return { ok: true, data: { saved: uniqueModules } };
