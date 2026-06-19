@@ -1,234 +1,189 @@
-import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, Text } from 'react-native';
-import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
-import { SettingsScreenFrame } from '@/components/settings/settingsscreenframe';
-import {
-  ErrorState,
-  LoadingState,
-  PremiumButton,
-  PremiumInput,
-  SectionPanel,
-  SuccessState,
-} from '@/components/ui';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAuth } from '@/lib/auth/context';
-import {
-  fetchTenantSettings,
-  saveTenantSettings,
-  toTenantSettingsForm,
-} from '@/lib/tenant/tenantSettingsService';
-import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
-import type { TenantSettingsForm } from '@/types/tenant/tenantSettings';
-import { spacing, typography } from '@/theme';
-
-export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInModal?: boolean } = {}) {
-  const { profile } = useAuth();
-  const tenantId = useServiceTenantId();
-  const { can, check, roleLabel } = usePermissions();
-  const [form, setForm] = useState<TenantSettingsForm | null>(null);
-  const [saving, setSaving] = useState(false);
-  const [saved, setSaved] = useState(false);
-  const [saveError, setSaveError] = useState<string | null>(null);
-
-  const query = useAsyncQuery(
-    () => {
-      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return fetchTenantSettings(tenantId, profile?.roleKey);
-    },
-    [tenantId, profile?.roleKey],
-    { enabled: !!tenantId },
-  );
-
-  useEffect(() => {
-    if (!query.data) return;
-    setForm(toTenantSettingsForm(query.data));
-  }, [query.data?.updatedAt]);
-
-  if (!can(TENANT_SETTINGS_PERMISSION)) {
-    return (
-      <SettingsScreenFrame
-        title="Mandant"
-        subtitle="Organisation"
-        embeddedInModal={embeddedInModal}
-      >
-        <LockedActionBanner
-          message={check(TENANT_SETTINGS_PERMISSION).reason ?? 'Keine Berechtigung für Mandanten-Stammdaten.'}
-          roleLabel={roleLabel}
-        />
-      </SettingsScreenFrame>
-    );
-  }
-
-  if (query.loading && !query.data) {
-    return (
-      <SettingsScreenFrame
-        title="Mandant"
-        subtitle="Wird geladen…"
-        embeddedInModal={embeddedInModal}
-      >
-        <LoadingState message="Mandantendaten werden geladen…" />
-      </SettingsScreenFrame>
-    );
-  }
-
-  if (query.error && !query.data) {
-    return (
-      <SettingsScreenFrame
-        title="Mandant"
-        subtitle="Fehler"
-        embeddedInModal={embeddedInModal}
-      >
-        <ErrorState message={query.error} onRetry={query.refresh} />
-      </SettingsScreenFrame>
-    );
-  }
-
-  if (!form) {
-    return (
-      <SettingsScreenFrame
-        title="Mandant"
-        subtitle="Wird geladen…"
-        embeddedInModal={embeddedInModal}
-      >
-        <LoadingState message="Formular wird vorbereitet…" />
-      </SettingsScreenFrame>
-    );
-  }
-
-  const patch = <K extends keyof TenantSettingsForm>(key: K, value: TenantSettingsForm[K]) => {
-    setForm((prev) => (prev ? { ...prev, [key]: value } : prev));
-    setSaved(false);
-    setSaveError(null);
-  };
-
-  const handleSave = async () => {
-    if (!tenantId || !form) return;
-    setSaving(true);
-    setSaveError(null);
-    const result = await saveTenantSettings(tenantId, form, profile?.roleKey);
-    setSaving(false);
-    if (result.ok) {
-      setSaved(true);
-      setForm(toTenantSettingsForm(result.data));
-      await query.refresh();
-      return;
-    }
-    setSaveError(result.error);
-  };
-
-  return (
-    <CareLightPageShell
-      title="Mandant"
-      subtitle={`${query.data?.name ?? 'Organisation'} · ${roleLabel ?? ''}`}
-      showBack
-    >
-      <ScrollView contentContainerStyle={styles.scroll}>
-        <Text style={styles.lead}>
-          Firmenname, Adresse, Kontakt und Logo für Ihren Mandanten — sichtbar in Dokumenten und der App.
-        </Text>
-
-        {saved ? <SuccessState message="Mandantendaten gespeichert." /> : null}
-        {saveError ? <ErrorState message={saveError} /> : null}
-
-        <SectionPanel title="Firma">
-          <PremiumInput
-            label="Firmenname"
-            value={form.name}
-            onChangeText={(value) => patch('name', value)}
-            placeholder="z. B. Helferhasen+ Pflegedienst"
-          />
-          <PremiumInput
-            label="Rechtlicher Name (optional)"
-            value={form.legalName}
-            onChangeText={(value) => patch('legalName', value)}
-            placeholder="z. B. Helferhasen Plus GmbH"
-          />
-        </SectionPanel>
-
-        <SectionPanel title="Adresse">
-          <PremiumInput
-            label="Straße"
-            value={form.street}
-            onChangeText={(value) => patch('street', value)}
-          />
-          <PremiumInput
-            label="Hausnummer"
-            value={form.houseNumber}
-            onChangeText={(value) => patch('houseNumber', value)}
-          />
-          <PremiumInput label="PLZ" value={form.zip} onChangeText={(value) => patch('zip', value)} />
-          <PremiumInput label="Ort" value={form.city} onChangeText={(value) => patch('city', value)} />
-          <PremiumInput
-            label="Land"
-            value={form.country}
-            onChangeText={(value) => patch('country', value)}
-          />
-        </SectionPanel>
-
-        <SectionPanel title="Kontakt">
-          <PremiumInput
-            label="Telefon"
-            value={form.phone}
-            onChangeText={(value) => patch('phone', value)}
-            keyboardType="phone-pad"
-          />
-          <PremiumInput
-            label="E-Mail"
-            value={form.email}
-            onChangeText={(value) => patch('email', value)}
-            keyboardType="email-address"
-            autoCapitalize="none"
-          />
-          <PremiumInput
-            label="Website"
-            value={form.website}
-            onChangeText={(value) => patch('website', value)}
-            autoCapitalize="none"
-          />
-        </SectionPanel>
-
-        <SectionPanel title="Abrechnung">
-          <PremiumInput
-            label="Stundensatz Assist (netto, EUR)"
-            value={form.assistDefaultHourlyRate}
-            onChangeText={(value) => patch('assistDefaultHourlyRate', value)}
-            keyboardType="decimal-pad"
-            placeholder="z. B. 38,00"
-            hint="Standard-Stundensatz für Assist-Verträge und Intake-Dokumente, sofern kein klientenspezifischer Satz gesetzt ist."
-          />
-        </SectionPanel>
-
-        <SectionPanel title="Logo">
-          <PremiumInput
-            label="Logo-URL"
-            value={form.logoUrl}
-            onChangeText={(value) => patch('logoUrl', value)}
-            placeholder="https://…"
-            autoCapitalize="none"
-            hint="URL zu Ihrem Firmenlogo (PNG/SVG) für Dokumente und Branding."
-          />
-        </SectionPanel>
-
-        <PremiumButton
-          title={saving ? 'Speichern…' : 'Speichern'}
-          onPress={handleSave}
-          disabled={saving || !form.name.trim()}
-        />
-      </ScrollView>
-    </CareLightPageShell>
-  );
-}
-
-const styles = StyleSheet.create({
-  scroll: {
-    padding: spacing.md,
-    gap: spacing.md,
-  },
-  lead: {
-    ...typography.body,
-    marginBottom: spacing.xs,
-  },
-});
+import { useMemo, useState } from 'react';
+import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import { LockedActionBanner } from '@/components/permissions';
+import { CareLightPageShell } from '@/components/layout';
+import { SettingsScreenFrame } from '@/components/settings/settingsscreenframe';
+import { TenantCenterSectionCard } from '@/components/tenant/TenantCenterSectionCard';
+import { TenantCenterSectionModals } from '@/components/tenant/TenantCenterSectionModals';
+import { TenantCustomFieldWizardModal } from '@/components/tenant/TenantCustomFieldWizardModal';
+import { TenantServiceCatalogModal } from '@/components/tenant/TenantServiceCatalogModal';
+import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { careSpacing } from '@/design/tokens/spacing';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { ensureTenantCatalogSeeded } from '@/lib/tenant/tenantCenterService';
+import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
+import type { TenantCenterSectionKey } from '@/types/tenant/tenantCenter';
+
+export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInModal?: boolean } = {}) {
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+  const { can, check, roleLabel } = usePermissions();
+  const text = useAuroraAdaptiveText();
+  const { width } = useWindowDimensions();
+  const [activeSection, setActiveSection] = useState<TenantCenterSectionKey | null>(null);
+  const [catalogOpen, setCatalogOpen] = useState(false);
+  const [customFieldOpen, setCustomFieldOpen] = useState(false);
+  const [saved, setSaved] = useState(false);
+
+  const columns = width >= 1200 ? 3 : width >= 760 ? 2 : 1;
+
+  const query = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return ensureTenantCatalogSeeded(tenantId, profile?.roleKey);
+    },
+    [tenantId, profile?.roleKey],
+    { enabled: !!tenantId },
+  );
+
+  const snapshot = query.data;
+
+  const primarySections = useMemo(
+    () => snapshot?.sections.filter((section) => !section.stub) ?? [],
+    [snapshot?.sections],
+  );
+  const stubSections = useMemo(
+    () => snapshot?.sections.filter((section) => section.stub) ?? [],
+    [snapshot?.sections],
+  );
+
+  const handleEdit = (key: TenantCenterSectionKey) => {
+    if (key === 'catalog') {
+      setCatalogOpen(true);
+      return;
+    }
+    if (key === 'customFields') {
+      setCustomFieldOpen(true);
+      return;
+    }
+    setActiveSection(key);
+  };
+
+  const handleSaved = async () => {
+    setSaved(true);
+    await query.refresh();
+  };
+
+  if (!can(TENANT_SETTINGS_PERMISSION)) {
+    return (
+      <SettingsScreenFrame title="Mandant" subtitle="Organisation" embeddedInModal={embeddedInModal}>
+        <LockedActionBanner
+          message={check(TENANT_SETTINGS_PERMISSION).reason ?? 'Keine Berechtigung für Mandanten-Stammdaten.'}
+          roleLabel={roleLabel}
+        />
+      </SettingsScreenFrame>
+    );
+  }
+
+  if (query.loading && !snapshot) {
+    return (
+      <SettingsScreenFrame title="Mandant" subtitle="Wird geladen…" embeddedInModal={embeddedInModal}>
+        <LoadingState message="Mandantendaten werden geladen…" />
+      </SettingsScreenFrame>
+    );
+  }
+
+  if (query.error && !snapshot) {
+    return (
+      <SettingsScreenFrame title="Mandant" subtitle="Fehler" embeddedInModal={embeddedInModal}>
+        <ErrorState message={query.error} onRetry={query.refresh} />
+      </SettingsScreenFrame>
+    );
+  }
+
+  if (!snapshot || !tenantId) {
+    return (
+      <SettingsScreenFrame title="Mandant" subtitle="Wird geladen…" embeddedInModal={embeddedInModal}>
+        <LoadingState message="Mandanten-Center wird vorbereitet…" />
+      </SettingsScreenFrame>
+    );
+  }
+
+  return (
+    <CareLightPageShell
+      title="Mandanten-Center"
+      subtitle={`${snapshot.company.name || 'Organisation'} · ${roleLabel ?? ''}`}
+      showBack
+    >
+      <ScrollView contentContainerStyle={styles.scroll}>
+        <Text style={[styles.lead, { color: text.secondary }]}>
+          Zentrale Verwaltung Ihrer Mandanten-Stammdaten, Leistungskatalog und individuellen Felder — alles mandantenspezifisch aus Ihrem Konto.
+        </Text>
+
+        {saved ? <SuccessState message="Mandantendaten gespeichert." /> : null}
+
+        <View style={[styles.grid, { gap: careSpacing.md }]}>
+          {primarySections.map((section) => (
+            <View key={section.key} style={[styles.gridItem, { width: `${100 / columns}%`, maxWidth: `${100 / columns}%` }]}>
+              <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
+            </View>
+          ))}
+        </View>
+
+        {stubSections.length ? (
+          <>
+            <Text style={[styles.sectionHeading, { color: text.muted }]}>Weitere Bereiche</Text>
+            <View style={[styles.grid, { gap: careSpacing.md }]}>
+              {stubSections.map((section) => (
+                <View key={section.key} style={[styles.gridItem, { width: `${100 / columns}%`, maxWidth: `${100 / columns}%` }]}>
+                  <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+      </ScrollView>
+
+      <TenantCenterSectionModals
+        activeSection={activeSection}
+        snapshot={snapshot}
+        tenantId={tenantId}
+        onClose={() => setActiveSection(null)}
+        onSaved={handleSaved}
+      />
+
+      <TenantServiceCatalogModal
+        visible={catalogOpen}
+        tenantId={tenantId}
+        onClose={() => setCatalogOpen(false)}
+        onSaved={handleSaved}
+      />
+
+      <TenantCustomFieldWizardModal
+        visible={customFieldOpen}
+        tenantId={tenantId}
+        onClose={() => setCustomFieldOpen(false)}
+        onSaved={handleSaved}
+      />
+    </CareLightPageShell>
+  );
+}
+
+const styles = StyleSheet.create({
+  scroll: {
+    padding: careSpacing.md,
+    gap: careSpacing.md,
+  },
+  lead: {
+    marginBottom: careSpacing.xs,
+  },
+  sectionHeading: {
+    fontSize: 12,
+    letterSpacing: 0.8,
+    textTransform: 'uppercase',
+    marginTop: careSpacing.sm,
+  },
+  grid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+  },
+  gridItem: {
+    paddingHorizontal: 4,
+    marginBottom: careSpacing.sm,
+  },
+});
+
