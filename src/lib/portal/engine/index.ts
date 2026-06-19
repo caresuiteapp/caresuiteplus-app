@@ -4,6 +4,16 @@ export { PORTAL_WIDGET_REGISTRY, getWidgetsForModules, compareWidgetOrder } from
 export { resolvePortalHeroCopy, resolveTimeBasedGermanGreeting } from './portalHeroCopy';
 export { resolvePortalTerminology, resolveModuleTerminology, resolveCombinedModuleLabel } from './portalTerminology';
 export { filterVisibleFeatures, isFeatureVisible, resolvePortalActorRole } from './portalVisibility';
+export {
+  applyPortalFeatureGates,
+  ASSIST_PORTAL_SECTIONS,
+  canAccessPortalFeature,
+  contextHasActiveModule,
+  EMPTY_PORTAL_CARE_PROFILE,
+  isPortalBudgetFeatureEnabled,
+  resolveApplicablePortalBudgetTypes,
+} from './portalFeatureAccess';
+export type { PortalClientCareProfile } from './portalFeatureAccess';
 export { buildPortalNavigation, portalNavToShellTabs } from './buildPortalNavigation';
 export { buildPortalDashboard } from './buildPortalDashboard';
 export { fetchPortalWidgetData } from './fetchPortalWidgetData';

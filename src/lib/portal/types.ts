@@ -1,4 +1,5 @@
 import type { RoleKey } from '@/types';
+import type { PortalClientCareProfile } from '@/lib/portal/engine/portalFeatureAccess';
 
 /** Care modules that compose the adaptive Klient:innenportal. */
 export type PortalModuleKey = 'assist' | 'pflege' | 'stationaer' | 'beratung';
@@ -70,6 +71,8 @@ export type PortalContext = {
   metrics: PortalLiveMetrics;
   widgetMetrics: PortalWidgetMetrics;
   hasModuleAssignments: boolean;
+  visibilityRules: PortalVisibilityRule[];
+  careProfile: PortalClientCareProfile;
 };
 
 export type PortalNavItem = {

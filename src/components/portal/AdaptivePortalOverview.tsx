@@ -2,7 +2,11 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { AdaptivePortalDashboard } from '@/components/portal/AdaptivePortalDashboard';
-import { AssistPortalOverview } from '@/components/portal/assist';
+import {
+  AssistPortalOverview,
+  AssistPortalSectionBlocked,
+  AssistPortalSectionView,
+} from '@/components/portal/assist';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText, useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
@@ -11,7 +15,9 @@ import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/respo
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalContext } from '@/hooks/usePortalContext';
 import {
+  ASSIST_PORTAL_SECTIONS,
   buildPortalDashboard,
+  canAccessPortalFeature,
   resolveCombinedModuleLabel,
   resolvePortalTerminology,
 } from '@/lib/portal/engine';
@@ -29,10 +35,11 @@ type AdaptivePortalOverviewProps = {
 
 export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePortalOverviewProps) {
   const { context, loading, error, refresh, isReady } = usePortalContext();
-  const params = useLocalSearchParams<{ module?: string }>();
+  const params = useLocalSearchParams<{ module?: string; section?: string }>();
   const routeModule = typeof params.module === 'string' && isPortalModuleKey(params.module)
     ? params.module
     : null;
+  const routeSection = typeof params.section === 'string' ? params.section : null;
   const [activeModule, setActiveModule] = useState<PortalModuleKey | 'all'>(routeModule ?? 'all');
   const text = useAuroraAdaptiveText();
   const heroStyle = useAuroraGlassCardStyle();
@@ -78,6 +85,14 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
   }
 
   if (context.primaryModule === 'assist') {
+    if (routeSection) {
+      const featureKey = ASSIST_PORTAL_SECTIONS[routeSection];
+      if (!featureKey || !canAccessPortalFeature(context, 'assist', featureKey)) {
+        return <AssistPortalSectionBlocked section={routeSection} />;
+      }
+      return <AssistPortalSectionView context={context} section={routeSection} />;
+    }
+
     return (
       <AssistPortalOverview
         context={context}

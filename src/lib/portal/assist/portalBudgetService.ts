@@ -26,31 +26,36 @@ function mapBudgetRow(row: Record<string, unknown>): PortalBudgetSnapshot {
   };
 }
 
-/** Read latest §45b budget snapshot for client — empty when none released. */
+/** Read latest budget snapshot for client — prefers §45b, then §45a. */
 export async function fetchPortalBudgetSnapshot(
   tenantId: string,
   clientId: string,
-  budgetType: PortalBudgetType = 'paragraph_45b',
+  budgetTypes: PortalBudgetType[] = ['paragraph_45b'],
 ): Promise<ServiceResult<PortalBudgetSnapshot | null>> {
   return runService(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
 
-    const { data, error } = await fromUnknownTable(supabase, 'portal_budget_snapshots')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
-      .eq('budget_type', budgetType)
-      .order('period_end', { ascending: false })
-      .limit(1)
-      .maybeSingle();
+    for (const budgetType of budgetTypes) {
+      const { data, error } = await fromUnknownTable(supabase, 'portal_budget_snapshots')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .eq('budget_type', budgetType)
+        .order('period_end', { ascending: false })
+        .limit(1)
+        .maybeSingle();
 
-    if (error) {
-      if (isMissingTableError(error)) return { ok: true, data: null };
-      return { ok: false, error: toGermanSupabaseError(error) };
+      if (error) {
+        if (isMissingTableError(error)) return { ok: true, data: null };
+        return { ok: false, error: toGermanSupabaseError(error) };
+      }
+
+      if (data) {
+        return { ok: true, data: mapBudgetRow(data as Record<string, unknown>) };
+      }
     }
 
-    if (!data) return { ok: true, data: null };
-    return { ok: true, data: mapBudgetRow(data as Record<string, unknown>) };
+    return { ok: true, data: null };
   });
 }

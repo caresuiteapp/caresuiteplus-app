@@ -6,6 +6,7 @@ import { PortalMoreMenu } from '@/components/portal/PortalMoreMenu';
 import { auroraGlass } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { usePortalContext } from '@/hooks/usePortalContext';
 import { splitPortalTabsForMobile } from '@/lib/navigation/portalMobileTabs';
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 import type { ShellTabConfig } from '@/types/navigation/shell';
@@ -30,10 +31,12 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500' }: PortalMobileN
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { context } = usePortalContext();
   const activeKey = resolveActiveTabKey(pathname, tabs);
+  const activeModules = context?.activeModuleKeys ?? [];
   const { primary, overflow } = useMemo(
-    () => splitPortalTabsForMobile(tabs, activeKey),
-    [tabs, activeKey],
+    () => splitPortalTabsForMobile(tabs, activeKey, activeModules),
+    [tabs, activeKey, activeModules],
   );
   const [moreOpen, setMoreOpen] = useState(false);
   const moreActive = overflow.some((tab) => tab.key === activeKey);
