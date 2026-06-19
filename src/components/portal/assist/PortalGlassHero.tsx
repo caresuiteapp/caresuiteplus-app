@@ -10,11 +10,13 @@ import { PORTAL_MOBILE_CTA_GOLD } from '@/components/portal/assist/MobilePortalK
 type PortalGlassHeroProps = {
   eyebrow?: string;
   title: string;
+  /** Second title line on phone — e.g. full display name after greeting. */
+  titleSecondary?: string;
   subtitle?: string;
   meta?: string;
   badge?: string;
   /** Assist module icon — shown left on phone layout. */
-  leadingIcon?: string;
+  leadingIcon?: ReactNode;
   /** Show green status dot before meta on phone. */
   showStatusDot?: boolean;
   children?: ReactNode;
@@ -25,6 +27,7 @@ type PortalGlassHeroProps = {
 export function PortalGlassHero({
   eyebrow,
   title,
+  titleSecondary,
   subtitle,
   meta,
   badge,
@@ -57,9 +60,7 @@ export function PortalGlassHero({
     <GlassCard style={[isPhone && styles.compactCard, style]}>
       {isPhone && leadingIcon ? (
         <View style={styles.phoneRow}>
-          <View style={styles.leadingIconWrap}>
-            <Text style={styles.leadingIcon}>{leadingIcon}</Text>
-          </View>
+          <View style={styles.leadingIconWrap}>{leadingIcon}</View>
           <View style={styles.phoneContent}>
             {badge ? (
               <View style={styles.badgeRow}>
@@ -69,9 +70,14 @@ export function PortalGlassHero({
                 </View>
               </View>
             ) : null}
-            <Text style={[titleStyle, { flexShrink: 1 }]} {...noBreakTextProps} numberOfLines={3}>
+            <Text style={[titleStyle, { flexShrink: 1 }]} {...noBreakTextProps} numberOfLines={2}>
               {title}
             </Text>
+            {titleSecondary ? (
+              <Text style={[titleStyle, { flexShrink: 1 }]} {...noBreakTextProps} numberOfLines={2}>
+                {titleSecondary}
+              </Text>
+            ) : null}
             {subtitle ? (
               <Text
                 style={[type.caption, { color: text.secondary, fontWeight: '600' }]}
@@ -182,9 +188,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
-  },
-  leadingIcon: {
-    fontSize: 22,
   },
   phoneContent: {
     flex: 1,

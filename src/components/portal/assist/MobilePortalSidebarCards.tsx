@@ -3,7 +3,6 @@ import {
   Linking,
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   View,
@@ -123,11 +122,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
 
       <View style={styles.section}>
         <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SCHNELLZUGRIFF</Text>
-        <ScrollView
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          contentContainerStyle={styles.quickRow}
-        >
+        <View style={styles.quickRow}>
           {quickActions.map((action) => (
             <Pressable
               key={action.key}
@@ -141,7 +136,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
               </Text>
             </Pressable>
           ))}
-        </ScrollView>
+        </View>
       </View>
 
       <GlassCard style={styles.card}>
@@ -260,14 +255,16 @@ const styles = StyleSheet.create({
     lineHeight: 18,
   },
   quickRow: {
-    gap: careSpacing.xs,
-    paddingRight: careSpacing.lg,
-    paddingLeft: 2,
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+    width: '100%',
   },
   quickPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: careSpacing.xs,
+    width: '48%',
     minHeight: 44,
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm,

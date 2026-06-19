@@ -82,8 +82,11 @@ describe('Assist portal mobile layout', () => {
   it('MobilePortalDashboard uses full welcome hero copy on phone', () => {
     const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
     expect(mobile).toContain('greetingLabel');
+    expect(mobile).toContain('titleSecondary={context.displayName}');
     expect(mobile).toContain('showStatusDot');
+    expect(mobile).toContain('Feather name="heart"');
     expect(mobile).not.toContain('resolvePortalHeroCopy');
+    expect(mobile).not.toContain('leadingIcon="🤝"');
   });
   it('client portal tabs layout uses PortalShellLayout', () => {
     const layout = readSrc('app/portal/client/(tabs)/_layout.tsx');
@@ -132,7 +135,9 @@ describe('Assist portal mobile layout', () => {
     const sidebar = readSrc('src/components/portal/assist/MobilePortalSidebarCards.tsx');
     expect(sidebar).toContain('Termin anfragen');
     expect(sidebar).toContain('Rückrufbitte');
-    expect(sidebar).toContain('paddingRight: careSpacing.lg');
+    expect(sidebar).toContain("flexWrap: 'wrap'");
+    expect(sidebar).toContain("width: '48%'");
+    expect(sidebar).not.toContain('horizontal');
     expect(sidebar).toContain('Hilfe & Dokumentation');
   });
 
@@ -165,6 +170,7 @@ describe('Assist portal mobile layout', () => {
   it('PortalGlassHero supports leading assist icon on phone', () => {
     const hero = readSrc('src/components/portal/assist/PortalGlassHero.tsx');
     expect(hero).toContain('leadingIcon');
+    expect(hero).toContain('titleSecondary');
     expect(hero).toContain('phoneRow');
     expect(hero).toContain('showStatusDot');
     expect(hero).not.toContain('titleRowPhone');

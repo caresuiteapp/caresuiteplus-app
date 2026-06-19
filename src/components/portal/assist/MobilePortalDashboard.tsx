@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
+import { Feather } from '@expo/vector-icons';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
@@ -209,8 +210,9 @@ export function MobilePortalDashboard({
         ) : null}
 
         <PortalGlassHero
-          leadingIcon="🤝"
-          title={`${terminology.greetingLabel}, ${context.displayName}`}
+          leadingIcon={<Feather name="heart" size={22} color="#7B61FF" />}
+          title={`${terminology.greetingLabel},`}
+          titleSecondary={context.displayName}
           subtitle={context.tenantName}
           meta={`${terminology.moduleLabel} · Rolle: ${terminology.personLabel} · ${releaseLabel}`}
           badge={terminology.moduleLabel}
