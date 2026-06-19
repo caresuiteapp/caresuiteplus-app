@@ -194,11 +194,12 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
 
       <View style={[styles.end, { marginRight: endZoneInsets.marginRight }]}>
         <View style={styles.profileWrap}>
-          <View style={[styles.profileChip, webCursor]}>
+          <View style={styles.profileChip}>
             <TopbarProfileAvatar
               name={displayName}
               avatarUrl={avatarUrl}
               accentColor={accent}
+              style={styles.profileAvatarSlot}
             />
             <Pressable
               onPress={() => {
@@ -212,7 +213,9 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
               <Text style={styles.profileName} numberOfLines={1}>
                 {displayName}
               </Text>
-              <Text style={styles.chevron}>{profileOpen ? '▴' : '▾'}</Text>
+              <View style={styles.chevronSlot}>
+                <Text style={styles.chevron}>{profileOpen ? '▴' : '▾'}</Text>
+              </View>
             </Pressable>
           </View>
           {profileOpen ? (
@@ -393,7 +396,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
         ? ({ boxShadow: '0 12px 40px rgba(0,0,0,0.35)', ...webGlassBlur } as unknown as ViewStyle)
         : null),
     },
-    profileDropdown: { right: 0 },
+    profileDropdown: { minWidth: TOPBAR_SEARCH_WIDTH },
     dropdownItem: {
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
@@ -415,6 +418,8 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       borderBottomWidth: 1,
       borderBottomColor: glassBorder,
       marginBottom: spacing.xs,
+      textAlign: 'center',
+      width: '100%',
     },
     profileWrap: { position: 'relative' },
     profileChip: {
@@ -428,12 +433,14 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       paddingRight: spacing.sm,
       justifyContent: 'flex-start',
     },
+    profileAvatarSlot: {
+      flexShrink: 0,
+    },
     profileMenuTrigger: {
       flex: 1,
       minWidth: 0,
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.xs,
     },
     profileName: {
       ...typography.caption,
@@ -441,6 +448,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       fontWeight: '700',
       flex: 1,
       minWidth: 0,
+      textAlign: 'center',
     },
   });
 }
