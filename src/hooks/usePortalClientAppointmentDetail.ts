@@ -3,23 +3,29 @@ import {
   fetchPortalClientAppointmentDetail,
   requestPortalAppointmentChange,
 } from '@/lib/portal';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery, useMutation } from './core';
 
 export function usePortalClientAppointmentDetail(appointmentId: string | undefined) {
-  const { profile } = useAuth();
-  const profileId = profile?.id ?? '';
-  const roleKey = profile?.roleKey ?? null;
+  const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
+  const profileId = actorId ?? '';
 
   const query = useAsyncQuery(
-    () => fetchPortalClientAppointmentDetail(appointmentId ?? '', profileId, roleKey),
-    [appointmentId, profileId, roleKey],
-    { enabled: !!appointmentId && !!profileId && !!roleKey },
+    () =>
+      fetchPortalClientAppointmentDetail(appointmentId ?? '', profileId, roleKey, {
+        tenantId,
+        clientId,
+      }),
+    [appointmentId, profileId, roleKey, tenantId, clientId],
+    { enabled: !!appointmentId && isReady },
   );
 
   const changeMutation = useMutation(
     (reason: string) =>
-      requestPortalAppointmentChange(appointmentId ?? '', profileId, roleKey, reason),
+      requestPortalAppointmentChange(appointmentId ?? '', profileId, roleKey, reason, {
+        tenantId,
+        clientId,
+      }),
     { successMessage: 'Änderungsanfrage gesendet.' },
   );
 

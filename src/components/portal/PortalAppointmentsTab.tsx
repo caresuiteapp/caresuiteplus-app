@@ -85,8 +85,16 @@ export function PortalAppointmentsTab({
 
       {isEmpty ? (
         <EmptyState
-          title={`Keine ${appointmentsLabel.toLowerCase()}`}
-          message={`Aktuell sind keine ${appointmentsLabel.toLowerCase()} für Sie sichtbar.`}
+          title={
+            scope === 'portal_client' || scope === 'portal_family'
+              ? 'Keine Termine geplant'
+              : `Keine ${appointmentsLabel.toLowerCase()}`
+          }
+          message={
+            scope === 'portal_client' || scope === 'portal_family'
+              ? 'Aktuell sind keine Termine für Sie geplant.'
+              : `Aktuell sind keine ${appointmentsLabel.toLowerCase()} für Sie sichtbar.`
+          }
           actionLabel="Erneut laden"
           onAction={refresh}
         />

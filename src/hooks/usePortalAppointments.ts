@@ -1,19 +1,23 @@
 import { useCallback, useState } from 'react';
 import type { PortalAppointmentItem } from '@/lib/portal';
 import { fetchPortalAppointments } from '@/lib/portal';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 
 export function usePortalAppointments() {
-  const { profile } = useAuth();
-  const profileId = profile?.id ?? '';
-  const roleKey = profile?.roleKey ?? null;
+  const { tenantId, clientId, employeeId, actorId, roleKey, isReady } = usePortalActor();
+  const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
 
   const query = useAsyncQuery(
-    () => fetchPortalAppointments(profileId, roleKey),
-    [profileId, roleKey],
-    { enabled: !!profileId && !!roleKey },
+    () =>
+      fetchPortalAppointments(profileId, roleKey, {
+        tenantId,
+        clientId,
+        employeeId,
+      }),
+    [profileId, roleKey, tenantId, clientId, employeeId],
+    { enabled: isReady },
   );
 
   const items = query.data ?? [];

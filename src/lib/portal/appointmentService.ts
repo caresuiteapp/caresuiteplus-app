@@ -9,8 +9,20 @@ import { demoClients } from '@/data/demo/clients';
 import { demoEmployees } from '@/data/demo/employees';
 import { getDemoClientDetail } from '@/data/demo/clientDetails';
 import { enforcePermission } from '@/lib/permissions';
+import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
+import {
+  fetchLivePortalAppointmentsForClient,
+  fetchLivePortalAppointmentsForEmployee,
+  fetchLivePortalClientAppointmentDetail,
+} from './portalAppointmentsLiveService';
 import { getPortalProfileLink, resolvePortalScope } from './portalVisibility';
+
+export type PortalAppointmentsPortalContext = {
+  tenantId?: string | null;
+  clientId?: string | null;
+  employeeId?: string | null;
+};
 
 export type PortalAppointmentItem = Pick<
   Appointment,
@@ -48,39 +60,54 @@ function isClientPortalRole(roleKey: RoleKey | null): boolean {
 export async function fetchPortalAppointments(
   profileId: string,
   roleKey: RoleKey | null,
+  portalContext?: PortalAppointmentsPortalContext,
   options?: { simulateError?: boolean; simulateEmpty?: boolean },
 ): Promise<ServiceResult<PortalAppointmentItem[]>> {
+  if (options?.simulateError) {
+    return {
+      ok: false,
+      error: 'Termine konnten nicht geladen werden. Bitte erneut versuchen.',
+    };
+  }
+
+  if (!profileId || !roleKey) {
+    return { ok: false, error: 'Kein Profil für Terminabruf vorhanden.' };
+  }
+
+  const employeeDenied = enforcePermission<PortalAppointmentItem[]>(
+    roleKey,
+    'portal.employee.appointments.view',
+  );
+  if (employeeDenied && roleKey === 'employee_portal') return employeeDenied;
+
+  const clientDenied = enforcePermission<PortalAppointmentItem[]>(
+    roleKey,
+    'portal.client.appointments.view',
+  );
+  if (clientDenied && isClientPortalRole(roleKey)) return clientDenied;
+
+  if (options?.simulateEmpty) {
+    return { ok: true, data: [] };
+  }
+
+  const scope = resolvePortalScope(roleKey);
+  const tenantId = portalContext?.tenantId ?? null;
+  const clientId = portalContext?.clientId ?? null;
+  const employeeId = portalContext?.employeeId ?? null;
+
+  if (getServiceMode() === 'supabase') {
+    if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
+      return fetchLivePortalAppointmentsForClient(tenantId, clientId);
+    }
+    if (scope === 'portal_employee' && tenantId?.trim() && employeeId?.trim()) {
+      return fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
+    }
+    return { ok: true, data: [] };
+  }
+
   return runService(async () => {
     await delay(SIMULATED_DELAY_MS);
 
-    if (options?.simulateError) {
-      return {
-        ok: false,
-        error: 'Termine konnten nicht geladen werden. Bitte erneut versuchen.',
-      };
-    }
-
-    if (!profileId || !roleKey) {
-      return { ok: false, error: 'Kein Profil für Terminabruf vorhanden.' };
-    }
-
-    const employeeDenied = enforcePermission<PortalAppointmentItem[]>(
-      roleKey,
-      'portal.employee.appointments.view',
-    );
-    if (employeeDenied && roleKey === 'employee_portal') return employeeDenied;
-
-    const clientDenied = enforcePermission<PortalAppointmentItem[]>(
-      roleKey,
-      'portal.client.appointments.view',
-    );
-    if (clientDenied && isClientPortalRole(roleKey)) return clientDenied;
-
-    if (options?.simulateEmpty) {
-      return { ok: true, data: [] };
-    }
-
-    const scope = resolvePortalScope(roleKey);
     const link = getPortalProfileLink(profileId);
 
     let filtered = demoAppointments;
@@ -187,6 +214,7 @@ export async function fetchPortalClientAppointmentDetail(
   appointmentId: string,
   profileId: string,
   roleKey: RoleKey | null,
+  portalContext?: PortalAppointmentsPortalContext,
 ): Promise<ServiceResult<PortalClientAppointmentDetail>> {
   const denied = enforcePermission<PortalClientAppointmentDetail>(
     roleKey,
@@ -194,12 +222,19 @@ export async function fetchPortalClientAppointmentDetail(
   );
   if (denied && isClientPortalRole(roleKey)) return denied;
 
+  if (!profileId || !roleKey) {
+    return { ok: false, error: 'Kein Profil für Terminabruf vorhanden.' };
+  }
+
+  const tenantId = portalContext?.tenantId ?? null;
+  const clientId = portalContext?.clientId ?? null;
+
+  if (getServiceMode() === 'supabase' && tenantId?.trim() && clientId?.trim()) {
+    return fetchLivePortalClientAppointmentDetail(tenantId, clientId, appointmentId);
+  }
+
   return runService(async () => {
     await delay(SIMULATED_DELAY_MS);
-
-    if (!profileId || !roleKey) {
-      return { ok: false, error: 'Kein Profil für Terminabruf vorhanden.' };
-    }
 
     const appt = demoAppointments.find((a) => a.id === appointmentId);
     if (!appt) {
@@ -240,6 +275,7 @@ export async function requestPortalAppointmentChange(
   profileId: string,
   roleKey: RoleKey | null,
   reason: string,
+  portalContext?: PortalAppointmentsPortalContext,
 ): Promise<ServiceResult<{ requestId: string }>> {
   const denied = enforcePermission<{ requestId: string }>(
     roleKey,
@@ -254,7 +290,12 @@ export async function requestPortalAppointmentChange(
       return { ok: false, error: 'Bitte geben Sie einen Grund für die Änderung an.' };
     }
 
-    const detail = await fetchPortalClientAppointmentDetail(appointmentId, profileId, roleKey);
+    const detail = await fetchPortalClientAppointmentDetail(
+      appointmentId,
+      profileId,
+      roleKey,
+      portalContext,
+    );
     if (!detail.ok) return detail;
 
     if (!detail.data.canRequestChange) {
