@@ -24,6 +24,9 @@ export type {
 } from './auth.types';
 export { PORTAL_CODE_CHARSET, PORTAL_CODE_LENGTH, USERNAME_MAX_LENGTH } from './auth.types';
 
+export { usePostLoginNavigation } from './usePostLoginNavigation';
+export { BUSINESS_DASHBOARD_ROUTE, resolveBusinessDashboardRoute, resolveLoginDashboardRoute } from './authNavigation';
+
 export {
   resolveBlockedAccessMessage,
   resolveFirstLoginRoute,

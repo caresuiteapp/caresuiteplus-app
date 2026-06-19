@@ -1,5 +1,6 @@
 import type { Href } from 'expo-router';
 import type { AuthLoginType } from './auth.types';
+import { BUSINESS_DASHBOARD_ROUTE } from './authNavigation';
 
 export function resolveLoginRoute(loginType: AuthLoginType): Href {
   switch (loginType) {
@@ -18,7 +19,7 @@ export function resolveLoginRoute(loginType: AuthLoginType): Href {
 export function resolvePostLoginRoute(loginType: AuthLoginType): Href {
   switch (loginType) {
     case 'business':
-      return '/business' as Href;
+      return BUSINESS_DASHBOARD_ROUTE;
     case 'employee_portal':
       return '/portal/employee' as Href;
     case 'client_portal':

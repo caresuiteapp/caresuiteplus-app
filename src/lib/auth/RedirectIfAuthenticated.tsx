@@ -29,8 +29,7 @@ export function RedirectIfAuthenticated({
 }: RedirectIfAuthenticatedProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, user, session } =
-    useAuth();
+  const { authReady, isAuthenticated, profile, portalSession, user, session } = useAuth();
 
   const { homePath, canRedirectHome } = resolveAuthSessionTarget({
     profile,
@@ -40,11 +39,11 @@ export function RedirectIfAuthenticated({
   });
 
   useEffect(() => {
-    if (!isInitialized || isLoading || !isAuthenticated || !canRedirectHome) return;
+    if (!authReady || !isAuthenticated || !canRedirectHome) return;
     if (isAuthSetupRoute(pathname)) return;
     if (matchesNavigationTarget(pathname, homePath)) return;
     router.replace(homePath as never);
-  }, [canRedirectHome, homePath, isAuthenticated, isInitialized, isLoading, pathname, router]);
+  }, [canRedirectHome, homePath, isAuthenticated, authReady, pathname, router]);
 
   useEffect(() => {
     if (!isAuthenticated || !canRedirectHome) return undefined;
@@ -57,7 +56,7 @@ export function RedirectIfAuthenticated({
     return () => subscription.remove();
   }, [canRedirectHome, homePath, isAuthenticated, router]);
 
-  if (!isInitialized || isLoading) {
+  if (!authReady) {
     return <FullScreenLoader message="Sitzung wird geprüft…" />;
   }
 

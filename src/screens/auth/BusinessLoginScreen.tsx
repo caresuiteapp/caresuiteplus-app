@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import type { Href } from 'expo-router';
 import { CareSuiteLogo } from '@/components/brand';
 import {
   AuthLayout,
@@ -13,9 +14,10 @@ import {
 import { galaxyPalette } from '@/design/tokens/galaxy';
 import { careSpacing } from '@/design/tokens/spacing';
 import type { InternalRoleKey } from '@/lib/auth/auth.types';
+import { resolveLoginDashboardRoute } from '@/lib/auth/authNavigation';
 import { loginBusinessUser } from '@/lib/auth/businessAuthService';
 import { useAuth } from '@/lib/auth/context';
-import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
+import { usePostLoginNavigation } from '@/lib/auth/usePostLoginNavigation';
 import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { CanonicalWorkspaceRoleKey } from '@/types/permissions/workspace';
@@ -33,9 +35,21 @@ export function BusinessLoginScreen() {
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [success, setSuccess] = useState(false);
+  const [pendingDashboardRoute, setPendingDashboardRoute] = useState<Href | null>(null);
+
+  usePostLoginNavigation({
+    pendingRoute: pendingDashboardRoute,
+    onNavigate: () => {
+      setPendingDashboardRoute(null);
+      setSuccess(true);
+    },
+    onClearPending: () => setPendingDashboardRoute(null),
+  });
 
   const handleSubmit = async () => {
     setError(null);
+    setSuccess(false);
+    setPendingDashboardRoute(null);
     setLoading(true);
     const result = await loginBusinessUser(identifier, password);
     setLoading(false);
@@ -48,10 +62,8 @@ export function BusinessLoginScreen() {
     try {
       if (result.data.tenantUser && isDemoMode()) {
         await signInDemo(resolveDemoRoleKey(result.data.tenantUser.roleKey));
-        router.replace(resolvePostLoginRoute('business'));
       } else if (result.data.supabaseSession) {
         await signInWithSupabaseSession(result.data.supabaseSession);
-        router.replace(resolvePostLoginRoute('business'));
       } else {
         setError(
           'Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten oder kontaktieren Sie den Support.',
@@ -59,7 +71,7 @@ export function BusinessLoginScreen() {
         return;
       }
 
-      setSuccess(true);
+      setPendingDashboardRoute(resolveLoginDashboardRoute('business'));
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
     }

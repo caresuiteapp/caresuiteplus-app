@@ -232,8 +232,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setSession,
       );
       if (!hydrated) {
-        await supabaseSignOut();
-        throw new Error('Benutzerprofil konnte nicht geladen werden.');
+        const minimal = buildMinimalAuthState(supabaseSession);
+        setUser(minimal.user);
+        setProfile(null);
+        setSession(minimal.session);
+        profileRepairAttemptedRef.current = false;
       }
     } finally {
       setIsLoading(false);
@@ -293,6 +296,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     () => ({
       isInitialized,
       isLoading,
+      authReady: isInitialized && !isLoading,
       isAuthenticated: Boolean((user && session) || portalSession),
       authMode,
       user,

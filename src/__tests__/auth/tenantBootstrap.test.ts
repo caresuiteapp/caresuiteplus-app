@@ -24,6 +24,7 @@ describe('tenant bootstrap role resolution', () => {
     expect(guard).toContain('!canRedirectHome');
     expect(guard).toContain('resolveAuthSessionTarget');
     expect(guard).toContain('<Redirect href={homePath');
+    expect(guard).toContain('authReady');
   });
 
   it('AppStartScreen keeps authenticated users on start and never signs out', () => {
@@ -59,6 +60,21 @@ describe('tenant bootstrap role resolution', () => {
     expect(provider).toContain('shouldClearAuthOnNullSessionEvent');
     expect(provider).toContain('buildMinimalAuthState');
     expect(provider).not.toContain('await supabaseSignOut();\n          }');
+  });
+
+  it('AuthProvider exposes authReady and keeps minimal session on bootstrap miss', () => {
+    const provider = readSrc('src/lib/auth/AuthProvider.tsx');
+    expect(provider).toContain('authReady: isInitialized && !isLoading');
+    expect(provider).toContain('buildMinimalAuthState(supabaseSession)');
+    expect(provider).not.toContain("throw new Error('Benutzerprofil konnte nicht geladen werden.')");
+  });
+
+  it('auth index never sends authenticated users to public start', () => {
+    const authIndex = readSrc('app/auth/index.tsx');
+    expect(authIndex).toContain('authReady');
+    expect(authIndex).toContain('Weiterleitung zum Dashboard');
+    expect(authIndex).toContain('<Redirect href={homePath as never} />');
+    expect(authIndex).not.toContain('<Redirect href="/" as never />');
   });
 
   it('RequireRole uses portal session roleKey for access checks', () => {

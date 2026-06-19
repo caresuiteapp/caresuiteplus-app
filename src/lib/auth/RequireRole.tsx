@@ -21,14 +21,14 @@ type RequireRoleProps = {
 export function RequireRole({ children }: RequireRoleProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, portalSession, user, isLoading, isAuthenticated } = useAuth();
+  const { profile, portalSession, user, authReady, isAuthenticated } = useAuth();
 
   const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
   const decision = checkRoleAccess(pathname, roleKey);
   const redirectTarget = String(decision.target);
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated || !roleKey || !decision.shouldRedirect) return;
+    if (!authReady || !isAuthenticated || !roleKey || !decision.shouldRedirect) return;
     if (matchesNavigationTarget(pathname, redirectTarget)) return;
     router.replace(decision.target);
   }, [
@@ -36,13 +36,13 @@ export function RequireRole({ children }: RequireRoleProps) {
     decision.target,
     redirectTarget,
     isAuthenticated,
-    isLoading,
+    authReady,
     pathname,
     roleKey,
     router,
   ]);
 
-  if (isLoading) {
+  if (!authReady) {
     return <LoadingState message="Sitzung wird geprüft…" />;
   }
 

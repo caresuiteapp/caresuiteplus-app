@@ -37,13 +37,18 @@ describe('post-login redirect routing', () => {
     expect(isAuthSetupRoute('/auth/business-login')).toBe(false);
   });
 
-  it('login screens navigate explicitly after auth state is committed', () => {
+  it('login screens navigate after auth state is committed', () => {
     const business = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
     const employee = readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx');
     const client = readSrc('src/screens/auth/PortalCodeLoginScreen.tsx');
+    const navigation = readSrc('src/lib/auth/usePostLoginNavigation.ts');
 
-    expect(business).toContain('resolvePostLoginRoute');
-    expect(business).toContain("router.replace(resolvePostLoginRoute('business'))");
+    expect(business).toContain('usePostLoginNavigation');
+    expect(business).toContain('resolveLoginDashboardRoute');
+    expect(business).toContain("resolveLoginDashboardRoute('business')");
+    expect(business).not.toContain("router.replace(resolvePostLoginRoute('business'))");
+    expect(navigation).toContain('authReady');
+    expect(navigation).toContain('isAuthenticated');
 
     expect(employee).toContain('resolvePostLoginRoute');
     expect(employee).toContain("router.replace(resolvePostLoginRoute('employee_portal'))");
@@ -52,10 +57,18 @@ describe('post-login redirect routing', () => {
     expect(client).toContain("router.replace(resolvePostLoginRoute('client_portal'))");
   });
 
+  it('RequireAuth waits for authReady and checks live session before redirect', () => {
+    const guard = readSrc('src/lib/auth/RequireAuth.tsx');
+    expect(guard).toContain('authReady');
+    expect(guard).toContain('getSession');
+    expect(guard).not.toContain('isInitialized');
+  });
+
   it('RequireRole waits for role resolution instead of redirecting to /', () => {
     const guard = readSrc('src/lib/auth/RequireRole.tsx');
     expect(guard).toContain('!roleKey');
     expect(guard).toContain('Berechtigungen werden geladen');
+    expect(guard).toContain('authReady');
     expect(guard).not.toContain("router.replace('/' as never)");
     expect(guard).toContain('getLoginRedirectForPath');
   });

@@ -3,6 +3,7 @@ import type { Href } from 'expo-router';
 import { usePathname, useRouter } from 'expo-router';
 import { LoadingState } from '@/components/ui';
 import { getLoginRedirectForPath } from '@/lib/navigation';
+import { getSession } from '@/lib/supabase';
 import { useAuth } from './context';
 
 type RequireAuthProps = {
@@ -18,15 +19,34 @@ export function RequireAuth({
 }: RequireAuthProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isInitialized, isAuthenticated, isLoading } = useAuth();
+  const { authReady, isAuthenticated, authMode } = useAuth();
 
   useEffect(() => {
-    if (!isInitialized || isLoading || isAuthenticated) return;
-    const target = redirectTo ? String(redirectTo) : getLoginRedirectForPath(pathname);
-    router.replace(target as never);
-  }, [isAuthenticated, isInitialized, isLoading, pathname, redirectTo, router]);
+    if (!authReady || isAuthenticated) return;
 
-  if (!isInitialized || isLoading) {
+    let cancelled = false;
+
+    async function redirectIfStillAnonymous() {
+      if (authMode === 'supabase') {
+        const sessionResult = await getSession();
+        if (cancelled) return;
+        if (sessionResult.ok && sessionResult.data) {
+          return;
+        }
+      }
+
+      const target = redirectTo ? String(redirectTo) : getLoginRedirectForPath(pathname);
+      router.replace(target as never);
+    }
+
+    void redirectIfStillAnonymous();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authMode, authReady, isAuthenticated, pathname, redirectTo, router]);
+
+  if (!authReady) {
     return <LoadingState message={loadingMessage} />;
   }
 

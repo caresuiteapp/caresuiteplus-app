@@ -9,6 +9,8 @@ export type { AuthMode };
 export type AuthContextValue = {
   isInitialized: boolean;
   isLoading: boolean;
+  /** True once initial session restore and in-flight sign-in have settled. */
+  authReady: boolean;
   isAuthenticated: boolean;
   authMode: AuthMode;
   user: AuthUser | null;
