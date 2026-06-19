@@ -37,18 +37,19 @@ describe('post-login redirect routing', () => {
     expect(isAuthSetupRoute('/auth/business-login')).toBe(false);
   });
 
-  it('login screens defer navigation to RedirectIfAuthenticated', () => {
+  it('login screens navigate explicitly after auth state is committed', () => {
     const business = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
     const employee = readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx');
     const client = readSrc('src/screens/auth/PortalCodeLoginScreen.tsx');
 
-    expect(business).toContain('setSuccess(true)');
-    expect(business).not.toContain('resolvePostLoginRoute');
+    expect(business).toContain('resolvePostLoginRoute');
+    expect(business).toContain("router.replace(resolvePostLoginRoute('business'))");
 
-    expect(employee).toContain('setSuccess(true)');
-    expect(employee).not.toContain('resolvePostLoginRoute(');
-    expect(client).toContain('setSuccess(true)');
-    expect(client).not.toContain('resolvePostLoginRoute(');
+    expect(employee).toContain('resolvePostLoginRoute');
+    expect(employee).toContain("router.replace(resolvePostLoginRoute('employee_portal'))");
+
+    expect(client).toContain('resolvePostLoginRoute');
+    expect(client).toContain("router.replace(resolvePostLoginRoute('client_portal'))");
   });
 
   it('RequireRole waits for role resolution instead of redirecting to /', () => {
@@ -63,6 +64,7 @@ describe('post-login redirect routing', () => {
     const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
     expect(guard).toContain('isAuthSetupRoute');
     expect(guard).toContain('resolveAuthSessionTarget');
+    expect(guard).toContain('<Redirect href={homePath');
     expect(guard).not.toContain("router.replace('/' as never)");
   });
 });

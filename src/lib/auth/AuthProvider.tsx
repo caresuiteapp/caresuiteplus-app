@@ -101,6 +101,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
             return;
           }
 
+          const sessionResult = await getSession();
+          if (!cancelled && sessionResult.ok && sessionResult.data) {
+            return;
+          }
+
           setUser(null);
           setProfile(null);
           setSession(null);

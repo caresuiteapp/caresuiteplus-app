@@ -2,7 +2,7 @@ import { useEffect, useMemo } from 'react';
 
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 
-import { useRouter } from 'expo-router';
+import { Redirect, useRouter } from 'expo-router';
 
 import { AdaptiveCardGrid } from '@/components/adaptive';
 
@@ -46,7 +46,8 @@ export function AppStartScreen() {
 
   const router = useRouter();
 
-  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, user } = useAuth();
+  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, user, session } =
+    useAuth();
 
   const { isPhone, isDesktopOrWide, width } = useDeviceClass();
 
@@ -58,7 +59,12 @@ export function AppStartScreen() {
 
   const mainEntries = entriesQuery.data ?? [];
 
-  const { homePath, canRedirectHome } = resolveAuthSessionTarget({ profile, portalSession, user });
+  const { homePath, canRedirectHome } = resolveAuthSessionTarget({
+    profile,
+    portalSession,
+    user,
+    session,
+  });
 
   const showPortalChoice = shouldShowPortalChoice(isAuthenticated);
 
@@ -121,6 +127,14 @@ export function AppStartScreen() {
       </AppScreen>
 
     );
+
+  }
+
+
+
+  if (isAuthenticated && canRedirectHome) {
+
+    return <Redirect href={homePath as never} />;
 
   }
 
@@ -319,4 +333,3 @@ const styles = StyleSheet.create({
   },
 
 });
-

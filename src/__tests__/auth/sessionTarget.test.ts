@@ -74,4 +74,17 @@ describe('resolveAuthSessionTarget', () => {
     expect(target.homePath).toBe('/');
     expect(target.canRedirectHome).toBe(false);
   });
+
+  it('redirects supabase session to business while roleKey is still loading', () => {
+    const target = resolveAuthSessionTarget({
+      profile: null,
+      portalSession: null,
+      user: { id: 'user-1', email: 'admin@test.de', displayName: 'Admin' } as never,
+      session: { accessToken: 'token', refreshToken: 'refresh', expiresAt: 0 } as never,
+    });
+
+    expect(target.hasSessionTarget).toBe(true);
+    expect(target.homePath).toBe('/business');
+    expect(target.canRedirectHome).toBe(true);
+  });
 });

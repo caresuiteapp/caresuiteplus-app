@@ -1,6 +1,6 @@
 import { ReactNode, useEffect } from 'react';
 import { BackHandler } from 'react-native';
-import { usePathname, useRouter } from 'expo-router';
+import { Redirect, usePathname, useRouter } from 'expo-router';
 import { FullScreenLoader } from '@/components/ui';
 import { isAuthSetupRoute } from './loginRouter';
 import { resolveAuthSessionTarget } from './sessionTarget';
@@ -29,9 +29,15 @@ export function RedirectIfAuthenticated({
 }: RedirectIfAuthenticatedProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, user } = useAuth();
+  const { isInitialized, isLoading, isAuthenticated, profile, portalSession, user, session } =
+    useAuth();
 
-  const { homePath, canRedirectHome } = resolveAuthSessionTarget({ profile, portalSession, user });
+  const { homePath, canRedirectHome } = resolveAuthSessionTarget({
+    profile,
+    portalSession,
+    user,
+    session,
+  });
 
   useEffect(() => {
     if (!isInitialized || isLoading || !isAuthenticated || !canRedirectHome) return;
@@ -53,6 +59,12 @@ export function RedirectIfAuthenticated({
 
   if (!isInitialized || isLoading) {
     return <FullScreenLoader message="Sitzung wird geprüft…" />;
+  }
+
+  if (isAuthenticated && canRedirectHome && !isAuthSetupRoute(pathname)) {
+    if (!matchesNavigationTarget(pathname, homePath)) {
+      return <Redirect href={homePath as never} />;
+    }
   }
 
   if (isAuthenticated && !isAuthSetupRoute(pathname)) {

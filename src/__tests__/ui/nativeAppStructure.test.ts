@@ -45,7 +45,8 @@ describe('Native app structure (Prompt 110)', () => {
     expect(resolveSessionHomeRoute('business_admin')).toBe('/business');
     expect(resolveSessionHomeRoute('business_manager')).toBe('/business');
     const start = readSrc('src/screens/AppStartScreen.tsx');
-    expect(start).toContain('resolveSessionHomeRoute');
+    expect(start).toContain('resolveAuthSessionTarget');
+    expect(start).toContain('<Redirect href={homePath');
     expect(start).toContain('router.replace(homePath');
   });
 
@@ -64,7 +65,8 @@ describe('Native app structure (Prompt 110)', () => {
     const authLayout = readSrc('app/auth/_layout.tsx');
     expect(authLayout).toContain('RedirectIfAuthenticated');
     const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
-    expect(guard).toContain('resolveSessionHomeRoute');
+    expect(guard).toContain('resolveAuthSessionTarget');
+    expect(guard).toContain('<Redirect href={homePath');
     expect(guard).toContain('router.replace(homePath');
     expect(guard).not.toContain("router.replace('/' as never)");
   });

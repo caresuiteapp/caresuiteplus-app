@@ -16,6 +16,7 @@ import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGene
 import { completePortalLogin } from '@/lib/auth/portalloginflow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { useAuth } from '@/lib/auth/context';
+import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
 
@@ -53,8 +54,10 @@ export function PortalCodeLoginScreen() {
         return;
       }
       await signInPortalSession(completed.data.portalSession);
+      router.replace(resolvePostLoginRoute('client_portal'));
     } else if (isDemoMode()) {
       await signInDemo('client_portal');
+      router.replace(resolvePostLoginRoute('client_portal'));
     } else {
       setError(
         'Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten oder fordern Sie Hilfe an.',

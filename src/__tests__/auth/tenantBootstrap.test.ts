@@ -23,11 +23,13 @@ describe('tenant bootstrap role resolution', () => {
     expect(guard).toContain('canRedirectHome');
     expect(guard).toContain('!canRedirectHome');
     expect(guard).toContain('resolveAuthSessionTarget');
+    expect(guard).toContain('<Redirect href={homePath');
   });
 
   it('AppStartScreen keeps authenticated users on start and never signs out', () => {
     const start = readSrc('src/screens/AppStartScreen.tsx');
     expect(start).toContain('resolveAuthSessionTarget');
+    expect(start).toContain('<Redirect href={homePath');
     expect(start).toContain('Weiterleitung zum Dashboard');
     expect(start).not.toContain('signOut');
     expect(start).not.toMatch(/if \(!hasSessionTarget\) \{\s*void signOut\(\)/);
@@ -42,6 +44,7 @@ describe('tenant bootstrap role resolution', () => {
   it('session target blocks redirect to public start when role is unknown', () => {
     const helper = readSrc('src/lib/auth/sessionTarget.ts');
     expect(helper).toContain("homePath !== '/'");
+    expect(helper).toContain('BUSINESS_FALLBACK_HOME');
   });
 
   it('AuthProvider repairs profile when session exists without roleKey', () => {

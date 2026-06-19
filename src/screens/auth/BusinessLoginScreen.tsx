@@ -15,6 +15,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import type { InternalRoleKey } from '@/lib/auth/auth.types';
 import { loginBusinessUser } from '@/lib/auth/businessAuthService';
 import { useAuth } from '@/lib/auth/context';
+import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { CanonicalWorkspaceRoleKey } from '@/types/permissions/workspace';
@@ -47,8 +48,10 @@ export function BusinessLoginScreen() {
     try {
       if (result.data.tenantUser && isDemoMode()) {
         await signInDemo(resolveDemoRoleKey(result.data.tenantUser.roleKey));
+        router.replace(resolvePostLoginRoute('business'));
       } else if (result.data.supabaseSession) {
         await signInWithSupabaseSession(result.data.supabaseSession);
+        router.replace(resolvePostLoginRoute('business'));
       } else {
         setError(
           'Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten oder kontaktieren Sie den Support.',

@@ -6,7 +6,7 @@ import { CareSuiteLogo } from '@/components/brand';
 import { CareLightPageShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
-import { resolveFirstLoginRoute } from '@/lib/auth/loginRouter';
+import { resolveFirstLoginRoute, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { isDemoMode } from '@/lib/supabase/config';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -42,6 +42,7 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
+    router.replace(resolvePostLoginRoute('employee_portal'));
     setSuccess(true);
   };
 

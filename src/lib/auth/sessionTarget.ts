@@ -1,12 +1,15 @@
 import { resolveSessionHomeRoute } from '@/lib/navigation/sessionRouting';
-import type { AuthUser, Profile, RoleKey } from '@/types';
+import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import type { PortalSessionRecord } from './portalSessionStore';
 
 export type SessionTargetInput = {
   profile: Profile | null;
   portalSession: PortalSessionRecord | null;
   user: AuthUser | null;
+  session?: AuthSession | null;
 };
+
+const BUSINESS_FALLBACK_HOME = '/business';
 
 export function resolveEffectiveRoleKey(
   profile: Profile | null,
@@ -22,8 +25,14 @@ export function resolveEffectiveRoleKey(
 
 export function resolveAuthSessionTarget(input: SessionTargetInput) {
   const roleKey = resolveEffectiveRoleKey(input.profile, input.user, input.portalSession);
-  const hasSessionTarget = Boolean(input.portalSession || roleKey);
-  const homePath = String(resolveSessionHomeRoute(roleKey, input.portalSession));
+  const hasSupabaseSession = Boolean(input.user && input.session);
+  const hasSessionTarget = Boolean(input.portalSession || roleKey || hasSupabaseSession);
+
+  let homePath = String(resolveSessionHomeRoute(roleKey, input.portalSession));
+  if (hasSupabaseSession && !input.portalSession && !roleKey) {
+    homePath = BUSINESS_FALLBACK_HOME;
+  }
+
   const canRedirectHome = hasSessionTarget && homePath !== '/';
 
   return { roleKey, hasSessionTarget, homePath, canRedirectHome };
