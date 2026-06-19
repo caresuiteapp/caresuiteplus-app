@@ -66,7 +66,7 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
     return (
       <View style={[styles.compactRoot, webGlassBlur]}>
         <View style={styles.compactBrand}>
-          <CareSuiteWordmark size="sm" />
+          <CareSuiteWordmark size="nav" variant="aurora" />
           <Text style={[styles.compactPortal, { color: text.muted }]}>Klient:innenportal</Text>
         </View>
         <View style={styles.compactActions}>

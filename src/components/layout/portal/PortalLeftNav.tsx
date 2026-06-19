@@ -141,7 +141,7 @@ export function PortalLeftNav({
       <View style={styles.header}>
         {!isCollapsed ? (
           <>
-            <CareSuiteWordmark size="sm" />
+            <CareSuiteWordmark size="nav" variant="aurora" />
             <Text style={[styles.portalLabel, { color: text.muted }]}>Klient:innenportal</Text>
             {moduleLabel ? (
               <View style={styles.badgeRow}>
