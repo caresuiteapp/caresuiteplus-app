@@ -7,7 +7,7 @@ import {
   isPortalBudgetFeatureEnabled,
 } from '@/lib/portal/engine/portalFeatureAccess';
 import { getFeaturesForModules } from '@/lib/portal/engine/portalFeatureMatrix';
-import { filterPortalMobileTabs } from '@/lib/navigation/portalMobileTabs';
+import { filterPortalMobileTabs, buildDynamicTabPriority } from '@/lib/navigation/portalMobileTabs';
 import { resolvePortalContextFromData } from '@/lib/portal/engine/resolvePortalContext';
 import type { ShellTabConfig } from '@/types/navigation/shell';
 
@@ -50,7 +50,10 @@ describe('portal module → feature filtering', () => {
 
     expect(nav.some((item) => item.key === 'assist-budget')).toBe(false);
     expect(nav.some((item) => item.key === 'assist-appointments')).toBe(true);
-    expect(nav.some((item) => item.key === 'assist-nachweise')).toBe(true);
+    expect(nav.some((item) => item.key === 'assist-nachweise')).toBe(false);
+    expect(nav.some((item) => item.key === 'assist-aktivitaeten')).toBe(false);
+    expect(canAccessPortalFeature(context, 'assist', 'nachweise')).toBe(true);
+    expect(canAccessPortalFeature(context, 'assist', 'aktivitaeten')).toBe(true);
     expect(nav.some((item) => item.key === 'documents')).toBe(true);
     expect(nav.some((item) => item.key === 'messages')).toBe(true);
   });
@@ -184,5 +187,12 @@ describe('portal module → feature filtering', () => {
     const pflegeOnly = filterPortalMobileTabs(tabs, ['pflege']);
     expect(pflegeOnly.some((tab) => tab.key === 'assist-budget')).toBe(false);
     expect(pflegeOnly.some((tab) => tab.key === 'module-pflege')).toBe(true);
+  });
+
+  it('excludes Nachweise and Aktivitäten from assist mobile tab priority', () => {
+    const priority = buildDynamicTabPriority(['assist']);
+    expect(priority).not.toContain('assist-nachweise');
+    expect(priority).not.toContain('assist-aktivitaeten');
+    expect(priority).toContain('assist-anfragen');
   });
 });

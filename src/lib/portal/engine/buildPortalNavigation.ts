@@ -4,7 +4,11 @@ import {
   PORTAL_MODULE_LABELS,
   sortPortalModules,
 } from './portalModuleKeys';
-import { isPortalModuleNavImplemented, moduleOverviewNavItem } from './portalNavigationRegistry';
+import {
+  isPortalFeatureShownInPrimaryNav,
+  isPortalModuleNavImplemented,
+  moduleOverviewNavItem,
+} from './portalNavigationRegistry';
 
 const GLOBAL_NAV: PortalNavItem[] = [
   { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents', navGroup: 'global' },
@@ -40,7 +44,12 @@ const ASSIST_FEATURE_HREFS: Record<string, string> = {
 
 function assistFeatureNavItems(features: PortalFeature[]): PortalNavItem[] {
   return features
-    .filter((f) => f.moduleKey === 'assist' && f.navGroup === 'module')
+    .filter(
+      (f) =>
+        f.moduleKey === 'assist' &&
+        f.navGroup === 'module' &&
+        isPortalFeatureShownInPrimaryNav(f),
+    )
     .sort((a, b) => a.sortOrder - b.sortOrder)
     .map((feature) => ({
       key: `assist-${feature.featureKey}`,

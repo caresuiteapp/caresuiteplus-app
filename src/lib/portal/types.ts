@@ -25,6 +25,8 @@ export type PortalFeature = {
   description: string;
   navGroup: 'module' | 'global';
   sortOrder: number;
+  /** When false, feature stays accessible via KPI/modals but is omitted from sidebar nav. */
+  showInPrimaryNav?: boolean;
 };
 
 export type PortalWidget = {

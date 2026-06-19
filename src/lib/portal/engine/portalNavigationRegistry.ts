@@ -1,5 +1,22 @@
-import type { PortalModuleKey, PortalNavItem } from '@/lib/portal/types';
+import type { PortalFeature, PortalModuleKey, PortalNavItem } from '@/lib/portal/types';
 import { PORTAL_MODULE_ICONS, PORTAL_MODULE_LABELS } from './portalModuleKeys';
+
+/** Assist features reachable via KPI/modals but hidden from sidebar and mobile primary nav. */
+export const PORTAL_PRIMARY_NAV_HIDDEN_FEATURE_KEYS = new Set<string>([
+  'nachweise',
+  'aktivitaeten',
+]);
+
+export function isPortalFeatureShownInPrimaryNav(feature: PortalFeature): boolean {
+  if (feature.showInPrimaryNav === false) return false;
+  if (
+    feature.moduleKey === 'assist' &&
+    PORTAL_PRIMARY_NAV_HIDDEN_FEATURE_KEYS.has(feature.featureKey)
+  ) {
+    return false;
+  }
+  return true;
+}
 
 /** Registry entry for module-scoped portal navigation (Assist fully wired via buildPortalNavigation). */
 export type PortalNavigationRegistryEntry = {

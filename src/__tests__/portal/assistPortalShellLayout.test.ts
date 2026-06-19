@@ -63,4 +63,16 @@ describe('PortalShellLayout', () => {
     expect(registry).toContain('implemented: true');
     expect(registry).toContain('implemented: false');
   });
+
+  it('assist left nav omits Nachweise and Aktivitäten sidebar items', () => {
+    const navBuilder = readSrc('src/lib/portal/engine/buildPortalNavigation.ts');
+    const registry = readSrc('src/lib/portal/engine/portalNavigationRegistry.ts');
+    const matrix = readSrc('src/lib/portal/engine/portalFeatureMatrix.ts');
+    expect(navBuilder).toContain('isPortalFeatureShownInPrimaryNav');
+    expect(registry).toContain('PORTAL_PRIMARY_NAV_HIDDEN_FEATURE_KEYS');
+    expect(registry).toContain("'nachweise'");
+    expect(registry).toContain("'aktivitaeten'");
+    expect(matrix).toContain("featureKey: 'nachweise'");
+    expect(matrix).toContain('showInPrimaryNav: false');
+  });
 });
