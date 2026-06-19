@@ -6,13 +6,14 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import type { PortalNextAppointment } from '@/types/portal/assist';
+import { PORTAL_MOBILE_CTA_GOLD } from '@/components/portal/assist/MobilePortalKpiCard';
 import { PortalEmptyState } from './PortalEmptyState';
 
 type PortalNextAppointmentHeroProps = {
   appointment: PortalNextAppointment | null;
   onRequestChange?: () => void;
   onRequestExtra?: () => void;
-  /** Override empty-state CTA label (mobile uses „Termin anfragen“). */
+  /** Override empty-state CTA label (mobile uses „Termin anfragen →“). */
   emptyActionLabel?: string;
 };
 
@@ -33,9 +34,11 @@ function formatDateTime(iso: string): string {
 function HeroLink({
   label,
   onPress,
+  gold = false,
 }: {
   label: string;
   onPress: () => void;
+  gold?: boolean;
 }) {
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
@@ -47,7 +50,7 @@ function HeroLink({
       accessibilityRole="button"
       hitSlop={8}
     >
-      <Text style={[type.caption, styles.link]}>{label}</Text>
+      <Text style={[type.caption, gold ? styles.linkGold : styles.link]}>{label}</Text>
     </Pressable>
   );
 }
@@ -65,36 +68,58 @@ export function PortalNextAppointmentHero({
   const router = useRouter();
 
   return (
-    <GlassCard glow accentColor="#4CC9F0" style={[styles.card, isPhone && styles.cardPhone]}>
-      <Text style={[type.caption, styles.eyebrow, { color: text.muted }]} {...noBreakTextProps}>
-        NÄCHSTER TERMIN
-      </Text>
-      {appointment ? (
-        <>
-          <Text style={[type.cardTitle, { color: text.primary }]} {...noBreakTextProps} numberOfLines={2}>
-            {appointment.title}
+    <GlassCard
+      glow
+      accentColor="#7B61FF"
+      style={[
+        styles.card,
+        isPhone && styles.cardPhone,
+        isPhone && styles.cardPhoneGlow,
+      ]}
+    >
+      <View style={styles.headerRow}>
+        <View style={styles.headerCopy}>
+          <Text style={[type.caption, styles.eyebrow, { color: text.muted }]} {...noBreakTextProps}>
+            NÄCHSTER TERMIN
           </Text>
-          <Text style={[type.body, { color: text.secondary }]} {...noBreakTextProps} numberOfLines={2}>
-            {formatDateTime(appointment.startsAt)}
-            {appointment.location ? ` · ${appointment.location}` : ''}
-          </Text>
-          <View style={[styles.actions, isPhone && styles.actionsPhone]}>
-            <HeroLink
-              label="Details anzeigen"
-              onPress={() => router.push(`/portal/client/appointments/${appointment.id}` as never)}
+          {appointment ? (
+            <>
+              <Text style={[type.cardTitle, { color: text.primary }]} {...noBreakTextProps} numberOfLines={2}>
+                {appointment.title}
+              </Text>
+              <Text style={[type.body, { color: text.secondary }]} {...noBreakTextProps} numberOfLines={2}>
+                {formatDateTime(appointment.startsAt)}
+                {appointment.location ? ` · ${appointment.location}` : ''}
+              </Text>
+            </>
+          ) : (
+            <PortalEmptyState
+              message="Noch kein Assist-Termin geplant."
+              actionLabel={emptyActionLabel ?? 'Zusatztermin anfragen'}
+              onAction={onRequestExtra}
+              ctaColor={isPhone ? 'gold' : '#FF9500'}
+              ctaSuffix={isPhone ? ' →' : ''}
             />
-            {onRequestChange ? (
-              <HeroLink label="Termin ändern" onPress={onRequestChange} />
-            ) : null}
+          )}
+        </View>
+        {isPhone ? (
+          <View style={styles.calendarIconWrap}>
+            <Text style={styles.calendarIcon}>📅</Text>
           </View>
-        </>
-      ) : (
-        <PortalEmptyState
-          message="Noch kein Assist-Termin geplant."
-          actionLabel={emptyActionLabel ?? 'Zusatztermin anfragen'}
-          onAction={onRequestExtra}
-        />
-      )}
+        ) : null}
+      </View>
+      {appointment ? (
+        <View style={[styles.actions, isPhone && styles.actionsPhone]}>
+          <HeroLink
+            label="Details anzeigen"
+            onPress={() => router.push(`/portal/client/appointments/${appointment.id}` as never)}
+            gold={isPhone}
+          />
+          {onRequestChange ? (
+            <HeroLink label="Termin ändern" onPress={onRequestChange} gold={isPhone} />
+          ) : null}
+        </View>
+      ) : null}
     </GlassCard>
   );
 }
@@ -105,6 +130,38 @@ const styles = StyleSheet.create({
   },
   cardPhone: {
     minHeight: 0,
+    backgroundColor: 'rgba(20,27,40,0.85)',
+  },
+  cardPhoneGlow: {
+    borderColor: 'rgba(123,97,255,0.45)',
+    shadowColor: '#7B61FF',
+    shadowOpacity: 0.3,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 0 },
+    elevation: 4,
+  },
+  headerRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: careSpacing.sm,
+  },
+  headerCopy: {
+    flex: 1,
+    minWidth: 0,
+  },
+  calendarIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: 'rgba(123,97,255,0.45)',
+    backgroundColor: 'rgba(123,97,255,0.15)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  calendarIcon: {
+    fontSize: 20,
   },
   eyebrow: {
     textTransform: 'uppercase',
@@ -128,6 +185,10 @@ const styles = StyleSheet.create({
   },
   link: {
     color: '#4CC9F0',
+    fontWeight: '700',
+  },
+  linkGold: {
+    color: PORTAL_MOBILE_CTA_GOLD,
     fontWeight: '700',
   },
 });

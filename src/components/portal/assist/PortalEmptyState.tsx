@@ -3,6 +3,7 @@ import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { PORTAL_MOBILE_CTA_GOLD } from '@/components/portal/assist/MobilePortalKpiCard';
 
 type PortalEmptyStateProps = {
   title?: string;
@@ -10,6 +11,8 @@ type PortalEmptyStateProps = {
   actionLabel?: string;
   onAction?: () => void;
   compact?: boolean;
+  ctaColor?: string;
+  ctaSuffix?: string;
 };
 
 /** Glass-friendly empty state — no white surfaces. */
@@ -19,10 +22,13 @@ export function PortalEmptyState({
   actionLabel,
   onAction,
   compact = false,
+  ctaColor = '#FF9500',
+  ctaSuffix = '',
 }: PortalEmptyStateProps) {
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+  const resolvedCtaColor = ctaColor === 'gold' ? PORTAL_MOBILE_CTA_GOLD : ctaColor;
 
   return (
     <View style={[styles.container, compact && styles.compact]}>
@@ -32,7 +38,10 @@ export function PortalEmptyState({
       <Text style={[compact ? type.caption : type.body, { color: text.secondary }]}>{message}</Text>
       {actionLabel && onAction ? (
         <Pressable onPress={onAction} style={styles.cta}>
-          <Text style={[type.caption, { color: '#FF9500', fontWeight: '700' }]}>{actionLabel}</Text>
+          <Text style={[type.caption, { color: resolvedCtaColor, fontWeight: '700' }]}>
+            {actionLabel}
+            {ctaSuffix}
+          </Text>
         </Pressable>
       ) : null}
     </View>

@@ -5,6 +5,7 @@ import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { PORTAL_MOBILE_CTA_GOLD } from '@/components/portal/assist/MobilePortalKpiCard';
 
 type PortalGlassHeroProps = {
   eyebrow?: string;
@@ -14,6 +15,8 @@ type PortalGlassHeroProps = {
   badge?: string;
   /** Assist module icon — shown left on phone layout. */
   leadingIcon?: string;
+  /** Show green status dot before meta on phone. */
+  showStatusDot?: boolean;
   children?: ReactNode;
   style?: ViewStyle;
 };
@@ -26,6 +29,7 @@ export function PortalGlassHero({
   meta,
   badge,
   leadingIcon,
+  showStatusDot = false,
   children,
   style,
 }: PortalGlassHeroProps) {
@@ -33,8 +37,21 @@ export function PortalGlassHero({
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const titleStyle = isPhone
-    ? [type.body, { color: text.primary, fontWeight: '700', fontSize: 16, lineHeight: 22 }]
+    ? [type.body, { color: text.primary, fontWeight: '700', fontSize: 15, lineHeight: 21 }]
     : [type.cardTitle, { color: text.primary }];
+
+  const metaContent = meta ? (
+    <View style={styles.metaRow}>
+      {showStatusDot ? <View style={styles.statusDot} /> : null}
+      <Text
+        style={[type.caption, { color: text.muted, flex: 1 }]}
+        {...noBreakTextProps}
+        numberOfLines={2}
+      >
+        {meta}
+      </Text>
+    </View>
+  ) : null;
 
   return (
     <GlassCard style={[isPhone && styles.compactCard, style]}>
@@ -44,37 +61,27 @@ export function PortalGlassHero({
             <Text style={styles.leadingIcon}>{leadingIcon}</Text>
           </View>
           <View style={styles.phoneContent}>
-            {eyebrow || badge ? (
-              <View style={styles.eyebrowRow}>
-                {eyebrow ? (
-                  <Text
-                    style={[type.caption, styles.eyebrow, { color: text.muted, flex: 1 }]}
-                    {...noBreakTextProps}
-                  >
-                    {eyebrow}
-                  </Text>
-                ) : (
-                  <View style={styles.eyebrowSpacer} />
-                )}
-                {badge ? (
-                  <View style={styles.badge}>
-                    <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
-                  </View>
-                ) : null}
+            {badge ? (
+              <View style={styles.badgeRow}>
+                <View style={styles.badgeSpacer} />
+                <View style={styles.badge}>
+                  <Text style={[type.caption, styles.badgeText, { color: text.primary }]}>{badge}</Text>
+                </View>
               </View>
             ) : null}
-            <Text
-              style={[titleStyle, { flexShrink: 1 }]}
-              {...noBreakTextProps}
-              numberOfLines={2}
-            >
+            <Text style={[titleStyle, { flexShrink: 1 }]} {...noBreakTextProps} numberOfLines={3}>
               {title}
             </Text>
-            {meta ? (
-              <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps} numberOfLines={2}>
-                {meta}
+            {subtitle ? (
+              <Text
+                style={[type.caption, { color: text.secondary, fontWeight: '600' }]}
+                {...noBreakTextProps}
+                numberOfLines={2}
+              >
+                {subtitle}
               </Text>
             ) : null}
+            {metaContent}
           </View>
         </View>
       ) : (
@@ -114,11 +121,7 @@ export function PortalGlassHero({
               {subtitle}
             </Text>
           ) : null}
-          {meta ? (
-            <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps} numberOfLines={2}>
-              {meta}
-            </Text>
-          ) : null}
+          {metaContent}
         </>
       )}
       {children}
@@ -131,6 +134,7 @@ const styles = StyleSheet.create({
     paddingVertical: careSpacing.sm,
     paddingHorizontal: careSpacing.sm,
     gap: careSpacing.xs,
+    backgroundColor: 'rgba(20,27,40,0.85)',
   },
   eyebrowRow: {
     flexDirection: 'row',
@@ -144,14 +148,24 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
+  badgeRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+  },
+  badgeSpacer: {
+    flex: 1,
+  },
   badge: {
     paddingHorizontal: careSpacing.sm,
     paddingVertical: 3,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,149,0,0.35)',
-    backgroundColor: 'rgba(255,149,0,0.12)',
+    borderColor: `${PORTAL_MOBILE_CTA_GOLD}55`,
+    backgroundColor: `${PORTAL_MOBILE_CTA_GOLD}18`,
     flexShrink: 0,
+  },
+  badgeText: {
+    fontWeight: '700',
   },
   phoneRow: {
     flexDirection: 'row',
@@ -159,12 +173,12 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
   },
   leadingIconWrap: {
-    width: 40,
-    height: 40,
+    width: 44,
+    height: 44,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: 'rgba(255,149,0,0.35)',
-    backgroundColor: 'rgba(255,149,0,0.12)',
+    borderColor: 'rgba(123,97,255,0.45)',
+    backgroundColor: 'rgba(123,97,255,0.15)',
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -176,5 +190,17 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: careSpacing.xs,
     minWidth: 0,
+  },
+  metaRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#22C55E',
+    flexShrink: 0,
   },
 });

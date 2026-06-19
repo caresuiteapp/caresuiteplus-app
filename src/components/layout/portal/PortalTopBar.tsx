@@ -314,8 +314,7 @@ const styles = StyleSheet.create({
   },
   compactPortal: {
     ...careTypography.caption,
-    textTransform: 'uppercase',
-    letterSpacing: 0.5,
+    letterSpacing: 0.2,
     fontWeight: '600',
   },
   compactActions: {

@@ -6,7 +6,7 @@ import {
   resolveFixedMobilePortalTabs,
   splitPortalTabsForMobile,
 } from '@/lib/navigation/portalMobileTabs';
-import { resolvePortalHeroCopy, resolveTimeBasedGermanGreeting } from '@/lib/portal/engine/portalHeroCopy';
+import { resolvePortalHeroCopy } from '@/lib/portal/engine/portalHeroCopy';
 import type { ShellTabConfig } from '@/types/navigation/shell';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -58,28 +58,6 @@ describe('splitPortalTabsForMobile', () => {
 });
 
 describe('resolvePortalHeroCopy', () => {
-  it('uses short time-based greeting on phone', () => {
-    const copy = resolvePortalHeroCopy({
-      displayName: 'Frau Ellen Zacharias',
-      tenantName: 'Helferhasen+ UG',
-      terminology: {
-        greetingLabel: 'Willkommen in Ihrem Assist-Portal',
-        moduleLabel: 'Assist',
-        appointmentLabel: 'Termin',
-        appointmentLabelPlural: 'Termine',
-        personLabel: 'Klient:in',
-        careTeamLabel: 'Assist-Team',
-      },
-      isPhone: true,
-    });
-
-    expect(copy.title).toContain('Frau Ellen Zacharias');
-    expect(copy.title).not.toContain('Willkommen in Ihrem Assist-Portal');
-    expect(copy.title.startsWith(resolveTimeBasedGermanGreeting())).toBe(true);
-    expect(copy.meta).toContain('Helferhasen+ UG');
-    expect(copy.subtitle).toBeUndefined();
-  });
-
   it('keeps full welcome on desktop', () => {
     const copy = resolvePortalHeroCopy({
       displayName: 'Frau Ellen Zacharias',
@@ -101,6 +79,12 @@ describe('resolvePortalHeroCopy', () => {
 });
 
 describe('Assist portal mobile layout', () => {
+  it('MobilePortalDashboard uses full welcome hero copy on phone', () => {
+    const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
+    expect(mobile).toContain('greetingLabel');
+    expect(mobile).toContain('showStatusDot');
+    expect(mobile).not.toContain('resolvePortalHeroCopy');
+  });
   it('client portal tabs layout uses PortalShellLayout', () => {
     const layout = readSrc('app/portal/client/(tabs)/_layout.tsx');
     expect(layout).toContain('PortalShellLayout');
@@ -124,6 +108,8 @@ describe('Assist portal mobile layout', () => {
     expect(mobile).toContain('MobilePortalKpiCard');
     expect(mobile).toContain('MobilePortalSidebarCards');
     expect(mobile).toContain('emptyActionLabel="Termin anfragen"');
+    expect(mobile).toContain('greetingLabel');
+    expect(mobile).not.toContain('PortalQuickActions');
   });
 
   it('overview route uses tabs layout shell instead of duplicate index', () => {
@@ -137,14 +123,17 @@ describe('Assist portal mobile layout', () => {
     const kpi = readSrc('src/components/portal/assist/MobilePortalKpiCard.tsx');
     expect(kpi).toContain("'48%'");
     expect(kpi).toContain('glow');
-    expect(kpi).toContain('minHeight: 132');
+    expect(kpi).toContain('minHeight: 148');
+    expect(kpi).toContain('PORTAL_MOBILE_CTA_GOLD');
+    expect(kpi).not.toContain('description');
   });
 
-  it('PortalQuickActions keeps touch-friendly chips on phone', () => {
-    const actions = readSrc('src/components/portal/assist/PortalQuickActions.tsx');
-    expect(actions).toContain('minHeight: 44');
-    expect(actions).toContain('ScrollView');
-    expect(actions).toContain('wrapGrid');
+  it('MobilePortalSidebarCards uses reference Schnellzugriff pills', () => {
+    const sidebar = readSrc('src/components/portal/assist/MobilePortalSidebarCards.tsx');
+    expect(sidebar).toContain('Termin anfragen');
+    expect(sidebar).toContain('Rückrufbitte');
+    expect(sidebar).toContain('paddingRight: careSpacing.lg');
+    expect(sidebar).toContain('Hilfe & Dokumentation');
   });
 
   it('PortalNextAppointmentHero supports mobile empty CTA override', () => {
@@ -177,6 +166,7 @@ describe('Assist portal mobile layout', () => {
     const hero = readSrc('src/components/portal/assist/PortalGlassHero.tsx');
     expect(hero).toContain('leadingIcon');
     expect(hero).toContain('phoneRow');
+    expect(hero).toContain('showStatusDot');
     expect(hero).not.toContain('titleRowPhone');
   });
 

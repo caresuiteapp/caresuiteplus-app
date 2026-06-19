@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Linking,
   Platform,
@@ -11,12 +11,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
+import { PORTAL_MOBILE_CTA_GOLD } from '@/components/portal/assist/MobilePortalKpiCard';
 import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalSidebarData } from '@/hooks/usePortalSidebarData';
+import { canAccessPortalFeature } from '@/lib/portal/engine';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 
 type MobilePortalSidebarCardsProps = {
@@ -30,7 +32,7 @@ function openExternal(url: string) {
 }
 
 /** Mobile scroll cards mirroring desktop PortalRightSidebar content. */
-export function MobilePortalSidebarCards({ accentColor = '#FF9500' }: MobilePortalSidebarCardsProps) {
+export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD }: MobilePortalSidebarCardsProps) {
   const router = useRouter();
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
@@ -38,7 +40,6 @@ export function MobilePortalSidebarCards({ accentColor = '#FF9500' }: MobilePort
   const {
     context,
     kpis,
-    quickActions,
     lastLoginFormatted,
     terminology,
     moduleLabel,
@@ -48,29 +49,57 @@ export function MobilePortalSidebarCards({ accentColor = '#FF9500' }: MobilePort
   const [mandantOpen, setMandantOpen] = useState(false);
   const [helpOpen, setHelpOpen] = useState(false);
 
+  const quickActions = useMemo(() => {
+    const actions = [
+      { key: 'message', label: 'Nachricht', icon: '💬', href: '/portal/client/messages?compose=1' },
+      { key: 'termin', label: 'Termin anfragen', icon: '📅', href: '/portal/client?action=zusatztermin' },
+      { key: 'upload', label: 'Upload', icon: '📎', href: '/portal/client?action=upload' },
+      { key: 'rueckruf', label: 'Rückrufbitte', icon: '📞', href: '/portal/client?action=rueckruf' },
+    ];
+    if (context && canAccessPortalFeature(context, 'assist', 'nachweise')) {
+      actions.push({
+        key: 'nachweise',
+        label: 'Nachweise',
+        icon: '📋',
+        href: '/portal/client?action=nachweise',
+      });
+    }
+    return actions;
+  }, [context]);
+
   if (!context || !terminology) return null;
 
   return (
     <>
       <GlassCard style={styles.card}>
         <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>MANDANT</Text>
-        <Text style={[type.bodyStrong, { color: text.primary }]} numberOfLines={2}>
-          {context.tenantName}
-        </Text>
-        <Text style={[type.caption, { color: text.secondary }]}>{moduleLabel}</Text>
+        <View style={styles.mandantRow}>
+          <View style={styles.mandantIconWrap}>
+            <Text style={styles.mandantIcon}>🏢</Text>
+          </View>
+          <View style={styles.mandantCopy}>
+            <Text style={[type.bodyStrong, { color: text.primary }]} numberOfLines={2}>
+              {context.tenantName}
+            </Text>
+            <Text style={[type.caption, { color: text.secondary }]}>{moduleLabel}</Text>
+          </View>
+        </View>
         <Pressable
           onPress={() => setMandantOpen(true)}
           style={[styles.detailsBtn, webCursor]}
           accessibilityRole="button"
         >
-          <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>Details</Text>
+          <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>Details →</Text>
         </Pressable>
       </GlassCard>
 
       <GlassCard style={styles.card}>
         <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>PORTAL-STATUS</Text>
         <View style={styles.statusRow}>
-          <Text style={[type.caption, { color: text.secondary }]}>Freigabe</Text>
+          <View style={styles.statusLabelRow}>
+            <View style={styles.statusDot} />
+            <Text style={[type.caption, { color: text.secondary }]}>Freigabe</Text>
+          </View>
           <Text style={[type.caption, { color: text.primary, fontWeight: '700' }]}>{releaseLabel}</Text>
         </View>
         <View style={styles.statusRow}>
@@ -79,26 +108,15 @@ export function MobilePortalSidebarCards({ accentColor = '#FF9500' }: MobilePort
             {terminology.personLabel}
           </Text>
         </View>
-        <View style={styles.statusRow}>
-          <Text style={[type.caption, { color: text.secondary }]}>Modul</Text>
-          <Text style={[type.caption, { color: text.primary, fontWeight: '700' }]}>{moduleLabel}</Text>
-        </View>
-        <View style={styles.statusRow}>
-          <Text style={[type.caption, { color: text.secondary }]}>Letzter Login</Text>
-          <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]}>{lastLoginFormatted}</Text>
-        </View>
       </GlassCard>
 
       <GlassCard style={styles.card}>
         <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>AUF EINEN BLICK</Text>
         {kpis.map((kpi) => (
-          <View key={kpi.label} style={styles.kpiRow}>
+          <View key={kpi.label} style={styles.glanceRow}>
             <Text style={[type.caption, { color: text.secondary, flex: 1 }]}>{kpi.label}</Text>
-            <View style={[styles.kpiBadge, { backgroundColor: auroraGlass.chipActive }]}>
-              <Text style={[type.caption, { color: accentColor, fontWeight: '800' }]}>
-                {kpi.value ?? 0}
-              </Text>
-            </View>
+            <Text style={[type.caption, { color: text.muted, fontWeight: '700' }]}>{kpi.value ?? 0}</Text>
+            <Text style={[type.caption, styles.chevron, { color: text.muted }]}>›</Text>
           </View>
         ))}
       </GlassCard>
@@ -129,16 +147,9 @@ export function MobilePortalSidebarCards({ accentColor = '#FF9500' }: MobilePort
       <GlassCard style={styles.card}>
         <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SUPPORT & HILFE</Text>
         <Pressable onPress={() => setHelpOpen(true)} style={styles.supportLink}>
-          <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>❓ Hilfe & Kontakt</Text>
-        </Pressable>
-        <Pressable onPress={() => openExternal(SUPPORT_LINKS.privacy)} style={styles.supportLink}>
-          <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>🔒 Datenschutz</Text>
-        </Pressable>
-        <Pressable
-          onPress={() => router.push('/portal/client?module=assist&section=hilfe' as never)}
-          style={styles.supportLink}
-        >
-          <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>📋 Betroffenenrechte</Text>
+          <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
+            Hilfe & Dokumentation
+          </Text>
         </Pressable>
       </GlassCard>
 
@@ -150,11 +161,17 @@ export function MobilePortalSidebarCards({ accentColor = '#FF9500' }: MobilePort
         <Text style={[type.caption, { color: text.muted, marginTop: careSpacing.md }]}>
           Informationen zu Ihrem Pflegebüro — rein informativ, ohne Verwaltungsfunktionen.
         </Text>
+        <Text style={[type.caption, { color: text.muted, marginTop: careSpacing.sm }]}>
+          Letzter Login: {lastLoginFormatted}
+        </Text>
       </PortalGlassModal>
 
       <PortalGlassModal visible={helpOpen} onClose={() => setHelpOpen(false)} title="Support & Hilfe">
         <Pressable onPress={() => openExternal(SUPPORT_LINKS.help)} style={styles.supportLink}>
           <Text style={[type.body, { color: text.primary }]}>Hilfe & Dokumentation öffnen</Text>
+        </Pressable>
+        <Pressable onPress={() => openExternal(SUPPORT_LINKS.privacy)} style={styles.supportLink}>
+          <Text style={[type.body, { color: text.primary }]}>Datenschutz</Text>
         </Pressable>
         <Pressable
           onPress={() => {
@@ -174,6 +191,7 @@ const styles = StyleSheet.create({
   card: {
     gap: careSpacing.xs,
     padding: careSpacing.md,
+    backgroundColor: 'rgba(20,27,40,0.85)',
   },
   section: {
     gap: careSpacing.sm,
@@ -183,6 +201,28 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: careSpacing.xs,
+  },
+  mandantRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: careSpacing.sm,
+  },
+  mandantIconWrap: {
+    width: 36,
+    height: 36,
+    borderRadius: 10,
+    borderWidth: 1,
+    borderColor: auroraGlass.border,
+    backgroundColor: auroraGlass.chip,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  mandantIcon: {
+    fontSize: 18,
+  },
+  mandantCopy: {
+    flex: 1,
+    gap: 2,
   },
   detailsBtn: {
     alignSelf: 'flex-start',
@@ -198,30 +238,38 @@ const styles = StyleSheet.create({
     paddingVertical: 4,
     gap: careSpacing.sm,
   },
-  kpiRow: {
+  statusLabelRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
+    gap: 6,
+  },
+  statusDot: {
+    width: 8,
+    height: 8,
+    borderRadius: 999,
+    backgroundColor: '#22C55E',
+  },
+  glanceRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
     paddingVertical: careSpacing.xs,
     gap: careSpacing.sm,
   },
-  kpiBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 2,
-    borderRadius: 999,
-    minWidth: 28,
-    alignItems: 'center',
+  chevron: {
+    fontSize: 16,
+    lineHeight: 18,
   },
   quickRow: {
     gap: careSpacing.xs,
-    paddingRight: careSpacing.md,
+    paddingRight: careSpacing.lg,
+    paddingLeft: 2,
   },
   quickPill: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: careSpacing.xs,
     minHeight: 44,
-    paddingHorizontal: careSpacing.sm,
+    paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm,
     borderRadius: 999,
     borderWidth: 1,

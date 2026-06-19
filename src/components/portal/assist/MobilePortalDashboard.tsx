@@ -10,7 +10,6 @@ import { PortalDocumentUploadModal } from '@/components/portal/assist/PortalDocu
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalNextAppointmentHero } from '@/components/portal/assist/PortalNextAppointmentHero';
 import { PortalOpenRequestsModal } from '@/components/portal/assist/PortalOpenRequestsModal';
-import { PortalQuickActions, type PortalQuickAction } from '@/components/portal/assist/PortalQuickActions';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -25,7 +24,6 @@ import {
 } from '@/lib/portal/assist';
 import {
   canAccessPortalFeature,
-  resolvePortalHeroCopy,
   resolvePortalTerminology,
 } from '@/lib/portal/engine';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
@@ -75,30 +73,12 @@ export function MobilePortalDashboard({
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const terminology = resolvePortalTerminology('assist');
-  const heroCopy = resolvePortalHeroCopy({
-    displayName: context.displayName,
-    tenantName: context.tenantName,
-    terminology,
-    isPhone: true,
-  });
+  const releaseLabel =
+    context.visibleFeatures.length > 0 ? 'Freigabe aktiv' : 'Freigabe ausstehend';
   const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
   const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
   const activitiesReleased = canAccessPortalFeature(context, 'assist', 'aktivitaeten');
-
-  const quickActions = useMemo(() => {
-    const actions: PortalQuickAction[] = [
-      { key: 'nav_messages', label: 'Nachricht', icon: '💬' },
-      { key: 'termin_aendern', label: 'Terminänderung', icon: '📅' },
-      { key: 'zusatztermin', label: 'Zusatztermin', icon: '➕' },
-      { key: 'upload', label: 'Upload', icon: '📎' },
-      { key: 'rueckruf', label: 'Rückruf', icon: '📞' },
-    ];
-    if (proofsReleased) {
-      actions.push({ key: 'nachweise', label: 'Nachweise', icon: '📋' });
-    }
-    return actions;
-  }, [proofsReleased]);
 
   const clearModalRoute = useCallback(() => {
     if (params.modal) {
@@ -195,26 +175,6 @@ export function MobilePortalDashboard({
     }
   };
 
-  const handleQuickAction = (action: PortalQuickAction) => {
-    if (action.key === 'nav_messages') {
-      router.push('/portal/client/messages' as never);
-      return;
-    }
-    if (action.key === 'nav_documents') {
-      router.push('/portal/client/documents' as never);
-      return;
-    }
-    if (action.key === 'upload') {
-      setUploadModalOpen(true);
-      return;
-    }
-    if (action.key === 'nachweise') {
-      setProofsModalOpen(true);
-      return;
-    }
-    setRequestModal(action.key as PortalRequestType);
-  };
-
   if (loading && !dashboard) {
     return <LoadingState message="Assist-Portal wird geladen…" />;
   }
@@ -241,10 +201,11 @@ export function MobilePortalDashboard({
 
         <PortalGlassHero
           leadingIcon="🤝"
-          eyebrow={heroCopy.eyebrow}
-          title={heroCopy.title}
-          meta={heroCopy.meta}
-          badge={heroCopy.badge}
+          title={`${terminology.greetingLabel}, ${context.displayName}`}
+          subtitle={context.tenantName}
+          meta={`${terminology.moduleLabel} · Rolle: ${terminology.personLabel} · ${releaseLabel}`}
+          badge={terminology.moduleLabel}
+          showStatusDot
         />
 
         <PortalNextAppointmentHero
@@ -258,10 +219,9 @@ export function MobilePortalDashboard({
           <MobilePortalKpiCard
             icon="📅"
             label="Termine"
-            description="Anstehend"
             value={data.kpis.appointments}
             emptyMessage="Keine Termine geplant."
-            ctaLabel="Zusatztermin"
+            ctaLabel="Termin anfragen →"
             accentColor="#4CC9F0"
             onCta={() => setRequestModal('zusatztermin')}
             onPress={() => router.push('/portal/client/appointments' as never)}
@@ -269,32 +229,29 @@ export function MobilePortalDashboard({
           <MobilePortalKpiCard
             icon="💬"
             label="Nachrichten"
-            description="Threads"
             value={data.kpis.messages}
-            emptyMessage="Noch keine Nachrichten."
-            ctaLabel="Verwaltung anschreiben"
+            emptyMessage="Keine neuen Nachrichten."
+            ctaLabel="Nachrichten öffnen →"
             accentColor="#7B61FF"
-            onCta={() => router.push('/portal/client/messages?compose=1' as never)}
+            onCta={() => router.push('/portal/client/messages' as never)}
             onPress={() => router.push('/portal/client/messages' as never)}
           />
           <MobilePortalKpiCard
             icon="📄"
             label="Dokumente"
-            description="Freigegeben"
             value={data.kpis.documents}
-            emptyMessage="Noch keine Dokumente."
-            ctaLabel="Dokument hochladen"
+            emptyMessage="Keine neuen Dokumente."
+            ctaLabel="Dokumente öffnen →"
             accentColor="#FF9500"
-            onCta={() => setUploadModalOpen(true)}
+            onCta={() => router.push('/portal/client/documents' as never)}
             onPress={() => router.push('/portal/client/documents' as never)}
           />
           <MobilePortalKpiCard
             icon="📋"
             label="Nachweise"
-            description="Offen"
             value={data.kpis.proofs}
             emptyMessage="Keine Nachweise offen."
-            ctaLabel="Nachweise anzeigen"
+            ctaLabel="Nachweise anzeigen →"
             accentColor="#2DD4BF"
             onCta={() => setProofsModalOpen(true)}
             onPress={() => setProofsModalOpen(true)}
@@ -303,47 +260,49 @@ export function MobilePortalDashboard({
           <MobilePortalKpiCard
             icon="✍️"
             label="Unterschriften"
-            description="Ausstehend"
             value={data.kpis.signatures}
             emptyMessage="Keine Unterschriften ausstehend."
+            ctaLabel="Anzeigen →"
             accentColor="#F472B6"
+            onCta={() => router.push('/portal/client/documents' as never)}
             onPress={() => router.push('/portal/client/documents' as never)}
           />
           <MobilePortalKpiCard
             icon="📨"
             label="Anfragen"
-            description="Offen"
             value={data.kpis.openRequests}
             emptyMessage="Keine offenen Anfragen."
-            ctaLabel="Anfrage stellen"
+            metricSubtitle="Offene Anfrage"
+            ctaLabel="Anzeigen →"
             accentColor="#FFD166"
-            onCta={() => setRequestModal('sonstiges')}
+            onCta={openRequestsModal}
             onPress={openRequestsModal}
             hidden={!requestsReleased}
           />
           <MobilePortalKpiCard
             icon="📰"
             label="Aktivitäten"
-            description="Neu"
             value={data.kpis.activities}
             emptyMessage="Noch keine Aktivitäten."
+            metricSubtitle="Letzte 30 Tage"
+            ctaLabel="Anzeigen →"
             accentColor="#60A5FA"
+            onCta={openActivitiesModal}
             onPress={openActivitiesModal}
             hidden={!activitiesReleased}
           />
           <MobilePortalKpiCard
             icon="🚗"
             label="Begleitungen"
-            description="Geplant"
             value={data.kpis.begleitungen}
             emptyMessage="Keine Begleitungen geplant."
+            ctaLabel="Mehr erfahren →"
             accentColor="#34D399"
             hidden={!tripsReleased}
+            onCta={() => router.push('/portal/client?module=assist&section=begleitungen' as never)}
             onPress={() => router.push('/portal/client?module=assist&section=begleitungen' as never)}
           />
         </View>
-
-        <PortalQuickActions onAction={handleQuickAction} actions={quickActions} />
 
         <MobilePortalSidebarCards />
       </ScrollView>
@@ -413,14 +372,14 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   container: {
-    gap: careSpacing.md,
+    gap: careSpacing.sm,
     width: '100%',
     maxWidth: '100%',
   },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: careSpacing.sm,
+    gap: careSpacing.xs,
     width: '100%',
     justifyContent: 'space-between',
   },
