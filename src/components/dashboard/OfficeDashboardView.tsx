@@ -1,3 +1,4 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
@@ -18,7 +19,9 @@ import { OFFICE_AREA_SHORTCUTS } from '@/data/demo/officeDashboard';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
-import { colors, spacing, typography } from '@/theme';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { designTokens, spacing } from '@/theme';
 import { DashboardHero } from './DashboardHero';
 
 type OfficeDashboardViewProps = {
@@ -52,12 +55,20 @@ function KpiSection({ snapshot }: { snapshot: DashboardSnapshot }) {
   );
 }
 
-function StatusSection({ snapshot }: { snapshot: DashboardSnapshot }) {
+function StatusSection({
+  snapshot,
+  styles,
+  accentColor,
+}: {
+  snapshot: DashboardSnapshot;
+  styles: ReturnType<typeof createOfficeDashboardStyles>;
+  accentColor: string;
+}) {
   return (
     <SectionPanel title="Aufmerksamkeit" subtitle="Vorgänge, die Ihre Aktion brauchen">
       <View style={styles.statusList}>
         {snapshot.statusCards.map((card) => (
-          <PremiumCard key={card.id} accentColor={colors.orange}>
+          <PremiumCard key={card.id} accentColor={accentColor}>
             <View style={styles.statusHeader}>
               <Text style={styles.statusTitle}>{card.title}</Text>
               {card.count !== undefined ? (
@@ -91,9 +102,11 @@ function StatusSection({ snapshot }: { snapshot: DashboardSnapshot }) {
 function QuickActionsSection({
   snapshot,
   onAction,
+  styles,
 }: {
   snapshot: DashboardSnapshot;
   onAction: (action: DashboardQuickAction) => void;
+  styles: ReturnType<typeof createOfficeDashboardStyles>;
 }) {
   return (
     <SectionPanel title="Schnellaktionen" subtitle="Häufige Verwaltungsaufgaben">
@@ -112,7 +125,13 @@ function QuickActionsSection({
   );
 }
 
-function AreasSection({ onNavigate }: { onNavigate: (route: string) => void }) {
+function AreasSection({
+  onNavigate,
+  styles,
+}: {
+  onNavigate: (route: string) => void;
+  styles: ReturnType<typeof createOfficeDashboardStyles>;
+}) {
   return (
     <SectionPanel title="Arbeitsbereiche" subtitle="Office-Module und Verwaltung">
       <View style={styles.areaList}>
@@ -156,6 +175,103 @@ function ActivitySection({
   );
 }
 
+function createOfficeDashboardStyles(
+  colors: ReturnType<typeof useLegacyTheme>['colors'],
+  typography: ReturnType<typeof useLegacyTheme>['typography'],
+  isDark: boolean,
+  shellHostsAurora: boolean,
+) {
+  return StyleSheet.create({
+    container: {
+      gap: spacing.md,
+      backgroundColor: shellHostsAurora ? 'transparent' : undefined,
+    },
+    statusList: {
+      gap: spacing.sm,
+    },
+    statusHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      marginBottom: 4,
+    },
+    statusTitle: {
+      ...typography.bodyStrong,
+      color: colors.textPrimary,
+      flex: 1,
+    },
+    statusCount: {
+      ...typography.h3,
+      color: colors.orange,
+    },
+    statusDesc: {
+      ...typography.caption,
+      color: colors.textMuted,
+      marginBottom: spacing.sm,
+    },
+    statusBadges: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    actions: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.sm,
+    },
+    areaList: {
+      borderRadius: 12,
+      borderWidth: 1,
+      borderColor: isDark ? designTokens.glass.border : colors.borderSoft,
+      overflow: 'hidden',
+      backgroundColor: isDark ? designTokens.glass.background : colors.bgSurface,
+    },
+    areaIcon: {
+      width: 40,
+      height: 40,
+      borderRadius: 10,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    areaIconText: {
+      fontSize: 18,
+    },
+    areaCount: {
+      ...typography.bodyStrong,
+      color: colors.textMuted,
+      minWidth: 24,
+      textAlign: 'right',
+    },
+    tabletGrid: {
+      flexDirection: 'row',
+      gap: spacing.md,
+    },
+    tabletCol: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.md,
+    },
+    desktopGrid: {
+      flexDirection: 'row',
+      gap: spacing.md,
+      alignItems: 'flex-start',
+    },
+    desktopNav: {
+      width: 280,
+      flexShrink: 0,
+    },
+    desktopMain: {
+      flex: 1,
+      minWidth: 0,
+      gap: spacing.md,
+    },
+    desktopSide: {
+      width: 320,
+      flexShrink: 0,
+    },
+  });
+}
+
 export function OfficeDashboardView({
   snapshot,
   loading,
@@ -165,6 +281,12 @@ export function OfficeDashboardView({
 }: OfficeDashboardViewProps) {
   const router = useRouter();
   const { shellVariant } = usePlatformLayout();
+  const shellHostsAurora = useShellHostsAurora();
+  const { colors, typography, isDark } = useLegacyTheme();
+  const styles = useMemo(
+    () => createOfficeDashboardStyles(colors, typography, isDark, shellHostsAurora),
+    [colors, typography, isDark, shellHostsAurora],
+  );
 
   const handleAction = (action: DashboardQuickAction) => {
     if (action.route) {
@@ -211,12 +333,12 @@ export function OfficeDashboardView({
         {hero}
         <View style={styles.desktopGrid}>
           <View style={styles.desktopNav}>
-            <AreasSection onNavigate={handleNavigate} />
+            <AreasSection onNavigate={handleNavigate} styles={styles} />
           </View>
           <View style={styles.desktopMain}>
             <KpiSection snapshot={snapshot} />
-            <StatusSection snapshot={snapshot} />
-            <QuickActionsSection snapshot={snapshot} onAction={handleAction} />
+            <StatusSection snapshot={snapshot} styles={styles} accentColor={colors.orange} />
+            <QuickActionsSection snapshot={snapshot} onAction={handleAction} styles={styles} />
           </View>
           <View style={styles.desktopSide}>
             <ActivitySection snapshot={snapshot} onRefresh={onRefresh} />
@@ -233,14 +355,14 @@ export function OfficeDashboardView({
         <View style={styles.tabletGrid}>
           <View style={styles.tabletCol}>
             <KpiSection snapshot={snapshot} />
-            <QuickActionsSection snapshot={snapshot} onAction={handleAction} />
+            <QuickActionsSection snapshot={snapshot} onAction={handleAction} styles={styles} />
           </View>
           <View style={styles.tabletCol}>
-            <StatusSection snapshot={snapshot} />
+            <StatusSection snapshot={snapshot} styles={styles} accentColor={colors.orange} />
             <ActivitySection snapshot={snapshot} onRefresh={onRefresh} />
           </View>
         </View>
-        <AreasSection onNavigate={handleNavigate} />
+        <AreasSection onNavigate={handleNavigate} styles={styles} />
       </View>
     );
   }
@@ -249,97 +371,10 @@ export function OfficeDashboardView({
     <View style={styles.container}>
       {hero}
       <KpiSection snapshot={snapshot} />
-      <StatusSection snapshot={snapshot} />
-      <QuickActionsSection snapshot={snapshot} onAction={handleAction} />
-      <AreasSection onNavigate={handleNavigate} />
+      <StatusSection snapshot={snapshot} styles={styles} accentColor={colors.orange} />
+      <QuickActionsSection snapshot={snapshot} onAction={handleAction} styles={styles} />
+      <AreasSection onNavigate={handleNavigate} styles={styles} />
       <ActivitySection snapshot={snapshot} onRefresh={onRefresh} />
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    gap: spacing.md,
-  },
-  statusList: {
-    gap: spacing.sm,
-  },
-  statusHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  statusTitle: {
-    ...typography.bodyStrong,
-    flex: 1,
-  },
-  statusCount: {
-    ...typography.h3,
-    color: colors.orange,
-  },
-  statusDesc: {
-    ...typography.caption,
-    marginBottom: spacing.sm,
-  },
-  statusBadges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  areaList: {
-    borderRadius: 12,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    overflow: 'hidden',
-    backgroundColor: colors.bgSurface,
-  },
-  areaIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 10,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  areaIconText: {
-    fontSize: 18,
-  },
-  areaCount: {
-    ...typography.bodyStrong,
-    color: colors.textMuted,
-    minWidth: 24,
-    textAlign: 'right',
-  },
-  tabletGrid: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  tabletCol: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.md,
-  },
-  desktopGrid: {
-    flexDirection: 'row',
-    gap: spacing.md,
-    alignItems: 'flex-start',
-  },
-  desktopNav: {
-    width: 280,
-    flexShrink: 0,
-  },
-  desktopMain: {
-    flex: 1,
-    minWidth: 0,
-    gap: spacing.md,
-  },
-  desktopSide: {
-    width: 320,
-    flexShrink: 0,
-  },
-});

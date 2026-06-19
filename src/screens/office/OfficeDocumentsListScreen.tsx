@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { DocumentsListView } from '@/components/office/DocumentsListView';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -27,24 +27,24 @@ export function OfficeDocumentsListScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Dokumente" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Dokumente" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Dokumente werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Dokumente" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Dokumente" subtitle="Fehler" scroll={false}>
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const isEmpty = (query.data ?? []).length === 0;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Dokumente"
       subtitle={`Office Ablage${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
@@ -70,7 +70,7 @@ export function OfficeDocumentsListScreen() {
           <DocumentsListView />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

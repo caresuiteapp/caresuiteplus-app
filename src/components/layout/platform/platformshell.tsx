@@ -65,12 +65,13 @@ const styles = StyleSheet.create({
   gradientRoot: { flex: 1, backgroundColor: '#0B1020' },
   root: { flex: 1, backgroundColor: 'transparent' },
   body: { flex: 1, flexDirection: 'row', minHeight: 0 },
-  main: { flex: 1, minWidth: 0 },
+  main: { flex: 1, minWidth: 0, backgroundColor: 'transparent' },
   mainContent: {
     flex: 1,
     minHeight: 0,
     padding: spacing.lg,
     gap: spacing.lg,
     paddingBottom: spacing.xxl,
+    backgroundColor: 'transparent',
   },
 });

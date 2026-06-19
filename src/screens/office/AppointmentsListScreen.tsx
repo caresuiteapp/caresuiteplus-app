@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { AppointmentsListView } from '@/components/office/AppointmentsListView';
 import { CareLightButton } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
@@ -31,7 +31,7 @@ export function AppointmentsListScreen({
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Termine"
       subtitle={`Office Terminplanung${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
@@ -51,7 +51,7 @@ export function AppointmentsListScreen({
           selectedId={selectedId}
         />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

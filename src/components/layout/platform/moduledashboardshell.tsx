@@ -1,10 +1,12 @@
-import { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { ReactNode, useMemo } from 'react';
+import { View } from 'react-native';
 import { BreadcrumbBar, PageHeader } from '@/components/layout/platform';
 import { CareLightScreen } from '@/components/layout';
 import type { BreadcrumbSegment } from '@/components/layout/platform/breadcrumbbar';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 
 type ModuleDashboardShellProps = {
   moduleLabel: string;
@@ -23,6 +25,15 @@ export function ModuleDashboardShell({
   children,
 }: ModuleDashboardShellProps) {
   const { mode } = useThemeMode();
+  const { colors } = useLegacyTheme();
+  const shellHostsAurora = useShellHostsAurora();
+  const pageStyle = useMemo(
+    () => ({
+      gap: careSpacing.md,
+      backgroundColor: shellHostsAurora ? 'transparent' : colors.bgBase,
+    }),
+    [colors.bgBase, shellHostsAurora],
+  );
   const header = (
     <>
       <PageHeader badge={moduleLabel} title={title} subtitle={subtitle} />
@@ -32,7 +43,7 @@ export function ModuleDashboardShell({
 
   if (mode === 'dark') {
     return (
-      <View style={styles.page}>
+      <View style={pageStyle}>
         {header}
         {children}
       </View>
@@ -47,8 +58,3 @@ export function ModuleDashboardShell({
   );
 }
 
-const styles = StyleSheet.create({
-  page: {
-    gap: careSpacing.md,
-  },
-});

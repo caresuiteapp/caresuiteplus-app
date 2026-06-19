@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { InvoicesListView } from '@/components/office/InvoicesListView';
 import { CareLightButton, EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
@@ -35,22 +35,22 @@ export function InvoicesListScreen({
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Rechnungen" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Rechnungen" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Rechnungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Rechnungen" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Rechnungen" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Rechnungen"
       subtitle={`Office Abrechnung${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
@@ -80,7 +80,7 @@ export function InvoicesListScreen({
           />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 
