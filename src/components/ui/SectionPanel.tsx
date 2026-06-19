@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glassFx } from '@/design/tokens/motion';
 import { radius, spacing } from '@/theme';
@@ -13,6 +14,7 @@ type SectionPanelProps = {
 
 export function SectionPanel({ title, subtitle, children }: SectionPanelProps) {
   const { colors, typography, isDark } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
 
   const styles = useMemo(
     () =>
@@ -38,11 +40,11 @@ export function SectionPanel({ title, subtitle, children }: SectionPanelProps) {
           borderBottomWidth: 1,
           borderBottomColor: isDark ? glassFx.hairline : colors.borderSoft,
         },
-        title: { ...typography.h3 },
-        subtitle: { ...typography.caption, marginTop: 4 },
+        title: { ...typography.h3, color: text.primary },
+        subtitle: { ...typography.caption, marginTop: 4, color: text.secondary },
         body: { padding: spacing.md, gap: spacing.sm },
       }),
-    [colors.bgSurface, colors.borderSoft, isDark, typography.caption, typography.h3],
+    [colors.bgSurface, colors.borderSoft, isDark, text.primary, text.secondary, typography.caption, typography.h3],
   );
 
   return (

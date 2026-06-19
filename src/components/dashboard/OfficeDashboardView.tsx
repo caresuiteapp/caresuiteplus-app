@@ -20,6 +20,7 @@ import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { designTokens, spacing } from '@/theme';
 import { DashboardHero } from './DashboardHero';
@@ -178,6 +179,7 @@ function ActivitySection({
 function createOfficeDashboardStyles(
   colors: ReturnType<typeof useLegacyTheme>['colors'],
   typography: ReturnType<typeof useLegacyTheme>['typography'],
+  text: ReturnType<typeof useAuroraAdaptiveText>,
   isDark: boolean,
   shellHostsAurora: boolean,
 ) {
@@ -197,7 +199,7 @@ function createOfficeDashboardStyles(
     },
     statusTitle: {
       ...typography.bodyStrong,
-      color: colors.textPrimary,
+      color: text.primary,
       flex: 1,
     },
     statusCount: {
@@ -206,7 +208,7 @@ function createOfficeDashboardStyles(
     },
     statusDesc: {
       ...typography.caption,
-      color: colors.textMuted,
+      color: text.secondary,
       marginBottom: spacing.sm,
     },
     statusBadges: {
@@ -239,7 +241,7 @@ function createOfficeDashboardStyles(
     },
     areaCount: {
       ...typography.bodyStrong,
-      color: colors.textMuted,
+      color: text.muted,
       minWidth: 24,
       textAlign: 'right',
     },
@@ -284,9 +286,10 @@ export function OfficeDashboardView({
   const { shellVariant } = usePlatformLayout();
   const shellHostsAurora = useShellHostsAurora();
   const { colors, typography, isDark } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
   const styles = useMemo(
-    () => createOfficeDashboardStyles(colors, typography, isDark, shellHostsAurora),
-    [colors, typography, isDark, shellHostsAurora],
+    () => createOfficeDashboardStyles(colors, typography, text, isDark, shellHostsAurora),
+    [colors, typography, text, isDark, shellHostsAurora],
   );
 
   const handleAction = (action: DashboardQuickAction) => {

@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { CareLightKpiCard } from './CareLightKpiCard';
@@ -54,6 +55,7 @@ export function PremiumKpiCard({
   }
 
   const { colors, typography, gradients } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
   const resolvedAccent = accentColor ?? colors.cyan;
   const floatY = useSharedValue(0);
   const pulseOpacity = useSharedValue(0.3);
@@ -102,6 +104,7 @@ export function PremiumKpiCard({
           textTransform: 'uppercase',
           letterSpacing: 0.4,
           flexShrink: 1,
+          color: text.secondary,
         },
         value: {
           fontSize: 24,
@@ -110,6 +113,7 @@ export function PremiumKpiCard({
         },
         subValue: {
           ...typography.caption,
+          color: text.muted,
         },
         trend: {
           fontSize: 11,
@@ -117,7 +121,7 @@ export function PremiumKpiCard({
           marginTop: 2,
         },
       }),
-    [colors.borderSoft, typography.caption],
+    [colors.borderSoft, text.muted, text.secondary, typography.caption],
   );
 
   useEffect(() => {
@@ -141,7 +145,7 @@ export function PremiumKpiCard({
   }));
 
   const trendColor =
-    trend === 'up' ? colors.success : trend === 'down' ? colors.danger : colors.textMuted;
+    trend === 'up' ? colors.success : trend === 'down' ? colors.danger : text.muted;
 
   return (
     <Animated.View style={[styles.wrapper, { shadowColor: resolvedAccent }, animStyle, style]}>

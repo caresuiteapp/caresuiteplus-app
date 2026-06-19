@@ -1,7 +1,10 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import type { DashboardActivity } from '@/types/dashboard';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 import { PremiumBadge } from './PremiumBadge';
 
 type TimelineProps = {
@@ -22,22 +25,99 @@ function timeAgo(iso: string): string {
   return `vor ${days} Tag${days > 1 ? 'en' : ''}`;
 }
 
-const TYPE_COLORS: Record<DashboardActivity['type'], string> = {
-  client: colors.orange,
-  employee: colors.violet,
-  assignment: colors.orange,
-  invoice: colors.amber,
-  care: colors.success,
-  document: colors.cyan,
-  system: colors.textMuted,
-};
-
 export function Timeline({
   items,
   maxItems = 6,
   emptyTitle = 'Keine Aktivitäten',
   emptyMessage = 'Hier erscheinen die letzten Vorgänge.',
 }: TimelineProps) {
+  const text = useAuroraAdaptiveText();
+  const { colors } = useLegacyTheme();
+
+  const typeColors = useMemo(
+    (): Record<DashboardActivity['type'], string> => ({
+      client: colors.orange,
+      employee: colors.violet,
+      assignment: colors.orange,
+      invoice: colors.amber,
+      care: colors.success,
+      document: colors.cyan,
+      system: text.muted,
+    }),
+    [colors.amber, colors.cyan, colors.orange, colors.success, colors.violet, text.muted],
+  );
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        list: {
+          gap: spacing.sm,
+        },
+        row: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+        },
+        lineCol: {
+          alignItems: 'center',
+          width: 16,
+        },
+        dot: {
+          width: 10,
+          height: 10,
+          borderRadius: 5,
+          marginTop: 4,
+        },
+        line: {
+          flex: 1,
+          width: 2,
+          backgroundColor: colors.borderSoft,
+          marginTop: 4,
+          minHeight: 24,
+        },
+        content: {
+          flex: 1,
+          gap: 4,
+          paddingBottom: spacing.sm,
+        },
+        titleRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: 6,
+        },
+        icon: {
+          fontSize: 14,
+        },
+        title: {
+          ...typography.bodyStrong,
+          flex: 1,
+          color: text.primary,
+        },
+        time: {
+          ...typography.caption,
+          color: text.muted,
+        },
+        subtitle: {
+          ...typography.caption,
+          color: text.secondary,
+        },
+        empty: {
+          padding: spacing.md,
+          alignItems: 'center',
+          gap: spacing.xs,
+        },
+        emptyTitle: {
+          ...typography.bodyStrong,
+          color: text.primary,
+        },
+        emptyMessage: {
+          ...typography.caption,
+          textAlign: 'center',
+          color: text.secondary,
+        },
+      }),
+    [colors.borderSoft, text.muted, text.primary, text.secondary],
+  );
+
   const visible = items.slice(0, maxItems);
 
   if (visible.length === 0) {
@@ -54,7 +134,7 @@ export function Timeline({
       {visible.map((item, index) => (
         <View key={item.id} style={styles.row}>
           <View style={styles.lineCol}>
-            <View style={[styles.dot, { backgroundColor: TYPE_COLORS[item.type] }]} />
+            <View style={[styles.dot, { backgroundColor: typeColors[item.type] }]} />
             {index < visible.length - 1 ? <View style={styles.line} /> : null}
           </View>
           <View style={styles.content}>
@@ -88,66 +168,3 @@ export function Timeline({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  list: {
-    gap: spacing.sm,
-  },
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-  },
-  lineCol: {
-    alignItems: 'center',
-    width: 16,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginTop: 4,
-  },
-  line: {
-    flex: 1,
-    width: 2,
-    backgroundColor: colors.borderSoft,
-    marginTop: 4,
-    minHeight: 24,
-  },
-  content: {
-    flex: 1,
-    gap: 4,
-    paddingBottom: spacing.sm,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 6,
-  },
-  icon: {
-    fontSize: 14,
-  },
-  title: {
-    ...typography.bodyStrong,
-    flex: 1,
-  },
-  time: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  subtitle: {
-    ...typography.caption,
-  },
-  empty: {
-    padding: spacing.md,
-    alignItems: 'center',
-    gap: spacing.xs,
-  },
-  emptyTitle: {
-    ...typography.bodyStrong,
-  },
-  emptyMessage: {
-    ...typography.caption,
-    textAlign: 'center',
-  },
-});

@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   Pressable,
   StyleSheet,
@@ -12,7 +12,8 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from 'react-native-reanimated';
-import { colors, motion, spacing, typography } from '@/theme';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { motion, spacing, typography } from '@/theme';
 import { PremiumDivider } from './PremiumDivider';
 
 type Props = {
@@ -36,10 +37,61 @@ export function PremiumListRow({
   onPress,
   style,
 }: Props) {
+  const text = useAuroraAdaptiveText();
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
   }));
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          width: '100%',
+        },
+        pressable: {
+          borderRadius: 8,
+        },
+        row: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.sm,
+          paddingVertical: spacing.sm,
+          minHeight: 56,
+        },
+        leading: {
+          flexShrink: 0,
+        },
+        textBlock: {
+          flex: 1,
+          gap: 2,
+        },
+        title: {
+          ...typography.bodyStrong,
+          color: text.primary,
+        },
+        subtitle: {
+          ...typography.caption,
+          color: text.secondary,
+        },
+        trailing: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.xs,
+          flexShrink: 0,
+        },
+        chevron: {
+          fontSize: 22,
+          color: text.muted,
+          fontWeight: '300',
+          marginLeft: 2,
+        },
+        divider: {
+          marginLeft: spacing.sm,
+        },
+      }),
+    [text.muted, text.primary, text.secondary],
+  );
 
   const content = (
     <>
@@ -85,47 +137,3 @@ export function PremiumListRow({
     </Animated.View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    width: '100%',
-  },
-  pressable: {
-    borderRadius: 8,
-  },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.sm,
-    paddingVertical: spacing.sm,
-    minHeight: 56,
-  },
-  leading: {
-    flexShrink: 0,
-  },
-  textBlock: {
-    flex: 1,
-    gap: 2,
-  },
-  title: {
-    ...typography.bodyStrong,
-  },
-  subtitle: {
-    ...typography.caption,
-  },
-  trailing: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: spacing.xs,
-    flexShrink: 0,
-  },
-  chevron: {
-    fontSize: 22,
-    color: colors.textMuted,
-    fontWeight: '300',
-    marginLeft: 2,
-  },
-  divider: {
-    marginLeft: spacing.sm,
-  },
-});

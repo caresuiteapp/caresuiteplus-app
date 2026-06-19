@@ -33,6 +33,12 @@ export const auroraGlass = {
     medium: 16,
     heavy: 24,
   },
+  /** Readable light text on dark glass panels (desktop aurora). */
+  text: {
+    primary: '#F9FAFB',
+    secondary: '#CBD5E1',
+    muted: '#94A3B8',
+  },
 } as const;
 
 export type AuroraGlassTokens = typeof auroraGlass;
@@ -40,6 +46,21 @@ export type AuroraGlassTokens = typeof auroraGlass;
 /** True when desktop web PlatformShell hosts aurora dark-glass. */
 export function useAuroraGlassActive(): boolean {
   return useShellHostsAurora();
+}
+
+/** Adaptive text colors — light/white on aurora glass, theme palette otherwise. */
+export function useAuroraAdaptiveText() {
+  const active = useAuroraGlassActive();
+  const { colors, isDark } = useLegacyTheme();
+
+  return useMemo(() => {
+    const onGlass = active || isDark;
+    return {
+      primary: onGlass ? auroraGlass.text.primary : colors.textPrimary,
+      secondary: onGlass ? auroraGlass.text.secondary : colors.textSecondary,
+      muted: onGlass ? auroraGlass.text.muted : colors.textMuted,
+    };
+  }, [active, colors.textMuted, colors.textPrimary, colors.textSecondary, isDark]);
 }
 
 /** Full aurora token set + legacy colors when inactive. */
@@ -129,6 +150,7 @@ export function useAuroraGlassModalStyle(): ViewStyle {
 export function useAuroraGlassButtonStyles() {
   const { active, colors } = useAuroraGlass();
   const { typography } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
 
   return useMemo(
     () =>
@@ -142,13 +164,13 @@ export function useAuroraGlassButtonStyles() {
           borderColor: active ? auroraGlass.border : colors.borderSoft,
         },
         secondaryText: {
-          color: colors.textPrimary,
+          color: text.primary,
         },
         label: {
           ...typography.button,
         },
       }),
-    [active, colors, typography.button],
+    [active, colors, text.primary, typography.button],
   );
 }
 
@@ -156,6 +178,7 @@ export function useAuroraGlassButtonStyles() {
 export function useAuroraGlassChipStyles() {
   const { active, colors } = useAuroraGlass();
   const { typography } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
 
   return useMemo(
     () =>
@@ -178,7 +201,7 @@ export function useAuroraGlassChipStyles() {
         label: {
           ...typography.caption,
           fontWeight: '600' as TextStyle['fontWeight'],
-          color: colors.textSecondary,
+          color: text.secondary,
         },
         labelSelected: {
           color: colors.orange,
@@ -201,7 +224,7 @@ export function useAuroraGlassChipStyles() {
           backgroundColor: active ? auroraGlass.chipActive : 'rgba(255,122,26,0.12)',
         },
       }),
-    [active, colors, typography.caption],
+    [active, colors, text.secondary, typography.caption],
   );
 }
 
@@ -209,6 +232,7 @@ export function useAuroraGlassChipStyles() {
 export function useAuroraGlassTableStyles() {
   const { active, colors } = useAuroraGlass();
   const { typography } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
 
   return useMemo(
     () =>
@@ -234,7 +258,7 @@ export function useAuroraGlassTableStyles() {
         },
         headerText: {
           ...typography.label,
-          color: colors.textMuted,
+          color: text.muted,
           textTransform: 'uppercase',
           letterSpacing: 0.6,
           fontSize: 11,
@@ -275,10 +299,10 @@ export function useAuroraGlassTableStyles() {
         },
         emptyText: {
           ...typography.caption,
-          color: colors.textMuted,
+          color: text.muted,
         },
       }),
-    [active, colors, typography.caption, typography.label],
+    [active, colors, text.muted, typography.caption, typography.label],
   );
 }
 
@@ -286,6 +310,7 @@ export function useAuroraGlassTableStyles() {
 export function useAuroraGlassSelectStyles() {
   const { active, colors } = useAuroraGlass();
   const { typography } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
 
   return useMemo(
     () =>
@@ -298,7 +323,7 @@ export function useAuroraGlassSelectStyles() {
         },
         label: {
           ...typography.label,
-          color: colors.textPrimary,
+          color: text.primary,
         },
         trigger: {
           minHeight: 44,
@@ -318,12 +343,12 @@ export function useAuroraGlassSelectStyles() {
         },
         triggerText: {
           ...typography.body,
-          color: colors.textPrimary,
+          color: text.primary,
           flex: 1,
         },
         chevron: {
           ...typography.caption,
-          color: colors.textMuted,
+          color: text.muted,
           fontWeight: '700',
         },
         backdrop: {
@@ -360,7 +385,7 @@ export function useAuroraGlassSelectStyles() {
         },
         optionLabel: {
           ...typography.body,
-          color: colors.textPrimary,
+          color: text.primary,
         },
         optionLabelSelected: {
           color: colors.orange,
@@ -382,7 +407,7 @@ export function useAuroraGlassSelectStyles() {
         },
         modalTitle: {
           ...typography.h3,
-          color: colors.textPrimary,
+          color: text.primary,
           marginBottom: careSpacing.xs,
         },
         modalClose: {
@@ -394,6 +419,6 @@ export function useAuroraGlassSelectStyles() {
           color: colors.orange,
         },
       }),
-    [active, colors, typography.body, typography.bodyStrong, typography.caption, typography.h3, typography.label],
+    [active, colors, text.muted, text.primary, typography.body, typography.bodyStrong, typography.caption, typography.h3, typography.label],
   );
 }

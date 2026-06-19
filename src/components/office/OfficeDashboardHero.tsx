@@ -1,4 +1,5 @@
 import { useMemo } from 'react';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
@@ -28,6 +29,7 @@ export function OfficeDashboardHero({
   onPrimaryAction,
 }: OfficeDashboardHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -38,8 +40,8 @@ export function OfficeDashboardHero({
     color: colors.cyan,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: text.primary },
+  meta: { ...typography.caption, color: text.muted },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -52,9 +54,9 @@ export function OfficeDashboardHero({
   },
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  preparedHint: { ...typography.caption, color: colors.textMuted },
+  preparedHint: { ...typography.caption, color: text.muted },
 }),
-    [colors, typography, gradients],
+    [colors, text.muted, text.primary, typography, gradients],
   );
 
 
