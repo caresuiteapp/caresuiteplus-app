@@ -11,15 +11,25 @@ import type {
 } from '@/features/communication/communication.types';
 import { useCommunicationPermissions } from '@/hooks/communication';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import {
+  COMPOSE_RECIPIENT_CATEGORIES,
+  COMPOSE_RECIPIENT_TYPES,
+  composeRecipientUsesPersonPicker,
+  defaultCategoryForRecipient,
+  mapComposeRecipientToOfficeType,
+  type ComposeRecipientCategory,
+  type ComposeRecipientType,
+} from '@/lib/communication/composeRecipients';
+import { getCommunicationTemplateByCareSuiteId } from '@/lib/communication/communicationTemplates';
 import { fetchOfficeComposeRecipients } from '@/lib/office/officeComposeRecipientService';
 import { useAuth } from '@/lib/auth/context';
 import {
   getComposeVariableValues,
   renderTemplateWithVariables,
+  validateComposePreview,
 } from '@/lib/templates/templateVariables';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
-import type { OfficeRecipientType } from '@/types/office/officeCompose';
 import { OFFICE_INTERNAL_RECIPIENT_ID } from '@/types/office/officeCompose';
 
 type NewConversationModalProps = {
@@ -28,21 +38,34 @@ type NewConversationModalProps = {
   onCreated?: (threadId: string) => void;
 };
 
-const RECIPIENT_TYPES: { key: OfficeRecipientType; label: string }[] = [
-  { key: 'internal', label: 'Intern (Büro)' },
-  { key: 'client', label: 'Klient:in' },
-  { key: 'employee', label: 'Mitarbeiter:in' },
-];
-
 const PRIORITIES = Object.entries(PRIORITY_LABELS) as [CommunicationPriority, string][];
 
 /** 2× PremiumInput default minHeight (48). */
 const COMPOSE_MULTILINE_MIN_HEIGHT = 96;
+const MODAL_MIN_HEIGHT = 800;
 
-function mapRecipientToThreadType(type: OfficeRecipientType): CommunicationThreadType {
-  if (type === 'client') return 'client';
-  if (type === 'employee' || type === 'team') return 'employee';
+function mapRecipientToThreadType(type: ComposeRecipientType): CommunicationThreadType {
+  if (
+    type === 'client' ||
+    type === 'relative' ||
+    type === 'legal_guardian' ||
+    type === 'billing_recipient' ||
+    type === 'emergency_contact'
+  ) {
+    return 'client';
+  }
+  if (type === 'employee' || type === 'team' || type === 'pdl' || type === 'ward_leadership' || type === 'counseling_team') {
+    return 'employee';
+  }
   return 'internal';
+}
+
+function recipientKindForCompose(type: ComposeRecipientType): 'client' | 'employee' | 'contact' {
+  if (type === 'employee') return 'employee';
+  if (composeRecipientUsesPersonPicker(type)) {
+    return type === 'client' ? 'client' : 'contact';
+  }
+  return 'contact';
 }
 
 export function NewConversationModal({ visible, onClose, onCreated }: NewConversationModalProps) {
@@ -51,7 +74,8 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
   const tenantId = useServiceTenantId();
   const perms = useCommunicationPermissions();
 
-  const [recipientType, setRecipientType] = useState<OfficeRecipientType>('internal');
+  const [recipientCategory, setRecipientCategory] = useState<ComposeRecipientCategory>('organization');
+  const [recipientType, setRecipientType] = useState<ComposeRecipientType>('internal');
   const [recipientId, setRecipientId] = useState<string>(OFFICE_INTERNAL_RECIPIENT_ID);
   const [recipientOptions, setRecipientOptions] = useState<{ key: string; label: string }[]>([]);
   const [title, setTitle] = useState('');
@@ -60,12 +84,19 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
   const [messageBody, setMessageBody] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [previewWarning, setPreviewWarning] = useState<string | null>(null);
+
+  const officeRecipientType = useMemo(
+    () => mapComposeRecipientToOfficeType(recipientType),
+    [recipientType],
+  );
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         section: { gap: spacing.sm, marginBottom: spacing.md },
         label: { ...typography.caption, color: colors.textMuted, textTransform: 'uppercase' },
+        subLabel: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
         chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
         chip: {
           paddingHorizontal: spacing.sm,
@@ -78,12 +109,14 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
         chipText: { ...typography.caption, color: colors.textSecondary },
         chipTextActive: { color: colors.violet, fontWeight: '700' },
         error: { ...typography.caption, color: colors.danger },
+        warning: { ...typography.caption, color: colors.orange },
         hint: { ...typography.caption, color: colors.textMuted },
       }),
     [colors, typography],
   );
 
   const reset = useCallback(() => {
+    setRecipientCategory('organization');
     setRecipientType('internal');
     setRecipientId(OFFICE_INTERNAL_RECIPIENT_ID);
     setRecipientOptions([]);
@@ -92,6 +125,7 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
     setMessageTemplateId('');
     setMessageBody('');
     setError(null);
+    setPreviewWarning(null);
   }, []);
 
   useEffect(() => {
@@ -101,14 +135,19 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
 
   useEffect(() => {
     if (!visible || !tenantId) return;
-    if (recipientType === 'internal') {
-      setRecipientOptions([{ key: OFFICE_INTERNAL_RECIPIENT_ID, label: 'Büro (alle)' }]);
-      setRecipientId(OFFICE_INTERNAL_RECIPIENT_ID);
+    if (!composeRecipientUsesPersonPicker(recipientType)) {
+      if (officeRecipientType === 'internal') {
+        setRecipientOptions([{ key: OFFICE_INTERNAL_RECIPIENT_ID, label: 'Büro (alle)' }]);
+        setRecipientId(OFFICE_INTERNAL_RECIPIENT_ID);
+      } else {
+        setRecipientOptions([]);
+        setRecipientId('');
+      }
       return;
     }
 
     void (async () => {
-      const result = await fetchOfficeComposeRecipients(tenantId, recipientType, profile?.roleKey);
+      const result = await fetchOfficeComposeRecipients(tenantId, officeRecipientType, profile?.roleKey);
       if (!result.ok) {
         setRecipientOptions([]);
         setError(result.error);
@@ -118,7 +157,7 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
       setRecipientOptions(options);
       setRecipientId(options[0]?.key ?? '');
     })();
-  }, [visible, tenantId, recipientType, profile?.roleKey]);
+  }, [visible, tenantId, recipientType, officeRecipientType, profile?.roleKey]);
 
   useEffect(() => {
     setMessageTemplateId('');
@@ -132,21 +171,55 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
   const templateVariables = useMemo(
     () =>
       getComposeVariableValues({
-        recipientType: recipientType === 'internal' ? undefined : recipientType,
-        recipientName: recipientType !== 'internal' ? selectedRecipientLabel : null,
+        recipientKind: recipientKindForCompose(recipientType),
+        recipientName: composeRecipientUsesPersonPicker(recipientType) ? selectedRecipientLabel : null,
+        senderName: profile?.displayName ?? profile?.email ?? undefined,
       }),
-    [recipientType, selectedRecipientLabel],
+    [recipientType, selectedRecipientLabel, profile?.displayName, profile?.email],
   );
 
   const previewBody = messageBody
     ? renderTemplateWithVariables(messageBody, templateVariables)
     : '';
+  const previewValidation = useMemo(
+    () => validateComposePreview(messageBody, previewBody),
+    [messageBody, previewBody],
+  );
+
+  useEffect(() => {
+    if (!messageBody.trim()) {
+      setPreviewWarning(null);
+      return;
+    }
+    if (!previewValidation.minLengthOk) {
+      setPreviewWarning('Nachricht muss mindestens 10 Zeichen haben.');
+      return;
+    }
+    if (previewValidation.unresolvedPlaceholders.length > 0) {
+      setPreviewWarning(
+        `Nicht aufgelöste Platzhalter: ${previewValidation.unresolvedPlaceholders.map((key) => `{{${key}}}`).join(', ')}`,
+      );
+      return;
+    }
+    setPreviewWarning(null);
+  }, [messageBody, previewValidation]);
+
   const effectiveTitle = title.trim() || previewBody.slice(0, 80).trim() || '';
-  const canSubmit = Boolean(effectiveTitle) && !loading && perms.canCreateThread;
+  const canSubmit =
+    Boolean(effectiveTitle) &&
+    !loading &&
+    perms.canCreateThread &&
+    (!messageBody.trim() || previewValidation.ok);
 
   const handleClose = () => {
     reset();
     onClose();
+  };
+
+  const handleCategoryChange = (category: ComposeRecipientCategory) => {
+    setRecipientCategory(category);
+    const firstType = COMPOSE_RECIPIENT_TYPES[category][0]?.key ?? 'internal';
+    setRecipientType(firstType);
   };
 
   const handleSend = async () => {
@@ -158,12 +231,12 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
       setError('Betreff oder Nachricht erforderlich.');
       return;
     }
-    if (recipientType !== 'internal' && !recipientId.trim()) {
+    if (composeRecipientUsesPersonPicker(recipientType) && !recipientId.trim()) {
       setError('Bitte Empfänger auswählen.');
       return;
     }
-    if (previewBody.trim().length > 0 && previewBody.trim().length < 10) {
-      setError('Nachricht muss mindestens 10 Zeichen haben.');
+    if (messageBody.trim() && !previewValidation.ok) {
+      setError(previewWarning ?? 'Bitte Vorschau prüfen und Platzhalter auflösen.');
       return;
     }
 
@@ -178,10 +251,11 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
         title: effectiveTitle,
         subject: title.trim() || null,
         priority,
-        clientId: recipientType === 'client' ? recipientId : null,
-        employeeId: recipientType === 'employee' ? recipientId : null,
-        isInternalOnly: recipientType === 'internal',
-        isPortalVisible: recipientType !== 'internal',
+        clientId:
+          officeRecipientType === 'client' && recipientType === 'client' ? recipientId : null,
+        employeeId: officeRecipientType === 'employee' ? recipientId : null,
+        isInternalOnly: officeRecipientType === 'internal',
+        isPortalVisible: officeRecipientType !== 'internal',
       },
       profile?.roleKey,
       profile?.id,
@@ -223,6 +297,9 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
       title="Neue Nachricht"
       subtitle="Kommunikationszentrum"
       onClose={handleClose}
+      maxWidth={1024}
+      maxHeightRatio={0.9}
+      sheetStyle={{ minHeight: MODAL_MIN_HEIGHT }}
       footerActions={[
         { title: 'Schließen', onPress: handleClose, variant: 'glass' },
         {
@@ -232,13 +309,27 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
           disabled: !canSubmit,
         },
       ]}
-      maxWidth={1024}
     >
-      <ScrollView keyboardShouldPersistTaps="handled">
+      <ScrollView keyboardShouldPersistTaps="handled" style={{ maxHeight: MODAL_MIN_HEIGHT - 160 }}>
         <View style={styles.section}>
           <Text style={styles.label}>Empfänger</Text>
           <View style={styles.chips}>
-            {RECIPIENT_TYPES.map((item) => {
+            {COMPOSE_RECIPIENT_CATEGORIES.map((item) => {
+              const active = recipientCategory === item.key;
+              return (
+                <Pressable
+                  key={item.key}
+                  onPress={() => handleCategoryChange(item.key)}
+                  style={[styles.chip, active && styles.chipActive]}
+                >
+                  <Text style={[styles.chipText, active && styles.chipTextActive]}>{item.label}</Text>
+                </Pressable>
+              );
+            })}
+          </View>
+          <Text style={styles.subLabel}>Empfängerart</Text>
+          <View style={styles.chips}>
+            {COMPOSE_RECIPIENT_TYPES[recipientCategory].map((item) => {
               const active = recipientType === item.key;
               return (
                 <Pressable
@@ -251,7 +342,7 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
               );
             })}
           </View>
-          {recipientType !== 'internal' && recipientOptions.length > 0 ? (
+          {composeRecipientUsesPersonPicker(recipientType) && recipientOptions.length > 0 ? (
             <ListFilterSelect
               label="Empfänger auswählen"
               value={recipientId}
@@ -259,8 +350,16 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
               onChange={setRecipientId}
             />
           ) : null}
-          {recipientType !== 'internal' && recipientOptions.length === 0 ? (
+          {composeRecipientUsesPersonPicker(recipientType) && recipientOptions.length === 0 ? (
             <Text style={styles.hint}>Empfänger werden geladen…</Text>
+          ) : null}
+          {!composeRecipientUsesPersonPicker(recipientType) ? (
+            <Text style={styles.hint}>
+              Nachricht an{' '}
+              {COMPOSE_RECIPIENT_TYPES[defaultCategoryForRecipient(recipientType)].find(
+                (item) => item.key === recipientType,
+              )?.label ?? recipientType}
+            </Text>
           ) : null}
         </View>
 
@@ -293,9 +392,16 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
         <GroupedTemplateSelect
           recipientType={recipientType}
           value={messageTemplateId}
-          onChange={(id, content) => {
+          onChange={(id, content, subject) => {
             setMessageTemplateId(id);
             setMessageBody(content);
+            if (subject && !title.trim()) {
+              setTitle(renderTemplateWithVariables(subject, templateVariables));
+            }
+            const templateDef = getCommunicationTemplateByCareSuiteId(id);
+            if (templateDef) {
+              setPriority(templateDef.priority_default);
+            }
           }}
         />
 
@@ -309,17 +415,21 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
           hint="Mindestens 10 Zeichen bei Versand"
         />
 
-        {previewBody && previewBody !== messageBody ? (
+        {messageBody.trim() ? (
           <PremiumInput
-            label="Vorschau"
+            label="Vorschau (Pflicht vor Versand)"
             value={previewBody}
             editable={false}
             multiline
             style={{ minHeight: COMPOSE_MULTILINE_MIN_HEIGHT }}
-            hint="Variablen mit Beispielwerten"
+            hint={
+              previewWarning ??
+              (previewValidation.ok ? 'Vorschau geprüft — bereit zum Senden' : 'Variablen werden mit verfügbaren Werten ersetzt')
+            }
           />
         ) : null}
 
+        {previewWarning ? <Text style={styles.warning}>{previewWarning}</Text> : null}
         {error ? <Text style={styles.error}>{error}</Text> : null}
       </ScrollView>
     </PlatformModal>

@@ -11,6 +11,8 @@ import {
 import { useAuroraGlassSelectStyles } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useTemplates } from '@/hooks/templates/useTemplates';
+import { getCommunicationTemplateCounts } from '@/lib/communication/communicationTemplates';
+import type { ComposeRecipientType } from '@/lib/communication/composeRecipients';
 import {
   COMPOSE_TEMPLATE_AUDIENCES,
   defaultAudienceTabForRecipient,
@@ -21,12 +23,11 @@ import {
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing, radius } from '@/theme';
 import type { CareSuiteTemplate } from '@/types/templates';
-import type { OfficeRecipientType } from '@/types/office/officeCompose';
 
 type GroupedTemplateSelectProps = {
-  recipientType: OfficeRecipientType;
+  recipientType: ComposeRecipientType;
   value: string;
-  onChange: (templateId: string, content: string) => void;
+  onChange: (templateId: string, content: string, subject?: string) => void;
   label?: string;
   style?: ViewStyle;
 };
@@ -34,7 +35,7 @@ type GroupedTemplateSelectProps = {
 type AudienceTab = ComposeTemplateAudience | 'all';
 
 const PICKER_MAX_WIDTH = 640;
-const PICKER_MAX_HEIGHT = 480;
+const PICKER_MAX_HEIGHT = 520;
 
 function groupTemplates(templates: CareSuiteTemplate[]) {
   const groups: Record<ComposeTemplateAudience, CareSuiteTemplate[]> = {
@@ -83,6 +84,7 @@ export function GroupedTemplateSelect({
     () => defaultAudiencesForRecipient(recipientType),
     [recipientType],
   );
+  const catalogCounts = useMemo(() => getCommunicationTemplateCounts(), []);
 
   useEffect(() => {
     setActiveTab(defaultAudienceTabForRecipient(recipientType));
@@ -135,11 +137,18 @@ export function GroupedTemplateSelect({
           paddingHorizontal: careSpacing.md,
           paddingVertical: careSpacing.sm,
         },
+        categoryMeta: {
+          ...typography.caption,
+          color: colors.textMuted,
+          paddingHorizontal: careSpacing.md,
+          paddingBottom: careSpacing.xs,
+        },
       }),
     [baseStyles.modalSheet, colors, typography],
   );
 
-  const selectedLabel = templates.find((t) => t.id === value)?.title ?? 'Vorlage wählen…';
+  const selectedTemplate = templates.find((t) => t.id === value);
+  const selectedLabel = selectedTemplate?.title ?? 'Vorlage wählen…';
 
   const visibleSections = useMemo(() => {
     if (activeTab !== 'all') {
@@ -152,12 +161,19 @@ export function GroupedTemplateSelect({
   }, [activeTab, grouped, preferredAudiences]);
 
   const handleSelect = (template: CareSuiteTemplate) => {
-    onChange(template.id, template.content);
+    onChange(template.id, template.content, template.description ?? undefined);
     setOpen(false);
+  };
+
+  const tabLabel = (audience: ComposeTemplateAudience) => {
+    const base = COMPOSE_TEMPLATE_AUDIENCES.find((a) => a.key === audience)?.label ?? audience;
+    const count = grouped[audience].length || catalogCounts[audience];
+    return `${base} (${count})`;
   };
 
   const renderOption = (template: CareSuiteTemplate) => {
     const selected = template.id === value;
+    const categoryTag = template.tags[1];
     return (
       <Pressable
         key={template.id}
@@ -173,6 +189,7 @@ export function GroupedTemplateSelect({
         <Text style={[baseStyles.optionLabel, selected ? baseStyles.optionLabelSelected : null]}>
           {template.title}
         </Text>
+        {categoryTag ? <Text style={styles.categoryMeta}>{categoryTag}</Text> : null}
       </Pressable>
     );
   };
@@ -191,7 +208,7 @@ export function GroupedTemplateSelect({
       <Text style={baseStyles.label}>{label}</Text>
 
       <View style={styles.tabs}>
-        {recipientType === 'internal' ? (
+        {recipientType === 'internal' || recipientType === 'office' ? (
           <Pressable
             onPress={() => setActiveTab('all')}
             style={[styles.tab, activeTab === 'all' && styles.tabActive]}
@@ -201,18 +218,20 @@ export function GroupedTemplateSelect({
             </Text>
           </Pressable>
         ) : null}
-        {COMPOSE_TEMPLATE_AUDIENCES.map((item) => {
-          const active = activeTab === item.key;
-          return (
-            <Pressable
-              key={item.key}
-              onPress={() => setActiveTab(item.key)}
-              style={[styles.tab, active && styles.tabActive]}
-            >
-              <Text style={[styles.tabText, active && styles.tabTextActive]}>{item.label}</Text>
-            </Pressable>
-          );
-        })}
+        {(activeTab === 'all' ? preferredAudiences : COMPOSE_TEMPLATE_AUDIENCES.map((a) => a.key)).map(
+          (item) => {
+            const active = activeTab === item;
+            return (
+              <Pressable
+                key={item}
+                onPress={() => setActiveTab(item)}
+                style={[styles.tab, active && styles.tabActive]}
+              >
+                <Text style={[styles.tabText, active && styles.tabTextActive]}>{tabLabel(item)}</Text>
+              </Pressable>
+            );
+          },
+        )}
       </View>
 
       <Pressable
@@ -234,9 +253,7 @@ export function GroupedTemplateSelect({
             <Text style={baseStyles.modalTitle}>{label}</Text>
             <ScrollView style={styles.pickerScroll} keyboardShouldPersistTaps="handled">
               {visibleSections.map((section) => {
-                const sectionLabel =
-                  COMPOSE_TEMPLATE_AUDIENCES.find((a) => a.key === section.audience)?.label ??
-                  section.audience;
+                const sectionLabel = tabLabel(section.audience);
                 return (
                   <View key={section.audience}>
                     {activeTab === 'all' || visibleSections.length > 1 ? (

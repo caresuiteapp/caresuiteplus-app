@@ -32,3 +32,20 @@ export {
   renderChannelTemplatePreview,
   sendOutboundMessage,
 } from './channelService';
+export {
+  COMMUNICATION_MESSAGE_TEMPLATES,
+  getCommunicationCareSuiteTemplates,
+  getCommunicationTemplateByCareSuiteId,
+  getCommunicationTemplateCounts,
+  getCommunicationTemplatesForAudience,
+  type CommunicationTemplateDefinition,
+} from './communicationTemplates';
+export {
+  COMPOSE_RECIPIENT_CATEGORIES,
+  COMPOSE_RECIPIENT_TYPES,
+  composeRecipientUsesPersonPicker,
+  defaultCategoryForRecipient,
+  mapComposeRecipientToOfficeType,
+  type ComposeRecipientCategory,
+  type ComposeRecipientType,
+} from './composeRecipients';

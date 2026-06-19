@@ -23,7 +23,7 @@ export type CommunicationThreadStatus =
   | 'deleted'
   | 'blocked';
 
-export type CommunicationPriority = 'low' | 'normal' | 'high' | 'urgent';
+export type CommunicationPriority = 'low' | 'normal' | 'high' | 'urgent' | 'critical';
 
 export type CommunicationModuleKey =
   | 'core'

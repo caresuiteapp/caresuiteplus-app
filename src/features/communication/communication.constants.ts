@@ -39,6 +39,7 @@ export const PRIORITY_LABELS: Record<CommunicationPriority, string> = {
   normal: 'Normal',
   high: 'Hoch',
   urgent: 'Dringend',
+  critical: 'Kritisch',
 };
 
 export const MESSAGE_STATUS_LABELS: Record<MessageStatus, string> = {

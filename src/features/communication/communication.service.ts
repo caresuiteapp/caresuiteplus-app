@@ -173,7 +173,9 @@ function applyThreadFilter(
     case 'deleted':
       return threads.filter((t) => t.status === 'deleted' || t.deletedAt);
     case 'high_priority':
-      return threads.filter((t) => t.priority === 'high' || t.priority === 'urgent');
+      return threads.filter(
+        (t) => t.priority === 'high' || t.priority === 'urgent' || t.priority === 'critical',
+      );
     default:
       return threads.filter((t) => t.status !== 'archived' && t.status !== 'deleted' && !t.archivedAt);
   }
