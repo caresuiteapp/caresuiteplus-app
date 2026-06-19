@@ -23,7 +23,6 @@ import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import {
-  buildContextPanelNavItems,
   buildLiveModuleStatusChips,
   buildOfficeModuleStatusChips,
   buildOpenTasks,
@@ -43,7 +42,7 @@ function openExternal(url: string) {
   void Linking.openURL(url).catch(() => undefined);
 }
 
-/** Context panel — tenant status, module chips, tasks, Schnellaktionen + nav, support. */
+/** Context panel — tenant status, module chips, tasks, Schnellaktionen, nav groups, support. */
 export function RightContextPanel({ mainModule, accentColor }: RightContextPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -56,7 +55,6 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   const styles = useMemo(() => createStyles(isDark, colors, accent), [isDark, colors, accent]);
 
   const navConfig = useMemo(() => resolveContextPanelNavConfig(mainModule), [mainModule]);
-  const navItems = useMemo(() => buildContextPanelNavItems(mainModule), [mainModule]);
   const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);
 
   if (width < breakpoints.tablet || width < 1280) {
@@ -110,54 +108,64 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
       </ScrollView>
 
       <Text style={styles.sectionHeading}>Schnellaktionen</Text>
-      <View style={styles.schnellRow}>
-        <View style={styles.schnellLeft}>
-          {quickActions.map((action) => (
-            <Pressable
-              key={action.label}
-              onPress={() => router.push(action.href as never)}
-              style={[styles.actionBtn, webCursor]}
-              accessibilityRole="button"
-            >
-              <Text style={styles.actionIcon}>{action.icon}</Text>
-              <Text style={styles.actionLabel} numberOfLines={2}>
-                {action.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-        <View style={styles.schnellRight}>
-          {navItems.map((item) => {
-            const active = item.key === activeNavKey;
-            return (
-              <Pressable
-                key={item.key}
-                onPress={() => router.push(item.href as never)}
-                style={[
-                  styles.navPill,
-                  active && {
-                    backgroundColor: withAlpha(accent, isDark ? 0.2 : 0.12),
-                    borderColor: withAlpha(accent, 0.45),
-                  },
-                  webCursor,
-                ]}
-                accessibilityRole="button"
-                accessibilityState={{ selected: active }}
-              >
-                <Text style={styles.navIcon}>{item.icon}</Text>
-                <Text
-                  style={[
-                    styles.navLabel,
-                    active && { color: isDark ? '#FFFFFF' : accent, fontWeight: '700' },
-                  ]}
-                  numberOfLines={2}
+      <View style={styles.quickActions}>
+        {quickActions.map((action) => (
+          <Pressable
+            key={action.label}
+            onPress={() => router.push(action.href as never)}
+            style={[styles.actionBtn, webCursor]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.actionIcon}>{action.icon}</Text>
+            <Text style={styles.actionLabel} numberOfLines={2}>
+              {action.label}
+            </Text>
+          </Pressable>
+        ))}
+      </View>
+
+      <View style={styles.navSection}>
+        {navConfig.groups.map((group) => (
+          <View key={group.title} style={styles.navGroup}>
+            <Text style={styles.groupTitle}>{group.title}</Text>
+            {group.items.map((item) => {
+              const active = item.key === activeNavKey;
+              return (
+                <Pressable
+                  key={item.key}
+                  onPress={() => router.push(item.href as never)}
+                  style={webCursor}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
                 >
-                  {item.label}
-                </Text>
-              </Pressable>
-            );
-          })}
-        </View>
+                  <View
+                    style={[
+                      styles.navItem,
+                      active && {
+                        backgroundColor: withAlpha(accent, isDark ? 0.2 : 0.12),
+                        borderColor: withAlpha(accent, 0.45),
+                      },
+                    ]}
+                  >
+                    {active ? (
+                      <View style={[styles.navActiveBar, { backgroundColor: accent }]} />
+                    ) : null}
+                    <Text style={styles.navIcon}>{item.icon}</Text>
+                    <Text
+                      style={[
+                        styles.navLabel,
+                        active && { color: isDark ? '#FFFFFF' : accent, fontWeight: '700' },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {item.label}
+                    </Text>
+                  </View>
+                </Pressable>
+              );
+            })}
+          </View>
+        ))}
       </View>
 
       <View style={styles.support}>
@@ -258,19 +266,7 @@ function createStyles(
       alignItems: 'center',
     },
     taskBadgeText: { fontSize: 11, fontWeight: '700' },
-    schnellRow: {
-      flexDirection: 'row',
-      alignItems: 'flex-start',
-      gap: spacing.xs,
-    },
-    schnellLeft: {
-      flex: 1,
-      minWidth: 0,
-      gap: spacing.xs,
-    },
-    schnellRight: {
-      flex: 1,
-      minWidth: 0,
+    quickActions: {
       gap: spacing.xs,
     },
     actionBtn: {
@@ -287,7 +283,15 @@ function createStyles(
     },
     actionIcon: { fontSize: 14 },
     actionLabel: { ...typography.caption, color: colors.textPrimary, fontWeight: '600', flex: 1 },
-    navPill: {
+    navSection: { gap: spacing.md },
+    navGroup: { gap: spacing.xs },
+    groupTitle: {
+      ...typography.caption,
+      color: colors.textMuted,
+      textTransform: 'uppercase',
+      letterSpacing: 0.6,
+    },
+    navItem: {
       flexDirection: 'row',
       alignItems: 'center',
       gap: spacing.xs,
@@ -296,8 +300,17 @@ function createStyles(
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
       borderWidth: 1,
-      borderColor: glassBorder,
+      borderColor: 'transparent',
       backgroundColor: chipBg,
+      position: 'relative',
+    },
+    navActiveBar: {
+      position: 'absolute',
+      left: 0,
+      top: 8,
+      bottom: 8,
+      width: 3,
+      borderRadius: 3,
     },
     navIcon: { fontSize: 14, width: 18, textAlign: 'center' },
     navLabel: { ...typography.caption, color: colors.textSecondary, fontWeight: '600', flex: 1 },

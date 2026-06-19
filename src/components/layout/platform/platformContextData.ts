@@ -12,7 +12,7 @@ export const OFFICE_QUICK_ACTIONS = [
   { label: 'Dokument hochladen', icon: '📁', href: '/office/documents/upload' },
 ];
 
-/** Nav links shown beside Schnellaktionen in the right context panel (Office → business hub). */
+/** Nav groups shown below Schnellaktionen in the right context panel (Office → business hub). */
 export function resolveContextPanelNavConfig(mainModule: MainModuleKey): ModuleNavConfig {
   if (mainModule === 'office' || mainModule === 'zentrale') {
     return zentraleNav;

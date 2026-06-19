@@ -24,7 +24,6 @@ import type { MainModuleKey } from '@/types/navigation/platform';
 import {
   buildLiveModuleStatusChips,
   buildOfficeModuleStatusChips,
-  buildContextPanelNavItems,
   buildOpenTasks,
   DEMO_MODULE_STATUS,
   OFFICE_QUICK_ACTIONS,
@@ -42,7 +41,7 @@ function openExternal(url: string) {
   void Linking.openURL(url).catch(() => undefined);
 }
 
-/** Mobile (<768px) platform context — aurora glass, nav integrated under Schnellaktionen right. */
+/** Mobile (<768px) platform context — aurora glass, nav groups below Schnellaktionen. */
 export function MobilePlatformContextPanel({
   mainModule,
   accentColor = '#FF9500',
@@ -55,8 +54,6 @@ export function MobilePlatformContextPanel({
   const type = resolveGalaxyTypography(width);
   const { data: officeData } = useOfficeDashboard();
   const isLive = getServiceMode() === 'supabase';
-  const navConfig = resolveContextPanelNavConfig(mainModule);
-  const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);
 
   const statusChips = useMemo(() => {
     if (mainModule === 'office' && officeData) {
@@ -76,7 +73,8 @@ export function MobilePlatformContextPanel({
   const quickActions =
     mainModule === 'office' ? OFFICE_QUICK_ACTIONS : OFFICE_QUICK_ACTIONS.slice(0, 2);
 
-  const navItems = useMemo(() => buildContextPanelNavItems(mainModule), [mainModule]);
+  const navConfig = useMemo(() => resolveContextPanelNavConfig(mainModule), [mainModule]);
+  const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);
 
   return (
     <View style={styles.root}>
@@ -116,52 +114,65 @@ export function MobilePlatformContextPanel({
 
       <View style={styles.section}>
         <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SCHNELLAKTIONEN</Text>
-        <View style={styles.schnellRow}>
-          <View style={styles.schnellLeft}>
-            {quickActions.map((action) => (
-              <Pressable
-                key={action.label}
-                onPress={() => router.push(action.href as never)}
-                style={[styles.actionBtn, webCursor]}
-                accessibilityRole="button"
-              >
-                <Text style={styles.actionIcon}>{action.icon}</Text>
-                <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]} numberOfLines={2}>
-                  {action.label}
-                </Text>
-              </Pressable>
-            ))}
-          </View>
-          <View style={styles.schnellRight}>
-            {navItems.map((item) => {
+        <View style={styles.quickActions}>
+          {quickActions.map((action) => (
+            <Pressable
+              key={action.label}
+              onPress={() => router.push(action.href as never)}
+              style={[styles.actionBtn, webCursor]}
+              accessibilityRole="button"
+            >
+              <Text style={styles.actionIcon}>{action.icon}</Text>
+              <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]} numberOfLines={2}>
+                {action.label}
+              </Text>
+            </Pressable>
+          ))}
+        </View>
+      </View>
+
+      <View style={styles.navSection}>
+        {navConfig.groups.map((group) => (
+          <View key={group.title} style={styles.navGroup}>
+            <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>{group.title}</Text>
+            {group.items.map((item) => {
               const active = item.key === activeNavKey;
               return (
                 <Pressable
                   key={item.key}
                   onPress={() => router.push(item.href as never)}
-                  style={[
-                    styles.navPill,
-                    active && { backgroundColor: withAlpha(accentColor, 0.18), borderColor: withAlpha(accentColor, 0.45) },
-                    webCursor,
-                  ]}
+                  style={webCursor}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
                 >
-                  <Text style={styles.navIcon}>{item.icon}</Text>
-                  <Text
+                  <View
                     style={[
-                      type.caption,
-                      { color: active ? accentColor : text.secondary, fontWeight: active ? '700' : '600' },
+                      styles.navItem,
+                      active && {
+                        backgroundColor: withAlpha(accentColor, 0.18),
+                        borderColor: withAlpha(accentColor, 0.45),
+                      },
                     ]}
-                    numberOfLines={2}
                   >
-                    {item.label}
-                  </Text>
+                    {active ? (
+                      <View style={[styles.navActiveBar, { backgroundColor: accentColor }]} />
+                    ) : null}
+                    <Text style={styles.navIcon}>{item.icon}</Text>
+                    <Text
+                      style={[
+                        type.caption,
+                        { color: active ? accentColor : text.secondary, fontWeight: active ? '700' : '600' },
+                      ]}
+                      numberOfLines={2}
+                    >
+                      {item.label}
+                    </Text>
+                  </View>
                 </Pressable>
               );
             })}
           </View>
-        </View>
+        ))}
       </View>
 
       <GlassCard style={styles.card}>
@@ -230,19 +241,7 @@ const styles = StyleSheet.create({
     minWidth: 24,
     alignItems: 'center',
   },
-  schnellRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    gap: careSpacing.sm,
-  },
-  schnellLeft: {
-    flex: 1,
-    minWidth: 0,
-    gap: careSpacing.xs,
-  },
-  schnellRight: {
-    flex: 1,
-    minWidth: 0,
+  quickActions: {
     gap: careSpacing.xs,
   },
   actionBtn: {
@@ -260,7 +259,14 @@ const styles = StyleSheet.create({
   actionIcon: {
     fontSize: 16,
   },
-  navPill: {
+  navSection: {
+    gap: careSpacing.md,
+    width: '100%',
+  },
+  navGroup: {
+    gap: careSpacing.xs,
+  },
+  navItem: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: careSpacing.xs,
@@ -269,8 +275,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.sm,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: auroraGlass.border,
+    borderColor: 'transparent',
     backgroundColor: auroraGlass.chip,
+    position: 'relative',
+  },
+  navActiveBar: {
+    position: 'absolute',
+    left: 0,
+    top: 8,
+    bottom: 8,
+    width: 3,
+    borderRadius: 3,
   },
   navIcon: {
     fontSize: 14,

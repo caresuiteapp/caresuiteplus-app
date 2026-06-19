@@ -17,24 +17,30 @@ describe('Office mobile platform layout', () => {
     expect(shell).not.toMatch(/showModuleNav\s*=\s*width\s*>=\s*960;/);
   });
 
-  it('MobilePlatformContextPanel integrates nav under Schnellaktionen without Zentrale block', () => {
+  it('MobilePlatformContextPanel places nav groups below Schnellaktionen without Zentrale block', () => {
     const mobile = readSrc('src/components/layout/platform/mobileplatformcontextpanel.tsx');
     expect(mobile).toContain('SCHNELLAKTIONEN');
-    expect(mobile).toContain('schnellRow');
-    expect(mobile).toContain('schnellLeft');
-    expect(mobile).toContain('schnellRight');
-    expect(mobile).toContain('buildContextPanelNavItems');
+    expect(mobile).toContain('quickActions');
+    expect(mobile).toContain('navSection');
+    expect(mobile).toContain('navActiveBar');
+    expect(mobile).toContain('resolveContextPanelNavConfig');
+    expect(mobile).toContain('group.title');
+    expect(mobile).not.toContain('schnellRow');
+    expect(mobile).not.toContain('schnellRight');
     expect(mobile).not.toContain('Zentrale');
     expect(mobile).not.toContain('Navigation');
   });
 
-  it('RightContextPanel integrates nav under Schnellaktionen without Zentrale block', () => {
+  it('RightContextPanel places nav groups below Schnellaktionen without Zentrale block', () => {
     const desktop = readSrc('src/components/layout/platform/rightcontextpanel.tsx');
     expect(desktop).toContain('Schnellaktionen');
-    expect(desktop).toContain('schnellRow');
-    expect(desktop).toContain('schnellLeft');
-    expect(desktop).toContain('schnellRight');
-    expect(desktop).toContain('buildContextPanelNavItems');
+    expect(desktop).toContain('quickActions');
+    expect(desktop).toContain('navSection');
+    expect(desktop).toContain('navActiveBar');
+    expect(desktop).toContain('resolveContextPanelNavConfig');
+    expect(desktop).toContain('group.title');
+    expect(desktop).not.toContain('schnellRow');
+    expect(desktop).not.toContain('schnellRight');
     expect(desktop).not.toContain('Zentrale');
     expect(desktop).not.toMatch(/config\.label/);
     expect(desktop).not.toContain('Navigation');
