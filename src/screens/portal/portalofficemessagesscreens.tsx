@@ -1,11 +1,34 @@
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
+import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
+import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { usePermissions } from '@/hooks/usePermissions';
-import { spacing } from '@/theme';
+import { careSpacing } from '@/design/tokens/spacing';
+
+function ClientPortalVerwaltungMessages() {
+  const { threads } = usePortalOfficeMessages('open');
+  const unreadCount = threads.reduce((sum, thread) => sum + (thread.unreadCount ?? 0), 0);
+
+  return (
+    <AssistPortalShell>
+      <View style={styles.glassWrap}>
+        <PortalGlassHero
+          eyebrow="VERWALTUNG"
+          title="Nachrichten"
+          subtitle="Schreiben Sie direkt an Ihr Pflegebüro — Antworten erscheinen hier im Chat."
+          meta={`${threads.length} ${threads.length === 1 ? 'Chat' : 'Chats'}${unreadCount > 0 ? ` · ${unreadCount} ungelesen` : ''}`}
+          badge="Live"
+        />
+        <PortalOfficeMessenger audience="client" variant="glass" />
+      </View>
+    </AssistPortalShell>
+  );
+}
 
 export function ClientPortalOfficeMessagesScreen() {
   const { can, check } = usePermissions();
@@ -19,11 +42,7 @@ export function ClientPortalOfficeMessagesScreen() {
     );
   }
 
-  return (
-    <ScreenShell title="Nachrichten" subtitle="Klient:innenportal · Büro" showBack={false}>
-      <PortalOfficeMessenger audience="client" />
-    </ScreenShell>
-  );
+  return <ClientPortalVerwaltungMessages />;
 }
 
 export function EmployeePortalOfficeMessagesScreen() {
@@ -39,7 +58,7 @@ export function EmployeePortalOfficeMessagesScreen() {
   }
 
   return (
-    <ScreenShell title="Nachrichten" subtitle="Mitarbeiter:innenportal · Büro" showBack={false}>
+    <ScreenShell title="Nachrichten" subtitle="Mitarbeiter:innenportal · Verwaltung" showBack={false}>
       <PortalOfficeMessenger audience="employee" />
     </ScreenShell>
   );
@@ -61,11 +80,11 @@ export function ClientPortalOfficeConversationScreen() {
   }
 
   return (
-    <ScreenShell title="Chat ans Büro" showBack>
+    <AssistPortalShell>
       <View style={styles.thread}>
-        <PortalOfficeThread threadId={resolvedId} />
+        <PortalOfficeThread threadId={resolvedId} variant="glass" />
       </View>
-    </ScreenShell>
+    </AssistPortalShell>
   );
 }
 
@@ -85,7 +104,7 @@ export function EmployeePortalOfficeConversationScreen() {
   }
 
   return (
-    <ScreenShell title="Chat ans Büro" showBack>
+    <ScreenShell title="Chat an die Verwaltung" showBack>
       <View style={styles.thread}>
         <PortalOfficeThread threadId={resolvedId} />
       </View>
@@ -94,5 +113,11 @@ export function EmployeePortalOfficeConversationScreen() {
 }
 
 const styles = StyleSheet.create({
-  thread: { flex: 1, minHeight: 400 },
+  glassWrap: {
+    flex: 1,
+    gap: careSpacing.md,
+    paddingHorizontal: careSpacing.md,
+    paddingBottom: careSpacing.md,
+  },
+  thread: { flex: 1, minHeight: 400, paddingHorizontal: careSpacing.md },
 });

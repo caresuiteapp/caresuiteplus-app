@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumInput, EmptyState, LoadingState, ErrorState } from '@/components/ui';
+import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { auroraGlass } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import type { PortalOfficeInboxFilter } from '@/lib/office/portalofficemessageservice';
@@ -21,6 +23,9 @@ type PortalOfficeInboxProps = {
   onThreadSelect: (threadId: string) => void;
   search: string;
   onSearchChange: (value: string) => void;
+  variant?: 'default' | 'glass';
+  onCompose?: () => void;
+  composeLabel?: string;
 };
 
 function ThreadRow({
@@ -86,10 +91,14 @@ export function PortalOfficeInbox({
   onThreadSelect,
   search,
   onSearchChange,
+  variant = 'default',
+  onCompose,
+  composeLabel = 'Verwaltung anschreiben',
 }: PortalOfficeInboxProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const { threads, loading, error, refresh, isEmpty } = usePortalOfficeMessages(filter);
+  const isGlass = variant === 'glass';
 
   const styles = useMemo(
     () =>
@@ -101,15 +110,19 @@ export function PortalOfficeInbox({
           paddingVertical: spacing.xs,
           borderRadius: radius.capsule,
           borderWidth: 1,
-          borderColor: c.border,
+          borderColor: isGlass ? auroraGlass.border : c.border,
         },
-        filterChipActive: { backgroundColor: `${c.violet}22`, borderColor: c.violet },
-        filterText: { ...typography.caption, color: c.muted },
-        filterTextActive: { color: c.violet, fontWeight: '700' },
+        filterChipActive: {
+          backgroundColor: isGlass ? auroraGlass.chipActive : `${c.violet}22`,
+          borderColor: isGlass ? '#FF9500' : c.violet,
+        },
+        filterText: { ...typography.caption, color: isGlass ? auroraGlass.text.muted : c.muted },
+        filterTextActive: { color: isGlass ? '#FF9500' : c.violet, fontWeight: '700' },
         search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
         list: { flex: 1 },
+        emptyWrap: { padding: spacing.md },
       }),
-    [c, typography],
+    [c, isGlass, typography],
   );
 
   const filteredThreads = useMemo(() => {
@@ -161,10 +174,23 @@ export function PortalOfficeInbox({
         <PremiumInput value={search} onChangeText={onSearchChange} placeholder="Suchen…" />
       </View>
       {isEmpty ? (
-        <EmptyState
-          title="Keine Chats"
-          message="Noch keine Nachrichten ans Büro vorhanden."
-        />
+        <View style={styles.emptyWrap}>
+          {isGlass ? (
+            <PortalEmptyState
+              title="Keine Chats"
+              message="Schreiben Sie der Verwaltung — Ihre Nachricht erscheint im Verwaltungs-Postfach und Antworten sehen Sie hier."
+              actionLabel={composeLabel}
+              onAction={onCompose}
+            />
+          ) : (
+            <EmptyState
+              title="Keine Chats"
+              message="Noch keine Nachrichten an die Verwaltung vorhanden."
+              actionLabel={composeLabel}
+              onAction={onCompose}
+            />
+          )}
+        </View>
       ) : (
         <FlatList
           style={styles.list}

@@ -49,7 +49,7 @@ const SCOPE_CONFIG = (colors: LegacyColors): Record<'portal_employee' | 'portal_
       messages: {
         title: 'Nachrichten',
         icon: '✉️',
-        subtitle: 'Nachrichten vom Betreuungsteam — nach Freigabe gefiltert.',
+        subtitle: 'Chat mit der Verwaltung — Antworten nach Freigabe sichtbar.',
       },
       documents: {
         title: 'Dokumente',

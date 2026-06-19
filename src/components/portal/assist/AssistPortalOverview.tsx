@@ -228,7 +228,7 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
             description="Threads"
             value={data.kpis.messages}
             emptyMessage="Noch keine Nachrichten."
-            ctaLabel="Nachricht senden"
+            ctaLabel="Verwaltung anschreiben"
             onCta={() => router.push('/portal/client/messages' as never)}
             onPress={() => router.push('/portal/client/messages' as never)}
           />

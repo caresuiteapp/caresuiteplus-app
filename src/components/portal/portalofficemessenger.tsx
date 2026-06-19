@@ -4,17 +4,26 @@ import { PortalNewChatModal } from '@/components/portal/portalnewchatmodal';
 import { PortalOfficeInbox } from '@/components/portal/portalofficeinbox';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { PremiumButton } from '@/components/ui';
+import { auroraGlass } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careSpacing } from '@/design/tokens/spacing';
 import { spacing, radius } from '@/theme';
 import type { PortalOfficeAudience, PortalOfficeInboxFilter } from '@/lib/office/portalofficemessageservice';
 
 type PortalOfficeMessengerProps = {
   audience: PortalOfficeAudience;
   title?: string;
+  variant?: 'default' | 'glass';
+  composeLabel?: string;
 };
 
-export function PortalOfficeMessenger({ audience, title = 'Nachrichten ans Büro' }: PortalOfficeMessengerProps) {
+export function PortalOfficeMessenger({
+  audience,
+  title = 'Nachrichten an die Verwaltung',
+  variant = 'default',
+  composeLabel = 'Verwaltung anschreiben',
+}: PortalOfficeMessengerProps) {
   const { width } = useWindowDimensions();
   const { c } = useCareLightPalette();
   const { colors } = useLegacyTheme();
@@ -22,23 +31,23 @@ export function PortalOfficeMessenger({ audience, title = 'Nachrichten ans Büro
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [search, setSearch] = useState('');
   const [showNewChat, setShowNewChat] = useState(false);
-
+  const isGlass = variant === 'glass';
   const isCompact = width < 768;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: { flex: 1, gap: spacing.md },
+        root: { flex: 1, gap: isGlass ? careSpacing.md : spacing.md },
         header: { gap: spacing.sm },
-        title: { fontSize: 20, fontWeight: '700', color: c.text },
+        title: { fontSize: 20, fontWeight: '700', color: isGlass ? auroraGlass.text.primary : c.text },
         messenger: {
           flex: 1,
           minHeight: 420,
           flexDirection: 'row',
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: c.border,
-          backgroundColor: c.surface,
+          borderColor: isGlass ? auroraGlass.borderStrong : c.border,
+          backgroundColor: isGlass ? auroraGlass.panel : c.surface,
           overflow: 'hidden',
         },
         inboxPane: {
@@ -46,17 +55,17 @@ export function PortalOfficeMessenger({ audience, title = 'Nachrichten ans Büro
           maxWidth: isCompact ? '100%' : 340,
           minWidth: isCompact ? 0 : 260,
           borderRightWidth: isCompact ? 0 : 1,
-          borderRightColor: c.border,
+          borderRightColor: isGlass ? auroraGlass.border : c.border,
           display: selectedThreadId && isCompact ? 'none' : 'flex',
         },
         threadPane: {
           flex: 1,
           minWidth: 0,
           display: !selectedThreadId && isCompact ? 'none' : 'flex',
-          backgroundColor: colors.bgBase,
+          backgroundColor: isGlass ? auroraGlass.card : colors.bgBase,
         },
       }),
-    [c, colors.bgBase, isCompact, selectedThreadId],
+    [c, colors.bgBase, isCompact, isGlass, selectedThreadId],
   );
 
   useEffect(() => {
@@ -66,7 +75,7 @@ export function PortalOfficeMessenger({ audience, title = 'Nachrichten ans Büro
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <PremiumButton title="Neuer Chat ans Büro" onPress={() => setShowNewChat(true)} />
+        <PremiumButton title={composeLabel} onPress={() => setShowNewChat(true)} />
       </View>
 
       <View style={styles.messenger}>
@@ -78,11 +87,15 @@ export function PortalOfficeMessenger({ audience, title = 'Nachrichten ans Büro
             onThreadSelect={setSelectedThreadId}
             search={search}
             onSearchChange={setSearch}
+            variant={variant}
+            onCompose={() => setShowNewChat(true)}
+            composeLabel={composeLabel}
           />
         </View>
         <View style={styles.threadPane}>
           <PortalOfficeThread
             threadId={selectedThreadId}
+            variant={variant}
             onNewThreadStarted={(newThreadId) => {
               setSelectedThreadId(newThreadId);
               setFilter('open');
@@ -95,6 +108,7 @@ export function PortalOfficeMessenger({ audience, title = 'Nachrichten ans Büro
         <PortalNewChatModal
           visible
           audience={audience}
+          variant={variant}
           onClose={() => setShowNewChat(false)}
           onCreated={(threadId) => {
             setSelectedThreadId(threadId);

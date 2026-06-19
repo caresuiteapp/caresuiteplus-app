@@ -1,25 +1,35 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatBubble } from '@/components/communication/ChatBubble';
 import { ChatComposer } from '@/components/communication/ChatComposer';
+import { MessageAttachmentList } from '@/components/office/messageattachmentlist';
+import { OfficeMessageAttachmentPicker } from '@/components/office/officemessageattachmentpicker';
 import { PortalOfficeStatusCard } from '@/components/portal/portalofficestatuscard';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { usePortalOfficeThreadDetail } from '@/hooks/useportalofficethreaddetail';
 import { mapOfficeMessageToChatBubble } from '@/lib/office/officemessagemappers';
-import { isOfficeAttachmentPlaceholder } from '@/lib/office/messageattachmentvalidation';
+import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
 import { getPortalStatusLabel } from '@/lib/office/portalofficemessageservice';
 
 type PortalOfficeThreadProps = {
   threadId: string | null;
   onNewThreadStarted?: (newThreadId: string) => void;
+  variant?: 'default' | 'glass';
 };
 
-export function PortalOfficeThread({ threadId, onNewThreadStarted }: PortalOfficeThreadProps) {
+export function PortalOfficeThread({
+  threadId,
+  onNewThreadStarted,
+  variant = 'default',
+}: PortalOfficeThreadProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
+  const isGlass = variant === 'glass';
   const [draft, setDraft] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
@@ -39,11 +49,11 @@ export function PortalOfficeThread({ threadId, onNewThreadStarted }: PortalOffic
         header: {
           padding: spacing.md,
           borderBottomWidth: 1,
-          borderBottomColor: c.border,
+          borderBottomColor: isGlass ? auroraGlass.border : c.border,
           gap: spacing.xs,
         },
-        title: { ...typography.h3, color: c.text },
-        meta: { ...typography.caption, color: c.muted },
+        title: { ...typography.h3, color: isGlass ? text.primary : c.text },
+        meta: { ...typography.caption, color: isGlass ? text.muted : c.muted },
         messages: { flex: 1 },
         messagesContent: { paddingVertical: spacing.md },
         closedBanner: {
@@ -51,11 +61,11 @@ export function PortalOfficeThread({ threadId, onNewThreadStarted }: PortalOffic
           padding: spacing.md,
           borderRadius: 8,
           gap: spacing.sm,
-          backgroundColor: `${c.muted}18`,
+          backgroundColor: isGlass ? auroraGlass.chip : `${c.muted}18`,
         },
-        closedText: { ...typography.body, color: c.muted },
+        closedText: { ...typography.body, color: isGlass ? text.secondary : c.muted },
       }),
-    [c, typography],
+    [c, isGlass, text.muted, text.primary, text.secondary, typography],
   );
 
   if (!threadId) {
@@ -140,10 +150,10 @@ export function PortalOfficeThread({ threadId, onNewThreadStarted }: PortalOffic
       {detail.isClosed ? (
         <View style={styles.closedBanner}>
           <Text style={styles.closedText}>
-            Dieser Chat ist abgeschlossen und schreibgeschützt. Bei erneutem Kontakt starten Sie
-            einen neuen Chat ans Büro.
+            Dieser Chat ist abgeschlossen und schreibgeschützt. Bei erneutem Kontakt schreiben Sie
+            der Verwaltung erneut.
           </Text>
-          <PremiumButton title="Neuen Chat starten" onPress={handleStartNewChat} />
+          <PremiumButton title="Verwaltung anschreiben" onPress={handleStartNewChat} />
         </View>
       ) : (
         <ChatComposer

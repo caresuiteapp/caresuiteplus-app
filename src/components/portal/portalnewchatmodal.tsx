@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
+import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PremiumInput } from '@/components/ui';
 import {
   createPortalOfficeThread,
@@ -18,6 +19,7 @@ import type { OfficeMessageCategory } from '@/types/office/messaging';
 type PortalNewChatModalProps = {
   visible: boolean;
   audience: PortalOfficeAudience;
+  variant?: 'default' | 'glass';
   onClose: () => void;
   onCreated: (threadId: string) => void;
 };
@@ -25,6 +27,7 @@ type PortalNewChatModalProps = {
 export function PortalNewChatModal({
   visible,
   audience,
+  variant = 'default',
   onClose,
   onCreated,
 }: PortalNewChatModalProps) {
@@ -121,19 +124,10 @@ export function PortalNewChatModal({
     onClose();
   };
 
-  const title = audience === 'client' ? 'Neuer Chat ans Büro' : 'Neuer Chat ans Büro';
+  const title = 'Verwaltung anschreiben';
 
-  return (
-    <PlatformModal
-      visible={visible}
-      title={title}
-      onClose={onClose}
-      footerActions={[
-        { title: 'Abbrechen', onPress: onClose, variant: 'glass' },
-        { title: 'Chat starten', onPress: handleCreate, loading: submitting },
-      ]}
-      maxWidth={560}
-    >
+  const formBody = (
+    <>
       <View style={styles.section}>
         <Text style={styles.label}>Thema</Text>
         <View style={styles.chips}>
@@ -164,6 +158,36 @@ export function PortalNewChatModal({
       />
 
       {error ? <Text style={styles.error}>{error}</Text> : null}
+    </>
+  );
+
+  if (variant === 'glass') {
+    return (
+      <PortalGlassModal
+        visible={visible}
+        title={title}
+        onClose={onClose}
+        primaryLabel="Nachricht senden"
+        onPrimary={handleCreate}
+        primaryLoading={submitting}
+      >
+        {formBody}
+      </PortalGlassModal>
+    );
+  }
+
+  return (
+    <PlatformModal
+      visible={visible}
+      title={title}
+      onClose={onClose}
+      footerActions={[
+        { title: 'Abbrechen', onPress: onClose, variant: 'glass' },
+        { title: 'Nachricht senden', onPress: handleCreate, loading: submitting },
+      ]}
+      maxWidth={560}
+    >
+      {formBody}
     </PlatformModal>
   );
 }
