@@ -32,25 +32,27 @@ export function resolvePlatformShellSideInsets(
   };
 }
 
-/** Map shell insets into PlatformTopbar coordinates (topbar spans content column only). */
+/** Map shell insets into PlatformTopbar coordinates (topbar spans center column only, not the right panel). */
 export function resolveTopbarCenterZoneInsets(
   width: number,
   mainModule: MainModuleKey,
-  topbarHorizontalPadding: number,
+  _topbarHorizontalPadding: number,
 ): PlatformShellSideInsets {
-  const shell = resolvePlatformShellSideInsets(width, mainModule);
+  const isPhoneLayout = width < breakpoints.tablet;
+  const showModuleNav =
+    width >= PLATFORM_MODULE_NAV_BREAKPOINT && !isPhoneLayout && mainModule !== 'zentrale';
+
   return {
-    left: shell.left - PLATFORM_MODULE_RAIL_WIDTH - topbarHorizontalPadding,
-    right: shell.right - topbarHorizontalPadding,
+    left: showModuleNav ? PLATFORM_MODULE_NAV_WIDTH : 0,
+    right: 0,
   };
 }
 
-/** Keep bell/profile out of the right context panel column. */
+/** Topbar no longer spans the right context panel column — no end-zone offset needed. */
 export function resolveTopbarEndZoneInsets(
-  width: number,
-  mainModule: MainModuleKey,
-  topbarHorizontalPadding: number,
+  _width: number,
+  _mainModule: MainModuleKey,
+  _topbarHorizontalPadding: number,
 ): { marginRight: number } {
-  const { right } = resolveTopbarCenterZoneInsets(width, mainModule, topbarHorizontalPadding);
-  return { marginRight: Math.max(0, right) };
+  return { marginRight: 0 };
 }

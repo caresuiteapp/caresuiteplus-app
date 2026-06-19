@@ -20,8 +20,8 @@ type PlatformShellProps = {
 };
 
 /**
- * Five-zone desktop/web shell:
- * MainModuleRail (full height) | content column: Topbar + ModuleNavSidebar | Main work area | RightContextPanel
+ * Three-column desktop shell (≥1280px):
+ * MainModuleRail (full height) | content column: Topbar + body (ModuleNavSidebar + main) | RightContextPanel (full height)
  * Mobile (<768px): no ModuleNavSidebar; context panel scrolls below main content.
  * Zentrale: no left ModuleNavSidebar — navigation lives in RightContextPanel only.
  */
@@ -59,9 +59,9 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
                 <View style={styles.mainContent}>{children}</View>
               </View>
             )}
-            {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}
           </View>
         </View>
+        {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}
       </View>
     </View>
   );
