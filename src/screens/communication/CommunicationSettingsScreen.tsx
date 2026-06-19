@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -10,10 +10,12 @@ import {
 import { useCommunicationPermissions } from '@/hooks/communication';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { colors, spacing, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing, typography } from '@/theme';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 
 export function CommunicationSettingsScreen() {
+  const { colors } = useLegacyTheme();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const perms = useCommunicationPermissions();
@@ -25,6 +27,23 @@ export function CommunicationSettingsScreen() {
     },
     [tenantId, profile?.roleKey],
     { enabled: !!tenantId },
+  );
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        list: { gap: spacing.md },
+        row: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingVertical: spacing.sm,
+          borderBottomWidth: 1,
+          borderBottomColor: colors.borderSoft,
+        },
+        label: { ...typography.body, color: colors.textPrimary, flex: 1, paddingRight: spacing.md },
+      }),
+    [colors],
   );
 
   if (!perms.canManageSettings) {
@@ -87,16 +106,3 @@ export function CommunicationSettingsScreen() {
     </ScreenShell>
   );
 }
-
-const styles = StyleSheet.create({
-  list: { gap: spacing.md },
-  row: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.borderSoft,
-  },
-  label: { ...typography.body, color: colors.textPrimary, flex: 1, paddingRight: spacing.md },
-});
