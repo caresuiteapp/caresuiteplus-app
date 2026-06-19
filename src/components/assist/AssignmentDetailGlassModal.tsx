@@ -11,6 +11,8 @@ import { moduleColor } from '@/design/tokens/modules';
 type AssignmentDetailGlassModalProps = {
   visible: boolean;
   assignmentId: string | null;
+  /** Optional header override (e.g. task title from calendar/list). */
+  title?: string;
   onClose: () => void;
 };
 
@@ -23,6 +25,7 @@ const FULL_MAX_WIDTH = 1280;
 export function AssignmentDetailGlassModal({
   visible,
   assignmentId,
+  title,
   onClose,
 }: AssignmentDetailGlassModalProps) {
   const assistAccent = moduleColor('assist');
@@ -46,7 +49,7 @@ export function AssignmentDetailGlassModal({
     <PlatformModal
       visible={visible}
       onClose={onClose}
-      title={isFull ? 'Einsatz' : 'Einsatzvorschau'}
+      title={isFull ? 'Einsatz' : (title ?? 'Einsatzvorschau')}
       subtitle={isFull ? 'Bearbeiten & Status' : 'Einsatzdetails'}
       onBack={isFull ? () => setMode('preview') : undefined}
       maxWidth={isFull ? FULL_MAX_WIDTH : PREVIEW_MAX_WIDTH}
