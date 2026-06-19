@@ -24,10 +24,28 @@ export const galaxyPalette = {
 export const galaxyGradients = {
   screen: [galaxyPalette.deepSpace, galaxyPalette.spaceNavy, galaxyPalette.midnightBlue] as const,
   accent: [galaxyPalette.galaxyPurple, galaxyPalette.midnightBlue] as const,
+  /** Modal / thread hero headers — violet depth for LinearGradient color stops. */
+  dashboardHero: [galaxyPalette.galaxyPurple, '#181040', galaxyPalette.midnightBlue] as const,
   primaryCta: [galaxyPalette.careOrange, '#FF8F4A'] as const,
   glowOrbCyan: [`${galaxyPalette.galaxyCyan}18`, 'transparent'] as const,
   glowOrbViolet: [`${galaxyPalette.glowViolet}14`, 'transparent'] as const,
 } as const;
+
+export type GalaxyGradientKey = keyof typeof galaxyGradients;
+
+const DEFAULT_GALAXY_GRADIENT: GalaxyGradientKey = 'accent';
+
+/** Safe color-stop array for LinearGradient — never throws on missing keys. */
+export function resolveGalaxyGradientColors(
+  key: GalaxyGradientKey,
+  fallback: GalaxyGradientKey = DEFAULT_GALAXY_GRADIENT,
+): readonly [string, ...string[]] {
+  const candidate = galaxyGradients[key] ?? galaxyGradients[fallback];
+  if (Array.isArray(candidate) && candidate.length >= 2) {
+    return candidate;
+  }
+  return galaxyGradients.screen;
+}
 
 export const galaxyGlow = {
   cyan: {

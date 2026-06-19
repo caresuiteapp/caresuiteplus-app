@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { galaxyGradients } from '@/design/tokens/galaxy';
+import { resolveGalaxyGradientColors } from '@/design/tokens/galaxy';
 import { glassFx, neonGlow } from '@/design/tokens/motion';
 import { moduleColor } from '@/design/tokens/modules';
 import { careRadius } from '@/design/tokens/radius';
@@ -103,7 +103,7 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
     return (
       <View style={[styles.header, styles.heroHeader]}>
         <LinearGradient
-          colors={[...galaxyGradients.dashboardHero]}
+          colors={[...resolveGalaxyGradientColors('dashboardHero')]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
