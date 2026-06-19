@@ -16,4 +16,5 @@ export { PlatformShell } from './platformshell';
 export { PlatformTopbar } from './platformtopbar';
 export { ModuleDashboardShell } from './moduledashboardshell';
 export { RightContextPanel } from './rightcontextpanel';
+export { MobilePlatformContextPanel } from './mobileplatformcontextpanel';
 export { PlatformModal } from './platformmodal';

@@ -1,0 +1,289 @@
+import { useMemo } from 'react';
+import {
+  Linking,
+  Platform,
+  Pressable,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
+import { GlassCard } from '@/design/components/GlassCard';
+import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { careSpacing } from '@/design/tokens/spacing';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+import { withAlpha } from '@/design/tokens/motion';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
+import {
+  getModuleNavConfig,
+  resolveActiveModuleNavKey,
+} from '@/lib/navigation/modulenav';
+import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
+import { getServiceMode } from '@/lib/services/mode';
+import type { MainModuleKey } from '@/types/navigation/platform';
+import {
+  buildLiveModuleStatusChips,
+  buildOfficeModuleStatusChips,
+  buildOpenTasks,
+  DEMO_MODULE_STATUS,
+  OFFICE_QUICK_ACTIONS,
+} from './platformContextData';
+
+type MobilePlatformContextPanelProps = {
+  mainModule: MainModuleKey;
+  accentColor?: string;
+};
+
+const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
+
+function openExternal(url: string) {
+  void Linking.openURL(url).catch(() => undefined);
+}
+
+/** Mobile (<768px) platform context — aurora glass, nav integrated under Schnellaktionen right. */
+export function MobilePlatformContextPanel({
+  mainModule,
+  accentColor = '#FF9500',
+}: MobilePlatformContextPanelProps) {
+  const router = useRouter();
+  const pathname = usePathname();
+  const tenantName = useTenantDisplayName();
+  const text = useAuroraAdaptiveText();
+  const { width } = useDeviceClass();
+  const type = resolveGalaxyTypography(width);
+  const { data: officeData } = useOfficeDashboard();
+  const isLive = getServiceMode() === 'supabase';
+  const navConfig = getModuleNavConfig(mainModule);
+  const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);
+
+  const statusChips = useMemo(() => {
+    if (mainModule === 'office' && officeData) {
+      return buildOfficeModuleStatusChips(officeData.kpis);
+    }
+    if (isLive) {
+      return buildLiveModuleStatusChips(mainModule);
+    }
+    return DEMO_MODULE_STATUS[mainModule];
+  }, [isLive, mainModule, officeData]);
+
+  const openTasks = useMemo(
+    () => buildOpenTasks(mainModule, officeData, isLive),
+    [isLive, mainModule, officeData],
+  );
+
+  const quickActions =
+    mainModule === 'office' ? OFFICE_QUICK_ACTIONS : OFFICE_QUICK_ACTIONS.slice(0, 2);
+
+  const navItems = useMemo(
+    () => navConfig.groups.flatMap((group) => group.items),
+    [navConfig.groups],
+  );
+
+  return (
+    <View style={styles.root}>
+      <GlassCard style={styles.card}>
+        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>MANDANT</Text>
+        <Text style={[type.bodyStrong, { color: text.primary }]} numberOfLines={2}>
+          {tenantName}
+        </Text>
+        <View style={[styles.liveChip, { borderColor: withAlpha(accentColor, 0.45) }]}>
+          <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>● Live</Text>
+        </View>
+      </GlassCard>
+
+      <GlassCard style={styles.card}>
+        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>MODULSTATUS</Text>
+        {statusChips.map((chip) => (
+          <View key={chip.label} style={styles.statusRow}>
+            <Text style={[type.caption, { color: text.secondary, flex: 1 }]}>{chip.label}</Text>
+            <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>{chip.status}</Text>
+          </View>
+        ))}
+      </GlassCard>
+
+      <GlassCard style={styles.card}>
+        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>HEUTE</Text>
+        {openTasks.map((task) => (
+          <View key={task.title} style={styles.statusRow}>
+            <Text style={[type.caption, { color: text.secondary, flex: 1 }]} numberOfLines={1}>
+              {task.title}
+            </Text>
+            <View style={[styles.taskBadge, { backgroundColor: withAlpha(accentColor, 0.2) }]}>
+              <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>{task.count}</Text>
+            </View>
+          </View>
+        ))}
+      </GlassCard>
+
+      <View style={styles.section}>
+        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SCHNELLAKTIONEN</Text>
+        <View style={styles.schnellRow}>
+          <View style={styles.schnellLeft}>
+            {quickActions.map((action) => (
+              <Pressable
+                key={action.label}
+                onPress={() => router.push(action.href as never)}
+                style={[styles.actionBtn, webCursor]}
+                accessibilityRole="button"
+              >
+                <Text style={styles.actionIcon}>{action.icon}</Text>
+                <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]} numberOfLines={2}>
+                  {action.label}
+                </Text>
+              </Pressable>
+            ))}
+          </View>
+          <View style={styles.schnellRight}>
+            {navItems.map((item) => {
+              const active = item.key === activeNavKey;
+              return (
+                <Pressable
+                  key={item.key}
+                  onPress={() => router.push(item.href as never)}
+                  style={[
+                    styles.navPill,
+                    active && { backgroundColor: withAlpha(accentColor, 0.18), borderColor: withAlpha(accentColor, 0.45) },
+                    webCursor,
+                  ]}
+                  accessibilityRole="button"
+                  accessibilityState={{ selected: active }}
+                >
+                  <Text style={styles.navIcon}>{item.icon}</Text>
+                  <Text
+                    style={[
+                      type.caption,
+                      { color: active ? accentColor : text.secondary, fontWeight: active ? '700' : '600' },
+                    ]}
+                    numberOfLines={2}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+      </View>
+
+      <GlassCard style={styles.card}>
+        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SUPPORT</Text>
+        <Pressable onPress={() => openExternal(SUPPORT_LINKS.help)} style={styles.supportLink}>
+          <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
+            Hilfe & Dokumentation
+          </Text>
+        </Pressable>
+        <Pressable onPress={() => openExternal(SUPPORT_LINKS.privacy)} style={styles.supportLink}>
+          <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>Datenschutz</Text>
+        </Pressable>
+        <Pressable
+          onPress={() => router.push('/settings/data-request' as never)}
+          style={styles.supportLink}
+        >
+          <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
+            Betroffenenrechte
+          </Text>
+        </Pressable>
+      </GlassCard>
+    </View>
+  );
+}
+
+const styles = StyleSheet.create({
+  root: {
+    gap: careSpacing.md,
+    paddingTop: careSpacing.sm,
+    paddingHorizontal: careSpacing.lg,
+    paddingBottom: careSpacing.xl,
+  },
+  card: {
+    gap: careSpacing.xs,
+    padding: careSpacing.md,
+    backgroundColor: auroraGlass.card,
+  },
+  section: {
+    gap: careSpacing.sm,
+    width: '100%',
+  },
+  eyebrow: {
+    textTransform: 'uppercase',
+    letterSpacing: 0.6,
+    marginBottom: careSpacing.xs,
+  },
+  liveChip: {
+    alignSelf: 'flex-start',
+    paddingHorizontal: careSpacing.sm,
+    paddingVertical: 4,
+    borderRadius: 999,
+    borderWidth: 1,
+    marginTop: careSpacing.xs,
+  },
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingVertical: 4,
+    gap: careSpacing.sm,
+  },
+  taskBadge: {
+    paddingHorizontal: 8,
+    paddingVertical: 2,
+    borderRadius: 999,
+    minWidth: 24,
+    alignItems: 'center',
+  },
+  schnellRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: careSpacing.sm,
+  },
+  schnellLeft: {
+    flex: 1,
+    minWidth: 0,
+    gap: careSpacing.xs,
+  },
+  schnellRight: {
+    flex: 1,
+    minWidth: 0,
+    gap: careSpacing.xs,
+  },
+  actionBtn: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+    minHeight: 44,
+    paddingVertical: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: auroraGlass.border,
+    backgroundColor: auroraGlass.chip,
+  },
+  actionIcon: {
+    fontSize: 16,
+  },
+  navPill: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.xs,
+    minHeight: 44,
+    paddingVertical: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: auroraGlass.border,
+    backgroundColor: auroraGlass.chip,
+  },
+  navIcon: {
+    fontSize: 14,
+    width: 20,
+    textAlign: 'center',
+  },
+  supportLink: {
+    paddingVertical: careSpacing.xs,
+    minHeight: 44,
+    justifyContent: 'center',
+  },
+});
