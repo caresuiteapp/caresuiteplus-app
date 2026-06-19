@@ -1,20 +1,21 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
+import { PortalActivitiesModal } from '@/components/portal/assist/PortalActivitiesModal';
 import { PortalDocumentUploadModal } from '@/components/portal/assist/PortalDocumentUploadModal';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
+import { PortalOpenRequestsModal } from '@/components/portal/assist/PortalOpenRequestsModal';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { PortalKpiCard } from '@/components/portal/assist/PortalKpiCard';
 import { PortalNextAppointmentHero } from '@/components/portal/assist/PortalNextAppointmentHero';
 import { PortalQuickActions, type PortalQuickAction } from '@/components/portal/assist/PortalQuickActions';
-import { PortalRequestDrawer } from '@/components/portal/assist/PortalRequestDrawer';
 import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalActor } from '@/hooks/usePortalActor';
@@ -33,23 +34,32 @@ import {
 } from '@/lib/portal/engine';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import type { PortalContext } from '@/lib/portal/types';
-import type { AssistDashboardData, PortalRequest, PortalRequestType } from '@/types/portal/assist';
+import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assist';
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
 import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
+
+type AssistOverviewModal = 'anfragen' | 'aktivitaeten';
 
 type AssistPortalOverviewProps = {
   context: PortalContext;
   showSuccess?: boolean;
   onRefresh?: () => void;
+  initialModal?: AssistOverviewModal | null;
 };
 
-export function AssistPortalOverview({ context, showSuccess, onRefresh }: AssistPortalOverviewProps) {
+export function AssistPortalOverview({
+  context,
+  showSuccess,
+  onRefresh,
+  initialModal = null,
+}: AssistPortalOverviewProps) {
   const text = useAuroraAdaptiveText();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const insets = useSafeAreaInsets();
   const { showBottomTabs } = usePlatformLayout();
   const router = useRouter();
+  const params = useLocalSearchParams<{ modal?: string }>();
   const contentPadding = useMemo(
     () => ({
       paddingHorizontal: careSpacing.md,
@@ -67,8 +77,9 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
   const [requestModal, setRequestModal] = useState<PortalRequestType | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [proofsModalOpen, setProofsModalOpen] = useState(false);
+  const [openRequestsModalOpen, setOpenRequestsModalOpen] = useState(false);
+  const [activitiesModalOpen, setActivitiesModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
-  const [selectedRequest, setSelectedRequest] = useState<PortalRequest | null>(null);
   const [localSuccess, setLocalSuccess] = useState(false);
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
@@ -83,6 +94,7 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
   const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
   const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
+  const activitiesReleased = canAccessPortalFeature(context, 'assist', 'aktivitaeten');
 
   const quickActions = useMemo(() => {
     const actions: PortalQuickAction[] = [
@@ -97,6 +109,31 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
     }
     return actions;
   }, [proofsReleased]);
+
+  const clearModalRoute = useCallback(() => {
+    if (params.modal) {
+      router.replace('/portal/client' as never);
+    }
+  }, [params.modal, router]);
+
+  const openRequestsModal = useCallback(() => {
+    if (!requestsReleased) return;
+    setOpenRequestsModalOpen(true);
+  }, [requestsReleased]);
+
+  const openActivitiesModal = useCallback(() => {
+    if (!activitiesReleased) return;
+    setActivitiesModalOpen(true);
+  }, [activitiesReleased]);
+
+  useEffect(() => {
+    const modalKey = initialModal ?? (typeof params.modal === 'string' ? params.modal : null);
+    if (modalKey === 'anfragen' && requestsReleased) {
+      setOpenRequestsModalOpen(true);
+    } else if (modalKey === 'aktivitaeten' && activitiesReleased) {
+      setActivitiesModalOpen(true);
+    }
+  }, [activitiesReleased, initialModal, params.modal, requestsReleased]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -273,7 +310,16 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
             emptyMessage="Keine offenen Anfragen."
             ctaLabel="Anfrage stellen"
             onCta={() => setRequestModal('sonstiges')}
+            onPress={openRequestsModal}
             hidden={!requestsReleased}
+          />
+          <PortalKpiCard
+            label="Aktivitäten"
+            description="Neu"
+            value={data.kpis.activities}
+            emptyMessage="Noch keine Aktivitäten."
+            onPress={openActivitiesModal}
+            hidden={!activitiesReleased}
           />
           <PortalKpiCard
             label="Begleitungen"
@@ -286,28 +332,6 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
         </View>
 
         <PortalQuickActions onAction={handleQuickAction} actions={quickActions} />
-
-        <View style={styles.section}>
-          <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>AKTIVITÄTEN</Text>
-          {data.activities.length === 0 ? (
-            <GlassCard>
-              <Text style={[type.body, { color: text.secondary }]} {...noBreakTextProps}>
-                Noch keine Aktivitäten im Portal.
-              </Text>
-            </GlassCard>
-          ) : (
-            data.activities.map((activity) => (
-              <GlassCard key={activity.id}>
-                <Text style={[type.body, { color: text.primary, fontWeight: '600' }]} {...noBreakTextProps}>
-                  {activity.title}
-                </Text>
-                {activity.description ? (
-                  <Text style={[type.caption, { color: text.secondary }]}>{activity.description}</Text>
-                ) : null}
-              </GlassCard>
-            ))
-          )}
-        </View>
 
         {budgetReleased && data.budget ? (
           <GlassCard glow accentColor="#FFD166">
@@ -324,28 +348,6 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
             </Text>
           </GlassCard>
         ) : null}
-
-        {data.openRequests.length > 0 ? (
-          <View style={styles.section}>
-            <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>OFFENE ANFRAGEN</Text>
-            {data.openRequests.map((request) => (
-              <GlassCard key={request.id} onPress={() => setSelectedRequest(request)}>
-                <Text style={[type.body, { color: text.primary, fontWeight: '600' }]} {...noBreakTextProps}>
-                  {request.title}
-                </Text>
-                <Text style={[type.caption, { color: text.muted }]}>
-                  {resolvePortalRequestTypeLabel(request.requestType)}
-                </Text>
-              </GlassCard>
-            ))}
-          </View>
-        ) : null}
-
-        <PortalRequestDrawer
-          request={selectedRequest}
-          visible={selectedRequest !== null}
-          onClose={() => setSelectedRequest(null)}
-        />
       </ScrollView>
 
       <PortalDocumentUploadModal
@@ -367,6 +369,29 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
         clientId={context.clientId}
         portalUserId={actorId}
         onClose={() => setProofsModalOpen(false)}
+      />
+
+      <PortalOpenRequestsModal
+        visible={openRequestsModalOpen}
+        requests={data.openRequests}
+        onClose={() => {
+          setOpenRequestsModalOpen(false);
+          clearModalRoute();
+        }}
+        onNewRequest={() => {
+          setOpenRequestsModalOpen(false);
+          clearModalRoute();
+          setRequestModal('sonstiges');
+        }}
+      />
+
+      <PortalActivitiesModal
+        visible={activitiesModalOpen}
+        activities={data.activities}
+        onClose={() => {
+          setActivitiesModalOpen(false);
+          clearModalRoute();
+        }}
       />
 
       {requestModal && isPortalFormRequestType(requestModal) ? (
@@ -399,12 +424,5 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: careSpacing.sm,
     width: '100%',
-  },
-  section: {
-    gap: careSpacing.sm,
-  },
-  eyebrow: {
-    textTransform: 'uppercase',
-    letterSpacing: 0.6,
   },
 });

@@ -15,6 +15,7 @@ import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/respo
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalContext } from '@/hooks/usePortalContext';
 import {
+  ASSIST_PORTAL_MODAL_SECTIONS,
   ASSIST_PORTAL_SECTIONS,
   buildPortalDashboard,
   canAccessPortalFeature,
@@ -89,6 +90,16 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
       const featureKey = ASSIST_PORTAL_SECTIONS[routeSection];
       if (!featureKey || !canAccessPortalFeature(context, 'assist', featureKey)) {
         return <AssistPortalSectionBlocked section={routeSection} />;
+      }
+      if (ASSIST_PORTAL_MODAL_SECTIONS.has(routeSection)) {
+        return (
+          <AssistPortalOverview
+            context={context}
+            showSuccess={showSuccess}
+            onRefresh={handleRefresh}
+            initialModal={routeSection as 'anfragen' | 'aktivitaeten'}
+          />
+        );
       }
       return <AssistPortalSectionView context={context} section={routeSection} />;
     }

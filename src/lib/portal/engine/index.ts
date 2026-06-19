@@ -6,6 +6,7 @@ export { resolvePortalTerminology, resolveModuleTerminology, resolveCombinedModu
 export { filterVisibleFeatures, isFeatureVisible, resolvePortalActorRole } from './portalVisibility';
 export {
   applyPortalFeatureGates,
+  ASSIST_PORTAL_MODAL_SECTIONS,
   ASSIST_PORTAL_SECTIONS,
   canAccessPortalFeature,
   contextHasActiveModule,

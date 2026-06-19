@@ -101,6 +101,17 @@ describe('Assist portal mobile layout', () => {
     expect(overview).toContain('PORTAL_MOBILE_NAV_HEIGHT');
     expect(overview).toContain("width: '100%'");
     expect(overview).toContain('resolvePortalHeroCopy');
+    expect(overview).toContain('PortalOpenRequestsModal');
+    expect(overview).toContain('PortalActivitiesModal');
+    expect(overview).not.toContain('OFFENE ANFRAGEN');
+    expect(overview).not.toContain('AKTIVITÄTEN');
+  });
+
+  it('overview route uses tabs layout shell instead of duplicate index', () => {
+    const tabsRoute = readSrc('app/portal/client/(tabs)/index.tsx');
+    expect(tabsRoute).toContain('AdaptivePortalOverview');
+    const fs = require('node:fs');
+    expect(fs.existsSync(path.join(root, 'app/portal/client/index.tsx'))).toBe(false);
   });
 
   it('PortalKpiCard uses adaptive column widths on phone', () => {

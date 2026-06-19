@@ -10,6 +10,7 @@ export const PORTAL_FEATURE_MATRIX: PortalFeature[] = [
   { moduleKey: 'assist', featureKey: 'care_team', label: 'Betreuungsteam', description: 'Ihr Assist-Betreuungsteam', navGroup: 'module', sortOrder: 50 },
   { moduleKey: 'assist', featureKey: 'budget', label: 'Budget', description: 'Entlastungs- und Verhinderungspflege', navGroup: 'module', sortOrder: 55 },
   { moduleKey: 'assist', featureKey: 'nachweise', label: 'Nachweise', description: 'Leistungsnachweise und Belege', navGroup: 'module', sortOrder: 60 },
+  { moduleKey: 'assist', featureKey: 'aktivitaeten', label: 'Aktivitäten', description: 'Ihre Portal-Aktivitäten', navGroup: 'module', sortOrder: 62 },
   { moduleKey: 'assist', featureKey: 'anfragen', label: 'Anfragen', description: 'Ihre Portal-Anfragen', navGroup: 'module', sortOrder: 65 },
   { moduleKey: 'assist', featureKey: 'hilfe', label: 'Hilfe', description: 'Hilfe und Kontakt zum Pflegebüro', navGroup: 'module', sortOrder: 70 },
   { moduleKey: 'pflege', featureKey: 'appointments', label: 'Termine', description: 'Pflege-Termine und Hausbesuche', navGroup: 'module', sortOrder: 10 },

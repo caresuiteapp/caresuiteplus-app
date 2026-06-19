@@ -55,8 +55,13 @@ describe('assist portal navigation', () => {
     expect(nav.some((item) => item.key === 'overview')).toBe(true);
     expect(nav.some((item) => item.key === 'assist-appointments')).toBe(true);
     expect(nav.some((item) => item.key === 'assist-anfragen')).toBe(true);
+    expect(nav.some((item) => item.key === 'assist-aktivitaeten')).toBe(true);
     expect(nav.some((item) => item.label === 'Begleitungen')).toBe(true);
     expect(nav.some((item) => item.label === 'Assist-Fahrten')).toBe(false);
+    expect(nav.find((item) => item.key === 'assist-anfragen')?.href).toBe('/portal/client?modal=anfragen');
+    expect(nav.find((item) => item.key === 'assist-aktivitaeten')?.href).toBe(
+      '/portal/client?modal=aktivitaeten',
+    );
   });
 });
 

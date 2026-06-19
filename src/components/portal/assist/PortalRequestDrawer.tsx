@@ -1,5 +1,5 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { GlassCard } from '@/design/components/GlassCard';
+import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
@@ -29,48 +29,45 @@ const STATUS_LABELS: Record<string, string> = {
   zurueckgestellt: 'Zurückgestellt',
 };
 
-/** Read-only request detail overlay. */
-export function PortalRequestDrawer({ request, visible, onClose }: PortalRequestDrawerProps) {
+/** Read-only request detail content — shared by drawer and open-requests modal. */
+export function PortalRequestDetail({ request }: { request: PortalRequest }) {
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
 
-  if (!visible || !request) return null;
-
   return (
-    <View style={styles.overlay}>
-      <GlassCard glow style={styles.drawer}>
-        <Text style={[type.caption, { color: text.muted }]}>ANFRAGE</Text>
-        <Text style={[type.cardTitle, { color: text.primary }]} {...noBreakTextProps}>
-          {request.title}
-        </Text>
-        <Text style={[type.body, { color: text.secondary }]}>
-          {resolvePortalRequestTypeLabel(request.requestType)} ·{' '}
-          {STATUS_LABELS[request.status] ?? request.status}
-        </Text>
-        {request.description ? (
-          <Text style={[type.body, { color: text.secondary }]}>{request.description}</Text>
-        ) : null}
-        <Text style={[type.caption, { color: text.muted }]}>
-          Erstellt: {formatDate(request.createdAt)}
-        </Text>
-        <Text style={[type.caption, styles.close, { color: '#FF9500' }]} onPress={onClose}>
-          Schließen
-        </Text>
-      </GlassCard>
+    <View style={styles.detail}>
+      <Text style={[type.caption, { color: text.muted }]}>ANFRAGE</Text>
+      <Text style={[type.cardTitle, { color: text.primary }]} {...noBreakTextProps}>
+        {request.title}
+      </Text>
+      <Text style={[type.body, { color: text.secondary }]}>
+        {resolvePortalRequestTypeLabel(request.requestType)} ·{' '}
+        {STATUS_LABELS[request.status] ?? request.status}
+      </Text>
+      {request.description ? (
+        <Text style={[type.body, { color: text.secondary }]}>{request.description}</Text>
+      ) : null}
+      <Text style={[type.caption, { color: text.muted }]}>
+        Erstellt: {formatDate(request.createdAt)}
+      </Text>
     </View>
   );
 }
 
+/** Read-only request detail overlay. */
+export function PortalRequestDrawer({ request, visible, onClose }: PortalRequestDrawerProps) {
+  if (!visible || !request) return null;
+
+  return (
+    <PortalGlassModal visible={visible} title="Anfrage" onClose={onClose}>
+      <PortalRequestDetail request={request} />
+    </PortalGlassModal>
+  );
+}
+
 const styles = StyleSheet.create({
-  overlay: {
-    marginTop: careSpacing.sm,
-  },
-  drawer: {
+  detail: {
     gap: careSpacing.sm,
-  },
-  close: {
-    fontWeight: '700',
-    marginTop: careSpacing.sm,
   },
 });

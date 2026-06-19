@@ -18,6 +18,7 @@ const ASSIST_FEATURE_ICONS: Record<string, string> = {
   trips: '🚗',
   budget: '💶',
   nachweise: '📋',
+  aktivitaeten: '📰',
   anfragen: '📨',
   hilfe: '❓',
   messages: '💬',
@@ -31,7 +32,8 @@ const ASSIST_FEATURE_HREFS: Record<string, string> = {
   trips: '/portal/client?module=assist&section=begleitungen',
   budget: '/portal/client?module=assist&section=budget',
   nachweise: '/portal/client?module=assist&section=nachweise',
-  anfragen: '/portal/client?module=assist&section=anfragen',
+  aktivitaeten: '/portal/client?modal=aktivitaeten',
+  anfragen: '/portal/client?modal=anfragen',
   hilfe: '/portal/client?module=assist&section=hilfe',
 };
 

@@ -26,9 +26,13 @@ export const ASSIST_PORTAL_SECTIONS: Record<string, string> = {
   begleitungen: 'trips',
   budget: 'budget',
   nachweise: 'nachweise',
+  aktivitaeten: 'aktivitaeten',
   anfragen: 'anfragen',
   hilfe: 'hilfe',
 };
+
+/** Assist overview sections that open glass modals instead of full-page views. */
+export const ASSIST_PORTAL_MODAL_SECTIONS = new Set(['anfragen', 'aktivitaeten']);
 
 export function contextHasActiveModule(
   context: Pick<PortalContext, 'activeModuleKeys'>,

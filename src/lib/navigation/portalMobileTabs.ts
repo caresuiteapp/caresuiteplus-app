@@ -19,6 +19,7 @@ const BASE_TAB_PRIORITY = [
   'documents',
   'assist-budget',
   'assist-nachweise',
+  'assist-aktivitaeten',
   'assist-anfragen',
   'profile',
 ];
@@ -50,6 +51,7 @@ export function buildDynamicTabPriority(activeModules: PortalModuleKey[]): strin
         'assist-trips',
         'assist-budget',
         'assist-nachweise',
+        'assist-aktivitaeten',
         'assist-anfragen',
       );
     } else {
