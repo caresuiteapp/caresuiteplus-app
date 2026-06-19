@@ -1,5 +1,7 @@
 export { AssistPortalOverview } from './AssistPortalOverview';
+export { AssistPortalSectionBlocked, AssistPortalSectionView } from './AssistPortalSectionView';
 export { AssistPortalShell } from './AssistPortalShell';
+export { PortalDocumentUploadModal } from './PortalDocumentUploadModal';
 export { PortalGlassHero } from './PortalGlassHero';
 export { PortalKpiCard } from './PortalKpiCard';
 export { PortalEmptyState } from './PortalEmptyState';

@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
+import { PortalDocumentUploadModal } from '@/components/portal/assist/PortalDocumentUploadModal';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PortalKpiCard } from '@/components/portal/assist/PortalKpiCard';
@@ -21,9 +22,12 @@ import {
   fetchAssistDashboardData,
   resolvePortalRequestTypeLabel,
 } from '@/lib/portal/assist';
-import { resolvePortalHeroCopy, resolvePortalTerminology } from '@/lib/portal/engine';
+import {
+  canAccessPortalFeature,
+  resolvePortalHeroCopy,
+  resolvePortalTerminology,
+} from '@/lib/portal/engine';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
-import { isFeatureVisible } from '@/lib/portal/engine/portalVisibility';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequest, PortalRequestType } from '@/types/portal/assist';
 import { ErrorState, LoadingState, PremiumInput, SuccessState } from '@/components/ui';
@@ -56,10 +60,12 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [requestModal, setRequestModal] = useState<PortalRequestType | null>(null);
+  const [uploadModalOpen, setUploadModalOpen] = useState(false);
   const [requestNote, setRequestNote] = useState('');
   const [submitting, setSubmitting] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<PortalRequest | null>(null);
   const [localSuccess, setLocalSuccess] = useState(false);
+  const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const terminology = resolvePortalTerminology('assist');
   const heroCopy = resolvePortalHeroCopy({
@@ -68,8 +74,24 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
     terminology,
     isPhone,
   });
-  const tripsReleased = isFeatureVisible('assist', 'trips', context.portalRole);
-  const budgetReleased = isFeatureVisible('assist', 'budget', context.portalRole);
+  const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
+  const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
+  const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
+  const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
+
+  const quickActions = useMemo(() => {
+    const actions: PortalQuickAction[] = [
+      { key: 'nav_messages', label: 'Nachricht', icon: '💬' },
+      { key: 'termin_aendern', label: 'Terminänderung', icon: '📅' },
+      { key: 'zusatztermin', label: 'Zusatztermin', icon: '➕' },
+      { key: 'upload', label: 'Upload', icon: '📎' },
+      { key: 'rueckruf', label: 'Rückruf', icon: '📞' },
+    ];
+    if (proofsReleased) {
+      actions.push({ key: 'nachweise', label: 'Nachweise', icon: '📋' });
+    }
+    return actions;
+  }, [proofsReleased]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);
@@ -125,6 +147,10 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
       router.push('/portal/client/documents' as never);
       return;
     }
+    if (action.key === 'upload') {
+      setUploadModalOpen(true);
+      return;
+    }
     setRequestModal(action.key as PortalRequestType);
   };
 
@@ -146,7 +172,10 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
         showsVerticalScrollIndicator={false}
       >
         {showSuccess || localSuccess ? (
-          <SuccessState message="Anfrage wurde übermittelt." />
+          <SuccessState message="Ihre Anfrage wurde übermittelt." />
+        ) : null}
+        {uploadSuccess ? (
+          <SuccessState message="Dokument wurde hochgeladen und zur Prüfung gesendet." />
         ) : null}
 
         <PortalGlassHero
@@ -187,8 +216,8 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
             description="Freigegeben"
             value={data.kpis.documents}
             emptyMessage="Noch keine Dokumente."
-            ctaLabel="Upload anfragen"
-            onCta={() => setRequestModal('upload')}
+            ctaLabel="Dokument hochladen"
+            onCta={() => setUploadModalOpen(true)}
             onPress={() => router.push('/portal/client/documents' as never)}
           />
           <PortalKpiCard
@@ -198,6 +227,7 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
             emptyMessage="Keine Nachweise offen."
             ctaLabel="Nachweis anfragen"
             onCta={() => setRequestModal('nachweise')}
+            hidden={!proofsReleased}
           />
           <PortalKpiCard
             label="Unterschriften"
@@ -221,6 +251,7 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
             emptyMessage="Keine offenen Anfragen."
             ctaLabel="Anfrage stellen"
             onCta={() => setRequestModal('sonstiges')}
+            hidden={!requestsReleased}
           />
           <PortalKpiCard
             label="Begleitungen"
@@ -232,7 +263,7 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
           />
         </View>
 
-        <PortalQuickActions onAction={handleQuickAction} />
+        <PortalQuickActions onAction={handleQuickAction} actions={quickActions} />
 
         <View style={styles.section}>
           <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>AKTIVITÄTEN</Text>
@@ -294,6 +325,19 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
           onClose={() => setSelectedRequest(null)}
         />
       </ScrollView>
+
+      <PortalDocumentUploadModal
+        visible={uploadModalOpen}
+        tenantId={context.tenantId}
+        clientId={context.clientId}
+        portalUserId={actorId}
+        onClose={() => setUploadModalOpen(false)}
+        onSuccess={() => {
+          setUploadSuccess(true);
+          setTimeout(() => setUploadSuccess(false), 2500);
+          void loadDashboard();
+        }}
+      />
 
       <PortalGlassModal
         visible={requestModal !== null}

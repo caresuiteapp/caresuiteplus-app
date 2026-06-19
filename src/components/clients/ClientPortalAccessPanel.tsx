@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { ClientModuleAssignmentPanel } from '@/components/office/ClientModuleAssignmentPanel';
 import { PortalRequestsOfficePanel } from '@/components/office/PortalRequestsOfficePanel';
+import { PortalUploadsOfficePanel } from '@/components/office/PortalUploadsOfficePanel';
 import {
   ErrorState,
   LoadingState,
@@ -220,7 +221,10 @@ export function ClientPortalAccessPanel({
       />
 
       {isActive ? (
-        <PortalRequestsOfficePanel tenantId={tenantId} clientId={client.id} />
+        <>
+          <PortalUploadsOfficePanel tenantId={tenantId} clientId={client.id} />
+          <PortalRequestsOfficePanel tenantId={tenantId} clientId={client.id} />
+        </>
       ) : null}
 
       {modulesLoading ? <LoadingState message="Portal-Module werden geladen…" /> : null}
