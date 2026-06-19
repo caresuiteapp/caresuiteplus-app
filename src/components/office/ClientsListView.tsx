@@ -158,7 +158,7 @@ export function ClientsListView({
   );
 
   const toolbar = (
-    <View style={styles.toolbar}>
+    <View style={styles.toolbar} testID="filter-bar">
       {embedded ? (
         <View style={styles.embeddedHeader}>
           <Text style={styles.embeddedTitle}>Klient:innen</Text>
@@ -221,7 +221,7 @@ export function ClientsListView({
 
   if (loading && items.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         {!embedded ? toolbar : null}
         <LoadingState message="Daten werden geladen?" />
       </View>
@@ -230,7 +230,7 @@ export function ClientsListView({
 
   if (error && items.length === 0 && totalCount === 0) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         <ErrorState message={error} onRetry={refresh} />
       </View>
     );
@@ -274,7 +274,7 @@ export function ClientsListView({
 
   if (useTableLayout) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         <ScrollView
           style={styles.flatList}
           contentContainerStyle={styles.list}
@@ -352,7 +352,7 @@ export function ClientsListView({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="list-wrapper">
       <FlatList
         style={styles.flatList}
         data={items}

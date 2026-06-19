@@ -41,7 +41,7 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
       <View style={styles.body}>
         <MainModuleRail activeModule={mainModule} />
         {showModuleNav ? <ModuleNavSidebar mainModule={mainModule} accentColor={accent} /> : null}
-        <View style={styles.main}>
+        <View style={styles.main} testID="main-work-area">
           <View style={styles.mainContent}>{children}</View>
         </View>
         {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}

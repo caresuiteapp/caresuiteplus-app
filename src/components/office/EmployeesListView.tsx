@@ -172,7 +172,7 @@ export function EmployeesListView({
   }
 
   const toolbar = (
-    <View style={styles.toolbar}>
+    <View style={styles.toolbar} testID="filter-bar">
       {embedded ? (
         <View style={styles.embeddedHeader}>
           <Text style={styles.embeddedTitle}>Mitarbeitende</Text>
@@ -227,7 +227,7 @@ export function EmployeesListView({
 
   if (loading && items.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         {!embedded ? toolbar : null}
         <LoadingState message="Daten werden geladen…" />
       </View>
@@ -236,7 +236,7 @@ export function EmployeesListView({
 
   if (error && items.length === 0 && totalCount === 0) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         <ErrorState message={error} onRetry={refresh} />
       </View>
     );
@@ -282,7 +282,7 @@ export function EmployeesListView({
 
   if (useTableLayout) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         <ScrollView
           style={styles.flatList}
           contentContainerStyle={styles.list}
@@ -360,7 +360,7 @@ export function EmployeesListView({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="list-wrapper">
       <FlatList
         style={styles.flatList}
         data={items}

@@ -55,7 +55,7 @@ export function PremiumDataTable<T>({
   }
 
   return (
-    <View style={styles.table}>
+    <View style={styles.table} testID="table-container">
       <View style={styles.headerRow}>
         {columns.map((col) => {
           const indicator = sortIndicator(col.key, sortColumnKey, sortDirection);

@@ -162,7 +162,7 @@ export function AppointmentsListView({
   }
 
   const toolbar = (
-    <View style={styles.toolbar}>
+    <View style={styles.toolbar} testID="filter-bar">
       {embedded ? (
         <View style={styles.embeddedHeader}>
           <Text style={styles.embeddedTitle}>Termine</Text>
@@ -206,7 +206,7 @@ export function AppointmentsListView({
 
   if (loading && items.length === 0) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         {!embedded ? toolbar : null}
         <LoadingState message="Termine werden geladen…" />
       </View>
@@ -215,7 +215,7 @@ export function AppointmentsListView({
 
   if (error && items.length === 0 && totalCount === 0) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         <ErrorState message={error} onRetry={refresh} />
       </View>
     );
@@ -261,7 +261,7 @@ export function AppointmentsListView({
 
   if (useTableLayout) {
     return (
-      <View style={styles.container}>
+      <View style={styles.container} testID="list-wrapper">
         <ScrollView
           style={styles.flatList}
           contentContainerStyle={styles.list}
@@ -330,7 +330,7 @@ export function AppointmentsListView({
   }
 
   return (
-    <View style={styles.container}>
+    <View style={styles.container} testID="list-wrapper">
       <FlatList
         style={styles.flatList}
         data={items}

@@ -107,6 +107,7 @@ export function ScreenShell({
     <SafeAreaView
       style={styles.safe}
       edges={['top', 'bottom']}
+      testID="screen-shell"
       accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
     >
       <ScreenHeader
