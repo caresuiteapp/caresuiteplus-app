@@ -5,6 +5,7 @@ import {
   StyleSheet,
   Text,
   TextInput,
+  useWindowDimensions,
   View,
   type TextStyle,
   type ViewStyle,
@@ -18,6 +19,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glass as glassTokens } from '@/design/tokens/glass';
+import { resolveTopbarCenterZoneInsets } from '@/lib/platform/shellLayoutMetrics';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
@@ -278,8 +280,9 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     searchWrap: {
       ...topbarControl,
       ...glass,
-      flex: 1,
-      maxWidth: 520,
+      width: 260,
+      maxWidth: 260,
+      alignSelf: 'flex-start',
       gap: spacing.sm,
       borderRadius: radius.capsule,
       backgroundColor: isDark ? glassTokens.input : '#FFFFFF',
@@ -293,6 +296,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     },
     searchInput: {
       flex: 1,
+      minWidth: 0,
       ...typography.body,
       color: colors.textPrimary,
       paddingVertical: 0,
