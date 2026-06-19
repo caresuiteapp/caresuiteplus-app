@@ -32,7 +32,7 @@ export function resolvePlatformShellSideInsets(
   };
 }
 
-/** Map shell insets into PlatformTopbar coordinates (topbar has horizontal padding). */
+/** Map shell insets into PlatformTopbar coordinates (topbar spans content column only). */
 export function resolveTopbarCenterZoneInsets(
   width: number,
   mainModule: MainModuleKey,
@@ -40,7 +40,7 @@ export function resolveTopbarCenterZoneInsets(
 ): PlatformShellSideInsets {
   const shell = resolvePlatformShellSideInsets(width, mainModule);
   return {
-    left: shell.left - topbarHorizontalPadding,
+    left: shell.left - PLATFORM_MODULE_RAIL_WIDTH - topbarHorizontalPadding,
     right: shell.right - topbarHorizontalPadding,
   };
 }

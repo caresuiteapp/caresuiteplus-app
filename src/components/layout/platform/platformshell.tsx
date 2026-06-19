@@ -21,7 +21,7 @@ type PlatformShellProps = {
 
 /**
  * Five-zone desktop/web shell:
- * Topbar | MainModuleRail | ModuleNavSidebar | Main work area | RightContextPanel
+ * MainModuleRail (full height) | content column: Topbar + ModuleNavSidebar | Main work area | RightContextPanel
  * Mobile (<768px): no ModuleNavSidebar; context panel scrolls below main content.
  * Zentrale: no left ModuleNavSidebar — navigation lives in RightContextPanel only.
  */
@@ -39,25 +39,29 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
 
   const content = (
     <View style={[styles.root, { paddingTop: insets.top }]}>
-      <PlatformTopbar mainModule={mainModule} accentColor={accent} />
-      <View style={styles.body}>
+      <View style={styles.shellRow}>
         <MainModuleRail activeModule={mainModule} />
-        {showModuleNav ? <ModuleNavSidebar mainModule={mainModule} accentColor={accent} /> : null}
-        {isPhoneLayout ? (
-          <ScrollView
-            style={styles.main}
-            contentContainerStyle={styles.mainScrollContent}
-            showsVerticalScrollIndicator={false}
-          >
-            <View style={styles.mainContent}>{children}</View>
-            <MobilePlatformContextPanel mainModule={mainModule} accentColor={accent} />
-          </ScrollView>
-        ) : (
-          <View style={styles.main} testID="main-work-area">
-            <View style={styles.mainContent}>{children}</View>
+        <View style={styles.contentColumn}>
+          <PlatformTopbar mainModule={mainModule} accentColor={accent} />
+          <View style={styles.body}>
+            {showModuleNav ? <ModuleNavSidebar mainModule={mainModule} accentColor={accent} /> : null}
+            {isPhoneLayout ? (
+              <ScrollView
+                style={styles.main}
+                contentContainerStyle={styles.mainScrollContent}
+                showsVerticalScrollIndicator={false}
+              >
+                <View style={styles.mainContent}>{children}</View>
+                <MobilePlatformContextPanel mainModule={mainModule} accentColor={accent} />
+              </ScrollView>
+            ) : (
+              <View style={styles.main} testID="main-work-area">
+                <View style={styles.mainContent}>{children}</View>
+              </View>
+            )}
+            {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}
           </View>
-        )}
-        {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}
+        </View>
       </View>
     </View>
   );
@@ -67,6 +71,8 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
 
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
+  shellRow: { flex: 1, flexDirection: 'row', minHeight: 0 },
+  contentColumn: { flex: 1, minWidth: 0 },
   body: { flex: 1, flexDirection: 'row', minHeight: 0 },
   main: { flex: 1, minWidth: 0, backgroundColor: 'transparent' },
   mainScrollContent: {

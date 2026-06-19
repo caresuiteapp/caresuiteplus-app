@@ -20,9 +20,10 @@ describe('shellLayoutMetrics', () => {
     const center = resolveTopbarCenterZoneInsets(width, 'zentrale', topbarPadding);
     const contentWidth = width - shell.left - shell.right;
     const mainCenter = shell.left + contentWidth / 2;
-    const topbarInnerWidth = width - topbarPadding * 2;
+    const topbarInnerWidth = width - PLATFORM_MODULE_RAIL_WIDTH - topbarPadding * 2;
     const zoneWidth = topbarInnerWidth - center.left - center.right;
-    const zoneCenter = topbarPadding + center.left + zoneWidth / 2;
+    const zoneCenter =
+      PLATFORM_MODULE_RAIL_WIDTH + topbarPadding + center.left + zoneWidth / 2;
 
     expect(zoneCenter).toBeCloseTo(mainCenter, 5);
   });
