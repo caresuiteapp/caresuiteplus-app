@@ -23,10 +23,7 @@ import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import {
-  buildLiveModuleStatusChips,
-  buildOfficeModuleStatusChips,
   buildOpenTasks,
-  DEMO_MODULE_STATUS,
   OFFICE_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
@@ -44,7 +41,7 @@ function openExternal(url: string) {
   void Linking.openURL(url).catch(() => undefined);
 }
 
-/** Context panel — tenant status, module chips, tasks, Schnellaktionen, nav groups, support. */
+/** Context panel — tenant card, tasks, Schnellaktionen, nav groups, support. */
 export function RightContextPanel({ mainModule, accentColor }: RightContextPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -63,13 +60,6 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
     return null;
   }
 
-  const statusChips =
-    mainModule === 'office' && officeData
-      ? buildOfficeModuleStatusChips(officeData.kpis)
-      : isLive
-        ? buildLiveModuleStatusChips(mainModule)
-        : DEMO_MODULE_STATUS[mainModule];
-
   const quickActions = mainModule === 'office' ? OFFICE_QUICK_ACTIONS : OFFICE_QUICK_ACTIONS.slice(0, 2);
   const openTasks = buildOpenTasks(mainModule, officeData, isLive);
 
@@ -82,16 +72,6 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
           labelStyle={{ color: colors.textMuted }}
         />
       </GlowCard>
-
-      <Text style={styles.sectionHeading}>Modulstatus</Text>
-      <View style={styles.chipRow}>
-        {statusChips.map((chip) => (
-          <View key={chip.label} style={[styles.statusChip, { borderColor: withAlpha(accent, 0.35) }]}>
-            <Text style={styles.chipLabel}>{chip.label}</Text>
-            <Text style={[styles.chipValue, { color: accent }]}>{chip.status}</Text>
-          </View>
-        ))}
-      </View>
 
       <Text style={styles.sectionHeading}>Heute</Text>
       <ScrollView style={styles.taskList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
@@ -228,19 +208,6 @@ function createStyles(
       textTransform: 'uppercase',
       letterSpacing: 0.6,
     },
-    chipRow: { gap: spacing.xs },
-    statusChip: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'center',
-      paddingVertical: spacing.sm,
-      paddingHorizontal: spacing.sm,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      backgroundColor: chipBg,
-    },
-    chipLabel: { ...typography.caption, color: colors.textSecondary, fontWeight: '600' },
-    chipValue: { ...typography.caption, fontWeight: '700' },
     taskList: { maxHeight: 120 },
     taskItem: {
       flexDirection: 'row',

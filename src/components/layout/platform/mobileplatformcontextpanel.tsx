@@ -22,10 +22,7 @@ import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { getServiceMode } from '@/lib/services/mode';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import {
-  buildLiveModuleStatusChips,
-  buildOfficeModuleStatusChips,
   buildOpenTasks,
-  DEMO_MODULE_STATUS,
   OFFICE_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
@@ -57,16 +54,6 @@ export function MobilePlatformContextPanel({
   const { data: officeData } = useOfficeDashboard();
   const isLive = getServiceMode() === 'supabase';
 
-  const statusChips = useMemo(() => {
-    if (mainModule === 'office' && officeData) {
-      return buildOfficeModuleStatusChips(officeData.kpis);
-    }
-    if (isLive) {
-      return buildLiveModuleStatusChips(mainModule);
-    }
-    return DEMO_MODULE_STATUS[mainModule];
-  }, [isLive, mainModule, officeData]);
-
   const openTasks = useMemo(
     () => buildOpenTasks(mainModule, officeData, isLive),
     [isLive, mainModule, officeData],
@@ -87,16 +74,6 @@ export function MobilePlatformContextPanel({
           labelStyle={{ ...type.caption, color: text.muted }}
           chipTextStyle={{ ...type.caption, fontWeight: '700' }}
         />
-      </GlassCard>
-
-      <GlassCard style={styles.card}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>MODULSTATUS</Text>
-        {statusChips.map((chip) => (
-          <View key={chip.label} style={styles.statusRow}>
-            <Text style={[type.caption, { color: text.secondary, flex: 1 }]}>{chip.label}</Text>
-            <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>{chip.status}</Text>
-          </View>
-        ))}
       </GlassCard>
 
       <GlassCard style={styles.card}>
