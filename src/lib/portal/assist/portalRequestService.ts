@@ -21,6 +21,9 @@ const REQUEST_TYPE_LABELS: Record<PortalRequestType, string> = {
   nachricht: 'Nachricht',
   upload: 'Dokument-Upload',
   nachweise: 'Nachweise',
+  stammdaten: 'Stammdatenänderung',
+  beschwerde: 'Beschwerde',
+  lob: 'Lob',
   sonstiges: 'Sonstige Anfrage',
 };
 

@@ -5,6 +5,9 @@ export type PortalRequestType =
   | 'nachricht'
   | 'upload'
   | 'nachweise'
+  | 'stammdaten'
+  | 'beschwerde'
+  | 'lob'
   | 'sonstiges';
 
 export type PortalRequestStatus =
@@ -90,6 +93,8 @@ export type AssistDashboardKpis = {
 
 export type AssistDashboardData = {
   nextAppointment: PortalNextAppointment | null;
+  upcomingAppointments: PortalNextAppointment[];
+  contactPhone: string | null;
   kpis: AssistDashboardKpis;
   activities: PortalActivity[];
   budget: PortalBudgetSnapshot | null;

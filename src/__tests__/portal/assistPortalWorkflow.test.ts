@@ -1,6 +1,9 @@
 import { describe, expect, it, vi, beforeEach } from 'vitest';
 import { buildPortalNavigation } from '@/lib/portal/engine/buildPortalNavigation';
 import { getFeaturesForModules } from '@/lib/portal/engine/portalFeatureMatrix';
+import {
+  isPortalBudgetFeatureEnabled,
+} from '@/lib/portal/engine/portalFeatureAccess';
 import { isFeatureVisible } from '@/lib/portal/engine/portalVisibility';
 import { createPortalRequest } from '@/lib/portal/assist/portalRequestService';
 
@@ -71,7 +74,7 @@ describe('createPortalRequest', () => {
         status: 'offen',
         title: 'Rückruf',
         description: 'Bitte zurückrufen',
-        payload: {},
+        payload: { thema: 'termin', rueckrufzeit: 'vormittag' },
         created_at: '2026-06-19T10:00:00Z',
         updated_at: '2026-06-19T10:00:00Z',
       },
@@ -87,12 +90,14 @@ describe('createPortalRequest', () => {
       requestType: 'rueckruf',
       title: 'Rückruf',
       description: 'Bitte zurückrufen',
+      payload: { thema: 'termin', rueckrufzeit: 'vormittag' },
     });
 
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.id).toBe('req-1');
       expect(result.data.requestType).toBe('rueckruf');
+      expect(result.data.payload).toMatchObject({ thema: 'termin' });
     }
     expect(mockInsert).toHaveBeenCalled();
   });
@@ -112,7 +117,41 @@ describe('assist empty state rules', () => {
     expect(isFeatureVisible('assist', 'trips', 'client', rules)).toBe(false);
   });
 
-  it('shows budget only when budget feature is visible', () => {
-    expect(isFeatureVisible('assist', 'budget', 'client', [])).toBe(true);
+  it('shows budget only when client has configured budget or office release', () => {
+    expect(
+      isPortalBudgetFeatureEnabled({
+        activeModuleKeys: ['assist'],
+        portalRole: 'client',
+        visibilityRules: [],
+        careProfile: {
+          careContexts: ['daily_assistance'],
+          configuredBudgetTypes: [],
+          hasBudgetSnapshot: false,
+        },
+        baseVisibleFeatures: getFeaturesForModules(['assist']),
+      }),
+    ).toBe(false);
+
+    expect(
+      isPortalBudgetFeatureEnabled({
+        activeModuleKeys: ['assist'],
+        portalRole: 'client',
+        visibilityRules: [
+          {
+            moduleKey: 'assist',
+            featureKey: 'budget',
+            portalRole: 'client',
+            isVisible: true,
+            requiresRelease: true,
+          },
+        ],
+        careProfile: {
+          careContexts: ['daily_assistance'],
+          configuredBudgetTypes: [],
+          hasBudgetSnapshot: false,
+        },
+        baseVisibleFeatures: getFeaturesForModules(['assist']),
+      }),
+    ).toBe(true);
   });
 });
