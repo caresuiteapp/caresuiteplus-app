@@ -255,6 +255,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
                   options={SERVICE_TAX_MODE_OPTIONS}
                   value={selectedTaxMode}
                   onChange={(mode) => setSelected({ ...selected, defaultTaxMode: mode })}
+                  wrap
                 />
               </View>
             </>

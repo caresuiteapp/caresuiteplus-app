@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, Text, type ViewStyle } from 'react-native';
+import { Pressable, ScrollView, Text, View, type ViewStyle } from 'react-native';
 import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
 
 type FilterChipProps = {
@@ -37,6 +37,8 @@ type FilterChipGroupProps<T extends string> = {
   /** Alias for `onChange`. */
   onSelect?: (key: T) => void;
   style?: ViewStyle;
+  /** Stack chips onto multiple lines instead of a horizontal scroll row. */
+  wrap?: boolean;
 };
 
 export function FilterChipGroup<T extends string>({
@@ -46,10 +48,24 @@ export function FilterChipGroup<T extends string>({
   onChange,
   onSelect,
   style,
+  wrap = false,
 }: FilterChipGroupProps<T>) {
   const styles = useAuroraGlassChipStyles();
   const selected = value ?? selectedKey;
   const handleChange = onChange ?? onSelect;
+
+  const chips = options.map((opt) => (
+    <FilterChip
+      key={opt.key}
+      label={opt.label}
+      selected={selected === opt.key}
+      onPress={handleChange ? () => handleChange(opt.key) : undefined}
+    />
+  ));
+
+  if (wrap) {
+    return <View style={[styles.row, { flexWrap: 'wrap' }, style]}>{chips}</View>;
+  }
 
   return (
     <ScrollView
@@ -57,14 +73,7 @@ export function FilterChipGroup<T extends string>({
       showsHorizontalScrollIndicator={false}
       contentContainerStyle={[styles.row, style]}
     >
-      {options.map((opt) => (
-        <FilterChip
-          key={opt.key}
-          label={opt.label}
-          selected={selected === opt.key}
-          onPress={handleChange ? () => handleChange(opt.key) : undefined}
-        />
-      ))}
+      {chips}
     </ScrollView>
   );
 }
