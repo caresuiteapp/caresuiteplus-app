@@ -129,6 +129,7 @@ export function OfficeCalendarView() {
           events={events}
           weekStartDay={weekStartDay}
           weekFullDay={weekFullDay}
+          dayViewStartHour={dayViewStartHour}
         />
       ) : null}
 

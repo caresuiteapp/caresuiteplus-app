@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useRef } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import type { CalendarEvent, WeekStartDay } from '@/types/modules/calendarEvent';
 import { GlassCard } from '@/design/components/GlassCard';
@@ -19,6 +19,7 @@ type OfficeCalendarWeekViewProps = {
   events: CalendarEvent[];
   weekStartDay: WeekStartDay;
   weekFullDay: boolean;
+  dayViewStartHour: number;
 };
 
 const HOUR_HEIGHT = 48;
@@ -58,11 +59,25 @@ export function OfficeCalendarWeekView({
   events,
   weekStartDay,
   weekFullDay,
+  dayViewStartHour,
 }: OfficeCalendarWeekViewProps) {
   const text = useAuroraAdaptiveText();
+  const gridScrollRef = useRef<ScrollView>(null);
   const days = useMemo(() => getWeekDays(anchor, weekStartDay), [anchor, weekStartDay]);
   const hours = useMemo(() => hourRange(weekFullDay), [weekFullDay]);
   const today = new Date();
+
+  useEffect(() => {
+    if (!weekFullDay) {
+      gridScrollRef.current?.scrollTo({ y: 0, animated: false });
+      return;
+    }
+    const y = dayViewStartHour * HOUR_HEIGHT;
+    const frame = requestAnimationFrame(() => {
+      gridScrollRef.current?.scrollTo({ y, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [anchor, dayViewStartHour, weekFullDay]);
 
   return (
     <GlassCard style={styles.card}>
@@ -98,7 +113,7 @@ export function OfficeCalendarWeekView({
             })}
           </View>
 
-          <ScrollView style={styles.gridScroll} nestedScrollEnabled>
+          <ScrollView ref={gridScrollRef} style={styles.gridScroll} nestedScrollEnabled>
             <View style={styles.grid}>
               <View style={styles.timeCol}>
                 {hours.map((h) => (

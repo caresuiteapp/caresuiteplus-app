@@ -27,18 +27,18 @@ export function OfficeCalendarDayView({
 }: OfficeCalendarDayViewProps) {
   const text = useAuroraAdaptiveText();
   const scrollRef = useRef<ScrollView>(null);
-  const hours = useMemo(() => {
-    const list: number[] = [];
-    for (let h = dayViewStartHour; h < 24; h += 1) list.push(h);
-    return list;
-  }, [dayViewStartHour]);
+  const hours = useMemo(() => Array.from({ length: 24 }, (_, i) => i), []);
 
   const dayEvents = useMemo(() => eventsForDay(events, anchor), [events, anchor]);
   const allDay = dayEvents.filter((e) => e.allDay);
   const timed = dayEvents.filter((e) => !e.allDay);
 
   useEffect(() => {
-    scrollRef.current?.scrollTo({ y: 0, animated: false });
+    const y = dayViewStartHour * HOUR_HEIGHT;
+    const frame = requestAnimationFrame(() => {
+      scrollRef.current?.scrollTo({ y, animated: false });
+    });
+    return () => cancelAnimationFrame(frame);
   }, [anchor, dayViewStartHour]);
 
   return (
