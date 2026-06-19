@@ -36,7 +36,8 @@ import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
 
 import type { TenantCenterSectionKey } from '@/types/tenant/tenantCenter';
 
-
+/** Max width for the card grid (2 cols × ~460px + gap). Keeps grid centered on wide screens. */
+const TENANT_CENTER_GRID_MAX_WIDTH = 960;
 
 export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInModal?: boolean } = {}) {
 
@@ -211,16 +212,12 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
   return (
 
     <CareLightPageShell
-
       title="Mandanten-Center"
-
       subtitle={`${snapshot.company.name || 'Organisation'} · ${roleLabel ?? ''}`}
-
       showBack
-
+      scroll={false}
     >
-
-      <ScrollView contentContainerStyle={styles.scroll}>
+      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
 
         <Text style={[styles.lead, { color: text.secondary }]}>
 
@@ -234,11 +231,14 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
 
 
-        <View style={[styles.grid, { gap: careSpacing.md }]}>
+        <View style={[styles.grid, { gap: careSpacing.md, maxWidth: TENANT_CENTER_GRID_MAX_WIDTH }]}>
 
           {primarySections.map((section) => (
 
-            <View key={section.key} style={[styles.gridItem, { width: `${100 / columns}%`, maxWidth: `${100 / columns}%` }]}>
+            <View
+              key={section.key}
+              style={[styles.gridItem, { width: `${100 / columns}%`, maxWidth: `${100 / columns}%` }]}
+            >
 
               <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
 
@@ -256,11 +256,14 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
             <Text style={[styles.sectionHeading, { color: text.muted }]}>Weitere Bereiche</Text>
 
-            <View style={[styles.grid, { gap: careSpacing.md }]}>
+            <View style={[styles.grid, { gap: careSpacing.md, maxWidth: TENANT_CENTER_GRID_MAX_WIDTH }]}>
 
               {stubSections.map((section) => (
 
-                <View key={section.key} style={[styles.gridItem, { width: `${100 / columns}%`, maxWidth: `${100 / columns}%` }]}>
+                <View
+                  key={section.key}
+                  style={[styles.gridItem, { width: `${100 / columns}%`, maxWidth: `${100 / columns}%` }]}
+                >
 
                   <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
 
@@ -331,13 +334,11 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 const styles = StyleSheet.create({
 
   scroll: {
-
+    flexGrow: 1,
     padding: careSpacing.md,
-
     gap: careSpacing.md,
-
     alignItems: 'center',
-
+    paddingBottom: careSpacing.xxl,
   },
 
   lead: {
