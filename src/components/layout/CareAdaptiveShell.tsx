@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { PortalShellLayout } from '@/components/layout/portal';
 import { CareDesktopShell } from './CareDesktopShell';
 import { CareLightDesktopShell } from './CareLightDesktopShell';
 import { CareLightMobileShell } from './CareLightMobileShell';
@@ -38,6 +39,14 @@ export function CareAdaptiveShell({
 
   if (bare) {
     return <>{children}</>;
+  }
+
+  if (area === 'portal_client') {
+    return (
+      <PortalShellLayout accentColor={accentColor}>
+        {children}
+      </PortalShellLayout>
+    );
   }
 
   if (adaptiveShell === 'web') {

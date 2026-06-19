@@ -25,6 +25,7 @@ export { ResponsiveLayout } from './ResponsiveLayout';
 export { ScreenHeader } from './ScreenHeader';
 export { ScreenShell } from './ScreenShell';
 export { ShellLayout } from './ShellLayout';
+export { PortalShellLayout, PortalLeftNav, PortalTopBar, PortalRightSidebar } from './portal';
 export { TabShellLayout } from './TabShellLayout';
 export { TabletShell } from './TabletShell';
 export { AppStartFooter } from './AppStartFooter';

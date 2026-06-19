@@ -16,6 +16,13 @@ export {
 } from './portalFeatureAccess';
 export type { PortalClientCareProfile } from './portalFeatureAccess';
 export { buildPortalNavigation, portalNavToShellTabs } from './buildPortalNavigation';
+export {
+  PORTAL_NAVIGATION_REGISTRY,
+  getPortalNavigationRegistryEntry,
+  isPortalModuleNavImplemented,
+  moduleOverviewNavItem,
+} from './portalNavigationRegistry';
+export type { PortalNavigationRegistryEntry } from './portalNavigationRegistry';
 export { buildPortalDashboard } from './buildPortalDashboard';
 export { fetchPortalWidgetData } from './fetchPortalWidgetData';
 export type { FetchPortalWidgetDataInput } from './fetchPortalWidgetData';

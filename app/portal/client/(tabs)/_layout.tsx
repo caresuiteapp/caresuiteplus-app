@@ -1,23 +1,14 @@
 import { Slot } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
-import { ShellLayout } from '@/components/layout';
-import { moduleColor } from '@/design/tokens/modules';
-import { usePortalClientTabs } from '@/hooks/usePortalClientTabs';
+import { PortalShellLayout } from '@/components/layout/portal';
 
 export default function ClientPortalTabsLayout() {
-  const portalTabs = usePortalClientTabs();
-
   return (
-    <ShellLayout
-      area="portal_client"
-      accentColor={moduleColor('office')}
-      showModuleSwitcher={false}
-      tabsOverride={portalTabs}
-    >
+    <PortalShellLayout>
       <View style={styles.slot}>
         <Slot />
       </View>
-    </ShellLayout>
+    </PortalShellLayout>
   );
 }
 

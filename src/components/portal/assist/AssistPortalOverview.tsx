@@ -59,7 +59,7 @@ export function AssistPortalOverview({
   const insets = useSafeAreaInsets();
   const { showBottomTabs } = usePlatformLayout();
   const router = useRouter();
-  const params = useLocalSearchParams<{ modal?: string }>();
+  const params = useLocalSearchParams<{ modal?: string; action?: string }>();
   const contentPadding = useMemo(
     () => ({
       paddingHorizontal: careSpacing.md,
@@ -134,6 +134,19 @@ export function AssistPortalOverview({
       setActivitiesModalOpen(true);
     }
   }, [activitiesReleased, initialModal, params.modal, requestsReleased]);
+
+  useEffect(() => {
+    const action = typeof params.action === 'string' ? params.action : null;
+    if (!action) return;
+
+    if (action === 'upload') {
+      setUploadModalOpen(true);
+    } else if (action === 'nachweise' && proofsReleased) {
+      setProofsModalOpen(true);
+    } else if (action === 'termin_aendern' || action === 'zusatztermin' || action === 'rueckruf') {
+      setRequestModal(action as PortalRequestType);
+    }
+  }, [params.action, proofsReleased]);
 
   const loadDashboard = useCallback(async () => {
     setLoading(true);

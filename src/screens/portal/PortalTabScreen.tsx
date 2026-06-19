@@ -38,8 +38,7 @@ export function PortalTabScreen({
 
   if (isPhone && hideHeaderOnPhone) {
     return (
-      <SafeAreaView style={styles.bare} edges={['top']}>
-        <View style={styles.bareToolbar}>{signOutButton}</View>
+      <SafeAreaView style={styles.bare} edges={[]}>
         <View
           style={[
             styles.bareContent,

@@ -4,6 +4,7 @@ import {
   PORTAL_MODULE_LABELS,
   sortPortalModules,
 } from './portalModuleKeys';
+import { isPortalModuleNavImplemented, moduleOverviewNavItem } from './portalNavigationRegistry';
 
 const GLOBAL_NAV: PortalNavItem[] = [
   { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents', navGroup: 'global' },
@@ -72,14 +73,18 @@ export function buildPortalNavigation(context: Pick<
       items.push(...assistFeatureNavItems(context.visibleFeatures!));
     } else {
       for (const moduleKey of sortPortalModules(context.activeModuleKeys)) {
-        items.push({
-          key: `module-${moduleKey}`,
-          label: PORTAL_MODULE_LABELS[moduleKey],
-          icon: PORTAL_MODULE_ICONS[moduleKey],
-          href: `/portal/client?module=${moduleKey}`,
-          moduleKey,
-          navGroup: 'module',
-        });
+        if (isPortalModuleNavImplemented(moduleKey)) {
+          items.push(moduleOverviewNavItem(moduleKey));
+        } else {
+          items.push({
+            key: `module-${moduleKey}`,
+            label: PORTAL_MODULE_LABELS[moduleKey],
+            icon: PORTAL_MODULE_ICONS[moduleKey],
+            href: `/portal/client?module=${moduleKey}`,
+            moduleKey,
+            navGroup: 'module',
+          });
+        }
       }
     }
   }

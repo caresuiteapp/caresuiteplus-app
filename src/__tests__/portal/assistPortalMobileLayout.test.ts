@@ -87,11 +87,11 @@ describe('resolvePortalHeroCopy', () => {
 });
 
 describe('Assist portal mobile layout', () => {
-  it('AssistPortalShell delegates nav to ShellLayout tabs', () => {
-    const shell = readSrc('src/components/portal/assist/AssistPortalShell.tsx');
-    expect(shell).not.toContain('buildPortalNavigation');
-    expect(shell).not.toContain('ScrollView');
-    expect(shell).toContain('flex: 1');
+  it('client portal tabs layout uses PortalShellLayout', () => {
+    const layout = readSrc('app/portal/client/(tabs)/_layout.tsx');
+    expect(layout).toContain('PortalShellLayout');
+    expect(layout).not.toContain("from '@/components/layout'");
+    expect(layout).not.toContain('<ShellLayout');
   });
 
   it('AssistPortalOverview uses safe bottom padding and single scroll surface', () => {
