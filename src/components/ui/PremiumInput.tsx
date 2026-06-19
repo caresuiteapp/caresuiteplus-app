@@ -1,7 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { useGlassInputStyle } from '@/design/tokens/carelightadaptive';
+import { useAuroraGlass } from '@/design/tokens/auroraGlass';
 import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
@@ -17,8 +16,7 @@ export function PremiumInput({
   style,
   ...props
 }: PremiumInputProps) {
-  const { colors } = useLegacyTheme();
-  const glassInput = useGlassInputStyle();
+  const { colors, active, tokens } = useAuroraGlass();
 
   const styles = useMemo(
     () =>
@@ -34,8 +32,8 @@ export function PremiumInput({
           minHeight: 48,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: colors.borderStrong,
-          backgroundColor: colors.bgInput,
+          borderColor: active ? tokens.border : colors.borderStrong,
+          backgroundColor: active ? tokens.input : colors.bgInput,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
           color: colors.textPrimary,
@@ -53,7 +51,7 @@ export function PremiumInput({
           color: colors.danger,
         },
       }),
-    [colors],
+    [active, colors, tokens.border, tokens.input],
   );
 
   return (
@@ -61,7 +59,7 @@ export function PremiumInput({
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={colors.textMuted}
-        style={[styles.input, glassInput, error ? styles.inputError : null, style]}
+        style={[styles.input, error ? styles.inputError : null, style]}
         {...props}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}

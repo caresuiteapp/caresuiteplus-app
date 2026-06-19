@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
 import { PremiumButton } from './PremiumButton';
 
 type LoadingStateProps = {
@@ -8,6 +9,26 @@ type LoadingStateProps = {
 };
 
 export function LoadingState({ message = 'Wird geladen…' }: LoadingStateProps) {
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.lg,
+          gap: spacing.sm,
+          backgroundColor: 'transparent',
+        },
+        message: {
+          ...typography.body,
+          textAlign: 'center',
+          color: colors.textSecondary,
+        },
+      }),
+    [colors.textSecondary, typography.body],
+  );
+
   return (
     <View style={styles.container}>
       <ActivityIndicator size="large" color={colors.primary} />
@@ -24,6 +45,31 @@ type EmptyStateProps = {
 };
 
 export function EmptyState({ title, message, actionLabel, onAction }: EmptyStateProps) {
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.lg,
+          gap: spacing.sm,
+          backgroundColor: 'transparent',
+        },
+        title: {
+          ...typography.h3,
+          textAlign: 'center',
+          color: colors.textPrimary,
+        },
+        message: {
+          ...typography.body,
+          textAlign: 'center',
+          color: colors.textSecondary,
+        },
+      }),
+    [colors.textPrimary, colors.textSecondary, typography.body, typography.h3],
+  );
+
   return (
     <View style={styles.container}>
       <Text style={styles.title}>{title}</Text>
@@ -46,9 +92,34 @@ export function ErrorState({
   message,
   onRetry,
 }: ErrorStateProps) {
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.lg,
+          gap: spacing.sm,
+          backgroundColor: 'transparent',
+        },
+        title: {
+          ...typography.h3,
+          textAlign: 'center',
+          color: colors.danger,
+        },
+        message: {
+          ...typography.body,
+          textAlign: 'center',
+          color: colors.textSecondary,
+        },
+      }),
+    [colors.danger, colors.textSecondary, typography.body, typography.h3],
+  );
+
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: colors.danger }]}>{title}</Text>
+      <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
       {onRetry ? (
         <PremiumButton title="Erneut versuchen" onPress={onRetry} variant="secondary" size="sm" />
@@ -66,27 +137,35 @@ export function SuccessState({
   title = 'Erfolgreich',
   message,
 }: SuccessStateProps) {
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          alignItems: 'center',
+          justifyContent: 'center',
+          padding: spacing.lg,
+          gap: spacing.sm,
+          backgroundColor: 'transparent',
+        },
+        title: {
+          ...typography.h3,
+          textAlign: 'center',
+          color: colors.success,
+        },
+        message: {
+          ...typography.body,
+          textAlign: 'center',
+          color: colors.textSecondary,
+        },
+      }),
+    [colors.success, colors.textSecondary, typography.body, typography.h3],
+  );
+
   return (
     <View style={styles.container}>
-      <Text style={[styles.title, { color: colors.success }]}>{title}</Text>
+      <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    alignItems: 'center',
-    justifyContent: 'center',
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  title: {
-    ...typography.h3,
-    textAlign: 'center',
-  },
-  message: {
-    ...typography.body,
-    textAlign: 'center',
-  },
-});

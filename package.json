@@ -24,6 +24,7 @@
     "store:audit": "node scripts/store-audit.mjs",
     "free-platform:audit": "node scripts/free-platform-audit.mjs",
     "design:audit": "node scripts/design-audit.mjs",
+    "audit:no-white": "node scripts/audit-no-white-backgrounds.js",
     "eas:preflight": "node scripts/eas-preflight.mjs",
     "responsive:audit": "node scripts/responsive-audit.mjs",
     "content:audit": "node scripts/content-architecture-audit.mjs",

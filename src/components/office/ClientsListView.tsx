@@ -2,6 +2,7 @@ import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 're
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
 import { AdaptiveActionBar } from '@/components/adaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { ClientListCard } from './ClientListCard';
 import { ClientsListHero } from './ClientsListHero';
 import { ClientsListTable } from './ClientsListTable';
@@ -27,7 +28,7 @@ import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
 import { CLIENT_INTAKE_NEW_ROUTE, clientRecordRoute } from '@/lib/navigation/clientRoutes';
-import { colors, spacing, typography } from '@/theme';
+import { spacing } from '@/theme';
 
 type ClientsListViewProps = {
   onClientPress?: (id: string) => void;
@@ -94,6 +95,67 @@ export function ClientsListView({
     name: 'lastName',
     city: 'city',
   });
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        flatList: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        toolbar: {
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+          backgroundColor: 'transparent',
+        },
+        filterLabel: {
+          ...typography.label,
+          marginTop: spacing.xs,
+          color: colors.textSecondary,
+        },
+        list: {
+          paddingBottom: spacing.xxl,
+          backgroundColor: 'transparent',
+        },
+        loadMore: {
+          marginTop: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        footer: {
+          ...typography.caption,
+          textAlign: 'center',
+          marginVertical: spacing.md,
+          color: colors.textMuted,
+        },
+        embeddedCta: {
+          position: 'absolute',
+          top: spacing.sm,
+          right: spacing.md,
+          zIndex: 2,
+        },
+        embeddedHeader: {
+          marginBottom: spacing.xs,
+          paddingRight: spacing.xxl,
+        },
+        embeddedTitle: {
+          ...typography.h3,
+          color: colors.textPrimary,
+        },
+        embeddedMeta: {
+          ...typography.caption,
+          color: colors.textMuted,
+        },
+        actionMeta: {
+          ...typography.caption,
+          color: colors.textMuted,
+        },
+      }),
+    [colors, typography],
+  );
 
   const toolbar = (
     <View style={styles.toolbar}>
@@ -126,7 +188,7 @@ export function ClientsListView({
 
       <PremiumInput
         label="Suche"
-        placeholder="Name oder Ort suchen…"
+        placeholder="Name oder Ort suchen?"
         value={search}
         onChangeText={setSearch}
         autoCapitalize="words"
@@ -180,7 +242,7 @@ export function ClientsListView({
       message={
         canCreate
           ? 'Legen Sie die erste Klient:in an, um mit der Verwaltung zu beginnen.'
-          : `Noch keine Klient:innen vorhanden. Anlegen ist für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
+          : `Noch keine Klient:innen vorhanden. Anlegen ist f?r ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
       }
       actionLabel={canCreate ? 'Klient:in anlegen' : undefined}
       onAction={canCreate ? () => router.push(CLIENT_INTAKE_NEW_ROUTE as never) : undefined}
@@ -188,8 +250,8 @@ export function ClientsListView({
   ) : isFilterEmpty ? (
     <EmptyState
       title="Keine Treffer"
-      message="Für Ihre Suche oder Filter wurden keine Klient:innen gefunden."
-      actionLabel="Filter zurücksetzen"
+      message="F?r Ihre Suche oder Filter wurden keine Klient:innen gefunden."
+      actionLabel="Filter zur?cksetzen"
       onAction={resetFilters}
     />
   ) : null;
@@ -250,7 +312,7 @@ export function ClientsListView({
               secondary={
                 hasActiveFilters ? (
                   <PremiumButton
-                    title="Filter zurücksetzen"
+                    title="Filter zur?cksetzen"
                     variant="ghost"
                     size="sm"
                     onPress={resetFilters}
@@ -328,52 +390,3 @@ export function ClientsListView({
   );
 }
 
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  flatList: {
-    flex: 1,
-  },
-  toolbar: {
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  filterLabel: {
-    ...typography.label,
-    marginTop: spacing.xs,
-  },
-  list: {
-    paddingBottom: spacing.xxl,
-  },
-  loadMore: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  footer: {
-    ...typography.caption,
-    textAlign: 'center',
-    marginVertical: spacing.md,
-  },
-  embeddedCta: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.md,
-    zIndex: 2,
-  },
-  embeddedHeader: {
-    marginBottom: spacing.xs,
-    paddingRight: spacing.xxl,
-  },
-  embeddedTitle: {
-    ...typography.h3,
-  },
-  embeddedMeta: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  actionMeta: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-});

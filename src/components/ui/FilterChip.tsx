@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
 
 type FilterChipProps = {
   label: string;
@@ -9,6 +9,8 @@ type FilterChipProps = {
 };
 
 export function FilterChip({ label, selected = false, onPress, style }: FilterChipProps) {
+  const styles = useAuroraGlassChipStyles();
+
   return (
     <Pressable
       onPress={onPress}
@@ -37,6 +39,8 @@ export function FilterChipGroup<T extends string>({
   onChange,
   style,
 }: FilterChipGroupProps<T>) {
+  const styles = useAuroraGlassChipStyles();
+
   return (
     <ScrollView
       horizontal
@@ -54,34 +58,3 @@ export function FilterChipGroup<T extends string>({
     </ScrollView>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    paddingVertical: spacing.xs,
-  },
-  chip: {
-    paddingHorizontal: 14,
-    paddingVertical: 8,
-    borderRadius: radius.capsule,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.bgSurface,
-  },
-  chipSelected: {
-    borderColor: colors.orange,
-    backgroundColor: 'rgba(255,149,0,0.14)',
-  },
-  chipPressed: {
-    opacity: 0.85,
-  },
-  label: {
-    ...typography.caption,
-    fontWeight: '600',
-    color: colors.textSecondary,
-  },
-  labelSelected: {
-    color: colors.orange,
-  },
-});

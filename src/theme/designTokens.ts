@@ -4,7 +4,7 @@
  */
 import { elevation as elevationV1 } from './elevation';
 
-import { glass as auroraGlass } from '@/design/tokens/glass';
+import { auroraGlass } from '@/design/tokens/auroraGlass';
 
 export const glass = {
   blur: {

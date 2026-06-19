@@ -1,5 +1,8 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { colors, spacing, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { auroraGlass, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { spacing } from '@/theme';
 
 type FormStepperProps = {
   steps: string[];
@@ -7,6 +10,63 @@ type FormStepperProps = {
 };
 
 export function FormStepper({ steps, currentStep }: FormStepperProps) {
+  const { colors, typography } = useLegacyTheme();
+  const auroraActive = useAuroraGlassActive();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          gap: spacing.xs,
+          marginBottom: spacing.md,
+        },
+        step: {
+          flex: 1,
+          alignItems: 'center',
+          gap: 4,
+        },
+        dot: {
+          width: 28,
+          height: 28,
+          borderRadius: 14,
+          borderWidth: 1,
+          borderColor: colors.borderSoft,
+          backgroundColor: auroraActive ? auroraGlass.chip : colors.bgSurface,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        dotActive: {
+          borderColor: colors.orange,
+          backgroundColor: auroraGlass.chipActive,
+        },
+        dotDone: {
+          borderColor: colors.success,
+          backgroundColor: 'rgba(34,197,94,0.2)',
+        },
+        dotText: {
+          fontSize: 12,
+          fontWeight: '700',
+          color: colors.textMuted,
+        },
+        dotTextActive: {
+          color: colors.textPrimary,
+        },
+        label: {
+          ...typography.caption,
+          fontSize: 10,
+          textAlign: 'center',
+          color: colors.textSecondary,
+        },
+        labelActive: {
+          color: colors.orange,
+          fontWeight: '700',
+        },
+      }),
+    [auroraActive, colors, typography.caption],
+  );
+
   return (
     <View style={styles.container}>
       {steps.map((label, index) => {
@@ -34,52 +94,3 @@ export function FormStepper({ steps, currentStep }: FormStepperProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.xs,
-    marginBottom: spacing.md,
-  },
-  step: {
-    flex: 1,
-    alignItems: 'center',
-    gap: 4,
-  },
-  dot: {
-    width: 28,
-    height: 28,
-    borderRadius: 14,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    backgroundColor: colors.bgSurface,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  dotActive: {
-    borderColor: colors.orange,
-    backgroundColor: 'rgba(255,149,0,0.2)',
-  },
-  dotDone: {
-    borderColor: colors.success,
-    backgroundColor: 'rgba(34,197,94,0.2)',
-  },
-  dotText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: colors.textMuted,
-  },
-  dotTextActive: {
-    color: colors.textPrimary,
-  },
-  label: {
-    ...typography.caption,
-    fontSize: 10,
-    textAlign: 'center',
-  },
-  labelActive: {
-    color: colors.orange,
-    fontWeight: '700',
-  },
-});
