@@ -29,6 +29,11 @@ import type {
 } from './aiToolTypes';
 import { useAiStore } from './useAiStore';
 import { VoiceOrb } from './VoiceOrb';
+import {
+  extractRealtimeClientSecret,
+  getRealtimeCallsUrl,
+  parseVoiceErrorMessage,
+} from './voiceRealtimeUtils';
 
 type AiContextValue = {
   startVoice: () => Promise<void>;
@@ -237,7 +242,9 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
   );
 
   const formatVoiceError = useCallback((error: unknown): string => {
-    const raw = error instanceof Error ? error.message : String(error ?? '');
+    const raw = parseVoiceErrorMessage(
+      error instanceof Error ? error.message : String(error ?? ''),
+    );
 
     if (/NotAllowedError|Permission denied|permission/i.test(raw)) {
       return 'Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen und versuche es erneut.';
@@ -245,10 +252,13 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     if (/NotFoundError|Requested device not found/i.test(raw)) {
       return 'Kein Mikrofon gefunden. Bitte schließe ein Mikrofon an oder prüfe die Geräteeinstellungen.';
     }
-    if (/OPENAI_API_KEY not configured/i.test(raw)) {
+    if (/invalid jwt|jwt expired|invalid token|401|unauthorized/i.test(raw)) {
+      return 'Bitte melde dich erneut an, um die Sprachsteuerung zu nutzen.';
+    }
+    if (/OPENAI_API_KEY not configured|server-konfiguration|OpenAI API-Schlüssel/i.test(raw)) {
       return 'Sprachassistent ist derzeit nicht eingerichtet (Server-Konfiguration). Text-Chat bleibt verfügbar.';
     }
-    if (/No tenant access|tenant_id/i.test(raw)) {
+    if (/No tenant access|Kein Zugriff auf den Mandanten|tenant_id/i.test(raw)) {
       return 'Kein Zugriff auf den Mandanten für den Sprachassistenten.';
     }
     if (/Nicht angemeldet|access_token/i.test(raw)) {
@@ -257,8 +267,17 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     if (/Realtime client secret fehlt/i.test(raw)) {
       return 'Sprachverbindung konnte nicht vorbereitet werden. Bitte versuche es später erneut.';
     }
-    if (/Failed to fetch|NetworkError|network/i.test(raw)) {
+    if (/model_not_found|does not exist|nicht verfügbar/i.test(raw)) {
+      return 'Das Realtime-Sprachmodell ist derzeit nicht verfügbar. Text-Chat bleibt nutzbar.';
+    }
+    if (/invalid schema|invalid tools|Tool-Konfiguration/i.test(raw)) {
+      return 'Sprachassistent startet im eingeschränkten Modus. Bitte erneut versuchen oder Text-Chat nutzen.';
+    }
+    if (/Failed to fetch|NetworkError|network|Netzwerkfehler/i.test(raw)) {
       return 'Netzwerkfehler bei der Sprachverbindung. Bitte Internetverbindung prüfen und erneut versuchen.';
+    }
+    if (/Edge Function returned a non-2xx|FunctionsHttpError/i.test(raw)) {
+      return 'Sprachverbindung fehlgeschlagen. Bitte versuche es erneut oder nutze den Text-Chat.';
     }
 
     const trimmed = raw.trim();
@@ -303,6 +322,11 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     setIsStarting(true);
     setStatus('thinking');
     try {
+      const { error: refreshError } = await supabase.auth.refreshSession();
+      if (refreshError) {
+        console.warn('[VoiceCore] session refresh failed:', refreshError.message);
+      }
+
       const { data: authData } = await supabase.auth.getSession();
       if (!authData.session?.access_token) {
         throw new Error('Nicht angemeldet');
@@ -316,7 +340,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       });
 
       if (!tokenResponse.ok) {
-        throw new Error(tokenResponse.error);
+        throw new Error(parseVoiceErrorMessage(tokenResponse.error));
       }
 
       const payload = tokenResponse.data;
@@ -324,8 +348,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         setSessionId(payload.session_id);
       }
 
-      const clientSecret =
-        payload.realtime?.value ?? payload.realtime?.client_secret?.value ?? null;
+      const clientSecret = extractRealtimeClientSecret(payload);
 
       if (!clientSecret) {
         throw new Error('Realtime client secret fehlt — OPENAI_API_KEY gesetzt?');
@@ -388,7 +411,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
 
-      const sdpResponse = await fetch('https://api.openai.com/v1/realtime?model=gpt-realtime', {
+      const sdpResponse = await fetch(getRealtimeCallsUrl(), {
         method: 'POST',
         body: offer.sdp,
         headers: {
@@ -415,7 +438,6 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       cleanupVoice({ preserveError: true });
       const message = formatVoiceError(error);
       setErrorMessage(message);
-      setStatus('error');
     } finally {
       setIsStarting(false);
     }
@@ -439,8 +461,22 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     cleanupVoice();
   }, [cleanupVoice]);
 
-  const openPanel = useCallback(() => setPanelOpen(true), [setPanelOpen]);
-  const closePanel = useCallback(() => setPanelOpen(false), [setPanelOpen]);
+  const resetVoiceUiState = useCallback(() => {
+    if (!isConnected && !isStarting) {
+      setErrorMessage(null);
+      setStatus('ready');
+    }
+  }, [isConnected, isStarting, setErrorMessage, setStatus]);
+
+  const openPanel = useCallback(() => {
+    resetVoiceUiState();
+    setPanelOpen(true);
+  }, [resetVoiceUiState, setPanelOpen]);
+
+  const closePanel = useCallback(() => {
+    setPanelOpen(false);
+    resetVoiceUiState();
+  }, [resetVoiceUiState, setPanelOpen]);
 
   const value = useMemo(
     () => ({

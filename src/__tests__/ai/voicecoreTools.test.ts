@@ -77,6 +77,21 @@ describe('VoiceCore AI foundation', () => {
     const source = readSource('supabase/functions/ai-text-chat/index.ts');
     expect(source).toContain('verifyAiTenantAccess');
     expect(source).toContain('OPENAI_API_KEY');
+    expect(source).toContain('toChatCompletionTools');
+  });
+
+  it('realtime token edge function normalizes tools and German errors', () => {
+    const source = readSource('supabase/functions/ai-realtime-token/index.ts');
+    expect(source).toContain('normalizeRealtimeTools');
+    expect(source).toContain('aiErrorResponse');
+    expect(source).toContain('readOpenAiError');
+  });
+
+  it('edge function client parses FunctionsHttpError bodies', () => {
+    const source = readSource('src/lib/supabase/edgeFunctions.ts');
+    expect(source).toContain("namedError.name === 'FunctionsHttpError'");
+    expect(source).toContain('extractEdgeFunctionError');
+    expect(source).toContain('payload.error');
   });
 
   it('commit function supports schedule, document, protocol and care note', () => {
@@ -123,6 +138,12 @@ describe('VoiceCore AI foundation', () => {
     expect(source).toContain('teardownVoiceConnection');
     expect(source).not.toMatch(/useEffect\(\(\) => cleanupVoice/);
     expect(source).toContain('formatVoiceError');
+  });
+
+  it('GlobalAiProvider uses GA Realtime WebRTC calls endpoint', () => {
+    const source = readSource('src/ai/GlobalAiProvider.tsx');
+    expect(source).toContain('/v1/realtime/calls');
+    expect(source).not.toContain('/v1/realtime?model=');
   });
 });
 
