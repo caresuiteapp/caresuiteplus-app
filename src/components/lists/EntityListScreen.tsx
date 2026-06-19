@@ -1,4 +1,5 @@
-import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Platform, RefreshControl, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useMemo } from 'react';
 import { CareLightPageShell } from '@/components/layout';
 import {
   EmptyState,
@@ -8,8 +9,10 @@ import {
   PremiumCard,
   PremiumInput,
 } from '@/components/ui';
+import { auroraGlass, useAuroraAdaptiveText, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
 import { usePermissions } from '@/hooks/usePermissions';
-import { colors, spacing, typography } from '@/theme';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { colors, radius, spacing, typography } from '@/theme';
 
 type EntityListMeta = { primary: string; secondary: string; badge?: string };
 
@@ -38,6 +41,14 @@ type EntityListScreenProps<T> = {
   showCreate?: boolean;
 };
 
+const webGlassBlur =
+  Platform.OS === 'web'
+    ? ({
+        backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+        WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+      } as unknown as ViewStyle)
+    : null;
+
 export function EntityListScreen<T>({
   title,
   subtitle,
@@ -63,34 +74,43 @@ export function EntityListScreen<T>({
   showCreate = false,
 }: EntityListScreenProps<T>) {
   const { isReadOnly, roleLabel } = usePermissions();
+  const shellHostsAurora = useShellHostsAurora();
+  const text = useAuroraAdaptiveText();
+  const panelStyle = useAuroraGlassPanelStyle();
 
-  if (loading && isEmpty && !search) {
-    return (
-      <CareLightPageShell title={title} subtitle="Wird geladen…">
-        <LoadingState message={`${title} werden geladen…`} />
-      </CareLightPageShell>
-    );
-  }
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        listPanel: {
+          flex: 1,
+          minHeight: 0,
+        },
+        listPanelAurora: {
+          margin: -spacing.lg,
+          borderRadius: radius.lg,
+          overflow: 'hidden',
+          ...webGlassBlur,
+        },
+        header: { paddingHorizontal: spacing.md, paddingTop: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
+        eyebrow: { ...typography.caption, color: text.muted },
+        count: { ...typography.caption, color: text.muted },
+        list: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
+        card: { marginBottom: spacing.sm },
+        cardHeader: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: spacing.sm,
+        },
+        primary: { ...typography.label, flex: 1, color: text.primary },
+        badge: { ...typography.caption, color: colors.orange },
+        secondary: { ...typography.body, color: text.muted, marginTop: spacing.xs },
+      }),
+    [text.muted, text.primary],
+  );
 
-  if (error && isEmpty && !search) {
-    return (
-      <CareLightPageShell title={title} subtitle="Fehler">
-        <ErrorState message={error} onRetry={onRefresh} />
-      </CareLightPageShell>
-    );
-  }
-
-  return (
-    <CareLightPageShell
-      title={title}
-      subtitle={subtitle ?? roleLabel ?? 'Demo'}
-      rightSlot={
-        showCreate && !isReadOnly && onCreatePress ? (
-          <PremiumButton title={createLabel} size="sm" onPress={onCreatePress} />
-        ) : null
-      }
-      scroll={false}
-    >
+  const listContent = (
+    <>
       <ScrollView contentContainerStyle={styles.header}>
         {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
         <PremiumInput
@@ -128,18 +148,45 @@ export function EntityListScreen<T>({
           );
         }}
       />
+    </>
+  );
+
+  if (loading && isEmpty && !search) {
+    return (
+      <CareLightPageShell title={title} subtitle="Wird geladen…">
+        <LoadingState message={`${title} werden geladen…`} />
+      </CareLightPageShell>
+    );
+  }
+
+  if (error && isEmpty && !search) {
+    return (
+      <CareLightPageShell title={title} subtitle="Fehler">
+        <ErrorState message={error} onRetry={onRefresh} />
+      </CareLightPageShell>
+    );
+  }
+
+  return (
+    <CareLightPageShell
+      title={title}
+      subtitle={subtitle ?? roleLabel ?? 'Demo'}
+      rightSlot={
+        showCreate && !isReadOnly && onCreatePress ? (
+          <PremiumButton title={createLabel} size="sm" onPress={onCreatePress} />
+        ) : null
+      }
+      scroll={false}
+    >
+      <View
+        style={[
+          styles.listPanel,
+          shellHostsAurora ? panelStyle : null,
+          shellHostsAurora ? styles.listPanelAurora : null,
+        ]}
+      >
+        {listContent}
+      </View>
     </CareLightPageShell>
   );
 }
-
-const styles = StyleSheet.create({
-  header: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.sm },
-  eyebrow: { ...typography.caption, color: colors.textMuted },
-  count: { ...typography.caption, color: colors.textMuted },
-  list: { paddingHorizontal: spacing.md, paddingBottom: spacing.xxl, gap: spacing.sm },
-  card: { marginBottom: spacing.sm },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
-  primary: { ...typography.label, flex: 1 },
-  badge: { ...typography.caption, color: colors.orange },
-  secondary: { ...typography.body, color: colors.textMuted, marginTop: spacing.xs },
-});

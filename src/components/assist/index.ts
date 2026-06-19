@@ -9,6 +9,7 @@ export { AssignmentsListHero } from './AssignmentsListHero';
 export { AssignmentsListTable } from './AssignmentsListTable';
 export { AssignmentsListView } from './AssignmentsListView';
 export { AssignmentDetailSummaryPanel } from './AssignmentDetailSummaryPanel';
+export { AssignmentDetailGlassModal } from './AssignmentDetailGlassModal';
 export { ExecutionListCard } from './ExecutionListCard';
 export { ExecutionsListHero } from './ExecutionsListHero';
 export { ExecutionsListView } from './ExecutionsListView';
