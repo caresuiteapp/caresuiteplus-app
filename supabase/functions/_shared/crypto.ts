@@ -37,3 +37,12 @@ export function maskCodeHint(code: string): string {
   const normalized = normalizePortalCode(code);
   return normalized.length >= 2 ? `${normalized.slice(0, 2)}****` : '******';
 }
+
+/** Stable OpenAI safety id for tenant+user (max 64 chars per OpenAI API). */
+export async function openAiSafetyIdentifier(tenantId: string, userId: string): Promise<string> {
+  const digest = await crypto.subtle.digest(
+    'SHA-256',
+    textEncoder.encode(`${tenantId}:${userId}`),
+  );
+  return toHex(digest);
+}

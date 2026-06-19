@@ -56,6 +56,13 @@ export function toGermanAiError(raw: string): string {
   if (lower.includes('invalid schema') || lower.includes('invalid tools')) {
     return 'Tool-Konfiguration für Sprachassistent ungültig. Bitte Administrator informieren.';
   }
+  if (
+    lower.includes('openai-safety-identifier') ||
+    lower.includes('safety-identifier') ||
+    lower.includes('safety identifier')
+  ) {
+    return 'Sprachverbindung konnte nicht vorbereitet werden. Bitte versuche es erneut.';
+  }
   if (lower.includes('row-level security') || lower.includes('violates row-level security')) {
     return 'KI-Sitzung konnte nicht gespeichert werden (Berechtigung).';
   }

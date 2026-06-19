@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { verifyAiTenantAccess } from '../_shared/aiAuth.ts';
 import { aiErrorResponse, readOpenAiError } from '../_shared/aiErrors.ts';
+import { openAiSafetyIdentifier } from '../_shared/crypto.ts';
 import {
   AI_SYSTEM_INSTRUCTIONS,
   AI_TOOL_DEFINITIONS,
@@ -109,13 +110,15 @@ Aktueller Kontext:
       },
     });
 
+    const safetyIdentifier = await openAiSafetyIdentifier(tenantId, user.id);
+
     const requestClientSecret = (includeTools: boolean) =>
       fetch('https://api.openai.com/v1/realtime/client_secrets', {
         method: 'POST',
         headers: {
           Authorization: `Bearer ${openaiKey}`,
           'Content-Type': 'application/json',
-          'OpenAI-Safety-Identifier': `${tenantId}:${user.id}`,
+          'OpenAI-Safety-Identifier': safetyIdentifier,
         },
         body: JSON.stringify(buildSessionBody(includeTools)),
       });
