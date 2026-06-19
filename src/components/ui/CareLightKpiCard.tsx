@@ -4,6 +4,7 @@ import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { auroraGlass, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { designTokens } from '@/theme';
 
@@ -25,6 +26,8 @@ export function CareLightKpiCard({
   style,
 }: CareLightKpiCardProps) {
   const { isDark, c } = useCareLightPalette();
+  const auroraActive = useAuroraGlassActive();
+  const text = useAuroraAdaptiveText();
 
   const styles = useMemo(
     () =>
@@ -32,10 +35,18 @@ export function CareLightKpiCard({
         card: {
           flex: 1,
           minWidth: 140,
-          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : careLightColors.surface,
+          backgroundColor: auroraActive
+            ? auroraGlass.card
+            : isDark
+              ? 'rgba(255,255,255,0.04)'
+              : careLightColors.surface,
           borderRadius: careRadius.md,
           borderWidth: 1,
-          borderColor: isDark ? designTokens.glass.border : careLightColors.border,
+          borderColor: auroraActive
+            ? auroraGlass.border
+            : isDark
+              ? designTokens.glass.border
+              : careLightColors.border,
           padding: careSpacing.md,
           gap: careSpacing.xs,
         },
@@ -51,7 +62,7 @@ export function CareLightKpiCard({
         },
         label: {
           ...careTypography.caption,
-          color: isDark ? c.muted : careLightColors.muted,
+          color: auroraActive ? text.secondary : isDark ? c.muted : careLightColors.muted,
           fontWeight: '600',
         },
         value: {
@@ -61,10 +72,10 @@ export function CareLightKpiCard({
         },
         subValue: {
           ...careTypography.caption,
-          color: isDark ? c.muted : careLightColors.muted,
+          color: auroraActive ? text.muted : isDark ? c.muted : careLightColors.muted,
         },
       }),
-    [c.muted, isDark],
+    [auroraActive, c.muted, isDark, text.muted, text.secondary],
   );
 
   return (

@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { auroraGlass, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glassFx } from '@/design/tokens/motion';
 import { radius, spacing } from '@/theme';
@@ -15,6 +15,8 @@ type SectionPanelProps = {
 export function SectionPanel({ title, subtitle, children }: SectionPanelProps) {
   const { colors, typography, isDark } = useLegacyTheme();
   const text = useAuroraAdaptiveText();
+  const auroraActive = useAuroraGlassActive();
+  const glassSurface = isDark || auroraActive;
 
   const styles = useMemo(
     () =>
@@ -22,8 +24,16 @@ export function SectionPanel({ title, subtitle, children }: SectionPanelProps) {
         panel: {
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: isDark ? glassFx.border : colors.borderSoft,
-          backgroundColor: isDark ? 'transparent' : colors.bgSurface,
+          borderColor: auroraActive
+            ? auroraGlass.border
+            : isDark
+              ? glassFx.border
+              : colors.borderSoft,
+          backgroundColor: auroraActive
+            ? auroraGlass.panel
+            : isDark
+              ? 'transparent'
+              : colors.bgSurface,
           overflow: 'hidden',
           position: 'relative',
         },
@@ -38,21 +48,31 @@ export function SectionPanel({ title, subtitle, children }: SectionPanelProps) {
           paddingTop: spacing.md,
           paddingBottom: spacing.sm,
           borderBottomWidth: 1,
-          borderBottomColor: isDark ? glassFx.hairline : colors.borderSoft,
+          borderBottomColor: glassSurface ? glassFx.hairline : colors.borderSoft,
         },
         title: { ...typography.h3, color: text.primary },
         subtitle: { ...typography.caption, marginTop: 4, color: text.secondary },
         body: { padding: spacing.md, gap: spacing.sm },
       }),
-    [colors.bgSurface, colors.borderSoft, isDark, text.primary, text.secondary, typography.caption, typography.h3],
+    [
+      auroraActive,
+      colors.bgSurface,
+      colors.borderSoft,
+      glassSurface,
+      isDark,
+      text.primary,
+      text.secondary,
+      typography.caption,
+      typography.h3,
+    ],
   );
 
   return (
     <View style={styles.panel}>
-      {isDark ? (
+      {glassSurface ? (
         <>
           <LinearGradient
-            colors={glassFx.surface}
+            colors={auroraActive ? [auroraGlass.panel, 'rgba(16,24,39,0.58)'] : glassFx.surface}
             start={{ x: 0, y: 0 }}
             end={{ x: 0.5, y: 1 }}
             style={StyleSheet.absoluteFill}

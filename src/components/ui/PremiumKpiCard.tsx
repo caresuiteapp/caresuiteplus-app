@@ -2,7 +2,13 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  auroraGlass,
+  useAuroraAdaptiveText,
+  useAuroraGlassActive,
+  useAuroraGlassCardStyle,
+} from '@/design/tokens/auroraGlass';
+import { glassFx } from '@/design/tokens/motion';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { CareLightKpiCard } from './CareLightKpiCard';
@@ -33,22 +39,10 @@ export function PremiumKpiCard({
 }: Props) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
-
-  if (mode === 'light' && !shellHostsAurora) {
-    return (
-      <CareLightKpiCard
-        label={label}
-        value={String(value)}
-        subValue={subValue}
-        icon={icon}
-        accentColor={accentColor}
-        style={style}
-      />
-    );
-  }
-
+  const auroraActive = useAuroraGlassActive();
   const { colors, typography, gradients } = useLegacyTheme();
   const text = useAuroraAdaptiveText();
+  const glassCardStyle = useAuroraGlassCardStyle();
   const resolvedAccent = accentColor ?? colors.cyan;
 
   const styles = useMemo(
@@ -59,7 +53,8 @@ export function PremiumKpiCard({
           minWidth: '46%',
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: colors.borderSoft,
+          borderColor: auroraActive ? auroraGlass.border : colors.borderSoft,
+          backgroundColor: auroraActive ? auroraGlass.card : gradients.card.default[0],
           overflow: 'hidden',
           shadowOpacity: 0.3,
           shadowRadius: 14,
@@ -68,6 +63,12 @@ export function PremiumKpiCard({
         },
         gradient: {
           ...StyleSheet.absoluteFillObject,
+        },
+        innerBorder: {
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: glassFx.innerBorder,
         },
         rim: {
           height: 2,
@@ -95,13 +96,14 @@ export function PremiumKpiCard({
           ...typography.caption,
           textTransform: 'uppercase',
           letterSpacing: 0.4,
-          flexShrink: 1,
+          flexShrink: 0,
           color: text.secondary,
         },
         value: {
           fontSize: 24,
           fontWeight: '800',
           letterSpacing: -0.5,
+          flexShrink: 0,
         },
         subValue: {
           ...typography.caption,
@@ -113,15 +115,40 @@ export function PremiumKpiCard({
           marginTop: 2,
         },
       }),
-    [colors.borderSoft, text.muted, text.secondary, typography.caption],
+    [
+      auroraActive,
+      colors.borderSoft,
+      gradients.card.default,
+      text.muted,
+      text.secondary,
+      typography.caption,
+    ],
   );
+
+  if (mode === 'light' && !shellHostsAurora) {
+    return (
+      <CareLightKpiCard
+        label={label}
+        value={String(value)}
+        subValue={subValue}
+        icon={icon}
+        accentColor={accentColor}
+        style={style}
+      />
+    );
+  }
 
   const trendColor =
     trend === 'up' ? colors.success : trend === 'down' ? colors.danger : text.muted;
 
+  const surfaceGradient = auroraActive ? glassFx.surface : gradients.card.default;
+
   return (
-    <View style={[styles.wrapper, { shadowColor: resolvedAccent }, style]}>
-      <LinearGradient colors={[...gradients.card.default]} style={styles.gradient} />
+    <View
+      style={[styles.wrapper, auroraActive ? glassCardStyle : null, { shadowColor: resolvedAccent }, style]}
+    >
+      <LinearGradient colors={[...surfaceGradient]} style={styles.gradient} />
+      {auroraActive ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
         {icon ? (
@@ -132,7 +159,9 @@ export function PremiumKpiCard({
         <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
           {label}
         </Text>
-        <Text style={[styles.value, { color: resolvedAccent }]}>{value}</Text>
+        <Text style={[styles.value, { color: resolvedAccent }]} numberOfLines={1}>
+          {value}
+        </Text>
         {subValue ? <Text style={styles.subValue}>{subValue}</Text> : null}
         {trendValue ? (
           <Text style={[styles.trend, { color: trendColor }]}>
