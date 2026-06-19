@@ -30,6 +30,7 @@ export async function createAppointment(
       title: input.title,
       clientName: input.clientName,
       startsAt: input.startsAt,
+      location: input.location,
     });
   }
 

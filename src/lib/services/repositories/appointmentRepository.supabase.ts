@@ -50,7 +50,7 @@ export const appointmentSupabaseRepository = {
 
   async create(
     tenantId: string,
-    input: { title: string; clientName?: string; startsAt?: string },
+    input: { title: string; clientName?: string; startsAt?: string; location?: string },
   ): Promise<ServiceResult<{ id: string }>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
@@ -59,6 +59,7 @@ export const appointmentSupabaseRepository = {
         tenant_id: tenantId,
         title: input.title.trim(),
         client_name: input.clientName?.trim() ?? null,
+        location: input.location?.trim() ?? null,
         starts_at: input.startsAt ?? new Date().toISOString(),
         status: 'entwurf',
       } as Record<string, unknown>)

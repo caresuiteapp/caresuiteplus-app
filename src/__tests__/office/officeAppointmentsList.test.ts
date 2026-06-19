@@ -92,4 +92,33 @@ describe('Office Termine list', () => {
     const source = readSrc('src/lib/office/appointmentDetailService.ts');
     expect(source).toContain('guardServiceTenant');
   });
+
+  it('appointment services nutzen Supabase-Repository im Live-Modus', () => {
+    const list = readSrc('src/lib/office/appointmentListService.ts');
+    const create = readSrc('src/lib/office/appointmentCreateService.ts');
+    const repo = readSrc('src/lib/services/repositories/appointmentRepository.supabase.ts');
+    expect(list).toContain("getServiceMode() === 'supabase'");
+    expect(list).toContain('appointmentSupabaseRepository');
+    expect(create).toContain("getServiceMode() === 'supabase'");
+    expect(create).toContain('appointmentSupabaseRepository');
+    expect(repo).toContain("'appointments'");
+    expect(repo).toContain('tenant_id');
+  });
+
+  it('AppointmentCreateScreen nutzt Live-FormHero ohne Demo-Hinweis', () => {
+    const source = readSrc('src/screens/office/AppointmentCreateScreen.tsx');
+    expect(source).toContain('createAppointment');
+    expect(source).toContain('useServiceTenantId');
+    expect(source).toContain("getServiceMode() === 'supabase'");
+    expect(source).toContain('Live-Speicherung');
+  });
+
+  it('FormScreenHero blendet Demo-KPIs im Live-Modus aus', () => {
+    const source = readSrc('src/components/forms/FormScreenHero.tsx');
+    expect(source).toContain('useTenantDisplayName');
+    expect(source).toContain("getServiceMode() === 'supabase'");
+    expect(source).toContain('Live-Speicherung');
+    expect(source).toContain('Mandantengebunden');
+    expect(source).toContain('Demo-Persistenz');
+  });
 });

@@ -2,6 +2,8 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { designTokens, spacing } from '@/theme';
 
@@ -31,8 +33,11 @@ export function FormScreenHero({
   accentColor,
 }: FormScreenHeroProps) {
   const { colors, typography, gradients } = useLegacyTheme();
+  const isLive = getServiceMode() === 'supabase';
+  const tenantName = useTenantDisplayName();
   const accent = accentColor ?? colors.orange;
   const modeLabel = formMode === 'create' ? 'Anlegen' : 'Bearbeiten';
+  const showPrepared = !isLive && preparedOnly;
 
   const styles = useMemo(
     () =>
@@ -82,35 +87,64 @@ export function FormScreenHero({
           <PremiumBadge label={`Schritt ${step.current}/${step.total}`} variant="cyan" />
         ) : null}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {preparedOnly ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
+        {showPrepared ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
-      <View style={styles.kpiRow}>
-        <PremiumKpiCard
-          label="Modus"
-          value={modeLabel}
-          subValue="Demo-Persistenz"
-          icon="📋"
-          accentColor={accent}
-          style={styles.kpiItem}
-        />
-        <PremiumKpiCard
-          label="Mandant"
-          value="Demo"
-          subValue="Tenant-Store"
-          icon="🏢"
-          accentColor={colors.cyan}
-          style={styles.kpiItem}
-        />
-        <PremiumKpiCard
-          label="Status"
-          value="Prototyp"
-          subValue="Kein Store-Release"
-          icon="⚠️"
-          accentColor={colors.violet}
-          style={styles.kpiItem}
-        />
-      </View>
-      {preparedOnly && preparedMessage ? (
+      {isLive ? (
+        <View style={styles.kpiRow}>
+          <PremiumKpiCard
+            label="Modus"
+            value={modeLabel}
+            subValue="Live-Speicherung"
+            icon="📋"
+            accentColor={accent}
+            style={styles.kpiItem}
+          />
+          <PremiumKpiCard
+            label="Mandant"
+            value={tenantName}
+            subValue="Mandantengebunden"
+            icon="🏢"
+            accentColor={colors.cyan}
+            style={styles.kpiItem}
+          />
+          <PremiumKpiCard
+            label="Status"
+            value="Live"
+            subValue="Supabase"
+            icon="✓"
+            accentColor={colors.green}
+            style={styles.kpiItem}
+          />
+        </View>
+      ) : (
+        <View style={styles.kpiRow}>
+          <PremiumKpiCard
+            label="Modus"
+            value={modeLabel}
+            subValue="Demo-Persistenz"
+            icon="📋"
+            accentColor={accent}
+            style={styles.kpiItem}
+          />
+          <PremiumKpiCard
+            label="Mandant"
+            value="Demo"
+            subValue="Tenant-Store"
+            icon="🏢"
+            accentColor={colors.cyan}
+            style={styles.kpiItem}
+          />
+          <PremiumKpiCard
+            label="Status"
+            value="Prototyp"
+            subValue="Kein Store-Release"
+            icon="⚠️"
+            accentColor={colors.violet}
+            style={styles.kpiItem}
+          />
+        </View>
+      )}
+      {showPrepared && preparedMessage ? (
         <Text style={styles.hint}>{preparedMessage}</Text>
       ) : null}
     </PremiumListHeroFrame>

@@ -6,6 +6,7 @@ import { FormScreenHero, type FormScreenHeroProps } from '@/components/forms';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, EmptyState, LoadingState, PremiumButton, PremiumCard, PremiumInput, SuccessState } from '@/components/ui';
 import type { CatalogType, TemplateListFilters } from '@/types/templates';
+import { getServiceMode } from '@/lib/services/mode';
 import { spacing } from '@/theme';
 
 type FieldDef = {
@@ -94,6 +95,7 @@ export function EntityFormScreen({
   }
 
   const isEmpty = fields.every((field) => !values[field.key]?.trim());
+  const isLive = getServiceMode() === 'supabase';
 
   return (
     <ScreenShell title={title} subtitle={`Neu anlegen · WP ${wpNumber}`}>
@@ -104,12 +106,22 @@ export function EntityFormScreen({
         <FormScreenHero
           eyebrow={formHero?.eyebrow ?? 'MODUL · ANLEGEN'}
           title={title}
-          meta={formHero?.meta ?? `${entityLabel} — Demo-Persistenz im Mandanten-Store.`}
+          meta={
+            formHero?.meta ??
+            (isLive
+              ? `${entityLabel} — Live-Speicherung im Mandanten.`
+              : `${entityLabel} — Demo-Persistenz im Mandanten-Store.`)
+          }
           icon={formHero?.icon ?? '📝'}
           formMode="create"
           wpNumber={wpNumber}
           accentColor={formHero?.accentColor}
-          preparedMessage={formHero?.preparedMessage}
+          preparedOnly={!isLive}
+          preparedMessage={
+            isLive
+              ? undefined
+              : formHero?.preparedMessage
+          }
         />
       </View>
       <PremiumCard>

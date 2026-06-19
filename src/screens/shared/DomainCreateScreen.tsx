@@ -7,6 +7,7 @@ import { ScreenShell } from '@/components/layout';
 import { ErrorState, EmptyState, LoadingState, PremiumButton, PremiumCard, PremiumInput, SuccessState } from '@/components/ui';
 import type { CatalogType, TemplateListFilters } from '@/types/templates';
 import { createDemoEntity } from '@/lib/create/demoCreateService';
+import { getServiceMode } from '@/lib/services/mode';
 import { spacing } from '@/theme';
 
 type FieldDef = {
@@ -95,6 +96,7 @@ export function DomainCreateScreen({
   }
 
   const isEmpty = fields.every((field) => !values[field.key]?.trim());
+  const isLive = getServiceMode() === 'supabase';
 
   return (
     <ScreenShell title={title} subtitle={`Neu anlegen · WP ${wpNumber}`}>
@@ -105,14 +107,22 @@ export function DomainCreateScreen({
         <FormScreenHero
           eyebrow={formHero?.eyebrow ?? 'MODUL · ANLEGEN'}
           title={title}
-          meta={formHero?.meta ?? `${entityLabel} — Demo-Persistenz im Mandanten-Store.`}
+          meta={
+            formHero?.meta ??
+            (isLive
+              ? `${entityLabel} — Live-Speicherung im Mandanten.`
+              : `${entityLabel} — Demo-Persistenz im Mandanten-Store.`)
+          }
           icon={formHero?.icon ?? '📝'}
           formMode="create"
           wpNumber={wpNumber}
           accentColor={formHero?.accentColor}
+          preparedOnly={!isLive}
           preparedMessage={
-            formHero?.preparedMessage ??
-            `${entityLabel} wird im Demo-Mandanten angelegt — kein Store-Release.`
+            isLive
+              ? undefined
+              : (formHero?.preparedMessage ??
+                `${entityLabel} wird im Demo-Mandanten angelegt — kein Store-Release.`)
           }
         />
       </View>
