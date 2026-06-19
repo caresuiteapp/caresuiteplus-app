@@ -27,6 +27,12 @@ describe('adaptive shell wiring', () => {
     expect(src).toContain('ShellLayout');
   });
 
+  it('Assist-Layout nutzt CareAdaptiveShell via ShellLayout', () => {
+    const src = readFileSync(join(root, 'app/assist/_layout.tsx'), 'utf8');
+    expect(src).toContain('ShellLayout');
+    expect(src).toContain('area="assist"');
+  });
+
   it('QM-Layout nutzt CareAdaptiveShell via ShellLayout', () => {
     const src = readFileSync(join(root, 'app/business/office/qm/_layout.tsx'), 'utf8');
     expect(src).toContain('ShellLayout');

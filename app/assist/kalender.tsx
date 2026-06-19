@@ -1,3 +1,6 @@
-import { AssistCalendarScreen } from '@/screens/assist/AssistCalendarScreen';
+import { Redirect } from 'expo-router';
 
-export default AssistCalendarScreen;
+/** German alias → canonical calendar route */
+export default function AssistKalenderRedirect() {
+  return <Redirect href="/assist/calendar" />;
+}

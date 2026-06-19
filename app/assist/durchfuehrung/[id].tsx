@@ -1,3 +1,7 @@
-import { AssignmentExecutionScreen } from '@/screens/assist/AssignmentExecutionScreen';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 
-export default AssignmentExecutionScreen;
+/** Legacy alias → canonical execution route (keeps Assist shell). */
+export default function DurchfuehrungDetailRedirect() {
+  const { id } = useLocalSearchParams<{ id: string }>();
+  return <Redirect href={`/assist/assignments/${id}/execute`} />;
+}
