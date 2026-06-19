@@ -329,13 +329,15 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)',
     },
     searchKbdText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
-    tenantWrap: { position: 'relative', maxWidth: 520 },
+    tenantWrap: { position: 'relative', maxWidth: 520, alignItems: 'center' },
     tenantChip: {
       ...topbarControl,
       ...glass,
       gap: spacing.sm,
       borderRadius: radius.capsule,
       paddingHorizontal: spacing.md,
+      justifyContent: 'center',
+      alignItems: 'center',
     },
     iconSlot: {
       width: TOPBAR_ICON_SIZE,
@@ -345,8 +347,6 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     },
     tenantIcon: { fontSize: 22, lineHeight: TOPBAR_ICON_SIZE },
     tenantTextWrap: {
-      flex: 1,
-      minWidth: 0,
       alignItems: 'center',
       justifyContent: 'center',
       paddingVertical: 0,
@@ -380,7 +380,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     dropdown: {
       position: 'absolute',
       top: '100%',
-      right: 0,
+      alignSelf: 'center',
       marginTop: spacing.xs,
       minWidth: 240,
       borderRadius: radius.lg,
@@ -397,8 +397,16 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     dropdownItem: {
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
+      alignItems: 'center',
+      justifyContent: 'center',
     },
-    dropdownText: { ...typography.body, color: colors.textPrimary, fontWeight: '600' },
+    dropdownText: {
+      ...typography.body,
+      color: colors.textPrimary,
+      fontWeight: '600',
+      textAlign: 'center',
+      width: '100%',
+    },
     dropdownMeta: {
       ...typography.caption,
       color: colors.textMuted,
