@@ -48,7 +48,11 @@ export function MobileShell({
           <Text style={styles.switcherFabText}>🧩 Module</Text>
         </Pressable>
       ) : null}
-      <AppTabBar tabs={effectiveTabs} accentColor={accentColor} />
+      <AppTabBar
+        tabs={effectiveTabs}
+        accentColor={accentColor}
+        portalOverflowNav={area === 'portal_client'}
+      />
       {showModuleSwitcher ? (
         <ModuleSwitcher visible={switcherOpen} onClose={closeSwitcher} />
       ) : null}

@@ -21,7 +21,8 @@ import {
   fetchAssistDashboardData,
   resolvePortalRequestTypeLabel,
 } from '@/lib/portal/assist';
-import { resolvePortalTerminology } from '@/lib/portal/engine';
+import { resolvePortalHeroCopy, resolvePortalTerminology } from '@/lib/portal/engine';
+import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import { isFeatureVisible } from '@/lib/portal/engine/portalVisibility';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequest, PortalRequestType } from '@/types/portal/assist';
@@ -35,7 +36,7 @@ type AssistPortalOverviewProps = {
 
 export function AssistPortalOverview({ context, showSuccess, onRefresh }: AssistPortalOverviewProps) {
   const text = useAuroraAdaptiveText();
-  const { width } = useDeviceClass();
+  const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const insets = useSafeAreaInsets();
   const { showBottomTabs } = usePlatformLayout();
@@ -44,7 +45,7 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
     () => ({
       paddingHorizontal: careSpacing.md,
       paddingBottom: showBottomTabs
-        ? 64 + Math.max(insets.bottom, careSpacing.sm)
+        ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
         : careSpacing.xl + insets.bottom,
     }),
     [insets.bottom, showBottomTabs],
@@ -61,6 +62,12 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
   const [localSuccess, setLocalSuccess] = useState(false);
 
   const terminology = resolvePortalTerminology('assist');
+  const heroCopy = resolvePortalHeroCopy({
+    displayName: context.displayName,
+    tenantName: context.tenantName,
+    terminology,
+    isPhone,
+  });
   const tripsReleased = isFeatureVisible('assist', 'trips', context.portalRole);
   const budgetReleased = isFeatureVisible('assist', 'budget', context.portalRole);
 
@@ -143,11 +150,11 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
         ) : null}
 
         <PortalGlassHero
-          eyebrow="ASSIST-PORTAL"
-          title={`${terminology.greetingLabel}, ${context.displayName}`}
-          subtitle={context.tenantName}
-          meta={`${terminology.moduleLabel} · Rolle: Klient:in · Freigabe aktiv`}
-          badge="Assist"
+          eyebrow={heroCopy.eyebrow}
+          title={heroCopy.title}
+          subtitle={heroCopy.subtitle}
+          meta={heroCopy.meta}
+          badge={heroCopy.badge}
         />
 
         <PortalNextAppointmentHero

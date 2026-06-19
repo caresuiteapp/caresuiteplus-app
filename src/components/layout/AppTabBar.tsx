@@ -1,6 +1,9 @@
-import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PortalMobileNav } from '@/components/layout/PortalMobileNav';
+import { auroraGlass, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { careSpacing } from '@/design/tokens/spacing';
 import type { ShellTabConfig } from '@/types/navigation/shell';
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -9,18 +12,37 @@ import { colors, radius, spacing, typography } from '@/theme';
 type AppTabBarProps = {
   tabs: ShellTabConfig[];
   accentColor?: string;
+  /** Portal client — primary tabs + „Mehr“ overflow instead of horizontal scroll. */
+  portalOverflowNav?: boolean;
 };
 
 const SCROLLABLE_TAB_THRESHOLD = 4;
 
-export function AppTabBar({ tabs, accentColor = colors.primary }: AppTabBarProps) {
+const webGlassBlur =
+  Platform.OS === 'web'
+    ? ({
+        backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+        WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+      } as unknown as ViewStyle)
+    : null;
+
+export function AppTabBar({
+  tabs,
+  accentColor = colors.primary,
+  portalOverflowNav = false,
+}: AppTabBarProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
+  const auroraActive = useAuroraGlassActive();
   const activeKey = resolveActiveTabKey(pathname, tabs);
-  const scrollable = isPhone && tabs.length > SCROLLABLE_TAB_THRESHOLD;
+  const scrollable = isPhone && !portalOverflowNav && tabs.length > SCROLLABLE_TAB_THRESHOLD;
   const bottomInset = Math.max(insets.bottom, spacing.sm);
+
+  if (isPhone && portalOverflowNav) {
+    return <PortalMobileNav tabs={tabs} accentColor={accentColor} />;
+  }
 
   const renderTab = (tab: ShellTabConfig) => {
     const active = tab.key === activeKey;
@@ -47,7 +69,14 @@ export function AppTabBar({ tabs, accentColor = colors.primary }: AppTabBarProps
   };
 
   return (
-    <View style={[styles.container, { paddingBottom: bottomInset }]}>
+    <View
+      style={[
+        styles.container,
+        auroraActive && styles.containerGlass,
+        auroraActive && webGlassBlur,
+        { paddingBottom: bottomInset },
+      ]}
+    >
       {scrollable ? (
         <ScrollView
           horizontal
@@ -70,6 +99,10 @@ const styles = StyleSheet.create({
     borderTopWidth: 1,
     borderTopColor: colors.borderSoft,
     paddingTop: spacing.xs,
+  },
+  containerGlass: {
+    backgroundColor: auroraGlass.panel,
+    borderTopColor: auroraGlass.border,
   },
   scrollContent: {
     flexDirection: 'row',

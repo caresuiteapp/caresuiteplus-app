@@ -29,28 +29,38 @@ export function PortalGlassHero({
   const text = useAuroraAdaptiveText();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+  const titleStyle = isPhone
+    ? [type.body, { color: text.primary, fontWeight: '700', fontSize: 16, lineHeight: 22 }]
+    : [type.cardTitle, { color: text.primary }];
 
   return (
     <GlassCard style={[isPhone && styles.compactCard, style]}>
-      {eyebrow ? (
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]} {...noBreakTextProps}>
-          {eyebrow}
-        </Text>
+      {eyebrow || badge ? (
+        <View style={styles.eyebrowRow}>
+          {eyebrow ? (
+            <Text
+              style={[type.caption, styles.eyebrow, { color: text.muted, flex: 1 }]}
+              {...noBreakTextProps}
+            >
+              {eyebrow}
+            </Text>
+          ) : (
+            <View style={styles.eyebrowSpacer} />
+          )}
+          {badge ? (
+            <View style={styles.badge}>
+              <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
+            </View>
+          ) : null}
+        </View>
       ) : null}
-      <View style={[styles.titleRow, isPhone && styles.titleRowPhone]}>
-        <Text
-          style={[type.cardTitle, { color: text.primary, flex: 1, flexShrink: 1 }]}
-          {...noBreakTextProps}
-          numberOfLines={isPhone ? 3 : 2}
-        >
-          {title}
-        </Text>
-        {badge ? (
-          <View style={[styles.badge, isPhone && styles.badgePhone]}>
-            <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
-          </View>
-        ) : null}
-      </View>
+      <Text
+        style={[titleStyle, { flexShrink: 1 }]}
+        {...noBreakTextProps}
+        numberOfLines={isPhone ? 2 : 2}
+      >
+        {title}
+      </Text>
       {subtitle ? (
         <Text
           style={[type.body, { color: text.secondary, fontWeight: '600' }]}
@@ -73,30 +83,28 @@ export function PortalGlassHero({
 const styles = StyleSheet.create({
   compactCard: {
     paddingVertical: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
+    gap: careSpacing.xs,
+  },
+  eyebrowRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+  },
+  eyebrowSpacer: {
+    flex: 1,
   },
   eyebrow: {
     textTransform: 'uppercase',
     letterSpacing: 0.6,
   },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: careSpacing.sm,
-  },
-  titleRowPhone: {
-    alignItems: 'flex-start',
-    flexWrap: 'wrap',
-  },
   badge: {
     paddingHorizontal: careSpacing.sm,
-    paddingVertical: 4,
+    paddingVertical: 3,
     borderRadius: 999,
     borderWidth: 1,
     borderColor: 'rgba(255,149,0,0.35)',
     backgroundColor: 'rgba(255,149,0,0.12)',
     flexShrink: 0,
-  },
-  badgePhone: {
-    marginTop: careSpacing.xs,
   },
 });
