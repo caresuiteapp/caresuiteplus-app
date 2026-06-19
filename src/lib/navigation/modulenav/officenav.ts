@@ -13,7 +13,7 @@ export const officeNav: ModuleNavConfig = {
       items: [
         { key: 'clients', label: 'Klient:innen', icon: '👥', href: '/office/clients' },
         { key: 'employees', label: 'Mitarbeitende', icon: '👤', href: '/office/employees' },
-        { key: 'appointments', label: 'Termine', icon: '📅', href: '/office/appointments' },
+        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/office/calendar' },
       ],
     },
     {

@@ -18,6 +18,12 @@ describe('Office calendar routing', () => {
     expect(data).not.toContain("label: 'Kalender', icon: '📅', href: '/office/appointments'");
   });
 
+  it('module nav sidebar Klient:innen group links Kalender to /office/calendar', () => {
+    const nav = readSrc('src/lib/navigation/modulenav/officenav.ts');
+    expect(nav).toContain("label: 'Kalender', icon: '📅', href: '/office/calendar'");
+    expect(nav).not.toContain("label: 'Termine', icon: '📅', href: '/office/appointments'");
+  });
+
   it('office nav has separate Termine and Kalender areas', () => {
     const appointments = OFFICE_NAV_AREAS.find((a) => a.key === 'appointments');
     const calendar = OFFICE_NAV_AREAS.find((a) => a.key === 'calendar');
