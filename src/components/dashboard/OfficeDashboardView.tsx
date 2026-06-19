@@ -222,9 +222,10 @@ function createOfficeDashboardStyles(
     areaList: {
       borderRadius: 12,
       borderWidth: 1,
-      borderColor: isDark ? designTokens.glass.border : colors.borderSoft,
+      borderColor: shellHostsAurora || isDark ? designTokens.glass.border : colors.borderSoft,
       overflow: 'hidden',
-      backgroundColor: isDark ? designTokens.glass.background : colors.bgSurface,
+      backgroundColor:
+        shellHostsAurora || isDark ? designTokens.glass.background : colors.bgSurface,
     },
     areaIcon: {
       width: 40,

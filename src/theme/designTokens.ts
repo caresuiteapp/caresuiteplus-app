@@ -4,19 +4,21 @@
  */
 import { elevation as elevationV1 } from './elevation';
 
+import { glass as auroraGlass } from '@/design/tokens/glass';
+
 export const glass = {
   blur: {
-    light: 8,
-    medium: 16,
-    heavy: 24,
+    light: auroraGlass.blur.light,
+    medium: auroraGlass.blur.medium,
+    heavy: auroraGlass.blur.heavy,
   },
   opacity: {
     panel: 0.72,
     overlay: 0.55,
     rim: 0.14,
   },
-  border: 'rgba(255,255,255,0.10)',
-  background: 'rgba(23,27,34,0.65)',
+  border: auroraGlass.border,
+  background: auroraGlass.panel,
 } as const;
 
 export const sheen = {

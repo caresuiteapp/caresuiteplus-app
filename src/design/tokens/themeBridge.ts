@@ -117,19 +117,21 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
  * React hook — bridges ThemeModeProvider to legacy @/theme keys for Premium components.
  */
 export function useLegacyTheme() {
-  const { mode } = useThemeMode();
+  const { mode, desktopThemeMode } = useThemeMode();
+  const effectiveMode: ColorMode =
+    desktopThemeMode === 'aurora-glass' ? 'dark' : mode;
 
   return useMemo(
     () => ({
-      mode,
-      colors: legacyColorsFromPalette(mode),
-      typography: resolveCareTypography(mode),
-      gradients: resolveLegacyGradients(mode),
-      palette: careSuiteColors[mode],
-      isLight: mode === 'light',
-      isDark: mode === 'dark',
+      mode: effectiveMode,
+      colors: legacyColorsFromPalette(effectiveMode),
+      typography: resolveCareTypography(effectiveMode),
+      gradients: resolveLegacyGradients(effectiveMode),
+      palette: careSuiteColors[effectiveMode],
+      isLight: effectiveMode === 'light',
+      isDark: effectiveMode === 'dark',
     }),
-    [mode],
+    [effectiveMode],
   );
 }
 

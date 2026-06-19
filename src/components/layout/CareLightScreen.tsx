@@ -2,8 +2,8 @@ import { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CareSuiteLightBackground } from '@/components/brand/CareSuiteLightBackground';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 
 type CareLightScreenProps = {
   children: ReactNode;
@@ -11,8 +11,9 @@ type CareLightScreenProps = {
   padded?: boolean;
 };
 
-/** Light premium screen wrapper — replaces dark ScreenShell on main dashboards. */
+/** Light premium screen wrapper — transparent passthrough when PlatformShell hosts Aurora. */
 export function CareLightScreen({ children, scroll = true, padded = true }: CareLightScreenProps) {
+  const shellHostsAurora = useShellHostsAurora();
   const contentStyle = padded ? styles.padded : styles.unpadded;
 
   const content = scroll ? (
@@ -22,6 +23,16 @@ export function CareLightScreen({ children, scroll = true, padded = true }: Care
   ) : (
     <View style={[styles.flex, contentStyle]}>{children}</View>
   );
+
+  if (shellHostsAurora) {
+    return (
+      <View style={styles.auroraRoot}>
+        <SafeAreaView style={styles.safe} edges={['top']}>
+          {content}
+        </SafeAreaView>
+      </View>
+    );
+  }
 
   return (
     <CareSuiteLightBackground>
@@ -33,8 +44,13 @@ export function CareLightScreen({ children, scroll = true, padded = true }: Care
 }
 
 const styles = StyleSheet.create({
+  auroraRoot: {
+    flex: 1,
+    backgroundColor: 'transparent',
+  },
   safe: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   flex: {
     flex: 1,

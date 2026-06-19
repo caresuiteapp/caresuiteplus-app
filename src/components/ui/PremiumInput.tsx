@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useGlassInputStyle } from '@/design/tokens/carelightadaptive';
 import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
@@ -17,6 +18,7 @@ export function PremiumInput({
   ...props
 }: PremiumInputProps) {
   const { colors } = useLegacyTheme();
+  const glassInput = useGlassInputStyle();
 
   const styles = useMemo(
     () =>
@@ -59,7 +61,7 @@ export function PremiumInput({
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
         placeholderTextColor={colors.textMuted}
-        style={[styles.input, error ? styles.inputError : null, style]}
+        style={[styles.input, glassInput, error ? styles.inputError : null, style]}
         {...props}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}

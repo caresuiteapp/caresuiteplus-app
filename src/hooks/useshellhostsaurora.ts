@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
-import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { usePlatformLayout } from '@/hooks/usePlatformLayout';
+import { Platform, useWindowDimensions } from 'react-native';
+import { DESKTOP_AURORA_MIN_WIDTH, useThemeMode } from '@/design/ThemeModeProvider';
 
 /**
  * True when the desktop/web PlatformShell already paints GlobalAnimatedBackground
@@ -8,11 +8,18 @@ import { usePlatformLayout } from '@/hooks/usePlatformLayout';
  * glass surfaces and typography remain readable (RN Web defaults Views to white).
  */
 export function useShellHostsAurora(embedded?: boolean): boolean {
-  const { isDark } = useCareLightPalette();
-  const { adaptiveShell } = usePlatformLayout();
+  const { desktopThemeMode, mode } = useThemeMode();
+  const { width } = useWindowDimensions();
 
-  return useMemo(
-    () => embedded ?? (isDark && (adaptiveShell === 'desktop' || adaptiveShell === 'web')),
-    [adaptiveShell, embedded, isDark],
-  );
+  return useMemo(() => {
+    if (embedded !== undefined) return embedded;
+    if (desktopThemeMode === 'aurora-glass') return true;
+    if (Platform.OS === 'web' && width >= DESKTOP_AURORA_MIN_WIDTH && mode === 'dark') return true;
+    return false;
+  }, [desktopThemeMode, embedded, mode, width]);
+}
+
+/** Shorthand — desktop web is always aurora-glass, never light premium wrappers. */
+export function useAuroraGlassActive(): boolean {
+  return useShellHostsAurora();
 }

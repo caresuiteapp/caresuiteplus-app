@@ -15,6 +15,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { CareLightButton } from './CareLightButton';
 import { buttonHeights, colors, elevation, motion, radius, typography } from '@/theme';
@@ -44,8 +45,9 @@ export function PremiumButton({
   fullWidth = false,
 }: Props) {
   const { mode } = useThemeMode();
+  const shellHostsAurora = useShellHostsAurora();
 
-  if (mode === 'light') {
+  if (mode === 'light' && !shellHostsAurora) {
     const lightStyle = fullWidth
       ? StyleSheet.flatten([styles.fullWidth, style])
       : StyleSheet.flatten(style);

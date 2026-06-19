@@ -1,4 +1,5 @@
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -14,8 +15,9 @@ type PremiumListHeroFrameProps = {
 /** Shared hero shell — light CareLight in demo default, dark Premium in explicit dark mode. */
 export function PremiumListHeroFrame({ children, style, accentColor }: PremiumListHeroFrameProps) {
   const { mode } = useThemeMode();
+  const shellHostsAurora = useShellHostsAurora();
 
-  if (mode === 'light') {
+  if (mode === 'light' && !shellHostsAurora) {
     return (
       <CareLightListHeroFrame style={style} accentColor={accentColor}>
         {children}

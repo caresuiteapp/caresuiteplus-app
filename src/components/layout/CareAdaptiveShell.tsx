@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { CareDesktopShell } from './CareDesktopShell';
 import { CareLightDesktopShell } from './CareLightDesktopShell';
 import { CareLightMobileShell } from './CareLightMobileShell';
@@ -30,7 +31,8 @@ export function CareAdaptiveShell({
 }: CareAdaptiveShellProps) {
   const { adaptiveShell } = usePlatformLayout();
   const { mode } = useThemeMode();
-  const useLightShell = mode === 'light';
+  const shellHostsAurora = useShellHostsAurora();
+  const useLightShell = mode === 'light' && !shellHostsAurora;
 
   if (bare) {
     return <>{children}</>;

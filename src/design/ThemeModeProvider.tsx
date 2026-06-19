@@ -10,26 +10,36 @@ import {
 } from 'react';
 import { Dimensions, Platform } from 'react-native';
 import type { ColorMode } from '@/design/tokens/colors';
-import { isDemoMode } from '@/lib/supabase/config';
 
 const STORAGE_KEY = '@caresuite/theme-mode';
 
+/** PlatformShell desktop column starts at 960px — aurora-glass applies from here up. */
+export const DESKTOP_AURORA_MIN_WIDTH = 960;
+
+export type DesktopThemeMode = 'aurora-glass' | 'light';
+
 /**
- * Redesign 2026 default: Web/Desktop = dark space dashboard, Mobile = light premium.
- * A stored user preference (non-demo) overrides this.
+ * Redesign 2026 default: Web/Desktop = dark aurora-glass, Mobile = light premium.
+ * A stored user preference (non-demo) overrides this on mobile only.
  */
-function isWebWide(): boolean {
-  return Platform.OS === 'web' && Dimensions.get('window').width >= 1024;
+function isDesktopWeb(): boolean {
+  return Platform.OS === 'web' && Dimensions.get('window').width >= DESKTOP_AURORA_MIN_WIDTH;
+}
+
+function resolveDesktopThemeMode(): DesktopThemeMode {
+  return isDesktopWeb() ? 'aurora-glass' : 'light';
 }
 
 function resolveInitialMode(): ColorMode {
-  return isWebWide() ? 'dark' : 'light';
+  return isDesktopWeb() ? 'dark' : 'light';
 }
 
 type ThemeModeContextValue = {
   mode: ColorMode;
   setMode: (mode: ColorMode) => void;
   toggleMode: () => void;
+  /** Desktop web ≥960px — forces aurora-glass surfaces, never light wrappers. */
+  desktopThemeMode: DesktopThemeMode;
   /** True when light mode is active but static @/theme imports still resolve to dark. */
   isPartialLightMode: boolean;
 };
@@ -38,22 +48,40 @@ const ThemeModeContext = createContext<ThemeModeContextValue | null>(null);
 
 export function ThemeModeProvider({ children }: { children: ReactNode }) {
   const [mode, setModeState] = useState<ColorMode>(resolveInitialMode);
+  const [desktopThemeMode, setDesktopThemeMode] = useState<DesktopThemeMode>(resolveDesktopThemeMode);
 
   useEffect(() => {
-    // Web/Desktop is a dark space dashboard by design — force dark there so a
-    // previously stored "light" preference can't fall back to the old shell.
-    if (isWebWide()) {
-      setModeState('dark');
-      void AsyncStorage.setItem(STORAGE_KEY, 'dark');
+    const syncDesktop = () => {
+      const aurora = isDesktopWeb();
+      setDesktopThemeMode(aurora ? 'aurora-glass' : 'light');
+      if (aurora) {
+        setModeState('dark');
+        void AsyncStorage.setItem(STORAGE_KEY, 'dark');
+      }
+    };
+
+    syncDesktop();
+
+    if (Platform.OS !== 'web') {
+      void AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
+        if (stored === 'light' || stored === 'dark') {
+          setModeState(stored);
+        } else {
+          setModeState(resolveInitialMode());
+        }
+      });
       return;
     }
-    void AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
-      if (stored === 'light' || stored === 'dark') {
-        setModeState(stored);
-      } else {
-        setModeState(resolveInitialMode());
-      }
-    });
+
+    const sub = Dimensions.addEventListener('change', syncDesktop);
+    if (!isDesktopWeb()) {
+      void AsyncStorage.getItem(STORAGE_KEY).then((stored) => {
+        if (stored === 'light' || stored === 'dark') {
+          setModeState(stored);
+        }
+      });
+    }
+    return () => sub?.remove();
   }, []);
 
   const setMode = useCallback((next: ColorMode) => {
@@ -70,9 +98,10 @@ export function ThemeModeProvider({ children }: { children: ReactNode }) {
       mode,
       setMode,
       toggleMode,
+      desktopThemeMode,
       isPartialLightMode: false,
     }),
-    [mode, setMode, toggleMode],
+    [desktopThemeMode, mode, setMode, toggleMode],
   );
 
   return <ThemeModeContext.Provider value={value}>{children}</ThemeModeContext.Provider>;

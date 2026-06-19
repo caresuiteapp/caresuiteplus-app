@@ -3,10 +3,11 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { usePathname } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { CareSuiteLightBackground } from '@/components/brand/CareSuiteLightBackground';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { getBreadcrumbs } from '@/lib/navigation';
 import type { DomainA11yMeta } from '@/lib/a11y/domainScreenMeta';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { ScreenHeader } from './ScreenHeader';
 import { CareLightScreenHeader } from './CareLightScreenHeader';
 
 type CareLightPageShellProps = {
@@ -21,7 +22,7 @@ type CareLightPageShellProps = {
   a11yMeta?: DomainA11yMeta;
 };
 
-/** Light premium page shell — replaces dark ScreenShell on list/detail/create routes. */
+/** Light premium page shell — transparent passthrough when PlatformShell hosts Aurora. */
 export function CareLightPageShell({
   title,
   subtitle,
@@ -33,6 +34,7 @@ export function CareLightPageShell({
   showBreadcrumbs = true,
   a11yMeta,
 }: CareLightPageShellProps) {
+  const shellHostsAurora = useShellHostsAurora();
   const pathname = usePathname();
   const breadcrumbTrail =
     showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
@@ -42,6 +44,7 @@ export function CareLightPageShell({
       StyleSheet.create({
         safe: {
           flex: 1,
+          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
         scroll: {
           padding: careSpacing.md,
@@ -57,7 +60,7 @@ export function CareLightPageShell({
           flex: 1,
         },
       }),
-    [],
+    [shellHostsAurora],
   );
 
   const content = scroll ? (
@@ -71,30 +74,47 @@ export function CareLightPageShell({
     <View style={styles.content}>{children}</View>
   );
 
-  return (
-    <CareSuiteLightBackground>
-      <SafeAreaView
-        style={styles.safe}
-        edges={['top', 'bottom']}
-        accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
-      >
-        <CareLightScreenHeader
-          title={title}
-          subtitle={subtitle}
-          breadcrumbTrail={breadcrumbTrail}
-          showBack={showBack}
-          onBack={onBack}
-          rightSlot={rightSlot}
-        />
-        <View
-          style={styles.a11yRoot}
-          accessible={!!a11yMeta}
-          accessibilityRole={a11yMeta?.headingRole}
-          accessibilityHint={a11yMeta?.reduceMotionHint}
-        >
-          {content}
-        </View>
-      </SafeAreaView>
-    </CareSuiteLightBackground>
+  const header = shellHostsAurora ? (
+    <ScreenHeader
+      title={title}
+      subtitle={subtitle}
+      breadcrumbTrail={breadcrumbTrail}
+      showBack={showBack}
+      onBack={onBack}
+      rightSlot={rightSlot}
+    />
+  ) : (
+    <CareLightScreenHeader
+      title={title}
+      subtitle={subtitle}
+      breadcrumbTrail={breadcrumbTrail}
+      showBack={showBack}
+      onBack={onBack}
+      rightSlot={rightSlot}
+    />
   );
+
+  const inner = (
+    <SafeAreaView
+      style={styles.safe}
+      edges={['top', 'bottom']}
+      accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
+    >
+      {header}
+      <View
+        style={styles.a11yRoot}
+        accessible={!!a11yMeta}
+        accessibilityRole={a11yMeta?.headingRole}
+        accessibilityHint={a11yMeta?.reduceMotionHint}
+      >
+        {content}
+      </View>
+    </SafeAreaView>
+  );
+
+  if (shellHostsAurora) {
+    return inner;
+  }
+
+  return <CareSuiteLightBackground>{inner}</CareSuiteLightBackground>;
 }

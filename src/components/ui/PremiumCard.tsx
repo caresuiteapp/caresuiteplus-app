@@ -17,6 +17,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { fxMotion, glassFx, withAlpha } from '@/design/tokens/motion';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { CareLightCard } from './CareLightCard';
 import { elevation, motion, radius, sheen as sheenTokens } from '@/theme';
 
@@ -43,8 +44,9 @@ export function PremiumCard({
   sheen = false,
 }: Props) {
   const { mode } = useThemeMode();
+  const shellHostsAurora = useShellHostsAurora();
 
-  if (mode === 'light') {
+  if (mode === 'light' && !shellHostsAurora) {
     return (
       <CareLightCard accentColor={accentColor} onPress={onPress} style={style as ViewStyle}>
         {children}

@@ -41,7 +41,7 @@ export function ModuleDashboardShell({
     </>
   );
 
-  if (mode === 'dark') {
+  if (mode === 'dark' || shellHostsAurora) {
     return (
       <View style={pageStyle}>
         {header}

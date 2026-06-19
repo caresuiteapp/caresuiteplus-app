@@ -2,10 +2,13 @@ import { useMemo } from 'react';
 import type { TextStyle, ViewStyle } from 'react-native';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { careSuiteColors } from '@/design/tokens/colors';
+import { glass as glassTokens } from '@/design/tokens/glass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { designTokens } from '@/theme';
+import { careRadius } from '@/design/tokens/radius';
 
 export type CareLightResolved = {
   isDark: boolean;
@@ -67,8 +70,8 @@ export function resolveCareLightPalette(isDark: boolean): CareLightResolved {
 }
 
 export function useCareLightPalette(): { isDark: boolean; c: CareLightResolved } {
-  const { mode } = useThemeMode();
-  const isDark = mode === 'dark';
+  const { mode, desktopThemeMode } = useThemeMode();
+  const isDark = mode === 'dark' || desktopThemeMode === 'aurora-glass';
   return useMemo(() => ({ isDark, c: resolveCareLightPalette(isDark) }), [isDark]);
 }
 
@@ -82,21 +85,80 @@ export function useCareAdaptiveTokens() {
   return useMemo(() => ({ isDark, c, colors, typography }), [c, colors, isDark, typography]);
 }
 
+function useGlassActive(): boolean {
+  const shellHostsAurora = useShellHostsAurora();
+  const { isDark } = useCareLightPalette();
+  return shellHostsAurora || isDark;
+}
+
 /** Glass panel surface for dark PlatformShell / Aurora routes. */
 export function useGlassPanelStyle(): ViewStyle {
-  const { isDark } = useCareLightPalette();
+  const glassActive = useGlassActive();
   return useMemo(
     () =>
-      isDark
+      glassActive
         ? {
-            backgroundColor: designTokens.glass.background,
-            borderColor: designTokens.glass.border,
+            backgroundColor: glassTokens.panel,
+            borderColor: glassTokens.border,
             borderWidth: 1,
           }
         : {},
-    [isDark],
+    [glassActive],
   );
 }
+
+/** Card-level glass surface (slightly more opaque than panel). */
+export function useGlassCardStyle(): ViewStyle {
+  const glassActive = useGlassActive();
+  return useMemo(
+    () =>
+      glassActive
+        ? {
+            backgroundColor: glassTokens.card,
+            borderColor: glassTokens.border,
+            borderWidth: 1,
+            borderRadius: careRadius.lg,
+          }
+        : {},
+    [glassActive],
+  );
+}
+
+/** Modal sheet glass body. */
+export function useGlassModalStyle(): ViewStyle {
+  const glassActive = useGlassActive();
+  return useMemo(
+    () =>
+      glassActive
+        ? {
+            backgroundColor: glassTokens.modal,
+            borderColor: glassTokens.borderStrong,
+            borderWidth: 1,
+            borderRadius: careRadius.lg,
+          }
+        : {},
+    [glassActive],
+  );
+}
+
+/** Form input glass fill on aurora desktop. */
+export function useGlassInputStyle(): ViewStyle {
+  const glassActive = useGlassActive();
+  return useMemo(
+    () =>
+      glassActive
+        ? {
+            backgroundColor: glassTokens.input,
+            borderColor: glassTokens.border,
+            borderWidth: 1,
+            borderRadius: careRadius.lg,
+          }
+        : {},
+    [glassActive],
+  );
+}
+
+export { glassTokens as glass };
 
 /** List-hero typography that stays readable on glass panels in dark mode. */
 export function useListHeroTextStyles() {

@@ -9,6 +9,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { CareLightKpiCard } from './CareLightKpiCard';
 import { radius } from '@/theme';
@@ -37,8 +38,9 @@ export function PremiumKpiCard({
   pulse = false,
 }: Props) {
   const { mode } = useThemeMode();
+  const shellHostsAurora = useShellHostsAurora();
 
-  if (mode === 'light') {
+  if (mode === 'light' && !shellHostsAurora) {
     return (
       <CareLightKpiCard
         label={label}
