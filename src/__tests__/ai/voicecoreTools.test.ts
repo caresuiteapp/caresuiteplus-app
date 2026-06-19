@@ -108,11 +108,21 @@ describe('VoiceCore AI foundation', () => {
     expect(core).toContain('useVoiceOrbPlacement()');
   });
 
-  it('AiMiniPanel exposes text input fallback', () => {
+  it('AiMiniPanel exposes text input fallback without debug context grid', () => {
     const source = readSource('src/ai/AiMiniPanel.tsx');
     expect(source).toContain('sendAiTextMessage');
     expect(source).toContain('Fortsetzen');
     expect(source).toContain('Entwurf prüfen');
+    expect(source).not.toContain('contextGrid');
+    expect(source).not.toContain("label: 'Seite'");
+    expect(source).toContain('errorMessage');
+  });
+
+  it('GlobalAiProvider only tears down voice on unmount', () => {
+    const source = readSource('src/ai/GlobalAiProvider.tsx');
+    expect(source).toContain('teardownVoiceConnection');
+    expect(source).not.toMatch(/useEffect\(\(\) => cleanupVoice/);
+    expect(source).toContain('formatVoiceError');
   });
 });
 

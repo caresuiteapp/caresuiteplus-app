@@ -92,15 +92,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     });
   }, [tenantId, currentModule, currentRoute, setCurrentContext]);
 
-  const cleanupVoice = useCallback(() => {
-    setIsListening(false);
-    setIsConnected(false);
-    setIsSpeaking(false);
-    setIsToolLoading(false);
-    if (status === 'listening' || status === 'speaking') {
-      setStatus('ready');
-    }
-
+  const teardownVoiceConnection = useCallback(() => {
     dcRef.current?.close();
     dcRef.current = null;
 
@@ -114,9 +106,23 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       audioRef.current.srcObject = null;
       audioRef.current = null;
     }
-  }, [setStatus, status]);
+  }, []);
 
-  useEffect(() => cleanupVoice, [cleanupVoice]);
+  const cleanupVoice = useCallback(
+    (options?: { preserveError?: boolean }) => {
+      setIsListening(false);
+      setIsConnected(false);
+      setIsSpeaking(false);
+      setIsToolLoading(false);
+      if (!options?.preserveError) {
+        setStatus('ready');
+      }
+      teardownVoiceConnection();
+    },
+    [setStatus, teardownVoiceConnection],
+  );
+
+  useEffect(() => () => teardownVoiceConnection(), [teardownVoiceConnection]);
 
   const handleToolResult = useCallback(
     (data: AiDispatchResult | null, errorMessage?: string) => {
@@ -230,6 +236,38 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     [runToolCall, setStatus],
   );
 
+  const formatVoiceError = useCallback((error: unknown): string => {
+    const raw = error instanceof Error ? error.message : String(error ?? '');
+
+    if (/NotAllowedError|Permission denied|permission/i.test(raw)) {
+      return 'Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen und versuche es erneut.';
+    }
+    if (/NotFoundError|Requested device not found/i.test(raw)) {
+      return 'Kein Mikrofon gefunden. Bitte schließe ein Mikrofon an oder prüfe die Geräteeinstellungen.';
+    }
+    if (/OPENAI_API_KEY not configured/i.test(raw)) {
+      return 'Sprachassistent ist derzeit nicht eingerichtet (Server-Konfiguration). Text-Chat bleibt verfügbar.';
+    }
+    if (/No tenant access|tenant_id/i.test(raw)) {
+      return 'Kein Zugriff auf den Mandanten für den Sprachassistenten.';
+    }
+    if (/Nicht angemeldet|access_token/i.test(raw)) {
+      return 'Bitte melde dich erneut an, um die Sprachsteuerung zu nutzen.';
+    }
+    if (/Realtime client secret fehlt/i.test(raw)) {
+      return 'Sprachverbindung konnte nicht vorbereitet werden. Bitte versuche es später erneut.';
+    }
+    if (/Failed to fetch|NetworkError|network/i.test(raw)) {
+      return 'Netzwerkfehler bei der Sprachverbindung. Bitte Internetverbindung prüfen und erneut versuchen.';
+    }
+
+    const trimmed = raw.trim();
+    if (trimmed.length > 180) {
+      return 'Sprachverbindung fehlgeschlagen. Bitte versuche es erneut oder nutze den Text-Chat.';
+    }
+    return trimmed || 'Sprachverbindung fehlgeschlagen. Bitte versuche es erneut oder nutze den Text-Chat.';
+  }, []);
+
   const startVoice = useCallback(async () => {
     if (Platform.OS !== 'web') {
       setPanelOpen(true);
@@ -256,6 +294,12 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       return;
     }
 
+    if (isStarting || isConnected) {
+      return;
+    }
+
+    setPanelOpen(true);
+    setErrorMessage(null);
     setIsStarting(true);
     setStatus('thinking');
     try {
@@ -305,9 +349,19 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         }, 800);
       };
 
+      if (!navigator.mediaDevices?.getUserMedia) {
+        throw new Error(
+          'Mikrofon-Zugriff wird in diesem Browser nicht unterstützt. Bitte nutze einen aktuellen Browser.',
+        );
+      }
+
       const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = mediaStream;
-      pc.addTrack(mediaStream.getTracks()[0]);
+      const audioTrack = mediaStream.getAudioTracks()[0];
+      if (!audioTrack) {
+        throw new Error('Kein Mikrofon-Audiokanal verfügbar.');
+      }
+      pc.addTrack(audioTrack, mediaStream);
 
       const dc = pc.createDataChannel('oai-events');
       dcRef.current = dc;
@@ -344,18 +398,24 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       });
 
       if (!sdpResponse.ok) {
-        throw new Error(await sdpResponse.text());
+        const sdpError = await sdpResponse.text();
+        throw new Error(
+          sdpResponse.status === 401 || sdpResponse.status === 403
+            ? 'Sprachverbindung abgelehnt — Sitzung abgelaufen oder ungültig.'
+            : sdpError || `OpenAI Realtime Fehler (${sdpResponse.status})`,
+        );
       }
 
+      const answerSdp = await sdpResponse.text();
       await pc.setRemoteDescription({
         type: 'answer',
-        sdp: await sdpResponse.text(),
+        sdp: answerSdp,
       });
     } catch (error) {
-      cleanupVoice();
-      const message = error instanceof Error ? error.message : 'Sprachverbindung fehlgeschlagen.';
+      cleanupVoice({ preserveError: true });
+      const message = formatVoiceError(error);
       setErrorMessage(message);
-      Alert.alert('VoiceCore', message);
+      setStatus('error');
     } finally {
       setIsStarting(false);
     }
@@ -363,7 +423,10 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     cleanupVoice,
     currentModule,
     currentRoute,
+    formatVoiceError,
     handleRealtimeEvent,
+    isConnected,
+    isStarting,
     sessionId,
     setErrorMessage,
     setPanelOpen,
