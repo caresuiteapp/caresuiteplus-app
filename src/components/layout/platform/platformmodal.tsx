@@ -4,7 +4,6 @@ import {
   Platform,
   Pressable,
   StyleSheet,
-  Text,
   View,
   useWindowDimensions,
   type StyleProp,
@@ -14,7 +13,6 @@ import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import { spacing } from '@/theme';
 import { GradientModalActionButton } from './gradientmodalactionbutton';
 import type { GradientModalActionButtonVariant } from './gradientmodalactionbutton';
@@ -133,10 +131,6 @@ export function PlatformModal({
           padding: careSpacing.lg,
           gap: careSpacing.sm,
         },
-        subtitle: {
-          ...careTypography.caption,
-          color: c.muted,
-        },
         footer: {
           flexDirection: 'row',
           justifyContent: 'flex-end',
@@ -170,14 +164,12 @@ export function PlatformModal({
     >
       <GradientModalHeader
         title={title}
+        subtitle={subtitle}
         onBack={onBack}
         onClose={onClose}
         actions={headerActions}
       />
-      <View style={[styles.body, bodyStyle]}>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
-        {children}
-      </View>
+      <View style={[styles.body, bodyStyle]}>{children}</View>
       {footerActions && footerActions.length > 0 ? (
         <View style={styles.footer}>
           {footerActions.map((action) => (

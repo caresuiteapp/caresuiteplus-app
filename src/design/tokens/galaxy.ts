@@ -26,6 +26,8 @@ export const galaxyGradients = {
   accent: [galaxyPalette.galaxyPurple, galaxyPalette.midnightBlue] as const,
   /** Modal / thread hero headers — violet depth for LinearGradient color stops. */
   dashboardHero: [galaxyPalette.galaxyPurple, '#181040', galaxyPalette.midnightBlue] as const,
+  /** Colorful modal header — purple → magenta → lavender (horizontal). */
+  modalHeader: ['#6B4EAA', '#C44BA8', '#8B7FA8'] as const,
   primaryCta: [galaxyPalette.careOrange, '#FF8F4A'] as const,
   glowOrbCyan: [`${galaxyPalette.galaxyCyan}18`, 'transparent'] as const,
   glowOrbViolet: [`${galaxyPalette.glowViolet}14`, 'transparent'] as const,

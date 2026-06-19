@@ -32,6 +32,19 @@ describe('galaxyGradients', () => {
     }
   });
 
+  it('modalHeader is a multi-stop colorful gradient for LinearGradient', () => {
+    expect(Array.isArray(galaxyGradients.modalHeader)).toBe(true);
+    expect(galaxyGradients.modalHeader.length).toBeGreaterThanOrEqual(2);
+    for (const stop of galaxyGradients.modalHeader) {
+      expect(typeof stop).toBe('string');
+      expect(stop.length).toBeGreaterThan(0);
+    }
+  });
+
+  it('resolveGalaxyGradientColors returns modalHeader stops', () => {
+    expect(resolveGalaxyGradientColors('modalHeader')).toEqual(galaxyGradients.modalHeader);
+  });
+
   it('GradientModalHeader uses safe gradient resolver', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
@@ -39,7 +52,7 @@ describe('galaxyGradients', () => {
       path.join(__dirname, '..', '..', 'components', 'layout', 'platform', 'gradientmodalheader.tsx'),
       'utf8',
     );
-    expect(source).toContain("resolveGalaxyGradientColors('dashboardHero')");
-    expect(source).not.toContain('[...galaxyGradients.dashboardHero]');
+    expect(source).toContain("resolveGalaxyGradientColors('modalHeader')");
+    expect(source).not.toContain('[...galaxyGradients.modalHeader]');
   });
 });
