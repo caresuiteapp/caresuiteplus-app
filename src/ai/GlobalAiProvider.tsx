@@ -8,7 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react';
-import { Alert, Platform } from 'react-native';
+import { Alert, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -17,7 +17,9 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { AiApprovalSheet } from './AiApprovalSheet';
+import { AiMiniPanel } from './AiMiniPanel';
 import { dispatchAiNavigation, useAiNavigationBridge } from './aiNavigationBridge';
+import { getRegisteredPageContext } from './registerAiPageContext';
 import type {
   AiDispatchResult,
   AiFunctionCallEvent,
@@ -31,6 +33,8 @@ import { VoiceOrb } from './VoiceOrb';
 type AiContextValue = {
   startVoice: () => Promise<void>;
   stopVoice: () => void;
+  openPanel: () => void;
+  closePanel: () => void;
   isConnected: boolean;
   isListening: boolean;
   isSpeaking: boolean;
@@ -61,6 +65,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [isStarting, setIsStarting] = useState(false);
+  const [isToolLoading, setIsToolLoading] = useState(false);
 
   const {
     sessionId,
@@ -68,6 +73,15 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     pendingActions,
     addPendingAction,
     setCurrentContext,
+    panelOpen,
+    setPanelOpen,
+    status,
+    setStatus,
+    messages,
+    lastGoal,
+    lastStep,
+    memorySummary,
+    setErrorMessage,
   } = useAiStore();
 
   useEffect(() => {
@@ -82,6 +96,10 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     setIsListening(false);
     setIsConnected(false);
     setIsSpeaking(false);
+    setIsToolLoading(false);
+    if (status === 'listening' || status === 'speaking') {
+      setStatus('ready');
+    }
 
     dcRef.current?.close();
     dcRef.current = null;
@@ -96,28 +114,34 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       audioRef.current.srcObject = null;
       audioRef.current = null;
     }
-  }, []);
+  }, [setStatus, status]);
 
   useEffect(() => cleanupVoice, [cleanupVoice]);
 
   const handleToolResult = useCallback(
     (data: AiDispatchResult | null, errorMessage?: string) => {
       if (errorMessage) {
+        setErrorMessage(errorMessage);
         return { ok: false, error: errorMessage };
       }
 
       const result = data?.result;
-      if (result && 'pending_action_id' in result) {
+      if (result && typeof result === 'object' && 'pending_action_id' in result) {
         addPendingAction(result as AiPendingActionSummary);
       }
 
-      if (result && 'type' in result && result.type === 'navigation_instruction') {
+      if (
+        result &&
+        typeof result === 'object' &&
+        'type' in result &&
+        result.type === 'navigation_instruction'
+      ) {
         dispatchAiNavigation(result as AiNavigationInstruction);
       }
 
       return data ?? { ok: false, error: 'Keine Antwort vom Tool-Dispatcher.' };
     },
-    [addPendingAction],
+    [addPendingAction, setErrorMessage],
   );
 
   const runToolCall = useCallback(
@@ -141,16 +165,28 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         parsedArgs = {};
       }
 
+      setIsToolLoading(true);
+      setStatus('tool_loading');
+
       const dispatch = await invokeEdgeFunction<AiDispatchResult>('ai-action-dispatch', {
         tenant_id: tenantId,
         session_id: activeSessionId,
         tool_name: toolName,
         arguments: parsedArgs,
+        page_context: getRegisteredPageContext(),
       });
+
+      setIsToolLoading(false);
 
       const output = dispatch.ok
         ? handleToolResult(dispatch.data)
         : { ok: false, error: dispatch.error };
+
+      if (!dispatch.ok) {
+        setErrorMessage(dispatch.error);
+      } else {
+        setStatus(pendingActions.length > 0 ? 'pending' : 'ready');
+      }
 
       dcRef.current?.send(
         JSON.stringify({
@@ -165,18 +201,22 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
 
       dcRef.current?.send(JSON.stringify({ type: 'response.create' }));
     },
-    [handleToolResult, tenantId],
+    [handleToolResult, pendingActions.length, setErrorMessage, setStatus, tenantId],
   );
 
   const handleRealtimeEvent = useCallback(
     async (event: AiFunctionCallEvent) => {
       if (event.type === 'response.output_audio.delta') {
         setIsSpeaking(true);
+        setStatus('speaking');
         return;
       }
 
       if (event.type === 'response.done') {
-        window.setTimeout(() => setIsSpeaking(false), 600);
+        window.setTimeout(() => {
+          setIsSpeaking(false);
+          setStatus('ready');
+        }, 600);
       }
 
       if (event.type === 'conversation.item.done' && event.item?.type === 'function_call') {
@@ -187,14 +227,15 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         await runToolCall(event);
       }
     },
-    [runToolCall],
+    [runToolCall, setStatus],
   );
 
   const startVoice = useCallback(async () => {
     if (Platform.OS !== 'web') {
+      setPanelOpen(true);
       Alert.alert(
         'VoiceCore',
-        'Sprachsteuerung ist in der App v1 nur im Web verfügbar. Bitte CareSuite+ im Browser nutzen.',
+        'Sprachsteuerung ist in der App v1 nur im Web verfügbar. Textmodus ist aktiv.',
       );
       return;
     }
@@ -216,6 +257,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     }
 
     setIsStarting(true);
+    setStatus('thinking');
     try {
       const { data: authData } = await supabase.auth.getSession();
       if (!authData.session?.access_token) {
@@ -242,7 +284,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         payload.realtime?.value ?? payload.realtime?.client_secret?.value ?? null;
 
       if (!clientSecret) {
-        throw new Error('Realtime client secret fehlt');
+        throw new Error('Realtime client secret fehlt — OPENAI_API_KEY gesetzt?');
       }
 
       const pc = new RTCPeerConnection();
@@ -256,7 +298,11 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
           audioRef.current.srcObject = event.streams[0];
         }
         setIsSpeaking(true);
-        window.setTimeout(() => setIsSpeaking(false), 800);
+        setStatus('speaking');
+        window.setTimeout(() => {
+          setIsSpeaking(false);
+          setStatus('ready');
+        }, 800);
       };
 
       const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
@@ -269,6 +315,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       dc.onopen = () => {
         setIsConnected(true);
         setIsListening(true);
+        setStatus('listening');
       };
 
       dc.onclose = () => {
@@ -306,10 +353,9 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       });
     } catch (error) {
       cleanupVoice();
-      Alert.alert(
-        'VoiceCore',
-        error instanceof Error ? error.message : 'Sprachverbindung fehlgeschlagen.',
-      );
+      const message = error instanceof Error ? error.message : 'Sprachverbindung fehlgeschlagen.';
+      setErrorMessage(message);
+      Alert.alert('VoiceCore', message);
     } finally {
       setIsStarting(false);
     }
@@ -319,7 +365,10 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     currentRoute,
     handleRealtimeEvent,
     sessionId,
+    setErrorMessage,
+    setPanelOpen,
     setSessionId,
+    setStatus,
     tenantId,
   ]);
 
@@ -327,16 +376,30 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     cleanupVoice();
   }, [cleanupVoice]);
 
+  const openPanel = useCallback(() => setPanelOpen(true), [setPanelOpen]);
+  const closePanel = useCallback(() => setPanelOpen(false), [setPanelOpen]);
+
   const value = useMemo(
     () => ({
       startVoice,
       stopVoice,
+      openPanel,
+      closePanel,
       isConnected,
       isListening,
       isSpeaking,
       isStarting,
     }),
-    [isConnected, isListening, isSpeaking, isStarting, startVoice, stopVoice],
+    [
+      closePanel,
+      isConnected,
+      isListening,
+      isSpeaking,
+      isStarting,
+      openPanel,
+      startVoice,
+      stopVoice,
+    ],
   );
 
   const showAi =
@@ -346,20 +409,63 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     !pathname.startsWith('/auth') &&
     pathname !== '/';
 
+  const handleOrbPress = useCallback(() => {
+    if (isConnected) {
+      openPanel();
+      return;
+    }
+    openPanel();
+  }, [isConnected, openPanel]);
+
+  const aiOverlayStyle = useMemo((): ViewStyle => {
+    if (Platform.OS === 'web') {
+      return {
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        zIndex: 150,
+        pointerEvents: 'box-none',
+      } as ViewStyle;
+    }
+    return { ...StyleSheet.absoluteFillObject, zIndex: 150, pointerEvents: 'box-none' };
+  }, []);
+
   return (
     <AiContext.Provider value={value}>
       {children}
       {showAi ? (
-        <>
+        <View style={aiOverlayStyle} pointerEvents="box-none">
           <VoiceOrb
             isConnected={isConnected}
             isListening={isListening}
             isSpeaking={isSpeaking}
-            onPress={isConnected ? stopVoice : () => void startVoice()}
+            isToolLoading={isToolLoading}
+            hasPending={pendingActions.length > 0}
+            status={status}
+            onPress={handleOrbPress}
+            onLongPress={stopVoice}
             disabled={isStarting}
           />
+          <AiMiniPanel
+            visible={panelOpen}
+            onClose={closePanel}
+            tenantId={tenantId!}
+            currentModule={currentModule}
+            currentRoute={currentRoute}
+            pendingActions={pendingActions}
+            messages={messages}
+            lastGoal={lastGoal}
+            lastStep={lastStep}
+            memorySummary={memorySummary}
+            onStartVoice={() => void startVoice()}
+            onStopVoice={stopVoice}
+            isListening={isListening}
+            onReviewDraft={() => closePanel()}
+          />
           <AiApprovalSheet pendingActions={pendingActions} tenantId={tenantId!} />
-        </>
+        </View>
       ) : null}
     </AiContext.Provider>
   );
