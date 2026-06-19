@@ -319,9 +319,9 @@ export function NotificationBellButton({
   variant = 'default',
 }: NotificationBellButtonProps) {
   const { c, isDark } = useCareLightPalette();
-  const glyphSize = size === 'topbar' ? 21 : 18;
+  const glyphSize = size === 'topbar' ? 26 : 18;
   const btnSize =
-    variant === 'glass' && size === 'topbar' ? 44 : size === 'topbar' ? 48 : 40;
+    variant === 'glass' && size === 'topbar' ? 48 : size === 'topbar' ? 48 : 40;
 
   const styles = useMemo(
     () =>

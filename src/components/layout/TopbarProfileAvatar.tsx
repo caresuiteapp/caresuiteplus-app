@@ -35,7 +35,7 @@ export function TopbarProfileAvatar({
   name,
   avatarUrl,
   accentColor,
-  size = 'sm',
+  size = 'md',
   style,
 }: TopbarProfileAvatarProps) {
   const { profile, session, updateProfile } = useAuth();

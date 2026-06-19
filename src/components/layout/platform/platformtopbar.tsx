@@ -38,9 +38,9 @@ const SEARCH_PLACEHOLDERS: Record<MainModuleKey, string> = {
 };
 
 /** Shared topbar control box — search, tenant chip, bell, profile. */
-const TOPBAR_CONTROL_HEIGHT = 44;
+const TOPBAR_CONTROL_HEIGHT = 48;
 /** Shared icon/avatar slot — building, bell, profile picture. */
-const TOPBAR_ICON_SIZE = 28;
+const TOPBAR_ICON_SIZE = 32;
 
 const webNoOutline =
   Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
@@ -282,8 +282,8 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       backgroundColor: isDark ? glassTokens.input : '#FFFFFF',
     },
     searchIcon: {
-      fontSize: 22,
-      lineHeight: 24,
+      fontSize: 26,
+      lineHeight: 28,
       color: colors.textMuted,
       alignSelf: 'center',
       marginTop: -1,
@@ -318,7 +318,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    tenantIcon: { fontSize: 18, lineHeight: TOPBAR_ICON_SIZE },
+    tenantIcon: { fontSize: 22, lineHeight: TOPBAR_ICON_SIZE },
     tenantTextWrap: {
       flex: 1,
       minWidth: 0,
