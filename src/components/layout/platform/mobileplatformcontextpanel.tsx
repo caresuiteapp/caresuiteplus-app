@@ -50,7 +50,7 @@ export function MobilePlatformContextPanel({
 }: MobilePlatformContextPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { name: tenantName, logoUrl: tenantLogoUrl } = useTenantBranding();
+  const { logoUrl: tenantLogoUrl } = useTenantBranding();
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
@@ -82,10 +82,9 @@ export function MobilePlatformContextPanel({
     <View style={styles.root}>
       <GlassCard style={styles.card}>
         <TenantMandantCardContent
-          tenantName={tenantName}
           logoUrl={tenantLogoUrl}
           accentColor={accentColor}
-          nameStyle={{ ...type.bodyStrong, color: text.primary }}
+          labelStyle={{ ...type.caption, color: text.muted }}
           chipTextStyle={{ ...type.caption, fontWeight: '700' }}
         />
       </GlassCard>

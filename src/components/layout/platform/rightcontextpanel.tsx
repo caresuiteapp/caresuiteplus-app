@@ -49,7 +49,7 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
-  const { name: tenantName, logoUrl: tenantLogoUrl } = useTenantBranding();
+  const { logoUrl: tenantLogoUrl } = useTenantBranding();
   const { colors, isDark } = useLegacyTheme();
   const accent = accentColor ?? colors.violet;
   const { data: officeData } = useOfficeDashboard();
@@ -77,10 +77,9 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
     <View style={styles.root}>
       <GlowCard glowColor={accent} style={styles.tenantCard}>
         <TenantMandantCardContent
-          tenantName={tenantName}
           logoUrl={tenantLogoUrl}
           accentColor={accent}
-          nameStyle={{ color: colors.textPrimary }}
+          labelStyle={{ color: colors.textMuted }}
         />
       </GlowCard>
 
