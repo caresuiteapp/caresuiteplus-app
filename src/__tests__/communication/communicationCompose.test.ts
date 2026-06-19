@@ -30,11 +30,19 @@ describe('Kommunikationszentrum Compose (Sprint 45)', () => {
     expect(source).toContain('NewConversationScreen');
   });
 
-  it('CommunicationCenterListView zeigt Compose nur mit Berechtigung', () => {
+  it('CommunicationCenterListView öffnet Compose als Modal', () => {
     const source = readSrc('src/components/communication/CommunicationCenterListView.tsx');
     expect(source).toContain('Neue Nachricht');
-    expect(source).toContain('/business/messages/new');
+    expect(source).toContain('NewConversationModal');
     expect(source).toContain('canCreateThread');
+  });
+
+  it('NewConversationModal nutzt PlatformModal mit Gradient-Header', () => {
+    const source = readSrc('src/components/communication/NewConversationModal.tsx');
+    expect(source).toContain('PlatformModal');
+    expect(source).toContain('Neue Nachricht');
+    expect(source).toContain('Senden');
+    expect(source).toContain('Schließen');
   });
 
   it('createThread persistiert Demo-Thread', async () => {

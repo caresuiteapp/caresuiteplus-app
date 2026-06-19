@@ -1,7 +1,8 @@
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { CommunicationCenterListHero } from './CommunicationCenterListHero';
+import { NewConversationModal } from './NewConversationModal';
 import { CommunicationThreadListCard } from './CommunicationThreadListCard';
 import { ConversationFilterBar, MessageSearchBar } from '@/components/communication';
 import { LockedActionBanner } from '@/components/permissions';
@@ -34,6 +35,7 @@ export function CommunicationCenterListView({
   const perms = useCommunicationPermissions();
   const { shellVariant } = usePlatformLayout();
   const roleKey = profile?.roleKey ?? 'business_admin';
+  const [composeOpen, setComposeOpen] = useState(false);
 
   const {
     threads,
@@ -80,10 +82,7 @@ export function CommunicationCenterListView({
       )}
 
       {perms.canCreateThread ? (
-        <PremiumButton
-          title="Neue Nachricht"
-          onPress={() => router.push('/business/messages/new' as never)}
-        />
+        <PremiumButton title="Neue Nachricht" onPress={() => setComposeOpen(true)} />
       ) : null}
 
       <MessageSearchBar value={search} onChangeText={setSearch} placeholder="Name, Betreff, Text…" />
@@ -131,6 +130,11 @@ export function CommunicationCenterListView({
 
   return (
     <View style={styles.container}>
+      <NewConversationModal
+        visible={composeOpen}
+        onClose={() => setComposeOpen(false)}
+        onCreated={() => void refresh()}
+      />
       <FlatList
         style={styles.flatList}
         data={threads}
