@@ -36,6 +36,10 @@ export function BusinessDashboardScreen() {
           gap: careSpacing.md,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
+        /** Align KPI block with sidebar Übersicht nav (mandant + heute + schnellaktionen). */
+        kpiSection: {
+          marginTop: careSpacing.xxl * 3 + careSpacing.md,
+        },
         loading: {
           ...careTypography.body,
           color: careLightColors.muted,
@@ -91,25 +95,27 @@ export function BusinessDashboardScreen() {
         tenantName={data.tenantName}
         subtitle={data.heroSubtitle}
       />
-      <SectionPanel title="Kennzahlen Übersicht" subtitle="Live Mandantenübersicht">
-        <AdaptiveKpiGrid
-          columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
-          items={data.kpis.map((kpi) => ({
-            id: kpi.id,
-            node: (
-              <PremiumKpiCard
-                label={kpi.label}
-                value={kpi.value}
-                subValue={kpi.subValue}
-                icon={kpi.icon}
-                accentColor={kpi.accentColor ?? businessAccent}
-                trend={kpi.trend}
-                trendValue={kpi.trendValue}
-              />
-            ),
-          }))}
-        />
-      </SectionPanel>
+      <View style={styles.kpiSection}>
+        <SectionPanel title="Kennzahlen Übersicht" subtitle="Live Mandantenübersicht">
+          <AdaptiveKpiGrid
+            columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
+            items={data.kpis.map((kpi) => ({
+              id: kpi.id,
+              node: (
+                <PremiumKpiCard
+                  label={kpi.label}
+                  value={kpi.value}
+                  subValue={kpi.subValue}
+                  icon={kpi.icon}
+                  accentColor={kpi.accentColor ?? businessAccent}
+                  trend={kpi.trend}
+                  trendValue={kpi.trendValue}
+                />
+              ),
+            }))}
+          />
+        </SectionPanel>
+      </View>
       <View
         accessible
         accessibilityLabel={`${wp138A11y.screenLabel} · WP ${wp138A11y.wpNumber}`}
