@@ -74,10 +74,10 @@ describe('Assist Einsatzplanung list', () => {
     expect(source).toContain('guardServiceTenant');
   });
 
-  it('assignmentListService lädt Live-Daten aus Supabase-Repository', () => {
+  it('assignmentListService lädt Live-Daten aus Visit-Disposition-Service', () => {
     const source = readSrc('src/lib/assist/assignmentListService.ts');
     expect(source).toContain("getServiceMode() === 'supabase'");
-    expect(source).toContain('assignmentSupabaseRepository.list');
+    expect(source).toContain('fetchVisitDispositionList');
   });
 
   it('assignmentDetailService lehnt Demo-IDs im Supabase-Modus ab', () => {
