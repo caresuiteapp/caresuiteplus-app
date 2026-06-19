@@ -28,25 +28,33 @@ type PortalQuickActionsProps = {
 /** Horizontal quick-action chips — each triggers a real workflow. */
 export function PortalQuickActions({ onAction, actions = DEFAULT_ACTIONS }: PortalQuickActionsProps) {
   const text = useAuroraAdaptiveText();
-  const { width } = useDeviceClass();
+  const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+
+  const chips = actions.map((action) => (
+    <Pressable
+      key={action.key}
+      onPress={() => onAction(action)}
+      style={styles.chip}
+      accessibilityRole="button"
+    >
+      <Text style={styles.icon}>{action.icon}</Text>
+      <Text style={[type.caption, { color: text.primary }]} numberOfLines={1}>
+        {action.label}
+      </Text>
+    </Pressable>
+  ));
 
   return (
     <View style={styles.section}>
       <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SCHNELLAKTIONEN</Text>
-      <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
-        {actions.map((action) => (
-          <Pressable
-            key={action.key}
-            onPress={() => onAction(action)}
-            style={styles.chip}
-            accessibilityRole="button"
-          >
-            <Text style={styles.icon}>{action.icon}</Text>
-            <Text style={[type.caption, { color: text.primary }]}>{action.label}</Text>
-          </Pressable>
-        ))}
-      </ScrollView>
+      {isPhone ? (
+        <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
+          {chips}
+        </ScrollView>
+      ) : (
+        <View style={styles.wrapGrid}>{chips}</View>
+      )}
     </View>
   );
 }
@@ -54,6 +62,7 @@ export function PortalQuickActions({ onAction, actions = DEFAULT_ACTIONS }: Port
 const styles = StyleSheet.create({
   section: {
     gap: careSpacing.sm,
+    width: '100%',
   },
   eyebrow: {
     textTransform: 'uppercase',
@@ -63,10 +72,16 @@ const styles = StyleSheet.create({
     gap: careSpacing.xs,
     paddingRight: careSpacing.md,
   },
+  wrapGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.xs,
+  },
   chip: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: 6,
+    minHeight: 44,
     paddingHorizontal: careSpacing.sm,
     paddingVertical: careSpacing.sm,
     borderRadius: 999,

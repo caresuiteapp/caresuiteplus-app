@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -28,6 +28,28 @@ function formatDateTime(iso: string): string {
   }
 }
 
+function HeroLink({
+  label,
+  onPress,
+}: {
+  label: string;
+  onPress: () => void;
+}) {
+  const { width } = useDeviceClass();
+  const type = resolveGalaxyTypography(width);
+
+  return (
+    <Pressable
+      onPress={onPress}
+      style={styles.linkButton}
+      accessibilityRole="button"
+      hitSlop={8}
+    >
+      <Text style={[type.caption, styles.link]}>{label}</Text>
+    </Pressable>
+  );
+}
+
 /** Hero card for next Assist appointment with glass empty state. */
 export function PortalNextAppointmentHero({
   appointment,
@@ -35,35 +57,31 @@ export function PortalNextAppointmentHero({
   onRequestExtra,
 }: PortalNextAppointmentHeroProps) {
   const text = useAuroraAdaptiveText();
-  const { width } = useDeviceClass();
+  const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const router = useRouter();
 
   return (
-    <GlassCard glow accentColor="#4CC9F0" style={styles.card}>
+    <GlassCard glow accentColor="#4CC9F0" style={[styles.card, isPhone && styles.cardPhone]}>
       <Text style={[type.caption, styles.eyebrow, { color: text.muted }]} {...noBreakTextProps}>
         NÄCHSTER TERMIN
       </Text>
       {appointment ? (
         <>
-          <Text style={[type.cardTitle, { color: text.primary }]} {...noBreakTextProps}>
+          <Text style={[type.cardTitle, { color: text.primary }]} {...noBreakTextProps} numberOfLines={2}>
             {appointment.title}
           </Text>
-          <Text style={[type.body, { color: text.secondary }]} {...noBreakTextProps}>
+          <Text style={[type.body, { color: text.secondary }]} {...noBreakTextProps} numberOfLines={2}>
             {formatDateTime(appointment.startsAt)}
             {appointment.location ? ` · ${appointment.location}` : ''}
           </Text>
-          <View style={styles.actions}>
-            <Text
-              style={[type.caption, styles.link]}
+          <View style={[styles.actions, isPhone && styles.actionsPhone]}>
+            <HeroLink
+              label="Details anzeigen"
               onPress={() => router.push(`/portal/client/appointments/${appointment.id}` as never)}
-            >
-              Details anzeigen
-            </Text>
+            />
             {onRequestChange ? (
-              <Text style={[type.caption, styles.link]} onPress={onRequestChange}>
-                Termin ändern
-              </Text>
+              <HeroLink label="Termin ändern" onPress={onRequestChange} />
             ) : null}
           </View>
         </>
@@ -80,7 +98,10 @@ export function PortalNextAppointmentHero({
 
 const styles = StyleSheet.create({
   card: {
-    minHeight: 140,
+    minHeight: 120,
+  },
+  cardPhone: {
+    minHeight: 0,
   },
   eyebrow: {
     textTransform: 'uppercase',
@@ -89,8 +110,18 @@ const styles = StyleSheet.create({
   actions: {
     flexDirection: 'row',
     flexWrap: 'wrap',
-    gap: careSpacing.md,
+    gap: careSpacing.sm,
     marginTop: careSpacing.sm,
+  },
+  actionsPhone: {
+    flexDirection: 'column',
+    alignItems: 'flex-start',
+    gap: careSpacing.xs,
+  },
+  linkButton: {
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: careSpacing.xs,
   },
   link: {
     color: '#4CC9F0',

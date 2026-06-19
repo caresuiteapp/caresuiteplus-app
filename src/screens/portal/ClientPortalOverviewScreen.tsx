@@ -10,14 +10,14 @@ export function ClientPortalOverviewScreen() {
 
   if (!isReady) {
     return (
-      <PortalTabScreen title="Klient:innenportal">
+      <PortalTabScreen title="Klient:innenportal" scroll={false}>
         <LoadingState message="Portal wird geladen…" />
       </PortalTabScreen>
     );
   }
 
   return (
-    <PortalTabScreen title="Klient:innenportal">
+    <PortalTabScreen title="Klient:innenportal" scroll={false}>
       <AdaptivePortalOverview
         showSuccess={showSuccess}
         onRefresh={() => {

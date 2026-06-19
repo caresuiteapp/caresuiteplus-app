@@ -1,6 +1,7 @@
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { breakpoints, kpiColumnsForDeviceClass } from '@/design/tokens/breakpoints';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -17,6 +18,12 @@ type PortalKpiCardProps = {
   hidden?: boolean;
 };
 
+function resolveKpiColumnCount(width: number, deviceClass: ReturnType<typeof useDeviceClass>['deviceClass']) {
+  if (width < breakpoints.largePhone) return 1;
+  if (deviceClass === 'phone') return 2;
+  return kpiColumnsForDeviceClass(deviceClass);
+}
+
 /** Glass KPI tile with empty state + optional CTA — never shows fake zeros when hidden. */
 export function PortalKpiCard({
   label,
@@ -28,12 +35,22 @@ export function PortalKpiCard({
   onCta,
   hidden = false,
 }: PortalKpiCardProps) {
-  if (hidden) return null;
-
   const text = useAuroraAdaptiveText();
-  const { width } = useDeviceClass();
+  const { width, deviceClass, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const hasValue = value !== null && value !== undefined && value > 0;
+  const columnCount = resolveKpiColumnCount(width, deviceClass);
+  const itemWidth = `${Math.floor(100 / columnCount) - 1}%` as DimensionValue;
+
+  if (hidden) return null;
+  const wrapperStyle = [
+    styles.wrapper,
+    {
+      width: itemWidth,
+      flexBasis: itemWidth,
+      minWidth: isPhone ? 0 : 150,
+    },
+  ];
 
   const content = (
     <>
@@ -60,14 +77,14 @@ export function PortalKpiCard({
 
   if (onPress) {
     return (
-      <Pressable onPress={onPress} style={styles.wrapper}>
+      <Pressable onPress={onPress} style={wrapperStyle} accessibilityRole="button">
         <GlassCard style={styles.card}>{content}</GlassCard>
       </Pressable>
     );
   }
 
   return (
-    <View style={styles.wrapper}>
+    <View style={wrapperStyle}>
       <GlassCard style={styles.card}>{content}</GlassCard>
     </View>
   );
@@ -76,11 +93,10 @@ export function PortalKpiCard({
 const styles = StyleSheet.create({
   wrapper: {
     flexGrow: 1,
-    flexBasis: '46%',
-    minWidth: 150,
+    overflow: 'hidden',
   },
   card: {
-    minHeight: 130,
+    minHeight: 120,
     flex: 1,
   },
   eyebrow: {

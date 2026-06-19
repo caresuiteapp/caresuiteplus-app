@@ -27,33 +27,41 @@ export function PortalGlassHero({
   style,
 }: PortalGlassHeroProps) {
   const text = useAuroraAdaptiveText();
-  const { width } = useDeviceClass();
+  const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
 
   return (
-    <GlassCard style={style}>
+    <GlassCard style={[isPhone && styles.compactCard, style]}>
       {eyebrow ? (
         <Text style={[type.caption, styles.eyebrow, { color: text.muted }]} {...noBreakTextProps}>
           {eyebrow}
         </Text>
       ) : null}
-      <View style={styles.titleRow}>
-        <Text style={[type.cardTitle, { color: text.primary, flex: 1 }]} {...noBreakTextProps}>
+      <View style={[styles.titleRow, isPhone && styles.titleRowPhone]}>
+        <Text
+          style={[type.cardTitle, { color: text.primary, flex: 1, flexShrink: 1 }]}
+          {...noBreakTextProps}
+          numberOfLines={isPhone ? 3 : 2}
+        >
           {title}
         </Text>
         {badge ? (
-          <View style={styles.badge}>
+          <View style={[styles.badge, isPhone && styles.badgePhone]}>
             <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
           </View>
         ) : null}
       </View>
       {subtitle ? (
-        <Text style={[type.body, { color: text.secondary, fontWeight: '600' }]} {...noBreakTextProps}>
+        <Text
+          style={[type.body, { color: text.secondary, fontWeight: '600' }]}
+          {...noBreakTextProps}
+          numberOfLines={2}
+        >
           {subtitle}
         </Text>
       ) : null}
       {meta ? (
-        <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps}>
+        <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps} numberOfLines={2}>
           {meta}
         </Text>
       ) : null}
@@ -63,6 +71,9 @@ export function PortalGlassHero({
 }
 
 const styles = StyleSheet.create({
+  compactCard: {
+    paddingVertical: careSpacing.sm,
+  },
   eyebrow: {
     textTransform: 'uppercase',
     letterSpacing: 0.6,
@@ -72,6 +83,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: careSpacing.sm,
   },
+  titleRowPhone: {
+    alignItems: 'flex-start',
+    flexWrap: 'wrap',
+  },
   badge: {
     paddingHorizontal: careSpacing.sm,
     paddingVertical: 4,
@@ -79,5 +94,9 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'rgba(255,149,0,0.35)',
     backgroundColor: 'rgba(255,149,0,0.12)',
+    flexShrink: 0,
+  },
+  badgePhone: {
+    marginTop: careSpacing.xs,
   },
 });

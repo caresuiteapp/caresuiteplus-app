@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
@@ -13,6 +14,7 @@ import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import {
   createPortalRequest,
@@ -35,7 +37,18 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+  const insets = useSafeAreaInsets();
+  const { showBottomTabs } = usePlatformLayout();
   const router = useRouter();
+  const contentPadding = useMemo(
+    () => ({
+      paddingHorizontal: careSpacing.md,
+      paddingBottom: showBottomTabs
+        ? 64 + Math.max(insets.bottom, careSpacing.sm)
+        : careSpacing.xl + insets.bottom,
+    }),
+    [insets.bottom, showBottomTabs],
+  );
   const { actorId } = usePortalActor();
 
   const [dashboard, setDashboard] = useState<AssistDashboardData | null>(null);
@@ -119,8 +132,12 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
   const data = dashboard!;
 
   return (
-    <AssistPortalShell context={context} activeSection="overview">
-      <ScrollView contentContainerStyle={styles.container}>
+    <AssistPortalShell>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={[styles.container, contentPadding]}
+        showsVerticalScrollIndicator={false}
+      >
         {showSuccess || localSuccess ? (
           <SuccessState message="Anfrage wurde übermittelt." />
         ) : null}
@@ -297,14 +314,19 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
 }
 
 const styles = StyleSheet.create({
+  scroll: {
+    flex: 1,
+  },
   container: {
     gap: careSpacing.md,
-    paddingBottom: careSpacing.xl,
+    width: '100%',
+    maxWidth: '100%',
   },
   kpiGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: careSpacing.sm,
+    width: '100%',
   },
   section: {
     gap: careSpacing.sm,

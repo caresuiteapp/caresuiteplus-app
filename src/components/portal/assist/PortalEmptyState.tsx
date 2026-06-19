@@ -50,5 +50,8 @@ const styles = StyleSheet.create({
   cta: {
     alignSelf: 'flex-start',
     marginTop: careSpacing.xs,
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: careSpacing.xs,
   },
 });
