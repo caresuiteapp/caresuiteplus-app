@@ -1,5 +1,5 @@
 import { ReactNode, useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import type { Session } from '@supabase/supabase-js';
+import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import {
   getSession,
@@ -19,6 +19,7 @@ import {
   savePortalSession,
   type PortalSessionRecord,
 } from './portalSessionStore';
+import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -42,6 +43,46 @@ function applyBootstrap(
   setSession(null);
 }
 
+function buildMinimalAuthState(supabaseSession: Session): {
+  user: AuthUser;
+  session: AuthSession;
+} {
+  const user: AuthUser = {
+    id: supabaseSession.user.id,
+    email: supabaseSession.user.email ?? '',
+    displayName: null,
+    roleKey: null,
+  };
+
+  const session: AuthSession = {
+    user,
+    accessToken: supabaseSession.access_token,
+    refreshToken: supabaseSession.refresh_token,
+    expiresAt: supabaseSession.expires_at ? supabaseSession.expires_at * 1000 : null,
+  };
+
+  return { user, session };
+}
+
+async function hydrateSupabaseSession(
+  supabaseSession: Session,
+  setUser: (user: AuthUser | null) => void,
+  setProfile: (profile: Profile | null) => void,
+  setSession: (session: AuthSession | null) => void,
+): Promise<boolean> {
+  const bootstrap = await bootstrapTenantContext(supabaseSession);
+  if (bootstrap.ok) {
+    applyBootstrap(bootstrap, setUser, setProfile, setSession);
+    if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
+      void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
+      void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+    }
+    return true;
+  }
+
+  return false;
+}
+
 export function AuthProvider({ children }: AuthProviderProps) {
   const authMode = useMemo(() => resolveAuthMode(), []);
   const [isInitialized, setIsInitialized] = useState(false);
@@ -51,6 +92,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [session, setSession] = useState<AuthSession | null>(null);
   const [portalSession, setPortalSession] = useState<PortalSessionRecord | null>(null);
   const profileRepairAttemptedRef = useRef(false);
+  const signOutRequestedRef = useRef(false);
 
   useEffect(() => {
     let cancelled = false;
@@ -61,18 +103,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (cancelled) return;
 
       if (sessionResult.ok && sessionResult.data) {
-        const bootstrap = await bootstrapTenantContext(sessionResult.data);
-        if (!cancelled) {
-          if (bootstrap.ok) {
-            applyBootstrap(bootstrap, setUser, setProfile, setSession);
-            if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
-              void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
-              void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
-            }
-          } else {
-            applyBootstrap(bootstrap, setUser, setProfile, setSession);
-            await supabaseSignOut();
-          }
+        const hydrated = await hydrateSupabaseSession(
+          sessionResult.data,
+          setUser,
+          setProfile,
+          setSession,
+        );
+        if (!cancelled && !hydrated) {
+          const minimal = buildMinimalAuthState(sessionResult.data);
+          setUser(minimal.user);
+          setProfile(null);
+          setSession(minimal.session);
+          profileRepairAttemptedRef.current = false;
         }
       }
     }
@@ -86,29 +128,25 @@ export function AuthProvider({ children }: AuthProviderProps) {
       if (authMode === 'supabase') {
         await restoreSupabaseSession();
 
-        const handle = onAuthStateChange(async (_event, supabaseSession) => {
+        const handle = onAuthStateChange((event: AuthChangeEvent, supabaseSession) => {
           if (cancelled) return;
 
-          if (supabaseSession) {
-            const bootstrap = await bootstrapTenantContext(supabaseSession);
-            if (bootstrap.ok) {
-              applyBootstrap(bootstrap, setUser, setProfile, setSession);
-              if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
-                void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
-                void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
-              }
+          void (async () => {
+            if (supabaseSession) {
+              await hydrateSupabaseSession(supabaseSession, setUser, setProfile, setSession);
+              return;
             }
-            return;
-          }
 
-          const sessionResult = await getSession();
-          if (!cancelled && sessionResult.ok && sessionResult.data) {
-            return;
-          }
+            if (!shouldClearAuthOnNullSessionEvent(event, signOutRequestedRef.current)) {
+              return;
+            }
 
-          setUser(null);
-          setProfile(null);
-          setSession(null);
+            if (!cancelled) {
+              setUser(null);
+              setProfile(null);
+              setSession(null);
+            }
+          })();
         });
         unsubscribeAuth = handle.unsubscribe;
       }
@@ -167,6 +205,8 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     setIsLoading(true);
     try {
+      await clearPortalSession();
+      setPortalSession(null);
       const built = buildDemoSession(roleKey);
       setUser(built.user);
       setProfile(built.profile);
@@ -182,15 +222,18 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
     setIsLoading(true);
     try {
-      const bootstrap = await bootstrapTenantContext(supabaseSession);
-      applyBootstrap(bootstrap, setUser, setProfile, setSession);
-      if (bootstrap.ok && bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
-        void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
-        void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
-      }
-      if (!bootstrap.ok) {
+      await clearPortalSession();
+      setPortalSession(null);
+
+      const hydrated = await hydrateSupabaseSession(
+        supabaseSession,
+        setUser,
+        setProfile,
+        setSession,
+      );
+      if (!hydrated) {
         await supabaseSignOut();
-        throw new Error(bootstrap.error);
+        throw new Error('Benutzerprofil konnte nicht geladen werden.');
       }
     } finally {
       setIsLoading(false);
@@ -229,6 +272,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
   }, []);
 
   const signOut = useCallback(async () => {
+    signOutRequestedRef.current = true;
     setIsLoading(true);
     try {
       if (authMode === 'supabase') {
@@ -240,6 +284,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setSession(null);
       setPortalSession(null);
     } finally {
+      signOutRequestedRef.current = false;
       setIsLoading(false);
     }
   }, [authMode]);

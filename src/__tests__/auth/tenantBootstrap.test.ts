@@ -54,6 +54,13 @@ describe('tenant bootstrap role resolution', () => {
     expect(provider).toContain('profileRepairAttemptedRef');
   });
 
+  it('AuthProvider ignores transient null auth events and keeps restore session', () => {
+    const provider = readSrc('src/lib/auth/AuthProvider.tsx');
+    expect(provider).toContain('shouldClearAuthOnNullSessionEvent');
+    expect(provider).toContain('buildMinimalAuthState');
+    expect(provider).not.toContain('await supabaseSignOut();\n          }');
+  });
+
   it('RequireRole uses portal session roleKey for access checks', () => {
     const guard = readSrc('src/lib/auth/RequireRole.tsx');
     expect(guard).toContain('resolveEffectiveRoleKey');
