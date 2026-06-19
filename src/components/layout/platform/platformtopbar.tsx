@@ -121,7 +121,10 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
         </View>
       </View>
 
-      <View style={styles.center} pointerEvents="box-none">
+      <View
+        style={[styles.center, tenantOpen ? styles.centerElevated : null]}
+        pointerEvents="box-none"
+      >
         <View style={styles.tenantWrap}>
           <Pressable
             onPress={() => {
@@ -141,7 +144,9 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
                 {tenantName}
               </Text>
             </View>
-            <Text style={styles.chevron}>{tenantOpen ? '▴' : '▾'}</Text>
+            <View style={styles.chevronSlot}>
+              <Text style={styles.chevron}>{tenantOpen ? '▴' : '▾'}</Text>
+            </View>
           </Pressable>
           {tenantOpen ? (
             <View style={styles.dropdown}>
@@ -253,7 +258,11 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       right: 0,
       alignItems: 'center',
       justifyContent: 'center',
-      zIndex: 1,
+      // Above start/end (zIndex 2) so the centered tenant chip receives clicks.
+      zIndex: 3,
+    },
+    centerElevated: {
+      zIndex: 10,
     },
     end: {
       flexDirection: 'row',
