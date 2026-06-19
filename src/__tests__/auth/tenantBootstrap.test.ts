@@ -1,6 +1,22 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
+
+vi.mock('react-native-url-polyfill/auto', () => ({}));
+vi.mock('@react-native-async-storage/async-storage', () => ({
+  default: {
+    getItem: vi.fn(),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  },
+}));
+
+import {
+  PROFILE_SELECT,
+  resolveProfileDisplayName,
+  resolveProfileRoleKey,
+} from '@/lib/supabase/tenantService';
+import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -16,6 +32,70 @@ describe('tenant bootstrap role resolution', () => {
     expect(source).toContain('readSessionRoleHint');
     expect(source).toContain("app_metadata?.role_key");
     expect(source).toContain('Benutzerrolle konnte nicht geladen werden.');
+  });
+
+  it('queries live profiles without legacy role_key/display_name columns', () => {
+    expect(PROFILE_SELECT).toContain('full_name');
+    expect(PROFILE_SELECT).toContain('first_name');
+    expect(PROFILE_SELECT).toContain('roles(key)');
+    expect(PROFILE_SELECT).not.toContain('role_key');
+    expect(PROFILE_SELECT).not.toContain('display_name');
+  });
+
+  it('maps live owner role key to business_admin', () => {
+    expect(mapCanonicalRoleToRoleKey('owner')).toBe('business_admin');
+  });
+
+  it('resolveProfileDisplayName prefers full_name over email', () => {
+    expect(
+      resolveProfileDisplayName({
+        id: 'p1',
+        tenant_id: 't1',
+        role_id: null,
+        first_name: 'Kevin',
+        last_name: 'Reinhardt',
+        full_name: 'Kevin Reinhardt',
+        email: 'kevin@helferhasen.app',
+        phone: null,
+        avatar_url: null,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        roles: null,
+      }),
+    ).toBe('Kevin Reinhardt');
+  });
+
+  it('resolveProfileRoleKey resolves owner via roles join', async () => {
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+        }),
+      }),
+    };
+
+    const roleKey = await resolveProfileRoleKey(
+      client as never,
+      {
+        id: 'p1',
+        tenant_id: 't1',
+        role_id: 'role-1',
+        first_name: 'Kevin',
+        last_name: 'Reinhardt',
+        full_name: 'Kevin Reinhardt',
+        email: 'kevin@helferhasen.app',
+        phone: null,
+        avatar_url: null,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        roles: { key: 'owner' },
+      },
+      { user: { app_metadata: {}, user_metadata: {} } } as never,
+    );
+
+    expect(roleKey).toBe('business_admin');
   });
 
   it('RedirectIfAuthenticated waits for session target before redirect', () => {
@@ -53,6 +133,8 @@ describe('tenant bootstrap role resolution', () => {
     expect(provider).toContain('repairProfileFromSession');
     expect(provider).toContain('!user || !session || profile?.roleKey');
     expect(provider).toContain('profileRepairAttemptedRef');
+    expect(provider).toContain('profileBootstrapError');
+    expect(provider).toContain('retryProfileBootstrap');
   });
 
   it('AuthProvider ignores transient null auth events and keeps restore session', () => {
@@ -81,6 +163,15 @@ describe('tenant bootstrap role resolution', () => {
     expect(guard).toContain('resolveEffectiveRoleKey');
     expect(guard).toContain('matchesNavigationTarget');
     expect(guard).toContain('!roleKey');
+    expect(guard).toContain('profileBootstrapError');
+    expect(guard).toContain('retryProfileBootstrap');
     expect(guard).not.toContain("router.replace('/' as never)");
+  });
+
+  it('permissions index has no duplicate export blocks', () => {
+    const source = readSrc('src/lib/permissions/index.ts');
+    expect(source.split("from './workspaceRoles';").length - 1).toBe(1);
+    expect(source.split("from './workspaceAccess';").length - 1).toBe(1);
+    expect(source.split("from './roleMatrixService';").length - 1).toBe(1);
   });
 });

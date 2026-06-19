@@ -78,6 +78,8 @@ describe('post-login redirect routing', () => {
     const guard = readSrc('src/lib/auth/RequireRole.tsx');
     expect(guard).toContain('!roleKey');
     expect(guard).toContain('Berechtigungen werden geladen');
+    expect(guard).toContain('profileBootstrapError');
+    expect(guard).toContain('retryProfileBootstrap');
     expect(guard).toContain('authReady');
     expect(guard).not.toContain("router.replace('/' as never)");
     expect(guard).toContain('getLoginRedirectForPath');

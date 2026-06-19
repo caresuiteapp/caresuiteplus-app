@@ -17,9 +17,12 @@ export type AuthContextValue = {
   profile: Profile | null;
   session: AuthSession | null;
   portalSession: PortalSessionRecord | null;
+  /** Set when Supabase profile/role bootstrap fails after sign-in. */
+  profileBootstrapError: string | null;
   signInDemo: (roleKey: RoleKey) => Promise<void>;
   signInWithSupabaseSession: (session: Session) => Promise<void>;
   signInPortalSession: (session: PortalSessionRecord) => Promise<void>;
+  retryProfileBootstrap: () => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (profile: Profile) => void;
 };

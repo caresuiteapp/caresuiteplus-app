@@ -1,9 +1,11 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { checkRoleAccess, getLoginRedirectForPath } from '@/lib/navigation';
 import { resolveEffectiveRoleKey } from './sessionTarget';
 import { useAuth } from './context';
+
+const ROLE_RESOLUTION_TIMEOUT_MS = 8000;
 
 function matchesNavigationTarget(current: string, target: string): boolean {
   const normalizedCurrent = current.replace(/\/$/, '') || '/';
@@ -21,7 +23,16 @@ type RequireRoleProps = {
 export function RequireRole({ children }: RequireRoleProps) {
   const pathname = usePathname();
   const router = useRouter();
-  const { profile, portalSession, user, authReady, isAuthenticated } = useAuth();
+  const {
+    profile,
+    portalSession,
+    user,
+    authReady,
+    isAuthenticated,
+    profileBootstrapError,
+    retryProfileBootstrap,
+  } = useAuth();
+  const [roleWaitTimedOut, setRoleWaitTimedOut] = useState(false);
 
   const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
   const decision = checkRoleAccess(pathname, roleKey);
@@ -42,11 +53,36 @@ export function RequireRole({ children }: RequireRoleProps) {
     router,
   ]);
 
+  useEffect(() => {
+    if (!authReady || !isAuthenticated || roleKey) {
+      setRoleWaitTimedOut(false);
+      return undefined;
+    }
+
+    const timer = setTimeout(() => setRoleWaitTimedOut(true), ROLE_RESOLUTION_TIMEOUT_MS);
+    return () => clearTimeout(timer);
+  }, [authReady, isAuthenticated, roleKey]);
+
   if (!authReady) {
     return <LoadingState message="Sitzung wird geprüft…" />;
   }
 
   if (isAuthenticated && !roleKey) {
+    if (profileBootstrapError || roleWaitTimedOut) {
+      return (
+        <ErrorState
+          title="Berechtigungen nicht verfügbar"
+          message={
+            profileBootstrapError ??
+            'Ihre Rolle konnte nicht geladen werden. Bitte erneut versuchen oder erneut anmelden.'
+          }
+          onRetry={() => {
+            void retryProfileBootstrap();
+          }}
+        />
+      );
+    }
+
     return <LoadingState message="Berechtigungen werden geladen…" />;
   }
 

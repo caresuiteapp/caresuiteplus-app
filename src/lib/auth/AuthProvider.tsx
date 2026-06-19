@@ -64,23 +64,29 @@ function buildMinimalAuthState(supabaseSession: Session): {
   return { user, session };
 }
 
+type HydrateSupabaseSessionResult =
+  | { ok: true }
+  | { ok: false; error: string };
+
 async function hydrateSupabaseSession(
   supabaseSession: Session,
   setUser: (user: AuthUser | null) => void,
   setProfile: (profile: Profile | null) => void,
   setSession: (session: AuthSession | null) => void,
-): Promise<boolean> {
+  setProfileBootstrapError: (error: string | null) => void,
+): Promise<HydrateSupabaseSessionResult> {
   const bootstrap = await bootstrapTenantContext(supabaseSession);
   if (bootstrap.ok) {
+    setProfileBootstrapError(null);
     applyBootstrap(bootstrap, setUser, setProfile, setSession);
     if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
       void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
       void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
     }
-    return true;
+    return { ok: true };
   }
 
-  return false;
+  return { ok: false, error: bootstrap.error };
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -91,8 +97,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const [profile, setProfile] = useState<Profile | null>(null);
   const [session, setSession] = useState<AuthSession | null>(null);
   const [portalSession, setPortalSession] = useState<PortalSessionRecord | null>(null);
+  const [profileBootstrapError, setProfileBootstrapError] = useState<string | null>(null);
   const profileRepairAttemptedRef = useRef(false);
   const signOutRequestedRef = useRef(false);
+
+  const applyMinimalAuthOnBootstrapFailure = useCallback(
+    (supabaseSession: Session, error: string) => {
+      const minimal = buildMinimalAuthState(supabaseSession);
+      setUser(minimal.user);
+      setProfile(null);
+      setSession(minimal.session);
+      setProfileBootstrapError(error);
+      profileRepairAttemptedRef.current = false;
+    },
+    [],
+  );
 
   useEffect(() => {
     let cancelled = false;
@@ -108,13 +127,10 @@ export function AuthProvider({ children }: AuthProviderProps) {
           setUser,
           setProfile,
           setSession,
+          setProfileBootstrapError,
         );
-        if (!cancelled && !hydrated) {
-          const minimal = buildMinimalAuthState(sessionResult.data);
-          setUser(minimal.user);
-          setProfile(null);
-          setSession(minimal.session);
-          profileRepairAttemptedRef.current = false;
+        if (!cancelled && !hydrated.ok) {
+          applyMinimalAuthOnBootstrapFailure(sessionResult.data, hydrated.error);
         }
       }
     }
@@ -133,7 +149,16 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
           void (async () => {
             if (supabaseSession) {
-              await hydrateSupabaseSession(supabaseSession, setUser, setProfile, setSession);
+              const result = await hydrateSupabaseSession(
+                supabaseSession,
+                setUser,
+                setProfile,
+                setSession,
+                setProfileBootstrapError,
+              );
+              if (!result.ok && !cancelled) {
+                applyMinimalAuthOnBootstrapFailure(supabaseSession, result.error);
+              }
               return;
             }
 
@@ -145,6 +170,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
               setUser(null);
               setProfile(null);
               setSession(null);
+              setProfileBootstrapError(null);
             }
           })();
         });
@@ -163,7 +189,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       cancelled = true;
       unsubscribeAuth?.();
     };
-  }, [authMode]);
+  }, [applyMinimalAuthOnBootstrapFailure, authMode]);
 
   useEffect(() => {
     if (!user || !session) {
@@ -186,15 +212,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
         setUser,
         setProfile,
         setSession,
+        setProfileBootstrapError,
       );
       if (cancelled) return;
-      if (hydrated) return;
+      if (hydrated.ok) return;
 
-      const minimal = buildMinimalAuthState(sessionResult.data);
-      setUser(minimal.user);
-      setProfile(null);
-      setSession(minimal.session);
-      profileRepairAttemptedRef.current = false;
+      applyMinimalAuthOnBootstrapFailure(sessionResult.data, hydrated.error);
     }
 
     void reconcileLiveSession();
@@ -202,7 +225,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       cancelled = true;
     };
-  }, [authMode, isInitialized, isLoading, portalSession, session, user]);
+  }, [applyMinimalAuthOnBootstrapFailure, authMode, isInitialized, isLoading, portalSession, session, user]);
 
   useEffect(() => {
     if (authMode !== 'supabase' || !isInitialized || isLoading) return;
@@ -215,14 +238,17 @@ export function AuthProvider({ children }: AuthProviderProps) {
       const sessionResult = await getSession();
       if (cancelled || !sessionResult.ok || !sessionResult.data) return;
 
-      const bootstrap = await bootstrapTenantContext(sessionResult.data);
-      if (cancelled || !bootstrap.ok) return;
+      const result = await hydrateSupabaseSession(
+        sessionResult.data,
+        setUser,
+        setProfile,
+        setSession,
+        setProfileBootstrapError,
+      );
+      if (cancelled) return;
+      if (result.ok) return;
 
-      applyBootstrap(bootstrap, setUser, setProfile, setSession);
-      if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
-        void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
-        void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
-      }
+      applyMinimalAuthOnBootstrapFailure(sessionResult.data, result.error);
     }
 
     void repairProfileFromSession();
@@ -230,7 +256,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     return () => {
       cancelled = true;
     };
-  }, [authMode, isInitialized, isLoading, user, session, profile?.roleKey]);
+  }, [
+    applyMinimalAuthOnBootstrapFailure,
+    authMode,
+    isInitialized,
+    isLoading,
+    user,
+    session,
+    profile?.roleKey,
+  ]);
 
   const signInDemo = useCallback(async (roleKey: RoleKey) => {
     if (!isDemoMode()) {
@@ -240,6 +274,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await clearPortalSession();
       setPortalSession(null);
+      setProfileBootstrapError(null);
       const built = buildDemoSession(roleKey);
       setUser(built.user);
       setProfile(built.profile);
@@ -257,24 +292,46 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await clearPortalSession();
       setPortalSession(null);
+      setProfileBootstrapError(null);
 
       const hydrated = await hydrateSupabaseSession(
         supabaseSession,
         setUser,
         setProfile,
         setSession,
+        setProfileBootstrapError,
       );
-      if (!hydrated) {
-        const minimal = buildMinimalAuthState(supabaseSession);
-        setUser(minimal.user);
-        setProfile(null);
-        setSession(minimal.session);
-        profileRepairAttemptedRef.current = false;
+      if (!hydrated.ok) {
+        applyMinimalAuthOnBootstrapFailure(supabaseSession, hydrated.error);
       }
     } finally {
       setIsLoading(false);
     }
-  }, [authMode]);
+  }, [applyMinimalAuthOnBootstrapFailure, authMode]);
+
+  const retryProfileBootstrap = useCallback(async () => {
+    if (authMode !== 'supabase') return;
+
+    setProfileBootstrapError(null);
+    profileRepairAttemptedRef.current = false;
+
+    const sessionResult = await getSession();
+    if (!sessionResult.ok || !sessionResult.data) {
+      setProfileBootstrapError('Keine aktive Sitzung gefunden.');
+      return;
+    }
+
+    const result = await hydrateSupabaseSession(
+      sessionResult.data,
+      setUser,
+      setProfile,
+      setSession,
+      setProfileBootstrapError,
+    );
+    if (!result.ok) {
+      applyMinimalAuthOnBootstrapFailure(sessionResult.data, result.error);
+    }
+  }, [applyMinimalAuthOnBootstrapFailure, authMode]);
 
   const signInPortalSession = useCallback(async (record: PortalSessionRecord) => {
     await savePortalSession(record);
@@ -286,8 +343,12 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!sessionResult.ok || !sessionResult.data) return;
 
     const bootstrap = await bootstrapTenantContext(sessionResult.data);
-    if (!bootstrap.ok) return;
+    if (!bootstrap.ok) {
+      setProfileBootstrapError(bootstrap.error);
+      return;
+    }
 
+    setProfileBootstrapError(null);
     applyBootstrap(bootstrap, setUser, setProfile, setSession);
     if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
       void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
@@ -302,6 +363,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
         ? {
             ...prev,
             displayName: nextProfile.displayName,
+            roleKey: nextProfile.roleKey,
           }
         : prev,
     );
@@ -319,6 +381,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       setProfile(null);
       setSession(null);
       setPortalSession(null);
+      setProfileBootstrapError(null);
     } finally {
       signOutRequestedRef.current = false;
       setIsLoading(false);
@@ -336,13 +399,30 @@ export function AuthProvider({ children }: AuthProviderProps) {
       profile,
       session,
       portalSession,
+      profileBootstrapError,
       signInDemo,
       signInWithSupabaseSession,
       signInPortalSession,
+      retryProfileBootstrap,
       signOut,
       updateProfile,
     }),
-    [isInitialized, isLoading, authMode, user, profile, session, portalSession, signInDemo, signInWithSupabaseSession, signInPortalSession, signOut, updateProfile],
+    [
+      isInitialized,
+      isLoading,
+      authMode,
+      user,
+      profile,
+      session,
+      portalSession,
+      profileBootstrapError,
+      signInDemo,
+      signInWithSupabaseSession,
+      signInPortalSession,
+      retryProfileBootstrap,
+      signOut,
+      updateProfile,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;
