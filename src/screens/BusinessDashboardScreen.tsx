@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { breakpoints } from '@/design/tokens/breakpoints';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import { ZentraleDashboardHero } from '@/components/dashboard/ZentraleDashboardHero';
 import {
@@ -26,15 +27,43 @@ export function BusinessDashboardScreen() {
   const { data, loading, error, refresh } = useDashboard('business');
   const shellHostsAurora = useShellHostsAurora();
   const businessAccent = moduleColor('office');
+  const { width } = useWindowDimensions();
+  /** Tablet+ uses the module-rail-aligned column layout (see kpiCenter). */
+  const alignKpiWithModuleRail = width >= breakpoints.tablet;
 
   const displayName = profile?.displayName ?? user?.displayName ?? 'Willkommen';
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: {
-          gap: careSpacing.sm,
-          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
+        root: alignKpiWithModuleRail
+          ? {
+              flex: 1,
+              minHeight: 0,
+              backgroundColor: shellHostsAurora ? 'transparent' : undefined,
+            }
+          : {
+              gap: careSpacing.sm,
+              backgroundColor: shellHostsAurora ? 'transparent' : undefined,
+            },
+        /** Hero overlays the top — same role as the rail logo; must not push KPI down in the flex column. */
+        heroOverlay: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          alignItems: 'center',
+          zIndex: 1,
+        },
+        /**
+         * Vertically centers Kennzahlen Übersicht in the main work area below the topbar,
+         * mirroring MainModuleRail scroll (flexGrow + justifyContent: 'center') for the icon stack.
+         * "Menü" = left module icon rail, not the right Übersicht sidebar.
+         */
+        kpiCenter: {
+          flex: 1,
+          justifyContent: 'center',
+          minHeight: 0,
         },
         loading: {
           ...careTypography.body,
@@ -44,7 +73,7 @@ export function BusinessDashboardScreen() {
         },
         a11yAnchor: { height: 0, width: 0 },
       }),
-    [shellHostsAurora],
+    [alignKpiWithModuleRail, shellHostsAurora],
   );
 
   if (loading && !data) {
@@ -85,31 +114,38 @@ export function BusinessDashboardScreen() {
 
   return (
     <View style={styles.root}>
-      <ZentraleDashboardHero
-        greeting={data.greeting}
-        displayName={displayName}
-        tenantName={data.tenantName}
-        subtitle={data.heroSubtitle}
-      />
-      <SectionPanel title="Kennzahlen Übersicht" subtitle="Live Mandantenübersicht">
-        <AdaptiveKpiGrid
-          columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
-          items={data.kpis.map((kpi) => ({
-            id: kpi.id,
-            node: (
-              <PremiumKpiCard
-                label={kpi.label}
-                value={kpi.value}
-                subValue={kpi.subValue}
-                icon={kpi.icon}
-                accentColor={kpi.accentColor ?? businessAccent}
-                trend={kpi.trend}
-                trendValue={kpi.trendValue}
-              />
-            ),
-          }))}
+      <View
+        style={alignKpiWithModuleRail ? styles.heroOverlay : undefined}
+        pointerEvents="box-none"
+      >
+        <ZentraleDashboardHero
+          greeting={data.greeting}
+          displayName={displayName}
+          tenantName={data.tenantName}
+          subtitle={data.heroSubtitle}
         />
-      </SectionPanel>
+      </View>
+      <View style={alignKpiWithModuleRail ? styles.kpiCenter : undefined}>
+        <SectionPanel title="Kennzahlen Übersicht" subtitle="Live Mandantenübersicht">
+          <AdaptiveKpiGrid
+            columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
+            items={data.kpis.map((kpi) => ({
+              id: kpi.id,
+              node: (
+                <PremiumKpiCard
+                  label={kpi.label}
+                  value={kpi.value}
+                  subValue={kpi.subValue}
+                  icon={kpi.icon}
+                  accentColor={kpi.accentColor ?? businessAccent}
+                  trend={kpi.trend}
+                  trendValue={kpi.trendValue}
+                />
+              ),
+            }))}
+          />
+        </SectionPanel>
+      </View>
       <View
         accessible
         accessibilityLabel={`${wp138A11y.screenLabel} · WP ${wp138A11y.wpNumber}`}

@@ -26,7 +26,6 @@ export function ZentraleDashboardHero({
         root: {
           alignItems: 'center',
           gap: careSpacing.xs,
-          paddingBottom: careSpacing.xs,
         },
         wordmark: {
           justifyContent: 'center',
