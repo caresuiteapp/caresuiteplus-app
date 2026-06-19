@@ -88,7 +88,6 @@ export function MainModuleRail({ activeModule }: MainModuleRailProps) {
         resizeMode="contain"
         accessibilityLabel="CareSuite+ Logo"
       />
-      <View style={railStyles.divider} />
       <ScrollView
         showsVerticalScrollIndicator={false}
         contentContainerStyle={railStyles.scroll}
@@ -146,12 +145,6 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
       width: MODULE_RAIL_LOGO_SIZE,
       height: MODULE_RAIL_LOGO_SIZE,
       backgroundColor: 'transparent',
-    },
-    divider: {
-      width: 28,
-      height: 1,
-      backgroundColor: glassBorder,
-      marginVertical: spacing.sm,
     },
     list: { flex: 1, alignSelf: 'stretch' },
     scroll: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.sm },
