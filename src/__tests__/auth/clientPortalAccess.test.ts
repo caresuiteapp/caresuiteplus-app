@@ -135,5 +135,11 @@ describe('client portal username + code access', () => {
     expect(panel).not.toMatch(/\bDemo\b/);
     expect(panel).toContain('Portal-Zugang einrichten');
     expect(panel).toContain('Neuen Code erzeugen');
+    expect(panel).toContain('ClientModuleAssignmentPanel');
+    expect(panel).toContain('saveClientModuleAssignments');
+    expect(panel).toContain('Anmeldung Klient:innen Portal');
+    expect(panel).toContain('Beide kopieren');
+    expect(panel).toContain('GlassCard');
+    expect(panel).not.toContain('Angehörige');
   });
 });

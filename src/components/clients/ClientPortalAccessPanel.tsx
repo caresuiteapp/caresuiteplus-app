@@ -1,13 +1,29 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
+import { ClientModuleAssignmentPanel } from '@/components/office/ClientModuleAssignmentPanel';
 import {
   ErrorState,
+  LoadingState,
   PremiumBadge,
   PremiumButton,
-  PremiumCard,
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
+import { GlassCard } from '@/design/components/GlassCard';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { careSpacing } from '@/design/tokens/spacing';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useAuth } from '@/lib/auth/context';
+import {
+  fetchClientModuleAssignments,
+  saveClientModuleAssignments,
+} from '@/lib/portal/clientModuleAssignmentService';
+import {
+  buildPortalNavigation,
+  resolveCombinedModuleLabel,
+} from '@/lib/portal/engine';
+import type { PortalModuleKey } from '@/lib/portal/types';
 import type { ClientFullDetail } from '@/types/modules/client';
 import {
   PORTAL_ACCESS_STATUS_LABELS,
@@ -20,7 +36,7 @@ import {
   setupClientPortalAccess,
 } from '@/lib/clients/clientPortalAccessService';
 import { copyTextToClipboard } from '@/lib/platform/clipboard';
-import { colors, spacing, typography } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 type ClientPortalAccessPanelProps = {
   client: ClientFullDetail;
@@ -28,6 +44,9 @@ type ClientPortalAccessPanelProps = {
   isReadOnly?: boolean;
   onRefresh?: () => void;
 };
+
+const PORTAL_LOGIN_PATH = '/auth/portal-code-login';
+const PORTAL_LOGIN_LABEL = 'Anmeldung Klient:innen Portal';
 
 function resolvePortalStatus(access: ClientPortalAccess | null): string {
   if (!access) return 'Noch nicht eingerichtet';
@@ -47,11 +66,21 @@ export function ClientPortalAccessPanel({
   isReadOnly = false,
   onRefresh,
 }: ClientPortalAccessPanelProps) {
+  const { profile } = useAuth();
+  const text = useAuroraAdaptiveText();
+  const { width } = useDeviceClass();
+  const type = resolveGalaxyTypography(width);
+
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [copyMessage, setCopyMessage] = useState<string | null>(null);
   const [revealedCredentials, setRevealedCredentials] = useState<ClientPortalCredentialsReveal | null>(null);
   const [accessOverride, setAccessOverride] = useState<ClientPortalAccess | null>(null);
+
+  const [portalModules, setPortalModules] = useState<PortalModuleKey[]>([]);
+  const [modulesLoading, setModulesLoading] = useState(true);
+  const [modulesSaving, setModulesSaving] = useState(false);
+  const [modulesError, setModulesError] = useState<string | null>(null);
 
   const access = useMemo(() => {
     if (accessOverride) return accessOverride;
@@ -61,12 +90,61 @@ export function ClientPortalAccessPanel({
   const portalStatus = resolvePortalStatus(access);
   const isActive = access?.portalEnabled === true && access.status === 'aktiv';
 
+  const portalNavigation = useMemo(() => {
+    if (portalModules.length === 0) return [];
+    return buildPortalNavigation({
+      activeModuleKeys: portalModules,
+      hasModuleAssignments: true,
+    });
+  }, [portalModules]);
+
+  useEffect(() => {
+    let cancelled = false;
+
+    async function loadModules() {
+      setModulesLoading(true);
+      setModulesError(null);
+      const result = await fetchClientModuleAssignments(tenantId, client.id);
+      if (cancelled) return;
+      setModulesLoading(false);
+      if (result.ok) {
+        setPortalModules(result.data.map((assignment) => assignment.moduleKey));
+      } else {
+        setModulesError(result.error);
+      }
+    }
+
+    void loadModules();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, client.id]);
+
   async function refreshAccessRecord() {
     const result = await fetchClientPortalAccess(tenantId, client.id);
     if (result.ok && result.data[0]) {
       setAccessOverride(result.data[0]);
     }
     onRefresh?.();
+  }
+
+  async function handleModulesChange(modules: PortalModuleKey[]) {
+    if (isReadOnly) return;
+    const previous = portalModules;
+    setPortalModules(modules);
+    setModulesError(null);
+    setModulesSaving(true);
+    const result = await saveClientModuleAssignments(
+      tenantId,
+      client.id,
+      modules,
+      profile?.id ?? null,
+    );
+    setModulesSaving(false);
+    if (!result.ok) {
+      setModulesError(result.error);
+      setPortalModules(previous);
+    }
   }
 
   async function handleSetup() {
@@ -118,93 +196,169 @@ export function ClientPortalAccessPanel({
     setCopyMessage(copied ? `${label} kopiert.` : `${label} konnte nicht kopiert werden.`);
   }
 
+  async function handleCopyBoth() {
+    const username = revealedCredentials?.username ?? access?.portalUsername;
+    const code = revealedCredentials?.accessCode;
+    if (!username || !code) return;
+    const copied = await copyTextToClipboard(`${username}\n${code}`);
+    setCopyMessage(
+      copied ? 'Benutzername und Portal-Code kopiert.' : 'Kopieren fehlgeschlagen.',
+    );
+  }
+
+  const canCopyBoth =
+    Boolean(revealedCredentials?.accessCode) &&
+    Boolean(revealedCredentials?.username ?? access?.portalUsername);
+
   return (
-    <SectionPanel title="Klient:innenportal">
-      {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      {copyMessage ? <SuccessState message={copyMessage} /> : null}
+    <View style={styles.root}>
+      <ClientModuleAssignmentPanel
+        selected={portalModules}
+        onChange={(modules) => void handleModulesChange(modules)}
+        disabled={isReadOnly || modulesSaving}
+      />
 
-      <PremiumCard style={styles.card}>
-        <View style={styles.row}>
-          <Text style={styles.label}>Status</Text>
-          <PremiumBadge label={portalStatus} variant={statusVariant(access)} dot />
-        </View>
+      {modulesLoading ? <LoadingState message="Portal-Module werden geladen…" /> : null}
+      {modulesError ? <ErrorState message={modulesError} onRetry={() => setModulesError(null)} /> : null}
+      {modulesSaving ? <SuccessState message="Portal-Module werden gespeichert…" /> : null}
 
-        {access?.portalUsername ? (
-          <View style={styles.credentialRow}>
-            <View style={styles.credentialText}>
-              <Text style={styles.label}>Benutzername</Text>
-              <Text style={styles.value}>{access.portalUsername}</Text>
-            </View>
-            <PremiumButton
-              title="Kopieren"
-              variant="secondary"
-              onPress={() => void handleCopy(access.portalUsername!, 'Benutzername')}
-            />
-          </View>
-        ) : (
-          <Text style={styles.hint}>Benutzername wird bei der Einrichtung aus Vor- und Nachname erzeugt.</Text>
-        )}
-
-        {revealedCredentials?.accessCode ? (
-          <View style={styles.credentialRow}>
-            <View style={styles.credentialText}>
-              <Text style={styles.label}>Zugangscode (6 Zeichen)</Text>
-              <Text style={styles.codeValue}>{revealedCredentials.accessCode}</Text>
-              <Text style={styles.warning}>Nur einmal sichtbar — bitte an die Klient:in weitergeben.</Text>
-            </View>
-            <PremiumButton
-              title="Kopieren"
-              variant="secondary"
-              onPress={() => void handleCopy(revealedCredentials.accessCode, 'Zugangscode')}
-            />
-          </View>
-        ) : isActive ? (
-          <Text style={styles.hint}>Zugangscode ist aus Sicherheitsgründen maskiert. Bei Bedarf neuen Code erzeugen.</Text>
-        ) : null}
-
-        {access?.lastLoginAt ? (
-          <Text style={styles.meta}>
-            Letzter Login: {new Date(access.lastLoginAt).toLocaleString('de-DE')}
-          </Text>
-        ) : null}
-      </PremiumCard>
-
-      <PremiumCard style={styles.instructions}>
-        <Text style={styles.instructionsTitle}>So geben Sie die Zugangsdaten weiter</Text>
-        <Text style={styles.instructionsBody}>
-          1. Portal-Zugang einrichten und Benutzername sowie Zugangscode kopieren.{'\n'}
-          2. Klient:in persönlich, telefonisch oder per Post informieren.{'\n'}
-          3. Login unter /auth/portal-code-login mit Benutzername + 6-stelligem Code.{'\n'}
-          4. Bei Verlust: „Neuen Code erzeugen“ — der alte Code wird ungültig.
+      <GlassCard style={styles.previewCard}>
+        <Text style={[type.bodyStrong, { color: text.primary }]}>Portal-Ansicht für Klient:in</Text>
+        <Text style={[type.caption, { color: text.secondary }]}>
+          Das Klient:innenportal passt Navigation, Begriffe und Dashboard-Inhalte an die zugewiesenen
+          Module an.
         </Text>
-      </PremiumCard>
+        {portalModules.length === 0 ? (
+          <Text style={[type.caption, { color: text.muted }]}>
+            Noch keine Module zugewiesen — nach dem Login erscheint ein Hinweis zur Einrichtung.
+          </Text>
+        ) : (
+          <>
+            <Text style={[type.caption, { color: text.muted }]}>
+              Variante: {resolveCombinedModuleLabel(portalModules)}
+            </Text>
+            <View style={styles.navPreview}>
+              {portalNavigation.map((item) => (
+                <PremiumBadge key={item.key} label={item.label} variant="cyan" />
+              ))}
+            </View>
+          </>
+        )}
+      </GlassCard>
 
-      {!isReadOnly ? (
-        <View style={styles.actions}>
-          {!isActive ? (
-            <PremiumButton
-              title="Portal-Zugang einrichten"
-              onPress={() => void handleSetup()}
-              loading={loading}
-              fullWidth
-            />
-          ) : null}
+      <SectionPanel
+        title="Klient:innenportal"
+        subtitle="Zugangsdaten und Anmeldung"
+      >
+        {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
+        {copyMessage ? <SuccessState message={copyMessage} /> : null}
+
+        <GlassCard glow accentColor="#FFD166" style={styles.card}>
+          <View style={styles.row}>
+            <Text style={[type.caption, { color: text.secondary }]}>Status</Text>
+            <PremiumBadge label={portalStatus} variant={statusVariant(access)} dot />
+          </View>
+
           {access?.portalUsername ? (
-            <PremiumButton
-              title="Neuen Code erzeugen"
-              variant="secondary"
-              onPress={() => void handleRegenerate()}
-              loading={loading}
-              fullWidth
-            />
+            <View style={styles.credentialRow}>
+              <View style={styles.credentialText}>
+                <Text style={[type.caption, { color: text.secondary }]}>Benutzername</Text>
+                <Text style={[type.bodyStrong, { color: text.primary }]}>{access.portalUsername}</Text>
+              </View>
+              <PremiumButton
+                title="Kopieren"
+                variant="secondary"
+                onPress={() => void handleCopy(access.portalUsername!, 'Benutzername')}
+              />
+            </View>
+          ) : (
+            <Text style={[type.caption, { color: text.muted }]}>
+              Benutzername wird bei der Einrichtung aus Vor- und Nachname erzeugt.
+            </Text>
+          )}
+
+          {revealedCredentials?.accessCode ? (
+            <View style={styles.credentialRow}>
+              <View style={styles.credentialText}>
+                <Text style={[type.caption, { color: text.secondary }]}>Portal-Code (6-stellig)</Text>
+                <Text style={[styles.codeValue, { color: text.primary }]}>
+                  {revealedCredentials.accessCode}
+                </Text>
+                <Text style={[type.caption, { color: colors.orange }]}>
+                  Nur einmal sichtbar — bitte an die Klient:in weitergeben.
+                </Text>
+              </View>
+              <View style={styles.credentialActions}>
+                <PremiumButton
+                  title="Kopieren"
+                  variant="secondary"
+                  onPress={() => void handleCopy(revealedCredentials.accessCode, 'Portal-Code')}
+                />
+                {canCopyBoth ? (
+                  <PremiumButton
+                    title="Beide kopieren"
+                    variant="secondary"
+                    onPress={() => void handleCopyBoth()}
+                  />
+                ) : null}
+              </View>
+            </View>
+          ) : isActive ? (
+            <Text style={[type.caption, { color: text.muted }]}>
+              Portal-Code ist aus Sicherheitsgründen maskiert. Bei Bedarf neuen Code erzeugen.
+            </Text>
           ) : null}
-        </View>
-      ) : null}
-    </SectionPanel>
+
+          {access?.lastLoginAt ? (
+            <Text style={[type.caption, { color: text.muted }]}>
+              Letzter Login: {new Date(access.lastLoginAt).toLocaleString('de-DE')}
+            </Text>
+          ) : null}
+        </GlassCard>
+
+        <GlassCard style={styles.instructions}>
+          <Text style={[type.bodyStrong, { color: text.primary }]}>
+            So geben Sie die Zugangsdaten weiter
+          </Text>
+          <Text style={[type.body, { color: text.secondary, lineHeight: 22 }]}>
+            1. Portal-Module zuweisen — Navigation und Inhalte passen sich automatisch an.{'\n'}
+            2. Portal-Zugang einrichten und Benutzername sowie Portal-Code kopieren.{'\n'}
+            3. Klient:in persönlich, telefonisch oder per Post informieren.{'\n'}
+            4. Anmeldung über „{PORTAL_LOGIN_LABEL}“ ({PORTAL_LOGIN_PATH}) mit Benutzername und
+            6-stelligem Portal-Code.{'\n'}
+            5. Bei Verlust: „Neuen Code erzeugen“ — der alte Code wird ungültig.
+          </Text>
+        </GlassCard>
+
+        {!isReadOnly ? (
+          <View style={styles.actions}>
+            {!isActive ? (
+              <PremiumButton
+                title="Portal-Zugang einrichten"
+                onPress={() => void handleSetup()}
+                loading={loading}
+                fullWidth
+              />
+            ) : null}
+            {access?.portalUsername ? (
+              <PremiumButton
+                title="Neuen Code erzeugen"
+                variant="secondary"
+                onPress={() => void handleRegenerate()}
+                loading={loading}
+                fullWidth
+              />
+            ) : null}
+          </View>
+        ) : null}
+      </SectionPanel>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
+  root: { gap: spacing.sm },
+  previewCard: { marginBottom: spacing.xs },
   card: { gap: spacing.sm, marginBottom: spacing.sm },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
   credentialRow: {
@@ -215,14 +369,9 @@ const styles = StyleSheet.create({
     marginTop: spacing.xs,
   },
   credentialText: { flex: 1 },
-  label: { ...typography.caption, color: colors.textSecondary },
-  value: { ...typography.bodyStrong, marginTop: 2 },
-  codeValue: { ...typography.h3, letterSpacing: 2, marginTop: 2 },
-  hint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
-  warning: { ...typography.caption, color: colors.orange, marginTop: spacing.xs },
-  meta: { ...typography.caption, marginTop: spacing.sm },
+  credentialActions: { gap: spacing.xs },
+  codeValue: { fontSize: 22, fontWeight: '700', letterSpacing: 2, marginTop: 2 },
   instructions: { marginBottom: spacing.sm },
-  instructionsTitle: { ...typography.bodyStrong, marginBottom: spacing.xs },
-  instructionsBody: { ...typography.body, lineHeight: 22 },
+  navPreview: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
   actions: { gap: spacing.sm },
 });
