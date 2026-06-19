@@ -3,12 +3,16 @@ import { demoTenant } from '@/data/demo/tenant';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { getServiceMode } from '@/lib/services/mode';
-import { fetchTenantBrandingLogoUrl } from '@/lib/tenant/tenantBrandingService';
+import {
+  fetchTenantBrandingLogoUrl,
+  getCachedTenantBrandingLogoUrl,
+} from '@/lib/tenant/tenantBrandingService';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 
 export type TenantBranding = {
   name: string;
   logoUrl: string;
+  logoLoading: boolean;
 };
 
 export function useTenantDisplayName(): string {
@@ -49,10 +53,15 @@ export function useTenantBranding(): TenantBranding {
   const { portalSession } = useAuth();
   const isLive = getServiceMode() === 'supabase';
   const cachedName = portalSession?.tenantName?.trim();
+  const cachedLogoOnMount =
+    isLive && tenantId ? getCachedTenantBrandingLogoUrl(tenantId) : undefined;
   const [name, setName] = useState(
     cachedName ?? (isLive ? 'Ihr Mandant' : demoTenant.name),
   );
-  const [logoUrl, setLogoUrl] = useState('');
+  const [logoUrl, setLogoUrl] = useState(cachedLogoOnMount ?? '');
+  const [logoLoading, setLogoLoading] = useState(
+    isLive && !!tenantId && cachedLogoOnMount === undefined,
+  );
 
   useEffect(() => {
     if (cachedName) {
@@ -78,12 +87,24 @@ export function useTenantBranding(): TenantBranding {
   useEffect(() => {
     if (!isLive || !tenantId) {
       setLogoUrl('');
+      setLogoLoading(false);
       return;
     }
 
+    const cachedLogo = getCachedTenantBrandingLogoUrl(tenantId);
+    if (cachedLogo !== undefined) {
+      setLogoUrl(cachedLogo);
+      setLogoLoading(false);
+      return;
+    }
+
+    setLogoLoading(true);
     let cancelled = false;
     void fetchTenantBrandingLogoUrl(tenantId).then((resolved) => {
-      if (!cancelled) setLogoUrl(resolved.trim());
+      if (!cancelled) {
+        setLogoUrl(resolved);
+        setLogoLoading(false);
+      }
     });
 
     return () => {
@@ -91,5 +112,5 @@ export function useTenantBranding(): TenantBranding {
     };
   }, [isLive, tenantId]);
 
-  return { name, logoUrl };
+  return { name, logoUrl, logoLoading };
 }

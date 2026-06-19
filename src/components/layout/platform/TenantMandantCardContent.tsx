@@ -8,6 +8,7 @@ const LOGO_MAX_HEIGHT = 96;
 
 type TenantMandantCardContentProps = {
   logoUrl?: string;
+  logoLoading?: boolean;
   accentColor: string;
   labelStyle?: TextStyle;
   chipTextStyle?: TextStyle;
@@ -16,6 +17,7 @@ type TenantMandantCardContentProps = {
 
 export function TenantMandantCardContent({
   logoUrl,
+  logoLoading = false,
   accentColor,
   labelStyle,
   chipTextStyle,
@@ -24,6 +26,7 @@ export function TenantMandantCardContent({
   const [logoFailed, setLogoFailed] = useState(false);
   const trimmedLogo = logoUrl?.trim() ?? '';
   const showRemoteLogo = trimmedLogo.length > 0 && !logoFailed;
+  const showFallbackLogo = !logoLoading && !showRemoteLogo;
 
   return (
     <View style={[styles.root, style]}>
@@ -43,9 +46,9 @@ export function TenantMandantCardContent({
             accessibilityLabel="Mandant Logo"
             onError={() => setLogoFailed(true)}
           />
-        ) : (
+        ) : showFallbackLogo ? (
           <CareSuiteLogo size="xl" />
-        )}
+        ) : null}
       </View>
     </View>
   );

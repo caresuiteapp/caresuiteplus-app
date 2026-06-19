@@ -12,6 +12,16 @@ import { enforcePermission } from '@/lib/permissions';
 import type { RoleKey } from '@/types';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
 
+const logoUrlByTenantId = new Map<string, string>();
+
+export function getCachedTenantBrandingLogoUrl(tenantId: string): string | undefined {
+  return logoUrlByTenantId.get(tenantId);
+}
+
+export function setCachedTenantBrandingLogoUrl(tenantId: string, logoUrl: string): void {
+  logoUrlByTenantId.set(tenantId, logoUrl.trim());
+}
+
 export async function saveTenantBrandingProfile(
   tenantId: string,
   profile: TenantBrandingProfile,
@@ -34,6 +44,7 @@ export async function saveTenantBrandingProfile(
   const nextLogoUrl = logoResult.data;
 
   if (!isLiveServiceMode()) {
+    setCachedTenantBrandingLogoUrl(tenantId, nextLogoUrl ?? '');
     return {
       ok: true,
       data: {
@@ -61,6 +72,8 @@ export async function saveTenantBrandingProfile(
     await persistTenantLogoUrl(tenantId, nextLogoUrl);
   }
 
+  setCachedTenantBrandingLogoUrl(tenantId, nextLogoUrl ?? '');
+
   return {
     ok: true,
     data: {
@@ -71,8 +84,14 @@ export async function saveTenantBrandingProfile(
 }
 
 export async function fetchTenantBrandingLogoUrl(tenantId: string): Promise<string> {
+  const cached = logoUrlByTenantId.get(tenantId);
+  if (cached !== undefined) return cached;
+
   const client = getSupabaseClient();
   if (!client) return '';
+
   const { data } = await client.from('tenant_branding').select('logo_url').eq('tenant_id', tenantId).maybeSingle();
-  return data?.logo_url ?? '';
+  const logoUrl = (data?.logo_url ?? '').trim();
+  logoUrlByTenantId.set(tenantId, logoUrl);
+  return logoUrl;
 }
