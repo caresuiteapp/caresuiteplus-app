@@ -36,9 +36,9 @@ export function BusinessDashboardScreen() {
           gap: careSpacing.md,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
-        /** Align KPI block with sidebar Übersicht nav (mandant + heute + schnellaktionen). */
+        /** Align KPI heading with sidebar Übersicht group (tenant + heute + schnellaktionen ≈ 96px). */
         kpiSection: {
-          marginTop: careSpacing.xxl * 3 + careSpacing.md,
+          marginTop: careSpacing.xxl * 2,
         },
         loading: {
           ...careTypography.body,
