@@ -24,7 +24,8 @@ import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
-import { colors, spacing, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
 
 type AppointmentsListViewProps = {
   onAppointmentPress?: (id: string) => void;
@@ -81,6 +82,67 @@ export function AppointmentsListView({
     title: 'title',
     startsAt: 'startsAt',
   });
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        flatList: {
+          flex: 1,
+          backgroundColor: 'transparent',
+        },
+        toolbar: {
+          gap: spacing.sm,
+          marginBottom: spacing.md,
+          backgroundColor: 'transparent',
+        },
+        filterLabel: {
+          ...typography.label,
+          marginTop: spacing.xs,
+          color: colors.textSecondary,
+        },
+        list: {
+          paddingBottom: spacing.xxl,
+          backgroundColor: 'transparent',
+        },
+        loadMore: {
+          marginTop: spacing.sm,
+          marginBottom: spacing.md,
+        },
+        footer: {
+          ...typography.caption,
+          textAlign: 'center',
+          marginVertical: spacing.md,
+          color: colors.textMuted,
+        },
+        embeddedCta: {
+          position: 'absolute',
+          top: spacing.sm,
+          right: spacing.md,
+          zIndex: 2,
+        },
+        embeddedHeader: {
+          marginBottom: spacing.xs,
+          paddingRight: spacing.xxl,
+        },
+        embeddedTitle: {
+          ...typography.h3,
+          color: colors.textPrimary,
+        },
+        embeddedMeta: {
+          ...typography.caption,
+          color: colors.textMuted,
+        },
+        actionMeta: {
+          ...typography.caption,
+          color: colors.textMuted,
+        },
+      }),
+    [colors, typography],
+  );
 
   const handleAppointmentPress = (id: string) => {
     if (onAppointmentPress) {
@@ -301,53 +363,3 @@ export function AppointmentsListView({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-  },
-  flatList: {
-    flex: 1,
-  },
-  toolbar: {
-    gap: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  filterLabel: {
-    ...typography.label,
-    marginTop: spacing.xs,
-  },
-  list: {
-    paddingBottom: spacing.xxl,
-  },
-  loadMore: {
-    marginTop: spacing.sm,
-    marginBottom: spacing.md,
-  },
-  footer: {
-    ...typography.caption,
-    textAlign: 'center',
-    marginVertical: spacing.md,
-  },
-  embeddedCta: {
-    position: 'absolute',
-    top: spacing.sm,
-    right: spacing.md,
-    zIndex: 2,
-  },
-  embeddedHeader: {
-    marginBottom: spacing.xs,
-    paddingRight: spacing.xxl,
-  },
-  embeddedTitle: {
-    ...typography.h3,
-  },
-  embeddedMeta: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-  actionMeta: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-});

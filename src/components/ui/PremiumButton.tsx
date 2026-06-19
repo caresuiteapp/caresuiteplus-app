@@ -1,4 +1,4 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
   Pressable,
@@ -15,10 +15,12 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useAuroraGlassButtonStyles } from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { CareLightButton } from './CareLightButton';
-import { buttonHeights, colors, elevation, motion, radius, typography } from '@/theme';
+import { buttonHeights, elevation, motion, radius } from '@/theme';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
 type Size = 'sm' | 'md';
@@ -62,6 +64,8 @@ export function PremiumButton({
     );
   }
 
+  const { colors, typography } = useLegacyTheme();
+  const auroraButtonStyles = useAuroraGlassButtonStyles();
   const { scaleFontSize } = useAccessibility();
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
@@ -71,10 +75,13 @@ export function PremiumButton({
   const isPrimary = variant === 'primary';
   const height = size === 'sm' ? buttonHeights.sm : buttonHeights.md;
   const isDisabled = disabled || loading;
-  const labelStyle = {
-    fontSize: scaleFontSize(typography.button.fontSize ?? 16),
-    lineHeight: scaleFontSize(typography.button.lineHeight ?? 22),
-  };
+  const labelStyle = useMemo(
+    () => ({
+      fontSize: scaleFontSize(typography.button.fontSize ?? 16),
+      lineHeight: scaleFontSize(typography.button.lineHeight ?? 22),
+    }),
+    [scaleFontSize, typography.button.fontSize, typography.button.lineHeight],
+  );
 
   const content = (
     <View
@@ -82,8 +89,8 @@ export function PremiumButton({
         styles.inner,
         { height, minWidth: fullWidth ? undefined : 120 },
         fullWidth && styles.fullWidth,
-        !isPrimary && variant === 'secondary' && styles.secondary,
-        !isPrimary && variant === 'ghost' && styles.ghost,
+        !isPrimary && variant === 'secondary' && auroraButtonStyles.secondary,
+        !isPrimary && variant === 'ghost' && auroraButtonStyles.ghost,
         isDisabled && styles.disabled,
         isPrimary && elevation.orangeGlow,
         style,
@@ -103,10 +110,10 @@ export function PremiumButton({
         <Text
           allowFontScaling
           style={[
-            typography.button,
+            auroraButtonStyles.label,
             labelStyle,
             isPrimary && styles.primaryText,
-            !isPrimary && styles.secondaryText,
+            !isPrimary && auroraButtonStyles.secondaryText,
           ]}
         >
           {title}
@@ -146,21 +153,10 @@ const styles = StyleSheet.create({
   fullWidth: {
     width: '100%',
   },
-  secondary: {
-    backgroundColor: colors.bgPanel,
-    borderColor: colors.borderStrong,
-  },
-  ghost: {
-    backgroundColor: 'transparent',
-    borderColor: colors.borderSoft,
-  },
   disabled: {
     opacity: 0.5,
   },
   primaryText: {
     color: '#0A0500',
-  },
-  secondaryText: {
-    color: colors.textPrimary,
   },
 });

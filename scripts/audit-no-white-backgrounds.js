@@ -34,6 +34,8 @@ const PRIORITY_PATHS = [
   'src/components/dashboard/OfficeDashboardView.tsx',
   'src/components/office/ClientsListView.tsx',
   'src/components/office/EmployeesListView.tsx',
+  'src/components/office/AppointmentsListView.tsx',
+  'src/components/ui/PremiumButton.tsx',
   'src/components/ui/PremiumDataTable.tsx',
   'src/components/ui/PremiumInput.tsx',
   'src/components/ui/ListFilterSelect.tsx',

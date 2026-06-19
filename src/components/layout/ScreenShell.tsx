@@ -67,18 +67,25 @@ export function ScreenShell({
           flex: 1,
           backgroundColor: shellHostsAurora ? 'transparent' : colors.bgBase,
         },
+        scrollView: {
+          flex: 1,
+          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
+        },
         scroll: {
           padding: spacing.md,
           gap: spacing.md,
           paddingBottom: spacing.xxl,
+          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
         content: {
           flex: 1,
           padding: spacing.md,
           gap: spacing.md,
+          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
         a11yRoot: {
           flex: 1,
+          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
       }),
     [colors.bgBase, shellHostsAurora],
@@ -86,6 +93,7 @@ export function ScreenShell({
 
   const content = scroll ? (
     <ScrollView
+      style={styles.scrollView}
       contentContainerStyle={styles.scroll}
       showsVerticalScrollIndicator={false}
     >

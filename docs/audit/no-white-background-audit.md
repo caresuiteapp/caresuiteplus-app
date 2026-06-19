@@ -30,7 +30,9 @@ Prior wrapper fixes (CareLightPageShell passthrough, ThemeModeProvider 960px gat
 | Table header | `PremiumDataTable.tsx` | 157 | `rgba(255,255,255,0.04)` | behalten (glass header token) | ✅ |
 | Table rows | `PremiumDataTable.tsx` | 184–187 | rgba alt/selected | behalten (glass row tokens) | ✅ |
 | Scroll/list wrapper | `ClientsListView.tsx` | 332–337 | no explicit bg (RN Web white default) | **ersetzen** → `transparent` | ✅ fixed |
-| Loading/empty/error | `StateViews.tsx` | 77–92 | static typography colors | **ersetzen** → `useLegacyTheme` + transparent | ✅ fixed |
+| **List content shell (shared)** | **`ScreenShell.tsx`** | **75–82** | **`content` / `a11yRoot` / `scroll` — no `backgroundColor`; RN Web paints opaque `#F8FAFC`/white below hero | **ersetzen** → `transparent` when `shellHostsAurora` | ✅ fixed |
+| Footer Aktualisieren | `PremiumButton.tsx` | 149–156 | static `colors.bgPanel` / light ghost on aurora | **ersetzen** → `useAuroraGlassButtonStyles()` | ✅ fixed |
+| Loading/empty/error | `StateViews.tsx` | 77–92 | transparent only — parent still light; empty reads as gray sheet | **ersetzen** → `auroraGlass.panel` when active | ✅ fixed |
 
 ---
 
@@ -51,7 +53,11 @@ Prior wrapper fixes (CareLightPageShell passthrough, ThemeModeProvider 960px gat
 | `src/components/layout/ScreenShell.tsx` | 41–55 | `CareLightPageShell` | Route shell | Light branch | behalten | Only when `light && !shellHostsAurora` | ✅ |
 | `src/components/layout/platform/moduledashboardshell.tsx` | 53–57 | `CareLightScreen` | Module dashboard | Light wrap | behalten | Gated: `dark \|\| shellHostsAurora` | ✅ |
 | `src/design/ThemeModeProvider.tsx` | 29–31,57–59 | `aurora-glass` @960px | Theme gate | Force dark on desktop web | behalten | Already correct | ✅ |
-| `src/design/tokens/auroraGlass.ts` | — | **NEW** | Central glass tokens + hooks | page/panel/card/chip/table/row | **ersetzen** | Single source for aurora surfaces | ✅ |
+| `src/components/layout/ScreenShell.tsx` | 75–82 | implicit RN Web default surface | Route shell content below header | **ersetzen** | Shared wrapper for Clients/Employees/Appointments list screens | ✅ |
+| `src/components/ui/PremiumButton.tsx` | 149–156 | static `colors.bgPanel` | Footer/outline buttons | **ersetzen** | Ghost Aktualisieren showed white chip | ✅ |
+| `src/components/ui/StateViews.tsx` | 52–57 | `transparent` on light parent | Empty/loading/error | **ersetzen** | Termine empty state gray sheet | ✅ |
+| `src/components/office/AppointmentsListView.tsx` | 306–311 | no explicit scroll bg | Termine list scroll | **ersetzen** | Align with Clients/Employees transparent | ✅ |
+| `src/design/tokens/auroraGlass.ts` | — | **NEW** `useAuroraGlassButtonStyles` | Button glass tokens | **ersetzen** | Central ghost/secondary on aurora | ✅ |
 | `src/design/routeLayoutStyle.ts` | 5–7 | `transparent` | Expo stack content | Route bg | behalten | Correct | ✅ |
 | `src/components/layout/platform/platformtopbar.tsx` | 62,272,330 | `#FFFFFF` / light dropdown | Topbar | Light dropdown surfaces | behalten | Do not break topbar (e675ad0) | ⚠️ allowed |
 | `src/components/layout/ListDetailLayout.tsx` | 26,34,39 | `colors.bgBase` | Master-detail | Pane backgrounds | behalten | Not used by Klient:innen index route | ⚠️ deferred |
@@ -72,7 +78,7 @@ Prior wrapper fixes (CareLightPageShell passthrough, ThemeModeProvider 960px gat
 | `elevated` | `rgba(30,35,48,0.82)` | `useAuroraGlassSelectStyles()` dropdown |
 | `modal` | `rgba(16,24,39,0.88)` | `useAuroraGlassModalStyle()` |
 | `input` | `rgba(26,32,42,0.75)` | `useAuroraGlassInputStyle()` |
-| `chip` | `rgba(255,255,255,0.06)` | `useAuroraGlassChipStyles()` |
+| `chip` | `rgba(255,255,255,0.06)` | `useAuroraGlassChipStyles()` / `useAuroraGlassButtonStyles()` |
 | `chipActive` | `rgba(255,149,0,0.14)` | `useAuroraGlassChipStyles()` |
 | `table` | `rgba(23,27,34,0.65)` | `useAuroraGlassTableStyles()` |
 | `row` | `transparent` | table data rows |
@@ -133,9 +139,9 @@ Remaining `colors.bgSurface` elsewhere: connect panels, mobile shells, marketpla
 
 ---
 
-## Files Changed (Phase 3)
+## Files Changed (Phase 3 + list-shell follow-up)
 
-1. `src/design/tokens/auroraGlass.ts` — **NEW**
+1. `src/design/tokens/auroraGlass.ts` — **NEW** + `useAuroraGlassButtonStyles`
 2. `src/design/tokens/glass.ts` — re-export shim
 3. `src/design/tokens/carelightadaptive.ts` — delegate to aurora hooks
 4. `src/theme/designTokens.ts` — import auroraGlass
@@ -150,3 +156,6 @@ Remaining `colors.bgSurface` elsewhere: connect panels, mobile shells, marketpla
 13. `src/components/office/EmployeesListView.tsx`
 14. `scripts/audit-no-white-backgrounds.js` — **NEW**
 15. `package.json` — `audit:no-white` script
+16. `src/components/layout/ScreenShell.tsx` — transparent `content` / `a11yRoot` / scroll on aurora
+17. `src/components/ui/PremiumButton.tsx` — aurora glass ghost/secondary
+18. `src/components/office/AppointmentsListView.tsx` — transparent scroll wrappers

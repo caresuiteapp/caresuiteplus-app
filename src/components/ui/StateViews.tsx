@@ -1,8 +1,27 @@
 import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { auroraGlass, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { careRadius } from '@/design/tokens/radius';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { PremiumButton } from './PremiumButton';
+
+function useStateContainerStyle() {
+  const auroraActive = useAuroraGlassActive();
+
+  return useMemo(
+    () =>
+      auroraActive
+        ? {
+            backgroundColor: auroraGlass.panel,
+            borderWidth: 1,
+            borderColor: auroraGlass.border,
+            borderRadius: careRadius.lg,
+          }
+        : { backgroundColor: 'transparent' as const },
+    [auroraActive],
+  );
+}
 
 type LoadingStateProps = {
   message?: string;
@@ -10,6 +29,7 @@ type LoadingStateProps = {
 
 export function LoadingState({ message = 'Wird geladen…' }: LoadingStateProps) {
   const { colors, typography } = useLegacyTheme();
+  const containerSurface = useStateContainerStyle();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -18,7 +38,7 @@ export function LoadingState({ message = 'Wird geladen…' }: LoadingStateProps)
           justifyContent: 'center',
           padding: spacing.lg,
           gap: spacing.sm,
-          backgroundColor: 'transparent',
+          ...containerSurface,
         },
         message: {
           ...typography.body,
@@ -26,7 +46,7 @@ export function LoadingState({ message = 'Wird geladen…' }: LoadingStateProps)
           color: colors.textSecondary,
         },
       }),
-    [colors.textSecondary, typography.body],
+    [colors.textSecondary, containerSurface, typography.body],
   );
 
   return (
@@ -46,6 +66,7 @@ type EmptyStateProps = {
 
 export function EmptyState({ title, message, actionLabel, onAction }: EmptyStateProps) {
   const { colors, typography } = useLegacyTheme();
+  const containerSurface = useStateContainerStyle();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -54,7 +75,7 @@ export function EmptyState({ title, message, actionLabel, onAction }: EmptyState
           justifyContent: 'center',
           padding: spacing.lg,
           gap: spacing.sm,
-          backgroundColor: 'transparent',
+          ...containerSurface,
         },
         title: {
           ...typography.h3,
@@ -67,7 +88,7 @@ export function EmptyState({ title, message, actionLabel, onAction }: EmptyState
           color: colors.textSecondary,
         },
       }),
-    [colors.textPrimary, colors.textSecondary, typography.body, typography.h3],
+    [colors.textPrimary, colors.textSecondary, containerSurface, typography.body, typography.h3],
   );
 
   return (
@@ -93,6 +114,7 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   const { colors, typography } = useLegacyTheme();
+  const containerSurface = useStateContainerStyle();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -101,7 +123,7 @@ export function ErrorState({
           justifyContent: 'center',
           padding: spacing.lg,
           gap: spacing.sm,
-          backgroundColor: 'transparent',
+          ...containerSurface,
         },
         title: {
           ...typography.h3,
@@ -114,7 +136,7 @@ export function ErrorState({
           color: colors.textSecondary,
         },
       }),
-    [colors.danger, colors.textSecondary, typography.body, typography.h3],
+    [colors.danger, colors.textSecondary, containerSurface, typography.body, typography.h3],
   );
 
   return (
@@ -138,6 +160,7 @@ export function SuccessState({
   message,
 }: SuccessStateProps) {
   const { colors, typography } = useLegacyTheme();
+  const containerSurface = useStateContainerStyle();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -146,7 +169,7 @@ export function SuccessState({
           justifyContent: 'center',
           padding: spacing.lg,
           gap: spacing.sm,
-          backgroundColor: 'transparent',
+          ...containerSurface,
         },
         title: {
           ...typography.h3,
@@ -159,7 +182,7 @@ export function SuccessState({
           color: colors.textSecondary,
         },
       }),
-    [colors.success, colors.textSecondary, typography.body, typography.h3],
+    [colors.success, colors.textSecondary, containerSurface, typography.body, typography.h3],
   );
 
   return (

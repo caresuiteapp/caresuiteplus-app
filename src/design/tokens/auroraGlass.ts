@@ -125,6 +125,33 @@ export function useAuroraGlassModalStyle(): ViewStyle {
   );
 }
 
+/** Outline/ghost buttons on aurora desktop (footer Aktualisieren, etc.). */
+export function useAuroraGlassButtonStyles() {
+  const { active, colors } = useAuroraGlass();
+  const { typography } = useLegacyTheme();
+
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        secondary: {
+          backgroundColor: active ? auroraGlass.chip : colors.bgPanel,
+          borderColor: active ? auroraGlass.border : colors.borderStrong,
+        },
+        ghost: {
+          backgroundColor: active ? auroraGlass.chip : 'transparent',
+          borderColor: active ? auroraGlass.border : colors.borderSoft,
+        },
+        secondaryText: {
+          color: colors.textPrimary,
+        },
+        label: {
+          ...typography.button,
+        },
+      }),
+    [active, colors, typography.button],
+  );
+}
+
 /** Filter chip + segmented tab styles for aurora desktop. */
 export function useAuroraGlassChipStyles() {
   const { active, colors } = useAuroraGlass();
