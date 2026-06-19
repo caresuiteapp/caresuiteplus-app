@@ -33,16 +33,8 @@ export function BusinessDashboardScreen() {
     () =>
       StyleSheet.create({
         root: {
-          gap: careSpacing.md,
+          gap: careSpacing.sm,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
-        },
-        /**
-         * Align SectionPanel title with RightContextPanel "Übersicht" nav group.
-         * Main column: topbar (64) + main pad (24) + hero (~154) + root gap (16) + section pad (16).
-         * Sidebar: pad (24) + tenant (~150) + heute/tasks/schnellaktionen (~218–248).
-         */
-        kpiSection: {
-          marginTop: careSpacing.xxl * 2 + careSpacing.lg + careSpacing.xs + careSpacing.md,
         },
         loading: {
           ...careTypography.body,
@@ -99,27 +91,25 @@ export function BusinessDashboardScreen() {
         tenantName={data.tenantName}
         subtitle={data.heroSubtitle}
       />
-      <View style={styles.kpiSection}>
-        <SectionPanel title="Kennzahlen Übersicht" subtitle="Live Mandantenübersicht">
-          <AdaptiveKpiGrid
-            columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
-            items={data.kpis.map((kpi) => ({
-              id: kpi.id,
-              node: (
-                <PremiumKpiCard
-                  label={kpi.label}
-                  value={kpi.value}
-                  subValue={kpi.subValue}
-                  icon={kpi.icon}
-                  accentColor={kpi.accentColor ?? businessAccent}
-                  trend={kpi.trend}
-                  trendValue={kpi.trendValue}
-                />
-              ),
-            }))}
-          />
-        </SectionPanel>
-      </View>
+      <SectionPanel title="Kennzahlen Übersicht" subtitle="Live Mandantenübersicht">
+        <AdaptiveKpiGrid
+          columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
+          items={data.kpis.map((kpi) => ({
+            id: kpi.id,
+            node: (
+              <PremiumKpiCard
+                label={kpi.label}
+                value={kpi.value}
+                subValue={kpi.subValue}
+                icon={kpi.icon}
+                accentColor={kpi.accentColor ?? businessAccent}
+                trend={kpi.trend}
+                trendValue={kpi.trendValue}
+              />
+            ),
+          }))}
+        />
+      </SectionPanel>
       <View
         accessible
         accessibilityLabel={`${wp138A11y.screenLabel} · WP ${wp138A11y.wpNumber}`}

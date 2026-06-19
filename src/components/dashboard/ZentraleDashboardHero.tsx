@@ -25,9 +25,8 @@ export function ZentraleDashboardHero({
       StyleSheet.create({
         root: {
           alignItems: 'center',
-          gap: careSpacing.sm,
-          paddingTop: careSpacing.sm,
-          paddingBottom: careSpacing.sm,
+          gap: careSpacing.xs,
+          paddingBottom: careSpacing.xs,
         },
         wordmark: {
           justifyContent: 'center',
