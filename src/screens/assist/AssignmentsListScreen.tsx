@@ -4,6 +4,7 @@ import { AssignmentsListView } from '@/components/assist/AssignmentsListView';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { useAssignmentList } from '@/hooks/useAssignmentList';
 import { usePermissions } from '@/hooks/usePermissions';
+import { getServiceMode } from '@/lib/services/mode';
 import { fetchAssignmentList } from '@/lib/assist/assignmentListService';
 
 export function AssignmentsListScreen({
@@ -18,6 +19,7 @@ export function AssignmentsListScreen({
   const { isReadOnly, roleLabel } = usePermissions();
   const pageTitle = 'Einsatzplanung';
   const list = useAssignmentList();
+  const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
 
   if (embedded) {
     return (
@@ -48,7 +50,7 @@ export function AssignmentsListScreen({
   return (
     <CareLightPageShell
       title={pageTitle}
-      subtitle={`Assist Disposition${isReadOnly ? ' · Lesemodus' : ''} · ${roleLabel ?? 'Demo'}`}
+      subtitle={`Assist Disposition${isReadOnly ? ' · Lesemodus' : ''} · ${roleSubtitle}`}
       scroll={false}
     >
       <View style={styles.content}>

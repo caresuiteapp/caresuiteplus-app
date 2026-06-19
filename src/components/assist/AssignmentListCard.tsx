@@ -1,8 +1,10 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, spacing, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
 
 type AssignmentListCardProps = {
   assignment: AssignmentListItem;
@@ -45,6 +47,48 @@ function formatTimeRange(start: string, end: string): string {
 }
 
 export function AssignmentListCard({ assignment, onPress, selected = false }: AssignmentListCardProps) {
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          marginBottom: spacing.sm,
+        },
+        cardSelected: {
+          borderColor: colors.amber,
+          borderWidth: 2,
+          backgroundColor: 'rgba(255,193,7,0.08)',
+        },
+        header: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: spacing.sm,
+          marginBottom: 4,
+        },
+        title: {
+          ...typography.bodyStrong,
+          flex: 1,
+          color: colors.textPrimary,
+        },
+        meta: {
+          ...typography.caption,
+          marginBottom: 4,
+          color: colors.textSecondary,
+        },
+        time: {
+          ...typography.caption,
+          color: colors.cyan,
+          marginBottom: 4,
+        },
+        location: {
+          ...typography.caption,
+          color: colors.textMuted,
+        },
+      }),
+    [colors, typography],
+  );
+
   const inner = (
     <>
       <View style={styles.header}>
@@ -80,36 +124,3 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: spacing.sm,
-  },
-  cardSelected: {
-    borderColor: colors.amber,
-    borderWidth: 2,
-    backgroundColor: 'rgba(255,193,7,0.08)',
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: spacing.sm,
-    marginBottom: 4,
-  },
-  title: {
-    ...typography.bodyStrong,
-    flex: 1,
-  },
-  meta: {
-    ...typography.caption,
-    marginBottom: 4,
-  },
-  time: {
-    ...typography.caption,
-    color: colors.cyan,
-    marginBottom: 4,
-  },
-  location: {
-    ...typography.caption,
-  },
-});

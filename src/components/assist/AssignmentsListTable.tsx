@@ -1,8 +1,9 @@
 import { StyleSheet, Text } from 'react-native';
+import { useMemo } from 'react';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
 type AssignmentsListTableProps = {
   assignments: AssignmentListItem[];
@@ -56,6 +57,16 @@ export function AssignmentsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: AssignmentsListTableProps) {
+  const { colors, typography } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        name: { ...typography.bodyStrong, color: colors.textPrimary },
+        meta: { ...typography.caption, color: colors.textSecondary },
+      }),
+    [colors, typography],
+  );
+
   return (
     <PremiumDataTable
       data={assignments}
@@ -124,7 +135,3 @@ export function AssignmentsListTable({
   );
 }
 
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  meta: { ...typography.caption, color: colors.textMuted },
-});

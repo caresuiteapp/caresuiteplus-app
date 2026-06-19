@@ -5,7 +5,9 @@ import {
   isAssignmentToday,
   isAssignmentUpcoming,
 } from '@/data/demo/assistAssignments';
+import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import { enforcePermission } from '@/lib/permissions';
+import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 
 function buildDashboardStats(items: AssignmentListItem[]): AssistDashboardStats {
@@ -33,6 +35,10 @@ export async function fetchAssignmentList(
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'supabase') {
+    return assignmentSupabaseRepository.list(tenantId);
+  }
 
   await new Promise((r) => setTimeout(r, 260));
   return { ok: true, data: getDemoAssignmentListItems() };

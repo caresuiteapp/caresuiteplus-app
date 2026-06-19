@@ -12,6 +12,7 @@ import { demoEmployees } from '@/data/demo/employees';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { isUuid } from '@/lib/validation/uuid';
 import {
   getAllowedAssignmentTransitions,
   validateAssignmentTransition,
@@ -98,6 +99,9 @@ export async function fetchAssignmentDetail(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
+    if (!isUuid(assignmentId)) {
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
+    }
     const result = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
     if (!result.ok) return result;
     if (!result.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
@@ -130,6 +134,9 @@ export async function updateAssignmentStatus(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
+    if (!isUuid(assignmentId)) {
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
+    }
     const existing = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
     if (!existing.ok) return existing;
     if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
@@ -183,6 +190,9 @@ export async function fetchAssignmentDetailWithTasks(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
+    if (!isUuid(assignmentId)) {
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
+    }
     return assignmentSupabaseRepository.getById(tenantId, assignmentId).then((result) => {
       if (!result.ok) return result;
       if (!result.data) return { ok: false, error: 'Einsatz nicht gefunden.' };

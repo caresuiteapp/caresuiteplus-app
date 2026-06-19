@@ -21,6 +21,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { Database } from '@/lib/supabase/database.types';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { isUuid } from '@/lib/validation/uuid';
 
 export type AssignmentTaskRow = {
   id: string;
@@ -257,6 +258,10 @@ export const assignmentSupabaseRepository = {
   ): Promise<ServiceResult<AssignmentDetail | null>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
+
+    if (!isUuid(assignmentId)) {
+      return { ok: true, data: null };
+    }
 
     const { data, error } = await fromUnknownTable(supabase, 'assignments')
       .select(DETAIL_SELECT)

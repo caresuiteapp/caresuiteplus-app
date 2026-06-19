@@ -23,7 +23,9 @@ import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
-import { colors, spacing, typography } from '@/theme';
+import { getServiceMode } from '@/lib/services/mode';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
 
 type AssignmentsListViewProps = {
   onAssignmentPress?: (id: string) => void;
@@ -87,6 +89,36 @@ export function AssignmentsListView({
     client: 'clientName',
     time: 'scheduledStart',
   });
+  const { colors, typography } = useLegacyTheme();
+  const isLive = getServiceMode() === 'supabase';
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        container: { flex: 1, backgroundColor: 'transparent' },
+        flatList: { flex: 1, backgroundColor: 'transparent' },
+        toolbar: { gap: spacing.sm, marginBottom: spacing.md, backgroundColor: 'transparent' },
+        filterLabel: {
+          ...typography.label,
+          marginTop: spacing.xs,
+          color: colors.textSecondary,
+        },
+        list: { paddingBottom: spacing.xxl, backgroundColor: 'transparent' },
+        loadMore: { marginTop: spacing.sm, marginBottom: spacing.md },
+        footer: {
+          ...typography.caption,
+          textAlign: 'center',
+          marginVertical: spacing.md,
+          color: colors.textMuted,
+        },
+        embeddedHeader: {
+          marginBottom: spacing.xs,
+          paddingRight: spacing.xxl,
+        },
+        embeddedTitle: { ...typography.h3, color: colors.textPrimary },
+        embeddedMeta: { ...typography.caption, color: colors.textMuted },
+      }),
+    [colors, typography],
+  );
 
   if (!canView) {
     return (
@@ -160,7 +192,11 @@ export function AssignmentsListView({
   const emptyContent = isEmpty ? (
     <EmptyState
       title="Noch keine Einsätze"
-      message="Es sind keine Einsätze im Demo-Mandanten hinterlegt."
+      message={
+        isLive
+          ? 'Für diesen Mandanten sind noch keine Einsätze geplant.'
+          : 'Es sind keine Einsätze im Demo-Mandanten hinterlegt.'
+      }
     />
   ) : isFilterEmpty ? (
     <EmptyState
@@ -244,18 +280,3 @@ export function AssignmentsListView({
   );
 }
 
-const styles = StyleSheet.create({
-  container: { flex: 1 },
-  flatList: { flex: 1 },
-  toolbar: { gap: spacing.sm, marginBottom: spacing.md },
-  filterLabel: { ...typography.label, marginTop: spacing.xs },
-  list: { paddingBottom: spacing.xxl },
-  loadMore: { marginTop: spacing.sm, marginBottom: spacing.md },
-  footer: { ...typography.caption, textAlign: 'center', marginVertical: spacing.md },
-  embeddedHeader: {
-    marginBottom: spacing.xs,
-    paddingRight: spacing.xxl,
-  },
-  embeddedTitle: { ...typography.h3 },
-  embeddedMeta: { ...typography.caption, color: colors.textMuted },
-});
