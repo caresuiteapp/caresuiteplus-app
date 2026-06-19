@@ -15,7 +15,10 @@ function loadEnvFromDotenv() {
 loadEnvFromDotenv();
 
 const REMOTE_URL = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-const REMOTE_KEY = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+const REMOTE_KEY =
+  process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+  process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+  '';
 const PILOT_TENANT = '11111111-1111-1111-1111-111111111101';
 const runRemote = REMOTE_URL.includes('supabase.co') && REMOTE_KEY.length > 20;
 

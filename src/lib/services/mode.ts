@@ -37,7 +37,8 @@ export function assertLiveConfig(): { ok: true } | { ok: false; issues: LiveConf
   if (!anonKey.trim()) {
     issues.push({
       code: 'missing_anon_key',
-      message: 'EXPO_PUBLIC_SUPABASE_ANON_KEY fehlt.',
+      message:
+        'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY oder EXPO_PUBLIC_SUPABASE_ANON_KEY fehlt.',
     });
   }
 

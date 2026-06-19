@@ -54,6 +54,14 @@ describe('Live Supabase wiring', () => {
     expect(getServiceMode()).toBe('supabase');
   });
 
+  it('getServiceMode returns supabase with publishable key only', () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://test.supabase.co');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'sb_publishable_test');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
+    expect(getServiceMode()).toBe('supabase');
+  });
+
   it('getServiceMode returns demo when EXPO_PUBLIC_DEMO_MODE=true', () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     expect(getServiceMode()).toBe('demo');
@@ -214,6 +222,12 @@ describe('Live Supabase wiring', () => {
       expect(source).not.toMatch(/DEMO_TENANT_ID/);
       expect(source).not.toMatch(/REPORTING_DEMO_TENANT/);
     }
+  });
+
+  it('config resolves publishable key with anon fallback', () => {
+    const source = readSrc('lib/supabase/config.ts');
+    expect(source).toContain('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY');
+    expect(source).toContain('EXPO_PUBLIC_SUPABASE_ANON_KEY');
   });
 
   it('isDemoMode is boolean', () => {

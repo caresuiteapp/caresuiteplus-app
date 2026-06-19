@@ -5,7 +5,10 @@ export function isDemoMode(): boolean {
 
 export function getSupabaseConfig() {
   const url = process.env.EXPO_PUBLIC_SUPABASE_URL ?? '';
-  const anonKey = process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ?? '';
+  const anonKey =
+    process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ||
+    process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY ||
+    '';
   return { url, anonKey };
 }
 

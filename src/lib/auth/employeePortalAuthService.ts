@@ -160,7 +160,7 @@ export async function loginEmployeePortal(
     return {
       ok: false,
       error:
-        'Live-Anmeldung erfordert Supabase-Konfiguration. Bitte EXPO_PUBLIC_SUPABASE_URL und EXPO_PUBLIC_SUPABASE_ANON_KEY setzen.',
+        'Live-Anmeldung erfordert Supabase-Konfiguration. Bitte EXPO_PUBLIC_SUPABASE_URL und EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY (oder EXPO_PUBLIC_SUPABASE_ANON_KEY) setzen.',
     };
   }
 
