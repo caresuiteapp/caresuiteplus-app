@@ -11,7 +11,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
-import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
@@ -31,6 +31,7 @@ import {
   resolveContextPanelNavConfig,
 } from './platformContextData';
 import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
+import { TenantMandantCardContent } from './TenantMandantCardContent';
 
 type RightContextPanelProps = {
   mainModule: MainModuleKey;
@@ -48,7 +49,7 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   const router = useRouter();
   const pathname = usePathname();
   const { width } = useWindowDimensions();
-  const tenantName = useTenantDisplayName();
+  const { name: tenantName, logoUrl: tenantLogoUrl } = useTenantBranding();
   const { colors, isDark } = useLegacyTheme();
   const accent = accentColor ?? colors.violet;
   const { data: officeData } = useOfficeDashboard();
@@ -75,13 +76,12 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   return (
     <View style={styles.root}>
       <GlowCard glowColor={accent} style={styles.tenantCard}>
-        <Text style={styles.cardHeading}>Mandant</Text>
-        <Text style={styles.tenantName} numberOfLines={2}>
-          {tenantName}
-        </Text>
-        <View style={[styles.liveChip, { borderColor: withAlpha(accent, 0.45) }]}>
-          <Text style={[styles.liveChipText, { color: accent }]}>● Live</Text>
-        </View>
+        <TenantMandantCardContent
+          tenantName={tenantName}
+          logoUrl={tenantLogoUrl}
+          accentColor={accent}
+          nameStyle={{ color: colors.textPrimary }}
+        />
       </GlowCard>
 
       <Text style={styles.sectionHeading}>Modulstatus</Text>
@@ -222,28 +222,7 @@ function createStyles(
     },
     tenantCard: {
       padding: spacing.sm + spacing.xs,
-      gap: spacing.xs,
     },
-    cardHeading: {
-      ...typography.caption,
-      color: colors.textMuted,
-      textTransform: 'uppercase',
-      letterSpacing: 0.6,
-    },
-    tenantName: {
-      ...typography.bodyStrong,
-      color: colors.textPrimary,
-      fontWeight: '700',
-    },
-    liveChip: {
-      alignSelf: 'flex-start',
-      paddingHorizontal: spacing.sm,
-      paddingVertical: 4,
-      borderRadius: radius.capsule,
-      borderWidth: 1,
-      marginTop: spacing.xs,
-    },
-    liveChipText: { fontSize: 11, fontWeight: '700' },
     sectionHeading: {
       ...typography.caption,
       color: colors.textMuted,

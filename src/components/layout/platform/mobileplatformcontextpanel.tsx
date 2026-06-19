@@ -15,7 +15,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { withAlpha } from '@/design/tokens/motion';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
@@ -30,6 +30,7 @@ import {
   resolveContextPanelNavConfig,
 } from './platformContextData';
 import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
+import { TenantMandantCardContent } from './TenantMandantCardContent';
 
 type MobilePlatformContextPanelProps = {
   mainModule: MainModuleKey;
@@ -49,7 +50,7 @@ export function MobilePlatformContextPanel({
 }: MobilePlatformContextPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const tenantName = useTenantDisplayName();
+  const { name: tenantName, logoUrl: tenantLogoUrl } = useTenantBranding();
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
@@ -80,13 +81,13 @@ export function MobilePlatformContextPanel({
   return (
     <View style={styles.root}>
       <GlassCard style={styles.card}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>MANDANT</Text>
-        <Text style={[type.bodyStrong, { color: text.primary }]} numberOfLines={2}>
-          {tenantName}
-        </Text>
-        <View style={[styles.liveChip, { borderColor: withAlpha(accentColor, 0.45) }]}>
-          <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>● Live</Text>
-        </View>
+        <TenantMandantCardContent
+          tenantName={tenantName}
+          logoUrl={tenantLogoUrl}
+          accentColor={accentColor}
+          nameStyle={{ ...type.bodyStrong, color: text.primary }}
+          chipTextStyle={{ ...type.caption, fontWeight: '700' }}
+        />
       </GlassCard>
 
       <GlassCard style={styles.card}>
@@ -231,14 +232,6 @@ const styles = StyleSheet.create({
     textTransform: 'uppercase',
     letterSpacing: 0.6,
     marginBottom: careSpacing.xs,
-  },
-  liveChip: {
-    alignSelf: 'flex-start',
-    paddingHorizontal: careSpacing.sm,
-    paddingVertical: 4,
-    borderRadius: 999,
-    borderWidth: 1,
-    marginTop: careSpacing.xs,
   },
   statusRow: {
     flexDirection: 'row',
