@@ -318,7 +318,12 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       justifyContent: 'center',
     },
     tenantIcon: { fontSize: 18, lineHeight: TOPBAR_ICON_SIZE },
-    tenantTextWrap: { flex: 1, minWidth: 0 },
+    tenantTextWrap: {
+      flex: 1,
+      minWidth: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
     tenantLabel: {
       ...typography.caption,
       color: colors.textMuted,
@@ -326,13 +331,21 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       textTransform: 'uppercase',
       letterSpacing: 0.6,
       fontWeight: '600',
+      textAlign: 'center',
     },
     tenantName: {
       ...typography.bodyStrong,
       color: isDark ? '#FFFFFF' : colors.textPrimary,
       fontWeight: '700',
+      textAlign: 'center',
     },
-    chevron: { fontSize: 10, color: colors.textMuted, marginLeft: spacing.xs },
+    chevronSlot: {
+      width: TOPBAR_ICON_SIZE,
+      height: TOPBAR_ICON_SIZE,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    chevron: { fontSize: 10, color: colors.textMuted },
     dropdown: {
       position: 'absolute',
       top: '100%',
