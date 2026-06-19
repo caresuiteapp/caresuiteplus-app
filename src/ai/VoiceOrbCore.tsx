@@ -11,7 +11,9 @@ import Animated, {
   withTiming,
 } from 'react-native-reanimated';
 import { careSpacing } from '@/design/tokens/spacing';
+import { resolveMainModuleFromPath } from '@/lib/navigation/resolvemainmodule';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
+import { resolvePlatformShellSideInsets } from '@/lib/platform/shellLayoutMetrics';
 import { spacing } from '@/theme';
 import { VoiceWave } from './VoiceWave';
 import type { AiStatus } from './aiToolTypes';
@@ -314,12 +316,17 @@ export function useVoiceOrbPlacement() {
     const hasBottomNav = isMobile && pathname.startsWith('/portal');
     const bottomNavOffset = hasBottomNav ? PORTAL_MOBILE_NAV_HEIGHT + careSpacing.sm : 0;
 
+    const shellLeftInset =
+      Platform.OS === 'web' && !isMobile
+        ? resolvePlatformShellSideInsets(width, resolveMainModuleFromPath(pathname)).left
+        : 0;
+
     return {
       ...(Platform.OS === 'web' ? ({ position: 'fixed' } as ViewStyle) : null),
-      left: spacing.lg + Math.max(insets.left, 0),
+      left: shellLeftInset + spacing.lg + Math.max(insets.left, 0),
       bottom: spacing.lg + Math.max(insets.bottom, 0) + bottomNavOffset,
     };
-  }, [insets.bottom, insets.left, isMobile, pathname]);
+  }, [insets.bottom, insets.left, isMobile, pathname, width]);
 
   return { isMobile, containerStyle };
 }

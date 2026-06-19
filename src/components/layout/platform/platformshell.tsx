@@ -21,8 +21,8 @@ type PlatformShellProps = {
 };
 
 /**
- * Three-column desktop shell (≥1280px):
- * MainModuleRail (full height) | content column: Topbar + body (ModuleNavSidebar + main) | RightContextPanel (full height)
+ * Desktop shell (≥1280px with right panel):
+ * MainModuleRail | ModuleNavSidebar (full height) | Topbar + main | RightContextPanel
  * Mobile (<768px): no ModuleNavSidebar; context panel scrolls below main content.
  * Zentrale: no left ModuleNavSidebar — navigation lives in RightContextPanel only.
  */
@@ -42,10 +42,10 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.shellRow}>
         <MainModuleRail activeModule={mainModule} />
+        {showModuleNav ? <ModuleNavSidebar mainModule={mainModule} accentColor={accent} /> : null}
         <View style={styles.contentColumn}>
           <PlatformTopbar mainModule={mainModule} accentColor={accent} />
           <View style={styles.body}>
-            {showModuleNav ? <ModuleNavSidebar mainModule={mainModule} accentColor={accent} /> : null}
             {isPhoneLayout ? (
               <ScrollView
                 style={styles.main}

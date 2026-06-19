@@ -15,6 +15,10 @@ import {
 } from '@/lib/navigation/modulenav';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
+import {
+  PLATFORM_MODULE_NAV_WIDTH,
+  PLATFORM_SHELL_HEADER_TOP_INSET,
+} from '@/lib/platform/shellLayoutMetrics';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
@@ -152,14 +156,18 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
 
   return StyleSheet.create({
     root: {
-      width: 248,
+      width: PLATFORM_MODULE_NAV_WIDTH,
+      flexGrow: 0,
+      flexShrink: 0,
+      alignSelf: 'stretch',
       backgroundColor: isDark ? 'rgba(18,22,43,0.32)' : colors.bgPremium,
       borderRightWidth: 1,
       borderRightColor: glassBorder,
       paddingHorizontal: spacing.md,
+      paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
       paddingBottom: spacing.md,
     },
-    title: { ...typography.h3, color: colors.textPrimary, marginTop: spacing.md },
+    title: { ...typography.h3, color: colors.textPrimary },
     subtitle: {
       ...typography.caption,
       color: colors.textMuted,

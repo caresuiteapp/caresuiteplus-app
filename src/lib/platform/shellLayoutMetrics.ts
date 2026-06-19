@@ -38,18 +38,12 @@ export function resolvePlatformShellSideInsets(
 
 /** Map shell insets into PlatformTopbar coordinates (topbar spans center column only, not the right panel). */
 export function resolveTopbarCenterZoneInsets(
-  width: number,
-  mainModule: MainModuleKey,
+  _width: number,
+  _mainModule: MainModuleKey,
   _topbarHorizontalPadding: number,
 ): PlatformShellSideInsets {
-  const isPhoneLayout = width < breakpoints.tablet;
-  const showModuleNav =
-    width >= PLATFORM_MODULE_NAV_BREAKPOINT && !isPhoneLayout && mainModule !== 'zentrale';
-
-  return {
-    left: showModuleNav ? PLATFORM_MODULE_NAV_WIDTH : 0,
-    right: 0,
-  };
+  // ModuleNavSidebar is a full-height sibling column — topbar already spans main work area only.
+  return { left: 0, right: 0 };
 }
 
 /** Topbar no longer spans the right context panel column — no end-zone offset needed. */

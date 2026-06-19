@@ -35,14 +35,12 @@ describe('shellLayoutMetrics', () => {
     const shell = resolvePlatformShellSideInsets(width, 'office');
     const center = resolveTopbarCenterZoneInsets(width, 'office', topbarPadding);
 
-    expect(center).toEqual({ left: PLATFORM_MODULE_NAV_WIDTH, right: 0 });
+    expect(center).toEqual({ left: 0, right: 0 });
 
     const contentColumnWidth = width - shell.left - shell.right;
-    const mainWidth = contentColumnWidth - PLATFORM_MODULE_NAV_WIDTH;
-    const mainCenter = shell.left + PLATFORM_MODULE_NAV_WIDTH + mainWidth / 2;
+    const mainCenter = shell.left + contentColumnWidth / 2;
     const topbarInnerWidth = contentColumnWidth - topbarPadding * 2;
-    const zoneCenter =
-      shell.left + topbarPadding + center.left + (topbarInnerWidth - center.left) / 2;
+    const zoneCenter = shell.left + topbarPadding + topbarInnerWidth / 2;
 
     expect(zoneCenter).toBeCloseTo(mainCenter, 5);
   });
