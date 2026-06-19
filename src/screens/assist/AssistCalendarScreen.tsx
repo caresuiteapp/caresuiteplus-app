@@ -1,72 +1,98 @@
+import { useState } from 'react';
 import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
-import { fetchCalendarWeek } from '@/lib/assist/calendarService';
-import { useRouter } from 'expo-router';
+import { AssignmentDetailGlassModal } from '@/components/assist/AssignmentDetailGlassModal';
 import { AssistCalendarListHero } from '@/components/assist';
-import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard, PremiumInput } from '@/components/ui';
+import { CareLightPageShell } from '@/components/layout';
+import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard } from '@/components/ui';
 import { useAssistCalendar } from '@/hooks/useAssistCalendar';
 import { useAuth } from '@/lib/auth/context';
+import { usePermissions } from '@/hooks/usePermissions';
+import { getServiceMode } from '@/lib/services/mode';
 import { colors, spacing, typography } from '@/theme';
 
 export function AssistCalendarScreen() {
-  const router = useRouter();
   const { profile } = useAuth();
+  const { isReadOnly, roleLabel } = usePermissions();
   const { data, loading, error, refresh } = useAssistCalendar();
+  const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
+  const [selectedAssignmentTitle, setSelectedAssignmentTitle] = useState('Einsatz');
   const roleKey = profile?.roleKey ?? 'caregiver';
+  const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
 
   if (loading && !data) {
     return (
-      <ScreenShell title="Kalender" subtitle="Einsatzplanung · WP 243">
+      <CareLightPageShell title="Kalender" subtitle="Wird geladen…" showBack={false} scroll={false}>
         <LoadingState message="Wochenübersicht wird geladen…" />
-      </ScreenShell>
+      </CareLightPageShell>
     );
   }
 
   if (error) {
     return (
-      <ScreenShell title="Kalender" subtitle="Fehler">
+      <CareLightPageShell title="Kalender" subtitle="Fehler" showBack={false} scroll={false}>
         <ErrorState title="Kalender" message={error} onRetry={refresh} />
-      </ScreenShell>
+      </CareLightPageShell>
     );
   }
 
   const groups = data ?? [];
 
   return (
-    <ScreenShell title="Kalender" subtitle="Einsatzplanung · WP 243" scroll={false}>
-      <FlatList
-        data={groups}
-        keyExtractor={(item) => item.dateKey}
-        ListHeaderComponent={
-          <View style={styles.header}>
-            <AssistCalendarListHero groups={groups} roleKey={roleKey} />
-          </View>
-        }
-        ListEmptyComponent={<EmptyState title="Keine Einsätze" message="Für diese Woche sind keine Termine geplant." />}
-        renderItem={({ item }) => (
-          <View style={styles.dayBlock}>
-            <Text style={styles.dayLabel}>{item.label}</Text>
-            {item.assignments.map((assignment) => (
-              <Pressable
-                key={assignment.id}
-                onPress={() => router.push(`/assist/assignments/${assignment.id}` as never)}
-              >
-                <PremiumCard style={styles.card}>
-                  <Text style={styles.title}>{assignment.clientName}</Text>
-                  <Text style={styles.meta}>{assignment.title}</Text>
-                  <PremiumBadge label={assignment.status} variant="cyan" />
-                </PremiumCard>
-              </Pressable>
-            ))}
-          </View>
-        )}
-        contentContainerStyle={styles.list}
+    <>
+      <CareLightPageShell
+        title="Kalender"
+        subtitle={`Einsatzplanung${isReadOnly ? ' · Lesemodus' : ''} · ${roleSubtitle}`}
+        showBack={false}
+        scroll={false}
+      >
+        <View style={styles.content}>
+          <FlatList
+            data={groups}
+            keyExtractor={(item) => item.dateKey}
+            ListHeaderComponent={
+              <View style={styles.header}>
+                <AssistCalendarListHero groups={groups} roleKey={roleKey} />
+              </View>
+            }
+            ListEmptyComponent={
+              <EmptyState title="Keine Einsätze" message="Für diese Woche sind keine Termine geplant." />
+            }
+            renderItem={({ item }) => (
+              <View style={styles.dayBlock}>
+                <Text style={styles.dayLabel}>{item.label}</Text>
+                {item.assignments.map((assignment) => (
+                  <Pressable
+                    key={assignment.id}
+                    onPress={() => {
+                      setSelectedAssignmentId(assignment.id);
+                      setSelectedAssignmentTitle(assignment.title);
+                    }}
+                  >
+                    <PremiumCard style={styles.card}>
+                      <Text style={styles.title}>{assignment.clientName}</Text>
+                      <Text style={styles.meta}>{assignment.title}</Text>
+                      <PremiumBadge label={assignment.status} variant="cyan" />
+                    </PremiumCard>
+                  </Pressable>
+                ))}
+              </View>
+            )}
+            contentContainerStyle={styles.list}
+          />
+        </View>
+      </CareLightPageShell>
+      <AssignmentDetailGlassModal
+        visible={!!selectedAssignmentId}
+        assignmentId={selectedAssignmentId}
+        title={selectedAssignmentTitle}
+        onClose={() => setSelectedAssignmentId(null)}
       />
-    </ScreenShell>
+    </>
   );
 }
 
 const styles = StyleSheet.create({
+  content: { flex: 1 },
   header: { marginBottom: spacing.sm },
   list: { paddingBottom: spacing.xxl },
   dayBlock: { marginBottom: spacing.lg },
