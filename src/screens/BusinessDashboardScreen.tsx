@@ -36,9 +36,13 @@ export function BusinessDashboardScreen() {
           gap: careSpacing.md,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
-        /** Align KPI heading with sidebar Übersicht group (tenant + heute + schnellaktionen ≈ 96px). */
+        /**
+         * Align SectionPanel title with RightContextPanel "Übersicht" nav group.
+         * Main column: topbar (64) + main pad (24) + hero (~154) + root gap (16) + section pad (16).
+         * Sidebar: pad (24) + tenant (~150) + heute/tasks/schnellaktionen (~218–248).
+         */
         kpiSection: {
-          marginTop: careSpacing.xxl * 2,
+          marginTop: careSpacing.xxl * 2 + careSpacing.lg + careSpacing.xs + careSpacing.md,
         },
         loading: {
           ...careTypography.body,
