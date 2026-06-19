@@ -1,5 +1,6 @@
 export { CatalogValueSelect } from './CatalogValueSelect';
 export { TemplateDropdownSelect } from './TemplateDropdownSelect';
+export { GroupedTemplateSelect } from './GroupedTemplateSelect';
 export { TextBlockPicker } from './TextBlockPicker';
 export { TemplateCard } from './TemplateCard';
 export { TemplateListItem } from './TemplateListItem';

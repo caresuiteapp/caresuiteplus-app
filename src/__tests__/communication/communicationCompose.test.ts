@@ -43,6 +43,10 @@ describe('Kommunikationszentrum Compose (Sprint 45)', () => {
     expect(source).toContain('Neue Nachricht');
     expect(source).toContain('Senden');
     expect(source).toContain('Schließen');
+    expect(source).toContain('maxWidth={1024}');
+    expect(source).toContain('GroupedTemplateSelect');
+    expect(source).not.toContain('Nachrichtenkategorie');
+    expect(source).not.toContain('CatalogValueSelect');
   });
 
   it('createThread persistiert Demo-Thread', async () => {

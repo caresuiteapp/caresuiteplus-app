@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
-import { CatalogValueSelect, TemplateDropdownSelect } from '@/components/templates';
+import { GroupedTemplateSelect } from '@/components/templates';
 import { ListFilterSelect, PremiumInput } from '@/components/ui';
 import { PRIORITY_LABELS } from '@/features/communication/communication.constants';
 import { createThread, sendMessage } from '@/features/communication/communication.service';
@@ -55,7 +55,6 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
   const [recipientId, setRecipientId] = useState<string>(OFFICE_INTERNAL_RECIPIENT_ID);
   const [recipientOptions, setRecipientOptions] = useState<{ key: string; label: string }[]>([]);
   const [title, setTitle] = useState('');
-  const [categoryKey, setCategoryKey] = useState<string | null>(null);
   const [priority, setPriority] = useState<CommunicationPriority>('normal');
   const [messageTemplateId, setMessageTemplateId] = useState('');
   const [messageBody, setMessageBody] = useState('');
@@ -89,7 +88,6 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
     setRecipientId(OFFICE_INTERNAL_RECIPIENT_ID);
     setRecipientOptions([]);
     setTitle('');
-    setCategoryKey(null);
     setPriority('normal');
     setMessageTemplateId('');
     setMessageBody('');
@@ -121,6 +119,10 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
       setRecipientId(options[0]?.key ?? '');
     })();
   }, [visible, tenantId, recipientType, profile?.roleKey]);
+
+  useEffect(() => {
+    setMessageTemplateId('');
+  }, [recipientType]);
 
   const selectedRecipientLabel = useMemo(
     () => recipientOptions.find((option) => option.key === recipientId)?.label ?? null,
@@ -230,7 +232,7 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
           disabled: !canSubmit,
         },
       ]}
-      maxWidth={620}
+      maxWidth={1024}
     >
       <ScrollView keyboardShouldPersistTaps="handled">
         <View style={styles.section}>
@@ -263,15 +265,6 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
         </View>
 
         <View style={styles.section}>
-          <CatalogValueSelect
-            catalogType="message_category"
-            label="Nachrichtenkategorie"
-            value={categoryKey ?? ''}
-            onChange={(key) => setCategoryKey(key)}
-          />
-        </View>
-
-        <View style={styles.section}>
           <Text style={styles.label}>Priorität</Text>
           <View style={styles.chips}>
             {PRIORITIES.map(([key, label]) => {
@@ -297,9 +290,8 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
           hint="Alternativ aus Vorlage ableiten"
         />
 
-        <TemplateDropdownSelect
-          label="Nachrichtenvorlage"
-          filters={{ moduleKey: 'communication', templateType: 'message', status: 'active' }}
+        <GroupedTemplateSelect
+          recipientType={recipientType}
           value={messageTemplateId}
           onChange={(id, content) => {
             setMessageTemplateId(id);
