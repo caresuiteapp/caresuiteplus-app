@@ -9,6 +9,12 @@ import {
 } from '@/data/demo/portalClient';
 import { enforcePermission } from '@/lib/permissions';
 import { runService } from '@/lib/services/serviceRunner';
+import { getServiceMode } from '@/lib/services/mode';
+import {
+  fetchLiveClientCarePlanSummaries,
+  fetchLiveClientPortalProfile,
+  type ClientPortalAccessSummary,
+} from './clientProfileLiveService';
 import { getPortalProfileLink } from './portalVisibility';
 
 const SIMULATED_DELAY_MS = 350;
@@ -21,48 +27,70 @@ function isClientPortalRole(roleKey: RoleKey | null): boolean {
   return roleKey === 'client_portal' || roleKey === 'family_portal';
 }
 
+export type FetchClientPortalProfileParams = {
+  profileId: string;
+  tenantId?: string | null;
+  clientId?: string | null;
+  roleKey: RoleKey | null;
+};
+
+export type ClientPortalProfileResult = {
+  profile: PortalClientProfile;
+  portalAccess: ClientPortalAccessSummary | null;
+};
+
 export async function fetchClientPortalProfile(
-  profileId: string,
-  roleKey: RoleKey | null,
-): Promise<ServiceResult<PortalClientProfile>> {
-  const denied = enforcePermission<PortalClientProfile>(roleKey, 'portal.client.profile.view');
+  params: FetchClientPortalProfileParams,
+): Promise<ServiceResult<ClientPortalProfileResult>> {
+  const { profileId, tenantId, clientId, roleKey } = params;
+  const denied = enforcePermission<ClientPortalProfileResult>(roleKey, 'portal.client.profile.view');
   if (denied && isClientPortalRole(roleKey)) return denied;
+
+  if (getServiceMode() === 'supabase' && tenantId?.trim() && clientId?.trim()) {
+    const live = await fetchLiveClientPortalProfile(tenantId, clientId);
+    if (!live.ok) return live;
+    return { ok: true, data: live.data };
+  }
 
   return runService(async () => {
     await delay(SIMULATED_DELAY_MS);
 
-    const link = getPortalProfileLink(profileId);
-    if (!link.clientId) {
+    const resolvedClientId = clientId ?? getPortalProfileLink(profileId).clientId;
+    if (!resolvedClientId) {
       return { ok: false, error: 'Kein Klient:innenprofil mit diesem Portal verknüpft.' };
     }
 
-    const profile = getDemoClientPortalProfile(link.clientId, profileId);
+    const profile = getDemoClientPortalProfile(resolvedClientId, profileId);
     if (!profile) {
       return { ok: false, error: 'Klient:innenprofil nicht gefunden.' };
     }
 
-    return { ok: true, data: profile };
+    return { ok: true, data: { profile, portalAccess: null } };
   });
 }
 
 export async function fetchClientCarePlanSummaries(
-  profileId: string,
-  roleKey: RoleKey | null,
+  params: FetchClientPortalProfileParams,
 ): Promise<ServiceResult<PortalClientCarePlanSummary[]>> {
+  const { profileId, tenantId, clientId, roleKey } = params;
   const denied = enforcePermission<PortalClientCarePlanSummary[]>(
     roleKey,
     'portal.client.careplan.view',
   );
   if (denied && isClientPortalRole(roleKey)) return denied;
 
+  if (getServiceMode() === 'supabase' && tenantId?.trim() && clientId?.trim()) {
+    return fetchLiveClientCarePlanSummaries(tenantId, clientId);
+  }
+
   return runService(async () => {
     await delay(SIMULATED_DELAY_MS);
 
-    const link = getPortalProfileLink(profileId);
-    if (!link.clientId) {
+    const resolvedClientId = clientId ?? getPortalProfileLink(profileId).clientId;
+    if (!resolvedClientId) {
       return { ok: true, data: [] };
     }
 
-    return { ok: true, data: getDemoClientCarePlanSummaries(link.clientId) };
+    return { ok: true, data: getDemoClientCarePlanSummaries(resolvedClientId) };
   });
 }

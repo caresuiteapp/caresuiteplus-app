@@ -1,10 +1,9 @@
-import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/config';
+import { getServiceMode } from '@/lib/services/mode';
+import { isSupabaseConfigured } from '@/lib/supabase/config';
 
-/**
- * Portal Profil live readiness — Demo-Profile bis Live-Portal-Services (#85–86).
- */
+/** Portal profile reads live Supabase data when the app runs in supabase service mode. */
 export function isPortalProfileLiveReady(): boolean {
-  return false;
+  return getServiceMode() === 'supabase' && isSupabaseConfigured();
 }
 
 export const PORTAL_PROFILE_PREPARED_MESSAGE =
