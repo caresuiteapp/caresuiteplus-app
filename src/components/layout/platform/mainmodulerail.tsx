@@ -21,8 +21,10 @@ type MainModuleRailProps = {
   activeModule: MainModuleKey;
 };
 
-const MODULE_RAIL_WIDTH = 88;
-const MODULE_RAIL_LOGO_SIZE = 72;
+const MODULE_RAIL_ICON_SIZE = 56;
+const MODULE_RAIL_HORIZONTAL_PADDING = 8;
+const MODULE_RAIL_WIDTH = MODULE_RAIL_ICON_SIZE + MODULE_RAIL_HORIZONTAL_PADDING * 2;
+const MODULE_RAIL_LOGO_SIZE = MODULE_RAIL_ICON_SIZE;
 const MODULE_RAIL_GAP = spacing.lg;
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
@@ -119,8 +121,8 @@ const styles = StyleSheet.create({
   },
   activeBar: { position: 'absolute', left: 0, top: 12, bottom: 12, width: 4, borderRadius: 4 },
   icon: {
-    width: 56,
-    height: 56,
+    width: MODULE_RAIL_ICON_SIZE,
+    height: MODULE_RAIL_ICON_SIZE,
     borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',

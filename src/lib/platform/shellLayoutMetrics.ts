@@ -2,7 +2,7 @@ import { breakpoints } from '@/design/tokens/breakpoints';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
 /** Width of the left MainModuleRail — keep in sync with mainmodulerail.tsx. */
-export const PLATFORM_MODULE_RAIL_WIDTH = 88;
+export const PLATFORM_MODULE_RAIL_WIDTH = 72;
 /** Width of the optional ModuleNavSidebar — keep in sync with modulenavsidebar.tsx. */
 export const PLATFORM_MODULE_NAV_WIDTH = 248;
 /** Width of the desktop RightContextPanel — keep in sync with rightcontextpanel.tsx. */
