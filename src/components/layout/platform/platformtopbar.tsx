@@ -280,7 +280,13 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       borderRadius: radius.capsule,
       backgroundColor: isDark ? glassTokens.input : '#FFFFFF',
     },
-    searchIcon: { fontSize: 16, lineHeight: TOPBAR_ICON_SIZE, color: colors.textMuted },
+    searchIcon: {
+      fontSize: 22,
+      lineHeight: 24,
+      color: colors.textMuted,
+      alignSelf: 'center',
+      marginTop: -1,
+    },
     searchInput: {
       flex: 1,
       ...typography.body,
