@@ -133,8 +133,8 @@ export function buildTenantCenterSections(snapshot: TenantCenterSnapshot): Tenan
     },
     {
       key: 'branding',
-      title: 'Branding & Logo',
-      description: 'Logo-Upload und Markenfarben',
+      title: 'Logo',
+      description: 'Firmenlogo hochladen',
       completeness: snapshot.branding.logoUrl ? 'complete' : 'partial',
       summary: brandingSummary,
       editable: true,

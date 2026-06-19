@@ -13,7 +13,6 @@ import {
   TenantTaxProfileForm,
 } from './forms';
 import { TenantLogoPicker } from '@/components/tenant/TenantLogoPicker';
-import { PremiumInput } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import type { TenantCenterSectionKey, TenantCenterSnapshot } from '@/types/tenant/tenantCenter';
 import {
@@ -59,7 +58,6 @@ export function TenantCenterSectionModals({
   const [representatives, setRepresentatives] = useState(snapshot.representatives);
   const [bankAccounts, setBankAccounts] = useState(snapshot.bankAccounts);
   const [payment, setPayment] = useState(snapshot.payment);
-  const [branding, setBranding] = useState(snapshot.branding);
   const [modules, setModules] = useState(snapshot.modules);
   const [logo, setLogo] = useState<TenantLogoValue>({
     ...EMPTY_TENANT_LOGO,
@@ -169,15 +167,12 @@ export function TenantCenterSectionModals({
       <TenantCenterGlassModal
         {...common}
         visible={activeSection === 'branding'}
-        title="Branding & Logo"
+        title="Logo"
         onPrimary={() =>
-          runSave(async () => saveTenantBrandingProfile(tenantId, branding, logo, roleKey))
+          runSave(async () => saveTenantBrandingProfile(tenantId, snapshot.branding, logo, roleKey))
         }
       >
         <TenantLogoPicker companyName={company.name} value={logo} onChange={setLogo} />
-        <PremiumInput label="App-Name" value={branding.appName} onChangeText={(v) => setBranding({ ...branding, appName: v })} />
-        <PremiumInput label="Primärfarbe" value={branding.primaryColor} onChangeText={(v) => setBranding({ ...branding, primaryColor: v })} />
-        <PremiumInput label="Akzentfarbe" value={branding.accentColor} onChangeText={(v) => setBranding({ ...branding, accentColor: v })} />
         {error ? <Text style={{ color: '#F87171' }}>{error}</Text> : null}
       </TenantCenterGlassModal>
 

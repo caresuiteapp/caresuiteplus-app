@@ -50,9 +50,6 @@ export async function saveTenantBrandingProfile(
     {
       tenant_id: tenantId,
       logo_url: nextLogoUrl,
-      app_name: profile.appName.trim() || null,
-      light_primary_color: profile.primaryColor.trim() || null,
-      light_accent_color: profile.accentColor.trim() || null,
       updated_at: new Date().toISOString(),
     },
     { onConflict: 'tenant_id' },
