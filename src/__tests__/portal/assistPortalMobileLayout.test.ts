@@ -2,8 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
-  PORTAL_MOBILE_INLINE_MAX,
-  PORTAL_MOBILE_PRIMARY_MAX,
+  PORTAL_MOBILE_TAB_KEYS,
+  resolveFixedMobilePortalTabs,
   splitPortalTabsForMobile,
 } from '@/lib/navigation/portalMobileTabs';
 import { resolvePortalHeroCopy, resolveTimeBasedGermanGreeting } from '@/lib/portal/engine/portalHeroCopy';
@@ -26,20 +26,34 @@ const sampleTabs: ShellTabConfig[] = [
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile' },
 ];
 
-describe('splitPortalTabsForMobile', () => {
-  it('keeps all tabs inline when count is within threshold', () => {
-    const small = sampleTabs.slice(0, PORTAL_MOBILE_INLINE_MAX);
-    const split = splitPortalTabsForMobile(small, 'overview');
-    expect(split.overflow).toHaveLength(0);
-    expect(split.primary).toHaveLength(small.length);
+describe('resolveFixedMobilePortalTabs', () => {
+  it('returns exactly five fixed tabs in spec order', () => {
+    const tabs = resolveFixedMobilePortalTabs(sampleTabs);
+    expect(tabs).toHaveLength(5);
+    expect(tabs.map((tab) => tab.key)).toEqual([...PORTAL_MOBILE_TAB_KEYS]);
+    expect(tabs.map((tab) => tab.label)).toEqual([
+      'Übersicht',
+      'Termine',
+      'Dokumente',
+      'Nachrichten',
+      'Profil',
+    ]);
   });
 
-  it('splits into primary row and overflow when many tabs', () => {
+  it('excludes Betreuung, Begleitungen, and overflow-only tabs', () => {
+    const tabs = resolveFixedMobilePortalTabs(sampleTabs);
+    expect(tabs.some((tab) => tab.key === 'assist-betreuung')).toBe(false);
+    expect(tabs.some((tab) => tab.key === 'assist-budget')).toBe(false);
+    expect(tabs.some((tab) => tab.key === 'assist-anfragen')).toBe(false);
+  });
+});
+
+describe('splitPortalTabsForMobile', () => {
+  it('always returns five primary tabs and no overflow', () => {
     const split = splitPortalTabsForMobile(sampleTabs, 'assist-budget');
-    expect(split.primary.length).toBe(PORTAL_MOBILE_PRIMARY_MAX);
-    expect(split.overflow.length).toBeGreaterThan(0);
-    expect(split.primary.some((tab) => tab.key === 'overview')).toBe(true);
-    expect(split.primary.some((tab) => tab.key === 'assist-budget')).toBe(true);
+    expect(split.primary).toHaveLength(5);
+    expect(split.overflow).toHaveLength(0);
+    expect(split.primary.map((tab) => tab.key)).toEqual([...PORTAL_MOBILE_TAB_KEYS]);
   });
 });
 
@@ -94,17 +108,22 @@ describe('Assist portal mobile layout', () => {
     expect(layout).not.toContain('<ShellLayout');
   });
 
-  it('AssistPortalOverview uses safe bottom padding and single scroll surface', () => {
+  it('delegates phone overview to MobilePortalDashboard without touching desktop JSX', () => {
     const overview = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
-    expect(overview).toContain('useSafeAreaInsets');
-    expect(overview).toContain('showBottomTabs');
-    expect(overview).toContain('PORTAL_MOBILE_NAV_HEIGHT');
-    expect(overview).toContain("width: '100%'");
-    expect(overview).toContain('resolvePortalHeroCopy');
-    expect(overview).toContain('PortalOpenRequestsModal');
-    expect(overview).toContain('PortalActivitiesModal');
-    expect(overview).not.toContain('OFFENE ANFRAGEN');
-    expect(overview).not.toContain('AKTIVITÄTEN');
+    expect(overview).toContain('MobilePortalDashboard');
+    expect(overview).toContain('if (isPhone)');
+    expect(overview).toContain('isPhone: false');
+    expect(overview).toContain('PortalKpiCard');
+  });
+
+  it('MobilePortalDashboard uses safe bottom padding and single scroll surface', () => {
+    const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
+    expect(mobile).toContain('useSafeAreaInsets');
+    expect(mobile).toContain('PORTAL_MOBILE_NAV_HEIGHT');
+    expect(mobile).toContain("width: '100%'");
+    expect(mobile).toContain('MobilePortalKpiCard');
+    expect(mobile).toContain('MobilePortalSidebarCards');
+    expect(mobile).toContain('emptyActionLabel="Termin anfragen"');
   });
 
   it('overview route uses tabs layout shell instead of duplicate index', () => {
@@ -114,11 +133,11 @@ describe('Assist portal mobile layout', () => {
     expect(fs.existsSync(path.join(root, 'app/portal/client/index.tsx'))).toBe(false);
   });
 
-  it('PortalKpiCard uses adaptive column widths on phone', () => {
-    const kpi = readSrc('src/components/portal/assist/PortalKpiCard.tsx');
-    expect(kpi).toContain('kpiColumnsForDeviceClass');
-    expect(kpi).toContain('breakpoints.largePhone');
-    expect(kpi).toContain('minWidth: isPhone ? 0 : 150');
+  it('MobilePortalKpiCard uses two-column neon tiles on phone', () => {
+    const kpi = readSrc('src/components/portal/assist/MobilePortalKpiCard.tsx');
+    expect(kpi).toContain("'48%'");
+    expect(kpi).toContain('glow');
+    expect(kpi).toContain('minHeight: 132');
   });
 
   it('PortalQuickActions keeps touch-friendly chips on phone', () => {
@@ -128,27 +147,36 @@ describe('Assist portal mobile layout', () => {
     expect(actions).toContain('wrapGrid');
   });
 
-  it('PortalNextAppointmentHero stacks actions on phone with 44px targets', () => {
+  it('PortalNextAppointmentHero supports mobile empty CTA override', () => {
     const hero = readSrc('src/components/portal/assist/PortalNextAppointmentHero.tsx');
+    expect(hero).toContain('emptyActionLabel');
     expect(hero).toContain('actionsPhone');
     expect(hero).toContain('minHeight: 44');
-    expect(hero).toContain('Pressable');
   });
 
-  it('portal mobile nav uses overflow menu instead of horizontal scroll', () => {
+  it('portal mobile nav uses five fixed tabs without overflow menu', () => {
     const tabBar = readSrc('src/components/layout/AppTabBar.tsx');
     expect(tabBar).toContain('portalOverflowNav');
     expect(tabBar).toContain('PortalMobileNav');
-    const mobileShell = readSrc('src/components/layout/MobileShell.tsx');
-    expect(mobileShell).toContain("area === 'portal_client'");
     const nav = readSrc('src/components/layout/PortalMobileNav.tsx');
-    expect(nav).toContain('PortalMoreMenu');
-    expect(nav).toContain('Mehr');
+    expect(nav).toContain('resolveFixedMobilePortalTabs');
+    expect(nav).not.toContain('PortalMoreMenu');
+    expect(nav).not.toContain('Mehr');
   });
 
-  it('PortalGlassHero places badge on eyebrow row on phone', () => {
+  it('compact PortalTopBar has text brand, bell, avatar, chevron — no robot tagline', () => {
+    const topbar = readSrc('src/components/layout/portal/PortalTopBar.tsx');
+    expect(topbar).toContain('CareSuite+');
+    expect(topbar).toContain('compactProfileChip');
+    expect(topbar).toContain('chevron');
+    expect(topbar).not.toContain('CareSuiteWordmark');
+    expect(topbar).not.toContain('Pflege & Betreuung');
+  });
+
+  it('PortalGlassHero supports leading assist icon on phone', () => {
     const hero = readSrc('src/components/portal/assist/PortalGlassHero.tsx');
-    expect(hero).toContain('eyebrowRow');
+    expect(hero).toContain('leadingIcon');
+    expect(hero).toContain('phoneRow');
     expect(hero).not.toContain('titleRowPhone');
   });
 
@@ -158,5 +186,16 @@ describe('Assist portal mobile layout', () => {
     const route = readSrc('app/portal/client/(tabs)/index.tsx');
     expect(route).toContain('hideHeaderOnPhone');
     expect(route).toContain('scroll={false}');
+  });
+
+  it('desktop shell layout unchanged at >=1200px breakpoint', () => {
+    const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
+    expect(shell).toContain('showRightSidebar = width >= BREAKPOINT_MIN.desktop');
+    expect(shell).toContain('showLeftNav = !isPhone');
+    expect(shell).toContain('PortalLeftNav');
+    expect(shell).not.toContain('MobilePortalDashboard');
+    const sidebar = readSrc('src/components/layout/portal/PortalRightSidebar.tsx');
+    expect(sidebar).toContain('width < 1200');
+    expect(sidebar).toContain('usePortalSidebarData');
   });
 });

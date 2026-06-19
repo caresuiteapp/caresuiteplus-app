@@ -1,4 +1,5 @@
 export { AssistPortalOverview } from './AssistPortalOverview';
+export { MobilePortalDashboard } from './MobilePortalDashboard';
 export { AssistPortalSectionBlocked, AssistPortalSectionView } from './AssistPortalSectionView';
 export { AssistPortalShell } from './AssistPortalShell';
 export { PortalActivitiesModal } from './PortalActivitiesModal';

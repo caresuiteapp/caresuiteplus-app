@@ -49,7 +49,7 @@ describe('PortalShellLayout', () => {
   it('PortalRightSidebar excludes office admin actions', () => {
     const sidebar = readSrc('src/components/layout/portal/PortalRightSidebar.tsx');
     expect(sidebar).toContain('SCHNELLZUGRIFF');
-    expect(sidebar).toContain('fetchAssistDashboardData');
+    expect(sidebar).toContain('usePortalSidebarData');
     expect(sidebar).not.toContain('Klient:in anlegen');
     expect(sidebar).not.toContain('Rechnung erstellen');
     expect(sidebar).not.toContain('Modulstatus');

@@ -12,6 +12,8 @@ type PortalGlassHeroProps = {
   subtitle?: string;
   meta?: string;
   badge?: string;
+  /** Assist module icon — shown left on phone layout. */
+  leadingIcon?: string;
   children?: ReactNode;
   style?: ViewStyle;
 };
@@ -23,6 +25,7 @@ export function PortalGlassHero({
   subtitle,
   meta,
   badge,
+  leadingIcon,
   children,
   style,
 }: PortalGlassHeroProps) {
@@ -35,46 +38,89 @@ export function PortalGlassHero({
 
   return (
     <GlassCard style={[isPhone && styles.compactCard, style]}>
-      {eyebrow || badge ? (
-        <View style={styles.eyebrowRow}>
-          {eyebrow ? (
+      {isPhone && leadingIcon ? (
+        <View style={styles.phoneRow}>
+          <View style={styles.leadingIconWrap}>
+            <Text style={styles.leadingIcon}>{leadingIcon}</Text>
+          </View>
+          <View style={styles.phoneContent}>
+            {eyebrow || badge ? (
+              <View style={styles.eyebrowRow}>
+                {eyebrow ? (
+                  <Text
+                    style={[type.caption, styles.eyebrow, { color: text.muted, flex: 1 }]}
+                    {...noBreakTextProps}
+                  >
+                    {eyebrow}
+                  </Text>
+                ) : (
+                  <View style={styles.eyebrowSpacer} />
+                )}
+                {badge ? (
+                  <View style={styles.badge}>
+                    <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
+                  </View>
+                ) : null}
+              </View>
+            ) : null}
             <Text
-              style={[type.caption, styles.eyebrow, { color: text.muted, flex: 1 }]}
+              style={[titleStyle, { flexShrink: 1 }]}
               {...noBreakTextProps}
+              numberOfLines={2}
             >
-              {eyebrow}
+              {title}
             </Text>
-          ) : (
-            <View style={styles.eyebrowSpacer} />
-          )}
-          {badge ? (
-            <View style={styles.badge}>
-              <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
+            {meta ? (
+              <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps} numberOfLines={2}>
+                {meta}
+              </Text>
+            ) : null}
+          </View>
+        </View>
+      ) : (
+        <>
+          {eyebrow || badge ? (
+            <View style={styles.eyebrowRow}>
+              {eyebrow ? (
+                <Text
+                  style={[type.caption, styles.eyebrow, { color: text.muted, flex: 1 }]}
+                  {...noBreakTextProps}
+                >
+                  {eyebrow}
+                </Text>
+              ) : (
+                <View style={styles.eyebrowSpacer} />
+              )}
+              {badge ? (
+                <View style={styles.badge}>
+                  <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
+                </View>
+              ) : null}
             </View>
           ) : null}
-        </View>
-      ) : null}
-      <Text
-        style={[titleStyle, { flexShrink: 1 }]}
-        {...noBreakTextProps}
-        numberOfLines={isPhone ? 2 : 2}
-      >
-        {title}
-      </Text>
-      {subtitle ? (
-        <Text
-          style={[type.body, { color: text.secondary, fontWeight: '600' }]}
-          {...noBreakTextProps}
-          numberOfLines={2}
-        >
-          {subtitle}
-        </Text>
-      ) : null}
-      {meta ? (
-        <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps} numberOfLines={2}>
-          {meta}
-        </Text>
-      ) : null}
+          <Text
+            style={[titleStyle, { flexShrink: 1 }]}
+            {...noBreakTextProps}
+            numberOfLines={isPhone ? 2 : 2}
+          >
+            {title}
+          </Text>
+          {subtitle ? (
+            <Text
+              style={[type.body, { color: text.secondary, fontWeight: '600' }]}
+              {...noBreakTextProps}
+              numberOfLines={2}
+            >
+              {subtitle}
+            </Text>
+          ) : null}
+          {meta ? (
+            <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps} numberOfLines={2}>
+              {meta}
+            </Text>
+          ) : null}
+        </>
+      )}
       {children}
     </GlassCard>
   );
@@ -106,5 +152,29 @@ const styles = StyleSheet.create({
     borderColor: 'rgba(255,149,0,0.35)',
     backgroundColor: 'rgba(255,149,0,0.12)',
     flexShrink: 0,
+  },
+  phoneRow: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    gap: careSpacing.sm,
+  },
+  leadingIconWrap: {
+    width: 40,
+    height: 40,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: 'rgba(255,149,0,0.35)',
+    backgroundColor: 'rgba(255,149,0,0.12)',
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  leadingIcon: {
+    fontSize: 22,
+  },
+  phoneContent: {
+    flex: 1,
+    gap: careSpacing.xs,
+    minWidth: 0,
   },
 });

@@ -1,9 +1,49 @@
 import type { ShellTabConfig } from '@/types/navigation/shell';
 import type { PortalModuleKey } from '@/lib/portal/types';
 
-/** Visible tab slots on phone before overflow — 4 primary + „Mehr“. */
+/** Fixed bottom-nav tabs on phone — no overflow / „Mehr“. */
+export const PORTAL_MOBILE_TAB_KEYS = [
+  'overview',
+  'assist-appointments',
+  'documents',
+  'messages',
+  'profile',
+] as const;
+
+export type PortalMobileTabKey = (typeof PORTAL_MOBILE_TAB_KEYS)[number];
+
+/** @deprecated Legacy overflow split — desktop/tablet unaffected; mobile uses fixed tabs. */
 export const PORTAL_MOBILE_PRIMARY_MAX = 4;
+/** @deprecated Legacy inline max before overflow menu. */
 export const PORTAL_MOBILE_INLINE_MAX = 5;
+
+const FALLBACK_MOBILE_TABS: Record<PortalMobileTabKey, ShellTabConfig> = {
+  overview: { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/client' },
+  'assist-appointments': {
+    key: 'assist-appointments',
+    label: 'Termine',
+    icon: '📅',
+    href: '/portal/client/appointments',
+  },
+  documents: { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents' },
+  messages: { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
+  profile: { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile' },
+};
+
+/**
+ * Resolves the five fixed mobile portal tabs (Übersicht, Termine, Dokumente, Nachrichten, Profil).
+ * Merges href/icon from dynamic portal tabs when available.
+ */
+export function resolveFixedMobilePortalTabs(tabs: ShellTabConfig[]): ShellTabConfig[] {
+  return PORTAL_MOBILE_TAB_KEYS.map((key) => {
+    const dynamic =
+      tabs.find((tab) => tab.key === key) ??
+      (key === 'assist-appointments'
+        ? tabs.find((tab) => tab.key === 'appointments')
+        : undefined);
+    return dynamic ?? FALLBACK_MOBILE_TABS[key];
+  });
+}
 
 const BASE_TAB_PRIORITY = [
   'overview',
@@ -79,45 +119,16 @@ export type PortalMobileTabSplit = {
 };
 
 /**
- * Splits dynamic portal tabs for phone bottom nav — up to 4 primary items plus „Mehr“.
- * Keeps the active route in the primary row when possible.
+ * @deprecated Use resolveFixedMobilePortalTabs for phone bottom nav.
+ * Kept for legacy tests and overflow-menu code paths outside the client portal.
  */
 export function splitPortalTabsForMobile(
   tabs: ShellTabConfig[],
   activeKey: string,
   activeModules: PortalModuleKey[] = [],
 ): PortalMobileTabSplit {
-  const filteredTabs = filterPortalMobileTabs(tabs, activeModules);
-  if (filteredTabs.length <= PORTAL_MOBILE_INLINE_MAX) {
-    return { primary: filteredTabs, overflow: [] };
-  }
-
-  const activeTab = filteredTabs.find((tab) => tab.key === activeKey);
-  const sorted = [...filteredTabs].sort(
-    (a, b) => tabPriority(a.key, activeModules) - tabPriority(b.key, activeModules),
-  );
-
-  const primary: ShellTabConfig[] = [];
-  const used = new Set<string>();
-
-  const push = (tab: ShellTabConfig | undefined) => {
-    if (!tab || used.has(tab.key)) return;
-    primary.push(tab);
-    used.add(tab.key);
-  };
-
-  push(sorted.find((tab) => tab.key === 'overview'));
-  if (activeTab && activeTab.key !== 'overview') {
-    push(activeTab);
-  }
-
-  for (const tab of sorted) {
-    if (primary.length >= PORTAL_MOBILE_PRIMARY_MAX) break;
-    push(tab);
-  }
-
-  const overflow = filteredTabs.filter((tab) => !used.has(tab.key));
-  return { primary, overflow };
+  const primary = resolveFixedMobilePortalTabs(filterPortalMobileTabs(tabs, activeModules));
+  return { primary, overflow: [] };
 }
 
 /** Fixed bottom nav height (icon + label + top padding, excluding safe area). */

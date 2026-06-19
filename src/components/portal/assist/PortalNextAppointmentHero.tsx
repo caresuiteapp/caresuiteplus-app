@@ -12,6 +12,8 @@ type PortalNextAppointmentHeroProps = {
   appointment: PortalNextAppointment | null;
   onRequestChange?: () => void;
   onRequestExtra?: () => void;
+  /** Override empty-state CTA label (mobile uses „Termin anfragen“). */
+  emptyActionLabel?: string;
 };
 
 function formatDateTime(iso: string): string {
@@ -55,6 +57,7 @@ export function PortalNextAppointmentHero({
   appointment,
   onRequestChange,
   onRequestExtra,
+  emptyActionLabel,
 }: PortalNextAppointmentHeroProps) {
   const text = useAuroraAdaptiveText();
   const { width, isPhone } = useDeviceClass();
@@ -88,7 +91,7 @@ export function PortalNextAppointmentHero({
       ) : (
         <PortalEmptyState
           message="Noch kein Assist-Termin geplant."
-          actionLabel="Zusatztermin anfragen"
+          actionLabel={emptyActionLabel ?? 'Zusatztermin anfragen'}
           onAction={onRequestExtra}
         />
       )}

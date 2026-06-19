@@ -1,13 +1,10 @@
-import { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PortalMoreMenu } from '@/components/portal/PortalMoreMenu';
 import { auroraGlass } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { usePortalContext } from '@/hooks/usePortalContext';
-import { splitPortalTabsForMobile } from '@/lib/navigation/portalMobileTabs';
+import { resolveFixedMobilePortalTabs } from '@/lib/navigation/portalMobileTabs';
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 import type { ShellTabConfig } from '@/types/navigation/shell';
 
@@ -15,8 +12,6 @@ type PortalMobileNavProps = {
   tabs: ShellTabConfig[];
   accentColor?: string;
 };
-
-const MORE_TAB_KEY = 'portal-more';
 
 const webGlassBlur =
   Platform.OS === 'web'
@@ -26,82 +21,41 @@ const webGlassBlur =
       } as unknown as ViewStyle)
     : null;
 
-/** Aurora glass bottom nav — max 4 primary tabs plus „Mehr“ overflow on phone. */
+/** Aurora glass bottom nav — five fixed tabs on phone (no overflow). */
 export function PortalMobileNav({ tabs, accentColor = '#FF9500' }: PortalMobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { context } = usePortalContext();
-  const activeKey = resolveActiveTabKey(pathname, tabs);
-  const activeModules = context?.activeModuleKeys ?? [];
-  const { primary, overflow } = useMemo(
-    () => splitPortalTabsForMobile(tabs, activeKey, activeModules),
-    [tabs, activeKey, activeModules],
-  );
-  const [moreOpen, setMoreOpen] = useState(false);
-  const moreActive = overflow.some((tab) => tab.key === activeKey);
+  const mobileTabs = useMemo(() => resolveFixedMobilePortalTabs(tabs), [tabs]);
+  const activeKey = resolveActiveTabKey(pathname, mobileTabs);
   const bottomInset = Math.max(insets.bottom, careSpacing.sm);
 
-  const renderTab = (tab: ShellTabConfig) => {
-    const active = tab.key === activeKey;
-    return (
-      <Pressable
-        key={tab.key}
-        onPress={() => router.push(tab.href as never)}
-        style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
-        accessibilityRole="tab"
-        accessibilityState={{ selected: active }}
-        accessibilityLabel={tab.label}
-      >
-        <View style={[styles.pill, active && { backgroundColor: auroraGlass.chipActive }]}>
-          <Text style={[styles.icon, active && styles.iconActive]}>{tab.icon}</Text>
-          <Text
-            style={[styles.label, active && { color: accentColor, fontWeight: '700' }]}
-            numberOfLines={1}
-          >
-            {tab.label}
-          </Text>
-        </View>
-      </Pressable>
-    );
-  };
-
   return (
-    <>
-      <View style={[styles.container, { paddingBottom: bottomInset }, webGlassBlur]}>
-        {primary.map(renderTab)}
-        {overflow.length > 0 ? (
+    <View style={[styles.container, { paddingBottom: bottomInset }, webGlassBlur]}>
+      {mobileTabs.map((tab) => {
+        const active = tab.key === activeKey;
+        return (
           <Pressable
-            key={MORE_TAB_KEY}
-            onPress={() => setMoreOpen(true)}
+            key={tab.key}
+            onPress={() => router.push(tab.href as never)}
             style={({ pressed }) => [styles.tab, pressed && styles.pressed]}
-            accessibilityRole="button"
-            accessibilityState={{ selected: moreActive }}
-            accessibilityLabel="Mehr"
+            accessibilityRole="tab"
+            accessibilityState={{ selected: active }}
+            accessibilityLabel={tab.label}
           >
-            <View style={[styles.pill, moreActive && { backgroundColor: auroraGlass.chipActive }]}>
-              <Text style={[styles.icon, moreActive && styles.iconActive]}>⋯</Text>
+            <View style={[styles.pill, active && { backgroundColor: auroraGlass.chipActive }]}>
+              <Text style={[styles.icon, active && styles.iconActive]}>{tab.icon}</Text>
               <Text
-                style={[styles.label, moreActive && { color: accentColor, fontWeight: '700' }]}
+                style={[styles.label, active && { color: accentColor, fontWeight: '700' }]}
                 numberOfLines={1}
               >
-                Mehr
+                {tab.label}
               </Text>
             </View>
           </Pressable>
-        ) : null}
-      </View>
-
-      {overflow.length > 0 ? (
-        <PortalMoreMenu
-          visible={moreOpen}
-          tabs={overflow}
-          activeKey={activeKey}
-          accentColor={accentColor}
-          onClose={() => setMoreOpen(false)}
-        />
-      ) : null}
-    </>
+        );
+      })}
+    </View>
   );
 }
 

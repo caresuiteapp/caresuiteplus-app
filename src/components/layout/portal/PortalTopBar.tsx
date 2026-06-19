@@ -10,7 +10,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareSuiteWordmark } from '@/components/brand/CareSuiteWordmark';
 import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
 import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -66,18 +65,19 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
     return (
       <View style={[styles.compactRoot, webGlassBlur]}>
         <View style={styles.compactBrand}>
-          <CareSuiteWordmark size="nav" variant="aurora" />
+          <Text style={[styles.compactTitle, { color: text.primary }]}>CareSuite+</Text>
           <Text style={[styles.compactPortal, { color: text.muted }]}>Klient:innenportal</Text>
         </View>
         <View style={styles.compactActions}>
           <NotificationBellWithCenter size="topbar" variant="glass" />
           <Pressable
             onPress={() => setProfileOpen((v) => !v)}
-            style={webCursor}
+            style={[styles.compactProfileChip, webCursor]}
             accessibilityRole="button"
             accessibilityLabel="Profilmenü"
           >
             <PremiumAvatar name={displayName} size="sm" accentColor={accentColor} />
+            <Text style={[styles.chevron, { color: text.muted }]}>{profileOpen ? '▴' : '▾'}</Text>
           </Pressable>
         </View>
         {profileOpen ? (
@@ -307,6 +307,11 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
+  compactTitle: {
+    ...careTypography.body,
+    fontWeight: '800',
+    fontSize: 18,
+  },
   compactPortal: {
     ...careTypography.caption,
     textTransform: 'uppercase',
@@ -317,5 +322,12 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: careSpacing.sm,
+  },
+  compactProfileChip: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    minHeight: 44,
+    paddingHorizontal: careSpacing.xs,
   },
 });
