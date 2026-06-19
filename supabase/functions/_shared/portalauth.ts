@@ -14,6 +14,8 @@ export type EnsurePortalAuthInput = {
   displayName: string;
   linkTable: PortalAuthLinkTable;
   linkRowId: string;
+  clientFirstName?: string | null;
+  clientLastName?: string | null;
 };
 
 export type PortalAuthSessionResult =
@@ -152,15 +154,37 @@ async function upsertPortalProfile(
   email: string,
 ): Promise<string | null> {
   const now = new Date().toISOString();
+  const firstName = input.clientFirstName?.trim() || null;
+  const lastName = input.clientLastName?.trim() || null;
+
+  const { data: existing, error: lookupError } = await supabase
+    .from('profiles')
+    .select('id')
+    .eq('auth_user_id', authUserId)
+    .maybeSingle();
+
+  if (lookupError) {
+    return lookupError.message;
+  }
+
+  const profilePayload = {
+    tenant_id: input.tenantId,
+    auth_user_id: authUserId,
+    first_name: firstName,
+    last_name: lastName,
+    email,
+    updated_at: now,
+  };
+
+  if (existing?.id) {
+    const { error } = await supabase.from('profiles').update(profilePayload).eq('id', existing.id);
+    return error?.message ?? null;
+  }
+
   const { error } = await supabase.from('profiles').upsert(
     {
       id: authUserId,
-      auth_user_id: authUserId,
-      tenant_id: input.tenantId,
-      role_key: input.roleKey,
-      display_name: input.displayName,
-      email,
-      updated_at: now,
+      ...profilePayload,
     },
     { onConflict: 'id' },
   );

@@ -150,28 +150,35 @@ serve(async (req) => {
     const portalUsername = (matched.portal_username as string | null) ?? username;
     const clientId = matched.client_id as string | null;
     let clientDisplayName: string | null = null;
+    let clientFirstName: string | null = null;
+    let clientLastName: string | null = null;
 
     if (clientId) {
       const { data: clientRow } = await supabase
         .from('clients')
-        .select('first_name, last_name, salutation')
+        .select('first_name, last_name, gender')
         .eq('id', clientId)
         .maybeSingle();
 
       if (clientRow) {
-        const first = clientRow.first_name?.trim()
-          ? clientRow.first_name.trim().charAt(0).toUpperCase() + clientRow.first_name.trim().slice(1)
+        clientFirstName = (clientRow.first_name as string | null)?.trim() || null;
+        clientLastName = (clientRow.last_name as string | null)?.trim() || null;
+
+        const first = clientFirstName
+          ? clientFirstName.charAt(0).toUpperCase() + clientFirstName.slice(1)
           : '';
-        const last = clientRow.last_name?.trim()
-          ? clientRow.last_name.trim().charAt(0).toUpperCase() + clientRow.last_name.trim().slice(1)
+        const last = clientLastName
+          ? clientLastName.charAt(0).toUpperCase() + clientLastName.slice(1)
           : '';
         const fullName = [first, last].filter(Boolean).join(' ').trim();
         if (fullName) {
-          const salutationKey = clientRow.salutation?.trim().toLowerCase();
+          const genderKey = (clientRow.gender as string | null)?.trim().toLowerCase();
           clientDisplayName =
-            salutationKey === 'frau' || salutationKey === 'herr'
-              ? `${salutationKey === 'frau' ? 'Frau' : 'Herr'} ${fullName}`
-              : fullName;
+            genderKey === 'female' || genderKey === 'f' || genderKey === 'w' || genderKey === 'weiblich'
+              ? `Frau ${fullName}`
+              : genderKey === 'male' || genderKey === 'm' || genderKey === 'maennlich' || genderKey === 'männlich'
+                ? `Herr ${fullName}`
+                : fullName;
         }
       }
     }
@@ -192,6 +199,8 @@ serve(async (req) => {
       displayName,
       linkTable: 'client_portal_access',
       linkRowId: matched.id as string,
+      clientFirstName,
+      clientLastName,
     });
 
     if (!authResult.ok) {

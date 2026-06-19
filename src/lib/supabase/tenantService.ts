@@ -1,6 +1,7 @@
 import type { PostgrestError, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types/core/auth';
 import type { AuthBootstrapResult, TenantSummary } from '@/types/supabase/session';
+import { isPortalUsernameLabel } from '@/lib/portal/clientPortalDisplayName';
 import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
 import type { CanonicalWorkspaceRoleKey } from '@/types/permissions/workspace';
 import { getSupabaseClient } from './client';
@@ -64,29 +65,32 @@ function readSessionRoleHint(session: Session): string | null {
 
 export function resolveProfileDisplayName(row: ProfileQueryRow, session?: Session): string | null {
   const fullName = row.full_name?.trim();
-  if (fullName) return fullName;
+  if (fullName && !isPortalUsernameLabel(fullName)) return fullName;
 
   const first = row.first_name?.trim() ?? '';
   const last = row.last_name?.trim() ?? '';
   const combined = `${first} ${last}`.trim();
-  if (combined) return combined;
+  if (combined && !isPortalUsernameLabel(combined)) return combined;
 
   if (session) {
     const metaName = session.user.user_metadata?.display_name;
-    if (typeof metaName === 'string' && metaName.trim()) {
+    if (typeof metaName === 'string' && metaName.trim() && !isPortalUsernameLabel(metaName)) {
       return metaName.trim();
     }
 
     const metaFullName = session.user.user_metadata?.full_name;
-    if (typeof metaFullName === 'string' && metaFullName.trim()) {
+    if (typeof metaFullName === 'string' && metaFullName.trim() && !isPortalUsernameLabel(metaFullName)) {
       return metaFullName.trim();
     }
 
     const email = session.user.email?.trim();
-    if (email) return email;
+    if (email && !email.endsWith('@caresuite-portal.local')) return email;
   }
 
-  return row.email?.trim() || null;
+  const email = row.email?.trim();
+  if (email && !email.endsWith('@caresuite-portal.local')) return email;
+
+  return null;
 }
 
 async function fetchRoleKeyById(

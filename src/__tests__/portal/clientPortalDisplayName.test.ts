@@ -32,6 +32,10 @@ describe('isPortalUsernameLabel', () => {
     expect(isPortalUsernameLabel('ellen.zacharias')).toBe(true);
     expect(isPortalUsernameLabel('Ellen Zacharias')).toBe(false);
   });
+
+  it('detects duplicated portal username labels', () => {
+    expect(isPortalUsernameLabel('ellen.zacharias ellen.zacharias')).toBe(true);
+  });
 });
 
 describe('capitalizeNamePart', () => {

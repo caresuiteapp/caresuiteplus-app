@@ -37,6 +37,11 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
     expect(live).toContain('portal_visible');
   });
 
+  it('treats assignment fetch failure as not configured (not empty modules)', () => {
+    const resolver = readSrc('src/lib/portal/engine/resolvePortalContext.ts');
+    expect(resolver).toContain('assignmentLoadFailed');
+  });
+
   it('uses adaptive migration tables', () => {
     const sql = readSrc('supabase/migrations/0099_adaptive_portal_engine.sql');
     expect(sql).toContain('portal_feature_matrix');

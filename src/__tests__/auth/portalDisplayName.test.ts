@@ -23,6 +23,26 @@ describe('getPortalDisplayName', () => {
     ).toBe('Portal');
   });
 
+  it('skips duplicated portal username labels in profile', () => {
+    const portalSession: PortalSessionRecord = {
+      sessionToken: 'token',
+      tenantId: 'tenant-1',
+      loginType: 'client_portal',
+      roleKey: 'client_portal',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      accountId: 'cpa-1',
+      clientId: 'client-1',
+    };
+
+    expect(
+      getPortalDisplayName(
+        { displayName: 'ellen.zacharias ellen.zacharias' } as never,
+        { displayName: 'ellen.zacharias ellen.zacharias' } as never,
+        portalSession,
+      ),
+    ).toBe('Portal');
+  });
+
   it('uses cached real client name from portal session', () => {
     const portalSession: PortalSessionRecord = {
       sessionToken: 'token',

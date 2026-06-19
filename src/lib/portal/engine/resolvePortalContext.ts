@@ -179,11 +179,12 @@ export async function resolvePortalContext(
     ]);
 
   const assignments = assignmentsResult.ok ? assignmentsResult.data : [];
+  const assignmentLoadFailed = !assignmentsResult.ok;
   const activeModuleKeys = sortPortalModules(
     assignments.filter((a) => a.isActive).map((a) => a.moduleKey),
   );
   const primaryModule = resolvePrimaryModule(assignments);
-  const hasModuleAssignments = activeModuleKeys.length > 0;
+  const hasModuleAssignments = !assignmentLoadFailed && activeModuleKeys.length > 0;
   const resolvedMetrics = metrics ?? EMPTY_METRICS;
 
   const widgetMetrics = hasModuleAssignments

@@ -10,7 +10,19 @@ export type ClientNameFields = {
   firstName?: string | null;
   lastName?: string | null;
   salutation?: string | null;
+  gender?: string | null;
 };
+
+function salutationFromGender(gender: string | null | undefined): string | null {
+  const key = gender?.trim().toLowerCase();
+  if (key === 'female' || key === 'f' || key === 'w' || key === 'weiblich' || key === 'frau') {
+    return 'frau';
+  }
+  if (key === 'male' || key === 'm' || key === 'maennlich' || key === 'männlich' || key === 'herr') {
+    return 'herr';
+  }
+  return null;
+}
 
 /** Capitalize a single name part when stored lowercase (e.g. ellen → Ellen). */
 export function capitalizeNamePart(value: string): string {
@@ -27,7 +39,7 @@ export function formatClientPortalDisplayName(fields: ClientNameFields): string 
   const fullName = composeUserFullName(first || null, last || null);
   if (!fullName) return null;
 
-  const salutation = formatSalutation(fields.salutation);
+  const salutation = formatSalutation(fields.salutation ?? salutationFromGender(fields.gender));
   if (salutation === 'Herr' || salutation === 'Frau') {
     return `${salutation} ${fullName}`;
   }
@@ -35,11 +47,25 @@ export function formatClientPortalDisplayName(fields: ClientNameFields): string 
   return fullName;
 }
 
+function isSinglePortalUsernameToken(value: string): boolean {
+  return /^[a-z0-9._-]+\.[a-z0-9._-]+$/i.test(value) && value === value.toLowerCase();
+}
+
 /** Detect generated portal usernames (e.g. ellen.zacharias) — not suitable for greetings. */
 export function isPortalUsernameLabel(value: string | null | undefined): boolean {
   const trimmed = value?.trim();
-  if (!trimmed || trimmed.includes(' ')) return false;
-  return /^[a-z0-9._-]+\.[a-z0-9._-]+$/i.test(trimmed) && trimmed === trimmed.toLowerCase();
+  if (!trimmed) return false;
+
+  const parts = trimmed.split(/\s+/).filter(Boolean);
+  if (parts.length === 1) {
+    return isSinglePortalUsernameToken(parts[0]);
+  }
+
+  if (parts.length === 2 && parts[0] === parts[1]) {
+    return isSinglePortalUsernameToken(parts[0]);
+  }
+
+  return false;
 }
 
 function resolveDemoClientDisplayName(clientId: string): string | null {
@@ -66,7 +92,7 @@ export async function fetchClientPortalDisplayName(
   if (!supabase) return null;
 
   const { data, error } = await fromUnknownTable(supabase, 'clients')
-    .select('first_name, last_name, salutation')
+    .select('first_name, last_name, gender')
     .eq('tenant_id', tenantId)
     .eq('id', clientId)
     .maybeSingle();
@@ -83,12 +109,12 @@ export async function fetchClientPortalDisplayName(
   const row = data as {
     first_name?: string | null;
     last_name?: string | null;
-    salutation?: string | null;
+    gender?: string | null;
   };
 
   return formatClientPortalDisplayName({
     firstName: row.first_name ?? null,
     lastName: row.last_name ?? null,
-    salutation: row.salutation ?? null,
+    gender: row.gender ?? null,
   });
 }
