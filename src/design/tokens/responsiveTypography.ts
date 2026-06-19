@@ -1,4 +1,5 @@
 import type { TextStyle } from 'react-native';
+import { webScaledFontMetric } from '@/design/web/webFontSize';
 import { resolveResponsiveValue, type ResponsiveValueMap } from './responsiveValue';
 import { galaxyPalette } from './galaxy';
 
@@ -27,56 +28,57 @@ const cardTitleSizes: ResponsiveValueMap<SizePair> = {
 
 /** Responsive heading styles — avoids mid-word breaks via sane line heights, no wide letterSpacing. */
 export function resolveGalaxyTypography(width: number) {
+  const size = webScaledFontMetric;
   const h1 = resolveResponsiveValue(width, h1Sizes);
   const h2 = resolveResponsiveValue(width, h2Sizes);
   const cardTitle = resolveResponsiveValue(width, cardTitleSizes);
 
   return {
     h1: {
-      fontSize: h1.fontSize,
-      lineHeight: h1.lineHeight,
+      fontSize: size(h1.fontSize),
+      lineHeight: size(h1.lineHeight),
       fontWeight: '800',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     h2: {
-      fontSize: h2.fontSize,
-      lineHeight: h2.lineHeight,
+      fontSize: size(h2.fontSize),
+      lineHeight: size(h2.lineHeight),
       fontWeight: '700',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     cardTitle: {
-      fontSize: cardTitle.fontSize,
-      lineHeight: cardTitle.lineHeight,
+      fontSize: size(cardTitle.fontSize),
+      lineHeight: size(cardTitle.lineHeight),
       fontWeight: '600',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     body: {
-      fontSize: 15,
-      lineHeight: 22,
+      fontSize: size(15),
+      lineHeight: size(22),
       fontWeight: '400',
       color: galaxyPalette.textSecondary,
     } as TextStyle,
     label: {
-      fontSize: 12,
-      lineHeight: 16,
+      fontSize: size(12),
+      lineHeight: size(16),
       fontWeight: '600',
       color: galaxyPalette.textSecondary,
     } as TextStyle,
     button: {
-      fontSize: 16,
-      lineHeight: 22,
+      fontSize: size(16),
+      lineHeight: size(22),
       fontWeight: '600',
       color: galaxyPalette.textPrimary,
     } as TextStyle,
     caption: {
-      fontSize: 13,
-      lineHeight: 18,
+      fontSize: size(13),
+      lineHeight: size(18),
       fontWeight: '400',
       color: galaxyPalette.textMuted,
     } as TextStyle,
     eyebrow: {
-      fontSize: 11,
-      lineHeight: 14,
+      fontSize: size(11),
+      lineHeight: size(14),
       fontWeight: '700',
       letterSpacing: 0.6,
       textTransform: 'uppercase' as const,

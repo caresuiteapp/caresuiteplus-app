@@ -1,6 +1,7 @@
 import React, { useMemo } from 'react';
 import {
   ActivityIndicator,
+  Platform,
   Pressable,
   StyleSheet,
   Text,
@@ -75,13 +76,18 @@ export function PremiumButton({
   const isPrimary = variant === 'primary';
   const height = size === 'sm' ? buttonHeights.sm : buttonHeights.md;
   const isDisabled = disabled || loading;
-  const labelStyle = useMemo(
-    () => ({
-      fontSize: scaleFontSize(typography.button.fontSize ?? 16),
-      lineHeight: scaleFontSize(typography.button.lineHeight ?? 22),
-    }),
-    [scaleFontSize, typography.button.fontSize, typography.button.lineHeight],
-  );
+  const labelStyle = useMemo(() => {
+    if (Platform.OS === 'web') {
+      return {
+        fontSize: typography.button.fontSize ?? 16,
+        lineHeight: typography.button.lineHeight ?? 22,
+      };
+    }
+    return {
+      fontSize: scaleFontSize(16),
+      lineHeight: scaleFontSize(22),
+    };
+  }, [scaleFontSize, typography.button.fontSize, typography.button.lineHeight]);
 
   const content = (
     <View

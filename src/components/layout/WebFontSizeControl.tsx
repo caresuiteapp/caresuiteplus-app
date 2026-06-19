@@ -11,7 +11,7 @@ const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as TextStyle) 
 const webDisabled =
   Platform.OS === 'web' ? ({ cursor: 'default', opacity: 0.35 } as TextStyle) : { opacity: 0.35 };
 
-/** Web-only A− / 100% / A+ text control — scales app text via --app-font-scale. */
+/** Web-only A− / 100% / A+ text control — scales typography via --app-font-scale. */
 export function WebFontSizeControl() {
   const { colors, isDark } = useLegacyTheme();
   const { scale, increase, decrease, canIncrease, canDecrease } = useWebFontScale();
