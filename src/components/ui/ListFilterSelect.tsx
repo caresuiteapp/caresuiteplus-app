@@ -1,9 +1,7 @@
 import { useState } from 'react';
 import {
   Modal,
-  Platform,
   Pressable,
-  StyleSheet,
   Text,
   View,
   type ViewStyle,
@@ -77,26 +75,17 @@ export function ListFilterSelect({
         <Text style={styles.chevron}>{open ? '▴' : '▾'}</Text>
       </Pressable>
 
-      {Platform.OS === 'web' && open ? (
-        <>
-          <Pressable style={styles.backdrop} onPress={() => setOpen(false)} accessibilityRole="none" />
-          <View style={styles.dropdown}>{optionList}</View>
-        </>
-      ) : null}
-
-      {Platform.OS !== 'web' ? (
-        <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
-          <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
-            <Pressable style={styles.modalSheet} onPress={(event) => event.stopPropagation()}>
-              <Text style={styles.modalTitle}>{label}</Text>
-              {optionList}
-              <Pressable onPress={() => setOpen(false)} style={styles.modalClose}>
-                <Text style={styles.modalCloseText}>Schließen</Text>
-              </Pressable>
+      <Modal visible={open} transparent animationType="fade" onRequestClose={() => setOpen(false)}>
+        <Pressable style={styles.modalBackdrop} onPress={() => setOpen(false)}>
+          <Pressable style={styles.modalSheet} onPress={(event) => event.stopPropagation()}>
+            <Text style={styles.modalTitle}>{label}</Text>
+            {optionList}
+            <Pressable onPress={() => setOpen(false)} style={styles.modalClose}>
+              <Text style={styles.modalCloseText}>Schließen</Text>
             </Pressable>
           </Pressable>
-        </Modal>
-      ) : null}
+        </Pressable>
+      </Modal>
     </View>
   );
 }

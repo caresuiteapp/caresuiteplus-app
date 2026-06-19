@@ -1,6 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { useAuroraGlass } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText, useAuroraGlass } from '@/design/tokens/auroraGlass';
 import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
@@ -17,6 +17,7 @@ export function PremiumInput({
   ...props
 }: PremiumInputProps) {
   const { colors, active, tokens } = useAuroraGlass();
+  const text = useAuroraAdaptiveText();
 
   const styles = useMemo(
     () =>
@@ -26,7 +27,7 @@ export function PremiumInput({
         },
         label: {
           ...typography.label,
-          color: colors.textPrimary,
+          color: text.primary,
         },
         input: {
           minHeight: 48,
@@ -36,7 +37,7 @@ export function PremiumInput({
           backgroundColor: active ? tokens.input : colors.bgInput,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
-          color: colors.textPrimary,
+          color: text.primary,
           fontSize: 15,
         },
         inputError: {
@@ -44,21 +45,21 @@ export function PremiumInput({
         },
         hint: {
           ...typography.caption,
-          color: colors.textMuted,
+          color: text.muted,
         },
         error: {
           ...typography.caption,
           color: colors.danger,
         },
       }),
-    [active, colors, tokens.border, tokens.input],
+    [active, colors.danger, text.muted, text.primary, tokens.border, tokens.input],
   );
 
   return (
     <View style={styles.wrapper}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
       <TextInput
-        placeholderTextColor={colors.textMuted}
+        placeholderTextColor={text.muted}
         style={[styles.input, error ? styles.inputError : null, style]}
         {...props}
       />

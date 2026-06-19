@@ -223,4 +223,17 @@ describe('PortalRequestFormModal UI', () => {
     expect(source).toContain('Grund/Thema');
     expect(source).toContain("case 'rueckruf'");
   });
+
+  it('uses PortalGlassModal without duplicate in-body title', () => {
+    const source = readSrc('src/components/portal/assist/PortalGlassModal.tsx');
+    expect(source).toContain('PlatformModal');
+    expect(source).not.toContain('GlassCard');
+    expect(source).not.toMatch(/<Text[^>]*>\s*\{title\}/);
+  });
+
+  it('uses modal-based ListFilterSelect picker on all platforms', () => {
+    const source = readSrc('src/components/ui/ListFilterSelect.tsx');
+    expect(source).toContain('<Modal visible={open}');
+    expect(source).not.toContain("Platform.OS === 'web'");
+  });
 });

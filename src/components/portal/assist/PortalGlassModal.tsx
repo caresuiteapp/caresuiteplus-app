@@ -1,12 +1,10 @@
 import { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui';
-import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { auroraGlass } from '@/design/tokens/auroraGlass';
+import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type PortalGlassModalProps = {
   visible: boolean;
@@ -28,17 +26,22 @@ export function PortalGlassModal({
   onPrimary,
   primaryLoading,
 }: PortalGlassModalProps) {
-  const text = useAuroraAdaptiveText();
-  const { width } = useDeviceClass();
-  const type = resolveGalaxyTypography(width);
-
   return (
-    <PlatformModal visible={visible} onClose={onClose} title={title}>
+    <PlatformModal
+      visible={visible}
+      onClose={onClose}
+      title={title}
+      bodyStyle={styles.modalBody}
+    >
       <View style={styles.body}>
-        <GlassCard>
-          <Text style={[type.cardTitle, { color: text.primary }]}>{title}</Text>
-          {children}
-        </GlassCard>
+        <ScrollView
+          style={styles.scroll}
+          contentContainerStyle={styles.scrollContent}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator={false}
+        >
+          <View style={styles.formPanel}>{children}</View>
+        </ScrollView>
         <View style={styles.actions}>
           <PremiumButton title="Schließen" variant="secondary" onPress={onClose} />
           {primaryLabel && onPrimary ? (
@@ -55,8 +58,27 @@ export function PortalGlassModal({
 }
 
 const styles = StyleSheet.create({
+  modalBody: {
+    paddingTop: 0,
+    gap: 0,
+  },
   body: {
     gap: careSpacing.md,
+  },
+  scroll: {
+    flexGrow: 0,
+    maxHeight: 420,
+  },
+  scrollContent: {
+    flexGrow: 1,
+  },
+  formPanel: {
+    backgroundColor: auroraGlass.modal,
+    borderRadius: careRadius.lg,
+    borderWidth: 1,
+    borderColor: auroraGlass.borderStrong,
+    padding: careSpacing.md,
+    gap: careSpacing.sm,
   },
   actions: {
     gap: careSpacing.sm,
