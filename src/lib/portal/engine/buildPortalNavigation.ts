@@ -1,4 +1,4 @@
-import type { PortalContext, PortalNavItem } from '@/lib/portal/types';
+import type { PortalContext, PortalFeature, PortalNavItem } from '@/lib/portal/types';
 import {
   PORTAL_MODULE_ICONS,
   PORTAL_MODULE_LABELS,
@@ -11,10 +11,48 @@ const GLOBAL_NAV: PortalNavItem[] = [
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile', navGroup: 'global' },
 ];
 
+const ASSIST_FEATURE_ICONS: Record<string, string> = {
+  appointments: '📅',
+  betreuung: '🤝',
+  care_team: '👥',
+  trips: '🚗',
+  budget: '💶',
+  nachweise: '📋',
+  anfragen: '📨',
+  hilfe: '❓',
+  messages: '💬',
+  documents: '📄',
+};
+
+const ASSIST_FEATURE_HREFS: Record<string, string> = {
+  appointments: '/portal/client/appointments',
+  betreuung: '/portal/client?module=assist&section=betreuung',
+  care_team: '/portal/client?module=assist&section=betreuung',
+  trips: '/portal/client?module=assist&section=begleitungen',
+  budget: '/portal/client?module=assist&section=budget',
+  nachweise: '/portal/client?module=assist&section=nachweise',
+  anfragen: '/portal/client?module=assist&section=anfragen',
+  hilfe: '/portal/client?module=assist&section=hilfe',
+};
+
+function assistFeatureNavItems(features: PortalFeature[]): PortalNavItem[] {
+  return features
+    .filter((f) => f.moduleKey === 'assist' && f.navGroup === 'module')
+    .sort((a, b) => a.sortOrder - b.sortOrder)
+    .map((feature) => ({
+      key: `assist-${feature.featureKey}`,
+      label: feature.label,
+      icon: ASSIST_FEATURE_ICONS[feature.featureKey] ?? '✨',
+      href: ASSIST_FEATURE_HREFS[feature.featureKey] ?? `/portal/client?module=assist&section=${feature.featureKey}`,
+      moduleKey: 'assist',
+      navGroup: 'module' as const,
+    }));
+}
+
 export function buildPortalNavigation(context: Pick<
   PortalContext,
   'activeModuleKeys' | 'hasModuleAssignments'
->): PortalNavItem[] {
+> & Partial<Pick<PortalContext, 'primaryModule' | 'visibleFeatures'>>): PortalNavItem[] {
   const items: PortalNavItem[] = [
     {
       key: 'overview',
@@ -26,15 +64,21 @@ export function buildPortalNavigation(context: Pick<
   ];
 
   if (context.hasModuleAssignments) {
-    for (const moduleKey of sortPortalModules(context.activeModuleKeys)) {
-      items.push({
-        key: `module-${moduleKey}`,
-        label: PORTAL_MODULE_LABELS[moduleKey],
-        icon: PORTAL_MODULE_ICONS[moduleKey],
-        href: `/portal/client?module=${moduleKey}`,
-        moduleKey,
-        navGroup: 'module',
-      });
+    const isAssistPrimary = context.primaryModule === 'assist';
+
+    if (isAssistPrimary && (context.visibleFeatures?.length ?? 0) > 0) {
+      items.push(...assistFeatureNavItems(context.visibleFeatures!));
+    } else {
+      for (const moduleKey of sortPortalModules(context.activeModuleKeys)) {
+        items.push({
+          key: `module-${moduleKey}`,
+          label: PORTAL_MODULE_LABELS[moduleKey],
+          icon: PORTAL_MODULE_ICONS[moduleKey],
+          href: `/portal/client?module=${moduleKey}`,
+          moduleKey,
+          navGroup: 'module',
+        });
+      }
     }
   }
 

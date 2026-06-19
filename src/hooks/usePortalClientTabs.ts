@@ -16,6 +16,13 @@ export function usePortalClientTabs(): ShellTabConfig[] {
       ];
     }
 
-    return portalNavToShellTabs(buildPortalNavigation(context));
+    return portalNavToShellTabs(
+      buildPortalNavigation({
+        activeModuleKeys: context.activeModuleKeys,
+        hasModuleAssignments: context.hasModuleAssignments,
+        primaryModule: context.primaryModule,
+        visibleFeatures: context.visibleFeatures,
+      }),
+    );
   }, [context]);
 }

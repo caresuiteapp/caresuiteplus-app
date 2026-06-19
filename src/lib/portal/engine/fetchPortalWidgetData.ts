@@ -91,6 +91,25 @@ export async function fetchPortalWidgetData(
       ).then((count) => {
         result.assist_trips = count;
       }),
+      safeCount(
+        'assist_requests',
+        fromUnknownTable(client, 'portal_requests')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId)
+          .eq('client_id', clientId)
+          .in('status', ['offen', 'in_bearbeitung']),
+      ).then((count) => {
+        result.assist_requests = count;
+      }),
+      safeCount(
+        'assist_activities',
+        fromUnknownTable(client, 'portal_activities')
+          .select('*', { count: 'exact', head: true })
+          .eq('tenant_id', tenantId)
+          .eq('client_id', clientId),
+      ).then((count) => {
+        result.assist_activities = count;
+      }),
     );
   }
 

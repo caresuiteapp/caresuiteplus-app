@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { AdaptivePortalDashboard } from '@/components/portal/AdaptivePortalDashboard';
+import { AssistPortalOverview } from '@/components/portal/assist';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText, useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
@@ -72,6 +73,16 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
         message="Ihre Sitzung konnte nicht aufgelöst werden."
         actionLabel="Erneut laden"
         onAction={handleRefresh}
+      />
+    );
+  }
+
+  if (context.primaryModule === 'assist') {
+    return (
+      <AssistPortalOverview
+        context={context}
+        showSuccess={showSuccess}
+        onRefresh={handleRefresh}
       />
     );
   }
