@@ -135,6 +135,7 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
   return StyleSheet.create({
     root: {
       width: MODULE_RAIL_WIDTH,
+      flex: 1,
       backgroundColor: isDark ? 'rgba(11,16,32,0.32)' : 'rgba(255,255,255,0.92)',
       borderRightWidth: 1,
       borderRightColor: glassBorder,
@@ -148,6 +149,6 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
       backgroundColor: 'transparent',
     },
     list: { flex: 1, alignSelf: 'stretch' },
-    scroll: { alignItems: 'center', gap: MODULE_RAIL_GAP },
+    scroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', gap: MODULE_RAIL_GAP },
   });
 }
