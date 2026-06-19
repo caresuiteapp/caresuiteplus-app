@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
+import { usePortalAssistRealtime } from '@/hooks/usePortalAssistRealtime';
 import { usePortalContext } from '@/hooks/usePortalContext';
 import { fetchAssistDashboardData } from '@/lib/portal/assist/portalAssistDashboardService';
 import {
@@ -81,6 +82,14 @@ export function usePortalSidebarData() {
     void loadSidebarData();
   }, [loadSidebarData]);
 
+  const { isConnected: isLiveConnected } = usePortalAssistRealtime(
+    context?.tenantId,
+    context?.primaryModule === 'assist' ? context.clientId : null,
+    () => {
+      void loadSidebarData();
+    },
+  );
+
   const kpis = useMemo((): PortalSidebarKpi[] => {
     if (dashboard) {
       return [
@@ -141,5 +150,6 @@ export function usePortalSidebarData() {
     releaseLabel,
     refresh: loadSidebarData,
     navigateQuickAction,
+    isLiveConnected,
   };
 }

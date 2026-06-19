@@ -14,6 +14,7 @@ import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequest
 import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
 import { careSpacing } from '@/design/tokens/spacing';
 import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalAssistRealtime } from '@/hooks/usePortalAssistRealtime';
 import {
   buildPortalRequestDescription,
   createPortalRequest,
@@ -118,21 +119,29 @@ export function MobilePortalDashboard({
     }
   }, [params.action, proofsReleased]);
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadDashboard = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     const result = await fetchAssistDashboardData(context);
     if (result.ok) {
       setDashboard(result.data);
-    } else {
+    } else if (!silent) {
       setError(result.error);
     }
-    setLoading(false);
+    if (!silent) {
+      setLoading(false);
+    }
   }, [context]);
 
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  usePortalAssistRealtime(context.tenantId, context.clientId, () => {
+    void loadDashboard(true);
+  });
 
   const handleRefresh = async () => {
     await loadDashboard();

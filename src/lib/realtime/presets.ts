@@ -1,0 +1,136 @@
+import { OFFICE_NOTIFICATIONS_TABLE } from '@/lib/office/notificationtable';
+import { subscribeToTenantTables, type RealtimeHandler, type TenantTableSpec } from './subscribeToTenantTables';
+
+function tenantFilter(tenantId: string): string {
+  return `tenant_id=eq.${tenantId}`;
+}
+
+function clientFilter(clientId: string): string {
+  return `client_id=eq.${clientId}`;
+}
+
+function withTenantAndClient(tenantId: string, clientId: string): TenantTableSpec[] {
+  const tenant = tenantFilter(tenantId);
+  const client = clientFilter(clientId);
+  return [
+    { table: 'portal_requests', filter: client },
+    { table: 'portal_activities', filter: client },
+    { table: 'portal_uploads', filter: client },
+    { table: 'client_documents', filter: client },
+    { table: 'assignments', filter: client },
+    { table: 'appointments', filter: tenant },
+    { table: 'message_threads', filter: client },
+  ];
+}
+
+/** Portal Assist overview, sidebar KPIs, open-request/activity modals. */
+export function subscribeToPortalAssistChanges(
+  tenantId: string,
+  clientId: string,
+  handler: RealtimeHandler,
+): () => void {
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `portal-assist:${tenantId}:${clientId}`,
+      channelName: `portal:assist:${tenantId}:${clientId}`,
+      specs: withTenantAndClient(tenantId, clientId),
+    },
+    handler,
+  );
+}
+
+/** Office dashboard KPIs, timeline and workspace counts. */
+export function subscribeToOfficeDashboardChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  const filter = tenantFilter(tenantId);
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `office-dashboard:${tenantId}`,
+      channelName: `office:dashboard:${tenantId}`,
+      specs: [
+        { table: 'clients', filter },
+        { table: 'employees', filter },
+        { table: 'invoices', filter },
+        { table: 'appointments', filter },
+        { table: 'assignments', filter },
+        { table: 'audit_logs', filter },
+      ],
+    },
+    handler,
+  );
+}
+
+/** Notification bell — legacy `notifications` and `office_notifications`. */
+export function subscribeToNotificationChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  const filter = tenantFilter(tenantId);
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `notifications:${tenantId}`,
+      channelName: `office:notifications:${tenantId}`,
+      specs: [
+        { table: 'notifications', filter },
+        { table: OFFICE_NOTIFICATIONS_TABLE, filter },
+      ],
+    },
+    handler,
+  );
+}
+
+/** Klientenakte — client header, documents and related assignments. */
+export function subscribeToClientRecordChanges(
+  tenantId: string,
+  clientId: string,
+  handler: RealtimeHandler,
+): () => void {
+  const tenant = tenantFilter(tenantId);
+  const client = clientFilter(clientId);
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `client-record:${tenantId}:${clientId}`,
+      channelName: `office:client:${tenantId}:${clientId}`,
+      specs: [
+        { table: 'clients', filter: `id=eq.${clientId}` },
+        { table: 'client_documents', filter: client },
+        { table: 'assignments', filter: client },
+        { table: 'portal_requests', filter: client },
+        { table: 'audit_logs', filter: tenant },
+      ],
+    },
+    handler,
+  );
+}
+
+/** Office client list and employee assignment lists. */
+export function subscribeToAssignmentChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `assignments:${tenantId}`,
+      channelName: `tenant:${tenantId}:assignments`,
+      specs: [{ table: 'assignments', filter: tenantFilter(tenantId) }],
+    },
+    handler,
+  );
+}
+
+/** Office Klientenliste. */
+export function subscribeToClientListChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `client-list:${tenantId}`,
+      channelName: `office:clients:${tenantId}`,
+      specs: [{ table: 'clients', filter: tenantFilter(tenantId) }],
+    },
+    handler,
+  );
+}

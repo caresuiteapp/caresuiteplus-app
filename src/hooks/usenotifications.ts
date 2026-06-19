@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AppNotification, NotificationCenterTab } from '@/types/office/broadcast';
 import { useAuth } from '@/lib/auth/context';
+import { subscribeToNotificationChanges } from '@/lib/realtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import {
   fetchUnreadNotificationCount,
@@ -15,6 +16,7 @@ export function useNotifications(tab: NotificationCenterTab = 'all') {
   const [unreadCount, setUnreadCount] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
 
   const refresh = useCallback(async () => {
     if (!tenantId || !userId) {
@@ -43,6 +45,22 @@ export function useNotifications(tab: NotificationCenterTab = 'all') {
     void refresh();
   }, [refresh]);
 
+  useEffect(() => {
+    if (!tenantId || !userId) {
+      setIsLiveConnected(false);
+      return;
+    }
+
+    const unsubscribe = subscribeToNotificationChanges(tenantId, () => {
+      void refresh();
+    });
+    setIsLiveConnected(true);
+    return () => {
+      unsubscribe();
+      setIsLiveConnected(false);
+    };
+  }, [tenantId, userId, refresh]);
+
   const hasUrgent = notifications.some(
     (n) => !n.isRead && (n.priority === 'urgent' || n.priority === 'critical'),
   );
@@ -54,6 +72,7 @@ export function useNotifications(tab: NotificationCenterTab = 'all') {
     error,
     hasUrgent,
     refresh,
+    isLiveConnected,
     tenantId,
     userId,
   };

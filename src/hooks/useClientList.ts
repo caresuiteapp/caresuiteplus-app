@@ -3,6 +3,7 @@ import type { ClientListItem } from '@/types/modules/office';
 import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
 import { fetchClientList } from '@/lib/office';
+import { subscribeToClientListChanges } from '@/lib/realtime';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDraftStatusFilter } from '@/lib/services/clients/clientListQueryOptions';
 import { loadClientIntakeDraft } from '@/lib/clients/clientIntakeDraftStorage';
@@ -160,6 +161,15 @@ export function useClientList() {
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   }, [isLive, kpiQuery, query]);
+
+  useEffect(() => {
+    if (!tenantId || !isLive) return;
+    const unsubscribe = subscribeToClientListChanges(tenantId, () => {
+      void query.refresh();
+      void kpiQuery.refresh();
+    });
+    return unsubscribe;
+  }, [tenantId, isLive, kpiQuery, query]);
 
   const resetFilters = useCallback(() => {
     if (isLive) {

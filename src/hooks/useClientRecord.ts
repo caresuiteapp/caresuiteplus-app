@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect } from 'react';
 import { fetchClientRecord } from '@/lib/clients/clientRecordService';
+import { subscribeToClientRecordChanges } from '@/lib/realtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
 
@@ -17,6 +18,14 @@ export function useClientRecord(clientId: string | undefined) {
   );
 
   const refresh = useCallback(() => query.refresh(), [query]);
+
+  useEffect(() => {
+    if (!tenantId || !clientId) return;
+    const unsubscribe = subscribeToClientRecordChanges(tenantId, clientId, () => {
+      void refresh();
+    });
+    return unsubscribe;
+  }, [tenantId, clientId, refresh]);
 
   return {
     record: query.data,

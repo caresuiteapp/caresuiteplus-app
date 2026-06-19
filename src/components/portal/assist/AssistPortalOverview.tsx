@@ -20,6 +20,7 @@ import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalAssistRealtime } from '@/hooks/usePortalAssistRealtime';
 import {
   buildPortalRequestDescription,
   createPortalRequest,
@@ -161,21 +162,29 @@ export function AssistPortalOverview({
     }
   }, [params.action, proofsReleased]);
 
-  const loadDashboard = useCallback(async () => {
-    setLoading(true);
-    setError(null);
+  const loadDashboard = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
+      setError(null);
+    }
     const result = await fetchAssistDashboardData(context);
     if (result.ok) {
       setDashboard(result.data);
-    } else {
+    } else if (!silent) {
       setError(result.error);
     }
-    setLoading(false);
+    if (!silent) {
+      setLoading(false);
+    }
   }, [context]);
 
   useEffect(() => {
     void loadDashboard();
   }, [loadDashboard]);
+
+  usePortalAssistRealtime(context.tenantId, context.clientId, () => {
+    void loadDashboard(true);
+  });
 
   const handleRefresh = async () => {
     await loadDashboard();

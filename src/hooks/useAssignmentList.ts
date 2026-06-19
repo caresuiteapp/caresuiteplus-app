@@ -1,8 +1,9 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
 import { fetchAssignmentList } from '@/lib/assist';
+import { subscribeToAssignmentChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -71,6 +72,14 @@ export function useAssignmentList() {
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   }, [query]);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    const unsubscribe = subscribeToAssignmentChanges(tenantId, () => {
+      void query.refresh();
+    });
+    return unsubscribe;
+  }, [tenantId, query]);
 
   return {
     items: list.paginated.items,
