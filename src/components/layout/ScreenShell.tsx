@@ -38,7 +38,7 @@ export function ScreenShell({
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
 
-  if (mode === 'light') {
+  if (mode === 'light' && !shellHostsAurora) {
     return (
       <CareLightPageShell
         title={title}

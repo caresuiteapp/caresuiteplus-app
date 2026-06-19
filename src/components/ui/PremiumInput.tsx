@@ -1,5 +1,7 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { colors, radius, spacing, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
   label?: string;
@@ -14,6 +16,44 @@ export function PremiumInput({
   style,
   ...props
 }: PremiumInputProps) {
+  const { colors } = useLegacyTheme();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        wrapper: {
+          gap: spacing.xs,
+        },
+        label: {
+          ...typography.label,
+          color: colors.textPrimary,
+        },
+        input: {
+          minHeight: 48,
+          borderRadius: radius.lg,
+          borderWidth: 1,
+          borderColor: colors.borderStrong,
+          backgroundColor: colors.bgInput,
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          color: colors.textPrimary,
+          fontSize: 15,
+        },
+        inputError: {
+          borderColor: colors.danger,
+        },
+        hint: {
+          ...typography.caption,
+          color: colors.textMuted,
+        },
+        error: {
+          ...typography.caption,
+          color: colors.danger,
+        },
+      }),
+    [colors],
+  );
+
   return (
     <View style={styles.wrapper}>
       {label ? <Text style={styles.label}>{label}</Text> : null}
@@ -27,33 +67,3 @@ export function PremiumInput({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrapper: {
-    gap: spacing.xs,
-  },
-  label: {
-    ...typography.label,
-  },
-  input: {
-    minHeight: 48,
-    borderRadius: radius.lg,
-    borderWidth: 1,
-    borderColor: colors.borderStrong,
-    backgroundColor: colors.bgInput,
-    paddingHorizontal: spacing.md,
-    paddingVertical: spacing.sm,
-    color: colors.textPrimary,
-    fontSize: 15,
-  },
-  inputError: {
-    borderColor: colors.danger,
-  },
-  hint: {
-    ...typography.caption,
-  },
-  error: {
-    ...typography.caption,
-    color: colors.danger,
-  },
-});

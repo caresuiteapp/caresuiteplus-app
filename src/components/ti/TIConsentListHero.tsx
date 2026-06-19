@@ -4,9 +4,9 @@ import {
   CareLightListHeroFrame,
   PremiumBadge,
 } from '@/components/ui';
+import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import { TIConnectionStatusBadge } from './TIConnectionStatusBadge';
 import { ROLE_LABELS } from '@/data/demo';
 import { buildTIConsentListKpis } from '@/lib/ti/tiConsentListStats';
@@ -23,6 +23,7 @@ type TIConsentListHeroProps = {
 
 export function TIConsentListHero({ consents, roleKey }: TIConsentListHeroProps) {
   const accent = careLightColors.cyan;
+  const heroText = useListHeroTextStyles();
 
   const kpis = buildTIConsentListKpis(consents, 'light');
 
@@ -30,11 +31,11 @@ export function TIConsentListHero({ consents, roleKey }: TIConsentListHeroProps)
     <CareLightListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS · TELEMATIK</Text>
-          <Text style={styles.title}>TI-Einwilligungen</Text>
-          <Text style={styles.meta}>DSGVO-konforme Verarbeitung und Consent-Verwaltung</Text>
+          <Text style={heroText.eyebrow}>BUSINESS · TELEMATIK</Text>
+          <Text style={heroText.title}>TI-Einwilligungen</Text>
+          <Text style={heroText.meta}>DSGVO-konforme Verarbeitung und Consent-Verwaltung</Text>
         </View>
-        <View style={[styles.iconBadge, { backgroundColor: `${accent}18` }]}>
+        <View style={[styles.iconBadge, heroText.iconBorder, { backgroundColor: `${accent}18` }]}>
           <Text style={styles.iconText}>📜</Text>
         </View>
       </View>
@@ -59,7 +60,7 @@ export function TIConsentListHero({ consents, roleKey }: TIConsentListHeroProps)
           />
         ))}
       </View>
-      {!isTILiveReady() ? <Text style={styles.preparedHint}>{TI_PREPARED_MESSAGE}</Text> : null}
+      {!isTILiveReady() ? <Text style={heroText.meta}>{TI_PREPARED_MESSAGE}</Text> : null}
     </CareLightListHeroFrame>
   );
 }
@@ -69,14 +70,6 @@ const iconSize = designTokens.hero.iconBadgeSize;
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', gap: careSpacing.md },
   textCol: { flex: 1, gap: 2 },
-  eyebrow: {
-    ...careTypography.caption,
-    color: careLightColors.cyan,
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-    fontWeight: '700',
-  },
-  title: { ...careTypography.h2, color: careLightColors.navy },
-  meta: { ...careTypography.caption, color: careLightColors.muted },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -84,12 +77,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: careLightColors.border,
   },
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  preparedHint: { ...careTypography.caption, color: careLightColors.muted },
 });
 

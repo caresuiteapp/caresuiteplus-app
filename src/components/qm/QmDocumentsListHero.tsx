@@ -4,9 +4,9 @@ import {
   CareLightListHeroFrame,
   PremiumBadge,
 } from '@/components/ui';
+import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
 import { buildQmDocumentsListKpis } from '@/lib/qm/qmDocumentsListStats';
 import { isQmDocumentsLiveReady, QM_DOCUMENTS_PREPARED_MESSAGE } from '@/lib/qm/qmModuleConfig';
@@ -23,6 +23,7 @@ type QmDocumentsListHeroProps = {
 
 export function QmDocumentsListHero({ documents, roleKey }: QmDocumentsListHeroProps) {
   const accent = moduleColor('qm');
+  const heroText = useListHeroTextStyles();
 
   const kpis = buildQmDocumentsListKpis(documents, 'light');
   const isLive = isQmDocumentsLiveReady();
@@ -31,13 +32,13 @@ export function QmDocumentsListHero({ documents, roleKey }: QmDocumentsListHeroP
     <CareLightListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>QUALITÄTSMANAGEMENT</Text>
-          <Text style={styles.title}>QM-Dokumente</Text>
-          <Text style={styles.meta}>
+          <Text style={heroText.eyebrow}>QUALITÄTSMANAGEMENT</Text>
+          <Text style={heroText.title}>QM-Dokumente</Text>
+          <Text style={heroText.meta}>
             {documents.length} Dokumente · Verfahren, Richtlinien und Formulare
           </Text>
         </View>
-        <View style={[styles.iconBadge, { backgroundColor: `${accent}18` }]}>
+        <View style={[styles.iconBadge, heroText.iconBorder, { backgroundColor: `${accent}18` }]}>
           <Text style={styles.iconText}>📄</Text>
         </View>
       </View>
@@ -63,7 +64,7 @@ export function QmDocumentsListHero({ documents, roleKey }: QmDocumentsListHeroP
           />
         ))}
       </View>
-      {!isLive ? <Text style={styles.preparedHint}>{QM_DOCUMENTS_PREPARED_MESSAGE}</Text> : null}
+      {!isLive ? <Text style={heroText.meta}>{QM_DOCUMENTS_PREPARED_MESSAGE}</Text> : null}
     </CareLightListHeroFrame>
   );
 }
@@ -73,14 +74,6 @@ const iconSize = designTokens.hero.iconBadgeSize;
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', gap: careSpacing.md },
   textCol: { flex: 1, gap: 2 },
-  eyebrow: {
-    ...careTypography.caption,
-    color: careLightColors.cyan,
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-    fontWeight: '700',
-  },
-  title: { ...careTypography.h2, color: careLightColors.navy },
-  meta: { ...careTypography.caption, color: careLightColors.muted },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -88,12 +81,10 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: careLightColors.border,
   },
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  preparedHint: { ...careTypography.caption, color: careLightColors.muted },
 });
 

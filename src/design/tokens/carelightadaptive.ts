@@ -1,8 +1,11 @@
 import { useMemo } from 'react';
+import type { TextStyle, ViewStyle } from 'react-native';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { careSuiteColors } from '@/design/tokens/colors';
 import { careLightColors } from '@/design/tokens/lightTheme';
+import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { designTokens } from '@/theme';
 
 export type CareLightResolved = {
   isDark: boolean;
@@ -77,4 +80,47 @@ export function useCareAdaptiveTokens() {
   const { isDark, c } = useCareLightPalette();
   const { colors, typography } = useLegacyTheme();
   return useMemo(() => ({ isDark, c, colors, typography }), [c, colors, isDark, typography]);
+}
+
+/** Glass panel surface for dark PlatformShell / Aurora routes. */
+export function useGlassPanelStyle(): ViewStyle {
+  const { isDark } = useCareLightPalette();
+  return useMemo(
+    () =>
+      isDark
+        ? {
+            backgroundColor: designTokens.glass.background,
+            borderColor: designTokens.glass.border,
+            borderWidth: 1,
+          }
+        : {},
+    [isDark],
+  );
+}
+
+/** List-hero typography that stays readable on glass panels in dark mode. */
+export function useListHeroTextStyles() {
+  const { isDark, c } = useCareLightPalette();
+  return useMemo(
+    () => ({
+      eyebrow: {
+        ...careTypography.caption,
+        color: isDark ? c.cyan : careLightColors.cyan,
+        letterSpacing: designTokens.hero.eyebrowLetterSpacing,
+        fontWeight: '700' as TextStyle['fontWeight'],
+      },
+      title: {
+        ...careTypography.h2,
+        color: isDark ? c.text : careLightColors.navy,
+      },
+      meta: {
+        ...careTypography.caption,
+        color: isDark ? c.muted : careLightColors.muted,
+      },
+      iconBorder: {
+        borderColor: isDark ? c.border : careLightColors.border,
+      },
+    }),
+    [c.border, c.cyan, c.muted, c.text, isDark],
+  );
 }

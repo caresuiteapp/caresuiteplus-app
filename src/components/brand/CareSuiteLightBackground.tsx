@@ -2,14 +2,25 @@ import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { careLightColors } from '@/design/tokens/lightTheme';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 
 type CareSuiteLightBackgroundProps = {
   children: ReactNode;
   style?: ViewStyle;
 };
 
-/** Light premium page background — default demo view. */
+/** Light premium page background — transparent when PlatformShell hosts Aurora. */
 export function CareSuiteLightBackground({ children, style }: CareSuiteLightBackgroundProps) {
+  const shellHostsAurora = useShellHostsAurora();
+
+  if (shellHostsAurora) {
+    return (
+      <View style={[styles.auroraRoot, style]}>
+        {children}
+      </View>
+    );
+  }
+
   return (
     <View style={[styles.root, style]}>
       <LinearGradient
@@ -23,6 +34,11 @@ export function CareSuiteLightBackground({ children, style }: CareSuiteLightBack
 }
 
 const styles = StyleSheet.create({
+  auroraRoot: {
+    flex: 1,
+    overflow: 'hidden',
+    backgroundColor: 'transparent',
+  },
   root: {
     flex: 1,
     overflow: 'hidden',

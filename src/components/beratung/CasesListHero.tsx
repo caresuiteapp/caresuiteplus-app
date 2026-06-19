@@ -7,9 +7,8 @@ import {
   PremiumBadge,
   type DesktopListViewMode,
 } from '@/components/ui';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
 import type { CaseListKpi } from '@/data/demo/caseListStats';
 import { ROLE_LABELS } from '@/data/demo';
@@ -41,20 +40,21 @@ export function CasesListHero({
   showViewToggle = false,
 }: CasesListHeroProps) {
   const accent = moduleColor('beratung');
+  const heroText = useListHeroTextStyles();
 
   return (
     <CareLightListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BERATUNG</Text>
-          <Text style={styles.title}>Beratungsfälle</Text>
-          <Text style={styles.meta}>
+          <Text style={heroText.eyebrow}>BERATUNG</Text>
+          <Text style={heroText.title}>Beratungsfälle</Text>
+          <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Fällen
             {isReadOnly ? ' · Lesemodus' : ''}
           </Text>
         </View>
         {!compact ? (
-          <View style={[styles.iconBadge, { backgroundColor: `${accent}18` }]}>
+          <View style={[styles.iconBadge, heroText.iconBorder, { backgroundColor: `${accent}18` }]}>
             <Text style={styles.iconText}>💬</Text>
           </View>
         ) : null}
@@ -90,14 +90,6 @@ const iconSize = designTokens.hero.iconBadgeSize;
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', gap: careSpacing.md },
   textCol: { flex: 1, gap: 2 },
-  eyebrow: {
-    ...careTypography.caption,
-    color: careLightColors.cyan,
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-    fontWeight: '700',
-  },
-  title: { ...careTypography.h2, color: careLightColors.navy },
-  meta: { ...careTypography.caption, color: careLightColors.muted },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -105,7 +97,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: careLightColors.border,
   },
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },

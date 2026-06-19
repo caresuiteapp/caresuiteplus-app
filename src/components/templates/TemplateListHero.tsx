@@ -4,9 +4,9 @@ import {
   CareLightListHeroFrame,
   PremiumBadge,
 } from '@/components/ui';
+import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import { ROLE_LABELS } from '@/data/demo';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { ServiceMode } from '@/lib/services/mode';
@@ -144,12 +144,12 @@ export function TemplateListHero({
     <CareLightListHeroFrame accentColor={config.accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>VORLAGENZENTRUM · PAKET F</Text>
-          <Text style={styles.title}>{config.title}</Text>
-          <Text style={styles.meta}>
+          <Text style={heroText.eyebrow}>VORLAGENZENTRUM · PAKET F</Text>
+          <Text style={heroText.title}>{config.title}</Text>
+          <Text style={heroText.meta}>
             {countLabel} · {serviceMode === 'demo' ? 'Demo' : 'Supabase'}
           </Text>
-          <Text style={styles.subtitle}>{config.subtitle}</Text>
+          <Text style={heroText.meta}>{config.subtitle}</Text>
         </View>
         <View style={[styles.iconBadge, { borderColor: `${config.accent}55`, backgroundColor: `${config.accent}18` }]}>
           <Text style={styles.iconText}>{config.icon}</Text>
@@ -181,15 +181,6 @@ const iconSize = designTokens.hero.iconBadgeSize;
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', gap: careSpacing.md },
   textCol: { flex: 1, gap: 2 },
-  eyebrow: {
-    ...careTypography.caption,
-    color: careLightColors.cyan,
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-    fontWeight: '700',
-  },
-  title: { ...careTypography.h2, color: careLightColors.navy },
-  meta: { ...careTypography.caption, color: careLightColors.muted },
-  subtitle: { ...careTypography.caption, color: careLightColors.muted },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -197,7 +188,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: careLightColors.border,
   },
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },

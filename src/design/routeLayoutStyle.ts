@@ -1,6 +1,7 @@
-import { careLightColors } from '@/design/tokens/lightTheme';
-
-/** Default demo route stack background — always light CareSuite+. */
+/**
+ * Route stack content area — transparent so PlatformShell Aurora or
+ * CareLightPageShell / ScreenShell own the visible surface.
+ */
 export const routeLayoutContentStyle = {
-  backgroundColor: careLightColors.page,
+  backgroundColor: 'transparent',
 } as const;

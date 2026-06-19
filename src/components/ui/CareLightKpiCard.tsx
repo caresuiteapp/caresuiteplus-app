@@ -1,8 +1,11 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { designTokens } from '@/theme';
 
 type CareLightKpiCardProps = {
   label: string;
@@ -21,6 +24,49 @@ export function CareLightKpiCard({
   accentColor = careLightColors.green,
   style,
 }: CareLightKpiCardProps) {
+  const { isDark, c } = useCareLightPalette();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          flex: 1,
+          minWidth: 140,
+          backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : careLightColors.surface,
+          borderRadius: careRadius.md,
+          borderWidth: 1,
+          borderColor: isDark ? designTokens.glass.border : careLightColors.border,
+          padding: careSpacing.md,
+          gap: careSpacing.xs,
+        },
+        iconBadge: {
+          width: 36,
+          height: 36,
+          borderRadius: careRadius.sm,
+          alignItems: 'center',
+          justifyContent: 'center',
+        },
+        icon: {
+          fontSize: 18,
+        },
+        label: {
+          ...careTypography.caption,
+          color: isDark ? c.muted : careLightColors.muted,
+          fontWeight: '600',
+        },
+        value: {
+          ...careTypography.h2,
+          fontSize: 28,
+          fontWeight: '800',
+        },
+        subValue: {
+          ...careTypography.caption,
+          color: isDark ? c.muted : careLightColors.muted,
+        },
+      }),
+    [c.muted, isDark],
+  );
+
   return (
     <View style={[styles.card, style]}>
       <View style={[styles.iconBadge, { backgroundColor: `${accentColor}18` }]}>
@@ -32,40 +78,3 @@ export function CareLightKpiCard({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    flex: 1,
-    minWidth: 140,
-    backgroundColor: careLightColors.surface,
-    borderRadius: careRadius.md,
-    borderWidth: 1,
-    borderColor: careLightColors.border,
-    padding: careSpacing.md,
-    gap: careSpacing.xs,
-  },
-  iconBadge: {
-    width: 36,
-    height: 36,
-    borderRadius: careRadius.sm,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  icon: {
-    fontSize: 18,
-  },
-  label: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-    fontWeight: '600',
-  },
-  value: {
-    ...careTypography.h2,
-    fontSize: 28,
-    fontWeight: '800',
-  },
-  subValue: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-  },
-});

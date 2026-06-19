@@ -9,9 +9,8 @@ import {
 } from '@/components/ui';
 import type { ClientListKpi } from '@/data/demo/clientListStats';
 import { ROLE_LABELS } from '@/data/demo';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { RoleKey } from '@/types';
@@ -45,20 +44,21 @@ export function ClientsListHero({
   showViewToggle = false,
 }: ClientsListHeroProps) {
   const accent = moduleColor('office');
+  const heroText = useListHeroTextStyles();
 
   return (
     <CareLightListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>OFFICE</Text>
-          <Text style={styles.title}>Klient:innen</Text>
-          <Text style={styles.meta}>
+          <Text style={heroText.eyebrow}>OFFICE</Text>
+          <Text style={heroText.title}>Klient:innen</Text>
+          <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einträgen
             {isReadOnly ? ' · Lesemodus' : ''}
           </Text>
         </View>
         {!compact ? (
-          <View style={[styles.iconBadge, { backgroundColor: `${accent}18` }]}>
+          <View style={[styles.iconBadge, heroText.iconBorder, { backgroundColor: `${accent}18` }]}>
             <Text style={styles.iconText}>👥</Text>
           </View>
         ) : null}
@@ -103,20 +103,6 @@ const styles = StyleSheet.create({
     flex: 1,
     gap: 2,
   },
-  eyebrow: {
-    ...careTypography.caption,
-    color: careLightColors.cyan,
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-    fontWeight: '700',
-  },
-  title: {
-    ...careTypography.h2,
-    color: careLightColors.navy,
-  },
-  meta: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-  },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -124,7 +110,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
-    borderColor: careLightColors.border,
   },
   iconText: {
     fontSize: 22,
