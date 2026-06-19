@@ -10,6 +10,7 @@ import { spacing } from '@/theme';
 import { MainModuleRail } from './mainmodulerail';
 import { MobilePlatformContextPanel } from './mobileplatformcontextpanel';
 import { ModuleNavSidebar } from './modulenavsidebar';
+import { NotificationBellFab } from '@/components/notifications/notificationcenter';
 import { PlatformTopbar } from './platformtopbar';
 import { RightContextPanel } from './rightcontextpanel';
 
@@ -63,6 +64,7 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
         </View>
         {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}
       </View>
+      <NotificationBellFab />
     </View>
   );
 

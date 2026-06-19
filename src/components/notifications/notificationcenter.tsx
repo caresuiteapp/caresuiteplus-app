@@ -8,6 +8,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -417,5 +418,34 @@ export function NotificationBellWithCenter({
         employeeId={employeeId}
       />
     </>
+  );
+}
+
+type NotificationBellFabProps = {
+  employeeId?: string | null;
+  /** Extra offset above bottom edge (e.g. mobile tab bar). */
+  bottomOffset?: number;
+};
+
+/** Fixed bottom-right notification bell — rendered at shell level, not in topbar. */
+export function NotificationBellFab({ employeeId, bottomOffset = 0 }: NotificationBellFabProps) {
+  const insets = useSafeAreaInsets();
+
+  const fabStyle = useMemo(
+    (): ViewStyle => ({
+      ...(Platform.OS === 'web'
+        ? ({ position: 'fixed' } as ViewStyle)
+        : { position: 'absolute' }),
+      bottom: spacing.lg + Math.max(insets.bottom, 0) + bottomOffset,
+      right: spacing.lg,
+      zIndex: 100,
+    }),
+    [bottomOffset, insets.bottom],
+  );
+
+  return (
+    <View style={fabStyle} pointerEvents="box-none">
+      <NotificationBellWithCenter employeeId={employeeId} size="topbar" variant="glass" />
+    </View>
   );
 }

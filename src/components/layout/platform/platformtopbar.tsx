@@ -12,7 +12,6 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
-import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -43,9 +42,9 @@ const SEARCH_PLACEHOLDERS: Record<MainModuleKey, string> = {
   admin: 'Suchen in Admin …',
 };
 
-/** Shared topbar control box — search, tenant chip, bell, profile. */
+/** Shared topbar control box — search, tenant chip, profile. */
 const TOPBAR_CONTROL_HEIGHT = 48;
-/** Shared icon/avatar slot — building, bell, profile picture. */
+/** Shared icon/avatar slot — building, profile picture. */
 const TOPBAR_ICON_SIZE = 32;
 
 const webNoOutline =
@@ -192,8 +191,6 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
       </View>
 
       <View style={[styles.end, { marginRight: endZoneInsets.marginRight }]}>
-        <NotificationBellWithCenter size="topbar" variant="glass" />
-
         <View style={styles.profileWrap}>
           <View style={[styles.profileChip, webCursor]}>
             <TopbarProfileAvatar

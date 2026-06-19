@@ -10,7 +10,6 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
-import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -71,7 +70,6 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
           <Text style={[styles.compactPortal, { color: text.muted }]}>Klient:innenportal</Text>
         </View>
         <View style={styles.compactActions}>
-          <NotificationBellWithCenter size="topbar" variant="glass" />
           <View style={styles.compactProfileChip}>
             <TopbarProfileAvatar
               name={displayName}
@@ -141,7 +139,6 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
       </View>
 
       <View style={styles.actions}>
-        <NotificationBellWithCenter size="topbar" variant="glass" />
         <View style={styles.profileWrap}>
           <View style={styles.profileChip}>
             <TopbarProfileAvatar

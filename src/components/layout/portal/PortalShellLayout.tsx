@@ -4,8 +4,10 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PortalLeftNav } from './PortalLeftNav';
 import { PortalMobileNav } from '@/components/layout/PortalMobileNav';
 import { PortalRightSidebar } from './PortalRightSidebar';
+import { NotificationBellFab } from '@/components/notifications/notificationcenter';
 import { PortalTopBar } from './PortalTopBar';
 import { careSpacing } from '@/design/tokens/spacing';
+import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalClientTabs } from '@/hooks/usePortalClientTabs';
@@ -63,6 +65,9 @@ export function PortalShellLayout({
       {showBottomTabs ? (
         <PortalMobileNav tabs={portalTabs} accentColor={accentColor} />
       ) : null}
+      <NotificationBellFab
+        bottomOffset={showBottomTabs ? PORTAL_MOBILE_NAV_HEIGHT + careSpacing.sm : 0}
+      />
     </View>
   );
 }
