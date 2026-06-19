@@ -1,6 +1,13 @@
 import { useMemo, useState } from 'react';
 
-import { ScrollView, StyleSheet, Text, useWindowDimensions, View } from 'react-native';
+import {
+  ScrollView,
+  StyleSheet,
+  Text,
+  useWindowDimensions,
+  View,
+  type DimensionValue,
+} from 'react-native';
 
 import { LockedActionBanner } from '@/components/permissions';
 
@@ -20,6 +27,7 @@ import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
 
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 
+import { breakpoints } from '@/design/tokens/breakpoints';
 import { careSpacing } from '@/design/tokens/spacing';
 
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -36,8 +44,19 @@ import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
 
 import type { TenantCenterSectionKey } from '@/types/tenant/tenantCenter';
 
-/** Max width for the card grid (2 cols × ~460px + gap). Keeps grid centered on wide screens. */
-const TENANT_CENTER_GRID_MAX_WIDTH = 960;
+/** Shared centered column — intro, headings and card grids align with page title. */
+const TENANT_CENTER_CONTENT_MAX_WIDTH = 1280;
+
+function tenantCenterColumnCount(width: number): number {
+  if (width >= 1200) return 4;
+  if (width >= breakpoints.tablet) return 2;
+  return 1;
+}
+
+function tenantCenterItemWidth(columns: number): DimensionValue {
+  if (columns <= 1) return '100%';
+  return `${Math.floor(100 / columns) - 1}%`;
+}
 
 export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInModal?: boolean } = {}) {
 
@@ -61,7 +80,9 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
 
 
-  const columns = width >= 1200 ? 3 : width >= 760 ? 2 : 1;
+  const columns = tenantCenterColumnCount(width);
+  const gridGap = columns >= 4 ? careSpacing.lg : careSpacing.md;
+  const itemWidth = tenantCenterItemWidth(columns);
 
 
 
@@ -217,66 +238,59 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
       showBack
       scroll={false}
     >
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        style={styles.scrollView}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        <View style={[styles.contentColumn, { maxWidth: TENANT_CENTER_CONTENT_MAX_WIDTH }]}>
+          <Text style={[styles.lead, { color: text.secondary }]}>
+            Zentrale Verwaltung Ihrer Mandanten-Stammdaten, Leistungskatalog und individuellen Felder — alles mandantenspezifisch aus Ihrem Konto.
+          </Text>
 
-        <Text style={[styles.lead, { color: text.secondary }]}>
+          {saved ? <SuccessState message="Mandantendaten gespeichert." /> : null}
 
-          Zentrale Verwaltung Ihrer Mandanten-Stammdaten, Leistungskatalog und individuellen Felder — alles mandantenspezifisch aus Ihrem Konto.
+          <View style={[styles.grid, { gap: gridGap }]}>
+            {primarySections.map((section) => (
+              <View
+                key={section.key}
+                style={[
+                  styles.gridItem,
+                  {
+                    width: itemWidth,
+                    maxWidth: itemWidth,
+                    minWidth: columns >= 4 ? 240 : columns === 2 ? 240 : undefined,
+                  },
+                ]}
+              >
+                <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
+              </View>
+            ))}
+          </View>
 
-        </Text>
-
-
-
-        {saved ? <SuccessState message="Mandantendaten gespeichert." /> : null}
-
-
-
-        <View style={[styles.grid, { gap: careSpacing.md, maxWidth: TENANT_CENTER_GRID_MAX_WIDTH }]}>
-
-          {primarySections.map((section) => (
-
-            <View
-              key={section.key}
-              style={[styles.gridItem, { width: `${100 / columns}%`, maxWidth: `${100 / columns}%` }]}
-            >
-
-              <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
-
-            </View>
-
-          ))}
-
+          {stubSections.length ? (
+            <>
+              <Text style={[styles.sectionHeading, { color: text.muted }]}>Weitere Bereiche</Text>
+              <View style={[styles.grid, { gap: gridGap }]}>
+                {stubSections.map((section) => (
+                  <View
+                    key={section.key}
+                    style={[
+                      styles.gridItem,
+                      {
+                        width: itemWidth,
+                        maxWidth: itemWidth,
+                        minWidth: columns >= 4 ? 240 : columns === 2 ? 240 : undefined,
+                      },
+                    ]}
+                  >
+                    <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
+                  </View>
+                ))}
+              </View>
+            </>
+          ) : null}
         </View>
-
-
-
-        {stubSections.length ? (
-
-          <>
-
-            <Text style={[styles.sectionHeading, { color: text.muted }]}>Weitere Bereiche</Text>
-
-            <View style={[styles.grid, { gap: careSpacing.md, maxWidth: TENANT_CENTER_GRID_MAX_WIDTH }]}>
-
-              {stubSections.map((section) => (
-
-                <View
-                  key={section.key}
-                  style={[styles.gridItem, { width: `${100 / columns}%`, maxWidth: `${100 / columns}%` }]}
-                >
-
-                  <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
-
-                </View>
-
-              ))}
-
-            </View>
-
-          </>
-
-        ) : null}
-
       </ScrollView>
 
 
@@ -332,61 +346,54 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
 
 const styles = StyleSheet.create({
+  scrollView: {
+    flex: 1,
+    width: '100%',
+  },
 
   scroll: {
     flexGrow: 1,
-    padding: careSpacing.md,
-    gap: careSpacing.md,
+    width: '100%',
     alignItems: 'center',
     paddingBottom: careSpacing.xxl,
   },
 
-  lead: {
-
-    marginBottom: careSpacing.xs,
-
-    textAlign: 'center',
-
+  contentColumn: {
     width: '100%',
+    alignSelf: 'center',
+    alignItems: 'center',
+    gap: careSpacing.md,
+    paddingHorizontal: careSpacing.md,
+  },
 
+  lead: {
+    marginBottom: careSpacing.xs,
+    textAlign: 'center',
+    width: '100%',
   },
 
   sectionHeading: {
-
     fontSize: 12,
-
     letterSpacing: 0.8,
-
     textTransform: 'uppercase',
-
     marginTop: careSpacing.sm,
-
     textAlign: 'center',
-
     width: '100%',
-
   },
 
   grid: {
-
     flexDirection: 'row',
-
     flexWrap: 'wrap',
-
-    alignSelf: 'center',
-
     width: '100%',
-
+    justifyContent: 'center',
   },
 
   gridItem: {
-
-    paddingHorizontal: 4,
-
+    flexGrow: 1,
+    minWidth: 0,
+    paddingHorizontal: careSpacing.xs,
     marginBottom: careSpacing.sm,
-
   },
-
 });
 
 
