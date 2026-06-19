@@ -191,8 +191,9 @@ function createStyles(
   return StyleSheet.create({
     root: {
       width: 272,
-      flex: 1,
+      flexGrow: 0,
       flexShrink: 0,
+      alignSelf: 'stretch',
       backgroundColor: isDark ? 'rgba(18,22,43,0.28)' : colors.bgSurface,
       borderLeftWidth: 1,
       borderLeftColor: glassBorder,

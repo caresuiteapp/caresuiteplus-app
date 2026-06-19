@@ -12,6 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { CARESUITE_ROBOT_LOGO } from '@/components/brand/brandassets';
 import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
+import { PLATFORM_MODULE_RAIL_WIDTH } from '@/lib/platform/shellLayoutMetrics';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { spacing } from '@/theme';
@@ -22,8 +23,7 @@ type MainModuleRailProps = {
 };
 
 const MODULE_RAIL_ICON_SIZE = 56;
-const MODULE_RAIL_HORIZONTAL_PADDING = 8;
-const MODULE_RAIL_WIDTH = MODULE_RAIL_ICON_SIZE + MODULE_RAIL_HORIZONTAL_PADDING * 2;
+const MODULE_RAIL_HORIZONTAL_PADDING = (PLATFORM_MODULE_RAIL_WIDTH - MODULE_RAIL_ICON_SIZE) / 2;
 const MODULE_RAIL_LOGO_SIZE = MODULE_RAIL_ICON_SIZE;
 const MODULE_RAIL_GAP = spacing.lg;
 
@@ -136,8 +136,10 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
 
   return StyleSheet.create({
     root: {
-      width: MODULE_RAIL_WIDTH,
-      flex: 1,
+      width: PLATFORM_MODULE_RAIL_WIDTH,
+      flexGrow: 0,
+      flexShrink: 0,
+      alignSelf: 'stretch',
       backgroundColor: isDark ? 'rgba(11,16,32,0.32)' : 'rgba(255,255,255,0.92)',
       borderRightWidth: 1,
       borderRightColor: glassBorder,
