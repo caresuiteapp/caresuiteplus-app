@@ -1,6 +1,5 @@
 import { useMemo, type ComponentType } from 'react';
 import {
-  Linking,
   Platform,
   Pressable,
   ScrollView,
@@ -21,7 +20,6 @@ import {
   getModuleNavConfig,
   resolveActiveModuleNavKey,
 } from '@/lib/navigation/modulenav';
-import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { fxMotion, glassFx, withAlpha } from '@/design/tokens/motion';
 import { radius, spacing, typography } from '@/theme';
@@ -35,10 +33,6 @@ type ModuleNavSidebarProps = {
 type HoverProps = { onHoverIn?: () => void; onHoverOut?: () => void };
 const HoverPressable = Pressable as unknown as ComponentType<PressableProps & HoverProps>;
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
-
-function openExternal(url: string) {
-  void Linking.openURL(url).catch(() => undefined);
-}
 
 function NavItem({
   active,
@@ -110,7 +104,7 @@ function NavItem({
   );
 }
 
-/** Grouped module navigation — active module only, footer links at bottom. */
+/** Grouped module navigation — active module only. */
 export function ModuleNavSidebar({ mainModule, accentColor }: ModuleNavSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
@@ -143,20 +137,6 @@ export function ModuleNavSidebar({ mainModule, accentColor }: ModuleNavSidebarPr
           </View>
         ))}
       </ScrollView>
-      <View style={styles.footer}>
-        <Pressable onPress={() => openExternal(SUPPORT_LINKS.help)} style={styles.footerLink}>
-          <Text style={styles.footerLinkText}>Hilfe</Text>
-        </Pressable>
-        <Pressable onPress={() => openExternal(SUPPORT_LINKS.privacy)} style={styles.footerLink}>
-          <Text style={styles.footerLinkText}>Datenschutz</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/settings/data-request' as never)} style={styles.footerLink}>
-          <Text style={styles.footerLinkText}>Betroffenenrechte</Text>
-        </Pressable>
-        <Pressable onPress={() => openExternal(SUPPORT_LINKS.imprint)} style={styles.footerLink}>
-          <Text style={styles.footerLinkText}>Impressum</Text>
-        </Pressable>
-      </View>
     </View>
   );
 }
@@ -215,13 +195,5 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       paddingHorizontal: spacing.sm,
       marginBottom: spacing.xs,
     },
-    footer: {
-      borderTopWidth: 1,
-      borderTopColor: glassBorder,
-      paddingTop: spacing.sm,
-      gap: spacing.xs,
-    },
-    footerLink: { paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
-    footerLinkText: { ...typography.caption, color: colors.textMuted },
   });
 }

@@ -160,6 +160,12 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
         <Pressable onPress={() => openExternal(SUPPORT_LINKS.privacy)} style={styles.supportLink}>
           <Text style={styles.supportLinkText}>🔒 Datenschutz</Text>
         </Pressable>
+        <Pressable onPress={() => router.push('/settings/data-request' as never)} style={styles.supportLink}>
+          <Text style={styles.supportLinkText}>📋 Betroffenenrechte</Text>
+        </Pressable>
+        <Pressable onPress={() => openExternal(SUPPORT_LINKS.imprint)} style={styles.supportLink}>
+          <Text style={styles.supportLinkText}>ℹ️ Impressum</Text>
+        </Pressable>
       </View>
     </View>
   );
