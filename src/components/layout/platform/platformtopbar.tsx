@@ -20,6 +20,7 @@ import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glass as glassTokens } from '@/design/tokens/glass';
 import {
+  PLATFORM_SHELL_HEADER_TOP_INSET,
   resolveTopbarCenterZoneInsets,
   resolveTopbarEndZoneInsets,
 } from '@/lib/platform/shellLayoutMetrics';
@@ -265,7 +266,8 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       justifyContent: 'space-between',
       position: 'relative',
       paddingHorizontal: spacing.lg,
-      paddingVertical: spacing.sm,
+      paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
+      paddingBottom: PLATFORM_SHELL_HEADER_TOP_INSET,
       borderBottomWidth: isDark ? 0 : 1,
       borderBottomColor: glassBorder,
       backgroundColor: isDark ? 'transparent' : colors.bgPremium,

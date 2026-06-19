@@ -14,6 +14,7 @@ import { usePathname, useRouter } from 'expo-router';
 import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
+import { PLATFORM_SHELL_HEADER_TOP_INSET } from '@/lib/platform/shellLayoutMetrics';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { getServiceMode } from '@/lib/services/mode';
 import { GlowCard } from '@/components/ui/effects';
@@ -198,7 +199,7 @@ function createStyles(
       borderLeftWidth: 1,
       borderLeftColor: glassBorder,
       paddingHorizontal: spacing.sm + spacing.xs,
-      paddingTop: spacing.lg,
+      paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
       paddingBottom: spacing.lg,
       gap: spacing.md,
     },

@@ -12,10 +12,12 @@ import {
 import { useRouter } from 'expo-router';
 import { CARESUITE_ROBOT_LOGO } from '@/components/brand/brandassets';
 import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
-import { PLATFORM_MODULE_RAIL_WIDTH } from '@/lib/platform/shellLayoutMetrics';
+import {
+  PLATFORM_MODULE_RAIL_WIDTH,
+  PLATFORM_SHELL_HEADER_TOP_INSET,
+} from '@/lib/platform/shellLayoutMetrics';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
-import { spacing } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
 type MainModuleRailProps = {
@@ -25,7 +27,7 @@ type MainModuleRailProps = {
 const MODULE_RAIL_ICON_SIZE = 56;
 const MODULE_RAIL_HORIZONTAL_PADDING = (PLATFORM_MODULE_RAIL_WIDTH - MODULE_RAIL_ICON_SIZE) / 2;
 const MODULE_RAIL_LOGO_SIZE = MODULE_RAIL_ICON_SIZE;
-const MODULE_RAIL_GAP = spacing.lg;
+const MODULE_RAIL_GAP = PLATFORM_SHELL_HEADER_TOP_INSET;
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 

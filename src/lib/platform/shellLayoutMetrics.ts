@@ -1,5 +1,9 @@
 import { breakpoints } from '@/design/tokens/breakpoints';
+import { spacing } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
+
+/** Top inset shared by module-rail logo, topbar controls, and right-panel header row. */
+export const PLATFORM_SHELL_HEADER_TOP_INSET = spacing.lg;
 
 /** Width of the left MainModuleRail — keep in sync with mainmodulerail.tsx. */
 export const PLATFORM_MODULE_RAIL_WIDTH = 72;
