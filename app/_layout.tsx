@@ -5,6 +5,7 @@ import { View, StyleSheet, Platform } from 'react-native';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { ThemeModeProvider } from '@/design/ThemeModeProvider';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
+import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { AuthProvider } from '@/lib/auth';
 
 if (__DEV__ && Platform.OS === 'web') {
@@ -46,7 +47,9 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <ThemeModeProvider>
-        <RootShell />
+        <GlobalAiProvider>
+          <RootShell />
+        </GlobalAiProvider>
       </ThemeModeProvider>
     </AuthProvider>
   );
