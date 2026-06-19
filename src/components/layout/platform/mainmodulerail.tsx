@@ -103,17 +103,23 @@ export function MainModuleRail({ activeModule }: MainModuleRailProps) {
 }
 
 const styles = StyleSheet.create({
-  itemWrap: { width: '100%', alignItems: 'center', justifyContent: 'center' },
-  activeBar: { position: 'absolute', left: 0, top: 8, bottom: 8, width: 4, borderRadius: 4 },
+  itemWrap: {
+    width: '100%',
+    alignItems: 'center',
+    justifyContent: 'center',
+    minHeight: 60,
+    paddingVertical: spacing.sm,
+  },
+  activeBar: { position: 'absolute', left: 0, top: 12, bottom: 12, width: 4, borderRadius: 4 },
   icon: {
-    width: 46,
-    height: 46,
-    borderRadius: 15,
+    width: 56,
+    height: 56,
+    borderRadius: 18,
     borderWidth: 1,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  iconText: { fontSize: 20 },
+  iconText: { fontSize: 28 },
 });
 
 function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>['colors']) {
@@ -121,7 +127,7 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
 
   return StyleSheet.create({
     root: {
-      width: 76,
+      width: 84,
       backgroundColor: isDark ? 'rgba(11,16,32,0.32)' : 'rgba(255,255,255,0.92)',
       borderRightWidth: 1,
       borderRightColor: glassBorder,
@@ -129,9 +135,9 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
       paddingVertical: spacing.md,
     },
     brand: {
-      width: 44,
-      height: 44,
-      borderRadius: 14,
+      width: 48,
+      height: 48,
+      borderRadius: 15,
       borderWidth: 1,
       alignItems: 'center',
       justifyContent: 'center',
@@ -146,6 +152,6 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
       marginVertical: spacing.sm,
     },
     list: { flex: 1, alignSelf: 'stretch' },
-    scroll: { alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },
+    scroll: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.sm },
   });
 }
