@@ -18,6 +18,7 @@ export { TripListCard } from './TripListCard';
 export { TripsListHero } from './TripsListHero';
 export { TripsListView } from './TripsListView';
 export { TripDetailSummaryPanel } from './TripDetailSummaryPanel';
+export { TripDetailGlassModal } from './TripDetailGlassModal';
 export { TrackingListHero } from './TrackingListHero';
 export { TrackingListView } from './TrackingListView';
 export { TrackingPositionCard } from './TrackingPositionCard';

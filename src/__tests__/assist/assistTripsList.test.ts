@@ -49,10 +49,16 @@ describe('Assist Fahrten list', () => {
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('TripsAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
+  it('TripsAdaptiveScreen nutzt volle Breite mit TripDetailGlassModal', () => {
     const source = readSrc('src/screens/assist/TripsAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
-    expect(source).toContain('TripDetailSummaryPanel');
+    expect(source).toContain('TripsListScreen');
+    expect(source).toContain('TripDetailGlassModal');
+    expect(source).not.toContain('MasterDetailLayout');
+  });
+
+  it('Fahrten-Tab nutzt TripsAdaptiveScreen', () => {
+    const source = readSrc('app/assist/(tabs)/fahrten.tsx');
+    expect(source).toContain('TripsAdaptiveScreen');
   });
 
   it('TripListCard unterstützt Auswahlzustand für Master-Detail', () => {
@@ -68,11 +74,6 @@ describe('Assist Fahrten list', () => {
     expect(source).toContain('tripSupabaseRepository');
     expect(source).toContain('getDetailMapped');
     expect(source).not.toContain('DEMO_TENANT_ID');
-  });
-
-  it('Fahrten-Tab nutzt TripsListScreen', () => {
-    const source = readSrc('app/assist/(tabs)/fahrten.tsx');
-    expect(source).toContain('TripsListScreen');
   });
 
   it('TripsListView nutzt Desktop-Tabellenansicht ab desktop breakpoint', () => {

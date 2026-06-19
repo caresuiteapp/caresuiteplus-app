@@ -56,10 +56,11 @@ describe('Assist Einsatzplanung list', () => {
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('AssignmentsAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
+  it('AssignmentsAdaptiveScreen nutzt volle Breite mit AssignmentDetailGlassModal', () => {
     const source = readSrc('src/screens/assist/AssignmentsAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
-    expect(source).toContain('AssignmentDetailSummaryPanel');
+    expect(source).toContain('AssignmentsListScreen');
+    expect(source).toContain('AssignmentDetailGlassModal');
+    expect(source).not.toContain('MasterDetailLayout');
   });
 
   it('AssignmentListCard unterstützt Auswahlzustand für Master-Detail', () => {
@@ -71,5 +72,16 @@ describe('Assist Einsatzplanung list', () => {
   it('assignmentListService nutzt guardServiceTenant', () => {
     const source = readSrc('src/lib/assist/assignmentListService.ts');
     expect(source).toContain('guardServiceTenant');
+  });
+
+  it('assignmentListService lädt Live-Daten aus Supabase-Repository', () => {
+    const source = readSrc('src/lib/assist/assignmentListService.ts');
+    expect(source).toContain("getServiceMode() === 'supabase'");
+    expect(source).toContain('assignmentSupabaseRepository.list');
+  });
+
+  it('assignmentDetailService lehnt Demo-IDs im Supabase-Modus ab', () => {
+    const source = readSrc('src/lib/assist/assignmentDetailService.ts');
+    expect(source).toContain('isUuid(assignmentId)');
   });
 });

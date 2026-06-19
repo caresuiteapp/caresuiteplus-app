@@ -18,6 +18,9 @@ import { colors, spacing, typography } from '@/theme';
 
 type TripDetailSummaryPanelProps = {
   tripId: string;
+  /** Modal / master-detail — hide stack navigation CTAs. */
+  embedded?: boolean;
+  onOpenFullRecord?: () => void;
 };
 
 function statusVariant(status: string) {
@@ -34,7 +37,11 @@ function statusVariant(status: string) {
   }
 }
 
-export function TripDetailSummaryPanel({ tripId }: TripDetailSummaryPanelProps) {
+export function TripDetailSummaryPanel({
+  tripId,
+  embedded = false,
+  onOpenFullRecord,
+}: TripDetailSummaryPanelProps) {
   const router = useRouter();
   const { can, isReadOnly, roleLabel } = usePermissions();
   const canManage = can('assist.trips.manage');
@@ -104,18 +111,24 @@ export function TripDetailSummaryPanel({ tripId }: TripDetailSummaryPanelProps) 
         </SectionPanel>
       ) : null}
 
-      <PremiumButton
-        title="Vollständige Fahrt öffnen"
-        fullWidth
-        onPress={() => router.push(`/assist/fahrten/${tripId}` as never)}
-      />
+      {!embedded ? (
+        <PremiumButton
+          title="Vollständige Fahrt öffnen"
+          fullWidth
+          onPress={
+            onOpenFullRecord ?? (() => router.push(`/assist/fahrten/${tripId}` as never))
+          }
+        />
+      ) : null}
 
-      {isActive && canManage ? (
+      {!embedded && isActive && canManage ? (
         <PremiumButton
           title="Fahrt abschließen"
           variant="secondary"
           fullWidth
-          onPress={() => router.push(`/assist/fahrten/${tripId}` as never)}
+          onPress={
+            onOpenFullRecord ?? (() => router.push(`/assist/fahrten/${tripId}` as never))
+          }
         />
       ) : null}
     </View>

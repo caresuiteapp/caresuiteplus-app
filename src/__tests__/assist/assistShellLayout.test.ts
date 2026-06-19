@@ -27,4 +27,16 @@ describe('Assist module shell layout', () => {
     expect(route).toContain('Redirect');
     expect(route).toContain('/assist/calendar');
   });
+
+  it('German touren alias redirects to canonical fahrten route', () => {
+    const route = readSrc('app/assist/touren.tsx');
+    expect(route).toContain('Redirect');
+    expect(route).toContain('/assist/fahrten');
+  });
+
+  it('live-status alias redirects to durchfuehrung route', () => {
+    const route = readSrc('app/assist/live-status.tsx');
+    expect(route).toContain('Redirect');
+    expect(route).toContain('/assist/durchfuehrung');
+  });
 });

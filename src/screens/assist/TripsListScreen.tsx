@@ -1,13 +1,24 @@
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { CareLightPageShell } from '@/components/layout';
 import { TripsListView } from '@/components/assist/TripsListView';
 import { TrackingListView } from '@/components/assist/TrackingListView';
 import { EmptyState, ErrorState, LoadingState, SegmentedTabs, type TabOption } from '@/components/ui';
+import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useTripList } from '@/hooks/useTripList';
 import { fetchTripLogList } from '@/lib/assist/tripLogService';
-import { spacing } from '@/theme';
+import { getServiceMode } from '@/lib/services/mode';
+import { radius, spacing } from '@/theme';
+
+const webGlassBlur =
+  Platform.OS === 'web'
+    ? ({
+        backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+        WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+      } as unknown as ViewStyle)
+    : null;
 
 const MOBILITY_TABS: TabOption[] = [
   { key: 'fahrten', label: 'Fahrtenbuch' },
@@ -24,10 +35,27 @@ export function TripsListScreen({
   embedded?: boolean;
 } = {}) {
   const { isReadOnly, roleLabel, can } = usePermissions();
+  const shellHostsAurora = useShellHostsAurora();
+  const panelStyle = useAuroraGlassPanelStyle();
   const canTrips = can('assist.trips.view');
   const canTracking = can('assist.tracking.view');
   const [activeTab, setActiveTab] = useState<'fahrten' | 'tracking'>(canTrips ? 'fahrten' : 'tracking');
   const list = useTripList();
+  const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
+
+  const panelStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        listPanel: { flex: 1, minHeight: 0 },
+        listPanelAurora: {
+          flex: 1,
+          borderRadius: radius.lg,
+          overflow: 'hidden',
+          ...webGlassBlur,
+        },
+      }),
+    [],
+  );
 
   const visibleTabs = MOBILITY_TABS.filter((tab) => {
     if (tab.key === 'fahrten') return canTrips;
@@ -66,13 +94,8 @@ export function TripsListScreen({
     );
   }
 
-  return (
-    <CareLightPageShell
-      title="Mobilität"
-      subtitle={`Fahrtenbuch & Tracking${isReadOnly ? ' · Lesemodus' : ''} · ${roleLabel ?? 'Demo'}`}
-      scroll={false}
-      showBack={false}
-    >
+  const listBody = (
+    <>
       {showTabs ? (
         <SegmentedTabs
           tabs={visibleTabs}
@@ -88,6 +111,23 @@ export function TripsListScreen({
           content
         )}
       </View>
+    </>
+  );
+
+  const wrappedList = shellHostsAurora ? (
+    <View style={[panelStyles.listPanel, panelStyles.listPanelAurora, panelStyle]}>{listBody}</View>
+  ) : (
+    listBody
+  );
+
+  return (
+    <CareLightPageShell
+      title="Mobilität"
+      subtitle={`Fahrtenbuch & Tracking${isReadOnly ? ' · Lesemodus' : ''} · ${roleSubtitle}`}
+      scroll={false}
+      showBack={false}
+    >
+      {wrappedList}
     </CareLightPageShell>
   );
 }

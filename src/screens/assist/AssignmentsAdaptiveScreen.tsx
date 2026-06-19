@@ -1,30 +1,19 @@
 import { useState } from 'react';
-import { MasterDetailLayout } from '@/components/layout';
-import { AssignmentDetailSummaryPanel } from '@/components/assist/AssignmentDetailSummaryPanel';
-import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
+import { AssignmentDetailGlassModal } from '@/components/assist/AssignmentDetailGlassModal';
 import { AssignmentsListScreen } from './AssignmentsListScreen';
 
+/** Full-width assignments list; row tap opens AssignmentDetailGlassModal. */
 export function AssignmentsAdaptiveScreen() {
-  const { useMasterDetail } = usePlatformLayout();
   const [selectedId, setSelectedId] = useState<string | null>(null);
 
-  if (!useMasterDetail) {
-    return <AssignmentsListScreen />;
-  }
-
   return (
-    <MasterDetailLayout
-      master={
-        <AssignmentsListScreen
-          embedded
-          selectedId={selectedId}
-          onAssignmentPress={setSelectedId}
-        />
-      }
-      detail={
-        selectedId ? <AssignmentDetailSummaryPanel assignmentId={selectedId} /> : undefined
-      }
-      showDetail={!!selectedId}
-    />
+    <>
+      <AssignmentsListScreen onAssignmentPress={setSelectedId} selectedId={selectedId} />
+      <AssignmentDetailGlassModal
+        visible={!!selectedId}
+        assignmentId={selectedId}
+        onClose={() => setSelectedId(null)}
+      />
+    </>
   );
 }

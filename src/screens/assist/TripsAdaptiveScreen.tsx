@@ -1,24 +1,24 @@
 import { useState } from 'react';
-import { MasterDetailLayout } from '@/components/layout';
-import { TripDetailSummaryPanel } from '@/components/assist/TripDetailSummaryPanel';
-import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
+import { TripDetailGlassModal } from '@/components/assist/TripDetailGlassModal';
 import { TripsListScreen } from './TripsListScreen';
 
-export function TripsAdaptiveScreen() {
-  const { useMasterDetail } = usePlatformLayout();
-  const [selectedId, setSelectedId] = useState<string | null>(null);
+type TripsAdaptiveScreenProps = {
+  /** Deep-link from /assist/fahrten/[id] — opens modal on mount. */
+  initialSelectedId?: string | null;
+};
 
-  if (!useMasterDetail) {
-    return <TripsListScreen />;
-  }
+/** Full-width trips list; row tap opens TripDetailGlassModal. */
+export function TripsAdaptiveScreen({ initialSelectedId = null }: TripsAdaptiveScreenProps = {}) {
+  const [selectedId, setSelectedId] = useState<string | null>(initialSelectedId);
 
   return (
-    <MasterDetailLayout
-      master={
-        <TripsListScreen embedded selectedId={selectedId} onTripPress={setSelectedId} />
-      }
-      detail={selectedId ? <TripDetailSummaryPanel tripId={selectedId} /> : undefined}
-      showDetail={!!selectedId}
-    />
+    <>
+      <TripsListScreen onTripPress={setSelectedId} selectedId={selectedId} />
+      <TripDetailGlassModal
+        visible={!!selectedId}
+        tripId={selectedId}
+        onClose={() => setSelectedId(null)}
+      />
+    </>
   );
 }
