@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import {
+  Image,
   Platform,
   Pressable,
   ScrollView,
@@ -9,15 +10,19 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { CARESUITE_ROBOT_LOGO } from '@/components/brand/brandassets';
 import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { glassFx, neonGlow, withAlpha } from '@/design/tokens/motion';
-import { radius, spacing, typography } from '@/theme';
+import { glassFx, withAlpha } from '@/design/tokens/motion';
+import { spacing } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
 type MainModuleRailProps = {
   activeModule: MainModuleKey;
 };
+
+const MODULE_RAIL_WIDTH = 88;
+const MODULE_RAIL_LOGO_SIZE = 72;
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
@@ -77,9 +82,12 @@ export function MainModuleRail({ activeModule }: MainModuleRailProps) {
 
   return (
     <View style={railStyles.root}>
-      <View style={[railStyles.brand, { borderColor: withAlpha(colors.violet, 0.5) }]}>
-        <Text style={[railStyles.brandText, { color: colors.violet }]}>C+</Text>
-      </View>
+      <Image
+        source={CARESUITE_ROBOT_LOGO}
+        style={railStyles.brandLogo}
+        resizeMode="contain"
+        accessibilityLabel="CareSuite+ Logo"
+      />
       <View style={railStyles.divider} />
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -127,24 +135,18 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
 
   return StyleSheet.create({
     root: {
-      width: 84,
+      width: MODULE_RAIL_WIDTH,
       backgroundColor: isDark ? 'rgba(11,16,32,0.32)' : 'rgba(255,255,255,0.92)',
       borderRightWidth: 1,
       borderRightColor: glassBorder,
       alignItems: 'center',
       paddingVertical: spacing.md,
     },
-    brand: {
-      width: 48,
-      height: 48,
-      borderRadius: 15,
-      borderWidth: 1,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: isDark ? withAlpha(colors.violet, 0.16) : 'rgba(139,92,246,0.10)',
-      ...(isDark ? neonGlow(colors.violet, 0.4, 14, 0) : null),
+    brandLogo: {
+      width: MODULE_RAIL_LOGO_SIZE,
+      height: MODULE_RAIL_LOGO_SIZE,
+      backgroundColor: 'transparent',
     },
-    brandText: { ...typography.button, fontWeight: '800' },
     divider: {
       width: 28,
       height: 1,
