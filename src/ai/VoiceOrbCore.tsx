@@ -115,6 +115,10 @@ export function VoiceOrbCore({
     transform: [{ rotate: `${orbit.value * 360}deg` }],
   }));
 
+  const errorHaloStyle = useAnimatedStyle(() => ({
+    opacity: status === 'error' ? 0.35 + errorGlow.value * 0.65 : 1,
+  }));
+
   const longPressTriggered = useRef(false);
 
   return (
@@ -123,8 +127,6 @@ export function VoiceOrbCore({
         styles.container,
         placementStyle,
         containerStyle,
-        hasPending && styles.pending,
-        status === 'error' && styles.error,
         animatedContainer,
       ]}
       pointerEvents="box-none"
@@ -152,6 +154,16 @@ export function VoiceOrbCore({
         ]}
       >
         <Animated.View
+          pointerEvents="none"
+          style={[
+            styles.stateHalo,
+            styles.stateHaloReady,
+            hasPending && styles.stateHaloPending,
+            status === 'error' && styles.stateHaloError,
+            status === 'error' && errorHaloStyle,
+          ]}
+        />
+        <Animated.View
           style={[
             styles.orbitRing,
             glowStyle,
@@ -172,25 +184,49 @@ export function VoiceOrbCore({
   );
 }
 
+const webOrbGlow = Platform.OS === 'web'
+  ? ({ boxShadow: '0 0 24px rgba(255,255,255,0.72)' } as ViewStyle)
+  : ({
+      shadowColor: '#FFFFFF',
+      shadowOpacity: 0.75,
+      shadowRadius: 24,
+      shadowOffset: { width: 0, height: 0 },
+    } as ViewStyle);
+
+const webCoreGlow = Platform.OS === 'web'
+  ? ({ boxShadow: '0 0 18px rgba(255,255,255,0.95)' } as ViewStyle)
+  : ({
+      shadowColor: '#FFFFFF',
+      shadowOpacity: 1,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 0 },
+    } as ViewStyle);
+
+const webPendingGlow = Platform.OS === 'web'
+  ? ({ boxShadow: '0 0 18px rgba(255,213,79,0.55)' } as ViewStyle)
+  : ({
+      shadowColor: '#FFD54F',
+      shadowOpacity: 0.55,
+      shadowRadius: 18,
+      shadowOffset: { width: 0, height: 0 },
+    } as ViewStyle);
+
+const webErrorGlow = Platform.OS === 'web'
+  ? ({ boxShadow: '0 0 20px rgba(255,90,90,0.65)' } as ViewStyle)
+  : ({
+      shadowColor: '#FF5A5A',
+      shadowOpacity: 0.65,
+      shadowRadius: 20,
+      shadowOffset: { width: 0, height: 0 },
+    } as ViewStyle);
+
 const styles = StyleSheet.create({
   container: {
     position: 'absolute',
-    width: 84,
-    height: 96,
     zIndex: 200,
     alignItems: 'center',
-    justifyContent: 'flex-end',
     backgroundColor: 'transparent',
-  },
-  pending: {
-    shadowColor: '#FFD54F',
-    shadowOpacity: 0.55,
-    shadowRadius: 18,
-  },
-  error: {
-    shadowColor: '#FF5A5A',
-    shadowOpacity: 0.65,
-    shadowRadius: 20,
+    overflow: 'visible',
   },
   pressable: {
     width: 72,
@@ -198,14 +234,22 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     borderRadius: 36,
-    backgroundColor: 'rgba(255,255,255,0.10)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.65)',
-    shadowColor: '#FFFFFF',
-    shadowOpacity: 0.85,
-    shadowRadius: 24,
-    shadowOffset: { width: 0, height: 0 },
+    backgroundColor: 'transparent',
+    overflow: 'visible',
+    ...(Platform.OS === 'web'
+      ? ({ cursor: 'pointer', outlineStyle: 'none' } as ViewStyle)
+      : null),
   },
+  stateHalo: {
+    position: 'absolute',
+    width: 72,
+    height: 72,
+    borderRadius: 36,
+    backgroundColor: 'transparent',
+  },
+  stateHaloReady: webOrbGlow,
+  stateHaloPending: webPendingGlow,
+  stateHaloError: webErrorGlow,
   pressablePressed: {
     opacity: 0.92,
   },
@@ -235,10 +279,7 @@ const styles = StyleSheet.create({
     height: 34,
     borderRadius: 17,
     backgroundColor: 'rgba(255,255,255,0.96)',
-    shadowColor: '#FFFFFF',
-    shadowOpacity: 1,
-    shadowRadius: 18,
-    shadowOffset: { width: 0, height: 0 },
+    ...webCoreGlow,
   },
   coreListening: {
     width: 38,
