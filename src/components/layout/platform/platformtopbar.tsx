@@ -12,7 +12,7 @@ import {
 import { useRouter } from 'expo-router';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
-import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
+import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
@@ -173,26 +173,27 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
         <NotificationBellWithCenter size="topbar" variant="glass" />
 
         <View style={styles.profileWrap}>
-          <Pressable
-            onPress={() => {
-              setProfileOpen((v) => !v);
-              setTenantOpen(false);
-            }}
-            style={[styles.profileChip, webCursor]}
-            accessibilityRole="button"
-            accessibilityLabel="Profilmenü"
-          >
-            <PremiumAvatar
+          <View style={[styles.profileChip, webCursor]}>
+            <TopbarProfileAvatar
               name={displayName}
-              imageUri={avatarUrl}
-              size="sm"
+              avatarUrl={avatarUrl}
               accentColor={accent}
             />
-            <Text style={styles.profileName} numberOfLines={1}>
-              {displayName}
-            </Text>
-            <Text style={styles.chevron}>{profileOpen ? '▴' : '▾'}</Text>
-          </Pressable>
+            <Pressable
+              onPress={() => {
+                setProfileOpen((v) => !v);
+                setTenantOpen(false);
+              }}
+              style={[styles.profileMenuTrigger, webCursor]}
+              accessibilityRole="button"
+              accessibilityLabel="Profilmenü"
+            >
+              <Text style={styles.profileName} numberOfLines={1}>
+                {displayName}
+              </Text>
+              <Text style={styles.chevron}>{profileOpen ? '▴' : '▾'}</Text>
+            </Pressable>
+          </View>
           {profileOpen ? (
             <View style={[styles.dropdown, styles.profileDropdown]}>
               {profile?.email ? (
@@ -385,6 +386,13 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       borderRadius: radius.capsule,
       paddingHorizontal: spacing.sm,
       maxWidth: 220,
+    },
+    profileMenuTrigger: {
+      flex: 1,
+      minWidth: 0,
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.xs,
     },
     profileName: {
       ...typography.caption,

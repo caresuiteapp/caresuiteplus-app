@@ -11,7 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
-import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
+import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -42,7 +42,7 @@ const webGlassBlur =
 export function PortalTopBar({ accentColor = '#FF9500', compact = false }: PortalTopBarProps) {
   const router = useRouter();
   const text = useAuroraAdaptiveText();
-  const { signOut } = useAuth();
+  const { profile, signOut } = useAuth();
   const { displayName } = usePortalActor();
   const { context } = usePortalContext();
   const [query, setQuery] = useState('');
@@ -52,6 +52,8 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
     if (!context?.hasModuleAssignments) return 'Ihr persönlicher Portalbereich';
     return resolveCombinedModuleLabel(context.activeModuleKeys);
   }, [context]);
+
+  const avatarUrl = profile?.avatarUrl?.trim() || undefined;
 
   const profileMenuItems = [
     { label: 'Profil', href: '/portal/client/profile' },
@@ -70,15 +72,21 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
         </View>
         <View style={styles.compactActions}>
           <NotificationBellWithCenter size="topbar" variant="glass" />
-          <Pressable
-            onPress={() => setProfileOpen((v) => !v)}
-            style={[styles.compactProfileChip, webCursor]}
-            accessibilityRole="button"
-            accessibilityLabel="Profilmenü"
-          >
-            <PremiumAvatar name={displayName} size="sm" accentColor={accentColor} />
-            <Text style={[styles.chevron, { color: text.muted }]}>{profileOpen ? '▴' : '▾'}</Text>
-          </Pressable>
+          <View style={styles.compactProfileChip}>
+            <TopbarProfileAvatar
+              name={displayName}
+              avatarUrl={avatarUrl}
+              accentColor={accentColor}
+            />
+            <Pressable
+              onPress={() => setProfileOpen((v) => !v)}
+              style={[styles.compactProfileMenuTrigger, webCursor]}
+              accessibilityRole="button"
+              accessibilityLabel="Profilmenü"
+            >
+              <Text style={[styles.chevron, { color: text.muted }]}>{profileOpen ? '▴' : '▾'}</Text>
+            </Pressable>
+          </View>
         </View>
         {profileOpen ? (
           <View style={styles.dropdown}>
@@ -135,18 +143,24 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
       <View style={styles.actions}>
         <NotificationBellWithCenter size="topbar" variant="glass" />
         <View style={styles.profileWrap}>
-          <Pressable
-            onPress={() => setProfileOpen((v) => !v)}
-            style={[styles.profileChip, webCursor]}
-            accessibilityRole="button"
-            accessibilityLabel="Profilmenü"
-          >
-            <PremiumAvatar name={displayName} size="sm" accentColor={accentColor} />
-            <Text style={[styles.profileName, { color: text.primary }]} numberOfLines={1}>
-              {displayName}
-            </Text>
-            <Text style={[styles.chevron, { color: text.muted }]}>{profileOpen ? '▴' : '▾'}</Text>
-          </Pressable>
+          <View style={styles.profileChip}>
+            <TopbarProfileAvatar
+              name={displayName}
+              avatarUrl={avatarUrl}
+              accentColor={accentColor}
+            />
+            <Pressable
+              onPress={() => setProfileOpen((v) => !v)}
+              style={[styles.profileMenuTrigger, webCursor]}
+              accessibilityRole="button"
+              accessibilityLabel="Profilmenü"
+            >
+              <Text style={[styles.profileName, { color: text.primary }]} numberOfLines={1}>
+                {displayName}
+              </Text>
+              <Text style={[styles.chevron, { color: text.muted }]}>{profileOpen ? '▴' : '▾'}</Text>
+            </Pressable>
+          </View>
           {profileOpen ? (
             <View style={styles.dropdown}>
               {profileMenuItems.map((item) => (
@@ -254,6 +268,13 @@ const styles = StyleSheet.create({
     backgroundColor: auroraGlass.chip,
     maxWidth: 200,
   },
+  profileMenuTrigger: {
+    flex: 1,
+    minWidth: 0,
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.xs,
+  },
   profileName: {
     ...careTypography.caption,
     fontWeight: '700',
@@ -327,6 +348,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: 4,
     minHeight: 44,
+    paddingHorizontal: careSpacing.xs,
+  },
+  compactProfileMenuTrigger: {
+    minHeight: 44,
+    justifyContent: 'center',
     paddingHorizontal: careSpacing.xs,
   },
 });
