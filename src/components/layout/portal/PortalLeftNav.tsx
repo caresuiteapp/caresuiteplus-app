@@ -10,6 +10,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
+import { CareSuiteLogo } from '@/components/brand/CareSuiteLogo';
 import { CareSuiteWordmark } from '@/components/brand/CareSuiteWordmark';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -67,11 +68,14 @@ function NavItem({
       <View
         style={[
           styles.navItem,
+          collapsed && styles.navItemCollapsed,
           active && { backgroundColor: auroraGlass.chipActive, borderColor: `${accent}55` },
         ]}
       >
         {active ? <View style={[styles.activeBar, { backgroundColor: accent }]} /> : null}
-        <Text style={styles.navIcon}>{item.icon}</Text>
+        <Text style={[styles.navIcon, collapsed ? styles.navIconCollapsed : styles.navIconExpanded]}>
+          {item.icon}
+        </Text>
         {!collapsed ? (
           <Text
             style={[
@@ -138,7 +142,7 @@ export function PortalLeftNav({
 
   return (
     <View style={[styles.root, isCollapsed && styles.rootCollapsed, webGlassBlur]}>
-      <View style={styles.header}>
+      <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
         {!isCollapsed ? (
           <>
             <CareSuiteWordmark size="nav" variant="aurora" />
@@ -157,7 +161,7 @@ export function PortalLeftNav({
             ) : null}
           </>
         ) : (
-          <Text style={styles.collapsedBrand}>CS+</Text>
+          <CareSuiteLogo size="sm" />
         )}
       </View>
 
@@ -207,12 +211,17 @@ const styles = StyleSheet.create({
   },
   rootCollapsed: {
     width: 72,
+    paddingHorizontal: careSpacing.xs,
   },
   header: {
     paddingTop: careSpacing.md,
     paddingHorizontal: careSpacing.xs,
     paddingBottom: careSpacing.sm,
     gap: careSpacing.xs,
+  },
+  headerCollapsed: {
+    alignItems: 'center',
+    paddingHorizontal: 0,
   },
   portalLabel: {
     ...careTypography.caption,
@@ -241,12 +250,6 @@ const styles = StyleSheet.create({
     fontWeight: '700',
     fontSize: 10,
   },
-  collapsedBrand: {
-    ...careTypography.bodyStrong,
-    color: auroraGlass.text.primary,
-    textAlign: 'center',
-    fontWeight: '800',
-  },
   nav: {
     flex: 1,
   },
@@ -265,6 +268,11 @@ const styles = StyleSheet.create({
     borderColor: 'transparent',
     position: 'relative',
   },
+  navItemCollapsed: {
+    justifyContent: 'center',
+    alignItems: 'center',
+    paddingHorizontal: careSpacing.xs,
+  },
   activeBar: {
     position: 'absolute',
     left: 0,
@@ -275,8 +283,13 @@ const styles = StyleSheet.create({
   },
   navIcon: {
     fontSize: 16,
-    width: 24,
     textAlign: 'center',
+  },
+  navIconExpanded: {
+    width: 24,
+  },
+  navIconCollapsed: {
+    fontSize: 30,
   },
   navLabel: {
     ...careTypography.body,
