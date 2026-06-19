@@ -52,3 +52,14 @@ export function resolveMissingPermissionMessage(): string {
 export function isBusinessLoginIdentifier(value: string): boolean {
   return value.includes('@') || value.includes('.');
 }
+
+const AUTH_SETUP_ROUTE_PREFIXES = ['/auth/employee-first-login', '/auth/reset-password'];
+
+/** Authenticated users may stay on these routes (password setup, recovery). */
+export function isAuthSetupRoute(pathname: string): boolean {
+  const pathOnly = pathname.split('?')[0]?.split('#')[0] ?? pathname;
+  const normalized = pathOnly.replace(/\/$/, '') || '/';
+  return AUTH_SETUP_ROUTE_PREFIXES.some(
+    (prefix) => normalized === prefix || normalized.startsWith(`${prefix}/`),
+  );
+}

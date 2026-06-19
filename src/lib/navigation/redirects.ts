@@ -69,7 +69,9 @@ export function checkRoleAccess(
   if (!roleKey || !route.allowedRoles.includes(roleKey)) {
     return {
       shouldRedirect: true,
-      target: roleKey ? getPostLoginRedirect(roleKey) : ('/' as Href),
+      target: roleKey
+        ? getPostLoginRedirect(roleKey)
+        : (getLoginRedirectForPath(path) as Href),
       reason: 'wrong_role',
       message: 'Sie haben keine Berechtigung für diesen Bereich.',
     };

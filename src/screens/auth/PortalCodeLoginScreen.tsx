@@ -8,11 +8,11 @@ import {
   GlassCard,
   InputField,
   PremiumButton,
+  SuccessState,
 } from '@/design/components';
 import { careSpacing } from '@/design/tokens/spacing';
 import { loginClientPortal } from '@/lib/auth/clientPortalAuthService';
 import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
-import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { completePortalLogin } from '@/lib/auth/portalloginflow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { useAuth } from '@/lib/auth/context';
@@ -30,6 +30,7 @@ export function PortalCodeLoginScreen() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
@@ -61,7 +62,7 @@ export function PortalCodeLoginScreen() {
       return;
     }
 
-    router.replace(resolvePostLoginRoute('client_portal'));
+    setSuccess(true);
   };
 
   return (
@@ -74,6 +75,7 @@ export function PortalCodeLoginScreen() {
         <CareSuiteLogo size="md" />
       </View>
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
+      {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
       <GlassCard glow accentColor="#FFD166">
         <InputField
           label="Benutzername"

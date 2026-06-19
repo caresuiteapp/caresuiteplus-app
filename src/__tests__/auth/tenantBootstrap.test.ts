@@ -55,5 +55,7 @@ describe('tenant bootstrap role resolution', () => {
     const guard = readSrc('src/lib/auth/RequireRole.tsx');
     expect(guard).toContain('resolveEffectiveRoleKey');
     expect(guard).toContain('matchesNavigationTarget');
+    expect(guard).toContain('!roleKey');
+    expect(guard).not.toContain("router.replace('/' as never)");
   });
 });

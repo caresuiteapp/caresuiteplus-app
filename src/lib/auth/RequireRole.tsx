@@ -1,7 +1,7 @@
 import { ReactNode, useEffect } from 'react';
 import { usePathname, useRouter } from 'expo-router';
-import { ErrorState } from '@/components/ui';
-import { checkRoleAccess } from '@/lib/navigation';
+import { ErrorState, LoadingState } from '@/components/ui';
+import { checkRoleAccess, getLoginRedirectForPath } from '@/lib/navigation';
 import { resolveEffectiveRoleKey } from './sessionTarget';
 import { useAuth } from './context';
 
@@ -28,7 +28,7 @@ export function RequireRole({ children }: RequireRoleProps) {
   const redirectTarget = String(decision.target);
 
   useEffect(() => {
-    if (isLoading || !isAuthenticated || !decision.shouldRedirect) return;
+    if (isLoading || !isAuthenticated || !roleKey || !decision.shouldRedirect) return;
     if (matchesNavigationTarget(pathname, redirectTarget)) return;
     router.replace(decision.target);
   }, [
@@ -38,17 +38,28 @@ export function RequireRole({ children }: RequireRoleProps) {
     isAuthenticated,
     isLoading,
     pathname,
+    roleKey,
     router,
   ]);
 
-  if (isLoading) return null;
+  if (isLoading) {
+    return <LoadingState message="Sitzung wird geprüft…" />;
+  }
+
+  if (isAuthenticated && !roleKey) {
+    return <LoadingState message="Berechtigungen werden geladen…" />;
+  }
+
+  if (isAuthenticated && decision.shouldRedirect && roleKey) {
+    return <LoadingState message="Weiterleitung zum passenden Bereich…" />;
+  }
 
   if (decision.shouldRedirect) {
     return (
       <ErrorState
         title="Kein Zugriff"
         message={decision.message ?? 'Sie haben keine Berechtigung für diesen Bereich.'}
-        onRetry={() => router.replace('/' as never)}
+        onRetry={() => router.replace(getLoginRedirectForPath(pathname) as never)}
       />
     );
   }

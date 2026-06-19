@@ -2,6 +2,7 @@ import { ReactNode, useEffect } from 'react';
 import { BackHandler } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { FullScreenLoader } from '@/components/ui';
+import { isAuthSetupRoute } from './loginRouter';
 import { resolveAuthSessionTarget } from './sessionTarget';
 import { useAuth } from './context';
 
@@ -34,6 +35,7 @@ export function RedirectIfAuthenticated({
 
   useEffect(() => {
     if (!isInitialized || isLoading || !isAuthenticated || !canRedirectHome) return;
+    if (isAuthSetupRoute(pathname)) return;
     if (matchesNavigationTarget(pathname, homePath)) return;
     router.replace(homePath as never);
   }, [canRedirectHome, homePath, isAuthenticated, isInitialized, isLoading, pathname, router]);
@@ -53,7 +55,7 @@ export function RedirectIfAuthenticated({
     return <FullScreenLoader message="Sitzung wird geprüft…" />;
   }
 
-  if (isAuthenticated) {
+  if (isAuthenticated && !isAuthSetupRoute(pathname)) {
     return <FullScreenLoader message={loadingMessage} />;
   }
 

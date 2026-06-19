@@ -4,9 +4,9 @@ import { useRouter } from 'expo-router';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
 import { CareSuiteLogo } from '@/components/brand';
 import { CareLightPageShell } from '@/components/layout';
-import { ErrorState, PremiumButton, PremiumInput } from '@/components/ui';
+import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
-import { resolveFirstLoginRoute, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
+import { resolveFirstLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { isDemoMode } from '@/lib/supabase/config';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -18,6 +18,7 @@ export function EmployeePortalLoginScreen() {
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
@@ -41,7 +42,7 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
-    router.replace(resolvePostLoginRoute('employee_portal'));
+    setSuccess(true);
   };
 
   return (
@@ -58,6 +59,7 @@ export function EmployeePortalLoginScreen() {
         icon="👤"
       />
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
+      {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
       <PremiumInput label="Benutzername" value={username} onChangeText={setUsername} autoCapitalize="none" />
       <PremiumInput label="Passwort / Einmalpasswort" value={password} onChangeText={setPassword} secureTextEntry />
       <PremiumButton title="Einloggen" onPress={handleSubmit} loading={loading} fullWidth />
