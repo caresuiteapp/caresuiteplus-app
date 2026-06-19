@@ -23,6 +23,7 @@ type MainModuleRailProps = {
 
 const MODULE_RAIL_WIDTH = 88;
 const MODULE_RAIL_LOGO_SIZE = 72;
+const MODULE_RAIL_GAP = spacing.lg;
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
@@ -115,7 +116,6 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     minHeight: 60,
-    paddingVertical: spacing.sm,
   },
   activeBar: { position: 'absolute', left: 0, top: 12, bottom: 12, width: 4, borderRadius: 4 },
   icon: {
@@ -139,7 +139,8 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
       borderRightWidth: 1,
       borderRightColor: glassBorder,
       alignItems: 'center',
-      paddingVertical: spacing.md,
+      paddingVertical: MODULE_RAIL_GAP,
+      gap: MODULE_RAIL_GAP,
     },
     brandLogo: {
       width: MODULE_RAIL_LOGO_SIZE,
@@ -147,6 +148,6 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
       backgroundColor: 'transparent',
     },
     list: { flex: 1, alignSelf: 'stretch' },
-    scroll: { alignItems: 'center', gap: spacing.lg, paddingVertical: spacing.sm },
+    scroll: { alignItems: 'center', gap: MODULE_RAIL_GAP },
   });
 }
