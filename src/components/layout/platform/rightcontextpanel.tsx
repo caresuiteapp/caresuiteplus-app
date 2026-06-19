@@ -211,17 +211,17 @@ function createStyles(
 
   return StyleSheet.create({
     root: {
-      width: 320,
+      width: 272,
       backgroundColor: isDark ? 'rgba(18,22,43,0.28)' : colors.bgSurface,
       borderLeftWidth: 1,
       borderLeftColor: glassBorder,
-      paddingHorizontal: spacing.md,
+      paddingHorizontal: spacing.sm + spacing.xs,
       paddingTop: spacing.lg,
       paddingBottom: spacing.lg,
       gap: spacing.md,
     },
     tenantCard: {
-      padding: spacing.md,
+      padding: spacing.sm + spacing.xs,
       gap: spacing.xs,
     },
     cardHeading: {
