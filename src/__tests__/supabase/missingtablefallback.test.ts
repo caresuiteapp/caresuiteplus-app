@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
@@ -58,6 +58,24 @@ describe('missingTableFallback', () => {
       expect(result.data).toEqual([{ id: 'plan-1' }]);
       expect(result.usedDemoFallback).toBe(true);
     }
+  });
+
+  it('resolveMissingTableList blockiert Demo-Fallback im Supabase-Modus', () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'anon-key');
+
+    const result = resolveMissingTableList(
+      { ok: false, error: 'PGRST205 Could not find the table' },
+      '56180c22-b894-4fab-b55e-a563c94dd6e7',
+      () => [{ id: 'demo' }],
+    );
+
+    expect(result.ok).toBe(false);
+  });
+
+  afterEach(() => {
+    vi.unstubAllEnvs();
   });
 
   it('Akademie courseListService nutzt handleMissingTableQuery', () => {

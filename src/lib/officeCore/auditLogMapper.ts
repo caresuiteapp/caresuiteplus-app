@@ -18,8 +18,21 @@ export type ClientDocumentEventRow = {
   summary: string;
   created_at: string;
   client_id: string;
-  profiles?: { display_name: string | null } | null;
+  profiles?:
+    | { display_name: string | null }
+    | { display_name: string | null }[]
+    | null;
 };
+
+function resolveProfileDisplayName(
+  profiles: ClientDocumentEventRow['profiles'],
+): string | undefined {
+  if (!profiles) return undefined;
+  if (Array.isArray(profiles)) {
+    return profiles[0]?.display_name ?? undefined;
+  }
+  return profiles.display_name ?? undefined;
+}
 
 function formatEventType(eventType: string): string {
   return eventType.replace(/_/g, ' ');
@@ -67,7 +80,7 @@ export function mapClientDocumentEventRow(row: ClientDocumentEventRow): OfficeAu
     id: `document:${row.id}`,
     action: formatEventType(row.event_type),
     detail: row.summary,
-    actor: resolveActorName(row.profiles?.display_name ?? undefined),
+    actor: resolveActorName(resolveProfileDisplayName(row.profiles)),
     category: 'Dokument',
     icon: '📄',
     timestamp: row.created_at,

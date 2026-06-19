@@ -131,10 +131,13 @@ export function Timeline({
 
   return (
     <View style={styles.list}>
-      {visible.map((item, index) => (
+      {visible.map((item, index) => {
+        const typeColor = typeColors[item.type] ?? text.muted;
+        const statusLabel = item.status ? WORKFLOW_STATUS_LABELS[item.status] : undefined;
+        return (
         <View key={item.id} style={styles.row}>
           <View style={styles.lineCol}>
-            <View style={[styles.dot, { backgroundColor: typeColors[item.type] }]} />
+            <View style={[styles.dot, { backgroundColor: typeColor }]} />
             {index < visible.length - 1 ? <View style={styles.line} /> : null}
           </View>
           <View style={styles.content}>
@@ -150,9 +153,9 @@ export function Timeline({
                 {item.subtitle}
               </Text>
             ) : null}
-            {item.status ? (
+            {statusLabel ? (
               <PremiumBadge
-                label={WORKFLOW_STATUS_LABELS[item.status]}
+                label={statusLabel}
                 variant={
                   item.status === 'fehlerhaft'
                     ? 'red'
@@ -164,7 +167,8 @@ export function Timeline({
             ) : null}
           </View>
         </View>
-      ))}
+        );
+      })}
     </View>
   );
 }

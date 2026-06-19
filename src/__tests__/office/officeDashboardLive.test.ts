@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { buildOfficeAreaShortcutsFromMetrics } from '@/lib/office/officeAreaShortcuts';
 import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
 import {
   buildOfficeKpisFromMetrics,
@@ -9,6 +10,8 @@ import {
 import * as tenantDisplayName from '@/lib/tenant/tenantDisplayName';
 import { officeDashboardSupabaseRepository } from '@/lib/services/repositories/officeDashboardRepository.supabase';
 import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
+import { readFileSync } from 'node:fs';
+import { resolve } from 'node:path';
 
 vi.mock('react-native-url-polyfill/auto', () => ({}));
 vi.mock('@react-native-async-storage/async-storage', () => ({
@@ -136,7 +139,47 @@ describe('office dashboard live metrics', () => {
       expect(clientsKpi?.value).toBe(1);
       expect(result.data.activities.length).toBeGreaterThan(0);
       expect(result.data.kpis.some((kpi) => String(kpi.subValue).includes('Demo'))).toBe(false);
+      expect(result.data.areaShortcuts?.find((a) => a.id === 'clients')?.count).toBe(1);
+      expect(result.data.areaShortcuts?.find((a) => a.id === 'clients')?.count).not.toBe(20);
     }
+  });
+
+  it('OfficeDashboardView nutzt snapshot.areaShortcuts statt Demo-Konstante', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/dashboard/OfficeDashboardView.tsx'),
+      'utf8',
+    );
+    expect(source).toContain('snapshot.areaShortcuts');
+    expect(source).not.toContain('OFFICE_AREA_SHORTCUTS');
+  });
+
+  it('RightContextPanel ohne Demo-Fallback im Live-Modus', () => {
+    const source = readFileSync(
+      resolve(process.cwd(), 'src/components/layout/platform/rightcontextpanel.tsx'),
+      'utf8',
+    );
+    expect(source).toContain("getServiceMode() === 'supabase'");
+    expect(source).not.toMatch(/:\s*\[\s*\{\s*title:\s*'Offene Aufgaben',\s*count:\s*2\s*\}/);
+  });
+
+  it('buildOfficeAreaShortcutsFromMetrics liefert Live-Zähler', () => {
+    const shortcuts = buildOfficeAreaShortcutsFromMetrics({
+      ...emptyOfficeDashboardMetrics(),
+      totalClients: 2,
+      totalEmployees: 1,
+      totalInvoices: 0,
+      totalAppointments: 0,
+      tableAvailability: {
+        clients: true,
+        employees: true,
+        invoices: true,
+        appointments: true,
+      },
+    });
+
+    expect(shortcuts.find((a) => a.id === 'clients')?.count).toBe(2);
+    expect(shortcuts.find((a) => a.id === 'employees')?.count).toBe(1);
+    expect(shortcuts.find((a) => a.id === 'clients')?.count).not.toBe(20);
   });
 
   it('fetchOfficeDashboard liefert Demo-Snapshot im Demo-Modus', async () => {

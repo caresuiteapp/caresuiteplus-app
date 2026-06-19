@@ -16,9 +16,11 @@ import {
 } from '@/lib/dashboard/businessDashboardMetrics';
 import {
   buildOfficeKpisFromMetrics,
+  buildOfficeStatusCardsFromMetrics,
   emptyOfficeDashboardMetrics,
   type OfficeDashboardMetrics,
 } from '@/lib/office/officeDashboardMetrics';
+import { buildOfficeAreaShortcutsFromMetrics } from '@/lib/office/officeAreaShortcuts';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -230,8 +232,9 @@ export function buildLiveOfficeDashboardSnapshot(
     moduleLabel: 'CareSuite+ Office',
     primaryAction: OFFICE_LIVE_QUICK_ACTIONS[0],
     kpis: buildOfficeKpisFromMetrics(metrics),
-    statusCards: EMPTY_STATUS_CARDS,
+    statusCards: buildOfficeStatusCardsFromMetrics(metrics),
     quickActions: OFFICE_LIVE_QUICK_ACTIONS,
     activities,
+    areaShortcuts: buildOfficeAreaShortcutsFromMetrics(metrics),
   };
 }

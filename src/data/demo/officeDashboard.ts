@@ -7,7 +7,7 @@ import type {
 } from '@/types/dashboard';
 import type { RoleKey } from '@/types';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
-import { OFFICE_NAV_AREAS, type OfficeNavArea } from '@/lib/navigation/officeNavigation';
+import { buildOfficeAreaShortcuts, type OfficeAreaShortcut } from '@/lib/office/officeAreaShortcuts';
 import { demoAppointments, demoInvoices } from './seedCatalog';
 import { demoClients } from './clients';
 import { demoEmployees } from './employees';
@@ -159,13 +159,7 @@ const OFFICE_QUICK_ACTIONS: DashboardQuickAction[] = [
   },
 ];
 
-export type OfficeAreaShortcut = OfficeNavArea & {
-  /** Alias for dashboard list rows that expect `title`. */
-  title: string;
-  /** Alias for dashboard list rows that expect `route`. */
-  route: string;
-  count?: number;
-};
+export type { OfficeAreaShortcut } from '@/lib/office/officeAreaShortcuts';
 
 const OFFICE_AREA_DEMO_COUNTS: Partial<Record<string, number>> = {
   clients: demoClients.length,
@@ -174,12 +168,8 @@ const OFFICE_AREA_DEMO_COUNTS: Partial<Record<string, number>> = {
   appointments: demoAppointments.length,
 };
 
-export const OFFICE_AREA_SHORTCUTS: OfficeAreaShortcut[] = OFFICE_NAV_AREAS.map((area) => ({
-  ...area,
-  title: area.label,
-  route: area.href,
-  count: OFFICE_AREA_DEMO_COUNTS[area.id],
-}));
+export const OFFICE_AREA_SHORTCUTS: OfficeAreaShortcut[] =
+  buildOfficeAreaShortcuts(OFFICE_AREA_DEMO_COUNTS);
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -202,5 +192,6 @@ export function buildOfficeDashboard(roleKey: RoleKey): DashboardSnapshot {
     statusCards: OFFICE_STATUS_CARDS,
     quickActions: OFFICE_QUICK_ACTIONS,
     activities: OFFICE_ACTIVITIES,
+    areaShortcuts: OFFICE_AREA_SHORTCUTS,
   };
 }

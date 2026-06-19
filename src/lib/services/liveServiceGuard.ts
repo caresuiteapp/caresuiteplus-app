@@ -1,6 +1,6 @@
 import type { ServiceResult } from '@/types';
-import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import { getServiceMode } from '@/lib/services/mode';
+import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 
 /** Mandantenprüfung für Services — Demo nur DEMO_TENANT_ID, Live beliebige UUID. */
 export function guardServiceTenant(tenantId: string): { ok: false; error: string } | null {
@@ -17,6 +17,20 @@ export function blockDemoOnlyInLiveMode<T>(featureLabel: string): ServiceResult<
     return {
       ok: false,
       error: `${featureLabel} im Live-Modus noch nicht vollständig angebunden.`,
+    };
+  }
+  return null;
+}
+
+/**
+ * Guard for code paths that must never serve demo seed data in supabase mode.
+ * Returns a ServiceResult error when live mode would incorrectly use demo data.
+ */
+export function assertLiveDataPath(featureLabel: string): ServiceResult<never> | null {
+  if (getServiceMode() === 'supabase') {
+    return {
+      ok: false,
+      error: `${featureLabel}: Demo-Daten im Live-Modus blockiert.`,
     };
   }
   return null;

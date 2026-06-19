@@ -21,7 +21,7 @@ export function useTenantDisplayName(): string {
     }
 
     if (!isLive || !tenantId) {
-      setName(demoTenant.name);
+      setName(isLive ? 'Ihr Mandant' : demoTenant.name);
       return;
     }
 

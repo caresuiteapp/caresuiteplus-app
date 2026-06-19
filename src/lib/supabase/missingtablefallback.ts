@@ -1,4 +1,5 @@
 import type { ServiceResult } from '@/types';
+import { getServiceMode } from '@/lib/services/mode';
 import { isMissingTableServiceError, isSupabaseMissingTableError } from './errors';
 
 export const DEMO_DATA_BANNER = 'DEMO_DATA_BANNER';
@@ -14,6 +15,7 @@ type MissingTableListResult<T> =
   | { ok: false; error: string };
 
 function canUseDemoFallback(tenantId: string): boolean {
+  if (getServiceMode() === 'supabase') return false;
   return tenantId === 'demo-tenant' || tenantId.startsWith('demo-');
 }
 

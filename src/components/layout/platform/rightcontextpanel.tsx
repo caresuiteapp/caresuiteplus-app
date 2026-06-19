@@ -14,10 +14,12 @@ import { useRouter } from 'expo-router';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
+import { getServiceMode } from '@/lib/services/mode';
 import { GlowCard } from '@/components/ui/effects';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { radius, spacing, typography } from '@/theme';
+import type { DashboardKpi } from '@/types/dashboard';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 
@@ -39,7 +41,7 @@ const OFFICE_QUICK_ACTIONS = [
   { label: 'Dokument hochladen', icon: '📁', href: '/office/documents/upload' },
 ];
 
-const MODULE_STATUS: Record<MainModuleKey, { label: string; status: string }[]> = {
+const DEMO_MODULE_STATUS: Record<MainModuleKey, { label: string; status: string }[]> = {
   zentrale: [
     { label: 'Module aktiv', status: '3/6' },
     { label: 'Nachrichten', status: '2 neu' },
@@ -74,6 +76,66 @@ const MODULE_STATUS: Record<MainModuleKey, { label: string; status: string }[]> 
   ],
 };
 
+const DEMO_OPEN_TASKS = [
+  { title: 'Offene Aufgaben', count: 2 },
+  { title: 'Zu prüfen', count: 1 },
+];
+
+function findKpi(kpis: DashboardKpi[] | undefined, id: string): DashboardKpi | undefined {
+  return kpis?.find((kpi) => kpi.id === id);
+}
+
+function buildOfficeModuleStatusChips(
+  kpis: DashboardKpi[] | undefined,
+): { label: string; status: string }[] {
+  const clientsKpi = findKpi(kpis, 'office-kpi-clients');
+  const invoicesKpi = findKpi(kpis, 'office-kpi-invoices');
+  const openInvoices = Number(invoicesKpi?.value ?? 0);
+
+  return [
+    {
+      label: 'Klient:innen',
+      status:
+        clientsKpi && Number(clientsKpi.value) > 0
+          ? `${clientsKpi.value} aktiv`
+          : 'Keine Klient:innen',
+    },
+    {
+      label: 'Rechnungen',
+      status: openInvoices > 0 ? `${openInvoices} offen` : 'Keine offenen',
+    },
+  ];
+}
+
+function buildLiveModuleStatusChips(mainModule: MainModuleKey): { label: string; status: string }[] {
+  return [{ label: 'Modul', status: mainModule === 'office' ? 'Office Live' : 'Live' }];
+}
+
+function buildOpenTasks(
+  mainModule: MainModuleKey,
+  officeData: ReturnType<typeof useOfficeDashboard>['data'],
+  isLive: boolean,
+): { title: string; count: number | string }[] {
+  if (mainModule === 'office' && officeData) {
+    const cards = officeData.statusCards.slice(0, 3);
+    if (cards.length > 0) {
+      return cards.map((card) => ({
+        title: card.title,
+        count: card.count ?? 0,
+      }));
+    }
+    if (isLive) {
+      return [{ title: 'Keine offenen Vorgänge', count: 0 }];
+    }
+  }
+
+  if (isLive) {
+    return [{ title: 'Keine offenen Vorgänge', count: 0 }];
+  }
+
+  return DEMO_OPEN_TASKS;
+}
+
 /** Context panel — tenant status, module chips, tasks, quick actions, support (NOT navigation). */
 export function RightContextPanel({ mainModule, accentColor }: RightContextPanelProps) {
   const router = useRouter();
@@ -82,24 +144,22 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   const { colors, isDark } = useLegacyTheme();
   const accent = accentColor ?? colors.violet;
   const { data: officeData } = useOfficeDashboard();
+  const isLive = getServiceMode() === 'supabase';
   const styles = useMemo(() => createStyles(isDark, colors, accent), [isDark, colors, accent]);
 
   if (width < 1280) {
     return null;
   }
 
-  const statusChips = MODULE_STATUS[mainModule];
-  const quickActions = mainModule === 'office' ? OFFICE_QUICK_ACTIONS : OFFICE_QUICK_ACTIONS.slice(0, 2);
-  const openTasks =
+  const statusChips =
     mainModule === 'office' && officeData
-      ? officeData.statusCards.slice(0, 3).map((card) => ({
-          title: card.title,
-          count: card.count,
-        }))
-      : [
-          { title: 'Offene Aufgaben', count: 2 },
-          { title: 'Zu prüfen', count: 1 },
-        ];
+      ? buildOfficeModuleStatusChips(officeData.kpis)
+      : isLive
+        ? buildLiveModuleStatusChips(mainModule)
+        : DEMO_MODULE_STATUS[mainModule];
+
+  const quickActions = mainModule === 'office' ? OFFICE_QUICK_ACTIONS : OFFICE_QUICK_ACTIONS.slice(0, 2);
+  const openTasks = buildOpenTasks(mainModule, officeData, isLive);
 
   return (
     <View style={styles.root}>

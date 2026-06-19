@@ -1,5 +1,6 @@
 import type { WorkflowStatus } from '../core/base';
 import type { RoleKey } from '../core/auth';
+import type { OfficeAreaShortcut } from '@/lib/office/officeAreaShortcuts';
 
 export type DashboardScope = 'business' | 'office' | 'portal_employee' | 'portal_client' | 'portal_family';
 
@@ -55,4 +56,6 @@ export type DashboardSnapshot = {
   statusCards: DashboardStatusCard[];
   quickActions: DashboardQuickAction[];
   activities: DashboardActivity[];
+  /** Office Arbeitsbereiche with optional live counts — never demo-sourced in supabase mode. */
+  areaShortcuts?: OfficeAreaShortcut[];
 };

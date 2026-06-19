@@ -15,7 +15,6 @@ import {
   Timeline,
 } from '@/components/ui';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
-import { OFFICE_AREA_SHORTCUTS } from '@/data/demo/officeDashboard';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
@@ -79,7 +78,7 @@ function StatusSection({
             <Text style={styles.statusDesc}>{card.description}</Text>
             <View style={styles.statusBadges}>
               <PremiumBadge
-                label={WORKFLOW_STATUS_LABELS[card.status]}
+                label={WORKFLOW_STATUS_LABELS[card.status] ?? card.status}
                 variant={
                   card.status === 'fehlerhaft'
                     ? 'red'
@@ -127,16 +126,18 @@ function QuickActionsSection({
 }
 
 function AreasSection({
+  areas,
   onNavigate,
   styles,
 }: {
+  areas: NonNullable<DashboardSnapshot['areaShortcuts']>;
   onNavigate: (route: string) => void;
   styles: ReturnType<typeof createOfficeDashboardStyles>;
 }) {
   return (
     <SectionPanel title="Arbeitsbereiche" subtitle="Office-Module und Verwaltung">
       <View style={styles.areaList}>
-        {OFFICE_AREA_SHORTCUTS.map((area, index) => (
+        {areas.map((area, index) => (
           <PremiumListRow
             key={area.id}
             title={area.title}
@@ -152,7 +153,7 @@ function AreasSection({
               ) : undefined
             }
             showChevron
-            showDivider={index < OFFICE_AREA_SHORTCUTS.length - 1}
+            showDivider={index < areas.length - 1}
             onPress={() => onNavigate(area.route)}
           />
         ))}
@@ -323,6 +324,8 @@ export function OfficeDashboardView({
     );
   }
 
+  const areaShortcuts = snapshot.areaShortcuts ?? [];
+
   const hero = (
     <DashboardHero
       snapshot={snapshot}
@@ -337,7 +340,7 @@ export function OfficeDashboardView({
         {hero}
         <View style={styles.desktopGrid}>
           <View style={styles.desktopNav}>
-            <AreasSection onNavigate={handleNavigate} styles={styles} />
+            <AreasSection areas={areaShortcuts} onNavigate={handleNavigate} styles={styles} />
           </View>
           <View style={styles.desktopMain}>
             <KpiSection snapshot={snapshot} />
@@ -366,7 +369,7 @@ export function OfficeDashboardView({
             <ActivitySection snapshot={snapshot} onRefresh={onRefresh} />
           </View>
         </View>
-        <AreasSection onNavigate={handleNavigate} styles={styles} />
+        <AreasSection areas={areaShortcuts} onNavigate={handleNavigate} styles={styles} />
       </View>
     );
   }
@@ -377,7 +380,7 @@ export function OfficeDashboardView({
       <KpiSection snapshot={snapshot} />
       <StatusSection snapshot={snapshot} styles={styles} accentColor={colors.orange} />
       <QuickActionsSection snapshot={snapshot} onAction={handleAction} styles={styles} />
-      <AreasSection onNavigate={handleNavigate} styles={styles} />
+      <AreasSection areas={areaShortcuts} onNavigate={handleNavigate} styles={styles} />
       <ActivitySection snapshot={snapshot} onRefresh={onRefresh} />
     </View>
   );

@@ -99,6 +99,7 @@ export const officeDashboardSupabaseRepository = {
     if (!invoiceResult.error) {
       metrics.tableAvailability.invoices = true;
       const rows = (invoiceResult.data ?? []) as { status: string }[];
+      metrics.totalInvoices = rows.length;
       metrics.openInvoices = rows.filter((row) => isOpenInvoiceStatus(row.status)).length;
       metrics.draftInvoices = rows.filter((row) => row.status === 'draft').length;
     }

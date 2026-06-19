@@ -36,6 +36,12 @@ export function DashboardHero({
   const { colors, typography, gradients, isDark } = useLegacyTheme();
   const moduleLabel = snapshot.moduleLabel ?? 'CareSuite+';
 
+  const roleLabel = ROLE_LABELS[snapshot.roleKey] ?? snapshot.roleKey;
+  const primaryAction = snapshot.primaryAction;
+  const primaryActionTitle = primaryAction
+    ? `${primaryAction.icon} ${primaryAction.label}`
+    : 'Dashboard öffnen';
+
   const float = useSharedValue(0);
   useEffect(() => {
     if (!isDark) return;
@@ -171,12 +177,12 @@ export function DashboardHero({
           </View>
         </View>
         <View style={styles.badges}>
-          <PremiumBadge label={ROLE_LABELS[snapshot.roleKey]} variant="orange" dot />
+          <PremiumBadge label={roleLabel} variant="orange" dot />
           {showDemoBadge ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         </View>
         <PremiumButton
-          title={`${snapshot.primaryAction.icon} ${snapshot.primaryAction.label}`}
-          onPress={() => onPrimaryAction?.(snapshot.primaryAction)}
+          title={primaryActionTitle}
+          onPress={() => primaryAction && onPrimaryAction?.(primaryAction)}
           fullWidth
         />
       </View>

@@ -1,4 +1,4 @@
-import type { DashboardActivity, DashboardKpi } from '@/types/dashboard';
+import type { DashboardActivity, DashboardKpi, DashboardStatusCard } from '@/types/dashboard';
 import type { WorkflowStatus } from '@/types/core/base';
 import type { OfficeAuditEntry } from '@/lib/officeCore/auditLogService';
 import { remoteStatusToWorkflow } from '@/lib/services/clients/clientStatusBridge';
@@ -9,6 +9,7 @@ export type OfficeDashboardMetrics = {
   clientsInIntake: number;
   activeEmployees: number;
   totalEmployees: number;
+  totalInvoices: number;
   openInvoices: number;
   draftInvoices: number;
   appointmentsToday: number;
@@ -40,6 +41,7 @@ export function emptyOfficeDashboardMetrics(): OfficeDashboardMetrics {
     clientsInIntake: 0,
     activeEmployees: 0,
     totalEmployees: 0,
+    totalInvoices: 0,
     openInvoices: 0,
     draftInvoices: 0,
     appointmentsToday: 0,
@@ -132,6 +134,45 @@ export function buildOfficeKpisFromMetrics(metrics: OfficeDashboardMetrics): Das
       accentColor: '#7C5CFF',
     },
   ];
+}
+
+export function buildOfficeStatusCardsFromMetrics(
+  metrics: OfficeDashboardMetrics,
+): DashboardStatusCard[] {
+  const cards: DashboardStatusCard[] = [];
+
+  if (metrics.tableAvailability.invoices && metrics.draftInvoices > 0) {
+    cards.push({
+      id: 'office-sc-invoices',
+      title: 'Rechnungsentwürfe',
+      description: 'Entwürfe warten auf Freigabe und Versand',
+      status: 'entwurf',
+      count: metrics.draftInvoices,
+    });
+  }
+
+  if (metrics.tableAvailability.clients && metrics.clientsInIntake > 0) {
+    cards.push({
+      id: 'office-sc-clients',
+      title: 'Klient:innen in Aufnahme',
+      description: 'Stammdaten und Modulzuordnung prüfen',
+      status: 'in_bearbeitung',
+      count: metrics.clientsInIntake,
+      sensitivity: 'care',
+    });
+  }
+
+  if (metrics.tableAvailability.invoices && metrics.openInvoices > 0) {
+    cards.push({
+      id: 'office-sc-open-invoices',
+      title: 'Offene Rechnungen',
+      description: 'Rechnungen warten auf Zahlung oder Abschluss',
+      status: 'aktiv',
+      count: metrics.openInvoices,
+    });
+  }
+
+  return cards;
 }
 
 function mapAuditCategoryToType(category: string): DashboardActivity['type'] {
