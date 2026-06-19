@@ -23,6 +23,7 @@ import {
   resolveTopbarCenterZoneInsets,
   resolveTopbarEndZoneInsets,
 } from '@/lib/platform/shellLayoutMetrics';
+import { WebFontSizeControl } from '@/components/layout/WebFontSizeControl';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
@@ -193,6 +194,7 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
       </View>
 
       <View style={[styles.end, { marginRight: endZoneInsets.marginRight }]}>
+        {Platform.OS === 'web' ? <WebFontSizeControl /> : null}
         <View style={styles.profileWrap}>
           <View style={styles.profileChip}>
             <TopbarProfileAvatar

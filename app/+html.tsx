@@ -1,6 +1,7 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 import { DISABLE_HOVER_EFFECTS_CSS } from '@/design/web/disableHoverEffectsCss';
+import { WEB_FONT_SCALE_CSS } from '@/design/web/webFontScaleCss';
 
 const ROOT_BG = '#050816';
 
@@ -21,6 +22,7 @@ export default function Root({ children }: PropsWithChildren) {
               html, body, #root, #expo-root {
                 background-color: ${ROOT_BG} !important;
               }
+              ${WEB_FONT_SCALE_CSS}
               ${DISABLE_HOVER_EFFECTS_CSS}
             `,
           }}

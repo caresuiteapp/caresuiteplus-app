@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
+import { WebFontSizeControl } from '@/components/layout/WebFontSizeControl';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -70,6 +71,7 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
           <Text style={[styles.compactPortal, { color: text.muted }]}>Klient:innenportal</Text>
         </View>
         <View style={styles.compactActions}>
+          {Platform.OS === 'web' ? <WebFontSizeControl /> : null}
           <View style={styles.compactProfileChip}>
             <TopbarProfileAvatar
               name={displayName}
@@ -139,6 +141,7 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
       </View>
 
       <View style={styles.actions}>
+        {Platform.OS === 'web' ? <WebFontSizeControl /> : null}
         <View style={styles.profileWrap}>
           <View style={styles.profileChip}>
             <TopbarProfileAvatar

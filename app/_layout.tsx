@@ -4,6 +4,7 @@ import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet, Platform } from 'react-native';
 import { DarkTheme, ThemeProvider } from '@react-navigation/native';
 import { ThemeModeProvider } from '@/design/ThemeModeProvider';
+import { WebFontScaleProvider } from '@/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { AuthProvider } from '@/lib/auth';
@@ -47,9 +48,11 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <ThemeModeProvider>
-        <GlobalAiProvider>
-          <RootShell />
-        </GlobalAiProvider>
+        <WebFontScaleProvider>
+          <GlobalAiProvider>
+            <RootShell />
+          </GlobalAiProvider>
+        </WebFontScaleProvider>
       </ThemeModeProvider>
     </AuthProvider>
   );
