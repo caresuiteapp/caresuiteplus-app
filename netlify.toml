@@ -1,4 +1,5 @@
 # Deploy nur bei Bedarf:
+# Letzter Deploy-Trigger: 2026-06-19
 # - Commit-Message mit [deploy] pushen, ODER
 # - Im Netlify-Dashboard „Trigger deploy“ ausführen
 # Ohne [deploy] wird der Build übersprungen (ignore exit 0 = skip, exit 1 = build).
