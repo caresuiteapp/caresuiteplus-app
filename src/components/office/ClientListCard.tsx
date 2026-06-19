@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
 import { colors, spacing, typography } from '@/theme';
 
@@ -36,7 +37,7 @@ export function ClientListCard({ client, onPress, selected = false }: ClientList
           {client.lastName}, {client.firstName}
         </Text>
         {client.careLevel ? (
-          <PremiumBadge label={client.careLevel} variant="cyan" />
+          <PremiumBadge label={formatCareLevel(client.careLevel)} variant="cyan" />
         ) : null}
       </View>
       {location ? <Text style={styles.location}>{location}</Text> : null}

@@ -1,14 +1,15 @@
 import type { TenantScopedEntity } from '../../core/base';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 
 export type CareLevelGrade = 'kein' | 'pg1' | 'pg2' | 'pg3' | 'pg4' | 'pg5' | 'hospiz';
 
 export const CARE_LEVEL_LABELS: Record<CareLevelGrade, string> = {
   kein: 'Kein Pflegegrad',
-  pg1: 'Pflegegrad 1',
-  pg2: 'Pflegegrad 2',
-  pg3: 'Pflegegrad 3',
-  pg4: 'Pflegegrad 4',
-  pg5: 'Pflegegrad 5',
+  pg1: formatCareLevel('pg1'),
+  pg2: formatCareLevel('pg2'),
+  pg3: formatCareLevel('pg3'),
+  pg4: formatCareLevel('pg4'),
+  pg5: formatCareLevel('pg5'),
   hospiz: 'Hospiz',
 };
 

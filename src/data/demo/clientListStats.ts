@@ -1,4 +1,5 @@
 import type { ClientListItem } from '@/types/modules/office';
+import { formatCareLevel, normalizeCareLevelKey } from '@/lib/formatters/unitFormatters';
 
 export type ClientListKpi = {
   id: string;
@@ -45,11 +46,11 @@ export function buildClientListKpis(items: ClientListItem[]): ClientListKpi[] {
 
 export const CLIENT_CARE_LEVEL_FILTERS = [
   { key: 'all', label: 'Alle PG' },
-  { key: 'PG 1', label: 'PG 1' },
-  { key: 'PG 2', label: 'PG 2' },
-  { key: 'PG 3', label: 'PG 3' },
-  { key: 'PG 4', label: 'PG 4' },
-  { key: 'PG 5', label: 'PG 5' },
+  { key: 'pg1', label: formatCareLevel('pg1') },
+  { key: 'pg2', label: formatCareLevel('pg2') },
+  { key: 'pg3', label: formatCareLevel('pg3') },
+  { key: 'pg4', label: formatCareLevel('pg4') },
+  { key: 'pg5', label: formatCareLevel('pg5') },
   { key: 'none', label: 'Ohne PG' },
 ] as const;
 
@@ -61,5 +62,6 @@ export function filterClientsByCareLevel(
 ): ClientListItem[] {
   if (careLevelFilter === 'all') return items;
   if (careLevelFilter === 'none') return items.filter((c) => !c.careLevel);
-  return items.filter((c) => c.careLevel === careLevelFilter);
+  const filterKey = normalizeCareLevelKey(careLevelFilter);
+  return items.filter((c) => normalizeCareLevelKey(c.careLevel) === filterKey);
 }

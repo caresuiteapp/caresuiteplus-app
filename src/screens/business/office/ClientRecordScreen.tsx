@@ -24,7 +24,7 @@ import { useAuth } from '@/lib/auth/context';
 import { archiveClient, deleteClient } from '@/lib/office';
 import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
-import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import { CLIENT_RECORD_TAB_LABELS, type ClientCareContext, type ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
@@ -87,7 +87,7 @@ function StammdatenTab({
       </SectionPanel>
       {fullClient ? (
         <SectionPanel title="Weitere Stammdaten">
-          <DetailInfoRow label="Anrede" value={fullClient.core.salutation} />
+          <DetailInfoRow label="Anrede" value={formatSalutation(fullClient.core.salutation) || '—'} />
           <DetailInfoRow label="Geschlecht" value={fullClient.core.gender} />
           <DetailInfoRow label="Status" value={detail.status} />
           <DetailInfoRow

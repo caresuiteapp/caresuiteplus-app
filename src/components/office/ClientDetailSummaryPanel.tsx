@@ -16,6 +16,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
 import { clientEditRoute, clientRecordRoute } from '@/lib/navigation/clientRoutes';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 type ClientDetailSummaryPanelProps = {
@@ -67,7 +68,7 @@ export function ClientDetailSummaryPanel({ clientId }: ClientDetailSummaryPanelP
         <View style={styles.badgeRow}>
           <PremiumBadge label={WORKFLOW_STATUS_LABELS[client.status]} variant="orange" dot />
           {client.careLevel ? (
-            <PremiumBadge label={client.careLevel} variant="cyan" />
+            <PremiumBadge label={formatCareLevel(client.careLevel)} variant="cyan" />
           ) : null}
           {canViewSensitive ? (
             <PremiumBadge label={SENSITIVITY_LABELS[client.sensitivity]} variant="muted" />

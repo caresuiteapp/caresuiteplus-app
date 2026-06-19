@@ -1,4 +1,5 @@
 import { legacyColorsFromPalette, type ColorMode } from '@/design/tokens/themeBridge';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import type { PortalClientProfile } from '@/types/portal/client';
 import type { PortalEmployeeProfile } from '@/types/portal/employee';
 
@@ -71,7 +72,7 @@ export function buildClientPortalProfileKpis(profile: PortalClientProfile, mode:
     {
       id: 'care-level',
       label: 'Pflegegrad',
-      value: profile.careLevel ?? '—',
+      value: profile.careLevel ? formatCareLevel(profile.careLevel) : '—',
       subValue: profile.city ?? 'Portal',
       icon: '🏥',
       accentColor: colors.violet,

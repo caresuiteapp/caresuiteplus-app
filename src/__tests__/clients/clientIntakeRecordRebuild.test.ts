@@ -38,7 +38,7 @@ describe('Client Intake & Record Rebuild', () => {
   });
 
   it('formatiert Pflegegrad als PG 3', () => {
-    expect(formatCareLevel('pg3')).toBe('PG 3');
+    expect(formatCareLevel('pg3')).toBe('PG3');
   });
 
   it('Einnahmeschema zeigt morgens/mittags/abends/nachts', () => {

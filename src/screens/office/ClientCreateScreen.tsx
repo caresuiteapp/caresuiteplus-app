@@ -23,6 +23,7 @@ import {
   type TaskCategory,
 } from '@/types/modules/client';
 import { useDropdownOptions } from '@/hooks/templates';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { spacing, typography } from '@/theme';
 
@@ -182,7 +183,7 @@ export function ClientCreateScreen() {
             <SummaryRow label="Geburtsdatum" value={form.dateOfBirth || '—'} />
             <SummaryRow label="Adresse" value={`${form.street}, ${form.zip} ${form.city}`} />
             <SummaryRow label="Telefon" value={form.phone || '—'} />
-            <SummaryRow label="Pflegegrad" value={form.careLevel} />
+            <SummaryRow label="Pflegegrad" value={formatCareLevel(form.careLevel) || '—'} />
             <SummaryRow label="Pflegekasse" value={form.careFundName} />
             <SummaryRow label="Abrechnungsart" value={form.billingType ? BILLING_TYPE_LABELS[form.billingType] : '—'} />
             <SummaryRow label="Stundensatz" value={form.hourlyRate ? `${form.hourlyRate} €` : '—'} />

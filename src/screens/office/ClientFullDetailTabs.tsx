@@ -18,6 +18,7 @@ import {
   TASK_FREQUENCY_LABELS,
 } from '@/types/modules/client';
 import { VISIBILITY_LABELS } from '@/types/portal/visibility';
+import { formatSalutation } from '@/lib/formatters/unitFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 function formatEuro(cents: number): string {
@@ -33,7 +34,7 @@ export function StammdatenTab({ client, canViewSensitive }: { client: ClientFull
   return (
     <View style={styles.tab}>
       <SectionPanel title="Stammdaten">
-        <DetailInfoRow label="Anrede" value={client.core.salutation} />
+        <DetailInfoRow label="Anrede" value={formatSalutation(client.core.salutation) || null} />
         <DetailInfoRow label="Geschlecht" value={client.core.gender} />
         <DetailInfoRow label="Geburtsdatum" value={client.core.dateOfBirth ? new Date(client.core.dateOfBirth).toLocaleDateString('de-DE') : null} />
         <DetailInfoRow label="Status" value={CLIENT_LIFECYCLE_STATUS_LABELS[client.lifecycleStatus]} />

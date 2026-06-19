@@ -14,6 +14,7 @@ import {
 import { useClientPortalProfile } from '@/hooks/useClientPortalProfile';
 import { usePermissions } from '@/hooks/usePermissions';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 function formatDate(iso: string): string {
@@ -73,7 +74,7 @@ export function ClientPortalProfileScreen() {
 
         <PremiumCard accentColor={colors.primary}>
           {profile.careLevel ? (
-            <DetailInfoRow label="Pflegegrad" value={profile.careLevel} />
+            <DetailInfoRow label="Pflegegrad" value={formatCareLevel(profile.careLevel)} />
           ) : null}
           {profile.city ? (
             <DetailInfoRow

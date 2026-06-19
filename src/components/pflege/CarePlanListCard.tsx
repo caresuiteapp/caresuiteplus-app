@@ -2,6 +2,7 @@ import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
 import type { CarePlanListItem } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { colors, spacing, typography } from '@/theme';
 
 type CarePlanListCardProps = {
@@ -53,7 +54,7 @@ export function CarePlanListCard({ plan, onPress, selected = false }: CarePlanLi
       </View>
       <Text style={styles.meta}>
         {plan.clientName}
-        {plan.careLevel ? ` · ${plan.careLevel}` : ''}
+        {plan.careLevel ? ` · ${formatCareLevel(plan.careLevel)}` : ''}
       </Text>
       <Text style={styles.period}>{formatDateRange(plan.validFrom, plan.validUntil)}</Text>
       {plan.alertCount > 0 ? (

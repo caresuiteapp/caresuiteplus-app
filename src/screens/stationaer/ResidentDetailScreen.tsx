@@ -9,6 +9,7 @@ import { useResidentDetail } from '@/hooks/useResidentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { spacing, typography } from '@/theme';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-DE', {
@@ -71,7 +72,7 @@ export function ResidentDetailScreen() {
           {resident.wing ? <DetailInfoRow label="Bereich" value={resident.wing} /> : null}
           <DetailInfoRow label="Aufnahme" value={formatDate(resident.admissionDate)} />
           {resident.careLevel ? (
-            <DetailInfoRow label="Pflegegrad" value={resident.careLevel} />
+            <DetailInfoRow label="Pflegegrad" value={formatCareLevel(resident.careLevel)} />
           ) : null}
         </SectionPanel>
 

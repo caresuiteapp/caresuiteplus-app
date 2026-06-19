@@ -7,6 +7,7 @@ import {
   PORTAL_PROFILE_PREPARED_MESSAGE,
 } from '@/lib/portal/portalModuleConfig';
 import { buildClientPortalProfileKpis } from '@/lib/portal/portalProfileStats';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { PortalClientProfile } from '@/types/portal/client';
 import { designTokens, spacing } from '@/theme';
@@ -79,7 +80,7 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
       </View>
       <View style={styles.badges}>
         {profile.careLevel ? (
-          <PremiumBadge label={`PG ${profile.careLevel}`} variant="green" dot />
+          <PremiumBadge label={formatCareLevel(profile.careLevel)} variant="green" dot />
         ) : null}
         {isLive ? (
           <PremiumBadge label="Live Supabase" variant="green" dot />

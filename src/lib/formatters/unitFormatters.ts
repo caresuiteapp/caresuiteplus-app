@@ -1,31 +1,58 @@
-/** PG 1–5, kein Pflegegrad, beantragt, … */
-export function formatCareLevel(grade: string | null | undefined): string {
-  if (!grade) return '';
-  const map: Record<string, string> = {
-    kein: 'kein Pflegegrad',
-    none: 'kein Pflegegrad',
-    beantragt: 'beantragt',
-    pg1: 'PG 1',
-    pg2: 'PG 2',
-    pg3: 'PG 3',
-    pg4: 'PG 4',
-    pg5: 'PG 5',
-    'PG 1': 'PG 1',
-    'PG 2': 'PG 2',
-    'PG 3': 'PG 3',
-    'PG 4': 'PG 4',
-    'PG 5': 'PG 5',
-    abgelehnt: 'abgelehnt',
-    unbekannt: 'unbekannt',
-    hospiz: 'Hospiz',
-  };
-  const key = grade.toLowerCase().replace(/\s+/g, '');
-  if (map[grade]) return map[grade];
-  if (map[key]) return map[key];
-  if (/^pg\s*(\d)$/i.test(grade)) {
-    return `PG ${grade.match(/\d/)?.[0] ?? ''}`.trim();
+const CARE_LEVEL_LABELS: Record<string, string> = {
+  kein: 'kein Pflegegrad',
+  none: 'kein Pflegegrad',
+  beantragt: 'beantragt',
+  pg1: 'PG1',
+  pg2: 'PG2',
+  pg3: 'PG3',
+  pg4: 'PG4',
+  pg5: 'PG5',
+  abgelehnt: 'abgelehnt',
+  unbekannt: 'unbekannt',
+  unknown: 'unbekannt',
+  hospiz: 'Hospiz',
+};
+
+const SALUTATION_LABELS: Record<string, string> = {
+  herr: 'Herr',
+  frau: 'Frau',
+  divers: 'Divers',
+  keine_angabe: 'Keine Angabe',
+  familie: 'Familie',
+  eheleute: 'Eheleute',
+  firma: 'Firma / Einrichtung',
+};
+
+/** Normalisiert PG-Werte für Filter/Vergleich (pg3, PG 3, 3 → pg3). */
+export function normalizeCareLevelKey(grade: string | number | null | undefined): string {
+  if (grade == null || grade === '') return '';
+  const raw = String(grade).trim();
+  const compact = raw.toLowerCase().replace(/\s+/g, '');
+  if (/^pg\d$/.test(compact)) return compact;
+  if (/^\d$/.test(compact)) return `pg${compact}`;
+  return compact;
+}
+
+/** PG1–5, kein Pflegegrad, beantragt, … */
+export function formatCareLevel(grade: string | number | null | undefined): string {
+  if (grade == null || grade === '') return '';
+  const raw = String(grade).trim();
+  const key = normalizeCareLevelKey(raw);
+  if (CARE_LEVEL_LABELS[key]) return CARE_LEVEL_LABELS[key];
+  if (/^pg\d$/.test(key)) return key.toUpperCase();
+  return raw;
+}
+
+/** Anrede für Anzeige (herr → Herr, frau → Frau, …). */
+export function formatSalutation(value: string | null | undefined): string {
+  if (!value?.trim()) return '';
+  const trimmed = value.trim();
+  const key = trimmed.toLowerCase().replace(/\s+/g, '_');
+  if (SALUTATION_LABELS[key]) return SALUTATION_LABELS[key];
+  if (/^[a-z]/.test(trimmed)) {
+    return trimmed.charAt(0).toUpperCase() + trimmed.slice(1);
   }
-  return grade;
+  return trimmed;
 }
 
 /** Einnahmeschema: morgens / mittags / abends / nachts */

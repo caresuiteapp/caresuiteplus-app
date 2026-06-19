@@ -3,17 +3,17 @@ import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatte
 
 describe('unitFormatters — deutsche Großschreibung', () => {
   describe('formatCareLevel', () => {
-    it('formatiert pg3 als PG 3', () => {
-      expect(formatCareLevel('pg3')).toBe('PG 3');
+    it('formatiert pg3 als PG3', () => {
+      expect(formatCareLevel('pg3')).toBe('PG3');
     });
 
-    it('formatiert PG 3 unverändert', () => {
-      expect(formatCareLevel('PG 3')).toBe('PG 3');
+    it('formatiert PG 3 als PG3', () => {
+      expect(formatCareLevel('PG 3')).toBe('PG3');
     });
 
     it('formatiert numerische Werte', () => {
-      expect(formatCareLevel('3')).toBe('PG 3');
-      expect(formatCareLevel(3)).toBe('PG 3');
+      expect(formatCareLevel('3')).toBe('PG3');
+      expect(formatCareLevel(3)).toBe('PG3');
     });
 
     it('formatiert none/kein', () => {

@@ -40,11 +40,11 @@ describe('Office Klient:innen list', () => {
   });
 
   it('Pflegegrad-Filter schränkt Liste ein', () => {
-    const pg2 = filterClientsByCareLevel(demoClients, 'PG 2');
+    const pg2 = filterClientsByCareLevel(demoClients, 'pg2');
     expect(pg2.every((c) => c.careLevel === 'PG 2')).toBe(true);
     const none = filterClientsByCareLevel(demoClients, 'none');
     expect(none.every((c) => !c.careLevel)).toBe(true);
-    expect(CLIENT_CARE_LEVEL_FILTERS.some((f) => f.key === 'PG 3')).toBe(true);
+    expect(CLIENT_CARE_LEVEL_FILTERS.some((f) => f.key === 'pg3')).toBe(true);
   });
 
   it('Status- und Sortierfilter sind vollständig definiert', () => {

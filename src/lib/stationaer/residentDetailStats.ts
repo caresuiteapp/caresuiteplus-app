@@ -1,4 +1,5 @@
 import type { ResidentDetail } from '@/types/modules/stationaer';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { legacyColorsFromPalette, type ColorMode } from '@/design/tokens/themeBridge';
 
 export type ResidentDetailKpi = {
@@ -39,7 +40,7 @@ export function buildResidentDetailKpis(resident: ResidentDetail, mode: ColorMod
     {
       id: 'care-level',
       label: 'Pflegegrad',
-      value: resident.careLevel ?? '—',
+      value: resident.careLevel ? formatCareLevel(resident.careLevel) : '—',
       icon: '🩺',
       accentColor: colors.orange,
     },
