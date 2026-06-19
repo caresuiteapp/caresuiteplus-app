@@ -4,7 +4,7 @@ import { CareSuiteLogo } from '@/components/brand';
 import { withAlpha } from '@/design/tokens/motion';
 import { spacing, typography } from '@/theme';
 
-const LOGO_SIZE = 72;
+const LOGO_MAX_HEIGHT = 96;
 
 type TenantMandantCardContentProps = {
   logoUrl?: string;
@@ -44,7 +44,7 @@ export function TenantMandantCardContent({
             onError={() => setLogoFailed(true)}
           />
         ) : (
-          <CareSuiteLogo size="lg" />
+          <CareSuiteLogo size="xl" />
         )}
       </View>
     </View>
@@ -54,6 +54,7 @@ export function TenantMandantCardContent({
 const styles = StyleSheet.create({
   root: {
     gap: spacing.sm,
+    alignSelf: 'stretch',
   },
   headerRow: {
     flexDirection: 'row',
@@ -78,15 +79,14 @@ const styles = StyleSheet.create({
     fontWeight: '700',
   },
   logoWrap: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
+    width: '100%',
+    height: LOGO_MAX_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
-    flexShrink: 0,
   },
   logo: {
-    width: LOGO_SIZE,
-    height: LOGO_SIZE,
+    width: '100%',
+    height: LOGO_MAX_HEIGHT,
     backgroundColor: 'transparent',
   },
 });
