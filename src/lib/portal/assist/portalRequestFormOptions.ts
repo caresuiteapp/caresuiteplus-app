@@ -92,13 +92,15 @@ export const RUECKRUF_TOPIC_OPTIONS: ListFilterOption[] = [
   { key: 'termin', label: 'Termin' },
   { key: 'dokument', label: 'Dokument' },
   { key: 'rechnung', label: 'Rechnung' },
+  { key: 'allgemeine_frage', label: 'Allgemeine Frage' },
   { key: 'sonstiges', label: 'Sonstiges' },
 ];
 
 export const RUECKRUF_TIME_OPTIONS: ListFilterOption[] = [
-  { key: 'vormittag', label: 'Vormittag' },
-  { key: 'nachmittag', label: 'Nachmittag' },
-  { key: 'abend', label: 'Abend' },
+  { key: 'vormittag', label: 'Vormittags' },
+  { key: 'mittag', label: 'Mittags' },
+  { key: 'nachmittag', label: 'Nachmittags' },
+  { key: 'abend', label: 'Abends' },
 ];
 
 export const STAMMDATEN_FIELD_OPTIONS: ListFilterOption[] = [

@@ -39,9 +39,14 @@ export type TerminAendernPayload = {
   nachricht?: string | null;
 };
 
-export type RueckrufTopicKey = 'termin' | 'dokument' | 'rechnung' | 'sonstiges';
+export type RueckrufTopicKey =
+  | 'termin'
+  | 'dokument'
+  | 'rechnung'
+  | 'allgemeine_frage'
+  | 'sonstiges';
 
-export type RueckrufCallbackTimeKey = 'vormittag' | 'nachmittag' | 'abend';
+export type RueckrufCallbackTimeKey = 'vormittag' | 'mittag' | 'nachmittag' | 'abend';
 
 export type RueckrufPayload = {
   thema: RueckrufTopicKey;

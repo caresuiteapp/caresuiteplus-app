@@ -132,24 +132,27 @@ describe('portal request form payloads', () => {
 
     const payload = serializePortalRequestPayload('rueckruf', {
       ...(formState as ReturnType<typeof createDefaultFormState>),
-      thema: 'rechnung',
-      rueckrufzeit: 'abend',
+      thema: 'allgemeine_frage',
+      rueckrufzeit: 'mittag',
       telefonnummer: '+49 30 123456',
+      nachricht: 'Bitte zeitnah',
     });
 
     expect(payload).toMatchObject({
       requestType: 'rueckruf',
-      thema: 'rechnung',
-      rueckrufzeit: 'abend',
+      thema: 'allgemeine_frage',
+      rueckrufzeit: 'mittag',
       telefonnummer: '+49 30 123456',
+      nachricht: 'Bitte zeitnah',
     });
 
     const description = buildPortalRequestDescription('rueckruf', {
-      thema: 'rechnung',
-      rueckrufzeit: 'abend',
+      thema: 'allgemeine_frage',
+      rueckrufzeit: 'mittag',
       telefonnummer: '+49 30 123456',
     });
-    expect(description).toContain('Rechnung');
+    expect(description).toContain('Allgemeine Frage');
+    expect(description).toContain('Mittags');
     expect(description).toContain('+49 30 123456');
   });
 
@@ -208,5 +211,16 @@ describe('PortalRequestFormModal UI', () => {
     expect(source).toContain('serializePortalRequestPayload');
     expect(source).not.toContain('PremiumInput');
     expect(source).toContain('PortalDocumentUploadModal');
+    expect(source).toContain('uploadModalOpen');
+    expect(source).not.toContain('uploadModalVisible');
+    expect(source).toContain('setProofsModalOpen(true)');
+    expect(source).not.toContain("setRequestModal('nachweise')");
+  });
+
+  it('renders dropdown fields for rueckruf callback form', () => {
+    const source = readSrc('src/components/portal/assist/PortalRequestFormModal.tsx');
+    expect(source).toContain('Bevorzugte Rückrufzeit');
+    expect(source).toContain('Grund/Thema');
+    expect(source).toContain("case 'rueckruf'");
   });
 });

@@ -237,14 +237,6 @@ export function PortalRequestFormModal({
         return (
           <>
             <ListFilterSelect
-              label="Thema"
-              value={data.thema}
-              options={RUECKRUF_TOPIC_OPTIONS}
-              onChange={(key) =>
-                setFormState({ ...data, thema: key as RueckrufPayload['thema'] })
-              }
-            />
-            <ListFilterSelect
               label="Bevorzugte Rückrufzeit"
               value={data.rueckrufzeit}
               options={RUECKRUF_TIME_OPTIONS}
@@ -252,11 +244,19 @@ export function PortalRequestFormModal({
                 setFormState({ ...data, rueckrufzeit: key as RueckrufPayload['rueckrufzeit'] })
               }
             />
+            <ListFilterSelect
+              label="Grund/Thema"
+              value={data.thema}
+              options={RUECKRUF_TOPIC_OPTIONS}
+              onChange={(key) =>
+                setFormState({ ...data, thema: key as RueckrufPayload['thema'] })
+              }
+            />
             <PremiumInput
-              label="Telefonnummer"
+              label="Telefonnummer (optional)"
               value={data.telefonnummer ?? ''}
               onChangeText={(telefonnummer) => setFormState({ ...data, telefonnummer })}
-              placeholder="Für den Rückruf"
+              placeholder={contactPhone?.trim() ? contactPhone : 'Für den Rückruf'}
               keyboardType="phone-pad"
               editable={!submitting}
             />
@@ -264,7 +264,7 @@ export function PortalRequestFormModal({
               label="Nachricht (optional)"
               value={data.nachricht ?? ''}
               onChangeText={(nachricht) => setFormState({ ...data, nachricht })}
-              placeholder="Worum geht es?"
+              placeholder="Weitere Hinweise…"
               multiline
               editable={!submitting}
             />
