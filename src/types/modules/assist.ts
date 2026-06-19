@@ -25,8 +25,9 @@ export type AssignmentPlan = TenantScopedEntity &
     notes: string | null;
     clientName: string;
     employeeName: string;
-    nextActionHint: string;
+    nextActionHint?: string;
     allowedStatusActions: WorkflowStatus[];
+    allowedStatusTransitions?: import('./assignmentStatus').AssignmentStatus[];
   };
 
 export type AssignmentListItem = Pick<
@@ -41,7 +42,15 @@ export type AssignmentListItem = Pick<
   | 'clientName'
   | 'employeeName'
   | 'updatedAt'
->;
+> & {
+  serviceName?: string | null;
+  durationMinutes?: number | null;
+  planningStatus?: string;
+  proofStatus?: string;
+  billingStatus?: string;
+  isAtRisk?: boolean;
+  isIncomplete?: boolean;
+};
 
 export type AssistDashboardStats = {
   totalAssignments: number;

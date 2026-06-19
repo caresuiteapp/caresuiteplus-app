@@ -1,6 +1,9 @@
 import { useCallback } from 'react';
-import type { WorkflowStatus } from '@/types';
-import { fetchAssignmentDetail, updateAssignmentStatus } from '@/lib/assist';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import {
+  fetchVisitDispositionDetail,
+  updateVisitDispositionStatus,
+} from '@/lib/assist/visitService';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery, useMutation } from './core';
@@ -16,19 +19,77 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
       if (!assignmentId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Einsatz-ID angegeben.' });
       }
-      return fetchAssignmentDetail(assignmentId, tenantId, roleKey);
+      return fetchVisitDispositionDetail(assignmentId, tenantId, roleKey).then((result) => {
+        if (!result.ok) return result;
+        const detail = result.data;
+        return {
+          ok: true as const,
+          data: {
+            id: detail.id,
+            tenantId: detail.tenantId,
+            clientId: detail.clientId,
+            employeeId: detail.employeeId ?? '',
+            appointmentId: null,
+            title: detail.title,
+            scheduledStart: detail.scheduledStart,
+            scheduledEnd: detail.scheduledEnd,
+            status: detail.status,
+            location: detail.location,
+            notes: detail.notes,
+            clientName: detail.clientName,
+            employeeName: detail.employeeName,
+            nextActionHint: detail.errorMessage ?? undefined,
+            allowedStatusActions: [],
+            allowedStatusTransitions: detail.allowedStatusTransitions,
+            createdAt: detail.createdAt,
+            updatedAt: detail.updatedAt,
+            visibility: 'team' as const,
+            sensitivity: 'care' as const,
+          },
+        };
+      });
     },
     [tenantId, assignmentId, roleKey],
     { enabled: Boolean(assignmentId) && !!tenantId },
   );
 
   const statusMutation = useMutation(
-    (newStatus: WorkflowStatus) => {
+    (newStatus: AssignmentStatus) => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       if (!assignmentId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Einsatz-ID angegeben.' });
       }
-      return updateAssignmentStatus(assignmentId, tenantId, newStatus, roleKey);
+      return updateVisitDispositionStatus(assignmentId, tenantId, newStatus, roleKey).then(
+        (result) => {
+          if (!result.ok) return result;
+          const detail = result.data;
+          return {
+            ok: true as const,
+            data: {
+              id: detail.id,
+              tenantId: detail.tenantId,
+              clientId: detail.clientId,
+              employeeId: detail.employeeId ?? '',
+              appointmentId: null,
+              title: detail.title,
+              scheduledStart: detail.scheduledStart,
+              scheduledEnd: detail.scheduledEnd,
+              status: detail.status,
+              location: detail.location,
+              notes: detail.notes,
+              clientName: detail.clientName,
+              employeeName: detail.employeeName,
+              nextActionHint: detail.errorMessage ?? undefined,
+              allowedStatusActions: [],
+              allowedStatusTransitions: detail.allowedStatusTransitions,
+              createdAt: detail.createdAt,
+              updatedAt: detail.updatedAt,
+              visibility: 'team' as const,
+              sensitivity: 'care' as const,
+            },
+          };
+        },
+      );
     },
     {
       successMessage: 'Einsatzstatus erfolgreich aktualisiert.',
@@ -37,7 +98,7 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
   );
 
   const changeStatus = useCallback(
-    async (newStatus: WorkflowStatus) => {
+    async (newStatus: AssignmentStatus) => {
       await statusMutation.mutate(newStatus);
     },
     [statusMutation],

@@ -10,6 +10,7 @@ import {
   getAllowedAssignmentTransitions,
   validateAssignmentTransition,
 } from '@/lib/assist/assignmentStatusMachine';
+import { dedupeStatusTransitionButtons } from '@/lib/assist/visitWorkflow';
 import {
   assignmentStatusToRemote,
   remoteStatusToAssignment,
@@ -168,7 +169,7 @@ function mapListItem(row: AssignmentLiveRow): AssignmentListItem {
 
 function mapDetail(row: AssignmentLiveRow & { assignment_tasks?: AssignmentTaskRow[] }): AssignmentDetail {
   const assignmentStatus = remoteStatusToAssignment(row.status);
-  const allowed = getAllowedAssignmentTransitions(assignmentStatus);
+  const allowed = dedupeStatusTransitionButtons(getAllowedAssignmentTransitions(assignmentStatus));
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -185,6 +186,7 @@ function mapDetail(row: AssignmentLiveRow & { assignment_tasks?: AssignmentTaskR
     employeeName: personName(row.employees),
     nextActionHint: ASSIGNMENT_STATUS_LABELS[assignmentStatus],
     allowedStatusActions: allowed.map(assignmentStatusToWorkflowFilter),
+    allowedStatusTransitions: allowed,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
     visibility: 'team',

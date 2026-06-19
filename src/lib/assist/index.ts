@@ -20,6 +20,13 @@ export {
   exportCareRecordPdf,
 } from './careRecordService';
 export {
+  fetchVisitDispositionList,
+  fetchVisitDispositionDetail,
+  updateVisitDispositionStatus,
+  createVisitFromWizard,
+  buildVisitDispositionKpis,
+} from './visitService';
+export {
   fetchTripLogList,
   fetchTripDetail,
   fetchTrackingDashboard,

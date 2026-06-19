@@ -1,0 +1,539 @@
+import type { ServiceResult } from '@/types';
+import type { WorkflowStatus } from '@/types/core/base';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
+import {
+  assignmentStatusToRemote,
+  remoteStatusToAssignment,
+} from '@/lib/assist/assignmentStatusBridge';
+import {
+  dedupeStatusTransitionButtons,
+  getVisitAllowedTransitions,
+  isVisitAtRisk,
+  isVisitIncomplete,
+} from '@/lib/assist/visitWorkflow';
+import type {
+  VisitBillingStatus,
+  VisitCreateInput,
+  VisitDispositionDetail,
+  VisitDispositionListItem,
+  VisitDocumentationStatus,
+  VisitExecutionStatus,
+  VisitPlanningStatus,
+  VisitPortalStatus,
+  VisitProofStatus,
+  VisitTaskItem,
+  VisitTaskStatus,
+} from '@/lib/assist/visitTypes';
+import {
+  VISIT_BILLING_STATUS_LABELS,
+  VISIT_PLANNING_STATUS_LABELS,
+  VISIT_PROOF_STATUS_LABELS,
+} from '@/lib/assist/visitTypes';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { isUuid } from '@/lib/validation/uuid';
+
+type VisitRow = {
+  id: string;
+  tenant_id: string;
+  legacy_assignment_id: string | null;
+  client_id: string;
+  employee_id: string | null;
+  service_key: string | null;
+  service_name: string | null;
+  title: string;
+  description: string | null;
+  assignment_date: string;
+  planned_start_at: string;
+  planned_end_at: string;
+  duration_minutes: number | null;
+  actual_start_at: string | null;
+  actual_end_at: string | null;
+  on_the_way_at: string | null;
+  arrived_at: string | null;
+  finished_at: string | null;
+  address_snapshot: string | null;
+  location_notes: string | null;
+  internal_notes: string | null;
+  planning_status: VisitPlanningStatus;
+  execution_status: VisitExecutionStatus;
+  documentation_status: VisitDocumentationStatus;
+  proof_status: VisitProofStatus;
+  billing_status: VisitBillingStatus;
+  portal_status: VisitPortalStatus;
+  canonical_status: string;
+  portal_release_enabled: boolean;
+  employee_portal_visible: boolean;
+  budget_amount_cents: number | null;
+  budget_currency: string;
+  budget_warning: string | null;
+  is_at_risk: boolean;
+  is_incomplete: boolean;
+  error_code: string | null;
+  error_message: string | null;
+  created_at: string;
+  updated_at: string;
+  clients?: { first_name: string | null; last_name: string | null } | null;
+  employees?: { first_name: string | null; last_name: string | null } | null;
+};
+
+type VisitTaskRow = {
+  id: string;
+  visit_id: string;
+  tenant_id: string;
+  title: string;
+  status: VisitTaskStatus;
+  is_required: boolean;
+  not_done_reason: string | null;
+  sort_order: number;
+};
+
+const LIST_SELECT = `
+  id, tenant_id, legacy_assignment_id, client_id, employee_id,
+  service_key, service_name, title, description,
+  assignment_date, planned_start_at, planned_end_at, duration_minutes,
+  address_snapshot, planning_status, execution_status, documentation_status,
+  proof_status, billing_status, portal_status, canonical_status,
+  is_at_risk, is_incomplete, budget_amount_cents, budget_warning,
+  error_code, error_message, created_at, updated_at,
+  clients(first_name, last_name),
+  employees(first_name, last_name)
+`;
+
+const DETAIL_SELECT = `${LIST_SELECT},
+  actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at,
+  location_notes, internal_notes, portal_release_enabled, employee_portal_visible,
+  budget_currency, assist_visit_tasks(*)`;
+
+function getClient() {
+  return getSupabaseClient();
+}
+
+function unavailable<T>(): ServiceResult<T> {
+  return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+}
+
+function personName(
+  row?: { first_name: string | null; last_name: string | null } | null,
+): string {
+  if (!row) return 'Unbekannt';
+  const name = `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim();
+  return name || 'Unbekannt';
+}
+
+function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
+  const map: Partial<Record<AssignmentStatus, WorkflowStatus>> = {
+    geplant: 'entwurf',
+    bestaetigt: 'aktiv',
+    unterwegs: 'aktiv',
+    angekommen: 'in_bearbeitung',
+    gestartet: 'in_bearbeitung',
+    pausiert: 'in_bearbeitung',
+    beendet: 'in_bearbeitung',
+    dokumentation_offen: 'in_bearbeitung',
+    unterschrift_offen: 'in_bearbeitung',
+    abgeschlossen: 'abgeschlossen',
+    storniert: 'fehlerhaft',
+    nicht_erschienen: 'fehlerhaft',
+  };
+  return map[status] ?? 'aktiv';
+}
+
+function durationMinutes(start: string, end: string, stored: number | null): number | null {
+  if (stored != null && stored > 0) return stored;
+  const diff = new Date(end).getTime() - new Date(start).getTime();
+  if (diff <= 0) return null;
+  return Math.round(diff / 60000);
+}
+
+function mapTaskRow(row: VisitTaskRow): VisitTaskItem {
+  return {
+    id: row.id,
+    title: row.title,
+    status: row.status,
+    isRequired: row.is_required,
+    notDoneReason: row.not_done_reason,
+  };
+}
+
+function mapListItem(row: VisitRow): VisitDispositionListItem {
+  const assignmentStatus = remoteStatusToAssignment(row.canonical_status);
+  const atRisk = isVisitAtRisk({
+    planningStatus: row.planning_status,
+    executionStatus: row.execution_status,
+    isAtRisk: row.is_at_risk,
+    errorMessage: row.error_message,
+  });
+  const incomplete = isVisitIncomplete({
+    documentationStatus: row.documentation_status,
+    proofStatus: row.proof_status,
+    executionStatus: row.execution_status,
+    isIncomplete: row.is_incomplete,
+  });
+
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    title: row.title?.trim() || row.service_name?.trim() || 'Einsatz',
+    serviceName: row.service_name,
+    scheduledStart: row.planned_start_at,
+    scheduledEnd: row.planned_end_at,
+    durationMinutes: durationMinutes(row.planned_start_at, row.planned_end_at, row.duration_minutes),
+    status: assignmentStatusToWorkflowFilter(assignmentStatus),
+    planningStatus: row.planning_status,
+    proofStatus: row.proof_status,
+    billingStatus: row.billing_status,
+    location: row.address_snapshot?.trim() || '—',
+    clientName: personName(row.clients),
+    employeeName: personName(row.employees),
+    isAtRisk: atRisk,
+    isIncomplete: incomplete,
+    updatedAt: row.updated_at,
+  };
+}
+
+function mapDetail(
+  row: VisitRow & { assist_visit_tasks?: VisitTaskRow[] },
+): VisitDispositionDetail {
+  const assignmentStatus = remoteStatusToAssignment(row.canonical_status);
+  const allowed = dedupeStatusTransitionButtons(getVisitAllowedTransitions(assignmentStatus));
+  const atRisk = isVisitAtRisk({
+    planningStatus: row.planning_status,
+    executionStatus: row.execution_status,
+    isAtRisk: row.is_at_risk,
+    errorMessage: row.error_message,
+  });
+  const incomplete = isVisitIncomplete({
+    documentationStatus: row.documentation_status,
+    proofStatus: row.proof_status,
+    executionStatus: row.execution_status,
+    isIncomplete: row.is_incomplete,
+  });
+
+  return {
+    ...mapListItem(row),
+    clientId: row.client_id,
+    employeeId: row.employee_id,
+    serviceKey: row.service_key,
+    description: row.description,
+    notes: row.internal_notes,
+    executionStatus: row.execution_status,
+    documentationStatus: row.documentation_status,
+    portalStatus: row.portal_status,
+    assignmentStatus,
+    allowedStatusTransitions: allowed,
+    tasks: (row.assist_visit_tasks ?? [])
+      .sort((a, b) => a.sort_order - b.sort_order)
+      .map(mapTaskRow),
+    budget:
+      row.budget_amount_cents != null
+        ? {
+            budgetAmountCents: row.budget_amount_cents,
+            usedAmountCents: 0,
+            remainingAmountCents: row.budget_amount_cents,
+            currency: row.budget_currency ?? 'EUR',
+            warning: row.budget_warning,
+          }
+        : null,
+    portalReleaseEnabled: row.portal_release_enabled,
+    employeePortalVisible: row.employee_portal_visible,
+    errorCode: row.error_code,
+    errorMessage: row.error_message,
+    onTheWayAt: row.on_the_way_at,
+    arrivedAt: row.arrived_at,
+    finishedAt: row.finished_at,
+    actualStartAt: row.actual_start_at,
+    actualEndAt: row.actual_end_at,
+    createdAt: row.created_at,
+  };
+}
+
+async function writeStatusHistory(
+  tenantId: string,
+  visitId: string,
+  dimension: string,
+  fromStatus: string | null,
+  toStatus: string,
+  actorProfileId?: string | null,
+  note?: string,
+): Promise<void> {
+  const supabase = getClient();
+  if (!supabase) return;
+  await fromUnknownTable(supabase, 'assist_visit_status_history').insert({
+    tenant_id: tenantId,
+    visit_id: visitId,
+    dimension,
+    from_status: fromStatus,
+    to_status: toStatus,
+    note: note ?? null,
+    changed_by: actorProfileId ?? null,
+  });
+}
+
+async function writeAuditLog(
+  tenantId: string,
+  visitId: string,
+  action: string,
+  details: string,
+  actorProfileId?: string | null,
+): Promise<void> {
+  const supabase = getClient();
+  if (!supabase) return;
+  await fromUnknownTable(supabase, 'assist_visit_audit_logs').insert({
+    tenant_id: tenantId,
+    visit_id: visitId,
+    action,
+    details,
+    actor_profile_id: actorProfileId ?? null,
+  });
+}
+
+export type VisitListOptions = {
+  planningStatus?: VisitPlanningStatus | 'all';
+  clientId?: string;
+  employeeId?: string;
+  serviceKey?: string;
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+export const visitSupabaseRepository = {
+  wpNumber: 116 as const,
+
+  async list(
+    tenantId: string,
+    options?: VisitListOptions,
+  ): Promise<ServiceResult<VisitDispositionListItem[]>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    let query = fromUnknownTable(supabase, 'assist_visits')
+      .select(LIST_SELECT)
+      .eq('tenant_id', tenantId)
+      .order('planned_start_at', { ascending: true });
+
+    if (options?.planningStatus && options.planningStatus !== 'all') {
+      query = query.eq('planning_status', options.planningStatus);
+    }
+    if (options?.clientId) query = query.eq('client_id', options.clientId);
+    if (options?.employeeId) query = query.eq('employee_id', options.employeeId);
+    if (options?.serviceKey) query = query.eq('service_key', options.serviceKey);
+    if (options?.dateFrom) query = query.gte('planned_start_at', options.dateFrom);
+    if (options?.dateTo) query = query.lte('planned_start_at', options.dateTo);
+
+    const { data, error } = await query;
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const rows = (data ?? []) as unknown as VisitRow[];
+    return { ok: true, data: rows.map(mapListItem) };
+  },
+
+  async getById(
+    tenantId: string,
+    visitId: string,
+  ): Promise<ServiceResult<VisitDispositionDetail | null>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+    if (!isUuid(visitId)) return { ok: true, data: null };
+
+    const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
+      .select(DETAIL_SELECT)
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId)
+      .maybeSingle();
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (!data) return { ok: true, data: null };
+
+    return {
+      ok: true,
+      data: mapDetail(data as unknown as VisitRow & { assist_visit_tasks?: VisitTaskRow[] }),
+    };
+  },
+
+  async create(
+    tenantId: string,
+    input: VisitCreateInput,
+    actorProfileId?: string | null,
+  ): Promise<ServiceResult<{ id: string }>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const duration = durationMinutes(input.plannedStartAt, input.plannedEndAt, null);
+    const taskTitles = input.tasks.map((t) => t.trim()).filter(Boolean);
+
+    const insertRow = {
+      tenant_id: tenantId,
+      client_id: input.clientId,
+      employee_id: input.employeeId,
+      service_key: input.serviceKey,
+      service_name: input.serviceName,
+      title: input.title.trim(),
+      description: input.description ?? null,
+      assignment_date: input.assignmentDate,
+      planned_start_at: input.plannedStartAt,
+      planned_end_at: input.plannedEndAt,
+      duration_minutes: duration,
+      address_snapshot: input.addressSnapshot ?? null,
+      internal_notes: input.internalNotes ?? null,
+      planning_status: 'scheduled',
+      execution_status: 'pending',
+      documentation_status: 'none',
+      proof_status: 'none',
+      billing_status: input.budgetAmountCents ? 'preview' : 'none',
+      portal_status: input.portalReleaseEnabled ? 'scheduled' : 'hidden',
+      canonical_status: assignmentStatusToRemote('geplant'),
+      portal_release_enabled: input.portalReleaseEnabled ?? false,
+      budget_amount_cents: input.budgetAmountCents ?? null,
+      created_by: actorProfileId ?? null,
+    };
+
+    const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
+      .insert(insertRow)
+      .select('id')
+      .single();
+
+    if (error || !data) {
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
+
+    const visitId = (data as { id: string }).id;
+
+    if (taskTitles.length > 0) {
+      const taskRows = taskTitles.map((title, index) => ({
+        tenant_id: tenantId,
+        visit_id: visitId,
+        title,
+        status: 'open',
+        is_required: true,
+        sort_order: index,
+      }));
+      const { error: taskError } = await fromUnknownTable(supabase, 'assist_visit_tasks').insert(
+        taskRows,
+      );
+      if (taskError) return { ok: false, error: toGermanSupabaseError(taskError) };
+    }
+
+    if (input.budgetAmountCents) {
+      await fromUnknownTable(supabase, 'assist_visit_budget_snapshots').insert({
+        tenant_id: tenantId,
+        visit_id: visitId,
+        budget_amount_cents: input.budgetAmountCents,
+        remaining_amount_cents: input.budgetAmountCents,
+        source_type: 'preview',
+      });
+    }
+
+    await writeStatusHistory(tenantId, visitId, 'planning', null, 'scheduled', actorProfileId);
+    await writeAuditLog(
+      tenantId,
+      visitId,
+      'create',
+      `Einsatz „${input.title.trim()}“ angelegt`,
+      actorProfileId,
+    );
+
+    // TODO: Portal release flags — integrate with portal engine when live
+    // TODO: Employee portal visibility sync
+
+    return { ok: true, data: { id: visitId } };
+  },
+
+  async updateAssignmentStatus(
+    tenantId: string,
+    visitId: string,
+    toStatus: AssignmentStatus,
+    actorProfileId?: string | null,
+    note?: string,
+  ): Promise<ServiceResult<VisitDispositionDetail>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const existing = await this.getById(tenantId, visitId);
+    if (!existing.ok) return existing;
+    if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const fromStatus = existing.data.assignmentStatus;
+    const remoteStatus = assignmentStatusToRemote(toStatus);
+    const now = new Date().toISOString();
+
+    const patch: Record<string, unknown> = {
+      canonical_status: remoteStatus,
+      updated_by: actorProfileId ?? null,
+    };
+
+    if (toStatus === 'unterwegs') patch.on_the_way_at = now;
+    if (toStatus === 'angekommen') patch.arrived_at = now;
+    if (toStatus === 'gestartet') patch.actual_start_at = now;
+    if (toStatus === 'beendet' || toStatus === 'abgeschlossen') {
+      patch.actual_end_at = now;
+      patch.finished_at = now;
+    }
+
+    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+      .update(patch)
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    await writeStatusHistory(
+      tenantId,
+      visitId,
+      'canonical',
+      assignmentStatusToRemote(fromStatus),
+      remoteStatus,
+      actorProfileId,
+      note,
+    );
+    await writeAuditLog(
+      tenantId,
+      visitId,
+      'status_change',
+      `${ASSIGNMENT_STATUS_LABELS[fromStatus]} → ${ASSIGNMENT_STATUS_LABELS[toStatus]}`,
+      actorProfileId,
+    );
+
+    // TODO: Sync legacy assignments row if legacy_assignment_id present
+
+    const refreshed = await this.getById(tenantId, visitId);
+    if (!refreshed.ok) return refreshed;
+    if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    return { ok: true, data: refreshed.data };
+  },
+
+  /** Resolve visit id from legacy assignment id (for execute flow bridge). */
+  async resolveVisitId(
+    tenantId: string,
+    assignmentOrVisitId: string,
+  ): Promise<string | null> {
+    const supabase = getClient();
+    if (!supabase || !isUuid(assignmentOrVisitId)) return null;
+
+    const direct = await this.getById(tenantId, assignmentOrVisitId);
+    if (direct.ok && direct.data) return assignmentOrVisitId;
+
+    const { data } = await fromUnknownTable(supabase, 'assist_visits')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('legacy_assignment_id', assignmentOrVisitId)
+      .maybeSingle();
+
+    return (data as { id: string } | null)?.id ?? null;
+  },
+};
+
+export function visitDispositionKpiLabels(item: VisitDispositionListItem): {
+  planning: string;
+  proof: string;
+  budget: string;
+} {
+  return {
+    planning: VISIT_PLANNING_STATUS_LABELS[item.planningStatus],
+    proof: VISIT_PROOF_STATUS_LABELS[item.proofStatus],
+    budget: VISIT_BILLING_STATUS_LABELS[item.billingStatus],
+  };
+}

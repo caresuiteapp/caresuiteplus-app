@@ -17,6 +17,7 @@ import {
   getAllowedAssignmentTransitions,
   validateAssignmentTransition,
 } from '@/lib/assist/assignmentStatusMachine';
+import { dedupeStatusTransitionButtons } from '@/lib/assist/visitWorkflow';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import {
   assignmentSupabaseRepository,
@@ -53,13 +54,14 @@ function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowSta
 
 function applyWorkflowMeta(seed: NonNullable<ReturnType<typeof getDemoAssignmentSeedById>>): AssignmentPlan {
   const assignmentStatus = remoteStatusToAssignment(seed.status);
-  const allowed = getAllowedAssignmentTransitions(assignmentStatus);
+  const allowed = dedupeStatusTransitionButtons(getAllowedAssignmentTransitions(assignmentStatus));
   return {
     ...seed,
     clientName: clientName(seed.clientId),
     employeeName: employeeName(seed.employeeId),
     nextActionHint: ASSIGNMENT_STATUS_LABELS[assignmentStatus],
     allowedStatusActions: allowed.map(assignmentStatusToWorkflowFilter),
+    allowedStatusTransitions: allowed,
   };
 }
 

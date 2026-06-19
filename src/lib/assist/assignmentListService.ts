@@ -5,7 +5,7 @@ import {
   isAssignmentToday,
   isAssignmentUpcoming,
 } from '@/data/demo/assistAssignments';
-import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
+import { fetchVisitDispositionList } from '@/lib/assist/visitService';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
@@ -37,7 +37,30 @@ export async function fetchAssignmentList(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    return assignmentSupabaseRepository.list(tenantId);
+    const visitResult = await fetchVisitDispositionList(tenantId, actorRoleKey);
+    if (!visitResult.ok) return visitResult;
+    return {
+      ok: true,
+      data: visitResult.data.map((item) => ({
+        id: item.id,
+        tenantId: item.tenantId,
+        title: item.title,
+        scheduledStart: item.scheduledStart,
+        scheduledEnd: item.scheduledEnd,
+        status: item.status,
+        location: item.location,
+        clientName: item.clientName,
+        employeeName: item.employeeName,
+        updatedAt: item.updatedAt,
+        serviceName: item.serviceName,
+        durationMinutes: item.durationMinutes,
+        planningStatus: item.planningStatus,
+        proofStatus: item.proofStatus,
+        billingStatus: item.billingStatus,
+        isAtRisk: item.isAtRisk,
+        isIncomplete: item.isIncomplete,
+      })),
+    };
   }
 
   await new Promise((r) => setTimeout(r, 260));
