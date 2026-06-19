@@ -10,10 +10,14 @@ import type {
   TenantTemplateSettings,
   UpdateTemplateInput,
 } from '@/types/templates';
-import { enforcePermission } from '@/lib/permissions';
+import { enforcePermission, hasPermission } from '@/lib/permissions';
+import { hasCommunicationPermission } from '@/features/communication/communication.permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import { renderTemplateWithVariables as renderVars } from './templateVariables';
+import {
+  isCommunicationMessageListQuery,
+} from './communicationTemplateDefaults';
 import { TEMPLATE_EDIT_PERMISSION, TEMPLATE_VIEW_PERMISSION } from './templatePermissions';
 import { catalogDemoRepository, templateDemoRepository } from './templateRepository.demo';
 import { catalogSupabaseRepository, templateSupabaseRepository } from './templateRepository.supabase';
@@ -28,12 +32,29 @@ async function demoDelay(ms = 120): Promise<void> {
   }
 }
 
+function enforceListTemplatesPermission(
+  actorRoleKey: RoleKey | null | undefined,
+  filters: TemplateListFilters,
+): ServiceResult<CareSuiteTemplate[]> | null {
+  if (hasPermission(actorRoleKey, TEMPLATE_VIEW_PERMISSION)) return null;
+
+  if (
+    isCommunicationMessageListQuery(filters) &&
+    (hasCommunicationPermission(actorRoleKey, 'communication.create_thread') ||
+      hasCommunicationPermission(actorRoleKey, 'communication.send_message'))
+  ) {
+    return null;
+  }
+
+  return enforcePermission<CareSuiteTemplate[]>(actorRoleKey, TEMPLATE_VIEW_PERMISSION);
+}
+
 export async function listTemplates(
   tenantId: string,
   filters: TemplateListFilters = {},
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<CareSuiteTemplate[]>> {
-  const denied = enforcePermission<CareSuiteTemplate[]>(actorRoleKey, TEMPLATE_VIEW_PERMISSION);
+  const denied = enforceListTemplatesPermission(actorRoleKey, filters);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;

@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Alert, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import type { AiPendingActionSummary } from './aiToolTypes';
 import { useAiStore } from './useAiStore';
@@ -50,8 +51,7 @@ export function AiApprovalSheet({ pendingActions, tenantId }: AiApprovalSheetPro
 
     setBusy(true);
     try {
-      const { error: approveError } = await supabase
-        .from('ai_pending_actions')
+      const { error: approveError } = await fromUnknownTable(supabase, 'ai_pending_actions')
         .update({
           status: 'approved',
           reviewed_at: new Date().toISOString(),
@@ -93,8 +93,7 @@ export function AiApprovalSheet({ pendingActions, tenantId }: AiApprovalSheetPro
 
     setBusy(true);
     try {
-      const { error } = await supabase
-        .from('ai_pending_actions')
+      const { error } = await fromUnknownTable(supabase, 'ai_pending_actions')
         .update({
           status: 'rejected',
           reviewed_at: new Date().toISOString(),

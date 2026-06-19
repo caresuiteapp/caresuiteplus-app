@@ -1,6 +1,7 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMemo } from 'react';
+import { useAiPageContext } from '@/ai/useAiPageContext';
 import { AdaptiveActionBar } from '@/components/adaptive';
 import { AppointmentListCard } from './AppointmentListCard';
 import { AppointmentsListHero } from './AppointmentsListHero';
@@ -46,6 +47,14 @@ export function AppointmentsListView({
   const isDesktop = isDesktopClass(deviceClass);
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.appointments');
   const useTableLayout = isDesktop && viewMode === 'table';
+
+  useAiPageContext({
+    pageTitle: 'Termine & Dienstplan',
+    entityType: 'schedule',
+    summary: 'Office-Terminliste',
+    metadata: { viewMode },
+  });
+
   const canView = can('office.appointments.view');
   const canCreate = can('office.appointments.view') && !isReadOnly;
   const roleKey = profile?.roleKey ?? 'business_admin';

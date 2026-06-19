@@ -11,7 +11,6 @@ import {
 import { useAuroraGlassSelectStyles } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useTemplates } from '@/hooks/templates/useTemplates';
-import { getCommunicationTemplateCounts } from '@/lib/communication/communicationTemplates';
 import type { ComposeRecipientType } from '@/lib/communication/composeRecipients';
 import {
   COMPOSE_TEMPLATE_AUDIENCES,
@@ -84,8 +83,6 @@ export function GroupedTemplateSelect({
     () => defaultAudiencesForRecipient(recipientType),
     [recipientType],
   );
-  const catalogCounts = useMemo(() => getCommunicationTemplateCounts(), []);
-
   useEffect(() => {
     setActiveTab(defaultAudienceTabForRecipient(recipientType));
   }, [recipientType]);
@@ -167,8 +164,7 @@ export function GroupedTemplateSelect({
 
   const tabLabel = (audience: ComposeTemplateAudience) => {
     const base = COMPOSE_TEMPLATE_AUDIENCES.find((a) => a.key === audience)?.label ?? audience;
-    const count = grouped[audience].length || catalogCounts[audience];
-    return `${base} (${count})`;
+    return `${base} (${grouped[audience].length})`;
   };
 
   const renderOption = (template: CareSuiteTemplate) => {

@@ -62,7 +62,16 @@ serve(async (req) => {
         );
         break;
       case 'create_protocol':
-        commitResult = await createProtocol(userClient, tenantId, user.id, action.payload);
+        commitResult = await createProtocol(
+          userClient,
+          tenantId,
+          user.id,
+          action.payload,
+          action.preview_markdown,
+        );
+        break;
+      case 'create_care_note':
+        commitResult = await createCareNote(userClient, tenantId, user.id, action.payload);
         break;
       default:
         return jsonResponse(
@@ -165,6 +174,7 @@ async function createProtocol(
   tenantId: string,
   userId: string,
   payload: Record<string, unknown>,
+  previewMarkdown: string | null,
 ) {
   const clientId = payload.client_id ?? payload.entity_id;
   if (!clientId) {
@@ -176,8 +186,34 @@ async function createProtocol(
     .insert({
       tenant_id: tenantId,
       client_id: clientId,
-      content: String(payload.content ?? payload.preview ?? 'KI-Protokoll'),
-      category: String(payload.protocol_type ?? 'allgemein'),
+      content: String(previewMarkdown ?? payload.content ?? 'KI-Protokoll'),
+      category: String(payload.protocol_type ?? 'aufnahme'),
+      is_internal: true,
+      created_by: userId,
+    })
+    .select('*')
+    .single();
+
+  if (error) throw new Error(error.message);
+  return data;
+}
+
+async function createCareNote(
+  supabase: SupabaseClient,
+  tenantId: string,
+  userId: string,
+  payload: Record<string, unknown>,
+) {
+  const clientId = payload.client_id ?? payload.entity_id;
+  if (!clientId) throw new Error('client_id fehlt für Pflegenotiz.');
+
+  const { data, error } = await supabase
+    .from('client_notes')
+    .insert({
+      tenant_id: tenantId,
+      client_id: clientId,
+      content: String(payload.content ?? ''),
+      category: String(payload.category ?? 'pflege'),
       is_internal: true,
       created_by: userId,
     })

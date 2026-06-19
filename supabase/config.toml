@@ -1,10 +1,11 @@
-# CareSuite+ — lokale Supabase-Konfiguration
-# Start: supabase start  |  Migrationen: supabase db push
+# CareSuite+ – lokale Supabase-Konfiguration
+# Start: npx supabase start
+# Migrationen: npx supabase db push
 
-[project]
-id = "caresuite-plus"
+project_id = "caresuite-plus"
 
 [api]
+enabled = true
 port = 54321
 schemas = ["public", "storage"]
 extra_search_path = ["public", "extensions"]
@@ -15,9 +16,11 @@ port = 54322
 major_version = 15
 
 [studio]
+enabled = true
 port = 54323
 
 [auth]
+enabled = true
 site_url = "http://localhost:8081"
 additional_redirect_urls = ["exp://localhost:8081"]
 

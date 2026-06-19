@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAiPageContext } from '@/ai/useAiPageContext';
 import { CareLightPageShell } from '@/components/layout';
 import {
   EmptyState,
@@ -45,6 +46,14 @@ export function ClientLegalDocumentsScreen({ focus }: ClientLegalDocumentsScreen
   const tenantId = useServiceTenantId();
   const { isReadOnly, roleLabel } = usePermissions();
   const clientId = id ?? '';
+
+  useAiPageContext({
+    pageTitle: focus === 'documents' ? 'Dokumente' : focus === 'contracts' ? 'Verträge' : 'Einwilligungen',
+    entityType: 'client',
+    entityId: clientId || undefined,
+    activeTab: focus,
+    summary: `Klientendokumente (${focus})`,
+  });
 
   const [selectedTemplate, setSelectedTemplate] = useState<LegalDocumentTemplateKey>('kundenvertrag');
   const [generatedDocId, setGeneratedDocId] = useState<string | null>(null);

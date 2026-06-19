@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useAiPageContext } from '@/ai/useAiPageContext';
 import { DetailInfoRow } from '@/components/detail';
 import { ClientRecordHero } from '@/components/office/ClientRecordHero';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
@@ -166,6 +167,20 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
     () => (detail ? buildClientDetailKpis(detail, 'light') : []),
     [detail],
   );
+
+  useAiPageContext({
+    pageTitle: 'Klient:innenakte',
+    entityType: 'client',
+    entityId: detail?.id,
+    entityLabel: detail ? `${detail.firstName} ${detail.lastName}`.trim() : undefined,
+    activeTab,
+    summary: overview?.fullName,
+    metadata: {
+      careContexts,
+      status: detail?.status,
+      careLevel: detail?.careLevel,
+    },
+  });
 
   if (loading) {
     return (

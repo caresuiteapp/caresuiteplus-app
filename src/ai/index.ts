@@ -1,6 +1,14 @@
 export { GlobalAiProvider, useCareAi } from './GlobalAiProvider';
 export { VoiceOrb } from './VoiceOrb';
 export { AiApprovalSheet } from './AiApprovalSheet';
+export { AiMiniPanel } from './AiMiniPanel';
+export { AiStatusIndicator } from './AiStatusIndicator';
+export { VoiceWave } from './VoiceWave';
+export { AiPageContextProvider, useAiPageContextSnapshot } from './AiPageContextProvider';
+export { useAiPageContext } from './useAiPageContext';
+export { getRegisteredPageContext, setRegisteredPageContext } from './registerAiPageContext';
 export { useAiStore } from './useAiStore';
 export { dispatchAiNavigation, useAiNavigationBridge } from './aiNavigationBridge';
+export { resolveEntityRoute, resolveModuleHomeRoute } from './aiEntityRoutes';
+export { dispatchAiTool, sendAiTextMessage, loadAiSessionMessages } from './aiTextChatService';
 export type * from './aiToolTypes';

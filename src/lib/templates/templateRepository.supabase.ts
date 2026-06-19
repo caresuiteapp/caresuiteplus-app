@@ -18,6 +18,7 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getCatalogDefaults } from './catalogDefaults';
+import { mergeCommunicationMessageTemplates } from './communicationTemplateDefaults';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -96,6 +97,7 @@ export const templateSupabaseRepository = {
         `${t.title} ${t.description ?? ''} ${t.content}`.toLowerCase().includes(q),
       );
     }
+    rows = mergeCommunicationMessageTemplates(rows, filters);
     return { ok: true, data: rows };
   },
 

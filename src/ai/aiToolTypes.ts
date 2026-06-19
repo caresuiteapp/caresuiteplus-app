@@ -9,8 +9,32 @@ export type AiPendingActionStatus =
   | 'committed'
   | 'failed';
 
+export type AiStatus =
+  | 'ready'
+  | 'listening'
+  | 'thinking'
+  | 'speaking'
+  | 'tool_loading'
+  | 'pending'
+  | 'error';
+
 export type AiToolName =
   | 'search_caresuite'
+  | 'get_current_page_context'
+  | 'get_client_details'
+  | 'get_employee_details'
+  | 'get_client_tasks'
+  | 'get_schedule_conflicts'
+  | 'create_schedule_pending_action'
+  | 'create_admission_protocol_pending_action'
+  | 'search_documents'
+  | 'open_document_preview'
+  | 'summarize_client_case'
+  | 'create_document_draft_pending_action'
+  | 'create_care_note_pending_action'
+  | 'navigate_to_module'
+  | 'ask_missing_required_fields'
+  | 'approve_pending_action'
   | 'create_pending_action'
   | 'navigate_to_caresuite_location'
   | 'generate_long_document_draft';
@@ -50,10 +74,40 @@ export type AiRealtimeTokenResponse = {
   error?: string;
 };
 
+export type AiTextChatResponse = {
+  ok?: boolean;
+  session_id?: string;
+  assistant_message?: string;
+  pending_actions?: AiPendingActionSummary[];
+  navigation?: AiNavigationInstruction | null;
+  memory_summary?: string | null;
+  last_goal?: string | null;
+  last_step?: string | null;
+  error?: string;
+};
+
 export type AiContextSnapshot = {
   tenantId?: string;
   currentModule?: string;
   currentRoute?: string;
+};
+
+export type AiPageContextSnapshot = AiContextSnapshot & {
+  pageTitle?: string;
+  entityType?: string;
+  entityId?: string;
+  entityLabel?: string;
+  activeTab?: string;
+  summary?: string;
+  metadata?: Record<string, unknown>;
+  updatedAt?: string;
+};
+
+export type AiChatMessage = {
+  id: string;
+  role: AiMessageRole;
+  content: string;
+  createdAt: string;
 };
 
 export type AiFunctionCallEvent = {
@@ -67,4 +121,14 @@ export type AiFunctionCallEvent = {
     call_id?: string;
     arguments?: string;
   };
+};
+
+export const AI_STATUS_LABELS: Record<AiStatus, string> = {
+  ready: 'Bereit',
+  listening: 'Hört zu',
+  thinking: 'Denkt',
+  speaking: 'Antwortet',
+  tool_loading: 'Arbeitet…',
+  pending: 'Aktion vorbereitet',
+  error: 'Fehler',
 };
