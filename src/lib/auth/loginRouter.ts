@@ -11,7 +11,7 @@ export function resolveLoginRoute(loginType: AuthLoginType): Href {
     case 'relative_portal':
       return '/auth/portal-code-login' as Href;
     default:
-      return '/auth' as Href;
+      return '/' as Href;
   }
 }
 
