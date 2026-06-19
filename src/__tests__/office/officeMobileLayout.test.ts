@@ -23,9 +23,29 @@ describe('Office mobile platform layout', () => {
     expect(mobile).toContain('schnellRow');
     expect(mobile).toContain('schnellLeft');
     expect(mobile).toContain('schnellRight');
-    expect(mobile).toContain('getModuleNavConfig');
+    expect(mobile).toContain('buildContextPanelNavItems');
     expect(mobile).not.toContain('Zentrale');
     expect(mobile).not.toContain('Navigation');
+  });
+
+  it('RightContextPanel integrates nav under Schnellaktionen without Zentrale block', () => {
+    const desktop = readSrc('src/components/layout/platform/rightcontextpanel.tsx');
+    expect(desktop).toContain('Schnellaktionen');
+    expect(desktop).toContain('schnellRow');
+    expect(desktop).toContain('schnellLeft');
+    expect(desktop).toContain('schnellRight');
+    expect(desktop).toContain('buildContextPanelNavItems');
+    expect(desktop).not.toContain('Zentrale');
+    expect(desktop).not.toMatch(/config\.label/);
+    expect(desktop).not.toContain('Navigation');
+  });
+
+  it('context panel nav uses business hub links for Office module', () => {
+    const data = readSrc('src/components/layout/platform/platformContextData.ts');
+    const zentrale = readSrc('src/lib/navigation/modulenav/zentralenav.ts');
+    expect(data).toContain('zentraleNav');
+    expect(data).toContain("mainModule === 'office'");
+    expect(zentrale).toContain('/business/modules');
   });
 
   it('MobilePlatformContextPanel uses aurora glass surfaces', () => {

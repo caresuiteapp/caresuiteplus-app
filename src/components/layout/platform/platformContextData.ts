@@ -1,7 +1,9 @@
 import type { DashboardKpi } from '@/types/dashboard';
-import type { MainModuleKey } from '@/types/navigation/platform';
+import type { MainModuleKey, ModuleNavConfig, ModuleNavItem } from '@/types/navigation/platform';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
+import { getModuleNavConfig } from '@/lib/navigation/modulenav';
+import { zentraleNav } from '@/lib/navigation/modulenav/zentralenav';
 
 export const OFFICE_QUICK_ACTIONS = [
   { label: 'Klient:in anlegen', icon: '➕', href: CLIENT_INTAKE_NEW_ROUTE },
@@ -9,6 +11,18 @@ export const OFFICE_QUICK_ACTIONS = [
   { label: 'Termin planen', icon: '📅', href: '/office/appointments/create' },
   { label: 'Dokument hochladen', icon: '📁', href: '/office/documents/upload' },
 ];
+
+/** Nav links shown beside Schnellaktionen in the right context panel (Office → business hub). */
+export function resolveContextPanelNavConfig(mainModule: MainModuleKey): ModuleNavConfig {
+  if (mainModule === 'office' || mainModule === 'zentrale') {
+    return zentraleNav;
+  }
+  return getModuleNavConfig(mainModule);
+}
+
+export function buildContextPanelNavItems(mainModule: MainModuleKey): ModuleNavItem[] {
+  return resolveContextPanelNavConfig(mainModule).groups.flatMap((group) => group.items);
+}
 
 export const DEMO_MODULE_STATUS: Record<MainModuleKey, { label: string; status: string }[]> = {
   zentrale: [

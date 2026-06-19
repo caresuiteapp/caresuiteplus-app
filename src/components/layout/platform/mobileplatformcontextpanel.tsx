@@ -17,19 +17,18 @@ import { withAlpha } from '@/design/tokens/motion';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
-import {
-  getModuleNavConfig,
-  resolveActiveModuleNavKey,
-} from '@/lib/navigation/modulenav';
+import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { getServiceMode } from '@/lib/services/mode';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import {
   buildLiveModuleStatusChips,
   buildOfficeModuleStatusChips,
+  buildContextPanelNavItems,
   buildOpenTasks,
   DEMO_MODULE_STATUS,
   OFFICE_QUICK_ACTIONS,
+  resolveContextPanelNavConfig,
 } from './platformContextData';
 
 type MobilePlatformContextPanelProps = {
@@ -56,7 +55,7 @@ export function MobilePlatformContextPanel({
   const type = resolveGalaxyTypography(width);
   const { data: officeData } = useOfficeDashboard();
   const isLive = getServiceMode() === 'supabase';
-  const navConfig = getModuleNavConfig(mainModule);
+  const navConfig = resolveContextPanelNavConfig(mainModule);
   const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);
 
   const statusChips = useMemo(() => {
@@ -77,10 +76,7 @@ export function MobilePlatformContextPanel({
   const quickActions =
     mainModule === 'office' ? OFFICE_QUICK_ACTIONS : OFFICE_QUICK_ACTIONS.slice(0, 2);
 
-  const navItems = useMemo(
-    () => navConfig.groups.flatMap((group) => group.items),
-    [navConfig.groups],
-  );
+  const navItems = useMemo(() => buildContextPanelNavItems(mainModule), [mainModule]);
 
   return (
     <View style={styles.root}>
