@@ -35,7 +35,7 @@ import { buildTenantCenterSections } from './tenantCenterSections';
 import {
   fetchTenantServiceCatalog,
   formatCatalogSummary,
-  seedAssistCatalogIfEmpty,
+  seedTenantServiceCatalogIfEmpty,
 } from './tenantServiceCatalogService';
 import { fetchTenantCustomFieldDefinitions } from './tenantCustomFieldService';
 import { normalizeIban, normalizeVatId, validateEmail, validateIban, validateVatId } from './tenantValidation';
@@ -568,7 +568,7 @@ export async function ensureTenantCatalogSeeded(
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
   if (isLiveServiceMode()) {
-    await seedAssistCatalogIfEmpty(tenantId);
+    await seedTenantServiceCatalogIfEmpty(tenantId);
   }
   return fetchTenantCenter(tenantId, actorRoleKey);
 }

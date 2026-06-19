@@ -1,29 +1,41 @@
 import { useEffect, useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumButton, PremiumInput } from '@/components/ui';
+import { FilterChipGroup } from '@/components/ui/FilterChip';
 import { TenantCenterGlassModal } from '@/components/tenant/TenantCenterGlassModal';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import type {
   ServiceCatalogCategory,
+  ServiceTaxMode,
   TenantModuleKey,
   TenantServiceCatalogItem,
 } from '@/types/tenant/tenantCenter';
 import {
   fetchTenantServiceCatalog,
   saveTenantServiceCatalogItem,
-  seedAssistCatalogIfEmpty,
+  seedTenantServiceCatalogIfEmpty,
 } from '@/lib/tenant/tenantServiceCatalogService';
+import {
+  formatServicePriceUnit,
+  formatServicePriceUnitShort,
+  SERVICE_TAX_MODE_OPTIONS,
+  TENANT_MODULE_LABELS,
+} from '@/lib/tenant/serviceCatalogLabels';
 import { usePermissions } from '@/hooks/usePermissions';
 
 type TabKey = 'services' | 'travel' | 'surcharges' | 'versions';
 
-const MODULES: Array<{ key: TenantModuleKey; label: string }> = [
-  { key: 'assist', label: 'Assist' },
-  { key: 'pflege', label: 'Pflege' },
-  { key: 'stationaer', label: 'Stationär' },
-  { key: 'beratung', label: 'Beratung' },
-];
+const MODULES: Array<{ key: TenantModuleKey; label: string }> = (
+  Object.entries(TENANT_MODULE_LABELS) as Array<[TenantModuleKey, string]>
+).map(([key, label]) => ({ key, label }));
+
+const TAB_LABELS: Record<TabKey, string> = {
+  services: 'Leistungen',
+  travel: 'Fahrkosten',
+  surcharges: 'Zuschläge',
+  versions: 'Preisversionen',
+};
 
 const TAB_CATEGORY: Record<TabKey, ServiceCatalogCategory | 'all'> = {
   services: 'service',
@@ -38,6 +50,12 @@ type Props = {
   onClose: () => void;
   onSaved: () => void;
 };
+
+function formatPriceLine(item: TenantServiceCatalogItem): string {
+  if (item.defaultPriceNet == null) return 'Kein Preis hinterlegt';
+  const amount = String(item.defaultPriceNet).replace('.', ',');
+  return `${amount} € / ${formatServicePriceUnitShort(item.unit)}`;
+}
 
 export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved }: Props) {
   const text = useAuroraAdaptiveText();
@@ -54,7 +72,7 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
   const load = async () => {
     setLoading(true);
     setError(null);
-    await seedAssistCatalogIfEmpty(tenantId);
+    await seedTenantServiceCatalogIfEmpty(tenantId);
     const result = await fetchTenantServiceCatalog(tenantId, roleKey);
     setLoading(false);
     if (!result.ok) {
@@ -62,14 +80,32 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
       return;
     }
     setItems(result.data.items);
-    if (!selected && result.data.items.length) {
-      setSelected(result.data.items[0] ?? null);
-    }
   };
 
   useEffect(() => {
     if (visible) void load();
   }, [visible, tenantId]);
+
+  const filtered = useMemo(() => {
+    const category = TAB_CATEGORY[tab];
+    return items
+      .filter((item) => {
+        if (item.moduleKey !== moduleKey) return false;
+        if (category === 'all') return true;
+        return item.category === category;
+      })
+      .sort((a, b) => a.sortOrder - b.sortOrder);
+  }, [items, moduleKey, tab]);
+
+  useEffect(() => {
+    if (!filtered.length) {
+      setSelected(null);
+      return;
+    }
+    if (!selected || !filtered.some((item) => item.id === selected.id)) {
+      setSelected(filtered[0] ?? null);
+    }
+  }, [filtered, selected?.id]);
 
   useEffect(() => {
     if (selected?.defaultPriceNet != null) {
@@ -78,15 +114,6 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
       setPriceNet('');
     }
   }, [selected?.id]);
-
-  const filtered = useMemo(() => {
-    const category = TAB_CATEGORY[tab];
-    return items.filter((item) => {
-      if (item.moduleKey !== moduleKey) return false;
-      if (category === 'all') return true;
-      return item.category === category;
-    });
-  }, [items, moduleKey, tab]);
 
   const handleSave = async () => {
     if (!selected) return;
@@ -115,14 +142,18 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
       return;
     }
     setItems(result.data.items);
+    const updated = result.data.items.find((item) => item.id === selected.id);
+    if (updated) setSelected(updated);
     onSaved();
   };
+
+  const selectedTaxMode = (selected?.defaultTaxMode ?? 'exempt_4_16') as ServiceTaxMode;
 
   return (
     <TenantCenterGlassModal
       visible={visible}
       title="Preis- und Leistungskatalog"
-      subtitle="Leistungen, Fahrkosten, Zuschläge und Preisversionen"
+      subtitle="Leistungen, Fahrkosten, Zuschläge und Preisversionen je Modul pflegen"
       onClose={onClose}
       large
       primaryLabel="Preis speichern"
@@ -135,7 +166,12 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
           <Text style={[styles.sectionLabel, { color: text.muted }]}>Module</Text>
           {MODULES.map((module) => (
             <Pressable key={module.key} onPress={() => setModuleKey(module.key)} style={styles.filterBtn}>
-              <Text style={{ color: moduleKey === module.key ? text.primary : text.secondary, fontWeight: moduleKey === module.key ? '700' : '500' }}>
+              <Text
+                style={{
+                  color: moduleKey === module.key ? text.primary : text.secondary,
+                  fontWeight: moduleKey === module.key ? '700' : '500',
+                }}
+              >
                 {module.label}
               </Text>
             </Pressable>
@@ -144,10 +180,10 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
 
         <View style={styles.main}>
           <View style={styles.tabs}>
-            {(['services', 'travel', 'surcharges', 'versions'] as TabKey[]).map((key) => (
+            {(Object.keys(TAB_LABELS) as TabKey[]).map((key) => (
               <PremiumButton
                 key={key}
-                title={key === 'services' ? 'Leistungen' : key === 'travel' ? 'Fahrkosten' : key === 'surcharges' ? 'Zuschläge' : 'Preisversionen'}
+                title={TAB_LABELS[key]}
                 variant={tab === key ? 'primary' : 'secondary'}
                 size="sm"
                 onPress={() => setTab(key)}
@@ -160,14 +196,24 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
             <Text style={{ color: text.secondary }}>
               Preisversionen werden bei Katalog-Updates automatisch protokolliert. Detailansicht folgt in Phase 2.
             </Text>
+          ) : filtered.length === 0 ? (
+            <Text style={{ color: text.muted }}>
+              Keine Einträge für {TENANT_MODULE_LABELS[moduleKey]} in „{TAB_LABELS[tab]}“.
+            </Text>
           ) : (
             filtered.map((item) => (
-              <Pressable key={item.id} onPress={() => setSelected(item)} style={[styles.itemRow, selected?.id === item.id ? styles.itemSelected : null]}>
+              <Pressable
+                key={item.id}
+                onPress={() => setSelected(item)}
+                style={[styles.itemRow, selected?.id === item.id ? styles.itemSelected : null]}
+              >
                 <Text style={{ color: text.primary, fontWeight: '600' }}>{item.name}</Text>
-                <Text style={{ color: text.muted, fontSize: 12 }}>{item.serviceKey}</Text>
-                <Text style={{ color: text.secondary, fontSize: 12 }}>
-                  {item.defaultPriceNet != null ? `${String(item.defaultPriceNet).replace('.', ',')} € / ${item.unit}` : 'Kein Preis'}
-                </Text>
+                {item.description ? (
+                  <Text style={{ color: text.secondary, fontSize: 12 }} numberOfLines={2}>
+                    {item.description}
+                  </Text>
+                ) : null}
+                <Text style={{ color: text.muted, fontSize: 12 }}>{formatPriceLine(item)}</Text>
               </Pressable>
             ))
           )}
@@ -176,15 +222,44 @@ export function TenantServiceCatalogModal({ visible, tenantId, onClose, onSaved 
         <View style={styles.detail}>
           {selected ? (
             <>
-              <Text style={{ color: text.primary, fontWeight: '700' }}>{selected.name}</Text>
-              <PremiumInput label="Bezeichnung" value={selected.name} onChangeText={(v) => setSelected({ ...selected, name: v })} />
-              <PremiumInput label="Beschreibung" value={selected.description} onChangeText={(v) => setSelected({ ...selected, description: v })} multiline />
-              <PremiumInput label="Preis netto" value={priceNet} onChangeText={setPriceNet} keyboardType="decimal-pad" />
-              <PremiumInput label="Einheit" value={selected.unit} editable={false} />
-              <PremiumInput label="Steuerregel" value={selected.defaultTaxMode ?? 'exempt_4_16'} editable={false} />
+              <Text style={{ color: text.primary, fontWeight: '700', fontSize: 16 }}>{selected.name}</Text>
+              <Text style={{ color: text.muted, fontSize: 11 }}>
+                Interne Kennung: {selected.serviceKey}
+              </Text>
+              <PremiumInput
+                label="Bezeichnung"
+                value={selected.name}
+                onChangeText={(v) => setSelected({ ...selected, name: v })}
+              />
+              <PremiumInput
+                label="Beschreibung"
+                value={selected.description}
+                onChangeText={(v) => setSelected({ ...selected, description: v })}
+                multiline
+              />
+              <PremiumInput
+                label="Preis netto (€)"
+                value={priceNet}
+                onChangeText={setPriceNet}
+                keyboardType="decimal-pad"
+                placeholder="z. B. 38,00"
+              />
+              <PremiumInput
+                label="Abrechnungseinheit"
+                value={formatServicePriceUnit(selected.unit)}
+                editable={false}
+              />
+              <View style={styles.fieldBlock}>
+                <Text style={[styles.fieldLabel, { color: text.secondary }]}>Steuerregel</Text>
+                <FilterChipGroup
+                  options={SERVICE_TAX_MODE_OPTIONS}
+                  value={selectedTaxMode}
+                  onChange={(mode) => setSelected({ ...selected, defaultTaxMode: mode })}
+                />
+              </View>
             </>
           ) : (
-            <Text style={{ color: text.muted }}>Leistung auswählen</Text>
+            <Text style={{ color: text.muted }}>Leistung aus der Liste auswählen</Text>
           )}
         </View>
       </View>
@@ -205,10 +280,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.08)',
-    gap: 2,
+    gap: 4,
   },
   itemSelected: {
     borderColor: 'rgba(255,149,0,0.45)',
     backgroundColor: 'rgba(255,149,0,0.08)',
   },
+  fieldBlock: { gap: careSpacing.xs },
+  fieldLabel: { fontSize: 13, fontWeight: '600' },
 });

@@ -13,6 +13,7 @@ import { validateEmail, validateIban, validateVatId } from '@/lib/tenant/tenantV
 
 const root = path.join(__dirname, '..', '..', '..');
 const migrationPath = path.join(root, 'supabase/migrations/0108_tenant_center_foundation_live.sql');
+const catalogMigrationPath = path.join(root, 'supabase/migrations/0109_tenant_service_catalog_all_modules.sql');
 
 function readMigration(): string {
   return readFileSync(migrationPath, 'utf8');
@@ -49,6 +50,26 @@ describe('0108 tenant center migration', () => {
     expect(sql).toContain('IF EXISTS');
     expect(sql).toContain('assist.alltagsbegleitung');
   });
+});
+
+describe('0109 tenant service catalog all modules migration', () => {
+  const sql = readFileSync(catalogMigrationPath, 'utf8');
+
+  it('seedet Pflege, Stationär und Beratung pro Modul', () => {
+    expect(sql).toContain('seed_tenant_service_catalog');
+    expect(sql).toContain('pflege.grundpflege');
+    expect(sql).toContain('stationaer.tagespflege');
+    expect(sql).toContain('beratung.pflegeberatung_7a');
+  });
+
+  it('enthält keine destruktiven DROP TABLE Befehle', () => {
+    expect(sql).not.toMatch(/\bDROP TABLE\b/i);
+    expect(sql).not.toMatch(/\bTRUNCATE\b/i);
+  });
+});
+
+describe('0108 tenant center migration destructive checks', () => {
+  const sql = readMigration();
 
   it('enthält keine destruktiven DROP TABLE Befehle', () => {
     expect(sql).not.toMatch(/\bDROP TABLE\b/i);

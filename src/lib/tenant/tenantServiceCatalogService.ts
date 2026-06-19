@@ -13,6 +13,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { formatHourlyRateDocumentAmount } from '@/lib/formatters/numberFormatters';
+import { formatServicePriceUnitShort } from '@/lib/tenant/serviceCatalogLabels';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
 
 export type TenantServiceCatalogSnapshot = {
@@ -22,7 +23,7 @@ export type TenantServiceCatalogSnapshot = {
 
 const DEMO_CATALOG = new Map<string, TenantServiceCatalogSnapshot>();
 
-const DEFAULT_ASSIST_ITEMS: Omit<TenantServiceCatalogItem, 'id'>[] = [
+const DEFAULT_CATALOG_ITEMS: Omit<TenantServiceCatalogItem, 'id'>[] = [
   {
     moduleKey: 'assist',
     serviceKey: 'assist.alltagsbegleitung',
@@ -38,7 +39,7 @@ const DEFAULT_ASSIST_ITEMS: Omit<TenantServiceCatalogItem, 'id'>[] = [
   {
     moduleKey: 'assist',
     serviceKey: 'assist.entlastung_45b',
-    name: 'Entlastungsleistung §45b SGB XI',
+    name: 'Entlastungsleistung § 45b SGB XI',
     description: 'Entlastungsleistung nach § 45b SGB XI',
     unit: 'hour',
     category: 'service',
@@ -49,9 +50,33 @@ const DEFAULT_ASSIST_ITEMS: Omit<TenantServiceCatalogItem, 'id'>[] = [
   },
   {
     moduleKey: 'assist',
+    serviceKey: 'assist.verhinderungspflege_39',
+    name: 'Verhinderungspflege § 39 SGB XI',
+    description: 'Verhinderungspflege nach § 39 SGB XI',
+    unit: 'hour',
+    category: 'service',
+    isActive: true,
+    sortOrder: 30,
+    defaultPriceNet: 38,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'assist',
+    serviceKey: 'assist.haushaltshilfe_38',
+    name: 'Haushaltshilfe § 38 SGB V',
+    description: 'Haushaltshilfe nach § 38 SGB V',
+    unit: 'hour',
+    category: 'service',
+    isActive: true,
+    sortOrder: 40,
+    defaultPriceNet: 38,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'assist',
     serviceKey: 'assist.travel.km',
-    name: 'Fahrtkosten (km)',
-    description: 'Kilometerpauschale Assist-Fahrten',
+    name: 'Fahrtkosten (Kilometer)',
+    description: 'Kilometerpauschale für Assist-Fahrten',
     unit: 'km',
     category: 'travel',
     isActive: true,
@@ -71,12 +96,180 @@ const DEFAULT_ASSIST_ITEMS: Omit<TenantServiceCatalogItem, 'id'>[] = [
     defaultPriceNet: 25,
     defaultTaxMode: 'none',
   },
+  {
+    moduleKey: 'pflege',
+    serviceKey: 'pflege.grundpflege',
+    name: 'Grundpflege',
+    description: 'Körperpflege, Ernährung und Mobilität im häuslichen Umfeld',
+    unit: 'hour',
+    category: 'service',
+    isActive: true,
+    sortOrder: 10,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'pflege',
+    serviceKey: 'pflege.behandlungspflege',
+    name: 'Behandlungspflege',
+    description: 'Medizinische Behandlungspflege durch examinierte Fachkräfte',
+    unit: 'hour',
+    category: 'service',
+    isActive: true,
+    sortOrder: 20,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'pflege',
+    serviceKey: 'pflege.hauswirtschaft',
+    name: 'Hauswirtschaftliche Versorgung',
+    description: 'Unterstützung im Haushalt und bei der Versorgung',
+    unit: 'hour',
+    category: 'service',
+    isActive: true,
+    sortOrder: 30,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'pflege',
+    serviceKey: 'pflege.betreuung',
+    name: 'Betreuungsleistungen',
+    description: 'Anleitung und Beaufsichtigung im Alltag',
+    unit: 'hour',
+    category: 'service',
+    isActive: true,
+    sortOrder: 40,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'pflege',
+    serviceKey: 'pflege.travel.km',
+    name: 'Fahrtkosten (Kilometer)',
+    description: 'Kilometerpauschale für Pflege-Fahrten',
+    unit: 'km',
+    category: 'travel',
+    isActive: true,
+    sortOrder: 100,
+    defaultPriceNet: 0.3,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'pflege',
+    serviceKey: 'pflege.surcharge.night',
+    name: 'Nacht-Zuschlag',
+    description: 'Zuschlag für Leistungen in der Nacht',
+    unit: 'percent',
+    category: 'surcharge',
+    isActive: true,
+    sortOrder: 110,
+    defaultPriceNet: 25,
+    defaultTaxMode: 'none',
+  },
+  {
+    moduleKey: 'stationaer',
+    serviceKey: 'stationaer.tagespflege',
+    name: 'Tagespflege',
+    description: 'Teilstationäre Tagespflege in einer Einrichtung',
+    unit: 'day',
+    category: 'service',
+    isActive: true,
+    sortOrder: 10,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'stationaer',
+    serviceKey: 'stationaer.kurzzeitpflege',
+    name: 'Kurzzeitpflege',
+    description: 'Kurzzeitpflege bei vorübergehendem Pflegebedarf',
+    unit: 'day',
+    category: 'service',
+    isActive: true,
+    sortOrder: 20,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'stationaer',
+    serviceKey: 'stationaer.verhinderungspflege',
+    name: 'Verhinderungspflege stationär',
+    description: 'Stationäre Verhinderungspflege nach § 39 SGB XI',
+    unit: 'day',
+    category: 'service',
+    isActive: true,
+    sortOrder: 30,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'stationaer',
+    serviceKey: 'stationaer.vollstationaer',
+    name: 'Vollstationäre Pflege',
+    description: 'Dauerhafte vollstationäre Pflegeleistung',
+    unit: 'day',
+    category: 'service',
+    isActive: true,
+    sortOrder: 40,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'beratung',
+    serviceKey: 'beratung.pflegeberatung_7a',
+    name: 'Pflegeberatung § 7a SGB XI',
+    description: 'Pflichtberatung nach § 7a SGB XI',
+    unit: 'visit',
+    category: 'service',
+    isActive: true,
+    sortOrder: 10,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'beratung',
+    serviceKey: 'beratung.beratungsbesuch',
+    name: 'Beratungsbesuch',
+    description: 'Individueller Beratungsbesuch bei Klienten oder Angehörigen',
+    unit: 'visit',
+    category: 'service',
+    isActive: true,
+    sortOrder: 20,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'beratung',
+    serviceKey: 'beratung.case_management',
+    name: 'Case Management',
+    description: 'Fallsteuerung und Koordination von Hilfeangeboten',
+    unit: 'hour',
+    category: 'service',
+    isActive: true,
+    sortOrder: 30,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
+  {
+    moduleKey: 'beratung',
+    serviceKey: 'beratung.widerspruch',
+    name: 'Widerspruchsberatung',
+    description: 'Beratung bei Widerspruchsverfahren und Leistungsansprüchen',
+    unit: 'visit',
+    category: 'service',
+    isActive: true,
+    sortOrder: 40,
+    defaultPriceNet: null,
+    defaultTaxMode: 'exempt_4_16',
+  },
 ];
 
 function ensureDemoCatalog(tenantId: string): TenantServiceCatalogSnapshot {
   if (!DEMO_CATALOG.has(tenantId)) {
     DEMO_CATALOG.set(tenantId, {
-      items: DEFAULT_ASSIST_ITEMS.map((item, index) => ({
+      items: DEFAULT_CATALOG_ITEMS.map((item, index) => ({
         ...item,
         id: `demo-catalog-${index}`,
       })),
@@ -107,7 +300,26 @@ export function formatCatalogSummary(items: TenantServiceCatalogItem[]): string 
   if (!assist.length) return 'Kein Assist-Katalog';
   const primary = assist.find((item) => item.serviceKey === 'assist.alltagsbegleitung') ?? assist[0];
   if (!primary?.defaultPriceNet) return `${assist.length} Assist-Leistung(en)`;
-  return `Assist: ${primary.name} ${formatHourlyRateDocumentAmount(primary.defaultPriceNet)} €/${primary.unit === 'hour' ? 'Std.' : primary.unit}`;
+  return `Assist: ${primary.name} ${formatHourlyRateDocumentAmount(primary.defaultPriceNet)} €/${formatServicePriceUnitShort(primary.unit)}`;
+}
+
+export async function seedTenantServiceCatalogIfEmpty(tenantId: string): Promise<ServiceResult<void>> {
+  if (!isLiveServiceMode()) return { ok: true, data: undefined };
+
+  const client = getSupabaseClient();
+  if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
+
+  const { error: rpcError } = await client.rpc('seed_tenant_service_catalog', {
+    p_tenant_id: tenantId,
+  } as { p_tenant_id: string });
+
+  if (rpcError) return { ok: false, error: toGermanSupabaseError(rpcError) };
+  return { ok: true, data: undefined };
+}
+
+/** @deprecated Nutze seedTenantServiceCatalogIfEmpty — seedet jetzt alle Module. */
+export async function seedAssistCatalogIfEmpty(tenantId: string): Promise<ServiceResult<void>> {
+  return seedTenantServiceCatalogIfEmpty(tenantId);
 }
 
 export async function fetchTenantServiceCatalog(
@@ -161,29 +373,6 @@ export async function fetchTenantServiceCatalog(
   }));
 
   return { ok: true, data: { items, prices } };
-}
-
-export async function seedAssistCatalogIfEmpty(tenantId: string): Promise<ServiceResult<void>> {
-  if (!isLiveServiceMode()) return { ok: true, data: undefined };
-
-  const client = getSupabaseClient();
-  if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
-
-  const { data, error } = await fromUnknownTable(client, 'tenant_service_catalog')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('module_key', 'assist')
-    .limit(1);
-
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  if (data?.length) return { ok: true, data: undefined };
-
-  const { error: rpcError } = await client.rpc('seed_tenant_assist_service_catalog', {
-    p_tenant_id: tenantId,
-  } as { p_tenant_id: string });
-
-  if (rpcError) return { ok: false, error: toGermanSupabaseError(rpcError) };
-  return { ok: true, data: undefined };
 }
 
 export type SaveCatalogItemInput = {
