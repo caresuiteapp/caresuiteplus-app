@@ -74,6 +74,7 @@ function glassSurface(isDark: boolean): ViewStyle {
 
 export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps) {
   const router = useRouter();
+  const { width } = useWindowDimensions();
   const { profile, signOut } = useAuth();
   const { can } = usePermissions();
   const tenantName = useTenantDisplayName();
@@ -83,6 +84,10 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
   const [tenantOpen, setTenantOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
+  const centerZoneInsets = useMemo(
+    () => resolveTopbarCenterZoneInsets(width, mainModule, spacing.lg),
+    [mainModule, width],
+  );
   const styles = useMemo(() => createStyles(isDark, colors), [isDark, colors]);
   const displayName = profile?.displayName ?? 'CareSuite+';
   const avatarUrl = profile?.avatarUrl?.trim() || undefined;
@@ -124,7 +129,14 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
       </View>
 
       <View
-        style={[styles.center, tenantOpen ? styles.centerElevated : null]}
+        style={[
+          styles.center,
+          {
+            left: centerZoneInsets.left,
+            right: centerZoneInsets.right,
+          },
+          tenantOpen ? styles.centerElevated : null,
+        ]}
         pointerEvents="box-none"
       >
         <View style={styles.tenantWrap}>
@@ -260,8 +272,6 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       position: 'absolute',
       top: 0,
       bottom: 0,
-      left: 0,
-      right: 0,
       alignItems: 'center',
       justifyContent: 'center',
       // Above start/end (zIndex 2) so the centered tenant chip receives clicks.
