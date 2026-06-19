@@ -64,8 +64,12 @@ describe('Office mobile platform layout', () => {
 
     const collapsible = readSrc('src/components/layout/platform/collapsiblesidebarsection.tsx');
     expect(collapsible).toContain('initialVisibleCount = 2');
-    expect(collapsible).toContain('(mehr...)');
-    expect(collapsible).toContain('(weniger...)');
+    expect(collapsible).toContain("moreLabel = 'Mehr'");
+    expect(collapsible).toContain('<Modal visible={open}');
+    expect(collapsible).not.toContain('(mehr...)');
+    expect(collapsible).not.toContain('(weniger...)');
+    expect(desktop).toContain('closeMenu');
+    expect(mobile).toContain('closeMenu');
 
     const quickActionLabels = [
       'Klient:in anlegen',

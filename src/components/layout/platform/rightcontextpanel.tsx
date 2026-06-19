@@ -114,10 +114,12 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
         getItemKey={(action) => action.label}
         titleStyle={styles.sectionHeading}
         itemsContainerStyle={styles.quickActions}
-        toggleStyle={{ color: colors.textMuted }}
-        renderItem={(action) => (
+        renderItem={(action, context) => (
           <Pressable
-            onPress={() => router.push(action.href as never)}
+            onPress={() => {
+              context?.closeMenu();
+              router.push(action.href as never);
+            }}
             style={[styles.actionBtn, webCursor]}
             accessibilityRole="button"
           >
@@ -138,12 +140,14 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
             getItemKey={(item) => item.key}
             titleStyle={styles.groupTitle}
             itemsContainerStyle={styles.navGroup}
-            toggleStyle={{ color: colors.textMuted }}
-            renderItem={(item) => {
+            renderItem={(item, context) => {
               const active = item.key === activeNavKey;
               return (
                 <Pressable
-                  onPress={() => router.push(item.href as never)}
+                  onPress={() => {
+                    context?.closeMenu();
+                    router.push(item.href as never);
+                  }}
                   style={webCursor}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}

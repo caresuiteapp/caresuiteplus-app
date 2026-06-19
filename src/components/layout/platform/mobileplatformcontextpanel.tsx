@@ -120,10 +120,12 @@ export function MobilePlatformContextPanel({
         titleStyle={[type.caption, styles.eyebrow, { color: text.muted }]}
         containerStyle={styles.section}
         itemsContainerStyle={styles.quickActions}
-        toggleStyle={{ color: text.muted }}
-        renderItem={(action) => (
+        renderItem={(action, context) => (
           <Pressable
-            onPress={() => router.push(action.href as never)}
+            onPress={() => {
+              context?.closeMenu();
+              router.push(action.href as never);
+            }}
             style={[styles.actionBtn, webCursor]}
             accessibilityRole="button"
           >
@@ -144,12 +146,14 @@ export function MobilePlatformContextPanel({
             getItemKey={(item) => item.key}
             titleStyle={[type.caption, styles.eyebrow, { color: text.muted }]}
             itemsContainerStyle={styles.navGroup}
-            toggleStyle={{ color: text.muted }}
-            renderItem={(item) => {
+            renderItem={(item, context) => {
               const active = item.key === activeNavKey;
               return (
                 <Pressable
-                  onPress={() => router.push(item.href as never)}
+                  onPress={() => {
+                    context?.closeMenu();
+                    router.push(item.href as never);
+                  }}
                   style={webCursor}
                   accessibilityRole="button"
                   accessibilityState={{ selected: active }}
