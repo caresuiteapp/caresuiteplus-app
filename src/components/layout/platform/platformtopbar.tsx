@@ -1,8 +1,7 @@
-import { ReactNode, useMemo, useState } from 'react';
+import { useMemo, useState } from 'react';
 import {
   Platform,
   Pressable,
-  ScrollView,
   StyleSheet,
   Text,
   TextInput,
@@ -13,11 +12,12 @@ import {
 import { useRouter } from 'expo-router';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
+import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { glassFx, withAlpha } from '@/design/tokens/motion';
+import { glass as glassTokens } from '@/design/tokens/glass';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
@@ -41,11 +41,34 @@ const SEARCH_PLACEHOLDERS: Record<MainModuleKey, string> = {
 const TOPBAR_CONTROL_HEIGHT = 44;
 /** Shared icon/avatar slot — building, bell, profile picture. */
 const TOPBAR_ICON_SIZE = 28;
-const TOPBAR_CHIP_PADDING_H = spacing.md;
 
 const webNoOutline =
   Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
+
+const webGlassBlur =
+  Platform.OS === 'web'
+    ? ({
+        backdropFilter: `blur(${glassTokens.blur.medium}px)`,
+        WebkitBackdropFilter: `blur(${glassTokens.blur.medium}px)`,
+      } as unknown as ViewStyle)
+    : null;
+
+function glassSurface(isDark: boolean): ViewStyle {
+  if (!isDark) {
+    return {
+      borderWidth: 1,
+      borderColor: '#E2E8F0',
+      backgroundColor: '#FFFFFF',
+    };
+  }
+  return {
+    borderWidth: 1,
+    borderColor: glassTokens.border,
+    backgroundColor: glassTokens.panel,
+    ...webGlassBlur,
+  };
+}
 
 export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps) {
   const router = useRouter();
@@ -58,9 +81,9 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
   const [tenantOpen, setTenantOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const styles = useMemo(() => createStyles(isDark, colors, accent), [isDark, colors, accent]);
+  const styles = useMemo(() => createStyles(isDark, colors), [isDark, colors]);
   const displayName = profile?.displayName ?? 'CareSuite+';
-  const initial = (displayName[0] ?? 'C').toUpperCase();
+  const avatarUrl = profile?.avatarUrl?.trim() || undefined;
   const canManageTenant = can(TENANT_SETTINGS_PERMISSION);
 
   const tenantMenuItems: { label: string; href?: string; action?: () => void }[] = [
@@ -142,7 +165,7 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
       </View>
 
       <View style={styles.end}>
-        <NotificationBellWithCenter size="topbar" />
+        <NotificationBellWithCenter size="topbar" variant="glass" />
 
         <View style={styles.profileWrap}>
           <Pressable
@@ -154,9 +177,12 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
             accessibilityRole="button"
             accessibilityLabel="Profilmenü"
           >
-            <View style={[styles.avatar, { backgroundColor: withAlpha(accent, 0.85) }]}>
-              <Text style={styles.avatarText}>{initial}</Text>
-            </View>
+            <PremiumAvatar
+              name={displayName}
+              imageUri={avatarUrl}
+              size="sm"
+              accentColor={accent}
+            />
             <Text style={styles.profileName} numberOfLines={1}>
               {displayName}
             </Text>
@@ -191,12 +217,9 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
   );
 }
 
-function createStyles(
-  isDark: boolean,
-  colors: ReturnType<typeof useLegacyTheme>['colors'],
-  accent: string,
-) {
-  const glassBorder = isDark ? glassFx.border : colors.borderSoft;
+function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>['colors']) {
+  const glassBorder = isDark ? glassTokens.border : colors.borderSoft;
+  const glass = glassSurface(isDark);
 
   const topbarControl: ViewStyle = {
     minHeight: TOPBAR_CONTROL_HEIGHT,
@@ -204,7 +227,7 @@ function createStyles(
     height: TOPBAR_CONTROL_HEIGHT,
     flexDirection: 'row',
     alignItems: 'center',
-    paddingHorizontal: TOPBAR_CHIP_PADDING_H,
+    paddingHorizontal: spacing.md,
   };
 
   return StyleSheet.create({
@@ -215,9 +238,9 @@ function createStyles(
       position: 'relative',
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
-      borderBottomWidth: 1,
+      borderBottomWidth: isDark ? 0 : 1,
       borderBottomColor: glassBorder,
-      backgroundColor: isDark ? 'rgba(11,16,32,0.55)' : colors.bgPremium,
+      backgroundColor: isDark ? 'transparent' : colors.bgPremium,
       zIndex: 20,
     },
     start: {
@@ -241,13 +264,12 @@ function createStyles(
     },
     searchWrap: {
       ...topbarControl,
+      ...glass,
       flex: 1,
       maxWidth: 520,
       gap: spacing.sm,
       borderRadius: radius.capsule,
-      borderWidth: 1,
-      borderColor: isDark ? glassFx.innerBorder : colors.borderSoft,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.05)' : '#FFFFFF',
+      backgroundColor: isDark ? glassTokens.input : '#FFFFFF',
     },
     searchIcon: { fontSize: 16, lineHeight: TOPBAR_ICON_SIZE, color: colors.textMuted },
     searchInput: {
@@ -262,34 +284,40 @@ function createStyles(
       paddingVertical: 2,
       borderRadius: 6,
       borderWidth: 1,
-      borderColor: isDark ? glassFx.innerBorder : colors.borderSoft,
+      borderColor: isDark ? glassTokens.innerBorder : colors.borderSoft,
       backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)',
     },
     searchKbdText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
-    tenantWrap: { position: 'relative' },
+    tenantWrap: { position: 'relative', maxWidth: 520 },
     tenantChip: {
-      flexDirection: 'row',
-      alignItems: 'center',
+      ...topbarControl,
+      ...glass,
       gap: spacing.sm,
+      borderRadius: radius.capsule,
       paddingHorizontal: spacing.md,
-      paddingVertical: spacing.xs,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: withAlpha(accent, 0.45),
-      backgroundColor: isDark ? withAlpha(accent, 0.12) : withAlpha(accent, 0.08),
-      maxWidth: 260,
     },
-    tenantIcon: { fontSize: 18 },
+    iconSlot: {
+      width: TOPBAR_ICON_SIZE,
+      height: TOPBAR_ICON_SIZE,
+      alignItems: 'center',
+      justifyContent: 'center',
+    },
+    tenantIcon: { fontSize: 18, lineHeight: TOPBAR_ICON_SIZE },
     tenantTextWrap: { flex: 1, minWidth: 0 },
     tenantLabel: {
       ...typography.caption,
       color: colors.textMuted,
       fontSize: 10,
       textTransform: 'uppercase',
-      letterSpacing: 0.5,
+      letterSpacing: 0.6,
+      fontWeight: '600',
     },
-    tenantName: { ...typography.bodyStrong, color: colors.textPrimary, fontWeight: '700' },
-    chevron: { fontSize: 10, color: colors.textMuted },
+    tenantName: {
+      ...typography.bodyStrong,
+      color: isDark ? '#FFFFFF' : colors.textPrimary,
+      fontWeight: '700',
+    },
+    chevron: { fontSize: 10, color: colors.textMuted, marginLeft: spacing.xs },
     dropdown: {
       position: 'absolute',
       top: '100%',
@@ -299,11 +327,11 @@ function createStyles(
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: glassBorder,
-      backgroundColor: isDark ? 'rgba(18,22,43,0.95)' : '#FFFFFF',
+      backgroundColor: isDark ? glassTokens.modal : '#FFFFFF',
       paddingVertical: spacing.xs,
       zIndex: 30,
       ...(Platform.OS === 'web'
-        ? ({ boxShadow: '0 12px 40px rgba(0,0,0,0.35)' } as unknown as ViewStyle)
+        ? ({ boxShadow: '0 12px 40px rgba(0,0,0,0.35)', ...webGlassBlur } as unknown as ViewStyle)
         : null),
     },
     profileDropdown: { right: 0 },
@@ -321,41 +349,18 @@ function createStyles(
       borderBottomColor: glassBorder,
       marginBottom: spacing.xs,
     },
-    iconBtn: {
-      width: 42,
-      height: 42,
-      borderRadius: radius.md,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      alignItems: 'center',
-      justifyContent: 'center',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
-    },
-    iconBtnText: { fontSize: 18 },
     profileWrap: { position: 'relative' },
-    profileBtn: {
-      flexDirection: 'row',
-      alignItems: 'center',
+    profileChip: {
+      ...topbarControl,
+      ...glass,
       gap: spacing.sm,
+      borderRadius: radius.capsule,
       paddingHorizontal: spacing.sm,
-      paddingVertical: spacing.xs,
-      borderRadius: radius.lg,
-      borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : '#FFFFFF',
-      maxWidth: 200,
+      maxWidth: 220,
     },
-    avatar: {
-      width: 32,
-      height: 32,
-      borderRadius: 16,
-      alignItems: 'center',
-      justifyContent: 'center',
-    },
-    avatarText: { fontSize: 14, fontWeight: '800', color: '#FFFFFF' },
     profileName: {
       ...typography.caption,
-      color: colors.textPrimary,
+      color: isDark ? '#FFFFFF' : colors.textPrimary,
       fontWeight: '700',
       flex: 1,
       minWidth: 0,

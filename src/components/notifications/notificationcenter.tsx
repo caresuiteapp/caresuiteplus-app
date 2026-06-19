@@ -22,6 +22,7 @@ import {
   markNotificationRead,
 } from '@/lib/office/notificationservice';
 import { startBroadcastReplyThread } from '@/lib/office/broadcastservice';
+import { glass as glassTokens } from '@/design/tokens/glass';
 import { spacing, radius } from '@/theme';
 import type { AppNotification, NotificationCenterTab } from '@/types/office/broadcast';
 import { BROADCAST_PRIORITIES } from '@/types/office/broadcast';
@@ -299,17 +300,28 @@ type NotificationBellButtonProps = {
   unreadCount: number;
   hasUrgent?: boolean;
   size?: 'topbar' | 'compact';
+  variant?: 'default' | 'glass';
 };
+
+const webGlassBlur =
+  Platform.OS === 'web'
+    ? ({
+        backdropFilter: `blur(${glassTokens.blur.medium}px)`,
+        WebkitBackdropFilter: `blur(${glassTokens.blur.medium}px)`,
+      } as unknown as ViewStyle)
+    : null;
 
 export function NotificationBellButton({
   onPress,
   unreadCount,
   hasUrgent = false,
   size = 'topbar',
+  variant = 'default',
 }: NotificationBellButtonProps) {
-  const { c } = useCareLightPalette();
+  const { c, isDark } = useCareLightPalette();
   const glyphSize = size === 'topbar' ? 21 : 18;
-  const btnSize = size === 'topbar' ? 48 : 40;
+  const btnSize =
+    variant === 'glass' && size === 'topbar' ? 44 : size === 'topbar' ? 48 : 40;
 
   const styles = useMemo(
     () =>
@@ -321,9 +333,18 @@ export function NotificationBellButton({
           justifyContent: 'center',
           borderRadius: radius.md,
           borderWidth: 1,
-          borderColor: c.border,
-          backgroundColor: hasUrgent ? `${c.danger}12` : c.surface,
+          borderColor:
+            variant === 'glass' && isDark ? glassTokens.border : c.border,
+          backgroundColor:
+            variant === 'glass' && isDark
+              ? hasUrgent
+                ? `${c.danger}18`
+                : glassTokens.panel
+              : hasUrgent
+                ? `${c.danger}12`
+                : c.surface,
           position: 'relative',
+          ...(variant === 'glass' && isDark ? webGlassBlur : null),
         },
         glyph: {
           fontSize: glyphSize,
@@ -343,7 +364,7 @@ export function NotificationBellButton({
         },
         badgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
       }),
-    [btnSize, c, glyphSize, hasUrgent],
+    [btnSize, c, glyphSize, hasUrgent, isDark, variant],
   );
 
   return (
@@ -366,9 +387,11 @@ export function NotificationBellButton({
 export function NotificationBellWithCenter({
   employeeId,
   size = 'topbar',
+  variant = 'default',
 }: {
   employeeId?: string | null;
   size?: 'topbar' | 'compact';
+  variant?: 'default' | 'glass';
 }) {
   const [open, setOpen] = useState(false);
   const { unreadCount, hasUrgent, refresh } = useNotifications('unread');
@@ -383,6 +406,7 @@ export function NotificationBellWithCenter({
         unreadCount={unreadCount}
         hasUrgent={hasUrgent}
         size={size}
+        variant={variant}
       />
       <NotificationCenter
         visible={open}
