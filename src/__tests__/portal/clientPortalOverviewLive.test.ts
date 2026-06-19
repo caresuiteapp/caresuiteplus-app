@@ -24,6 +24,17 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
     expect(service).toContain('client_module_assignments');
   });
 
+  it('fetches live widget data for active modules', () => {
+    const fetcher = readSrc('src/lib/portal/engine/fetchPortalWidgetData.ts');
+    expect(fetcher).toContain('fetchPortalWidgetData');
+    expect(fetcher).toContain('care_plans');
+    expect(fetcher).toContain('assignments');
+    const resolver = readSrc('src/lib/portal/engine/resolvePortalContext.ts');
+    expect(resolver).toContain('fetchPortalWidgetData');
+    const live = readSrc('src/lib/portal/clientPortalDashboardLive.ts');
+    expect(live).toContain('portal_visible');
+  });
+
   it('uses adaptive migration tables', () => {
     const sql = readSrc('supabase/migrations/0099_adaptive_portal_engine.sql');
     expect(sql).toContain('portal_feature_matrix');

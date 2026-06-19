@@ -7,10 +7,12 @@ import type {
   PortalModuleKey,
   PortalVisibilityRule,
   PortalWidget,
+  PortalWidgetMetrics,
 } from '@/lib/portal/types';
 import { fetchClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboardLive';
 import { fetchClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
+import { fetchPortalWidgetData } from './fetchPortalWidgetData';
 import { getFeaturesForModules, PORTAL_FEATURE_MATRIX } from './portalFeatureMatrix';
 import { filterVisibleFeatures, resolvePortalActorRole } from './portalVisibility';
 import { getWidgetsForModules, PORTAL_WIDGET_REGISTRY } from './portalWidgetRegistry';
@@ -29,6 +31,14 @@ const EMPTY_METRICS: PortalLiveMetrics = {
   documents: 0,
   openMessages: 0,
 };
+
+function metricsToWidgetMetrics(metrics: PortalLiveMetrics): PortalWidgetMetrics {
+  return {
+    messages_kpi: metrics.openMessages,
+    documents_kpi: metrics.documents,
+    appointments_kpi: metrics.upcomingAppointments,
+  };
+}
 
 function resolvePrimaryModule(
   assignments: ClientModuleAssignment[],
@@ -159,7 +169,7 @@ export async function resolvePortalContext(
   const [assignmentsResult, metrics, tenantName, visibilityRules, dbFeatures, dbWidgets] =
     await Promise.all([
       fetchClientModuleAssignments(input.tenantId, input.clientId),
-      fetchClientPortalLiveMetrics(input.tenantId).catch(() => EMPTY_METRICS),
+      fetchClientPortalLiveMetrics(input.tenantId, input.clientId).catch(() => EMPTY_METRICS),
       input.tenantNameHint?.trim()
         ? Promise.resolve(input.tenantNameHint.trim())
         : fetchTenantDisplayName(input.tenantId),
@@ -174,6 +184,16 @@ export async function resolvePortalContext(
   );
   const primaryModule = resolvePrimaryModule(assignments);
   const hasModuleAssignments = activeModuleKeys.length > 0;
+  const resolvedMetrics = metrics ?? EMPTY_METRICS;
+
+  const widgetMetrics = hasModuleAssignments
+    ? await fetchPortalWidgetData({
+        tenantId: input.tenantId,
+        clientId: input.clientId,
+        activeModuleKeys,
+        metrics: resolvedMetrics,
+      }).catch(() => metricsToWidgetMetrics(resolvedMetrics))
+    : metricsToWidgetMetrics(resolvedMetrics);
 
   const features = dbFeatures ?? PORTAL_FEATURE_MATRIX;
   const widgets = dbWidgets ?? PORTAL_WIDGET_REGISTRY;
@@ -197,7 +217,8 @@ export async function resolvePortalContext(
     features: hasModuleAssignments ? moduleFeatures : features.filter(() => false),
     visibleFeatures,
     widgets: hasModuleAssignments ? getWidgetsForModules(activeModuleKeys) : [],
-    metrics: metrics ?? EMPTY_METRICS,
+    metrics: resolvedMetrics,
+    widgetMetrics,
     hasModuleAssignments,
   };
 }
@@ -211,6 +232,7 @@ export function resolvePortalContextFromData(input: {
   tenantName: string;
   assignments: ClientModuleAssignment[];
   metrics?: PortalLiveMetrics;
+  widgetMetrics?: PortalWidgetMetrics;
   visibilityRules?: PortalVisibilityRule[];
 }): PortalContext {
   const portalRole = resolvePortalActorRole(input.roleKey);
@@ -220,6 +242,7 @@ export function resolvePortalContextFromData(input: {
   const primaryModule = resolvePrimaryModule(input.assignments);
   const hasModuleAssignments = activeModuleKeys.length > 0;
   const rules = input.visibilityRules ?? [];
+  const resolvedMetrics = input.metrics ?? EMPTY_METRICS;
   const visibleFeatures = hasModuleAssignments
     ? filterVisibleFeatures(activeModuleKeys, portalRole, rules)
     : [];
@@ -237,7 +260,8 @@ export function resolvePortalContextFromData(input: {
     features: hasModuleAssignments ? getFeaturesForModules(activeModuleKeys) : [],
     visibleFeatures,
     widgets: hasModuleAssignments ? getWidgetsForModules(activeModuleKeys) : [],
-    metrics: input.metrics ?? EMPTY_METRICS,
+    metrics: resolvedMetrics,
+    widgetMetrics: input.widgetMetrics ?? metricsToWidgetMetrics(resolvedMetrics),
     hasModuleAssignments,
   };
 }

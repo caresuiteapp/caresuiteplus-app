@@ -5,5 +5,7 @@ export { resolvePortalTerminology, resolveModuleTerminology, resolveCombinedModu
 export { filterVisibleFeatures, isFeatureVisible, resolvePortalActorRole } from './portalVisibility';
 export { buildPortalNavigation, portalNavToShellTabs } from './buildPortalNavigation';
 export { buildPortalDashboard } from './buildPortalDashboard';
+export { fetchPortalWidgetData } from './fetchPortalWidgetData';
+export type { FetchPortalWidgetDataInput } from './fetchPortalWidgetData';
 export { resolvePortalContext, resolvePortalContextFromData } from './resolvePortalContext';
 export type { ResolvePortalContextInput } from './resolvePortalContext';

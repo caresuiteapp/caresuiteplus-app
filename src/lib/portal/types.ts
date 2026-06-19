@@ -51,6 +51,9 @@ export type PortalLiveMetrics = {
   openMessages: number;
 };
 
+/** Per-widget live KPI values keyed by widgetKey from portal_widget_registry. */
+export type PortalWidgetMetrics = Partial<Record<string, number>>;
+
 export type PortalContext = {
   tenantId: string;
   clientId: string;
@@ -65,6 +68,7 @@ export type PortalContext = {
   visibleFeatures: PortalFeature[];
   widgets: PortalWidget[];
   metrics: PortalLiveMetrics;
+  widgetMetrics: PortalWidgetMetrics;
   hasModuleAssignments: boolean;
 };
 

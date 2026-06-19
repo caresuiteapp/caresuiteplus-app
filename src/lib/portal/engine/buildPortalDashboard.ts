@@ -1,34 +1,24 @@
 import type {
   PortalContext,
   PortalDashboardWidget,
-  PortalLiveMetrics,
   PortalModuleKey,
+  PortalWidgetMetrics,
 } from '@/lib/portal/types';
 import { compareWidgetOrder, getWidgetsForModules } from './portalWidgetRegistry';
 import { isFeatureVisible } from './portalVisibility';
 
 function metricForWidget(
   widgetKey: string,
-  metrics: PortalLiveMetrics,
+  widgetMetrics: PortalWidgetMetrics,
 ): number | null {
-  switch (widgetKey) {
-    case 'messages_kpi':
-      return metrics.openMessages;
-    case 'documents_kpi':
-      return metrics.documents;
-    case 'appointments_kpi':
-    case 'assist_next_visit':
-    case 'beratung_next_session':
-      return metrics.upcomingAppointments;
-    default:
-      return null;
-  }
+  const value = widgetMetrics[widgetKey];
+  return value !== undefined ? value : null;
 }
 
 export function buildPortalDashboard(
   context: Pick<
     PortalContext,
-    'activeModuleKeys' | 'visibleFeatures' | 'widgets' | 'metrics' | 'portalRole'
+    'activeModuleKeys' | 'visibleFeatures' | 'widgets' | 'widgetMetrics' | 'portalRole'
   >,
   options?: {
     activeModuleFilter?: PortalModuleKey | 'all';
@@ -77,6 +67,6 @@ export function buildPortalDashboard(
   return sorted.map((widget) => ({
     ...widget,
     visible: true,
-    metricValue: metricForWidget(widget.widgetKey, context.metrics),
+    metricValue: metricForWidget(widget.widgetKey, context.widgetMetrics),
   }));
 }

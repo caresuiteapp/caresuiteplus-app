@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 export type ClientPortalLiveMetrics = {
   upcomingAppointments: number;
@@ -16,24 +17,40 @@ const EMPTY_METRICS: ClientPortalLiveMetrics = {
 /** Live KPI counts for client portal dashboard — RLS scopes rows to the portal actor. */
 export async function fetchClientPortalLiveMetrics(
   tenantId: string,
+  clientId?: string,
 ): Promise<ClientPortalLiveMetrics> {
   const client = getSupabaseClient();
   if (!client) return EMPTY_METRICS;
 
   const now = new Date().toISOString();
 
-  const [threadsResult, appointmentsResult] = await Promise.all([
-    client
-      .from('message_threads')
-      .select('*', { count: 'exact', head: true })
-      .eq('tenant_id', tenantId)
-      .eq('thread_type', 'client'),
-    client
-      .from('appointments')
+  let threadsQuery = client
+    .from('message_threads')
+    .select('*', { count: 'exact', head: true })
+    .eq('tenant_id', tenantId)
+    .eq('thread_type', 'client');
+
+  if (clientId?.trim()) {
+    threadsQuery = threadsQuery.eq('client_id', clientId);
+  }
+
+  const documentsQuery = clientId?.trim()
+    ? fromUnknownTable(client, 'client_documents')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .eq('portal_visible', true)
+        .eq('status', 'aktiv')
+    : null;
+
+  const [threadsResult, appointmentsResult, documentsResult] = await Promise.all([
+    threadsQuery,
+    fromUnknownTable(client, 'appointments')
       .select('*', { count: 'exact', head: true })
       .eq('tenant_id', tenantId)
       .gte('starts_at', now)
       .in('status', ['aktiv', 'in_bearbeitung']),
+    documentsQuery ?? Promise.resolve({ count: 0, error: null }),
   ]);
 
   if (threadsResult.error && !isMissingTableError(threadsResult.error)) {
@@ -42,10 +59,13 @@ export async function fetchClientPortalLiveMetrics(
   if (appointmentsResult.error && !isMissingTableError(appointmentsResult.error)) {
     console.warn('[clientPortalDashboardLive] appointments:', appointmentsResult.error.message);
   }
+  if (documentsResult.error && !isMissingTableError(documentsResult.error)) {
+    console.warn('[clientPortalDashboardLive] client_documents:', documentsResult.error.message);
+  }
 
   return {
     upcomingAppointments: appointmentsResult.error ? 0 : (appointmentsResult.count ?? 0),
-    documents: 0,
+    documents: documentsResult.error ? 0 : (documentsResult.count ?? 0),
     openMessages: threadsResult.error ? 0 : (threadsResult.count ?? 0),
   };
 }

@@ -79,6 +79,13 @@ describe('buildPortalDashboard', () => {
         { moduleKey: 'pflege', isPrimary: true, isActive: true, assignedAt: '2026-01-02' },
       ],
       metrics: { upcomingAppointments: 2, documents: 0, openMessages: 1 },
+      widgetMetrics: {
+        messages_kpi: 1,
+        documents_kpi: 0,
+        appointments_kpi: 2,
+        pflege_care_plan: 1,
+        assist_next_visit: 2,
+      },
     });
 
     const widgets = buildPortalDashboard(context);
@@ -98,7 +105,13 @@ describe('buildPortalDashboard', () => {
       displayName: 'Maria',
       tenantName: 'Care Demo',
       assignments: [{ moduleKey: 'assist', isPrimary: true, isActive: true, assignedAt: '2026-01-01' }],
-      metrics: { upcomingAppointments: 3, documents: 0, openMessages: 5 },
+      metrics: { upcomingAppointments: 3, documents: 2, openMessages: 5 },
+      widgetMetrics: {
+        messages_kpi: 5,
+        documents_kpi: 2,
+        appointments_kpi: 3,
+        assist_next_visit: 1,
+      },
     });
 
     const widgets = buildPortalDashboard(context);
@@ -107,6 +120,32 @@ describe('buildPortalDashboard', () => {
 
     expect(messages?.metricValue).toBe(5);
     expect(appointments?.metricValue).toBe(3);
+  });
+
+  it('maps module widget metrics from widgetMetrics', () => {
+    const context = resolvePortalContextFromData({
+      tenantId: 'tenant-1',
+      clientId: 'client-1',
+      roleKey: 'client_portal',
+      displayName: 'Maria',
+      tenantName: 'Care Demo',
+      assignments: [
+        { moduleKey: 'pflege', isPrimary: true, isActive: true, assignedAt: '2026-01-01' },
+      ],
+      widgetMetrics: {
+        messages_kpi: 0,
+        documents_kpi: 0,
+        appointments_kpi: 0,
+        pflege_care_plan: 2,
+        pflege_vitals: 4,
+        pflege_medications: 3,
+      },
+    });
+
+    const widgets = buildPortalDashboard(context);
+    expect(widgets.find((w) => w.widgetKey === 'pflege_care_plan')?.metricValue).toBe(2);
+    expect(widgets.find((w) => w.widgetKey === 'pflege_vitals')?.metricValue).toBe(4);
+    expect(widgets.find((w) => w.widgetKey === 'pflege_medications')?.metricValue).toBe(3);
   });
 });
 
