@@ -37,31 +37,41 @@ describe('post-login redirect routing', () => {
     expect(isAuthSetupRoute('/auth/business-login')).toBe(false);
   });
 
-  it('login screens navigate after auth state is committed', () => {
+  it('login screens defer navigation to RedirectIfAuthenticated', () => {
     const business = readSrc('src/screens/auth/BusinessLoginScreen.tsx');
     const employee = readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx');
     const client = readSrc('src/screens/auth/PortalCodeLoginScreen.tsx');
-    const navigation = readSrc('src/lib/auth/usePostLoginNavigation.ts');
+    const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
 
-    expect(business).toContain('usePostLoginNavigation');
-    expect(business).toContain('resolveLoginDashboardRoute');
-    expect(business).toContain("resolveLoginDashboardRoute('business')");
-    expect(business).not.toContain("router.replace(resolvePostLoginRoute('business'))");
-    expect(navigation).toContain('authReady');
-    expect(navigation).toContain('isAuthenticated');
+    expect(business).toContain('signInWithSupabaseSession');
+    expect(business).not.toContain('signInDemo');
+    expect(business).not.toContain('usePostLoginNavigation');
+    expect(business).not.toContain("router.replace('/business'");
+    expect(business).toContain('setSuccess(true)');
+    expect(guard).toContain('resolveAuthSessionTarget');
 
-    expect(employee).toContain('resolvePostLoginRoute');
-    expect(employee).toContain("router.replace(resolvePostLoginRoute('employee_portal'))");
+    expect(employee).not.toContain('signInDemo');
+    expect(employee).not.toContain('resolvePostLoginRoute');
+    expect(employee).toContain('setSuccess(true)');
 
-    expect(client).toContain('resolvePostLoginRoute');
-    expect(client).toContain("router.replace(resolvePostLoginRoute('client_portal'))");
+    expect(client).not.toContain('signInDemo');
+    expect(client).not.toContain('resolvePostLoginRoute');
+    expect(client).toContain('setSuccess(true)');
   });
 
   it('RequireAuth waits for authReady and checks live session before redirect', () => {
     const guard = readSrc('src/lib/auth/RequireAuth.tsx');
     expect(guard).toContain('authReady');
     expect(guard).toContain('getSession');
+    expect(guard).toContain('useSupabaseSessionProbe');
     expect(guard).not.toContain('isInitialized');
+  });
+
+  it('AppStartScreen waits for authReady and live session before showing landing', () => {
+    const start = readSrc('src/screens/AppStartScreen.tsx');
+    expect(start).toContain('authReady');
+    expect(start).toContain('useSupabaseSessionProbe');
+    expect(start).not.toContain('isInitialized');
   });
 
   it('RequireRole waits for role resolution instead of redirecting to /', () => {

@@ -62,11 +62,10 @@ describe('tenant bootstrap role resolution', () => {
     expect(provider).not.toContain('await supabaseSignOut();\n          }');
   });
 
-  it('AuthProvider exposes authReady and keeps minimal session on bootstrap miss', () => {
+  it('AuthProvider reconciles live Supabase session when context is behind', () => {
     const provider = readSrc('src/lib/auth/AuthProvider.tsx');
+    expect(provider).toContain('reconcileLiveSession');
     expect(provider).toContain('authReady: isInitialized && !isLoading');
-    expect(provider).toContain('buildMinimalAuthState(supabaseSession)');
-    expect(provider).not.toContain("throw new Error('Benutzerprofil konnte nicht geladen werden.')");
   });
 
   it('auth index never sends authenticated users to public start', () => {

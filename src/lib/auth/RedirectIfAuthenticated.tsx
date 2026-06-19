@@ -5,6 +5,7 @@ import { FullScreenLoader } from '@/components/ui';
 import { isAuthSetupRoute } from './loginRouter';
 import { resolveAuthSessionTarget } from './sessionTarget';
 import { useAuth } from './context';
+import { useSupabaseSessionProbe } from './useSupabaseSessionProbe';
 
 function matchesNavigationTarget(current: string, target: string): boolean {
   const normalizedCurrent = current.replace(/\/$/, '') || '/';
@@ -29,7 +30,8 @@ export function RedirectIfAuthenticated({
 }: RedirectIfAuthenticatedProps) {
   const router = useRouter();
   const pathname = usePathname();
-  const { authReady, isAuthenticated, profile, portalSession, user, session } = useAuth();
+  const { authReady, authMode, isAuthenticated, profile, portalSession, user, session } = useAuth();
+  const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
 
   const { homePath, canRedirectHome } = resolveAuthSessionTarget({
     profile,
@@ -56,7 +58,7 @@ export function RedirectIfAuthenticated({
     return () => subscription.remove();
   }, [canRedirectHome, homePath, isAuthenticated, router]);
 
-  if (!authReady) {
+  if (!authReady || sessionPending) {
     return <FullScreenLoader message="Sitzung wird geprüft…" />;
   }
 

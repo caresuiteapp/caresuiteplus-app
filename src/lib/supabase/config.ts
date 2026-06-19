@@ -1,7 +1,6 @@
+/** Dev-only: aktiv nur bei EXPO_PUBLIC_DEMO_MODE=true — nie aus fehlender URL ableiten. */
 export function isDemoMode(): boolean {
-  const flag = process.env.EXPO_PUBLIC_DEMO_MODE;
-  if (flag === 'false') return false;
-  return flag === 'true' || !process.env.EXPO_PUBLIC_SUPABASE_URL;
+  return process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
 }
 
 export function getSupabaseConfig() {

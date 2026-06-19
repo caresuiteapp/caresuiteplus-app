@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { CareSuiteLogo } from '@/components/brand';
 import {
   AuthLayout,
@@ -16,17 +15,14 @@ import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGene
 import { completePortalLogin } from '@/lib/auth/portalloginflow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { useAuth } from '@/lib/auth/context';
-import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
-import { isDemoMode } from '@/lib/supabase/config';
 
 function openExternal(url: string) {
   void Linking.openURL(url).catch(() => undefined);
 }
 
 export function PortalCodeLoginScreen() {
-  const router = useRouter();
-  const { signInDemo, signInPortalSession } = useAuth();
+  const { signInPortalSession } = useAuth();
   const [username, setUsername] = useState('');
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +31,7 @@ export function PortalCodeLoginScreen() {
 
   const handleSubmit = async () => {
     setError(null);
+    setSuccess(false);
     setLoading(true);
     const result = await loginClientPortal(username, code);
     setLoading(false);
@@ -44,28 +41,28 @@ export function PortalCodeLoginScreen() {
       return;
     }
 
-    if (result.data.portalSession) {
-      const completed = await completePortalLogin(result.data.portalSession, {
-        supabaseAccessToken: result.data.supabaseAccessToken,
-        supabaseRefreshToken: result.data.supabaseRefreshToken,
-      });
-      if (!completed.ok) {
-        setError(completed.error);
-        return;
-      }
-      await signInPortalSession(completed.data.portalSession);
-      router.replace(resolvePostLoginRoute('client_portal'));
-    } else if (isDemoMode()) {
-      await signInDemo('client_portal');
-      router.replace(resolvePostLoginRoute('client_portal'));
-    } else {
+    if (!result.data.portalSession) {
       setError(
         'Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten oder fordern Sie Hilfe an.',
       );
       return;
     }
 
-    setSuccess(true);
+    const completed = await completePortalLogin(result.data.portalSession, {
+      supabaseAccessToken: result.data.supabaseAccessToken,
+      supabaseRefreshToken: result.data.supabaseRefreshToken,
+    });
+    if (!completed.ok) {
+      setError(completed.error);
+      return;
+    }
+
+    try {
+      await signInPortalSession(completed.data.portalSession);
+      setSuccess(true);
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
+    }
   };
 
   return (

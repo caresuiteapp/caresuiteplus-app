@@ -173,6 +173,39 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   useEffect(() => {
     if (authMode !== 'supabase' || !isInitialized || isLoading) return;
+    if (Boolean((user && session) || portalSession)) return;
+
+    let cancelled = false;
+
+    async function reconcileLiveSession() {
+      const sessionResult = await getSession();
+      if (cancelled || !sessionResult.ok || !sessionResult.data) return;
+
+      const hydrated = await hydrateSupabaseSession(
+        sessionResult.data,
+        setUser,
+        setProfile,
+        setSession,
+      );
+      if (cancelled) return;
+      if (hydrated) return;
+
+      const minimal = buildMinimalAuthState(sessionResult.data);
+      setUser(minimal.user);
+      setProfile(null);
+      setSession(minimal.session);
+      profileRepairAttemptedRef.current = false;
+    }
+
+    void reconcileLiveSession();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [authMode, isInitialized, isLoading, portalSession, session, user]);
+
+  useEffect(() => {
+    if (authMode !== 'supabase' || !isInitialized || isLoading) return;
     if (!user || !session || profile?.roleKey || profileRepairAttemptedRef.current) return;
 
     profileRepairAttemptedRef.current = true;
@@ -201,7 +234,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInDemo = useCallback(async (roleKey: RoleKey) => {
     if (!isDemoMode()) {
-      throw new Error('Demo-Anmeldung nur im Demo-Modus verfÃ¼gbar.');
+      throw new Error('Demo-Anmeldung nur im Demo-Modus verfügbar.');
     }
     setIsLoading(true);
     try {
@@ -218,7 +251,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
   const signInWithSupabaseSession = useCallback(async (supabaseSession: Session) => {
     if (authMode !== 'supabase') {
-      throw new Error('Supabase-Anmeldung nur im Live-Modus verfÃ¼gbar.');
+      throw new Error('Supabase-Anmeldung nur im Live-Modus verfügbar.');
     }
     setIsLoading(true);
     try {

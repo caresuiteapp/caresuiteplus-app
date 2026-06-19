@@ -3,6 +3,7 @@ import type { ServiceResult } from '@/types';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { activateRegistrationModules } from '@/lib/billing/moduleActivationService';
 import { getServiceMode } from '@/lib/services/mode';
+import { isDemoMode } from '@/lib/supabase/config';
 import { signInWithPassword } from '@/lib/supabase/authService';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import type {
@@ -181,6 +182,14 @@ export async function loginBusinessUser(
         mustChangePassword: false,
         supabaseSession: sessionResult.data,
       },
+    };
+  }
+
+  if (!isDemoMode()) {
+    return {
+      ok: false,
+      error:
+        'Live-Anmeldung erfordert Supabase-Konfiguration. Bitte EXPO_PUBLIC_SUPABASE_URL und EXPO_PUBLIC_SUPABASE_ANON_KEY setzen.',
     };
   }
 

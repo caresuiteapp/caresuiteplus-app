@@ -6,14 +6,13 @@ import { CareSuiteLogo } from '@/components/brand';
 import { CareLightPageShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
-import { resolveFirstLoginRoute, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
+import { resolveFirstLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
-import { isDemoMode } from '@/lib/supabase/config';
 import { careSpacing } from '@/design/tokens/spacing';
 
 export function EmployeePortalLoginScreen() {
   const router = useRouter();
-  const { signInDemo, signInPortalSession } = useAuth();
+  const { signInPortalSession } = useAuth();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [error, setError] = useState<string | null>(null);
@@ -22,6 +21,7 @@ export function EmployeePortalLoginScreen() {
 
   const handleSubmit = async () => {
     setError(null);
+    setSuccess(false);
     setLoading(true);
     const result = await loginEmployeePortal(username, password);
     setLoading(false);
@@ -31,10 +31,18 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
-    if (result.data.portalSession) {
+    if (!result.data.portalSession) {
+      setError(
+        'Anmeldung konnte nicht abgeschlossen werden. Bitte prüfen Sie Ihre Zugangsdaten oder kontaktieren Sie die Verwaltung.',
+      );
+      return;
+    }
+
+    try {
       await signInPortalSession(result.data.portalSession);
-    } else if (isDemoMode()) {
-      await signInDemo('employee_portal');
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
+      return;
     }
 
     if (result.data.mustChangePassword) {
@@ -42,7 +50,6 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
-    router.replace(resolvePostLoginRoute('employee_portal'));
     setSuccess(true);
   };
 

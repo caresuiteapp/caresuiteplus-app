@@ -5,6 +5,7 @@ import { LoadingState } from '@/components/ui';
 import { getLoginRedirectForPath } from '@/lib/navigation';
 import { getSession } from '@/lib/supabase';
 import { useAuth } from './context';
+import { useSupabaseSessionProbe } from './useSupabaseSessionProbe';
 
 type RequireAuthProps = {
   children: ReactNode;
@@ -20,6 +21,7 @@ export function RequireAuth({
   const router = useRouter();
   const pathname = usePathname();
   const { authReady, isAuthenticated, authMode } = useAuth();
+  const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
 
   useEffect(() => {
     if (!authReady || isAuthenticated) return;
@@ -46,7 +48,7 @@ export function RequireAuth({
     };
   }, [authMode, authReady, isAuthenticated, pathname, redirectTo, router]);
 
-  if (!authReady) {
+  if (!authReady || sessionPending) {
     return <LoadingState message={loadingMessage} />;
   }
 

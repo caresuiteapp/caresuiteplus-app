@@ -1,6 +1,7 @@
 import type { ServiceResult } from '@/types';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { getServiceMode } from '@/lib/services/mode';
+import { isDemoMode } from '@/lib/supabase/config';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import type { PortalSessionRecord } from './portalSessionStore';
 import type { AccessCredentialsReveal, EmployeePortalAccount } from './auth.types';
@@ -120,6 +121,14 @@ export async function loginEmployeePortal(
         mustChangePassword: login.data.mustChangePassword,
         portalSession,
       },
+    };
+  }
+
+  if (!isDemoMode()) {
+    return {
+      ok: false,
+      error:
+        'Live-Anmeldung erfordert Supabase-Konfiguration. Bitte EXPO_PUBLIC_SUPABASE_URL und EXPO_PUBLIC_SUPABASE_ANON_KEY setzen.',
     };
   }
 
