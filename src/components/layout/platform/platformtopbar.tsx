@@ -19,7 +19,10 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glass as glassTokens } from '@/design/tokens/glass';
-import { resolveTopbarCenterZoneInsets } from '@/lib/platform/shellLayoutMetrics';
+import {
+  resolveTopbarCenterZoneInsets,
+  resolveTopbarEndZoneInsets,
+} from '@/lib/platform/shellLayoutMetrics';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
@@ -86,6 +89,10 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
 
   const centerZoneInsets = useMemo(
     () => resolveTopbarCenterZoneInsets(width, mainModule, spacing.lg),
+    [mainModule, width],
+  );
+  const endZoneInsets = useMemo(
+    () => resolveTopbarEndZoneInsets(width, mainModule, spacing.lg),
     [mainModule, width],
   );
   const styles = useMemo(() => createStyles(isDark, colors), [isDark, colors]);
@@ -183,7 +190,7 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
         </View>
       </View>
 
-      <View style={styles.end}>
+      <View style={[styles.end, { marginRight: endZoneInsets.marginRight }]}>
         <NotificationBellWithCenter size="topbar" variant="glass" />
 
         <View style={styles.profileWrap}>

@@ -44,3 +44,13 @@ export function resolveTopbarCenterZoneInsets(
     right: shell.right - topbarHorizontalPadding,
   };
 }
+
+/** Keep bell/profile out of the right context panel column. */
+export function resolveTopbarEndZoneInsets(
+  width: number,
+  mainModule: MainModuleKey,
+  topbarHorizontalPadding: number,
+): { marginRight: number } {
+  const { right } = resolveTopbarCenterZoneInsets(width, mainModule, topbarHorizontalPadding);
+  return { marginRight: Math.max(0, right) };
+}

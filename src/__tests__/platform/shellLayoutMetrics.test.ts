@@ -5,6 +5,7 @@ import {
   PLATFORM_RIGHT_CONTEXT_PANEL_WIDTH,
   resolvePlatformShellSideInsets,
   resolveTopbarCenterZoneInsets,
+  resolveTopbarEndZoneInsets,
 } from '@/lib/platform/shellLayoutMetrics';
 
 describe('shellLayoutMetrics', () => {
@@ -32,6 +33,16 @@ describe('shellLayoutMetrics', () => {
     expect(resolvePlatformShellSideInsets(1440, 'office')).toEqual({
       left: PLATFORM_MODULE_RAIL_WIDTH + PLATFORM_MODULE_NAV_WIDTH,
       right: PLATFORM_RIGHT_CONTEXT_PANEL_WIDTH,
+    });
+  });
+
+  it('offsets topbar end actions before right context panel', () => {
+    const topbarPadding = 24;
+    expect(resolveTopbarEndZoneInsets(1440, 'zentrale', topbarPadding)).toEqual({
+      marginRight: PLATFORM_RIGHT_CONTEXT_PANEL_WIDTH - topbarPadding,
+    });
+    expect(resolveTopbarEndZoneInsets(1279, 'zentrale', topbarPadding)).toEqual({
+      marginRight: 0,
     });
   });
 
