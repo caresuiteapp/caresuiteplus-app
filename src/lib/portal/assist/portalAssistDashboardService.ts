@@ -4,7 +4,11 @@ import { fetchClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboard
 import { listPortalActivities } from '@/lib/portal/assist/portalActivityService';
 import { fetchPortalBudgetSnapshot } from '@/lib/portal/assist/portalBudgetService';
 import { listPortalRequests } from '@/lib/portal/assist/portalRequestService';
-import { isFeatureVisible } from '@/lib/portal/engine/portalVisibility';
+import { countOpenPortalServiceProofs } from '@/lib/portal/assist/portalServiceProofService';
+import {
+  canAccessPortalFeature,
+  resolveApplicablePortalBudgetTypes,
+} from '@/lib/portal/engine/portalFeatureAccess';
 import type { PortalContext } from '@/lib/portal/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
@@ -30,12 +34,13 @@ function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
-async function fetchNextAppointment(
+async function fetchUpcomingAppointments(
   tenantId: string,
   clientId: string,
-): Promise<PortalNextAppointment | null> {
+  limit = 8,
+): Promise<PortalNextAppointment[]> {
   const supabase = getSupabaseClient();
-  if (!supabase) return null;
+  if (!supabase) return [];
 
   const now = new Date().toISOString();
 
@@ -47,25 +52,49 @@ async function fetchNextAppointment(
     .gte('planned_start_at', now)
     .in('status', [...UPCOMING_ASSIGNMENT_STATUSES])
     .order('planned_start_at', { ascending: true })
-    .limit(1)
-    .maybeSingle();
+    .limit(limit);
 
   if (error || !data) {
     if (error && !isMissingTableError(error)) {
-      console.warn('[portalAssistDashboard] next appointment:', error.message);
+      console.warn('[portalAssistDashboard] upcoming appointments:', error.message);
     }
-    return null;
+    return [];
   }
 
-  const row = data as Record<string, unknown>;
-  return {
+  return (data as Record<string, unknown>[]).map((row) => ({
     id: String(row.id ?? ''),
     title: String(row.title ?? 'Assist-Termin'),
     startsAt: String(row.planned_start_at ?? ''),
     endsAt: row.planned_end_at ? String(row.planned_end_at) : null,
     location: row.location ? String(row.location) : null,
     status: String(row.status ?? ''),
-  };
+  }));
+}
+
+async function fetchPortalClientContactPhone(
+  tenantId: string,
+  clientId: string,
+): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const { data, error } = await supabase
+    .from('clients')
+    .select('primary_contact_phone, phone')
+    .eq('tenant_id', tenantId)
+    .eq('id', clientId)
+    .maybeSingle();
+
+  if (error || !data) {
+    if (error && !isMissingTableError(error)) {
+      console.warn('[portalAssistDashboard] client phone:', error.message);
+    }
+    return null;
+  }
+
+  const row = data as { primary_contact_phone?: string | null; phone?: string | null };
+  const phone = row.primary_contact_phone ?? row.phone ?? null;
+  return phone?.trim() || null;
 }
 
 async function countBegleitungen(
@@ -128,48 +157,68 @@ async function countSignatures(tenantId: string, clientId: string): Promise<numb
 export async function fetchAssistDashboardData(
   context: Pick<
     PortalContext,
-    'tenantId' | 'clientId' | 'portalRole' | 'visibleFeatures' | 'widgetMetrics'
+    | 'tenantId'
+    | 'clientId'
+    | 'portalRole'
+    | 'visibleFeatures'
+    | 'widgetMetrics'
+    | 'activeModuleKeys'
+    | 'visibilityRules'
+    | 'careProfile'
   >,
 ): Promise<ServiceResult<AssistDashboardData>> {
   return runService(async () => {
     const { tenantId, clientId } = context;
-    const tripsReleased = isFeatureVisible('assist', 'trips', context.portalRole);
+    const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
+    const budgetReleased = canAccessPortalFeature(context, 'assist', 'budget');
+    const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
+    const applicableBudgetTypes = budgetReleased
+      ? resolveApplicablePortalBudgetTypes(context.careProfile)
+      : [];
 
     const [
       metrics,
-      nextAppointment,
+      upcomingAppointments,
+      contactPhone,
       begleitungen,
       openRequestCount,
       signatures,
+      openProofs,
       activitiesResult,
       requestsResult,
       budgetResult,
     ] = await Promise.all([
       fetchClientPortalLiveMetrics(tenantId, clientId),
-      fetchNextAppointment(tenantId, clientId),
+      fetchUpcomingAppointments(tenantId, clientId),
+      fetchPortalClientContactPhone(tenantId, clientId),
       countBegleitungen(tenantId, clientId, tripsReleased),
       countOpenRequests(tenantId, clientId),
       countSignatures(tenantId, clientId),
+      proofsReleased ? countOpenPortalServiceProofs(tenantId, clientId) : Promise.resolve(0),
       listPortalActivities(tenantId, clientId, 8),
       listPortalRequests(tenantId, clientId, {
         status: ['offen', 'in_bearbeitung'],
         limit: 5,
       }),
-      fetchPortalBudgetSnapshot(tenantId, clientId),
+      budgetReleased && applicableBudgetTypes.length > 0
+        ? fetchPortalBudgetSnapshot(tenantId, clientId, applicableBudgetTypes)
+        : Promise.resolve({ ok: true as const, data: null }),
     ]);
 
     const budget = budgetResult.ok ? budgetResult.data : null;
-    const budgetReleased = isFeatureVisible('assist', 'budget', context.portalRole);
+    const nextAppointment = upcomingAppointments[0] ?? null;
 
     return {
       ok: true,
       data: {
         nextAppointment,
+        upcomingAppointments,
+        contactPhone,
         kpis: {
           appointments: metrics.upcomingAppointments,
           messages: metrics.openMessages,
           documents: metrics.documents,
-          proofs: 0,
+          proofs: proofsReleased ? openProofs : 0,
           signatures,
           budgetAvailable: budgetReleased && budget !== null,
           openRequests: openRequestCount,

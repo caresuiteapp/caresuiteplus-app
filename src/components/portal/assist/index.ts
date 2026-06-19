@@ -9,3 +9,5 @@ export { PortalNextAppointmentHero } from './PortalNextAppointmentHero';
 export { PortalQuickActions } from './PortalQuickActions';
 export { PortalGlassModal } from './PortalGlassModal';
 export { PortalRequestDrawer } from './PortalRequestDrawer';
+export { PortalRequestFormModal } from './PortalRequestFormModal';
+export { PortalServiceProofsModal } from './PortalServiceProofsModal';

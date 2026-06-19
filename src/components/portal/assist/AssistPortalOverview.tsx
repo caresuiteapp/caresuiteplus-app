@@ -5,11 +5,12 @@ import { useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
 import { PortalDocumentUploadModal } from '@/components/portal/assist/PortalDocumentUploadModal';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
-import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
+import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { PortalKpiCard } from '@/components/portal/assist/PortalKpiCard';
 import { PortalNextAppointmentHero } from '@/components/portal/assist/PortalNextAppointmentHero';
 import { PortalQuickActions, type PortalQuickAction } from '@/components/portal/assist/PortalQuickActions';
 import { PortalRequestDrawer } from '@/components/portal/assist/PortalRequestDrawer';
+import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -18,9 +19,12 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import {
+  buildPortalRequestDescription,
   createPortalRequest,
   fetchAssistDashboardData,
+  isPortalFormRequestType,
   resolvePortalRequestTypeLabel,
+  serializePortalRequestPayload,
 } from '@/lib/portal/assist';
 import {
   canAccessPortalFeature,
@@ -30,7 +34,8 @@ import {
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequest, PortalRequestType } from '@/types/portal/assist';
-import { ErrorState, LoadingState, PremiumInput, SuccessState } from '@/components/ui';
+import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
+import { ErrorState, LoadingState, SuccessState } from '@/components/ui';
 
 type AssistPortalOverviewProps = {
   context: PortalContext;
@@ -61,7 +66,7 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
   const [error, setError] = useState<string | null>(null);
   const [requestModal, setRequestModal] = useState<PortalRequestType | null>(null);
   const [uploadModalOpen, setUploadModalOpen] = useState(false);
-  const [requestNote, setRequestNote] = useState('');
+  const [proofsModalOpen, setProofsModalOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [selectedRequest, setSelectedRequest] = useState<PortalRequest | null>(null);
   const [localSuccess, setLocalSuccess] = useState(false);
@@ -114,8 +119,20 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
     onRefresh?.();
   };
 
-  const submitRequest = async (requestType: PortalRequestType, description?: string) => {
+  const submitRequest = async (
+    requestType: PortalRequestType,
+    structuredPayload?: PortalStructuredRequestPayload,
+  ) => {
     setSubmitting(true);
+    const description =
+      structuredPayload && isPortalFormRequestType(requestType)
+        ? buildPortalRequestDescription(requestType, structuredPayload)
+        : null;
+    const payload =
+      structuredPayload && isPortalFormRequestType(requestType)
+        ? serializePortalRequestPayload(requestType, structuredPayload)
+        : undefined;
+
     const result = await createPortalRequest({
       tenantId: context.tenantId,
       clientId: context.clientId,
@@ -123,13 +140,13 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
       moduleKey: 'assist',
       requestType,
       title: resolvePortalRequestTypeLabel(requestType),
-      description: description?.trim() || null,
+      description,
+      payload,
     });
     setSubmitting(false);
 
     if (result.ok) {
       setRequestModal(null);
-      setRequestNote('');
       setLocalSuccess(true);
       setTimeout(() => setLocalSuccess(false), 2500);
       await loadDashboard();
@@ -149,6 +166,10 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
     }
     if (action.key === 'upload') {
       setUploadModalOpen(true);
+      return;
+    }
+    if (action.key === 'nachweise') {
+      setProofsModalOpen(true);
       return;
     }
     setRequestModal(action.key as PortalRequestType);
@@ -225,8 +246,9 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
             description="Offen"
             value={data.kpis.proofs}
             emptyMessage="Keine Nachweise offen."
-            ctaLabel="Nachweis anfragen"
-            onCta={() => setRequestModal('nachweise')}
+            ctaLabel="Nachweise anzeigen"
+            onCta={() => setProofsModalOpen(true)}
+            onPress={() => setProofsModalOpen(true)}
             hidden={!proofsReleased}
           />
           <PortalKpiCard
@@ -339,27 +361,26 @@ export function AssistPortalOverview({ context, showSuccess, onRefresh }: Assist
         }}
       />
 
-      <PortalGlassModal
-        visible={requestModal !== null}
-        title={requestModal ? resolvePortalRequestTypeLabel(requestModal) : 'Anfrage'}
-        onClose={() => {
-          setRequestModal(null);
-          setRequestNote('');
-        }}
-        primaryLabel="Anfrage senden"
-        primaryLoading={submitting}
-        onPrimary={() => {
-          if (requestModal) void submitRequest(requestModal, requestNote);
-        }}
-      >
-        <PremiumInput
-          label="Nachricht (optional)"
-          value={requestNote}
-          onChangeText={setRequestNote}
-          placeholder="Was möchten Sie mitteilen?"
-          multiline
+      <PortalServiceProofsModal
+        visible={proofsModalOpen}
+        tenantId={context.tenantId}
+        clientId={context.clientId}
+        portalUserId={actorId}
+        onClose={() => setProofsModalOpen(false)}
+      />
+
+      {requestModal && isPortalFormRequestType(requestModal) ? (
+        <PortalRequestFormModal
+          visible
+          requestType={requestModal}
+          careContexts={context.careProfile.careContexts}
+          upcomingAppointments={data.upcomingAppointments}
+          contactPhone={data.contactPhone}
+          submitting={submitting}
+          onClose={() => setRequestModal(null)}
+          onSubmit={(payload) => void submitRequest(requestModal, payload)}
         />
-      </PortalGlassModal>
+      ) : null}
     </AssistPortalShell>
   );
 }
