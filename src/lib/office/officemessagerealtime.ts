@@ -1,3 +1,4 @@
+import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isDemoMode } from '@/lib/supabase/config';
 
@@ -8,14 +9,62 @@ export type OfficeMessageRealtimeEvent = {
 };
 
 type Subscription = {
-  handler: (event: OfficeMessageRealtimeEvent) => void;
+  handlers: Set<(event: OfficeMessageRealtimeEvent) => void>;
   timer: ReturnType<typeof setInterval> | null;
-  supabaseChannel?: { unsubscribe: () => void };
+  supabaseChannel?: RealtimeChannel;
 };
 
 const subscriptions = new Map<string, Subscription>();
 
 const POLL_INTERVAL_MS = 20_000;
+
+function dispatch(sub: Subscription, event: OfficeMessageRealtimeEvent): void {
+  for (const handler of sub.handlers) {
+    handler(event);
+  }
+}
+
+function removeSupabaseChannel(supabase: SupabaseClient, channelName: string): void {
+  const topic = `realtime:${channelName}`;
+  const stale = supabase.getChannels().find((channel) => channel.topic === topic);
+  if (stale) {
+    void supabase.removeChannel(stale);
+  }
+}
+
+function createSupabaseChannel(
+  supabase: SupabaseClient,
+  channelName: string,
+  registerListeners: (channel: RealtimeChannel) => RealtimeChannel,
+): RealtimeChannel {
+  removeSupabaseChannel(supabase, channelName);
+  const channel = supabase.channel(channelName);
+  const configured = registerListeners(channel);
+  configured.subscribe();
+  return configured;
+}
+
+function detachHandler(key: string, handler: (event: OfficeMessageRealtimeEvent) => void): void {
+  const sub = subscriptions.get(key);
+  if (!sub) return;
+
+  sub.handlers.delete(handler);
+  if (sub.handlers.size === 0) {
+    if (key.startsWith('office-thread:')) {
+      unsubscribeOfficeMessageThread(key.slice('office-thread:'.length));
+    } else if (key.startsWith('office-inbox:')) {
+      unsubscribeOfficeMessageInbox(key.slice('office-inbox:'.length));
+    }
+  }
+}
+
+function attachHandler(key: string, handler: (event: OfficeMessageRealtimeEvent) => void): () => void {
+  const sub = subscriptions.get(key);
+  if (!sub) return () => undefined;
+
+  sub.handlers.add(handler);
+  return () => detachHandler(key, handler);
+}
 
 export function subscribeToOfficeMessageThread(
   tenantId: string,
@@ -23,55 +72,63 @@ export function subscribeToOfficeMessageThread(
   handler: (event: OfficeMessageRealtimeEvent) => void,
 ): () => void {
   const key = `office-thread:${threadId}`;
+  const existing = subscriptions.get(key);
+  if (existing) {
+    return attachHandler(key, handler);
+  }
 
   if (isDemoMode()) {
-    const timer = setInterval(() => {
-      handler({ type: 'message_changed', threadId, tenantId });
+    const sub: Subscription = { handlers: new Set([handler]), timer: null };
+    sub.timer = setInterval(() => {
+      dispatch(sub, { type: 'message_changed', threadId, tenantId });
     }, POLL_INTERVAL_MS);
-    subscriptions.set(key, { handler, timer });
-    return () => unsubscribeOfficeMessageThread(threadId);
+    subscriptions.set(key, sub);
+    return () => detachHandler(key, handler);
   }
 
   const supabase = getSupabaseClient();
   if (supabase) {
-    const rtChannel = supabase
-      .channel(`office:thread:${threadId}`)
-      .on(
-        'postgres_changes',
-        {
-          event: '*',
-          schema: 'public',
-          table: 'messages',
-          filter: `thread_id=eq.${threadId}`,
-        },
-        () => {
-          handler({ type: 'message_changed', threadId, tenantId });
-        },
-      )
-      .on(
-        'postgres_changes',
-        {
-          event: 'UPDATE',
-          schema: 'public',
-          table: 'message_threads',
-          filter: `id=eq.${threadId}`,
-        },
-        () => {
-          handler({ type: 'thread_changed', threadId, tenantId });
-        },
-      )
-      .subscribe();
+    const channelName = `office:thread:${threadId}`;
+    const rtChannel = createSupabaseChannel(supabase, channelName, (channel) =>
+      channel
+        .on(
+          'postgres_changes',
+          {
+            event: '*',
+            schema: 'public',
+            table: 'messages',
+            filter: `thread_id=eq.${threadId}`,
+          },
+          () => {
+            const sub = subscriptions.get(key);
+            if (sub) dispatch(sub, { type: 'message_changed', threadId, tenantId });
+          },
+        )
+        .on(
+          'postgres_changes',
+          {
+            event: 'UPDATE',
+            schema: 'public',
+            table: 'message_threads',
+            filter: `id=eq.${threadId}`,
+          },
+          () => {
+            const sub = subscriptions.get(key);
+            if (sub) dispatch(sub, { type: 'thread_changed', threadId, tenantId });
+          },
+        ),
+    );
 
     subscriptions.set(key, {
-      handler,
+      handlers: new Set([handler]),
       timer: null,
-      supabaseChannel: { unsubscribe: () => supabase.removeChannel(rtChannel) },
+      supabaseChannel: rtChannel,
     });
-    return () => unsubscribeOfficeMessageThread(threadId);
+    return () => detachHandler(key, handler);
   }
 
-  subscriptions.set(key, { handler, timer: null });
-  return () => unsubscribeOfficeMessageThread(threadId);
+  subscriptions.set(key, { handlers: new Set([handler]), timer: null });
+  return () => detachHandler(key, handler);
 }
 
 export function subscribeToOfficeMessageInbox(
@@ -79,20 +136,25 @@ export function subscribeToOfficeMessageInbox(
   handler: (event: OfficeMessageRealtimeEvent) => void,
 ): () => void {
   const key = `office-inbox:${tenantId}`;
+  const existing = subscriptions.get(key);
+  if (existing) {
+    return attachHandler(key, handler);
+  }
 
   if (isDemoMode()) {
-    const timer = setInterval(() => {
-      handler({ type: 'thread_changed', tenantId });
+    const sub: Subscription = { handlers: new Set([handler]), timer: null };
+    sub.timer = setInterval(() => {
+      dispatch(sub, { type: 'thread_changed', tenantId });
     }, POLL_INTERVAL_MS);
-    subscriptions.set(key, { handler, timer });
-    return () => unsubscribeOfficeMessageInbox(tenantId);
+    subscriptions.set(key, sub);
+    return () => detachHandler(key, handler);
   }
 
   const supabase = getSupabaseClient();
   if (supabase) {
-    const rtChannel = supabase
-      .channel(`office:inbox:${tenantId}`)
-      .on(
+    const channelName = `office:inbox:${tenantId}`;
+    const rtChannel = createSupabaseChannel(supabase, channelName, (channel) =>
+      channel.on(
         'postgres_changes',
         {
           event: '*',
@@ -102,47 +164,63 @@ export function subscribeToOfficeMessageInbox(
         },
         (payload) => {
           const row = payload.new as { id?: string } | null;
-          handler({
-            type: 'thread_changed',
-            tenantId,
-            threadId: row?.id,
-          });
+          const sub = subscriptions.get(key);
+          if (sub) {
+            dispatch(sub, {
+              type: 'thread_changed',
+              tenantId,
+              threadId: row?.id,
+            });
+          }
         },
-      )
-      .subscribe();
+      ),
+    );
 
     subscriptions.set(key, {
-      handler,
+      handlers: new Set([handler]),
       timer: null,
-      supabaseChannel: { unsubscribe: () => supabase.removeChannel(rtChannel) },
+      supabaseChannel: rtChannel,
     });
-    return () => unsubscribeOfficeMessageInbox(tenantId);
+    return () => detachHandler(key, handler);
   }
 
-  subscriptions.set(key, { handler, timer: null });
-  return () => unsubscribeOfficeMessageInbox(tenantId);
+  subscriptions.set(key, { handlers: new Set([handler]), timer: null });
+  return () => detachHandler(key, handler);
 }
 
 export function unsubscribeOfficeMessageThread(threadId: string): void {
   const key = `office-thread:${threadId}`;
   const sub = subscriptions.get(key);
-  if (sub?.timer) clearInterval(sub.timer);
-  sub?.supabaseChannel?.unsubscribe();
+  if (!sub) return;
+
+  if (sub.timer) clearInterval(sub.timer);
+  if (sub.supabaseChannel) {
+    const supabase = getSupabaseClient();
+    if (supabase) void supabase.removeChannel(sub.supabaseChannel);
+  }
   subscriptions.delete(key);
 }
 
 export function unsubscribeOfficeMessageInbox(tenantId: string): void {
   const key = `office-inbox:${tenantId}`;
   const sub = subscriptions.get(key);
-  if (sub?.timer) clearInterval(sub.timer);
-  sub?.supabaseChannel?.unsubscribe();
+  if (!sub) return;
+
+  if (sub.timer) clearInterval(sub.timer);
+  if (sub.supabaseChannel) {
+    const supabase = getSupabaseClient();
+    if (supabase) void supabase.removeChannel(sub.supabaseChannel);
+  }
   subscriptions.delete(key);
 }
 
 export function clearAllOfficeMessageRealtimeSubscriptions(): void {
   for (const [, sub] of subscriptions) {
     if (sub.timer) clearInterval(sub.timer);
-    sub.supabaseChannel?.unsubscribe();
+    if (sub.supabaseChannel) {
+      const supabase = getSupabaseClient();
+      if (supabase) void supabase.removeChannel(sub.supabaseChannel);
+    }
   }
   subscriptions.clear();
 }

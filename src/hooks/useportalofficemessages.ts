@@ -36,10 +36,10 @@ export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open'
   useEffect(() => {
     if (!tenantId) return;
     const unsubscribe = subscribeToOfficeMessageInbox(tenantId, () => {
-      void query.refresh();
+      void refresh();
     });
     return unsubscribe;
-  }, [tenantId, query]);
+  }, [tenantId, refresh]);
 
   return {
     threads: query.data ?? [],

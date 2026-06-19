@@ -38,10 +38,10 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
   useEffect(() => {
     if (!tenantId || !threadId) return;
     const unsubscribe = subscribeToOfficeMessageThread(tenantId, threadId, () => {
-      void query.refresh();
+      void refresh();
     });
     return unsubscribe;
-  }, [tenantId, threadId, query]);
+  }, [tenantId, threadId, refresh]);
 
   const sendMessage = useCallback(
     async (

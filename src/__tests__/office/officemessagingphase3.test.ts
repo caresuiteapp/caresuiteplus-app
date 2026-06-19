@@ -24,13 +24,16 @@ const TENANT_ID = '11111111-1111-1111-1111-111111111111';
 const mockFrom = vi.fn();
 const mockStorageFrom = vi.fn();
 const mockChannel = vi.fn();
+const mockGetChannels = vi.fn(() => []);
+const mockRemoveChannel = vi.fn();
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({
     from: mockFrom,
     storage: { from: mockStorageFrom },
     channel: mockChannel,
-    removeChannel: vi.fn(),
+    getChannels: mockGetChannels,
+    removeChannel: mockRemoveChannel,
   }),
 }));
 
@@ -183,6 +186,40 @@ describe('Office Messaging Phase 3', () => {
     expect(getOfficeMessageRealtimeSubscriptionCount()).toBe(2);
     unsubThread();
     unsubInbox();
+    expect(getOfficeMessageRealtimeSubscriptionCount()).toBe(0);
+  });
+
+  it('registriert postgres_changes vor subscribe()', () => {
+    const callOrder: string[] = [];
+    mockChannel.mockReturnValue({
+      on: vi.fn(function (this: { on: typeof mockChannel; subscribe: typeof mockChannel }, event: string) {
+        callOrder.push(`on:${event}`);
+        return this;
+      }),
+      subscribe: vi.fn(() => {
+        callOrder.push('subscribe');
+        return {};
+      }),
+    });
+
+    subscribeToOfficeMessageThread(TENANT_ID, 'thread-order', vi.fn());
+
+    expect(callOrder).toEqual(['on:postgres_changes', 'on:postgres_changes', 'subscribe']);
+  });
+
+  it('teilt Inbox-Kanal bei mehrfachen Subscribern', () => {
+    const handlerOne = vi.fn();
+    const handlerTwo = vi.fn();
+    const unsubOne = subscribeToOfficeMessageInbox(TENANT_ID, handlerOne);
+    const unsubTwo = subscribeToOfficeMessageInbox(TENANT_ID, handlerTwo);
+
+    expect(mockChannel).toHaveBeenCalledTimes(1);
+    expect(getOfficeMessageRealtimeSubscriptionCount()).toBe(1);
+
+    unsubOne();
+    expect(getOfficeMessageRealtimeSubscriptionCount()).toBe(1);
+
+    unsubTwo();
     expect(getOfficeMessageRealtimeSubscriptionCount()).toBe(0);
   });
 

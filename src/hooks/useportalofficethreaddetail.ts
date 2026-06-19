@@ -44,10 +44,10 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
   useEffect(() => {
     if (!tenantId || !threadId) return;
     const unsubscribe = subscribeToOfficeMessageThread(tenantId, threadId, () => {
-      void query.refresh();
+      void refresh();
     });
     return unsubscribe;
-  }, [tenantId, threadId, query]);
+  }, [tenantId, threadId, refresh]);
 
   const markAsRead = useCallback(async () => {
     if (!tenantId || !threadId) return;
