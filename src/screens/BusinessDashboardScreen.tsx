@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useAiPageContext } from '@/ai/useAiPageContext';
 import { breakpoints } from '@/design/tokens/breakpoints';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import { ZentraleDashboardHero } from '@/components/dashboard/ZentraleDashboardHero';
@@ -32,6 +33,12 @@ export function BusinessDashboardScreen() {
   const alignKpiWithModuleRail = width >= breakpoints.tablet;
 
   const displayName = profile?.displayName ?? user?.displayName ?? 'Willkommen';
+
+  useAiPageContext({
+    pageTitle: 'Business Dashboard',
+    entityType: 'dashboard',
+    summary: `Dashboard für ${displayName}`,
+  });
 
   const styles = useMemo(
     () =>
@@ -140,6 +147,7 @@ export function BusinessDashboardScreen() {
                   accentColor={kpi.accentColor ?? businessAccent}
                   trend={kpi.trend}
                   trendValue={kpi.trendValue}
+                  variant="light"
                 />
               ),
             }))}

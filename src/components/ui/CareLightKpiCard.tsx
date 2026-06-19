@@ -4,7 +4,7 @@ import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { auroraGlass, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { designTokens } from '@/theme';
 
@@ -27,7 +27,6 @@ export function CareLightKpiCard({
 }: CareLightKpiCardProps) {
   const { isDark, c } = useCareLightPalette();
   const auroraActive = useAuroraGlassActive();
-  const text = useAuroraAdaptiveText();
 
   const styles = useMemo(
     () =>
@@ -36,14 +35,14 @@ export function CareLightKpiCard({
           flex: 1,
           minWidth: 140,
           backgroundColor: auroraActive
-            ? auroraGlass.card
+            ? careLightColors.surface
             : isDark
               ? 'rgba(255,255,255,0.04)'
               : careLightColors.surface,
           borderRadius: careRadius.md,
           borderWidth: 1,
           borderColor: auroraActive
-            ? auroraGlass.border
+            ? careLightColors.border
             : isDark
               ? designTokens.glass.border
               : careLightColors.border,
@@ -62,20 +61,30 @@ export function CareLightKpiCard({
         },
         label: {
           ...careTypography.caption,
-          color: auroraActive ? text.secondary : isDark ? c.muted : careLightColors.muted,
+          color: auroraActive
+            ? careLightColors.muted
+            : isDark
+              ? c.muted
+              : careLightColors.muted,
           fontWeight: '600',
         },
         value: {
           ...careTypography.h2,
           fontSize: 28,
           fontWeight: '800',
+          flexShrink: 0,
+          color: auroraActive ? careLightColors.text : undefined,
         },
         subValue: {
           ...careTypography.caption,
-          color: auroraActive ? text.muted : isDark ? c.muted : careLightColors.muted,
+          color: auroraActive
+            ? careLightColors.muted
+            : isDark
+              ? c.muted
+              : careLightColors.muted,
         },
       }),
-    [auroraActive, c.muted, isDark, text.muted, text.secondary],
+    [auroraActive, c.muted, isDark],
   );
 
   return (
@@ -83,8 +92,18 @@ export function CareLightKpiCard({
       <View style={[styles.iconBadge, { backgroundColor: `${accentColor}18` }]}>
         <Text style={styles.icon}>{icon ?? '📊'}</Text>
       </View>
-      <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, { color: accentColor }]}>{String(value)}</Text>
+      <Text style={styles.label} numberOfLines={1}>
+        {label}
+      </Text>
+      <Text
+        style={[
+          styles.value,
+          !auroraActive ? { color: accentColor } : null,
+        ]}
+        numberOfLines={1}
+      >
+        {String(value)}
+      </Text>
       {subValue ? <Text style={styles.subValue}>{subValue}</Text> : null}
     </View>
   );

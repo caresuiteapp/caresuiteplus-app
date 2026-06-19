@@ -106,6 +106,7 @@ export function DashboardView({
                 trend={kpi.trend}
                 trendValue={kpi.trendValue}
                 pulse={kpi.id === 'kpi-assignments' || kpi.id === 'kpi-my-assignments'}
+                variant="light"
               />
             ),
           }))}

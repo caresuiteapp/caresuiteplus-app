@@ -11,6 +11,7 @@ import {
 import { glassFx } from '@/design/tokens/motion';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { CareLightKpiCard } from './CareLightKpiCard';
 import { radius } from '@/theme';
 
@@ -23,6 +24,8 @@ type Props = {
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   style?: ViewStyle;
+  /** White card with dark text — for KPI grids on aurora backgrounds. */
+  variant?: 'glass' | 'light';
   /** @deprecated Pulse animation removed — cards stay static on glass surfaces. */
   pulse?: boolean;
 };
@@ -36,6 +39,7 @@ export function PremiumKpiCard({
   trend,
   trendValue,
   style,
+  variant = 'glass',
 }: Props) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
@@ -44,6 +48,7 @@ export function PremiumKpiCard({
   const text = useAuroraAdaptiveText();
   const glassCardStyle = useAuroraGlassCardStyle();
   const resolvedAccent = accentColor ?? colors.cyan;
+  const isLight = variant === 'light';
 
   const styles = useMemo(
     () =>
@@ -53,13 +58,21 @@ export function PremiumKpiCard({
           minWidth: '46%',
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: auroraActive ? auroraGlass.border : colors.borderSoft,
-          backgroundColor: auroraActive ? auroraGlass.card : gradients.card.default[0],
+          borderColor: isLight
+            ? careLightColors.border
+            : auroraActive
+              ? auroraGlass.border
+              : colors.borderSoft,
+          backgroundColor: isLight
+            ? careLightColors.surface
+            : auroraActive
+              ? auroraGlass.card
+              : gradients.card.default[0],
           overflow: 'hidden',
-          shadowOpacity: 0.3,
-          shadowRadius: 14,
-          shadowOffset: { width: 0, height: 6 },
-          elevation: 8,
+          shadowOpacity: isLight ? 0.1 : 0.3,
+          shadowRadius: isLight ? 8 : 14,
+          shadowOffset: { width: 0, height: isLight ? 2 : 6 },
+          elevation: isLight ? 3 : 8,
         },
         gradient: {
           ...StyleSheet.absoluteFillObject,
@@ -97,17 +110,18 @@ export function PremiumKpiCard({
           textTransform: 'uppercase',
           letterSpacing: 0.4,
           flexShrink: 0,
-          color: text.secondary,
+          color: isLight ? careLightColors.muted : text.secondary,
         },
         value: {
           fontSize: 24,
           fontWeight: '800',
           letterSpacing: -0.5,
           flexShrink: 0,
+          color: isLight ? careLightColors.text : undefined,
         },
         subValue: {
           ...typography.caption,
-          color: text.muted,
+          color: isLight ? careLightColors.muted : text.muted,
         },
         trend: {
           fontSize: 11,
@@ -119,6 +133,7 @@ export function PremiumKpiCard({
       auroraActive,
       colors.borderSoft,
       gradients.card.default,
+      isLight,
       text.muted,
       text.secondary,
       typography.caption,
@@ -138,17 +153,31 @@ export function PremiumKpiCard({
     );
   }
 
-  const trendColor =
-    trend === 'up' ? colors.success : trend === 'down' ? colors.danger : text.muted;
+  const trendColor = isLight
+    ? trend === 'up'
+      ? careLightColors.green
+      : trend === 'down'
+        ? careLightColors.danger
+        : careLightColors.muted
+    : trend === 'up'
+      ? colors.success
+      : trend === 'down'
+        ? colors.danger
+        : text.muted;
 
   const surfaceGradient = auroraActive ? glassFx.surface : gradients.card.default;
 
   return (
     <View
-      style={[styles.wrapper, auroraActive ? glassCardStyle : null, { shadowColor: resolvedAccent }, style]}
+      style={[
+        styles.wrapper,
+        !isLight && auroraActive ? glassCardStyle : null,
+        { shadowColor: isLight ? 'rgba(7,18,42,0.12)' : resolvedAccent },
+        style,
+      ]}
     >
-      <LinearGradient colors={[...surfaceGradient]} style={styles.gradient} />
-      {auroraActive ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
+      {!isLight ? <LinearGradient colors={[...surfaceGradient]} style={styles.gradient} /> : null}
+      {!isLight && auroraActive ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
         {icon ? (
@@ -159,7 +188,10 @@ export function PremiumKpiCard({
         <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
           {label}
         </Text>
-        <Text style={[styles.value, { color: resolvedAccent }]} numberOfLines={1}>
+        <Text
+          style={[styles.value, !isLight ? { color: resolvedAccent } : null]}
+          numberOfLines={1}
+        >
           {value}
         </Text>
         {subValue ? <Text style={styles.subValue}>{subValue}</Text> : null}
