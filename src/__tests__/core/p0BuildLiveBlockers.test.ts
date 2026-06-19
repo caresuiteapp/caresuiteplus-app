@@ -84,5 +84,6 @@ describe('P0 Build/Live Blockers', () => {
     expect(source).toContain('sizeBytes <= 0');
     expect(source).toContain('contentBase64');
     expect(source).toContain("'office', 'documents'");
+    expect(source).toContain('buildStorageObjectFileName');
   });
 });

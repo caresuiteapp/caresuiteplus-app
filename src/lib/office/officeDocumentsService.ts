@@ -12,6 +12,13 @@ import { getServiceMode } from '@/lib/services/mode';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import {
+  buildStorageObjectFileName,
+  buildTenantStoragePath,
+  toStorageUploadError,
+} from '@/lib/storage/storagePaths';
+
+const OFFICE_DOCUMENTS_BUCKET = 'office-documents';
 
 export type OfficeDocumentItem = {
   id: string;
@@ -200,6 +207,15 @@ export async function fetchOfficeDocumentsDashboard(
   return { ok: true, data: { total: DEMO_DOCUMENTS.length, byCategory, items: DEMO_DOCUMENTS } };
 }
 
+export function buildOfficeDocumentStoragePath(
+  tenantId: string,
+  documentId: string,
+  fileName: string,
+): string {
+  const storageFileName = buildStorageObjectFileName(documentId, fileName);
+  return buildTenantStoragePath(tenantId, 'office', 'documents', documentId, storageFileName);
+}
+
 export async function uploadOfficeDocument(
   tenantId: string,
   input: OfficeDocumentUploadInput,
@@ -219,18 +235,37 @@ export async function uploadOfficeDocument(
   }
 
   if (getServiceMode() === 'supabase') {
-    return {
-      ok: false,
-      error: 'Office-Uploads sind in Live derzeit über die Klientenakte verfügbar.',
-    };
+    if (!input.contentBase64 || input.sizeBytes <= 0) {
+      return { ok: false, error: 'Bitte zuerst eine Datei auswählen.' };
+    }
+
+    const supabase = getSupabaseClient();
+    if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const docId = crypto.randomUUID?.() ?? `doc-${Date.now()}`;
+    const storagePath = buildOfficeDocumentStoragePath(tenantId, docId, input.filename.trim());
+    const payload = Uint8Array.from(atob(input.contentBase64), (c) => c.charCodeAt(0));
+
+    const { error: uploadError } = await supabase.storage
+      .from(OFFICE_DOCUMENTS_BUCKET)
+      .upload(storagePath, payload, {
+        contentType: input.mimeType,
+        upsert: false,
+      });
+    if (uploadError) {
+      return { ok: false, error: toStorageUploadError(uploadError.message) };
+    }
+
+    return { ok: true, data: { id: docId, storagePath } };
   }
 
   await new Promise((r) => setTimeout(r, 300));
+  const demoId = `doc-demo-${Date.now()}`;
   return {
     ok: true,
     data: {
-      id: `doc-demo-${Date.now()}`,
-      storagePath: `demo://${input.filename}`,
+      id: demoId,
+      storagePath: buildOfficeDocumentStoragePath(tenantId, demoId, input.filename.trim()),
     },
   };
 }

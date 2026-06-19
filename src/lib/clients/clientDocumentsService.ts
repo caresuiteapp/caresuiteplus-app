@@ -6,7 +6,11 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
 import { assertDemoTenant, getClientExtendedRepository, isDemoClientBackend } from './clientBackend';
 import { fetchClientDocuments } from './clientDocumentService';
-import { buildTenantStoragePath } from '@/lib/storage/storagePaths';
+import {
+  buildStorageObjectFileName,
+  buildTenantStoragePath,
+  toStorageUploadError,
+} from '@/lib/storage/storagePaths';
 
 const STORAGE_BUCKET = 'office-documents';
 
@@ -34,7 +38,8 @@ export function buildClientDocumentStoragePath(
   documentId: string,
   fileName: string,
 ): string {
-  return buildTenantStoragePath(tenantId, 'clients', clientId, 'documents', documentId, fileName);
+  const storageFileName = buildStorageObjectFileName(documentId, fileName);
+  return buildTenantStoragePath(tenantId, 'clients', clientId, 'documents', documentId, storageFileName);
 }
 
 export async function uploadClientDocument(
@@ -60,7 +65,7 @@ export async function uploadClientDocument(
         upsert: false,
       });
       if (uploadError) {
-        return { ok: false, error: uploadError.message || 'Storage-Upload fehlgeschlagen.' };
+        return { ok: false, error: toStorageUploadError(uploadError.message) };
       }
 
       return getClientExtendedRepository().insertDocument(tenantId, clientId, {

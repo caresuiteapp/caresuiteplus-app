@@ -92,7 +92,17 @@ describe('Client Intake & Record Rebuild', () => {
 
   it('Dokumentupload Storage-Pfad tenant/client', () => {
     const path = buildClientDocumentStoragePath(DEMO_TENANT_ID, 'client-001', 'doc-1', 'test.pdf');
-    expect(path).toBe(`tenant/${DEMO_TENANT_ID}/clients/client-001/documents/doc-1/test.pdf`);
+    expect(path).toBe(`tenant/${DEMO_TENANT_ID}/clients/client-001/documents/doc-1/doc-1.pdf`);
+  });
+
+  it('Dokumentupload Storage-Pfad sanitisiert Sonderzeichen', () => {
+    const path = buildClientDocumentStoragePath(
+      DEMO_TENANT_ID,
+      'client-001',
+      'doc-uuid',
+      'Helferhasen-Mail - Versorgung §45a – Krankenfahrten.pdf',
+    );
+    expect(path).toBe(`tenant/${DEMO_TENANT_ID}/clients/client-001/documents/doc-uuid/doc-uuid.pdf`);
   });
 
   it('Demo-Konstellationen: mindestens 10 Akten', () => {

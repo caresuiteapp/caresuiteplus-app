@@ -7,6 +7,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { buildStorageObjectFileName, buildTenantStoragePath, toStorageUploadError } from '@/lib/storage/storagePaths';
 import {
   buildBackgroundCheckLiveUpdatePayload,
   buildQualificationFlagsLiveUpdatePayload,
@@ -33,7 +34,8 @@ function buildEmployeeDocumentStoragePath(
   docId: string,
   fileName: string,
 ): string {
-  return `tenants/${tenantId}/employees/${employeeId}/${docId}/${fileName}`;
+  const storageFileName = buildStorageObjectFileName(docId, fileName);
+  return buildTenantStoragePath(tenantId, 'employees', employeeId, docId, storageFileName);
 }
 
 async function loadExistingFile(tenantId: string, employeeId: string) {
@@ -209,7 +211,7 @@ export async function uploadEmployeePersonnelDocument(
       upsert: false,
     });
     if (uploadError) {
-      return { ok: false, error: uploadError.message || 'Storage-Upload fehlgeschlagen.' };
+      return { ok: false, error: toStorageUploadError(uploadError.message) };
     }
 
     const { error: insertError } = await fromUnknownTable(supabase, 'documents').insert({
