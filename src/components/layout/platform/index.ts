@@ -17,4 +17,6 @@ export { PlatformTopbar } from './platformtopbar';
 export { ModuleDashboardShell } from './moduledashboardshell';
 export { RightContextPanel } from './rightcontextpanel';
 export { MobilePlatformContextPanel } from './mobileplatformcontextpanel';
+export { CollapsibleSidebarSection } from './collapsiblesidebarsection';
+export type { CollapsibleSidebarSectionProps } from './collapsiblesidebarsection';
 export { PlatformModal } from './platformmodal';

@@ -48,10 +48,46 @@ describe('Office mobile platform layout', () => {
 
   it('context panel nav uses business hub links for Office module', () => {
     const data = readSrc('src/components/layout/platform/platformContextData.ts');
-    const zentrale = readSrc('src/lib/navigation/modulenav/zentralenav.ts');
-    expect(data).toContain('zentraleNav');
+    expect(data).toContain('officeContextPanelNav');
     expect(data).toContain("mainModule === 'office'");
-    expect(zentrale).toContain('/business/modules');
+    expect(data).toContain('/business/modules');
+    expect(data).toContain('/business/office/audit-log');
+  });
+
+  it('context panel sections have at least 5 items and collapse to 2 initially', () => {
+    const data = readSrc('src/components/layout/platform/platformContextData.ts');
+    const desktop = readSrc('src/components/layout/platform/rightcontextpanel.tsx');
+    const mobile = readSrc('src/components/layout/platform/mobileplatformcontextpanel.tsx');
+
+    expect(desktop).toContain('CollapsibleSidebarSection');
+    expect(mobile).toContain('CollapsibleSidebarSection');
+
+    const collapsible = readSrc('src/components/layout/platform/collapsiblesidebarsection.tsx');
+    expect(collapsible).toContain('initialVisibleCount = 2');
+    expect(collapsible).toContain('(mehr...)');
+    expect(collapsible).toContain('(weniger...)');
+
+    const quickActionLabels = [
+      'Klient:in anlegen',
+      'Rechnung erstellen',
+      'Termin planen',
+      'Dokument hochladen',
+      'Mitarbeitende anlegen',
+    ];
+    for (const label of quickActionLabels) {
+      expect(data).toContain(label);
+    }
+
+    const navGroups = ['Übersicht', 'Organisation', 'Insight & QM'] as const;
+    for (const group of navGroups) {
+      expect(data).toContain(`title: '${group}'`);
+    }
+
+    expect(data).toContain("href: '/office/appointments'");
+    expect(data).toContain("href: '/business/office/access/tasks'");
+    expect(data).toContain("href: '/business/office/settings'");
+    expect(data).toContain("href: '/business/office/access/roles'");
+    expect(data).toContain("href: '/business/office/admin/operations-monitoring'");
   });
 
   it('MobilePlatformContextPanel uses aurora glass surfaces', () => {

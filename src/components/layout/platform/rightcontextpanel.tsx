@@ -30,6 +30,7 @@ import {
   OFFICE_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
+import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
 
 type RightContextPanelProps = {
   mainModule: MainModuleKey;
@@ -107,11 +108,15 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
         ))}
       </ScrollView>
 
-      <Text style={styles.sectionHeading}>Schnellaktionen</Text>
-      <View style={styles.quickActions}>
-        {quickActions.map((action) => (
+      <CollapsibleSidebarSection
+        title="Schnellaktionen"
+        items={quickActions}
+        getItemKey={(action) => action.label}
+        titleStyle={styles.sectionHeading}
+        itemsContainerStyle={styles.quickActions}
+        toggleStyle={{ color: colors.textMuted }}
+        renderItem={(action) => (
           <Pressable
-            key={action.label}
             onPress={() => router.push(action.href as never)}
             style={[styles.actionBtn, webCursor]}
             accessibilityRole="button"
@@ -121,18 +126,23 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
               {action.label}
             </Text>
           </Pressable>
-        ))}
-      </View>
+        )}
+      />
 
       <View style={styles.navSection}>
         {navConfig.groups.map((group) => (
-          <View key={group.title} style={styles.navGroup}>
-            <Text style={styles.groupTitle}>{group.title}</Text>
-            {group.items.map((item) => {
+          <CollapsibleSidebarSection
+            key={group.title}
+            title={group.title}
+            items={group.items}
+            getItemKey={(item) => item.key}
+            titleStyle={styles.groupTitle}
+            itemsContainerStyle={styles.navGroup}
+            toggleStyle={{ color: colors.textMuted }}
+            renderItem={(item) => {
               const active = item.key === activeNavKey;
               return (
                 <Pressable
-                  key={item.key}
                   onPress={() => router.push(item.href as never)}
                   style={webCursor}
                   accessibilityRole="button"
@@ -163,8 +173,8 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
                   </View>
                 </Pressable>
               );
-            })}
-          </View>
+            }}
+          />
         ))}
       </View>
 

@@ -3,19 +3,68 @@ import type { MainModuleKey, ModuleNavConfig, ModuleNavItem } from '@/types/navi
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 import { getModuleNavConfig } from '@/lib/navigation/modulenav';
-import { zentraleNav } from '@/lib/navigation/modulenav/zentralenav';
 
-export const OFFICE_QUICK_ACTIONS = [
+export type ContextQuickAction = {
+  label: string;
+  icon: string;
+  href: string;
+};
+
+export const OFFICE_QUICK_ACTIONS: ContextQuickAction[] = [
   { label: 'Klient:in anlegen', icon: '➕', href: CLIENT_INTAKE_NEW_ROUTE },
   { label: 'Rechnung erstellen', icon: '🧾', href: '/office/invoices/create' },
   { label: 'Termin planen', icon: '📅', href: '/office/appointments/create' },
   { label: 'Dokument hochladen', icon: '📁', href: '/office/documents/upload' },
+  { label: 'Mitarbeitende anlegen', icon: '👥', href: '/office/employees/create' },
 ];
+
+/** Expanded hub nav for Office right context panel — min. 5 items per group. */
+export const officeContextPanelNav: ModuleNavConfig = {
+  moduleKey: 'office',
+  label: 'Zentrale',
+  groups: [
+    {
+      title: 'Übersicht',
+      items: [
+        { key: 'dashboard', label: 'Dashboard', icon: '📊', href: '/business' },
+        { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/business/messages' },
+        { key: 'reporting', label: 'Reporting', icon: '📈', href: '/business/reporting' },
+        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/office/appointments' },
+        { key: 'tasks', label: 'Aufgaben & Vorgänge', icon: '✅', href: '/business/office/access/tasks' },
+      ],
+    },
+    {
+      title: 'Organisation',
+      items: [
+        { key: 'modules', label: 'Module & Lizenzen', icon: '🧩', href: '/business/modules' },
+        { key: 'connect', label: 'Connect & Integrationen', icon: '🔌', href: '/business/connect' },
+        { key: 'subscription', label: 'Abonnement', icon: '💳', href: '/business/subscription' },
+        { key: 'tenant-settings', label: 'Mandant-Einstellungen', icon: '⚙️', href: '/business/office/settings' },
+        { key: 'team-roles', label: 'Team & Rollen', icon: '👥', href: '/business/office/access/roles' },
+      ],
+    },
+    {
+      title: 'Insight & QM',
+      items: [
+        { key: 'insight', label: 'InsightCenter', icon: '📊', href: '/insight' },
+        { key: 'qm', label: 'Qualitätsmanagement', icon: '✅', href: '/business/qm' },
+        { key: 'ops', label: 'Betrieb & Monitoring', icon: '🛰️', href: '/business/ops' },
+        { key: 'audit-log', label: 'Audit-Log', icon: '📋', href: '/business/office/audit-log' },
+        {
+          key: 'live-monitor',
+          label: 'Live-Monitor',
+          icon: '📡',
+          href: '/business/office/admin/operations-monitoring',
+        },
+      ],
+    },
+  ],
+};
 
 /** Nav groups shown below Schnellaktionen in the right context panel (Office → business hub). */
 export function resolveContextPanelNavConfig(mainModule: MainModuleKey): ModuleNavConfig {
   if (mainModule === 'office' || mainModule === 'zentrale') {
-    return zentraleNav;
+    return officeContextPanelNav;
   }
   return getModuleNavConfig(mainModule);
 }

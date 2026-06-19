@@ -29,6 +29,7 @@ import {
   OFFICE_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
+import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
 
 type MobilePlatformContextPanelProps = {
   mainModule: MainModuleKey;
@@ -112,34 +113,42 @@ export function MobilePlatformContextPanel({
         ))}
       </GlassCard>
 
-      <View style={styles.section}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SCHNELLAKTIONEN</Text>
-        <View style={styles.quickActions}>
-          {quickActions.map((action) => (
-            <Pressable
-              key={action.label}
-              onPress={() => router.push(action.href as never)}
-              style={[styles.actionBtn, webCursor]}
-              accessibilityRole="button"
-            >
-              <Text style={styles.actionIcon}>{action.icon}</Text>
-              <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]} numberOfLines={2}>
-                {action.label}
-              </Text>
-            </Pressable>
-          ))}
-        </View>
-      </View>
+      <CollapsibleSidebarSection
+        title="SCHNELLAKTIONEN"
+        items={quickActions}
+        getItemKey={(action) => action.label}
+        titleStyle={[type.caption, styles.eyebrow, { color: text.muted }]}
+        containerStyle={styles.section}
+        itemsContainerStyle={styles.quickActions}
+        toggleStyle={{ color: text.muted }}
+        renderItem={(action) => (
+          <Pressable
+            onPress={() => router.push(action.href as never)}
+            style={[styles.actionBtn, webCursor]}
+            accessibilityRole="button"
+          >
+            <Text style={styles.actionIcon}>{action.icon}</Text>
+            <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]} numberOfLines={2}>
+              {action.label}
+            </Text>
+          </Pressable>
+        )}
+      />
 
       <View style={styles.navSection}>
         {navConfig.groups.map((group) => (
-          <View key={group.title} style={styles.navGroup}>
-            <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>{group.title}</Text>
-            {group.items.map((item) => {
+          <CollapsibleSidebarSection
+            key={group.title}
+            title={group.title}
+            items={group.items}
+            getItemKey={(item) => item.key}
+            titleStyle={[type.caption, styles.eyebrow, { color: text.muted }]}
+            itemsContainerStyle={styles.navGroup}
+            toggleStyle={{ color: text.muted }}
+            renderItem={(item) => {
               const active = item.key === activeNavKey;
               return (
                 <Pressable
-                  key={item.key}
                   onPress={() => router.push(item.href as never)}
                   style={webCursor}
                   accessibilityRole="button"
@@ -170,8 +179,8 @@ export function MobilePlatformContextPanel({
                   </View>
                 </Pressable>
               );
-            })}
-          </View>
+            }}
+          />
         ))}
       </View>
 
