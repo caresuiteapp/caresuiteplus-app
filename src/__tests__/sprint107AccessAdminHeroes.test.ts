@@ -51,7 +51,7 @@ describe('Access Management Heroes (Sprint 107)', () => {
     expect(screen).toContain('AccessListHero');
     expect(screen).toContain('LoadingState');
     expect(screen).toContain('ErrorState');
-    expect(screen).toContain('useDemoData');
+    expect(screen).toContain('fetchInternalUsersList');
   });
 
   it('LoginAuditScreen nutzt AccessListHero und EmptyState', () => {

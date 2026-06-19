@@ -70,7 +70,9 @@ export function AccessManagementDashboardHero({ stats }: AccessManagementDashboa
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isAccessManagementLiveReady() ? (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
-        ) : null}
+        ) : (
+          <PremiumBadge label="Supabase Live" variant="green" dot />
+        )}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

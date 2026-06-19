@@ -1,5 +1,12 @@
+import {
+  fetchAccessDashboardStatsFromSupabase,
+  fetchEmployeePortalAccountsFromSupabase,
+  fetchLoginAuditEventsFromSupabase,
+  fetchTenantUsersFromSupabase,
+} from '@/lib/access/accessManagementLiveRepository';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import type { RoleKey, ServiceResult } from '@/types';
+import { getServiceMode } from '@/lib/services/mode';
 import type {
   AccessCredentialsReveal,
   ClientPortalCode,
@@ -18,10 +25,7 @@ import {
   getRelativePortalCodes,
   getTenantUsers,
   saveModulePermission,
-  saveRelativePortalCode,
-  setPortalCodeHash,
 } from './demoAccessStore';
-import { hashPortalCode, pickUniquePortalCode } from './portalCodeGenerator';
 import {
   blockEmployeeAccess,
   generateEmployeeAccess,
@@ -72,8 +76,102 @@ export async function fetchAccessDashboardStats(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+  if (getServiceMode() === 'supabase') {
+    return fetchAccessDashboardStatsFromSupabase(tenantId);
+  }
   await accessDemoDelay();
   return { ok: true, data: getAccessDashboardStats(tenantId) };
+}
+
+export async function fetchInternalUsersList(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<TenantUser[]>> {
+  const denied = enforcePermission<TenantUser[]>(actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (getServiceMode() === 'supabase') {
+    return fetchTenantUsersFromSupabase(tenantId);
+  }
+  await accessDemoDelay();
+  return { ok: true, data: listInternalUsers(tenantId) };
+}
+
+export async function fetchEmployeePortalAccountsList(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<EmployeePortalAccount[]>> {
+  const denied = enforcePermission<EmployeePortalAccount[]>(actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (getServiceMode() === 'supabase') {
+    return fetchEmployeePortalAccountsFromSupabase(tenantId);
+  }
+  await accessDemoDelay();
+  return { ok: true, data: listEmployeePortalAccounts(tenantId) };
+}
+
+export async function fetchAccessAuditEventsList(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<LoginAuditEvent[]>> {
+  const denied = enforcePermission<LoginAuditEvent[]>(actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  if (getServiceMode() === 'supabase') {
+    return fetchLoginAuditEventsFromSupabase(tenantId);
+  }
+  await accessDemoDelay();
+  return { ok: true, data: listAccessAuditEvents(tenantId) };
+}
+
+export async function fetchInternalUserById(
+  tenantId: string,
+  userId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<TenantUser | null>> {
+  const denied = enforcePermission<TenantUser | null>(actorRoleKey, 'office.access' as never);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'supabase') {
+    const { fetchTenantUserById } = await import('@/lib/access/accessManagementLiveRepository');
+    return fetchTenantUserById(tenantId, userId);
+  }
+
+  await accessDemoDelay();
+  const user = listInternalUsers(tenantId).find((entry) => entry.id === userId) ?? null;
+  return { ok: true, data: user };
+}
+
+export async function fetchEmployeePortalAccountById(
+  tenantId: string,
+  accountId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<EmployeePortalAccount | null>> {
+  const denied = enforcePermission<EmployeePortalAccount | null>(
+    actorRoleKey,
+    'office.access' as never,
+  );
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'supabase') {
+    const { fetchEmployeePortalAccountById: fetchLive } = await import(
+      '@/lib/access/accessManagementLiveRepository'
+    );
+    return fetchLive(tenantId, accountId);
+  }
+
+  await accessDemoDelay();
+  const account =
+    listEmployeePortalAccounts(tenantId).find((entry) => entry.id === accountId) ?? null;
+  return { ok: true, data: account };
 }
 
 export async function fetchRolePermissionProfiles(
@@ -167,9 +265,6 @@ export async function createClientPortalAccess(input: {
   });
 }
 
-function createPortalCodeId(prefix: string): string {
-  return `${prefix}-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 8)}`;
-}
 
 export async function createRelativePortalAccess(input: {
   tenantId?: string;
@@ -178,39 +273,14 @@ export async function createRelativePortalAccess(input: {
   createdBy?: string | null;
   expiresAt?: string | null;
 }): Promise<ServiceResult<{ code: RelativePortalCode; credentials: AccessCredentialsReveal }>> {
-  const tenantId = input.tenantId ?? DEMO_TENANT_ID;
-  const plainCode = pickUniquePortalCode([]);
-  const now = new Date().toISOString();
-  const code: RelativePortalCode = {
-    id: createPortalCodeId('rpc'),
-    tenantId,
+  const { setupRelativePortalAccess } = await import('@/lib/access/relativePortalAccessService');
+  return setupRelativePortalAccess({
+    tenantId: input.tenantId ?? DEMO_TENANT_ID,
     clientId: input.clientId,
     relativeContactId: input.relativeContactId,
-    status: 'active',
-    expiresAt: input.expiresAt ?? null,
-    lastUsedAt: null,
     createdBy: input.createdBy ?? null,
-    createdAt: now,
-    updatedAt: now,
-    blockedAt: null,
-    blockedBy: null,
-    blockedReason: null,
-    regeneratedAt: null,
-  };
-
-  saveRelativePortalCode(code);
-  await setPortalCodeHash(code.id, await hashPortalCode(plainCode));
-
-  return {
-    ok: true,
-    data: {
-      code,
-      credentials: {
-        portalCode: plainCode,
-        expiresAt: code.expiresAt,
-      },
-    },
-  };
+    expiresAt: input.expiresAt ?? null,
+  });
 }
 
 export async function resetEmployeePortalPassword(accountId: string, actorId: string | null) {

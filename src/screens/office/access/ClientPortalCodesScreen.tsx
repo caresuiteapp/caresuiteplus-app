@@ -34,22 +34,22 @@ const QUICK_LINKS = [
   {
     title: 'Interne Benutzer',
     route: '/business/office/access/internal-users',
-    live: false,
   },
   {
     title: 'Mitarbeiterzugang',
     route: '/business/office/access/employee-portal',
-    live: false,
+  },
+  {
+    title: 'Angehörigenportal',
+    route: '/business/office/access/relative-portal',
   },
   {
     title: 'Rollen & Rechte',
     route: '/business/office/access/roles',
-    live: true,
   },
   {
     title: 'Login-Protokoll',
     route: '/business/office/access/login-audit',
-    live: false,
   },
 ] as const;
 
@@ -278,7 +278,7 @@ export function ClientPortalCodesScreen() {
 
       <SectionPanel title="Weitere Zugänge">
         <View style={styles.actions}>
-          {QUICK_LINKS.filter((link) => !isLive || link.live).map((link) => (
+          {QUICK_LINKS.map((link) => (
             <PremiumButton
               key={link.route}
               title={link.title}
@@ -287,11 +287,6 @@ export function ClientPortalCodesScreen() {
               onPress={() => router.push(link.route as never)}
             />
           ))}
-          {!isLive ? (
-            <Text style={styles.sectionHint}>
-              Angehörigen-Codes und Mitarbeiterzugänge folgen mit Live-Anbindung.
-            </Text>
-          ) : null}
         </View>
       </SectionPanel>
     </ScreenShell>

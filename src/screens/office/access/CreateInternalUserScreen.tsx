@@ -6,7 +6,8 @@ import { CareLightPageShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import type { AccessCredentialsReveal, InternalRoleKey } from '@/lib/auth/auth.types';
 import { createInternalUser } from '@/lib/auth/accessManagementService';
-import { demoTenant } from '@/data/demo/tenant';
+import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { spacing, typography } from '@/theme';
 
 const ROLE_OPTIONS: InternalRoleKey[] = [
@@ -22,6 +23,8 @@ const ROLE_OPTIONS: InternalRoleKey[] = [
 
 export function CreateInternalUserScreen() {
   const router = useRouter();
+  const tenantId = useServiceTenantId();
+  const companyName = useTenantDisplayName();
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
   const [email, setEmail] = useState('');
@@ -31,10 +34,15 @@ export function CreateInternalUserScreen() {
   const [credentials, setCredentials] = useState<AccessCredentialsReveal | null>(null);
 
   const handleSubmit = async () => {
+    if (!tenantId) {
+      setError('Kein Mandant aufgelöst.');
+      return;
+    }
     setError(null);
     setLoading(true);
     const result = await createInternalUser({
-      companyName: demoTenant.name,
+      tenantId,
+      companyName,
       firstName,
       lastName,
       email,

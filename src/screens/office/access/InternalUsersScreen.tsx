@@ -3,19 +3,35 @@ import { useRouter } from 'expo-router';
 import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
-import { useDemoData } from '@/hooks/useDemoData';
-import { listInternalUsers } from '@/lib/auth/accessManagementService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { fetchInternalUsersList } from '@/lib/auth/accessManagementService';
 import { colors, spacing, typography } from '@/theme';
 
 export function InternalUsersScreen() {
   const router = useRouter();
-  const { data: users, loading, error, refresh } = useDemoData(
-    () => listInternalUsers(DEMO_TENANT_ID),
-    [],
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+
+  const query = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchInternalUsersList(tenantId, profile?.roleKey);
+    },
+    [tenantId, profile?.roleKey],
+    { enabled: !!tenantId },
   );
 
-  if (loading && !users) {
+  if (!tenantId) {
+    return (
+      <ScreenShell title="Interne Benutzer" subtitle="Zugänge & Benutzer" scroll>
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </ScreenShell>
+    );
+  }
+
+  if (query.loading && !query.data) {
     return (
       <ScreenShell title="Interne Benutzer" subtitle="Wird geladen…" scroll>
         <LoadingState message="Interne Benutzer werden geladen…" />
@@ -23,15 +39,15 @@ export function InternalUsersScreen() {
     );
   }
 
-  if (error && !users) {
+  if (query.error && !query.data) {
     return (
       <ScreenShell title="Interne Benutzer" subtitle="Fehler" scroll>
-        <ErrorState message={error} onRetry={refresh} />
+        <ErrorState message={query.error} onRetry={query.refresh} />
       </ScreenShell>
     );
   }
 
-  const items = users ?? [];
+  const items = query.data ?? [];
 
   return (
     <ScreenShell title="Interne Benutzer" subtitle="Zugänge & Benutzer" scroll>

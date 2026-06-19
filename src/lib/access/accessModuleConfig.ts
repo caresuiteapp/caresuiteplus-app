@@ -1,8 +1,8 @@
 import { getServiceMode } from '@/lib/services/mode';
 
-/** Gesamte Zugangsverwaltung — interne Benutzer, Audit usw. noch Demo-basiert. */
+/** Gesamte Zugangsverwaltung — Live-Supabase wenn konfiguriert. */
 export function isAccessManagementLiveReady(): boolean {
-  return false;
+  return getServiceMode() === 'supabase';
 }
 
 /** Klient:innenportal-Codes — Live-Supabase inkl. Migration 0061. */
@@ -10,8 +10,16 @@ export function isClientPortalAccessLiveReady(): boolean {
   return getServiceMode() === 'supabase';
 }
 
+/** Angehörigenportal-Codes — Live-Supabase (Migration 0016/0017). */
+export function isRelativePortalAccessLiveReady(): boolean {
+  return getServiceMode() === 'supabase';
+}
+
 export const ACCESS_MANAGEMENT_PREPARED_MESSAGE =
-  'Zugangsverwaltung nutzt Demo-Daten — Live-Supabase-Sync und Mandanten-RLS sind in Vorbereitung.';
+  'Zugangsverwaltung nutzt Demo-Daten — Live-Supabase-Sync ist nur im Demo-Modus aktiv.';
 
 export const CLIENT_PORTAL_ACCESS_PREPARED_MESSAGE =
-  'Klient:innenportal-Codes nutzen Demo-Daten — Live-Supabase-Anbindung ist in Supabase-Modus aktiv.';
+  'Klient:innenportal-Codes nutzen Demo-Daten — im Live-Modus werden Supabase-Daten verwendet.';
+
+export const RELATIVE_PORTAL_ACCESS_PREPARED_MESSAGE =
+  'Angehörigen-Codes nutzen Demo-Daten — im Live-Modus werden Supabase-Daten verwendet.';

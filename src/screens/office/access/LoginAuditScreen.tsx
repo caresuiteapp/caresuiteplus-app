@@ -2,18 +2,34 @@ import { FlatList, StyleSheet, Text, View } from 'react-native';
 import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard } from '@/components/ui';
-import { useDemoData } from '@/hooks/useDemoData';
-import { listAccessAuditEvents } from '@/lib/auth/accessManagementService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { fetchAccessAuditEventsList } from '@/lib/auth/accessManagementService';
 import { colors, spacing, typography } from '@/theme';
 
 export function LoginAuditScreen() {
-  const { data: events, loading, error, refresh } = useDemoData(
-    () => listAccessAuditEvents(DEMO_TENANT_ID),
-    [],
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+
+  const query = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchAccessAuditEventsList(tenantId, profile?.roleKey);
+    },
+    [tenantId, profile?.roleKey],
+    { enabled: !!tenantId },
   );
 
-  if (loading && !events) {
+  if (!tenantId) {
+    return (
+      <ScreenShell title="Login-Protokoll" subtitle="Zugänge & Benutzer" scroll>
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </ScreenShell>
+    );
+  }
+
+  if (query.loading && !query.data) {
     return (
       <ScreenShell title="Login-Protokoll" subtitle="Wird geladen…" scroll>
         <LoadingState message="Login-Ereignisse werden geladen…" />
@@ -21,15 +37,15 @@ export function LoginAuditScreen() {
     );
   }
 
-  if (error && !events) {
+  if (query.error && !query.data) {
     return (
       <ScreenShell title="Login-Protokoll" subtitle="Fehler" scroll>
-        <ErrorState message={error} onRetry={refresh} />
+        <ErrorState message={query.error} onRetry={query.refresh} />
       </ScreenShell>
     );
   }
 
-  const items = events ?? [];
+  const items = query.data ?? [];
 
   return (
     <ScreenShell title="Login-Protokoll" subtitle="Zugänge & Benutzer" scroll>

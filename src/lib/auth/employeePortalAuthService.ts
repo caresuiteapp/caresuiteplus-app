@@ -1,5 +1,12 @@
 import type { ServiceResult } from '@/types';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import {
+  fetchEmployeePortalAccountById,
+  insertEmployeePortalAccount,
+  listEmployeeUsernamesFromSupabase,
+  updateEmployeePortalAccountPasswordReset,
+  updateEmployeePortalAccountStatus,
+} from '@/lib/access/accessManagementLiveRepository';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
@@ -41,14 +48,39 @@ export async function generateEmployeeAccess(input: {
   companyName: string;
   createdBy: string | null;
 }): Promise<ServiceResult<{ account: EmployeePortalAccount; credentials: AccessCredentialsReveal }>> {
+  const existingUsernames =
+    getServiceMode() === 'supabase'
+      ? await listEmployeeUsernamesFromSupabase(input.tenantId)
+      : listEmployeeUsernames(input.tenantId);
+
   const username = pickUniqueUsername(
     input.companyName,
     input.firstName,
     input.lastName,
-    listEmployeeUsernames(input.tenantId),
+    existingUsernames,
   );
   const oneTimePassword = generateTemporaryPassword();
   const tempRecord = await createTemporaryPasswordRecord(oneTimePassword);
+
+  if (getServiceMode() === 'supabase') {
+    const inserted = await insertEmployeePortalAccount({
+      tenantId: input.tenantId,
+      employeeId: input.employeeId,
+      username,
+      tempPasswordHash: tempRecord.hash,
+      tempPasswordCreatedAt: tempRecord.createdAt,
+      tempPasswordExpiresAt: tempRecord.expiresAt,
+      createdBy: input.createdBy,
+    });
+    if (!inserted.ok) return inserted;
+    return {
+      ok: true,
+      data: {
+        account: inserted.data,
+        credentials: { username, oneTimePassword },
+      },
+    };
+  }
 
   const account: EmployeePortalAccount = {
     id: createId('epa'),
@@ -250,9 +282,37 @@ function getEmployeeAccountById(tenantId: string, accountId: string): EmployeePo
 export async function resetEmployeePassword(
   accountId: string,
   actorId: string | null,
+  tenantId?: string,
 ): Promise<ServiceResult<AccessCredentialsReveal>> {
-  const tenantId = DEMO_TENANT_ID;
-  const account = getEmployeeAccountById(tenantId, accountId);
+  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
+
+  if (getServiceMode() === 'supabase') {
+    const existing = await fetchEmployeePortalAccountById(resolvedTenantId, accountId);
+    if (!existing.ok) return existing;
+    if (!existing.data) return { ok: false, error: 'Zugang nicht gefunden.' };
+
+    const oneTimePassword = generateTemporaryPassword();
+    const tempRecord = await createTemporaryPasswordRecord(oneTimePassword);
+    const updated = await updateEmployeePortalAccountPasswordReset({
+      tenantId: resolvedTenantId,
+      accountId,
+      tempPasswordHash: tempRecord.hash,
+      tempPasswordCreatedAt: tempRecord.createdAt,
+      tempPasswordExpiresAt: tempRecord.expiresAt,
+      actorId,
+    });
+    if (!updated.ok) return updated;
+
+    return {
+      ok: true,
+      data: {
+        username: existing.data.username,
+        oneTimePassword,
+      },
+    };
+  }
+
+  const account = getEmployeeAccountById(resolvedTenantId, accountId);
   if (!account) {
     return { ok: false, error: 'Zugang nicht gefunden.' };
   }
@@ -287,8 +347,22 @@ export async function blockEmployeeAccess(
   accountId: string,
   actorId: string | null,
   reason: string,
+  tenantId?: string,
 ): Promise<ServiceResult<EmployeePortalAccount>> {
-  const account = getEmployeeAccountById(DEMO_TENANT_ID, accountId);
+  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
+
+  if (getServiceMode() === 'supabase') {
+    return updateEmployeePortalAccountStatus({
+      tenantId: resolvedTenantId,
+      accountId,
+      status: 'blocked',
+      blockedAt: nowIso(),
+      blockedBy: actorId,
+      blockedReason: reason,
+    });
+  }
+
+  const account = getEmployeeAccountById(resolvedTenantId, accountId);
   if (!account) {
     return { ok: false, error: 'Zugang nicht gefunden.' };
   }
@@ -304,8 +378,26 @@ export async function blockEmployeeAccess(
 
 export async function unblockEmployeeAccess(
   accountId: string,
+  tenantId?: string,
 ): Promise<ServiceResult<EmployeePortalAccount>> {
-  const account = getEmployeeAccountById(DEMO_TENANT_ID, accountId);
+  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
+
+  if (getServiceMode() === 'supabase') {
+    const existing = await fetchEmployeePortalAccountById(resolvedTenantId, accountId);
+    if (!existing.ok) return existing;
+    if (!existing.data) return { ok: false, error: 'Zugang nicht gefunden.' };
+
+    return updateEmployeePortalAccountStatus({
+      tenantId: resolvedTenantId,
+      accountId,
+      status: existing.data.firstLoginCompleted ? 'active' : 'pending_first_login',
+      blockedAt: null,
+      blockedBy: null,
+      blockedReason: null,
+    });
+  }
+
+  const account = getEmployeeAccountById(resolvedTenantId, accountId);
   if (!account) {
     return { ok: false, error: 'Zugang nicht gefunden.' };
   }

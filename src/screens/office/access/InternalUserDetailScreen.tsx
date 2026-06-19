@@ -1,15 +1,45 @@
 import { StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, PremiumButton, PremiumCard } from '@/components/ui';
-import { listInternalUsers } from '@/lib/auth/accessManagementService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { fetchInternalUserById } from '@/lib/auth/accessManagementService';
+import { useAuth } from '@/lib/auth/context';
 import { colors, typography } from '@/theme';
 
 export function InternalUserDetailScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
-  const user = listInternalUsers(DEMO_TENANT_ID).find((entry) => entry.id === id);
+  const tenantId = useServiceTenantId();
+  const { profile } = useAuth();
+
+  const query = useAsyncQuery(
+    () => {
+      if (!tenantId || !id) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchInternalUserById(tenantId, id, profile?.roleKey);
+    },
+    [tenantId, id, profile?.roleKey],
+    { enabled: !!tenantId && !!id },
+  );
+
+  if (query.loading && !query.data) {
+    return (
+      <ScreenShell title="Interner Benutzer" subtitle="Wird geladen…" scroll>
+        <LoadingState message="Benutzer wird geladen…" />
+      </ScreenShell>
+    );
+  }
+
+  if (query.error && !query.data) {
+    return (
+      <ScreenShell title="Interner Benutzer" subtitle="Fehler" scroll>
+        <ErrorState message={query.error} onRetry={query.refresh} />
+      </ScreenShell>
+    );
+  }
+
+  const user = query.data;
 
   if (!user) {
     return (

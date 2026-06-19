@@ -6,11 +6,15 @@ import { CareLightPageShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import type { AccessCredentialsReveal } from '@/lib/auth/auth.types';
 import { createEmployeePortalAccount } from '@/lib/auth/accessManagementService';
-import { demoTenant } from '@/data/demo/tenant';
+import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { isAccessManagementLiveReady } from '@/lib/access/accessModuleConfig';
 import { typography } from '@/theme';
 
 export function CreateEmployeePortalAccountScreen() {
   const router = useRouter();
+  const tenantId = useServiceTenantId();
+  const companyName = useTenantDisplayName();
   const [employeeId, setEmployeeId] = useState('');
   const [firstName, setFirstName] = useState('');
   const [lastName, setLastName] = useState('');
@@ -19,10 +23,15 @@ export function CreateEmployeePortalAccountScreen() {
   const [credentials, setCredentials] = useState<AccessCredentialsReveal | null>(null);
 
   const handleSubmit = async () => {
+    if (!tenantId) {
+      setError('Kein Mandant aufgelöst.');
+      return;
+    }
     setError(null);
     setLoading(true);
     const result = await createEmployeePortalAccount({
-      companyName: demoTenant.name,
+      tenantId,
+      companyName,
       employeeId,
       firstName,
       lastName,

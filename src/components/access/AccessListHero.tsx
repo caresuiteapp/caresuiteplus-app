@@ -5,8 +5,10 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import {
   ACCESS_MANAGEMENT_PREPARED_MESSAGE,
   CLIENT_PORTAL_ACCESS_PREPARED_MESSAGE,
+  RELATIVE_PORTAL_ACCESS_PREPARED_MESSAGE,
   isAccessManagementLiveReady,
   isClientPortalAccessLiveReady,
+  isRelativePortalAccessLiveReady,
 } from '@/lib/access/accessModuleConfig';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import {
@@ -26,6 +28,7 @@ type AccessListHeroProps = {
 function resolveVariantLiveReady(variant: AccessListHeroVariant, liveReady?: boolean): boolean {
   if (liveReady !== undefined) return liveReady;
   if (variant === 'client-portal') return isClientPortalAccessLiveReady();
+  if (variant === 'relative-portal') return isRelativePortalAccessLiveReady();
   return isAccessManagementLiveReady();
 }
 
@@ -70,7 +73,11 @@ export function AccessListHero({ variant, itemCount, liveReady }: AccessListHero
     isLive,
   });
   const preparedMessage =
-    variant === 'client-portal' ? CLIENT_PORTAL_ACCESS_PREPARED_MESSAGE : ACCESS_MANAGEMENT_PREPARED_MESSAGE;
+    variant === 'client-portal'
+      ? CLIENT_PORTAL_ACCESS_PREPARED_MESSAGE
+      : variant === 'relative-portal'
+        ? RELATIVE_PORTAL_ACCESS_PREPARED_MESSAGE
+        : ACCESS_MANAGEMENT_PREPARED_MESSAGE;
 
   return (
     <PremiumListHeroFrame>
@@ -87,7 +94,9 @@ export function AccessListHero({ variant, itemCount, liveReady }: AccessListHero
       <View style={styles.badges}>
         <PremiumBadge label={`${itemCount} Einträge`} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {!isLive ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
+        {!isLive ? <PremiumBadge label="preparedOnly" variant="muted" /> : (
+          <PremiumBadge label="Supabase Live" variant="green" dot />
+        )}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

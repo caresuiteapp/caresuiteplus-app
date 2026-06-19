@@ -3,19 +3,35 @@ import { useRouter } from 'expo-router';
 import { AccessListHero } from '@/components/access';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
-import { useDemoData } from '@/hooks/useDemoData';
-import { listEmployeePortalAccounts } from '@/lib/auth/accessManagementService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { fetchEmployeePortalAccountsList } from '@/lib/auth/accessManagementService';
 import { colors, spacing, typography } from '@/theme';
 
 export function EmployeePortalAccountsScreen() {
   const router = useRouter();
-  const { data: accounts, loading, error, refresh } = useDemoData(
-    () => listEmployeePortalAccounts(DEMO_TENANT_ID),
-    [],
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+
+  const query = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return fetchEmployeePortalAccountsList(tenantId, profile?.roleKey);
+    },
+    [tenantId, profile?.roleKey],
+    { enabled: !!tenantId },
   );
 
-  if (loading && !accounts) {
+  if (!tenantId) {
+    return (
+      <ScreenShell title="Mitarbeitendenportal" subtitle="Zugänge & Benutzer" scroll>
+        <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
+      </ScreenShell>
+    );
+  }
+
+  if (query.loading && !query.data) {
     return (
       <ScreenShell title="Mitarbeitendenportal" subtitle="Wird geladen…" scroll>
         <LoadingState message="Mitarbeiterzugänge werden geladen…" />
@@ -23,15 +39,15 @@ export function EmployeePortalAccountsScreen() {
     );
   }
 
-  if (error && !accounts) {
+  if (query.error && !query.data) {
     return (
       <ScreenShell title="Mitarbeitendenportal" subtitle="Fehler" scroll>
-        <ErrorState message={error} onRetry={refresh} />
+        <ErrorState message={query.error} onRetry={query.refresh} />
       </ScreenShell>
     );
   }
 
-  const items = accounts ?? [];
+  const items = query.data ?? [];
 
   return (
     <ScreenShell title="Mitarbeitendenportal" subtitle="Zugänge & Benutzer" scroll>
