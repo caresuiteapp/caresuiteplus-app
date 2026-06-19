@@ -13,8 +13,15 @@ describe('Office mobile platform layout', () => {
     const shell = readSrc('src/components/layout/platform/platformshell.tsx');
     expect(shell).toContain('breakpoints.tablet');
     expect(shell).toContain('isPhoneLayout');
-    expect(shell).toContain('showModuleNav = width >= 960 && !isPhoneLayout');
+    expect(shell).toContain("mainModule !== 'zentrale'");
+    expect(shell).toMatch(/showModuleNav\s*=\s*width\s*>=\s*960\s*&&\s*!isPhoneLayout\s*&&\s*mainModule\s*!==\s*'zentrale'/);
     expect(shell).not.toMatch(/showModuleNav\s*=\s*width\s*>=\s*960;/);
+  });
+
+  it('PlatformShell hides ModuleNavSidebar for Zentrale module', () => {
+    const shell = readSrc('src/components/layout/platform/platformshell.tsx');
+    expect(shell).toContain("mainModule !== 'zentrale'");
+    expect(shell).toContain('RightContextPanel');
   });
 
   it('MobilePlatformContextPanel places nav groups below Schnellaktionen without Zentrale block', () => {

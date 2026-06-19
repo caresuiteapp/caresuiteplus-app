@@ -23,6 +23,7 @@ type PlatformShellProps = {
  * Five-zone desktop/web shell:
  * Topbar | MainModuleRail | ModuleNavSidebar | Main work area | RightContextPanel
  * Mobile (<768px): no ModuleNavSidebar; context panel scrolls below main content.
+ * Zentrale: no left ModuleNavSidebar — navigation lives in RightContextPanel only.
  */
 export function PlatformShell({ area: _area, children, accentColor }: PlatformShellProps) {
   const pathname = usePathname();
@@ -34,7 +35,7 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
 
   const isPhoneLayout = width < breakpoints.tablet;
   const showContext = width >= 1280;
-  const showModuleNav = width >= 960 && !isPhoneLayout;
+  const showModuleNav = width >= 960 && !isPhoneLayout && mainModule !== 'zentrale';
 
   const content = (
     <View style={[styles.root, { paddingTop: insets.top }]}>
