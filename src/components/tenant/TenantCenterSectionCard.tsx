@@ -30,26 +30,29 @@ export function TenantCenterSectionCard({ section, onEdit }: Props) {
 
   return (
     <GlassCard style={styles.card}>
-      <View style={styles.header}>
-        <Text style={[type.body, styles.title, { color: text.primary }]}>{section.title}</Text>
-        <View style={[styles.badge, { borderColor: COMPLETENESS_COLOR[section.completeness] }]}>
-          <Text style={[type.caption, { color: COMPLETENESS_COLOR[section.completeness] }]}>
-            {COMPLETENESS_LABEL[section.completeness]}
-          </Text>
+      <View style={styles.inner}>
+        <View style={styles.header}>
+          <Text style={[type.body, styles.title, { color: text.primary }]}>{section.title}</Text>
+          <View style={[styles.badge, { borderColor: COMPLETENESS_COLOR[section.completeness] }]}>
+            <Text style={[type.caption, { color: COMPLETENESS_COLOR[section.completeness] }]}>
+              {COMPLETENESS_LABEL[section.completeness]}
+            </Text>
+          </View>
         </View>
+        <Text style={[type.caption, styles.text, { color: text.muted }]}>{section.description}</Text>
+        <Text style={[type.caption, styles.summary, styles.text, { color: text.secondary }]} numberOfLines={2}>
+          {section.summary}
+        </Text>
+        {section.editable ? (
+          <PremiumButton
+            title={section.stub ? 'Ansehen' : 'Bearbeiten'}
+            variant="secondary"
+            size="sm"
+            fullWidth
+            onPress={onEdit}
+          />
+        ) : null}
       </View>
-      <Text style={[type.caption, { color: text.muted }]}>{section.description}</Text>
-      <Text style={[type.caption, styles.summary, { color: text.secondary }]} numberOfLines={2}>
-        {section.summary}
-      </Text>
-      {section.editable ? (
-        <PremiumButton
-          title={section.stub ? 'Ansehen' : 'Bearbeiten'}
-          variant="secondary"
-          size="sm"
-          onPress={onEdit}
-        />
-      ) : null}
     </GlassCard>
   );
 }
@@ -57,23 +60,32 @@ export function TenantCenterSectionCard({ section, onEdit }: Props) {
 const styles = StyleSheet.create({
   card: {
     minHeight: 180,
-    justifyContent: 'space-between',
   },
-  header: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
+  inner: {
+    flex: 1,
+    alignItems: 'center',
     justifyContent: 'space-between',
     gap: careSpacing.sm,
+    width: '100%',
+  },
+  header: {
+    alignItems: 'center',
+    gap: careSpacing.xs,
+    width: '100%',
   },
   title: {
-    flex: 1,
     fontWeight: '700',
+    textAlign: 'center',
   },
   badge: {
     borderWidth: 1,
     borderRadius: 999,
     paddingHorizontal: careSpacing.sm,
     paddingVertical: 2,
+  },
+  text: {
+    textAlign: 'center',
+    width: '100%',
   },
   summary: {
     marginTop: careSpacing.xs,
