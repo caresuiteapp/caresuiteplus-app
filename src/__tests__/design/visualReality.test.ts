@@ -39,12 +39,12 @@ describe('Visual Reality — light premium main screens', () => {
     expect(kpis.find((k) => k.id === 'alerts')?.label).toBe('Hinweise / Risiken');
   });
 
-  it('AppStartScreen uses light background and cards', () => {
+  it('AppStartScreen uses aurora dark shell and glass portal cards', () => {
     const screen = readSrc('src/screens/AppStartScreen.tsx');
-    expect(screen).toContain('CareSuiteLightBackground');
-    expect(screen).toContain('CareLightCard');
-    expect(screen).not.toContain('CareSuiteBackground');
-    expect(screen).not.toContain('PremiumCard');
+    expect(screen).toContain('AppScreen');
+    expect(screen).toContain('PortalCard');
+    expect(screen).not.toContain('CareSuiteLightBackground');
+    expect(screen).not.toContain('CareLightCard');
   });
 
   it('AuthLandingScreen is light premium landing', () => {

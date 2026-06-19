@@ -7,10 +7,11 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
+import { StatusBar } from 'expo-status-bar';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { GlobalAnimatedBackground } from '@/components/ui/effects';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { SpaceBackground } from './SpaceBackground';
 
 type AppScreenProps = {
   children: ReactNode;
@@ -18,13 +19,13 @@ type AppScreenProps = {
   maxWidth?: number;
   contentStyle?: ViewStyle;
   keyboardAvoiding?: boolean;
-  /** Skip SpaceBackground when an outer shell already provides the backdrop. */
+  /** Skip aurora backdrop when an outer shell already provides the background. */
   bare?: boolean;
 };
 
 const DEFAULT_MAX_WIDTH = 720;
 
-/** Premium screen shell — space gradient, safe area, responsive padding, centered max width. */
+/** Premium screen shell — aurora dark backdrop, safe area, responsive padding, centered max width. */
 export function AppScreen({
   children,
   scroll = true,
@@ -40,6 +41,8 @@ export function AppScreen({
     : isTablet
       ? careSpacing.lg
       : careSpacing.xl;
+
+  const widePad = isDesktopOrWide ? { paddingHorizontal: careSpacing.xl } : null;
 
   const styles = useMemo(
     () =>
@@ -65,21 +68,22 @@ export function AppScreen({
           paddingBottom: careSpacing.xxl,
           gap: careSpacing.md,
         },
-        widePad: isDesktopOrWide ? { paddingHorizontal: careSpacing.xl } : undefined,
+        auroraRoot: { flex: 1, overflow: 'hidden' },
+        contentLayer: { flex: 1, zIndex: 1 },
       }),
-    [horizontalPadding, isDesktopOrWide, maxWidth],
+    [horizontalPadding, maxWidth],
   );
 
   const body = scroll ? (
     <ScrollView
-      contentContainerStyle={[styles.scroll, styles.widePad, contentStyle]}
+      contentContainerStyle={[styles.scroll, widePad, contentStyle]}
       keyboardShouldPersistTaps="handled"
       showsVerticalScrollIndicator={false}
     >
       {children}
     </ScrollView>
   ) : (
-    <View style={[styles.static, widePadStyle, contentStyle]}>{children}</View>
+    <View style={[styles.static, widePad, contentStyle]}>{children}</View>
   );
 
   const wrapped = keyboardAvoiding ? (
@@ -95,7 +99,7 @@ export function AppScreen({
   );
 
   const screenBody = (
-    <SafeAreaView style={styles.safe} edges={['top', 'bottom']}>
+    <SafeAreaView style={[styles.safe, styles.contentLayer]} edges={['top', 'bottom']}>
       {wrapped}
     </SafeAreaView>
   );
@@ -104,5 +108,11 @@ export function AppScreen({
     return screenBody;
   }
 
-  return <SpaceBackground>{screenBody}</SpaceBackground>;
+  return (
+    <View style={styles.auroraRoot} pointerEvents="box-none">
+      <StatusBar style="light" />
+      <GlobalAnimatedBackground mode="dark" animated />
+      {screenBody}
+    </View>
+  );
 }

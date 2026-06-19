@@ -80,10 +80,10 @@ describe('Native app structure (Prompt 110)', () => {
   it('7. public start has exactly four actions', () => {
     expect(APP_START_ENTRIES).toHaveLength(4);
     expect(APP_START_ENTRIES.map((entry) => entry.label)).toEqual([
-      'Unternehmen / Verwaltung',
-      'Mitarbeiterportal',
-      'Klient:innen / Angehörige',
-      'Neues Unternehmen registrieren',
+      'Anmeldung Verwaltung',
+      'Anmeldung Mitarbeiter:in Portal',
+      'Anmeldung Klient:innen Portal',
+      'Kostenlos Registrieren',
     ]);
   });
 

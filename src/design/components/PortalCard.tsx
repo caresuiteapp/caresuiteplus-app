@@ -1,9 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { CareSuiteIcon } from '@/components/brand/CareSuiteIcon';
-import { resolveCareSuitePalette } from '@/design/tokens/colors';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
-import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { GlassCard } from './GlassCard';
 
@@ -18,8 +16,6 @@ type PortalCardProps = {
 /** Start-page entry card — glass surface, responsive title, no mid-word breaks. */
 export function PortalCard({ icon, title, description, accentColor, onPress }: PortalCardProps) {
   const { width } = useDeviceClass();
-  const { mode } = useThemeMode();
-  const palette = resolveCareSuitePalette(mode);
   const type = resolveGalaxyTypography(width);
 
   return (
@@ -27,19 +23,21 @@ export function PortalCard({ icon, title, description, accentColor, onPress }: P
       <View style={styles.inner}>
         <CareSuiteIcon emoji={icon} accentColor={accentColor} size={44} />
         <Text
-          style={[type.cardTitle, styles.title, { color: palette.text.primary }]}
+          style={[type.cardTitle, styles.title]}
           numberOfLines={2}
           {...noBreakTextProps}
         >
           {title}
         </Text>
-        <Text
-          style={[type.caption, styles.description, { color: palette.text.secondary }]}
-          numberOfLines={3}
-          {...noBreakTextProps}
-        >
-          {description}
-        </Text>
+        {description.trim() ? (
+          <Text
+            style={[type.caption, styles.description]}
+            numberOfLines={3}
+            {...noBreakTextProps}
+          >
+            {description}
+          </Text>
+        ) : null}
       </View>
     </GlassCard>
   );

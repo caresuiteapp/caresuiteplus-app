@@ -123,10 +123,10 @@ describe('User guidance — public auth surfaces', () => {
 
   it('navigation paths remain wired on start entries', () => {
     const labels = APP_START_ENTRIES.map((e) => e.label);
-    expect(labels).toContain('Unternehmen / Verwaltung');
-    expect(labels).toContain('Mitarbeiterportal');
-    expect(labels).toContain('Klient:innen / Angehörige');
-    expect(labels).toContain('Neues Unternehmen registrieren');
+    expect(labels).toContain('Anmeldung Verwaltung');
+    expect(labels).toContain('Anmeldung Mitarbeiter:in Portal');
+    expect(labels).toContain('Anmeldung Klient:innen Portal');
+    expect(labels).toContain('Kostenlos Registrieren');
   });
 
   it('footer links stay compact for public surfaces', () => {

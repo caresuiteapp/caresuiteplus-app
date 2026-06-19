@@ -11,30 +11,31 @@ function readSrc(relativePath: string): string {
 describe('AppStartScreen adaptive layout', () => {
   const source = readSrc('src/screens/AppStartScreen.tsx');
 
-  it('uses CareAdaptiveShell with bare landing mode', () => {
-    expect(source).toContain('CareAdaptiveShell');
-    expect(source).toContain('bare');
+  it('uses AppScreen with aurora dark landing shell', () => {
+    expect(source).toContain('AppScreen');
+    expect(source).toContain('PortalCard');
   });
 
-  it('uses CareSuiteLogo and brand tokens', () => {
-    expect(source).toContain('CareSuiteLogo');
-    expect(source).toContain('resolveCareSuitePalette');
-    expect(source).toContain('careTypography');
+  it('uses robot logo asset and galaxy typography', () => {
+    expect(source).toContain('caresuite-robot-logo.png');
+    expect(source).toContain('resolveGalaxyTypography');
     expect(source).toContain('AdaptiveCardGrid');
   });
 
-  it('defines four platform-specific layout branches', () => {
+  it('defines platform-specific layout branches', () => {
     expect(source).toContain('isPhone');
-    expect(source).toContain('isTablet');
     expect(source).toContain('isDesktopOrWide');
     expect(source).toContain('styles.tabletRow');
     expect(source).toContain('styles.desktopRow');
-    expect(source).toContain('CareBotCard');
   });
 
-  it('shows illustration area on tablet and desktop only', () => {
-    expect(source).toContain('(isTablet || isDesktopOrWide)');
-    expect(source).toContain('VoiceFlowPanel');
+  it('shows only the landing headline in the hero', () => {
+    expect(source).toContain(
+      'CareSuite+ Software für Office, Assist, Pflege (Ambulant & Stationär), Beratung und Akademie',
+    );
+    expect(source).not.toContain('CareBotCard');
+    expect(source).not.toContain('VoiceFlowPanel');
+    expect(source).not.toContain('Modul suchen');
   });
 
   it('has no dev or WP navigation text', () => {

@@ -1,6 +1,5 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ThemeModeToggle } from '@/design/ThemeModeToggle';
 import { galaxyPalette } from '@/design/tokens/galaxy';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
@@ -46,7 +45,6 @@ export function FooterLinks() {
           <Text style={[type.caption, styles.link]}>Nutzungsbedingungen</Text>
         </Pressable>
       </View>
-      <ThemeModeToggle />
       <Text style={[type.caption, styles.version]}>Version {APP_VERSION}</Text>
     </View>
   );

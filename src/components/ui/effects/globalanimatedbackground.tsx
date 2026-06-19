@@ -30,7 +30,7 @@ export function GlobalAnimatedBackground({
 
   if (mode === 'dark') {
     return (
-      <View style={[styles.root, style]}>
+      <View style={[styles.root, style]} pointerEvents="box-none">
         <AuroraBackground animated={animated} />
         {children}
       </View>
@@ -39,7 +39,7 @@ export function GlobalAnimatedBackground({
 
   const palette = resolveCareSuitePalette('light');
   return (
-    <View style={[styles.root, style]}>
+    <View style={[styles.root, style]} pointerEvents="box-none">
       <LinearGradient
         colors={[palette.background.app, palette.background.soft, palette.background.app]}
         style={StyleSheet.absoluteFillObject}

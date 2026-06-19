@@ -1,10 +1,24 @@
 import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { auroraGlass, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { auroraGlass, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { PremiumButton } from './PremiumButton';
+
+function useStateTextColors() {
+  const auroraActive = useAuroraGlassActive();
+  const adaptive = useAuroraAdaptiveText();
+  const { colors } = useLegacyTheme();
+
+  return useMemo(
+    () => ({
+      primary: auroraActive ? adaptive.primary : colors.textPrimary,
+      secondary: auroraActive ? adaptive.secondary : colors.textSecondary,
+    }),
+    [adaptive.primary, adaptive.secondary, auroraActive, colors.textPrimary, colors.textSecondary],
+  );
+}
 
 function useStateContainerStyle() {
   const auroraActive = useAuroraGlassActive();
@@ -29,6 +43,7 @@ type LoadingStateProps = {
 
 export function LoadingState({ message = 'Wird geladen…' }: LoadingStateProps) {
   const { colors, typography } = useLegacyTheme();
+  const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
   const styles = useMemo(
     () =>
@@ -43,10 +58,10 @@ export function LoadingState({ message = 'Wird geladen…' }: LoadingStateProps)
         message: {
           ...typography.body,
           textAlign: 'center',
-          color: colors.textSecondary,
+          color: textColors.secondary,
         },
       }),
-    [colors.textSecondary, containerSurface, typography.body],
+    [containerSurface, textColors.secondary, typography.body],
   );
 
   return (
@@ -65,7 +80,8 @@ type EmptyStateProps = {
 };
 
 export function EmptyState({ title, message, actionLabel, onAction }: EmptyStateProps) {
-  const { colors, typography } = useLegacyTheme();
+  const { typography } = useLegacyTheme();
+  const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
   const styles = useMemo(
     () =>
@@ -80,15 +96,15 @@ export function EmptyState({ title, message, actionLabel, onAction }: EmptyState
         title: {
           ...typography.h3,
           textAlign: 'center',
-          color: colors.textPrimary,
+          color: textColors.primary,
         },
         message: {
           ...typography.body,
           textAlign: 'center',
-          color: colors.textSecondary,
+          color: textColors.secondary,
         },
       }),
-    [colors.textPrimary, colors.textSecondary, containerSurface, typography.body, typography.h3],
+    [containerSurface, textColors.primary, textColors.secondary, typography.body, typography.h3],
   );
 
   return (
@@ -114,6 +130,7 @@ export function ErrorState({
   onRetry,
 }: ErrorStateProps) {
   const { colors, typography } = useLegacyTheme();
+  const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
   const styles = useMemo(
     () =>
@@ -133,10 +150,10 @@ export function ErrorState({
         message: {
           ...typography.body,
           textAlign: 'center',
-          color: colors.textSecondary,
+          color: textColors.secondary,
         },
       }),
-    [colors.danger, colors.textSecondary, containerSurface, typography.body, typography.h3],
+    [colors.danger, containerSurface, textColors.secondary, typography.body, typography.h3],
   );
 
   return (
@@ -160,6 +177,7 @@ export function SuccessState({
   message,
 }: SuccessStateProps) {
   const { colors, typography } = useLegacyTheme();
+  const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
   const styles = useMemo(
     () =>
@@ -179,10 +197,10 @@ export function SuccessState({
         message: {
           ...typography.body,
           textAlign: 'center',
-          color: colors.textSecondary,
+          color: textColors.secondary,
         },
       }),
-    [colors.success, colors.textSecondary, containerSurface, typography.body, typography.h3],
+    [colors.success, containerSurface, textColors.secondary, typography.body, typography.h3],
   );
 
   return (

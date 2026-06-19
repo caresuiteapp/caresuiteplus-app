@@ -5,11 +5,12 @@ import Animated, {
   Easing,
   useAnimatedStyle,
   useSharedValue,
+  withDelay,
   withRepeat,
   withSequence,
   withTiming,
 } from 'react-native-reanimated';
-import { fxMotion } from '@/design/tokens/motion';
+import { auroraFx, fxMotion, withAlpha } from '@/design/tokens/motion';
 import { usePrefersReducedMotion } from '@/hooks/useprefersreducedmotion';
 
 type AuroraBackgroundProps = {
@@ -17,85 +18,88 @@ type AuroraBackgroundProps = {
   style?: ViewStyle;
 };
 
+type OrbConfig = (typeof auroraFx.orbs)[number];
+
 const AnimatedView = Animated.createAnimatedComponent(View);
 
+function AuroraOrb({ orb, animate }: { orb: OrbConfig; animate: boolean }) {
+  const drift = useSharedValue(0);
+  const phase = orb.delay % 2 === 0 ? 1 : -1;
+
+  useEffect(() => {
+    if (!animate) {
+      drift.value = 0;
+      return;
+    }
+
+    const half = (fxMotion.drift + orb.delay) / 2;
+    drift.value = withDelay(
+      orb.delay,
+      withRepeat(
+        withSequence(
+          withTiming(1, { duration: half, easing: Easing.inOut(Easing.sin) }),
+          withTiming(0, { duration: half, easing: Easing.inOut(Easing.sin) }),
+        ),
+        -1,
+        false,
+      ),
+    );
+  }, [animate, drift, orb.delay]);
+
+  const animatedStyle = useAnimatedStyle(() => ({
+    transform: [
+      { translateX: 22 * drift.value * phase },
+      { translateY: 14 * drift.value },
+    ],
+    opacity: 0.82 + 0.18 * drift.value,
+  }));
+
+  return (
+    <AnimatedView
+      style={[
+        styles.orb,
+        {
+          top: orb.top,
+          left: orb.left,
+          width: orb.size,
+          height: orb.size,
+          borderRadius: orb.size / 2,
+          backgroundColor: withAlpha(orb.color, Math.min(orb.opacity, 0.38)),
+        },
+        animatedStyle,
+      ]}
+    />
+  );
+}
+
+/** Animated deep-space aurora — shared by AppScreen landing/auth and PlatformShell. */
 export function AuroraBackground({ animated = true, style }: AuroraBackgroundProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const shouldAnimate = animated && !prefersReducedMotion;
 
-  const cyanDrift = useSharedValue(0);
-  const violetDrift = useSharedValue(0);
-
-  useEffect(() => {
-    if (!shouldAnimate) {
-      cyanDrift.value = 0;
-      violetDrift.value = 0;
-      return;
-    }
-
-    cyanDrift.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: fxMotion.drift, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: fxMotion.drift, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-      false,
-    );
-    violetDrift.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: fxMotion.drift * 1.15, easing: Easing.inOut(Easing.sin) }),
-        withTiming(0, { duration: fxMotion.drift * 1.15, easing: Easing.inOut(Easing.sin) }),
-      ),
-      -1,
-      false,
-    );
-  }, [cyanDrift, shouldAnimate, violetDrift]);
-
-  const cyanStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: 18 * cyanDrift.value },
-      { translateY: 12 * cyanDrift.value },
-    ],
-    opacity: 0.85 + 0.15 * cyanDrift.value,
-  }));
-
-  const violetStyle = useAnimatedStyle(() => ({
-    transform: [
-      { translateX: -14 * violetDrift.value },
-      { translateY: -10 * violetDrift.value },
-    ],
-    opacity: 0.8 + 0.2 * violetDrift.value,
-  }));
-
   return (
     <View style={[StyleSheet.absoluteFillObject, style]} pointerEvents="none">
+      <LinearGradient colors={[...auroraFx.base]} style={StyleSheet.absoluteFillObject} />
+      {auroraFx.orbs.map((orb, index) => (
+        <AuroraOrb key={`${orb.color}-${index}`} orb={orb} animate={shouldAnimate} />
+      ))}
       <LinearGradient
-        colors={['#0B1024', '#080D1A', '#050816']}
+        colors={[...auroraFx.mesh]}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 1, y: 1 }}
         style={StyleSheet.absoluteFillObject}
+        pointerEvents="none"
       />
-      <AnimatedView style={[styles.glowCyan, cyanStyle]} />
-      <AnimatedView style={[styles.glowViolet, violetStyle]} />
+      <View style={[StyleSheet.absoluteFillObject, styles.vignette]} pointerEvents="none" />
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  glowCyan: {
+  orb: {
     position: 'absolute',
-    top: '8%',
-    left: '-10%',
-    width: '50%',
-    height: '35%',
-    borderRadius: 999,
-    backgroundColor: 'rgba(6,182,212,0.12)',
   },
-  glowViolet: {
-    position: 'absolute',
-    bottom: '10%',
-    right: '-8%',
-    width: '45%',
-    height: '30%',
-    borderRadius: 999,
-    backgroundColor: 'rgba(139,92,246,0.10)',
+  vignette: {
+    backgroundColor: auroraFx.vignette,
   },
 });

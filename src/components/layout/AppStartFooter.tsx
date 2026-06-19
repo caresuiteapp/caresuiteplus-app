@@ -1,6 +1,5 @@
 import { Linking, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ThemeModeToggle } from '@/design/ThemeModeToggle';
 import { DEMO_START_PATH } from '@/data/landing/appStartEntries';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -46,7 +45,6 @@ export function AppStartFooter() {
           <Text style={styles.link}>Nutzungsbedingungen</Text>
         </Pressable>
       </View>
-      <ThemeModeToggle />
       <Text style={styles.version}>Version {APP_VERSION}</Text>
     </View>
   );

@@ -26,25 +26,19 @@ describe('App start page', () => {
     vi.unstubAllEnvs();
   });
 
-  it('defines five public entry cards with correct routes', () => {
-    expect(APP_START_ENTRIES).toHaveLength(5);
+  it('defines four public entry cards with correct routes', () => {
+    expect(APP_START_ENTRIES).toHaveLength(4);
     expect(APP_START_ENTRIES.map((e) => e.path)).toEqual([
       '/auth/business-login',
       '/auth/employee-login',
       '/auth/portal-code-login',
       '/auth/register-business',
-      '/auth/demo',
     ]);
   });
 
-  it('includes a prominent demo entry card', () => {
-    const demo = APP_START_ENTRIES.find((e) => e.path === '/auth/demo');
-    expect(demo?.label).toBe('Demo mit Beispieldaten ansehen');
-  });
-
-  it('includes Kostenlos starten registration entry', () => {
+  it('includes Kostenlos Registrieren registration entry', () => {
     const register = APP_START_ENTRIES.find((e) => e.path === '/auth/register-business');
-    expect(register?.label).toBe('Kostenlos starten');
+    expect(register?.label).toBe('Kostenlos Registrieren');
   });
 
   it('AppStartScreen source has no dev-only navigation content', () => {
@@ -53,16 +47,16 @@ describe('App start page', () => {
       expect(source).not.toContain(needle);
     }
     expect(source).toContain('fetchAppStartSnapshot');
-    expect(source).toContain('CareSuiteLogo');
-    expect(source).toContain('CareAdaptiveShell');
+    expect(source).toContain('caresuite-robot-logo.png');
+    expect(source).toContain('AppScreen');
   });
 
   it('AppStartScreen shows demo badge only when demo mode', () => {
     const source = readSrc('src/screens/AppStartScreen.tsx');
-    expect(source).toContain('isDemoMode()');
-    expect(source).toContain('Demo-Modus aktiv');
-    expect(source).toContain('Demo-Dashboard öffnen');
-    expect(source).toContain('openDemoDashboard');
+    expect(source).not.toContain('isDemoMode()');
+    expect(source).not.toContain('Demo-Modus aktiv');
+    expect(source).not.toContain('Demo-Dashboard öffnen');
+    expect(source).not.toContain('openDemoDashboard');
     expect(source).not.toContain('PUBLIC_ENTRIES');
     expect(source).not.toContain('ModuleTile');
   });
