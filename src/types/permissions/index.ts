@@ -39,6 +39,7 @@ export type PermissionKey =
   | 'stationaer.access'
   | 'stationaer.residents.view'
   | 'business.modules.manage'
+  | 'business.tenant.manage'
   | 'dashboard.view'
   | 'portal.employee.appointments.view'
   | 'portal.employee.messages.view'

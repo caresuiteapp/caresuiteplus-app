@@ -40,6 +40,7 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'stationaer.access': 'Stationär-Modul öffnen',
   'stationaer.residents.view': 'Bewohner:innen ansehen',
   'business.modules.manage': 'Module verwalten',
+  'business.tenant.manage': 'Mandant & Organisation verwalten',
   'dashboard.view': 'Dashboard ansehen',
   'portal.employee.appointments.view': 'Eigene Einsätze ansehen',
   'portal.employee.messages.view': 'Portal-Nachrichten ansehen',
@@ -153,6 +154,8 @@ export const PERMISSION_DENIED_MESSAGES: Partial<Record<PermissionKey, string>> 
     'Einsatzstatus dürfen nur von Geschäftsführung, Bereichsleitung oder Einsatzplanung geändert werden.',
   'business.modules.manage':
     'Modulverwaltung ist nur für Geschäftsführung und Bereichsleitung verfügbar.',
+  'business.tenant.manage':
+    'Mandanten-Stammdaten dürfen nur von Geschäftsführung / Admin bearbeitet werden.',
 };
 
 const OFFICE_VIEW: PermissionKey[] = [
@@ -391,7 +394,13 @@ const MODULE_VIEW_ALL: PermissionKey[] = [
 ];
 
 export const ROLE_PERMISSIONS: RolePermissionMap = {
-  business_admin: [...OFFICE_FULL, ...ASSIST_MANAGE, ...PFLEGE_VIEW, ...MODULE_VIEW_ALL],
+  business_admin: [
+    ...OFFICE_FULL,
+    ...ASSIST_MANAGE,
+    ...PFLEGE_VIEW,
+    ...MODULE_VIEW_ALL,
+    'business.tenant.manage',
+  ],
   business_manager: [...OFFICE_FULL, ...ASSIST_MANAGE, ...PFLEGE_VIEW, ...MODULE_VIEW_ALL],
   billing: [
     ...OFFICE_VIEW,
