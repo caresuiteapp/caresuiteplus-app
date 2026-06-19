@@ -50,6 +50,17 @@ describe('reporting_pdl_cockpit live mapping (Sprint 36)', () => {
     updated_at: '2026-06-12T08:00:00.000Z',
   };
 
+  it('Migration 0111 erstellt reporting_pdl_cockpit idempotent für Live', () => {
+    const sql = readSrc('supabase/migrations/0111_reporting_pdl_cockpit.sql');
+    expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.reporting_pdl_cockpit');
+    expect(sql).toContain('kpis');
+    expect(sql).toContain('open_tasks');
+    expect(sql).toContain('risks');
+    expect(sql).toContain('GRANT SELECT');
+    expect(sql).not.toMatch(/^\s*DROP TABLE\b/im);
+    expect(sql).not.toMatch(/^\s*TRUNCATE\b/im);
+  });
+
   it('Migration 0029 erstellt reporting_pdl_cockpit mit IF NOT EXISTS', () => {
     const sql = readSrc('supabase/migrations/0029_reporting_pdl_cockpit_live.sql');
     expect(sql).toContain('CREATE TABLE IF NOT EXISTS public.reporting_pdl_cockpit');
@@ -96,7 +107,7 @@ describe('reporting_pdl_cockpit live mapping (Sprint 36)', () => {
     const source = readSrc('src/lib/services/repositories/reportingRepository.supabase.ts');
     expect(source).toContain('getCockpitMapped');
     expect(source).toContain('PDL_COCKPIT_SELECT_COLUMNS');
-    expect(source).toContain('reporting_pdl_cockpit');
+    expect(source).toContain('isSupabaseMissingTableError');
   });
 
   it('fetchPdlCockpit nutzt Supabase-Repo ohne Demo-Fallback in Live-Pfad', () => {

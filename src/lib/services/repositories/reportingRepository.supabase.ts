@@ -1,6 +1,6 @@
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '../errors';
 import {
@@ -142,7 +142,12 @@ export const reportingSupabaseRepository = {
       .select(PDL_COCKPIT_SELECT_COLUMNS)
       .eq('tenant_id', tenantId)
       .maybeSingle();
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (isSupabaseMissingTableError(error)) {
+        return { ok: true, data: null, tableMissing: true };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
     return { ok: true, data: (data as PdlCockpitLiveRow | null) ?? null };
   },
 

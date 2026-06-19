@@ -11,7 +11,7 @@ export function isReportsListLiveReady(): boolean {
 }
 
 export const PDL_COCKPIT_PREPARED_MESSAGE =
-  'PDL-Cockpit nutzt Demo-KPIs. Live-Snapshot aus reporting_pdl_cockpit folgt nach Remote-Migration 0029.';
+  'PDL-Cockpit nutzt Demo-KPIs. Live-Snapshot aus reporting_pdl_cockpit folgt nach Remote-Migration 0111.';
 
 export const REPORTS_LIST_PREPARED_MESSAGE =
   'Berichte-Liste nutzt Demo-Daten. Live-Reports aus Supabase folgen nach Remote-Migration 0027/0028.';
