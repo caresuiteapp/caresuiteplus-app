@@ -23,6 +23,8 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     bundleIdentifier: 'de.caresuiteplus.app',
     buildNumber: '1',
     infoPlist: {
+      NSMicrophoneUsageDescription:
+        'CareSuite+ benötigt Mikrofonzugriff für den VoiceCore-Sprachassistenten.',
       UISupportedInterfaceOrientations: [
         'UIInterfaceOrientationPortrait',
         'UIInterfaceOrientationLandscapeLeft',
@@ -45,7 +47,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     },
     package: 'de.caresuiteplus.app',
     versionCode: 1,
-    permissions: ['INTERNET'],
+    permissions: ['INTERNET', 'RECORD_AUDIO'],
   },
   web: {
     bundler: 'metro',
@@ -56,6 +58,13 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     'expo-router',
     'expo-asset',
     'expo-font',
+    [
+      'expo-av',
+      {
+        microphonePermission:
+          'CareSuite+ benötigt Mikrofonzugriff für den VoiceCore-Sprachassistenten.',
+      },
+    ],
     [
       'expo-location',
       {

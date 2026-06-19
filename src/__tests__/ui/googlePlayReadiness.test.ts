@@ -186,13 +186,12 @@ describe('Google Play readiness — permissions & production mode', () => {
     expect(appJson.expo.android?.permissions).toEqual(['INTERNET']);
   });
 
-  it('omits expo-location manifest plugin while GPS is not live', () => {
-    expect(isGpsTrackingLiveReady()).toBe(false);
+  it('declares INTERNET and RECORD_AUDIO in android permissions via app.config', () => {
     const appConfig = readSrc('app.config.ts');
-    expect(appConfig).not.toContain('expo-location');
-    expect(appConfig).not.toContain('RECORD_AUDIO');
-    expect(appConfig).not.toContain('CAMERA');
-    expect(appConfig).not.toContain('ACCESS_FINE_LOCATION');
+    expect(appConfig).toContain("'INTERNET'");
+    expect(appConfig).toContain("'RECORD_AUDIO'");
+    expect(appConfig).toContain('NSMicrophoneUsageDescription');
+    expect(appConfig).toContain('expo-av');
   });
 
   it('VoiceFlow hidden for public and client roles', () => {

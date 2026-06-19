@@ -133,17 +133,31 @@ describe('VoiceCore AI foundation', () => {
     expect(source).toContain('errorMessage');
   });
 
-  it('GlobalAiProvider only tears down voice on unmount', () => {
+  it('GlobalAiProvider requests microphone before realtime WebRTC', () => {
     const source = readSource('src/ai/GlobalAiProvider.tsx');
-    expect(source).toContain('teardownVoiceConnection');
-    expect(source).not.toMatch(/useEffect\(\(\) => cleanupVoice/);
-    expect(source).toContain('formatVoiceError');
+    expect(source).toContain('requestMicrophoneAccess');
+    expect(source).toContain('getMicrophoneDeniedMessage');
+    expect(source).not.toContain('Sprachsteuerung ist in der App v1 nur im Web verfügbar');
+    expect(source).toContain('void startVoice()');
+  });
+
+  it('microphone permission utility covers web and native', () => {
+    const source = readSource('src/lib/platform/microphonePermission.ts');
+    expect(source).toContain('getUserMedia({ audio: true })');
+    expect(source).toContain('Audio.requestPermissionsAsync');
+    expect(source).toContain('getMicrophoneDeniedMessage');
+    expect(source).toContain('Safari (iOS)');
+    expect(source).toContain('Einstellungen → CareSuite+ → Mikrofon');
   });
 
   it('GlobalAiProvider uses GA Realtime WebRTC calls endpoint', () => {
     const source = readSource('src/ai/GlobalAiProvider.tsx');
-    expect(source).toContain('/v1/realtime/calls');
-    expect(source).not.toContain('/v1/realtime?model=');
+    const utils = readSource('src/ai/voiceRealtimeUtils.ts');
+    expect(source).toContain('exchangeRealtimeCallOffer');
+    expect(source).toContain('formatVoiceErrorForPanel');
+    expect(source).toContain('voiceDebugLog');
+    expect(utils).toContain('/v1/realtime/calls');
+    expect(utils).not.toContain('model=');
   });
 });
 

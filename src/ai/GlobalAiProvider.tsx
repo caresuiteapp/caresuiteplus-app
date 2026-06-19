@@ -36,9 +36,12 @@ import {
 } from '@/lib/platform/microphonePermission';
 import { VoiceOrb } from './VoiceOrb';
 import {
+  exchangeRealtimeCallOffer,
   extractRealtimeClientSecret,
-  getRealtimeCallsUrl,
+  formatVoiceErrorForPanel,
   parseVoiceErrorMessage,
+  voiceDebugLog,
+  waitForIceGatheringComplete,
 } from './voiceRealtimeUtils';
 
 type AiContextValue = {
@@ -126,7 +129,10 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       setIsSpeaking(false);
       setIsToolLoading(false);
       if (!options?.preserveError) {
-        setStatus('ready');
+        const hasError = Boolean(useAiStore.getState().errorMessage);
+        if (!hasError) {
+          setStatus('ready');
+        }
       }
       teardownVoiceConnection();
     },
@@ -247,52 +253,6 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     [runToolCall, setStatus],
   );
 
-  const formatVoiceError = useCallback((error: unknown): string => {
-    const raw = parseVoiceErrorMessage(
-      error instanceof Error ? error.message : String(error ?? ''),
-    );
-
-    if (/NotAllowedError|Permission denied|permission/i.test(raw)) {
-      return getMicrophoneDeniedMessage();
-    }
-    if (/NotFoundError|Requested device not found/i.test(raw)) {
-      return 'Kein Mikrofon gefunden. Bitte schließe ein Mikrofon an oder prüfe die Geräteeinstellungen.';
-    }
-    if (/invalid jwt|jwt expired|invalid token|401|unauthorized/i.test(raw)) {
-      return 'Bitte melde dich erneut an, um die Sprachsteuerung zu nutzen.';
-    }
-    if (/OPENAI_API_KEY not configured|server-konfiguration|OpenAI API-Schlüssel/i.test(raw)) {
-      return 'Sprachassistent ist derzeit nicht eingerichtet (Server-Konfiguration). Text-Chat bleibt verfügbar.';
-    }
-    if (/No tenant access|Kein Zugriff auf den Mandanten|tenant_id/i.test(raw)) {
-      return 'Kein Zugriff auf den Mandanten für den Sprachassistenten.';
-    }
-    if (/Nicht angemeldet|access_token/i.test(raw)) {
-      return 'Bitte melde dich erneut an, um die Sprachsteuerung zu nutzen.';
-    }
-    if (/Realtime client secret fehlt/i.test(raw)) {
-      return 'Sprachverbindung konnte nicht vorbereitet werden. Bitte versuche es später erneut.';
-    }
-    if (/model_not_found|does not exist|nicht verfügbar/i.test(raw)) {
-      return 'Das Realtime-Sprachmodell ist derzeit nicht verfügbar. Text-Chat bleibt nutzbar.';
-    }
-    if (/invalid schema|invalid tools|Tool-Konfiguration/i.test(raw)) {
-      return 'Sprachassistent startet im eingeschränkten Modus. Bitte erneut versuchen oder Text-Chat nutzen.';
-    }
-    if (/Failed to fetch|NetworkError|network|Netzwerkfehler/i.test(raw)) {
-      return 'Netzwerkfehler bei der Sprachverbindung. Bitte Internetverbindung prüfen und erneut versuchen.';
-    }
-    if (/Edge Function returned a non-2xx|FunctionsHttpError/i.test(raw)) {
-      return 'Sprachverbindung fehlgeschlagen. Bitte versuche es erneut oder nutze den Text-Chat.';
-    }
-
-    const trimmed = raw.trim();
-    if (trimmed.length > 180) {
-      return 'Sprachverbindung fehlgeschlagen. Bitte versuche es erneut oder nutze den Text-Chat.';
-    }
-    return trimmed || 'Sprachverbindung fehlgeschlagen. Bitte versuche es erneut oder nutze den Text-Chat.';
-  }, []);
-
   const startVoice = useCallback(async () => {
     if (!tenantId) {
       Alert.alert('VoiceCore', 'Kein Mandant am Profil hinterlegt.');
@@ -318,30 +278,39 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     setErrorMessage(null);
     setIsStarting(true);
     setStatus('thinking');
+    voiceDebugLog('startVoice: begin');
 
     let preflightStream: MediaStream | null = null;
+    let failedStep = 'Sprache';
 
     try {
+      failedStep = 'Mikrofon';
+      voiceDebugLog('step: requestMicrophoneAccess');
       const micAccess = await requestMicrophoneAccess();
       if (!micAccess.ok) {
         throw new Error(micAccess.error);
       }
       preflightStream = micAccess.stream;
+      voiceDebugLog('step: microphone granted');
 
       if (!isRealtimeVoiceEnvironmentSupported()) {
         throw new Error(getRealtimeVoiceUnsupportedMessage());
       }
 
+      failedStep = 'Anmeldung';
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
-        console.warn('[VoiceCore] session refresh failed:', refreshError.message);
+        voiceDebugLog('session refresh failed', refreshError.message);
       }
 
       const { data: authData } = await supabase.auth.getSession();
       if (!authData.session?.access_token) {
         throw new Error('Nicht angemeldet');
       }
+      voiceDebugLog('step: auth session ok');
 
+      failedStep = 'Token';
+      voiceDebugLog('step: fetch ai-realtime-token');
       const tokenResponse = await invokeEdgeFunction<AiRealtimeTokenResponse>('ai-realtime-token', {
         tenant_id: tenantId,
         session_id: sessionId,
@@ -350,7 +319,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       });
 
       if (!tokenResponse.ok) {
-        throw new Error(parseVoiceErrorMessage(tokenResponse.error));
+        throw new Error(`Token: ${parseVoiceErrorMessage(tokenResponse.error)}`);
       }
 
       const payload = tokenResponse.data;
@@ -363,9 +332,16 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       if (!clientSecret) {
         throw new Error('Realtime client secret fehlt — OPENAI_API_KEY gesetzt?');
       }
+      voiceDebugLog('step: client_secret received', `${clientSecret.slice(0, 8)}…`);
 
+      failedStep = 'WebRTC';
+      voiceDebugLog('step: create RTCPeerConnection');
       const pc = new RTCPeerConnection();
       pcRef.current = pc;
+
+      pc.onconnectionstatechange = () => {
+        voiceDebugLog('connectionState', pc.connectionState);
+      };
 
       audioRef.current = document.createElement('audio');
       audioRef.current.autoplay = true;
@@ -398,12 +374,14 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       dcRef.current = dc;
 
       dc.onopen = () => {
+        voiceDebugLog('step: data channel open');
         setIsConnected(true);
         setIsListening(true);
         setStatus('listening');
       };
 
       dc.onclose = () => {
+        voiceDebugLog('step: data channel closed');
         cleanupVoice();
       };
 
@@ -416,37 +394,38 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         }
       };
 
+      voiceDebugLog('step: createOffer');
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
+      await waitForIceGatheringComplete(pc);
+      voiceDebugLog('step: local SDP ready', `${pc.localDescription?.sdp?.length ?? 0} bytes`);
 
-      const sdpResponse = await fetch(getRealtimeCallsUrl(), {
-        method: 'POST',
-        body: offer.sdp,
-        headers: {
-          Authorization: `Bearer ${clientSecret}`,
-          'Content-Type': 'application/sdp',
-        },
-      });
+      voiceDebugLog('step: POST /v1/realtime/calls');
+      const answerSdp = await exchangeRealtimeCallOffer(
+        clientSecret,
+        pc.localDescription?.sdp ?? offer.sdp ?? '',
+      );
+      voiceDebugLog('step: answer SDP received', `${answerSdp.length} bytes`);
 
-      if (!sdpResponse.ok) {
-        const sdpError = await sdpResponse.text();
-        throw new Error(
-          sdpResponse.status === 401 || sdpResponse.status === 403
-            ? 'Sprachverbindung abgelehnt — Sitzung abgelaufen oder ungültig.'
-            : sdpError || `OpenAI Realtime Fehler (${sdpResponse.status})`,
-        );
+      try {
+        await pc.setRemoteDescription({
+          type: 'answer',
+          sdp: answerSdp,
+        });
+      } catch (remoteError) {
+        const remoteMessage =
+          remoteError instanceof Error ? remoteError.message : String(remoteError);
+        throw new Error(`WebRTC: setRemoteDescription fehlgeschlagen — ${remoteMessage}`);
       }
 
-      const answerSdp = await sdpResponse.text();
-      await pc.setRemoteDescription({
-        type: 'answer',
-        sdp: answerSdp,
-      });
+      voiceDebugLog('step: voice session connected');
     } catch (error) {
+      voiceDebugLog(`failed at ${failedStep}`, error);
       preflightStream?.getTracks().forEach((track) => track.stop());
       cleanupVoice({ preserveError: true });
-      const message = formatVoiceError(error);
+      const message = formatVoiceErrorForPanel(error, failedStep);
       setErrorMessage(message);
+      setStatus('error');
     } finally {
       setIsStarting(false);
     }
@@ -454,7 +433,6 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     cleanupVoice,
     currentModule,
     currentRoute,
-    formatVoiceError,
     handleRealtimeEvent,
     isConnected,
     isStarting,
@@ -473,9 +451,8 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
   const resetVoiceUiState = useCallback(() => {
     if (!isConnected && !isStarting) {
       setErrorMessage(null);
-      setStatus('ready');
     }
-  }, [isConnected, isStarting, setErrorMessage, setStatus]);
+  }, [isConnected, isStarting, setErrorMessage]);
 
   const openPanel = useCallback(() => {
     resetVoiceUiState();
@@ -518,8 +495,13 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     pathname !== '/';
 
   const handleOrbPress = useCallback(() => {
+    if (isConnected) {
+      openPanel();
+      return;
+    }
     openPanel();
-  }, [openPanel]);
+    void startVoice();
+  }, [isConnected, openPanel, startVoice]);
 
   const aiOverlayStyle = useMemo((): ViewStyle => {
     if (Platform.OS === 'web') {
@@ -567,7 +549,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
             onStopVoice={stopVoice}
             isListening={isListening}
             isStartingVoice={isStarting}
-            voiceAvailable={Platform.OS === 'web'}
+            voiceAvailable={true}
             onReviewDraft={() => closePanel()}
           />
           <AiApprovalSheet pendingActions={pendingActions} tenantId={tenantId!} />
