@@ -44,6 +44,8 @@ const SEARCH_PLACEHOLDERS: Record<MainModuleKey, string> = {
 
 /** Shared topbar control box — search, tenant chip, profile. */
 const TOPBAR_CONTROL_HEIGHT = 48;
+/** Fixed width for search bar and matching profile chip. */
+const TOPBAR_SEARCH_WIDTH = 260;
 /** Shared icon/avatar slot — building, profile picture. */
 const TOPBAR_ICON_SIZE = 32;
 
@@ -296,8 +298,8 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     searchWrap: {
       ...topbarControl,
       ...glass,
-      width: 260,
-      maxWidth: 260,
+      width: TOPBAR_SEARCH_WIDTH,
+      maxWidth: TOPBAR_SEARCH_WIDTH,
       alignSelf: 'flex-start',
       gap: spacing.sm,
       borderRadius: radius.capsule,
@@ -410,10 +412,13 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     profileChip: {
       ...topbarControl,
       ...glass,
-      gap: spacing.sm,
+      width: TOPBAR_SEARCH_WIDTH,
+      maxWidth: TOPBAR_SEARCH_WIDTH,
+      gap: spacing.xs,
       borderRadius: radius.capsule,
-      paddingHorizontal: spacing.sm,
-      maxWidth: 220,
+      paddingLeft: spacing.xs,
+      paddingRight: spacing.sm,
+      justifyContent: 'flex-start',
     },
     profileMenuTrigger: {
       flex: 1,
