@@ -65,7 +65,16 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
     label: 'Termine',
     icon: '📅',
     href: '/office/appointments',
-    description: 'Kalender und Planung',
+    description: 'Terminliste und Planung',
+    accentColor: '#62F3FF',
+  },
+  {
+    id: 'calendar',
+    key: 'calendar',
+    label: 'Kalender',
+    icon: '🗓️',
+    href: '/office/calendar',
+    description: 'Mehransicht Kalender',
     accentColor: '#62F3FF',
   },
   {

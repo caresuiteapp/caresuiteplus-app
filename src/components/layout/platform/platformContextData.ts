@@ -29,7 +29,7 @@ export const officeContextPanelNav: ModuleNavConfig = {
         { key: 'dashboard', label: 'Dashboard', icon: '📊', href: '/business' },
         { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/business/messages' },
         { key: 'reporting', label: 'Reporting', icon: '📈', href: '/business/reporting' },
-        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/office/appointments' },
+        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/office/calendar' },
         { key: 'tasks', label: 'Aufgaben & Vorgänge', icon: '✅', href: '/business/office/access/tasks' },
       ],
     },

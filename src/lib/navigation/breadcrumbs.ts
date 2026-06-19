@@ -32,6 +32,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   kim: 'KIM-Postfach',
   documents: 'Dokumente',
   appointments: 'Termine',
+  kalender: 'Kalender',
   messages: 'Nachrichten',
   communication: 'Kommunikation',
   modules: 'Module verwalten',

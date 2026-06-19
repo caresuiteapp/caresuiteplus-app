@@ -94,7 +94,8 @@ describe('Office mobile platform layout', () => {
       expect(data).toContain(`title: '${group}'`);
     }
 
-    expect(data).toContain("href: '/office/appointments'");
+    expect(data).toContain("href: '/office/calendar'");
+    expect(data).not.toContain("label: 'Kalender', icon: '📅', href: '/office/appointments'");
     expect(data).toContain("href: '/business/office/access/tasks'");
     expect(data).toContain("href: '/business/office/settings'");
     expect(data).toContain("href: '/business/office/access/roles'");
