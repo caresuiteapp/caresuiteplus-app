@@ -1,19 +1,17 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { TenantCenterGlassModal } from '@/components/tenant/TenantCenterGlassModal';
-import { TenantCompanyProfileForm } from '@/components/tenant/forms/TenantCompanyProfileForm';
-import {
-  TenantLegalProfileForm,
-  TenantRegisterProfileForm,
-  TenantTaxProfileForm,
-} from '@/components/tenant/forms/TenantProfileForms';
 import {
   TenantBankAccountsForm,
+  TenantCompanyProfileForm,
   TenantContactProfileForm,
+  TenantLegalProfileForm,
   TenantModuleSettingsForm,
   TenantPaymentTermsForm,
+  TenantRegisterProfileForm,
   TenantRepresentativesForm,
-} from '@/components/tenant/forms/TenantExtendedProfileForms';
+  TenantTaxProfileForm,
+} from './forms';
 import { TenantLogoPicker } from '@/components/tenant/TenantLogoPicker';
 import { PremiumInput } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
