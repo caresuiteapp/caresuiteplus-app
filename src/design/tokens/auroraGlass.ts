@@ -14,7 +14,7 @@ export const auroraGlass = {
   panel: 'rgba(23,27,34,0.65)',
   card: 'rgba(23,27,34,0.72)',
   elevated: 'rgba(30,35,48,0.82)',
-  modal: 'rgba(16,24,39,0.88)',
+  modal: 'rgba(11, 14, 22, 0.92)',
   input: 'rgba(26,32,42,0.75)',
   chip: 'rgba(255,255,255,0.06)',
   chipActive: 'rgba(255,149,0,0.14)',

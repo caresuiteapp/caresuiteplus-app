@@ -1,9 +1,16 @@
 export const careEffects = {
   glass: {
     blur: { light: 8, medium: 16, heavy: 24 },
-    opacity: { panel: 0.72, overlay: 0.55, rim: 0.14 },
+    opacity: { panel: 0.72, overlay: 0.55, rim: 0.14, modal: 0.92 },
     border: 'rgba(255,255,255,0.10)',
     background: 'rgba(23,27,34,0.65)',
+    /** Modal shell — nearly opaque dark navy; blur hints at glass without showing page content. */
+    modalBackground: 'rgba(11, 14, 22, 0.92)',
+    modalBackgroundLight: 'rgba(248, 250, 252, 0.94)',
+    modalBorder: 'rgba(255,255,255,0.14)',
+    modalBorderLight: 'rgba(15, 23, 42, 0.12)',
+    overlayDark: 'rgba(4, 8, 24, 0.78)',
+    overlayLight: 'rgba(7, 18, 42, 0.55)',
   },
   sheen: {
     height: 1,

@@ -16,7 +16,7 @@ type PortalGlassModalProps = {
   primaryLoading?: boolean;
 };
 
-/** Glass overlay modal — aurora background shows through shell. */
+/** Glass overlay modal — opaque shell via PlatformModal + GlassSurface elevated. */
 export function PortalGlassModal({
   visible,
   title,

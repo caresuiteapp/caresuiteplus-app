@@ -11,6 +11,7 @@ import {
 } from 'react-native';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careEffects } from '@/design/tokens/effects';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
@@ -102,14 +103,18 @@ export function PlatformModal({
       StyleSheet.create({
         backdropCenter: {
           flex: 1,
-          backgroundColor: isDark ? 'rgba(4,8,24,0.72)' : 'rgba(7,18,42,0.45)',
+          backgroundColor: isDark
+            ? careEffects.glass.overlayDark
+            : careEffects.glass.overlayLight,
           justifyContent: 'center',
           alignItems: 'center',
           padding: spacing.lg,
         },
         backdropBottom: {
           flex: 1,
-          backgroundColor: isDark ? 'rgba(4,8,24,0.72)' : 'rgba(7,18,42,0.45)',
+          backgroundColor: isDark
+            ? careEffects.glass.overlayDark
+            : careEffects.glass.overlayLight,
           justifyContent: 'flex-end',
         },
         sheetHost: {
