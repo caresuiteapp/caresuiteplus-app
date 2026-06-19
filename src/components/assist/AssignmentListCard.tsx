@@ -1,10 +1,20 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
+import { VisitDispositionBadgeRow } from '@/components/assist/VisitDispositionBadge';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { spacing } from '@/theme';
+import {
+  VISIT_BILLING_STATUS_LABELS,
+  VISIT_PLANNING_STATUS_LABELS,
+  VISIT_PROOF_STATUS_LABELS,
+  type VisitBillingStatus,
+  type VisitPlanningStatus,
+  type VisitProofStatus,
+} from '@/lib/assist/visitTypes';
+import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { moduleColor } from '@/design/tokens/modules';
+import { spacing, typography } from '@/theme';
 
 type AssignmentListCardProps = {
   assignment: AssignmentListItem;
@@ -46,18 +56,26 @@ function formatTimeRange(start: string, end: string): string {
   return `${datePart} · ${startTime}–${endTime}`;
 }
 
+function formatDuration(minutes: number | null | undefined): string {
+  if (!minutes || minutes <= 0) return '';
+  return `${minutes} Min.`;
+}
+
 export function AssignmentListCard({ assignment, onPress, selected = false }: AssignmentListCardProps) {
-  const { colors, typography } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
+  const accent = moduleColor('assist');
+  const planning = (assignment.planningStatus as VisitPlanningStatus) ?? 'scheduled';
+  const proof = (assignment.proofStatus as VisitProofStatus) ?? 'none';
+  const billing = (assignment.billingStatus as VisitBillingStatus) ?? 'none';
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        card: {
-          marginBottom: spacing.sm,
-        },
+        card: { marginBottom: spacing.sm, backgroundColor: auroraGlass.card },
         cardSelected: {
-          borderColor: colors.amber,
+          borderColor: accent,
           borderWidth: 2,
-          backgroundColor: 'rgba(255,193,7,0.08)',
+          backgroundColor: auroraGlass.rowSelected,
         },
         header: {
           flexDirection: 'row',
@@ -66,33 +84,25 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
           gap: spacing.sm,
           marginBottom: 4,
         },
-        title: {
-          ...typography.bodyStrong,
-          flex: 1,
-          color: colors.textPrimary,
-        },
-        meta: {
-          ...typography.caption,
-          marginBottom: 4,
-          color: colors.textSecondary,
-        },
-        time: {
-          ...typography.caption,
-          color: colors.cyan,
-          marginBottom: 4,
-        },
-        location: {
-          ...typography.caption,
-          color: colors.textMuted,
-        },
+        title: { ...typography.bodyStrong, flex: 1, color: text.primary },
+        service: { ...typography.caption, color: text.secondary, marginBottom: 2 },
+        meta: { ...typography.caption, marginBottom: 4, color: text.secondary },
+        time: { ...typography.caption, color: accent, marginBottom: 4 },
+        location: { ...typography.caption, color: text.muted },
+        openHint: { ...typography.caption, color: text.muted, marginTop: spacing.xs },
       }),
-    [colors, typography],
+    [text, accent],
   );
 
   const inner = (
     <>
       <View style={styles.header}>
-        <Text style={styles.title}>{assignment.title}</Text>
+        <View style={{ flex: 1 }}>
+          <Text style={styles.title}>{assignment.serviceName ?? assignment.title}</Text>
+          {assignment.serviceName && assignment.serviceName !== assignment.title ? (
+            <Text style={styles.service}>{assignment.title}</Text>
+          ) : null}
+        </View>
         <PremiumBadge
           label={WORKFLOW_STATUS_LABELS[assignment.status]}
           variant={statusVariant(assignment.status)}
@@ -102,8 +112,19 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
       <Text style={styles.meta}>
         {assignment.clientName} · {assignment.employeeName}
       </Text>
-      <Text style={styles.time}>{formatTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}</Text>
+      <Text style={styles.time}>
+        {formatTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}
+        {assignment.durationMinutes ? ` · ${formatDuration(assignment.durationMinutes)}` : ''}
+      </Text>
       <Text style={styles.location}>{assignment.location}</Text>
+      <VisitDispositionBadgeRow
+        planningLabel={VISIT_PLANNING_STATUS_LABELS[planning] ?? planning}
+        proofLabel={VISIT_PROOF_STATUS_LABELS[proof] ?? proof}
+        budgetLabel={VISIT_BILLING_STATUS_LABELS[billing] ?? billing}
+        isAtRisk={assignment.isAtRisk}
+        isIncomplete={assignment.isIncomplete}
+      />
+      {onPress ? <Text style={styles.openHint}>Öffnen →</Text> : null}
     </>
   );
 
@@ -114,7 +135,7 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
   return (
     <Pressable onPress={onPress}>
       <PremiumCard
-        accentColor={colors.amber}
+        accentColor={accent}
         style={[styles.card, selected ? styles.cardSelected : null]}
         onPress={onPress}
       >
@@ -123,4 +144,3 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
     </Pressable>
   );
 }
-

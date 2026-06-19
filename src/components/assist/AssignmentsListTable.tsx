@@ -1,9 +1,18 @@
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useMemo } from 'react';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
+import { VisitDispositionBadge } from '@/components/assist/VisitDispositionBadge';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import {
+  VISIT_BILLING_STATUS_LABELS,
+  VISIT_PLANNING_STATUS_LABELS,
+  VISIT_PROOF_STATUS_LABELS,
+  type VisitBillingStatus,
+  type VisitPlanningStatus,
+  type VisitProofStatus,
+} from '@/lib/assist/visitTypes';
+import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 
 type AssignmentsListTableProps = {
   assignments: AssignmentListItem[];
@@ -33,18 +42,9 @@ function statusVariant(status: AssignmentListItem['status']) {
 function formatTimeRange(start: string, end: string): string {
   const startDate = new Date(start);
   const endDate = new Date(end);
-  const datePart = startDate.toLocaleDateString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-  });
-  const startTime = startDate.toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  const endTime = endDate.toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+  const datePart = startDate.toLocaleDateString('de-DE', { day: '2-digit', month: '2-digit' });
+  const startTime = startDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+  const endTime = endDate.toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
   return `${datePart} · ${startTime}–${endTime}`;
 }
 
@@ -57,14 +57,15 @@ export function AssignmentsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: AssignmentsListTableProps) {
-  const { colors, typography } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        name: { ...typography.bodyStrong, color: colors.textPrimary },
-        meta: { ...typography.caption, color: colors.textSecondary },
+        name: { color: text.primary, fontWeight: '600' as const },
+        meta: { color: text.secondary, fontSize: 13 },
+        badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
       }),
-    [colors, typography],
+    [text],
   );
 
   return (
@@ -78,10 +79,17 @@ export function AssignmentsListTable({
       onRowPress={onAssignmentPress ? (item) => onAssignmentPress(item.id) : undefined}
       columns={[
         {
-          key: 'title',
-          label: 'Einsatz',
+          key: 'service',
+          label: 'Leistung',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.title}</Text>,
+          render: (item) => (
+            <View>
+              <Text style={styles.name}>{item.serviceName ?? item.title}</Text>
+              {item.serviceName && item.serviceName !== item.title ? (
+                <Text style={styles.meta}>{item.title}</Text>
+              ) : null}
+            </View>
+          ),
         },
         {
           key: 'client',
@@ -102,20 +110,45 @@ export function AssignmentsListTable({
           flex: 1.5,
           sortable: true,
           render: (item) => (
-            <Text style={styles.meta}>{formatTimeRange(item.scheduledStart, item.scheduledEnd)}</Text>
+            <Text style={styles.meta}>
+              {formatTimeRange(item.scheduledStart, item.scheduledEnd)}
+              {item.durationMinutes ? ` (${item.durationMinutes} Min.)` : ''}
+            </Text>
           ),
         },
         {
           key: 'status',
           label: 'Status',
-          flex: 1,
-          render: (item) => (
-            <PremiumBadge
-              label={WORKFLOW_STATUS_LABELS[item.status]}
-              variant={statusVariant(item.status)}
-              dot
-            />
-          ),
+          flex: 2,
+          render: (item) => {
+            const planning = (item.planningStatus as VisitPlanningStatus) ?? 'scheduled';
+            const proof = (item.proofStatus as VisitProofStatus) ?? 'none';
+            const billing = (item.billingStatus as VisitBillingStatus) ?? 'none';
+            return (
+              <View style={styles.badgeRow}>
+                <PremiumBadge
+                  label={WORKFLOW_STATUS_LABELS[item.status]}
+                  variant={statusVariant(item.status)}
+                  dot
+                />
+                <VisitDispositionBadge
+                  label={VISIT_PLANNING_STATUS_LABELS[planning]}
+                  variant="cyan"
+                  compact
+                />
+                <VisitDispositionBadge
+                  label={VISIT_PROOF_STATUS_LABELS[proof]}
+                  variant="purple"
+                  compact
+                />
+                <VisitDispositionBadge
+                  label={VISIT_BILLING_STATUS_LABELS[billing]}
+                  variant="orange"
+                  compact
+                />
+              </View>
+            );
+          },
         },
         {
           key: 'actions',
@@ -126,6 +159,7 @@ export function AssignmentsListTable({
               <PremiumButton
                 title="Öffnen"
                 variant="secondary"
+                size="sm"
                 onPress={() => onOpenDetail(item.id)}
               />
             ) : null,
@@ -134,4 +168,3 @@ export function AssignmentsListTable({
     />
   );
 }
-

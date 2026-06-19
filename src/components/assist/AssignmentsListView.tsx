@@ -1,7 +1,8 @@
-import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useMemo } from 'react';
+import { FlatList, Platform, RefreshControl, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { AssignmentListCard } from './AssignmentListCard';
+import { AssignmentCreateWizard } from './AssignmentCreateWizard';
 import { AssignmentsListHero } from './AssignmentsListHero';
 import { AssignmentsListTable } from './AssignmentsListTable';
 import { LockedActionBanner } from '@/components/permissions';
@@ -14,7 +15,9 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildAssignmentListKpis } from '@/data/demo/assignmentListStats';
+import { buildVisitDispositionKpis } from '@/lib/assist/visitService';
+import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useAssignmentList } from '@/hooks/useAssignmentList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -39,6 +42,9 @@ export function AssignmentsListView({
   embedded = false,
 }: AssignmentsListViewProps) {
   const router = useRouter();
+  const [wizardVisible, setWizardVisible] = useState(false);
+  const shellHostsAurora = useShellHostsAurora();
+  const panelStyle = useAuroraGlassPanelStyle();
   const { profile } = useAuth();
   const { can, isReadOnly, roleLabel, check } = usePermissions();
   const { shellVariant } = usePlatformLayout();
@@ -83,7 +89,31 @@ export function AssignmentsListView({
     allItems,
   } = useAssignmentList();
 
-  const kpis = useMemo(() => buildAssignmentListKpis(allItems), [allItems]);
+  const kpis = useMemo(
+    () =>
+      buildVisitDispositionKpis(
+        allItems.map((item) => ({
+          id: item.id,
+          tenantId: item.tenantId,
+          title: item.title,
+          serviceName: item.serviceName ?? item.title,
+          scheduledStart: item.scheduledStart,
+          scheduledEnd: item.scheduledEnd,
+          durationMinutes: item.durationMinutes ?? null,
+          status: item.status,
+          planningStatus: (item.planningStatus as 'draft') ?? 'scheduled',
+          proofStatus: (item.proofStatus as 'none') ?? 'none',
+          billingStatus: (item.billingStatus as 'none') ?? 'none',
+          location: item.location,
+          clientName: item.clientName,
+          employeeName: item.employeeName,
+          isAtRisk: item.isAtRisk ?? false,
+          isIncomplete: item.isIncomplete ?? false,
+          updatedAt: item.updatedAt,
+        })),
+      ),
+    [allItems],
+  );
   const compactHero = embedded || shellVariant === 'desktop';
   const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
     client: 'clientName',
@@ -91,11 +121,25 @@ export function AssignmentsListView({
   });
   const { colors, typography } = useLegacyTheme();
   const isLive = getServiceMode() === 'supabase';
+  const webGlassBlur =
+    Platform.OS === 'web'
+      ? ({
+          backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+          WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+        } as unknown as ViewStyle)
+      : null;
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
         container: { flex: 1, backgroundColor: 'transparent' },
         flatList: { flex: 1, backgroundColor: 'transparent' },
+        listPanel: {
+          flex: 1,
+          borderRadius: 12,
+          overflow: 'hidden',
+          ...webGlassBlur,
+        },
         toolbar: { gap: spacing.sm, marginBottom: spacing.md, backgroundColor: 'transparent' },
         filterLabel: {
           ...typography.label,
@@ -117,7 +161,7 @@ export function AssignmentsListView({
         embeddedTitle: { ...typography.h3, color: colors.textPrimary },
         embeddedMeta: { ...typography.caption, color: colors.textMuted },
       }),
-    [colors, typography],
+    [colors, typography, webGlassBlur],
   );
 
   if (!canView) {
@@ -142,6 +186,7 @@ export function AssignmentsListView({
         <AssignmentsListHero
           kpis={kpis}
           roleKey={roleKey}
+          tenantLabel={isLive ? 'Live-Mandant' : undefined}
           filteredCount={filteredCount}
           totalCount={totalCount}
           isReadOnly={isReadOnly}
@@ -149,14 +194,33 @@ export function AssignmentsListView({
           viewMode={viewMode}
           onViewModeChange={setViewMode}
           showViewToggle={isDesktop && !embedded}
+          onCalendarPress={() => router.push('/assist/kalender' as never)}
         />
       )}
+
+      {!isReadOnly && can('assist.assignments.manage') ? (
+        <PremiumButton
+          title="Neuer Einsatz"
+          onPress={() => setWizardVisible(true)}
+          style={{ marginBottom: spacing.xs }}
+        />
+      ) : null}
+
+      <AssignmentCreateWizard
+        visible={wizardVisible}
+        onClose={() => setWizardVisible(false)}
+        onCreated={(id) => {
+          setWizardVisible(false);
+          handleAssignmentPress(id);
+          void refresh();
+        }}
+      />
 
       {showSuccess ? <SuccessState message="Liste erfolgreich aktualisiert." /> : null}
 
       <PremiumInput
         label="Suche"
-        placeholder="Titel, Klient, Mitarbeitende oder Ort…"
+        placeholder="Leistung, Klient, Mitarbeiter, Ort oder Status…"
         value={search}
         onChangeText={setSearch}
         autoCapitalize="words"
@@ -223,59 +287,65 @@ export function AssignmentsListView({
       </Text>
     ) : null;
 
-  if (useTableLayout) {
-    return (
-      <View style={styles.container}>
-        <ScrollView
-          style={styles.flatList}
-          contentContainerStyle={styles.list}
-          showsVerticalScrollIndicator={false}
-          refreshControl={
-            <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
-          }
-        >
-          {toolbar}
-          {emptyContent ?? (
-            <>
-              <AssignmentsListTable
-                assignments={items}
-                selectedId={selectedId}
-                onAssignmentPress={handleAssignmentPress}
-                onOpenDetail={handleAssignmentPress}
-                sortColumnKey={tableSort.sortColumnKey}
-                sortDirection={tableSort.sortDirection}
-                onSortColumn={tableSort.onSortColumn}
-              />
-              {footerContent}
-            </>
-          )}
-        </ScrollView>
-      </View>
-    );
-  }
+  const tableView = (
+    <ScrollView
+      style={styles.flatList}
+      contentContainerStyle={styles.list}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+      }
+    >
+      {toolbar}
+      {emptyContent ?? (
+        <>
+          <AssignmentsListTable
+            assignments={items}
+            selectedId={selectedId}
+            onAssignmentPress={handleAssignmentPress}
+            onOpenDetail={handleAssignmentPress}
+            sortColumnKey={tableSort.sortColumnKey}
+            sortDirection={tableSort.sortDirection}
+            onSortColumn={tableSort.onSortColumn}
+          />
+          {footerContent}
+        </>
+      )}
+    </ScrollView>
+  );
+
+  const cardView = (
+    <FlatList
+      style={styles.flatList}
+      data={items}
+      keyExtractor={(item) => item.id}
+      ListHeaderComponent={toolbar}
+      ListEmptyComponent={emptyContent}
+      ListFooterComponent={footerContent}
+      renderItem={({ item }) => (
+        <AssignmentListCard
+          assignment={item}
+          selected={selectedId === item.id}
+          onPress={() => handleAssignmentPress(item.id)}
+        />
+      )}
+      contentContainerStyle={styles.list}
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+      }
+    />
+  );
+
+  const body = useTableLayout ? tableView : cardView;
 
   return (
     <View style={styles.container}>
-      <FlatList
-        style={styles.flatList}
-        data={items}
-        keyExtractor={(item) => item.id}
-        ListHeaderComponent={toolbar}
-        ListEmptyComponent={emptyContent}
-        ListFooterComponent={footerContent}
-        renderItem={({ item }) => (
-          <AssignmentListCard
-            assignment={item}
-            selected={selectedId === item.id}
-            onPress={() => handleAssignmentPress(item.id)}
-          />
-        )}
-        contentContainerStyle={styles.list}
-        showsVerticalScrollIndicator={false}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
-        }
-      />
+      {shellHostsAurora ? (
+        <View style={[styles.listPanel, panelStyle]}>{body}</View>
+      ) : (
+        body
+      )}
     </View>
   );
 }

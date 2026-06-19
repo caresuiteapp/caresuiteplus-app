@@ -1,7 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import {
   DesktopListViewToggle,
-  CareLightButton,
   CareLightKpiCard,
   CareLightListHeroFrame,
   PremiumBadge,
@@ -10,15 +9,16 @@ import {
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
-import type { AssignmentListKpi } from '@/data/demo/assignmentListStats';
+import type { VisitDispositionKpi } from '@/lib/assist/visitService';
 import { ROLE_LABELS } from '@/data/demo';
 import { isDemoMode } from '@/lib/supabase/config';
+import { getServiceMode } from '@/lib/services/mode';
 import type { RoleKey } from '@/types';
-import { designTokens } from '@/theme';
 
 type AssignmentsListHeroProps = {
-  kpis: AssignmentListKpi[];
+  kpis: VisitDispositionKpi[];
   roleKey: RoleKey;
+  tenantLabel?: string;
   filteredCount: number;
   totalCount: number;
   isReadOnly: boolean;
@@ -26,11 +26,13 @@ type AssignmentsListHeroProps = {
   viewMode?: DesktopListViewMode;
   onViewModeChange?: (mode: DesktopListViewMode) => void;
   showViewToggle?: boolean;
+  onCalendarPress?: () => void;
 };
 
 export function AssignmentsListHero({
   kpis,
   roleKey,
+  tenantLabel,
   filteredCount,
   totalCount,
   isReadOnly,
@@ -38,19 +40,23 @@ export function AssignmentsListHero({
   viewMode = 'table',
   onViewModeChange,
   showViewToggle = false,
+  onCalendarPress,
 }: AssignmentsListHeroProps) {
   const accent = moduleColor('assist');
   const heroText = useListHeroTextStyles();
+  const isLive = getServiceMode() === 'supabase';
 
   return (
     <CareLightListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>ASSIST</Text>
+          <Text style={heroText.eyebrow}>ASSIST · DISPOSITION</Text>
           <Text style={heroText.title}>Einsatzplanung</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einsätzen
+            {tenantLabel ? ` · ${tenantLabel}` : ''}
             {isReadOnly ? ' · Lesemodus' : ''}
+            {isLive ? ' · Live' : ''}
           </Text>
         </View>
         {!compact ? (
@@ -62,6 +68,9 @@ export function AssignmentsListHero({
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
+        {onCalendarPress ? (
+          <PremiumBadge label="Kalender →" variant="muted" />
+        ) : null}
       </View>
       {showViewToggle && onViewModeChange ? (
         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
@@ -85,15 +94,13 @@ export function AssignmentsListHero({
   );
 }
 
-const iconSize = designTokens.hero.iconBadgeSize;
-
 const styles = StyleSheet.create({
   topRow: { flexDirection: 'row', gap: careSpacing.md },
   textCol: { flex: 1, gap: 2 },
   iconBadge: {
-    width: iconSize,
-    height: iconSize,
-    borderRadius: iconSize / 2,
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
     justifyContent: 'center',
     borderWidth: 2,
@@ -103,4 +110,3 @@ const styles = StyleSheet.create({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
 });
-
