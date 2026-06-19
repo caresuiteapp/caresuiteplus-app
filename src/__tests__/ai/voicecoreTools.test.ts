@@ -99,10 +99,10 @@ describe('VoiceCore AI foundation', () => {
     expect(source).toContain('hasPending');
   });
 
-  it('VoiceOrb web entry uses wrapped component with viewport bottom-left placement', () => {
+  it('VoiceOrb web entry avoids circular imports and uses bottom-left placement', () => {
     const web = readSource('src/ai/VoiceOrb.web.tsx');
-    expect(web).not.toContain('VoiceOrbCore as VoiceOrb');
-    expect(web).toContain("from './VoiceOrb'");
+    expect(web).not.toContain("from './VoiceOrb'");
+    expect(web).toContain("from './VoiceOrbCore'");
     const core = readSource('src/ai/VoiceOrbCore.tsx');
     expect(core).toContain("position: 'fixed'");
     expect(core).toContain('useVoiceOrbPlacement()');
