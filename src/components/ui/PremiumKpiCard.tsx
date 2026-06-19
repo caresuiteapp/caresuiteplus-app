@@ -1,12 +1,5 @@
-import { useEffect, useMemo } from 'react';
+import { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -24,6 +17,7 @@ type Props = {
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   style?: ViewStyle;
+  /** @deprecated Pulse animation removed — cards stay static on glass surfaces. */
   pulse?: boolean;
 };
 
@@ -36,7 +30,6 @@ export function PremiumKpiCard({
   trend,
   trendValue,
   style,
-  pulse = false,
 }: Props) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
@@ -57,8 +50,6 @@ export function PremiumKpiCard({
   const { colors, typography, gradients } = useLegacyTheme();
   const text = useAuroraAdaptiveText();
   const resolvedAccent = accentColor ?? colors.cyan;
-  const floatY = useSharedValue(0);
-  const pulseOpacity = useSharedValue(0.3);
 
   const styles = useMemo(
     () =>
@@ -70,6 +61,7 @@ export function PremiumKpiCard({
           borderWidth: 1,
           borderColor: colors.borderSoft,
           overflow: 'hidden',
+          shadowOpacity: 0.3,
           shadowRadius: 14,
           shadowOffset: { width: 0, height: 6 },
           elevation: 8,
@@ -124,31 +116,11 @@ export function PremiumKpiCard({
     [colors.borderSoft, text.muted, text.secondary, typography.caption],
   );
 
-  useEffect(() => {
-    floatY.value = withRepeat(
-      withSequence(withTiming(-3, { duration: 2400 }), withTiming(0, { duration: 2400 })),
-      -1,
-      false,
-    );
-    if (pulse) {
-      pulseOpacity.value = withRepeat(
-        withSequence(withTiming(0.55, { duration: 1200 }), withTiming(0.3, { duration: 1200 })),
-        -1,
-        false,
-      );
-    }
-  }, [floatY, pulse, pulseOpacity, pulse]);
-
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateY: floatY.value }],
-    shadowOpacity: pulseOpacity.value,
-  }));
-
   const trendColor =
     trend === 'up' ? colors.success : trend === 'down' ? colors.danger : text.muted;
 
   return (
-    <Animated.View style={[styles.wrapper, { shadowColor: resolvedAccent }, animStyle, style]}>
+    <View style={[styles.wrapper, { shadowColor: resolvedAccent }, style]}>
       <LinearGradient colors={[...gradients.card.default]} style={styles.gradient} />
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
@@ -168,6 +140,6 @@ export function PremiumKpiCard({
           </Text>
         ) : null}
       </View>
-    </Animated.View>
+    </View>
   );
 }
