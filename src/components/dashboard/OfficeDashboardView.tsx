@@ -88,7 +88,6 @@ export function OfficeDashboardView({
                 accentColor={kpi.accentColor ?? colors.orange}
                 trend={kpi.trend}
                 trendValue={kpi.trendValue}
-                variant="light"
               />
             ),
           }))}

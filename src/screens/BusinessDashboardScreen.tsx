@@ -147,7 +147,6 @@ export function BusinessDashboardScreen() {
                   accentColor={kpi.accentColor ?? businessAccent}
                   trend={kpi.trend}
                   trendValue={kpi.trendValue}
-                  variant="light"
                 />
               ),
             }))}
