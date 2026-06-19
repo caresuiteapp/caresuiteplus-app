@@ -43,11 +43,11 @@ export function OfficeCalendarDayView({
 
   return (
     <GlassCard style={styles.card}>
-      <Text style={[styles.title, text.primary]}>{formatDayHeader(anchor)}</Text>
+      <Text style={[styles.title, { color: text.primary }]}>{formatDayHeader(anchor)}</Text>
 
       {allDay.length > 0 ? (
         <View style={styles.allDay}>
-          <Text style={[styles.allDayLabel, text.muted]}>Ganztägig</Text>
+          <Text style={[styles.allDayLabel, { color: text.muted }]}>Ganztägig</Text>
           {allDay.map((event) => (
             <OfficeCalendarEventChip key={event.id} event={event} />
           ))}
@@ -63,15 +63,15 @@ export function OfficeCalendarDayView({
             });
             return (
               <View key={h} style={[styles.row, { minHeight: HOUR_HEIGHT }]}>
-                <Text style={[styles.hour, text.muted]}>{String(h).padStart(2, '0')}:00</Text>
+                <Text style={[styles.hour, { color: text.muted }]}>{String(h).padStart(2, '0')}:00</Text>
                 <View style={styles.slot}>
                   {slotEvents.map((event) => (
                     <View
                       key={event.id}
                       style={[styles.eventBlock, { borderLeftColor: event.color }]}
                     >
-                      <Text style={[styles.eventTitle, text.primary]}>{event.title}</Text>
-                      <Text style={[styles.eventMeta, text.muted]}>
+                      <Text style={[styles.eventTitle, { color: text.primary }]}>{event.title}</Text>
+                      <Text style={[styles.eventMeta, { color: text.muted }]}>
                         {formatTime(event.start)} – {formatTime(event.end)}
                       </Text>
                     </View>

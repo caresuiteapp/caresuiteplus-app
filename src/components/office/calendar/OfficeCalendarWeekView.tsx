@@ -66,7 +66,7 @@ export function OfficeCalendarWeekView({
 
   return (
     <GlassCard style={styles.card}>
-      <Text style={[styles.title, text.primary]}>{formatWeekRange(anchor, weekStartDay)}</Text>
+      <Text style={[styles.title, { color: text.primary }]}>{formatWeekRange(anchor, weekStartDay)}</Text>
       <ScrollView horizontal showsHorizontalScrollIndicator={false}>
         <View>
           <View style={styles.headerRow}>
@@ -75,17 +75,17 @@ export function OfficeCalendarWeekView({
               const isToday = isSameDay(day, today);
               return (
                 <View key={toDateKey(day)} style={[styles.dayCol, isToday && styles.dayColToday]}>
-                  <Text style={[styles.dayLabel, text.muted]}>
+                  <Text style={[styles.dayLabel, { color: text.muted }]}>
                     {day.toLocaleDateString('de-DE', { weekday: 'short' })}
                   </Text>
-                  <Text style={[styles.dayNum, text.primary]}>{day.getDate()}</Text>
+                  <Text style={[styles.dayNum, { color: text.primary }]}>{day.getDate()}</Text>
                 </View>
               );
             })}
           </View>
 
           <View style={styles.allDayRow}>
-            <Text style={[styles.allDayLabel, text.muted]}>GT</Text>
+            <Text style={[styles.allDayLabel, { color: text.muted }]}>GT</Text>
             {days.map((day) => {
               const allDay = eventsForDay(events, day).filter((e) => e.allDay);
               return (
@@ -103,7 +103,7 @@ export function OfficeCalendarWeekView({
               <View style={styles.timeCol}>
                 {hours.map((h) => (
                   <View key={h} style={[styles.hourCell, { height: HOUR_HEIGHT }]}>
-                    <Text style={[styles.hourLabel, text.muted]}>{String(h).padStart(2, '0')}:00</Text>
+                    <Text style={[styles.hourLabel, { color: text.muted }]}>{String(h).padStart(2, '0')}:00</Text>
                   </View>
                 ))}
               </View>
@@ -132,10 +132,10 @@ export function OfficeCalendarWeekView({
                             },
                           ]}
                         >
-                          <Text style={[styles.timedTitle, text.primary]} numberOfLines={2}>
+                          <Text style={[styles.timedTitle, { color: text.primary }]} numberOfLines={2}>
                             {event.title}
                           </Text>
-                          <Text style={[styles.timedMeta, text.muted]}>
+                          <Text style={[styles.timedMeta, { color: text.muted }]}>
                             {formatTime(event.start)} – {formatTime(event.end)}
                           </Text>
                         </View>

@@ -49,10 +49,10 @@ export function OfficeCalendarMonthView({
 
   return (
     <GlassCard style={styles.card}>
-      <Text style={[styles.monthTitle, text.primary]}>{formatMonthYear(anchor)}</Text>
+      <Text style={[styles.monthTitle, { color: text.primary }]}>{formatMonthYear(anchor)}</Text>
       <View style={styles.weekHeader}>
         {weekdayLabels.map((label) => (
-          <Text key={label} style={[styles.weekday, text.muted]}>
+          <Text key={label} style={[styles.weekday, { color: text.muted }]}>
             {label}
           </Text>
         ))}
@@ -75,7 +75,7 @@ export function OfficeCalendarMonthView({
                 isToday && styles.cellToday,
               ]}
             >
-              <Text style={[styles.dayNum, text.primary, !inMonth && text.muted]}>{date.getDate()}</Text>
+              <Text style={[styles.dayNum, { color: !inMonth ? text.muted : text.primary }]}>{date.getDate()}</Text>
               <View style={styles.events}>
                 {visible.map((event) => (
                   <OfficeCalendarEventChip key={event.id} event={event} compact />
@@ -83,12 +83,12 @@ export function OfficeCalendarMonthView({
               </View>
               {hiddenCount > 0 ? (
                 <Pressable onPress={() => toggleDay(key)} style={styles.moreBtn}>
-                  <Text style={[styles.moreLabel, text.secondary]}>+{hiddenCount} mehr</Text>
+                  <Text style={[styles.moreLabel, { color: text.secondary }]}>+{hiddenCount} mehr</Text>
                 </Pressable>
               ) : null}
               {expanded && dayEvents.length > maxCollapsedEvents ? (
                 <Pressable onPress={() => toggleDay(key)} style={styles.moreBtn}>
-                  <Text style={[styles.moreLabel, text.secondary]}>− weniger</Text>
+                  <Text style={[styles.moreLabel, { color: text.secondary }]}>− weniger</Text>
                 </Pressable>
               ) : null}
             </View>

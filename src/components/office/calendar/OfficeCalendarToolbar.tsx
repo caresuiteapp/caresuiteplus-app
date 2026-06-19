@@ -40,14 +40,14 @@ export function OfficeCalendarToolbar({
       <View style={styles.row}>
         <View style={styles.nav}>
           <Pressable onPress={onPrev} style={styles.navBtn} accessibilityLabel="Zurück">
-            <Text style={[styles.navLabel, text.primary]}>‹</Text>
+            <Text style={[styles.navLabel, { color: text.primary }]}>‹</Text>
           </Pressable>
           <Pressable onPress={onNext} style={styles.navBtn} accessibilityLabel="Weiter">
-            <Text style={[styles.navLabel, text.primary]}>›</Text>
+            <Text style={[styles.navLabel, { color: text.primary }]}>›</Text>
           </Pressable>
           <CareLightButton title="Heute" variant="secondary" accentColor={accent} onPress={onToday} />
         </View>
-        <Text style={[styles.title, text.primary]}>{title}</Text>
+        <Text style={[styles.title, { color: text.primary }]}>{title}</Text>
         <CareLightButton
           title="Einstellungen"
           variant="ghost"
@@ -67,7 +67,7 @@ export function OfficeCalendarToolbar({
               accessibilityRole="button"
               accessibilityState={{ selected: active }}
             >
-              <Text style={[styles.chipLabel, text.primary, active && { color: accent }]}>{mode.label}</Text>
+              <Text style={[styles.chipLabel, { color: active ? accent : text.primary }]}>{mode.label}</Text>
             </Pressable>
           );
         })}

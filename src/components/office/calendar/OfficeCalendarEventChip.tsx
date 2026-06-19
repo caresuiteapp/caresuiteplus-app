@@ -18,9 +18,9 @@ export function OfficeCalendarEventChip({ event, compact = false }: OfficeCalend
   const content = (
     <View style={[styles.chip, compact && styles.chipCompact, { borderLeftColor: event.color }]}>
       {!event.allDay && !compact ? (
-        <Text style={[styles.time, text.muted]}>{timeLabel}</Text>
+        <Text style={[styles.time, { color: text.muted }]}>{timeLabel}</Text>
       ) : null}
-      <Text style={[styles.title, text.primary, compact && styles.titleCompact]} numberOfLines={1}>
+      <Text style={[styles.title, { color: text.primary }, compact && styles.titleCompact]} numberOfLines={1}>
         {event.title}
       </Text>
     </View>

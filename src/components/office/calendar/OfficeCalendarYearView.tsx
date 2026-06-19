@@ -72,8 +72,8 @@ export function OfficeCalendarYearView({ anchor, events, onSelectMonth }: Office
 
   return (
     <GlassCard style={styles.card}>
-      <Text style={[styles.title, text.primary]}>Urlaubsplanung {year}</Text>
-      <Text style={[styles.subtitle, text.muted]}>
+      <Text style={[styles.title, { color: text.primary }]}>Urlaubsplanung {year}</Text>
+      <Text style={[styles.subtitle, { color: text.muted }]}>
         Heatmap zeigt Abwesenheitstage pro Monat — Monat antippen für Detailansicht
       </Text>
       <View style={styles.grid}>
@@ -86,9 +86,9 @@ export function OfficeCalendarYearView({ anchor, events, onSelectMonth }: Office
               style={[styles.monthTile, { backgroundColor: DENSITY_COLORS[level] }]}
               accessibilityRole="button"
             >
-              <Text style={[styles.monthLabel, text.primary]}>{MONTH_LABELS_DE[monthIndex]}</Text>
-              <Text style={[styles.stat, text.secondary]}>{vacationDays} Abw.</Text>
-              <Text style={[styles.stat, text.muted]}>{totalEvents} Ereign.</Text>
+              <Text style={[styles.monthLabel, { color: text.primary }]}>{MONTH_LABELS_DE[monthIndex]}</Text>
+              <Text style={[styles.stat, { color: text.secondary }]}>{vacationDays} Abw.</Text>
+              <Text style={[styles.stat, { color: text.muted }]}>{totalEvents} Ereign.</Text>
               <View style={styles.miniGrid}>
                 {Array.from({ length: 28 }, (_, i) => {
                   const day = new Date(year, monthIndex, i + 1);

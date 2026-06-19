@@ -71,7 +71,7 @@ export function OfficeCalendarSettingsModal({
       bodyStyle={styles.modalBody}
     >
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, text.primary]}>Standardansicht</Text>
+        <Text style={[styles.sectionTitle, { color: text.primary }]}>Standardansicht</Text>
         <View style={styles.rowWrap}>
           {VIEW_OPTIONS.map((opt) => (
             <PremiumButton
@@ -85,7 +85,7 @@ export function OfficeCalendarSettingsModal({
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, text.primary]}>Wochenstart</Text>
+        <Text style={[styles.sectionTitle, { color: text.primary }]}>Wochenstart</Text>
         <View style={styles.rowWrap}>
           <PremiumButton
             title="Montag"
@@ -101,7 +101,7 @@ export function OfficeCalendarSettingsModal({
       </View>
 
       <View style={styles.field}>
-        <Text style={[styles.label, text.secondary]}>Tagesansicht Start (Stunde)</Text>
+        <Text style={[styles.label, { color: text.secondary }]}>Tagesansicht Start (Stunde)</Text>
         <TextInput
           value={String(form.dayViewStartHour)}
           onChangeText={(v) => {
@@ -111,12 +111,12 @@ export function OfficeCalendarSettingsModal({
             }
           }}
           keyboardType="number-pad"
-          style={[styles.input, text.primary]}
+          style={[styles.input, { color: text.primary }]}
         />
       </View>
 
       <View style={styles.field}>
-        <Text style={[styles.label, text.secondary]}>Max. eingeklappte Ereignisse pro Tag</Text>
+        <Text style={[styles.label, { color: text.secondary }]}>Max. eingeklappte Ereignisse pro Tag</Text>
         <TextInput
           value={String(form.maxCollapsedEvents)}
           onChangeText={(v) => {
@@ -126,12 +126,12 @@ export function OfficeCalendarSettingsModal({
             }
           }}
           keyboardType="number-pad"
-          style={[styles.input, text.primary]}
+          style={[styles.input, { color: text.primary }]}
         />
       </View>
 
       <View style={styles.switchRow}>
-        <Text style={[styles.label, text.secondary]}>Wochenansicht 24/7</Text>
+        <Text style={[styles.label, { color: text.secondary }]}>Wochenansicht 24/7</Text>
         <Switch
           value={form.weekFullDay}
           onValueChange={(weekFullDay) => setForm((prev) => ({ ...prev, weekFullDay }))}
@@ -139,9 +139,9 @@ export function OfficeCalendarSettingsModal({
       </View>
 
       <View style={styles.section}>
-        <Text style={[styles.sectionTitle, text.primary]}>Ereignistypen</Text>
+        <Text style={[styles.sectionTitle, { color: text.primary }]}>Ereignistypen</Text>
         <OfficeCalendarLegend visibleTypes={form.visibleTypes} onToggleType={toggleType} />
-        <Text style={[styles.hint, text.muted]}>
+        <Text style={[styles.hint, { color: text.muted }]}>
           Typen antippen zum Ein-/Ausblenden. Labels:{' '}
           {Object.values(CALENDAR_EVENT_TYPE_LABELS).join(', ')}
         </Text>

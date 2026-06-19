@@ -36,7 +36,7 @@ export function OfficeCalendarLegend({
             ]}
           >
             <View style={[styles.dot, { backgroundColor: CALENDAR_EVENT_TYPE_COLORS[type] }]} />
-            <Text style={[styles.label, text.secondary, !active && styles.labelInactive]}>
+            <Text style={[styles.label, { color: text.secondary }, !active && styles.labelInactive]}>
               {CALENDAR_EVENT_TYPE_LABELS[type]}
             </Text>
           </View>
