@@ -14,7 +14,6 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchOfficeComposeRecipients } from '@/lib/office/officeComposeRecipientService';
 import { useAuth } from '@/lib/auth/context';
 import { renderTemplateWithVariables, getSampleVariableValues } from '@/lib/templates/templateVariables';
-import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import type { OfficeRecipientType } from '@/types/office/officeCompose';
@@ -41,8 +40,7 @@ function mapRecipientToThreadType(type: OfficeRecipientType): CommunicationThrea
 }
 
 export function NewConversationModal({ visible, onClose, onCreated }: NewConversationModalProps) {
-  const { c } = useCareLightPalette();
-  const { typography } = useLegacyTheme();
+  const { colors, typography } = useLegacyTheme();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const perms = useCommunicationPermissions();
@@ -62,22 +60,22 @@ export function NewConversationModal({ visible, onClose, onCreated }: NewConvers
     () =>
       StyleSheet.create({
         section: { gap: spacing.sm, marginBottom: spacing.md },
-        label: { ...typography.caption, color: c.muted, textTransform: 'uppercase' },
+        label: { ...typography.caption, color: colors.textMuted, textTransform: 'uppercase' },
         chips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
         chip: {
           paddingHorizontal: spacing.sm,
           paddingVertical: spacing.xs,
           borderRadius: radius.capsule,
           borderWidth: 1,
-          borderColor: c.border,
+          borderColor: colors.borderSoft,
         },
-        chipActive: { backgroundColor: `${c.violet}22`, borderColor: c.violet },
-        chipText: { ...typography.caption, color: c.muted },
-        chipTextActive: { color: c.violet, fontWeight: '700' },
-        error: { ...typography.caption, color: c.danger },
-        hint: { ...typography.caption, color: c.muted },
+        chipActive: { backgroundColor: `${colors.violet}22`, borderColor: colors.violet },
+        chipText: { ...typography.caption, color: colors.textSecondary },
+        chipTextActive: { color: colors.violet, fontWeight: '700' },
+        error: { ...typography.caption, color: colors.danger },
+        hint: { ...typography.caption, color: colors.textMuted },
       }),
-    [c, typography],
+    [colors, typography],
   );
 
   const reset = useCallback(() => {

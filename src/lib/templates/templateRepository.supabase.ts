@@ -14,8 +14,10 @@ import type {
 } from '@/types/templates';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { getCatalogDefaults } from './catalogDefaults';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -82,7 +84,10 @@ export const templateSupabaseRepository = {
     if (filters.categoryKey) query = query.eq('category_key', filters.categoryKey);
 
     const { data, error } = await query.order('sort_order').order('title');
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (isMissingTableError(error)) return { ok: true, data: [] };
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
 
     let rows = (data ?? []).map(mapTemplateRow);
     if (filters.search) {
@@ -326,7 +331,10 @@ export const catalogSupabaseRepository = {
     if (catalogType) query = query.eq('catalog_type', catalogType);
 
     const { data, error } = await query.order('sort_order').order('label');
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (isMissingTableError(error)) return { ok: true, data: [] };
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
     const rows = (data ?? []).map(mapCatalogRow).filter((e) => e.isActive);
     const filtered = catalogType ? rows : rows;
     return { ok: true, data: filtered };
@@ -388,15 +396,24 @@ export const catalogSupabaseRepository = {
     catalogType: CatalogEntry['catalogType'],
   ): Promise<ServiceResult<DropdownOption[]>> {
     const result = await this.list(tenantId, catalogType);
-    if (!result.ok) return result;
-    return {
-      ok: true,
-      data: result.data.map((e) => ({
-        value: e.valueKey,
-        label: e.label,
-        description: e.description,
-        isSystem: e.isSystem,
-      })),
-    };
+    if (!result.ok) {
+      const defaults = getCatalogDefaults(catalogType);
+      if (defaults.length > 0 && isMissingTableError(result.error)) {
+        return { ok: true, data: defaults };
+      }
+      return result;
+    }
+
+    const options =
+      result.data.length > 0
+        ? result.data.map((e) => ({
+            value: e.valueKey,
+            label: e.label,
+            description: e.description,
+            isSystem: e.isSystem,
+          }))
+        : getCatalogDefaults(catalogType);
+
+    return { ok: true, data: options };
   },
 };

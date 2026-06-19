@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { FilterChipGroup } from '@/components/ui/FilterChip';
-import { ErrorState } from '@/components/ui/StateViews';
 import { useDropdownOptions } from '@/hooks/templates/useDropdownOptions';
 import type { CatalogType } from '@/types/templates';
-import { spacing, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
 
 type CatalogValueSelectProps = {
   catalogType: CatalogType;
@@ -23,7 +23,19 @@ export function CatalogValueSelect({
   required,
   error,
 }: CatalogValueSelectProps) {
+  const { colors, typography } = useLegacyTheme();
   const { options, loading, error: loadError } = useDropdownOptions(catalogType);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        wrap: { marginBottom: spacing.sm },
+        label: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.xs },
+        hint: { ...typography.caption, color: colors.textMuted, opacity: 0.85 },
+        error: { ...typography.caption, color: colors.danger, marginTop: 4 },
+      }),
+    [colors.danger, colors.textMuted, typography.caption],
+  );
 
   useEffect(() => {
     if (!value && options.length > 0) {
@@ -32,7 +44,12 @@ export function CatalogValueSelect({
   }, [value, options, onChange]);
 
   if (loadError) {
-    return <ErrorState title="Katalog" message={loadError} />;
+    return (
+      <View style={styles.wrap}>
+        {label ? <Text style={styles.label}>{label}</Text> : null}
+        <Text style={styles.hint}>Keine Katalogwerte verfügbar.</Text>
+      </View>
+    );
   }
 
   const chipOptions = options.map((o) => ({ key: o.value, label: o.label }));
@@ -56,10 +73,3 @@ export function CatalogValueSelect({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { marginBottom: spacing.sm },
-  label: { ...typography.caption, marginBottom: spacing.xs },
-  hint: { ...typography.caption, opacity: 0.7 },
-  error: { ...typography.caption, color: '#FF6B6B', marginTop: 4 },
-});

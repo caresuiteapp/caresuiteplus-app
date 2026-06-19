@@ -1,10 +1,10 @@
-import { useEffect } from 'react';
+import { useEffect, useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { FilterChipGroup } from '@/components/ui/FilterChip';
-import { ErrorState } from '@/components/ui/StateViews';
 import { useTemplates } from '@/hooks/templates/useTemplates';
 import type { TemplateListFilters } from '@/types/templates';
-import { spacing, typography } from '@/theme';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
 
 type TemplateDropdownSelectProps = {
   filters?: TemplateListFilters;
@@ -23,7 +23,19 @@ export function TemplateDropdownSelect({
   required,
   error,
 }: TemplateDropdownSelectProps) {
+  const { colors, typography } = useLegacyTheme();
   const { templates, loading, error: loadError } = useTemplates(filters);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        wrap: { marginBottom: spacing.sm },
+        label: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.xs },
+        hint: { ...typography.caption, color: colors.textMuted, opacity: 0.85 },
+        error: { ...typography.caption, color: colors.danger, marginTop: 4 },
+      }),
+    [colors.danger, colors.textMuted, typography.caption],
+  );
 
   useEffect(() => {
     if (!value && templates.length > 0) {
@@ -33,7 +45,12 @@ export function TemplateDropdownSelect({
   }, [value, templates, onChange]);
 
   if (loadError) {
-    return <ErrorState title="Vorlagen" message={loadError} />;
+    return (
+      <View style={styles.wrap}>
+        {label ? <Text style={styles.label}>{label}</Text> : null}
+        <Text style={styles.hint}>Keine Vorlagen verfügbar.</Text>
+      </View>
+    );
   }
 
   const chipOptions = templates.map((t) => ({ key: t.id, label: t.title }));
@@ -66,10 +83,3 @@ export function TemplateDropdownSelect({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { marginBottom: spacing.sm },
-  label: { ...typography.caption, marginBottom: spacing.xs },
-  hint: { ...typography.caption, opacity: 0.7 },
-  error: { ...typography.caption, color: '#FF6B6B', marginTop: 4 },
-});
