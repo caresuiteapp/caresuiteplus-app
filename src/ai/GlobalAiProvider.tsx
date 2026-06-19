@@ -423,8 +423,11 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
       voiceDebugLog(`failed at ${failedStep}`, error);
       preflightStream?.getTracks().forEach((track) => track.stop());
       cleanupVoice({ preserveError: true });
-      const message = formatVoiceErrorForPanel(error, failedStep);
-      setErrorMessage(message);
+      const rawMessage =
+        failedStep === 'Mikrofon' && /NotAllowedError|Permission denied|permission/i.test(String(error))
+          ? getMicrophoneDeniedMessage()
+          : formatVoiceErrorForPanel(error, failedStep);
+      setErrorMessage(rawMessage);
       setStatus('error');
     } finally {
       setIsStarting(false);

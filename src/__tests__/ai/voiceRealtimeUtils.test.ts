@@ -1,8 +1,11 @@
-import { describe, expect, it } from 'vitest';
+import { describe, expect, it, vi } from 'vitest';
 import {
+  exchangeRealtimeCallOffer,
   extractRealtimeClientSecret,
+  formatVoiceErrorForPanel,
   getRealtimeCallsUrl,
   parseVoiceErrorMessage,
+  truncateVoiceErrorMessage,
 } from '@/ai/voiceRealtimeUtils';
 
 describe('voiceRealtimeUtils', () => {
@@ -32,7 +35,37 @@ describe('voiceRealtimeUtils', () => {
     ).toBe("Invalid schema for function 'search_caresuite'.");
   });
 
-  it('includes model query param for WebRTC calls', () => {
-    expect(getRealtimeCallsUrl()).toContain('model=gpt-realtime');
+  it('uses GA realtime calls endpoint without model query param', () => {
+    expect(getRealtimeCallsUrl()).toBe('https://api.openai.com/v1/realtime/calls');
+  });
+
+  it('keeps specific WebRTC errors instead of generic fallback', () => {
+    const longMessage = `WebRTC: ${'x'.repeat(300)}`;
+    expect(formatVoiceErrorForPanel(new Error(longMessage), 'WebRTC')).toContain('WebRTC:');
+    expect(formatVoiceErrorForPanel(new Error(longMessage), 'WebRTC').length).toBeLessThanOrEqual(221);
+  });
+
+  it('prefixes unknown errors with the failing step', () => {
+    expect(formatVoiceErrorForPanel(new Error('SDP negotiation failed'), 'WebRTC')).toBe(
+      'WebRTC: SDP negotiation failed',
+    );
+  });
+
+  it('truncates long messages with ellipsis', () => {
+    expect(truncateVoiceErrorMessage('a'.repeat(250)).endsWith('…')).toBe(true);
+    expect(truncateVoiceErrorMessage('a'.repeat(250)).length).toBe(220);
+  });
+
+  it('exchangeRealtimeCallOffer throws parsed WebRTC errors', async () => {
+    const fetchMock = vi.fn().mockResolvedValue({
+      ok: false,
+      status: 400,
+      text: async () => '{"error":{"message":"Invalid SDP offer"}}',
+    });
+    vi.stubGlobal('fetch', fetchMock);
+
+    await expect(exchangeRealtimeCallOffer('ek_test', 'v=0')).rejects.toThrow(
+      'WebRTC: Invalid SDP offer',
+    );
   });
 });
