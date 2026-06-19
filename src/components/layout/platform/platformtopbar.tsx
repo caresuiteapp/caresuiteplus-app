@@ -82,21 +82,23 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
 
   return (
     <View style={styles.root}>
-      <View style={styles.searchWrap}>
-        <Text style={styles.searchIcon}>⌕</Text>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder={SEARCH_PLACEHOLDERS[mainModule]}
-          placeholderTextColor={isDark ? 'rgba(203,213,225,0.45)' : '#94A3B8'}
-          style={[styles.searchInput, webNoOutline]}
-        />
-        <View style={styles.searchKbd}>
-          <Text style={styles.searchKbdText}>⌘K</Text>
+      <View style={styles.start}>
+        <View style={styles.searchWrap}>
+          <Text style={styles.searchIcon}>⌕</Text>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            placeholder={SEARCH_PLACEHOLDERS[mainModule]}
+            placeholderTextColor={isDark ? 'rgba(203,213,225,0.45)' : '#94A3B8'}
+            style={[styles.searchInput, webNoOutline]}
+          />
+          <View style={styles.searchKbd}>
+            <Text style={styles.searchKbdText}>⌘K</Text>
+          </View>
         </View>
       </View>
 
-      <View style={styles.actions}>
+      <View style={styles.center} pointerEvents="box-none">
         <View style={styles.tenantWrap}>
           <Pressable
             onPress={() => {
@@ -137,7 +139,9 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
             </View>
           ) : null}
         </View>
+      </View>
 
+      <View style={styles.end}>
         <NotificationBellWithCenter size="topbar" />
 
         <View style={styles.profileWrap}>
@@ -207,13 +211,33 @@ function createStyles(
     root: {
       flexDirection: 'row',
       alignItems: 'center',
-      gap: spacing.md,
+      justifyContent: 'space-between',
+      position: 'relative',
       paddingHorizontal: spacing.lg,
       paddingVertical: spacing.sm,
       borderBottomWidth: 1,
       borderBottomColor: glassBorder,
       backgroundColor: isDark ? 'rgba(11,16,32,0.55)' : colors.bgPremium,
       zIndex: 20,
+    },
+    start: {
+      flex: 1,
+      zIndex: 2,
+    },
+    center: {
+      position: 'absolute',
+      left: 0,
+      right: 0,
+      alignItems: 'center',
+      justifyContent: 'center',
+      zIndex: 1,
+    },
+    end: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      flexShrink: 0,
+      zIndex: 2,
     },
     searchWrap: {
       ...topbarControl,
@@ -242,12 +266,6 @@ function createStyles(
       backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)',
     },
     searchKbdText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
-    actions: {
-      flexDirection: 'row',
-      alignItems: 'center',
-      gap: spacing.sm,
-      flexShrink: 0,
-    },
     tenantWrap: { position: 'relative' },
     tenantChip: {
       flexDirection: 'row',
