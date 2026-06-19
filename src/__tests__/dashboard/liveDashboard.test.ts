@@ -57,8 +57,17 @@ describe('live dashboard snapshots', () => {
         tableAvailability: {
           clients: true,
           assignments: true,
+          employees: true,
+          invoices: true,
           tasks: true,
+          messages: true,
           modules: true,
+          portalUsers: true,
+          documents: true,
+          portalRequests: true,
+          serviceRecords: true,
+          budgets: true,
+          appointments: true,
         },
       },
     });
@@ -86,7 +95,7 @@ describe('live dashboard snapshots', () => {
     if (result.ok) {
       expect(result.data.tenantName).toBe('Helferhasen+');
       expect(result.data.tenantId).toBe(LIVE_TENANT_ID);
-      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'kpi-clients');
+      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'kpi-clients-active');
       expect(clientsKpi?.value).toBe(1);
       expect(result.data.kpis.some((kpi) => String(kpi.subValue).includes('Demo'))).toBe(false);
       expect(result.data.activities.length).toBeGreaterThan(0);
@@ -108,6 +117,15 @@ describe('live dashboard snapshots', () => {
           clients: true,
           employees: true,
           invoices: true,
+          assignments: true,
+          tasks: true,
+          messages: true,
+          modules: true,
+          portalUsers: true,
+          documents: true,
+          portalRequests: true,
+          serviceRecords: true,
+          budgets: true,
           appointments: true,
         },
       },
@@ -125,7 +143,7 @@ describe('live dashboard snapshots', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.tenantName).toBe('Helferhasen+');
-      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'office-kpi-clients');
+      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'office-kpi-clients-active');
       expect(clientsKpi?.value).toBe(1);
       expect(result.data.kpis.some((kpi) => String(kpi.subValue).includes('Demo'))).toBe(false);
     }

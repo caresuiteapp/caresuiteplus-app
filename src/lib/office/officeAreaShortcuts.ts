@@ -32,10 +32,10 @@ export function buildOfficeAreaShortcutsFromMetrics(
     counts.employees = metrics.totalEmployees;
   }
   if (metrics.tableAvailability.invoices) {
-    counts.invoices = metrics.totalInvoices;
+    counts.invoices = metrics.openInvoices;
   }
   if (metrics.tableAvailability.appointments) {
-    counts.appointments = metrics.totalAppointments;
+    counts.appointments = metrics.appointmentsThisWeek;
   }
 
   return buildOfficeAreaShortcuts(counts);

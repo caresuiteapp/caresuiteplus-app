@@ -2,15 +2,15 @@ import { describe, expect, it } from 'vitest';
 import {
   buildBusinessKpisFromMetrics,
   emptyBusinessDashboardMetrics,
+  ZENTRALE_KPI_COUNT,
 } from '@/lib/dashboard/businessDashboardMetrics';
 
 describe('business dashboard metrics', () => {
-  it('buildBusinessKpisFromMetrics zeigt Live-Kennzahlen für Helferhasen+', () => {
+  it('buildBusinessKpisFromMetrics liefert 16 Live-Kennzahlen für Helferhasen+', () => {
     const kpis = buildBusinessKpisFromMetrics({
       ...emptyBusinessDashboardMetrics(),
       activeClients: 1,
       totalClients: 1,
-      assignmentsToday: 0,
       openTasks: 2,
       overdueTasks: 1,
       activeModules: 3,
@@ -18,14 +18,23 @@ describe('business dashboard metrics', () => {
       tableAvailability: {
         clients: true,
         assignments: true,
+        employees: true,
+        invoices: true,
         tasks: true,
+        messages: true,
         modules: true,
+        portalUsers: true,
+        documents: true,
+        portalRequests: true,
+        serviceRecords: true,
+        budgets: true,
+        appointments: true,
       },
     });
 
-    expect(kpis.find((kpi) => kpi.id === 'kpi-clients')?.value).toBe(1);
-    expect(kpis.find((kpi) => kpi.id === 'kpi-clients')?.subValue).toBe('1 gesamt');
-    expect(kpis.find((kpi) => kpi.id === 'kpi-assignments')?.value).toBe(0);
+    expect(kpis).toHaveLength(ZENTRALE_KPI_COUNT);
+    expect(kpis.find((kpi) => kpi.id === 'kpi-clients-active')?.value).toBe(1);
+    expect(kpis.find((kpi) => kpi.id === 'kpi-clients-active')?.subValue).toBe('1 gesamt');
     expect(kpis.find((kpi) => kpi.id === 'kpi-tasks')?.value).toBe(2);
     expect(kpis.find((kpi) => kpi.id === 'kpi-tasks')?.trendValue).toBe('1 überfällig');
     expect(kpis.find((kpi) => kpi.id === 'kpi-modules')?.value).toBe(3);
@@ -35,8 +44,13 @@ describe('business dashboard metrics', () => {
   it('nutzt leere Platzhalter wenn Tabellen noch nicht verfügbar sind', () => {
     const kpis = buildBusinessKpisFromMetrics(emptyBusinessDashboardMetrics());
 
-    expect(kpis.find((kpi) => kpi.id === 'kpi-clients')?.subValue).toBe('Klient:innen nicht verfügbar');
-    expect(kpis.find((kpi) => kpi.id === 'kpi-assignments')?.subValue).toBe('Einsätze nicht verfügbar');
+    expect(kpis).toHaveLength(ZENTRALE_KPI_COUNT);
+    expect(kpis.find((kpi) => kpi.id === 'kpi-clients-active')?.subValue).toBe(
+      'Klient:innen nicht verfügbar',
+    );
+    expect(kpis.find((kpi) => kpi.id === 'kpi-assignments')?.subValue).toBe(
+      'Einsätze nicht verfügbar',
+    );
     expect(kpis.find((kpi) => kpi.id === 'kpi-tasks')?.subValue).toBe('Aufgaben nicht verfügbar');
     expect(kpis.find((kpi) => kpi.id === 'kpi-modules')?.subValue).toBe('Module nicht verfügbar');
   });

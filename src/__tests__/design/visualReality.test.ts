@@ -237,11 +237,13 @@ describe('Visual Reality — Verification Round 2 design wiring', () => {
     expect(readSrc('src/lib/navigation/demoNavigation.ts')).toContain("DEMO_BUSINESS_ENTRY_ROUTE = '/office'");
   });
 
-  it('BusinessDashboardScreen nutzt CareLightModuleDashboard', () => {
+  it('BusinessDashboardScreen nutzt ZentraleDashboardHero und KPI-Grid', () => {
     const screen = readSrc('src/screens/BusinessDashboardScreen.tsx');
-    expect(screen).toContain('CareLightModuleDashboard');
-    expect(screen).toContain('CareLightScreen');
-    expect(screen).not.toMatch(/import[^;]*ScreenShell[^;]*from '@\/components\/layout'/);
+    expect(screen).toContain('ZentraleDashboardHero');
+    expect(screen).toContain('PremiumKpiCard');
+    expect(screen).not.toContain('CareLightModuleDashboard');
+    expect(screen).not.toContain('Letzte Aktivitäten');
+    expect(screen).not.toContain('Schnellzugriff');
   });
 
   it('@/theme default ist light (colors + typography)', () => {

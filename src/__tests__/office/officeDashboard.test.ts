@@ -32,7 +32,7 @@ describe('Office dashboard', () => {
 
   it('buildOfficeDashboard nutzt echte Demo-Kennzahlen', () => {
     const snapshot = buildOfficeDashboard('business_admin');
-    expect(snapshot.kpis.some((k) => k.id === 'office-kpi-clients')).toBe(true);
+    expect(snapshot.kpis.some((k) => k.id === 'office-kpi-clients-active')).toBe(true);
     expect(snapshot.kpis.some((k) => k.id === 'office-kpi-invoices')).toBe(true);
     expect(snapshot.heroSubtitle).toContain('Office');
   });
@@ -46,30 +46,22 @@ describe('Office dashboard', () => {
     expect(OFFICE_AREA_SHORTCUTS.some((a) => a.route === '/office/invoices')).toBe(true);
   });
 
-  it('OfficeIndexScreen nutzt CareLightModuleDashboard', () => {
+  it('OfficeIndexScreen nutzt OfficeDashboardView', () => {
     const source = readSrc('src/screens/office/OfficeIndexScreen.tsx');
-    expect(source).toContain('CareLightScreen');
-    expect(source).toContain('CareLightModuleDashboard');
+    expect(source).toContain('OfficeDashboardView');
     expect(source).toContain('useOfficeDashboard');
-    expect(source).not.toContain('AdaptiveModuleDashboard');
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('OfficeDashboardView hat Loading, Error und Refresh', () => {
+  it('OfficeDashboardView hat Loading, Error und KPI-Grid', () => {
     const source = readSrc('src/components/dashboard/OfficeDashboardView.tsx');
     expect(source).toContain('LoadingState');
     expect(source).toContain('ErrorState');
     expect(source).toContain('EmptyState');
     expect(source).toContain('onRefresh');
+    expect(source).toContain('ZentraleDashboardHero');
+    expect(source).toContain('AdaptiveKpiGrid');
     expect(source).not.toContain('Coming Soon');
     expect(source).not.toContain('onPress={() => {}}');
-  });
-
-  it('OfficeDashboardView ist responsive (phone/tablet/desktop)', () => {
-    const source = readSrc('src/components/dashboard/OfficeDashboardView.tsx');
-    expect(source).toContain("shellVariant === 'desktop'");
-    expect(source).toContain("shellVariant === 'tablet'");
-    expect(source).toContain('desktopGrid');
-    expect(source).toContain('tabletGrid');
   });
 });

@@ -72,9 +72,9 @@ describe('Native app structure (Prompt 110)', () => {
   });
 
   it('6. logout → portal choice', () => {
-    const dashboard = readSrc('src/screens/BusinessDashboardScreen.tsx');
-    expect(dashboard).toContain('signOut().then(() => router.replace');
-    expect(dashboard).toContain("router.replace('/' as never)");
+    const topbar = readSrc('src/components/layout/platform/platformtopbar.tsx');
+    expect(topbar).toContain('signOut().then(() => router.replace');
+    expect(topbar).toContain("router.replace('/' as never)");
     const portalTab = readSrc('src/screens/portal/PortalTabScreen.tsx');
     expect(portalTab).toContain("router.replace('/' as never)");
   });

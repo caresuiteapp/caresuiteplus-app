@@ -8,49 +8,46 @@ import type {
 import type { RoleKey } from '@/types';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 import { buildOfficeAreaShortcuts, type OfficeAreaShortcut } from '@/lib/office/officeAreaShortcuts';
+import {
+  buildOfficeKpisFromMetrics,
+  emptyOfficeDashboardMetrics,
+} from '@/lib/office/officeDashboardMetrics';
 import { demoAppointments, demoInvoices } from './seedCatalog';
 import { demoClients } from './clients';
 import { demoEmployees } from './employees';
 import { demoTenant, DEMO_TENANT_ID } from './tenant';
 import { demoTenantProducts } from './products';
 
-const OFFICE_KPIS: DashboardKpi[] = [
-  {
-    id: 'office-kpi-clients',
-    label: 'Aktive Klient:innen',
-    value: demoClients.filter((c) => c.status === 'aktiv').length,
-    subValue: `${demoClients.length} gesamt`,
-    icon: '👥',
-    accentColor: '#62F3FF',
-    trend: 'up',
-    trendValue: `${demoClients.filter((c) => c.status === 'in_bearbeitung').length} in Aufnahme`,
+const OFFICE_DEMO_KPIS = buildOfficeKpisFromMetrics({
+  ...emptyOfficeDashboardMetrics(),
+  activeClients: demoClients.filter((c) => c.status === 'aktiv').length,
+  totalClients: demoClients.length,
+  clientsInIntake: demoClients.filter((c) => c.status === 'in_bearbeitung').length,
+  activeEmployees: demoEmployees.filter((e) => e.status === 'aktiv').length,
+  totalEmployees: demoEmployees.length,
+  openInvoices: demoInvoices.filter((i) => i.status === 'aktiv' || i.status === 'in_bearbeitung').length,
+  draftInvoices: demoInvoices.filter((i) => i.status === 'entwurf').length,
+  appointmentsThisWeek: demoAppointments.length,
+  activeModules: demoTenantProducts.filter((p) => p.isActive).length,
+  totalModules: demoTenantProducts.length,
+  tableAvailability: {
+    clients: true,
+    employees: true,
+    invoices: true,
+    assignments: true,
+    tasks: true,
+    messages: true,
+    modules: true,
+    portalUsers: true,
+    documents: true,
+    portalRequests: true,
+    serviceRecords: true,
+    budgets: true,
+    appointments: true,
   },
-  {
-    id: 'office-kpi-employees',
-    label: 'Mitarbeitende',
-    value: demoEmployees.filter((e) => e.status === 'aktiv').length,
-    subValue: `${demoEmployees.length} im Team`,
-    icon: '👤',
-    accentColor: '#FF9500',
-  },
-  {
-    id: 'office-kpi-invoices',
-    label: 'Offene Rechnungen',
-    value: demoInvoices.filter((i) => i.status === 'aktiv' || i.status === 'in_bearbeitung').length,
-    subValue: `${demoInvoices.filter((i) => i.status === 'entwurf').length} Entwürfe`,
-    icon: '🧾',
-    accentColor: '#FFD166',
-    trend: 'neutral',
-  },
-  {
-    id: 'office-kpi-appointments',
-    label: 'Termine heute',
-    value: demoAppointments.filter((a) => a.status === 'aktiv').length,
-    subValue: `${demoAppointments.length} geplant`,
-    icon: '📅',
-    accentColor: '#7C5CFF',
-  },
-];
+});
+
+const OFFICE_KPIS: DashboardKpi[] = OFFICE_DEMO_KPIS;
 
 const OFFICE_STATUS_CARDS: DashboardStatusCard[] = [
   {

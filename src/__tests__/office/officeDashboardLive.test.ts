@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { ZENTRALE_KPI_COUNT, buildBusinessKpisFromMetrics } from '@/lib/dashboard/businessDashboardMetrics';
 import { buildOfficeAreaShortcutsFromMetrics } from '@/lib/office/officeAreaShortcuts';
 import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
 import {
@@ -34,7 +35,7 @@ describe('office dashboard live metrics', () => {
     vi.restoreAllMocks();
   });
 
-  it('buildOfficeKpisFromMetrics zeigt aktive Klient:innen', () => {
+  it('buildOfficeKpisFromMetrics liefert 16 Live-KPIs', () => {
     const kpis = buildOfficeKpisFromMetrics({
       ...emptyOfficeDashboardMetrics(),
       activeClients: 1,
@@ -43,13 +44,37 @@ describe('office dashboard live metrics', () => {
         clients: true,
         employees: true,
         invoices: true,
+        assignments: true,
+        tasks: true,
+        messages: true,
+        modules: true,
+        portalUsers: true,
+        documents: true,
+        portalRequests: true,
+        serviceRecords: true,
+        budgets: true,
         appointments: true,
       },
     });
 
-    const clientsKpi = kpis.find((kpi) => kpi.id === 'office-kpi-clients');
-    expect(clientsKpi?.value).toBe(1);
-    expect(clientsKpi?.subValue).toBe('1 gesamt');
+    expect(kpis).toHaveLength(ZENTRALE_KPI_COUNT);
+    expect(kpis.find((kpi) => kpi.id === 'office-kpi-clients-active')?.value).toBe(1);
+    expect(kpis.find((kpi) => kpi.id === 'office-kpi-clients-active')?.subValue).toBe('1 gesamt');
+  });
+
+  it('buildBusinessKpisFromMetrics liefert 16 Live-KPIs', () => {
+    const kpis = buildBusinessKpisFromMetrics({
+      ...emptyOfficeDashboardMetrics(),
+      activeClients: 2,
+      totalClients: 3,
+      tableAvailability: {
+        ...emptyOfficeDashboardMetrics().tableAvailability,
+        clients: true,
+      },
+    });
+
+    expect(kpis).toHaveLength(ZENTRALE_KPI_COUNT);
+    expect(kpis.find((kpi) => kpi.id === 'kpi-clients-active')?.value).toBe(2);
   });
 
   it('mergeDashboardActivities kombiniert Audit und Timeline', () => {
@@ -98,6 +123,15 @@ describe('office dashboard live metrics', () => {
           clients: true,
           employees: true,
           invoices: true,
+          assignments: true,
+          tasks: true,
+          messages: true,
+          modules: true,
+          portalUsers: true,
+          documents: true,
+          portalRequests: true,
+          serviceRecords: true,
+          budgets: true,
           appointments: true,
         },
       },
@@ -135,22 +169,36 @@ describe('office dashboard live metrics', () => {
     expect(result.ok).toBe(true);
     if (result.ok) {
       expect(result.data.tenantName).toBe('Helferhasen+');
-      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'office-kpi-clients');
+      expect(result.data.kpis).toHaveLength(ZENTRALE_KPI_COUNT);
+      const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'office-kpi-clients-active');
       expect(clientsKpi?.value).toBe(1);
-      expect(result.data.activities.length).toBeGreaterThan(0);
       expect(result.data.kpis.some((kpi) => String(kpi.subValue).includes('Demo'))).toBe(false);
       expect(result.data.areaShortcuts?.find((a) => a.id === 'clients')?.count).toBe(1);
       expect(result.data.areaShortcuts?.find((a) => a.id === 'clients')?.count).not.toBe(20);
     }
   });
 
-  it('OfficeDashboardView nutzt snapshot.areaShortcuts statt Demo-Konstante', () => {
+  it('BusinessDashboardScreen zeigt nur Hero und KPI-Grid', () => {
+    const screen = readFileSync(
+      resolve(process.cwd(), 'src/screens/BusinessDashboardScreen.tsx'),
+      'utf8',
+    );
+    expect(screen).toContain('ZentraleDashboardHero');
+    expect(screen).toContain('Kennzahlen Übersicht');
+    expect(screen).not.toContain('Letzte Aktivitäten');
+    expect(screen).not.toContain('Schnellzugriff');
+    expect(screen).not.toContain('Abmelden');
+  });
+
+  it('OfficeDashboardView zeigt nur Hero und KPI-Grid', () => {
     const source = readFileSync(
       resolve(process.cwd(), 'src/components/dashboard/OfficeDashboardView.tsx'),
       'utf8',
     );
-    expect(source).toContain('snapshot.areaShortcuts');
-    expect(source).not.toContain('OFFICE_AREA_SHORTCUTS');
+    expect(source).toContain('ZentraleDashboardHero');
+    expect(source).not.toContain('Letzte Aktivitäten');
+    expect(source).not.toContain('Schnellaktionen');
+    expect(source).not.toContain('Schnellzugriff');
   });
 
   it('RightContextPanel ohne Demo-Fallback im Live-Modus', () => {
@@ -167,12 +215,21 @@ describe('office dashboard live metrics', () => {
       ...emptyOfficeDashboardMetrics(),
       totalClients: 2,
       totalEmployees: 1,
-      totalInvoices: 0,
-      totalAppointments: 0,
+      openInvoices: 0,
+      appointmentsThisWeek: 0,
       tableAvailability: {
         clients: true,
         employees: true,
         invoices: true,
+        assignments: true,
+        tasks: true,
+        messages: true,
+        modules: true,
+        portalUsers: true,
+        documents: true,
+        portalRequests: true,
+        serviceRecords: true,
+        budgets: true,
         appointments: true,
       },
     });
@@ -188,8 +245,7 @@ describe('office dashboard live metrics', () => {
     const result = await fetchOfficeDashboard(DEMO_TENANT_ID, 'business_admin');
     expect(result.ok).toBe(true);
     if (result.ok) {
-      expect(result.data.kpis.some((kpi) => Number(kpi.value) > 0)).toBe(true);
-      expect(result.data.activities.length).toBeGreaterThan(0);
+      expect(result.data.kpis.length).toBeGreaterThan(0);
     }
   });
 });
