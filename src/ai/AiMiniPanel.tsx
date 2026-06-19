@@ -32,6 +32,8 @@ type AiMiniPanelProps = {
   onStartVoice: () => void;
   onStopVoice: () => void;
   isListening: boolean;
+  isStartingVoice: boolean;
+  voiceAvailable: boolean;
   onReviewDraft: () => void;
 };
 
@@ -48,6 +50,8 @@ export function AiMiniPanel({
   onStartVoice,
   onStopVoice,
   isListening,
+  isStartingVoice,
+  voiceAvailable,
   onReviewDraft,
 }: AiMiniPanelProps) {
   const {
@@ -178,15 +182,26 @@ export function AiMiniPanel({
       <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : undefined}>
         <View style={styles.headerRow}>
           <AiStatusIndicator status={status} />
-          <Pressable onPress={resumeSession} style={styles.chipButton}>
-            <Text style={styles.chipText}>Fortsetzen</Text>
-          </Pressable>
-          <Pressable
-            onPress={isListening ? onStopVoice : onStartVoice}
-            style={[styles.chipButton, isListening && styles.chipActive]}
-          >
-            <Text style={styles.chipText}>{isListening ? 'Stopp' : 'Mikro'}</Text>
-          </Pressable>
+          {sessionId ? (
+            <Pressable onPress={resumeSession} style={styles.chipButton}>
+              <Text style={styles.chipText}>Fortsetzen</Text>
+            </Pressable>
+          ) : null}
+          {voiceAvailable ? (
+            <Pressable
+              onPress={isListening ? onStopVoice : onStartVoice}
+              disabled={isStartingVoice}
+              style={[
+                styles.chipButton,
+                isListening && styles.chipActive,
+                isStartingVoice && styles.chipDisabled,
+              ]}
+            >
+              <Text style={styles.chipText}>
+                {isStartingVoice ? 'Verbinde…' : isListening ? 'Stopp' : 'Mikro'}
+              </Text>
+            </Pressable>
+          ) : null}
         </View>
 
         {errorMessage ? (
@@ -261,6 +276,9 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     backgroundColor: auroraGlass.chipActive,
+  },
+  chipDisabled: {
+    opacity: 0.55,
   },
   chipText: {
     color: auroraGlass.text.secondary,

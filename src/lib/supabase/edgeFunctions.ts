@@ -24,16 +24,16 @@ async function extractEdgeFunctionError(error: unknown): Promise<string> {
       try {
         const payload = (await namedError.context.json()) as EdgeFunctionErrorBody;
         if (typeof payload.error === 'string' && payload.error.trim()) {
-          return payload.error;
+          return normalizeEdgeErrorMessage(payload.error);
         }
         if (typeof payload.message === 'string' && payload.message.trim()) {
-          return payload.message;
+          return normalizeEdgeErrorMessage(payload.message);
         }
       } catch {
         try {
           const text = await namedError.context.text();
           if (text.trim()) {
-            return text;
+            return normalizeEdgeErrorMessage(text);
           }
         } catch {
           // ignore secondary parse failures
@@ -57,6 +57,28 @@ async function extractEdgeFunctionError(error: unknown): Promise<string> {
   return 'Edge Function fehlgeschlagen.';
 }
 
+function normalizeEdgeErrorMessage(raw: string): string {
+  const trimmed = raw.trim();
+  if (!trimmed.startsWith('{') && !trimmed.startsWith('[')) {
+    return trimmed;
+  }
+
+  try {
+    const parsed = JSON.parse(trimmed) as {
+      error?: { message?: string };
+      message?: string;
+    };
+    const nested = parsed.error?.message ?? parsed.message;
+    if (typeof nested === 'string' && nested.trim()) {
+      return nested.trim();
+    }
+  } catch {
+    // keep raw string
+  }
+
+  return trimmed;
+}
+
 export async function invokeEdgeFunction<TResponse>(
   functionName: string,
   body: Record<string, unknown>,
@@ -78,7 +100,10 @@ export async function invokeEdgeFunction<TResponse>(
 
   const payload = data as { ok?: boolean; error?: string } & TResponse;
   if (payload && payload.ok === false) {
-    return { ok: false, error: payload.error ?? 'Anfrage fehlgeschlagen.' };
+    return {
+      ok: false,
+      error: payload.error ? normalizeEdgeErrorMessage(payload.error) : 'Anfrage fehlgeschlagen.',
+    };
   }
 
   return { ok: true, data: payload as TResponse };

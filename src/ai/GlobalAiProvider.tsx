@@ -28,6 +28,12 @@ import type {
   AiRealtimeTokenResponse,
 } from './aiToolTypes';
 import { useAiStore } from './useAiStore';
+import {
+  getMicrophoneDeniedMessage,
+  getRealtimeVoiceUnsupportedMessage,
+  isRealtimeVoiceEnvironmentSupported,
+  requestMicrophoneAccess,
+} from '@/lib/platform/microphonePermission';
 import { VoiceOrb } from './VoiceOrb';
 import {
   extractRealtimeClientSecret,
@@ -247,7 +253,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     );
 
     if (/NotAllowedError|Permission denied|permission/i.test(raw)) {
-      return 'Mikrofon-Zugriff wurde verweigert. Bitte erlaube den Zugriff in den Browser-Einstellungen und versuche es erneut.';
+      return getMicrophoneDeniedMessage();
     }
     if (/NotFoundError|Requested device not found/i.test(raw)) {
       return 'Kein Mikrofon gefunden. Bitte schließe ein Mikrofon an oder prüfe die Geräteeinstellungen.';
@@ -288,15 +294,6 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
   }, []);
 
   const startVoice = useCallback(async () => {
-    if (Platform.OS !== 'web') {
-      setPanelOpen(true);
-      Alert.alert(
-        'VoiceCore',
-        'Sprachsteuerung ist in der App v1 nur im Web verfügbar. Textmodus ist aktiv.',
-      );
-      return;
-    }
-
     if (!tenantId) {
       Alert.alert('VoiceCore', 'Kein Mandant am Profil hinterlegt.');
       return;
@@ -321,7 +318,20 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     setErrorMessage(null);
     setIsStarting(true);
     setStatus('thinking');
+
+    let preflightStream: MediaStream | null = null;
+
     try {
+      const micAccess = await requestMicrophoneAccess();
+      if (!micAccess.ok) {
+        throw new Error(micAccess.error);
+      }
+      preflightStream = micAccess.stream;
+
+      if (!isRealtimeVoiceEnvironmentSupported()) {
+        throw new Error(getRealtimeVoiceUnsupportedMessage());
+      }
+
       const { error: refreshError } = await supabase.auth.refreshSession();
       if (refreshError) {
         console.warn('[VoiceCore] session refresh failed:', refreshError.message);
@@ -372,13 +382,11 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         }, 800);
       };
 
-      if (!navigator.mediaDevices?.getUserMedia) {
-        throw new Error(
-          'Mikrofon-Zugriff wird in diesem Browser nicht unterstützt. Bitte nutze einen aktuellen Browser.',
-        );
+      const mediaStream = preflightStream;
+      if (!mediaStream) {
+        throw new Error('Mikrofon-Stream nicht verfügbar.');
       }
 
-      const mediaStream = await navigator.mediaDevices.getUserMedia({ audio: true });
       mediaStreamRef.current = mediaStream;
       const audioTrack = mediaStream.getAudioTracks()[0];
       if (!audioTrack) {
@@ -435,6 +443,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
         sdp: answerSdp,
       });
     } catch (error) {
+      preflightStream?.getTracks().forEach((track) => track.stop());
       cleanupVoice({ preserveError: true });
       const message = formatVoiceError(error);
       setErrorMessage(message);
@@ -509,12 +518,8 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
     pathname !== '/';
 
   const handleOrbPress = useCallback(() => {
-    if (isConnected) {
-      openPanel();
-      return;
-    }
     openPanel();
-  }, [isConnected, openPanel]);
+  }, [openPanel]);
 
   const aiOverlayStyle = useMemo((): ViewStyle => {
     if (Platform.OS === 'web') {
@@ -561,6 +566,8 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
             onStartVoice={() => void startVoice()}
             onStopVoice={stopVoice}
             isListening={isListening}
+            isStartingVoice={isStarting}
+            voiceAvailable={Platform.OS === 'web'}
             onReviewDraft={() => closePanel()}
           />
           <AiApprovalSheet pendingActions={pendingActions} tenantId={tenantId!} />
