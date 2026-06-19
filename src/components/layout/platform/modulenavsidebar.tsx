@@ -1,4 +1,4 @@
-import { useMemo, type ComponentType } from 'react';
+import { useMemo } from 'react';
 import {
   Platform,
   Pressable,
@@ -6,22 +6,15 @@ import {
   StyleSheet,
   Text,
   View,
-  type PressableProps,
   type ViewStyle,
 } from 'react-native';
-import Animated, {
-  interpolateColor,
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { usePathname, useRouter } from 'expo-router';
 import {
   getModuleNavConfig,
   resolveActiveModuleNavKey,
 } from '@/lib/navigation/modulenav';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { fxMotion, glassFx, withAlpha } from '@/design/tokens/motion';
+import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
@@ -30,8 +23,6 @@ type ModuleNavSidebarProps = {
   accentColor?: string;
 };
 
-type HoverProps = { onHoverIn?: () => void; onHoverOut?: () => void };
-const HoverPressable = Pressable as unknown as ComponentType<PressableProps & HoverProps>;
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
 function NavItem({
@@ -51,38 +42,28 @@ function NavItem({
   isDark: boolean;
   onPress: () => void;
 }) {
-  const hovered = useSharedValue(0);
   const bgRest = withAlpha(accent, 0);
   const bgActive = withAlpha(accent, isDark ? 0.2 : 0.12);
-  const bgHover = withAlpha(accent, 0.1);
   const borderRest = withAlpha(accent, 0);
   const borderActive = withAlpha(accent, 0.45);
-  const borderHover = withAlpha(accent, 0.22);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ translateX: 3 * hovered.value }],
-    backgroundColor: active
-      ? bgActive
-      : interpolateColor(hovered.value, [0, 1], [bgRest, bgHover]),
-    borderColor: active
-      ? borderActive
-      : interpolateColor(hovered.value, [0, 1], [borderRest, borderHover]),
-  }));
 
   return (
-    <HoverPressable
+    <Pressable
       onPress={onPress}
-      onHoverIn={() => {
-        hovered.value = withTiming(1, { duration: fxMotion.fast });
-      }}
-      onHoverOut={() => {
-        hovered.value = withTiming(0, { duration: fxMotion.base });
-      }}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
       accessibilityLabel={label}
       style={webCursor}
     >
-      <Animated.View style={[navStyles.navItem, animStyle]}>
+      <View
+        style={[
+          navStyles.navItem,
+          {
+            backgroundColor: active ? bgActive : bgRest,
+            borderColor: active ? borderActive : borderRest,
+          },
+        ]}
+      >
         {active ? <View style={[navStyles.navActiveBar, { backgroundColor: accent }]} /> : null}
         <Text style={navStyles.navIcon}>{icon}</Text>
         <Text
@@ -99,8 +80,8 @@ function NavItem({
             <Text style={[navStyles.badgeText, { color: accent }]}>{badge}</Text>
           </View>
         ) : null}
-      </Animated.View>
-    </HoverPressable>
+      </View>
+    </Pressable>
   );
 }
 

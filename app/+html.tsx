@@ -1,5 +1,6 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
+import { DISABLE_HOVER_EFFECTS_CSS } from '@/design/web/disableHoverEffectsCss';
 
 const ROOT_BG = '#050816';
 
@@ -20,6 +21,7 @@ export default function Root({ children }: PropsWithChildren) {
               html, body, #root, #expo-root {
                 background-color: ${ROOT_BG} !important;
               }
+              ${DISABLE_HOVER_EFFECTS_CSS}
             `,
           }}
         />

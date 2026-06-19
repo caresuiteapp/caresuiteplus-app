@@ -59,7 +59,7 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
           justifyContent: 'center',
           borderRadius: radius.sm,
         },
-        emojiBtnHover: {
+        emojiBtnPressed: {
           backgroundColor: `${c.violet}12`,
         },
         emoji: { fontSize: 20, lineHeight: 24 },
@@ -106,9 +106,9 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
           {active.emojis.map((emoji) => (
             <Pressable
               key={`${active.id}-${emoji}`}
-              style={({ pressed, hovered }) => [
+              style={({ pressed }) => [
                 styles.emojiBtn,
-                pressed || hovered ? styles.emojiBtnHover : null,
+                pressed ? styles.emojiBtnPressed : null,
               ]}
               onPress={() => handleSelect(emoji)}
               accessibilityRole="menuitem"

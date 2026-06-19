@@ -1,4 +1,4 @@
-import { useMemo, type ComponentType } from 'react';
+import { useMemo } from 'react';
 import {
   Platform,
   Pressable,
@@ -6,18 +6,12 @@ import {
   StyleSheet,
   Text,
   View,
-  type PressableProps,
   type ViewStyle,
 } from 'react-native';
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withTiming,
-} from 'react-native-reanimated';
 import { useRouter } from 'expo-router';
 import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { fxMotion, glassFx, neonGlow, withAlpha } from '@/design/tokens/motion';
+import { glassFx, neonGlow, withAlpha } from '@/design/tokens/motion';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
@@ -25,8 +19,6 @@ type MainModuleRailProps = {
   activeModule: MainModuleKey;
 };
 
-type HoverProps = { onHoverIn?: () => void; onHoverOut?: () => void };
-const HoverPressable = Pressable as unknown as ComponentType<PressableProps & HoverProps>;
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
 function RailItem({
@@ -44,29 +36,16 @@ function RailItem({
   isDark: boolean;
   onPress: () => void;
 }) {
-  const hovered = useSharedValue(0);
-  const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: 1 + 0.08 * hovered.value }, { translateY: -2 * hovered.value }],
-    shadowOpacity: active ? 0.6 : 0.18 * hovered.value,
-    shadowRadius: active ? 14 : 8 + 6 * hovered.value,
-  }));
-
   return (
-    <HoverPressable
+    <Pressable
       onPress={onPress}
-      onHoverIn={() => {
-        hovered.value = withTiming(1, { duration: fxMotion.fast });
-      }}
-      onHoverOut={() => {
-        hovered.value = withTiming(0, { duration: fxMotion.base });
-      }}
       style={[styles.itemWrap, webCursor]}
       accessibilityRole="button"
       accessibilityLabel={label}
       accessibilityState={{ selected: active }}
     >
       {active ? <View style={[styles.activeBar, { backgroundColor: accent }]} /> : null}
-      <Animated.View
+      <View
         style={[
           styles.icon,
           {
@@ -78,14 +57,15 @@ function RailItem({
             borderColor: active ? withAlpha(accent, 0.9) : isDark ? glassFx.innerBorder : 'transparent',
             shadowColor: accent,
             shadowOffset: { width: 0, height: 4 },
+            shadowOpacity: active ? 0.6 : 0,
+            shadowRadius: active ? 14 : 0,
             elevation: active ? 8 : 0,
           },
-          animStyle,
         ]}
       >
         <Text style={styles.iconText}>{icon}</Text>
-      </Animated.View>
-    </HoverPressable>
+      </View>
+    </Pressable>
   );
 }
 

@@ -4,7 +4,6 @@ import {
   Pressable,
   StyleSheet,
   View,
-  type PressableProps,
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
@@ -12,11 +11,10 @@ import Animated, {
   useAnimatedStyle,
   useSharedValue,
   withSpring,
-  withTiming,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { fxMotion, glassFx, withAlpha } from '@/design/tokens/motion';
+import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { CareLightCard } from './CareLightCard';
 import { elevation, motion, radius, sheen as sheenTokens } from '@/theme';
@@ -31,8 +29,6 @@ type Props = {
   sheen?: boolean;
 };
 
-type HoverProps = { onHoverIn?: () => void; onHoverOut?: () => void };
-const HoverPressable = Pressable as unknown as React.ComponentType<PressableProps & HoverProps>;
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
 export function PremiumCard({
@@ -55,7 +51,6 @@ export function PremiumCard({
   }
 
   const scale = useSharedValue(1);
-  const hovered = useSharedValue(0);
   const glow = accentColor ?? glassFx.borderStrong;
 
   const styles = useMemo(
@@ -119,9 +114,7 @@ export function PremiumCard({
   );
 
   const animStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }, { translateY: -5 * hovered.value }],
-    shadowOpacity: 0.16 + 0.3 * hovered.value,
-    shadowRadius: 16 + 14 * hovered.value,
+    transform: [{ scale: scale.value }],
   }));
 
   const gradColors = variant === 'elevated' ? glassFx.surfaceElevated : glassFx.surface;
@@ -159,14 +152,8 @@ export function PremiumCard({
 
   return (
     <Animated.View style={[styles.shadowHost, animStyle, style]}>
-      <HoverPressable
+      <Pressable
         onPress={onPress}
-        onHoverIn={() => {
-          hovered.value = withTiming(1, { duration: fxMotion.fast });
-        }}
-        onHoverOut={() => {
-          hovered.value = withTiming(0, { duration: fxMotion.base });
-        }}
         onPressIn={() => {
           scale.value = withSpring(0.987, motion.spring);
         }}
@@ -176,7 +163,7 @@ export function PremiumCard({
         style={webCursor}
       >
         {inner}
-      </HoverPressable>
+      </Pressable>
     </Animated.View>
   );
 }
