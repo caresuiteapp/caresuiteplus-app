@@ -6,6 +6,7 @@ type ShellLayoutProps = {
   children: ReactNode;
   accentColor?: string;
   showModuleSwitcher?: boolean;
+  tabsOverride?: Parameters<typeof CareAdaptiveShell>[0]['tabsOverride'];
 };
 
 /**

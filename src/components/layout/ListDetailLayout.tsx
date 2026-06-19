@@ -23,7 +23,7 @@ const styles = StyleSheet.create({
   stack: {
     flex: 1,
     flexDirection: 'column',
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
     minHeight: 0,
   },
   listPane: {
@@ -31,12 +31,12 @@ const styles = StyleSheet.create({
     minHeight: 0,
     borderBottomWidth: 1,
     borderBottomColor: colors.borderSoft,
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
   },
   detailPane: {
     flex: 1,
     minHeight: 0,
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
   },
   detailScroll: {
     flex: 1,

@@ -147,16 +147,26 @@ describe('authAccessModel', () => {
     const created = await generateClientPortalCode({
       tenantId: DEMO_TENANT_ID,
       clientId: 'client-001',
+      firstName: 'Max',
+      lastName: 'Mustermann',
       createdBy: null,
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const login = await validatePortalCodeLogin(created.data.credentials.portalCode!, 'client');
+    const login = await validatePortalCodeLogin(
+      created.data.credentials.portalCode!,
+      'client',
+      created.data.credentials.username,
+    );
     expect(login.ok).toBe(true);
 
     await blockPortalCode(created.data.code.id, null, 'Test');
-    const blockedLogin = await validatePortalCodeLogin(created.data.credentials.portalCode!, 'client');
+    const blockedLogin = await validatePortalCodeLogin(
+      created.data.credentials.portalCode!,
+      'client',
+      created.data.credentials.username,
+    );
     expect(blockedLogin.ok).toBe(false);
   });
 
@@ -164,16 +174,19 @@ describe('authAccessModel', () => {
     const created = await generateClientPortalCode({
       tenantId: DEMO_TENANT_ID,
       clientId: 'client-002',
+      firstName: 'Anna',
+      lastName: 'Beispiel',
       createdBy: null,
     });
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
     const oldCode = created.data.credentials.portalCode!;
+    const username = created.data.credentials.username;
     const regenerated = await regeneratePortalCode(created.data.code.id, 'client');
     expect(regenerated.ok).toBe(true);
 
-    const oldLogin = await validatePortalCodeLogin(oldCode, 'client');
+    const oldLogin = await validatePortalCodeLogin(oldCode, 'client', username);
     expect(oldLogin.ok).toBe(false);
   });
 

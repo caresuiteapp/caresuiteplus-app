@@ -28,6 +28,7 @@ import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildI
 import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
 import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
 import { createClientFromIntake } from './repositories/clientIntakeRepository.supabase';
+import { mapIntakeModulesToPortal, saveClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
 import { persistIntakeClientExtendedData } from './clientIntakePersistence';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
@@ -176,6 +177,17 @@ export async function submitClientIntake(
         options?.actorProfileId ?? null,
       );
       if (!documentsResult.ok) return documentsResult;
+
+      const portalModules = mapIntakeModulesToPortal(form.assignedModules);
+      if (portalModules.length > 0) {
+        const moduleResult = await saveClientModuleAssignments(
+          tenantId,
+          clientResult.data.id,
+          portalModules,
+          options?.actorProfileId ?? null,
+        );
+        if (!moduleResult.ok) return moduleResult;
+      }
 
       return { ok: true, data: { id: clientResult.data.id } };
     }

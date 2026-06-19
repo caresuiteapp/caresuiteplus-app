@@ -47,7 +47,7 @@ describe('App start page', () => {
       expect(source).not.toContain(needle);
     }
     expect(source).toContain('fetchAppStartSnapshot');
-    expect(source).toContain('caresuite-robot-logo.png');
+    expect(source).toContain('CareSuiteLogo');
     expect(source).toContain('AppScreen');
   });
 

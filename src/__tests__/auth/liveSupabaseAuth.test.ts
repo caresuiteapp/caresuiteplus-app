@@ -1,4 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import { registerBusinessTenant, loginBusinessUser } from '@/lib/auth/businessAuthService';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
 import { validatePortalCodeLogin } from '@/lib/auth/clientPortalAuthService';
@@ -124,24 +126,32 @@ describe('liveSupabaseAuthServices', () => {
     }
   });
 
-  it('validates portal code via edge function', async () => {
+  it('validates client portal login via edge function with username and code', async () => {
     invokeEdgeFunction.mockResolvedValue({
       ok: true,
       data: {
         portalAccountId: 'cpc-1',
         tenantId: 'tenant-1',
+        clientId: 'client-1',
         portalType: 'client',
         sessionToken: 'portal-token',
         expiresAt: '2026-01-02T00:00:00.000Z',
+        supabaseAccessToken: 'access-token',
+        supabaseRefreshToken: 'refresh-token',
       },
     });
 
-    const result = await validatePortalCodeLogin('AB12CD', 'client');
-    expect(invokeEdgeFunction).toHaveBeenCalledWith('portal-code-login', {
+    const result = await validatePortalCodeLogin('AB12CD', 'client', 'max.mustermann');
+    expect(invokeEdgeFunction).toHaveBeenCalledWith('client-portal-login', {
+      username: 'max.mustermann',
       code: 'AB12CD',
-      portalType: 'client',
     });
     expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.portalSession?.sessionToken).toBe('portal-token');
+      expect(result.data.portalSession?.clientId).toBe('client-1');
+      expect(result.data.supabaseAccessToken).toBe('access-token');
+    }
   });
 
   it('delegates business login to supabase auth in live mode', async () => {
@@ -153,5 +163,20 @@ describe('liveSupabaseAuthServices', () => {
     const result = await loginBusinessUser('admin@example.com', 'wrong');
     expect(signInWithPassword).toHaveBeenCalled();
     expect(result.ok).toBe(false);
+  });
+});
+
+describe('PortalCodeLoginScreen', () => {
+  it('collects username and portal code for client login', () => {
+    const source = readFileSync(
+      path.join(__dirname, '..', '..', 'screens', 'auth', 'PortalCodeLoginScreen.tsx'),
+      'utf8',
+    );
+    expect(source).toContain('Anmeldung Klient:innen Portal');
+    expect(source).toContain('Benutzername');
+    expect(source).toContain('Portal-Code (6-stellig)');
+    expect(source).toContain('loginClientPortal');
+    expect(source).toContain('completePortalLogin');
+    expect(source).not.toContain('AuthLoginHero');
   });
 });

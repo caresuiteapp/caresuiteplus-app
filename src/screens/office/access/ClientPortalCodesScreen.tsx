@@ -213,8 +213,8 @@ export function ClientPortalCodesScreen() {
             <Text style={styles.sectionHint}>Klient:in auswählen und Portal-Zugang einrichten.</Text>
             <FilterChipGroup
               options={clientOptions}
-              selectedKey={selectedClientId}
-              onSelect={setSelectedClientId}
+              value={selectedClientId}
+              onChange={setSelectedClientId}
             />
             {actionError ? <Text style={styles.errorText}>{actionError}</Text> : null}
             <PremiumButton

@@ -11,6 +11,10 @@ export type PortalSessionRecord = {
   roleKey: RoleKey;
   expiresAt: string;
   accountId: string;
+  /** Cached client display label for welcome text (real name, not portal username). */
+  displayName?: string | null;
+  /** Cached tenant label when direct tenants SELECT is blocked by RLS. */
+  tenantName?: string | null;
   employeeId?: string | null;
   clientId?: string | null;
   relativeContactId?: string | null;

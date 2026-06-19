@@ -4,8 +4,6 @@ import { useRouter } from 'expo-router';
 import { CareLightPageShell } from '@/components/layout';
 import { PremiumButton } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
-import { usePortalActor } from '@/hooks/usePortalActor';
-import { spacing } from '@/theme';
 
 type PortalTabScreenProps = {
   title: string;
@@ -15,12 +13,11 @@ type PortalTabScreenProps = {
 export function PortalTabScreen({ title, children }: PortalTabScreenProps) {
   const router = useRouter();
   const { signOut } = useAuth();
-  const { displayName } = usePortalActor();
 
   return (
     <CareLightPageShell
       title={title}
-      subtitle={`Willkommen, ${displayName}`}
+      subtitle="Ihr persönlicher Portalbereich"
       showBack={false}
       rightSlot={
         <PremiumButton

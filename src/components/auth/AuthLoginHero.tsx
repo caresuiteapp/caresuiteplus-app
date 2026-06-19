@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { designTokens, spacing } from '@/theme';
 
@@ -24,7 +25,8 @@ export function AuthLoginHero({
   portalVariant = 'orange',
   hint,
 }: AuthLoginHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, gradients } = useLegacyTheme();
+  const isLive = getServiceMode() === 'supabase';
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -72,13 +74,15 @@ export function AuthLoginHero({
       <View style={styles.badges}>
         <PremiumBadge label={portalLabel} variant={portalVariant} dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        <PremiumBadge label="preparedOnly Auth" variant="muted" />
+        {!isLive ? <PremiumBadge label="preparedOnly Auth" variant="muted" /> : null}
       </View>
-      <View style={styles.kpiRow}>
-        <PremiumKpiCard label="Zugang" value="Mandant" subValue="Demo / Pilot" icon="🏢" accentColor={colors.orange} style={styles.kpiItem} />
-        <PremiumKpiCard label="Sicherheit" value="RLS" subValue="Supabase Auth" icon="🛡️" accentColor={colors.cyan} style={styles.kpiItem} />
-        <PremiumKpiCard label="Status" value="Prototyp" subValue="Kein Store-Release" icon="📋" accentColor={colors.violet} style={styles.kpiItem} />
-      </View>
+      {!isLive ? (
+        <View style={styles.kpiRow}>
+          <PremiumKpiCard label="Zugang" value="Mandant" subValue="Demo / Pilot" icon="🏢" accentColor={colors.orange} style={styles.kpiItem} />
+          <PremiumKpiCard label="Sicherheit" value="RLS" subValue="Supabase Auth" icon="🛡️" accentColor={colors.cyan} style={styles.kpiItem} />
+          <PremiumKpiCard label="Status" value="Prototyp" subValue="Kein Store-Release" icon="📋" accentColor={colors.violet} style={styles.kpiItem} />
+        </View>
+      ) : null}
       {hint ? <Text style={styles.hint}>{hint}</Text> : null}
     </PremiumListHeroFrame>
   );

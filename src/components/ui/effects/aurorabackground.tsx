@@ -72,7 +72,7 @@ function AuroraOrb({ orb, animate }: { orb: OrbConfig; animate: boolean }) {
   );
 }
 
-/** Animated deep-space aurora — shared by AppScreen landing/auth and PlatformShell. */
+/** Animated deep-space aurora — mounted once in app/_layout root. */
 export function AuroraBackground({ animated = true, style }: AuroraBackgroundProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const shouldAnimate = animated && !prefersReducedMotion;

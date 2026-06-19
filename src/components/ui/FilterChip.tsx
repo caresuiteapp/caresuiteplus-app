@@ -1,4 +1,4 @@
-import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, ScrollView, Text, type ViewStyle } from 'react-native';
 import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
 
 type FilterChipProps = {
@@ -28,18 +28,28 @@ export function FilterChip({ label, selected = false, onPress, style }: FilterCh
 
 type FilterChipGroupProps<T extends string> = {
   options: { key: T; label: string }[];
-  value: T;
-  onChange: (key: T) => void;
+  /** Selected option key (preferred). */
+  value?: T;
+  /** Alias for `value` (recovery / SegmentedTabs-style callers). */
+  selectedKey?: T;
+  /** Called when the user picks a chip (preferred). */
+  onChange?: (key: T) => void;
+  /** Alias for `onChange`. */
+  onSelect?: (key: T) => void;
   style?: ViewStyle;
 };
 
 export function FilterChipGroup<T extends string>({
   options,
   value,
+  selectedKey,
   onChange,
+  onSelect,
   style,
 }: FilterChipGroupProps<T>) {
   const styles = useAuroraGlassChipStyles();
+  const selected = value ?? selectedKey;
+  const handleChange = onChange ?? onSelect;
 
   return (
     <ScrollView
@@ -51,8 +61,8 @@ export function FilterChipGroup<T extends string>({
         <FilterChip
           key={opt.key}
           label={opt.label}
-          selected={value === opt.key}
-          onPress={() => onChange(opt.key)}
+          selected={selected === opt.key}
+          onPress={handleChange ? () => handleChange(opt.key) : undefined}
         />
       ))}
     </ScrollView>

@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
+import { ClientModuleAssignmentPanel } from '@/components/office/ClientModuleAssignmentPanel';
 import { CareLightPageShell } from '@/components/layout';
 import {
   ErrorState,
@@ -187,6 +188,10 @@ export function ClientEditScreen() {
             value={form.notes}
             onChangeText={(v) => updateField('notes', v)}
             multiline
+          />
+          <ClientModuleAssignmentPanel
+            selected={form.portalModules}
+            onChange={(modules) => updateField('portalModules', modules)}
           />
           <Text style={styles.statusHint}>
             Aktueller Status: {WORKFLOW_STATUS_LABELS[form.status]} (Statusänderung über Detailansicht)

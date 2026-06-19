@@ -4,8 +4,11 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import {
   ACCESS_MANAGEMENT_PREPARED_MESSAGE,
+  CLIENT_PORTAL_ACCESS_PREPARED_MESSAGE,
   isAccessManagementLiveReady,
+  isClientPortalAccessLiveReady,
 } from '@/lib/access/accessModuleConfig';
+import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import {
   buildAccessListKpis,
   getAccessListHeroMeta,
@@ -17,9 +20,16 @@ import { designTokens, spacing } from '@/theme';
 type AccessListHeroProps = {
   variant: AccessListHeroVariant;
   itemCount: number;
+  liveReady?: boolean;
 };
 
-export function AccessListHero({ variant, itemCount }: AccessListHeroProps) {
+function resolveVariantLiveReady(variant: AccessListHeroVariant, liveReady?: boolean): boolean {
+  if (liveReady !== undefined) return liveReady;
+  if (variant === 'client-portal') return isClientPortalAccessLiveReady();
+  return isAccessManagementLiveReady();
+}
+
+export function AccessListHero({ variant, itemCount, liveReady }: AccessListHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
   const styles = useMemo(
     () =>
@@ -52,8 +62,15 @@ export function AccessListHero({ variant, itemCount }: AccessListHeroProps) {
   );
 
 
+  const tenantName = useTenantDisplayName();
+  const isLive = resolveVariantLiveReady(variant, liveReady);
   const meta = getAccessListHeroMeta(variant);
-  const kpis = buildAccessListKpis(variant, itemCount, mode);
+  const kpis = buildAccessListKpis(variant, itemCount, mode, {
+    tenantName,
+    isLive,
+  });
+  const preparedMessage =
+    variant === 'client-portal' ? CLIENT_PORTAL_ACCESS_PREPARED_MESSAGE : ACCESS_MANAGEMENT_PREPARED_MESSAGE;
 
   return (
     <PremiumListHeroFrame>
@@ -70,9 +87,7 @@ export function AccessListHero({ variant, itemCount }: AccessListHeroProps) {
       <View style={styles.badges}>
         <PremiumBadge label={`${itemCount} Einträge`} variant="orange" dot />
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {!isAccessManagementLiveReady() ? (
-          <PremiumBadge label="preparedOnly" variant="muted" />
-        ) : null}
+        {!isLive ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
@@ -87,9 +102,7 @@ export function AccessListHero({ variant, itemCount }: AccessListHeroProps) {
           />
         ))}
       </View>
-      {!isAccessManagementLiveReady() ? (
-        <Text style={styles.preparedHint}>{ACCESS_MANAGEMENT_PREPARED_MESSAGE}</Text>
-      ) : null}
+      {!isLive ? <Text style={styles.preparedHint}>{preparedMessage}</Text> : null}
     </PremiumListHeroFrame>
   );
 }

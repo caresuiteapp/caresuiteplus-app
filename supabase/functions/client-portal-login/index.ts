@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { maskCodeHint, normalizePortalCode, verifyPortalCode } from '../_shared/crypto.ts';
 import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
+import { ensurePortalSupabaseAuth } from '../_shared/portalAuth.ts';
 
 type LoginBody = {
   username: string;
@@ -146,14 +147,69 @@ serve(async (req) => {
       user_agent: meta.userAgent,
     });
 
+    const portalUsername = (matched.portal_username as string | null) ?? username;
+    const clientId = matched.client_id as string | null;
+    let clientDisplayName: string | null = null;
+
+    if (clientId) {
+      const { data: clientRow } = await supabase
+        .from('clients')
+        .select('first_name, last_name, salutation')
+        .eq('id', clientId)
+        .maybeSingle();
+
+      if (clientRow) {
+        const first = clientRow.first_name?.trim()
+          ? clientRow.first_name.trim().charAt(0).toUpperCase() + clientRow.first_name.trim().slice(1)
+          : '';
+        const last = clientRow.last_name?.trim()
+          ? clientRow.last_name.trim().charAt(0).toUpperCase() + clientRow.last_name.trim().slice(1)
+          : '';
+        const fullName = [first, last].filter(Boolean).join(' ').trim();
+        if (fullName) {
+          const salutationKey = clientRow.salutation?.trim().toLowerCase();
+          clientDisplayName =
+            salutationKey === 'frau' || salutationKey === 'herr'
+              ? `${salutationKey === 'frau' ? 'Frau' : 'Herr'} ${fullName}`
+              : fullName;
+        }
+      }
+    }
+
+    const displayName = clientDisplayName ?? portalUsername;
+    const { data: tenantRow } = await supabase
+      .from('tenants')
+      .select('name')
+      .eq('id', matched.tenant_id as string)
+      .maybeSingle();
+    const tenantName = (tenantRow?.name as string | null)?.trim() || null;
+
+    const authResult = await ensurePortalSupabaseAuth(supabase, {
+      portalType: 'client',
+      accountId: matched.id as string,
+      tenantId: matched.tenant_id as string,
+      roleKey: 'client_portal',
+      displayName,
+      linkTable: 'client_portal_access',
+      linkRowId: matched.id as string,
+    });
+
+    if (!authResult.ok) {
+      return jsonResponse({ ok: false, error: authResult.error }, 500);
+    }
+
     return jsonResponse({
       ok: true,
       portalAccountId: matched.id,
       tenantId: matched.tenant_id,
       clientId: matched.client_id,
       portalType: 'client',
+      displayName,
+      tenantName,
       sessionToken,
       expiresAt,
+      supabaseAccessToken: authResult.accessToken,
+      supabaseRefreshToken: authResult.refreshToken,
     });
   } catch (err) {
     return jsonResponse({ ok: false, error: String(err) }, 500);

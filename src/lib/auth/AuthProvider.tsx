@@ -195,7 +195,21 @@ export function AuthProvider({ children }: AuthProviderProps) {
   const signInPortalSession = useCallback(async (record: PortalSessionRecord) => {
     await savePortalSession(record);
     setPortalSession(record);
-  }, []);
+
+    if (authMode !== 'supabase') return;
+
+    const sessionResult = await getSession();
+    if (!sessionResult.ok || !sessionResult.data) return;
+
+    const bootstrap = await bootstrapTenantContext(sessionResult.data);
+    if (!bootstrap.ok) return;
+
+    applyBootstrap(bootstrap, setUser, setProfile, setSession);
+    if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
+      void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
+      void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+    }
+  }, [authMode]);
 
   const updateProfile = useCallback((nextProfile: Profile) => {
     setProfile(nextProfile);

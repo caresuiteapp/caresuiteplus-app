@@ -14,6 +14,7 @@ import {
 import { persistClientEditData } from '@/lib/clients/clientEditPersistence';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { fetchClientModuleAssignments, saveClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isDemoClientBackend } from '@/lib/clients/clientBackend';
 import { getDemoClientFullDetail, upsertDemoClientFullDetail } from '@/data/demo/clients';
@@ -58,17 +59,21 @@ export async function fetchClientEditData(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  const [detailResult, fullResult, careContexts, rawFields] = await Promise.all([
+  const [detailResult, fullResult, careContexts, rawFields, moduleAssignmentsResult] = await Promise.all([
     fetchClientDetail(clientId, tenantId, actorRoleKey),
     fetchClientFullDetail(tenantId, clientId, { canViewSensitive: true }),
     resolveCareContextsForClient(tenantId, clientId),
     isDemoClientBackend() ? Promise.resolve(mapClientEditRawFields(null)) : fetchRawClientFields(tenantId, clientId),
+    fetchClientModuleAssignments(tenantId, clientId),
   ]);
 
   if (!detailResult.ok) return detailResult;
   if (!fullResult.ok) return fullResult;
 
   const form = mapClientToEditForm(detailResult.data, fullResult.data, careContexts, rawFields);
+  form.portalModules = moduleAssignmentsResult.ok
+    ? moduleAssignmentsResult.data.map((assignment) => assignment.moduleKey)
+    : [];
 
   return {
     ok: true,
@@ -289,6 +294,14 @@ export async function saveClientEdit(
 
   const persistResult = await persistClientEditData(tenantId, clientId, form, actorProfileId);
   if (!persistResult.ok) return persistResult;
+
+  const moduleResult = await saveClientModuleAssignments(
+    tenantId,
+    clientId,
+    form.portalModules,
+    actorProfileId,
+  );
+  if (!moduleResult.ok) return moduleResult;
 
   return fetchClientDetail(clientId, tenantId, actorRoleKey);
 }

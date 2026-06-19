@@ -17,6 +17,7 @@ type CareAdaptiveShellProps = {
   showModuleSwitcher?: boolean;
   /** Public landing / auth screens — no tab bar or side navigation. */
   bare?: boolean;
+  tabsOverride?: Parameters<typeof CareMobileShell>[0]['tabsOverride'];
 };
 
 /**
@@ -28,6 +29,7 @@ export function CareAdaptiveShell({
   accentColor,
   showModuleSwitcher,
   bare = false,
+  tabsOverride,
 }: CareAdaptiveShellProps) {
   const { adaptiveShell } = usePlatformLayout();
   const { mode } = useThemeMode();
@@ -45,6 +47,7 @@ export function CareAdaptiveShell({
         accentColor={accentColor}
         showModuleSwitcher={showModuleSwitcher}
         useLightShell={useLightShell}
+        tabsOverride={tabsOverride}
       >
         {children}
       </CareWebShell>
@@ -54,7 +57,7 @@ export function CareAdaptiveShell({
   if (adaptiveShell === 'desktop') {
     const Shell = useLightShell ? CareLightDesktopShell : CareDesktopShell;
     return (
-      <Shell area={area} accentColor={accentColor} showModuleSwitcher={showModuleSwitcher}>
+      <Shell area={area} accentColor={accentColor} showModuleSwitcher={showModuleSwitcher} tabsOverride={tabsOverride}>
         {children}
       </Shell>
     );
@@ -63,7 +66,7 @@ export function CareAdaptiveShell({
   if (adaptiveShell === 'tablet') {
     const Shell = useLightShell ? CareLightTabletShell : CareTabletShell;
     return (
-      <Shell area={area} accentColor={accentColor} showModuleSwitcher={showModuleSwitcher}>
+      <Shell area={area} accentColor={accentColor} showModuleSwitcher={showModuleSwitcher} tabsOverride={tabsOverride}>
         {children}
       </Shell>
     );
@@ -71,7 +74,7 @@ export function CareAdaptiveShell({
 
   const Shell = useLightShell ? CareLightMobileShell : CareMobileShell;
   return (
-    <Shell area={area} accentColor={accentColor} showModuleSwitcher={showModuleSwitcher}>
+    <Shell area={area} accentColor={accentColor} showModuleSwitcher={showModuleSwitcher} tabsOverride={tabsOverride}>
       {children}
     </Shell>
   );

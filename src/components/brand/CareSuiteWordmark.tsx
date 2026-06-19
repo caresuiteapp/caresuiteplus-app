@@ -13,7 +13,7 @@ export function CareSuiteWordmark({ size = 'md', showPlus = true, style }: CareS
   const titleSize = size === 'lg' ? 28 : size === 'md' ? 22 : 18;
   return (
     <View style={[styles.row, style]} accessibilityRole="header">
-      <CareSuiteLogo size={size === 'lg' ? 'md' : 'sm'} />
+      <CareSuiteLogo size={size === 'lg' ? 'lg' : size === 'md' ? 'md' : 'sm'} />
       <View>
         <Text style={[styles.title, { fontSize: titleSize }]}>
           CareSuite{showPlus ? '+' : ''}

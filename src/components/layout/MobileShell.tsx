@@ -5,12 +5,14 @@ import { useAppShell } from '@/hooks/useAppShell';
 import { colors, radius, spacing, typography } from '@/theme';
 import { AppTabBar } from './AppTabBar';
 import { ModuleSwitcher } from './ModuleSwitcher';
+import type { ShellTabConfig } from '@/types/navigation/shell';
 
 type MobileShellProps = {
   area: AppShellArea;
   children: ReactNode;
   accentColor?: string;
   showModuleSwitcher?: boolean;
+  tabsOverride?: ShellTabConfig[];
 };
 
 /**
@@ -28,8 +30,10 @@ export function MobileShell({
     area === 'beratung' ||
     area === 'akademie' ||
     area === 'stationaer',
+  tabsOverride,
 }: MobileShellProps) {
   const { tabs, switcherOpen, openSwitcher, closeSwitcher } = useAppShell(area);
+  const effectiveTabs = tabsOverride?.length ? tabsOverride : tabs;
 
   return (
     <View style={styles.root}>
@@ -44,7 +48,7 @@ export function MobileShell({
           <Text style={styles.switcherFabText}>🧩 Module</Text>
         </Pressable>
       ) : null}
-      <AppTabBar tabs={tabs} accentColor={accentColor} />
+      <AppTabBar tabs={effectiveTabs} accentColor={accentColor} />
       {showModuleSwitcher ? (
         <ModuleSwitcher visible={switcherOpen} onClose={closeSwitcher} />
       ) : null}
@@ -53,8 +57,8 @@ export function MobileShell({
 }
 
 const styles = StyleSheet.create({
-  root: { flex: 1 },
-  content: { flex: 1 },
+  root: { flex: 1, backgroundColor: 'transparent' },
+  content: { flex: 1, backgroundColor: 'transparent' },
   switcherFab: {
     position: 'absolute',
     right: spacing.md,

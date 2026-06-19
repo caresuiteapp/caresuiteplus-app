@@ -23,6 +23,8 @@ import { recordLoginAuditEvent } from './loginAuditService';
 import {
   pickUniqueClientPortalUsername,
 } from './clientPortalUsernameGenerator';
+import { formatClientPortalDisplayName } from '@/lib/portal/clientPortalDisplayName';
+import { demoClients } from '@/data/demo/clients';
 import {
   hashPortalCode,
   maskPortalCodeHint,
@@ -106,10 +108,18 @@ export async function generateClientPortalCode(input: {
   };
 }
 
+export type ClientPortalLoginResult = {
+  portalAccountId: string;
+  tenantId: string;
+  portalSession?: PortalSessionRecord;
+  supabaseAccessToken?: string;
+  supabaseRefreshToken?: string;
+};
+
 export async function loginClientPortal(
   usernameInput: string,
   codeInput: string,
-): Promise<ServiceResult<{ portalAccountId: string; tenantId: string; portalSession?: PortalSessionRecord }>> {
+): Promise<ServiceResult<ClientPortalLoginResult>> {
   const username = usernameInput.trim().toLowerCase();
   if (!username) {
     return { ok: false, error: 'Benutzername ist erforderlich.' };
@@ -126,8 +136,12 @@ export async function loginClientPortal(
       tenantId: string;
       clientId: string;
       portalType: PortalAccessType;
+      displayName?: string;
+      tenantName?: string | null;
       sessionToken: string;
       expiresAt: string;
+      supabaseAccessToken?: string;
+      supabaseRefreshToken?: string;
     }>('client-portal-login', { username, code: codeInput });
 
     if (!login.ok) {
@@ -141,6 +155,9 @@ export async function loginClientPortal(
       roleKey: 'client_portal',
       expiresAt: login.data.expiresAt,
       accountId: login.data.portalAccountId,
+      clientId: login.data.clientId ?? null,
+      displayName: login.data.displayName?.trim() || undefined,
+      tenantName: login.data.tenantName?.trim() || null,
     };
 
     return {
@@ -149,6 +166,8 @@ export async function loginClientPortal(
         portalAccountId: login.data.portalAccountId,
         tenantId: login.data.tenantId,
         portalSession,
+        supabaseAccessToken: login.data.supabaseAccessToken,
+        supabaseRefreshToken: login.data.supabaseRefreshToken,
       },
     };
   }
@@ -197,11 +216,29 @@ export async function loginClientPortal(
       failureReason: null,
     });
 
+    const demoClient = demoClients.find((client) => client.id === entry.clientId);
+    const clientDisplayName = demoClient
+      ? formatClientPortalDisplayName({
+          firstName: demoClient.firstName,
+          lastName: demoClient.lastName,
+        })
+      : null;
+
     return {
       ok: true,
       data: {
         portalAccountId: entry.id,
         tenantId,
+        portalSession: {
+          sessionToken: createId('ps'),
+          tenantId,
+          loginType: 'client_portal',
+          roleKey: 'client_portal',
+          expiresAt: new Date(Date.now() + 8 * 60 * 60 * 1000).toISOString(),
+          accountId: entry.id,
+          clientId: entry.clientId,
+          displayName: clientDisplayName ?? undefined,
+        },
       },
     };
   }
@@ -222,7 +259,7 @@ export async function validatePortalCodeLogin(
   codeInput: string,
   portalType: PortalAccessType,
   usernameInput?: string,
-): Promise<ServiceResult<{ portalAccountId: string; tenantId: string; portalSession?: PortalSessionRecord }>> {
+): Promise<ServiceResult<ClientPortalLoginResult>> {
   if (portalType === 'client') {
     return loginClientPortal(usernameInput ?? '', codeInput);
   }

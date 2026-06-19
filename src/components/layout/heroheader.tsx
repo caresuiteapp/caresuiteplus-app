@@ -19,7 +19,7 @@ export function HeroHeader({ title, subtitle }: HeroHeaderProps) {
     <View style={styles.hero}>
       {isPhone ? (
         <View style={styles.logoTop}>
-          <CareSuiteLogo size="lg" />
+          <CareSuiteLogo size="xl" />
         </View>
       ) : (
         <CareSuiteWordmark size={isDesktopOrWide ? 'lg' : 'md'} />

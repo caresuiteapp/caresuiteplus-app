@@ -1,4 +1,6 @@
 import type { AuthUser, Profile } from '@/types';
+import { isPortalUsernameLabel } from '@/lib/portal/clientPortalDisplayName';
+import type { PortalSessionRecord } from './portalSessionStore';
 
 export function composeUserFullName(
   firstName?: string | null,
@@ -24,6 +26,41 @@ export function getUserDisplayName(
   if (email) return email;
 
   return fallback;
+}
+
+function isClientPortalSession(
+  portalSession: PortalSessionRecord | null | undefined,
+): boolean {
+  return portalSession?.loginType === 'client_portal' || portalSession?.roleKey === 'client_portal';
+}
+
+function resolveNonUsernameLabel(value: string | null | undefined): string | null {
+  const trimmed = value?.trim();
+  if (!trimmed || isPortalUsernameLabel(trimmed)) return null;
+  return trimmed;
+}
+
+/** Portal welcome line — real client name, never portal username when avoidable. */
+export function getPortalDisplayName(
+  profile: Profile | null | undefined,
+  user: AuthUser | null | undefined,
+  portalSession: PortalSessionRecord | null | undefined,
+  fallback = 'Portal',
+): string {
+  const portalLabel = resolveNonUsernameLabel(portalSession?.displayName);
+  if (portalLabel) return portalLabel;
+
+  if (isClientPortalSession(portalSession)) {
+    const profileLabel = resolveNonUsernameLabel(profile?.displayName);
+    if (profileLabel) return profileLabel;
+
+    const userLabel = resolveNonUsernameLabel(user?.displayName);
+    if (userLabel) return userLabel;
+
+    return fallback;
+  }
+
+  return getUserDisplayName(profile, user, fallback);
 }
 
 /** First letter of first name, otherwise first letter of resolved display name. */

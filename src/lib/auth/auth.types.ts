@@ -89,6 +89,7 @@ export type ClientPortalCode = {
   id: EntityId;
   tenantId: string;
   clientId: string;
+  username: string;
   status: PortalCodeStatus;
   expiresAt: ISODateTime | null;
   lastUsedAt: ISODateTime | null;

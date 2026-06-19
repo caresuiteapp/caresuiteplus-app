@@ -1,9 +1,9 @@
 import { type ViewStyle } from 'react-native';
-import { CareSuiteLogoMark } from './CareSuiteLogoMark';
+import { CareSuiteLogoMark, type CareSuiteLogoSize } from './CareSuiteLogoMark';
 
 type CareSuiteLogoProps = {
-  size?: 'sm' | 'md' | 'lg';
-  /** @deprecated Transparent mascot works on all surfaces. */
+  size?: CareSuiteLogoSize;
+  /** @deprecated Transparent logo works on all surfaces. */
   onDark?: boolean;
   style?: ViewStyle;
 };

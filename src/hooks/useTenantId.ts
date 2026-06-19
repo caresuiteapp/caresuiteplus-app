@@ -8,18 +8,21 @@ import {
 } from '@/lib/tenant/tenantResolver';
 
 export function useTenantId(): TenantResolveResult {
-  const { profile } = useAuth();
-  return useMemo(() => resolveTenantIdForService(profile), [profile]);
+  const { profile, portalSession } = useAuth();
+  return useMemo(
+    () => resolveTenantIdForService({ profile, portalSession }),
+    [profile, portalSession],
+  );
 }
 
 export function useRequiredTenantId(): string {
-  const { profile } = useAuth();
-  return useMemo(() => requireTenantId(profile), [profile]);
+  const { profile, portalSession } = useAuth();
+  return useMemo(() => requireTenantId({ profile, portalSession }), [profile, portalSession]);
 }
 
 export function useCurrentTenantId(): string | null {
-  const { profile } = useAuth();
-  return useMemo(() => getCurrentTenantId(profile), [profile]);
+  const { profile, portalSession } = useAuth();
+  return useMemo(() => getCurrentTenantId({ profile, portalSession }), [profile, portalSession]);
 }
 
 /** Tenant-ID für Service-Aufrufe — null wenn Live ohne Profil-Mandant. */

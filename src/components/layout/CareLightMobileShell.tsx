@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import type { AppShellArea } from '@/types/navigation/shell';
+import type { AppShellArea, ShellTabConfig } from '@/types/navigation/shell';
 import { useAppShell } from '@/hooks/useAppShell';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
@@ -14,6 +14,7 @@ type CareLightMobileShellProps = {
   children: ReactNode;
   accentColor?: string;
   showModuleSwitcher?: boolean;
+  tabsOverride?: ShellTabConfig[];
 };
 
 export function CareLightMobileShell({
@@ -21,8 +22,10 @@ export function CareLightMobileShell({
   children,
   accentColor = careLightColors.green,
   showModuleSwitcher = true,
+  tabsOverride,
 }: CareLightMobileShellProps) {
   const { tabs, switcherOpen, openSwitcher, closeSwitcher } = useAppShell(area);
+  const effectiveTabs = tabsOverride?.length ? tabsOverride : tabs;
 
   return (
     <View style={styles.root}>
@@ -37,7 +40,7 @@ export function CareLightMobileShell({
           <Text style={styles.switcherFabText}>🧩 Module</Text>
         </Pressable>
       ) : null}
-      <CareLightBottomNav tabs={tabs} accentColor={accentColor} />
+      <CareLightBottomNav tabs={effectiveTabs} accentColor={accentColor} />
       {showModuleSwitcher ? (
         <ModuleSwitcher visible={switcherOpen} onClose={closeSwitcher} />
       ) : null}

@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CareSuiteLogoMark } from '@/components/brand';
 import type { AppShellArea } from '@/types/navigation/shell';
 import { useAppShell } from '@/hooks/useAppShell';
 import { useAuth } from '@/lib/auth/context';
@@ -41,7 +42,10 @@ export function DesktopShell({
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.body}>
         <View style={styles.sidebar}>
-          <Text style={styles.brand}>CareSuite+</Text>
+          <View style={styles.brandRow}>
+            <CareSuiteLogoMark size="sm" />
+            <Text style={styles.brand}>CareSuite+</Text>
+          </View>
           <Text style={styles.areaLabel}>{area}</Text>
           <ScrollView style={styles.nav} contentContainerStyle={styles.navContent}>
             {tabs.map((tab) => {
@@ -118,7 +122,7 @@ export function DesktopShell({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
   },
   body: {
     flex: 1,
@@ -132,11 +136,17 @@ const styles = StyleSheet.create({
     paddingHorizontal: spacing.md,
     paddingBottom: spacing.md,
   },
+  brandRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    marginTop: spacing.md,
+    marginBottom: spacing.xs,
+    paddingHorizontal: spacing.sm,
+  },
   brand: {
     ...typography.h3,
     color: colors.orange,
-    marginTop: spacing.md,
-    marginBottom: spacing.xs,
   },
   areaLabel: {
     ...typography.caption,

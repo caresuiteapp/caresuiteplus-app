@@ -5,8 +5,6 @@ import { usePathname } from 'expo-router';
 import type { AppShellArea } from '@/types/navigation/shell';
 import { resolveMainModuleFromPath } from '@/lib/navigation/resolvemainmodule';
 import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
-import { GlobalAnimatedBackground } from '@/components/ui/effects';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { MainModuleRail } from './mainmodulerail';
 import { ModuleNavSidebar } from './modulenavsidebar';
@@ -27,7 +25,6 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
-  const { isDark } = useLegacyTheme();
   const mainModule = resolveMainModuleFromPath(pathname);
   const railItem = MAIN_MODULE_RAIL.find((m) => m.key === mainModule);
   const accent = accentColor ?? railItem?.accentColor;
@@ -49,20 +46,10 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
     </View>
   );
 
-  if (!isDark) {
-    return content;
-  }
-
-  return (
-    <View style={styles.gradientRoot}>
-      <GlobalAnimatedBackground />
-      {content}
-    </View>
-  );
+  return content;
 }
 
 const styles = StyleSheet.create({
-  gradientRoot: { flex: 1, backgroundColor: '#0B1020' },
   root: { flex: 1, backgroundColor: 'transparent' },
   body: { flex: 1, flexDirection: 'row', minHeight: 0 },
   main: { flex: 1, minWidth: 0, backgroundColor: 'transparent' },

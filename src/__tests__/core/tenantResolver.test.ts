@@ -46,6 +46,28 @@ describe('Tenant resolver', () => {
     if (resolved.ok) expect(resolved.tenantId).toBe('tenant-live-001');
   });
 
+  it('nutzt portalSession.tenantId wenn Profil keinen Mandanten hat', () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'test-key');
+
+    const result = resolveTenantIdForService({
+      profile: { ...liveProfile, tenantId: null },
+      portalSession: {
+        sessionToken: 'token',
+        tenantId: 'tenant-portal-001',
+        loginType: 'client_portal',
+        roleKey: 'client_portal',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        accountId: 'cpa-1',
+        clientId: 'client-1',
+      },
+    });
+
+    expect(result.ok).toBe(true);
+    if (result.ok) expect(result.tenantId).toBe('tenant-portal-001');
+  });
+
   it('requireTenantId wirft im Live-Modus ohne Mandant', () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');

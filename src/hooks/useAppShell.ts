@@ -3,13 +3,14 @@ import { usePathname } from 'expo-router';
 import type { AppShellArea } from '@/types/navigation/shell';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
+import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { getModuleSwitcherItems, getTabsForArea, resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 
 export function useAppShell(area: AppShellArea) {
   const pathname = usePathname();
   const tenantId = useServiceTenantId();
-  const { profile } = useAuth();
-  const roleKey = profile?.roleKey ?? null;
+  const { profile, portalSession, user } = useAuth();
+  const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
   const [switcherOpen, setSwitcherOpen] = useState(false);
 
   const shellContext = useMemo(

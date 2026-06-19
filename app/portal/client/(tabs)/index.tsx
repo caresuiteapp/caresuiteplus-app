@@ -1,18 +1,24 @@
 import { useState } from 'react';
-import { PortalOverviewTab } from '@/components/portal';
+import { AdaptivePortalOverview } from '@/components/portal/AdaptivePortalOverview';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
-import { useAuth } from '@/lib/auth/context';
+import { LoadingState } from '@/components/ui';
+import { usePortalActor } from '@/hooks/usePortalActor';
 
 export default function ClientPortalOverviewRoute() {
-  const { profile, user } = useAuth();
+  const { isReady } = usePortalActor();
   const [showSuccess, setShowSuccess] = useState(false);
-  const displayName = profile?.displayName ?? user?.displayName ?? 'Portal';
+
+  if (!isReady) {
+    return (
+      <PortalTabScreen title="Klient:innenportal">
+        <LoadingState message="Portal wird geladen…" />
+      </PortalTabScreen>
+    );
+  }
 
   return (
     <PortalTabScreen title="Klient:innenportal">
-      <PortalOverviewTab
-        scope="portal_client"
-        displayName={displayName}
+      <AdaptivePortalOverview
         showSuccess={showSuccess}
         onRefresh={() => {
           setShowSuccess(true);

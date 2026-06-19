@@ -1,4 +1,4 @@
-import { StyleSheet, Text } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AdaptiveCardGrid } from '@/components/adaptive';
 import { CareSuiteIcon } from '@/components/brand/CareSuiteIcon';
@@ -30,13 +30,20 @@ export function PortalChoiceScreen({ entries }: PortalChoiceScreenProps) {
           accentColor={entry.accentColor}
           onPress={() => router.push(entry.path as never)}
         >
-          <CareSuiteIcon emoji={entry.icon} accentColor={entry.accentColor} size={40} />
-          <Text style={[type.cardTitle, styles.cardTitle]} numberOfLines={2}>
-            {entry.label}
-          </Text>
-          <Text style={[type.caption, styles.cardDescription]} numberOfLines={3}>
-            {entry.description}
-          </Text>
+          <View style={styles.cardInner}>
+            <CareSuiteIcon
+              iconKey={entry.iconKey}
+              accentColor={entry.accentColor}
+              size={52}
+              variant="aurora"
+            />
+            <Text style={[type.cardTitle, styles.cardTitle]} numberOfLines={2}>
+              {entry.label}
+            </Text>
+            <Text style={[type.caption, styles.cardDescription]} numberOfLines={3}>
+              {entry.description}
+            </Text>
+          </View>
         </GlassCard>
       ))}
     </AdaptiveCardGrid>
@@ -44,6 +51,16 @@ export function PortalChoiceScreen({ entries }: PortalChoiceScreenProps) {
 }
 
 const styles = StyleSheet.create({
-  cardTitle: { marginTop: careSpacing.sm, marginBottom: careSpacing.xs, flexShrink: 1, minWidth: 0 },
-  cardDescription: { flexShrink: 1, minWidth: 0 },
+  cardInner: {
+    alignItems: 'center',
+    gap: careSpacing.sm,
+  },
+  cardTitle: {
+    marginTop: careSpacing.xs,
+    marginBottom: careSpacing.xs,
+    flexShrink: 1,
+    minWidth: 0,
+    textAlign: 'center',
+  },
+  cardDescription: { flexShrink: 1, minWidth: 0, textAlign: 'center' },
 });

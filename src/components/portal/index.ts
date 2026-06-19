@@ -5,6 +5,8 @@ export { PortalDocumentDetailHero } from './PortalDocumentDetailHero';
 export { PortalEmployeeAssignmentDetailHero } from './PortalEmployeeAssignmentDetailHero';
 export { PortalMessageDetailHero } from './PortalMessageDetailHero';
 export { PortalOverviewTab } from './PortalOverviewTab';
+export { AdaptivePortalOverview } from './AdaptivePortalOverview';
+export { AdaptivePortalDashboard } from './AdaptivePortalDashboard';
 export { PortalAppointmentsTab } from './PortalAppointmentsTab';
 export { PortalMessagesTab } from './PortalMessagesTab';
 export { PortalDocumentsTab } from './PortalDocumentsTab';

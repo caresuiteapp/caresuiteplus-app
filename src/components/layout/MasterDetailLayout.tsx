@@ -17,13 +17,13 @@ const styles = StyleSheet.create({
   split: {
     flex: 1,
     flexDirection: 'row',
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
   },
   master: {
     flexShrink: 0,
     borderRightWidth: 1,
     borderRightColor: colors.borderSoft,
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
   },
   divider: {
     width: 0,
@@ -31,7 +31,7 @@ const styles = StyleSheet.create({
   detail: {
     flex: 1,
     minWidth: 0,
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
   },
   placeholder: {
     flex: 1,

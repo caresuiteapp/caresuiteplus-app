@@ -1,162 +1,322 @@
 import { useEffect, useMemo } from 'react';
-import { BackHandler, Image, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { AdaptiveCardGrid } from '@/components/adaptive';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
-import { OfflineNotice } from '@/components/ui/OfflineNotice';
-import { AppScreen, FooterLinks, PortalCard } from '@/design/components';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
-import { careSpacing } from '@/design/tokens/spacing';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { useAuth } from '@/lib/auth/context';
-import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
-import { fetchAppStartSnapshot } from '@/lib/landing/appStartService';
-import { resolveSessionHomeRoute, shouldShowPortalChoice } from '@/lib/navigation/sessionRouting';
 
-const CARESUITE_ROBOT_LOGO = require('../../assets/images/caresuite-robot-logo.png');
+import { BackHandler, StyleSheet, Text, View } from 'react-native';
+
+import { useRouter } from 'expo-router';
+
+import { AdaptiveCardGrid } from '@/components/adaptive';
+
+import { CareSuiteLogo } from '@/components/brand';
+
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+
+import { OfflineNotice } from '@/components/ui/OfflineNotice';
+
+import { AppScreen, FooterLinks, PortalCard } from '@/design/components';
+
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+
+import { careSpacing } from '@/design/tokens/spacing';
+
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+
+import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+
+import { useAuth } from '@/lib/auth/context';
+
+import { resolveAuthSessionTarget } from '@/lib/auth/sessionTarget';
+
+import { fetchAppStartSnapshot } from '@/lib/landing/appStartService';
+
+import { shouldShowPortalChoice } from '@/lib/navigation/sessionRouting';
+
+
 
 const LANDING_HEADLINE =
+
   'CareSuite+ Software für Office, Assist, Pflege (Ambulant & Stationär), Beratung und Akademie';
 
+
+
+const LANDING_MAX_WIDTH = 520;
+
+
+
 export function AppStartScreen() {
+
   const router = useRouter();
+
   const { isInitialized, isLoading, isAuthenticated, profile, portalSession, user } = useAuth();
+
   const { isPhone, isDesktopOrWide, width } = useDeviceClass();
+
   const type = useMemo(() => resolveGalaxyTypography(width), [width]);
 
+
+
   const entriesQuery = useAsyncQuery(() => fetchAppStartSnapshot(), []);
+
   const mainEntries = entriesQuery.data ?? [];
-  const roleKey = resolveEffectiveRoleKey(profile, user);
-  const homePath = String(resolveSessionHomeRoute(roleKey, portalSession));
-  const canRedirectHome = Boolean(portalSession || roleKey) && homePath !== '/';
+
+  const { homePath, canRedirectHome } = resolveAuthSessionTarget({ profile, portalSession, user });
+
   const showPortalChoice = shouldShowPortalChoice(isAuthenticated);
 
+
+
   useEffect(() => {
+
     if (!isInitialized || isLoading || !isAuthenticated || !canRedirectHome) return;
+
     router.replace(homePath as never);
+
   }, [canRedirectHome, homePath, isAuthenticated, isInitialized, isLoading, router]);
 
+
+
   useEffect(() => {
+
     if (!isAuthenticated || !canRedirectHome) return undefined;
 
+
+
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => {
+
       router.replace(homePath as never);
+
       return true;
+
     });
 
+
+
     return () => subscription.remove();
+
   }, [canRedirectHome, homePath, isAuthenticated, router]);
 
+
+
   useEffect(() => {
+
     if (!showPortalChoice) return undefined;
 
+
+
     const subscription = BackHandler.addEventListener('hardwareBackPress', () => false);
+
     return () => subscription.remove();
+
   }, [showPortalChoice]);
 
+
+
   if (!isInitialized || isLoading) {
+
     return (
+
       <AppScreen scroll={false}>
+
         <LoadingState message="CareSuite+ wird geladen…" />
+
       </AppScreen>
+
     );
+
   }
+
+
 
   if (isAuthenticated) {
+
     return (
+
       <AppScreen scroll={false}>
+
         <LoadingState message="Weiterleitung zum Dashboard…" />
+
       </AppScreen>
+
     );
+
   }
+
+
 
   if (entriesQuery.loading && mainEntries.length === 0) {
+
     return (
+
       <AppScreen scroll={false}>
+
         <LoadingState message="CareSuite+ wird geladen…" />
+
       </AppScreen>
+
     );
+
   }
+
+
 
   if (entriesQuery.error && mainEntries.length === 0) {
+
     return (
+
       <AppScreen scroll={false}>
+
         <ErrorState message={entriesQuery.error} onRetry={entriesQuery.refresh} />
+
       </AppScreen>
+
     );
+
   }
 
-  const logoSize = isPhone ? 80 : isDesktopOrWide ? 112 : 96;
+
+
+  const logoSize = isPhone ? 'xl' : isDesktopOrWide ? 'hero' : 'xxl';
+
+
 
   const entryCards = mainEntries.map((entry) => (
+
     <PortalCard
+
       key={entry.path}
-      icon={entry.icon}
+
+      iconKey={entry.iconKey}
+
       title={entry.label}
+
       description={entry.description}
+
       accentColor={entry.accentColor}
+
       onPress={() => router.push(entry.path as never)}
+
     />
+
   ));
 
+
+
   const heroBlock = (
+
     <View style={styles.hero}>
+
       <View style={styles.logoTop}>
-        <Image
-          source={CARESUITE_ROBOT_LOGO}
-          style={{ width: logoSize, height: logoSize, backgroundColor: 'transparent' }}
-          resizeMode="contain"
-          accessibilityLabel="CareSuite+ Logo"
-        />
+
+        <CareSuiteLogo size={logoSize} />
+
       </View>
+
       <Text style={[type.h2, styles.headline]} numberOfLines={6}>
+
         {LANDING_HEADLINE}
+
       </Text>
+
     </View>
+
   );
+
+
 
   const cardsBlock =
+
     entryCards.length === 0 ? (
+
       <EmptyState title="Keine Einträge" message="Bitte versuchen Sie es später erneut." />
+
     ) : (
-      <AdaptiveCardGrid>{entryCards}</AdaptiveCardGrid>
+
+      <AdaptiveCardGrid style={styles.cardGrid}>{entryCards}</AdaptiveCardGrid>
+
     );
 
-  const layoutBody = isPhone ? (
-    <>
-      {heroBlock}
-      {cardsBlock}
-    </>
-  ) : isDesktopOrWide ? (
-    <View style={styles.desktopRow}>
-      <View style={styles.desktopHero}>{heroBlock}</View>
-      <View style={styles.desktopCards}>{cardsBlock}</View>
-    </View>
-  ) : (
-    <View style={styles.tabletRow}>
-      <View style={styles.tabletHero}>{heroBlock}</View>
-      <View style={styles.tabletCards}>{cardsBlock}</View>
-    </View>
-  );
+
 
   return (
-    <AppScreen maxWidth={1200}>
+
+    <AppScreen maxWidth={LANDING_MAX_WIDTH} contentStyle={styles.screenContent}>
+
       <OfflineNotice />
-      {layoutBody}
+
+      <View style={styles.landing}>
+
+        {heroBlock}
+
+        {cardsBlock}
+
+      </View>
+
       <FooterLinks />
+
     </AppScreen>
+
   );
+
 }
 
+
+
 const styles = StyleSheet.create({
-  hero: { gap: careSpacing.md, marginBottom: careSpacing.sm },
-  logoTop: { alignItems: 'center', marginBottom: careSpacing.xs },
-  headline: { flexShrink: 1, minWidth: 0 },
-  desktopRow: { flexDirection: 'row', gap: careSpacing.xl, alignItems: 'flex-start' },
-  desktopHero: { flex: 1, minWidth: 280, maxWidth: 420 },
-  desktopCards: { flex: 1.2, minWidth: 320 },
-  tabletRow: { flexDirection: 'row', gap: careSpacing.lg, alignItems: 'flex-start' },
-  tabletHero: { flex: 1, minWidth: 240, maxWidth: 360 },
-  tabletCards: { flex: 1.1, minWidth: 280 },
+
+  screenContent: {
+
+    alignItems: 'center',
+
+  },
+
+  landing: {
+
+    width: '100%',
+
+    alignItems: 'center',
+
+    gap: careSpacing.md,
+
+  },
+
+  hero: {
+
+    width: '100%',
+
+    alignItems: 'center',
+
+    gap: careSpacing.md,
+
+    marginBottom: careSpacing.sm,
+
+  },
+
+  logoTop: {
+
+    alignItems: 'center',
+
+    marginBottom: careSpacing.xs,
+
+  },
+
+  headline: {
+
+    flexShrink: 1,
+
+    minWidth: 0,
+
+    textAlign: 'center',
+
+  },
+
+  cardGrid: {
+
+    width: '100%',
+
+    maxWidth: LANDING_MAX_WIDTH,
+
+    alignSelf: 'center',
+
+  },
+
 });
+

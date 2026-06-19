@@ -1,6 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 
 type CareSuiteBackgroundProps = {
   mode?: 'light' | 'dark';
@@ -17,6 +18,16 @@ export function CareSuiteBackground({
   style,
   animated = true,
 }: CareSuiteBackgroundProps) {
+  const shellHostsAurora = useShellHostsAurora();
+
+  if (shellHostsAurora) {
+    return (
+      <View style={[styles.root, style]} pointerEvents="box-none">
+        {children}
+      </View>
+    );
+  }
+
   if (mode === 'light') {
     return (
       <View style={[styles.root, style]}>

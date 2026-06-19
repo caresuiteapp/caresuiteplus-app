@@ -33,9 +33,14 @@ describe('tenant bootstrap role resolution', () => {
     expect(start).not.toMatch(/if \(!hasSessionTarget\) \{\s*void signOut\(\)/);
   });
 
-  it('session target uses profile and user roleKey and blocks redirect to /', () => {
+  it('session target prefers portal session role over stale profile', () => {
     const helper = readSrc('src/lib/auth/sessionTarget.ts');
-    expect(helper).toContain('profile?.roleKey ?? user?.roleKey');
+    expect(helper).toContain('portalSession?.roleKey');
+    expect(helper).toContain('Active portal login must win');
+  });
+
+  it('session target blocks redirect to public start when role is unknown', () => {
+    const helper = readSrc('src/lib/auth/sessionTarget.ts');
     expect(helper).toContain("homePath !== '/'");
   });
 
@@ -48,7 +53,7 @@ describe('tenant bootstrap role resolution', () => {
 
   it('RequireRole uses portal session roleKey for access checks', () => {
     const guard = readSrc('src/lib/auth/RequireRole.tsx');
-    expect(guard).toContain('portalSession?.roleKey');
+    expect(guard).toContain('resolveEffectiveRoleKey');
     expect(guard).toContain('matchesNavigationTarget');
   });
 });

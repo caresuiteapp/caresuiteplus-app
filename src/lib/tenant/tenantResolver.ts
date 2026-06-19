@@ -1,4 +1,5 @@
 import type { Profile } from '@/types';
+import type { PortalSessionRecord } from '@/lib/auth/portalSessionStore';
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -7,13 +8,31 @@ export type TenantResolveResult =
   | { ok: true; tenantId: string }
   | { ok: false; error: string };
 
+export type TenantResolveContext = {
+  profile?: Profile | null;
+  portalSession?: PortalSessionRecord | null;
+};
+
+function normalizeContext(
+  input: Profile | null | undefined | TenantResolveContext,
+): TenantResolveContext {
+  if (input && typeof input === 'object' && 'portalSession' in input) {
+    return input;
+  }
+  return { profile: input ?? null, portalSession: null };
+}
+
 /** Synchrone Auflösung — Demo nur wenn isDemoMode(), Live nie DEMO_TENANT_ID-Fallback. */
-export function resolveTenantIdForService(profile: Profile | null | undefined): TenantResolveResult {
+export function resolveTenantIdForService(
+  input: Profile | null | undefined | TenantResolveContext,
+): TenantResolveResult {
+  const { profile, portalSession } = normalizeContext(input);
+
   if (isDemoMode()) {
     return { ok: true, tenantId: DEMO_TENANT_ID };
   }
 
-  const tenantId = profile?.tenantId?.trim();
+  const tenantId = profile?.tenantId?.trim() || portalSession?.tenantId?.trim();
   if (!tenantId) {
     return {
       ok: false,
@@ -24,13 +43,15 @@ export function resolveTenantIdForService(profile: Profile | null | undefined): 
   return { ok: true, tenantId };
 }
 
-export function getCurrentTenantId(profile: Profile | null | undefined): string | null {
-  const resolved = resolveTenantIdForService(profile);
+export function getCurrentTenantId(
+  input: Profile | null | undefined | TenantResolveContext,
+): string | null {
+  const resolved = resolveTenantIdForService(input);
   return resolved.ok ? resolved.tenantId : null;
 }
 
-export function requireTenantId(profile: Profile | null | undefined): string {
-  const resolved = resolveTenantIdForService(profile);
+export function requireTenantId(input: Profile | null | undefined | TenantResolveContext): string {
+  const resolved = resolveTenantIdForService(input);
   if (!resolved.ok) {
     throw new Error(resolved.error);
   }

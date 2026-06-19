@@ -2,6 +2,8 @@ import type { WorkflowStatus } from '../core/base';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import type { BillingType, ServiceType } from '../modules/client/clientBilling';
 
+import type { PortalModuleKey } from '@/lib/portal/types';
+
 /** Fokussierter Formularzustand für Stammdaten-Bearbeitung (kein voller Intake). */
 export type ClientEditFormData = {
   firstName: string;
@@ -48,6 +50,7 @@ export type ClientEditFormData = {
   careAgreementNotes: string;
   primaryAddressId: string | null;
   billingProfileId: string | null;
+  portalModules: PortalModuleKey[];
 };
 
 export const EMPTY_CLIENT_EDIT_FORM: ClientEditFormData = {
@@ -95,6 +98,7 @@ export const EMPTY_CLIENT_EDIT_FORM: ClientEditFormData = {
   careAgreementNotes: '',
   primaryAddressId: null,
   billingProfileId: null,
+  portalModules: [],
 };
 
 export type ClientEditFormErrors = Partial<Record<keyof ClientEditFormData, string>>;

@@ -16,17 +16,19 @@ describe('AppStartScreen adaptive layout', () => {
     expect(source).toContain('PortalCard');
   });
 
-  it('uses robot logo asset and galaxy typography', () => {
-    expect(source).toContain('caresuite-robot-logo.png');
+  it('uses robot logo component and galaxy typography', () => {
+    expect(source).toContain('CareSuiteLogo');
     expect(source).toContain('resolveGalaxyTypography');
     expect(source).toContain('AdaptiveCardGrid');
   });
 
-  it('defines platform-specific layout branches', () => {
-    expect(source).toContain('isPhone');
-    expect(source).toContain('isDesktopOrWide');
-    expect(source).toContain('styles.tabletRow');
-    expect(source).toContain('styles.desktopRow');
+  it('centers landing content on all breakpoints', () => {
+    expect(source).toContain('alignItems:');
+    expect(source).toContain("'center'");
+    expect(source).toContain('textAlign:');
+    expect(source).toContain('styles.landing');
+    expect(source).not.toContain('styles.desktopRow');
+    expect(source).not.toContain('styles.tabletRow');
   });
 
   it('shows only the landing headline in the hero', () => {

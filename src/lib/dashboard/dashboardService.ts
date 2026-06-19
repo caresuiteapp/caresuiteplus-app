@@ -8,6 +8,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
 import { officeDashboardSupabaseRepository } from '@/lib/services/repositories/officeDashboardRepository.supabase';
+import { fetchClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboardLive';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 
 const SIMULATED_DELAY_MS = 400;
@@ -16,7 +17,12 @@ function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
 }
 
-async function resolveTenantDisplayName(tenantId: string): Promise<string> {
+async function resolveTenantDisplayName(
+  tenantId: string,
+  tenantNameHint?: string | null,
+): Promise<string> {
+  const cached = tenantNameHint?.trim();
+  if (cached) return cached;
   return fetchTenantDisplayName(tenantId);
 }
 
@@ -24,7 +30,7 @@ export async function fetchDashboardSnapshot(
   tenantId: string,
   roleKey: RoleKey | null,
   scope: DashboardScope,
-  options?: { simulateError?: boolean },
+  options?: { simulateError?: boolean; tenantNameHint?: string | null },
 ): Promise<ServiceResult<DashboardSnapshot>> {
   try {
     await delay(SIMULATED_DELAY_MS);
@@ -47,7 +53,7 @@ export async function fetchDashboardSnapshot(
       const tenantBlock = guardServiceTenant(tenantId);
       if (tenantBlock) return tenantBlock;
 
-      const tenantName = await resolveTenantDisplayName(tenantId);
+      const tenantName = await resolveTenantDisplayName(tenantId, options?.tenantNameHint);
 
       if (scope === 'business') {
         const [metricsResult, auditResult, timelineResult] = await Promise.all([
@@ -70,6 +76,22 @@ export async function fetchDashboardSnapshot(
             tenantName,
             metrics,
             activities,
+          ),
+        };
+      }
+
+      if (scope === 'portal_client' || scope === 'portal_family') {
+        const portalMetrics = await fetchClientPortalLiveMetrics(tenantId);
+        return {
+          ok: true,
+          data: buildLiveDashboardSnapshot(
+            roleKey,
+            scope,
+            tenantId,
+            tenantName,
+            undefined,
+            undefined,
+            portalMetrics,
           ),
         };
       }

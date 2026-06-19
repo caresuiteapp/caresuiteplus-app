@@ -6,7 +6,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 
 /**
- * Aurora dark-glass surface tokens for desktop web (PlatformShell + GlobalAnimatedBackground).
+ * Aurora dark-glass surface tokens for the system-wide animated backdrop.
  * Page roots stay transparent; panels/cards/inputs use these rgba values.
  */
 export const auroraGlass = {
@@ -43,7 +43,7 @@ export const auroraGlass = {
 
 export type AuroraGlassTokens = typeof auroraGlass;
 
-/** True when desktop web PlatformShell hosts aurora dark-glass. */
+/** True when root shell hosts aurora dark-glass (system-wide). */
 export function useAuroraGlassActive(): boolean {
   return useShellHostsAurora();
 }

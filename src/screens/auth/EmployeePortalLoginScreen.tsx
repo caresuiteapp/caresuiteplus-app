@@ -1,12 +1,15 @@
 import { useState } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AuthLoginHero } from '@/components/auth/AuthLoginHero';
+import { CareSuiteLogo } from '@/components/brand';
 import { CareLightPageShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
+import { ErrorState, PremiumButton, PremiumInput } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
 import { resolveFirstLoginRoute, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { isDemoMode } from '@/lib/supabase/config';
+import { careSpacing } from '@/design/tokens/spacing';
 
 export function EmployeePortalLoginScreen() {
   const router = useRouter();
@@ -43,6 +46,9 @@ export function EmployeePortalLoginScreen() {
 
   return (
     <CareLightPageShell title="Mitarbeiterportal" subtitle="Persönlicher Mitarbeiterzugang" scroll>
+      <View style={styles.logoWrap}>
+        <CareSuiteLogo size="md" />
+      </View>
       <AuthLoginHero
         eyebrow="MITARBEITERPORTAL"
         title="Mitarbeiterportal"
@@ -58,3 +64,10 @@ export function EmployeePortalLoginScreen() {
     </CareLightPageShell>
   );
 }
+
+const styles = StyleSheet.create({
+  logoWrap: {
+    alignItems: 'center',
+    marginBottom: careSpacing.xs,
+  },
+});

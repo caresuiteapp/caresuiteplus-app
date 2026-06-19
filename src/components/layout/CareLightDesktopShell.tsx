@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import { Linking, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { CareSuiteWordmark } from '@/components/brand';
 import type { AppShellArea } from '@/types/navigation/shell';
 import { useAppShell } from '@/hooks/useAppShell';
 import { useAuth } from '@/lib/auth/context';
@@ -41,7 +42,7 @@ export function CareLightDesktopShell({
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.body}>
         <View style={styles.sidebar}>
-          <Text style={styles.brand}>CareSuite+</Text>
+          <CareSuiteWordmark size="sm" style={styles.brandWrap} />
           <Text style={styles.areaLabel}>{area}</Text>
           <ScrollView style={styles.nav} contentContainerStyle={styles.navContent}>
             {tabs.map((tab) => {
@@ -103,11 +104,9 @@ const styles = StyleSheet.create({
     borderRightColor: careLightColors.border,
     paddingTop: careSpacing.md,
   },
-  brand: {
-    ...careTypography.h3,
-    color: careLightColors.navy,
-    fontWeight: '800',
+  brandWrap: {
     paddingHorizontal: careSpacing.md,
+    marginBottom: careSpacing.xs,
   },
   areaLabel: {
     ...careTypography.caption,

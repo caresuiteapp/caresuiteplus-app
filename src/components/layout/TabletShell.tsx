@@ -92,7 +92,7 @@ export function TabletShell({
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: colors.bgBase,
+    backgroundColor: 'transparent',
   },
   body: {
     flex: 1,
@@ -131,5 +131,6 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     minWidth: 0,
+    backgroundColor: 'transparent',
   },
 });

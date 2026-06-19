@@ -52,6 +52,8 @@ export function FooterLinks() {
 
 const styles = StyleSheet.create({
   root: {
+    width: '100%',
+    alignItems: 'center',
     gap: careSpacing.sm,
     paddingTop: careSpacing.md,
     borderTopWidth: 1,
@@ -60,13 +62,16 @@ const styles = StyleSheet.create({
   links: {
     flexDirection: 'row',
     flexWrap: 'wrap',
+    justifyContent: 'center',
     gap: careSpacing.sm,
   },
   link: {
     color: galaxyPalette.textMuted,
+    textAlign: 'center',
   },
   version: {
     color: galaxyPalette.textMuted,
     opacity: 0.72,
+    textAlign: 'center',
   },
 });

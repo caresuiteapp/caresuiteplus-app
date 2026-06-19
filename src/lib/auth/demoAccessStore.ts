@@ -32,6 +32,10 @@ export function listEmployeeUsernames(tenantId: string): string[] {
   return (employeeAccounts.get(tenantKey(tenantId)) ?? []).map((entry) => entry.username);
 }
 
+export function listClientPortalUsernames(tenantId: string): string[] {
+  return getClientPortalCodes(tenantId).map((entry) => entry.username);
+}
+
 export function getTenantUsers(tenantId: string): TenantUser[] {
   return [...(tenantUsers.get(tenantKey(tenantId)) ?? [])];
 }

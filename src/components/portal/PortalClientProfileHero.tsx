@@ -8,6 +8,7 @@ import {
 } from '@/lib/portal/portalModuleConfig';
 import { buildClientPortalProfileKpis } from '@/lib/portal/portalProfileStats';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import type { PortalClientProfile } from '@/types/portal/client';
 import { designTokens, spacing } from '@/theme';
@@ -60,7 +61,8 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
 
 
   const kpis = buildClientPortalProfileKpis(profile, mode);
-  const isLive = isPortalProfileLiveReady();
+  const profileDataLive = isPortalProfileLiveReady();
+  const authLive = getServiceMode() === 'supabase';
 
   return (
     <PremiumListHeroFrame>
@@ -82,9 +84,9 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
         {profile.careLevel ? (
           <PremiumBadge label={formatCareLevel(profile.careLevel)} variant="green" dot />
         ) : null}
-        {isLive ? (
+        {profileDataLive ? (
           <PremiumBadge label="Live Supabase" variant="green" dot />
-        ) : (
+        ) : authLive ? null : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
         {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
@@ -112,7 +114,9 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
           />
         ) : null}
       </View>
-      {!isLive ? <Text style={styles.preparedHint}>{PORTAL_PROFILE_PREPARED_MESSAGE}</Text> : null}
+      {!profileDataLive && !authLive ? (
+        <Text style={styles.preparedHint}>{PORTAL_PROFILE_PREPARED_MESSAGE}</Text>
+      ) : null}
     </PremiumListHeroFrame>
   );
 }

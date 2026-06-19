@@ -7,6 +7,7 @@ import type {
   DashboardStatusCard,
 } from '@/types/dashboard';
 import type { RoleKey } from '@/types';
+import type { ClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboardLive';
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 import {
   buildBusinessKpisFromMetrics,
@@ -102,7 +103,44 @@ function getPrimaryAction(roleKey: RoleKey, scope: DashboardScope): DashboardQui
   return actions.find((action) => action.variant === 'primary') ?? actions[0];
 }
 
-function buildEmptyBusinessKpis(roleKey: RoleKey, scope: DashboardScope): DashboardKpi[] {
+function buildClientPortalKpis(metrics?: ClientPortalLiveMetrics): DashboardKpi[] {
+  const appointments = metrics?.upcomingAppointments ?? 0;
+  const messages = metrics?.openMessages ?? 0;
+  const documents = metrics?.documents ?? 0;
+
+  return [
+    {
+      id: 'kpi-appointments',
+      label: 'Nächste Termine',
+      value: appointments,
+      subValue: appointments === 0 ? 'Keine Termine' : `${appointments} anstehend`,
+      icon: '📅',
+      accentColor: '#FF9500',
+    },
+    {
+      id: 'kpi-messages-client',
+      label: 'Nachrichten',
+      value: messages,
+      subValue: messages === 0 ? 'Keine Nachrichten' : `${messages} Konversation${messages === 1 ? '' : 'en'}`,
+      icon: '💬',
+      accentColor: '#62F3FF',
+    },
+    {
+      id: 'kpi-docs',
+      label: 'Dokumente',
+      value: documents,
+      subValue: documents === 0 ? 'Keine Dokumente' : `${documents} freigegeben`,
+      icon: '📄',
+      accentColor: '#7C5CFF',
+    },
+  ];
+}
+
+function buildEmptyBusinessKpis(
+  roleKey: RoleKey,
+  scope: DashboardScope,
+  portalMetrics?: ClientPortalLiveMetrics,
+): DashboardKpi[] {
   if (scope === 'portal_employee') {
     return [
       { id: 'kpi-assignments', label: 'Meine Einsätze', value: 0, subValue: 'Keine Einsätze', icon: '📅', accentColor: '#FF9500' },
@@ -110,10 +148,7 @@ function buildEmptyBusinessKpis(roleKey: RoleKey, scope: DashboardScope): Dashbo
     ];
   }
   if (scope === 'portal_client' || scope === 'portal_family') {
-    return [
-      { id: 'kpi-appt', label: 'Termine', value: 0, subValue: 'Keine Termine', icon: '📅', accentColor: '#FF9500' },
-      { id: 'kpi-docs', label: 'Dokumente', value: 0, subValue: 'Keine Dokumente', icon: '📄', accentColor: '#62F3FF' },
-    ];
+    return buildClientPortalKpis(portalMetrics);
   }
   if (roleKey === 'billing') {
     return [
@@ -155,11 +190,12 @@ export function buildLiveDashboardSnapshot(
   tenantName: string,
   businessMetrics: BusinessDashboardMetrics = emptyBusinessDashboardMetrics(),
   activities: DashboardActivity[] = EMPTY_ACTIVITIES,
+  portalMetrics?: ClientPortalLiveMetrics,
 ): DashboardSnapshot {
   const kpis =
     scope === 'business'
       ? buildBusinessKpisFromMetrics(businessMetrics)
-      : buildEmptyBusinessKpis(roleKey, scope);
+      : buildEmptyBusinessKpis(roleKey, scope, portalMetrics);
 
   return {
     scope,

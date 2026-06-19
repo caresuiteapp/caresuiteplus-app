@@ -12,6 +12,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 
 type AppScreenProps = {
   children: ReactNode;
@@ -35,6 +36,8 @@ export function AppScreen({
   bare = false,
 }: AppScreenProps) {
   const { isPhone, isTablet, isDesktopOrWide } = useDeviceClass();
+  const shellHostsAurora = useShellHostsAurora();
+  const skipBackdrop = bare || shellHostsAurora;
 
   const horizontalPadding = isPhone
     ? careSpacing.md
@@ -104,7 +107,7 @@ export function AppScreen({
     </SafeAreaView>
   );
 
-  if (bare) {
+  if (skipBackdrop) {
     return screenBody;
   }
 

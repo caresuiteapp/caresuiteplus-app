@@ -17,7 +17,7 @@ type GlobalAnimatedBackgroundProps = {
 /**
  * Single shell-root background for CareSuite+.
  * Dark: animated aurora gradient. Light: soft page gradient.
- * Mount once at PlatformShell / CareSuiteBackground — never inside columns.
+ * Mount once at app/_layout root — never inside columns or per-screen.
  */
 export function GlobalAnimatedBackground({
   mode: modeOverride,
