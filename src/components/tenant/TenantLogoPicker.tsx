@@ -121,7 +121,7 @@ export function TenantLogoPicker({
           overflow: 'hidden',
           alignItems: 'center',
           justifyContent: 'center',
-          backgroundColor: colors.surfaceElevated ?? colors.surface,
+          backgroundColor: colors.bgElevated,
         },
         image: {
           width: LOGO_WIDTH - 8,

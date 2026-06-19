@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -25,7 +25,8 @@ const COMPLETENESS_COLOR = {
 
 export function TenantCenterSectionCard({ section, onEdit }: Props) {
   const text = useAuroraAdaptiveText();
-  const type = resolveGalaxyTypography('desktop');
+  const { width } = useWindowDimensions();
+  const type = resolveGalaxyTypography(width);
 
   return (
     <GlassCard style={styles.card}>
