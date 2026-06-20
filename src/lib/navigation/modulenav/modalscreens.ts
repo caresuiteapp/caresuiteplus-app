@@ -1,16 +1,25 @@
 import type { ComponentType } from 'react';
+import type { ModalStackPayload } from '@/types/modalNavigation';
 import { AccessManagementDashboardScreen } from '@/screens/office/access';
+import { AssistSettingsScreen } from '@/screens/assist/AssistSettingsScreen';
+import { ClientRecordModalPrepScreen } from '@/screens/office/ClientRecordModalPrepScreen';
+import { EmployeeRecordModalPrepScreen } from '@/screens/office/EmployeeRecordModalPrepScreen';
 import {
   DataRequestScreen,
   TenantSettingsScreen,
   UserProfileScreen,
 } from '@/screens/settings';
 
+export type ModuleNavModalComponentProps = {
+  embeddedInModal?: boolean;
+  payload?: ModalStackPayload;
+};
+
 export type ModuleNavModalScreen = {
   title: string;
   subtitle?: string;
   maxWidth?: number;
-  Component: ComponentType<{ embeddedInModal?: boolean }>;
+  Component: ComponentType<ModuleNavModalComponentProps>;
 };
 
 /** Registry for module-nav items opened as PlatformModal overlays on web/desktop. */
@@ -35,5 +44,23 @@ export const MODULE_NAV_MODAL_SCREENS: Record<string, ModuleNavModalScreen> = {
     subtitle: 'Benutzer, Rollen und Portale',
     Component: AccessManagementDashboardScreen,
     maxWidth: 920,
+  },
+  'assist.settings': {
+    title: 'Assist Einstellungen',
+    subtitle: 'Modul-Konfiguration und Verknüpfungen',
+    Component: AssistSettingsScreen,
+    maxWidth: 720,
+  },
+  'prep.client.record': {
+    title: 'Klient:in',
+    subtitle: 'Kurzüberblick — vollständige Akte in Office',
+    Component: ClientRecordModalPrepScreen,
+    maxWidth: 880,
+  },
+  'prep.employee.record': {
+    title: 'Mitarbeiter:in',
+    subtitle: 'Kurzüberblick — vollständige Akte in Office',
+    Component: EmployeeRecordModalPrepScreen,
+    maxWidth: 880,
   },
 };

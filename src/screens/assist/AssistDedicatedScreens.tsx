@@ -31,6 +31,10 @@ export function AssistQualityListScreen() {
       title="Qualität / Nachweise"
       eyebrow="ASSIST · QUALITÄT"
       subtitle="Leistungsnachweise und Qualitätsindikatoren"
+      emptyTitle="Keine Qualitätsnachweise"
+      emptyMessage="Leistungsnachweise erscheinen nach Einsatzabschluss. Prüfung und Freigabe unter Nachweise."
+      emptyActionLabel="Zu Nachweise"
+      onEmptyAction={() => router.push('/assist/nachweise' as never)}
       queryFn={fetchAssistQualityProofs}
       searchKeys={['clientName', 'assignmentTitle']}
       getItemId={(item) => item.id}

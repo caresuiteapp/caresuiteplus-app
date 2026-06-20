@@ -40,3 +40,4 @@ export function resolveActiveModuleNavKey(pathname: string, config: ModuleNavCon
 }
 
 export { MODULE_NAV_MODAL_SCREENS } from './modalscreens';
+export { navigateModuleNavItem, shouldOpenNavItemInModal, buildModalOpenOptions } from './navigateModuleNavItem';

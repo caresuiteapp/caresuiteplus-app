@@ -40,12 +40,12 @@ Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht 
 | B4 | Nachweise | ✅ | `/assist/nachweise` |
 | B5 | Aufgaben | ✅ | `/assist/aufgaben` |
 | B6 | Fahrten | ✅ | `/assist/fahrten` |
-| B7 | Touren | ✅ | `/assist/touren` |
+| B7 | Touren | ✅ | `/assist/touren` — eigene `AssistTourenScreen`, kein Redirect zu Fahrten (System-Navigation 2026-06-20) |
 | B8 | Kalender | 🟡 | `/assist/calendar` + `/assist/kalender`; zentrale Kalender-Integration über 0117/0118 — Sync-Lücken möglich |
 | B9 | Live-Status | ✅ | `/assist/live-status` |
 | B10 | Qualität | ✅ | `/assist/qualitaet` |
 | B11 | Zugeordnete Klient:innen | ✅ | `/assist/zugeordnete-klienten` → `ModuleAssignedClientsScreen` |
-| B12 | Einstellungen | ✅ | `/assist/einstellungen` |
+| B12 | Einstellungen | ✅ | `/assist/einstellungen` → `AssistSettingsScreen`; Web/Desktop optional Modal `assist.settings` |
 
 Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereiche ab.
 

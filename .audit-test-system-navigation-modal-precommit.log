@@ -1,0 +1,24 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 test
+> vitest run src/__tests__/assist/assistNavigation.test.ts src/__tests__/navigation/modalStack.test.ts src/__tests__/assist/assistProofToPortalFlow.test.ts
+
+
+ RUN  v3.2.6 C:/Users/Kevin Reinhardt/Documents/CareSuite+
+
+ Ô£ô src/__tests__/navigation/modalStack.test.ts (5 tests) 15ms
+ Ô£ô src/__tests__/assist/assistNavigation.test.ts (5 tests) 9ms
+ Ô£ô src/__tests__/assist/assistProofToPortalFlow.test.ts (10 tests) 18ms
+
+ Test Files  3 passed (3)
+      Tests  20 passed (20)
+   Start at  23:00:02
+   Duration  2.72s (transform 1.60s, setup 0ms, collect 2.21s, tests 42ms, environment 3ms, prepare 1.47s)
+

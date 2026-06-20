@@ -18,6 +18,9 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
+import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
+import { useModalStack } from '@/hooks/useModalStack';
+import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { getServiceMode } from '@/lib/services/mode';
 import type { MainModuleKey } from '@/types/navigation/platform';
@@ -47,6 +50,8 @@ export function MobilePlatformContextPanel({
 }: MobilePlatformContextPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { adaptiveShell } = usePlatformLayout();
+  const { openModal } = useModalStack();
   const { logoUrl: tenantLogoUrl, logoLoading: tenantLogoLoading } = useTenantBranding();
   const text = useAuroraAdaptiveText();
   const { width } = useDeviceClass();
@@ -95,7 +100,7 @@ export function MobilePlatformContextPanel({
         title="SCHNELLAKTIONEN"
         items={quickActions}
         getItemKey={(action) => action.label}
-        titleStyle={[type.caption, styles.eyebrow, { color: text.muted }]}
+        titleStyle={StyleSheet.flatten([type.caption, styles.eyebrow, { color: text.muted }])}
         containerStyle={styles.section}
         itemsContainerStyle={styles.quickActions}
         renderItem={(action, context) => (
@@ -122,7 +127,7 @@ export function MobilePlatformContextPanel({
             title={group.title}
             items={group.items}
             getItemKey={(item) => item.key}
-            titleStyle={[type.caption, styles.eyebrow, { color: text.muted }]}
+            titleStyle={StyleSheet.flatten([type.caption, styles.eyebrow, { color: text.muted }])}
             itemsContainerStyle={styles.navGroup}
             renderItem={(item, context) => {
               const active = item.key === activeNavKey;
@@ -130,7 +135,7 @@ export function MobilePlatformContextPanel({
                 <Pressable
                   onPress={() => {
                     context?.closeMenu();
-                    router.push(item.href as never);
+                    navigateModuleNavItem(item, router, openModal, adaptiveShell);
                   }}
                   style={webCursor}
                   accessibilityRole="button"

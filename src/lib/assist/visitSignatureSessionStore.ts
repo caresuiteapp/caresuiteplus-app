@@ -1,7 +1,6 @@
 /**
- * Session-only visit signature capture — Migration 0156 prepared, not yet applied.
- * Persist via assistVisitSignaturePersistenceService after remote apply + Storage upload.
- * Data is lost on reload until 0156 is live; UI shows setup hint for prod persistence.
+ * Session-only visit signature capture fallback when persistence write is unavailable.
+ * Persist via assistVisitSignaturePersistenceService when assist_visit_signatures is reachable.
  */
 
 export type VisitSignatureCapture = {

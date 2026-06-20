@@ -14,6 +14,9 @@ import { usePathname, useRouter } from 'expo-router';
 import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
+import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
+import { useModalStack } from '@/hooks/useModalStack';
+import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { PLATFORM_SHELL_HEADER_TOP_INSET } from '@/lib/platform/shellLayoutMetrics';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { getServiceMode } from '@/lib/services/mode';
@@ -46,6 +49,8 @@ function openExternal(url: string) {
 export function RightContextPanel({ mainModule, accentColor }: RightContextPanelProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { adaptiveShell } = usePlatformLayout();
+  const { openModal } = useModalStack();
   const { width } = useWindowDimensions();
   const { logoUrl: tenantLogoUrl, logoLoading: tenantLogoLoading } = useTenantBranding();
   const { colors, isDark } = useLegacyTheme();
@@ -127,7 +132,7 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
                 <Pressable
                   onPress={() => {
                     context?.closeMenu();
-                    router.push(item.href as never);
+                    navigateModuleNavItem(item, router, openModal, adaptiveShell);
                   }}
                   style={webCursor}
                   accessibilityRole="button"

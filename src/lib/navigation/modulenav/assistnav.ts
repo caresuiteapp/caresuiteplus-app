@@ -31,7 +31,14 @@ export const assistNav: ModuleNavConfig = {
       items: [
         { key: 'qualitaet', label: 'Qualität', icon: '⭐', href: '/assist/qualitaet' },
         { key: 'zugeordnete', label: 'Zugeordnete Klient:innen', icon: '👥', href: '/assist/zugeordnete-klienten' },
-        { key: 'settings', label: 'Einstellungen', icon: '⚙️', href: '/assist/einstellungen' },
+        {
+          key: 'settings',
+          label: 'Einstellungen',
+          icon: '⚙️',
+          href: '/assist/einstellungen',
+          openInModal: true,
+          modalKey: 'assist.settings',
+        },
       ],
     },
   ],

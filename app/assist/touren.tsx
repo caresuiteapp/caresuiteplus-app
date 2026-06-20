@@ -1,6 +1,3 @@
-import { Redirect } from 'expo-router';
+import { AssistTourenScreen } from '@/screens/assist/AssistTourenScreen';
 
-/** German alias → canonical trips route */
-export default function AssistTourenRedirect() {
-  return <Redirect href="/assist/fahrten" />;
-}
+export default AssistTourenScreen;

@@ -1,5 +1,8 @@
 import { isAssistTripsLiveReady } from '@/lib/assist/assistModuleConfig';
-import { isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
+import {
+  isAssistMapProviderConfigured,
+  isAssistTrackingPersistenceActive,
+} from '@/lib/assist/gpsTrackingConfig';
 import { getServiceMode } from '@/lib/services/mode';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 
@@ -12,9 +15,10 @@ export type AssistSetupHint = {
   route?: string;
 };
 
-/** Non-intrusive setup hints — schema gaps and missing prod config. No DB writes. */
+/** Non-intrusive setup hints — accurate persistence status, no stale migration banners. */
 export function buildAssistSetupHints(): AssistSetupHint[] {
   const hints: AssistSetupHint[] = [];
+  const persistenceActive = isAssistTrackingPersistenceActive();
 
   if (getServiceMode() === 'supabase' && !isSupabaseConfigured()) {
     hints.push({
@@ -26,14 +30,21 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
     });
   }
 
-  if (getServiceMode() === 'supabase') {
+  if (persistenceActive) {
     hints.push({
-      id: 'signature-storage',
-      title: 'Signatur-Speicher (0156)',
+      id: 'persistence-active',
+      title: 'Persistenz aktiv',
       message:
-        'Unterschriften werden in assist_visit_signatures + Storage persistiert, sobald ein assist_visits-Datensatz existiert.',
+        'Einsätze, Nachweise, Signaturen und Tracking werden persistent in Supabase gespeichert (0156 angewendet).',
       severity: 'info',
-      route: '/assist/signaturen',
+      route: '/assist/nachweise',
+    });
+  } else if (getServiceMode() === 'supabase') {
+    hints.push({
+      id: 'persistence-demo',
+      title: 'Demo-Modus',
+      message: 'Supabase ist verbunden, Demo-Modus aktiv — Persistenz für Live-Mandanten ohne Demo-Flag.',
+      severity: 'warning',
     });
   } else {
     hints.push({
@@ -45,25 +56,25 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
     });
   }
 
+  if (!isAssistMapProviderConfigured() && persistenceActive) {
+    hints.push({
+      id: 'map-provider-optional',
+      title: 'Kartenansicht optional',
+      message:
+        'Live-Karten erfordern einen externen Map-Provider. Standortdaten werden aus assist_location_points gelesen.',
+      severity: 'info',
+      route: '/assist/live-status',
+    });
+  }
+
   if (!isAssistTripsLiveReady()) {
     hints.push({
       id: 'trips-storage',
       title: 'Fahrtenbuch',
       message:
-        'Live-Fahrtenbuch (Migration 0114) erfordert Supabase ohne Demo-Modus. Aktuell Demo- oder leerer Zustand.',
+        'Live-Fahrtenbuch erfordert Supabase ohne Demo-Modus. Aktuell Demo- oder leerer Zustand.',
       severity: 'info',
       route: '/assist/fahrten',
-    });
-  }
-
-  if (!isGpsTrackingLiveReady()) {
-    hints.push({
-      id: 'live-tracking',
-      title: 'Live-Tracking Backend',
-      message:
-        '0156-Tabellen aktiv — Tracking startet im Mitarbeiterportal. Assist Live-Status liest persistierte Sessions/Events (read-only).',
-      severity: 'info',
-      route: '/assist/live-status',
     });
   }
 
@@ -95,7 +106,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
   hints.push({
     id: 'routes-schema',
     title: 'Tourenplanung',
-    message: 'assist_routes / assist_route_items fehlen — Touren-UI ohne Persistenz.',
+    message: 'assist_routes / assist_route_items fehlen — Touren-UI ohne Persistenz (eigene Route unter Touren).',
     severity: 'info',
     route: '/assist/touren',
   });

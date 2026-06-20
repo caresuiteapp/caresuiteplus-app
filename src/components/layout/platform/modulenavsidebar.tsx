@@ -13,7 +13,11 @@ import {
   getModuleNavConfig,
   resolveActiveModuleNavKey,
 } from '@/lib/navigation/modulenav';
+import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
+import { useModalStack } from '@/hooks/useModalStack';
+import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
 import {
   PLATFORM_MODULE_NAV_WIDTH,
@@ -93,11 +97,14 @@ function NavItem({
 export function ModuleNavSidebar({ mainModule, accentColor }: ModuleNavSidebarProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const { adaptiveShell } = usePlatformLayout();
+  const { openModal } = useModalStack();
   const { colors, isDark } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
   const accent = accentColor ?? colors.violet;
   const config = getModuleNavConfig(mainModule);
   const activeKey = resolveActiveModuleNavKey(pathname, config);
-  const styles = useMemo(() => createStyles(isDark, colors), [isDark, colors]);
+  const styles = useMemo(() => createStyles(isDark, colors, text), [isDark, colors, text]);
 
   return (
     <View style={styles.root}>
@@ -116,7 +123,9 @@ export function ModuleNavSidebar({ mainModule, accentColor }: ModuleNavSidebarPr
                 label={item.label}
                 badge={item.badge}
                 isDark={isDark}
-                onPress={() => router.push(item.href as never)}
+                onPress={() =>
+                  navigateModuleNavItem(item, router, openModal, adaptiveShell)
+                }
               />
             ))}
           </View>
@@ -151,7 +160,11 @@ const navStyles = StyleSheet.create({
   badgeText: { fontSize: 11, fontWeight: '700' },
 });
 
-function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>['colors']) {
+function createStyles(
+  isDark: boolean,
+  colors: ReturnType<typeof useLegacyTheme>['colors'],
+  text: ReturnType<typeof useAuroraAdaptiveText>,
+) {
   const glassBorder = isDark ? glassFx.border : colors.borderSoft;
 
   return StyleSheet.create({
@@ -167,10 +180,10 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
       paddingBottom: spacing.md,
     },
-    title: { ...typography.h3, color: colors.textPrimary },
+    title: { ...typography.h3, color: text.primary },
     subtitle: {
       ...typography.caption,
-      color: colors.textMuted,
+      color: text.muted,
       marginBottom: spacing.md,
     },
     nav: { flex: 1 },
@@ -178,7 +191,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     group: { gap: spacing.xs },
     groupTitle: {
       ...typography.caption,
-      color: colors.textMuted,
+      color: text.muted,
       textTransform: 'uppercase',
       letterSpacing: 0.6,
       paddingHorizontal: spacing.sm,

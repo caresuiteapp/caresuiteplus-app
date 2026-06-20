@@ -8,8 +8,8 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchClientModuleAssignments } from '@/lib/officeModules/moduleAssignmentService';
-import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { useOpenClientRecordModal } from '@/hooks/useRecordModalNavigation';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import type { ProductKey } from '@/types';
 import { colors, spacing, typography } from '@/theme';
 
@@ -25,6 +25,7 @@ export function ModuleAssignedClientsScreen({
   title = 'Zugeordnete Klient:innen',
 }: ModuleAssignedClientsScreenProps) {
   const router = useRouter();
+  const openClientRecord = useOpenClientRecordModal();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { roleLabel } = usePermissions();
@@ -78,7 +79,7 @@ export function ModuleAssignedClientsScreen({
         renderItem={({ item }) => (
           <Pressable
             style={styles.row}
-            onPress={() => router.push(clientRecordRoute(item.clientId) as never)}
+            onPress={() => openClientRecord(item.clientId)}
           >
             <View style={styles.main}>
               <Text style={styles.name}>{item.clientName}</Text>
@@ -93,7 +94,9 @@ export function ModuleAssignedClientsScreen({
         ListEmptyComponent={
           <EmptyState
             title="Keine Zuordnungen"
-            message="Diesem Modul sind noch keine Klient:innen aus Office zugeordnet."
+            message="Diesem Modul sind noch keine Klient:innen aus Office zugeordnet. Zuordnungen werden in CareSuite+ Office gepflegt."
+            actionLabel="Office Klient:innen"
+            onAction={() => router.push('/business/office/clients' as never)}
           />
         }
       />

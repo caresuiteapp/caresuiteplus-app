@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -23,6 +23,8 @@ type DedicatedListScreenProps<T> = {
   eyebrow?: string;
   emptyTitle?: string;
   emptyMessage?: string;
+  emptyActionLabel?: string;
+  onEmptyAction?: () => void;
   createRoute?: string;
   createLabel?: string;
   queryFn: (tenantId: string, roleKey?: RoleKey | null) => Promise<ServiceResult<T[]>>;
@@ -38,6 +40,8 @@ export function DedicatedListScreen<T>({
   eyebrow,
   emptyTitle = 'Keine Einträge',
   emptyMessage = 'Für diesen Bereich sind noch keine Daten hinterlegt.',
+  emptyActionLabel,
+  onEmptyAction,
   createRoute,
   createLabel = '+ Neu',
   queryFn,
@@ -75,22 +79,22 @@ export function DedicatedListScreen<T>({
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title={title} subtitle="Wird geladen…">
+      <ScreenShell title={title} subtitle="Wird geladen…">
         <LoadingState message={`${title} werden geladen…`} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title={title} subtitle="Fehler">
+      <ScreenShell title={title} subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={title}
       subtitle={subtitle ?? roleLabel ?? 'Demo'}
       rightSlot={
@@ -117,7 +121,14 @@ export function DedicatedListScreen<T>({
         refreshControl={
           <RefreshControl refreshing={query.refreshing} onRefresh={query.refresh} tintColor={colors.primary} />
         }
-        ListEmptyComponent={<EmptyState title={emptyTitle} message={emptyMessage} />}
+        ListEmptyComponent={
+          <EmptyState
+            title={emptyTitle}
+            message={emptyMessage}
+            actionLabel={emptyActionLabel}
+            onAction={onEmptyAction}
+          />
+        }
         renderItem={({ item }) => {
           const meta = renderMeta(item);
           return (
@@ -131,7 +142,7 @@ export function DedicatedListScreen<T>({
           );
         }}
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

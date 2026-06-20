@@ -7,6 +7,7 @@ import { ThemeModeProvider } from '@/design/ThemeModeProvider';
 import { WebFontScaleProvider } from '@/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
+import { ModalStackProvider } from '@/components/navigation/ModalStackProvider';
 import { AuthProvider } from '@/lib/auth';
 
 if (__DEV__ && Platform.OS === 'web') {
@@ -50,7 +51,9 @@ export default function RootLayout() {
       <ThemeModeProvider>
         <WebFontScaleProvider>
           <GlobalAiProvider>
-            <RootShell />
+            <ModalStackProvider>
+              <RootShell />
+            </ModalStackProvider>
           </GlobalAiProvider>
         </WebFontScaleProvider>
       </ThemeModeProvider>

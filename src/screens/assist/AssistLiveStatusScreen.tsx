@@ -15,7 +15,13 @@ import {
 import { useAssistLiveStatus } from '@/hooks/useAssistLiveStatus';
 import { usePermissions } from '@/hooks/usePermissions';
 import { formatTimerSeconds } from '@/lib/assist/assistLiveTrackingViewService';
-import { GPS_TRACKING_PREPARED_MESSAGE, isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
+import {
+  GPS_TRACKING_DEMO_MESSAGE,
+  GPS_TRACKING_MAP_PROVIDER_MESSAGE,
+  GPS_TRACKING_BACKEND_EMPTY_MESSAGE,
+  isAssistMapProviderConfigured,
+  isAssistTrackingPersistenceActive,
+} from '@/lib/assist/gpsTrackingConfig';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 
@@ -57,6 +63,9 @@ export function AssistLiveStatusScreen() {
   }
 
   const rows = overview?.rows ?? [];
+  const persistenceActive = isAssistTrackingPersistenceActive();
+  const mapProviderReady = isAssistMapProviderConfigured();
+  const hasAnyPosition = rows.some((row) => Boolean(row.tracking?.lastPosition));
 
   return (
     <ScreenShell
@@ -71,8 +80,8 @@ export function AssistLiveStatusScreen() {
       >
         <InfoBanner variant="info" title="Nur Anzeige" message={overview?.readOnlyNotice ?? ''} />
 
-        {!isGpsTrackingLiveReady() ? (
-          <InfoBanner variant="warning" title="GPS Backend" message={GPS_TRACKING_PREPARED_MESSAGE} />
+        {!persistenceActive ? (
+          <InfoBanner variant="warning" title="Tracking-Persistenz" message={GPS_TRACKING_DEMO_MESSAGE} />
         ) : null}
 
         {overview ? (
@@ -126,11 +135,18 @@ export function AssistLiveStatusScreen() {
           ))
         )}
 
-        <SectionPanel title="Kartenansicht" subtitle="Optional wenn Komponente verfügbar">
-          <Text style={styles.gap}>
-            Keine eingebettete Karte angebunden — Positionen als Text. Vollständige Karte erfordert
-            Provider-Freigabe und assist_tracking_points.
-          </Text>
+        <SectionPanel title="Kartenansicht" subtitle="Optional wenn Map-Provider verfügbar">
+          {!mapProviderReady ? (
+            <Text style={styles.gap}>{GPS_TRACKING_MAP_PROVIDER_MESSAGE}</Text>
+          ) : null}
+          {persistenceActive && !hasAnyPosition ? (
+            <Text style={styles.gap}>{GPS_TRACKING_BACKEND_EMPTY_MESSAGE}</Text>
+          ) : null}
+          {hasAnyPosition ? (
+            <Text style={styles.gap}>
+              Positionen aus assist_location_points — eingebettete Karte folgt nach Provider-Freigabe.
+            </Text>
+          ) : null}
         </SectionPanel>
       </ScrollView>
     </ScreenShell>

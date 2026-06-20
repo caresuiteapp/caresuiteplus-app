@@ -1,3 +1,3 @@
-import { AssistIndexScreen } from '@/screens/assist/AssistIndexScreen';
+import { AssistSettingsScreen } from '@/screens/assist/AssistSettingsScreen';
 
-export default AssistIndexScreen;
+export default AssistSettingsScreen;

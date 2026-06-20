@@ -13,7 +13,11 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { GPS_TRACKING_PREPARED_MESSAGE, isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
+import {
+  GPS_TRACKING_DEMO_MESSAGE,
+  GPS_TRACKING_PREPARED_MESSAGE,
+  isAssistTrackingPersistenceActive,
+} from '@/lib/assist/gpsTrackingConfig';
 import { buildTrackingKpis } from '@/data/demo/trackingStats';
 import { useTrackingDashboard } from '@/hooks/useTrackingDashboard';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -93,7 +97,7 @@ export function TrackingListView({ embedded = false }: TrackingListViewProps) {
   const compactHero = embedded || shellVariant === 'desktop';
   const positionCount = data?.positions.length ?? 0;
   const eventCount = data?.recentEvents.length ?? 0;
-  const gpsPreparedOnly = !isGpsTrackingLiveReady();
+  const gpsPreparedOnly = !isAssistTrackingPersistenceActive();
 
   const toolbar = (
     <View style={styles.toolbar}>
@@ -120,10 +124,12 @@ export function TrackingListView({ embedded = false }: TrackingListViewProps) {
       {gpsPreparedOnly ? (
         <InfoBanner
           variant="warning"
-          title="GPS extern"
-          message={GPS_TRACKING_PREPARED_MESSAGE}
+          title="Tracking-Persistenz"
+          message={GPS_TRACKING_DEMO_MESSAGE}
         />
-      ) : null}
+      ) : (
+        <InfoBanner variant="info" title="Persistenz aktiv" message={GPS_TRACKING_PREPARED_MESSAGE} />
+      )}
 
       <PremiumInput
         label="Suche"
