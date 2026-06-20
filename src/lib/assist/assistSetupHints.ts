@@ -28,18 +28,18 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
 
   hints.push({
     id: 'signature-storage',
-    title: 'Signatur-Speicher (Schema-Gap P0)',
+    title: 'Signatur-Speicher (Migration 0156 vorbereitet)',
     message:
-      'Tabelle assist_visit_signatures fehlt — Unterschriften werden nur sessionbasiert erfasst, nicht auditierbar gespeichert.',
+      'Migration 0156 definiert assist_visit_signatures — noch nicht remote angewendet. Unterschriften sessionbasiert bis Apply.',
     severity: 'warning',
     route: '/assist/signaturen',
   });
 
   hints.push({
     id: 'proof-export',
-    title: 'Leistungsnachweis-Persistenz (Schema-Gap P0)',
+    title: 'Leistungsnachweis (Migration 0156 vorbereitet)',
     message:
-      'Tabelle assist_visit_proofs fehlt — PDF-Export ist Vorschau; dauerhafte Nachweis-Ablage folgt mit Migration.',
+      'Migration 0156 definiert assist_visit_proofs — noch nicht angewendet. PDF-Export bleibt Vorschau bis Apply.',
     severity: 'warning',
     route: '/assist/nachweise',
   });
@@ -60,7 +60,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
       id: 'live-tracking',
       title: 'Live-Tracking Backend',
       message:
-        'GPS-Echtzeit-Streaming erfordert externe Freigabe. assist_live_status / assist_tracking_points fehlen — Mitarbeiterportal erfasst Foreground-GPS sessionbasiert.',
+        'Migration 0156 definiert assist_tracking_sessions / assist_location_points — noch nicht angewendet. Mitarbeiterportal: Foreground-GPS sessionbasiert.',
       severity: 'info',
       route: '/assist/live-status',
     });

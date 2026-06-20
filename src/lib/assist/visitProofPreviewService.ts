@@ -37,7 +37,10 @@ function formatDateTime(iso: string): string {
   });
 }
 
-/** Build Leistungsnachweis preview from visit detail + session signature (no PDF persist). */
+/**
+ * Build Leistungsnachweis preview from visit detail + session signature.
+ * GAP (Phase 3): persist via assistVisitProofPersistenceService after Migration 0156 apply.
+ */
 export function buildVisitProofPreview(
   visit: VisitDispositionDetail,
   documentationNote?: string | null,

@@ -1,6 +1,7 @@
 /**
- * Session-only visit signature capture — no assist_visit_signatures table (P0 gap).
- * Data is lost on reload; UI must show setup hint for prod persistence.
+ * Session-only visit signature capture — Migration 0156 prepared, not yet applied.
+ * Persist via assistVisitSignaturePersistenceService after remote apply + Storage upload.
+ * Data is lost on reload until 0156 is live; UI shows setup hint for prod persistence.
  */
 
 export type VisitSignatureCapture = {

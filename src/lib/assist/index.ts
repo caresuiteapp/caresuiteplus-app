@@ -44,6 +44,21 @@ export {
 } from './visitSignatureSessionStore';
 export type { VisitSignatureCapture } from './visitSignatureSessionStore';
 export {
+  isAssistExecutionPersistenceReady,
+  fetchValidVisitSignature,
+} from './assistExecutionPersistenceService';
+export {
+  fetchLatestVisitProof,
+} from './assistVisitProofPersistenceService';
+export {
+  fetchActiveTrackingSession,
+} from './assistTrackingPersistenceService';
+export type {
+  AssistVisitSignatureRow,
+  AssistVisitProofRow,
+  AssistTrackingSessionRow,
+} from '@/types/assistExecutionPersistence';
+export {
   fetchTripLogList,
   fetchTripDetail,
   fetchTrackingDashboard,

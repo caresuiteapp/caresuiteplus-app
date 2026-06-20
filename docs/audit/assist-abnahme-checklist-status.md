@@ -2,8 +2,8 @@
 
 **Datum:** 2026-06-20  
 **Referenz:** `02_ABNAHME_CHECKLISTE_ASSIST.md` (Downloads-Paket)  
-**Scope:** Read-only Abnahme gegen aktuellen Repo-Stand während Zwischenauftrag (ohne DB-Deploy)  
-**HEAD:** `ad0474b4b34bb0720a513bbbea2c6ecf9a0832b2` · **B.1h:** pausiert
+**Scope:** Read-only Abnahme gegen aktuellen Repo-Stand · Phase 3 Schema vorbereitet (ohne DB-Deploy)  
+**HEAD:** `73cd7360cf533051c84b394d82a46b8e38c4b335` · **B.1h:** ✅ applied · **B.1k:** ✅ applied · **0156:** vorbereitet, nicht applied
 
 Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht geprüft / Blocker dokumentiert
 
@@ -14,8 +14,8 @@ Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
 | A1 | Migration 0154 nicht verändert | ✅ | `git diff` auf 0154 leer |
-| A2 | Migration 0154 nicht angewendet | ✅ | B.1h gestoppt; nur 0154 remote pending |
-| A3 | Kein `supabase db push` | ✅ | Kein Deploy in Assist-Zwischenauftrag |
+| A2 | Migration 0154 während Assist pausiert | ✅ | Assist-Zwischenauftrag eingehalten; **B.1h Apply** (2026-06-20) |
+| A3 | Kein `supabase db push` (Assist Phase 3) | ✅ | 0156 nur Repo-Vorbereitung — kein Deploy |
 | A4 | Kein Supabase Remote Deploy | ✅ | — |
 | A5 | Keine Permission-Dateien geändert | ✅ | `src/lib/permissions/` diff leer |
 | A6 | `staticRolePermissions.ts` unverändert | ✅ | Kein WT-Diff |
@@ -23,8 +23,8 @@ Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht 
 | A8 | Kein B.2 | ✅ | — |
 | A9 | Kein ProductAccess-Fix | ✅ | — |
 | A10 | Kein `assignmentWorkflowService`-Umbau | ✅ | Nicht angefasst |
-| A11 | Kein `git add .` | ✅ | — |
-| A12 | Kein Commit ohne Freigabe | ✅ | Assist-Arbeit uncommitted |
+| A11 | Kein `git add .` | ✅ | Phase 2.2: 82 Pfade einzeln gestaged |
+| A12 | Kein Push ohne Freigabe | ✅ | Phase 2.3: `32d30d8` → `origin/main` |
 
 **A — Gesamt:** ✅ **12/12**
 
@@ -106,9 +106,9 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 |---|-----------|--------|----------|
 | F1 | Signaturfeld / Blocker | 🟡 | `VisitSignatureSection` + `CareSignatureModal` in Durchführung; Session-Store |
 | F2–F4 | Touch/Maus, leer blockiert, Klarname/Rolle | 🟡 | Phase 2 UI erfüllt; DB-Persistenz fehlt |
-| F5–F7 | Payload-Hash, Signatur-Hash, Invalidierung | ❌ | Schema-Gap P0 — keine `assist_visit_signatures` (0116) |
+| F5–F7 | Payload-Hash, Signatur-Hash, Invalidierung | 🟡 | Migration **0156** vorbereitet (`assist_visit_signatures`); **nicht applied** — Session-Store aktiv |
 
-**F — Gesamt:** 🟡 **4/7**, ❌ **3/7** (Hash/Persistenz)
+**F — Gesamt:** 🟡 **4/7**, 🟡 **3/7** (Hash/Persistenz — 0156 vorbereitet)
 
 ---
 
@@ -129,9 +129,9 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 | H1 | Live-Status UI | ✅ | `AssistLiveStatusScreen`, `assistLiveTrackingViewService` |
 | H2 | Tracking nur MA-Portal | ✅ | `EmployeePortalVisitExecutionScreen`; Assist read-only Banner |
 | H3 | Consent vor GPS | ✅ | `EmployeePortalLocationConsentBanner` |
-| H4 | Live-Timer (Fahrt/Einsatz/Pause) | 🟡 | Session-Rekonstruktion; DB `assist_time_events` fehlt |
-| H5 | Geofence weich | 🟡 | `geofenceSoftCheck.ts`; Ziel-Lat/Lng fehlt |
-| H6 | Karte / Backend-Streaming | 🟡 | Text-Position; `isGpsTrackingLiveReady()` false; `assist_tracking_points` fehlt |
+| H4 | Live-Timer (Fahrt/Einsatz/Pause) | 🟡 | Session-Rekonstruktion; **0156** `assist_time_events` vorbereitet, nicht applied |
+| H5 | Geofence weich | 🟡 | `geofenceSoftCheck.ts`; **0156** `assist_geofence_events` vorbereitet |
+| H6 | Karte / Backend-Streaming | 🟡 | **0156** `assist_tracking_sessions` + `assist_location_points` vorbereitet; `isGpsTrackingLiveReady()` false |
 
 **H — Gesamt:** ✅ **3/6**, 🟡 **3/6** (GPS-Nachtrag 2026-06-20)
 
@@ -181,9 +181,13 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 | L3 | `assist-controlled-build-abschlussbericht.md` | ✅ |
 | L4 | `assist-phase2-durchfuehrung-nachweis-abschlussbericht.md` | ✅ |
 | L5 | `assist-phase21-commit-readiness-abschlussbericht.md` | ✅ |
-| L6 | B.1h-Rückkehr / Commit-Freigabe | 🟡 81 Pfade commitfähig, WT kontaminiert |
+| L6 | `assist-phase22-selective-commit-abschlussbericht.md` | 🟡 erstellt, noch nicht committed |
+| L7 | Assist-Commit `32d30d8` (82 Dateien) | ✅ gepusht · `main` = `origin/main` |
+| L8 | `assist-phase23-push-abschlussbericht.md` | 🟡 erstellt, uncommitted |
+| L9 | `assist-phase3-persistence-schema-abschlussbericht.md` | ✅ Phase 3 Schema (0156 vorbereitet) |
+| L10 | Migration 0156 im Repo | ✅ `0156_assist_execution_persistence.sql` — **nicht remote applied** |
 
-**L — Gesamt:** ✅ **5 Pflichtberichte** · Commit-Readiness dokumentiert
+**L — Gesamt:** ✅ **Assist-Commit lokal** · Phase-2.2-Bericht noch WT
 
 ---
 
@@ -195,22 +199,23 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 | **B Navigation** | ✅ ~92 % |
 | **C Office-Integration** | 🟡 ~43 % voll |
 | **D Einsätze** | 🟡 ~70 % |
-| **E–J Fachtiefe** | 🟡 E/F/G verbessert (Phase 2); P0-Persistenz offen |
+| **E–J Fachtiefe** | 🟡 E/F/G verbessert; **0156 vorbereitet** — Apply ausstehend |
 | **K Design** | ✅ Dashboard; 🟡 Kalender/Nachrichten |
 | **L Berichte** | ✅ Phase 1–2.1 inkl. Commit-Readiness |
 
 ### Top-Abnahme-Blocker (verbleibend)
 
-1. **F/G P0:** DB-Persistenz Signatur/Nachweis (`assist_visit_signatures`, `assist_visit_proofs`) — UI/Session/Preview vorhanden
+1. **F/G P0 Apply:** Migration **0156** remote anwenden + Storage-Policies — Schema im Repo, UI/Session weiter aktiv
 2. **E8/I:** Nicht-angetroffen-Workflow, Touren-/Monats-Fahrtenbuch — Folge-Migration
 3. **C:** Office-Snapshots (Pflegegrad/Kostenträger/Vertrag) in Assist-Listen ausbauen
 
 ### Nicht verletzt
 
-- B.1h / Migration 0154 / Permissions / RLS / Commit / Push
+- B.1h/B.1k applied · 0154/0155/Permissions unverändert in Phase 3 · **0156 nicht pushed**
 
 ### Nächster Schritt
 
-1. **Assist Phase 2.2** — selektiver Commit der 81 Scope-Pfade (Freigabe; kein `git add .`)
-2. Assist Phase 3 — Schema-Gaps Signatur/Nachweis/Tracking (Freigabe)
-3. B.1h — Migration 0154 anwenden (Freigabe)
+1. **0156 Review + Freigabe** — dann `supabase db push` (separater Deploy-Schritt)
+2. Storage-Policies Signatur/Nachweis-Pfade
+3. Wire Mitarbeiterportal → Persistenz-Services
+4. Audit-Commit für Phase-3-Artefakte (optional, User-Freigabe)

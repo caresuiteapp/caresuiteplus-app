@@ -109,7 +109,10 @@ export async function updateVisitDocumentation(
   };
 }
 
-/** Validate tasks + documentation + signature before closing visit. */
+/**
+ * Validate tasks + documentation + signature before closing visit.
+ * GAP (Phase 3): after 0156 apply, also verify assist_visit_signatures row exists (not session-only).
+ */
 export function validateVisitCloseReadiness(input: {
   tasks: VisitDispositionDetail['tasks'];
   documentationNote: string | null;
