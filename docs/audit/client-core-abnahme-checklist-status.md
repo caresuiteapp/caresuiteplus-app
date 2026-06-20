@@ -23,6 +23,6 @@
 | K.3.5 | Tests + Regression green | ✅ | .audit-test-client-core-k03-precommit.log |
 | — | 0154–0158 unverändert | ✅ | Abort-Gate |
 | — | staticRolePermissions unverändert | ✅ | Abort-Gate |
-| — | 0159 remote applied | ⏳ | Nach Commit Phase 18 |
+| — | 0159 remote applied | ✅ | `.audit-supabase-client-core-k03-0159-apply.log` |
 
-**Gesamt:** 18/19 ✅ · 1 pending (remote apply 0159)
+**Gesamt:** 19/19 ✅

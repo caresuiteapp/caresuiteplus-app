@@ -89,11 +89,8 @@ export async function ensureTenantClientCoreSeeded(tenantId: string): Promise<Se
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-    const { error } = await (client as unknown as { rpc: (fn: string, args: Record<string, string>) => Promise<{ error: unknown }> }).rpc(
-      'seed_tenant_client_core_templates',
-      { p_tenant_id: tenantId },
-    );
-    if (error) return { ok: false, error: String(error) };
+    const { error } = await client.rpc('seed_tenant_client_core_templates', { p_tenant_id: tenantId });
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
     return { ok: true, data: undefined };
   });
 }
