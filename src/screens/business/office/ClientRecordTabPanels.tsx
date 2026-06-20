@@ -20,9 +20,10 @@ import { useAuth } from '@/lib/auth/context';
 import { fetchClientConsents, updateClientConsent } from '@/lib/clients/clientConsentsService';
 import { ClientRecordDocumentsPanel } from '@/components/office/ClientRecordDocumentsPanel';
 import { ClientRecordContractsPanel } from '@/components/office/ClientRecordContractsPanel';
+import { ClientServiceProfilesPanel } from '@/components/office/ClientServiceProfilesPanel';
+import { ClientBudgetCorePanel } from '@/components/office/ClientBudgetCorePanel';
+import { ClientPortalCorePanel } from '@/components/office/ClientPortalCorePanel';
 import { addClientMedication, fetchClientMedications } from '@/lib/clients/clientMedicationService';
-import { fetchClientPortalAccess } from '@/lib/clients/clientPortalAccessService';
-import { ClientPortalAccessPanel } from '@/components/clients/ClientPortalAccessPanel';
 import { addTimelineEvent, fetchClientTimeline } from '@/lib/clients/clientTimelineService';
 import { buildTimelineEntrySubtitle } from '@/lib/clients/clientTimelineAggregation';
 import { addClientVital, fetchClientVitals } from '@/lib/clients/clientVitalsService';
@@ -30,7 +31,7 @@ import { ClientTasksPanel } from '@/components/office/ClientTasksPanel';
 import { ClientRecordShiftsPanel } from '@/components/office/ClientRecordShiftsPanel';
 import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { fetchClientModuleAssignments } from '@/lib/officeModules/moduleAssignmentService';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import {
   AngehoerigeTab,
   EinwilligungenTab,
@@ -323,33 +324,24 @@ export function ClientRecordModulesPanel({ clientId }: TabPanelProps) {
 }
 
 export function ClientRecordPortalPanel({ clientId, fullClient, onRecordRefresh }: TabPanelProps) {
-  const { isReadOnly } = usePermissions();
-  const tenantId = useServiceTenantId();
-  const query = useClientTabQuery(clientId, fetchClientPortalAccess);
-
-  if (fullClient && tenantId) {
-    return (
-      <View style={styles.panel}>
-        <ClientPortalAccessPanel
-          client={fullClient}
-          tenantId={tenantId}
-          isReadOnly={isReadOnly}
-          onRefresh={onRecordRefresh}
-        />
-      </View>
-    );
-  }
-
-  if (query.loading) return <LoadingState message="Portal-Zugänge werden geladen…" />;
-  if (query.error) return <ErrorState message={query.error} onRetry={query.refresh} />;
-
   return (
-    <View style={styles.panel}>
-      <SectionPanel title="Portal-Zugänge">
-        {(query.data ?? []).length === 0 ? <EmptyState title="Keine Zugänge" /> : null}
-      </SectionPanel>
-    </View>
+    <ClientPortalCorePanel
+      clientId={clientId}
+      fullClient={fullClient}
+      onRecordRefresh={onRecordRefresh}
+    />
   );
+}
+
+export function ClientRecordLeistungsbereichePanel({ clientId }: Pick<TabPanelProps, 'clientId'>) {
+  return <ClientServiceProfilesPanel clientId={clientId} />;
+}
+
+export function ClientRecordBudgetCorePanel({
+  clientId,
+  onRecordRefresh,
+}: Pick<TabPanelProps, 'clientId' | 'onRecordRefresh'>) {
+  return <ClientBudgetCorePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
 }
 
 export function ClientRecordTasksPanel({
@@ -439,6 +431,10 @@ export function ClientRecordTabContent({
       return <ClientRecordTimelinePanel {...panelProps} />;
     case 'module':
       return <ClientRecordModulesPanel {...panelProps} />;
+    case 'leistungsbereiche':
+      return <ClientRecordLeistungsbereichePanel clientId={clientId} />;
+    case 'budget':
+      return <ClientRecordBudgetCorePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
     case 'portal':
       return <ClientRecordPortalPanel {...panelProps} />;
     case 'aufgaben':

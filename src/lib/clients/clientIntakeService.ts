@@ -29,9 +29,26 @@ import { createClientFromIntake, updateClientFromIntake } from './repositories/c
 import { mapIntakeModulesToPortal, saveClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
 import { persistIntakeClientExtendedData, syncIntakeClientExtendedData } from './clientIntakePersistence';
 
+import {
+  careContextsToServiceTypeKeys,
+  serviceTypeKeysToCareContexts,
+} from '@/lib/client/clientServiceTypeService';
+import { mergeIntakeSectionsFromDbAndRules } from '@/lib/client/clientRecordMappingService';
+
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
   return getVisibleSectionsForClientContext(contexts);
 }
+
+/** Sync helper for tests — merges DB-shaped sections with legacy rules. */
+export function getIntakeStepsForServiceTypeKeys(
+  serviceTypeKeys: ReturnType<typeof careContextsToServiceTypeKeys>,
+  careContexts: ClientCareContext[],
+  dbSections: { sectionKey: string; isRequired: boolean; sortOrder: number }[] = [],
+): IntakeSectionKey[] {
+  return mergeIntakeSectionsFromDbAndRules(serviceTypeKeys, careContexts, dbSections);
+}
+
+export { careContextsToServiceTypeKeys, serviceTypeKeysToCareContexts };
 
 export function validateIntakeStep(
   section: IntakeSectionKey,

@@ -1,5 +1,7 @@
 import { useMemo, useState } from 'react';
 
+import { useRouter } from 'expo-router';
+
 import {
   ScrollView,
   StyleSheet,
@@ -11,7 +13,7 @@ import {
 
 import { LockedActionBanner } from '@/components/permissions';
 
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 
 import { SettingsScreenFrame } from '@/components/settings/settingsscreenframe';
 
@@ -126,7 +128,24 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
 
 
+  const router = useRouter();
+
   const handleEdit = (key: TenantCenterSectionKey) => {
+
+    if (key === 'dataManagement') {
+      router.push('/business/office/settings/csv-import-export' as never);
+      return;
+    }
+
+    if (key === 'clientServiceTypes') {
+      router.push('/settings/tenant/client-service-types' as never);
+      return;
+    }
+
+    if (key === 'clientBudgetDefaults') {
+      router.push('/settings/tenant/client-budget' as never);
+      return;
+    }
 
     if (key === 'catalog') {
 
@@ -232,7 +251,7 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
   return (
 
-    <CareLightPageShell
+    <ScreenShell
       title="Mandanten-Center"
       subtitle={`${snapshot.company.name || 'Organisation'} · ${roleLabel ?? ''}`}
       showBack
@@ -337,7 +356,7 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
       />
 
-    </CareLightPageShell>
+    </ScreenShell>
 
   );
 

@@ -24,6 +24,8 @@ export type IntakeSectionKey =
 export type ClientRecordTabKey =
   | 'uebersicht'
   | 'stammdaten'
+  | 'leistungsbereiche'
+  | 'budget'
   | 'kontakt'
   | 'angehoerige'
   | 'pflegegrad'
@@ -116,6 +118,19 @@ const CONSULTING_REQUIRED = [
   'consultingType',
   'consentDatenschutz',
 ];
+
+function withCoreTabs(tabs: ClientRecordTabKey[]): ClientRecordTabKey[] {
+  const result = [...tabs];
+  if (!result.includes('leistungsbereiche')) {
+    const insertAt = result.indexOf('stammdaten') + 1;
+    result.splice(insertAt, 0, 'leistungsbereiche', 'budget');
+  }
+  if (!result.includes('portal') && !result.includes('beratungsanlass')) {
+    const verlaufIdx = result.indexOf('verlauf');
+    if (verlaufIdx >= 0) result.splice(verlaufIdx, 0, 'portal');
+  }
+  return result;
+}
 
 function hasAny(contexts: ClientCareContext[], keys: ClientCareContext[]): boolean {
   return keys.some((k) => contexts.includes(k));
@@ -349,11 +364,11 @@ export function getClientRecordTabsForClientContext(
   contexts: ClientCareContext[],
 ): ClientRecordTabKey[] {
   if (contexts.length === 0) {
-    return ['uebersicht', 'stammdaten', 'kontakt', 'verlauf', 'aktionen'];
+    return ['uebersicht', 'stammdaten', 'leistungsbereiche', 'budget', 'kontakt', 'verlauf', 'aktionen'];
   }
 
   if (hasConsulting(contexts) && !hasAmbulatoryCare(contexts) && !hasStationaryCare(contexts)) {
-    return [
+    return withCoreTabs([
       'uebersicht',
       'fallakte',
       'stammdaten',
@@ -366,11 +381,11 @@ export function getClientRecordTabsForClientContext(
       'abrechnung',
       'verlauf',
       'aktionen',
-    ];
+    ]);
   }
 
   if (hasStationaryCare(contexts) && !hasAmbulatoryCare(contexts)) {
-    return [
+    return withCoreTabs([
       'uebersicht',
       'bewohnerdaten',
       'wohnbereich',
@@ -384,7 +399,7 @@ export function getClientRecordTabsForClientContext(
       'angehoerige',
       'verlauf',
       'aktionen',
-    ];
+    ]);
   }
 
   if (hasAmbulatoryCare(contexts)) {
@@ -406,11 +421,11 @@ export function getClientRecordTabsForClientContext(
     if (hasSupportContext(contexts)) {
       tabs.splice(3, 0, 'aufgaben');
     }
-    return tabs;
+    return withCoreTabs(tabs);
   }
 
   // Support only: Alltagsbegleitung / Betreuung / Begleitung
-  return [
+  return withCoreTabs([
     'uebersicht',
     'stammdaten',
     'kontakt',
@@ -424,7 +439,7 @@ export function getClientRecordTabsForClientContext(
     'verlauf',
     'mehr',
     'aktionen',
-  ];
+  ]);
 }
 
 export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
@@ -444,6 +459,8 @@ export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
 export const CLIENT_RECORD_TAB_LABELS: Record<ClientRecordTabKey, string> = {
   uebersicht: 'Übersicht',
   stammdaten: 'Stammdaten',
+  leistungsbereiche: 'Leistungsbereiche',
+  budget: 'Budget',
   kontakt: 'Kontakt',
   angehoerige: 'Angehörige',
   pflegegrad: 'Pflegegrad & Kassen',

@@ -1,10 +1,10 @@
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { ClientDetailSummaryPanel } from '@/components/office/ClientDetailSummaryPanel';
+import { ClientRecordScreen } from '@/screens/business/office/ClientRecordScreen';
 import { EmptyState, PremiumButton } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import type { ModuleNavModalComponentProps } from '@/lib/navigation/modulenav/modalscreens';
+import { useRouter } from 'expo-router';
 
 export function ClientRecordModalPrepScreen({ payload }: ModuleNavModalComponentProps = {}) {
   const router = useRouter();
@@ -21,12 +21,15 @@ export function ClientRecordModalPrepScreen({ payload }: ModuleNavModalComponent
 
   return (
     <View style={styles.root}>
-      <ClientDetailSummaryPanel
+      <ClientRecordScreen
         clientId={clientId}
-        onOpenFullRecord={() => router.push(clientRecordRoute(clientId) as never)}
+        embedded
+        embeddedInModal
+        initialTabOverride="leistungsbereiche"
       />
       <PremiumButton
         title="Vollständige Office-Akte öffnen"
+        variant="secondary"
         onPress={() => router.push(clientRecordRoute(clientId) as never)}
       />
     </View>
@@ -34,5 +37,5 @@ export function ClientRecordModalPrepScreen({ payload }: ModuleNavModalComponent
 }
 
 const styles = StyleSheet.create({
-  root: { gap: careSpacing.md },
+  root: { gap: careSpacing.md, flex: 1 },
 });

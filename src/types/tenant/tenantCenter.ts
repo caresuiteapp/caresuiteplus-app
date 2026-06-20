@@ -183,7 +183,10 @@ export type TenantCenterSectionKey =
   | 'locations'
   | 'documentLayout'
   | 'ikNumbers'
-  | 'travelSurcharges';
+  | 'travelSurcharges'
+  | 'dataManagement'
+  | 'clientServiceTypes'
+  | 'clientBudgetDefaults';
 
 export type TenantCenterSectionMeta = {
   key: TenantCenterSectionKey;
