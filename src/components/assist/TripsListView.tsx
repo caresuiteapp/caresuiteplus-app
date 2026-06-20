@@ -19,7 +19,7 @@ import {
   GPS_TRIPS_PREPARED_MESSAGE,
   isGpsTrackingLiveReady,
 } from '@/lib/assist/gpsTrackingConfig';
-import { buildTripListKpis } from '@/data/demo/tripListStats';
+import { buildTripListKpis } from '@/lib/assist/tripListStats';
 import { useTripList } from '@/hooks/useTripList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';

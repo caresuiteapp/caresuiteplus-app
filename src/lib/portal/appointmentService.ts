@@ -1,5 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types/core/auth';
+import type { WorkflowStatus } from '@/types/core/base';
 import type { Appointment } from '@/types/modules/office';
 import type { PortalClientAppointmentDetail } from '@/types/portal/client';
 import type { PortalAppointmentDetail } from '@/types/portal/employee';
@@ -11,6 +12,12 @@ import { getDemoClientDetail } from '@/data/demo/clientDetails';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
+import type { CalendarEvent } from '@/types/modules/calendarEvent';
+import {
+  getPortalCalendarEvents,
+  getEmployeeCalendarEvents,
+  portalEventsToAppointmentItems,
+} from '@/lib/calendar/calendarEventService';
 import {
   fetchLivePortalAppointmentsForClient,
   fetchLivePortalAppointmentsForEmployee,
@@ -32,6 +39,19 @@ export type PortalAppointmentItem = Pick<
 };
 
 const SIMULATED_DELAY_MS = 350;
+
+function mapCalendarToPortalItems(events: CalendarEvent[]): PortalAppointmentItem[] {
+  return portalEventsToAppointmentItems(events).map((item) => ({
+    id: item.id,
+    title: item.title,
+    startsAt: item.startsAt,
+    endsAt: item.endsAt,
+    status: item.status as WorkflowStatus,
+    location: item.location ?? '',
+    clientId: item.clientId ?? '',
+    employeeId: item.employeeId,
+  }));
+}
 
 function delay(ms: number): Promise<void> {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -97,9 +117,20 @@ export async function fetchPortalAppointments(
 
   if (getServiceMode() === 'supabase') {
     if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
+      const calendar = await getPortalCalendarEvents(tenantId, {
+        portalType: 'client',
+        clientId,
+      });
+      if (calendar.ok && calendar.data.length > 0) {
+        return { ok: true, data: mapCalendarToPortalItems(calendar.data) };
+      }
       return fetchLivePortalAppointmentsForClient(tenantId, clientId);
     }
     if (scope === 'portal_employee' && tenantId?.trim() && employeeId?.trim()) {
+      const calendar = await getEmployeeCalendarEvents(tenantId, employeeId);
+      if (calendar.ok && calendar.data.length > 0) {
+        return { ok: true, data: mapCalendarToPortalItems(calendar.data) };
+      }
       return fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
     }
     return { ok: true, data: [] };
@@ -199,7 +230,7 @@ export async function fetchPortalAppointmentDetail(
         notes: assignment?.notes ?? null,
         tasks: assignment ? (ASSIGNMENT_TASKS[assignment.id] ?? []) : [],
         canStartExecution: canStart,
-        executionRoute: assignment ? `/assist/assignments/${assignment.id}` : null,
+        executionRoute: assignment ? `/portal/employee/assignments/${assignment.id}/execute` : null,
       },
     };
   });

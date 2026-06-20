@@ -11,6 +11,7 @@ export type ModuleExtensionLink = {
  */
 export const MODULE_EXTENSION_LINKS: Partial<Record<ProductKey, ModuleExtensionLink[]>> = {
   stationaer: [
+    { path: '/stationaer/calendar', label: 'Kalender', icon: '📅' },
     { path: '/stationaer/bewohner', label: 'Bewohner:innen', icon: '🏥' },
     { path: '/stationaer/wohnbereiche', label: 'Wohnbereiche', icon: '🛏️' },
     { path: '/stationaer/uebergabebericht', label: 'Übergabebericht', icon: '📝' },
@@ -46,11 +47,15 @@ export const MODULE_EXTENSION_LINKS: Partial<Record<ProductKey, ModuleExtensionL
   ],
   assist: [
     { path: '/assist/assignments', label: 'Einsätze', icon: '📋' },
-    { path: '/assist/zugeordnete-klienten', label: 'Office-Klient:innen', icon: '👥' },
     { path: '/assist/durchfuehrung', label: 'Durchführung', icon: '✅' },
     { path: '/assist/nachweise', label: 'Nachweise', icon: '📝' },
     { path: '/assist/fahrten', label: 'Fahrten', icon: '🚗' },
+    { path: '/assist/touren', label: 'Touren', icon: '🗺️' },
     { path: '/assist/calendar', label: 'Kalender', icon: '📅' },
+    { path: '/assist/live-status', label: 'Live-Status', icon: '📡' },
+    { path: '/assist/qualitaet', label: 'Qualität', icon: '⭐' },
+    { path: '/assist/zugeordnete-klienten', label: 'Office-Klient:innen', icon: '👥' },
+    { path: '/assist/einstellungen', label: 'Einstellungen', icon: '⚙️' },
   ],
 };
 

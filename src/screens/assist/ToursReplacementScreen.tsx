@@ -11,7 +11,7 @@ import {
 } from '@/lib/assist/routePlanningService';
 import type { OpenAssignmentSummary, ReplacementSuggestion } from '@/types/modules/routePlanning';
 import { colors, spacing, typography } from '@/theme';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 export function ToursReplacementScreen() {
   const router = useRouter();

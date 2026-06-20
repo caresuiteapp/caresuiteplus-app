@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet } from 'react-native';
 import { useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssignmentDetailTabsPanel } from '@/components/assist/AssignmentDetailTabsPanel';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -47,19 +47,19 @@ export function AssignmentDetailScreen({
     const message = 'Keine Einsatz-ID angegeben.';
     if (embedded) return <ErrorState title="Nicht gefunden" message={message} />;
     return (
-      <CareLightPageShell title="Einsatz" subtitle="Fehler">
+      <ScreenShell title="Einsatz" subtitle="Fehler">
         <ErrorState title="Nicht gefunden" message={message} />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={handleBack} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     if (embedded) return <LoadingState message="Einsatzdetails werden geladen…" />;
     return (
-      <CareLightPageShell title="Einsatz" subtitle="Wird geladen…">
+      <ScreenShell title="Einsatz" subtitle="Wird geladen…">
         <LoadingState message="Einsatzdetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -78,9 +78,9 @@ export function AssignmentDetailScreen({
     );
     if (embedded) return errorContent;
     return (
-      <CareLightPageShell title="Einsatz" subtitle="Fehler">
+      <ScreenShell title="Einsatz" subtitle="Fehler">
         {errorContent}
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -101,7 +101,7 @@ export function AssignmentDetailScreen({
   if (embedded) return panel;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={data?.title ?? 'Einsatz'}
       subtitle={`${data?.clientName ?? '—'} · ${roleLabel ?? 'Assist'}`}
       rightSlot={
@@ -109,6 +109,6 @@ export function AssignmentDetailScreen({
       }
     >
       {panel}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }

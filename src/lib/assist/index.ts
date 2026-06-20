@@ -1,6 +1,7 @@
 export {
   fetchAssignmentList,
   fetchAssistDashboardStats,
+  fetchClientAssignments,
   fetchTodayAssignments,
 } from './assignmentListService';
 export { fetchExecutionList } from './executionListService';
@@ -26,6 +27,22 @@ export {
   createVisitFromWizard,
   buildVisitDispositionKpis,
 } from './visitService';
+export {
+  updateVisitTaskStatus,
+  updateVisitDocumentation,
+  validateVisitCloseReadiness,
+} from './visitExecutionService';
+export { buildAssistSetupHints } from './assistSetupHints';
+export type { AssistSetupHint } from './assistSetupHints';
+export { buildVisitProofPreview } from './visitProofPreviewService';
+export type { VisitProofPreview } from './visitProofPreviewService';
+export {
+  getVisitSignature,
+  saveVisitSignature,
+  clearVisitSignature,
+  hasVisitSignature,
+} from './visitSignatureSessionStore';
+export type { VisitSignatureCapture } from './visitSignatureSessionStore';
 export {
   fetchTripLogList,
   fetchTripDetail,

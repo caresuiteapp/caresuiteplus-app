@@ -1,3 +1,3 @@
-import { AssignmentExecutionScreen } from '@/screens/assist/AssignmentExecutionScreen';
+import { VisitExecutionScreen } from '@/screens/assist/VisitExecutionScreen';
 
-export default AssignmentExecutionScreen;
+export default VisitExecutionScreen;

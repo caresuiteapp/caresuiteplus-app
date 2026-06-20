@@ -15,8 +15,17 @@ import {
   type TabOption,
 } from '@/components/ui';
 import { VisitDispositionBadge, VisitDispositionBadgeRow } from '@/components/assist/VisitDispositionBadge';
+import { VisitProofPreviewPanel } from '@/components/assist/VisitProofPreviewPanel';
+import { VisitTasksPanel } from '@/components/assist/VisitTasksPanel';
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useAuth } from '@/lib/auth/context';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import {
+  buildVisitProofPreview,
+  updateVisitTaskStatus,
+} from '@/lib/assist';
+import type { VisitTaskStatus } from '@/lib/assist/visitTypes';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import {
   VISIT_BILLING_STATUS_LABELS,
@@ -93,6 +102,9 @@ export function AssignmentDetailTabsPanel({
     changeStatus,
     notFound,
   } = useVisitDispositionDetail(assignmentId);
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
+  const [taskLoading, setTaskLoading] = useState(false);
 
   const styles = useMemo(
     () =>
@@ -145,6 +157,27 @@ export function AssignmentDetailTabsPanel({
 
   if (!visit) return null;
 
+  const handleUpdateTask = async (
+    taskId: string,
+    status: VisitTaskStatus,
+    notDoneReason?: string,
+  ) => {
+    if (!tenantId) return;
+    setTaskLoading(true);
+    await updateVisitTaskStatus(
+      assignmentId,
+      taskId,
+      tenantId,
+      status,
+      profile?.roleKey,
+      notDoneReason,
+    );
+    setTaskLoading(false);
+    await refresh();
+  };
+
+  const proofPreview = buildVisitProofPreview(visit, visit.employeeNotes ?? visit.notes);
+
   const isPreview = mode === 'preview';
   const visibleTabs = isPreview
     ? DETAIL_TABS.filter((t) => t.key === 'overview')
@@ -165,22 +198,12 @@ export function AssignmentDetailTabsPanel({
         );
       case 'tasks':
         return (
-          <SectionPanel title="Aufgaben" subtitle={`${visit.tasks.length} Aufgaben`}>
-            {visit.tasks.length === 0 ? (
-              <EmptyState title="Keine Aufgaben" message="Für diesen Einsatz sind keine Aufgaben hinterlegt." />
-            ) : (
-              visit.tasks.map((task) => (
-                <View key={task.id} style={styles.taskRow}>
-                  <Text style={styles.taskTitle}>{task.title}</Text>
-                  <VisitDispositionBadge
-                    label={VISIT_TASK_STATUS_LABELS[task.status]}
-                    variant={task.status === 'done' ? 'green' : 'orange'}
-                    compact
-                  />
-                </View>
-              ))
-            )}
-          </SectionPanel>
+          <VisitTasksPanel
+            visit={visit}
+            disabled={isReadOnly || !can('assist.execution.manage')}
+            actionLoading={taskLoading || actionLoading}
+            onUpdateTask={handleUpdateTask}
+          />
         );
       case 'budget':
         return (
@@ -223,19 +246,7 @@ export function AssignmentDetailTabsPanel({
           </SectionPanel>
         );
       case 'proof':
-        return (
-          <SectionPanel title="Nachweis">
-            <DetailInfoRow label="Nachweisstatus" value={VISIT_PROOF_STATUS_LABELS[visit.proofStatus]} />
-            <DetailInfoRow
-              label="Dokumentation"
-              value={VISIT_DOCUMENTATION_STATUS_LABELS[visit.documentationStatus]}
-            />
-            <Text style={styles.hint}>
-              {/* TODO: Service proof generation stub — Phase 2 */}
-              Leistungsnachweis-Generierung folgt in Phase 2.
-            </Text>
-          </SectionPanel>
-        );
+        return <VisitProofPreviewPanel preview={proofPreview} />;
       case 'history':
         return (
           <SectionPanel title="Verlauf">

@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   LoadingState,
@@ -24,18 +24,18 @@ export function TripDetailScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Fahrt" subtitle="Wird geladen…">
+      <ScreenShell title="Fahrt" subtitle="Wird geladen…">
         <LoadingState message="Fahrtdetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Fahrt" subtitle="Fehler">
+      <ScreenShell title="Fahrt" subtitle="Fehler">
         <ErrorState message={error ?? 'Fahrt nicht gefunden.'} onRetry={refresh} />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -44,7 +44,7 @@ export function TripDetailScreen() {
   const isActive = !trip.endedAt;
 
   return (
-    <CareLightPageShell title="Fahrt" subtitle={trip.employeeName}>
+    <ScreenShell title="Fahrt" subtitle={trip.employeeName}>
       {successMessage ? <SuccessState message={successMessage} /> : null}
 
       <ScrollView contentContainerStyle={styles.scroll}>
@@ -85,7 +85,7 @@ export function TripDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

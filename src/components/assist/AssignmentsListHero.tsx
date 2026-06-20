@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import {
   DesktopListViewToggle,
-  CareLightKpiCard,
-  CareLightListHeroFrame,
+  PremiumKpiCard,
+  PremiumListHeroFrame,
   PremiumBadge,
   type DesktopListViewMode,
 } from '@/components/ui';
@@ -10,8 +10,8 @@ import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import type { VisitDispositionKpi } from '@/lib/assist/visitService';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import { getServiceMode } from '@/lib/services/mode';
 import type { RoleKey } from '@/types';
 
@@ -47,7 +47,7 @@ export function AssignmentsListHero({
   const isLive = getServiceMode() === 'supabase';
 
   return (
-    <CareLightListHeroFrame accentColor={accent}>
+    <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={heroText.eyebrow}>ASSIST · DISPOSITION</Text>
@@ -67,7 +67,6 @@ export function AssignmentsListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {onCalendarPress ? (
           <PremiumBadge label="Kalender →" variant="muted" />
         ) : null}
@@ -78,7 +77,7 @@ export function AssignmentsListHero({
       {!compact ? (
         <View style={styles.kpiRow}>
           {kpis.map((kpi) => (
-            <CareLightKpiCard
+            <PremiumKpiCard
               key={kpi.id}
               label={kpi.label}
               value={String(kpi.value)}
@@ -90,7 +89,7 @@ export function AssignmentsListHero({
           ))}
         </View>
       ) : null}
-    </CareLightListHeroFrame>
+    </PremiumListHeroFrame>
   );
 }
 

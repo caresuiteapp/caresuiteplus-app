@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TripsListView } from '@/components/assist/TripsListView';
 import { TrackingListView } from '@/components/assist/TrackingListView';
 import { EmptyState, ErrorState, LoadingState, SegmentedTabs, type TabOption } from '@/components/ui';
@@ -80,17 +80,17 @@ export function TripsListScreen({
 
   if (list.loading && list.allItems.length === 0 && activeTab === 'fahrten') {
     return (
-      <CareLightPageShell title="Mobilität" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Mobilität" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Fahrten werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0 && activeTab === 'fahrten') {
     return (
-      <CareLightPageShell title="Mobilität" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Mobilität" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -121,14 +121,14 @@ export function TripsListScreen({
   );
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Mobilität"
       subtitle={`Fahrtenbuch & Tracking${isReadOnly ? ' · Lesemodus' : ''} · ${roleSubtitle}`}
       scroll={false}
       showBack={false}
     >
       {wrappedList}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

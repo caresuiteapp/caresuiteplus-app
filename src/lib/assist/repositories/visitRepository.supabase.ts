@@ -34,6 +34,11 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import {
+  buildCalendarEventFromVisitDetail,
+  cancelCalendarEventBySourceAsync,
+  syncCalendarEventAsync,
+} from '@/lib/calendar/calendarSyncService';
 import { isUuid } from '@/lib/validation/uuid';
 
 type VisitRow = {
@@ -58,6 +63,7 @@ type VisitRow = {
   address_snapshot: string | null;
   location_notes: string | null;
   internal_notes: string | null;
+  employee_notes: string | null;
   planning_status: VisitPlanningStatus;
   execution_status: VisitExecutionStatus;
   documentation_status: VisitDocumentationStatus;
@@ -105,7 +111,7 @@ const LIST_SELECT = `
 
 const DETAIL_SELECT = `${LIST_SELECT},
   actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at,
-  location_notes, internal_notes, portal_release_enabled, employee_portal_visible,
+  location_notes, internal_notes, employee_notes, portal_release_enabled, employee_portal_visible,
   budget_currency, assist_visit_tasks(*)`;
 
 function getClient() {
@@ -220,6 +226,7 @@ function mapDetail(
     serviceKey: row.service_key,
     description: row.description,
     notes: row.internal_notes,
+    employeeNotes: row.employee_notes,
     executionStatus: row.execution_status,
     documentationStatus: row.documentation_status,
     portalStatus: row.portal_status,
@@ -436,8 +443,20 @@ export const visitSupabaseRepository = {
       actorProfileId,
     );
 
-    // TODO: Portal release flags — integrate with portal engine when live
-    // TODO: Employee portal visibility sync
+    syncCalendarEventAsync(
+      buildCalendarEventFromVisitDetail({
+        tenantId,
+        id: visitId,
+        title: input.title.trim(),
+        plannedStartAt: input.plannedStartAt,
+        plannedEndAt: input.plannedEndAt,
+        clientId: input.clientId,
+        employeeId: input.employeeId ?? null,
+        canonicalStatus: assignmentStatusToRemote('geplant'),
+        portalReleaseEnabled: input.portalReleaseEnabled ?? false,
+        employeePortalVisible: false,
+      }),
+    );
 
     return { ok: true, data: { id: visitId } };
   },
@@ -498,6 +517,123 @@ export const visitSupabaseRepository = {
     );
 
     // TODO: Sync legacy assignments row if legacy_assignment_id present
+
+    const refreshed = await this.getById(tenantId, visitId);
+    if (!refreshed.ok) return refreshed;
+    if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    if (toStatus === 'storniert') {
+      cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);
+    } else {
+      syncCalendarEventAsync(
+        buildCalendarEventFromVisitDetail({
+          tenantId,
+          id: refreshed.data.id,
+          title: refreshed.data.title,
+          plannedStartAt: refreshed.data.scheduledStart,
+          plannedEndAt: refreshed.data.scheduledEnd,
+          clientId: refreshed.data.clientId,
+          employeeId: refreshed.data.employeeId,
+          canonicalStatus: refreshed.data.assignmentStatus,
+          portalReleaseEnabled: refreshed.data.portalReleaseEnabled,
+          employeePortalVisible: refreshed.data.employeePortalVisible,
+        }),
+      );
+    }
+
+    return { ok: true, data: refreshed.data };
+  },
+
+  async updateTask(
+    tenantId: string,
+    visitId: string,
+    taskId: string,
+    status: VisitTaskStatus,
+    notDoneReason?: string | null,
+    actorProfileId?: string | null,
+  ): Promise<ServiceResult<VisitDispositionDetail>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    if (status === 'not_done' && !notDoneReason?.trim()) {
+      return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
+    }
+    if (status === 'not_requested' && !notDoneReason?.trim()) {
+      return { ok: false, error: '„Nicht gewünscht“ erfordert eine kurze Begründung.' };
+    }
+
+    const now = new Date().toISOString();
+    const { error } = await fromUnknownTable(supabase, 'assist_visit_tasks')
+      .update({
+        status,
+        not_done_reason:
+          status === 'not_done' || status === 'not_requested'
+            ? (notDoneReason?.trim() ?? null)
+            : null,
+        completed_at: status === 'done' ? now : null,
+        updated_at: now,
+      })
+      .eq('tenant_id', tenantId)
+      .eq('visit_id', visitId)
+      .eq('id', taskId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    await writeAuditLog(
+      tenantId,
+      visitId,
+      'task_update',
+      `Aufgabe ${taskId} → ${status}`,
+      actorProfileId,
+    );
+
+    const refreshed = await this.getById(tenantId, visitId);
+    if (!refreshed.ok) return refreshed;
+    if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    return { ok: true, data: refreshed.data };
+  },
+
+  async updateDocumentation(
+    tenantId: string,
+    visitId: string,
+    employeeNotes: string,
+    actorProfileId?: string | null,
+  ): Promise<ServiceResult<VisitDispositionDetail>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    if (!employeeNotes.trim()) {
+      return { ok: false, error: 'Dokumentation darf nicht leer sein.' };
+    }
+
+    const docStatus = 'complete';
+    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+      .update({
+        employee_notes: employeeNotes.trim(),
+        documentation_status: docStatus,
+        updated_by: actorProfileId ?? null,
+      })
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    await writeStatusHistory(
+      tenantId,
+      visitId,
+      'documentation',
+      null,
+      docStatus,
+      actorProfileId,
+      'Dokumentation gespeichert',
+    );
+    await writeAuditLog(
+      tenantId,
+      visitId,
+      'documentation',
+      'Durchführungsdokumentation gespeichert',
+      actorProfileId,
+    );
 
     const refreshed = await this.getById(tenantId, visitId);
     if (!refreshed.ok) return refreshed;

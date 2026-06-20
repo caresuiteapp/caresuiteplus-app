@@ -14,7 +14,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildExecutionListKpis } from '@/data/demo/executionListStats';
+import { buildExecutionListKpis } from '@/lib/assist/executionListStats';
 import { useExecutionList } from '@/hooks/useExecutionList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';

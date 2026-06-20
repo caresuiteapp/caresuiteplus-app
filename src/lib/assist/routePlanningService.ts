@@ -43,7 +43,7 @@ import {
 } from '@/lib/office/absenceStore';
 import { detectAbsenceAssignmentConflicts } from '@/lib/office/absenceConflictService';
 import { getEmployeePersonnelFileForAssignmentCheck } from './employeePersonnelFileService';
-import { evaluateEmployeeDeployability, isEmployeeAssignable } from './employeeDeployabilityService';
+import { evaluateEmployeeDeployability, isEmployeeAssignable } from '@/lib/office/employeeDeployabilityService';
 import { isBackgroundCheckAssignable } from '@/lib/office/employeeBackgroundCheckService';
 
 const CANDIDATE_EMPLOYEES = [

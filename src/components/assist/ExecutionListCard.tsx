@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
-import { EXECUTION_PHASE_LABELS } from '@/data/demo/executionListStats';
+import { EXECUTION_PHASE_LABELS } from '@/lib/assist/executionListStats';
 import type { ActiveExecutionItem } from '@/types/modules/assist';
 import { colors, spacing, typography } from '@/theme';
 

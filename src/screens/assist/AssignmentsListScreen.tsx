@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { AssignmentsListView } from '@/components/assist/AssignmentsListView';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { useAssignmentList } from '@/hooks/useAssignmentList';
@@ -33,22 +33,22 @@ export function AssignmentsListScreen({
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title={pageTitle} subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title={pageTitle} subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Einsätze werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title={pageTitle} subtitle="Fehler" scroll={false}>
+      <ScreenShell title={pageTitle} subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={pageTitle}
       subtitle={`Assist Disposition${isReadOnly ? ' · Lesemodus' : ''} · ${roleSubtitle}`}
       scroll={false}
@@ -63,7 +63,7 @@ export function AssignmentsListScreen({
           <AssignmentsListView onAssignmentPress={onAssignmentPress} selectedId={selectedId} />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

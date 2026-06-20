@@ -10,8 +10,8 @@ import {
   isAssistTripsLiveReady,
 } from '@/lib/assist/assistModuleConfig';
 import { isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { AssistDashboardStats } from '@/types/modules/assist';
 import { designTokens, spacing } from '@/theme';
@@ -19,9 +19,10 @@ import { designTokens, spacing } from '@/theme';
 type AssistDashboardHeroProps = {
   stats: AssistDashboardStats;
   roleKey: RoleKey;
+  onKpiPress?: (navigationTarget: string) => void;
 };
 
-export function AssistDashboardHero({ stats, roleKey }: AssistDashboardHeroProps) {
+export function AssistDashboardHero({ stats, roleKey, onKpiPress }: AssistDashboardHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
   const styles = useMemo(
     () =>
@@ -87,7 +88,6 @@ export function AssistDashboardHero({ stats, roleKey }: AssistDashboardHeroProps
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isAssistTripsLiveReady() ? <PremiumBadge label="Live Fahrtenbuch" variant="green" /> : null}
         {!isGpsTrackingLiveReady() ? (
           <PremiumBadge label="GPS extern" variant="orange" dot />
@@ -96,7 +96,7 @@ export function AssistDashboardHero({ stats, roleKey }: AssistDashboardHeroProps
           <PremiumBadge label="Demo-funktional" variant="orange" dot />
         ) : null}
       </View>
-      <AdaptiveKpiGrid items={dashboardKpisToGridItems(kpis)} />
+      <AdaptiveKpiGrid items={dashboardKpisToGridItems(kpis, onKpiPress)} />
     </PremiumListHeroFrame>
   );
 }

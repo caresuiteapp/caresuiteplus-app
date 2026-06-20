@@ -51,6 +51,7 @@ import {
   listEmployeePortalSignatures,
   lockEmployeePortalSignatures,
 } from './employeePortalSignatureService';
+import { applyEmployeePortalTrackingForStatus, resetEmployeePortalVisitTrackingStore } from './employeePortalVisitTrackingService';
 
 type ExecutionStore = {
   statusHistory: Map<string, EmployeePortalStatusHistoryEntry[]>;
@@ -433,8 +434,11 @@ export function transitionEmployeePortalAssignment(
     }
   }
 
+  const fromStatus = record.status;
   const updated = updateWorkflowStatus(tenantId, assignmentId, toStatus, employeeId);
   if (!updated.ok) return updated;
+
+  applyEmployeePortalTrackingForStatus(tenantId, assignmentId, fromStatus, toStatus);
 
   logWorkspaceAccessEvent({
     tenantId,
@@ -742,4 +746,5 @@ export function resetEmployeePortalExecutionStore(): void {
   STORE.lockedAssignments.clear();
   historyCounter = 0;
   pauseCounter = 0;
+  resetEmployeePortalVisitTrackingStore();
 }

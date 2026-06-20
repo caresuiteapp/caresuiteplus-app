@@ -1,6 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
-import { EXECUTION_PHASE_LABELS } from '@/data/demo/executionListStats';
+import { EXECUTION_PHASE_LABELS } from '@/lib/assist/executionListStats';
 import type { ActiveExecutionItem } from '@/types/modules/assist';
 import { colors, typography } from '@/theme';
 

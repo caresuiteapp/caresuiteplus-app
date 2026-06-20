@@ -8,8 +8,8 @@ import {
   isAssistExtensionLiveReady,
 } from '@/lib/assist/assistModuleConfig';
 import type { CalendarDayGroup } from '@/lib/assist/calendarService';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
 
@@ -68,7 +68,6 @@ export function AssistCalendarListHero({ groups, roleKey }: AssistCalendarListHe
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isAssistExtensionLiveReady() ? (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}

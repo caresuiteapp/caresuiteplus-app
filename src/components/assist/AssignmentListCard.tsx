@@ -12,6 +12,7 @@ import {
   type VisitPlanningStatus,
   type VisitProofStatus,
 } from '@/lib/assist/visitTypes';
+import { formatAssignmentSchedule } from '@/lib/formatters/dateTimeFormatters';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { spacing, typography } from '@/theme';
@@ -35,30 +36,6 @@ function statusVariant(status: AssignmentListItem['status']) {
     default:
       return 'muted' as const;
   }
-}
-
-function formatTimeRange(start: string, end: string): string {
-  const startDate = new Date(start);
-  const endDate = new Date(end);
-  const datePart = startDate.toLocaleDateString('de-DE', {
-    weekday: 'short',
-    day: '2-digit',
-    month: '2-digit',
-  });
-  const startTime = startDate.toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  const endTime = endDate.toLocaleTimeString('de-DE', {
-    hour: '2-digit',
-    minute: '2-digit',
-  });
-  return `${datePart} · ${startTime}–${endTime}`;
-}
-
-function formatDuration(minutes: number | null | undefined): string {
-  if (!minutes || minutes <= 0) return '';
-  return `${minutes} Min.`;
 }
 
 export function AssignmentListCard({ assignment, onPress, selected = false }: AssignmentListCardProps) {
@@ -96,6 +73,14 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
 
   const inner = (
     <>
+      <Text style={styles.time}>
+        {formatAssignmentSchedule(assignment.scheduledStart, assignment.scheduledEnd, {
+          planningStatusLabel: VISIT_PLANNING_STATUS_LABELS[planning],
+          durationMinutes: assignment.durationMinutes,
+        })}
+      </Text>
+      <Text style={styles.meta}>{assignment.clientName}</Text>
+      <Text style={styles.meta}>{assignment.employeeName}</Text>
       <View style={styles.header}>
         <View style={{ flex: 1 }}>
           <Text style={styles.title}>{assignment.serviceName ?? assignment.title}</Text>
@@ -109,13 +94,6 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
           dot
         />
       </View>
-      <Text style={styles.meta}>
-        {assignment.clientName} · {assignment.employeeName}
-      </Text>
-      <Text style={styles.time}>
-        {formatTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}
-        {assignment.durationMinutes ? ` · ${formatDuration(assignment.durationMinutes)}` : ''}
-      </Text>
       <Text style={styles.location}>{assignment.location}</Text>
       <VisitDispositionBadgeRow
         planningLabel={VISIT_PLANNING_STATUS_LABELS[planning] ?? planning}

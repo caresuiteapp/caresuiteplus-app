@@ -5,7 +5,7 @@ import {
   evaluateEmployeeDeployability,
   isEmployeeAssignable,
   roleCanPerformAssignment,
-} from './employeeDeployabilityService';
+} from '@/lib/office/employeeDeployabilityService';
 import { INACTIVE_EMPLOYMENT_STATUSES } from './employeepersonnelfieldrules';
 
 export function detectEmployeeEligibilityConflicts(input: {

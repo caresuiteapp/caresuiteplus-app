@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildCareRecordDetailKpis } from '@/lib/assist/careRecordDetailStats';
 import { ASSIST_EXTENSION_PREPARED_MESSAGE, isAssistExtensionLiveReady } from '@/lib/assist/assistModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { CareRecordDetail } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -89,7 +89,6 @@ export function CareRecordDetailHero({ record, roleKey }: CareRecordDetailHeroPr
         ) : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

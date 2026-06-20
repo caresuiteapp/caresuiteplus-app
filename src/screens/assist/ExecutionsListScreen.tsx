@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ExecutionsListView } from '@/components/assist/ExecutionsListView';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { useExecutionList } from '@/hooks/useExecutionList';
@@ -30,22 +30,22 @@ export function ExecutionsListScreen({
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Durchführung" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Durchführung" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Durchführungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Durchführung" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Durchführung" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Durchführung"
       subtitle={`Check-in & Zeiterfassung${isReadOnly ? ' · Lesemodus' : ''} · ${roleLabel ?? 'Demo'}`}
       scroll={false}
@@ -58,7 +58,7 @@ export function ExecutionsListScreen({
           <ExecutionsListView onExecutionPress={onExecutionPress} selectedId={selectedId} />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

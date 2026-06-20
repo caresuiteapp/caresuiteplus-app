@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { AssignmentsListView } from '@/components/assist/AssignmentsListView';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useAssignmentList } from '@/hooks/useAssignmentList';
@@ -15,22 +15,22 @@ export function EinsaetzeListScreen() {
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Einsätze" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Einsätze" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Einsätze werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Einsätze" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Einsätze" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Einsätze"
       subtitle={`Einsatzliste mit Suche und Filter${isReadOnly ? ' · Lesemodus' : ''} · ${roleLabel ?? 'Demo'}`}
       rightSlot={
@@ -47,7 +47,7 @@ export function EinsaetzeListScreen() {
           <AssignmentsListView />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

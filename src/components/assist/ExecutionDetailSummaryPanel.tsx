@@ -10,7 +10,7 @@ import {
   PremiumCard,
   SectionPanel,
 } from '@/components/ui';
-import { EXECUTION_PHASE_LABELS } from '@/data/demo/executionListStats';
+import { EXECUTION_PHASE_LABELS } from '@/lib/assist/executionListStats';
 import { useAssignmentExecution } from '@/hooks/useAssignmentExecution';
 import { usePermissions } from '@/hooks/usePermissions';
 import { colors, spacing, typography } from '@/theme';

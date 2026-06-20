@@ -3,9 +3,9 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import type { TrackingListKpi } from '@/data/demo/trackingStats';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { isGpsTrackingLiveReady } from '@/lib/assist/gpsTrackingConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
 
@@ -101,7 +101,6 @@ export function TrackingListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isGpsTrackingLiveReady() ? (
           <PremiumBadge label="GPS extern" variant="orange" dot />
         ) : null}

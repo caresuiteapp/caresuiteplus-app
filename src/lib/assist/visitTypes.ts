@@ -158,6 +158,8 @@ export type VisitDispositionDetail = VisitDispositionListItem & {
   serviceKey: string | null;
   description: string | null;
   notes: string | null;
+  /** Durchführungsnotiz (employee_notes in 0116). */
+  employeeNotes: string | null;
   executionStatus: VisitExecutionStatus;
   documentationStatus: VisitDocumentationStatus;
   portalStatus: VisitPortalStatus;

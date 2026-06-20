@@ -8,8 +8,8 @@ import {
   ASSIST_EXTENSION_PREPARED_MESSAGE,
   isAssistTripsLiveReady,
 } from '@/lib/assist/assistModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { CareRecordListItem } from '@/types/modules/assist';
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
@@ -80,7 +80,6 @@ export function CareRecordsListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isAssistTripsLiveReady() ? (
           <PremiumBadge label="Live Fahrtenbuch" variant="green" />
         ) : (

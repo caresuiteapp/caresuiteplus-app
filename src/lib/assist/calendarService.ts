@@ -1,3 +1,4 @@
+/** @deprecated Legacy Assist-Kalender — nutze ModuleCalendarView + calendarEventService */
 import type { RoleKey, ServiceResult } from '@/types';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { getDemoAssignmentListItems } from '@/data/demo/assistAssignments';

@@ -59,6 +59,13 @@ export type AssistDashboardStats = {
   inProgressCount: number;
   completedTodayCount: number;
   upcomingCount: number;
+  atRiskCount: number;
+  incompleteCount: number;
+  openProofCount: number;
+  /** Einsätze mit ausstehender Klient:innen-Unterschrift (Status oder Nachweis). */
+  openSignatureCount: number;
+  /** Fahrten ohne Endzeit (0114 trips). */
+  openTripsCount: number;
 };
 
 export type ExecutionPhase = 'pending' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled';

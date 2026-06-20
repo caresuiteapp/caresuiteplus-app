@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { PortalAnnouncementsHero } from '@/components/portal';
 import { PremiumCard } from '@/components/ui';
 import { employeePortalDemo } from '@/data/demo/domains/employeePortalDemo';
@@ -11,7 +11,7 @@ export function EmployeePortalAnnouncementsScreen() {
   const activeCount = records.filter((r) => r.status === 'aktiv').length;
 
   return (
-    <CareLightPageShell title="Ankündigungen" subtitle="Mitarbeiterportal · WP 332">
+    <ScreenShell title="Ankündigungen" subtitle="Mitarbeiterportal · WP 332">
       <ScrollView contentContainerStyle={styles.scroll}>
         <PortalAnnouncementsHero
           scope="portal_employee"
@@ -25,7 +25,7 @@ export function EmployeePortalAnnouncementsScreen() {
           </PremiumCard>
         ))}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

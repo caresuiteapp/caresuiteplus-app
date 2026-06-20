@@ -1,9 +1,19 @@
 import { useCallback, useState } from 'react';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { fetchAssistDashboardStats, fetchTodayAssignments } from '@/lib/assist';
+import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAsyncQuery } from './core';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery } from './core';
+
+const assistOpsLive = (tenantId: string | null | undefined) =>
+  tenantId
+    ? {
+        tenantId,
+        subscribe: subscribeToAssistOperationsChanges,
+        pollMs: OPERATIONAL_LIVE_POLL_MS,
+      }
+    : undefined;
 
 export function useAssistDashboard() {
   const { profile } = useAuth();
@@ -16,7 +26,7 @@ export function useAssistDashboard() {
       return fetchAssistDashboardStats(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+    { enabled: !!tenantId, live: assistOpsLive(tenantId) },
   );
 
   const todayQuery = useAsyncQuery(
@@ -25,7 +35,7 @@ export function useAssistDashboard() {
       return fetchTodayAssignments(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+    { enabled: !!tenantId, live: assistOpsLive(tenantId) },
   );
 
   const refresh = useCallback(async () => {
@@ -43,5 +53,6 @@ export function useAssistDashboard() {
     refreshing: statsQuery.refreshing || todayQuery.refreshing,
     showSuccess,
     refresh,
+    isLiveConnected: statsQuery.isLiveConnected || todayQuery.isLiveConnected,
   };
 }

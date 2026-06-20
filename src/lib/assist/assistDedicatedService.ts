@@ -1,7 +1,7 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { getDemoCareRecordListItems } from '@/data/demo/careRecords';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchAssignmentList } from '@/lib/assist/assignmentListService';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';

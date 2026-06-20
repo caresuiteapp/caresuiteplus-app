@@ -116,8 +116,10 @@ export function AssignmentsListView({
   );
   const compactHero = embedded || shellVariant === 'desktop';
   const tableSort = useTableColumnSort(sortKey, setSortKey, sortOptions, {
+    weekday: 'scheduledStart',
+    date: 'scheduledStart',
+    timeRange: 'scheduledStart',
     client: 'clientName',
-    time: 'scheduledStart',
   });
   const { colors, typography } = useLegacyTheme();
   const isLive = getServiceMode() === 'supabase';

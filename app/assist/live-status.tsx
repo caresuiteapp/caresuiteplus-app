@@ -1,6 +1,3 @@
-import { Redirect } from 'expo-router';
+import { AssistLiveStatusScreen } from '@/screens/assist/AssistLiveStatusScreen';
 
-/** German alias → canonical live-tracking route (Durchführung tab). */
-export default function AssistLiveStatusRedirect() {
-  return <Redirect href="/assist/durchfuehrung" />;
-}
+export default AssistLiveStatusScreen;
