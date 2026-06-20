@@ -27,6 +27,30 @@ function isClientPortalRole(roleKey: RoleKey | null): boolean {
   return roleKey === 'client_portal' || roleKey === 'family_portal';
 }
 
+function enforceClientPortalProfileAccess(
+  roleKey: RoleKey | null,
+): ServiceResult<never> | null {
+  if (!roleKey) {
+    return { ok: false, error: 'Sie sind nicht angemeldet. Bitte melden Sie sich an.' };
+  }
+  if (isClientPortalRole(roleKey)) {
+    return enforcePermission(roleKey, 'portal.client.profile.view');
+  }
+  return enforcePermission(roleKey, 'office.clients.view');
+}
+
+function enforceClientCarePlanAccess(
+  roleKey: RoleKey | null,
+): ServiceResult<never> | null {
+  if (!roleKey) {
+    return { ok: false, error: 'Sie sind nicht angemeldet. Bitte melden Sie sich an.' };
+  }
+  if (isClientPortalRole(roleKey)) {
+    return enforcePermission(roleKey, 'portal.client.careplan.view');
+  }
+  return enforcePermission(roleKey, 'office.clients.view');
+}
+
 export type FetchClientPortalProfileParams = {
   profileId: string;
   tenantId?: string | null;
@@ -43,8 +67,8 @@ export async function fetchClientPortalProfile(
   params: FetchClientPortalProfileParams,
 ): Promise<ServiceResult<ClientPortalProfileResult>> {
   const { profileId, tenantId, clientId, roleKey } = params;
-  const denied = enforcePermission<ClientPortalProfileResult>(roleKey, 'portal.client.profile.view');
-  if (denied && isClientPortalRole(roleKey)) return denied;
+  const denied = enforceClientPortalProfileAccess(roleKey);
+  if (denied) return denied;
 
   if (getServiceMode() === 'supabase' && tenantId?.trim() && clientId?.trim()) {
     const live = await fetchLiveClientPortalProfile(tenantId, clientId);
@@ -73,11 +97,8 @@ export async function fetchClientCarePlanSummaries(
   params: FetchClientPortalProfileParams,
 ): Promise<ServiceResult<PortalClientCarePlanSummary[]>> {
   const { profileId, tenantId, clientId, roleKey } = params;
-  const denied = enforcePermission<PortalClientCarePlanSummary[]>(
-    roleKey,
-    'portal.client.careplan.view',
-  );
-  if (denied && isClientPortalRole(roleKey)) return denied;
+  const denied = enforceClientCarePlanAccess(roleKey);
+  if (denied) return denied;
 
   if (getServiceMode() === 'supabase' && tenantId?.trim() && clientId?.trim()) {
     return fetchLiveClientCarePlanSummaries(tenantId, clientId);

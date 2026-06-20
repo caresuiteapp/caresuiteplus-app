@@ -17,7 +17,7 @@ export async function createInvoice(
   input: InvoiceCreateInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<{ id: string }>> {
-  const denied = enforcePermission<{ id: string }>(actorRoleKey, 'office.invoices.view' as never);
+  const denied = enforcePermission<{ id: string }>(actorRoleKey, 'office.invoices.create');
   if (denied) return denied;
   if (!input.title.trim()) return { ok: false, error: 'Titel ist Pflicht.' };
   const tenantErr = assertTenantForMode(tenantId);

@@ -4,7 +4,7 @@ import {
   getPermissionsForRole,
   PERMISSION_DENIED_MESSAGES,
   PERMISSION_LABELS,
-} from '@/data/demo/permissions';
+} from '@/lib/permissions/staticRolePermissions';
 
 export function hasPermission(
   roleKey: RoleKey | null | undefined,

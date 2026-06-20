@@ -15,6 +15,7 @@ import { upsertClientIntakeDraft } from '@/lib/clients/repositories/clientIntake
 import { getServiceMode } from '@/lib/services/mode';
 import {
   clearCostBearerTypeFields,
+  clearDeselectedCostBearerTypes,
   COST_BEARER_FIELD_ERRORS,
   getCostBearerFieldValues,
   isCostBearerTypeKey,
@@ -26,8 +27,10 @@ import {
   getIntakeStepsForContexts,
   hasIntakeErrors,
   submitClientIntake,
+  submitClientIntakeUpdate,
   validateIntakeStep,
 } from '@/lib/clients/clientIntakeService';
+import { fetchClientIntakeEditData } from '@/lib/clients/clientIntakeEditService';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -40,7 +43,18 @@ function clampStepIndex(stepIndex: number, contexts: ClientCareContext[]): numbe
   return Math.min(Math.max(0, stepIndex), maxIndex);
 }
 
-export function useClientIntakeWizard() {
+export type ClientIntakeWizardMode = 'create' | 'edit';
+
+export type UseClientIntakeWizardOptions = {
+  mode?: ClientIntakeWizardMode;
+  clientId?: string;
+};
+
+export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
+  const mode = options?.mode ?? 'create';
+  const editClientId = options?.clientId;
+  const isEditMode = mode === 'edit' && !!editClientId;
+
   const { user, profile } = useAuth();
   const tenantId = useServiceTenantId();
   const userId = user?.id ?? profile?.id ?? null;
@@ -51,7 +65,10 @@ export function useClientIntakeWizard() {
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
   const [createdId, setCreatedId] = useState<string | null>(null);
-  const [draftLoaded, setDraftLoaded] = useState(false);
+  const [loading, setLoading] = useState(isEditMode);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [notFound, setNotFound] = useState(false);
+  const [draftLoaded, setDraftLoaded] = useState(!isEditMode);
   const [draftRestored, setDraftRestored] = useState(false);
   const [draftClientId, setDraftClientId] = useState<string | null>(null);
   const [draftSaveFeedback, setDraftSaveFeedback] = useState<{
@@ -72,6 +89,8 @@ export function useClientIntakeWizard() {
   const contextHint = getSupportOnlyHint(form.careContexts);
 
   useEffect(() => {
+    if (isEditMode) return;
+
     if (!userId || !tenantId) {
       setDraftLoaded(true);
       return;
@@ -104,7 +123,42 @@ export function useClientIntakeWizard() {
     return () => {
       cancelled = true;
     };
-  }, [userId, tenantId]);
+  }, [userId, tenantId, isEditMode]);
+
+  useEffect(() => {
+    if (!isEditMode || !editClientId || !tenantId) {
+      if (isEditMode && !editClientId) {
+        setNotFound(true);
+        setLoading(false);
+      }
+      return;
+    }
+
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    setNotFound(false);
+
+    void fetchClientIntakeEditData(editClientId, tenantId, profile?.roleKey).then((result) => {
+      if (cancelled) return;
+      setLoading(false);
+      if (!result.ok) {
+        if (result.error.includes('nicht gefunden') || result.error.includes('existiert nicht')) {
+          setNotFound(true);
+        } else {
+          setLoadError(result.error);
+        }
+        return;
+      }
+      skipNextSave.current = true;
+      setForm(result.data);
+      setStepIndex(0);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [isEditMode, editClientId, tenantId, profile?.roleKey]);
 
   const persistDraft = useCallback(
     async (options?: { showFeedback?: boolean }) => {
@@ -177,7 +231,7 @@ export function useClientIntakeWizard() {
   );
 
   useEffect(() => {
-    if (!draftLoaded || !userId || !tenantId || createdId) return;
+    if (isEditMode || !draftLoaded || !userId || !tenantId || createdId) return;
 
     if (skipNextSave.current) {
       skipNextSave.current = false;
@@ -189,7 +243,7 @@ export function useClientIntakeWizard() {
     }, DRAFT_SAVE_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [form, stepIndex, draftLoaded, userId, tenantId, createdId, persistDraft]);
+  }, [form, stepIndex, draftLoaded, userId, tenantId, createdId, persistDraft, isEditMode]);
 
   useEffect(() => {
     if (!draftLoaded || !needsRemoteSyncOnLoad.current) return;
@@ -233,11 +287,32 @@ export function useClientIntakeWizard() {
     });
   }, []);
 
+  const updateBillingTypes = useCallback((nextTypes: string[]) => {
+    setForm((prev) => ({
+      ...prev,
+      billingTypes: nextTypes,
+      billingType: nextTypes[0] ?? '',
+    }));
+    setErrors((prev) => {
+      const next = { ...prev };
+      delete next.billingTypes;
+      delete next.billingType;
+      return next;
+    });
+  }, []);
+
   const updateCostBearerTypes = useCallback((nextTypes: string[]) => {
-    setForm((prev) => ({ ...prev, costBearerTypes: nextTypes }));
+    setForm((prev) => ({
+      ...clearDeselectedCostBearerTypes(prev, nextTypes),
+      costBearerType: nextTypes[0] ?? '',
+    }));
     setErrors((prev) => {
       const next = { ...prev };
       delete next.costBearerTypes;
+      delete next.costBearerType;
+      for (const key of Object.values(COST_BEARER_FIELD_ERRORS)) {
+        delete next[key];
+      }
       return next;
     });
   }, []);
@@ -346,6 +421,7 @@ export function useClientIntakeWizard() {
 
   const submit = useCallback(async () => {
     if (submitLock.current || submitting || !tenantId) return null;
+    if (isEditMode && !editClientId) return null;
     submitLock.current = true;
     setSubmitting(true);
     setSubmitError(null);
@@ -361,15 +437,21 @@ export function useClientIntakeWizard() {
       }
     }
 
-    const result = await submitClientIntake(tenantId, form, {
-      actorProfileId: profile?.id ?? user?.id ?? null,
-      draftClientId,
-    });
+    const result = isEditMode
+      ? await submitClientIntakeUpdate(tenantId, editClientId!, form, {
+          actorProfileId: profile?.id ?? user?.id ?? null,
+          actorRoleKey: profile?.roleKey ?? user?.roleKey ?? null,
+        })
+      : await submitClientIntake(tenantId, form, {
+          actorProfileId: profile?.id ?? user?.id ?? null,
+          draftClientId,
+          actorRoleKey: profile?.roleKey ?? user?.roleKey ?? null,
+        });
     setSubmitting(false);
     submitLock.current = false;
 
     if (result.ok) {
-      if (userId) {
+      if (!isEditMode && userId) {
         await clearClientIntakeDraft(userId, tenantId);
       }
       skipNextSave.current = true;
@@ -378,7 +460,18 @@ export function useClientIntakeWizard() {
     }
     setSubmitError(result.error);
     return null;
-  }, [draftClientId, form, profile?.id, steps, submitting, tenantId, user?.id, userId]);
+  }, [
+    draftClientId,
+    editClientId,
+    form,
+    isEditMode,
+    profile?.id,
+    steps,
+    submitting,
+    tenantId,
+    user?.id,
+    userId,
+  ]);
 
   return {
     form,
@@ -392,11 +485,16 @@ export function useClientIntakeWizard() {
     submitting,
     submitError,
     createdId,
+    loading,
+    loadError,
+    notFound,
+    isEditMode,
     draftLoaded,
     draftRestored,
     draftSaveFeedback,
     hasPersistedDraft: draftRestored || hasIntakeDraftContent({ form, stepIndex }),
     updateField,
+    updateBillingTypes,
     updateCostBearerTypes,
     commitCostBearer,
     removeCostBearer,

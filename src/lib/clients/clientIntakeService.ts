@@ -1,4 +1,5 @@
 import type { ServiceResult } from '@/types';
+import type { RoleKey } from '@/types/core/auth';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import {
   getRequiredFieldsForClientContext,
@@ -8,11 +9,8 @@ import {
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { upsertDemoClientFullDetail } from '@/data/demo/clients';
-import { upsertDemoClientIntakeRecord } from '@/data/demo/clients/intakeRecords';
-import { helgaSchneiderFull } from '@/data/demo/clients/helga-schneider';
 import { runService } from '@/lib/services/serviceRunner';
+import { enforcePermission } from '@/lib/permissions';
 import { assertDemoTenant, isDemoClientBackend } from './clientBackend';
 import {
   COST_BEARER_FIELD_ERRORS,
@@ -27,9 +25,9 @@ import { validateCostBearerEntry, persistIntakeCostCarriers } from '@/features/c
 import { listApplicableIntakeTemplates } from '@/features/intakeDocuments/buildIntakeDocumentContext';
 import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
 import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeDocumentService';
-import { createClientFromIntake } from './repositories/clientIntakeRepository.supabase';
+import { createClientFromIntake, updateClientFromIntake } from './repositories/clientIntakeRepository.supabase';
 import { mapIntakeModulesToPortal, saveClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
-import { persistIntakeClientExtendedData } from './clientIntakePersistence';
+import { persistIntakeClientExtendedData, syncIntakeClientExtendedData } from './clientIntakePersistence';
 
 export function getIntakeStepsForContexts(contexts: ClientCareContext[]): IntakeSectionKey[] {
   return getVisibleSectionsForClientContext(contexts);
@@ -100,7 +98,7 @@ export function validateIntakeStep(
       if (!form.emergencyContactName.trim()) errors.emergencyContactName = 'Notfallkontakt erforderlich.';
       if (!form.emergencyContactPhone.trim()) errors.emergencyContactPhone = 'Notfall-Telefon erforderlich.';
     }
-    if (required.includes('homeAccess') && !form.homeAccess) {
+    if (required.includes('homeAccess') && form.homeAccess.length === 0) {
       errors.homeAccess = 'Wohnungszugang ist erforderlich.';
     }
     if (required.includes('facility') && !form.facilityName.trim()) {
@@ -142,8 +140,15 @@ export function hasIntakeErrors(errors: ClientIntakeErrors): boolean {
 export async function submitClientIntake(
   tenantId: string,
   form: ClientIntakeFormData,
-  options?: { actorProfileId?: string | null; draftClientId?: string | null },
+  options?: {
+    actorProfileId?: string | null;
+    draftClientId?: string | null;
+    actorRoleKey?: RoleKey | null;
+  },
 ): Promise<ServiceResult<{ id: string }>> {
+  const denied = enforcePermission<{ id: string }>(options?.actorRoleKey, 'office.clients.create');
+  if (denied) return denied;
+
   return runService(async () => {
     if (!isDemoClientBackend()) {
       const clientResult = await createClientFromIntake(
@@ -198,18 +203,95 @@ export async function submitClientIntake(
     const id = `client-intake-${Date.now()}`;
     const now = new Date().toISOString();
 
-    upsertDemoClientIntakeRecord(id, form);
-    upsertDemoClientFullDetail(buildMinimalFullDetail(id, form, now));
+    persistDemoClientIntake(id, form, now);
 
     return { ok: true, data: { id } };
   }, { delayMs: 500 });
+}
+
+export async function submitClientIntakeUpdate(
+  tenantId: string,
+  clientId: string,
+  form: ClientIntakeFormData,
+  options?: { actorProfileId?: string | null; actorRoleKey?: RoleKey | null },
+): Promise<ServiceResult<{ id: string }>> {
+  const denied = enforcePermission<{ id: string }>(options?.actorRoleKey, 'office.clients.edit');
+  if (denied) return denied;
+
+  return runService(async () => {
+    if (!isDemoClientBackend()) {
+      const clientResult = await updateClientFromIntake(
+        tenantId,
+        clientId,
+        form,
+        options?.actorProfileId ?? null,
+      );
+      if (!clientResult.ok) return clientResult;
+
+      const carrierResult = await persistIntakeCostCarriers(
+        tenantId,
+        clientId,
+        form,
+        options?.actorProfileId ?? null,
+      );
+      if (!carrierResult.ok) return carrierResult;
+
+      const extendedResult = await syncIntakeClientExtendedData(
+        tenantId,
+        clientId,
+        form,
+        options?.actorProfileId ?? null,
+      );
+      if (!extendedResult.ok) return extendedResult;
+
+      const documentsResult = await persistClientIntakeDocuments(
+        tenantId,
+        clientId,
+        form,
+        options?.actorProfileId ?? null,
+      );
+      if (!documentsResult.ok) return documentsResult;
+
+      const portalModules = mapIntakeModulesToPortal(form.assignedModules);
+      const moduleResult = await saveClientModuleAssignments(
+        tenantId,
+        clientId,
+        portalModules,
+        options?.actorProfileId ?? null,
+      );
+      if (!moduleResult.ok) return moduleResult;
+
+      return { ok: true, data: { id: clientId } };
+    }
+
+    const denied = assertDemoTenant(tenantId);
+    if (denied) return denied;
+
+    const now = new Date().toISOString();
+    persistDemoClientIntake(clientId, form, now);
+
+    return { ok: true, data: { id: clientId } };
+  }, { delayMs: 500 });
+}
+
+function persistDemoClientIntake(clientId: string, form: ClientIntakeFormData, now: string): void {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { upsertDemoClientIntakeRecord } = require('@/data/demo/clients/intakeRecords');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { upsertDemoClientFullDetail } = require('@/data/demo/clients');
+  upsertDemoClientIntakeRecord(clientId, form);
+  upsertDemoClientFullDetail(buildMinimalFullDetail(clientId, form, now));
 }
 
 function buildMinimalFullDetail(
   id: string,
   form: ClientIntakeFormData,
   now: string,
-): ClientFullDetail {
+): import('@/types/modules/client').ClientFullDetail & { careContexts?: ClientCareContext[] } {
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { helgaSchneiderFull } = require('@/data/demo/clients/helga-schneider');
+  // eslint-disable-next-line @typescript-eslint/no-require-imports
+  const { DEMO_TENANT_ID } = require('@/data/constants/testTenant');
   const base = { ...helgaSchneiderFull };
   const billingType = resolveIntakeBillingProfileType(form.billingTypes);
   const primaryCostBearerName = resolvePrimaryCostBearerName(form);

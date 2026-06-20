@@ -12,6 +12,12 @@ export {
 export { enforcePermission } from './enforce';
 export { runPermissionMatrix, type PermissionMatrixCase } from './testMatrix';
 export {
+  ROLE_PERMISSIONS,
+  PERMISSION_LABELS,
+  PERMISSION_DENIED_MESSAGES,
+  getPermissionsForRole,
+} from './staticRolePermissions';
+export {
   WORKSPACE_ROLE_DEFINITIONS,
   resolveWorkspaceArea,
   resolveWorkspaceCategory,
