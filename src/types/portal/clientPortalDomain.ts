@@ -126,6 +126,8 @@ export type ClientPortalPlannedAssignment = {
   notes: string | null;
   canRequestCancel: boolean;
   canRequestReschedule: boolean;
+  /** Eingeschränkter Live-Status ohne GPS-Koordinaten */
+  restrictedLiveStatus?: string | null;
 };
 
 export type ClientPortalCompletedAssignment = {

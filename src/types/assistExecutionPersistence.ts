@@ -1,6 +1,5 @@
 /**
  * Assist execution persistence DTOs — local interfaces for Migration 0156.
- * Tables are NOT yet applied remotely; do not use generated Supabase types.
  *
  * Privacy / portal rules:
  * - GPS capture & tracking sessions: employee portal ONLY (source of truth).

@@ -35,6 +35,7 @@ import {
   countDocumentsToSign,
   listReleasedDocumentsForClient,
 } from './clientDocumentSignatureService';
+import { fetchClientPortalRestrictedLiveStatus } from './clientPortalVisitTrackingViewService';
 
 const COMPLETED_STATUSES = new Set(['completed', 'locked', 'cancelled']);
 const PLANNED_STATUSES = new Set([
@@ -265,9 +266,18 @@ export async function fetchClientPlannedAssignments(
 
   return {
     ok: true,
-    data: assignments
-      .sort((a, b) => new Date(a.plannedStartAt).getTime() - new Date(b.plannedStartAt).getTime())
-      .map(mapPlannedAssignment),
+    data: await Promise.all(
+      assignments
+        .sort((a, b) => new Date(a.plannedStartAt).getTime() - new Date(b.plannedStartAt).getTime())
+        .map(async (assignment) => {
+          const base = mapPlannedAssignment(assignment);
+          const live = await fetchClientPortalRestrictedLiveStatus(ctx.tenantId, assignment.id);
+          return {
+            ...base,
+            restrictedLiveStatus: live.visible ? live.label : null,
+          };
+        }),
+    ),
   };
 }
 

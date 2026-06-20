@@ -49,10 +49,22 @@ export {
 } from './assistExecutionPersistenceService';
 export {
   fetchLatestVisitProof,
+  persistVisitProof,
 } from './assistVisitProofPersistenceService';
 export {
   fetchActiveTrackingSession,
+  fetchLatestLocationPointForVisit,
+  fetchTimeEventsForVisit,
+  startTrackingSession,
+  appendLocationPoint,
+  recordTimeEvent,
+  recordGeofenceEvent,
+  appendDrivingLogEntry,
 } from './assistTrackingPersistenceService';
+export {
+  saveVisitSignaturePersistent,
+  computeVisitSignaturePayloadHash,
+} from './assistVisitSignaturePersistenceService';
 export type {
   AssistVisitSignatureRow,
   AssistVisitProofRow,

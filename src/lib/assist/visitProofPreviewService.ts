@@ -126,6 +126,6 @@ export function buildVisitProofPreview(
     fields,
     readyForExport,
     storageGapMessage:
-      'Persistente Speicherung in assist_visit_proofs fehlt (P0) — Vorschau nur, kein auditierbares PDF-Archiv.',
+      'Leistungsnachweis wird nach Einsatzabschluss in assist_visit_proofs persistiert (0156), sofern assist_visits verknüpft ist.',
   };
 }

@@ -12,6 +12,10 @@ import {
   updateEmployeePortalTask,
 } from '@/lib/portal/employeePortalExecutionService';
 import {
+  persistEmployeePortalLocationConsent,
+  persistEmployeePortalLocationPoint,
+} from '@/lib/portal/employeePortalVisitTrackingPersistence';
+import {
   buildEmployeePortalTrackingSnapshot,
   captureEmployeePortalForegroundPosition,
   computeEmployeePortalLiveTimers,
@@ -82,9 +86,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       if (!tenantId || !assignmentId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Einsatz-ID.' });
       }
-      return Promise.resolve(
-        transitionEmployeePortalAssignment(tenantId, assignmentId, employeeId, roleKey, toStatus),
-      );
+      return transitionEmployeePortalAssignment(tenantId, assignmentId, employeeId, roleKey, toStatus);
     },
     {
       onSuccess: (detail: EmployeePortalAssignmentDetail) => query.setData(detail),
@@ -102,8 +104,14 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     if (!tenantId || !assignmentId) return;
     markEmployeePortalConsentExplained(tenantId, assignmentId);
     grantEmployeePortalLocationConsent(tenantId, assignmentId);
+    await persistEmployeePortalLocationConsent({
+      tenantId,
+      assignmentId,
+      employeeId,
+      profileId: profile?.id ?? employeeId,
+    });
     await query.refresh();
-  }, [tenantId, assignmentId, query]);
+  }, [tenantId, assignmentId, employeeId, profile?.id, query]);
 
   const requestLocationPermission = useCallback(async () => {
     const status = await requestEmployeePortalForegroundLocationPermission();
@@ -116,9 +124,20 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return { ok: false as const, error: 'Keine Einsatz-ID.' };
     }
     const result = await captureEmployeePortalForegroundPosition(tenantId, assignmentId);
-    if (result.ok) await query.refresh();
+    if (result.ok) {
+      await persistEmployeePortalLocationPoint(
+        {
+          tenantId,
+          assignmentId,
+          employeeId,
+          profileId: profile?.id ?? employeeId,
+        },
+        result.data,
+      );
+      await query.refresh();
+    }
     return result;
-  }, [tenantId, assignmentId, query]);
+  }, [tenantId, assignmentId, employeeId, profile?.id, query]);
 
   const setGeofenceOverride = useCallback(
     (reason: string | null) => {

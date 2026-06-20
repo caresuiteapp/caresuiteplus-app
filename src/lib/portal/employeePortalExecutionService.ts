@@ -51,7 +51,17 @@ import {
   listEmployeePortalSignatures,
   lockEmployeePortalSignatures,
 } from './employeePortalSignatureService';
-import { applyEmployeePortalTrackingForStatus, resetEmployeePortalVisitTrackingStore } from './employeePortalVisitTrackingService';
+import {
+  applyEmployeePortalTrackingForStatus,
+  peekEmployeePortalTrackingEntry,
+  resetEmployeePortalVisitTrackingStore,
+} from './employeePortalVisitTrackingService';
+import {
+  persistEmployeePortalSignature,
+  persistEmployeePortalStatusTransition,
+  persistEmployeePortalVisitProof,
+  resetEmployeePortalPersistenceSessionStore,
+} from './employeePortalVisitTrackingPersistence';
 
 type ExecutionStore = {
   statusHistory: Map<string, EmployeePortalStatusHistoryEntry[]>;
@@ -382,13 +392,13 @@ export function fetchEmployeePortalAssignmentDetail(
   };
 }
 
-export function transitionEmployeePortalAssignment(
+export async function transitionEmployeePortalAssignment(
   tenantId: string,
   assignmentId: string,
   employeeId: string,
   roleKey: RoleKey | null,
   toStatus: AssignmentStatus,
-): ServiceResult<EmployeePortalAssignmentDetail> {
+): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
@@ -439,6 +449,20 @@ export function transitionEmployeePortalAssignment(
   if (!updated.ok) return updated;
 
   applyEmployeePortalTrackingForStatus(tenantId, assignmentId, fromStatus, toStatus);
+
+  const entry = peekEmployeePortalTrackingEntry(tenantId, assignmentId);
+  await persistEmployeePortalStatusTransition(
+    {
+      tenantId,
+      assignmentId,
+      employeeId,
+      profileId: employeeId,
+      locationAddress: record.locationAddress,
+    },
+    fromStatus,
+    toStatus,
+    entry.geofenceLastCheck,
+  );
 
   logWorkspaceAccessEvent({
     tenantId,
@@ -560,13 +584,13 @@ export function submitEmployeePortalDocumentation(
   return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
 }
 
-export function captureEmployeePortalAssignmentSignature(
+export async function captureEmployeePortalAssignmentSignature(
   tenantId: string,
   assignmentId: string,
   employeeId: string,
   roleKey: RoleKey | null,
   input: EmployeePortalSignatureCaptureInput,
-): ServiceResult<EmployeePortalAssignmentDetail> {
+): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.records.sign');
   if (denied) return denied;
 
@@ -596,6 +620,29 @@ export function captureEmployeePortalAssignmentSignature(
   );
   if (!result.ok) return result;
 
+  if (input.signatureDataUrl?.trim()) {
+    const persist = await persistEmployeePortalSignature(
+      {
+        tenantId,
+        assignmentId,
+        employeeId,
+        profileId: employeeId,
+        locationAddress: record.locationAddress,
+      },
+      input,
+      {
+        visitId: assignmentId,
+        clientId: record.clientId,
+        employeeId: record.employeeId,
+        plannedStartAt: record.plannedStartAt,
+        plannedEndAt: record.plannedEndAt,
+        taskStatuses: record.tasks.map((t) => ({ taskId: t.id, status: t.status })),
+        documentationNote: STORE.documentations.get(storeKey(tenantId, assignmentId))?.shortDescription ?? null,
+      },
+    );
+    if (!persist.ok) return { ok: false, error: persist.error ?? 'Signatur konnte nicht gespeichert werden.' };
+  }
+
   if (record.status === 'unterschrift_offen' || record.status === 'dokumentation_offen') {
     updateWorkflowStatus(tenantId, assignmentId, 'unterschrift_offen', employeeId);
   }
@@ -603,12 +650,12 @@ export function captureEmployeePortalAssignmentSignature(
   return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
 }
 
-export function completeEmployeePortalAssignment(
+export async function completeEmployeePortalAssignment(
   tenantId: string,
   assignmentId: string,
   employeeId: string,
   roleKey: RoleKey | null,
-): ServiceResult<EmployeePortalCompletionResult> {
+): Promise<ServiceResult<EmployeePortalCompletionResult>> {
   const denied = enforcePermission<EmployeePortalCompletionResult>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
@@ -657,6 +704,26 @@ export function completeEmployeePortalAssignment(
   }
   lockEmployeePortalSignatures(tenantId, assignmentId);
   STORE.lockedAssignments.add(key);
+
+  const docRecord = STORE.documentations.get(key);
+  await persistEmployeePortalVisitProof(
+    {
+      tenantId,
+      assignmentId,
+      employeeId,
+      profileId: employeeId,
+      locationAddress: record.locationAddress,
+    },
+    {
+      assignmentId,
+      clientId: record.clientId,
+      title: record.title,
+      status: 'abgeschlossen',
+      documentation: docRecord?.shortDescription ?? null,
+      tasks: record.tasks.map((t) => ({ id: t.id, status: t.status, title: t.taskTitle })),
+      completedAt: completion.data.completedAt ?? new Date().toISOString(),
+    },
+  );
 
   const auditId = `ep-complete-${Date.now()}`;
   logWorkspaceAccessEvent({
@@ -747,4 +814,5 @@ export function resetEmployeePortalExecutionStore(): void {
   historyCounter = 0;
   pauseCounter = 0;
   resetEmployeePortalVisitTrackingStore();
+  resetEmployeePortalPersistenceSessionStore();
 }

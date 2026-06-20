@@ -1,9 +1,8 @@
 /**
  * Assist execution persistence — shared helpers for Migration 0156 tables.
- * Stubs only: tables not applied remotely yet; returns tableMissing when absent.
  *
  * Privacy: persistence writes for GPS/tracking originate from employee portal services.
- * Assist/Office services should use read paths only until portal wiring is approved.
+ * Assist/Office services use read paths only.
  */
 
 import type { ServiceResult } from '@/types';
@@ -106,14 +105,3 @@ export async function fetchValidVisitSignature(
   return { ok: true, data: mapSignatureRow(data as SignatureDbRow) };
 }
 
-/**
- * GAP (Phase 3): persist signature after Storage upload + hash computation.
- * Wire from employee portal / visit close flow after 0156 apply + Storage policies.
- */
-export async function persistVisitSignatureStub(): Promise<ServiceResult<never>> {
-  return {
-    ok: false,
-    error:
-      'assist_visit_signatures (0156) noch nicht angewendet — Signatur-Persistenz folgt nach Migration-Apply.',
-  };
-}

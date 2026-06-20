@@ -1,6 +1,5 @@
 /**
- * Employee-portal GPS/tracking session store (in-memory).
- * GAP (Phase 3): wire persist to assistTrackingPersistenceService after Migration 0156 apply.
+ * Employee-portal GPS/tracking session store (in-memory + 0156 persistence).
  * Privacy: ONLY this portal may start tracking sessions; Assist/Office is read-only.
  */
 import type * as ExpoLocation from 'expo-location';

@@ -26,23 +26,24 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
     });
   }
 
-  hints.push({
-    id: 'signature-storage',
-    title: 'Signatur-Speicher (Migration 0156 vorbereitet)',
-    message:
-      'Migration 0156 definiert assist_visit_signatures — noch nicht remote angewendet. Unterschriften sessionbasiert bis Apply.',
-    severity: 'warning',
-    route: '/assist/signaturen',
-  });
-
-  hints.push({
-    id: 'proof-export',
-    title: 'Leistungsnachweis (Migration 0156 vorbereitet)',
-    message:
-      'Migration 0156 definiert assist_visit_proofs — noch nicht angewendet. PDF-Export bleibt Vorschau bis Apply.',
-    severity: 'warning',
-    route: '/assist/nachweise',
-  });
+  if (getServiceMode() === 'supabase') {
+    hints.push({
+      id: 'signature-storage',
+      title: 'Signatur-Speicher (0156)',
+      message:
+        'Unterschriften werden in assist_visit_signatures + Storage persistiert, sobald ein assist_visits-Datensatz existiert.',
+      severity: 'info',
+      route: '/assist/signaturen',
+    });
+  } else {
+    hints.push({
+      id: 'signature-storage',
+      title: 'Signatur-Speicher (Demo)',
+      message: 'Demo-Modus: Unterschriften nur sessionbasiert bis Supabase-Live.',
+      severity: 'warning',
+      route: '/assist/signaturen',
+    });
+  }
 
   if (!isAssistTripsLiveReady()) {
     hints.push({
@@ -60,7 +61,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
       id: 'live-tracking',
       title: 'Live-Tracking Backend',
       message:
-        'Migration 0156 definiert assist_tracking_sessions / assist_location_points — noch nicht angewendet. Mitarbeiterportal: Foreground-GPS sessionbasiert.',
+        '0156-Tabellen aktiv — Tracking startet im Mitarbeiterportal. Assist Live-Status liest persistierte Sessions/Events (read-only).',
       severity: 'info',
       route: '/assist/live-status',
     });
@@ -87,7 +88,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
     id: 'client-portal-tracking-view',
     title: 'Klientenportal Live-Ansicht',
     message:
-      'Eingeschränkte Tracking-Sicht im Klientenportal ist vorbereitet (Freigabefenster) — dedizierte UI/assist_portal_events fehlen.',
+      'Eingeschränkter Status (ohne GPS-Punkte) aus assist_time_events — vollständiges Freigabefenster folgt separat.',
     severity: 'info',
   });
 

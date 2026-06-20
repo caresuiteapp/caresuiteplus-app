@@ -1,6 +1,12 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { DayMonitorAssignmentRow } from '@/types/modules/liveMonitor';
 import type { EmployeePortalTrackingSnapshot } from '@/types/modules/employeePortalTracking';
+import { resolveAssistVisitIdForPersistence } from '@/lib/assist/assistExecutionVisitResolver';
+import {
+  fetchActiveTrackingSession,
+  fetchLatestLocationPointForVisit,
+  fetchTimeEventsForVisit,
+} from '@/lib/assist/assistTrackingPersistenceService';
 import { fetchDayMonitor } from './liveMonitorService';
 import { listAssignmentWorkflows } from './assignmentWorkflowService';
 import { buildWorkspaceAccessContext, canViewAssignment } from '@/lib/permissions/workspaceAccess';
@@ -10,6 +16,7 @@ import {
   buildEmployeePortalTrackingSnapshot,
   getEmployeePortalGpsPermissionStatus,
 } from '@/lib/portal/employeePortalVisitTrackingService';
+import { getServiceMode } from '@/lib/services/mode';
 
 export type AssistLiveStatusRow = DayMonitorAssignmentRow & {
   tracking: EmployeePortalTrackingSnapshot | null;
@@ -103,6 +110,94 @@ function buildFallbackDayMonitorRows(
   return { ok: true, data: rows };
 }
 
+function diffSeconds(fromIso: string, toIso: string): number {
+  return Math.max(0, Math.round((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 1000));
+}
+
+async function enrichTrackingFromPersistence(
+  tenantId: string,
+  assignmentId: string,
+  status: AssignmentStatus,
+  gpsPermission: EmployeePortalTrackingSnapshot['gpsPermission'],
+  inMemory: EmployeePortalTrackingSnapshot,
+): Promise<EmployeePortalTrackingSnapshot> {
+  if (getServiceMode() !== 'supabase') return inMemory;
+
+  const visitId = await resolveAssistVisitIdForPersistence(tenantId, assignmentId);
+  if (!visitId) return inMemory;
+
+  const [sessionRes, pointRes, eventsRes] = await Promise.all([
+    fetchActiveTrackingSession(tenantId, visitId),
+    fetchLatestLocationPointForVisit(tenantId, visitId),
+    fetchTimeEventsForVisit(tenantId, visitId),
+  ]);
+
+  if (!sessionRes.ok || !pointRes.ok || !eventsRes.ok) {
+    return inMemory;
+  }
+
+  const session = sessionRes.data;
+  const point = pointRes.data;
+  const events = eventsRes.data;
+
+  const trackingActive = session?.isActive ?? inMemory.trackingActive;
+  const lastPosition =
+    point != null
+      ? {
+          latitude: point.latitude,
+          longitude: point.longitude,
+          accuracyMeters: point.accuracyMeters,
+          capturedAt: point.recordedAt,
+        }
+      : inMemory.lastPosition;
+
+  const driveStart = events.find((e) => e.eventType === 'drive_start')?.occurredAt ?? inMemory.timers.driveStartedAt;
+  const serviceStart =
+    events.find((e) => e.eventType === 'service_start')?.occurredAt ?? inMemory.timers.serviceStartedAt;
+  const arriveAt = events.find((e) => e.eventType === 'arrive')?.occurredAt ?? null;
+  const nowIso = new Date().toISOString();
+
+  let driveSeconds = inMemory.timers.driveSeconds;
+  if (driveStart) {
+    const driveEnd = arriveAt ?? (status === 'unterwegs' ? nowIso : null);
+    if (driveEnd) driveSeconds = diffSeconds(driveStart, driveEnd);
+  }
+
+  let serviceSeconds = inMemory.timers.serviceSeconds;
+  if (serviceStart) {
+    const serviceEndEvent = events.find((e) => e.eventType === 'service_end')?.occurredAt;
+    const serviceEnd = serviceEndEvent ?? (status === 'gestartet' ? nowIso : null);
+    if (serviceEnd) serviceSeconds = diffSeconds(serviceStart, serviceEnd);
+  }
+
+  const consent = session
+    ? {
+        granted: true,
+        grantedAt: session.consentGrantedAt,
+        explainedAt: session.consentExplainedAt,
+      }
+    : inMemory.consent;
+
+  const assistVisible =
+    trackingActive && (status === 'unterwegs' || status === 'angekommen') && Boolean(lastPosition);
+
+  return {
+    ...inMemory,
+    consent,
+    trackingActive,
+    lastPosition,
+    assistVisible,
+    clientPortalVisible: false,
+    timers: {
+      ...inMemory.timers,
+      driveSeconds,
+      serviceSeconds,
+      driveStartedAt: driveStart,
+      serviceStartedAt: serviceStart,
+    },
+  };
+}
+
 export async function fetchAssistLiveStatusOverview(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
@@ -117,15 +212,24 @@ export async function fetchAssistLiveStatusOverview(
 
   const gpsPermission = await getEmployeePortalGpsPermissionStatus();
 
-  const rows: AssistLiveStatusRow[] = baseRows.map((row) => ({
-    ...row,
-    tracking: buildEmployeePortalTrackingSnapshot(
-      tenantId,
-      row.assignmentId,
-      row.status,
-      gpsPermission,
-    ),
-  }));
+  const rows: AssistLiveStatusRow[] = await Promise.all(
+    baseRows.map(async (row) => {
+      const inMemory = buildEmployeePortalTrackingSnapshot(
+        tenantId,
+        row.assignmentId,
+        row.status,
+        gpsPermission,
+      );
+      const tracking = await enrichTrackingFromPersistence(
+        tenantId,
+        row.assignmentId,
+        row.status,
+        gpsPermission,
+        inMemory,
+      );
+      return { ...row, tracking };
+    }),
+  );
 
   const activeTrackingCount = rows.filter((r) => r.tracking?.trackingActive).length;
   const consentPendingCount = rows.filter((r) => r.tracking && !r.tracking.consent.granted).length;
