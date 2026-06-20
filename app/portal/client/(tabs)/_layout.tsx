@@ -1,14 +1,14 @@
 import { Slot } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
-import { PortalShellLayout } from '@/components/layout/portal';
+import { ClientPortalShell } from '@/components/portal/ClientPortalShell';
 
 export default function ClientPortalTabsLayout() {
   return (
-    <PortalShellLayout>
+    <ClientPortalShell>
       <View style={styles.slot}>
         <Slot />
       </View>
-    </PortalShellLayout>
+    </ClientPortalShell>
   );
 }
 

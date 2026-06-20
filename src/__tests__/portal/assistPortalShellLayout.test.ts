@@ -9,9 +9,9 @@ function readSrc(relativePath: string): string {
 }
 
 describe('PortalShellLayout', () => {
-  it('client tabs layout uses PortalShellLayout instead of ShellLayout', () => {
+  it('client tabs layout uses ClientPortalShell wrapper', () => {
     const layout = readSrc('app/portal/client/(tabs)/_layout.tsx');
-    expect(layout).toContain('PortalShellLayout');
+    expect(layout).toContain('ClientPortalShell');
     expect(layout).not.toContain("from '@/components/layout'");
     expect(layout).not.toContain('<ShellLayout');
     expect(layout).not.toContain('area="portal_client"');

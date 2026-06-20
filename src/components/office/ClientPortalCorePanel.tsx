@@ -4,10 +4,13 @@ import {
   ErrorState,
   LoadingState,
   PremiumBadge,
+  PremiumButton,
   PremiumCard,
   SectionPanel,
 } from '@/components/ui';
 import { ClientPortalAccessPanel } from '@/components/clients/ClientPortalAccessPanel';
+import { EmployeePortalImpactPanel } from '@/components/office/EmployeePortalImpactPanel';
+import { PortalSyncChainPanel } from '@/components/office/PortalSyncChainPanel';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -113,6 +116,10 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
           </PremiumCard>
         )}
       </SectionPanel>
+
+      <EmployeePortalImpactPanel />
+
+      <PortalSyncChainPanel />
 
       {fullClient && tenantId ? (
         <ClientPortalAccessPanel

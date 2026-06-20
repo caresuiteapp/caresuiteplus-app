@@ -1,7 +1,7 @@
 import type { AppShellArea, ModuleSwitcherItem, ShellTabConfig } from '@/types/navigation/shell';
 import type { RoleKey } from '@/types';
-import { MODULE_NAV_CONFIG } from '@/data/demo/navigation';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { MODULE_NAV_CONFIG } from '@/data/navigation/moduleNavConfig';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import { getEffectiveModuleAccess } from '@/lib/modules/moduleAccessService';
 import {
   isModuleScopeVisible,
@@ -89,8 +89,9 @@ export const BUSINESS_TABS: ShellTabConfig[] = [
 export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = [
   { key: 'index', label: 'Heute', icon: '🏠', href: '/portal/employee' },
   { key: 'assignments', label: 'Einsätze', icon: '📅', href: '/portal/employee/assignments' },
+  { key: 'execution', label: 'Durchführung', icon: '▶️', href: '/portal/employee/execution' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
-  { key: 'times', label: 'Zeiten', icon: '⏱️', href: '/portal/employee/documents' },
+  { key: 'times', label: 'Zeiten', icon: '⏱️', href: '/portal/employee/times' },
   { key: 'more', label: 'Mehr', icon: '⋯', href: '/portal/employee/profile' },
 ];
 

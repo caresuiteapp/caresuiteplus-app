@@ -1,15 +1,14 @@
 import { Slot } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
-import { ShellLayout } from '@/components/layout';
-import { moduleColor } from '@/design/tokens/modules';
+import { EmployeePortalShell } from '@/components/portal/EmployeePortalShell';
 
 export default function EmployeePortalTabsLayout() {
   return (
-    <ShellLayout area="portal_employee" accentColor={moduleColor('assist')} showModuleSwitcher={false}>
+    <EmployeePortalShell>
       <View style={styles.slot}>
         <Slot />
       </View>
-    </ShellLayout>
+    </EmployeePortalShell>
   );
 }
 

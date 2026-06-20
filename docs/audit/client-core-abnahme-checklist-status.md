@@ -32,3 +32,16 @@
 | — | 0159 remote applied | ✅ | k4 precheck log |
 
 **Gesamt:** 25/25 ✅
+
+---
+
+## Portal System Core P.0–P.3 (nach K.4)
+
+| # | Kriterium | Status | Nachweis |
+|---|-----------|--------|----------|
+| P.1 | Unified portal shells + projections | ✅ | portal-system-core-abschlussbericht |
+| P.2 | Office portal control + sync chain | ✅ | ClientPortalCorePanel erweitert |
+| P.3 | Portal sync flow tests | ✅ | portalSyncFlow.test.ts |
+| P.4 | Keine 0160 / keine Permission-Änderung | ✅ | Abort-Gate |
+
+Siehe auch: `docs/audit/portal-system-abnahme-checklist-status.md`
