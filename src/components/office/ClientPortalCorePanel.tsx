@@ -15,7 +15,9 @@ import {
   fetchClientPortalSettingsResolved,
   listClientPortalAccessRequests,
   listVisiblePortalFeatures,
+  reviewClientPortalAccessRequest,
 } from '@/lib/client/clientPortalSettingsService';
+import { useAuth } from '@/lib/auth/context';
 import type { ClientFullDetail } from '@/types/modules/client';
 import { colors, spacing, typography } from '@/theme';
 
@@ -36,6 +38,7 @@ const FEATURE_LABELS: Record<string, string> = {
 export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }: Props) {
   const tenantId = useServiceTenantId();
   const { isReadOnly } = usePermissions();
+  const { profile } = useAuth();
 
   const settingsQuery = useAsyncQuery(
     () => {
@@ -74,6 +77,17 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
   const settings = settingsQuery.data;
   const features = featuresQuery.data ?? [];
   const requests = requestsQuery.data ?? [];
+
+  async function handleReview(requestId: string, decision: 'approved' | 'rejected') {
+    if (!tenantId || isReadOnly) return;
+    const result = await reviewClientPortalAccessRequest(tenantId, clientId, requestId, decision, {
+      reviewedBy: profile?.id ?? null,
+    });
+    if (result.ok) {
+      await requestsQuery.refresh();
+      onRecordRefresh?.();
+    }
+  }
 
   return (
     <View style={styles.panel}>
@@ -124,6 +138,12 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
                 {req.status} · {req.requestType}
                 {req.requesterEmail ? ` · ${req.requesterEmail}` : ''}
               </Text>
+              {req.status === 'pending' && !isReadOnly ? (
+                <View style={styles.row}>
+                  <PremiumButton title="Genehmigen" size="sm" onPress={() => handleReview(req.id, 'approved')} />
+                  <PremiumButton title="Ablehnen" size="sm" variant="secondary" onPress={() => handleReview(req.id, 'rejected')} />
+                </View>
+              ) : null}
             </PremiumCard>
           ))
         )}

@@ -3,6 +3,8 @@ import type { ModalStackPayload } from '@/types/modalNavigation';
 import { AccessManagementDashboardScreen } from '@/screens/office/access';
 import { AssistSettingsScreen } from '@/screens/assist/AssistSettingsScreen';
 import { ClientRecordModalPrepScreen } from '@/screens/office/ClientRecordModalPrepScreen';
+import { ClientEditModalScreen } from '@/components/office/ClientEditModal';
+import { ClientServiceProfileAddModalScreen } from '@/components/office/ClientServiceProfilesPanel';
 import { EmployeeRecordModalPrepScreen } from '@/screens/office/EmployeeRecordModalPrepScreen';
 import {
   DataRequestScreen,
@@ -56,6 +58,17 @@ export const MODULE_NAV_MODAL_SCREENS: Record<string, ModuleNavModalScreen> = {
     subtitle: 'Kurzüberblick — vollständige Akte in Office',
     Component: ClientRecordModalPrepScreen,
     maxWidth: 880,
+  },
+  'prep.client.edit': {
+    title: 'Klient:in bearbeiten',
+    subtitle: 'Stammdaten & Leistungsarten',
+    Component: ClientEditModalScreen,
+    maxWidth: 720,
+  },
+  'client.serviceProfile.add': {
+    title: 'Leistungsbereich hinzufügen',
+    Component: ClientServiceProfileAddModalScreen,
+    maxWidth: 520,
   },
   'prep.employee.record': {
     title: 'Mitarbeiter:in',

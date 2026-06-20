@@ -1,6 +1,10 @@
 import type { ServiceResult } from '@/types';
 import type { PortalServiceProof, PortalServiceProofStatus } from '@/types/portal/serviceProofs';
 import { listReleasedProofsForClientPortal } from '@/lib/portal/assist/portalAssistVisitProofService';
+import {
+  canClientPortalSeeFeature,
+  fetchClientPortalSettingsResolved,
+} from '@/lib/client/clientPortalSettingsService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -81,6 +85,11 @@ export async function listPortalServiceProofs(
   return runService(async () => {
     const supabase = getSupabaseClient();
     if (!supabase) return unavailable();
+
+    const portalSettings = await fetchClientPortalSettingsResolved(tenantId, clientId);
+    if (portalSettings.ok && !canClientPortalSeeFeature(portalSettings.data, 'proofs')) {
+      return { ok: true, data: [] };
+    }
 
     const documentResult = await fromUnknownTable(supabase, 'client_documents')
       .select(

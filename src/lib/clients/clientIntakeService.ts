@@ -28,6 +28,7 @@ import { persistClientIntakeDocuments } from '@/features/intakeDocuments/intakeD
 import { createClientFromIntake, updateClientFromIntake } from './repositories/clientIntakeRepository.supabase';
 import { mapIntakeModulesToPortal, saveClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
 import { persistIntakeClientExtendedData, syncIntakeClientExtendedData } from './clientIntakePersistence';
+import { syncClientCoreAfterIntake } from '@/lib/client/clientCoreIntakeSyncService';
 
 import {
   careContextsToServiceTypeKeys,
@@ -48,6 +49,13 @@ export function getIntakeStepsForServiceTypeKeys(
   return mergeIntakeSectionsFromDbAndRules(serviceTypeKeys, careContexts, dbSections);
 }
 
+export function getRequiredFieldsForServiceTypes(
+  serviceTypeKeys: import('@/types/clientCore').ClientServiceTypeKey[],
+): ReturnType<typeof getRequiredFieldsForClientContext> {
+  return getRequiredFieldsForClientContext(serviceTypeKeysToCareContexts(serviceTypeKeys));
+}
+
+export { getServiceIntakeSections } from '@/lib/client/clientServiceTypeService';
 export { careContextsToServiceTypeKeys, serviceTypeKeysToCareContexts };
 
 export function validateIntakeStep(
@@ -211,6 +219,9 @@ export async function submitClientIntake(
         if (!moduleResult.ok) return moduleResult;
       }
 
+      const coreSync = await syncClientCoreAfterIntake(tenantId, clientResult.data.id, form);
+      if (!coreSync.ok) return coreSync;
+
       return { ok: true, data: { id: clientResult.data.id } };
     }
 
@@ -277,6 +288,9 @@ export async function submitClientIntakeUpdate(
         options?.actorProfileId ?? null,
       );
       if (!moduleResult.ok) return moduleResult;
+
+      const coreSync = await syncClientCoreAfterIntake(tenantId, clientId, form);
+      if (!coreSync.ok) return coreSync;
 
       return { ok: true, data: { id: clientId } };
     }

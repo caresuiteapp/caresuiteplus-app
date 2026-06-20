@@ -196,15 +196,13 @@ export async function syncClientServiceProfiles(
 
     const existingIds = new Set(existing.data.map((p) => p.serviceTypeId));
     const toAdd = selectedIds.filter((id) => !existingIds.has(id));
-    const toRemove = existing.data.filter((p) => !selectedIds.includes(p.serviceTypeId));
+    const toEnd = existing.data.filter(
+      (p) => !selectedIds.includes(p.serviceTypeId) && p.status === 'active',
+    );
 
-    for (const profile of toRemove) {
-      const { error } = await fromUnknownTable(client, 'client_service_profiles')
-        .delete()
-        .eq('tenant_id', tenantId)
-        .eq('client_id', clientId)
-        .eq('id', profile.id);
-      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    for (const profile of toEnd) {
+      const endResult = await endClientServiceProfile(tenantId, clientId, profile.id);
+      if (!endResult.ok) return endResult;
     }
 
     for (const typeId of toAdd) {
@@ -246,6 +244,186 @@ export function careContextsToServiceTypeKeys(contexts: ClientCareContext[]): Cl
   return contexts
     .map((ctx) => CARE_CONTEXT_TO_SERVICE_TYPE[ctx])
     .filter(Boolean) as ClientServiceTypeKey[];
+}
+
+export async function endClientServiceProfile(
+  tenantId: string,
+  clientId: string,
+  profileId: string,
+  endedOn?: string,
+): Promise<ServiceResult<ClientServiceProfile>> {
+  return runService(async () => {
+    const denied = guardServiceTenant(tenantId);
+    if (denied) return denied;
+
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const endDate = endedOn ?? new Date().toISOString().slice(0, 10);
+    const { error } = await fromUnknownTable(client, 'client_service_profiles')
+      .update({
+        status: 'ended',
+        ended_on: endDate,
+        is_primary: false,
+      })
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('id', profileId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const profiles = await listClientServiceProfiles(tenantId, clientId);
+    if (!profiles.ok) return profiles;
+    const profile = profiles.data.find((p) => p.id === profileId);
+    if (!profile) return { ok: false, error: 'Leistungsbereich nicht gefunden.' };
+    return { ok: true, data: profile };
+  });
+}
+
+export async function addClientServiceProfile(
+  tenantId: string,
+  clientId: string,
+  serviceTypeKey: ClientServiceTypeKey,
+  options?: { isPrimary?: boolean; notes?: string | null; startedOn?: string | null },
+): Promise<ServiceResult<ClientServiceProfile[]>> {
+  return runService(async () => {
+    const typesResult = await listTenantClientServiceTypes(tenantId);
+    if (!typesResult.ok) return typesResult;
+
+    const type = typesResult.data.find((t) => t.serviceTypeKey === serviceTypeKey);
+    if (!type) return { ok: false, error: 'Leistungsart nicht gefunden.' };
+
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const existing = await listClientServiceProfiles(tenantId, clientId);
+    if (!existing.ok) return existing;
+
+    const active = existing.data.find(
+      (p) => p.serviceTypeId === type.id && p.status === 'active',
+    );
+    if (active) return { ok: true, data: existing.data };
+
+    const { error } = await fromUnknownTable(client, 'client_service_profiles').insert({
+      tenant_id: tenantId,
+      client_id: clientId,
+      service_type_id: type.id,
+      is_primary: options?.isPrimary ?? false,
+      status: 'active',
+      started_on: options?.startedOn ?? new Date().toISOString().slice(0, 10),
+      notes: options?.notes ?? null,
+    });
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    if (options?.isPrimary) {
+      await setPrimaryClientServiceProfile(tenantId, clientId, serviceTypeKey);
+    }
+
+    return listClientServiceProfiles(tenantId, clientId);
+  });
+}
+
+export async function setPrimaryClientServiceProfile(
+  tenantId: string,
+  clientId: string,
+  serviceTypeKey: ClientServiceTypeKey,
+): Promise<ServiceResult<ClientServiceProfile[]>> {
+  return runService(async () => {
+    const typesResult = await listTenantClientServiceTypes(tenantId);
+    if (!typesResult.ok) return typesResult;
+
+    const type = typesResult.data.find((t) => t.serviceTypeKey === serviceTypeKey);
+    if (!type) return { ok: false, error: 'Leistungsart nicht gefunden.' };
+
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    await fromUnknownTable(client, 'client_service_profiles')
+      .update({ is_primary: false })
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('status', 'active');
+
+    const { error } = await fromUnknownTable(client, 'client_service_profiles')
+      .update({ is_primary: true })
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('service_type_id', type.id)
+      .eq('status', 'active');
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    return listClientServiceProfiles(tenantId, clientId);
+  });
+}
+
+export async function updateClientServiceProfileNotes(
+  tenantId: string,
+  clientId: string,
+  profileId: string,
+  notes: string | null,
+): Promise<ServiceResult<ClientServiceProfile>> {
+  return runService(async () => {
+    const denied = guardServiceTenant(tenantId);
+    if (denied) return denied;
+
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const { error } = await fromUnknownTable(client, 'client_service_profiles')
+      .update({ notes })
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('id', profileId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const profiles = await listClientServiceProfiles(tenantId, clientId);
+    if (!profiles.ok) return profiles;
+    const profile = profiles.data.find((p) => p.id === profileId);
+    if (!profile) return { ok: false, error: 'Leistungsbereich nicht gefunden.' };
+    return { ok: true, data: profile };
+  });
+}
+
+export async function updateTenantClientServiceType(
+  tenantId: string,
+  typeId: string,
+  patch: Partial<{ name: string; description: string | null; isActive: boolean; sortOrder: number }>,
+): Promise<ServiceResult<TenantClientServiceType>> {
+  return runService(async () => {
+    const denied = guardServiceTenant(tenantId);
+    if (denied) return denied;
+
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const payload: Record<string, unknown> = {};
+    if (patch.name !== undefined) payload.name = patch.name;
+    if (patch.description !== undefined) payload.description = patch.description;
+    if (patch.isActive !== undefined) payload.is_active = patch.isActive;
+    if (patch.sortOrder !== undefined) payload.sort_order = patch.sortOrder;
+
+    const { error } = await fromUnknownTable(client, 'tenant_client_service_types')
+      .update(payload)
+      .eq('tenant_id', tenantId)
+      .eq('id', typeId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const list = await listTenantClientServiceTypes(tenantId);
+    if (!list.ok) return list;
+    const updated = list.data.find((t) => t.id === typeId);
+    if (!updated) return { ok: false, error: 'Leistungsart nicht gefunden.' };
+    return { ok: true, data: updated };
+  });
+}
+
+/** Alias for UI/intake — loads DB intake sections for service type keys. */
+export async function getServiceIntakeSections(
+  tenantId: string,
+  serviceTypeKeys: ClientServiceTypeKey[],
+): Promise<ServiceResult<TenantServiceIntakeSection[]>> {
+  return listIntakeSectionsForServiceTypes(tenantId, serviceTypeKeys);
 }
 
 export async function listIntakeSectionsForServiceTypes(

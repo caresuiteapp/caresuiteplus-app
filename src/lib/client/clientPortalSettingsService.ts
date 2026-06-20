@@ -1,6 +1,7 @@
 import type { ServiceResult } from '@/types';
 import type {
   ClientPortalAccessRequest,
+  ClientPortalFeatureKey,
   ClientPortalSettingsResolved,
   TenantClientPortalDefaults,
 } from '@/types/clientCore';
@@ -159,6 +160,99 @@ export async function listVisiblePortalFeatures(
     // visit_tracking intentionally excluded — no GPS in client portal
 
     return { ok: true, data: features };
+  });
+}
+
+/** Synchronous guard — GPS/visit_tracking never visible in client portal. */
+export function canClientPortalSeeFeature(
+  settings: ClientPortalSettingsResolved,
+  feature: ClientPortalFeatureKey,
+): boolean {
+  if (!settings.portalEnabled) return false;
+  if (feature === 'visit_tracking') return false;
+
+  switch (feature) {
+    case 'appointments':
+      return settings.showAppointments;
+    case 'messages':
+      return settings.showMessages;
+    case 'documents':
+      return settings.showDocuments;
+    case 'proofs':
+      return settings.showProofs;
+    case 'budget':
+      return settings.showBudget;
+    default:
+      return false;
+  }
+}
+
+export async function canClientPortalSeeServiceFeature(
+  tenantId: string,
+  clientId: string,
+  serviceTypeId: string,
+  featureKey: string,
+): Promise<ServiceResult<boolean>> {
+  return runService(async () => {
+    const baseResult = await fetchClientPortalSettingsResolved(tenantId, clientId);
+    if (!baseResult.ok) return baseResult;
+    if (!canClientPortalSeeFeature(baseResult.data, featureKey as ClientPortalFeatureKey)) {
+      return { ok: true, data: false };
+    }
+
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const { data, error } = await fromUnknownTable(client, 'client_service_portal_settings')
+      .select('is_visible')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('service_type_id', serviceTypeId)
+      .eq('feature_key', featureKey)
+      .maybeSingle();
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (data && typeof data === 'object' && 'is_visible' in data) {
+      return { ok: true, data: Boolean((data as { is_visible: boolean }).is_visible) };
+    }
+
+    return { ok: true, data: canClientPortalSeeFeature(baseResult.data, featureKey as ClientPortalFeatureKey) };
+  });
+}
+
+export async function reviewClientPortalAccessRequest(
+  tenantId: string,
+  clientId: string,
+  requestId: string,
+  decision: 'approved' | 'rejected',
+  options?: { reviewNote?: string | null; reviewedBy?: string | null },
+): Promise<ServiceResult<ClientPortalAccessRequest>> {
+  return runService(async () => {
+    const denied = guardServiceTenant(tenantId);
+    if (denied) return denied;
+
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const { error } = await fromUnknownTable(client, 'client_portal_access_requests')
+      .update({
+        status: decision,
+        review_note: options?.reviewNote ?? null,
+        reviewed_by: options?.reviewedBy ?? null,
+        reviewed_at: new Date().toISOString(),
+      })
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .eq('id', requestId)
+      .eq('status', 'pending');
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const list = await listClientPortalAccessRequests(tenantId, clientId);
+    if (!list.ok) return list;
+    const updated = list.data.find((r) => r.id === requestId);
+    if (!updated) return { ok: false, error: 'Anfrage nicht gefunden.' };
+    return { ok: true, data: updated };
   });
 }
 

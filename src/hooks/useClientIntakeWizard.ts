@@ -25,11 +25,13 @@ import { validateCostBearerEntry } from '@/features/costCarriers/costCarrierServ
 import {
   createEmptyIntakeForm,
   getIntakeStepsForContexts,
+  getIntakeStepsForServiceTypeKeys,
   hasIntakeErrors,
   submitClientIntake,
   submitClientIntakeUpdate,
   validateIntakeStep,
 } from '@/lib/clients/clientIntakeService';
+import { getServiceIntakeSections, careContextsToServiceTypeKeys } from '@/lib/client/clientServiceTypeService';
 import { fetchClientIntakeEditData } from '@/lib/clients/clientIntakeEditService';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -80,10 +82,38 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
   const needsRemoteSyncOnLoad = useRef(false);
   const draftFeedbackTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
-  const steps = useMemo(
-    () => getIntakeStepsForContexts(form.careContexts),
-    [form.careContexts],
-  );
+  const [dbSectionsLoaded, setDbSectionsLoaded] = useState(false);
+  const [dbSectionKeys, setDbSectionKeys] = useState<
+    { sectionKey: string; isRequired: boolean; sortOrder: number }[]
+  >([]);
+
+  useEffect(() => {
+    if (!tenantId || form.careContexts.length === 0) {
+      setDbSectionKeys([]);
+      setDbSectionsLoaded(true);
+      return;
+    }
+    let cancelled = false;
+    const keys = careContextsToServiceTypeKeys(form.careContexts);
+    void getServiceIntakeSections(tenantId, keys).then((result) => {
+      if (cancelled) return;
+      if (result.ok) {
+        setDbSectionKeys(result.data);
+      }
+      setDbSectionsLoaded(true);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, form.careContexts]);
+
+  const steps = useMemo(() => {
+    if (!dbSectionsLoaded || form.careContexts.length === 0) {
+      return getIntakeStepsForContexts(form.careContexts);
+    }
+    const keys = careContextsToServiceTypeKeys(form.careContexts);
+    return getIntakeStepsForServiceTypeKeys(keys, form.careContexts, dbSectionKeys);
+  }, [dbSectionsLoaded, dbSectionKeys, form.careContexts]);
 
   const currentSection = steps[stepIndex] ?? 'leistungsart';
   const contextHint = getSupportOnlyHint(form.careContexts);

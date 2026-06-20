@@ -333,8 +333,11 @@ export function ClientRecordPortalPanel({ clientId, fullClient, onRecordRefresh 
   );
 }
 
-export function ClientRecordLeistungsbereichePanel({ clientId }: Pick<TabPanelProps, 'clientId'>) {
-  return <ClientServiceProfilesPanel clientId={clientId} />;
+export function ClientRecordLeistungsbereichePanel({
+  clientId,
+  onRecordRefresh,
+}: Pick<TabPanelProps, 'clientId' | 'onRecordRefresh'>) {
+  return <ClientServiceProfilesPanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
 }
 
 export function ClientRecordBudgetCorePanel({
@@ -432,7 +435,7 @@ export function ClientRecordTabContent({
     case 'module':
       return <ClientRecordModulesPanel {...panelProps} />;
     case 'leistungsbereiche':
-      return <ClientRecordLeistungsbereichePanel clientId={clientId} />;
+      return <ClientRecordLeistungsbereichePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
     case 'budget':
       return <ClientRecordBudgetCorePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
     case 'portal':

@@ -2,12 +2,12 @@ import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAiPageContext } from '@/ai/useAiPageContext';
-import { DetailInfoRow } from '@/components/detail';
+import { ContextCard, clientRecordKpiGridStyle, DetailInfoRow } from '@/components/detail';
 import { ClientRecordHero } from '@/components/office/ClientRecordHero';
+import { ClientEditModal } from '@/components/office/ClientEditModal';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { ClientRecordOverviewPanel } from '@/components/office/ClientRecordOverviewPanel';
-import { CareLightKpiCard } from '@/components/ui/CareLightKpiCard';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -18,7 +18,6 @@ import {
 } from '@/components/ui';
 import { useClientRecord } from '@/hooks/useClientRecord';
 import { useClientFullDetail } from '@/hooks/useClientFullDetail';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -29,10 +28,8 @@ import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatte
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import { CLIENT_RECORD_TAB_LABELS, type ClientCareContext, type ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
-import { clientEditRoute } from '@/lib/navigation/clientRoutes';
 import { ClientRecordTabContent } from '@/screens/business/office/ClientRecordTabPanels';
 import { KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
 
@@ -52,13 +49,14 @@ function StammdatenTab({
   fullClient,
   canViewSensitive,
   careContexts,
+  onEditMasterData,
 }: {
   detail: NonNullable<ReturnType<typeof useClientRecord>['detail']>;
   fullClient: ReturnType<typeof useClientFullDetail>['data'];
   canViewSensitive: boolean;
   careContexts: ClientCareContext[];
+  onEditMasterData?: () => void;
 }) {
-  const router = useRouter();
   const serviceTypes =
     careContexts.length > 0
       ? careContexts.map((ctx) => getCatalogLabel('leistungsart', ctx)).join(' · ')
@@ -123,22 +121,41 @@ function StammdatenTab({
           ) : null}
         </SectionPanel>
       ) : null}
-      <PremiumButton
-        title="Stammdaten bearbeiten"
-        variant="secondary"
-        onPress={() => router.push(clientEditRoute(detail.id) as never)}
-      />
+      {onEditMasterData ? (
+        <PremiumButton
+          title="Stammdaten bearbeiten"
+          variant="secondary"
+          onPress={onEditMasterData}
+        />
+      ) : null}
     </View>
   );
 }
 
-export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?: ClientRecordTabKey } = {}) {
-  const { id, tab: tabParam } = useLocalSearchParams<{ id: string; tab?: string }>();
+export function ClientRecordScreen({
+  initialTabOverride,
+  clientId: clientIdProp,
+  embedded = false,
+  onDeleted,
+  onEditMasterData,
+}: {
+  initialTabOverride?: ClientRecordTabKey;
+  clientId?: string;
+  embedded?: boolean;
+  embeddedInModal?: boolean;
+  onDeleted?: () => void;
+  onEditMasterData?: () => void;
+} = {}) {
+  const { id: routeId, tab: tabParam, edit: editParam } = useLocalSearchParams<{
+    id: string;
+    tab?: string;
+    edit?: string;
+  }>();
+  const id = clientIdProp ?? routeId;
   const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can } = usePermissions();
-  const { isDesktopOrWide } = useDeviceClass();
   const { detail, careContexts, tabs, loading, error, refresh } = useClientRecord(id);
   const fullQuery = useClientFullDetail(id);
   const [archiving, setArchiving] = useState(false);
@@ -149,12 +166,27 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
       ? (resolvedTabParam as ClientRecordTabKey)
       : 'uebersicht';
   const [activeTab, setActiveTab] = useState<ClientRecordTabKey>(initialTab);
+  const [localEditOpen, setLocalEditOpen] = useState(false);
 
   useEffect(() => {
     if (resolvedTabParam && tabs.includes(resolvedTabParam as ClientRecordTabKey)) {
       setActiveTab(resolvedTabParam as ClientRecordTabKey);
     }
   }, [resolvedTabParam, tabs]);
+
+  const handleEditMasterData = onEditMasterData ?? (() => setLocalEditOpen(true));
+  const hostsLocalEditModal = !onEditMasterData;
+
+  useEffect(() => {
+    if (embedded || editParam !== '1' || !detail) return;
+    if (!can('office.clients.edit')) return;
+    if (onEditMasterData) {
+      onEditMasterData();
+    } else {
+      setLocalEditOpen(true);
+    }
+    router.setParams({ edit: undefined } as never);
+  }, [editParam, embedded, detail, router, onEditMasterData, can]);
 
   const tabOptions = tabs.map((t) => ({ key: t, label: CLIENT_RECORD_TAB_LABELS[t] ?? t }));
 
@@ -183,26 +215,32 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
   });
 
   if (loading) {
-    return (
-      <CareLightPageShell title="Klient:innenakte" subtitle="Wird geladen…">
+    return embedded ? (
+      <LoadingState message="Akte wird geladen…" />
+    ) : (
+      <ScreenShell title="Klient:innenakte" subtitle="Wird geladen…">
         <LoadingState message="Akte wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error) {
-    return (
-      <CareLightPageShell title="Klient:innenakte" subtitle="Fehler">
+    return embedded ? (
+      <ErrorState message={error} onRetry={refresh} />
+    ) : (
+      <ScreenShell title="Klient:innenakte" subtitle="Fehler">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!detail || !overview) {
-    return (
-      <CareLightPageShell title="Klient:innenakte" subtitle="Nicht gefunden">
+    return embedded ? (
+      <EmptyState title="Nicht gefunden" message="Klient:in nicht gefunden." />
+    ) : (
+      <ScreenShell title="Klient:innenakte" subtitle="Nicht gefunden">
         <EmptyState title="Nicht gefunden" message="Klient:in nicht gefunden." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -233,79 +271,83 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
     setArchiveError(result.error);
   }
 
-  return (
-    <CareLightPageShell
-      title="Klient:innenakte"
-      subtitle={`${detail.firstName} ${detail.lastName}`}
-      rightSlot={
-        canArchive || canEdit || canDelete ? (
-          <View style={styles.headerActions}>
-            {canArchive ? (
-              <PremiumButton
-                title="Archivieren"
-                size="sm"
-                variant="ghost"
-                loading={archiving}
-                onPress={handleArchive}
-              />
-            ) : null}
-            {canEdit ? (
-              <PremiumButton
-                title="Stammdaten bearbeiten"
-                size="sm"
-                variant="secondary"
-                onPress={() => router.push(clientEditRoute(detail.id) as never)}
-              />
-            ) : null}
-            {canDelete ? (
-              <View style={styles.headerDelete}>
-                <OfficeRecordDeleteButton
-                  recordLabel="Klient:in"
-                  displayName={`${detail.firstName} ${detail.lastName}`}
-                  fullWidth={false}
-                  onDelete={() => {
-                    if (!tenantId) {
-                      return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-                    }
-                    return deleteClient(
-                      detail.id,
-                      tenantId,
-                      profile?.roleKey,
-                      profile?.id,
-                      profile?.displayName,
-                    );
-                  }}
-                  onDeleted={() => router.replace('/office/clients' as never)}
-                />
-              </View>
-            ) : null}
+  const headerActions =
+    canArchive || canEdit || canDelete ? (
+      <View style={styles.headerActions}>
+        {canArchive ? (
+          <PremiumButton
+            title="Archivieren"
+            size="sm"
+            variant="ghost"
+            loading={archiving}
+            onPress={handleArchive}
+          />
+        ) : null}
+        {canEdit ? (
+          <PremiumButton
+            title="Stammdaten bearbeiten"
+            size="sm"
+            variant="secondary"
+            onPress={handleEditMasterData}
+          />
+        ) : null}
+        {canDelete ? (
+          <View style={styles.headerDelete}>
+            <OfficeRecordDeleteButton
+              recordLabel="Klient:in"
+              displayName={`${detail.firstName} ${detail.lastName}`}
+              confirmTitle="Klient:in wirklich löschen?"
+              buttonTitle="Klient:in löschen"
+              fullWidth={false}
+              onDelete={() => {
+                if (!tenantId) {
+                  return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+                }
+                return deleteClient(
+                  detail.id,
+                  tenantId,
+                  profile?.roleKey,
+                  profile?.id,
+                  profile?.displayName,
+                );
+              }}
+              onDeleted={() => {
+                if (onDeleted) {
+                  onDeleted();
+                  return;
+                }
+                router.replace('/office/clients' as never);
+              }}
+            />
           </View>
-        ) : null
-      }
-    >
-      <ClientRecordHero
-        firstName={detail.firstName}
-        lastName={detail.lastName}
-        careLevel={detail.careLevel}
-        city={detail.city ?? null}
-        status={detail.status}
-        careContexts={careContexts}
-        archiveError={archiveError}
-        showEdit={canEdit}
-        onEdit={() => router.push(clientEditRoute(detail.id) as never)}
-      />
+        ) : null}
+      </View>
+    ) : null;
 
-      <View style={[styles.kpiGrid, isDesktopOrWide && styles.kpiGridWide]}>
+  const recordBody = (
+    <>
+      {!embedded ? (
+        <ClientRecordHero
+          firstName={detail.firstName}
+          lastName={detail.lastName}
+          careLevel={detail.careLevel}
+          city={detail.city ?? null}
+          status={detail.status}
+          careContexts={careContexts}
+          archiveError={archiveError}
+          showEdit={canEdit}
+          onEdit={handleEditMasterData}
+        />
+      ) : null}
+
+      <View style={clientRecordKpiGridStyle}>
         {kpis.map((kpi) => (
-          <CareLightKpiCard
+          <ContextCard
             key={kpi.id}
+            icon={kpi.icon ?? '📊'}
             label={kpi.label}
-            value={kpi.value}
-            subValue={kpi.subValue}
-            icon={kpi.icon}
-            iconKey={kpi.iconKey}
-            accentColor={kpi.accentColor ?? careLightColors.orange}
-            style={styles.kpiItem}
+            count={Number(kpi.value) || 0}
+            accentColor={kpi.accentColor}
           />
         ))}
       </View>
@@ -314,6 +356,8 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
         tabs={tabOptions}
         activeKey={activeTab}
         onSelect={(k) => setActiveTab(k as ClientRecordTabKey)}
+        layout="wrap"
+        rows={2}
       />
 
       <View style={styles.tabPanel}>
@@ -326,26 +370,19 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
             fullClient={fullQuery.data}
             canViewSensitive={fullQuery.canViewSensitive}
             careContexts={careContexts}
+            onEditMasterData={canEdit ? handleEditMasterData : undefined}
           />
         )}
         {activeTab === 'kontakt' && fullQuery.data ? (
           <KontaktAdresseTab client={fullQuery.data} onRefresh={handleRecordRefresh} />
         ) : activeTab === 'kontakt' ? (
           <SectionPanel title="Kontakt & Adresse">
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Adresse</Text>
-              <Text style={styles.fieldValue}>
-                {formatClientAddressLine(detail.street, detail.zip, detail.city) || '—'}
-              </Text>
-            </View>
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>Telefon</Text>
-              <Text style={styles.fieldValue}>{detail.phone ?? '—'}</Text>
-            </View>
-            <View style={styles.fieldRow}>
-              <Text style={styles.fieldLabel}>E-Mail</Text>
-              <Text style={styles.fieldValue}>{detail.email ?? '—'}</Text>
-            </View>
+            <DetailInfoRow
+              label="Adresse"
+              value={formatClientAddressLine(detail.street, detail.zip, detail.city) || '—'}
+            />
+            <DetailInfoRow label="Telefon" value={detail.phone ?? '—'} />
+            <DetailInfoRow label="E-Mail" value={detail.email ?? '—'} />
           </SectionPanel>
         ) : null}
         {!['uebersicht', 'stammdaten', 'kontakt'].includes(activeTab) ? (
@@ -358,23 +395,53 @@ export function ClientRecordScreen({ initialTabOverride }: { initialTabOverride?
           />
         ) : null}
       </View>
-    </CareLightPageShell>
+    </>
+  );
+
+  if (embedded) {
+    return (
+      <>
+        <View style={styles.embeddedRoot}>{recordBody}</View>
+        {hostsLocalEditModal && localEditOpen ? (
+          <ClientEditModal
+            visible={localEditOpen}
+            clientId={detail.id}
+            onClose={() => setLocalEditOpen(false)}
+            onSaved={() => {
+              setLocalEditOpen(false);
+              void handleRecordRefresh();
+            }}
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <ScreenShell
+        title="Klient:innenakte"
+        subtitle={`${detail.firstName} ${detail.lastName}`}
+        rightSlot={headerActions}
+      >
+        {recordBody}
+      </ScreenShell>
+      {hostsLocalEditModal && localEditOpen ? (
+        <ClientEditModal
+          visible={localEditOpen}
+          clientId={detail.id}
+          onClose={() => setLocalEditOpen(false)}
+          onSaved={() => {
+            setLocalEditOpen(false);
+            void handleRecordRefresh();
+          }}
+        />
+      ) : null}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
-  kpiGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: careSpacing.sm,
-  },
-  kpiGridWide: {
-    flexWrap: 'nowrap',
-  },
-  kpiItem: {
-    flex: 1,
-    minWidth: 140,
-  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -387,21 +454,9 @@ const styles = StyleSheet.create({
     gap: careSpacing.md,
     paddingBottom: spacing.xxl,
   },
-  fieldRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: spacing.xs,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: careLightColors.border,
-  },
-  fieldLabel: {
-    flex: 1,
-    color: careLightColors.muted,
-    fontWeight: '600',
-  },
-  fieldValue: {
-    flex: 1,
-    textAlign: 'right',
-    color: careLightColors.text,
+  embeddedRoot: {
+    gap: careSpacing.md,
+    padding: careSpacing.md,
+    paddingBottom: spacing.xxl,
   },
 });

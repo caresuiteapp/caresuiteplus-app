@@ -1,6 +1,6 @@
 # Client Core Abnahme-Checklist — Status
 
-**Stand:** 2026-06-20 · **Scope:** K.0–K.3 Foundation
+**Stand:** 2026-06-20 · **Scope:** K.0–K.4
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
@@ -11,18 +11,24 @@
 | K.1.1 | Budget years/types/defaults Tabellen | ✅ | Migration 0159 |
 | K.1.2 | 2026 Vorlage editierbar in DB | ✅ | tenant_budget_defaults seed |
 | K.1.3 | Kein Budget-Hardcode in React | ✅ | ClientBudgetCorePanel liest DB |
-| K.1.4 | client_budget_settings + movements | ✅ | Migration 0159 |
+| K.1.4 | client_budget_settings + movements | ✅ | Migration 0159 + Panel |
 | K.2.1 | Portal defaults konservativ | ✅ | messages only default visible |
 | K.2.2 | Kein GPS im Klientenportal | ✅ | show_visit_tracking false |
 | K.2.3 | client_portal_settings Override | ✅ | clientPortalSettingsService |
-| K.2.4 | Portal access requests Tabelle | ✅ | client_portal_access_requests |
+| K.2.4 | Portal access requests Tabelle | ✅ | approve/reject UI |
 | K.3.1 | Record mapping / completeness | ✅ | clientRecordMappingService |
-| K.3.2 | Akte-Tabs Leistungsbereiche/Budget/Portal | ✅ | clientIntakeFieldRules + Panels |
-| K.3.3 | Modal-Stack Klient:in edit prep | ✅ | ClientRecordModalPrepScreen |
-| K.3.4 | Mandanten-Stubs Leistungsarten/Budget | ✅ | Tenant Center + routes |
-| K.3.5 | Tests + Regression green | ✅ | .audit-test-client-core-k03-precommit.log |
-| — | 0154–0158 unverändert | ✅ | Abort-Gate |
+| K.3.2 | Akte-Tabs Leistungsbereiche/Budget/Portal | ✅ | ClientRecordTabPanels |
+| K.3.3 | Modal-Stack Klient:in edit prep | ✅ | ClientEditModal + prep.client.edit |
+| K.3.4 | Mandanten-Stubs Leistungsarten/Budget | ✅ | tenant routes K.4 enhanced |
+| K.3.5 | Tests + Regression green | ✅ | .audit-test-client-core-k4-precommit.log |
+| K.4.1 | ClientEditModal unified (not edit page) | ✅ | ClientEditModal + redirect |
+| K.4.2 | Intake sync profiles/portal/budget on save | ✅ | clientCoreIntakeSyncService |
+| K.4.3 | Service profiles end not delete | ✅ | endClientServiceProfile |
+| K.4.4 | ModalStack in-page actions | ✅ | serviceProfile.add, prep.client.edit |
+| K.4.5 | Portal guards canClientPortalSeeFeature | ✅ | clientPortalSettingsService |
+| K.4.6 | K.4 tests green | ✅ | clientRecordUi, clientEditModal, clientCoreK4Intake |
+| — | 0154–0159 unverändert | ✅ | Abort-Gate |
 | — | staticRolePermissions unverändert | ✅ | Abort-Gate |
-| — | 0159 remote applied | ✅ | `.audit-supabase-client-core-k03-0159-apply.log` |
+| — | 0159 remote applied | ✅ | k4 precheck log |
 
-**Gesamt:** 19/19 ✅
+**Gesamt:** 25/25 ✅
