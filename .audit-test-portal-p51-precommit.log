@@ -1,0 +1,29 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 test
+> vitest run --run src/__tests__/portal/portalSyncFlow.test.ts src/__tests__/portal/portalProjectionServices.test.ts src/__tests__/assist/assistProofToPortalFlow.test.ts src/__tests__/navigation/modalStack.test.ts src/__tests__/portal/clientPortalOverviewLive.test.ts src/__tests__/portal/clientPortalProfileLive.test.ts src/__tests__/portal/portalModuleFiltering.test.ts src/__tests__/auth/liveSupabaseAuth.test.ts
+
+
+ RUN  v3.2.6 C:/Users/Kevin Reinhardt/Documents/CareSuite+
+
+ Ô£ô src/__tests__/portal/clientPortalProfileLive.test.ts (5 tests) 11ms
+ Ô£ô src/__tests__/navigation/modalStack.test.ts (5 tests) 9ms
+ Ô£ô src/__tests__/portal/portalSyncFlow.test.ts (6 tests) 14ms
+ Ô£ô src/__tests__/portal/portalProjectionServices.test.ts (6 tests) 21ms
+ Ô£ô src/__tests__/portal/portalModuleFiltering.test.ts (7 tests) 15ms
+ Ô£ô src/__tests__/portal/clientPortalOverviewLive.test.ts (5 tests) 15ms
+ Ô£ô src/__tests__/assist/assistProofToPortalFlow.test.ts (10 tests) 24ms
+ Ô£ô src/__tests__/auth/liveSupabaseAuth.test.ts (6 tests) 24ms
+
+ Test Files  8 passed (8)
+      Tests  50 passed (50)
+   Start at  00:27:05
+   Duration  2.87s (transform 3.87s, setup 0ms, collect 7.07s, tests 132ms, environment 2ms, prepare 3.28s)
+

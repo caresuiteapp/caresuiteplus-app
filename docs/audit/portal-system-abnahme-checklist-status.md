@@ -1,6 +1,6 @@
 # Portal System Abnahme-Checklist — Status
 
-**Stand:** 2026-06-21 · **Scope:** Portal System Core P.0–P.5
+**Stand:** 2026-06-21 · **Scope:** Portal System Core P.0–P.5.1
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
@@ -24,7 +24,11 @@
 | P.4.6 | Office Sync-Kette Code-Pfade | ✅ | ClientPortalCorePanel, PortalSyncChainPanel |
 | P.5.1 | Real-access route smoke (18 routes) | ✅ | P.5 §5–6 HTTP 200 on :8082 |
 | P.5.2 | Test context documented (no secrets) | ✅ | P.5 §4 |
-| P.5.3 | Authenticated E2E browser login | ⚠️ partial | Live edge auth; no repo test codes |
+| P.5.3 | Authenticated E2E browser login | ⚠️ partial | Edge E2E ✅ (P.5.1); Browser-MCP UI ⚠️ |
+| P.5.1a | Scoped test access (Test Pflege GmbH) | ✅ | P.5.1 §5 — no secrets in report |
+| P.5.1b | Edge login Client + Employee | ✅ | `client-portal-login` + `employee-portal-login` |
+| P.5.1c | HTTP smoke 18 routes (:8083) | ✅ | `.audit-portal-p51-http-smoke.log` |
+| P.5.1d | Portal/auth regression 50/50 | ✅ | `.audit-test-portal-p51-precommit.log` |
 | P.5.4 | Core regression 60/60 + proof flow 10/10 | ✅ | `.audit-test-portal-p5-precommit.log` |
 | P.5.5 | Office Client portal card | ✅ | ClientPortalCorePanel |
 | P.5.6 | Employee impact card | ✅ | EmployeePortalImpactPanel |
@@ -36,4 +40,4 @@
 | — | Migration 0160 | ❌ nicht nötig | bestehende Tabellen |
 | — | K.5 / Mitarbeiter Core / B.2 / B.3 | ❌ nicht gestartet | Scope |
 
-**Gesamt:** 32/33 ✅ · 1 ⚠️ partial (P.5.3 authenticated E2E)
+**Gesamt:** 36/37 ✅ · 1 ⚠️ partial (P.5.3 Browser UI E2E)

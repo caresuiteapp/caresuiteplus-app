@@ -1,0 +1,1053 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 typecheck
+> tsc --noEmit
+
+app/business/office/access/tasks/index.tsx(1,10): error TS2724: '"@/screens/office/access"' has no exported member named 'InternalTasksScreen'. Did you mean 'InternalUsersScreen'?
+app/business/office/invoices/month-end.tsx(1,10): error TS2305: Module '"@/screens/business/office/OfficeInvoiceExtensionScreens"' has no exported member 'MonthEndClosingScreen'.
+app/office/calendar/templates/index.tsx(24,9): error TS2322: Type '{ title: string; message: string; actionLabel: string; onAction: () => void; accentColor: string; }' is not assignable to type 'IntrinsicAttributes & EmptyStateProps'.
+  Property 'accentColor' does not exist on type 'IntrinsicAttributes & EmptyStateProps'.
+src/__tests__/admin/dataQuality.test.ts(237,30): error TS2367: This comparison appears to be unintentional because the types 'ManagementTaskType' and '"master_data_review"' have no overlap.
+src/__tests__/assist/qmCockpit.test.ts(192,30): error TS2367: This comparison appears to be unintentional because the types 'ManagementTaskType' and '"emergency_follow_up"' have no overlap.
+src/__tests__/assist/qmCockpit.test.ts(366,42): error TS2353: Object literal may only specify known properties, and 'taskType' does not exist in type '{ assignmentId?: string | undefined; status?: ManagementTaskStatus | undefined; }'.
+src/__tests__/assist/qmCockpit.test.ts(440,49): error TS2353: Object literal may only specify known properties, and 'taskType' does not exist in type '{ assignmentId?: string | undefined; status?: ManagementTaskStatus | undefined; }'.
+src/__tests__/assist/qmCockpit.test.ts(444,61): error TS2554: Expected 3 arguments, but got 4.
+src/__tests__/clients/clientAddressResolver.test.ts(75,9): error TS2322: Type '"aktiv"' is not assignable to type '"active" | "inactive" | "archived" | "blocked" | "deleted" | "paused" | "lead" | "deceased"'.
+src/__tests__/clients/clientAddressResolver.test.ts(76,9): error TS2322: Type '"3"' is not assignable to type '"unknown" | "none" | "pg1" | "pg2" | "pg3" | "pg4" | "pg5" | null'.
+src/__tests__/clients/clientContactPayload.test.ts(38,9): error TS2353: Object literal may only specify known properties, and 'isEmergency' does not exist in type 'ClientContactWriteInput'.
+src/__tests__/clients/clientEditFormMappers.test.ts(127,13): error TS2322: Type '{ id: string; tenantId: string; clientId: string; category: "sturz"; level: "mittel"; description: string; mitigation: null; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientRisk'.
+  Type '{ id: string; tenantId: string; clientId: string; category: "sturz"; level: "mittel"; description: string; mitigation: null; createdAt: string; updatedAt: string; }' is missing the following properties from type '{ clientId: string; category: "sonstige" | "ernaehrung" | "medikation" | "sturz" | "dekubitus" | "verhalten"; level: RiskLevel; description: string; mitigation: string | null; assessedAt: string; assessedBy: string | null; }': assessedAt, assessedBy
+src/__tests__/clients/clientEditFormMappers.test.ts(138,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(139,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(140,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(141,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(144,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(145,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(149,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(150,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(151,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(164,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/clients/clientEditFormMappers.test.ts(181,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(182,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(183,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(184,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(185,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(186,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(187,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(188,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(189,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(190,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(191,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(192,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(193,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(194,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditFormMappers.test.ts(195,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/clients/clientEditPersistence.test.ts(210,68): error TS2345: Argument of type '{ firstName: string; lastName: string; careLevel: string; careContexts: readonly ["daily_assistance"]; street: string; houseNumber: string; zip: string; city: string; costCarrier: string; insuranceNumber: string; ... 36 more ...; portalModules: PortalModuleKey[]; }' is not assignable to parameter of type 'ClientEditFormData'.
+  Types of property 'careContexts' are incompatible.
+    The type 'readonly ["daily_assistance"]' is 'readonly' and cannot be assigned to the mutable type 'ClientCareContext[]'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(8,3): error TS2305: Module '"@/features/intakeDocuments/buildIntakeDocumentContext"' has no exported member 'resolveBillingHourlyRate'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(54,5): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'ClientIntakeFormData'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDocuments.test.ts(61,69): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(73,7): error TS2741: Property 'intakeDocuments' is missing in type 'ClientIntakeFormData' but required in type '{ intakeDocuments: any; careContexts: ClientCareContext[]; firstName: string; lastName: string; salutation: string; gender: string; dateOfBirth: string; birthPlace: string; ... 120 more ...; taskCategories: string[]; }'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(115,64): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'Partial<ClientIntakeFormData>'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDocuments.test.ts(120,65): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'Partial<ClientIntakeFormData>'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDocuments.test.ts(127,7): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'Partial<ClientIntakeFormData>'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDocuments.test.ts(137,7): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'Partial<ClientIntakeFormData>'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDocuments.test.ts(146,57): error TS2345: Argument of type '{ name: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Type '{ name: string; }' is missing the following properties from type 'IntakeTenantDisplay': city, zip, street
+src/__tests__/clients/clientIntakeDocuments.test.ts(196,50): error TS2353: Object literal may only specify known properties, and 'intakeAssignmentEnabled' does not exist in type 'Partial<ClientIntakeFormData>'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(201,50): error TS2353: Object literal may only specify known properties, and 'intakeAssignmentEnabled' does not exist in type 'Partial<ClientIntakeFormData>'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(295,64): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'Partial<ClientIntakeFormData>'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDocuments.test.ts(309,92): error TS2345: Argument of type '{ name: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Type '{ name: string; }' is missing the following properties from type 'IntakeTenantDisplay': city, zip, street
+src/__tests__/clients/clientIntakeDocuments.test.ts(352,43): error TS2345: Argument of type '{ name: string; }' is not assignable to parameter of type 'IntakeTenantDisplay'.
+  Type '{ name: string; }' is missing the following properties from type 'IntakeTenantDisplay': city, zip, street
+src/__tests__/clients/clientIntakeDocuments.test.ts(388,47): error TS2353: Object literal may only specify known properties, and 'intakeOptionalConsents' does not exist in type 'Partial<ClientIntakeFormData>'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(399,7): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'Partial<ClientIntakeFormData>'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDocuments.test.ts(407,9): error TS2353: Object literal may only specify known properties, and 'defaultHourlyRate' does not exist in type 'IntakeTenantDisplay'.
+src/__tests__/clients/clientIntakeDocuments.test.ts(418,7): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'Partial<ClientIntakeFormData>'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDocuments.test.ts(427,7): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'Partial<ClientIntakeFormData>'. Did you mean to write 'contractTypes'?
+src/__tests__/clients/clientIntakeDraftStorage.test.ts(63,53): error TS2322: Type '{ firstName: string; careContexts: string[]; consentDatenschutz: boolean; consentVertrag: boolean; consentTypes: string[]; lastName: string; salutation: string; gender: string; dateOfBirth: string; ... 118 more ...; taskCategories: string[]; }' is not assignable to type 'ClientIntakeFormData'.
+  Types of property 'careContexts' are incompatible.
+    Type 'string[]' is not assignable to type 'ClientCareContext[]'.
+      Type 'string' is not assignable to type 'ClientCareContext'.
+src/__tests__/clients/clientIntakeFormMappers.test.ts(16,5): error TS2322: Type '"standard"' is not assignable to type 'SensitivityLevel'.
+src/__tests__/clients/clientIntakeFormMappers.test.ts(17,5): error TS2322: Type '"internal"' is not assignable to type 'DataVisibilityScope'.
+src/__tests__/clients/clientIntakeFormMappers.test.ts(27,5): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
+src/__tests__/clients/clientIntakeFormMappers.test.ts(50,7): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+src/__tests__/clients/clientIntakeFormMappers.test.ts(54,7): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+src/__tests__/clients/clientIntakeFormMappers.test.ts(55,7): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+src/__tests__/clients/clientIntakeFormMappers.test.ts(58,7): error TS2322: Type 'null' is not assignable to type 'string | undefined'.
+src/__tests__/clients/clientIntakeFormMappers.test.ts(155,7): error TS2322: Type '{ firstName: string; lastName: string; dateOfBirth: string; salutation: string; gender: string; status: WorkflowStatus; careLevel: string; careContexts: string[]; notes: string; ... 37 more ...; billingProfileId: string | null; }' is not assignable to type 'ClientEditFormData'.
+  Types of property 'careContexts' are incompatible.
+    Type 'string[]' is not assignable to type 'ClientCareContext[]'.
+src/__tests__/clients/clientIntakeKostentraeger.test.ts(161,60): error TS2345: Argument of type '"privatversicherung"' is not assignable to parameter of type 'SystemCostCarrierType | undefined'.
+src/__tests__/clients/clientIntakeKostentraeger.test.ts(162,32): error TS2367: This comparison appears to be unintentional because the types 'SystemCostCarrierType' and '"privatversicherung"' have no overlap.
+src/__tests__/clients/clientIntakeKostentraeger.test.ts(164,56): error TS2345: Argument of type '"berufsgenossenschaft"' is not assignable to parameter of type 'SystemCostCarrierType | undefined'.
+src/__tests__/clients/clientSchedulingWishes.test.ts(36,3): error TS2304: Cannot find name 'beforeEach'.
+src/__tests__/clients/clientTasksPanel.test.ts(55,3): error TS2304: Cannot find name 'beforeEach'.
+src/__tests__/clients/clientTasksPanel.test.ts(59,3): error TS2304: Cannot find name 'afterEach'.
+src/__tests__/core/liveSupabaseWiring.test.ts(24,7): error TS2739: Type '{ id: string; tenantId: string; roleId: string; roleKey: "business_admin"; displayName: string; email: string; phone: null; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/__tests__/core/liveSupabaseWiring.test.ts(75,40): error TS2367: This comparison appears to be unintentional because the types '"missing_url" | "missing_anon_key"' and '"demo_mode"' have no overlap.
+src/__tests__/core/moduleVisibility.test.ts(86,24): error TS2339: Property 'visibilityStatus' does not exist on type 'ModuleSwitcherItem'.
+src/__tests__/core/moduleVisibility.test.ts(87,24): error TS2339: Property 'isNavigable' does not exist on type 'ModuleSwitcherItem'.
+src/__tests__/core/p0Restblocker.test.ts(19,7): error TS2739: Type '{ id: string; tenantId: string; roleId: string; roleKey: "business_admin"; displayName: string; email: string; phone: null; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/__tests__/core/tenantResolver.test.ts(11,7): error TS2739: Type '{ id: string; tenantId: string; roleId: string; roleKey: "business_admin"; displayName: string; email: string; phone: null; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/__tests__/csv/csvImportExport.test.ts(14,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(15,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(18,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(20,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(21,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(22,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(25,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(28,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(30,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(33,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(36,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(38,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(41,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(43,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(47,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(48,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(49,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(51,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(52,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(56,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(57,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(58,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(59,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(60,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(61,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(62,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(63,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(67,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(73,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(81,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(83,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(86,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(94,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(96,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(100,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(101,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(102,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(104,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(105,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(109,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(110,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(138,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(142,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(143,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(154,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(157,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(159,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(161,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(165,1): error TS2582: Cannot find name 'describe'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(166,3): error TS2582: Cannot find name 'it'. Do you need to install type definitions for a test runner? Try `npm i --save-dev @types/jest` or `npm i --save-dev @types/mocha`.
+src/__tests__/csv/csvImportExport.test.ts(176,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/csv/csvImportExport.test.ts(178,5): error TS2304: Cannot find name 'expect'.
+src/__tests__/design/galaxyGradients.test.ts(49,36): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/design/galaxyGradients.test.ts(50,37): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/design/webFontSize.test.ts(18,67): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/design/webFontSize.test.ts(28,43): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/design/webFontSize.test.ts(33,42): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/inputs/signatureCanvasCoords.test.ts(65,20): error TS2352: Conversion of type '{ target: HTMLCanvasElement; offsetX: number; offsetY: number; clientX: number; clientY: number; }' to type 'PointerEvent' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ target: HTMLCanvasElement; offsetX: number; offsetY: number; clientX: number; clientY: number; }' is missing the following properties from type 'PointerEvent': height, isPrimary, pointerId, pointerType, and 50 more.
+src/__tests__/inventory/inventoryModule.test.ts(139,7): error TS2554: Expected 2-3 arguments, but got 4.
+src/__tests__/office/clientContacts.test.ts(20,77): error TS2345: Argument of type '{ firstName: string; lastName: string; relationship: "nachbar"; relationshipLabel: string; phone: string; email: string; isEmergency: false; isPortalUser: false; portalPermissions: { canViewAppointments: false; canViewDocuments: false; canViewCarePlan: false; canSendMessages: false; canViewBilling: false; }; notes: ...' is not assignable to parameter of type 'ClientContactInput'.
+  Property 'contactType' is missing in type '{ firstName: string; lastName: string; relationship: "nachbar"; relationshipLabel: string; phone: string; email: string; isEmergency: false; isPortalUser: false; portalPermissions: { canViewAppointments: false; canViewDocuments: false; canViewCarePlan: false; canSendMessages: false; canViewBilling: false; }; notes: ...' but required in type 'ClientContactInput'.
+src/__tests__/office/employeeAbsence.test.ts(338,30): error TS2367: This comparison appears to be unintentional because the types 'ManagementTaskType' and '"absence_replacement"' have no overlap.
+src/__tests__/office/employeeCreateCatalog.test.ts(9,46): error TS2367: This comparison appears to be unintentional because the types 'CatalogType' and '"employee_role"' have no overlap.
+src/__tests__/office/employeeCreateCatalog.test.ts(10,52): error TS2367: This comparison appears to be unintentional because the types 'CatalogType' and '"employee_department"' have no overlap.
+src/__tests__/office/employeeCreateCatalog.test.ts(22,63): error TS2345: Argument of type '"employee_status" | "employee_role" | "employee_department"' is not assignable to parameter of type 'CatalogType'.
+  Type '"employee_role"' is not assignable to type 'CatalogType'.
+src/__tests__/office/employeeEditForm.test.ts(27,3): error TS2353: Object literal may only specify known properties, and 'avatarUrl' does not exist in type 'EmployeeDetail'.
+src/__tests__/office/employeeOffboarding.test.ts(246,9): error TS2322: Type '"active"' is not assignable to type 'WorkflowStatus'.
+src/__tests__/office/officeCompose.test.ts(194,9): error TS2353: Object literal may only specify known properties, and 'requireRecipient' does not exist in type 'DomainMessageInput'.
+src/__tests__/office/officeCompose.test.ts(229,9): error TS2353: Object literal may only specify known properties, and 'requireRecipient' does not exist in type 'DomainMessageInput'.
+src/__tests__/office/officemessagingfinal.test.ts(107,48): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/office/officemessagingportal.test.ts(5,3): error TS2305: Module '"@/lib/office/messagebusinessrules"' has no exported member 'filterThreadsForPortalClient'.
+src/__tests__/office/officemessagingportal.test.ts(6,3): error TS2305: Module '"@/lib/office/messagebusinessrules"' has no exported member 'filterThreadsForPortalEmployee'.
+src/__tests__/office/officemessagingportal.test.ts(166,27): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/__tests__/office/officemessagingportal.test.ts(173,27): error TS7006: Parameter 't' implicitly has an 'any' type.
+src/__tests__/office/officePhase4Crud.test.ts(73,11): error TS2353: Object literal may only specify known properties, and 'jobTitle' does not exist in type 'EmployeeEditFormData'.
+src/__tests__/office/personalComplianceCockpit.test.ts(166,25): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/office/personalComplianceCockpit.test.ts(214,7): error TS2322: Type '"master_data_review"' is not assignable to type 'ManagementTaskType'.
+src/__tests__/permissions/roleMatrix.test.ts(257,43): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/permissions/workspaceAccess.test.ts(63,61): error TS2554: Expected 1-2 arguments, but got 3.
+src/__tests__/permissions/workspaceAccess.test.ts(69,39): error TS2339: Property 'employeeId' does not exist on type 'AssignmentListItem'.
+src/__tests__/permissions/workspaceAccess.test.ts(111,75): error TS2554: Expected 2 arguments, but got 3.
+src/__tests__/pflege/bodyMapLive.test.ts(125,7): error TS2554: Expected 2-3 arguments, but got 4.
+src/__tests__/portal/clientPortalPrompt59.test.ts(264,74): error TS2554: Expected 2 arguments, but got 3.
+src/__tests__/portal/clientPortalPrompt59.test.ts(271,68): error TS2554: Expected 2 arguments, but got 3.
+src/__tests__/portal/employeePortalExecution.test.ts(8,10): error TS2305: Module '"@/lib/assist/assignmentStatusMachine"' has no exported member 'validateExecutionTransition'.
+src/__tests__/portal/employeePortalExecution.test.ts(204,20): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(219,18): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(220,15): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(220,32): error TS2339: Property 'data' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(229,20): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(238,20): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(239,17): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(239,36): error TS2339: Property 'data' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(254,20): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(270,20): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(271,18): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(272,22): error TS2339: Property 'error' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(387,20): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalCompletionResult>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(388,18): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalCompletionResult>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(389,22): error TS2339: Property 'error' does not exist on type 'Promise<ServiceResult<EmployeePortalCompletionResult>>'.
+src/__tests__/portal/employeePortalExecution.test.ts(441,19): error TS2339: Property 'ok' does not exist on type 'Promise<ServiceResult<EmployeePortalAssignmentDetail>>'.
+src/__tests__/portal/portalRequestForm.test.ts(135,7): error TS2345: Argument of type '{ thema: "allgemeine_frage"; rueckrufzeit: "mittag"; telefonnummer: string; nachricht: string; leistungsart: string; wochentag: PortalWeekdayKey; tageszeit: PortalTimeOfDayKey; dringlichkeit: PortalUrgencyKey; } | ... 5 more ... | { ...; }' is not assignable to parameter of type 'PortalStructuredRequestPayload'.
+  Object literal may only specify known properties, and 'thema' does not exist in type 'ZusatzterminPayload | TerminAendernPayload'.
+src/__tests__/reporting/reportingMetrics.test.ts(13,3): error TS2305: Module '"@/lib/reporting/reportingService"' has no exported member 'fetchBillingReportingDashboard'.
+src/__tests__/reporting/reportingMetrics.test.ts(14,3): error TS2305: Module '"@/lib/reporting/reportingService"' has no exported member 'fetchCeoDashboard'.
+src/__tests__/reporting/reportingMetrics.test.ts(15,3): error TS2305: Module '"@/lib/reporting/reportingService"' has no exported member 'fetchReportingDashboard'.
+src/__tests__/reporting/reportingMetrics.test.ts(44,45): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/__tests__/reporting/reportingMetrics.test.ts(45,45): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/__tests__/reporting/reportingMetrics.test.ts(59,39): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/__tests__/reporting/reportingMetrics.test.ts(62,22): error TS7006: Parameter 'id' implicitly has an 'any' type.
+src/__tests__/reporting/reportingMetrics.test.ts(70,43): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/__tests__/reporting/reportingMetrics.test.ts(73,41): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/__tests__/reporting/reportingMetrics.test.ts(82,39): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/__tests__/reporting/reportingMetrics.test.ts(93,36): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/__tests__/security/securityHardening.test.ts(91,71): error TS2554: Expected 1-2 arguments, but got 3.
+src/__tests__/security/securityHardening.test.ts(97,49): error TS2339: Property 'employeeId' does not exist on type 'AssignmentListItem'.
+src/__tests__/supabase/clientRecordFix.test.ts(9,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+src/__tests__/supabase/clientRecordFix.test.ts(13,34): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/supabase/clientRecordFix.test.ts(19,34): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/supabase/clientRecordFix.test.ts(25,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+src/__tests__/supabase/clientRecordFix.test.ts(27,29): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/supabase/clientRecordFix.test.ts(39,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+src/__tests__/supabase/clientRecordFix.test.ts(41,29): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/supabase/clientRecordFix.test.ts(53,17): error TS2540: Cannot assign to 'NODE_ENV' because it is a read-only property.
+src/__tests__/supabase/clientRecordFix.test.ts(55,29): error TS2345: Argument of type '{ code: string; message: string; details: string; hint: string; }' is not assignable to parameter of type 'PostgrestError'.
+  Type '{ code: string; message: string; details: string; hint: string; }' is missing the following properties from type 'PostgrestError': toJSON, name
+src/__tests__/tasks/internalTasks.test.ts(139,7): error TS2322: Type '"client_cancel_request"' is not assignable to type 'ManagementTaskType'.
+src/__tests__/templates/templateSystem.test.ts(20,22): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/tenant/tenantBrandingService.test.ts(105,60): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/tenant/tenantBrandingService.test.ts(138,38): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/__tests__/training/trainingPrepared.test.ts(185,7): error TS2353: Object literal may only specify known properties, and 'requiresQualification' does not exist in type '{ tenantId: string; employeeId: string | null; actorRoleKey?: RoleKey | null | undefined; absent?: boolean | undefined; availabilityOk?: boolean | undefined; }'.
+src/__tests__/training/trainingPrepared.test.ts(190,11): error TS2367: This comparison appears to be unintentional because the types 'AssignmentConflictCode' and '"mandatory_training_missing"' have no overlap.
+src/__tests__/ui/googlePlayReadiness.test.ts(162,68): error TS2554: Expected 2 arguments, but got 3.
+src/__tests__/ui/googlePlayReadiness.test.ts(167,69): error TS2554: Expected 2 arguments, but got 3.
+src/__tests__/wp/wp019-fundament.test.ts(11,26): error TS2554: Expected 3-4 arguments, but got 2.
+src/components/assist/AssignmentCreateWizard.tsx(422,46): error TS2322: Type '"error"' is not assignable to type 'Variant | undefined'.
+src/components/aurora/AuroraPageHeader.tsx(159,7): error TS2322: Type '{ label: string; variant?: "default" | "muted" | "cyan" | "green" | "red" | "pink" | undefined; }[]' is not assignable to type '{ label: string; variant?: "default" | "muted" | "cyan" | "pink" | undefined; }[]'.
+  Type '{ label: string; variant?: "default" | "muted" | "cyan" | "green" | "red" | "pink" | undefined; }' is not assignable to type '{ label: string; variant?: "default" | "muted" | "cyan" | "pink" | undefined; }'.
+    Types of property 'variant' are incompatible.
+      Type '"default" | "muted" | "cyan" | "green" | "red" | "pink" | undefined' is not assignable to type '"default" | "muted" | "cyan" | "pink" | undefined'.
+        Type '"green"' is not assignable to type '"default" | "muted" | "cyan" | "pink" | undefined'.
+src/components/calendar/CalendarCreateAction.tsx(50,30): error TS2339: Property 'full' does not exist on type '{ readonly sm: 10; readonly md: 14; readonly lg: 18; readonly xl: 22; readonly card: 24; readonly capsule: 999; }'.
+src/components/calendar/CalendarEventCreateModal.tsx(59,39): error TS2345: Argument of type 'string' is not assignable to parameter of type 'CalendarModuleKey'.
+src/components/calendar/CalendarEventDrawer.tsx(69,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'TextStyle | ViewStyle | ImageStyle' is not assignable to type 'StyleProp<TextStyle>'.
+      Type 'ViewStyle' is not assignable to type 'StyleProp<TextStyle>'.
+        Type 'ViewStyle' is not assignable to type 'TextStyle'.
+          Types of property 'userSelect' are incompatible.
+            Type 'string | undefined' is not assignable to type '"contain" | "all" | "text" | "none" | "auto" | undefined'.
+              Type 'string' is not assignable to type '"contain" | "all" | "text" | "none" | "auto" | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'TextStyle | ViewStyle | ImageStyle' is not assignable to type 'StyleProp<TextStyle>'.
+src/components/calendar/CalendarEventDrawer.tsx(71,13): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type 'TextStyle | ViewStyle | ImageStyle' is not assignable to type 'StyleProp<TextStyle>'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type 'TextStyle | ViewStyle | ImageStyle' is not assignable to type 'StyleProp<TextStyle>'.
+src/components/calendar/CalendarEventGrid.tsx(50,9): error TS2322: Type 'number' is not assignable to type 'WeekStartDay'.
+src/components/calendar/CalendarEventGrid.tsx(63,9): error TS2322: Type 'number' is not assignable to type 'WeekStartDay'.
+src/components/calendar/CalendarEventPreviewStep.tsx(30,21): error TS7053: Element implicitly has an 'any' type because expression of type 'CalendarEventRecordType' can't be used to index type 'Record<CalendarEventType, string>'.
+  Property 'beratung' does not exist on type 'Record<CalendarEventType, string>'.
+src/components/calendar/CalendarEventTemplatePicker.tsx(247,30): error TS2339: Property 'full' does not exist on type '{ readonly sm: 10; readonly md: 14; readonly lg: 18; readonly xl: 22; readonly card: 24; readonly capsule: 999; }'.
+src/components/calendar/CalendarFilterBar.tsx(70,30): error TS2339: Property 'full' does not exist on type '{ readonly sm: 10; readonly md: 14; readonly lg: 18; readonly xl: 22; readonly card: 24; readonly capsule: 999; }'.
+src/components/calendar/CalendarViewSwitcher.tsx(64,30): error TS2339: Property 'full' does not exist on type '{ readonly sm: 10; readonly md: 14; readonly lg: 18; readonly xl: 22; readonly card: 24; readonly capsule: 999; }'.
+src/components/clients/ClientPortalAccessPanel.tsx(235,28): error TS2339: Property 'bodyStrong' does not exist on type '{ h1: TextStyle; h2: TextStyle; cardTitle: TextStyle; body: TextStyle; label: TextStyle; button: TextStyle; caption: TextStyle; eyebrow: TextStyle; }'.
+src/components/clients/ClientPortalAccessPanel.tsx(275,36): error TS2339: Property 'bodyStrong' does not exist on type '{ h1: TextStyle; h2: TextStyle; cardTitle: TextStyle; body: TextStyle; label: TextStyle; button: TextStyle; caption: TextStyle; eyebrow: TextStyle; }'.
+src/components/clients/ClientPortalAccessPanel.tsx(329,30): error TS2339: Property 'bodyStrong' does not exist on type '{ h1: TextStyle; h2: TextStyle; cardTitle: TextStyle; body: TextStyle; label: TextStyle; button: TextStyle; caption: TextStyle; eyebrow: TextStyle; }'.
+src/components/csv/CsvErrorTable.tsx(29,69): error TS2339: Property 'border' does not exist on type '{ primary: "#FFFFFF" | "#07122A"; secondary: "#475569" | "#C6CEDB" | "rgba(255, 255, 255, 0.78)"; muted: "#64748B" | "#8B95A7" | "rgba(255, 255, 255, 0.56)"; }'.
+src/components/csv/CsvErrorTable.tsx(37,120): error TS2339: Property 'border' does not exist on type '{ primary: "#FFFFFF" | "#07122A"; secondary: "#475569" | "#C6CEDB" | "rgba(255, 255, 255, 0.78)"; muted: "#64748B" | "#8B95A7" | "rgba(255, 255, 255, 0.56)"; }'.
+src/components/csv/CsvFieldMappingTable.tsx(18,81): error TS2339: Property 'border' does not exist on type '{ primary: "#FFFFFF" | "#07122A"; secondary: "#475569" | "#C6CEDB" | "rgba(255, 255, 255, 0.78)"; muted: "#64748B" | "#8B95A7" | "rgba(255, 255, 255, 0.56)"; }'.
+src/components/csv/CsvImportExportScreen.tsx(124,54): error TS2345: Argument of type 'CsvImportPreview<ClientImportRow | EmployeeImportRow>' is not assignable to parameter of type 'SetStateAction<CsvImportPreview<ClientImportRow> | null>'.
+  Type 'CsvImportPreview<ClientImportRow | EmployeeImportRow>' is not assignable to type 'CsvImportPreview<ClientImportRow>'.
+    Type 'ClientImportRow | EmployeeImportRow' is not assignable to type 'ClientImportRow'.
+      Type 'EmployeeImportRow' is not assignable to type 'ClientImportRow'.
+src/components/csv/CsvImportExportScreen.tsx(125,31): error TS2345: Argument of type 'CsvImportPreview<ClientImportRow | EmployeeImportRow>' is not assignable to parameter of type 'SetStateAction<CsvImportPreview<EmployeeImportRow> | null>'.
+  Type 'CsvImportPreview<ClientImportRow | EmployeeImportRow>' is not assignable to type 'CsvImportPreview<EmployeeImportRow>'.
+    Type 'ClientImportRow | EmployeeImportRow' is not assignable to type 'EmployeeImportRow'.
+      Type 'ClientImportRow' is not assignable to type 'EmployeeImportRow'.
+src/components/csv/CsvImportExportScreen.tsx(145,15): error TS2322: Type 'CsvImportPreview<ClientImportRow> | CsvImportPreview<EmployeeImportRow>' is not assignable to type 'CsvImportPreview<ClientImportRow>'.
+  Type 'CsvImportPreview<EmployeeImportRow>' is not assignable to type 'CsvImportPreview<ClientImportRow>'.
+    Type 'EmployeeImportRow' is missing the following properties from type 'ClientImportRow': kundennummer, telefon_1, telefon_2, pflegegrad, and 29 more.
+src/components/csv/CsvImportExportScreen.tsx(153,15): error TS2322: Type 'CsvImportPreview<ClientImportRow> | CsvImportPreview<EmployeeImportRow>' is not assignable to type 'CsvImportPreview<EmployeeImportRow>'.
+  Type 'CsvImportPreview<ClientImportRow>' is not assignable to type 'CsvImportPreview<EmployeeImportRow>'.
+    Type 'ClientImportRow' is missing the following properties from type 'EmployeeImportRow': personalnummer, telefon, geburtsort, staatsangehoerigkeit, and 20 more.
+src/components/csv/CsvImportExportScreen.tsx(207,11): error TS2322: Type '{ value: TabKey; label: string; }[]' is not assignable to type 'SegmentOption[]'.
+  Property 'key' is missing in type '{ value: TabKey; label: string; }' but required in type 'SegmentOption'.
+src/components/csv/CsvImportLogTable.tsx(26,26): error TS2304: Cannot find name 'getImportLogDetail'.
+src/components/csv/CsvImportLogTable.tsx(42,76): error TS2339: Property 'border' does not exist on type '{ primary: "#FFFFFF" | "#07122A"; secondary: "#475569" | "#C6CEDB" | "rgba(255, 255, 255, 0.78)"; muted: "#64748B" | "#8B95A7" | "rgba(255, 255, 255, 0.56)"; }'.
+src/components/csv/CsvImportPreview.tsx(48,94): error TS2339: Property 'border' does not exist on type '{ primary: "#FFFFFF" | "#07122A"; secondary: "#475569" | "#C6CEDB" | "rgba(255, 255, 255, 0.78)"; muted: "#64748B" | "#8B95A7" | "rgba(255, 255, 255, 0.56)"; }'.
+src/components/csv/CsvUploadDropzone.tsx(38,54): error TS2339: Property 'border' does not exist on type '{ primary: "#FFFFFF" | "#07122A"; secondary: "#475569" | "#C6CEDB" | "rgba(255, 255, 255, 0.78)"; muted: "#64748B" | "#8B95A7" | "rgba(255, 255, 255, 0.56)"; }'.
+src/components/dashboard/statusfoldergrid.tsx(18,34): error TS2322: Type '{ children: Element[]; glowColor: string; glowOpacity: number; contentStyle: { padding: number; }; style: { flexGrow: number; flexBasis: number; minWidth: number; }; }' is not assignable to type 'IntrinsicAttributes & GlowCardProps'.
+  Property 'glowOpacity' does not exist on type 'IntrinsicAttributes & GlowCardProps'.
+src/components/detail/ContextCard.tsx(13,14): error TS2322: Type '{ display: "grid"; gridTemplateColumns: string; width: "100%"; alignSelf: "stretch"; gap: 8; } | { flexDirection: "row"; flexWrap: "wrap"; width: "100%"; alignSelf: "stretch"; gap: 8; }' is not assignable to type 'ViewStyle'.
+  Type '{ display: "grid"; gridTemplateColumns: string; width: "100%"; alignSelf: "stretch"; gap: 8; }' is not assignable to type 'ViewStyle'.
+    Types of property 'display' are incompatible.
+      Type '"grid"' is not assignable to type '"none" | "flex" | undefined'.
+src/components/detail/ContextCard.tsx(23,14): error TS2322: Type '{ display: "grid"; gridTemplateColumns: string; width: "100%"; alignSelf: "stretch"; gap: 8; } | { flexDirection: "row"; flexWrap: "wrap"; width: "100%"; alignSelf: "stretch"; gap: 8; }' is not assignable to type 'ViewStyle'.
+  Type '{ display: "grid"; gridTemplateColumns: string; width: "100%"; alignSelf: "stretch"; gap: 8; }' is not assignable to type 'ViewStyle'.
+    Types of property 'display' are incompatible.
+      Type '"grid"' is not assignable to type '"none" | "flex" | undefined'.
+src/components/forms/EntityFormScreen.tsx(30,5): error TS2344: Type '"icon" | "meta" | "accentColor" | "eyebrow" | "preparedMessage"' does not satisfy the constraint 'keyof FormScreenHeroProps'.
+src/components/forms/EntityFormScreen.tsx(119,11): error TS2322: Type '{ eyebrow: string; title: string; meta: string; icon: string; formMode: "create"; wpNumber: number; accentColor: string | undefined; preparedOnly: boolean; preparedMessage: unknown; }' is not assignable to type 'IntrinsicAttributes & FormScreenHeroProps'.
+  Property 'preparedOnly' does not exist on type 'IntrinsicAttributes & FormScreenHeroProps'.
+src/components/forms/FormScreenHero.tsx(108,31): error TS2339: Property 'green' does not exist on type '{ readonly bgDeep: "#050816"; readonly bgBase: "#F8FAFC" | "#080D1A"; readonly bgPremium: "#FFFFFF" | "#101827"; readonly bgSurface: "#FFFFFF" | "#171B22"; readonly bgElevated: "#FFFFFF" | "#171B22" | "#20242D"; ... 27 more ...; readonly error: "#EF4444"; }'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(156,41): error TS2551: Property 'intakeContractType' does not exist on type 'ClientIntakeFormData'. Did you mean 'contractTypes'?
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(156,66): error TS2339: Property 'intakeAssignmentEnabled' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(156,96): error TS2339: Property 'intakeOptionalConsents' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(160,56): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(161,27): error TS2353: Object literal may only specify known properties, and 'intakeDocuments' does not exist in type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(169,12): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(169,34): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(177,22): error TS2551: Property 'intakeContractType' does not exist on type 'ClientIntakeFormData'. Did you mean 'contractTypes'?
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(185,7): error TS2561: Object literal may only specify known properties, but 'intakeContractType' does not exist in type 'ClientIntakeFormData'. Did you mean to write 'contractTypes'?
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(203,24): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(203,46): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(211,11): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(247,22): error TS2339: Property 'intakeOptionalConsents' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(250,7): error TS2353: Object literal may only specify known properties, and 'intakeOptionalConsents' does not exist in type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(251,16): error TS2339: Property 'intakeOptionalConsents' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(251,47): error TS7006: Parameter 'k' implicitly has an 'any' type.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(252,20): error TS2339: Property 'intakeOptionalConsents' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(269,23): error TS2551: Property 'intakeContractType' does not exist on type 'ClientIntakeFormData'. Did you mean 'contractTypes'?
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(276,28): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(276,50): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(288,20): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<IntakeDocumentStatus, string>'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(315,46): error TS2353: Object literal may only specify known properties, and 'intakeAssignmentEnabled' does not exist in type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(315,77): error TS2339: Property 'intakeAssignmentEnabled' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(317,50): error TS2339: Property 'intakeAssignmentEnabled' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(320,15): error TS2339: Property 'intakeAssignmentEnabled' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(331,52): error TS2339: Property 'intakeOptionalConsents' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(336,21): error TS2339: Property 'intakeOptionalConsents' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(337,28): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(337,50): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/components/inputs/CareIntakeDocumentsStepPanel.tsx(342,18): error TS7053: Element implicitly has an 'any' type because expression of type 'any' can't be used to index type 'Record<IntakeDocumentStatus, string>'.
+src/components/layout/CareAdaptiveShell.tsx(59,9): error TS2322: Type '{ children: ReactNode; area: "office" | "assist" | "pflege" | "stationaer" | "beratung" | "akademie" | "portal_employee" | "business"; accentColor: string | undefined; showModuleSwitcher: boolean | undefined; useLightShell: boolean; tabsOverride: ShellTabConfig[] | undefined; }' is not assignable to type 'IntrinsicAttributes & CareWebShellProps'.
+  Property 'tabsOverride' does not exist on type 'IntrinsicAttributes & CareWebShellProps'.
+src/components/layout/CareAdaptiveShell.tsx(69,92): error TS2322: Type '{ children: ReactNode; area: "office" | "assist" | "pflege" | "stationaer" | "beratung" | "akademie" | "portal_employee" | "business"; accentColor: string | undefined; showModuleSwitcher: boolean | undefined; tabsOverride: ShellTabConfig[] | undefined; }' is not assignable to type 'IntrinsicAttributes & CareLightDesktopShellProps'.
+  Property 'tabsOverride' does not exist on type 'IntrinsicAttributes & CareLightDesktopShellProps'.
+src/components/layout/CareAdaptiveShell.tsx(78,92): error TS2322: Type '{ children: ReactNode; area: "office" | "assist" | "pflege" | "stationaer" | "beratung" | "akademie" | "portal_employee" | "business"; accentColor: string | undefined; showModuleSwitcher: boolean | undefined; tabsOverride: ShellTabConfig[] | undefined; }' is not assignable to type 'IntrinsicAttributes & CareLightTabletShellProps'.
+  Property 'tabsOverride' does not exist on type 'IntrinsicAttributes & CareLightTabletShellProps'.
+src/components/layout/platform/gradientmodalheader.tsx(136,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: LinearGradientProps): LinearGradient', gave the following error.
+    Type '[string, ...string[]]' is not assignable to type 'readonly [string, string, ...string[]]'.
+      Source provides no match for required element at position 1 in target.
+  Overload 2 of 2, '(props: LinearGradientProps, context: any): LinearGradient', gave the following error.
+    Type '[string, ...string[]]' is not assignable to type 'readonly [string, string, ...string[]]'.
+src/components/layout/platform/platformmodal.tsx(168,7): error TS2322: Type '(StyleProp<ViewStyle> | { flexShrink: number; minHeight: number; })[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends StyleProp<ViewStyle> | { flexShrink: number; minHeight: number; }>(predicate: (value: StyleProp<ViewStyle> | { flexShrink: number; minHeight: number; }, index: number, array: (StyleProp<...> | { ...; })[]) => value is S, thisArg?: any): S[]; (predicate: (value: StyleProp<...> | { ...; }, index: number, ...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/components/layout/platform/platformmodal.tsx(186,15): error TS2322: Type '{ key: string; title: string; onPress: (() => void) | undefined; loading: boolean | undefined; disabled: boolean | undefined; variant: GradientModalActionButtonVariant; }' is not assignable to type 'IntrinsicAttributes & GradientModalActionButtonProps'.
+  Property 'disabled' does not exist on type 'IntrinsicAttributes & GradientModalActionButtonProps'.
+src/components/layout/portal/PortalRightSidebar.tsx(60,30): error TS2339: Property 'bodyStrong' does not exist on type '{ h1: TextStyle; h2: TextStyle; cardTitle: TextStyle; body: TextStyle; label: TextStyle; button: TextStyle; caption: TextStyle; eyebrow: TextStyle; }'.
+src/components/layout/WebFontSizeControl.tsx(27,7): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '"group"' is not assignable to type 'AccessibilityRole | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '"group"' is not assignable to type 'AccessibilityRole | undefined'.
+src/components/layout/WebFontSizeControl.tsx(37,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type '{ children: string; onPress: (() => void) | undefined; style: (TextStyle | null)[]; onHoverIn: () => void; onHoverOut: () => void; accessibilityRole: "button"; accessibilityLabel: string; accessibilityState: { ...; }; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Text> & Readonly<TextProps>'.
+      Property 'onHoverIn' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<Text> & Readonly<TextProps>'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type '{ children: string; onPress: (() => void) | undefined; style: (TextStyle | null)[]; onHoverIn: () => void; onHoverOut: () => void; accessibilityRole: "button"; accessibilityLabel: string; accessibilityState: { ...; }; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Text> & Readonly<TextProps>'.
+      Property 'onHoverIn' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<Text> & Readonly<TextProps>'.
+src/components/layout/WebFontSizeControl.tsx(53,9): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type '{ children: string; onPress: (() => void) | undefined; style: (TextStyle | null)[]; onHoverIn: () => void; onHoverOut: () => void; accessibilityRole: "button"; accessibilityLabel: string; accessibilityState: { ...; }; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Text> & Readonly<TextProps>'.
+      Property 'onHoverIn' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<Text> & Readonly<TextProps>'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type '{ children: string; onPress: (() => void) | undefined; style: (TextStyle | null)[]; onHoverIn: () => void; onHoverOut: () => void; accessibilityRole: "button"; accessibilityLabel: string; accessibilityState: { ...; }; }' is not assignable to type 'IntrinsicAttributes & IntrinsicClassAttributes<Text> & Readonly<TextProps>'.
+      Property 'onHoverIn' does not exist on type 'IntrinsicAttributes & IntrinsicClassAttributes<Text> & Readonly<TextProps>'.
+src/components/notifications/notificationcenter.tsx(232,9): error TS2322: Type '({ title: string; onPress: () => Promise<void>; loading: boolean; } | { title: string; onPress: () => Promise<void>; loading: boolean; variant: "secondary"; })[]' is not assignable to type 'PlatformModalAction[]'.
+  Type '{ title: string; onPress: () => Promise<void>; loading: boolean; } | { title: string; onPress: () => Promise<void>; loading: boolean; variant: "secondary"; }' is not assignable to type 'PlatformModalAction'.
+    Type '{ title: string; onPress: () => Promise<void>; loading: boolean; variant: "secondary"; }' is not assignable to type 'PlatformModalAction'.
+      Types of property 'variant' are incompatible.
+        Type '"secondary"' is not assignable to type 'GradientModalActionButtonVariant | undefined'.
+src/components/notifications/notificationcenter.tsx(263,7): error TS2322: Type '{ title: string; onPress: () => Promise<void>; variant: "secondary"; }[] | undefined' is not assignable to type 'PlatformModalAction[] | undefined'.
+  Type '{ title: string; onPress: () => Promise<void>; variant: "secondary"; }[]' is not assignable to type 'PlatformModalAction[]'.
+    Type '{ title: string; onPress: () => Promise<void>; variant: "secondary"; }' is not assignable to type 'PlatformModalAction'.
+      Types of property 'variant' are incompatible.
+        Type '"secondary"' is not assignable to type 'GradientModalActionButtonVariant | undefined'.
+src/components/office/appointmentdetailmodal.tsx(163,44): error TS2322: Type '{ appointmentId: string; embedded: true; embeddedInModal: true; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'appointmentId' does not exist on type 'IntrinsicAttributes'.
+src/components/office/appointmentdetailmodal.tsx(175,19): error TS2322: Type '{ appointmentId: string; onOpenFullRecord: () => void; }' is not assignable to type 'IntrinsicAttributes & AppointmentDetailSummaryPanelProps'.
+  Property 'onOpenFullRecord' does not exist on type 'IntrinsicAttributes & AppointmentDetailSummaryPanelProps'.
+src/components/office/careemojipicker.tsx(23,74): error TS2339: Property 'id' does not exist on type 'CareEmojiCategory'.
+src/components/office/careemojipicker.tsx(25,68): error TS2339: Property 'id' does not exist on type 'CareEmojiCategory'.
+src/components/office/careemojipicker.tsx(83,63): error TS2322: Type '"secondary"' is not assignable to type 'GradientModalActionButtonVariant | undefined'.
+src/components/office/careemojipicker.tsx(87,37): error TS2339: Property 'id' does not exist on type 'CareEmojiCategory'.
+src/components/office/careemojipicker.tsx(90,29): error TS2339: Property 'id' does not exist on type 'CareEmojiCategory'.
+src/components/office/careemojipicker.tsx(92,57): error TS2339: Property 'id' does not exist on type 'CareEmojiCategory'.
+src/components/office/careemojipicker.tsx(108,30): error TS2339: Property 'id' does not exist on type 'CareEmojiCategory'.
+src/components/office/careemojipicker.tsx(139,7): error TS2322: Type '{ title: string; size: "sm"; variant: "ghost"; onPress: () => void; disabled: boolean | undefined; accessibilityLabel: string; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'accessibilityLabel' does not exist on type 'IntrinsicAttributes & Props'.
+src/components/office/ClientRecordDocumentsPanel.tsx(33,3): error TS2724: '"@/types/modules/client"' has no exported member named 'CLIENT_DOCUMENT_STATUS_LABELS'. Did you mean 'CLIENT_DOCUMENT_CATEGORY_LABELS'?
+src/components/office/ClientRecordDocumentsPanel.tsx(202,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: ViewProps): View', gave the following error.
+    Type '{ display: "grid"; gridTemplateColumns: string; width: "100%"; gap: 8; flexDirection?: undefined; flexWrap?: undefined; } | { flexDirection: "row"; flexWrap: "wrap"; width: "100%"; gap: 8; display?: undefined; gridTemplateColumns?: undefined; }' is not assignable to type 'StyleProp<ViewStyle>'.
+      Type '{ display: "grid"; gridTemplateColumns: string; width: "100%"; gap: 8; flexDirection?: undefined; flexWrap?: undefined; }' is not assignable to type 'StyleProp<ViewStyle>'.
+        Type '{ display: "grid"; gridTemplateColumns: string; width: "100%"; gap: 8; flexDirection?: undefined; flexWrap?: undefined; }' is not assignable to type 'ViewStyle'.
+          Types of property 'display' are incompatible.
+            Type '"grid"' is not assignable to type '"none" | "flex" | undefined'.
+  Overload 2 of 2, '(props: ViewProps, context: any): View', gave the following error.
+    Type '{ display: "grid"; gridTemplateColumns: string; width: "100%"; gap: 8; flexDirection?: undefined; flexWrap?: undefined; } | { flexDirection: "row"; flexWrap: "wrap"; width: "100%"; gap: 8; display?: undefined; gridTemplateColumns?: undefined; }' is not assignable to type 'StyleProp<ViewStyle>'.
+src/components/office/ClientRecordDocumentsPanel.tsx(281,56): error TS2322: Type '"muted" | "amber" | "cyan" | "green"' is not assignable to type 'Variant | undefined'.
+  Type '"amber"' is not assignable to type 'Variant | undefined'.
+src/components/office/ClientRecordShiftsPanel.tsx(104,30): error TS2339: Property 'employeeId' does not exist on type 'Profile'.
+src/components/office/ClientRecordShiftsPanel.tsx(107,66): error TS2339: Property 'employeeId' does not exist on type 'Profile'.
+src/components/office/DocumentDeliveryActions.tsx(263,31): error TS2339: Property 'sheetBody' does not exist on type '{ wrapper: { gap: 8; }; actionsRow: { gap: 8; }; hint: { color: "#64748B" | "#8B95A7"; fontFamily?: string | undefined; fontSize?: number | undefined; fontStyle?: "normal" | "italic" | undefined; ... 190 more ...; includeFontPadding?: boolean | undefined; }; ... 4 more ...; modalBody: { ...; }; }'.
+src/components/office/DocumentHtmlPreview.tsx(71,44): error TS2345: Argument of type 'PortalDocumentListItem' is not assignable to parameter of type 'Pick<PortalDocumentListItem, "fileName" | "category" | "documentSource" | "displayFileName" | "sizeLabel">'.
+src/components/office/employeecompactrow.tsx(96,29): error TS2339: Property 'avatarUrl' does not exist on type 'EmployeeListItem'.
+src/components/office/employeecompactrow.tsx(121,7): error TS2322: Type '({ marginBottom: 4; } | { borderLeftWidth: number; borderLeftColor: string; backgroundColor: string; } | null)[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends { marginBottom: 4; } | { borderLeftWidth: number; borderLeftColor: string; backgroundColor: string; } | null>(predicate: (value: { marginBottom: 4; } | { borderLeftWidth: number; borderLeftColor: string; backgroundColor: string; } | null, index: number, array: ({ ...; } | ... 1 more ... | null)[]) => va...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/components/office/employeecreateform.tsx(26,55): error TS2345: Argument of type '"employee_role"' is not assignable to parameter of type 'CatalogType'.
+src/components/office/employeecreateform.tsx(93,25): error TS2339: Property 'profilePhoto' does not exist on type 'EmployeeFormData'.
+src/components/office/employeecreateform.tsx(94,53): error TS2345: Argument of type '"profilePhoto"' is not assignable to parameter of type 'keyof EmployeeFormData'.
+src/components/office/employeecreateform.tsx(122,11): error TS2322: Type '"employee_role"' is not assignable to type 'CatalogType'.
+src/components/office/employeecreateform.tsx(130,11): error TS2322: Type '"employee_department"' is not assignable to type 'CatalogType'.
+src/components/office/employeecreateform.tsx(138,23): error TS2339: Property 'status' does not exist on type 'EmployeeFormData'.
+src/components/office/employeecreateform.tsx(139,44): error TS2345: Argument of type '"status"' is not assignable to parameter of type 'keyof EmployeeFormData'.
+src/components/office/EmployeeDetailSummaryPanel.tsx(116,33): error TS2339: Property 'avatarUrl' does not exist on type 'EmployeeDetail'.
+src/components/office/employeeeditform.tsx(172,13): error TS2322: Type '"employee_role"' is not assignable to type 'CatalogType'.
+src/components/office/employeeeditform.tsx(180,13): error TS2322: Type '"employee_department"' is not assignable to type 'CatalogType'.
+src/components/office/EmployeeListCard.tsx(36,29): error TS2339: Property 'avatarUrl' does not exist on type 'EmployeeListItem'.
+src/components/office/EmployeeProfilePhotoPicker.tsx(26,10): error TS2304: Cannot find name 'EmployeeProfilePhotoValue'.
+src/components/office/EmployeeProfilePhotoPicker.tsx(27,21): error TS2304: Cannot find name 'EmployeeProfilePhotoValue'.
+src/components/office/EmployeesListTable.tsx(65,33): error TS2339: Property 'avatarUrl' does not exist on type 'EmployeeListItem'.
+src/components/office/EmployeesListView.tsx(227,11): error TS2322: Type '(v: WorkflowStatus | "all") => void' is not assignable to type '(key: string) => void'.
+  Types of parameters 'v' and 'key' are incompatible.
+    Type 'string' is not assignable to type 'WorkflowStatus | "all"'.
+src/components/office/invoicedetailmodal.tsx(163,40): error TS2322: Type '{ invoiceId: string; embedded: true; embeddedInModal: true; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'invoiceId' does not exist on type 'IntrinsicAttributes'.
+src/components/office/invoicedetailmodal.tsx(175,19): error TS2322: Type '{ invoiceId: string; onOpenFullRecord: () => void; }' is not assignable to type 'IntrinsicAttributes & InvoiceDetailSummaryPanelProps'.
+  Property 'onOpenFullRecord' does not exist on type 'IntrinsicAttributes & InvoiceDetailSummaryPanelProps'.
+src/components/office/officebroadcastmodal.tsx(134,71): error TS2322: Type '"secondary"' is not assignable to type 'GradientModalActionButtonVariant | undefined'.
+src/components/office/officebroadcastmodal.tsx(155,71): error TS2322: Type '"secondary"' is not assignable to type 'GradientModalActionButtonVariant | undefined'.
+src/components/office/OfficeDocumentCompactRow.tsx(30,19): error TS2339: Property 'clientName' does not exist on type 'PortalDocumentListItem'.
+src/components/office/OfficeDocumentCompactRow.tsx(32,23): error TS2339: Property 'clientName' does not exist on type 'PortalDocumentListItem'.
+src/components/office/OfficeDocumentDetailSummaryPanel.tsx(46,62): error TS2339: Property 'sizeLabel' does not exist on type 'PortalDocumentListItem'.
+src/components/office/OfficeDocumentDetailSummaryPanel.tsx(64,33): error TS2339: Property 'previewHtml' does not exist on type 'PortalDocumentListItem'.
+src/components/office/OfficeDocumentDetailSummaryPanel.tsx(69,17): error TS2339: Property 'clientId' does not exist on type 'PortalDocumentListItem'.
+src/components/office/OfficeDocumentDetailSummaryPanel.tsx(74,62): error TS2339: Property 'clientId' does not exist on type 'PortalDocumentListItem'.
+src/components/office/officemessagethreadheader.tsx(106,11): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: LinearGradientProps): LinearGradient', gave the following error.
+    Type '[string, ...string[]]' is not assignable to type 'readonly [string, string, ...string[]]'.
+  Overload 2 of 2, '(props: LinearGradientProps, context: any): LinearGradient', gave the following error.
+    Type '[string, ...string[]]' is not assignable to type 'readonly [string, string, ...string[]]'.
+src/components/office/officemessagethreadmodal.tsx(236,21): error TS2322: Type '{ thread: OfficeMessageThreadDetail | null; readOnly: boolean; sheet: boolean; onThreadUpdated: () => void; onUpdateStatus: (status: OfficeThreadStatus) => Promise<...>; onAssignSelf: () => Promise<...>; onUpdatePriority: (priority: OfficeMessagePriority) => Promise<...>; onUpdateCategory: (categoryId: string) => Pr...' is not assignable to type 'IntrinsicAttributes & OfficeMessageContextPanelProps'.
+  Property 'sheet' does not exist on type 'IntrinsicAttributes & OfficeMessageContextPanelProps'.
+src/components/office/officenewchatmodal.tsx(238,49): error TS2322: Type '"secondary"' is not assignable to type 'GradientModalActionButtonVariant | undefined'.
+src/components/office/officevoicerecordingbar.tsx(68,9): error TS2322: Type '{ title: string; size: "sm"; variant: "primary"; onPress: () => void; loading: boolean; accessibilityLabel: string; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'accessibilityLabel' does not exist on type 'IntrinsicAttributes & Props'.
+src/components/office/officevoicerecordingbar.tsx(76,9): error TS2322: Type '{ title: string; size: "sm"; variant: "ghost"; onPress: () => void; disabled: boolean; accessibilityLabel: string; }' is not assignable to type 'IntrinsicAttributes & Props'.
+  Property 'accessibilityLabel' does not exist on type 'IntrinsicAttributes & Props'.
+src/components/office/PersonalComplianceCockpitHero.tsx(6,3): error TS2305: Module '"@/lib/office/personalComplianceCockpitService"' has no exported member 'isPersonalComplianceLiveReady'.
+src/components/office/PersonalComplianceCockpitHero.tsx(7,3): error TS2305: Module '"@/lib/office/personalComplianceCockpitService"' has no exported member 'PERSONAL_COMPLIANCE_PREPARED_MESSAGE'.
+src/components/portal/assist/MobilePortalKpiCard.tsx(98,47): error TS2322: Type '(ViewStyle | { minHeight: number; flex: number; padding: 8; backgroundColor: string; })[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends ViewStyle | { minHeight: number; flex: number; padding: 8; backgroundColor: string; }>(predicate: (value: ViewStyle | { minHeight: number; flex: number; padding: 8; backgroundColor: string; }, index: number, array: (ViewStyle | { ...; })[]) => value is S, thisArg?: any): S[]; (predicate: (value: ViewSty...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/components/portal/assist/MobilePortalSidebarCards.tsx(80,32): error TS2339: Property 'bodyStrong' does not exist on type '{ h1: TextStyle; h2: TextStyle; cardTitle: TextStyle; body: TextStyle; label: TextStyle; button: TextStyle; caption: TextStyle; eyebrow: TextStyle; }'.
+src/components/portal/assist/PortalGlassHero.tsx(60,16): error TS2322: Type '(false | ViewStyle | { paddingVertical: 8; paddingHorizontal: 8; gap: 4; backgroundColor: string; } | undefined)[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends false | ViewStyle | { paddingVertical: 8; paddingHorizontal: 8; gap: 4; backgroundColor: string; } | undefined>(predicate: (value: false | ViewStyle | { paddingVertical: 8; paddingHorizontal: 8; gap: 4; backgroundColor: string; } | undefined, index: number, array: (false | ... 2 more ... | undefined)[])...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/components/portal/assist/PortalGlassHero.tsx(73,27): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type '(TextStyle | { color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; })[]' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type '(TextStyle | { color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; })[]' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+src/components/portal/assist/PortalGlassHero.tsx(77,29): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type '(TextStyle | { color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; })[]' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type '(TextStyle | { color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; })[]' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+src/components/portal/assist/PortalGlassHero.tsx(115,21): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(props: TextProps): Text', gave the following error.
+    Type '(TextStyle | { color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; })[]' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+      Type '(TextStyle | { color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; })[]' is not assignable to type 'RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>>'.
+        The types returned by 'pop()' are incompatible between these types.
+          Type 'TextStyle | { color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; } | undefined' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+            Type '{ color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; }' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+              Type '{ color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; }' is not assignable to type 'TextStyle'.
+                Types of property 'fontWeight' are incompatible.
+                  Type 'string' is not assignable to type '"light" | "bold" | 200 | "medium" | "normal" | 300 | 100 | 400 | 500 | "800" | "100" | "200" | "300" | "400" | "500" | "600" | "700" | "900" | 600 | 700 | 800 | 900 | "ultralight" | "thin" | ... 6 more ... | undefined'.
+  Overload 2 of 2, '(props: TextProps, context: any): Text', gave the following error.
+    Type '(TextStyle | { color: "#FFFFFF" | "#07122A"; fontWeight: string; fontSize: number; lineHeight: number; })[]' is not assignable to type 'TextStyle | Falsy | RegisteredStyle<TextStyle> | RecursiveArray<TextStyle | Falsy | RegisteredStyle<TextStyle>> | readonly (TextStyle | ... 1 more ... | RegisteredStyle<...>)[]'.
+src/components/portal/assist/PortalNextAppointmentHero.tsx(74,7): error TS2322: Type '(false | { minHeight: number; } | { borderColor: string; shadowColor: string; shadowOpacity: number; shadowRadius: number; shadowOffset: { width: number; height: number; }; elevation: number; })[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends false | { minHeight: number; } | { borderColor: string; shadowColor: string; shadowOpacity: number; shadowRadius: number; shadowOffset: { width: number; height: number; }; elevation: number; }>(predicate: (value: false | ... 1 more ... | { ...; }, index: number, array: (false | ... 1 more ... | { ...; }...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/components/portal/PortalMoreMenu.tsx(50,26): error TS2322: Type '(false | { flexDirection: "row"; alignItems: "center"; gap: 16; paddingVertical: 8; } | { borderColor: string; })[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends false | { flexDirection: "row"; alignItems: "center"; gap: 16; paddingVertical: 8; } | { borderColor: string; }>(predicate: (value: false | { flexDirection: "row"; alignItems: "center"; gap: 16; paddingVertical: 8; } | { ...; }, index: number, array: (false | ... 1 more ... | { ...; })[]) => value is S,...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/components/portal/PortalNavigation.tsx(38,15): error TS2322: Type '({ flexDirection: "row"; alignItems: "center"; gap: 8; paddingVertical: 8; paddingHorizontal: 16; } | { borderColor: string; } | null)[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends { flexDirection: "row"; alignItems: "center"; gap: 8; paddingVertical: 8; paddingHorizontal: 16; } | { borderColor: string; } | null>(predicate: (value: { flexDirection: "row"; alignItems: "center"; gap: 8; paddingVertical: 8; paddingHorizontal: 16; } | { ...; } | null, index: number, array: ({ ...; } |...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/components/portal/portalofficethread.tsx(164,11): error TS2322: Type '{ text: string; onChangeText: Dispatch<SetStateAction<string>>; onSend: () => Promise<void>; sending: boolean; canSendWithAttachments: boolean; attachmentPicker: Element; }' is not assignable to type 'IntrinsicAttributes & ChatComposerProps'.
+  Property 'canSendWithAttachments' does not exist on type 'IntrinsicAttributes & ChatComposerProps'.
+src/components/templates/TemplateListHero.tsx(147,24): error TS2304: Cannot find name 'heroText'.
+src/components/templates/TemplateListHero.tsx(148,24): error TS2304: Cannot find name 'heroText'.
+src/components/templates/TemplateListHero.tsx(149,24): error TS2304: Cannot find name 'heroText'.
+src/components/templates/TemplateListHero.tsx(152,24): error TS2304: Cannot find name 'heroText'.
+src/components/ui/CareLightCard.tsx(33,9): error TS2322: Type '(ViewStyle | null | undefined)[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends ViewStyle | null | undefined>(predicate: (value: ViewStyle | null | undefined, index: number, array: (ViewStyle | null | undefined)[]) => value is S, thisArg?: any): S[]; (predicate: (value: ViewStyle | ... 1 more ... | undefined, index: number, array: (ViewStyle | ... 1 more ... | undefined)[]) => unkn...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/components/ui/effects/glowcard.tsx(14,19): error TS2322: Type '(ViewStyle | { padding: number; } | null | undefined)[]' is not assignable to type 'ViewStyle'.
+  Types of property 'filter' are incompatible.
+    Type '{ <S extends ViewStyle | { padding: number; } | null | undefined>(predicate: (value: ViewStyle | { padding: number; } | null | undefined, index: number, array: (ViewStyle | { ...; } | null | undefined)[]) => value is S, thisArg?: any): S[]; (predicate: (value: ViewStyle | ... 2 more ... | undefined, index: number, a...' is not assignable to type 'string | readonly FilterFunction[] | undefined'.
+src/data/demo/clientDetails.ts(15,3): error TS2322: Type '{ createdAt: string; dateOfBirth: string; primaryContactPhone: string; street: string; phone: string; email: string; notes: string; visibility: "own" | "team"; ownedByProfileId: string; sharedWithProfileIds: string[]; ... 17 more ...; costCarrier?: string | ... 1 more ... | undefined; }' is not assignable to type 'ClientDetail'.
+  Property 'admissionDate' is missing in type '{ createdAt: string; dateOfBirth: string; primaryContactPhone: string; street: string; phone: string; email: string; notes: string; visibility: "own" | "team"; ownedByProfileId: string; sharedWithProfileIds: string[]; ... 17 more ...; costCarrier?: string | ... 1 more ... | undefined; }' but required in type '{ street: string | null; phone: string | null; email: string | null; notes: string | null; admissionDate: string | null; contacts: ClientContact[]; consents: ClientConsent[]; ... 4 more ...; allowedStatusActions: WorkflowStatus[]; }'.
+src/data/demo/clients/helga-schneider.ts(70,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; addressType: "hauptwohnsitz"; street: string; zip: string; city: string; country: string; isPrimary: true; accessNotes: string; floor: string; doorCode: null; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientAddress'.
+  Property 'apartmentNumber' is missing in type '{ id: string; tenantId: string; clientId: string; addressType: "hauptwohnsitz"; street: string; zip: string; city: string; country: string; isPrimary: true; accessNotes: string; floor: string; doorCode: null; createdAt: string; updatedAt: string; }' but required in type '{ clientId: string; addressType: ClientAddressType; street: string; zip: string; city: string; country: string; isPrimary: boolean; accessNotes: string | null; floor: string | null; apartmentNumber: string | null; doorCode: string | null; }'.
+src/data/demo/clients/helga-schneider.ts(78,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "kind"; relationshipLabel: string; phone: string; email: string; isEmergency: true; isPortalUser: true; portalPermissions: { ...; }; notes: string; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+  Property 'contactType' is missing in type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "kind"; relationshipLabel: string; phone: string; email: string; isEmergency: true; isPortalUser: true; portalPermissions: { ...; }; notes: string; createdAt: string; updatedAt: string; }' but required in type '{ clientId: string; firstName: string; lastName: string; contactType: ClientContactType; relationship: ContactRelation; relationshipLabel: string | null; ... 5 more ...; notes: string | null; }'.
+src/data/demo/clients/helga-schneider.ts(86,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "arzt"; relationshipLabel: string; phone: string; email: null; isEmergency: false; isPortalUser: false; portalPermissions: { ...; }; notes: null; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+  Property 'contactType' is missing in type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "arzt"; relationshipLabel: string; phone: string; email: null; isEmergency: false; isPortalUser: false; portalPermissions: { ...; }; notes: null; createdAt: string; updatedAt: string; }' but required in type '{ clientId: string; firstName: string; lastName: string; contactType: ClientContactType; relationship: ContactRelation; relationshipLabel: string | null; ... 5 more ...; notes: string | null; }'.
+src/data/demo/clients/helga-schneider.ts(192,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; contactId: string; email: string; status: "aktiv"; lastLoginAt: string; invitedAt: string; modulesEnabled: string[]; twoFactorEnabled: false; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientPortalAccess'.
+  Type '{ id: string; tenantId: string; clientId: string; contactId: string; email: string; status: "aktiv"; lastLoginAt: string; invitedAt: string; modulesEnabled: string[]; twoFactorEnabled: false; createdAt: string; updatedAt: string; }' is missing the following properties from type '{ clientId: string; contactId: string | null; email: string | null; portalUsername: string | null; portalEnabled: boolean; status: PortalAccessStatus; lastLoginAt: string | null; ... 4 more ...; twoFactorEnabled: boolean; }': portalUsername, portalEnabled, codeCreatedAt, codeRotatedAt
+src/data/demo/clients/werner-mueller.ts(68,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; addressType: "hauptwohnsitz"; street: string; zip: string; city: string; country: string; isPrimary: true; accessNotes: string; floor: string; doorCode: string; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientAddress'.
+  Property 'apartmentNumber' is missing in type '{ id: string; tenantId: string; clientId: string; addressType: "hauptwohnsitz"; street: string; zip: string; city: string; country: string; isPrimary: true; accessNotes: string; floor: string; doorCode: string; createdAt: string; updatedAt: string; }' but required in type '{ clientId: string; addressType: ClientAddressType; street: string; zip: string; city: string; country: string; isPrimary: boolean; accessNotes: string | null; floor: string | null; apartmentNumber: string | null; doorCode: string | null; }'.
+src/data/demo/clients/werner-mueller.ts(76,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "kind"; relationshipLabel: string; phone: string; email: string; isEmergency: true; isPortalUser: true; portalPermissions: { ...; }; notes: string; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+  Property 'contactType' is missing in type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "kind"; relationshipLabel: string; phone: string; email: string; isEmergency: true; isPortalUser: true; portalPermissions: { ...; }; notes: string; createdAt: string; updatedAt: string; }' but required in type '{ clientId: string; firstName: string; lastName: string; contactType: ClientContactType; relationship: ContactRelation; relationshipLabel: string | null; ... 5 more ...; notes: string | null; }'.
+src/data/demo/clients/werner-mueller.ts(84,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "ehepartner"; relationshipLabel: string; phone: string; email: null; isEmergency: false; isPortalUser: false; portalPermissions: { ...; }; notes: string; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientContactRecord'.
+  Property 'contactType' is missing in type '{ id: string; tenantId: string; clientId: string; firstName: string; lastName: string; relationship: "ehepartner"; relationshipLabel: string; phone: string; email: null; isEmergency: false; isPortalUser: false; portalPermissions: { ...; }; notes: string; createdAt: string; updatedAt: string; }' but required in type '{ clientId: string; firstName: string; lastName: string; contactType: ClientContactType; relationship: ContactRelation; relationshipLabel: string | null; ... 5 more ...; notes: string | null; }'.
+src/data/demo/clients/werner-mueller.ts(204,5): error TS2322: Type '{ id: string; tenantId: string; clientId: string; contactId: string; email: string; status: "aktiv"; lastLoginAt: string; invitedAt: string; modulesEnabled: string[]; twoFactorEnabled: true; createdAt: string; updatedAt: string; }' is not assignable to type 'ClientPortalAccess'.
+  Type '{ id: string; tenantId: string; clientId: string; contactId: string; email: string; status: "aktiv"; lastLoginAt: string; invitedAt: string; modulesEnabled: string[]; twoFactorEnabled: true; createdAt: string; updatedAt: string; }' is missing the following properties from type '{ clientId: string; contactId: string | null; email: string | null; portalUsername: string | null; portalEnabled: boolean; status: PortalAccessStatus; lastLoginAt: string | null; ... 4 more ...; twoFactorEnabled: boolean; }': portalUsername, portalEnabled, codeCreatedAt, codeRotatedAt
+src/data/demo/officemessagethreads.ts(91,3): error TS2322: Type '{ id: string; tenantId: string; threadType: "client_office"; status: "open"; priority: "normal"; subject: string; categoryId: string; categoryLabel: string; clientId: string; clientName: string; ... 7 more ...; updatedAt: string; }' is not assignable to type 'OfficeMessageThread'.
+  Property 'participantName' is missing in type '{ id: string; tenantId: string; threadType: "client_office"; status: "open"; priority: "normal"; subject: string; categoryId: string; categoryLabel: string; clientId: string; clientName: string; ... 7 more ...; updatedAt: string; }' but required in type '{ threadType: OfficeThreadType; status: OfficeThreadStatus; priority: OfficeMessagePriority; subject: string; categoryId: string | null; ... 15 more ...; archivedAt: string | null; }'.
+src/data/demo/officemessagethreads.ts(111,3): error TS2322: Type '{ id: string; tenantId: string; threadType: "client_office"; status: "waiting"; priority: "high"; subject: string; categoryId: string; categoryLabel: string; clientId: string; clientName: string; ... 7 more ...; updatedAt: string; }' is not assignable to type 'OfficeMessageThread'.
+  Property 'participantName' is missing in type '{ id: string; tenantId: string; threadType: "client_office"; status: "waiting"; priority: "high"; subject: string; categoryId: string; categoryLabel: string; clientId: string; clientName: string; ... 7 more ...; updatedAt: string; }' but required in type '{ threadType: OfficeThreadType; status: OfficeThreadStatus; priority: OfficeMessagePriority; subject: string; categoryId: string | null; ... 15 more ...; archivedAt: string | null; }'.
+src/data/demo/officemessagethreads.ts(131,3): error TS2322: Type '{ id: string; tenantId: string; threadType: "employee_office"; status: "open"; priority: "normal"; subject: string; categoryId: string; categoryLabel: string; clientId: null; clientName: null; ... 7 more ...; updatedAt: string; }' is not assignable to type 'OfficeMessageThread'.
+  Property 'participantName' is missing in type '{ id: string; tenantId: string; threadType: "employee_office"; status: "open"; priority: "normal"; subject: string; categoryId: string; categoryLabel: string; clientId: null; clientName: null; ... 7 more ...; updatedAt: string; }' but required in type '{ threadType: OfficeThreadType; status: OfficeThreadStatus; priority: OfficeMessagePriority; subject: string; categoryId: string | null; ... 15 more ...; archivedAt: string | null; }'.
+src/data/demo/officemessagethreads.ts(151,3): error TS2322: Type '{ id: string; tenantId: string; threadType: "employee_office"; status: "open"; priority: "urgent"; subject: string; categoryId: string; categoryLabel: string; clientId: null; clientName: null; ... 7 more ...; updatedAt: string; }' is not assignable to type 'OfficeMessageThread'.
+  Property 'participantName' is missing in type '{ id: string; tenantId: string; threadType: "employee_office"; status: "open"; priority: "urgent"; subject: string; categoryId: string; categoryLabel: string; clientId: null; clientName: null; ... 7 more ...; updatedAt: string; }' but required in type '{ threadType: OfficeThreadType; status: OfficeThreadStatus; priority: OfficeMessagePriority; subject: string; categoryId: string | null; ... 15 more ...; archivedAt: string | null; }'.
+src/data/demo/officemessagethreads.ts(171,3): error TS2322: Type '{ id: string; tenantId: string; threadType: "internal"; status: "open"; priority: "normal"; subject: string; categoryId: string; categoryLabel: string; clientId: null; clientName: null; employeeId: null; ... 6 more ...; updatedAt: string; }' is not assignable to type 'OfficeMessageThread'.
+  Property 'participantName' is missing in type '{ id: string; tenantId: string; threadType: "internal"; status: "open"; priority: "normal"; subject: string; categoryId: string; categoryLabel: string; clientId: null; clientName: null; employeeId: null; ... 6 more ...; updatedAt: string; }' but required in type '{ threadType: OfficeThreadType; status: OfficeThreadStatus; priority: OfficeMessagePriority; subject: string; categoryId: string | null; ... 15 more ...; archivedAt: string | null; }'.
+src/data/demo/officemessagethreads.ts(191,3): error TS2322: Type '{ id: string; tenantId: string; threadType: "client_office"; status: "resolved"; priority: "low"; subject: string; categoryId: string; categoryLabel: string; clientId: string; clientName: string; ... 7 more ...; updatedAt: string; }' is not assignable to type 'OfficeMessageThread'.
+  Property 'participantName' is missing in type '{ id: string; tenantId: string; threadType: "client_office"; status: "resolved"; priority: "low"; subject: string; categoryId: string; categoryLabel: string; clientId: string; clientName: string; ... 7 more ...; updatedAt: string; }' but required in type '{ threadType: OfficeThreadType; status: OfficeThreadStatus; priority: OfficeMessagePriority; subject: string; categoryId: string | null; ... 15 more ...; archivedAt: string | null; }'.
+src/data/demo/profiles.ts(11,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "business_admin"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "business_admin"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(23,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "business_manager"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "business_manager"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(35,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "billing"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "billing"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(47,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "dispatch"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "dispatch"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(59,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "nurse"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "nurse"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(71,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "caregiver"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "caregiver"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(83,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "counselor"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "counselor"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(95,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "akademie_admin"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "akademie_admin"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(107,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "employee_portal"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "employee_portal"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(119,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "client_portal"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "client_portal"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/profiles.ts(131,3): error TS2322: Type '{ id: string; tenantId: string; roleId: string; roleKey: "family_portal"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is not assignable to type 'DemoProfileSeed'.
+  Type '{ id: string; tenantId: string; roleId: string; roleKey: "family_portal"; displayName: string; email: string; phone: string; avatarUrl: null; createdAt: string; updatedAt: string; }' is missing the following properties from type 'Profile': firstName, lastName
+src/data/demo/templates/catalogs/employeeOffice.ts(31,15): error TS2345: Argument of type '"employee_role"' is not assignable to parameter of type 'CatalogType'.
+src/data/demo/templates/catalogs/employeeOffice.ts(32,15): error TS2345: Argument of type '"employee_department"' is not assignable to parameter of type 'CatalogType'.
+src/features/communication/communication.service.ts(201,21): error TS2345: Argument of type '() => Promise<{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: { hasAttachments: boolean; id: string; ... 14 more ...; participantLabel: string; }[]; }>' is not assignable to parameter of type '() => Promise<ServiceResult<never>>'.
+  Type 'Promise<{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: { hasAttachments: boolean; id: string; ... 14 more ...; participantLabel: string; }[]; }>' is not assignable to type 'Promise<ServiceResult<never>>'.
+    Type '{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: { hasAttachments: boolean; id: string; status: CommunicationThreadStatus; ... 13 more ...; participantLabel: string; }[]; }' is not assignable to type 'ServiceResult<never>'.
+      Type '{ ok: true; data: { hasAttachments: boolean; id: string; status: CommunicationThreadStatus; updatedAt: string; title: string; clientId: string | null; employeeId: string | null; ... 9 more ...; participantLabel: string; }[]; }' is not assignable to type 'ServiceResult<never>'.
+        Type '{ ok: true; data: { hasAttachments: boolean; id: string; status: CommunicationThreadStatus; updatedAt: string; title: string; clientId: string | null; employeeId: string | null; ... 9 more ...; participantLabel: string; }[]; }' is not assignable to type '{ ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+          Types of property 'data' are incompatible.
+            Type '{ hasAttachments: boolean; id: string; status: CommunicationThreadStatus; updatedAt: string; title: string; clientId: string | null; employeeId: string | null; ... 9 more ...; participantLabel: string; }[]' is not assignable to type 'never'.
+src/features/communication/communication.service.ts(289,21): error TS2345: Argument of type '() => Promise<{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: CommunicationThread; }>' is not assignable to parameter of type '() => Promise<ServiceResult<never>>'.
+  Type 'Promise<{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: CommunicationThread; }>' is not assignable to type 'Promise<ServiceResult<never>>'.
+    Type '{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: CommunicationThread; }' is not assignable to type 'ServiceResult<never>'.
+      Type '{ ok: true; data: CommunicationThread; }' is not assignable to type 'ServiceResult<never>'.
+        Type '{ ok: true; data: CommunicationThread; }' is not assignable to type '{ ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+          Types of property 'data' are incompatible.
+            Type 'CommunicationThread' is not assignable to type 'never'.
+src/features/communication/communication.service.ts(381,21): error TS2345: Argument of type '() => Promise<{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: CommunicationMessage; }>' is not assignable to parameter of type '() => Promise<ServiceResult<never>>'.
+  Type 'Promise<{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: CommunicationMessage; }>' is not assignable to type 'Promise<ServiceResult<never>>'.
+    Type '{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: CommunicationMessage; }' is not assignable to type 'ServiceResult<never>'.
+      Type '{ ok: true; data: CommunicationMessage; }' is not assignable to type 'ServiceResult<never>'.
+        Type '{ ok: true; data: CommunicationMessage; }' is not assignable to type '{ ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+          Types of property 'data' are incompatible.
+            Type 'CommunicationMessage' is not assignable to type 'never'.
+src/features/communication/communication.service.ts(764,21): error TS2345: Argument of type '() => Promise<{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: { unread: number; openQuestions: number; unassigned: number; archived: number; withAttachments: number; failedDeliveries: number; }; }>' is not assignable to parameter of type '() => Promise<ServiceResult<never>>'.
+  Type 'Promise<{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: { unread: number; openQuestions: number; unassigned: number; archived: number; withAttachments: number; failedDeliveries: number; }; }>' is not assignable to type 'Promise<ServiceResult<never>>'.
+    Type '{ ok: false; error: string; } | { ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: { unread: number; openQuestions: number; unassigned: number; archived: number; withAttachments: number; failedDeliveries: number; }; }' is not assignable to type 'ServiceResult<never>'.
+      Type '{ ok: true; data: { unread: number; openQuestions: number; unassigned: number; archived: number; withAttachments: number; failedDeliveries: number; }; }' is not assignable to type 'ServiceResult<never>'.
+        Type '{ ok: true; data: { unread: number; openQuestions: number; unassigned: number; archived: number; withAttachments: number; failedDeliveries: number; }; }' is not assignable to type '{ ok: true; data: never; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+          Types of property 'data' are incompatible.
+            Type '{ unread: number; openQuestions: number; unassigned: number; archived: number; withAttachments: number; failedDeliveries: number; }' is not assignable to type 'never'.
+src/features/intakeDocuments/buildIntakeDocumentContext.ts(61,58): error TS2551: Property 'intakeContractType' does not exist on type 'ClientIntakeFormData'. Did you mean 'contractTypes'?
+src/features/intakeDocuments/buildIntakeDocumentContext.ts(80,12): error TS2551: Property 'intakeContractType' does not exist on type 'ClientIntakeFormData'. Did you mean 'contractTypes'?
+src/features/intakeDocuments/buildIntakeDocumentContext.ts(81,17): error TS2551: Property 'intakeContractType' does not exist on type 'ClientIntakeFormData'. Did you mean 'contractTypes'?
+src/features/intakeDocuments/buildIntakeDocumentContext.ts(111,12): error TS2339: Property 'intakeAssignmentEnabled' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/buildIntakeDocumentContext.ts(115,26): error TS2339: Property 'intakeOptionalConsents' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(160,29): error TS2551: Property 'intakeContractType' does not exist on type 'ClientIntakeFormData'. Did you mean 'contractTypes'?
+src/features/intakeDocuments/intakeDocumentRepository.ts(168,37): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(168,59): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentRepository.ts(178,26): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(220,23): error TS2339: Property 'dataUrl' does not exist on type '{}'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(227,37): error TS2339: Property 'dataUrl' does not exist on type '{}'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(228,32): error TS2339: Property 'signedAt' does not exist on type '{}'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(229,34): error TS2339: Property 'signerName' does not exist on type '{}'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(239,27): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(239,49): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentRepository.ts(240,28): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(240,50): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentRepository.ts(248,31): error TS2339: Property 'intakeAssignmentEnabled' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(249,16): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(249,38): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentRepository.ts(288,31): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(288,55): error TS7006: Parameter 'doc' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentRepository.ts(293,130): error TS2339: Property 'eq' does not exist on type 'Promise<{ data: unknown; error: PostgrestError | null; }>'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(303,10): error TS2339: Property 'eq' does not exist on type 'Promise<{ data: unknown; error: PostgrestError | null; }>'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(333,6): error TS2339: Property 'eq' does not exist on type 'Promise<{ data: unknown; error: PostgrestError | null; }>'.
+src/features/intakeDocuments/intakeDocumentRepository.ts(352,8): error TS2339: Property 'eq' does not exist on type 'Promise<{ data: unknown; error: PostgrestError | null; }>'.
+src/features/intakeDocuments/intakeDocumentService.ts(51,33): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentService.ts(51,54): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentService.ts(52,3): error TS2322: Type '(IntakeDocumentState | { title: string; isRequired: boolean; documentType: IntakeDocumentType; version: number; source: "system" | "tenant"; tenantTemplateId: string | null; })[]' is not assignable to type 'IntakeDocumentState[]'.
+  Type 'IntakeDocumentState | { title: string; isRequired: boolean; documentType: IntakeDocumentType; version: number; source: "system" | "tenant"; tenantTemplateId: string | null; }' is not assignable to type 'IntakeDocumentState'.
+    Type '{ title: string; isRequired: boolean; documentType: IntakeDocumentType; version: number; source: "system" | "tenant"; tenantTemplateId: string | null; }' is missing the following properties from type 'IntakeDocumentState': templateKey, status, missingPlaceholders, unresolvedKeys, and 6 more.
+src/features/intakeDocuments/intakeDocumentService.ts(75,25): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentService.ts(75,47): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentService.ts(192,21): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentService.ts(192,43): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentService.ts(193,12): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentService.ts(193,33): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentService.ts(194,16): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/intakeDocumentService.ts(197,6): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentService.ts(200,6): error TS7006: Parameter 'd' implicitly has an 'any' type.
+src/features/intakeDocuments/intakeDocumentService.ts(205,5): error TS2353: Object literal may only specify known properties, and 'intakeDocuments' does not exist in type 'ClientIntakeFormData'.
+src/features/intakeDocuments/validateIntakeDocuments.ts(42,36): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/validateIntakeDocuments.ts(57,51): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/validateIntakeDocuments.ts(68,12): error TS2339: Property 'intakeAssignmentEnabled' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/validateIntakeDocuments.ts(70,41): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/validateIntakeDocuments.ts(88,26): error TS2339: Property 'intakeOptionalConsents' does not exist on type 'ClientIntakeFormData'.
+src/features/intakeDocuments/validateIntakeDocuments.ts(90,31): error TS2339: Property 'intakeDocuments' does not exist on type 'ClientIntakeFormData'.
+src/hooks/useBusinessDashboardTour.ts(59,11): error TS2739: Type '{ welcome: RefObject<View>; kpis: RefObject<View>; quickActions: RefObject<View>; modules: RefObject<View>; nav: RefObject<...>; firstClient: RefObject<...>; }' is missing the following properties from type 'Record<DashboardTourAnchorKey, RefObject<View>>': recent, moreActions
+src/hooks/useClientWizard.ts(130,73): error TS2554: Expected 2-3 arguments, but got 4.
+src/hooks/useEmployeeEdit.ts(35,22): error TS2339: Property 'avatarUrl' does not exist on type 'EmployeeDetail'.
+src/hooks/useEmployeeEditWizard.ts(56,48): error TS2339: Property 'avatarUrl' does not exist on type 'EmployeeDetail'.
+src/hooks/useEmployeeEditWizard.ts(129,39): error TS2339: Property 'avatarUrl' does not exist on type 'EmployeeDetail'.
+src/hooks/useofficemessagethreaddetail.ts(28,83): error TS2554: Expected 2-3 arguments, but got 4.
+src/hooks/useofficemessagethreaddetail.ts(86,60): error TS2345: Argument of type 'string' is not assignable to parameter of type 'RoleKey | null | undefined'.
+src/hooks/useofficemessagethreads.ts(16,76): error TS2554: Expected 1-3 arguments, but got 4.
+src/hooks/useReportingDashboard.ts(1,15): error TS2305: Module '"@/lib/reporting/reportingService"' has no exported member 'FetchReportingDashboardOptions'.
+src/hooks/useReportingDashboard.ts(2,10): error TS2305: Module '"@/lib/reporting"' has no exported member 'fetchReportingDashboard'.
+src/hooks/useTenantCalendarSettings.ts(31,84): error TS2322: Type 'CalendarModuleScope' is not assignable to type '"office" | "assist" | undefined'.
+  Type '"pflege"' is not assignable to type '"office" | "assist" | undefined'.
+src/hooks/useTenantCalendarSettings.ts(49,91): error TS2322: Type 'CalendarModuleScope' is not assignable to type '"office" | "assist" | undefined'.
+src/lib/access/relativePortalAccessService.ts(98,39): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/access/relativePortalAccessService.ts(99,38): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/access/relativePortalAccessService.ts(100,43): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/admin/dataQualityService.ts(232,5): error TS2322: Type '"master_data_review"' is not assignable to type 'ManagementTaskType'.
+src/lib/akademie/courseListService.ts(39,15): error TS2322: Type 'ServiceResult<CourseListItem[]>' is not assignable to type 'CourseListLoadResult'.
+  Type '{ ok: true; data: CourseListItem[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type 'CourseListLoadResult'.
+    Type '{ ok: true; data: CourseListItem[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type '{ ok: true; data: CourseListItem[]; usedDemoFallback: boolean; tableMissing?: boolean | undefined; }'.
+      Types of property 'usedDemoFallback' are incompatible.
+        Type 'boolean | undefined' is not assignable to type 'boolean'.
+          Type 'undefined' is not assignable to type 'boolean'.
+src/lib/akademie/courseListService.ts(46,57): error TS2339: Property 'error' does not exist on type '{ ok: false; error: string; } | { ok: boolean; data: never[]; tableMissing: boolean; }'.
+  Property 'error' does not exist on type '{ ok: boolean; data: never[]; tableMissing: boolean; }'.
+src/lib/akademie/courseListService.ts(47,38): error TS2345: Argument of type '{ ok: false; error: string; } | { ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to parameter of type 'ServiceResult<CourseListItem[]>'.
+  Type '{ ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type 'ServiceResult<CourseListItem[]>'.
+    Type '{ ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type '{ ok: true; data: CourseListItem[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+      Types of property 'ok' are incompatible.
+        Type 'boolean' is not assignable to type 'true'.
+src/lib/akademie/courseListService.ts(50,48): error TS2345: Argument of type '{ ok: true; data: CourseListItem[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to parameter of type 'ServiceResult<CourseListItem[]>'.
+  Type '{ ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type 'ServiceResult<CourseListItem[]>'.
+src/lib/akademie/courseListService.ts(59,21): error TS2322: Type '{ ok: false; error: string; } | { ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type 'CourseListLoadResult'.
+  Type '{ ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type 'CourseListLoadResult'.
+    Property 'usedDemoFallback' is missing in type '{ ok: boolean; data: never[]; tableMissing: boolean; }' but required in type '{ ok: true; data: CourseListItem[]; usedDemoFallback: boolean; tableMissing?: boolean | undefined; }'.
+src/lib/assist/assignmentConflictService.ts(48,7): error TS2322: Type '"no_service_type"' is not assignable to type 'AssignmentConflictCode'.
+src/lib/assist/assignmentConflictService.ts(56,7): error TS2322: Type '"no_employee"' is not assignable to type 'AssignmentConflictCode'.
+src/lib/assist/assignmentCreateService.ts(2,10): error TS2724: '"@/data/demo/assistAssignments"' has no exported member named 'createDemoAssignmentSeed'. Did you mean 'getDemoAssignmentSeeds'?
+src/lib/assist/assignmentExecutionMapper.ts(49,5): error TS2353: Object literal may only specify known properties, and 'status' does not exist in type 'AssignmentExecution'.
+src/lib/assist/assignmentWorkflowService.ts(13,10): error TS2724: '"@/data/demo/assistAssignments"' has no exported member named 'createDemoAssignmentSeed'. Did you mean 'getDemoAssignmentSeeds'?
+src/lib/assist/assignmentWorkflowService.ts(104,23): error TS2304: Cannot find name 'getPlanningBlockAbsences'.
+src/lib/assist/assignmentWorkflowService.ts(105,27): error TS2304: Cannot find name 'getEmployeeAvailabilityBlocks'.
+src/lib/assist/assistProofPdfService.ts(39,7): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/assist/assistProofPdfService.ts(40,7): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/assist/assistProofPdfService.ts(40,14): error TS7016: Could not find a declaration file for module 'jspdf/dist/jspdf.es.min.js'. 'C:/Users/Kevin Reinhardt/Documents/CareSuite+/node_modules/jspdf/dist/jspdf.es.min.js' implicitly has an 'any' type.
+  If the 'jspdf' package actually exposes this module, try adding a new declaration (.d.ts) file containing `declare module 'jspdf/dist/jspdf.es.min.js';`
+src/lib/assist/managementTaskAutomationService.ts(36,5): error TS2353: Object literal may only specify known properties, and 'clientId' does not exist in type '{ tenantId: string; assignmentId: string; taskType: ManagementTaskType; description?: string | undefined; priority?: NotificationPriority | undefined; }'.
+src/lib/assist/managementTaskAutomationService.ts(54,5): error TS2353: Object literal may only specify known properties, and 'clientId' does not exist in type '{ tenantId: string; assignmentId: string; taskType: ManagementTaskType; description?: string | undefined; priority?: NotificationPriority | undefined; }'.
+src/lib/assist/managementTaskAutomationService.ts(65,5): error TS2322: Type '"review_service_record"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(79,5): error TS2322: Type '"review_exception"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(99,5): error TS2322: Type '"correction_requested"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(121,5): error TS2322: Type '"billing_blocker"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(122,5): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/lib/assist/managementTaskAutomationService.ts(140,5): error TS2322: Type '"client_cancel_request"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(158,5): error TS2322: Type '"client_reschedule_request"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(178,5): error TS2322: Type '"problem_report"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(199,5): error TS2322: Type '"emergency_follow_up"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(219,5): error TS2322: Type '"no_show_follow_up"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(237,5): error TS2322: Type '"budget_warning"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(238,5): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/lib/assist/managementTaskAutomationService.ts(264,5): error TS2322: Type '"employee_late"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(280,9): error TS2322: Type '"missing_consent" | "missing_contract"' is not assignable to type 'ManagementTaskType'.
+  Type '"missing_consent"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(285,5): error TS2353: Object literal may only specify known properties, and 'clientId' does not exist in type '{ tenantId: string; assignmentId: string; taskType: ManagementTaskType; description?: string | undefined; priority?: NotificationPriority | undefined; }'.
+src/lib/assist/managementTaskAutomationService.ts(301,5): error TS2322: Type '"complaint"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/managementTaskAutomationService.ts(302,5): error TS2322: Type 'string | null' is not assignable to type 'string'.
+  Type 'null' is not assignable to type 'string'.
+src/lib/assist/qmCockpitService.ts(44,70): error TS2367: This comparison appears to be unintentional because the types '"open" | "in_progress" | "waiting_for_employee" | "waiting_for_client"' and '"rejected"' have no overlap.
+src/lib/assist/qmCockpitService.ts(322,53): error TS2353: Object literal may only specify known properties, and 'taskType' does not exist in type '{ assignmentId?: string | undefined; status?: ManagementTaskStatus | undefined; }'.
+src/lib/assist/routePlanningService.ts(360,5): error TS2353: Object literal may only specify known properties, and 'employmentStatus' does not exist in type 'EvaluateEmployeeDeployabilityInput'.
+src/lib/assist/serviceRecordReviewService.ts(112,7): error TS2353: Object literal may only specify known properties, and 'clientId' does not exist in type '{ tenantId: string; assignmentId: string; taskType: ManagementTaskType; description?: string | undefined; priority?: NotificationPriority | undefined; }'.
+src/lib/assist/serviceRecordReviewService.ts(124,7): error TS2322: Type '"review_service_record"' is not assignable to type 'ManagementTaskType'.
+src/lib/assist/serviceRecordReviewService.ts(205,5): error TS2322: Type '"review_exception"' is not assignable to type 'ManagementTaskType'.
+src/lib/auth/accessManagementService.ts(142,43): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/auth/accessManagementService.ts(165,65): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/auth/accessManagementService.ts(260,35): error TS2345: Argument of type '{ tenantId: string; clientId: string; createdBy: string | null; expiresAt: string | null; }' is not assignable to parameter of type '{ tenantId: string; clientId: string; firstName: string; lastName: string; createdBy: string | null; expiresAt?: string | null | undefined; }'.
+  Type '{ tenantId: string; clientId: string; createdBy: string | null; expiresAt: string | null; }' is missing the following properties from type '{ tenantId: string; clientId: string; firstName: string; lastName: string; createdBy: string | null; expiresAt?: string | null | undefined; }': firstName, lastName
+src/lib/auth/accessManagementService.ts(276,47): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/auth/usePostLoginNavigation.ts(27,6): error TS2590: Expression produces a union type that is too complex to represent.
+src/lib/auth/useravatarservice.ts(7,10): error TS2724: '"@/lib/auth/userprofileservice"' has no exported member named 'patchDemoProfileOverride'. Did you mean 'applyDemoProfileOverride'?
+src/lib/beratung/counselingCaseUtils.ts(1,15): error TS2459: Module '"@/types/workflow/status"' declares 'WorkflowStatus' locally, but it is not exported.
+src/lib/calendar/calendarEventMapper.ts(121,11): error TS2367: This comparison appears to be unintentional because the types '"beratung" | "sonstiges" | "rueckruf" | "dokument" | "abrechnung" | "besuch" | "aktivitaet" | "pflegevisite"' and '"einsatz"' have no overlap.
+src/lib/calendar/calendarEventService.ts(131,44): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/calendar/calendarEventService.ts(132,43): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/calendar/calendarEventService.ts(163,55): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/calendar/calendarEventService.ts(260,13): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/calendar/calendarSyncService.ts(405,46): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/calendar/calendarSyncService.ts(413,49): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/calendar/calendarSyncService.ts(434,64): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/clients/clientIntakeCostBearerConfig.ts(72,5): error TS2322: Type '"privatversicherung"' is not assignable to type 'SystemCostCarrierType | undefined'.
+src/lib/clients/clientIntakeCostBearerConfig.ts(84,5): error TS2322: Type '"sozialamt"' is not assignable to type 'SystemCostCarrierType | undefined'.
+src/lib/clients/clientIntakeCostBearerConfig.ts(116,5): error TS2322: Type '"berufsgenossenschaft"' is not assignable to type 'SystemCostCarrierType | undefined'.
+src/lib/clients/clientIntakeCostBearerConfig.ts(128,5): error TS2322: Type '"unfallversicherung"' is not assignable to type 'SystemCostCarrierType | undefined'.
+src/lib/clients/clientIntakePersistence.ts(341,5): error TS2322: Type 'string' is not assignable to type 'ClientContactType'.
+src/lib/clients/clientRisksService.ts(12,21): error TS2345: Argument of type '() => Promise<{ ok: false; error: string; } | { ok: true; data: { risks: ClientRisk[]; emergencyPlan: null; }; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ...; }>' is not assignable to parameter of type '() => Promise<ServiceResult<{ risks: ClientRisk[]; emergencyPlan: null; }>>'.
+  Type 'Promise<{ ok: false; error: string; } | { ok: true; data: { risks: ClientRisk[]; emergencyPlan: null; }; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ...; }>' is not assignable to type 'Promise<ServiceResult<{ risks: ClientRisk[]; emergencyPlan: null; }>>'.
+    Type '{ ok: false; error: string; } | { ok: true; data: { risks: ClientRisk[]; emergencyPlan: null; }; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: true; data: { ...; }; }' is not assignable to type 'ServiceResult<{ risks: ClientRisk[]; emergencyPlan: null; }>'.
+      Type '{ ok: true; data: { risks: ClientRisk[]; emergencyPlan: ClientEmergencyPlan | null; }; }' is not assignable to type 'ServiceResult<{ risks: ClientRisk[]; emergencyPlan: null; }>'.
+        Type '{ ok: true; data: { risks: ClientRisk[]; emergencyPlan: ClientEmergencyPlan | null; }; }' is not assignable to type '{ ok: true; data: { risks: ClientRisk[]; emergencyPlan: null; }; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+          The types of 'data.emergencyPlan' are incompatible between these types.
+            Type 'ClientEmergencyPlan | null' is not assignable to type 'null'.
+              Type 'ClientEmergencyPlan' is not assignable to type 'null'.
+src/lib/clients/clientTasksService.ts(157,9): error TS2322: Type 'string | null | undefined' is not assignable to type 'string | null'.
+  Type 'undefined' is not assignable to type 'string | null'.
+src/lib/csv/csvDuplicateCheck.ts(76,39): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/csv/csvExportClients.ts(21,84): error TS2339: Property 'value' does not exist on type 'SystemCatalogEntry'.
+src/lib/csv/csvExportClients.ts(59,15): error TS2322: Type 'ServiceResult<unknown>' is not assignable to type 'ServiceResult<{ csv: string; fileName: string; count: number; }>'.
+  Type '{ ok: true; data: unknown; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type 'ServiceResult<{ csv: string; fileName: string; count: number; }>'.
+    Type '{ ok: true; data: unknown; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type '{ ok: true; data: { csv: string; fileName: string; count: number; }; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+      Types of property 'data' are incompatible.
+        Type 'unknown' is not assignable to type '{ csv: string; fileName: string; count: number; }'.
+src/lib/csv/csvExportClients.ts(81,63): error TS2345: Argument of type 'string' is not assignable to parameter of type 'NonNullable<"unknown" | "none" | "pg1" | "pg2" | "pg3" | "pg4" | "pg5" | null>'.
+src/lib/csv/csvExportEmployees.ts(56,15): error TS2322: Type 'ServiceResult<unknown>' is not assignable to type 'ServiceResult<{ csv: string; fileName: string; count: number; }>'.
+  Type '{ ok: true; data: unknown; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type 'ServiceResult<{ csv: string; fileName: string; count: number; }>'.
+    Type '{ ok: true; data: unknown; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type '{ ok: true; data: { csv: string; fileName: string; count: number; }; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+      Types of property 'data' are incompatible.
+        Type 'unknown' is not assignable to type '{ csv: string; fileName: string; count: number; }'.
+src/lib/csv/csvExportEmployees.ts(75,73): error TS2345: Argument of type 'string' is not assignable to parameter of type 'NonNullable<"other" | "full_time" | "part_time" | "mini_job" | "freelancer" | "temporary" | "intern" | null>'.
+src/lib/csv/csvImportClients.ts(27,21): error TS2322: Type 'ServiceResult<unknown>' is not assignable to type 'ServiceResult<{ imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }>'.
+  Type '{ ok: true; data: unknown; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type 'ServiceResult<{ imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }>'.
+    Type '{ ok: true; data: unknown; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type '{ ok: true; data: { imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+      Types of property 'data' are incompatible.
+        Type 'unknown' is not assignable to type '{ imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }'.
+src/lib/csv/csvImportClients.ts(29,18): error TS2322: Type 'ServiceResult<unknown>' is not assignable to type 'ServiceResult<{ imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }>'.
+src/lib/csv/csvImportEmployees.ts(27,21): error TS2322: Type 'ServiceResult<unknown>' is not assignable to type 'ServiceResult<{ imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }>'.
+  Type '{ ok: true; data: unknown; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type 'ServiceResult<{ imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }>'.
+    Type '{ ok: true; data: unknown; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type '{ ok: true; data: { imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+      Types of property 'data' are incompatible.
+        Type 'unknown' is not assignable to type '{ imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }'.
+src/lib/csv/csvImportEmployees.ts(29,18): error TS2322: Type 'ServiceResult<unknown>' is not assignable to type 'ServiceResult<{ imported: number; skipped: number; failed: number; logId: string; status: "failed" | "imported" | "partially_imported"; }>'.
+src/lib/documents/documentPdfService.ts(32,7): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/documents/documentPdfService.ts(33,7): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/documents/documentPdfService.ts(33,14): error TS7016: Could not find a declaration file for module 'jspdf/dist/jspdf.es.min.js'. 'C:/Users/Kevin Reinhardt/Documents/CareSuite+/node_modules/jspdf/dist/jspdf.es.min.js' implicitly has an 'any' type.
+  If the 'jspdf' package actually exposes this module, try adding a new declaration (.d.ts) file containing `declare module 'jspdf/dist/jspdf.es.min.js';`
+src/lib/documents/index.ts(174,3): error TS2300: Duplicate identifier 'STANDARD_CONTRACT_HTML_TEMPLATE'.
+src/lib/documents/index.ts(176,3): error TS2300: Duplicate identifier 'contractToDocumentContext'.
+src/lib/documents/index.ts(178,3): error TS2300: Duplicate identifier 'validateContractRecord'.
+src/lib/documents/index.ts(199,3): error TS2300: Duplicate identifier 'STANDARD_SERVICE_PROOF_HTML_TEMPLATE'.
+src/lib/documents/index.ts(203,3): error TS2300: Duplicate identifier 'serviceProofToDocumentContext'.
+src/lib/documents/index.ts(204,3): error TS2300: Duplicate identifier 'validateServiceProofForSignature'.
+src/lib/documents/index.ts(205,3): error TS2300: Duplicate identifier 'validateServiceProofRecord'.
+src/lib/documents/index.ts(206,3): error TS2300: Duplicate identifier 'sumDeploymentHours'.
+src/lib/documents/index.ts(225,3): error TS2300: Duplicate identifier 'STANDARD_DOCUMENTATION_HTML_TEMPLATE'.
+src/lib/documents/index.ts(227,3): error TS2300: Duplicate identifier 'documentationToDocumentContext'.
+src/lib/documents/index.ts(229,3): error TS2300: Duplicate identifier 'validateDocumentationRecord'.
+src/lib/documents/index.ts(239,10): error TS2300: Duplicate identifier 'validateContractRecord'.
+src/lib/documents/index.ts(239,34): error TS2300: Duplicate identifier 'contractToDocumentContext'.
+src/lib/documents/index.ts(239,61): error TS2300: Duplicate identifier 'STANDARD_CONTRACT_HTML_TEMPLATE'.
+src/lib/documents/index.ts(242,3): error TS2300: Duplicate identifier 'validateServiceProofRecord'.
+src/lib/documents/index.ts(243,3): error TS2300: Duplicate identifier 'validateServiceProofForSignature'.
+src/lib/documents/index.ts(244,3): error TS2300: Duplicate identifier 'sumDeploymentHours'.
+src/lib/documents/index.ts(245,3): error TS2300: Duplicate identifier 'serviceProofToDocumentContext'.
+src/lib/documents/index.ts(246,3): error TS2300: Duplicate identifier 'STANDARD_SERVICE_PROOF_HTML_TEMPLATE'.
+src/lib/documents/index.ts(250,3): error TS2300: Duplicate identifier 'validateDocumentationRecord'.
+src/lib/documents/index.ts(251,3): error TS2300: Duplicate identifier 'documentationToDocumentContext'.
+src/lib/documents/index.ts(252,3): error TS2300: Duplicate identifier 'STANDARD_DOCUMENTATION_HTML_TEMPLATE'.
+src/lib/inventory/inventoryRepository.supabase.ts(42,52): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'PostgrestError | null'.
+src/lib/navigation/index.ts(41,3): error TS2724: '"./redirects"' has no exported member named 'checkModuleAccess'. Did you mean 'checkRoleAccess'?
+src/lib/navigation/redirects.ts(72,15): error TS2590: Expression produces a union type that is too complex to represent.
+src/lib/navigation/shellConfig.ts(52,5): error TS2353: Object literal may only specify known properties, and 'moduleScopeKey' does not exist in type 'ShellTabConfig'.
+src/lib/navigation/shellConfig.ts(60,5): error TS2353: Object literal may only specify known properties, and 'moduleScopeKey' does not exist in type 'ShellTabConfig'.
+src/lib/navigation/shellConfig.ts(68,5): error TS2353: Object literal may only specify known properties, and 'moduleScopeKey' does not exist in type 'ShellTabConfig'.
+src/lib/navigation/shellConfig.ts(76,5): error TS2353: Object literal may only specify known properties, and 'moduleScopeKey' does not exist in type 'ShellTabConfig'.
+src/lib/navigation/shellConfig.ts(84,5): error TS2353: Object literal may only specify known properties, and 'moduleScopeKey' does not exist in type 'ShellTabConfig'.
+src/lib/navigation/shellConfig.ts(138,14): error TS2339: Property 'moduleScopeKey' does not exist on type 'ShellTabConfig'.
+src/lib/navigation/shellConfig.ts(139,37): error TS2339: Property 'moduleScopeKey' does not exist on type 'ShellTabConfig'.
+src/lib/office/absenceService.ts(112,9): error TS2322: Type '"absence_replacement"' is not assignable to type 'ManagementTaskType'.
+src/lib/office/appointmentCreateService.ts(6,15): error TS2303: Circular definition of import alias 'AppointmentCreateInput'.
+src/lib/office/calendarEventService.legacy.ts(99,21): error TS2339: Property 'absenceId' does not exist on type '{ id: string; title: string; startsAt: string; endsAt: string; absenceType: AbsenceType; }'.
+src/lib/office/employeeCatalogLabels.ts(26,38): error TS2345: Argument of type '"employee_department"' is not assignable to parameter of type 'CatalogType'.
+src/lib/office/employeeCatalogLabels.ts(30,38): error TS2345: Argument of type '"employee_role"' is not assignable to parameter of type 'CatalogType'.
+src/lib/office/employeeCreateService.ts(19,22): error TS2339: Property 'profilePhoto' does not exist on type 'EmployeeFormData'.
+src/lib/office/employeeCreateService.ts(54,20): error TS2339: Property 'status' does not exist on type 'EmployeeFormData'.
+src/lib/office/employeeDetailMapper.ts(88,5): error TS2353: Object literal may only specify known properties, and 'avatarUrl' does not exist in type 'EmployeeListItem'.
+src/lib/office/employeeDetailMapper.ts(101,5): error TS2353: Object literal may only specify known properties, and 'avatarUrl' does not exist in type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(37,49): error TS2339: Property 'mobile' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(43,28): error TS2339: Property 'avatarUrl' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(48,65): error TS2339: Property 'employmentType' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(52,20): error TS2339: Property 'weeklyHours' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(53,29): error TS2339: Property 'weeklyHours' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(55,49): error TS2339: Property 'street' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(56,59): error TS2339: Property 'houseNumber' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(57,57): error TS2339: Property 'postalCode' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(58,45): error TS2339: Property 'city' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(60,51): error TS2339: Property 'hasFirstAidCertificate' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(61,61): error TS2339: Property 'hasDriverLicense' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(63,55): error TS2339: Property 'driverLicenseClass' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(64,65): error TS2339: Property 'hasPoliceClearance' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditFormMappers.ts(66,56): error TS2339: Property 'policeClearanceDate' does not exist on type 'EmployeeDetail'.
+src/lib/office/employeeEditService.ts(102,5): error TS2353: Object literal may only specify known properties, and 'firstName' does not exist in type 'Partial<Pick<EmployeeDetail, "notes" | "phone" | "jobTitle" | "department">>'.
+src/lib/office/employeePersonnelFileLiveLoader.ts(129,15): error TS2352: Conversion of type 'GenericStringError' to type 'EmployeePersonnelLiveRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ error: true; } & String' is missing the following properties from type 'EmployeePersonnelLiveRow': id, tenant_id, first_name, last_name, and 3 more.
+src/lib/office/employeePersonnelFileService.ts(168,79): error TS2339: Property 'data' does not exist on type 'ServiceResult<EmployeePersonnelFile>'.
+  Property 'data' does not exist on type '{ ok: false; error: string; }'.
+src/lib/office/messageattachmentservice.ts(38,7): error TS2304: Cannot find name 'normalizeMimeType'.
+src/lib/office/messageattachmentservice.ts(39,7): error TS2304: Cannot find name 'inferMimeTypeFromFileName'.
+src/lib/office/messageattachmentservice.ts(151,20): error TS2304: Cannot find name 'normalizedMimeType'.
+src/lib/office/messageattachmentservice.ts(155,69): error TS2345: Argument of type 'StorageError' is not assignable to parameter of type 'PostgrestError'.
+  Type 'StorageError' is missing the following properties from type 'PostgrestError': details, hint, code
+src/lib/office/messageattachmentservice.ts(171,18): error TS2304: Cannot find name 'normalizedMimeType'.
+src/lib/office/messageattachmentservice.ts(243,63): error TS2345: Argument of type 'StorageError' is not assignable to parameter of type 'PostgrestError'.
+src/lib/office/messagethreadservice.ts(264,13): error TS2345: Argument of type 'Record<string, unknown>' is not assignable to parameter of type 'RejectExcessProperties<{ archived_at?: string | null | undefined; archived_by?: string | null | undefined; assigned_at?: string | null | undefined; assigned_by_user_id?: string | null | undefined; assigned_to_user_id?: string | ... 1 more ... | undefined; ... 22 more ...; updated_at?: string | undefined; }, Record<....'.
+  Type 'Record<string, unknown>' is not assignable to type '{ [x: string]: never; }'.
+    'string' index signatures are incompatible.
+      Type 'unknown' is not assignable to type 'never'.
+src/lib/office/officeComposeRecipientService.ts(52,33): error TS2339: Property 'department' does not exist on type 'EmployeeListItem'.
+src/lib/office/officeDocumentDisplay.ts(35,43): error TS2322: Type '"contract"' is not assignable to type 'PortalDocumentCategory | null'.
+src/lib/office/officeDocumentDisplay.ts(36,50): error TS2322: Type '"assignment"' is not assignable to type 'PortalDocumentCategory | null'.
+src/lib/office/officeDocumentDisplay.ts(49,7): error TS2322: Type '"contract"' is not assignable to type 'PortalDocumentCategory'.
+src/lib/office/officeDocumentDisplay.ts(108,16): error TS2339: Property 'clientName' does not exist on type 'PortalDocumentListItem'.
+src/lib/office/officeDocumentDisplay.ts(109,24): error TS2339: Property 'clientName' does not exist on type 'PortalDocumentListItem'.
+src/lib/office/officeDocumentDisplay.ts(111,16): error TS2339: Property 'displayFileName' does not exist on type 'PortalDocumentListItem'.
+src/lib/office/officeDocumentDisplay.ts(112,24): error TS2339: Property 'displayFileName' does not exist on type 'PortalDocumentListItem'.
+src/lib/office/officeDocumentDisplay.ts(148,5): error TS2344: Type '"fileName" | "category" | "documentSource" | "displayFileName" | "sizeLabel"' does not satisfy the constraint '"id" | "status" | "updatedAt" | "visibility" | "sensitivity" | "title" | "fileName" | "mimeType" | "category" | "fileSizeBytes"'.
+  Type '"documentSource"' is not assignable to type '"id" | "status" | "updatedAt" | "visibility" | "sensitivity" | "title" | "fileName" | "mimeType" | "category" | "fileSizeBytes"'.
+src/lib/office/officeDocumentDisplay.ts(151,27): error TS2339: Property 'trim' does not exist on type '{}'.
+src/lib/office/officeDocumentDisplay.ts(151,61): error TS2339: Property 'trim' does not exist on type '{}'.
+src/lib/office/officeDocumentDisplay.ts(152,33): error TS2339: Property 'trim' does not exist on type '{}'.
+src/lib/office/officeDocumentDisplay.ts(152,73): error TS2339: Property 'trim' does not exist on type '{}'.
+src/lib/office/officeDocumentDisplay.ts(161,5): error TS2345: Argument of type 'PortalDocumentListItem' is not assignable to parameter of type 'Pick<PortalDocumentListItem, "fileName" | "category" | "documentSource" | "displayFileName" | "sizeLabel">'.
+  Type 'PortalDocumentListItem' is missing the following properties from type 'Pick<PortalDocumentListItem, "fileName" | "category" | "documentSource" | "displayFileName" | "sizeLabel">': documentSource, displayFileName, sizeLabel
+src/lib/office/officeDocumentDisplay.ts(199,5): error TS2353: Object literal may only specify known properties, and 'clientId' does not exist in type 'PortalDocumentListItem'.
+src/lib/office/officemessageexportservice.ts(24,5): error TS2322: Type '"office_message_export_requested"' is not assignable to type 'OfficeMessageAuditAction'.
+src/lib/office/officeReportingService.ts(68,5): error TS2353: Object literal may only specify known properties, and 'previewData' does not exist in type '{ ok: true; data: OfficeReportingKpi[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+src/lib/office/personalComplianceCockpitBuilder.ts(66,28): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(iterable?: Iterable<ManagementTaskStatus> | null | undefined): Set<ManagementTaskStatus>', gave the following error.
+    Argument of type '("open" | "in_progress" | "waiting_for_employee" | "waiting_for_management")[]' is not assignable to parameter of type 'Iterable<ManagementTaskStatus>'.
+      The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.
+        Type 'IteratorResult<"open" | "in_progress" | "waiting_for_employee" | "waiting_for_management", any>' is not assignable to type 'IteratorResult<ManagementTaskStatus, any>'.
+          Type 'IteratorYieldResult<"open" | "in_progress" | "waiting_for_employee" | "waiting_for_management">' is not assignable to type 'IteratorResult<ManagementTaskStatus, any>'.
+            Type 'IteratorYieldResult<"open" | "in_progress" | "waiting_for_employee" | "waiting_for_management">' is not assignable to type 'IteratorYieldResult<ManagementTaskStatus>'.
+              Type '"open" | "in_progress" | "waiting_for_employee" | "waiting_for_management"' is not assignable to type 'ManagementTaskStatus'.
+                Type '"waiting_for_management"' is not assignable to type 'ManagementTaskStatus'.
+  Overload 2 of 2, '(values?: readonly ManagementTaskStatus[] | null | undefined): Set<ManagementTaskStatus>', gave the following error.
+    Type '"waiting_for_management"' is not assignable to type 'ManagementTaskStatus'.
+src/lib/office/personalComplianceCockpitBuilder.ts(73,66): error TS2769: No overload matches this call.
+  Overload 1 of 2, '(iterable?: Iterable<ManagementTaskType> | null | undefined): Set<ManagementTaskType>', gave the following error.
+    Argument of type '("missing_contract" | "master_data_review" | "absence_replacement" | "absence_conflict")[]' is not assignable to parameter of type 'Iterable<ManagementTaskType>'.
+      The types returned by '[Symbol.iterator]().next(...)' are incompatible between these types.
+        Type 'IteratorResult<"missing_contract" | "master_data_review" | "absence_replacement" | "absence_conflict", any>' is not assignable to type 'IteratorResult<ManagementTaskType, any>'.
+          Type 'IteratorYieldResult<"missing_contract" | "master_data_review" | "absence_replacement" | "absence_conflict">' is not assignable to type 'IteratorResult<ManagementTaskType, any>'.
+            Type 'IteratorYieldResult<"missing_contract" | "master_data_review" | "absence_replacement" | "absence_conflict">' is not assignable to type 'IteratorYieldResult<ManagementTaskType>'.
+              Type '"missing_contract" | "master_data_review" | "absence_replacement" | "absence_conflict"' is not assignable to type 'ManagementTaskType'.
+                Type '"missing_contract"' is not assignable to type 'ManagementTaskType'.
+src/lib/office/personalComplianceCockpitBuilder.ts(140,58): error TS2339: Property 'employeeId' does not exist on type 'ManagementTask'.
+src/lib/office/personalComplianceCockpitBuilder.ts(449,15): error TS2339: Property 'employeeId' does not exist on type 'ManagementTask'.
+src/lib/office/personalComplianceCockpitBuilder.ts(450,52): error TS2339: Property 'employeeId' does not exist on type 'ManagementTask'.
+src/lib/office/personalComplianceCockpitBuilder.ts(453,14): error TS2339: Property 'employeeId' does not exist on type 'ManagementTask'.
+src/lib/office/personalComplianceCockpitBuilder.ts(456,24): error TS2339: Property 'employeeId' does not exist on type 'ManagementTask'.
+src/lib/office/personalComplianceCockpitBuilder.ts(465,19): error TS2339: Property 'dueAt' does not exist on type 'ManagementTask'.
+src/lib/office/personalComplianceCockpitService.ts(126,5): error TS2322: Type '"master_data_review"' is not assignable to type 'ManagementTaskType'.
+src/lib/office/personalcompliancecockpitstore.ts(159,5): error TS2353: Object literal may only specify known properties, and 'notes' does not exist in type 'EmployeeAbsence'.
+src/lib/office/tenantCalendarSettingsService.ts(43,7): error TS2322: Type 'unknown' is not assignable to type 'boolean'.
+src/lib/officeModules/moduleAssignmentService.ts(343,49): error TS2339: Property 'data' does not exist on type 'ServiceResult<number>'.
+  Property 'data' does not exist on type '{ ok: false; error: string; }'.
+src/lib/portal/assist/portalAssistDashboardService.ts(53,20): error TS2322: Type '"geplant" | "bestaetigt" | "unterwegs" | "angekommen" | "gestartet" | "pausiert" | "beendet" | "dokumentation_offen" | "unterschrift_offen"' is not assignable to type '"cancelled" | "completed" | "confirmed" | "planned" | "on_the_way" | "arrived" | "started" | "paused" | "finished" | "documentation_open" | "signature_open" | "no_show"'.
+src/lib/portal/assist/portalAssistDashboardService.ts(64,11): error TS2352: Conversion of type 'SelectQueryError<"column 'location' does not exist on 'assignments'.">[]' to type 'Record<string, unknown>[]' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type 'SelectQueryError<"column 'location' does not exist on 'assignments'.">' is not comparable to type 'Record<string, unknown>'.
+    Index signature for type 'string' is missing in type '{ error: true; } & String'.
+src/lib/portal/assist/portalAssistDashboardService.ts(117,20): error TS2322: Type '"geplant" | "bestaetigt"' is not assignable to type '"cancelled" | "completed" | "confirmed" | "planned" | "on_the_way" | "arrived" | "started" | "paused" | "finished" | "documentation_open" | "signature_open" | "no_show"'.
+src/lib/portal/assist/portalDocumentUploadService.ts(177,24): error TS2345: Argument of type '"client_office"' is not assignable to parameter of type 'NonNullable<"internal" | "system" | "employee" | "client" | "support">'.
+src/lib/portal/assist/portalDocumentUploadService.ts(200,5): error TS2322: Type '{ portalUploadId: string; portalRequestId: string; }' is not assignable to type 'never'.
+src/lib/portal/clientProfileLiveService.ts(9,15): error TS2459: Module '"@/types/workflow/status"' declares 'WorkflowStatus' locally, but it is not exported.
+src/lib/portal/employeePortalExecutionService.ts(29,3): error TS2305: Module '"@/lib/assist/assignmentStatusMachine"' has no exported member 'taskStatusRequiresNote'.
+src/lib/portal/employeePortalExecutionService.ts(30,3): error TS2305: Module '"@/lib/assist/assignmentStatusMachine"' has no exported member 'validateExecutionTransition'.
+src/lib/portal/engine/buildPortalDashboard.ts(44,44): error TS2345: Argument of type '"global" | PortalModuleKey' is not assignable to parameter of type 'PortalModuleKey'.
+  Type '"global"' is not assignable to type 'PortalModuleKey'.
+src/lib/portal/engine/fetchPortalWidgetData.ts(78,26): error TS2322: Type '"geplant" | "bestaetigt" | "unterwegs" | "angekommen" | "gestartet" | "pausiert" | "beendet" | "dokumentation_offen" | "unterschrift_offen"' is not assignable to type '"cancelled" | "completed" | "confirmed" | "planned" | "on_the_way" | "arrived" | "started" | "paused" | "finished" | "documentation_open" | "signature_open" | "no_show"'.
+  Type '"geplant"' is not assignable to type '"cancelled" | "completed" | "confirmed" | "planned" | "on_the_way" | "arrived" | "started" | "paused" | "finished" | "documentation_open" | "signature_open" | "no_show"'.
+src/lib/portal/engine/fetchPortalWidgetData.ts(90,26): error TS2322: Type '"geplant" | "bestaetigt"' is not assignable to type '"cancelled" | "completed" | "confirmed" | "planned" | "on_the_way" | "arrived" | "started" | "paused" | "finished" | "documentation_open" | "signature_open" | "no_show"'.
+  Type '"geplant"' is not assignable to type '"cancelled" | "completed" | "confirmed" | "planned" | "on_the_way" | "arrived" | "started" | "paused" | "finished" | "documentation_open" | "signature_open" | "no_show"'.
+src/lib/portal/engine/fetchPortalWidgetData.ts(125,25): error TS2345: Argument of type '"aktiv"' is not assignable to parameter of type 'NonNullable<"active" | "completed" | "archived" | "draft" | "paused">'.
+src/lib/portal/engine/fetchPortalWidgetData.ts(146,25): error TS2345: Argument of type '"aktiv"' is not assignable to parameter of type 'NonNullable<"active" | "archived" | "paused" | "stopped">'.
+src/lib/portal/engine/resolvePortalContext.ts(77,39): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/portal/engine/resolvePortalContext.ts(78,41): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/portal/engine/resolvePortalContext.ts(98,39): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/portal/engine/resolvePortalContext.ts(99,41): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/portal/engine/resolvePortalContext.ts(131,39): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/portal/engine/resolvePortalContext.ts(132,41): error TS1323: Dynamic imports are only supported when the '--module' flag is set to 'es2020', 'es2022', 'esnext', 'commonjs', 'amd', 'system', 'umd', 'node16', or 'nodenext'.
+src/lib/portal/portalAppointmentsLiveService.ts(2,15): error TS2459: Module '"@/types/workflow/status"' declares 'WorkflowStatus' locally, but it is not exported.
+src/lib/realtime/presets.ts(2,40): error TS2459: Module '"./subscribeToTenantTables"' declares 'RealtimeHandler' locally, but it is not exported.
+src/lib/reporting/reportingRepository.demo.ts(96,60): error TS2339: Property 'employeeId' does not exist on type 'AssignmentListItem'.
+src/lib/services/repositories/employeeRepository.supabase.ts(40,5): error TS2353: Object literal may only specify known properties, and 'avatarUrl' does not exist in type 'EmployeeListItem'.
+src/lib/services/repositories/employeeRepository.supabase.ts(90,26): error TS2352: Conversion of type 'GenericStringError' to type 'EmployeeDetailLiveRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ error: true; } & String' is missing the following properties from type 'EmployeeDetailLiveRow': id, tenant_id, first_name, last_name, and 3 more.
+src/lib/services/repositories/employeeRepository.supabase.ts(93,30): error TS2352: Conversion of type 'GenericStringError' to type 'EmployeeDetailLiveRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(37,5): error TS2740: Type 'PostgrestQueryBuilder<any, any, any, string, unknown>' is missing the following properties from type 'PostgrestFilterBuilder<any, any, any, { id: any; }[], string, unknown, "GET", false>': throwOnError, eq, neq, gt, and 50 more.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(37,25): error TS2345: Argument of type 'PostgrestFilterBuilder<any, any, any, { id: any; }[], string, unknown, "GET", false>' is not assignable to parameter of type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+  Type 'PostgrestFilterBuilder<any, any, any, { id: any; }[], string, unknown, "GET", false>' is missing the following properties from type 'PostgrestQueryBuilder<any, any, any, string, unknown>': cloneRequestState, insert, upsert, update, delete
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(74,57): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(75,57): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(76,57): error TS2339: Property 'gte' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(78,59): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(80,13): error TS2339: Property 'gte' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(83,13): error TS2339: Property 'or' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(86,13): error TS2339: Property 'or' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(90,13): error TS2339: Property 'in' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(92,70): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(93,62): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(95,13): error TS2339: Property 'in' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(97,65): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(99,13): error TS2339: Property 'gte' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(136,15): error TS2339: Property 'in' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(138,60): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/officeDashboardRepository.supabase.ts(161,13): error TS2339: Property 'eq' does not exist on type 'PostgrestQueryBuilder<any, any, any, string, unknown>'.
+src/lib/services/repositories/stationaerCalendarRepository.supabase.ts(72,5): error TS2322: Type 'string' is not assignable to type 'WorkflowStatus'.
+src/lib/services/repositories/stationaerCalendarRepository.supabase.ts(153,63): error TS2352: Conversion of type 'GenericStringError' to type 'CareRecordCalendarRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+  Type '{ error: true; } & String' is missing the following properties from type 'CareRecordCalendarRow': id, tenant_id, record_type, title, and 14 more.
+src/lib/services/repositories/stationaerCalendarRepository.supabase.ts(175,37): error TS2352: Conversion of type 'GenericStringError' to type 'CareRecordCalendarRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/lib/services/repositories/stationaerCalendarRepository.supabase.ts(191,37): error TS2352: Conversion of type 'GenericStringError' to type 'CareRecordCalendarRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/lib/services/repositories/stationaerCalendarRepository.supabase.ts(211,37): error TS2352: Conversion of type 'GenericStringError' to type 'CareRecordCalendarRow' may be a mistake because neither type sufficiently overlaps with the other. If this was intentional, convert the expression to 'unknown' first.
+src/lib/stationaer/residentListService.ts(41,15): error TS2322: Type 'ServiceResult<ResidentListItem[]>' is not assignable to type 'ResidentListLoadResult'.
+  Type '{ ok: true; data: ResidentListItem[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type 'ResidentListLoadResult'.
+    Type '{ ok: true; data: ResidentListItem[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }' is not assignable to type '{ ok: true; data: ResidentListItem[]; usedDemoFallback: boolean; tableMissing?: boolean | undefined; }'.
+      Types of property 'usedDemoFallback' are incompatible.
+        Type 'boolean | undefined' is not assignable to type 'boolean'.
+src/lib/stationaer/residentListService.ts(48,57): error TS2339: Property 'error' does not exist on type '{ ok: false; error: string; } | { ok: boolean; data: never[]; tableMissing: boolean; }'.
+  Property 'error' does not exist on type '{ ok: boolean; data: never[]; tableMissing: boolean; }'.
+src/lib/stationaer/residentListService.ts(49,38): error TS2345: Argument of type '{ ok: false; error: string; } | { ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to parameter of type 'ServiceResult<ResidentListItem[]>'.
+  Type '{ ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type 'ServiceResult<ResidentListItem[]>'.
+    Type '{ ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type '{ ok: true; data: ResidentListItem[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; }'.
+      Types of property 'ok' are incompatible.
+        Type 'boolean' is not assignable to type 'true'.
+src/lib/stationaer/residentListService.ts(52,48): error TS2345: Argument of type '{ ok: true; data: ResidentListItem[]; tableMissing?: boolean | undefined; usedDemoFallback?: boolean | undefined; } | { ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to parameter of type 'ServiceResult<ResidentListItem[]>'.
+  Type '{ ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type 'ServiceResult<ResidentListItem[]>'.
+src/lib/stationaer/residentListService.ts(61,21): error TS2322: Type '{ ok: false; error: string; } | { ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type 'ResidentListLoadResult'.
+  Type '{ ok: boolean; data: never[]; tableMissing: boolean; }' is not assignable to type 'ResidentListLoadResult'.
+    Property 'usedDemoFallback' is missing in type '{ ok: boolean; data: never[]; tableMissing: boolean; }' but required in type '{ ok: true; data: ResidentListItem[]; usedDemoFallback: boolean; tableMissing?: boolean | undefined; }'.
+src/lib/stationaer/residentUtils.ts(1,15): error TS2459: Module '"@/types/workflow/status"' declares 'WorkflowStatus' locally, but it is not exported.
+src/lib/supabase/missingtablefallback.ts(46,38): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'PostgrestError | null'.
+src/lib/supabase/missingtablefallback.ts(46,75): error TS2345: Argument of type 'unknown' is not assignable to parameter of type 'string'.
+src/lib/tasks/internalTaskService.ts(33,3): error TS2353: Object literal may only specify known properties, and 'client_cancel_request' does not exist in type 'Record<ManagementTaskType, InternalTaskType>'.
+src/lib/tenant/tenantResolver.ts(19,12): error TS2322: Type 'Profile | TenantResolveContext | null' is not assignable to type 'Profile | null | undefined'.
+  Type 'TenantResolveContext' is missing the following properties from type 'Profile': id, tenantId, roleId, roleKey, and 8 more.
+src/lib/tenant/tenantServiceCatalogService.ts(312,48): error TS2345: Argument of type '"seed_tenant_service_catalog"' is not assignable to parameter of type '"create_support_ticket" | "add_ai_message" | "add_live_tracking_event" | "add_support_ticket_message" | "book_payment_for_invoice" | "calculate_assessment_score" | "caresuite_current_tenant_id" | ... 57 more ... | "validate_portal_session"'.
+src/lib/tenant/tenantSettingsService.ts(242,13): error TS2554: Expected 4 arguments, but got 3.
+src/lib/training/trainingAssignmentIntegration.ts(46,3): error TS2322: Type '{ code: "qualification_missing" | "mandatory_training_missing" | "training_expired"; message: string; severity: "error" | "warning"; }[]' is not assignable to type 'AssignmentConflict[]'.
+  Type '{ code: "qualification_missing" | "mandatory_training_missing" | "training_expired"; message: string; severity: "error" | "warning"; }' is not assignable to type 'AssignmentConflict'.
+    Types of property 'code' are incompatible.
+      Type '"qualification_missing" | "mandatory_training_missing" | "training_expired"' is not assignable to type 'AssignmentConflictCode'.
+        Type '"mandatory_training_missing"' is not assignable to type 'AssignmentConflictCode'.
+src/screens/akademie/CourseCreateScreen.tsx(14,7): error TS2741: Property 'preparedMessage' is missing in type '{ eyebrow: string; meta: string; icon: string; accentColor: "#7C5CFF" | "#8B7CFF"; }' but required in type 'Pick<FormScreenHeroProps, "icon" | "meta" | "accentColor" | "eyebrow" | "preparedMessage">'.
+src/screens/assist/AssignmentCreateScreen.tsx(14,7): error TS2741: Property 'preparedMessage' is missing in type '{ eyebrow: string; meta: string; icon: string; accentColor: "#22C55E"; }' but required in type 'Pick<FormScreenHeroProps, "icon" | "meta" | "accentColor" | "eyebrow" | "preparedMessage">'.
+src/screens/assist/AssignmentExecutionScreen.tsx(88,36): error TS2339: Property 'title' does not exist on type '{}'.
+src/screens/assist/AssignmentExecutionScreen.tsx(88,64): error TS2339: Property 'clientName' does not exist on type '{}'.
+src/screens/assist/AssignmentExecutionScreen.tsx(112,60): error TS2339: Property 'location' does not exist on type '{}'.
+src/screens/assist/AssignmentExecutionScreen.tsx(151,51): error TS2339: Property 'location' does not exist on type '{}'.
+src/screens/assist/AssignmentExecutionScreen.tsx(185,62): error TS2339: Property 'location' does not exist on type '{}'.
+src/screens/beratung/BeratungFallAnlegenScreen.tsx(14,7): error TS2741: Property 'preparedMessage' is missing in type '{ eyebrow: string; meta: string; icon: string; accentColor: "#FF9500" | "#FF7A1A"; }' but required in type 'Pick<FormScreenHeroProps, "icon" | "meta" | "accentColor" | "eyebrow" | "preparedMessage">'.
+src/screens/beratung/CaseCreateScreen.tsx(14,7): error TS2741: Property 'preparedMessage' is missing in type '{ eyebrow: string; meta: string; icon: string; accentColor: "#FF9500" | "#FF7A1A"; }' but required in type 'Pick<FormScreenHeroProps, "icon" | "meta" | "accentColor" | "eyebrow" | "preparedMessage">'.
+src/screens/business/office/ClientRecordScreen.tsx(377,54): error TS2322: Type '{ client: ClientFullDetail; onRefresh: () => Promise<void>; }' is not assignable to type 'IntrinsicAttributes & { client: ClientFullDetail; }'.
+  Property 'onRefresh' does not exist on type 'IntrinsicAttributes & { client: ClientFullDetail; }'.
+src/screens/catalog/CatalogEditScreen.tsx(73,11): error TS2322: Type '{ eyebrow: string; title: string; meta: string; icon: string; formMode: "edit" | "create"; wpNumber: number; accentColor: "#62F3FF" | "#35D7FF"; preparedMessage: string; }' is not assignable to type 'IntrinsicAttributes & FormScreenHeroProps'.
+  Property 'preparedMessage' does not exist on type 'IntrinsicAttributes & FormScreenHeroProps'.
+src/screens/connect/ConnectHubScreen.tsx(54,38): error TS2304: Cannot find name 'ConnectRoadmapPanel'.
+src/screens/office/access/InternalTasksScreen.tsx(160,25): error TS2339: Property 'border' does not exist on type '{ readonly bgDeep: "#050816"; readonly bgBase: "#F8FAFC" | "#080D1A"; readonly bgPremium: "#FFFFFF" | "#101827"; readonly bgSurface: "#FFFFFF" | "#171B22"; readonly bgElevated: "#FFFFFF" | "#171B22" | "#20242D"; ... 27 more ...; readonly error: "#EF4444"; }'.
+src/screens/office/ClientCreateScreen.tsx(88,9): error TS2322: Type '{ eyebrow: string; title: string; meta: string; icon: string; formMode: "create"; wpNumber: number; step: { current: number; total: number; }; preparedMessage: string; }' is not assignable to type 'IntrinsicAttributes & FormScreenHeroProps'.
+  Property 'preparedMessage' does not exist on type 'IntrinsicAttributes & FormScreenHeroProps'.
+src/screens/office/EmployeeCreateScreen.tsx(40,9): error TS2322: Type '{ eyebrow: string; title: string; meta: string; icon: string; formMode: "create"; wpNumber: number; preparedMessage: string; }' is not assignable to type 'IntrinsicAttributes & FormScreenHeroProps'.
+  Property 'preparedMessage' does not exist on type 'IntrinsicAttributes & FormScreenHeroProps'.
+src/screens/office/EmployeeDetailScreen.tsx(210,23): error TS2339: Property 'mobile' does not exist on type 'EmployeeDetail'.
+src/screens/office/EmployeeDetailScreen.tsx(210,77): error TS2339: Property 'mobile' does not exist on type 'EmployeeDetail'.
+src/screens/office/EmployeeEditScreen.tsx(208,15): error TS2322: Type '"employee_role"' is not assignable to type 'CatalogType'.
+src/screens/office/EmployeeEditScreen.tsx(216,15): error TS2322: Type '"employee_department"' is not assignable to type 'CatalogType'.
+src/screens/office/OfficeBillingScreen.tsx(32,8): error TS2304: Cannot find name 'InvoiceDetailModal'.
+src/screens/office/OfficeDocumentsAdaptiveScreen.tsx(19,11): error TS2322: Type '{ embedded: true; selectedId: string | null; onDocumentPress: Dispatch<SetStateAction<string | null>>; }' is not assignable to type 'IntrinsicAttributes'.
+  Property 'embedded' does not exist on type 'IntrinsicAttributes'.
+src/screens/office/OfficeMessengerScreen.tsx(76,26): error TS2339: Property 'borderSoft' does not exist on type 'CareLightResolved'.
+src/screens/office/OfficeMessengerScreen.tsx(78,30): error TS2339: Property 'bgPanel' does not exist on type 'CareLightResolved'.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(22,3): error TS2724: '"@/lib/office/personalComplianceCockpitService"' has no exported member named 'createPersonalComplianceTaskFromRisk'. Did you mean 'createPersonalComplianceTask'?
+src/screens/office/PersonalComplianceCockpitScreen.tsx(23,3): error TS2724: '"@/lib/office/personalComplianceCockpitService"' has no exported member named 'fetchPersonalComplianceSnapshot'. Did you mean 'fetchPersonalComplianceCockpit'?
+src/screens/office/PersonalComplianceCockpitScreen.tsx(24,3): error TS2305: Module '"@/lib/office/personalComplianceCockpitService"' has no exported member 'PERSONAL_COMPLIANCE_COCKPIT_ROUTE'.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(127,38): error TS2740: Type '{}' is missing the following properties from type 'PersonalComplianceSnapshot': tenantId, generatedAt, kpis, risks, and 3 more.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(131,21): error TS2339: Property 'kpis' does not exist on type '{}'.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(131,31): error TS7006: Parameter 'kpi' implicitly has an 'any' type.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(169,59): error TS2339: Property 'risks' does not exist on type '{}'.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(170,19): error TS2339: Property 'risks' does not exist on type '{}'.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(173,20): error TS2339: Property 'risks' does not exist on type '{}'.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(173,31): error TS7006: Parameter 'risk' implicitly has an 'any' type.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(202,19): error TS2339: Property 'employees' does not exist on type '{}'.
+src/screens/office/PersonalComplianceCockpitScreen.tsx(202,34): error TS7006: Parameter 'employee' implicitly has an 'any' type.
+src/screens/pflege/CarePlanCreateScreen.tsx(14,7): error TS2741: Property 'preparedMessage' is missing in type '{ eyebrow: string; meta: string; icon: string; accentColor: "#62F3FF" | "#35D7FF"; }' but required in type 'Pick<FormScreenHeroProps, "icon" | "meta" | "accentColor" | "eyebrow" | "preparedMessage">'.
+src/screens/portal/ClientPortalProfileScreen.tsx(212,54): error TS7053: Element implicitly has an 'any' type because expression of type 'PortalActorRole' can't be used to index type '{ readonly client: "Klient:in"; readonly relative: "Angeh├Ârige:r"; }'.
+  Property 'invoice_recipient' does not exist on type '{ readonly client: "Klient:in"; readonly relative: "Angeh├Ârige:r"; }'.
+src/screens/portal/ClientPortalProfileScreen.tsx(278,38): error TS2339: Property 'bodyStrong' does not exist on type '{ h1: TextStyle; h2: TextStyle; cardTitle: TextStyle; body: TextStyle; label: TextStyle; button: TextStyle; caption: TextStyle; eyebrow: TextStyle; }'.
+src/screens/privacy/PrivacyComplianceHubScreen.tsx(116,17): error TS2322: Type '{ key: PrivacyManagementAreaKey; icon: string; title: string; description: string; accentColor: "#FF9500" | "#FF7A1A"; preparedOnly: boolean; isNavigable: boolean; onPress: (() => void) | undefined; }' is not assignable to type 'IntrinsicAttributes & ModuleTileProps'.
+  Property 'isNavigable' does not exist on type 'IntrinsicAttributes & ModuleTileProps'.
+src/screens/reporting/ExecutiveDashboardScreen.tsx(69,29): error TS2339: Property 'kind' does not exist on type '{}'.
+src/screens/reporting/ExecutiveDashboardScreen.tsx(77,31): error TS2740: Type '{}' is missing the following properties from type 'ReportingDashboardSnapshot': kind, tenantId, dateRange, kpis, and 5 more.
+src/screens/reporting/ExecutiveDashboardScreen.tsx(79,17): error TS2339: Property 'preparedOnly' does not exist on type '{}'.
+src/screens/reporting/ExecutiveDashboardScreen.tsx(99,17): error TS2339: Property 'kpis' does not exist on type '{}'.
+src/screens/reporting/ExecutiveDashboardScreen.tsx(102,18): error TS2339: Property 'kpis' does not exist on type '{}'.
+src/screens/reporting/ExecutiveDashboardScreen.tsx(102,28): error TS7006: Parameter 'metric' implicitly has an 'any' type.
+src/screens/shared/DomainCreateScreen.tsx(31,5): error TS2344: Type '"icon" | "meta" | "accentColor" | "eyebrow" | "preparedMessage"' does not satisfy the constraint 'keyof FormScreenHeroProps'.
+  Type '"preparedMessage"' is not assignable to type 'keyof FormScreenHeroProps'.
+src/screens/shared/DomainCreateScreen.tsx(120,11): error TS2322: Type '{ eyebrow: string; title: string; meta: string; icon: string; formMode: "create"; wpNumber: number; accentColor: string | undefined; preparedOnly: boolean; preparedMessage: {} | undefined; }' is not assignable to type 'IntrinsicAttributes & FormScreenHeroProps'.
+  Property 'preparedOnly' does not exist on type 'IntrinsicAttributes & FormScreenHeroProps'.
+src/types/modules/qmCockpit.ts(3,3): error TS2724: '"./liveMonitor"' has no exported member named 'ManagementTaskPriority'. Did you mean 'ManagementTaskType'?
+src/types/modules/qmCockpit.ts(158,3): error TS2353: Object literal may only specify known properties, and 'review_service_record' does not exist in type 'Partial<Record<ManagementTaskType, QmCockpitAreaKey>>'.
+src/types/modules/qmCockpit.ts(193,20): error TS2339: Property 'clientId' does not exist on type 'ManagementTask'.
+src/types/modules/qmCockpit.ts(194,22): error TS2339: Property 'employeeId' does not exist on type 'ManagementTask'.
+src/types/modules/qmCockpit.ts(196,29): error TS2339: Property 'relatedEntityType' does not exist on type 'ManagementTask'.
+src/types/modules/qmCockpit.ts(197,27): error TS2339: Property 'relatedEntityId' does not exist on type 'ManagementTask'.
+src/types/modules/qmCockpit.ts(198,17): error TS2339: Property 'dueAt' does not exist on type 'ManagementTask'.
+src/types/modules/qmCockpit.ts(199,21): error TS2339: Property 'updatedAt' does not exist on type 'ManagementTask'.
+src/types/modules/qmCockpit.ts(200,20): error TS2339: Property 'metadata' does not exist on type 'ManagementTask'.
