@@ -25,7 +25,9 @@ export function VisitProofPreviewPanel({ preview }: VisitProofPreviewPanelProps)
 
   return (
     <SectionPanel title="Leistungsnachweis-Vorschau" subtitle={preview.serviceName}>
-      <InfoBanner variant="warning" title="Schema-Gap" message={preview.storageGapMessage} />
+      {!preview.readyForExport ? (
+        <InfoBanner variant="warning" title="Unvollständig" message={preview.storageGapMessage} />
+      ) : null}
 
       <View style={styles.header}>
         <Text style={styles.title}>{preview.title}</Text>

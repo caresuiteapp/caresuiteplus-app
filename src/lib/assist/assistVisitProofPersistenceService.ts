@@ -8,6 +8,7 @@
 import type { ServiceResult } from '@/types';
 import type {
   AssistVisitProofInsert,
+  AssistVisitProofPortalReleaseStatus,
   AssistVisitProofRow,
 } from '@/types/assistExecutionPersistence';
 import {
@@ -40,6 +41,13 @@ type ProofDbRow = {
   approved_at: string | null;
   approved_by: string | null;
   billing_released: boolean;
+  portal_visible: boolean;
+  released_to_portal_at: string | null;
+  portal_release_status: AssistVisitProofPortalReleaseStatus;
+  approval_note: string | null;
+  rejection_reason: string | null;
+  pdf_storage_path: string | null;
+  pdf_hash: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -60,6 +68,13 @@ function mapProofRow(row: ProofDbRow): AssistVisitProofRow {
     approvedAt: row.approved_at,
     approvedBy: row.approved_by,
     billingReleased: row.billing_released,
+    portalVisible: row.portal_visible ?? false,
+    releasedToPortalAt: row.released_to_portal_at,
+    portalReleaseStatus: row.portal_release_status ?? 'none',
+    approvalNote: row.approval_note,
+    rejectionReason: row.rejection_reason,
+    pdfStoragePath: row.pdf_storage_path,
+    pdfHash: row.pdf_hash,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
   };
@@ -167,6 +182,99 @@ export async function persistVisitProof(
       generated_at: now,
       generated_by: generatedBy ?? null,
     })
+    .select('*')
+    .single();
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) {
+      return { ok: false, error: 'assist_visit_proofs (0156) nicht verfügbar.' };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: mapProofRow(data as ProofDbRow) };
+}
+
+/** Read proof by id — Assist/Office review path. */
+export async function fetchVisitProofById(
+  tenantId: string,
+  proofId: string,
+): Promise<ServiceResult<AssistVisitProofRow | null>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.proofs)
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('id', proofId)
+    .maybeSingle();
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) {
+      return { ok: true, data: null, tableMissing: true };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  if (!data) return { ok: true, data: null };
+  return { ok: true, data: mapProofRow(data as ProofDbRow) };
+}
+
+export type VisitProofListFilter = {
+  status?: AssistVisitProofRow['status'] | AssistVisitProofRow['status'][];
+  portalReleaseStatus?: AssistVisitProofPortalReleaseStatus;
+  limit?: number;
+};
+
+/** List visit proofs for Assist/Office review — tenant scoped. */
+export async function listVisitProofs(
+  tenantId: string,
+  filter?: VisitProofListFilter,
+): Promise<ServiceResult<AssistVisitProofRow[]>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  let query = fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.proofs)
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false });
+
+  if (filter?.status) {
+    const statuses = Array.isArray(filter.status) ? filter.status : [filter.status];
+    query = query.in('status', statuses);
+  }
+  if (filter?.portalReleaseStatus) {
+    query = query.eq('portal_release_status', filter.portalReleaseStatus);
+  }
+  if (filter?.limit) {
+    query = query.limit(filter.limit);
+  }
+
+  const { data, error } = await query;
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) {
+      return { ok: true, data: [], tableMissing: true };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: (data ?? []).map((row) => mapProofRow(row as ProofDbRow)) };
+}
+
+/** Patch proof row — internal helper for approval/PDF services. */
+export async function updateVisitProofRow(
+  tenantId: string,
+  proofId: string,
+  patch: Record<string, unknown>,
+): Promise<ServiceResult<AssistVisitProofRow>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.proofs)
+    .update({ ...patch, updated_at: new Date().toISOString() })
+    .eq('tenant_id', tenantId)
+    .eq('id', proofId)
     .select('*')
     .single();
 

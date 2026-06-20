@@ -1,7 +1,8 @@
+import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareRecordsListView } from '@/components/assist/CareRecordsListView';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, ErrorState, LoadingState, SuccessState } from '@/components/ui';
+import { EmptyState, ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
 import { useCareRecordList } from '@/hooks/useCareRecordList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
@@ -9,6 +10,7 @@ import { fetchCareRecordList } from '@/lib/assist/careRecordService';
 
 /** Arbeitsplan 043 — /assist/nachweise */
 export function LeistungsnachweiseListScreen() {
+  const router = useRouter();
   const { profile } = useAuth();
   const { can, check, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? 'caregiver';
@@ -60,6 +62,10 @@ export function LeistungsnachweiseListScreen() {
       scroll={false}
     >
       {showSuccess ? <SuccessState message="Liste aktualisiert." /> : null}
+      <PremiumButton
+        title="Nachweis-Prüfung & Portal-Freigabe"
+        onPress={() => router.push('/assist/nachweise/review' as never)}
+      />
       {items.length === 0 && !search ? (
         <EmptyState
           title="Keine Nachweise"

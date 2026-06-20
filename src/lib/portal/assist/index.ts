@@ -15,6 +15,11 @@ export {
   resolvePortalServiceProofStatusLabel,
 } from './portalServiceProofService';
 export {
+  getProofPdfForClientPortal,
+  getReleasedProofForClientPortal,
+  listReleasedProofsForClientPortal,
+} from './portalAssistVisitProofService';
+export {
   uploadPortalDocument,
   listClientPortalUploads,
   listPendingPortalUploads,

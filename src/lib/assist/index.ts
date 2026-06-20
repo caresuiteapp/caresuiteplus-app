@@ -49,8 +49,29 @@ export {
 } from './assistExecutionPersistenceService';
 export {
   fetchLatestVisitProof,
+  fetchVisitProofById,
+  listVisitProofs,
   persistVisitProof,
 } from './assistVisitProofPersistenceService';
+export {
+  submitProofForReview,
+  approveAssistProof,
+  rejectAssistProof,
+  releaseAssistProofToPortal,
+  revokeAssistProofPortalRelease,
+} from './assistProofApprovalService';
+export {
+  ASSIST_PROOF_STATUS_LABELS,
+  ASSIST_PROOF_PORTAL_RELEASE_LABELS,
+} from './assistProofLabels';
+export {
+  buildAssistProofPdfPayload,
+  stripGpsKeysFromSnapshot,
+} from './assistProofPdfPayload';
+export {
+  generateAssistProofPdf,
+  downloadAssistProofPdfInBrowser,
+} from './assistProofPdfService';
 export {
   fetchActiveTrackingSession,
   fetchLatestLocationPointForVisit,

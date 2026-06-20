@@ -126,6 +126,6 @@ export function buildVisitProofPreview(
     fields,
     readyForExport,
     storageGapMessage:
-      'Leistungsnachweis wird nach Einsatzabschluss in assist_visit_proofs persistiert (0156), sofern assist_visits verknüpft ist.',
+      'Leistungsnachweis wird nach Einsatzabschluss in assist_visit_proofs persistiert. Prüfung und Portal-Freigabe unter Assist → Nachweise → Prüfung.',
   };
 }

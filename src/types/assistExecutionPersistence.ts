@@ -14,7 +14,10 @@ export type AssistVisitProofStatus =
   | 'pending_review'
   | 'approved'
   | 'exported'
-  | 'archived';
+  | 'archived'
+  | 'rejected';
+
+export type AssistVisitProofPortalReleaseStatus = 'none' | 'released' | 'revoked';
 
 export type AssistTrackingSessionEndReason =
   | 'completed'
@@ -91,8 +94,33 @@ export type AssistVisitProofRow = {
   approvedAt: string | null;
   approvedBy: string | null;
   billingReleased: boolean;
+  portalVisible: boolean;
+  releasedToPortalAt: string | null;
+  portalReleaseStatus: AssistVisitProofPortalReleaseStatus;
+  approvalNote: string | null;
+  rejectionReason: string | null;
+  pdfStoragePath: string | null;
+  pdfHash: string | null;
   createdAt: string;
   updatedAt: string;
+};
+
+/** Client-safe proof view — no GPS or internal tracking fields. */
+export type ClientPortalAssistVisitProof = {
+  id: string;
+  visitId: string;
+  proofNumber: string | null;
+  title: string;
+  serviceName: string | null;
+  clientName: string | null;
+  employeeName: string | null;
+  scheduledStart: string | null;
+  scheduledEnd: string | null;
+  documentationNote: string | null;
+  signedAt: string | null;
+  signerName: string | null;
+  releasedAt: string | null;
+  pdfStoragePath: string | null;
 };
 
 export type AssistVisitProofInsert = {

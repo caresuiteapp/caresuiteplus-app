@@ -1,5 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type { PortalServiceProof, PortalServiceProofStatus } from '@/types/portal/serviceProofs';
+import { listReleasedProofsForClientPortal } from '@/lib/portal/assist/portalAssistVisitProofService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -96,11 +97,16 @@ export async function listPortalServiceProofs(
       const proofs = (documentResult.data ?? []).map((row) =>
         mapProofRow(row as Record<string, unknown>),
       );
-      return { ok: true, data: proofs };
+      return { ok: true, data: await appendAssistVisitProofs(tenantId, clientId, proofs) };
     }
 
     if (documentResult.error && !isMissingTableError(documentResult.error)) {
       console.warn('[portalServiceProofs] client_documents:', documentResult.error.message);
+    }
+
+    const assistOnly = await appendAssistVisitProofs(tenantId, clientId, []);
+    if (assistOnly.length > 0) {
+      return { ok: true, data: assistOnly };
     }
 
     const serviceRecordResult = await supabase
@@ -143,8 +149,36 @@ export async function listPortalServiceProofs(
       });
     });
 
-    return { ok: true, data: proofs };
+    return { ok: true, data: await appendAssistVisitProofs(tenantId, clientId, proofs) };
   });
+}
+
+async function appendAssistVisitProofs(
+  tenantId: string,
+  clientId: string,
+  proofs: PortalServiceProof[],
+): Promise<PortalServiceProof[]> {
+  const assistProofs = await listReleasedProofsForClientPortal(tenantId, clientId);
+  if (!assistProofs.ok || assistProofs.data.length === 0) return proofs;
+
+  const assistMapped = assistProofs.data.map((proof) =>
+    mapProofRow({
+      id: proof.id,
+      tenant_id: tenantId,
+      client_id: clientId,
+      title: proof.title,
+      file_name: proof.proofNumber ? `Leistungsnachweis-${proof.proofNumber}.pdf` : 'nachweis.pdf',
+      mime_type: 'application/pdf',
+      storage_path: proof.pdfStoragePath,
+      category: PROOF_CATEGORY,
+      status: 'aktiv',
+      portal_visible: true,
+      signed_at: proof.signedAt,
+      created_at: proof.releasedAt ?? proof.scheduledStart,
+    }),
+  );
+
+  return [...proofs, ...assistMapped];
 }
 
 export async function countOpenPortalServiceProofs(
