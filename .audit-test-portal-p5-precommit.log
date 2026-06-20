@@ -1,0 +1,552 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 test
+> vitest run src/__tests__/portal/ src/__tests__/assist/assistProofToPortalFlow.test.ts src/__tests__/navigation/modalStack.test.ts src/__tests__/auth/clientPortalAccess.test.ts
+
+
+ RUN  v3.2.6 C:/Users/Kevin Reinhardt/Documents/CareSuite+
+
+ ÔØ» src/__tests__/portal/clientPortalDisplayName.test.ts (6 tests | 1 failed) 15ms
+   Ô£ô formatClientPortalDisplayName > formats first and last name with capitalization 2ms
+   Ô£ô formatClientPortalDisplayName > prefixes Herr/Frau when salutation is set 0ms
+   Ô£ô isPortalUsernameLabel > detects generated portal usernames 1ms
+   Ô£ô isPortalUsernameLabel > detects duplicated portal username labels 1ms
+   Ô£ô capitalizeNamePart > capitalizes lowercase name parts 1ms
+   ├ù fetchClientPortalDisplayName > resolves demo client name by clientId 8ms
+     ÔåÆ expected null to be 'Helga Schneider' // Object.is equality
+ Ô£ô src/__tests__/portal/portalRequestForm.test.ts (12 tests) 56ms
+ Ô£ô src/__tests__/portal/portalDocumentUpload.test.ts (3 tests) 431ms
+ ÔØ» src/__tests__/auth/clientPortalAccess.test.ts (4 tests | 3 failed) 351ms
+   ├ù client portal username + code access > accepts username + code login and rejects wrong code 20ms
+     ÔåÆ expected false to be true // Object.is equality
+   ├ù client portal username + code access > invalidates old code after regeneration 6ms
+     ÔåÆ expected false to be true // Object.is equality
+   ├ù client portal username + code access > setup and regenerate via office service 320ms
+     ÔåÆ expected false to be true // Object.is equality
+   Ô£ô client portal username + code access > portal tab has no demo invitation UI in production-facing panel 4ms
+ Ô£ô src/__tests__/portal/portalServiceProofs.test.ts (4 tests) 49ms
+ Ô£ô src/__tests__/portal/clientPortalProfileLive.test.ts (5 tests) 12ms
+ Ô£ô src/__tests__/assist/assistProofToPortalFlow.test.ts (10 tests) 31ms
+ Ô£ô src/__tests__/portal/portalProjectionServices.test.ts (6 tests) 23ms
+ Ô£ô src/__tests__/portal/assistPortalShellLayout.test.ts (7 tests) 15ms
+ Ô£ô src/__tests__/navigation/modalStack.test.ts (5 tests) 16ms
+ Ô£ô src/__tests__/portal/clientModuleAssignmentService.test.ts (5 tests) 22ms
+ ÔØ» src/__tests__/portal/assistPortalMobileLayout.test.ts (17 tests | 1 failed) 53ms
+   Ô£ô resolveFixedMobilePortalTabs > returns exactly five fixed tabs in spec order 4ms
+   Ô£ô resolveFixedMobilePortalTabs > excludes Betreuung, Begleitungen, and overflow-only tabs 0ms
+   Ô£ô splitPortalTabsForMobile > always returns five primary tabs and no overflow 1ms
+   Ô£ô resolvePortalHeroCopy > keeps full welcome on desktop 0ms
+   Ô£ô Assist portal mobile layout > MobilePortalDashboard uses full welcome hero copy on phone 1ms
+   ├ù Assist portal mobile layout > client portal tabs layout uses PortalShellLayout 22ms
+     ÔåÆ expected 'import { Slot } from \'expo-router\';ÔÇª' to contain 'PortalShellLayout'
+   Ô£ô Assist portal mobile layout > delegates phone overview to MobilePortalDashboard without touching desktop JSX 1ms
+   Ô£ô Assist portal mobile layout > MobilePortalDashboard uses safe bottom padding and single scroll surface 2ms
+   Ô£ô Assist portal mobile layout > overview route uses tabs layout shell instead of duplicate index 3ms
+   Ô£ô Assist portal mobile layout > MobilePortalKpiCard uses two-column neon tiles on phone 1ms
+   Ô£ô Assist portal mobile layout > MobilePortalSidebarCards uses reference Schnellzugriff pills 1ms
+   Ô£ô Assist portal mobile layout > PortalNextAppointmentHero supports mobile empty CTA override 7ms
+   Ô£ô Assist portal mobile layout > portal mobile nav uses five fixed tabs without overflow menu 3ms
+   Ô£ô Assist portal mobile layout > compact PortalTopBar has text brand, bell, avatar, chevron ÔÇö no robot tagline 1ms
+   Ô£ô Assist portal mobile layout > PortalGlassHero supports leading assist icon on phone 1ms
+   Ô£ô Assist portal mobile layout > PortalTabScreen hides duplicate header on phone overview 1ms
+   Ô£ô Assist portal mobile layout > desktop shell layout unchanged at >=1200px breakpoint 1ms
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts (14 tests | 12 failed) 77ms
+   ├ù employee portal execution (Prompt 58) > 1. ├£bersicht zeigt nur eigene Eins├ñtze 27ms
+     ÔåÆ expected false to be true // Object.is equality
+   ├ù employee portal execution (Prompt 58) > 2. Fremder Einsatz ist nicht einsehbar 5ms
+     ÔåÆ expected 'Mitarbeiterportal-Einsatzdetail im LiÔÇª' to match /nicht zugewiesen|Kein Zugriff/i
+   ├ù employee portal execution (Prompt 58) > 3. Start ohne Berechtigung blockiert 4ms
+     ÔåÆ expected undefined to be false // Object.is equality
+   ├ù employee portal execution (Prompt 58) > 4. Statusfluss unterwegs ÔåÆ angekommen ÔåÆ gestartet 3ms
+     ÔåÆ expected undefined to be true // Object.is equality
+   ├ù employee portal execution (Prompt 58) > 5. Ung├╝ltiger Sprung geplant ÔåÆ abgeschlossen blockiert 7ms
+     ÔåÆ expected undefined to be false // Object.is equality
+   ├ù employee portal execution (Prompt 58) > 6. Start ohne Ankunft blockiert 2ms
+     ÔåÆ expected undefined to be false // Object.is equality
+   ├ù employee portal execution (Prompt 58) > 7. Pause und Fortsetzen werden gespeichert 2ms
+     ÔåÆ expected false to be true // Object.is equality
+   ├ù employee portal execution (Prompt 58) > 8. Aufgabe not_possible ohne Notiz blockiert 2ms
+     ÔåÆ expected false to be true // Object.is equality
+   Ô£ô employee portal execution (Prompt 58) > 9. Dokumentation ohne Kurzbeschreibung blockiert 2ms
+   ├ù employee portal execution (Prompt 58) > 10. Abweichungen ohne Begr├╝ndung blockiert 3ms
+     ÔåÆ expected 'Die Berechtigung ÔÇ×Check-in/Check-out ÔÇª' to match /begr├╝ndet/i
+   ├ù employee portal execution (Prompt 58) > 11. Abschluss ohne Unterschrift blockiert wenn Pflicht 7ms
+     ÔåÆ Mitarbeiterportal-Einsatzdetail im Live-Modus noch nicht vollst├ñndig angebunden.
+   Ô£ô employee portal execution (Prompt 58) > 12. Module nur bei Rolle und Mandant-Flag sichtbar 2ms
+   ├ù employee portal execution (Prompt 58) > 13. Vollst├ñndiger Abschluss sperrt Einsatz 1ms
+     ÔåÆ Mitarbeiterportal-Einsatzdetail im Live-Modus noch nicht vollst├ñndig angebunden.
+   ├ù employee portal execution (Prompt 58) > 14. Route und Production-Demo-Guard 6ms
+     ÔåÆ expected false to be true // Object.is equality
+ Ô£ô src/__tests__/portal/portalSyncFlow.test.ts (6 tests) 13ms
+ ÔØ» src/__tests__/portal/clientPortalPrompt59.test.ts (14 tests | 14 failed) 46ms
+   ├ù Klient:innenportal Prompt 59 > 1. Klient:in sieht eigene geplante Eins├ñtze 17ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 2. Klient:in sieht keine fremden Eins├ñtze 2ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 3. Vertretung sieht nur autorisierte Klient:innendaten 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 4. Interne Notizen sind im Portal nicht sichtbar 5ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 5. Absage erzeugt Anfrage ohne Einsatz├ñnderung 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 6. Verschiebung erzeugt Anfrage ohne Einsatz├ñnderung 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 7. Nachricht an Verwaltung wird gespeichert 2ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 8. Dokument nur sichtbar wenn freigegeben 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 9. Signatur erzeugt Hash und Audit-Event 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 10. Direkte Route ohne Portal-Berechtigung blockiert 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 11. Cross-Tenant-Zugriff blockiert 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > 12. Production Mode ohne Demo-Fallback 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > Dashboard enth├ñlt Kernbereiche 1ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+   ├ù Klient:innenportal Prompt 59 > Abgeschlossene Eins├ñtze filtern korrekt 11ms
+     ÔåÆ getPlanningBlockAbsences is not defined
+ Ô£ô src/__tests__/portal/clientPortalOverviewLive.test.ts (5 tests) 15ms
+ Ô£ô src/__tests__/portal/portalVerwaltungMessaging.test.ts (6 tests) 15ms
+ Ô£ô src/__tests__/portal/portalAppointmentsLive.test.ts (4 tests) 14ms
+ Ô£ô src/__tests__/portal/portalModuleFiltering.test.ts (7 tests) 15ms
+ Ô£ô src/__tests__/portal/portalMessageDetailHero.test.ts (3 tests) 15ms
+ Ô£ô src/__tests__/portal/adaptivePortalEngine.test.ts (9 tests) 16ms
+ Ô£ô src/__tests__/portal/assistPortalWorkflow.test.ts (4 tests) 13ms
+ Ô£ô src/__tests__/portal/portalAppointmentDetailHero.test.ts (2 tests) 20ms
+ Ô£ô src/__tests__/portal/portalTabHero.test.ts (6 tests) 20ms
+ Ô£ô src/__tests__/portal/portalDocumentDetailHero.test.ts (3 tests) 11ms
+ Ô£ô src/__tests__/portal/portalRlsTenantContext.test.ts (3 tests) 8ms
+ Ô£ô src/__tests__/portal/portalRelativeHero.test.ts (2 tests) 8ms
+ Ô£ô src/__tests__/portal/portalEmployeeAssignmentDetailHero.test.ts (2 tests) 12ms
+ Ô£ô src/__tests__/portal/portalClientNameRls.test.ts (1 test) 5ms
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Suites 1 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/__tests__/portal/portalAnnouncementsHero.test.ts [ src/__tests__/portal/portalAnnouncementsHero.test.ts ]
+RollupError: Parse failure: Expected 'from', got 'typeOf'
+At file: C:/Users/Kevin Reinhardt/Documents/CareSuite+/node_modules/react-native/index.js:15:7
+  File: C:/Users/Kevin Reinhardt/Documents/CareSuite+/node_modules/react-native/index.js:15:7
+  13 |  
+  14 |  // APIs
+  15 |  import typeof ActionSheetIOS from "/node_modules/react-native/Libraries/ActionSheetIOS/ActionSheetIOS.js";
+     |         ^
+  16 |  import typeof Alert from "/node_modules/react-native/Libraries/Alert/Alert.js";
+  17 |  import typeof Animated from "/node_modules/react-native/Libraries/Animated/Animated.js";
+ ÔØ» getRollupError 
+../../../Kevin%20Reinhardt/Documents/CareSuite+/node_modules/rollup/dist/es/shared/parseAst.js:317:41
+ ÔØ» convertProgram 
+../../../Kevin%20Reinhardt/Documents/CareSuite+/node_modules/rollup/dist/es/shared/parseAst.js:1132:26
+ ÔØ» parseAstAsync 
+../../../Kevin%20Reinhardt/Documents/CareSuite+/node_modules/rollup/dist/es/shared/parseAst.js:2122:106
+ ÔØ» ssrTransformScript 
+../../../Kevin%20Reinhardt/Documents/CareSuite+/node_modules/vite/dist/node/chunks/config.js:15447:9
+ ÔØ» loadAndTransform 
+../../../Kevin%20Reinhardt/Documents/CareSuite+/node_modules/vite/dist/node/chunks/config.js:22777:64
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[1/32]ÔÄ»
+
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ» Failed Tests 31 ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»
+
+ FAIL  src/__tests__/auth/clientPortalAccess.test.ts > client portal username + code access > accepts username + code 
+login and rejects wrong code
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ÔØ» src/__tests__/auth/clientPortalAccess.test.ts:53:22
+     51|       created.data.credentials.portalCode!,
+     52|     );
+     53|     expect(login.ok).toBe(true);
+       |                      ^
+     54| 
+     55|     const badLogin = await loginClientPortal(
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[2/32]ÔÄ»
+
+ FAIL  src/__tests__/auth/clientPortalAccess.test.ts > client portal username + code access > invalidates old code 
+after regeneration
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ÔØ» src/__tests__/auth/clientPortalAccess.test.ts:85:25
+     83|       regenerated.data.portalCode!,
+     84|     );
+     85|     expect(newLogin.ok).toBe(true);
+       |                         ^
+     86|   });
+     87| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[3/32]ÔÄ»
+
+ FAIL  src/__tests__/auth/clientPortalAccess.test.ts > client portal username + code access > setup and regenerate via 
+office service
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ÔØ» src/__tests__/auth/clientPortalAccess.test.ts:95:22
+     93|       lastName: 'Reinhardt',
+     94|     });
+     95|     expect(setup.ok).toBe(true);
+       |                      ^
+     96|     if (!setup.ok) return;
+     97| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[4/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/assistPortalMobileLayout.test.ts > Assist portal mobile layout > client portal tabs layout 
+uses PortalShellLayout
+AssertionError: expected 'import { Slot } from \'expo-router\';ÔÇª' to contain 'PortalShellLayout'
+
+- Expected
++ Received
+
+- PortalShellLayout
++ import { Slot } from 'expo-router';
++ import { View, StyleSheet } from 'react-native';
++ import { ClientPortalShell } from '@/components/portal/ClientPortalShell';
++ 
++ export default function ClientPortalTabsLayout() {
++   return (
++     <ClientPortalShell>
++       <View style={styles.slot}>
++         <Slot />
++       </View>
++     </ClientPortalShell>
++   );
++ }
++ 
++ const styles = StyleSheet.create({
++   slot: { flex: 1 },
++ });
++
+
+ ÔØ» src/__tests__/portal/assistPortalMobileLayout.test.ts:93:20
+     91|   it('client portal tabs layout uses PortalShellLayout', () => {
+     92|     const layout = readSrc('app/portal/client/(tabs)/_layout.tsx');
+     93|     expect(layout).toContain('PortalShellLayout');
+       |                    ^
+     94|     expect(layout).not.toContain("from '@/components/layout'");
+     95|     expect(layout).not.toContain('<ShellLayout');
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[5/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/clientPortalDisplayName.test.ts > fetchClientPortalDisplayName > resolves demo client name 
+by clientId
+AssertionError: expected null to be 'Helga Schneider' // Object.is equality
+
+- Expected: 
+"Helga Schneider"
+
++ Received: 
+null
+
+ ÔØ» src/__tests__/portal/clientPortalDisplayName.test.ts:51:18
+     49|   it('resolves demo client name by clientId', async () => {
+     50|     const name = await fetchClientPortalDisplayName('demo-tenant', 'clÔÇª
+     51|     expect(name).toBe('Helga Schneider');
+       |                  ^
+     52|   });
+     53| });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[6/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 1. Klient:in sieht eigene 
+geplante Eins├ñtze
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 2. Klient:in sieht keine 
+fremden Eins├ñtze
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 3. Vertretung sieht nur 
+autorisierte Klient:innendaten
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 4. Interne Notizen sind im 
+Portal nicht sichtbar
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 5. Absage erzeugt Anfrage 
+ohne Einsatz├ñnderung
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 6. Verschiebung erzeugt 
+Anfrage ohne Einsatz├ñnderung
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 7. Nachricht an Verwaltung 
+wird gespeichert
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 8. Dokument nur sichtbar 
+wenn freigegeben
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 9. Signatur erzeugt Hash und 
+Audit-Event
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 10. Direkte Route ohne 
+Portal-Berechtigung blockiert
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 11. Cross-Tenant-Zugriff 
+blockiert
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > 12. Production Mode ohne 
+Demo-Fallback
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > Dashboard enth├ñlt 
+Kernbereiche
+ FAIL  src/__tests__/portal/clientPortalPrompt59.test.ts > Klient:innenportal Prompt 59 > Abgeschlossene Eins├ñtze 
+filtern korrekt
+ReferenceError: getPlanningBlockAbsences is not defined
+ ÔØ» conflictContext src/lib/assist/assignmentWorkflowService.ts:104:23
+    102| function conflictContext(tenantId: string) {
+    103|   return {
+    104|     employeeAbsences: getPlanningBlockAbsences(tenantId),
+       |                       ^
+    105|     employeeAvailability: getEmployeeAvailabilityBlocks(tenantId),
+    106|   };
+ ÔØ» createAssignmentWorkflow src/lib/assist/assignmentWorkflowService.ts:197:8
+ ÔØ» src/__tests__/portal/clientPortalPrompt59.test.ts:87:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[7/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 1. ├£bersicht 
+zeigt nur eigene Eins├ñtze
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:163:25
+    161| 
+    162|     const overview = fetchEmployeePortalOverview(TENANT, EMPLOYEE_ID, ÔÇª
+    163|     expect(overview.ok).toBe(true);
+       |                         ^
+    164|     if (overview.ok) {
+    165|       const ids = [
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[8/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 2. Fremder 
+Einsatz ist nicht einsehbar
+AssertionError: expected 'Mitarbeiterportal-Einsatzdetail im LiÔÇª' to match /nicht zugewiesen|Kein Zugriff/i
+
+- Expected: 
+/nicht zugewiesen|Kein Zugriff/i
+
++ Received: 
+"Mitarbeiterportal-Einsatzdetail im Live-Modus noch nicht vollst├ñndig angebunden."
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:188:28
+    186|     expect(detail.ok).toBe(false);
+    187|     if (!detail.ok) {
+    188|       expect(detail.error).toMatch(/nicht zugewiesen|Kein Zugriff/i);
+       |                            ^
+    189|     }
+    190|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[9/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 3. Start ohne 
+Berechtigung blockiert
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected: 
+false
+
++ Received: 
+undefined
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:204:24
+    202|       'unterwegs',
+    203|     );
+    204|     expect(blocked.ok).toBe(false);
+       |                        ^
+    205|   });
+    206| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[10/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 4. Statusfluss 
+unterwegs ÔåÆ angekommen ÔåÆ gestartet
+AssertionError: expected undefined to be true // Object.is equality
+
+- Expected: 
+true
+
++ Received: 
+undefined
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:219:22
+    217|       'unterwegs',
+    218|     );
+    219|     expect(onWay.ok).toBe(true);
+       |                      ^
+    220|     if (onWay.ok) expect(onWay.data.status).toBe('unterwegs');
+    221| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[11/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 5. Ung├╝ltiger 
+Sprung geplant ÔåÆ abgeschlossen blockiert
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected: 
+false
+
++ Received: 
+undefined
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:254:24
+    252|       'abgeschlossen',
+    253|     );
+    254|     expect(blocked.ok).toBe(false);
+       |                        ^
+    255|   });
+    256| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[12/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 6. Start ohne 
+Ankunft blockiert
+AssertionError: expected undefined to be false // Object.is equality
+
+- Expected: 
+false
+
++ Received: 
+undefined
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:270:24
+    268|       'gestartet',
+    269|     );
+    270|     expect(blocked.ok).toBe(false);
+       |                        ^
+    271|     if (!blocked.ok) {
+    272|       expect(blocked.error).toMatch(/Ankunft/i);
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[13/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 7. Pause und 
+Fortsetzen werden gespeichert
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:299:23
+    297|       EMPLOYEE,
+    298|     );
+    299|     expect(detail.ok).toBe(true);
+       |                       ^
+
+ Test Files  6 failed | 24 passed (30)
+      Tests  31 failed | 144 passed (175)
+   Start at  00:12:47
+   Duration  5.47s (transform 5.07s, setup 0ms, collect 11.41s, tests 1.40s, environment 11ms, prepare 8.52s)
+
+    300|     if (detail.ok) {
+    301|       expect(detail.data.pauseEvents.length).toBe(1);
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[14/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 8. Aufgabe 
+not_possible ohne Notiz blockiert
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:317:23
+    315|       EMPLOYEE,
+    316|     );
+    317|     expect(detail.ok).toBe(true);
+       |                       ^
+    318|     if (!detail.ok) return;
+    319| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[15/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 10. Abweichungen 
+ohne Begr├╝ndung blockiert
+AssertionError: expected 'Die Berechtigung ÔÇ×Check-in/Check-out ÔÇª' to match /begr├╝ndet/i
+
+- Expected: 
+/begr├╝ndet/i
+
++ Received: 
+"Die Berechtigung ÔÇ×Check-in/Check-out durchf├╝hren\" ist f├╝r Ihre Rolle nicht freigegeben."
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:371:29
+    369|     expect(blocked.ok).toBe(false);
+    370|     if (!blocked.ok) {
+    371|       expect(blocked.error).toMatch(/begr├╝ndet/i);
+       |                             ^
+    372|     }
+    373|   });
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[16/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 11. Abschluss 
+ohne Unterschrift blockiert wenn Pflicht
+Error: Mitarbeiterportal-Einsatzdetail im Live-Modus noch nicht vollst├ñndig angebunden.
+ ÔØ» runExecutionUntilDocumentation src/__tests__/portal/employeePortalExecution.test.ts:108:25
+    106| 
+    107|   const record = await fetchEmployeePortalAssignmentDetail(TENANT, assÔÇª
+    108|   if (!record.ok) throw new Error(record.error);
+       |                         ^
+    109|   const taskId = record.data.tasks[0]?.id;
+    110|   if (taskId) {
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:380:5
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[17/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 13. 
+Vollst├ñndiger Abschluss sperrt Einsatz
+Error: Mitarbeiterportal-Einsatzdetail im Live-Modus noch nicht vollst├ñndig angebunden.
+ ÔØ» runExecutionUntilDocumentation src/__tests__/portal/employeePortalExecution.test.ts:108:25
+    106| 
+    107|   const record = await fetchEmployeePortalAssignmentDetail(TENANT, assÔÇª
+    108|   if (!record.ok) throw new Error(record.error);
+       |                         ^
+    109|   const taskId = record.data.tasks[0]?.id;
+    110|   if (taskId) {
+ ÔØ» runFullExecutionFlow src/__tests__/portal/employeePortalExecution.test.ts:122:3
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:415:20
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[18/32]ÔÄ»
+
+ FAIL  src/__tests__/portal/employeePortalExecution.test.ts > employee portal execution (Prompt 58) > 14. Route und 
+Production-Demo-Guard
+AssertionError: expected false to be true // Object.is equality
+
+- Expected
++ Received
+
+- true
++ false
+
+ ÔØ» src/__tests__/portal/employeePortalExecution.test.ts:453:47
+    451|     if (route.ok) {
+    452|       expect(route.data.mapUrl).toContain('maps.google.com');
+    453|       expect(route.data.internalMapAvailable).toBe(true);
+       |                                               ^
+    454|     }
+    455| 
+
+ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»ÔÄ»[19/32]ÔÄ»
+

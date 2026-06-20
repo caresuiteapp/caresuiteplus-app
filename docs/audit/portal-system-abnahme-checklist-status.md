@@ -1,10 +1,10 @@
 # Portal System Abnahme-Checklist — Status
 
-**Stand:** 2026-06-20 · **Scope:** Portal System Core P.0–P.4
+**Stand:** 2026-06-21 · **Scope:** Portal System Core P.0–P.5
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
-| P.0.1 | Git-Gates (main, HEAD, staged, 0154–0159) | ✅ | precheck log |
+| P.0.1 | Git-Gates (main, HEAD, staged, 0154–0159) | ✅ | `.audit-migration-list-portal-p5-precheck.log` |
 | P.0.2 | Keine Permission-Änderung | ✅ | staticRolePermissions clean |
 | P.1.1 | Portal Shell Client + Employee | ✅ | ClientPortalShell, EmployeePortalShell |
 | P.1.2 | PortalNavigation / EmptyState / SectionGate | ✅ | components/portal |
@@ -19,12 +19,16 @@
 | P.4.1 | portalVisibilityService | ✅ | src/lib/portal |
 | P.4.2 | clientPortalProjectionService | ✅ | projections + types |
 | P.4.3 | employeePortalProjectionService | ✅ | projections + types |
-| P.4.4 | Live HTTP-Smoke Client + Employee routes | ✅ | P.4 Abnahmebericht §3–4 |
+| P.4.4 | Live HTTP-Smoke Client + Employee routes | ✅ | P.4 + P.5 Abnahmebericht §5–6 |
 | P.4.5 | Budget/Hilfe Nav → dedizierte Routen | ✅ | buildPortalNavigation fix |
 | P.4.6 | Office Sync-Kette Code-Pfade | ✅ | ClientPortalCorePanel, PortalSyncChainPanel |
-| P.5.1 | Office Client portal card | ✅ | ClientPortalCorePanel |
-| P.5.2 | Employee impact card | ✅ | EmployeePortalImpactPanel |
-| P.5.3 | Portal sync chain UI | ✅ | PortalSyncChainPanel |
+| P.5.1 | Real-access route smoke (18 routes) | ✅ | P.5 §5–6 HTTP 200 on :8082 |
+| P.5.2 | Test context documented (no secrets) | ✅ | P.5 §4 |
+| P.5.3 | Authenticated E2E browser login | ⚠️ partial | Live edge auth; no repo test codes |
+| P.5.4 | Core regression 60/60 + proof flow 10/10 | ✅ | `.audit-test-portal-p5-precommit.log` |
+| P.5.5 | Office Client portal card | ✅ | ClientPortalCorePanel |
+| P.5.6 | Employee impact card | ✅ | EmployeePortalImpactPanel |
+| P.5.7 | Portal sync chain UI | ✅ | PortalSyncChainPanel |
 | P.6.1 | portalSyncFlow tests | ✅ | 6/6 green |
 | P.6.2 | Projection smoke tests | ✅ | 6/6 green |
 | P.6.3 | assistProofToPortalFlow regression | ✅ | 10/10 green |
@@ -32,4 +36,4 @@
 | — | Migration 0160 | ❌ nicht nötig | bestehende Tabellen |
 | — | K.5 / Mitarbeiter Core / B.2 / B.3 | ❌ nicht gestartet | Scope |
 
-**Gesamt:** 27/27 ✅
+**Gesamt:** 32/33 ✅ · 1 ⚠️ partial (P.5.3 authenticated E2E)
