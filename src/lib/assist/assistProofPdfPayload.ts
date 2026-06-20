@@ -18,6 +18,19 @@ const GPS_SNAPSHOT_KEYS = new Set([
   'geofence',
 ]);
 
+/** Keys that must never appear in client portal or PDF exports. */
+export const PORTAL_BLOCKED_SNAPSHOT_KEYS = new Set([
+  ...GPS_SNAPSHOT_KEYS,
+  'internalNotes',
+  'internalNote',
+  'internal_notes',
+  'drivingLog',
+  'driving_log',
+  'fahrtenbuch',
+  'tripLog',
+  'notesForEmployee',
+]);
+
 function escapeHtml(value: string): string {
   return value
     .replace(/&/g, '&amp;')
@@ -106,6 +119,16 @@ export function stripGpsKeysFromSnapshot(snapshot: Record<string, unknown>): Rec
   const clean: Record<string, unknown> = {};
   for (const [key, value] of Object.entries(snapshot)) {
     if (!GPS_SNAPSHOT_KEYS.has(key)) clean[key] = value;
+  }
+  return clean;
+}
+
+export function stripPortalBlockedKeysFromSnapshot(
+  snapshot: Record<string, unknown>,
+): Record<string, unknown> {
+  const clean: Record<string, unknown> = {};
+  for (const [key, value] of Object.entries(snapshot)) {
+    if (!PORTAL_BLOCKED_SNAPSHOT_KEYS.has(key)) clean[key] = value;
   }
   return clean;
 }

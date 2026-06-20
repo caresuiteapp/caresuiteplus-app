@@ -5964,6 +5964,7 @@ export type Database = {
       }
       assist_visit_proofs: {
         Row: {
+          approval_note: string | null
           approved_at: string | null
           approved_by: string | null
           billing_released: boolean
@@ -5975,7 +5976,13 @@ export type Database = {
           metadata: Json
           payload_hash: string | null
           payload_snapshot: Json
+          pdf_hash: string | null
+          pdf_storage_path: string | null
+          portal_release_status: string
+          portal_visible: boolean
           proof_number: string | null
+          rejection_reason: string | null
+          released_to_portal_at: string | null
           signature_id: string | null
           status: string
           storage_path: string | null
@@ -5985,6 +5992,7 @@ export type Database = {
           visit_id: string
         }
         Insert: {
+          approval_note?: string | null
           approved_at?: string | null
           approved_by?: string | null
           billing_released?: boolean
@@ -5996,7 +6004,13 @@ export type Database = {
           metadata?: Json
           payload_hash?: string | null
           payload_snapshot?: Json
+          pdf_hash?: string | null
+          pdf_storage_path?: string | null
+          portal_release_status?: string
+          portal_visible?: boolean
           proof_number?: string | null
+          rejection_reason?: string | null
+          released_to_portal_at?: string | null
           signature_id?: string | null
           status?: string
           storage_path?: string | null
@@ -6006,6 +6020,7 @@ export type Database = {
           visit_id: string
         }
         Update: {
+          approval_note?: string | null
           approved_at?: string | null
           approved_by?: string | null
           billing_released?: boolean
@@ -6017,7 +6032,13 @@ export type Database = {
           metadata?: Json
           payload_hash?: string | null
           payload_snapshot?: Json
+          pdf_hash?: string | null
+          pdf_storage_path?: string | null
+          portal_release_status?: string
+          portal_visible?: boolean
           proof_number?: string | null
+          rejection_reason?: string | null
+          released_to_portal_at?: string | null
           signature_id?: string | null
           status?: string
           storage_path?: string | null

@@ -1,9 +1,9 @@
-# CareSuite+ Assist — Abnahme-Checklist-Status
+﻿# CareSuite+ Assist — Abnahme-Checklist-Status
 
 **Datum:** 2026-06-20  
 **Referenz:** `02_ABNAHME_CHECKLISTE_ASSIST.md` (Downloads-Paket)  
-**Scope:** Read-only Abnahme gegen aktuellen Repo-Stand · Phase 3 Schema vorbereitet (ohne DB-Deploy)  
-**HEAD:** `73cd7360cf533051c84b394d82a46b8e38c4b335` · **B.1h:** ✅ applied · **B.1k:** ✅ applied · **0156:** vorbereitet, nicht applied
+**Scope:** Abnahme-Stand nach Assist Phase 4.6 E2E Proof Portal Release  
+**HEAD (Repo):** Phase-4.6-Commit · **B.1h:** applied · **B.1k:** applied · **0156:** applied · **0157:** applied · **0158:** applied (2026-06-20)
 
 Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht geprüft / Blocker dokumentiert
 
@@ -15,8 +15,8 @@ Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht 
 |---|-----------|--------|----------|
 | A1 | Migration 0154 nicht verändert | ✅ | `git diff` auf 0154 leer |
 | A2 | Migration 0154 während Assist pausiert | ✅ | Assist-Zwischenauftrag eingehalten; **B.1h Apply** (2026-06-20) |
-| A3 | Kein `supabase db push` (Assist Phase 3) | ✅ | 0156 nur Repo-Vorbereitung — kein Deploy |
-| A4 | Kein Supabase Remote Deploy | ✅ | — |
+| A3 | Assist Phase 3.2: einmaliger `db push` nur 0156 | ✅ | `.audit-supabase-assist-phase32-apply.log` |
+| A4 | Kein Deploy außer 0156 Apply | ✅ | Kein Netlify `[deploy]` in diesem Lauf |
 | A5 | Keine Permission-Dateien geändert | ✅ | `src/lib/permissions/` diff leer |
 | A6 | `staticRolePermissions.ts` unverändert | ✅ | Kein WT-Diff |
 | A7 | Keine RLS-Änderungen | ✅ | — |
@@ -106,9 +106,9 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 |---|-----------|--------|----------|
 | F1 | Signaturfeld / Blocker | 🟡 | `VisitSignatureSection` + `CareSignatureModal` in Durchführung; Session-Store |
 | F2–F4 | Touch/Maus, leer blockiert, Klarname/Rolle | 🟡 | Phase 2 UI erfüllt; DB-Persistenz fehlt |
-| F5–F7 | Payload-Hash, Signatur-Hash, Invalidierung | 🟡 | Migration **0156** vorbereitet (`assist_visit_signatures`); **nicht applied** — Session-Store aktiv |
+| F5–F7 | Payload-Hash, Signatur-Hash, Invalidierung | 🟡 | **0156** wired — `saveVisitSignaturePersistent` (Storage + DB); aktiv wenn `assist_visits` aufgelöst |
 
-**F — Gesamt:** 🟡 **4/7**, 🟡 **3/7** (Hash/Persistenz — 0156 vorbereitet)
+**F — Gesamt:** 🟡 **4/7**, 🟡 **3/7** (Persistenz wired Phase 4; Session-Fallback Demo)
 
 ---
 
@@ -116,9 +116,9 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
-| G1–G13 | Vorschau, Snapshots, Freigabe, PDF, Abrechnung | 🟡 | `VisitProofPreviewPanel`, `visitProofPreviewService`; Preview nutzbar; PDF/Ablage/Abrechnung Schema-Gap |
+| G1–G13 | Vorschau, Snapshots, Freigabe, PDF, Abrechnung | 🟡 | Preview + persist; **Phase 4.5/4.6:** Prüfung/Freigabe/PDF/Portal-Release + E2E smoke (`assistProofToPortalFlow.test.ts`); Abrechnung offen |
 
-**G — Gesamt:** 🟡 **~5/13** — Preview Phase 2; Persistenz/PDF offen
+**G — Gesamt:** 🟡 **~10/13** — Approval + PDF + Portal-Release Phase 4.5; Abrechnung offen
 
 ---
 
@@ -129,9 +129,9 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 | H1 | Live-Status UI | ✅ | `AssistLiveStatusScreen`, `assistLiveTrackingViewService` |
 | H2 | Tracking nur MA-Portal | ✅ | `EmployeePortalVisitExecutionScreen`; Assist read-only Banner |
 | H3 | Consent vor GPS | ✅ | `EmployeePortalLocationConsentBanner` |
-| H4 | Live-Timer (Fahrt/Einsatz/Pause) | 🟡 | Session-Rekonstruktion; **0156** `assist_time_events` vorbereitet, nicht applied |
-| H5 | Geofence weich | 🟡 | `geofenceSoftCheck.ts`; **0156** `assist_geofence_events` vorbereitet |
-| H6 | Karte / Backend-Streaming | 🟡 | **0156** `assist_tracking_sessions` + `assist_location_points` vorbereitet; `isGpsTrackingLiveReady()` false |
+| H4 | Live-Timer (Fahrt/Einsatz/Pause) | 🟡 | DB `assist_time_events` + In-Memory; Assist live-status liest beides |
+| H5 | Geofence weich | 🟡 | `geofenceSoftCheck` + `recordGeofenceEvent` bei Ankunft (MA-Portal) |
+| H6 | Karte / Backend-Streaming | 🟡 | `appendLocationPoint` + read-only latest point in Assist; volle Karte offen |
 
 **H — Gesamt:** ✅ **3/6**, 🟡 **3/6** (GPS-Nachtrag 2026-06-20)
 
@@ -142,7 +142,7 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
 | J1 | Mitarbeiterportal Durchführung | ✅ | `/portal/employee/assignments/[id]/execute` |
-| J2 | Klientenportal Tracking-Sicht | 🟡 | Gap dokumentiert; `clientPortalVisible: false` |
+| J2 | Klientenportal Tracking-Sicht | 🟡 | `restrictedLiveStatus` + **released visit proofs** via `portalAssistVisitProofService` (ohne GPS/interne Notizen/Fahrtenbuch) — E2E smoke Phase 4.6 |
 | J3–J5 | Nachrichten, Terminwunsch | 🟡 | `src/lib/portal/assist/*`, portal-preview routes |
 
 **J — Gesamt:** ✅ **1/5**, 🟡 **4/5**
@@ -184,10 +184,17 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 | L6 | `assist-phase22-selective-commit-abschlussbericht.md` | 🟡 erstellt, noch nicht committed |
 | L7 | Assist-Commit `32d30d8` (82 Dateien) | ✅ gepusht · `main` = `origin/main` |
 | L8 | `assist-phase23-push-abschlussbericht.md` | 🟡 erstellt, uncommitted |
-| L9 | `assist-phase3-persistence-schema-abschlussbericht.md` | ✅ Phase 3 Schema (0156 vorbereitet) |
-| L10 | Migration 0156 im Repo | ✅ `0156_assist_execution_persistence.sql` — **nicht remote applied** |
+| L9 | `assist-phase3-persistence-schema-abschlussbericht.md` | ✅ Phase 3 Schema + 3.1/3.2 Abschlussberichte |
+| L10 | Migration 0156 im Repo | ✅ remote applied (Phase 3.2) |
+| L11 | `assist-phase4-persistence-wiring-abschlussbericht.md` | 🟡 erstellt, uncommitted |
+| L12 | Migration 0157 Storage policies | ✅ remote applied |
+| L13 | Migration 0158 portal release | ✅ remote applied |
+| L14 | `assist-phase45-proof-pdf-portal-release-abschlussbericht.md` | ✅ committed Phase 4.6 |
+| L15 | Remote types nach 0158 (`fetch-remote-types`) | ✅ Phase 4.6 |
+| L16 | `assist-phase46-e2e-proof-portal-abnahmebericht.md` | ✅ Phase 4.6 |
+| L17 | E2E smoke `assistProofToPortalFlow.test.ts` | ✅ 10/10 |
 
-**L — Gesamt:** ✅ **Assist-Commit lokal** · Phase-2.2-Bericht noch WT
+**L — Gesamt:** ✅ Phase 4.5/4.6 committed
 
 ---
 
@@ -199,23 +206,22 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 | **B Navigation** | ✅ ~92 % |
 | **C Office-Integration** | 🟡 ~43 % voll |
 | **D Einsätze** | 🟡 ~70 % |
-| **E–J Fachtiefe** | 🟡 E/F/G verbessert; **0156 vorbereitet** — Apply ausstehend |
+| **E–J Fachtiefe** | 🟡 E/F/G verbessert; **0156 vorbereitet** — Apply erledigt (Phase 3.2) |
 | **K Design** | ✅ Dashboard; 🟡 Kalender/Nachrichten |
 | **L Berichte** | ✅ Phase 1–2.1 inkl. Commit-Readiness |
 
 ### Top-Abnahme-Blocker (verbleibend)
 
-1. **F/G P0 Apply:** Migration **0156** remote anwenden + Storage-Policies — Schema im Repo, UI/Session weiter aktiv
-2. **E8/I:** Nicht-angetroffen-Workflow, Touren-/Monats-Fahrtenbuch — Folge-Migration
-3. **C:** Office-Snapshots (Pflegegrad/Kostenträger/Vertrag) in Assist-Listen ausbauen
+1. **F/G Abrechnung:** Billing-Release aus freigegebenen Proofs (`billing_released`) — Folge-Phase
+2. **E8/I:** Nicht-angetroffen-Workflow, Touren-/Monats-Fahrtenbuch
+3. **C:** Office-Snapshots in Assist-Listen ausbauen
 
 ### Nicht verletzt
 
-- B.1h/B.1k applied · 0154/0155/Permissions unverändert in Phase 3 · **0156 nicht pushed**
+- B.1h/B.1k applied · 0154–0158 / Permissions unverändert in Phase 4.5/4.6
 
 ### Nächster Schritt
 
-1. **0156 Review + Freigabe** — dann `supabase db push` (separater Deploy-Schritt)
-2. Storage-Policies Signatur/Nachweis-Pfade
-3. Wire Mitarbeiterportal → Persistenz-Services
-4. Audit-Commit für Phase-3-Artefakte (optional, User-Freigabe)
+1. Live-E2E (manuell): Einsatz abschließen → Nachweis-Prüfung → PDF → Klientenportal
+2. Billing-Release aus freigegebenen Proofs (`billing_released`) — Folge-Phase
+3. Klient:innen Core — bewusst **nicht** gestartet

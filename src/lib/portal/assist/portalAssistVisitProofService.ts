@@ -5,30 +5,13 @@
 
 import type { ServiceResult } from '@/types';
 import type { ClientPortalAssistVisitProof } from '@/types/assistExecutionPersistence';
+import { stripPortalBlockedKeysFromSnapshot } from '@/lib/assist/assistProofPdfPayload';
 import { ASSIST_EXECUTION_STORAGE_BUCKET } from '@/lib/assist/assistStoragePaths';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { ASSIST_EXECUTION_TABLES } from '@/types/assistExecutionPersistence';
-
-const GPS_KEYS = new Set([
-  'latitude',
-  'longitude',
-  'accuracyMeters',
-  'locationPoints',
-  'trackingSession',
-  'gps',
-  'geofence',
-]);
-
-function stripGpsFromSnapshot(snapshot: Record<string, unknown>): Record<string, unknown> {
-  const clean: Record<string, unknown> = {};
-  for (const [key, value] of Object.entries(snapshot)) {
-    if (!GPS_KEYS.has(key)) clean[key] = value;
-  }
-  return clean;
-}
 
 function readString(snapshot: Record<string, unknown>, key: string): string | null {
   const value = snapshot[key];
@@ -54,7 +37,7 @@ type VisitRow = {
 };
 
 function mapReleasedProof(proof: ProofRow, visit?: VisitRow | null): ClientPortalAssistVisitProof {
-  const snapshot = stripGpsFromSnapshot(proof.payload_snapshot ?? {});
+  const snapshot = stripPortalBlockedKeysFromSnapshot(proof.payload_snapshot ?? {});
 
   return {
     id: proof.id,
