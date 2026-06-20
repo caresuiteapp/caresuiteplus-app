@@ -179,7 +179,7 @@ describe('portal module → feature filtering', () => {
   it('filters mobile overflow tabs by active modules', () => {
     const tabs: ShellTabConfig[] = [
       { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/client' },
-      { key: 'assist-budget', label: 'Budget', icon: '💶', href: '/portal/client?module=assist&section=budget' },
+      { key: 'assist-budget', label: 'Budget', icon: '💶', href: '/portal/client/budget' },
       { key: 'module-pflege', label: 'Pflege', icon: '🩺', href: '/portal/client?module=pflege' },
       { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
     ];

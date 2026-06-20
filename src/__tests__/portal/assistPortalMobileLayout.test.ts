@@ -19,7 +19,7 @@ const sampleTabs: ShellTabConfig[] = [
   { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/client' },
   { key: 'assist-appointments', label: 'Termine', icon: '📅', href: '/portal/client/appointments' },
   { key: 'assist-betreuung', label: 'Betreuung', icon: '🤝', href: '/portal/client?module=assist&section=betreuung' },
-  { key: 'assist-budget', label: 'Budget', icon: '💶', href: '/portal/client?module=assist&section=budget' },
+  { key: 'assist-budget', label: 'Budget', icon: '💶', href: '/portal/client/budget' },
   { key: 'assist-anfragen', label: 'Anfragen', icon: '📨', href: '/portal/client?modal=anfragen' },
   { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },

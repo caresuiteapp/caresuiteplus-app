@@ -145,7 +145,7 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
               🔒 Datenschutz
             </Text>
           </Pressable>
-          <Pressable onPress={() => router.push('/portal/client?module=assist&section=hilfe' as never)} style={styles.supportLink}>
+          <Pressable onPress={() => router.push('/portal/client/help' as never)} style={styles.supportLink}>
             <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
               📋 Betroffenenrechte
             </Text>
@@ -170,7 +170,7 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
         <Pressable
           onPress={() => {
             setHelpOpen(false);
-            router.push('/portal/client?module=assist&section=hilfe' as never);
+            router.push('/portal/client/help' as never);
           }}
           style={styles.supportLink}
         >

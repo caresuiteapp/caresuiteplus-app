@@ -35,11 +35,11 @@ const ASSIST_FEATURE_HREFS: Record<string, string> = {
   betreuung: '/portal/client?module=assist&section=betreuung',
   care_team: '/portal/client?module=assist&section=betreuung',
   trips: '/portal/client?module=assist&section=begleitungen',
-  budget: '/portal/client?module=assist&section=budget',
+  budget: '/portal/client/budget',
   nachweise: '/portal/client?module=assist&section=nachweise',
   aktivitaeten: '/portal/client?modal=aktivitaeten',
   anfragen: '/portal/client?modal=anfragen',
-  hilfe: '/portal/client?module=assist&section=hilfe',
+  hilfe: '/portal/client/help',
 };
 
 function assistFeatureNavItems(features: PortalFeature[]): PortalNavItem[] {

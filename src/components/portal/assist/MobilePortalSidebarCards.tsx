@@ -171,7 +171,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
         <Pressable
           onPress={() => {
             setHelpOpen(false);
-            router.push('/portal/client?module=assist&section=hilfe' as never);
+            router.push('/portal/client/help' as never);
           }}
           style={styles.supportLink}
         >

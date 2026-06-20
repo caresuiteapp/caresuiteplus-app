@@ -1,6 +1,6 @@
 # Portal System Abnahme-Checklist — Status
 
-**Stand:** 2026-06-20 · **Scope:** Portal System Core P.0–P.3
+**Stand:** 2026-06-20 · **Scope:** Portal System Core P.0–P.4
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
@@ -19,13 +19,17 @@
 | P.4.1 | portalVisibilityService | ✅ | src/lib/portal |
 | P.4.2 | clientPortalProjectionService | ✅ | projections + types |
 | P.4.3 | employeePortalProjectionService | ✅ | projections + types |
+| P.4.4 | Live HTTP-Smoke Client + Employee routes | ✅ | P.4 Abnahmebericht §3–4 |
+| P.4.5 | Budget/Hilfe Nav → dedizierte Routen | ✅ | buildPortalNavigation fix |
+| P.4.6 | Office Sync-Kette Code-Pfade | ✅ | ClientPortalCorePanel, PortalSyncChainPanel |
 | P.5.1 | Office Client portal card | ✅ | ClientPortalCorePanel |
 | P.5.2 | Employee impact card | ✅ | EmployeePortalImpactPanel |
 | P.5.3 | Portal sync chain UI | ✅ | PortalSyncChainPanel |
 | P.6.1 | portalSyncFlow tests | ✅ | 6/6 green |
 | P.6.2 | Projection smoke tests | ✅ | 6/6 green |
 | P.6.3 | assistProofToPortalFlow regression | ✅ | 10/10 green |
+| P.6.4 | modalStack regression | ✅ | 5/5 green |
 | — | Migration 0160 | ❌ nicht nötig | bestehende Tabellen |
 | — | K.5 / Mitarbeiter Core / B.2 / B.3 | ❌ nicht gestartet | Scope |
 
-**Gesamt:** 22/22 ✅
+**Gesamt:** 27/27 ✅

@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams } from 'expo-router';
 import { AdaptivePortalDashboard } from '@/components/portal/AdaptivePortalDashboard';
 import {
   AssistPortalOverview,
@@ -100,6 +100,12 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
             initialModal={routeSection as 'anfragen' | 'aktivitaeten'}
           />
         );
+      }
+      if (routeSection === 'budget') {
+        return <Redirect href="/portal/client/budget" />;
+      }
+      if (routeSection === 'hilfe') {
+        return <Redirect href="/portal/client/help" />;
       }
       return <AssistPortalSectionView context={context} section={routeSection} />;
     }
