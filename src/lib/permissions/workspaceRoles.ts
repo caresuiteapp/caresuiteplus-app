@@ -11,7 +11,8 @@ export const WORKSPACE_ROLE_DEFINITIONS: WorkspaceRoleDefinition[] = [
   { canonicalKey: 'admin', label: 'Administrator:in', category: 'administration', mapsToRoleKey: 'business_admin', primaryArea: 'administration' },
   { canonicalKey: 'management', label: 'Management', category: 'administration', mapsToRoleKey: 'business_manager', primaryArea: 'administration' },
   { canonicalKey: 'office', label: 'Office / Verwaltung', category: 'administration', mapsToRoleKey: 'business_manager', primaryArea: 'administration' },
-  { canonicalKey: 'dispatch', label: 'Einsatzplanung', category: 'administration', mapsToRoleKey: 'dispatch', primaryArea: 'administration' },
+  { canonicalKey: 'planning', label: 'Einsatzplanung', category: 'administration', mapsToRoleKey: 'dispatch', primaryArea: 'administration' },
+  { canonicalKey: 'dispatch', label: 'Einsatzplanung (Dispatch)', category: 'administration', mapsToRoleKey: 'dispatch', primaryArea: 'administration' },
   { canonicalKey: 'billing', label: 'Abrechnung', category: 'administration', mapsToRoleKey: 'billing', primaryArea: 'administration' },
   { canonicalKey: 'quality_management', label: 'Qualitätsmanagement', category: 'administration', mapsToRoleKey: 'business_manager', primaryArea: 'administration' },
   { canonicalKey: 'employee', label: 'Mitarbeitende:r', category: 'employee', mapsToRoleKey: 'employee_portal', primaryArea: 'employee_portal' },
@@ -96,6 +97,30 @@ export function hasFullTenantDataAccess(roleKey: RoleKey | null): boolean {
 
 export function mapCanonicalRoleToRoleKey(canonicalKey: CanonicalWorkspaceRoleKey): RoleKey {
   return getWorkspaceRoleDefinition(canonicalKey)?.mapsToRoleKey ?? 'business_admin';
+}
+
+/** Remote DB `roles.key` (Legacy/Workspace) → CS+ `RoleKey` für App/Static-Gates. */
+export function mapLegacyRoleKeyToRoleKey(dbRoleKey: string | null | undefined): RoleKey | null {
+  if (!dbRoleKey?.trim()) return null;
+  const trimmed = dbRoleKey.trim();
+  const csPlusKeys: RoleKey[] = [
+    'business_admin',
+    'business_manager',
+    'billing',
+    'dispatch',
+    'nurse',
+    'caregiver',
+    'counselor',
+    'akademie_admin',
+    'employee_portal',
+    'client_portal',
+    'family_portal',
+  ];
+  if (csPlusKeys.includes(trimmed as RoleKey)) {
+    return trimmed as RoleKey;
+  }
+  const mapped = getWorkspaceRoleDefinition(trimmed as CanonicalWorkspaceRoleKey)?.mapsToRoleKey;
+  return mapped ?? null;
 }
 
 export { PORTAL_ONLY_ROLES, EMPLOYEE_PORTAL_ROLES, CLIENT_PORTAL_ROLES, ADMINISTRATION_ROLES };

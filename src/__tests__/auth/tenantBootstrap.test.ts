@@ -16,7 +16,7 @@ import {
   resolveProfileDisplayName,
   resolveProfileRoleKey,
 } from '@/lib/supabase/tenantService';
-import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
+import { mapCanonicalRoleToRoleKey, mapLegacyRoleKeyToRoleKey } from '@/lib/permissions/workspaceRoles';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -44,6 +44,11 @@ describe('tenant bootstrap role resolution', () => {
 
   it('maps live owner role key to business_admin', () => {
     expect(mapCanonicalRoleToRoleKey('owner')).toBe('business_admin');
+  });
+
+  it('maps legacy planning role key to dispatch', () => {
+    expect(mapLegacyRoleKeyToRoleKey('planning')).toBe('dispatch');
+    expect(mapLegacyRoleKeyToRoleKey('owner')).toBe('business_admin');
   });
 
   it('resolveProfileDisplayName prefers full_name over email', () => {

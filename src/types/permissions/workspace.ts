@@ -16,6 +16,7 @@ export type CanonicalWorkspaceRoleKey =
   | 'admin'
   | 'management'
   | 'office'
+  | 'planning'
   | 'dispatch'
   | 'billing'
   | 'quality_management'

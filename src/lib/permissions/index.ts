@@ -27,6 +27,7 @@ export {
   isAdministrationRole,
   hasFullTenantDataAccess,
   mapCanonicalRoleToRoleKey,
+  mapLegacyRoleKeyToRoleKey,
   getWorkspaceRoleDefinition,
 } from './workspaceRoles';
 export {
