@@ -7,7 +7,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   ...config,
   name: 'CareSuite+',
   slug: 'caresuite-plus',
-  version: '1.0.0',
+  version: '0.1.1',
   orientation: 'default',
   icon: './assets/icon.png',
   scheme: 'caresuiteplus',
@@ -46,7 +46,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       backgroundColor: '#070B12',
     },
     package: 'app.caresuiteplus',
-    versionCode: 2,
+    versionCode: 5,
     permissions: ['INTERNET', 'RECORD_AUDIO'],
   },
   web: {
