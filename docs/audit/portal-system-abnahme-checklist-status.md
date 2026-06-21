@@ -37,7 +37,8 @@
 | P.6.2 | Projection smoke tests | ✅ | 6/6 green |
 | P.6.3 | assistProofToPortalFlow regression | ✅ | 10/10 green |
 | P.6.4 | modalStack regression | ✅ | 5/5 green |
-| — | Migration 0160 | ❌ nicht nötig | bestehende Tabellen |
-| — | K.5 / Mitarbeiter Core / B.2 / B.3 | ❌ nicht gestartet | Scope |
+| — | Migration 0160 (Portal scope) | ❌ nicht nötig | Portal P.0–P.5 |
+| — | K.5 billing non-disclosure verified | ✅ | clientCoreK5BillingHandoff + portalProjectionServices |
+| — | Mitarbeiter Core / B.2 / B.3 | ❌ nicht gestartet | Scope |
 
-**Gesamt:** 36/37 ✅ · 1 ⚠️ partial (P.5.3 Browser UI E2E)
+**Gesamt:** 37/38 ✅ · 1 ⚠️ partial (P.5.3 Browser UI E2E)

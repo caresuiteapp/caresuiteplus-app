@@ -17,6 +17,7 @@ import { fetchClientAssignments } from '@/lib/assist/assignmentListService';
 import { formatDate, formatDateTime } from '@/lib/formatters/dateTimeFormatters';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { ClientFullDetail } from '@/types/modules/client';
+import { ClientProofBillingStatusPanel } from '@/components/office/ClientProofBillingStatusPanel';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
@@ -152,6 +153,8 @@ export function ClientRecordShiftsPanel({ clientId, fullClient }: ClientRecordSh
           <DetailInfoRow label="Zugang" value={fullClient.preferences.accessInstructions} />
         </SectionPanel>
       ) : null}
+
+      <ClientProofBillingStatusPanel clientId={clientId} />
 
       {!isReadOnly ? (
         <SectionPanel title="Planung">

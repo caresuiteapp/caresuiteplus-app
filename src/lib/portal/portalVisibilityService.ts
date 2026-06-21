@@ -52,6 +52,15 @@ const EMPLOYEE_BLOCKED_ALWAYS = [
   'budgetCents',
   'invoices',
   'invoice',
+  'invoiceDraft',
+  'invoice_draft',
+  'billingCandidate',
+  'billing_candidate',
+  'billingCandidates',
+  'blockingReasons',
+  'blocking_reasons',
+  'budgetMovements',
+  'budget_movements',
   'payroll',
   'internalNotes',
   'officeNotes',
@@ -69,6 +78,9 @@ export function sanitizeClientPortalPayload<T extends Record<string, unknown>>(p
     if (PORTAL_BLOCKED_SNAPSHOT_KEYS.has(key)) delete next[key];
     if (key.toLowerCase().includes('internal')) delete next[key];
     if (key.toLowerCase().includes('billing')) delete next[key];
+    if (key.toLowerCase().includes('candidate')) delete next[key];
+    if (key.toLowerCase().includes('blocking')) delete next[key];
+    if (key.toLowerCase().includes('draft')) delete next[key];
   }
   return next;
 }

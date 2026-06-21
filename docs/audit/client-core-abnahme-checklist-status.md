@@ -1,6 +1,6 @@
 # Client Core Abnahme-Checklist — Status
 
-**Stand:** 2026-06-20 · **Scope:** K.0–K.4
+**Stand:** 2026-06-21 · **Scope:** K.0–K.5
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
@@ -27,11 +27,18 @@
 | K.4.4 | ModalStack in-page actions | ✅ | serviceProfile.add, prep.client.edit |
 | K.4.5 | Portal guards canClientPortalSeeFeature | ✅ | clientPortalSettingsService |
 | K.4.6 | K.4 tests green | ✅ | clientRecordUi, clientEditModal, clientCoreK4Intake |
+| K.5.1 | Proof → billing candidate (idempotent) | ✅ | clientBillingCandidateService |
+| K.5.2 | Budget consumption ledger movements | ✅ | clientBudgetConsumptionService |
+| K.5.3 | Billing preview + blocking reasons | ✅ | ClientBillingPrepPanel |
+| K.5.4 | No final invoice / no invoice numbers | ✅ | neverFinalizeInvoice guard |
+| K.5.5 | Portal billing non-disclosure | ✅ | portalVisibilityService + tests |
+| K.5.6 | Migration 0160 additive | ✅ | 0160_client_billing_handoff_foundation.sql |
+| K.5.7 | K.5 tests green | ✅ | clientCoreK5BillingHandoff.test.ts |
 | — | 0154–0159 unverändert | ✅ | Abort-Gate |
 | — | staticRolePermissions unverändert | ✅ | Abort-Gate |
-| — | 0159 remote applied | ✅ | k4 precheck log |
+| — | 0159 remote applied | ✅ | k5 precheck log |
 
-**Gesamt:** 25/25 ✅
+**Gesamt:** 33/33 ✅
 
 ---
 

@@ -9,6 +9,10 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { listTenantClientServiceTypes, updateTenantClientServiceType } from '@/lib/client/clientServiceTypeService';
+import {
+  listTenantServiceTypeBillingRules,
+  updateTenantServiceTypeBillingRule,
+} from '@/lib/billing/clientBillingCandidateService';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -24,6 +28,7 @@ export default function TenantClientServiceTypesScreen() {
   const { isReadOnly } = usePermissions();
   const [editingId, setEditingId] = useState<string | null>(null);
   const [editName, setEditName] = useState('');
+  const [editRate, setEditRate] = useState('');
   const [saving, setSaving] = useState(false);
 
   const query = useAsyncQuery(
@@ -35,7 +40,17 @@ export default function TenantClientServiceTypesScreen() {
     { enabled: !!tenantId },
   );
 
+  const billingRulesQuery = useAsyncQuery(
+    () => {
+      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      return listTenantServiceTypeBillingRules(tenantId);
+    },
+    [tenantId],
+    { enabled: !!tenantId },
+  );
+
   const types = query.data ?? [];
+  const billingRules = billingRulesQuery.data ?? [];
 
   async function handleSave(typeId: string) {
     if (!tenantId || isReadOnly || !editName.trim()) return;
@@ -46,6 +61,17 @@ export default function TenantClientServiceTypesScreen() {
       setEditingId(null);
       await query.refresh();
     }
+  }
+
+  async function handleSaveBillingRule(serviceTypeId: string) {
+    if (!tenantId || isReadOnly) return;
+    setSaving(true);
+    const parsed = editRate.trim() ? Number(editRate.replace(',', '.')) : null;
+    const result = await updateTenantServiceTypeBillingRule(tenantId, serviceTypeId, {
+      defaultRateAmount: parsed != null && Number.isFinite(parsed) ? parsed : null,
+    });
+    setSaving(false);
+    if (result.ok) await billingRulesQuery.refresh();
   }
 
   return (
@@ -93,6 +119,54 @@ export default function TenantClientServiceTypesScreen() {
           ))}
         </View>
       )}
+
+      <SectionPanel title="Abrechnungsregeln je Leistungsart (K.5)">
+        <Text style={styles.secondary}>
+          Stundensätze und Pflichten — mandantenfähig, keine harte Code-Wahrheit. Fehlende Rate erzeugt Warnung in der
+          Abrechnungsvorschau.
+        </Text>
+        {billingRules.length === 0 && !billingRulesQuery.loading ? (
+          <EmptyState
+            title="Keine Abrechnungsregeln"
+            message="Regeln werden mit Migration 0160 oder seed_tenant_billing_handoff_defaults angelegt."
+          />
+        ) : (
+          billingRules.map((rule) => {
+            const type = types.find((t) => t.id === rule.serviceTypeId);
+            return (
+              <PremiumCard key={rule.id} style={styles.card}>
+                <Text style={styles.primary}>{type?.name ?? rule.serviceTypeId}</Text>
+                <Text style={styles.secondary}>
+                  Rate: {rule.defaultRateAmount != null ? `${rule.defaultRateAmount} €/${rule.defaultUnit}` : '—'}
+                  {' · '}
+                  Signatur: {rule.requireSignature ? 'ja' : 'nein'}
+                  {' · '}
+                  Freigabe: {rule.requireApproval ? 'ja' : 'nein'}
+                </Text>
+                {!isReadOnly ? (
+                  <View style={styles.rateRow}>
+                    <PremiumInput
+                      label="Stundensatz (€)"
+                      value={editRate}
+                      onChangeText={setEditRate}
+                      placeholder={rule.defaultRateAmount?.toString() ?? ''}
+                    />
+                    <PremiumButton
+                      title="Rate speichern"
+                      size="sm"
+                      loading={saving}
+                      onPress={() => {
+                        setEditRate(editRate || String(rule.defaultRateAmount ?? ''));
+                        void handleSaveBillingRule(rule.serviceTypeId);
+                      }}
+                    />
+                  </View>
+                ) : null}
+              </PremiumCard>
+            );
+          })
+        )}
+      </SectionPanel>
     </ScreenShell>
   );
 }
@@ -102,4 +176,5 @@ const styles = StyleSheet.create({
   card: { marginBottom: spacing.sm },
   primary: { ...typography.label },
   secondary: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+  rateRow: { marginTop: spacing.sm, gap: spacing.sm },
 });

@@ -16,6 +16,7 @@ import {
   listClientBudgetSettings,
   listTenantBudgetDefaults,
 } from '@/lib/client/clientBudgetSettingsService';
+import { ClientBillingPrepPanel } from '@/components/office/ClientBillingPrepPanel';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import type { ClientBudgetSetting } from '@/types/clientCore';
 import { colors, spacing, typography } from '@/theme';
@@ -155,6 +156,7 @@ export function ClientBudgetCorePanel({ clientId, onRecordRefresh }: Props) {
       {!isReadOnly && settings.length === 0 && defaults.length > 0 ? (
         <PremiumButton title="Budget aus Mandanten-Vorlage übernehmen" onPress={handleInitialize} />
       ) : null}
+      <ClientBillingPrepPanel clientId={clientId} onRecordRefresh={onRecordRefresh} />
     </View>
   );
 }
