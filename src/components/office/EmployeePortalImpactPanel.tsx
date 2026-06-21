@@ -13,6 +13,34 @@ const FIELD_LABELS: Record<string, string> = {
   emergencyContact: 'Notfallkontakt',
 };
 
+const BLOCKED_LABELS: Record<string, string> = {
+  budget: 'Budget',
+  budgetCents: 'Budget',
+  invoices: 'Rechnungen',
+  invoice: 'Rechnungen',
+  invoiceDraft: 'Rechnungsentwürfe',
+  invoice_draft: 'Rechnungsentwürfe',
+  billingCandidate: 'Abrechnungsvorschläge',
+  billing_candidate: 'Abrechnungsvorschläge',
+  billingCandidates: 'Abrechnungsvorschläge',
+  blockingReasons: 'Sperrgründe',
+  blocking_reasons: 'Sperrgründe',
+  budgetMovements: 'Budgetbewegungen',
+  budget_movements: 'Budgetbewegungen',
+  payroll: 'Lohn & Gehalt',
+  internalNotes: 'Interne Notizen',
+  officeNotes: 'Office-Notizen',
+  billingNotes: 'Abrechnungshinweise',
+  fullClientRecord: 'Vollständige Akte',
+  clientPortalSettings: 'Portal-Einstellungen',
+  gpsRaw: 'Roh-GPS',
+  locationPoints: 'Standortpunkte',
+};
+
+function blockedFieldLabel(key: string): string {
+  return BLOCKED_LABELS[key] ?? 'Interner Bereich';
+}
+
 /** Office/Akte — what employees see during assigned visits (not full record). */
 export function EmployeePortalImpactPanel() {
   const impact = getEmployeePortalImpactSummary();
@@ -29,10 +57,10 @@ export function EmployeePortalImpactPanel() {
         </Text>
         <Text style={styles.secondary}>
           Budget, Rechnungen und vollständige Akte:{' '}
-          <Text style={styles.blocked}>blockiert</Text>
+          <Text style={styles.blocked}>nicht sichtbar</Text>
         </Text>
         <Text style={styles.secondary}>
-          GPS/Tracking: nur im Mitarbeiter:innen-Portal während Einsatzdurchführung (Consent).
+          GPS/Tracking: nur im Mitarbeiter:innen-Portal während Einsatzdurchführung (Einwilligung).
         </Text>
       </PremiumCard>
 
@@ -46,16 +74,17 @@ export function EmployeePortalImpactPanel() {
       </PremiumCard>
 
       <PremiumCard style={styles.card}>
-        <Text style={styles.primary}>Blockierte Bereiche</Text>
-        <Text style={styles.secondary}>
-          {impact.blockedClientFields.slice(0, 6).join(', ')}
-          {impact.blockedClientFields.length > 6 ? ' …' : ''}
-        </Text>
+        <Text style={styles.primary}>Nicht sichtbare Bereiche</Text>
+        <View style={styles.chips}>
+          {impact.blockedClientFields.slice(0, 8).map((field) => (
+            <PremiumBadge key={field} label={blockedFieldLabel(field)} variant="muted" />
+          ))}
+        </View>
       </PremiumCard>
 
       <EmptyState
-        title="Mitarbeiter:innen Core folgt später"
-        message="Personalakte, Lohn und vollständige HR-Prozesse werden in einem separaten Core-Lauf angebunden."
+        title="Personalakte & HR"
+        message="Lohn, Verträge und vollständige HR-Prozesse werden im Personalbereich verwaltet."
       />
     </SectionPanel>
   );

@@ -57,7 +57,7 @@ describe('clientTimelineAggregation', () => {
         summary: 'Datenschutz: finalized',
         created_at: '2026-06-17T09:00:00.000Z',
         client_id: clientId,
-        profiles: { display_name: 'Thomas Keller' },
+        profiles: { first_name: 'Thomas', last_name: 'Keller', full_name: 'Thomas Keller' },
       },
       clientId,
     );
@@ -87,7 +87,7 @@ describe('clientTimelineAggregation', () => {
           summary: 'Vertrag finalisiert',
           created_at: '2026-06-10T08:00:00.000Z',
           client_id: clientId,
-          profiles: { display_name: 'Kevin Reinhardt' },
+          profiles: { first_name: 'Kevin', last_name: 'Reinhardt', full_name: 'Kevin Reinhardt' },
         },
       ],
     });

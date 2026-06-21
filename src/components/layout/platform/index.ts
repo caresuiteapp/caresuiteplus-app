@@ -23,3 +23,5 @@ export type {
   CollapsibleSidebarSectionProps,
 } from './collapsiblesidebarsection';
 export { PlatformModal } from './platformmodal';
+export { AppGlassModal } from './AppGlassModal';
+export type { AppGlassModalProps } from './AppGlassModal';

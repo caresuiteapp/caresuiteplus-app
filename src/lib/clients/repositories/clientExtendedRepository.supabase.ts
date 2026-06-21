@@ -658,7 +658,7 @@ export const supabaseClientExtendedRepository = {
         .order('created_at', { ascending: false })
         .limit(timelineLimit),
       fromUnknownTable(supabase, 'client_document_events')
-        .select('id, event_type, summary, created_at, client_id, profiles(display_name)')
+        .select('id, event_type, summary, created_at, client_id, profiles(first_name, last_name, full_name)')
         .eq('tenant_id', tenantId)
         .eq('client_id', clientId)
         .order('created_at', { ascending: false })
@@ -1092,10 +1092,7 @@ export const supabaseClientExtendedRepository = {
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
     return {
       ok: true,
-      data: {
-        ...mapClientDocument(castRow(data) as Parameters<typeof mapClientDocument>[0]),
-        documentSource: 'upload',
-      },
+      data: mapClientDocument(castRow(data) as Parameters<typeof mapClientDocument>[0]),
     };
   },
 

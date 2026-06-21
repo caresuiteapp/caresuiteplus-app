@@ -14,6 +14,14 @@ export function isSupabaseMissingTableError(error: PostgrestError | null): boole
   return error.code === 'PGRST205' || msg.includes('Could not find the table');
 }
 
+export function isSupabaseRlsError(error: PostgrestError | unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as { code?: string; message?: string };
+  if (record.code === '42501' || record.code === 'PGRST301') return true;
+  const msg = record.message ?? '';
+  return msg.includes('permission denied') || msg.includes('row-level security');
+}
+
 /** Detects missing-table errors on translated or raw service error strings. */
 export function isMissingTableServiceError(message: string): boolean {
   return (
@@ -42,6 +50,9 @@ export function toGermanSupabaseError(error: PostgrestError | null): string {
     return isDevEnvironment()
       ? `Tabelle nicht verfügbar (${msg})`
       : MISSING_SCHEMA_ERROR;
+  }
+  if (error.code === '42703' || (msg.includes('column') && msg.includes('does not exist'))) {
+    return GENERIC_DB_ERROR;
   }
   if (error.code === 'PGRST204' || msg.includes('Could not find the') && msg.includes('column')) {
     return isDevEnvironment()

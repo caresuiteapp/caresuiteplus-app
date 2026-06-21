@@ -31,9 +31,10 @@ describe('assist navigation cleanup', () => {
     expect(blob).not.toMatch(/nicht remote angewendet/i);
   });
 
-  it('live-status screen references assist_location_points not wrong table name', () => {
+  it('live-status screen uses user-facing map text without internal table names', () => {
     const live = readSrc('src/screens/assist/AssistLiveStatusScreen.tsx');
-    expect(live).toContain('assist_location_points');
+    expect(live).toContain('Kartenansicht');
+    expect(live).not.toContain('assist_location_points');
     expect(live).not.toContain('assist_tracking_points');
   });
 

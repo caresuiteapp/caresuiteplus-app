@@ -1,6 +1,8 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ContextCard } from '@/components/detail';
+import { ContextCard, contextGridStyle } from '@/components/detail';
+import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
 import {
   EmptyState,
   ErrorState,
@@ -11,16 +13,26 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { LockedActionBanner } from '@/components/permissions';
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { useClientDetail } from '@/hooks/useClientDetail';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useAuth } from '@/lib/auth/context';
+import { deleteClient } from '@/lib/office/clientDetailService';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
-import { clientEditRoute, clientRecordRoute } from '@/lib/navigation/clientRoutes';
+import { clientRecordRoute } from '@/lib/navigation/clientRoutes';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { colors, spacing, typography } from '@/theme';
 
 type ClientDetailSummaryPanelProps = {
   clientId: string;
+  onOpenFullRecord?: () => void;
+  onOpenRecordTab?: (tab: ClientRecordTabKey) => void;
+  /** Opens section edit modal; parent may host the modal instead. */
+  onEditMasterData?: () => void;
+  onDeleted?: () => void;
 };
 
 function SummaryRow({ label, value }: { label: string; value: string | null | undefined }) {
@@ -33,8 +45,16 @@ function SummaryRow({ label, value }: { label: string; value: string | null | un
   );
 }
 
-export function ClientDetailSummaryPanel({ clientId }: ClientDetailSummaryPanelProps) {
+export function ClientDetailSummaryPanel({
+  clientId,
+  onOpenFullRecord,
+  onEditMasterData,
+  onDeleted,
+}: ClientDetailSummaryPanelProps) {
   const router = useRouter();
+  const [editOpen, setEditOpen] = useState(false);
+  const { profile } = useAuth();
+  const tenantId = useServiceTenantId();
   const { can, roleLabel, isReadOnly } = usePermissions();
   const { data: client, loading, error, refresh, notFound } = useClientDetail(clientId);
 
@@ -61,7 +81,16 @@ export function ClientDetailSummaryPanel({ clientId }: ClientDetailSummaryPanelP
   const canViewSensitive = can('office.clients.view_sensitive');
   const isSensitive = client.sensitivity === 'health' || client.sensitivity === 'restricted';
 
+  const handleEditMasterData = () => {
+    if (onEditMasterData) {
+      onEditMasterData();
+      return;
+    }
+    setEditOpen(true);
+  };
+
   return (
+    <>
     <View style={styles.panel}>
       <PremiumCard accentColor={colors.orange}>
         <Text style={styles.name}>{fullName}</Text>
@@ -111,7 +140,7 @@ export function ClientDetailSummaryPanel({ clientId }: ClientDetailSummaryPanelP
       </SectionPanel>
 
       <SectionPanel title="Verknüpfte Bereiche" subtitle="Aktuelle Vorgänge">
-        <View style={styles.contextGrid}>
+        <View style={contextGridStyle}>
           <ContextCard
             icon="📅"
             label="Einsätze"
@@ -152,17 +181,56 @@ export function ClientDetailSummaryPanel({ clientId }: ClientDetailSummaryPanelP
             title="Stammdaten bearbeiten"
             variant="primary"
             fullWidth
-            onPress={() => router.push(clientEditRoute(client.id) as never)}
+            onPress={handleEditMasterData}
           />
         ) : null}
         <PremiumButton
           title="Vollständige Akte öffnen"
           variant="secondary"
           fullWidth
-          onPress={() => router.push(clientRecordRoute(client.id) as never)}
+          onPress={
+            onOpenFullRecord
+              ? onOpenFullRecord
+              : () => router.push(clientRecordRoute(client.id) as never)
+          }
         />
+        {can('office.clients.delete') ? (
+          <OfficeRecordDeleteButton
+            recordLabel="Klient:in"
+            displayName={fullName}
+            confirmTitle="Klient:in wirklich löschen?"
+            buttonTitle="Klient:in löschen"
+            onDelete={() => {
+              if (!tenantId) {
+                return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+              }
+              return deleteClient(
+                client.id,
+                tenantId,
+                profile?.roleKey,
+                profile?.id,
+                profile?.displayName,
+              );
+            }}
+            onDeleted={onDeleted}
+          />
+        ) : null}
       </View>
     </View>
+
+    {!onEditMasterData ? (
+      <ClientSectionEditModal
+        visible={editOpen}
+        clientId={clientId}
+        section="stammdaten"
+        onClose={() => setEditOpen(false)}
+        onSaved={() => {
+          setEditOpen(false);
+          void refresh();
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 
@@ -196,11 +264,6 @@ const styles = StyleSheet.create({
   },
   rowValue: {
     ...typography.body,
-  },
-  contextGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
   },
   hintLabel: {
     ...typography.label,

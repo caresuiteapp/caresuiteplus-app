@@ -3,8 +3,9 @@ import type { ClientDetail } from '@/types/detail';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ClientDetailHero } from '@/components/office';
-import { ContextCard } from '@/components/detail';
-import { CareLightPageShell } from '@/components/layout';
+import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
+import { ContextCard, contextGridStyle } from '@/components/detail';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -21,7 +22,6 @@ import { useClientFullDetail } from '@/hooks/useClientFullDetail';
 import { useClientDetail } from '@/hooks/useClientDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
-import { clientEditRoute } from '@/lib/navigation/clientRoutes';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 import {
@@ -81,7 +81,7 @@ function ActionsTab({
         <PremiumBadge label={WORKFLOW_STATUS_LABELS[client.status]} variant="orange" dot />
       </PremiumCard>
       <SectionPanel title="Kontext" subtitle="Verknüpfte Bereiche">
-        <View style={styles.contextGrid}>
+        <View style={contextGridStyle}>
           <ContextCard icon="📅" label="Einsätze" count={client.contextCounts.assignments} accentColor={colors.orange} />
           <ContextCard icon="📄" label="Dokumente" count={client.contextCounts.documents} accentColor={colors.cyan} />
           <ContextCard icon="🧾" label="Rechnungen" count={client.contextCounts.invoices} accentColor={colors.amber} />
@@ -110,7 +110,7 @@ function ActionsTab({
 }
 
 export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: string; embedded?: boolean } = {}) {
-  const params = useLocalSearchParams<{ id: string }>();
+  const params = useLocalSearchParams<{ id: string; edit?: string }>();
   const id = clientId ?? params.id;
   const router = useRouter();
   const showBack = !embedded;
@@ -118,6 +118,7 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
   const { can, check, roleLabel, isReadOnly } = usePermissions();
   const roleKey = profile?.roleKey ?? 'business_admin';
   const [activeTab, setActiveTab] = useState('stammdaten');
+  const [editOpen, setEditOpen] = useState(false);
 
   const fullQuery = useClientFullDetail(id);
   const legacyQuery = useClientDetail(id);
@@ -140,20 +141,26 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
     }
   }, [visibleTabs, activeTab]);
 
+  useEffect(() => {
+    if (embedded || params.edit !== '1' || !can('office.clients.edit')) return;
+    setEditOpen(true);
+    router.setParams({ edit: undefined } as never);
+  }, [embedded, params.edit, can, router]);
+
   if (loading) {
     return (
-      <CareLightPageShell title="Klient:in" subtitle="Wird geladen…" showBack={showBack}>
+      <ScreenShell title="Klient:in" subtitle="Wird geladen…" showBack={showBack}>
         <LoadingState message="Detaildaten werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Klient:in" subtitle="Fehler" showBack={showBack}>
+      <ScreenShell title="Klient:in" subtitle="Fehler" showBack={showBack}>
         <ErrorState title={notFound ? 'Nicht gefunden' : 'Fehler'} message={error ?? 'Der Datensatz existiert nicht.'} onRetry={fullQuery.refresh} />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -163,16 +170,18 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
   const fullName = `${client.firstName} ${client.lastName}`;
   const canViewSensitive = can('office.clients.view_sensitive');
   const isSensitive = client.sensitivity === 'health' || client.sensitivity === 'restricted';
+  const openEditMasterData = () => setEditOpen(true);
 
   return (
-    <CareLightPageShell
+    <>
+    <ScreenShell
       title={fullName}
       subtitle={isReadOnly ? 'Klient:innen-Details (nur Lesen)' : 'Digitale Klient:innen-Akte'}
       showBack={showBack}
       showBreadcrumbs={!embedded}
       rightSlot={
         can('office.clients.edit') ? (
-          <PremiumButton title="Bearbeiten" size="sm" variant="ghost" onPress={() => router.push(clientEditRoute(client.id) as never)} />
+          <PremiumButton title="Bearbeiten" size="sm" variant="ghost" onPress={openEditMasterData} />
         ) : null
       }
     >
@@ -212,21 +221,35 @@ export function ClientDetailScreen({ clientId, embedded = false }: { clientId?: 
             loading={legacyQuery.actionLoading}
             canChangeStatus={can('office.clients.status_change')}
             canEdit={can('office.clients.edit')}
-            onEdit={() => router.push(clientEditRoute(client.id) as never)}
+            onEdit={openEditMasterData}
             statusDeniedMessage={check('office.clients.status_change').reason}
             editDeniedMessage={check('office.clients.edit').reason}
             roleLabel={roleLabel}
           />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
+
+    {can('office.clients.edit') ? (
+      <ClientSectionEditModal
+        visible={editOpen}
+        clientId={client.id}
+        section="stammdaten"
+        onClose={() => setEditOpen(false)}
+        onSaved={() => {
+          setEditOpen(false);
+          void fullQuery.refresh();
+          void legacyQuery.refresh();
+        }}
+      />
+    ) : null}
+    </>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl, paddingTop: spacing.sm },
   tab: { gap: spacing.md },
-  contextGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   hint: { ...typography.body, marginBottom: spacing.sm },
   audit: { ...typography.caption, color: colors.cyan, marginTop: spacing.sm },

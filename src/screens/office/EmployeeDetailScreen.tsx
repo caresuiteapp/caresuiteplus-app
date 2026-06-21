@@ -1,10 +1,12 @@
+import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
-import { EmployeeDetailHero } from '@/components/office';
+import { EmployeeDetailHero } from '@/components/office/EmployeeDetailHero';
+import { EmployeeSectionEditModal } from '@/components/office/EmployeeSectionEditModal';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -12,14 +14,15 @@ import {
   LoadingState,
   PremiumButton,
   SectionPanel,
+  SegmentedTabs,
 } from '@/components/ui';
+import { useSectionEditModal } from '@/hooks/useSectionEditModal';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
 import { deleteEmployee } from '@/lib/office/employeeDeleteService';
-import { employeeEditRoute } from '@/lib/office/employeePersonnelLabels';
 import {
   EMPLOYEE_DETAIL_PREPARED_MESSAGE,
   isEmployeeDetailLiveReady,
@@ -29,17 +32,38 @@ import {
   resolveEmployeeDepartmentLabel,
   resolveEmployeeRoleLabel,
 } from '@/lib/office/employeeCatalogLabels';
+import type { EmployeeEditSectionKey } from '@/lib/office/employeeSectionEditLabels';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
 
-export function EmployeeDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+export function EmployeeDetailScreen({
+  employeeId: employeeIdProp,
+  embedded = false,
+  embeddedInModal = false,
+  onDeleted,
+  onEditMasterData,
+  onOpenPersonnelRecord,
+  onOpenOffboarding,
+}: {
+  employeeId?: string;
+  embedded?: boolean;
+  embeddedInModal?: boolean;
+  onDeleted?: () => void;
+  onEditMasterData?: () => void;
+  onOpenPersonnelRecord?: () => void;
+  onOpenOffboarding?: () => void;
+} = {}) {
+  const { id: routeId } = useLocalSearchParams<{ id: string }>();
+  const id = employeeIdProp ?? routeId;
   const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can, check, isReadOnly, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? 'business_admin';
   const canView = can('office.employees.view');
+  const [activeTab, setActiveTab] = useState<'uebersicht' | 'stammdaten' | 'kontakt' | 'anstellung'>('uebersicht');
+  const sectionEdit = useSectionEditModal<EmployeeEditSectionKey>();
+  const hostsLocalSectionEdit = !onEditMasterData;
 
   const query = useAsyncQuery(
     () => {
@@ -61,43 +85,58 @@ export function EmployeeDetailScreen() {
   );
 
   if (!canView) {
-    return (
-      <CareLightPageShell title="Mitarbeitende:r" subtitle="Kein Zugriff">
+    return embedded ? (
+      <LockedActionBanner
+        message={check('office.employees.view').reason ?? 'Keine Berechtigung.'}
+        roleLabel={roleLabel}
+      />
+    ) : (
+      <ScreenShell title="Mitarbeitende:r" subtitle="Kein Zugriff">
         <LockedActionBanner
           message={check('office.employees.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
-    return (
-      <CareLightPageShell title="Mitarbeitende:r" subtitle="Wird geladen…">
+    return embedded ? (
+      <LoadingState message="Detaildaten werden geladen…" />
+    ) : (
+      <ScreenShell title="Mitarbeitende:r" subtitle="Wird geladen…">
         <LoadingState message="Detaildaten werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
-    return (
-      <CareLightPageShell title="Mitarbeitende:r" subtitle="Fehler">
+    return embedded ? (
+      <ErrorState
+        title="Fehler"
+        message={query.error}
+        onRetry={query.refresh}
+      />
+    ) : (
+      <ScreenShell title="Mitarbeitende:r" subtitle="Fehler">
         <ErrorState
           title="Fehler"
           message={query.error}
           onRetry={query.refresh}
         />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const employee = query.data;
   if (!employee) {
-    return (
-      <CareLightPageShell title="Mitarbeitende:r" subtitle="Nicht gefunden">
+    return embedded ? (
+      <EmptyState title="Nicht gefunden" message="Der Datensatz existiert nicht im Demo-Mandanten." />
+    ) : (
+      <ScreenShell title="Mitarbeitende:r" subtitle="Nicht gefunden">
         <EmptyState title="Nicht gefunden" message="Der Datensatz existiert nicht im Demo-Mandanten." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -106,8 +145,201 @@ export function EmployeeDetailScreen() {
   const canDelete = can('office.employees.delete');
   const hasContact = Boolean(employee.email?.trim() || employee.phone?.trim());
 
+  const handleEditMasterData = () => {
+    if (onEditMasterData) {
+      onEditMasterData();
+      return;
+    }
+    sectionEdit.openSection('stammdaten');
+  };
+
+  const handleEditSection = (section: EmployeeEditSectionKey) => {
+    if (onEditMasterData) {
+      onEditMasterData();
+      return;
+    }
+    sectionEdit.openSection(section);
+  };
+
+  const handleOpenPersonnelRecord = () => {
+    if (onOpenPersonnelRecord) {
+      onOpenPersonnelRecord();
+      return;
+    }
+    router.push(`/business/office/employees/${id}/personnel` as never);
+  };
+
+  const handleOpenOffboarding = () => {
+    if (onOpenOffboarding) {
+      onOpenOffboarding();
+      return;
+    }
+    router.push(`/office/employees/${id}/offboarding` as never);
+  };
+
+  const detailBody = (
+    <>
+      {!embedded ? (
+        <EmployeeDetailHero employee={employee} roleKey={roleKey} isReadOnly={isReadOnly} />
+      ) : null}
+
+      <SegmentedTabs
+        tabs={[
+          { key: 'uebersicht', label: 'Übersicht' },
+          { key: 'stammdaten', label: 'Stammdaten' },
+          { key: 'kontakt', label: 'Kontakt' },
+          { key: 'anstellung', label: 'Anstellung' },
+        ]}
+        activeKey={activeTab}
+        onSelect={(key) => setActiveTab(key as typeof activeTab)}
+        layout="wrap"
+      />
+
+      <PremiumButton
+        title="Personalakte öffnen"
+        variant="secondary"
+        onPress={handleOpenPersonnelRecord}
+      />
+
+      {!isEmployeeDetailLiveReady() ? (
+        <InfoBanner title="Daten in Erweiterung" message={EMPLOYEE_DETAIL_PREPARED_MESSAGE} />
+      ) : null}
+
+      {isReadOnly ? (
+        <LockedActionBanner
+          title="Lesemodus"
+          message="Sie können Mitarbeitenden-Daten einsehen, aber nicht bearbeiten."
+          roleLabel={roleLabel}
+        />
+      ) : null}
+
+      {activeTab === 'uebersicht' ? (
+        <>
+          <SectionPanel title="Kurzprofil">
+            <DetailInfoRow label="Name" value={fullName} />
+            <DetailInfoRow label="Funktion" value={resolveEmployeeRoleLabel(employee.jobTitle)} />
+            <DetailInfoRow label="Abteilung" value={resolveEmployeeDepartmentLabel(employee.department)} />
+            <DetailInfoRow label="E-Mail" value={employee.email} />
+            <DetailInfoRow label="Telefon" value={employee.phone} />
+          </SectionPanel>
+        </>
+      ) : null}
+
+      {activeTab === 'stammdaten' ? (
+        <SectionPanel title="Stammdaten">
+          <DetailInfoRow label="Vorname" value={employee.firstName} />
+          <DetailInfoRow label="Nachname" value={employee.lastName} />
+          <DetailInfoRow label="Funktion" value={resolveEmployeeRoleLabel(employee.jobTitle)} />
+          <DetailInfoRow label="Abteilung" value={resolveEmployeeDepartmentLabel(employee.department)} />
+          {employee.notes ? <DetailInfoRow label="Hinweise" value={employee.notes} /> : null}
+          {canEdit ? (
+            <PremiumButton title="Stammdaten bearbeiten" variant="secondary" onPress={() => handleEditSection('stammdaten')} />
+          ) : null}
+        </SectionPanel>
+      ) : null}
+
+      {activeTab === 'kontakt' ? (
+        <SectionPanel title="Kontakt">
+          {hasContact ? (
+            <>
+              <DetailInfoRow label="E-Mail" value={employee.email} />
+              <DetailInfoRow label="Telefon" value={employee.phone} />
+              {employee.mobile ? <DetailInfoRow label="Mobil" value={employee.mobile} /> : null}
+            </>
+          ) : (
+            <EmptyState title="Keine Kontaktdaten" message="Telefon oder E-Mail ergänzen." />
+          )}
+          {canEdit ? (
+            <PremiumButton title="Kontakt bearbeiten" variant="secondary" onPress={() => handleEditSection('stammdaten')} />
+          ) : null}
+        </SectionPanel>
+      ) : null}
+
+      {activeTab === 'anstellung' ? (
+        <SectionPanel title="Anstellung">
+          <DetailInfoRow label="Eintrittsdatum" value={employee.startDate ? new Date(employee.startDate).toLocaleDateString('de-DE') : null} />
+          <DetailInfoRow label="Angelegt am" value={new Date(employee.createdAt).toLocaleDateString('de-DE')} />
+          {canEdit ? (
+            <PremiumButton title="Anstellung bearbeiten" variant="secondary" onPress={() => handleEditSection('anstellung')} />
+          ) : null}
+        </SectionPanel>
+      ) : null}
+
+      {can('inventory.view') && equipmentQuery.data ? (
+        <SectionPanel title="Arbeitsmittel & Inventar">
+          <DetailInfoRow label="Aktive Ausgaben" value={String(equipmentQuery.data.activeAssignments)} />
+          <DetailInfoRow label="Überfällige Rückgaben" value={String(equipmentQuery.data.overdueReturns)} />
+          <PremiumButton
+            title="Inventar & Rückgabe"
+            variant="secondary"
+            onPress={() => router.push('/business/office/inventory' as never)}
+          />
+          <InfoBanner title="Inventar" message={INVENTORY_PREPARED_MESSAGE} />
+        </SectionPanel>
+      ) : null}
+
+      {canEdit || canDelete ? (
+        <SectionPanel title="Gefahrenzone" subtitle="Irreversible Aktionen">
+          {canEdit ? (
+            <PremiumButton title="Offboarding starten" variant="secondary" onPress={handleOpenOffboarding} />
+          ) : null}
+          {canDelete ? (
+            <OfficeRecordDeleteButton
+              recordLabel="Mitarbeitende:r"
+              displayName={fullName}
+              buttonTitle="Mitarbeitende:n löschen"
+              onDelete={() => {
+                if (!tenantId || !id) {
+                  return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+                }
+                return deleteEmployee(
+                  id,
+                  tenantId,
+                  profile?.roleKey,
+                  profile?.id,
+                  profile?.displayName,
+                );
+              }}
+              onDeleted={() => {
+                if (onDeleted) {
+                  onDeleted();
+                  return;
+                }
+                router.replace('/business/office/employees' as never);
+              }}
+            />
+          ) : null}
+        </SectionPanel>
+      ) : null}
+    </>
+  );
+
+  const sectionEditModal =
+    hostsLocalSectionEdit && sectionEdit.activeSection && id ? (
+      <EmployeeSectionEditModal
+        visible={sectionEdit.isOpen}
+        employeeId={id}
+        section={sectionEdit.activeSection}
+        onClose={sectionEdit.closeSection}
+        onUpdated={() => {
+          sectionEdit.closeSection();
+          void query.refresh();
+        }}
+        onOpenPersonnelRecord={handleOpenPersonnelRecord}
+      />
+    ) : null;
+
+  if (embedded) {
+    return (
+      <>
+        <View style={styles.embeddedRoot}>{detailBody}</View>
+        {sectionEditModal}
+      </>
+    );
+  }
+
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={fullName}
       subtitle="Mitarbeitenden-Details"
       rightSlot={
@@ -118,7 +350,7 @@ export function EmployeeDetailScreen() {
                 title="Stammdaten bearbeiten"
                 size="sm"
                 variant="secondary"
-                onPress={() => router.push(employeeEditRoute(id!) as never)}
+                onPress={handleEditMasterData}
               />
             ) : null}
             {canDelete ? (
@@ -138,7 +370,13 @@ export function EmployeeDetailScreen() {
                     profile?.displayName,
                   );
                 }}
-                onDeleted={() => router.replace('/business/office/employees' as never)}
+                onDeleted={() => {
+                  if (onDeleted) {
+                    onDeleted();
+                    return;
+                  }
+                  router.replace('/business/office/employees' as never);
+                }}
               />
             ) : null}
           </View>
@@ -146,97 +384,20 @@ export function EmployeeDetailScreen() {
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <EmployeeDetailHero employee={employee} roleKey={roleKey} isReadOnly={isReadOnly} />
-
-        {canEdit ? (
-          <PremiumButton
-            title="Stammdaten bearbeiten"
-            variant="primary"
-            onPress={() => router.push(employeeEditRoute(id!) as never)}
-          />
-        ) : null}
-
-        <PremiumButton
-          title="Personalakte öffnen"
-          variant="secondary"
-          onPress={() => router.push(`/business/office/employees/${id}/personnel` as never)}
-        />
-
-        {canEdit ? (
-          <PremiumButton
-            title="Offboarding"
-            variant="secondary"
-            onPress={() => router.push(`/office/employees/${id}/offboarding` as never)}
-          />
-        ) : null}
-
-        {!isEmployeeDetailLiveReady() ? (
-          <InfoBanner title="Teilweise live" message={EMPLOYEE_DETAIL_PREPARED_MESSAGE} />
-        ) : null}
-
-        {isReadOnly ? (
-          <LockedActionBanner
-            title="Lesemodus"
-            message="Sie können Mitarbeitenden-Daten einsehen, aber nicht bearbeiten."
-            roleLabel={roleLabel}
-          />
-        ) : null}
-
-        <SectionPanel title="Kontakt">
-          {hasContact ? (
-            <>
-              <DetailInfoRow label="E-Mail" value={employee.email} />
-              <DetailInfoRow label="Telefon" value={employee.phone} />
-              {employee.mobile ? <DetailInfoRow label="Mobil" value={employee.mobile} /> : null}
-            </>
-          ) : (
-            <EmptyState title="Keine Kontaktdaten" message="Telefon oder E-Mail in der Bearbeitung ergänzen." />
-          )}
-        </SectionPanel>
-
-        <SectionPanel title="Anstellung">
-          <DetailInfoRow
-            label="Funktion"
-            value={resolveEmployeeRoleLabel(employee.jobTitle)}
-          />
-          <DetailInfoRow
-            label="Abteilung"
-            value={resolveEmployeeDepartmentLabel(employee.department)}
-          />
-          <DetailInfoRow
-            label="Eintrittsdatum"
-            value={
-              employee.startDate
-                ? new Date(employee.startDate).toLocaleDateString('de-DE')
-                : null
-            }
-          />
-          <DetailInfoRow
-            label="Angelegt am"
-            value={new Date(employee.createdAt).toLocaleDateString('de-DE')}
-          />
-          {employee.notes ? <DetailInfoRow label="Hinweise" value={employee.notes} /> : null}
-        </SectionPanel>
-
-        {can('inventory.view') && equipmentQuery.data ? (
-          <SectionPanel title="Arbeitsmittel & Inventar">
-            <DetailInfoRow label="Aktive Ausgaben" value={String(equipmentQuery.data.activeAssignments)} />
-            <DetailInfoRow label="Überfällige Rückgaben" value={String(equipmentQuery.data.overdueReturns)} />
-            <PremiumButton
-              title="Inventar & Rückgabe"
-              variant="secondary"
-              onPress={() => router.push('/business/office/inventory' as never)}
-            />
-            <InfoBanner title="Inventar" message={INVENTORY_PREPARED_MESSAGE} />
-          </SectionPanel>
-        ) : null}
+        {detailBody}
       </ScrollView>
-    </CareLightPageShell>
+      {sectionEditModal}
+    </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
+  embeddedRoot: {
+    gap: spacing.md,
+    padding: spacing.md,
+    paddingBottom: spacing.xxl,
+  },
   headerActions: {
     flexDirection: 'row',
     alignItems: 'center',

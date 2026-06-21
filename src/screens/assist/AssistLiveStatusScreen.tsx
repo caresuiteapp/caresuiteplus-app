@@ -144,7 +144,7 @@ export function AssistLiveStatusScreen() {
           ) : null}
           {hasAnyPosition ? (
             <Text style={styles.gap}>
-              Positionen aus assist_location_points — eingebettete Karte folgt nach Provider-Freigabe.
+              Standortdaten vorhanden — eingebettete Karte folgt nach Freigabe eines Kartenanbieters.
             </Text>
           ) : null}
         </SectionPanel>

@@ -13,8 +13,8 @@ type Props = {
 
 const COMPLETENESS_LABEL = {
   complete: 'Vollständig',
-  partial: 'Teilweise',
-  empty: 'Offen',
+  partial: 'In Arbeit',
+  empty: 'Ausstehend',
 } as const;
 
 const COMPLETENESS_COLOR = {

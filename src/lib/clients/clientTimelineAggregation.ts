@@ -16,7 +16,11 @@ export type ClientTimelineDocumentEventRow = {
   summary: string;
   created_at: string;
   client_id: string;
-  profiles?: { display_name: string | null } | null;
+  profiles?: {
+    first_name?: string | null;
+    last_name?: string | null;
+    full_name?: string | null;
+  } | null;
 };
 
 const DOCUMENT_EVENT_TYPE_LABELS: Record<string, string> = {
@@ -55,6 +59,16 @@ const AUDIT_ACTION_ICONS: Record<string, string> = {
 function resolveActorName(value: string | null | undefined): string {
   const name = value?.trim();
   return name || 'System';
+}
+
+function resolveProfileDisplayName(
+  profile?: ClientTimelineDocumentEventRow['profiles'],
+): string | undefined {
+  if (!profile) return undefined;
+  const full = profile.full_name?.trim();
+  if (full) return full;
+  const composed = [profile.first_name, profile.last_name].filter(Boolean).join(' ').trim();
+  return composed || undefined;
 }
 
 function inferEventTypeFromAuditAction(action: string): TimelineEventType {
@@ -101,7 +115,7 @@ export function mapDocumentEventToTimelineEvent(
     subtitle: row.summary,
     timestamp: row.created_at,
     status: 'abgeschlossen',
-    actorName: resolveActorName(row.profiles?.display_name ?? undefined),
+    actorName: resolveActorName(resolveProfileDisplayName(row.profiles)),
     isInternal: false,
     metadata: { source: 'document', eventType: row.event_type },
   };

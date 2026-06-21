@@ -1,7 +1,7 @@
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/config';
 
-/** Persisted assist_tracking_sessions / assist_location_points (0156) available in Supabase live mode. */
+/** Persisted tracking sessions available in live cloud mode. */
 export function isAssistTrackingPersistenceActive(): boolean {
   return getServiceMode() === 'supabase' && isSupabaseConfigured() && !isDemoMode();
 }
@@ -16,17 +16,17 @@ export function isGpsTrackingLiveReady(): boolean {
 }
 
 export const GPS_TRACKING_PREPARED_MESSAGE =
-  'Tracking-Persistenz ist aktiv (assist_tracking_sessions, assist_location_points). Echtzeit-Kartenansicht erfordert optional einen Map-Provider.';
+  'Einsätze, Nachweise und Standortdaten werden dauerhaft gespeichert. Für eine Kartenansicht kann optional ein Kartenanbieter hinterlegt werden.';
 
 export const GPS_TRACKING_DEMO_MESSAGE =
-  'Live-Tracking-Persistenz ist im Demo-Modus nicht aktiv. Tracking startet im Mitarbeiterportal nach Supabase-Anbindung.';
+  'Live-Tracking ist im Demo-Modus eingeschränkt. Tracking startet im Mitarbeiterportal nach Mandanten-Freigabe.';
 
 export const GPS_TRACKING_MAP_PROVIDER_MESSAGE =
-  'Kein Map-Provider konfiguriert — Standorte werden als Text aus assist_location_points angezeigt.';
+  'Kein Kartenanbieter konfiguriert — Standorte werden als Textliste angezeigt.';
 
 export const GPS_TRACKING_BACKEND_EMPTY_MESSAGE =
-  'Noch keine Standortpunkte in assist_location_points — Tracking startet im Mitarbeiterportal.';
+  'Noch keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.';
 
 /** Kurztext für Fahrtenbuch-Banner. */
 export const GPS_TRIPS_PREPARED_MESSAGE =
-  'Fahrtenbuch liest assist_driving_log und trips — automatische GPS-Kilometererfassung folgt optional per Map-Provider.';
+  'Fahrtenbuch ist aktiv. Automatische Kilometererfassung per GPS folgt optional mit Kartenanbieter.';

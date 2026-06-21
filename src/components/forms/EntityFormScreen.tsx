@@ -19,7 +19,7 @@ type FieldDef = {
 };
 
 export type EntityFormScreenProps = {
-  wpNumber: number;
+  wpNumber?: number;
   title: string;
   entityLabel: string;
   fields: FieldDef[];

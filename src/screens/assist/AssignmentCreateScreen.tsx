@@ -8,12 +8,11 @@ export function AssignmentCreateScreen() {
   const { profile } = useAuth();
   return (
     <EntityFormScreen
-      wpNumber={246}
       title="Einsatz anlegen"
       entityLabel="Einsatz"
       formHero={{
-        eyebrow: 'ASSIST · EINSATZ',
-        meta: 'Klient:in, Leistung und Zeitfenster — Demo-Persistenz im Assist-Modul',
+        eyebrow: 'Assist · Einsatz',
+        meta: 'Klient:in, Leistung und Zeitfenster erfassen',
         icon: '🚗',
         accentColor: colors.success,
       }}

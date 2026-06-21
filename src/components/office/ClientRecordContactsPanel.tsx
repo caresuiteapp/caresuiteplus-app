@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
+import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
 import { PremiumButton, PremiumCard, PremiumInput, SectionPanel } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -11,7 +11,6 @@ import {
   formatContactPersonName,
   listOtherContacts,
 } from '@/lib/clients/clientContactGroups';
-import { clientEditRoute } from '@/lib/navigation/clientRoutes';
 import type { ClientFullDetail } from '@/types/modules/client';
 import {
   CLIENT_CONTACT_TYPE_LABELS,
@@ -23,6 +22,7 @@ import { colors, spacing, typography } from '@/theme';
 type Props = {
   client: ClientFullDetail;
   onRefresh?: () => void;
+  onEditMasterData?: () => void;
 };
 
 function ContactCategorySection({
@@ -62,13 +62,13 @@ function ContactCategorySection({
   );
 }
 
-export function ClientRecordContactsPanel({ client, onRefresh }: Props) {
-  const router = useRouter();
+export function ClientRecordContactsPanel({ client, onRefresh, onEditMasterData }: Props) {
   const tenantId = useServiceTenantId();
   const { can } = usePermissions();
   const canEdit = can('office.clients.edit');
   const canManageContacts = can('office.clients.manage_contacts') || canEdit;
 
+  const [editOpen, setEditOpen] = useState(false);
   const [modalOpen, setModalOpen] = useState(false);
   const [name, setName] = useState('');
   const [phone, setPhone] = useState('');
@@ -80,7 +80,11 @@ export function ClientRecordContactsPanel({ client, onRefresh }: Props) {
   const otherContacts = listOtherContacts(client.contacts);
 
   const openEditWizard = () => {
-    router.push(clientEditRoute(client.id, 1) as never);
+    if (onEditMasterData) {
+      onEditMasterData();
+      return;
+    }
+    setEditOpen(true);
   };
 
   const resetModal = () => {
@@ -202,6 +206,19 @@ export function ClientRecordContactsPanel({ client, onRefresh }: Props) {
           </Pressable>
         </Pressable>
       </Modal>
+
+      {!onEditMasterData ? (
+        <ClientSectionEditModal
+          visible={editOpen}
+          clientId={client.id}
+          section="angehoerige"
+          onClose={() => setEditOpen(false)}
+          onSaved={() => {
+            setEditOpen(false);
+            onRefresh?.();
+          }}
+        />
+      ) : null}
     </View>
   );
 }

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState, type ReactNode } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import {
   Modal,
   Platform,
@@ -9,11 +9,14 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { ClientDetailSummaryPanel } from './ClientDetailSummaryPanel';
+import { ClientSectionEditModal } from './ClientSectionEditModal';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careRadius } from '@/design/tokens/radius';
 import { moduleColor } from '@/design/tokens/modules';
+import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
+import { isDesktopClass } from '@/lib/platform/breakpoints';
 import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { ClientRecordScreen } from '@/screens/business/office/ClientRecordScreen';
 import { spacing } from '@/theme';
@@ -23,6 +26,8 @@ type ClientDetailModalProps = {
   clientId: string | null;
   onClose: () => void;
   onDeleted?: () => void;
+  /** Opens edit intake modal immediately (e.g. deep link ?edit=1). */
+  initialEditOpen?: boolean;
 };
 
 type ModalMode = 'preview' | 'full';
@@ -36,26 +41,46 @@ export function ClientDetailModal({
   clientId,
   onClose,
   onDeleted,
+  initialEditOpen = false,
 }: ClientDetailModalProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { isDark } = useCareLightPalette();
+  const deviceClass = useDeviceClass();
+  const isDesktop = isDesktopClass(deviceClass);
+  const isBottomSheet = !isDesktop;
   const officeAccent = moduleColor('office');
   const [mode, setMode] = useState<ModalMode>('preview');
   const [initialTab, setInitialTab] = useState<ClientRecordTabKey | undefined>();
-  const [embeddedHeaderActions, setEmbeddedHeaderActions] = useState<ReactNode>(null);
+  const [editOpen, setEditOpen] = useState(initialEditOpen);
+  const [detailRevision, setDetailRevision] = useState(0);
 
   useEffect(() => {
     if (!visible) {
       setMode('preview');
       setInitialTab(undefined);
-      setEmbeddedHeaderActions(null);
+      setEditOpen(false);
     }
+  }, [visible]);
+
+  useEffect(() => {
+    if (visible && initialEditOpen) {
+      setEditOpen(true);
+    }
+  }, [visible, initialEditOpen]);
+
+  useEffect(() => {
+    if (Platform.OS !== 'web' || !visible) return;
+    const prev = document.body.style.overflow;
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = prev;
+    };
   }, [visible]);
 
   useEffect(() => {
     setMode('preview');
     setInitialTab(undefined);
-    setEmbeddedHeaderActions(null);
+    setEditOpen(false);
   }, [clientId]);
 
   const isFull = mode === 'full';
@@ -94,7 +119,6 @@ export function ClientDetailModal({
   const handleBackToPreview = useCallback(() => {
     setMode('preview');
     setInitialTab(undefined);
-    setEmbeddedHeaderActions(null);
   }, []);
 
   const handleDeleted = useCallback(() => {
@@ -102,24 +126,20 @@ export function ClientDetailModal({
     onClose();
   }, [onClose, onDeleted]);
 
-  const handleEmbeddedHeaderActions = useCallback((actions: ReactNode) => {
-    setEmbeddedHeaderActions(actions);
-  }, []);
-
   const styles = useMemo(
     () =>
       StyleSheet.create({
         backdrop: {
           flex: 1,
           backgroundColor: isDark ? 'rgba(4,8,24,0.72)' : 'rgba(7,18,42,0.45)',
-          justifyContent: 'center',
+          justifyContent: isBottomSheet ? 'flex-end' : 'center',
           alignItems: 'center',
-          padding: isFull ? spacing.md : spacing.lg,
+          padding: isBottomSheet ? 0 : isFull ? spacing.md : spacing.lg,
         },
         sheetHost: {
-          width: sheetWidth,
+          width: isBottomSheet ? ('100%' as const) : sheetWidth,
           maxHeight: sheetMaxHeight,
-          flex: isFull ? 1 : undefined,
+          flex: isFull && !isBottomSheet ? 1 : undefined,
           ...Platform.select({
             web: { boxShadow: '0 24px 64px rgba(0,0,0,0.35)' as unknown as undefined },
             default: {},
@@ -140,72 +160,87 @@ export function ClientDetailModal({
           minHeight: 0,
         },
       }),
-    [isDark, isFull, sheetMaxHeight, sheetWidth],
+    [isBottomSheet, isDark, isFull, sheetMaxHeight, sheetWidth],
   );
 
   if (!clientId) return null;
 
   return (
-    <Modal
-      visible={visible}
-      transparent
-      animationType="fade"
-      onRequestClose={onClose}
-      statusBarTranslucent
-    >
-      <View style={styles.backdrop} accessibilityViewIsModal>
-        <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
-        <View style={styles.sheetHost} pointerEvents="box-none">
-          <GlassSurface
-            radius={careRadius.lg}
-            glowColor={officeAccent}
-            glowOpacity={isDark ? 0.22 : 0.12}
-            elevated
-            style={styles.sheetInner}
-          >
-            <GradientModalHeader
-              title={isFull ? 'Klient:innen Akte' : 'Klientenakte'}
-              onBack={isFull ? handleBackToPreview : undefined}
-              onClose={onClose}
-              actions={isFull ? embeddedHeaderActions : undefined}
-            />
+    <>
+      <Modal
+        visible={visible}
+        transparent
+        animationType={isBottomSheet ? 'slide' : 'fade'}
+        onRequestClose={onClose}
+        statusBarTranslucent
+      >
+        <View style={styles.backdrop} accessibilityViewIsModal>
+          <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
+          <View style={styles.sheetHost} pointerEvents="box-none">
+            <GlassSurface
+              radius={careRadius.lg}
+              glowColor={officeAccent}
+              glowOpacity={isDark ? 0.22 : 0.12}
+              elevated
+              style={styles.sheetInner}
+            >
+              <GradientModalHeader
+                title={isFull ? 'Klient:innen Akte' : 'Klientenakte'}
+                onBack={isFull ? handleBackToPreview : undefined}
+                onClose={onClose}
+              />
 
-            {isFull ? (
-              <View style={styles.fullContent}>
+              {isFull ? (
+                <View style={styles.fullContent}>
+                  <ScrollView
+                    style={styles.scroll}
+                    contentContainerStyle={styles.scrollContent}
+                    showsVerticalScrollIndicator={false}
+                    keyboardShouldPersistTaps="handled"
+                  >
+                    <ClientRecordScreen
+                      key={detailRevision}
+                      clientId={clientId}
+                      embedded
+                      embeddedInModal
+                      initialTabOverride={initialTab}
+                      onDeleted={handleDeleted}
+                      onEditMasterData={() => setEditOpen(true)}
+                    />
+                  </ScrollView>
+                </View>
+              ) : (
                 <ScrollView
                   style={styles.scroll}
                   contentContainerStyle={styles.scrollContent}
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                 >
-                  <ClientRecordScreen
+                  <ClientDetailSummaryPanel
+                    key={detailRevision}
                     clientId={clientId}
-                    embedded
-                    embeddedInModal
-                    initialTabOverride={initialTab}
+                    onOpenFullRecord={handleOpenFullRecord}
+                    onOpenRecordTab={handleOpenRecordTab}
+                    onEditMasterData={() => setEditOpen(true)}
                     onDeleted={handleDeleted}
-                    onEmbeddedHeaderActions={handleEmbeddedHeaderActions}
                   />
                 </ScrollView>
-              </View>
-            ) : (
-              <ScrollView
-                style={styles.scroll}
-                contentContainerStyle={styles.scrollContent}
-                showsVerticalScrollIndicator={false}
-                keyboardShouldPersistTaps="handled"
-              >
-                <ClientDetailSummaryPanel
-                  clientId={clientId}
-                  onOpenFullRecord={handleOpenFullRecord}
-                  onOpenRecordTab={handleOpenRecordTab}
-                  onDeleted={handleDeleted}
-                />
-              </ScrollView>
-            )}
-          </GlassSurface>
+              )}
+            </GlassSurface>
+          </View>
         </View>
-      </View>
-    </Modal>
+      </Modal>
+
+      <ClientSectionEditModal
+        visible={editOpen}
+        clientId={clientId}
+        section="stammdaten"
+        onClose={() => setEditOpen(false)}
+        onSaved={() => {
+          setEditOpen(false);
+          setDetailRevision((value) => value + 1);
+        }}
+      />
+    </>
   );
 }

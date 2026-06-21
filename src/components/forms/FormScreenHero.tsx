@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { withAlpha } from '@/design/tokens/motion';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
-import { getServiceMode } from '@/lib/services/mode';
-import { isDemoMode } from '@/lib/supabase/config';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { designTokens, spacing } from '@/theme';
 
 export type FormScreenHeroProps = {
@@ -15,8 +15,6 @@ export type FormScreenHeroProps = {
   formMode?: 'create' | 'edit';
   wpNumber?: number;
   step?: { current: number; total: number };
-  preparedOnly?: boolean;
-  preparedMessage?: string;
   accentColor?: string;
 };
 
@@ -28,16 +26,12 @@ export function FormScreenHero({
   formMode = 'create',
   wpNumber,
   step,
-  preparedOnly = true,
-  preparedMessage,
   accentColor,
 }: FormScreenHeroProps) {
-  const { colors, typography, gradients } = useLegacyTheme();
-  const isLive = getServiceMode() === 'supabase';
+  const { colors, typography } = useLegacyTheme();
   const tenantName = useTenantDisplayName();
-  const accent = accentColor ?? colors.orange;
+  const accent = accentColor ?? careSuiteAuroraTheme.accent.pink;
   const modeLabel = formMode === 'create' ? 'Anlegen' : 'Bearbeiten';
-  const showPrepared = !isLive && preparedOnly;
 
   const styles = useMemo(
     () =>
@@ -47,32 +41,33 @@ export function FormScreenHero({
         eyebrow: {
           ...typography.caption,
           letterSpacing: designTokens.hero.eyebrowLetterSpacing,
+          color: withAlpha('#FFFFFF', 0.85),
         },
-        title: { ...typography.h2 },
-        meta: { ...typography.caption, color: colors.textMuted },
+        title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+        meta: { ...typography.caption, color: withAlpha('#FFFFFF', 0.75) },
         iconBadge: {
           width: iconSize,
           height: iconSize,
           borderRadius: iconSize / 2,
-          backgroundColor: colors.bgElevated,
+          backgroundColor: withAlpha('#FFFFFF', 0.16),
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 2,
+          borderColor: withAlpha('#FFFFFF', 0.4),
         },
         iconText: { fontSize: 22 },
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         kpiItem: { flex: 1, minWidth: 100 },
-        hint: { ...typography.caption, color: colors.textMuted },
       }),
-    [colors, typography, gradients],
+    [colors, typography],
   );
 
   return (
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={[styles.eyebrow, { color: accent }]}>{eyebrow}</Text>
+          <Text style={styles.eyebrow}>{eyebrow}</Text>
           <Text style={styles.title}>{title}</Text>
           {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         </View>
@@ -81,72 +76,37 @@ export function FormScreenHero({
         </View>
       </View>
       <View style={styles.badges}>
-        <PremiumBadge label={modeLabel} variant="orange" dot />
-        {wpNumber ? <PremiumBadge label={`WP ${wpNumber}`} variant="muted" /> : null}
+        <PremiumBadge label={modeLabel} variant="cyan" dot />
         {step ? (
           <PremiumBadge label={`Schritt ${step.current}/${step.total}`} variant="cyan" />
         ) : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
-        {showPrepared ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
-      {isLive ? (
-        <View style={styles.kpiRow}>
-          <PremiumKpiCard
-            label="Modus"
-            value={modeLabel}
-            subValue="Live-Speicherung"
-            icon="📋"
-            accentColor={accent}
-            style={styles.kpiItem}
-          />
-          <PremiumKpiCard
-            label="Mandant"
-            value={tenantName}
-            subValue="Mandantengebunden"
-            icon="🏢"
-            accentColor={colors.cyan}
-            style={styles.kpiItem}
-          />
-          <PremiumKpiCard
-            label="Status"
-            value="Live"
-            subValue="Supabase"
-            icon="✓"
-            accentColor={colors.green}
-            style={styles.kpiItem}
-          />
-        </View>
-      ) : (
-        <View style={styles.kpiRow}>
-          <PremiumKpiCard
-            label="Modus"
-            value={modeLabel}
-            subValue="Demo-Persistenz"
-            icon="📋"
-            accentColor={accent}
-            style={styles.kpiItem}
-          />
-          <PremiumKpiCard
-            label="Mandant"
-            value="Demo"
-            subValue="Tenant-Store"
-            icon="🏢"
-            accentColor={colors.cyan}
-            style={styles.kpiItem}
-          />
-          <PremiumKpiCard
-            label="Status"
-            value="Prototyp"
-            subValue="Kein Store-Release"
-            icon="⚠️"
-            accentColor={colors.violet}
-            style={styles.kpiItem}
-          />
-        </View>
-      )}
-      {showPrepared && preparedMessage ? (
-        <Text style={styles.hint}>{preparedMessage}</Text>
-      ) : null}
+      <View style={styles.kpiRow}>
+        <PremiumKpiCard
+          label="Modus"
+          value={modeLabel}
+          subValue="Datenspeicherung aktiv"
+          icon="📋"
+          accentColor={accent}
+          style={styles.kpiItem}
+        />
+        <PremiumKpiCard
+          label="Mandant"
+          value={tenantName}
+          subValue="Mandantengebunden"
+          icon="🏢"
+          accentColor={colors.cyan}
+          style={styles.kpiItem}
+        />
+        <PremiumKpiCard
+          label="Status"
+          value="Bereit"
+          subValue="Speichern möglich"
+          icon="✓"
+          accentColor={colors.green}
+          style={styles.kpiItem}
+        />
+      </View>
     </PremiumListHeroFrame>
   );
 }

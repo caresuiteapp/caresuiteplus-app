@@ -9,6 +9,10 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { EmployeeDetailSummaryPanel } from './EmployeeDetailSummaryPanel';
+import { EmployeeSectionEditModal } from './EmployeeSectionEditModal';
+import { useSectionEditModal } from '@/hooks/useSectionEditModal';
+import type { EmployeeEditSectionKey } from '@/lib/office/employeeSectionEditLabels';
+import { EmployeeOffboardingModal } from './employeeoffboardingmodal';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -22,6 +26,8 @@ type EmployeeDetailModalProps = {
   employeeId: string | null;
   onClose: () => void;
   onDeleted?: () => void;
+  /** Opens edit modal immediately (e.g. deep link ?edit=1). */
+  initialEditOpen?: boolean;
 };
 
 type ModalMode = 'preview' | 'full';
@@ -35,17 +41,29 @@ export function EmployeeDetailModal({
   employeeId,
   onClose,
   onDeleted,
+  initialEditOpen = false,
 }: EmployeeDetailModalProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { isDark } = useCareLightPalette();
   const officeAccent = moduleColor('office');
   const [mode, setMode] = useState<ModalMode>('preview');
+  const sectionEdit = useSectionEditModal<EmployeeEditSectionKey>();
+  const [offboardingOpen, setOffboardingOpen] = useState(false);
+  const [detailRevision, setDetailRevision] = useState(0);
 
   useEffect(() => {
     if (!visible) {
       setMode('preview');
+      sectionEdit.closeSection();
+      setOffboardingOpen(false);
     }
   }, [visible]);
+
+  useEffect(() => {
+    if (visible && initialEditOpen) {
+      sectionEdit.openSection('stammdaten');
+    }
+  }, [visible, initialEditOpen]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
@@ -58,6 +76,8 @@ export function EmployeeDetailModal({
 
   useEffect(() => {
     setMode('preview');
+    sectionEdit.closeSection();
+    setOffboardingOpen(false);
   }, [employeeId]);
 
   const isFull = mode === 'full';
@@ -136,7 +156,8 @@ export function EmployeeDetailModal({
   if (!employeeId) return null;
 
   return (
-    <Modal
+    <>
+      <Modal
       visible={visible}
       transparent
       animationType="fade"
@@ -154,7 +175,7 @@ export function EmployeeDetailModal({
             style={styles.sheetInner}
           >
             <GradientModalHeader
-              title={isFull ? 'Mitarbeitende:r Profil' : 'Mitarbeitendenakte'}
+              title={isFull ? 'Personalakte' : 'Mitarbeitendenakte'}
               onBack={isFull ? handleBackToPreview : undefined}
               onClose={onClose}
             />
@@ -168,10 +189,13 @@ export function EmployeeDetailModal({
                   keyboardShouldPersistTaps="handled"
                 >
                   <EmployeeDetailScreen
+                    key={detailRevision}
                     employeeId={employeeId}
                     embedded
                     embeddedInModal
                     onDeleted={handleDeleted}
+                    onEditMasterData={() => sectionEdit.openSection('stammdaten')}
+                    onOpenOffboarding={() => setOffboardingOpen(true)}
                   />
                 </ScrollView>
               </View>
@@ -183,8 +207,11 @@ export function EmployeeDetailModal({
                 keyboardShouldPersistTaps="handled"
               >
                 <EmployeeDetailSummaryPanel
+                  key={detailRevision}
                   employeeId={employeeId}
                   onOpenFullRecord={handleOpenFullRecord}
+                  onEditMasterData={() => sectionEdit.openSection('stammdaten')}
+                  onOpenOffboarding={() => setOffboardingOpen(true)}
                   onDeleted={handleDeleted}
                 />
               </ScrollView>
@@ -193,5 +220,29 @@ export function EmployeeDetailModal({
         </View>
       </View>
     </Modal>
+
+      {sectionEdit.activeSection ? (
+        <EmployeeSectionEditModal
+          visible={sectionEdit.isOpen}
+          employeeId={employeeId}
+          section={sectionEdit.activeSection}
+          onClose={sectionEdit.closeSection}
+          onUpdated={() => {
+            sectionEdit.closeSection();
+            setDetailRevision((value) => value + 1);
+          }}
+          onOpenPersonnelRecord={() => {
+            sectionEdit.closeSection();
+            handleOpenFullRecord();
+          }}
+        />
+      ) : null}
+
+      <EmployeeOffboardingModal
+        visible={offboardingOpen}
+        employeeId={employeeId}
+        onClose={() => setOffboardingOpen(false)}
+      />
+    </>
   );
 }

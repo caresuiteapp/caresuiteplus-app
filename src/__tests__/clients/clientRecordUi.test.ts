@@ -9,9 +9,9 @@ function readSrc(rel: string): string {
 }
 
 describe('Client Core K.4 — record UI wiring', () => {
-  it('ClientRecordScreen uses ClientEditModal not separate edit page flow', () => {
+  it('ClientRecordScreen uses ClientSectionEditModal not intake wizard edit', () => {
     const screen = readSrc('src/screens/business/office/ClientRecordScreen.tsx');
-    expect(screen).toContain('ClientEditModal');
+    expect(screen).toContain('ClientSectionEditModal');
     expect(screen).not.toMatch(/ClientIntakeModal[\s\S]*mode="edit"/);
   });
 

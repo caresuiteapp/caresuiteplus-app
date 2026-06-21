@@ -15,17 +15,17 @@ export type AssistSetupHint = {
   route?: string;
 };
 
-/** Non-intrusive setup hints — accurate persistence status, no stale migration banners. */
+/** Non-intrusive setup hints — accurate persistence status, user-facing German only. */
 export function buildAssistSetupHints(): AssistSetupHint[] {
   const hints: AssistSetupHint[] = [];
   const persistenceActive = isAssistTrackingPersistenceActive();
 
   if (getServiceMode() === 'supabase' && !isSupabaseConfigured()) {
     hints.push({
-      id: 'supabase-config',
-      title: 'Supabase nicht konfiguriert',
+      id: 'cloud-config',
+      title: 'Cloud-Anbindung ausstehend',
       message:
-        'Assist speichert Einsätze erst nach Supabase-Anbindung persistent. Demo-Modus aktiv.',
+        'Assist speichert Einsätze erst nach Cloud-Anbindung dauerhaft. Demo-Modus ist aktiv.',
       severity: 'warning',
     });
   }
@@ -33,9 +33,9 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
   if (persistenceActive) {
     hints.push({
       id: 'persistence-active',
-      title: 'Persistenz aktiv',
+      title: 'Datenspeicherung aktiv',
       message:
-        'Einsätze, Nachweise, Signaturen und Tracking werden persistent in Supabase gespeichert (0156 angewendet).',
+        'Einsätze, Nachweise, Signaturen und Tracking werden dauerhaft gespeichert.',
       severity: 'info',
       route: '/assist/nachweise',
     });
@@ -43,14 +43,14 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
     hints.push({
       id: 'persistence-demo',
       title: 'Demo-Modus',
-      message: 'Supabase ist verbunden, Demo-Modus aktiv — Persistenz für Live-Mandanten ohne Demo-Flag.',
+      message: 'Cloud ist verbunden, Demo-Modus aktiv — Persistenz für Live-Mandanten ohne Demo-Flag.',
       severity: 'warning',
     });
   } else {
     hints.push({
       id: 'signature-storage',
       title: 'Signatur-Speicher (Demo)',
-      message: 'Demo-Modus: Unterschriften nur sessionbasiert bis Supabase-Live.',
+      message: 'Demo-Modus: Unterschriften nur für die aktuelle Sitzung gespeichert.',
       severity: 'warning',
       route: '/assist/signaturen',
     });
@@ -61,7 +61,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
       id: 'map-provider-optional',
       title: 'Kartenansicht optional',
       message:
-        'Live-Karten erfordern einen externen Map-Provider. Standortdaten werden aus assist_location_points gelesen.',
+        'Live-Karten erfordern einen externen Kartenanbieter. Standortdaten werden als Textliste angezeigt.',
       severity: 'info',
       route: '/assist/live-status',
     });
@@ -72,7 +72,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
       id: 'trips-storage',
       title: 'Fahrtenbuch',
       message:
-        'Live-Fahrtenbuch erfordert Supabase ohne Demo-Modus. Aktuell Demo- oder leerer Zustand.',
+        'Live-Fahrtenbuch erfordert Cloud ohne Demo-Modus. Aktuell Demo- oder leerer Zustand.',
       severity: 'info',
       route: '/assist/fahrten',
     });
@@ -82,7 +82,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
     id: 'employee-portal-gps-consent',
     title: 'Standort nur im Mitarbeiterportal',
     message:
-      'Anfahrt, GPS und Live-Timer starten ausschließlich im Mitarbeiterportal. Assist/Office: Nur Anzeige. Native Background-Tracking: nicht implementiert (Web/PWA Foreground OK).',
+      'Anfahrt, GPS und Live-Timer starten ausschließlich im Mitarbeiterportal. Assist/Office: Nur Anzeige.',
     severity: 'info',
     route: '/portal/employee/assignments',
   });
@@ -91,7 +91,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
     id: 'geofence-geocoding',
     title: 'Geofence Zielkoordinaten',
     message:
-      'Weicher Geofence-Check (50–250 m) benötigt Ziel-Lat/Lng — Adress-Geocoding/Backend fehlt; Override-Begründung möglich.',
+      'Weicher Geofence-Check (50–250 m) benötigt Zielkoordinaten — Adress-Geocoding folgt; Override-Begründung möglich.',
     severity: 'info',
   });
 
@@ -99,14 +99,14 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
     id: 'client-portal-tracking-view',
     title: 'Klientenportal Live-Ansicht',
     message:
-      'Eingeschränkter Status (ohne GPS-Punkte) aus assist_time_events — vollständiges Freigabefenster folgt separat.',
+      'Eingeschränkter Einsatzstatus (ohne GPS-Punkte) — vollständiges Freigabefenster folgt separat.',
     severity: 'info',
   });
 
   hints.push({
-    id: 'routes-schema',
+    id: 'routes-planning',
     title: 'Tourenplanung',
-    message: 'assist_routes / assist_route_items fehlen — Touren-UI ohne Persistenz (eigene Route unter Touren).',
+    message: 'Touren werden derzeit ohne dauerhafte Speicherung geplant — eigene Route unter Touren.',
     severity: 'info',
     route: '/assist/touren',
   });

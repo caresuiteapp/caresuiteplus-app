@@ -4,7 +4,8 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAiPageContext } from '@/ai/useAiPageContext';
 import { ContextCard, clientRecordKpiGridStyle, DetailInfoRow } from '@/components/detail';
 import { ClientRecordHero } from '@/components/office/ClientRecordHero';
-import { ClientEditModal } from '@/components/office/ClientEditModal';
+import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
+import { useSectionEditModal } from '@/hooks/useSectionEditModal';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { ClientRecordOverviewPanel } from '@/components/office/ClientRecordOverviewPanel';
 import { ScreenShell } from '@/components/layout';
@@ -26,12 +27,22 @@ import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
 import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
-import { CLIENT_RECORD_TAB_LABELS, type ClientCareContext, type ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
+import { CLIENT_RECORD_TAB_LABELS, type ClientCareContext, type ClientRecordTabKey, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
 import { ClientRecordTabContent } from '@/screens/business/office/ClientRecordTabPanels';
 import { KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
+
+const TAB_EDIT_SECTION: Partial<Record<ClientRecordTabKey, IntakeSectionKey>> = {
+  stammdaten: 'stammdaten',
+  kontakt: 'adresse_kontakt',
+  angehoerige: 'angehoerige',
+  pflegegrad: 'versorgung',
+  abrechnung: 'kostentraeger',
+  einwilligungen: 'vertraege_einwilligungen',
+  leistungsbereiche: 'leistungsart',
+};
 
 function resolvePrimaryAddress(
   detail: NonNullable<ReturnType<typeof useClientRecord>['detail']>,
@@ -166,7 +177,7 @@ export function ClientRecordScreen({
       ? (resolvedTabParam as ClientRecordTabKey)
       : 'uebersicht';
   const [activeTab, setActiveTab] = useState<ClientRecordTabKey>(initialTab);
-  const [localEditOpen, setLocalEditOpen] = useState(false);
+  const sectionEdit = useSectionEditModal<IntakeSectionKey>();
 
   useEffect(() => {
     if (resolvedTabParam && tabs.includes(resolvedTabParam as ClientRecordTabKey)) {
@@ -174,8 +185,14 @@ export function ClientRecordScreen({
     }
   }, [resolvedTabParam, tabs]);
 
-  const handleEditMasterData = onEditMasterData ?? (() => setLocalEditOpen(true));
+  const handleEditMasterData = onEditMasterData ?? (() => sectionEdit.openSection('stammdaten'));
   const hostsLocalEditModal = !onEditMasterData;
+
+  const handleEditActiveTab = () => {
+    const section = TAB_EDIT_SECTION[activeTab];
+    if (section) sectionEdit.openSection(section);
+    else sectionEdit.openSection('stammdaten');
+  };
 
   useEffect(() => {
     if (embedded || editParam !== '1' || !detail) return;
@@ -183,7 +200,7 @@ export function ClientRecordScreen({
     if (onEditMasterData) {
       onEditMasterData();
     } else {
-      setLocalEditOpen(true);
+      sectionEdit.openSection('stammdaten');
     }
     router.setParams({ edit: undefined } as never);
   }, [editParam, embedded, detail, router, onEditMasterData, can]);
@@ -285,10 +302,10 @@ export function ClientRecordScreen({
         ) : null}
         {canEdit ? (
           <PremiumButton
-            title="Stammdaten bearbeiten"
+            title="Bereich bearbeiten"
             size="sm"
             variant="secondary"
-            onPress={handleEditMasterData}
+            onPress={handleEditActiveTab}
           />
         ) : null}
         {canDelete ? (
@@ -402,13 +419,14 @@ export function ClientRecordScreen({
     return (
       <>
         <View style={styles.embeddedRoot}>{recordBody}</View>
-        {hostsLocalEditModal && localEditOpen ? (
-          <ClientEditModal
-            visible={localEditOpen}
+        {hostsLocalEditModal && sectionEdit.activeSection ? (
+          <ClientSectionEditModal
+            visible={sectionEdit.isOpen}
             clientId={detail.id}
-            onClose={() => setLocalEditOpen(false)}
+            section={sectionEdit.activeSection}
+            onClose={sectionEdit.closeSection}
             onSaved={() => {
-              setLocalEditOpen(false);
+              sectionEdit.closeSection();
               void handleRecordRefresh();
             }}
           />
@@ -426,13 +444,14 @@ export function ClientRecordScreen({
       >
         {recordBody}
       </ScreenShell>
-      {hostsLocalEditModal && localEditOpen ? (
-        <ClientEditModal
-          visible={localEditOpen}
+      {hostsLocalEditModal && sectionEdit.activeSection ? (
+        <ClientSectionEditModal
+          visible={sectionEdit.isOpen}
           clientId={detail.id}
-          onClose={() => setLocalEditOpen(false)}
+          section={sectionEdit.activeSection}
+          onClose={sectionEdit.closeSection}
           onSaved={() => {
-            setLocalEditOpen(false);
+            sectionEdit.closeSection();
             void handleRecordRefresh();
           }}
         />
