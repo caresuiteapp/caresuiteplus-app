@@ -11712,6 +11712,384 @@ export type Database = {
           },
         ]
       }
+      client_billing_candidate_budget_movements: {
+        Row: {
+          amount_cents: number
+          billing_candidate_id: string
+          client_budget_movement_id: string | null
+          client_budget_setting_id: string
+          created_at: string
+          id: string
+          movement_type: string
+          tenant_id: string
+        }
+        Insert: {
+          amount_cents: number
+          billing_candidate_id: string
+          client_budget_movement_id?: string | null
+          client_budget_setting_id: string
+          created_at?: string
+          id?: string
+          movement_type: string
+          tenant_id: string
+        }
+        Update: {
+          amount_cents?: number
+          billing_candidate_id?: string
+          client_budget_movement_id?: string | null
+          client_budget_setting_id?: string
+          created_at?: string
+          id?: string
+          movement_type?: string
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_billing_candidate_budget__client_budget_movement_id_fkey"
+            columns: ["client_budget_movement_id"]
+            isOneToOne: false
+            referencedRelation: "client_budget_movements"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_m_client_budget_setting_id_fkey"
+            columns: ["client_budget_setting_id"]
+            isOneToOne: false
+            referencedRelation: "client_budget_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movem_billing_candidate_id_fkey"
+            columns: ["billing_candidate_id"]
+            isOneToOne: false
+            referencedRelation: "client_billing_candidates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidate_budget_movements_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      client_billing_candidates: {
+        Row: {
+          amount_preview: number
+          billing_period_end: string | null
+          billing_period_start: string | null
+          billing_target_id: string | null
+          billing_target_type: string
+          blocking_reasons: Json
+          budget_setting_id: string | null
+          budget_type_id: string | null
+          client_id: string
+          client_service_profile_id: string | null
+          created_at: string
+          currency: string
+          duration_minutes: number | null
+          id: string
+          proof_date: string | null
+          proof_id: string
+          quantity: number | null
+          rate_amount: number | null
+          service_type_id: string | null
+          source_snapshot: Json
+          status: string
+          tenant_id: string
+          unit: string
+          updated_at: string
+          visit_id: string
+        }
+        Insert: {
+          amount_preview?: number
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          billing_target_id?: string | null
+          billing_target_type?: string
+          blocking_reasons?: Json
+          budget_setting_id?: string | null
+          budget_type_id?: string | null
+          client_id: string
+          client_service_profile_id?: string | null
+          created_at?: string
+          currency?: string
+          duration_minutes?: number | null
+          id?: string
+          proof_date?: string | null
+          proof_id: string
+          quantity?: number | null
+          rate_amount?: number | null
+          service_type_id?: string | null
+          source_snapshot?: Json
+          status?: string
+          tenant_id: string
+          unit?: string
+          updated_at?: string
+          visit_id: string
+        }
+        Update: {
+          amount_preview?: number
+          billing_period_end?: string | null
+          billing_period_start?: string | null
+          billing_target_id?: string | null
+          billing_target_type?: string
+          blocking_reasons?: Json
+          budget_setting_id?: string | null
+          budget_type_id?: string | null
+          client_id?: string
+          client_service_profile_id?: string | null
+          created_at?: string
+          currency?: string
+          duration_minutes?: number | null
+          id?: string
+          proof_date?: string | null
+          proof_id?: string
+          quantity?: number | null
+          rate_amount?: number | null
+          service_type_id?: string | null
+          source_snapshot?: Json
+          status?: string
+          tenant_id?: string
+          unit?: string
+          updated_at?: string
+          visit_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "client_billing_candidates_budget_setting_id_fkey"
+            columns: ["budget_setting_id"]
+            isOneToOne: false
+            referencedRelation: "client_budget_settings"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_budget_type_id_fkey"
+            columns: ["budget_type_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_budget_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_assignment_overview"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_record_overview"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_client_service_profile_id_fkey"
+            columns: ["client_service_profile_id"]
+            isOneToOne: false
+            referencedRelation: "client_service_profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_client_service_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "client_billing_candidates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       client_billing_profiles: {
         Row: {
           billing_type: string
@@ -53301,6 +53679,149 @@ export type Database = {
           },
         ]
       }
+      tenant_client_billing_handoff_settings: {
+        Row: {
+          allow_budget_overrun: boolean
+          allow_self_payer_fallback: boolean
+          created_at: string
+          default_currency: string
+          default_invoice_mode: string
+          default_payment_terms_days: number
+          default_tax_mode: string
+          default_unit: string
+          id: string
+          require_approval: boolean
+          require_assignment_declaration: boolean
+          require_signature: boolean
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_budget_overrun?: boolean
+          allow_self_payer_fallback?: boolean
+          created_at?: string
+          default_currency?: string
+          default_invoice_mode?: string
+          default_payment_terms_days?: number
+          default_tax_mode?: string
+          default_unit?: string
+          id?: string
+          require_approval?: boolean
+          require_assignment_declaration?: boolean
+          require_signature?: boolean
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allow_budget_overrun?: boolean
+          allow_self_payer_fallback?: boolean
+          created_at?: string
+          default_currency?: string
+          default_invoice_mode?: string
+          default_payment_terms_days?: number
+          default_tax_mode?: string
+          default_unit?: string
+          id?: string
+          require_approval?: boolean
+          require_assignment_declaration?: boolean
+          require_signature?: boolean
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_client_billing_handoff_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       tenant_client_portal_defaults: {
         Row: {
           allow_access_requests: boolean
@@ -56374,6 +56895,159 @@ export type Database = {
           },
           {
             foreignKeyName: "tenant_service_task_catalog_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      tenant_service_type_billing_rules: {
+        Row: {
+          allow_budget_overrun: boolean
+          allow_self_payer: boolean
+          created_at: string
+          default_billing_target_type: string
+          default_rate_amount: number | null
+          default_unit: string
+          id: string
+          is_active: boolean
+          require_approval: boolean
+          require_assignment_declaration: boolean
+          require_budget: boolean
+          require_signature: boolean
+          service_type_id: string
+          tenant_id: string
+          updated_at: string
+        }
+        Insert: {
+          allow_budget_overrun?: boolean
+          allow_self_payer?: boolean
+          created_at?: string
+          default_billing_target_type?: string
+          default_rate_amount?: number | null
+          default_unit?: string
+          id?: string
+          is_active?: boolean
+          require_approval?: boolean
+          require_assignment_declaration?: boolean
+          require_budget?: boolean
+          require_signature?: boolean
+          service_type_id: string
+          tenant_id: string
+          updated_at?: string
+        }
+        Update: {
+          allow_budget_overrun?: boolean
+          allow_self_payer?: boolean
+          created_at?: string
+          default_billing_target_type?: string
+          default_rate_amount?: number | null
+          default_unit?: string
+          id?: string
+          is_active?: boolean
+          require_approval?: boolean
+          require_assignment_declaration?: boolean
+          require_budget?: boolean
+          require_signature?: boolean
+          service_type_id?: string
+          tenant_id?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_service_type_id_fkey"
+            columns: ["service_type_id"]
+            isOneToOne: false
+            referencedRelation: "tenant_client_service_types"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_service_type_billing_rules_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_dashboard_base"
@@ -77134,6 +77808,10 @@ export type Database = {
         }[]
       }
       seed_tenant_assist_service_catalog: {
+        Args: { p_tenant_id: string }
+        Returns: undefined
+      }
+      seed_tenant_billing_handoff_defaults: {
         Args: { p_tenant_id: string }
         Returns: undefined
       }
