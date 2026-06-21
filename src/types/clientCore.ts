@@ -18,6 +18,14 @@ export type ClientBudgetMovementType =
   | 'release'
   | 'adjustment';
 
+export const CLIENT_BUDGET_MOVEMENT_LABELS: Record<ClientBudgetMovementType, string> = {
+  allocation: 'Zuteilung',
+  usage: 'Verbrauch',
+  reservation: 'Reservierung',
+  release: 'Freigabe',
+  adjustment: 'Korrektur',
+};
+
 export type ClientPortalAccessRequestStatus = 'pending' | 'approved' | 'rejected' | 'cancelled';
 
 export type ClientPortalFeatureKey =

@@ -91,7 +91,7 @@ export function ClientBillingPrepPanel({ clientId, onRecordRefresh }: Props) {
     <View style={styles.panel}>
       <SectionPanel
         title="Abrechnungsvorschau"
-        subtitle="Vorbereitung ohne finale Rechnung — K.5"
+        subtitle="Vorbereitung ohne finale Rechnung"
       >
         {preview?.warnings?.length ? (
           <PremiumCard style={styles.card}>

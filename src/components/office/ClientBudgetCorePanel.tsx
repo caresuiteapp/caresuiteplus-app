@@ -18,7 +18,7 @@ import {
 } from '@/lib/client/clientBudgetSettingsService';
 import { ClientBillingPrepPanel } from '@/components/office/ClientBillingPrepPanel';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
-import type { ClientBudgetSetting } from '@/types/clientCore';
+import { CLIENT_BUDGET_MOVEMENT_LABELS, type ClientBudgetSetting } from '@/types/clientCore';
 import { colors, spacing, typography } from '@/theme';
 
 function BudgetSettingCard({
@@ -58,7 +58,11 @@ function BudgetSettingCard({
       ) : null}
       {movements.length > 0 ? (
         <Text style={styles.secondary}>
-          Letzte Bewegungen: {movements.slice(0, 3).map((m) => `${m.movementType} ${formatCurrency(m.amountCents, true)}`).join(' · ')}
+          Letzte Bewegungen:{' '}
+          {movements
+            .slice(0, 3)
+            .map((m) => `${CLIENT_BUDGET_MOVEMENT_LABELS[m.movementType] ?? m.movementType} ${formatCurrency(m.amountCents, true)}`)
+            .join(' · ')}
         </Text>
       ) : null}
     </PremiumCard>

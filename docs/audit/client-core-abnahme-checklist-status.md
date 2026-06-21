@@ -34,11 +34,12 @@
 | K.5.5 | Portal billing non-disclosure | ✅ | portalVisibilityService + tests |
 | K.5.6 | Migration 0160 additive | ✅ | 0160_client_billing_handoff_foundation.sql |
 | K.5.7 | K.5 tests green | ✅ | clientCoreK5BillingHandoff.test.ts |
+| K.5.1-M | **Manuelle sichtbare Abnahme (Master)** | ⛔ | client-core-k51-billing-manual-acceptance-abnahmebericht.md — BLOCKED: keine Demo-Proofs, Browser/Credentials |
 | — | 0154–0159 unverändert | ✅ | Abort-Gate |
 | — | staticRolePermissions unverändert | ✅ | Abort-Gate |
 | — | 0159 remote applied | ✅ | k5 precheck log |
 
-**Gesamt:** 33/33 ✅
+**Gesamt:** 33/34 — K.5.1-M sichtbar **offen**
 
 ---
 

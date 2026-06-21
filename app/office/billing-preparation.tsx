@@ -43,7 +43,7 @@ export default function OfficeBillingPreparationScreen() {
         {candidates.length === 0 && !query.loading ? (
           <EmptyState
             title="Keine entwurfsfähigen Kandidaten"
-            message="Freigegebene Nachweise mit erfüllten Pflichtfeldern erscheinen hier. Finale Rechnungen werden in K.6 erstellt."
+            message="Freigegebene Nachweise mit erfüllten Pflichtfeldern erscheinen hier. Finale Rechnungen werden in einem separaten Schritt erstellt."
           />
         ) : (
           candidates.map((c) => (
@@ -64,8 +64,8 @@ export default function OfficeBillingPreparationScreen() {
 
       <View style={styles.hintBox}>
         <Text style={styles.hint}>
-          K.5 bereitet Budgetverbrauch und Abrechnungskandidaten vor. Es werden keine Rechnungsnummern verbraucht
-          und keine Rechnungen versendet.
+          Diese Seite bereitet Budgetverbrauch und Abrechnungskandidaten vor. Es werden keine Rechnungsnummern
+          verbraucht und keine Rechnungen versendet.
         </Text>
       </View>
     </ScreenShell>

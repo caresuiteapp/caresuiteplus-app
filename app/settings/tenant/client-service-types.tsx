@@ -120,7 +120,7 @@ export default function TenantClientServiceTypesScreen() {
         </View>
       )}
 
-      <SectionPanel title="Abrechnungsregeln je Leistungsart (K.5)">
+      <SectionPanel title="Abrechnungsregeln je Leistungsart">
         <Text style={styles.secondary}>
           Stundensätze und Pflichten — mandantenfähig, keine harte Code-Wahrheit. Fehlende Rate erzeugt Warnung in der
           Abrechnungsvorschau.
@@ -128,7 +128,7 @@ export default function TenantClientServiceTypesScreen() {
         {billingRules.length === 0 && !billingRulesQuery.loading ? (
           <EmptyState
             title="Keine Abrechnungsregeln"
-            message="Regeln werden mit Migration 0160 oder seed_tenant_billing_handoff_defaults angelegt."
+            message="Abrechnungsregeln werden bei der Mandanteneinrichtung angelegt."
           />
         ) : (
           billingRules.map((rule) => {
