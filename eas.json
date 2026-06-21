@@ -40,6 +40,26 @@
       "env": {
         "APP_ENV": "production"
       }
+    },
+    "preview-apk": {
+      "extends": "preview",
+      "distribution": "internal",
+      "android": {
+        "buildType": "apk"
+      },
+      "env": {
+        "APP_ENV": "preview"
+      }
+    },
+    "production-aab": {
+      "extends": "production",
+      "autoIncrement": true,
+      "android": {
+        "buildType": "app-bundle"
+      },
+      "env": {
+        "APP_ENV": "production"
+      }
     }
   },
   "submit": {

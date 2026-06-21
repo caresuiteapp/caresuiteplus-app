@@ -1,8 +1,8 @@
-import { createHash } from 'crypto';
+import { sha256Hex } from '@/lib/crypto/sha256Hex';
 
-/** SHA-256 Hash für Dokumentinhalt — server-/Node-kompatibel. */
+/** SHA-256 Hash für Dokumentinhalt — cross-platform (web, Node, React Native). */
 export function computeDocumentContentHash(content: string): string {
-  return `sha256:${createHash('sha256').update(content, 'utf8').digest('hex')}`;
+  return `sha256:${sha256Hex(content)}`;
 }
 
 export function computeDocumentPackageHash(input: {

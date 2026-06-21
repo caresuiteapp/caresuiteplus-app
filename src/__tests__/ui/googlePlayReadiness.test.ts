@@ -231,7 +231,7 @@ describe('Google Play readiness — store sight', () => {
     const appJson = JSON.parse(readSrc('app.json'));
     expect(appJson.expo.name).toBe('CareSuite+');
     expect(appJson.expo.scheme).toBe('caresuiteplus');
-    expect(appJson.expo.android?.package).toBe('de.caresuiteplus.app');
+    expect(appJson.expo.android?.package).toBe('app.caresuiteplus');
     expect(appJson.expo.android?.versionCode).toBeGreaterThan(0);
     expect(appJson.expo.splash?.image).toBe('./assets/splash-icon.png');
     expect(appJson.expo.android?.adaptiveIcon?.foregroundImage).toBeDefined();
@@ -254,5 +254,7 @@ describe('Google Play readiness — store sight', () => {
     const eas = JSON.parse(readSrc('eas.json'));
     expect(eas.build.preview).toBeDefined();
     expect(eas.build.production.android.buildType).toBe('app-bundle');
+    expect(eas.build['preview-apk']).toBeDefined();
+    expect(eas.build['production-aab']).toBeDefined();
   });
 });
