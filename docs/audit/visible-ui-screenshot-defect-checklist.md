@@ -1,8 +1,8 @@
 # Visible UI Screenshot Defect Checklist (U.1)
 
 **Binding checklist** — update before commit.  
-**Run:** Visible UI Reality Fix U.1  
-**HEAD baseline:** `df335ce`
+**Run:** Visible UI Reality Fix U.1 → U.1.1 browser gate  
+**HEAD baseline:** `91450ce` (U.1.1)
 
 ## Defects (must fix)
 
@@ -30,6 +30,6 @@ Repository, Backend, Migration, Supabase, RPC, Edge Auth, Table, Column, schema,
 
 ## Acceptance
 
-- [ ] Browser/screenshot verification (see abnahmebericht)
-- [x] Typecheck precommit log
-- [x] Test precommit log
+- [ ] Browser/screenshot verification — **U.1.1 BLOCKED** (2026-06-21, see `visible-ui-u11-manual-browser-abnahmebericht.md`)
+- [x] Typecheck precommit log (repo-wide pre-existing failures)
+- [x] Test precommit log — U.1.1: 14/14 targeted (`visibleUiRealityFix` + `clientRecordUi`)

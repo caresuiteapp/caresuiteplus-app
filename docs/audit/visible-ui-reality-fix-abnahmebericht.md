@@ -57,7 +57,8 @@ New: `src/__tests__/ui/visibleUiRealityFix.test.ts`
 
 ## 5. Browser / screenshot acceptance
 
-**Status:** Blocker dokumentiert — Browser-MCP nicht für vollständigen Office/Assist-Flow mit Auth durchgeführt.
+**Status:** Blocker dokumentiert — Browser-MCP nicht für vollständigen Office/Assist-Flow mit Auth durchgeführt.  
+**U.1.1 follow-up (2026-06-21):** Retried at `91450ce` — still **BLOCKED** (MCP tab unavailable, Playwright install hung, Office business auth required). See `visible-ui-u11-manual-browser-abnahmebericht.md`.
 
 Empfohlene manuelle Checks:
 1. Klient:innen-Akte → Verlauf (kein DB-Fehler)
