@@ -69,9 +69,9 @@ CREATE INDEX IF NOT EXISTS idx_client_billing_candidate_budget_movements_candida
   ON public.client_billing_candidate_budget_movements (tenant_id, billing_candidate_id, created_at DESC);
 
 -- --------------------------------------------------------------------------
--- tenant_billing_settings — mandantenweite Abrechnungsvorbereitung
+-- tenant_client_billing_handoff_settings — K.5 Abrechnungsvorbereitung (separat von tenant_billing_settings / Tenant Center)
 -- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.tenant_billing_settings (
+CREATE TABLE IF NOT EXISTS public.tenant_client_billing_handoff_settings (
   id                              UUID          PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id                       UUID          NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE UNIQUE,
   default_currency                TEXT          NOT NULL DEFAULT 'EUR',
@@ -86,12 +86,12 @@ CREATE TABLE IF NOT EXISTS public.tenant_billing_settings (
   allow_budget_overrun            BOOLEAN       NOT NULL DEFAULT FALSE,
   created_at                      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
   updated_at                      TIMESTAMPTZ   NOT NULL DEFAULT NOW(),
-  CONSTRAINT tenant_billing_settings_invoice_mode_check
+  CONSTRAINT tenant_client_billing_handoff_settings_invoice_mode_check
     CHECK (default_invoice_mode IN ('preview_only', 'draft_only', 'manual_review'))
 );
 
-COMMENT ON TABLE public.tenant_billing_settings IS
-  'Mandanten-Abrechnungsvorbereitung — preview/draft only, keine Finalisierung (Migration 0160)';
+COMMENT ON TABLE public.tenant_client_billing_handoff_settings IS
+  'K.5 Mandanten-Abrechnungsvorbereitung — preview/draft only (Migration 0160); getrennt von tenant_billing_settings';
 
 -- --------------------------------------------------------------------------
 -- tenant_service_type_billing_rules — Regeln je Leistungsart
@@ -129,7 +129,7 @@ DECLARE
 BEGIN
   FOREACH tbl IN ARRAY ARRAY[
     'client_billing_candidates',
-    'tenant_billing_settings',
+    'tenant_client_billing_handoff_settings',
     'tenant_service_type_billing_rules'
   ]
   LOOP
@@ -151,7 +151,7 @@ BEGIN
   FOREACH tbl IN ARRAY ARRAY[
     'client_billing_candidates',
     'client_billing_candidate_budget_movements',
-    'tenant_billing_settings',
+    'tenant_client_billing_handoff_settings',
     'tenant_service_type_billing_rules'
   ]
   LOOP
@@ -181,7 +181,7 @@ END $$;
 GRANT SELECT, INSERT, UPDATE, DELETE ON
   public.client_billing_candidates,
   public.client_billing_candidate_budget_movements,
-  public.tenant_billing_settings,
+  public.tenant_client_billing_handoff_settings,
   public.tenant_service_type_billing_rules
 TO authenticated;
 
@@ -195,7 +195,7 @@ AS $$
 DECLARE
   v_type_id UUID;
 BEGIN
-  INSERT INTO public.tenant_billing_settings (
+  INSERT INTO public.tenant_client_billing_handoff_settings (
     tenant_id, default_currency, default_unit, default_invoice_mode,
     require_signature, require_approval, allow_self_payer_fallback
   ) VALUES (

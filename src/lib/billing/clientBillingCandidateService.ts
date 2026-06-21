@@ -31,7 +31,7 @@ import {
 } from './clientBillingReadinessService';
 
 const CANDIDATES_TABLE = 'client_billing_candidates';
-const TENANT_SETTINGS_TABLE = 'tenant_billing_settings';
+const TENANT_SETTINGS_TABLE = 'tenant_client_billing_handoff_settings';
 const BILLING_RULES_TABLE = 'tenant_service_type_billing_rules';
 
 type CandidateRow = {
