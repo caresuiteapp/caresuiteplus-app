@@ -35,7 +35,7 @@
 | K.5.6 | Migration 0160 additive | ✅ | 0160_client_billing_handoff_foundation.sql |
 | K.5.7 | K.5 tests green | ✅ | clientCoreK5BillingHandoff.test.ts |
 | K.5.1-M | **Manuelle sichtbare Abnahme (Master)** | ⛔ | client-core-k51-billing-manual-acceptance-abnahmebericht.md — BLOCKED: keine Demo-Proofs, Browser/Credentials |
-| K.5.2-M | **Demo-Billing-Walkthrough (Master)** | ⛔ | client-core-k52-demo-billing-walkthrough-abnahmebericht.md — BLOCKED: ENV-Gate (AUDIT_BUSINESS_* fehlt), 0 Demo-Proofs |
+| K.5.2-M | **Demo-Billing-Walkthrough (Master)** | ⛔ | client-core-k52-demo-billing-walkthrough-abnahmebericht.md — RETRY BLOCKED: AUDIT_BUSINESS_* weiterhin fehlt in .env (3 Keys only), 0 Demo-Proofs |
 | — | 0154–0159 unverändert | ✅ | Abort-Gate |
 | — | staticRolePermissions unverändert | ✅ | Abort-Gate |
 | — | 0159 remote applied | ✅ | k5 precheck log |
