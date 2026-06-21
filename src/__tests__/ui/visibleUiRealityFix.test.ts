@@ -7,6 +7,10 @@ import {
   GPS_TRACKING_MAP_PROVIDER_MESSAGE,
   GPS_TRACKING_PREPARED_MESSAGE,
 } from '@/lib/assist/gpsTrackingConfig';
+import {
+  ASSIST_SUPABASE_NOT_CONFIGURED_MESSAGE,
+  ASSIST_VISITS_MISSING_BANNER_MESSAGE,
+} from '@/lib/assist/assistDataSourceProbe';
 import { getEmployeePortalImpactSummary } from '@/lib/portal/portalVisibilityService';
 import { buildTenantCenterSections } from '@/lib/tenant/tenantCenterSections';
 import type { TenantCenterSnapshot } from '@/types/tenant/tenantCenter';
@@ -28,6 +32,10 @@ const FORBIDDEN = [
   '42703',
   'display_name',
   'Mitarbeiter:innen Core folgt später',
+  'Map-Provider',
+  'guardServiceTenant',
+  'Live Supabase',
+  'Supabase Live',
 ];
 
 function assertNoForbidden(text: string, context: string) {
@@ -120,5 +128,42 @@ describe('Visible UI Reality Fix U.1', () => {
     const hero = readSrc('src/components/forms/FormScreenHero.tsx');
     expect(hero).not.toContain('Supabase Live');
     expect(hero).not.toContain('WP ${wpNumber}');
+  });
+
+  it('U.1.2 PlatformModal uses flex scroll shell with 92vh cap', () => {
+    const modal = readSrc('src/components/layout/platform/platformmodal.tsx');
+    expect(modal).toContain('DEFAULT_MAX_HEIGHT_RATIO = 0.92');
+    expect(modal).toContain('overflowY');
+    expect(modal).toContain('flexShrink: 0');
+    expect(modal).toContain('lockBodyScroll');
+    expect(readSrc('src/components/layout/platform/AppGlassModal.tsx')).toContain('maxHeightRatio={0.92}');
+  });
+
+  it('U.1.2 section edit modals use modal shell with reachable footer actions', () => {
+    const clientModal = readSrc('src/components/office/ClientSectionEditModal.tsx');
+    expect(clientModal).toContain('footerActions');
+    expect(clientModal).not.toContain('ScrollView');
+
+    const employeeModal = readSrc('src/components/office/EmployeeSectionEditModal.tsx');
+    expect(employeeModal).toContain('footerActions');
+    expect(employeeModal).toContain('modalShell');
+
+    const employeeForm = readSrc('src/components/office/employeeeditform.tsx');
+    expect(employeeForm).toContain('modalShell');
+    expect(employeeForm).toContain('onShellActions');
+  });
+
+  it('U.1.2 assist setup hint CTA lives inside InfoBanner card', () => {
+    const banner = readSrc('src/components/assist/AssistSetupHintsBanner.tsx');
+    expect(banner).toContain('actionLabel');
+    expect(banner).not.toContain('linkWrap');
+    expect(readSrc('src/components/ui/InfoBanner.tsx')).toContain('actionLabel');
+  });
+
+  it('U.1.2 assist dashboard and data source avoid internal terms', () => {
+    assertNoForbidden(readSrc('src/components/assist/AssistDashboardHero.tsx'), 'AssistDashboardHero');
+    assertNoForbidden(ASSIST_VISITS_MISSING_BANNER_MESSAGE, 'ASSIST_VISITS_MISSING_BANNER_MESSAGE');
+    assertNoForbidden(ASSIST_SUPABASE_NOT_CONFIGURED_MESSAGE, 'ASSIST_SUPABASE_NOT_CONFIGURED_MESSAGE');
+    assertNoForbidden(readSrc('src/screens/assist/AssistLiveStatusScreen.tsx'), 'AssistLiveStatusScreen');
   });
 });

@@ -7,7 +7,7 @@ import {
   PORTAL_PROFILE_PREPARED_MESSAGE,
 } from '@/lib/portal/portalModuleConfig';
 import { buildEmployeePortalProfileKpis } from '@/lib/portal/portalProfileStats';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { PortalEmployeeProfile } from '@/types/portal/employee';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { designTokens, spacing } from '@/theme';
@@ -79,11 +79,10 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
           dot
         />
         {isLive ? (
-          <PremiumBadge label="Live Supabase" variant="green" dot />
+          <PremiumBadge label="Cloud Live" variant="green" dot />
         ) : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

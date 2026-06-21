@@ -1,5 +1,5 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useMemo } from 'react';
+import { useCallback, useEffect, useMemo } from 'react';
 import { CatalogValueSelect } from '@/components/templates';
 import { CareAddressSearch, CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';
@@ -29,6 +29,9 @@ export type EmployeeEditFormProps = {
   onOpenPersonnelRecord?: () => void;
   /** When set, renders a single section without the multi-step wizard. */
   sectionOnly?: EmployeeEditSectionKey;
+  /** Modal shell: parent scrolls; footer actions live in AppGlassModal. */
+  modalShell?: boolean;
+  onShellActions?: (actions: { submit: () => Promise<void>; submitting: boolean }) => void;
 };
 
 export function EmployeeEditForm({
@@ -37,6 +40,8 @@ export function EmployeeEditForm({
   onUpdated,
   onOpenPersonnelRecord,
   sectionOnly,
+  modalShell = false,
+  onShellActions,
 }: EmployeeEditFormProps) {
   const content = useAdaptiveContentStyles();
   const styles = useMemo(
@@ -85,12 +90,17 @@ export function EmployeeEditForm({
     isSuccess,
   } = useEmployeeEditWizard(employeeId);
 
-  const handleSubmit = async () => {
+  const handleSubmit = useCallback(async () => {
     const ok = await submit();
     if (ok) {
       onUpdated?.();
     }
-  };
+  }, [onUpdated, submit]);
+
+  useEffect(() => {
+    if (!modalShell || !onShellActions) return;
+    onShellActions({ submit: handleSubmit, submitting });
+  }, [handleSubmit, modalShell, onShellActions, submitting]);
 
   if (loading) {
     return <LoadingState message="Mitarbeitende:r wird geladen…" />;
@@ -125,8 +135,8 @@ export function EmployeeEditForm({
   const activeStep = sectionOnly ? EMPLOYEE_EDIT_SECTION_INDEX[sectionOnly] : step;
   const showWizard = !sectionOnly;
 
-  return (
-    <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+  const formBody = (
+    <>
       {showWizard ? <FormStepper steps={steps} currentStep={step} /> : null}
       {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}
 
@@ -312,17 +322,29 @@ export function EmployeeEditForm({
         </SectionPanel>
       ) : null}
 
-      <View style={styles.actions}>
-        <PremiumButton title="Abbrechen" variant="ghost" onPress={onCancel} disabled={submitting} />
-        {showWizard && !isFirstStep ? (
-          <PremiumButton title="Zurück" variant="secondary" onPress={prevStep} disabled={submitting} />
-        ) : null}
-        {showWizard && !isLastStep ? (
-          <PremiumButton title="Weiter" onPress={nextStep} disabled={submitting} />
-        ) : (
-          <PremiumButton title="Speichern" onPress={handleSubmit} loading={submitting} />
-        )}
-      </View>
+      {!modalShell ? (
+        <View style={styles.actions}>
+          <PremiumButton title="Abbrechen" variant="ghost" onPress={onCancel} disabled={submitting} />
+          {showWizard && !isFirstStep ? (
+            <PremiumButton title="Zurück" variant="secondary" onPress={prevStep} disabled={submitting} />
+          ) : null}
+          {showWizard && !isLastStep ? (
+            <PremiumButton title="Weiter" onPress={nextStep} disabled={submitting} />
+          ) : (
+            <PremiumButton title="Speichern" onPress={handleSubmit} loading={submitting} />
+          )}
+        </View>
+      ) : null}
+    </>
+  );
+
+  if (modalShell) {
+    return <View style={styles.scroll}>{formBody}</View>;
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.scroll} keyboardShouldPersistTaps="handled">
+      {formBody}
     </ScrollView>
   );
 }

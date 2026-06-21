@@ -3,6 +3,7 @@ import {
   Modal,
   Platform,
   Pressable,
+  ScrollView,
   StyleSheet,
   View,
   useWindowDimensions,
@@ -53,7 +54,7 @@ export type PlatformModalProps = {
 
 const DEFAULT_MAX_WIDTH = 560;
 const DEFAULT_MIN_WIDTH = 320;
-const DEFAULT_MAX_HEIGHT_RATIO = 0.9;
+const DEFAULT_MAX_HEIGHT_RATIO = 0.92;
 
 export function PlatformModal({
   visible,
@@ -131,18 +132,40 @@ export function PlatformModal({
         sheetInner: {
           flexShrink: 1,
           minHeight: 0,
+          maxHeight: sheetMaxHeight,
+          flexDirection: 'column',
+          overflow: 'hidden',
+        },
+        bodyScroll: {
+          flexGrow: 1,
+          flexShrink: 1,
+          minHeight: 0,
         },
         body: {
           padding: careSpacing.lg,
           gap: careSpacing.sm,
+          flexGrow: 1,
+          flexShrink: 1,
+          minHeight: 0,
+          ...Platform.select({
+            web: {
+              overflowY: 'auto' as const,
+              overflowX: 'hidden' as const,
+            },
+            default: {},
+          }),
         },
         footer: {
+          flexShrink: 0,
           flexDirection: 'row',
           justifyContent: 'flex-end',
           flexWrap: 'wrap',
           gap: careSpacing.sm,
           paddingHorizontal: careSpacing.lg,
           paddingBottom: careSpacing.lg,
+          paddingTop: careSpacing.xs,
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
         },
       }),
     [c.muted, isDark, sheetMaxHeight, sheetWidth, variant],
@@ -167,14 +190,27 @@ export function PlatformModal({
       elevated
       style={[styles.sheetInner, sheetStyle]}
     >
-      <GradientModalHeader
-        title={title}
-        subtitle={subtitle}
-        onBack={onBack}
-        onClose={onClose}
-        actions={headerActions}
-      />
-      <View style={[styles.body, bodyStyle]}>{children}</View>
+      <View style={{ flexShrink: 0 }}>
+        <GradientModalHeader
+          title={title}
+          subtitle={subtitle}
+          onBack={onBack}
+          onClose={onClose}
+          actions={headerActions}
+        />
+      </View>
+      {Platform.OS === 'web' ? (
+        <View style={[styles.body, bodyStyle]}>{children}</View>
+      ) : (
+        <ScrollView
+          style={styles.bodyScroll}
+          contentContainerStyle={[styles.body, bodyStyle]}
+          keyboardShouldPersistTaps="handled"
+          showsVerticalScrollIndicator
+        >
+          {children}
+        </ScrollView>
+      )}
       {footerActions && footerActions.length > 0 ? (
         <View style={styles.footer}>
           {footerActions.map((action) => (

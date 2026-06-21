@@ -1,3 +1,4 @@
+import { useState } from 'react';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { EmployeeEditForm } from '@/components/office/employeeeditform';
 import type { EmployeeEditSectionKey } from '@/lib/office/employeeSectionEditLabels';
@@ -21,6 +22,11 @@ export function EmployeeSectionEditModal({
   onUpdated,
   onOpenPersonnelRecord,
 }: EmployeeSectionEditModalProps) {
+  const [shellActions, setShellActions] = useState<{
+    submit: () => Promise<void>;
+    submitting: boolean;
+  } | null>(null);
+
   const handleUpdated = () => {
     onUpdated?.();
     onClose();
@@ -32,10 +38,22 @@ export function EmployeeSectionEditModal({
       title={employeeSectionEditTitle(section)}
       onClose={onClose}
       maxWidth={680}
+      footerActions={[
+        { title: 'Abbrechen', onPress: onClose, variant: 'secondary' },
+        {
+          title: 'Speichern',
+          onPress: () => void shellActions?.submit(),
+          loading: shellActions?.submitting,
+          disabled: !shellActions,
+          variant: 'glass',
+        },
+      ]}
     >
       <EmployeeEditForm
         employeeId={employeeId}
         sectionOnly={section}
+        modalShell
+        onShellActions={setShellActions}
         onCancel={onClose}
         onUpdated={handleUpdated}
         onOpenPersonnelRecord={onOpenPersonnelRecord}

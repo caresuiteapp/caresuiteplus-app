@@ -11,6 +11,8 @@ type Props = {
   icon?: string;
   dismissible?: boolean;
   onDismiss?: () => void;
+  actionLabel?: string;
+  onAction?: () => void;
   style?: ViewStyle;
 };
 
@@ -51,6 +53,8 @@ export function InfoBanner({
   icon,
   dismissible = false,
   onDismiss,
+  actionLabel,
+  onAction,
   style,
 }: Props) {
   const cfg = CONFIG[variant];
@@ -71,6 +75,11 @@ export function InfoBanner({
           <Text style={[styles.title, { color: cfg.title }]}>{title}</Text>
         ) : null}
         <Text style={styles.message}>{message}</Text>
+        {actionLabel && onAction ? (
+          <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
+            <Text style={[styles.action, { color: cfg.title }]}>{actionLabel}</Text>
+          </Pressable>
+        ) : null}
       </View>
       {dismissible && onDismiss ? (
         <Pressable
@@ -110,6 +119,11 @@ const styles = StyleSheet.create({
   message: {
     ...typography.body,
     fontSize: 14,
+  },
+  action: {
+    ...typography.caption,
+    fontWeight: '600',
+    marginTop: spacing.xs,
   },
   dismiss: {
     fontSize: 16,

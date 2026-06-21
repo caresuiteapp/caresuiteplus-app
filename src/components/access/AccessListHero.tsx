@@ -16,7 +16,7 @@ import {
   getAccessListHeroMeta,
   type AccessListHeroVariant,
 } from '@/lib/access/accessListStats';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 type AccessListHeroProps = {
@@ -93,9 +93,8 @@ export function AccessListHero({ variant, itemCount, liveReady }: AccessListHero
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={`${itemCount} Einträge`} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isLive ? <PremiumBadge label="preparedOnly" variant="muted" /> : (
-          <PremiumBadge label="Supabase Live" variant="green" dot />
+          <PremiumBadge label="Cloud Live" variant="green" dot />
         )}
       </View>
       <View style={styles.kpiRow}>

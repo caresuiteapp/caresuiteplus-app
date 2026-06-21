@@ -1,8 +1,8 @@
-# Visible UI Screenshot Defect Checklist (U.1)
+# Visible UI Screenshot Defect Checklist (U.1 → U.1.2)
 
 **Binding checklist** — update before commit.  
-**Run:** Visible UI Reality Fix U.1 → U.1.1 browser gate  
-**HEAD baseline:** `91450ce` (U.1.1)
+**Run:** Visible UI Reality Fix U.1 → U.1.1 browser gate → **U.1.2 hotfix**  
+**HEAD baseline:** `422a2d6` (U.1.1) → U.1.2 hotfix
 
 ## Defects (must fix)
 
@@ -19,9 +19,19 @@
 | I | Modals | Inconsistent sizes/headers | `AppGlassModal` + `PlatformModal` | ✅ |
 | J | General layout | Cards/tabs/empty/error states | Record screens unified patterns | ✅ |
 
+## U.1.2 screenshot-proven defects (2026-06-21)
+
+| ID | Area | Defect | Fix target | Status |
+|----|------|--------|------------|--------|
+| U12-A | Modals | Stammdaten bearbeiten not scrollable; footer unreachable | `PlatformModal` flex scroll shell (92vh), `AppGlassModal`, section edit modals | ✅ |
+| U12-B | Assist dashboard | CTA „Mehr erfahren →“ outside/misaligned cards | `AssistSetupHintsBanner` + `InfoBanner.actionLabel` inside card | ✅ |
+| U12-C | Visible UI | Test/tech texts (Supabase, Map-Provider, guardServiceTenant) | Assist hero, live-status, data source probe, portal/access badges | ✅ |
+| U12-D | Section edit | Client/employee modals save/cancel unreachable | `ClientSectionEditModal`, `EmployeeSectionEditModal` + `modalShell` | ✅ |
+| U12-E | Modal system | Background scroll not locked | `PlatformModal.lockBodyScroll` + body overflow | ✅ |
+
 ## Forbidden terms (mandant/user views)
 
-Repository, Backend, Migration, Supabase, RPC, Edge Auth, Table, Column, schema, source_snapshot, display_name, 42703, 0156-0160, Core K., WP, Stub, Fake, Mock, Debug, Audit, Seed, budgetCents, invoiceDraft, proof_not_approved, missing_budget
+Repository, Backend, Migration, Supabase, RPC, Edge Auth, Table, Column, schema, source_snapshot, display_name, 42703, 0156-0160, Core K., WP, Stub, Fake, Mock, Debug, Audit, Seed, budgetCents, invoiceDraft, proof_not_approved, missing_budget, Map-Provider, guardServiceTenant, Live Supabase
 
 ## Intake wizard
 
@@ -30,6 +40,7 @@ Repository, Backend, Migration, Supabase, RPC, Edge Auth, Table, Column, schema,
 
 ## Acceptance
 
-- [ ] Browser/screenshot verification — **U.1.1 BLOCKED** (2026-06-21, see `visible-ui-u11-manual-browser-abnahmebericht.md`)
-- [x] Typecheck precommit log (repo-wide pre-existing failures)
-- [x] Test precommit log — U.1.1: 14/14 targeted (`visibleUiRealityFix` + `clientRecordUi`)
+- [ ] Browser/screenshot verification — U.1.2 code-level + tests (browser MCP blocked, see abnahmebericht)
+- [x] Typecheck precommit log (`.audit-typecheck-visible-ui-u12-precommit.log`)
+- [x] Test precommit log (`.audit-test-visible-ui-u12-precommit.log`)
+- [x] U.1.2 targeted tests (`visibleUiRealityFix` 13/13)

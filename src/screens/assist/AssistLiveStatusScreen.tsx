@@ -135,7 +135,7 @@ export function AssistLiveStatusScreen() {
           ))
         )}
 
-        <SectionPanel title="Kartenansicht" subtitle="Optional wenn Map-Provider verfügbar">
+        <SectionPanel title="Kartenansicht" subtitle="Optional bei hinterlegtem Kartenanbieter">
           {!mapProviderReady ? (
             <Text style={styles.gap}>{GPS_TRACKING_MAP_PROVIDER_MESSAGE}</Text>
           ) : null}

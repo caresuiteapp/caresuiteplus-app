@@ -1,4 +1,4 @@
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { ClientIntakeSectionContent } from '@/components/office/clientintakewizardform';
 import {
@@ -67,11 +67,7 @@ export function ClientSectionEditModal({
     body = <LoadingState message="Änderungen werden gespeichert…" />;
   } else {
     body = (
-      <ScrollView
-        contentContainerStyle={styles.scrollContent}
-        keyboardShouldPersistTaps="handled"
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.formContent}>
         {section === 'leistungsart' && wizard.form.careContexts.length === 0 ? (
           <EmptyState
             title="Leistungsart wählen"
@@ -80,7 +76,7 @@ export function ClientSectionEditModal({
         ) : null}
         <ClientIntakeSectionContent section={section} wizard={wizard} contentStyles={contentStyles} />
         {submitError ? <ErrorState message={submitError} /> : null}
-      </ScrollView>
+      </View>
     );
   }
 
@@ -109,6 +105,6 @@ export function ClientSectionEditModal({
 }
 
 const styles = StyleSheet.create({
-  body: { minHeight: 120 },
-  scrollContent: { gap: spacing.sm, paddingBottom: spacing.md },
+  body: { flexGrow: 1 },
+  formContent: { gap: spacing.sm, paddingBottom: spacing.md },
 });

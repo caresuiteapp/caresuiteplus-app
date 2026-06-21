@@ -45,7 +45,7 @@ export function AppGlassModal({
       footerActions={footerActions}
       variant={variant}
       maxWidth={maxWidth}
-      maxHeightRatio={0.9}
+      maxHeightRatio={0.92}
       glowColor={moduleColor(moduleKey)}
     >
       {children}

@@ -8,7 +8,7 @@ import {
 } from '@/lib/access/accessModuleConfig';
 import { buildAccessDashboardKpis } from '@/lib/access/accessListStats';
 import type { AccessDashboardStats } from '@/lib/auth/permissionService';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 type AccessManagementDashboardHeroProps = {
@@ -67,11 +67,10 @@ export function AccessManagementDashboardHero({ stats }: AccessManagementDashboa
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Mandanten-Admin" variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isAccessManagementLiveReady() ? (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : (
-          <PremiumBadge label="Supabase Live" variant="green" dot />
+          <PremiumBadge label="Cloud Live" variant="green" dot />
         )}
       </View>
       <View style={styles.kpiRow}>

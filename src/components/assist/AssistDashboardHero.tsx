@@ -79,7 +79,7 @@ export function AssistDashboardHero({ stats, roleKey, onKpiPress }: AssistDashbo
           <Text style={styles.eyebrow}>ASSIST</Text>
           <Text style={styles.title}>Einsatzplanung</Text>
           <Text style={styles.meta}>
-            Einsätze, Durchführung und Fahrten — mandantenbezogen mit guardServiceTenant.
+            Einsätze, Durchführung und Fahrten — mandantenbezogen und rollenbasiert.
           </Text>
         </View>
         <View style={styles.iconBadge}>

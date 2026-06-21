@@ -5,10 +5,10 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 
 export const ASSIST_VISITS_MISSING_BANNER_MESSAGE =
-  'Die Tabelle assist_visits ist in Supabase noch nicht verfügbar. Einsätze können nicht persistent geladen oder gespeichert werden. Bitte Migration 0116 anwenden (separater Freigabe-Schritt — nicht in diesem Zwischenauftrag).';
+  'Einsatzdaten sind derzeit nicht verfügbar. Einsätze können nicht dauerhaft geladen oder gespeichert werden. Bitte wenden Sie sich an Ihren Administrator.';
 
 export const ASSIST_SUPABASE_NOT_CONFIGURED_MESSAGE =
-  'Supabase-Modus ist aktiv, aber keine Verbindung konfiguriert. Assist-Einsätze können nicht persistent gelesen werden.';
+  'Cloud-Anbindung ist noch nicht vollständig eingerichtet. Einsätze können derzeit nicht dauerhaft gelesen werden.';
 
 export type AssistDataSourceProbeResult = {
   blocking: boolean;

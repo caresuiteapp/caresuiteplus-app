@@ -9,7 +9,7 @@ import {
 import { buildClientPortalProfileKpis } from '@/lib/portal/portalProfileStats';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { getServiceMode } from '@/lib/services/mode';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { PortalClientProfile } from '@/types/portal/client';
 import { designTokens, spacing } from '@/theme';
 
@@ -85,11 +85,10 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
           <PremiumBadge label={formatCareLevel(profile.careLevel)} variant="green" dot />
         ) : null}
         {profileDataLive ? (
-          <PremiumBadge label="Live Supabase" variant="green" dot />
+          <PremiumBadge label="Cloud Live" variant="green" dot />
         ) : authLive ? null : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
