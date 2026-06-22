@@ -12,11 +12,28 @@ export function getTenantModuleSettingsCache(tenantId: string): TenantModuleSett
   return settingsCache.get(tenantId) ?? { ...DEFAULT_TENANT_MODULES };
 }
 
+function tenantModuleSettingsEqual(
+  left: TenantModuleSettings,
+  right: TenantModuleSettings,
+): boolean {
+  return (
+    left.assistEnabled === right.assistEnabled &&
+    left.pflegeEnabled === right.pflegeEnabled &&
+    left.stationaerEnabled === right.stationaerEnabled &&
+    left.beratungEnabled === right.beratungEnabled
+  );
+}
+
 export function setTenantModuleSettingsCache(
   tenantId: string,
   modules: TenantModuleSettings,
 ): void {
-  settingsCache.set(tenantId, { ...modules });
+  const next = { ...modules };
+  const previous = settingsCache.get(tenantId);
+  if (previous && tenantModuleSettingsEqual(previous, next)) {
+    return;
+  }
+  settingsCache.set(tenantId, next);
   listeners.forEach((listener) => listener());
 }
 

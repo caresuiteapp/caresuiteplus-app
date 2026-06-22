@@ -1,9 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DashboardScope, DashboardSnapshot } from '@/types/dashboard';
 import { useAuth } from '@/lib/auth/context';
 import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { fetchDashboardSnapshot } from '@/lib/dashboard';
+import { subscribeToOfficeDashboardChanges } from '@/lib/realtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+
+type RefreshOptions = {
+  simulateError?: boolean;
+  silent?: boolean;
+};
 
 export function useDashboard(scope: DashboardScope) {
   const { profile, portalSession, user } = useAuth();
@@ -12,16 +18,29 @@ export function useDashboard(scope: DashboardScope) {
   const [data, setData] = useState<DashboardSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
+  const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const dataRef = useRef<DashboardSnapshot | null>(null);
+  dataRef.current = data;
 
   const refresh = useCallback(
-    async (simulateError = false) => {
-      setLoading(true);
-      setError(null);
+    async (options?: RefreshOptions) => {
+      const silent = options?.silent ?? false;
+      const hasData = dataRef.current !== null;
+
+      if (!silent && !hasData) {
+        setLoading(true);
+        setError(null);
+      }
 
       if (!tenantId) {
-        setData(null);
-        setError('Kein Mandant am Profil hinterlegt. Bitte Administrator kontaktieren.');
-        setLoading(false);
+        if (!hasData) {
+          setData(null);
+          setError('Kein Mandant am Profil hinterlegt. Bitte Administrator kontaktieren.');
+        }
+        if (!silent && !hasData) {
+          setLoading(false);
+        }
         return;
       }
 
@@ -30,32 +49,60 @@ export function useDashboard(scope: DashboardScope) {
         roleKey,
         scope,
         {
-          simulateError,
+          simulateError: options?.simulateError,
           tenantNameHint: portalSession?.tenantName ?? null,
         },
       );
 
       if (result.ok) {
         setData(result.data);
-      } else {
+        setError(null);
+      } else if (!hasData) {
         setData(null);
         setError(result.error);
       }
 
-      setLoading(false);
+      if (!silent && !hasData) {
+        setLoading(false);
+      }
     },
     [tenantId, roleKey, scope, portalSession?.tenantName],
   );
 
-  useEffect(() => {
-    refresh();
+  const silentRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refresh({ silent: true });
+    setRefreshing(false);
   }, [refresh]);
+
+  useEffect(() => {
+    void refresh();
+  }, [refresh]);
+
+  useEffect(() => {
+    if (!tenantId || scope !== 'business') {
+      setIsLiveConnected(false);
+      return;
+    }
+
+    const unsubscribe = subscribeToOfficeDashboardChanges(tenantId, () => {
+      void silentRefresh();
+    });
+    setIsLiveConnected(true);
+    return () => {
+      unsubscribe();
+      setIsLiveConnected(false);
+    };
+  }, [tenantId, scope, silentRefresh]);
 
   return {
     data,
     loading,
     error,
     refresh,
+    silentRefresh,
+    refreshing,
+    isLiveConnected,
     isEmpty: !loading && !error && data !== null && data.activities.length === 0,
   };
 }

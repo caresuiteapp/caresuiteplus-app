@@ -256,6 +256,8 @@ describe('office dashboard live metrics', () => {
     expect(screen).not.toContain('ZentraleDashboardHero');
     expect(screen).toContain('Zentrale Dashboard');
     expect(screen).toContain('ModuleOverviewDashboard');
+    expect(screen).toContain('loading && !data');
+    expect(screen).toContain('silent: true');
     expect(screen).not.toContain('Letzte Aktivitäten');
     expect(screen).not.toContain('Schnellzugriff');
     expect(screen).not.toContain('Abmelden');
@@ -268,6 +270,8 @@ describe('office dashboard live metrics', () => {
     );
     expect(source).not.toContain('ZentraleDashboardHero');
     expect(source).toContain('ModuleOverviewDashboard');
+    expect(source).toContain('loading && !snapshot');
+    expect(source).toContain('error && !snapshot');
     expect(source).not.toContain('Letzte Aktivitäten');
     expect(source).not.toContain('Schnellaktionen');
     expect(source).not.toContain('Schnellzugriff');

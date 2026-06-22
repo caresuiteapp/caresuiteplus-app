@@ -55,11 +55,11 @@ export function DashboardView({
     }
   };
 
-  if (loading) {
+  if (loading && !snapshot) {
     return <LoadingState message="Dashboard wird geladen…" />;
   }
 
-  if (error) {
+  if (error && !snapshot) {
     return (
       <ErrorState
         title="Dashboard nicht verfügbar"

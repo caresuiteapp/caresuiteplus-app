@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DashboardSnapshot } from '@/types/dashboard';
 import { useAuth } from '@/lib/auth/context';
 import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
@@ -15,17 +15,27 @@ export function useOfficeDashboard() {
   const [data, setData] = useState<DashboardSnapshot | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [refreshing, setRefreshing] = useState(false);
   const [isLiveConnected, setIsLiveConnected] = useState(false);
+  const dataRef = useRef<DashboardSnapshot | null>(null);
+  dataRef.current = data;
 
   const refresh = useCallback(async (options?: RefreshOptions) => {
+    const silent = options?.silent ?? false;
+    const hasData = dataRef.current !== null;
+
     if (!tenantId) {
-      setData(null);
-      setError('Kein Mandant am Profil hinterlegt. Bitte Administrator kontaktieren.');
-      setLoading(false);
+      if (!hasData) {
+        setData(null);
+        setError('Kein Mandant am Profil hinterlegt. Bitte Administrator kontaktieren.');
+      }
+      if (!silent && !hasData) {
+        setLoading(false);
+      }
       return;
     }
 
-    if (!options?.silent) {
+    if (!silent && !hasData) {
       setLoading(true);
       setError(null);
     }
@@ -34,16 +44,22 @@ export function useOfficeDashboard() {
 
     if (result.ok) {
       setData(result.data);
-      if (options?.silent) setError(null);
-    } else {
+      setError(null);
+    } else if (!hasData) {
       setData(null);
       setError(result.error);
     }
 
-    if (!options?.silent) {
+    if (!silent && !hasData) {
       setLoading(false);
     }
   }, [tenantId, profile?.roleKey]);
+
+  const silentRefresh = useCallback(async () => {
+    setRefreshing(true);
+    await refresh({ silent: true });
+    setRefreshing(false);
+  }, [refresh]);
 
   useEffect(() => {
     void refresh();
@@ -56,20 +72,22 @@ export function useOfficeDashboard() {
     }
 
     const unsubscribe = subscribeToOfficeDashboardChanges(tenantId, () => {
-      void refresh({ silent: true });
+      void silentRefresh();
     });
     setIsLiveConnected(true);
     return () => {
       unsubscribe();
       setIsLiveConnected(false);
     };
-  }, [tenantId, refresh]);
+  }, [tenantId, silentRefresh]);
 
   return {
     data,
     loading,
     error,
     refresh,
+    silentRefresh,
+    refreshing,
     isLiveConnected,
     isEmpty: !loading && !error && data !== null && data.activities.length === 0,
   };

@@ -30,7 +30,7 @@ export function BusinessDashboardScreen() {
   const businessAccent = moduleColor('office');
 
   useEffect(() => subscribeTenantModuleSettings(() => {
-    void refresh();
+    void refresh({ silent: true });
   }), [refresh]);
 
   const displayName = profile?.displayName ?? user?.displayName ?? 'Willkommen';

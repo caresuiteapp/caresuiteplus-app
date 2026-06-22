@@ -11,6 +11,23 @@ describe('realtime wiring', () => {
     const source = readSrc('src/hooks/useOfficeDashboard.ts');
     expect(source).toContain('subscribeToOfficeDashboardChanges');
     expect(source).toContain('silent: true');
+    expect(source).toContain('dataRef');
+    expect(source).toContain('!hasData');
+  });
+
+  it('useDashboard behält KPI-Daten bei Hintergrund-Refresh', () => {
+    const source = readSrc('src/hooks/useDashboard.ts');
+    expect(source).toContain('subscribeToOfficeDashboardChanges');
+    expect(source).toContain('silent: true');
+    expect(source).toContain('dataRef');
+    expect(source).toContain('!hasData');
+  });
+
+  it('useAsyncQuery nutzt stale-while-revalidate für loading', () => {
+    const source = readSrc('src/hooks/core/useAsyncQuery.ts');
+    expect(source).toContain('dataRef');
+    expect(source).toContain('isInitialLoad');
+    expect(source).toContain('if (!silent && isInitialLoad)');
   });
 
   it('usePortalSidebarData nutzt usePortalAssistRealtime', () => {
@@ -70,11 +87,13 @@ describe('realtime wiring', () => {
     expect(source).not.toContain('useEffect');
   });
 
-  it('useAssistDashboard nutzt Assist-Operations auf beiden Queries', () => {
+  it('useAssistDashboard nutzt Assist-Operations-Live-Refresh', () => {
     const source = readSrc('src/hooks/useAssistDashboard.ts');
     expect(source).toContain('subscribeToAssistOperationsChanges');
     expect(source).toContain('OPERATIONAL_LIVE_POLL_MS');
     expect(source).toContain('isLiveConnected');
+    expect(source).toContain('fetchAssistDashboardBundle');
+    expect(source).toContain('authReady');
   });
 
   it('useActiveExecutions nutzt Assist-Operations-Live-Refresh', () => {
