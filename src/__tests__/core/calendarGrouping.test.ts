@@ -6,7 +6,7 @@ import {
   groupAssignmentsIntoCalendarDays,
 } from '@/lib/assist/calendarService';
 import { getDemoAssignmentListItems } from '@/data/demo/assistAssignments';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -43,7 +43,7 @@ describe('Calendar Grouping', () => {
 
   it('AssistCalendarScreen nutzt vollen Kalender und Detail-Modal', () => {
     const source = readSrc('src/screens/assist/AssistCalendarScreen.tsx');
-    expect(source).toContain('CareLightPageShell');
+    expect(source).toContain('ScreenShell');
     expect(source).toContain('AssistCalendarView');
     expect(source).toContain('AssignmentDetailGlassModal');
     expect(source).toContain('showBack={false}');

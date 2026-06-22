@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FormScreenHero } from '@/components/forms';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   LoadingState,
@@ -62,22 +62,22 @@ export function CaseEditScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Fall bearbeiten" subtitle="Wird geladen…">
+      <ScreenShell title="Fall bearbeiten" subtitle="Wird geladen…">
         <LoadingState message="Beratungsfall wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (saved) {
     return (
-      <CareLightPageShell title="Gespeichert" showBack={false}>
+      <ScreenShell title="Gespeichert" showBack={false}>
         <SuccessState message="Beratungsfall aktualisiert." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Fall bearbeiten" subtitle={roleLabel ?? 'Beratung'} onBack={() => router.back()}>
+    <ScreenShell title="Fall bearbeiten" subtitle={roleLabel ?? 'Beratung'} onBack={() => router.back()}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <FormScreenHero
           eyebrow="BERATUNG · FALL"
@@ -99,7 +99,7 @@ export function CaseEditScreen() {
           <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
         </PremiumCard>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

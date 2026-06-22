@@ -20,7 +20,9 @@ import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { PLATFORM_SHELL_HEADER_TOP_INSET } from '@/lib/platform/shellLayoutMetrics';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 import { getServiceMode } from '@/lib/services/mode';
-import { GlowCard } from '@/components/ui/effects';
+import { useAuroraAdaptiveText, lightLiquidGlassWebFx, useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
+import { resolveLlganGlassSurface } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { llgsTypography } from '@/design/tokens/lightLiquidGlassSpace';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { breakpoints } from '@/design/tokens/breakpoints';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
@@ -32,7 +34,17 @@ import {
   resolveContextPanelNavConfig,
 } from './platformContextData';
 import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
+import { PlatformContextSearch } from './PlatformContextSearch';
+import { PlatformProfileMenu } from './PlatformProfileMenu';
 import { TenantMandantCardContent } from './TenantMandantCardContent';
+import { SpaceKpiIcon } from '@/components/icons/space';
+
+const SUPPORT_LINKS_ITEMS = [
+  { label: 'Hilfe & Dokumentation', icon: 'helpOrb', href: 'help' as const },
+  { label: 'Datenschutz', icon: 'lockShield', href: 'privacy' as const },
+  { label: 'Betroffenenrechte', icon: 'dataRights', href: 'data-request' as const },
+  { label: 'Impressum', icon: 'infoBeacon', href: 'imprint' as const },
+] as const;
 
 type RightContextPanelProps = {
   mainModule: MainModuleKey;
@@ -54,6 +66,8 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   const { width } = useWindowDimensions();
   const { logoUrl: tenantLogoUrl, logoLoading: tenantLogoLoading } = useTenantBranding();
   const { colors, isDark } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
+  const tenantGlass = useShellGlassSurfaceStyle('card', { intensity: 'strong' });
   const accent = accentColor ?? colors.violet;
   const { data: officeData } = useOfficeDashboard();
   const isLive = getServiceMode() === 'supabase';
@@ -71,117 +85,137 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
 
   return (
     <View style={styles.root}>
-      <GlowCard glowColor={accent} style={styles.tenantCard}>
-        <TenantMandantCardContent
-          logoUrl={tenantLogoUrl}
-          logoLoading={tenantLogoLoading}
-          accentColor={accent}
-          labelStyle={{ color: colors.textMuted }}
-        />
-      </GlowCard>
+      <ScrollView
+        style={styles.scroll}
+        contentContainerStyle={styles.scrollContent}
+        keyboardShouldPersistTaps="handled"
+        nestedScrollEnabled
+      >
+        <PlatformProfileMenu accentColor={accent} fullWidth />
 
-      <Text style={styles.sectionHeading}>Heute</Text>
-      <ScrollView style={styles.taskList} nestedScrollEnabled showsVerticalScrollIndicator={false}>
-        {openTasks.map((task) => (
-          <View key={task.title} style={styles.taskItem}>
-            <Text style={styles.taskTitle} numberOfLines={1}>
-              {task.title}
-            </Text>
-            <View style={[styles.taskBadge, { backgroundColor: withAlpha(accent, 0.2) }]}>
-              <Text style={[styles.taskBadgeText, { color: accent }]}>{task.count}</Text>
+        <View style={[styles.tenantCard, tenantGlass]}>
+          {!isDark ? <View style={styles.tenantCardTint} pointerEvents="none" /> : null}
+          <TenantMandantCardContent
+            logoUrl={tenantLogoUrl}
+            logoLoading={tenantLogoLoading}
+            accentColor={accent}
+            labelStyle={{ color: text.muted }}
+            chipTextStyle={{ color: accent }}
+          />
+        </View>
+
+        <PlatformContextSearch mainModule={mainModule} accentColor={accent} fullWidth />
+
+        <Text style={styles.sectionHeading}>Heute</Text>
+        <View style={styles.taskList}>
+          {openTasks.map((task) => (
+            <View key={task.title} style={styles.taskItem}>
+              <Text style={styles.taskTitle} numberOfLines={1}>
+                {task.title}
+              </Text>
+              <View style={[styles.taskBadge, { backgroundColor: withAlpha(accent, 0.2) }]}>
+                <Text style={[styles.taskBadgeText, { color: accent }]}>{task.count}</Text>
+              </View>
             </View>
-          </View>
-        ))}
+          ))}
+        </View>
+
+        <CollapsibleSidebarSection
+          title="Schnellaktionen"
+          items={quickActions}
+          getItemKey={(action) => action.label}
+          titleStyle={styles.sectionHeading}
+          itemsContainerStyle={styles.quickActions}
+          renderItem={(action, context) => (
+            <Pressable
+              onPress={() => {
+                context?.closeMenu();
+                router.push(action.href as never);
+              }}
+              style={[styles.actionBtn, webCursor]}
+              accessibilityRole="button"
+            >
+              <SpaceKpiIcon icon={action.icon} accentColor={accent} size={26} />
+              <Text style={styles.actionLabel} numberOfLines={2}>
+                {action.label}
+              </Text>
+            </Pressable>
+          )}
+        />
+
+        <View style={styles.navSection}>
+          {navConfig.groups.map((group) => (
+            <CollapsibleSidebarSection
+              key={group.title}
+              title={group.title}
+              items={group.items}
+              getItemKey={(item) => item.key}
+              titleStyle={styles.groupTitle}
+              itemsContainerStyle={styles.navGroup}
+              renderItem={(item, context) => {
+                const active = item.key === activeNavKey;
+                return (
+                  <Pressable
+                    onPress={() => {
+                      context?.closeMenu();
+                      navigateModuleNavItem(item, router, openModal, adaptiveShell);
+                    }}
+                    style={webCursor}
+                    accessibilityRole="button"
+                    accessibilityState={{ selected: active }}
+                  >
+                    <View
+                      style={[
+                        styles.navItem,
+                        active && {
+                          backgroundColor: isDark
+                            ? withAlpha(accent, 0.2)
+                            : 'rgba(130,170,255,0.16)',
+                          borderColor: isDark ? withAlpha(accent, 0.65) : 'rgba(130,170,255,0.32)',
+                        },
+                      ]}
+                    >
+                      {active ? (
+                        <View style={[styles.navActiveBar, { backgroundColor: accent }]} />
+                      ) : null}
+                      <SpaceKpiIcon icon={item.icon} accentColor={accent} size={26} />
+                      <Text
+                        style={[
+                          styles.navLabel,
+                          active && { color: isDark ? '#FFFFFF' : accent, fontWeight: '700' },
+                        ]}
+                        numberOfLines={2}
+                      >
+                        {item.label}
+                      </Text>
+                    </View>
+                  </Pressable>
+                );
+              }}
+            />
+          ))}
+        </View>
       </ScrollView>
 
-      <CollapsibleSidebarSection
-        title="Schnellaktionen"
-        items={quickActions}
-        getItemKey={(action) => action.label}
-        titleStyle={styles.sectionHeading}
-        itemsContainerStyle={styles.quickActions}
-        renderItem={(action, context) => (
+      <View style={styles.supportFooter}>
+        <Text style={[styles.sectionHeading, styles.supportHeading]}>Support</Text>
+        {SUPPORT_LINKS_ITEMS.map((item) => (
           <Pressable
+            key={item.label}
             onPress={() => {
-              context?.closeMenu();
-              router.push(action.href as never);
+              if (item.href === 'data-request') {
+                router.push('/settings/data-request' as never);
+                return;
+              }
+              openExternal(SUPPORT_LINKS[item.href]);
             }}
-            style={[styles.actionBtn, webCursor]}
+            style={[styles.supportLink, webCursor]}
             accessibilityRole="button"
           >
-            <Text style={styles.actionIcon}>{action.icon}</Text>
-            <Text style={styles.actionLabel} numberOfLines={2}>
-              {action.label}
-            </Text>
+            <SpaceKpiIcon icon={item.icon} accentColor={accent} size={26} />
+            <Text style={styles.supportLinkText}>{item.label}</Text>
           </Pressable>
-        )}
-      />
-
-      <View style={styles.navSection}>
-        {navConfig.groups.map((group) => (
-          <CollapsibleSidebarSection
-            key={group.title}
-            title={group.title}
-            items={group.items}
-            getItemKey={(item) => item.key}
-            titleStyle={styles.groupTitle}
-            itemsContainerStyle={styles.navGroup}
-            renderItem={(item, context) => {
-              const active = item.key === activeNavKey;
-              return (
-                <Pressable
-                  onPress={() => {
-                    context?.closeMenu();
-                    navigateModuleNavItem(item, router, openModal, adaptiveShell);
-                  }}
-                  style={webCursor}
-                  accessibilityRole="button"
-                  accessibilityState={{ selected: active }}
-                >
-                  <View
-                    style={[
-                      styles.navItem,
-                      active && {
-                        backgroundColor: withAlpha(accent, isDark ? 0.2 : 0.12),
-                        borderColor: withAlpha(accent, 0.45),
-                      },
-                    ]}
-                  >
-                    {active ? (
-                      <View style={[styles.navActiveBar, { backgroundColor: accent }]} />
-                    ) : null}
-                    <Text style={styles.navIcon}>{item.icon}</Text>
-                    <Text
-                      style={[
-                        styles.navLabel,
-                        active && { color: isDark ? '#FFFFFF' : accent, fontWeight: '700' },
-                      ]}
-                      numberOfLines={2}
-                    >
-                      {item.label}
-                    </Text>
-                  </View>
-                </Pressable>
-              );
-            }}
-          />
         ))}
-      </View>
-
-      <View style={styles.support}>
-        <Text style={styles.sectionHeading}>Support</Text>
-        <Pressable onPress={() => openExternal(SUPPORT_LINKS.help)} style={styles.supportLink}>
-          <Text style={styles.supportLinkText}>❓ Hilfe & Dokumentation</Text>
-        </Pressable>
-        <Pressable onPress={() => openExternal(SUPPORT_LINKS.privacy)} style={styles.supportLink}>
-          <Text style={styles.supportLinkText}>🔒 Datenschutz</Text>
-        </Pressable>
-        <Pressable onPress={() => router.push('/settings/data-request' as never)} style={styles.supportLink}>
-          <Text style={styles.supportLinkText}>📋 Betroffenenrechte</Text>
-        </Pressable>
-        <Pressable onPress={() => openExternal(SUPPORT_LINKS.imprint)} style={styles.supportLink}>
-          <Text style={styles.supportLinkText}>ℹ️ Impressum</Text>
-        </Pressable>
       </View>
     </View>
   );
@@ -192,33 +226,55 @@ function createStyles(
   colors: ReturnType<typeof useLegacyTheme>['colors'],
   accent: string,
 ) {
-  const glassBorder = isDark ? glassFx.border : colors.borderSoft;
-  const chipBg = isDark ? 'rgba(255,255,255,0.04)' : colors.bgSurface;
+  const sidebarSurface = resolveLlganGlassSurface('default');
+  const chipSurface = resolveLlganGlassSurface('subtle');
+  const glassBorder = isDark ? glassFx.border : sidebarSurface.borderAccent;
+  const chipBg = isDark ? 'rgba(255,255,255,0.04)' : chipSurface.chip;
+  const sidebarGlass = isDark
+    ? { backgroundColor: 'rgba(18,22,43,0.28)' }
+    : {
+        backgroundColor: sidebarSurface.sidebar,
+        ...lightLiquidGlassWebFx(sidebarSurface.blurDesktop, sidebarSurface.saturate),
+      };
 
   return StyleSheet.create({
     root: {
       width: 272,
       flexGrow: 0,
       flexShrink: 0,
-      alignSelf: 'stretch',
-      backgroundColor: isDark ? 'rgba(18,22,43,0.28)' : colors.bgSurface,
+      minHeight: 0,
+      ...sidebarGlass,
       borderLeftWidth: 1,
-      borderLeftColor: glassBorder,
+      borderLeftColor: withAlpha(accent, isDark ? 0.45 : 0.32),
+    },
+    scroll: {
+      flex: 1,
+      minHeight: 0,
+    },
+    scrollContent: {
       paddingHorizontal: spacing.sm + spacing.xs,
       paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
-      paddingBottom: spacing.lg,
+      paddingBottom: spacing.md,
       gap: spacing.md,
     },
     tenantCard: {
       padding: spacing.sm + spacing.xs,
+      borderRadius: radius.lg,
+      overflow: 'hidden',
+      position: 'relative',
+    },
+    tenantCardTint: {
+      ...StyleSheet.absoluteFillObject,
+      backgroundColor: 'rgba(210,235,255,0.10)',
+      borderRadius: radius.lg,
     },
     sectionHeading: {
       ...typography.caption,
-      color: colors.textMuted,
+      color: isDark ? colors.textMuted : llgsTypography.secondary,
       textTransform: 'uppercase',
       letterSpacing: 0.6,
     },
-    taskList: { maxHeight: 120 },
+    taskList: { gap: spacing.xs, maxHeight: 120 },
     taskItem: {
       flexDirection: 'row',
       alignItems: 'center',
@@ -247,8 +303,9 @@ function createStyles(
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
       borderWidth: 1,
-      borderColor: glassBorder,
+      borderColor: withAlpha(accent, isDark ? 0.35 : 0.24),
       backgroundColor: chipBg,
+      ...(isDark ? null : lightLiquidGlassWebFx(chipSurface.blurMobile, chipSurface.saturate)),
     },
     actionIcon: { fontSize: 14 },
     actionLabel: { ...typography.caption, color: colors.textPrimary, fontWeight: '600', flex: 1 },
@@ -269,8 +326,9 @@ function createStyles(
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
       borderWidth: 1,
-      borderColor: 'transparent',
+      borderColor: withAlpha(accent, isDark ? 0.22 : 0.18),
       backgroundColor: chipBg,
+      ...(isDark ? null : lightLiquidGlassWebFx(chipSurface.blurMobile, chipSurface.saturate)),
       position: 'relative',
     },
     navActiveBar: {
@@ -283,8 +341,34 @@ function createStyles(
     },
     navIcon: { fontSize: 14, width: 18, textAlign: 'center' },
     navLabel: { ...typography.caption, color: colors.textSecondary, fontWeight: '600', flex: 1 },
-    support: { marginTop: 'auto', gap: spacing.xs },
-    supportLink: { paddingVertical: spacing.xs },
-    supportLinkText: { ...typography.caption, color: colors.textMuted, fontWeight: '600' },
+    supportFooter: {
+      flexShrink: 0,
+      alignItems: 'stretch',
+      paddingHorizontal: spacing.sm + spacing.xs,
+      paddingTop: spacing.sm,
+      paddingBottom: spacing.lg,
+      gap: spacing.xs,
+      borderTopWidth: 1,
+      borderTopColor: withAlpha(accent, isDark ? 0.4 : 0.3),
+    },
+    supportHeading: {
+      textAlign: 'left',
+      width: '100%',
+    },
+    supportLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'flex-start',
+      paddingVertical: spacing.xs,
+      gap: spacing.sm,
+      width: '100%',
+    },
+    supportLinkText: {
+      ...typography.caption,
+      color: colors.textMuted,
+      fontWeight: '600',
+      textAlign: 'left',
+      flexShrink: 1,
+    },
   });
 }

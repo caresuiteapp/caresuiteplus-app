@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CaseDetailHero } from '@/components/beratung';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { useCounselingCaseDetail } from '@/hooks/useCounselingCaseDetail';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -33,29 +33,29 @@ export function CaseDetailScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Beratungsfall" subtitle="Wird geladen…">
+      <ScreenShell title="Beratungsfall" subtitle="Wird geladen…">
         <LoadingState message="Falldetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Beratungsfall" subtitle="Fehler">
+      <ScreenShell title="Beratungsfall" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Der Beratungsfall existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!counselingCase) return null;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={counselingCase.subject}
       subtitle={`${counselingCase.clientName} · ${roleLabel ?? 'Demo'}`}
       rightSlot={
@@ -102,7 +102,7 @@ export function CaseDetailScreen() {
           </SectionPanel>
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

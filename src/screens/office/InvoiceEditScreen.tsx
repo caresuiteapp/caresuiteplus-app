@@ -4,7 +4,7 @@ import { useEffect, useState } from 'react';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -54,37 +54,37 @@ export function InvoiceEditScreen() {
 
   if (!can('office.invoices.view') || isReadOnly) {
     return (
-      <CareLightPageShell title="Rechnung bearbeiten" subtitle={roleLabel ?? 'Office'}>
+      <ScreenShell title="Rechnung bearbeiten" subtitle={roleLabel ?? 'Office'}>
         <LockedActionBanner
           message={check('office.invoices.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Rechnung bearbeiten" subtitle="Wird geladen…">
+      <ScreenShell title="Rechnung bearbeiten" subtitle="Wird geladen…">
         <LoadingState message="Rechnung wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Rechnung bearbeiten" subtitle="Fehler">
+      <ScreenShell title="Rechnung bearbeiten" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const invoice = query.data;
   if (!invoice) {
     return (
-      <CareLightPageShell title="Rechnung bearbeiten" subtitle="Nicht gefunden">
+      <ScreenShell title="Rechnung bearbeiten" subtitle="Nicht gefunden">
         <EmptyState title="Rechnung nicht gefunden" message="Der Datensatz existiert nicht im Demo-Mandanten." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -110,19 +110,19 @@ export function InvoiceEditScreen() {
 
   if (saved) {
     return (
-      <CareLightPageShell title="Gespeichert" subtitle={invoice.invoiceNumber}>
+      <ScreenShell title="Gespeichert" subtitle={invoice.invoiceNumber}>
         <SuccessState message="Rechnungsstammdaten wurden aktualisiert." />
         <PremiumButton
           title="Zur Detailansicht"
           fullWidth
           onPress={() => router.replace(`/business/office/invoices/${id}` as never)}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Rechnung bearbeiten" subtitle={invoice.invoiceNumber}>
+    <ScreenShell title="Rechnung bearbeiten" subtitle={invoice.invoiceNumber}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <FormScreenHero
           eyebrow="OFFICE · RECHNUNGEN"
@@ -149,7 +149,7 @@ export function InvoiceEditScreen() {
           <PremiumButton title="Abbrechen" variant="secondary" onPress={() => router.back()} />
         </PremiumCard>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -45,6 +45,16 @@ export type ClientTask = TenantScopedEntity & {
   isActive: boolean;
   catalogTaskId: string | null;
   assignedEmployeeIds: string[];
+  moduleKey?: string | null;
+  leistungsbereich?: string | null;
+  subcategory?: string | null;
+  packageId?: string | null;
+  leistungsart?: string | null;
+  isMandatory?: boolean;
+  proofRequired?: boolean;
+  documentationRequired?: boolean;
+  billingRelevant?: boolean;
+  visibleToClient?: boolean;
 };
 
 export type TaskCatalogItem = {

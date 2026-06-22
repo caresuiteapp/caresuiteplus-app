@@ -7,8 +7,8 @@ import {
   SIS_CREATE_PREPARED_MESSAGE,
   SIS_EDIT_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
 
@@ -79,7 +79,6 @@ export function SisPreparedFormHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {writeReady ? (
           <PremiumBadge label="Speichern aktiv" variant="green" dot />
         ) : (

@@ -1,6 +1,6 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TIConnectionStatusBadge, TISecurityNotice, TIProviderSettingsHero } from '@/components/ti';
 import { ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useTIProviders } from '@/hooks/ti';
@@ -14,30 +14,30 @@ export function TIProviderSettingsScreen() {
 
   if (!can('ti.view')) {
     return (
-      <CareLightPageShell title="TI-Provider">
+      <ScreenShell title="TI-Provider">
         <LockedActionBanner message={check('ti.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && providers.length === 0) {
     return (
-      <CareLightPageShell title="TI-Provider">
+      <ScreenShell title="TI-Provider">
         <LoadingState message="Provider werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && providers.length === 0) {
     return (
-      <CareLightPageShell title="TI-Provider">
+      <ScreenShell title="TI-Provider">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="TI-Provider" subtitle="Konfiguration & Verbindung">
+    <ScreenShell title="TI-Provider" subtitle="Konfiguration & Verbindung">
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.cyan} />}
         contentContainerStyle={styles.scroll}
@@ -71,7 +71,7 @@ export function TIProviderSettingsScreen() {
           </PremiumCard>
         ))}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

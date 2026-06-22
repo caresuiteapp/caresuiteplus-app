@@ -3,7 +3,7 @@ import { existsSync, readFileSync, statSync } from 'node:fs';
 import path from 'node:path';
 import { buildTenantStoragePath } from '@/lib/storage/storagePaths';
 import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 

@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { getAllCatalogEntries } from '@/data/demo/templates';
 import { getDropdownOptions } from '@/lib/templates';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 describe('employee create catalogs', () => {
   it('includes employee role and department catalog entries', () => {

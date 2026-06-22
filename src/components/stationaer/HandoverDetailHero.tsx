@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildHandoverDetailKpis } from '@/lib/stationaer/handoverDetailStats';
 import { isStationaerExtensionLiveReady } from '@/lib/stationaer/stationaerModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { HandoverDetail } from '@/types/modules/stationaer';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -71,7 +71,6 @@ export function HandoverDetailHero({ handover, roleKey }: HandoverDetailHeroProp
         ) : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

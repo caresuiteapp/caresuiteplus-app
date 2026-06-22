@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { detectEmployeeEligibilityConflicts } from '@/lib/assist/employeeAssignmentEligibilityService';
 import { evaluateEmployeeAssignmentEligibility } from '@/lib/office/employeeAssignmentEligibility';
 import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile';

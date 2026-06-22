@@ -1,6 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 
@@ -12,6 +12,36 @@ type CareLightPageHeaderProps = {
 };
 
 export function CareLightPageHeader({ title, subtitle, rightSlot, style }: CareLightPageHeaderProps) {
+  const { c } = useCareLightPalette();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: careSpacing.md,
+        },
+        left: {
+          flex: 1,
+          gap: 2,
+        },
+        right: {
+          flexShrink: 0,
+        },
+        title: {
+          ...careTypography.h2,
+          color: c.text,
+          fontWeight: '800',
+        },
+        subtitle: {
+          ...careTypography.body,
+          color: c.muted,
+        },
+      }),
+    [c.muted, c.text],
+  );
+
   return (
     <View style={[styles.root, style]}>
       <View style={styles.left}>
@@ -22,28 +52,3 @@ export function CareLightPageHeader({ title, subtitle, rightSlot, style }: CareL
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: careSpacing.md,
-  },
-  left: {
-    flex: 1,
-    gap: 2,
-  },
-  right: {
-    flexShrink: 0,
-  },
-  title: {
-    ...careTypography.h2,
-    color: careLightColors.navy,
-    fontWeight: '800',
-  },
-  subtitle: {
-    ...careTypography.body,
-    color: careLightColors.muted,
-  },
-});

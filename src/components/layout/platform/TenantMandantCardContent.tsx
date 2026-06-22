@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
-import { Image, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { CareSuiteLogo } from '@/components/brand';
+import { SpaceMandantIcon } from '@/components/icons/space';
 import { withAlpha } from '@/design/tokens/motion';
 import { spacing, typography } from '@/theme';
 
@@ -36,7 +37,10 @@ export function TenantMandantCardContent({
   return (
     <View style={[styles.root, style]}>
       <View style={styles.headerRow}>
-        <Text style={[styles.label, labelStyle]}>MANDANT</Text>
+        <View style={styles.labelRow}>
+          <SpaceMandantIcon accentColor={accentColor} size={22} />
+          <Text style={[styles.label, labelStyle]}>MANDANT</Text>
+        </View>
         <View style={[styles.liveChip, { borderColor: withAlpha(accentColor, 0.45) }]}>
           <Text style={[styles.liveChipText, { color: accentColor }, chipTextStyle]}>● Live</Text>
         </View>
@@ -70,6 +74,11 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: spacing.xs,
   },
+  labelRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.xs,
+  },
   label: {
     ...typography.caption,
     textTransform: 'uppercase',
@@ -91,10 +100,16 @@ const styles = StyleSheet.create({
     height: LOGO_MAX_HEIGHT,
     alignItems: 'center',
     justifyContent: 'center',
+    ...(Platform.OS === 'web'
+      ? ({ filter: 'contrast(1.14) saturate(1.06)' } as ViewStyle)
+      : null),
   },
   logo: {
     width: '100%',
     height: LOGO_MAX_HEIGHT,
     backgroundColor: 'transparent',
+    ...(Platform.OS === 'web'
+      ? ({ filter: 'drop-shadow(0 1px 3px rgba(10,25,55,0.16))' } as ViewStyle)
+      : null),
   },
 });

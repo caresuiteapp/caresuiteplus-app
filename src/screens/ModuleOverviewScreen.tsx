@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useReducer } from 'react';
 import { PremiumPreparedNotice } from '@/components/billing/PremiumPreparedNotice';
 import { BusinessModuleHubHero, ModuleCard } from '@/components/modules';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { PremiumButton, SectionPanel } from '@/components/ui';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { useAuth } from '@/lib/auth/context';
@@ -13,11 +13,11 @@ export function ModuleOverviewScreen() {
   const router = useRouter();
   const { profile } = useAuth();
   const roleKey = profile?.roleKey ?? 'business_admin';
-  const { modules, billing } = useModuleAccess();
-  const [, refresh] = useReducer((x: number) => x + 1, 0);
+  const [revision, refresh] = useReducer((x: number) => x + 1, 0);
+  const { modules, billing, tenantId } = useModuleAccess(revision);
 
   return (
-    <CareLightPageShell title="Module verwalten" subtitle="CareSuite+ Free Platform — 0 €">
+    <ScreenShell title="Module verwalten" subtitle="CareSuite+ Free Platform — 0 €" scroll={false}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <BusinessModuleHubHero modules={modules} billing={billing} roleKey={roleKey} />
 
@@ -29,7 +29,13 @@ export function ModuleOverviewScreen() {
         >
           <View style={styles.list}>
             {modules.map((module) => (
-              <ModuleCard key={module.productKey} module={module} onActivated={refresh} />
+              <ModuleCard
+                key={module.productKey}
+                module={module}
+                tenantId={tenantId}
+                roleKey={roleKey}
+                onChanged={refresh}
+              />
             ))}
           </View>
         </SectionPanel>
@@ -40,7 +46,7 @@ export function ModuleOverviewScreen() {
           onPress={() => router.push('/business/office/access/module-permissions' as never)}
         />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

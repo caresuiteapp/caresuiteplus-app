@@ -2,10 +2,10 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { buildSecurityListKpis } from '@/lib/security/securityListStats';
 import { isSecurityLiveReady, SECURITY_PREPARED_MESSAGE } from '@/lib/security/securityModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import type { SecurityListItem } from '@/types/security';
 import { designTokens, spacing } from '@/theme';
@@ -71,7 +71,6 @@ export function SecurityListHero({ items, roleKey }: SecurityListHeroProps) {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isSecurityLiveReady() ? (
           <PremiumBadge label="Live-Monitoring in Vorbereitung" variant="orange" dot />
         ) : null}

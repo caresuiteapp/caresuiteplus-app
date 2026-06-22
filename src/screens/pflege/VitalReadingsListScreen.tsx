@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { VitalReadingsListView } from '@/components/pflege/VitalReadingsListView';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,22 +32,22 @@ export function VitalReadingsListScreen({
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Vitalwerte" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Vitalwerte" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Vitalwerte werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Vitalwerte" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Vitalwerte" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Vitalwerte"
       subtitle={`Pflege-Dokumentation${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
@@ -68,7 +68,7 @@ export function VitalReadingsListScreen({
           <VitalReadingsListView onReadingPress={onReadingPress} selectedId={selectedId} />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -1,8 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { getPermissionsForRole } from '@/data/demo/permissions';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import { getPermissionsForRole } from '@/lib/permissions/staticRolePermissions';
 import {
   getAllConnectIntegrations,
   getConnectCategories,

@@ -4,7 +4,7 @@ import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { MedicationListCard } from '@/components/pflege/MedicationListCard';
 import { MedicationListHero, MEDICATION_PREPARED_MESSAGE } from '@/components/pflege/MedicationListHero';
 import { MedicationListTable } from '@/components/pflege/MedicationListTable';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -41,17 +41,17 @@ export function MedicationListScreen() {
 
   if (query.loading && items.length === 0) {
     return (
-      <CareLightPageShell title="Medikationsplan" subtitle="Wird geladen…">
+      <ScreenShell title="Medikationsplan" subtitle="Wird geladen…">
         <LoadingState message="Verordnungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && items.length === 0) {
     return (
-      <CareLightPageShell title="Medikationsplan" subtitle="Fehler">
+      <ScreenShell title="Medikationsplan" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -71,7 +71,7 @@ export function MedicationListScreen() {
 
   if (useTableLayout) {
     return (
-      <CareLightPageShell title="Medikationsplan" subtitle={`Medikation · ${roleLabel ?? 'Demo'}`} scroll={false}>
+      <ScreenShell title="Medikationsplan" subtitle={`Medikation · ${roleLabel ?? 'Demo'}`} scroll={false}>
         <ScrollView
           contentContainerStyle={styles.tableScroll}
           refreshControl={
@@ -88,12 +88,12 @@ export function MedicationListScreen() {
             <MedicationListTable items={items} onOpenDetail={openDetail} />
           )}
         </ScrollView>
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Medikationsplan" subtitle={`Medikation · ${roleLabel ?? 'Demo'}`} scroll={false}>
+    <ScreenShell title="Medikationsplan" subtitle={`Medikation · ${roleLabel ?? 'Demo'}`} scroll={false}>
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
@@ -112,7 +112,7 @@ export function MedicationListScreen() {
           <RefreshControl refreshing={query.refreshing} onRefresh={query.refresh} tintColor={colors.primary} />
         }
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

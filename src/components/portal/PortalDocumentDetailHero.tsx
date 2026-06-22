@@ -3,7 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { formatFileSize } from '@/lib/portal';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 import type { PortalDocumentDetail } from '@/types/portal/documents';
 import { SENSITIVITY_LABELS, VISIBILITY_LABELS } from '@/types/portal/visibility';
@@ -146,7 +146,6 @@ export function PortalDocumentDetailHero({ document, scope }: PortalDocumentDeta
         ) : (
           <PremiumBadge label="Download vorbereitet" variant="orange" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard

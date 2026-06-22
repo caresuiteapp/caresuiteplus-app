@@ -15,7 +15,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildVitalListKpis } from '@/data/demo/vitalListStats';
+import { buildVitalListKpis } from '@/lib/pflege/vitalListStats';
 import { useVitalReadingList } from '@/hooks/useVitalReadingList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';

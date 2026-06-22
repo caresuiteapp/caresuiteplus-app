@@ -5,10 +5,10 @@ import {
   buildClientListKpis,
   CLIENT_CARE_LEVEL_FILTERS,
   filterClientsByCareLevel,
-} from '@/data/demo/clientListStats';
+} from '@/lib/office/clientListStats';
 import { demoClients } from '@/data/demo/clients';
 import { fetchClientList } from '@/lib/office/clientListService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { CLIENT_STATUS_FILTERS, CLIENT_SORT_OPTIONS } from '@/hooks/useClientList';
 
@@ -80,6 +80,9 @@ describe('Office Klient:innen list', () => {
     expect(source).toContain('Vollständige Akte öffnen');
     expect(source).toContain('ContextCard');
     expect(source).toContain('useClientDetail');
+    expect(source).toContain('OfficeRecordDeleteButton');
+    expect(source).toContain('office.clients.delete');
+    expect(source).toContain('Klient:in wirklich löschen?');
     expect(source).not.toContain('Coming Soon');
   });
 

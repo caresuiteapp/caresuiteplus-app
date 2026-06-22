@@ -27,13 +27,13 @@ describe('Module nav modal routing', () => {
     expect(modalScreens).toContain('embeddedInModal');
   });
 
-  it('ModuleNavSidebar öffnet PlatformModal auf Web/Desktop', () => {
-    const sidebar = readSrc('src/components/layout/platform/ModuleNavSidebar.tsx');
-    expect(sidebar).toContain('PlatformModal');
-    expect(sidebar).toContain('openInModal');
-    expect(sidebar).toContain("adaptiveShell === 'web'");
-    expect(sidebar).toContain('embeddedInModal');
-    expect(sidebar).toContain('MODULE_NAV_MODAL_SCREENS');
+  it('ModuleNavSidebar öffnet PlatformModal auf Desktop/Tablet', () => {
+    const sidebar = readSrc('src/components/layout/platform/modulenavsidebar.tsx');
+    expect(sidebar).toContain('navigateModuleNavItem');
+    const nav = readSrc('src/lib/navigation/modulenav/navigateModuleNavItem.ts');
+    expect(nav).toContain('openInModal');
+    expect(nav).toContain("adaptiveShell === 'desktop'");
+    expect(readSrc('src/lib/navigation/moduleNav/modalscreens.ts')).toContain('embeddedInModal');
   });
 
   it('Settings-Screens nutzen SettingsScreenFrame für PlatformShell', () => {

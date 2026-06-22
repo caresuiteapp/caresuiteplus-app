@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildFollowUpDetailKpis } from '@/lib/beratung/extensionDetailStats';
 import { isBeratungExtensionLiveReady, BERATUNG_EXTENSION_PREPARED_MESSAGE } from '@/lib/beratung/beratungModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { FollowUp } from '@/types/modules/beratung';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -70,7 +70,6 @@ export function FollowUpDetailHero({ followUp, roleKey }: FollowUpDetailHeroProp
         {!isBeratungExtensionLiveReady() ? (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

@@ -1,6 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import { demoClients } from '@/data/demo/clients';
-import { getClientPortalCodes } from '@/lib/auth/demoAccessStore';
+import { getClientPortalCodes } from '@/lib/auth/accessStore';
 import { getClientExtendedRepository } from '@/lib/clients/clientBackend';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';

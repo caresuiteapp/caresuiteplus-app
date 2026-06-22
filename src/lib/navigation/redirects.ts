@@ -1,6 +1,11 @@
 import type { Href } from 'expo-router';
 import type { ProductKey, RoleKey } from '@/types';
 import { hasEffectiveModuleGateAccess } from '@/lib/modules/moduleAccessService';
+import { isProductScopeKey } from '@/lib/modules/moduleVisibilityConfig';
+import {
+  resolveModuleNavState,
+  resolveModuleScopeFromPath,
+} from '@/lib/modules/moduleVisibilityService';
 import { getRouteByPath } from './routes';
 import { DEMO_BUSINESS_ENTRY_ROUTE } from './demoNavigation';
 
@@ -8,6 +13,9 @@ export type RedirectReason =
   | 'unauthenticated'
   | 'wrong_role'
   | 'module_inactive'
+  | 'module_disabled'
+  | 'module_internal'
+  | 'module_coming_soon'
   | 'unknown_route';
 
 export type RedirectDecision = {
@@ -76,6 +84,60 @@ export function checkRoleAccess(
       message: 'Sie haben keine Berechtigung für diesen Bereich.',
     };
   }
+  return { shouldRedirect: false, target: path as Href };
+}
+
+export function checkModuleAccess(
+  path: string,
+  roleKey?: RoleKey | null,
+  tenantId?: string | null,
+): RedirectDecision {
+  const roleDecision = checkRoleAccess(path, roleKey);
+  if (roleDecision.shouldRedirect) return roleDecision;
+
+  const scopeKey = resolveModuleScopeFromPath(path);
+  if (!scopeKey) {
+    return { shouldRedirect: false, target: path as Href };
+  }
+
+  const navState = resolveModuleNavState(scopeKey, { tenantId, roleKey });
+
+  if (navState.effectiveStatus === 'disabled') {
+    return {
+      shouldRedirect: true,
+      target: '/business' as Href,
+      reason: 'module_disabled',
+      message: navState.blockReason ?? 'Dieses Modul ist derzeit nicht verfügbar.',
+    };
+  }
+
+  if (navState.effectiveStatus === 'coming_soon') {
+    return {
+      shouldRedirect: true,
+      target: '/business' as Href,
+      reason: 'module_coming_soon',
+      message: navState.blockReason ?? 'Dieses Modul ist in Vorbereitung.',
+    };
+  }
+
+  if (navState.effectiveStatus === 'internal' && !navState.isNavigable) {
+    return {
+      shouldRedirect: true,
+      target: '/business' as Href,
+      reason: 'module_internal',
+      message: navState.blockReason ?? 'Dieser Bereich ist nur für Administratoren verfügbar.',
+    };
+  }
+
+  if (isProductScopeKey(scopeKey) && !navState.isNavigable) {
+    return {
+      shouldRedirect: true,
+      target: '/business/modules' as Href,
+      reason: 'module_inactive',
+      message: navState.blockReason ?? 'Das Modul ist für Ihren Mandanten nicht aktiv.',
+    };
+  }
+
   return { shouldRedirect: false, target: path as Href };
 }
 

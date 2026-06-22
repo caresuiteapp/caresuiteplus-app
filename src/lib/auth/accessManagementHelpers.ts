@@ -1,4 +1,4 @@
-import { getModulePermissionsStore } from './demoAccessStore';
+import { getModulePermissionsStore } from './accessStore';
 import type { UserModulePermission } from './auth.types';
 
 export function getModulePermissionsForUser(

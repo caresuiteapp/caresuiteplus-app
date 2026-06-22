@@ -8,13 +8,13 @@ import {
   PremiumListHeroFrame,
 } from '@/components/ui';
 import type { DesktopListViewMode } from '@/components/ui/DesktopListViewToggle';
-import type { ReportListKpi } from '@/data/demo/reportListStats';
-import { ROLE_LABELS } from '@/data/demo';
+import type { ReportListKpi } from '@/lib/reporting/reportListStats';
+import { ROLE_LABELS } from '@/data/constants';
 import {
   isReportsListLiveReady,
   REPORTS_LIST_PREPARED_MESSAGE,
 } from '@/lib/reporting/reportingModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
 
@@ -120,7 +120,6 @@ export function ReportsListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isReportsListLiveReady() ? (
           <PremiumBadge label="Live Supabase" variant="green" dot />
         ) : (

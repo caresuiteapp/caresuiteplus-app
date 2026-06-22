@@ -1,5 +1,6 @@
 import { useCallback } from 'react';
 import { fetchEmployeeDetail } from '@/lib/office';
+import { subscribeToEmployeeDetailChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
@@ -21,7 +22,16 @@ export function useEmployeeDetail(employeeId: string | undefined) {
       return fetchEmployeeDetail(employeeId, tenantId, roleKey);
     },
     [tenantId, employeeId, roleKey],
-    { enabled: Boolean(employeeId) && !!tenantId },
+    {
+      enabled: Boolean(employeeId) && !!tenantId,
+      live:
+        tenantId && employeeId
+          ? {
+              tenantId,
+              subscribe: (tid, handler) => subscribeToEmployeeDetailChanges(tid, employeeId, handler),
+            }
+          : undefined,
+    },
   );
 
   const refresh = useCallback(async () => {
@@ -33,6 +43,7 @@ export function useEmployeeDetail(employeeId: string | undefined) {
     loading: query.loading,
     error: query.error,
     refresh,
+    isLiveConnected: query.isLiveConnected,
     notFound: !query.loading && !query.error && !query.data,
   };
 }

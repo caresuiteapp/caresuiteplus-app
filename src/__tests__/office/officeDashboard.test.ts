@@ -2,8 +2,6 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { buildOfficeDashboard, OFFICE_AREA_SHORTCUTS } from '@/data/demo/officeDashboard';
-import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { enforcePermission } from '@/lib/permissions';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -17,17 +15,14 @@ describe('Office dashboard', () => {
     expect(enforcePermission(null, 'office.access' as never)).not.toBeNull();
   });
 
-  it('fetchOfficeDashboard liefert Demo-Snapshot', async () => {
-    const result = await fetchOfficeDashboard(DEMO_TENANT_ID, 'business_admin');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.scope).toBe('office');
-      expect(result.data.moduleLabel).toBe('CareSuite+ Office');
-      expect(result.data.kpis.length).toBeGreaterThanOrEqual(4);
-      expect(result.data.statusCards.length).toBeGreaterThan(0);
-      expect(result.data.activities.length).toBeGreaterThan(0);
-      expect(result.data.primaryAction.route).toBeTruthy();
-    }
+  it('buildOfficeDashboard liefert vollständigen Demo-Snapshot', () => {
+    const snapshot = buildOfficeDashboard('business_admin');
+    expect(snapshot.scope).toBe('office');
+    expect(snapshot.moduleLabel).toBe('CareSuite+ Office');
+    expect(snapshot.kpis.length).toBeGreaterThanOrEqual(4);
+    expect(snapshot.statusCards.length).toBeGreaterThan(0);
+    expect(snapshot.activities.length).toBeGreaterThan(0);
+    expect(snapshot.primaryAction.route).toBeTruthy();
   });
 
   it('buildOfficeDashboard nutzt echte Demo-Kennzahlen', () => {
@@ -53,14 +48,17 @@ describe('Office dashboard', () => {
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('OfficeDashboardView hat Loading, Error und KPI-Grid', () => {
+  it('OfficeDashboardView hat Loading, Error und Modul-Übersicht', () => {
     const source = readSrc('src/components/dashboard/OfficeDashboardView.tsx');
     expect(source).toContain('LoadingState');
     expect(source).toContain('ErrorState');
     expect(source).toContain('EmptyState');
     expect(source).toContain('onRefresh');
-    expect(source).toContain('ZentraleDashboardHero');
-    expect(source).toContain('AdaptiveKpiGrid');
+    expect(source).not.toContain('ZentraleDashboardHero');
+    expect(source).toContain('ModuleOverviewDashboard');
+    expect(source).toContain('fillHeight');
+    const overview = readSrc('src/components/dashboard/ModuleOverviewDashboard.tsx');
+    expect(overview).toContain('ModuleOverviewKpiCard');
     expect(source).not.toContain('Coming Soon');
     expect(source).not.toContain('onPress={() => {}}');
   });

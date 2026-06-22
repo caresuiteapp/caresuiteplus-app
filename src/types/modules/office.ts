@@ -11,6 +11,10 @@ export type Client = TenantScopedEntity &
     primaryContactPhone: string | null;
     city?: string | null;
     zip?: string | null;
+    /** Domain-Feld → DB `clients.cost_bearer` */
+    costCarrier?: string | null;
+    /** Domain-Feld → DB `clients.insurance_number` */
+    insuranceNumber?: string | null;
   };
 
 /** Kompakte Darstellung für Listenansichten */
@@ -24,6 +28,7 @@ export type ClientListItem = Pick<
   | 'careLevel'
   | 'city'
   | 'zip'
+  | 'costCarrier'
   | 'sensitivity'
   | 'updatedAt'
 >;

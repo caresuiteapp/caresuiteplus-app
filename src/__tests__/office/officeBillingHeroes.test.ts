@@ -16,9 +16,9 @@ describe('Office Billing Heroes (Sprint 90)', () => {
     expect(hero).toContain('buildBillingDashboardKpis');
   });
 
-  it('BudgetsListHero nutzt CareLightListHeroFrame mit preparedOnly', () => {
+  it('BudgetsListHero nutzt PremiumListHeroFrame mit preparedOnly', () => {
     const hero = readSrc('src/components/office/BudgetsListHero.tsx');
-    expect(hero).toContain('CareLightListHeroFrame');
+    expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('Budgets');
     expect(hero).toContain('Demo / preparedOnly');
   });

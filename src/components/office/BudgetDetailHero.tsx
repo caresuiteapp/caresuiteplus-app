@@ -3,8 +3,8 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildBudgetDetailKpis } from '@/lib/office/budgetDetailStats';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { BudgetDetail } from '@/types/modules/billing';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -116,7 +116,6 @@ export function BudgetDetailHero({ budget, roleKey }: BudgetDetailHeroProps) {
         {budget.usagePercent >= 85 ? (
           <PremiumBadge label="Limit nahe" variant="orange" dot />
         ) : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

@@ -7,7 +7,7 @@ import {
   isDataQualityLiveReady,
 } from '@/lib/admin/dataQualityService';
 import type { DataQualityOverview } from '@/types/admin/dataQuality';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 const iconSize = 52;
@@ -70,7 +70,6 @@ export function DataQualityDashboardHero({ overview }: DataQualityDashboardHeroP
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Mandanten-Admin" variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isDataQualityLiveReady() ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>

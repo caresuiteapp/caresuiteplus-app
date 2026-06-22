@@ -1,9 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildCommunicationListKpis } from '@/data/demo/communicationListStats';
+import { buildCommunicationListKpis } from '@/lib/communication/communicationListStats';
 import { listThreads } from '@/features/communication/communication.service';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforceCommunicationPermission } from '@/features/communication/communication.permissions';
 import { mapTripRowsToListItems } from '@/lib/assist/tripListMapper';
 import type { TripLiveRow } from '@/lib/services/repositories/tripRepository.supabase';

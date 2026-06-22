@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalAppointmentDetailHero } from '@/components/portal';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   LoadingState,
@@ -39,40 +39,40 @@ export function PortalClientAppointmentDetailScreen() {
 
   if (!canView) {
     return (
-      <CareLightPageShell title="Termin" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Termin" subtitle={roleLabel ?? 'Portal'}>
         <LockedActionBanner
           message={check('portal.client.appointments.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     return (
-      <CareLightPageShell title="Termin" subtitle="Wird geladen…">
+      <ScreenShell title="Termin" subtitle="Wird geladen…">
         <LoadingState message="Termindetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Termin" subtitle="Fehler">
+      <ScreenShell title="Termin" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Der Termin existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!data) return null;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={data.title}
       subtitle={data.serviceType}
       rightSlot={
@@ -124,7 +124,7 @@ export function PortalClientAppointmentDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

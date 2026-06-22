@@ -108,9 +108,9 @@ describe('Akademie Extension Heroes (Sprint 88)', () => {
 });
 
 describe('QM Documents List Hero (Sprint 88)', () => {
-  it('QmDocumentsListHero nutzt CareLightListHeroFrame mit Live-Badge', () => {
+  it('QmDocumentsListHero nutzt PremiumListHeroFrame mit Live-Badge', () => {
     const hero = readSrc('src/components/qm/QmDocumentsListHero.tsx');
-    expect(hero).toContain('CareLightListHeroFrame');
+    expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('QM-Dokumente');
     expect(hero).toContain('isQmDocumentsLiveReady');
     expect(hero).toContain('buildQmDocumentsListKpis');

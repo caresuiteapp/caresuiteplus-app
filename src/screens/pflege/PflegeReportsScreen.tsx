@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { PflegeReportsHero, PFLEGE_REPORTS_PREPARED_MESSAGE } from '@/components/pflege/PflegeReportsHero';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumInput } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -27,24 +27,24 @@ export function PflegeReportsScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Pflege-Auswertungen" subtitle="Wird geladen…">
+      <ScreenShell title="Pflege-Auswertungen" subtitle="Wird geladen…">
         <LoadingState message="Kennzahlen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Pflege-Auswertungen" subtitle="Fehler">
+      <ScreenShell title="Pflege-Auswertungen" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const stats = query.data!;
 
   return (
-    <CareLightPageShell title="Pflege-Auswertungen" subtitle={`Kennzahlen · ${roleLabel ?? 'Demo'}`}>
+    <ScreenShell title="Pflege-Auswertungen" subtitle={`Kennzahlen · ${roleLabel ?? 'Demo'}`}>
       <PflegeReportsHero stats={stats} roleKey={roleKey} />
       <PreparedModeBanner hint={PFLEGE_REPORTS_PREPARED_MESSAGE} />
       <View style={styles.noteWrap}>
@@ -52,7 +52,7 @@ export function PflegeReportsScreen() {
           Auswertungen basieren auf Demo-Daten. Export und MDK-Schnittstelle sind vorbereitet (P-READY).
         </Text>
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

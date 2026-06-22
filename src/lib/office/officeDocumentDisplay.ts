@@ -1,5 +1,6 @@
 import { getSystemIntakeTemplateByKey } from '@/features/intakeDocuments/intakeDocumentSystemTemplates';
 import type { ClientDocumentRecord } from '@/types/modules/client';
+import { CLIENT_DOCUMENT_CATEGORY_LABELS } from '@/types/modules/client/clientDocuments';
 import {
   PORTAL_DOCUMENT_CATEGORY_LABELS,
   type PortalDocumentCategory,
@@ -159,6 +160,23 @@ export function buildClientDocumentPreviewFallback(doc: ClientDocumentRecord): s
   return buildDocumentPreviewFallbackLabel(
     mapClientDocumentToPortalItemForTest(doc),
   );
+}
+
+function documentPreviewStatusLabel(
+  doc: Pick<ClientDocumentRecord, 'status' | 'intakeStatus'>,
+): string {
+  if (doc.intakeStatus === 'finalized') return 'Finalisiert';
+  if (doc.status === 'abgeschlossen') return 'Finalisiert';
+  if (doc.status === 'aktiv') return 'Aktiv';
+  return 'In Bearbeitung';
+}
+
+export function buildDocumentPreviewStatusSubtitle(doc: ClientDocumentRecord): string {
+  const parts = [documentPreviewStatusLabel(doc), CLIENT_DOCUMENT_CATEGORY_LABELS[doc.category]];
+  const displayFileName = resolveOfficeDocumentDisplayFileName(doc);
+  if (displayFileName) parts.push(displayFileName);
+  if (doc.documentSource === 'intake') parts.push('Aufnahme');
+  return parts.join(' · ');
 }
 
 /** Test helper mirroring officeDocumentsService list mapping */

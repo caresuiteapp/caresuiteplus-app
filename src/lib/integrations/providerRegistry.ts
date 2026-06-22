@@ -1,5 +1,5 @@
 import type { IntegrationCategory, IntegrationProvider } from '@/types/modules/integrations';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 export type ProviderDefinition = {
   key: string;

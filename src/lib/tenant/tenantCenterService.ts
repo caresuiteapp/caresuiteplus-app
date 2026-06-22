@@ -31,7 +31,12 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant, isLiveServiceMode } from '@/lib/services/liveServiceGuard';
 import { formatHourlyRateDocumentAmount } from '@/lib/formatters/numberFormatters';
 import { TENANT_SETTINGS_PERMISSION } from './tenantSettingsRoute';
+import { canManageTenantModuleSettings } from './tenantModuleSettingsPermissions';
 import { buildTenantCenterSections } from './tenantCenterSections';
+import {
+  setTenantModuleSettingsCache,
+} from './tenantModuleSettingsCache';
+import { syncModuleAccessFromTenantSettings } from './syncTenantModuleAccess';
 import {
   fetchTenantServiceCatalog,
   formatCatalogSummary,
@@ -96,6 +101,7 @@ function buildDemoSnapshot(tenantId: string): TenantCenterSnapshot {
     sections: [],
   };
   snapshot.sections = buildTenantCenterSections(snapshot);
+  setTenantModuleSettingsCache(tenantId, snapshot.modules);
   return snapshot;
 }
 
@@ -104,6 +110,10 @@ function ensureDemoSnapshot(tenantId: string): TenantCenterSnapshot {
     DEMO_STORE.set(tenantId, buildDemoSnapshot(tenantId));
   }
   return DEMO_STORE.get(tenantId)!;
+}
+
+function shouldUseInMemoryTenantCenterStore(): boolean {
+  return !isLiveServiceMode() || !getSupabaseClient();
 }
 
 function mapTenantRow(row: Record<string, unknown>): TenantCompanyProfile {
@@ -230,6 +240,7 @@ async function fetchFromSupabase(tenantId: string): Promise<ServiceResult<Tenant
     stationaerEnabled: Boolean(modulesRow?.stationaer_enabled),
     beratungEnabled: Boolean(modulesRow?.beratung_enabled),
   };
+  setTenantModuleSettingsCache(tenantId, modules);
 
   const contactPersons = ((contactsRes.data ?? []) as Record<string, unknown>[]).map((c) => ({
     id: String(c.id),
@@ -309,6 +320,7 @@ async function fetchFromSupabase(tenantId: string): Promise<ServiceResult<Tenant
     sections: [],
   };
   snapshot.sections = buildTenantCenterSections(snapshot);
+  setTenantModuleSettingsCache(tenantId, snapshot.modules);
   return { ok: true, data: snapshot };
 }
 
@@ -554,13 +566,33 @@ export async function saveTenantModuleSettings(
   modules: TenantModuleSettings,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<TenantCenterSnapshot>> {
-  return upsertProfileTable(tenantId, 'tenant_module_settings', {
+  const denied = canManageTenantModuleSettings(actorRoleKey);
+  if (denied) return denied;
+
+  if (shouldUseInMemoryTenantCenterStore()) {
+    const snap = ensureDemoSnapshot(tenantId);
+    snap.modules = { ...modules };
+    snap.updatedAt = new Date().toISOString();
+    snap.sections = buildTenantCenterSections(snap);
+    DEMO_STORE.set(tenantId, snap);
+    setTenantModuleSettingsCache(tenantId, snap.modules);
+    syncModuleAccessFromTenantSettings(tenantId, snap.modules);
+    return { ok: true, data: snap };
+  }
+
+  const result = await upsertProfileTable(tenantId, 'tenant_module_settings', {
     assist_enabled: modules.assistEnabled,
     pflege_enabled: modules.pflegeEnabled,
     stationaer_enabled: modules.stationaerEnabled,
     beratung_enabled: modules.beratungEnabled,
     updated_at: new Date().toISOString(),
   }, actorRoleKey);
+
+  if (result.ok) {
+    setTenantModuleSettingsCache(tenantId, modules);
+    syncModuleAccessFromTenantSettings(tenantId, modules);
+  }
+  return result;
 }
 
 export async function ensureTenantCatalogSeeded(

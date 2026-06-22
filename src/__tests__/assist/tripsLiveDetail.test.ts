@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { mapTripRowToDetail } from '@/lib/assist/tripDetailMapper';
 import type { TripDetailLiveRow } from '@/lib/assist/tripDetailMapper';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 

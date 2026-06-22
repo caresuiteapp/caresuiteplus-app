@@ -2,10 +2,10 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { buildAiJobDetailKpis } from '@/lib/platform/platformDetailStats';
 import { isPlatformLiveReady } from '@/lib/platform/platformModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import type { AiJobListItem } from '@/types/modules/platform';
 import { AI_JOB_TYPE_LABELS } from '@/types/modules/platform';
@@ -85,7 +85,6 @@ export function AiJobDetailHero({ job, roleKey }: AiJobDetailHeroProps) {
         ) : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

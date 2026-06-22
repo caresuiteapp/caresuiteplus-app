@@ -13,7 +13,7 @@ describe('Desktop list view toggle Mitarbeitende (Sprint 31)', () => {
     const source = readSrc('src/components/office/EmployeesListHero.tsx');
     expect(source).toContain('DesktopListViewToggle');
     expect(source).toContain('showViewToggle');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
   });
 
   it('EmployeesListView schaltet Tabellenansicht per viewMode auf Desktop', () => {

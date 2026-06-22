@@ -9,8 +9,8 @@ import {
   isQmDashboardLiveReady,
   QM_DASHBOARD_PREPARED_MESSAGE,
 } from '@/lib/qm/qmModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { QmDashboardSnapshot } from '@/lib/qm/qm.types';
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
@@ -70,7 +70,6 @@ export function QmDashboardHero({ data, roleKey }: QmDashboardHeroProps) {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isQmDashboardLiveReady() ? (
           <PremiumBadge label="Live QM-Dokumente" variant="green" />
         ) : (

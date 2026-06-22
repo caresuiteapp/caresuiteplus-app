@@ -27,22 +27,27 @@ import {
   isCostBearerTypeKey,
 } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { spacing } from '@/theme';
 
 export function ClientIntakeSectionContent({
   section,
   wizard,
   contentStyles,
+  panelViewContext,
 }: {
   section: IntakeSectionKey;
   wizard: ReturnType<typeof useClientIntakeWizard>;
   contentStyles: ReturnType<typeof useAdaptiveContentStyles>;
+  /** Use `form` when rendered inside AppGlassModal section edits. */
+  panelViewContext?: LlganViewContext;
 }) {
   const { form, errors, updateField, updateBillingTypes, updateCostBearerTypes, contextHint, tenantId, replaceForm } = wizard;
+  const panelCtx = panelViewContext ? { viewContext: panelViewContext } : {};
 
   if (section === 'leistungsart') {
     return (
-      <SectionPanel title="Leistungsart / Klient:innenart" subtitle="Mehrfachauswahl">
+      <SectionPanel {...panelCtx} title="Leistungsart / Klient:innenart" subtitle="Mehrfachauswahl">
         <CareMultiCatalogSelect
           catalogKey="leistungsart"
           label="Für welche Art von Unterstützung wird diese Person aufgenommen?"
@@ -57,7 +62,7 @@ export function ClientIntakeSectionContent({
 
   if (section === 'stammdaten') {
     return (
-      <SectionPanel title="Stammdaten">
+      <SectionPanel {...panelCtx} title="Stammdaten">
         <CareCatalogSelect catalogKey="salutation" label="Anrede" value={form.salutation} onChange={(v) => updateField('salutation', v)} />
         <PremiumInput label="Vorname *" value={form.firstName} onChangeText={(v) => updateField('firstName', v)} error={errors.firstName} />
         <PremiumInput label="Nachname *" value={form.lastName} onChangeText={(v) => updateField('lastName', v)} error={errors.lastName} />
@@ -73,7 +78,7 @@ export function ClientIntakeSectionContent({
 
   if (section === 'adresse_kontakt') {
     return (
-      <SectionPanel title="Adresse & Kontakt">
+      <SectionPanel {...panelCtx} title="Adresse & Kontakt">
         <PremiumInput label="Straße *" value={form.street} onChangeText={(v) => updateField('street', v)} error={errors.street} />
         <PremiumInput label="Hausnummer" value={form.houseNumber} onChangeText={(v) => updateField('houseNumber', v)} />
         <PremiumInput label="PLZ *" value={form.zip} onChangeText={(v) => updateField('zip', v)} error={errors.zip} />
@@ -88,7 +93,7 @@ export function ClientIntakeSectionContent({
 
   if (section === 'versorgung') {
     return (
-      <SectionPanel title="Versorgung / Pflege / Betreuung">
+      <SectionPanel {...panelCtx} title="Versorgung / Pflege / Betreuung">
         <CareCatalogSelect catalogKey="care_level" label="Pflegegrad" value={form.careLevel} onChange={(v) => updateField('careLevel', v)} error={errors.careLevel} />
         <PremiumInput label="Hausarzt" value={form.familyDoctor} onChangeText={(v) => updateField('familyDoctor', v)} error={errors.familyDoctor} />
         <CareCatalogSelect catalogKey="consulting_types" label="Beratungsart" value={form.consultingType} onChange={(v) => updateField('consultingType', v)} error={errors.consultingType} />
@@ -102,7 +107,7 @@ export function ClientIntakeSectionContent({
     const selectedCostBearerTypes = form.costBearerTypes.filter(isCostBearerTypeKey);
 
     return (
-      <SectionPanel title="Kostenträger / Abrechnung">
+      <SectionPanel {...panelCtx} title="Kostenträger / Abrechnung">
         <CareMultiCatalogSelect
           catalogKey="billing_type"
           label="Abrechnungsart *"
@@ -141,7 +146,7 @@ export function ClientIntakeSectionContent({
 
   if (section === 'angehoerige') {
     return (
-      <SectionPanel title="Angehörige / Bevollmächtigte">
+      <SectionPanel {...panelCtx} title="Angehörige / Bevollmächtigte">
         <PremiumInput label="Notfallkontakt Name" value={form.emergencyContactName} onChangeText={(v) => updateField('emergencyContactName', v)} error={errors.emergencyContactName} />
         <PremiumInput label="Notfallkontakt Telefon" value={form.emergencyContactPhone} onChangeText={(v) => updateField('emergencyContactPhone', v)} error={errors.emergencyContactPhone} />
       </SectionPanel>
@@ -150,7 +155,7 @@ export function ClientIntakeSectionContent({
 
   if (section === 'notfall_zugang') {
     return (
-      <SectionPanel title="Notfall / Zugang / Wohnsituation">
+      <SectionPanel {...panelCtx} title="Notfall / Zugang / Wohnsituation">
         <CareMultiCatalogSelect
           catalogKey="home_access"
           label="Wohnungszugang *"
@@ -176,13 +181,14 @@ export function ClientIntakeSectionContent({
         errors={errors}
         tenantId={tenantId}
         onChange={replaceForm}
+        panelViewContext={panelViewContext}
       />
     );
   }
 
   if (section === 'dokumente') {
     return (
-      <SectionPanel title="Dokumente">
+      <SectionPanel {...panelCtx} title="Dokumente">
         <CareDocumentUpload label="Dokument hochladen" onPicked={(f) => updateField('documentCategories', [...form.documentCategories, f.name])} />
         <CarePhotoCapturePrepared />
       </SectionPanel>
@@ -191,14 +197,14 @@ export function ClientIntakeSectionContent({
 
   if (section === 'module') {
     return (
-      <SectionPanel title="Module & Zuständigkeiten">
+      <SectionPanel {...panelCtx} title="Module & Zuständigkeiten">
         <CareMultiCatalogSelect catalogKey="module_assignment" label="Module" values={form.assignedModules} onChange={(v) => updateField('assignedModules', v)} />
       </SectionPanel>
     );
   }
 
   return (
-    <SectionPanel title="Prüfung & Abschluss">
+    <SectionPanel {...panelCtx} title="Prüfung & Abschluss">
       <Text style={contentStyles.body}>{form.firstName} {form.lastName}</Text>
       <Text style={contentStyles.body}>Leistungsarten: {form.careContexts.join(', ')}</Text>
       <Text style={contentStyles.body}>{form.street}, {form.zip} {form.city}</Text>

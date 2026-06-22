@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ResidentsListView } from '@/components/stationaer/ResidentsListView';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -31,22 +31,22 @@ export function ResidentsListScreen({
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title={pageTitle} subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title={pageTitle} subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Bewohner:innen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title={pageTitle} subtitle="Fehler" scroll={false}>
+      <ScreenShell title={pageTitle} subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={pageTitle}
       subtitle={`${isReadOnly ? 'Lesemodus · ' : ''}${roleLabel ?? 'Demo'}`}
       scroll={false}
@@ -59,7 +59,7 @@ export function ResidentsListScreen({
           <ResidentsListView onResidentPress={onResidentPress} selectedId={selectedId} />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

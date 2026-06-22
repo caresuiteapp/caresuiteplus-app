@@ -5,7 +5,7 @@ import {
   requireTenantId,
   resolveTenantIdForService,
 } from '@/lib/tenant/tenantResolver';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type { Profile } from '@/types';
 
 const liveProfile: Profile = {

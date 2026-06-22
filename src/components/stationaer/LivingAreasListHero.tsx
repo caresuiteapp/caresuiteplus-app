@@ -5,8 +5,8 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame, DesktopListViewTogg
 import type { DesktopListViewMode } from '@/components/ui/DesktopListViewToggle';
 import { buildLivingAreasListKpis } from '@/lib/stationaer/livingAreasStats';
 import { isStationaerExtensionLiveReady, STATIONAER_EXTENSION_PREPARED_MESSAGE } from '@/lib/stationaer/stationaerModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { LivingAreaListItem } from '@/types/modules/stationaer';
 import { designTokens, spacing } from '@/theme';
@@ -104,7 +104,6 @@ export function LivingAreasListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isStationaerExtensionLiveReady() ? (
           <PremiumBadge label="Demo-funktional" variant="orange" dot />
         ) : null}

@@ -1,18 +1,18 @@
 import { StyleSheet, Text, View } from 'react-native';
 import {
   DesktopListViewToggle,
-  CareLightButton,
-  CareLightKpiCard,
-  CareLightListHeroFrame,
+  PremiumButton,
+  PremiumKpiCard,
+  PremiumListHeroFrame,
   PremiumBadge,
   type DesktopListViewMode,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
-import type { AppointmentListKpi } from '@/data/demo/appointmentListStats';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import type { AppointmentListKpi } from '@/lib/office/appointmentListStats';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import { designTokens } from '@/theme';
 
@@ -47,7 +47,7 @@ export function AppointmentsListHero({
   const heroText = useListHeroTextStyles();
 
   return (
-    <CareLightListHeroFrame accentColor={accent}>
+    <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={heroText.eyebrow}>OFFICE</Text>
@@ -65,7 +65,6 @@ export function AppointmentsListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       {showViewToggle && onViewModeChange ? (
         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
@@ -73,22 +72,21 @@ export function AppointmentsListHero({
       {!compact ? (
         <View style={styles.kpiRow}>
           {kpis.map((kpi) => (
-            <CareLightKpiCard
+            <PremiumKpiCard
               key={kpi.id}
               label={kpi.label}
               value={String(kpi.value)}
               subValue={kpi.subValue}
               icon={kpi.icon}
-              accentColor={kpi.accentColor}
               style={styles.kpiItem}
             />
           ))}
         </View>
       ) : null}
       {canCreate ? (
-        <CareLightButton title="➕ Termin anlegen" onPress={onCreatePress} accentColor={accent} />
+        <PremiumButton title="➕ Termin anlegen" onPress={onCreatePress} />
       ) : null}
-    </CareLightListHeroFrame>
+    </PremiumListHeroFrame>
   );
 }
 

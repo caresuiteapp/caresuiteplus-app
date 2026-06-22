@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { resetDemoEmployeePersonnelFileCache } from '@/data/demo/employeePersonnelFile';
 import { detectAssignmentConflicts } from '@/lib/assist/assignmentConflictService';
 import { detectEmployeeEligibilityConflicts } from '@/lib/assist/employeeAssignmentEligibilityService';

@@ -1,6 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import { Platform, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
-import { auroraGlass } from '@/design/tokens/auroraGlass';
+import { useActiveGlassTokens } from '@/design/tokens/auroraGlass';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { colors, radius, spacing, typography } from '@/theme';
@@ -12,11 +12,11 @@ type MasterDetailLayoutProps = {
   showDetail?: boolean;
 };
 
-const webGlassBlur =
+const webGlassBlur = (blurPx: number): ViewStyle | null =>
   Platform.OS === 'web'
     ? ({
-        backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-        WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+        backdropFilter: `blur(${blurPx}px)`,
+        WebkitBackdropFilter: `blur(${blurPx}px)`,
       } as unknown as ViewStyle)
     : null;
 
@@ -51,6 +51,7 @@ export function MasterDetailLayout({
 }: MasterDetailLayoutProps) {
   const { useMasterDetail, masterPaneWidth: paneWidth } = usePlatformLayout();
   const shellHostsAurora = useShellHostsAurora();
+  const glass = useActiveGlassTokens();
 
   const styles = useMemo(
     () =>
@@ -62,23 +63,23 @@ export function MasterDetailLayout({
           flex: 1,
           flexDirection: 'row',
           minHeight: 0,
-          backgroundColor: shellHostsAurora ? auroraGlass.panel : 'transparent',
+          backgroundColor: shellHostsAurora ? glass.panel : 'transparent',
           ...(shellHostsAurora
             ? {
                 margin: -spacing.lg,
                 borderRadius: radius.lg,
                 borderWidth: 1,
-                borderColor: auroraGlass.border,
+                borderColor: glass.border,
                 overflow: 'hidden',
-                ...webGlassBlur,
+                ...webGlassBlur(glass.blur.medium),
               }
             : null),
         },
         master: {
           flexShrink: 0,
           borderRightWidth: 1,
-          borderRightColor: shellHostsAurora ? auroraGlass.border : colors.borderSoft,
-          backgroundColor: shellHostsAurora ? auroraGlass.table : 'transparent',
+          borderRightColor: shellHostsAurora ? glass.border : colors.borderSoft,
+          backgroundColor: shellHostsAurora ? glass.table : 'transparent',
         },
         divider: {
           width: 0,
@@ -86,7 +87,7 @@ export function MasterDetailLayout({
         detail: {
           flex: 1,
           minWidth: 0,
-          backgroundColor: shellHostsAurora ? auroraGlass.panel : 'transparent',
+          backgroundColor: shellHostsAurora ? glass.panel : 'transparent',
         },
         placeholder: {
           flex: 1,
@@ -97,16 +98,16 @@ export function MasterDetailLayout({
         },
         placeholderTitle: {
           ...typography.h3,
-          color: shellHostsAurora ? auroraGlass.text.secondary : colors.textSecondary,
+          color: shellHostsAurora ? glass.text.secondary : colors.textSecondary,
         },
         placeholderText: {
           ...typography.body,
-          color: shellHostsAurora ? auroraGlass.text.muted : colors.textMuted,
+          color: shellHostsAurora ? glass.text.muted : colors.textMuted,
           textAlign: 'center',
           maxWidth: 360,
         },
       }),
-    [shellHostsAurora],
+    [glass, shellHostsAurora],
   );
 
   const placeholder =

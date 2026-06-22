@@ -1,10 +1,7 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { ResidentListItem, StationaerDashboardStats } from '@/types/modules/stationaer';
-import {
-  getDemoResidentListItems,
-  isNewAdmission,
-  isResidentActive,
-} from '@/data/demo/residents';
+import { getDemoResidentListItems } from '@/data/demo/residents';
+import { isNewAdmission, isResidentActive } from './residentUtils';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
@@ -30,7 +27,7 @@ function buildDashboardStats(items: ResidentListItem[]): StationaerDashboardStat
 }
 
 type ResidentListLoadResult =
-  | { ok: true; data: ResidentListItem[]; usedDemoFallback: boolean }
+  | { ok: true; data: ResidentListItem[]; usedDemoFallback: boolean; tableMissing?: boolean }
   | { ok: false; error: string };
 
 async function loadResidentList(
@@ -52,7 +49,14 @@ async function loadResidentList(
       return resolveMissingTableList(result, tenantId, getDemoResidentListItems);
     }
     if (result.ok && result.tableMissing) {
-      return resolveMissingTableList(result, tenantId, getDemoResidentListItems);
+      const resolved = resolveMissingTableList(result, tenantId, getDemoResidentListItems);
+      if (!resolved.ok) return resolved;
+      return {
+        ok: true,
+        data: resolved.data,
+        usedDemoFallback: resolved.usedDemoFallback,
+        tableMissing: !resolved.usedDemoFallback,
+      };
     }
     if (!result.ok) return result;
     return { ok: true, data: result.data, usedDemoFallback: false };
@@ -91,7 +95,8 @@ export async function fetchStationaerDashboardStats(
   return {
     ok: true,
     data: buildDashboardStats(listResult.data),
-    previewData: listResult.usedDemoFallback,
+    previewData: listResult.usedDemoFallback || listResult.tableMissing === true,
+    tableMissing: listResult.tableMissing,
   };
 }
 
@@ -110,6 +115,7 @@ export async function fetchActiveResidents(
   return {
     ok: true,
     data: active,
-    previewData: listResult.usedDemoFallback,
+    previewData: listResult.usedDemoFallback || listResult.tableMissing === true,
+    tableMissing: listResult.tableMissing,
   };
 }

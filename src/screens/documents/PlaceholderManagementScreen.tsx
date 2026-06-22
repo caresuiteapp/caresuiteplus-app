@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { PlaceholderRegistryPanel } from '@/components/documents';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { InfoBanner, PremiumCard } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { PLACEHOLDER_GROUP_LABELS, SYSTEM_PLACEHOLDER_SEEDS } from '@/features/documents/templateEngine';
@@ -12,19 +12,19 @@ export function PlaceholderManagementScreen() {
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title="Platzhalter" subtitle={roleLabel ?? 'Vorlagen'}>
+      <ScreenShell title="Platzhalter" subtitle={roleLabel ?? 'Vorlagen'}>
         <LockedActionBanner
           message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const groupCount = Object.keys(PLACEHOLDER_GROUP_LABELS).length;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Platzhalterverwaltung"
       subtitle="Zentrale Registry für Vorlagen & Dokumente"
     >
@@ -41,7 +41,7 @@ export function PlaceholderManagementScreen() {
 
         <PlaceholderRegistryPanel />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

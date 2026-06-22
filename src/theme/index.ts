@@ -8,6 +8,11 @@ export { radius } from './radius';
 export { elevation } from './elevation';
 export { motion } from './motion';
 export { gradients } from './gradients';
+export {
+  careSuiteAuroraTheme,
+  AURORA_HERO_GRADIENT,
+  AURORA_BUTTON_PRIMARY,
+} from './careSuiteAurora';
 export { designTokens, glass, sheen, elevationV2 } from './designTokens';
 export {
   accessibility,

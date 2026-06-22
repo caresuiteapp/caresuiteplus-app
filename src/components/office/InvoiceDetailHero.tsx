@@ -3,8 +3,8 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildInvoiceDetailKpis } from '@/lib/office/invoiceDetailStats';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { InvoiceDetail } from '@/types/modules/invoiceDetail';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -115,7 +115,6 @@ export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetai
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isReadOnly ? <PremiumBadge label="Lesemodus" variant="muted" /> : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         <PremiumBadge label="DATEV preparedOnly" variant="muted" />
       </View>
       <View style={styles.kpiRow}>

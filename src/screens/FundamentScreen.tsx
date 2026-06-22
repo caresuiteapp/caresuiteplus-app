@@ -11,14 +11,9 @@ import {
   PremiumCard,
   SuccessState,
 } from '@/components/ui';
-import {
-  getDemoFoundationSnapshot,
-  getDemoSeedSummary,
-  PRODUCT_LABELS,
-  ROLE_LABELS,
-} from '@/data/demo';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import { PRODUCT_LABELS, ROLE_LABELS } from '@/data/constants';
+import type { ProductKey, RoleKey } from '@/types';
 import { colors, spacing, typography } from '@/theme';
 
 type PreviewState = 'content' | 'loading' | 'empty' | 'error' | 'success';
@@ -31,15 +26,40 @@ const STATE_OPTIONS: { key: PreviewState; label: string }[] = [
   { key: 'success', label: 'Erfolg' },
 ];
 
+const ACTIVE_PRODUCT_KEYS: ProductKey[] = ['office', 'assist', 'pflege', 'beratung', 'akademie'];
+const PREVIEW_ROLE_KEYS: RoleKey[] = [
+  'business_admin',
+  'business_manager',
+  'billing',
+  'dispatch',
+  'nurse',
+  'caregiver',
+  'counselor',
+  'akademie_admin',
+  'employee_portal',
+  'client_portal',
+  'family_portal',
+];
+
+function buildDevFoundationPreview() {
+  const productKeys = Object.keys(PRODUCT_LABELS) as ProductKey[];
+  return {
+    tenant: { name: 'CareSuite+ Entwicklungsmandant' },
+    tenantId: DEMO_TENANT_ID,
+    products: productKeys.map((key) => ({ key })),
+    tenantProducts: productKeys.map((key) => ({
+      productKey: key,
+      isActive: ACTIVE_PRODUCT_KEYS.includes(key),
+    })),
+    roles: PREVIEW_ROLE_KEYS.map((key) => ({ key })),
+  };
+}
+
 export function FundamentScreen() {
   const router = useRouter();
   const [previewState, setPreviewState] = useState<PreviewState>('content');
 
-  const snapshot = useMemo(
-    () => getDemoFoundationSnapshot(isDemoMode(), isSupabaseConfigured()),
-    [],
-  );
-  const seed = useMemo(() => getDemoSeedSummary(), []);
+  const snapshot = useMemo(() => buildDevFoundationPreview(), []);
 
   const activeModules = snapshot.tenantProducts.filter((tp) => tp.isActive);
   const inactiveModules = snapshot.tenantProducts.filter((tp) => !tp.isActive);
@@ -50,15 +70,7 @@ export function FundamentScreen() {
         <View style={styles.header}>
           <Text style={styles.hero}>CareSuite+ Fundament</Text>
           <Text style={styles.subtitle}>Architektur & Datenmodell — Arbeitspaket 001</Text>
-          <PremiumBadge
-            label={
-              snapshot.isDemoMode
-                ? 'Demo-Modus aktiv — Supabase nicht verbunden'
-                : 'Live-Modus'
-            }
-            variant="cyan"
-            dot
-          />
+          <PremiumBadge label="Entwicklungsvorschau" variant="cyan" dot />
         </View>
 
         <PremiumCard accentColor={colors.orange}>
@@ -70,7 +82,7 @@ export function FundamentScreen() {
         </PremiumCard>
 
         <PremiumCard accentColor={colors.cyan} variant="elevated">
-          <Text style={styles.cardTitle}>Demo-Mandant</Text>
+          <Text style={styles.cardTitle}>Referenz-Mandant</Text>
           <Text style={styles.tenantName}>{snapshot.tenant.name}</Text>
           <Text style={styles.tenantMeta}>
             tenant_id: <Text style={styles.cyan}>{snapshot.tenantId}</Text>
@@ -111,26 +123,11 @@ export function FundamentScreen() {
             </View>
 
             <PremiumCard accentColor={colors.orange}>
-              <Text style={styles.cardTitle}>Demo-Daten (WP 011)</Text>
+              <Text style={styles.cardTitle}>Statische Entwicklungsvorschau</Text>
               <Text style={styles.cardBody}>
-                {seed.profileCount} Demo-Profile · {seed.clientCount} Klient:innen ·{' '}
-                {seed.employeeCount} Mitarbeitende · {seed.appointmentCount} Termine ·{' '}
-                {seed.invoiceCount} Rechnungen
+                Modul- und Rollenlabels stammen aus @/data/constants. Live-Daten werden über
+                Supabase geladen — keine Demo-Snapshots mehr.
               </Text>
-              {seed.statusCoverage.map((coverage) => (
-                <View key={coverage.entity} style={styles.coverageBlock}>
-                  <Text style={styles.coverageTitle}>{coverage.label}</Text>
-                  <View style={styles.badgeRow}>
-                    {Object.entries(coverage.counts).map(([status, count]) => (
-                      <PremiumBadge
-                        key={status}
-                        label={`${WORKFLOW_STATUS_LABELS[status as keyof typeof WORKFLOW_STATUS_LABELS]}: ${count}`}
-                        variant="cyan"
-                      />
-                    ))}
-                  </View>
-                </View>
-              ))}
             </PremiumCard>
           </>
         ) : null}
@@ -143,7 +140,7 @@ export function FundamentScreen() {
             <EmptyState
               title="Keine Einträge"
               message="Für diesen Bereich sind noch keine Daten vorhanden."
-              actionLabel="Demo laden"
+              actionLabel="Vorschau laden"
               onAction={() => setPreviewState('content')}
             />
           </PremiumCard>
@@ -203,6 +200,4 @@ const styles = StyleSheet.create({
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   hint: { ...typography.caption, color: colors.textMuted },
   stateButtons: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  coverageBlock: { marginTop: spacing.sm, gap: spacing.xs },
-  coverageTitle: { ...typography.label },
 });

@@ -1,6 +1,7 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { TenantSubscription } from '@/types/core/tenant';
 import { demoTenant, demoTenantSubscription } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { runService } from '@/lib/services/serviceRunner';
 import { calculateBillingItems } from '@/lib/modules/moduleEntitlementService';
@@ -10,7 +11,6 @@ import {
   isFreePlatformEnabled,
 } from '@/lib/billing/freePlatformService';
 import { activateAllBaseModulesForTenant } from '@/lib/billing/moduleActivationService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 
 export type SubscriptionOverview = TenantSubscription & {
   tenantName: string;

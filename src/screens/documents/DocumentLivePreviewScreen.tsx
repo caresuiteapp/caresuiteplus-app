@@ -4,7 +4,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { DocumentHtmlPreview, DocumentPreviewValidationPanel } from '@/components/documents';
 import { PreparedTemplateBanner } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   FilterChipGroup,
@@ -55,9 +55,9 @@ export function DocumentLivePreviewScreen() {
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title="Live-Vorschau" subtitle={roleLabel ?? ''}>
+      <ScreenShell title="Live-Vorschau" subtitle={roleLabel ?? ''}>
         <LockedActionBanner message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -93,7 +93,7 @@ export function DocumentLivePreviewScreen() {
     : null;
 
   return (
-    <CareLightPageShell title="Live-Vorschau" subtitle="Vorlagen & Dokumente">
+    <ScreenShell title="Live-Vorschau" subtitle="Vorlagen & Dokumente">
       <ScrollView contentContainerStyle={styles.content}>
         <PreparedTemplateBanner />
 
@@ -121,7 +121,7 @@ export function DocumentLivePreviewScreen() {
 
         <DocumentPreviewValidationPanel renderResult={preview?.renderResult ?? null} />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

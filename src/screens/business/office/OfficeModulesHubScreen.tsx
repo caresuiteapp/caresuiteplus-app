@@ -1,6 +1,7 @@
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   CareLightEmptyState,
   CareLightErrorState,
@@ -9,6 +10,7 @@ import {
   PremiumButton,
   PremiumCard,
 } from '@/components/ui';
+import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -17,9 +19,7 @@ import {
   fetchModuleAssignmentHub,
   type ModuleAssignmentHubSection,
 } from '@/lib/officeModules/moduleAssignmentService';
-import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
 
 function HubCard({
@@ -31,6 +31,19 @@ function HubCard({
   onPress: () => void;
   accentColor: string;
 }) {
+  const content = useAdaptiveContentStyles();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: { flex: 1, minWidth: '45%' },
+        cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
+        cardIcon: { fontSize: 24 },
+        cardTitle: { ...content.title, marginTop: careSpacing.xs },
+        cardHint: { ...content.caption, marginTop: careSpacing.xs },
+      }),
+    [content],
+  );
+
   return (
     <PremiumCard style={styles.card} accentColor={accentColor} onPress={onPress}>
       <View style={styles.cardHeader}>
@@ -45,6 +58,23 @@ function HubCard({
 
 export function OfficeModulesHubScreen() {
   const router = useRouter();
+  const content = useAdaptiveContentStyles();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        list: { padding: careSpacing.md, gap: careSpacing.sm },
+        row: { gap: careSpacing.sm },
+        header: { marginBottom: careSpacing.md, gap: careSpacing.sm },
+        lead: { ...content.body, color: content.muted.color },
+        loading: {
+          ...content.body,
+          color: content.muted.color,
+          textAlign: 'center',
+          paddingVertical: careSpacing.xl,
+        },
+      }),
+    [content],
+  );
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { roleLabel } = usePermissions();
@@ -63,22 +93,22 @@ export function OfficeModulesHubScreen() {
 
   if (query.loading && sections.length === 0) {
     return (
-      <CareLightPageShell title="Modulzuordnungen" subtitle="Office">
+      <ScreenShell title="Modulzuordnungen" subtitle="Office">
         <LoadingState message="Modulbereiche werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && sections.length === 0) {
     return (
-      <CareLightPageShell title="Modulzuordnungen" subtitle="Fehler">
+      <ScreenShell title="Modulzuordnungen" subtitle="Fehler">
         <CareLightErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Modulzuordnungen"
       subtitle={`Office Plattform · ${roleLabel ?? 'Demo'}`}
       scroll={false}
@@ -120,19 +150,6 @@ export function OfficeModulesHubScreen() {
           <CareLightEmptyState title="Keine Bereiche" message="Modulzuordnungen konnten nicht geladen werden." />
         }
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
-
-const styles = StyleSheet.create({
-  list: { padding: careSpacing.md, gap: careSpacing.sm },
-  row: { gap: careSpacing.sm },
-  header: { marginBottom: careSpacing.md, gap: careSpacing.sm },
-  lead: { ...careTypography.body, color: careLightColors.muted },
-  loading: { ...careTypography.body, color: careLightColors.muted, textAlign: 'center', paddingVertical: careSpacing.xl },
-  card: { flex: 1, minWidth: '45%' },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  cardIcon: { fontSize: 24 },
-  cardTitle: { ...careTypography.bodyStrong, color: careLightColors.navy, marginTop: careSpacing.xs },
-  cardHint: { ...careTypography.caption, color: careLightColors.muted, marginTop: careSpacing.xs },
-});

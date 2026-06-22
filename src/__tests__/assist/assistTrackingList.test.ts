@@ -4,7 +4,7 @@ import path from 'node:path';
 import { buildTrackingKpis } from '@/data/demo/trackingStats';
 import { getDemoTrackingDashboard } from '@/data/demo/tripLogs';
 import { fetchTrackingDashboard } from '@/lib/assist/tripLogService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 
 const root = path.join(__dirname, '..', '..', '..');

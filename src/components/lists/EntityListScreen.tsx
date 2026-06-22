@@ -1,6 +1,6 @@
 import { FlatList, Platform, RefreshControl, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useMemo } from 'react';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -153,22 +153,22 @@ export function EntityListScreen<T>({
 
   if (loading && isEmpty && !search) {
     return (
-      <CareLightPageShell title={title} subtitle="Wird geladen…">
+      <ScreenShell title={title} subtitle="Wird geladen…">
         <LoadingState message={`${title} werden geladen…`} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && isEmpty && !search) {
     return (
-      <CareLightPageShell title={title} subtitle="Fehler">
+      <ScreenShell title={title} subtitle="Fehler">
         <ErrorState message={error} onRetry={onRefresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={title}
       subtitle={subtitle ?? roleLabel ?? 'Demo'}
       rightSlot={
@@ -187,6 +187,6 @@ export function EntityListScreen<T>({
       >
         {listContent}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }

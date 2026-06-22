@@ -1,5 +1,5 @@
 import type { ProductKey } from '@/types';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import { OFFICE_MODULE_KEY, SPECIALTY_MODULE_KEYS, isSpecialtyModuleKey } from '@/lib/modules/constants';
 import { resolveIncludedModules } from '@/lib/modules/moduleAccessService';
 

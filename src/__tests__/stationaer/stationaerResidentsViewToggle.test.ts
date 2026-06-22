@@ -13,7 +13,7 @@ describe('Desktop list view toggle Bewohner (Sprint 43)', () => {
     const source = readSrc('src/components/stationaer/ResidentsListHero.tsx');
     expect(source).toContain('DesktopListViewToggle');
     expect(source).toContain('showViewToggle');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
   });
 
   it('ResidentsListView schaltet Tabellenansicht per viewMode auf Desktop', () => {

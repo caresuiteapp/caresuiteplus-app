@@ -5,7 +5,7 @@ import { CarePlanDetailHero, VitalReadingListCard } from '@/components/pflege';
 import { PflegeCrossModuleLinksPanel } from '@/components/pflege/PflegeCrossModuleLinksPanel';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumCard, PremiumInput, SectionPanel } from '@/components/ui';
 import { useCarePlanDetail } from '@/hooks/useCarePlanDetail';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -55,29 +55,29 @@ export function CarePlanDetailScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Pflegeplan" subtitle="Wird geladen…">
+      <ScreenShell title="Pflegeplan" subtitle="Wird geladen…">
         <LoadingState message="Pflegeplandetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Pflegeplan" subtitle="Fehler">
+      <ScreenShell title="Pflegeplan" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Der Pflegeplan existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!plan) return null;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={plan.title}
       subtitle={`${plan.clientName} · ${roleLabel ?? 'Demo'}`}
       rightSlot={
@@ -157,7 +157,7 @@ export function CarePlanDetailScreen() {
 
         <PflegeCrossModuleLinksPanel context="care-plan" />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

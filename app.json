@@ -26,7 +26,7 @@
         "backgroundColor": "#070B12"
       },
       "package": "app.caresuiteplus",
-      "versionCode": 5,
+      "versionCode": 9,
       "permissions": [
         "INTERNET"
       ]

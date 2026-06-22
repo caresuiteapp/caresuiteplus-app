@@ -4,7 +4,7 @@ import path from 'node:path';
 import { mapCourseRowToDetail } from '@/lib/akademie/courseDetailMapper';
 import type { CourseDetailLiveRow } from '@/lib/akademie/courseDetailMapper';
 import { mapCourseRowsToListItems } from '@/lib/akademie/courseListMapper';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 

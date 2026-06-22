@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 export function EmployeeFirstLoginHero() {
@@ -55,7 +55,6 @@ export function EmployeeFirstLoginHero() {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Mitarbeiterportal" variant="cyan" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="orange" /> : null}
         <PremiumBadge label="preparedOnly Auth" variant="muted" />
       </View>
       <View style={styles.kpiRow}>

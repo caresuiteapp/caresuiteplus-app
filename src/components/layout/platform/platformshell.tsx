@@ -1,10 +1,15 @@
 import { ReactNode } from 'react';
-import { ScrollView, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
 import type { AppShellArea } from '@/types/navigation/shell';
+import type { MainModuleKey } from '@/types/navigation/platform';
 import { resolveMainModuleFromPath } from '@/lib/navigation/resolvemainmodule';
-import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
+import { resolveMainModuleAccent } from '@/lib/navigation/mainModuleAccent';
+import {
+  PLATFORM_CONTEXT_PANEL_BREAKPOINT,
+  resolvePlatformContentPadding,
+} from '@/lib/platform/shellLayoutMetrics';
 import { breakpoints } from '@/design/tokens/breakpoints';
 import { spacing } from '@/theme';
 import { MainModuleRail } from './mainmodulerail';
@@ -13,12 +18,21 @@ import { ModuleNavSidebar } from './modulenavsidebar';
 import { NotificationBellFab } from '@/components/notifications/notificationcenter';
 import { PlatformTopbar } from './platformtopbar';
 import { RightContextPanel } from './rightcontextpanel';
+import { AutoScrollView } from '@/components/layout/AutoScrollView';
 
 type PlatformShellProps = {
   area: AppShellArea;
   children: ReactNode;
   accentColor?: string;
 };
+
+function isZentraleKpiDashboard(pathname: string, mainModule: MainModuleKey): boolean {
+  if (mainModule !== 'zentrale') return false;
+  const path = pathname.split('?')[0].replace(/\/$/, '') || '/';
+  if (path === '/business' || path === '/zentrale') return true;
+  const segments = path.split('/').filter(Boolean);
+  return segments.length === 1 && segments[0] === 'business';
+}
 
 /**
  * Desktop shell (≥1280px with right panel):
@@ -31,12 +45,44 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
   const insets = useSafeAreaInsets();
   const { width } = useWindowDimensions();
   const mainModule = resolveMainModuleFromPath(pathname);
-  const railItem = MAIN_MODULE_RAIL.find((m) => m.key === mainModule);
-  const accent = accentColor ?? railItem?.accentColor;
+  const accent = resolveMainModuleAccent(mainModule);
 
   const isPhoneLayout = width < breakpoints.tablet;
-  const showContext = width >= 1280;
-  const showModuleNav = width >= 960 && !isPhoneLayout && mainModule !== 'zentrale';
+  const centerKpiOverview = !isPhoneLayout && isZentraleKpiDashboard(pathname, mainModule);
+  const showContext = width >= PLATFORM_CONTEXT_PANEL_BREAKPOINT;
+  const showModuleNav = !isPhoneLayout && mainModule !== 'zentrale';
+  const contentPadding = resolvePlatformContentPadding(width);
+
+  const mainWorkArea = centerKpiOverview ? (
+    <View style={styles.kpiAlignColumn} testID="main-work-area">
+      <AutoScrollView
+        style={styles.kpiAlignScroll}
+        contentContainerStyle={[
+          styles.mainContent,
+          styles.mainContentKpiBlock,
+          styles.kpiAlignScrollContent,
+          styles.mainContentKpiFill,
+        ]}
+        fillViewport={false}
+      >
+        {children}
+      </AutoScrollView>
+    </View>
+  ) : (
+    <AutoScrollView
+      style={styles.main}
+      contentContainerStyle={
+        isPhoneLayout ? styles.mainScrollContent : styles.mainScrollContentDesktop
+      }
+      testID="main-work-area"
+      fillViewport={!isPhoneLayout}
+    >
+      <View style={[styles.mainContent, { padding: contentPadding }]}>{children}</View>
+      {isPhoneLayout ? (
+        <MobilePlatformContextPanel mainModule={mainModule} accentColor={accent} />
+      ) : null}
+    </AutoScrollView>
+  );
 
   const content = (
     <View style={[styles.root, { paddingTop: insets.top }]}>
@@ -45,26 +91,11 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
         {showModuleNav ? <ModuleNavSidebar mainModule={mainModule} accentColor={accent} /> : null}
         <View style={styles.contentColumn}>
           <PlatformTopbar mainModule={mainModule} accentColor={accent} />
-          <View style={styles.body}>
-            {isPhoneLayout ? (
-              <ScrollView
-                style={styles.main}
-                contentContainerStyle={styles.mainScrollContent}
-                showsVerticalScrollIndicator={false}
-              >
-                <View style={styles.mainContent}>{children}</View>
-                <MobilePlatformContextPanel mainModule={mainModule} accentColor={accent} />
-              </ScrollView>
-            ) : (
-              <View style={styles.main} testID="main-work-area">
-                <View style={styles.mainContent}>{children}</View>
-              </View>
-            )}
-          </View>
+          <View style={styles.body}>{mainWorkArea}</View>
         </View>
         {showContext ? <RightContextPanel mainModule={mainModule} accentColor={accent} /> : null}
       </View>
-      <NotificationBellFab />
+      {Platform.OS !== 'web' ? <NotificationBellFab /> : null}
     </View>
   );
 
@@ -74,18 +105,51 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
 const styles = StyleSheet.create({
   root: { flex: 1, backgroundColor: 'transparent' },
   shellRow: { flex: 1, flexDirection: 'row', minHeight: 0 },
-  contentColumn: { flex: 1, minWidth: 0 },
-  body: { flex: 1, flexDirection: 'row', minHeight: 0 },
-  main: { flex: 1, minWidth: 0, backgroundColor: 'transparent' },
+  contentColumn: { flex: 1, minWidth: 0, minHeight: 0, flexDirection: 'column' },
+  body: { flex: 1, flexDirection: 'column', minHeight: 0 },
+  main: { flex: 1, minWidth: 0, minHeight: 0, backgroundColor: 'transparent' },
   mainScrollContent: {
     flexGrow: 1,
     paddingBottom: spacing.xxl,
   },
-  mainContent: {
+  mainScrollContentDesktop: {
+    flexGrow: 1,
+    paddingBottom: spacing.xxl,
+  },
+  kpiAlignColumn: {
     flex: 1,
     minHeight: 0,
+    minWidth: 0,
+    width: '100%',
+  },
+  kpiAlignScroll: {
+    flex: 1,
+    minHeight: 0,
+    backgroundColor: 'transparent',
+    ...(Platform.OS === 'web'
+      ? ({ overflow: 'auto', height: '100%' } as const)
+      : null),
+  },
+  kpiAlignScrollContent: {
+    flexGrow: 1,
+    justifyContent: 'flex-start',
+    alignItems: 'stretch',
+    width: '100%',
+  },
+  mainContent: {
     padding: spacing.lg,
     gap: spacing.lg,
     backgroundColor: 'transparent',
+  },
+  mainContentKpiBlock: {
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
+  },
+  mainContentKpiFill: {
+    paddingVertical: spacing.md,
+    paddingHorizontal: spacing.lg,
+    paddingBottom: spacing.xl,
+    gap: spacing.md,
   },
 });

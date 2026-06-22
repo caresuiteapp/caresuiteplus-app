@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { CarePlansListView } from '@/components/pflege/CarePlansListView';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCarePlanList } from '@/hooks/useCarePlanList';
@@ -16,22 +16,22 @@ export function PflegeplanungListScreen() {
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Pflegeplanung" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Pflegeplanung" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Pflegepläne werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Pflegeplanung" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Pflegeplanung" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Pflegeplanung"
       subtitle={`Pflegepläne und Maßnahmen · ${roleLabel ?? 'Demo'}${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
@@ -52,7 +52,7 @@ export function PflegeplanungListScreen() {
           <CarePlansListView />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

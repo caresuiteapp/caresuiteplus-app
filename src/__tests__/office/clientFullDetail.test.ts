@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fetchClientFullDetail } from '@/lib/clients';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 describe('ClientFullDetail', () => {
   it('lädt vollständige Akte für Helga Schneider', async () => {

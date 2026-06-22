@@ -23,6 +23,10 @@ import {
   isAkademieExtensionLiveReady,
 } from '@/lib/akademie/akademieModuleConfig';
 import { fetchAkademieDashboardStats } from '@/lib/akademie/courseListService';
+import {
+  CATALOGS_MISSING_BANNER_MESSAGE,
+  PREVIEW_DATA_BANNER_MESSAGE,
+} from '@/lib/supabase/missingtablefallback';
 import { wp438A11y } from '@/lib/a11y/wp438-akademie';
 
 void fetchAkademieDashboardStats;
@@ -32,7 +36,8 @@ export function AkademieIndexScreen() {
   const { can, roleLabel } = usePermissions();
   const akademieAccent = moduleColor('akademie');
   const coursesLive = isAkademieCoursesLiveReady();
-  const { stats, upcomingCourses, loading, error, refresh } = useAkademieDashboard();
+  const { stats, upcomingCourses, loading, error, refresh, isPreviewData, tableMissing } =
+    useAkademieDashboard();
 
   if (loading && !stats) {
     return (
@@ -54,7 +59,11 @@ export function AkademieIndexScreen() {
 
   return (
     <CareLightScreen>
-      {!isAkademieExtensionLiveReady() ? (
+      {tableMissing ? (
+        <InfoBanner title="Datenbank-Schema fehlt" message={CATALOGS_MISSING_BANNER_MESSAGE} />
+      ) : isPreviewData ? (
+        <InfoBanner title="Vorschaudaten" message={PREVIEW_DATA_BANNER_MESSAGE} />
+      ) : !isAkademieExtensionLiveReady() ? (
         <InfoBanner title="Demo-funktional" message={AKADEMIE_EXTENSION_PREPARED_MESSAGE} />
       ) : null}
       <CareLightModuleDashboard

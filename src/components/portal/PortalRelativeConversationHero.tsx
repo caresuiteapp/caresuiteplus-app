@@ -8,7 +8,7 @@ import {
   THREAD_TYPE_LABELS,
 } from '@/features/communication/communication.constants';
 import type { CommunicationThread } from '@/features/communication/communication.types';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 type PortalRelativeConversationHeroProps = {
@@ -80,7 +80,6 @@ export function PortalRelativeConversationHero({
         {thread.priority !== 'normal' ? (
           <PremiumBadge label={PRIORITY_LABELS[thread.priority]} variant="orange" dot />
         ) : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard

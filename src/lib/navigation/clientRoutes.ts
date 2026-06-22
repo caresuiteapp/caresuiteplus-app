@@ -5,7 +5,7 @@ export function clientRecordRoute(clientId: string): `/business/office/clients/$
   return `/business/office/clients/${clientId}`;
 }
 
-/** Stammdaten bearbeiten — legacy edit form until a dedicated business edit route exists. */
+/** @deprecated Prefer client record with ?edit=1 — opens ClientIntakeModal in edit mode. */
 export function clientEditRoute(clientId: string): `/office/clients/${string}/edit` {
   return `/office/clients/${clientId}/edit`;
 }

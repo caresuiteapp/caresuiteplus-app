@@ -1,5 +1,5 @@
 import type { ServiceResult } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
@@ -19,7 +19,7 @@ import {
   savePortalPermissions,
   saveRelativePortalCode,
   setPortalCodeHash,
-} from './demoAccessStore';
+} from './accessStore';
 import { recordLoginAuditEvent } from './loginAuditService';
 import {
   pickUniqueClientPortalUsername,

@@ -216,7 +216,23 @@ for (const rel of MODULE_SHELL_LAYOUTS) {
 
 const missingAssets = ASSET_FILES.filter((rel) => !existsSync(join(root, rel)));
 if (missingAssets.length > 0) {
-  fail(`Store-Assets fehlen:\n  - ${missingAssets.join('\n  - ')}`);
+  fail(`Asset-Dateien fehlen:\n  - ${missingAssets.join('\n  - ')}`);
+}
+
+const auroraTheme = join(root, 'src/theme/careSuiteAurora.ts');
+if (!existsSync(auroraTheme)) {
+  fail('careSuiteAurora.ts fehlt');
+}
+const premiumBtn = readFileSync(join(root, 'src/components/ui/PremiumButton.tsx'), 'utf8');
+if (premiumBtn.includes("colors={['#FF9500'")) {
+  fail('PremiumButton nutzt noch Orange-Primary-Gradient');
+}
+if (!premiumBtn.includes('AURORA_BUTTON_PRIMARY')) {
+  fail('PremiumButton: AURORA_BUTTON_PRIMARY fehlt');
+}
+const auroraIndex = join(root, 'src/components/aurora/index.ts');
+if (!existsSync(auroraIndex)) {
+  fail('src/components/aurora/index.ts fehlt');
 }
 
 console.log(`✓ ${TOKEN_FILES.length} Design-Token-Dateien vorhanden`);
@@ -229,4 +245,4 @@ console.log(`✓ ${CRITICAL_SCREENS.length} kritische Screens mit Care-Komponent
 console.log('✓ themeBridge: useLegacyTheme + resolveLegacyGradients + planPilotRoutes');
 console.log(`✓ ${OFFICE_LIST_VIEWS.length} Office-Listen mit AdaptiveActionBar`);
 console.log(`✓ ${MODULE_SHELL_LAYOUTS.length} Modul-Routen mit CareAdaptiveShell`);
-console.log(`✓ ${ASSET_FILES.length} Store-Assets vorhanden\n`);
+console.log('✓ Aurora: careSuiteAurora + PremiumButton Gradient');

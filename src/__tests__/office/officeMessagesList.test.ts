@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildOfficeMessageListKpis } from '@/data/demo/officeMessageListStats';
+import { buildOfficeMessageListKpis } from '@/lib/office/officeMessageListStats';
 import { demoPortalMessages } from '@/data/demo/messages';
 import { sendDomainMessage } from '@/lib/communication/domainMessageService';
 import {
@@ -9,7 +9,7 @@ import {
   fetchOfficeMessageDetail,
   replyToOfficeMessage,
 } from '@/lib/portal/messageService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { OFFICE_MESSAGE_STATUS_FILTERS, OFFICE_MESSAGE_SORT_OPTIONS } from '@/hooks/useOfficeMessages';
 import type { MessageListItem } from '@/types/portal/communication';

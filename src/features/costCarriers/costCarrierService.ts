@@ -27,6 +27,7 @@ import {
   insertClientCostCarrierAssignment,
   insertTenantCostCarrierOverride,
   searchCostCarrierSystemTemplatesRemote,
+  searchTenantCostCarrierOverrides,
 } from './costCarrierRepository';
 
 export const COST_CARRIER_SEARCH_MIN_QUERY_LENGTH = 2;
@@ -116,6 +117,7 @@ export async function searchCostCarrierTemplates(
   uiType: CostBearerTypeKey,
   query: string,
   limit = 8,
+  tenantId?: string | null,
 ): Promise<CostCarrierSearchResult> {
   if (!usesSystemTemplateSearch(uiType)) {
     return { ok: true, data: [] };
@@ -127,7 +129,31 @@ export async function searchCostCarrierTemplates(
   }
 
   if (getServiceMode() === 'supabase') {
-    return searchCostCarrierSystemTemplatesRemote(dbType, query, limit);
+    const [systemResult, tenantResult] = await Promise.all([
+      searchCostCarrierSystemTemplatesRemote(dbType, query, limit),
+      tenantId
+        ? searchTenantCostCarrierOverrides(tenantId, dbType, query, limit)
+        : Promise.resolve({ ok: true as const, data: [] }),
+    ]);
+
+    const tenantData = tenantResult.ok ? tenantResult.data : [];
+    if (!systemResult.ok) {
+      if (tenantData.length > 0) {
+        return { ok: true, data: tenantData.slice(0, limit) };
+      }
+      return systemResult;
+    }
+
+    const merged = [...tenantData, ...systemResult.data];
+    const seen = new Set<string>();
+    const deduped = merged.filter((entry) => {
+      const key = `${entry.carrierType}:${entry.name.toLowerCase()}:${entry.ikNumber}`;
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    });
+
+    return { ok: true, data: deduped.slice(0, limit) };
   }
 
   const staticType = COST_BEARER_TYPE_CONFIG[uiType].templateType as SystemCostCarrierType | undefined;

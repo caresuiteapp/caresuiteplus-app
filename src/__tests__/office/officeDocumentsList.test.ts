@@ -5,10 +5,10 @@ import {
   buildOfficeDocumentListKpis,
   filterOfficeDocumentsByCategory,
   OFFICE_DOCUMENT_CATEGORY_FILTERS,
-} from '@/data/demo/officeDocumentListStats';
+} from '@/lib/office/officeDocumentListStats';
 import { demoPortalDocuments } from '@/data/demo/documents';
 import { fetchOfficeDocumentList } from '@/lib/office/officeDocumentsService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import {
   OFFICE_DOCUMENT_SORT_OPTIONS,

@@ -8,7 +8,7 @@ import {
   DocumentTemplateEditorPanel,
 } from '@/components/documents';
 import { PreparedTemplateBanner } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   InfoBanner,
@@ -70,33 +70,33 @@ export function DocumentTemplateEditorScreen() {
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title="Vorlageneditor" subtitle={roleLabel ?? ''}>
+      <ScreenShell title="Vorlageneditor" subtitle={roleLabel ?? ''}>
         <LockedActionBanner message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !detail) {
     return (
-      <CareLightPageShell title="Vorlageneditor" subtitle="Wird geladen…">
+      <ScreenShell title="Vorlageneditor" subtitle="Wird geladen…">
         <LoadingState message="Vorlage wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !detail) {
     return (
-      <CareLightPageShell title="Vorlageneditor" subtitle="Fehler">
+      <ScreenShell title="Vorlageneditor" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!detail || !version) {
     return (
-      <CareLightPageShell title="Vorlageneditor" subtitle="Nicht gefunden">
+      <ScreenShell title="Vorlageneditor" subtitle="Nicht gefunden">
         <ErrorState message="Dokumentvorlage nicht gefunden." onRetry={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -188,7 +188,7 @@ export function DocumentTemplateEditorScreen() {
     : null;
 
   return (
-    <CareLightPageShell title="Vorlageneditor" subtitle={detail.title}>
+    <ScreenShell title="Vorlageneditor" subtitle={detail.title}>
       <ScrollView contentContainerStyle={styles.content}>
         <PreparedTemplateBanner />
         {isArchived ? (
@@ -245,7 +245,7 @@ export function DocumentTemplateEditorScreen() {
           <PremiumButton title="Archivieren" variant="secondary" onPress={handleArchive} />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

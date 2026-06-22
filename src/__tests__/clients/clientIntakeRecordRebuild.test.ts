@@ -14,7 +14,7 @@ import { getIntakeStepsForContexts, validateIntakeStep } from '@/lib/clients/cli
 import { EMPTY_CLIENT_INTAKE_FORM } from '@/types/forms/clientIntakeForm';
 import { ALL_CATALOG_KEYS, getSystemCatalog } from '@/lib/catalogs/systemCatalogs';
 import { buildClientDocumentStoragePath } from '@/lib/clients/clientDocumentsService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { buildDemoConstellationClients } from '@/data/demo/clients/constellations';
 
 describe('Client Intake & Record Rebuild', () => {

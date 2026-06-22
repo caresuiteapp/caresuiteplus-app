@@ -9,6 +9,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
 import { officeDashboardSupabaseRepository } from '@/lib/services/repositories/officeDashboardRepository.supabase';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
+import { ensureTenantModuleSettingsLoaded } from '@/lib/tenant/tenantModuleSettingsHydration';
 
 const LOAD_DELAY_MS = 280;
 
@@ -43,6 +44,7 @@ export async function fetchOfficeDashboard(
 
     if (getServiceMode() === 'supabase') {
       const tenantName = await resolveTenantDisplayName(tenantId);
+      await ensureTenantModuleSettingsLoaded(tenantId);
       const [metricsResult, auditResult, timelineResult] = await Promise.all([
         officeDashboardSupabaseRepository.fetchMetrics(tenantId),
         officeAuditLogSupabaseRepository.list(tenantId),

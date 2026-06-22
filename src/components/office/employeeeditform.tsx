@@ -134,6 +134,7 @@ export function EmployeeEditForm({
   }));
   const activeStep = sectionOnly ? EMPLOYEE_EDIT_SECTION_INDEX[sectionOnly] : step;
   const showWizard = !sectionOnly;
+  const panelCtx = modalShell ? { viewContext: 'form' as const } : {};
 
   const formBody = (
     <>
@@ -141,7 +142,7 @@ export function EmployeeEditForm({
       {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}
 
       {activeStep === 0 ? (
-        <SectionPanel title="Stammdaten" subtitle="Person, Rolle und Kontakt">
+        <SectionPanel {...panelCtx} title="Stammdaten" subtitle="Person, Rolle und Kontakt">
           <View style={styles.profileSection}>
             <EmployeeProfilePhotoPicker
               firstName={form.firstName}
@@ -216,7 +217,7 @@ export function EmployeeEditForm({
       ) : null}
 
       {activeStep === 1 ? (
-        <SectionPanel title="Anstellung & Adresse" subtitle="Vertrag, Einsatz und Wohnadresse">
+        <SectionPanel {...panelCtx} title="Anstellung & Adresse" subtitle="Vertrag, Einsatz und Wohnadresse">
           <CareDateInput
             label="Eintrittsdatum"
             value={form.entryDate}
@@ -254,7 +255,7 @@ export function EmployeeEditForm({
       ) : null}
 
       {activeStep === 2 ? (
-        <SectionPanel title="Qualifikationen & Führungszeugnis" subtitle="Schnellerfassung">
+        <SectionPanel {...panelCtx} title="Qualifikationen & Führungszeugnis" subtitle="Schnellerfassung">
           <View style={styles.toggleRow}>
             <Text style={styles.toggleLabel}>Erste Hilfe</Text>
             <PremiumButton
@@ -308,7 +309,7 @@ export function EmployeeEditForm({
       ) : null}
 
       {showWizard && activeStep === 3 ? (
-        <SectionPanel title="Zusammenfassung" subtitle="Bitte prüfen und speichern">
+        <SectionPanel {...panelCtx} title="Zusammenfassung" subtitle="Bitte prüfen und speichern">
           {summaryRows.map((row) => (
             <DetailInfoRow key={row.label} label={row.label} value={row.value} />
           ))}

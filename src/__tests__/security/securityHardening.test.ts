@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync, readdirSync } from 'node:fs';
 import path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchAssignmentList } from '@/lib/assist/assignmentListService';
 import { upsertAssignmentWorkflowRecord, resetAssignmentWorkflowStore } from '@/lib/assist/assignmentWorkflowService';
 import {
@@ -21,7 +21,7 @@ import {
   getPreparedChannelTemplates,
   resolveCommunicationTemplateTenantId,
 } from '@/lib/communication/channelService';
-import { getTenantUsers } from '@/lib/auth/demoAccessStore';
+import { getTenantUsers } from '@/lib/auth/accessStore';
 import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { resolveTenantIdForService } from '@/lib/tenant/tenantResolver';
 import { assertLiveConfig } from '@/lib/services/mode';
@@ -274,7 +274,7 @@ describe('Security hardening', () => {
       expect(getPreparedChannelTemplates('')).toEqual([]);
     });
 
-    it('demoAccessStore mappt leeren Mandanten nicht auf Demo-Daten', () => {
+    it('accessStore mappt leeren Mandanten nicht auf Demo-Daten', () => {
       expect(getTenantUsers('')).toEqual([]);
     });
 

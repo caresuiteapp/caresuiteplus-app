@@ -15,6 +15,10 @@ export type ClientFormData = {
   careLevel: string;
   status: WorkflowStatus;
   notes: string;
+  /** Domain-Feld → DB `clients.cost_bearer` */
+  costCarrier: string;
+  /** Domain-Feld → DB `clients.insurance_number` */
+  insuranceNumber: string;
   sensitivity: SensitivityLevel;
   /** v1 Pflichtfelder */
   careFundName: string;
@@ -41,6 +45,8 @@ export const EMPTY_CLIENT_FORM: ClientFormData = {
   careLevel: '',
   status: 'entwurf',
   notes: '',
+  costCarrier: '',
+  insuranceNumber: '',
   sensitivity: 'care',
   careFundName: '',
   billingType: '',

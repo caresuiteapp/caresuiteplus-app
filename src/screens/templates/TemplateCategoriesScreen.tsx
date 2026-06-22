@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useMemo, useState } from 'react';
 import { PreparedTemplateBanner } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -47,22 +47,22 @@ export function TemplateCategoriesScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Vorlagen-Kategorien" subtitle="Wird geladen…">
+      <ScreenShell title="Vorlagen-Kategorien" subtitle="Wird geladen…">
         <LoadingState message="Kategorien werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Vorlagen-Kategorien" subtitle="Fehler">
+      <ScreenShell title="Vorlagen-Kategorien" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Vorlagen-Kategorien" subtitle={`Modulbezogen · ${roleLabel ?? 'Demo'}`}>
+    <ScreenShell title="Vorlagen-Kategorien" subtitle={`Modulbezogen · ${roleLabel ?? 'Demo'}`}>
       <PreparedTemplateBanner />
       <SectionPanel title="Kategorien">
         <PremiumInput label="Suche" value={search} onChangeText={setSearch} placeholder="Label oder Modul…" />
@@ -80,7 +80,7 @@ export function TemplateCategoriesScreen() {
           </View>
         )}
       </SectionPanel>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

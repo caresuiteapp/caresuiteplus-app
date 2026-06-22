@@ -1,6 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
-import { qmDemoRepository } from './qmRepository.demo';
+import { blockDemoOnlyInLiveMode } from '@/lib/services/liveServiceGuard';
 import { enforceQmPermission, QM_EXPORT, QM_VIEW } from './qmPermissions';
 import type { QmExportJob } from './qm.types';
 
@@ -12,8 +12,9 @@ export async function fetchQmExportJobs(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  await new Promise((r) => setTimeout(r, 100));
-  return qmDemoRepository.listExportJobs(tenantId);
+  const liveBlock = blockDemoOnlyInLiveMode<QmExportJob[]>('QM-Export');
+  if (liveBlock) return liveBlock;
+  return { ok: true, data: [] };
 }
 
 export async function createQmExportJob(
@@ -25,7 +26,9 @@ export async function createQmExportJob(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  return qmDemoRepository.createExportJob(tenantId, input);
+  const liveBlock = blockDemoOnlyInLiveMode<QmExportJob>('QM-Export');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'QM-Export im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function getQmExportJob(
@@ -37,9 +40,7 @@ export async function getQmExportJob(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  const jobs = await qmDemoRepository.listExportJobs(tenantId);
-  if (!jobs.ok) return jobs;
-  const job = jobs.data.find((j) => j.id === jobId);
-  if (!job) return { ok: false, error: 'Export-Job nicht gefunden.' };
-  return { ok: true, data: job };
+  const liveBlock = blockDemoOnlyInLiveMode<QmExportJob>('QM-Export');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'Export-Job nicht gefunden.' };
 }

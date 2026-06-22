@@ -4,12 +4,12 @@ import { hashPortalCode, pickUniquePortalCode } from '@/lib/auth/portalCodeGener
 import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
 import { assertDemoTenant } from '@/lib/clients/clientBackend';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   getRelativePortalCodes,
   saveRelativePortalCode,
   setPortalCodeHash,
-} from '@/lib/auth/demoAccessStore';
+} from '@/lib/auth/accessStore';
 import { insertRelativePortalCode } from './accessManagementLiveRepository';
 
 function createPortalCodeId(prefix: string): string {

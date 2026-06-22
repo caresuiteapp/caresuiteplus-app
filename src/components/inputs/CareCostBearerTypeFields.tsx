@@ -12,10 +12,11 @@ type Props = {
   type: string;
   form: ClientIntakeFormData;
   onChange: (form: ClientIntakeFormData) => void;
+  tenantId?: string;
   error?: string;
 };
 
-export function CareCostBearerTypeFields({ type, form, onChange, error }: Props) {
+export function CareCostBearerTypeFields({ type, form, onChange, tenantId, error }: Props) {
   if (!isCostBearerTypeKey(type)) return null;
 
   const config = COST_BEARER_TYPE_CONFIG[type];
@@ -71,6 +72,7 @@ export function CareCostBearerTypeFields({ type, form, onChange, error }: Props)
     <CareCostCarrierTemplateSearch
       label={config.label}
       uiCarrierType={type}
+      tenantId={tenantId}
       values={{
         ...values,
         systemTemplateId,

@@ -5,11 +5,11 @@ export type ServiceBackend<TDemo, TSupabase> = {
   supabase: TSupabase;
 };
 
-/** Wählt Demo- oder Supabase-Backend basierend auf getServiceMode(). */
+/** Live-only — always returns the Supabase backend. */
 export function pickServiceBackend<TDemo, TSupabase>(
   backends: ServiceBackend<TDemo, TSupabase>,
-): TDemo | TSupabase {
-  return getServiceMode() === 'supabase' ? backends.supabase : backends.demo;
+): TSupabase {
+  return backends.supabase;
 }
 
 export function isSupabaseServiceMode(): boolean {

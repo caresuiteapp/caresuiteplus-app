@@ -52,6 +52,33 @@ function buildIntakeClientRecord(
   };
 }
 
+export async function updateClientFromIntake(
+  tenantId: string,
+  clientId: string,
+  form: ClientIntakeFormData,
+  actorProfileId?: string | null,
+): Promise<ServiceResult<{ id: string }>> {
+  const supabase = getClient();
+  if (!supabase) return unavailable();
+
+  const record = buildIntakeClientRecord(tenantId, form, actorProfileId, 'active');
+  const { status: _status, ...updateRecord } = record;
+
+  const { data, error } = await supabase
+    .from('clients')
+    .update(updateRecord)
+    .eq('id', clientId)
+    .eq('tenant_id', tenantId)
+    .select('id')
+    .single();
+
+  if (error || !data) {
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: { id: data.id } };
+}
+
 export async function createClientFromIntake(
   tenantId: string,
   form: ClientIntakeFormData,

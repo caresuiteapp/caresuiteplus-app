@@ -9,8 +9,8 @@ import {
   isStationaerExtensionLiveReady,
   isStationaerResidentsLiveReady,
 } from '@/lib/stationaer/stationaerModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { StationaerDashboardStats } from '@/types/modules/stationaer';
 import { designTokens, spacing } from '@/theme';
@@ -92,7 +92,6 @@ export function StationaerDashboardHero({ stats, roleKey, tenantName }: Stationa
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isStationaerResidentsLiveReady() ? (
           <PremiumBadge label="Live Bewohner:innen" variant="green" />
         ) : null}

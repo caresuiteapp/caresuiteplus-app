@@ -10,8 +10,8 @@ import {
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
-import { MODULE_NAV_CONFIG } from '@/data/demo/navigation';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { MODULE_NAV_CONFIG } from '@/data/navigation/moduleNavConfig';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import {
   calculateCartTotal,
   formatPriceEur,

@@ -26,6 +26,10 @@ import { colors, spacing, typography } from '@/theme';
 
 type EmployeeDetailSummaryPanelProps = {
   employeeId: string;
+  onOpenFullRecord?: () => void;
+  /** Opens EmployeeEditModal in edit mode; parent may host the modal instead. */
+  onEditMasterData?: () => void;
+  onOpenOffboarding?: () => void;
   onDeleted?: () => void;
 };
 
@@ -53,7 +57,13 @@ function statusVariant(status: string) {
   }
 }
 
-export function EmployeeDetailSummaryPanel({ employeeId, onDeleted }: EmployeeDetailSummaryPanelProps) {
+export function EmployeeDetailSummaryPanel({
+  employeeId,
+  onOpenFullRecord,
+  onEditMasterData,
+  onOpenOffboarding,
+  onDeleted,
+}: EmployeeDetailSummaryPanelProps) {
   const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -79,6 +89,22 @@ export function EmployeeDetailSummaryPanel({ employeeId, onDeleted }: EmployeeDe
   if (!employee) return null;
 
   const fullName = `${employee.firstName} ${employee.lastName}`;
+
+  const handleEditMasterData = () => {
+    if (onEditMasterData) {
+      onEditMasterData();
+      return;
+    }
+    router.push(`/office/employees/${employee.id}/edit` as never);
+  };
+
+  const handleOpenOffboarding = () => {
+    if (onOpenOffboarding) {
+      onOpenOffboarding();
+      return;
+    }
+    router.push(`/office/employees/${employee.id}/offboarding` as never);
+  };
 
   return (
     <View style={styles.panel}>
@@ -142,15 +168,27 @@ export function EmployeeDetailSummaryPanel({ employeeId, onDeleted }: EmployeeDe
             title="Stammdaten bearbeiten"
             variant="primary"
             fullWidth
-            onPress={() => router.push(`/office/employees/${employee.id}/edit` as never)}
+            onPress={handleEditMasterData}
           />
         ) : null}
         <PremiumButton
-          title="Vollständiges Profil öffnen"
+          title="Personalakte öffnen"
           variant="secondary"
           fullWidth
-          onPress={() => router.push(`/office/employees/${employee.id}` as never)}
+          onPress={
+            onOpenFullRecord
+              ? onOpenFullRecord
+              : () => router.push(`/office/employees/${employee.id}` as never)
+          }
         />
+        {can('office.employees.edit') ? (
+          <PremiumButton
+            title="Offboarding"
+            variant="secondary"
+            fullWidth
+            onPress={handleOpenOffboarding}
+          />
+        ) : null}
         {can('office.employees.delete') ? (
           <OfficeRecordDeleteButton
             recordLabel="Mitarbeitende:r"

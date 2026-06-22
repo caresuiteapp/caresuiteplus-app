@@ -1,7 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View, type GestureResponderEvent } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -162,22 +162,22 @@ export function BodyMapScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="BodyMap" subtitle="Wird geladen…">
+      <ScreenShell title="BodyMap" subtitle="Wird geladen…">
         <LoadingState message="Marker werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="BodyMap" subtitle="Fehler">
+      <ScreenShell title="BodyMap" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="BodyMap"
       subtitle={`Klinische Markierung · ${roleLabel ?? 'Demo'} · Klient:in ${clientId}`}
       onBack={() => router.back()}
@@ -291,7 +291,7 @@ export function BodyMapScreen() {
           )}
         </SectionPanel>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

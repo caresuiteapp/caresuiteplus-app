@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PreparedTemplateBanner, TemplateEditor } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useTemplateEditor, useTemplateVariables } from '@/hooks/templates';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -25,17 +25,17 @@ export function TemplateCreateScreen() {
 
   if (!can('office.catalogs.edit')) {
     return (
-      <CareLightPageShell title="Neue Vorlage" subtitle={roleLabel ?? ''}>
+      <ScreenShell title="Neue Vorlage" subtitle={roleLabel ?? ''}>
         <LockedActionBanner message={check('office.catalogs.edit').reason ?? 'Keine Berechtigung.'} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (saving) {
     return (
-      <CareLightPageShell title="Neue Vorlage" subtitle="Speichern…">
+      <ScreenShell title="Neue Vorlage" subtitle="Speichern…">
         <LoadingState message="Vorlage wird gespeichert…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -57,7 +57,7 @@ export function TemplateCreateScreen() {
   const isEmpty = !title.trim() && !description.trim() && content.trim() === '{{clientName}} — ';
 
   return (
-    <CareLightPageShell title="Neue Vorlage" subtitle="Mandantenvorlage anlegen">
+    <ScreenShell title="Neue Vorlage" subtitle="Mandantenvorlage anlegen">
       <PreparedTemplateBanner />
       {isEmpty ? (
         <EmptyState title="Neue Vorlage" message="Titel und Inhalt unten erfassen und speichern." />
@@ -82,7 +82,7 @@ export function TemplateCreateScreen() {
         <PremiumButton title="Speichern" onPress={handleSave} loading={saving} disabled={!title.trim()} />
         <PremiumButton title="Abbrechen" variant="secondary" onPress={() => router.back()} />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

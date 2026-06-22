@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildVitalListKpis } from '@/data/demo/vitalListStats';
+import { buildVitalListKpis } from '@/lib/pflege/vitalListStats';
 import { getDemoVitalReadings } from '@/data/demo/vitalReadings';
 import { fetchVitalReadings } from '@/lib/pflege/vitalService';
 import { fetchVitalReadingDetail } from '@/lib/pflege/vitalDetailService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import {
   VITAL_STATUS_FILTERS,

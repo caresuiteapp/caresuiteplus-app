@@ -5,8 +5,8 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import { KIMMessageStatusBadge } from './KIMMessageStatusBadge';
 import { buildKimMessageDetailKpis } from '@/lib/ti/kimMessageDetailStats';
 import { isTILiveReady } from '@/lib/ti/tiModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { KIMMessageDetail } from '@/types/modules/ti';
 import { designTokens, spacing } from '@/theme';
@@ -102,7 +102,6 @@ export function KIMMessageDetailHero({ message, roleKey }: KIMMessageDetailHeroP
         {message.isMedical ? <PremiumBadge label="Medizinisch" variant="orange" dot /> : null}
         {message.hasAttachments ? <PremiumBadge label="Mit Anhängen" variant="cyan" /> : null}
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isTILiveReady() ? <PremiumBadge label="TI in Vorbereitung" variant="orange" dot /> : null}
       </View>
       <View style={styles.kpiRow}>

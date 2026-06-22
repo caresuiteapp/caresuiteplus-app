@@ -12,7 +12,7 @@ import {
   LoadingState,
   PremiumButton,
 } from '@/components/ui';
-import { buildCommunicationListKpis } from '@/data/demo/communicationListStats';
+import { buildCommunicationListKpis } from '@/lib/communication/communicationListStats';
 import { COMMUNICATION_ACCENT } from '@/features/communication/communication.constants';
 import { useCommunicationCenter, useCommunicationPermissions } from '@/hooks/communication';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';

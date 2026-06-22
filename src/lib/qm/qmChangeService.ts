@@ -1,6 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
-import { qmDemoRepository } from './qmRepository.demo';
+import { blockDemoOnlyInLiveMode } from '@/lib/services/liveServiceGuard';
 import { enforceQmPermission, QM_VIEW } from './qmPermissions';
 import type { QmChange, QmChangeType } from './qm.types';
 
@@ -12,8 +12,9 @@ export async function fetchQmChanges(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  await new Promise((r) => setTimeout(r, 100));
-  return qmDemoRepository.listChanges(tenantId);
+  const liveBlock = blockDemoOnlyInLiveMode<QmChange[]>('QM-Änderungen');
+  if (liveBlock) return liveBlock;
+  return { ok: true, data: [] };
 }
 
 export async function createQmChange(
@@ -25,9 +26,7 @@ export async function createQmChange(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  return qmDemoRepository.createChange(tenantId, {
-    ...input,
-    status: 'open',
-    completedAt: null,
-  });
+  const liveBlock = blockDemoOnlyInLiveMode<QmChange>('QM-Änderungen');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'QM-Änderungen im Live-Modus noch nicht vollständig angebunden.' };
 }

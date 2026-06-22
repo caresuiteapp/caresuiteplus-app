@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalMessageDetailHero } from '@/components/portal';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   LoadingState,
@@ -37,33 +37,33 @@ export function PortalMessageDetailScreen() {
 
   if (!canView) {
     return (
-      <CareLightPageShell title="Nachricht" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Nachricht" subtitle={roleLabel ?? 'Portal'}>
         <LockedActionBanner
           message={check('portal.employee.messages.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     return (
-      <CareLightPageShell title="Nachricht" subtitle="Wird geladen…">
+      <ScreenShell title="Nachricht" subtitle="Wird geladen…">
         <LoadingState message="Nachricht wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Nachricht" subtitle="Fehler">
+      <ScreenShell title="Nachricht" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Die Nachricht existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -75,7 +75,7 @@ export function PortalMessageDetailScreen() {
   };
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={data.subject}
       subtitle={`Von ${data.senderName}`}
       rightSlot={
@@ -115,7 +115,7 @@ export function PortalMessageDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -3,7 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { isTILiveReady } from '@/lib/ti/tiModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 type TIProviderSettingsHeroProps = {
@@ -61,7 +61,6 @@ export function TIProviderSettingsHero({ providerCount, connectedCount }: TIProv
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="TI-Gateway" variant="cyan" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="orange" /> : null}
         {!isTILiveReady() ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>

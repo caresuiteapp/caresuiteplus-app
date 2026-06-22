@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { designTokens, gradients } from '@/theme';
+import { AURORA_HERO_GRADIENT, AURORA_BUTTON_PRIMARY } from '@/theme/careSuiteAurora';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -10,9 +11,13 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Design token consolidation', () => {
-  it('gradients.hero.list definiert Dark Premium Hero-Verlauf', () => {
+  it('gradients.hero.list definiert Aurora Hero-Verlauf', () => {
     expect(gradients.hero.list.length).toBe(3);
-    expect(gradients.hero.list[0]).toBe('#1A2030');
+    expect(gradients.hero.list[0]).toBe(AURORA_HERO_GRADIENT[0]);
+  });
+
+  it('gradients.primary nutzt Aurora Button-Verlauf', () => {
+    expect(gradients.primary[0]).toBe(AURORA_BUTTON_PRIMARY[0]);
   });
 
   it('designTokens.hero enthält zentrale Hero-Meta', () => {
@@ -20,39 +25,45 @@ describe('Design token consolidation', () => {
     expect(designTokens.hero.eyebrowLetterSpacing).toBe(1);
   });
 
-  it('PremiumListHeroFrame nutzt zentrale Theme-Tokens', () => {
+  it('PremiumListHeroFrame nutzt Aurora Hero-Tokens', () => {
     const source = readSrc('src/components/ui/PremiumListHeroFrame.tsx');
-    expect(source).toContain('gradients.hero.list');
+    expect(source).toContain('AURORA_HERO_COLORS');
     expect(source).toContain('designTokens.hero');
-    expect(source).toContain('sheen');
+    expect(source).toContain('auroraSharedStyles');
   });
 
-  it('InvoicesListHero nutzt CareLightListHeroFrame', () => {
+  it('PremiumButton nutzt Aurora Primary-Gradient', () => {
+    const source = readSrc('src/components/ui/PremiumButton.tsx');
+    expect(source).toContain('AURORA_BUTTON_PRIMARY');
+    expect(source).not.toContain("colors={['#FF9500'");
+  });
+
+  it('InvoicesListHero nutzt PremiumListHeroFrame', () => {
     const source = readSrc('src/components/office/InvoicesListHero.tsx');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
     expect(source).not.toContain("colors={['#1A2030'");
   });
 
-  it('CarePlansListHero nutzt CareLightListHeroFrame', () => {
+  it('CarePlansListHero nutzt PremiumListHeroFrame', () => {
     const source = readSrc('src/components/pflege/CarePlansListHero.tsx');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
   });
 
-  it('ClientsListHero nutzt CareLightListHeroFrame', () => {
+  it('ClientsListHero nutzt PremiumListHeroFrame', () => {
     const source = readSrc('src/components/office/ClientsListHero.tsx');
-    expect(source).toContain('CareLightListHeroFrame');
-    expect(source).not.toContain("colors={['#1A2030'");
+    expect(source).toContain('PremiumListHeroFrame');
+    expect(source).not.toContain('CareLightListHeroFrame');
   });
 
-  it('EmployeesListHero nutzt CareLightListHeroFrame', () => {
+  it('EmployeesListHero nutzt PremiumListHeroFrame', () => {
     const source = readSrc('src/components/office/EmployeesListHero.tsx');
-    expect(source).toContain('CareLightListHeroFrame');
-    expect(source).not.toContain("colors={['#1A2030'");
+    expect(source).toContain('PremiumListHeroFrame');
+    expect(source).not.toContain('CareLightListHeroFrame');
   });
 
-  it('DocumentsListHero nutzt CareLightListHeroFrame', () => {
+  it('DocumentsListHero nutzt PremiumListHeroFrame', () => {
     const source = readSrc('src/components/office/DocumentsListHero.tsx');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
     expect(source).not.toContain("colors={['#1A2030'");
   });
 });

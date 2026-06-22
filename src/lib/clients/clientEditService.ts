@@ -21,6 +21,55 @@ import { getDemoClientFullDetail, upsertDemoClientFullDetail } from '@/data/demo
 import { updateDemoClientDetail } from '@/data/demo/clientDetails';
 import { buildStreetLine } from '@/lib/clients/clientEditFormMappers';
 
+function projectClientDetailFromFull(full: ClientFullDetail): ClientDetail {
+  return {
+    id: full.id,
+    tenantId: full.tenantId,
+    createdAt: full.createdAt,
+    updatedAt: full.updatedAt,
+    firstName: full.firstName,
+    lastName: full.lastName,
+    dateOfBirth: full.dateOfBirth,
+    careLevel: full.careLevel,
+    status: full.status,
+    primaryContactPhone: full.primaryContactPhone,
+    city: full.city,
+    zip: full.zip,
+    costCarrier: full.costCarrier,
+    insuranceNumber: full.insuranceNumber,
+    sensitivity: full.sensitivity,
+    visibility: full.visibility,
+    ownedByProfileId: full.ownedByProfileId,
+    sharedWithProfileIds: full.sharedWithProfileIds,
+    street: full.street,
+    phone: full.phone,
+    email: full.email,
+    notes: full.notes,
+    admissionDate: full.admissionDate,
+    contacts: full.contacts.map((contact) => ({
+      id: contact.id,
+      name: `${contact.firstName} ${contact.lastName}`.trim(),
+      relationship: contact.relationshipLabel ?? contact.relationship,
+      phone: contact.phone,
+      email: contact.email,
+      isEmergency: contact.isEmergency,
+    })),
+    consents: full.consents.map((consent) => ({
+      id: consent.id,
+      title: consent.title,
+      scope: consent.scope,
+      granted: consent.granted,
+      grantedAt: consent.grantedAt,
+      expiresAt: consent.expiresAt,
+    })),
+    auditEntries: full.auditEntries,
+    history: full.history,
+    contextCounts: full.contextCounts,
+    nextActionHint: full.nextActionHint,
+    allowedStatusActions: full.allowedStatusActions,
+  };
+}
+
 export type ClientEditLoadResult = {
   detail: ClientDetail;
   fullClient: ClientFullDetail;
@@ -182,6 +231,7 @@ function applyDemoEdit(clientId: string, form: ClientEditFormData): ServiceResul
             email: null,
             isEmergency: true,
             isPortalUser: false,
+            contactType: 'emergency_contact' as const,
             portalPermissions: full.contacts[0]?.portalPermissions ?? {
               canViewAppointments: false,
               canViewDocuments: false,
@@ -207,6 +257,7 @@ function applyDemoEdit(clientId: string, form: ClientEditFormData): ServiceResul
             email: null,
             isEmergency: false,
             isPortalUser: false,
+            contactType: 'relative' as const,
             portalPermissions: full.contacts[0]?.portalPermissions ?? {
               canViewAppointments: false,
               canViewDocuments: false,
@@ -269,7 +320,7 @@ function applyDemoEdit(clientId: string, form: ClientEditFormData): ServiceResul
   };
 
   upsertDemoClientFullDetail(updated);
-  updateDemoClientDetail(updated);
+  updateDemoClientDetail(projectClientDetailFromFull(updated));
   return { ok: true, data: undefined };
 }
 

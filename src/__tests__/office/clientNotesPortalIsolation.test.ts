@@ -6,7 +6,7 @@ import {
   toPortalView,
   assertNoInternalNotesInPortalView,
 } from '@/lib/clients';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 describe('ClientNotes Portal Isolation', () => {
   it('Office-Query liefert interne Notizen', async () => {

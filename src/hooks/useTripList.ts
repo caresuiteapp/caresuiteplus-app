@@ -3,10 +3,11 @@ import type { TripLogListItem } from '@/types/modules/assist';
 import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
 import { fetchTripLogList, PURPOSE_LABELS } from '@/lib/assist';
+import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { useAsyncQuery, useListState } from './core';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery, useListState } from './core';
 import type { TripPurpose } from '@/types/modules/assist';
 
 export const TRIP_STATUS_FILTERS: { key: WorkflowStatus | 'all'; label: string }[] = [
@@ -60,7 +61,16 @@ export function useTripList() {
       return fetchTripLogList(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-    { enabled: !!tenantId },
+    {
+      enabled: !!tenantId,
+      live: tenantId
+        ? {
+            tenantId,
+            subscribe: subscribeToAssistOperationsChanges,
+            pollMs: OPERATIONAL_LIVE_POLL_MS,
+          }
+        : undefined,
+    },
   );
 
   const allItems = query.data ?? [];
@@ -121,5 +131,6 @@ export function useTripList() {
     isEmpty: !query.loading && !query.error && allItems.length === 0,
     isFilterEmpty:
       !query.loading && !query.error && list.filtered.length === 0 && hasActiveFilters,
+    isLiveConnected: query.isLiveConnected,
   };
 }

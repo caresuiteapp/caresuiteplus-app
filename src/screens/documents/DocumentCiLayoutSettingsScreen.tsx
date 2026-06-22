@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { PreparedTemplateBanner } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   FilterChipGroup,
@@ -54,28 +54,28 @@ export function DocumentCiLayoutSettingsScreen() {
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title="CI & Layout" subtitle={roleLabel ?? ''}>
+      <ScreenShell title="CI & Layout" subtitle={roleLabel ?? ''}>
         <LockedActionBanner
           message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="CI & Layout" subtitle="Wird geladen…">
+      <ScreenShell title="CI & Layout" subtitle="Wird geladen…">
         <LoadingState message="Mandanten-CI wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="CI & Layout" subtitle="Fehler">
+      <ScreenShell title="CI & Layout" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -99,7 +99,7 @@ export function DocumentCiLayoutSettingsScreen() {
   };
 
   return (
-    <CareLightPageShell title="CI- & Layout-Einstellungen" subtitle="Vorlagen & Dokumente">
+    <ScreenShell title="CI- & Layout-Einstellungen" subtitle="Vorlagen & Dokumente">
       <ScrollView contentContainerStyle={styles.content}>
         <PreparedTemplateBanner />
         <InfoBanner
@@ -231,7 +231,7 @@ export function DocumentCiLayoutSettingsScreen() {
           <PremiumButton title="Speichern" onPress={handleSave} />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

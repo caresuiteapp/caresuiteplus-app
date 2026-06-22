@@ -2,7 +2,7 @@ import type { ServiceResult } from '@/types';
 import { getServiceMode } from '@/lib/services/mode';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 
-/** Mandantenprüfung für Services — Demo nur DEMO_TENANT_ID, Live beliebige UUID. */
+/** Mandantenprüfung für Live-Services. */
 export function guardServiceTenant(tenantId: string): { ok: false; error: string } | null {
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) {
@@ -11,7 +11,7 @@ export function guardServiceTenant(tenantId: string): { ok: false; error: string
   return null;
 }
 
-/** Verhindert Demo-Daten im Live-Modus ohne Supabase-Anbindung. */
+/** Blockiert Features ohne Supabase-Anbindung im Live-Modus. */
 export function blockDemoOnlyInLiveMode<T>(featureLabel: string): ServiceResult<T> | null {
   if (getServiceMode() === 'supabase') {
     return {
@@ -22,10 +22,7 @@ export function blockDemoOnlyInLiveMode<T>(featureLabel: string): ServiceResult<
   return null;
 }
 
-/**
- * Guard for code paths that must never serve demo seed data in supabase mode.
- * Returns a ServiceResult error when live mode would incorrectly use demo data.
- */
+/** Verhindert Demo-Seed-Daten im Supabase-Modus. */
 export function assertLiveDataPath(featureLabel: string): ServiceResult<never> | null {
   if (getServiceMode() === 'supabase') {
     return {
@@ -40,7 +37,7 @@ export function isLiveServiceMode(): boolean {
   return getServiceMode() === 'supabase';
 }
 
-/** Mandantenprüfung + Live-Blocker für Demo-only Features ohne Supabase-Anbindung. */
+/** Mandantenprüfung + Live-Blocker für noch nicht angebundene Features. */
 export function guardLiveDemoFeature<T>(
   tenantId: string,
   featureLabel: string,

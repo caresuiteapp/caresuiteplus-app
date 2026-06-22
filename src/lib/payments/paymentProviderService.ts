@@ -5,7 +5,7 @@ import type {
   PaymentProviderKey,
   PaymentWebhookStatus,
 } from '@/types/payments';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { assertPaymentActionAllowed, maskPaymentCredentialReference } from './paymentGuard';

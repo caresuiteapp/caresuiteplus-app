@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TISecurityNotice } from '@/components/ti';
 import { TIVorbereitungHero } from '@/components/ti/TIVorbereitungHero';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -10,13 +10,13 @@ export function EMPVorbereitungScreen() {
   const { can, check, roleLabel } = usePermissions();
   if (!can('ti.emp.view')) {
     return (
-      <CareLightPageShell title="eMP-Vorbereitung">
+      <ScreenShell title="eMP-Vorbereitung">
         <LockedActionBanner message={check('ti.emp.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
   return (
-    <CareLightPageShell title="eMP-Vorbereitung" subtitle="Elektronischer Medikationsplan">
+    <ScreenShell title="eMP-Vorbereitung" subtitle="Elektronischer Medikationsplan">
       <TIVorbereitungHero
         moduleLabel="eMP"
         title="Vorbereitung eMP"
@@ -28,7 +28,7 @@ export function EMPVorbereitungScreen() {
       <View style={styles.noticeWrap}>
         <TISecurityNotice />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

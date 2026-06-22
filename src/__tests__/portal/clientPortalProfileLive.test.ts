@@ -32,7 +32,7 @@ describe('Client portal profile live wiring', () => {
     expect(screen).toContain('GlassCard');
     expect(screen).toContain('PortalGlassHero');
     expect(screen).not.toContain('PremiumCard');
-    expect(screen).not.toContain('CareLightPageShell');
+    expect(screen).not.toContain('ScreenShell');
   });
 
   it('profile screen shows portal role, modules, and stammdaten request', () => {

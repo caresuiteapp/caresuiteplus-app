@@ -7,7 +7,7 @@ import {
   userFriendlyLabel,
   type UiVisibility,
 } from '@/lib/ui/uiVisibility';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { getServiceMode } from '@/lib/services/mode';
 import { colors, spacing, typography } from '@/theme';
 
@@ -39,7 +39,6 @@ export function AuthInfoCard({ visibility = defaultDeveloperVisibility() }: Auth
           <View style={styles.badges}>
             <PremiumBadge label={`Env: ${environment}`} variant="muted" />
             <PremiumBadge label={`Service: ${serviceMode}`} variant="muted" />
-            {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
             {visibility.showRlsInfo ? (
               <PremiumBadge label={userFriendlyLabel('RLS')} variant="cyan" />
             ) : null}

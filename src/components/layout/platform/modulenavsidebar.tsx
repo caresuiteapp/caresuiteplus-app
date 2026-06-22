@@ -17,13 +17,14 @@ import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModule
 import { useModalStack } from '@/hooks/useModalStack';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText, lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
 import {
   PLATFORM_MODULE_NAV_WIDTH,
   PLATFORM_SHELL_HEADER_TOP_INSET,
 } from '@/lib/platform/shellLayoutMetrics';
 import { radius, spacing, typography } from '@/theme';
+import { SpaceKpiIcon } from '@/components/icons/space';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
 type ModuleNavSidebarProps = {
@@ -73,7 +74,7 @@ function NavItem({
         ]}
       >
         {active ? <View style={[navStyles.navActiveBar, { backgroundColor: accent }]} /> : null}
-        <Text style={navStyles.navIcon}>{icon}</Text>
+        <SpaceKpiIcon icon={icon} accentColor={accent} size={22} />
         <Text
           style={[
             navStyles.navLabel,
@@ -104,7 +105,7 @@ export function ModuleNavSidebar({ mainModule, accentColor }: ModuleNavSidebarPr
   const accent = accentColor ?? colors.violet;
   const config = getModuleNavConfig(mainModule);
   const activeKey = resolveActiveModuleNavKey(pathname, config);
-  const styles = useMemo(() => createStyles(isDark, colors, text), [isDark, colors, text]);
+  const styles = useMemo(() => createStyles(isDark, colors, text, accent), [accent, isDark, colors, text]);
 
   return (
     <View style={styles.root}>
@@ -148,7 +149,7 @@ const navStyles = StyleSheet.create({
     position: 'relative',
   },
   navActiveBar: { position: 'absolute', left: 0, top: 8, bottom: 8, width: 3, borderRadius: 3 },
-  navIcon: { fontSize: 16, width: 24, textAlign: 'center' },
+  navIcon: { width: 22, height: 22 },
   navLabel: { ...typography.body, fontWeight: '600', flex: 1 },
   badge: {
     paddingHorizontal: 6,
@@ -164,8 +165,9 @@ function createStyles(
   isDark: boolean,
   colors: ReturnType<typeof useLegacyTheme>['colors'],
   text: ReturnType<typeof useAuroraAdaptiveText>,
+  accent: string,
 ) {
-  const glassBorder = isDark ? glassFx.border : colors.borderSoft;
+  const glassBorder = isDark ? glassFx.border : lightLiquidGlass.borderAccent;
 
   return StyleSheet.create({
     root: {
@@ -173,14 +175,16 @@ function createStyles(
       flexGrow: 0,
       flexShrink: 0,
       alignSelf: 'stretch',
-      backgroundColor: isDark ? 'rgba(18,22,43,0.32)' : colors.bgPremium,
+      minHeight: 0,
+      backgroundColor: isDark ? 'rgba(18,22,43,0.32)' : lightLiquidGlass.sidebar,
+      ...(isDark ? null : lightLiquidGlassWebFx(lightLiquidGlass.blur.medium)),
       borderRightWidth: 1,
-      borderRightColor: glassBorder,
+      borderRightColor: withAlpha(accent, isDark ? 0.42 : 0.28),
       paddingHorizontal: spacing.md,
       paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
       paddingBottom: spacing.md,
     },
-    title: { ...typography.h3, color: text.primary },
+    title: { ...typography.h3, color: accent },
     subtitle: {
       ...typography.caption,
       color: text.muted,

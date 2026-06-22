@@ -1,8 +1,13 @@
 import React, { useMemo } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import { auroraGlass, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
-import { careRadius } from '@/design/tokens/radius';
+import {
+  useActiveGlassTokens,
+  useAuroraAdaptiveText,
+  useAuroraGlassActive,
+  lightLiquidGlassWebFx,
+} from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careRadius } from '@/design/tokens/radius';
 import { spacing } from '@/theme';
 import { PremiumButton } from './PremiumButton';
 
@@ -22,18 +27,21 @@ function useStateTextColors() {
 
 function useStateContainerStyle() {
   const auroraActive = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
+  const glass = useActiveGlassTokens();
 
   return useMemo(
     () =>
       auroraActive
         ? {
-            backgroundColor: auroraGlass.panel,
+            backgroundColor: glass.panel,
             borderWidth: 1,
-            borderColor: auroraGlass.border,
+            borderColor: isLight && 'borderAccent' in glass ? glass.borderAccent : glass.border,
             borderRadius: careRadius.lg,
+            ...(isLight ? lightLiquidGlassWebFx() : {}),
           }
         : { backgroundColor: 'transparent' as const },
-    [auroraActive],
+    [auroraActive, glass, isLight],
   );
 }
 

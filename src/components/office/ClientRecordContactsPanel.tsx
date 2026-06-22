@@ -1,5 +1,6 @@
 import { useState } from 'react';
-import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
+import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { DetailInfoRow } from '@/components/detail';
 import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
 import { PremiumButton, PremiumCard, PremiumInput, SectionPanel } from '@/components/ui';
@@ -190,22 +191,22 @@ export function ClientRecordContactsPanel({ client, onRefresh, onEditMasterData 
         ) : null}
       </SectionPanel>
 
-      <Modal visible={modalOpen} transparent animationType="fade" onRequestClose={() => setModalOpen(false)}>
-        <Pressable style={styles.modalBackdrop} onPress={() => setModalOpen(false)}>
-          <Pressable style={styles.modalCard} onPress={(e) => e.stopPropagation()}>
-            <Text style={styles.modalTitle}>Sonstigen Kontakt hinzufügen</Text>
-            <PremiumInput label="Name" value={name} onChangeText={setName} />
-            <PremiumInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
-            <PremiumInput label="E-Mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
-            <PremiumInput label="Hinweis / Beziehung" value={notes} onChangeText={setNotes} multiline />
-            {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
-            <View style={styles.modalActions}>
-              <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setModalOpen(false)} />
-              <PremiumButton title="Speichern" onPress={handleAddOther} loading={saving} />
-            </View>
-          </Pressable>
-        </Pressable>
-      </Modal>
+      <AppGlassModal
+        visible={modalOpen}
+        title="Sonstigen Kontakt hinzufügen"
+        onClose={() => setModalOpen(false)}
+        maxWidth={480}
+        footerActions={[
+          { title: 'Abbrechen', onPress: () => setModalOpen(false), variant: 'secondary' },
+          { title: 'Speichern', onPress: handleAddOther, loading: saving, variant: 'glass' },
+        ]}
+      >
+        <PremiumInput label="Name" value={name} onChangeText={setName} />
+        <PremiumInput label="Telefon" value={phone} onChangeText={setPhone} keyboardType="phone-pad" />
+        <PremiumInput label="E-Mail" value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+        <PremiumInput label="Hinweis / Beziehung" value={notes} onChangeText={setNotes} multiline />
+        {saveError ? <Text style={styles.error}>{saveError}</Text> : null}
+      </AppGlassModal>
 
       {!onEditMasterData ? (
         <ClientSectionEditModal
@@ -231,19 +232,5 @@ const styles = StyleSheet.create({
   empty: { ...typography.body, color: colors.textMuted },
   otherHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
   deleteLink: { ...typography.caption, color: colors.error },
-  modalBackdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
-    justifyContent: 'center',
-    padding: spacing.lg,
-  },
-  modalCard: {
-    backgroundColor: colors.bgElevated,
-    borderRadius: 12,
-    padding: spacing.lg,
-    gap: spacing.sm,
-  },
-  modalTitle: { ...typography.h3, marginBottom: spacing.xs },
-  modalActions: { flexDirection: 'row', justifyContent: 'flex-end', gap: spacing.sm, marginTop: spacing.sm },
   error: { ...typography.caption, color: colors.error },
 });

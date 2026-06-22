@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TISecurityNotice } from '@/components/ti';
 import { TIVorbereitungHero } from '@/components/ti/TIVorbereitungHero';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -10,13 +10,13 @@ export function ERezeptVorbereitungScreen() {
   const { can, check, roleLabel } = usePermissions();
   if (!can('ti.erezept.view')) {
     return (
-      <CareLightPageShell title="E-Rezept-Vorbereitung">
+      <ScreenShell title="E-Rezept-Vorbereitung">
         <LockedActionBanner message={check('ti.erezept.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
   return (
-    <CareLightPageShell title="E-Rezept-Vorbereitung" subtitle="Elektronisches Rezept">
+    <ScreenShell title="E-Rezept-Vorbereitung" subtitle="Elektronisches Rezept">
       <TIVorbereitungHero
         moduleLabel="E-Rezept"
         title="Vorbereitung E-Rezept"
@@ -28,7 +28,7 @@ export function ERezeptVorbereitungScreen() {
       <View style={styles.noticeWrap}>
         <TISecurityNotice />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

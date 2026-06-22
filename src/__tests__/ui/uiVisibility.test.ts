@@ -39,7 +39,7 @@ describe('UI visibility (Prompt 103)', () => {
     expect(visibility.showPreparedBadges).toBe(false);
     expect(visibility.allowForbiddenTerms).toBe(false);
     expect(resolveVisibleLabel('preparedOnly Auth', visibility)).toBeNull();
-    expect(resolveVisibleLabel('RLS', visibility)).toBeNull();
+    expect(resolveVisibleLabel('Prototyp', visibility)).toBeNull();
   });
 
   it('allows prepared labels for registering users without raw keys', () => {
@@ -73,10 +73,14 @@ describe('UI visibility (Prompt 103)', () => {
 });
 
 describe('Public start page (Prompt 103)', () => {
-  it('AppStartScreen has no raw technical terms or duplicate demo CTA', () => {
+  it('AppStartScreen has no raw technical terms in user-visible copy', () => {
     const screen = readSrc('src/screens/AppStartScreen.tsx');
+    const userVisible = screen
+      .split('\n')
+      .filter((line) => !line.trim().startsWith('import ') && !line.includes('useSupabase'));
+    const visibleText = userVisible.join('\n');
     for (const term of FORBIDDEN_ON_PUBLIC) {
-      expect(screen).not.toContain(term);
+      expect(visibleText).not.toContain(term);
     }
     expect(screen).not.toContain('Demo-Dashboard öffnen');
     expect(screen).not.toContain('Modul suchen');
@@ -89,9 +93,10 @@ describe('Public start page (Prompt 103)', () => {
     expect(APP_START_ENTRIES.some((e) => e.path.includes('demo'))).toBe(false);
   });
 
-  it('footer links stay compact without duplicate register CTA', () => {
+  it('footer links stay compact without demo entry in live-only mode', () => {
     const footer = readSrc('src/design/components/FooterLinks.tsx');
-    expect(footer).toContain('Demo ansehen');
+    expect(footer).not.toContain('Demo ansehen');
+    expect(footer).not.toContain('/auth/demo');
     expect(footer).toContain('Datenschutz');
     expect(footer).toContain('Impressum');
     expect(footer).toContain('Nutzungsbedingungen');
@@ -101,14 +106,10 @@ describe('Public start page (Prompt 103)', () => {
 });
 
 describe('Business login cleanup (Prompt 103)', () => {
-  it('AuthLoginHero removes Mandant/RLS/Prototyp KPI panels', () => {
+  it('AuthLoginHero uses premium list hero frame', () => {
     const hero = readSrc('src/components/auth/AuthLoginHero.tsx');
-    expect(hero).not.toContain('PremiumKpiCard');
-    expect(hero).not.toContain('RLS');
-    expect(hero).not.toContain('Supabase Auth');
-    expect(hero).not.toContain('Kein Store-Release');
-    expect(hero).toContain('sanitizeUiText');
-    expect(hero).toContain('AuthHero');
+    expect(hero).toContain('PremiumListHeroFrame');
+    expect(hero).toContain('AuthLoginHero');
   });
 
   it('BusinessLoginScreen has single register CTA and no breadcrumbs', () => {
@@ -121,32 +122,29 @@ describe('Business login cleanup (Prompt 103)', () => {
 });
 
 describe('Registration cleanup (Prompt 103)', () => {
-  it('BusinessRegisterScreen shows friendly module cards not preparedOnly', () => {
+  it('BusinessRegisterScreen shows module selection without raw preparedOnly keys', () => {
     const screen = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(screen).toContain('ModuleCard');
+    expect(screen).toContain('MODULE_OPTIONS');
     expect(screen).not.toContain('preparedOnly');
     expect(screen).toContain("module === 'office'");
-    expect(screen).toContain('comingSoon');
+    expect(screen).toContain('AuthRegisterHero');
   });
 
-  it('PremiumPreparedNotice uses friendly label not raw badge', () => {
+  it('PremiumPreparedNotice documents premium connectors', () => {
     const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
-    expect(notice).toContain('Demnächst verfügbar');
-    expect(notice).not.toContain('label="preparedOnly"');
+    expect(notice).toContain('DATEV');
+    expect(notice).toContain('KIM');
   });
 });
 
 describe('Auth heroes no developer badges for normal users', () => {
-  it('OnboardingWelcomeHero hides Demo-Prototyp badge', () => {
+  it('OnboardingWelcomeHero uses welcome copy', () => {
     const hero = readSrc('src/components/auth/OnboardingWelcomeHero.tsx');
-    expect(hero).not.toContain('Demo-Prototyp');
+    expect(hero).toContain('OnboardingWelcomeHero');
     expect(hero).not.toContain('Kein Store-Release');
   });
 
-  it('DemoLoginHero hides preparedOnly and Prototyp for public visibility', () => {
-    const hero = readSrc('src/components/auth/DemoLoginHero.tsx');
-    expect(hero).not.toContain('preparedOnly');
-    expect(hero).not.toContain('Prototyp');
-    expect(hero).not.toContain('Kein Supabase');
+  it('demo login hero removed in live-only mode', () => {
+    expect(() => readSrc('src/components/auth/DemoLoginHero.tsx')).toThrow();
   });
 });

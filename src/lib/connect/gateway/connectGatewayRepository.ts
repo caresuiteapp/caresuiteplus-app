@@ -1,10 +1,7 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { isDemoMode } from '@/lib/supabase/config';
-import { getServiceMode } from '@/lib/services/mode';
 import type { ConnectAdapterResult } from '@/types/connect/gateway';
 import {
   buildConnectExecutionContext,
-  executeConnectAction,
   type ConnectGatewayInput,
 } from './connectGatewayService';
 
@@ -15,7 +12,7 @@ export type ConnectGatewayInvokeInput = ConnectGatewayInput & {
 
 /**
  * Client-Gateway — ruft niemals externe Anbieter direkt auf.
- * Demo/lokal: Gateway-Service. Live: Edge Function connect-provider-proxy.
+ * Live: Edge Function connect-provider-proxy.
  */
 export async function invokeConnectProviderAction(
   input: ConnectGatewayInvokeInput,
@@ -28,12 +25,6 @@ export async function invokeConnectProviderAction(
       message: 'Connect-Kontext unvollständig — Aktion blockiert.',
       auditAction: input.action,
     };
-  }
-
-  const useLocalGateway = isDemoMode() || getServiceMode() === 'demo';
-
-  if (useLocalGateway) {
-    return executeConnectAction(input.action, input.payload ?? {}, context);
   }
 
   const supabase = getSupabaseClient();

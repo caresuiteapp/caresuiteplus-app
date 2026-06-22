@@ -14,8 +14,8 @@ import {
   CARE_DOCUMENTATION_PREPARED_MESSAGE,
   isCareDocumentationLiveReady,
 } from '@/lib/pflege/pflegeModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
 
@@ -89,7 +89,6 @@ export function CareDocumentationListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isCareDocumentationLiveReady() ? (
           <PremiumBadge label="Live-Liste aktiv" variant="green" dot />
         ) : (

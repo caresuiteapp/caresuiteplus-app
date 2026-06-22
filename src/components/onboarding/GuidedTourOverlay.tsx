@@ -10,6 +10,9 @@ import {
 } from 'react-native';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { GradientModalHeader } from '@/components/layout/platform';
+import { GlassSurface } from '@/components/ui/effects';
+import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -43,6 +46,9 @@ export function GuidedTourOverlay({
   onCta,
 }: GuidedTourOverlayProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
+  const { isLight } = useLegacyTheme();
+  const auroraActive = useAuroraGlassActive();
+  const lightGlassCard = isLight && auroraActive;
   const [cardHeight, setCardHeight] = useState(220);
   const isLast = stepIndex >= totalSteps - 1;
   const showSpotlight = step.spotlight && targetLayout && targetLayout.width > 0;
@@ -157,49 +163,52 @@ export function GuidedTourOverlay({
           <View style={[styles.overlay, StyleSheet.absoluteFillObject]} />
         )}
 
-        <View
-          style={[styles.card, cardStyle]}
-          onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}
+        <GlassSurface
+          radius={careRadius.lg}
+          elevated={lightGlassCard}
+          style={[styles.card, lightGlassCard ? styles.cardGlass : styles.cardLegacy, cardStyle]}
         >
-          <GradientModalHeader title={step.title} onClose={onSkip} />
-          <View style={styles.cardBody}>
-            <Text style={styles.stepLabel}>
-              Schritt {stepIndex + 1} von {totalSteps}
-            </Text>
-            <Text style={styles.body}>{step.body}</Text>
+          <View onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}>
+            <GradientModalHeader title={step.title} onClose={onSkip} />
+            <View style={styles.cardBody}>
+              <Text style={styles.stepLabel}>
+                Schritt {stepIndex + 1} von {totalSteps}
+              </Text>
+              <Text style={styles.body}>{step.body}</Text>
 
-            <View style={styles.actions}>
-            <Pressable
-              onPress={onSkip}
-              style={styles.skipBtn}
-              accessibilityRole="button"
-              accessibilityLabel="Tour überspringen"
-            >
-              <Text style={styles.skipText}>Überspringen</Text>
-            </Pressable>
-
-            <View style={styles.primaryActions}>
-              {step.ctaRoute && step.ctaLabel && onCta ? (
+              <View style={styles.actions}>
                 <Pressable
-                  onPress={onCta}
-                  style={[styles.secondaryBtn, { borderColor: accentColor }]}
+                  onPress={onSkip}
+                  style={styles.skipBtn}
                   accessibilityRole="button"
+                  accessibilityLabel="Tour überspringen"
                 >
-                  <Text style={[styles.secondaryText, { color: accentColor }]}>{step.ctaLabel}</Text>
+                  <Text style={styles.skipText}>Überspringen</Text>
                 </Pressable>
-              ) : null}
-              <Pressable
-                onPress={onNext}
-                style={[styles.nextBtn, { backgroundColor: accentColor }]}
-                accessibilityRole="button"
-                accessibilityLabel={isLast ? 'Tour abschließen' : 'Weiter'}
-              >
-                <Text style={styles.nextText}>{isLast ? 'Fertig' : 'Weiter'}</Text>
-              </Pressable>
+
+                <View style={styles.primaryActions}>
+                  {step.ctaRoute && step.ctaLabel && onCta ? (
+                    <Pressable
+                      onPress={onCta}
+                      style={[styles.secondaryBtn, { borderColor: accentColor }]}
+                      accessibilityRole="button"
+                    >
+                      <Text style={[styles.secondaryText, { color: accentColor }]}>{step.ctaLabel}</Text>
+                    </Pressable>
+                  ) : null}
+                  <Pressable
+                    onPress={onNext}
+                    style={[styles.nextBtn, { backgroundColor: accentColor }]}
+                    accessibilityRole="button"
+                    accessibilityLabel={isLast ? 'Tour abschließen' : 'Weiter'}
+                  >
+                    <Text style={styles.nextText}>{isLast ? 'Fertig' : 'Weiter'}</Text>
+                  </Pressable>
+                </View>
+              </View>
             </View>
           </View>
-          </View>
-        </View>
+        </GlassSurface>
       </View>
     </Modal>
   );
@@ -223,11 +232,17 @@ const styles = StyleSheet.create({
     position: 'absolute',
     maxWidth: CARD_MAX_WIDTH,
     alignSelf: 'center',
+    overflow: 'hidden',
+  },
+  cardGlass: {
+    borderWidth: 0,
+    backgroundColor: 'transparent',
+  },
+  cardLegacy: {
     backgroundColor: careLightColors.surface,
     borderRadius: careRadius.lg,
     borderWidth: 1,
     borderColor: careLightColors.borderStrong,
-    overflow: 'hidden',
     shadowColor: careLightColors.navy,
     shadowOpacity: 0.12,
     shadowRadius: 24,

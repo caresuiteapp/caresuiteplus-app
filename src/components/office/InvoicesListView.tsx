@@ -15,7 +15,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildInvoiceListKpis } from '@/data/demo/invoiceListStats';
+import { buildInvoiceListKpis } from '@/lib/office/invoiceListStats';
 import { useInvoiceList } from '@/hooks/useInvoiceList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';

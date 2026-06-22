@@ -1,10 +1,16 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   activatePurchasedModule,
+  deactivateModule,
   initializeModuleAccessStore,
   resetModuleAccessStore,
 } from '@/lib/modules/moduleAccessService';
+import {
+  resetTenantModuleSettingsCache,
+  setTenantModuleSettingsCache,
+} from '@/lib/tenant/tenantModuleSettingsCache';
+import { syncModuleAccessFromTenantSettings } from '@/lib/tenant/syncTenantModuleAccess';
 import {
   isModuleScopeNavigable,
   isModuleScopeVisible,
@@ -12,19 +18,42 @@ import {
   resolveModuleScopeFromPath,
 } from '@/lib/modules';
 import { checkModuleAccess, checkRoleAccess, getModuleSwitcherItems, getTabsForArea } from '@/lib/navigation';
+import { getVisibleMainModuleRailItems } from '@/lib/navigation/mainmodulerail';
+import { buildZentraleModuleOverviewRows } from '@/lib/dashboard/zentraleModuleOverview';
+import { emptyBusinessDashboardMetrics } from '@/lib/dashboard/businessDashboardMetrics';
 
 const TENANT = DEMO_TENANT_ID;
 const ADMIN = 'business_admin' as const;
 const NURSE = 'nurse' as const;
 
+function seedTenantCenterModules(
+  modules: {
+    assistEnabled: boolean;
+    pflegeEnabled: boolean;
+    stationaerEnabled: boolean;
+    beratungEnabled: boolean;
+  },
+) {
+  setTenantModuleSettingsCache(TENANT, modules);
+  syncModuleAccessFromTenantSettings(TENANT, modules);
+}
+
 describe('moduleVisibilityService', () => {
   beforeEach(() => {
     vi.stubGlobal('__DEV__', false);
     resetModuleAccessStore();
+    resetTenantModuleSettingsCache();
     initializeModuleAccessStore(TENANT);
     activatePurchasedModule(TENANT, 'office');
     activatePurchasedModule(TENANT, 'assist');
     activatePurchasedModule(TENANT, 'pflege');
+    seedTenantCenterModules({
+      assistEnabled: true,
+      pflegeEnabled: true,
+      stationaerEnabled: false,
+      beratungEnabled: false,
+    });
+    deactivateModule(TENANT, 'akademie');
   });
 
   afterEach(() => {
@@ -65,12 +94,9 @@ describe('moduleVisibilityService', () => {
     ).toBe(false);
   });
 
-  it('connect Tab ist für Admin sichtbar (beta)', () => {
+  it('connect ist für Admin sichtbar und navigierbar (beta)', () => {
     expect(isModuleScopeVisible('connect', { tenantId: TENANT, roleKey: ADMIN })).toBe(true);
     expect(isModuleScopeNavigable('connect', { tenantId: TENANT, roleKey: ADMIN })).toBe(true);
-    expect(
-      getTabsForArea('business', { tenantId: TENANT, roleKey: ADMIN }).some((t) => t.key === 'connect'),
-    ).toBe(true);
   });
 
   it('internal reporting nur für Admin sichtbar', () => {
@@ -79,12 +105,56 @@ describe('moduleVisibilityService', () => {
     expect(isModuleScopeNavigable('reporting', { tenantId: TENANT, roleKey: ADMIN })).toBe(true);
   });
 
-  it('Modul-Switcher blendet disabled aus und markiert beta-Module', () => {
+  it('Modul-Switcher zeigt nur aktive Mandanten-Module', () => {
     const items = getModuleSwitcherItems(TENANT, NURSE);
-    expect(items).toHaveLength(6);
-    const stationaer = items.find((item) => item.productKey === 'stationaer');
-    expect(stationaer?.visibilityStatus).toBe('beta');
-    expect(stationaer?.isNavigable).toBe(false);
+    expect(items.every((item) => item.isActive)).toBe(true);
+    expect(items.map((item) => item.productKey)).toEqual(['office', 'assist', 'pflege']);
+    expect(items.find((item) => item.productKey === 'stationaer')).toBeUndefined();
+  });
+
+  it('MainModuleRail blendet inaktive Module aus', () => {
+    const visible = getVisibleMainModuleRailItems({ tenantId: TENANT, roleKey: NURSE });
+    const keys = visible.map((item) => item.key);
+    expect(keys).toContain('zentrale');
+    expect(keys).toContain('admin');
+    expect(keys).toContain('office');
+    expect(keys).toContain('assist');
+    expect(keys).toContain('pflege');
+    expect(keys).not.toContain('stationaer');
+    expect(keys).not.toContain('beratung');
+    expect(keys).not.toContain('akademie');
+  });
+
+  it('Zentrale-Übersicht zeigt nur aktive Module', () => {
+    seedTenantCenterModules({
+      assistEnabled: true,
+      pflegeEnabled: false,
+      stationaerEnabled: false,
+      beratungEnabled: false,
+    });
+    const metrics = {
+      ...emptyBusinessDashboardMetrics(),
+      tableAvailability: {
+        clients: true,
+        assignments: true,
+        employees: true,
+        invoices: true,
+        tasks: true,
+        messages: true,
+        modules: true,
+        portalUsers: true,
+        documents: true,
+        portalRequests: true,
+        serviceRecords: true,
+        budgets: true,
+        appointments: true,
+      },
+    };
+    const rows = buildZentraleModuleOverviewRows(metrics, 'dark', 'kpi', {
+      tenantId: TENANT,
+      roleKey: NURSE,
+    });
+    expect(rows.map((row) => row.moduleKey)).toEqual(['office', 'assist']);
   });
 });
 
@@ -107,8 +177,14 @@ describe('checkModuleAccess — Direkt-Routen', () => {
   });
 
   it('erlaubt beta beratung route bei aktivem Mandant', () => {
+    seedTenantCenterModules({
+      assistEnabled: true,
+      pflegeEnabled: true,
+      stationaerEnabled: false,
+      beratungEnabled: true,
+    });
     activatePurchasedModule(TENANT, 'beratung');
-    const decision = checkModuleAccess('/beratung/cases', NURSE, TENANT);
+    const decision = checkModuleAccess('/beratung/cases', 'counselor', TENANT);
     expect(decision.shouldRedirect).toBe(false);
   });
 

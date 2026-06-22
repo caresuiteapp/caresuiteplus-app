@@ -1,6 +1,6 @@
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TIAuditLogListHero } from '@/components/ti';
 import { ErrorState, LoadingState, PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
 import { useTIAuditLog } from '@/hooks/ti';
@@ -31,30 +31,30 @@ export function TIAuditLogScreen() {
 
   if (!can('ti.audit.view')) {
     return (
-      <CareLightPageShell title="TI-Audit-Log">
+      <ScreenShell title="TI-Audit-Log">
         <LockedActionBanner message={check('ti.audit.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && items.length === 0) {
     return (
-      <CareLightPageShell title="TI-Audit-Log">
+      <ScreenShell title="TI-Audit-Log">
         <LoadingState message="Audit-Ereignisse werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && items.length === 0) {
     return (
-      <CareLightPageShell title="TI-Audit-Log">
+      <ScreenShell title="TI-Audit-Log">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="TI-Audit-Log"
       subtitle={`${filteredCount} Ereignisse`}
       scroll={false}
@@ -87,7 +87,7 @@ export function TIAuditLogScreen() {
           </PremiumCard>
         )}
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

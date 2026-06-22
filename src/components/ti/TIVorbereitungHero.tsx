@@ -3,7 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { TI_PREPARED_MESSAGE, isTILiveReady } from '@/lib/ti/tiModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 type TIVorbereitungHeroProps = {
@@ -71,7 +71,6 @@ export function TIVorbereitungHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={moduleLabel} variant="cyan" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="orange" /> : null}
         {!isTILiveReady() ? (
           <PremiumBadge label="TI in Vorbereitung" variant="orange" dot />
         ) : null}

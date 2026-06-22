@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -32,31 +32,31 @@ export function OfficeBusinessSettingsScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Office Einstellungen" subtitle="Wird geladen…">
+      <ScreenShell title="Office Einstellungen" subtitle="Wird geladen…">
         <LoadingState message="Einstellungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Office Einstellungen" subtitle="Fehler">
+      <ScreenShell title="Office Einstellungen" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const snapshot = query.data;
   if (!snapshot || snapshot.links.length === 0) {
     return (
-      <CareLightPageShell title="Office Einstellungen" subtitle="Leer">
+      <ScreenShell title="Office Einstellungen" subtitle="Leer">
         <EmptyState title="Keine Einstellungsbereiche" message="Konfiguration ist im Demo-Mandanten nicht verfügbar." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Office Einstellungen" subtitle={`${snapshot.tenantLabel} · ${roleLabel ?? 'Demo'}`}>
+    <ScreenShell title="Office Einstellungen" subtitle={`${snapshot.tenantLabel} · ${roleLabel ?? 'Demo'}`}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SectionPanel title="Einstellungsbereiche">
           <Text style={styles.lead}>Zentrale Office-Konfiguration — direkte Navigation zu Fachbereichen.</Text>
@@ -70,7 +70,7 @@ export function OfficeBusinessSettingsScreen() {
           ))}
         </SectionPanel>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

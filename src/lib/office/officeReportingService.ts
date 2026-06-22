@@ -2,7 +2,7 @@ import type { RoleKey, ServiceResult } from '@/types';
 import { demoClients } from '@/data/demo/clients';
 import { demoEmployees } from '@/data/demo/employees';
 import { demoInvoices } from '@/data/demo/seedCatalog';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';

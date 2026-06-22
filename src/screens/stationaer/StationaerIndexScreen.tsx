@@ -24,6 +24,7 @@ import {
   isStationaerResidentsLiveReady,
 } from '@/lib/stationaer/stationaerModuleConfig';
 import { fetchStationaerDashboardStats } from '@/lib/stationaer/residentListService';
+import { CARE_RECORDS_MISSING_BANNER_MESSAGE, PREVIEW_DATA_BANNER_MESSAGE } from '@/lib/supabase/missingtablefallback';
 import { wp398A11y } from '@/lib/a11y/wp398-stationaer';
 
 void fetchStationaerDashboardStats;
@@ -33,7 +34,8 @@ export function StationaerIndexScreen() {
   const { can, roleLabel } = usePermissions();
   const stationaerAccent = moduleColor('stationaer');
   const residentsLive = isStationaerResidentsLiveReady();
-  const { stats, activeResidents, loading, error, refresh } = useStationaerDashboard();
+  const { stats, activeResidents, loading, error, refresh, isPreviewData, tableMissing } =
+    useStationaerDashboard();
 
   if (loading && !stats) {
     return (
@@ -56,7 +58,11 @@ export function StationaerIndexScreen() {
   return (
     <CareLightScreen>
       <InactiveModuleBanner productKey="stationaer" />
-      {!isStationaerExtensionLiveReady() ? (
+      {tableMissing ? (
+        <InfoBanner title="Datenbank-Schema fehlt" message={CARE_RECORDS_MISSING_BANNER_MESSAGE} />
+      ) : isPreviewData ? (
+        <InfoBanner title="Vorschaudaten" message={PREVIEW_DATA_BANNER_MESSAGE} />
+      ) : !isStationaerExtensionLiveReady() ? (
         <InfoBanner title="Demo-funktional" message={STATIONAER_EXTENSION_PREPARED_MESSAGE} />
       ) : null}
       <CareLightModuleDashboard

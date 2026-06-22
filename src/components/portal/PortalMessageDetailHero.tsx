@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { MessageDetail } from '@/types/portal/communication';
 import { VISIBILITY_LABELS } from '@/types/portal/visibility';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -132,7 +132,6 @@ export function PortalMessageDetailHero({ message, scope }: PortalMessageDetailH
         <PremiumBadge label={VISIBILITY_LABELS[message.visibility]} variant="muted" />
         {isUnread ? <PremiumBadge label="Ungelesen" variant="orange" dot /> : null}
         {message.canReply ? <PremiumBadge label="Antwort möglich" variant="green" /> : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard

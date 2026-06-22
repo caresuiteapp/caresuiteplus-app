@@ -45,7 +45,11 @@ describe('shellLayoutMetrics', () => {
     expect(zoneCenter).toBeCloseTo(mainCenter, 5);
   });
 
-  it('includes module nav for non-Zentrale modules on desktop', () => {
+  it('includes module nav for non-Zentrale modules from tablet width', () => {
+    expect(resolvePlatformShellSideInsets(834, 'office')).toEqual({
+      left: PLATFORM_MODULE_RAIL_WIDTH + PLATFORM_MODULE_NAV_WIDTH,
+      right: 0,
+    });
     expect(resolvePlatformShellSideInsets(1440, 'office')).toEqual({
       left: PLATFORM_MODULE_RAIL_WIDTH + PLATFORM_MODULE_NAV_WIDTH,
       right: PLATFORM_RIGHT_CONTEXT_PANEL_WIDTH,

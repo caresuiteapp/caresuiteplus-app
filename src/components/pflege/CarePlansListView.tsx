@@ -14,7 +14,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildCarePlanListKpis } from '@/data/demo/carePlanListStats';
+import { buildCarePlanListKpis } from '@/lib/pflege/carePlanListStats';
 import { useCarePlanList } from '@/hooks/useCarePlanList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';

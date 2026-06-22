@@ -6,8 +6,8 @@ import {
   isPflegeSettingsLiveReady,
   PFLEGE_SETTINGS_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { PflegeModuleSettings } from '@/types/modules/pflege';
 import { designTokens, spacing } from '@/theme';
@@ -91,7 +91,6 @@ export function PflegeSettingsHero({ settings, roleKey }: PflegeSettingsHeroProp
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isPflegeSettingsLiveReady() ? (
           <PremiumBadge label="Teilweise live" variant="orange" dot />
         ) : null}

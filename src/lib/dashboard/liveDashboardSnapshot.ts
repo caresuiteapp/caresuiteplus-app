@@ -14,6 +14,8 @@ import {
   emptyBusinessDashboardMetrics,
   type BusinessDashboardMetrics,
 } from '@/lib/dashboard/businessDashboardMetrics';
+import { buildZentraleModuleOverviewRows } from '@/lib/dashboard/zentraleModuleOverview';
+import { getTenantModuleSettingsCache } from '@/lib/tenant/tenantModuleSettingsCache';
 import {
   buildOfficeKpisFromMetrics,
   buildOfficeStatusCardsFromMetrics,
@@ -194,10 +196,19 @@ export function buildLiveDashboardSnapshot(
   activities: DashboardActivity[] = EMPTY_ACTIVITIES,
   portalMetrics?: ClientPortalLiveMetrics,
 ): DashboardSnapshot {
-  const kpis =
-    scope === 'business'
-      ? buildBusinessKpisFromMetrics(businessMetrics)
-      : buildEmptyBusinessKpis(roleKey, scope, portalMetrics);
+  const isBusinessScope = scope === 'business';
+  const kpis = isBusinessScope
+    ? buildBusinessKpisFromMetrics(businessMetrics)
+    : buildEmptyBusinessKpis(roleKey, scope, portalMetrics);
+
+  const tenantModules = getTenantModuleSettingsCache(tenantId);
+  const moduleOverviewRows = isBusinessScope
+    ? buildZentraleModuleOverviewRows(businessMetrics, 'dark', 'kpi', {
+        tenantId,
+        roleKey,
+        tenantModules,
+      })
+    : [];
 
   return {
     scope,
@@ -209,6 +220,7 @@ export function buildLiveDashboardSnapshot(
     moduleLabel: getModuleLabel(scope),
     primaryAction: getPrimaryAction(roleKey, scope),
     kpis,
+    ...(moduleOverviewRows.length > 0 ? { moduleOverviewRows } : {}),
     statusCards: EMPTY_STATUS_CARDS,
     quickActions: getBusinessQuickActions(roleKey, scope),
     activities,
@@ -222,6 +234,13 @@ export function buildLiveOfficeDashboardSnapshot(
   metrics: OfficeDashboardMetrics = emptyOfficeDashboardMetrics(),
   activities: DashboardActivity[] = EMPTY_ACTIVITIES,
 ): DashboardSnapshot {
+  const tenantModules = getTenantModuleSettingsCache(tenantId);
+  const moduleOverviewRows = buildZentraleModuleOverviewRows(metrics, 'dark', 'office-kpi', {
+    tenantId,
+    roleKey,
+    tenantModules,
+  });
+
   return {
     scope: 'office',
     roleKey,
@@ -232,6 +251,7 @@ export function buildLiveOfficeDashboardSnapshot(
     moduleLabel: 'CareSuite+ Office',
     primaryAction: OFFICE_LIVE_QUICK_ACTIONS[0],
     kpis: buildOfficeKpisFromMetrics(metrics),
+    ...(moduleOverviewRows.length > 0 ? { moduleOverviewRows } : {}),
     statusCards: buildOfficeStatusCardsFromMetrics(metrics),
     quickActions: OFFICE_LIVE_QUICK_ACTIONS,
     activities,

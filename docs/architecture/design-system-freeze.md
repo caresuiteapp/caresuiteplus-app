@@ -12,7 +12,8 @@ CareSuite+ UI is frozen to central premium components under `@/design/components
 | `RegisterLayout` | Business registration wizard |
 | `GlassCard` | Glass panels — cards, form groups |
 | `PortalCard` | Start page entry tiles |
-| `PremiumButton` | All CTAs — primary/secondary/ghost/danger/prepared |
+| `PremiumButton` | All CTAs — Aurora primary gradient (Purple/Pink) |
+| `AuroraPageHeader` / `@/components/aurora` | Gradient headers, glass cards, menu items |
 | `ModuleCard` | Module picker / activation |
 | `StatusBadge` / `FeatureBadge` | Status chips — never raw keys |
 | `InputField` | Auth & registration inputs |

@@ -1,6 +1,7 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { CareSuiteBrandHeader } from '@/components/brand/CareSuiteBrandHeader';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { type CareModuleKey } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -12,6 +13,23 @@ type CareLightModuleHeaderProps = {
 };
 
 export function CareLightModuleHeader({ moduleKey, subtitle, style }: CareLightModuleHeaderProps) {
+  const { c } = useCareLightPalette();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: {
+          gap: careSpacing.xs,
+        },
+        eyebrow: {
+          ...careTypography.caption,
+          color: c.muted,
+          letterSpacing: 1.2,
+          fontWeight: '700',
+        },
+      }),
+    [c.muted],
+  );
+
   const moduleTitles: Record<CareModuleKey, string> = {
     office: 'CareSuite+ Office',
     assist: 'CareSuite+ Assist',
@@ -34,15 +52,3 @@ export function CareLightModuleHeader({ moduleKey, subtitle, style }: CareLightM
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    gap: careSpacing.xs,
-  },
-  eyebrow: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-    letterSpacing: 1.2,
-    fontWeight: '700',
-  },
-});

@@ -7,7 +7,7 @@ import type {
   LifecycleDocument,
   LifecycleDocumentVersion,
 } from '@/types/documents/documentLifecycle';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { buildDocumentPreview } from '@/features/documents/templateEngine/documentPreviewRenderer';
 import { buildDocumentContext } from '@/features/documents/templateEngine/documentContext';
 import { assertCanActivateTemplateVersion } from '@/features/documents/templateEngine/validateTemplateActivation';

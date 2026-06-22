@@ -11,7 +11,7 @@ export type CalendarEventType =
   | 'uebergabe'
   | 'weiterbildung';
 
-export type CalendarViewMode = 'day' | 'week' | 'month' | 'year';
+export type CalendarViewMode = 'day' | 'week' | 'month' | 'year' | 'agenda' | 'list';
 
 export type WeekStartDay = 0 | 1;
 
@@ -24,7 +24,11 @@ export type CalendarEvent = {
   color: string;
   allDay?: boolean;
   sourceId?: string;
+  sourceType?: string;
+  moduleKey?: string;
+  status?: string;
   href?: string;
+  record?: import('@/types/calendar').CalendarEventRecord;
 };
 
 export const CALENDAR_EVENT_TYPE_LABELS: Record<CalendarEventType, string> = {
@@ -93,7 +97,7 @@ export const DEFAULT_ASSIST_VISIBLE_TYPES: Record<CalendarEventType, boolean> = 
   erinnerung: false,
 };
 
-export type CalendarModuleScope = 'office' | 'assist';
+export type CalendarModuleScope = 'office' | 'assist' | 'pflege' | 'stationaer' | 'beratung' | 'akademie';
 
 export function buildDefaultTenantCalendarSettings(tenantId: string): TenantCalendarSettings {
   return {

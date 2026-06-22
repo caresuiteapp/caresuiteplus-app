@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { CoursesListView } from '@/components/akademie/CoursesListView';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCourseList } from '@/hooks/useCourseList';
@@ -15,22 +15,22 @@ export function AkademieKurseListScreen() {
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Kurse" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Kurse" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Kurse werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Kurse" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Kurse" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Kurse"
       subtitle={`Kursliste · ${roleLabel ?? 'Demo'}${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
@@ -48,7 +48,7 @@ export function AkademieKurseListScreen() {
           <CoursesListView />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

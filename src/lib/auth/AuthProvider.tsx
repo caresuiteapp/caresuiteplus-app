@@ -3,22 +3,22 @@ import type { AuthChangeEvent, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
 import {
   getSession,
-  isDemoMode,
   onAuthStateChange,
   resolveAuthMode,
   signOut as supabaseSignOut,
 } from '@/lib/supabase';
 import { bootstrapTenantContext } from '@/lib/supabase/tenantService';
 import { hydrateTenantModulesFromSupabase } from '@/lib/modules/moduleAccessHydration';
+import { hydrateTenantModuleSettings } from '@/lib/tenant/tenantModuleSettingsHydration';
 import { fetchRuntimePermissions } from '@/lib/supabase/permissionRepository';
 import { AuthContext, type AuthContextValue } from './context';
-import { buildDemoSession } from './demoSession';
 import {
   clearPortalSession,
   loadPortalSession,
   savePortalSession,
   type PortalSessionRecord,
 } from './portalSessionStore';
+import { clearBusinessWelcomePending } from './businessWelcomeSession';
 import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
 
 type AuthProviderProps = {
@@ -82,6 +82,7 @@ async function hydrateSupabaseSession(
     if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
       void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
       void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+      void hydrateTenantModuleSettings(bootstrap.profile.tenantId);
     }
     return { ok: true };
   }
@@ -266,28 +267,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     profile?.roleKey,
   ]);
 
-  const signInDemo = useCallback(async (roleKey: RoleKey) => {
-    if (!isDemoMode()) {
-      throw new Error('Demo-Anmeldung nur im Demo-Modus verfügbar.');
-    }
-    setIsLoading(true);
-    try {
-      await clearPortalSession();
-      setPortalSession(null);
-      setProfileBootstrapError(null);
-      const built = buildDemoSession(roleKey);
-      setUser(built.user);
-      setProfile(built.profile);
-      setSession(built.session);
-    } finally {
-      setIsLoading(false);
-    }
-  }, []);
-
   const signInWithSupabaseSession = useCallback(async (supabaseSession: Session) => {
-    if (authMode !== 'supabase') {
-      throw new Error('Supabase-Anmeldung nur im Live-Modus verfügbar.');
-    }
     setIsLoading(true);
     try {
       await clearPortalSession();
@@ -307,11 +287,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     } finally {
       setIsLoading(false);
     }
-  }, [applyMinimalAuthOnBootstrapFailure, authMode]);
+  }, [applyMinimalAuthOnBootstrapFailure]);
 
   const retryProfileBootstrap = useCallback(async () => {
-    if (authMode !== 'supabase') return;
-
     setProfileBootstrapError(null);
     profileRepairAttemptedRef.current = false;
 
@@ -331,13 +309,11 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (!result.ok) {
       applyMinimalAuthOnBootstrapFailure(sessionResult.data, result.error);
     }
-  }, [applyMinimalAuthOnBootstrapFailure, authMode]);
+  }, [applyMinimalAuthOnBootstrapFailure]);
 
   const signInPortalSession = useCallback(async (record: PortalSessionRecord) => {
     await savePortalSession(record);
     setPortalSession(record);
-
-    if (authMode !== 'supabase') return;
 
     const sessionResult = await getSession();
     if (!sessionResult.ok || !sessionResult.data) return;
@@ -353,8 +329,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
       void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
       void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+      void hydrateTenantModuleSettings(bootstrap.profile.tenantId);
     }
-  }, [authMode]);
+  }, []);
 
   const updateProfile = useCallback((nextProfile: Profile) => {
     setProfile(nextProfile);
@@ -373,10 +350,9 @@ export function AuthProvider({ children }: AuthProviderProps) {
     signOutRequestedRef.current = true;
     setIsLoading(true);
     try {
-      if (authMode === 'supabase') {
-        await supabaseSignOut();
-      }
+      await supabaseSignOut();
       await clearPortalSession();
+      clearBusinessWelcomePending();
       setUser(null);
       setProfile(null);
       setSession(null);
@@ -386,7 +362,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       signOutRequestedRef.current = false;
       setIsLoading(false);
     }
-  }, [authMode]);
+  }, []);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -400,7 +376,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       session,
       portalSession,
       profileBootstrapError,
-      signInDemo,
       signInWithSupabaseSession,
       signInPortalSession,
       retryProfileBootstrap,
@@ -416,7 +391,6 @@ export function AuthProvider({ children }: AuthProviderProps) {
       session,
       portalSession,
       profileBootstrapError,
-      signInDemo,
       signInWithSupabaseSession,
       signInPortalSession,
       retryProfileBootstrap,

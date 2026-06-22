@@ -9,9 +9,10 @@ import {
   type MealPlanItem,
   type ResidentPlanningItem,
 } from '@/data/demo/stationaerPlanning';
+import { buildCalendarEventFromStationaryActivity, syncCalendarEventAsync } from '@/lib/calendar/calendarSyncService';
 import { getDemoLivingAreas } from '@/data/demo/stationaerExtended';
 import { getDemoResidentListItems } from '@/data/demo/residents';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 
@@ -63,7 +64,21 @@ export async function fetchActivityPlans(
   const live = guardDemo(tenantId);
   if (live) return live;
   await demoDelay();
-  return { ok: true, data: getDemoActivityPlans() };
+  const activities = getDemoActivityPlans();
+  for (const activity of activities) {
+    syncCalendarEventAsync(
+      buildCalendarEventFromStationaryActivity(tenantId, {
+        id: activity.id,
+        title: activity.title,
+        scheduledAt: activity.scheduledAt,
+        location: activity.location,
+        locationType: 'common_area',
+        status: activity.status,
+        portalVisible: true,
+      }),
+    );
+  }
+  return { ok: true, data: activities };
 }
 
 export async function fetchResidentPlanning(

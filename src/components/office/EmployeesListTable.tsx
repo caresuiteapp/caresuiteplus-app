@@ -63,7 +63,7 @@ export function EmployeesListTable({
                 firstName={item.firstName}
                 lastName={item.lastName}
                 avatarUrl={item.avatarUrl}
-                size="sm"
+                size="lg"
               />
               <Text style={styles.name}>
                 {item.lastName}, {item.firstName}
@@ -86,21 +86,11 @@ export function EmployeesListTable({
         {
           key: 'role',
           label: 'Rolle',
-          flex: 1.4,
+          flex: 1.8,
           sortable: true,
           render: (item) => (
             <Text style={styles.cellText} numberOfLines={1}>
               {item.jobTitle ?? '—'}
-            </Text>
-          ),
-        },
-        {
-          key: 'email',
-          label: 'E-Mail',
-          flex: 1.6,
-          render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
-              {item.email ?? '—'}
             </Text>
           ),
         },
@@ -133,7 +123,7 @@ const styles = StyleSheet.create({
   nameCell: {
     flexDirection: 'row',
     alignItems: 'center',
-    gap: 10,
+    gap: 14,
     flex: 1,
     minWidth: 0,
   },

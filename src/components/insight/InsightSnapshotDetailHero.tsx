@@ -9,8 +9,8 @@ import {
   INSIGHT_PREPARED_MESSAGE,
   isInsightLiveReady,
 } from '@/lib/insight';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { InsightSnapshotDetail } from '@/types/modules/insight';
 import { designTokens, spacing } from '@/theme';
@@ -68,7 +68,6 @@ export function InsightSnapshotDetailHero({ snapshot, roleKey }: InsightSnapshot
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         <PremiumBadge label="preparedOnly" variant="muted" />
         {!isInsightLiveReady() ? (
           <PremiumBadge label="Kein Live-Warehouse" variant="orange" dot />

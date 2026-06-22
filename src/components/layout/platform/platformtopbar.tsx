@@ -4,26 +4,30 @@ import {
   Pressable,
   StyleSheet,
   Text,
-  TextInput,
   useWindowDimensions,
   View,
-  type TextStyle,
   type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
-import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
 import { glass as glassTokens } from '@/design/tokens/glass';
+import { withAlpha } from '@/design/tokens/motion';
 import {
+  PLATFORM_CONTEXT_PANEL_BREAKPOINT,
   PLATFORM_SHELL_HEADER_TOP_INSET,
+  PLATFORM_TOPBAR_CONTROL_HEIGHT,
+  PLATFORM_TOPBAR_PROFILE_ROW_TOP,
   resolveTopbarCenterZoneInsets,
   resolveTopbarEndZoneInsets,
 } from '@/lib/platform/shellLayoutMetrics';
-import { WebFontSizeControl } from '@/components/layout/WebFontSizeControl';
+import { PlatformContextSearch } from '@/components/layout/platform/PlatformContextSearch';
+import { PlatformProfileMenu } from '@/components/layout/platform/PlatformProfileMenu';
+import { SpaceMandantIcon } from '@/components/icons/space';
 import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
@@ -32,26 +36,11 @@ type PlatformTopbarProps = {
   accentColor?: string;
 };
 
-const SEARCH_PLACEHOLDERS: Record<MainModuleKey, string> = {
-  zentrale: 'Suchen in Zentrale …',
-  office: 'Suchen in Office …',
-  assist: 'Suchen in Assist …',
-  pflege: 'Suchen in Pflege …',
-  stationaer: 'Suchen in Stationär …',
-  beratung: 'Suchen in Beratung …',
-  akademie: 'Suchen in Akademie …',
-  admin: 'Suchen in Admin …',
-};
-
-/** Shared topbar control box — search, tenant chip, profile. */
-const TOPBAR_CONTROL_HEIGHT = 48;
-/** Fixed width for search bar and matching profile chip. */
-const TOPBAR_SEARCH_WIDTH = 260;
-/** Shared icon/avatar slot — building, profile picture. */
+/** Shared topbar control box — tenant chip, profile (compact). */
+const TOPBAR_CONTROL_HEIGHT = PLATFORM_TOPBAR_CONTROL_HEIGHT;
+/** Shared icon/avatar slot — building. */
 const TOPBAR_ICON_SIZE = 32;
 
-const webNoOutline =
-  Platform.OS === 'web' ? ({ outlineStyle: 'none' } as unknown as TextStyle) : null;
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
 const webGlassBlur =
@@ -66,8 +55,9 @@ function glassSurface(isDark: boolean): ViewStyle {
   if (!isDark) {
     return {
       borderWidth: 1,
-      borderColor: '#E2E8F0',
-      backgroundColor: '#FFFFFF',
+      borderColor: lightLiquidGlass.borderAccent,
+      backgroundColor: lightLiquidGlass.chip,
+      ...lightLiquidGlassWebFx(lightLiquidGlass.blur.light),
     };
   }
   return {
@@ -81,14 +71,14 @@ function glassSurface(isDark: boolean): ViewStyle {
 export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps) {
   const router = useRouter();
   const { width } = useWindowDimensions();
-  const { profile, signOut } = useAuth();
+  const { signOut } = useAuth();
   const { can } = usePermissions();
   const tenantName = useTenantDisplayName();
   const { colors, isDark } = useLegacyTheme();
   const accent = accentColor ?? colors.violet;
-  const [query, setQuery] = useState('');
   const [tenantOpen, setTenantOpen] = useState(false);
-  const [profileOpen, setProfileOpen] = useState(false);
+  const showCompactTopbarControls = width < PLATFORM_CONTEXT_PANEL_BREAKPOINT;
+  const alignTenantWithContextPanel = !showCompactTopbarControls;
 
   const centerZoneInsets = useMemo(
     () => resolveTopbarCenterZoneInsets(width, mainModule, spacing.lg),
@@ -99,8 +89,6 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
     [mainModule, width],
   );
   const styles = useMemo(() => createStyles(isDark, colors), [isDark, colors]);
-  const displayName = profile?.displayName ?? 'CareSuite+';
-  const avatarUrl = profile?.avatarUrl?.trim() || undefined;
   const canManageTenant = can(TENANT_SETTINGS_PERMISSION);
 
   const tenantMenuItems: { label: string; href?: string; action?: () => void }[] = [
@@ -114,29 +102,15 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
     { label: 'Abmelden', action: () => void signOut().then(() => router.replace('/' as never)) },
   ];
 
-  const profileMenuItems: { label: string; href?: string; action?: () => void }[] = [
-    { label: 'Profil & Konto', href: '/settings' },
-    { label: 'Benachrichtigungen', href: '/business/messages/settings' },
-    { label: 'Abmelden', action: () => void signOut().then(() => router.replace('/' as never)) },
-  ];
-
   return (
-    <View style={styles.root}>
-      <View style={styles.start}>
-        <View style={styles.searchWrap}>
-          <Text style={styles.searchIcon}>⌕</Text>
-          <TextInput
-            value={query}
-            onChangeText={setQuery}
-            placeholder={SEARCH_PLACEHOLDERS[mainModule]}
-            placeholderTextColor={isDark ? 'rgba(203,213,225,0.45)' : '#94A3B8'}
-            style={[styles.searchInput, webNoOutline]}
-          />
-          <View style={styles.searchKbd}>
-            <Text style={styles.searchKbdText}>⌘K</Text>
-          </View>
+    <View style={[styles.root, alignTenantWithContextPanel ? styles.rootWithContextPanelAlign : null]}>
+      {showCompactTopbarControls ? (
+        <View style={styles.start}>
+          <PlatformContextSearch mainModule={mainModule} />
         </View>
-      </View>
+      ) : (
+        <View style={styles.start} />
+      )}
 
       <View
         style={[
@@ -145,25 +119,29 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
             left: centerZoneInsets.left,
             right: centerZoneInsets.right,
           },
+          alignTenantWithContextPanel ? styles.centerAlignedWithContextPanel : null,
           tenantOpen ? styles.centerElevated : null,
         ]}
         pointerEvents="box-none"
       >
         <View style={styles.tenantWrap}>
           <Pressable
-            onPress={() => {
-              setTenantOpen((v) => !v);
-              setProfileOpen(false);
-            }}
-            style={[styles.tenantChip, webCursor]}
+            onPress={() => setTenantOpen((v) => !v)}
+            style={[
+              styles.tenantChip,
+              {
+                borderColor: tenantOpen ? withAlpha(accent, 0.95) : withAlpha(accent, 0.5),
+              },
+              webCursor,
+            ]}
             accessibilityRole="button"
             accessibilityLabel={`Mandant: ${tenantName}`}
           >
             <View style={styles.iconSlot}>
-              <Text style={styles.tenantIcon}>🏢</Text>
+              <SpaceMandantIcon accentColor={accent} size={TOPBAR_ICON_SIZE - 4} active={tenantOpen} />
             </View>
             <View style={styles.tenantTextWrap}>
-              <Text style={styles.tenantLabel}>Mandant</Text>
+              <Text style={[styles.tenantLabel, { color: withAlpha(accent, 0.85) }]}>Mandant</Text>
               <Text style={styles.tenantName} numberOfLines={1}>
                 {tenantName}
               </Text>
@@ -194,56 +172,7 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
       </View>
 
       <View style={[styles.end, { marginRight: endZoneInsets.marginRight }]}>
-        {Platform.OS === 'web' ? <WebFontSizeControl /> : null}
-        <View style={styles.profileWrap}>
-          <View style={styles.profileChip}>
-            <TopbarProfileAvatar
-              name={displayName}
-              avatarUrl={avatarUrl}
-              accentColor={accent}
-              style={styles.profileAvatarSlot}
-            />
-            <Pressable
-              onPress={() => {
-                setProfileOpen((v) => !v);
-                setTenantOpen(false);
-              }}
-              style={[styles.profileMenuTrigger, webCursor]}
-              accessibilityRole="button"
-              accessibilityLabel="Profilmenü"
-            >
-              <Text style={styles.profileName} numberOfLines={1}>
-                {displayName}
-              </Text>
-              <View style={styles.chevronSlot}>
-                <Text style={styles.chevron}>{profileOpen ? '▴' : '▾'}</Text>
-              </View>
-            </Pressable>
-          </View>
-          {profileOpen ? (
-            <View style={[styles.dropdown, styles.profileDropdown]}>
-              {profile?.email ? (
-                <Text style={styles.dropdownMeta} numberOfLines={1}>
-                  {profile.email}
-                </Text>
-              ) : null}
-              {profileMenuItems.map((item) => (
-                <Pressable
-                  key={item.label}
-                  onPress={() => {
-                    setProfileOpen(false);
-                    if (item.action) item.action();
-                    else if (item.href) router.push(item.href as never);
-                  }}
-                  style={[styles.dropdownItem, webCursor]}
-                  accessibilityRole="button"
-                >
-                  <Text style={styles.dropdownText}>{item.label}</Text>
-                </Pressable>
-              ))}
-            </View>
-          ) : null}
-        </View>
+        {showCompactTopbarControls ? <PlatformProfileMenu accentColor={accent} /> : null}
       </View>
     </View>
   );
@@ -281,10 +210,17 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       paddingHorizontal: spacing.lg,
       paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
       paddingBottom: PLATFORM_SHELL_HEADER_TOP_INSET,
-      borderBottomWidth: isDark ? 0 : 1,
+      borderBottomWidth: isDark ? 0 : 0,
       borderBottomColor: glassBorder,
-      backgroundColor: isDark ? 'transparent' : colors.bgPremium,
+      backgroundColor: 'transparent',
       zIndex: 20,
+    },
+    rootWithContextPanelAlign: {
+      paddingTop: 0,
+      minHeight:
+        PLATFORM_TOPBAR_PROFILE_ROW_TOP +
+        TOPBAR_CONTROL_HEIGHT +
+        PLATFORM_SHELL_HEADER_TOP_INSET,
     },
     start: {
       flex: 1,
@@ -296,8 +232,13 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       bottom: 0,
       alignItems: 'center',
       justifyContent: 'center',
-      // Above start/end (zIndex 2) so the centered tenant chip receives clicks.
       zIndex: 3,
+    },
+    centerAlignedWithContextPanel: {
+      top: PLATFORM_TOPBAR_PROFILE_ROW_TOP,
+      bottom: undefined,
+      height: TOPBAR_CONTROL_HEIGHT,
+      justifyContent: 'center',
     },
     centerElevated: {
       zIndex: 10,
@@ -309,40 +250,6 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       flexShrink: 0,
       zIndex: 2,
     },
-    searchWrap: {
-      ...topbarControl,
-      ...glass,
-      width: TOPBAR_SEARCH_WIDTH,
-      maxWidth: TOPBAR_SEARCH_WIDTH,
-      alignSelf: 'flex-start',
-      gap: spacing.sm,
-      borderRadius: radius.capsule,
-      backgroundColor: isDark ? glassTokens.input : '#FFFFFF',
-    },
-    searchIcon: {
-      fontSize: 26,
-      lineHeight: 28,
-      color: colors.textMuted,
-      alignSelf: 'center',
-      marginTop: -1,
-    },
-    searchInput: {
-      flex: 1,
-      minWidth: 0,
-      ...typography.body,
-      color: colors.textPrimary,
-      paddingVertical: 0,
-      height: TOPBAR_ICON_SIZE,
-    },
-    searchKbd: {
-      paddingHorizontal: 8,
-      paddingVertical: 2,
-      borderRadius: 6,
-      borderWidth: 1,
-      borderColor: isDark ? glassTokens.innerBorder : colors.borderSoft,
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(15,23,42,0.04)',
-    },
-    searchKbdText: { fontSize: 11, color: colors.textMuted, fontWeight: '600' },
     tenantWrap: { position: 'relative', maxWidth: 520, alignItems: 'center' },
     tenantChip: {
       ...topbarControl,
@@ -393,14 +300,13 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       borderRadius: radius.lg,
       borderWidth: 1,
       borderColor: glassBorder,
-      backgroundColor: isDark ? glassTokens.modal : '#FFFFFF',
+      backgroundColor: glassTokens.modal,
       paddingVertical: spacing.xs,
       zIndex: 30,
       ...(Platform.OS === 'web'
         ? ({ boxShadow: '0 12px 40px rgba(0,0,0,0.35)', ...webGlassBlur } as unknown as ViewStyle)
         : null),
     },
-    profileDropdown: { minWidth: TOPBAR_SEARCH_WIDTH },
     dropdownItem: {
       paddingVertical: spacing.sm,
       paddingHorizontal: spacing.md,
@@ -413,43 +319,6 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       fontWeight: '600',
       textAlign: 'center',
       width: '100%',
-    },
-    dropdownMeta: {
-      ...typography.caption,
-      color: colors.textMuted,
-      paddingHorizontal: spacing.md,
-      paddingBottom: spacing.xs,
-      borderBottomWidth: 1,
-      borderBottomColor: glassBorder,
-      marginBottom: spacing.xs,
-      textAlign: 'center',
-      width: '100%',
-    },
-    profileWrap: { position: 'relative' },
-    profileChip: {
-      ...topbarControl,
-      ...glass,
-      width: TOPBAR_SEARCH_WIDTH,
-      maxWidth: TOPBAR_SEARCH_WIDTH,
-      gap: spacing.xs,
-      borderRadius: radius.capsule,
-      paddingLeft: spacing.xs,
-      paddingRight: spacing.sm,
-      justifyContent: 'flex-start',
-    },
-    profileAvatarSlot: {
-      flexShrink: 0,
-    },
-    profileMenuTrigger: {
-      flex: 1,
-      minWidth: 0,
-      flexDirection: 'row',
-      alignItems: 'center',
-    },
-    profileName: {
-      ...topbarPrimaryNameText,
-      flex: 1,
-      minWidth: 0,
     },
   });
 }

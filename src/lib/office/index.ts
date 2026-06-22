@@ -13,6 +13,7 @@ export {
   updateClientStatus,
   updateClient,
   archiveClient,
+  deleteClient,
 } from './clientDetailService';
 export { createClient } from './clientCreateService';
 export { validateClientFormStep, hasErrors } from './clientFormValidation';

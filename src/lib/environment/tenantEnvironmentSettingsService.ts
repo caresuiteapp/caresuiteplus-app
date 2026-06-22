@@ -1,4 +1,4 @@
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { PILOT_TENANT_IDS } from '@/lib/pilot/pilotConfig';
 import type { DemoDataSet, TenantEnvironmentSettings } from '@/types/environment';
 import { logEnvironmentAuditEvent } from './environmentAuditService';

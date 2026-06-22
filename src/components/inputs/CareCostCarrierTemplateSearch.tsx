@@ -26,6 +26,7 @@ type Props = {
   uiCarrierType: CostBearerTypeKey;
   values: CostCarrierFieldValues;
   onChange: (values: CostCarrierFieldValues) => void;
+  tenantId?: string;
   error?: string;
   hint?: string;
 };
@@ -35,13 +36,19 @@ export function CareCostCarrierTemplateSearch({
   uiCarrierType,
   values,
   onChange,
+  tenantId,
   error,
-  hint = 'Systemvorlage suchen — bei Auswahl werden Name und Adresse übernommen.',
+  hint = 'Systemvorlage suchen — bei Auswahl werden Name, Adresse und Kontaktdaten übernommen.',
 }: Props) {
   const [focused, setFocused] = useState(false);
   const [loading, setLoading] = useState(false);
   const [searchError, setSearchError] = useState<string | null>(null);
   const [results, setResults] = useState<CostCarrierSystemTemplate[]>([]);
+  const [selectedContact, setSelectedContact] = useState<{
+    phone?: string | null;
+    email?: string | null;
+    fax?: string | null;
+  }>({});
   const abortRef = useRef<AbortController | null>(null);
 
   useEffect(() => {
@@ -60,7 +67,7 @@ export function CareCostCarrierTemplateSearch({
       setLoading(true);
       setSearchError(null);
 
-      void searchCostCarrierTemplates(uiCarrierType, values.name, 8).then((result) => {
+      void searchCostCarrierTemplates(uiCarrierType, values.name, 8, tenantId).then((result) => {
         if (controller.signal.aborted) return;
         setLoading(false);
         if (!result.ok) {
@@ -74,7 +81,7 @@ export function CareCostCarrierTemplateSearch({
     }, COST_CARRIER_SEARCH_DEBOUNCE_MS);
 
     return () => clearTimeout(timer);
-  }, [focused, uiCarrierType, values.name]);
+  }, [focused, tenantId, uiCarrierType, values.name]);
 
   const showResults =
     focused
@@ -84,6 +91,7 @@ export function CareCostCarrierTemplateSearch({
   const hasAddress = Boolean(values.street.trim() || values.zip.trim() || values.city.trim());
 
   const handleNameChange = (name: string) => {
+    setSelectedContact({});
     onChange({
       ...values,
       name,
@@ -93,6 +101,11 @@ export function CareCostCarrierTemplateSearch({
   };
 
   const handleSelect = (template: CostCarrierSystemTemplate) => {
+    setSelectedContact({
+      phone: template.phone,
+      email: template.email,
+      fax: template.fax,
+    });
     onChange({
       name: template.name,
       street: template.street,
@@ -159,6 +172,15 @@ export function CareCostCarrierTemplateSearch({
           </View>
           {values.ikNumber ? (
             <PremiumInput label="IK-Nummer" value={values.ikNumber} editable={false} />
+          ) : null}
+          {selectedContact.phone ? (
+            <PremiumInput label="Telefon" value={selectedContact.phone} editable={false} />
+          ) : null}
+          {selectedContact.email ? (
+            <PremiumInput label="E-Mail" value={selectedContact.email} editable={false} />
+          ) : null}
+          {selectedContact.fax ? (
+            <PremiumInput label="Fax" value={selectedContact.fax} editable={false} />
           ) : null}
         </View>
       ) : null}

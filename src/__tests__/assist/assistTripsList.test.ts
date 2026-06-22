@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildTripListKpis } from '@/data/demo/tripListStats';
+import { buildTripListKpis } from '@/lib/assist/tripListStats';
 import { getDemoTripListItems } from '@/data/demo/tripLogs';
 import { fetchTripLogList } from '@/lib/assist/tripLogService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { TRIP_PURPOSE_FILTERS, TRIP_SORT_OPTIONS, TRIP_STATUS_FILTERS } from '@/hooks/useTripList';
 

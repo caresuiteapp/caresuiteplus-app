@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import {
-  CareLightKpiCard,
-  CareLightListHeroFrame,
+  PremiumKpiCard,
+  PremiumListHeroFrame,
   PremiumBadge,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -9,8 +9,8 @@ import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import { buildBudgetListKpis } from '@/lib/office/budgetListStats';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { BudgetListItem } from '@/types/modules/billing';
 import { designTokens } from '@/theme';
@@ -29,7 +29,7 @@ export function BudgetsListHero({ items, roleKey, filteredCount, totalCount }: B
   const kpis = buildBudgetListKpis(items, 'light');
 
   return (
-    <CareLightListHeroFrame accentColor={accent}>
+    <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={heroText.eyebrow}>OFFICE</Text>
@@ -44,12 +44,11 @@ export function BudgetsListHero({ items, roleKey, filteredCount, totalCount }: B
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         <PremiumBadge label="Demo / preparedOnly" variant="muted" />
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
-          <CareLightKpiCard
+          <PremiumKpiCard
             key={kpi.id}
             label={kpi.label}
             value={String(kpi.value)}
@@ -60,7 +59,7 @@ export function BudgetsListHero({ items, roleKey, filteredCount, totalCount }: B
           />
         ))}
       </View>
-    </CareLightListHeroFrame>
+    </PremiumListHeroFrame>
   );
 }
 

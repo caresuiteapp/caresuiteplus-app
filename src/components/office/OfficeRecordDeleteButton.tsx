@@ -12,6 +12,8 @@ type OfficeRecordDeleteButtonProps = {
   onDeleted?: () => void;
   disabled?: boolean;
   fullWidth?: boolean;
+  confirmTitle?: string;
+  buttonTitle?: string;
 };
 
 export function OfficeRecordDeleteButton({
@@ -21,6 +23,8 @@ export function OfficeRecordDeleteButton({
   onDeleted,
   disabled = false,
   fullWidth = true,
+  confirmTitle = 'Wirklich löschen?',
+  buttonTitle = 'Löschen',
 }: OfficeRecordDeleteButtonProps) {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -29,7 +33,7 @@ export function OfficeRecordDeleteButton({
   async function handlePress() {
     setError(null);
     const confirmed = await confirmAction({
-      title: 'Wirklich löschen?',
+      title: confirmTitle,
       message: `${displayName}\n\nDiese Aktion kann nicht rückgängig gemacht werden.`,
       confirmLabel: 'Löschen',
       cancelLabel: 'Abbrechen',
@@ -55,8 +59,8 @@ export function OfficeRecordDeleteButton({
       {successMessage ? <SuccessState message={successMessage} /> : null}
       {error ? <Text style={styles.error}>{error}</Text> : null}
       <PremiumButton
-        title="Löschen"
-        variant="danger"
+        title={buttonTitle}
+        variant="secondary"
         fullWidth={fullWidth}
         loading={loading}
         disabled={disabled || loading}

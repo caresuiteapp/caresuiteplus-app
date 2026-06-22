@@ -16,6 +16,8 @@ export function mapClientDetailToForm(client: ClientDetail): ClientFormData {
     careLevel: client.careLevel ?? '',
     status: client.status,
     notes: client.notes ?? '',
+    costCarrier: client.costCarrier ?? '',
+    insuranceNumber: client.insuranceNumber ?? '',
     sensitivity: client.sensitivity,
   };
 }

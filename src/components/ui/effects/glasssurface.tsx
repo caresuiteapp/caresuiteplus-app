@@ -1,6 +1,8 @@
 import { ReactNode } from 'react';
 import { Platform, View, type ViewStyle } from 'react-native';
+import { useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { careEffects } from '@/design/tokens/effects';
 
 type GlassSurfaceProps = {
@@ -13,11 +15,11 @@ type GlassSurfaceProps = {
   elevated?: boolean;
 };
 
-const webModalBlur =
+const webModalBlur = (blurPx: number) =>
   Platform.OS === 'web'
     ? ({
-        backdropFilter: `blur(${careEffects.glass.blur.medium}px)`,
-        WebkitBackdropFilter: `blur(${careEffects.glass.blur.medium}px)`,
+        backdropFilter: `blur(${blurPx}px)`,
+        WebkitBackdropFilter: `blur(${blurPx}px)`,
       } as unknown as ViewStyle)
     : null;
 
@@ -28,6 +30,19 @@ export function GlassSurface({
   elevated = false,
 }: GlassSurfaceProps) {
   const { isDark } = useCareLightPalette();
+  const shellHostsAurora = useShellHostsAurora();
+  const lightGlass = useShellGlassSurfaceStyle(
+    elevated ? 'modal' : 'card',
+    elevated ? { viewContext: 'form' } : {},
+  );
+
+  if (!isDark && shellHostsAurora) {
+    return (
+      <View style={[{ borderRadius: radius }, lightGlass, style]}>
+        {children}
+      </View>
+    );
+  }
 
   const backgroundColor = elevated
     ? isDark
@@ -50,7 +65,7 @@ export function GlassSurface({
           borderColor,
           backgroundColor,
           overflow: 'hidden',
-          ...(elevated ? webModalBlur : null),
+          ...(elevated ? webModalBlur(careEffects.glass.blur.medium) : null),
         },
         style,
       ]}

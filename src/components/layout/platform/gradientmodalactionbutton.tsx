@@ -1,15 +1,23 @@
 import { ActivityIndicator, Pressable, StyleSheet, Text } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  useAuroraAdaptiveText,
+  useAuroraGlassActive,
+  useAuroraGlassButtonStyles,
+} from '@/design/tokens/auroraGlass';
 import { galaxyGradients } from '@/design/tokens/galaxy';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 
-export type GradientModalActionButtonVariant = 'primary' | 'glass' | 'danger';
+export type GradientModalActionButtonVariant = 'primary' | 'glass' | 'danger' | 'secondary';
 
 export type GradientModalActionButtonProps = {
   title: string;
   onPress?: () => void;
   loading?: boolean;
+  disabled?: boolean;
   variant?: GradientModalActionButtonVariant;
 };
 
@@ -17,20 +25,39 @@ export function GradientModalActionButton({
   title,
   onPress,
   loading = false,
+  disabled = false,
   variant = 'glass',
 }: GradientModalActionButtonProps) {
+  const { isLight } = useLegacyTheme();
+  const auroraActive = useAuroraGlassActive();
+  const shellHostsAurora = useShellHostsAurora();
+  const lightModal = isLight && auroraActive && shellHostsAurora;
+  const text = useAuroraAdaptiveText();
+  const glassButtons = useAuroraGlassButtonStyles({ viewContext: 'form' });
+
   const isPrimary = variant === 'primary';
   const isDanger = variant === 'danger';
+  const isSecondary = variant === 'secondary' || variant === 'glass';
+
+  const labelColor = lightModal
+    ? isPrimary
+      ? '#FFFFFF'
+      : isDanger
+        ? '#B91C1C'
+        : text.primary
+    : '#FFFFFF';
 
   return (
     <Pressable
-      onPress={loading ? undefined : onPress}
+      onPress={loading || disabled ? undefined : onPress}
       style={({ pressed }) => [
         styles.base,
-        (variant === 'glass' || isDanger) && styles.glass,
-        isDanger && styles.danger,
+        lightModal && isSecondary && !isDanger && glassButtons.secondary,
+        lightModal && isDanger && styles.dangerLight,
+        !lightModal && (variant === 'glass' || isDanger) && styles.glassDark,
+        !lightModal && isDanger && styles.dangerDark,
         pressed && styles.pressed,
-        loading && styles.loading,
+        (loading || disabled) && styles.loading,
       ]}
       accessibilityRole="button"
     >
@@ -43,9 +70,11 @@ export function GradientModalActionButton({
         />
       ) : null}
       {loading ? (
-        <ActivityIndicator color="#FFFFFF" size="small" />
+        <ActivityIndicator color={labelColor} size="small" />
       ) : (
-        <Text style={styles.label}>{title}</Text>
+        <Text style={[styles.label, { color: labelColor }, lightModal && isSecondary && glassButtons.secondaryText]}>
+          {title}
+        </Text>
       )}
     </Pressable>
   );
@@ -63,13 +92,17 @@ const styles = StyleSheet.create({
     borderWidth: 1,
     borderColor: 'transparent',
   },
-  glass: {
+  glassDark: {
     backgroundColor: 'rgba(255,255,255,0.12)',
     borderColor: 'rgba(255,255,255,0.28)',
   },
-  danger: {
+  dangerDark: {
     backgroundColor: 'rgba(239,68,68,0.18)',
     borderColor: 'rgba(239,68,68,0.45)',
+  },
+  dangerLight: {
+    backgroundColor: 'rgba(254,226,226,0.72)',
+    borderColor: 'rgba(239,68,68,0.35)',
   },
   pressed: {
     opacity: 0.88,
@@ -79,7 +112,6 @@ const styles = StyleSheet.create({
   },
   label: {
     ...careTypography.caption,
-    color: '#FFFFFF',
     fontWeight: '700',
   },
 });

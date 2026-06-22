@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { formatFreePlatformPrice, getFreePlatformModules } from '@/lib/billing/freePlatformService';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
 
@@ -71,7 +71,6 @@ export function SubscriptionHero({
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         <PremiumBadge label="0 € — kein Checkout" variant="green" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="Aktiv" value={String(moduleCount)} icon="📦" accentColor={colors.cyan} style={styles.kpiItem} />

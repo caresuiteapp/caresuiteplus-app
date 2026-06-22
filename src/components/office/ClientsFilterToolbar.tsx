@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { FilterChipGroup, PremiumButton, PremiumInput } from '@/components/ui';
-import type { ClientCareLevelFilterKey } from '@/data/demo/clientListStats';
+import type { ClientCareLevelFilterKey } from '@/lib/office/clientListStats';
 import { colors, spacing, typography } from '@/theme';
 
 type FilterOption = { key: string; label: string };

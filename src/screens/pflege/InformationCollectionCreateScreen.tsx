@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -49,7 +49,7 @@ export function InformationCollectionCreateScreen() {
   }
 
   return (
-    <CareLightPageShell title="Informationssammlung" subtitle={roleLabel ?? 'Neu anlegen'}>
+    <ScreenShell title="Informationssammlung" subtitle={roleLabel ?? 'Neu anlegen'}>
       <View style={styles.form}>
         <Text style={styles.fieldLabel}>Klient:in</Text>
         <FilterChipGroup
@@ -74,7 +74,7 @@ export function InformationCollectionCreateScreen() {
           disabled={loading || isReadOnly}
         />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { KPI_DEFINITIONS, listAllKpiDefinitions } from '@/lib/reporting';
 import { buildDemoReportingMetricsBundle } from '@/lib/reporting/reportingRepository.demo';
 import { buildReportingDashboardSnapshot } from '@/lib/reporting/dashboardMetricsService';

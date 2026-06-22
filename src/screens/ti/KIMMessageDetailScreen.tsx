@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { KIMMessageDetailHero, TISecurityNotice } from '@/components/ti';
 import {
   ErrorState,
@@ -31,25 +31,25 @@ export function KIMMessageDetailScreen() {
 
   if (!can('ti.kim.view')) {
     return (
-      <CareLightPageShell title="KIM-Nachricht">
+      <ScreenShell title="KIM-Nachricht">
         <LockedActionBanner message={check('ti.kim.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !data) {
     return (
-      <CareLightPageShell title="KIM-Nachricht">
+      <ScreenShell title="KIM-Nachricht">
         <LoadingState message="Nachricht wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !data) {
     return (
-      <CareLightPageShell title="KIM-Nachricht">
+      <ScreenShell title="KIM-Nachricht">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -68,7 +68,7 @@ export function KIMMessageDetailScreen() {
   };
 
   return (
-    <CareLightPageShell title="KIM-Nachricht" subtitle={data.subject}>
+    <ScreenShell title="KIM-Nachricht" subtitle={data.subject}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <KIMMessageDetailHero message={data} roleKey={roleKey} />
 
@@ -114,7 +114,7 @@ export function KIMMessageDetailScreen() {
           onPress={() => router.push('/business/ti/documents' as never)}
         />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

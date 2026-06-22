@@ -3,10 +3,10 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { DesktopListViewToggle, PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import type { DesktopListViewMode } from '@/components/ui/DesktopListViewToggle';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { buildAiJobsListKpis } from '@/lib/platform/platformListStats';
 import { isPlatformLiveReady, PLATFORM_PREPARED_MESSAGE } from '@/lib/platform/platformModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import type { AiJobListItem } from '@/types/modules/platform';
 import { designTokens, spacing } from '@/theme';
@@ -75,7 +75,6 @@ export function AiJobsListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isPlatformLiveReady() ? (
           <PremiumBadge label="Provider preparedOnly" variant="muted" />
         ) : null}

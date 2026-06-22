@@ -1,5 +1,10 @@
 import { useMemo } from 'react';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import {
+  AURORA_BUTTON_PRIMARY,
+  AURORA_HERO_GRADIENT,
+  careSuiteAuroraTheme,
+} from '@/theme/careSuiteAurora';
 import { careSuiteColors, type ColorMode } from './colors';
 import { resolveCareTypography } from './typography';
 
@@ -76,7 +81,11 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
         string,
       ],
     },
-    primary: [p.brand.orange, p.brand.gold] as [string, string],
+    primary: (isDark ? [...AURORA_BUTTON_PRIMARY] : [p.brand.orange, p.brand.gold]) as [
+      string,
+      string,
+      ...string[],
+    ],
     sheen: {
       subtle: (isDark
         ? ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.04)', 'transparent']
@@ -107,8 +116,9 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
     },
     hero: {
       list: (isDark
-        ? ['#1A2030', '#12182A', '#0D1220']
+        ? [...AURORA_HERO_GRADIENT]
         : [p.background.soft, p.background.app, p.background.dark]) as [string, string, string],
+      aurora: [...careSuiteAuroraTheme.gradients.heroAurora] as [string, string, string, string],
     },
   };
 }
@@ -117,21 +127,19 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
  * React hook — bridges ThemeModeProvider to legacy @/theme keys for Premium components.
  */
 export function useLegacyTheme() {
-  const { mode, desktopThemeMode } = useThemeMode();
-  const effectiveMode: ColorMode =
-    desktopThemeMode === 'aurora-glass' ? 'dark' : mode;
+  const { mode } = useThemeMode();
 
   return useMemo(
     () => ({
-      mode: effectiveMode,
-      colors: legacyColorsFromPalette(effectiveMode),
-      typography: resolveCareTypography(effectiveMode),
-      gradients: resolveLegacyGradients(effectiveMode),
-      palette: careSuiteColors[effectiveMode],
-      isLight: effectiveMode === 'light',
-      isDark: effectiveMode === 'dark',
+      mode,
+      colors: legacyColorsFromPalette(mode),
+      typography: resolveCareTypography(mode),
+      gradients: resolveLegacyGradients(mode),
+      palette: careSuiteColors[mode],
+      isLight: mode === 'light',
+      isDark: mode === 'dark',
     }),
-    [effectiveMode],
+    [mode],
   );
 }
 

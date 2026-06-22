@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildCourseListKpis } from '@/data/demo/courseListStats';
+import { buildCourseListKpis } from '@/lib/akademie/courseListStats';
 import { getDemoCourseListItems } from '@/data/demo/courses';
 import { fetchCourseList } from '@/lib/akademie/courseListService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { COURSE_SORT_OPTIONS, COURSE_STATUS_FILTERS } from '@/hooks/useCourseList';
 

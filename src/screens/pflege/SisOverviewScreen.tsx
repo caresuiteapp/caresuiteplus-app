@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { SisOverviewHero, SIS_PREPARED_MESSAGE } from '@/components/pflege/SisOverviewHero';
 import { SisOverviewListTable } from '@/components/pflege/SisOverviewListTable';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -67,17 +67,17 @@ export function SisOverviewScreen() {
 
   if (query.loading && items.length === 0) {
     return (
-      <CareLightPageShell title={pageTitle} subtitle="Wird geladen…">
+      <ScreenShell title={pageTitle} subtitle="Wird geladen…">
         <LoadingState message="SIS-Assessments werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && items.length === 0) {
     return (
-      <CareLightPageShell title={pageTitle} subtitle="Fehler">
+      <ScreenShell title={pageTitle} subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -97,7 +97,7 @@ export function SisOverviewScreen() {
 
   if (useTableLayout) {
     return (
-      <CareLightPageShell
+      <ScreenShell
         title={pageTitle}
         subtitle={`Strukturierte Information · ${roleLabel ?? 'Demo'}`}
         rightSlot={
@@ -127,12 +127,12 @@ export function SisOverviewScreen() {
             <SisOverviewListTable items={items} onOpenDetail={openDetail} />
           )}
         </ScrollView>
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={pageTitle}
       subtitle={`Strukturierte Information · ${roleLabel ?? 'Demo'}`}
       rightSlot={
@@ -162,7 +162,7 @@ export function SisOverviewScreen() {
           <RefreshControl refreshing={query.refreshing} onRefresh={query.refresh} tintColor={colors.primary} />
         }
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

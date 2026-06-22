@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildInvoiceListKpis } from '@/data/demo/invoiceListStats';
+import { buildInvoiceListKpis } from '@/lib/office/invoiceListStats';
 import { demoInvoices } from '@/data/demo/invoices';
 import { fetchInvoiceList } from '@/lib/office/invoiceListService';
 import { fetchInvoiceDetail } from '@/lib/office/invoiceDetailService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { INVOICE_STATUS_FILTERS, INVOICE_SORT_OPTIONS } from '@/hooks/useInvoiceList';
 import type { InvoiceListItem } from '@/types/modules/billing';

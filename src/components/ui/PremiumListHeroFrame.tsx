@@ -2,9 +2,10 @@ import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { withAlpha } from '@/design/tokens/motion';
+import { auroraHeroWrapperStyle, auroraSharedStyles, AURORA_HERO_COLORS } from '@/components/aurora/auroraShared';
 import { CareLightListHeroFrame } from './CareLightListHeroFrame';
-import { designTokens, radius, sheen, spacing } from '@/theme';
+import { designTokens, spacing } from '@/theme';
 
 type PremiumListHeroFrameProps = {
   children: React.ReactNode;
@@ -12,7 +13,7 @@ type PremiumListHeroFrameProps = {
   accentColor?: string;
 };
 
-/** Shared hero shell — light CareLight in demo default, dark Premium in explicit dark mode. */
+/** Shared hero shell — Aurora gradient when aurora shell is active. */
 export function PremiumListHeroFrame({ children, style, accentColor }: PremiumListHeroFrameProps) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
@@ -25,30 +26,11 @@ export function PremiumListHeroFrame({ children, style, accentColor }: PremiumLi
     );
   }
 
-  return <DarkPremiumListHeroFrame style={style}>{children}</DarkPremiumListHeroFrame>;
+  return <AuroraPremiumListHeroFrame style={style}>{children}</AuroraPremiumListHeroFrame>;
 }
 
-function DarkPremiumListHeroFrame({ children, style }: PremiumListHeroFrameProps) {
-  const { colors, gradients } = useLegacyTheme();
+function AuroraPremiumListHeroFrame({ children, style }: PremiumListHeroFrameProps) {
   const styles = StyleSheet.create({
-    wrapper: {
-      borderRadius: radius.card,
-      borderWidth: 1,
-      borderColor: colors.borderSoft,
-      overflow: 'hidden',
-      marginBottom: spacing.md,
-    },
-    gradient: {
-      ...StyleSheet.absoluteFillObject,
-    },
-    sheenLine: {
-      position: 'absolute',
-      top: 0,
-      left: 0,
-      right: 0,
-      height: sheen.height,
-      backgroundColor: sheen.color,
-    },
     content: {
       padding: spacing.md,
       gap: spacing.sm,
@@ -56,14 +38,22 @@ function DarkPremiumListHeroFrame({ children, style }: PremiumListHeroFrameProps
   });
 
   return (
-    <View style={[styles.wrapper, style]}>
+    <View style={[auroraHeroWrapperStyle(), style]}>
       <LinearGradient
-        colors={[...gradients.hero.list]}
+        colors={[...AURORA_HERO_COLORS]}
         start={designTokens.hero.gradientStart}
         end={designTokens.hero.gradientEnd}
-        style={styles.gradient}
+        style={auroraSharedStyles.heroGradient}
       />
-      <View style={styles.sheenLine} />
+      <View style={auroraSharedStyles.heroOrbA} pointerEvents="none" />
+      <View style={auroraSharedStyles.heroOrbB} pointerEvents="none" />
+      <LinearGradient
+        colors={[withAlpha('#FFFFFF', 0.22), 'transparent']}
+        start={{ x: 0, y: 0 }}
+        end={{ x: 0, y: 1 }}
+        style={auroraSharedStyles.heroSheen}
+        pointerEvents="none"
+      />
       <View style={styles.content}>{children}</View>
     </View>
   );

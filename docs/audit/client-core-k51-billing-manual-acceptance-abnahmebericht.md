@@ -181,7 +181,7 @@ Freigabe erst wenn:
 | 12 | Bestandsschutz confirmed? | **YES** |
 | 13 | Tests result? | **33/33 pass** |
 | 14 | Typecheck result? | **Baseline rot; K.5-Änderungen clean** |
-| 15 | Commit hash? | *(nach Commit)* |
+| 15 | Commit hash? | **7ba1c61** |
 | 16 | Push successful? | *(nach Push)* |
 | 17 | K.6 released? | **NO** |
 | 18 | Report path? | `docs/audit/client-core-k51-billing-manual-acceptance-abnahmebericht.md` |

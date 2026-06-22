@@ -13,15 +13,13 @@ import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { fxMotion, neonGlow, withAlpha } from '@/design/tokens/motion';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
 import { radius, spacing } from '@/theme';
 
 type DashboardHeroProps = {
   snapshot: DashboardSnapshot;
   displayName: string;
   onPrimaryAction?: (action: DashboardQuickAction) => void;
-  showDemoBadge?: boolean;
 };
 
 /** Vivid violet→pink→cyan liquid-glass hero banner (dark) with floating depth. */
@@ -31,7 +29,6 @@ export function DashboardHero({
   snapshot,
   displayName,
   onPrimaryAction,
-  showDemoBadge = isDemoMode(),
 }: DashboardHeroProps) {
   const { colors, typography, gradients, isDark } = useLegacyTheme();
   const moduleLabel = snapshot.moduleLabel ?? 'CareSuite+';
@@ -178,7 +175,6 @@ export function DashboardHero({
         </View>
         <View style={styles.badges}>
           <PremiumBadge label={roleLabel} variant="orange" dot />
-          {showDemoBadge ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         </View>
         <PremiumButton
           title={primaryActionTitle}

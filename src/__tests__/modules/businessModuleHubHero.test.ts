@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { buildModuleHubKpis } from '@/lib/modules/moduleHubStats';
 import {
   calculateBillingItems,
@@ -37,10 +37,12 @@ describe('Business Module Hub Hero (Sprint 63)', () => {
     expect(screen).toContain('/business/office/access/module-permissions');
   });
 
-  it('ModuleCard zeigt Kostenlos aktivieren / Modul öffnen', () => {
+  it('ModuleCard zeigt Aktivieren / Deaktivieren und Modul öffnen', () => {
     const card = readSrc('src/components/modules/ModuleCard.tsx');
-    expect(card).toContain('Kostenlos aktivieren');
+    expect(card).toContain('Aktivieren');
+    expect(card).toContain('Deaktivieren');
     expect(card).toContain('Modul öffnen');
+    expect(card).toContain('setTenantModuleEnabled');
     expect(card).not.toMatch(/Kaufen/i);
   });
 

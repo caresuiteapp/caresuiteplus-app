@@ -13,8 +13,9 @@
 | `android.package` | ✅ | `app.caresuiteplus` (von `de.caresuiteplus.app` angepasst) |
 | `name` | ✅ | `CareSuite+` |
 | `version` (versionName) | ✅ | `1.0.0` |
-| `versionCode` (lokal) | ✅ | `2` in app.json / app.config.ts |
-| `versionCode` (EAS remote) | ✅ | **4** (autoIncrement via `production-aab`) |
+| `versionCode` (lokal) | ✅ | **6** in app.json / app.config.ts |
+| `versionCode` (EAS remote) | ✅ | **5** live in Play — nächster Build → **6** (autoIncrement) |
+| R8 / ProGuard / mapping.txt | ✅ (Fix 2026-06-22) | `enableMinifyInReleaseBuilds` + `android-proguard-rules.pro` → `mapping.txt` im EAS-Artifact |
 | Icon | ✅ | `./assets/icon.png` |
 | Adaptive Icon | ✅ | foreground / background / monochrome |
 | Splash | ✅ | `./assets/splash-icon.png`, `#070B12` |
@@ -40,7 +41,7 @@
 | Prüfung | Ergebnis | Anmerkung |
 |---------|----------|-----------|
 | AAB (nicht nur APK) | ✅ | `production-aab` → `.aab` |
-| Target SDK | ⚠️ | Expo SDK **52** Standard: **targetSdk 34**, compileSdk 35. Google Play verlangt für neue Uploads ab 2025 i. d. R. **API 35**. Für Internal Test ggf. ausreichend; vor Production-Track `expo-build-properties` mit `targetSdkVersion: 35` empfohlen. |
+| Target SDK | ✅ (Fix 2026-06-21) | `expo-build-properties`: **targetSdkVersion 35**, **compileSdkVersion 35** in `app.config.ts` — behebt Play-Fehler „Mindestebene 35“. |
 | Berechtigungen | ✅ / ⚠️ | `INTERNET`, `RECORD_AUDIO` (VoiceCore). `expo-location`-Plugin registriert Standort-Permission („Funktion in Vorbereitung“) — kein aktives GPS-Tracking im Live-Pfad. |
 | Debug/Demo im Startup | ✅ | `app/index.tsx` → `AppStartScreen`; Demo-Link in Production per Footer ausgeblendet (`googlePlayReadiness.test.ts`) |
 
@@ -94,13 +95,16 @@ npx eas-cli build -p android --profile preview-apk --non-interactive
 
 ---
 
-## 7. One-Command Rebuild
+## 7. One-Command Rebuild (versionCode 6 + mapping.txt)
 
 ```bash
 npx eas-cli build -p android --profile production-aab --non-interactive
+node scripts/android-play-mapping.mjs
 ```
 
-Voraussetzungen: `npx eas-cli whoami` → angemeldet; kein `.env` im Git.
+Nach dem Build auf [expo.dev](https://expo.dev) → Build-Artifacts:
+- **AAB** → Play Console (Interner Test)
+- **mapping.txt** (`android/app/build/outputs/mapping/release/mapping.txt`) → Play Console → App-Paket → **Offenlegungsdatei hochladen**
 
 ---
 

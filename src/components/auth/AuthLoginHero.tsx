@@ -3,7 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { getServiceMode } from '@/lib/services/mode';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 type AuthLoginHeroProps = {
@@ -73,7 +73,6 @@ export function AuthLoginHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={portalLabel} variant={portalVariant} dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isLive ? <PremiumBadge label="preparedOnly Auth" variant="muted" /> : null}
       </View>
       {!isLive ? (

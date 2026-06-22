@@ -34,4 +34,62 @@ describe('realtime wiring', () => {
     expect(readSrc('src/hooks/usePortalOfficeMessages.ts')).toContain('subscribeToOfficeMessageInbox');
     expect(readSrc('src/hooks/useOfficeMessageThreadDetail.ts')).toContain('subscribeToOfficeMessageThread');
   });
+
+  it('useEmployeeList nutzt useAsyncQuery live mit Employee-Liste', () => {
+    const source = readSrc('src/hooks/useEmployeeList.ts');
+    expect(source).toContain('subscribeToEmployeeListChanges');
+    expect(source).toContain('live:');
+    expect(source).toContain('isLiveConnected');
+  });
+
+  it('useEmployeeDetail nutzt Entity-Live-Subscribe', () => {
+    const source = readSrc('src/hooks/useEmployeeDetail.ts');
+    expect(source).toContain('subscribeToEmployeeDetailChanges');
+    expect(source).toContain('isLiveConnected');
+  });
+
+  it('useClientRecord nutzt Client-Record-Live-Subscribe', () => {
+    const source = readSrc('src/hooks/useClientRecord.ts');
+    expect(source).toContain('subscribeToClientRecordChanges');
+    expect(source).toContain('isLiveConnected');
+  });
+
+  it('useClientList nutzt useAsyncQuery live statt manuellem useEffect', () => {
+    const source = readSrc('src/hooks/useClientList.ts');
+    expect(source).toContain('subscribeToClientListChanges');
+    expect(source).toContain('live:');
+    expect(source).toContain('isLiveConnected');
+    expect(source).not.toMatch(/useEffect\(\(\) => \{[\s\S]*subscribeToClientListChanges/);
+  });
+
+  it('useAssignmentList nutzt Assist-Operations-Live-Refresh', () => {
+    const source = readSrc('src/hooks/useAssignmentList.ts');
+    expect(source).toContain('subscribeToAssistOperationsChanges');
+    expect(source).toContain('OPERATIONAL_LIVE_POLL_MS');
+    expect(source).toContain('isLiveConnected');
+    expect(source).not.toContain('useEffect');
+  });
+
+  it('useAssistDashboard nutzt Assist-Operations auf beiden Queries', () => {
+    const source = readSrc('src/hooks/useAssistDashboard.ts');
+    expect(source).toContain('subscribeToAssistOperationsChanges');
+    expect(source).toContain('OPERATIONAL_LIVE_POLL_MS');
+    expect(source).toContain('isLiveConnected');
+  });
+
+  it('useActiveExecutions nutzt Assist-Operations-Live-Refresh', () => {
+    const source = readSrc('src/hooks/useActiveExecutions.ts');
+    expect(source).toContain('subscribeToAssistOperationsChanges');
+    expect(source).toContain('OPERATIONAL_LIVE_POLL_MS');
+    expect(source).toContain('isLiveConnected');
+  });
+
+  it('realtime presets exportieren neue Subscribe-Helfer', () => {
+    const indexSource = readSrc('src/lib/realtime/index.ts');
+    expect(indexSource).toContain('subscribeToEmployeeListChanges');
+    expect(indexSource).toContain('subscribeToEmployeeDetailChanges');
+    expect(indexSource).toContain('subscribeToAssistOperationsChanges');
+    expect(indexSource).toContain('subscribeToTimeTrackingChanges');
+    expect(indexSource).toContain('subscribeToClientListChanges');
+  });
 });

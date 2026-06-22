@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { PremiumButton } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -52,7 +52,7 @@ export function PortalTabScreen({
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={title}
       subtitle={isPhone ? undefined : 'Ihr persönlicher Portalbereich'}
       showBack={false}
@@ -60,7 +60,7 @@ export function PortalTabScreen({
       rightSlot={signOutButton}
     >
       <View style={styles.content}>{children}</View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -3,7 +3,7 @@ import type { BudgetDetail } from '@/types/modules/billing';
 import { demoBudgets } from '@/data/demo/budgets';
 import { demoClients } from '@/data/demo/clients';
 import { demoInvoices } from '@/data/demo/invoices';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 
 function resolveClientName(clientId: string): string {

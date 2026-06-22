@@ -2,7 +2,7 @@ import type { EmployeeAbsence } from '@/types/modules/employeeAbsence';
 import type { EmployeeOffboardingSession } from '@/types/modules/employeeOffboarding';
 import type { PersonalComplianceAuditEvent } from '@/types/modules/personalComplianceCockpit';
 import type { EmployeeTrainingRecord } from '@/types/modules/training';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 export type InventoryAssignmentRecord = {
   id: string;

@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildAssignmentListKpis } from '@/data/demo/assignmentListStats';
+import { buildAssignmentListKpis } from '@/lib/assist/assignmentListStats';
 import { getDemoAssignmentListItems } from '@/data/demo/assistAssignments';
-import { fetchAssignmentList, fetchAssignmentDetail } from '@/lib/assist';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { fetchAssignmentList, fetchAssignmentDetail, fetchClientAssignments } from '@/lib/assist';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { ASSIGNMENT_STATUS_FILTERS, ASSIGNMENT_SORT_OPTIONS } from '@/hooks/useAssignmentList';
 
@@ -26,6 +26,19 @@ describe('Assist Einsatzplanung list', () => {
       expect(result.data.length).toBeGreaterThan(0);
       expect(result.data[0]?.title).toBeTruthy();
     }
+  });
+
+  it('fetchClientAssignments filtert Demo-Einsätze nach Klient:in', async () => {
+    const result = await fetchClientAssignments(DEMO_TENANT_ID, 'client-001', 'business_admin');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.length).toBeGreaterThan(0);
+      expect(result.data.every((item) => item.id.startsWith('assign-'))).toBe(true);
+    }
+
+    const empty = await fetchClientAssignments(DEMO_TENANT_ID, 'client-nonexistent', 'business_admin');
+    expect(empty.ok).toBe(true);
+    if (empty.ok) expect(empty.data).toHaveLength(0);
   });
 
   it('fetchAssignmentDetail liefert Demo-Detail', async () => {
@@ -72,6 +85,7 @@ describe('Assist Einsatzplanung list', () => {
   it('assignmentListService nutzt guardServiceTenant', () => {
     const source = readSrc('src/lib/assist/assignmentListService.ts');
     expect(source).toContain('guardServiceTenant');
+    expect(source).toContain('fetchClientAssignments');
   });
 
   it('assignmentListService lädt Live-Daten aus Visit-Disposition-Service', () => {

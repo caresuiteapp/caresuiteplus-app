@@ -8,7 +8,6 @@ export type AppStartEntry = {
   accentColor: string;
 };
 
-export const DEMO_START_PATH = '/auth/demo';
 
 export const APP_START_ENTRIES: AppStartEntry[] = [
   {

@@ -2,7 +2,7 @@ import { useRouter } from 'expo-router';
 import { StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { PreparedTemplateBanner } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -28,32 +28,32 @@ export function HtmlDocumentTemplatesScreen() {
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title="HTML-Dokumentvorlagen" subtitle={roleLabel ?? ''}>
+      <ScreenShell title="HTML-Dokumentvorlagen" subtitle={roleLabel ?? ''}>
         <LockedActionBanner message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="HTML-Dokumentvorlagen" subtitle="Wird geladen…">
+      <ScreenShell title="HTML-Dokumentvorlagen" subtitle="Wird geladen…">
         <LoadingState message="Vorlagen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="HTML-Dokumentvorlagen" subtitle="Fehler">
+      <ScreenShell title="HTML-Dokumentvorlagen" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const templates = query.data ?? [];
 
   return (
-    <CareLightPageShell title="HTML-Dokumentvorlagen" subtitle="Vorlagen & Dokumente">
+    <ScreenShell title="HTML-Dokumentvorlagen" subtitle="Vorlagen & Dokumente">
       <PreparedTemplateBanner />
       <View style={styles.actions}>
         <PremiumButton title="Live-Vorschau" variant="secondary" onPress={() => router.push('/business/templates/live-preview' as never)} />
@@ -73,7 +73,7 @@ export function HtmlDocumentTemplatesScreen() {
           </PremiumCard>
         ))
       )}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

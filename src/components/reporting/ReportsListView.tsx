@@ -14,7 +14,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildReportListKpis } from '@/data/demo/reportListStats';
+import { buildReportListKpis } from '@/lib/reporting/reportListStats';
 import {
   REPORT_CATEGORY_FILTERS,
   REPORT_SORT_OPTIONS,

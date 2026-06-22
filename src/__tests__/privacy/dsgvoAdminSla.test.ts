@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { dataSubjectRequestsDemo } from '@/data/demo/dataSubjectRequestsDemo';
 import { exportDataSubjectRequestsForAdmin } from '@/lib/privacy/dataSubjectRequestAdminService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   buildDataSubjectRequestsAdminCsv,
   computeDataSubjectRequestDeadline,

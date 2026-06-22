@@ -19,7 +19,7 @@ import {
   ASSIST_SUBCATEGORY_KEYS,
   ASSIST_TAGESFORM_KEYS,
 } from '@/types/modules/assist/assistTaskCatalog';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchClientTasks } from '@/lib/clients/clientTasksService';
 
 describe('Assist task catalog structure', () => {

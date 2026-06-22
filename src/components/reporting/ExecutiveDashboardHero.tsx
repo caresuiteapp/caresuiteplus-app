@@ -4,8 +4,8 @@ import { AdaptiveKpiGrid } from '@/components/adaptive';
 import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
 import { dashboardKpisToGridItems } from '@/lib/adaptive/kpiGridItems';
 import { buildReportingKpiGridItems } from '@/components/reporting/ReportingKpiCard';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { ReportingDashboardSnapshot } from '@/types/reporting/metrics';
 import { designTokens, spacing, typography, colors } from '@/theme';
@@ -59,7 +59,6 @@ export function ExecutiveDashboardHero({ snapshot, roleKey }: ExecutiveDashboard
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {snapshot.preparedOnly ? (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : (

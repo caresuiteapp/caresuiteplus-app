@@ -20,7 +20,7 @@ describe('Assist Calendar Hero (Sprint 90)', () => {
     const screen = readSrc('src/screens/assist/AssistCalendarScreen.tsx');
     expect(screen).toContain('AssistCalendarView');
     expect(screen).toContain('AssignmentDetailGlassModal');
-    expect(screen).toContain('CareLightPageShell');
+    expect(screen).toContain('ScreenShell');
     expect(screen).not.toContain('AssistCalendarListHero');
   });
 

@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, FilterChipGroup, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -47,7 +47,7 @@ export function ErstgespraechCreateScreen() {
   }
 
   return (
-    <CareLightPageShell title="Erstgespräch" subtitle={roleLabel ?? 'Beratung'}>
+    <ScreenShell title="Erstgespräch" subtitle={roleLabel ?? 'Beratung'}>
       <View style={styles.form}>
         <Text style={styles.fieldLabel}>Klient:in</Text>
         <FilterChipGroup
@@ -84,7 +84,7 @@ export function ErstgespraechCreateScreen() {
           disabled={loading || isReadOnly}
         />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

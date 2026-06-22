@@ -10,7 +10,7 @@ function readSrc(relativePath: string): string {
 describe('KIM Mailbox List Hero (Sprint 97)', () => {
   it('KIMMailboxListHero nutzt PremiumListHeroFrame mit isTILiveReady', () => {
     const hero = readSrc('src/components/ti/KIMMailboxListHero.tsx');
-    expect(hero).toContain('CareLightListHeroFrame');
+    expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('isTILiveReady');
     expect(readSrc('src/screens/ti/KIMMailboxScreen.tsx')).toContain('KIMMailboxListHero');
   });

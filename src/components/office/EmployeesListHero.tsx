@@ -1,18 +1,18 @@
 import { StyleSheet, Text, View } from 'react-native';
 import {
   DesktopListViewToggle,
-  CareLightButton,
-  CareLightKpiCard,
-  CareLightListHeroFrame,
+  PremiumButton,
+  PremiumKpiCard,
+  PremiumListHeroFrame,
   PremiumBadge,
   type DesktopListViewMode,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
-import type { EmployeeListKpi } from '@/data/demo/employeeListStats';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import type { EmployeeListKpi } from '@/lib/office/employeeListStats';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import { designTokens } from '@/theme';
 
@@ -24,6 +24,8 @@ type EmployeesListHeroProps = {
   canCreate: boolean;
   isReadOnly: boolean;
   onCreatePress?: () => void;
+  onCsvPress?: () => void;
+  canCsv?: boolean;
   compact?: boolean;
   viewMode?: DesktopListViewMode;
   onViewModeChange?: (mode: DesktopListViewMode) => void;
@@ -38,6 +40,8 @@ export function EmployeesListHero({
   canCreate,
   isReadOnly,
   onCreatePress,
+  onCsvPress,
+  canCsv = false,
   compact = false,
   viewMode = 'table',
   onViewModeChange,
@@ -47,7 +51,7 @@ export function EmployeesListHero({
   const heroText = useListHeroTextStyles();
 
   return (
-    <CareLightListHeroFrame accentColor={accent}>
+    <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={heroText.eyebrow}>OFFICE</Text>
@@ -64,8 +68,7 @@ export function EmployeesListHero({
         ) : null}
       </View>
       <View style={styles.badges}>
-        <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
+        <PremiumBadge label={ROLE_LABELS[roleKey]} variant="cyan" dot />
       </View>
       {showViewToggle && onViewModeChange ? (
         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
@@ -73,7 +76,7 @@ export function EmployeesListHero({
       {!compact ? (
         <View style={styles.kpiRow}>
           {kpis.map((kpi) => (
-            <CareLightKpiCard
+            <PremiumKpiCard
               key={kpi.id}
               label={kpi.label}
               value={String(kpi.value)}
@@ -86,9 +89,12 @@ export function EmployeesListHero({
         </View>
       ) : null}
       {canCreate ? (
-        <CareLightButton title="➕ Mitarbeitende anlegen" onPress={onCreatePress} accentColor={accent} />
+        <PremiumButton title="➕ Mitarbeitende anlegen" onPress={onCreatePress} fullWidth />
       ) : null}
-    </CareLightListHeroFrame>
+      {canCsv && onCsvPress ? (
+        <PremiumButton title="CSV Import / Export" variant="secondary" onPress={onCsvPress} fullWidth />
+      ) : null}
+    </PremiumListHeroFrame>
   );
 }
 

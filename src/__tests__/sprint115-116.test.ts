@@ -2,18 +2,20 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import {
+  mapInsightDataSourceRow,
+  mapInsightExportRow,
+} from '@/lib/insight/insightLiveMapper';
+import {
   countInsightLiveFlipBlockersRemaining,
   getInsightLiveFlipBlockers,
   isInsightLiveReady,
-  mapInsightDataSourceRow,
-  mapInsightExportRow,
-} from '@/lib/insight';
+} from '@/lib/insight/insightModuleConfig';
 
 function readSrc(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
-describe('Demo Entry Screen Heroes (Sprint 115)', () => {
+describe('Pilot Entry Screen Heroes (Sprint 115)', () => {
   it('PilotReadinessScreen nutzt PilotReadinessHero statt flachem PremiumCard-Header', () => {
     const screen = readSrc('src/screens/pilot/PilotReadinessScreen.tsx');
     expect(screen).toContain('PilotReadinessHero');
@@ -23,22 +25,10 @@ describe('Demo Entry Screen Heroes (Sprint 115)', () => {
     expect(hero).toContain('preparedOnly Pilot');
   });
 
-  it('DemoLoginScreen nutzt DemoLoginHero statt PremiumCard-Hint', () => {
-    const screen = readSrc('src/screens/DemoLoginScreen.tsx');
-    expect(screen).toContain('DemoLoginHero');
-    expect(screen).not.toContain('PremiumCard accentColor');
-    const hero = readSrc('src/components/auth/DemoLoginHero.tsx');
-    expect(hero).toContain('CareLightListHeroFrame');
-    expect(hero).toContain('preparedOnly Auth');
-  });
-
-  it('DemoModeHintScreen nutzt DemoModeHintHero', () => {
-    const screen = readSrc('src/screens/DemoModeHintScreen.tsx');
-    expect(screen).toContain('DemoModeHintHero');
-    expect(screen).not.toContain('PremiumCard accentColor');
-    const hero = readSrc('src/components/auth/DemoModeHintHero.tsx');
-    expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('EXPO_PUBLIC_DEMO_MODE');
+  it('demo auth screens removed in live-only mode', () => {
+    expect(() => readSrc('src/screens/DemoLoginScreen.tsx')).toThrow();
+    expect(() => readSrc('src/screens/DemoModeHintScreen.tsx')).toThrow();
+    expect(() => readSrc('app/auth/demo.tsx')).toThrow();
   });
 });
 

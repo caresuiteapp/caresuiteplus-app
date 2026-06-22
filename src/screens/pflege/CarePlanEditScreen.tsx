@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { FormScreenHero } from '@/components/forms';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   LoadingState,
@@ -57,22 +57,22 @@ export function CarePlanEditScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Pflegeplan bearbeiten" subtitle="Wird geladen…">
+      <ScreenShell title="Pflegeplan bearbeiten" subtitle="Wird geladen…">
         <LoadingState message="Pflegeplan wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (saved) {
     return (
-      <CareLightPageShell title="Gespeichert" showBack={false}>
+      <ScreenShell title="Gespeichert" showBack={false}>
         <SuccessState message="Pflegeplan aktualisiert." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Pflegeplan bearbeiten" subtitle={roleLabel ?? 'Pflege'} onBack={() => router.back()}>
+    <ScreenShell title="Pflegeplan bearbeiten" subtitle={roleLabel ?? 'Pflege'} onBack={() => router.back()}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <FormScreenHero
           eyebrow="PFLEGE · PFLEGEPLAN"
@@ -93,7 +93,7 @@ export function CarePlanEditScreen() {
           <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
         </PremiumCard>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

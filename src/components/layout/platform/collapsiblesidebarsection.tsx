@@ -10,7 +10,15 @@ import {
   type TextStyle,
   type ViewStyle,
 } from 'react-native';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  auroraGlass,
+  useAuroraAdaptiveText,
+  lightLiquidGlass,
+  lightLiquidGlassWebFx,
+  useActiveGlassTokens,
+  useAuroraGlassActive,
+} from '@/design/tokens/auroraGlass';
+import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -58,7 +66,11 @@ export function CollapsibleSidebarSection<T>({
 }: CollapsibleSidebarSectionProps<T>) {
   const text = useAuroraAdaptiveText();
   const { isPhone } = useDeviceClass();
-  const { typography } = useLegacyTheme();
+  const { typography, isLight } = useLegacyTheme();
+  const glass = useActiveGlassTokens();
+  const auroraActive = useAuroraGlassActive();
+  const formGlass = resolveLlganViewGlass('form', 'default');
+  const lightFormModal = isLight && auroraActive;
   const [open, setOpen] = useState(false);
   const [anchor, setAnchor] = useState<LayoutRectangle | null>(null);
   const moreButtonRef = useRef<View>(null);
@@ -114,8 +126,9 @@ export function CollapsibleSidebarSection<T>({
           minHeight: 36,
           borderRadius: careRadius.capsule,
           borderWidth: 1,
-          borderColor: auroraGlass.border,
-          backgroundColor: auroraGlass.chip,
+          borderColor: isLight ? lightLiquidGlass.borderAccent : glass.border,
+          backgroundColor: isLight ? lightLiquidGlass.chip : glass.chip,
+          ...(isLight ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light) : webGlassBlur ?? {}),
           paddingHorizontal: careSpacing.md,
           paddingVertical: careSpacing.xs,
           flexDirection: 'row',
@@ -126,7 +139,7 @@ export function CollapsibleSidebarSection<T>({
         },
         moreButtonPressed: {
           opacity: 0.88,
-          backgroundColor: auroraGlass.chipActive,
+          backgroundColor: isLight ? lightLiquidGlass.chipActive : glass.chipActive,
         },
         moreLabel: {
           ...typography.caption,
@@ -140,14 +153,14 @@ export function CollapsibleSidebarSection<T>({
         },
         dropdownItem: {
           borderBottomWidth: StyleSheet.hairlineWidth,
-          borderBottomColor: auroraGlass.innerBorder,
+          borderBottomColor: isLight ? lightLiquidGlass.innerBorder : glass.innerBorder,
         },
         dropdownItemLast: {
           borderBottomWidth: 0,
         },
         modalBackdrop: {
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.55)',
+          backgroundColor: lightFormModal ? 'rgba(15, 27, 51, 0.16)' : 'rgba(0,0,0,0.55)',
           justifyContent: 'center',
           alignItems: 'center',
           padding: careSpacing.lg,
@@ -155,12 +168,21 @@ export function CollapsibleSidebarSection<T>({
         modalSheet: {
           width: '100%',
           maxWidth: 420,
-          backgroundColor: auroraGlass.modal,
+          backgroundColor: lightFormModal ? formGlass.modal : isLight ? lightLiquidGlass.modal : glass.modal,
           borderRadius: careRadius.lg,
           padding: careSpacing.md,
           gap: careSpacing.sm,
           borderWidth: 1,
-          borderColor: auroraGlass.borderStrong,
+          borderColor: lightFormModal ? formGlass.borderWhite : isLight ? lightLiquidGlass.borderAccent : glass.borderStrong,
+          overflow: 'hidden',
+          ...(lightFormModal
+            ? {
+                ...lightLiquidGlassWebFx(formGlass.blurDesktop, formGlass.saturate),
+                boxShadow: `${formGlass.shadow}, ${formGlass.shadowInset}`,
+              }
+            : isLight
+              ? lightLiquidGlassWebFx(lightLiquidGlass.blur.heavy)
+              : webGlassBlur ?? {}),
         },
         modalTitle: {
           ...typography.caption,
@@ -182,13 +204,13 @@ export function CollapsibleSidebarSection<T>({
           position: 'absolute',
           borderRadius: careRadius.lg,
           borderWidth: 1,
-          borderColor: auroraGlass.borderStrong,
-          backgroundColor: auroraGlass.elevated,
+          borderColor: isLight ? lightLiquidGlass.borderAccent : glass.borderStrong,
+          backgroundColor: isLight ? lightLiquidGlass.elevated : glass.elevated,
           overflow: 'hidden',
-          ...(webGlassBlur ?? {}),
+          ...(isLight ? lightLiquidGlassWebFx(lightLiquidGlass.blur.medium) : webGlassBlur ?? {}),
         },
       }),
-    [text.muted, text.secondary, typography.bodyStrong, typography.caption],
+    [formGlass, glass, isLight, lightFormModal, text.muted, text.secondary, typography.bodyStrong, typography.caption],
   );
 
   const renderOverflowList = (itemStyle?: ViewStyle) =>

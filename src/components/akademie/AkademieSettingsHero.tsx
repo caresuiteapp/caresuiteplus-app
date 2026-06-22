@@ -7,8 +7,8 @@ import {
   AKADEMIE_EXTENSION_PREPARED_MESSAGE,
   isAkademieExtensionLiveReady,
 } from '@/lib/akademie/akademieModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { AkademieModuleSettings } from '@/types/modules/akademie';
 import { designTokens, spacing } from '@/theme';
@@ -68,7 +68,6 @@ export function AkademieSettingsHero({ settings, roleKey }: AkademieSettingsHero
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isAkademieExtensionLiveReady() ? (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}

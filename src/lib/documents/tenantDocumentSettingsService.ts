@@ -5,7 +5,7 @@ import type {
   TenantDocumentSettings,
   TenantDocumentSettingsForm,
 } from '@/types/documents/tenantDocumentSettings';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { A4_PAGE_LAYOUT } from '@/features/documents/templateEngine/a4LayoutDefaults';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';

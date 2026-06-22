@@ -1,10 +1,17 @@
-import { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { ReactNode, useMemo } from 'react';
+import { Platform, Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import {
+  lightLiquidGlassWebFx,
+  useAuroraGlassActive,
+  useAuroraGlassCardStyle,
+} from '@/design/tokens/auroraGlass';
 import { careEffects } from '@/design/tokens/effects';
 import { galaxyGlow, galaxyPalette } from '@/design/tokens/galaxy';
+import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
 type GlassCardProps = {
   children: ReactNode;
@@ -15,7 +22,7 @@ type GlassCardProps = {
   style?: ViewStyle;
 };
 
-/** Dark liquid-glass card with optional neon glow and selection ring. */
+/** Liquid-glass card — LLGAN milchglas on light aurora, dark galaxy glass otherwise. */
 export function GlassCard({
   children,
   onPress,
@@ -24,27 +31,78 @@ export function GlassCard({
   selected = false,
   style,
 }: GlassCardProps) {
+  const auroraActive = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
+  const auroraCardStyle = useAuroraGlassCardStyle({ viewContext: 'login', intensity: 'strong' });
+  const loginGlass = resolveLlganViewGlass('login', 'strong');
+  const useLightGlass = auroraActive && isLight;
+
   const borderColor = selected
     ? accentColor ?? galaxyPalette.careOrange
-    : careEffects.glass.border;
+    : useLightGlass
+      ? loginGlass.borderWhite
+      : careEffects.glass.border;
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: {
+          borderRadius: careRadius.lg,
+          borderWidth: 1,
+          overflow: 'hidden',
+          padding: careSpacing.md,
+        },
+        cardDark: {
+          backgroundColor: galaxyPalette.cardGlass,
+        },
+        cardGlow: useLightGlass ? null : galaxyGlow.cyan,
+        selected: useLightGlass ? null : galaxyGlow.orange,
+        accentRim: {
+          borderLeftWidth: 3,
+        },
+        content: {
+          position: 'relative',
+          gap: careSpacing.sm,
+        },
+        pressed: {
+          opacity: 0.92,
+        },
+      }),
+    [useLightGlass],
+  );
 
   const inner = (
     <View
       style={[
         styles.card,
-        glow ? galaxyGlow.cyan : null,
-        selected ? styles.selected : null,
+        useLightGlass ? auroraCardStyle : styles.cardDark,
+        glow && !useLightGlass ? styles.cardGlow : null,
+        selected && !useLightGlass ? styles.selected : null,
         { borderColor },
-        accentColor && !selected ? { borderLeftColor: accentColor, borderLeftWidth: 3 } : null,
+        accentColor && !selected ? [styles.accentRim, { borderLeftColor: accentColor }] : null,
         style,
       ]}
     >
-      <LinearGradient
-        colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)']}
-        start={{ x: 0, y: 0 }}
-        end={{ x: 1, y: 1 }}
-        style={StyleSheet.absoluteFillObject}
-      />
+      {!useLightGlass ? (
+        <LinearGradient
+          colors={['rgba(255,255,255,0.06)', 'rgba(255,255,255,0.02)']}
+          start={{ x: 0, y: 0 }}
+          end={{ x: 1, y: 1 }}
+          style={StyleSheet.absoluteFillObject}
+        />
+      ) : null}
+      {useLightGlass && Platform.OS === 'web' ? (
+        <View
+          style={
+            {
+              ...StyleSheet.absoluteFillObject,
+              ...lightLiquidGlassWebFx(loginGlass.blurDesktop, loginGlass.saturate),
+              boxShadow: `${loginGlass.shadow}, ${loginGlass.shadowInset}`,
+            } as ViewStyle
+          }
+          pointerEvents="none"
+        />
+      ) : null}
       <View style={styles.content}>{children}</View>
     </View>
   );
@@ -61,24 +119,3 @@ export function GlassCard({
     </Pressable>
   );
 }
-
-const styles = StyleSheet.create({
-  card: {
-    borderRadius: careRadius.lg,
-    borderWidth: 1,
-    backgroundColor: galaxyPalette.cardGlass,
-    overflow: 'hidden',
-    padding: careSpacing.md,
-  },
-  selected: {
-    ...galaxyGlow.orange,
-    borderWidth: 1.5,
-  },
-  content: {
-    position: 'relative',
-    gap: careSpacing.sm,
-  },
-  pressed: {
-    opacity: 0.92,
-  },
-});

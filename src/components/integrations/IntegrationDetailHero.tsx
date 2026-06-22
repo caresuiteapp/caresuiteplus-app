@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildIntegrationDetailKpis } from '@/lib/integrations/integrationDetailStats';
 import { isIntegrationsLiveReady } from '@/lib/integrations/integrationsModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { IntegrationProviderListItem } from '@/types/modules/integrations';
 import {
@@ -118,7 +118,6 @@ export function IntegrationDetailHero({ integration, roleKey }: IntegrationDetai
           dot
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isIntegrationsLiveReady() ? (
           <PremiumBadge label="Live-Sync in Vorbereitung" variant="orange" dot />
         ) : null}

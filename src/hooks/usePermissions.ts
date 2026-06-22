@@ -1,10 +1,10 @@
 import { useEffect, useMemo, useState } from 'react';
 import type { RoleKey } from '@/types';
 import type { PermissionDecision, PermissionKey } from '@/types/permissions';
-import { getPermissionsForRole, ROLE_LABELS } from '@/data/demo';
-import { checkPermissionWithList, hasAllPermissionsInList, hasAnyPermissionInList, hasPermissionInList } from '@/lib/permissions';
+import { ROLE_LABELS } from '@/data/constants';
+import { checkPermissionWithList, getPermissionsForRole, hasAllPermissionsInList, hasAnyPermissionInList, hasPermissionInList } from '@/lib/permissions';
 import { hasEffectiveModuleGateAccess } from '@/lib/modules/moduleAccessService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isDemoMode } from '@/lib/supabase/config';
 import { fetchRuntimePermissions } from '@/lib/supabase/permissionRepository';
 import { useAuth } from '@/lib/auth/context';

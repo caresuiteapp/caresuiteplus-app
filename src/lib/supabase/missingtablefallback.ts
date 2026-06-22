@@ -6,6 +6,12 @@ export const DEMO_DATA_BANNER = 'DEMO_DATA_BANNER';
 export const PREVIEW_DATA_BANNER_MESSAGE =
   'Vorschaudaten — einige Tabellen sind in dieser Umgebung noch nicht verfügbar.';
 
+export const CARE_RECORDS_MISSING_BANNER_MESSAGE =
+  'Die Tabelle care_records ist in Supabase noch nicht angelegt. Bitte Migrationen 0007 und 0023–0024 anwenden (supabase db push).';
+
+export const CATALOGS_MISSING_BANNER_MESSAGE =
+  'Die Tabelle catalogs ist in Supabase noch nicht angelegt. Bitte Migrationen 0007 und 0025–0026 anwenden (supabase db push).';
+
 export type PreviewAwareResult<T> =
   | { ok: true; data: T; previewData?: boolean; usedDemoFallback?: boolean; tableMissing?: boolean }
   | { ok: false; error: string };

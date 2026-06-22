@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import type { RoleKey } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { resetLifecycleDocumentStore } from '@/lib/documents/documentLifecycleService';
 import { resetPdfRenderJobs } from '@/lib/documents/pdfRenderJobService';
 import {

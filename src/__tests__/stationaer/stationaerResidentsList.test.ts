@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildResidentListKpis } from '@/data/demo/residentListStats';
+import { buildResidentListKpis } from '@/lib/stationaer/residentListStats';
 import { getDemoResidentListItems } from '@/data/demo/residents';
 import { fetchResidentList } from '@/lib/stationaer/residentListService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { RESIDENT_SORT_OPTIONS, RESIDENT_STATUS_FILTERS } from '@/hooks/useResidentList';
 

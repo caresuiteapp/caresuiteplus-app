@@ -1,0 +1,23 @@
+{
+  "baseUrl": "http://localhost:8082",
+  "authOk": false,
+  "authReason": "missing_or_placeholder_credentials",
+  "snapshots": {
+    "t0": "cloud-tl-cyan:145,195|cloud-tr-lavender:1653,70|cloud-bl-ice:85,775|cloud-br-pearl:1338,914|cloud-mid-cyan:430,289|cloud-mid-lilac:1185,616",
+    "t10": "cloud-tl-cyan:221,165|cloud-tr-lavender:1611,26|cloud-bl-ice:28,797|cloud-br-pearl:1367,954|cloud-mid-cyan:378,268|cloud-mid-lilac:1231,632"
+  },
+  "screenshots": [
+    "C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\docs\\audit\\llgan-finetune-dashboard-t0.png",
+    "C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\docs\\audit\\llgan-finetune-dashboard-t10.png",
+    "C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\docs\\audit\\llgan-finetune-sidebar.png",
+    "C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\docs\\audit\\llgan-finetune-form-modal.png",
+    "C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\docs\\audit\\llgan-finetune-table-view.png"
+  ],
+  "canvasDrift": true,
+  "canvasDriftDelta": {
+    "t0": "cloud-tl-cyan:145,195|cloud-tr-lavender:1653,70|cloud-bl-ice:85,775|cloud-br-pearl:1338,914|cloud-mid-cyan:430,289|cloud-mid-lilac:1185,616",
+    "t10": "cloud-tl-cyan:221,165|cloud-tr-lavender:1611,26|cloud-bl-ice:28,797|cloud-br-pearl:1367,954|cloud-mid-cyan:378,268|cloud-mid-lilac:1231,632"
+  },
+  "note": "Dashboard abnahme blocked — set real AUDIT_BUSINESS_EMAIL/PASSWORD in .env. Capturing light-mode login + canvas drift instead.",
+  "blocked": true
+}

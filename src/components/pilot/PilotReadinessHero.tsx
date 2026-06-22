@@ -3,7 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { PILOT_MILESTONE_ID, PILOT_TENANT_IDS } from '@/lib/pilot/pilotConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 type PilotReadinessHeroProps = {
@@ -70,7 +70,6 @@ export function PilotReadinessHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Dev/QA" variant="cyan" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         <PremiumBadge label="preparedOnly Pilot" variant="muted" />
       </View>
       <View style={styles.kpiRow}>

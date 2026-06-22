@@ -2,7 +2,7 @@ import type { RoleKey, ServiceResult } from '@/types';
 import type { PortalDocumentDetail, PortalDocumentListItem } from '@/types/portal/documents';
 import type { PortalScope } from '@/types/portal';
 import { demoPortalDocuments } from '@/data/demo/documents';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { runService } from '@/lib/services/serviceRunner';
 import { filterPortalEntities, resolvePortalScope } from './portalVisibility';

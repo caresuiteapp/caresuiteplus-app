@@ -1,8 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { CareLightScreen } from '@/components/layout';
 import { EmptyState, InfoBanner, LoadingState } from '@/components/ui';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useAuth } from '@/lib/auth/context';
@@ -25,6 +26,35 @@ import type { InventoryListScreenProps } from './inventoryListConfig';
 
 export function InventoryListScreen({ variant }: InventoryListScreenProps) {
   const router = useRouter();
+  const { c } = useCareLightPalette();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        title: {
+          ...careTypography.h2,
+          color: c.text,
+          marginBottom: careSpacing.md,
+        },
+        list: { gap: careSpacing.xs },
+        row: {
+          padding: careSpacing.sm,
+          backgroundColor: c.surface,
+          borderRadius: 8,
+          borderWidth: 1,
+          borderColor: c.border,
+        },
+        rowLabel: {
+          ...careTypography.body,
+          color: c.text,
+        },
+        back: {
+          ...careTypography.caption,
+          color: c.orange,
+          marginTop: careSpacing.lg,
+        },
+      }),
+    [c],
+  );
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const roleKey = profile?.roleKey ?? null;
@@ -120,26 +150,3 @@ export function InventoryListScreen({ variant }: InventoryListScreenProps) {
     </CareLightScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  title: {
-    ...careTypography.h2,
-    color: careLightColors.text,
-    marginBottom: careSpacing.md,
-  },
-  list: { gap: careSpacing.xs },
-  row: {
-    padding: careSpacing.sm,
-    backgroundColor: careLightColors.surface,
-    borderRadius: 8,
-  },
-  rowLabel: {
-    ...careTypography.body,
-    color: careLightColors.text,
-  },
-  back: {
-    ...careTypography.caption,
-    color: careLightColors.orange,
-    marginTop: careSpacing.lg,
-  },
-});

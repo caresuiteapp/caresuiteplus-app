@@ -4,8 +4,8 @@
  */
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 
-/** Default export — light palette (demo default via ThemeModeProvider). */
-export const colors = legacyColorsFromPalette('light');
+/** Default export — dark palette (GlobalAnimatedBackground / aurora shell). */
+export const colors = legacyColorsFromPalette('dark');
 
 /** Dark palette for explicit legacy/dark-mode surfaces. */
 export const darkColors = legacyColorsFromPalette('dark');

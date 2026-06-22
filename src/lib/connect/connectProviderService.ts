@@ -1,4 +1,4 @@
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type { ConnectProviderPlaceholder } from '@/types/modules/connect';
 import { getAllConnectIntegrations } from './connectCatalog';
 

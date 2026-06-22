@@ -1,6 +1,6 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard } from '@/components/ui';
 import { useQmCompliance } from '@/hooks/qm';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -12,30 +12,30 @@ export function QmLegalReferencesScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="Rechtsgrundlagen" showBack>
+      <ScreenShell title="Rechtsgrundlagen" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !legalReferences.length) {
     return (
-      <CareLightPageShell title="Rechtsgrundlagen" showBack>
+      <ScreenShell title="Rechtsgrundlagen" showBack>
         <LoadingState message="Rechtsgrundlagen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !legalReferences.length) {
     return (
-      <CareLightPageShell title="Rechtsgrundlagen" showBack>
+      <ScreenShell title="Rechtsgrundlagen" showBack>
         <ErrorState title="Rechtsgrundlagen" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Rechtsgrundlagen" subtitle={`${legalReferences.length} Einträge`} showBack>
+    <ScreenShell title="Rechtsgrundlagen" subtitle={`${legalReferences.length} Einträge`} showBack>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
         contentContainerStyle={styles.scroll}
@@ -53,7 +53,7 @@ export function QmLegalReferencesScreen() {
           ))
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

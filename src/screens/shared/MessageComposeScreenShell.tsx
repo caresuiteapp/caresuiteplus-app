@@ -1,5 +1,5 @@
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { PremiumButton, SuccessState } from '@/components/ui';
 import { ComposeMessageForm } from '@/screens/shared/ComposeMessageForm';
 import { useDomainComposeMessage } from '@/hooks/useDomainComposeMessage';
@@ -28,15 +28,15 @@ export function MessageComposeScreenShell({
 
   if (sent) {
     return (
-      <CareLightPageShell title="Nachricht" subtitle={`WP ${wpNumber}`}>
+      <ScreenShell title="Nachricht" subtitle={`WP ${wpNumber}`}>
         <SuccessState message="Nachricht wurde gespeichert." />
         <PremiumButton title="Zurück" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Nachricht" subtitle={`${domain} · Kommunikation`}>
+    <ScreenShell title="Nachricht" subtitle={`${domain} · Kommunikation`}>
       <ComposeMessageForm
         wpNumber={wpNumber}
         subject={subject}
@@ -47,6 +47,6 @@ export function MessageComposeScreenShell({
         isSending={isSending}
         send={send}
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }

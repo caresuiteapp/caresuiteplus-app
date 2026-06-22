@@ -13,7 +13,7 @@ describe('Desktop list view toggle Beratungsfälle (Sprint 92)', () => {
     const source = readSrc('src/components/beratung/CasesListHero.tsx');
     expect(source).toContain('DesktopListViewToggle');
     expect(source).toContain('showViewToggle');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
   });
 
   it('CasesListView schaltet Tabellenansicht per viewMode auf Desktop', () => {

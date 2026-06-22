@@ -1,6 +1,6 @@
 import { useState, type RefObject } from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { CareLightButton } from './CareLightButton';
+import { PremiumButton } from './PremiumButton';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -43,22 +43,20 @@ export function CareLightQuickActionsMenu({
           ref={index === 0 ? actionRef : undefined}
           collapsable={false}
         >
-          <CareLightButton
+          <PremiumButton
             title={`${action.icon} ${action.label}`}
             variant={action.variant === 'primary' ? 'primary' : 'secondary'}
             onPress={() => onAction(action)}
-            accentColor={accentColor}
           />
         </View>
       ))}
 
       {overflowActions.length > 0 ? (
         <View style={styles.overflowWrap}>
-          <CareLightButton
+          <PremiumButton
             title={`${expanded ? '▴' : '▾'} ${moreLabel}`}
             variant="secondary"
             onPress={() => setExpanded((open) => !open)}
-            accentColor={accentColor}
             style={styles.moreButton}
           />
           {expanded ? (

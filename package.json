@@ -41,17 +41,20 @@
     "arbeitsplan:audit": "node scripts/arbeitsplan-route-audit.mjs",
     "navigation:audit": "node scripts/navigation-duplicate-audit.mjs",
     "functional:audit": "node scripts/functional-reality-audit.mjs",
-    "einzelseiten:generate": "node scripts/extract-einzelseiten-routes.mjs && node scripts/generate-einzelseiten-bridges.mjs"
+    "einzelseiten:generate": "node scripts/extract-einzelseiten-routes.mjs && node scripts/generate-einzelseiten-bridges.mjs",
+    "postinstall": "node scripts/patch-supabase-metro.cjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
     "@opentelemetry/api": "^1.9.1",
     "@react-native-async-storage/async-storage": "1.23.1",
+    "@supabase/phoenix": "^0.4.4",
     "@supabase/supabase-js": "^2.49.0",
     "expo": "~52.0.46",
     "expo-asset": "~11.0.5",
     "expo-av": "~15.0.2",
     "expo-blur": "~14.0.3",
+    "expo-build-properties": "~0.13.3",
     "expo-constants": "~17.0.8",
     "expo-document-picker": "~13.0.3",
     "expo-font": "~13.0.4",
@@ -80,5 +83,17 @@
     "eslint-config-expo": "~8.0.1",
     "typescript": "~5.3.3",
     "vitest": "^3.2.6"
+  },
+  "expo": {
+    "doctor": {
+      "reactNativeDirectoryCheck": {
+        "exclude": [
+          "expo-av",
+          "@opentelemetry/api",
+          "html2canvas",
+          "jspdf"
+        ]
+      }
+    }
   }
 }

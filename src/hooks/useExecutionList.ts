@@ -2,10 +2,11 @@ import { useCallback, useState } from 'react';
 import type { ActiveExecutionItem, ExecutionPhase } from '@/types/modules/assist';
 import type { ListSortOption } from '@/types/list';
 import { fetchExecutionList } from '@/lib/assist/executionListService';
-import { EXECUTION_PHASE_LABELS } from '@/data/demo/executionListStats';
+import { EXECUTION_PHASE_LABELS } from '@/lib/assist/executionListStats';
+import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAsyncQuery, useListState } from './core';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery, useListState } from './core';
 
 export const EXECUTION_PHASE_FILTERS: { key: ExecutionPhase | 'all'; label: string }[] = [
   { key: 'all', label: 'Alle' },
@@ -49,7 +50,16 @@ export function useExecutionList() {
       return fetchExecutionList(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-    { enabled: !!tenantId },
+    {
+      enabled: !!tenantId,
+      live: tenantId
+        ? {
+            tenantId,
+            subscribe: subscribeToAssistOperationsChanges,
+            pollMs: OPERATIONAL_LIVE_POLL_MS,
+          }
+        : undefined,
+    },
   );
 
   const allItems = query.data ?? [];
@@ -94,5 +104,6 @@ export function useExecutionList() {
     isEmpty: !query.loading && !query.error && allItems.length === 0,
     isFilterEmpty:
       !query.loading && !query.error && list.filtered.length === 0 && list.hasActiveFilters,
+    isLiveConnected: query.isLiveConnected,
   };
 }

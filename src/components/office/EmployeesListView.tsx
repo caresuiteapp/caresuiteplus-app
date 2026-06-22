@@ -15,7 +15,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildEmployeeListKpis } from '@/data/demo/employeeListStats';
+import { buildEmployeeListKpis } from '@/lib/office/employeeListStats';
 import { useEmployeeList } from '@/hooks/useEmployeeList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -29,6 +29,8 @@ import { spacing } from '@/theme';
 
 type EmployeesListViewProps = {
   onEmployeePress?: (id: string) => void;
+  onOpenDetail?: (id: string) => void;
+  onCreatePress?: () => void;
   selectedId?: string | null;
   embedded?: boolean;
   routePrefix?: string;
@@ -37,6 +39,8 @@ type EmployeesListViewProps = {
 
 export function EmployeesListView({
   onEmployeePress,
+  onOpenDetail,
+  onCreatePress,
   selectedId = null,
   embedded = false,
   routePrefix = '/business/office/employees',
@@ -52,14 +56,19 @@ export function EmployeesListView({
   const useTableLayout = isDesktop && viewMode === 'table' && !embedded;
   const canView = can('office.employees.view');
   const canCreate = can('office.employees.create');
+  const canCsv = can('tenant.settings.csv.view');
   const roleKey = profile?.roleKey ?? 'business_admin';
+
+  const handleCreate = onCreatePress ?? (() => router.push('/office/employees/create' as never));
+  const handleOpenDetail =
+    onOpenDetail ?? onEmployeePress ?? ((id: string) => router.push(`${routePrefix}/${id}` as never));
 
   const handleEmployeePress = (id: string) => {
     if (onEmployeePress) {
       onEmployeePress(id);
       return;
     }
-    router.push(`${routePrefix}/${id}` as never);
+    handleOpenDetail(id);
   };
 
   const {
@@ -187,8 +196,10 @@ export function EmployeesListView({
           filteredCount={filteredCount}
           totalCount={totalCount}
           canCreate={canCreate}
+          canCsv={canCsv}
+          onCsvPress={() => router.push('/business/office/settings/csv-import-export?tab=employees-import' as never)}
           isReadOnly={isReadOnly}
-          onCreatePress={() => router.push('/office/employees/create' as never)}
+          onCreatePress={canCreate ? handleCreate : undefined}
           compact={compactHero}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -251,9 +262,7 @@ export function EmployeesListView({
           : `Noch keine Mitarbeitenden vorhanden. Anlegen ist für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
       }
       actionLabel={canCreate ? 'Mitarbeitende anlegen' : undefined}
-      onAction={
-        canCreate ? () => router.push('/office/employees/create' as never) : undefined
-      }
+      onAction={canCreate ? handleCreate : undefined}
     />
   ) : isFilterEmpty ? (
     <EmptyState
@@ -302,7 +311,7 @@ export function EmployeesListView({
                 employees={items}
                 selectedId={selectedId}
                 onEmployeePress={handleEmployeePress}
-                onOpenDetail={(id) => router.push(`/office/employees/${id}` as never)}
+                onOpenDetail={handleOpenDetail}
                 sortColumnKey={tableSort.sortColumnKey}
                 sortDirection={tableSort.sortDirection}
                 onSortColumn={tableSort.onSortColumn}
@@ -339,7 +348,7 @@ export function EmployeesListView({
                   <PremiumButton
                     title="+ Neu"
                     size="sm"
-                    onPress={() => router.push('/office/employees/create' as never)}
+                    onPress={handleCreate}
                   />
                 ) : undefined
               }
@@ -351,7 +360,7 @@ export function EmployeesListView({
             <PremiumButton
               title="+ Neu"
               size="sm"
-              onPress={() => router.push('/office/employees/create' as never)}
+              onPress={handleCreate}
             />
           </View>
         ) : null}
@@ -386,7 +395,7 @@ export function EmployeesListView({
           <PremiumButton
             title="+ Neu"
             size="sm"
-            onPress={() => router.push('/office/employees/create' as never)}
+            onPress={handleCreate}
           />
         </View>
       ) : null}

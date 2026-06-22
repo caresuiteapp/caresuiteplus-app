@@ -1,10 +1,16 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import type { CarePlanListItem } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { careLightColors } from '@/design/tokens/lightTheme';
+import {
+  createCareLightContentStyles,
+  useCareLightPalette,
+  type CareLightResolved,
+} from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { CareLightButton } from '@/components/ui/CareLightButton';
+import { PremiumButton } from '@/components/ui/PremiumButton';
 import { CareLightCard } from '@/components/ui/CareLightCard';
 
 type CareLightCarePlanCardProps = {
@@ -28,18 +34,18 @@ function formatDateRange(from: string, until: string | null): string {
   return `${fromDate} – ${untilDate}`;
 }
 
-function statusColor(status: CarePlanListItem['status']): string {
+function statusColor(status: CarePlanListItem['status'], c: CareLightResolved): string {
   switch (status) {
     case 'aktiv':
-      return careLightColors.green;
+      return c.green;
     case 'fehlerhaft':
     case 'gesperrt':
-      return careLightColors.danger;
+      return c.danger;
     case 'in_bearbeitung':
     case 'entwurf':
-      return careLightColors.orange;
+      return c.orange;
     default:
-      return careLightColors.muted;
+      return c.muted;
   }
 }
 
@@ -48,10 +54,12 @@ export function CareLightCarePlanCard({
   onOpen,
   accentColor = careLightColors.green,
 }: CareLightCarePlanCardProps) {
-  const statusTint = statusColor(plan.status);
+  const { c } = useCareLightPalette();
+  const styles = useMemo(() => makeStyles(c), [c]);
+  const statusTint = statusColor(plan.status, c);
 
   return (
-    <CareLightCard accentColor={accentColor} style={styles.card}>
+    <CareLightCard style={styles.card}>
       <View style={styles.header}>
         <Text style={styles.title}>{plan.title}</Text>
         <View style={[styles.statusPill, { backgroundColor: `${statusTint}18` }]}>
@@ -70,54 +78,56 @@ export function CareLightCarePlanCard({
       ) : null}
       {onOpen ? (
         <View style={styles.actions}>
-          <CareLightButton title="Öffnen" onPress={onOpen} accentColor={accentColor} variant="secondary" />
+          <PremiumButton title="Öffnen" onPress={onOpen} variant="secondary" />
         </View>
       ) : null}
     </CareLightCard>
   );
 }
 
-const styles = StyleSheet.create({
-  card: {
-    marginBottom: careSpacing.sm,
-  },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: careSpacing.sm,
-    marginBottom: careSpacing.xs,
-  },
-  title: {
-    ...careTypography.bodyStrong,
-    color: careLightColors.navy,
-    flex: 1,
-  },
-  statusPill: {
-    borderRadius: 999,
-    paddingHorizontal: careSpacing.sm,
-    paddingVertical: 2,
-  },
-  statusText: {
-    ...careTypography.caption,
-    fontWeight: '700',
-  },
-  meta: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-    marginBottom: 2,
-  },
-  period: {
-    ...careTypography.caption,
-    color: careLightColors.cyan,
-    marginBottom: careSpacing.xs,
-  },
-  alert: {
-    ...careTypography.caption,
-    color: careLightColors.warning,
-    marginBottom: careSpacing.sm,
-  },
-  actions: {
-    marginTop: careSpacing.xs,
-  },
-});
+function makeStyles(c: CareLightResolved) {
+  const text = createCareLightContentStyles(c);
+
+  return StyleSheet.create({
+    card: {
+      marginBottom: careSpacing.sm,
+    },
+    header: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: careSpacing.sm,
+      marginBottom: careSpacing.xs,
+    },
+    title: {
+      ...text.bodyStrong,
+      flex: 1,
+    },
+    statusPill: {
+      borderRadius: 999,
+      paddingHorizontal: careSpacing.sm,
+      paddingVertical: 2,
+    },
+    statusText: {
+      ...careTypography.caption,
+      fontWeight: '700',
+    },
+    meta: {
+      ...text.caption,
+      marginBottom: 2,
+    },
+    period: {
+      ...text.caption,
+      color: c.cyan,
+      marginBottom: careSpacing.xs,
+    },
+    alert: {
+      ...text.caption,
+      color: c.warning,
+      marginBottom: careSpacing.sm,
+    },
+    actions: {
+      marginTop: careSpacing.xs,
+    },
+  });
+}

@@ -6,7 +6,7 @@ import {
   OFFICE_DOCUMENT_CATEGORY_FILTERS,
   filterOfficeDocumentsByCategory,
   type OfficeDocumentCategoryFilterKey,
-} from '@/data/demo/officeDocumentListStats';
+} from '@/lib/office/officeDocumentListStats';
 import { fetchOfficeDocumentList } from '@/lib/office/officeDocumentsService';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';

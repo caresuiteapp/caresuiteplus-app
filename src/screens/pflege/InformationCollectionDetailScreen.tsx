@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard, PremiumInput } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -29,24 +29,24 @@ export function InformationCollectionDetailScreen() {
 
   if (query.loading) {
     return (
-      <CareLightPageShell title="Informationssammlung" subtitle="Detail">
+      <ScreenShell title="Informationssammlung" subtitle="Detail">
         <LoadingState message="Wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error || !query.data) {
     return (
-      <CareLightPageShell title="Informationssammlung" subtitle="Fehler">
+      <ScreenShell title="Informationssammlung" subtitle="Fehler">
         <ErrorState message={query.error ?? 'Nicht gefunden.'} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const item = query.data;
 
   return (
-    <CareLightPageShell title={item.clientName} subtitle={`${item.collectionType} · ${roleLabel ?? 'Demo'}`}>
+    <ScreenShell title={item.clientName} subtitle={`${item.collectionType} · ${roleLabel ?? 'Demo'}`}>
       <PremiumCard style={styles.card}>
         <Text style={styles.label}>Status</Text>
         <Text style={styles.value}>{item.status}</Text>
@@ -72,7 +72,7 @@ export function InformationCollectionDetailScreen() {
         <Text style={styles.label}>Bearbeitende Person</Text>
         <Text style={styles.value}>{item.assessorName}</Text>
       </PremiumCard>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

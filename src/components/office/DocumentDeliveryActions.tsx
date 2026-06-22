@@ -15,6 +15,9 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { GradientModalHeader } from '@/components/layout/platform';
+import { GlassSurface } from '@/components/ui/effects';
+import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import type { ClientDocumentRecord } from '@/types/modules/client';
 import { downloadDocumentPdf, isDocumentPdfDownloadSupported } from '@/lib/documents/documentPdfService';
 import {
@@ -22,7 +25,7 @@ import {
   sendDocumentViaEmail,
   sendDocumentViaFax,
 } from '@/lib/documents/documentDeliveryService';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { careRadius } from '@/design/tokens/radius';
 import { colors, spacing, typography } from '@/theme';
 
 type DocumentDeliveryActionsProps = {
@@ -254,17 +257,23 @@ function DeliveryModal({
   screenWidth,
   children,
 }: DeliveryModalProps) {
+  const { isLight } = useLegacyTheme();
+  const auroraActive = useAuroraGlassActive();
+  const lightModal = isLight && auroraActive;
+
   return (
     <Modal visible={visible} transparent animationType="fade" onRequestClose={onClose}>
-      <View style={styles.backdrop} accessibilityViewIsModal>
+      <View style={[styles.backdrop, lightModal && styles.backdropLight]} accessibilityViewIsModal>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
-        <View style={[styles.sheet, { width: Math.min(screenWidth - spacing.lg * 2, 560) }]}>
-          <GradientModalHeader title={title} onClose={onClose} />
-          <View style={styles.sheetBody}>
-            <Text style={styles.modalSubtitle}>{subtitle}</Text>
-            <View style={styles.modalBody}>{children}</View>
-            <PremiumButton title="Abbrechen" variant="secondary" onPress={onClose} />
-          </View>
+        <View style={[styles.sheetHost, { width: Math.min(screenWidth - spacing.lg * 2, 560) }]}>
+          <GlassSurface radius={careRadius.lg} elevated style={styles.sheetInner}>
+            <GradientModalHeader title={title} onClose={onClose} />
+            <View style={styles.sheetBody}>
+              <Text style={styles.modalSubtitle}>{subtitle}</Text>
+              <View style={styles.modalBody}>{children}</View>
+              <PremiumButton title="Abbrechen" variant="secondary" onPress={onClose} />
+            </View>
+          </GlassSurface>
         </View>
       </View>
     </Modal>
@@ -282,14 +291,19 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     padding: spacing.lg,
   },
-  sheet: {
-    backgroundColor: careLightColors.surface,
-    borderRadius: 16,
-    padding: spacing.lg,
-    gap: spacing.sm,
+  backdropLight: {
+    backgroundColor: 'rgba(15, 27, 51, 0.16)',
+  },
+  sheetHost: {
     maxHeight: '90%',
   },
-  modalTitle: { ...typography.label, fontSize: 18, color: careLightColors.navy },
-  modalSubtitle: { ...typography.caption, color: careLightColors.muted },
+  sheetInner: {
+    overflow: 'hidden',
+  },
+  sheetBody: {
+    padding: spacing.lg,
+    gap: spacing.sm,
+  },
+  modalSubtitle: { ...typography.caption, color: colors.textMuted },
   modalBody: { gap: spacing.sm },
 });

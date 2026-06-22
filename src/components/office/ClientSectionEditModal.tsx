@@ -74,7 +74,7 @@ export function ClientSectionEditModal({
             message="Wählen Sie mindestens eine Leistungsart."
           />
         ) : null}
-        <ClientIntakeSectionContent section={section} wizard={wizard} contentStyles={contentStyles} />
+        <ClientIntakeSectionContent section={section} wizard={wizard} contentStyles={contentStyles} panelViewContext="form" />
         {submitError ? <ErrorState message={submitError} /> : null}
       </View>
     );

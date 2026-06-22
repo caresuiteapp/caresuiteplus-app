@@ -1,8 +1,9 @@
 import { useCallback } from 'react';
 import { fetchTrackingDashboard } from '@/lib/assist';
+import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAsyncQuery } from './core';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery } from './core';
 
 export function useTrackingDashboard() {
   const { profile } = useAuth();
@@ -14,7 +15,16 @@ export function useTrackingDashboard() {
       return fetchTrackingDashboard(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+    {
+      enabled: !!tenantId,
+      live: tenantId
+        ? {
+            tenantId,
+            subscribe: subscribeToAssistOperationsChanges,
+            pollMs: OPERATIONAL_LIVE_POLL_MS,
+          }
+        : undefined,
+    },
   );
 
   const refresh = useCallback(async () => {
@@ -27,5 +37,6 @@ export function useTrackingDashboard() {
     error: query.error,
     refreshing: query.refreshing,
     refresh,
+    isLiveConnected: query.isLiveConnected,
   };
 }

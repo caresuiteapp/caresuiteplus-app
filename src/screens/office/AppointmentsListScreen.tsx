@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
+import { CalendarEventCreateModal } from '@/components/calendar/CalendarEventCreateModal';
 import { AppointmentsListView } from '@/components/office/AppointmentsListView';
-import { CareLightButton } from '@/components/ui';
+import { PremiumButton } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -16,42 +18,73 @@ export function AppointmentsListScreen({
   embedded?: boolean;
 } = {}) {
   const router = useRouter();
+  const params = useLocalSearchParams<{ create?: string }>();
   const { can, isReadOnly } = usePermissions();
   const canCreate = can('office.appointments.view') && !isReadOnly;
   const officeAccent = moduleColor('office');
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    if (params.create === '1' && canCreate) {
+      setCreateOpen(true);
+      router.setParams({ create: undefined } as never);
+    }
+  }, [params.create, canCreate, router]);
+
+  const openCreate = () => setCreateOpen(true);
 
   if (embedded) {
     return (
-      <AppointmentsListView
-        onAppointmentPress={onAppointmentPress}
-        selectedId={selectedId}
-        embedded
-      />
+      <>
+        <AppointmentsListView
+          onAppointmentPress={onAppointmentPress}
+          selectedId={selectedId}
+          embedded
+          onCreatePress={canCreate ? openCreate : undefined}
+        />
+        <CalendarEventCreateModal
+          visible={createOpen}
+          sourceContext="appointment_management"
+          calendarScope="office"
+          moduleKey="office"
+          accentColor={officeAccent}
+          onClose={() => setCreateOpen(false)}
+          onCreated={() => setCreateOpen(false)}
+        />
+      </>
     );
   }
 
   return (
-    <ScreenShell
-      title="Termine"
-      subtitle={`Office Terminplanung${isReadOnly ? ' · Lesemodus' : ''}`}
-      rightSlot={
-        canCreate ? (
-          <CareLightButton
-            title="+ Neu"
-            onPress={() => router.push('/office/appointments/create' as never)}
-            accentColor={officeAccent}
+    <>
+      <ScreenShell
+        title="Termine"
+        subtitle={`Office Terminplanung${isReadOnly ? ' · Lesemodus' : ''}`}
+        rightSlot={
+          canCreate ? (
+            <PremiumButton title="+ Neu" onPress={openCreate} />
+          ) : null
+        }
+        scroll={false}
+      >
+        <View style={styles.content}>
+          <AppointmentsListView
+            onAppointmentPress={onAppointmentPress}
+            selectedId={selectedId}
+            onCreatePress={canCreate ? openCreate : undefined}
           />
-        ) : null
-      }
-      scroll={false}
-    >
-      <View style={styles.content}>
-        <AppointmentsListView
-          onAppointmentPress={onAppointmentPress}
-          selectedId={selectedId}
-        />
-      </View>
-    </ScreenShell>
+        </View>
+      </ScreenShell>
+      <CalendarEventCreateModal
+        visible={createOpen}
+        sourceContext="appointment_management"
+        calendarScope="office"
+        moduleKey="office"
+        accentColor={officeAccent}
+        onClose={() => setCreateOpen(false)}
+        onCreated={() => setCreateOpen(false)}
+      />
+    </>
   );
 }
 

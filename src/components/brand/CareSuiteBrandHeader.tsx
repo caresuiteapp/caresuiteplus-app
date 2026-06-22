@@ -1,5 +1,6 @@
-import { ReactNode } from 'react';
+import { ReactNode, useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -24,7 +25,58 @@ export function CareSuiteBrandHeader({
   compact = false,
   style,
 }: CareSuiteBrandHeaderProps) {
+  const text = useAuroraAdaptiveText();
   const accent = moduleKey ? moduleColor(moduleKey) : careLightColors.orange;
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: {
+          flexDirection: 'row',
+          alignItems: 'flex-start',
+          justifyContent: 'space-between',
+          gap: careSpacing.md,
+          marginBottom: careSpacing.sm,
+        },
+        left: {
+          flex: 1,
+          gap: careSpacing.sm,
+        },
+        right: {
+          flexShrink: 0,
+        },
+        moduleStripe: {
+          borderLeftWidth: 3,
+          paddingLeft: careSpacing.sm,
+          gap: 2,
+        },
+        title: {
+          ...careTypography.h3,
+          color: text.primary,
+        },
+        subtitle: {
+          ...careTypography.caption,
+          color: text.muted,
+        },
+        compactRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: careSpacing.sm,
+        },
+        compactText: {
+          flex: 1,
+          gap: 2,
+        },
+        compactTitle: {
+          ...careTypography.bodyStrong,
+          color: text.primary,
+        },
+        compactSubtitle: {
+          ...careTypography.caption,
+          color: text.muted,
+        },
+      }),
+    [text.muted, text.primary],
+  );
 
   return (
     <View style={[styles.root, style]}>
@@ -53,50 +105,3 @@ export function CareSuiteBrandHeader({
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: careSpacing.md,
-    marginBottom: careSpacing.sm,
-  },
-  left: {
-    flex: 1,
-    gap: careSpacing.sm,
-  },
-  right: {
-    flexShrink: 0,
-  },
-  moduleStripe: {
-    borderLeftWidth: 3,
-    paddingLeft: careSpacing.sm,
-    gap: 2,
-  },
-  title: {
-    ...careTypography.h3,
-    color: careLightColors.navy,
-  },
-  subtitle: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-  },
-  compactRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: careSpacing.sm,
-  },
-  compactText: {
-    flex: 1,
-    gap: 2,
-  },
-  compactTitle: {
-    ...careTypography.bodyStrong,
-    color: careLightColors.navy,
-  },
-  compactSubtitle: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-  },
-});

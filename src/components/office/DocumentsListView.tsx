@@ -18,7 +18,7 @@ import {
 import {
   buildOfficeDocumentListKpis,
   type OfficeDocumentCategoryFilterKey,
-} from '@/data/demo/officeDocumentListStats';
+} from '@/lib/office/officeDocumentListStats';
 import { useOfficeDocuments } from '@/hooks/useOfficeDocuments';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';

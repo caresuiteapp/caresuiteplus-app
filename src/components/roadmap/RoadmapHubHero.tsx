@@ -2,9 +2,9 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { isRoadmapLiveReady } from '@/lib/roadmap/roadmapModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import type { RoadmapHubSnapshot } from '@/types/roadmap';
 import { designTokens, spacing } from '@/theme';
@@ -95,7 +95,6 @@ export function RoadmapHubHero({ data, roleKey }: RoadmapHubHeroProps) {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isRoadmapLiveReady() ? (
           <PremiumBadge label="Live-Sync in Vorbereitung" variant="orange" dot />
         ) : null}

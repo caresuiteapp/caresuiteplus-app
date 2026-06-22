@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { resetInternalTaskStore } from '@/lib/tasks/internalTaskStore';
 import { sanitizeLogMessage, sanitizeLogMetadata } from '@/lib/operations/logSanitizer';
 import {

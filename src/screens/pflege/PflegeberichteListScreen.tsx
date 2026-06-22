@@ -2,7 +2,7 @@ import { FlatList, RefreshControl, ScrollView, StyleSheet, View } from 'react-na
 import { useRouter } from 'expo-router';
 import { CareDocumentationListCard } from '@/components/pflege/CareDocumentationListCard';
 import { CareDocumentationListTable } from '@/components/pflege/CareDocumentationListTable';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -39,23 +39,23 @@ export function PflegeberichteListScreen() {
 
   if (query.loading && items.length === 0) {
     return (
-      <CareLightPageShell title="Pflegeberichte" subtitle="Wird geladen…">
+      <ScreenShell title="Pflegeberichte" subtitle="Wird geladen…">
         <LoadingState message="Pflegeberichte werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && items.length === 0) {
     return (
-      <CareLightPageShell title="Pflegeberichte" subtitle="Fehler">
+      <ScreenShell title="Pflegeberichte" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (useTableLayout) {
     return (
-      <CareLightPageShell
+      <ScreenShell
         title="Pflegeberichte"
         subtitle={`Berichte, Übergaben, Beobachtungen · ${roleLabel ?? 'Demo'}`}
         rightSlot={
@@ -77,12 +77,12 @@ export function PflegeberichteListScreen() {
             <CareDocumentationListTable items={items} onOpenDetail={openDetail} />
           )}
         </ScrollView>
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Pflegeberichte"
       subtitle={`Berichte, Übergaben, Beobachtungen · ${roleLabel ?? 'Demo'}`}
       rightSlot={
@@ -106,7 +106,7 @@ export function PflegeberichteListScreen() {
           <RefreshControl refreshing={query.refreshing} onRefresh={query.refresh} tintColor={colors.primary} />
         }
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

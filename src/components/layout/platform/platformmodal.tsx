@@ -11,7 +11,10 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { GlassSurface } from '@/components/ui/effects';
+import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careEffects } from '@/design/tokens/effects';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -78,6 +81,10 @@ export function PlatformModal({
   lockBodyScroll = true,
 }: PlatformModalProps) {
   const { isDark, c } = useCareLightPalette();
+  const { isLight } = useLegacyTheme();
+  const auroraActive = useAuroraGlassActive();
+  const lightModal = isLight && auroraActive;
+  const formGlass = resolveLlganViewGlass('form', 'default');
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const resolvedAnimation = animationType ?? (variant === 'bottomSheet' ? 'slide' : 'fade');
   const accent = glowColor ?? c.violet;
@@ -104,18 +111,22 @@ export function PlatformModal({
       StyleSheet.create({
         backdropCenter: {
           flex: 1,
-          backgroundColor: isDark
-            ? careEffects.glass.overlayDark
-            : careEffects.glass.overlayLight,
+          backgroundColor: lightModal
+            ? 'rgba(15, 27, 51, 0.16)'
+            : isDark
+              ? careEffects.glass.overlayDark
+              : careEffects.glass.overlayLight,
           justifyContent: 'center',
           alignItems: 'center',
           padding: spacing.lg,
         },
         backdropBottom: {
           flex: 1,
-          backgroundColor: isDark
-            ? careEffects.glass.overlayDark
-            : careEffects.glass.overlayLight,
+          backgroundColor: lightModal
+            ? 'rgba(15, 27, 51, 0.16)'
+            : isDark
+              ? careEffects.glass.overlayDark
+              : careEffects.glass.overlayLight,
           justifyContent: 'flex-end',
         },
         sheetHost: {
@@ -125,7 +136,9 @@ export function PlatformModal({
             ? { width: '100%' as const, maxHeight: sheetMaxHeight }
             : {}),
           ...Platform.select({
-            web: { boxShadow: '0 24px 64px rgba(0,0,0,0.35)' as unknown as undefined },
+            web: lightModal
+              ? ({ boxShadow: `${formGlass.shadow}, 0 24px 64px rgba(70,110,170,0.18)` } as unknown as ViewStyle)
+              : ({ boxShadow: '0 24px 64px rgba(0,0,0,0.35)' as unknown as ViewStyle }),
             default: {},
           }),
         },
@@ -165,10 +178,14 @@ export function PlatformModal({
           paddingBottom: careSpacing.lg,
           paddingTop: careSpacing.xs,
           borderTopWidth: StyleSheet.hairlineWidth,
-          borderTopColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+          borderTopColor: lightModal
+            ? 'rgba(110,160,255,0.16)'
+            : isDark
+              ? 'rgba(255,255,255,0.08)'
+              : 'rgba(0,0,0,0.06)',
         },
       }),
-    [c.muted, isDark, sheetMaxHeight, sheetWidth, variant],
+    [c.muted, formGlass.shadow, isDark, lightModal, sheetMaxHeight, sheetWidth, variant],
   );
 
   useEffect(() => {
@@ -206,7 +223,8 @@ export function PlatformModal({
           style={styles.bodyScroll}
           contentContainerStyle={[styles.body, bodyStyle]}
           keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator
+          showsVerticalScrollIndicator={false}
+          showsHorizontalScrollIndicator={false}
         >
           {children}
         </ScrollView>

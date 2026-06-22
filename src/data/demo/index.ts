@@ -24,8 +24,9 @@ export type DemoFoundationSnapshot = {
   supabaseConnected: boolean;
 };
 
+/** @deprecated Dev-tool preview only — use buildDevFoundationPreview in FundamentScreen. */
 export function getDemoFoundationSnapshot(
-  isDemoMode = true,
+  isDemoMode = false,
   supabaseConnected = false,
 ): DemoFoundationSnapshot {
   return {
@@ -43,22 +44,23 @@ export function getDemoFoundationSnapshot(
   };
 }
 
-export { DEMO_TENANT_ID } from './tenant';
-export { ROLE_LABELS } from './roles';
+export { DEMO_TENANT_ID, TEST_TENANT_ID } from '@/data/constants/testTenant';
+export { ROLE_LABELS } from '@/data/constants/roleLabels';
 export {
   ROLE_PERMISSIONS,
   PERMISSION_LABELS,
   PERMISSION_DENIED_MESSAGES,
   getPermissionsForRole,
-} from './permissions';
-export { PRODUCT_LABELS } from './products';
+} from '@/lib/permissions/staticRolePermissions';
+export { PRODUCT_LABELS } from '@/data/constants/productLabels';
 export {
   MODULE_NAV_CONFIG,
   PUBLIC_ENTRIES,
   DEV_TOOL_ENTRIES,
   DEMO_LOGIN_ROLES,
-} from './navigation';
-export { buildDemoDashboard, WORKFLOW_STATUS_LABELS } from './dashboard';
+} from '@/data/navigation/moduleNavConfig';
+export { buildDemoDashboard } from './dashboard';
+export { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 export { buildOfficeDashboard, OFFICE_AREA_SHORTCUTS } from './officeDashboard';
 export { demoClients } from './clients';
 export { demoEmployees } from './employees';

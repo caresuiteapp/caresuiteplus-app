@@ -2,13 +2,13 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import {
   buildEmployeeDetailKpis,
   buildEmployeeDetailSubtitle,
 } from '@/lib/office/employeeDetailStats';
 import { isEmployeeDetailLiveReady } from '@/lib/office/employeeModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import type { EmployeeDetail } from '@/types/modules/employeeDetail';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -125,7 +125,6 @@ export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDe
         {employee.jobTitle ? <PremiumBadge label={employee.jobTitle} variant="cyan" /> : null}
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isReadOnly ? <PremiumBadge label="Lesemodus" variant="muted" /> : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isEmployeeDetailLiveReady() ? (
           <PremiumBadge label="Teilweise live" variant="orange" dot />
         ) : null}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fetchCareRecordModuleSnapshot } from '@/lib/assist/careRecordsModuleService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 
 describe('WP299', () => {

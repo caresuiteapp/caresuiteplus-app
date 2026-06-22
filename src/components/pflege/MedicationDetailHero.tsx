@@ -10,8 +10,8 @@ import {
   isMedicationLiveReady,
   MEDICATION_DETAIL_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { designTokens, spacing } from '@/theme';
@@ -92,7 +92,6 @@ export function MedicationDetailHero({ detail, roleKey, isReadOnly }: Medication
           dot
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isMedicationLiveReady() ? (
           <PremiumBadge label="eMP extern" variant="orange" dot />
         ) : null}

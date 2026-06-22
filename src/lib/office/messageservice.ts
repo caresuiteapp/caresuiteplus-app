@@ -5,16 +5,9 @@ import type {
   OfficeMessageThread,
   OfficeMessageThreadDetail,
 } from '@/types/office/messaging';
-import {
-  appendDemoOfficeMessage,
-  appendDemoOfficeThread,
-  getDemoOfficeMessageThreads,
-  getDemoOfficeMessages,
-} from '@/data/demo/officemessagethreads';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { OFFICE_MESSAGING_SCHEMA_ERROR } from '@/lib/office/messagethreadservice';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { type PreviewAwareResult } from '@/lib/supabase/missingtablefallback';
@@ -88,71 +81,6 @@ async function fetchMessagesLive(
   };
 }
 
-async function uploadAttachmentsForMessage(
-  tenantId: string,
-  threadId: string,
-  messageId: string,
-  attachments: PendingMessageAttachment[],
-  actorRoleKey?: RoleKey | null,
-  profileId?: string | null,
-): Promise<ServiceResult<void>> {
-  for (const attachment of attachments) {
-    const result = await uploadMessageAttachment({
-      tenantId,
-      threadId,
-      messageId,
-      fileName: attachment.fileName,
-      mimeType: attachment.mimeType,
-      fileSizeBytes: attachment.fileSizeBytes,
-      fileData: attachment.fileData,
-      actorRoleKey,
-      profileId,
-    });
-    if (!result.ok) return result;
-  }
-  return { ok: true, data: undefined };
-}
-
-async function incrementPortalUnreadCount(tenantId: string, threadId: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-  const { data } = await supabase
-    .from('message_threads')
-    .select('portal_unread_count')
-    .eq('tenant_id', tenantId)
-    .eq('id', threadId)
-    .maybeSingle();
-  const current = Number(data?.portal_unread_count ?? 0);
-  await supabase
-    .from('message_threads')
-    .update({
-      portal_unread_count: current + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('tenant_id', tenantId)
-    .eq('id', threadId);
-}
-
-async function incrementOfficeUnreadCount(tenantId: string, threadId: string): Promise<void> {
-  const supabase = getSupabaseClient();
-  if (!supabase) return;
-  const { data } = await supabase
-    .from('message_threads')
-    .select('office_unread_count')
-    .eq('tenant_id', tenantId)
-    .eq('id', threadId)
-    .maybeSingle();
-  const current = Number(data?.office_unread_count ?? 0);
-  await supabase
-    .from('message_threads')
-    .update({
-      office_unread_count: current + 1,
-      updated_at: new Date().toISOString(),
-    })
-    .eq('tenant_id', tenantId)
-    .eq('id', threadId);
-}
-
 export async function fetchOfficeMessageThreadDetail(
   tenantId: string,
   threadId: string,
@@ -165,33 +93,9 @@ export async function fetchOfficeMessageThreadDetail(
   const thread = threadResult.data;
   const isClosed = isThreadClosed(thread.status);
 
-  if (getServiceMode() === 'demo') {
-    const messages = getDemoOfficeMessages().filter((message) => message.threadId === threadId);
-    return {
-      ok: true,
-      data: {
-        ...thread,
-        messages,
-        canReply: canSendMessageToThread(thread.status),
-        isClosed,
-      },
-      previewData: true,
-    };
-  }
-
   const messagesResult = await fetchMessagesLive(tenantId, threadId);
   if (!messagesResult.ok && isMissingTableServiceError(messagesResult.error)) {
-    const messages = getDemoOfficeMessages().filter((message) => message.threadId === threadId);
-    return {
-      ok: true,
-      data: {
-        ...thread,
-        messages,
-        canReply: canSendMessageToThread(thread.status),
-        isClosed,
-      },
-      previewData: true,
-    };
+    return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
   }
   if (!messagesResult.ok) return messagesResult;
 
@@ -203,7 +107,7 @@ export async function fetchOfficeMessageThreadDetail(
       canReply: canSendMessageToThread(thread.status),
       isClosed,
     },
-    previewData: threadResult.previewData,
+    previewData: false,
   };
 }
 
@@ -234,29 +138,6 @@ export async function sendOfficeMessage(
   const now = new Date().toISOString();
   const isInternalNote = options?.isInternalNote ?? false;
 
-  if (getServiceMode() === 'demo') {
-    const message: OfficeMessage = {
-      id: `msg-demo-${Date.now()}`,
-      tenantId,
-      threadId,
-      body: trimmed,
-      senderType: 'office_profile',
-      senderProfileId: profileId ?? null,
-      senderClientId: null,
-      senderEmployeeId: null,
-      senderDisplayName: 'Office',
-      isInternalNote,
-      isSystemMessage: false,
-      sentAt: now,
-      readAt: null,
-      status: 'sent',
-      createdAt: now,
-      updatedAt: now,
-    };
-    appendDemoOfficeMessage(message);
-    return { ok: true, data: message, previewData: true };
-  }
-
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
@@ -277,26 +158,7 @@ export async function sendOfficeMessage(
 
   if (error) {
     if (isMissingTableServiceError(toGermanSupabaseError(error))) {
-      const message: OfficeMessage = {
-        id: `msg-demo-${Date.now()}`,
-        tenantId,
-        threadId,
-        body: trimmed,
-        senderType: 'office_profile',
-        senderProfileId: profileId ?? null,
-        senderClientId: null,
-        senderEmployeeId: null,
-        senderDisplayName: 'Office',
-        isInternalNote,
-        isSystemMessage: false,
-        sentAt: now,
-        readAt: null,
-        status: 'sent',
-        createdAt: now,
-        updatedAt: now,
-      };
-      appendDemoOfficeMessage(message);
-      return { ok: true, data: message, previewData: true };
+      return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
   }
@@ -332,41 +194,6 @@ export async function startNewOfficeThreadFromClosed(
 
   const source = closedResult.data;
   const now = new Date().toISOString();
-  const newId = `thread-reopen-${Date.now()}`;
-
-  if (getServiceMode() === 'demo' || tenantId === DEMO_TENANT_ID) {
-    const newThread = {
-      ...source,
-      id: newId,
-      status: 'open' as const,
-      archivedAt: null,
-      unreadCount: 0,
-      lastMessageAt: now,
-      lastMessagePreview: 'Neuer Chat gestartet',
-      createdAt: now,
-      updatedAt: now,
-    };
-    appendDemoOfficeThread(newThread);
-    appendDemoOfficeMessage({
-      id: `msg-system-${Date.now()}`,
-      tenantId,
-      threadId: newId,
-      body: 'Neuer Chat gestartet — vorheriger Verlauf abgeschlossen.',
-      senderType: 'system',
-      senderProfileId: null,
-      senderClientId: null,
-      senderEmployeeId: null,
-      senderDisplayName: 'System',
-      isInternalNote: false,
-      isSystemMessage: true,
-      sentAt: now,
-      readAt: null,
-      status: 'sent',
-      createdAt: now,
-      updatedAt: now,
-    });
-    return fetchOfficeMessageThreadDetail(tenantId, newId, actorRoleKey);
-  }
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
@@ -431,52 +258,6 @@ export async function createOfficeMessageThread(
   const priority = input.priority ?? 'normal';
   const preview = input.initialMessage?.trim().slice(0, 120) ?? 'Neuer Chat';
 
-  if (getServiceMode() === 'demo') {
-    const thread: OfficeMessageThread = {
-      id: `thread-demo-${Date.now()}`,
-      tenantId,
-      threadType: input.threadType,
-      status: 'received',
-      priority,
-      subject,
-      categoryId: input.categoryId ?? null,
-      categoryLabel: null,
-      clientId: input.clientId ?? null,
-      clientName: context?.clientName ?? null,
-      employeeId: input.employeeId ?? null,
-      employeeName: context?.employeeName ?? null,
-      participantName: null,
-      lastMessageAt: now,
-      lastMessagePreview: preview,
-      unreadCount: 0,
-      archivedAt: null,
-      createdAt: now,
-      updatedAt: now,
-    };
-    appendDemoOfficeThread(thread);
-    if (input.initialMessage?.trim()) {
-      appendDemoOfficeMessage({
-        id: `msg-demo-${Date.now()}`,
-        tenantId,
-        threadId: thread.id,
-        body: input.initialMessage.trim(),
-        senderType: 'office_profile',
-        senderProfileId: profileId ?? null,
-        senderClientId: null,
-        senderEmployeeId: null,
-        senderDisplayName: 'Office',
-        isInternalNote: false,
-        isSystemMessage: false,
-        sentAt: now,
-        readAt: null,
-        status: 'sent',
-        createdAt: now,
-        updatedAt: now,
-      });
-    }
-    return { ok: true, data: thread, previewData: true };
-  }
-
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
@@ -500,7 +281,7 @@ export async function createOfficeMessageThread(
 
   if (error) {
     if (isMissingTableServiceError(toGermanSupabaseError(error))) {
-      return { ok: false, error: 'Office-Messaging-Tabellen fehlen (Migration 0089).' };
+      return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
   }
@@ -541,7 +322,7 @@ export async function createOfficeMessageThread(
     employeeName: context?.employeeName ?? threadResult.data.employeeName,
   };
 
-  return { ok: true, data: created, previewData: threadResult.previewData };
+  return { ok: true, data: created, previewData: false };
 }
 
 /** Portal-facing message list — excludes internal notes (Rule 4). */

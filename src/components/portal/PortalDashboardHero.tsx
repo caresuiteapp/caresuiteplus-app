@@ -3,8 +3,8 @@ import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumListHeroFrame } from '@/components/ui';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { DashboardScope } from '@/types/dashboard';
 import { spacing } from '@/theme';
 
@@ -112,7 +112,6 @@ export function PortalDashboardHero({
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[snapshot.roleKey]} variant="orange" dot />
         <PremiumBadge label="Portal-Sicht" variant="cyan" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <PremiumButton
         title={`${snapshot.primaryAction.icon} ${snapshot.primaryAction.label}`}

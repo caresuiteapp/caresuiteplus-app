@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildQmSettingsKpis } from '@/lib/qm/qmExtensionStats';
 import { isQmExtensionLiveReady, QM_EXTENSION_PREPARED_MESSAGE } from '@/lib/qm/qmModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
 
@@ -63,7 +63,6 @@ export function QmSettingsHero({ roleKey }: QmSettingsHeroProps) {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isQmExtensionLiveReady() ? (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}

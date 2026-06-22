@@ -5,7 +5,7 @@ import type {
   Subscription,
 } from '@supabase/supabase-js';
 import { getSupabaseClient } from './client';
-import { isDemoMode, isSupabaseConfigured } from './config';
+import { getAuthRedirectBaseUrl, isDemoMode, isSupabaseConfigured } from './config';
 
 export type AuthServiceResult<T> =
   | { ok: true; data: T }
@@ -135,4 +135,48 @@ export function onAuthStateChange(
   return {
     unsubscribe: () => subscription.unsubscribe(),
   };
+}
+
+export function getPasswordResetRedirectUrl(): string {
+  return `${getAuthRedirectBaseUrl()}/auth/reset-password`;
+}
+
+export async function requestPasswordResetEmail(
+  email: string,
+): Promise<AuthServiceResult<null>> {
+  if (isDemoMode()) {
+    return demoBypassError();
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return notConfiguredError();
+  }
+
+  const { error } = await client.auth.resetPasswordForEmail(email, {
+    redirectTo: getPasswordResetRedirectUrl(),
+  });
+  if (error) {
+    return { ok: false, error: toGermanAuthError(error) };
+  }
+
+  return { ok: true, data: null };
+}
+
+export async function updatePassword(password: string): Promise<AuthServiceResult<null>> {
+  if (isDemoMode()) {
+    return demoBypassError();
+  }
+
+  const client = getSupabaseClient();
+  if (!client) {
+    return notConfiguredError();
+  }
+
+  const { error } = await client.auth.updateUser({ password });
+  if (error) {
+    return { ok: false, error: toGermanAuthError(error) };
+  }
+
+  return { ok: true, data: null };
 }

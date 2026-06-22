@@ -4,7 +4,7 @@ import path from 'node:path';
 import { mapClientBudgetRowToListItem } from '@/lib/office/budgetListMapper';
 import { fetchBudgetList } from '@/lib/office/budgetListService';
 import { buildBudgetListKpis } from '@/lib/office/budgetListStats';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { BUDGET_STATUS_FILTERS } from '@/hooks/useBudgetList';
 

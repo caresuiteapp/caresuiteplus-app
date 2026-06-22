@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   MedicalCatalogHubHero,
   MedicalCatalogSourceCard,
@@ -40,7 +40,7 @@ export function MedicalCatalogHubScreen() {
   const protectedCount = countProtectedMedicalCatalogSources();
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Medizinische Stammdaten"
       subtitle="Dokumentations- und Kodierhilfe"
     >
@@ -95,7 +95,7 @@ export function MedicalCatalogHubScreen() {
           onPress={() => router.push('/medical/icd' as never)}
         />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

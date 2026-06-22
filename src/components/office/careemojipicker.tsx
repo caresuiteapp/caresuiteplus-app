@@ -2,6 +2,7 @@ import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui';
+import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
@@ -20,6 +21,7 @@ type CareEmojiPickerProps = {
 export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
+  const chipStyles = useAuroraGlassChipStyles({ viewContext: 'form' });
   const [activeCategory, setActiveCategory] = useState<CareEmojiCategory['id']>('reaktionen');
 
   const active = CARE_EMOJI_CATEGORIES.find((category) => category.id === activeCategory)
@@ -34,19 +36,6 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
           gap: spacing.xs,
           marginBottom: spacing.sm,
         },
-        tab: {
-          paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.xs,
-          borderRadius: radius.md,
-          borderWidth: 1,
-          borderColor: c.border,
-        },
-        tabActive: {
-          borderColor: c.violet,
-          backgroundColor: `${c.violet}14`,
-        },
-        tabLabel: { ...typography.caption, color: c.muted, fontWeight: '600' },
-        tabLabelActive: { color: c.violet },
         grid: {
           flexDirection: 'row',
           flexWrap: 'wrap',
@@ -64,7 +53,7 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
         },
         emoji: { fontSize: 20, lineHeight: 24 },
       }),
-    [c, typography],
+    [c, typography, chipStyles],
   );
 
   const handleSelect = (emoji: string) => {
@@ -88,13 +77,13 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
           return (
             <Pressable
               key={category.id}
-              style={[styles.tab, isActive ? styles.tabActive : null]}
+              style={[chipStyles.chip, isActive ? chipStyles.chipSelected : null]}
               onPress={() => setActiveCategory(category.id)}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={`Kategorie ${category.label}`}
             >
-              <Text style={[styles.tabLabel, isActive ? styles.tabLabelActive : null]}>
+              <Text style={[chipStyles.label, isActive ? chipStyles.labelSelected : null]}>
                 {category.label}
               </Text>
             </Pressable>

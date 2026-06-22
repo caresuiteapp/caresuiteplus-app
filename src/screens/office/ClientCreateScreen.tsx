@@ -3,7 +3,7 @@ import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   FormStepper,
@@ -68,15 +68,15 @@ export function ClientCreateScreen() {
 
   if (isSuccess && createdId) {
     return (
-      <CareLightPageShell title="Klient:in angelegt" subtitle="Erfolgreich" showBack={false}>
+      <ScreenShell title="Klient:in angelegt" subtitle="Erfolgreich" showBack={false}>
         <SuccessState message="Die Klient:in wurde erfolgreich angelegt. Weiterleitung…" />
         <PremiumButton title="Zur Detailansicht" fullWidth onPress={() => router.replace(clientRecordRoute(createdId) as never)} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Klient:in anlegen" subtitle={`Schritt ${step + 1} von ${steps.length}`} onBack={handleCancel}>
+    <ScreenShell title="Klient:in anlegen" subtitle={`Schritt ${step + 1} von ${steps.length}`} onBack={handleCancel}>
       <FormScreenHero
         eyebrow="OFFICE · KLIENT:INNEN"
         title="Klient:in anlegen"
@@ -197,7 +197,7 @@ export function ClientCreateScreen() {
         {!isFirstStep ? <PremiumButton title="Zurück" variant="secondary" onPress={prevStep} /> : <PremiumButton title="Abbrechen" variant="ghost" onPress={handleCancel} />}
         {!isLastStep ? <PremiumButton title="Weiter" onPress={nextStep} style={styles.navBtn} /> : <PremiumButton title="Klient:in anlegen" onPress={handleSubmit} loading={submitting} disabled={submitting} style={styles.navBtn} />}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

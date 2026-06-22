@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchAssignmentList } from '@/lib/assist/assignmentListService';
 import { fetchPdlCockpit } from '@/lib/reporting/reportingService';
 import { fetchBusinessModuleSnapshot } from '@/lib/business/businessModuleService';

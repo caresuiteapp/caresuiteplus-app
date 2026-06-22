@@ -32,11 +32,55 @@ export type ClientIntakeFormData = {
   careLevelStatus: string;
   careLevelValidFrom: string;
   careFundName: string;
+  careFundStreet: string;
+  careFundZip: string;
+  careFundCity: string;
   healthInsurance: string;
+  healthInsuranceStreet: string;
+  healthInsuranceZip: string;
+  healthInsuranceCity: string;
+  healthInsuranceIk: string;
+  privatversicherungName: string;
+  privatversicherungStreet: string;
+  privatversicherungZip: string;
+  privatversicherungCity: string;
+  privatversicherungIk: string;
+  sozialamtName: string;
+  sozialamtStreet: string;
+  sozialamtZip: string;
+  sozialamtCity: string;
+  sozialamtIk: string;
+  beihilfeName: string;
+  beihilfeStreet: string;
+  beihilfeZip: string;
+  beihilfeCity: string;
+  selbstzahlerName: string;
+  selbstzahlerStreet: string;
+  selbstzahlerZip: string;
+  selbstzahlerCity: string;
+  berufsgenossenschaftName: string;
+  berufsgenossenschaftStreet: string;
+  berufsgenossenschaftZip: string;
+  berufsgenossenschaftCity: string;
+  berufsgenossenschaftIk: string;
+  unfallversicherungName: string;
+  unfallversicherungStreet: string;
+  unfallversicherungZip: string;
+  unfallversicherungCity: string;
+  unfallversicherungIk: string;
+  sonstigerName: string;
+  sonstigerStreet: string;
+  sonstigerZip: string;
+  sonstigerCity: string;
   costBearerIk: string;
   insuranceNumber: string;
   billingType: string;
+  billingTypes: string[];
   costBearerType: string;
+  costBearerTypes: string[];
+  activeCostBearerType: string;
+  costBearerTemplateIds: Record<string, string>;
+  costBearerDbTypes: Record<string, string>;
   selfPay: boolean;
   familyDoctor: string;
   consultingReason: string;
@@ -55,7 +99,7 @@ export type ClientIntakeFormData = {
   costForm: string;
   mealNotes: string;
   dailyStructure: string;
-  homeAccess: string;
+  homeAccess: string[];
   keyStatus: string;
   keyNumber: string;
   keySafeCode: string;
@@ -119,11 +163,55 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   careLevelStatus: '',
   careLevelValidFrom: '',
   careFundName: '',
+  careFundStreet: '',
+  careFundZip: '',
+  careFundCity: '',
   healthInsurance: '',
+  healthInsuranceStreet: '',
+  healthInsuranceZip: '',
+  healthInsuranceCity: '',
+  healthInsuranceIk: '',
+  privatversicherungName: '',
+  privatversicherungStreet: '',
+  privatversicherungZip: '',
+  privatversicherungCity: '',
+  privatversicherungIk: '',
+  sozialamtName: '',
+  sozialamtStreet: '',
+  sozialamtZip: '',
+  sozialamtCity: '',
+  sozialamtIk: '',
+  beihilfeName: '',
+  beihilfeStreet: '',
+  beihilfeZip: '',
+  beihilfeCity: '',
+  selbstzahlerName: '',
+  selbstzahlerStreet: '',
+  selbstzahlerZip: '',
+  selbstzahlerCity: '',
+  berufsgenossenschaftName: '',
+  berufsgenossenschaftStreet: '',
+  berufsgenossenschaftZip: '',
+  berufsgenossenschaftCity: '',
+  berufsgenossenschaftIk: '',
+  unfallversicherungName: '',
+  unfallversicherungStreet: '',
+  unfallversicherungZip: '',
+  unfallversicherungCity: '',
+  unfallversicherungIk: '',
+  sonstigerName: '',
+  sonstigerStreet: '',
+  sonstigerZip: '',
+  sonstigerCity: '',
   costBearerIk: '',
   insuranceNumber: '',
   billingType: '',
+  billingTypes: [],
   costBearerType: '',
+  costBearerTypes: [],
+  activeCostBearerType: '',
+  costBearerTemplateIds: {},
+  costBearerDbTypes: {},
   selfPay: false,
   familyDoctor: '',
   consultingReason: '',
@@ -142,7 +230,7 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   costForm: '',
   mealNotes: '',
   dailyStructure: '',
-  homeAccess: '',
+  homeAccess: [],
   keyStatus: '',
   keyNumber: '',
   keySafeCode: '',

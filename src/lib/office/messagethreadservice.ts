@@ -6,23 +6,14 @@ import type {
   OfficeMessageThread,
   OfficeThreadStatus,
 } from '@/types/office/messaging';
-import {
-  demoOfficeMessageCategories,
-  getDemoOfficeMessageThreads,
-} from '@/data/demo/officemessagethreads';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
-import {
-  resolveMissingTableList,
-  type PreviewAwareResult,
-} from '@/lib/supabase/missingtablefallback';
+import { type PreviewAwareResult } from '@/lib/supabase/missingtablefallback';
 import { fromDbThreadType } from '@/lib/office/messagebusinessrules';
 import { fromDbThreadStatus, isClosedAppStatus, toDbThreadStatus } from '@/lib/office/messagestatuslabels';
 import { canViewOfficeInternalMessages } from '@/lib/communication/officeComposeRouting';
-import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 export const OFFICE_MESSAGING_SCHEMA_ERROR =
   'Office-Messaging: Supabase-Tabellen fehlen. Migration 0089_office_messaging_live anwenden.';
@@ -154,21 +145,9 @@ export async function fetchOfficeMessageThreads(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'demo') {
-    const threads = filterThreadsByRole(getDemoOfficeMessageThreads(), actorRoleKey);
-    return { ok: true, data: filterThreadsByInbox(threads, filter), previewData: true };
-  }
-
   const result = await fetchThreadsLive(tenantId);
   if (!result.ok && isMissingTableServiceError(result.error)) {
-    const resolved = resolveMissingTableList(result, tenantId, getDemoOfficeMessageThreads);
-    if (!resolved.ok) return resolved;
-    const threads = filterThreadsByRole(resolved.data, actorRoleKey);
-    return {
-      ok: true,
-      data: filterThreadsByInbox(threads, filter),
-      previewData: resolved.usedDemoFallback,
-    };
+    return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
   }
   if (!result.ok) return result;
 
@@ -187,18 +166,9 @@ export async function fetchOfficeMessageThreadById(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'demo') {
-    const thread = getDemoOfficeMessageThreads().find((item) => item.id === threadId) ?? null;
-    if (thread?.threadType === 'internal' && !canViewOfficeInternalMessages(actorRoleKey)) {
-      return { ok: false, error: 'Keine Berechtigung für interne Nachrichten.' };
-    }
-    return { ok: true, data: thread, previewData: true };
-  }
-
   const result = await fetchThreadByIdLive(tenantId, threadId);
   if (!result.ok && isMissingTableServiceError(result.error)) {
-    const thread = getDemoOfficeMessageThreads().find((item) => item.id === threadId) ?? null;
-    return { ok: true, data: thread, previewData: true };
+    return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
   }
   if (!result.ok) return result;
   if (!result.data) return { ok: false, error: 'Chat nicht gefunden.' };
@@ -218,10 +188,6 @@ export async function fetchOfficeMessageCategories(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'demo') {
-    return { ok: true, data: demoOfficeMessageCategories, previewData: true };
-  }
-
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
@@ -234,7 +200,7 @@ export async function fetchOfficeMessageCategories(
 
   if (error) {
     if (isMissingTableServiceError(toGermanSupabaseError(error))) {
-      return { ok: true, data: demoOfficeMessageCategories, previewData: true };
+      return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
   }
@@ -271,10 +237,6 @@ export async function patchOfficeMessageThread(
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-
-  if (getServiceMode() === 'demo') {
-    return { ok: false, error: 'Statusänderung im Demo-Modus nicht verfügbar.' };
-  }
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };

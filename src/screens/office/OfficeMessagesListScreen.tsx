@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { OfficeMessagesListView } from '@/components/office/OfficeMessagesListView';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -25,7 +25,7 @@ export function OfficeMessagesListScreen({
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Nachrichten"
       subtitle={`Office Kommunikation${isReadOnly ? ' · Lesemodus' : ''}`}
       scroll={false}
@@ -33,7 +33,7 @@ export function OfficeMessagesListScreen({
       <View style={styles.content}>
         <OfficeMessagesListView onMessagePress={onMessagePress} selectedId={selectedId} />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

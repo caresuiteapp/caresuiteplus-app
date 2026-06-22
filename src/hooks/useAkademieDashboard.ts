@@ -40,6 +40,7 @@ export function useAkademieDashboard() {
     loading: statsQuery.loading || upcomingQuery.loading,
     error: statsQuery.error ?? upcomingQuery.error,
     isPreviewData: statsQuery.previewData || upcomingQuery.previewData,
+    tableMissing: statsQuery.tableMissing || upcomingQuery.tableMissing,
     refreshing: statsQuery.refreshing || upcomingQuery.refreshing,
     showSuccess,
     refresh,

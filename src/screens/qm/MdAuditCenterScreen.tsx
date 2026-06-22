@@ -3,7 +3,7 @@ import { useCallback, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { MdAuditCenterHero } from '@/components/qm';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
 import { QmStatusBadge } from '@/components/qm';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -54,25 +54,25 @@ export function MdAuditCenterScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="MD-Prüfung" showBack>
+      <ScreenShell title="MD-Prüfung" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="MD-Prüfung" showBack>
+      <ScreenShell title="MD-Prüfung" showBack>
         <LoadingState message="MD-Mappen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="MD-Prüfung" showBack>
+      <ScreenShell title="MD-Prüfung" showBack>
         <ErrorState title="MD-Prüfung" message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -82,7 +82,7 @@ export function MdAuditCenterScreen() {
   const roleKey = profile?.roleKey ?? 'business_admin';
 
   return (
-    <CareLightPageShell title="MD-Prüfungszentrum" subtitle={`${items.length} Mappen`} showBack>
+    <ScreenShell title="MD-Prüfungszentrum" subtitle={`${items.length} Mappen`} showBack>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={query.loading} onRefresh={query.refresh} tintColor={colors.primary} />
@@ -110,7 +110,7 @@ export function MdAuditCenterScreen() {
           ))
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -6,7 +6,7 @@ import type {
   GeoPosition,
   LocationCaptureInput,
 } from '@/types/geo';
-import { ROLE_PERMISSIONS } from '@/data/demo/permissions';
+import { ROLE_PERMISSIONS } from '@/lib/permissions/staticRolePermissions';
 import {
   assertClientPortalVisibility,
   assertGeoExecutionReady,

@@ -42,7 +42,7 @@ export function CareLightDesktopShell({
     <View style={[styles.root, { paddingTop: insets.top }]}>
       <View style={styles.body}>
         <View style={styles.sidebar}>
-          <CareSuiteWordmark size="sm" style={styles.brandWrap} />
+          <CareSuiteWordmark size="sm" variant="light" style={styles.brandWrap} />
           <Text style={styles.areaLabel}>{area}</Text>
           <ScrollView style={styles.nav} contentContainerStyle={styles.navContent}>
             {tabs.map((tab) => {

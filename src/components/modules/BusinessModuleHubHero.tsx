@@ -2,10 +2,10 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { buildModuleHubKpis } from '@/lib/modules/moduleHubStats';
 import { formatFreePlatformPrice } from '@/lib/billing/freePlatformService';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { BillingPreview } from '@/lib/modules/moduleEntitlementService';
 import type { EffectiveModuleAccess, RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
@@ -101,7 +101,6 @@ export function BusinessModuleHubHero({ modules, billing, roleKey }: BusinessMod
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         <PremiumBadge label="0 € — kein Abo" variant="green" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

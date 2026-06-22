@@ -7,6 +7,7 @@ import { careTypography } from '@/design/tokens/typography';
 import { auroraGlass, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { designTokens } from '@/theme';
+import { SpaceKpiIcon } from '@/components/icons/space';
 
 type CareLightKpiCardProps = {
   label: string;
@@ -56,9 +57,7 @@ export function CareLightKpiCard({
           borderRadius: careRadius.sm,
           alignItems: 'center',
           justifyContent: 'center',
-        },
-        icon: {
-          fontSize: 18,
+          overflow: 'hidden',
         },
         label: {
           ...careTypography.caption,
@@ -80,8 +79,8 @@ export function CareLightKpiCard({
 
   return (
     <View style={[styles.card, style]}>
-      <View style={[styles.iconBadge, { backgroundColor: `${accentColor}18` }]}>
-        <Text style={styles.icon}>{icon ?? '📊'}</Text>
+      <View style={styles.iconBadge}>
+        <SpaceKpiIcon icon={icon ?? '📊'} accentColor={accentColor} size={36} />
       </View>
       <Text style={styles.label}>{label}</Text>
       <Text style={[styles.value, { color: accentColor }]}>{String(value)}</Text>

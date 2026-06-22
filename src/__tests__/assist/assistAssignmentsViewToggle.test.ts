@@ -13,7 +13,7 @@ describe('Desktop list view toggle Einsatzplanung (Sprint 92)', () => {
     const source = readSrc('src/components/assist/AssignmentsListHero.tsx');
     expect(source).toContain('DesktopListViewToggle');
     expect(source).toContain('showViewToggle');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
   });
 
   it('AssignmentsListView schaltet Tabellenansicht per viewMode auf Desktop', () => {

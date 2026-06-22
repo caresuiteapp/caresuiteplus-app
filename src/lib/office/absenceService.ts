@@ -32,6 +32,11 @@ import {
   findAssignmentsOverlappingAbsence,
 } from './absenceConflictService';
 import { createReplacementRequestsForAbsence } from './replacementPlanningService';
+import {
+  buildCalendarEventFromAbsence,
+  cancelCalendarEventBySourceAsync,
+  syncCalendarEventFromAbsenceAsync,
+} from '@/lib/calendar/calendarSyncService';
 
 function nowIso(): string {
   return new Date().toISOString();
@@ -257,6 +262,8 @@ export async function createAbsence(
     handleAbsenceSideEffects(absence, actorRoleKey);
   }
 
+  syncCalendarEventFromAbsenceAsync(absence);
+
   return { ok: true, data: absence };
 }
 
@@ -351,6 +358,8 @@ export async function requestVacation(
     metadata: { requestId: request.id },
   });
 
+  syncCalendarEventFromAbsenceAsync(absence);
+
   return { ok: true, data: { absence, request } };
 }
 
@@ -416,6 +425,8 @@ export async function approveVacation(
       body: `Ihr Urlaubsantrag (${absence.startsAt.slice(0, 10)} – ${absence.endsAt.slice(0, 10)}) wurde genehmigt.`,
     });
   }
+
+  syncCalendarEventFromAbsenceAsync(absence);
 
   return { ok: true, data: absence };
 }
@@ -502,6 +513,9 @@ export async function cancelAbsence(
     summary: 'Abwesenheit storniert.',
   });
 
+  const sourceType = buildCalendarEventFromAbsence(absence).sourceType;
+  cancelCalendarEventBySourceAsync(tenantId, sourceType, absenceId);
+
   return { ok: true, data: absence };
 }
 
@@ -569,6 +583,8 @@ export async function recordSickLeave(
     actorRole: actorRoleKey ?? null,
     summary: 'Krankmeldung erfasst — Einsätze geprüft.',
   });
+
+  syncCalendarEventFromAbsenceAsync(absence);
 
   return { ok: true, data: absence };
 }

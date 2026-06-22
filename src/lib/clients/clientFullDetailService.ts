@@ -60,6 +60,7 @@ async function fetchDemoClientFullDetail(
     contacts: basic.contacts.map((c) => ({
       id: c.id, tenantId: basic.tenantId, clientId: basic.id,
       firstName: c.name.split(' ')[0] ?? c.name, lastName: c.name.split(' ').slice(1).join(' ') || '',
+      contactType: c.isEmergency ? ('emergency_contact' as const) : ('other' as const),
       relationship: 'angehoerige' as const, relationshipLabel: c.relationship,
       phone: c.phone, email: c.email, isEmergency: c.isEmergency,
       isPortalUser: false,

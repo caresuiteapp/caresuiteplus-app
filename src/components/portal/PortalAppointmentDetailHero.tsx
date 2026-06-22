@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { PortalClientAppointmentDetail } from '@/types/portal/client';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { designTokens, spacing } from '@/theme';
@@ -129,7 +129,6 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
           dot
         />
         <PremiumBadge label="Portal-Sicht" variant="cyan" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard

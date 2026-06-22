@@ -2,7 +2,7 @@ import { DocumentDeliveryActions } from '@/components/office/DocumentDeliveryAct
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { buildClientDocumentPreviewFallback, buildDocumentPreviewStatusSubtitle, resolveOfficeDocumentDisplayFileName } from '@/lib/office/officeDocumentDisplay';
 import { useEffect, useMemo, useState } from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Pressable, Platform, StyleSheet, Text, View, type DimensionValue } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { CareCatalogSelect } from '@/components/inputs';
 import {
@@ -34,9 +34,12 @@ import {
   type ClientDocumentRecord,
 } from '@/types/modules/client';
 import { getServiceMode } from '@/lib/services/mode';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import { type AdaptiveDeviceClass } from '@/design/tokens/breakpoints';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
-import { spacing, typography } from '@/theme';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { spacing } from '@/theme';
 
 type PickedFile = {
   name: string;
@@ -88,6 +91,25 @@ function DocumentBreadcrumb({
   onNavigateOverview,
   onNavigateCategory,
 }: DocumentBreadcrumbProps) {
+  const styles = useAdaptiveContentStyles();
+  const breadcrumbStyles = useMemo(
+    () =>
+      StyleSheet.create({
+        breadcrumbRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          alignItems: 'center',
+          marginBottom: spacing.xs,
+        },
+        breadcrumbSegment: { flexDirection: 'row', alignItems: 'center' },
+        breadcrumbLink: { ...styles.link },
+        breadcrumbText: { ...styles.caption },
+        breadcrumbCurrent: { ...styles.bodyStrong },
+        breadcrumbSep: { ...styles.caption, opacity: 0.6 },
+      }),
+    [styles],
+  );
+
   const segments: { label: string; onPress?: () => void }[] = [{ label: 'Dokumente', onPress: onNavigateOverview }];
   if (categoryKey) {
     segments.push({
@@ -100,22 +122,89 @@ function DocumentBreadcrumb({
   }
 
   return (
-    <View style={styles.breadcrumbRow}>
+    <View style={breadcrumbStyles.breadcrumbRow}>
       {segments.map((segment, index) => {
         const isLast = index === segments.length - 1;
         return (
-          <View key={`${segment.label}-${index}`} style={styles.breadcrumbSegment}>
+          <View key={`${segment.label}-${index}`} style={breadcrumbStyles.breadcrumbSegment}>
             {segment.onPress && !isLast ? (
               <Pressable onPress={segment.onPress} hitSlop={6}>
-                <Text style={styles.breadcrumbLink}>{segment.label}</Text>
+                <Text style={breadcrumbStyles.breadcrumbLink}>{segment.label}</Text>
               </Pressable>
             ) : (
-              <Text style={[styles.breadcrumbText, isLast && styles.breadcrumbCurrent]}>{segment.label}</Text>
+              <Text style={[breadcrumbStyles.breadcrumbText, isLast && breadcrumbStyles.breadcrumbCurrent]}>
+                {segment.label}
+              </Text>
             )}
-            {!isLast ? <Text style={styles.breadcrumbSep}> › </Text> : null}
+            {!isLast ? <Text style={breadcrumbStyles.breadcrumbSep}> › </Text> : null}
           </View>
         );
       })}
+    </View>
+  );
+}
+
+function documentCategoryColumnCount(deviceClass: AdaptiveDeviceClass): number {
+  switch (deviceClass) {
+    case 'phone':
+      return 2;
+    case 'tablet':
+      return 3;
+    default:
+      return 5;
+  }
+}
+
+function DocumentCategoryGrid({
+  allSummary,
+  summaries,
+  onSelect,
+}: {
+  allSummary: ClientDocumentCategorySummary;
+  summaries: ClientDocumentCategorySummary[];
+  onSelect: (categoryKey: string) => void;
+}) {
+  const { deviceClass } = useDeviceClass();
+  const columnCount = documentCategoryColumnCount(deviceClass);
+  const items = [allSummary, ...summaries];
+
+  const gridStyle = useMemo(
+    () =>
+      Platform.OS === 'web'
+        ? {
+            display: 'grid' as const,
+            gridTemplateColumns: `repeat(${columnCount}, minmax(0, 1fr))`,
+            width: '100%' as const,
+            gap: careSpacing.sm,
+          }
+        : {
+            flexDirection: 'row' as const,
+            flexWrap: 'wrap' as const,
+            width: '100%' as const,
+            gap: careSpacing.sm,
+          },
+    [columnCount],
+  );
+
+  const cellStyle = useMemo(
+    () =>
+      Platform.OS === 'web'
+        ? { width: '100%' as const, minWidth: 0 }
+        : {
+            width: `${Math.floor(100 / columnCount) - 1}%` as DimensionValue,
+            flexGrow: 1,
+            minWidth: 0,
+          },
+    [columnCount],
+  );
+
+  return (
+    <View style={gridStyle}>
+      {items.map((summary) => (
+        <View key={summary.key} style={cellStyle}>
+          <CategoryOverviewCard summary={summary} onPress={() => onSelect(summary.key)} />
+        </View>
+      ))}
     </View>
   );
 }
@@ -127,6 +216,22 @@ function CategoryOverviewCard({
   summary: ClientDocumentCategorySummary;
   onPress: () => void;
 }) {
+  const content = useAdaptiveContentStyles();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        categoryCard: {
+          flexDirection: 'column',
+          alignItems: 'center',
+          justifyContent: 'center',
+          width: '100%',
+          gap: careSpacing.xs,
+        },
+        categoryLabel: { ...content.label, textAlign: 'center' },
+      }),
+    [content],
+  );
+
   return (
     <PremiumCard style={styles.categoryCard} onPress={onPress}>
       <Text style={styles.categoryLabel}>{summary.label}</Text>
@@ -147,6 +252,25 @@ function DocumentListItem({
   selected: boolean;
   onPress: () => void;
 }) {
+  const content = useAdaptiveContentStyles();
+  const { colors } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        card: { marginBottom: spacing.sm },
+        cardSelected: { borderColor: colors.orange, borderWidth: 1 },
+        cardHeader: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'flex-start',
+          gap: careSpacing.sm,
+        },
+        primary: { ...content.label, flex: 1, color: content.primary.color },
+        secondary: { ...content.caption, marginTop: spacing.xs },
+      }),
+    [colors.orange, content],
+  );
+
   return (
     <PremiumCard
       style={[styles.card, selected && styles.cardSelected]}
@@ -337,23 +461,15 @@ export function ClientRecordDocumentsPanel({
             />
           ) : (
             <>
-              <CategoryOverviewCard
-                summary={{
+              <DocumentCategoryGrid
+                allSummary={{
                   key: CLIENT_DOCUMENT_ALL_CATEGORY_KEY,
                   label: 'Alle Dokumente',
                   count: documents.length,
                 }}
-                onPress={() => openCategory(CLIENT_DOCUMENT_ALL_CATEGORY_KEY)}
+                summaries={categoryOverview}
+                onSelect={openCategory}
               />
-              <View style={styles.categoryGrid}>
-                {categoryOverview.map((summary) => (
-                  <CategoryOverviewCard
-                    key={summary.key}
-                    summary={summary}
-                    onPress={() => openCategory(summary.key)}
-                  />
-                ))}
-              </View>
             </>
           )}
         </SectionPanel>
@@ -466,30 +582,4 @@ export function ClientRecordDocumentsPanel({
 
 const styles = StyleSheet.create({
   panel: { gap: spacing.md, paddingBottom: spacing.lg },
-  breadcrumbRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    alignItems: 'center',
-    marginBottom: spacing.xs,
-  },
-  breadcrumbSegment: { flexDirection: 'row', alignItems: 'center' },
-  breadcrumbLink: { ...typography.caption, color: careLightColors.cyan, fontWeight: '600' },
-  breadcrumbText: { ...typography.caption, color: careLightColors.muted },
-  breadcrumbCurrent: { color: careLightColors.navy, fontWeight: '600' },
-  breadcrumbSep: { ...typography.caption, color: careLightColors.muted, opacity: 0.6 },
-  categoryGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
-  categoryCard: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    minWidth: '47%',
-    flexGrow: 1,
-    marginBottom: spacing.sm,
-  },
-  categoryLabel: { ...typography.label, flex: 1, marginRight: careSpacing.sm },
-  card: { marginBottom: spacing.sm },
-  cardSelected: { borderColor: careLightColors.orange, borderWidth: 1 },
-  cardHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: careSpacing.sm },
-  primary: { ...typography.label, flex: 1 },
-  secondary: { ...typography.caption, color: careLightColors.muted, marginTop: spacing.xs },
 });

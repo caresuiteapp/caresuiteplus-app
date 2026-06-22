@@ -1,13 +1,13 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useState } from 'react';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
 import { fetchAssignmentList } from '@/lib/assist';
-import { subscribeToAssignmentChanges } from '@/lib/realtime';
+import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { useAsyncQuery, useListState } from './core';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery, useListState } from './core';
 
 export const ASSIGNMENT_STATUS_FILTERS: { key: WorkflowStatus | 'all'; label: string }[] = [
   { key: 'all', label: 'Alle' },
@@ -53,7 +53,16 @@ export function useAssignmentList() {
       return fetchAssignmentList(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+    {
+      enabled: !!tenantId,
+      live: tenantId
+        ? {
+            tenantId,
+            subscribe: subscribeToAssistOperationsChanges,
+            pollMs: OPERATIONAL_LIVE_POLL_MS,
+          }
+        : undefined,
+    },
   );
 
   const allItems = query.data ?? [];
@@ -72,14 +81,6 @@ export function useAssignmentList() {
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   }, [query]);
-
-  useEffect(() => {
-    if (!tenantId) return;
-    const unsubscribe = subscribeToAssignmentChanges(tenantId, () => {
-      void query.refresh();
-    });
-    return unsubscribe;
-  }, [tenantId, query]);
 
   return {
     items: list.paginated.items,
@@ -106,5 +107,6 @@ export function useAssignmentList() {
     isEmpty: !query.loading && !query.error && allItems.length === 0,
     isFilterEmpty:
       !query.loading && !query.error && list.filtered.length === 0 && list.hasActiveFilters,
+    isLiveConnected: query.isLiveConnected,
   };
 }

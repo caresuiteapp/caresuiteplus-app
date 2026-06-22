@@ -3,9 +3,7 @@ import type { WorkflowStatus } from '@/types/core/base';
 import type { ClientDetail } from '@/types/detail';
 import type { ClientListItem } from '@/types/modules/office';
 import type { ClientFormData } from '@/types/forms/clientForm';
-import { getServiceMode } from '../mode';
 import { runService } from '../serviceRunner';
-import { demoClientRepository } from './clientRepository.demo';
 import { supabaseClientRepository } from './clientRepository.supabase';
 import type {
   ClientListOptions,
@@ -22,7 +20,7 @@ const DELAYS = {
 } as const;
 
 function getRepository(): ClientRepository {
-  return getServiceMode() === 'demo' ? demoClientRepository : supabaseClientRepository;
+  return supabaseClientRepository;
 }
 
 export const clientService = {

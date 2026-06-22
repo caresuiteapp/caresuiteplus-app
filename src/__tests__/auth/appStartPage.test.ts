@@ -51,7 +51,7 @@ describe('App start page', () => {
     expect(source).toContain('AppScreen');
   });
 
-  it('AppStartScreen shows demo badge only when demo mode', () => {
+  it('AppStartScreen shows no demo mode badge or dashboard entry', () => {
     const source = readSrc('src/screens/AppStartScreen.tsx');
     expect(source).not.toContain('isDemoMode()');
     expect(source).not.toContain('Demo-Modus aktiv');
@@ -61,18 +61,11 @@ describe('App start page', () => {
     expect(source).not.toContain('ModuleTile');
   });
 
-  it('demo auth route serves login or hint by mode', () => {
-    const demoRoute = readSrc('app/auth/demo.tsx');
-    expect(demoRoute).toContain('DemoLoginScreen');
-    expect(demoRoute).toContain('DemoModeHintScreen');
-    expect(demoRoute).toContain('isDemoMode()');
-  });
-
-  it('footer demo link targets demo route', () => {
+  it('footer has no demo login link', () => {
     const footer = readSrc('src/components/layout/AppStartFooter.tsx');
-    expect(footer).toContain('Demo ansehen');
-    expect(footer).toContain('DEMO_START_PATH');
-    expect(footer).not.toContain("router.push('/auth/business-login'");
+    expect(footer).not.toContain('Demo ansehen');
+    expect(footer).not.toContain('DEMO_START_PATH');
+    expect(footer).not.toContain('/auth/demo');
   });
 
   it('auth alias routes redirect to canonical paths', () => {
@@ -85,8 +78,8 @@ describe('App start page', () => {
   it('developer tools moved to business admin routes', () => {
     expect(readSrc('app/business/admin/developer/index.tsx')).toContain('DeveloperHubScreen');
     expect(readSrc('app/business/admin/architecture/index.tsx')).toContain('FundamentScreen');
-    expect(readSrc('src/data/demo/navigation.ts')).toContain('/business/admin/architecture');
-    expect(readSrc('src/data/demo/navigation.ts')).toContain('/business/admin/design-system');
+    expect(readSrc('src/data/navigation/moduleNavConfig.ts')).toContain('/business/admin/architecture');
+    expect(readSrc('src/data/navigation/moduleNavConfig.ts')).toContain('/business/admin/design-system');
   });
 
   it('public fundament and design-system routes are gated', () => {

@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { QmApprovalPanel, QmDocumentDetailHero, QmReadConfirmationPanel, QmVersionTimeline } from '@/components/qm';
 import { useQmDocumentDetail } from '@/hooks/qm';
@@ -31,32 +31,32 @@ export function QmDocumentDetailScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="Dokument" showBack>
+      <ScreenShell title="Dokument" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !document) {
     return (
-      <CareLightPageShell title="Dokument" showBack>
+      <ScreenShell title="Dokument" showBack>
         <LoadingState message="Dokument wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !document) {
     return (
-      <CareLightPageShell title="Dokument" showBack>
+      <ScreenShell title="Dokument" showBack>
         <ErrorState title="Dokument" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const currentVersion = versions[0];
 
   return (
-    <CareLightPageShell title={document!.title} subtitle={document!.documentNumber} showBack>
+    <ScreenShell title={document!.title} subtitle={document!.documentNumber} showBack>
       <ScrollView contentContainerStyle={styles.scroll}>
         <QmDocumentDetailHero
           document={document!}
@@ -76,7 +76,7 @@ export function QmDocumentDetailScreen() {
         <QmVersionTimeline versions={versions} />
         <QmReadConfirmationPanel confirmations={confirmations} />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

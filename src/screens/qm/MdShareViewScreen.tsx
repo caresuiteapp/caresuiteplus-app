@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useEffect, useState } from 'react';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, PremiumCard } from '@/components/ui';
 import { MdShareViewHero } from '@/components/qm';
 import { validateMdShareToken } from '@/lib/qm';
@@ -35,22 +35,22 @@ export function MdShareViewScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="MD-Freigabe" subtitle="Token wird geprüft…" showBack={false}>
+      <ScreenShell title="MD-Freigabe" subtitle="Token wird geprüft…" showBack={false}>
         <LoadingState message="Freigabe wird validiert…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error || !data) {
     return (
-      <CareLightPageShell title="MD-Freigabe" showBack={false}>
+      <ScreenShell title="MD-Freigabe" showBack={false}>
         <ErrorState title="Zugriff verweigert" message={error ?? 'Ungültiger Link.'} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title={data.package.title} subtitle="MD-Prüfungsmappe (Freigabe)" showBack={false}>
+    <ScreenShell title={data.package.title} subtitle="MD-Prüfungsmappe (Freigabe)" showBack={false}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <MdShareViewHero
           packageTitle={data.package.title}
@@ -65,7 +65,7 @@ export function MdShareViewScreen() {
           </PremiumCard>
         ))}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

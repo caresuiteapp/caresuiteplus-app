@@ -13,6 +13,7 @@ import {
 import { galaxyPalette } from '@/design/tokens/galaxy';
 import { careSpacing } from '@/design/tokens/spacing';
 import { loginBusinessUser } from '@/lib/auth/businessAuthService';
+import { markBusinessWelcomePending } from '@/lib/auth/businessWelcomeSession';
 import { useAuth } from '@/lib/auth/context';
 
 export function BusinessLoginScreen() {
@@ -45,6 +46,7 @@ export function BusinessLoginScreen() {
       }
 
       await signInWithSupabaseSession(result.data.supabaseSession);
+      markBusinessWelcomePending();
       setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');

@@ -1,5 +1,5 @@
 import { useLocalSearchParams } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { OfficeDocumentDetailSummaryPanel } from '@/components/office/OfficeDocumentDetailSummaryPanel';
 import { ErrorState, PremiumButton } from '@/components/ui';
 import { useRouter } from 'expo-router';
@@ -11,16 +11,16 @@ export function OfficeDocumentDetailScreen() {
 
   if (!documentId) {
     return (
-      <CareLightPageShell title="Dokument" subtitle="Fehler">
+      <ScreenShell title="Dokument" subtitle="Fehler">
         <ErrorState message="Dokument-ID fehlt." />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Dokument" subtitle="Vorschau" onBack={() => router.back()}>
+    <ScreenShell title="Dokument" subtitle="Vorschau" onBack={() => router.back()}>
       <OfficeDocumentDetailSummaryPanel documentId={documentId} />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }

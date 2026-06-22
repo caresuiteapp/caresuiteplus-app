@@ -16,9 +16,14 @@ const PRIORITY_LABELS = Object.fromEntries(BROADCAST_PRIORITIES.map((p) => [p.ke
 type OfficeBroadcastDetailProps = {
   broadcastId: string | null;
   onArchived?: () => void;
+  onOpenThread?: (threadId: string) => void;
 };
 
-export function OfficeBroadcastDetail({ broadcastId, onArchived }: OfficeBroadcastDetailProps) {
+export function OfficeBroadcastDetail({
+  broadcastId,
+  onArchived,
+  onOpenThread,
+}: OfficeBroadcastDetailProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const { profile } = useAuth();
@@ -135,7 +140,15 @@ export function OfficeBroadcastDetail({ broadcastId, onArchived }: OfficeBroadca
             .map((r) => (
               <Pressable
                 key={r.id}
-                onPress={() => router.push(`/office/messages?thread=${r.replyThreadId}` as never)}
+                onPress={() => {
+                  if (r.replyThreadId) {
+                    if (onOpenThread) {
+                      onOpenThread(r.replyThreadId);
+                    } else {
+                      router.push(`/office/messages?thread=${r.replyThreadId}` as never);
+                    }
+                  }
+                }}
               >
                 <Text style={styles.action}>
                   {r.employeeName} — Chat öffnen

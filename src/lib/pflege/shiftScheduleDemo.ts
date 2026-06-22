@@ -1,6 +1,6 @@
 import type { WorkflowStatus } from '@/types/core/base';
 import { SHIFT_LOCATIONS, SHIFT_STAFF } from '@/data/demo/generators/pflegeDemoGenerators';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 export type ShiftScheduleListItem = {
   id: string;

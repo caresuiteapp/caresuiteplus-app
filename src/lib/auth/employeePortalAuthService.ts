@@ -1,5 +1,5 @@
 import type { ServiceResult } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   fetchEmployeePortalAccountById,
   insertEmployeePortalAccount,
@@ -19,7 +19,7 @@ import {
   listEmployeeUsernames,
   saveEmployeePortalAccount,
   setPasswordHash,
-} from './demoAccessStore';
+} from './accessStore';
 import { recordLoginAuditEvent } from './loginAuditService';
 import { hashSecret, verifySecret } from './passwordHash';
 import {

@@ -1,10 +1,10 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { CareSuiteIcon } from '@/components/brand/CareSuiteIcon';
+import { authBackLinkColor, useAuthFlowTypography } from '@/design/tokens/authTypography';
 import { galaxyPalette } from '@/design/tokens/galaxy';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { GlassCard } from './GlassCard';
 import { StatusBadge, type StatusKind } from './StatusBadge';
 
@@ -28,8 +28,7 @@ export function AuthHero({
   badges = [],
   footer,
 }: AuthHeroProps) {
-  const { width } = useDeviceClass();
-  const type = useMemo(() => resolveGalaxyTypography(width), [width]);
+  const type = useAuthFlowTypography();
 
   return (
     <GlassCard glow style={styles.hero}>
@@ -72,14 +71,14 @@ export function AuthScreenHeader({
   onBack,
   showBack = true,
 }: AuthScreenHeaderProps) {
-  const { width } = useDeviceClass();
-  const type = useMemo(() => resolveGalaxyTypography(width), [width]);
+  const type = useAuthFlowTypography();
+  const auroraActive = useAuroraGlassActive();
 
   return (
     <View style={styles.header}>
       {showBack && onBack ? (
         <Pressable onPress={onBack} style={styles.backBtn} accessibilityRole="button">
-          <Text style={styles.backText}>← Zurück</Text>
+          <Text style={[styles.backText, { color: authBackLinkColor(auroraActive) }]}>← Zurück</Text>
         </Pressable>
       ) : null}
       <Text style={type.h1} numberOfLines={2}>
@@ -133,7 +132,6 @@ const styles = StyleSheet.create({
     paddingVertical: careSpacing.xs,
   },
   backText: {
-    color: galaxyPalette.galaxyCyan,
     fontSize: 14,
     fontWeight: '600',
   },

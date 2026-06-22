@@ -2,7 +2,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useCallback, useState } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
 import { QmAiAssistantHero, QmAiDraftPanel } from '@/components/qm';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useQmAiAssistant } from '@/hooks/qm';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -67,25 +67,25 @@ export function QmAiAssistantScreen() {
 
   if (!can('qm.use_ai_assistant')) {
     return (
-      <CareLightPageShell title="KI-Assistent" showBack>
+      <ScreenShell title="KI-Assistent" showBack>
         <LockedActionBanner message={check('qm.use_ai_assistant').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !data) {
     return (
-      <CareLightPageShell title="KI-Assistent" showBack>
+      <ScreenShell title="KI-Assistent" showBack>
         <LoadingState message="KI-Entwürfe werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !data) {
     return (
-      <CareLightPageShell title="KI-Assistent" showBack>
+      <ScreenShell title="KI-Assistent" showBack>
         <ErrorState title="KI-Assistent" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -93,7 +93,7 @@ export function QmAiAssistantScreen() {
   const roleKey = profile?.roleKey ?? 'business_admin';
 
   return (
-    <CareLightPageShell title="QM-KI-Assistent" subtitle="Strukturierte Vorschläge (P-READY)" showBack>
+    <ScreenShell title="QM-KI-Assistent" subtitle="Strukturierte Vorschläge (P-READY)" showBack>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
         contentContainerStyle={styles.scroll}
@@ -130,7 +130,7 @@ export function QmAiAssistantScreen() {
           ))
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

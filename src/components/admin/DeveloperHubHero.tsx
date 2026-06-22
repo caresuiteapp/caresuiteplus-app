@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { DEV_TOOL_ENTRIES } from '@/data/demo/navigation';
+import { DEV_TOOL_ENTRIES } from '@/data/navigation/moduleNavConfig';
 import { designTokens, spacing } from '@/theme';
 
 export function DeveloperHubHero() {

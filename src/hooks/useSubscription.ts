@@ -1,7 +1,7 @@
 import { useCallback } from 'react';
 import { fetchSubscriptionOverview } from '@/lib/business';
 import { useAuth } from '@/lib/auth/context';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isDemoMode } from '@/lib/supabase/config';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';

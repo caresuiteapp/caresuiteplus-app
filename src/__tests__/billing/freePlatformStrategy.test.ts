@@ -2,7 +2,7 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import type { ProductKey, TenantProduct } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isFreePlatformEnabled, getFreePlatformModules } from '@/lib/billing/freePlatformService';
 import { activateFreeModuleForTenant, activateRegistrationModules } from '@/lib/billing/moduleActivationService';
 import { canAccessPremiumFeature } from '@/lib/billing/productAccessService';
@@ -130,9 +130,10 @@ describe('Free Platform Strategy', () => {
     expect(screen).not.toContain('Pakete & Preise');
   });
 
-  it('ModuleCard uses Kostenlos aktivieren not Kaufen', () => {
+  it('ModuleCard uses Aktivieren/Deaktivieren not Kaufen', () => {
     const card = readSrc('src/components/modules/ModuleCard.tsx');
-    expect(card).toContain('Kostenlos aktivieren');
+    expect(card).toContain('Aktivieren');
+    expect(card).toContain('Deaktivieren');
     expect(card).toContain('Modul öffnen');
     expect(card).not.toMatch(/Kaufen/i);
   });

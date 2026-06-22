@@ -11,6 +11,7 @@ export const beratungNav: ModuleNavConfig = {
     {
       title: 'Fälle & Protokolle',
       items: [
+        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/beratung/calendar' },
         { key: 'cases', label: 'Fälle', icon: '📋', href: '/beratung/cases' },
         { key: 'faelle', label: 'Fallübersicht', icon: '📂', href: '/beratung/faelle' },
         { key: 'protokolle', label: 'Protokolle', icon: '📝', href: '/beratung/protokolle' },

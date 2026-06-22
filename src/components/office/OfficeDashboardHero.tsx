@@ -9,8 +9,8 @@ import {
   isOfficeDashboardLiveReady,
   OFFICE_DASHBOARD_PREPARED_MESSAGE,
 } from '@/lib/office/officeModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
 import { designTokens, spacing } from '@/theme';
@@ -83,7 +83,6 @@ export function OfficeDashboardHero({
         ) : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <AdaptiveKpiGrid
         items={dashboardKpisToGridItems(

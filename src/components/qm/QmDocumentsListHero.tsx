@@ -1,7 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import {
-  CareLightKpiCard,
-  CareLightListHeroFrame,
+  PremiumKpiCard,
+  PremiumListHeroFrame,
   PremiumBadge,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
@@ -10,8 +10,8 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import { buildQmDocumentsListKpis } from '@/lib/qm/qmDocumentsListStats';
 import { isQmDocumentsLiveReady, QM_DOCUMENTS_PREPARED_MESSAGE } from '@/lib/qm/qmModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { QmDocument } from '@/lib/qm/qm.types';
 import { designTokens } from '@/theme';
@@ -29,7 +29,7 @@ export function QmDocumentsListHero({ documents, roleKey }: QmDocumentsListHeroP
   const isLive = isQmDocumentsLiveReady();
 
   return (
-    <CareLightListHeroFrame accentColor={accent}>
+    <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={heroText.eyebrow}>QUALITÄTSMANAGEMENT</Text>
@@ -49,11 +49,10 @@ export function QmDocumentsListHero({ documents, roleKey }: QmDocumentsListHeroP
         ) : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
-          <CareLightKpiCard
+          <PremiumKpiCard
             key={kpi.id}
             label={kpi.label}
             value={String(kpi.value)}
@@ -65,7 +64,7 @@ export function QmDocumentsListHero({ documents, roleKey }: QmDocumentsListHeroP
         ))}
       </View>
       {!isLive ? <Text style={heroText.meta}>{QM_DOCUMENTS_PREPARED_MESSAGE}</Text> : null}
-    </CareLightListHeroFrame>
+    </PremiumListHeroFrame>
   );
 }
 

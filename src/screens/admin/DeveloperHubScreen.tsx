@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { DeveloperHubHero } from '@/components/admin';
 import { ScreenShell } from '@/components/layout';
 import { ModuleTile, SectionPanel } from '@/components/ui';
-import { DEV_TOOL_ENTRIES } from '@/data/demo/navigation';
+import { DEV_TOOL_ENTRIES } from '@/data/navigation/moduleNavConfig';
 
 export function DeveloperHubScreen() {
   const router = useRouter();

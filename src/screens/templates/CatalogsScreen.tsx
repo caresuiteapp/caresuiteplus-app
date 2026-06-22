@@ -1,7 +1,7 @@
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { PreparedTemplateBanner } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard } from '@/components/ui';
 import { useCatalogEntries } from '@/hooks/templates';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -14,30 +14,30 @@ export function CatalogsScreen() {
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title="Kataloge" subtitle={roleLabel ?? 'Vorlagen'}>
+      <ScreenShell title="Kataloge" subtitle={roleLabel ?? 'Vorlagen'}>
         <LockedActionBanner message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && entries.length === 0) {
     return (
-      <CareLightPageShell title="Kataloge" subtitle="Wird geladen…">
+      <ScreenShell title="Kataloge" subtitle="Wird geladen…">
         <LoadingState message="Kataloge werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && entries.length === 0) {
     return (
-      <CareLightPageShell title="Kataloge" subtitle="Fehler">
+      <ScreenShell title="Kataloge" subtitle="Fehler">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Kataloge" subtitle="Dropdown-Werte & Kategorien" scroll={false}>
+    <ScreenShell title="Kataloge" subtitle="Dropdown-Werte & Kategorien" scroll={false}>
       <FlatList
         data={entries}
         keyExtractor={(item) => item.id}
@@ -60,7 +60,7 @@ export function CatalogsScreen() {
         contentContainerStyle={styles.list}
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

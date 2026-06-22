@@ -1,6 +1,11 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { ZENTRALE_KPI_COUNT, buildBusinessKpisFromMetrics } from '@/lib/dashboard/businessDashboardMetrics';
+import {
+  ZENTRALE_KPIS_PER_MODULE,
+  ZENTRALE_MODULE_OVERVIEW_KPI_COUNT,
+  buildZentraleModuleOverviewRows,
+} from '@/lib/dashboard/zentraleModuleOverview';
 import { buildOfficeAreaShortcutsFromMetrics } from '@/lib/office/officeAreaShortcuts';
 import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
 import {
@@ -9,6 +14,11 @@ import {
   mergeDashboardActivities,
 } from '@/lib/office/officeDashboardMetrics';
 import * as tenantDisplayName from '@/lib/tenant/tenantDisplayName';
+import * as tenantModuleSettingsHydration from '@/lib/tenant/tenantModuleSettingsHydration';
+import {
+  resetTenantModuleSettingsCache,
+  setTenantModuleSettingsCache,
+} from '@/lib/tenant/tenantModuleSettingsCache';
 import { officeDashboardSupabaseRepository } from '@/lib/services/repositories/officeDashboardRepository.supabase';
 import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
 import { readFileSync } from 'node:fs';
@@ -27,7 +37,20 @@ const LIVE_TENANT_ID = '56180c22-b894-4fab-b55e-a563c94dd6e7';
 
 describe('office dashboard live metrics', () => {
   beforeEach(() => {
+    resetTenantModuleSettingsCache();
     vi.spyOn(tenantDisplayName, 'fetchTenantDisplayName').mockResolvedValue('Helferhasen+');
+    vi.spyOn(tenantModuleSettingsHydration, 'ensureTenantModuleSettingsLoaded').mockImplementation(
+      async (tenantId) => {
+        const modules = {
+          assistEnabled: true,
+          pflegeEnabled: true,
+          stationaerEnabled: false,
+          beratungEnabled: true,
+        };
+        setTenantModuleSettingsCache(tenantId, modules);
+        return modules;
+      },
+    );
   });
 
   afterEach(() => {
@@ -75,6 +98,49 @@ describe('office dashboard live metrics', () => {
 
     expect(kpis).toHaveLength(ZENTRALE_KPI_COUNT);
     expect(kpis.find((kpi) => kpi.id === 'kpi-clients-active')?.value).toBe(2);
+  });
+
+  it('buildZentraleModuleOverviewRows liefert 6 Module mit je 5 KPIs', () => {
+    const metrics = {
+      ...emptyOfficeDashboardMetrics(),
+      activeClients: 2,
+      totalClients: 3,
+      tableAvailability: {
+        ...emptyOfficeDashboardMetrics().tableAvailability,
+        clients: true,
+        employees: true,
+        invoices: true,
+        assignments: true,
+        tasks: true,
+        messages: true,
+        modules: true,
+        portalUsers: true,
+        documents: true,
+        portalRequests: true,
+        serviceRecords: true,
+        budgets: true,
+        appointments: true,
+      },
+    };
+
+    const rows = buildZentraleModuleOverviewRows(metrics, 'dark', 'office-kpi');
+
+    expect(rows).toHaveLength(6);
+    expect(rows.reduce((sum, row) => sum + row.kpis.length, 0)).toBe(ZENTRALE_MODULE_OVERVIEW_KPI_COUNT);
+    for (const row of rows) {
+      expect(row.kpis).toHaveLength(ZENTRALE_KPIS_PER_MODULE);
+      expect(row.accentColor).toBeTruthy();
+      expect(row.kpis.every((kpi) => kpi.accentColor === row.accentColor)).toBe(true);
+    }
+    expect(rows.find((row) => row.moduleKey === 'office')?.kpis[0]?.id).toBe('office-kpi-clients-active');
+    expect(rows.find((row) => row.moduleKey === 'office')?.kpis[0]?.route).toBe('/office/clients');
+    expect(rows.find((row) => row.moduleKey === 'office')?.kpis[0]?.icon).toBe('mkpiOfficeClients');
+    expect(rows.find((row) => row.moduleKey === 'pflege')?.kpis[1]?.icon).toBe('mkpiPflegeBudget');
+    expect(rows.find((row) => row.moduleKey === 'assist')?.kpis[0]?.route).toBe('/assist/assignments');
+    expect(rows.every((row) => row.kpis.every((kpi) => kpi.icon.startsWith('mkpi')))).toBe(true);
+    expect(rows.every((row) => row.kpis.every((kpi) => typeof kpi.route === 'string' && kpi.route.startsWith('/')))).toBe(
+      true,
+    );
   });
 
   it('mergeDashboardActivities kombiniert Audit und Timeline', () => {
@@ -170,6 +236,10 @@ describe('office dashboard live metrics', () => {
     if (result.ok) {
       expect(result.data.tenantName).toBe('Helferhasen+');
       expect(result.data.kpis).toHaveLength(ZENTRALE_KPI_COUNT);
+      expect(result.data.moduleOverviewRows).toHaveLength(5);
+      expect(
+        result.data.moduleOverviewRows?.reduce((sum, row) => sum + row.kpis.length, 0),
+      ).toBe(ZENTRALE_KPIS_PER_MODULE * 5);
       const clientsKpi = result.data.kpis.find((kpi) => kpi.id === 'office-kpi-clients-active');
       expect(clientsKpi?.value).toBe(1);
       expect(result.data.kpis.some((kpi) => String(kpi.subValue).includes('Demo'))).toBe(false);
@@ -178,24 +248,26 @@ describe('office dashboard live metrics', () => {
     }
   });
 
-  it('BusinessDashboardScreen zeigt nur Hero und KPI-Grid', () => {
+  it('BusinessDashboardScreen zeigt Modul-Übersicht oder KPI-Grid', () => {
     const screen = readFileSync(
       resolve(process.cwd(), 'src/screens/BusinessDashboardScreen.tsx'),
       'utf8',
     );
-    expect(screen).toContain('ZentraleDashboardHero');
-    expect(screen).toContain('Kennzahlen Übersicht');
+    expect(screen).not.toContain('ZentraleDashboardHero');
+    expect(screen).toContain('Zentrale Dashboard');
+    expect(screen).toContain('ModuleOverviewDashboard');
     expect(screen).not.toContain('Letzte Aktivitäten');
     expect(screen).not.toContain('Schnellzugriff');
     expect(screen).not.toContain('Abmelden');
   });
 
-  it('OfficeDashboardView zeigt nur Hero und KPI-Grid', () => {
+  it('OfficeDashboardView zeigt Modul-Übersicht oder KPI-Grid', () => {
     const source = readFileSync(
       resolve(process.cwd(), 'src/components/dashboard/OfficeDashboardView.tsx'),
       'utf8',
     );
-    expect(source).toContain('ZentraleDashboardHero');
+    expect(source).not.toContain('ZentraleDashboardHero');
+    expect(source).toContain('ModuleOverviewDashboard');
     expect(source).not.toContain('Letzte Aktivitäten');
     expect(source).not.toContain('Schnellaktionen');
     expect(source).not.toContain('Schnellzugriff');

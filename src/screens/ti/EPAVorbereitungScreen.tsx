@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TISecurityNotice } from '@/components/ti';
 import { TIVorbereitungHero } from '@/components/ti/TIVorbereitungHero';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -10,13 +10,13 @@ export function EPAVorbereitungScreen() {
   const { can, check, roleLabel } = usePermissions();
   if (!can('ti.epa.view')) {
     return (
-      <CareLightPageShell title="ePA-Vorbereitung">
+      <ScreenShell title="ePA-Vorbereitung">
         <LockedActionBanner message={check('ti.epa.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
   return (
-    <CareLightPageShell title="ePA-Vorbereitung" subtitle="Elektronische Patientenakte">
+    <ScreenShell title="ePA-Vorbereitung" subtitle="Elektronische Patientenakte">
       <TIVorbereitungHero
         moduleLabel="ePA"
         title="Vorbereitung ePA-Zugang"
@@ -28,7 +28,7 @@ export function EPAVorbereitungScreen() {
       <View style={styles.noticeWrap}>
         <TISecurityNotice />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

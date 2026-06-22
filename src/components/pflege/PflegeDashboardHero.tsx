@@ -10,8 +10,8 @@ import {
   isSisLiveReady,
   isVitalReadingsLiveReady,
 } from '@/lib/pflege/pflegeModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { PflegeDashboardStats } from '@/types/modules/pflege';
 import { designTokens, spacing } from '@/theme';
@@ -102,7 +102,6 @@ export function PflegeDashboardHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isCarePlansLiveReady() ? (
           <PremiumBadge label="Pläne Live" variant="green" dot />
         ) : null}

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -37,7 +37,7 @@ export function DocumentInboxScreen() {
 
   if (!can('office.documents.view')) {
     return (
-      <CareLightPageShell
+      <ScreenShell
         title="Dokumenteneingang"
         subtitle={roleLabel ?? 'Dokumente'}
         showBack
@@ -47,30 +47,30 @@ export function DocumentInboxScreen() {
             {check('office.documents.view').reason ?? 'Keine Berechtigung für Dokumenteneingang.'}
           </Text>
         </PremiumCard>
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Dokumenteneingang" subtitle="Wird geladen…" showBack>
+      <ScreenShell title="Dokumenteneingang" subtitle="Wird geladen…" showBack>
         <LoadingState message="Eingang wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Dokumenteneingang" subtitle="Fehler" showBack>
+      <ScreenShell title="Dokumenteneingang" subtitle="Fehler" showBack>
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const items = query.data ?? [];
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Dokumenteneingang"
       subtitle="Mehr → Dokumente → Dokumenteneingang"
       showBack
@@ -122,7 +122,7 @@ export function DocumentInboxScreen() {
           ))}
         </View>
       )}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -40,7 +40,7 @@ describe('Auth UI quality audit (Prompt 102)', () => {
 
   it('KPI cards guard value typography against mid-word breaks', () => {
     const premiumKpi = readSrc('src/components/ui/PremiumKpiCard.tsx');
-    const lightKpi = readSrc('src/components/ui/CareLightKpiCard.tsx');
+    const lightKpi = readSrc('src/components/ui/PremiumKpiCard.tsx');
     expect(premiumKpi).toContain('numberOfLines={1}');
     expect(premiumKpi).toContain('flexShrink: 0');
     expect(lightKpi).toContain('numberOfLines={1}');

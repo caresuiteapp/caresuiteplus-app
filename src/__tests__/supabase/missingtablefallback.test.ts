@@ -78,10 +78,11 @@ describe('missingTableFallback', () => {
     vi.unstubAllEnvs();
   });
 
-  it('Akademie courseListService nutzt handleMissingTableQuery', () => {
+  it('Akademie courseListService nutzt resolveMissingTableList', () => {
     const source = readSrc('src/lib/akademie/courseListService.ts');
-    expect(source).toContain('handleMissingTableQuery');
+    expect(source).toContain('resolveMissingTableList');
     expect(source).toContain('getDemoCourseListItems');
+    expect(source).toContain('tableMissing');
   });
 
   it('Stationaer residentListService nutzt resolveMissingTableList', () => {

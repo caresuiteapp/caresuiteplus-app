@@ -1,4 +1,5 @@
 import type { AssignmentStatus, AssignmentTaskStatus } from './assignmentStatus';
+import type { RoleKey } from '@/types/core/auth';
 
 /** Kanonische Remote-Status (Prompt 57) — Mapping auf deutsche Domain-Status */
 export type CanonicalAssignmentStatus =
@@ -147,6 +148,77 @@ export type CalendarViewMode =
   | 'tour'
   | 'open_assignments'
   | 'conflicts';
+
+export type CalendarEntryDocStatus = 'na' | 'missing' | 'ok';
+export type CalendarEntrySignatureStatus = 'na' | 'missing' | 'ok';
+export type CalendarEntryBillingStatus = 'na' | 'ready' | 'pending';
+
+export type CalendarEntry = {
+  id: string;
+  tenantId: string;
+  assignmentId: string;
+  startsAt: string;
+  endsAt: string;
+  durationMinutes: number;
+  clientId: string;
+  clientName: string;
+  employeeId: string | null;
+  employeeName: string | null;
+  serviceType: string;
+  status: AssignmentStatus;
+  canonicalStatus: CanonicalAssignmentStatus;
+  address: string | null;
+  taskCount: number;
+  docStatus: CalendarEntryDocStatus;
+  signatureStatus: CalendarEntrySignatureStatus;
+  conflictWarning: boolean;
+  billingStatus: CalendarEntryBillingStatus;
+  title: string;
+  source: 'assignment_sync';
+};
+
+export type CalendarFilters = {
+  openOnly?: boolean;
+  employeeId?: string;
+  clientId?: string;
+  status?: string;
+  serviceType?: string;
+  location?: string;
+  conflictsOnly?: boolean;
+  missingDoc?: boolean;
+  missingSignature?: boolean;
+  billingReady?: boolean;
+  tourId?: string;
+};
+
+export type CalendarViewPreferences = {
+  tenantId: string;
+  userId: string;
+  view?: CalendarViewMode;
+  anchorDateKey?: string;
+  filters?: CalendarFilters;
+  updatedAt?: string;
+};
+
+export type ScheduleChangeAuditEvent = {
+  id: string;
+  tenantId: string;
+  assignmentId: string;
+  changeType: string;
+  actorId: string | null;
+  actorRole: RoleKey | null;
+  previousStartAt: string;
+  previousEndAt: string;
+  previousEmployeeId: string | null;
+  newStartAt: string;
+  newEndAt: string;
+  newEmployeeId: string | null;
+  conflictCheckPassed: boolean;
+  summary: string;
+  createdAt: string;
+};
+
+export type SeriesEditScope = 'this_only' | 'this_and_following' | 'entire_series';
 
 export type ClientVisitRequestType = 'cancel' | 'reschedule';
 

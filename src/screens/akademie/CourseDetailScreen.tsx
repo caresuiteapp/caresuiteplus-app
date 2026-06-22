@@ -4,7 +4,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CourseDetailHero } from '@/components/akademie';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { useCourseDetail } from '@/hooks/useCourseDetail';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -41,29 +41,29 @@ export function CourseDetailScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Kurs" subtitle="Wird geladen…">
+      <ScreenShell title="Kurs" subtitle="Wird geladen…">
         <LoadingState message="Kursdetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Kurs" subtitle="Fehler">
+      <ScreenShell title="Kurs" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Der Kurs existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!course) return null;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={course.title}
       subtitle={`${course.category} · ${roleLabel ?? 'Demo'}`}
       rightSlot={
@@ -104,7 +104,7 @@ export function CourseDetailScreen() {
           </SectionPanel>
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

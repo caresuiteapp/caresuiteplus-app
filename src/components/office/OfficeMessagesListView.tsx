@@ -15,7 +15,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildOfficeMessageListKpis } from '@/data/demo/officeMessageListStats';
+import { buildOfficeMessageListKpis } from '@/lib/office/officeMessageListStats';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useOfficeMessages } from '@/hooks/useOfficeMessages';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';

@@ -1,6 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { FilterChipGroup, EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumCard } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -52,43 +52,43 @@ export function EmployeeWorkTimesScreen() {
 
   if (!tenantId) {
     return (
-      <CareLightPageShell title="Arbeitszeiten" subtitle="Personal" scroll={false}>
+      <ScreenShell title="Arbeitszeiten" subtitle="Personal" scroll={false}>
         <EmptyState title="Kein Mandant" message="Mandant konnte nicht aufgelöst werden." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!canView) {
     return (
-      <CareLightPageShell title="Arbeitszeiten" subtitle="Personal" scroll={false}>
+      <ScreenShell title="Arbeitszeiten" subtitle="Personal" scroll={false}>
         <EmptyState
           title="Kein Zugriff"
           message={check('office.employee_time.view').reason ?? 'Keine Berechtigung für Arbeitszeiten.'}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     return (
-      <CareLightPageShell title="Arbeitszeiten" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Arbeitszeiten" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Arbeitszeiten werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error) {
     return (
-      <CareLightPageShell title="Arbeitszeiten" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Arbeitszeiten" subtitle="Fehler" scroll={false}>
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const entries = entriesResult?.ok ? entriesResult.data : [];
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Arbeitszeiten"
       subtitle={`Personal · ${roleLabel ?? 'Office'}`}
     >
@@ -138,7 +138,7 @@ export function EmployeeWorkTimesScreen() {
           </PremiumCard>
         ))
       )}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

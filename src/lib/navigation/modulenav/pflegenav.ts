@@ -11,6 +11,7 @@ export const pflegeNav: ModuleNavConfig = {
     {
       title: 'Pflegeplanung',
       items: [
+        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/pflege/calendar' },
         { key: 'plans', label: 'Pflegepläne', icon: '📋', href: '/pflege/plans' },
         { key: 'planung', label: 'Planung', icon: '🗓️', href: '/pflege/planung' },
         { key: 'dienstplaene', label: 'Dienstpläne', icon: '📅', href: '/pflege/dienstplaene' },

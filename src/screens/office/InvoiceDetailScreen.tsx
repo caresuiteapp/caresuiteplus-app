@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { InvoiceDetailHero } from '@/components/office';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -98,40 +98,40 @@ export function InvoiceDetailScreen() {
 
   if (!canView) {
     return (
-      <CareLightPageShell title="Rechnung" subtitle="Kein Zugriff">
+      <ScreenShell title="Rechnung" subtitle="Kein Zugriff">
         <ErrorState
           title="Zugriff verweigert"
           message={`Rechnungen sind für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     return (
-      <CareLightPageShell title="Rechnung" subtitle="Wird geladen…">
+      <ScreenShell title="Rechnung" subtitle="Wird geladen…">
         <LoadingState message="Rechnungsdetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Rechnung" subtitle="Fehler">
+      <ScreenShell title="Rechnung" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Die Rechnung existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!invoice) return null;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={invoice.invoiceNumber}
       subtitle="Rechnungsdetails"
       rightSlot={
@@ -243,7 +243,7 @@ export function InvoiceDetailScreen() {
           onPress={() => router.push(clientRecordRoute(invoice.clientId) as never)}
         />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

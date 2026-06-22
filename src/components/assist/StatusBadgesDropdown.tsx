@@ -20,7 +20,13 @@ import {
   type VisitPlanningStatus,
   type VisitProofStatus,
 } from '@/lib/assist/visitTypes';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  auroraGlass,
+  useAuroraAdaptiveText,
+  useAuroraGlassActive,
+  useAuroraGlassChipStyles,
+  useAuroraGlassModalStyle,
+} from '@/design/tokens/auroraGlass';
 import { spacing } from '@/theme';
 
 type BadgeVariant = 'green' | 'orange' | 'red' | 'cyan' | 'muted' | 'purple';
@@ -59,6 +65,9 @@ function renderBadge(badge: StatusBadgeItem) {
 
 export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
   const text = useAuroraAdaptiveText();
+  const auroraActive = useAuroraGlassActive();
+  const chipStyles = useAuroraGlassChipStyles({ viewContext: 'form' });
+  const modalGlass = useAuroraGlassModalStyle({ viewContext: 'form' });
   const [open, setOpen] = useState(false);
   const styles = useMemo(
     () =>
@@ -69,16 +78,18 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
           height: 24,
           borderRadius: 999,
           borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
-          backgroundColor: auroraGlass.chip,
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 6,
+          ...(auroraActive ? chipStyles.chip : {
+            borderColor: auroraGlass.innerBorder,
+            backgroundColor: auroraGlass.chip,
+          }),
         },
         toggleText: { color: text.secondary, fontSize: 12, fontWeight: '600' },
         modalBackdrop: {
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.35)',
+          backgroundColor: 'rgba(15, 27, 51, 0.16)',
           justifyContent: 'center',
           alignItems: 'center',
           padding: spacing.lg,
@@ -87,18 +98,20 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
           width: '100%',
           maxWidth: 360,
           borderRadius: 12,
-          borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
-          backgroundColor: auroraGlass.modal,
           padding: spacing.md,
           gap: spacing.sm,
+          ...(auroraActive ? modalGlass : {
+            borderWidth: 1,
+            borderColor: auroraGlass.innerBorder,
+            backgroundColor: auroraGlass.modal,
+          }),
         },
         modalTitle: { color: text.primary, fontWeight: '600', fontSize: 14 },
         modalBadges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
         modalClose: { alignSelf: 'flex-end', paddingVertical: spacing.xs, paddingHorizontal: spacing.sm },
         modalCloseText: { color: text.secondary, fontSize: 13, fontWeight: '600' },
       }),
-    [text],
+    [auroraActive, chipStyles.chip, modalGlass, text],
   );
 
   if (badges.length === 0) return null;

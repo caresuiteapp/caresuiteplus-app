@@ -2,6 +2,7 @@ import type { RoleKey, ServiceResult } from '@/types';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
+import { syncCalendarEventAsync, buildCalendarEventFromShift } from '@/lib/calendar/calendarSyncService';
 import { createDemoShift, getDemoShiftScheduleListItems, type ShiftScheduleListItem } from './shiftScheduleDemo';
 import { isPflegeDemoFunctional } from '@/lib/pflege/pflegeModuleConfig';
 
@@ -53,5 +54,6 @@ export async function createShiftScheduleEntry(
 
   await demoDelay(280);
   const item = createDemoShift(input);
+  syncCalendarEventAsync(buildCalendarEventFromShift(tenantId, item));
   return { ok: true, data: item };
 }

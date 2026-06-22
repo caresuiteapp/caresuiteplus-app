@@ -2,6 +2,10 @@ import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { FilterChipGroup, InfoBanner, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
+import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { legacyColorsFromPalette, useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { useTenantDisplayMeta } from '@/hooks/useTenantDisplayMeta';
 import { getServiceMode } from '@/lib/services/mode';
 import type { ClientIntakeErrors, ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
@@ -29,13 +33,14 @@ import {
   type IntakeSignatureRole,
 } from '@/features/intakeDocuments/intakeDocumentTypes';
 import { validateIntakeDocumentsStep } from '@/features/intakeDocuments/validateIntakeDocuments';
-import { colors, spacing, typography } from '@/theme';
+import { spacing } from '@/theme';
 
 type Props = {
   form: ClientIntakeFormData;
   errors: ClientIntakeErrors;
   tenantId: string | null;
   onChange: (form: ClientIntakeFormData) => void;
+  panelViewContext?: LlganViewContext;
 };
 
 const OPTIONAL_LABELS: Record<string, string> = {
@@ -45,15 +50,84 @@ const OPTIONAL_LABELS: Record<string, string> = {
   emergency_contact_consent_default: 'Notfallkontakt',
 };
 
-function statusBadgeStyle(status: IntakeDocumentState['status']) {
+function statusBadgeStyle(
+  status: IntakeDocumentState['status'],
+  styles: ReturnType<typeof buildStyles>,
+) {
   if (status === 'finalized') return styles.badgeOk;
   if (status === 'skipped_optional') return styles.badgeMuted;
   if (status === 'pending_signature' || status === 'preview_open') return styles.badgeWarn;
   return styles.badgeNeutral;
 }
 
-export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange }: Props) {
+function buildStyles(
+  content: ReturnType<typeof useAdaptiveContentStyles> | undefined,
+  colors: ReturnType<typeof useLegacyTheme>['colors'] | undefined,
+) {
+  const safeColors = colors ?? legacyColorsFromPalette('dark');
+  const title = content?.title ?? { color: careSuiteAuroraTheme.text.primary, fontWeight: '600' as const };
+  const body = content?.body ?? { color: careSuiteAuroraTheme.text.primary };
+  const caption = content?.caption ?? { color: careSuiteAuroraTheme.text.secondary };
+  const subheading = content?.subheading ?? { ...body, marginTop: spacing.sm, fontWeight: '600' as const };
+  const error = content?.error ?? { color: safeColors.error };
+
+  return StyleSheet.create({
+    wrap: { gap: spacing.md },
+    docCard: { gap: spacing.sm, marginBottom: spacing.sm },
+    docActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+    docHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
+    docTitleWrap: { flex: 1 },
+    docTitle: { ...title },
+    docMeta: { ...caption, color: careSuiteAuroraTheme.text.secondary },
+    badge: { ...caption, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
+    badgeOk: { backgroundColor: 'rgba(16, 185, 129, 0.22)', color: '#6EE7B7' },
+    badgeWarn: { backgroundColor: 'rgba(236, 72, 153, 0.18)', color: '#F9A8D4' },
+    badgeNeutral: { backgroundColor: 'rgba(255,255,255,0.08)', color: careSuiteAuroraTheme.text.secondary },
+    badgeMuted: { backgroundColor: 'rgba(255,255,255,0.06)', color: careSuiteAuroraTheme.text.muted },
+    toggleRow: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      gap: spacing.sm,
+      paddingVertical: spacing.xs,
+      paddingHorizontal: spacing.sm,
+      borderRadius: 16,
+      borderWidth: 1,
+      borderColor: careSuiteAuroraTheme.glass.border,
+      backgroundColor: careSuiteAuroraTheme.glass.background,
+      marginBottom: spacing.xs,
+    },
+    toggleCheck: { fontSize: 18, color: careSuiteAuroraTheme.accent.cyan },
+    toggleLabel: { ...body, flex: 1, color: careSuiteAuroraTheme.text.primary },
+    subheading,
+    previewFrame: {
+      borderWidth: 1,
+      borderColor: safeColors.borderSoft,
+      borderRadius: 8,
+      overflow: 'hidden',
+      maxWidth: 820,
+      alignSelf: 'center',
+      width: '100%',
+      backgroundColor: '#e8e8e8',
+    },
+    textPreview: { maxHeight: 480, backgroundColor: safeColors.bgElevated, padding: spacing.sm, borderRadius: 8 },
+    previewText: {
+      ...caption,
+      fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : undefined,
+      lineHeight: 20,
+      color: safeColors.textPrimary,
+    },
+    sigSection: { gap: spacing.sm, marginTop: spacing.sm },
+    checkItem: { ...body, marginBottom: 4 },
+    error,
+  });
+}
+
+export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange, panelViewContext }: Props) {
+  const panelCtx = panelViewContext ? { viewContext: panelViewContext } : {};
   const tenantMeta = useTenantDisplayMeta();
+  const content = useAdaptiveContentStyles();
+  const { colors } = useLegacyTheme();
+  const styles = useMemo(() => buildStyles(content, colors), [content, colors]);
   const [templates, setTemplates] = useState<IntakeDocumentTemplate[]>(() => listApplicableIntakeTemplates(form));
   const [loadError, setLoadError] = useState<string | null>(null);
   const [activeKey, setActiveKey] = useState<string | null>(null);
@@ -97,8 +171,6 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
   const activeDoc = activeKey
     ? form.intakeDocuments.find((d) => d.templateKey === activeKey)
     : undefined;
-
-  const tenantMeta = { name: tenantName };
 
   const requiredDocs = useMemo(
     () => templates.filter(
@@ -194,7 +266,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
         <InfoBanner variant="info" message="Systemvorlage — vom Mandanten prüfbar. Keine automatische Rechtsberatung." />
       ) : null}
 
-      <SectionPanel title="Vertragsart" subtitle="Passend zur gewählten Leistungsart">
+      <SectionPanel {...panelCtx} title="Vertragsart" subtitle="Passend zur gewählten Leistungsart">
         <FilterChipGroup
           options={contractOptions}
           value={form.intakeContractType || contractOptions[0]?.key || ''}
@@ -202,7 +274,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
         />
       </SectionPanel>
 
-      <SectionPanel title="Pflichtdokumente">
+      <SectionPanel {...panelCtx} title="Pflichtdokumente">
         {requiredDocs.map((template) => {
           const doc = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
           const status = doc?.status ?? 'not_started';
@@ -215,7 +287,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
                     {template.source === 'tenant' ? 'Mandantenvorlage' : 'Systemvorlage'} · v{template.version}
                   </Text>
                 </View>
-                <Text style={[styles.badge, statusBadgeStyle(status)]}>
+                <Text style={[styles.badge, statusBadgeStyle(status, styles)]}>
                   {INTAKE_DOCUMENT_STATUS_LABELS[status]}
                 </Text>
               </View>
@@ -240,7 +312,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
         {errors.intakeContract ? <Text style={styles.error}>{errors.intakeContract}</Text> : null}
       </SectionPanel>
 
-      <SectionPanel title="Optionale Dokumente">
+      <SectionPanel {...panelCtx} title="Optionale Dokumente">
         <Pressable
           style={styles.toggleRow}
           onPress={() => onChange({ ...form, intakeAssignmentEnabled: !form.intakeAssignmentEnabled })}
@@ -269,7 +341,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
           return (
             <PremiumCard key={template.templateKey} style={styles.docCard}>
               <Text style={styles.docTitle}>{template.title}</Text>
-              <Text style={[styles.badge, statusBadgeStyle(doc?.status ?? 'not_started')]}>
+              <Text style={[styles.badge, statusBadgeStyle(doc?.status ?? 'not_started', styles)]}>
                 {INTAKE_DOCUMENT_STATUS_LABELS[doc?.status ?? 'not_started']}
               </Text>
               <PremiumButton title="Vorschau öffnen" variant="secondary" onPress={() => handleOpenPreview(template)} />
@@ -279,7 +351,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
       </SectionPanel>
 
       {activeTemplate && activeDoc ? (
-        <SectionPanel title="Live-Vorschau" subtitle={activeTemplate.title}>
+        <SectionPanel {...panelCtx} title="Live-Vorschau" subtitle={activeTemplate.title}>
           {activeDoc.missingPlaceholders.length > 0 ? (
             <InfoBanner
               variant="warning"
@@ -337,7 +409,7 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
               <PremiumButton
                 title={hasRoleSignature ? 'Unterschrift erneut erfassen' : 'Unterschrift erfassen'}
                 variant="primary"
-                onPress={openSignatureModal}
+                onPress={() => setSignatureModalVisible(true)}
               />
               {hasRoleSignature ? (
                 <InfoBanner variant="success" message={`Unterschrift (${signatureRoleLabel}) erfasst.`} />
@@ -361,14 +433,16 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
         </SectionPanel>
       ) : null}
 
-      <CareSignatureModal
-        visible={signatureModalVisible && Boolean(activeTemplate && activeDoc)}
-        label={`${signatureRoleLabel} — Bitte im großen Feld unterschreiben.`}
-        onConfirm={handleSignature}
-        onClose={() => setSignatureModalVisible(false)}
-      />
+      {signatureModalVisible && activeTemplate && activeDoc ? (
+        <CareSignatureModal
+          visible
+          label={`${signatureRoleLabel} — Bitte im großen Feld unterschreiben.`}
+          onConfirm={handleSignature}
+          onClose={() => setSignatureModalVisible(false)}
+        />
+      ) : null}
 
-      <SectionPanel title="Abschlussstatus">
+      <SectionPanel {...panelCtx} title="Abschlussstatus">
         {validation.checklist.map((item) => (
           <Text key={item.key} style={styles.checkItem}>
             {item.complete ? '✓' : '○'} {item.label}
@@ -378,39 +452,5 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange 
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  wrap: { gap: spacing.md },
-  docCard: { gap: spacing.sm, marginBottom: spacing.sm },
-  docActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  docHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'flex-start', gap: spacing.sm },
-  docTitleWrap: { flex: 1 },
-  docTitle: { ...typography.body, fontWeight: '600' },
-  docMeta: { ...typography.caption, color: colors.textMuted },
-  badge: { ...typography.caption, paddingHorizontal: spacing.sm, paddingVertical: 2, borderRadius: 6, overflow: 'hidden' },
-  badgeOk: { backgroundColor: '#d4edda', color: '#155724' },
-  badgeWarn: { backgroundColor: '#fff3cd', color: '#856404' },
-  badgeNeutral: { backgroundColor: colors.bgElevated, color: colors.textMuted },
-  badgeMuted: { backgroundColor: colors.bgElevated, color: colors.textMuted },
-  toggleRow: { flexDirection: 'row', alignItems: 'center', gap: spacing.sm, paddingVertical: spacing.xs },
-  toggleCheck: { fontSize: 18 },
-  toggleLabel: { ...typography.body, flex: 1 },
-  subheading: { ...typography.body, fontWeight: '600', marginTop: spacing.sm },
-  previewFrame: {
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: 8,
-    overflow: 'hidden',
-    maxWidth: 820,
-    alignSelf: 'center',
-    width: '100%',
-    backgroundColor: '#e8e8e8',
-  },
-  textPreview: { maxHeight: 480, backgroundColor: colors.bgElevated, padding: spacing.sm, borderRadius: 8 },
-  previewText: { ...typography.caption, fontFamily: Platform.OS === 'web' ? 'Georgia, serif' : undefined, lineHeight: 20 },
-  sigSection: { gap: spacing.sm, marginTop: spacing.sm },
-  checkItem: { ...typography.body, marginBottom: 4 },
-  error: { ...typography.caption, color: colors.error },
-});
 
 export { validateIntakeDocumentsStep };

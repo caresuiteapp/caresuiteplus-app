@@ -1,2 +1,2 @@
 export { DetailInfoRow } from './DetailInfoRow';
-export { ContextCard } from './ContextCard';
+export { ContextCard, clientRecordKpiGridStyle, contextGridStyle } from './ContextCard';

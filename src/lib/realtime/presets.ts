@@ -120,6 +120,85 @@ export function subscribeToAssignmentChanges(
   );
 }
 
+/** Office Mitarbeitendenliste. */
+export function subscribeToEmployeeListChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `employee-list:${tenantId}`,
+      channelName: `office:employees:${tenantId}`,
+      specs: [{ table: 'employees', filter: tenantFilter(tenantId) }],
+    },
+    handler,
+  );
+}
+
+/** Mitarbeitenden-Detail (Stammdaten, Zeiterfassung). */
+export function subscribeToEmployeeDetailChanges(
+  tenantId: string,
+  employeeId: string,
+  handler: RealtimeHandler,
+): () => void {
+  const tenant = tenantFilter(tenantId);
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `employee-detail:${tenantId}:${employeeId}`,
+      channelName: `office:employee:${tenantId}:${employeeId}`,
+      specs: [
+        { table: 'employees', filter: `id=eq.${employeeId}` },
+        { table: 'time_entries', filter: `employee_id=eq.${employeeId}` },
+        { table: 'employee_absences', filter: tenant },
+      ],
+    },
+    handler,
+  );
+}
+
+/**
+ * Assist Live-Betrieb: Einsätze, Zeiterfassung, Geo/Touren, Live-Events.
+ * Für Live-Monitor, Einsatzlisten, Fahrten und Durchführung.
+ */
+export function subscribeToAssistOperationsChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  const filter = tenantFilter(tenantId);
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `assist-ops:${tenantId}`,
+      channelName: `assist:ops:${tenantId}`,
+      demoPollMs: 15_000,
+      specs: [
+        { table: 'assignments', filter },
+        { table: 'time_entries', filter },
+        { table: 'trips', filter },
+        { table: 'trip_gps_events', filter },
+        { table: 'live_operation_events', filter },
+        { table: 'assignment_executions', filter },
+      ],
+    },
+    handler,
+  );
+}
+
+/** Zeiterfassung — Personalbüro und Mitarbeiterportal. */
+export function subscribeToTimeTrackingChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `time-tracking:${tenantId}`,
+      channelName: `office:time:${tenantId}`,
+      demoPollMs: 15_000,
+      specs: [{ table: 'time_entries', filter: tenantFilter(tenantId) }],
+    },
+    handler,
+  );
+}
+
 /** Office Klientenliste. */
 export function subscribeToClientListChanges(
   tenantId: string,

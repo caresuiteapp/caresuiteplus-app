@@ -1,7 +1,7 @@
 import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useMemo, useState } from 'react';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge, PremiumButton, PremiumInput } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -9,7 +9,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import type { ModuleAssignmentSection } from '@/lib/officeCore/types';
 import { fetchModuleAssignmentList } from '@/lib/officeModules/moduleAssignmentService';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import type { ProductKey } from '@/types';
 import { colors, spacing, typography } from '@/theme';
 
@@ -55,22 +55,22 @@ export function OfficeModuleAssignmentListScreen({ section }: OfficeModuleAssign
 
   if (query.loading && items.length === 0) {
     return (
-      <CareLightPageShell title={SECTION_LABELS[section]} subtitle="Wird geladen…">
+      <ScreenShell title={SECTION_LABELS[section]} subtitle="Wird geladen…">
         <LoadingState message="Einträge werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && items.length === 0) {
     return (
-      <CareLightPageShell title={SECTION_LABELS[section]} subtitle="Fehler">
+      <ScreenShell title={SECTION_LABELS[section]} subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={SECTION_LABELS[section]}
       subtitle={`Office · ${roleLabel ?? 'Demo'}`}
       scroll={false}
@@ -139,7 +139,7 @@ export function OfficeModuleAssignmentListScreen({ section }: OfficeModuleAssign
           />
         }
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

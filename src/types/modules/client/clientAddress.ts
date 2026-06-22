@@ -20,5 +20,7 @@ export type ClientAddress = TenantScopedEntity & {
   isPrimary: boolean;
   accessNotes: string | null;
   floor: string | null;
+  /** Domain-Feld → DB `client_addresses.apartment_number` */
+  apartmentNumber: string | null;
   doorCode: string | null;
 };

@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { resetDemoAccessStore } from '@/lib/auth/demoAccessStore';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import { resetAccessStore } from '@/lib/auth/accessStore';
 import {
   generateClientPortalCode,
   loginClientPortal,
@@ -24,7 +24,7 @@ vi.mock('@react-native-async-storage/async-storage', () => ({
 
 describe('client portal username + code access', () => {
   beforeEach(() => {
-    resetDemoAccessStore();
+    resetAccessStore();
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
   });
 

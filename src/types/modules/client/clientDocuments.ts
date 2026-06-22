@@ -13,6 +13,12 @@ export type ClientDocumentRecord = TenantScopedEntity & {
   sensitivity: SensitivityLevel;
   uploadedBy: string | null;
   validUntil: string | null;
+  /** Intake-/Upload-Herkunft (Merge-Schicht, nicht DB-Pflichtfeld) */
+  documentSource?: 'intake' | 'upload' | null;
+  intakeDocumentId?: string | null;
+  intakeDocumentType?: string | null;
+  intakeStatus?: string | null;
+  previewHtml?: string | null;
 };
 
 export const CLIENT_DOCUMENT_CATEGORY_LABELS: Record<ClientDocumentRecord['category'], string> = {

@@ -20,7 +20,7 @@ import { fetchModuleDocumentVisibility } from '@/lib/officeModules/documentVisib
 import { fetchModulePermissionProfiles } from '@/lib/officeModules/permissionProfileService';
 import { fetchModuleTemplateAssignments } from '@/lib/officeModules/templateAssignmentService';
 import { OFFICE_AREA_SHORTCUTS } from '@/data/demo/officeDashboard';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -103,7 +103,7 @@ describe('Office content architecture', () => {
 
   it('OfficeModulesHubScreen hat echte Navigation ohne Platzhalter', () => {
     const source = readSrc('src/screens/business/office/OfficeModulesHubScreen.tsx');
-    expect(source).toContain('CareLightPageShell');
+    expect(source).toContain('ScreenShell');
     expect(source).toContain('LoadingState');
     expect(source).toContain('EmptyState');
     expect(source).not.toContain('Coming Soon');

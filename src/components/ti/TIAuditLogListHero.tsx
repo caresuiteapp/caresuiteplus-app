@@ -1,17 +1,17 @@
 import { StyleSheet, Text, View } from 'react-native';
 import {
-  CareLightKpiCard,
-  CareLightListHeroFrame,
+  PremiumKpiCard,
+  PremiumListHeroFrame,
   PremiumBadge,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { TIConnectionStatusBadge } from './TIConnectionStatusBadge';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { buildTIAuditLogListKpis } from '@/lib/ti/tiAuditLogStats';
 import { isTILiveReady, TI_PREPARED_MESSAGE } from '@/lib/ti/tiModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { TIAuditEvent } from '@/types/modules/ti';
 import type { RoleKey } from '@/types';
 import { designTokens } from '@/theme';
@@ -29,7 +29,7 @@ export function TIAuditLogListHero({ items, totalCount, roleKey }: TIAuditLogLis
   const kpis = buildTIAuditLogListKpis(items, totalCount, 'light');
 
   return (
-    <CareLightListHeroFrame accentColor={accent}>
+    <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={heroText.eyebrow}>BUSINESS · TELEMATIK</Text>
@@ -43,14 +43,13 @@ export function TIAuditLogListHero({ items, totalCount, roleKey }: TIAuditLogLis
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         <TIConnectionStatusBadge status="not_configured" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isTILiveReady() ? (
           <PremiumBadge label="TI in Vorbereitung" variant="orange" dot />
         ) : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
-          <CareLightKpiCard
+          <PremiumKpiCard
             key={kpi.id}
             label={kpi.label}
             value={String(kpi.value)}
@@ -62,7 +61,7 @@ export function TIAuditLogListHero({ items, totalCount, roleKey }: TIAuditLogLis
         ))}
       </View>
       {!isTILiveReady() ? <Text style={heroText.meta}>{TI_PREPARED_MESSAGE}</Text> : null}
-    </CareLightListHeroFrame>
+    </PremiumListHeroFrame>
   );
 }
 

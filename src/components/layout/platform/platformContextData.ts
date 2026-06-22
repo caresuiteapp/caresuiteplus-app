@@ -11,11 +11,11 @@ export type ContextQuickAction = {
 };
 
 export const OFFICE_QUICK_ACTIONS: ContextQuickAction[] = [
-  { label: 'Klient:in anlegen', icon: '➕', href: CLIENT_INTAKE_NEW_ROUTE },
-  { label: 'Rechnung erstellen', icon: '🧾', href: '/office/invoices/create' },
-  { label: 'Termin planen', icon: '📅', href: '/office/appointments/create' },
-  { label: 'Dokument hochladen', icon: '📁', href: '/office/documents/upload' },
-  { label: 'Mitarbeitende anlegen', icon: '👥', href: '/office/employees/create' },
+  { label: 'Klient:in anlegen', icon: 'addClient', href: CLIENT_INTAKE_NEW_ROUTE },
+  { label: 'Rechnung erstellen', icon: 'invoice', href: '/office/invoices/create' },
+  { label: 'Termin planen', icon: 'calendar', href: '/office/appointments?create=1' },
+  { label: 'Dokument hochladen', icon: 'uploadFolder', href: '/office/documents/upload' },
+  { label: 'Mitarbeitende anlegen', icon: 'employeeBadge', href: '/office/employees/create' },
 ];
 
 /** Expanded hub nav for Office right context panel — min. 5 items per group. */
@@ -26,34 +26,34 @@ export const officeContextPanelNav: ModuleNavConfig = {
     {
       title: 'Übersicht',
       items: [
-        { key: 'dashboard', label: 'Dashboard', icon: '📊', href: '/business' },
-        { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/business/messages' },
-        { key: 'reporting', label: 'Reporting', icon: '📈', href: '/business/reporting' },
-        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/office/calendar' },
-        { key: 'tasks', label: 'Aufgaben & Vorgänge', icon: '✅', href: '/business/office/access/tasks' },
+        { key: 'dashboard', label: 'Dashboard', icon: 'kpiChart', href: '/business' },
+        { key: 'messages', label: 'Nachrichten', icon: 'messageWave', href: '/business/messages' },
+        { key: 'reporting', label: 'Reporting', icon: 'trendChart', href: '/business/reporting' },
+        { key: 'calendar', label: 'Kalender', icon: 'calendar', href: '/office/calendar' },
+        { key: 'tasks', label: 'Aufgaben & Vorgänge', icon: 'taskCheck', href: '/business/office/access/tasks' },
       ],
     },
     {
       title: 'Organisation',
       items: [
-        { key: 'modules', label: 'Module & Lizenzen', icon: '🧩', href: '/business/modules' },
-        { key: 'connect', label: 'Connect & Integrationen', icon: '🔌', href: '/business/connect' },
-        { key: 'subscription', label: 'Abonnement', icon: '💳', href: '/business/subscription' },
-        { key: 'tenant-settings', label: 'Mandant-Einstellungen', icon: '⚙️', href: '/business/office/settings' },
-        { key: 'team-roles', label: 'Team & Rollen', icon: '👥', href: '/business/office/access/roles' },
+        { key: 'modules', label: 'Module & Lizenzen', icon: 'pluginCrystal', href: '/business/modules' },
+        { key: 'connect', label: 'Connect & Integrationen', icon: 'connectPlug', href: '/business/connect' },
+        { key: 'subscription', label: 'Abonnement', icon: 'subscriptionCard', href: '/business/subscription' },
+        { key: 'tenant-settings', label: 'Mandant-Einstellungen', icon: 'gear', href: '/business/office/settings' },
+        { key: 'team-roles', label: 'Team & Rollen', icon: 'teamRoles', href: '/business/office/access/roles' },
       ],
     },
     {
       title: 'Insight & QM',
       items: [
-        { key: 'insight', label: 'InsightCenter', icon: '📊', href: '/insight' },
-        { key: 'qm', label: 'Qualitätsmanagement', icon: '✅', href: '/business/qm' },
-        { key: 'ops', label: 'Betrieb & Monitoring', icon: '🛰️', href: '/business/ops' },
-        { key: 'audit-log', label: 'Audit-Log', icon: '📋', href: '/business/office/audit-log' },
+        { key: 'insight', label: 'InsightCenter', icon: 'insightScope', href: '/insight' },
+        { key: 'qm', label: 'Qualitätsmanagement', icon: 'qmShield', href: '/business/qm' },
+        { key: 'ops', label: 'Betrieb & Monitoring', icon: 'opsConsole', href: '/business/ops' },
+        { key: 'audit-log', label: 'Audit-Log', icon: 'auditTrail', href: '/business/office/audit-log' },
         {
           key: 'live-monitor',
           label: 'Live-Monitor',
-          icon: '📡',
+          icon: 'livePulse',
           href: '/business/office/admin/operations-monitoring',
         },
       ],

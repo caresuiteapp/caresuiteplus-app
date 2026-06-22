@@ -3,11 +3,11 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import type { DataSubjectRequestAdminKpi } from '@/hooks/useDataSubjectRequestsAdmin';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { isDataSubjectRequestBackendReady } from '@/lib/privacy/dataRequestConfig';
 import { isDataSubjectRequestAdminNotifyInvokable } from '@/lib/privacy/dataSubjectRequestAdminNotify';
 import { DSGVO_ART12_RESPONSE_DAYS } from '@/lib/privacy/dataSubjectRequestSla';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import { spacing } from '@/theme';
 
@@ -116,7 +116,6 @@ export function DataSubjectRequestsAdminHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!liveReady ? <PremiumBadge label="Live nach Migration 0031" variant="cyan" /> : null}
         {exportLiveReady ? (
           <PremiumBadge label="CSV-Export Live" variant="green" />

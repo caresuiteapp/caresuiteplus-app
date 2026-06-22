@@ -4,7 +4,7 @@ import path from 'node:path';
 import { buildQmHandbookKpis } from '@/data/demo/qmHandbookStats';
 import { QM_CHAPTERS, QM_HANDBOOK } from '@/lib/qm/qm.demoData';
 import { fetchQmChapters } from '@/lib/qm';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 
 const root = path.join(__dirname, '..', '..', '..');

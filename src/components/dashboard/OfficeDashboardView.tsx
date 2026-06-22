@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
-import { ZentraleDashboardHero } from '@/components/dashboard/ZentraleDashboardHero';
+import { ModuleOverviewDashboard } from '@/components/dashboard/ModuleOverviewDashboard';
 import {
   EmptyState,
   ErrorState,
@@ -11,7 +11,7 @@ import {
 } from '@/components/ui';
 import type { DashboardSnapshot } from '@/types/dashboard';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
 import { spacing } from '@/theme';
 
 type OfficeDashboardViewProps = {
@@ -25,6 +25,8 @@ type OfficeDashboardViewProps = {
 function createOfficeDashboardStyles(shellHostsAurora: boolean) {
   return StyleSheet.create({
     container: {
+      width: '100%',
+      flexGrow: 1,
       gap: spacing.md,
       backgroundColor: shellHostsAurora ? 'transparent' : undefined,
     },
@@ -39,7 +41,7 @@ export function OfficeDashboardView({
   onRefresh,
 }: OfficeDashboardViewProps) {
   const shellHostsAurora = useShellHostsAurora();
-  const { colors } = useLegacyTheme();
+  const moduleAccent = useMainModuleAccent();
   const styles = useMemo(
     () => createOfficeDashboardStyles(shellHostsAurora),
     [shellHostsAurora],
@@ -68,30 +70,36 @@ export function OfficeDashboardView({
 
   return (
     <View style={styles.container}>
-      <ZentraleDashboardHero
-        greeting={snapshot.greeting}
-        displayName={displayName}
-        tenantName={snapshot.tenantName}
-        subtitle={snapshot.heroSubtitle}
-      />
-      <SectionPanel title="Kennzahlen Übersicht" subtitle="Live Mandantenübersicht">
-        <AdaptiveKpiGrid
-          columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
-          items={snapshot.kpis.map((kpi) => ({
-            id: kpi.id,
-            node: (
-              <PremiumKpiCard
-                label={kpi.label}
-                value={kpi.value}
-                subValue={kpi.subValue}
-                icon={kpi.icon}
-                accentColor={kpi.accentColor ?? colors.orange}
-                trend={kpi.trend}
-                trendValue={kpi.trendValue}
-              />
-            ),
-          }))}
-        />
+      <SectionPanel
+        title="Zentrale Dashboard"
+        subtitle="Live Mandantenübersicht"
+        headerAlign="center"
+        headerVariant="hero"
+        accentColor={moduleAccent}
+        fillHeight={Boolean(snapshot.moduleOverviewRows)}
+        surface="open"
+      >
+        {snapshot.moduleOverviewRows ? (
+          <ModuleOverviewDashboard rows={snapshot.moduleOverviewRows} />
+        ) : (
+          <AdaptiveKpiGrid
+            columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
+            items={snapshot.kpis.map((kpi) => ({
+              id: kpi.id,
+              node: (
+                <PremiumKpiCard
+                  label={kpi.label}
+                  value={kpi.value}
+                  subValue={kpi.subValue}
+                  icon={kpi.icon}
+                  accentColor={moduleAccent}
+                  trend={kpi.trend}
+                  trendValue={kpi.trendValue}
+                />
+              ),
+            }))}
+          />
+        )}
       </SectionPanel>
     </View>
   );

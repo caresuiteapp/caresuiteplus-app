@@ -8,9 +8,9 @@ function readSrc(relativePath: string): string {
 }
 
 describe('TI Consent List Hero (Sprint 99)', () => {
-  it('TIConsentListHero nutzt CareLightListHeroFrame mit isTILiveReady', () => {
+  it('TIConsentListHero nutzt PremiumListHeroFrame mit isTILiveReady', () => {
     const hero = readSrc('src/components/ti/TIConsentListHero.tsx');
-    expect(hero).toContain('CareLightListHeroFrame');
+    expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('isTILiveReady');
     expect(readSrc('src/screens/ti/TIConsentManagementScreen.tsx')).toContain('TIConsentListHero');
   });

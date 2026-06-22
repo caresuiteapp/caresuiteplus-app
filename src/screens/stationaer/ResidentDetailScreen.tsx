@@ -3,7 +3,7 @@ import { fetchResidentDetail } from '@/lib/stationaer/residentDetailService';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { InactiveModuleBanner, ResidentDetailHero } from '@/components/stationaer';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { useResidentDetail } from '@/hooks/useResidentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -31,22 +31,22 @@ export function ResidentDetailScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Bewohner:in" subtitle="Wird geladen…">
+      <ScreenShell title="Bewohner:in" subtitle="Wird geladen…">
         <LoadingState message="Details werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Bewohner:in" subtitle="Fehler">
+      <ScreenShell title="Bewohner:in" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Die Bewohner:in existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zur Liste" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -55,7 +55,7 @@ export function ResidentDetailScreen() {
   const fullName = `${resident.firstName} ${resident.lastName}`;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={fullName}
       subtitle={`${resident.roomName} · ${roleLabel ?? 'Demo'}`}
       rightSlot={
@@ -82,7 +82,7 @@ export function ResidentDetailScreen() {
           </SectionPanel>
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

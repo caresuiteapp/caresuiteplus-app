@@ -10,7 +10,7 @@ export {
 export { FullScreenLoader } from './FullScreenLoader';
 export { ModuleTile } from './ModuleTile';
 export { CareLightCard } from './CareLightCard';
-export { CareLightKpiCard } from './CareLightKpiCard';
+export { PremiumKpiCard } from './PremiumKpiCard';
 export { CareLightButton } from './CareLightButton';
 export { CareLightSection } from './CareLightSection';
 export { CareLightListItem } from './CareLightListItem';
@@ -18,12 +18,11 @@ export { CareLightModuleTile } from './CareLightModuleTile';
 export { CareLightBottomNav } from './CareLightBottomNav';
 export { CareLightEmptyState } from './CareLightEmptyState';
 export { CareLightErrorState } from './CareLightErrorState';
+export { PremiumListHeroFrame } from './PremiumListHeroFrame';
 export { CareLightListHeroFrame } from './CareLightListHeroFrame';
 export { CareLightActionBar } from './CareLightActionBar';
 export { SectionPanel } from './SectionPanel';
 export { RequireProductAccess } from './RequireProductAccess';
-export { PremiumKpiCard } from './PremiumKpiCard';
-export { PremiumListHeroFrame } from './PremiumListHeroFrame';
 export {
   DesktopListViewToggle,
   type DesktopListViewMode,

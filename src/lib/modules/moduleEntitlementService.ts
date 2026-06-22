@@ -1,5 +1,5 @@
 import type { ProductKey } from '@/types';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import { isFreePlatformEnabled } from '@/lib/billing/freePlatformService';
 import { getTenantModules } from './moduleAccessService';
 

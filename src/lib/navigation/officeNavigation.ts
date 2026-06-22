@@ -62,10 +62,10 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
   {
     id: 'appointments',
     key: 'appointments',
-    label: 'Termine',
+    label: 'Terminverwaltung',
     icon: '📅',
     href: '/office/appointments',
-    description: 'Terminliste und Planung',
+    description: 'Terminliste, Anlegen und Bearbeitung',
     accentColor: '#62F3FF',
   },
   {

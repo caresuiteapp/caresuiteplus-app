@@ -2,10 +2,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { ModuleTile, PremiumBadge, PremiumButton, SectionPanel } from '@/components/ui';
-import { MODULE_NAV_CONFIG } from '@/data/demo/navigation';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { MODULE_NAV_CONFIG } from '@/data/navigation/moduleNavConfig';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import { useAuth } from '@/lib/auth/context';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { useModuleAccess } from '@/hooks/useModuleAccess';
 import { colors, spacing, typography } from '@/theme';
 

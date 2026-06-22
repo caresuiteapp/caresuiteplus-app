@@ -10,7 +10,7 @@ import {
   PremiumCard,
   SectionPanel,
 } from '@/components/ui';
-import { REPORT_CATEGORY_LABELS } from '@/data/demo/reportListStats';
+import { REPORT_CATEGORY_LABELS } from '@/lib/reporting/reportListStats';
 import { useReportDetail } from '@/hooks/useReportDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';

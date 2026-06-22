@@ -4,7 +4,7 @@ import {
   assertConnectFeatureAllowed,
   buildConnectFeatureGateContextFromFeatureKey,
 } from '@/lib/connect/gateway/connectFeatureGate';
-import { getPermissionsForRole } from '@/data/demo/permissions';
+import { getPermissionsForRole } from '@/lib/permissions/staticRolePermissions';
 import type {
   ConnectFeatureActionKey,
   ConnectFeatureGateContext,

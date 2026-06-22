@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildExecutionListKpis } from '@/data/demo/executionListStats';
+import { buildExecutionListKpis } from '@/lib/assist/executionListStats';
 import { getActiveDemoExecutions } from '@/data/demo/assignmentExecutions';
 import { fetchExecutionList } from '@/lib/assist/executionListService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { EXECUTION_PHASE_FILTERS, EXECUTION_SORT_OPTIONS } from '@/hooks/useExecutionList';
 

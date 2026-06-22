@@ -1,41 +1,36 @@
+import type { AppointmentCreateInput } from '@/lib/office/appointmentCreateService';
 import type { RoleKey, ServiceResult } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { enforcePermission } from '@/lib/permissions';
-import { getServiceMode } from '@/lib/services/mode';
-import { appointmentSupabaseRepository } from '@/lib/services/repositories/appointmentRepository.supabase';
-import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
+import { createCalendarEventFromForm } from '@/lib/calendar/calendarEventSaveService';
 
-export type AppointmentCreateInput = {
-  title: string;
-  clientName?: string;
-  startsAt?: string;
-  location?: string;
-};
+/** @deprecated Use createCalendarEventFromForm from calendarEventSaveService */
+export type { AppointmentCreateInput };
 
-/** WP206 — Termin anlegen (Demo + Supabase) */
+/** WP206 — delegates to unified calendar save service */
 export async function createAppointment(
   tenantId: string,
   input: AppointmentCreateInput,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<{ id: string }>> {
-  const denied = enforcePermission<{ id: string }>(actorRoleKey, 'office.appointments.view' as never);
-  if (denied) return denied;
-  if (!input.title.trim()) return { ok: false, error: 'Titel ist Pflicht.' };
-
-  const tenantErr = assertTenantForMode(tenantId);
-  if (tenantErr) return { ok: false, error: tenantErr.error };
-
-  if (getServiceMode() === 'supabase') {
-    return appointmentSupabaseRepository.create(tenantId, {
+  const now = new Date();
+  const end = new Date(now.getTime() + 60 * 60_000);
+  const result = await createCalendarEventFromForm(
+    {
+      tenantId,
+      moduleKey: 'office',
+      calendarScope: 'office',
+      sourceContext: 'appointment_management',
+      sourceType: 'appointment',
+      eventType: 'termin',
       title: input.title,
-      clientName: input.clientName,
-      startsAt: input.startsAt,
-      location: input.location,
-    });
-  }
-
-  if (tenantId !== DEMO_TENANT_ID) return { ok: false, error: 'Mandant nicht gefunden.' };
-
-  await new Promise((r) => setTimeout(r, 220));
-  return { ok: true, data: { id: `appt-${Date.now()}` } };
+      startAt: input.startsAt ?? now.toISOString(),
+      endAt: end.toISOString(),
+      locationName: input.location ?? null,
+      relatedClientId: input.clientName ?? null,
+      isOfficeVisible: true,
+      isModuleVisible: true,
+    },
+    actorRoleKey,
+  );
+  if (!result.ok) return result;
+  return { ok: true, data: { id: result.data.sourceId } };
 }

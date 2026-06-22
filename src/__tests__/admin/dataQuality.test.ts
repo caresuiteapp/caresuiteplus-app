@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { listManagementTasks } from '@/lib/assist/managementTaskService';
 import { resetLiveMonitorStore } from '@/lib/assist/liveMonitorStore';
 import {

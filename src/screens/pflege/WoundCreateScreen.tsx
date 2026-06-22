@@ -3,7 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import * as DocumentPicker from 'expo-document-picker';
 import { useRouter } from 'expo-router';
 import { FormScreenHero } from '@/components/forms';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -116,22 +116,22 @@ export function WoundCreateScreen() {
 
   if (saving) {
     return (
-      <CareLightPageShell title="Wunde dokumentieren" subtitle="Speichern…">
+      <ScreenShell title="Wunde dokumentieren" subtitle="Speichern…">
         <LoadingState message="Wunddokumentation wird gespeichert…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (createdId) {
     return (
-      <CareLightPageShell title="Wunde angelegt" showBack={false}>
+      <ScreenShell title="Wunde angelegt" showBack={false}>
         <SuccessState message="Wunddokumentation gespeichert — Marker in BodyMap hinterlegt." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Wunde dokumentieren"
       subtitle={`BodyMap, Lokalisation, Verlauf · ${roleLabel ?? 'Demo'}`}
       onBack={() => router.back()}
@@ -243,7 +243,7 @@ export function WoundCreateScreen() {
           <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
         </PremiumCard>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -1,9 +1,12 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import type { ServiceResult } from '@/types';
+import type { LiveRefreshQueryConfig } from './liveRefreshTypes';
+import { DEFAULT_LIVE_POLL_MS, useLiveRefresh } from './useLiveRefresh';
 
 type UseAsyncQueryOptions = {
   enabled?: boolean;
   onSuccess?: () => void;
+  live?: LiveRefreshQueryConfig;
 };
 
 export function useAsyncQuery<T>(
@@ -15,6 +18,7 @@ export function useAsyncQuery<T>(
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [previewData, setPreviewData] = useState(false);
+  const [tableMissing, setTableMissing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
 
   const load = useCallback(
@@ -27,12 +31,18 @@ export function useAsyncQuery<T>(
       const result = await fetcher();
       if (result.ok) {
         setDataState(result.data);
-        const previewResult = result as { previewData?: boolean; usedDemoFallback?: boolean };
+        const previewResult = result as {
+          previewData?: boolean;
+          usedDemoFallback?: boolean;
+          tableMissing?: boolean;
+        };
         setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
+        setTableMissing(Boolean(previewResult.tableMissing));
         options?.onSuccess?.();
       } else {
         setDataState(null);
         setPreviewData(false);
+        setTableMissing(false);
         setError(result.error);
       }
 
@@ -50,11 +60,36 @@ export function useAsyncQuery<T>(
     load();
   }, [load, options?.enabled]);
 
+  const silentRefresh = useCallback(async () => {
+    await load(true);
+  }, [load]);
+
   const refresh = useCallback(async () => {
     setRefreshing(true);
     await load(true);
     setRefreshing(false);
   }, [load]);
+
+  const liveEnabled =
+    options?.live?.enabled !== false &&
+    Boolean(options?.live?.tenantId && options?.live?.subscribe);
+
+  const subscribeFactory = useMemo(() => {
+    if (!liveEnabled || !options?.live?.tenantId || !options.live.subscribe) return undefined;
+    const tenantId = options.live.tenantId;
+    const subscribe = options.live.subscribe;
+    return (handler: () => void) => subscribe(tenantId, handler);
+  }, [liveEnabled, options?.live?.subscribe, options?.live?.tenantId]);
+
+  const { isLiveConnected } = useLiveRefresh({
+    enabled: liveEnabled,
+    onRefresh: () => {
+      void silentRefresh();
+    },
+    subscribe: subscribeFactory,
+    pollMs: options?.live?.pollMs ?? DEFAULT_LIVE_POLL_MS,
+    refreshOnFocus: options?.live?.refreshOnFocus,
+  });
 
   const setData = useCallback((value: T | null | ((prev: T | null) => T | null)) => {
     if (typeof value === 'function') {
@@ -70,9 +105,12 @@ export function useAsyncQuery<T>(
     loading,
     error,
     previewData,
+    tableMissing,
     refreshing,
     refresh,
+    silentRefresh,
     reload: load,
+    isLiveConnected,
     isEmpty: !loading && !error && data === null,
   };
 }

@@ -1,6 +1,6 @@
 import type { ServiceResult } from '@/types';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { TenantTableRow } from './createTenantTableRepository';
@@ -49,13 +49,21 @@ export const akademieSupabaseRepository = {
       .eq('tenant_id', tenantId)
       .eq('catalog_type', 'course')
       .order('updated_at', { ascending: false });
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (isSupabaseMissingTableError(error)) {
+        return { ok: true, data: [], tableMissing: true };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
     return { ok: true, data: (data ?? []) as unknown as CourseLiveRow[] };
   },
 
   async listMapped(tenantId: string) {
     const result = await this.listForCourses(tenantId);
     if (!result.ok) return result;
+    if (result.tableMissing) {
+      return { ok: true, data: [], tableMissing: true };
+    }
     return mapCourseRowsToListItems(result.data);
   },
 
@@ -71,7 +79,12 @@ export const akademieSupabaseRepository = {
       .eq('catalog_type', 'course')
       .eq('id', courseId)
       .maybeSingle();
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (error) {
+      if (isSupabaseMissingTableError(error)) {
+        return { ok: true, data: null, tableMissing: true };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
     return { ok: true, data: (data as CourseDetailLiveRow | null) ?? null };
   },
 

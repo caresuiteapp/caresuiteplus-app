@@ -10,8 +10,12 @@ import {
 } from 'react-native';
 import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
 import { GradientModalHeader } from '@/components/layout/platform';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { radius, spacing } from '@/theme';
+import { GlassSurface } from '@/components/ui/effects';
+import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { careRadius } from '@/design/tokens/radius';
+import { resolveCareTypography } from '@/design/tokens/typography';
+import { legacyColorsFromPalette, useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
 
 const DESKTOP_MIN_WIDTH = 600;
 const DESKTOP_CANVAS_HEIGHT = 320;
@@ -27,34 +31,32 @@ type Props = {
 };
 
 export function CareSignatureModal({ visible, label, onConfirm, onClose, disabled }: Props) {
-  const { colors, typography } = useLegacyTheme();
+  const { colors, typography, isLight } = useLegacyTheme();
+  const auroraActive = useAuroraGlassActive();
+  const lightModal = isLight && auroraActive;
+  const safeColors = colors ?? legacyColorsFromPalette('dark');
+  const safeTypography = typography ?? resolveCareTypography('dark');
   const styles = useMemo(
     () =>
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.55)',
+          backgroundColor: lightModal ? 'rgba(15, 27, 51, 0.16)' : 'rgba(0,0,0,0.55)',
           justifyContent: 'center',
           alignItems: 'center',
           padding: spacing.lg,
         },
-        sheet: {
-          backgroundColor: colors.bgPremium,
-          borderRadius: radius.lg,
+        sheetHost: {
           overflow: 'hidden',
-          ...Platform.select({
-            web: { boxShadow: '0 12px 40px rgba(0,0,0,0.25)' as unknown as undefined },
-            default: {},
-          }),
         },
         body: {
           padding: spacing.lg,
           gap: spacing.sm,
         },
-        subtitle: { ...typography.caption, color: colors.textMuted, marginBottom: spacing.xs },
+        subtitle: { ...safeTypography.caption, color: safeColors.textMuted, marginBottom: spacing.xs },
         canvasSlot: { width: '100%', alignSelf: 'stretch' },
       }),
-    [colors, typography],
+    [lightModal, safeColors, safeTypography],
   );
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
@@ -99,29 +101,23 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
     >
       <View style={styles.backdrop} accessibilityViewIsModal>
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
-        <View
-          style={[
-            styles.sheet,
-            {
-              width: sheetWidth,
-              maxHeight: screenHeight * 0.92,
-            },
-          ]}
-        >
-          <GradientModalHeader title="Unterschrift" onClose={onClose} />
-          <View style={styles.body}>
-            <Text style={styles.subtitle}>{label}</Text>
-            <View style={styles.canvasSlot}>
-              <CareSignatureCanvas
-                size="large"
-                height={canvasSize.canvasHeight}
-                onConfirm={handleConfirm}
-                onCancel={onClose}
-                disabled={disabled}
-                showLabel={false}
-              />
+        <View style={[styles.sheetHost, { width: sheetWidth, maxHeight: screenHeight * 0.92 }]}>
+          <GlassSurface radius={careRadius.lg} elevated style={{ overflow: 'hidden' }}>
+            <GradientModalHeader title="Unterschrift" onClose={onClose} />
+            <View style={styles.body}>
+              <Text style={styles.subtitle}>{label}</Text>
+              <View style={styles.canvasSlot}>
+                <CareSignatureCanvas
+                  size="large"
+                  height={canvasSize.canvasHeight}
+                  onConfirm={handleConfirm}
+                  onCancel={onClose}
+                  disabled={disabled}
+                  showLabel={false}
+                />
+              </View>
             </View>
-          </View>
+          </GlassSurface>
         </View>
       </View>
     </Modal>

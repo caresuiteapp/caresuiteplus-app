@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
 import { useCallback, useState } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ErrorState, EmptyState, LoadingState } from '@/components/ui';
 import { MdAccessLogCard, MdDocumentSelector, MdPackageBuilder, MdQrCodeCard } from '@/components/qm';
 import { useMdAuditPackageDetail, useQmDocuments } from '@/hooks/qm';
@@ -78,33 +78,33 @@ export function MdAuditPackageDetailScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="MD-Mappe" showBack>
+      <ScreenShell title="MD-Mappe" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !pkg) {
     return (
-      <CareLightPageShell title="MD-Mappe" showBack>
+      <ScreenShell title="MD-Mappe" showBack>
         <LoadingState message="Mappe wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !pkg) {
     return (
-      <CareLightPageShell title="MD-Mappe" showBack>
+      <ScreenShell title="MD-Mappe" showBack>
         <ErrorState title="MD-Mappe" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!pkg) {
     return (
-      <CareLightPageShell title="MD-Mappe" showBack>
+      <ScreenShell title="MD-Mappe" showBack>
         <EmptyState title="Mappe nicht gefunden" message="Die MD-Prüfungsmappe existiert nicht." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -113,7 +113,7 @@ export function MdAuditPackageDetailScreen() {
     : null;
 
   return (
-    <CareLightPageShell title={pkg!.title} subtitle={`Status: ${pkg!.status}`} showBack>
+    <ScreenShell title={pkg!.title} subtitle={`Status: ${pkg!.status}`} showBack>
       <ScrollView contentContainerStyle={styles.scroll}>
         <MdPackageBuilder
           pkg={pkg!}
@@ -157,7 +157,7 @@ export function MdAuditPackageDetailScreen() {
           )
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

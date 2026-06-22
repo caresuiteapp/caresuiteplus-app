@@ -1,6 +1,6 @@
 import { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { PageHeader } from '@/components/layout/platform';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { spacing } from '@/theme';
@@ -34,14 +34,14 @@ export function SettingsScreenFrame({
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={title}
       subtitle={subtitle}
       showBack={showBack}
       showBreadcrumbs={showSideNavigation || !useMasterDetail}
     >
       {children}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

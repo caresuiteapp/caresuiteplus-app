@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildInsightDataSourceDetailKpis } from '@/lib/insight/insightDataSourceStats';
 import { INSIGHT_PREPARED_MESSAGE, isInsightLiveReady } from '@/lib/insight';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { InsightDataSourceDetail } from '@/types/modules/insight';
 import { designTokens, spacing } from '@/theme';
@@ -66,7 +66,6 @@ export function InsightDataSourceDetailHero({ source, roleKey }: InsightDataSour
       <View style={styles.badges}>
         <PremiumBadge label={source.connectionStatus} variant="orange" dot />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isInsightLiveReady() ? <PremiumBadge label="Demo / preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>

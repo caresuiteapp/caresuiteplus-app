@@ -32,25 +32,21 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Client intake step 5 — Kostenträger / Abrechnung', () => {
-  it('Wizard nutzt sequentiellen Kostenträger-Panel statt Mehrfach-Feldblöcke', () => {
-    const screen = readSrc('screens/business/office/ClientIntakeWizardScreen.tsx');
-    expect(screen).toContain('CareCostBearerStepPanel');
-    expect(screen).toContain('CareMultiCatalogSelect');
-    expect(screen).toContain('values={form.billingTypes}');
-    expect(screen).not.toContain('values={form.costBearerTypes}');
-    expect(screen).not.toContain('selectedCostBearerTypes.map');
-    expect(screen).not.toContain('label="Pflegekasse"');
-    expect(screen).not.toContain('label="Krankenkasse"');
+  it('Wizard nutzt Mehrfachauswahl für Abrechnungsart und Kostenträgertyp', () => {
+    const form = readSrc('components/office/clientintakewizardform.tsx');
+    expect(form).toContain('CareMultiCatalogSelect');
+    expect(form).toContain('values={form.billingTypes}');
+    expect(form).toContain('values={form.costBearerTypes}');
+    expect(form).toContain('updateBillingTypes');
+    expect(form).toContain('updateCostBearerTypes');
+    expect(form).not.toContain('value={form.billingType}');
+    expect(form).not.toContain('value={form.costBearerType}');
   });
 
-  it('zeigt nur den aktiven Kostenträgertyp als Eingabefeld', () => {
-    const panel = readSrc('components/inputs/CareCostBearerStepPanel.tsx');
-    const screen = readSrc('screens/business/office/ClientIntakeWizardScreen.tsx');
-    expect(panel).toContain('CareCatalogSelect');
-    expect(panel).toContain('activeCostBearerType');
-    expect(panel).toContain('activeType ?');
-    expect(panel).toMatch(/<CareCostBearerTypeFields[\s\S]*?type=\{activeType\}/);
-    expect(screen).not.toContain('selectedCostBearerTypes.map');
+  it('zeigt Kostenträger-Eingabefelder nur für ausgewählte Typen', () => {
+    const form = readSrc('components/office/clientintakewizardform.tsx');
+    expect(form).toContain('selectedCostBearerTypes.map');
+    expect(form).toContain('hasGkvCostBearerSelected');
   });
 
   it('mappt UI-Kostenträgertypen auf DB carrier_type', () => {

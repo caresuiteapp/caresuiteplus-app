@@ -3,10 +3,12 @@ import type { BeratungDashboardStats, CounselingListItem } from '@/types/modules
 import {
   createDemoCounselingCase,
   getDemoCounselingCaseListItems,
+} from '@/data/demo/counselingCases';
+import {
   isAppointmentUpcoming,
   isCaseClosedThisMonth,
   isCaseOpen,
-} from '@/data/demo/counselingCases';
+} from './counselingCaseUtils';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';

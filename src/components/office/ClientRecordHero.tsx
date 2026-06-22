@@ -1,15 +1,13 @@
-import { StyleSheet, Text, View } from 'react-native';
-import { PremiumBadge } from '@/components/ui';
-import { CareLightButton } from '@/components/ui/CareLightButton';
-import { careLightColors } from '@/design/tokens/lightTheme';
-import { careRadius } from '@/design/tokens/radius';
-import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
+import { AuroraDetailHeader } from '@/components/aurora';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import type { WorkflowStatus } from '@/types/core/base';
+import { StyleSheet, Text, View } from 'react-native';
+import { careSpacing } from '@/design/tokens/spacing';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
+import { careTypography } from '@/design/tokens/typography';
 
 type ClientRecordHeroProps = {
   firstName: string;
@@ -23,19 +21,19 @@ type ClientRecordHeroProps = {
   onEdit?: () => void;
 };
 
-function statusVariant(status: WorkflowStatus) {
+function statusVariant(status: WorkflowStatus): 'green' | 'red' | 'pink' | 'muted' {
   switch (status) {
     case 'aktiv':
     case 'abgeschlossen':
-      return 'green' as const;
+      return 'green';
     case 'fehlerhaft':
     case 'gesperrt':
-      return 'red' as const;
+      return 'red';
     case 'in_bearbeitung':
     case 'entwurf':
-      return 'orange' as const;
+      return 'pink';
     default:
-      return 'muted' as const;
+      return 'muted';
   }
 }
 
@@ -51,110 +49,36 @@ export function ClientRecordHero({
   onEdit,
 }: ClientRecordHeroProps) {
   const fullName = `${firstName} ${lastName}`.trim();
+  const badges = [
+    ...(careLevel ? [{ label: formatCareLevel(careLevel), variant: 'pink' as const }] : []),
+    ...(city ? [{ label: city, variant: 'muted' as const }] : []),
+    { label: WORKFLOW_STATUS_LABELS[status], variant: statusVariant(status) },
+    ...careContexts.map((ctx) => ({
+      label: getCatalogLabel('leistungsart', ctx),
+      variant: 'cyan' as const,
+    })),
+  ];
 
   return (
-    <View style={styles.card}>
-      <View style={styles.titleRow}>
-        <View style={styles.titleBlock}>
-          <Text style={styles.eyebrow}>Klient:innenakte</Text>
-          <Text style={styles.title}>{fullName}</Text>
-        </View>
-        <View style={styles.avatar}>
-          <Text style={styles.avatarText}>👤</Text>
-        </View>
-      </View>
-
-      <View style={styles.badges}>
-        {careLevel ? (
-          <PremiumBadge label={formatCareLevel(careLevel)} variant="orange" dot />
-        ) : null}
-        {city ? <PremiumBadge label={city} variant="muted" /> : null}
-        <PremiumBadge label={WORKFLOW_STATUS_LABELS[status]} variant={statusVariant(status)} dot />
-        {careContexts.map((ctx) => (
-          <PremiumBadge key={ctx} label={getCatalogLabel('leistungsart', ctx)} variant="cyan" />
-        ))}
-      </View>
-
-      {showEdit && onEdit ? (
-        <View style={styles.actions}>
-          <CareLightButton
-            title="Stammdaten bearbeiten"
-            variant="secondary"
-            accentColor={careLightColors.orange}
-            onPress={onEdit}
-            style={styles.editButton}
-          />
-        </View>
-      ) : null}
-
+    <View style={styles.wrap}>
+      <AuroraDetailHeader
+        recordLabel="Klient:innenakte"
+        title={fullName}
+        badges={badges}
+        avatarIcon="👤"
+        primaryActionLabel={showEdit && onEdit ? 'Stammdaten bearbeiten' : undefined}
+        onPrimaryAction={onEdit}
+      />
       {archiveError ? <Text style={styles.error}>{archiveError}</Text> : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  card: {
-    backgroundColor: careLightColors.surface,
-    borderRadius: careRadius.lg,
-    borderWidth: 1,
-    borderColor: careLightColors.border,
-    padding: careSpacing.md,
-    gap: careSpacing.sm,
-  },
-  titleRow: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-    justifyContent: 'space-between',
-    gap: careSpacing.md,
-  },
-  titleBlock: {
-    flex: 1,
-    gap: 2,
-  },
-  eyebrow: {
-    ...careTypography.caption,
-    color: careLightColors.orange,
-    fontWeight: '700',
-    letterSpacing: 0.6,
-    textTransform: 'uppercase',
-  },
-  title: {
-    ...careTypography.h2,
-    color: careLightColors.navy,
-    fontSize: 24,
-    fontWeight: '800',
-  },
-  avatar: {
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    backgroundColor: 'rgba(255,122,26,0.12)',
-    borderWidth: 1,
-    borderColor: 'rgba(255,122,26,0.28)',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  avatarText: {
-    fontSize: 22,
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: careSpacing.xs,
-    alignItems: 'center',
-  },
-  actions: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: careSpacing.sm,
-    marginTop: careSpacing.xs,
-  },
-  editButton: {
-    borderColor: careLightColors.orange,
-    minWidth: 140,
-  },
+  wrap: { gap: careSpacing.sm },
   error: {
     ...careTypography.caption,
-    color: careLightColors.danger,
+    color: careSuiteAuroraTheme.text.primary,
+    paddingHorizontal: careSpacing.sm,
   },
 });

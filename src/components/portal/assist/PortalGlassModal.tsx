@@ -2,7 +2,7 @@ import { ReactNode } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui';
-import { auroraGlass } from '@/design/tokens/auroraGlass';
+import { useAuroraGlassModalStyle } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 
@@ -26,6 +26,8 @@ export function PortalGlassModal({
   onPrimary,
   primaryLoading,
 }: PortalGlassModalProps) {
+  const formPanelStyle = useAuroraGlassModalStyle({ viewContext: 'form' });
+
   return (
     <PlatformModal
       visible={visible}
@@ -40,7 +42,7 @@ export function PortalGlassModal({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.formPanel}>{children}</View>
+          <View style={[styles.formPanel, formPanelStyle]}>{children}</View>
         </ScrollView>
         <View style={styles.actions}>
           <PremiumButton title="Schließen" variant="secondary" onPress={onClose} />
@@ -73,10 +75,7 @@ const styles = StyleSheet.create({
     flexGrow: 1,
   },
   formPanel: {
-    backgroundColor: auroraGlass.modal,
     borderRadius: careRadius.lg,
-    borderWidth: 1,
-    borderColor: auroraGlass.borderStrong,
     padding: careSpacing.md,
     gap: careSpacing.sm,
   },

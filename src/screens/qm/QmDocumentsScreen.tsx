@@ -2,7 +2,7 @@ import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { QmDocumentCard, QmDocumentsListHero } from '@/components/qm';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { useQmDocuments } from '@/hooks/qm';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -18,32 +18,32 @@ export function QmDocumentsScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="QM-Dokumente" showBack>
+      <ScreenShell title="QM-Dokumente" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !data) {
     return (
-      <CareLightPageShell title="QM-Dokumente" showBack>
+      <ScreenShell title="QM-Dokumente" showBack>
         <LoadingState message="Dokumente werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !data) {
     return (
-      <CareLightPageShell title="QM-Dokumente" showBack>
+      <ScreenShell title="QM-Dokumente" showBack>
         <ErrorState title="Dokumente" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const items = data ?? [];
 
   return (
-    <CareLightPageShell title="QM-Dokumente" subtitle={`${items.length} Dokumente`} showBack>
+    <ScreenShell title="QM-Dokumente" subtitle={`${items.length} Dokumente`} showBack>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
         contentContainerStyle={styles.scroll}
@@ -61,7 +61,7 @@ export function QmDocumentsScreen() {
           ))
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

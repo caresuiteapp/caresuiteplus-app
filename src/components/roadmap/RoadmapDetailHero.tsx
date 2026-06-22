@@ -2,10 +2,10 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { buildRoadmapDetailKpis } from '@/lib/roadmap/roadmapDetailStats';
 import { isRoadmapLiveReady } from '@/lib/roadmap/roadmapModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import type { RoadmapDetail } from '@/types/roadmap';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -66,7 +66,6 @@ export function RoadmapDetailHero({ detail, roleKey }: RoadmapDetailHeroProps) {
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         <PremiumBadge label={WORKFLOW_STATUS_LABELS[detail.status]} variant="orange" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isRoadmapLiveReady() ? (
           <PremiumBadge label="Live-Sync in Vorbereitung" variant="orange" dot />
         ) : null}

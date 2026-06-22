@@ -7,9 +7,9 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Vorlagen-Listen Premium (Sprint 55)', () => {
-  it('TemplateListHero nutzt CareLightListHeroFrame für System- und Mandantenvorlagen', () => {
+  it('TemplateListHero nutzt PremiumListHeroFrame für System- und Mandantenvorlagen', () => {
     const hero = readSrc('src/components/templates/TemplateListHero.tsx');
-    expect(hero).toContain('CareLightListHeroFrame');
+    expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain("title: 'Systemvorlagen'");
     expect(hero).toContain("title: 'Mandantenvorlagen'");
     expect(hero).toContain('VORLAGENZENTRUM · PAKET F');
@@ -17,7 +17,7 @@ describe('Vorlagen-Listen Premium (Sprint 55)', () => {
 
   it('TemplateListHero zeigt Status-KPIs aus Listendaten', () => {
     const hero = readSrc('src/components/templates/TemplateListHero.tsx');
-    expect(hero).toContain('CareLightKpiCard');
+    expect(hero).toContain('PremiumKpiCard');
     expect(hero).toContain("'Aktiv'");
     expect(hero).toContain("'Entwurf'");
     expect(hero).toContain("'Archiviert'");

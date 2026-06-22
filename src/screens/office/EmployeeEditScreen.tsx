@@ -1,13 +1,14 @@
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
 import { CareAddressSearch, CareDateInput } from '@/components/inputs';
+import { DetailInfoRow } from '@/components/detail';
 import { EmployeeProfilePhotoPicker } from '@/components/office/EmployeeProfilePhotoPicker';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
-  DetailInfoRow,
   ErrorState,
   FilterChipGroup,
   FormStepper,
@@ -22,11 +23,38 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { EMPLOYMENT_TYPE_OPTIONS } from '@/lib/office/employeeCatalogLabels';
 import { formatEmployeeEditSummary } from '@/lib/office/employeeEditFormMappers';
 import { getServiceMode } from '@/lib/services/mode';
-import { spacing, typography } from '@/theme';
+import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import { spacing } from '@/theme';
 
 export function EmployeeEditScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const content = useAdaptiveContentStyles();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
+        profileSection: {
+          alignItems: 'center',
+          paddingVertical: spacing.sm,
+        },
+        fieldLabel: { ...content.caption, marginBottom: spacing.xs },
+        toggleRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: spacing.sm,
+          marginBottom: spacing.sm,
+        },
+        toggleLabel: { ...content.body, flex: 1, color: content.primary.color },
+        actions: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+          flexWrap: 'wrap',
+        },
+      }),
+    [content],
+  );
   const { can, check, roleLabel } = usePermissions();
   const canEdit = can('office.employees.edit');
 
@@ -59,45 +87,45 @@ export function EmployeeEditScreen() {
 
   if (!canEdit) {
     return (
-      <CareLightPageShell title="Bearbeiten" subtitle="Kein Zugriff">
+      <ScreenShell title="Bearbeiten" subtitle="Kein Zugriff">
         <LockedActionBanner
           message={check('office.employees.edit').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     return (
-      <CareLightPageShell title="Stammdaten bearbeiten" subtitle="Wird geladen…">
+      <ScreenShell title="Stammdaten bearbeiten" subtitle="Wird geladen…">
         <LoadingState message="Mitarbeitende:r wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || loadError) {
     return (
-      <CareLightPageShell title="Bearbeiten" subtitle="Fehler">
+      <ScreenShell title="Bearbeiten" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={loadError ?? 'Der Datensatz existiert nicht.'}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (isSuccess && saved) {
     return (
-      <CareLightPageShell title="Gespeichert" subtitle="Erfolgreich" showBack={false}>
+      <ScreenShell title="Gespeichert" subtitle="Erfolgreich" showBack={false}>
         <SuccessState message="Die Stammdaten wurden erfolgreich aktualisiert." />
         <PremiumButton
           title="Zur Detailansicht"
           fullWidth
           onPress={() => router.replace(`/business/office/employees/${id}` as never)}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -108,7 +136,7 @@ export function EmployeeEditScreen() {
   }));
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Stammdaten bearbeiten"
       subtitle={`Schritt ${step + 1} von ${steps.length}`}
       rightSlot={
@@ -320,28 +348,6 @@ export function EmployeeEditScreen() {
           )}
         </View>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
-  profileSection: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  fieldLabel: { ...typography.caption, marginBottom: spacing.xs },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    marginBottom: spacing.sm,
-  },
-  toggleLabel: { ...typography.body, flex: 1 },
-  actions: {
-    flexDirection: 'row',
-    gap: spacing.sm,
-    flexWrap: 'wrap',
-  },
-});

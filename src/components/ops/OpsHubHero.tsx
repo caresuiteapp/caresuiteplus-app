@@ -2,11 +2,11 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { buildOpsHubKpis } from '@/lib/ops/opsHubStats';
 import { OPS_HUB_MODULES } from '@/lib/ops/opsHubModules';
 import { isOpsLiveReady } from '@/lib/ops/opsModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import { designTokens, spacing } from '@/theme';
 
@@ -97,7 +97,6 @@ export function OpsHubHero({ roleKey }: OpsHubHeroProps) {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isOpsLiveReady() ? (
           <PremiumBadge label="Live-Orchestrierung in Vorbereitung" variant="orange" dot />
         ) : null}

@@ -1,7 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import { getServiceMode } from '@/lib/services/mode';
-import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { qmDemoRepository } from './qmRepository.demo';
+import { blockDemoOnlyInLiveMode, guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { qmSupabaseRepository } from './qmRepository.supabase';
 import { enforceQmPermission, QM_MANAGE_HANDBOOK, QM_VIEW } from './qmPermissions';
 import type { QmHandbook, QmHandbookChapter } from './qm.types';
@@ -16,12 +14,7 @@ export async function fetchQmHandbook(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'supabase') {
-    return qmSupabaseRepository.getHandbookMapped(tenantId);
-  }
-
-  await new Promise((r) => setTimeout(r, 120));
-  return qmDemoRepository.getHandbook(tenantId);
+  return qmSupabaseRepository.getHandbookMapped(tenantId);
 }
 
 export async function fetchQmChapters(
@@ -34,12 +27,7 @@ export async function fetchQmChapters(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'supabase') {
-    return qmSupabaseRepository.listChaptersMapped(tenantId);
-  }
-
-  await new Promise((r) => setTimeout(r, 120));
-  return qmDemoRepository.listChapters(tenantId);
+  return qmSupabaseRepository.listChaptersMapped(tenantId);
 }
 
 export async function fetchQmChapter(
@@ -53,14 +41,7 @@ export async function fetchQmChapter(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'supabase') {
-    return qmSupabaseRepository.getChapterMapped(tenantId, chapterId);
-  }
-
-  const result = await qmDemoRepository.getChapter(tenantId, chapterId);
-  if (!result.ok) return result;
-  if (!result.data) return { ok: false, error: 'Kapitel nicht gefunden.' };
-  return { ok: true, data: result.data };
+  return qmSupabaseRepository.getChapterMapped(tenantId, chapterId);
 }
 
 export async function createQmChapter(
@@ -72,16 +53,9 @@ export async function createQmChapter(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  return qmDemoRepository.createChapter(tenantId, {
-    handbookId: input.handbookId,
-    parentId: input.parentId,
-    sortOrder: input.sortOrder,
-    title: input.title,
-    content: input.content,
-    version: '1.0',
-    status: 'draft',
-    lastReviewedAt: null,
-  });
+  const liveBlock = blockDemoOnlyInLiveMode<QmHandbookChapter>('QM-Handbuch');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'QM-Handbuch im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function updateQmChapter(
@@ -94,7 +68,9 @@ export async function updateQmChapter(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  return qmDemoRepository.updateChapter(tenantId, chapterId, patch);
+  const liveBlock = blockDemoOnlyInLiveMode<QmHandbookChapter>('QM-Handbuch');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'QM-Handbuch im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function versionQmChapter(
@@ -106,5 +82,7 @@ export async function versionQmChapter(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  return qmDemoRepository.versionChapter(tenantId, chapterId);
+  const liveBlock = blockDemoOnlyInLiveMode<QmHandbookChapter>('QM-Handbuch');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'QM-Handbuch im Live-Modus noch nicht vollständig angebunden.' };
 }

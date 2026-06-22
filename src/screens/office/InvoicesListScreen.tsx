@@ -2,7 +2,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { InvoicesListView } from '@/components/office/InvoicesListView';
-import { CareLightButton, EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { PremiumButton, EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { useInvoiceList } from '@/hooks/useInvoiceList';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -55,10 +55,9 @@ export function InvoicesListScreen({
       subtitle={`Office Abrechnung${isReadOnly ? ' · Lesemodus' : ''}`}
       rightSlot={
         canCreate ? (
-          <CareLightButton
+          <PremiumButton
             title="+ Neu"
             onPress={() => router.push('/business/office/invoices/new' as never)}
-            accentColor={officeAccent}
           />
         ) : null
       }

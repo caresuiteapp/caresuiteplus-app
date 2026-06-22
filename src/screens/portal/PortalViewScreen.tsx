@@ -7,7 +7,7 @@ import {
   PortalMessagesTab,
   PortalOverviewTab,
 } from '@/components/portal';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { PremiumButton, SegmentedTabs, type TabOption } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import type { DashboardScope } from '@/types/dashboard';
@@ -77,7 +77,7 @@ export function PortalViewScreen({
   };
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={portalLabel}
       subtitle={`Willkommen, ${displayName}`}
       rightSlot={
@@ -97,7 +97,7 @@ export function PortalViewScreen({
         />
       </View>
       <View style={styles.content}>{renderTab()}</View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -22,12 +22,11 @@ import type {
 
 function normalizeClientRow(row: ClientRow) {
   return {
-    zip: row.postal_code ?? row.zip ?? null,
-    notes: row.internal_notes ?? row.notes ?? null,
+    zip: row.postal_code ?? null,
+    notes: row.internal_notes ?? row.visible_notes_for_employee ?? null,
     costCarrier: row.cost_bearer ?? null,
     insuranceNumber: row.insurance_number ?? null,
-    archivedAt: row.archived_at ?? null,
-    createdBy: row.created_by ?? null,
+    admissionDate: row.admission_date ?? null,
     status: remoteStatusToWorkflow(row.status),
   };
 }
@@ -44,10 +43,7 @@ export function mapClientListItem(row: ClientRow): ClientListItem {
     city: row.city,
     zip: normalized.zip,
     costCarrier: normalized.costCarrier,
-    insuranceNumber: normalized.insuranceNumber,
-    archivedAt: normalized.archivedAt,
-    createdBy: normalized.createdBy,
-    sensitivity: (row.sensitivity ?? 'standard') as SensitivityLevel,
+    sensitivity: 'internal' as SensitivityLevel,
     updatedAt: row.updated_at,
   };
 }
@@ -105,16 +101,17 @@ export function mapClientDetail(row: ClientDetailRow): ClientDetail {
   return {
     ...base,
     createdAt: row.created_at,
-    admissionDate: row.admission_date ?? null,
     dateOfBirth: row.date_of_birth,
-    primaryContactPhone: row.primary_contact_phone,
+    admissionDate: normalized.admissionDate,
+    insuranceNumber: normalized.insuranceNumber,
+    primaryContactPhone: resolveClientPhone(row) ?? row.phone ?? row.mobile ?? null,
     street: resolveClientStreetLine(row) ?? row.street,
     phone: resolveClientPhone(row) ?? row.phone,
     email: row.email,
     notes: normalized.notes,
-    visibility: (row.visibility ?? 'internal') as DataVisibilityScope,
-    ownedByProfileId: row.owned_by_profile_id ?? undefined,
-    sharedWithProfileIds: row.shared_with_profile_ids ?? [],
+    visibility: 'internal' as DataVisibilityScope,
+    ownedByProfileId: undefined,
+    sharedWithProfileIds: [],
     contacts: (row.client_contacts ?? []).map((c) => ({
       ...mapContact(c),
       relationship: c.relationship ?? '',

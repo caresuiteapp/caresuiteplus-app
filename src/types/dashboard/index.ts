@@ -13,6 +13,15 @@ export type DashboardKpi = {
   accentColor: string;
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
+  /** Live list/detail route for module overview cards. */
+  route?: string;
+};
+
+export type DashboardModuleOverviewRow = {
+  moduleKey: string;
+  label: string;
+  accentColor: string;
+  kpis: DashboardKpi[];
 };
 
 export type DashboardStatusCard = {
@@ -53,6 +62,8 @@ export type DashboardSnapshot = {
   moduleLabel?: string;
   primaryAction: DashboardQuickAction;
   kpis: DashboardKpi[];
+  /** Module-grouped KPI rows for Zentrale overview (6 modules × 5 KPIs). */
+  moduleOverviewRows?: DashboardModuleOverviewRow[];
   statusCards: DashboardStatusCard[];
   quickActions: DashboardQuickAction[];
   activities: DashboardActivity[];

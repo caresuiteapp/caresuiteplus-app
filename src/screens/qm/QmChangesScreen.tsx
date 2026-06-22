@@ -1,6 +1,6 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard } from '@/components/ui';
 import { useQmChanges } from '@/hooks/qm';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -12,32 +12,32 @@ export function QmChangesScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="Änderungen" showBack>
+      <ScreenShell title="Änderungen" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !data) {
     return (
-      <CareLightPageShell title="Änderungen" showBack>
+      <ScreenShell title="Änderungen" showBack>
         <LoadingState message="Änderungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !data) {
     return (
-      <CareLightPageShell title="Änderungen" showBack>
+      <ScreenShell title="Änderungen" showBack>
         <ErrorState title="Änderungen" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const items = data ?? [];
 
   return (
-    <CareLightPageShell title="Änderungsmanagement" subtitle={`${items.length} Änderungen`} showBack>
+    <ScreenShell title="Änderungsmanagement" subtitle={`${items.length} Änderungen`} showBack>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
         contentContainerStyle={styles.scroll}
@@ -54,7 +54,7 @@ export function QmChangesScreen() {
           ))
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

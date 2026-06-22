@@ -1,8 +1,10 @@
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
 import { buildDocumentPreviewFallbackLabel } from '@/lib/office/officeDocumentDisplay';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
-import { careLightColors } from '@/design/tokens/lightTheme';
-import { spacing, typography } from '@/theme';
+import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { spacing } from '@/theme';
 
 type DocumentHtmlPreviewProps = {
   title: string;
@@ -11,6 +13,29 @@ type DocumentHtmlPreviewProps = {
 };
 
 export function DocumentHtmlPreview({ title, previewHtml, fallbackLabel }: DocumentHtmlPreviewProps) {
+  const content = useAdaptiveContentStyles();
+  const { colors } = useLegacyTheme();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        previewFrame: {
+          borderWidth: StyleSheet.hairlineWidth,
+          borderColor: colors.borderSoft,
+          borderRadius: 8,
+          overflow: 'hidden',
+        },
+        textPreview: {
+          maxHeight: 320,
+          backgroundColor: colors.bgElevated,
+          padding: spacing.sm,
+          borderRadius: 8,
+        },
+        previewText: { ...content.caption, color: colors.textPrimary },
+        previewMeta: content.caption,
+      }),
+    [colors, content],
+  );
+
   if (!previewHtml) {
     return (
       <Text style={styles.previewMeta}>
@@ -46,19 +71,4 @@ export function documentPreviewFallback(document: PortalDocumentListItem): strin
   return buildDocumentPreviewFallbackLabel(document);
 }
 
-const styles = StyleSheet.create({
-  previewFrame: {
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: careLightColors.border,
-    borderRadius: 8,
-    overflow: 'hidden',
-  },
-  textPreview: {
-    maxHeight: 320,
-    backgroundColor: careLightColors.page,
-    padding: spacing.sm,
-    borderRadius: 8,
-  },
-  previewText: { ...typography.caption, color: careLightColors.text },
-  previewMeta: { ...typography.caption, color: careLightColors.muted },
-});
+const DOCUMENT_PREVIEW_UNAVAILABLE_LABEL = 'Keine HTML-Vorschau verfügbar.';

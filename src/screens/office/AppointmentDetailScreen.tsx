@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AppointmentDetailHero } from '@/components/office';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -36,37 +36,37 @@ export function AppointmentDetailScreen() {
 
   if (!canView) {
     return (
-      <CareLightPageShell title="Termin" subtitle="Kein Zugriff">
+      <ScreenShell title="Termin" subtitle="Kein Zugriff">
         <ErrorState
           title="Zugriff verweigert"
           message={`Termine sind für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     return (
-      <CareLightPageShell title="Termin" subtitle="Wird geladen…">
+      <ScreenShell title="Termin" subtitle="Wird geladen…">
         <LoadingState message="Termindetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error || !appointment) {
     return (
-      <CareLightPageShell title="Termin" subtitle="Fehler">
+      <ScreenShell title="Termin" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Der Termin existiert nicht.'}
           onRetry={refresh}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title={appointment.title} subtitle={appointment.clientName} scroll={false}>
+    <ScreenShell title={appointment.title} subtitle={appointment.clientName} scroll={false}>
       <ScrollView contentContainerStyle={styles.scroll}>
         {isReadOnly ? (
           <LockedActionBanner
@@ -104,7 +104,7 @@ export function AppointmentDetailScreen() {
           onPress={() => router.back()}
         />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

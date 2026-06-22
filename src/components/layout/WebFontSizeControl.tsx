@@ -6,16 +6,21 @@ import { formatWebFontScaleLabel } from '@/design/web/webFontScaleConfig';
 import { spacing, typography } from '@/theme';
 
 const TOPBAR_CONTROL_HEIGHT = 48;
+const COMPACT_CONTROL_HEIGHT = 24;
 
 const webPointer = Platform.OS === 'web' ? ({ cursor: 'pointer' } as TextStyle) : null;
 const webDisabled =
   Platform.OS === 'web' ? ({ cursor: 'default', opacity: 0.35 } as TextStyle) : { opacity: 0.35 };
 
+type WebFontSizeControlProps = {
+  compact?: boolean;
+};
+
 /** Web-only A− / 100% / A+ text control — scales typography via --app-font-scale. */
-export function WebFontSizeControl() {
+export function WebFontSizeControl({ compact = false }: WebFontSizeControlProps) {
   const { colors, isDark } = useLegacyTheme();
   const { scale, increase, decrease, canIncrease, canDecrease } = useWebFontScale();
-  const styles = useMemo(() => createStyles(isDark, colors), [isDark, colors]);
+  const styles = useMemo(() => createStyles(isDark, colors, compact), [compact, isDark, colors]);
   const [decreaseHovered, setDecreaseHovered] = useState(false);
   const [increaseHovered, setIncreaseHovered] = useState(false);
 
@@ -62,21 +67,26 @@ export function WebFontSizeControl() {
   );
 }
 
-function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>['colors']) {
+function createStyles(
+  isDark: boolean,
+  colors: ReturnType<typeof useLegacyTheme>['colors'],
+  compact: boolean,
+) {
   return StyleSheet.create({
     root: {
       flexDirection: 'row',
       alignItems: 'center',
-      minHeight: TOPBAR_CONTROL_HEIGHT,
-      paddingHorizontal: spacing.sm,
+      minHeight: compact ? COMPACT_CONTROL_HEIGHT : TOPBAR_CONTROL_HEIGHT,
+      paddingHorizontal: compact ? 6 : spacing.sm,
+      paddingVertical: compact ? 2 : 0,
       borderRadius: 999,
       backgroundColor: isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(0, 0, 0, 0.04)',
-      gap: spacing.xs,
+      gap: compact ? 2 : spacing.xs,
     },
     action: {
       ...typography.bodyStrong,
-      fontSize: 14,
-      lineHeight: 18,
+      fontSize: compact ? 10 : 14,
+      lineHeight: compact ? 12 : 18,
       fontWeight: '600',
       color: isDark ? '#E2E8F0' : colors.textPrimary,
       userSelect: 'none',
@@ -87,11 +97,12 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     } as TextStyle,
     label: {
       ...typography.caption,
-      minWidth: 36,
+      minWidth: compact ? 28 : 36,
       textAlign: 'center',
       color: isDark ? '#94A3B8' : colors.textMuted,
       fontWeight: '600',
-      fontSize: 12,
+      fontSize: compact ? 9 : 12,
+      lineHeight: compact ? 11 : undefined,
       userSelect: 'none',
     } as TextStyle,
   });

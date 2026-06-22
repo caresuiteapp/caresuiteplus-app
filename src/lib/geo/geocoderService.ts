@@ -4,7 +4,7 @@ import type {
   GeoProviderContext,
   ValidateAddressInput,
 } from '@/types/geo';
-import { ROLE_PERMISSIONS } from '@/data/demo/permissions';
+import { ROLE_PERMISSIONS } from '@/lib/permissions/staticRolePermissions';
 import {
   assertExternalProviderAllowed,
   assertGeoExecutionReady,

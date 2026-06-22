@@ -2,8 +2,8 @@ import { useCallback, useMemo, useState } from 'react';
 import type { WorkflowStatus } from '@/types';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
 import type { ListSortOption } from '@/types/list';
-import { filterByField, filterBySearch, paginateItems, sortItems } from '@/lib/list';
 import { fetchEmployeeList } from '@/lib/office';
+import { subscribeToEmployeeListChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -36,7 +36,15 @@ export function useEmployeeList() {
       return fetchEmployeeList(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: true },
+    {
+      enabled: true,
+      live: tenantId
+        ? {
+            tenantId,
+            subscribe: subscribeToEmployeeListChanges,
+          }
+        : undefined,
+    },
   );
 
   const allItems = query.data ?? [];
@@ -82,6 +90,7 @@ export function useEmployeeList() {
       isEmpty: !query.loading && !query.error && allItems.length === 0,
       isFilterEmpty:
         !query.loading && !query.error && list.filtered.length === 0 && list.hasActiveFilters,
+      isLiveConnected: query.isLiveConnected,
     }),
     [allItems, list, query, refresh, showSuccess],
   );

@@ -27,10 +27,35 @@ export type ClientContactPortalPermissions = {
   canViewBilling: boolean;
 };
 
+export type ClientContactType =
+  | 'emergency_contact'
+  | 'relative'
+  | 'doctor'
+  | 'care_service'
+  | 'other';
+
+export const FIXED_CLIENT_CONTACT_TYPES = [
+  'emergency_contact',
+  'relative',
+  'doctor',
+  'care_service',
+] as const satisfies readonly ClientContactType[];
+
+export const CLIENT_CONTACT_TYPE_LABELS: Record<
+  (typeof FIXED_CLIENT_CONTACT_TYPES)[number],
+  string
+> = {
+  emergency_contact: 'Notfallkontakt',
+  relative: 'Angehörige:r',
+  doctor: 'Arzt / Ärztin',
+  care_service: 'Pflegedienst',
+};
+
 export type ClientContactRecord = TenantScopedEntity & {
   clientId: string;
   firstName: string;
   lastName: string;
+  contactType: ClientContactType;
   relationship: ContactRelation;
   relationshipLabel: string | null;
   phone: string | null;

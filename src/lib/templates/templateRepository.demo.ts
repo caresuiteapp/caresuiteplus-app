@@ -12,7 +12,7 @@ import type {
   UpdateCatalogEntryInput,
   UpdateTemplateInput,
 } from '@/types/templates';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   SYSTEM_CATALOG_ENTRIES,
   SYSTEM_TEMPLATES,

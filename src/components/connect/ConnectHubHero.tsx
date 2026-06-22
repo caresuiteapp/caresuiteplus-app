@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { isConnectLiveReady } from '@/lib/connect';
 import type { ConnectCategory } from '@/types/modules/connect';
 import type { RoleKey } from '@/types';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CareMedicationScheduleInput } from '@/components/inputs/CareMedicationScheduleInput';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -66,22 +66,22 @@ export function MedicationCreateScreen() {
 
   if (saving) {
     return (
-      <CareLightPageShell title="Medikation anlegen" subtitle="Speichern…">
+      <ScreenShell title="Medikation anlegen" subtitle="Speichern…">
         <LoadingState message="Verordnung wird gespeichert…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (createdId) {
     return (
-      <CareLightPageShell title="Verordnung angelegt" showBack={false}>
+      <ScreenShell title="Verordnung angelegt" showBack={false}>
         <SuccessState message="Medikationsplan gespeichert — Weiterleitung zum Detail…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Medikation anlegen"
       subtitle={`Einnahmeschema morgens/mittags/abends/nachts · ${roleLabel ?? 'Demo'}`}
       onBack={() => router.back()}
@@ -128,7 +128,7 @@ export function MedicationCreateScreen() {
           <PremiumButton title="Abbrechen" variant="secondary" onPress={() => router.back()} />
         </SectionPanel>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -6,7 +6,7 @@ import {
   isWorkflowBuilderLiveReady,
   WORKFLOW_BUILDER_PREPARED_MESSAGE,
 } from '@/lib/workflow/workflowModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 type WorkflowBuilderHeroProps = {
@@ -63,7 +63,6 @@ export function WorkflowBuilderHero({ stepCount }: WorkflowBuilderHeroProps) {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Katalog-Workflow" variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!liveReady ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>

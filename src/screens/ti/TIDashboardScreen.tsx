@@ -2,7 +2,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native
 import { fetchTIProviders } from '@/lib/ti/tiProviderService';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TIDashboardHero, TIConnectionStatusBadge, TISecurityNotice } from '@/components/ti';
 import { EmptyState, ErrorState, InfoBanner, LoadingState, PremiumButton, PremiumCard, PremiumInput } from '@/components/ui';
 import { useTIDashboard } from '@/hooks/ti';
@@ -20,30 +20,30 @@ export function TIDashboardScreen() {
 
   if (!can('ti.view')) {
     return (
-      <CareLightPageShell title="Telematikinfrastruktur" subtitle={roleLabel ?? 'Betrieb'} showBack={false}>
+      <ScreenShell title="Telematikinfrastruktur" subtitle={roleLabel ?? 'Betrieb'} showBack={false}>
         <LockedActionBanner message={check('ti.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !data) {
     return (
-      <CareLightPageShell title="Telematikinfrastruktur" showBack={false}>
+      <ScreenShell title="Telematikinfrastruktur" showBack={false}>
         <LoadingState message="TI-Status wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !data) {
     return (
-      <CareLightPageShell title="Telematikinfrastruktur" showBack={false}>
+      <ScreenShell title="Telematikinfrastruktur" showBack={false}>
         <ErrorState title="Telematikinfrastruktur" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Telematikinfrastruktur"
       subtitle="KIM · eGK · ePA · eMP · E-Rezept"
       showBack={false}
@@ -101,7 +101,7 @@ export function TIDashboardScreen() {
         <Text style={styles.section}>Sicherheit</Text>
         <TISecurityNotice />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

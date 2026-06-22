@@ -67,7 +67,7 @@ export const moduleAccentFx: Record<string, string> = {
   assist: '#EC4899',
   beratung: '#34D399',
   stationaer: '#6366F1',
-  akademie: '#F59E0B',
+  akademie: '#FFEB3B',
   insight: '#38BDF8',
   qm: '#8B5CF6',
 };

@@ -14,7 +14,7 @@ import {
   CLIENT_CARE_LEVEL_FILTERS,
   filterClientsByCareLevel,
   type ClientCareLevelFilterKey,
-} from '@/data/demo/clientListStats';
+} from '@/lib/office/clientListStats';
 import { useAsyncQuery, useListState } from './core';
 
 export const CLIENT_STATUS_FILTERS: { key: WorkflowStatus | 'all'; label: string }[] = [
@@ -84,7 +84,16 @@ export function useClientList() {
       costBearerFilter,
       lifecycleFilter,
     ],
-    { enabled: true },
+    {
+      enabled: true,
+      live:
+        isLive && tenantId
+          ? {
+              tenantId,
+              subscribe: subscribeToClientListChanges,
+            }
+          : undefined,
+    },
   );
 
   const kpiQuery = useAsyncQuery(
@@ -93,7 +102,16 @@ export function useClientList() {
       return fetchClientList(tenantId, profile?.roleKey, { lifecycleFilter: 'all' });
     },
     [tenantId, profile?.roleKey],
-    { enabled: !!tenantId && isLive },
+    {
+      enabled: !!tenantId && isLive,
+      live:
+        isLive && tenantId
+          ? {
+              tenantId,
+              subscribe: subscribeToClientListChanges,
+            }
+          : undefined,
+    },
   );
 
   const allItems = query.data ?? [];
@@ -161,15 +179,6 @@ export function useClientList() {
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
   }, [isLive, kpiQuery, query]);
-
-  useEffect(() => {
-    if (!tenantId || !isLive) return;
-    const unsubscribe = subscribeToClientListChanges(tenantId, () => {
-      void query.refresh();
-      void kpiQuery.refresh();
-    });
-    return unsubscribe;
-  }, [tenantId, isLive, kpiQuery, query]);
 
   const resetFilters = useCallback(() => {
     if (isLive) {
@@ -248,5 +257,6 @@ export function useClientList() {
       !query.loading && !query.error && list.filtered.length === 0 && hasActiveFilters,
     hasLocalOnlyIntakeDraft,
     isLive,
+    isLiveConnected: query.isLiveConnected || kpiQuery.isLiveConnected,
   };
 }

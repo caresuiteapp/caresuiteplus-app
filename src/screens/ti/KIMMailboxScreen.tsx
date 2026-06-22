@@ -1,7 +1,7 @@
 import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { KIMFilterToolbar, KIMMailboxListHero, KIMMessageStatusBadge, TIPagination } from '@/components/ti';
 import { EmptyState, ErrorState, LoadingState, PremiumCard } from '@/components/ui';
 import { useKIMMailbox } from '@/hooks/ti';
@@ -50,9 +50,9 @@ export function KIMMailboxScreen() {
 
   if (!can('ti.kim.view')) {
     return (
-      <CareLightPageShell title="KIM-Postfach" subtitle={roleLabel ?? 'TI'}>
+      <ScreenShell title="KIM-Postfach" subtitle={roleLabel ?? 'TI'}>
         <LockedActionBanner message={check('ti.kim.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -86,22 +86,22 @@ export function KIMMailboxScreen() {
 
   if (loading && items.length === 0) {
     return (
-      <CareLightPageShell title="KIM-Postfach" subtitle={syncLabel}>
+      <ScreenShell title="KIM-Postfach" subtitle={syncLabel}>
         <LoadingState message="Nachrichten werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && items.length === 0) {
     return (
-      <CareLightPageShell title="KIM-Postfach" subtitle="Fehler">
+      <ScreenShell title="KIM-Postfach" subtitle="Fehler">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="KIM-Postfach" subtitle={`${filteredCount} Nachrichten`} scroll={false}>
+    <ScreenShell title="KIM-Postfach" subtitle={`${filteredCount} Nachrichten`} scroll={false}>
       <FlatList
         data={items}
         keyExtractor={(item) => item.id}
@@ -156,7 +156,7 @@ export function KIMMailboxScreen() {
           </PremiumCard>
         )}
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -3,10 +3,10 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { PflegeCrossModuleLinksPanel } from '@/components/pflege/PflegeCrossModuleLinksPanel';
 import { VitalReadingCreateHero } from '@/components/pflege/VitalReadingCreateHero';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, FilterChipGroup, InfoBanner, LoadingState, PremiumButton, PremiumInput, SectionPanel, SegmentedTabs } from '@/components/ui';
 import { demoClients } from '@/data/demo/clients';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { isVitalWriteReady } from '@/lib/pflege/pflegeModuleConfig';
@@ -75,7 +75,7 @@ export function VitalReadingCreateScreen() {
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Vitalwert erfassen"
       subtitle={`Demo-funktional · ${roleLabel ?? 'Demo'}${isReadOnly ? ' · Lesemodus' : ''}`}
     >
@@ -131,7 +131,7 @@ export function VitalReadingCreateScreen() {
 
         <PflegeCrossModuleLinksPanel context="vital-create" />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

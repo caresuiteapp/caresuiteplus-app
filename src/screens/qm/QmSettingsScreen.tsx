@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { QmSettingsHero } from '@/components/qm';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -27,25 +27,25 @@ export function QmSettingsScreen() {
 
   if (!can('qm.manage_settings')) {
     return (
-      <CareLightPageShell title="QM-Einstellungen" showBack>
+      <ScreenShell title="QM-Einstellungen" showBack>
         <LockedActionBanner message={check('qm.manage_settings').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="QM-Einstellungen" showBack>
+      <ScreenShell title="QM-Einstellungen" showBack>
         <LoadingState message="Einstellungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="QM-Einstellungen" showBack>
+      <ScreenShell title="QM-Einstellungen" showBack>
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -53,14 +53,14 @@ export function QmSettingsScreen() {
 
   if (!settings) {
     return (
-      <CareLightPageShell title="QM-Einstellungen" showBack>
+      <ScreenShell title="QM-Einstellungen" showBack>
         <EmptyState title="Keine Einstellungen" message="QM-Konfiguration konnte nicht geladen werden." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="QM-Einstellungen" subtitle="Mandanten-Konfiguration" showBack>
+    <ScreenShell title="QM-Einstellungen" subtitle="Mandanten-Konfiguration" showBack>
       <ScrollView contentContainerStyle={styles.scroll}>
         <QmSettingsHero roleKey={roleKey} />
         <PremiumCard accentColor={colors.cyan}>
@@ -76,7 +76,7 @@ export function QmSettingsScreen() {
           <Text style={styles.body}>Token-Gültigkeit: {settings.mdTokenDays} Tage (Standard)</Text>
         </PremiumCard>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

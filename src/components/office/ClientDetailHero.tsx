@@ -7,8 +7,8 @@ import {
   buildClientDetailSubtitle,
   type ClientDetailHeroInput,
 } from '@/lib/office/clientDetailStats';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
@@ -134,7 +134,6 @@ export function ClientDetailHero({
         ) : null}
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isReadOnly ? <PremiumBadge label="Lesemodus" variant="muted" /> : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

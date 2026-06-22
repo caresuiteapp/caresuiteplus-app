@@ -8,7 +8,7 @@ import {
   mergeOfficeAuditEntries,
 } from '@/lib/officeCore/auditLogMapper';
 import { fetchOfficeAuditLog } from '@/lib/officeCore/auditLogService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 
 const root = path.join(__dirname, '..', '..', '..');

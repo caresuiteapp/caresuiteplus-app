@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -17,7 +17,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchModuleAssignmentList } from '@/lib/officeModules/moduleAssignmentService';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import type { ProductKey } from '@/types';
 import { colors, spacing, typography } from '@/theme';
 
@@ -54,24 +54,24 @@ export function OfficePermissionsScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Berechtigungen" subtitle="Wird geladen…">
+      <ScreenShell title="Berechtigungen" subtitle="Wird geladen…">
         <LoadingState message="Berechtigungsprofile werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Berechtigungen" subtitle="Fehler">
+      <ScreenShell title="Berechtigungen" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const items = query.data ?? [];
 
   return (
-    <CareLightPageShell title="Berechtigungen" subtitle={`Office · ${roleLabel ?? 'Demo'}`}>
+    <ScreenShell title="Berechtigungen" subtitle={`Office · ${roleLabel ?? 'Demo'}`}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SectionPanel title="Modul-Berechtigungsprofile">
           <PremiumInput label="Suche" value={search} onChangeText={setSearch} placeholder="Profil oder Modul…" />
@@ -104,7 +104,7 @@ export function OfficePermissionsScreen() {
           onPress={() => router.push('/business/office/modules' as never)}
         />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

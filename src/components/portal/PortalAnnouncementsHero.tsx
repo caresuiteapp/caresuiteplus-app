@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { buildPortalAnnouncementsKpis } from '@/lib/portal/portalAnnouncementsStats';
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
@@ -83,7 +83,6 @@ export function PortalAnnouncementsHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Portal preparedOnly" variant="muted" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

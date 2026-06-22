@@ -1,7 +1,7 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
 import { appendDomainMessage } from '@/data/demo/portalMessageStore';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { runService } from '@/lib/services/serviceRunner';
 

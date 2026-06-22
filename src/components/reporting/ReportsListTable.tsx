@@ -1,6 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
-import { REPORT_CATEGORY_LABELS } from '@/data/demo/reportListStats';
+import { REPORT_CATEGORY_LABELS } from '@/lib/reporting/reportListStats';
 import type { ReportListItem } from '@/types/reporting';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, typography } from '@/theme';

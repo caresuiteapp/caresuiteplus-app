@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View, Pressable } from 'react-native';
+import { useMemo } from 'react';
 import { fetchInsightDashboardStats } from '@/lib/insight/insightDashboardService';
 import { useRouter } from 'expo-router';
 import { CareLightModuleDashboard, CareLightScreen } from '@/components/layout';
 import { CareLightEmptyState, CareLightErrorState, CareLightModuleTile, EmptyState, ErrorState, InfoBanner, LoadingState, PremiumInput } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useInsightDashboard } from '@/hooks/useInsightDashboard';
@@ -16,6 +17,23 @@ import { INSIGHT_PREPARED_MESSAGE, isInsightLiveReady } from '@/lib/insight';
 
 export function InsightIndexScreen() {
   const router = useRouter();
+  const { c } = useCareLightPalette();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        quickGrid: { gap: careSpacing.md },
+        scaffoldHint: { ...careTypography.caption, color: c.muted },
+        snapshotItem: { ...careTypography.body, color: c.text, marginBottom: careSpacing.xs },
+        loading: {
+          ...careTypography.body,
+          color: c.muted,
+          textAlign: 'center',
+          paddingVertical: careSpacing.xl,
+        },
+        a11yAnchor: { height: 0, width: 0 },
+      }),
+    [c.muted, c.text],
+  );
   const { can, roleLabel } = usePermissions();
   const insightAccent = moduleColor('insight');
   const { stats, snapshots, loading, error, refresh } = useInsightDashboard();
@@ -92,11 +110,3 @@ export function InsightIndexScreen() {
     </CareLightScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  quickGrid: { gap: careSpacing.md },
-  scaffoldHint: { ...careTypography.caption, color: careLightColors.muted },
-  snapshotItem: { ...careTypography.body, color: careLightColors.text, marginBottom: careSpacing.xs },
-  loading: { ...careTypography.body, color: careLightColors.muted, textAlign: 'center', paddingVertical: careSpacing.xl },
-  a11yAnchor: { height: 0, width: 0 },
-});

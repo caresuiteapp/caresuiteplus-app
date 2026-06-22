@@ -18,7 +18,7 @@ import {
   listClientPortalUsernames,
   saveClientPortalCode,
   setPortalCodeHash,
-} from '@/lib/auth/demoAccessStore';
+} from '@/lib/auth/accessStore';
 import { assertDemoTenant, getClientExtendedRepository, isDemoClientBackend } from './clientBackend';
 
 export async function fetchClientPortalAccess(

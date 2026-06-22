@@ -4,7 +4,6 @@ export { RequireAuth } from './RequireAuth';
 export { RequireRole } from './RequireRole';
 export { RequireDevOrAdmin } from './RequireDevOrAdmin';
 export { canAccessDeveloperTools } from './devAccess';
-export { buildDemoSession, getDemoLoginLabel } from './demoSession';
 
 export type {
   AccessCredentialsReveal,
@@ -111,4 +110,4 @@ export type { AccessDashboardStats } from './permissionService';
 
 export { recordLoginAuditEvent, listLoginAuditEvents } from './loginAuditService';
 
-export { resetDemoAccessStore } from './demoAccessStore';
+export { resetAccessStore } from './accessStore';

@@ -1,6 +1,6 @@
 import type { RoleKey } from '@/types';
 import type { PermissionKey } from '@/types/permissions';
-import { getPermissionsForRole } from '@/data/demo/permissions';
+import { getPermissionsForRole } from '@/lib/permissions/staticRolePermissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 

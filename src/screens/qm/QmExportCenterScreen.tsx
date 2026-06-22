@@ -1,6 +1,6 @@
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { QmExportJobCard } from '@/components/qm';
 import { useQmExports } from '@/hooks/qm';
@@ -13,32 +13,32 @@ export function QmExportCenterScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="Export" showBack>
+      <ScreenShell title="Export" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !data) {
     return (
-      <CareLightPageShell title="Export" showBack>
+      <ScreenShell title="Export" showBack>
         <LoadingState message="Export-Jobs werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !data) {
     return (
-      <CareLightPageShell title="Export" showBack>
+      <ScreenShell title="Export" showBack>
         <ErrorState title="Export" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const items = data ?? [];
 
   return (
-    <CareLightPageShell title="QM-Exportzentrum" subtitle={`${items.length} Jobs`} showBack>
+    <ScreenShell title="QM-Exportzentrum" subtitle={`${items.length} Jobs`} showBack>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />}
         contentContainerStyle={styles.scroll}
@@ -49,7 +49,7 @@ export function QmExportCenterScreen() {
           items.map((job) => <QmExportJobCard key={job.id} job={job} />)
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

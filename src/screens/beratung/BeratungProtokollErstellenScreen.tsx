@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TemplateDropdownSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -61,27 +61,27 @@ export function BeratungProtokollErstellenScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Protokoll erstellen" subtitle="Speichern…">
+      <ScreenShell title="Protokoll erstellen" subtitle="Speichern…">
         <LoadingState message="Protokoll wird gespeichert…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (createdId) {
     return (
-      <CareLightPageShell title="Protokoll erstellen" subtitle="Erstellt">
+      <ScreenShell title="Protokoll erstellen" subtitle="Erstellt">
         <SuccessState message="Beratungsprotokoll wurde angelegt." />
         <PremiumButton
           title="Zur Übersicht"
           fullWidth
           onPress={() => router.replace('/beratung/protokolle' as never)}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Protokoll erstellen" subtitle={roleLabel ?? 'Beratung'}>
+    <ScreenShell title="Protokoll erstellen" subtitle={roleLabel ?? 'Beratung'}>
       <View style={styles.heroWrap}>
         <FormScreenHero
           eyebrow="BERATUNG · PROTOKOLL"
@@ -123,7 +123,7 @@ export function BeratungProtokollErstellenScreen() {
         <PremiumButton title="Speichern" fullWidth onPress={handleSubmit} disabled={isReadOnly} />
         <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
       </PremiumCard>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

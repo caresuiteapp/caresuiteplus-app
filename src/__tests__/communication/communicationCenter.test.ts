@@ -14,7 +14,7 @@ import {
 import { assignThread } from '@/features/communication/communication.assignments';
 import { enforceCommunicationPermission } from '@/features/communication/communication.permissions';
 import { resetCommunicationDemoStore } from '@/features/communication/communication.demoStore';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 describe('Communication Portal Isolation', () => {
   beforeEach(() => {

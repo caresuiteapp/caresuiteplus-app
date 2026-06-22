@@ -1,3 +1,4 @@
+import { Pressable } from 'react-native';
 import { PremiumKpiCard } from '@/components/ui';
 import type { KpiGridItem } from '@/components/adaptive/AdaptiveKpiGrid';
 
@@ -11,12 +12,15 @@ export type DashboardKpiLike = {
   trend?: 'up' | 'down' | 'neutral';
   trendValue?: string;
   pulse?: boolean;
+  navigationTarget?: string;
 };
 
-export function dashboardKpisToGridItems(kpis: DashboardKpiLike[]): KpiGridItem[] {
-  return kpis.map((kpi) => ({
-    id: kpi.id,
-    node: (
+export function dashboardKpisToGridItems(
+  kpis: DashboardKpiLike[],
+  onKpiPress?: (navigationTarget: string) => void,
+): KpiGridItem[] {
+  return kpis.map((kpi) => {
+    const card = (
       <PremiumKpiCard
         label={kpi.label}
         value={kpi.value}
@@ -27,6 +31,21 @@ export function dashboardKpisToGridItems(kpis: DashboardKpiLike[]): KpiGridItem[
         trendValue={kpi.trendValue}
         pulse={kpi.pulse}
       />
-    ),
-  }));
+    );
+
+    return {
+      id: kpi.id,
+      node:
+        kpi.navigationTarget && onKpiPress ? (
+          <Pressable
+            accessibilityRole="button"
+            onPress={() => onKpiPress(kpi.navigationTarget!)}
+          >
+            {card}
+          </Pressable>
+        ) : (
+          card
+        ),
+    };
+  });
 }

@@ -17,6 +17,13 @@ describe('PortalShellLayout', () => {
     expect(layout).not.toContain('area="portal_client"');
   });
 
+  it('employee portal uses PortalShellLayout not PlatformShell', () => {
+    const shell = readSrc('src/components/portal/PortalShell.tsx');
+    expect(shell).toContain('PortalShellLayout');
+    expect(shell).not.toContain("from '@/components/layout'");
+    expect(shell).not.toContain('PlatformShell');
+  });
+
   it('PortalShellLayout composes client-only nav components', () => {
     const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
     expect(shell).toContain('PortalLeftNav');

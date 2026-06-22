@@ -3,7 +3,7 @@ import { useRouter } from 'expo-router';
 import { useEffect, useState } from 'react';
 import { ScreenShell } from '@/components/layout';
 import { InfoBanner, LoadingState, PremiumCard, SectionPanel } from '@/components/ui';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { usePermissions } from '@/hooks/usePermissions';
 import {
   TRAINING_PREPARED_MESSAGE,

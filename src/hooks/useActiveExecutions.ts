@@ -2,7 +2,8 @@ import { useCallback, useState } from 'react';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchActiveExecutions } from '@/lib/assist';
-import { useAsyncQuery } from './core';
+import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery } from './core';
 
 export function useActiveExecutions() {
   const { profile } = useAuth();
@@ -15,7 +16,16 @@ export function useActiveExecutions() {
       return fetchActiveExecutions(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-    { enabled: !!tenantId },
+    {
+      enabled: !!tenantId,
+      live: tenantId
+        ? {
+            tenantId,
+            subscribe: subscribeToAssistOperationsChanges,
+            pollMs: OPERATIONAL_LIVE_POLL_MS,
+          }
+        : undefined,
+    },
   );
 
   const refresh = useCallback(async () => {
@@ -31,6 +41,7 @@ export function useActiveExecutions() {
     refreshing: query.refreshing,
     showSuccess,
     refresh,
+    isLiveConnected: query.isLiveConnected,
     isEmpty: !query.loading && !query.error && (query.data?.length ?? 0) === 0,
   };
 }

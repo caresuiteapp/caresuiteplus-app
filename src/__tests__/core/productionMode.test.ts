@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchAppStartSnapshot } from '@/lib/landing/appStartService';
 import {
   getTenantModules,
@@ -49,17 +49,14 @@ describe('Production mode enforcement', () => {
     fetchTenantModulesFromSupabase.mockReset();
   });
 
-  it('blockiert signInDemo im Live-Modus (AuthProvider-Guard)', () => {
+  it('AuthProvider stellt keine Demo-Anmeldung mehr bereit', () => {
     const source = readSrc('src/lib/auth/AuthProvider.tsx');
-    expect(source).toContain('if (!isDemoMode())');
-    expect(source).toContain('Demo-Anmeldung nur im Demo-Modus verfügbar');
+    expect(source).not.toContain('signInDemo');
+    expect(source).not.toContain('buildDemoSession');
   });
 
-  it('demo auth route zeigt Hinweis statt Login wenn Demo deaktiviert', () => {
-    const source = readSrc('app/auth/demo.tsx');
-    expect(source).toContain('isDemoMode()');
-    expect(source).toContain('DemoModeHintScreen');
-    expect(source).toContain('DemoLoginScreen');
+  it('Demo-Auth-Route wurde entfernt', () => {
+    expect(() => readSrc('app/auth/demo.tsx')).toThrow();
   });
 
   it('verwendet DEMO_TENANT_ID nicht als Live-Fallback ohne Profil', () => {
@@ -77,7 +74,7 @@ describe('Production mode enforcement', () => {
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
 
     expect(isDemoMode()).toBe(false);
-    expect(getServiceMode()).toBe('demo');
+    expect(getServiceMode()).toBe('supabase');
     const config = assertLiveConfig();
     expect(config.ok).toBe(false);
     if (!config.ok) {

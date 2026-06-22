@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -135,23 +135,23 @@ export function SisFormScreen({ mode }: SisFormScreenProps) {
 
   if (mode === 'edit' && query.loading) {
     return (
-      <CareLightPageShell title="SIS" subtitle="Wird geladen…">
+      <ScreenShell title="SIS" subtitle="Wird geladen…">
         <LoadingState message="SIS-Assessment wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (mode === 'edit' && (query.error || (!form && !query.loading))) {
     return (
-      <CareLightPageShell title="SIS" subtitle="Fehler">
+      <ScreenShell title="SIS" subtitle="Fehler">
         <ErrorState message={query.error ?? 'Assessment nicht gefunden.'} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (mode === 'create' && !form) {
     return (
-      <CareLightPageShell title="SIS anlegen" subtitle={`6 Themenfelder · ${roleLabel ?? 'Demo'}`}>
+      <ScreenShell title="SIS anlegen" subtitle={`6 Themenfelder · ${roleLabel ?? 'Demo'}`}>
         <ScrollView contentContainerStyle={styles.scroll}>
           <InfoBanner
             variant="info"
@@ -176,14 +176,14 @@ export function SisFormScreen({ mode }: SisFormScreenProps) {
             />
           </SectionPanel>
         </ScrollView>
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!form) return null;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={mode === 'create' ? 'SIS anlegen' : 'SIS bearbeiten'}
       subtitle={`${form.clientName} · Score ${form.overallScore} · ${roleLabel ?? 'Demo'}`}
       onBack={() => router.back()}
@@ -254,7 +254,7 @@ export function SisFormScreen({ mode }: SisFormScreenProps) {
           <PremiumButton title={saving ? 'Speichern…' : 'SIS speichern'} loading={saving} onPress={handleSave} />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

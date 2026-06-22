@@ -1,7 +1,9 @@
-import { useCallback, useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, PanResponder, StyleSheet, Text, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
-import { colors, spacing, typography } from '@/theme';
+import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
+import { resolveCareTypography } from '@/design/tokens/typography';
+import { spacing } from '@/theme';
 
 type Point = { x: number; y: number };
 
@@ -9,6 +11,33 @@ const COMPACT_WIDTH = 320;
 const COMPACT_HEIGHT = 120;
 const STROKE_WIDTH_COMPACT = 2;
 const STROKE_WIDTH_LARGE = 3.5;
+
+const FALLBACK_TYPOGRAPHY = resolveCareTypography('dark');
+const FALLBACK_COLORS = legacyColorsFromPalette('dark');
+
+function useSignatureCanvasStyles() {
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        wrap: { gap: spacing.sm },
+        label: { ...FALLBACK_TYPOGRAPHY.body, fontWeight: '600' },
+        canvasWrap: {
+          height: COMPACT_HEIGHT,
+          borderWidth: 1,
+          borderColor: FALLBACK_COLORS.borderSoft,
+          borderRadius: 8,
+          backgroundColor: '#fff',
+          overflow: 'hidden',
+        },
+        actions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+        dot: {
+          position: 'absolute',
+          backgroundColor: '#111',
+        },
+      }),
+    [],
+  );
+}
 
 type Props = {
   label?: string;
@@ -55,6 +84,7 @@ function WebSignatureCanvas({
   height: heightProp,
   showLabel = true,
 }: Props) {
+  const styles = useSignatureCanvasStyles();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const [hasStroke, setHasStroke] = useState(false);
@@ -186,27 +216,32 @@ function NativeSignatureCanvas({
   height: heightProp,
   showLabel = true,
 }: Props) {
+  const styles = useSignatureCanvasStyles();
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [current, setCurrent] = useState<Point[]>([]);
   const dims = resolveDimensions(size, widthProp, heightProp);
   const dotSize = size === 'large' ? 3 : 2;
 
-  const pan = PanResponder.create({
-    onStartShouldSetPanResponder: () => !disabled,
-    onMoveShouldSetPanResponder: () => !disabled,
-    onPanResponderGrant: (evt) => {
-      const { locationX, locationY } = evt.nativeEvent;
-      setCurrent([{ x: locationX, y: locationY }]);
-    },
-    onPanResponderMove: (evt) => {
-      const { locationX, locationY } = evt.nativeEvent;
-      setCurrent((prev) => [...prev, { x: locationX, y: locationY }]);
-    },
-    onPanResponderRelease: () => {
-      setStrokes((prev) => (current.length > 1 ? [...prev, current] : prev));
-      setCurrent([]);
-    },
-  });
+  const pan = useMemo(
+    () =>
+      PanResponder.create({
+        onStartShouldSetPanResponder: () => !disabled,
+        onMoveShouldSetPanResponder: () => !disabled,
+        onPanResponderGrant: (evt) => {
+          const { locationX, locationY } = evt.nativeEvent;
+          setCurrent([{ x: locationX, y: locationY }]);
+        },
+        onPanResponderMove: (evt) => {
+          const { locationX, locationY } = evt.nativeEvent;
+          setCurrent((prev) => [...prev, { x: locationX, y: locationY }]);
+        },
+        onPanResponderRelease: () => {
+          setStrokes((prev) => (current.length > 1 ? [...prev, current] : prev));
+          setCurrent([]);
+        },
+      }),
+    [current, disabled],
+  );
 
   const handleClear = useCallback(() => {
     setStrokes([]);
@@ -259,21 +294,3 @@ export function CareSignatureCanvas(props: Props) {
   }
   return <NativeSignatureCanvas {...props} />;
 }
-
-const styles = StyleSheet.create({
-  wrap: { gap: spacing.sm },
-  label: { ...typography.body, fontWeight: '600' },
-  canvasWrap: {
-    height: COMPACT_HEIGHT,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-    borderRadius: 8,
-    backgroundColor: '#fff',
-    overflow: 'hidden',
-  },
-  actions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
-  dot: {
-    position: 'absolute',
-    backgroundColor: '#111',
-  },
-});

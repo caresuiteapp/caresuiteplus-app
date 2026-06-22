@@ -13,7 +13,7 @@ describe('Desktop list view toggle Fahrten (Sprint 35)', () => {
     const source = readSrc('src/components/assist/TripsListHero.tsx');
     expect(source).toContain('DesktopListViewToggle');
     expect(source).toContain('showViewToggle');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
   });
 
   it('TripsListView schaltet Tabellenansicht per viewMode auf Desktop', () => {

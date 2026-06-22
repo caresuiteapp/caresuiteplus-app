@@ -1,7 +1,7 @@
 import type { InternalRoleKey, UserModulePermission } from './auth.types';
-import { getPermissionsForRole } from '@/data/demo/permissions';
+import { getPermissionsForRole } from '@/lib/permissions/staticRolePermissions';
 import type { PermissionKey } from '@/types/permissions';
-import { getTenantUsers, getEmployeePortalAccounts, getClientPortalCodes, getRelativePortalCodes, getLoginAuditEvents } from './demoAccessStore';
+import { getTenantUsers, getEmployeePortalAccounts, getClientPortalCodes, getRelativePortalCodes, getLoginAuditEvents } from './accessStore';
 
 export type AccessDashboardStats = {
   internalUsers: number;

@@ -1,9 +1,9 @@
 import { beforeEach, describe, expect, it } from 'vitest';
 import type { ProductKey, TenantProduct } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { hasPermission } from '@/lib/permissions';
 import { isProductActive } from '@/lib/navigation';
-import { getPermissionsForRole } from '@/data/demo/permissions';
+import { getPermissionsForRole } from '@/lib/permissions/staticRolePermissions';
 import {
   activatePurchasedModule,
   calculateBillingItems,

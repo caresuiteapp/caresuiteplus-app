@@ -1,6 +1,7 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
-import { qmDemoRepository } from './qmRepository.demo';
+import { blockDemoOnlyInLiveMode, guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { qmSupabaseRepository } from './qmRepository.supabase';
 import {
   enforceQmPermission,
   QM_APPROVE_MD_PACKAGE,
@@ -16,18 +17,17 @@ import type {
   MdAuditPackageItem,
   MdShareToken,
 } from './qm.types';
-import { createQmExportJob } from './qmExportService';
-
 export async function fetchMdAuditPackages(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<MdAuditPackage[]>> {
   const denied = enforceQmPermission<MdAuditPackage[]>(actorRoleKey, QM_VIEW);
   if (denied) return denied;
-  const tenantErr = assertTenantForMode(tenantId);
-  if (tenantErr) return { ok: false, error: tenantErr.error };
-  await new Promise((r) => setTimeout(r, 120));
-  return qmDemoRepository.listMdPackages(tenantId);
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  const result = await qmSupabaseRepository.listMdPackages(tenantId);
+  if (!result.ok) return result as ServiceResult<MdAuditPackage[]>;
+  return { ok: true, data: result.data as MdAuditPackage[] };
 }
 
 export async function fetchMdAuditPackage(
@@ -40,17 +40,13 @@ export async function fetchMdAuditPackage(
     QM_VIEW,
   );
   if (denied) return denied;
-  const tenantErr = assertTenantForMode(tenantId);
-  if (tenantErr) return { ok: false, error: tenantErr.error };
-
-  const pkgResult = await qmDemoRepository.getMdPackage(tenantId, packageId);
-  if (!pkgResult.ok) return pkgResult;
-  if (!pkgResult.data) return { ok: false, error: 'MD-Mappe nicht gefunden.' };
-
-  const itemsResult = await qmDemoRepository.listMdPackageItems(tenantId, packageId);
-  if (!itemsResult.ok) return itemsResult;
-
-  return { ok: true, data: { pkg: pkgResult.data, items: itemsResult.data } };
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+  const liveBlock = blockDemoOnlyInLiveMode<{ pkg: MdAuditPackage; items: MdAuditPackageItem[] }>(
+    'MD-Audit-Mappe',
+  );
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'MD-Audit-Mappe im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function createMdAuditPackage(
@@ -62,11 +58,9 @@ export async function createMdAuditPackage(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  return qmDemoRepository.createMdPackage(tenantId, {
-    title: input.title,
-    inspectionYear: input.inspectionYear,
-    notes: input.notes ?? '',
-  });
+  const liveBlock = blockDemoOnlyInLiveMode<MdAuditPackage>('MD-Audit-Mappe');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'MD-Audit-Mappe im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function selectMdPackageDocuments(
@@ -79,7 +73,9 @@ export async function selectMdPackageDocuments(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  return qmDemoRepository.setMdPackageItems(tenantId, packageId, documentIds);
+  const liveBlock = blockDemoOnlyInLiveMode<MdAuditPackageItem[]>('MD-Audit-Mappe');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'MD-Audit-Mappe im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function confirmMdPackageDatenschutz(
@@ -91,10 +87,9 @@ export async function confirmMdPackageDatenschutz(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  return qmDemoRepository.updateMdPackage(tenantId, packageId, {
-    datenschutzConfirmed: true,
-    status: 'pending_approval',
-  });
+  const liveBlock = blockDemoOnlyInLiveMode<MdAuditPackage>('MD-Audit-Mappe');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'MD-Audit-Mappe im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function approveMdAuditPackage(
@@ -107,24 +102,9 @@ export async function approveMdAuditPackage(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-
-  const items = await qmDemoRepository.listMdPackageItems(tenantId, packageId);
-  if (!items.ok) return items;
-  const docIds = items.data.map((i) => i.documentId);
-
-  const exportResult = await createQmExportJob(
-    tenantId,
-    { packageId, documentIds: docIds, format: 'pdf' },
-    actorRoleKey,
-  );
-  if (!exportResult.ok) return exportResult;
-
-  return qmDemoRepository.updateMdPackage(tenantId, packageId, {
-    status: 'approved',
-    approvedAt: new Date().toISOString(),
-    approvedBy,
-    exportJobId: exportResult.data.id,
-  });
+  const liveBlock = blockDemoOnlyInLiveMode<MdAuditPackage>('MD-Audit-Mappe');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'MD-Audit-Mappe im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function generateMdShareToken(
@@ -137,7 +117,9 @@ export async function generateMdShareToken(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  return qmDemoRepository.createShareToken(tenantId, packageId, expiresInDays);
+  const liveBlock = blockDemoOnlyInLiveMode<MdShareToken>('MD-Audit-Mappe');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'MD-Audit-Mappe im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function revokeMdShareToken(
@@ -149,7 +131,9 @@ export async function revokeMdShareToken(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  return qmDemoRepository.revokeShareToken(tenantId, tokenId);
+  const liveBlock = blockDemoOnlyInLiveMode<MdShareToken>('MD-Audit-Mappe');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'MD-Audit-Mappe im Live-Modus noch nicht vollständig angebunden.' };
 }
 
 export async function fetchMdAccessLogs(
@@ -161,7 +145,9 @@ export async function fetchMdAccessLogs(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  return qmDemoRepository.listMdAccessLogs(tenantId, packageId);
+  const liveBlock = blockDemoOnlyInLiveMode<MdAccessLogEntry[]>('MD-Audit-Mappe');
+  if (liveBlock) return liveBlock;
+  return { ok: true, data: [] };
 }
 
 export type MdShareViewResult = {
@@ -174,60 +160,9 @@ export async function validateMdShareToken(
   token: string,
   meta?: { ipAddress?: string; userAgent?: string },
 ): Promise<ServiceResult<MdShareViewResult>> {
-  const tokenResult = await qmDemoRepository.getShareTokenByValue(token);
-  if (!tokenResult.ok) return tokenResult;
-  if (!tokenResult.data) {
-    return { ok: false, error: 'Ungültiger Freigabe-Link.' };
-  }
-
-  const t = tokenResult.data;
-  const tenantId = t.tenantId;
-
-  if (t.revokedAt) {
-    await qmDemoRepository.logMdAccess(tenantId, {
-      tokenId: t.id,
-      packageId: t.packageId,
-      accessedAt: new Date().toISOString(),
-      ipAddress: meta?.ipAddress ?? null,
-      userAgent: meta?.userAgent ?? null,
-      success: false,
-      reason: 'Token widerrufen',
-    });
-    return { ok: false, error: 'Freigabe wurde widerrufen.' };
-  }
-
-  if (new Date(t.expiresAt) < new Date()) {
-    await qmDemoRepository.logMdAccess(tenantId, {
-      tokenId: t.id,
-      packageId: t.packageId,
-      accessedAt: new Date().toISOString(),
-      ipAddress: meta?.ipAddress ?? null,
-      userAgent: meta?.userAgent ?? null,
-      success: false,
-      reason: 'Token abgelaufen',
-    });
-    return { ok: false, error: 'Freigabe-Link ist abgelaufen.' };
-  }
-
-  const pkgResult = await qmDemoRepository.getMdPackage(tenantId, t.packageId);
-  if (!pkgResult.ok) return pkgResult;
-  if (!pkgResult.data) return { ok: false, error: 'MD-Mappe nicht gefunden.' };
-
-  const itemsResult = await qmDemoRepository.listMdPackageItems(tenantId, t.packageId);
-  if (!itemsResult.ok) return itemsResult;
-
-  await qmDemoRepository.logMdAccess(tenantId, {
-    tokenId: t.id,
-    packageId: t.packageId,
-    accessedAt: new Date().toISOString(),
-    ipAddress: meta?.ipAddress ?? null,
-    userAgent: meta?.userAgent ?? null,
-    success: true,
-    reason: null,
-  });
-
-  return {
-    ok: true,
-    data: { package: pkgResult.data, items: itemsResult.data, token: t },
-  };
+  void token;
+  void meta;
+  const liveBlock = blockDemoOnlyInLiveMode<MdShareViewResult>('MD-Audit-Mappe');
+  if (liveBlock) return liveBlock;
+  return { ok: false, error: 'MD-Audit-Mappe im Live-Modus noch nicht vollständig angebunden.' };
 }

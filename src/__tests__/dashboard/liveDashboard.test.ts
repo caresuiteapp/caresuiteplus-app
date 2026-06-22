@@ -1,5 +1,5 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { emptyBusinessDashboardMetrics } from '@/lib/dashboard/businessDashboardMetrics';
 import { fetchDashboardSnapshot } from '@/lib/dashboard/dashboardService';
 import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';

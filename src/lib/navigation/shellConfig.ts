@@ -7,6 +7,11 @@ import {
   isModuleScopeVisible,
   resolveModuleNavState,
 } from '@/lib/modules/moduleVisibilityService';
+import {
+  getTenantModuleSettingsCache,
+  isProductEnabledInTenantSettings,
+  isTenantCenterProductKey,
+} from '@/lib/tenant/tenantModuleSettingsCache';
 import type { ProductKey } from '@/types';
 import { buildOfficeTabs } from './officeNavigation';
 
@@ -147,12 +152,16 @@ export function getModuleSwitcherItems(
   if (!tenantId?.trim()) return [];
   const access = getEffectiveModuleAccess(tenantId);
   const context = { tenantId, roleKey };
+  const tenantModules = getTenantModuleSettingsCache(tenantId);
 
   return (Object.keys(MODULE_NAV_CONFIG) as ProductKey[])
     .map((key) => {
       const config = MODULE_NAV_CONFIG[key];
       const moduleAccess = access.find((entry) => entry.productKey === key);
       const navState = resolveModuleNavState(key, context);
+      const tenantCenterActive =
+        !isTenantCenterProductKey(key) ||
+        isProductEnabledInTenantSettings(tenantModules, key);
       return {
         productKey: key,
         label: PRODUCT_LABELS[key],
@@ -160,14 +169,14 @@ export function getModuleSwitcherItems(
         description: config.description,
         path: config.path,
         accentColor: config.accentColor,
-        isActive: moduleAccess?.isEffective ?? false,
+        isActive: (moduleAccess?.isEffective ?? false) && tenantCenterActive,
         visibilityStatus: navState.effectiveStatus,
         isVisible: navState.isVisible,
         isNavigable: navState.isNavigable,
         badgeLabel: navState.badgeLabel,
       };
     })
-    .filter((item) => item.isVisible);
+    .filter((item) => item.isVisible && item.isActive);
 }
 
 /** Ermittelt aktiven Tab-Key aus dem Pfad (für Custom TabBar). */

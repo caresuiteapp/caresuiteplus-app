@@ -1,9 +1,13 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { SectionPanel, EmptyState } from '@/components/ui';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import {
+  createCareLightContentStyles,
+  useCareLightPalette,
+  type CareLightResolved,
+} from '@/design/tokens/carelightadaptive';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import type { ClientRecordOverview } from '@/lib/clients/clientRecordOverview';
 import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { formatDate } from '@/lib/formatters/dateTimeFormatters';
@@ -14,7 +18,15 @@ type ClientRecordOverviewPanelProps = {
   onNavigateTab: (tab: ClientRecordTabKey) => void;
 };
 
-function SummaryRow({ label, value }: { label: string; value: string }) {
+function SummaryRow({
+  label,
+  value,
+  styles,
+}: {
+  label: string;
+  value: string;
+  styles: ReturnType<typeof makeStyles>;
+}) {
   return (
     <View style={styles.row}>
       <Text style={styles.rowLabel}>{label}</Text>
@@ -25,20 +37,22 @@ function SummaryRow({ label, value }: { label: string; value: string }) {
 
 export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRecordOverviewPanelProps) {
   const { isDesktopOrWide } = useDeviceClass();
+  const { c } = useCareLightPalette();
+  const styles = useMemo(() => makeStyles(c), [c]);
 
   return (
     <View style={[styles.root, isDesktopOrWide && styles.rootWide]}>
       <View style={styles.main}>
         <SectionPanel title="Stammdaten" subtitle="Kurzüberblick">
-          <SummaryRow label="Name" value={overview.fullName} />
-          <SummaryRow label="Geburtsdatum" value={overview.dateOfBirth} />
-          <SummaryRow label="Adresse" value={overview.address} />
-          <SummaryRow label="Telefon" value={overview.phone} />
-          <SummaryRow label="Kostenträger" value={overview.primaryCostBearer} />
-          <SummaryRow label="Pflegegrad" value={overview.careLevel} />
-          <SummaryRow label="Leistungsart" value={overview.serviceTypes} />
-          <SummaryRow label="Letzte Aktivität" value={overview.lastActivity} />
-          <SummaryRow label="Aufnahmedatum" value={overview.admissionDate} />
+          <SummaryRow label="Name" value={overview.fullName} styles={styles} />
+          <SummaryRow label="Geburtsdatum" value={overview.dateOfBirth} styles={styles} />
+          <SummaryRow label="Adresse" value={overview.address} styles={styles} />
+          <SummaryRow label="Telefon" value={overview.phone} styles={styles} />
+          <SummaryRow label="Kostenträger" value={overview.primaryCostBearer} styles={styles} />
+          <SummaryRow label="Pflegegrad" value={overview.careLevel} styles={styles} />
+          <SummaryRow label="Leistungsart" value={overview.serviceTypes} styles={styles} />
+          <SummaryRow label="Letzte Aktivität" value={overview.lastActivity} styles={styles} />
+          <SummaryRow label="Aufnahmedatum" value={overview.admissionDate} styles={styles} />
         </SectionPanel>
 
         <SectionPanel title="Unterschriebene Dokumente" subtitle="Aus Aufnahme & Akte">
@@ -84,84 +98,82 @@ export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRec
   );
 }
 
-const styles = StyleSheet.create({
-  root: {
-    gap: careSpacing.md,
-  },
-  rootWide: {
-    flexDirection: 'row',
-    alignItems: 'flex-start',
-  },
-  main: {
-    flex: 1,
-    minWidth: 0,
-    gap: careSpacing.md,
-  },
-  side: {
-    width: '100%',
-    maxWidth: 320,
-    flexShrink: 0,
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    gap: careSpacing.sm,
-    paddingVertical: careSpacing.xs,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: careLightColors.border,
-  },
-  rowLabel: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-    flex: 1,
-    fontWeight: '600',
-  },
-  rowValue: {
-    ...careTypography.body,
-    color: careLightColors.text,
-    flex: 1.2,
-    textAlign: 'right',
-  },
-  docRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    gap: careSpacing.sm,
-    paddingVertical: careSpacing.xs,
-    borderBottomWidth: StyleSheet.hairlineWidth,
-    borderBottomColor: careLightColors.border,
-  },
-  docTitle: {
-    ...careTypography.body,
-    color: careLightColors.text,
-    flex: 1,
-  },
-  docDate: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-  },
-  quickLinks: {
-    gap: careSpacing.xs,
-  },
-  quickLink: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingVertical: careSpacing.sm,
-    paddingHorizontal: careSpacing.sm,
-    borderRadius: careRadius.md,
-    borderWidth: 1,
-    borderColor: careLightColors.border,
-    backgroundColor: careLightColors.page,
-  },
-  quickLinkLabel: {
-    ...careTypography.bodyStrong,
-    color: careLightColors.navy,
-  },
-  quickLinkArrow: {
-    ...careTypography.body,
-    color: careLightColors.orange,
-    fontWeight: '700',
-  },
-});
+function makeStyles(c: CareLightResolved) {
+  const text = createCareLightContentStyles(c);
+
+  return StyleSheet.create({
+    root: {
+      gap: careSpacing.md,
+    },
+    rootWide: {
+      flexDirection: 'row',
+      alignItems: 'flex-start',
+    },
+    main: {
+      flex: 1,
+      minWidth: 0,
+      gap: careSpacing.md,
+    },
+    side: {
+      width: '100%',
+      maxWidth: 320,
+      flexShrink: 0,
+    },
+    row: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: careSpacing.sm,
+      paddingVertical: careSpacing.xs,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    rowLabel: {
+      ...text.label,
+      flex: 1,
+    },
+    rowValue: {
+      ...text.body,
+      flex: 1.2,
+      textAlign: 'right',
+    },
+    docRow: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'center',
+      gap: careSpacing.sm,
+      paddingVertical: careSpacing.xs,
+      borderBottomWidth: StyleSheet.hairlineWidth,
+      borderBottomColor: c.border,
+    },
+    docTitle: {
+      ...text.body,
+      flex: 1,
+    },
+    docDate: {
+      ...text.caption,
+    },
+    quickLinks: {
+      gap: careSpacing.xs,
+    },
+    quickLink: {
+      flexDirection: 'row',
+      alignItems: 'center',
+      justifyContent: 'space-between',
+      paddingVertical: careSpacing.sm,
+      paddingHorizontal: careSpacing.sm,
+      borderRadius: careRadius.md,
+      borderWidth: 1,
+      borderColor: c.border,
+      backgroundColor: c.isDark ? c.surfaceAlt : c.page,
+    },
+    quickLinkLabel: {
+      ...text.bodyStrong,
+    },
+    quickLinkArrow: {
+      ...text.body,
+      color: c.orange,
+      fontWeight: '700',
+    },
+  });
+}

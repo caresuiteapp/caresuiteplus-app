@@ -1,4 +1,4 @@
-import { useCallback, useEffect } from 'react';
+import { useCallback } from 'react';
 import { fetchClientRecord } from '@/lib/clients/clientRecordService';
 import { subscribeToClientRecordChanges } from '@/lib/realtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -14,18 +14,19 @@ export function useClientRecord(clientId: string | undefined) {
       return fetchClientRecord(tenantId, clientId);
     },
     [tenantId, clientId],
-    { enabled: Boolean(tenantId && clientId) },
+    {
+      enabled: Boolean(tenantId && clientId),
+      live:
+        tenantId && clientId
+          ? {
+              tenantId,
+              subscribe: (tid, handler) => subscribeToClientRecordChanges(tid, clientId, handler),
+            }
+          : undefined,
+    },
   );
 
   const refresh = useCallback(() => query.refresh(), [query]);
-
-  useEffect(() => {
-    if (!tenantId || !clientId) return;
-    const unsubscribe = subscribeToClientRecordChanges(tenantId, clientId, () => {
-      void refresh();
-    });
-    return unsubscribe;
-  }, [tenantId, clientId, refresh]);
 
   return {
     record: query.data,
@@ -35,5 +36,6 @@ export function useClientRecord(clientId: string | undefined) {
     loading: query.loading,
     error: query.error,
     refresh,
+    isLiveConnected: query.isLiveConnected,
   };
 }

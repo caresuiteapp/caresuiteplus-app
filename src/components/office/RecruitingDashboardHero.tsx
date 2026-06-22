@@ -7,7 +7,7 @@ import {
   RECRUITING_PREPARED_MESSAGE,
 } from '@/lib/recruiting/recruitingModuleConfig';
 import type { RecruitingDashboardSummary } from '@/types/modules/recruiting';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 const iconSize = 52;
@@ -76,7 +76,6 @@ export function RecruitingDashboardHero({ summary }: RecruitingDashboardHeroProp
           label={isRecruitingLiveReady() ? 'Live' : 'preparedOnly'}
           variant={isRecruitingLiveReady() ? 'green' : 'muted'}
         />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
 
       <View style={styles.kpiRow}>

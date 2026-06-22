@@ -21,7 +21,9 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useAccessibility } from '@/hooks/useAccessibility';
 import { CareLightButton } from './CareLightButton';
-import { buttonHeights, elevation, motion, radius } from '@/theme';
+import { buttonHeights, motion, radius } from '@/theme';
+import { AURORA_BUTTON_PRIMARY, careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
+import { neonGlow } from '@/design/tokens/motion';
 
 type Variant = 'primary' | 'secondary' | 'ghost';
 type Size = 'sm' | 'md';
@@ -66,7 +68,7 @@ export function PremiumButton({
   }
 
   const { colors, typography } = useLegacyTheme();
-  const auroraButtonStyles = useAuroraGlassButtonStyles();
+  const auroraButtonStyles = useAuroraGlassButtonStyles({ viewContext: 'form' });
   const { scaleFontSize } = useAccessibility();
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
@@ -98,20 +100,21 @@ export function PremiumButton({
         !isPrimary && variant === 'secondary' && auroraButtonStyles.secondary,
         !isPrimary && variant === 'ghost' && auroraButtonStyles.ghost,
         isDisabled && styles.disabled,
-        isPrimary && elevation.orangeGlow,
+        isPrimary && neonGlow(careSuiteAuroraTheme.accent.violet, 0.35, 20, 10),
         style,
       ]}
     >
       {isPrimary ? (
         <LinearGradient
-          colors={['#FF9500', '#FFB020']}
+          colors={[...AURORA_BUTTON_PRIMARY]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}
+          pointerEvents="none"
         />
       ) : null}
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#0A0500' : colors.textPrimary} />
+        <ActivityIndicator color={isPrimary ? '#FFFFFF' : colors.textPrimary} />
       ) : (
         <Text
           allowFontScaling
@@ -128,11 +131,19 @@ export function PremiumButton({
     </View>
   );
 
+  const webPressableStyle =
+    Platform.OS === 'web' ? ({ cursor: isDisabled ? 'default' : 'pointer' } as ViewStyle) : null;
+
   return (
-    <Animated.View style={[animStyle, fullWidth && styles.fullWidth]}>
+    <Animated.View
+      style={[animStyle, fullWidth && styles.fullWidth]}
+      pointerEvents="box-none"
+    >
       <Pressable
         disabled={isDisabled}
         onPress={onPress}
+        accessibilityRole="button"
+        style={[fullWidth && styles.fullWidth, webPressableStyle]}
         onPressIn={() => {
           if (!isDisabled) scale.value = withSpring(0.96, motion.spring);
         }}
@@ -163,6 +174,7 @@ const styles = StyleSheet.create({
     opacity: 0.5,
   },
   primaryText: {
-    color: '#0A0500',
+    color: '#FFFFFF',
+    fontWeight: '700',
   },
 });

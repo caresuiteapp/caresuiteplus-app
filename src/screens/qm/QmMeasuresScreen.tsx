@@ -1,7 +1,7 @@
 import { RefreshControl, ScrollView, StyleSheet } from 'react-native';
 import { useMemo, useState } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumInput } from '@/components/ui';
 import { QmMeasureCard } from '@/components/qm';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -40,30 +40,30 @@ export function QmMeasuresScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="Maßnahmen" showBack>
+      <ScreenShell title="Maßnahmen" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Maßnahmen" showBack>
+      <ScreenShell title="Maßnahmen" showBack>
         <LoadingState message="Maßnahmen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Maßnahmen" showBack>
+      <ScreenShell title="Maßnahmen" showBack>
         <ErrorState title="Maßnahmen" message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Maßnahmenmanagement" subtitle={`${items.length} Maßnahmen`} showBack>
+    <ScreenShell title="Maßnahmenmanagement" subtitle={`${items.length} Maßnahmen`} showBack>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={query.loading} onRefresh={query.refresh} tintColor={colors.primary} />
@@ -77,7 +77,7 @@ export function QmMeasuresScreen() {
           items.map((m) => <QmMeasureCard key={m.id} measure={m} />)
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

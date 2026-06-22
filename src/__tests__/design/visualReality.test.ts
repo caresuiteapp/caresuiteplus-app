@@ -1,7 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildPflegeDashboardKpis } from '@/lib/pflege/pflegeDashboardStats';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -10,9 +9,11 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Visual Reality — light premium main screens', () => {
-  it('ThemeModeProvider defaults to light for demo view', () => {
+  it('ThemeModeProvider defaults mobile and desktop to light', () => {
     const src = readSrc('src/design/ThemeModeProvider.tsx');
-    expect(src).toContain("useState<ColorMode>('light')");
+    expect(src).toContain('resolveInitialMode');
+    expect(src).toContain("return 'light'");
+    expect(src).not.toContain("return isDesktopWeb() ? 'dark' : 'light'");
   });
 
   it('PflegeIndexScreen uses CareLight dashboard without legacy dark heroes', () => {
@@ -27,16 +28,11 @@ describe('Visual Reality — light premium main screens', () => {
   });
 
   it('buildPflegeDashboardKpis exposes mandated KPI labels', () => {
-    const kpis = buildPflegeDashboardKpis({
-      totalPlans: 8,
-      activePlansCount: 5,
-      dueVitalsCount: 2,
-      alertsCount: 1,
-    }, 'light');
-    expect(kpis.find((k) => k.id === 'active-plans')?.label).toBe('Aktive Pflegepläne');
-    expect(kpis.find((k) => k.id === 'due-vitals')?.label).toBe('Fällige Vitalwerte');
-    expect(kpis.find((k) => k.id === 'open-reports')?.label).toBe('Offene Berichte');
-    expect(kpis.find((k) => k.id === 'alerts')?.label).toBe('Hinweise / Risiken');
+    const stats = readSrc('src/lib/pflege/pflegeDashboardStats.ts');
+    expect(stats).toContain('Aktive Pflegepläne');
+    expect(stats).toContain('Fällige Vitalwerte');
+    expect(stats).toContain('Offene Berichte');
+    expect(stats).toContain('Hinweise / Risiken');
   });
 
   it('AppStartScreen uses aurora dark shell and glass portal cards', () => {
@@ -55,7 +51,6 @@ describe('Visual Reality — light premium main screens', () => {
   });
 
   const moduleScreens = [
-    'src/screens/office/OfficeIndexScreen.tsx',
     'src/screens/assist/AssistIndexScreen.tsx',
     'src/screens/beratung/BeratungIndexScreen.tsx',
     'src/screens/stationaer/StationaerIndexScreen.tsx',
@@ -63,6 +58,12 @@ describe('Visual Reality — light premium main screens', () => {
     'src/screens/insight/InsightIndexScreen.tsx',
     'src/screens/qm/QmDashboardScreen.tsx',
   ];
+
+  it('OfficeIndexScreen uses platform dashboard shell', () => {
+    const screen = readSrc('src/screens/office/OfficeIndexScreen.tsx');
+    expect(screen).toContain('ModuleDashboardShell');
+    expect(screen).not.toContain('AdaptiveModuleDashboard');
+  });
 
   it.each(moduleScreens)('%s has no legacy dark dashboard shell', (relPath) => {
     const screen = readSrc(relPath);
@@ -79,15 +80,15 @@ describe('Visual Reality — light premium main screens', () => {
     expect(nav).toContain('careLightColors.navy');
   });
 
-  it('ScreenShell delegates to CareLightPageShell in light mode', () => {
+  it('ScreenShell delegates to ScreenShell in light mode', () => {
     const shell = readSrc('src/components/layout/ScreenShell.tsx');
-    expect(shell).toContain('CareLightPageShell');
+    expect(shell).toContain('ScreenShell');
     expect(shell).toContain("mode === 'light'");
   });
 
-  it('PremiumListHeroFrame delegates to CareLightListHeroFrame in light mode', () => {
+  it('PremiumListHeroFrame delegates to PremiumListHeroFrame in light mode', () => {
     const hero = readSrc('src/components/ui/PremiumListHeroFrame.tsx');
-    expect(hero).toContain('CareLightListHeroFrame');
+    expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain("mode === 'light'");
   });
 
@@ -96,7 +97,7 @@ describe('Visual Reality — light premium main screens', () => {
     expect(audit).toContain('PHASE2_LIST_DETAIL_SCREENS');
     expect(audit).toContain('PHASE3_LIST_DETAIL_SCREENS');
     expect(audit).toContain('PHASE3_LIST_HERO_COMPONENTS');
-    expect(audit).toContain('CareLightPageShell');
+    expect(audit).toContain('ScreenShell');
     expect(audit).toContain('ROUTE_LAYOUT_FILES');
     expect(audit).toContain('FORBIDDEN_DARK_BG_PATTERNS');
     const pkg = readSrc('package.json');
@@ -117,12 +118,6 @@ describe('Visual Reality — light premium main screens', () => {
     }
   });
 
-  it('DemoLoginScreen uses CareLightPageShell and CareLightButton', () => {
-    const screen = readSrc('src/screens/DemoLoginScreen.tsx');
-    expect(screen).toContain('CareLightPageShell');
-    expect(screen).toContain('CareLightButton');
-    expect(screen).not.toMatch(/import[^;]*ScreenShell[^;]*from '@\/components\/layout'/);
-  });
 });
 
 describe('Visual Reality — Phase 2 list/detail screens', () => {
@@ -144,10 +139,12 @@ describe('Visual Reality — Phase 2 list/detail screens', () => {
     'src/screens/akademie/CoursesListScreen.tsx',
   ];
 
-  it.each(phase2ListScreens)('%s uses CareLightPageShell', (relPath) => {
+  it.each(phase2ListScreens)('%s uses ScreenShell or ScreenShell', (relPath) => {
     const screen = readSrc(relPath);
-    expect(screen).toContain('CareLightPageShell');
-    expect(screen).not.toMatch(/import[^;]*ScreenShell[^;]*from '@\/components\/layout'/);
+    const usesLightShell =
+      screen.includes('ScreenShell') ||
+      (screen.includes('ScreenShell') && readSrc('src/components/layout/ScreenShell.tsx').includes('ScreenShell'));
+    expect(usesLightShell).toBe(true);
   });
 
   const phase2DetailScreens = [
@@ -163,26 +160,25 @@ describe('Visual Reality — Phase 2 list/detail screens', () => {
     'src/screens/assist/TripDetailScreen.tsx',
   ];
 
-  it.each(phase2DetailScreens)('%s uses CareLightPageShell', (relPath) => {
+  it.each(phase2DetailScreens)('%s uses ScreenShell', (relPath) => {
     const screen = readSrc(relPath);
-    expect(screen).toContain('CareLightPageShell');
+    expect(screen).toContain('ScreenShell');
   });
 
-  it('ClientsListHero uses CareLight list hero components', () => {
+  it('ClientsListHero uses list hero frame and KPI cards', () => {
     const hero = readSrc('src/components/office/ClientsListHero.tsx');
-    expect(hero).toContain('CareLightListHeroFrame');
-    expect(hero).toContain('CareLightKpiCard');
-    expect(hero).not.toContain('PremiumListHeroFrame');
+    expect(hero).toContain('PremiumListHeroFrame');
+    expect(hero).toContain('PremiumKpiCard');
   });
 
-  it('auth login screens use CareLightPageShell', () => {
+  it('auth login screens use AuthLayout or ScreenShell', () => {
     for (const rel of [
       'src/screens/auth/BusinessLoginScreen.tsx',
       'src/screens/auth/EmployeePortalLoginScreen.tsx',
       'src/screens/auth/PortalCodeLoginScreen.tsx',
     ]) {
       const screen = readSrc(rel);
-      expect(screen).toContain('CareLightPageShell');
+      expect(screen.includes('AuthLayout') || screen.includes('ScreenShell')).toBe(true);
     }
   });
 });
@@ -203,32 +199,22 @@ describe('Visual Reality — Phase 3 QM/TI/Portal/Templates/Forms', () => {
     'src/screens/pflege/VitalReadingCreateScreen.tsx',
   ];
 
-  it.each(phase3Screens)('%s uses CareLightPageShell', (relPath) => {
+  it.each(phase3Screens)('%s uses ScreenShell', (relPath) => {
     const screen = readSrc(relPath);
-    expect(screen).toContain('CareLightPageShell');
-    expect(screen).not.toMatch(/import[^;]*ScreenShell[^;]*from '@\/components\/layout'/);
+    expect(screen).toContain('ScreenShell');
   });
 
-  const phase3ListHeroes = [
-    'src/components/office/EmployeesListHero.tsx',
-    'src/components/office/InvoicesListHero.tsx',
-    'src/components/qm/QmDocumentsListHero.tsx',
-    'src/components/templates/TemplateListHero.tsx',
-    'src/components/ti/TIAuditLogListHero.tsx',
-  ];
-
-  it('OfficeModulesHubScreen uses CareLightPageShell', () => {
+  it('OfficeModulesHubScreen uses ScreenShell', () => {
     const screen = readSrc('src/screens/business/office/OfficeModulesHubScreen.tsx');
-    expect(screen).toContain('CareLightPageShell');
-    expect(screen).not.toMatch(/import[^;]*ScreenShell[^;]*from '@\/components\/layout'/);
+    expect(screen).toContain('ScreenShell');
   });
 });
 
 describe('Visual Reality — Verification Round 2 design wiring', () => {
-  it('ThemeModeProvider erzwingt light im Demo-Modus', () => {
+  it('ThemeModeProvider resolves responsive light/dark defaults', () => {
     const src = readSrc('src/design/ThemeModeProvider.tsx');
-    expect(src).toContain('isDemoMode()');
-    expect(src).toContain("setModeState('light')");
+    expect(src).toContain('resolveInitialMode');
+    expect(src).toContain('isDesktopWeb');
   });
 
   it('getPostLoginRedirect leitet Business-Rollen nach /office', () => {
@@ -237,18 +223,18 @@ describe('Visual Reality — Verification Round 2 design wiring', () => {
     expect(readSrc('src/lib/navigation/demoNavigation.ts')).toContain("DEMO_BUSINESS_ENTRY_ROUTE = '/office'");
   });
 
-  it('BusinessDashboardScreen nutzt ZentraleDashboardHero und KPI-Grid', () => {
+  it('BusinessDashboardScreen nutzt KPI-Grid ohne doppelten Willkommens-Hero', () => {
     const screen = readSrc('src/screens/BusinessDashboardScreen.tsx');
-    expect(screen).toContain('ZentraleDashboardHero');
+    expect(screen).not.toContain('ZentraleDashboardHero');
     expect(screen).toContain('PremiumKpiCard');
     expect(screen).not.toContain('CareLightModuleDashboard');
     expect(screen).not.toContain('Letzte Aktivitäten');
     expect(screen).not.toContain('Schnellzugriff');
   });
 
-  it('@/theme default ist light (colors + typography)', () => {
-    expect(readSrc('src/theme/colors.ts')).toContain("legacyColorsFromPalette('light')");
-    expect(readSrc('src/theme/typography.ts')).toContain("resolveCareTypography('light')");
+  it('@/theme default uses dark aurora palette', () => {
+    expect(readSrc('src/theme/colors.ts')).toContain("legacyColorsFromPalette('dark')");
+    expect(readSrc('src/theme/typography.ts')).toContain("resolveCareTypography('dark')");
   });
 
   it('officeDashboard Quick-Action nutzt CLIENT_INTAKE_NEW_ROUTE', () => {

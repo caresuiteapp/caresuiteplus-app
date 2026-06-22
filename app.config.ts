@@ -1,5 +1,12 @@
 import type { ExpoConfig, ConfigContext } from 'expo/config';
+import { readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { SUPPORT_LINKS } from './src/lib/platform/supportLinks';
+
+const ANDROID_PROGUARD_RULES = readFileSync(
+  join(__dirname, 'android-proguard-rules.pro'),
+  'utf8',
+);
 
 export default ({ config }: ConfigContext): ExpoConfig => {
   const easProjectId = process.env.EAS_PROJECT_ID;
@@ -46,7 +53,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       backgroundColor: '#070B12',
     },
     package: 'app.caresuiteplus',
-    versionCode: 5,
+    versionCode: 9,
     permissions: ['INTERNET', 'RECORD_AUDIO'],
   },
   web: {
@@ -58,6 +65,18 @@ export default ({ config }: ConfigContext): ExpoConfig => {
     'expo-router',
     'expo-asset',
     'expo-font',
+    [
+      'expo-build-properties',
+      {
+        android: {
+          compileSdkVersion: 35,
+          targetSdkVersion: 35,
+          enableProguardInReleaseBuilds: true,
+          enableShrinkResourcesInReleaseBuilds: true,
+          extraProguardRules: ANDROID_PROGUARD_RULES,
+        },
+      },
+    ],
     [
       'expo-av',
       {

@@ -6,7 +6,7 @@ import {
 } from '@/lib/privacy/dataSubjectRequestAdminService';
 import { countOverdueDataSubjectRequests } from '@/lib/privacy/dataSubjectRequestSla';
 import { isDataSubjectRequestBackendReady } from '@/lib/privacy/dataRequestConfig';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isDemoMode } from '@/lib/supabase/config';
 import { useAuth } from '@/lib/auth/context';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';

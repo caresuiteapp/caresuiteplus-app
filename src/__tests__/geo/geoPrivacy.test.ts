@@ -1,8 +1,8 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { ROLE_PERMISSIONS } from '@/data/demo/permissions';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import { ROLE_PERMISSIONS } from '@/lib/permissions/staticRolePermissions';
 import {
   assertExternalProviderAllowed,
   assertGeoRolePermission,

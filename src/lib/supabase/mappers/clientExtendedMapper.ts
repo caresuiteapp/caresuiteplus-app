@@ -29,7 +29,6 @@ import {
   resolveClientContactIsEmergency,
   resolveClientContactType,
 } from '@/lib/clients/clientContactPayload';
-import type { WorkflowStatus } from '@/types/core/base';
 import type {
   ClientAuditRow,
   ClientConsentRow,
@@ -37,6 +36,9 @@ import type {
   ClientDetailRow,
   ClientExtendedRow,
   ClientHistoryRow,
+  ClientAddressRow,
+  ClientDocumentRow,
+  ClientTaskRow,
 } from '../rowTypes';
 
 const DEFAULT_PORTAL_PERMISSIONS = {
@@ -96,16 +98,7 @@ function splitContactName(row: ClientContactRow) {
   };
 }
 
-export function mapClientContactExtended(
-  row: ClientContactRow & {
-    first_name?: string | null;
-    last_name?: string | null;
-    is_portal_user?: boolean;
-    portal_permissions?: unknown;
-    notes?: string | null;
-    updated_at?: string;
-  },
-): ClientContactRecord {
+export function mapClientContactExtended(row: ClientContactRow): ClientContactRecord {
   const { firstName, lastName } = splitContactName(row);
   return {
     id: row.id,
@@ -167,10 +160,10 @@ export function mapClientCore(row: ClientExtendedRow): ClientCore {
     insuranceNumber: row.insurance_number ?? null,
     keySafeCode: row.key_safe_code ?? null,
     diagnoses: parseStringArray(row.diagnoses),
-    primaryContactPhone: row.primary_contact_phone,
+    primaryContactPhone: row.primary_contact_phone ?? row.phone ?? row.mobile ?? null,
     city: row.city,
-    zip: row.zip,
-    sensitivity: (row.sensitivity ?? 'standard') as SensitivityLevel,
+    zip: row.postal_code ?? row.zip ?? null,
+    sensitivity: 'internal' as SensitivityLevel,
     visibility: (row.visibility ?? 'team') as DataVisibilityScope,
     ownedByProfileId: row.owned_by_profile_id ?? undefined,
     sharedWithProfileIds: row.shared_with_profile_ids ?? [],
@@ -179,30 +172,14 @@ export function mapClientCore(row: ClientExtendedRow): ClientCore {
   };
 }
 
-type AddressRow = {
-  id: string;
-  tenant_id: string;
-  client_id: string;
-  address_type: ClientAddress['addressType'];
-  street: string;
-  zip: string;
-  city: string;
-  country: string;
-  is_primary: boolean;
-  access_notes: string | null;
-  floor: string | null;
-  apartment_number: string | null;
-  door_code: string | null;
-  created_at: string;
-  updated_at: string;
-};
+type AddressRow = ClientAddressRow;
 
 export function mapClientAddress(row: AddressRow): ClientAddress {
   return {
     id: row.id,
     tenantId: row.tenant_id,
     clientId: row.client_id,
-    addressType: row.address_type,
+    addressType: row.address_type as ClientAddress['addressType'],
     street: row.street,
     zip: row.zip,
     city: row.city,
@@ -355,24 +332,7 @@ export function mapClientContract(row: ContractRow): ClientContract {
   };
 }
 
-type DocumentRow = {
-  id: string;
-  tenant_id: string;
-  client_id: string;
-  title: string;
-  file_name: string;
-  mime_type: string;
-  category: ClientDocumentRecord['category'];
-  storage_path: string | null;
-  status: ClientDocumentRecord['status'];
-  sensitivity: ClientDocumentRecord['sensitivity'];
-  uploaded_by: string | null;
-  valid_until: string | null;
-  created_at: string;
-  updated_at: string;
-  source?: string | null;
-  intake_document_id?: string | null;
-};
+type DocumentRow = ClientDocumentRow;
 
 export function mapClientDocument(row: DocumentRow): ClientDocumentRecord {
   return {
@@ -382,16 +342,14 @@ export function mapClientDocument(row: DocumentRow): ClientDocumentRecord {
     title: row.title,
     fileName: row.file_name,
     mimeType: row.mime_type,
-    category: row.category,
+    category: row.category as ClientDocumentRecord['category'],
     storagePath: row.storage_path,
-    status: row.status,
-    sensitivity: row.sensitivity,
+    status: row.status as ClientDocumentRecord['status'],
+    sensitivity: row.sensitivity as ClientDocumentRecord['sensitivity'],
     uploadedBy: row.uploaded_by,
     validUntil: row.valid_until,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
-    documentSource: row.source === 'intake' ? 'intake' : 'upload',
-    intakeDocumentId: row.intake_document_id ?? null,
   };
 }
 
@@ -494,41 +452,17 @@ export function mapClientPortalAccess(row: PortalAccessRow): ClientPortalAccess 
   };
 }
 
-type TaskRow = {
-  id: string;
-  tenant_id: string;
-  client_id: string;
-  category: ClientTask['category'];
-  title: string;
-  description: string | null;
-  frequency: ClientTask['frequency'];
-  duration_minutes: number | null;
-  is_active: boolean;
-  catalog_task_id: string | null;
-  assigned_employee_ids: string[];
-  module_key: ClientTask['moduleKey'];
-  leistungsbereich: ClientTask['leistungsbereich'];
-  subcategory: ClientTask['subcategory'];
-  package_id: string | null;
-  leistungsart: ClientTask['leistungsart'];
-  is_mandatory: boolean | null;
-  proof_required: boolean | null;
-  documentation_required: boolean | null;
-  billing_relevant: boolean | null;
-  visible_to_client: boolean | null;
-  created_at: string;
-  updated_at: string;
-};
+type TaskRow = ClientTaskRow;
 
 export function mapClientTask(row: TaskRow): ClientTask {
   return {
     id: row.id,
     tenantId: row.tenant_id,
     clientId: row.client_id,
-    category: row.category,
+    category: row.category as ClientTask['category'],
     title: row.title,
     description: row.description,
-    frequency: row.frequency,
+    frequency: row.frequency as ClientTask['frequency'],
     durationMinutes: row.duration_minutes,
     isActive: row.is_active,
     catalogTaskId: row.catalog_task_id,
@@ -615,11 +549,7 @@ export function mapClientFullDetail(input: {
   const timeline = input.timeline as TimelineRow[];
 
   const detailRow: ClientDetailRow = {
-    ...(input.client as unknown as ClientDetailRow),
-    status:
-      ((input.client as { status?: string }).status ??
-        input.client.lifecycle_status ??
-        'aktiv') as WorkflowStatus,
+    ...(input.client as ClientDetailRow),
     client_contacts: contacts,
     client_consents: consents,
     client_audit_entries: audit,
@@ -646,7 +576,6 @@ export function mapClientFullDetail(input: {
 
   return {
     ...base,
-    admissionDate: typeof input.client.admission_date === 'string' ? input.client.admission_date : null,
     core,
     lifecycleStatus: core.lifecycleStatus,
     addresses: resolvedAddresses,

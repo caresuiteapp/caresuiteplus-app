@@ -7,7 +7,7 @@ import {
   OPERATIONS_MONITORING_PREPARED_MESSAGE,
 } from '@/lib/operations/operationsMonitoringService';
 import type { OperationsMonitoringDashboard } from '@/types/modules/operationsMonitoring';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 const iconSize = 52;
@@ -75,7 +75,6 @@ export function OperationsMonitoringHero({ dashboard }: OperationsMonitoringHero
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Mandanten-Admin" variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isOperationsMonitoringLiveReady() ? (
           <PremiumBadge label="preparedOnly" variant="muted" />
         ) : null}

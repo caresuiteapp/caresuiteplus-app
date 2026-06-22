@@ -186,7 +186,6 @@ const styles = StyleSheet.create({
   card: {
     gap: careSpacing.xs,
     padding: careSpacing.md,
-    backgroundColor: 'rgba(20,27,40,0.85)',
   },
   section: {
     gap: careSpacing.sm,

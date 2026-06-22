@@ -4,7 +4,7 @@ import * as path from 'node:path';
 import { buildCaseDetailKpis } from '@/lib/beratung/caseDetailStats';
 import { getDemoCounselingCaseListItems } from '@/data/demo/counselingCases';
 import { fetchCounselingCaseDetail } from '@/lib/beratung/caseDetailService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 function readSrc(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');

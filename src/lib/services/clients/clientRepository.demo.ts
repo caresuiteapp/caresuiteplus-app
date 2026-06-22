@@ -10,7 +10,7 @@ import {
 } from '@/data/demo/clientDetails';
 import { upsertDemoClientFullDetail } from '@/data/demo/clients';
 import type { ClientFullDetail } from '@/types/modules/client';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { SERVICE_ERRORS } from '../errors';
 import { assertTenant } from '../serviceRunner';
 import {
@@ -102,6 +102,9 @@ export const demoClientRepository: ClientRepository = {
       phone: form.phone.trim() || null,
       email: form.email.trim() || null,
       notes: form.notes.trim() || null,
+      admissionDate: null,
+      costCarrier: form.costCarrier.trim() || null,
+      insuranceNumber: form.insuranceNumber.trim() || null,
       visibility: 'team',
       ownedByProfileId: 'profile-admin-001',
       sharedWithProfileIds: [],
@@ -181,6 +184,7 @@ export const demoClientRepository: ClientRepository = {
         relationship: 'angehoerige', relationshipLabel: 'Notfallkontakt',
         phone: form.emergencyContactPhone.trim() || null, email: null,
         isEmergency: true, isPortalUser: false,
+        contactType: 'emergency_contact' as const,
         portalPermissions: { canViewAppointments: false, canViewDocuments: false, canViewCarePlan: false, canSendMessages: false, canViewBilling: false },
         notes: null, createdAt: now, updatedAt: now,
       }] : [],

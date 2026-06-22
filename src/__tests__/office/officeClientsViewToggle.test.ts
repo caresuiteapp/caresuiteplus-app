@@ -18,11 +18,11 @@ describe('Desktop list view toggle (Sprint 30)', () => {
     expect(source).toContain('Tabelle');
   });
 
-  it('ClientsListHero integriert View-Toggle im CareLightListHeroFrame', () => {
+  it('ClientsListHero integriert View-Toggle im PremiumListHeroFrame', () => {
     const source = readSrc('src/components/office/ClientsListHero.tsx');
     expect(source).toContain('DesktopListViewToggle');
     expect(source).toContain('showViewToggle');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
   });
 
   it('ClientsListView schaltet Tabellenansicht per viewMode auf Desktop', () => {

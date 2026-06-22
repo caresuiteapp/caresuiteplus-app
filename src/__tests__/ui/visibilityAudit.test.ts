@@ -78,8 +78,6 @@ const PUBLIC_UI_PATHS = [
   'src/screens/auth/PortalCodeLoginScreen.tsx',
   'src/screens/onboarding/RegisterScreen.tsx',
   'src/components/auth/AuthLoginHero.tsx',
-  'src/components/auth/DemoLoginHero.tsx',
-  'src/components/auth/DemoModeHintHero.tsx',
   'src/components/auth/EmployeeFirstLoginHero.tsx',
 ];
 

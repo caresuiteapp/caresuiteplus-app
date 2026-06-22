@@ -1,6 +1,6 @@
 import { FlatList, RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { useMemo } from 'react';
+import { useEffect, useMemo } from 'react';
 import { AdaptiveActionBar } from '@/components/adaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { ClientListCard } from './ClientListCard';
@@ -18,7 +18,7 @@ import {
 import {
   buildClientListKpis,
   type ClientCareLevelFilterKey,
-} from '@/data/demo/clientListStats';
+} from '@/lib/office/clientListStats';
 import { useClientList } from '@/hooks/useClientList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,14 +32,20 @@ import { spacing } from '@/theme';
 
 type ClientsListViewProps = {
   onClientPress?: (id: string) => void;
+  onOpenDetail?: (id: string) => void;
+  onCreatePress?: () => void;
   selectedId?: string | null;
   embedded?: boolean;
+  refreshToken?: number;
 };
 
 export function ClientsListView({
   onClientPress,
+  onOpenDetail,
+  onCreatePress,
   selectedId = null,
   embedded = false,
+  refreshToken = 0,
 }: ClientsListViewProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -50,14 +56,17 @@ export function ClientsListView({
   const { viewMode, setViewMode } = useDesktopListViewPreference('office.clients');
   const useTableLayout = isDesktop && viewMode === 'table';
   const canCreate = can('office.clients.create');
+  const canCsv = can('tenant.settings.csv.view');
   const roleKey = profile?.roleKey ?? 'business_admin';
+  const handleCreate = onCreatePress ?? (() => router.push(CLIENT_INTAKE_NEW_ROUTE as never));
+  const handleOpenDetail = onOpenDetail ?? onClientPress ?? ((id: string) => router.push(clientRecordRoute(id) as never));
 
   const handleClientPress = (id: string) => {
     if (onClientPress) {
       onClientPress(id);
       return;
     }
-    router.push(clientRecordRoute(id) as never);
+    handleOpenDetail(id);
   };
 
   const {
@@ -88,6 +97,12 @@ export function ClientsListView({
     isFilterEmpty,
     allItems,
   } = useClientList();
+
+  useEffect(() => {
+    if (refreshToken > 0) {
+      void refresh();
+    }
+  }, [refreshToken, refresh]);
 
   const kpis = useMemo(() => buildClientListKpis(allItems), [allItems]);
   const compactHero = embedded || shellVariant === 'desktop';
@@ -173,8 +188,10 @@ export function ClientsListView({
           filteredCount={filteredCount}
           totalCount={totalCount}
           canCreate={canCreate}
+          canCsv={canCsv}
+          onCsvPress={() => router.push('/business/office/settings/csv-import-export?tab=clients-import' as never)}
           isReadOnly={isReadOnly}
-          onCreatePress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+          onCreatePress={canCreate ? handleCreate : undefined}
           compact={compactHero}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -245,7 +262,7 @@ export function ClientsListView({
           : `Noch keine Klient:innen vorhanden. Anlegen ist f?r ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
       }
       actionLabel={canCreate ? 'Klient:in anlegen' : undefined}
-      onAction={canCreate ? () => router.push(CLIENT_INTAKE_NEW_ROUTE as never) : undefined}
+      onAction={canCreate ? handleCreate : undefined}
     />
   ) : isFilterEmpty ? (
     <EmptyState
@@ -294,7 +311,7 @@ export function ClientsListView({
                 clients={items}
                 selectedId={selectedId}
                 onClientPress={handleClientPress}
-                onOpenDetail={(id) => router.push(clientRecordRoute(id) as never)}
+                onOpenDetail={handleOpenDetail}
                 sortColumnKey={tableSort.sortColumnKey}
                 sortDirection={tableSort.sortDirection}
                 onSortColumn={tableSort.onSortColumn}
@@ -331,7 +348,7 @@ export function ClientsListView({
                   <PremiumButton
                     title="+ Neu"
                     size="sm"
-                    onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+                    onPress={handleCreate}
                   />
                 ) : undefined
               }
@@ -343,7 +360,7 @@ export function ClientsListView({
             <PremiumButton
               title="+ Neu"
               size="sm"
-              onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+              onPress={handleCreate}
             />
           </View>
         ) : null}
@@ -382,7 +399,7 @@ export function ClientsListView({
           <PremiumButton
             title="+ Neu"
             size="sm"
-            onPress={() => router.push(CLIENT_INTAKE_NEW_ROUTE as never)}
+            onPress={handleCreate}
           />
         </View>
       ) : null}

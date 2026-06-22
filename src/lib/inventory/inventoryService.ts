@@ -13,12 +13,10 @@ import type {
   EmployeeEquipmentSummary,
   IssueInventoryItemInput,
 } from '@/types/inventory';
-import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
-import { inventoryDemoRepository, peekInventoryAuditEvents } from './inventoryRepository.demo';
 import { inventorySupabaseRepository } from './inventoryRepository.supabase';
 import {
   enforceInventoryPermission,
@@ -29,23 +27,18 @@ import {
   INVENTORY_VIEW,
   PORTAL_EMPLOYEE_INVENTORY_VIEW,
 } from './inventoryPermissions';
-import { isInventoryLiveReady } from './inventoryModuleConfig';
+import { INVENTORY_PREPARED_MESSAGE, isInventoryLiveReady } from './inventoryModuleConfig';
 
-function repo() {
-  return getServiceMode() === 'supabase' && isInventoryLiveReady()
-    ? inventorySupabaseRepository
-    : inventoryDemoRepository;
+function inventoryNotReady<T>(): ServiceResult<T> {
+  return { ok: false, error: INVENTORY_PREPARED_MESSAGE };
 }
 
-const OPEN_ASSIGNMENT_STATUSES: InventoryAssignment['status'][] = [
-  'planned',
-  'issued',
-  'acknowledged',
-  'return_requested',
-  'partially_returned',
-  'overdue',
-  'disputed',
-];
+function requireLiveRepo(): typeof inventorySupabaseRepository | ServiceResult<never> {
+  if (!isInventoryLiveReady()) {
+    return inventoryNotReady();
+  }
+  return inventorySupabaseRepository;
+}
 
 export async function fetchInventoryDashboard(
   tenantId: string,
@@ -55,7 +48,9 @@ export async function fetchInventoryDashboard(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  return repo().buildDashboard(tenantId);
+  const repo = requireLiveRepo();
+  if (!('buildDashboard' in repo)) return repo;
+  return repo.buildDashboard(tenantId);
 }
 
 export async function fetchInventoryItems(
@@ -66,10 +61,9 @@ export async function fetchInventoryItems(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (getServiceMode() === 'supabase' && isInventoryLiveReady()) {
-    return inventorySupabaseRepository.listItems(tenantId);
-  }
-  return inventoryDemoRepository.listItems(tenantId);
+  const repo = requireLiveRepo();
+  if (!('listItems' in repo)) return repo;
+  return inventorySupabaseRepository.listItems(tenantId);
 }
 
 export async function fetchInventoryItem(
@@ -81,9 +75,9 @@ export async function fetchInventoryItem(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const r = repo();
-  const result = r.getItem(tenantId, itemId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  const repo = requireLiveRepo();
+  if (!('getItem' in repo)) return repo;
+  return inventorySupabaseRepository.getItem(tenantId, itemId);
 }
 
 export async function fetchInventoryCategories(
@@ -94,8 +88,9 @@ export async function fetchInventoryCategories(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const result = repo().listCategories(tenantId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  const repo = requireLiveRepo();
+  if (!('listCategories' in repo)) return repo;
+  return inventorySupabaseRepository.listCategories(tenantId);
 }
 
 export async function fetchInventoryLocations(
@@ -106,8 +101,9 @@ export async function fetchInventoryLocations(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const result = repo().listLocations(tenantId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  const repo = requireLiveRepo();
+  if (!('listLocations' in repo)) return repo;
+  return inventorySupabaseRepository.listLocations(tenantId);
 }
 
 export async function fetchInventoryAssignments(
@@ -118,8 +114,9 @@ export async function fetchInventoryAssignments(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const result = repo().listAssignments(tenantId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  const repo = requireLiveRepo();
+  if (!('listAssignments' in repo)) return repo;
+  return inventorySupabaseRepository.listAssignments(tenantId);
 }
 
 export async function fetchEmployeeIssuedItems(
@@ -145,16 +142,17 @@ export async function fetchEmployeeIssuedItems(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  const assignmentsResult = repo().listAssignmentsForEmployee(tenantId, employeeId);
-  const assignments = assignmentsResult instanceof Promise ? await assignmentsResult : assignmentsResult;
+  const repo = requireLiveRepo();
+  if (!('listAssignmentsForEmployee' in repo)) return repo;
+
+  const assignments = await inventorySupabaseRepository.listAssignmentsForEmployee(tenantId, employeeId);
   if (!assignments.ok) return assignments;
 
   if (options?.portalSelf) {
-    const itemsResult = repo().listItems(tenantId);
-    const items = itemsResult instanceof Promise ? await itemsResult : itemsResult;
-    if (!items.ok) return items;
+    const itemsResult = await inventorySupabaseRepository.listItems(tenantId);
+    if (!itemsResult.ok) return itemsResult;
     const visibleItemIds = new Set(
-      items.data.filter((i) => i.portalVisibleToEmployee).map((i) => i.id),
+      itemsResult.data.filter((i) => i.portalVisibleToEmployee).map((i) => i.id),
     );
     return {
       ok: true,
@@ -174,15 +172,15 @@ export async function fetchEmployeeEquipmentSummary(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const result = repo().buildEmployeeSummary(tenantId, employeeId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  const repo = requireLiveRepo();
+  if (!('buildEmployeeSummary' in repo)) return repo;
+  return inventorySupabaseRepository.buildEmployeeSummary(tenantId, employeeId);
 }
 
 export async function createInventoryItem(
   tenantId: string,
   input: CreateInventoryItemInput,
   actorRoleKey?: RoleKey | null,
-  actorProfileId?: string | null,
 ): Promise<ServiceResult<InventoryItem>> {
   const denied = enforceInventoryPermission<InventoryItem>(actorRoleKey, INVENTORY_MANAGE_ITEMS);
   if (denied) return denied;
@@ -196,18 +194,15 @@ export async function createInventoryItem(
     return { ok: false, error: 'Kategorie ist erforderlich.' };
   }
 
-  const r = repo();
-  if (r === inventorySupabaseRepository) {
-    return inventorySupabaseRepository.createItem(tenantId, input);
-  }
-  return inventoryDemoRepository.createItem(tenantId, input, actorProfileId);
+  const repo = requireLiveRepo();
+  if (!('createItem' in repo)) return repo;
+  return inventorySupabaseRepository.createItem(tenantId, input);
 }
 
 export async function issueInventoryItem(
   tenantId: string,
   input: IssueInventoryItemInput,
   actorRoleKey?: RoleKey | null,
-  actorProfileId?: string | null,
 ): Promise<ServiceResult<InventoryAssignment>> {
   const denied = enforceInventoryPermission<InventoryAssignment>(actorRoleKey, INVENTORY_ISSUE);
   if (denied) return denied;
@@ -225,88 +220,39 @@ export async function issueInventoryItem(
     return { ok: false, error: 'Posten ist nicht verfügbar.' };
   }
 
-  const now = new Date().toISOString();
-  const assignment: InventoryAssignment = {
-    id: `inv-asg-${Date.now()}`,
-    tenantId,
-    itemId: input.itemId,
-    recipientEmployeeId: input.recipientEmployeeId,
-    responsibleEmployeeId: input.responsibleEmployeeId ?? input.recipientEmployeeId,
-    issuedByProfileId: input.issuedByProfileId ?? actorProfileId ?? null,
-    issuedAt: now,
-    expectedReturnAt: input.expectedReturnAt ?? null,
-    status: 'issued',
-    issueCondition: input.issueCondition ?? itemResult.data.condition,
-    issueNotes: input.issueNotes ?? null,
-    returnRequired: itemResult.data.requiresReturnOnExit,
-    createdAt: now,
-    updatedAt: now,
-  };
-
-  if (getServiceMode() === 'supabase' && isInventoryLiveReady()) {
-    return inventorySupabaseRepository.issueItem(tenantId, input);
-  }
-  return inventoryDemoRepository.createAssignment(tenantId, assignment, actorProfileId);
+  const repo = requireLiveRepo();
+  if (!('issueItem' in repo)) return repo;
+  return inventorySupabaseRepository.issueItem(tenantId, input);
 }
 
 export async function acknowledgeInventoryAssignment(
   tenantId: string,
   assignmentId: string,
   actorRoleKey?: RoleKey | null,
-  actorProfileId?: string | null,
 ): Promise<ServiceResult<InventoryAssignment>> {
   const denied = enforceInventoryPermission<InventoryAssignment>(actorRoleKey, INVENTORY_ISSUE);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (inventorySupabaseRepository && getServiceMode() === 'supabase' && isInventoryLiveReady()) {
-    return inventorySupabaseRepository.acknowledgeAssignment(tenantId, assignmentId);
-  }
-
-  const existing = inventoryDemoRepository.getAssignment(tenantId, assignmentId);
-  if (!existing.ok || !existing.data) return { ok: false, error: 'Ausgabe nicht gefunden.' };
-  if (existing.data.status !== 'issued' && existing.data.status !== 'planned') {
-    return { ok: false, error: 'Bestätigung nur für geplante/ausgegebene Posten möglich.' };
-  }
-
-  return inventoryDemoRepository.updateAssignment(
-    tenantId,
-    assignmentId,
-    { status: 'acknowledged', acknowledgedAt: new Date().toISOString() },
-    'acknowledge_assignment',
-    actorProfileId,
-  );
+  const repo = requireLiveRepo();
+  if (!('acknowledgeAssignment' in repo)) return repo;
+  return inventorySupabaseRepository.acknowledgeAssignment(tenantId, assignmentId);
 }
 
 export async function requestInventoryReturn(
   tenantId: string,
   assignmentId: string,
   actorRoleKey?: RoleKey | null,
-  actorProfileId?: string | null,
 ): Promise<ServiceResult<InventoryAssignment>> {
   const denied = enforceInventoryPermission<InventoryAssignment>(actorRoleKey, INVENTORY_RETURN_MANAGE);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'supabase' && isInventoryLiveReady()) {
-    return inventorySupabaseRepository.requestReturn(tenantId, assignmentId);
-  }
-
-  const existing = inventoryDemoRepository.getAssignment(tenantId, assignmentId);
-  if (!existing.ok || !existing.data) return { ok: false, error: 'Ausgabe nicht gefunden.' };
-  if (!OPEN_ASSIGNMENT_STATUSES.includes(existing.data.status)) {
-    return { ok: false, error: 'Rückgabe kann für diesen Status nicht angefordert werden.' };
-  }
-
-  return inventoryDemoRepository.updateAssignment(
-    tenantId,
-    assignmentId,
-    { status: 'return_requested' },
-    'request_return',
-    actorProfileId,
-  );
+  const repo = requireLiveRepo();
+  if (!('requestReturn' in repo)) return repo;
+  return inventorySupabaseRepository.requestReturn(tenantId, assignmentId);
 }
 
 export async function fetchInventoryAuditEvents(
@@ -317,33 +263,33 @@ export async function fetchInventoryAuditEvents(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  if (getServiceMode() === 'supabase' && isInventoryLiveReady()) {
-    const supabase = getSupabaseClient();
-    if (!supabase) return { ok: true, data: [] };
-    const { data, error } = await fromUnknownTable(supabase, 'inventory_audit_events')
-      .select('*')
-      .eq('tenant_id', tenantId)
-      .order('created_at', { ascending: false })
-      .limit(100);
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return {
-      ok: true,
-      data: (data ?? []).map((row) => {
-        const r = row as Record<string, unknown>;
-        return {
-          id: String(r.id),
-          tenantId: String(r.tenant_id),
-          actorProfileId: r.actor_profile_id ? String(r.actor_profile_id) : null,
-          action: String(r.action),
-          entityType: r.entity_type as InventoryAuditEvent['entityType'],
-          entityId: String(r.entity_id),
-          metadata: (r.metadata as Record<string, unknown>) ?? {},
-          createdAt: String(r.created_at),
-        };
-      }),
-    };
+  if (!isInventoryLiveReady()) {
+    return { ok: true, data: [] };
   }
-  return { ok: true, data: peekInventoryAuditEvents(tenantId) };
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: true, data: [] };
+  const { data, error } = await fromUnknownTable(supabase, 'inventory_audit_events')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .order('created_at', { ascending: false })
+    .limit(100);
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  return {
+    ok: true,
+    data: (data ?? []).map((row) => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: String(r.id),
+        tenantId: String(r.tenant_id),
+        actorProfileId: r.actor_profile_id ? String(r.actor_profile_id) : null,
+        action: String(r.action),
+        entityType: r.entity_type as InventoryAuditEvent['entityType'],
+        entityId: String(r.entity_id),
+        metadata: (r.metadata as Record<string, unknown>) ?? {},
+        createdAt: String(r.created_at),
+      };
+    }),
+  };
 }
 
 export async function fetchDeviceManagementProfile(
@@ -355,8 +301,9 @@ export async function fetchDeviceManagementProfile(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const result = repo().getDeviceProfileForItem(tenantId, itemId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  const repo = requireLiveRepo();
+  if (!('getDeviceProfileForItem' in repo)) return repo;
+  return inventorySupabaseRepository.getDeviceProfileForItem(tenantId, itemId);
 }
 
 export async function fetchInventoryDamageReports(
@@ -367,8 +314,9 @@ export async function fetchInventoryDamageReports(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const result = repo().listDamageReports(tenantId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  const repo = requireLiveRepo();
+  if (!('listDamageReports' in repo)) return repo;
+  return inventorySupabaseRepository.listDamageReports(tenantId);
 }
 
 export async function fetchInventoryReturnRecords(
@@ -379,8 +327,9 @@ export async function fetchInventoryReturnRecords(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
-  const result = repo().listReturnRecords(tenantId);
-  return result instanceof Promise ? result : Promise.resolve(result);
+  const repo = requireLiveRepo();
+  if (!('listReturnRecords' in repo)) return repo;
+  return inventorySupabaseRepository.listReturnRecords(tenantId);
 }
 
 export { resetInventoryDemoStore } from './inventoryRepository.demo';

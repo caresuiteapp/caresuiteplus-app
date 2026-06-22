@@ -8,8 +8,8 @@ import {
   isPdlCockpitLiveReady,
   PDL_COCKPIT_PREPARED_MESSAGE,
 } from '@/lib/reporting/reportingModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { PdlCockpitSnapshot } from '@/types/reporting';
 import { designTokens, spacing } from '@/theme';
@@ -85,7 +85,6 @@ export function PdlCockpitHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isPdlCockpitLiveReady() ? (
           <PremiumBadge label="Live Supabase" variant="green" />
         ) : (

@@ -1,8 +1,8 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useCallback, useEffect, useState } from 'react';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
-import { EmptyState, ErrorState, LoadingState, CareLightButton } from '@/components/ui';
+import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -48,32 +48,31 @@ export function EmployeeHrCasesScreen() {
 
   if (!canView) {
     return (
-      <CareLightPageShell title="Personalvorgänge" subtitle="Mehr → Personal" scroll={false}>
+      <ScreenShell title="Personalvorgänge" subtitle="Mehr → Personal" scroll={false}>
         <LockedActionBanner
           message={check('office.employees.hr.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && items.length === 0) {
     return (
-      <CareLightPageShell title="Personalvorgänge" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Personalvorgänge" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Personalvorgänge werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Personalvorgänge"
       subtitle="Mehr → Personal · Mitarbeitergespräche, Abmahnungen, Kündigungen, Zeugnisse"
       rightSlot={
         canManage ? (
-          <CareLightButton
+          <PremiumButton
             title="+ Vorgang"
-            accentColor={officeAccent}
             onPress={() => {
               if (!tenantId) return;
               const result = createHrCase(
@@ -121,7 +120,7 @@ export function EmployeeHrCasesScreen() {
           ))}
         </View>
       )}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

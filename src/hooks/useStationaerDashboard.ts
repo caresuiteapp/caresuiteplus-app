@@ -40,6 +40,7 @@ export function useStationaerDashboard() {
     loading: statsQuery.loading || activeQuery.loading,
     error: statsQuery.error ?? activeQuery.error,
     isPreviewData: statsQuery.previewData || activeQuery.previewData,
+    tableMissing: statsQuery.tableMissing || activeQuery.tableMissing,
     refreshing: statsQuery.refreshing || activeQuery.refreshing,
     showSuccess,
     refresh,

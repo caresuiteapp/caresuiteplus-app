@@ -8,7 +8,7 @@ import {
   View,
   type ViewStyle,
 } from 'react-native';
-import { useAuroraGlassSelectStyles } from '@/design/tokens/auroraGlass';
+import { useAuroraGlassChipStyles, useAuroraGlassSelectStyles } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useTemplates } from '@/hooks/templates/useTemplates';
 import type { ComposeRecipientType } from '@/lib/communication/composeRecipients';
@@ -65,7 +65,8 @@ export function GroupedTemplateSelect({
   label = 'Nachrichtenvorlage',
   style,
 }: GroupedTemplateSelectProps) {
-  const baseStyles = useAuroraGlassSelectStyles();
+  const baseStyles = useAuroraGlassSelectStyles({ viewContext: 'form' });
+  const chipStyles = useAuroraGlassChipStyles({ viewContext: 'form' });
   const { colors, typography } = useLegacyTheme();
   const [open, setOpen] = useState(false);
   const [activeTab, setActiveTab] = useState<AudienceTab>(() =>
@@ -106,19 +107,6 @@ export function GroupedTemplateSelect({
           gap: spacing.xs,
           marginBottom: spacing.sm,
         },
-        tab: {
-          paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.xs,
-          borderRadius: radius.capsule,
-          borderWidth: 1,
-          borderColor: colors.borderSoft,
-        },
-        tabActive: {
-          backgroundColor: `${colors.violet}22`,
-          borderColor: colors.violet,
-        },
-        tabText: { ...typography.caption, color: colors.textSecondary },
-        tabTextActive: { color: colors.violet, fontWeight: '700' },
         hint: { ...typography.caption, color: colors.textMuted, opacity: 0.85 },
         pickerSheet: {
           ...baseStyles.modalSheet,
@@ -207,9 +195,9 @@ export function GroupedTemplateSelect({
         {recipientType === 'internal' || recipientType === 'office' ? (
           <Pressable
             onPress={() => setActiveTab('all')}
-            style={[styles.tab, activeTab === 'all' && styles.tabActive]}
+            style={[chipStyles.chip, activeTab === 'all' && chipStyles.chipSelected]}
           >
-            <Text style={[styles.tabText, activeTab === 'all' && styles.tabTextActive]}>
+            <Text style={[chipStyles.label, activeTab === 'all' && chipStyles.labelSelected]}>
               Intern & Team
             </Text>
           </Pressable>
@@ -221,9 +209,9 @@ export function GroupedTemplateSelect({
               <Pressable
                 key={item}
                 onPress={() => setActiveTab(item)}
-                style={[styles.tab, active && styles.tabActive]}
+                style={[chipStyles.chip, active && chipStyles.chipSelected]}
               >
-                <Text style={[styles.tabText, active && styles.tabTextActive]}>{tabLabel(item)}</Text>
+                <Text style={[chipStyles.label, active && chipStyles.labelSelected]}>{tabLabel(item)}</Text>
               </Pressable>
             );
           },

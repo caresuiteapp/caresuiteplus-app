@@ -1,6 +1,6 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -26,24 +26,24 @@ export function OfficeBusinessReportingScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Office Auswertungen" subtitle="Wird geladen…">
+      <ScreenShell title="Office Auswertungen" subtitle="Wird geladen…">
         <LoadingState message="Auswertungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Office Auswertungen" subtitle="Fehler">
+      <ScreenShell title="Office Auswertungen" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const summary = query.data ?? [];
 
   return (
-    <CareLightPageShell title="Office Auswertungen" subtitle={roleLabel ?? 'Demo'}>
+    <ScreenShell title="Office Auswertungen" subtitle={roleLabel ?? 'Demo'}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SectionPanel title="Kennzahlen">
           {summary.length === 0 ? (
@@ -61,7 +61,7 @@ export function OfficeBusinessReportingScreen() {
         <PremiumButton title="Insight Center öffnen" onPress={() => router.push('/business/reporting' as never)} />
         <PremiumButton title="Audit-Log" variant="secondary" onPress={() => router.push('/business/office/audit-log' as never)} />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

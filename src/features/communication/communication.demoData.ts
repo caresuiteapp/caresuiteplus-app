@@ -1,4 +1,4 @@
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type {
   CommunicationAttachment,
   CommunicationAuditEvent,

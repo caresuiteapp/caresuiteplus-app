@@ -10,6 +10,10 @@ import type {
 import { CONSULTATION_LEGAL_DISCLAIMER } from '@/types/modules/consultation';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import {
+  buildCalendarEventFromFollowUp,
+  syncCalendarEventAsync,
+} from '@/lib/calendar/calendarSyncService';
 import { canUseDemoFallback } from '@/lib/environment';
 import { getServiceMode } from '@/lib/services/mode';
 import {
@@ -377,6 +381,8 @@ export function createConsultationFollowUp(input: {
     newStatus: null,
     metadata: null,
   });
+
+  syncCalendarEventAsync(buildCalendarEventFromFollowUp(followUp));
 
   return { ok: true, data: followUp };
 }

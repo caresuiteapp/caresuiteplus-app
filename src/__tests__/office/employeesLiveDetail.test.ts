@@ -4,7 +4,7 @@ import path from 'node:path';
 import { mapEmployeeRowToDetail } from '@/lib/office/employeeDetailMapper';
 import type { EmployeeDetailLiveRow } from '@/lib/office/employeeDetailMapper';
 import { isEmployeeDetailLiveReady } from '@/lib/office/employeeModuleConfig';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 

@@ -23,6 +23,12 @@ export {
 } from './moduleAccessService';
 export { hydrateTenantModulesFromSupabase } from './moduleAccessHydration';
 export {
+  isModuleScopeNavigable,
+  isModuleScopeVisible,
+  resolveModuleNavState,
+  resolveModuleScopeFromPath,
+} from './moduleVisibilityService';
+export {
   calculateBillingItems,
   type BillingPreview,
   type BillingPreviewItem,

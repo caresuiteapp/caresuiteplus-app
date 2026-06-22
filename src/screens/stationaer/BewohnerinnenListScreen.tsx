@@ -1,5 +1,5 @@
 import { StyleSheet, View } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ResidentsListView } from '@/components/stationaer/ResidentsListView';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -13,22 +13,22 @@ export function BewohnerinnenListScreen() {
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Bewohner:innen" subtitle="Wird geladen…" scroll={false}>
+      <ScreenShell title="Bewohner:innen" subtitle="Wird geladen…" scroll={false}>
         <LoadingState message="Bewohner:innen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (list.error && list.allItems.length === 0) {
     return (
-      <CareLightPageShell title="Bewohner:innen" subtitle="Fehler" scroll={false}>
+      <ScreenShell title="Bewohner:innen" subtitle="Fehler" scroll={false}>
         <ErrorState message={list.error} onRetry={list.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Bewohner:innen"
       subtitle={`Bewohnerliste aus Office-Zuordnung · ${roleLabel ?? 'Demo'}${isReadOnly ? ' · Lesemodus' : ''}`}
       scroll={false}
@@ -41,7 +41,7 @@ export function BewohnerinnenListScreen() {
           <ResidentsListView />
         )}
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

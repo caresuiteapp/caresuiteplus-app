@@ -1,7 +1,7 @@
 import { describe, expect, it, beforeEach } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { resetQmDemoStore } from '@/lib/qm';
 import { buildQmDashboardKpis } from '@/lib/qm/qmDashboardStats';

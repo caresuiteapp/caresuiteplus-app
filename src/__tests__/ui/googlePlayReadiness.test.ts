@@ -250,6 +250,16 @@ describe('Google Play readiness — store sight', () => {
     expect(readSrc('src/screens/ti/EPAVorbereitungScreen.tsx')).toContain('TIVorbereitungHero');
   });
 
+  it('enables R8 minify and ProGuard rules for Play deobfuscation mapping', () => {
+    const appConfig = readSrc('app.config.ts');
+    expect(appConfig).toContain('enableProguardInReleaseBuilds: true');
+    expect(appConfig).toContain('android-proguard-rules.pro');
+    expect(appConfig).toContain('versionCode: 9');
+    expect(readFileSync(path.join(root, 'android-proguard-rules.pro'), 'utf8')).toContain(
+      'app.caresuiteplus',
+    );
+  });
+
   it('eas.json defines preview and production profiles', () => {
     const eas = JSON.parse(readSrc('eas.json'));
     expect(eas.build.preview).toBeDefined();

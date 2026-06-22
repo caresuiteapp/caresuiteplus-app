@@ -8,8 +8,8 @@ import type { CareSuiteLogoSize } from './CareSuiteLogoMark';
 type CareSuiteWordmarkProps = {
   size?: 'sm' | 'md' | 'lg' | 'nav';
   showPlus?: boolean;
-  /** Light text for dark aurora glass surfaces (portal nav, mobile top bar). */
-  variant?: 'default' | 'aurora';
+  /** Force dark-on-light wordmark (e.g. light sidebar). Default adapts to aurora shell. */
+  variant?: 'default' | 'aurora' | 'light';
   style?: ViewStyle;
 };
 
@@ -29,9 +29,8 @@ export function CareSuiteWordmark({
   const titleSize = size === 'lg' ? 28 : size === 'md' ? 22 : 18;
   const logoSize = resolveLogoSize(size);
   const titleColor =
-    variant === 'aurora' ? text.primary : careSuiteColors.light.brand.navy;
-  const taglineColor =
-    variant === 'aurora' ? text.muted : careSuiteColors.light.text.muted;
+    variant === 'light' ? careSuiteColors.light.brand.navy : text.primary;
+  const taglineColor = variant === 'light' ? careSuiteColors.light.text.muted : text.muted;
 
   return (
     <View style={[styles.row, style]} accessibilityRole="header">

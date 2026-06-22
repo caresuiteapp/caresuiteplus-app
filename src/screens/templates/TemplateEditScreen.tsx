@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PreparedTemplateBanner, TemplateEditor } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
 import { useTemplateDetail, useTemplateEditor, useTemplateVariables } from '@/hooks/templates';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,42 +32,42 @@ export function TemplateEditScreen() {
 
   if (!can('office.catalogs.edit')) {
     return (
-      <CareLightPageShell title="Vorlage bearbeiten" subtitle={roleLabel ?? ''}>
+      <ScreenShell title="Vorlage bearbeiten" subtitle={roleLabel ?? ''}>
         <LockedActionBanner message={check('office.catalogs.edit').reason ?? 'Keine Berechtigung.'} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !template) {
     return (
-      <CareLightPageShell title="Vorlage bearbeiten" subtitle="Wird geladen…">
+      <ScreenShell title="Vorlage bearbeiten" subtitle="Wird geladen…">
         <LoadingState message="Vorlage wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !template) {
     return (
-      <CareLightPageShell title="Vorlage bearbeiten" subtitle="Fehler">
+      <ScreenShell title="Vorlage bearbeiten" subtitle="Fehler">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!template || template.scope !== 'tenant') {
     return (
-      <CareLightPageShell title="Vorlage bearbeiten" subtitle="Nicht editierbar">
+      <ScreenShell title="Vorlage bearbeiten" subtitle="Nicht editierbar">
         <ErrorState message="Nur Mandantenvorlagen können bearbeitet werden." onRetry={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (archived) {
     return (
-      <CareLightPageShell title="Archiviert" subtitle="Vorlage">
+      <ScreenShell title="Archiviert" subtitle="Vorlage">
         <SuccessState message="Vorlage wurde archiviert." />
         <PremiumButton title="Zur Übersicht" onPress={() => router.replace('/business/templates' as never)} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -89,7 +89,7 @@ export function TemplateEditScreen() {
   };
 
   return (
-    <CareLightPageShell title="Vorlage bearbeiten" subtitle={template.title}>
+    <ScreenShell title="Vorlage bearbeiten" subtitle={template.title}>
       <PreparedTemplateBanner />
       <TemplateEditor
         title={title}
@@ -112,7 +112,7 @@ export function TemplateEditScreen() {
         <PremiumButton title="Archivieren" variant="secondary" onPress={handleArchive} loading={saving} />
         <PremiumButton title="Abbrechen" variant="ghost" onPress={() => router.back()} />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

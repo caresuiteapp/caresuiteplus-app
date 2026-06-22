@@ -14,9 +14,13 @@ import {
   type ProgressItem,
 } from '@/data/demo/akademieLessons';
 import { getDemoCourseListItems } from '@/data/demo/courses';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import {
+  buildCalendarEventFromLesson,
+  syncCalendarEventAsync,
+} from '@/lib/calendar/calendarSyncService';
 
 async function demoDelay(ms = 200): Promise<void> {
   await new Promise((r) => setTimeout(r, ms));
@@ -137,5 +141,7 @@ export async function createLesson(
   const live = guardDemo(tenantId);
   if (live) return live;
   await demoDelay(280);
-  return { ok: true, data: createDemoLesson(input) };
+  const lesson = createDemoLesson(input);
+  syncCalendarEventAsync(buildCalendarEventFromLesson(tenantId, lesson));
+  return { ok: true, data: lesson };
 }

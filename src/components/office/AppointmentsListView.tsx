@@ -16,7 +16,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildAppointmentListKpis } from '@/data/demo/appointmentListStats';
+import { buildAppointmentListKpis } from '@/lib/office/appointmentListStats';
 import { useAppointmentList } from '@/hooks/useAppointmentList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,12 +32,14 @@ type AppointmentsListViewProps = {
   onAppointmentPress?: (id: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
+  onCreatePress?: () => void;
 };
 
 export function AppointmentsListView({
   onAppointmentPress,
   selectedId = null,
   embedded = false,
+  onCreatePress,
 }: AppointmentsListViewProps) {
   const router = useRouter();
   const { profile } = useAuth();
@@ -57,6 +59,7 @@ export function AppointmentsListView({
 
   const canView = can('office.appointments.view');
   const canCreate = can('office.appointments.view') && !isReadOnly;
+  const handleCreate = onCreatePress ?? (() => router.push('/office/appointments?create=1' as never));
   const roleKey = profile?.roleKey ?? 'business_admin';
 
   const {
@@ -187,7 +190,7 @@ export function AppointmentsListView({
           totalCount={totalCount}
           canCreate={canCreate}
           isReadOnly={isReadOnly}
-          onCreatePress={() => router.push('/office/appointments/create' as never)}
+          onCreatePress={() => handleCreate()}
           compact={compactHero}
           viewMode={viewMode}
           onViewModeChange={setViewMode}
@@ -240,7 +243,7 @@ export function AppointmentsListView({
       }
       actionLabel={canCreate ? 'Termin anlegen' : undefined}
       onAction={
-        canCreate ? () => router.push('/office/appointments/create' as never) : undefined
+        canCreate ? () => handleCreate() : undefined
       }
     />
   ) : isFilterEmpty ? (
@@ -318,7 +321,7 @@ export function AppointmentsListView({
                   <PremiumButton
                     title="+ Neu"
                     size="sm"
-                    onPress={() => router.push('/office/appointments/create' as never)}
+                    onPress={handleCreate}
                   />
                 ) : undefined
               }
@@ -330,7 +333,7 @@ export function AppointmentsListView({
             <PremiumButton
               title="+ Neu"
               size="sm"
-              onPress={() => router.push('/office/appointments/create' as never)}
+              onPress={handleCreate}
             />
           </View>
         ) : null}
@@ -365,7 +368,7 @@ export function AppointmentsListView({
           <PremiumButton
             title="+ Neu"
             size="sm"
-            onPress={() => router.push('/office/appointments/create' as never)}
+            onPress={handleCreate}
           />
         </View>
       ) : null}

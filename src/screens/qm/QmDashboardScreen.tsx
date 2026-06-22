@@ -1,10 +1,11 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareLightModuleDashboard, CareLightScreen } from '@/components/layout';
 import { CareLightModuleTile, EmptyState, ErrorState, InfoBanner, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useQmDashboard } from '@/hooks/qm';
@@ -35,6 +36,15 @@ const NAV_AREAS = [
 /** QM Dashboard — Office Qualitätsmanagement */
 export function QmDashboardScreen() {
   const router = useRouter();
+  const { c } = useCareLightPalette();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        grid: { gap: careSpacing.md },
+        auditItem: { ...careTypography.body, color: c.text, marginBottom: careSpacing.xs },
+      }),
+    [c.text],
+  );
   const { can, check, roleLabel } = usePermissions();
   const { data, loading, error, refresh } = useQmDashboard();
   const qmAccent = moduleColor('qm');
@@ -104,8 +114,3 @@ export function QmDashboardScreen() {
     </CareLightScreen>
   );
 }
-
-const styles = StyleSheet.create({
-  grid: { gap: careSpacing.md },
-  auditItem: { ...careTypography.body, color: careLightColors.text, marginBottom: careSpacing.xs },
-});

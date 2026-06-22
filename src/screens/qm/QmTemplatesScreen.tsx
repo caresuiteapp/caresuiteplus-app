@@ -1,7 +1,7 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useEffect, useState } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard } from '@/components/ui';
 import { QmTypeLabel } from '@/components/qm';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -38,30 +38,30 @@ export function QmTemplatesScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="QM-Vorlagen" showBack>
+      <ScreenShell title="QM-Vorlagen" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !templates.length) {
     return (
-      <CareLightPageShell title="QM-Vorlagen" showBack>
+      <ScreenShell title="QM-Vorlagen" showBack>
         <LoadingState message="Vorlagen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !templates.length) {
     return (
-      <CareLightPageShell title="QM-Vorlagen" showBack>
+      <ScreenShell title="QM-Vorlagen" showBack>
         <ErrorState title="Vorlagen" message={error} onRetry={load} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="QM-Vorlagen" subtitle={`${templates.length} Vorlagen (Paket F)`} showBack>
+    <ScreenShell title="QM-Vorlagen" subtitle={`${templates.length} Vorlagen (Paket F)`} showBack>
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={load} tintColor={colors.primary} />}
         contentContainerStyle={styles.scroll}
@@ -78,7 +78,7 @@ export function QmTemplatesScreen() {
           ))
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

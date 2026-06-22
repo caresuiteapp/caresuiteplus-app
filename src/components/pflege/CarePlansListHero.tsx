@@ -1,19 +1,19 @@
 import { StyleSheet, Text, View } from 'react-native';
 import {
   DesktopListViewToggle,
-  CareLightButton,
-  CareLightKpiCard,
-  CareLightListHeroFrame,
+  PremiumButton,
+  PremiumKpiCard,
+  PremiumListHeroFrame,
   PremiumBadge,
   type DesktopListViewMode,
 } from '@/components/ui';
 import { useListHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
-import type { CarePlanListKpi } from '@/data/demo/carePlanListStats';
-import { ROLE_LABELS } from '@/data/demo';
+import type { CarePlanListKpi } from '@/lib/pflege/carePlanListStats';
+import { ROLE_LABELS } from '@/data/constants';
 import { isCarePlansLiveReady } from '@/lib/pflege/pflegeModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import { designTokens } from '@/theme';
 
@@ -48,7 +48,7 @@ export function CarePlansListHero({
   const heroText = useListHeroTextStyles();
 
   return (
-    <CareLightListHeroFrame accentColor={accent}>
+    <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={heroText.eyebrow}>PFLEGE</Text>
@@ -66,7 +66,6 @@ export function CarePlansListHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isCarePlansLiveReady() ? (
           <PremiumBadge label="Live-Sync aktiv" variant="green" dot />
         ) : null}
@@ -77,22 +76,21 @@ export function CarePlansListHero({
       {!compact ? (
         <View style={styles.kpiRow}>
           {kpis.map((kpi) => (
-            <CareLightKpiCard
+            <PremiumKpiCard
               key={kpi.id}
               label={kpi.label}
               value={String(kpi.value)}
               subValue={kpi.subValue}
               icon={kpi.icon}
-              accentColor={kpi.accentColor}
               style={styles.kpiItem}
             />
           ))}
         </View>
       ) : null}
       {canCreate ? (
-        <CareLightButton title="➕ Pflegeplan anlegen" onPress={onCreatePress} accentColor={accent} />
+        <PremiumButton title="➕ Pflegeplan anlegen" onPress={onCreatePress} />
       ) : null}
-    </CareLightListHeroFrame>
+    </PremiumListHeroFrame>
   );
 }
 

@@ -30,8 +30,17 @@ import {
 } from '@/types/modules/employeeOffboarding';
 import { colors, spacing, typography } from '@/theme';
 
-export function EmployeeOffboardingScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+export function EmployeeOffboardingScreen({
+  employeeId: employeeIdProp,
+  embedded = false,
+  embeddedInModal = false,
+}: {
+  employeeId?: string;
+  embedded?: boolean;
+  embeddedInModal?: boolean;
+} = {}) {
+  const { id: routeId } = useLocalSearchParams<{ id: string }>();
+  const id = employeeIdProp ?? routeId;
   const router = useRouter();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
@@ -50,7 +59,12 @@ export function EmployeeOffboardingScreen() {
   );
 
   if (!canView) {
-    return (
+    return embedded ? (
+      <LockedActionBanner
+        message={check('office.employees.view').reason ?? 'Keine Berechtigung.'}
+        roleLabel={roleLabel}
+      />
+    ) : (
       <ScreenShell title="Offboarding" subtitle="Kein Zugriff">
         <LockedActionBanner
           message={check('office.employees.view').reason ?? 'Keine Berechtigung.'}
@@ -61,7 +75,9 @@ export function EmployeeOffboardingScreen() {
   }
 
   if (query.loading && !query.data) {
-    return (
+    return embedded ? (
+      <LoadingState message="Offboarding-Checkliste wird geladen…" />
+    ) : (
       <ScreenShell title="Offboarding" subtitle="Wird geladen…" scroll>
         <LoadingState message="Offboarding-Checkliste wird geladen…" />
       </ScreenShell>
@@ -69,7 +85,9 @@ export function EmployeeOffboardingScreen() {
   }
 
   if (query.error && !query.data) {
-    return (
+    return embedded ? (
+      <ErrorState message={query.error} onRetry={query.refresh} />
+    ) : (
       <ScreenShell title="Offboarding" subtitle="Fehler" scroll>
         <ErrorState message={query.error} onRetry={query.refresh} />
       </ScreenShell>
@@ -78,7 +96,9 @@ export function EmployeeOffboardingScreen() {
 
   const progress = query.data;
   if (!progress) {
-    return (
+    return embedded ? (
+      <EmptyState title="Keine Daten" message="Offboarding konnte nicht geladen werden." />
+    ) : (
       <ScreenShell title="Offboarding" scroll>
         <EmptyState title="Keine Daten" message="Offboarding konnte nicht geladen werden." />
       </ScreenShell>
@@ -131,14 +151,8 @@ export function EmployeeOffboardingScreen() {
     query.refresh();
   };
 
-  return (
-    <ScreenShell
-      title="Offboarding"
-      subtitle={progress.employeeName || 'Mitarbeitende:r'}
-      showBack
-      onBack={() => router.back()}
-      scroll
-    >
+  const offboardingBody = (
+    <>
       <InfoBanner message={EMPLOYEE_OFFBOARDING_PREPARED_MESSAGE} variant="info" />
 
       <SectionPanel
@@ -211,11 +225,36 @@ export function EmployeeOffboardingScreen() {
           />
         </SectionPanel>
       ) : null}
+    </>
+  );
+
+  if (embedded) {
+    return <View style={embeddedInModal ? styles.embeddedModal : styles.embedded}>{offboardingBody}</View>;
+  }
+
+  return (
+    <ScreenShell
+      title="Offboarding"
+      subtitle={progress.employeeName || 'Mitarbeitende:r'}
+      showBack
+      onBack={() => router.back()}
+      scroll
+    >
+      {offboardingBody}
     </ScreenShell>
   );
 }
 
 const styles = StyleSheet.create({
+  embedded: {
+    gap: spacing.md,
+    paddingBottom: spacing.xxl,
+  },
+  embeddedModal: {
+    gap: spacing.md,
+    padding: spacing.md,
+    paddingBottom: spacing.xxl,
+  },
   statusLine: {
     ...typography.body,
     color: colors.textPrimary,

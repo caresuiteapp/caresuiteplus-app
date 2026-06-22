@@ -12,24 +12,16 @@ import type {
 } from '@/types/templates';
 import { enforcePermission, hasPermission } from '@/lib/permissions';
 import { hasCommunicationPermission } from '@/features/communication/communication.permissions';
-import { getServiceMode } from '@/lib/services/mode';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import { renderTemplateWithVariables as renderVars } from './templateVariables';
 import {
   isCommunicationMessageListQuery,
 } from './communicationTemplateDefaults';
 import { TEMPLATE_EDIT_PERMISSION, TEMPLATE_VIEW_PERMISSION } from './templatePermissions';
-import { catalogDemoRepository, templateDemoRepository } from './templateRepository.demo';
 import { catalogSupabaseRepository, templateSupabaseRepository } from './templateRepository.supabase';
 
 function repo() {
-  return getServiceMode() === 'supabase' ? templateSupabaseRepository : templateDemoRepository;
-}
-
-async function demoDelay(ms = 120): Promise<void> {
-  if (getServiceMode() === 'demo') {
-    await new Promise((r) => setTimeout(r, ms));
-  }
+  return templateSupabaseRepository;
 }
 
 function enforceListTemplatesPermission(
@@ -58,7 +50,6 @@ export async function listTemplates(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
-  await demoDelay();
   return repo().list(tenantId, filters);
 }
 
@@ -71,7 +62,6 @@ export async function getTemplate(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
-  await demoDelay();
   const result = await repo().getById(tenantId, templateId);
   if (!result.ok) return result;
   if (!result.data) return { ok: false, error: 'Vorlage nicht gefunden.' };
@@ -88,7 +78,6 @@ export async function createTemplate(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
-  await demoDelay(180);
   return repo().create(tenantId, input, createdBy);
 }
 
@@ -102,7 +91,6 @@ export async function updateTemplate(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
-  await demoDelay(150);
   return repo().update(tenantId, templateId, patch);
 }
 
@@ -115,7 +103,6 @@ export async function archiveTemplate(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
-  await demoDelay(120);
   return repo().archive(tenantId, templateId);
 }
 
@@ -129,7 +116,6 @@ export async function duplicateSystemTemplateForTenant(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
-  await demoDelay(200);
   return repo().duplicateSystemForTenant(tenantId, systemTemplateId, createdBy);
 }
 
@@ -186,7 +172,6 @@ export async function getTemplateDashboardStats(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
-  await demoDelay();
   return repo().getDashboardStats(tenantId);
 }
 
@@ -213,4 +198,4 @@ export async function updateTenantTemplateSettings(
   return repo().updateSettings(tenantId, patch);
 }
 
-export { catalogDemoRepository, catalogSupabaseRepository };
+export { catalogSupabaseRepository };

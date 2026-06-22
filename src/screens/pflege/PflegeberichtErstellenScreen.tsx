@@ -3,7 +3,7 @@ import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -54,27 +54,27 @@ export function PflegeberichtErstellenScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Pflegebericht erstellen" subtitle="Speichern…">
+      <ScreenShell title="Pflegebericht erstellen" subtitle="Speichern…">
         <LoadingState message="Pflegebericht wird gespeichert…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (createdId) {
     return (
-      <CareLightPageShell title="Pflegebericht erstellen" subtitle="Erstellt">
+      <ScreenShell title="Pflegebericht erstellen" subtitle="Erstellt">
         <SuccessState message="Pflegebericht wurde angelegt und in der Akte abgelegt." />
         <PremiumButton
           title="Zur Übersicht"
           fullWidth
           onPress={() => router.replace('/pflege/berichte' as never)}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Pflegebericht erstellen" subtitle={roleLabel ?? 'Pflege'}>
+    <ScreenShell title="Pflegebericht erstellen" subtitle={roleLabel ?? 'Pflege'}>
       <View style={styles.heroWrap}>
         <FormScreenHero
           eyebrow="PFLEGE · BERICHT"
@@ -109,7 +109,7 @@ export function PflegeberichtErstellenScreen() {
         <PremiumButton title="Speichern" fullWidth onPress={handleSubmit} disabled={isReadOnly} />
         <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
       </PremiumCard>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

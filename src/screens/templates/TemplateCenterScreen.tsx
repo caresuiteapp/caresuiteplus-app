@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PreparedTemplateBanner, TemplateCenterHero } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -48,35 +48,35 @@ export function TemplateCenterScreen() {
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title="Template Center" subtitle={roleLabel ?? 'Vorlagen'} showBack={false}>
+      <ScreenShell title="Template Center" subtitle={roleLabel ?? 'Vorlagen'} showBack={false}>
         <LockedActionBanner
           message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Template Center" subtitle="Wird geladen…" showBack={false}>
+      <ScreenShell title="Template Center" subtitle="Wird geladen…" showBack={false}>
         <LoadingState message="KPIs werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Template Center" subtitle="Fehler" showBack={false}>
+      <ScreenShell title="Template Center" subtitle="Fehler" showBack={false}>
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const stats = query.data!;
 
   return (
-    <CareLightPageShell title="Template Center" subtitle="Zentrale Vorlagen & Kataloge" showBack={false}>
+    <ScreenShell title="Template Center" subtitle="Zentrale Vorlagen & Kataloge" showBack={false}>
       <PreparedTemplateBanner />
       {profile?.roleKey ? (
         <TemplateCenterHero stats={stats} roleKey={profile.roleKey} />
@@ -123,7 +123,7 @@ export function TemplateCenterScreen() {
         fullWidth
         onPress={() => router.push('/business/templates/categories' as never)}
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

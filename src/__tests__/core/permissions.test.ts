@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { hasPermission, checkPermission } from '@/lib/permissions';
-import { getPermissionsForRole } from '@/data/demo/permissions';
+import { getPermissionsForRole } from '@/lib/permissions/staticRolePermissions';
 
 describe('Permissions', () => {
   it('business_admin hat Reporting-Rechte', () => {

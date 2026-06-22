@@ -2,7 +2,7 @@ import { RefreshControl, ScrollView, StyleSheet, View } from 'react-native';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumInput } from '@/components/ui';
 import { QmChapterTree, QmHandbookHero } from '@/components/qm';
 import { buildQmHandbookKpis } from '@/data/demo/qmHandbookStats';
@@ -58,30 +58,30 @@ export function QmHandbookScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="QM-Handbuch" showBack>
+      <ScreenShell title="QM-Handbuch" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && chapters.length === 0) {
     return (
-      <CareLightPageShell title="QM-Handbuch" showBack>
+      <ScreenShell title="QM-Handbuch" showBack>
         <LoadingState message="Handbuch wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && chapters.length === 0) {
     return (
-      <CareLightPageShell title="QM-Handbuch" showBack>
+      <ScreenShell title="QM-Handbuch" showBack>
         <ErrorState title="Handbuch" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="QM-Handbuch"
       subtitle={`${isReadOnly ? 'Lesemodus · ' : ''}${roleLabel ?? 'QM'}`}
       showBack
@@ -111,7 +111,7 @@ export function QmHandbookScreen() {
           />
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

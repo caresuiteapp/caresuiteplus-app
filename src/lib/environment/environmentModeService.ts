@@ -1,6 +1,4 @@
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { getServiceMode } from '@/lib/services/mode';
-import { isDemoMode } from '@/lib/supabase/config';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type {
   EnvironmentGuardCode,
   EnvironmentGuardResult,
@@ -22,15 +20,10 @@ function resolveGlobalModeFromEnv(): EnvironmentMode | null {
   return isValidEnvironmentMode(raw) ? raw : null;
 }
 
-/** Globaler App-Modus aus Env und Legacy-ServiceMode. */
+/** Globaler App-Modus aus Env — Standard ist Produktion. */
 export function getGlobalEnvironmentMode(): EnvironmentMode {
   const configured = resolveGlobalModeFromEnv();
   if (configured) return configured;
-
-  if (isDemoMode() || getServiceMode() === 'demo') {
-    return 'demo';
-  }
-
   return 'production';
 }
 

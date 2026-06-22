@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { existsSync, readFileSync } from 'node:fs';
 import path from 'node:path';
-import { ROLE_PERMISSIONS } from '@/data/demo/permissions';
+import { ROLE_PERMISSIONS } from '@/lib/permissions/staticRolePermissions';
 import { hasPermission } from '@/lib/permissions';
 import {
   fetchTenantSettings,
@@ -9,7 +9,7 @@ import {
   saveTenantSettings,
 } from '@/lib/tenant/tenantSettingsService';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 

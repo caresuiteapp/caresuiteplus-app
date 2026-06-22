@@ -10,6 +10,7 @@ import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/of
 import { officeDashboardSupabaseRepository } from '@/lib/services/repositories/officeDashboardRepository.supabase';
 import { fetchClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboardLive';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
+import { ensureTenantModuleSettingsLoaded } from '@/lib/tenant/tenantModuleSettingsHydration';
 
 const SIMULATED_DELAY_MS = 400;
 
@@ -56,6 +57,7 @@ export async function fetchDashboardSnapshot(
       const tenantName = await resolveTenantDisplayName(tenantId, options?.tenantNameHint);
 
       if (scope === 'business') {
+        await ensureTenantModuleSettingsLoaded(tenantId);
         const [metricsResult, auditResult, timelineResult] = await Promise.all([
           officeDashboardSupabaseRepository.fetchBusinessMetrics(tenantId),
           officeAuditLogSupabaseRepository.list(tenantId),

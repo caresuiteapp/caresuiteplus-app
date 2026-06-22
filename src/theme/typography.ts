@@ -1,7 +1,7 @@
 import { resolveCareTypography } from '@/design/tokens/typography';
 
-/** Light typography — matches demo default (ThemeModeProvider). */
-export const typography = resolveCareTypography('light');
+/** Default typography — dark palette for aurora / premium surfaces. */
+export const typography = resolveCareTypography('dark');
 
 /** Dark typography for explicit legacy/dark-mode StyleSheets. */
 export const darkTypography = resolveCareTypography('dark');

@@ -1,6 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TISecurityNotice } from '@/components/ti';
 import { TIVorbereitungHero } from '@/components/ti/TIVorbereitungHero';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -10,13 +10,13 @@ export function EGKVorbereitungScreen() {
   const { can, check, roleLabel } = usePermissions();
   if (!can('ti.egk.view')) {
     return (
-      <CareLightPageShell title="eGK-Vorbereitung">
+      <ScreenShell title="eGK-Vorbereitung">
         <LockedActionBanner message={check('ti.egk.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
   return (
-    <CareLightPageShell title="eGK-Vorbereitung" subtitle="Elektronische Gesundheitskarte">
+    <ScreenShell title="eGK-Vorbereitung" subtitle="Elektronische Gesundheitskarte">
       <TIVorbereitungHero
         moduleLabel="eGK"
         title="Vorbereitung eGK-Auslesen"
@@ -28,7 +28,7 @@ export function EGKVorbereitungScreen() {
       <View style={styles.noticeWrap}>
         <TISecurityNotice />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

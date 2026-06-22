@@ -4,7 +4,7 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { CareLightKpiCard } from '@/components/ui/CareLightKpiCard';
+import { PremiumKpiCard } from '@/components/ui/PremiumKpiCard';
 import { CareLightSection } from '@/components/ui/CareLightSection';
 import { CareLightModuleHeader } from './CareLightModuleHeader';
 import { type CareModuleKey } from '@/design/tokens/modules';
@@ -53,7 +53,7 @@ export function CareLightModuleDashboard({
         <CareLightSection title={kpiTitle} subtitle="Aktuelle Übersicht">
           <View style={[styles.kpiGrid, isDesktopOrWide && styles.kpiGridWide]}>
             {kpis.map((kpi) => (
-              <CareLightKpiCard key={kpi.id} {...kpi} />
+              <PremiumKpiCard key={kpi.id} {...kpi} />
             ))}
           </View>
         </CareLightSection>

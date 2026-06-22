@@ -50,9 +50,11 @@ Migration 0154: INSERT-only, `ON CONFLICT DO NOTHING`, keine DROP/TRUNCATE/RLS i
 
 ## Commit-Inhalt
 
-*(Nach Commit: Hash und Statistik unten ergänzt.)*
-
+**Hash:** `ad0474b4b34bb0720a513bbbea2c6ecf9a0832b2` (kurz: `ad0474b`)  
+**Dateien:** 16 (2528+/40−)  
 **Message:** `security(permission): sync B1 permission gates and DB keys` (+ Body gemäß B.1e-Vorgabe)
+
+*(Hash-Nachtrag lokal; nicht im Commit `ad0474b` enthalten — optional separat versionieren.)*
 
 ---
 

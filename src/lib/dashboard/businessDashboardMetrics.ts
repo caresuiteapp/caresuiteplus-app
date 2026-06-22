@@ -98,7 +98,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.totalClients > 0
           ? `${metrics.totalClients} gesamt`
           : unavailableSubValue('Klient:innen', metrics.tableAvailability.clients, 'Noch keine Klient:innen'),
-      icon: '👥',
+      icon: 'teamGroup',
       accentColor: '#62F3FF',
       ...(metrics.clientsInIntake > 0
         ? { trend: 'up' as const, trendValue: `${metrics.clientsInIntake} in Aufnahme` }
@@ -112,7 +112,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.newClients30Days > 0
           ? `${metrics.newClients30Days} neu (30 Tage)`
           : unavailableSubValue('Klient:innen', metrics.tableAvailability.clients, 'Keine Klient:innen'),
-      icon: '📋',
+      icon: 'clientsRoster',
       accentColor: '#7C5CFF',
     },
     {
@@ -123,7 +123,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.totalEmployees > 0
           ? `${metrics.totalEmployees} gesamt`
           : unavailableSubValue('Mitarbeitende', metrics.tableAvailability.employees, 'Noch keine Mitarbeitende'),
-      icon: '👤',
+      icon: 'personSingle',
       accentColor: '#FF9500',
     },
     {
@@ -135,7 +135,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.employees,
         metrics.totalEmployees === 0 ? 'Noch keine Mitarbeitende' : `${metrics.activeEmployees} aktiv`,
       ),
-      icon: '🧑‍💼',
+      icon: 'employeeBadge',
       accentColor: '#FFD166',
     },
     {
@@ -147,7 +147,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.assignments,
         metrics.assignmentsToday === 0 ? 'Keine Einsätze geplant' : `${metrics.assignmentsToday} geplant`,
       ),
-      icon: '📅',
+      icon: 'assignmentRoute',
       accentColor: '#FF9500',
       trend: 'neutral',
     },
@@ -159,7 +159,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.draftInvoices > 0
           ? `${metrics.draftInvoices} Entwürfe`
           : unavailableSubValue('Rechnungen', metrics.tableAvailability.invoices, 'Keine offenen Rechnungen'),
-      icon: '🧾',
+      icon: 'invoice',
       accentColor: '#FFD166',
       trend: 'neutral',
     },
@@ -171,7 +171,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.overdueTasks > 0
           ? `${metrics.overdueTasks} überfällig`
           : unavailableSubValue('Aufgaben', metrics.tableAvailability.tasks, 'Keine offenen Aufgaben'),
-      icon: '✓',
+      icon: 'taskTick',
       accentColor: '#7C5CFF',
       ...(metrics.overdueTasks > 0
         ? { trend: 'down' as const, trendValue: `${metrics.overdueTasks} überfällig` }
@@ -186,7 +186,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.messages,
         metrics.unreadMessages === 0 ? 'Keine ungelesenen Nachrichten' : `${metrics.unreadMessages} ungelesen`,
       ),
-      icon: '💬',
+      icon: 'messageWave',
       accentColor: '#62F3FF',
     },
     {
@@ -197,7 +197,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.totalModules > 0
           ? `von ${metrics.totalModules}`
           : unavailableSubValue('Module', metrics.tableAvailability.modules, 'Noch keine Module aktiv'),
-      icon: '⬡',
+      icon: 'modulesActive',
       accentColor: '#22C55E',
     },
     {
@@ -209,7 +209,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.portalUsers,
         metrics.activePortalUsers === 0 ? 'Keine Portal-Nutzer aktiv' : `${metrics.activePortalUsers} aktiv`,
       ),
-      icon: '🌐',
+      icon: 'portalGlobe',
       accentColor: '#06B6D4',
     },
     {
@@ -221,7 +221,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.documents,
         metrics.documentsForReview === 0 ? 'Keine Dokumente zur Prüfung' : `${metrics.documentsForReview} offen`,
       ),
-      icon: '📄',
+      icon: 'docsReview',
       accentColor: '#EC4899',
     },
     {
@@ -233,7 +233,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.portalRequests,
         metrics.openPortalRequests === 0 ? 'Keine offenen Anfragen' : `${metrics.openPortalRequests} offen`,
       ),
-      icon: '📥',
+      icon: 'portalInbox',
       accentColor: '#F97316',
     },
     {
@@ -245,7 +245,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.serviceRecords,
         metrics.openServiceRecords === 0 ? 'Keine offenen Nachweise' : `${metrics.openServiceRecords} in Prüfung`,
       ),
-      icon: '📝',
+      icon: 'serviceRecord',
       accentColor: '#A855F7',
     },
     {
@@ -257,7 +257,7 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.budgets,
         metrics.budgetWarnings === 0 ? 'Keine Budget-Warnungen' : `${metrics.budgetWarnings} Warnung${metrics.budgetWarnings === 1 ? '' : 'en'}`,
       ),
-      icon: '⚠️',
+      icon: 'budgetWarn',
       accentColor: '#EF4444',
     },
     {
@@ -269,19 +269,19 @@ export function buildZentraleKpisFromMetrics(
         metrics.tableAvailability.appointments,
         metrics.appointmentsThisWeek === 0 ? 'Keine Termine diese Woche' : `${metrics.appointmentsThisWeek} geplant`,
       ),
-      icon: '🗓️',
+      icon: 'weekPlanner',
       accentColor: '#6366F1',
     },
     {
       id: id('clients-new'),
-      label: 'Neue Klient:innen (30 Tage)',
+      label: 'Neue Klient:innen',
       value: metrics.newClients30Days,
       subValue: unavailableSubValue(
         'Klient:innen',
         metrics.tableAvailability.clients,
         metrics.newClients30Days === 0 ? 'Keine neuen Klient:innen' : `${metrics.newClients30Days} neu`,
       ),
-      icon: '✨',
+      icon: 'sparkleNew',
       accentColor: '#14B8A6',
     },
   ];

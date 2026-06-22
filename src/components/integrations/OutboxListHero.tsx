@@ -4,7 +4,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildOutboxListKpis } from '@/lib/integrations/outboxListStats';
 import { isIntegrationsLiveReady, INTEGRATIONS_PREPARED_MESSAGE } from '@/lib/integrations/integrationsModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { OutboxEntryListItem } from '@/types/modules/integrations';
 import { designTokens, spacing } from '@/theme';
 
@@ -62,7 +62,6 @@ export function OutboxListHero({ items }: OutboxListHeroProps) {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Integrations" variant="cyan" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="orange" /> : null}
         {!isIntegrationsLiveReady() ? (
           <PremiumBadge label="preparedOnly" variant="muted" />
         ) : null}

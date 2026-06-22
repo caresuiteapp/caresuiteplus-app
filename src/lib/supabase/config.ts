@@ -1,6 +1,6 @@
-/** Dev-only: aktiv nur bei EXPO_PUBLIC_DEMO_MODE=true — nie aus fehlender URL ableiten. */
+/** Demo mode removed — CareSuite+ runs live-only via Supabase. */
 export function isDemoMode(): boolean {
-  return process.env.EXPO_PUBLIC_DEMO_MODE === 'true';
+  return false;
 }
 
 export function getSupabaseConfig() {
@@ -17,12 +17,9 @@ export function isSupabaseConfigured(): boolean {
   return Boolean(url && anonKey);
 }
 
-export type AuthMode = 'demo' | 'supabase';
+export type AuthMode = 'supabase';
 
 export function resolveAuthMode(): AuthMode {
-  if (isDemoMode() || !isSupabaseConfigured()) {
-    return 'demo';
-  }
   return 'supabase';
 }
 

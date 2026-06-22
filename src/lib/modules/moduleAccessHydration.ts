@@ -1,5 +1,5 @@
 import type { ServiceResult, TenantProduct } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchTenantModulesFromSupabase } from '@/lib/modules/moduleAccessRepository.supabase';
 import { getServiceMode } from '@/lib/services/mode';
 import { getTenantModules, initializeModuleAccessStore } from './moduleAccessService';

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { useAiPageContext } from '@/ai/useAiPageContext';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -144,25 +144,25 @@ export function ClientLegalDocumentsScreen({ focus }: ClientLegalDocumentsScreen
 
   if (!clientId) {
     return (
-      <CareLightPageShell title={title} subtitle="Fehler">
+      <ScreenShell title={title} subtitle="Fehler">
         <ErrorState message="Klient:in-ID fehlt." />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (docsQuery.loading) {
     return (
-      <CareLightPageShell title={title} subtitle="Wird geladen…">
+      <ScreenShell title={title} subtitle="Wird geladen…">
         <LoadingState message="Akten-Dokumente werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const documents = docsQuery.data ?? [];
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={title}
       subtitle={`Rechtliche Dokumente · ${roleLabel ?? 'Demo'}`}
       onBack={() => router.back()}
@@ -246,7 +246,7 @@ export function ClientLegalDocumentsScreen({ focus }: ClientLegalDocumentsScreen
           )}
         </SectionPanel>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

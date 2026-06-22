@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildSisDetailKpis } from '@/lib/pflege/sisDetailStats';
 import { isSisLiveReady, SIS_DETAIL_PREPARED_MESSAGE } from '@/lib/pflege/pflegeModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { SisAssessment } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -121,7 +121,6 @@ export function SisDetailHero({ assessment, roleKey, isReadOnly }: SisDetailHero
           dot
         />
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {isSisLiveReady() ? (
           <PremiumBadge label="Live assessment_runs" variant="green" dot />
         ) : (

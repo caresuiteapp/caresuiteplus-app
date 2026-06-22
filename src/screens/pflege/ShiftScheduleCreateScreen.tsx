@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { FormScreenHero } from '@/components/forms';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -68,22 +68,22 @@ export function ShiftScheduleCreateScreen() {
 
   if (saving) {
     return (
-      <CareLightPageShell title="Schicht anlegen" subtitle="Speichern…">
+      <ScreenShell title="Schicht anlegen" subtitle="Speichern…">
         <LoadingState message="Dienstplan-Eintrag wird gespeichert…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (createdId) {
     return (
-      <CareLightPageShell title="Schicht angelegt" showBack={false}>
+      <ScreenShell title="Schicht angelegt" showBack={false}>
         <SuccessState message="Dienstplan-Eintrag gespeichert — Liste wird aktualisiert." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title="Schicht anlegen"
       subtitle={`Dienstplan · ${roleLabel ?? 'Demo'}`}
       onBack={() => router.back()}
@@ -147,7 +147,7 @@ export function ShiftScheduleCreateScreen() {
           <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
         </PremiumCard>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -5,20 +5,32 @@ import {
   Pressable,
   ScrollView,
   StyleSheet,
-  Text,
   View,
   type ViewStyle,
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { CARESUITE_ROBOT_LOGO } from '@/components/brand/brandassets';
-import { MAIN_MODULE_RAIL } from '@/lib/navigation/mainmodulerail';
 import {
+  MAIN_MODULE_RAIL,
+  getVisibleMainModuleRailItems,
+} from '@/lib/navigation/mainmodulerail';
+import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
+import { useModuleAccess } from '@/hooks/useModuleAccess';
+import { usePermissions } from '@/hooks/usePermissions';
+import { useTenantModuleSettings } from '@/hooks/useTenantModuleSettings';
+import {
+  PLATFORM_MODULE_RAIL_LOGO_SIZE,
   PLATFORM_MODULE_RAIL_WIDTH,
   PLATFORM_SHELL_HEADER_TOP_INSET,
 } from '@/lib/platform/shellLayoutMetrics';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
+import { resolveLlganGlassSurface } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
 import type { MainModuleKey } from '@/types/navigation/platform';
+import { SpaceModuleIcon } from '@/components/icons/space';
+import { ModuleRailFontSizeControl } from './ModuleRailFontSizeControl';
+import { NotificationBellWithCenter } from '@/components/notifications/notificationcenter';
 
 type MainModuleRailProps = {
   activeModule: MainModuleKey;
@@ -26,7 +38,6 @@ type MainModuleRailProps = {
 
 const MODULE_RAIL_ICON_SIZE = 56;
 const MODULE_RAIL_HORIZONTAL_PADDING = (PLATFORM_MODULE_RAIL_WIDTH - MODULE_RAIL_ICON_SIZE) / 2;
-const MODULE_RAIL_LOGO_SIZE = MODULE_RAIL_ICON_SIZE;
 const MODULE_RAIL_GAP = PLATFORM_SHELL_HEADER_TOP_INSET;
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
@@ -34,16 +45,14 @@ const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as V
 function RailItem({
   active,
   accent,
-  icon,
+  moduleKey,
   label,
-  isDark,
   onPress,
 }: {
   active: boolean;
   accent: string;
-  icon: string;
+  moduleKey: MainModuleKey;
   label: string;
-  isDark: boolean;
   onPress: () => void;
 }) {
   return (
@@ -55,26 +64,13 @@ function RailItem({
       accessibilityState={{ selected: active }}
     >
       {active ? <View style={[styles.activeBar, { backgroundColor: accent }]} /> : null}
-      <View
-        style={[
-          styles.icon,
-          {
-            backgroundColor: active
-              ? withAlpha(accent, 0.9)
-              : isDark
-                ? 'rgba(255,255,255,0.06)'
-                : 'rgba(15,23,42,0.05)',
-            borderColor: active ? withAlpha(accent, 0.9) : isDark ? glassFx.innerBorder : 'transparent',
-            shadowColor: accent,
-            shadowOffset: { width: 0, height: 4 },
-            shadowOpacity: active ? 0.6 : 0,
-            shadowRadius: active ? 14 : 0,
-            elevation: active ? 8 : 0,
-          },
-        ]}
-      >
-        <Text style={styles.iconText}>{icon}</Text>
-      </View>
+      <SpaceModuleIcon
+        moduleKey={moduleKey}
+        accentColor={accent}
+        active={active}
+        size={48}
+        frame="rail"
+      />
     </Pressable>
   );
 }
@@ -82,8 +78,23 @@ function RailItem({
 /** Left icon rail — main modules only (no detail navigation). */
 export function MainModuleRail({ activeModule }: MainModuleRailProps) {
   const router = useRouter();
+  const moduleAccent = useMainModuleAccent();
   const { colors, isDark } = useLegacyTheme();
-  const railStyles = useMemo(() => createRailStyles(isDark, colors), [isDark, colors]);
+  const { tenantId } = useModuleAccess();
+  const { roleKey } = usePermissions();
+  const { modules: tenantModules } = useTenantModuleSettings();
+  const visibleModules = useMemo(() => {
+    if (!tenantId) {
+      return MAIN_MODULE_RAIL.filter(
+        (module) => module.key === 'zentrale' || module.key === 'admin',
+      );
+    }
+    return getVisibleMainModuleRailItems({ tenantId, roleKey, tenantModules });
+  }, [tenantId, roleKey, tenantModules]);
+  const railStyles = useMemo(
+    () => createRailStyles(isDark, colors, moduleAccent),
+    [isDark, colors, moduleAccent],
+  );
 
   return (
     <View style={railStyles.root}>
@@ -98,18 +109,23 @@ export function MainModuleRail({ activeModule }: MainModuleRailProps) {
         contentContainerStyle={railStyles.scroll}
         style={railStyles.list}
       >
-        {MAIN_MODULE_RAIL.map((module) => (
+        {visibleModules.map((module) => (
           <RailItem
             key={module.key}
             active={activeModule === module.key}
             accent={module.accentColor}
-            icon={module.icon}
+            moduleKey={module.key}
             label={module.label}
-            isDark={isDark}
             onPress={() => router.push(module.path as never)}
           />
         ))}
       </ScrollView>
+      <View style={railStyles.footer}>
+        {Platform.OS === 'web' ? (
+          <NotificationBellWithCenter size="rail" variant="glass" />
+        ) : null}
+        <ModuleRailFontSizeControl />
+      </View>
     </View>
   );
 }
@@ -122,18 +138,14 @@ const styles = StyleSheet.create({
     minHeight: 60,
   },
   activeBar: { position: 'absolute', left: 0, top: 12, bottom: 12, width: 4, borderRadius: 4 },
-  icon: {
-    width: MODULE_RAIL_ICON_SIZE,
-    height: MODULE_RAIL_ICON_SIZE,
-    borderRadius: 18,
-    borderWidth: 1,
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  iconText: { fontSize: 28 },
 });
 
-function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>['colors']) {
+function createRailStyles(
+  isDark: boolean,
+  colors: ReturnType<typeof useLegacyTheme>['colors'],
+  moduleAccent: string,
+) {
+  const railSurface = resolveLlganGlassSurface('default');
   const glassBorder = isDark ? glassFx.border : colors.borderSoft;
 
   return StyleSheet.create({
@@ -142,19 +154,24 @@ function createRailStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTh
       flexGrow: 0,
       flexShrink: 0,
       alignSelf: 'stretch',
-      backgroundColor: isDark ? 'rgba(11,16,32,0.32)' : 'rgba(255,255,255,0.92)',
+      backgroundColor: isDark ? 'rgba(11,16,32,0.32)' : railSurface.sidebar,
+      ...(isDark ? null : lightLiquidGlassWebFx(railSurface.blurDesktop, railSurface.saturate)),
       borderRightWidth: 1,
-      borderRightColor: glassBorder,
+      borderRightColor: withAlpha(moduleAccent, isDark ? 0.45 : 0.28),
       alignItems: 'center',
       paddingVertical: MODULE_RAIL_GAP,
       gap: MODULE_RAIL_GAP,
     },
     brandLogo: {
-      width: MODULE_RAIL_LOGO_SIZE,
-      height: MODULE_RAIL_LOGO_SIZE,
+      width: PLATFORM_MODULE_RAIL_LOGO_SIZE,
+      height: PLATFORM_MODULE_RAIL_LOGO_SIZE,
       backgroundColor: 'transparent',
     },
-    list: { flex: 1, alignSelf: 'stretch' },
+    list: { flex: 1, alignSelf: 'stretch', minHeight: 0 },
     scroll: { flexGrow: 1, justifyContent: 'center', alignItems: 'center', gap: MODULE_RAIL_GAP },
+    footer: {
+      alignItems: 'center',
+      gap: MODULE_RAIL_GAP,
+    },
   });
 }

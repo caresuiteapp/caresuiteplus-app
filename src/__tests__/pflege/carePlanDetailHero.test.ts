@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { getDemoCarePlanListItems } from '@/data/demo/carePlans';
 import { buildCarePlanDetailKpis } from '@/lib/pflege/carePlanDetailStats';
 import { fetchCarePlanDetail } from '@/lib/pflege/carePlanDetailService';

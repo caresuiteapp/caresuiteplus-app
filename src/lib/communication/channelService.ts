@@ -6,7 +6,7 @@ import type {
   PrepareOutboundMessageInput,
   PreparedOutboundMessage,
 } from '@/types/communication/channels';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isDemoMode } from '@/lib/supabase/config';
 import { runService } from '@/lib/services/serviceRunner';
 import {

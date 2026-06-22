@@ -11,6 +11,7 @@ export const stationaerNav: ModuleNavConfig = {
     {
       title: 'Bewohner:innen',
       items: [
+        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/stationaer/calendar' },
         { key: 'bewohner', label: 'Bewohner:innen', icon: '🏥', href: '/stationaer/bewohner' },
         { key: 'belegung', label: 'Belegung', icon: '🛏️', href: '/stationaer/belegung' },
         { key: 'planung', label: 'Bewohnerplanung', icon: '📋', href: '/stationaer/bewohnerplanung' },

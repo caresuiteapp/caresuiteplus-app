@@ -1,6 +1,13 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
+  AuroraGradientButton,
+  AuroraPageHeader,
+  AuroraSegmentedControl,
+  AuroraGlassCard,
+  AuroraBadge,
+} from '@/components/aurora';
+import {
   InfoBanner,
   PremiumAvatar,
   PremiumBadge,
@@ -12,8 +19,39 @@ import { colors, spacing, typography } from '@/theme';
 
 export function DesignSystemComponentsSection() {
   const [showBanner, setShowBanner] = useState(true);
+  const [view, setView] = useState('cards');
 
   return (
+    <>
+      <AuroraPageHeader
+        moduleLabel="DESIGN SYSTEM"
+        title="Aurora Komponenten"
+        subtitle="CareSuite+ Space Glass"
+        description="Violet · Pink · Cyan — systemweiter Standard"
+        roleBadge="Design QA"
+        avatarInitials="A"
+        primaryActionLabel="Beispiel-Aktion"
+        onPrimaryAction={() => {}}
+      />
+      <SectionPanel title="Aurora Controls" subtitle="Buttons, Segmented Control, Badge">
+        <AuroraGradientButton label="Primary CTA" onPress={() => {}} />
+        <AuroraSegmentedControl
+          options={[
+            { key: 'cards', label: 'Karten' },
+            { key: 'table', label: 'Tabelle' },
+          ]}
+          value={view}
+          onChange={setView}
+        />
+        <View style={{ flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' }}>
+          <AuroraBadge label="Aktiv" variant="pink" dot />
+          <AuroraBadge label="Office" variant="cyan" />
+        </View>
+        <AuroraGlassCard glow>
+          <Text style={{ color: '#FFFFFF', fontWeight: '700' }}>Glass Card</Text>
+          <Text style={{ color: 'rgba(255,255,255,0.75)' }}>Halbtransparente Aurora-Fläche</Text>
+        </AuroraGlassCard>
+      </SectionPanel>
     <SectionPanel
       title="WP 041–060 Komponenten"
       subtitle="Avatar, Divider, ListRow, InfoBanner"
@@ -68,6 +106,7 @@ export function DesignSystemComponentsSection() {
         variant="danger"
       />
     </SectionPanel>
+    </>
   );
 }
 

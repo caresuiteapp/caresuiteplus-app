@@ -17,6 +17,10 @@ import { INTERNAL_TASK_TYPE_LABELS } from '@/types/modules/internalTasks';
 import { enforcePermission } from '@/lib/permissions';
 import { guardLiveDemoFeature, guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import {
+  buildCalendarEventFromTask,
+  syncCalendarEventAsync,
+} from '@/lib/calendar/calendarSyncService';
+import {
   INTERNAL_TASK_STORE,
   filterTasksByTenant,
   nextInternalTaskId,
@@ -199,6 +203,13 @@ export function createInternalTask(input: {
     updatedAt: now,
   };
   INTERNAL_TASK_STORE.tasks.push(task);
+  if (task.dueAt) {
+    try {
+      syncCalendarEventAsync(buildCalendarEventFromTask(task));
+    } catch {
+      // Tasks ohne gültige Fälligkeit werden nicht synchronisiert
+    }
+  }
   return task;
 }
 

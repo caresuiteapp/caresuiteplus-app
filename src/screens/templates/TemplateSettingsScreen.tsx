@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import { PreparedTemplateBanner } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -27,17 +27,17 @@ export function TemplateSettingsScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Vorlagen-Einstellungen" subtitle="Wird geladen…">
+      <ScreenShell title="Vorlagen-Einstellungen" subtitle="Wird geladen…">
         <LoadingState message="Einstellungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Vorlagen-Einstellungen" subtitle="Fehler">
+      <ScreenShell title="Vorlagen-Einstellungen" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -52,7 +52,7 @@ export function TemplateSettingsScreen() {
   };
 
   return (
-    <CareLightPageShell title="Vorlagen-Einstellungen" subtitle={`Template Center · ${roleLabel ?? 'Demo'}`}>
+    <ScreenShell title="Vorlagen-Einstellungen" subtitle={`Template Center · ${roleLabel ?? 'Demo'}`}>
       <PreparedTemplateBanner />
       <View style={styles.list}>
         <View style={styles.row}>
@@ -74,7 +74,7 @@ export function TemplateSettingsScreen() {
         <Text style={styles.meta}>Sprache: {settings.defaultLocale}</Text>
         <PremiumButton title="Aktualisieren" variant="secondary" onPress={query.refresh} />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -35,6 +35,7 @@ import {
   requestMicrophoneAccess,
 } from '@/lib/platform/microphonePermission';
 import { VoiceOrb } from './VoiceOrb';
+import { CARESUITE_KI_UI_ENABLED } from './aiFeatureFlags';
 import {
   exchangeRealtimeCallOffer,
   extractRealtimeClientSecret,
@@ -491,6 +492,7 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
   );
 
   const showAi =
+    CARESUITE_KI_UI_ENABLED &&
     authReady &&
     isAuthenticated &&
     Boolean(tenantId) &&

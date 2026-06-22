@@ -12,6 +12,8 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlatformModal } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { SpaceBellIcon } from '@/components/icons/space';
+import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useNotifications } from '@/hooks/usenotifications';
 import { useAuth } from '@/lib/auth/context';
@@ -300,7 +302,7 @@ type NotificationBellButtonProps = {
   onPress: () => void;
   unreadCount: number;
   hasUrgent?: boolean;
-  size?: 'topbar' | 'compact';
+  size?: 'topbar' | 'compact' | 'rail';
   variant?: 'default' | 'glass';
 };
 
@@ -319,10 +321,18 @@ export function NotificationBellButton({
   size = 'topbar',
   variant = 'default',
 }: NotificationBellButtonProps) {
-  const { c, isDark } = useCareLightPalette();
-  const glyphSize = size === 'topbar' ? 26 : 18;
+  const { c } = useCareLightPalette();
+  const bellPink = careSuiteAuroraTheme.accent.pink;
+  const bellAccent = bellPink;
   const btnSize =
-    variant === 'glass' && size === 'topbar' ? 48 : size === 'topbar' ? 48 : 40;
+    size === 'rail'
+      ? 56
+      : variant === 'glass' && size === 'topbar'
+        ? 48
+        : size === 'topbar'
+          ? 48
+          : 40;
+  const btnRadius = size === 'rail' ? 18 : radius.md;
 
   const styles = useMemo(
     () =>
@@ -332,24 +342,10 @@ export function NotificationBellButton({
           height: btnSize,
           alignItems: 'center',
           justifyContent: 'center',
-          borderRadius: radius.md,
-          borderWidth: 1,
-          borderColor:
-            variant === 'glass' && isDark ? glassTokens.border : c.border,
-          backgroundColor:
-            variant === 'glass' && isDark
-              ? hasUrgent
-                ? `${c.danger}18`
-                : glassTokens.panel
-              : hasUrgent
-                ? `${c.danger}12`
-                : c.surface,
+          borderRadius: btnRadius,
+          borderWidth: 0,
+          backgroundColor: 'transparent',
           position: 'relative',
-          ...(variant === 'glass' && isDark ? webGlassBlur : null),
-        },
-        glyph: {
-          fontSize: glyphSize,
-          lineHeight: glyphSize + 4,
         },
         badge: {
           position: 'absolute',
@@ -358,14 +354,14 @@ export function NotificationBellButton({
           minWidth: 16,
           height: 16,
           borderRadius: 8,
-          backgroundColor: hasUrgent ? c.danger : c.violet,
+          backgroundColor: hasUrgent ? c.danger : bellPink,
           alignItems: 'center',
           justifyContent: 'center',
           paddingHorizontal: 3,
         },
         badgeText: { fontSize: 9, fontWeight: '800', color: '#fff' },
       }),
-    [btnSize, c, glyphSize, hasUrgent, isDark, variant],
+    [btnRadius, btnSize, bellPink, c, hasUrgent],
   );
 
   return (
@@ -375,7 +371,12 @@ export function NotificationBellButton({
       accessibilityRole="button"
       accessibilityLabel={`Benachrichtigungen${unreadCount > 0 ? `, ${unreadCount} ungelesen` : ''}`}
     >
-      <Text style={styles.glyph}>🔔</Text>
+      <SpaceBellIcon
+        accentColor={bellAccent}
+        size={size === 'rail' ? 48 : size === 'topbar' ? 40 : 32}
+        active={hasUrgent}
+        frame={size === 'rail' ? 'rail' : 'card'}
+      />
       {unreadCount > 0 ? (
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{unreadCount > 99 ? '99+' : unreadCount}</Text>
@@ -391,7 +392,7 @@ export function NotificationBellWithCenter({
   variant = 'default',
 }: {
   employeeId?: string | null;
-  size?: 'topbar' | 'compact';
+  size?: 'topbar' | 'compact' | 'rail';
   variant?: 'default' | 'glass';
 }) {
   const [open, setOpen] = useState(false);

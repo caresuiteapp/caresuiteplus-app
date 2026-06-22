@@ -1,10 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildReportListKpis } from '@/data/demo/reportListStats';
+import { buildReportListKpis } from '@/lib/reporting/reportListStats';
 import { demoReportList } from '@/data/demo/reportingDemo';
 import { fetchReportList } from '@/lib/reporting';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import {
   REPORT_CATEGORY_FILTERS,

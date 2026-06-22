@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AccessCredentialsPanel } from '@/components/auth/AccessCredentialsPanel';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, PremiumInput } from '@/components/ui';
 import type { AccessCredentialsReveal } from '@/lib/auth/auth.types';
 import { createEmployeePortalAccount } from '@/lib/auth/accessManagementService';
@@ -48,28 +48,28 @@ export function CreateEmployeePortalAccountScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Mitarbeiterzugang erstellen" subtitle="Wird erstellt…" scroll>
+      <ScreenShell title="Mitarbeiterzugang erstellen" subtitle="Wird erstellt…" scroll>
         <LoadingState message="Portalzugang wird angelegt…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (credentials) {
     return (
-      <CareLightPageShell title="Zugang erstellt" subtitle="Mitarbeitendenportal" scroll>
+      <ScreenShell title="Zugang erstellt" subtitle="Mitarbeitendenportal" scroll>
         <AccessCredentialsPanel
           title="Mitarbeiterzugang erstellt"
           credentials={credentials}
           onClose={() => router.replace('/business/office/access/employee-portal' as never)}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   const isEmpty = !employeeId.trim() && !firstName.trim() && !lastName.trim();
 
   return (
-    <CareLightPageShell title="Mitarbeiterzugang erstellen" subtitle="Mitarbeitendenportal" scroll>
+    <ScreenShell title="Mitarbeiterzugang erstellen" subtitle="Mitarbeitendenportal" scroll>
       {isEmpty ? (
         <EmptyState
           title="Neuer Mitarbeiterzugang"
@@ -82,7 +82,7 @@ export function CreateEmployeePortalAccountScreen() {
       <PremiumInput label="Vorname" value={firstName} onChangeText={setFirstName} />
       <PremiumInput label="Nachname" value={lastName} onChangeText={setLastName} />
       <PremiumButton title="Zugang erstellen" onPress={handleSubmit} loading={loading} fullWidth />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

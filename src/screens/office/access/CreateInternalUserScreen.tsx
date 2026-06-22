@@ -2,7 +2,7 @@ import { useState } from 'react';
 import { StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AccessCredentialsPanel } from '@/components/auth/AccessCredentialsPanel';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import type { AccessCredentialsReveal, InternalRoleKey } from '@/lib/auth/auth.types';
 import { createInternalUser } from '@/lib/auth/accessManagementService';
@@ -60,18 +60,18 @@ export function CreateInternalUserScreen() {
 
   if (credentials) {
     return (
-      <CareLightPageShell title="Zugang erstellt" subtitle="Interne:r Benutzer:in" scroll>
+      <ScreenShell title="Zugang erstellt" subtitle="Interne:r Benutzer:in" scroll>
         <AccessCredentialsPanel
           title="Zugang erfolgreich erstellt"
           credentials={credentials}
           onClose={() => router.replace('/business/office/access/internal-users' as never)}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Interne:n Benutzer:in anlegen" subtitle="Zugänge & Benutzer" scroll>
+    <ScreenShell title="Interne:n Benutzer:in anlegen" subtitle="Zugänge & Benutzer" scroll>
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
       <PremiumInput label="Vorname" value={firstName} onChangeText={setFirstName} />
       <PremiumInput label="Nachname" value={lastName} onChangeText={setLastName} />
@@ -89,7 +89,7 @@ export function CreateInternalUserScreen() {
         ))}
       </SectionPanel>
       <PremiumButton title="Zugang erstellen" onPress={handleSubmit} loading={loading} fullWidth />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

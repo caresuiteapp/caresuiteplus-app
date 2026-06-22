@@ -2,7 +2,7 @@ import { InfoBanner } from '@/components/ui';
 import { isProductActive } from '@/lib/navigation';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import type { ProductKey } from '@/types';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 
 type InactiveModuleBannerProps = {
   productKey: ProductKey;

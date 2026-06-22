@@ -15,7 +15,7 @@ import {
 } from '@/lib/office/messagebusinessrules';
 import { sendOfficeMessage } from '@/lib/office/messageservice';
 import { fetchOfficeMessageThreads } from '@/lib/office/messagethreadservice';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -103,16 +103,23 @@ describe('Office Messaging Business Rules', () => {
     expect(portalVisible.length).toBeLessThan(threadMessages.length);
   });
 
-  it('fetchOfficeMessageThreads liefert Demo-Threads im Demo-Modus', async () => {
+  it('fetchOfficeMessageThreads uses live Supabase path (no demo preview)', async () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
+
     const result = await fetchOfficeMessageThreads(DEMO_TENANT_ID, 'business_admin', 'inbox');
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.length).toBeGreaterThan(0);
-      expect(result.previewData).toBe(true);
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toMatch(/Supabase|Migration|0089/i);
     }
   });
 
-  it('Offene Threads erlauben Nachrichtenversand im Demo-Modus', async () => {
+  it('sendOfficeMessage requires live Supabase (no demo append)', async () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', '');
+    vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
+
     const openThread = demoOfficeMessageThreads.find((t) => t.status === 'open');
     expect(openThread).toBeTruthy();
     if (!openThread) return;
@@ -124,7 +131,7 @@ describe('Office Messaging Business Rules', () => {
       'business_admin',
       'profile-dispatch-001',
     );
-    expect(result.ok).toBe(true);
+    expect(result.ok).toBe(false);
   });
 
   it('Messenger-Komponenten nutzen ChatBubble und deutsche UI', () => {

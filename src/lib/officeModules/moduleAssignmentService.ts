@@ -12,7 +12,7 @@ import type {
   ModuleTemplateAssignment,
 } from '@/lib/officeCore/types';
 import { officeCoreDemoRepository } from '@/lib/officeCore/demoRepository';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';

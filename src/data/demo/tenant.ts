@@ -1,6 +1,7 @@
 import type { Tenant, TenantAddress, TenantContact, TenantSubscription } from '@/types';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
-export const DEMO_TENANT_ID = 'tenant-demo-001';
+export { DEMO_TENANT_ID, TEST_TENANT_ID } from '@/data/constants/testTenant';
 
 export const demoTenant: Tenant = {
   id: DEMO_TENANT_ID,

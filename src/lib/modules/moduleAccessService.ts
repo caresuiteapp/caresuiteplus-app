@@ -7,7 +7,7 @@ import type {
   TenantProduct,
 } from '@/types';
 import { demoProducts } from '@/data/demo/products';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isFreePlatformEnabled } from '@/lib/billing/freePlatformService';
 import {
   ALL_PRODUCT_KEYS,

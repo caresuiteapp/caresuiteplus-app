@@ -1,6 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
-import { qmDemoRepository } from './qmRepository.demo';
+import { blockDemoOnlyInLiveMode } from '@/lib/services/liveServiceGuard';
 import { enforceQmPermission, QM_MANAGE_COMPLIANCE, QM_MANAGE_LEGAL, QM_VIEW } from './qmPermissions';
 import type { QmComplianceRequirement, QmLegalReference } from './qm.types';
 
@@ -12,8 +12,9 @@ export async function fetchQmLegalReferences(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  await new Promise((r) => setTimeout(r, 100));
-  return qmDemoRepository.listLegalReferences(tenantId);
+  const liveBlock = blockDemoOnlyInLiveMode<QmLegalReference[]>('QM-Rechtsreferenzen');
+  if (liveBlock) return liveBlock;
+  return { ok: true, data: [] };
 }
 
 export async function fetchQmCompliance(
@@ -24,8 +25,9 @@ export async function fetchQmCompliance(
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return { ok: false, error: tenantErr.error };
-  await new Promise((r) => setTimeout(r, 100));
-  return qmDemoRepository.listCompliance(tenantId);
+  const liveBlock = blockDemoOnlyInLiveMode<QmComplianceRequirement[]>('QM-Compliance');
+  if (liveBlock) return liveBlock;
+  return { ok: true, data: [] };
 }
 
 export function canManageCompliance(actorRoleKey?: RoleKey | null): boolean {

@@ -186,7 +186,7 @@ Freigabe erst wenn:
 | 14 | Bestandsschutz confirmed? | **YES** (nur Test Pflege GmbH Demo) |
 | 15 | Tests result? | **38/38 pass** |
 | 16 | Typecheck result? | **Baseline rot; K.5 unverändert grün** |
-| 17 | Commit hash? | *(Report-Update pending)* |
+| 17 | Commit hash? | **a751a6d** |
 | 18 | Push successful? | **N/A** |
 | 19 | K.6 released? | **NO** |
 | 20 | Report path? | `docs/audit/client-core-k52-demo-billing-walkthrough-abnahmebericht.md` |

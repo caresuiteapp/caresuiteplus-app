@@ -2,10 +2,10 @@ import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { buildReleaseDetailKpis } from '@/lib/release/releaseDetailStats';
 import { isReleaseLiveReady } from '@/lib/release/releaseModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import type { ReleaseDetail } from '@/types/release';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -66,7 +66,6 @@ export function ReleaseDetailHero({ detail, roleKey }: ReleaseDetailHeroProps) {
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         <PremiumBadge label={WORKFLOW_STATUS_LABELS[detail.status]} variant="orange" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isReleaseLiveReady() ? (
           <PremiumBadge label="Live-Deployment in Vorbereitung" variant="orange" dot />
         ) : null}

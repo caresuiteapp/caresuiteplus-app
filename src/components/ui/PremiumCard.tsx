@@ -126,6 +126,7 @@ export function PremiumCard({
         start={sheenTokens.gradientStart}
         end={sheenTokens.gradientEnd}
         style={styles.gradient}
+        pointerEvents="none"
       />
       <View style={styles.innerBorder} pointerEvents="none" />
       {sheen ? (
@@ -137,10 +138,10 @@ export function PremiumCard({
           pointerEvents="none"
         />
       ) : (
-        <View style={styles.topSheen} />
+        <View style={styles.topSheen} pointerEvents="none" />
       )}
       {accentColor ? (
-        <View style={[styles.accentRim, { backgroundColor: accentColor }]} />
+        <View style={[styles.accentRim, { backgroundColor: accentColor }]} pointerEvents="none" />
       ) : null}
       <View style={styles.content}>{children}</View>
     </View>

@@ -41,7 +41,8 @@ export function ModuleDashboardShell({
     </>
   );
 
-  if (mode === 'dark' || shellHostsAurora) {
+  // Transparent page when shell paints nebula (light or dark); CareLightScreen only off-shell mobile.
+  if (shellHostsAurora || mode === 'dark') {
     return (
       <View style={pageStyle}>
         {header}

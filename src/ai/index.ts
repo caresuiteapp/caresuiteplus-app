@@ -1,4 +1,5 @@
 export { GlobalAiProvider, useCareAi } from './GlobalAiProvider';
+export { CARESUITE_KI_UI_ENABLED } from './aiFeatureFlags';
 export { VoiceOrb } from './VoiceOrb';
 export { AiApprovalSheet } from './AiApprovalSheet';
 export { AiMiniPanel } from './AiMiniPanel';

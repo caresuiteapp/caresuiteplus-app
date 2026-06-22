@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildAppointmentListKpis } from '@/data/demo/appointmentListStats';
+import { buildAppointmentListKpis } from '@/lib/office/appointmentListStats';
 import { demoAppointments } from '@/data/demo/appointments';
 import { fetchAppointmentList } from '@/lib/office/appointmentListService';
 import { fetchAppointmentDetail } from '@/lib/office/appointmentDetailService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { APPOINTMENT_STATUS_FILTERS } from '@/hooks/useAppointmentList';
 import type { AppointmentListItem } from '@/types/modules/appointmentList';
@@ -96,21 +96,30 @@ describe('Office Termine list', () => {
   it('appointment services nutzen Supabase-Repository im Live-Modus', () => {
     const list = readSrc('src/lib/office/appointmentListService.ts');
     const create = readSrc('src/lib/office/appointmentCreateService.ts');
+    const save = readSrc('src/lib/calendar/calendarEventSaveService.ts');
     const repo = readSrc('src/lib/services/repositories/appointmentRepository.supabase.ts');
     expect(list).toContain("getServiceMode() === 'supabase'");
     expect(list).toContain('appointmentSupabaseRepository');
-    expect(create).toContain("getServiceMode() === 'supabase'");
-    expect(create).toContain('appointmentSupabaseRepository');
+    expect(create).toContain('createCalendarEventFromForm');
+    expect(save).toContain('appointmentSupabaseRepository.create');
+    expect(save).toContain('syncCalendarEvent');
     expect(repo).toContain("'appointments'");
     expect(repo).toContain('tenant_id');
+    expect(repo).not.toContain('syncCalendarEventAsync');
   });
 
-  it('AppointmentCreateScreen nutzt Live-FormHero ohne Demo-Hinweis', () => {
+  it('AppointmentsListScreen öffnet unified Create-Modal statt Formular-Route', () => {
+    const source = readSrc('src/screens/office/AppointmentsListScreen.tsx');
+    expect(source).toContain('CalendarEventCreateModal');
+    expect(source).toContain('sourceContext="appointment_management"');
+    expect(source).not.toContain('/office/appointments/create');
+  });
+
+  it('AppointmentCreateScreen leitet auf Modal-Flow um', () => {
     const source = readSrc('src/screens/office/AppointmentCreateScreen.tsx');
-    expect(source).toContain('createAppointment');
-    expect(source).toContain('useServiceTenantId');
-    expect(source).toContain("getServiceMode() === 'supabase'");
-    expect(source).toContain('Live-Speicherung');
+    expect(source).toContain('Redirect');
+    expect(source).toContain('create=1');
+    expect(source).not.toContain('DomainCreateScreen');
   });
 
   it('FormScreenHero blendet Demo-KPIs im Live-Modus aus', () => {

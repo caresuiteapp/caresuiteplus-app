@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { AdaptiveListDetail } from '@/components/adaptive';
-import { EmployeeDetailModal } from '@/components/office/employeedetailmodal';
 import { EmployeeDetailSummaryPanel } from '@/components/office/EmployeeDetailSummaryPanel';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
@@ -13,24 +12,7 @@ export function EmployeesAdaptiveScreen() {
   const [listRefreshToken, setListRefreshToken] = useState(0);
 
   if (shellHostsAurora) {
-    return (
-      <>
-        <EmployeesListScreen
-          onEmployeePress={setSelectedId}
-          selectedId={selectedId}
-          refreshToken={listRefreshToken}
-        />
-        <EmployeeDetailModal
-          visible={!!selectedId}
-          employeeId={selectedId}
-          onClose={() => setSelectedId(null)}
-          onDeleted={() => {
-            setSelectedId(null);
-            setListRefreshToken((value) => value + 1);
-          }}
-        />
-      </>
-    );
+    return <EmployeesListScreen />;
   }
 
   if (!useMasterDetail) {
@@ -42,6 +24,7 @@ export function EmployeesAdaptiveScreen() {
       list={
         <EmployeesListScreen
           embedded
+          useModals={false}
           selectedId={selectedId}
           onEmployeePress={setSelectedId}
           refreshToken={listRefreshToken}

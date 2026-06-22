@@ -17,10 +17,10 @@ export const DEFAULT_TENANT_DISPLAY: TenantDisplayMeta = {
 
 export function demoTenantDisplayMeta(): TenantDisplayMeta {
   return {
-    name: demoTenant.name,
-    street: demoTenantAddress.street,
-    zip: demoTenantAddress.zip,
-    city: demoTenantAddress.city,
+    name: demoTenant?.name?.trim() || DEFAULT_TENANT_DISPLAY.name,
+    street: demoTenantAddress?.street?.trim() || DEFAULT_TENANT_DISPLAY.street,
+    zip: demoTenantAddress?.zip?.trim() || DEFAULT_TENANT_DISPLAY.zip,
+    city: demoTenantAddress?.city?.trim() || DEFAULT_TENANT_DISPLAY.city,
   };
 }
 

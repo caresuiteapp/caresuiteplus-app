@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fetchInvoiceModuleSnapshot } from '@/lib/office/billingModuleService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 
 describe('WP239', () => {

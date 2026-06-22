@@ -1,7 +1,7 @@
 import { describe, expect, it, vi } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { fetchClientConsents, updateClientConsent } from '@/lib/clients/clientConsentsService';
 import { addClientMedication, fetchClientMedications } from '@/lib/clients/clientMedicationService';
 import { uploadClientDocument, listClientDocuments } from '@/lib/clients/clientDocumentsService';
@@ -19,6 +19,8 @@ describe('Office ClientRecord rebuild', () => {
     expect(source).toContain('ClientRecordTabContent');
     expect(source).toContain('LoadingState');
     expect(source).toContain('ErrorState');
+    expect(source).toContain('clientRecordKpiGridStyle');
+    expect(source).toContain('ContextCard');
   });
 
   it('ClientRecordTabPanels exposes service-driven document workflow', () => {
@@ -30,6 +32,7 @@ describe('Office ClientRecord rebuild', () => {
     expect(source).toContain('updateClientConsent');
     expect(source).toContain('addClientMedication');
     expect(source).toContain('EmptyState');
+    expect(source).toContain('ClientRecordShiftsPanel');
   });
 
   it('business office dashboard route has no Redirect', () => {

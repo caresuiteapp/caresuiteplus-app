@@ -3,7 +3,7 @@ import { useLocalSearchParams } from 'expo-router';
 import { PreparedModeBanner } from '@/components/modules/PreparedModeBanner';
 import { VitalReadingDetailHero } from '@/components/pflege/VitalReadingDetailHero';
 import { PflegeCrossModuleLinksPanel } from '@/components/pflege/PflegeCrossModuleLinksPanel';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   InfoBanner,
@@ -48,21 +48,21 @@ export function VitalReadingDetailScreen() {
 
   if (loading) {
     return (
-      <CareLightPageShell title="Vitalwert" subtitle="Wird geladen…">
+      <ScreenShell title="Vitalwert" subtitle="Wird geladen…">
         <LoadingState message="Messung wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Vitalwert" subtitle="Fehler">
+      <ScreenShell title="Vitalwert" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Die Messung existiert nicht.'}
           onRetry={refresh}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -71,7 +71,7 @@ export function VitalReadingDetailScreen() {
   const writeReady = isVitalWriteReady();
 
   return (
-    <CareLightPageShell title="Vitalwert" subtitle={reading.typeLabel} scroll>
+    <ScreenShell title="Vitalwert" subtitle={reading.typeLabel} scroll>
       <ScrollView contentContainerStyle={styles.scroll}>
         <VitalReadingDetailHero reading={reading} roleKey={profile?.roleKey ?? 'nurse'} isReadOnly={isReadOnly} />
         <PreparedModeBanner hint={VITAL_READINGS_PREPARED_MESSAGE} />
@@ -130,7 +130,7 @@ export function VitalReadingDetailScreen() {
 
         <PflegeCrossModuleLinksPanel context="vital-reading" />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

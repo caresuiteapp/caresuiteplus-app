@@ -66,6 +66,7 @@ export const appointmentSupabaseRepository = {
       .select('id')
       .single();
     if (error || !data) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: { id: (data as { id: string }).id } };
+    const id = (data as { id: string }).id;
+    return { ok: true, data: { id } };
   },
 };

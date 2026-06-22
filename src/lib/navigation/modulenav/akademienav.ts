@@ -11,6 +11,7 @@ export const akademieNav: ModuleNavConfig = {
     {
       title: 'Kurse & Lernen',
       items: [
+        { key: 'calendar', label: 'Kalender', icon: '📅', href: '/akademie/calendar' },
         { key: 'courses', label: 'Kurse', icon: '🎓', href: '/akademie/courses' },
         { key: 'kurse', label: 'Kursverwaltung', icon: '📚', href: '/akademie/kurse' },
         { key: 'pflichtschulungen', label: 'Pflichtschulungen', icon: '⚠️', href: '/akademie/pflichtschulungen' },

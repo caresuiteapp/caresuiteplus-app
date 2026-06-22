@@ -11,7 +11,7 @@ import {
   resolveOfficeMessageRecipientName,
 } from '@/lib/communication/officeComposeRouting';
 import { sendDomainMessage } from '@/lib/communication/domainMessageService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 const LIVE_TENANT = 'aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee';

@@ -11,7 +11,7 @@ import {
   renderTemplateWithVariables,
   TEMPLATE_VARIABLES,
 } from '@/lib/templates/templateVariables';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 describe('template catalog seeds', () => {
   it('has at least 150 system templates', () => {

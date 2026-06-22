@@ -6,7 +6,7 @@ import type {
   ClientPortalRole,
   ClientVisibleDocument,
 } from '@/types/portal/clientPortalDomain';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { computeDocumentContentHash } from '@/lib/documents/documentHashService';
 import { enforcePermission } from '@/lib/permissions';
 import { buildWorkspaceAccessContext, canViewDocument } from '@/lib/permissions';

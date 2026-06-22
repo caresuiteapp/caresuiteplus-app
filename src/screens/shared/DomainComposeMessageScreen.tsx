@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { PremiumButton, PremiumCard, PremiumInput, SuccessState } from '@/components/ui';
 import { spacing, typography } from '@/theme';
 
@@ -23,15 +23,15 @@ export function DomainComposeMessageScreen({
 
   if (sent) {
     return (
-      <CareLightPageShell title={title} subtitle={`WP ${wpNumber}`}>
+      <ScreenShell title={title} subtitle={`WP ${wpNumber}`}>
         <SuccessState message="Nachricht wurde in der Demo-Warteschlange gespeichert." />
         <PremiumButton title="Zurück" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title={title} subtitle={`${domain} · Kommunikation`}>
+    <ScreenShell title={title} subtitle={`${domain} · Kommunikation`}>
       <PremiumCard>
         <Text style={styles.hint}>Arbeitspaket {wpNumber} — Demo-Versand ohne externen Provider.</Text>
         <PremiumInput label="Betreff" value={subject} onChangeText={setSubject} />
@@ -50,7 +50,7 @@ export function DomainComposeMessageScreen({
           }}
         />
       </PremiumCard>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -2,7 +2,7 @@ import { useState } from 'react';
 import type { RoleKey, ServiceResult } from '@/types';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -72,22 +72,22 @@ function InvoiceExtensionListScreen<T extends { id: string }>({
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title={title} subtitle="Wird geladen…">
+      <ScreenShell title={title} subtitle="Wird geladen…">
         <LoadingState message={`${title} werden geladen…`} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title={title} subtitle="Fehler">
+      <ScreenShell title={title} subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title={title} subtitle={roleLabel ?? 'Demo'}>
+    <ScreenShell title={title} subtitle={roleLabel ?? 'Demo'}>
       <SectionPanel title={eyebrow}>
         <PremiumInput label="Suche" value={search} onChangeText={setSearch} placeholder="Filtern…" />
         {items.length === 0 ? (
@@ -108,7 +108,7 @@ function InvoiceExtensionListScreen<T extends { id: string }>({
         )}
         <PremiumButton title="Aktualisieren" variant="secondary" onPress={query.refresh} />
       </SectionPanel>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 
@@ -168,17 +168,17 @@ export function InvoiceDunningScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Mahnwesen" subtitle="Wird geladen…">
+      <ScreenShell title="Mahnwesen" subtitle="Wird geladen…">
         <LoadingState message="Mahnfälle werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Mahnwesen" subtitle="Fehler">
+      <ScreenShell title="Mahnwesen" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -187,7 +187,7 @@ export function InvoiceDunningScreen() {
   );
 
   return (
-    <CareLightPageShell title="Mahnwesen" subtitle="Office Abrechnung">
+    <ScreenShell title="Mahnwesen" subtitle="Office Abrechnung">
       {saved ? <SuccessState message="Mahnnotiz gespeichert (Demo)." /> : null}
       <SectionPanel title="Mahnstufen filtern">
         <FilterChipGroup
@@ -225,7 +225,7 @@ export function InvoiceDunningScreen() {
           <PremiumButton title="Notiz speichern" onPress={() => setSaved(!!note.trim())} />
         </SectionPanel>
       ) : null}
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

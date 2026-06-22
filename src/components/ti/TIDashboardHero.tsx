@@ -3,9 +3,9 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { TIConnectionStatusBadge } from './TIConnectionStatusBadge';
-import { ROLE_LABELS } from '@/data/demo';
+import { ROLE_LABELS } from '@/data/constants';
 import { isTILiveReady } from '@/lib/ti/tiModuleConfig';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { RoleKey } from '@/types';
 import type { TIDashboardSnapshot } from '@/types/modules/ti';
 import { designTokens, spacing } from '@/theme';
@@ -97,7 +97,6 @@ export function TIDashboardHero({ data, roleKey }: TIDashboardHeroProps) {
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         <TIConnectionStatusBadge status={data.connectionStatus} />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isTILiveReady() ? <PremiumBadge label="TI in Vorbereitung" variant="orange" dot /> : null}
       </View>
       <View style={styles.kpiRow}>

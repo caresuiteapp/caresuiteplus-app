@@ -4,7 +4,7 @@ import { useState } from 'react';
 import { CatalogValueSelect } from '@/components/templates';
 import { FormScreenHero } from '@/components/forms';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -35,33 +35,33 @@ export function InvoiceCreateScreen() {
 
   if (!can('office.invoices.view') || isReadOnly) {
     return (
-      <CareLightPageShell title="Rechnung anlegen" subtitle={roleLabel ?? 'Office'}>
+      <ScreenShell title="Rechnung anlegen" subtitle={roleLabel ?? 'Office'}>
         <LockedActionBanner
           message={check('office.invoices.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (submitting) {
     return (
-      <CareLightPageShell title="Rechnung anlegen" subtitle="Speichern…">
+      <ScreenShell title="Rechnung anlegen" subtitle="Speichern…">
         <LoadingState message="Rechnung wird angelegt…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (createdId) {
     return (
-      <CareLightPageShell title="Rechnung angelegt" subtitle="WP 226">
+      <ScreenShell title="Rechnung angelegt" subtitle="WP 226">
         <SuccessState message="Rechnung wurde im Demo-Mandanten angelegt." />
         <PremiumButton
           title="Zur Detailansicht"
           fullWidth
           onPress={() => router.replace(`/business/office/invoices/${createdId}` as never)}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -92,7 +92,7 @@ export function InvoiceCreateScreen() {
   const isEmpty = !title.trim() && !clientName.trim() && !dueDate.trim();
 
   return (
-    <CareLightPageShell title="Rechnung anlegen" subtitle="Office Abrechnung">
+    <ScreenShell title="Rechnung anlegen" subtitle="Office Abrechnung">
       <FormScreenHero
         eyebrow="OFFICE · RECHNUNGEN"
         title="Rechnung anlegen"
@@ -118,7 +118,7 @@ export function InvoiceCreateScreen() {
         <PremiumButton title="Anlegen" fullWidth onPress={handleSubmit} />
         <PremiumButton title="Abbrechen" variant="secondary" fullWidth onPress={() => router.back()} />
       </PremiumCard>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -1,8 +1,9 @@
+import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { CareLightButton } from './CareLightButton';
+import { PremiumButton } from './PremiumButton';
 
 type CareLightErrorStateProps = {
   message: string;
@@ -10,34 +11,39 @@ type CareLightErrorStateProps = {
 };
 
 export function CareLightErrorState({ message, onRetry }: CareLightErrorStateProps) {
+  const { c } = useCareLightPalette();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: {
+          alignItems: 'center',
+          gap: careSpacing.sm,
+          paddingVertical: careSpacing.lg,
+        },
+        emoji: {
+          fontSize: 36,
+        },
+        title: {
+          ...careTypography.bodyStrong,
+          color: c.danger,
+        },
+        message: {
+          ...careTypography.body,
+          color: c.muted,
+          textAlign: 'center',
+        },
+      }),
+    [c.danger, c.muted],
+  );
+
   return (
     <View style={styles.root}>
       <Text style={styles.emoji}>⚠️</Text>
       <Text style={styles.title}>Fehler</Text>
       <Text style={styles.message}>{message}</Text>
       {onRetry ? (
-        <CareLightButton title="Erneut versuchen" onPress={onRetry} accentColor={careLightColors.danger} />
+        <PremiumButton title="Erneut versuchen" onPress={onRetry} />
       ) : null}
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  root: {
-    alignItems: 'center',
-    gap: careSpacing.sm,
-    paddingVertical: careSpacing.lg,
-  },
-  emoji: {
-    fontSize: 36,
-  },
-  title: {
-    ...careTypography.bodyStrong,
-    color: careLightColors.danger,
-  },
-  message: {
-    ...careTypography.body,
-    color: careLightColors.muted,
-    textAlign: 'center',
-  },
-});

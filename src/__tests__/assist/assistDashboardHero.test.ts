@@ -25,20 +25,29 @@ describe('Assist Dashboard Hero (Sprint 81)', () => {
       inProgressCount: 2,
       completedTodayCount: 1,
       upcomingCount: 12,
+      atRiskCount: 3,
+      incompleteCount: 4,
+      openProofCount: 2,
+      openSignatureCount: 1,
+      openTripsCount: 2,
     });
     expect(kpis[0]?.value).toBe('5');
     expect(kpis[1]?.value).toBe('8');
-    expect(kpis[2]?.value).toBe('12');
+    expect(kpis[5]?.value).toBe('2');
+    expect(kpis[6]?.value).toBe('1');
+    expect(kpis[7]?.value).toBe('2');
+    expect(kpis[3]?.navigationTarget).toBe('/assist/qualitaet');
   });
 
-  it('AssistIndexScreen nutzt CareLightModuleDashboard (light premium)', () => {
+  it('AssistIndexScreen nutzt ScreenShell und AssistDashboardHero', () => {
     const screen = readSrc('src/screens/assist/AssistIndexScreen.tsx');
-    expect(screen).toContain('CareLightScreen');
-    expect(screen).toContain('CareLightModuleDashboard');
+    expect(screen).toContain('ScreenShell');
+    expect(screen).toContain('AssistDashboardHero');
+    expect(screen).toContain('SectionPanel');
     expect(screen).toContain('InfoBanner');
     expect(screen).toContain('ASSIST_EXTENSION_PREPARED_MESSAGE');
-    expect(screen).not.toContain('AdaptiveModuleDashboard');
-    expect(screen).not.toContain('StatKpi');
+    expect(screen).not.toContain('CareLightScreen');
+    expect(screen).not.toContain('CareLightModuleDashboard');
   });
 
   it('Erweiterungen sind demo-funktional', () => {

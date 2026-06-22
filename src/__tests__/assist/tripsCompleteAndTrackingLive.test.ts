@@ -6,7 +6,7 @@ import {
   mapTrackingDashboardRow,
   type TrackingDashboardLiveRow,
 } from '@/lib/assist/trackingDashboardMapper';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 

@@ -2,7 +2,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalDocumentDetailHero } from '@/components/portal';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   LoadingState,
@@ -34,40 +34,40 @@ export function PortalDocumentDetailScreen() {
 
   if (!canView) {
     return (
-      <CareLightPageShell title="Dokument" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Dokument" subtitle={roleLabel ?? 'Portal'}>
         <LockedActionBanner
           message={check('portal.employee.documents.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     return (
-      <CareLightPageShell title="Dokument" subtitle="Wird geladen…">
+      <ScreenShell title="Dokument" subtitle="Wird geladen…">
         <LoadingState message="Dokument wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Dokument" subtitle="Fehler">
+      <ScreenShell title="Dokument" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Das Dokument existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!data) return null;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={data.title}
       subtitle={data.fileName}
       rightSlot={
@@ -96,7 +96,7 @@ export function PortalDocumentDetailScreen() {
           <Text style={styles.hint}>Download derzeit nicht verfügbar.</Text>
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

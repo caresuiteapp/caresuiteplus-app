@@ -1,15 +1,17 @@
 import { useMemo } from 'react';
-import type { TextStyle, ViewStyle } from 'react-native';
+import { StyleSheet, type TextStyle, type ViewStyle } from 'react-native';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { careSuiteColors } from '@/design/tokens/colors';
 import {
   auroraGlass as glassTokens,
+  useAuroraAdaptiveText,
   useAuroraGlassCardStyle,
   useAuroraGlassInputStyle,
   useAuroraGlassModalStyle,
   useAuroraGlassPanelStyle,
 } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
+import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { designTokens } from '@/theme';
@@ -74,8 +76,8 @@ export function resolveCareLightPalette(isDark: boolean): CareLightResolved {
 }
 
 export function useCareLightPalette(): { isDark: boolean; c: CareLightResolved } {
-  const { mode, desktopThemeMode } = useThemeMode();
-  const isDark = mode === 'dark' || desktopThemeMode === 'aurora-glass';
+  const { mode } = useThemeMode();
+  const isDark = mode === 'dark';
   return useMemo(() => ({ isDark, c: resolveCareLightPalette(isDark) }), [isDark]);
 }
 
@@ -111,29 +113,74 @@ export function useGlassInputStyle(): ViewStyle {
 
 export { glassTokens as glass };
 
+/**
+ * Adaptive typography + text colors for SectionPanel / PremiumCard children.
+ * Prefer this over static `@/theme` or `careLightColors.*` in panel content.
+ */
+export function useAdaptiveContentStyles() {
+  const text = useAuroraAdaptiveText();
+  const { typography, colors } = useLegacyTheme();
+
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        primary: { color: text.primary },
+        secondary: { color: text.secondary },
+        muted: { color: text.muted },
+        body: { ...typography.body, color: text.secondary },
+        bodyStrong: { ...typography.bodyStrong, color: text.primary },
+        label: { ...typography.label, color: text.secondary },
+        caption: { ...typography.caption, color: text.muted },
+        title: { ...typography.bodyStrong, color: text.primary },
+        subheading: { ...typography.bodyStrong, color: text.primary, marginTop: careSpacing.sm },
+        link: {
+          ...typography.caption,
+          color: colors.cyan,
+          fontWeight: '600' as TextStyle['fontWeight'],
+        },
+        error: { ...typography.caption, color: colors.error },
+      }),
+    [colors.cyan, colors.error, text.muted, text.primary, text.secondary, typography],
+  );
+}
+
+/** Static StyleSheet helper for components already using `useCareLightPalette()`. */
+export function createCareLightContentStyles(c: CareLightResolved) {
+  return StyleSheet.create({
+    body: { ...careTypography.body, color: c.text },
+    bodyStrong: { ...careTypography.bodyStrong, color: c.text },
+    caption: { ...careTypography.caption, color: c.muted },
+    label: { ...careTypography.caption, color: c.muted, fontWeight: '600' as TextStyle['fontWeight'] },
+    title: { ...careTypography.bodyStrong, color: c.text },
+    link: { ...careTypography.caption, color: c.cyan, fontWeight: '600' as TextStyle['fontWeight'] },
+  });
+}
+
 /** List-hero typography that stays readable on glass panels in dark mode. */
 export function useListHeroTextStyles() {
   const { isDark, c } = useCareLightPalette();
+  const onAuroraHero = isDark;
   return useMemo(
     () => ({
       eyebrow: {
         ...careTypography.caption,
-        color: isDark ? c.cyan : careLightColors.cyan,
+        color: onAuroraHero ? 'rgba(255,255,255,0.85)' : careLightColors.cyan,
         letterSpacing: designTokens.hero.eyebrowLetterSpacing,
         fontWeight: '700' as TextStyle['fontWeight'],
       },
       title: {
         ...careTypography.h2,
-        color: isDark ? c.text : careLightColors.navy,
+        color: onAuroraHero ? '#FFFFFF' : careLightColors.navy,
+        fontWeight: '800' as TextStyle['fontWeight'],
       },
       meta: {
         ...careTypography.caption,
-        color: isDark ? c.muted : careLightColors.muted,
+        color: onAuroraHero ? 'rgba(255,255,255,0.75)' : careLightColors.muted,
       },
       iconBorder: {
-        borderColor: isDark ? c.border : careLightColors.border,
+        borderColor: onAuroraHero ? 'rgba(255,255,255,0.4)' : careLightColors.border,
       },
     }),
-    [c.border, c.cyan, c.muted, c.text, isDark],
+    [onAuroraHero],
   );
 }

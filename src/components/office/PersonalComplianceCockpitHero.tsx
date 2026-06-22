@@ -7,7 +7,7 @@ import {
   PERSONAL_COMPLIANCE_PREPARED_MESSAGE,
 } from '@/lib/office/personalComplianceCockpitService';
 import type { PersonalComplianceSnapshot } from '@/types/modules/personalComplianceCockpit';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 const iconSize = 52;
@@ -90,7 +90,6 @@ export function PersonalComplianceCockpitHero({ snapshot }: PersonalComplianceCo
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Verwaltung · QM · GF" variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isPersonalComplianceLiveReady() || snapshot.preparedOnly ? (
           <PremiumBadge label="preparedOnly" variant="muted" />
         ) : null}

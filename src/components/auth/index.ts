@@ -1,5 +1,5 @@
 export { AuthLoginHero } from './AuthLoginHero';
-export { DemoLoginHero } from './DemoLoginHero';
-export { DemoModeHintHero } from './DemoModeHintHero';
+export { BusinessWelcomeGate } from './BusinessWelcomeGate';
+export { BusinessWelcomeModal } from './BusinessWelcomeModal';
 export { EmployeeFirstLoginHero } from './EmployeeFirstLoginHero';
 export { OnboardingWelcomeHero } from './OnboardingWelcomeHero';

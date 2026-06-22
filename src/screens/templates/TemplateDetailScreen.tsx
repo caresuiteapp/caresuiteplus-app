@@ -8,7 +8,7 @@ import {
   TemplateStatusBadge,
   TemplateUsagePanel,
 } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useTemplateDetail, useTemplateEditor, useTemplateVariables } from '@/hooks/templates';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -27,33 +27,33 @@ export function TemplateDetailScreen() {
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title="Vorlage" subtitle={roleLabel ?? ''}>
+      <ScreenShell title="Vorlage" subtitle={roleLabel ?? ''}>
         <LockedActionBanner message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !template) {
     return (
-      <CareLightPageShell title="Vorlage" subtitle="Wird geladen…">
+      <ScreenShell title="Vorlage" subtitle="Wird geladen…">
         <LoadingState message="Vorlage wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !template) {
     return (
-      <CareLightPageShell title="Vorlage" subtitle="Fehler">
+      <ScreenShell title="Vorlage" subtitle="Fehler">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!template) {
     return (
-      <CareLightPageShell title="Vorlage" subtitle="Nicht gefunden">
+      <ScreenShell title="Vorlage" subtitle="Nicht gefunden">
         <ErrorState message="Vorlage nicht gefunden." onRetry={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
@@ -70,7 +70,7 @@ export function TemplateDetailScreen() {
   };
 
   return (
-    <CareLightPageShell title={template.title} subtitle={template.scope === 'system' ? 'Systemvorlage' : 'Mandant'}>
+    <ScreenShell title={template.title} subtitle={template.scope === 'system' ? 'Systemvorlage' : 'Mandant'}>
       <PreparedTemplateBanner />
       <View style={styles.badges}>
         <TemplateModuleBadge moduleKey={template.moduleKey} />
@@ -105,7 +105,7 @@ export function TemplateDetailScreen() {
         ) : null}
         <PremiumButton title="Nutzung protokollieren" variant="secondary" onPress={handleLogUsage} />
       </View>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -1,6 +1,6 @@
 import { StyleSheet, Text, useWindowDimensions, View } from 'react-native';
-import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText, useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
+import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { PremiumButton } from '@/components/ui';
@@ -20,16 +20,17 @@ const COMPLETENESS_LABEL = {
 const COMPLETENESS_COLOR = {
   complete: '#34D399',
   partial: '#FBBF24',
-  empty: '#94A3B8',
+  empty: '#64748B',
 } as const;
 
 export function TenantCenterSectionCard({ section, onEdit }: Props) {
   const text = useAuroraAdaptiveText();
+  const cardGlass = useAuroraGlassCardStyle({ viewContext: 'settings' });
   const { width } = useWindowDimensions();
   const type = resolveGalaxyTypography(width);
 
   return (
-    <GlassCard style={styles.card}>
+    <View style={[styles.card, cardGlass]}>
       <View style={styles.inner}>
         <View style={styles.header}>
           <Text style={[type.body, styles.title, { color: text.primary }]}>{section.title}</Text>
@@ -53,13 +54,15 @@ export function TenantCenterSectionCard({ section, onEdit }: Props) {
           />
         ) : null}
       </View>
-    </GlassCard>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
   card: {
     minHeight: 180,
+    padding: careSpacing.md,
+    borderRadius: careRadius.lg,
   },
   inner: {
     flex: 1,

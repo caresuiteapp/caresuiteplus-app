@@ -1,7 +1,7 @@
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { useMemo, useState } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumCard, PremiumInput } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -39,30 +39,30 @@ export function QmAuditsScreen() {
 
   if (!can('qm.view')) {
     return (
-      <CareLightPageShell title="Audits" showBack>
+      <ScreenShell title="Audits" showBack>
         <LockedActionBanner message={check('qm.view').reason ?? ''} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Audits" showBack>
+      <ScreenShell title="Audits" showBack>
         <LoadingState message="Audits werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Audits" showBack>
+      <ScreenShell title="Audits" showBack>
         <ErrorState title="Audits" message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Audits" subtitle={`${items.length} Audits`} showBack>
+    <ScreenShell title="Audits" subtitle={`${items.length} Audits`} showBack>
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={query.loading} onRefresh={query.refresh} tintColor={colors.primary} />
@@ -87,7 +87,7 @@ export function QmAuditsScreen() {
           ))
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

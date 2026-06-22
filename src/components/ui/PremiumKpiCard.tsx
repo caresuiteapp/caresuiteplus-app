@@ -3,8 +3,8 @@ import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import {
-  auroraGlass,
   useAuroraAdaptiveText,
+  useAuroraGlass,
   useAuroraGlassActive,
   useAuroraGlassCardStyle,
 } from '@/design/tokens/auroraGlass';
@@ -12,6 +12,7 @@ import { glassFx } from '@/design/tokens/motion';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careLightColors } from '@/design/tokens/lightTheme';
+import { SpaceKpiIcon } from '@/components/icons/space';
 import { CareLightKpiCard } from './CareLightKpiCard';
 import { radius } from '@/theme';
 
@@ -44,6 +45,7 @@ export function PremiumKpiCard({
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
   const auroraActive = useAuroraGlassActive();
+  const { tokens: glass } = useAuroraGlass();
   const { colors, typography, gradients } = useLegacyTheme();
   const text = useAuroraAdaptiveText();
   const glassCardStyle = useAuroraGlassCardStyle();
@@ -61,12 +63,12 @@ export function PremiumKpiCard({
           borderColor: isLight
             ? careLightColors.border
             : auroraActive
-              ? auroraGlass.border
+              ? glass.border
               : colors.borderSoft,
           backgroundColor: isLight
             ? careLightColors.surface
             : auroraActive
-              ? auroraGlass.card
+              ? glass.card
               : gradients.card.default[0],
           overflow: 'hidden',
           shadowOpacity: isLight ? 0.1 : 0.3,
@@ -97,13 +99,11 @@ export function PremiumKpiCard({
         iconBubble: {
           width: 36,
           height: 36,
-          borderRadius: 10,
+          borderRadius: 12,
           alignItems: 'center',
           justifyContent: 'center',
           marginBottom: 4,
-        },
-        icon: {
-          fontSize: 18,
+          overflow: 'hidden',
         },
         label: {
           ...typography.caption,
@@ -132,6 +132,8 @@ export function PremiumKpiCard({
     [
       auroraActive,
       colors.borderSoft,
+      glass.border,
+      glass.card,
       gradients.card.default,
       isLight,
       text.muted,
@@ -181,8 +183,8 @@ export function PremiumKpiCard({
       <View style={[styles.rim, { backgroundColor: resolvedAccent }]} />
       <View style={styles.content}>
         {icon ? (
-          <View style={[styles.iconBubble, { backgroundColor: `${resolvedAccent}20` }]}>
-            <Text style={styles.icon}>{icon}</Text>
+          <View style={styles.iconBubble}>
+            <SpaceKpiIcon icon={icon} accentColor={resolvedAccent} size={36} />
           </View>
         ) : null}
         <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>

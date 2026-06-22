@@ -1,6 +1,6 @@
 import { StyleSheet, Text } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TISecurityNotice } from '@/components/ti';
 import { PremiumCard } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -10,13 +10,13 @@ export function TIDocumentAssignmentScreen() {
   const { can, check, roleLabel } = usePermissions();
   if (!can('ti.kim.view')) {
     return (
-      <CareLightPageShell title="Dokumentenzuordnung">
+      <ScreenShell title="Dokumentenzuordnung">
         <LockedActionBanner message={check('ti.kim.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
   return (
-    <CareLightPageShell title="Dokumentenzuordnung" subtitle="KIM-Anhänge → Klient:innen">
+    <ScreenShell title="Dokumentenzuordnung" subtitle="KIM-Anhänge → Klient:innen">
       <PremiumCard accentColor={colors.cyan}>
         <Text style={styles.title}>Manuelle Dokumentenzuordnung</Text>
         <Text style={styles.meta}>
@@ -24,7 +24,7 @@ export function TIDocumentAssignmentScreen() {
         </Text>
       </PremiumCard>
       <TISecurityNotice />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { AdaptiveListDetail } from '@/components/adaptive';
-import { ClientDetailModal } from '@/components/office/clientdetailmodal';
 import { ClientDetailSummaryPanel } from '@/components/office/ClientDetailSummaryPanel';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
@@ -10,18 +9,10 @@ export function ClientsAdaptiveScreen() {
   const { useMasterDetail } = usePlatformLayout();
   const shellHostsAurora = useShellHostsAurora();
   const [selectedId, setSelectedId] = useState<string | null>(null);
+  const [listRefreshToken, setListRefreshToken] = useState(0);
 
   if (shellHostsAurora) {
-    return (
-      <>
-        <ClientsListScreen onClientPress={setSelectedId} selectedId={selectedId} />
-        <ClientDetailModal
-          visible={!!selectedId}
-          clientId={selectedId}
-          onClose={() => setSelectedId(null)}
-        />
-      </>
-    );
+    return <ClientsListScreen />;
   }
 
   if (!useMasterDetail) {
@@ -33,13 +24,21 @@ export function ClientsAdaptiveScreen() {
       list={
         <ClientsListScreen
           embedded
+          useModals={false}
           selectedId={selectedId}
           onClientPress={setSelectedId}
+          refreshToken={listRefreshToken}
         />
       }
       detail={
         selectedId ? (
-          <ClientDetailSummaryPanel clientId={selectedId} />
+          <ClientDetailSummaryPanel
+            clientId={selectedId}
+            onDeleted={() => {
+              setSelectedId(null);
+              setListRefreshToken((value) => value + 1);
+            }}
+          />
         ) : undefined
       }
       showDetail={!!selectedId}

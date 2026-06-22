@@ -3,7 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalEmployeeAssignmentDetailHero } from '@/components/portal';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -36,40 +36,40 @@ export function PortalAssignmentDetailScreen() {
 
   if (!canView) {
     return (
-      <CareLightPageShell title="Einsatz" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Einsatz" subtitle={roleLabel ?? 'Portal'}>
         <LockedActionBanner
           message={check('portal.employee.appointments.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading) {
     return (
-      <CareLightPageShell title="Einsatz" subtitle="Wird geladen…">
+      <ScreenShell title="Einsatz" subtitle="Wird geladen…">
         <LoadingState message="Einsatzdetails werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <CareLightPageShell title="Einsatz" subtitle="Fehler">
+      <ScreenShell title="Einsatz" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
           message={error ?? 'Der Einsatz existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!data) return null;
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={data.title}
       subtitle={`${data.clientName} · ${roleLabel ?? 'Portal'}`}
       rightSlot={
@@ -113,7 +113,7 @@ export function PortalAssignmentDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

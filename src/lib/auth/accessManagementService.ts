@@ -4,7 +4,7 @@ import {
   fetchLoginAuditEventsFromSupabase,
   fetchTenantUsersFromSupabase,
 } from '@/lib/access/accessManagementLiveRepository';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type { RoleKey, ServiceResult } from '@/types';
 import { getServiceMode } from '@/lib/services/mode';
 import type {
@@ -25,7 +25,7 @@ import {
   getRelativePortalCodes,
   getTenantUsers,
   saveModulePermission,
-} from './demoAccessStore';
+} from './accessStore';
 import {
   blockEmployeeAccess,
   generateEmployeeAccess,

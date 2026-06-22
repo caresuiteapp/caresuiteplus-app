@@ -1,16 +1,14 @@
-import { getSupabaseConfig, isDemoMode, isSupabaseConfigured } from '@/lib/supabase/config';
+import { getSupabaseConfig, isSupabaseConfigured } from '@/lib/supabase/config';
 
 export type ServiceMode = 'demo' | 'supabase';
 
 export type LiveConfigIssue = {
-  code: 'demo_mode' | 'missing_url' | 'missing_anon_key';
+  code: 'missing_url' | 'missing_anon_key';
   message: string;
 };
 
+/** CareSuite+ is live-only — always routes through Supabase services. */
 export function getServiceMode(): ServiceMode {
-  if (isDemoMode() || !isSupabaseConfigured()) {
-    return 'demo';
-  }
   return 'supabase';
 }
 
@@ -19,13 +17,6 @@ export { isDemoMode } from '@/lib/supabase/config';
 /** Prüft Live-Pilot-Konfiguration — keine Secrets, nur Anon-Key + URL. */
 export function assertLiveConfig(): { ok: true } | { ok: false; issues: LiveConfigIssue[] } {
   const issues: LiveConfigIssue[] = [];
-
-  if (isDemoMode()) {
-    issues.push({
-      code: 'demo_mode',
-      message: 'EXPO_PUBLIC_DEMO_MODE ist aktiv — Live-Pilot erfordert false.',
-    });
-  }
 
   const { url, anonKey } = getSupabaseConfig();
   if (!url.trim()) {
@@ -55,4 +46,9 @@ export function requireLiveConfig(): void {
     const message = result.issues.map((issue) => issue.message).join(' ');
     throw new Error(message || 'Live-Konfiguration unvollständig.');
   }
+}
+
+/** @deprecated Demo mode removed — use isSupabaseConfigured() for env checks. */
+export function isLiveServiceReady(): boolean {
+  return isSupabaseConfigured();
 }

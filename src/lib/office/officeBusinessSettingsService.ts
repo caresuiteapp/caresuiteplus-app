@@ -16,6 +16,12 @@ export type OfficeSettingsSnapshot = {
 
 const SETTINGS_LINKS: OfficeSettingsLink[] = [
   {
+    id: 'csv',
+    label: 'CSV Import / Export',
+    route: '/business/office/settings/csv-import-export',
+    description: 'Datenimport & Datenexport für Klient:innen und Mitarbeiter:innen',
+  },
+  {
     id: 'templates',
     label: 'Vorlagen & Kataloge',
     route: '/business/templates/settings',

@@ -1,9 +1,8 @@
-import { useMemo } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { useEffect, useMemo } from 'react';
+import { StyleSheet, View } from 'react-native';
 import { useAiPageContext } from '@/ai/useAiPageContext';
-import { breakpoints } from '@/design/tokens/breakpoints';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
-import { ZentraleDashboardHero } from '@/components/dashboard/ZentraleDashboardHero';
+import { ModuleOverviewDashboard } from '@/components/dashboard/ModuleOverviewDashboard';
 import {
   CareLightEmptyState,
   CareLightErrorState,
@@ -19,6 +18,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useDashboard } from '@/hooks/useDashboard';
+import { subscribeTenantModuleSettings } from '@/lib/tenant/tenantModuleSettingsCache';
 import { useAuth } from '@/lib/auth/context';
 import { wp138A11y } from '@/lib/a11y/wp138-business';
 import { Text } from 'react-native';
@@ -28,9 +28,10 @@ export function BusinessDashboardScreen() {
   const { data, loading, error, refresh } = useDashboard('business');
   const shellHostsAurora = useShellHostsAurora();
   const businessAccent = moduleColor('office');
-  const { width } = useWindowDimensions();
-  /** Tablet+ uses the module-rail-aligned column layout (see kpiCenter). */
-  const alignKpiWithModuleRail = width >= breakpoints.tablet;
+
+  useEffect(() => subscribeTenantModuleSettings(() => {
+    void refresh();
+  }), [refresh]);
 
   const displayName = profile?.displayName ?? user?.displayName ?? 'Willkommen';
 
@@ -43,34 +44,11 @@ export function BusinessDashboardScreen() {
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: alignKpiWithModuleRail
-          ? {
-              flex: 1,
-              minHeight: 0,
-              backgroundColor: shellHostsAurora ? 'transparent' : undefined,
-            }
-          : {
-              gap: careSpacing.sm,
-              backgroundColor: shellHostsAurora ? 'transparent' : undefined,
-            },
-        /** Hero overlays the top — same role as the rail logo; must not push KPI down in the flex column. */
-        heroOverlay: {
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          right: 0,
-          alignItems: 'center',
-          zIndex: 1,
-        },
-        /**
-         * Vertically centers Kennzahlen Übersicht in the main work area below the topbar,
-         * mirroring MainModuleRail scroll (flexGrow + justifyContent: 'center') for the icon stack.
-         * "Menü" = left module icon rail, not the right Übersicht sidebar.
-         */
-        kpiCenter: {
-          flex: 1,
-          justifyContent: 'center',
-          minHeight: 0,
+        root: {
+          width: '100%',
+          flexGrow: 1,
+          gap: careSpacing.sm,
+          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
         loading: {
           ...careTypography.body,
@@ -80,7 +58,7 @@ export function BusinessDashboardScreen() {
         },
         a11yAnchor: { height: 0, width: 0 },
       }),
-    [alignKpiWithModuleRail, shellHostsAurora],
+    [shellHostsAurora],
   );
 
   if (loading && !data) {
@@ -121,19 +99,18 @@ export function BusinessDashboardScreen() {
 
   return (
     <View style={styles.root}>
-      <View
-        style={alignKpiWithModuleRail ? styles.heroOverlay : undefined}
-        pointerEvents="box-none"
+      <SectionPanel
+        title="Zentrale Dashboard"
+        subtitle="Live Mandantenübersicht"
+        headerAlign="center"
+        headerVariant="hero"
+        fillHeight={Boolean(data.moduleOverviewRows)}
+        surface="open"
+        viewContext="dashboard"
       >
-        <ZentraleDashboardHero
-          greeting={data.greeting}
-          displayName={displayName}
-          tenantName={data.tenantName}
-          subtitle={data.heroSubtitle}
-        />
-      </View>
-      <View style={alignKpiWithModuleRail ? styles.kpiCenter : undefined}>
-        <SectionPanel title="Kennzahlen Übersicht" subtitle="Live Mandantenübersicht">
+        {data.moduleOverviewRows ? (
+          <ModuleOverviewDashboard rows={data.moduleOverviewRows} />
+        ) : (
           <AdaptiveKpiGrid
             columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
             items={data.kpis.map((kpi) => ({
@@ -151,8 +128,8 @@ export function BusinessDashboardScreen() {
               ),
             }))}
           />
-        </SectionPanel>
-      </View>
+        )}
+      </SectionPanel>
       <View
         accessible
         accessibilityLabel={`${wp138A11y.screenLabel} · WP ${wp138A11y.wpNumber}`}

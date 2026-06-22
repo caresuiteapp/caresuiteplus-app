@@ -13,11 +13,15 @@ export {
 } from './channelManager';
 export {
   subscribeToAssignmentChanges,
+  subscribeToAssistOperationsChanges,
   subscribeToClientListChanges,
   subscribeToClientRecordChanges,
+  subscribeToEmployeeDetailChanges,
+  subscribeToEmployeeListChanges,
   subscribeToNotificationChanges,
   subscribeToOfficeDashboardChanges,
   subscribeToPortalAssistChanges,
+  subscribeToTimeTrackingChanges,
 } from './presets';
 export {
   subscribeToTenantTables,

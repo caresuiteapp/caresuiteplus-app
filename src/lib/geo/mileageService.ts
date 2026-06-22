@@ -1,6 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { MileageLogEntry, PreparedMileageLogDraft, RouteCalculation } from '@/types/geo';
-import { ROLE_PERMISSIONS } from '@/data/demo/permissions';
+import { ROLE_PERMISSIONS } from '@/lib/permissions/staticRolePermissions';
 import { assertGeoRolePermission, assertLocationPurpose, runGeoGuardChain } from '@/lib/geo/geoGuard';
 import { buildRetentionUntil, recordLocationAuditEvent } from '@/lib/geo/locationAuditService';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';

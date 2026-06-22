@@ -1,7 +1,7 @@
 import { useState } from 'react';
 import { useRouter } from 'expo-router';
 import { DashboardView } from '@/components/dashboard';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { PremiumButton } from '@/components/ui';
 import { useDashboard } from '@/hooks/useDashboard';
 import { useAuth } from '@/lib/auth/context';
@@ -27,7 +27,7 @@ export function PortalDashboardScreen({ portalLabel, scope }: PortalDashboardScr
   };
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={portalLabel}
       subtitle="Ihre persönliche Übersicht"
       rightSlot={
@@ -47,6 +47,6 @@ export function PortalDashboardScreen({ portalLabel, scope }: PortalDashboardScr
         onRefresh={handleRefresh}
         showSuccess={showSuccess}
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }

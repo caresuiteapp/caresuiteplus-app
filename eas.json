@@ -1,7 +1,7 @@
 {
   "cli": {
     "version": ">= 13.0.0",
-    "appVersionSource": "local"
+    "appVersionSource": "remote"
   },
   "build": {
     "development": {
@@ -30,6 +30,7 @@
       }
     },
     "production": {
+      "autoIncrement": true,
       "ios": {
         "simulator": false
       },
@@ -52,8 +53,13 @@
     },
     "production-aab": {
       "extends": "production",
+      "autoIncrement": true,
       "android": {
-        "buildType": "app-bundle"
+        "buildType": "app-bundle",
+        "buildArtifactPaths": [
+          "android/app/build/outputs/**/*.{aab,apk}",
+          "android/app/build/outputs/mapping/release/mapping.txt"
+        ]
       },
       "env": {
         "APP_ENV": "production"

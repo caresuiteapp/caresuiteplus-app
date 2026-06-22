@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   PaymentSettingsHero,
   PaymentTestModeNotice,
@@ -86,33 +86,33 @@ export function PaymentSettingsScreen() {
 
   if (!can('connect.configure')) {
     return (
-      <CareLightPageShell title="Zahlungen">
+      <ScreenShell title="Zahlungen">
         <LockedActionBanner
           message={check('connect.configure').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.loading && !snapshot) {
     return (
-      <CareLightPageShell title="Zahlungen">
+      <ScreenShell title="Zahlungen">
         <LoadingState message="Zahlungseinstellungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !snapshot) {
     return (
-      <CareLightPageShell title="Zahlungen">
+      <ScreenShell title="Zahlungen">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Zahlungen" subtitle="Anbieter & Webhooks">
+    <ScreenShell title="Zahlungen" subtitle="Anbieter & Webhooks">
       <ScrollView
         refreshControl={
           <RefreshControl refreshing={query.loading} onRefresh={query.refresh} tintColor={colors.cyan} />
@@ -181,7 +181,7 @@ export function PaymentSettingsScreen() {
 
         <PremiumButton title="Speichern" onPress={handleSave} />
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

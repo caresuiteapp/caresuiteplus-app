@@ -14,7 +14,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildCourseListKpis } from '@/data/demo/courseListStats';
+import { buildCourseListKpis } from '@/lib/akademie/courseListStats';
 import { useCourseList } from '@/hooks/useCourseList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';

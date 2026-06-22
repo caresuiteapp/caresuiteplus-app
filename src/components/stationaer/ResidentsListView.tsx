@@ -14,7 +14,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildResidentListKpis } from '@/data/demo/residentListStats';
+import { buildResidentListKpis } from '@/lib/stationaer/residentListStats';
 import { useResidentList } from '@/hooks/useResidentList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';

@@ -9,7 +9,7 @@ import {
 } from '@/lib/tenant/tenantResolver';
 import { assertLiveConfig, getServiceMode, requireLiveConfig } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type { Profile } from '@/types';
 
 vi.mock('react-native-url-polyfill/auto', () => ({}));

@@ -5,9 +5,10 @@ import {
   fetchAssignmentExecution,
   startAssignmentWork,
 } from '@/lib/assist';
+import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { useAsyncQuery, useMutation } from './core';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery, useMutation } from './core';
 
 export function useAssignmentExecution(assignmentId: string | undefined) {
   const { profile } = useAuth();
@@ -23,7 +24,16 @@ export function useAssignmentExecution(assignmentId: string | undefined) {
       return fetchAssignmentExecution(assignmentId, tenantId, roleKey);
     },
     [assignmentId, tenantId, roleKey],
-    { enabled: Boolean(assignmentId) && !!tenantId },
+    {
+      enabled: Boolean(assignmentId) && !!tenantId,
+      live: tenantId
+        ? {
+            tenantId,
+            subscribe: subscribeToAssistOperationsChanges,
+            pollMs: OPERATIONAL_LIVE_POLL_MS,
+          }
+        : undefined,
+    },
   );
 
   const checkInMutation = useMutation(
@@ -80,6 +90,7 @@ export function useAssignmentExecution(assignmentId: string | undefined) {
       startMutation.successMessage ??
       checkOutMutation.successMessage,
     refresh: query.refresh,
+    isLiveConnected: query.isLiveConnected,
     checkIn: useCallback(
       (locationNote?: string) => checkInMutation.mutate(locationNote),
       [checkInMutation],

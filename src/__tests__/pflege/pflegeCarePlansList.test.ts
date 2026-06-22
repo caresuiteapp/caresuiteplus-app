@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildCarePlanListKpis } from '@/data/demo/carePlanListStats';
+import { buildCarePlanListKpis } from '@/lib/pflege/carePlanListStats';
 import { getDemoCarePlanListItems } from '@/data/demo/carePlans';
 import { fetchCarePlanList } from '@/lib/pflege/carePlanListService';
 import { fetchCarePlanDetail } from '@/lib/pflege/carePlanDetailService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { CARE_PLAN_STATUS_FILTERS, CARE_PLAN_SORT_OPTIONS } from '@/hooks/useCarePlanList';
 

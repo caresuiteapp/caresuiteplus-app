@@ -34,3 +34,22 @@ export {
   resolveResponsiveValue,
   type ResponsiveValueMap,
 } from './responsiveValue';
+export {
+  auroraGlass,
+  useAuroraGlassActive,
+  useAuroraAdaptiveText,
+  useAuroraGlass,
+  useAuroraGlassPanelStyle,
+  useAuroraGlassCardStyle,
+  useAuroraGlassInputStyle,
+  useAuroraGlassModalStyle,
+  useAuroraGlassButtonStyles,
+  useAuroraGlassChipStyles,
+  useAuroraGlassTableStyles,
+  useAuroraGlassSelectStyles,
+} from './auroraGlass';
+export {
+  careSuiteAuroraTheme,
+  AURORA_HERO_GRADIENT,
+  AURORA_BUTTON_PRIMARY,
+} from '@/theme/careSuiteAurora';

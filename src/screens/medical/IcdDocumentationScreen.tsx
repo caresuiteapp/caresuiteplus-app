@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { MedicalDocumentationDisclaimer } from '@/components/medical/MedicalDocumentationDisclaimer';
 import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -60,7 +60,7 @@ export function IcdDocumentationScreen() {
   };
 
   return (
-    <CareLightPageShell title="ICD-Dokumentation" subtitle="Ärztliche Angabe — keine Systemdiagnose">
+    <ScreenShell title="ICD-Dokumentation" subtitle="Ärztliche Angabe — keine Systemdiagnose">
       <ScrollView contentContainerStyle={styles.content}>
         <MedicalDocumentationDisclaimer showNoTherapyHint />
 
@@ -123,7 +123,7 @@ export function IcdDocumentationScreen() {
           <SuccessState message={`Diagnose dokumentiert (${successId}) — keine medizinische Entscheidung.`} />
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

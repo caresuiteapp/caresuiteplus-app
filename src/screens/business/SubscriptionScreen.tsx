@@ -22,7 +22,7 @@ import {
   formatFreePlatformPrice,
   getFreePlatformModules,
 } from '@/lib/billing/freePlatformService';
-import { PRODUCT_LABELS } from '@/data/demo/products';
+import { PRODUCT_LABELS } from '@/data/constants/productLabels';
 import { colors, spacing, typography } from '@/theme';
 
 const STATUS_LABELS: Record<string, string> = {

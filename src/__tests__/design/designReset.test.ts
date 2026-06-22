@@ -42,19 +42,17 @@ describe('Design Reset (Prompt 101)', () => {
     expect(source).not.toContain('preparedOnly Auth');
   });
 
-  it('Business register shows Office always active via ModuleCard', () => {
+  it('Business register shows Office always active', () => {
     const source = readSrc('src/screens/auth/BusinessRegisterScreen.tsx');
-    expect(source).toContain('ModuleCard');
     expect(source).toContain('immer enthalten');
     expect(source).toContain("module === 'office'");
-    expect(source).toContain('locked={locked}');
+    expect(source).toContain('PremiumButton');
   });
 
-  it('PremiumPreparedNotice shows Vorbereitet not raw preparedOnly in UI', () => {
+  it('PremiumPreparedNotice labels premium connectors', () => {
     const notice = readSrc('src/components/billing/PremiumPreparedNotice.tsx');
-    expect(notice).toContain('StatusBadge');
-    expect(notice).toContain('kind="preparedOnly"');
-    expect(notice).not.toMatch(/label="preparedOnly"/);
+    expect(notice).toContain('PremiumBadge');
+    expect(notice).toContain('preparedOnly');
     expect(notice).toContain('DATEV');
     expect(notice).toContain('KIM');
   });
@@ -63,11 +61,10 @@ describe('Design Reset (Prompt 101)', () => {
     expect(readSrc('app/auth/business-login.tsx')).toContain('BusinessLoginScreen');
     expect(readSrc('app/auth/register-business.tsx')).toContain('BusinessRegisterScreen');
     expect(readSrc('app/auth/forgot-password.tsx')).toContain('ForgotPasswordScreen');
-    expect(readSrc('app/auth/demo.tsx')).toContain('DemoLoginScreen');
   });
 
-  it('design system exports galaxy tokens and components', () => {
-    expect(readSrc('src/design/tokens/index.ts')).toContain('galaxyPalette');
+  it('design system exports care tokens and components', () => {
+    expect(readSrc('src/design/tokens/index.ts')).toContain('careSuiteColors');
     expect(readSrc('src/design/components/index.ts')).toContain('SpaceBackground');
     expect(readSrc('src/design/components/index.ts')).toContain('GlassCard');
     expect(readSrc('src/design/components/index.ts')).toContain('AuthPageShell');

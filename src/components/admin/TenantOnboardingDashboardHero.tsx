@@ -7,7 +7,7 @@ import {
   TENANT_ONBOARDING_PREPARED_MESSAGE,
 } from '@/lib/admin/tenantOnboardingService';
 import type { OnboardingProgressSummary } from '@/types/admin/tenantOnboarding';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { designTokens, spacing } from '@/theme';
 
 const iconSize = 52;
@@ -84,7 +84,6 @@ export function TenantOnboardingDashboardHero({ progress }: TenantOnboardingDash
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Admin-only" variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isTenantOnboardingLiveReady() ? <PremiumBadge label="preparedOnly" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>

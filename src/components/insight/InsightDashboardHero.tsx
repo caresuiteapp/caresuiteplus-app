@@ -9,8 +9,8 @@ import {
   INSIGHT_PREPARED_MESSAGE,
   isInsightLiveReady,
 } from '@/lib/insight/insightModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { InsightDashboardStats } from '@/types/modules/insight';
 import { designTokens, spacing } from '@/theme';
@@ -70,7 +70,6 @@ export function InsightDashboardHero({ stats, roleKey }: InsightDashboardHeroPro
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
         {!isInsightLiveReady() ? (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         ) : null}

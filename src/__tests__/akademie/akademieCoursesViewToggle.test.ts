@@ -9,11 +9,11 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Desktop list view toggle Kurse (Sprint 43)', () => {
-  it('CoursesListHero integriert View-Toggle im CareLightListHeroFrame', () => {
+  it('CoursesListHero integriert View-Toggle im PremiumListHeroFrame', () => {
     const source = readSrc('src/components/akademie/CoursesListHero.tsx');
     expect(source).toContain('DesktopListViewToggle');
     expect(source).toContain('showViewToggle');
-    expect(source).toContain('CareLightListHeroFrame');
+    expect(source).toContain('PremiumListHeroFrame');
   });
 
   it('CoursesListView schaltet Tabellenansicht per viewMode auf Desktop', () => {

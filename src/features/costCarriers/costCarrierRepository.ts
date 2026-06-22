@@ -2,6 +2,7 @@ import type { ServiceResult } from '@/types';
 import type { Database } from '@/lib/supabase/database.types';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { CostCarrierDbType, CostCarrierSystemTemplate, CostCarrierSystemTemplateRow } from './costCarrierTypes';
 import { isCostCarrierDbType } from './costCarrierTypes';
@@ -54,11 +55,78 @@ export async function searchCostCarrierSystemTemplatesRemote(
   });
 
   if (error) {
+    if (isMissingTableError(error)) {
+      return { ok: true, data: [] };
+    }
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
   const templates = (data ?? [])
     .map((row) => mapSearchRow(row as CostCarrierSystemTemplateRow))
+    .filter((entry): entry is CostCarrierSystemTemplate => entry !== null);
+
+  return { ok: true, data: templates };
+}
+
+type TenantOverrideRow = Database['public']['Tables']['tenant_cost_carrier_overrides']['Row'];
+
+function mapTenantOverrideRow(row: TenantOverrideRow): CostCarrierSystemTemplate | null {
+  if (!isCostCarrierDbType(row.carrier_type)) return null;
+  return {
+    id: row.system_template_id ?? row.id,
+    templateKey: row.id,
+    carrierType: row.carrier_type,
+    uiLabel: row.custom_name ?? '',
+    name: row.custom_name ?? '',
+    legalName: null,
+    shortName: null,
+    ikNumber: row.custom_ik_number ?? '',
+    street: row.custom_address_line_1 ?? '',
+    zip: row.custom_postal_code ?? '',
+    city: row.custom_city ?? '',
+    federalState: null,
+    country: 'DE',
+    phone: row.custom_phone,
+    fax: null,
+    email: row.custom_email,
+    website: null,
+    dataStatus: 'tenant_override',
+    notes: row.notes,
+  };
+}
+
+export async function searchTenantCostCarrierOverrides(
+  tenantId: string,
+  carrierType: CostCarrierDbType,
+  query: string,
+  limit = 8,
+): Promise<ServiceResult<CostCarrierSystemTemplate[]>> {
+  const supabase = getClient();
+  if (!supabase) return unavailable();
+
+  let request = supabase
+    .from('tenant_cost_carrier_overrides')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('carrier_type', carrierType)
+    .eq('is_active', true);
+
+  const trimmed = query.trim();
+  if (trimmed) {
+    request = request.ilike('custom_name', `%${trimmed}%`);
+  }
+
+  const { data, error } = await request.limit(limit);
+
+  if (error) {
+    if (isMissingTableError(error)) {
+      return { ok: true, data: [] };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  const templates = (data ?? [])
+    .map((row) => mapTenantOverrideRow(row as TenantOverrideRow))
     .filter((entry): entry is CostCarrierSystemTemplate => entry !== null);
 
   return { ok: true, data: templates };

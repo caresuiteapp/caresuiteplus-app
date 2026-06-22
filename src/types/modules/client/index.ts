@@ -12,6 +12,7 @@ import type { ClientPreferences } from './clientPreferences';
 import type { ClientEmergencyPlan, ClientRisk } from './clientRisks';
 import type { ClientTask } from './clientTasks';
 import type { ClientInternalNote, ClientTimelineEvent } from './clientTimeline';
+import type { ClientSchedulingWishes } from './clientSchedulingWishes';
 
 export * from './clientCore';
 export * from './clientContact';
@@ -26,6 +27,7 @@ export * from './clientPortal';
 export * from './clientDocuments';
 export * from './clientTasks';
 export * from './clientTimeline';
+export * from './clientSchedulingWishes';
 
 /** Vollständige digitale Klient:innen-Akte */
 export type ClientFullDetail = Omit<ClientDetail, 'contacts' | 'consents'> & {
@@ -47,6 +49,7 @@ export type ClientFullDetail = Omit<ClientDetail, 'contacts' | 'consents'> & {
   timeline: ClientTimelineEvent[];
   /** Nur Office — niemals Portal */
   internalNotes: ClientInternalNote[];
+  schedulingWishes?: ClientSchedulingWishes | null;
 };
 
 /** Portal-sichtbare Teilmenge — ohne interne Notizen */

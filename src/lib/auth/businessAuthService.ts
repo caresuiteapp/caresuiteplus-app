@@ -1,6 +1,6 @@
 import type { Session } from '@supabase/supabase-js';
 import type { ServiceResult } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { activateRegistrationModules } from '@/lib/billing/moduleActivationService';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
@@ -18,7 +18,7 @@ import {
   listTenantUsernames,
   saveTenantUser,
   setPasswordHash,
-} from './demoAccessStore';
+} from './accessStore';
 import { recordLoginAuditEvent } from './loginAuditService';
 import { hashSecret, verifySecret } from './passwordHash';
 import { generateTemporaryPassword } from './temporaryPassword';

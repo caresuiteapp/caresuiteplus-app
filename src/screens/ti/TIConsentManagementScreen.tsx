@@ -1,6 +1,6 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import { TISecurityNotice, TIConsentListHero } from '@/components/ti';
 import { ErrorState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
 import { useTIConsents } from '@/hooks/ti';
@@ -17,30 +17,30 @@ export function TIConsentManagementScreen() {
 
   if (!can('ti.view')) {
     return (
-      <CareLightPageShell title="TI-Einwilligungen">
+      <ScreenShell title="TI-Einwilligungen">
         <LockedActionBanner message={check('ti.view').reason ?? 'Keine Berechtigung.'} roleLabel={roleLabel} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && consents.length === 0) {
     return (
-      <CareLightPageShell title="TI-Einwilligungen">
+      <ScreenShell title="TI-Einwilligungen">
         <LoadingState message="Einwilligungen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && consents.length === 0) {
     return (
-      <CareLightPageShell title="TI-Einwilligungen">
+      <ScreenShell title="TI-Einwilligungen">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="TI-Einwilligungen" subtitle="DSGVO-konforme Verarbeitung">
+    <ScreenShell title="TI-Einwilligungen" subtitle="DSGVO-konforme Verarbeitung">
       <ScrollView
         refreshControl={<RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.cyan} />}
         contentContainerStyle={styles.scroll}
@@ -66,7 +66,7 @@ export function TIConsentManagementScreen() {
           </PremiumCard>
         ))}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

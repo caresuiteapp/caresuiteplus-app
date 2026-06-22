@@ -1,7 +1,7 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useMemo, useState } from 'react';
 import { useLocalSearchParams, useRouter } from 'expo-router';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -54,22 +54,22 @@ export function OfficeDocumentsDetailListScreen() {
 
   if (query.loading && !query.data) {
     return (
-      <CareLightPageShell title="Dokumente nach Typ" subtitle="Wird geladen…">
+      <ScreenShell title="Dokumente nach Typ" subtitle="Wird geladen…">
         <LoadingState message="Dokumentgruppen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (query.error && !query.data) {
     return (
-      <CareLightPageShell title="Dokumente nach Typ" subtitle="Fehler">
+      <ScreenShell title="Dokumente nach Typ" subtitle="Fehler">
         <ErrorState message={query.error} onRetry={query.refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title="Dokumente nach Typ" subtitle={`Office · ${roleLabel ?? 'Demo'}`}>
+    <ScreenShell title="Dokumente nach Typ" subtitle={`Office · ${roleLabel ?? 'Demo'}`}>
       <ScrollView contentContainerStyle={styles.scroll}>
         <SectionPanel title="Gruppierte Listenansicht" subtitle={`${query.data?.total ?? 0} Dokumente gesamt`}>
           <PremiumInput label="Suche" value={search} onChangeText={setSearch} placeholder="Titel, Kategorie…" />
@@ -92,7 +92,7 @@ export function OfficeDocumentsDetailListScreen() {
           )}
         </SectionPanel>
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

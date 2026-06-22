@@ -1,8 +1,5 @@
 import type { Profile } from '@/types';
 import type { PortalSessionRecord } from '@/lib/auth/portalSessionStore';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
-import { getServiceMode } from '@/lib/services/mode';
-import { isDemoMode } from '@/lib/supabase/config';
 
 export type TenantResolveResult =
   | { ok: true; tenantId: string }
@@ -22,15 +19,11 @@ function normalizeContext(
   return { profile: input ?? null, portalSession: null };
 }
 
-/** Synchrone Auflösung — Demo nur wenn isDemoMode(), Live nie DEMO_TENANT_ID-Fallback. */
+/** Resolve tenant from authenticated profile or portal session — live-only, no demo fallback. */
 export function resolveTenantIdForService(
   input: Profile | null | undefined | TenantResolveContext,
 ): TenantResolveResult {
   const { profile, portalSession } = normalizeContext(input);
-
-  if (isDemoMode()) {
-    return { ok: true, tenantId: DEMO_TENANT_ID };
-  }
 
   const tenantId = profile?.tenantId?.trim() || portalSession?.tenantId?.trim();
   if (!tenantId) {
@@ -60,17 +53,10 @@ export function requireTenantId(input: Profile | null | undefined | TenantResolv
 
 export type TenantResolveError = { ok: false; error: string };
 
-/** Service-Layer: Mandantenprüfung je nach Modus (Demo = DEMO_TENANT_ID, Live = beliebiger gültiger UUID). */
+/** Service-Layer: Mandantenprüfung — tenant id must be present. */
 export function assertTenantForMode(tenantId: string): TenantResolveError | null {
   if (!tenantId?.trim()) {
     return { ok: false, error: 'Mandant fehlt.' };
-  }
-
-  if (getServiceMode() === 'demo') {
-    if (tenantId !== DEMO_TENANT_ID) {
-      return { ok: false, error: 'Mandant nicht gefunden.' };
-    }
-    return null;
   }
 
   return null;

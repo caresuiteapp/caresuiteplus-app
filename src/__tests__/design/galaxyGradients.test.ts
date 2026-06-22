@@ -53,6 +53,7 @@ describe('galaxyGradients', () => {
       'utf8',
     );
     expect(source).toContain("resolveGalaxyGradientColors('modalHeader')");
+    expect(source).toContain('resolveLlganModalHeaderGradient');
     expect(source).not.toContain('[...galaxyGradients.modalHeader]');
   });
 });

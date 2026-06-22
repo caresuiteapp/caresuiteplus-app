@@ -1,5 +1,5 @@
 import type { LoginAuditEvent } from './auth.types';
-import { appendLoginAuditEvent, getLoginAuditEvents } from './demoAccessStore';
+import { appendLoginAuditEvent, getLoginAuditEvents } from './accessStore';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 

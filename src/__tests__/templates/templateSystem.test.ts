@@ -1,5 +1,5 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { getAllCatalogEntries, getAllSystemTemplates } from '@/data/demo/templates';
 import {
   archiveTemplate,
@@ -11,10 +11,19 @@ import {
 } from '@/lib/templates';
 import { resetTemplateDemoStore } from '@/lib/templates/templateRepository.demo';
 import { getServiceMode } from '@/lib/services/mode';
-import { catalogSupabaseRepository, templateSupabaseRepository } from '@/lib/templates/templateRepository.supabase';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
+
+vi.mock('@/lib/templates/templateRepository.supabase', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/templates/templateRepository.supabase')>();
+  const demo = await import('@/lib/templates/templateRepository.demo');
+  return {
+    ...actual,
+    templateSupabaseRepository: demo.templateDemoRepository,
+    catalogSupabaseRepository: demo.catalogDemoRepository,
+  };
+});
 
 const TENANT = DEMO_TENANT_ID;
 
@@ -22,7 +31,7 @@ describe('templateSystem — Paket F', () => {
   beforeEach(() => {
     vi.unstubAllEnvs();
     resetTemplateDemoStore();
-    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', '');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
   });
@@ -85,7 +94,7 @@ describe('templateSystem — Paket F', () => {
     }
   });
 
-  it('Template kann im Demo-Modus erstellt und archiviert werden', async () => {
+  it('Template kann erstellt und archiviert werden', async () => {
     const created = await createTemplate(
       TENANT,
       {
@@ -109,6 +118,9 @@ describe('templateSystem — Paket F', () => {
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', 'test-key');
     expect(getServiceMode()).toBe('supabase');
+    const { templateSupabaseRepository, catalogSupabaseRepository } = await vi.importActual<
+      typeof import('@/lib/templates/templateRepository.supabase')
+    >('@/lib/templates/templateRepository.supabase');
     const result = await templateSupabaseRepository.list(TENANT, {});
     expect(result.ok).toBe(false);
     if (!result.ok) expect(result.error).toBe(SERVICE_ERRORS.supabaseUnavailable);

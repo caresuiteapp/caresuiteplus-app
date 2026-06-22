@@ -12,7 +12,7 @@ import {
 } from '@/lib/assist/assignmentCreateFormHelpers';
 import { fetchAssignmentEmployeeList } from '@/lib/assist/assignmentEmployeeListService';
 import { fetchClientTasks } from '@/lib/clients/clientTasksService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type { ClientTask } from '@/types/modules/client';
 
 const root = path.join(__dirname, '..', '..', '..');

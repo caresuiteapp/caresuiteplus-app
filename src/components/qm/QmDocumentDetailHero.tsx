@@ -4,8 +4,8 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildQmDocumentDetailKpis } from '@/lib/qm/qmDocumentDetailStats';
 import { isQmDocumentsLiveReady } from '@/lib/qm/qmModuleConfig';
-import { ROLE_LABELS } from '@/data/demo';
-import { isDemoMode } from '@/lib/supabase/config';
+import { ROLE_LABELS } from '@/data/constants';
+
 import type { RoleKey } from '@/types';
 import type { QmDocument, QmDocumentVersion } from '@/lib/qm';
 import { designTokens, spacing } from '@/theme';
@@ -111,7 +111,6 @@ export function QmDocumentDetailHero({
         ) : (
           <PremiumBadge label="Demo / preparedOnly" variant="muted" />
         )}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

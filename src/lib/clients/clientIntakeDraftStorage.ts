@@ -1,5 +1,6 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { createEmptyIntakeForm } from '@/lib/clients/clientIntakeService';
+import { parseHomeAccessStoredValue } from '@/lib/clients/clientIntakeHomeAccess';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 
 const STORAGE_PREFIX = 'caresuite:client-intake-draft';
@@ -17,22 +18,61 @@ function storageKey(userId: string, tenantId: string): string {
 }
 
 export function mergeIntakeFormWithDefaults(partial: Partial<ClientIntakeFormData>): ClientIntakeFormData {
-  return { ...createEmptyIntakeForm(), ...partial };
+  const base = createEmptyIntakeForm();
+  const merged = { ...base, ...partial };
+
+  const arrayKeys: (keyof ClientIntakeFormData)[] = [
+    'careContexts',
+    'billingTypes',
+    'costBearerTypes',
+    'homeAccess',
+    'supportWishes',
+    'preferredTimes',
+    'excludedTimes',
+    'assignedModules',
+    'consentTypes',
+    'contractTypes',
+    'documentCategories',
+    'taskCategories',
+  ];
+
+  for (const key of arrayKeys) {
+    if (!Array.isArray(merged[key])) {
+      (merged as Record<string, unknown>)[key] = base[key];
+    }
+  }
+
+  if (typeof partial.homeAccess === 'string') {
+    merged.homeAccess = parseHomeAccessStoredValue(partial.homeAccess);
+  }
+
+  if (!merged.costBearerTemplateIds || typeof merged.costBearerTemplateIds !== 'object') {
+    merged.costBearerTemplateIds = base.costBearerTemplateIds;
+  }
+  if (!merged.costBearerDbTypes || typeof merged.costBearerDbTypes !== 'object') {
+    merged.costBearerDbTypes = base.costBearerDbTypes;
+  }
+
+  return merged;
 }
 
 export function hasIntakeDraftContent(draft: Pick<ClientIntakeDraft, 'form' | 'stepIndex'>): boolean {
   if (draft.stepIndex > 0) return true;
-  if (draft.form.careContexts.length > 0) return true;
 
   const f = draft.form;
+  const careContexts = f.careContexts ?? [];
+  if (careContexts.length > 0) return true;
+
+  const billingTypes = f.billingTypes ?? [];
+
   return Boolean(
-    f.firstName.trim()
-    || f.lastName.trim()
-    || f.street.trim()
-    || f.phone.trim()
-    || f.mobile.trim()
-    || f.email.trim()
-    || f.billingTypes.length > 0
+    f.firstName?.trim()
+    || f.lastName?.trim()
+    || f.street?.trim()
+    || f.phone?.trim()
+    || f.mobile?.trim()
+    || f.email?.trim()
+    || billingTypes.length > 0
     || f.consentDatenschutz
     || f.consentVertrag,
   );

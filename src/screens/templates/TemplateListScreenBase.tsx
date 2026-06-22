@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PreparedTemplateBanner, TemplateCard, TemplateListHero } from '@/components/templates';
 import type { TemplateListHeroVariant, TemplateListModuleHeroKey } from '@/components/templates';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -72,33 +72,33 @@ export function TemplateListScreenBase({
 
   if (!can('office.catalogs.view')) {
     return (
-      <CareLightPageShell title={title} subtitle={roleLabel ?? 'Vorlagen'}>
+      <ScreenShell title={title} subtitle={roleLabel ?? 'Vorlagen'}>
         <LockedActionBanner
           message={check('office.catalogs.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && templates.length === 0) {
     return (
-      <CareLightPageShell title={title} subtitle="Wird geladen…">
+      <ScreenShell title={title} subtitle="Wird geladen…">
         <LoadingState message="Vorlagen werden geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && templates.length === 0) {
     return (
-      <CareLightPageShell title={title} subtitle="Fehler">
+      <ScreenShell title={title} subtitle="Fehler">
         <ErrorState message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell title={title} subtitle={subtitle} scroll={false}>
+    <ScreenShell title={title} subtitle={subtitle} scroll={false}>
       <FlatList
         data={templates}
         keyExtractor={(item) => item.id}
@@ -152,7 +152,7 @@ export function TemplateListScreenBase({
           <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />
         }
       />
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

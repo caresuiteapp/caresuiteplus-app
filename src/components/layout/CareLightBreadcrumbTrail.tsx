@@ -1,7 +1,8 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
-import { careLightColors } from '@/design/tokens/lightTheme';
+import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { careTypography } from '@/design/tokens/typography';
 
 type CareLightBreadcrumbTrailProps = {
@@ -10,6 +11,42 @@ type CareLightBreadcrumbTrailProps = {
 
 export function CareLightBreadcrumbTrail({ trail }: CareLightBreadcrumbTrailProps) {
   const router = useRouter();
+  const { c } = useCareLightPalette();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 2,
+        },
+        segment: {
+          flexDirection: 'row',
+          alignItems: 'center',
+        },
+        link: {
+          ...careTypography.caption,
+          color: c.cyan,
+          fontWeight: '600',
+        },
+        text: {
+          ...careTypography.caption,
+          color: c.muted,
+        },
+        current: {
+          color: c.text,
+          fontWeight: '600',
+        },
+        sep: {
+          ...careTypography.caption,
+          color: c.muted,
+          opacity: 0.6,
+        },
+      }),
+    [c.cyan, c.muted, c.text],
+  );
 
   if (trail.length <= 1) return null;
 
@@ -40,35 +77,3 @@ export function CareLightBreadcrumbTrail({ trail }: CareLightBreadcrumbTrailProp
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  segment: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  link: {
-    ...careTypography.caption,
-    color: careLightColors.cyan,
-    fontWeight: '600',
-  },
-  text: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-  },
-  current: {
-    color: careLightColors.navy,
-    fontWeight: '600',
-  },
-  sep: {
-    ...careTypography.caption,
-    color: careLightColors.muted,
-    opacity: 0.6,
-  },
-});

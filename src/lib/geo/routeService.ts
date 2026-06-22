@@ -1,6 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { GeoProviderContext, RouteCalculation, RouteRequestInput } from '@/types/geo';
-import { ROLE_PERMISSIONS } from '@/data/demo/permissions';
+import { ROLE_PERMISSIONS } from '@/lib/permissions/staticRolePermissions';
 import {
   assertExternalProviderAllowed,
   assertGeoExecutionReady,

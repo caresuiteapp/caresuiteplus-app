@@ -63,3 +63,7 @@ export const CARE_EMOJI_CATEGORIES: readonly CareEmojiCategory[] = [
 export const CARE_EMOJI_ALL: readonly string[] = CARE_EMOJI_CATEGORIES.flatMap((category) => category.emojis);
 
 export const CARE_EMOJI_COUNT = CARE_EMOJI_ALL.length;
+
+export function getCareEmojiA11yLabel(emoji: string, categoryLabel: string): string {
+  return `${emoji} — ${categoryLabel}`;
+}

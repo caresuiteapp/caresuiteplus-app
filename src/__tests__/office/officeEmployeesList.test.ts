@@ -1,11 +1,11 @@
 import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
-import { buildEmployeeListKpis } from '@/data/demo/employeeListStats';
+import { buildEmployeeListKpis } from '@/lib/office/employeeListStats';
 import { demoEmployees } from '@/data/demo/employees';
 import { fetchEmployeeList } from '@/lib/office/employeeListService';
 import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 import { EMPLOYEE_STATUS_FILTERS, EMPLOYEE_SORT_OPTIONS } from '@/hooks/useEmployeeList';
 
@@ -71,8 +71,9 @@ describe('Office Mitarbeitende list', () => {
 
   it('EmployeeDetailSummaryPanel zeigt Kontakt und Edit-CTA', () => {
     const source = readSrc('src/components/office/EmployeeDetailSummaryPanel.tsx');
-    expect(source).toContain('Vollständiges Profil öffnen');
+    expect(source).toContain('Personalakte öffnen');
     expect(source).toContain('Stammdaten bearbeiten');
+    expect(source).toContain('Offboarding');
     expect(source).toContain('useEmployeeDetail');
     expect(source).not.toContain('Coming Soon');
   });
@@ -101,14 +102,32 @@ describe('Office Mitarbeitende list', () => {
     expect(source).toContain('EmployeesListTable');
   });
 
-  it('EmployeesListTable hat Spalten Name, Status, Rolle, E-Mail, Aktionen', () => {
+  it('EmployeesListTable hat Spalten Name, Status, Rolle, Aktionen', () => {
     const source = readSrc('src/components/office/EmployeesListTable.tsx');
     expect(source).toContain("label: 'Name'");
     expect(source).toContain("label: 'Status'");
     expect(source).toContain("label: 'Rolle'");
-    expect(source).toContain("label: 'E-Mail'");
+    expect(source).not.toContain("label: 'E-Mail'");
     expect(source).toContain("label: 'Aktionen'");
     expect(source).toContain('PremiumDataTable');
+    expect(source).toContain('size="lg"');
+  });
+
+  it('EmployeesListScreen nutzt Glass-Modals für Anlegen und Profil', () => {
+    const source = readSrc('src/screens/office/EmployeesListScreen.tsx');
+    expect(source).toContain('EmployeeCreateModal');
+    expect(source).toContain('EmployeeDetailModal');
+    expect(source).toContain('useModals');
+    expect(source).toContain('openCreate');
+    expect(source).toContain('openDetail');
+  });
+
+  it('EmployeeDetailModal nutzt Popup-Modals für Edit und Offboarding', () => {
+    const source = readSrc('src/components/office/employeedetailmodal.tsx');
+    expect(source).toContain('EmployeeEditModal');
+    expect(source).toContain('EmployeeOffboardingModal');
+    expect(source).toContain('onEditMasterData');
+    expect(source).toContain('onOpenOffboarding');
   });
 
   it('EmployeesListTable nutzt sortierbare Spalten', () => {

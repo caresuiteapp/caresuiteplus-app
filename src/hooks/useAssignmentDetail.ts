@@ -4,9 +4,10 @@ import {
   fetchVisitDispositionDetail,
   updateVisitDispositionStatus,
 } from '@/lib/assist/visitService';
+import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
-import { useAsyncQuery, useMutation } from './core';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery, useMutation } from './core';
 
 export function useAssignmentDetail(assignmentId: string | undefined) {
   const { profile } = useAuth();
@@ -50,7 +51,16 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
       });
     },
     [tenantId, assignmentId, roleKey],
-    { enabled: Boolean(assignmentId) && !!tenantId },
+    {
+      enabled: Boolean(assignmentId) && !!tenantId,
+      live: tenantId
+        ? {
+            tenantId,
+            subscribe: subscribeToAssistOperationsChanges,
+            pollMs: OPERATIONAL_LIVE_POLL_MS,
+          }
+        : undefined,
+    },
   );
 
   const statusMutation = useMutation(
@@ -112,6 +122,7 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
     successMessage: statusMutation.successMessage,
     refresh: query.refresh,
     changeStatus,
+    isLiveConnected: query.isLiveConnected,
     notFound: !query.loading && !query.error && !query.data,
   };
 }

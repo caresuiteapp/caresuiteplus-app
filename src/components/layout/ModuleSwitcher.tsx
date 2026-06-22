@@ -1,9 +1,10 @@
-import { Modal, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { PlatformModal } from '@/components/layout/platform';
 import { ModuleTile } from '@/components/ui';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { getModuleSwitcherItems } from '@/lib/navigation/shellConfig';
-import { colors, radius, spacing, typography } from '@/theme';
+import { careSpacing } from '@/design/tokens/spacing';
 
 type ModuleSwitcherProps = {
   visible: boolean;
@@ -22,66 +23,36 @@ export function ModuleSwitcher({ visible, onClose }: ModuleSwitcherProps) {
   };
 
   return (
-    <Modal visible={visible} animationType="slide" transparent onRequestClose={onClose}>
-      <Pressable style={styles.backdrop} onPress={onClose}>
-        <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
-          <View style={styles.handle} />
-          <Text style={styles.title}>Modul wechseln</Text>
-          <Text style={styles.subtitle}>Aktive CareSuite+ Module Ihres Mandanten</Text>
-          <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
-            {modules.map((mod) => (
-              <ModuleTile
-                key={mod.productKey}
-                icon={mod.icon}
-                title={mod.label}
-                description={mod.description}
-                accentColor={mod.accentColor}
-                isActive={mod.isActive}
-                onPress={() => handleSelect(mod.path, mod.isActive)}
-              />
-            ))}
-          </ScrollView>
-          <Pressable onPress={onClose} style={styles.closeBtn}>
-            <Text style={styles.closeText}>Schließen</Text>
-          </Pressable>
-        </Pressable>
-      </Pressable>
-    </Modal>
+    <PlatformModal
+      visible={visible}
+      title="Modul wechseln"
+      subtitle="Aktive CareSuite+ Module Ihres Mandanten"
+      onClose={onClose}
+      variant="center"
+      animationType="fade"
+      maxWidth={520}
+      footerActions={[{ title: 'Schließen', onPress: onClose, variant: 'secondary' }]}
+    >
+      <ScrollView contentContainerStyle={styles.list} showsVerticalScrollIndicator={false}>
+        {modules.map((mod) => (
+          <ModuleTile
+            key={mod.productKey}
+            icon={mod.icon}
+            title={mod.label}
+            description={mod.description}
+            accentColor={mod.accentColor}
+            isActive={mod.isActive}
+            onPress={() => handleSelect(mod.path, mod.isActive)}
+          />
+        ))}
+      </ScrollView>
+    </PlatformModal>
   );
 }
 
 const styles = StyleSheet.create({
-  backdrop: {
-    flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.55)',
-    justifyContent: 'flex-end',
-  },
-  sheet: {
-    backgroundColor: colors.bgPremium,
-    borderTopLeftRadius: radius.lg,
-    borderTopRightRadius: radius.lg,
-    padding: spacing.md,
-    maxHeight: '78%',
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-  },
-  handle: {
-    width: 40,
-    height: 4,
-    borderRadius: 2,
-    backgroundColor: colors.borderSoft,
-    alignSelf: 'center',
-    marginBottom: spacing.md,
-  },
-  title: { ...typography.h3, marginBottom: 4 },
-  subtitle: { ...typography.caption, marginBottom: spacing.md },
-  list: { gap: spacing.sm, paddingBottom: spacing.md },
-  closeBtn: {
-    alignItems: 'center',
-    paddingVertical: spacing.sm,
-  },
-  closeText: {
-    ...typography.bodyStrong,
-    color: colors.cyan,
+  list: {
+    gap: careSpacing.sm,
+    paddingBottom: careSpacing.sm,
   },
 });

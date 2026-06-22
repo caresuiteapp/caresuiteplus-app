@@ -5,7 +5,7 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import { buildCatalogDetailKpis } from '@/lib/catalog/catalogDetailStats';
 import { CATALOG_TYPE_LABELS } from '@/types/modules/catalog';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { CatalogDetail } from '@/types/modules/catalog';
 import { designTokens, spacing } from '@/theme';
 
@@ -67,7 +67,6 @@ export function CatalogDetailHero({ catalog, itemCount }: CatalogDetailHeroProps
       <View style={styles.badges}>
         <PremiumBadge label={CATALOG_TYPE_LABELS[catalog.catalogType]} variant="orange" dot />
         <PremiumBadge label={WORKFLOW_STATUS_LABELS[catalog.status]} variant="muted" />
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

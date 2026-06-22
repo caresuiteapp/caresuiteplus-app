@@ -5,7 +5,7 @@ import { getDemoEmployeeDetail } from '@/data/demo/employeeDetails';
 import { buildEmployeeDetailKpis } from '@/lib/office/employeeDetailStats';
 import { isEmployeeDetailLiveReady } from '@/lib/office/employeeModuleConfig';
 import { fetchEmployeeDetail } from '@/lib/office/employeeDetailService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 function readSrc(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');

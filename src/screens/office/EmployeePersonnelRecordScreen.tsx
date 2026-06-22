@@ -5,7 +5,7 @@ import { useEffect, useMemo, useState } from 'react';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -43,12 +43,44 @@ import {
   uploadEmployeePersonnelDocument,
 } from '@/lib/office/employeePersonnelUpdateService';
 import type { EmployeePersonnelTabKey } from '@/types/modules/employeePersonnelFile';
+import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
 
 export function EmployeePersonnelRecordScreen() {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
+  const content = useAdaptiveContentStyles();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
+        badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+        headerActions: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: careSpacing.sm,
+          flexWrap: 'wrap',
+          justifyContent: 'flex-end',
+        },
+        tasksBlock: { marginTop: spacing.sm, gap: spacing.xs },
+        tasksTitle: { ...content.bodyStrong },
+        taskItem: { ...content.body, opacity: 0.85 },
+        actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+        hint: { ...content.caption, marginTop: spacing.sm, fontStyle: 'italic' },
+        formBlock: { marginTop: spacing.md, gap: spacing.sm },
+        formHint: { ...content.bodyStrong },
+        toggleRow: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          gap: spacing.sm,
+        },
+        toggleLabel: { ...content.body, flex: 1, color: content.primary.color },
+        error: content.error,
+      }),
+    [content],
+  );
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { can, check, roleLabel } = usePermissions();
@@ -194,42 +226,42 @@ export function EmployeePersonnelRecordScreen() {
 
   if (!can('office.employees.view')) {
     return (
-      <CareLightPageShell title="Personalakte" subtitle="Kein Zugriff">
+      <ScreenShell title="Personalakte" subtitle="Kein Zugriff">
         <LockedActionBanner
           message={check('office.employees.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !file) {
     return (
-      <CareLightPageShell title="Personalakte" subtitle="Wird geladen…">
+      <ScreenShell title="Personalakte" subtitle="Wird geladen…">
         <LoadingState message="Personalakte wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !file) {
     return (
-      <CareLightPageShell title="Personalakte" subtitle="Fehler">
+      <ScreenShell title="Personalakte" subtitle="Fehler">
         <ErrorState title="Fehler" message={error} onRetry={refresh} />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!file || !overview || !id) {
     return (
-      <CareLightPageShell title="Personalakte" subtitle="Nicht gefunden">
+      <ScreenShell title="Personalakte" subtitle="Nicht gefunden">
         <EmptyState title="Nicht gefunden" message="Personalakte nicht verfügbar." />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   return (
-    <CareLightPageShell
+    <ScreenShell
       title={overview.fullName}
       subtitle="Personalakte · Mehr → Personal → Mitarbeitende"
       rightSlot={
@@ -548,33 +580,6 @@ export function EmployeePersonnelRecordScreen() {
           </SectionPanel>
         ) : null}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: { paddingBottom: spacing.xxl, gap: spacing.md },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  headerActions: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: careSpacing.sm,
-    flexWrap: 'wrap',
-    justifyContent: 'flex-end',
-  },
-  tasksBlock: { marginTop: spacing.sm, gap: spacing.xs },
-  tasksTitle: { fontWeight: '600' },
-  taskItem: { opacity: 0.85 },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
-  hint: { marginTop: spacing.sm, fontStyle: 'italic' },
-  formBlock: { marginTop: spacing.md, gap: spacing.sm },
-  formHint: { fontWeight: '600' },
-  toggleRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-  },
-  toggleLabel: { flex: 1 },
-  error: { color: '#b00020' },
-});

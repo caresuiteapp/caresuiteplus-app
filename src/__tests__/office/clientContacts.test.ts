@@ -5,7 +5,7 @@ import {
   fetchClientContacts,
   updateClientContact,
 } from '@/lib/clients';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 describe('ClientContacts', () => {
   it('lädt Kontakte für Demo-Klient:in', async () => {

@@ -7,7 +7,7 @@ export function shouldOpenNavItemInModal(item: ModuleNavItem, adaptiveShell: str
   return Boolean(
     item.openInModal &&
       item.modalKey &&
-      (adaptiveShell === 'web' || adaptiveShell === 'desktop'),
+      (adaptiveShell === 'desktop' || adaptiveShell === 'web'),
   );
 }
 

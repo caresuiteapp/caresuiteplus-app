@@ -14,7 +14,7 @@ import {
   PremiumInput,
   SuccessState,
 } from '@/components/ui';
-import { buildCaseListKpis } from '@/data/demo/caseListStats';
+import { buildCaseListKpis } from '@/lib/beratung/caseListStats';
 import { useCounselingCaseList } from '@/hooks/useCounselingCaseList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';

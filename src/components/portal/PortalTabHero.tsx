@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
 
@@ -216,7 +216,6 @@ export function PortalTabHero({
         {scopeKey === 'portal_family' ? (
           <PremiumBadge label="Geteilte Sicht" variant="muted" />
         ) : null}
-        {isDemoMode() ? <PremiumBadge label="Demo-Modus" variant="cyan" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

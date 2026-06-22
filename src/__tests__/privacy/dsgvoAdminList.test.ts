@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { fetchDataSubjectRequestsForAdmin, updateDataSubjectRequestStatusForAdmin } from '@/lib/privacy/dataSubjectRequestAdminService';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 describe('DSGVO Admin list service (Sprint 51)', () => {
   it('fetchDataSubjectRequestsForAdmin liefert Demo-Liste für business_admin', async () => {

@@ -1,8 +1,8 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { createAssignmentWorkflow } from '@/lib/assist/assignmentWorkflowService';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { isDemoMode } from '@/lib/supabase/config';
+
 import { getGlobalEnvironmentMode } from '@/lib/environment';
 
 describe('debug guard', () => {

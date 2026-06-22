@@ -4,7 +4,7 @@ import path from 'node:path';
 import { mapReportRowToDetail } from '@/lib/reporting/reportDetailMapper';
 import type { ReportDetailLiveRow } from '@/lib/reporting/reportDetailMapper';
 import { mapReportRowsToListItems } from '@/lib/reporting/reportListMapper';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 

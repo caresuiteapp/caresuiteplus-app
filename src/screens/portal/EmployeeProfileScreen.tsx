@@ -2,7 +2,7 @@ import { RefreshControl, ScrollView, StyleSheet, Text } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalEmployeeProfileHero } from '@/components/portal';
-import { CareLightPageShell } from '@/components/layout';
+import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -25,35 +25,35 @@ export function EmployeeProfileScreen() {
 
   if (!canViewProfile) {
     return (
-      <CareLightPageShell title="Profil" subtitle={roleLabel ?? 'Portal'} showBack={false}>
+      <ScreenShell title="Profil" subtitle={roleLabel ?? 'Portal'} showBack={false}>
         <LockedActionBanner
           message={check('portal.employee.profile.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
         />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (loading && !profile) {
     return (
-      <CareLightPageShell title="Profil" subtitle="Wird geladen…" showBack={false}>
+      <ScreenShell title="Profil" subtitle="Wird geladen…" showBack={false}>
         <LoadingState message="Profil wird geladen…" />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (error && !profile) {
     return (
-      <CareLightPageShell title="Profil" subtitle="Fehler" showBack={false}>
+      <ScreenShell title="Profil" subtitle="Fehler" showBack={false}>
         <ErrorState title="Profil nicht verfügbar" message={error} onRetry={refresh} />
-      </CareLightPageShell>
+      </ScreenShell>
     );
   }
 
   if (!profile) return null;
 
   return (
-    <CareLightPageShell title="Profil" subtitle={profile.displayName} showBack={false}>
+    <ScreenShell title="Profil" subtitle={profile.displayName} showBack={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
@@ -100,7 +100,7 @@ export function EmployeeProfileScreen() {
           />
         )}
       </ScrollView>
-    </CareLightPageShell>
+    </ScreenShell>
   );
 }
 

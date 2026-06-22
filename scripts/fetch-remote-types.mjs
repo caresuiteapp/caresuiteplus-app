@@ -11,10 +11,18 @@ const databaseTypesPath = path.join(root, 'src/lib/supabase/database.types.ts');
 const ref = process.env.SUPABASE_PROJECT_REF ?? 'euagyyztvmemuaiumvxm';
 
 execSync(`npx supabase link --project-ref ${ref}`, { cwd: root, stdio: 'inherit' });
-const raw = execSync('npx supabase gen types typescript --linked', { cwd: root, encoding: 'utf8' });
+const raw = execSync('npx supabase gen types typescript --linked', {
+  cwd: root,
+  encoding: 'utf8',
+  maxBuffer: 50 * 1024 * 1024,
+});
 const banner = '/** Auto-generated — do not edit. Run: npm run fetch-remote-types */\n';
 const content = banner + raw;
-fs.writeFileSync(typesPath, content);
-fs.writeFileSync(databaseTypesPath, content);
+fs.writeFileSync(typesPath, content, 'utf8');
+fs.writeFileSync(
+  databaseTypesPath,
+  '/** Re-export canonical Supabase types from ./types.ts (see npm run fetch-remote-types). */\nexport type { Database, Json } from \'./types\';\n',
+  'utf8',
+);
 console.log(`Wrote ${typesPath}`);
 console.log(`Wrote ${databaseTypesPath}`);

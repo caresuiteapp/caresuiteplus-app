@@ -7,7 +7,7 @@ export const WP_COMPLETION = {
 } as const;
 
 import type { RoleKey, ServiceResult } from '@/types';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
 
 export type ClientCreateInput = { title: string; notes?: string };

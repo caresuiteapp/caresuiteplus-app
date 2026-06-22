@@ -4,7 +4,7 @@ import path from 'node:path';
 import { mapResidentRowToDetail } from '@/lib/stationaer/residentDetailMapper';
 import type { ResidentDetailLiveRow } from '@/lib/stationaer/residentDetailMapper';
 import { mapResidentRowsToListItems } from '@/lib/stationaer/residentListMapper';
-import { DEMO_TENANT_ID } from '@/data/demo/tenant';
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 
 const root = path.join(__dirname, '..', '..', '..');
 
