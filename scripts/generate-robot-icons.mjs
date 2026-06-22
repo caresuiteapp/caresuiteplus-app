@@ -90,7 +90,7 @@ async function main() {
 
   const outputs = [
     ['icon.png', await squareRobot(1024)],
-    ['favicon.png', await squareRobot(512, { padding: 0.06 })],
+    // favicon: use scripts/generate-favicon.py (transparent, max-scale)
     ['splash-icon.png', await splashImage()],
     ['android-icon-foreground.png', await squareRobot(1024, { padding: 0.18 })],
     ['android-icon-background.png', await solidBackground(1024, APP_BG)],
