@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ServiceResult } from '@/types';
 import type { LiveRefreshQueryConfig } from './liveRefreshTypes';
 import { DEFAULT_LIVE_POLL_MS, useLiveRefresh } from './useLiveRefresh';
@@ -20,33 +20,52 @@ export function useAsyncQuery<T>(
   const [previewData, setPreviewData] = useState(false);
   const [tableMissing, setTableMissing] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
+  const dataRef = useRef<T | null>(null);
+  dataRef.current = data;
 
   const load = useCallback(
     async (silent = false) => {
       if (!options?.enabled && options?.enabled !== undefined) return;
 
-      if (!silent) setLoading(true);
-      setError(null);
-
-      const result = await fetcher();
-      if (result.ok) {
-        setDataState(result.data);
-        const previewResult = result as {
-          previewData?: boolean;
-          usedDemoFallback?: boolean;
-          tableMissing?: boolean;
-        };
-        setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
-        setTableMissing(Boolean(previewResult.tableMissing));
-        options?.onSuccess?.();
-      } else {
-        setDataState(null);
-        setPreviewData(false);
-        setTableMissing(false);
-        setError(result.error);
+      const isInitialLoad = dataRef.current === null;
+      if (!silent && isInitialLoad) {
+        setLoading(true);
+        setError(null);
       }
 
-      if (!silent) setLoading(false);
+      try {
+        const result = await fetcher();
+        if (result.ok) {
+          setDataState(result.data);
+          const previewResult = result as {
+            previewData?: boolean;
+            usedDemoFallback?: boolean;
+            tableMissing?: boolean;
+          };
+          setPreviewData(Boolean(previewResult.previewData || previewResult.usedDemoFallback));
+          setTableMissing(Boolean(previewResult.tableMissing));
+          setError(null);
+          options?.onSuccess?.();
+        } else if (isInitialLoad) {
+          setDataState(null);
+          setPreviewData(false);
+          setTableMissing(false);
+          setError(result.error);
+        }
+      } catch (cause) {
+        if (isInitialLoad) {
+          setDataState(null);
+          setPreviewData(false);
+          setTableMissing(false);
+          setError(
+            cause instanceof Error ? cause.message : 'Daten konnten nicht geladen werden.',
+          );
+        }
+      }
+
+      if (!silent && isInitialLoad) {
+        setLoading(false);
+      }
     },
     // eslint-disable-next-line react-hooks/exhaustive-deps
     deps,

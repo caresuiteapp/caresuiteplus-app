@@ -1,6 +1,9 @@
 import { useCallback, useState } from 'react';
 import type { AssignmentListItem } from '@/types/modules/assist';
-import { fetchAssistDashboardStats, fetchTodayAssignments } from '@/lib/assist';
+import {
+  EMPTY_ASSIST_DASHBOARD_STATS,
+  fetchAssistDashboardBundle,
+} from '@/lib/assist/assistDashboardService';
 import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -16,43 +19,45 @@ const assistOpsLive = (tenantId: string | null | undefined) =>
     : undefined;
 
 export function useAssistDashboard() {
-  const { profile } = useAuth();
+  const { profile, authReady } = useAuth();
   const tenantId = useServiceTenantId();
   const [showSuccess, setShowSuccess] = useState(false);
+  const queryEnabled = authReady && !!tenantId;
 
-  const statsQuery = useAsyncQuery(
+  const bundleQuery = useAsyncQuery(
     () => {
-      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return fetchAssistDashboardStats(tenantId, profile?.roleKey);
+      if (!tenantId) {
+        return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      }
+      return fetchAssistDashboardBundle(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-    { enabled: !!tenantId, live: assistOpsLive(tenantId) },
-  );
-
-  const todayQuery = useAsyncQuery(
-    () => {
-      if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return fetchTodayAssignments(tenantId, profile?.roleKey);
-    },
-    [tenantId, profile?.roleKey],
-    { enabled: !!tenantId, live: assistOpsLive(tenantId) },
+    { enabled: queryEnabled, live: assistOpsLive(tenantId) },
   );
 
   const refresh = useCallback(async () => {
-    await Promise.all([statsQuery.refresh(), todayQuery.refresh()]);
+    await bundleQuery.refresh();
     setShowSuccess(true);
     setTimeout(() => setShowSuccess(false), 2000);
-  }, [statsQuery, todayQuery]);
+  }, [bundleQuery]);
+
+  const stats = bundleQuery.data?.stats ?? null;
+  const todayAssignments = (bundleQuery.data?.todayAssignments ?? []) as AssignmentListItem[];
+  const authPending = !authReady;
+  const tenantMissing = authReady && !tenantId;
 
   return {
-    stats: statsQuery.data,
-    todayAssignments: (todayQuery.data ?? []) as AssignmentListItem[],
-    loading: statsQuery.loading || todayQuery.loading,
-    error: statsQuery.error ?? todayQuery.error,
-    isPreviewData: statsQuery.previewData || todayQuery.previewData,
-    refreshing: statsQuery.refreshing || todayQuery.refreshing,
+    stats,
+    todayAssignments,
+    loading: authPending || (queryEnabled && bundleQuery.loading && !bundleQuery.data),
+    error: tenantMissing
+      ? 'Kein Mandant am Profil hinterlegt. Bitte Administrator kontaktieren.'
+      : bundleQuery.error,
+    isPreviewData: bundleQuery.previewData,
+    refreshing: bundleQuery.refreshing,
     showSuccess,
     refresh,
-    isLiveConnected: statsQuery.isLiveConnected || todayQuery.isLiveConnected,
+    isLiveConnected: bundleQuery.isLiveConnected,
+    emptyStats: stats ?? EMPTY_ASSIST_DASHBOARD_STATS,
   };
 }

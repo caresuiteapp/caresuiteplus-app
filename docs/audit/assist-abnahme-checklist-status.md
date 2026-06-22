@@ -1,9 +1,9 @@
 ﻿# CareSuite+ Assist — Abnahme-Checklist-Status
 
-**Datum:** 2026-06-20  
+**Datum:** 2026-06-23  
 **Referenz:** `02_ABNAHME_CHECKLISTE_ASSIST.md` (Downloads-Paket)  
-**Scope:** Abnahme-Stand nach Assist Phase 4.6 E2E Proof Portal Release  
-**HEAD (Repo):** Phase-4.6-Commit · **B.1h:** applied · **B.1k:** applied · **0156:** applied · **0157:** applied · **0158:** applied (2026-06-20)
+**Scope:** Abnahme-Stand nach Assist Live E2E Workflow (Dashboard-Fix, State Machine)  
+**HEAD (Repo):** `5c4f245` · **0156–0160:** unverändert · **0161:** nicht angelegt
 
 Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht geprüft / Blocker dokumentiert
 
@@ -34,7 +34,7 @@ Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht 
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
-| B1 | Dashboard | ✅ | `/assist`, `AssistIndexScreen` |
+| B1 | Dashboard | ✅ | `/assist`, `AssistIndexScreen` — Live E2E Fix 2026-06-23: kein permanentes Loading; KPIs + Live-Aktivität |
 | B2 | Einsätze | ✅ | `/assist/assignments`, `/assist/einsaetze` |
 | B3 | Durchführung | ✅ | `/assist/durchfuehrung` |
 | B4 | Nachweise | ✅ | `/assist/nachweise` |
@@ -94,11 +94,13 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
+| E-SM1 | Visit Lifecycle State Machine | ✅ | `assistVisitStateMachine.ts` — bis `billing_handoff_ready`, idempotent |
+| E-SM2 | Keine Rechnungserstellung im SM | ✅ | Terminal `billing_handoff_ready` ohne Invoice-API |
 | E1–E7 | Status-Buttons / Aufgaben / Doku / Beenden | 🟡 | `VisitExecutionScreen`, `visitExecutionService`, `VisitTasksPanel`; A→H-Flow Phase 2; `assignments/[id]/execute` |
 | E8 | Nicht angetroffen | 🟡 | Status `no_show` / Events vorhanden; dedizierter UI-Workflow unvollständig |
 | E9 | Persistenz Statuslog | 🟡 | `assist_visit_status_history` (0116); Demo-Pfade prüfen |
 
-**E — Gesamt:** 🟡 **~6/9** — operativer Kernablauf nutzbar; Nicht-angetroffen offen
+**E — Gesamt:** 🟡 **~8/11** — SM + operativer Kern; Nicht-angetroffen offen
 
 ---
 

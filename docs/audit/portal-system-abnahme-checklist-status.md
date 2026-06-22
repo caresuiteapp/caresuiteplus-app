@@ -1,6 +1,6 @@
 # Portal System Abnahme-Checklist — Status
 
-**Stand:** 2026-06-22 · **Scope:** Portal System Core P.0–P.5.1 + R.1 compact shell
+**Stand:** 2026-06-23 · **Scope:** Portal System + Assist Live E2E Dashboard Sync (2026-06-23)
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
@@ -40,5 +40,6 @@
 | — | Migration 0160 (Portal scope) | ❌ nicht nötig | Portal P.0–P.5 |
 | — | K.5 billing non-disclosure verified | ✅ | clientCoreK5BillingHandoff + portalProjectionServices |
 | — | Mitarbeiter Core / B.2 / B.3 | ❌ nicht gestartet | Scope |
+| — | Assist Live E2E Dashboard (2026-06-23) | 🟡 partial | `useAssistDashboard` bundled fetch + `subscribeToAssistOperationsChanges`; auth Browser-E2E ⏸ |
 
-**Gesamt:** 37/38 ✅ · 1 ⚠️ partial (P.5.3 Browser UI E2E)
+**Gesamt:** 37/38 ✅ · 2 ⚠️ partial (P.5.3 Browser UI E2E; Assist Live auth E2E)

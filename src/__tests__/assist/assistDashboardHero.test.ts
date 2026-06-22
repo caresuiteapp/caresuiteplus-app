@@ -14,7 +14,7 @@ describe('Assist Dashboard Hero (Sprint 81)', () => {
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('Einsatzplanung');
     expect(hero).toContain('AdaptiveKpiGrid');
-    expect(hero).toContain('guardServiceTenant');
+    expect(hero).toContain('buildAssistDashboardKpis');
   });
 
   it('buildAssistDashboardKpis mappt Stats ehrlich', () => {
@@ -44,6 +44,7 @@ describe('Assist Dashboard Hero (Sprint 81)', () => {
     expect(screen).toContain('ScreenShell');
     expect(screen).toContain('AssistDashboardHero');
     expect(screen).toContain('SectionPanel');
+    expect(screen).toContain('Live-Aktivität');
     expect(screen).toContain('InfoBanner');
     expect(screen).toContain('ASSIST_EXTENSION_PREPARED_MESSAGE');
     expect(screen).not.toContain('CareLightScreen');

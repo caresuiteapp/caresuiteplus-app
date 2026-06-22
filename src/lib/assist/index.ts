@@ -4,6 +4,22 @@ export {
   fetchClientAssignments,
   fetchTodayAssignments,
 } from './assignmentListService';
+export {
+  EMPTY_ASSIST_DASHBOARD_STATS,
+  fetchAssistDashboardBundle,
+  pickNextAssignment,
+  pickRunningAssignment,
+} from './assistDashboardService';
+export type { AssistDashboardBundle } from './assistDashboardService';
+export {
+  ASSIST_VISIT_LIFECYCLE_LABELS,
+  applyAssistVisitTransition,
+  getAssistVisitAllowedTransitions,
+  isAssistVisitBillingHandoffReady,
+  mapAssignmentStatusToLifecycle,
+  validateAssistVisitTransition,
+} from './assistVisitStateMachine';
+export type { AssistVisitLifecycleStatus } from './assistVisitStateMachine';
 export { fetchExecutionList } from './executionListService';
 export { fetchAssignmentDetail, updateAssignmentStatus } from './assignmentDetailService';
 export {
