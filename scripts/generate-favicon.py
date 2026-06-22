@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Generate transparent, cover-fit CareSuite+ favicon from robot logo PNG."""
+"""Generate transparent, contain-fit CareSuite+ favicon from robot logo PNG."""
 from __future__ import annotations
 
 import struct
@@ -24,10 +24,6 @@ CORNER_MATCH_TOLERANCE = 18
 ALPHA_CONTENT_MIN = 128
 ROW_COL_MIN_FILL = 0.08
 PADDING_RATIO = 0
-# Cover + overscale (Netflix-style tab dominance); minor arm/foot crop OK.
-SCALE_BOOST = 1.22
-# Shift crop window upward to emphasize head/torso over feet.
-CROP_BIAS_Y = 0.05
 PNG_SIZES = [512, 192, 32, 16]
 ICO_SIZES = [16, 32, 48, 64, 128, 256]
 
@@ -202,8 +198,29 @@ def bbox_coverage(img: Image.Image) -> tuple[float, float]:
     return (right - left) / img.width * 100, (bottom - top) / img.height * 100
 
 
-def render_icon_contain(cropped: Image.Image, size: int) -> Image.Image:
-    """Legacy contain fit — kept for before/after coverage reporting."""
+def render_icon_cover(cropped: Image.Image, size: int) -> Image.Image:
+    """Legacy cover fit — for before/after coverage reporting only."""
+    inner = max(1, int(round(size * (1 - PADDING_RATIO * 2))))
+    cw, ch = cropped.size
+    scale = max(inner / cw, inner / ch) * 1.22
+    nw = max(1, int(round(cw * scale)))
+    nh = max(1, int(round(ch * scale)))
+    resized = cropped.resize((nw, nh), Image.Resampling.LANCZOS)
+    left = (nw - inner) // 2
+    top = max(0, (nh - inner) // 2 - int(nh * 0.05))
+    top = min(top, max(0, nh - inner))
+    square = resized.crop((left, top, left + inner, top + inner))
+    if inner == size:
+        return square
+    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
+    ox = (size - inner) // 2
+    oy = (size - inner) // 2
+    canvas.paste(square, (ox, oy), square)
+    return canvas
+
+
+def render_icon(cropped: Image.Image, size: int) -> Image.Image:
+    """Contain fit: scale to max size that fits entire content in square (no crop)."""
     canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
     inner = max(1, int(round(size * (1 - PADDING_RATIO * 2))))
     cw, ch = cropped.size
@@ -215,27 +232,6 @@ def render_icon_contain(cropped: Image.Image, size: int) -> Image.Image:
     oy = (size - nh) // 2
     canvas.paste(resized, (ox, oy), resized)
     return canvas
-
-
-def render_icon(cropped: Image.Image, size: int) -> Image.Image:
-    """Cover fit: scale to fill square, center-crop overflow, optional SCALE_BOOST."""
-    inner = max(1, int(round(size * (1 - PADDING_RATIO * 2))))
-    cw, ch = cropped.size
-    scale = max(inner / cw, inner / ch) * SCALE_BOOST
-    nw = max(1, int(round(cw * scale)))
-    nh = max(1, int(round(ch * scale)))
-    resized = cropped.resize((nw, nh), Image.Resampling.LANCZOS)
-    left = (nw - inner) // 2
-    top = max(0, (nh - inner) // 2 - int(nh * CROP_BIAS_Y))
-    top = min(top, max(0, nh - inner))
-    square = resized.crop((left, top, left + inner, top + inner))
-    if inner == size:
-        return square
-    canvas = Image.new("RGBA", (size, size), (0, 0, 0, 0))
-    ox = (size - inner) // 2
-    oy = (size - inner) // 2
-    canvas.paste(square, (ox, oy), square)
-    return square
 
 
 def verify_transparent_corners(img: Image.Image, label: str) -> None:
@@ -311,9 +307,9 @@ def main() -> int:
     cw, ch = cropped.size
     print(f"Source cropped: {cw}x{ch} (aspect {cw / ch:.3f})")
 
-    before_w, before_h = bbox_coverage(render_icon_contain(cropped, 512))
+    before_w, before_h = bbox_coverage(render_icon_cover(cropped, 512))
     print(
-        f"Coverage 512px (contain, before): width={before_w:.1f}%, height={before_h:.1f}%"
+        f"Coverage 512px (cover+boost, before): width={before_w:.1f}%, height={before_h:.1f}%"
     )
 
     FAVICON_PNG.parent.mkdir(parents=True, exist_ok=True)
@@ -321,7 +317,7 @@ def main() -> int:
     master = render_icon(cropped, 512)
     after_w, after_h = bbox_coverage(master)
     print(
-        f"Coverage 512px (cover+boost, after): width={after_w:.1f}%, height={after_h:.1f}%"
+        f"Coverage 512px (contain, after): width={after_w:.1f}%, height={after_h:.1f}%"
     )
     verify_transparent_corners(master, "512px PNG")
     master.save(FAVICON_PNG, format="PNG", optimize=True)
