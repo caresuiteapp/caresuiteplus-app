@@ -11,8 +11,8 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
-import { WebFontSizeControl } from '@/components/layout/WebFontSizeControl';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { auroraGlass, lightLiquidGlass, lightLiquidGlassWebFx, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useAuth } from '@/lib/auth/context';
@@ -22,8 +22,11 @@ import { resolveCombinedModuleLabel } from '@/lib/portal/engine/portalTerminolog
 
 type PortalTopBarProps = {
   accentColor?: string;
-  /** Compact mobile header — brand row only, no breadcrumb block. */
+  /** Compact mobile/tablet header — hamburger + brand row. */
   compact?: boolean;
+  showHamburger?: boolean;
+  onMenuPress?: () => void;
+  portalLabel?: string;
 };
 
 const webNoOutline =
@@ -39,9 +42,21 @@ const webGlassBlur =
     : null;
 
 /** Client-facing portal top bar — no office/admin tenant menu. */
-export function PortalTopBar({ accentColor = '#FF9500', compact = false }: PortalTopBarProps) {
+export function PortalTopBar({
+  accentColor = '#FF9500',
+  compact = false,
+  showHamburger = false,
+  onMenuPress,
+  portalLabel = 'Klient:innenportal',
+}: PortalTopBarProps) {
   const router = useRouter();
   const text = useAuroraAdaptiveText();
+  const auroraActive = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
+  const useLightBar = auroraActive && isLight;
+  const barSurface = useLightBar ? lightLiquidGlass.panel : auroraGlass.panel;
+  const barBorder = useLightBar ? lightLiquidGlass.borderAccent : auroraGlass.border;
+  const barGlassFx = useLightBar ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light) : webGlassBlur;
   const { profile, signOut } = useAuth();
   const { displayName } = usePortalActor();
   const { context } = usePortalContext();
@@ -65,13 +80,23 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
 
   if (compact) {
     return (
-      <View style={[styles.compactRoot, webGlassBlur]}>
+      <View style={[styles.compactRoot, { backgroundColor: barSurface, borderBottomColor: barBorder }, barGlassFx]}>
+        {showHamburger ? (
+          <Pressable
+            onPress={onMenuPress}
+            style={[styles.hamburgerBtn, webCursor]}
+            accessibilityRole="button"
+            accessibilityLabel="Menü öffnen"
+            testID="portal-hamburger"
+          >
+            <Text style={[styles.hamburgerIcon, { color: text.primary }]}>☰</Text>
+          </Pressable>
+        ) : null}
         <View style={styles.compactBrand}>
           <Text style={[styles.compactTitle, { color: text.primary }]}>CareSuite+</Text>
-          <Text style={[styles.compactPortal, { color: text.muted }]}>Klient:innenportal</Text>
+          <Text style={[styles.compactPortal, { color: text.muted }]}>{portalLabel}</Text>
         </View>
         <View style={styles.compactActions}>
-          {Platform.OS === 'web' ? <WebFontSizeControl /> : null}
           <View style={styles.compactProfileChip}>
             <TopbarProfileAvatar
               name={displayName}
@@ -114,7 +139,7 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
   }
 
   return (
-    <View style={[styles.root, webGlassBlur]}>
+    <View style={[styles.root, { backgroundColor: barSurface, borderBottomColor: barBorder }, barGlassFx]}>
       <View style={styles.leading}>
         <View style={styles.breadcrumb}>
           <Pressable onPress={() => router.push('/' as never)} style={webCursor}>
@@ -141,7 +166,6 @@ export function PortalTopBar({ accentColor = '#FF9500', compact = false }: Porta
       </View>
 
       <View style={styles.actions}>
-        {Platform.OS === 'web' ? <WebFontSizeControl /> : null}
         <View style={styles.profileWrap}>
           <View style={styles.profileChip}>
             <TopbarProfileAvatar
@@ -193,8 +217,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.lg,
     paddingVertical: careSpacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: auroraGlass.border,
-    backgroundColor: auroraGlass.panel,
     zIndex: 10,
   },
   leading: {
@@ -320,9 +342,19 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingVertical: careSpacing.sm,
     borderBottomWidth: 1,
-    borderBottomColor: auroraGlass.border,
-    backgroundColor: auroraGlass.panel,
     zIndex: 10,
+    minHeight: 56,
+  },
+  hamburgerBtn: {
+    width: 44,
+    height: 44,
+    alignItems: 'center',
+    justifyContent: 'center',
+    flexShrink: 0,
+  },
+  hamburgerIcon: {
+    fontSize: 22,
+    fontWeight: '700',
   },
   compactBrand: {
     flex: 1,

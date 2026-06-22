@@ -49,6 +49,8 @@ Legende: ✅ erfüllt · 🟡 teilweise / mit Lücken · ❌ offen · ⏸ nicht 
 
 Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereiche ab.
 
+**R.1 (2026-06-22):** Assist nutzt unter 1024px `CompactPlatformShell` / `MobileAppShell` (AppBar + Bottom Nav + Drawer). Desktop Assist-Shell unverändert.
+
 **B — Gesamt:** ✅ **11/12**, 🟡 **1/12**
 
 ---

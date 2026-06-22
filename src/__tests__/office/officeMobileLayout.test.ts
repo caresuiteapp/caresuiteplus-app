@@ -14,8 +14,13 @@ describe('Office mobile platform layout', () => {
     expect(shell).toContain('breakpoints.tablet');
     expect(shell).toContain('isPhoneLayout');
     expect(shell).toContain("mainModule !== 'zentrale'");
-    expect(shell).toMatch(/showModuleNav\s*=\s*width\s*>=\s*960\s*&&\s*!isPhoneLayout\s*&&\s*mainModule\s*!==\s*'zentrale'/);
-    expect(shell).not.toMatch(/showModuleNav\s*=\s*width\s*>=\s*960;/);
+    expect(shell).toMatch(/showModuleNav\s*=\s*!isPhoneLayout\s*&&\s*mainModule\s*!==\s*'zentrale'/);
+  });
+
+  it('PlatformShell shows ModuleNavSidebar from tablet width up', () => {
+    const metrics = readSrc('src/lib/platform/shellLayoutMetrics.ts');
+    expect(metrics).toContain('PLATFORM_MODULE_NAV_MIN_WIDTH');
+    expect(metrics).toMatch(/showModuleNav\s*=\s*!isPhoneLayout/);
   });
 
   it('PlatformShell hides ModuleNavSidebar for Zentrale module', () => {

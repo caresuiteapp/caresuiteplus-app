@@ -29,6 +29,18 @@
 | U12-D | Section edit | Client/employee modals save/cancel unreachable | `ClientSectionEditModal`, `EmployeeSectionEditModal` + `modalShell` | ✅ |
 | U12-E | Modal system | Background scroll not locked | `PlatformModal.lockBodyScroll` + body overflow | ✅ |
 
+## R.1 responsive shell defects (2026-06-22)
+
+| ID | Area | Defect | Fix target | Status |
+|----|------|--------|------------|--------|
+| R1-A | Login mobile/tablet | Unreadable text, transparent form | `resolveLlganViewGlass('login')` alpha 0.90, auth typography | ✅ |
+| R1-B | Business mobile | Desktop rail visible, clipped content | `MobileAppShell` + `CareAdaptiveShell` compact routing | ✅ |
+| R1-C | Business tablet | Topbar overlap tenant/search/user | Compact shell replaces PlatformTopbar below 1024px | ✅ |
+| R1-D | Business preview | Tech preview strings on mobile | `PlatformShellPreviewContent` gated by `isDesktopOrWide` | ✅ |
+| R1-E | Portal tablet | Gray sidebar not liquid glass | `PortalLeftNav` / `PortalTabLeftNav` LLGAN sidebar | ✅ |
+| R1-F | Portal mobile | Simple bottom nav, no hamburger app bar | `PortalTopBar` hamburger + `PortalNavigationDrawer` | ✅ |
+| R1-G | General mobile/tablet | No app behavior (drawer, bottom nav) | `ShellAppBar`, `ShellNavigationDrawer`, `MobileAppShell` | ✅ |
+
 ## Forbidden terms (mandant/user views)
 
 Repository, Backend, Migration, Supabase, RPC, Edge Auth, Table, Column, schema, source_snapshot, display_name, 42703, 0156-0160, Core K., WP, Stub, Fake, Mock, Debug, Audit, Seed, budgetCents, invoiceDraft, proof_not_approved, missing_budget, Map-Provider, guardServiceTenant, Live Supabase

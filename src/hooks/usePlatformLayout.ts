@@ -14,19 +14,21 @@ export function usePlatformLayout() {
     return buildPlatformLayoutSnapshot(width, height, platform);
   }, [width, height]);
 
-  const adaptiveShell =
-    isPhone ? 'mobile' : isTablet ? 'tablet' : isWide && layout.isWeb ? 'web' : 'desktop';
+  /** Compact shell (app bar + bottom nav + drawer) below desktop breakpoint; desktop shell unchanged ≥1024. */
+  const isCompactShell = width <= 1023;
+  const adaptiveShell = isCompactShell ? 'compact' : 'desktop';
 
   return {
     ...layout,
     adaptiveDeviceClass: deviceClass,
     adaptiveShell,
+    isCompactShell,
     isPhone,
     isTablet,
     isDesktop,
     isWide,
     masterPaneWidth: masterPaneWidth(layout.deviceClass),
-    showBottomTabs: layout.shellVariant === 'mobile',
-    showSideNavigation: layout.shellVariant !== 'mobile',
+    showBottomTabs: isCompactShell,
+    showSideNavigation: !isCompactShell,
   };
 }

@@ -12,7 +12,8 @@ import {
 import { usePathname, useRouter } from 'expo-router';
 import { CareSuiteLogo } from '@/components/brand/CareSuiteLogo';
 import { CareSuiteWordmark } from '@/components/brand/CareSuiteWordmark';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { auroraGlass, lightLiquidGlass, lightLiquidGlassWebFx, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { usePortalContext } from '@/hooks/usePortalContext';
@@ -102,6 +103,12 @@ export function PortalLeftNav({
   const router = useRouter();
   const pathname = usePathname();
   const text = useAuroraAdaptiveText();
+  const auroraActive = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
+  const useLightNav = auroraActive && isLight;
+  const navSurface = useLightNav ? lightLiquidGlass.sidebar : auroraGlass.panel;
+  const navBorder = useLightNav ? lightLiquidGlass.borderAccent : auroraGlass.border;
+  const navGlassFx = useLightNav ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light) : webGlassBlur;
   const { context } = usePortalContext();
   const [localCollapsed, setLocalCollapsed] = useState(collapsed);
 
@@ -141,7 +148,14 @@ export function PortalLeftNav({
   const releaseActive = (context?.visibleFeatures.length ?? 0) > 0;
 
   return (
-    <View style={[styles.root, isCollapsed && styles.rootCollapsed, webGlassBlur]}>
+    <View
+      style={[
+        styles.root,
+        isCollapsed && styles.rootCollapsed,
+        { backgroundColor: navSurface, borderRightColor: navBorder },
+        navGlassFx,
+      ]}
+    >
       <View style={[styles.header, isCollapsed && styles.headerCollapsed]}>
         {!isCollapsed ? (
           <>
@@ -203,9 +217,7 @@ export function PortalLeftNav({
 const styles = StyleSheet.create({
   root: {
     width: 248,
-    backgroundColor: auroraGlass.panel,
     borderRightWidth: 1,
-    borderRightColor: auroraGlass.border,
     paddingHorizontal: careSpacing.sm,
     paddingBottom: careSpacing.sm,
   },

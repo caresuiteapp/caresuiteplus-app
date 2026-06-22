@@ -16,10 +16,13 @@ describe('adaptive shell wiring', () => {
     expect(src).toContain('CareAdaptiveShell');
   });
 
-  it('CareAdaptiveShell wählt Web-Shell bei wide + web', () => {
+  it('CareAdaptiveShell nutzt CompactPlatformShell unter Desktop-Breakpoint', () => {
     const src = readFileSync(join(root, 'src/components/layout/CareAdaptiveShell.tsx'), 'utf8');
-    expect(src).toContain("adaptiveShell === 'web'");
-    expect(src).toContain('CareWebShell');
+    expect(src).toContain('CareDesktopShell');
+    expect(src).toContain('CompactPlatformShell');
+    expect(src).toContain('isDesktopOrWide');
+    expect(src).not.toContain('CareWebShell');
+    expect(src).not.toContain('CareTabletShell');
   });
 
   it('Insight-Layout nutzt CareAdaptiveShell via ShellLayout', () => {
@@ -33,9 +36,10 @@ describe('adaptive shell wiring', () => {
     expect(src).toContain('area="assist"');
   });
 
-  it('QM-Layout nutzt CareAdaptiveShell via ShellLayout', () => {
+  it('QM-Layout nutzt Auth-gated Stack ohne ShellLayout (Office-Unterroute)', () => {
     const src = readFileSync(join(root, 'app/business/office/qm/_layout.tsx'), 'utf8');
-    expect(src).toContain('ShellLayout');
+    expect(src).toContain('RequireAuth');
+    expect(src).not.toContain('ShellLayout');
   });
 });
 
@@ -82,7 +86,6 @@ describe('Office desktop action bars', () => {
 
 describe('Premium theme bridge adoption', () => {
   const themedComponents = [
-    'src/components/ui/PremiumCard.tsx',
     'src/components/ui/SectionPanel.tsx',
     'src/components/ui/PremiumKpiCard.tsx',
     'src/components/layout/ScreenShell.tsx',

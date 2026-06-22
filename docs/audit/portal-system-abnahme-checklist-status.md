@@ -1,12 +1,12 @@
 # Portal System Abnahme-Checklist — Status
 
-**Stand:** 2026-06-21 · **Scope:** Portal System Core P.0–P.5.1
+**Stand:** 2026-06-22 · **Scope:** Portal System Core P.0–P.5.1 + R.1 compact shell
 
 | # | Kriterium | Status | Nachweis |
 |---|-----------|--------|----------|
 | P.0.1 | Git-Gates (main, HEAD, staged, 0154–0159) | ✅ | `.audit-migration-list-portal-p5-precheck.log` |
 | P.0.2 | Keine Permission-Änderung | ✅ | staticRolePermissions clean |
-| P.1.1 | Portal Shell Client + Employee | ✅ | ClientPortalShell, EmployeePortalShell |
+| P.1.1 | Portal Shell Client + Employee | ✅ | ClientPortalShell, EmployeePortalShell; R.1 compact drawer + bottom nav <1024px |
 | P.1.2 | PortalNavigation / EmptyState / SectionGate | ✅ | components/portal |
 | P.1.3 | Aurora/Glass, kein CareLight-Weiß | ✅ | GlassCard / auroraGlass |
 | P.2.1 | Client Portal settings-gated | ✅ | canClientPortalSeeFeature |
