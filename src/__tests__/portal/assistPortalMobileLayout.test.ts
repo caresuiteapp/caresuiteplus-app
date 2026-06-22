@@ -153,7 +153,7 @@ describe('Assist portal mobile layout', () => {
     expect(tabBar).toContain('portalOverflowNav');
     expect(tabBar).toContain('PortalMobileNav');
     const nav = readSrc('src/components/layout/PortalMobileNav.tsx');
-    expect(nav).toContain('resolveFixedMobilePortalTabs');
+    expect(nav).toContain('resolveCompactShellMobileTabs');
     expect(nav).not.toContain('PortalMoreMenu');
     expect(nav).not.toContain('Mehr');
   });

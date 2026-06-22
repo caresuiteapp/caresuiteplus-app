@@ -51,7 +51,7 @@ export function MobileShell({
       <AppTabBar
         tabs={effectiveTabs}
         accentColor={accentColor}
-        portalOverflowNav={area === 'portal_client'}
+        area={area}
       />
       {showModuleSwitcher ? (
         <ModuleSwitcher visible={switcherOpen} onClose={closeSwitcher} />

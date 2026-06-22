@@ -1,4 +1,4 @@
-import { useEffect, useMemo } from 'react';
+import { useEffect } from 'react';
 import { BackHandler, StyleSheet, Text, View } from 'react-native';
 import { Redirect, useRouter } from 'expo-router';
 import { AdaptiveCardGrid } from '@/components/adaptive';
@@ -6,7 +6,7 @@ import { CareSuiteLogo } from '@/components/brand';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
 import { OfflineNotice } from '@/components/ui/OfflineNotice';
 import { AppScreen, FooterLinks, PortalCard } from '@/design/components';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+import { useAuthFlowTypography } from '@/design/tokens/authTypography';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -26,8 +26,8 @@ export function AppStartScreen() {
   const { authReady, authMode, isAuthenticated, profile, portalSession, user, session } =
     useAuth();
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
-  const { isPhone, isDesktopOrWide, width } = useDeviceClass();
-  const type = useMemo(() => resolveGalaxyTypography(width), [width]);
+  const { isPhone, isDesktopOrWide } = useDeviceClass();
+  const type = useAuthFlowTypography();
 
   const entriesQuery = useAsyncQuery(() => fetchAppStartSnapshot(), []);
   const mainEntries = entriesQuery.data ?? [];

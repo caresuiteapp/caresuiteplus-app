@@ -2,51 +2,70 @@ import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { auroraGlass, lightLiquidGlass, lightLiquidGlassWebFx, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { SpaceKpiIcon } from '@/components/icons/space';
+import {
+  auroraGlass,
+  lightLiquidGlass,
+  lightLiquidGlassWebFx,
+  useAuroraAdaptiveText,
+  useAuroraGlassActive,
+} from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { resolveFixedMobilePortalTabs } from '@/lib/navigation/portalMobileTabs';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { resolveCompactShellMobileTabs } from '@/lib/navigation/shellMobileTabs';
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
+import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
+import type { AppShellArea } from '@/types/navigation/shell';
 import type { ShellTabConfig } from '@/types/navigation/shell';
 
 type PortalMobileNavProps = {
   tabs: ShellTabConfig[];
   accentColor?: string;
+  /** When set, resolves area-specific 4+Mehr tab slots (business, office, assist, portal). */
+  area?: AppShellArea;
 };
 
-const webGlassBlur =
-  Platform.OS === 'web'
-    ? ({
-        backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-        WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-      } as unknown as ViewStyle)
-    : null;
-
-/** Aurora glass bottom nav — five fixed tabs on phone (no overflow). */
-export function PortalMobileNav({ tabs, accentColor = '#FF9500' }: PortalMobileNavProps) {
+/** Light frosted-glass bottom nav — five fixed tabs on phone (no horizontal scroll). */
+export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalMobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { isPhone } = useDeviceClass();
+  const text = useAuroraAdaptiveText();
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
-  const useLightNav = auroraActive && isLight;
+  const useLightNav = auroraActive && isLight && isPhone;
   const navSurface = useLightNav ? lightLiquidGlass.panel : auroraGlass.panel;
   const navBorder = useLightNav ? lightLiquidGlass.borderAccent : auroraGlass.border;
-  const navGlassFx = useLightNav ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light) : webGlassBlur;
+  const navGlassFx = useLightNav
+    ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light)
+    : Platform.OS === 'web'
+      ? ({
+          backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+          WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
+        } as unknown as ViewStyle)
+      : null;
   const activeChip = useLightNav ? lightLiquidGlass.chipActive : auroraGlass.chipActive;
-  const labelMuted = useLightNav ? lightLiquidGlass.text.secondary : auroraGlass.text.secondary;
-  const mobileTabs = useMemo(() => resolveFixedMobilePortalTabs(tabs), [tabs]);
+  const labelDefault = useLightNav ? text.primary : text.secondary;
+  const mobileTabs = useMemo(() => resolveCompactShellMobileTabs(tabs, area), [tabs, area]);
   const activeKey = resolveActiveTabKey(pathname, mobileTabs);
   const bottomInset = Math.max(insets.bottom, careSpacing.sm);
+  const iconSize = 22;
 
   return (
     <View
       style={[
         styles.container,
-        { paddingBottom: bottomInset, backgroundColor: navSurface, borderTopColor: navBorder },
+        {
+          paddingBottom: webSafeAreaPadding('bottom', bottomInset),
+          backgroundColor: navSurface,
+          borderTopColor: navBorder,
+        },
         navGlassFx,
       ]}
+      testID="compact-mobile-nav"
     >
       {mobileTabs.map((tab) => {
         const active = tab.key === activeKey;
@@ -60,11 +79,17 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500' }: PortalMobileN
             accessibilityLabel={tab.label}
           >
             <View style={[styles.pill, active && { backgroundColor: activeChip }]}>
-              <Text style={[styles.icon, active && styles.iconActive]}>{tab.icon}</Text>
+              <SpaceKpiIcon
+                icon={tab.icon}
+                accentColor={active ? accentColor : labelDefault}
+                size={iconSize}
+                active={active}
+                frame="rail"
+              />
               <Text
                 style={[
                   styles.label,
-                  { color: labelMuted },
+                  { color: labelDefault },
                   active && { color: accentColor, fontWeight: '700' },
                 ]}
                 numberOfLines={1}
@@ -99,17 +124,10 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     minWidth: 56,
     maxWidth: '100%',
+    gap: 2,
   },
   pressed: {
     opacity: 0.88,
-  },
-  icon: {
-    fontSize: 18,
-    marginBottom: 2,
-    opacity: 0.75,
-  },
-  iconActive: {
-    opacity: 1,
   },
   label: {
     ...careTypography.caption,

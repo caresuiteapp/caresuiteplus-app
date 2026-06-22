@@ -94,7 +94,7 @@ export function PortalShellLayout({
       </View>
 
       {showBottomTabs ? (
-        <PortalMobileNav tabs={portalTabs} accentColor={accentColor} />
+        <PortalMobileNav tabs={portalTabs} accentColor={accentColor} area="portal_client" />
       ) : null}
       <PortalNavigationDrawer
         visible={drawerOpen}

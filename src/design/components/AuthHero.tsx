@@ -5,6 +5,7 @@ import { authBackLinkColor, useAuthFlowTypography } from '@/design/tokens/authTy
 import { galaxyPalette } from '@/design/tokens/galaxy';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { GlassCard } from './GlassCard';
 import { StatusBadge, type StatusKind } from './StatusBadge';
 
@@ -29,6 +30,8 @@ export function AuthHero({
   footer,
 }: AuthHeroProps) {
   const type = useAuthFlowTypography();
+  const { isPhone } = useDeviceClass();
+  const iconSize = isPhone ? 72 : 48;
 
   return (
     <GlassCard glow style={styles.hero}>
@@ -44,7 +47,7 @@ export function AuthHero({
             {subtitle}
           </Text>
         </View>
-        <CareSuiteIcon emoji={iconEmoji} accentColor={accentColor} size={48} />
+        <CareSuiteIcon emoji={iconEmoji} accentColor={accentColor} size={iconSize} />
       </View>
       {badges.length > 0 ? (
         <View style={styles.badges}>

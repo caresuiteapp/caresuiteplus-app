@@ -17,6 +17,7 @@ import {
   MOBILE_BOTTOM_NAV_HEIGHT,
   resolvePlatformContentPadding,
 } from '@/lib/platform/shellLayoutMetrics';
+import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
 
 type MobileAppShellProps = {
@@ -52,8 +53,13 @@ export function MobileAppShell({
   const contentPadding = resolvePlatformContentPadding(width);
   const bottomNavOffset = MOBILE_BOTTOM_NAV_HEIGHT + Math.max(insets.bottom, spacing.sm);
 
+  const topInset = Math.max(insets.top, spacing.xs);
+
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]} testID="mobile-app-shell">
+    <View
+      style={[styles.root, { paddingTop: webSafeAreaPadding('top', topInset) }]}
+      testID="mobile-app-shell"
+    >
       <ShellAppBar
         title={resolveShellTitle(mainModule)}
         subtitle="CareSuite+"
@@ -76,8 +82,8 @@ export function MobileAppShell({
         </AutoScrollView>
       </View>
 
-      <View style={[styles.bottomNav, { paddingBottom: Math.max(insets.bottom, spacing.sm) }]}>
-        <AppTabBar tabs={effectiveTabs} accentColor={accent} />
+      <View style={styles.bottomNav}>
+        <AppTabBar tabs={effectiveTabs} accentColor={accent} area={area} />
       </View>
 
       <ShellNavigationDrawer

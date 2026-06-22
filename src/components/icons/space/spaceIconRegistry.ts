@@ -97,6 +97,13 @@ const EMOJI_TO_GLYPH: Record<string, SpaceGlyphKind> = {
   '📝': 'serviceRecord',
   '⚠️': 'budgetWarn',
   '🗓️': 'weekPlanner',
+  '📢': 'insightScope',
+  '🚗': 'assignmentRoute',
+  '▶️': 'livePulse',
+  '⏱️': 'opsConsole',
+  '⋯': 'modulesActive',
+  '📨': 'portalInbox',
+  '💶': 'budgetWarn',
   '✨': 'sparkleNew',
 };
 

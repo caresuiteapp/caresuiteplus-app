@@ -21,6 +21,7 @@ import {
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 type ShellAppBarProps = {
   title: string;
@@ -43,7 +44,9 @@ export function ShellAppBar({
   const text = useAuroraAdaptiveText();
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
+  const { isPhone } = useDeviceClass();
   const useLightBar = auroraActive && isLight;
+  const subtitleColor = isPhone && useLightBar ? text.primary : text.muted;
 
   const barStyle = useMemo(() => {
     if (useLightBar) {
@@ -77,7 +80,7 @@ export function ShellAppBar({
           {title}
         </Text>
         {subtitle ? (
-          <Text style={[styles.subtitle, { color: text.muted }]} numberOfLines={1}>
+          <Text style={[styles.subtitle, { color: subtitleColor }]} numberOfLines={1}>
             {subtitle}
           </Text>
         ) : null}
