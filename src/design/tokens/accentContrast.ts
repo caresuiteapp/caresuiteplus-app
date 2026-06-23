@@ -7,14 +7,13 @@ export const ACCENT_DARK_SOLID = '#0F172A';
 
 export const ACCENT_ICON_FRAME_GRADIENT = ['#030711', '#101833', '#07101F'] as const;
 
-/** Frosted glass circle for module rail icons — translucent, not opaque dark pills. */
+/** Frosted glass circle for module rail icons — pure white glass, no dark backing. */
 export const RAIL_ICON_GLASS_LIGHT = {
-  surface: 'rgba(255,255,255,0.35)',
-  surfaceActive: 'rgba(255,255,255,0.48)',
-  darkTint: 'rgba(15,23,42,0.25)',
-  darkTintActive: 'rgba(15,23,42,0.32)',
-  border: 'rgba(255,255,255,0.5)',
-  blurPx: 12,
+  surface: 'rgba(255,255,255,0.38)',
+  surfaceActive: 'rgba(255,255,255,0.45)',
+  border: 'rgba(255,255,255,0.58)',
+  borderActive: 'rgba(255,255,255,0.68)',
+  blurPx: 14,
 } as const;
 
 export const RAIL_ICON_GLASS_DARK = {

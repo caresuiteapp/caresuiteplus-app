@@ -75,11 +75,21 @@ describe('AccentIconBackdrop integration', () => {
     expect(source).toContain('railGlass');
   });
 
-  it('defines rail glass tokens without opaque dark fill', () => {
-    expect(RAIL_ICON_GLASS_LIGHT.surface).toBe('rgba(255,255,255,0.35)');
-    expect(RAIL_ICON_GLASS_LIGHT.darkTint).toBe('rgba(15,23,42,0.25)');
-    expect(RAIL_ICON_GLASS_LIGHT.blurPx).toBe(12);
+  it('defines pure rail glass tokens without dark tint overlay', () => {
+    expect(RAIL_ICON_GLASS_LIGHT.surface).toBe('rgba(255,255,255,0.38)');
+    expect(RAIL_ICON_GLASS_LIGHT.surfaceActive).toBe('rgba(255,255,255,0.45)');
+    expect(RAIL_ICON_GLASS_LIGHT.border).toContain('255,255,255');
+    expect(RAIL_ICON_GLASS_LIGHT.blurPx).toBeGreaterThanOrEqual(12);
+    expect(RAIL_ICON_GLASS_LIGHT).not.toHaveProperty('darkTint');
     expect(RAIL_ICON_GLASS_LIGHT.surface).not.toContain('0.72');
+    expect(RAIL_ICON_GLASS_LIGHT.surface).not.toContain('15,23,42');
+  });
+
+  it('SpaceIconShell rail frame has no dark tint overlay layer', () => {
+    const source = readSrc('src/components/icons/space/SpaceIconShell.tsx');
+    expect(source).not.toContain('railDarkTint');
+    expect(source).not.toContain('darkTint');
+    expect(source).toContain('railGlassWebFx');
   });
 
   it('PremiumBadge uses accent text chip in light mode', () => {
