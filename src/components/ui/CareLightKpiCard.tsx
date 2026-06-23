@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { resolveLightColoredTextColor } from '@/design/tokens/accentContrast';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -83,7 +84,9 @@ export function CareLightKpiCard({
         <SpaceKpiIcon icon={icon ?? '📊'} accentColor={accentColor} size={36} />
       </View>
       <Text style={styles.label}>{label}</Text>
-      <Text style={[styles.value, { color: accentColor }]}>{String(value)}</Text>
+      <Text style={[styles.value, { color: resolveLightColoredTextColor(accentColor, careLightColors.text) }]}>
+        {String(value)}
+      </Text>
       {subValue ? <Text style={styles.subValue}>{subValue}</Text> : null}
     </View>
   );

@@ -2,6 +2,11 @@ import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import type { AppStartIconKey } from '@/data/landing/appStartEntries';
+import {
+  ACCENT_ICON_FRAME_GRADIENT,
+  accentDarkSoftBorder,
+} from '@/design/tokens/accentContrast';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careRadius } from '@/design/tokens/radius';
 
 const VECTOR_MAP: Record<AppStartIconKey, keyof typeof Feather.glyphMap> = {
@@ -28,6 +33,8 @@ export function CareSuiteIcon({
   style,
   variant = 'default',
 }: CareSuiteIconProps) {
+  const { isLight } = useLegacyTheme();
+
   if (iconKey && variant === 'aurora') {
     const innerSize = size * 0.82;
     const iconSize = size * 0.38;
@@ -66,6 +73,37 @@ export function CareSuiteIcon({
             <Feather name={VECTOR_MAP[iconKey]} size={iconSize} color={accentColor} />
           </View>
         </LinearGradient>
+      </View>
+    );
+  }
+
+  if (isLight) {
+    const borderRadius = size * 0.25;
+    return (
+      <View
+        style={[
+          styles.badge,
+          {
+            width: size,
+            height: size,
+            borderRadius,
+            borderColor: accentDarkSoftBorder(accentColor),
+            overflow: 'hidden',
+          },
+          style,
+        ]}
+      >
+        <LinearGradient
+          colors={[...ACCENT_ICON_FRAME_GRADIENT]}
+          start={{ x: 0.12, y: 0 }}
+          end={{ x: 0.92, y: 1 }}
+          style={StyleSheet.absoluteFill}
+        />
+        {iconKey ? (
+          <Feather name={VECTOR_MAP[iconKey]} size={size * 0.42} color={accentColor} />
+        ) : (
+          <Text style={[styles.emoji, { fontSize: size * 0.45 }]}>{emoji}</Text>
+        )}
       </View>
     );
   }

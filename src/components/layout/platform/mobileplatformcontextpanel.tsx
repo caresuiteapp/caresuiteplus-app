@@ -40,6 +40,9 @@ import {
 } from './platformContextData';
 import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
 import { TenantMandantCardContent } from './TenantMandantCardContent';
+import { AccentTextChip } from '@/components/ui/AccentTextChip';
+import { resolveLightColoredTextColor } from '@/design/tokens/accentContrast';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
 type MobilePlatformContextPanelProps = {
   mainModule: MainModuleKey;
@@ -63,6 +66,7 @@ export function MobilePlatformContextPanel({
   const { openModal } = useModalStack();
   const { logoUrl: tenantLogoUrl, logoLoading: tenantLogoLoading } = useTenantBranding();
   const text = useAuroraAdaptiveText();
+  const { isLight } = useLegacyTheme();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const { data: officeData } = useOfficeDashboard();
@@ -126,9 +130,7 @@ export function MobilePlatformContextPanel({
             >
               {task.title}
             </Text>
-            <View style={[styles.taskBadge, { backgroundColor: withAlpha(accentColor, 0.2) }]}>
-              <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>{task.count}</Text>
-            </View>
+            <AccentTextChip label={String(task.count)} accentColor={accentColor} />
           </View>
         ))}
       </GlassCard>
@@ -194,7 +196,7 @@ export function MobilePlatformContextPanel({
                     <Text
                       style={[
                         type.caption,
-                        { color: active ? accentColor : text.secondary, fontWeight: active ? '700' : '600' },
+                        { color: active ? (isLight ? resolveLightColoredTextColor(accentColor, accentColor) : accentColor) : text.secondary, fontWeight: active ? '700' : '600' },
                       ]}
                       numberOfLines={2}
                     >

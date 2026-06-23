@@ -1,6 +1,8 @@
 export { PremiumCard } from './PremiumCard';
 export { PremiumButton } from './PremiumButton';
 export { PremiumBadge } from './PremiumBadge';
+export { AccentIconBackdrop } from './AccentIconBackdrop';
+export { AccentTextChip } from './AccentTextChip';
 export {
   LoadingState,
   EmptyState,

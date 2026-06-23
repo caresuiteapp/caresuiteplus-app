@@ -1,5 +1,6 @@
 import { ReactNode, useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { resolveLightPrimaryButtonStyle } from '@/design/tokens/accentContrast';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { radius, typography } from '@/theme';
@@ -27,7 +28,8 @@ const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as ViewStyle) :
 export function ActionToolbar({ actions, leftSlot, accentColor, style }: ActionToolbarProps) {
   const { colors, isDark } = useLegacyTheme();
   const accent = accentColor ?? colors.violet;
-  const styles = useMemo(() => createStyles(isDark, colors, accent), [isDark, colors, accent]);
+  const primaryBtnStyle = useMemo(() => resolveLightPrimaryButtonStyle(accent), [accent]);
+  const styles = useMemo(() => createStyles(isDark, colors, accent, primaryBtnStyle), [isDark, colors, accent, primaryBtnStyle]);
 
   const primaryActions = actions.slice(0, PRIMARY_ROW_MAX);
   const secondaryActions = actions.slice(PRIMARY_ROW_MAX);
@@ -85,6 +87,7 @@ function createStyles(
   isDark: boolean,
   colors: ReturnType<typeof useLegacyTheme>['colors'],
   accent: string,
+  primaryBtnStyle: ReturnType<typeof resolveLightPrimaryButtonStyle>,
 ) {
   const glassBorder = isDark ? glassFx.border : colors.borderSoft;
 
@@ -139,8 +142,8 @@ function createStyles(
       flexShrink: 1,
     },
     btnPrimary: {
-      backgroundColor: withAlpha(accent, 0.9),
-      borderColor: withAlpha(accent, 0.9),
+      backgroundColor: isDark ? withAlpha(accent, 0.9) : primaryBtnStyle.backgroundColor,
+      borderColor: isDark ? withAlpha(accent, 0.9) : primaryBtnStyle.borderColor,
     },
     btnGhost: {
       backgroundColor: 'transparent',
@@ -153,7 +156,7 @@ function createStyles(
       fontWeight: '700',
       flexShrink: 1,
     },
-    btnLabelPrimary: { color: '#FFFFFF' },
+    btnLabelPrimary: { color: isDark ? '#FFFFFF' : primaryBtnStyle.color },
     btnLabelGhost: { color: colors.textMuted },
   });
 }

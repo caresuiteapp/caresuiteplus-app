@@ -47,6 +47,8 @@ import { PlatformContextSearch } from './PlatformContextSearch';
 import { PlatformProfileMenu } from './PlatformProfileMenu';
 import { TenantMandantCardContent } from './TenantMandantCardContent';
 import { SpaceKpiIcon } from '@/components/icons/space';
+import { AccentTextChip } from '@/components/ui/AccentTextChip';
+import { resolveLightColoredTextColor } from '@/design/tokens/accentContrast';
 
 const SUPPORT_LINKS_ITEMS = [
   { label: 'Hilfe & Dokumentation', icon: 'helpOrb', href: 'help' as const },
@@ -148,9 +150,7 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
                 <Text style={styles.taskTitle} numberOfLines={1}>
                   {task.title}
                 </Text>
-                <View style={[styles.taskBadge, { backgroundColor: withAlpha(accent, 0.2) }]}>
-                  <Text style={[styles.taskBadgeText, { color: accent }]}>{task.count}</Text>
-                </View>
+                <AccentTextChip label={String(task.count)} accentColor={accent} />
               </View>
             ))}
           </View>
@@ -218,7 +218,10 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
                       <Text
                         style={[
                           styles.navLabel,
-                          active && { color: isDark ? '#FFFFFF' : accent, fontWeight: '700' },
+                          active && {
+                            color: isDark ? '#FFFFFF' : resolveLightColoredTextColor(accent, accent),
+                            fontWeight: '700',
+                          },
                         ]}
                         numberOfLines={2}
                       >

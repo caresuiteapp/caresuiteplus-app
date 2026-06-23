@@ -1,4 +1,5 @@
 import { Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
+import { resolveLightPrimaryButtonStyle } from '@/design/tokens/accentContrast';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -23,13 +24,18 @@ export function CareLightButton({
 }: CareLightButtonProps) {
   const isPrimary = variant === 'primary';
   const isSecondary = variant === 'secondary';
+  const primaryStyle = isPrimary ? resolveLightPrimaryButtonStyle(accentColor) : null;
 
   return (
     <Pressable
       onPress={loading ? undefined : onPress}
       style={({ pressed }) => [
         styles.base,
-        isPrimary && { backgroundColor: accentColor },
+        isPrimary && {
+          backgroundColor: primaryStyle!.backgroundColor,
+          borderWidth: 1,
+          borderColor: primaryStyle!.borderColor,
+        },
         isSecondary && styles.secondary,
         variant === 'ghost' && styles.ghost,
         pressed && styles.pressed,
@@ -42,7 +48,7 @@ export function CareLightButton({
       <Text
         style={[
           styles.label,
-          isPrimary && styles.labelPrimary,
+          isPrimary && { color: primaryStyle!.color },
           (isSecondary || variant === 'ghost') && { color: accentColor },
         ]}
       >

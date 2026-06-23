@@ -25,6 +25,8 @@ import {
 } from '@/lib/platform/shellLayoutMetrics';
 import { radius, spacing, typography } from '@/theme';
 import { SpaceKpiIcon } from '@/components/icons/space';
+import { AccentTextChip } from '@/components/ui/AccentTextChip';
+import { resolveLightColoredTextColor } from '@/design/tokens/accentContrast';
 import type { MainModuleKey } from '@/types/navigation/platform';
 
 type ModuleNavSidebarProps = {
@@ -79,15 +81,16 @@ function NavItem({
           style={[
             navStyles.navLabel,
             { color: isDark ? '#A9B2C7' : '#475569' },
-            active && { color: isDark ? '#FFFFFF' : accent, fontWeight: '700' },
+            active && {
+              color: isDark ? '#FFFFFF' : resolveLightColoredTextColor(accent, accent),
+              fontWeight: '700',
+            },
           ]}
         >
           {label}
         </Text>
         {badge != null ? (
-          <View style={[navStyles.badge, { backgroundColor: withAlpha(accent, 0.25) }]}>
-            <Text style={[navStyles.badgeText, { color: accent }]}>{badge}</Text>
-          </View>
+          <AccentTextChip label={String(badge)} accentColor={accent} textStyle={navStyles.badgeText} />
         ) : null}
       </View>
     </Pressable>

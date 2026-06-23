@@ -1,4 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
+import { resolveAccentTextChipStyle } from '@/design/tokens/accentContrast';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import {
   UI_ACTIVE_LABEL,
   UI_BETA_LABEL,
@@ -149,6 +151,8 @@ export function StatusBadge({
   visibility = defaultPublicVisibility(),
   rawKey,
 }: StatusBadgeProps) {
+  const { isLight } = useLegacyTheme();
+
   if (kind === 'internal' && !visibility.showDeveloperDiagnostics) {
     return null;
   }
@@ -157,15 +161,24 @@ export function StatusBadge({
   }
 
   const colors = STATUS_COLORS[kind];
+  const chip = isLight ? resolveAccentTextChipStyle(colors.text) : null;
   const text = label ?? STATUS_LABELS[kind];
   const showRaw =
     rawKey && visibility.showDeveloperDiagnostics && visibility.allowForbiddenTerms;
 
   return (
     <View style={styles.wrap}>
-      <View style={[styles.badge, { backgroundColor: colors.bg, borderColor: colors.border }]}>
-        {dot ? <View style={[styles.dot, { backgroundColor: colors.text }]} /> : null}
-        <Text style={[styles.text, { color: colors.text }]} numberOfLines={1}>
+      <View
+        style={[
+          styles.badge,
+          {
+            backgroundColor: chip?.backgroundColor ?? colors.bg,
+            borderColor: chip?.borderColor ?? colors.border,
+          },
+        ]}
+      >
+        {dot ? <View style={[styles.dot, { backgroundColor: chip?.color ?? colors.text }]} /> : null}
+        <Text style={[styles.text, { color: chip?.color ?? colors.text }]} numberOfLines={1}>
           {text}
         </Text>
       </View>

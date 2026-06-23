@@ -4,6 +4,17 @@ export {
   type ColorMode,
 } from './colors';
 export {
+  ACCENT_DARK_SOFT_BASE,
+  ACCENT_ICON_FRAME_GRADIENT,
+  accentDarkSoftBackdrop,
+  accentDarkSoftBorder,
+  isLightAccentColor,
+  relativeAccentLuminance,
+  resolveAccentTextChipStyle,
+  resolveLightColoredTextColor,
+  resolveLightPrimaryButtonStyle,
+} from './accentContrast';
+export {
   legacyColorsFromPalette,
   resolveLegacyGradients,
   useLegacyTheme,

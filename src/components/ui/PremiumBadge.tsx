@@ -1,5 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { resolveAccentTextChipStyle } from '@/design/tokens/accentContrast';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { colors } from '@/theme';
 
@@ -31,12 +33,23 @@ const CONFIG: Record<Variant, { text: string; bg: string; border: string }> = {
 };
 
 export function PremiumBadge({ label, variant = 'orange', style, dot = false }: Props) {
-  const cfg = CONFIG[variant] ?? CONFIG.muted;
+  const { isLight } = useLegacyTheme();
+  const base = CONFIG[variant] ?? CONFIG.muted;
+  const chip = isLight ? resolveAccentTextChipStyle(base.text) : null;
 
   return (
-    <View style={[styles.badge, { backgroundColor: cfg.bg, borderColor: cfg.border }, style]}>
-      {dot ? <View style={[styles.dot, { backgroundColor: cfg.text }]} /> : null}
-      <Text style={[styles.label, { color: cfg.text }]}>{label}</Text>
+    <View
+      style={[
+        styles.badge,
+        {
+          backgroundColor: chip?.backgroundColor ?? base.bg,
+          borderColor: chip?.borderColor ?? base.border,
+        },
+        style,
+      ]}
+    >
+      {dot ? <View style={[styles.dot, { backgroundColor: chip?.color ?? base.text }]} /> : null}
+      <Text style={[styles.label, { color: chip?.color ?? base.text }]}>{label}</Text>
     </View>
   );
 }
