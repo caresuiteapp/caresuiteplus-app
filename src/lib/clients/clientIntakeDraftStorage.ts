@@ -34,6 +34,8 @@ export function mergeIntakeFormWithDefaults(partial: Partial<ClientIntakeFormDat
     'contractTypes',
     'documentCategories',
     'taskCategories',
+    'intakeOptionalConsents',
+    'intakeDocuments',
   ];
 
   for (const key of arrayKeys) {

@@ -1,4 +1,5 @@
 import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
+import type { IntakeDocumentState } from '@/features/intakeDocuments/intakeDocumentTypes';
 
 export type ClientIntakeFormData = {
   careContexts: ClientCareContext[];
@@ -124,6 +125,10 @@ export type ClientIntakeFormData = {
   assignedModules: string[];
   consentDatenschutz: boolean;
   consentVertrag: boolean;
+  intakeContractType: string;
+  intakeAssignmentEnabled: boolean;
+  intakeOptionalConsents: string[];
+  intakeDocuments: IntakeDocumentState[];
   consentTypes: string[];
   contractTypes: string[];
   documentCategories: string[];
@@ -255,6 +260,10 @@ export const EMPTY_CLIENT_INTAKE_FORM: ClientIntakeFormData = {
   assignedModules: ['office'],
   consentDatenschutz: false,
   consentVertrag: false,
+  intakeContractType: '',
+  intakeAssignmentEnabled: false,
+  intakeOptionalConsents: [],
+  intakeDocuments: [],
   consentTypes: [],
   contractTypes: [],
   documentCategories: [],
