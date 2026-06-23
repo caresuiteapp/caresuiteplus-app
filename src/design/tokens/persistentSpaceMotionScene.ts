@@ -113,7 +113,8 @@ function seededRandom(seed: number): () => number {
 }
 
 function buildLargeCircles(): PsmCircle[] {
-  const speeds = [1, 1, 2, 1, 2, 2];
+  /** Integer cycles per 240s loop — 6–12 ≈ one visible drift every 20–40s */
+  const speeds = [6, 8, 10, 7, 12, 9];
   return Array.from({ length: PSM_LARGE_COUNT }, (_, i) => {
     const rand = seededRandom(hashSeed(`psm-large-${i}`));
     const phase = rand() * Math.PI * 2;
@@ -124,13 +125,13 @@ function buildLargeCircles(): PsmCircle[] {
       bx: 0.08 + rand() * 0.84,
       by: 0.06 + rand() * 0.88,
       baseRadius: 0.12 + rand() * 0.14,
-      ampX: 28 + rand() * 48,
-      ampY: 24 + rand() * 42,
+      ampX: 56 + rand() * 88,
+      ampY: 48 + rand() * 76,
       speedX: speeds[i],
       speedY: speeds[(i + 2) % speeds.length],
-      scaleSpeed: 1 + (i % 2),
-      scaleAmp: 0.04 + rand() * 0.06,
-      opacitySpeed: 1,
+      scaleSpeed: 4 + (i % 3),
+      scaleAmp: 0.05 + rand() * 0.08,
+      opacitySpeed: 4,
       opacityAmp,
       baseOpacity,
       baseScale: 0.92 + rand() * 0.08,
@@ -142,7 +143,7 @@ function buildLargeCircles(): PsmCircle[] {
 }
 
 function buildMediumCircles(): PsmCircle[] {
-  const speeds = [2, 3, 2, 4, 3, 2, 4, 3, 2, 3];
+  const speeds = [14, 18, 16, 20, 15, 22, 17, 19, 14, 21];
   return Array.from({ length: PSM_MEDIUM_COUNT }, (_, i) => {
     const rand = seededRandom(hashSeed(`psm-medium-${i}`));
     const phase = rand() * Math.PI * 2;
@@ -153,13 +154,13 @@ function buildMediumCircles(): PsmCircle[] {
       bx: 0.05 + rand() * 0.9,
       by: 0.05 + rand() * 0.9,
       baseRadius: 0.04 + rand() * 0.06,
-      ampX: 18 + rand() * 36,
-      ampY: 16 + rand() * 32,
+      ampX: 36 + rand() * 64,
+      ampY: 32 + rand() * 56,
       speedX: speeds[i],
       speedY: speeds[(i + 3) % speeds.length],
-      scaleSpeed: 2 + (i % 3),
-      scaleAmp: 0.05 + rand() * 0.08,
-      opacitySpeed: 2,
+      scaleSpeed: 8 + (i % 4),
+      scaleAmp: 0.06 + rand() * 0.1,
+      opacitySpeed: 6,
       opacityAmp,
       baseOpacity,
       baseScale: 0.88 + rand() * 0.12,
@@ -171,7 +172,7 @@ function buildMediumCircles(): PsmCircle[] {
 }
 
 function buildSmallParticles(): PsmCircle[] {
-  const speeds = [3, 4, 5, 6, 4, 5, 3, 6, 4, 5, 3, 4, 6, 5, 4, 3, 6, 5, 4, 3, 5, 6, 4, 3];
+  const speeds = [24, 28, 32, 26, 30, 34, 27, 36, 29, 33, 25, 31, 35, 28, 32, 26, 34, 30, 27, 33, 29, 36, 31, 25];
   return Array.from({ length: PSM_SMALL_COUNT }, (_, i) => {
     const rand = seededRandom(hashSeed(`psm-small-${i}`));
     const phase = rand() * Math.PI * 2;
@@ -182,13 +183,13 @@ function buildSmallParticles(): PsmCircle[] {
       bx: rand(),
       by: rand(),
       baseRadius: 0.008 + rand() * 0.018,
-      ampX: 10 + rand() * 28,
-      ampY: 8 + rand() * 24,
+      ampX: 22 + rand() * 48,
+      ampY: 18 + rand() * 40,
       speedX: speeds[i],
       speedY: speeds[(i + 5) % speeds.length],
-      scaleSpeed: 3 + (i % 4),
-      scaleAmp: 0.03 + rand() * 0.05,
-      opacitySpeed: 3 + (i % 3),
+      scaleSpeed: 12 + (i % 6),
+      scaleAmp: 0.04 + rand() * 0.06,
+      opacitySpeed: 10 + (i % 4),
       opacityAmp,
       baseOpacity,
       baseScale: 0.85 + rand() * 0.15,
@@ -212,15 +213,15 @@ function buildLines(): PsmLine[] {
       length: 0.08 + rand() * 0.22,
       thickness: 0.8 + rand() * 1.2,
       angle: rand() * Math.PI * 2,
-      ampX: 20 + rand() * 40,
-      ampY: 18 + rand() * 36,
-      speedX: 1 + (i % 3),
-      speedY: 2 + (i % 4),
-      rotSpeed: 1 + (i % 2),
-      rotAmp: 0.12 + rand() * 0.2,
-      lengthSpeed: 2,
+      ampX: 40 + rand() * 72,
+      ampY: 36 + rand() * 64,
+      speedX: 8 + (i % 5),
+      speedY: 10 + (i % 4),
+      rotSpeed: 6 + (i % 4),
+      rotAmp: 0.18 + rand() * 0.28,
+      lengthSpeed: 8,
       lengthAmp: 0.02 + rand() * 0.04,
-      opacitySpeed: 2,
+      opacitySpeed: 6,
       opacityAmp,
       baseOpacity,
       phase,
@@ -238,10 +239,10 @@ function buildNebulas(): PsmNebula[] {
       by: 0.15 + rand() * 0.7,
       radiusX: 0.35 + rand() * 0.25,
       radiusY: 0.28 + rand() * 0.22,
-      speedX: 1,
-      speedY: 1,
-      ampX: 40 + rand() * 60,
-      ampY: 32 + rand() * 48,
+      speedX: 3 + (i % 2),
+      speedY: 4,
+      ampX: 80 + rand() * 100,
+      ampY: 64 + rand() * 80,
       phase: rand() * Math.PI * 2,
       inner: 'rgba(248,250,252,0.55)',
       mid: 'rgba(230,234,240,0.28)',

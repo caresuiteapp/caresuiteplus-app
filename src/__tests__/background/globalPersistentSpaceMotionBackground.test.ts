@@ -67,6 +67,14 @@ describe('persistentSpaceMotionScene', () => {
     expect(at120.y).not.toBeCloseTo(at0.y, 1);
   });
 
+  it('3s Drift ist sichtbar groß (≥3px) für große Kreise', () => {
+    const circle = PSM_SCENE.largeCircles[0];
+    const at0 = psmCircleAtElapsed(circle, W, H, 0);
+    const at3 = psmCircleAtElapsed(circle, W, H, 3_000);
+    const drift = Math.hypot(at3.x - at0.x, at3.y - at0.y);
+    expect(drift).toBeGreaterThan(3);
+  });
+
   it('große und kleine Kreise haben unterschiedliche Geschwindigkeiten', () => {
     const largeSpeeds = new Set(PSM_SCENE.largeCircles.map((c) => c.speedX));
     const smallSpeeds = new Set(PSM_SCENE.smallParticles.map((c) => c.speedX));

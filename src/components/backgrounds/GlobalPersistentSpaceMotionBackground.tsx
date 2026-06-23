@@ -1,4 +1,4 @@
-import { useEffect, useRef } from 'react';
+import { useEffect, useLayoutEffect, useRef } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import {
   PSM_LOOP_MS,
@@ -129,8 +129,8 @@ function drawReadabilityWash(ctx: CanvasRenderingContext2D, w: number, h: number
   const cy = h * 0.46;
   const r = Math.max(w, h) * 0.42;
   const wash = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  wash.addColorStop(0, 'rgba(255,255,255,0.38)');
-  wash.addColorStop(0.55, 'rgba(255,255,255,0.12)');
+  wash.addColorStop(0, 'rgba(255,255,255,0.28)');
+  wash.addColorStop(0.55, 'rgba(255,255,255,0.08)');
   wash.addColorStop(1, 'transparent');
   ctx.fillStyle = wash;
   ctx.fillRect(0, 0, w, h);
@@ -166,57 +166,84 @@ function WebMotionCanvas({ animate, testID }: { animate: boolean; testID?: strin
   const animateRef = useRef(animate);
   animateRef.current = animate;
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     ensureWebStyles();
-    const canvas = canvasRef.current;
-    if (!canvas) return undefined;
-    const ctx = canvas.getContext('2d');
-    if (!ctx) return undefined;
+    let cancelled = false;
+    let cleanup: (() => void) | undefined;
 
-    pausedRef.current = false;
+    const attachLoop = () => {
+      const canvas = canvasRef.current;
+      if (!canvas || cancelled) return false;
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return false;
 
-    const resize = () => {
-      const parent = canvas.parentElement;
-      if (!parent) return;
-      const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-      const cw = parent.clientWidth;
-      const ch = parent.clientHeight;
-      canvas.width = Math.floor(cw * dpr);
-      canvas.height = Math.floor(ch * dpr);
-      canvas.style.width = `${cw}px`;
-      canvas.style.height = `${ch}px`;
-      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-    };
+      pausedRef.current = false;
 
-    const onVisibility = () => {
-      pausedRef.current = document.hidden;
-      if (!document.hidden && frameRef.current === null) {
+      const resize = () => {
+        const parent = canvas.parentElement;
+        if (!parent) return;
+        const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+        const cw = parent.clientWidth;
+        const ch = parent.clientHeight;
+        if (cw <= 0 || ch <= 0) return;
+        canvas.width = Math.floor(cw * dpr);
+        canvas.height = Math.floor(ch * dpr);
+        canvas.style.width = `${cw}px`;
+        canvas.style.height = `${ch}px`;
+        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+      };
+
+      const onVisibility = () => {
+        pausedRef.current = document.hidden;
+        if (!document.hidden && frameRef.current === null) {
+          frameRef.current = requestAnimationFrame(tick);
+        }
+      };
+
+      resize();
+      window.addEventListener('resize', resize);
+      document.addEventListener('visibilitychange', onVisibility);
+
+      const tick = () => {
+        frameRef.current = null;
+        if (pausedRef.current || cancelled) return;
+        const w = canvas.clientWidth;
+        const h = canvas.clientHeight;
+        if (w <= 0 || h <= 0) {
+          frameRef.current = requestAnimationFrame(tick);
+          return;
+        }
+        const phase = animateRef.current ? getBackgroundPhase() : 0;
+        drawFrame(ctx, w, h, phase);
+        canvas.dataset.loopMs = String(PSM_LOOP_MS);
         frameRef.current = requestAnimationFrame(tick);
-      }
+      };
+
+      tick();
+
+      cleanup = () => {
+        window.removeEventListener('resize', resize);
+        document.removeEventListener('visibilitychange', onVisibility);
+        if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
+        frameRef.current = null;
+      };
+      return true;
     };
 
-    resize();
-    window.addEventListener('resize', resize);
-    document.addEventListener('visibilitychange', onVisibility);
-
-    const tick = () => {
-      frameRef.current = null;
-      if (pausedRef.current) return;
-      const w = canvas.clientWidth;
-      const h = canvas.clientHeight;
-      const phase = animateRef.current ? getBackgroundPhase() : 0;
-      drawFrame(ctx, w, h, phase);
-      canvas.dataset.loopMs = String(PSM_LOOP_MS);
-      frameRef.current = requestAnimationFrame(tick);
-    };
-
-    tick();
+    if (!attachLoop()) {
+      const retryId = requestAnimationFrame(() => {
+        if (!cancelled) attachLoop();
+      });
+      return () => {
+        cancelled = true;
+        cancelAnimationFrame(retryId);
+        cleanup?.();
+      };
+    }
 
     return () => {
-      window.removeEventListener('resize', resize);
-      document.removeEventListener('visibilitychange', onVisibility);
-      if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-      frameRef.current = null;
+      cancelled = true;
+      cleanup?.();
     };
   }, []);
 
