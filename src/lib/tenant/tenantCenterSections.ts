@@ -182,8 +182,7 @@ export function buildTenantCenterSections(snapshot: TenantCenterSnapshot): Tenan
       description: '6 Leistungsarten als Mandanten-Vorlagen (Alltagsbegleitung bis Beratung)',
       completeness: 'partial',
       summary: 'Leistungsarten-Vorlagen für Klient:innen',
-      editable: false,
-      stub: true,
+      editable: true,
     },
     {
       key: 'clientBudgetDefaults',
@@ -191,8 +190,7 @@ export function buildTenantCenterSections(snapshot: TenantCenterSnapshot): Tenan
       description: 'Budgetjahre und Entlastungsbudget-Vorgaben (editierbar, nicht im UI hardcodiert)',
       completeness: 'partial',
       summary: 'Budget-Vorlagen und Entlastungsbudget',
-      editable: false,
-      stub: true,
+      editable: true,
     },
     {
       key: 'audit',

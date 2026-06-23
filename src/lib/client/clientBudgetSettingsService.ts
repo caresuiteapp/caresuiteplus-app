@@ -97,6 +97,46 @@ export async function listTenantBudgetDefaults(
   });
 }
 
+export async function updateTenantBudgetDefault(
+  tenantId: string,
+  defaultId: string,
+  patch: Partial<{
+    amountCents: number;
+    conversionRatePct: number | null;
+    monthlyAmountCents: number | null;
+    yearlyAmountCents: number | null;
+    notes: string | null;
+  }>,
+): Promise<ServiceResult<TenantBudgetDefault>> {
+  return runService(async () => {
+    const denied = guardServiceTenant(tenantId);
+    if (denied) return denied;
+
+    const client = getSupabaseClient();
+    if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const payload: Record<string, unknown> = {};
+    if (patch.amountCents !== undefined) payload.amount_cents = patch.amountCents;
+    if (patch.conversionRatePct !== undefined) payload.conversion_rate_pct = patch.conversionRatePct;
+    if (patch.monthlyAmountCents !== undefined) payload.monthly_amount_cents = patch.monthlyAmountCents;
+    if (patch.yearlyAmountCents !== undefined) payload.yearly_amount_cents = patch.yearlyAmountCents;
+    if (patch.notes !== undefined) payload.notes = patch.notes;
+
+    const { error } = await fromUnknownTable(client, 'tenant_budget_defaults')
+      .update(payload)
+      .eq('tenant_id', tenantId)
+      .eq('id', defaultId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const list = await listTenantBudgetDefaults(tenantId);
+    if (!list.ok) return list;
+    const updated = list.data.find((row) => row.id === defaultId);
+    if (!updated) return { ok: false, error: 'Budget-Vorlage nicht gefunden.' };
+    return { ok: true, data: updated };
+  });
+}
+
 export async function listClientBudgetSettings(
   tenantId: string,
   clientId: string,

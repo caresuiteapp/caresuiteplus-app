@@ -1,18 +1,22 @@
+import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   EmptyState,
   LoadingState,
   PremiumButton,
   PremiumCard,
+  PremiumInput,
   SectionPanel,
 } from '@/components/ui';
 import {
   listTenantBudgetDefaults,
   listTenantBudgetYears,
   listTenantBudgetTypes,
+  updateTenantBudgetDefault,
 } from '@/lib/client/clientBudgetSettingsService';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
@@ -22,6 +26,12 @@ import { colors, spacing, typography } from '@/theme';
 export default function TenantClientBudgetDefaultsScreen() {
   const router = useRouter();
   const tenantId = useServiceTenantId();
+  const { isReadOnly } = usePermissions();
+  const [editingId, setEditingId] = useState<string | null>(null);
+  const [editMonthly, setEditMonthly] = useState('');
+  const [editYearly, setEditYearly] = useState('');
+  const [editRate, setEditRate] = useState('');
+  const [saving, setSaving] = useState(false);
 
   const yearsQuery = useAsyncQuery(
     () => {
@@ -54,6 +64,24 @@ export default function TenantClientBudgetDefaultsScreen() {
   const years = yearsQuery.data ?? [];
   const types = typesQuery.data ?? [];
   const defaults = defaultsQuery.data ?? [];
+
+  async function handleSave(defaultId: string) {
+    if (!tenantId || isReadOnly) return;
+    setSaving(true);
+    const monthly = editMonthly.trim() ? Math.round(Number(editMonthly.replace(',', '.')) * 100) : null;
+    const yearly = editYearly.trim() ? Math.round(Number(editYearly.replace(',', '.')) * 100) : null;
+    const rate = editRate.trim() ? Number(editRate.replace(',', '.')) : null;
+    const result = await updateTenantBudgetDefault(tenantId, defaultId, {
+      monthlyAmountCents: monthly != null && Number.isFinite(monthly) ? monthly : null,
+      yearlyAmountCents: yearly != null && Number.isFinite(yearly) ? yearly : null,
+      conversionRatePct: rate != null && Number.isFinite(rate) ? rate : null,
+    });
+    setSaving(false);
+    if (result.ok) {
+      setEditingId(null);
+      await defaultsQuery.refresh();
+    }
+  }
 
   return (
     <ScreenShell
@@ -91,11 +119,40 @@ export default function TenantClientBudgetDefaultsScreen() {
         ) : (
           defaults.map((def) => (
             <PremiumCard key={def.id} style={styles.card}>
-              <Text style={styles.secondary}>
-                Monat: {formatCurrency(def.monthlyAmountCents ?? 0, true)}
-                {' · '}{def.conversionRatePct ?? 0}% Umrechnung
-                {' · '}Jahr: {formatCurrency(def.yearlyAmountCents ?? def.amountCents, true)}
-              </Text>
+              {editingId === def.id ? (
+                <>
+                  <PremiumInput label="Monat (€)" value={editMonthly} onChangeText={setEditMonthly} />
+                  <PremiumInput label="Jahr (€)" value={editYearly} onChangeText={setEditYearly} />
+                  <PremiumInput label="Umrechnung (%)" value={editRate} onChangeText={setEditRate} />
+                  <PremiumButton title="Speichern" loading={saving} onPress={() => handleSave(def.id)} />
+                  <PremiumButton title="Abbrechen" variant="secondary" onPress={() => setEditingId(null)} />
+                </>
+              ) : (
+                <>
+                  <Text style={styles.secondary}>
+                    Monat: {formatCurrency(def.monthlyAmountCents ?? 0, true)}
+                    {' · '}{def.conversionRatePct ?? 0}% Umrechnung
+                    {' · '}Jahr: {formatCurrency(def.yearlyAmountCents ?? def.amountCents, true)}
+                  </Text>
+                  {!isReadOnly ? (
+                    <PremiumButton
+                      title="Bearbeiten"
+                      size="sm"
+                      variant="secondary"
+                      onPress={() => {
+                        setEditingId(def.id);
+                        setEditMonthly(def.monthlyAmountCents != null ? String(def.monthlyAmountCents / 100) : '');
+                        setEditYearly(
+                          def.yearlyAmountCents != null
+                            ? String(def.yearlyAmountCents / 100)
+                            : String(def.amountCents / 100),
+                        );
+                        setEditRate(def.conversionRatePct != null ? String(def.conversionRatePct) : '');
+                      }}
+                    />
+                  ) : null}
+                </>
+              )}
             </PremiumCard>
           ))
         )}

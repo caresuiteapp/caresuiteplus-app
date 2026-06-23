@@ -193,6 +193,48 @@ export type ClientRecordCompleteness = {
   hasPortalSettings: boolean;
 };
 
+export type TenantServiceTaskCatalogItem = {
+  id: EntityId;
+  tenantId: EntityId;
+  serviceTypeId: EntityId;
+  taskKey: string;
+  label: string;
+  description: string | null;
+  category: string | null;
+  defaultDurationMinutes: number | null;
+  isBillable: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  metadata: Record<string, unknown>;
+};
+
+export type TenantServiceVisitType = {
+  id: EntityId;
+  tenantId: EntityId;
+  serviceTypeId: EntityId;
+  visitTypeKey: string;
+  label: string;
+  description: string | null;
+  defaultDurationMinutes: number | null;
+  requiresProof: boolean;
+  requiresSignature: boolean;
+  isActive: boolean;
+  sortOrder: number;
+  metadata: Record<string, unknown>;
+};
+
+export type TenantServiceProofTemplate = {
+  id: EntityId;
+  tenantId: EntityId;
+  serviceTypeId: EntityId;
+  templateKey: string;
+  label: string;
+  documentTemplateKey: string | null;
+  isDefault: boolean;
+  isActive: boolean;
+  metadata: Record<string, unknown>;
+};
+
 export const CLIENT_SERVICE_TYPE_LABELS: Record<ClientServiceTypeKey, string> = {
   alltagsbegleitung: 'Alltagsbegleitung',
   betreuung: 'Betreuung',
