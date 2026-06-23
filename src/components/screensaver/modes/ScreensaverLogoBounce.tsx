@@ -2,7 +2,7 @@ import { useEffect, useRef } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import type { ScreensaverBounceSpeed, ScreensaverLogoSize } from '@/lib/screensaver/screensaverTypes';
 import { BOUNCE_SPEED_PX_PER_SEC, LOGO_SIZE_PX } from '@/lib/screensaver/screensaverTypes';
-import { ScreensaverLogo } from '../ScreensaverLogo';
+import { ScreensaverLogo } from '@/components/screensaver/ScreensaverLogo';
 
 type ScreensaverLogoBounceProps = {
   logoSize: ScreensaverLogoSize;

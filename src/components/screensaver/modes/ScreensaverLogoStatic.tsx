@@ -3,7 +3,7 @@ import { Animated, Easing, StyleSheet, Text, View } from 'react-native';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import type { ScreensaverLogoSize } from '@/lib/screensaver/screensaverTypes';
-import { ScreensaverLogo } from '../ScreensaverLogo';
+import { ScreensaverLogo } from '@/components/screensaver/ScreensaverLogo';
 
 type ScreensaverLogoStaticProps = {
   logoSize: ScreensaverLogoSize;
