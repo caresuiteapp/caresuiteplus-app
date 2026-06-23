@@ -6,6 +6,7 @@ import { getDemoMedicationListItems } from '@/data/demo/medications';
 import { getDemoSisAssessments } from '@/data/demo/sisAssessments';
 import { getDemoWoundDocumentations } from '@/data/demo/woundDocumentations';
 import { buildPflegeDashboardKpis } from '@/lib/pflege/pflegeDashboardStats';
+import { emptyPflegeDashboardStats } from '@/types/modules/pflege';
 import { buildSisListKpis } from '@/lib/pflege/sisListStats';
 import { buildPflegeReportKpis } from '@/lib/pflege/pflegeReportStats';
 import { buildMedicationListKpis } from '@/lib/pflege/medicationListStats';
@@ -26,26 +27,38 @@ describe('Pflege Premium Heroes Batch (Sprint 75)', () => {
     expect(hero).toContain('buildPflegeDashboardKpis');
   });
 
-  it('PflegeIndexScreen nutzt CareLight premium dashboard', () => {
+  it('PflegeIndexScreen nutzt Pflege workspace dashboard', () => {
     const screen = readSrc('src/screens/pflege/PflegeIndexScreen.tsx');
-    expect(screen).toContain('CareLightModuleDashboard');
-    expect(screen).toContain('CareLightCarePlanCard');
-    expect(screen).not.toContain('StatTile');
-    expect(screen).toContain('/pflege/medikation');
-    expect(screen).toContain('/pflege/wunddokumentation');
+    expect(screen).toContain('ModuleDashboardShell');
+    expect(screen).toContain('PflegeDashboardView');
+    expect(screen).not.toContain('CareLightModuleDashboard');
+    expect(screen).not.toContain('Bewohner:innen');
+    expect(screen).toContain('/pflege/plans');
   });
 
-  it('buildPflegeDashboardKpis berechnet Pläne, Vitalwerte und Hinweise', () => {
+  it('buildPflegeDashboardKpis berechnet 12 Pflege-KPIs', () => {
     const kpis = buildPflegeDashboardKpis({
+      ...emptyPflegeDashboardStats(),
       totalPlans: 8,
       activePlansCount: 5,
       dueVitalsCount: 2,
       alertsCount: 1,
+      visitsToday: 3,
+      runningNow: 1,
+      dueMeasuresCount: 2,
+      openDocumentationCount: 1,
+      abnormalVitalsCount: 1,
+      openMedicationCount: 1,
+      openWoundDocsCount: 1,
+      openHandoversCount: 1,
+      openSisAssessmentCount: 1,
+      openReportsCount: 1,
+      assignedClientsCount: 3,
     });
-    expect(kpis.some((k) => k.id === 'active-plans')).toBe(true);
-    expect(kpis.some((k) => k.id === 'due-vitals')).toBe(true);
-    expect(kpis.some((k) => k.id === 'open-reports')).toBe(true);
-    expect(kpis.some((k) => k.id === 'alerts')).toBe(true);
+    expect(kpis).toHaveLength(12);
+    expect(kpis.some((k) => k.id === 'pflege-ws-kpi-active-plans')).toBe(true);
+    expect(kpis.some((k) => k.id === 'pflege-ws-kpi-due-vitals')).toBe(true);
+    expect(kpis.some((k) => k.id === 'pflege-ws-kpi-reports')).toBe(true);
   });
 
   it('SisOverviewHero und Screen nutzen PremiumListHeroFrame', () => {

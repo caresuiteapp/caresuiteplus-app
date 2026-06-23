@@ -2,6 +2,7 @@ import type { DashboardKpi } from '@/types/dashboard';
 import type { MainModuleKey, ModuleNavConfig, ModuleNavItem } from '@/types/navigation/platform';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { OFFICE_SIDEBAR_QUICK_ACTIONS } from '@/lib/office/officeDashboardWorkspace';
+import { PFLEGE_SIDEBAR_QUICK_ACTIONS } from '@/lib/pflege/pflegeDashboardWorkspace';
 import { getModuleNavConfig } from '@/lib/navigation/modulenav';
 
 export type ContextQuickAction = {
@@ -37,6 +38,27 @@ export const ASSIST_QUICK_ACTIONS: ContextQuickAction[] = [
   { label: 'Nachweise prüfen', icon: 'docsReview', href: '/assist/nachweise' },
   { label: 'Fahrtenbuch', icon: 'assignmentRoute', href: '/assist/fahrten' },
 ];
+
+export const PFLEGE_QUICK_ACTIONS: ContextQuickAction[] = PFLEGE_SIDEBAR_QUICK_ACTIONS.map((action) => ({
+  label: action.label,
+  icon:
+    action.id === 'pflege-qa-visit'
+      ? 'calendar'
+      : action.id === 'pflege-qa-doc'
+        ? 'docsReview'
+        : action.id === 'pflege-qa-vital'
+          ? 'livePulse'
+          : action.id === 'pflege-qa-measure'
+            ? 'taskCheck'
+            : action.id === 'pflege-qa-handover'
+              ? 'messageWave'
+              : action.id === 'pflege-qa-plan'
+                ? 'uploadFolder'
+                : action.id === 'pflege-qa-wound'
+                  ? 'serviceRecord'
+                  : 'insightScope',
+  href: action.route ?? '/pflege',
+}));
 
 /** Expanded hub nav for Office right context panel — min. 5 items per group. */
 export const officeContextPanelNav: ModuleNavConfig = {

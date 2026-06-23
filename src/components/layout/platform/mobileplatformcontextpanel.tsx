@@ -28,6 +28,7 @@ import {
   buildOpenTasks,
   ASSIST_QUICK_ACTIONS,
   OFFICE_QUICK_ACTIONS,
+  PFLEGE_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
 import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
@@ -70,7 +71,9 @@ export function MobilePlatformContextPanel({
       ? OFFICE_QUICK_ACTIONS
       : mainModule === 'assist'
         ? ASSIST_QUICK_ACTIONS
-        : OFFICE_QUICK_ACTIONS.slice(0, 2);
+        : mainModule === 'pflege'
+          ? PFLEGE_QUICK_ACTIONS
+          : OFFICE_QUICK_ACTIONS.slice(0, 2);
 
   const navConfig = useMemo(() => resolveContextPanelNavConfig(mainModule), [mainModule]);
   const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);

@@ -1,10 +1,15 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { CarePlanListItem, PflegeDashboardStats } from '@/types/modules/pflege';
+import { emptyPflegeDashboardStats } from '@/types/modules/pflege';
 import {
   countActiveCarePlans,
   createDemoCarePlan,
   getDemoCarePlanListItems,
 } from '@/data/demo/carePlans';
+import { getDemoCareRecordListItems } from '@/data/demo/careRecords';
+import { getDemoMedicationListItems } from '@/data/demo/medications';
+import { getDemoSisAssessments } from '@/data/demo/sisAssessments';
+import { getDemoWoundDocumentations } from '@/data/demo/woundDocumentations';
 import { countDueVitals, countVitalAlerts } from '@/data/demo/vitalReadings';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
@@ -12,11 +17,48 @@ import { getServiceMode } from '@/lib/services/mode';
 import { pflegeSupabaseRepository } from '@/lib/services/repositories/pflegeRepository.supabase';
 
 function buildDashboardStats(items: CarePlanListItem[]): PflegeDashboardStats {
+  const careRecords = getDemoCareRecordListItems();
+  const openDocs = careRecords.filter(
+    (record) => record.status !== 'abgeschlossen' && record.status !== 'archiviert',
+  ).length;
+  const openMeds = getDemoMedicationListItems().filter(
+    (item) => item.status === 'in_bearbeitung' || item.status === 'entwurf',
+  ).length;
+  const openWounds = getDemoWoundDocumentations().filter(
+    (item) => item.status === 'aktiv' || item.status === 'in_bearbeitung',
+  ).length;
+  const openSis = getDemoSisAssessments().filter(
+    (item) => item.status === 'entwurf' || item.status === 'in_bearbeitung',
+  ).length;
+  const openReports = items.filter(
+    (item) => item.status === 'entwurf' || item.status === 'in_bearbeitung',
+  ).length;
+  const dueMeasures = items.reduce((sum, item) => sum + item.alertCount, 0);
+  const assignedClients = new Set(
+    items.filter((item) => item.status === 'aktiv').map((item) => item.clientId),
+  ).size;
+  const todayStart = new Date();
+  todayStart.setHours(0, 0, 0, 0);
+  const visitsToday = careRecords.filter(
+    (record) => new Date(record.recordedAt).getTime() >= todayStart.getTime(),
+  ).length;
+
   return {
     totalPlans: items.length,
     activePlansCount: items.filter((i) => i.status === 'aktiv').length,
     dueVitalsCount: countDueVitals(),
     alertsCount: countVitalAlerts() + items.reduce((sum, item) => sum + item.alertCount, 0),
+    visitsToday,
+    runningNow: visitsToday > 0 ? 1 : 0,
+    dueMeasuresCount: dueMeasures,
+    openDocumentationCount: openDocs,
+    abnormalVitalsCount: countVitalAlerts(),
+    openMedicationCount: openMeds,
+    openWoundDocsCount: openWounds,
+    openHandoversCount: Math.max(0, Math.floor(openDocs / 2)),
+    openSisAssessmentCount: openSis,
+    openReportsCount: openReports,
+    assignedClientsCount: assignedClients,
   };
 }
 
@@ -82,10 +124,12 @@ export async function fetchPflegeDashboardStats(
     return {
       ok: true,
       data: {
+        ...emptyPflegeDashboardStats(),
         totalPlans: listResult.data.length,
         activePlansCount: listResult.data.filter((i) => i.status === 'aktiv').length,
-        dueVitalsCount: 0,
-        alertsCount: 0,
+        assignedClientsCount: new Set(
+          listResult.data.filter((i) => i.status === 'aktiv').map((i) => i.clientId),
+        ).size,
       },
     };
   }

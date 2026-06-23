@@ -65,7 +65,38 @@ export type PflegeDashboardStats = {
   activePlansCount: number;
   dueVitalsCount: number;
   alertsCount: number;
+  visitsToday: number;
+  runningNow: number;
+  dueMeasuresCount: number;
+  openDocumentationCount: number;
+  abnormalVitalsCount: number;
+  openMedicationCount: number;
+  openWoundDocsCount: number;
+  openHandoversCount: number;
+  openSisAssessmentCount: number;
+  openReportsCount: number;
+  assignedClientsCount: number;
 };
+
+export function emptyPflegeDashboardStats(): PflegeDashboardStats {
+  return {
+    totalPlans: 0,
+    activePlansCount: 0,
+    dueVitalsCount: 0,
+    alertsCount: 0,
+    visitsToday: 0,
+    runningNow: 0,
+    dueMeasuresCount: 0,
+    openDocumentationCount: 0,
+    abnormalVitalsCount: 0,
+    openMedicationCount: 0,
+    openWoundDocsCount: 0,
+    openHandoversCount: 0,
+    openSisAssessmentCount: 0,
+    openReportsCount: 0,
+    assignedClientsCount: 0,
+  };
+}
 
 export type SisAssessment = TenantScopedEntity &
   PortalScopedEntity & {

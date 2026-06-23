@@ -32,6 +32,7 @@ import {
   buildOpenTasks,
   ASSIST_QUICK_ACTIONS,
   OFFICE_QUICK_ACTIONS,
+  PFLEGE_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
 import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
@@ -86,7 +87,9 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
       ? OFFICE_QUICK_ACTIONS
       : mainModule === 'assist'
         ? ASSIST_QUICK_ACTIONS
-        : OFFICE_QUICK_ACTIONS.slice(0, 2);
+        : mainModule === 'pflege'
+          ? PFLEGE_QUICK_ACTIONS
+          : OFFICE_QUICK_ACTIONS.slice(0, 2);
   const openTasks = buildOpenTasks(mainModule, officeData, isLive);
 
   return (

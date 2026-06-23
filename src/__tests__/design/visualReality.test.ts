@@ -16,23 +16,21 @@ describe('Visual Reality — light premium main screens', () => {
     expect(src).not.toContain("return isDesktopWeb() ? 'dark' : 'light'");
   });
 
-  it('PflegeIndexScreen uses CareLight dashboard without legacy dark heroes', () => {
+  it('PflegeIndexScreen uses platform dashboard shell', () => {
     const screen = readSrc('src/screens/pflege/PflegeIndexScreen.tsx');
-    expect(screen).toContain('CareLightScreen');
-    expect(screen).toContain('CareLightModuleDashboard');
-    expect(screen).toContain('CareLightCarePlanCard');
-    expect(screen).toContain('buildPflegeDashboardKpis');
+    expect(screen).toContain('ModuleDashboardShell');
+    expect(screen).toContain('PflegeDashboardView');
+    expect(screen).not.toContain('CareLightModuleDashboard');
     expect(screen).not.toContain('AdaptiveModuleDashboard');
     expect(screen).not.toContain('PremiumListHeroFrame');
-    expect(screen).not.toContain('ScreenShell');
   });
 
-  it('buildPflegeDashboardKpis exposes mandated KPI labels', () => {
-    const stats = readSrc('src/lib/pflege/pflegeDashboardStats.ts');
-    expect(stats).toContain('Aktive Pflegepläne');
-    expect(stats).toContain('Fällige Vitalwerte');
-    expect(stats).toContain('Offene Berichte');
-    expect(stats).toContain('Hinweise / Risiken');
+  it('buildPflegeWorkspaceKpis exposes mandated KPI labels', () => {
+    const stats = readSrc('src/lib/pflege/pflegeDashboardWorkspace.ts');
+    expect(stats).toContain('Pflegeeinsätze heute');
+    expect(stats).toContain('Auffällige Vitalwerte');
+    expect(stats).toContain('SIS/Assessment offen');
+    expect(stats).toContain('Berichte offen');
   });
 
   it('AppStartScreen uses aurora dark shell and glass portal cards', () => {
