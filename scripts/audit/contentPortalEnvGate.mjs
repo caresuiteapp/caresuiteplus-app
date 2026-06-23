@@ -9,7 +9,12 @@ import { fileURLToPath } from 'node:url';
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const outPath = join(root, '.audit-content-portal-c12-env-gate.json');
 
-const PLACEHOLDER = /DEIN_|CHANGE_ME|placeholder|example\.com|changeme|^password$/i;
+const PLACEHOLDER =
+  /DEIN_|CHANGE_ME|placeholder|example\.com|changeme|^password$|^echter-|^echtes-|^\.\.\.$|^test@test$/i;
+
+function isValidEmail(value) {
+  return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
+}
 
 function loadEnv() {
   const path = join(root, '.env');
@@ -99,6 +104,15 @@ async function main() {
   if (result.businessEmail.placeholder || result.businessPassword.placeholder) {
     result.blockers.push('business_credentials_placeholder');
   }
+  if (businessEmail && !isValidEmail(businessEmail)) {
+    result.blockers.push('business_email_not_valid_format');
+  }
+  if (employeeUsername === '...' || employeePassword === '...') {
+    result.blockers.push('employee_credentials_placeholder_literal');
+  }
+  if (clientUsername === '...' || clientCode === '...') {
+    result.blockers.push('client_credentials_placeholder_literal');
+  }
   if (!result.serviceRoleKey.present) {
     result.blockers.push('missing_service_role');
   }
@@ -140,6 +154,7 @@ async function main() {
       gatePassed: result.gatePassed,
       businessLogin: result.businessLoginTest.ok,
       serviceRolePresent: result.serviceRoleKey.present,
+      businessEmailValidFormat: businessEmail ? isValidEmail(businessEmail) : false,
       blockers: result.blockers,
     }),
   );
