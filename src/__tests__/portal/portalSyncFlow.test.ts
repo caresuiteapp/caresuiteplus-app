@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import { PORTAL_BLOCKED_SNAPSHOT_KEYS } from '@/lib/assist/assistProofPdfPayload';
 import {
@@ -172,5 +174,14 @@ describe('portal sync flow', () => {
     expect(steps[0].clientPortalVisible).toBe(false);
     expect(steps[1].clientPortalVisible).toBe(false);
     expect(steps[2].clientPortalVisible).toBe(true);
+  });
+
+  it('portal sync chain service applies live tenant guard', () => {
+    const root = path.join(__dirname, '..', '..', '..');
+    const src = readFileSync(
+      path.join(root, 'src/lib/portal/portalSyncChainService.ts'),
+      'utf8',
+    );
+    expect(src).toContain('guardServiceTenant');
   });
 });
