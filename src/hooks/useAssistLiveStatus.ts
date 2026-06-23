@@ -3,6 +3,7 @@ import { fetchAssistLiveStatusOverview } from '@/lib/assist/assistLiveTrackingVi
 import type { AssistLiveStatusOverview } from '@/lib/assist/assistLiveTrackingViewService';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { subscribeToAssistLiveTrackingChanges } from '@/lib/realtime';
 import { useAsyncQuery } from './core';
 
 export function useAssistLiveStatus() {
@@ -15,6 +16,14 @@ export function useAssistLiveStatus() {
     const id = setInterval(() => setTick((t) => t + 1), 30_000);
     return () => clearInterval(id);
   }, []);
+
+  useEffect(() => {
+    if (!tenantId) return;
+    const unsubscribe = subscribeToAssistLiveTrackingChanges(tenantId, () => {
+      setTick((t) => t + 1);
+    });
+    return unsubscribe;
+  }, [tenantId]);
 
   const query = useAsyncQuery(
     () => {

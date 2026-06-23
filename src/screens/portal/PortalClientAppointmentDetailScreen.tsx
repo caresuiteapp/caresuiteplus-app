@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalAppointmentDetailHero } from '@/components/portal';
@@ -95,6 +96,26 @@ export function PortalClientAppointmentDetailScreen() {
         {data.preparationNotes ? (
           <SectionPanel title="Hinweise zur Vorbereitung">
             <Text style={styles.notes}>{data.preparationNotes}</Text>
+          </SectionPanel>
+        ) : null}
+
+        {data.liveVisit ? (
+          <SectionPanel
+            title="Live-Einsatz"
+            subtitle={data.liveVisit.statusLabel ?? 'Aktueller Einsatzstatus'}
+          >
+            {data.liveVisit.mapVisible && data.liveVisit.lastPosition ? (
+              <AssistLiveMap
+                position={data.liveVisit.lastPosition}
+                markerLabel={data.caregiverName ?? 'Mitarbeitende:r'}
+                height={260}
+              />
+            ) : (
+              <Text style={styles.notes}>
+                {data.liveVisit.fallbackMessage ??
+                  'Live-Karte ist derzeit nicht verfügbar. Der Einsatzstatus wird ohne Standort angezeigt.'}
+              </Text>
+            )}
           </SectionPanel>
         ) : null}
 

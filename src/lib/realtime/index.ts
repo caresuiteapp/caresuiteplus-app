@@ -13,6 +13,7 @@ export {
 } from './channelManager';
 export {
   subscribeToAssignmentChanges,
+  subscribeToAssistLiveTrackingChanges,
   subscribeToAssistOperationsChanges,
   subscribeToClientListChanges,
   subscribeToClientRecordChanges,

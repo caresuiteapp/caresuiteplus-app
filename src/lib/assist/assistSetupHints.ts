@@ -61,7 +61,7 @@ export function buildAssistSetupHints(): AssistSetupHint[] {
       id: 'map-provider-optional',
       title: 'Kartenansicht optional',
       message:
-        'Live-Karten erfordern einen externen Kartenanbieter. Standortdaten werden als Textliste angezeigt.',
+        'Live-Karten erfordern eine aktive Kartenansicht. Standortdaten werden als Textliste angezeigt.',
       severity: 'info',
       route: '/assist/live-status',
     });

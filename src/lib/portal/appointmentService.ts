@@ -23,6 +23,10 @@ import {
   fetchLivePortalAppointmentsForEmployee,
   fetchLivePortalClientAppointmentDetail,
 } from './portalAppointmentsLiveService';
+import {
+  projectClientPortalAssistLiveVisit,
+  sanitizeClientPortalLiveVisitPayload,
+} from './clientPortalAssistLiveVisitService';
 import { getPortalProfileLink, resolvePortalScope } from './portalVisibility';
 
 export type PortalAppointmentsPortalContext = {
@@ -282,6 +286,24 @@ export async function fetchPortalClientAppointmentDetail(
       appt.status === 'entwurf' ||
       appt.status === 'in_bearbeitung';
 
+    const assignmentMatch = getDemoAssignmentSeeds().find(
+      (seed) => seed.clientId === appt.clientId && seed.employeeId === appt.employeeId,
+    );
+
+    const liveVisit = assignmentMatch
+      ? sanitizeClientPortalLiveVisitPayload(
+          await projectClientPortalAssistLiveVisit({
+            tenantId: appt.tenantId,
+            clientId: appt.clientId,
+            assignmentId: assignmentMatch.id,
+            status: assignmentMatch.status,
+            plannedStartAt: appt.startsAt,
+            plannedEndAt: appt.endsAt,
+            portalReleaseEnabled: true,
+          }),
+        )
+      : null;
+
     return {
       ok: true,
       data: {
@@ -296,6 +318,7 @@ export async function fetchPortalClientAppointmentDetail(
         serviceType: appt.title,
         preparationNotes: CLIENT_PREP_NOTES[appt.id] ?? null,
         canRequestChange,
+        liveVisit,
       },
     };
   });

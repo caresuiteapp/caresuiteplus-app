@@ -35,4 +35,15 @@ export type PortalClientAppointmentDetail = {
   serviceType: string;
   preparationNotes: string | null;
   canRequestChange: boolean;
+  liveVisit?: {
+    mapVisible: boolean;
+    statusLabel: string | null;
+    lastPosition: {
+      latitude: number;
+      longitude: number;
+      accuracyMeters: number | null;
+      capturedAt: string | null;
+    } | null;
+    fallbackMessage: string | null;
+  } | null;
 };

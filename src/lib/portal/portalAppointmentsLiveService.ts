@@ -7,6 +7,10 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { runService } from '@/lib/services/serviceRunner';
 import type { PortalClientAppointmentDetail } from '@/types/portal/client';
+import {
+  projectClientPortalAssistLiveVisit,
+  sanitizeClientPortalLiveVisitPayload,
+} from '@/lib/portal/clientPortalAssistLiveVisitService';
 import type { PortalAppointmentItem } from './appointmentService';
 
 const LIST_SELECT = `
@@ -179,6 +183,18 @@ export async function fetchLivePortalClientAppointmentDetail(
     const assignmentStatus = remoteStatusToAssignment(row.status);
     const employee = row.employees;
 
+    const liveVisit = sanitizeClientPortalLiveVisitPayload(
+      await projectClientPortalAssistLiveVisit({
+        tenantId,
+        clientId,
+        assignmentId: row.id,
+        status: assignmentStatus,
+        plannedStartAt: row.planned_start_at,
+        plannedEndAt: row.planned_end_at,
+        portalReleaseEnabled: true,
+      }),
+    );
+
     return {
       ok: true,
       data: {
@@ -193,6 +209,7 @@ export async function fetchLivePortalClientAppointmentDetail(
         serviceType: row.title?.trim() || 'Termin',
         preparationNotes: row.client_visible_notes?.trim() || null,
         canRequestChange: PLANNED_CHANGE_STATUSES.has(assignmentStatus),
+        liveVisit,
       },
     };
   });

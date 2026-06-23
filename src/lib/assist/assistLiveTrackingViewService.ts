@@ -179,7 +179,9 @@ async function enrichTrackingFromPersistence(
     : inMemory.consent;
 
   const assistVisible =
-    trackingActive && (status === 'unterwegs' || status === 'angekommen') && Boolean(lastPosition);
+    trackingActive &&
+    (status === 'unterwegs' || status === 'angekommen' || status === 'gestartet') &&
+    Boolean(lastPosition);
 
   return {
     ...inMemory,

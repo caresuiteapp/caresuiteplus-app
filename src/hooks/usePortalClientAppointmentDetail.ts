@@ -1,14 +1,29 @@
-import { useCallback } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import {
   fetchPortalClientAppointmentDetail,
   requestPortalAppointmentChange,
 } from '@/lib/portal';
 import { usePortalActor } from '@/hooks/usePortalActor';
+import { subscribeToPortalAssistChanges } from '@/lib/realtime';
 import { useAsyncQuery, useMutation } from './core';
 
 export function usePortalClientAppointmentDetail(appointmentId: string | undefined) {
   const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
   const profileId = actorId ?? '';
+  const [tick, setTick] = useState(0);
+
+  useEffect(() => {
+    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    return () => clearInterval(id);
+  }, []);
+
+  useEffect(() => {
+    if (!tenantId || !clientId) return;
+    const unsubscribe = subscribeToPortalAssistChanges(tenantId, clientId, () => {
+      setTick((t) => t + 1);
+    });
+    return unsubscribe;
+  }, [tenantId, clientId]);
 
   const query = useAsyncQuery(
     () =>
@@ -16,7 +31,7 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
         tenantId,
         clientId,
       }),
-    [appointmentId, profileId, roleKey, tenantId, clientId],
+    [appointmentId, profileId, roleKey, tenantId, clientId, tick],
     { enabled: !!appointmentId && isReady },
   );
 

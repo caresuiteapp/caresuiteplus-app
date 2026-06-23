@@ -183,6 +183,28 @@ export function subscribeToAssistOperationsChanges(
   );
 }
 
+/** Assist Live-Status — Standort-Sessions und Einsätze. */
+export function subscribeToAssistLiveTrackingChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  const filter = tenantFilter(tenantId);
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `assist-live-tracking:${tenantId}`,
+      channelName: `assist:live-tracking:${tenantId}`,
+      demoPollMs: 15_000,
+      specs: [
+        { table: 'assignments', filter },
+        { table: 'assist_tracking_sessions', filter },
+        { table: 'assist_location_points', filter },
+        { table: 'assist_time_events', filter },
+      ],
+    },
+    handler,
+  );
+}
+
 /** Zeiterfassung — Personalbüro und Mitarbeiterportal. */
 export function subscribeToTimeTrackingChanges(
   tenantId: string,

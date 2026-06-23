@@ -1,3 +1,4 @@
+import { isAssistMapProviderConfigured as isMapProviderReady } from '@/lib/assist/assistMapProvider';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/config';
 
@@ -6,9 +7,9 @@ export function isAssistTrackingPersistenceActive(): boolean {
   return getServiceMode() === 'supabase' && isSupabaseConfigured() && !isDemoMode();
 }
 
-/** External map provider (Google/Mapbox etc.) — optional; text positions work without it. */
+/** Kartenansicht verfügbar (OpenStreetMap standardmäßig, optional Mapbox per Env). */
 export function isAssistMapProviderConfigured(): boolean {
-  return false;
+  return isMapProviderReady();
 }
 
 export function isGpsTrackingLiveReady(): boolean {
@@ -16,13 +17,13 @@ export function isGpsTrackingLiveReady(): boolean {
 }
 
 export const GPS_TRACKING_PREPARED_MESSAGE =
-  'Einsätze, Nachweise und Standortdaten werden dauerhaft gespeichert. Für eine Kartenansicht kann optional ein Kartenanbieter hinterlegt werden.';
+  'Einsätze, Nachweise und Standortdaten werden dauerhaft gespeichert. Die Kartenansicht nutzt OpenStreetMap — optional kann ein erweiterter Kartenmodus per Umgebungsvariable aktiviert werden.';
 
 export const GPS_TRACKING_DEMO_MESSAGE =
   'Live-Tracking ist im Demo-Modus eingeschränkt. Tracking startet im Mitarbeiterportal nach Mandanten-Freigabe.';
 
 export const GPS_TRACKING_MAP_PROVIDER_MESSAGE =
-  'Kein Kartenanbieter konfiguriert — Standorte werden als Textliste angezeigt.';
+  'Kartenansicht nicht verfügbar — Standorte werden als Liste angezeigt.';
 
 export const GPS_TRACKING_BACKEND_EMPTY_MESSAGE =
   'Noch keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.';

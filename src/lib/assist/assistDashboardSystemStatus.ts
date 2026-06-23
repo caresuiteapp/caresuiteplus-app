@@ -1,3 +1,5 @@
+import { isAssistMapProviderConfigured } from '@/lib/assist/gpsTrackingConfig';
+
 export type AssistDashboardSystemStatusItem = {
   id: string;
   title: string;
@@ -6,6 +8,8 @@ export type AssistDashboardSystemStatusItem = {
 
 /** Compact system hints for Assist dashboard — not dominant setup banners. */
 export function buildAssistDashboardSystemStatus(): AssistDashboardSystemStatusItem[] {
+  const mapReady = isAssistMapProviderConfigured();
+
   return [
     {
       id: 'storage',
@@ -14,8 +18,10 @@ export function buildAssistDashboardSystemStatus(): AssistDashboardSystemStatusI
     },
     {
       id: 'map-optional',
-      title: 'Kartenansicht optional',
-      detail: 'Ohne Kartenanbieter wird der Live-Status als Liste angezeigt.',
+      title: mapReady ? 'Kartenansicht aktiv' : 'Kartenansicht optional',
+      detail: mapReady
+        ? 'Live-Standorte werden in der Kartenansicht und als Liste angezeigt.'
+        : 'Ohne Kartenansicht wird der Live-Status als Liste angezeigt.',
     },
     {
       id: 'location-scoped',
