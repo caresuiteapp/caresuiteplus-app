@@ -1,4 +1,4 @@
-import { createElement, useCallback, useEffect, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import {
   PSM_LOOP_MS,
@@ -17,18 +17,6 @@ export type GlobalPersistentSpaceMotionBackgroundProps = StaticLightPaperBackgro
 
 const BODY_BG_STYLE_ID = 'caresuite-psm-body-bg';
 const MAX_DPR = 1.5;
-
-const WEB_HOST_STYLE = {
-  position: 'fixed',
-  top: 0,
-  left: 0,
-  right: 0,
-  bottom: 0,
-  width: '100vw',
-  height: '100vh',
-  overflow: 'hidden',
-  pointerEvents: 'none',
-} as const;
 
 type ShadowPreset = {
   blur: number;
@@ -296,7 +284,19 @@ function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, phase: n
   }
 }
 
-function startCanvasLoop(canvas: HTMLCanvasElement, animate: boolean): () => void {
+function canUseWebCanvas(): boolean {
+  return (
+    Platform.OS === 'web' &&
+    typeof window !== 'undefined' &&
+    typeof document !== 'undefined' &&
+    typeof Path2D !== 'undefined'
+  );
+}
+
+function startCanvasLoop(
+  canvas: HTMLCanvasElement,
+  shouldAnimateFrame: () => boolean,
+): () => void {
   if (typeof Path2D === 'undefined') return () => undefined;
 
   const ctx = canvas.getContext('2d');
@@ -335,7 +335,7 @@ function startCanvasLoop(canvas: HTMLCanvasElement, animate: boolean): () => voi
       frameRef = requestAnimationFrame(tick);
       return;
     }
-    const phase = animate ? getBackgroundPhase() : 0;
+    const phase = shouldAnimateFrame() ? getBackgroundPhase() : 0;
     drawFrame(ctx, w, h, phase);
     frameCount += 1;
     canvas.dataset.loopMs = String(PSM_LOOP_MS);
@@ -358,52 +358,40 @@ function startCanvasLoop(canvas: HTMLCanvasElement, animate: boolean): () => voi
 }
 
 /**
- * Imperative DOM canvas host — reliable on React Native Web (ref timing safe).
+ * Canvas ref host — same pattern as LightLiquidGlassAuroraNebulaBackground (RN Web safe).
  */
-function WebMotionCanvasHost({ animate, testID }: { animate: boolean; testID?: string }) {
-  const cleanupRef = useRef<(() => void) | null>(null);
+function WebMotionCanvas({ animate, testID }: { animate: boolean; testID?: string }) {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const animateRef = useRef(animate);
   animateRef.current = animate;
 
-  const attachHost = useCallback(
-    (host: HTMLDivElement | null) => {
-      cleanupRef.current?.();
-      cleanupRef.current = null;
-      if (!host) return;
-
-      let canvas = host.querySelector('canvas[data-motion-engine="persistent-space-canvas"]');
-      if (!canvas) {
-        canvas = document.createElement('canvas');
-        canvas.setAttribute('data-motion-engine', 'persistent-space-canvas');
-        canvas.setAttribute('data-loop-ms', String(PSM_LOOP_MS));
-        if (testID) canvas.setAttribute('data-testid', testID);
-        canvas.style.position = 'absolute';
-        canvas.style.inset = '0';
-        canvas.style.width = '100%';
-        canvas.style.height = '100%';
-        canvas.style.pointerEvents = 'none';
-        host.appendChild(canvas);
-      }
-
-      cleanupRef.current = startCanvasLoop(canvas as HTMLCanvasElement, animateRef.current);
-    },
-    [testID],
-  );
-
   useEffect(() => {
-    return () => {
-      cleanupRef.current?.();
-      cleanupRef.current = null;
-    };
+    if (Platform.OS !== 'web') return undefined;
+    const canvas = canvasRef.current;
+    if (!canvas) return undefined;
+
+    return startCanvasLoop(canvas, () => animateRef.current);
   }, []);
 
   if (Platform.OS !== 'web') return null;
 
-  return createElement('div', {
-    ref: attachHost,
-    style: WEB_HOST_STYLE,
-    'data-background-engine': 'persistent-space-canvas',
-  });
+  return (
+    <canvas
+      ref={canvasRef}
+      data-motion-engine="persistent-space-canvas"
+      data-background-engine="persistent-space-canvas"
+      data-loop-ms={String(PSM_LOOP_MS)}
+      data-testid={testID}
+      aria-hidden
+      style={{
+        position: 'absolute',
+        inset: 0,
+        width: '100%',
+        height: '100%',
+        pointerEvents: 'none',
+      }}
+    />
+  );
 }
 
 /**
@@ -417,19 +405,33 @@ export function GlobalPersistentSpaceMotionBackground({
 }: GlobalPersistentSpaceMotionBackgroundProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const shouldAnimate = animated && !prefersReducedMotion && Platform.OS === 'web';
-  const [canvasReady, setCanvasReady] = useState(false);
+  const [isClient, setIsClient] = useState(false);
 
   useEffect(() => {
     ensureWebStyles();
   }, []);
 
-  useEffect(() => {
-    if (Platform.OS === 'web' && typeof Path2D !== 'undefined') {
-      setCanvasReady(true);
-    }
+  useLayoutEffect(() => {
+    setIsClient(true);
   }, []);
 
-  if (!shouldAnimate || !canvasReady) {
+  if (!shouldAnimate) {
+    return <StaticLightPaperBackground dimmed={dimmed} testID={testID} />;
+  }
+
+  if (!isClient) {
+    return (
+      <View
+        style={[styles.root, dimmed && styles.dimmed]}
+        pointerEvents="none"
+        testID={testID}
+        accessibilityElementsHidden
+        importantForAccessibility="no-hide-descendants"
+      />
+    );
+  }
+
+  if (!canUseWebCanvas()) {
     return <StaticLightPaperBackground dimmed={dimmed} testID={testID} />;
   }
 
@@ -441,7 +443,7 @@ export function GlobalPersistentSpaceMotionBackground({
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <WebMotionCanvasHost animate testID={`${testID}-canvas`} />
+      <WebMotionCanvas animate testID={`${testID}-canvas`} />
     </View>
   );
 }

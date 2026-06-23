@@ -457,12 +457,19 @@ export function clampOpacity(value: number, min = 0.18, max = 0.55): number {
   return Math.max(min, Math.min(max, value));
 }
 
-/** Seamless motion offset for one 240s loop (matches SVG peak at loop midpoint). */
+/** Two 120s SMIL-style out-and-back cycles per 240s canvas loop (SVG dur="120s"). */
+export const PSM_MOTION_CYCLES = 2;
+
+/** Slight canvas boost so drift is obvious within ~5–10s (SVG SMIL uses spline easing). */
+export const PSM_MOTION_AMP_SCALE = 1.15;
+
+/** Seamless motion offset for one 240s loop (matches SVG 120s animateTransform ×2). */
 export function psmMotionOffset(motion: PsmMotion, phase: number): { dx: number; dy: number } {
   const p = phase + motion.phase;
+  const wave = Math.sin(p * PSM_MOTION_CYCLES);
   return {
-    dx: motion.ampX * Math.sin(p),
-    dy: motion.ampY * Math.sin(p),
+    dx: motion.ampX * PSM_MOTION_AMP_SCALE * wave,
+    dy: motion.ampY * PSM_MOTION_AMP_SCALE * wave,
   };
 }
 

@@ -7,6 +7,7 @@ import {
   PSM_LINE_COUNT,
   PSM_LOOP_MS,
   PSM_MEDIUM_COUNT,
+  PSM_MOTION_CYCLES,
   PSM_NEBULA_COUNT,
   PSM_RING_COUNT,
   PSM_SCENE,
@@ -67,21 +68,32 @@ describe('persistentSpaceMotionScene', () => {
     expect(at0.opacity).toBeCloseTo(atEnd.opacity, 4);
   });
 
-  it('t=30000 und t=120000 erzeugen andere Positionen als t=0', () => {
+  it('t=30000 und t=75000 erzeugen andere Positionen als t=0', () => {
     const circle = PSM_SCENE.largeCircles[0];
     const at0 = psmCircleAtElapsed(circle, W, H, 0);
     const at30 = psmCircleAtElapsed(circle, W, H, 30_000);
-    const at120 = psmCircleAtElapsed(circle, W, H, 120_000);
+    const at75 = psmCircleAtElapsed(circle, W, H, 75_000);
     expect(at30.x).not.toBeCloseTo(at0.x, 1);
-    expect(at120.y).not.toBeCloseTo(at0.y, 1);
+    expect(at75.y).not.toBeCloseTo(at0.y, 1);
   });
 
-  it('3s Drift ist sichtbar groß (≥3px) für große Kreise', () => {
-    const circle = PSM_SCENE.largeCircles[0];
-    const at0 = psmCircleAtElapsed(circle, W, H, 0);
-    const at3 = psmCircleAtElapsed(circle, W, H, 3_000);
-    const drift = Math.hypot(at3.x - at0.x, at3.y - at0.y);
-    expect(drift).toBeGreaterThan(3);
+  it('5s Drift ist auf mindestens einer Ecke sichtbar groß (≥12px)', () => {
+    let maxDrift = 0;
+    for (const disc of PSM_SCENE.cornerDiscs) {
+      const circle = PSM_SCENE.largeCircles.find((entry) => entry.id === disc.id);
+      if (!circle) continue;
+      const at0 = psmCircleAtElapsed(circle, W, H, 0);
+      const at5 = psmCircleAtElapsed(circle, W, H, 5_000);
+      maxDrift = Math.max(maxDrift, Math.hypot(at5.x - at0.x, at5.y - at0.y));
+    }
+    expect(maxDrift).toBeGreaterThan(12);
+  });
+
+  it('nutzt zwei Bewegungszyklen pro 240s Loop', () => {
+    expect(PSM_MOTION_CYCLES).toBe(2);
+    const motion = PSM_SCENE.cornerDiscs[0];
+    const midCycle = psmMotionOffset(motion, Math.PI / PSM_MOTION_CYCLES);
+    expect(Math.abs(midCycle.dx)).toBeGreaterThan(motion.ampX * 0.9);
   });
 
   it('Bänder und Kurven haben eigene Bewegungsamplituden', () => {
@@ -151,12 +163,16 @@ describe('GlobalPersistentSpaceMotionBackground component', () => {
     expect(source).toContain('persistent-space-canvas');
     expect(source).toContain('PSM_LOOP_MS');
     expect(source).toContain('data-loop-ms');
+    expect(source).toContain('dataset.frameCount');
     expect(source).toContain('psmMotionOffset');
     expect(source).toContain('Path2D');
     expect(source).toContain('cornerDiscs');
     expect(source).toContain('buttonDots');
     expect(source).toContain('usePrefersReducedMotion');
     expect(source).toContain('StaticLightPaperBackground');
+    expect(source).toContain('useLayoutEffect');
+    expect(source).toContain('canUseWebCanvas');
+    expect(source).not.toContain('canvasReady');
     expect(source).not.toContain('drawNebulaLayer');
   });
 });
