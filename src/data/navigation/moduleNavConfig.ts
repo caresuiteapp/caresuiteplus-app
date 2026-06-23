@@ -7,37 +7,37 @@ export const MODULE_NAV_CONFIG: Record<
 > = {
   office: {
     icon: '🏢',
-    description: 'Verwaltung, Klient:innen, Rechnungen',
+    description: 'Verwaltung, Klient:innen, Mitarbeitende, Dokumente und Organisation',
     accentColor: '#FF9500',
     path: '/office',
   },
   assist: {
     icon: '🤝',
-    description: 'Alltagsbegleitung und Einsätze',
+    description: 'Alltagsbegleitung, Einsatzplanung, Durchführung und Leistungsnachweise',
     accentColor: '#FFB020',
     path: '/assist',
   },
   pflege: {
     icon: '💊',
-    description: 'Pflegeplanung und Vitalwerte',
+    description: 'Ambulante Pflegeprozesse, Dokumentation und Leistungsplanung',
     accentColor: '#22C55E',
     path: '/pflege',
   },
   stationaer: {
     icon: '🏥',
-    description: 'Bewohner:innen und Übergaben',
+    description: 'Bewohnerverwaltung, stationäre Abläufe und Dokumentation',
     accentColor: '#7C5CFF',
     path: '/stationaer',
   },
   beratung: {
     icon: '💬',
-    description: 'Beratungsfälle und Protokolle',
+    description: 'Pflegeberatung, Beratungsdokumentation und Fallmanagement',
     accentColor: '#62F3FF',
     path: '/beratung',
   },
   akademie: {
     icon: '🎓',
-    description: 'Kurse und Zertifikate',
+    description: 'Schulungen, Kurse und Wissensverwaltung',
     accentColor: '#FFD166',
     path: '/akademie',
   },

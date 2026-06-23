@@ -47,6 +47,22 @@ export const APP_ROUTES: AppRoute[] = [
     children: ['/business/modules'],
   },
   {
+    path: '/business/modules',
+    label: 'Module & Lizenzen',
+    group: 'business',
+    requiresAuth: true,
+    allowedRoles: [
+      'business_admin',
+      'business_manager',
+      'billing',
+      'dispatch',
+      'nurse',
+      'caregiver',
+      'counselor',
+      'akademie_admin',
+    ],
+  },
+  {
     path: '/business/messages',
     label: 'Kommunikationszentrum',
     group: 'business',

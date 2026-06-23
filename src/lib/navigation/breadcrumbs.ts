@@ -35,7 +35,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   kalender: 'Kalender',
   messages: 'Nachrichten',
   communication: 'Kommunikation',
-  modules: 'Module verwalten',
+  modules: 'Module & Lizenzen',
 };
 
 function normalizePathname(pathname: string): string {
@@ -67,6 +67,14 @@ function labelForSegment(segment: string, cumulativePath: string): string {
  */
 export function getBreadcrumbs(pathname: string): BreadcrumbTrail {
   const normalized = normalizePathname(pathname);
+
+  if (normalized === '/business/modules') {
+    return [
+      { path: '/', label: 'Start' },
+      { path: '/office', label: 'Office' },
+      { path: '/business/modules', label: 'Module & Lizenzen', isCurrent: true },
+    ];
+  }
 
   if (normalized === '/') {
     return [{ path: '/', label: 'Start', isCurrent: true }];

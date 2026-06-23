@@ -1,6 +1,9 @@
 /** Canonical Office client intake & record routes (Client Intake Rebuild). */
 export const CLIENT_INTAKE_NEW_ROUTE = '/business/office/clients/new' as const;
 
+/** @deprecated Legacy alias — prefer CLIENT_INTAKE_NEW_ROUTE. */
+export const INTAKE_NEW_ROUTE = CLIENT_INTAKE_NEW_ROUTE;
+
 export function clientRecordRoute(clientId: string): `/business/office/clients/${string}` {
   return `/business/office/clients/${clientId}`;
 }

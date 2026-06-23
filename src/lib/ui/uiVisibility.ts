@@ -64,7 +64,10 @@ export const FORBIDDEN_UI_TERMS = [
   'user_id',
   'role key',
   'module key',
-  '__DEV__',
+  'Free Platform',
+  'free platform',
+  'INTAKE_NEW_ROUTE',
+  'CLIENT_INTAKE_NEW_ROUTE',
 ] as const;
 
 const FRIENDLY_LABELS: Record<string, string> = {
@@ -116,6 +119,8 @@ const LABEL_REPLACEMENTS: [RegExp, string][] = [
   [/supabase/gi, 'Cloud'],
   [/\brls\b/gi, 'Mandantentrennung'],
   [/preparedonly/gi, UI_PREPARED_LABEL],
+  [/intake_new_route[^\s]*/gi, ''],
+  [/\b[a-z_]+_route\b is not (defined|a valid|supported)[^\n.]*/gi, 'Die Aktion konnte nicht ausgeführt werden.'],
   [/prototyp/gi, 'Vorschau'],
   [/__dev__/gi, 'Entwicklung'],
 ];
@@ -282,6 +287,25 @@ export function sanitizeUiText(text: string, options?: SanitizeOptions): string 
 export function containsForbiddenUiTerm(text: string): boolean {
   const lower = sanitizeUiText(text).toLowerCase();
   return FORBIDDEN_UI_TERMS.some((term) => lower.includes(term.toLowerCase()));
+}
+
+/** Maps technical/dev errors to tenant-safe German messages. */
+export function sanitizeUserFacingError(error: string | null | undefined): string {
+  if (!error?.trim()) {
+    return 'Die Aktion konnte nicht ausgeführt werden.';
+  }
+
+  const sanitized = sanitizeUiText(error).trim();
+  if (
+    !sanitized ||
+    containsForbiddenUiTerm(error) ||
+    /is not (defined|a valid|supported)/i.test(error) ||
+    /intake_new_route/i.test(error)
+  ) {
+    return 'Die Aktion konnte nicht ausgeführt werden. Bitte versuchen Sie es erneut.';
+  }
+
+  return sanitized;
 }
 
 /** Mobile: show at most root + parent + current crumb to reduce path noise. */

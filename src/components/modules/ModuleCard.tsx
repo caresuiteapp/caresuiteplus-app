@@ -1,52 +1,24 @@
 import { useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
 import { MODULE_NAV_CONFIG } from '@/data/navigation/moduleNavConfig';
 import { PRODUCT_LABELS } from '@/data/constants/productLabels';
-import { isFreePlatformEnabled } from '@/lib/billing/freePlatformService';
 import { OFFICE_MODULE_KEY } from '@/lib/modules/constants';
+import {
+  buildModuleInfoBody,
+  buildModuleStatusChips,
+  MODULE_CARD_DESCRIPTIONS,
+  resolveModuleActivityStatus,
+} from '@/lib/modules/moduleManagementLabels';
 import { setTenantModuleEnabled } from '@/lib/tenant/tenantModuleToggleService';
 import { isTenantCenterProductKey } from '@/lib/tenant/tenantModuleSettingsCache';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { confirmAction } from '@/lib/platform/confirmAction';
+import { sanitizeUserFacingError } from '@/lib/ui/uiVisibility';
 import type { EffectiveModuleAccess, RoleKey } from '@/types';
 import { colors, spacing, typography } from '@/theme';
-
-type StatusBadge = {
-  label: string;
-  variant: 'green' | 'cyan' | 'orange' | 'muted' | 'red';
-};
-
-function getStatusBadges(module: EffectiveModuleAccess): StatusBadge[] {
-  const badges: StatusBadge[] = [];
-
-  if (module.billingStatus === 'admin_disabled') {
-    badges.push({ label: 'Admin deaktiviert', variant: 'red' });
-    return badges;
-  }
-
-  if (module.isEffective) {
-    badges.push({ label: 'Freigeschaltet', variant: 'green' });
-  } else {
-    badges.push({ label: 'Verfügbar', variant: 'muted' });
-  }
-
-  if (module.productKey === OFFICE_MODULE_KEY) {
-    badges.push({ label: 'Basis-Modul', variant: 'orange' });
-  }
-
-  if (module.accessSource === 'free_active' || module.billingStatus === 'free_active') {
-    badges.push({ label: 'Kostenlos aktiv', variant: 'cyan' });
-  } else if (module.accessSource === 'free_available' || module.billingStatus === 'free_available') {
-    badges.push({ label: 'Kostenlos verfügbar', variant: 'muted' });
-  } else if (module.accessSource === 'included_base') {
-    badges.push({ label: 'Inklusive', variant: 'muted' });
-  } else if (module.billingStatus === 'premium_prepared') {
-    badges.push({ label: 'Premium vorbereitet', variant: 'orange' });
-  }
-
-  return badges;
-}
 
 type ModuleCardProps = {
   module: EffectiveModuleAccess;
@@ -69,15 +41,20 @@ export function ModuleCard({
   const tenantId = tenantIdProp ?? serviceTenantId;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [infoOpen, setInfoOpen] = useState(false);
   const config = MODULE_NAV_CONFIG[module.productKey];
-  const badges = getStatusBadges(module);
-  const freePlatform = isFreePlatformEnabled();
+  const chips = buildModuleStatusChips(module);
+  const activity = resolveModuleActivityStatus(module);
   const isAdminDisabled = module.billingStatus === 'admin_disabled';
+  const isPrepared = activity === 'In Vorbereitung';
   const isOfficeBase = module.productKey === OFFICE_MODULE_KEY;
   const canToggle =
     !isAdminDisabled &&
     !isOfficeBase &&
+    !isPrepared &&
     (isTenantCenterProductKey(module.productKey) || module.productKey === 'akademie');
+
+  const description = MODULE_CARD_DESCRIPTIONS[module.productKey] ?? config.description;
 
   const notifyChange = () => {
     onChanged?.();
@@ -85,11 +62,28 @@ export function ModuleCard({
   };
 
   const handleOpen = () => {
+    if (!module.isEffective || isPrepared) return;
     router.push(config.path as never);
+  };
+
+  const handleSettings = () => {
+    router.push('/business/office/access/module-permissions' as never);
   };
 
   const handleToggle = async (enabled: boolean) => {
     if (!tenantId?.trim() || !canToggle || busy) return;
+
+    const moduleName = PRODUCT_LABELS[module.productKey];
+    const confirmed = await confirmAction({
+      title: enabled ? 'Modul aktivieren?' : 'Modul deaktivieren?',
+      message: enabled
+        ? `${moduleName} wird für diesen Mandanten freigeschaltet. Navigation und Portale werden entsprechend aktualisiert.`
+        : `${moduleName} wird deaktiviert. Das Modul verschwindet aus der Navigation. Laufende Daten bleiben erhalten, Portalfunktionen werden deaktiviert.`,
+      confirmLabel: enabled ? 'Kostenlos aktivieren' : 'Deaktivieren',
+    });
+
+    if (!confirmed) return;
+
     setBusy(true);
     setError(null);
     const result = await setTenantModuleEnabled(tenantId, module.productKey, enabled, roleKey);
@@ -98,72 +92,114 @@ export function ModuleCard({
       notifyChange();
       return;
     }
-    setError(result.error ?? 'Änderung fehlgeschlagen.');
+    setError(sanitizeUserFacingError(result.error));
   };
 
   return (
-    <PremiumCard accentColor={module.isEffective ? config.accentColor : colors.textMuted}>
-      <View style={styles.header}>
-        <View style={styles.titleRow}>
-          <Text style={styles.icon}>{config.icon}</Text>
-          <View style={styles.titleCol}>
-            <Text style={styles.title}>{PRODUCT_LABELS[module.productKey]}</Text>
-            <Text style={styles.subtitle}>{config.description}</Text>
+    <>
+      <PremiumCard accentColor={module.isEffective ? config.accentColor : colors.textMuted}>
+        <View style={styles.header}>
+          <View style={styles.titleRow}>
+            <Text style={styles.icon}>{config.icon}</Text>
+            <View style={styles.titleCol}>
+              <Text style={styles.title}>{PRODUCT_LABELS[module.productKey]}</Text>
+              <Text style={styles.subtitle}>{description}</Text>
+            </View>
           </View>
         </View>
-        <Text style={styles.price}>
-          {freePlatform ? 'Kostenlos' : module.accessSource === 'included_base' ? 'Inklusive (Basisverwaltung)' : '—'}
-        </Text>
-      </View>
-      <View style={styles.row}>
-        <PremiumBadge
-          label={module.isEffective ? 'Aktiv' : isAdminDisabled ? 'Deaktiviert' : 'Inaktiv'}
-          variant={module.isEffective ? 'green' : isAdminDisabled ? 'red' : 'muted'}
-          dot
-        />
-        {badges.map((badge) => (
-          <PremiumBadge key={badge.label} label={badge.label} variant={badge.variant} />
-        ))}
-      </View>
-      {module.accessSource === 'included_base' && module.includedByModuleKey ? (
-        <Text style={styles.hint}>
-          Enthalten über {PRODUCT_LABELS[module.includedByModuleKey]}
-        </Text>
-      ) : null}
-      {isOfficeBase ? (
-        <Text style={styles.hint}>
-          Office erscheint in Navigation und Dashboard, sobald mindestens ein Fachmodul aktiv ist.
-        </Text>
-      ) : null}
-      {error ? <Text style={styles.error}>{error}</Text> : null}
-      <View style={styles.actions}>
-        {canToggle ? (
-          module.isEffective ? (
+
+        <View style={styles.row}>
+          {chips.map((chip) => (
+            <PremiumBadge key={chip.label} label={chip.label} variant={chip.variant} />
+          ))}
+        </View>
+
+        {isOfficeBase ? (
+          <Text style={styles.hint}>Office ist das Basismodul der Plattform und immer aktiv.</Text>
+        ) : null}
+
+        {error ? <Text style={styles.error}>{error}</Text> : null}
+
+        <View style={styles.actions}>
+          {isPrepared ? (
+            <>
+              <PremiumButton title="In Vorbereitung" size="sm" fullWidth disabled />
+              <PremiumButton
+                title="Mehr erfahren"
+                variant="secondary"
+                size="sm"
+                fullWidth
+                onPress={() => setInfoOpen(true)}
+              />
+            </>
+          ) : module.isEffective ? (
+            <>
+              <PremiumButton title="Modul öffnen" size="sm" fullWidth onPress={handleOpen} />
+              <View style={styles.secondaryRow}>
+                <PremiumButton
+                  title="Einstellungen"
+                  variant="secondary"
+                  size="sm"
+                  style={styles.secondaryBtn}
+                  onPress={handleSettings}
+                />
+                {canToggle ? (
+                  <PremiumButton
+                    title="Deaktivieren"
+                    variant="ghost"
+                    size="sm"
+                    style={styles.secondaryBtn}
+                    loading={busy}
+                    onPress={() => void handleToggle(false)}
+                  />
+                ) : null}
+              </View>
+            </>
+          ) : canToggle ? (
+            <>
+              <PremiumButton
+                title="Kostenlos aktivieren"
+                size="sm"
+                fullWidth
+                loading={busy}
+                onPress={() => void handleToggle(true)}
+              />
+              <PremiumButton
+                title="Mehr Informationen"
+                variant="secondary"
+                size="sm"
+                fullWidth
+                onPress={() => setInfoOpen(true)}
+              />
+            </>
+          ) : isAdminDisabled ? (
+            <PremiumButton title="Durch Admin gesperrt" variant="secondary" size="sm" fullWidth disabled />
+          ) : (
             <PremiumButton
-              title="Deaktivieren"
+              title="Mehr Informationen"
               variant="secondary"
               size="sm"
               fullWidth
-              loading={busy}
-              onPress={() => void handleToggle(false)}
+              onPress={() => setInfoOpen(true)}
             />
-          ) : (
-            <PremiumButton
-              title="Aktivieren"
-              size="sm"
-              fullWidth
-              loading={busy}
-              onPress={() => void handleToggle(true)}
-            />
-          )
-        ) : isAdminDisabled ? (
-          <PremiumButton title="Durch Admin deaktiviert" variant="secondary" size="sm" fullWidth disabled />
-        ) : null}
-        {module.isEffective ? (
-          <PremiumButton title="Modul öffnen" size="sm" fullWidth onPress={handleOpen} />
-        ) : null}
-      </View>
-    </PremiumCard>
+          )}
+        </View>
+      </PremiumCard>
+
+      <AppGlassModal
+        visible={infoOpen}
+        onClose={() => setInfoOpen(false)}
+        title={PRODUCT_LABELS[module.productKey]}
+        subtitle="Modulinformation"
+      >
+        <Text style={styles.modalBody}>{buildModuleInfoBody(module.productKey)}</Text>
+        <View style={styles.modalChips}>
+          {chips.map((chip) => (
+            <PremiumBadge key={`info-${chip.label}`} label={chip.label} variant={chip.variant} />
+          ))}
+        </View>
+      </AppGlassModal>
+    </>
   );
 }
 
@@ -174,9 +210,12 @@ const styles = StyleSheet.create({
   titleCol: { flex: 1 },
   title: { ...typography.bodyStrong, color: colors.textPrimary },
   subtitle: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-  price: { ...typography.caption, color: colors.cyan, marginTop: spacing.xs },
   row: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.sm },
   hint: { ...typography.caption, color: colors.textSecondary, marginBottom: spacing.sm },
   error: { ...typography.caption, color: colors.error, marginBottom: spacing.sm },
   actions: { gap: spacing.sm },
+  secondaryRow: { flexDirection: 'row', gap: spacing.sm },
+  secondaryBtn: { flex: 1 },
+  modalBody: { ...typography.body, color: colors.textPrimary, marginBottom: spacing.md },
+  modalChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
 });

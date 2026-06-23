@@ -4,29 +4,23 @@ import * as path from 'node:path';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { buildModuleHubKpis } from '@/lib/modules/moduleHubStats';
 import {
-  calculateBillingItems,
   getEffectiveModuleAccess,
   initializeModuleAccessStore,
   resetModuleAccessStore,
-} from '@/lib/modules';
+} from '@/lib/modules/moduleAccessService';
+import { calculateBillingItems } from '@/lib/modules/moduleEntitlementService';
 
 function readSrc(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
 describe('Business Module Hub Hero (Sprint 63)', () => {
-  it('BusinessModuleHubHero nutzt PremiumListHeroFrame mit Modul-KPIs', () => {
+  it('BusinessModuleHubHero nutzt kompakte KPI-Section', () => {
     const hero = readSrc('src/components/modules/BusinessModuleHubHero.tsx');
-    expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('kostenlos aktivieren');
+    expect(hero).toContain('SectionPanel');
     expect(hero).toContain('buildModuleHubKpis');
     expect(hero).toContain('PremiumKpiCard');
-  });
-
-  it('BusinessModuleHubHero zeigt Free Platform Badge', () => {
-    const hero = readSrc('src/components/modules/BusinessModuleHubHero.tsx');
-    expect(hero).toContain('FREE PLATFORM');
-    expect(hero).toContain('0 €');
+    expect(hero).not.toContain('FREE PLATFORM');
   });
 
   it('ModuleOverviewScreen nutzt Hero, ModuleCard und PremiumPreparedNotice', () => {
@@ -34,12 +28,13 @@ describe('Business Module Hub Hero (Sprint 63)', () => {
     expect(screen).toContain('BusinessModuleHubHero');
     expect(screen).toContain('ModuleCard');
     expect(screen).toContain('PremiumPreparedNotice');
+    expect(screen).toContain('Module & Lizenzen');
     expect(screen).toContain('/business/office/access/module-permissions');
   });
 
   it('ModuleCard zeigt Aktivieren / Deaktivieren und Modul öffnen', () => {
     const card = readSrc('src/components/modules/ModuleCard.tsx');
-    expect(card).toContain('Aktivieren');
+    expect(card).toContain('Kostenlos aktivieren');
     expect(card).toContain('Deaktivieren');
     expect(card).toContain('Modul öffnen');
     expect(card).toContain('setTenantModuleEnabled');
@@ -54,7 +49,7 @@ describe('Business Module Hub Hero (Sprint 63)', () => {
     const kpis = buildModuleHubKpis(modules, billing);
     expect(kpis.length).toBe(4);
     expect(kpis.some((k) => k.id === 'active')).toBe(true);
-    expect(kpis.some((k) => k.id === 'free')).toBe(true);
+    expect(kpis.some((k) => k.id === 'extensions')).toBe(true);
   });
 
   it('UserModulePermissionsScreen zeigt ehrliche Demo-Vorschau', () => {

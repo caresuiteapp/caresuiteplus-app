@@ -1,7 +1,8 @@
 import type { EffectiveModuleAccess } from '@/types';
+import { PREMIUM_PREPARED_CONNECTORS } from '@/lib/billing/freePlatformService';
+import { careSuiteColors, type ColorMode } from '@/design/tokens/colors';
 import { OFFICE_MODULE_KEY } from './constants';
 import type { BillingPreview } from './moduleEntitlementService';
-import { legacyColorsFromPalette, type ColorMode } from '@/design/tokens/themeBridge';
 
 export type ModuleHubKpi = {
   id: string;
@@ -12,48 +13,63 @@ export type ModuleHubKpi = {
   accentColor?: string;
 };
 
-export function buildModuleHubKpis(modules: EffectiveModuleAccess[],
-  billing: BillingPreview, mode: ColorMode = 'dark'): ModuleHubKpi[]  {
-  const colors = legacyColorsFromPalette(mode);
+function palette(mode: ColorMode = 'dark') {
+  const colors = careSuiteColors[mode];
+  return {
+    success: colors.status.success,
+    cyan: colors.brand.cyan,
+    orange: colors.brand.orange,
+    violet: colors.brand.violet,
+    textMuted: colors.text.muted,
+  };
+}
+
+export function buildModuleHubKpis(
+  modules: EffectiveModuleAccess[],
+  _billing: BillingPreview,
+  mode: ColorMode = 'dark',
+): ModuleHubKpi[] {
+  const colors = palette(mode);
   const activeCount = modules.filter((module) => module.isEffective).length;
-  const inactiveCount = modules.length - activeCount;
-  const specialtyActive = modules.filter(
-    (module) => module.isEffective && module.productKey !== OFFICE_MODULE_KEY,
+  const availableCount = modules.filter(
+    (module) => !module.isEffective && module.billingStatus !== 'admin_disabled',
   ).length;
-  const freeActive = modules.filter(
-    (module) => module.billingStatus === 'free_active' || module.accessSource === 'free_active',
+  const baseCount = modules.filter(
+    (module) => module.productKey === OFFICE_MODULE_KEY || module.accessSource === 'included_base',
   ).length;
+  const extensionCount = PREMIUM_PREPARED_CONNECTORS.length;
 
   return [
     {
       id: 'active',
-      label: 'Aktiv',
+      label: 'Aktive Module',
       value: String(activeCount),
-      subValue: `von ${modules.length}`,
+      subValue: 'für diesen Mandanten freigeschaltet',
       icon: '✅',
       accentColor: colors.success,
     },
     {
-      id: 'inactive',
-      label: 'Verfügbar',
-      value: String(inactiveCount),
+      id: 'available',
+      label: 'Verfügbare Module',
+      value: String(availableCount),
+      subValue: 'können aktiviert werden',
       icon: '⏸️',
-      accentColor: inactiveCount > 0 ? colors.orange : colors.textMuted,
+      accentColor: availableCount > 0 ? colors.cyan : colors.textMuted,
     },
     {
-      id: 'specialty',
-      label: 'Fachmodule',
-      value: String(specialtyActive),
-      subValue: 'kostenlos',
-      icon: '🧩',
-      accentColor: colors.cyan,
+      id: 'base',
+      label: 'Enthaltene Basismodule',
+      value: String(Math.max(baseCount, 1)),
+      subValue: 'ohne zusätzliche Kosten',
+      icon: '🏢',
+      accentColor: colors.orange,
     },
     {
-      id: 'free',
-      label: 'Kostenlos',
-      value: String(freeActive),
-      subValue: '0 € / Monat',
-      icon: '🆓',
+      id: 'extensions',
+      label: 'Erweiterungen',
+      value: String(extensionCount),
+      subValue: 'noch nicht aktiv',
+      icon: '🔌',
       accentColor: colors.violet,
     },
   ];
