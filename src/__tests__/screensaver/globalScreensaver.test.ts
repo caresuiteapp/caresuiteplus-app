@@ -213,6 +213,9 @@ describe('Settings UI', () => {
     );
     expect(tenant).toContain('APPEARANCE_SETTINGS_ROUTE');
     expect(tenant).toContain('Darstellung & Oberfläche');
+    expect(tenant).toContain('Persönliche Einstellungen');
+    expect(tenant).toContain("key: 'appearance'");
+    expect(tenant).not.toContain('scroll={false}');
     const profileMenu = readFileSync(
       path.join(__dirname, '..', '..', 'components', 'layout', 'platform', 'PlatformProfileMenu.tsx'),
       'utf8',

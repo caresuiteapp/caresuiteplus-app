@@ -3,7 +3,6 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 
 import {
-  ScrollView,
   StyleSheet,
   Text,
   useWindowDimensions,
@@ -44,16 +43,27 @@ import { ensureTenantCatalogSeeded } from '@/lib/tenant/tenantCenterService';
 
 import { APPEARANCE_SETTINGS_ROUTE } from '@/lib/screensaver/appearanceSettingsRoute';
 
+import { TIME_TRACKING_SETTINGS_ROUTE } from '@/lib/timeTracking';
+
 import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
 
 import type { TenantCenterSectionKey, TenantCenterSectionMeta } from '@/types/tenant/tenantCenter';
 
 const APPEARANCE_SETTINGS_SECTION: TenantCenterSectionMeta = {
-  key: 'branding',
+  key: 'appearance',
   title: 'Darstellung & Oberfläche',
   description: 'Bildschirmschoner, Timeout und Anzeigemodus für Desktop und Tablet.',
   completeness: 'complete',
   summary: 'Persönliche Oberflächeneinstellungen',
+  editable: true,
+};
+
+const HOMEOFFICE_SETTINGS_SECTION: TenantCenterSectionMeta = {
+  key: 'homeofficeSettings',
+  title: 'Homeoffice & Arbeitszeit',
+  description: 'Tätigkeitsnachweis, Kataloge und Inaktivitätseinstellungen.',
+  completeness: 'complete',
+  summary: 'Arbeitszeit-Konfiguration für Ihren Mandanten',
   editable: true,
 };
 
@@ -137,9 +147,24 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
   );
 
+  const personalSections: TenantCenterSectionMeta[] = [APPEARANCE_SETTINGS_SECTION];
+  if (can('time.settings.manage')) {
+    personalSections.push(HOMEOFFICE_SETTINGS_SECTION);
+  }
+
 
 
   const router = useRouter();
+
+  const handlePersonalEdit = (key: TenantCenterSectionKey) => {
+    if (key === 'appearance') {
+      router.push(APPEARANCE_SETTINGS_ROUTE as never);
+      return;
+    }
+    if (key === 'homeofficeSettings') {
+      router.push(TIME_TRACKING_SETTINGS_ROUTE as never);
+    }
+  };
 
   const handleEdit = (key: TenantCenterSectionKey) => {
 
@@ -266,64 +291,21 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
       title="Mandanten-Center"
       subtitle={`${snapshot.company.name || 'Organisation'} · ${roleLabel ?? ''}`}
       showBack
-      scroll={false}
     >
-      <ScrollView
-        style={styles.scrollView}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        <View style={[styles.contentColumn, { maxWidth: TENANT_CENTER_CONTENT_MAX_WIDTH }]}>
-          <Text style={[styles.lead, { color: text.secondary }]}>
-            Zentrale Verwaltung Ihrer Mandanten-Stammdaten, Leistungskatalog und individuellen Felder — alles mandantenspezifisch aus Ihrem Konto.
-          </Text>
+      <View style={[styles.contentColumn, { maxWidth: TENANT_CENTER_CONTENT_MAX_WIDTH }]}>
+        <Text style={[styles.lead, { color: text.secondary }]}>
+          Zentrale Verwaltung Ihrer Mandanten-Stammdaten, Leistungskatalog und individuellen Felder — alles mandantenspezifisch aus Ihrem Konto.
+        </Text>
 
-          {saved ? <SuccessState message="Mandantendaten gespeichert." /> : null}
+        {saved ? <SuccessState message="Mandantendaten gespeichert." /> : null}
 
-          <View style={[styles.grid, { gap: gridGap }]}>
-            {primarySections.map((section) => (
-              <View
-                key={section.key}
-                style={[
-                  styles.gridItem,
-                  {
-                    width: itemWidth,
-                    maxWidth: itemWidth,
-                    minWidth: columns >= 4 ? 240 : columns === 2 ? 240 : undefined,
-                  },
-                ]}
-              >
-                <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
-              </View>
-            ))}
-          </View>
-
-          {stubSections.length ? (
-            <>
-              <Text style={[styles.sectionHeading, { color: text.muted }]}>Weitere Bereiche</Text>
-              <View style={[styles.grid, { gap: gridGap }]}>
-                {stubSections.map((section) => (
-                  <View
-                    key={section.key}
-                    style={[
-                      styles.gridItem,
-                      {
-                        width: itemWidth,
-                        maxWidth: itemWidth,
-                        minWidth: columns >= 4 ? 240 : columns === 2 ? 240 : undefined,
-                      },
-                    ]}
-                  >
-                    <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
-                  </View>
-                ))}
-              </View>
-            </>
-          ) : null}
-
-          <Text style={[styles.sectionHeading, { color: text.muted }]}>Persönliche Einstellungen</Text>
-          <View style={[styles.grid, { gap: gridGap }]}>
+        <Text style={[styles.sectionHeading, styles.sectionHeadingFirst, { color: text.muted }]}>
+          Persönliche Einstellungen
+        </Text>
+        <View style={[styles.grid, { gap: gridGap }]}>
+          {personalSections.map((section) => (
             <View
+              key={section.key}
               style={[
                 styles.gridItem,
                 {
@@ -334,13 +316,55 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
               ]}
             >
               <TenantCenterSectionCard
-                section={APPEARANCE_SETTINGS_SECTION}
-                onEdit={() => router.push(APPEARANCE_SETTINGS_ROUTE as never)}
+                section={section}
+                onEdit={() => handlePersonalEdit(section.key)}
               />
             </View>
-          </View>
+          ))}
         </View>
-      </ScrollView>
+
+        <Text style={[styles.sectionHeading, { color: text.muted }]}>Mandanten-Stammdaten</Text>
+        <View style={[styles.grid, { gap: gridGap }]}>
+          {primarySections.map((section) => (
+            <View
+              key={section.key}
+              style={[
+                styles.gridItem,
+                {
+                  width: itemWidth,
+                  maxWidth: itemWidth,
+                  minWidth: columns >= 4 ? 240 : columns === 2 ? 240 : undefined,
+                },
+              ]}
+            >
+              <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
+            </View>
+          ))}
+        </View>
+
+        {stubSections.length ? (
+          <>
+            <Text style={[styles.sectionHeading, { color: text.muted }]}>Weitere Bereiche</Text>
+            <View style={[styles.grid, { gap: gridGap }]}>
+              {stubSections.map((section) => (
+                <View
+                  key={section.key}
+                  style={[
+                    styles.gridItem,
+                    {
+                      width: itemWidth,
+                      maxWidth: itemWidth,
+                      minWidth: columns >= 4 ? 240 : columns === 2 ? 240 : undefined,
+                    },
+                  ]}
+                >
+                  <TenantCenterSectionCard section={section} onEdit={() => handleEdit(section.key)} />
+                </View>
+              ))}
+            </View>
+          </>
+        ) : null}
+      </View>
 
 
 
@@ -395,24 +419,11 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
 
 
 const styles = StyleSheet.create({
-  scrollView: {
-    flex: 1,
-    width: '100%',
-  },
-
-  scroll: {
-    flexGrow: 1,
-    width: '100%',
-    alignItems: 'center',
-    paddingBottom: careSpacing.xxl,
-  },
-
   contentColumn: {
     width: '100%',
     alignSelf: 'center',
     alignItems: 'center',
     gap: careSpacing.md,
-    paddingHorizontal: careSpacing.md,
   },
 
   lead: {
@@ -428,6 +439,10 @@ const styles = StyleSheet.create({
     marginTop: careSpacing.sm,
     textAlign: 'center',
     width: '100%',
+  },
+
+  sectionHeadingFirst: {
+    marginTop: 0,
   },
 
   grid: {

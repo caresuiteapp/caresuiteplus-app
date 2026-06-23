@@ -36,6 +36,15 @@ describe('Mandanten-Bereich Navigation', () => {
     expect(readSrc('app/settings/tenant.tsx')).toContain('TenantSettingsScreen');
   });
 
+  it('Mandanten-Center zeigt persönliche Einstellungen oben', () => {
+    const screen = readSrc('src/screens/settings/TenantSettingsScreen.tsx');
+    expect(screen).toContain("key: 'appearance'");
+    expect(screen).toContain('APPEARANCE_SETTINGS_ROUTE');
+    expect(screen).toMatch(
+      /sectionHeadingFirst[\s\S]*Persönliche Einstellungen[\s\S]*Mandanten-Stammdaten/,
+    );
+  });
+
   it('Shell-Footer verlinken Mandanten-Bereich', () => {
     expect(readSrc('src/components/layout/DesktopShell.tsx')).toContain('TenantSettingsNavLink');
     expect(readSrc('src/components/layout/CareLightDesktopShell.tsx')).toContain('TenantSettingsNavLink');

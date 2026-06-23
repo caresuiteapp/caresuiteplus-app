@@ -186,7 +186,9 @@ export type TenantCenterSectionKey =
   | 'travelSurcharges'
   | 'dataManagement'
   | 'clientServiceTypes'
-  | 'clientBudgetDefaults';
+  | 'clientBudgetDefaults'
+  | 'appearance'
+  | 'homeofficeSettings';
 
 export type TenantCenterSectionMeta = {
   key: TenantCenterSectionKey;
