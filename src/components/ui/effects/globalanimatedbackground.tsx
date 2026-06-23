@@ -1,25 +1,25 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { StaticLightPaperBackground } from '@/components/backgrounds';
+import { AnimatedLightPaperBackground } from '@/components/backgrounds';
 import { AuroraBackground } from './aurorabackground';
 
 type GlobalAnimatedBackgroundProps = {
   /** Override ThemeModeProvider (e.g. CareSuiteBackground legacy `mode` prop). */
   mode?: 'light' | 'dark';
-  /** Disable aurora drift (dark mode only). Light mode is always static. */
+  /** Disable background motion (dark aurora / light paper layers). */
   animated?: boolean;
   style?: ViewStyle;
   children?: ReactNode;
   /** Leichte Abdunklung (Modals / Formulare). */
   dimmed?: boolean;
-  /** @deprecated Office routes use the same static light background. */
+  /** @deprecated Office routes use the same light background. */
   isOfficeRoute?: boolean;
 };
 
 /**
  * Single shell-root background for CareSuite+.
- * Dark: animated aurora gradient. Light: static paper texture (no animation).
+ * Dark: animated aurora gradient. Light: animated paper texture (120s CSS layer drift).
  * Mount once at app/_layout root — never inside columns or per-screen.
  */
 export function GlobalAnimatedBackground({
@@ -43,7 +43,7 @@ export function GlobalAnimatedBackground({
 
   return (
     <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
-      <StaticLightPaperBackground dimmed={dimmed} />
+      <AnimatedLightPaperBackground animated={animated} dimmed={dimmed} />
       {children}
     </View>
   );
