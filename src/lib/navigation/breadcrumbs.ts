@@ -23,6 +23,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   uebergabebericht: 'Übergabebericht',
   auswertungen: 'Auswertungen',
   settings: 'Einstellungen',
+  appearance: 'Darstellung & Oberfläche',
   teilnehmer: 'Teilnehmer',
   zertifikate: 'Zertifikate',
   protokolle: 'Protokolle',

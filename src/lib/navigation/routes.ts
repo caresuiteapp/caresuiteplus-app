@@ -28,6 +28,12 @@ export const APP_ROUTES: AppRoute[] = [
 
   { path: '/settings/data-request', label: 'Datenauskunft', group: 'settings', requiresAuth: true },
   { path: '/settings/account-deletion', label: 'Kontolöschung', group: 'settings', requiresAuth: true },
+  {
+    path: '/settings/appearance',
+    label: 'Darstellung & Oberfläche',
+    group: 'settings',
+    requiresAuth: true,
+  },
 
   {
     path: '/business',

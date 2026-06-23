@@ -68,10 +68,11 @@ Datum: 2026-06-23
 | Prüfpunkt | Ergebnis |
 |-----------|----------|
 | Mount in `_layout.tsx` | Ja (Code + Tests) |
-| Live Browser in dieser Session | **Nicht durchgeführt** (Browser-Tab nicht verfügbar) |
-| Screenshots | Nicht erstellt |
+| Live Browser (Playwright) | **Auth blockiert** — `AUDIT_BUSINESS_*` und `TEST_BUSINESS_*` in `.env` liefern „E-Mail oder Passwort ist falsch“ gegen Live-Supabase |
+| Screenshots | `debug-after-login.png` (Login-Fehlerzustand); funktionale Screenshots nach erfolgreichem Login ausstehend |
+| Viewport-Matrix (Code) | Desktop/Tablet: `!isPhone`; Mobile: deaktiviert + Hinweis in Settings |
 
-**Empfehlung:** Manuell auf Desktop 1440×900 und Tablet 1024×768 prüfen: Settings → Test → Dismiss per Maus/Tastatur.
+**Empfehlung:** Mit gültigen Business-Credentials erneut `node .audit-screensaver-s1-browser.mjs` ausführen (Skript nicht committed). Erwartung: Appearance-Seite, Preview-Overlay, Dismiss per Klick.
 
 ## 10. Tests / Typecheck
 
