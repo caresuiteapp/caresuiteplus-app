@@ -33,6 +33,8 @@ describe('RightContextPanel today section layout', () => {
     expect(desktop).toContain('flexDirection: \'column\'');
     expect(desktop).toContain('overflow: \'hidden\'');
     expect(desktop).toContain('minHeight: 0');
+    expect(desktop).toContain('flexShrink: 0');
+    expect(desktop).not.toMatch(/root:\s*\{[^}]*flex:\s*1/s);
     expect(desktop).not.toMatch(/taskList:\s*\{[^}]*maxHeight/);
     expect(desktop).toContain('todaySection');
     expect(desktop).toContain('taskList');

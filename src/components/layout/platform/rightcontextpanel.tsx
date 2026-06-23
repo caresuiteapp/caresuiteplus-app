@@ -276,9 +276,10 @@ function createStyles(
   return StyleSheet.create({
     root: {
       width: 272,
+      minWidth: 272,
       flexGrow: 0,
       flexShrink: 0,
-      flex: 1,
+      alignSelf: 'stretch',
       minHeight: 0,
       flexDirection: 'column',
       overflow: 'hidden',
