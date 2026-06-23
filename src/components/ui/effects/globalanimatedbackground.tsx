@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';import { useThemeMode } from '@/design/ThemeModeProvider';
 import {
-  LightLiquidGlassAuroraNebulaBackground,
+  LightCosmicOrbitGalaxyBackground,
   OfficePremiumGlassBackground,
 } from '@/components/backgrounds';
 import { useIsOfficeRoute } from '@/hooks/useIsOfficeRoute';
@@ -48,11 +48,11 @@ export function GlobalAnimatedBackground({
 
   const LightBackground = isOfficeRoute
     ? OfficePremiumGlassBackground
-    : LightLiquidGlassAuroraNebulaBackground;
+    : LightCosmicOrbitGalaxyBackground;
 
   return (
     <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
-      <LightBackground key={isOfficeRoute ? 'office-premium-glass' : 'llgan'} animated={animated} dimmed={dimmed} />
+      <LightBackground key={isOfficeRoute ? 'office-premium-glass' : 'lcog'} animated={animated} dimmed={dimmed} />
       {children}
     </View>
   );

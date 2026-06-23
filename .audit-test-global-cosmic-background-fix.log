@@ -1,0 +1,23 @@
+﻿node.exe : npm warn Unknown env config "devdir". This will stop working in the next major version of npm. See `npm 
+help npmrc` for supported config options.
+In Zeile:1 Zeichen:1
++ & "C:\Program Files\nodejs/node.exe" "C:\Program Files\nodejs/node_mo ...
++ ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (npm warn Unknow...config options.:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+
+> caresuite-plus@1.0.0 test
+> vitest run background
+
+
+ RUN  v3.2.6 C:/Users/Kevin Reinhardt/Documents/CareSuite+
+
+ Ô£ô src/__tests__/design/officePremiumGlassBackground.test.ts (8 tests) 21ms
+ Ô£ô src/__tests__/background/lightCosmicOrbitGalaxyBackground.test.ts (11 tests) 21ms
+
+ Test Files  2 passed (2)
+      Tests  19 passed (19)
+   Start at  15:41:53
+   Duration  1.28s (transform 518ms, setup 0ms, collect 604ms, tests 41ms, environment 1ms, prepare 732ms)
+
