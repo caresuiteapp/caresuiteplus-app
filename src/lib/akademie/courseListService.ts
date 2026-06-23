@@ -1,9 +1,15 @@
 import type { RoleKey } from '@/types';
 import type { AkademieDashboardStats, CourseListItem } from '@/types/modules/akademie';
+import { emptyAkademieDashboardStats } from '@/types/modules/akademie';
+import {
+  countCertificatesExpiringSoon,
+  getDemoCertificateListItems,
+  getDemoEnrollmentListItems,
+} from '@/data/demo/akademieExtended';
 import {
   getDemoCourseListItems,
-  getDemoEnrollments,
 } from '@/data/demo/courses';
+import { getDemoExams, getDemoMediaItems } from '@/data/demo/akademieLessons';
 import { isCourseUpcoming } from './courseUtils';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
@@ -16,14 +22,64 @@ import {
 } from '@/lib/supabase/missingtablefallback';
 
 function buildDashboardStats(items: CourseListItem[]): AkademieDashboardStats {
-  const enrollments = getDemoEnrollments();
+  const now = Date.now();
+  const enrollments = getDemoEnrollmentListItems();
+  const exams = getDemoExams();
+  const media = getDemoMediaItems();
+  const certificates = getDemoCertificateListItems();
+  const mandatoryCourses = items.filter((item) => item.isMandatory);
+
+  const certCourseIds = new Set(certificates.map((c) => c.courseId));
 
   return {
     totalCourses: items.length,
     activeCoursesCount: items.filter((item) => item.status === 'aktiv').length,
-    mandatoryCount: items.filter((item) => item.isMandatory).length,
+    upcomingCoursesCount: items.filter((item) => isCourseUpcoming(item.startsAt)).length,
+    runningCoursesCount: items.filter((item) => item.status === 'in_bearbeitung').length,
+    mandatoryCount: mandatoryCourses.length,
+    mandatoryOpenCount: mandatoryCourses.filter(
+      (item) => item.status === 'aktiv' || item.status === 'in_bearbeitung',
+    ).length,
+    mandatoryOverdueCount: mandatoryCourses.filter((item) => {
+      if (!item.startsAt) return false;
+      return (
+        new Date(item.startsAt).getTime() < now &&
+        item.status !== 'abgeschlossen' &&
+        item.status !== 'archiviert'
+      );
+    }).length,
     totalEnrollments: enrollments.length,
+    activeParticipantsCount: new Set(
+      enrollments
+        .filter((e) => e.status === 'aktiv' || e.status === 'in_bearbeitung')
+        .map((e) => e.profileId),
+    ).size,
+    openEnrollmentsCount: enrollments.filter((e) => e.status !== 'abgeschlossen').length,
+    openProgressCount: enrollments.filter(
+      (e) => e.progressPercent < 100 && e.status !== 'abgeschlossen',
+    ).length,
     upcomingStartsCount: items.filter((item) => isCourseUpcoming(item.startsAt)).length,
+    upcomingExamsCount: exams.filter((e) => new Date(e.scheduledAt).getTime() > now).length,
+    examsToGradeCount: exams.filter((e) => e.status === 'in_bearbeitung').length,
+    certificatesToIssueCount: enrollments.filter(
+      (e) => e.progressPercent === 100 && !certCourseIds.has(e.courseId),
+    ).length,
+    certificatesExpiringCount: countCertificatesExpiringSoon(),
+    mediathekOpenCount: media.filter((m) => m.status === 'aktiv').length,
+    trainingPlanOpenCount: items.filter((item) => item.startsAt && isCourseUpcoming(item.startsAt)).length,
+  };
+}
+
+function buildLiveCourseStats(items: CourseListItem[]): AkademieDashboardStats {
+  return {
+    ...emptyAkademieDashboardStats(),
+    totalCourses: items.length,
+    activeCoursesCount: items.filter((item) => item.status === 'aktiv').length,
+    upcomingCoursesCount: items.filter((item) => isCourseUpcoming(item.startsAt)).length,
+    runningCoursesCount: items.filter((item) => item.status === 'in_bearbeitung').length,
+    mandatoryCount: items.filter((item) => item.isMandatory).length,
+    upcomingStartsCount: items.filter((item) => isCourseUpcoming(item.startsAt)).length,
+    trainingPlanOpenCount: items.filter((item) => item.startsAt && isCourseUpcoming(item.startsAt)).length,
   };
 }
 
@@ -93,9 +149,14 @@ export async function fetchAkademieDashboardStats(
   const listResult = await loadCourseList(tenantId, actorRoleKey);
   if (!listResult.ok) return listResult;
 
+  const stats =
+    getServiceMode() === 'supabase'
+      ? buildLiveCourseStats(listResult.data)
+      : buildDashboardStats(listResult.data);
+
   return {
     ok: true,
-    data: buildDashboardStats(listResult.data),
+    data: stats,
     previewData: listResult.usedDemoFallback || listResult.tableMissing === true,
     tableMissing: listResult.tableMissing,
   };

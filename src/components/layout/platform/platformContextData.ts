@@ -7,7 +7,12 @@ import {
   BERATUNG_SIDEBAR_QUICK_ACTIONS,
   buildBeratungOpenTasks,
 } from '@/lib/beratung/beratungDashboardWorkspace';
+import {
+  AKADEMIE_SIDEBAR_QUICK_ACTIONS,
+  buildAkademieOpenTasks,
+} from '@/lib/akademie/akademieDashboardWorkspace';
 import { STATIONAER_SIDEBAR_QUICK_ACTIONS, buildStationaerOpenTasks } from '@/lib/stationaer/stationaerDashboardWorkspace';
+import type { AkademieDashboardStats } from '@/types/modules/akademie';
 import type { BeratungDashboardStats } from '@/types/modules/beratung';
 import type { StationaerDashboardStats } from '@/types/modules/stationaer';
 import { getModuleNavConfig } from '@/lib/navigation/modulenav';
@@ -110,6 +115,29 @@ export const BERATUNG_QUICK_ACTIONS: ContextQuickAction[] = BERATUNG_SIDEBAR_QUI
                     ? 'calendar'
                     : 'uploadFolder',
     href: action.route ?? '/beratung',
+  }),
+);
+
+export const AKADEMIE_QUICK_ACTIONS: ContextQuickAction[] = AKADEMIE_SIDEBAR_QUICK_ACTIONS.map(
+  (action) => ({
+    label: action.label,
+    icon:
+      action.id === 'akademie-qa-course'
+        ? 'addClient'
+        : action.id === 'akademie-qa-mandatory'
+          ? 'taskCheck'
+          : action.id === 'akademie-qa-participant'
+            ? 'employeeBadge'
+            : action.id === 'akademie-qa-exam'
+              ? 'docsReview'
+              : action.id === 'akademie-qa-certificates'
+                ? 'serviceRecord'
+                : action.id === 'akademie-qa-mediathek'
+                  ? 'uploadFolder'
+                  : action.id === 'akademie-qa-plan'
+                    ? 'calendar'
+                    : 'insightScope',
+    href: action.route ?? '/akademie',
   }),
 );
 
@@ -244,6 +272,7 @@ export function buildOpenTasks(
   isLive: boolean,
   stationaerStats?: StationaerDashboardStats | null,
   beratungStats?: BeratungDashboardStats | null,
+  akademieStats?: AkademieDashboardStats | null,
 ): { title: string; count: number | string }[] {
   if (mainModule === 'stationaer') {
     return buildStationaerOpenTasks(stationaerStats);
@@ -251,6 +280,10 @@ export function buildOpenTasks(
 
   if (mainModule === 'beratung') {
     return buildBeratungOpenTasks(beratungStats);
+  }
+
+  if (mainModule === 'akademie') {
+    return buildAkademieOpenTasks(akademieStats);
   }
 
   if (mainModule === 'office' && officeData) {

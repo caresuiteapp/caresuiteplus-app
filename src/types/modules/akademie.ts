@@ -45,10 +45,46 @@ export type Enrollment = TenantScopedEntity & {
 export type AkademieDashboardStats = {
   totalCourses: number;
   activeCoursesCount: number;
+  upcomingCoursesCount: number;
+  runningCoursesCount: number;
   mandatoryCount: number;
+  mandatoryOpenCount: number;
+  mandatoryOverdueCount: number;
   totalEnrollments: number;
+  activeParticipantsCount: number;
+  openEnrollmentsCount: number;
+  openProgressCount: number;
   upcomingStartsCount: number;
+  upcomingExamsCount: number;
+  examsToGradeCount: number;
+  certificatesToIssueCount: number;
+  certificatesExpiringCount: number;
+  mediathekOpenCount: number;
+  trainingPlanOpenCount: number;
 };
+
+export function emptyAkademieDashboardStats(): AkademieDashboardStats {
+  return {
+    totalCourses: 0,
+    activeCoursesCount: 0,
+    upcomingCoursesCount: 0,
+    runningCoursesCount: 0,
+    mandatoryCount: 0,
+    mandatoryOpenCount: 0,
+    mandatoryOverdueCount: 0,
+    totalEnrollments: 0,
+    activeParticipantsCount: 0,
+    openEnrollmentsCount: 0,
+    openProgressCount: 0,
+    upcomingStartsCount: 0,
+    upcomingExamsCount: 0,
+    examsToGradeCount: 0,
+    certificatesToIssueCount: 0,
+    certificatesExpiringCount: 0,
+    mediathekOpenCount: 0,
+    trainingPlanOpenCount: 0,
+  };
+}
 
 export type EnrollmentListItem = Enrollment & {
   courseTitle: string;

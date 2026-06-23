@@ -18,6 +18,7 @@ import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { useBeratungDashboard } from '@/hooks/useBeratungDashboard';
+import { useAkademieDashboard } from '@/hooks/useAkademieDashboard';
 import { useStationaerDashboard } from '@/hooks/useStationaerDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
@@ -29,6 +30,7 @@ import type { MainModuleKey } from '@/types/navigation/platform';
 import {
   buildOpenTasks,
   ASSIST_QUICK_ACTIONS,
+  AKADEMIE_QUICK_ACTIONS,
   BERATUNG_QUICK_ACTIONS,
   OFFICE_QUICK_ACTIONS,
   PFLEGE_QUICK_ACTIONS,
@@ -65,11 +67,13 @@ export function MobilePlatformContextPanel({
   const { data: officeData } = useOfficeDashboard();
   const { stats: stationaerStats } = useStationaerDashboard();
   const { stats: beratungStats } = useBeratungDashboard();
+  const { stats: akademieStats } = useAkademieDashboard();
   const isLive = getServiceMode() === 'supabase';
 
   const openTasks = useMemo(
-    () => buildOpenTasks(mainModule, officeData, isLive, stationaerStats, beratungStats),
-    [beratungStats, isLive, mainModule, officeData, stationaerStats],
+    () =>
+      buildOpenTasks(mainModule, officeData, isLive, stationaerStats, beratungStats, akademieStats),
+    [akademieStats, beratungStats, isLive, mainModule, officeData, stationaerStats],
   );
 
   const quickActions =
@@ -83,7 +87,9 @@ export function MobilePlatformContextPanel({
             ? STATIONAER_QUICK_ACTIONS
             : mainModule === 'beratung'
               ? BERATUNG_QUICK_ACTIONS
-              : OFFICE_QUICK_ACTIONS.slice(0, 2);
+              : mainModule === 'akademie'
+                ? AKADEMIE_QUICK_ACTIONS
+                : OFFICE_QUICK_ACTIONS.slice(0, 2);
 
   const navConfig = useMemo(() => resolveContextPanelNavConfig(mainModule), [mainModule]);
   const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);
