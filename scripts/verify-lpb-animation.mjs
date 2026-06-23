@@ -1,5 +1,5 @@
 /**
- * Verify light paper background CSS animations on localhost:8082.
+ * Verify light paper background motion on localhost:8082.
  * Usage: node scripts/verify-lpb-animation.mjs [url]
  */
 const url = process.argv[2] ?? 'http://localhost:8082';
@@ -18,41 +18,61 @@ async function main() {
   await page.goto(url, { waitUntil: 'networkidle', timeout: 60_000 });
   await page.waitForTimeout(2000);
 
-  const result = await page.evaluate(() => {
-    const host =
-      document.querySelector('[data-testid="animated-light-paper-background"]') ??
-      document.querySelector('.lpb-root');
-    if (!host) {
-      return { ok: false, reason: 'no lpb host found' };
-    }
+  const readMotion = () =>
+    page.evaluate(() => {
+      const host =
+        document.querySelector('[data-testid="animated-light-paper-background"]') ??
+        document.querySelector('.lpb-root');
+      if (!host) {
+        return { ok: false, reason: 'no lpb host found' };
+      }
 
-    const layers = host.querySelectorAll('.lpb-layer');
-    if (layers.length === 0) {
-      return { ok: false, reason: 'no .lpb-layer elements in host' };
-    }
+      const layers = [...host.querySelectorAll('.lpb-layer')];
+      if (layers.length === 0) {
+        return { ok: false, reason: 'no .lpb-layer elements in host' };
+      }
 
-    const samples = [];
-    for (const layer of layers) {
-      const style = window.getComputedStyle(layer);
-      samples.push({
-        className: layer.className.baseVal ?? layer.className,
-        animationName: style.animationName,
-        animationPlayState: style.animationPlayState,
-        animationDuration: style.animationDuration,
-      });
-    }
+      const staticBg = document.querySelector('[data-testid="static-light-paper-background"]');
 
-    const animated = samples.filter((s) => s.animationName && s.animationName !== 'none');
-    const running = animated.filter((s) => s.animationPlayState === 'running');
+      return {
+        layerCount: layers.length,
+        staticBgPresent: Boolean(staticBg),
+        transforms: layers.map((el) => ({
+          cls: el.className.baseVal ?? el.className,
+          attrTransform: el.getAttribute('transform'),
+          cssTransform: getComputedStyle(el).transform,
+        })),
+      };
+    });
 
-    return {
-      ok: animated.length >= 34 && running.length >= 34,
-      layerCount: layers.length,
-      animatedCount: animated.length,
-      runningCount: running.length,
-      sample: samples.slice(0, 3),
-    };
-  });
+  const t0 = await readMotion();
+  if (t0.reason) {
+    console.log(JSON.stringify({ ok: false, ...t0 }, null, 2));
+    await browser.close();
+    process.exit(1);
+  }
+
+  await page.waitForTimeout(6000);
+  const t1 = await readMotion();
+
+  let attrChanged = 0;
+  let matrixChanged = 0;
+  for (let i = 0; i < t0.transforms.length; i += 1) {
+    const a = t0.transforms[i];
+    const b = t1.transforms[i];
+    if (a.attrTransform !== b.attrTransform) attrChanged += 1;
+    if (a.cssTransform !== b.cssTransform) matrixChanged += 1;
+  }
+
+  const result = {
+    ok: !t0.staticBgPresent && attrChanged >= 20,
+    layerCount: t0.layerCount,
+    staticBgPresent: t0.staticBgPresent,
+    attrChanged,
+    matrixChanged,
+    sampleBefore: t0.transforms.slice(0, 2),
+    sampleAfter: t1.transforms.slice(0, 2),
+  };
 
   console.log(JSON.stringify(result, null, 2));
   await browser.close();

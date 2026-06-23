@@ -5,6 +5,7 @@ import {
   lightPaperAnimLayers,
   lightPaperBackgroundAnimatedSvg,
   lightPaperBackgroundAnimationCss,
+  type LightPaperAnimLayer,
 } from '@/design/tokens/lightPaperBackgroundAnimated';
 import { usePrefersReducedMotion } from '@/hooks/useprefersreducedmotion';
 import { StaticLightPaperBackground, type StaticLightPaperBackgroundProps } from './StaticLightPaperBackground';
@@ -49,35 +50,82 @@ function normalizeSvgHtml(html: string): string {
   return html.replace(/^<\?xml[^?]*\?>\s*/i, '');
 }
 
-/** Re-apply CSS animation on each SVG layer after innerHTML inject (RN Web / SVG class timing). */
-function applyLayerAnimations(host: HTMLElement, paused: boolean) {
-  const playState = paused ? 'paused' : 'running';
+/** Smooth 120s loop matching ease-in-out 0% → 50% → 100% keyframes. */
+function layerMotionProgress(tSec: number, cycleS: number, delayS: number): number {
+  const phase = (((tSec + delayS) % cycleS) + cycleS) % cycleS / cycleS;
+  return (1 - Math.cos(phase * Math.PI * 2)) / 2;
+}
+
+type LayerPivot = { cx: number; cy: number };
+
+function formatLayerTransform(layer: LightPaperAnimLayer, eased: number, pivot: LayerPivot): string {
+  const tx = layer.dx * eased;
+  const ty = layer.dy * eased;
+  const scale = 1 + (layer.scalePeak - 1) * eased;
+  const { cx, cy } = pivot;
+  return `translate(${tx.toFixed(2)} ${ty.toFixed(2)}) translate(${cx.toFixed(2)} ${cy.toFixed(2)}) scale(${scale.toFixed(6)}) translate(${(-cx).toFixed(2)} ${(-cy).toFixed(2)})`;
+}
+
+/**
+ * Chromium ignores CSS transform keyframes on SVG `<g>` (animationName runs but matrix stays identity).
+ * Drive motion via SVG transform attributes + requestAnimationFrame instead.
+ */
+export function startSvgLayerMotion(host: HTMLElement, paused: boolean): () => void {
+  const entries: Array<{ node: SVGGElement; layer: LightPaperAnimLayer; pivot: LayerPivot }> = [];
+
   for (const layer of lightPaperAnimLayers) {
-    const node = host.querySelector<SVGElement>(`.${layer.className}`);
+    const node = host.querySelector<SVGGElement>(`.${layer.className}`);
     if (!node) continue;
-    node.style.transformBox = 'fill-box';
-    node.style.transformOrigin = 'center';
-    node.style.willChange = 'transform';
-    node.style.animation = `lpb-kf-${layer.id} ${LPB_CYCLE_S}s ease-in-out infinite`;
-    node.style.animationDelay = `-${layer.delayS}s`;
-    node.style.animationPlayState = playState;
+    node.style.animation = 'none';
+    try {
+      const bbox = node.getBBox();
+      entries.push({
+        node,
+        layer,
+        pivot: { cx: bbox.x + bbox.width / 2, cy: bbox.y + bbox.height / 2 },
+      });
+    } catch {
+      entries.push({ node, layer, pivot: { cx: 0, cy: 0 } });
+    }
   }
+
+  let rafId = 0;
+  let isActive = true;
+
+  const frame = () => {
+    if (!isActive) return;
+    if (!paused) {
+      const t = performance.now() / 1000;
+      for (const { node, layer, pivot } of entries) {
+        const eased = layerMotionProgress(t, LPB_CYCLE_S, layer.delayS);
+        node.setAttribute('transform', formatLayerTransform(layer, eased, pivot));
+      }
+    }
+    rafId = requestAnimationFrame(frame);
+  };
+
+  rafId = requestAnimationFrame(frame);
+
+  return () => {
+    isActive = false;
+    cancelAnimationFrame(rafId);
+  };
 }
 
 type SyncHostOptions = {
   className?: string;
   html?: string;
   cycleS?: number;
-  paused?: boolean;
+  onSynced?: () => void;
 };
 
-function syncWebDomHost(el: HTMLDivElement, { className, html, cycleS, paused = false }: SyncHostOptions) {
+function syncWebDomHost(el: HTMLDivElement, { className, html, cycleS, onSynced }: SyncHostOptions) {
   ensureWebStyles();
   if (className != null) el.className = className;
   if (html != null) el.innerHTML = normalizeSvgHtml(html);
   if (cycleS != null) el.setAttribute('data-lpb-cycle-s', String(cycleS));
   else el.removeAttribute('data-lpb-cycle-s');
-  applyLayerAnimations(el, paused);
+  onSynced?.();
 }
 
 type WebDomHostProps = {
@@ -86,27 +134,37 @@ type WebDomHostProps = {
   html?: string;
   testID?: string;
   cycleS?: number;
-  paused?: boolean;
+  onHostElement?: (el: HTMLDivElement | null) => void;
+  onSynced?: () => void;
 };
 
 /** RN Web View strips dangerouslySetInnerHTML/className — use a native div on web. */
-function WebDomHost({ className, style, html, testID, cycleS, paused = false }: WebDomHostProps) {
+function WebDomHost({
+  className,
+  style,
+  html,
+  testID,
+  cycleS,
+  onHostElement,
+  onSynced,
+}: WebDomHostProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
 
   const syncHost = useCallback(
     (el: HTMLDivElement | null) => {
       hostRef.current = el;
+      onHostElement?.(el);
       if (!el) return;
-      syncWebDomHost(el, { className, html, cycleS, paused });
+      syncWebDomHost(el, { className, html, cycleS, onSynced });
     },
-    [className, html, cycleS, paused],
+    [className, html, cycleS, onSynced, onHostElement],
   );
 
   useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
-    syncWebDomHost(el, { className, html, cycleS, paused });
-  }, [className, html, cycleS, paused]);
+    syncWebDomHost(el, { className, html, cycleS, onSynced });
+  }, [className, html, cycleS, onSynced]);
 
   if (Platform.OS !== 'web') return null;
 
@@ -118,7 +176,7 @@ function WebDomHost({ className, style, html, testID, cycleS, paused = false }: 
 }
 
 /**
- * Animated light paper texture — independent CSS layer motion on web (120s loop).
+ * Animated light paper texture — independent SVG layer motion on web (120s loop).
  * Falls back to static PNG/SVG when reduced motion, native, or animated=false.
  */
 export function AnimatedLightPaperBackground({
@@ -129,6 +187,12 @@ export function AnimatedLightPaperBackground({
   const prefersReducedMotion = usePrefersReducedMotion();
   const shouldAnimate = animated && !prefersReducedMotion && Platform.OS === 'web';
   const [paused, setPaused] = useState(false);
+  const [motionHost, setMotionHost] = useState<HTMLDivElement | null>(null);
+  const [syncRevision, setSyncRevision] = useState(0);
+
+  const handleSynced = useCallback(() => {
+    setSyncRevision((value) => value + 1);
+  }, []);
 
   useEffect(() => {
     ensureWebStyles();
@@ -141,6 +205,11 @@ export function AnimatedLightPaperBackground({
     document.addEventListener('visibilitychange', onVisibility);
     return () => document.removeEventListener('visibilitychange', onVisibility);
   }, [shouldAnimate]);
+
+  useEffect(() => {
+    if (!shouldAnimate || !motionHost) return;
+    return startSvgLayerMotion(motionHost, paused);
+  }, [shouldAnimate, motionHost, paused, syncRevision]);
 
   if (!shouldAnimate) {
     return <StaticLightPaperBackground dimmed={dimmed} testID={testID} />;
@@ -161,7 +230,8 @@ export function AnimatedLightPaperBackground({
         html={lightPaperBackgroundAnimatedSvg}
         testID={testID}
         cycleS={LPB_CYCLE_S}
-        paused={paused}
+        onHostElement={setMotionHost}
+        onSynced={handleSynced}
       />
       {dimmed ? <View style={styles.dimOverlay} pointerEvents="none" /> : null}
     </>

@@ -13,37 +13,34 @@ describe('lightPaperBackgroundAnimated token', () => {
     expect(lightPaperAnimLayers).toHaveLength(34);
   });
 
-  it('CSS nutzt ease-in-out, 120s Dauer und reduced-motion Fallback', () => {
-    expect(lightPaperBackgroundAnimationCss).toContain('120s ease-in-out infinite');
-    expect(lightPaperBackgroundAnimationCss).toContain('@keyframes lpb-kf-dot-0');
-    expect(lightPaperBackgroundAnimationCss).toContain('prefers-reduced-motion: reduce');
-    expect(lightPaperBackgroundAnimationCss).toContain('animation-play-state: paused');
-    expect(lightPaperBackgroundAnimationCss).toContain('translate3d');
-    expect(lightPaperBackgroundAnimationCss).toContain('lpb-root--overlay .lpb-base-wash');
+  it('CSS enthält Layout-Regeln für SVG-Host (keine broken SVG-g Keyframes)', () => {
+    expect(lightPaperBackgroundAnimationCss).toContain('.lpb-root svg');
+    expect(lightPaperBackgroundAnimationCss).toContain('.lpb-layer');
+    expect(lightPaperBackgroundAnimationCss).not.toContain('@keyframes lpb-kf-dot-0');
   });
 
-  it('Layer-Keyframes kehren bei 0% und 100% glatt zum Ursprung zurück', () => {
-    expect(lightPaperBackgroundAnimationCss).toMatch(
-      /0%, 100% \{ transform: translate3d\(0, 0, 0\) scale\(1\); \}/,
-    );
+  it('Layer haben spürbare Drift-Amplituden für sichtbare 120s Bewegung', () => {
+    const corner = lightPaperAnimLayers.find((layer) => layer.id === 'corner-0');
+    expect(corner).toBeDefined();
+    expect(Math.hypot(corner!.dx, corner!.dy)).toBeGreaterThan(100);
   });
 });
 
 describe('AnimatedLightPaperBackground component', () => {
   const componentPath = ['..', '..', 'components', 'backgrounds', 'AnimatedLightPaperBackground.tsx'];
 
-  it('nutzt inline SVG mit CSS-Animation auf Web und Static-Fallback sonst', async () => {
+  it('nutzt SVG transform attribute rAF motion auf Web und Static-Fallback sonst', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(path.join(__dirname, ...componentPath), 'utf8');
     expect(source).toContain('lightPaperBackgroundAnimatedSvg');
-    expect(source).toContain('lightPaperBackgroundAnimationCss');
     expect(source).toContain('usePrefersReducedMotion');
     expect(source).toContain('StaticLightPaperBackground');
     expect(source).toContain('WebDomHost');
     expect(source).toContain("createElement('div'");
-    expect(source).toContain('applyLayerAnimations');
-    expect(source).toContain('lightPaperAnimLayers');
+    expect(source).toContain('startSvgLayerMotion');
+    expect(source).toContain('setAttribute(\'transform\'');
+    expect(source).toContain('requestAnimationFrame');
     expect(source).toContain('visibilitychange');
     expect(source).toContain('lpb-root--paused');
     expect(source).toContain('cycleS={LPB_CYCLE_S}');
