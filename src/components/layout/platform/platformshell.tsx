@@ -77,7 +77,9 @@ export function PlatformShell({ area: _area, children, accentColor }: PlatformSh
       testID="main-work-area"
       fillViewport={!isPhoneLayout}
     >
-      <View style={[styles.mainContent, { padding: contentPadding }]}>{children}</View>
+      <View style={[styles.mainContent, styles.mainContentStretch, { padding: contentPadding }]}>
+        {children}
+      </View>
       {isPhoneLayout ? (
         <MobilePlatformContextPanel mainModule={mainModule} accentColor={accent} />
       ) : null}
@@ -140,6 +142,14 @@ const styles = StyleSheet.create({
     padding: spacing.lg,
     gap: spacing.lg,
     backgroundColor: 'transparent',
+  },
+  mainContentStretch: {
+    flex: 1,
+    flexGrow: 1,
+    alignSelf: 'stretch',
+    minHeight: 0,
+    minWidth: 0,
+    width: '100%',
   },
   mainContentKpiBlock: {
     width: '100%',

@@ -63,6 +63,14 @@ export function ScreenShell({
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        auroraRoot: {
+          flex: 1,
+          flexGrow: 1,
+          width: '100%',
+          alignSelf: 'stretch',
+          minHeight: 0,
+          backgroundColor: 'transparent',
+        },
         safe: {
           flex: 1,
           backgroundColor: shellHostsAurora ? 'transparent' : colors.bgBase,
@@ -71,7 +79,14 @@ export function ScreenShell({
           flex: 1,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
+        scrollHost: {
+          flex: 1,
+          flexGrow: 1,
+          width: '100%',
+          backgroundColor: shellHostsAurora ? 'transparent' : undefined,
+        },
         scroll: {
+          flexGrow: shellHostsAurora ? 1 : undefined,
           padding: spacing.md,
           gap: spacing.md,
           paddingBottom: spacing.xxl,
@@ -83,13 +98,69 @@ export function ScreenShell({
           gap: spacing.md,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
+        contentHost: {
+          flex: 1,
+          flexGrow: 1,
+          minHeight: 0,
+          width: '100%',
+          padding: spacing.md,
+          gap: spacing.md,
+          backgroundColor: 'transparent',
+        },
         a11yRoot: {
           flex: 1,
+          flexGrow: 1,
+          minHeight: 0,
+          width: '100%',
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
       }),
     [colors.bgBase, shellHostsAurora],
   );
+
+  const header = (
+    <ScreenHeader
+      title={title}
+      subtitle={subtitle}
+      breadcrumbTrail={breadcrumbTrail}
+      showBack={showBack}
+      onBack={onBack}
+      rightSlot={rightSlot}
+    />
+  );
+
+  const a11yProps = {
+    accessible: !!a11yMeta,
+    accessibilityRole: a11yMeta?.headingRole,
+    accessibilityHint: a11yMeta?.reduceMotionHint,
+  } as const;
+
+  if (shellHostsAurora) {
+    const body = scroll ? (
+      <ScrollView
+        style={styles.scrollHost}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+    ) : (
+      <View style={styles.contentHost}>{children}</View>
+    );
+
+    return (
+      <View
+        style={styles.auroraRoot}
+        testID="screen-shell"
+        accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
+      >
+        {header}
+        <View style={styles.a11yRoot} {...a11yProps}>
+          {body}
+        </View>
+      </View>
+    );
+  }
 
   const content = scroll ? (
     <ScrollView
@@ -110,20 +181,8 @@ export function ScreenShell({
       testID="screen-shell"
       accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
     >
-      <ScreenHeader
-        title={title}
-        subtitle={subtitle}
-        breadcrumbTrail={breadcrumbTrail}
-        showBack={showBack}
-        onBack={onBack}
-        rightSlot={rightSlot}
-      />
-      <View
-        style={styles.a11yRoot}
-        accessible={!!a11yMeta}
-        accessibilityRole={a11yMeta?.headingRole}
-        accessibilityHint={a11yMeta?.reduceMotionHint}
-      >
+      {header}
+      <View style={styles.a11yRoot} {...a11yProps}>
         {content}
       </View>
     </SafeAreaView>

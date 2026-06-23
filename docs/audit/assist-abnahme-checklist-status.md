@@ -170,7 +170,7 @@ Nav-Konfiguration: `src/lib/navigation/modulenav/assistnav.ts` deckt alle Bereic
 | K1–K3 | Kein Weiß, Aurora, Glass | ✅ | Dashboard auf `ScreenShell` + `AssistDashboardHero` (Zwischenauftrag) |
 | K4 | Modals einheitlich | 🟡 | Wizard = Glass; übrige Screens gemischt |
 | K5–K6 | Kalender/Nachrichten einheitlich | 🟡 | Nicht Assist-isoliert repariert (Scope) |
-| K7 | Shell-konform | ✅ | `_layout.tsx` + Dashboard Shell |
+| K7 | Shell-konform | ✅ | `_layout.tsx` + flex-chain Fix 2026-06-23 (kein blank main content) |
 
 **K — Gesamt:** ✅ **Dashboard/Shell**, 🟡 Modals/Kalender
 

@@ -1,5 +1,6 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { ScreenShell } from '@/components/layout';
 import { PremiumButton, SectionPanel } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import type { ModuleNavModalComponentProps } from '@/lib/navigation/modulenav/modalscreens';
@@ -8,6 +9,7 @@ export function AssistSettingsScreen({ embeddedInModal = false }: ModuleNavModal
   const router = useRouter();
 
   return (
+    <ScreenShell title="Assist-Einstellungen" subtitle="Modul & Verknüpfungen" showBack={false}>
     <View style={styles.root}>
       <SectionPanel title="Assist-Modul" subtitle="Konfiguration und Verknüpfungen">
         <View style={styles.actions}>
@@ -38,6 +40,7 @@ export function AssistSettingsScreen({ embeddedInModal = false }: ModuleNavModal
         </SectionPanel>
       ) : null}
     </View>
+    </ScreenShell>
   );
 }
 

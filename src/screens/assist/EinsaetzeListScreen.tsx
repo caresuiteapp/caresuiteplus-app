@@ -42,7 +42,14 @@ export function EinsaetzeListScreen() {
     >
       <View style={styles.content}>
         {list.isEmpty && !list.hasActiveFilters ? (
-          <EmptyState title="Keine Einsätze" message="Es sind noch keine Einsätze geplant." />
+          <EmptyState
+            title="Noch keine Einsätze geplant"
+            message="Planen Sie den ersten Einsatz für Ihr Team."
+            actionLabel={!isReadOnly ? '+ Einsatz planen' : undefined}
+            onAction={
+              !isReadOnly ? () => router.push('/assist/einsaetze/new' as never) : undefined
+            }
+          />
         ) : (
           <AssignmentsListView />
         )}
@@ -53,4 +60,4 @@ export function EinsaetzeListScreen() {
 
 void fetchAssignmentList;
 
-const styles = StyleSheet.create({ content: { flex: 1 } });
+const styles = StyleSheet.create({ content: { flex: 1, flexGrow: 1, minHeight: 0 } });

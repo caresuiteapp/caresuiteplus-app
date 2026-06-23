@@ -42,36 +42,52 @@ export function CareLightPageShell({
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        auroraRoot: {
+          flex: 1,
+          flexGrow: 1,
+          width: '100%',
+          alignSelf: 'stretch',
+          minHeight: 0,
+          backgroundColor: 'transparent',
+        },
         safe: {
           flex: 1,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
+        scrollHost: {
+          flex: 1,
+          flexGrow: 1,
+          width: '100%',
+        },
         scroll: {
+          flexGrow: 1,
           padding: careSpacing.md,
           gap: careSpacing.md,
           paddingBottom: careSpacing.xxl,
         },
+        contentHost: {
+          flex: 1,
+          flexGrow: 1,
+          minHeight: 0,
+          width: '100%',
+          padding: careSpacing.md,
+          gap: careSpacing.md,
+        },
         content: {
           flex: 1,
+          flexGrow: 1,
+          minHeight: 0,
           padding: careSpacing.md,
           gap: careSpacing.md,
         },
         a11yRoot: {
           flex: 1,
+          flexGrow: 1,
+          minHeight: 0,
+          width: '100%',
         },
       }),
     [shellHostsAurora],
-  );
-
-  const content = scroll ? (
-    <ScrollView
-      contentContainerStyle={styles.scroll}
-      showsVerticalScrollIndicator={false}
-    >
-      {children}
-    </ScrollView>
-  ) : (
-    <View style={styles.content}>{children}</View>
   );
 
   const header = shellHostsAurora ? (
@@ -94,6 +110,50 @@ export function CareLightPageShell({
     />
   );
 
+  const a11yProps = {
+    accessible: !!a11yMeta,
+    accessibilityRole: a11yMeta?.headingRole,
+    accessibilityHint: a11yMeta?.reduceMotionHint,
+  } as const;
+
+  if (shellHostsAurora) {
+    const body = scroll ? (
+      <ScrollView
+        style={styles.scrollHost}
+        contentContainerStyle={styles.scroll}
+        showsVerticalScrollIndicator={false}
+      >
+        {children}
+      </ScrollView>
+    ) : (
+      <View style={styles.contentHost}>{children}</View>
+    );
+
+    return (
+      <View
+        style={styles.auroraRoot}
+        testID="care-light-page-shell"
+        accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
+      >
+        {header}
+        <View style={styles.a11yRoot} {...a11yProps}>
+          {body}
+        </View>
+      </View>
+    );
+  }
+
+  const content = scroll ? (
+    <ScrollView
+      contentContainerStyle={styles.scroll}
+      showsVerticalScrollIndicator={false}
+    >
+      {children}
+    </ScrollView>
+  ) : (
+    <View style={styles.content}>{children}</View>
+  );
+
   const inner = (
     <SafeAreaView
       style={styles.safe}
@@ -101,20 +161,11 @@ export function CareLightPageShell({
       accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
     >
       {header}
-      <View
-        style={styles.a11yRoot}
-        accessible={!!a11yMeta}
-        accessibilityRole={a11yMeta?.headingRole}
-        accessibilityHint={a11yMeta?.reduceMotionHint}
-      >
+      <View style={styles.a11yRoot} {...a11yProps}>
         {content}
       </View>
     </SafeAreaView>
   );
-
-  if (shellHostsAurora) {
-    return inner;
-  }
 
   return <CareSuiteLightBackground>{inner}</CareSuiteLightBackground>;
 }

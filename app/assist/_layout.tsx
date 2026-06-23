@@ -29,5 +29,13 @@ export default function AssistLayout() {
 }
 
 const styles = StyleSheet.create({
-  slot: { flex: 1, backgroundColor: 'transparent' },
+  slot: {
+    flex: 1,
+    flexGrow: 1,
+    alignSelf: 'stretch',
+    minHeight: 0,
+    minWidth: 0,
+    width: '100%',
+    backgroundColor: 'transparent',
+  },
 });
