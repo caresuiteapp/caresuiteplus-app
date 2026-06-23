@@ -51,11 +51,11 @@ export function ClientsListHero({
   const heroText = useListHeroTextStyles();
 
   return (
-    <PremiumListHeroFrame accentColor={accent}>
+    <PremiumListHeroFrame accentColor={accent} style={compact ? styles.compactFrame : undefined}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={heroText.eyebrow}>OFFICE</Text>
-          <Text style={heroText.title}>Klient:innen</Text>
+          <Text style={[heroText.title, compact && styles.compactTitle]}>Klient:innen</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einträgen
             {isReadOnly ? ' · Lesemodus' : ''}
@@ -73,27 +73,33 @@ export function ClientsListHero({
       {showViewToggle && onViewModeChange ? (
         <DesktopListViewToggle value={viewMode} onChange={onViewModeChange} />
       ) : null}
-      {!compact ? (
-        <View style={styles.kpiRow}>
-          {kpis.map((kpi) => (
-            <PremiumKpiCard
-              key={kpi.id}
-              label={kpi.label}
-              value={String(kpi.value)}
-              subValue={kpi.subValue}
-              icon={kpi.icon}
-              accentColor={kpi.accentColor}
-              style={styles.kpiItem}
-            />
-          ))}
-        </View>
-      ) : null}
-      {canCreate ? (
-        <PremiumButton title="➕ Klient:in anlegen" onPress={onCreatePress} fullWidth />
-      ) : null}
-      {canCsv && onCsvPress ? (
-        <PremiumButton title="CSV Import / Export" variant="secondary" onPress={onCsvPress} fullWidth />
-      ) : null}
+      <View style={[styles.kpiRow, compact && styles.kpiRowCompact]}>
+        {kpis.map((kpi) => (
+          <PremiumKpiCard
+            key={kpi.id}
+            label={kpi.label}
+            value={String(kpi.value)}
+            subValue={kpi.subValue}
+            icon={kpi.icon}
+            accentColor={kpi.accentColor}
+            style={compact ? styles.kpiItemCompact : styles.kpiItem}
+            variant="light"
+          />
+        ))}
+      </View>
+      <View style={styles.actions}>
+        {canCreate ? (
+          <PremiumButton
+            title="Klient:in anlegen"
+            onPress={onCreatePress}
+            size="sm"
+            style={styles.actionBtn}
+          />
+        ) : null}
+        {canCsv && onCsvPress ? (
+          <PremiumButton title="CSV Import / Export" variant="secondary" size="sm" onPress={onCsvPress} style={styles.actionBtn} />
+        ) : null}
+      </View>
     </PremiumListHeroFrame>
   );
 }
@@ -101,6 +107,9 @@ export function ClientsListHero({
 const iconSize = designTokens.hero.iconBadgeSize;
 
 const styles = StyleSheet.create({
+  compactFrame: {
+    marginBottom: careSpacing.sm,
+  },
   topRow: {
     flexDirection: 'row',
     gap: careSpacing.md,
@@ -108,6 +117,9 @@ const styles = StyleSheet.create({
   textCol: {
     flex: 1,
     gap: 2,
+  },
+  compactTitle: {
+    fontSize: 20,
   },
   iconBadge: {
     width: iconSize,
@@ -130,8 +142,26 @@ const styles = StyleSheet.create({
     flexWrap: 'wrap',
     gap: careSpacing.sm,
   },
+  kpiRowCompact: {
+    gap: careSpacing.xs,
+  },
   kpiItem: {
     flex: 1,
     minWidth: 100,
+  },
+  kpiItemCompact: {
+    flexGrow: 1,
+    flexShrink: 1,
+    minWidth: 72,
+    maxWidth: 140,
+  },
+  actions: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+  },
+  actionBtn: {
+    flexGrow: 1,
+    minWidth: 140,
   },
 });

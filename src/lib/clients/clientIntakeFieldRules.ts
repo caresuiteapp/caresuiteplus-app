@@ -360,15 +360,75 @@ export function getRelevantConsentTemplatesForClientContext(
   return consents;
 }
 
+/** Collapse context-specific tabs into the primary Akte navigation (§4). */
+export function normalizeClientRecordTabs(contextTabs: ClientRecordTabKey[]): ClientRecordTabKey[] {
+  const primary: ClientRecordTabKey[] = ['uebersicht', 'stammdaten'];
+
+  if (
+    contextTabs.some((t) =>
+      ['leistungsbereiche', 'budget', 'pflegegrad', 'pflege', 'bewohnerdaten'].includes(t),
+    )
+  ) {
+    primary.push('leistungsbereiche');
+  }
+  if (contextTabs.some((t) => ['kontakt', 'angehoerige'].includes(t))) {
+    primary.push('kontakt');
+  }
+  if (contextTabs.some((t) => ['einsaetze', 'aufgaben'].includes(t))) {
+    primary.push('einsaetze');
+  }
+  if (
+    contextTabs.some((t) =>
+      ['dokumente', 'nachweise', 'einwilligungen', 'vertrag', 'dokumentation'].includes(t),
+    )
+  ) {
+    primary.push('dokumente');
+  }
+  if (contextTabs.includes('portal')) {
+    primary.push('portal');
+  }
+  primary.push('verlauf');
+
+  const covered = new Set<ClientRecordTabKey>([
+    ...primary,
+    'budget',
+    'angehoerige',
+    'nachweise',
+    'einwilligungen',
+    'vertrag',
+    'aufgaben',
+    'aktionen',
+    'audit',
+  ]);
+  const overflow = contextTabs.filter((t) => !covered.has(t) && t !== 'mehr');
+  if (overflow.length > 0 || contextTabs.includes('mehr')) {
+    primary.push('mehr');
+  }
+
+  return primary;
+}
+
+function finalizeRecordTabs(tabs: ClientRecordTabKey[]): ClientRecordTabKey[] {
+  return normalizeClientRecordTabs(withCoreTabs(tabs));
+}
+
 export function getClientRecordTabsForClientContext(
   contexts: ClientCareContext[],
 ): ClientRecordTabKey[] {
   if (contexts.length === 0) {
-    return ['uebersicht', 'stammdaten', 'leistungsbereiche', 'budget', 'kontakt', 'verlauf', 'aktionen'];
+    return normalizeClientRecordTabs([
+      'uebersicht',
+      'stammdaten',
+      'leistungsbereiche',
+      'budget',
+      'kontakt',
+      'verlauf',
+      'mehr',
+    ]);
   }
 
   if (hasConsulting(contexts) && !hasAmbulatoryCare(contexts) && !hasStationaryCare(contexts)) {
-    return withCoreTabs([
+    return finalizeRecordTabs([
       'uebersicht',
       'fallakte',
       'stammdaten',
@@ -385,7 +445,7 @@ export function getClientRecordTabsForClientContext(
   }
 
   if (hasStationaryCare(contexts) && !hasAmbulatoryCare(contexts)) {
-    return withCoreTabs([
+    return finalizeRecordTabs([
       'uebersicht',
       'bewohnerdaten',
       'wohnbereich',
@@ -421,11 +481,11 @@ export function getClientRecordTabsForClientContext(
     if (hasSupportContext(contexts)) {
       tabs.splice(3, 0, 'aufgaben');
     }
-    return withCoreTabs(tabs);
+    return finalizeRecordTabs(tabs);
   }
 
   // Support only: Alltagsbegleitung / Betreuung / Begleitung
-  return withCoreTabs([
+  return finalizeRecordTabs([
     'uebersicht',
     'stammdaten',
     'kontakt',
@@ -459,16 +519,16 @@ export const INTAKE_SECTION_LABELS: Record<IntakeSectionKey, string> = {
 export const CLIENT_RECORD_TAB_LABELS: Record<ClientRecordTabKey, string> = {
   uebersicht: 'Übersicht',
   stammdaten: 'Stammdaten',
-  leistungsbereiche: 'Leistungsbereiche',
+  leistungsbereiche: 'Leistungen & Budget',
   budget: 'Budget',
-  kontakt: 'Kontakt',
+  kontakt: 'Kontakte',
   angehoerige: 'Angehörige',
   pflegegrad: 'Pflegegrad & Kassen',
   module: 'Module',
   vertrag: 'Vertrag',
   einwilligungen: 'Einwilligungen',
-  dokumente: 'Dokumente',
-  einsaetze: 'Einsätze',
+  dokumente: 'Dokumente & Nachweise',
+  einsaetze: 'Einsätze & Termine',
   nachweise: 'Leistungsnachweise',
   dokumentation: 'Dokumentation',
   protokolle: 'Protokolle',
@@ -478,7 +538,7 @@ export const CLIENT_RECORD_TAB_LABELS: Record<ClientRecordTabKey, string> = {
   rezepte: 'Rezepte & Verordnungen',
   risiken: 'Risiken',
   abrechnung: 'Abrechnung',
-  portal: 'Portal',
+  portal: 'Portal & Freigaben',
   nachrichten: 'Nachrichten',
   verlauf: 'Verlauf',
   audit: 'Audit',

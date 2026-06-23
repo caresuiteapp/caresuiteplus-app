@@ -484,13 +484,18 @@ export function useAuroraGlassTableStyles() {
         },
         headerText: {
           ...typography.label,
-          color: text.muted,
+          color: text.primary,
           textTransform: 'uppercase',
           letterSpacing: 0.6,
           fontSize: 11,
+          fontWeight: '700',
         },
         headerTextActive: {
-          color: careSuiteAuroraTheme.accent.pink,
+          color: isLight && active ? '#0F1B33' : careSuiteAuroraTheme.accent.violet,
+        },
+        cellText: {
+          color: text.primary,
+          fontSize: 14,
         },
         dataRow: {
           flexDirection: 'row',
@@ -528,7 +533,7 @@ export function useAuroraGlassTableStyles() {
           color: text.muted,
         },
       }),
-    [active, colors, glass, isLight, tableSurface, text.muted, typography.caption, typography.label],
+    [active, colors, glass, isLight, tableSurface, text.muted, text.primary, typography.caption, typography.label],
   );
 }
 

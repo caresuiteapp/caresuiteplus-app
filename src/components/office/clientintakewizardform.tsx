@@ -12,6 +12,7 @@ import {
 import {
   ErrorState,
   FormStepper,
+  InfoBanner,
   LoadingState,
   EmptyState,
   PremiumButton,
@@ -71,7 +72,7 @@ export function ClientIntakeSectionContent({
         <CareCatalogSelect catalogKey="housing_form" label="Wohnform" value={form.housingForm} onChange={(v) => updateField('housingForm', v)} />
         <CareDateInput label="Aufnahmedatum" value={form.admissionDate} onChange={(v) => updateField('admissionDate', v)} />
         <CareDateInput label="Leistungsbeginn *" value={form.serviceStart} onChange={(v) => updateField('serviceStart', v)} error={errors.serviceStart} />
-        <PremiumInput label="Besonderheiten" value={form.specialNotes} onChangeText={(v) => updateField('specialNotes', v)} multiline />
+        <PremiumInput label="Interne Hinweise" value={form.specialNotes} onChangeText={(v) => updateField('specialNotes', v)} multiline hint="Nur für Office sichtbar" />
       </SectionPanel>
     );
   }
@@ -234,10 +235,19 @@ export function ClientIntakeWizardForm({
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        root: { flex: 1 },
         scroll: { flex: 1 },
-        scrollContent: { padding: spacing.md, gap: spacing.sm },
-        actions: { flexDirection: 'row', gap: spacing.sm, padding: spacing.md },
-        actionBtn: { flex: 1 },
+        scrollContent: { padding: spacing.md, gap: spacing.sm, paddingBottom: spacing.lg },
+        footer: {
+          borderTopWidth: StyleSheet.hairlineWidth,
+          borderTopColor: 'rgba(130,170,255,0.18)',
+          padding: spacing.md,
+          gap: spacing.sm,
+          backgroundColor: 'transparent',
+        },
+        footerRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+        actionBtn: { flex: 1, minWidth: 120 },
+        draftRow: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
         successWrap: { padding: spacing.md },
       }),
     [],
@@ -256,7 +266,13 @@ export function ClientIntakeWizardForm({
     isEditMode,
     nextStep,
     prevStep,
+    goToStep,
+    stepStatuses,
     submit,
+    saveDraft,
+    discardDraft,
+    draftRestored,
+    draftSaveFeedback,
     isFirstStep,
     isLastStep,
     isSuccess,
@@ -296,17 +312,35 @@ export function ClientIntakeWizardForm({
   }
 
   return (
-    <>
-      <FormStepper steps={stepLabels} currentStep={stepIndex} />
+    <View style={styles.root}>
+      <FormStepper
+        steps={stepLabels}
+        currentStep={stepIndex}
+        onStepPress={goToStep}
+        stepStatuses={stepStatuses}
+      />
       <ScrollView
         style={styles.scroll}
         contentContainerStyle={styles.scrollContent}
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
       >
+        {draftRestored ? (
+          <InfoBanner title="Entwurf wiederhergestellt" message="Ihre zuletzt gespeicherten Eingaben wurden geladen." />
+        ) : null}
+        {draftSaveFeedback ? (
+          <InfoBanner
+            title={draftSaveFeedback.message}
+            message={
+              draftSaveFeedback.variant === 'warning'
+                ? 'Bitte prüfen Sie die markierten Felder.'
+                : 'Entwurf wurde gespeichert.'
+            }
+          />
+        ) : null}
         {showHero && stepIndex === 0 ? (
           <Text style={contentStyles.caption}>
-            Schritt {stepIndex + 1} von {steps.length} · {isEditMode ? 'Stammdaten bearbeiten' : 'Kontextbasierte Aufnahme'}
+            Schritt {stepIndex + 1} von {steps.length} · {isEditMode ? 'Stammdaten bearbeiten' : 'Klient:in aufnehmen'}
           </Text>
         ) : null}
         {currentSection === 'leistungsart' && wizard.form.careContexts.length === 0 ? (
@@ -318,23 +352,32 @@ export function ClientIntakeWizardForm({
         <ClientIntakeSectionContent section={currentSection} wizard={wizard} contentStyles={contentStyles} />
         {submitError ? <ErrorState message={submitError} /> : null}
       </ScrollView>
-      <View style={styles.actions}>
-        {!isFirstStep ? (
-          <PremiumButton title="Zurück" variant="secondary" onPress={prevStep} />
-        ) : onCancel ? (
-          <PremiumButton title="Abbrechen" variant="ghost" onPress={onCancel} />
+      <View style={styles.footer}>
+        {!isEditMode ? (
+          <View style={styles.draftRow}>
+            <PremiumButton title="Als Entwurf speichern" variant="ghost" size="sm" onPress={() => void saveDraft()} />
+            <PremiumButton title="Neu beginnen" variant="ghost" size="sm" onPress={() => void discardDraft()} />
+          </View>
         ) : null}
-        {isLastStep ? (
-          <PremiumButton
-            title={isEditMode ? 'Änderungen speichern' : 'Aufnahme abschließen'}
-            loading={submitting}
-            onPress={handleSubmit}
-            style={styles.actionBtn}
-          />
-        ) : (
-          <PremiumButton title="Weiter" onPress={nextStep} style={styles.actionBtn} />
-        )}
+        <View style={styles.footerRow}>
+          {!isFirstStep ? (
+            <PremiumButton title="Zurück" variant="secondary" size="sm" onPress={prevStep} style={styles.actionBtn} />
+          ) : onCancel ? (
+            <PremiumButton title="Abbrechen" variant="ghost" size="sm" onPress={onCancel} style={styles.actionBtn} />
+          ) : null}
+          {isLastStep ? (
+            <PremiumButton
+              title={isEditMode ? 'Änderungen speichern' : 'Klient:in aktivieren'}
+              loading={submitting}
+              onPress={handleSubmit}
+              size="sm"
+              style={styles.actionBtn}
+            />
+          ) : (
+            <PremiumButton title="Weiter" size="sm" onPress={nextStep} style={styles.actionBtn} />
+          )}
+        </View>
       </View>
-    </>
+    </View>
   );
 }

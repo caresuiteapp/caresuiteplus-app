@@ -1,9 +1,10 @@
 import { StyleSheet, Text } from 'react-native';
+import { useMemo } from 'react';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
-import { colors, typography } from '@/theme';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 
 type ClientsListTableProps = {
   clients: ClientListItem[];
@@ -39,6 +40,27 @@ export function ClientsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: ClientsListTableProps) {
+  const text = useAuroraAdaptiveText();
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        name: {
+          color: text.primary,
+          fontWeight: '700',
+          fontSize: 15,
+        },
+        cellText: {
+          color: text.primary,
+          fontSize: 14,
+        },
+        muted: {
+          color: text.muted,
+          fontSize: 13,
+        },
+      }),
+    [text],
+  );
+
   return (
     <PremiumDataTable
       data={clients}
@@ -47,6 +69,7 @@ export function ClientsListTable({
       sortColumnKey={sortColumnKey}
       sortDirection={sortDirection}
       onSortColumn={onSortColumn}
+      emptyMessage="Keine Klient:innen in dieser Ansicht"
       onRowPress={
         onClientPress
           ? (item) => onClientPress(item.id)
@@ -122,16 +145,3 @@ export function ClientsListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  name: {
-    ...typography.bodyStrong,
-  },
-  cellText: {
-    ...typography.body,
-  },
-  muted: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-});

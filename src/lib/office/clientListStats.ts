@@ -21,9 +21,16 @@ export function buildClientListKpis(items: ClientListItem[]): ClientListKpi[] {
       id: 'clients-kpi-total',
       label: 'Gesamt',
       value: items.length,
-      subValue: `${active} aktiv`,
       icon: '👥',
       accentColor: '#62F3FF',
+    },
+    {
+      id: 'clients-kpi-active',
+      label: 'Aktiv',
+      value: active,
+      subValue: active > 0 ? 'In Betreuung' : 'Keine aktiven',
+      icon: '✅',
+      accentColor: '#22C55E',
     },
     {
       id: 'clients-kpi-intake',

@@ -205,7 +205,7 @@ export function ClientsListView({
 
       <PremiumInput
         label="Suche"
-        placeholder="Name oder Ort suchen?"
+        placeholder="Name oder Ort suchen"
         value={search}
         onChangeText={setSearch}
         autoCapitalize="words"
@@ -240,7 +240,7 @@ export function ClientsListView({
     return (
       <View style={styles.container} testID="list-wrapper">
         {!embedded ? toolbar : null}
-        <LoadingState message="Daten werden geladen?" />
+        <LoadingState message="Daten werden geladen…" />
       </View>
     );
   }
@@ -259,7 +259,7 @@ export function ClientsListView({
       message={
         canCreate
           ? 'Legen Sie die erste Klient:in an, um mit der Verwaltung zu beginnen.'
-          : `Noch keine Klient:innen vorhanden. Anlegen ist f?r ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
+          : `Noch keine Klient:innen vorhanden. Anlegen ist für ${roleLabel ?? 'Ihre Rolle'} nicht freigegeben.`
       }
       actionLabel={canCreate ? 'Klient:in anlegen' : undefined}
       onAction={canCreate ? handleCreate : undefined}
@@ -267,8 +267,8 @@ export function ClientsListView({
   ) : isFilterEmpty ? (
     <EmptyState
       title="Keine Treffer"
-      message="F?r Ihre Suche oder Filter wurden keine Klient:innen gefunden."
-      actionLabel="Filter zur?cksetzen"
+      message="Für Ihre Suche oder Filter wurden keine Klient:innen gefunden."
+      actionLabel="Filter zurücksetzen"
       onAction={resetFilters}
     />
   ) : null;
@@ -329,7 +329,7 @@ export function ClientsListView({
               secondary={
                 hasActiveFilters ? (
                   <PremiumButton
-                    title="Filter zur?cksetzen"
+                    title="Filter zurücksetzen"
                     variant="ghost"
                     size="sm"
                     onPress={resetFilters}

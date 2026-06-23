@@ -34,7 +34,7 @@ describe('Office Klient:innen list', () => {
 
   it('buildClientListKpis berechnet Kennzahlen aus Demo-Daten', () => {
     const kpis = buildClientListKpis(demoClients);
-    expect(kpis.length).toBe(3);
+    expect(kpis.length).toBe(4);
     expect(kpis[0]?.value).toBe(demoClients.length);
     expect(kpis.some((k) => k.id === 'clients-kpi-intake')).toBe(true);
   });

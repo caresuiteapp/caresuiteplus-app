@@ -5,6 +5,7 @@ import { useAiPageContext } from '@/ai/useAiPageContext';
 import { ContextCard, clientRecordKpiGridStyle, DetailInfoRow } from '@/components/detail';
 import { ClientRecordHero } from '@/components/office/ClientRecordHero';
 import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';
+import { ClientMasterDataEditModal } from '@/components/office/ClientMasterDataEditModal';
 import { useSectionEditModal } from '@/hooks/useSectionEditModal';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { ClientRecordOverviewPanel } from '@/components/office/ClientRecordOverviewPanel';
@@ -30,19 +31,9 @@ import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
 import { CLIENT_RECORD_TAB_LABELS, type ClientCareContext, type ClientRecordTabKey, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
 import { ClientRecordTabContent } from '@/screens/business/office/ClientRecordTabPanels';
-import { KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
+import { AngehoerigeTab, KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
-
-const TAB_EDIT_SECTION: Partial<Record<ClientRecordTabKey, IntakeSectionKey>> = {
-  stammdaten: 'stammdaten',
-  kontakt: 'adresse_kontakt',
-  angehoerige: 'angehoerige',
-  pflegegrad: 'versorgung',
-  abrechnung: 'kostentraeger',
-  einwilligungen: 'vertraege_einwilligungen',
-  leistungsbereiche: 'leistungsart',
-};
 
 function resolvePrimaryAddress(
   detail: NonNullable<ReturnType<typeof useClientRecord>['detail']>,
@@ -177,6 +168,7 @@ export function ClientRecordScreen({
       ? (resolvedTabParam as ClientRecordTabKey)
       : 'uebersicht';
   const [activeTab, setActiveTab] = useState<ClientRecordTabKey>(initialTab);
+  const [masterDataEditOpen, setMasterDataEditOpen] = useState(false);
   const sectionEdit = useSectionEditModal<IntakeSectionKey>();
 
   useEffect(() => {
@@ -185,14 +177,8 @@ export function ClientRecordScreen({
     }
   }, [resolvedTabParam, tabs]);
 
-  const handleEditMasterData = onEditMasterData ?? (() => sectionEdit.openSection('stammdaten'));
+  const handleEditMasterData = onEditMasterData ?? (() => setMasterDataEditOpen(true));
   const hostsLocalEditModal = !onEditMasterData;
-
-  const handleEditActiveTab = () => {
-    const section = TAB_EDIT_SECTION[activeTab];
-    if (section) sectionEdit.openSection(section);
-    else sectionEdit.openSection('stammdaten');
-  };
 
   useEffect(() => {
     if (embedded || editParam !== '1' || !detail) return;
@@ -200,7 +186,7 @@ export function ClientRecordScreen({
     if (onEditMasterData) {
       onEditMasterData();
     } else {
-      sectionEdit.openSection('stammdaten');
+      setMasterDataEditOpen(true);
     }
     router.setParams({ edit: undefined } as never);
   }, [editParam, embedded, detail, router, onEditMasterData, can]);
@@ -289,7 +275,7 @@ export function ClientRecordScreen({
   }
 
   const headerActions =
-    canArchive || canEdit || canDelete ? (
+    canArchive || canEdit ? (
       <View style={styles.headerActions}>
         {canArchive ? (
           <PremiumButton
@@ -302,41 +288,11 @@ export function ClientRecordScreen({
         ) : null}
         {canEdit ? (
           <PremiumButton
-            title="Bereich bearbeiten"
+            title="Stammdaten bearbeiten"
             size="sm"
             variant="secondary"
-            onPress={handleEditActiveTab}
+            onPress={handleEditMasterData}
           />
-        ) : null}
-        {canDelete ? (
-          <View style={styles.headerDelete}>
-            <OfficeRecordDeleteButton
-              recordLabel="Klient:in"
-              displayName={`${detail.firstName} ${detail.lastName}`}
-              confirmTitle="Klient:in wirklich löschen?"
-              buttonTitle="Klient:in löschen"
-              fullWidth={false}
-              onDelete={() => {
-                if (!tenantId) {
-                  return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-                }
-                return deleteClient(
-                  detail.id,
-                  tenantId,
-                  profile?.roleKey,
-                  profile?.id,
-                  profile?.displayName,
-                );
-              }}
-              onDeleted={() => {
-                if (onDeleted) {
-                  onDeleted();
-                  return;
-                }
-                router.replace('/office/clients' as never);
-              }}
-            />
-          </View>
         ) : null}
       </View>
     ) : null;
@@ -391,7 +347,10 @@ export function ClientRecordScreen({
           />
         )}
         {activeTab === 'kontakt' && fullQuery.data ? (
-          <KontaktAdresseTab client={fullQuery.data} onRefresh={handleRecordRefresh} />
+          <View style={styles.tabStack}>
+            <KontaktAdresseTab client={fullQuery.data} />
+            <AngehoerigeTab client={fullQuery.data} />
+          </View>
         ) : activeTab === 'kontakt' ? (
           <SectionPanel title="Kontakt & Adresse">
             <DetailInfoRow
@@ -402,7 +361,16 @@ export function ClientRecordScreen({
             <DetailInfoRow label="E-Mail" value={detail.email ?? '—'} />
           </SectionPanel>
         ) : null}
-        {!['uebersicht', 'stammdaten', 'kontakt'].includes(activeTab) ? (
+        {activeTab === 'leistungsbereiche' ? (
+          <ClientRecordTabContent
+            tab="leistungsbereiche"
+            clientId={detail.id}
+            fullClient={fullQuery.data}
+            canViewSensitive={fullQuery.canViewSensitive}
+            onRecordRefresh={handleRecordRefresh}
+          />
+        ) : null}
+        {!['uebersicht', 'stammdaten', 'kontakt', 'leistungsbereiche'].includes(activeTab) ? (
           <ClientRecordTabContent
             tab={activeTab}
             clientId={detail.id}
@@ -412,6 +380,36 @@ export function ClientRecordScreen({
           />
         ) : null}
       </View>
+
+      {canDelete ? (
+        <SectionPanel title="Gefahrenzone" subtitle="Irreversible Aktionen">
+          <OfficeRecordDeleteButton
+            recordLabel="Klient:in"
+            displayName={`${detail.firstName} ${detail.lastName}`}
+            confirmTitle="Klient:in wirklich löschen?"
+            buttonTitle="Klient:in löschen"
+            onDelete={() => {
+              if (!tenantId) {
+                return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+              }
+              return deleteClient(
+                detail.id,
+                tenantId,
+                profile?.roleKey,
+                profile?.id,
+                profile?.displayName,
+              );
+            }}
+            onDeleted={() => {
+              if (onDeleted) {
+                onDeleted();
+                return;
+              }
+              router.replace('/office/clients' as never);
+            }}
+          />
+        </SectionPanel>
+      ) : null}
     </>
   );
 
@@ -427,6 +425,17 @@ export function ClientRecordScreen({
             onClose={sectionEdit.closeSection}
             onSaved={() => {
               sectionEdit.closeSection();
+              void handleRecordRefresh();
+            }}
+          />
+        ) : null}
+        {hostsLocalEditModal && masterDataEditOpen ? (
+          <ClientMasterDataEditModal
+            visible={masterDataEditOpen}
+            clientId={detail.id}
+            onClose={() => setMasterDataEditOpen(false)}
+            onSaved={() => {
+              setMasterDataEditOpen(false);
               void handleRecordRefresh();
             }}
           />
@@ -456,6 +465,17 @@ export function ClientRecordScreen({
           }}
         />
       ) : null}
+      {hostsLocalEditModal && masterDataEditOpen ? (
+        <ClientMasterDataEditModal
+          visible={masterDataEditOpen}
+          clientId={detail.id}
+          onClose={() => setMasterDataEditOpen(false)}
+          onSaved={() => {
+            setMasterDataEditOpen(false);
+            void handleRecordRefresh();
+          }}
+        />
+      ) : null}
     </>
   );
 }
@@ -466,8 +486,8 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: careSpacing.sm,
   },
-  headerDelete: {
-    minWidth: 96,
+  tabStack: {
+    gap: careSpacing.md,
   },
   tabPanel: {
     gap: careSpacing.md,

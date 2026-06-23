@@ -23,7 +23,6 @@ export type ClientDetailKpi = {
 };
 
 export function buildClientDetailSubtitle(client: ClientDetailHeroInput, mode: ColorMode = 'dark'): string  {
-  const colors = legacyColorsFromPalette(mode);
   if (client.nextActionHint) return client.nextActionHint;
   if (client.city) return client.city;
   return 'Digitale Klient:innen-Akte';
@@ -49,10 +48,10 @@ export function buildClientDetailKpis(client: ClientDetailHeroInput, mode: Color
       accentColor: colors.violet,
     },
     {
-      id: 'invoices',
-      label: 'Rechnungen',
-      value: String(contextCounts.invoices),
-      icon: '💶',
+      id: 'open-tasks',
+      label: 'Offene Punkte',
+      value: String(Math.max(contextCounts.assignments, 0)),
+      icon: '📌',
       accentColor: colors.orange,
     },
     {

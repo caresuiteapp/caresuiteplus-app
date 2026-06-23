@@ -383,32 +383,26 @@ export function ClientRecordTabContent({
       return <ClientRecordContractsPanel clientId={clientId} fullClient={fullClient} />;
     }
     if (tab === 'risiken') return <RisikenNotfallTab client={fullClient} canViewSensitive={canViewSensitive} />;
-    if (tab === 'dokumente') {
-      return (
-        <ClientRecordDocumentsPanel
-          clientId={clientId}
-          clientLastName={fullClient.lastName}
-          initialDocuments={fullClient.documents}
-          onRecordRefresh={onRecordRefresh}
-        />
-      );
-    }
-    if (tab === 'einwilligungen') {
+    if (tab === 'einsaetze') {
       return (
         <View style={styles.panel}>
-          <EinwilligungenTab client={fullClient} />
-          <ClientRecordConsentsPanel {...panelProps} />
+          <ClientRecordShiftsTabPanel clientId={clientId} fullClient={fullClient} />
+          <ClientRecordTasksPanel {...panelProps} />
         </View>
       );
     }
-    if (tab === 'verlauf') {
-      return <ClientRecordTimelinePanel {...panelProps} />;
-    }
-    if (tab === 'aufgaben') {
-      return <ClientRecordTasksPanel {...panelProps} />;
-    }
-    if (tab === 'einsaetze') {
-      return <ClientRecordShiftsTabPanel clientId={clientId} fullClient={fullClient} />;
+    if (tab === 'dokumente') {
+      return (
+        <View style={styles.panel}>
+          <ClientRecordDocumentsPanel
+            clientId={clientId}
+            clientLastName={fullClient.lastName}
+            initialDocuments={fullClient.documents}
+            onRecordRefresh={onRecordRefresh}
+          />
+          <EinwilligungenTab client={fullClient} />
+        </View>
+      );
     }
   }
 
@@ -421,6 +415,18 @@ export function ClientRecordTabContent({
           initialDocuments={fullClient?.documents}
           onRecordRefresh={onRecordRefresh}
         />
+      );
+    case 'mehr':
+      return (
+        <View style={styles.panel}>
+          <SectionPanel title="Weitere Bereiche" subtitle="Kontextspezifische Akte-Tabs">
+            <EmptyState
+              title="Zusätzliche Bereiche"
+              message="Pflege, Medikation, Risiken und weitere Fachbereiche sind über die Modulzuordnung erreichbar."
+            />
+            <ClientRecordModulesPanel {...panelProps} />
+          </SectionPanel>
+        </View>
       );
     case 'einwilligungen':
       return <ClientRecordConsentsPanel {...panelProps} />;
@@ -435,7 +441,12 @@ export function ClientRecordTabContent({
     case 'module':
       return <ClientRecordModulesPanel {...panelProps} />;
     case 'leistungsbereiche':
-      return <ClientRecordLeistungsbereichePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
+      return (
+        <View style={styles.panel}>
+          <ClientRecordLeistungsbereichePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />
+          <ClientRecordBudgetCorePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />
+        </View>
+      );
     case 'budget':
       return <ClientRecordBudgetCorePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
     case 'portal':

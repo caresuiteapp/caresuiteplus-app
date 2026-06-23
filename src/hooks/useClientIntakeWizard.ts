@@ -449,6 +449,23 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     setStepIndex((i) => Math.max(i - 1, 0));
   }, []);
 
+  const goToStep = useCallback((index: number) => {
+    if (index < 0 || index >= steps.length) return;
+    setStepIndex(index);
+    setErrors({});
+  }, [steps.length]);
+
+  const stepStatuses = useMemo(() => {
+    return steps.map((section, index) => {
+      if (index === stepIndex) return 'active' as const;
+      const stepErrors = validateIntakeStep(section, form);
+      if (index < stepIndex) {
+        return hasIntakeErrors(stepErrors) ? ('error' as const) : ('completed' as const);
+      }
+      return 'pending' as const;
+    });
+  }, [form, stepIndex, steps]);
+
   const submit = useCallback(async () => {
     if (submitLock.current || submitting || !tenantId) return null;
     if (isEditMode && !editClientId) return null;
@@ -533,6 +550,8 @@ export function useClientIntakeWizard(options?: UseClientIntakeWizardOptions) {
     toggleArrayField,
     nextStep,
     prevStep,
+    goToStep,
+    stepStatuses,
     submit,
     discardDraft,
     saveDraft,

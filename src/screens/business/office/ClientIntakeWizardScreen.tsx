@@ -15,15 +15,15 @@ export function ClientIntakeWizardScreen() {
 
   return (
     <ScreenShell
-      title="Neuaufnahme"
-      subtitle="Kontextbasierte Aufnahme"
+      title="Klient:in aufnehmen"
+      subtitle="Leistungsart wählen"
       onBack={() => router.back()}
     >
       <View style={styles.hero}>
         <FormScreenHero
           eyebrow="OFFICE · KLIENT:INNEN"
-          title="Kontextbasierte Aufnahme"
-          meta="Leistungsart zuerst"
+          title="Klient:in aufnehmen"
+          meta="Schrittweise Aufnahme · Entwurf jederzeit speicherbar"
         />
       </View>
       <View style={styles.content}>

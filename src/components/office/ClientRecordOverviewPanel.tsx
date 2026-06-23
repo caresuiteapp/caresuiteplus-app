@@ -43,7 +43,7 @@ export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRec
   return (
     <View style={[styles.root, isDesktopOrWide && styles.rootWide]}>
       <View style={styles.main}>
-        <SectionPanel title="Stammdaten" subtitle="Kurzüberblick">
+        <SectionPanel title="Stammdaten-Kurzüberblick" subtitle="Wichtigste Angaben auf einen Blick">
           <SummaryRow label="Name" value={overview.fullName} styles={styles} />
           <SummaryRow label="Geburtsdatum" value={overview.dateOfBirth} styles={styles} />
           <SummaryRow label="Adresse" value={overview.address} styles={styles} />
@@ -53,6 +53,14 @@ export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRec
           <SummaryRow label="Leistungsart" value={overview.serviceTypes} styles={styles} />
           <SummaryRow label="Letzte Aktivität" value={overview.lastActivity} styles={styles} />
           <SummaryRow label="Aufnahmedatum" value={overview.admissionDate} styles={styles} />
+        </SectionPanel>
+
+        <SectionPanel title="Nächster Termin" subtitle="Planung & Einsätze">
+          <Text style={styles.highlightValue}>{overview.nextAppointment}</Text>
+        </SectionPanel>
+
+        <SectionPanel title="Offene Punkte" subtitle="Aufgaben, Einwilligungen, Aufnahme">
+          <Text style={styles.bodyValue}>{overview.openItemsSummary}</Text>
         </SectionPanel>
 
         <SectionPanel title="Unterschriebene Dokumente" subtitle="Aus Aufnahme & Akte">
@@ -78,7 +86,7 @@ export function ClientRecordOverviewPanel({ overview, onNavigateTab }: ClientRec
 
       {overview.quickLinks.length > 0 ? (
         <View style={styles.side}>
-          <SectionPanel title="Schnellzugriff" subtitle="Häufig genutzte Bereiche">
+          <SectionPanel title="Schnellaktionen" subtitle="Häufig genutzte Bereiche">
             <View style={styles.quickLinks}>
               {overview.quickLinks.map((link) => (
                 <Pressable
@@ -136,6 +144,12 @@ function makeStyles(c: CareLightResolved) {
       ...text.body,
       flex: 1.2,
       textAlign: 'right',
+    },
+    highlightValue: {
+      ...text.bodyStrong,
+    },
+    bodyValue: {
+      ...text.body,
     },
     docRow: {
       flexDirection: 'row',

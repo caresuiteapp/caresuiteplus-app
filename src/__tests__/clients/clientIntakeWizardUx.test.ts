@@ -34,7 +34,7 @@ describe('Client intake wizard UX fixes', () => {
   it('Neuaufnahme-Wizard persistiert Entwürfe lokal', () => {
     const hook = readSrc('hooks/useClientIntakeWizard.ts');
     const storage = readSrc('lib/clients/clientIntakeDraftStorage.ts');
-    const screen = readSrc('screens/business/office/ClientIntakeWizardScreen.tsx');
+    const form = readSrc('components/office/clientintakewizardform.tsx');
 
     expect(storage).toContain('caresuite:client-intake-draft');
     expect(hook).toContain('loadClientIntakeDraft');
@@ -43,8 +43,8 @@ describe('Client intake wizard UX fixes', () => {
     expect(hook).toContain('discardDraft');
     expect(hook).toContain('saveDraft');
     expect(hook).toContain('Entwurf gespeichert');
-    expect(screen).toContain('Als Entwurf speichern');
-    expect(screen).toContain('Neu beginnen');
-    expect(screen).toContain('Entwurf wiederhergestellt');
+    expect(form).toContain('Als Entwurf speichern');
+    expect(form).toContain('Neu beginnen');
+    expect(form).toContain('Entwurf wiederhergestellt');
   });
 });

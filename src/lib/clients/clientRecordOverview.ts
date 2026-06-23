@@ -29,6 +29,8 @@ export type ClientRecordOverview = {
   serviceTypes: string;
   lastActivity: string;
   admissionDate: string;
+  nextAppointment: string;
+  openItemsSummary: string;
   signedDocuments: ClientRecordSignedDocument[];
   quickLinks: ClientRecordQuickLink[];
 };
@@ -74,6 +76,26 @@ function resolveLastActivity(detail: ClientFullDetail): string {
   return EMPTY;
 }
 
+function resolveNextAppointment(detail: ClientFullDetail): string {
+  if (detail.nextActionHint?.trim()) return detail.nextActionHint.trim();
+  if (detail.contextCounts.appointments > 0) {
+    return `${detail.contextCounts.appointments} geplante Termine`;
+  }
+  return 'Kein Termin geplant';
+}
+
+function resolveOpenItems(detail: ClientFullDetail): string {
+  const openTasks = detail.tasks?.filter((t) => t.isActive).length ?? 0;
+  const openConsents = detail.consents?.filter((c) => !c.granted).length ?? 0;
+  const parts: string[] = [];
+  if (openTasks > 0) parts.push(`${openTasks} Aufgabe${openTasks === 1 ? '' : 'n'}`);
+  if (openConsents > 0) parts.push(`${openConsents} Einwilligung${openConsents === 1 ? '' : 'en'} offen`);
+  if (detail.status === 'entwurf' || detail.status === 'in_bearbeitung') {
+    parts.push('Aufnahme unvollständig');
+  }
+  return parts.length > 0 ? parts.join(' · ') : 'Keine offenen Punkte';
+}
+
 function buildSignedDocuments(detail: ClientFullDetail): ClientRecordSignedDocument[] {
   const items: ClientRecordSignedDocument[] = [];
 
@@ -113,7 +135,7 @@ function buildSignedDocuments(detail: ClientFullDetail): ClientRecordSignedDocum
     .slice(0, 6);
 }
 
-const QUICK_LINK_TABS: ClientRecordTabKey[] = ['stammdaten', 'dokumente', 'vertrag', 'einwilligungen'];
+const QUICK_LINK_TABS: ClientRecordTabKey[] = ['stammdaten', 'einsaetze', 'dokumente', 'portal'];
 
 export function buildClientRecordOverview(
   detail: ClientFullDetail,
@@ -144,6 +166,8 @@ export function buildClientRecordOverview(
       : detail.createdAt
         ? formatDate(detail.createdAt)
         : EMPTY,
+    nextAppointment: resolveNextAppointment(detail),
+    openItemsSummary: resolveOpenItems(detail),
     signedDocuments: buildSignedDocuments(detail),
     quickLinks,
   };
