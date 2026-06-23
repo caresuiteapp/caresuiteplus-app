@@ -7,6 +7,7 @@ import { applyInvisibleScrollIndicators } from '@/design/scroll/applyInvisibleSc
 import { ThemeModeProvider, useThemeMode } from '@/design/ThemeModeProvider';
 import { WebFontScaleProvider } from '@/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
+import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/components/navigation/ModalStackProvider';
 import { AuthProvider } from '@/lib/auth';
@@ -65,8 +66,11 @@ export default function RootLayout() {
         <WebFontScaleProvider>
           <GlobalAiProvider>
             <ModalStackProvider>
-              <BusinessWelcomeGate />
-              <RootShell />
+              <ScreensaverSettingsProvider>
+                <BusinessWelcomeGate />
+                <GlobalScreensaver />
+                <RootShell />
+              </ScreensaverSettingsProvider>
             </ModalStackProvider>
           </GlobalAiProvider>
         </WebFontScaleProvider>

@@ -1,10 +1,13 @@
 import { useState } from 'react';
+import { useRouter } from 'expo-router';
 import { SettingsScreenFrame } from '@/components/settings/settingsscreenframe';
 import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { saveUserProfile } from '@/lib/auth/userprofileservice';
+import { APPEARANCE_SETTINGS_ROUTE } from '@/lib/screensaver/appearanceSettingsRoute';
 
 export function UserProfileScreen({ embeddedInModal = false }: { embeddedInModal?: boolean } = {}) {
+  const router = useRouter();
   const { profile, updateProfile } = useAuth();
   const [firstName, setFirstName] = useState(profile?.firstName ?? '');
   const [lastName, setLastName] = useState(profile?.lastName ?? '');
@@ -43,6 +46,11 @@ export function UserProfileScreen({ embeddedInModal = false }: { embeddedInModal
     >
       <PremiumInput label="Vorname" value={firstName} onChangeText={setFirstName} />
       <PremiumInput label="Nachname" value={lastName} onChangeText={setLastName} />
+      <PremiumButton
+        title="Darstellung & Oberfläche"
+        variant="secondary"
+        onPress={() => router.push(APPEARANCE_SETTINGS_ROUTE as never)}
+      />
       {error ? <ErrorState message={error} /> : null}
       {saved ? <SuccessState message="Profil gespeichert." /> : null}
       <PremiumButton title={saving ? 'Speichern…' : 'Speichern'} onPress={handleSave} disabled={saving} />
