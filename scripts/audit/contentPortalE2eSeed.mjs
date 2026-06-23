@@ -12,11 +12,15 @@ import {
   loadAuditEnv,
   pick,
 } from './lib/auditSupabaseClient.mjs';
+import {
+  E2E_EMPLOYEE_ID,
+  repairEmployeePortalAccount,
+} from './lib/repairEmployeePortalAccount.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TENANT = 'a4ba83bd-65db-46cf-8cf7-61492cc78315';
 const CLIENT_A = 'ec4f159f-e794-4326-8b0e-15c0166df1ea';
-const EMPLOYEE = '911a9b50-0325-45ce-a1ce-87cc9376c816';
+const EMPLOYEE = E2E_EMPLOYEE_ID;
 const VISIT_TODAY = 'c0e50001-0001-4000-8000-000000000001';
 const VISIT_TOMORROW = 'c0e50002-0002-4000-8000-000000000002';
 const PROOF_PENDING = 'c0e50003-0003-4000-8000-000000000003';
@@ -95,6 +99,13 @@ async function main() {
     step: 'env_mode',
     ok: envRow.ok,
     detail: envRow.ok ? 'ok' : envRow.error,
+  });
+
+  const employeeRepair = await repairEmployeePortalAccount(adminClient, env);
+  result.steps.push({
+    step: 'employee_portal_account',
+    ok: employeeRepair.ok,
+    detail: employeeRepair.ok ? 'ok' : employeeRepair.diag,
   });
 
   const today = new Date();

@@ -13,7 +13,9 @@ import {
   getSupabaseUrl,
   loadAuditEnv,
   pick,
+  createAuditAdminClient,
 } from './lib/auditSupabaseClient.mjs';
+import { repairEmployeePortalAccount } from './lib/repairEmployeePortalAccount.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const legacyBootstrap = join(root, '.audit-assist-live-e2e-a42-auth-bootstrap.mjs');
@@ -31,7 +33,7 @@ function envSummary(env) {
   };
 }
 
-function main() {
+async function main() {
   const env = loadAuditEnv();
   const summary = envSummary(env);
   const result = {
@@ -78,9 +80,28 @@ function main() {
     result.blocker = result.legacy?.auth?.errorClass ?? 'bootstrap_failed';
   }
 
+  const adminClient = createAuditAdminClient(env);
+  const employeeRepair = await repairEmployeePortalAccount(adminClient, env);
+  result.employeePortalRepair = {
+    ok: employeeRepair.ok,
+    diag: employeeRepair.diag,
+  };
+  if (!employeeRepair.ok) {
+    result.employeePortalRepairBlocker = employeeRepair.diag?.failureClass ?? 'employee_repair_failed';
+  }
+
   writeFileSync(outPath, JSON.stringify(result, null, 2));
-  console.log(JSON.stringify({ ok: result.ok, exitCode: result.exitCode, blocker: result.blocker }));
-  process.exit(result.ok ? 0 : 1);
+  const exitOk = result.ok && employeeRepair.ok;
+  console.log(JSON.stringify({
+    ok: exitOk,
+    exitCode: run.status,
+    blocker: exitOk ? null : (result.employeePortalRepairBlocker ?? result.blocker),
+    employeePortalRepair: employeeRepair.ok,
+  }));
+  process.exit(exitOk ? 0 : 1);
 }
 
-main();
+main().catch((err) => {
+  console.error(err?.message ?? err);
+  process.exit(1);
+});

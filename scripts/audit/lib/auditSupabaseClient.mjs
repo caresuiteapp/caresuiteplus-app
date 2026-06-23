@@ -235,5 +235,22 @@ export function createAuditAdminClient(env = loadAuditEnv()) {
       }
       return { ok: true };
     },
+    async restPatch(table, filterQuery, patch) {
+      const result = await restRequest(url, key, key, `/rest/v1/${table}?${filterQuery}`, {
+        method: 'PATCH',
+        headers: {
+          'Content-Type': 'application/json',
+          Prefer: 'return=minimal',
+        },
+        body: JSON.stringify(patch),
+      });
+      if (!result.ok) {
+        return {
+          ok: false,
+          error: formatClientError(clientType, keyName, result.text),
+        };
+      }
+      return { ok: true };
+    },
   };
 }
