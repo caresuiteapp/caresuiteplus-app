@@ -1,4 +1,4 @@
-import { useEffect, useMemo, type ReactNode } from 'react';
+import { useEffect, useMemo, useCallback, type ReactNode } from 'react';
 import {
   Modal,
   Platform,
@@ -10,6 +10,7 @@ import {
   type StyleProp,
   type ViewStyle,
 } from 'react-native';
+import { confirmAction } from '@/lib/platform/confirmAction';
 import { GlassSurface } from '@/components/ui/effects';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -57,6 +58,8 @@ export type PlatformModalProps = {
   bodyStyle?: StyleProp<ViewStyle>;
   sheetStyle?: StyleProp<ViewStyle>;
   lockBodyScroll?: boolean;
+  isDirty?: boolean;
+  dirtyCloseMessage?: string;
 };
 
 const DEFAULT_MAX_WIDTH = popupShellLayout.maxWidthDefault;
@@ -83,6 +86,8 @@ export function PlatformModal({
   bodyStyle,
   sheetStyle,
   lockBodyScroll = true,
+  isDirty = false,
+  dirtyCloseMessage = 'Ungespeicherte Änderungen verwerfen?',
 }: PlatformModalProps) {
   const { isDark, c } = useCareLightPalette();
   const { isLight } = useLegacyTheme();
@@ -209,6 +214,34 @@ export function PlatformModal({
     };
   }, [lockBodyScroll, visible]);
 
+  const requestClose = useCallback(async () => {
+    if (isDirty) {
+      const confirmed = await confirmAction({
+        title: 'Schließen',
+        message: dirtyCloseMessage,
+        confirmLabel: 'Verwerfen',
+        cancelLabel: 'Weiter bearbeiten',
+      });
+      if (!confirmed) return;
+    }
+    onClose();
+  }, [dirtyCloseMessage, isDirty, onClose]);
+
+  const handleBack = onBack
+    ? async () => {
+        if (isDirty) {
+          const confirmed = await confirmAction({
+            title: 'Zurück',
+            message: dirtyCloseMessage,
+            confirmLabel: 'Verwerfen',
+            cancelLabel: 'Weiter bearbeiten',
+          });
+          if (!confirmed) return;
+        }
+        onBack();
+      }
+    : undefined;
+
   const backdropStyle = variant === 'bottomSheet' ? styles.backdropBottom : styles.backdropCenter;
 
   const sheetContent = (
@@ -223,8 +256,8 @@ export function PlatformModal({
         <GradientModalHeader
           title={title}
           subtitle={subtitle}
-          onBack={onBack}
-          onClose={onClose}
+          onBack={handleBack}
+          onClose={() => void requestClose()}
           actions={headerActions}
         />
       </View>
@@ -263,14 +296,14 @@ export function PlatformModal({
       visible={visible}
       transparent
       animationType={resolvedAnimation}
-      onRequestClose={onClose}
+      onRequestClose={() => void requestClose()}
       statusBarTranslucent={statusBarTranslucent}
     >
       <View style={backdropStyle} accessibilityViewIsModal>
         {dismissOnBackdrop ? (
           <Pressable
             style={StyleSheet.absoluteFill}
-            onPress={onClose}
+            onPress={() => void requestClose()}
             accessibilityLabel="Schließen"
           />
         ) : null}

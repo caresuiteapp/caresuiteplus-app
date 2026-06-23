@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { EmployeeDetailHero } from '@/components/office/EmployeeDetailHero';
+import { EmployeePortalImpactPanel } from '@/components/office/EmployeePortalImpactPanel';
 import { EmployeeSectionEditModal } from '@/components/office/EmployeeSectionEditModal';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import { LockedActionBanner } from '@/components/permissions';
@@ -40,6 +41,7 @@ export function EmployeeDetailScreen({
   employeeId: employeeIdProp,
   embedded = false,
   embeddedInModal = false,
+  initialTabOverride,
   onDeleted,
   onEditMasterData,
   onOpenPersonnelRecord,
@@ -48,6 +50,7 @@ export function EmployeeDetailScreen({
   employeeId?: string;
   embedded?: boolean;
   embeddedInModal?: boolean;
+  initialTabOverride?: 'uebersicht' | 'stammdaten' | 'kontakt' | 'anstellung' | 'portal';
   onDeleted?: () => void;
   onEditMasterData?: () => void;
   onOpenPersonnelRecord?: () => void;
@@ -61,7 +64,9 @@ export function EmployeeDetailScreen({
   const { can, check, isReadOnly, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? 'business_admin';
   const canView = can('office.employees.view');
-  const [activeTab, setActiveTab] = useState<'uebersicht' | 'stammdaten' | 'kontakt' | 'anstellung'>('uebersicht');
+  const [activeTab, setActiveTab] = useState<
+    'uebersicht' | 'stammdaten' | 'kontakt' | 'anstellung' | 'portal'
+  >(initialTabOverride ?? 'uebersicht');
   const sectionEdit = useSectionEditModal<EmployeeEditSectionKey>();
   const hostsLocalSectionEdit = !onEditMasterData;
 
@@ -189,6 +194,7 @@ export function EmployeeDetailScreen({
           { key: 'stammdaten', label: 'Stammdaten' },
           { key: 'kontakt', label: 'Kontakt' },
           { key: 'anstellung', label: 'Anstellung' },
+          { key: 'portal', label: 'Portal' },
         ]}
         activeKey={activeTab}
         onSelect={(key) => setActiveTab(key as typeof activeTab)}
@@ -264,6 +270,8 @@ export function EmployeeDetailScreen({
           ) : null}
         </SectionPanel>
       ) : null}
+
+      {activeTab === 'portal' ? <EmployeePortalImpactPanel /> : null}
 
       {can('inventory.view') && equipmentQuery.data ? (
         <SectionPanel title="Arbeitsmittel & Inventar">

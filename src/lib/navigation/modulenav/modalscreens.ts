@@ -6,6 +6,7 @@ import { ClientRecordModalPrepScreen } from '@/screens/office/ClientRecordModalP
 import { ClientEditModalScreen } from '@/components/office/ClientEditModal';
 import { ClientServiceProfileAddModalScreen } from '@/components/office/ClientServiceProfilesPanel';
 import { EmployeeRecordModalPrepScreen } from '@/screens/office/EmployeeRecordModalPrepScreen';
+import { PortalApprovalModalPrepScreen } from '@/screens/office/PortalApprovalModalPrepScreen';
 import {
   DataRequestScreen,
   TenantSettingsScreen,
@@ -75,5 +76,11 @@ export const MODULE_NAV_MODAL_SCREENS: Record<string, ModuleNavModalScreen> = {
     subtitle: 'Kurzüberblick — vollständige Akte in Office',
     Component: EmployeeRecordModalPrepScreen,
     maxWidth: 880,
+  },
+  'office.portal.approvals': {
+    title: 'Portal-Freigaben',
+    subtitle: 'Nachweise, Uploads und Zugangsanfragen',
+    Component: PortalApprovalModalPrepScreen,
+    maxWidth: 820,
   },
 };
