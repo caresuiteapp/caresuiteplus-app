@@ -39,7 +39,47 @@ export type StationaerDashboardStats = {
   newAdmissionsCount: number;
   occupancyPercent: number;
   handoverPendingCount: number;
+  freeBeds: number;
+  totalBeds: number;
+  admissionsToday: number;
+  admissionsThisWeek: number;
+  dischargesToday: number;
+  dischargesThisWeek: number;
+  openRoomAssignments: number;
+  activeLivingAreas: number;
+  openDailyStructureCount: number;
+  openMealPlanningCount: number;
+  openHandoversCount: number;
+  openHandoverReportsCount: number;
+  alertsCount: number;
+  openResidentPlanningCount: number;
+  roomConflictCount: number;
 };
+
+export function emptyStationaerDashboardStats(): StationaerDashboardStats {
+  return {
+    totalResidents: 0,
+    activeCount: 0,
+    newAdmissionsCount: 0,
+    occupancyPercent: 0,
+    handoverPendingCount: 0,
+    freeBeds: 0,
+    totalBeds: 0,
+    admissionsToday: 0,
+    admissionsThisWeek: 0,
+    dischargesToday: 0,
+    dischargesThisWeek: 0,
+    openRoomAssignments: 0,
+    activeLivingAreas: 0,
+    openDailyStructureCount: 0,
+    openMealPlanningCount: 0,
+    openHandoversCount: 0,
+    openHandoverReportsCount: 0,
+    alertsCount: 0,
+    openResidentPlanningCount: 0,
+    roomConflictCount: 0,
+  };
+}
 
 export type LivingAreaListItem = Pick<Room, 'id' | 'name' | 'wing' | 'capacity' | 'status'> & {
   occupiedBeds: number;

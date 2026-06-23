@@ -3,6 +3,8 @@ import type { MainModuleKey, ModuleNavConfig, ModuleNavItem } from '@/types/navi
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { OFFICE_SIDEBAR_QUICK_ACTIONS } from '@/lib/office/officeDashboardWorkspace';
 import { PFLEGE_SIDEBAR_QUICK_ACTIONS } from '@/lib/pflege/pflegeDashboardWorkspace';
+import { STATIONAER_SIDEBAR_QUICK_ACTIONS, buildStationaerOpenTasks } from '@/lib/stationaer/stationaerDashboardWorkspace';
+import type { StationaerDashboardStats } from '@/types/modules/stationaer';
 import { getModuleNavConfig } from '@/lib/navigation/modulenav';
 
 export type ContextQuickAction = {
@@ -59,6 +61,29 @@ export const PFLEGE_QUICK_ACTIONS: ContextQuickAction[] = PFLEGE_SIDEBAR_QUICK_A
                   : 'insightScope',
   href: action.route ?? '/pflege',
 }));
+
+export const STATIONAER_QUICK_ACTIONS: ContextQuickAction[] = STATIONAER_SIDEBAR_QUICK_ACTIONS.map(
+  (action) => ({
+    label: action.label,
+    icon:
+      action.id === 'stationaer-qa-resident'
+        ? 'addClient'
+        : action.id === 'stationaer-qa-admission'
+          ? 'calendar'
+          : action.id === 'stationaer-qa-occupancy'
+            ? 'serviceRecord'
+            : action.id === 'stationaer-qa-rooms'
+              ? 'uploadFolder'
+              : action.id === 'stationaer-qa-handover'
+                ? 'messageWave'
+                : action.id === 'stationaer-qa-daily'
+                  ? 'taskCheck'
+                  : action.id === 'stationaer-qa-meals'
+                    ? 'livePulse'
+                    : 'insightScope',
+    href: action.route ?? '/stationaer',
+  }),
+);
 
 /** Expanded hub nav for Office right context panel — min. 5 items per group. */
 export const officeContextPanelNav: ModuleNavConfig = {
@@ -189,7 +214,12 @@ export function buildOpenTasks(
   mainModule: MainModuleKey,
   officeData: ReturnType<typeof useOfficeDashboard>['data'],
   isLive: boolean,
+  stationaerStats?: StationaerDashboardStats | null,
 ): { title: string; count: number | string }[] {
+  if (mainModule === 'stationaer') {
+    return buildStationaerOpenTasks(stationaerStats);
+  }
+
   if (mainModule === 'office' && officeData) {
     const cards = officeData.statusCards.slice(0, 3);
     if (cards.length > 0) {

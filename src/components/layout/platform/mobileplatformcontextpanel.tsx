@@ -17,6 +17,7 @@ import { withAlpha } from '@/design/tokens/motion';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
+import { useStationaerDashboard } from '@/hooks/useStationaerDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
 import { useModalStack } from '@/hooks/useModalStack';
@@ -29,6 +30,7 @@ import {
   ASSIST_QUICK_ACTIONS,
   OFFICE_QUICK_ACTIONS,
   PFLEGE_QUICK_ACTIONS,
+  STATIONAER_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
 import { CollapsibleSidebarSection } from './collapsiblesidebarsection';
@@ -59,11 +61,12 @@ export function MobilePlatformContextPanel({
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const { data: officeData } = useOfficeDashboard();
+  const { stats: stationaerStats } = useStationaerDashboard();
   const isLive = getServiceMode() === 'supabase';
 
   const openTasks = useMemo(
-    () => buildOpenTasks(mainModule, officeData, isLive),
-    [isLive, mainModule, officeData],
+    () => buildOpenTasks(mainModule, officeData, isLive, stationaerStats),
+    [isLive, mainModule, officeData, stationaerStats],
   );
 
   const quickActions =
@@ -73,7 +76,9 @@ export function MobilePlatformContextPanel({
         ? ASSIST_QUICK_ACTIONS
         : mainModule === 'pflege'
           ? PFLEGE_QUICK_ACTIONS
-          : OFFICE_QUICK_ACTIONS.slice(0, 2);
+          : mainModule === 'stationaer'
+            ? STATIONAER_QUICK_ACTIONS
+            : OFFICE_QUICK_ACTIONS.slice(0, 2);
 
   const navConfig = useMemo(() => resolveContextPanelNavConfig(mainModule), [mainModule]);
   const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);
