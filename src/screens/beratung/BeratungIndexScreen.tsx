@@ -1,106 +1,89 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { CounselingCaseListCard } from '@/components/beratung';
-import { CareLightModuleDashboard, CareLightScreen } from '@/components/layout';
-import {
-  CareLightModuleTile,
-  EmptyState,
-  ErrorState,
-  InfoBanner,
-  LoadingState,
-} from '@/components/ui';
+import { BeratungDashboardView } from '@/components/dashboard/BeratungDashboardView';
+import { ActionToolbar, ModuleDashboardShell } from '@/components/layout/platform';
+import { InfoBanner } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
-import { careLightColors } from '@/design/tokens/lightTheme';
-import { careSpacing } from '@/design/tokens/spacing';
-import { careTypography } from '@/design/tokens/typography';
 import { useBeratungDashboard } from '@/hooks/useBeratungDashboard';
-import { usePermissions } from '@/hooks/usePermissions';
-import { useAuth } from '@/lib/auth/context';
-import { buildBeratungDashboardKpis } from '@/lib/beratung/beratungDashboardStats';
-import { mapToCareLightKpis } from '@/lib/adaptive/careLightKpiMap';
+import { wp418A11y } from '@/lib/a11y/wp418-beratung';
 import {
   BERATUNG_EXTENSION_PREPARED_MESSAGE,
   isBeratungExtensionLiveReady,
 } from '@/lib/beratung/beratungModuleConfig';
-import { fetchBeratungDashboardStats } from '@/lib/beratung/caseListService';
-import { wp418A11y } from '@/lib/a11y/wp418-beratung';
-
-void fetchBeratungDashboardStats;
+import {
+  BERATUNG_HEADER_PRIMARY_ACTIONS,
+  BERATUNG_HEADER_SECONDARY_ACTIONS,
+} from '@/lib/beratung/beratungDashboardWorkspace';
 
 export function BeratungIndexScreen() {
   const router = useRouter();
-  const { can, roleLabel } = usePermissions();
   const beratungAccent = moduleColor('beratung');
   const { stats, recentCases, loading, error, refresh } = useBeratungDashboard();
 
-  if (loading && !stats) {
-    return (
-      <CareLightScreen>
-        <LoadingState message="Dashboard wird geladen…" />
-      </CareLightScreen>
-    );
-  }
+  const navigate = (route?: string) => {
+    if (route) {
+      router.push(route as never);
+    }
+  };
 
-  if (error && !stats) {
-    return (
-      <CareLightScreen>
-        <ErrorState message={error} onRetry={refresh} />
-      </CareLightScreen>
-    );
-  }
-
-  const kpis = stats ? mapToCareLightKpis(buildBeratungDashboardKpis(stats, 'light')) : [];
+  const toolbarActions = [
+    ...BERATUNG_HEADER_PRIMARY_ACTIONS.map((action) => ({
+      key: action.id,
+      label: `+ ${action.label.replace(/^\+?\s*/, '')}`,
+      icon: action.icon,
+      variant: 'primary' as const,
+      onPress: () => navigate(action.route),
+    })),
+    ...BERATUNG_HEADER_SECONDARY_ACTIONS.map((action) => ({
+      key: action.id,
+      label: action.label,
+      icon: action.icon,
+      variant: 'secondary' as const,
+      onPress: () => navigate(action.route),
+    })),
+    {
+      key: 'refresh',
+      label: 'Aktualisieren',
+      icon: '🔄',
+      variant: 'ghost' as const,
+      onPress: refresh,
+    },
+  ];
 
   return (
-    <CareLightScreen>
+    <ModuleDashboardShell
+      moduleLabel="Beratung"
+      title="Beratung"
+      subtitle="Fälle, Protokolle und Wiedervorlagen im Überblick"
+      breadcrumbs={[
+        { label: 'Start', href: '/business' },
+        { label: 'Beratung' },
+      ]}
+    >
       {!isBeratungExtensionLiveReady() ? (
         <InfoBanner title="Demo-funktional" message={BERATUNG_EXTENSION_PREPARED_MESSAGE} />
       ) : null}
-      <CareLightModuleDashboard
-        moduleKey="beratung"
-        subtitle={`Sozial- und Pflegeberatung · ${roleLabel ?? 'Demo'}`}
-        kpis={kpis}
-        recentTitle="Aktuelle Fälle"
-        recentSubtitle="Zuletzt bearbeitet"
-        recentSection={
-          recentCases.length === 0 ? (
-            <EmptyState
-              title="Keine offenen Fälle"
-              message="Derzeit sind keine aktiven Beratungsfälle hinterlegt."
-              actionLabel="Alle Fälle anzeigen"
-              onAction={() => router.push('/beratung/cases' as never)}
-            />
-          ) : (
-            recentCases.map((counselingCase) => (
-              <CounselingCaseListCard
-                key={counselingCase.id}
-                counselingCase={counselingCase}
-                onPress={() => router.push(`/beratung/cases/${counselingCase.id}` as never)}
-              />
-            ))
-          )
-        }
-        quickActions={
-          <View style={styles.quickGrid}>
-            <CareLightModuleTile icon="📋" title="Alle Fälle" description="Suche, Filter und Status" accentColor={beratungAccent} isActive onPress={() => router.push('/beratung/cases' as never)} />
-            <CareLightModuleTile icon="📄" title="Protokolle" description="Fallbezogene Dokumentation" accentColor={moduleColor('assist')} isActive onPress={() => router.push('/beratung/protokolle' as never)} />
-            <CareLightModuleTile icon="🔔" title="Wiedervorlagen" description="Fällige Nachverfolgungen" accentColor={moduleColor('akademie')} isActive onPress={() => router.push('/beratung/wiedervorlagen' as never)} />
-            <CareLightModuleTile icon="📈" title="Auswertungen" description="KPIs und Kennzahlen" accentColor={moduleColor('pflege')} isActive onPress={() => router.push('/beratung/auswertungen' as never)} />
-            <CareLightModuleTile icon="⚙️" title="Einstellungen" description="Modul-Konfiguration" accentColor={careLightColors.muted} isActive onPress={() => router.push('/beratung/settings' as never)} />
-            {!can('beratung.cases.view') ? (
-              <Text style={styles.readOnlyHint}>Lesemodus — Beratungsfälle sind für {roleLabel ?? 'Ihre Rolle'} nicht sichtbar.</Text>
-            ) : null}
-          </View>
-        }
+      <ActionToolbar actions={toolbarActions} accentColor={beratungAccent} />
+      <BeratungDashboardView
+        stats={stats}
+        recentCases={recentCases}
+        loading={loading}
+        error={error}
+        onRefresh={refresh}
       />
-      <View accessible accessibilityLabel={`${wp418A11y.screenLabel} · WP ${wp418A11y.wpNumber}`} accessibilityRole={wp418A11y.headingRole} style={styles.a11yAnchor} />
-    </CareLightScreen>
+      <View
+        accessible
+        accessibilityLabel={`${wp418A11y.screenLabel} · WP ${wp418A11y.wpNumber}`}
+        accessibilityRole={wp418A11y.headingRole}
+        style={styles.a11yAnchor}
+      />
+    </ModuleDashboardShell>
   );
 }
 
 const styles = StyleSheet.create({
-  quickGrid: { gap: careSpacing.md },
-  readOnlyHint: { ...careTypography.caption, color: careLightColors.muted },
-  loading: { ...careTypography.body, color: careLightColors.muted, textAlign: 'center', paddingVertical: careSpacing.xl },
-  a11yAnchor: { height: 0, width: 0 },
+  a11yAnchor: {
+    height: 0,
+    width: 0,
+  },
 });

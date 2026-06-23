@@ -1,9 +1,15 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import type { BeratungDashboardStats, CounselingListItem } from '@/types/modules/beratung';
+import type {
+  BeratungDashboardStats,
+  CounselingListItem,
+  FollowUp,
+  Protocol,
+} from '@/types/modules/beratung';
 import {
   createDemoCounselingCase,
   getDemoCounselingCaseListItems,
 } from '@/data/demo/counselingCases';
+import { getDemoCounselingProtocols, getDemoFollowUps } from '@/data/demo/beratungExtended';
 import {
   isAppointmentUpcoming,
   isCaseClosedThisMonth,
@@ -13,20 +19,88 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import { beratungSupabaseRepository } from '@/lib/services/repositories/beratungRepository.supabase';
+import { emptyBeratungDashboardStats } from '@/types/modules/beratung';
 
-function buildDashboardStats(items: CounselingListItem[]): BeratungDashboardStats {
+const WEEK_MS = 7 * 86_400_000;
+
+function isSameDay(iso: string, reference = new Date()): boolean {
+  const date = new Date(iso);
+  return (
+    date.getDate() === reference.getDate() &&
+    date.getMonth() === reference.getMonth() &&
+    date.getFullYear() === reference.getFullYear()
+  );
+}
+
+function isWithinLastWeek(iso: string): boolean {
+  return Date.now() - new Date(iso).getTime() <= WEEK_MS;
+}
+
+function isRelativeCase(item: CounselingListItem): boolean {
+  const haystack = `${item.category} ${item.subject}`.toLowerCase();
+  return haystack.includes('angehör') || haystack.includes('familie');
+}
+
+function isFirstConsultationCase(item: CounselingListItem): boolean {
+  const haystack = `${item.category} ${item.subject}`.toLowerCase();
+  return (
+    item.status === 'entwurf' ||
+    haystack.includes('erstberatung') ||
+    haystack.includes('erstgespräch') ||
+    haystack.includes('erstgespraech')
+  );
+}
+
+function isOpenProtocolStatus(status: Protocol['status']): boolean {
+  return status === 'entwurf' || status === 'in_bearbeitung' || status === 'aktiv';
+}
+
+function isOpenFollowUpStatus(status: FollowUp['status']): boolean {
+  return status !== 'abgeschlossen' && status !== 'gesperrt';
+}
+
+function buildDashboardStats(
+  items: CounselingListItem[],
+  protocols: (Protocol & { caseSubject: string })[] = [],
+  followUps: FollowUp[] = [],
+): BeratungDashboardStats {
+  const now = Date.now();
+  const openCases = items.filter((item) => isCaseOpen(item.status));
+  const openFollowUps = followUps.filter((item) => isOpenFollowUpStatus(item.status));
+  const casesWithFollowUp = new Set(openFollowUps.map((item) => item.caseId));
+  const casesWithProtocol = new Set(protocols.map((item) => item.caseId));
+
   return {
     totalCases: items.length,
-    openCount: items.filter((item) => isCaseOpen(item.status)).length,
+    openCount: openCases.length,
     activeCount: items.filter((item) => item.status === 'aktiv').length,
-    upcomingAppointmentsCount: items.filter((item) =>
-      isAppointmentUpcoming(item.nextAppointmentAt),
-    ).length,
+    upcomingAppointmentsCount: items.filter((item) => isAppointmentUpcoming(item.nextAppointmentAt)).length,
     closedThisMonthCount: items.filter((item) =>
-      isCaseClosedThisMonth(
-        item.status === 'abgeschlossen' ? item.updatedAt : null,
-      ),
+      isCaseClosedThisMonth(item.status === 'abgeschlossen' ? item.updatedAt : null),
     ).length,
+    newCasesCount: openCases.filter(
+      (item) => item.status === 'entwurf' || isWithinLastWeek(item.openedAt),
+    ).length,
+    appointmentsTodayCount: openCases.filter(
+      (item) => item.nextAppointmentAt && isSameDay(item.nextAppointmentAt),
+    ).length,
+    openFirstConsultationsCount: openCases.filter(
+      (item) => isFirstConsultationCase(item) && !casesWithProtocol.has(item.id),
+    ).length,
+    openProtocolsCount: protocols.filter((item) => isOpenProtocolStatus(item.status)).length,
+    dueFollowUpsCount: openFollowUps.filter((item) => new Date(item.dueAt).getTime() <= now).length,
+    openCallbacksCount: openFollowUps.filter((item) =>
+      (item.note ?? '').toLowerCase().includes('rückruf'),
+    ).length,
+    openRelativeContactsCount: openCases.filter((item) => isRelativeCase(item)).length,
+    casesWithoutNextStepCount: openCases.filter(
+      (item) => !item.nextAppointmentAt && !casesWithFollowUp.has(item.id),
+    ).length,
+    deadlinesEscalationsCount: openFollowUps.filter((item) => new Date(item.dueAt).getTime() < now).length,
+    closedThisWeekCount: items.filter(
+      (item) => item.status === 'abgeschlossen' && isWithinLastWeek(item.updatedAt),
+    ).length,
+    openReportsCount: protocols.filter((item) => item.status === 'entwurf').length,
   };
 }
 
@@ -91,7 +165,24 @@ export async function fetchBeratungDashboardStats(
   const listResult = await fetchCounselingCaseList(tenantId, actorRoleKey);
   if (!listResult.ok) return listResult;
 
-  return { ok: true, data: buildDashboardStats(listResult.data) };
+  if (getServiceMode() === 'supabase') {
+    return {
+      ok: true,
+      data: {
+        ...emptyBeratungDashboardStats(),
+        ...buildDashboardStats(listResult.data),
+      },
+    };
+  }
+
+  return {
+    ok: true,
+    data: buildDashboardStats(
+      listResult.data,
+      getDemoCounselingProtocols(),
+      getDemoFollowUps(),
+    ),
+  };
 }
 
 export async function fetchRecentCounselingCases(

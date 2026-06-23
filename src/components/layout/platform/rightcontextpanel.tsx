@@ -13,6 +13,7 @@ import {
 import { usePathname, useRouter } from 'expo-router';
 import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
+import { useBeratungDashboard } from '@/hooks/useBeratungDashboard';
 import { useStationaerDashboard } from '@/hooks/useStationaerDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
@@ -32,6 +33,7 @@ import type { MainModuleKey } from '@/types/navigation/platform';
 import {
   buildOpenTasks,
   ASSIST_QUICK_ACTIONS,
+  BERATUNG_QUICK_ACTIONS,
   OFFICE_QUICK_ACTIONS,
   PFLEGE_QUICK_ACTIONS,
   STATIONAER_QUICK_ACTIONS,
@@ -75,6 +77,7 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   const accent = accentColor ?? colors.violet;
   const { data: officeData } = useOfficeDashboard();
   const { stats: stationaerStats } = useStationaerDashboard();
+  const { stats: beratungStats } = useBeratungDashboard();
   const isLive = getServiceMode() === 'supabase';
   const styles = useMemo(() => createStyles(isDark, colors, accent), [isDark, colors, accent]);
 
@@ -94,8 +97,10 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
           ? PFLEGE_QUICK_ACTIONS
           : mainModule === 'stationaer'
             ? STATIONAER_QUICK_ACTIONS
-            : OFFICE_QUICK_ACTIONS.slice(0, 2);
-  const openTasks = buildOpenTasks(mainModule, officeData, isLive, stationaerStats);
+            : mainModule === 'beratung'
+              ? BERATUNG_QUICK_ACTIONS
+              : OFFICE_QUICK_ACTIONS.slice(0, 2);
+  const openTasks = buildOpenTasks(mainModule, officeData, isLive, stationaerStats, beratungStats);
 
   return (
     <View style={styles.root}>

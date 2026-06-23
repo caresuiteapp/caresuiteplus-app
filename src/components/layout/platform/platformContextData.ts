@@ -3,7 +3,12 @@ import type { MainModuleKey, ModuleNavConfig, ModuleNavItem } from '@/types/navi
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { OFFICE_SIDEBAR_QUICK_ACTIONS } from '@/lib/office/officeDashboardWorkspace';
 import { PFLEGE_SIDEBAR_QUICK_ACTIONS } from '@/lib/pflege/pflegeDashboardWorkspace';
+import {
+  BERATUNG_SIDEBAR_QUICK_ACTIONS,
+  buildBeratungOpenTasks,
+} from '@/lib/beratung/beratungDashboardWorkspace';
 import { STATIONAER_SIDEBAR_QUICK_ACTIONS, buildStationaerOpenTasks } from '@/lib/stationaer/stationaerDashboardWorkspace';
+import type { BeratungDashboardStats } from '@/types/modules/beratung';
 import type { StationaerDashboardStats } from '@/types/modules/stationaer';
 import { getModuleNavConfig } from '@/lib/navigation/modulenav';
 
@@ -82,6 +87,29 @@ export const STATIONAER_QUICK_ACTIONS: ContextQuickAction[] = STATIONAER_SIDEBAR
                     ? 'livePulse'
                     : 'insightScope',
     href: action.route ?? '/stationaer',
+  }),
+);
+
+export const BERATUNG_QUICK_ACTIONS: ContextQuickAction[] = BERATUNG_SIDEBAR_QUICK_ACTIONS.map(
+  (action) => ({
+    label: action.label,
+    icon:
+      action.id === 'beratung-qa-case'
+        ? 'addClient'
+        : action.id === 'beratung-qa-first-consultation'
+          ? 'teamRoles'
+          : action.id === 'beratung-qa-protocol'
+            ? 'docsReview'
+            : action.id === 'beratung-qa-follow-up'
+              ? 'calendar'
+              : action.id === 'beratung-qa-contact'
+                ? 'messageWave'
+                : action.id === 'beratung-qa-relatives'
+                  ? 'employeeBadge'
+                  : action.id === 'beratung-qa-calendar'
+                    ? 'calendar'
+                    : 'uploadFolder',
+    href: action.route ?? '/beratung',
   }),
 );
 
@@ -215,9 +243,14 @@ export function buildOpenTasks(
   officeData: ReturnType<typeof useOfficeDashboard>['data'],
   isLive: boolean,
   stationaerStats?: StationaerDashboardStats | null,
+  beratungStats?: BeratungDashboardStats | null,
 ): { title: string; count: number | string }[] {
   if (mainModule === 'stationaer') {
     return buildStationaerOpenTasks(stationaerStats);
+  }
+
+  if (mainModule === 'beratung') {
+    return buildBeratungOpenTasks(beratungStats);
   }
 
   if (mainModule === 'office' && officeData) {
