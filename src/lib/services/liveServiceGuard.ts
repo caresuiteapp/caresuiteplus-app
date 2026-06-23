@@ -1,4 +1,9 @@
 import type { ServiceResult } from '@/types';
+import {
+  assertDemoDataNotInProduction,
+  assertTenantAllowedForMode,
+  toGuardBlock,
+} from '@/lib/environment';
 import { getServiceMode } from '@/lib/services/mode';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 
@@ -8,6 +13,13 @@ export function guardServiceTenant(tenantId: string): { ok: false; error: string
   if (tenantErr) {
     return { ok: false, error: tenantErr.error };
   }
+
+  const demoBlock = toGuardBlock(assertDemoDataNotInProduction(tenantId));
+  if (demoBlock) return demoBlock;
+
+  const modeBlock = toGuardBlock(assertTenantAllowedForMode(tenantId));
+  if (modeBlock) return modeBlock;
+
   return null;
 }
 

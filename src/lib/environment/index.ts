@@ -35,9 +35,14 @@ export {
   resetEnvironmentAuditStore,
 } from './environmentAuditService';
 export {
+  cacheTenantEnvironmentSettings,
   getTenantEnvironmentSettings,
   upsertTenantEnvironmentSettings,
   getDemoDataSet,
   isDemoDataTenant,
   resetTenantEnvironmentSettingsStore,
 } from './tenantEnvironmentSettingsService';
+export {
+  hydrateTenantEnvironmentSettings,
+  ensureTenantEnvironmentSettingsLoaded,
+} from './tenantEnvironmentSettingsHydration';

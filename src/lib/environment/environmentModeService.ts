@@ -1,3 +1,4 @@
+import { isDemoSupabaseTenantId } from '@/data/constants/demoGuard';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import type {
   EnvironmentGuardCode,
@@ -113,7 +114,8 @@ export function getEnvironmentBannerLabel(tenantId?: string | null): string | nu
 
 export function assertDemoDataNotInProduction(tenantId: string): EnvironmentGuardResult {
   const globalMode = getGlobalEnvironmentMode();
-  const isDemoTenant = tenantId === DEMO_TENANT_ID || isDemoDataTenant(tenantId);
+  const isDemoTenant =
+    tenantId === DEMO_TENANT_ID || isDemoSupabaseTenantId(tenantId) || isDemoDataTenant(tenantId);
 
   if (globalMode === 'production' && isDemoTenant) {
     logEnvironmentAuditEvent({

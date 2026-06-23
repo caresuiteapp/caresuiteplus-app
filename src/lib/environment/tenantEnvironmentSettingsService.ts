@@ -1,3 +1,4 @@
+import { isDemoSupabaseTenantId, isInternalTestTenantId } from '@/data/constants/demoGuard';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { PILOT_TENANT_IDS } from '@/lib/pilot/pilotConfig';
 import type { DemoDataSet, TenantEnvironmentSettings } from '@/types/environment';
@@ -41,6 +42,49 @@ function seedDefaults(): void {
     });
   }
 
+  const internalTestTenants: { tenantId: string; notes: string }[] = [
+    {
+      tenantId: 'a4ba83bd-65db-46cf-8cf7-61492cc78315',
+      notes: 'Test Pflege GmbH — E2E / QA, internal_test.',
+    },
+    {
+      tenantId: '6e8a5c3b-03fd-423d-acd9-00edf9b24f99',
+      notes: 'Test Pflege Live — QA, internal_test.',
+    },
+  ];
+
+  for (const [index, entry] of internalTestTenants.entries()) {
+    SETTINGS.set(entry.tenantId, {
+      id: `tes-internal-${index + 1}`,
+      tenantId: entry.tenantId,
+      mode: 'internal_test',
+      demoDataSetKey: null,
+      isPilotTenant: false,
+      pilotPhase: null,
+      showKnownRisks: false,
+      feedbackModulePrepared: false,
+      providerSandboxOnly: true,
+      notes: entry.notes,
+      createdAt: '2026-01-01T00:00:00.000Z',
+      updatedAt: '2026-01-01T00:00:00.000Z',
+    });
+  }
+
+  SETTINGS.set('56180c22-b894-4fab-b55e-a563c94dd6e7', {
+    id: 'tes-live-helferhasen',
+    tenantId: '56180c22-b894-4fab-b55e-a563c94dd6e7',
+    mode: 'production',
+    demoDataSetKey: null,
+    isPilotTenant: false,
+    pilotPhase: null,
+    showKnownRisks: false,
+    feedbackModulePrepared: false,
+    providerSandboxOnly: false,
+    notes: 'LIVE whitelist — Helferhasen+ UG.',
+    createdAt: '2026-01-01T00:00:00.000Z',
+    updatedAt: '2026-01-01T00:00:00.000Z',
+  });
+
   DEMO_DATA_SETS.set('caresuite_demo_v1', {
     id: 'dds-001',
     dataSetKey: 'caresuite_demo_v1',
@@ -53,6 +97,10 @@ function seedDefaults(): void {
 }
 
 seedDefaults();
+
+export function cacheTenantEnvironmentSettings(row: TenantEnvironmentSettings): void {
+  SETTINGS.set(row.tenantId, row);
+}
 
 export function getTenantEnvironmentSettings(tenantId: string): TenantEnvironmentSettings | null {
   seedDefaults();
@@ -98,7 +146,10 @@ export function getDemoDataSet(dataSetKey: string): DemoDataSet | null {
 }
 
 export function isDemoDataTenant(tenantId: string): boolean {
+  if (isDemoSupabaseTenantId(tenantId)) return true;
+  if (isInternalTestTenantId(tenantId)) return false;
   const settings = getTenantEnvironmentSettings(tenantId);
+  if (settings?.mode === 'internal_test') return false;
   if (settings?.demoDataSetKey) return true;
   return tenantId === DEMO_TENANT_ID;
 }

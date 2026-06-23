@@ -14,6 +14,7 @@ import {
 } from '@/lib/tenant/tenantModuleSettingsCache';
 import { syncModuleAccessFromTenantSettings } from '@/lib/tenant/syncTenantModuleAccess';
 import { fetchTenantCenter } from '@/lib/tenant/tenantCenterService';
+import { hydrateTenantEnvironmentSettings } from '@/lib/environment/tenantEnvironmentSettingsHydration';
 
 function mapTenantModuleRow(row: Record<string, unknown> | null): TenantModuleSettings {
   return {
@@ -62,6 +63,9 @@ export async function hydrateTenantModuleSettings(
 }
 
 export async function ensureTenantModuleSettingsLoaded(tenantId: string): Promise<TenantModuleSettings> {
-  await hydrateTenantModuleSettings(tenantId);
+  await Promise.all([
+    hydrateTenantModuleSettings(tenantId),
+    hydrateTenantEnvironmentSettings(tenantId),
+  ]);
   return getTenantModuleSettingsCache(tenantId);
 }
