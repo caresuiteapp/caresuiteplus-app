@@ -13,10 +13,26 @@ export type StaticLightPaperBackgroundProps = {
 
 const BODY_BG_STYLE_ID = 'caresuite-static-light-paper-body-bg';
 
+type AssetRef = number | string | { uri?: string; default?: string };
+
+/** RN Web has no Image.resolveAssetSource — Metro may return a URL string or { uri }. */
+function resolveWebAssetUri(asset: AssetRef): string | null {
+  if (typeof asset === 'string') return asset;
+  if (asset && typeof asset === 'object') {
+    if (typeof asset.uri === 'string') return asset.uri;
+    if (typeof asset.default === 'string') return asset.default;
+  }
+  const resolve = Image.resolveAssetSource as
+    | ((source: AssetRef) => { uri?: string } | null | undefined)
+    | undefined;
+  if (typeof resolve === 'function') {
+    return resolve(asset)?.uri ?? null;
+  }
+  return null;
+}
+
 const WEB_SVG_URI =
-  Platform.OS === 'web'
-    ? (Image.resolveAssetSource(LIGHT_PAPER_BACKGROUND_SVG)?.uri ?? null)
-    : null;
+  Platform.OS === 'web' ? resolveWebAssetUri(LIGHT_PAPER_BACKGROUND_SVG) : null;
 
 function ensureWebDocumentTransparent() {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
