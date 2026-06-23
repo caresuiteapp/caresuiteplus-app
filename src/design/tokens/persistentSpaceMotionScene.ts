@@ -82,18 +82,18 @@ export const PSM_LINE_COUNT = 12;
 export const PSM_NEBULA_COUNT = 2;
 
 const LIGHT_COLORS = [
-  'rgba(200,206,214,0.42)',
-  'rgba(188,194,202,0.38)',
-  'rgba(176,182,190,0.36)',
-  'rgba(210,216,224,0.40)',
-  'rgba(194,200,208,0.35)',
-  'rgba(168,174,182,0.32)',
+  'rgba(155,163,174,0.62)',
+  'rgba(140,148,160,0.58)',
+  'rgba(168,176,186,0.55)',
+  'rgba(130,138,150,0.56)',
+  'rgba(175,182,192,0.54)',
+  'rgba(148,156,168,0.57)',
 ];
 
 const LINE_COLORS = [
-  'rgba(180,186,194,0.22)',
-  'rgba(196,202,210,0.18)',
-  'rgba(170,176,184,0.20)',
+  'rgba(120,128,140,0.42)',
+  'rgba(135,143,155,0.38)',
+  'rgba(110,118,130,0.4)',
 ];
 
 function hashSeed(key: string): number {
@@ -244,9 +244,9 @@ function buildNebulas(): PsmNebula[] {
       ampX: 80 + rand() * 100,
       ampY: 64 + rand() * 80,
       phase: rand() * Math.PI * 2,
-      inner: 'rgba(248,250,252,0.55)',
-      mid: 'rgba(230,234,240,0.28)',
-      outer: 'rgba(220,226,234,0.08)',
+      inner: 'rgba(220,226,234,0.65)',
+      mid: 'rgba(190,198,210,0.38)',
+      outer: 'rgba(170,178,190,0.12)',
       baseOpacity: 0.35 + rand() * 0.15,
     };
   });

@@ -1,4 +1,4 @@
-import { useEffect, useLayoutEffect, useRef } from 'react';
+import { createElement, useCallback, useEffect, useRef } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import {
   PSM_LOOP_MS,
@@ -16,6 +16,18 @@ export type GlobalPersistentSpaceMotionBackgroundProps = StaticLightPaperBackgro
 
 const BODY_BG_STYLE_ID = 'caresuite-psm-body-bg';
 const MAX_DPR = 1.5;
+
+const WEB_HOST_STYLE = {
+  position: 'fixed',
+  top: 0,
+  left: 0,
+  right: 0,
+  bottom: 0,
+  width: '100vw',
+  height: '100vh',
+  overflow: 'hidden',
+  pointerEvents: 'none',
+} as const;
 
 function ensureWebStyles() {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
@@ -35,14 +47,14 @@ function edgeIntensity(x: number, y: number, w: number, h: number): number {
   const dx = (x - w * 0.5) / (w * 0.48);
   const dy = (y - h * 0.44) / (h * 0.48);
   const dist = Math.sqrt(dx * dx + dy * dy);
-  return Math.min(1, Math.max(0.34, dist * 0.94 + 0.3));
+  return Math.min(1, Math.max(0.4, dist * 0.9 + 0.35));
 }
 
 function drawBaseGradient(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const grad = ctx.createLinearGradient(0, 0, w, h);
-  grad.addColorStop(0, '#FAFAFA');
-  grad.addColorStop(0.42, '#FFFFFF');
-  grad.addColorStop(1, '#F7F7F7');
+  grad.addColorStop(0, '#ECEFF3');
+  grad.addColorStop(0.45, '#F5F7FA');
+  grad.addColorStop(1, '#E8ECF1');
   ctx.fillStyle = grad;
   ctx.fillRect(0, 0, w, h);
 }
@@ -57,9 +69,9 @@ function drawNebulaLayer(
     const { x, y } = psmNebulaAt(nebula, w, h, phase);
     const rx = nebula.radiusX * w;
     const ry = nebula.radiusY * h;
-    const breathe = 1 + Math.sin(phase * nebula.speedX + nebula.phase) * 0.06;
+    const breathe = 1 + Math.sin(phase * nebula.speedX + nebula.phase) * 0.08;
     ctx.save();
-    ctx.filter = 'blur(56px)';
+    ctx.filter = 'blur(48px)';
     ctx.globalAlpha = nebula.baseOpacity;
     const radial = ctx.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry) * breathe);
     radial.addColorStop(0, nebula.inner);
@@ -85,13 +97,13 @@ function drawSoftCircle(
   const { x, y, scale, opacity } = psmCircleAt(circle, w, h, phase);
   const r = circle.baseRadius * minDim * scale;
   const edge = edgeIntensity(x, y, w, h);
-  const alpha = opacity * (0.65 + edge * 0.35);
+  const alpha = Math.min(0.72, opacity * (0.75 + edge * 0.25));
   ctx.save();
   ctx.globalAlpha = alpha;
-  const grad = ctx.createRadialGradient(x - r * 0.25, y - r * 0.3, r * 0.05, x, y, r);
-  grad.addColorStop(0, 'rgba(255,255,255,0.92)');
-  grad.addColorStop(0.35, circle.color);
-  grad.addColorStop(0.75, circle.color.replace(/[\d.]+\)$/, '0.18)'));
+  const grad = ctx.createRadialGradient(x - r * 0.22, y - r * 0.28, r * 0.04, x, y, r);
+  grad.addColorStop(0, 'rgba(210,216,224,0.88)');
+  grad.addColorStop(0.32, circle.color);
+  grad.addColorStop(0.72, circle.color.replace(/[\d.]+\)$/, '0.28)'));
   grad.addColorStop(1, 'transparent');
   ctx.fillStyle = grad;
   ctx.beginPath();
@@ -100,21 +112,16 @@ function drawSoftCircle(
   ctx.restore();
 }
 
-function drawLine(
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  phase: number,
-) {
+function drawLine(ctx: CanvasRenderingContext2D, w: number, h: number, phase: number) {
   for (const line of PSM_SCENE.lines) {
     const { x, y, angle, length, opacity } = psmLineAt(line, w, h, phase);
     const dx = Math.cos(angle) * length * 0.5;
     const dy = Math.sin(angle) * length * 0.5;
     const edge = edgeIntensity(x, y, w, h);
     ctx.save();
-    ctx.globalAlpha = opacity * (0.7 + edge * 0.3);
+    ctx.globalAlpha = Math.min(0.55, opacity * (0.85 + edge * 0.15));
     ctx.strokeStyle = line.color;
-    ctx.lineWidth = line.thickness;
+    ctx.lineWidth = line.thickness + 0.4;
     ctx.lineCap = 'round';
     ctx.beginPath();
     ctx.moveTo(x - dx, y - dy);
@@ -127,21 +134,16 @@ function drawLine(
 function drawReadabilityWash(ctx: CanvasRenderingContext2D, w: number, h: number) {
   const cx = w * 0.5;
   const cy = h * 0.46;
-  const r = Math.max(w, h) * 0.42;
+  const r = Math.max(w, h) * 0.38;
   const wash = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  wash.addColorStop(0, 'rgba(255,255,255,0.28)');
-  wash.addColorStop(0.55, 'rgba(255,255,255,0.08)');
+  wash.addColorStop(0, 'rgba(255,255,255,0.14)');
+  wash.addColorStop(0.6, 'rgba(255,255,255,0.04)');
   wash.addColorStop(1, 'transparent');
   ctx.fillStyle = wash;
   ctx.fillRect(0, 0, w, h);
 }
 
-function drawFrame(
-  ctx: CanvasRenderingContext2D,
-  w: number,
-  h: number,
-  phase: number,
-) {
+function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, phase: number) {
   ctx.clearRect(0, 0, w, h);
   drawBaseGradient(ctx, w, h);
   drawNebulaLayer(ctx, w, h, phase);
@@ -159,110 +161,112 @@ function drawFrame(
   drawReadabilityWash(ctx, w, h);
 }
 
-function WebMotionCanvas({ animate, testID }: { animate: boolean; testID?: string }) {
-  const canvasRef = useRef<HTMLCanvasElement | null>(null);
-  const frameRef = useRef<number | null>(null);
-  const pausedRef = useRef(false);
+function startCanvasLoop(canvas: HTMLCanvasElement, animate: boolean): () => void {
+  const ctx = canvas.getContext('2d');
+  if (!ctx) return () => undefined;
+
+  let frameRef: number | null = null;
+  let frameCount = 0;
+  let paused = false;
+
+  const resize = () => {
+    const host = canvas.parentElement;
+    const cw = host?.clientWidth ?? window.innerWidth;
+    const ch = host?.clientHeight ?? window.innerHeight;
+    if (cw <= 0 || ch <= 0) return;
+    const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
+    canvas.width = Math.floor(cw * dpr);
+    canvas.height = Math.floor(ch * dpr);
+    canvas.style.width = `${cw}px`;
+    canvas.style.height = `${ch}px`;
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+  };
+
+  const onVisibility = () => {
+    paused = document.hidden;
+    if (!paused && frameRef === null) {
+      frameRef = requestAnimationFrame(tick);
+    }
+  };
+
+  const tick = () => {
+    frameRef = null;
+    if (paused) return;
+    const w = canvas.clientWidth || window.innerWidth;
+    const h = canvas.clientHeight || window.innerHeight;
+    if (w <= 0 || h <= 0) {
+      frameRef = requestAnimationFrame(tick);
+      return;
+    }
+    const phase = animate ? getBackgroundPhase() : 0;
+    drawFrame(ctx, w, h, phase);
+    frameCount += 1;
+    canvas.dataset.loopMs = String(PSM_LOOP_MS);
+    canvas.dataset.frameCount = String(frameCount);
+    canvas.dataset.phase = phase.toFixed(4);
+    frameRef = requestAnimationFrame(tick);
+  };
+
+  resize();
+  window.addEventListener('resize', resize);
+  document.addEventListener('visibilitychange', onVisibility);
+  tick();
+
+  return () => {
+    window.removeEventListener('resize', resize);
+    document.removeEventListener('visibilitychange', onVisibility);
+    if (frameRef !== null) cancelAnimationFrame(frameRef);
+    frameRef = null;
+  };
+}
+
+/**
+ * Imperative DOM canvas host — reliable on React Native Web (ref timing safe).
+ */
+function WebMotionCanvasHost({ animate, testID }: { animate: boolean; testID?: string }) {
+  const cleanupRef = useRef<(() => void) | null>(null);
   const animateRef = useRef(animate);
   animateRef.current = animate;
 
-  useLayoutEffect(() => {
-    ensureWebStyles();
-    let cancelled = false;
-    let cleanup: (() => void) | undefined;
+  const attachHost = useCallback(
+    (host: HTMLDivElement | null) => {
+      cleanupRef.current?.();
+      cleanupRef.current = null;
+      if (!host) return;
 
-    const attachLoop = () => {
-      const canvas = canvasRef.current;
-      if (!canvas || cancelled) return false;
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return false;
+      let canvas = host.querySelector('canvas[data-motion-engine="persistent-space-canvas"]');
+      if (!canvas) {
+        canvas = document.createElement('canvas');
+        canvas.setAttribute('data-motion-engine', 'persistent-space-canvas');
+        canvas.setAttribute('data-loop-ms', String(PSM_LOOP_MS));
+        if (testID) canvas.setAttribute('data-testid', testID);
+        canvas.style.position = 'absolute';
+        canvas.style.inset = '0';
+        canvas.style.width = '100%';
+        canvas.style.height = '100%';
+        canvas.style.pointerEvents = 'none';
+        host.appendChild(canvas);
+      }
 
-      pausedRef.current = false;
+      cleanupRef.current = startCanvasLoop(canvas as HTMLCanvasElement, animateRef.current);
+    },
+    [testID],
+  );
 
-      const resize = () => {
-        const parent = canvas.parentElement;
-        if (!parent) return;
-        const dpr = Math.min(window.devicePixelRatio || 1, MAX_DPR);
-        const cw = parent.clientWidth;
-        const ch = parent.clientHeight;
-        if (cw <= 0 || ch <= 0) return;
-        canvas.width = Math.floor(cw * dpr);
-        canvas.height = Math.floor(ch * dpr);
-        canvas.style.width = `${cw}px`;
-        canvas.style.height = `${ch}px`;
-        ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
-      };
-
-      const onVisibility = () => {
-        pausedRef.current = document.hidden;
-        if (!document.hidden && frameRef.current === null) {
-          frameRef.current = requestAnimationFrame(tick);
-        }
-      };
-
-      resize();
-      window.addEventListener('resize', resize);
-      document.addEventListener('visibilitychange', onVisibility);
-
-      const tick = () => {
-        frameRef.current = null;
-        if (pausedRef.current || cancelled) return;
-        const w = canvas.clientWidth;
-        const h = canvas.clientHeight;
-        if (w <= 0 || h <= 0) {
-          frameRef.current = requestAnimationFrame(tick);
-          return;
-        }
-        const phase = animateRef.current ? getBackgroundPhase() : 0;
-        drawFrame(ctx, w, h, phase);
-        canvas.dataset.loopMs = String(PSM_LOOP_MS);
-        frameRef.current = requestAnimationFrame(tick);
-      };
-
-      tick();
-
-      cleanup = () => {
-        window.removeEventListener('resize', resize);
-        document.removeEventListener('visibilitychange', onVisibility);
-        if (frameRef.current !== null) cancelAnimationFrame(frameRef.current);
-        frameRef.current = null;
-      };
-      return true;
-    };
-
-    if (!attachLoop()) {
-      const retryId = requestAnimationFrame(() => {
-        if (!cancelled) attachLoop();
-      });
-      return () => {
-        cancelled = true;
-        cancelAnimationFrame(retryId);
-        cleanup?.();
-      };
-    }
-
+  useEffect(() => {
     return () => {
-      cancelled = true;
-      cleanup?.();
+      cleanupRef.current?.();
+      cleanupRef.current = null;
     };
   }, []);
 
-  return (
-    <canvas
-      ref={canvasRef}
-      data-testid={testID}
-      data-motion-engine="persistent-space-canvas"
-      data-loop-ms={String(PSM_LOOP_MS)}
-      style={{
-        position: 'absolute',
-        inset: 0,
-        width: '100%',
-        height: '100%',
-        pointerEvents: 'none',
-      }}
-      aria-hidden
-    />
-  );
+  if (Platform.OS !== 'web') return null;
+
+  return createElement('div', {
+    ref: attachHost,
+    style: WEB_HOST_STYLE,
+    'data-background-engine': 'persistent-space-canvas',
+  });
 }
 
 /**
@@ -290,12 +294,10 @@ export function GlobalPersistentSpaceMotionBackground({
       style={[styles.root, dimmed && styles.dimmed]}
       pointerEvents="none"
       testID={testID}
-      // @ts-expect-error web data attribute for runtime verification
-      data-background-engine="persistent-space-canvas"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
-      <WebMotionCanvas animate testID={`${testID}-canvas`} />
+      <WebMotionCanvasHost animate testID={`${testID}-canvas`} />
     </View>
   );
 }
