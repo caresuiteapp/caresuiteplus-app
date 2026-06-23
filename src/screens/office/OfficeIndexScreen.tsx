@@ -4,55 +4,67 @@ import { OfficeDashboardView } from '@/components/dashboard/OfficeDashboardView'
 import { ActionToolbar, ModuleDashboardShell } from '@/components/layout/platform';
 import { moduleColor } from '@/design/tokens/modules';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
-import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { wp158A11y } from '@/lib/a11y/wp158-office';
+import {
+  OFFICE_HEADER_OPTIONAL_ACTIONS,
+  OFFICE_HEADER_PRIMARY_ACTIONS,
+  OFFICE_HEADER_SECONDARY_ACTIONS,
+} from '@/lib/office/officeDashboardWorkspace';
 
 export function OfficeIndexScreen() {
   const router = useRouter();
   const { profile, user } = useAuth();
-  const { roleLabel } = usePermissions();
   const { data, loading, error, refresh } = useOfficeDashboard();
   const officeAccent = moduleColor('office');
-
   const displayName = profile?.displayName ?? user?.displayName ?? 'Verwaltung';
 
-  const toolbarActions = data
-    ? [
-        {
-          key: 'refresh',
-          label: 'Aktualisieren',
-          icon: '🔄',
-          variant: 'ghost' as const,
-          onPress: refresh,
-        },
-        {
-          key: 'primary',
-          label: `${data.primaryAction.icon} ${data.primaryAction.label}`,
-          icon: data.primaryAction.icon,
-          variant: 'primary' as const,
-          onPress: () => {
-            if (data.primaryAction.route) {
-              router.push(data.primaryAction.route as never);
-            }
-          },
-        },
-      ]
-    : [
-        {
-          key: 'refresh',
-          label: 'Aktualisieren',
-          icon: '🔄',
-          variant: 'ghost' as const,
-          onPress: refresh,
-        },
-      ];
+  const navigate = (route?: string) => {
+    if (route) {
+      router.push(route as never);
+    }
+  };
+
+  const toolbarActions = [
+    ...OFFICE_HEADER_PRIMARY_ACTIONS.map((action) => ({
+      key: action.id,
+      label: `+ ${action.label.replace(/^\+?\s*/, '')}`,
+      icon: action.icon,
+      variant: 'primary' as const,
+      onPress: () => navigate(action.route),
+    })),
+    ...OFFICE_HEADER_SECONDARY_ACTIONS.map((action) => ({
+      key: action.id,
+      label: action.label,
+      icon: action.icon,
+      variant: 'secondary' as const,
+      onPress: () => navigate(action.route),
+    })),
+    ...OFFICE_HEADER_OPTIONAL_ACTIONS.map((action) => ({
+      key: action.id,
+      label: action.label,
+      icon: action.icon,
+      variant: 'ghost' as const,
+      onPress: () => navigate(action.route),
+    })),
+    {
+      key: 'refresh',
+      label: 'Aktualisieren',
+      icon: '🔄',
+      variant: 'ghost' as const,
+      onPress: refresh,
+    },
+  ];
 
   return (
     <ModuleDashboardShell
       moduleLabel="Office"
-      title="Dashboard"
-      subtitle={`${roleLabel ?? 'Verwaltung'} · ${displayName}`}
+      title="Office"
+      subtitle="Verwaltung, Organisation und Kommunikation"
+      breadcrumbs={[
+        { label: 'Start', href: '/business' },
+        { label: 'Office' },
+      ]}
     >
       <ActionToolbar actions={toolbarActions} accentColor={officeAccent} />
       <OfficeDashboardView

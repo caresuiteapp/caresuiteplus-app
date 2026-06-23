@@ -1,18 +1,24 @@
 import { useMemo } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
-import { ModuleOverviewDashboard } from '@/components/dashboard/ModuleOverviewDashboard';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
   PremiumKpiCard,
+  PremiumListRow,
   SectionPanel,
+  Timeline,
 } from '@/components/ui';
 import type { DashboardSnapshot } from '@/types/dashboard';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
-import { spacing } from '@/theme';
+import {
+  buildOfficeDashboardSections,
+  OFFICE_WORKSPACE_KPI_COUNT,
+} from '@/lib/office/officeDashboardWorkspace';
+import { spacing, typography } from '@/theme';
 
 type OfficeDashboardViewProps = {
   snapshot: DashboardSnapshot | null;
@@ -30,6 +36,20 @@ function createOfficeDashboardStyles(shellHostsAurora: boolean) {
       gap: spacing.md,
       backgroundColor: shellHostsAurora ? 'transparent' : undefined,
     },
+    sectionLinks: {
+      gap: spacing.xs,
+    },
+    countBadge: {
+      ...typography.caption,
+      fontWeight: '700',
+      minWidth: 24,
+      textAlign: 'right',
+    },
+    leadingIcon: {
+      fontSize: 18,
+      width: 28,
+      textAlign: 'center',
+    },
   });
 }
 
@@ -40,12 +60,19 @@ export function OfficeDashboardView({
   displayName,
   onRefresh,
 }: OfficeDashboardViewProps) {
+  const router = useRouter();
   const shellHostsAurora = useShellHostsAurora();
   const moduleAccent = useMainModuleAccent();
   const styles = useMemo(
     () => createOfficeDashboardStyles(shellHostsAurora),
     [shellHostsAurora],
   );
+
+  const navigate = (route?: string) => {
+    if (route) {
+      router.push(route as never);
+    }
+  };
 
   if (loading && !snapshot) {
     return <LoadingState message="Office-Dashboard wird geladen…" />;
@@ -68,25 +95,29 @@ export function OfficeDashboardView({
     );
   }
 
+  const sections = buildOfficeDashboardSections(snapshot);
+
+  const workspaceKpis = snapshot.kpis.slice(0, OFFICE_WORKSPACE_KPI_COUNT);
+
   return (
     <View style={styles.container}>
       <SectionPanel
-        title="Zentrale Dashboard"
-        subtitle="Live Mandantenübersicht"
-        headerAlign="center"
-        headerVariant="hero"
+        title="Heute im Office"
+        subtitle={`${snapshot.greeting}, ${displayName} · Verwaltungszentrale`}
+        headerAlign="left"
         accentColor={moduleAccent}
-        fillHeight={Boolean(snapshot.moduleOverviewRows)}
         surface="open"
       >
-        {snapshot.moduleOverviewRows ? (
-          <ModuleOverviewDashboard rows={snapshot.moduleOverviewRows} />
-        ) : (
-          <AdaptiveKpiGrid
-            columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
-            items={snapshot.kpis.map((kpi) => ({
-              id: kpi.id,
-              node: (
+        <AdaptiveKpiGrid
+          columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }}
+          items={workspaceKpis.map((kpi) => ({
+            id: kpi.id,
+            node: (
+              <Pressable
+                onPress={() => navigate(kpi.route)}
+                accessibilityRole="button"
+                accessibilityLabel={`${kpi.label}: ${kpi.value}`}
+              >
                 <PremiumKpiCard
                   label={kpi.label}
                   value={kpi.value}
@@ -95,9 +126,44 @@ export function OfficeDashboardView({
                   accentColor={moduleAccent}
                   trend={kpi.trend}
                   trendValue={kpi.trendValue}
+                  variant={shellHostsAurora ? 'light' : 'glass'}
                 />
-              ),
-            }))}
+              </Pressable>
+            ),
+          }))}
+        />
+      </SectionPanel>
+
+      {sections.map((section) => (
+        <SectionPanel key={section.id} title={section.title} subtitle={section.subtitle} surface="open">
+          <View style={styles.sectionLinks}>
+            {section.links.map((link, index) => (
+              <PremiumListRow
+                key={link.id}
+                title={link.label}
+                subtitle={link.description}
+                leading={link.icon ? <Text style={styles.leadingIcon}>{link.icon}</Text> : undefined}
+                trailing={
+                  link.count !== undefined ? (
+                    <Text style={[styles.countBadge, { color: moduleAccent }]}>{link.count}</Text>
+                  ) : undefined
+                }
+                showChevron
+                showDivider={index < section.links.length - 1}
+                onPress={() => navigate(link.route)}
+              />
+            ))}
+          </View>
+        </SectionPanel>
+      ))}
+
+      <SectionPanel title="Letzte Aktivitäten" subtitle="Chronologischer Verlauf im Office">
+        {snapshot.activities.length > 0 ? (
+          <Timeline items={snapshot.activities} />
+        ) : (
+          <EmptyState
+            title="Noch keine Aktivitäten"
+            message="Sobald Klient:innen, Dokumente oder Vorgänge bearbeitet werden, erscheinen sie hier."
           />
         )}
       </SectionPanel>

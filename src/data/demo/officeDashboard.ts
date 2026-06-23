@@ -6,19 +6,20 @@ import type {
   DashboardStatusCard,
 } from '@/types/dashboard';
 import type { RoleKey } from '@/types';
-import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 import { buildOfficeAreaShortcuts, type OfficeAreaShortcut } from '@/lib/office/officeAreaShortcuts';
+import { emptyOfficeDashboardMetrics } from '@/lib/office/officeDashboardMetrics';
 import {
-  buildOfficeKpisFromMetrics,
-  emptyOfficeDashboardMetrics,
-} from '@/lib/office/officeDashboardMetrics';
+  buildOfficeWorkspaceKpis,
+  OFFICE_HEADER_PRIMARY_ACTIONS,
+  OFFICE_SIDEBAR_QUICK_ACTIONS,
+} from '@/lib/office/officeDashboardWorkspace';
 import { demoAppointments, demoInvoices } from './seedCatalog';
 import { demoClients } from './clients';
 import { demoEmployees } from './employees';
 import { demoTenant, DEMO_TENANT_ID } from './tenant';
 import { demoTenantProducts } from './products';
 
-const OFFICE_DEMO_KPIS = buildOfficeKpisFromMetrics({
+const OFFICE_DEMO_METRICS = {
   ...emptyOfficeDashboardMetrics(),
   activeClients: demoClients.filter((c) => c.status === 'aktiv').length,
   totalClients: demoClients.length,
@@ -27,7 +28,14 @@ const OFFICE_DEMO_KPIS = buildOfficeKpisFromMetrics({
   totalEmployees: demoEmployees.length,
   openInvoices: demoInvoices.filter((i) => i.status === 'aktiv' || i.status === 'in_bearbeitung').length,
   draftInvoices: demoInvoices.filter((i) => i.status === 'entwurf').length,
+  openServiceRecords: 2,
+  openTasks: 3,
+  overdueTasks: 1,
+  unreadMessages: 4,
+  documentsForReview: 2,
+  openPortalRequests: 1,
   appointmentsThisWeek: demoAppointments.length,
+  appointmentsToday: Math.min(2, demoAppointments.length),
   activeModules: demoTenantProducts.filter((p) => p.isActive).length,
   totalModules: demoTenantProducts.length,
   tableAvailability: {
@@ -45,15 +53,15 @@ const OFFICE_DEMO_KPIS = buildOfficeKpisFromMetrics({
     budgets: true,
     appointments: true,
   },
-});
+};
 
-const OFFICE_KPIS: DashboardKpi[] = OFFICE_DEMO_KPIS;
+const OFFICE_KPIS: DashboardKpi[] = buildOfficeWorkspaceKpis(OFFICE_DEMO_METRICS);
 
 const OFFICE_STATUS_CARDS: DashboardStatusCard[] = [
   {
-    id: 'office-sc-invoices',
-    title: 'Rechnungsentwürfe',
-    description: 'Entwürfe warten auf Freigabe und Versand',
+    id: 'office-sc-billing-prep',
+    title: 'Abrechnung vorbereiten',
+    description: 'Entwürfe und Nachweise prüfen — keine finale Rechnung',
     status: 'entwurf',
     count: demoInvoices.filter((i) => i.status === 'entwurf').length,
   },
@@ -114,47 +122,7 @@ const OFFICE_ACTIVITIES: DashboardActivity[] = [
   },
 ];
 
-const OFFICE_QUICK_ACTIONS_BASE: DashboardQuickAction[] = [
-  {
-    id: 'office-qa-client',
-    label: 'Klient:in anlegen',
-    icon: '➕',
-    route: CLIENT_INTAKE_NEW_ROUTE,
-    variant: 'primary',
-  },
-  {
-    id: 'office-qa-invoice',
-    label: 'Rechnungen',
-    icon: '🧾',
-    route: '/office/invoices',
-    variant: 'secondary',
-  },
-  {
-    id: 'office-qa-appointment',
-    label: 'Termine',
-    icon: '📅',
-    route: '/office/appointments',
-    variant: 'secondary',
-  },
-];
-
-const OFFICE_QUICK_ACTIONS: DashboardQuickAction[] = [
-  ...OFFICE_QUICK_ACTIONS_BASE,
-  {
-    id: 'office-qa-modules',
-    label: 'Modulzuordnungen',
-    icon: '🧩',
-    route: '/business/office/modules',
-    variant: 'secondary',
-  },
-  {
-    id: 'office-qa-audit',
-    label: 'Audit-Log',
-    icon: '📋',
-    route: '/business/office/audit-log',
-    variant: 'secondary',
-  },
-];
+const OFFICE_QUICK_ACTIONS: DashboardQuickAction[] = OFFICE_SIDEBAR_QUICK_ACTIONS;
 
 export type { OfficeAreaShortcut } from '@/lib/office/officeAreaShortcuts';
 
@@ -182,9 +150,9 @@ export function buildOfficeDashboard(roleKey: RoleKey): DashboardSnapshot {
     tenantName: demoTenant.name,
     tenantId: DEMO_TENANT_ID,
     greeting: getGreeting(),
-    heroSubtitle: 'Office · Zentrale Verwaltung & Stammdaten',
+    heroSubtitle: 'Verwaltung, Organisation und Kommunikation',
     moduleLabel: 'CareSuite+ Office',
-    primaryAction: OFFICE_QUICK_ACTIONS[0],
+    primaryAction: OFFICE_HEADER_PRIMARY_ACTIONS[0],
     kpis: OFFICE_KPIS,
     statusCards: OFFICE_STATUS_CARDS,
     quickActions: OFFICE_QUICK_ACTIONS,

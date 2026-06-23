@@ -1,7 +1,7 @@
 import type { DashboardKpi } from '@/types/dashboard';
 import type { MainModuleKey, ModuleNavConfig, ModuleNavItem } from '@/types/navigation/platform';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
-import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
+import { OFFICE_SIDEBAR_QUICK_ACTIONS } from '@/lib/office/officeDashboardWorkspace';
 import { getModuleNavConfig } from '@/lib/navigation/modulenav';
 
 export type ContextQuickAction = {
@@ -10,12 +10,32 @@ export type ContextQuickAction = {
   href: string;
 };
 
-export const OFFICE_QUICK_ACTIONS: ContextQuickAction[] = [
-  { label: 'Klient:in anlegen', icon: 'addClient', href: CLIENT_INTAKE_NEW_ROUTE },
-  { label: 'Rechnung erstellen', icon: 'invoice', href: '/office/invoices/create' },
-  { label: 'Termin planen', icon: 'calendar', href: '/office/appointments?create=1' },
-  { label: 'Dokument hochladen', icon: 'uploadFolder', href: '/office/documents/upload' },
-  { label: 'Mitarbeitende anlegen', icon: 'employeeBadge', href: '/office/employees/create' },
+export const OFFICE_QUICK_ACTIONS: ContextQuickAction[] = OFFICE_SIDEBAR_QUICK_ACTIONS.map((action) => ({
+  label: action.label,
+  icon:
+    action.id === 'office-qa-client'
+      ? 'addClient'
+      : action.id === 'office-qa-employee'
+        ? 'employeeBadge'
+        : action.id === 'office-qa-appointment'
+          ? 'calendar'
+          : action.id === 'office-qa-document'
+            ? 'uploadFolder'
+            : action.id === 'office-qa-message'
+              ? 'messageWave'
+              : action.id === 'office-qa-broadcast'
+                ? 'messageWave'
+                : action.id === 'office-qa-portal'
+                  ? 'portalGlobe'
+                  : 'docsReview',
+  href: action.route ?? '/office',
+}));
+
+export const ASSIST_QUICK_ACTIONS: ContextQuickAction[] = [
+  { label: 'Einsatz planen', icon: 'calendar', href: '/assist/einsaetze/new' },
+  { label: 'Live-Status', icon: 'livePulse', href: '/assist/live-status' },
+  { label: 'Nachweise prüfen', icon: 'docsReview', href: '/assist/nachweise' },
+  { label: 'Fahrtenbuch', icon: 'assignmentRoute', href: '/assist/fahrten' },
 ];
 
 /** Expanded hub nav for Office right context panel — min. 5 items per group. */
@@ -80,7 +100,7 @@ export const DEMO_MODULE_STATUS: Record<MainModuleKey, { label: string; status: 
   ],
   office: [
     { label: 'Klient:innen', status: 'Aktiv' },
-    { label: 'Rechnungen', status: '3 offen' },
+    { label: 'Abrechnung', status: 'Prüfen' },
   ],
   assist: [
     { label: 'Einsätze heute', status: '5' },
@@ -120,9 +140,9 @@ function findKpi(kpis: DashboardKpi[] | undefined, id: string): DashboardKpi | u
 export function buildOfficeModuleStatusChips(
   kpis: DashboardKpi[] | undefined,
 ): { label: string; status: string }[] {
-  const clientsKpi = findKpi(kpis, 'office-kpi-clients');
-  const invoicesKpi = findKpi(kpis, 'office-kpi-invoices');
-  const openInvoices = Number(invoicesKpi?.value ?? 0);
+  const clientsKpi = findKpi(kpis, 'office-ws-kpi-clients-active') ?? findKpi(kpis, 'office-kpi-clients-active');
+  const billingKpi = findKpi(kpis, 'office-ws-kpi-billing') ?? findKpi(kpis, 'office-kpi-invoices');
+  const openBilling = Number(billingKpi?.value ?? 0);
 
   return [
     {
@@ -133,8 +153,8 @@ export function buildOfficeModuleStatusChips(
           : 'Keine Klient:innen',
     },
     {
-      label: 'Rechnungen',
-      status: openInvoices > 0 ? `${openInvoices} offen` : 'Keine offenen',
+      label: 'Abrechnung',
+      status: openBilling > 0 ? `${openBilling} offen` : 'Nichts offen',
     },
   ];
 }

@@ -19,6 +19,7 @@ export type BusinessDashboardMetrics = {
   openServiceRecords: number;
   budgetWarnings: number;
   appointmentsThisWeek: number;
+  appointmentsToday: number;
   newClients30Days: number;
   clientsInIntake: number;
   tableAvailability: {
@@ -58,6 +59,7 @@ export function emptyBusinessDashboardMetrics(): BusinessDashboardMetrics {
     openServiceRecords: 0,
     budgetWarnings: 0,
     appointmentsThisWeek: 0,
+    appointmentsToday: 0,
     newClients30Days: 0,
     clientsInIntake: 0,
     tableAvailability: {

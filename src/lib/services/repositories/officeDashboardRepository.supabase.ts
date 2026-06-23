@@ -69,6 +69,7 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
     openPortalRequests,
     openServiceRecords,
     appointmentsThisWeek,
+    appointmentsToday,
   ] = await Promise.all([
     countByFilter('clients', tenantId),
     countByFilter('clients', tenantId, (query) => query.eq('status', 'active')),
@@ -97,6 +98,9 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
     countByFilter('service_records', tenantId, (query) => query.eq('status', 'review_pending')),
     countByFilter('appointments', tenantId, (query) =>
       query.gte('starts_at', weekBounds.start).lt('starts_at', weekBounds.end),
+    ),
+    countByFilter('appointments', tenantId, (query) =>
+      query.gte('starts_at', dayBounds.start).lt('starts_at', dayBounds.end),
     ),
   ]);
 
@@ -176,6 +180,10 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
 
   if (appointmentsThisWeek.available) {
     metrics.appointmentsThisWeek = appointmentsThisWeek.count;
+  }
+
+  if (appointmentsToday.available) {
+    metrics.appointmentsToday = appointmentsToday.count;
   }
 
   const invoiceResult = await supabase.from('invoices').select('status').eq('tenant_id', tenantId);

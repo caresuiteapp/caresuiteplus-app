@@ -65,9 +65,9 @@ export function buildOfficeStatusCardsFromMetrics(
 
   if (metrics.tableAvailability.invoices && metrics.draftInvoices > 0) {
     cards.push({
-      id: 'office-sc-invoices',
-      title: 'Rechnungsentwürfe',
-      description: 'Entwürfe warten auf Freigabe und Versand',
+      id: 'office-sc-billing-prep',
+      title: 'Abrechnung vorbereiten',
+      description: 'Entwürfe und Nachweise prüfen — keine finale Rechnung',
       status: 'entwurf',
       count: metrics.draftInvoices,
     });
@@ -86,9 +86,9 @@ export function buildOfficeStatusCardsFromMetrics(
 
   if (metrics.tableAvailability.invoices && metrics.openInvoices > 0) {
     cards.push({
-      id: 'office-sc-open-invoices',
-      title: 'Offene Rechnungen',
-      description: 'Rechnungen warten auf Zahlung oder Abschluss',
+      id: 'office-sc-open-billing',
+      title: 'Offene Abrechnungsfälle',
+      description: 'Fälle warten auf Prüfung oder Abschluss',
       status: 'aktiv',
       count: metrics.openInvoices,
     });

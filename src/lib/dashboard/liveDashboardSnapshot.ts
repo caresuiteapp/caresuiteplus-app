@@ -17,12 +17,12 @@ import {
 import { buildZentraleModuleOverviewRows } from '@/lib/dashboard/zentraleModuleOverview';
 import { getTenantModuleSettingsCache } from '@/lib/tenant/tenantModuleSettingsCache';
 import {
-  buildOfficeKpisFromMetrics,
   buildOfficeStatusCardsFromMetrics,
   emptyOfficeDashboardMetrics,
   type OfficeDashboardMetrics,
 } from '@/lib/office/officeDashboardMetrics';
 import { buildOfficeAreaShortcutsFromMetrics } from '@/lib/office/officeAreaShortcuts';
+import { buildOfficeWorkspaceSnapshotFields } from '@/lib/office/officeDashboardWorkspace';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -178,12 +178,6 @@ function buildEmptyBusinessKpis(
   ];
 }
 
-const OFFICE_LIVE_QUICK_ACTIONS: DashboardQuickAction[] = [
-  { id: 'office-qa-client', label: 'Klient:in anlegen', icon: '👤', route: '/office/clients/new', variant: 'primary' },
-  { id: 'office-qa-invoice', label: 'Rechnung erstellen', icon: '🧾', route: '/office/invoices/new', variant: 'secondary' },
-  { id: 'office-qa-employee', label: 'Mitarbeitende anlegen', icon: '👥', route: '/office/employees/new', variant: 'secondary' },
-];
-
 const EMPTY_ACTIVITIES: DashboardActivity[] = [];
 const EMPTY_STATUS_CARDS: DashboardStatusCard[] = [];
 
@@ -234,12 +228,8 @@ export function buildLiveOfficeDashboardSnapshot(
   metrics: OfficeDashboardMetrics = emptyOfficeDashboardMetrics(),
   activities: DashboardActivity[] = EMPTY_ACTIVITIES,
 ): DashboardSnapshot {
-  const tenantModules = getTenantModuleSettingsCache(tenantId);
-  const moduleOverviewRows = buildZentraleModuleOverviewRows(metrics, 'dark', 'office-kpi', {
-    tenantId,
-    roleKey,
-    tenantModules,
-  });
+  const statusCards = buildOfficeStatusCardsFromMetrics(metrics);
+  const workspaceFields = buildOfficeWorkspaceSnapshotFields(metrics);
 
   return {
     scope: 'office',
@@ -247,13 +237,12 @@ export function buildLiveOfficeDashboardSnapshot(
     tenantName,
     tenantId,
     greeting: getGreeting(),
-    heroSubtitle: 'Office · Zentrale Verwaltung & Stammdaten',
+    heroSubtitle: workspaceFields.heroSubtitle,
     moduleLabel: 'CareSuite+ Office',
-    primaryAction: OFFICE_LIVE_QUICK_ACTIONS[0],
-    kpis: buildOfficeKpisFromMetrics(metrics),
-    ...(moduleOverviewRows.length > 0 ? { moduleOverviewRows } : {}),
-    statusCards: buildOfficeStatusCardsFromMetrics(metrics),
-    quickActions: OFFICE_LIVE_QUICK_ACTIONS,
+    primaryAction: workspaceFields.primaryAction,
+    kpis: workspaceFields.kpis,
+    statusCards,
+    quickActions: workspaceFields.quickActions,
     activities,
     areaShortcuts: buildOfficeAreaShortcutsFromMetrics(metrics),
   };
