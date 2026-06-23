@@ -1,3 +1,4 @@
+export { GlobalPersistentSpaceMotionBackground } from './GlobalPersistentSpaceMotionBackground';
 export { LightLiquidGlassSpaceBackground } from './LightLiquidGlassSpaceBackground';
 export { LightLiquidGlassAuroraNebulaBackground } from './LightLiquidGlassAuroraNebulaBackground';
 export { LightGalaxyOrbitNebulaBackground } from './LightGalaxyOrbitNebulaBackground';

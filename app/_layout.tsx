@@ -7,7 +7,6 @@ import { applyInvisibleScrollIndicators } from '@/design/scroll/applyInvisibleSc
 import { ThemeModeProvider, useThemeMode } from '@/design/ThemeModeProvider';
 import { WebFontScaleProvider } from '@/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
-import { useIsOfficeRoute } from '@/hooks/useIsOfficeRoute';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/components/navigation/ModalStackProvider';
 import { AuthProvider } from '@/lib/auth';
@@ -24,8 +23,6 @@ const SURFACE_COLOR = 'transparent';
 function RootShell() {
   const { mode } = useThemeMode();
   const isDark = mode === 'dark';
-  const isOfficeRoute = useIsOfficeRoute();
-
   const navigationTheme = isDark
     ? {
         ...DarkTheme,
@@ -44,7 +41,7 @@ function RootShell() {
     <ThemeProvider value={navigationTheme}>
       <View style={[styles.root, isDark ? styles.rootDark : styles.rootLight]}>
         <View style={styles.backgroundLayer} pointerEvents="none">
-          <GlobalAnimatedBackground mode={mode} animated isOfficeRoute={isOfficeRoute} />
+          <GlobalAnimatedBackground mode={mode} animated />
         </View>
         <View style={styles.contentLayer} pointerEvents="box-none">
           <StatusBar style={isDark ? 'light' : 'dark'} />

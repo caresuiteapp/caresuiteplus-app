@@ -35,7 +35,7 @@ describe('GlobalAnimatedBackground static light wiring', () => {
       path.join(__dirname, '..', '..', 'components', 'ui', 'effects', 'globalanimatedbackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('AnimatedLightPaperBackground');
+    expect(source).toContain('GlobalPersistentSpaceMotionBackground');
     expect(source).not.toContain('LightGalaxyOrbitNebulaBackground');
     expect(source).not.toContain('OfficePremiumGlassBackground');
     expect(source).not.toContain('LightSpaceOrbitGalaxyBackground');
