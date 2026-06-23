@@ -155,7 +155,7 @@ async function main() {
     storage_path: 'audit/content-portal/pending-proof.json',
     payload_snapshot: { note: 'E2E pending proof' },
     portal_visible: false,
-    portal_release_status: 'pending',
+    portal_release_status: 'none',
     billing_released: false,
   }, 'id');
   result.steps.push({
