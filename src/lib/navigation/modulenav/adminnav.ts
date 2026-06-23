@@ -23,6 +23,12 @@ export const adminNav: ModuleNavConfig = {
           openInModal: true,
           modalKey: 'settings.profile',
         },
+        {
+          key: 'appearance',
+          label: 'Darstellung & Oberfläche',
+          icon: '🖥️',
+          href: '/settings/appearance',
+        },
       ],
     },
     {

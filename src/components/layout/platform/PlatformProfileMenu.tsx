@@ -11,6 +11,8 @@ import {
 import { useRouter } from 'expo-router';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { useAuth } from '@/lib/auth/context';
+import { USER_PROFILE_ROUTE } from '@/lib/auth/userprofileroute';
+import { APPEARANCE_SETTINGS_ROUTE } from '@/lib/screensaver/appearanceSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useAuroraAdaptiveText, useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
 import { llgsTypography } from '@/design/tokens/lightLiquidGlassSpace';
@@ -43,7 +45,8 @@ export function PlatformProfileMenu({ accentColor, fullWidth = false }: Platform
   const avatarUrl = profile?.avatarUrl?.trim() || undefined;
 
   const profileMenuItems: { label: string; href?: string; action?: () => void }[] = [
-    { label: 'Profil & Konto', href: '/settings' },
+    { label: 'Profil & Konto', href: USER_PROFILE_ROUTE },
+    { label: 'Darstellung & Oberfläche', href: APPEARANCE_SETTINGS_ROUTE },
     { label: 'Benachrichtigungen', href: '/business/messages/settings' },
     { label: 'Abmelden', action: () => void signOut().then(() => router.replace('/' as never)) },
   ];

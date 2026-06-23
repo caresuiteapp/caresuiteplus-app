@@ -194,7 +194,7 @@ describe('Settings UI', () => {
     expect(source).toContain('Mobilgeräten');
   });
 
-  it('Appearance-Route ist registriert', async () => {
+  it('Appearance-Route ist registriert und in Navigation verlinkt', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const appearance = readFileSync(
@@ -207,6 +207,17 @@ describe('Settings UI', () => {
       'utf8',
     );
     expect(profile).toContain('APPEARANCE_SETTINGS_ROUTE');
+    const tenant = readFileSync(
+      path.join(__dirname, '..', '..', 'screens', 'settings', 'TenantSettingsScreen.tsx'),
+      'utf8',
+    );
+    expect(tenant).toContain('APPEARANCE_SETTINGS_ROUTE');
+    expect(tenant).toContain('Darstellung & Oberfläche');
+    const profileMenu = readFileSync(
+      path.join(__dirname, '..', '..', 'components', 'layout', 'platform', 'PlatformProfileMenu.tsx'),
+      'utf8',
+    );
+    expect(profileMenu).toContain('APPEARANCE_SETTINGS_ROUTE');
   });
 });
 

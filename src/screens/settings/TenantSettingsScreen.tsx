@@ -42,9 +42,20 @@ import { useAuth } from '@/lib/auth/context';
 
 import { ensureTenantCatalogSeeded } from '@/lib/tenant/tenantCenterService';
 
+import { APPEARANCE_SETTINGS_ROUTE } from '@/lib/screensaver/appearanceSettingsRoute';
+
 import { TENANT_SETTINGS_PERMISSION } from '@/lib/tenant/tenantSettingsRoute';
 
-import type { TenantCenterSectionKey } from '@/types/tenant/tenantCenter';
+import type { TenantCenterSectionKey, TenantCenterSectionMeta } from '@/types/tenant/tenantCenter';
+
+const APPEARANCE_SETTINGS_SECTION: TenantCenterSectionMeta = {
+  key: 'branding',
+  title: 'Darstellung & Oberfläche',
+  description: 'Bildschirmschoner, Timeout und Anzeigemodus für Desktop und Tablet.',
+  completeness: 'complete',
+  summary: 'Persönliche Oberflächeneinstellungen',
+  editable: true,
+};
 
 /** Shared centered column — intro, headings and card grids align with page title. */
 const TENANT_CENTER_CONTENT_MAX_WIDTH = 1280;
@@ -309,6 +320,25 @@ export function TenantSettingsScreen({ embeddedInModal = false }: { embeddedInMo
               </View>
             </>
           ) : null}
+
+          <Text style={[styles.sectionHeading, { color: text.muted }]}>Persönliche Einstellungen</Text>
+          <View style={[styles.grid, { gap: gridGap }]}>
+            <View
+              style={[
+                styles.gridItem,
+                {
+                  width: itemWidth,
+                  maxWidth: itemWidth,
+                  minWidth: columns >= 4 ? 240 : columns === 2 ? 240 : undefined,
+                },
+              ]}
+            >
+              <TenantCenterSectionCard
+                section={APPEARANCE_SETTINGS_SECTION}
+                onEdit={() => router.push(APPEARANCE_SETTINGS_ROUTE as never)}
+              />
+            </View>
+          </View>
         </View>
       </ScrollView>
 
