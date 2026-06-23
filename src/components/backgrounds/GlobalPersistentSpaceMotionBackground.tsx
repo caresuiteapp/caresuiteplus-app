@@ -1,4 +1,4 @@
-import { createElement, useCallback, useEffect, useRef } from 'react';
+import { createElement, useCallback, useEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import {
   PSM_LOOP_MS,
@@ -237,18 +237,26 @@ function drawAccentDot(ctx: CanvasRenderingContext2D, bx: number, by: number, r:
   clearShadow(ctx);
 }
 
-function buildPathCache(): {
+type PsmPathCache = {
   bands: Path2D[];
   curves: Path2D[];
-} {
-  const bands = PSM_SCENE.bands.map((band) => new Path2D(band.d));
-  const curves = PSM_SCENE.curves.map((curve) => new Path2D(curve.d));
-  return { bands, curves };
+};
+
+let pathCache: PsmPathCache | null = null;
+
+function getPathCache(): PsmPathCache | null {
+  if (typeof Path2D === 'undefined') return null;
+  if (!pathCache) {
+    pathCache = {
+      bands: PSM_SCENE.bands.map((band) => new Path2D(band.d)),
+      curves: PSM_SCENE.curves.map((curve) => new Path2D(curve.d)),
+    };
+  }
+  return pathCache;
 }
 
-const PATH_CACHE = buildPathCache();
-
 function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, phase: number) {
+  const paths = getPathCache();
   ctx.clearRect(0, 0, w, h);
   drawBaseGradient(ctx, w, h);
 
@@ -256,9 +264,11 @@ function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, phase: n
     withMotionLayer(ctx, w, h, disc, phase, () => drawPaperDisc(ctx, disc));
   }
 
-  PSM_SCENE.bands.forEach((band, index) => {
-    withMotionLayer(ctx, w, h, band, phase, () => drawBand(ctx, PATH_CACHE.bands[index], band.opacity));
-  });
+  if (paths) {
+    PSM_SCENE.bands.forEach((band, index) => {
+      withMotionLayer(ctx, w, h, band, phase, () => drawBand(ctx, paths.bands[index], band.opacity));
+    });
+  }
 
   for (const disc of PSM_SCENE.mediumDiscs) {
     withMotionLayer(ctx, w, h, disc, phase, () => drawPaperDisc(ctx, disc));
@@ -270,14 +280,16 @@ function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, phase: n
     );
   }
 
-  PSM_SCENE.curves.forEach((curve, index) => {
-    withMotionLayer(ctx, w, h, curve, phase, () => {
-      drawCurve(ctx, PATH_CACHE.curves[index], curve.strokeWidth);
-      for (const dot of curve.dots) {
-        drawAccentDot(ctx, dot.bx, dot.by, dot.r);
-      }
+  if (paths) {
+    PSM_SCENE.curves.forEach((curve, index) => {
+      withMotionLayer(ctx, w, h, curve, phase, () => {
+        drawCurve(ctx, paths.curves[index], curve.strokeWidth);
+        for (const dot of curve.dots) {
+          drawAccentDot(ctx, dot.bx, dot.by, dot.r);
+        }
+      });
     });
-  });
+  }
 
   for (const disc of PSM_SCENE.buttonDots) {
     withMotionLayer(ctx, w, h, disc, phase, () => drawPaperDisc(ctx, disc));
@@ -285,6 +297,8 @@ function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, phase: n
 }
 
 function startCanvasLoop(canvas: HTMLCanvasElement, animate: boolean): () => void {
+  if (typeof Path2D === 'undefined') return () => undefined;
+
   const ctx = canvas.getContext('2d');
   if (!ctx) return () => undefined;
 
@@ -403,12 +417,19 @@ export function GlobalPersistentSpaceMotionBackground({
 }: GlobalPersistentSpaceMotionBackgroundProps) {
   const prefersReducedMotion = usePrefersReducedMotion();
   const shouldAnimate = animated && !prefersReducedMotion && Platform.OS === 'web';
+  const [canvasReady, setCanvasReady] = useState(false);
 
   useEffect(() => {
     ensureWebStyles();
   }, []);
 
-  if (!shouldAnimate) {
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof Path2D !== 'undefined') {
+      setCanvasReady(true);
+    }
+  }, []);
+
+  if (!shouldAnimate || !canvasReady) {
     return <StaticLightPaperBackground dimmed={dimmed} testID={testID} />;
   }
 
