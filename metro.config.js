@@ -30,6 +30,7 @@ config.resolver = {
   ...config.resolver,
   unstable_enablePackageExports: false,
   resolverMainFields: ['react-native', 'browser', 'main'],
+  assetExts: [...(config.resolver.assetExts ?? []), 'svg'],
 };
 
 const upstreamResolve = config.resolver.resolveRequest;

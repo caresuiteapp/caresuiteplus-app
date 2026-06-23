@@ -1,7 +1,8 @@
 import { useEffect } from 'react';
 import { Image, Platform, StyleSheet, View } from 'react-native';
 
-const LIGHT_PAPER_BACKGROUND = require('../../../assets/images/backgrounds/light-abstract-paper-background.png');
+const LIGHT_PAPER_BACKGROUND_PNG = require('../../../assets/images/backgrounds/light-abstract-paper-background.png');
+const LIGHT_PAPER_BACKGROUND_SVG = require('../../../assets/images/backgrounds/light-abstract-paper-background.svg');
 
 export type StaticLightPaperBackgroundProps = {
   dimmed?: boolean;
@@ -11,6 +12,11 @@ export type StaticLightPaperBackgroundProps = {
 };
 
 const BODY_BG_STYLE_ID = 'caresuite-static-light-paper-body-bg';
+
+const WEB_SVG_URI =
+  Platform.OS === 'web'
+    ? (Image.resolveAssetSource(LIGHT_PAPER_BACKGROUND_SVG)?.uri ?? null)
+    : null;
 
 function ensureWebDocumentTransparent() {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
@@ -47,13 +53,21 @@ export function StaticLightPaperBackground({
       testID={testID}
       nativeID="caresuite-static-light-paper-bg"
     >
-      <Image
-        source={LIGHT_PAPER_BACKGROUND}
-        style={styles.image}
-        resizeMode="cover"
-        accessibilityIgnoresInvertColors
-        aria-hidden
-      />
+      {Platform.OS === 'web' && WEB_SVG_URI ? (
+        <View
+          style={[styles.image, { backgroundImage: `url(${WEB_SVG_URI})` }]}
+          accessibilityIgnoresInvertColors
+          aria-hidden
+        />
+      ) : (
+        <Image
+          source={LIGHT_PAPER_BACKGROUND_PNG}
+          style={styles.image}
+          resizeMode="cover"
+          accessibilityIgnoresInvertColors
+          aria-hidden
+        />
+      )}
       {dimmed ? <View style={styles.dimOverlay} pointerEvents="none" /> : null}
     </View>
   );
@@ -90,6 +104,9 @@ const styles = StyleSheet.create({
           width: '100vw',
           height: '100vh',
           objectFit: 'cover',
+          backgroundSize: 'cover',
+          backgroundPosition: 'center',
+          backgroundRepeat: 'no-repeat',
         } as const)
       : null),
   },

@@ -3,11 +3,13 @@ import { describe, expect, it } from 'vitest';
 describe('StaticLightPaperBackground component', () => {
   const componentPath = ['..', '..', 'components', 'backgrounds', 'StaticLightPaperBackground.tsx'];
 
-  it('lädt statisches PNG mit cover, fixed und pointer-events none', async () => {
+  it('lädt statisches SVG (Web) bzw. PNG (Native) mit cover, fixed und pointer-events none', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(path.join(__dirname, ...componentPath), 'utf8');
     expect(source).toContain('light-abstract-paper-background.png');
+    expect(source).toContain('light-abstract-paper-background.svg');
+    expect(source).toContain('backgroundSize: \'cover\'');
     expect(source).toContain('resizeMode="cover"');
     expect(source).toContain('pointerEvents="none"');
     expect(source).toContain("position: 'fixed'");
