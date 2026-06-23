@@ -3,69 +3,28 @@
  * Content Portal C.4 — idempotent LIVE backfill (portal settings init).
  * Only LIVE whitelist tenants. Zero deletes. Supports --dry-run.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import { createAuditAdminClient, loadAuditEnv } from './lib/auditSupabaseClient.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const LIVE_WHITELIST = ['56180c22-b894-4fab-b55e-a563c94dd6e7'];
 const outPath = join(root, '.audit-content-portal-live-backfill-results.json');
 
-function loadEnv() {
-  const path = join(root, '.env');
-  const out = { ...process.env };
-  if (!existsSync(path)) return out;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    out[key] = val;
-  }
-  return out;
-}
-
-async function restSelect(url, key, table, query) {
-  const res = await fetch(`${url}/rest/v1/${table}?${query}`, {
-    headers: { apikey: key, Authorization: `Bearer ${key}`, Accept: 'application/json' },
-  });
-  const data = await res.json().catch(() => null);
-  if (!res.ok) return { ok: false, error: JSON.stringify(data), data: null };
-  return { ok: true, data };
-}
-
-async function restUpsert(url, key, table, rows, onConflict) {
-  const res = await fetch(`${url}/rest/v1/${table}?on_conflict=${onConflict}`, {
-    method: 'POST',
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-    body: JSON.stringify(rows),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    return { ok: false, error: text };
-  }
-  return { ok: true };
-}
-
 async function main() {
-  const env = loadEnv();
+  const env = loadAuditEnv();
   const dryRun = process.argv.includes('--dry-run');
-  const url = (env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
-  const serviceKey = env.SUPABASE_SERVICE_ROLE_KEY?.trim() ?? '';
+  const adminClient = createAuditAdminClient(env);
   const result = { ok: false, dryRun, tenants: [], deletes: 0 };
 
-  if (!url || !serviceKey) {
+  if (!adminClient.url || !adminClient.key) {
     result.reason = 'missing_service_role_or_url';
+    result.clientError = {
+      clientType: 'admin',
+      envKeyName: adminClient.keyEnvKeyName,
+      errorClass: 'missing_env',
+    };
     writeFileSync(outPath, JSON.stringify(result, null, 2));
     process.exit(2);
   }
@@ -80,9 +39,7 @@ async function main() {
       upserted: 0,
     };
 
-    const clientsRes = await restSelect(
-      url,
-      serviceKey,
+    const clientsRes = await adminClient.restSelect(
       'clients',
       `select=id,status&tenant_id=eq.${tenantId}`,
     );
@@ -96,13 +53,14 @@ async function main() {
     tenantReport.clientsBefore = clients.length;
     tenantReport.activeClients = clients.filter((c) => c.status === 'active').length;
 
-    const portalRes = await restSelect(
-      url,
-      serviceKey,
+    const portalRes = await adminClient.restSelect(
       'client_portal_settings',
       `select=client_id&tenant_id=eq.${tenantId}`,
     );
-    tenantReport.portalRowsBefore = portalRes.data?.length ?? 0;
+    tenantReport.portalRowsBefore = portalRes.ok ? (portalRes.data?.length ?? 0) : 0;
+    if (!portalRes.ok) {
+      tenantReport.portalError = portalRes.error;
+    }
 
     const existing = new Set((portalRes.data ?? []).map((r) => r.client_id));
     const missing = clients.filter((c) => c.status === 'active' && !existing.has(c.id));
@@ -115,15 +73,15 @@ async function main() {
         portal_enabled: true,
         inherit_tenant_defaults: true,
       }));
-      const upsert = await restUpsert(url, serviceKey, 'client_portal_settings', rows, 'tenant_id,client_id');
-      tenantReport.upsertError = upsert.error;
+      const upsert = await adminClient.restUpsertMany('client_portal_settings', rows, 'tenant_id,client_id');
+      tenantReport.upsertError = upsert.ok ? undefined : upsert.error;
       tenantReport.upserted = upsert.ok ? rows.length : 0;
     }
 
     result.tenants.push(tenantReport);
   }
 
-  result.ok = result.tenants.every((t) => !t.error && !t.upsertError);
+  result.ok = result.tenants.every((t) => !t.error && !t.upsertError && !t.portalError);
   writeFileSync(outPath, JSON.stringify(result, null, 2));
   console.log(JSON.stringify(result));
   process.exit(result.ok ? 0 : 1);

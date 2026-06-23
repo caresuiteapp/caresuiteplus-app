@@ -7,78 +7,43 @@ import { spawnSync } from 'node:child_process';
 import { existsSync, readFileSync, writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  getPublishableKey,
+  getServiceRoleKey,
+  getSupabaseUrl,
+  loadAuditEnv,
+  pick,
+} from './lib/auditSupabaseClient.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const legacyBootstrap = join(root, '.audit-assist-live-e2e-a42-auth-bootstrap.mjs');
 const outPath = join(root, '.audit-content-portal-auth-bootstrap-results.json');
 
-function loadEnvSummary() {
-  const path = join(root, '.env');
-  const summary = {
-    supabaseUrl: Boolean(process.env.EXPO_PUBLIC_SUPABASE_URL),
-    anonKey: Boolean(
-      process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    ),
-    businessEmail: Boolean(
-      process.env.AUDIT_BUSINESS_EMAIL ?? process.env.TEST_BUSINESS_EMAIL,
-    ),
-    businessPassword: Boolean(
-      process.env.AUDIT_BUSINESS_PASSWORD ?? process.env.TEST_BUSINESS_PASSWORD,
-    ),
-    serviceRole: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-    employeeCreds: Boolean(
-      process.env.AUDIT_EMPLOYEE_USERNAME ?? process.env.TEST_EMPLOYEE_USERNAME,
-    ),
-    clientCreds: Boolean(
-      process.env.AUDIT_CLIENT_USERNAME ?? process.env.TEST_CLIENT_USERNAME,
-    ),
-  };
-  if (!existsSync(path)) return summary;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    if (!process.env[key]) process.env[key] = val;
-  }
+function envSummary(env) {
   return {
-    supabaseUrl: Boolean(process.env.EXPO_PUBLIC_SUPABASE_URL),
-    anonKey: Boolean(
-      process.env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY ?? process.env.EXPO_PUBLIC_SUPABASE_ANON_KEY,
-    ),
-    businessEmail: Boolean(
-      process.env.AUDIT_BUSINESS_EMAIL ?? process.env.TEST_BUSINESS_EMAIL,
-    ),
-    businessPassword: Boolean(
-      process.env.AUDIT_BUSINESS_PASSWORD ?? process.env.TEST_BUSINESS_PASSWORD,
-    ),
-    serviceRole: Boolean(process.env.SUPABASE_SERVICE_ROLE_KEY),
-    employeeCreds: Boolean(
-      process.env.AUDIT_EMPLOYEE_USERNAME ?? process.env.TEST_EMPLOYEE_USERNAME,
-    ),
-    clientCreds: Boolean(
-      process.env.AUDIT_CLIENT_USERNAME ?? process.env.TEST_CLIENT_USERNAME,
-    ),
+    supabaseUrl: Boolean(getSupabaseUrl(env).value),
+    anonKey: Boolean(getPublishableKey(env).value),
+    businessEmail: Boolean(pick(env, ['AUDIT_BUSINESS_EMAIL', 'TEST_BUSINESS_EMAIL'])),
+    businessPassword: Boolean(pick(env, ['AUDIT_BUSINESS_PASSWORD', 'TEST_BUSINESS_PASSWORD'])),
+    serviceRole: Boolean(getServiceRoleKey(env).value),
+    employeeCreds: Boolean(pick(env, ['AUDIT_EMPLOYEE_USERNAME', 'TEST_EMPLOYEE_USERNAME'])),
+    clientCreds: Boolean(pick(env, ['AUDIT_CLIENT_USERNAME', 'TEST_CLIENT_USERNAME'])),
   };
 }
 
 function main() {
-  const envSummary = loadEnvSummary();
+  const env = loadAuditEnv();
+  const summary = envSummary(env);
   const result = {
     ok: false,
     phase: 'content_portal_auth_bootstrap',
-    envSummary,
+    envSummary: summary,
     legacyBootstrapExists: existsSync(legacyBootstrap),
     exitCode: null,
     blocker: null,
   };
 
-  if (!envSummary.supabaseUrl || !envSummary.anonKey) {
+  if (!summary.supabaseUrl || !summary.anonKey) {
     result.blocker = 'missing_supabase_env';
     writeFileSync(outPath, JSON.stringify(result, null, 2));
     console.log(JSON.stringify(result));

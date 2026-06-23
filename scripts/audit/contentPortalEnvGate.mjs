@@ -2,45 +2,23 @@
 /**
  * Content Portal C.12 — Env gate (presence only, no secret values).
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  getPublishableKey,
+  getServiceRoleKey,
+  getSupabaseUrl,
+  loadAuditEnv,
+  pick,
+  PLACEHOLDER_RE,
+} from './lib/auditSupabaseClient.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const outPath = join(root, '.audit-content-portal-c12-env-gate.json');
 
-const PLACEHOLDER =
-  /DEIN_|CHANGE_ME|placeholder|example\.com|changeme|^password$|^echter-|^echtes-|^\.\.\.$|^test@test$|DEIN_SUPABASE/i;
-
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
-}
-
-function loadEnv() {
-  const path = join(root, '.env');
-  const out = { ...process.env };
-  if (!existsSync(path)) return out;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    out[key] = val;
-  }
-  return out;
-}
-
-function pick(env, keys) {
-  for (const k of keys) {
-    const v = env[k]?.trim() ?? '';
-    if (v) return v;
-  }
-  return '';
 }
 
 function fieldStatus(value) {
@@ -48,7 +26,7 @@ function fieldStatus(value) {
   return {
     present: Boolean(v),
     empty: !v,
-    placeholder: v ? PLACEHOLDER.test(v) : false,
+    placeholder: v ? PLACEHOLDER_RE.test(v) : false,
   };
 }
 
@@ -63,12 +41,10 @@ async function tryBusinessLogin(url, anonKey, email, password) {
 }
 
 async function main() {
-  const env = loadEnv();
-  const url = (env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
-  const anonKey =
-    env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ??
-    env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ??
-    '';
+  const env = loadAuditEnv();
+  const { value: url } = getSupabaseUrl(env);
+  const { value: anonKey } = getPublishableKey(env);
+  const { value: serviceRoleKey } = getServiceRoleKey(env);
 
   const businessEmail = pick(env, ['AUDIT_BUSINESS_EMAIL', 'TEST_BUSINESS_EMAIL', 'UAT_BUSINESS_EMAIL']);
   const businessPassword = pick(env, ['AUDIT_BUSINESS_PASSWORD', 'TEST_BUSINESS_PASSWORD', 'UAT_BUSINESS_PASSWORD']);
@@ -82,7 +58,7 @@ async function main() {
     ok: false,
     supabaseUrl: fieldStatus(url),
     anonKey: fieldStatus(anonKey),
-    serviceRoleKey: fieldStatus(env.SUPABASE_SERVICE_ROLE_KEY),
+    serviceRoleKey: fieldStatus(serviceRoleKey),
     businessEmail: fieldStatus(businessEmail),
     businessPassword: fieldStatus(businessPassword),
     employeeUsername: fieldStatus(employeeUsername),

@@ -3,9 +3,15 @@
  * Content Portal C.5 — idempotent E2E seed for Test Pflege GmbH only.
  * Never touches LIVE whitelist tenants. No secrets in stdout.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  createAuditAdminClient,
+  createAuditPublicClient,
+  loadAuditEnv,
+  pick,
+} from './lib/auditSupabaseClient.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TENANT = 'a4ba83bd-65db-46cf-8cf7-61492cc78315';
@@ -18,68 +24,18 @@ const outPath = join(root, '.audit-content-portal-e2e-seed-results.json');
 
 const LIVE_WHITELIST = ['56180c22-b894-4fab-b55e-a563c94dd6e7'];
 
-function loadEnv() {
-  const path = join(root, '.env');
-  const out = { ...process.env };
-  if (!existsSync(path)) return out;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    out[key] = val;
-  }
-  return out;
-}
-
 function credentials(env) {
   return {
-    email: (env.AUDIT_BUSINESS_EMAIL ?? env.TEST_BUSINESS_EMAIL ?? '').trim(),
-    password: (env.AUDIT_BUSINESS_PASSWORD ?? env.TEST_BUSINESS_PASSWORD ?? '').trim(),
+    email: pick(env, ['AUDIT_BUSINESS_EMAIL', 'TEST_BUSINESS_EMAIL']),
+    password: pick(env, ['AUDIT_BUSINESS_PASSWORD', 'TEST_BUSINESS_PASSWORD']),
   };
 }
 
-async function login(url, anonKey, email, password) {
-  const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: { apikey: anonKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok && Boolean(data.access_token), token: data.access_token ?? '' };
-}
-
-async function restUpsert(url, key, table, row, onConflict) {
-  const res = await fetch(`${url}/rest/v1/${table}?on_conflict=${onConflict}`, {
-    method: 'POST',
-    headers: {
-      apikey: key,
-      Authorization: `Bearer ${key}`,
-      'Content-Type': 'application/json',
-      Prefer: 'resolution=merge-duplicates,return=minimal',
-    },
-    body: JSON.stringify(row),
-  });
-  if (!res.ok) {
-    const text = await res.text();
-    return { ok: false, error: text };
-  }
-  return { ok: true };
-}
-
 async function main() {
-  const env = loadEnv();
+  const env = loadAuditEnv();
   const dryRun = process.argv.includes('--dry-run');
-  const url = (env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
-  const anonKey =
-    env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ??
-    env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ??
-    '';
+  const publicClient = createAuditPublicClient(env);
+  const adminClient = createAuditAdminClient(env);
   const { email, password } = credentials(env);
   const result = { ok: false, dryRun, tenantId: TENANT, steps: [] };
 
@@ -90,8 +46,20 @@ async function main() {
     process.exit(3);
   }
 
-  if (!url || !anonKey || !email || !password) {
+  if (!publicClient.url || !publicClient.key || !email || !password) {
     result.reason = 'missing_env_credentials';
+    writeFileSync(outPath, JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result));
+    process.exit(2);
+  }
+
+  if (!adminClient.url || !adminClient.key) {
+    result.reason = 'missing_service_role';
+    result.clientError = {
+      clientType: 'admin',
+      envKeyName: adminClient.keyEnvKeyName,
+      errorClass: 'missing_env',
+    };
     writeFileSync(outPath, JSON.stringify(result, null, 2));
     console.log(JSON.stringify(result));
     process.exit(2);
@@ -105,20 +73,29 @@ async function main() {
     return;
   }
 
-  const auth = await login(url, anonKey, email, password);
+  const auth = await publicClient.passwordLogin(email, password);
+  result.steps.push({
+    step: 'business_login',
+    ok: auth.ok,
+    detail: auth.ok ? 'ok' : auth.error,
+  });
   if (!auth.ok) {
     result.reason = 'auth_failed';
     writeFileSync(outPath, JSON.stringify(result, null, 2));
+    console.log(JSON.stringify(result));
     process.exit(2);
   }
 
-  const key = auth.token;
-  const envRow = await restUpsert(url, key, 'tenant_environment_settings', {
+  const envRow = await adminClient.restUpsert('tenant_environment_settings', {
     tenant_id: TENANT,
     mode: 'internal_test',
     notes: 'Content Portal E2E seed',
   }, 'tenant_id');
-  result.steps.push({ step: 'env_mode', ok: envRow.ok, detail: envRow.error });
+  result.steps.push({
+    step: 'env_mode',
+    ok: envRow.ok,
+    detail: envRow.ok ? 'ok' : envRow.error,
+  });
 
   const today = new Date();
   const tomorrow = new Date(today);
@@ -162,11 +139,15 @@ async function main() {
   ];
 
   for (const row of visits) {
-    const upsert = await restUpsert(url, key, 'assist_visits', row, 'id');
-    result.steps.push({ step: `visit_${row.id.slice(0, 8)}`, ok: upsert.ok, detail: upsert.error });
+    const upsert = await adminClient.restUpsert('assist_visits', row, 'id');
+    result.steps.push({
+      step: `visit_${row.id.slice(0, 8)}`,
+      ok: upsert.ok,
+      detail: upsert.ok ? 'ok' : upsert.error,
+    });
   }
 
-  const proof = await restUpsert(url, key, 'assist_visit_proofs', {
+  const proof = await adminClient.restUpsert('assist_visit_proofs', {
     id: PROOF_PENDING,
     tenant_id: TENANT,
     visit_id: VISIT_TODAY,
@@ -177,15 +158,23 @@ async function main() {
     portal_release_status: 'pending',
     billing_released: false,
   }, 'id');
-  result.steps.push({ step: 'proof_pending', ok: proof.ok, detail: proof.error });
+  result.steps.push({
+    step: 'proof_pending',
+    ok: proof.ok,
+    detail: proof.ok ? 'ok' : proof.error,
+  });
 
-  const portal = await restUpsert(url, key, 'client_portal_settings', {
+  const portal = await adminClient.restUpsert('client_portal_settings', {
     tenant_id: TENANT,
     client_id: CLIENT_A,
     portal_enabled: true,
     inherit_tenant_defaults: true,
   }, 'tenant_id,client_id');
-  result.steps.push({ step: 'portal_settings', ok: portal.ok, detail: portal.error });
+  result.steps.push({
+    step: 'portal_settings',
+    ok: portal.ok,
+    detail: portal.ok ? 'ok' : portal.error,
+  });
 
   result.ok = result.steps.every((s) => s.ok);
   writeFileSync(outPath, JSON.stringify(result, null, 2));

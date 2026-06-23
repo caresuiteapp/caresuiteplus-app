@@ -2,50 +2,18 @@
 /**
  * Content Portal C.12.5 — Auth verification without logging secrets.
  */
-import { existsSync, readFileSync, writeFileSync } from 'node:fs';
+import { writeFileSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
+import {
+  createAuditPublicClient,
+  loadAuditEnv,
+  pick,
+} from './lib/auditSupabaseClient.mjs';
 
 const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const TENANT = 'a4ba83bd-65db-46cf-8cf7-61492cc78315';
 const outPath = join(root, '.audit-content-portal-c12-auth-verify.json');
-
-function loadEnv() {
-  const path = join(root, '.env');
-  const out = { ...process.env };
-  if (!existsSync(path)) return out;
-  for (const line of readFileSync(path, 'utf8').split('\n')) {
-    const trimmed = line.trim();
-    if (!trimmed || trimmed.startsWith('#')) continue;
-    const eq = trimmed.indexOf('=');
-    if (eq <= 0) continue;
-    const key = trimmed.slice(0, eq).trim();
-    let val = trimmed.slice(eq + 1).trim();
-    if ((val.startsWith('"') && val.endsWith('"')) || (val.startsWith("'") && val.endsWith("'"))) {
-      val = val.slice(1, -1);
-    }
-    out[key] = val;
-  }
-  return out;
-}
-
-function pick(env, keys) {
-  for (const k of keys) {
-    const v = env[k]?.trim() ?? '';
-    if (v) return v;
-  }
-  return '';
-}
-
-async function passwordLogin(url, anonKey, email, password) {
-  const res = await fetch(`${url}/auth/v1/token?grant_type=password`, {
-    method: 'POST',
-    headers: { apikey: anonKey, 'Content-Type': 'application/json' },
-    body: JSON.stringify({ email, password }),
-  });
-  const data = await res.json().catch(() => ({}));
-  return { ok: res.ok && Boolean(data.access_token), token: data.access_token ?? '' };
-}
 
 async function employeePortalLogin(url, anonKey, username, password) {
   const res = await fetch(`${url}/functions/v1/employee-portal-login`, {
@@ -68,12 +36,9 @@ async function clientPortalLogin(url, anonKey, username, code) {
 }
 
 async function main() {
-  const env = loadEnv();
-  const url = (env.EXPO_PUBLIC_SUPABASE_URL ?? '').replace(/\/$/, '');
-  const anonKey =
-    env.EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY?.trim() ??
-    env.EXPO_PUBLIC_SUPABASE_ANON_KEY?.trim() ??
-    '';
+  const env = loadAuditEnv();
+  const publicClient = createAuditPublicClient(env);
+  const { url, key: anonKey } = publicClient;
 
   const businessEmail = pick(env, ['AUDIT_BUSINESS_EMAIL', 'TEST_BUSINESS_EMAIL']);
   const businessPassword = pick(env, ['AUDIT_BUSINESS_PASSWORD', 'TEST_BUSINESS_PASSWORD']);
@@ -93,15 +58,22 @@ async function main() {
     tenantId: TENANT,
   };
 
-  const biz = await passwordLogin(url, anonKey, businessEmail, businessPassword);
+  const biz = await publicClient.passwordLogin(businessEmail, businessPassword);
   result.businessLogin = biz.ok;
+  if (!biz.ok && biz.error) {
+    result.businessLoginError = biz.error;
+  }
 
   if (biz.ok) {
-    const probe = await fetch(
-      `${url}/rest/v1/assist_visits?tenant_id=eq.${TENANT}&select=id&limit=1`,
-      { headers: { apikey: anonKey, Authorization: `Bearer ${biz.token}`, Accept: 'application/json' } },
+    const probe = await publicClient.restSelectAsUser(
+      'assist_visits',
+      `tenant_id=eq.${TENANT}&select=id&limit=1`,
+      biz.token,
     );
     result.tenantLinked = probe.ok;
+    if (!probe.ok && probe.error) {
+      result.tenantProbeError = probe.error;
+    }
   }
 
   if (employeeUsername && employeePassword) {
