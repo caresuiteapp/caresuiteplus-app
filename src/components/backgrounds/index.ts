@@ -1,4 +1,4 @@
 export { LightLiquidGlassSpaceBackground } from './LightLiquidGlassSpaceBackground';
 export { LightLiquidGlassAuroraNebulaBackground } from './LightLiquidGlassAuroraNebulaBackground';
-export { LightCosmicOrbitGalaxyBackground } from './LightCosmicOrbitGalaxyBackground';
+export { LightSpaceOrbitGalaxyBackground } from './LightSpaceOrbitGalaxyBackground';
 export { OfficePremiumGlassBackground } from './OfficePremiumGlassBackground';
