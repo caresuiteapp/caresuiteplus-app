@@ -109,8 +109,8 @@
     </filter>
   </defs>
 
-  <rect width="5120" height="2880" fill="url(#baseWash)"/>
-  <rect width="5120" height="2880" fill="url(#centerCalm)"/>
+  <rect class="lpb-base-wash" width="5120" height="2880" fill="url(#baseWash)"/>
+  <rect class="lpb-base-wash" width="5120" height="2880" fill="url(#centerCalm)"/>
 
   <g id="corner-discs" opacity="0.98">
     <g class="lpb-layer lpb-corner-0"><circle cx="-420.0" cy="-380.0" r="1180.0" fill="#FFFFFF" filter="url(#softShadowLg)"/></g>

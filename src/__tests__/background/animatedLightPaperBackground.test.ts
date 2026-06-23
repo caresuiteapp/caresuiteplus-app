@@ -19,6 +19,7 @@ describe('lightPaperBackgroundAnimated token', () => {
     expect(lightPaperBackgroundAnimationCss).toContain('prefers-reduced-motion: reduce');
     expect(lightPaperBackgroundAnimationCss).toContain('animation-play-state: paused');
     expect(lightPaperBackgroundAnimationCss).toContain('translate3d');
+    expect(lightPaperBackgroundAnimationCss).toContain('lpb-root--overlay .lpb-base-wash');
   });
 
   it('Layer-Keyframes kehren bei 0% und 100% glatt zum Ursprung zurück', () => {
@@ -39,10 +40,11 @@ describe('AnimatedLightPaperBackground component', () => {
     expect(source).toContain('lightPaperBackgroundAnimationCss');
     expect(source).toContain('usePrefersReducedMotion');
     expect(source).toContain('StaticLightPaperBackground');
+    expect(source).toContain('WebDomHost');
+    expect(source).toContain("createElement('div'");
     expect(source).toContain('visibilitychange');
-    expect(source).toContain('pointerEvents="none"');
-    expect(source).toContain('lpb-root--paused');
-    expect(source).toContain(`data-lpb-cycle-s={LPB_CYCLE_S}`);
+    expect(source).toContain('lpb-root--overlay');
+    expect(source).toContain('cycleS={LPB_CYCLE_S}');
   });
 });
 
@@ -55,7 +57,7 @@ describe('GlobalAnimatedBackground animated light wiring', () => {
       'utf8',
     );
     expect(source).toContain('AnimatedLightPaperBackground');
-    expect(source).toContain('animated={animated}');
-    expect(source).not.toContain('StaticLightPaperBackground');
+    expect(source).toContain('StaticLightPaperBackground');
+    expect(source).toContain('animated ?');
   });
 });

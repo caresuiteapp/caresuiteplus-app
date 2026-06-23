@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { AnimatedLightPaperBackground } from '@/components/backgrounds';
+import { AnimatedLightPaperBackground, StaticLightPaperBackground } from '@/components/backgrounds';
 import { AuroraBackground } from './aurorabackground';
 
 type GlobalAnimatedBackgroundProps = {
@@ -43,7 +43,11 @@ export function GlobalAnimatedBackground({
 
   return (
     <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
-      <AnimatedLightPaperBackground animated={animated} dimmed={dimmed} />
+      {animated ? (
+        <AnimatedLightPaperBackground animated dimmed={dimmed} />
+      ) : (
+        <StaticLightPaperBackground dimmed={dimmed} />
+      )}
       {children}
     </View>
   );

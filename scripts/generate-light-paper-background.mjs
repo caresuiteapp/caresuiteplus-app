@@ -181,6 +181,9 @@ function buildAnimationCss(layers) {
   height: 100%;
   display: block;
 }
+.lpb-root--overlay .lpb-base-wash {
+  display: none;
+}
 .lpb-layer {
   transform-box: fill-box;
   transform-origin: center;
@@ -420,8 +423,8 @@ function buildSvg() {
     </filter>
   </defs>
 
-  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#baseWash)"/>
-  <rect width="${WIDTH}" height="${HEIGHT}" fill="url(#centerCalm)"/>
+  <rect class="lpb-base-wash" width="${WIDTH}" height="${HEIGHT}" fill="url(#baseWash)"/>
+  <rect class="lpb-base-wash" width="${WIDTH}" height="${HEIGHT}" fill="url(#centerCalm)"/>
 
   <g id="corner-discs" opacity="0.98">
     ${cornerPaths}
