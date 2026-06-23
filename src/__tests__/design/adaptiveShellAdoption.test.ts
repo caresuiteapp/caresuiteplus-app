@@ -36,6 +36,12 @@ describe('adaptive shell wiring', () => {
     expect(src).toContain('area="assist"');
   });
 
+  it('Akademie-Layout nutzt CareAdaptiveShell via ShellLayout', () => {
+    const src = readFileSync(join(root, 'app/akademie/_layout.tsx'), 'utf8');
+    expect(src).toContain('ShellLayout');
+    expect(src).toContain('area="akademie"');
+  });
+
   it('QM-Layout nutzt Auth-gated Stack ohne ShellLayout (Office-Unterroute)', () => {
     const src = readFileSync(join(root, 'app/business/office/qm/_layout.tsx'), 'utf8');
     expect(src).toContain('RequireAuth');
