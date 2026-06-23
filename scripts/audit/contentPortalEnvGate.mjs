@@ -10,7 +10,7 @@ const root = join(dirname(fileURLToPath(import.meta.url)), '..', '..');
 const outPath = join(root, '.audit-content-portal-c12-env-gate.json');
 
 const PLACEHOLDER =
-  /DEIN_|CHANGE_ME|placeholder|example\.com|changeme|^password$|^echter-|^echtes-|^\.\.\.$|^test@test$/i;
+  /DEIN_|CHANGE_ME|placeholder|example\.com|changeme|^password$|^echter-|^echtes-|^\.\.\.$|^test@test$|DEIN_SUPABASE/i;
 
 function isValidEmail(value) {
   return /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value.trim());
@@ -115,6 +115,8 @@ async function main() {
   }
   if (!result.serviceRoleKey.present) {
     result.blockers.push('missing_service_role');
+  } else if (result.serviceRoleKey.placeholder) {
+    result.blockers.push('service_role_placeholder');
   }
 
   const portalCredsOk =
