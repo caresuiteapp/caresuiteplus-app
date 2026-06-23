@@ -180,6 +180,18 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'office.employee_time.view': 'Arbeitszeiten ansehen',
   'office.employee_time.manage': 'Arbeitszeiten verwalten',
   'office.employee_time.export': 'Arbeitszeiten exportieren',
+  'time.tracking.own.start': 'Eigene Arbeitszeit starten',
+  'time.tracking.own.pause': 'Eigene Arbeitszeit pausieren',
+  'time.tracking.own.resume': 'Eigene Arbeitszeit fortsetzen',
+  'time.tracking.own.switch': 'Tätigkeit / Zuordnung wechseln',
+  'time.tracking.own.close': 'Arbeitstag abschließen',
+  'time.tracking.own.view': 'Eigene Arbeitszeit einsehen',
+  'time.tracking.team.view': 'Team-Arbeitszeiten einsehen',
+  'time.tracking.admin.view': 'Arbeitszeit-Administration einsehen',
+  'time.tracking.admin.correct': 'Arbeitszeit-Korrekturen bearbeiten',
+  'time.tracking.admin.export': 'Arbeitszeit exportieren',
+  'time.audit.view': 'Arbeitszeit-Audit einsehen',
+  'time.settings.manage': 'Homeoffice-Arbeitszeit konfigurieren',
 };
 
 /** Compile-time guard: PERMISSION_LABELS keys stay aligned with PermissionKey union. */
@@ -457,6 +469,29 @@ const EMPLOYEE_TIME_BILLING: PermissionKey[] = [
   'office.employee_time.export',
 ];
 
+const TIME_TRACKING_OWN: PermissionKey[] = [
+  'time.tracking.own.start',
+  'time.tracking.own.pause',
+  'time.tracking.own.resume',
+  'time.tracking.own.switch',
+  'time.tracking.own.close',
+  'time.tracking.own.view',
+];
+
+const TIME_TRACKING_TEAM: PermissionKey[] = [
+  ...TIME_TRACKING_OWN,
+  'time.tracking.team.view',
+];
+
+const TIME_TRACKING_ADMIN: PermissionKey[] = [
+  ...TIME_TRACKING_TEAM,
+  'time.tracking.admin.view',
+  'time.tracking.admin.correct',
+  'time.tracking.admin.export',
+  'time.audit.view',
+  'time.settings.manage',
+];
+
 const APPOINTMENTS_EDIT: PermissionKey[] = ['office.appointments.edit'];
 
 const OFFICE_FULL: PermissionKey[] = [
@@ -573,6 +608,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...ABSENCES_OFFICE_FULL,
     ...HR_OFFICE_FULL,
     ...EMPLOYEE_TIME_FULL,
+    ...TIME_TRACKING_ADMIN,
     ...APPOINTMENTS_EDIT,
     'business.tenant.manage',
   ],
@@ -590,6 +626,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...ABSENCES_OFFICE_FULL,
     ...HR_OFFICE_FULL,
     ...EMPLOYEE_TIME_FULL,
+    ...TIME_TRACKING_ADMIN,
     ...APPOINTMENTS_EDIT,
   ],
   billing: [
@@ -606,6 +643,9 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...BROADCAST_CREATE,
     ...HR_VIEW,
     ...EMPLOYEE_TIME_BILLING,
+    'time.tracking.team.view',
+    'time.tracking.admin.view',
+    'time.audit.view',
     ...ABSENCES_VIEW,
     ...COMPLIANCE_VIEW,
   ],
@@ -626,6 +666,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...ABSENCES_DISPATCH,
     ...APPOINTMENTS_EDIT,
     ...RECRUITING_VIEW,
+    ...TIME_TRACKING_TEAM,
   ],
   nurse: [
     ...OFFICE_VIEW,
@@ -641,6 +682,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     'communication.view_center',
     'communication.send_message',
     'communication.view_client_threads',
+    ...TIME_TRACKING_OWN,
   ],
   caregiver: [
     ...OFFICE_VIEW,
@@ -650,6 +692,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...GEO_FIELD,
     'communication.view_center',
     'communication.send_message',
+    ...TIME_TRACKING_OWN,
   ],
   counselor: [
     ...OFFICE_VIEW,
@@ -661,9 +704,10 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     'communication.view_center',
     'communication.send_message',
     'communication.view_client_threads',
+    ...TIME_TRACKING_OWN,
   ],
   akademie_admin: [...AKADEMIE_VIEW, ...COMMUNICATION_OFFICE],
-  employee_portal: PORTAL_EMPLOYEE,
+  employee_portal: [...PORTAL_EMPLOYEE, ...TIME_TRACKING_OWN],
   client_portal: PORTAL_CLIENT,
   family_portal: PORTAL_CLIENT,
 };

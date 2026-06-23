@@ -22,6 +22,12 @@ const SETTINGS_LINKS: OfficeSettingsLink[] = [
     description: 'Datenimport & Datenexport für Klient:innen und Mitarbeiter:innen',
   },
   {
+    id: 'time-tracking',
+    label: 'Homeoffice & Arbeitszeit',
+    route: '/business/office/settings/time-tracking',
+    description: 'Tätigkeitsnachweis, Kataloge und Inaktivitätseinstellungen',
+  },
+  {
     id: 'templates',
     label: 'Vorlagen & Kataloge',
     route: '/business/templates/settings',

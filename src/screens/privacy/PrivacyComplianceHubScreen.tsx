@@ -26,6 +26,16 @@ const AREA_ROUTES: Partial<Record<PrivacyManagementAreaKey, string>> = {
   data_subject_requests: '/business/security/data-requests',
 };
 
+const COMPLIANCE_EXTRA_LINKS = [
+  {
+    key: 'time_tracking_audit',
+    label: 'Arbeitszeit-Audit',
+    route: '/business/office/time-tracking/audit',
+    icon: '⏱️',
+    permission: 'time.audit.view' as const,
+  },
+];
+
 const AREA_ICONS: Record<PrivacyManagementAreaKey, string> = {
   processing_activities: '📋',
   toms: '🔒',
@@ -118,6 +128,16 @@ export function PrivacyComplianceHubScreen() {
               />
             );
           })}
+          {COMPLIANCE_EXTRA_LINKS.filter((link) => can(link.permission)).map((link) => (
+            <ModuleTile
+              key={link.key}
+              icon={link.icon}
+              title={link.label}
+              description="Homeoffice-Arbeitszeit — Metadaten-Audit"
+              accentColor={colors.primary}
+              onPress={() => router.push(link.route as never)}
+            />
+          ))}
         </View>
       </SectionPanel>
 

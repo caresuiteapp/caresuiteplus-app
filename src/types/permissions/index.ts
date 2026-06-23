@@ -178,7 +178,19 @@ export type PermissionKey =
   | 'portal.employee.hr.view'
   | 'office.employee_time.view'
   | 'office.employee_time.manage'
-  | 'office.employee_time.export';
+  | 'office.employee_time.export'
+  | 'time.tracking.own.start'
+  | 'time.tracking.own.pause'
+  | 'time.tracking.own.resume'
+  | 'time.tracking.own.switch'
+  | 'time.tracking.own.close'
+  | 'time.tracking.own.view'
+  | 'time.tracking.team.view'
+  | 'time.tracking.admin.view'
+  | 'time.tracking.admin.correct'
+  | 'time.tracking.admin.export'
+  | 'time.audit.view'
+  | 'time.settings.manage';
 
 export type PermissionDecision = {
   allowed: boolean;
