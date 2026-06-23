@@ -162,11 +162,30 @@ function layerClass(kind, index) {
   return `class="lpb-layer lpb-${kind}-${index}"`;
 }
 
+/** SMIL translate loop — stable in SVG, no React/rAF DOM fights. */
+function smilTranslateAnim({ dx, dy, delayS }) {
+  return `<animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="${LPB_CYCLE_S}s" repeatCount="indefinite" begin="-${delayS}s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;${dx} ${dy};0 0"/>`;
+}
+
+function animatedLayerGroup(kind, index, motion, inner) {
+  return `<g ${layerClass(kind, index)}>
+    ${smilTranslateAnim(motion)}
+    ${inner}
+  </g>`;
+}
+
 function buildAnimationCss() {
   return `.lpb-root svg {
   width: 100%;
   height: 100%;
   display: block;
+}
+.lpb-root--paused svg * {
+  animation-play-state: paused;
 }
 .lpb-layer {
   will-change: transform;
@@ -299,10 +318,17 @@ function buildSvg() {
   );
   buttonDots.forEach((_, i) => animLayers.push(layerMotion('dot', i)));
 
+  const motionByClass = new Map(animLayers.map((layer) => [layer.className, layer]));
+  const motionFor = (kind, index) => motionByClass.get(`lpb-${kind}-${index}`);
+
   const bandPaths = bands
-    .map(
-      (b, i) =>
-        `<g ${layerClass('band', i)} mask="url(#bandMask${i})">\n      ${svgPath(flowingBand(b.pts, b.t), `fill="#FFFFFF" opacity="${b.opacity}" filter="url(#paperShadow)" data-band="${i}"`)}\n    </g>`,
+    .map((b, i) =>
+      animatedLayerGroup(
+        'band',
+        i,
+        motionFor('band', i),
+        `<g mask="url(#bandMask${i})">\n      ${svgPath(flowingBand(b.pts, b.t), `fill="#FFFFFF" opacity="${b.opacity}" filter="url(#paperShadow)" data-band="${i}"`)}\n    </g>`,
+      ),
     )
     .join('\n    ');
 
@@ -316,30 +342,44 @@ function buildSvg() {
 
   const cornerPaths = cornerDiscs
     .map(({ x, y, r, filter }, i) =>
-      `<g ${layerClass('corner', i)}>${circle(x, y, r, `fill="#FFFFFF" filter="url(#${filter})"`)}</g>`,
+      animatedLayerGroup(
+        'corner',
+        i,
+        motionFor('corner', i),
+        circle(x, y, r, `fill="#FFFFFF" filter="url(#${filter})"`),
+      ),
     )
     .join('\n    ');
 
   const mediumPaths = mediumDiscs
     .map(([x, y, r], i) =>
-      `<g ${layerClass('medium', i)}>${circle(x, y, r, 'fill="#FFFFFF" filter="url(#softShadowMd)"')}</g>`,
+      animatedLayerGroup(
+        'medium',
+        i,
+        motionFor('medium', i),
+        circle(x, y, r, 'fill="#FFFFFF" filter="url(#softShadowMd)"'),
+      ),
     )
     .join('\n    ');
 
   const ringPaths = rings
     .map(([x, y, r], i) =>
-      `<g ${layerClass('ring', i)}>${circle(x, y, r, 'fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"')}</g>`,
+      animatedLayerGroup(
+        'ring',
+        i,
+        motionFor('ring', i),
+        circle(x, y, r, 'fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"'),
+      ),
     )
     .join('\n    ');
 
   const dotPaths = buttonDots
     .map(([x, y, r], i) => {
       const dotR = r * 1.08;
-      return `<g ${layerClass('dot', i)}>
-    ${circle(x + 4, y + 6, dotR + 1, 'fill="#A8A8A8" opacity="0.38"')}
+      const inner = `${circle(x + 4, y + 6, dotR + 1, 'fill="#A8A8A8" opacity="0.38"')}
     ${circle(x, y, dotR + 2.2, 'fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"')}
-    ${circle(x, y, dotR, 'fill="#F6F6F6" filter="url(#buttonLiftStrong)"')}
-    </g>`;
+    ${circle(x, y, dotR, 'fill="#F6F6F6" filter="url(#buttonLiftStrong)"')}`;
+      return animatedLayerGroup('dot', i, motionFor('dot', i), inner);
     })
     .join('\n    ');
 
@@ -348,10 +388,9 @@ function buildSvg() {
       const nodesMarkup = nodes
         .map(([x, y]) => circle(x, y, 10, 'fill="#FFFFFF" filter="url(#buttonLift)"'))
         .join('\n    ');
-      return `<g ${layerClass('line', i)}>
-    ${svgPath(d, `fill="none" stroke="url(#lineFade${i})" stroke-width="2.5" stroke-linecap="round" filter="url(#lineShadow)"`)}
-    ${nodesMarkup}
-    </g>`;
+      const inner = `${svgPath(d, `fill="none" stroke="url(#lineFade${i})" stroke-width="2.5" stroke-linecap="round" filter="url(#lineShadow)"`)}
+    ${nodesMarkup}`;
+      return animatedLayerGroup('line', i, motionFor('line', i), inner);
     })
     .join('\n    ');
 

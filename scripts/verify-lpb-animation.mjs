@@ -32,16 +32,44 @@ async function main() {
         return { ok: false, reason: 'no .lpb-layer elements in host' };
       }
 
+      const smilNodes = [...host.querySelectorAll('animateTransform')];
       const staticBg = document.querySelector('[data-testid="static-light-paper-background"]');
+
+      const layerSamples = layers.slice(0, 5).map((el) => {
+        const rect = el.getBoundingClientRect();
+        const style = getComputedStyle(el);
+        const ctm = typeof el.getCTM === 'function' ? el.getCTM() : null;
+        return {
+          cls: el.className.baseVal ?? el.className,
+          opacity: Number(style.opacity),
+          visible: rect.width > 0 && rect.height > 0,
+          x: rect.x,
+          y: rect.y,
+          ctmE: ctm?.e ?? null,
+          ctmF: ctm?.f ?? null,
+        };
+      });
+
+      const svg = host.querySelector('svg');
+      const svgTime = svg?.getCurrentTime?.() ?? null;
 
       return {
         layerCount: layers.length,
+        smilCount: smilNodes.length,
         staticBgPresent: Boolean(staticBg),
-        transforms: layers.map((el) => ({
-          cls: el.className.baseVal ?? el.className,
-          attrTransform: el.getAttribute('transform'),
-          cssTransform: getComputedStyle(el).transform,
-        })),
+        svgTime,
+        layerSamples,
+        positions: layers.map((el) => {
+          const rect = el.getBoundingClientRect();
+          const ctm = typeof el.getCTM === 'function' ? el.getCTM() : null;
+          return {
+            cls: el.className.baseVal ?? el.className,
+            x: rect.x,
+            y: rect.y,
+            ctmE: ctm?.e ?? null,
+            ctmF: ctm?.f ?? null,
+          };
+        }),
       };
     });
 
@@ -52,26 +80,44 @@ async function main() {
     process.exit(1);
   }
 
-  await page.waitForTimeout(6000);
-  const t1 = await readMotion();
+  await page.waitForTimeout(5000);
+  const t5 = await readMotion();
 
-  let attrChanged = 0;
-  let matrixChanged = 0;
-  for (let i = 0; i < t0.transforms.length; i += 1) {
-    const a = t0.transforms[i];
-    const b = t1.transforms[i];
-    if (a.attrTransform !== b.attrTransform) attrChanged += 1;
-    if (a.cssTransform !== b.cssTransform) matrixChanged += 1;
+  await page.waitForTimeout(25000);
+  const t30 = await readMotion();
+
+  let positionChanged = 0;
+  for (let i = 0; i < t0.positions.length; i += 1) {
+    const a = t0.positions[i];
+    const b = t30.positions[i];
+    const delta = Math.hypot((b.x ?? 0) - (a.x ?? 0), (b.y ?? 0) - (a.y ?? 0));
+    const ctmDelta = Math.hypot((b.ctmE ?? 0) - (a.ctmE ?? 0), (b.ctmF ?? 0) - (a.ctmF ?? 0));
+    if (delta > 0.5 || ctmDelta > 0.5) positionChanged += 1;
   }
 
+  const allVisible =
+    t0.layerCount === t5.layerCount &&
+    t5.layerCount === t30.layerCount &&
+    t0.layerCount >= 34 &&
+    t0.layerSamples.every((s) => s.opacity > 0 && s.visible);
+
+  const svgRunning =
+    t30.svgTime != null && t0.svgTime != null && t30.svgTime - t0.svgTime > 20;
+
   const result = {
-    ok: !t0.staticBgPresent && attrChanged >= 20,
-    layerCount: t0.layerCount,
+    ok:
+      !t0.staticBgPresent &&
+      allVisible &&
+      t0.smilCount >= 34 &&
+      (positionChanged >= 20 || svgRunning),
+    layerCount: { t0: t0.layerCount, t5: t5.layerCount, t30: t30.layerCount },
+    smilCount: t0.smilCount,
     staticBgPresent: t0.staticBgPresent,
-    attrChanged,
-    matrixChanged,
-    sampleBefore: t0.transforms.slice(0, 2),
-    sampleAfter: t1.transforms.slice(0, 2),
+    positionChanged,
+    svgTimeDelta: t30.svgTime != null && t0.svgTime != null ? t30.svgTime - t0.svgTime : null,
+    sampleLayers: t0.layerSamples,
+    samplePositionBefore: t0.positions.slice(0, 2),
+    samplePositionAfter: t30.positions.slice(0, 2),
   };
 
   console.log(JSON.stringify(result, null, 2));

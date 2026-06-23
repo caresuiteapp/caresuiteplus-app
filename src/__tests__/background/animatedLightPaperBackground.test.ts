@@ -3,6 +3,7 @@ import {
   LPB_ANIMATED_ELEMENT_COUNT,
   LPB_CYCLE_S,
   lightPaperAnimLayers,
+  lightPaperBackgroundAnimatedSvg,
   lightPaperBackgroundAnimationCss,
 } from '@/design/tokens/lightPaperBackgroundAnimated';
 
@@ -13,7 +14,14 @@ describe('lightPaperBackgroundAnimated token', () => {
     expect(lightPaperAnimLayers).toHaveLength(34);
   });
 
-  it('CSS enthält Layout-Regeln für SVG-Host (keine broken SVG-g Keyframes)', () => {
+  it('SVG enthält SMIL animateTransform pro Layer (stabile Browser-Animation)', () => {
+    const smilCount = (lightPaperBackgroundAnimatedSvg.match(/<animateTransform/g) ?? []).length;
+    expect(smilCount).toBe(34);
+    expect(lightPaperBackgroundAnimatedSvg).toContain('calcMode="spline"');
+    expect(lightPaperBackgroundAnimatedSvg).toContain('repeatCount="indefinite"');
+  });
+
+  it('CSS enthält Layout-Regeln für SVG-Host', () => {
     expect(lightPaperBackgroundAnimationCss).toContain('.lpb-root svg');
     expect(lightPaperBackgroundAnimationCss).toContain('.lpb-layer');
     expect(lightPaperBackgroundAnimationCss).not.toContain('@keyframes lpb-kf-dot-0');
@@ -29,7 +37,7 @@ describe('lightPaperBackgroundAnimated token', () => {
 describe('AnimatedLightPaperBackground component', () => {
   const componentPath = ['..', '..', 'components', 'backgrounds', 'AnimatedLightPaperBackground.tsx'];
 
-  it('nutzt SVG transform attribute rAF motion auf Web und Static-Fallback sonst', async () => {
+  it('nutzt einmaliges SVG-Mount mit SMIL statt rAF innerHTML fights', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(path.join(__dirname, ...componentPath), 'utf8');
@@ -38,12 +46,12 @@ describe('AnimatedLightPaperBackground component', () => {
     expect(source).toContain('StaticLightPaperBackground');
     expect(source).toContain('WebDomHost');
     expect(source).toContain("createElement('div'");
-    expect(source).toContain('startSvgLayerMotion');
-    expect(source).toContain('setAttribute(\'transform\'');
-    expect(source).toContain('requestAnimationFrame');
+    expect(source).toContain('pauseAnimations');
+    expect(source).toContain('unpauseAnimations');
     expect(source).toContain('visibilitychange');
     expect(source).toContain('lpb-root--paused');
-    expect(source).toContain('cycleS={LPB_CYCLE_S}');
+    expect(source).not.toContain('requestAnimationFrame');
+    expect(source).not.toContain('startSvgLayerMotion');
     expect(source).not.toContain('lpb-root--overlay');
     expect(source).not.toContain('static-base');
   });

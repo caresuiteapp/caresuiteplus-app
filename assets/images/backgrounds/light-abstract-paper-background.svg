@@ -113,130 +113,336 @@
   <rect class="lpb-base-wash" width="5120" height="2880" fill="url(#centerCalm)"/>
 
   <g id="corner-discs" opacity="0.98">
-    <g class="lpb-layer lpb-corner-0"><circle cx="-420.0" cy="-380.0" r="1180.0" fill="#FFFFFF" filter="url(#softShadowLg)"/></g>
-    <g class="lpb-layer lpb-corner-1"><circle cx="-520.0" cy="3300.0" r="1320.0" fill="#FFFFFF" filter="url(#softShadowLg)"/></g>
-    <g class="lpb-layer lpb-corner-2"><circle cx="5600.0" cy="3400.0" r="1420.0" fill="#FFFFFF" filter="url(#softShadowLg)"/></g>
-    <g class="lpb-layer lpb-corner-3"><circle cx="5400.0" cy="-220.0" r="760.0" fill="#FFFFFF" filter="url(#softShadowMd)"/></g>
+    <g class="lpb-layer lpb-corner-0">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-16.24s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;199.66 -160.69;0 0"/>
+    <circle cx="-420.0" cy="-380.0" r="1180.0" fill="#FFFFFF" filter="url(#softShadowLg)"/>
+  </g>
+    <g class="lpb-layer lpb-corner-1">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-11.8s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;81.38 -242.97;0 0"/>
+    <circle cx="-520.0" cy="3300.0" r="1320.0" fill="#FFFFFF" filter="url(#softShadowLg)"/>
+  </g>
+    <g class="lpb-layer lpb-corner-2">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-7.36s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-62.56 -248.42;0 0"/>
+    <circle cx="5600.0" cy="3400.0" r="1420.0" fill="#FFFFFF" filter="url(#softShadowLg)"/>
+  </g>
+    <g class="lpb-layer lpb-corner-3">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-2.92s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-186.67 -175.36;0 0"/>
+    <circle cx="5400.0" cy="-220.0" r="760.0" fill="#FFFFFF" filter="url(#softShadowMd)"/>
+  </g>
   </g>
 
   <g id="flowing-bands">
-    <g class="lpb-layer lpb-band-0" mask="url(#bandMask0)">
+    <g class="lpb-layer lpb-band-0">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-50.23s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;87.05 -44.14;0 0"/>
+    <g mask="url(#bandMask0)">
       <path d="M -588.1 2809.3 C 902.8 1929.4 2557.2 1163.2 5241.1 307.6 L 5148.1 90.7 C 2550.2 1130.6 895.8 1896.8 -681.1 2592.4 Z" fill="#FFFFFF" opacity="0.98" filter="url(#paperShadow)" data-band="0"/>
     </g>
-    <g class="lpb-layer lpb-band-1" mask="url(#bandMask1)">
+  </g>
+    <g class="lpb-layer lpb-band-1">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-45.79s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;87.52 -43.46;0 0"/>
+    <g mask="url(#bandMask1)">
       <path d="M -565.3 2975.5 C 1101.9 2123.3 2858.1 1361.4 5676.0 503.0 L 5605.3 324.5 C 2852.8 1336.7 1096.6 2098.6 -636.0 2797.0 Z" fill="#FFFFFF" opacity="0.95" filter="url(#paperShadow)" data-band="1"/>
     </g>
-    <g class="lpb-layer lpb-band-2" mask="url(#bandMask2)">
+  </g>
+    <g class="lpb-layer lpb-band-2">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-41.35s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;86.71 -45.35;0 0"/>
+    <g mask="url(#bandMask2)">
       <path d="M -253.0 3195.6 C 1401.9 2320.6 3258.1 1558.5 5667.7 841.9 L 5613.0 704.4 C 3254.0 1539.4 1397.8 2301.5 -307.7 3058.1 Z" fill="#FFFFFF" opacity="0.92" filter="url(#paperShadow)" data-band="2"/>
     </g>
-    <g class="lpb-layer lpb-band-3" mask="url(#bandMask3)">
+  </g>
+    <g class="lpb-layer lpb-band-3">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-36.91s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;92.96 -30.21;0 0"/>
+    <g mask="url(#bandMask3)">
       <path d="M 29.6 3036.5 C 1643.0 2181.6 3597.0 1414.6 5656.7 589.9 L 5610.4 483.5 C 3593.6 1398.4 1639.5 2165.4 -16.7 2930.1 Z" fill="#FFFFFF" opacity="0.9" filter="url(#paperShadow)" data-band="3"/>
     </g>
-    <g class="lpb-layer lpb-band-4" mask="url(#bandMask4)">
+  </g>
+    <g class="lpb-layer lpb-band-4">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-32.47s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;92.84 -29.91;0 0"/>
+    <g mask="url(#bandMask4)">
       <path d="M 357.5 3110.6 C 1882.2 2397.3 3937.8 1633.8 5654.3 947.1 L 5622.5 869.4 C 3935.4 1622.7 1879.9 2386.2 325.7 3032.9 Z" fill="#FFFFFF" opacity="0.88" filter="url(#paperShadow)" data-band="4"/>
     </g>
   </g>
+  </g>
 
   <g id="medium-discs">
-    <g class="lpb-layer lpb-medium-0"><circle cx="4300.0" cy="620.0" r="280.0" fill="#FFFFFF" filter="url(#softShadowMd)"/></g>
-    <g class="lpb-layer lpb-medium-1"><circle cx="760.0" cy="520.0" r="220.0" fill="#FFFFFF" filter="url(#softShadowMd)"/></g>
-    <g class="lpb-layer lpb-medium-2"><circle cx="4480.0" cy="2280.0" r="340.0" fill="#FFFFFF" filter="url(#softShadowMd)"/></g>
-    <g class="lpb-layer lpb-medium-3"><circle cx="620.0" cy="2360.0" r="260.0" fill="#FFFFFF" filter="url(#softShadowMd)"/></g>
-    <g class="lpb-layer lpb-medium-4"><circle cx="3820.0" cy="2480.0" r="200.0" fill="#FFFFFF" filter="url(#softShadowMd)"/></g>
+    <g class="lpb-layer lpb-medium-0">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-119.17s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-85.18 -38.64;0 0"/>
+    <circle cx="4300.0" cy="620.0" r="280.0" fill="#FFFFFF" filter="url(#softShadowMd)"/>
+  </g>
+    <g class="lpb-layer lpb-medium-1">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-114.73s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-92.52 13.42;0 0"/>
+    <circle cx="760.0" cy="520.0" r="220.0" fill="#FFFFFF" filter="url(#softShadowMd)"/>
+  </g>
+    <g class="lpb-layer lpb-medium-2">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-110.29s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-70.62 61.19;0 0"/>
+    <circle cx="4480.0" cy="2280.0" r="340.0" fill="#FFFFFF" filter="url(#softShadowMd)"/>
+  </g>
+    <g class="lpb-layer lpb-medium-3">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-105.85s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-26.43 89.58;0 0"/>
+    <circle cx="620.0" cy="2360.0" r="260.0" fill="#FFFFFF" filter="url(#softShadowMd)"/>
+  </g>
+    <g class="lpb-layer lpb-medium-4">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-101.41s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;26.07 89.64;0 0"/>
+    <circle cx="3820.0" cy="2480.0" r="200.0" fill="#FFFFFF" filter="url(#softShadowMd)"/>
+  </g>
   </g>
 
   <g id="rings">
-    <g class="lpb-layer lpb-ring-0"><circle cx="1120.0" cy="1680.0" r="110.0" fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"/></g>
-    <g class="lpb-layer lpb-ring-1"><circle cx="3960.0" cy="1520.0" r="92.0" fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"/></g>
-    <g class="lpb-layer lpb-ring-2"><circle cx="680.0" cy="980.0" r="74.0" fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"/></g>
-    <g class="lpb-layer lpb-ring-3"><circle cx="4440.0" cy="620.0" r="66.0" fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"/></g>
+    <g class="lpb-layer lpb-ring-0">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-60.56s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-37.59 17.93;0 0"/>
+    <circle cx="1120.0" cy="1680.0" r="110.0" fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"/>
+  </g>
+    <g class="lpb-layer lpb-ring-1">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-56.11s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-21.96 35.36;0 0"/>
+    <circle cx="3960.0" cy="1520.0" r="92.0" fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"/>
+  </g>
+    <g class="lpb-layer lpb-ring-2">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-51.67s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;0.59 41.6;0 0"/>
+    <circle cx="680.0" cy="980.0" r="74.0" fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"/>
+  </g>
+    <g class="lpb-layer lpb-ring-3">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-47.23s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;22.93 34.7;0 0"/>
+    <circle cx="4440.0" cy="620.0" r="66.0" fill="none" stroke="#FFFFFF" stroke-width="3.5" filter="url(#ringGlow)"/>
+  </g>
   </g>
 
   <g id="accent-lines">
     <g class="lpb-layer lpb-line-0">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-50.97s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;102.12 23.07;0 0"/>
     <path d="M 2809.4 96.0 C 3620.0 420.0 4040.0 260.0 5050.6 604.0" fill="none" stroke="url(#lineFade0)" stroke-width="2.5" stroke-linecap="round" filter="url(#lineShadow)"/>
     <circle cx="3180.0" cy="180.0" r="10.0" fill="#FFFFFF" filter="url(#buttonLift)"/>
     <circle cx="4040.0" cy="260.0" r="10.0" fill="#FFFFFF" filter="url(#buttonLift)"/>
     <circle cx="4680.0" cy="520.0" r="10.0" fill="#FFFFFF" filter="url(#buttonLift)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-line-1">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-46.53s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;98.61 -35.15;0 0"/>
     <path d="M 59.5 2600.2 C 920.0 2140.0 1280.0 2360.0 2040.5 1939.8" fill="none" stroke="url(#lineFade1)" stroke-width="2.5" stroke-linecap="round" filter="url(#lineShadow)"/>
     <circle cx="420.0" cy="2480.0" r="10.0" fill="#FFFFFF" filter="url(#buttonLift)"/>
     <circle cx="1280.0" cy="2360.0" r="10.0" fill="#FFFFFF" filter="url(#buttonLift)"/>
     <circle cx="1680.0" cy="2060.0" r="10.0" fill="#FFFFFF" filter="url(#buttonLift)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-line-2">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-42.08s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;103.15 -18.05;0 0"/>
     <path d="M 3143.3 2530.2 C 3920.0 2280.0 4280.0 2520.0 5096.7 2269.8" fill="none" stroke="url(#lineFade2)" stroke-width="2.5" stroke-linecap="round" filter="url(#lineShadow)"/>
     <circle cx="3520.0" cy="2480.0" r="10.0" fill="#FFFFFF" filter="url(#buttonLift)"/>
     <circle cx="4280.0" cy="2520.0" r="10.0" fill="#FFFFFF" filter="url(#buttonLift)"/>
-    </g>
+  </g>
   </g>
 
   <g id="button-dots">
     <g class="lpb-layer lpb-dot-0">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-93s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-20.31 55.8;0 0"/>
     <circle cx="984.0" cy="426.0" r="37.7" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="980.0" cy="420.0" r="38.9" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="980.0" cy="420.0" r="36.7" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-1">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-88.56s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;13 57.91;0 0"/>
     <circle cx="1244.0" cy="766.0" r="24.8" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="1240.0" cy="760.0" r="26.0" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="1240.0" cy="760.0" r="23.8" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-2">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-84.12s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;42.18 41.73;0 0"/>
     <circle cx="4044.0" cy="546.0" r="31.2" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="4040.0" cy="540.0" r="32.4" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="4040.0" cy="540.0" r="30.2" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-3">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-79.68s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;58 12.37;0 0"/>
     <circle cx="4384.0" cy="986.0" r="20.4" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="4380.0" cy="980.0" r="21.6" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="4380.0" cy="980.0" r="19.4" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-4">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-75.23s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;55.49 -20.87;0 0"/>
     <circle cx="524.0" cy="1886.0" r="29.1" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="520.0" cy="1880.0" r="30.3" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="520.0" cy="1880.0" r="28.1" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-5">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-70.79s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;35.44 -47.5;0 0"/>
     <circle cx="864.0" cy="2526.0" r="22.6" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="860.0" cy="2520.0" r="23.8" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="860.0" cy="2520.0" r="21.6" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-6">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-66.35s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;4.21 -59.09;0 0"/>
     <circle cx="4684.0" cy="1766.0" r="26.9" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="4680.0" cy="1760.0" r="28.1" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="4680.0" cy="1760.0" r="25.9" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-7">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-61.91s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-28.32 -52;0 0"/>
     <circle cx="4124.0" cy="2626.0" r="33.4" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="4120.0" cy="2620.0" r="34.6" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="4120.0" cy="2620.0" r="32.4" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-8">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-57.47s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-51.89 -28.49;0 0"/>
     <circle cx="1564.0" cy="326.0" r="18.3" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="1560.0" cy="320.0" r="19.5" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="1560.0" cy="320.0" r="17.3" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-9">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-53.02s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;-59.04 4.01;0 0"/>
     <circle cx="2864.0" cy="2486.0" r="20.4" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="2860.0" cy="2480.0" r="21.6" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="2860.0" cy="2480.0" r="19.4" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-10">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-7.85s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;43.73 -14.37;0 0"/>
     <circle cx="3184.0" cy="386.0" r="22.6" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="3180.0" cy="380.0" r="23.8" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="3180.0" cy="380.0" r="21.6" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-11">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-3.4s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;29.05 -35.68;0 0"/>
     <circle cx="984.0" cy="1286.0" r="16.1" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="980.0" cy="1280.0" r="17.3" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="980.0" cy="1280.0" r="15.1" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
     <g class="lpb-layer lpb-dot-12">
+    <animateTransform attributeName="transform" attributeType="XML" type="translate"
+      dur="120s" repeatCount="indefinite" begin="-118.96s"
+      calcMode="spline" keyTimes="0;0.5;1"
+      keySplines="0.42 0 0.58 1; 0.42 0 0.58 1"
+      values="0 0;5.21 -45.7;0 0"/>
     <circle cx="4584.0" cy="1386.0" r="18.3" fill="#A8A8A8" opacity="0.38"/>
     <circle cx="4580.0" cy="1380.0" r="19.5" fill="none" stroke="#9A9A9A" stroke-width="1.4" opacity="0.72"/>
     <circle cx="4580.0" cy="1380.0" r="17.3" fill="#F6F6F6" filter="url(#buttonLiftStrong)"/>
-    </g>
+  </g>
   </g>
 </svg>
