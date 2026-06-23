@@ -45,15 +45,14 @@ describe('galaxyGradients', () => {
     expect(resolveGalaxyGradientColors('modalHeader')).toEqual(galaxyGradients.modalHeader);
   });
 
-  it('GradientModalHeader uses safe gradient resolver', async () => {
+  it('GradientModalHeader uses popup shell gradient resolver', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(
       path.join(__dirname, '..', '..', 'components', 'layout', 'platform', 'gradientmodalheader.tsx'),
       'utf8',
     );
-    expect(source).toContain("resolveGalaxyGradientColors('modalHeader')");
-    expect(source).toContain('resolveLlganModalHeaderGradient');
+    expect(source).toContain('resolvePopupShellHeaderGradient');
     expect(source).not.toContain('[...galaxyGradients.modalHeader]');
   });
 });

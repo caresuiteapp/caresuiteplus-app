@@ -16,6 +16,10 @@ import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careEffects } from '@/design/tokens/effects';
+import {
+  popupShellLayout,
+  resolvePopupShellColors,
+} from '@/design/tokens/popupShell';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
@@ -55,9 +59,9 @@ export type PlatformModalProps = {
   lockBodyScroll?: boolean;
 };
 
-const DEFAULT_MAX_WIDTH = 560;
-const DEFAULT_MIN_WIDTH = 320;
-const DEFAULT_MAX_HEIGHT_RATIO = 0.92;
+const DEFAULT_MAX_WIDTH = popupShellLayout.maxWidthDefault;
+const DEFAULT_MIN_WIDTH = popupShellLayout.minWidthDefault;
+const DEFAULT_MAX_HEIGHT_RATIO = popupShellLayout.maxHeightRatioDefault;
 
 export function PlatformModal({
   visible,
@@ -88,6 +92,9 @@ export function PlatformModal({
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const resolvedAnimation = animationType ?? (variant === 'bottomSheet' ? 'slide' : 'fade');
   const accent = glowColor ?? c.violet;
+  const shellMode = isDark ? 'dark' : 'light';
+  const shellColors = resolvePopupShellColors(shellMode);
+  const shellRadius = popupShellLayout.borderRadius;
 
   const sheetWidth = useMemo(() => {
     if (variant === 'bottomSheet') return undefined;
@@ -112,7 +119,7 @@ export function PlatformModal({
         backdropCenter: {
           flex: 1,
           backgroundColor: lightModal
-            ? 'rgba(15, 27, 51, 0.16)'
+            ? shellColors.backdrop
             : isDark
               ? careEffects.glass.overlayDark
               : careEffects.glass.overlayLight,
@@ -123,7 +130,7 @@ export function PlatformModal({
         backdropBottom: {
           flex: 1,
           backgroundColor: lightModal
-            ? 'rgba(15, 27, 51, 0.16)'
+            ? shellColors.backdrop
             : isDark
               ? careEffects.glass.overlayDark
               : careEffects.glass.overlayLight,
@@ -137,8 +144,12 @@ export function PlatformModal({
             : {}),
           ...Platform.select({
             web: lightModal
-              ? ({ boxShadow: `${formGlass.shadow}, 0 24px 64px rgba(70,110,170,0.18)` } as unknown as ViewStyle)
-              : ({ boxShadow: '0 24px 64px rgba(0,0,0,0.35)' as unknown as ViewStyle }),
+              ? ({
+                  boxShadow: `${formGlass.shadow}, ${popupShellLayout.shadowWebLight}`,
+                } as unknown as ViewStyle)
+              : ({
+                  boxShadow: popupShellLayout.shadowWebDark,
+                } as unknown as ViewStyle),
             default: {},
           }),
         },
@@ -160,6 +171,7 @@ export function PlatformModal({
           flexGrow: 1,
           flexShrink: 1,
           minHeight: 0,
+          backgroundColor: lightModal ? shellColors.body.background : undefined,
           ...Platform.select({
             web: {
               overflowY: 'auto' as const,
@@ -179,13 +191,13 @@ export function PlatformModal({
           paddingTop: careSpacing.xs,
           borderTopWidth: StyleSheet.hairlineWidth,
           borderTopColor: lightModal
-            ? 'rgba(110,160,255,0.16)'
+            ? shellColors.footerBorder
             : isDark
-              ? 'rgba(255,255,255,0.08)'
+              ? shellColors.footerBorder
               : 'rgba(0,0,0,0.06)',
         },
       }),
-    [c.muted, formGlass.shadow, isDark, lightModal, sheetMaxHeight, sheetWidth, variant],
+    [formGlass.shadow, isDark, lightModal, shellColors, shellMode, sheetMaxHeight, sheetWidth, variant],
   );
 
   useEffect(() => {
@@ -201,11 +213,11 @@ export function PlatformModal({
 
   const sheetContent = (
     <GlassSurface
-      radius={variant === 'bottomSheet' ? careRadius.lg : careRadius.lg}
+      radius={variant === 'bottomSheet' ? careRadius.lg : shellRadius}
       glowColor={accent}
       glowOpacity={isDark ? 0.22 : 0.12}
       elevated
-      style={[styles.sheetInner, sheetStyle]}
+      style={StyleSheet.flatten([styles.sheetInner, sheetStyle])}
     >
       <View style={{ flexShrink: 0 }}>
         <GradientModalHeader

@@ -23,5 +23,9 @@ export type {
   CollapsibleSidebarSectionProps,
 } from './collapsiblesidebarsection';
 export { PlatformModal } from './platformmodal';
+export { CarePopupShell } from './CarePopupShell';
+export type { CarePopupShellProps } from './CarePopupShell';
+export { CarePopupTabPills } from './CarePopupTabPills';
+export type { CarePopupTab, CarePopupTabPillsProps } from './CarePopupTabPills';
 export { AppGlassModal } from './AppGlassModal';
 export type { AppGlassModalProps } from './AppGlassModal';

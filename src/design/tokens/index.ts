@@ -27,6 +27,23 @@ export { careSpacing } from './spacing';
 export { careRadius } from './radius';
 export { careEffects } from './effects';
 export {
+  popupShellColors,
+  popupShellHeaderGradientDark,
+  popupShellHeaderGradientLight,
+  popupShellLayout,
+  resolvePopupShellCloseButtonStyle,
+  resolvePopupShellCloseIconStyle,
+  resolvePopupShellColors,
+  resolvePopupShellContainerShadow,
+  resolvePopupShellHeaderGradient,
+  resolvePopupShellHeaderGlow,
+  resolvePopupShellTabRowStyle,
+  resolvePopupShellTabStyle,
+  resolvePopupShellTabTextStyle,
+  resolvePopupShellTitleStyle,
+  type PopupShellColorMode,
+} from './popupShell';
+export {
   breakpoints,
   resolveAdaptiveDeviceClass,
   isAdaptivePhone,

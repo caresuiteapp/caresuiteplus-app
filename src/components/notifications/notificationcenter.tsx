@@ -9,7 +9,8 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PlatformModal } from '@/components/layout/platform';
+import { CarePopupShell } from '@/components/layout/platform/CarePopupShell';
+import { CarePopupTabPills } from '@/components/layout/platform/CarePopupTabPills';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { SpaceBellIcon } from '@/components/icons/space';
@@ -148,17 +149,6 @@ export function NotificationCenter({ visible, onClose, employeeId }: Notificatio
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        tabs: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginBottom: spacing.md },
-        tab: {
-          paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.xs,
-          borderRadius: radius.capsule,
-          borderWidth: 1,
-          borderColor: c.border,
-        },
-        tabActive: { backgroundColor: `${c.violet}18`, borderColor: c.violet },
-        tabText: { ...typography.caption, color: c.muted, fontWeight: '600' },
-        tabTextActive: { color: c.violet },
         empty: { ...typography.body, color: c.muted, textAlign: 'center', padding: spacing.lg },
         detailBody: { ...typography.body, color: c.text, lineHeight: 22 },
         detailMeta: { ...typography.caption, color: c.muted, marginTop: spacing.sm },
@@ -225,7 +215,7 @@ export function NotificationCenter({ visible, onClose, employeeId }: Notificatio
   if (selected) {
     const needsAck = selected.requireAcknowledgement && !selected.isAcknowledged;
     return (
-      <PlatformModal
+      <CarePopupShell
         visible={visible}
         title={selected.title}
         subtitle={selected.categoryLabel ?? undefined}
@@ -252,12 +242,12 @@ export function NotificationCenter({ visible, onClose, employeeId }: Notificatio
         {selected.notificationType === 'broadcast' ? (
           <Text style={styles.detailMeta}>An alle Mitarbeitenden</Text>
         ) : null}
-      </PlatformModal>
+      </CarePopupShell>
     );
   }
 
   return (
-    <PlatformModal
+    <CarePopupShell
       visible={visible}
       title="Benachrichtigungen"
       subtitle={unreadCount > 0 ? `${unreadCount} ungelesen` : undefined}
@@ -269,17 +259,7 @@ export function NotificationCenter({ visible, onClose, employeeId }: Notificatio
       }
       maxWidth={480}
     >
-      <View style={styles.tabs}>
-        {TABS.map((t) => (
-          <Pressable
-            key={t.key}
-            onPress={() => setTab(t.key)}
-            style={[styles.tab, tab === t.key && styles.tabActive]}
-          >
-            <Text style={[styles.tabText, tab === t.key && styles.tabTextActive]}>{t.label}</Text>
-          </Pressable>
-        ))}
-      </View>
+      <CarePopupTabPills tabs={TABS} activeTab={tab} onTabChange={setTab} />
       {loading ? (
         <Text style={styles.empty}>Wird geladen …</Text>
       ) : notifications.length === 0 ? (
@@ -292,7 +272,7 @@ export function NotificationCenter({ visible, onClose, employeeId }: Notificatio
           style={{ maxHeight: 360 }}
         />
       )}
-    </PlatformModal>
+    </CarePopupShell>
   );
 }
 

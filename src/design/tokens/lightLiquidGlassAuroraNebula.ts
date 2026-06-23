@@ -2,6 +2,8 @@
  * CareSuite+ — Light Liquid Glass Aurora Nebula (Canvas-Layer + Glas-Tokens).
  */
 
+import { popupShellHeaderGradientLight } from './popupShellTokens';
+
 export const llganBaseColors = {
   iceWhite: '#F7FAFF',
   softPearl: '#EEF6FF',
@@ -35,8 +37,8 @@ export const llganPearlescentColors = {
   lavenderPearl: 'rgba(230,220,255,0.16)',
 } as const;
 
-/** Light-mode modal header — bunte Aurora (Violett → Magenta → Lavendel), kein dunkler Hintergrund. */
-export const llganModalHeaderGradient = ['#9A88E8', '#E878C8', '#C8B0F0'] as const;
+/** Light-mode modal header — purple → pink → violet (shared popup shell). */
+export const llganModalHeaderGradient = popupShellHeaderGradientLight;
 
 export function resolveLlganModalHeaderGradient(): readonly [string, ...string[]] {
   return llganModalHeaderGradient;

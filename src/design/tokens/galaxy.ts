@@ -2,6 +2,7 @@
  * CareSuite+ Galaxy / Space design palette (Prompt 101).
  * Single source for premium auth & landing surfaces.
  */
+import { popupShellHeaderGradientDark } from './popupShellTokens';
 export const galaxyPalette = {
   deepSpace: '#050816',
   spaceNavy: '#08111F',
@@ -27,7 +28,7 @@ export const galaxyGradients = {
   /** Modal / thread hero headers — violet depth for LinearGradient color stops. */
   dashboardHero: [galaxyPalette.galaxyPurple, '#181040', galaxyPalette.midnightBlue] as const,
   /** Colorful modal header — purple → magenta → lavender (horizontal). */
-  modalHeader: ['#6B4EAA', '#C44BA8', '#8B7FA8'] as const,
+  modalHeader: popupShellHeaderGradientDark,
   primaryCta: [galaxyPalette.careOrange, '#FF8F4A'] as const,
   glowOrbCyan: [`${galaxyPalette.galaxyCyan}18`, 'transparent'] as const,
   glowOrbViolet: [`${galaxyPalette.glowViolet}14`, 'transparent'] as const,
