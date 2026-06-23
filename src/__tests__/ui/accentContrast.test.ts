@@ -4,6 +4,7 @@ import path from 'node:path';
 import {
   ACCENT_DARK_SOFT_BASE,
   ACCENT_ICON_FRAME_GRADIENT,
+  RAIL_ICON_GLASS_LIGHT,
   accentDarkSoftBackdrop,
   accentDarkSoftBorder,
   isLightAccentColor,
@@ -66,11 +67,19 @@ describe('AccentIconBackdrop integration', () => {
     expect(source).toContain('accentDarkSoftBorder');
   });
 
-  it('SpaceIconShell applies dark soft backing in light mode', () => {
+  it('SpaceIconShell applies dark soft backing in light mode for card frames', () => {
     const source = readSrc('src/components/icons/space/SpaceIconShell.tsx');
     expect(source).toContain('darkSoftBacking');
     expect(source).toContain('ACCENT_ICON_FRAME_GRADIENT');
-    expect(source).not.toContain('withAlpha(accentColor, active ? 0.24 : 0.12)');
+    expect(source).toContain('RAIL_ICON_GLASS_LIGHT');
+    expect(source).toContain('railGlass');
+  });
+
+  it('defines rail glass tokens without opaque dark fill', () => {
+    expect(RAIL_ICON_GLASS_LIGHT.surface).toBe('rgba(255,255,255,0.35)');
+    expect(RAIL_ICON_GLASS_LIGHT.darkTint).toBe('rgba(15,23,42,0.25)');
+    expect(RAIL_ICON_GLASS_LIGHT.blurPx).toBe(12);
+    expect(RAIL_ICON_GLASS_LIGHT.surface).not.toContain('0.72');
   });
 
   it('PremiumBadge uses accent text chip in light mode', () => {

@@ -5,6 +5,8 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import {
   ACCENT_ICON_FRAME_GRADIENT,
+  RAIL_ICON_GLASS_DARK,
+  RAIL_ICON_GLASS_LIGHT,
   accentDarkSoftBorder,
 } from '@/design/tokens/accentContrast';
 import { withAlpha } from '@/design/tokens/motion';
@@ -17,9 +19,22 @@ type SpaceIconShellProps = {
   children: ReactNode;
   active?: boolean;
   borderRadius?: number;
-  /** `rail` = runder Deep-Space-Hintergrund, kein Kasten, kein Nebula-Dekor. */
+  /** `rail` = frosted glass circle for the module icon rail. */
   frame?: SpaceIconFrame;
 };
+
+function railGlassWebFx(active: boolean, blurPx: number, accentColor: string, size: number): ViewStyle | null {
+  if (Platform.OS !== 'web') return null;
+  const glowSpread = Math.round(size * (active ? 0.42 : 0.3));
+  const glowAlpha = active ? 0.52 : 0.34;
+  return {
+    backdropFilter: `blur(${blurPx}px) saturate(1.35)`,
+    WebkitBackdropFilter: `blur(${blurPx}px) saturate(1.35)`,
+    boxShadow: active
+      ? `0 0 ${glowSpread}px ${withAlpha(accentColor, glowAlpha)}, 0 4px 14px rgba(15,23,42,0.22), inset 0 1px 0 rgba(255,255,255,0.55)`
+      : `0 0 ${glowSpread}px ${withAlpha(accentColor, glowAlpha)}, 0 2px 10px rgba(15,23,42,0.16), inset 0 1px 0 rgba(255,255,255,0.45)`,
+  } as ViewStyle;
+}
 
 const webGlow = (
   color: string,
@@ -55,7 +70,9 @@ export function SpaceIconShell({
 }: SpaceIconShellProps) {
   const rail = frame === 'rail';
   const { isLight } = useLegacyTheme();
-  const darkSoftBacking = isLight;
+  const darkSoftBacking = isLight && !rail;
+  const railGlass = rail;
+  const railGlassTokens = isLight ? RAIL_ICON_GLASS_LIGHT : RAIL_ICON_GLASS_DARK;
 
   const styles = useMemo(
     () =>
@@ -67,15 +84,35 @@ export function SpaceIconShell({
           overflow: 'hidden',
           alignItems: 'center',
           justifyContent: 'center',
-          borderWidth: darkSoftBacking ? 1 : rail ? 0 : 1,
-          borderColor: darkSoftBacking
-            ? accentDarkSoftBorder(accentColor, active)
-            : rail
-              ? 'transparent'
-              : withAlpha(accentColor, active ? 0.95 : 0.42),
-          backgroundColor: 'transparent',
-          ...(webGlow(accentColor, active, size, rail, darkSoftBacking) ?? {}),
+          borderWidth: railGlass || darkSoftBacking ? 1 : rail ? 0 : 1,
+          borderColor: railGlass
+            ? active
+              ? accentDarkSoftBorder(accentColor, true)
+              : railGlassTokens.border
+            : darkSoftBacking
+              ? accentDarkSoftBorder(accentColor, active)
+              : rail
+                ? 'transparent'
+                : withAlpha(accentColor, active ? 0.95 : 0.42),
+          backgroundColor: railGlass
+            ? active
+              ? railGlassTokens.surfaceActive
+              : railGlassTokens.surface
+            : 'transparent',
+          ...(railGlass
+            ? (railGlassWebFx(active, railGlassTokens.blurPx, accentColor, size) ?? {})
+            : (webGlow(accentColor, active, size, rail, darkSoftBacking) ?? {})),
           transform: active ? [{ scale: rail ? 1.08 : 1.04 }] : [{ scale: 1 }],
+        },
+        railDarkTint: {
+          ...StyleSheet.absoluteFillObject,
+          backgroundColor: isLight
+            ? active
+              ? RAIL_ICON_GLASS_LIGHT.darkTintActive
+              : RAIL_ICON_GLASS_LIGHT.darkTint
+            : active
+              ? RAIL_ICON_GLASS_DARK.sheenActive
+              : RAIL_ICON_GLASS_DARK.sheen,
         },
         nebula: {
           position: 'absolute',
@@ -102,10 +139,10 @@ export function SpaceIconShell({
           backgroundColor: 'rgba(255,255,255,0.75)',
         },
       }),
-    [accentColor, active, borderRadius, darkSoftBacking, rail, size],
+    [accentColor, active, borderRadius, darkSoftBacking, isLight, rail, railGlass, railGlassTokens, size],
   );
 
-  const frameGradient = darkSoftBacking || !rail ? ACCENT_ICON_FRAME_GRADIENT : null;
+  const frameGradient = !rail ? ACCENT_ICON_FRAME_GRADIENT : null;
   const showDecor = !rail && (darkSoftBacking || !isLight);
 
   return (
@@ -118,9 +155,11 @@ export function SpaceIconShell({
           style={StyleSheet.absoluteFill}
         />
       ) : null}
+      {railGlass ? <View style={styles.railDarkTint} pointerEvents="none" /> : null}
       {showDecor ? <View style={styles.nebula} pointerEvents="none" /> : null}
       <View style={styles.stage}>{children}</View>
       {showDecor ? <View style={styles.star} pointerEvents="none" /> : null}
     </View>
   );
 }
+
