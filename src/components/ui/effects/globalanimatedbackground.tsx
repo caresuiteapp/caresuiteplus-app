@@ -1,27 +1,25 @@
 import { ReactNode } from 'react';
-import { StyleSheet, View, type ViewStyle } from 'react-native';import { useThemeMode } from '@/design/ThemeModeProvider';
-import {
-  LightSpaceOrbitGalaxyBackground,
-  OfficePremiumGlassBackground,
-} from '@/components/backgrounds';
-import { useIsOfficeRoute } from '@/hooks/useIsOfficeRoute';
+import { StyleSheet, View, type ViewStyle } from 'react-native';
+import { useThemeMode } from '@/design/ThemeModeProvider';
+import { StaticLightPaperBackground } from '@/components/backgrounds';
 import { AuroraBackground } from './aurorabackground';
 
-type GlobalAnimatedBackgroundProps = {  /** Override ThemeModeProvider (e.g. CareSuiteBackground legacy `mode` prop). */
+type GlobalAnimatedBackgroundProps = {
+  /** Override ThemeModeProvider (e.g. CareSuiteBackground legacy `mode` prop). */
   mode?: 'light' | 'dark';
-  /** Disable aurora / nebula drift. Honours prefers-reduced-motion when true. */
+  /** Disable aurora drift (dark mode only). Light mode is always static. */
   animated?: boolean;
   style?: ViewStyle;
   children?: ReactNode;
   /** Leichte Abdunklung (Modals / Formulare). */
   dimmed?: boolean;
-  /** Office-Route — von RootShell übergeben für zuverlässiges Umschalten. */
+  /** @deprecated Office routes use the same static light background. */
   isOfficeRoute?: boolean;
 };
 
 /**
  * Single shell-root background for CareSuite+.
- * Dark: animated aurora gradient. Light: LLGAN or Office Premium Glass (Office routes).
+ * Dark: animated aurora gradient. Light: static paper texture (no animation).
  * Mount once at app/_layout root — never inside columns or per-screen.
  */
 export function GlobalAnimatedBackground({
@@ -30,12 +28,9 @@ export function GlobalAnimatedBackground({
   style,
   children,
   dimmed = false,
-  isOfficeRoute: isOfficeRouteProp,
 }: GlobalAnimatedBackgroundProps) {
   const { mode: themeMode } = useThemeMode();
   const mode = modeOverride ?? themeMode;
-  const isOfficeRouteHook = useIsOfficeRoute();
-  const isOfficeRoute = isOfficeRouteProp ?? isOfficeRouteHook;
 
   if (mode === 'dark') {
     return (
@@ -46,13 +41,9 @@ export function GlobalAnimatedBackground({
     );
   }
 
-  const LightBackground = isOfficeRoute
-    ? OfficePremiumGlassBackground
-    : LightSpaceOrbitGalaxyBackground;
-
   return (
     <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
-      <LightBackground key={isOfficeRoute ? 'office-premium-glass' : 'lsog'} animated={animated} dimmed={dimmed} />
+      <StaticLightPaperBackground dimmed={dimmed} />
       {children}
     </View>
   );
@@ -65,4 +56,5 @@ const styles = StyleSheet.create({
   },
   lightRoot: {
     backgroundColor: 'transparent',
-  },});
+  },
+});

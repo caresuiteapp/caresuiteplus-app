@@ -59,27 +59,27 @@ describe('useIsOfficeRoute path resolution', () => {
 });
 
 describe('OfficePremiumGlassBackground component wiring', () => {
-  it('GlobalAnimatedBackground wählt Office-Hintergrund für Office-Routen', async () => {
+  it('GlobalAnimatedBackground nutzt statischen Light-Paper-Hintergrund für alle Light-Routen', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(
       path.join(__dirname, '..', '..', 'components', 'ui', 'effects', 'globalanimatedbackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('OfficePremiumGlassBackground');
-    expect(source).toContain('useIsOfficeRoute');
-    expect(source).toContain('office-premium-glass');
+    expect(source).toContain('StaticLightPaperBackground');
+    expect(source).not.toContain('OfficePremiumGlassBackground');
+    expect(source).not.toContain('useIsOfficeRoute');
   });
 
-  it('OfficePremiumGlassBackground respektiert reduced-motion und pointer-events', async () => {
+  it('OfficePremiumGlassBackground delegiert an StaticLightPaperBackground', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(
       path.join(__dirname, '..', '..', 'components', 'backgrounds', 'OfficePremiumGlassBackground.tsx'),
       'utf8',
     );
-    expect(source).toContain('usePrefersReducedMotion');
-    expect(source).toContain('pointerEvents: \'none\'');
-    expect(source).toContain('opgbSnapshot');
+    expect(source).toContain('StaticLightPaperBackground');
+    expect(source).not.toContain('requestAnimationFrame');
+    expect(source).not.toContain('<canvas');
   });
 });
