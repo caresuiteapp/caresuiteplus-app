@@ -12,7 +12,12 @@ import {
   buildAkademieOpenTasks,
 } from '@/lib/akademie/akademieDashboardWorkspace';
 import { STATIONAER_SIDEBAR_QUICK_ACTIONS, buildStationaerOpenTasks } from '@/lib/stationaer/stationaerDashboardWorkspace';
+import {
+  ASSIST_SIDEBAR_QUICK_ACTIONS,
+  buildAssistOpenTasks,
+} from '@/lib/assist/assistDashboardWorkspace';
 import type { AkademieDashboardStats } from '@/types/modules/akademie';
+import type { AssistDashboardStats } from '@/types/modules/assist';
 import type { BeratungDashboardStats } from '@/types/modules/beratung';
 import type { StationaerDashboardStats } from '@/types/modules/stationaer';
 import { getModuleNavConfig } from '@/lib/navigation/modulenav';
@@ -44,12 +49,20 @@ export const OFFICE_QUICK_ACTIONS: ContextQuickAction[] = OFFICE_SIDEBAR_QUICK_A
   href: action.route ?? '/office',
 }));
 
-export const ASSIST_QUICK_ACTIONS: ContextQuickAction[] = [
-  { label: 'Einsatz planen', icon: 'calendar', href: '/assist/einsaetze/new' },
-  { label: 'Live-Status', icon: 'livePulse', href: '/assist/live-status' },
-  { label: 'Nachweise prüfen', icon: 'docsReview', href: '/assist/nachweise' },
-  { label: 'Fahrtenbuch', icon: 'assignmentRoute', href: '/assist/fahrten' },
-];
+export const ASSIST_QUICK_ACTIONS: ContextQuickAction[] = ASSIST_SIDEBAR_QUICK_ACTIONS.map(
+  (action) => ({
+    label: action.label,
+    icon:
+      action.id === 'assist-qa-plan'
+        ? 'calendar'
+        : action.id === 'assist-qa-live'
+          ? 'livePulse'
+          : action.id === 'assist-qa-proof'
+            ? 'docsReview'
+            : 'taskCheck',
+    href: action.route ?? '/assist',
+  }),
+);
 
 export const PFLEGE_QUICK_ACTIONS: ContextQuickAction[] = PFLEGE_SIDEBAR_QUICK_ACTIONS.map((action) => ({
   label: action.label,
@@ -273,7 +286,12 @@ export function buildOpenTasks(
   stationaerStats?: StationaerDashboardStats | null,
   beratungStats?: BeratungDashboardStats | null,
   akademieStats?: AkademieDashboardStats | null,
+  assistStats?: AssistDashboardStats | null,
 ): { title: string; count: number | string }[] {
+  if (mainModule === 'assist') {
+    return buildAssistOpenTasks(assistStats);
+  }
+
   if (mainModule === 'stationaer') {
     return buildStationaerOpenTasks(stationaerStats);
   }

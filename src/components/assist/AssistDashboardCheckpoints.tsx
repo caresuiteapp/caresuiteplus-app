@@ -57,7 +57,7 @@ export function AssistDashboardCheckpoints({ stats }: AssistDashboardCheckpoints
 
   return (
     <SectionPanel
-      title="Prüfpunkte"
+      title="Offene Prüfpunkte"
       subtitle="Offene Schritte in Einsätzen und Nachweisen"
     >
       {checkpoints.length === 0 ? (

@@ -18,8 +18,8 @@ export function AssistDashboardHero({ stats, onKpiPress }: AssistDashboardHeroPr
 
   return (
     <SectionPanel
-      title="Heute im Assist"
-      subtitle="Kennzahlen für Planung, Durchführung und Nachweise"
+      title="Kennzahlen"
+      subtitle="Aktuelle Übersicht für Planung, Durchführung und Nachweise"
       surface="open"
       accentColor={accent}
     >

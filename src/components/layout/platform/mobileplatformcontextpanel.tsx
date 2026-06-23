@@ -20,6 +20,7 @@ import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { useBeratungDashboard } from '@/hooks/useBeratungDashboard';
 import { useAkademieDashboard } from '@/hooks/useAkademieDashboard';
 import { useStationaerDashboard } from '@/hooks/useStationaerDashboard';
+import { useAssistDashboard } from '@/hooks/useAssistDashboard';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
 import { useModalStack } from '@/hooks/useModalStack';
@@ -68,12 +69,21 @@ export function MobilePlatformContextPanel({
   const { stats: stationaerStats } = useStationaerDashboard();
   const { stats: beratungStats } = useBeratungDashboard();
   const { stats: akademieStats } = useAkademieDashboard();
+  const { stats: assistStats } = useAssistDashboard();
   const isLive = getServiceMode() === 'supabase';
 
   const openTasks = useMemo(
     () =>
-      buildOpenTasks(mainModule, officeData, isLive, stationaerStats, beratungStats, akademieStats),
-    [akademieStats, beratungStats, isLive, mainModule, officeData, stationaerStats],
+      buildOpenTasks(
+        mainModule,
+        officeData,
+        isLive,
+        stationaerStats,
+        beratungStats,
+        akademieStats,
+        assistStats,
+      ),
+    [akademieStats, assistStats, beratungStats, isLive, mainModule, officeData, stationaerStats],
   );
 
   const quickActions =
