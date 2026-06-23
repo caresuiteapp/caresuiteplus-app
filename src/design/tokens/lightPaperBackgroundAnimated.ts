@@ -17,277 +17,277 @@ export const lightPaperAnimLayers: LightPaperAnimLayer[] = [
   {
     "id": "corner-0",
     "className": "lpb-corner-0",
-    "dx": 70.63,
-    "dy": -56.85,
+    "dx": 95.97,
+    "dy": -77.24,
     "scalePeak": 1.0001,
     "delayS": 16.24
   },
   {
     "id": "corner-1",
     "className": "lpb-corner-1",
-    "dx": 28.79,
-    "dy": -85.95,
+    "dx": 39.12,
+    "dy": -116.79,
     "scalePeak": 1.0027,
     "delayS": 11.8
   },
   {
     "id": "corner-2",
     "className": "lpb-corner-2",
-    "dx": -22.13,
-    "dy": -87.88,
+    "dx": -30.07,
+    "dy": -119.41,
     "scalePeak": 1.0052,
     "delayS": 7.36
   },
   {
     "id": "corner-3",
     "className": "lpb-corner-3",
-    "dx": -66.03,
-    "dy": -62.03,
+    "dx": -89.73,
+    "dy": -84.29,
     "scalePeak": 1.0077,
     "delayS": 2.92
   },
   {
     "id": "band-0",
     "className": "lpb-band-0",
-    "dx": 31.91,
-    "dy": -16.18,
+    "dx": 43.14,
+    "dy": -21.87,
     "scalePeak": 1.0037,
     "delayS": 50.23
   },
   {
     "id": "band-1",
     "className": "lpb-band-1",
-    "dx": 32.08,
-    "dy": -15.93,
+    "dx": 43.37,
+    "dy": -21.54,
     "scalePeak": 1.0075,
     "delayS": 45.79
   },
   {
     "id": "band-2",
     "className": "lpb-band-2",
-    "dx": 31.79,
-    "dy": -16.62,
+    "dx": 42.97,
+    "dy": -22.47,
     "scalePeak": 1.0113,
     "delayS": 41.35
   },
   {
     "id": "band-3",
     "className": "lpb-band-3",
-    "dx": 34.07,
-    "dy": -11.07,
+    "dx": 46.07,
+    "dy": -14.97,
     "scalePeak": 1.0031,
     "delayS": 36.91
   },
   {
     "id": "band-4",
     "className": "lpb-band-4",
-    "dx": 34.03,
-    "dy": -10.96,
+    "dx": 46.01,
+    "dy": -14.82,
     "scalePeak": 1.0069,
     "delayS": 32.47
   },
   {
     "id": "medium-0",
     "className": "lpb-medium-0",
-    "dx": -30.82,
-    "dy": -13.98,
+    "dx": -41.86,
+    "dy": -18.99,
     "scalePeak": 1.0043,
     "delayS": 119.17
   },
   {
     "id": "medium-1",
     "className": "lpb-medium-1",
-    "dx": -33.47,
-    "dy": 4.86,
+    "dx": -45.47,
+    "dy": 6.6,
     "scalePeak": 1.0069,
     "delayS": 114.73
   },
   {
     "id": "medium-2",
     "className": "lpb-medium-2",
-    "dx": -25.55,
-    "dy": 22.14,
+    "dx": -34.7,
+    "dy": 30.07,
     "scalePeak": 1.0014,
     "delayS": 110.29
   },
   {
     "id": "medium-3",
     "className": "lpb-medium-3",
-    "dx": -9.56,
-    "dy": 32.41,
+    "dx": -12.99,
+    "dy": 44.02,
     "scalePeak": 1.0039,
     "delayS": 105.85
   },
   {
     "id": "medium-4",
     "className": "lpb-medium-4",
-    "dx": 9.43,
-    "dy": 32.43,
+    "dx": 12.81,
+    "dy": 44.05,
     "scalePeak": 1.0064,
     "delayS": 101.41
   },
   {
     "id": "ring-0",
     "className": "lpb-ring-0",
-    "dx": -12.05,
-    "dy": 5.75,
+    "dx": -16.8,
+    "dy": 8.01,
     "scalePeak": 1.0019,
     "delayS": 60.56
   },
   {
     "id": "ring-1",
     "className": "lpb-ring-1",
-    "dx": -7.04,
-    "dy": 11.34,
+    "dx": -9.82,
+    "dy": 15.8,
     "scalePeak": 1.0044,
     "delayS": 56.11
   },
   {
     "id": "ring-2",
     "className": "lpb-ring-2",
-    "dx": 0.19,
-    "dy": 13.34,
+    "dx": 0.26,
+    "dy": 18.59,
     "scalePeak": 1.0069,
     "delayS": 51.67
   },
   {
     "id": "ring-3",
     "className": "lpb-ring-3",
-    "dx": 7.35,
-    "dy": 11.13,
+    "dx": 10.25,
+    "dy": 15.51,
     "scalePeak": 1.0014,
     "delayS": 47.23
   },
   {
     "id": "line-0",
     "className": "lpb-line-0",
-    "dx": 35.72,
-    "dy": 8.07,
+    "dx": 48.75,
+    "dy": 11.01,
     "scalePeak": 1.0029,
     "delayS": 50.97
   },
   {
     "id": "line-1",
     "className": "lpb-line-1",
-    "dx": 34.49,
-    "dy": -12.29,
+    "dx": 47.07,
+    "dy": -16.78,
     "scalePeak": 1.0054,
     "delayS": 46.53
   },
   {
     "id": "line-2",
     "className": "lpb-line-2",
-    "dx": 36.08,
-    "dy": -6.31,
+    "dx": 49.24,
+    "dy": -8.61,
     "scalePeak": 1.0079,
     "delayS": 42.08
   },
   {
     "id": "dot-0",
     "className": "lpb-dot-0",
-    "dx": -7.36,
-    "dy": 20.21,
+    "dx": -10.08,
+    "dy": 27.69,
     "scalePeak": 1.0046,
     "delayS": 93
   },
   {
     "id": "dot-1",
     "className": "lpb-dot-1",
-    "dx": 4.71,
-    "dy": 20.98,
+    "dx": 6.45,
+    "dy": 28.74,
     "scalePeak": 1.0071,
     "delayS": 88.56
   },
   {
     "id": "dot-2",
     "className": "lpb-dot-2",
-    "dx": 15.28,
-    "dy": 15.11,
+    "dx": 20.93,
+    "dy": 20.71,
     "scalePeak": 1.0017,
     "delayS": 84.12
   },
   {
     "id": "dot-3",
     "className": "lpb-dot-3",
-    "dx": 21.01,
-    "dy": 4.48,
+    "dx": 28.78,
+    "dy": 6.14,
     "scalePeak": 1.0042,
     "delayS": 79.68
   },
   {
     "id": "dot-4",
     "className": "lpb-dot-4",
-    "dx": 20.1,
-    "dy": -7.56,
+    "dx": 27.53,
+    "dy": -10.36,
     "scalePeak": 1.0067,
     "delayS": 75.23
   },
   {
     "id": "dot-5",
     "className": "lpb-dot-5",
-    "dx": 12.84,
-    "dy": -17.2,
+    "dx": 17.59,
+    "dy": -23.57,
     "scalePeak": 1.0012,
     "delayS": 70.79
   },
   {
     "id": "dot-6",
     "className": "lpb-dot-6",
-    "dx": 1.53,
-    "dy": -21.4,
+    "dx": 2.09,
+    "dy": -29.32,
     "scalePeak": 1.0037,
     "delayS": 66.35
   },
   {
     "id": "dot-7",
     "className": "lpb-dot-7",
-    "dx": -10.26,
-    "dy": -18.83,
+    "dx": -14.05,
+    "dy": -25.8,
     "scalePeak": 1.0063,
     "delayS": 61.91
   },
   {
     "id": "dot-8",
     "className": "lpb-dot-8",
-    "dx": -18.79,
-    "dy": -10.32,
+    "dx": -25.74,
+    "dy": -14.13,
     "scalePeak": 1.0008,
     "delayS": 57.47
   },
   {
     "id": "dot-9",
     "className": "lpb-dot-9",
-    "dx": -21.38,
-    "dy": 1.45,
+    "dx": -29.29,
+    "dy": 1.99,
     "scalePeak": 1.0033,
     "delayS": 53.02
   },
   {
     "id": "dot-10",
     "className": "lpb-dot-10",
-    "dx": 15.28,
-    "dy": -5.02,
+    "dx": 20.69,
+    "dy": -6.8,
     "scalePeak": 1.0016,
     "delayS": 7.85
   },
   {
     "id": "dot-11",
     "className": "lpb-dot-11",
-    "dx": 10.15,
-    "dy": -12.46,
+    "dx": 13.75,
+    "dy": -16.88,
     "scalePeak": 1.0041,
     "delayS": 3.4
   },
   {
     "id": "dot-12",
     "className": "lpb-dot-12",
-    "dx": 1.82,
-    "dy": -15.96,
+    "dx": 2.46,
+    "dy": -21.62,
     "scalePeak": 1.0067,
     "delayS": 118.96
   }
 ];
 
-export const lightPaperBackgroundAnimationCss = "@keyframes lpb-kf-corner-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(70.63, -56.85, 0) scale(1.0001); }\n}\n.lpb-corner-0 {\n  animation: lpb-kf-corner-0 120s ease-in-out infinite;\n  animation-delay: -16.24s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-corner-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(28.79, -85.95, 0) scale(1.0027); }\n}\n.lpb-corner-1 {\n  animation: lpb-kf-corner-1 120s ease-in-out infinite;\n  animation-delay: -11.8s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-corner-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-22.13, -87.88, 0) scale(1.0052); }\n}\n.lpb-corner-2 {\n  animation: lpb-kf-corner-2 120s ease-in-out infinite;\n  animation-delay: -7.36s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-corner-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-66.03, -62.03, 0) scale(1.0077); }\n}\n.lpb-corner-3 {\n  animation: lpb-kf-corner-3 120s ease-in-out infinite;\n  animation-delay: -2.92s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(31.91, -16.18, 0) scale(1.0037); }\n}\n.lpb-band-0 {\n  animation: lpb-kf-band-0 120s ease-in-out infinite;\n  animation-delay: -50.23s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(32.08, -15.93, 0) scale(1.0075); }\n}\n.lpb-band-1 {\n  animation: lpb-kf-band-1 120s ease-in-out infinite;\n  animation-delay: -45.79s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(31.79, -16.62, 0) scale(1.0113); }\n}\n.lpb-band-2 {\n  animation: lpb-kf-band-2 120s ease-in-out infinite;\n  animation-delay: -41.35s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(34.07, -11.07, 0) scale(1.0031); }\n}\n.lpb-band-3 {\n  animation: lpb-kf-band-3 120s ease-in-out infinite;\n  animation-delay: -36.91s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-4 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(34.03, -10.96, 0) scale(1.0069); }\n}\n.lpb-band-4 {\n  animation: lpb-kf-band-4 120s ease-in-out infinite;\n  animation-delay: -32.47s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-30.82, -13.98, 0) scale(1.0043); }\n}\n.lpb-medium-0 {\n  animation: lpb-kf-medium-0 120s ease-in-out infinite;\n  animation-delay: -119.17s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-33.47, 4.86, 0) scale(1.0069); }\n}\n.lpb-medium-1 {\n  animation: lpb-kf-medium-1 120s ease-in-out infinite;\n  animation-delay: -114.73s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-25.55, 22.14, 0) scale(1.0014); }\n}\n.lpb-medium-2 {\n  animation: lpb-kf-medium-2 120s ease-in-out infinite;\n  animation-delay: -110.29s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-9.56, 32.41, 0) scale(1.0039); }\n}\n.lpb-medium-3 {\n  animation: lpb-kf-medium-3 120s ease-in-out infinite;\n  animation-delay: -105.85s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-4 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(9.43, 32.43, 0) scale(1.0064); }\n}\n.lpb-medium-4 {\n  animation: lpb-kf-medium-4 120s ease-in-out infinite;\n  animation-delay: -101.41s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-ring-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-12.05, 5.75, 0) scale(1.0019); }\n}\n.lpb-ring-0 {\n  animation: lpb-kf-ring-0 120s ease-in-out infinite;\n  animation-delay: -60.56s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-ring-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-7.04, 11.34, 0) scale(1.0044); }\n}\n.lpb-ring-1 {\n  animation: lpb-kf-ring-1 120s ease-in-out infinite;\n  animation-delay: -56.11s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-ring-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(0.19, 13.34, 0) scale(1.0069); }\n}\n.lpb-ring-2 {\n  animation: lpb-kf-ring-2 120s ease-in-out infinite;\n  animation-delay: -51.67s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-ring-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(7.35, 11.13, 0) scale(1.0014); }\n}\n.lpb-ring-3 {\n  animation: lpb-kf-ring-3 120s ease-in-out infinite;\n  animation-delay: -47.23s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-line-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(35.72, 8.07, 0) scale(1.0029); }\n}\n.lpb-line-0 {\n  animation: lpb-kf-line-0 120s ease-in-out infinite;\n  animation-delay: -50.97s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-line-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(34.49, -12.29, 0) scale(1.0054); }\n}\n.lpb-line-1 {\n  animation: lpb-kf-line-1 120s ease-in-out infinite;\n  animation-delay: -46.53s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-line-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(36.08, -6.31, 0) scale(1.0079); }\n}\n.lpb-line-2 {\n  animation: lpb-kf-line-2 120s ease-in-out infinite;\n  animation-delay: -42.08s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-7.36, 20.21, 0) scale(1.0046); }\n}\n.lpb-dot-0 {\n  animation: lpb-kf-dot-0 120s ease-in-out infinite;\n  animation-delay: -93s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(4.71, 20.98, 0) scale(1.0071); }\n}\n.lpb-dot-1 {\n  animation: lpb-kf-dot-1 120s ease-in-out infinite;\n  animation-delay: -88.56s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(15.28, 15.11, 0) scale(1.0017); }\n}\n.lpb-dot-2 {\n  animation: lpb-kf-dot-2 120s ease-in-out infinite;\n  animation-delay: -84.12s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(21.01, 4.48, 0) scale(1.0042); }\n}\n.lpb-dot-3 {\n  animation: lpb-kf-dot-3 120s ease-in-out infinite;\n  animation-delay: -79.68s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-4 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(20.1, -7.56, 0) scale(1.0067); }\n}\n.lpb-dot-4 {\n  animation: lpb-kf-dot-4 120s ease-in-out infinite;\n  animation-delay: -75.23s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-5 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(12.84, -17.2, 0) scale(1.0012); }\n}\n.lpb-dot-5 {\n  animation: lpb-kf-dot-5 120s ease-in-out infinite;\n  animation-delay: -70.79s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-6 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(1.53, -21.4, 0) scale(1.0037); }\n}\n.lpb-dot-6 {\n  animation: lpb-kf-dot-6 120s ease-in-out infinite;\n  animation-delay: -66.35s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-7 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-10.26, -18.83, 0) scale(1.0063); }\n}\n.lpb-dot-7 {\n  animation: lpb-kf-dot-7 120s ease-in-out infinite;\n  animation-delay: -61.91s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-8 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-18.79, -10.32, 0) scale(1.0008); }\n}\n.lpb-dot-8 {\n  animation: lpb-kf-dot-8 120s ease-in-out infinite;\n  animation-delay: -57.47s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-9 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-21.38, 1.45, 0) scale(1.0033); }\n}\n.lpb-dot-9 {\n  animation: lpb-kf-dot-9 120s ease-in-out infinite;\n  animation-delay: -53.02s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-10 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(15.28, -5.02, 0) scale(1.0016); }\n}\n.lpb-dot-10 {\n  animation: lpb-kf-dot-10 120s ease-in-out infinite;\n  animation-delay: -7.85s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-11 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(10.15, -12.46, 0) scale(1.0041); }\n}\n.lpb-dot-11 {\n  animation: lpb-kf-dot-11 120s ease-in-out infinite;\n  animation-delay: -3.4s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-12 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(1.82, -15.96, 0) scale(1.0067); }\n}\n.lpb-dot-12 {\n  animation: lpb-kf-dot-12 120s ease-in-out infinite;\n  animation-delay: -118.96s;\n  will-change: transform;\n}\n.lpb-root svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n.lpb-root--overlay .lpb-base-wash {\n  display: none;\n}\n.lpb-layer {\n  transform-box: fill-box;\n  transform-origin: center;\n}\n.lpb-root--paused .lpb-layer {\n  animation-play-state: paused !important;\n}\n@media (prefers-reduced-motion: reduce) {\n  .lpb-layer {\n    animation: none !important;\n  }\n}";
+export const lightPaperBackgroundAnimationCss = "@keyframes lpb-kf-corner-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(95.97, -77.24, 0) scale(1.0001); }\n}\n.lpb-corner-0 {\n  animation: lpb-kf-corner-0 120s ease-in-out infinite;\n  animation-delay: -16.24s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-corner-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(39.12, -116.79, 0) scale(1.0027); }\n}\n.lpb-corner-1 {\n  animation: lpb-kf-corner-1 120s ease-in-out infinite;\n  animation-delay: -11.8s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-corner-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-30.07, -119.41, 0) scale(1.0052); }\n}\n.lpb-corner-2 {\n  animation: lpb-kf-corner-2 120s ease-in-out infinite;\n  animation-delay: -7.36s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-corner-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-89.73, -84.29, 0) scale(1.0077); }\n}\n.lpb-corner-3 {\n  animation: lpb-kf-corner-3 120s ease-in-out infinite;\n  animation-delay: -2.92s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(43.14, -21.87, 0) scale(1.0037); }\n}\n.lpb-band-0 {\n  animation: lpb-kf-band-0 120s ease-in-out infinite;\n  animation-delay: -50.23s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(43.37, -21.54, 0) scale(1.0075); }\n}\n.lpb-band-1 {\n  animation: lpb-kf-band-1 120s ease-in-out infinite;\n  animation-delay: -45.79s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(42.97, -22.47, 0) scale(1.0113); }\n}\n.lpb-band-2 {\n  animation: lpb-kf-band-2 120s ease-in-out infinite;\n  animation-delay: -41.35s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(46.07, -14.97, 0) scale(1.0031); }\n}\n.lpb-band-3 {\n  animation: lpb-kf-band-3 120s ease-in-out infinite;\n  animation-delay: -36.91s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-band-4 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(46.01, -14.82, 0) scale(1.0069); }\n}\n.lpb-band-4 {\n  animation: lpb-kf-band-4 120s ease-in-out infinite;\n  animation-delay: -32.47s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-41.86, -18.99, 0) scale(1.0043); }\n}\n.lpb-medium-0 {\n  animation: lpb-kf-medium-0 120s ease-in-out infinite;\n  animation-delay: -119.17s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-45.47, 6.6, 0) scale(1.0069); }\n}\n.lpb-medium-1 {\n  animation: lpb-kf-medium-1 120s ease-in-out infinite;\n  animation-delay: -114.73s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-34.7, 30.07, 0) scale(1.0014); }\n}\n.lpb-medium-2 {\n  animation: lpb-kf-medium-2 120s ease-in-out infinite;\n  animation-delay: -110.29s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-12.99, 44.02, 0) scale(1.0039); }\n}\n.lpb-medium-3 {\n  animation: lpb-kf-medium-3 120s ease-in-out infinite;\n  animation-delay: -105.85s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-medium-4 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(12.81, 44.05, 0) scale(1.0064); }\n}\n.lpb-medium-4 {\n  animation: lpb-kf-medium-4 120s ease-in-out infinite;\n  animation-delay: -101.41s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-ring-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-16.8, 8.01, 0) scale(1.0019); }\n}\n.lpb-ring-0 {\n  animation: lpb-kf-ring-0 120s ease-in-out infinite;\n  animation-delay: -60.56s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-ring-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-9.82, 15.8, 0) scale(1.0044); }\n}\n.lpb-ring-1 {\n  animation: lpb-kf-ring-1 120s ease-in-out infinite;\n  animation-delay: -56.11s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-ring-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(0.26, 18.59, 0) scale(1.0069); }\n}\n.lpb-ring-2 {\n  animation: lpb-kf-ring-2 120s ease-in-out infinite;\n  animation-delay: -51.67s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-ring-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(10.25, 15.51, 0) scale(1.0014); }\n}\n.lpb-ring-3 {\n  animation: lpb-kf-ring-3 120s ease-in-out infinite;\n  animation-delay: -47.23s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-line-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(48.75, 11.01, 0) scale(1.0029); }\n}\n.lpb-line-0 {\n  animation: lpb-kf-line-0 120s ease-in-out infinite;\n  animation-delay: -50.97s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-line-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(47.07, -16.78, 0) scale(1.0054); }\n}\n.lpb-line-1 {\n  animation: lpb-kf-line-1 120s ease-in-out infinite;\n  animation-delay: -46.53s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-line-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(49.24, -8.61, 0) scale(1.0079); }\n}\n.lpb-line-2 {\n  animation: lpb-kf-line-2 120s ease-in-out infinite;\n  animation-delay: -42.08s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-0 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-10.08, 27.69, 0) scale(1.0046); }\n}\n.lpb-dot-0 {\n  animation: lpb-kf-dot-0 120s ease-in-out infinite;\n  animation-delay: -93s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-1 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(6.45, 28.74, 0) scale(1.0071); }\n}\n.lpb-dot-1 {\n  animation: lpb-kf-dot-1 120s ease-in-out infinite;\n  animation-delay: -88.56s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-2 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(20.93, 20.71, 0) scale(1.0017); }\n}\n.lpb-dot-2 {\n  animation: lpb-kf-dot-2 120s ease-in-out infinite;\n  animation-delay: -84.12s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-3 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(28.78, 6.14, 0) scale(1.0042); }\n}\n.lpb-dot-3 {\n  animation: lpb-kf-dot-3 120s ease-in-out infinite;\n  animation-delay: -79.68s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-4 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(27.53, -10.36, 0) scale(1.0067); }\n}\n.lpb-dot-4 {\n  animation: lpb-kf-dot-4 120s ease-in-out infinite;\n  animation-delay: -75.23s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-5 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(17.59, -23.57, 0) scale(1.0012); }\n}\n.lpb-dot-5 {\n  animation: lpb-kf-dot-5 120s ease-in-out infinite;\n  animation-delay: -70.79s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-6 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(2.09, -29.32, 0) scale(1.0037); }\n}\n.lpb-dot-6 {\n  animation: lpb-kf-dot-6 120s ease-in-out infinite;\n  animation-delay: -66.35s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-7 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-14.05, -25.8, 0) scale(1.0063); }\n}\n.lpb-dot-7 {\n  animation: lpb-kf-dot-7 120s ease-in-out infinite;\n  animation-delay: -61.91s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-8 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-25.74, -14.13, 0) scale(1.0008); }\n}\n.lpb-dot-8 {\n  animation: lpb-kf-dot-8 120s ease-in-out infinite;\n  animation-delay: -57.47s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-9 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(-29.29, 1.99, 0) scale(1.0033); }\n}\n.lpb-dot-9 {\n  animation: lpb-kf-dot-9 120s ease-in-out infinite;\n  animation-delay: -53.02s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-10 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(20.69, -6.8, 0) scale(1.0016); }\n}\n.lpb-dot-10 {\n  animation: lpb-kf-dot-10 120s ease-in-out infinite;\n  animation-delay: -7.85s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-11 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(13.75, -16.88, 0) scale(1.0041); }\n}\n.lpb-dot-11 {\n  animation: lpb-kf-dot-11 120s ease-in-out infinite;\n  animation-delay: -3.4s;\n  will-change: transform;\n}\n\n@keyframes lpb-kf-dot-12 {\n  0%, 100% { transform: translate3d(0, 0, 0) scale(1); }\n  50% { transform: translate3d(2.46, -21.62, 0) scale(1.0067); }\n}\n.lpb-dot-12 {\n  animation: lpb-kf-dot-12 120s ease-in-out infinite;\n  animation-delay: -118.96s;\n  will-change: transform;\n}\n.lpb-root svg {\n  width: 100%;\n  height: 100%;\n  display: block;\n}\n.lpb-root--overlay .lpb-base-wash {\n  display: none;\n}\n.lpb-layer {\n  transform-box: fill-box;\n  transform-origin: center;\n}\n.lpb-root--paused .lpb-layer {\n  animation-play-state: paused !important;\n}\n@media (prefers-reduced-motion: reduce) {\n  .lpb-layer {\n    animation: none !important;\n  }\n}";
 
 export const lightPaperBackgroundAnimatedSvg = "<?xml version=\"1.0\" encoding=\"UTF-8\"?>\n<svg xmlns=\"http://www.w3.org/2000/svg\" width=\"5120\" height=\"2880\" viewBox=\"0 0 5120 2880\" fill=\"none\" preserveAspectRatio=\"xMidYMid slice\">\n  <defs>\n    <linearGradient id=\"baseWash\" x1=\"0\" y1=\"0\" x2=\"5120\" y2=\"2880\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"#FAFAFA\"/>\n      <stop offset=\"42%\" stop-color=\"#FFFFFF\"/>\n      <stop offset=\"100%\" stop-color=\"#F7F7F7\"/>\n    </linearGradient>\n    <radialGradient id=\"centerCalm\" cx=\"50%\" cy=\"46%\" r=\"58%\" gradientUnits=\"objectBoundingBox\">\n      <stop offset=\"0%\" stop-color=\"#FFFFFF\" stop-opacity=\"0.92\"/>\n      <stop offset=\"100%\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"/>\n    </radialGradient>\n    <filter id=\"paperShadow\" x=\"-30%\" y=\"-30%\" width=\"160%\" height=\"160%\" color-interpolation-filters=\"sRGB\">\n      <feDropShadow dx=\"0\" dy=\"14\" stdDeviation=\"22\" flood-color=\"#C8C8C8\" flood-opacity=\"0.42\"/>\n      <feDropShadow dx=\"0\" dy=\"4\" stdDeviation=\"6\" flood-color=\"#E8E8E8\" flood-opacity=\"0.55\"/>\n    </filter>\n    <filter id=\"softShadowLg\" x=\"-40%\" y=\"-40%\" width=\"180%\" height=\"180%\" color-interpolation-filters=\"sRGB\">\n      <feDropShadow dx=\"0\" dy=\"18\" stdDeviation=\"28\" flood-color=\"#C8C8C8\" flood-opacity=\"0.38\"/>\n      <feDropShadow dx=\"0\" dy=\"6\" stdDeviation=\"10\" flood-color=\"#E0E0E0\" flood-opacity=\"0.48\"/>\n    </filter>\n    <filter id=\"softShadowMd\" x=\"-50%\" y=\"-50%\" width=\"200%\" height=\"200%\" color-interpolation-filters=\"sRGB\">\n      <feDropShadow dx=\"0\" dy=\"10\" stdDeviation=\"16\" flood-color=\"#CFCFCF\" flood-opacity=\"0.4\"/>\n    </filter>\n    <filter id=\"buttonLift\" x=\"-80%\" y=\"-80%\" width=\"260%\" height=\"260%\" color-interpolation-filters=\"sRGB\">\n      <feDropShadow dx=\"0\" dy=\"5\" stdDeviation=\"7\" flood-color=\"#D0D0D0\" flood-opacity=\"0.55\"/>\n      <feDropShadow dx=\"0\" dy=\"-2\" stdDeviation=\"3\" flood-color=\"#FFFFFF\" flood-opacity=\"0.85\"/>\n    </filter>\n    <filter id=\"buttonLiftStrong\" x=\"-100%\" y=\"-100%\" width=\"300%\" height=\"300%\" color-interpolation-filters=\"sRGB\">\n      <feDropShadow dx=\"0\" dy=\"7\" stdDeviation=\"9\" flood-color=\"#A8A8A8\" flood-opacity=\"0.62\"/>\n      <feDropShadow dx=\"0\" dy=\"3\" stdDeviation=\"4\" flood-color=\"#C4C4C4\" flood-opacity=\"0.48\"/>\n      <feDropShadow dx=\"0\" dy=\"-2\" stdDeviation=\"3\" flood-color=\"#FFFFFF\" flood-opacity=\"0.9\"/>\n    </filter>\n    \n    <linearGradient id=\"bandFade0\" x1=\"-1399.2\" y1=\"3029.0\" x2=\"5959.2\" y2=\"-129.0\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"white\" stop-opacity=\"0\"/>\n      <stop offset=\"6.5%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"93.5%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"white\" stop-opacity=\"0\"/>\n    </linearGradient>\n    <mask id=\"bandMask0\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"5120\" height=\"2880\">\n      <rect width=\"5120\" height=\"2880\" fill=\"url(#bandFade0)\"/>\n    </mask>\n    \n    <linearGradient id=\"bandFade1\" x1=\"-1374.1\" y1=\"3192.7\" x2=\"6414.1\" y2=\"107.3\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"white\" stop-opacity=\"0\"/>\n      <stop offset=\"6.2%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"93.8%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"white\" stop-opacity=\"0\"/>\n    </linearGradient>\n    <mask id=\"bandMask1\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"5120\" height=\"2880\">\n      <rect width=\"5120\" height=\"2880\" fill=\"url(#bandFade1)\"/>\n    </mask>\n    \n    <linearGradient id=\"bandFade2\" x1=\"-1053.5\" y1=\"3434.2\" x2=\"6413.5\" y2=\"465.8\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"white\" stop-opacity=\"0\"/>\n      <stop offset=\"6.5%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"93.5%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"white\" stop-opacity=\"0\"/>\n    </linearGradient>\n    <mask id=\"bandMask2\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"5120\" height=\"2880\">\n      <rect width=\"5120\" height=\"2880\" fill=\"url(#bandFade2)\"/>\n    </mask>\n    \n    <linearGradient id=\"bandFade3\" x1=\"-756.6\" y1=\"3315.0\" x2=\"6396.6\" y2=\"205.0\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"white\" stop-opacity=\"0\"/>\n      <stop offset=\"6.7%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"93.3%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"white\" stop-opacity=\"0\"/>\n    </linearGradient>\n    <mask id=\"bandMask3\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"5120\" height=\"2880\">\n      <rect width=\"5120\" height=\"2880\" fill=\"url(#bandFade3)\"/>\n    </mask>\n    \n    <linearGradient id=\"bandFade4\" x1=\"-428.7\" y1=\"3386.4\" x2=\"6408.7\" y2=\"593.6\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"white\" stop-opacity=\"0\"/>\n      <stop offset=\"7.0%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"93.0%\" stop-color=\"white\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"white\" stop-opacity=\"0\"/>\n    </linearGradient>\n    <mask id=\"bandMask4\" maskUnits=\"userSpaceOnUse\" x=\"0\" y=\"0\" width=\"5120\" height=\"2880\">\n      <rect width=\"5120\" height=\"2880\" fill=\"url(#bandFade4)\"/>\n    </mask>\n    \n    <linearGradient id=\"lineFade0\" x1=\"2458.3\" y1=\"16.4\" x2=\"5401.7\" y2=\"683.6\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"/>\n      <stop offset=\"11.9%\" stop-color=\"#FFFFFF\" stop-opacity=\"1\"/>\n      <stop offset=\"88.1%\" stop-color=\"#FFFFFF\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"/>\n    </linearGradient>\n    \n    <linearGradient id=\"lineFade1\" x1=\"-282.0\" y1=\"2714.0\" x2=\"2382.0\" y2=\"1826.0\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"/>\n      <stop offset=\"12.8%\" stop-color=\"#FFFFFF\" stop-opacity=\"1\"/>\n      <stop offset=\"87.2%\" stop-color=\"#FFFFFF\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"/>\n    </linearGradient>\n    \n    <linearGradient id=\"lineFade2\" x1=\"2786.5\" y1=\"2577.8\" x2=\"5453.5\" y2=\"2222.2\" gradientUnits=\"userSpaceOnUse\">\n      <stop offset=\"0%\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"/>\n      <stop offset=\"13.4%\" stop-color=\"#FFFFFF\" stop-opacity=\"1\"/>\n      <stop offset=\"86.6%\" stop-color=\"#FFFFFF\" stop-opacity=\"1\"/>\n      <stop offset=\"100%\" stop-color=\"#FFFFFF\" stop-opacity=\"0\"/>\n    </linearGradient>\n    <filter id=\"ringGlow\" x=\"-60%\" y=\"-60%\" width=\"220%\" height=\"220%\" color-interpolation-filters=\"sRGB\">\n      <feDropShadow dx=\"0\" dy=\"8\" stdDeviation=\"12\" flood-color=\"#D4D4D4\" flood-opacity=\"0.35\"/>\n    </filter>\n    <filter id=\"lineShadow\" x=\"-20%\" y=\"-20%\" width=\"140%\" height=\"140%\" color-interpolation-filters=\"sRGB\">\n      <feDropShadow dx=\"0\" dy=\"3\" stdDeviation=\"4\" flood-color=\"#D8D8D8\" flood-opacity=\"0.45\"/>\n    </filter>\n  </defs>\n\n  <rect class=\"lpb-base-wash\" width=\"5120\" height=\"2880\" fill=\"url(#baseWash)\"/>\n  <rect class=\"lpb-base-wash\" width=\"5120\" height=\"2880\" fill=\"url(#centerCalm)\"/>\n\n  <g id=\"corner-discs\" opacity=\"0.98\">\n    <g class=\"lpb-layer lpb-corner-0\"><circle cx=\"-420.0\" cy=\"-380.0\" r=\"1180.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowLg)\"/></g>\n    <g class=\"lpb-layer lpb-corner-1\"><circle cx=\"-520.0\" cy=\"3300.0\" r=\"1320.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowLg)\"/></g>\n    <g class=\"lpb-layer lpb-corner-2\"><circle cx=\"5600.0\" cy=\"3400.0\" r=\"1420.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowLg)\"/></g>\n    <g class=\"lpb-layer lpb-corner-3\"><circle cx=\"5400.0\" cy=\"-220.0\" r=\"760.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowMd)\"/></g>\n  </g>\n\n  <g id=\"flowing-bands\">\n    <g class=\"lpb-layer lpb-band-0\" mask=\"url(#bandMask0)\">\n      <path d=\"M -588.1 2809.3 C 902.8 1929.4 2557.2 1163.2 5241.1 307.6 L 5148.1 90.7 C 2550.2 1130.6 895.8 1896.8 -681.1 2592.4 Z\" fill=\"#FFFFFF\" opacity=\"0.98\" filter=\"url(#paperShadow)\" data-band=\"0\"/>\n    </g>\n    <g class=\"lpb-layer lpb-band-1\" mask=\"url(#bandMask1)\">\n      <path d=\"M -565.3 2975.5 C 1101.9 2123.3 2858.1 1361.4 5676.0 503.0 L 5605.3 324.5 C 2852.8 1336.7 1096.6 2098.6 -636.0 2797.0 Z\" fill=\"#FFFFFF\" opacity=\"0.95\" filter=\"url(#paperShadow)\" data-band=\"1\"/>\n    </g>\n    <g class=\"lpb-layer lpb-band-2\" mask=\"url(#bandMask2)\">\n      <path d=\"M -253.0 3195.6 C 1401.9 2320.6 3258.1 1558.5 5667.7 841.9 L 5613.0 704.4 C 3254.0 1539.4 1397.8 2301.5 -307.7 3058.1 Z\" fill=\"#FFFFFF\" opacity=\"0.92\" filter=\"url(#paperShadow)\" data-band=\"2\"/>\n    </g>\n    <g class=\"lpb-layer lpb-band-3\" mask=\"url(#bandMask3)\">\n      <path d=\"M 29.6 3036.5 C 1643.0 2181.6 3597.0 1414.6 5656.7 589.9 L 5610.4 483.5 C 3593.6 1398.4 1639.5 2165.4 -16.7 2930.1 Z\" fill=\"#FFFFFF\" opacity=\"0.9\" filter=\"url(#paperShadow)\" data-band=\"3\"/>\n    </g>\n    <g class=\"lpb-layer lpb-band-4\" mask=\"url(#bandMask4)\">\n      <path d=\"M 357.5 3110.6 C 1882.2 2397.3 3937.8 1633.8 5654.3 947.1 L 5622.5 869.4 C 3935.4 1622.7 1879.9 2386.2 325.7 3032.9 Z\" fill=\"#FFFFFF\" opacity=\"0.88\" filter=\"url(#paperShadow)\" data-band=\"4\"/>\n    </g>\n  </g>\n\n  <g id=\"medium-discs\">\n    <g class=\"lpb-layer lpb-medium-0\"><circle cx=\"4300.0\" cy=\"620.0\" r=\"280.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowMd)\"/></g>\n    <g class=\"lpb-layer lpb-medium-1\"><circle cx=\"760.0\" cy=\"520.0\" r=\"220.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowMd)\"/></g>\n    <g class=\"lpb-layer lpb-medium-2\"><circle cx=\"4480.0\" cy=\"2280.0\" r=\"340.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowMd)\"/></g>\n    <g class=\"lpb-layer lpb-medium-3\"><circle cx=\"620.0\" cy=\"2360.0\" r=\"260.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowMd)\"/></g>\n    <g class=\"lpb-layer lpb-medium-4\"><circle cx=\"3820.0\" cy=\"2480.0\" r=\"200.0\" fill=\"#FFFFFF\" filter=\"url(#softShadowMd)\"/></g>\n  </g>\n\n  <g id=\"rings\">\n    <g class=\"lpb-layer lpb-ring-0\"><circle cx=\"1120.0\" cy=\"1680.0\" r=\"110.0\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"3.5\" filter=\"url(#ringGlow)\"/></g>\n    <g class=\"lpb-layer lpb-ring-1\"><circle cx=\"3960.0\" cy=\"1520.0\" r=\"92.0\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"3.5\" filter=\"url(#ringGlow)\"/></g>\n    <g class=\"lpb-layer lpb-ring-2\"><circle cx=\"680.0\" cy=\"980.0\" r=\"74.0\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"3.5\" filter=\"url(#ringGlow)\"/></g>\n    <g class=\"lpb-layer lpb-ring-3\"><circle cx=\"4440.0\" cy=\"620.0\" r=\"66.0\" fill=\"none\" stroke=\"#FFFFFF\" stroke-width=\"3.5\" filter=\"url(#ringGlow)\"/></g>\n  </g>\n\n  <g id=\"accent-lines\">\n    <g class=\"lpb-layer lpb-line-0\">\n    <path d=\"M 2809.4 96.0 C 3620.0 420.0 4040.0 260.0 5050.6 604.0\" fill=\"none\" stroke=\"url(#lineFade0)\" stroke-width=\"2.5\" stroke-linecap=\"round\" filter=\"url(#lineShadow)\"/>\n    <circle cx=\"3180.0\" cy=\"180.0\" r=\"10.0\" fill=\"#FFFFFF\" filter=\"url(#buttonLift)\"/>\n    <circle cx=\"4040.0\" cy=\"260.0\" r=\"10.0\" fill=\"#FFFFFF\" filter=\"url(#buttonLift)\"/>\n    <circle cx=\"4680.0\" cy=\"520.0\" r=\"10.0\" fill=\"#FFFFFF\" filter=\"url(#buttonLift)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-line-1\">\n    <path d=\"M 59.5 2600.2 C 920.0 2140.0 1280.0 2360.0 2040.5 1939.8\" fill=\"none\" stroke=\"url(#lineFade1)\" stroke-width=\"2.5\" stroke-linecap=\"round\" filter=\"url(#lineShadow)\"/>\n    <circle cx=\"420.0\" cy=\"2480.0\" r=\"10.0\" fill=\"#FFFFFF\" filter=\"url(#buttonLift)\"/>\n    <circle cx=\"1280.0\" cy=\"2360.0\" r=\"10.0\" fill=\"#FFFFFF\" filter=\"url(#buttonLift)\"/>\n    <circle cx=\"1680.0\" cy=\"2060.0\" r=\"10.0\" fill=\"#FFFFFF\" filter=\"url(#buttonLift)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-line-2\">\n    <path d=\"M 3143.3 2530.2 C 3920.0 2280.0 4280.0 2520.0 5096.7 2269.8\" fill=\"none\" stroke=\"url(#lineFade2)\" stroke-width=\"2.5\" stroke-linecap=\"round\" filter=\"url(#lineShadow)\"/>\n    <circle cx=\"3520.0\" cy=\"2480.0\" r=\"10.0\" fill=\"#FFFFFF\" filter=\"url(#buttonLift)\"/>\n    <circle cx=\"4280.0\" cy=\"2520.0\" r=\"10.0\" fill=\"#FFFFFF\" filter=\"url(#buttonLift)\"/>\n    </g>\n  </g>\n\n  <g id=\"button-dots\">\n    <g class=\"lpb-layer lpb-dot-0\">\n    <circle cx=\"984.0\" cy=\"426.0\" r=\"37.7\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"980.0\" cy=\"420.0\" r=\"38.9\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"980.0\" cy=\"420.0\" r=\"36.7\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-1\">\n    <circle cx=\"1244.0\" cy=\"766.0\" r=\"24.8\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"1240.0\" cy=\"760.0\" r=\"26.0\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"1240.0\" cy=\"760.0\" r=\"23.8\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-2\">\n    <circle cx=\"4044.0\" cy=\"546.0\" r=\"31.2\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"4040.0\" cy=\"540.0\" r=\"32.4\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"4040.0\" cy=\"540.0\" r=\"30.2\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-3\">\n    <circle cx=\"4384.0\" cy=\"986.0\" r=\"20.4\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"4380.0\" cy=\"980.0\" r=\"21.6\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"4380.0\" cy=\"980.0\" r=\"19.4\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-4\">\n    <circle cx=\"524.0\" cy=\"1886.0\" r=\"29.1\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"520.0\" cy=\"1880.0\" r=\"30.3\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"520.0\" cy=\"1880.0\" r=\"28.1\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-5\">\n    <circle cx=\"864.0\" cy=\"2526.0\" r=\"22.6\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"860.0\" cy=\"2520.0\" r=\"23.8\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"860.0\" cy=\"2520.0\" r=\"21.6\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-6\">\n    <circle cx=\"4684.0\" cy=\"1766.0\" r=\"26.9\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"4680.0\" cy=\"1760.0\" r=\"28.1\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"4680.0\" cy=\"1760.0\" r=\"25.9\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-7\">\n    <circle cx=\"4124.0\" cy=\"2626.0\" r=\"33.4\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"4120.0\" cy=\"2620.0\" r=\"34.6\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"4120.0\" cy=\"2620.0\" r=\"32.4\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-8\">\n    <circle cx=\"1564.0\" cy=\"326.0\" r=\"18.3\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"1560.0\" cy=\"320.0\" r=\"19.5\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"1560.0\" cy=\"320.0\" r=\"17.3\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-9\">\n    <circle cx=\"2864.0\" cy=\"2486.0\" r=\"20.4\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"2860.0\" cy=\"2480.0\" r=\"21.6\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"2860.0\" cy=\"2480.0\" r=\"19.4\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-10\">\n    <circle cx=\"3184.0\" cy=\"386.0\" r=\"22.6\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"3180.0\" cy=\"380.0\" r=\"23.8\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"3180.0\" cy=\"380.0\" r=\"21.6\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-11\">\n    <circle cx=\"984.0\" cy=\"1286.0\" r=\"16.1\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"980.0\" cy=\"1280.0\" r=\"17.3\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"980.0\" cy=\"1280.0\" r=\"15.1\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n    <g class=\"lpb-layer lpb-dot-12\">\n    <circle cx=\"4584.0\" cy=\"1386.0\" r=\"18.3\" fill=\"#A8A8A8\" opacity=\"0.38\"/>\n    <circle cx=\"4580.0\" cy=\"1380.0\" r=\"19.5\" fill=\"none\" stroke=\"#9A9A9A\" stroke-width=\"1.4\" opacity=\"0.72\"/>\n    <circle cx=\"4580.0\" cy=\"1380.0\" r=\"17.3\" fill=\"#F6F6F6\" filter=\"url(#buttonLiftStrong)\"/>\n    </g>\n  </g>\n</svg>";

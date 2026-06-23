@@ -1,7 +1,8 @@
-import { createElement, useEffect, useRef, useState, type CSSProperties } from 'react';
+import { createElement, useCallback, useEffect, useRef, useState, type CSSProperties } from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import {
   LPB_CYCLE_S,
+  lightPaperAnimLayers,
   lightPaperBackgroundAnimatedSvg,
   lightPaperBackgroundAnimationCss,
 } from '@/design/tokens/lightPaperBackgroundAnimated';
@@ -44,33 +45,73 @@ function ensureWebStyles() {
   }
 }
 
+function normalizeSvgHtml(html: string): string {
+  return html.replace(/^<\?xml[^?]*\?>\s*/i, '');
+}
+
+/** Re-apply CSS animation on each SVG layer after innerHTML inject (RN Web / SVG class timing). */
+function applyLayerAnimations(host: HTMLElement, paused: boolean) {
+  const playState = paused ? 'paused' : 'running';
+  for (const layer of lightPaperAnimLayers) {
+    const node = host.querySelector<SVGElement>(`.${layer.className}`);
+    if (!node) continue;
+    node.style.transformBox = 'fill-box';
+    node.style.transformOrigin = 'center';
+    node.style.willChange = 'transform';
+    node.style.animation = `lpb-kf-${layer.id} ${LPB_CYCLE_S}s ease-in-out infinite`;
+    node.style.animationDelay = `-${layer.delayS}s`;
+    node.style.animationPlayState = playState;
+  }
+}
+
+type SyncHostOptions = {
+  className?: string;
+  html?: string;
+  cycleS?: number;
+  paused?: boolean;
+};
+
+function syncWebDomHost(el: HTMLDivElement, { className, html, cycleS, paused = false }: SyncHostOptions) {
+  ensureWebStyles();
+  if (className != null) el.className = className;
+  if (html != null) el.innerHTML = normalizeSvgHtml(html);
+  if (cycleS != null) el.setAttribute('data-lpb-cycle-s', String(cycleS));
+  else el.removeAttribute('data-lpb-cycle-s');
+  applyLayerAnimations(el, paused);
+}
+
 type WebDomHostProps = {
   className?: string;
   style?: CSSProperties;
   html?: string;
   testID?: string;
   cycleS?: number;
+  paused?: boolean;
 };
 
 /** RN Web View strips dangerouslySetInnerHTML/className — use a native div on web. */
-function WebDomHost({ className, style, html, testID, cycleS }: WebDomHostProps) {
+function WebDomHost({ className, style, html, testID, cycleS, paused = false }: WebDomHostProps) {
   const hostRef = useRef<HTMLDivElement | null>(null);
+
+  const syncHost = useCallback(
+    (el: HTMLDivElement | null) => {
+      hostRef.current = el;
+      if (!el) return;
+      syncWebDomHost(el, { className, html, cycleS, paused });
+    },
+    [className, html, cycleS, paused],
+  );
 
   useEffect(() => {
     const el = hostRef.current;
     if (!el) return;
-    if (className != null) el.className = className;
-    if (html != null) el.innerHTML = html;
-    if (cycleS != null) el.setAttribute('data-lpb-cycle-s', String(cycleS));
-    else el.removeAttribute('data-lpb-cycle-s');
-  }, [className, html, cycleS]);
+    syncWebDomHost(el, { className, html, cycleS, paused });
+  }, [className, html, cycleS, paused]);
 
   if (Platform.OS !== 'web') return null;
 
   return createElement('div', {
-    ref: (node: HTMLDivElement | null) => {
-      hostRef.current = node;
-    },
+    ref: syncHost,
     style,
     ...(testID ? { 'data-testid': testID } : {}),
   });
@@ -78,7 +119,6 @@ function WebDomHost({ className, style, html, testID, cycleS }: WebDomHostProps)
 
 /**
  * Animated light paper texture — independent CSS layer motion on web (120s loop).
- * Static SVG base always visible on web; animated overlay hides its own base wash.
  * Falls back to static PNG/SVG when reduced motion, native, or animated=false.
  */
 export function AnimatedLightPaperBackground({
@@ -106,15 +146,12 @@ export function AnimatedLightPaperBackground({
     return <StaticLightPaperBackground dimmed={dimmed} testID={testID} />;
   }
 
-  const overlayClassName = paused
-    ? 'lpb-root lpb-root--overlay lpb-root--paused'
-    : 'lpb-root lpb-root--overlay';
+  const rootClassName = paused ? 'lpb-root lpb-root--paused' : 'lpb-root';
 
   return (
     <>
-      <StaticLightPaperBackground dimmed={false} testID={`${testID}-static-base`} />
       <WebDomHost
-        className={overlayClassName}
+        className={rootClassName}
         style={{
           ...WEB_FIXED_FILL,
           overflow: 'hidden',
@@ -124,6 +161,7 @@ export function AnimatedLightPaperBackground({
         html={lightPaperBackgroundAnimatedSvg}
         testID={testID}
         cycleS={LPB_CYCLE_S}
+        paused={paused}
       />
       {dimmed ? <View style={styles.dimOverlay} pointerEvents="none" /> : null}
     </>

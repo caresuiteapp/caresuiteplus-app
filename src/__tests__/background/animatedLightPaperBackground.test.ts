@@ -42,9 +42,13 @@ describe('AnimatedLightPaperBackground component', () => {
     expect(source).toContain('StaticLightPaperBackground');
     expect(source).toContain('WebDomHost');
     expect(source).toContain("createElement('div'");
+    expect(source).toContain('applyLayerAnimations');
+    expect(source).toContain('lightPaperAnimLayers');
     expect(source).toContain('visibilitychange');
-    expect(source).toContain('lpb-root--overlay');
+    expect(source).toContain('lpb-root--paused');
     expect(source).toContain('cycleS={LPB_CYCLE_S}');
+    expect(source).not.toContain('lpb-root--overlay');
+    expect(source).not.toContain('static-base');
   });
 });
 

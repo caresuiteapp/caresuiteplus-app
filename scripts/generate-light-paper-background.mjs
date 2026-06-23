@@ -128,12 +128,12 @@ function unitVector(from, to) {
 function layerMotion(kind, index, direction = null) {
   const rand = seededRandom(hashSeed(`lpb-${kind}-${index}`));
   const ampScale =
-    kind === 'corner' ? [38, 92] :
-    kind === 'medium' ? [28, 72] :
-    kind === 'band' ? [22, 58] :
-    kind === 'line' ? [16, 44] :
-    kind === 'ring' ? [10, 26] :
-    [12, 36];
+    kind === 'corner' ? [52, 125] :
+    kind === 'medium' ? [38, 98] :
+    kind === 'band' ? [30, 78] :
+    kind === 'line' ? [22, 60] :
+    kind === 'ring' ? [14, 36] :
+    [16, 50];
   const amp = ampScale[0] + rand() * (ampScale[1] - ampScale[0]);
   let dx;
   let dy;
