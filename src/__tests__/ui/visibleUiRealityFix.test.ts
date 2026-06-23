@@ -47,10 +47,13 @@ function assertNoForbidden(text: string, context: string) {
 describe('Visible UI Reality Fix U.1', () => {
   it('client record uses section edit modal not intake wizard for edit', () => {
     const detailModal = readSrc('src/components/office/clientdetailmodal.tsx');
-    expect(detailModal).toContain('ClientSectionEditModal');
+    expect(detailModal).toContain('ClientRecordScreen');
+    expect(detailModal).toContain("useState<ModalMode>('full')");
+    expect(detailModal).not.toContain('ClientSectionEditModal');
     expect(detailModal).not.toMatch(/ClientIntakeModal[\s\S]*mode="edit"/);
 
     const record = readSrc('src/screens/business/office/ClientRecordScreen.tsx');
+    expect(record).toContain('ClientMasterDataEditModal');
     expect(record).toContain('ClientSectionEditModal');
     expect(record).toContain('useSectionEditModal');
     expect(record).not.toMatch(/ClientIntakeModal[\s\S]*mode="edit"/);

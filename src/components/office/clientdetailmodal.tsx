@@ -9,7 +9,6 @@ import {
   useWindowDimensions,
 } from 'react-native';
 import { ClientDetailSummaryPanel } from './ClientDetailSummaryPanel';
-import { ClientSectionEditModal } from './ClientSectionEditModal';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -49,24 +48,16 @@ export function ClientDetailModal({
   const isDesktop = isDesktopClass(deviceClass);
   const isBottomSheet = !isDesktop;
   const officeAccent = moduleColor('office');
-  const [mode, setMode] = useState<ModalMode>('preview');
+  const [mode, setMode] = useState<ModalMode>('full');
   const [initialTab, setInitialTab] = useState<ClientRecordTabKey | undefined>();
-  const [editOpen, setEditOpen] = useState(initialEditOpen);
   const [detailRevision, setDetailRevision] = useState(0);
 
   useEffect(() => {
     if (!visible) {
-      setMode('preview');
+      setMode('full');
       setInitialTab(undefined);
-      setEditOpen(false);
     }
   }, [visible]);
-
-  useEffect(() => {
-    if (visible && initialEditOpen) {
-      setEditOpen(true);
-    }
-  }, [visible, initialEditOpen]);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || !visible) return;
@@ -78,10 +69,12 @@ export function ClientDetailModal({
   }, [visible]);
 
   useEffect(() => {
-    setMode('preview');
+    setMode('full');
     setInitialTab(undefined);
-    setEditOpen(false);
-  }, [clientId]);
+    if (initialEditOpen) {
+      setDetailRevision((value) => value + 1);
+    }
+  }, [clientId, initialEditOpen]);
 
   const isFull = mode === 'full';
 
@@ -204,8 +197,8 @@ export function ClientDetailModal({
                       embedded
                       embeddedInModal
                       initialTabOverride={initialTab}
+                      initialMasterDataEditOpen={initialEditOpen}
                       onDeleted={handleDeleted}
-                      onEditMasterData={() => setEditOpen(true)}
                     />
                   </ScrollView>
                 </View>
@@ -221,7 +214,6 @@ export function ClientDetailModal({
                     clientId={clientId}
                     onOpenFullRecord={handleOpenFullRecord}
                     onOpenRecordTab={handleOpenRecordTab}
-                    onEditMasterData={() => setEditOpen(true)}
                     onDeleted={handleDeleted}
                   />
                 </ScrollView>
@@ -230,17 +222,6 @@ export function ClientDetailModal({
           </View>
         </View>
       </Modal>
-
-      <ClientSectionEditModal
-        visible={editOpen}
-        clientId={clientId}
-        section="stammdaten"
-        onClose={() => setEditOpen(false)}
-        onSaved={() => {
-          setEditOpen(false);
-          setDetailRevision((value) => value + 1);
-        }}
-      />
     </>
   );
 }

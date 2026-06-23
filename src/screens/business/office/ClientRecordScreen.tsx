@@ -140,6 +140,7 @@ export function ClientRecordScreen({
   embedded = false,
   onDeleted,
   onEditMasterData,
+  initialMasterDataEditOpen = false,
 }: {
   initialTabOverride?: ClientRecordTabKey;
   clientId?: string;
@@ -147,6 +148,8 @@ export function ClientRecordScreen({
   embeddedInModal?: boolean;
   onDeleted?: () => void;
   onEditMasterData?: () => void;
+  /** Opens ClientMasterDataEditModal on first render (e.g. list deep link ?edit=1). */
+  initialMasterDataEditOpen?: boolean;
 } = {}) {
   const { id: routeId, tab: tabParam, edit: editParam } = useLocalSearchParams<{
     id: string;
@@ -168,7 +171,7 @@ export function ClientRecordScreen({
       ? (resolvedTabParam as ClientRecordTabKey)
       : 'uebersicht';
   const [activeTab, setActiveTab] = useState<ClientRecordTabKey>(initialTab);
-  const [masterDataEditOpen, setMasterDataEditOpen] = useState(false);
+  const [masterDataEditOpen, setMasterDataEditOpen] = useState(initialMasterDataEditOpen);
   const sectionEdit = useSectionEditModal<IntakeSectionKey>();
 
   useEffect(() => {
