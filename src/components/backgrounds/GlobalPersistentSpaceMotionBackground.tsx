@@ -290,6 +290,8 @@ export function GlobalPersistentSpaceMotionBackground({
       style={[styles.root, dimmed && styles.dimmed]}
       pointerEvents="none"
       testID={testID}
+      // @ts-expect-error web data attribute for runtime verification
+      data-background-engine="persistent-space-canvas"
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
     >
