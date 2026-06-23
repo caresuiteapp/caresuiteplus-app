@@ -30,6 +30,7 @@ import { radius, spacing, typography } from '@/theme';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import {
   buildOpenTasks,
+  ASSIST_QUICK_ACTIONS,
   OFFICE_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
@@ -80,7 +81,12 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
     return null;
   }
 
-  const quickActions = mainModule === 'office' ? OFFICE_QUICK_ACTIONS : OFFICE_QUICK_ACTIONS.slice(0, 2);
+  const quickActions =
+    mainModule === 'office'
+      ? OFFICE_QUICK_ACTIONS
+      : mainModule === 'assist'
+        ? ASSIST_QUICK_ACTIONS
+        : OFFICE_QUICK_ACTIONS.slice(0, 2);
   const openTasks = buildOpenTasks(mainModule, officeData, isLive);
 
   return (

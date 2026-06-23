@@ -1,5 +1,5 @@
 import type { AssistDashboardStats } from '@/types/modules/assist';
-import { legacyColorsFromPalette, type ColorMode } from '@/design/tokens/themeBridge';
+import { moduleColor } from '@/design/tokens/modules';
 
 export type AssistDashboardKpi = {
   id: string;
@@ -8,39 +8,73 @@ export type AssistDashboardKpi = {
   subValue?: string;
   icon?: string;
   accentColor?: string;
+  variant?: 'glass' | 'light';
   /** Route path — navigation handled by screen, not this module. */
   navigationTarget?: string;
 };
 
-export function buildAssistDashboardKpis(stats: AssistDashboardStats, mode: ColorMode = 'dark'): AssistDashboardKpi[]  {
-  const colors = legacyColorsFromPalette(mode);
+const KPI_STATUS = {
+  success: '#22C55E',
+  warning: '#F59E0B',
+  danger: '#EF4444',
+  amber: '#FFB020',
+  violet: '#8B5CF6',
+} as const;
+
+export function buildAssistDashboardKpis(stats: AssistDashboardStats): AssistDashboardKpi[] {
+  const accent = moduleColor('assist');
+  const runningNow = stats.activeCount + stats.inProgressCount;
+
   return [
     {
-      id: 'today',
-      label: 'Heute',
+      id: 'today-planned',
+      label: 'Heute geplant',
       value: String(stats.todayCount),
-      subValue: `${stats.completedTodayCount} abgeschlossen`,
+      subValue: stats.todayCount === 1 ? '1 Einsatz' : `${stats.todayCount} Einsätze`,
       icon: '📅',
-      accentColor: colors.amber,
+      accentColor: accent,
+      variant: 'light',
       navigationTarget: '/assist/assignments',
     },
     {
-      id: 'active',
-      label: 'Aktiv',
-      value: String(stats.activeCount),
-      subValue: `${stats.inProgressCount} in Arbeit`,
+      id: 'running',
+      label: 'Läuft gerade',
+      value: String(runningNow),
+      subValue: runningNow > 0 ? 'In Durchführung' : 'Keine laufenden',
       icon: '▶️',
-      accentColor: colors.success,
+      accentColor: runningNow > 0 ? KPI_STATUS.success : accent,
+      variant: 'light',
       navigationTarget: '/assist/durchfuehrung',
     },
     {
-      id: 'upcoming',
-      label: 'Geplant',
-      value: String(stats.upcomingCount),
-      subValue: `${stats.totalAssignments} gesamt`,
-      icon: '📋',
-      accentColor: colors.violet,
-      navigationTarget: '/assist/assignments',
+      id: 'documentation',
+      label: 'Dokumentation offen',
+      value: String(stats.incompleteCount),
+      subValue: stats.incompleteCount > 0 ? 'Nachbearbeitung nötig' : 'Alles dokumentiert',
+      icon: '📝',
+      accentColor: stats.incompleteCount > 0 ? KPI_STATUS.warning : accent,
+      variant: 'light',
+      navigationTarget: '/assist/durchfuehrung',
+    },
+    {
+      id: 'signature',
+      label: 'Signatur offen',
+      value: String(stats.openSignatureCount),
+      subValue: stats.openSignatureCount > 0 ? 'Unterschrift fehlt' : 'Keine offenen',
+      icon: '🖊️',
+      accentColor: stats.openSignatureCount > 0 ? KPI_STATUS.warning : accent,
+      variant: 'light',
+      navigationTarget: '/assist/nachweise',
+    },
+    {
+      id: 'proof-review',
+      label: 'Nachweise zu prüfen',
+      value: String(stats.openProofReviewCount),
+      subValue: stats.openProofReviewCount > 0 ? 'Prüfung ausstehend' : 'Keine offenen',
+      icon: '✍️',
+      accentColor: stats.openProofReviewCount > 0 ? KPI_STATUS.amber : accent,
+      variant: 'light',
+      navigationTarget: '/assist/nachweise',
     },
     {
       id: 'at-risk',
@@ -48,43 +82,28 @@ export function buildAssistDashboardKpis(stats: AssistDashboardStats, mode: Colo
       value: String(stats.atRiskCount),
       subValue: stats.atRiskCount > 0 ? 'Prüfung nötig' : 'Keine Risiken',
       icon: '⚠️',
-      accentColor: stats.atRiskCount > 0 ? colors.danger : colors.success,
+      accentColor: stats.atRiskCount > 0 ? KPI_STATUS.danger : accent,
+      variant: 'light',
       navigationTarget: '/assist/qualitaet',
     },
     {
-      id: 'incomplete',
-      label: 'Unvollständig',
-      value: String(stats.incompleteCount),
-      subValue: stats.incompleteCount > 0 ? 'Dokumentation prüfen' : 'Alles vollständig',
-      icon: '📝',
-      accentColor: stats.incompleteCount > 0 ? colors.warning : colors.success,
-      navigationTarget: '/assist/durchfuehrung',
-    },
-    {
-      id: 'open-proof',
-      label: 'Offene Nachweise',
-      value: String(stats.openProofCount),
-      subValue: stats.openProofCount > 0 ? 'Nachweis ausstehend' : 'Keine offenen',
-      icon: '✍️',
-      accentColor: stats.openProofCount > 0 ? colors.amber : colors.success,
+      id: 'portal-release',
+      label: 'Portal-Freigabe offen',
+      value: String(stats.openPortalReleaseCount),
+      subValue: stats.openPortalReleaseCount > 0 ? 'Freigabe ausstehend' : 'Keine offenen',
+      icon: '🌐',
+      accentColor: stats.openPortalReleaseCount > 0 ? KPI_STATUS.violet : accent,
+      variant: 'light',
       navigationTarget: '/assist/nachweise',
     },
     {
-      id: 'open-signature',
-      label: 'Fehlende Signaturen',
-      value: String(stats.openSignatureCount),
-      subValue: stats.openSignatureCount > 0 ? 'Unterschrift offen' : 'Keine offenen',
-      icon: '🖊️',
-      accentColor: stats.openSignatureCount > 0 ? colors.warning : colors.success,
-      navigationTarget: '/assist/signaturen',
-    },
-    {
-      id: 'open-trips',
-      label: 'Offene Fahrten',
+      id: 'trips',
+      label: 'Tracking/Fahrten offen',
       value: String(stats.openTripsCount),
-      subValue: stats.openTripsCount > 0 ? 'Fahrt nicht beendet' : 'Fahrtenbuch ok',
+      subValue: stats.openTripsCount > 0 ? 'Fahrt nicht beendet' : 'Keine offenen',
       icon: '🚗',
-      accentColor: stats.openTripsCount > 0 ? colors.violet : colors.success,
+      accentColor: stats.openTripsCount > 0 ? KPI_STATUS.warning : accent,
+      variant: 'light',
       navigationTarget: '/assist/fahrten',
     },
   ];

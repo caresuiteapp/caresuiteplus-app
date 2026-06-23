@@ -26,6 +26,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import {
   buildOpenTasks,
+  ASSIST_QUICK_ACTIONS,
   OFFICE_QUICK_ACTIONS,
   resolveContextPanelNavConfig,
 } from './platformContextData';
@@ -65,7 +66,11 @@ export function MobilePlatformContextPanel({
   );
 
   const quickActions =
-    mainModule === 'office' ? OFFICE_QUICK_ACTIONS : OFFICE_QUICK_ACTIONS.slice(0, 2);
+    mainModule === 'office'
+      ? OFFICE_QUICK_ACTIONS
+      : mainModule === 'assist'
+        ? ASSIST_QUICK_ACTIONS
+        : OFFICE_QUICK_ACTIONS.slice(0, 2);
 
   const navConfig = useMemo(() => resolveContextPanelNavConfig(mainModule), [mainModule]);
   const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);

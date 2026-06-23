@@ -13,6 +13,7 @@ export type DashboardKpiLike = {
   trendValue?: string;
   pulse?: boolean;
   navigationTarget?: string;
+  variant?: 'glass' | 'light';
 };
 
 export function dashboardKpisToGridItems(
@@ -30,6 +31,7 @@ export function dashboardKpisToGridItems(
         trend={kpi.trend}
         trendValue={kpi.trendValue}
         pulse={kpi.pulse}
+        variant={kpi.variant}
       />
     );
 

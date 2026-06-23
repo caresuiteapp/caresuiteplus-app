@@ -27,8 +27,12 @@ function resolveIncomplete(item: AssignmentListItem): boolean {
   return item.isIncomplete ?? item.status === 'in_bearbeitung';
 }
 
-function isOpenSignatureStatus(proofStatus?: string | null): boolean {
-  return proofStatus === 'pending' || proofStatus === 'none';
+function isOpenProofReviewStatus(proofStatus?: string | null): boolean {
+  return proofStatus === 'signed' || proofStatus === 'pending';
+}
+
+function isOpenPortalReleaseStatus(proofStatus?: string | null): boolean {
+  return proofStatus === 'verified';
 }
 
 function buildDashboardStats(
@@ -47,10 +51,14 @@ function buildDashboardStats(
     atRiskCount: items.filter((item) => resolveAtRisk(item)).length,
     incompleteCount: items.filter((item) => resolveIncomplete(item)).length,
     openProofCount: items.filter((item) => isOpenProofStatus(item.proofStatus)).length,
+    openProofReviewCount: items.filter((item) => isOpenProofReviewStatus(item.proofStatus)).length,
     openSignatureCount: items.filter(
       (item) =>
         isOpenProofStatus(item.proofStatus) &&
         (item.status === 'in_bearbeitung' || item.isIncomplete),
+    ).length,
+    openPortalReleaseCount: items.filter((item) =>
+      isOpenPortalReleaseStatus(item.proofStatus),
     ).length,
     openTripsCount,
   };

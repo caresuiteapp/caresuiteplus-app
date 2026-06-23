@@ -2,53 +2,82 @@ import { describe, expect, it } from 'vitest';
 import * as fs from 'node:fs';
 import * as path from 'node:path';
 import { buildAssistDashboardKpis } from '@/lib/assist/assistDashboardStats';
+import {
+  buildAssistDashboardCheckpoints,
+  buildAssistDashboardSystemStatus,
+} from '@/lib/assist/assistDashboardSystemStatus';
 import { isAssistExtensionLiveReady } from '@/lib/assist/assistModuleConfig';
 
 function readSrc(relativePath: string): string {
   return fs.readFileSync(path.join(process.cwd(), relativePath), 'utf8');
 }
 
-describe('Assist Dashboard Hero (Sprint 81)', () => {
-  it('AssistDashboardHero nutzt PremiumListHeroFrame mit KPIs', () => {
+const SAMPLE_STATS = {
+  totalAssignments: 30,
+  todayCount: 5,
+  activeCount: 3,
+  inProgressCount: 2,
+  completedTodayCount: 1,
+  upcomingCount: 12,
+  atRiskCount: 3,
+  incompleteCount: 4,
+  openProofCount: 2,
+  openProofReviewCount: 2,
+  openSignatureCount: 1,
+  openPortalReleaseCount: 1,
+  openTripsCount: 2,
+};
+
+describe('Assist Dashboard Hero (UI Reality Fix)', () => {
+  it('AssistDashboardHero nutzt SectionPanel statt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/assist/AssistDashboardHero.tsx');
-    expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('Einsatzplanung');
+    expect(hero).toContain('SectionPanel');
+    expect(hero).toContain('Heute im Assist');
     expect(hero).toContain('AdaptiveKpiGrid');
-    expect(hero).toContain('buildAssistDashboardKpis');
+    expect(hero).not.toContain('PremiumListHeroFrame');
+    expect(hero).not.toContain('Live Fahrtenbuch');
+    expect(hero).not.toContain('ROLE_LABELS');
   });
 
-  it('buildAssistDashboardKpis mappt Stats ehrlich', () => {
-    const kpis = buildAssistDashboardKpis({
-      totalAssignments: 30,
-      todayCount: 5,
-      activeCount: 8,
-      inProgressCount: 2,
-      completedTodayCount: 1,
-      upcomingCount: 12,
-      atRiskCount: 3,
-      incompleteCount: 4,
-      openProofCount: 2,
-      openSignatureCount: 1,
-      openTripsCount: 2,
-    });
+  it('buildAssistDashboardKpis mappt Stats auf neue Kennzahlen', () => {
+    const kpis = buildAssistDashboardKpis(SAMPLE_STATS);
+    expect(kpis).toHaveLength(8);
+    expect(kpis[0]?.label).toBe('Heute geplant');
     expect(kpis[0]?.value).toBe('5');
-    expect(kpis[1]?.value).toBe('8');
-    expect(kpis[5]?.value).toBe('2');
-    expect(kpis[6]?.value).toBe('1');
-    expect(kpis[7]?.value).toBe('2');
-    expect(kpis[3]?.navigationTarget).toBe('/assist/qualitaet');
+    expect(kpis[1]?.label).toBe('Läuft gerade');
+    expect(kpis[1]?.value).toBe('5');
+    expect(kpis[2]?.label).toBe('Dokumentation offen');
+    expect(kpis[3]?.label).toBe('Signatur offen');
+    expect(kpis[4]?.label).toBe('Nachweise zu prüfen');
+    expect(kpis[5]?.label).toBe('Problemfälle');
+    expect(kpis[6]?.label).toBe('Portal-Freigabe offen');
+    expect(kpis[7]?.label).toBe('Tracking/Fahrten offen');
+    expect(kpis.find((k) => k.label === 'Unvollständig')).toBeUndefined();
+    expect(kpis[5]?.navigationTarget).toBe('/assist/qualitaet');
+    expect(kpis.every((k) => k.variant === 'light')).toBe(true);
   });
 
-  it('AssistIndexScreen nutzt ScreenShell und AssistDashboardHero', () => {
+  it('Systemstatus und Prüfpunkte sind kompakt modelliert', () => {
+    expect(buildAssistDashboardSystemStatus()).toHaveLength(3);
+    expect(buildAssistDashboardSystemStatus()[0]?.title).toBe('Speicherung aktiv');
+    const open = buildAssistDashboardCheckpoints(SAMPLE_STATS);
+    expect(open.length).toBeGreaterThan(0);
+    expect(open.some((c) => c.label === 'Dokumentation offen')).toBe(true);
+  });
+
+  it('AssistIndexScreen nutzt korrekten Header und Systemstatus-Karte', () => {
     const screen = readSrc('src/screens/assist/AssistIndexScreen.tsx');
     expect(screen).toContain('ScreenShell');
     expect(screen).toContain('AssistDashboardHero');
-    expect(screen).toContain('SectionPanel');
-    expect(screen).toContain('Live-Aktivität');
-    expect(screen).toContain('InfoBanner');
-    expect(screen).toContain('ASSIST_EXTENSION_PREPARED_MESSAGE');
+    expect(screen).toContain('AssistSystemStatusCard');
+    expect(screen).toContain('AssistDashboardCheckpoints');
+    expect(screen).toContain('Einsatzplanung, Durchführung und Leistungsnachweise');
+    expect(screen).toContain('+ Einsatz planen');
+    expect(screen).toContain('Live-Status öffnen');
+    expect(screen).toContain('Nachweise prüfen');
+    expect(screen).not.toContain('AssistSetupHintsBanner');
+    expect(screen).not.toContain('title="Einsätze"');
     expect(screen).not.toContain('CareLightScreen');
-    expect(screen).not.toContain('CareLightModuleDashboard');
   });
 
   it('Erweiterungen sind demo-funktional', () => {

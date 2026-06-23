@@ -62,8 +62,12 @@ export type AssistDashboardStats = {
   atRiskCount: number;
   incompleteCount: number;
   openProofCount: number;
+  /** Nachweise in Prüfung (eingereicht, noch nicht freigegeben). */
+  openProofReviewCount: number;
   /** Einsätze mit ausstehender Klient:innen-Unterschrift (Status oder Nachweis). */
   openSignatureCount: number;
+  /** Verifizierte Nachweise ohne Portal-Freigabe. */
+  openPortalReleaseCount: number;
   /** Fahrten ohne Endzeit (0114 trips). */
   openTripsCount: number;
 };

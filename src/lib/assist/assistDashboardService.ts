@@ -12,7 +12,9 @@ export const EMPTY_ASSIST_DASHBOARD_STATS: AssistDashboardStats = {
   atRiskCount: 0,
   incompleteCount: 0,
   openProofCount: 0,
+  openProofReviewCount: 0,
   openSignatureCount: 0,
+  openPortalReleaseCount: 0,
   openTripsCount: 0,
 };
 
