@@ -3,10 +3,11 @@ import { Platform, StyleSheet, View } from 'react-native';
 import {
   PSM_LOOP_MS,
   PSM_SCENE,
-  psmCircleAt,
-  psmLineAt,
-  psmNebulaAt,
-  type PsmCircle,
+  PSM_VIEWBOX_H,
+  PSM_VIEWBOX_W,
+  psmMotionOffset,
+  type PsmMotion,
+  type PsmPaperDisc,
 } from '@/design/tokens/persistentSpaceMotionScene';
 import { getBackgroundPhase } from '@/lib/background/backgroundTime';
 import { usePrefersReducedMotion } from '@/hooks/useprefersreducedmotion';
@@ -29,6 +30,20 @@ const WEB_HOST_STYLE = {
   pointerEvents: 'none',
 } as const;
 
+type ShadowPreset = {
+  blur: number;
+  offsetY: number;
+  color: string;
+};
+
+const SHADOW_LG: ShadowPreset = { blur: 28, offsetY: 18, color: 'rgba(200,200,200,0.38)' };
+const SHADOW_MD: ShadowPreset = { blur: 16, offsetY: 10, color: 'rgba(207,207,207,0.4)' };
+const SHADOW_PAPER: ShadowPreset = { blur: 22, offsetY: 14, color: 'rgba(200,200,200,0.42)' };
+const SHADOW_BUTTON: ShadowPreset = { blur: 7, offsetY: 5, color: 'rgba(208,208,208,0.55)' };
+const SHADOW_BUTTON_STRONG: ShadowPreset = { blur: 9, offsetY: 7, color: 'rgba(168,168,168,0.62)' };
+const SHADOW_LINE: ShadowPreset = { blur: 4, offsetY: 3, color: 'rgba(216,216,216,0.45)' };
+const SHADOW_RING: ShadowPreset = { blur: 12, offsetY: 8, color: 'rgba(212,212,212,0.35)' };
+
 function ensureWebStyles() {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
   if (document.getElementById(BODY_BG_STYLE_ID)) return;
@@ -43,122 +58,230 @@ function ensureWebStyles() {
   document.head.appendChild(tag);
 }
 
-function edgeIntensity(x: number, y: number, w: number, h: number): number {
-  const dx = (x - w * 0.5) / (w * 0.48);
-  const dy = (y - h * 0.44) / (h * 0.48);
-  const dist = Math.sqrt(dx * dx + dy * dy);
-  return Math.min(1, Math.max(0.4, dist * 0.9 + 0.35));
+function applyShadow(ctx: CanvasRenderingContext2D, preset: ShadowPreset) {
+  ctx.shadowColor = preset.color;
+  ctx.shadowBlur = preset.blur;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = preset.offsetY;
+}
+
+function clearShadow(ctx: CanvasRenderingContext2D) {
+  ctx.shadowColor = 'transparent';
+  ctx.shadowBlur = 0;
+  ctx.shadowOffsetX = 0;
+  ctx.shadowOffsetY = 0;
 }
 
 function drawBaseGradient(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  const grad = ctx.createLinearGradient(0, 0, w, h);
-  grad.addColorStop(0, '#ECEFF3');
-  grad.addColorStop(0.45, '#F5F7FA');
-  grad.addColorStop(1, '#E8ECF1');
-  ctx.fillStyle = grad;
+  const linear = ctx.createLinearGradient(0, 0, w, h);
+  linear.addColorStop(0, '#FAFAFA');
+  linear.addColorStop(0.42, '#FFFFFF');
+  linear.addColorStop(1, '#F7F7F7');
+  ctx.fillStyle = linear;
+  ctx.fillRect(0, 0, w, h);
+
+  const cx = w * 0.5;
+  const cy = h * 0.46;
+  const r = Math.max(w, h) * 0.58;
+  const calm = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
+  calm.addColorStop(0, 'rgba(255,255,255,0.92)');
+  calm.addColorStop(1, 'rgba(255,255,255,0)');
+  ctx.fillStyle = calm;
   ctx.fillRect(0, 0, w, h);
 }
 
-function drawNebulaLayer(
+function withMotionLayer(
   ctx: CanvasRenderingContext2D,
   w: number,
   h: number,
+  motion: PsmMotion,
   phase: number,
+  draw: () => void,
 ) {
-  for (const nebula of PSM_SCENE.nebulas) {
-    const { x, y } = psmNebulaAt(nebula, w, h, phase);
-    const rx = nebula.radiusX * w;
-    const ry = nebula.radiusY * h;
-    const breathe = 1 + Math.sin(phase * nebula.speedX + nebula.phase) * 0.08;
-    ctx.save();
-    ctx.filter = 'blur(48px)';
-    ctx.globalAlpha = nebula.baseOpacity;
-    const radial = ctx.createRadialGradient(x, y, 0, x, y, Math.max(rx, ry) * breathe);
-    radial.addColorStop(0, nebula.inner);
-    radial.addColorStop(0.45, nebula.mid);
-    radial.addColorStop(1, nebula.outer);
-    ctx.fillStyle = radial;
-    ctx.beginPath();
-    ctx.ellipse(x, y, rx * breathe, ry * breathe, 0, 0, Math.PI * 2);
-    ctx.fill();
-    ctx.filter = 'none';
-    ctx.restore();
-  }
-}
-
-function drawSoftCircle(
-  ctx: CanvasRenderingContext2D,
-  circle: PsmCircle,
-  w: number,
-  h: number,
-  phase: number,
-  minDim: number,
-) {
-  const { x, y, scale, opacity } = psmCircleAt(circle, w, h, phase);
-  const r = circle.baseRadius * minDim * scale;
-  const edge = edgeIntensity(x, y, w, h);
-  const alpha = Math.min(0.72, opacity * (0.75 + edge * 0.25));
+  const { dx, dy } = psmMotionOffset(motion, phase);
   ctx.save();
-  ctx.globalAlpha = alpha;
-  const grad = ctx.createRadialGradient(x - r * 0.22, y - r * 0.28, r * 0.04, x, y, r);
-  grad.addColorStop(0, 'rgba(210,216,224,0.88)');
-  grad.addColorStop(0.32, circle.color);
-  grad.addColorStop(0.72, circle.color.replace(/[\d.]+\)$/, '0.28)'));
-  grad.addColorStop(1, 'transparent');
-  ctx.fillStyle = grad;
-  ctx.beginPath();
-  ctx.arc(x, y, r, 0, Math.PI * 2);
-  ctx.fill();
+  ctx.translate(dx, dy);
+  ctx.scale(w / PSM_VIEWBOX_W, h / PSM_VIEWBOX_H);
+  draw();
   ctx.restore();
 }
 
-function drawLine(ctx: CanvasRenderingContext2D, w: number, h: number, phase: number) {
-  for (const line of PSM_SCENE.lines) {
-    const { x, y, angle, length, opacity } = psmLineAt(line, w, h, phase);
-    const dx = Math.cos(angle) * length * 0.5;
-    const dy = Math.sin(angle) * length * 0.5;
-    const edge = edgeIntensity(x, y, w, h);
-    ctx.save();
-    ctx.globalAlpha = Math.min(0.55, opacity * (0.85 + edge * 0.15));
-    ctx.strokeStyle = line.color;
-    ctx.lineWidth = line.thickness + 0.4;
-    ctx.lineCap = 'round';
-    ctx.beginPath();
-    ctx.moveTo(x - dx, y - dy);
-    ctx.lineTo(x + dx, y + dy);
-    ctx.stroke();
-    ctx.restore();
+function shadowForDisc(disc: PsmPaperDisc): ShadowPreset {
+  switch (disc.shadow) {
+    case 'lg':
+      return SHADOW_LG;
+    case 'md':
+      return SHADOW_MD;
+    case 'button':
+      return SHADOW_BUTTON;
+    case 'buttonStrong':
+      return SHADOW_BUTTON_STRONG;
+    default:
+      return SHADOW_MD;
   }
 }
 
-function drawReadabilityWash(ctx: CanvasRenderingContext2D, w: number, h: number) {
-  const cx = w * 0.5;
-  const cy = h * 0.46;
-  const r = Math.max(w, h) * 0.38;
-  const wash = ctx.createRadialGradient(cx, cy, 0, cx, cy, r);
-  wash.addColorStop(0, 'rgba(255,255,255,0.14)');
-  wash.addColorStop(0.6, 'rgba(255,255,255,0.04)');
-  wash.addColorStop(1, 'transparent');
-  ctx.fillStyle = wash;
-  ctx.fillRect(0, 0, w, h);
+function drawFilledDisc(ctx: CanvasRenderingContext2D, disc: PsmPaperDisc) {
+  const cx = disc.bx * PSM_VIEWBOX_W;
+  const cy = disc.by * PSM_VIEWBOX_H;
+  const r = disc.baseRadius * PSM_VIEWBOX_W;
+  const fill = disc.fill ?? '#FFFFFF';
+  const alpha = disc.opacity ?? 0.98;
+
+  applyShadow(ctx, shadowForDisc(disc));
+  ctx.globalAlpha = alpha;
+  ctx.fillStyle = fill;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  clearShadow(ctx);
+
+  ctx.globalAlpha = 1;
+  ctx.strokeStyle = 'rgba(255,255,255,0.85)';
+  ctx.lineWidth = 1.5;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r - 0.5, 0, Math.PI * 2);
+  ctx.stroke();
 }
+
+function drawButtonDot(ctx: CanvasRenderingContext2D, disc: PsmPaperDisc) {
+  const cx = disc.bx * PSM_VIEWBOX_W;
+  const cy = disc.by * PSM_VIEWBOX_H;
+  const r = disc.baseRadius * PSM_VIEWBOX_W;
+
+  ctx.globalAlpha = 0.38;
+  ctx.fillStyle = '#A8A8A8';
+  ctx.beginPath();
+  ctx.arc(cx + 4, cy + 6, r + 1, 0, Math.PI * 2);
+  ctx.fill();
+
+  ctx.globalAlpha = 0.72;
+  ctx.strokeStyle = '#9A9A9A';
+  ctx.lineWidth = 1.4;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r + 1.2, 0, Math.PI * 2);
+  ctx.stroke();
+
+  applyShadow(ctx, SHADOW_BUTTON_STRONG);
+  ctx.globalAlpha = 1;
+  ctx.fillStyle = '#F6F6F6';
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.fill();
+  clearShadow(ctx);
+}
+
+function drawPaperDisc(ctx: CanvasRenderingContext2D, disc: PsmPaperDisc) {
+  if (disc.kind === 'button') {
+    drawButtonDot(ctx, disc);
+    return;
+  }
+  drawFilledDisc(ctx, disc);
+}
+
+function drawBand(
+  ctx: CanvasRenderingContext2D,
+  path: Path2D,
+  opacity: number,
+) {
+  applyShadow(ctx, SHADOW_PAPER);
+  ctx.globalAlpha = opacity;
+  ctx.fillStyle = '#FFFFFF';
+  ctx.fill(path);
+  clearShadow(ctx);
+  ctx.globalAlpha = 1;
+}
+
+function drawRing(
+  ctx: CanvasRenderingContext2D,
+  bx: number,
+  by: number,
+  radius: number,
+  strokeWidth: number,
+) {
+  const cx = bx * PSM_VIEWBOX_W;
+  const cy = by * PSM_VIEWBOX_H;
+  const r = radius * PSM_VIEWBOX_W;
+
+  applyShadow(ctx, SHADOW_RING);
+  ctx.strokeStyle = '#FFFFFF';
+  ctx.lineWidth = strokeWidth;
+  ctx.beginPath();
+  ctx.arc(cx, cy, r, 0, Math.PI * 2);
+  ctx.stroke();
+  clearShadow(ctx);
+}
+
+function drawCurve(
+  ctx: CanvasRenderingContext2D,
+  path: Path2D,
+  strokeWidth: number,
+) {
+  applyShadow(ctx, SHADOW_LINE);
+  ctx.strokeStyle = 'rgba(255,255,255,0.92)';
+  ctx.lineWidth = strokeWidth;
+  ctx.lineCap = 'round';
+  ctx.stroke(path);
+  clearShadow(ctx);
+}
+
+function drawAccentDot(ctx: CanvasRenderingContext2D, bx: number, by: number, r: number) {
+  const cx = bx * PSM_VIEWBOX_W;
+  const cy = by * PSM_VIEWBOX_H;
+  const radius = r * PSM_VIEWBOX_W;
+  applyShadow(ctx, SHADOW_BUTTON);
+  ctx.fillStyle = '#FFFFFF';
+  ctx.beginPath();
+  ctx.arc(cx, cy, radius, 0, Math.PI * 2);
+  ctx.fill();
+  clearShadow(ctx);
+}
+
+function buildPathCache(): {
+  bands: Path2D[];
+  curves: Path2D[];
+} {
+  const bands = PSM_SCENE.bands.map((band) => new Path2D(band.d));
+  const curves = PSM_SCENE.curves.map((curve) => new Path2D(curve.d));
+  return { bands, curves };
+}
+
+const PATH_CACHE = buildPathCache();
 
 function drawFrame(ctx: CanvasRenderingContext2D, w: number, h: number, phase: number) {
   ctx.clearRect(0, 0, w, h);
   drawBaseGradient(ctx, w, h);
-  drawNebulaLayer(ctx, w, h, phase);
-  const minDim = Math.min(w, h);
-  for (const c of PSM_SCENE.largeCircles) {
-    drawSoftCircle(ctx, c, w, h, phase, minDim);
+
+  for (const disc of PSM_SCENE.cornerDiscs) {
+    withMotionLayer(ctx, w, h, disc, phase, () => drawPaperDisc(ctx, disc));
   }
-  for (const c of PSM_SCENE.mediumCircles) {
-    drawSoftCircle(ctx, c, w, h, phase, minDim);
+
+  PSM_SCENE.bands.forEach((band, index) => {
+    withMotionLayer(ctx, w, h, band, phase, () => drawBand(ctx, PATH_CACHE.bands[index], band.opacity));
+  });
+
+  for (const disc of PSM_SCENE.mediumDiscs) {
+    withMotionLayer(ctx, w, h, disc, phase, () => drawPaperDisc(ctx, disc));
   }
-  for (const c of PSM_SCENE.smallParticles) {
-    drawSoftCircle(ctx, c, w, h, phase, minDim);
+
+  for (const ring of PSM_SCENE.rings) {
+    withMotionLayer(ctx, w, h, ring, phase, () =>
+      drawRing(ctx, ring.bx, ring.by, ring.radius, ring.strokeWidth),
+    );
   }
-  drawLine(ctx, w, h, phase);
-  drawReadabilityWash(ctx, w, h);
+
+  PSM_SCENE.curves.forEach((curve, index) => {
+    withMotionLayer(ctx, w, h, curve, phase, () => {
+      drawCurve(ctx, PATH_CACHE.curves[index], curve.strokeWidth);
+      for (const dot of curve.dots) {
+        drawAccentDot(ctx, dot.bx, dot.by, dot.r);
+      }
+    });
+  });
+
+  for (const disc of PSM_SCENE.buttonDots) {
+    withMotionLayer(ctx, w, h, disc, phase, () => drawPaperDisc(ctx, disc));
+  }
 }
 
 function startCanvasLoop(canvas: HTMLCanvasElement, animate: boolean): () => void {
@@ -270,7 +393,7 @@ function WebMotionCanvasHost({ animate, testID }: { animate: boolean; testID?: s
 }
 
 /**
- * G.1 — Persistent 240s canvas space motion engine (web).
+ * G.1 — Persistent 240s light paper neumorphic canvas (web).
  * Native / reduced motion → static light paper fallback.
  */
 export function GlobalPersistentSpaceMotionBackground({

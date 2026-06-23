@@ -1,16 +1,20 @@
 import { describe, expect, it } from 'vitest';
 import { BACKGROUND_LOOP_MS, getBackgroundPhase } from '@/lib/background/backgroundTime';
 import {
+  PSM_BAND_COUNT,
+  PSM_CURVE_COUNT,
   PSM_LARGE_COUNT,
   PSM_LINE_COUNT,
   PSM_LOOP_MS,
   PSM_MEDIUM_COUNT,
   PSM_NEBULA_COUNT,
+  PSM_RING_COUNT,
   PSM_SCENE,
   PSM_SMALL_COUNT,
   psmCircleAt,
   psmCircleAtElapsed,
   psmLineAt,
+  psmMotionOffset,
 } from '@/design/tokens/persistentSpaceMotionScene';
 
 describe('backgroundTime', () => {
@@ -30,22 +34,27 @@ describe('persistentSpaceMotionScene', () => {
   const W = 1440;
   const H = 900;
 
-  it('definiert Pflicht-Element-Counts', () => {
-    expect(PSM_SCENE.largeCircles).toHaveLength(PSM_LARGE_COUNT);
-    expect(PSM_SCENE.largeCircles.length).toBeGreaterThanOrEqual(6);
-    expect(PSM_SCENE.mediumCircles).toHaveLength(PSM_MEDIUM_COUNT);
-    expect(PSM_SCENE.mediumCircles.length).toBeGreaterThanOrEqual(10);
-    expect(PSM_SCENE.smallParticles).toHaveLength(PSM_SMALL_COUNT);
-    expect(PSM_SCENE.smallParticles.length).toBeGreaterThanOrEqual(24);
+  it('definiert Light-Paper Element-Counts', () => {
+    expect(PSM_SCENE.cornerDiscs).toHaveLength(PSM_LARGE_COUNT);
+    expect(PSM_SCENE.cornerDiscs.length).toBe(4);
+    expect(PSM_SCENE.mediumDiscs).toHaveLength(PSM_MEDIUM_COUNT);
+    expect(PSM_SCENE.mediumDiscs.length).toBe(5);
+    expect(PSM_SCENE.buttonDots).toHaveLength(PSM_SMALL_COUNT);
+    expect(PSM_SCENE.buttonDots.length).toBe(13);
+    expect(PSM_SCENE.bands).toHaveLength(PSM_BAND_COUNT);
+    expect(PSM_SCENE.bands.length).toBe(5);
+    expect(PSM_SCENE.rings).toHaveLength(PSM_RING_COUNT);
+    expect(PSM_SCENE.rings.length).toBe(4);
+    expect(PSM_SCENE.curves).toHaveLength(PSM_CURVE_COUNT);
+    expect(PSM_SCENE.curves.length).toBe(3);
     expect(PSM_SCENE.lines).toHaveLength(PSM_LINE_COUNT);
-    expect(PSM_SCENE.lines.length).toBeGreaterThanOrEqual(12);
     expect(PSM_SCENE.nebulas).toHaveLength(PSM_NEBULA_COUNT);
-    expect(PSM_SCENE.nebulas.length).toBeGreaterThanOrEqual(2);
+    expect(PSM_SCENE.nebulas.length).toBe(0);
   });
 
   it('Config ist deterministisch (gleiche Werte bei erneutem Import)', () => {
-    const first = PSM_SCENE.largeCircles[0].bx;
-    expect(PSM_SCENE.largeCircles[0].bx).toBe(first);
+    const first = PSM_SCENE.cornerDiscs[0].bx;
+    expect(PSM_SCENE.cornerDiscs[0].bx).toBe(first);
   });
 
   it('t=0 und t=240000 erzeugen nahtlose Kreis-Positionen', () => {
@@ -75,34 +84,37 @@ describe('persistentSpaceMotionScene', () => {
     expect(drift).toBeGreaterThan(3);
   });
 
-  it('große und kleine Kreise haben unterschiedliche Geschwindigkeiten', () => {
-    const largeSpeeds = new Set(PSM_SCENE.largeCircles.map((c) => c.speedX));
-    const smallSpeeds = new Set(PSM_SCENE.smallParticles.map((c) => c.speedX));
-    const maxLarge = Math.max(...largeSpeeds);
-    const minSmall = Math.min(...smallSpeeds);
-    expect(minSmall).toBeGreaterThan(maxLarge);
+  it('Bänder und Kurven haben eigene Bewegungsamplituden', () => {
+    const bandAmps = new Set(PSM_SCENE.bands.map((b) => b.ampX));
+    expect(bandAmps.size).toBeGreaterThan(1);
+    for (const band of PSM_SCENE.bands) {
+      expect(band.ampX).toBeGreaterThan(0);
+      expect(band.d.length).toBeGreaterThan(10);
+    }
+    for (const curve of PSM_SCENE.curves) {
+      expect(curve.ampX).toBeGreaterThan(0);
+      expect(curve.dots.length).toBeGreaterThan(0);
+    }
   });
 
-  it('Linien haben eigene Bewegungsparameter', () => {
-    const lines = PSM_SCENE.lines;
-    const rotSpeeds = new Set(lines.map((l) => l.rotSpeed));
-    expect(rotSpeeds.size).toBeGreaterThan(1);
-    for (const line of lines) {
-      expect(line.ampX).toBeGreaterThan(0);
-      expect(line.rotAmp).toBeGreaterThan(0);
-    }
+  it('psmMotionOffset ist nahtlos über volle Phase', () => {
+    const motion = PSM_SCENE.cornerDiscs[0];
+    const at0 = psmMotionOffset(motion, 0);
+    const atEnd = psmMotionOffset(motion, Math.PI * 2);
+    expect(at0.dx).toBeCloseTo(atEnd.dx, 4);
+    expect(at0.dy).toBeCloseTo(atEnd.dy, 4);
   });
 
   it('Opacity bleibt über definierte Mindestgrenze', () => {
     const phase = Math.PI;
     for (const c of [...PSM_SCENE.largeCircles, ...PSM_SCENE.mediumCircles]) {
       const { opacity } = psmCircleAt(c, W, H, phase);
-      expect(opacity).toBeGreaterThanOrEqual(0.18);
-      expect(opacity).toBeLessThanOrEqual(0.55);
+      expect(opacity).toBeGreaterThanOrEqual(0.85);
+      expect(opacity).toBeLessThanOrEqual(1);
     }
     for (const p of PSM_SCENE.smallParticles) {
       const { opacity } = psmCircleAt(p, W, H, phase);
-      expect(opacity).toBeGreaterThanOrEqual(0.18);
+      expect(opacity).toBeGreaterThanOrEqual(0.85);
     }
   });
 
@@ -111,7 +123,7 @@ describe('persistentSpaceMotionScene', () => {
       const phase = (i / 8) * Math.PI * 2;
       for (const line of PSM_SCENE.lines) {
         const { opacity } = psmLineAt(line, W, H, phase);
-        expect(opacity).toBeGreaterThanOrEqual(0.12);
+        expect(opacity).toBeGreaterThanOrEqual(0.75);
       }
     }
   });
@@ -132,15 +144,20 @@ describe('GlobalPersistentSpaceMotionBackground component', () => {
     expect(source).not.toMatch(/useState\([^)]*particle/i);
   });
 
-  it('markiert persistent-space-canvas Engine und 240s Loop', async () => {
+  it('zeichnet Light-Paper Szene mit Path2D und psmMotionOffset', async () => {
     const { readFileSync } = await import('node:fs');
     const { default: path } = await import('node:path');
     const source = readFileSync(path.join(__dirname, ...componentPath), 'utf8');
     expect(source).toContain('persistent-space-canvas');
     expect(source).toContain('PSM_LOOP_MS');
     expect(source).toContain('data-loop-ms');
+    expect(source).toContain('psmMotionOffset');
+    expect(source).toContain('Path2D');
+    expect(source).toContain('cornerDiscs');
+    expect(source).toContain('buttonDots');
     expect(source).toContain('usePrefersReducedMotion');
     expect(source).toContain('StaticLightPaperBackground');
+    expect(source).not.toContain('drawNebulaLayer');
   });
 });
 
