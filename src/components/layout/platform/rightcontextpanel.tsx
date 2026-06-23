@@ -140,18 +140,20 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
 
         <PlatformContextSearch mainModule={mainModule} accentColor={accent} fullWidth />
 
-        <Text style={styles.sectionHeading}>Heute</Text>
-        <View style={styles.taskList}>
-          {openTasks.map((task) => (
-            <View key={task.title} style={styles.taskItem}>
-              <Text style={styles.taskTitle} numberOfLines={1}>
-                {task.title}
-              </Text>
-              <View style={[styles.taskBadge, { backgroundColor: withAlpha(accent, 0.2) }]}>
-                <Text style={[styles.taskBadgeText, { color: accent }]}>{task.count}</Text>
+        <View style={styles.todaySection}>
+          <Text style={styles.sectionHeading}>Heute</Text>
+          <View style={styles.taskList}>
+            {openTasks.map((task) => (
+              <View key={task.title} style={styles.taskItem}>
+                <Text style={styles.taskTitle} numberOfLines={1}>
+                  {task.title}
+                </Text>
+                <View style={[styles.taskBadge, { backgroundColor: withAlpha(accent, 0.2) }]}>
+                  <Text style={[styles.taskBadgeText, { color: accent }]}>{task.count}</Text>
+                </View>
               </View>
-            </View>
-          ))}
+            ))}
+          </View>
         </View>
 
         <CollapsibleSidebarSection
@@ -276,7 +278,10 @@ function createStyles(
       width: 272,
       flexGrow: 0,
       flexShrink: 0,
+      flex: 1,
       minHeight: 0,
+      flexDirection: 'column',
+      overflow: 'hidden',
       ...sidebarGlass,
       borderLeftWidth: 1,
       borderLeftColor: withAlpha(accent, isDark ? 0.45 : 0.32),
@@ -288,7 +293,7 @@ function createStyles(
     scrollContent: {
       paddingHorizontal: spacing.sm + spacing.xs,
       paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
-      paddingBottom: spacing.md,
+      paddingBottom: spacing.lg,
       gap: spacing.md,
     },
     tenantCard: {
@@ -308,21 +313,32 @@ function createStyles(
       textTransform: 'uppercase',
       letterSpacing: 0.6,
     },
-    taskList: { gap: spacing.xs, maxHeight: 120 },
+    todaySection: {
+      gap: spacing.xs,
+    },
+    taskList: { gap: spacing.xs },
     taskItem: {
       flexDirection: 'row',
       alignItems: 'center',
       justifyContent: 'space-between',
       paddingVertical: spacing.xs,
       gap: spacing.sm,
+      minHeight: 32,
     },
-    taskTitle: { ...typography.body, color: colors.textSecondary, flex: 1, fontWeight: '600' },
+    taskTitle: {
+      ...typography.body,
+      color: colors.textSecondary,
+      flex: 1,
+      minWidth: 0,
+      fontWeight: '600',
+    },
     taskBadge: {
       paddingHorizontal: 8,
       paddingVertical: 2,
       borderRadius: radius.capsule,
       minWidth: 24,
       alignItems: 'center',
+      flexShrink: 0,
     },
     taskBadgeText: { fontSize: 11, fontWeight: '700' },
     quickActions: {

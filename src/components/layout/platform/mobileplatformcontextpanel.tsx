@@ -120,7 +120,10 @@ export function MobilePlatformContextPanel({
         <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>HEUTE</Text>
         {openTasks.map((task) => (
           <View key={task.title} style={styles.statusRow}>
-            <Text style={[type.caption, { color: text.secondary, flex: 1 }]} numberOfLines={1}>
+            <Text
+              style={[type.caption, { color: text.secondary, flex: 1, minWidth: 0 }]}
+              numberOfLines={1}
+            >
               {task.title}
             </Text>
             <View style={[styles.taskBadge, { backgroundColor: withAlpha(accentColor, 0.2) }]}>
@@ -255,6 +258,7 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     paddingVertical: 4,
     gap: careSpacing.sm,
+    minHeight: 32,
   },
   taskBadge: {
     paddingHorizontal: 8,
@@ -262,6 +266,7 @@ const styles = StyleSheet.create({
     borderRadius: 999,
     minWidth: 24,
     alignItems: 'center',
+    flexShrink: 0,
   },
   quickActions: {
     gap: careSpacing.xs,
