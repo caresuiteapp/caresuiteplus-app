@@ -1,0 +1,162 @@
+{
+  "ok": false,
+  "phase": "content_portal_c14p1p_production_recheck",
+  "baseUrl": "https://caresuiteplus.app",
+  "targetEnvironment": "production",
+  "deployCommit": "f9db262",
+  "verifyCommits": [
+    "b7de952 (C.14P.1)",
+    "cb45e62 (P0-A)"
+  ],
+  "screenshotDir": "C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\docs\\audit\\content-portal-c14p1p-production-recheck-screenshots",
+  "checks": [
+    {
+      "id": "production_home",
+      "pass": true,
+      "detail": "loaded",
+      "ts": "2026-06-24T00:53:39.552Z"
+    },
+    {
+      "id": "api_business_login",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:53:40.220Z"
+    },
+    {
+      "id": "business_login",
+      "pass": true,
+      "detail": "session_injected",
+      "ts": "2026-06-24T00:53:46.362Z"
+    },
+    {
+      "id": "test_tenant_context",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:53:46.382Z"
+    },
+    {
+      "id": "employee_portal_login",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:53:47.628Z"
+    },
+    {
+      "id": "employee_dashboard",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:53:55.401Z"
+    },
+    {
+      "id": "employee_sees_assignment",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:01.534Z"
+    },
+    {
+      "id": "execution_detail_loads",
+      "pass": false,
+      "detail": "blocked_or_missing",
+      "ts": "2026-06-24T00:54:08.185Z"
+    },
+    {
+      "id": "execution_not_live_blocked",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:08.185Z"
+    },
+    {
+      "id": "employee_messages_route",
+      "pass": true,
+      "detail": "loaded",
+      "ts": "2026-06-24T00:54:12.971Z"
+    },
+    {
+      "id": "client_portal_login",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:13.840Z"
+    },
+    {
+      "id": "client_dashboard",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:22.051Z"
+    },
+    {
+      "id": "message_send_employee",
+      "pass": true,
+      "detail": "sent",
+      "ts": "2026-06-24T00:54:22.417Z"
+    },
+    {
+      "id": "message_send_client",
+      "pass": true,
+      "detail": "sent",
+      "ts": "2026-06-24T00:54:22.562Z"
+    },
+    {
+      "id": "proof_release_grant",
+      "pass": true,
+      "detail": "released",
+      "ts": "2026-06-24T00:54:22.638Z"
+    },
+    {
+      "id": "proof_visible_after_release",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:27.454Z"
+    },
+    {
+      "id": "proof_release_revoke",
+      "pass": true,
+      "detail": "revoked",
+      "ts": "2026-06-24T00:54:27.622Z"
+    },
+    {
+      "id": "proof_hidden_after_revoke",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:32.451Z"
+    },
+    {
+      "id": "business_messages_verify",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:37.600Z"
+    },
+    {
+      "id": "client_messages_visible",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:42.394Z"
+    },
+    {
+      "id": "no_technical_leak",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:42.404Z"
+    },
+    {
+      "id": "no_foreign_data",
+      "pass": true,
+      "detail": "ok",
+      "ts": "2026-06-24T00:54:42.404Z"
+    }
+  ],
+  "flows": {
+    "executionDetailLoads": false,
+    "proofRevokeRefresh": true,
+    "messagesEmployee": true,
+    "messagesClient": true,
+    "employeeSeesAssignment": true,
+    "employeeDashboard": true,
+    "clientDashboard": true
+  },
+  "messagesSent": {
+    "employee": "C14P1P-MA-1782262414505",
+    "client": "C14P1P-KLIENT-1782262414505"
+  },
+  "criticalPassCount": 12,
+  "criticalTotalCount": 13,
+  "timestamp": "2026-06-24T00:54:42.404Z"
+}
