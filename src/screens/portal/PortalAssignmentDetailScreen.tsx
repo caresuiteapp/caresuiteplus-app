@@ -28,7 +28,8 @@ function formatDateTime(iso: string): string {
 }
 
 export function PortalAssignmentDetailScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
   const canView = can('portal.employee.appointments.view');

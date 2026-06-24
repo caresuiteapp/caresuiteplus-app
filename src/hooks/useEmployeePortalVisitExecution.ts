@@ -43,13 +43,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
+    if (!assignmentId) return;
     void getEmployeePortalGpsPermissionStatus().then(setGpsPermission);
   }, [assignmentId]);
-
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
-  }, []);
 
   const query = useAsyncQuery(
     () => {
@@ -63,6 +59,13 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     [tenantId, assignmentId, employeeId, roleKey],
     { enabled: Boolean(tenantId && assignmentId && employeeId) },
   );
+
+  const hasData = query.data != null;
+  useEffect(() => {
+    if (!hasData) return;
+    const id = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(id);
+  }, [hasData]);
 
   const tracking: EmployeePortalTrackingSnapshot | null = useMemo(() => {
     if (!tenantId || !assignmentId || !query.data) return null;
@@ -174,9 +177,13 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     [tenantId, assignmentId, employeeId, roleKey, query],
   );
 
-  const consent = tenantId && assignmentId
-    ? getEmployeePortalLocationConsent(tenantId, assignmentId)
-    : null;
+  const consent = useMemo(
+    () =>
+      tenantId && assignmentId
+        ? getEmployeePortalLocationConsent(tenantId, assignmentId)
+        : null,
+    [tenantId, assignmentId, tick],
+  );
 
   return {
     data: query.data,

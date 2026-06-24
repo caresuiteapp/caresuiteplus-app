@@ -47,7 +47,8 @@ function formatDateTime(iso: string | null | undefined): string {
 }
 
 export function EmployeePortalVisitExecutionScreen() {
-  const { id } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
   const canExecute = can('assist.execution.manage');
