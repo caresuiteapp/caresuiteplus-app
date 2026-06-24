@@ -51,7 +51,6 @@ export function CarePlansListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>PFLEGE</Text>
           <Text style={heroText.title}>Pflegepläne</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einträgen

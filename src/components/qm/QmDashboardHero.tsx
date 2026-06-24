@@ -29,11 +29,11 @@ export function QmDashboardHero({ data, roleKey }: QmDashboardHeroProps) {
   textCol: { flex: 1, gap: 2 },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -46,7 +46,7 @@ export function QmDashboardHero({ data, roleKey }: QmDashboardHeroProps) {
   },
   iconText: { fontSize: 22 },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  preparedHint: { ...typography.caption, color: colors.textMuted },
+  preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
     [colors, typography, gradients],
   );
@@ -58,7 +58,6 @@ export function QmDashboardHero({ data, roleKey }: QmDashboardHeroProps) {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>QUALITÄTSMANAGEMENT</Text>
           <Text style={styles.title}>QM-Dashboard</Text>
           <Text style={styles.meta}>
             Handbuch, Dokumente, Compliance und MD-Prüfung — mandantenbezogen.

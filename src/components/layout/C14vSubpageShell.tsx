@@ -110,7 +110,7 @@ export function C14vSubpageShell({
       scroll={scroll}
       rightSlot={rightSlot}
     >
-      {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
+      {/* eyebrow labels removed per user request — prop kept for backward compat */}
       {actionBar}
       <View
         style={[

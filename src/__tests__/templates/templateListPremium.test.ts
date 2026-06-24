@@ -12,7 +12,6 @@ describe('Vorlagen-Listen Premium (Sprint 55)', () => {
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain("title: 'Systemvorlagen'");
     expect(hero).toContain("title: 'Mandantenvorlagen'");
-    expect(hero).toContain('VORLAGENZENTRUM · PAKET F');
   });
 
   it('TemplateListHero zeigt Status-KPIs aus Listendaten', () => {

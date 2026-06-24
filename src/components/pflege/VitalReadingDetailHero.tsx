@@ -47,15 +47,17 @@ export function VitalReadingDetailHero({ reading, roleKey, isReadOnly }: VitalRe
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -95,7 +97,6 @@ export function VitalReadingDetailHero({ reading, roleKey, isReadOnly }: VitalRe
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>PFLEGE · VITALWERT</Text>
           <Text style={styles.title}>
             {reading.value} {reading.unit}
           </Text>

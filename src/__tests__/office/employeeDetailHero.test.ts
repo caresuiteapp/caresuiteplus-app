@@ -15,7 +15,6 @@ describe('Office Employee Detail Hero (Sprint 69)', () => {
   it('EmployeeDetailHero nutzt PremiumListHeroFrame mit buildEmployeeDetailKpis', () => {
     const hero = readSrc('src/components/office/EmployeeDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('OFFICE · MITARBEITENDE:R');
     expect(hero).toContain('buildEmployeeDetailKpis');
     expect(hero).toContain('PremiumKpiCard');
   });

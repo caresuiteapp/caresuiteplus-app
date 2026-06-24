@@ -50,19 +50,21 @@ export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDe
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   iconBadge: {
     width: iconSize,
@@ -104,7 +106,6 @@ export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDe
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>OFFICE · MITARBEITENDE:R</Text>
           <Text style={styles.title}>{fullName}</Text>
           <Text style={styles.meta}>
             {employee.email}

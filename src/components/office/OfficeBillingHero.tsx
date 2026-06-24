@@ -23,11 +23,11 @@ export function OfficeBillingHero({ stats, roleKey }: OfficeBillingHeroProps) {
   textCol: { flex: 1, gap: 2 },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -53,7 +53,6 @@ export function OfficeBillingHero({ stats, roleKey }: OfficeBillingHeroProps) {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>OFFICE</Text>
           <Text style={styles.title}>Abrechnung</Text>
           <Text style={styles.meta}>Rechnungen, Budgets und Leistungskatalog</Text>
         </View>

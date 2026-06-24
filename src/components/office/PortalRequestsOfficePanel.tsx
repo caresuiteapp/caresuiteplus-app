@@ -30,7 +30,6 @@ export function PortalRequestsOfficePanel({ tenantId, clientId }: PortalRequests
 
   return (
     <View style={styles.container}>
-      <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>PORTAL-ANFRAGEN</Text>
       {error ? (
         <Text style={[type.caption, { color: text.secondary }]}>{error}</Text>
       ) : filtered.length === 0 ? (

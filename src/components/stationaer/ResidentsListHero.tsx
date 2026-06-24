@@ -46,7 +46,6 @@ export function ResidentsListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>STATIONÄR</Text>
           <Text style={heroText.title}>Bewohner:innen</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Bewohner:innen

@@ -37,8 +37,8 @@ export function AiJobsListHero({
     color: colors.violet,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -53,7 +53,7 @@ export function AiJobsListHero({
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  preparedHint: { ...typography.caption, color: colors.textMuted },
+  preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
     [colors, typography, gradients],
   );
@@ -65,7 +65,6 @@ export function AiJobsListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS · PLATTFORM</Text>
           <Text style={styles.title}>KI-Jobs</Text>
           <Text style={styles.meta}>OpenAI · Zusammenfassungen & Assistenz</Text>
         </View>

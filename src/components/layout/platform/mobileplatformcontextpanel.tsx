@@ -121,7 +121,6 @@ export function MobilePlatformContextPanel({
       </GlassCard>
 
       <GlassCard style={styles.card}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>HEUTE</Text>
         {openTasks.map((task) => (
           <View key={task.title} style={styles.statusRow}>
             <Text
@@ -211,7 +210,6 @@ export function MobilePlatformContextPanel({
       </View>
 
       <GlassCard style={styles.card}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SUPPORT</Text>
         <Pressable onPress={() => openExternal(SUPPORT_LINKS.help)} style={styles.supportLink}>
           <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
             Hilfe & Dokumentation

@@ -37,7 +37,7 @@ export function OfficeDashboardHero({
   textCol: { flex: 1, gap: 2 },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: { ...typography.h2, color: text.primary },
@@ -66,7 +66,6 @@ export function OfficeDashboardHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>OFFICE</Text>
           <Text style={styles.title}>
             {snapshot.greeting}, {displayName}
           </Text>

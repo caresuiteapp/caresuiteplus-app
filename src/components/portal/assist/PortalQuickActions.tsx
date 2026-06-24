@@ -47,7 +47,6 @@ export function PortalQuickActions({ onAction, actions = DEFAULT_ACTIONS }: Port
 
   return (
     <View style={styles.section}>
-      <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SCHNELLAKTIONEN</Text>
       {isPhone ? (
         <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.row}>
           {chips}

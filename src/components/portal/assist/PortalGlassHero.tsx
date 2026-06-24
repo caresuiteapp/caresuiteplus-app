@@ -92,23 +92,12 @@ export function PortalGlassHero({
         </View>
       ) : (
         <>
-          {eyebrow || badge ? (
+          {badge ? (
             <View style={styles.eyebrowRow}>
-              {eyebrow ? (
-                <Text
-                  style={[type.caption, styles.eyebrow, { color: text.muted, flex: 1 }]}
-                  {...noBreakTextProps}
-                >
-                  {eyebrow}
-                </Text>
-              ) : (
-                <View style={styles.eyebrowSpacer} />
-              )}
-              {badge ? (
-                <View style={styles.badge}>
-                  <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
-                </View>
-              ) : null}
+              <View style={styles.eyebrowSpacer} />
+              <View style={styles.badge}>
+                <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
+              </View>
             </View>
           ) : null}
           <Text

@@ -16,6 +16,8 @@ export type FormScreenHeroProps = {
   wpNumber?: number;
   step?: { current: number; total: number };
   accentColor?: string;
+  preparedMessage?: string;
+  preparedOnly?: boolean;
 };
 
 export function FormScreenHero({
@@ -67,7 +69,6 @@ export function FormScreenHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>{eyebrow}</Text>
           <Text style={styles.title}>{title}</Text>
           {meta ? <Text style={styles.meta}>{meta}</Text> : null}
         </View>
@@ -103,7 +104,7 @@ export function FormScreenHero({
           value="Bereit"
           subValue="Speichern möglich"
           icon="✓"
-          accentColor={colors.green}
+          accentColor={colors.success}
           style={styles.kpiItem}
         />
       </View>

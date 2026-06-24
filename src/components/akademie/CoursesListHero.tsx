@@ -46,7 +46,6 @@ export function CoursesListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>AKADEMIE</Text>
           <Text style={heroText.title}>Kurse</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Kursen

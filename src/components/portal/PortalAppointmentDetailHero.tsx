@@ -60,19 +60,21 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.bodyStrong,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -113,7 +115,6 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>{scopeLabel} · TERMIN</Text>
           <Text style={styles.title}>{appointment.title}</Text>
           <Text style={styles.meta}>{appointment.serviceType}</Text>
           {appointment.location ? <Text style={styles.subtitle}>{appointment.location}</Text> : null}

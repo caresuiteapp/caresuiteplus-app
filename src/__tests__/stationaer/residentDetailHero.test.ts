@@ -14,7 +14,6 @@ describe('Stationär Resident Detail Hero (Sprint 66)', () => {
   it('ResidentDetailHero nutzt PremiumListHeroFrame mit Bewohner-KPIs', () => {
     const hero = readSrc('src/components/stationaer/ResidentDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('STATIONÄR · BEWOHNER:IN');
     expect(hero).toContain('buildResidentDetailKpis');
     expect(hero).toContain('PremiumKpiCard');
   });

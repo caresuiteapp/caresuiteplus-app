@@ -31,7 +31,6 @@ export function TIConsentListHero({ consents, roleKey }: TIConsentListHeroProps)
     <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>BUSINESS · TELEMATIK</Text>
           <Text style={heroText.title}>TI-Einwilligungen</Text>
           <Text style={heroText.meta}>DSGVO-konforme Verarbeitung und Consent-Verwaltung</Text>
         </View>

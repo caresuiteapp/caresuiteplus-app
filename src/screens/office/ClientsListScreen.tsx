@@ -238,8 +238,8 @@ export function ClientsListScreen({
 
   if (list.loading && list.allItems.length === 0) {
     return (
-      <ScreenShell title="Klient:innen" subtitle="Wird geladenâ€¦" scroll={false}>
-        <LoadingState message="Daten werden geladenâ€¦" />
+      <ScreenShell title="Klient:innen" subtitle="Wird geladen…" scroll={false}>
+        <LoadingState message="Daten werden geladen…" />
       </ScreenShell>
     );
   }
@@ -256,8 +256,7 @@ export function ClientsListScreen({
     <>
       <C14vSubpageShell
         title="Klient:innen"
-        eyebrow="OFFICE Â· STAMMDATEN"
-        subtitle={`Klientenverwaltung${isReadOnly ? ' Â· Lesemodus' : ''}`}
+        subtitle={`Klientenverwaltung${isReadOnly ? ' · Lesemodus' : ''}`}
         moduleLabel="Office"
         showBack={false}
         scroll={false}

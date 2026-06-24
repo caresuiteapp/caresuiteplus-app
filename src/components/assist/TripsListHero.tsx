@@ -47,7 +47,6 @@ export function TripsListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>ASSIST</Text>
           <Text style={heroText.title}>Fahrtenbuch</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Fahrten

@@ -18,9 +18,6 @@ export function PortalWidgetCard({ widget }: PortalWidgetCardProps) {
 
   return (
     <GlassCard style={styles.card}>
-      <Text style={[type.caption, styles.eyebrow, { color: text.muted }]} {...noBreakTextProps}>
-        {widget.description}
-      </Text>
       <Text style={[type.cardTitle, { color: text.primary }]} {...noBreakTextProps}>
         {widget.title}
       </Text>

@@ -64,7 +64,7 @@ export function PortalDashboardHero({
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: 52,
@@ -98,7 +98,6 @@ export function PortalDashboardHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={[styles.eyebrow, { color: config.accent }]}>{config.eyebrow}</Text>
           <Text style={styles.greeting}>
             {snapshot.greeting}, {displayName}
           </Text>

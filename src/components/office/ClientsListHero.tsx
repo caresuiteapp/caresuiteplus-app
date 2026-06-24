@@ -54,7 +54,6 @@ export function ClientsListHero({
     <PremiumListHeroFrame accentColor={accent} style={compact ? styles.compactFrame : undefined}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>OFFICE</Text>
           <Text style={[heroText.title, compact && styles.compactTitle]}>Klient:innen</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einträgen

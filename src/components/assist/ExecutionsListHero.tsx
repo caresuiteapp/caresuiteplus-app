@@ -46,7 +46,6 @@ export function ExecutionsListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>ASSIST</Text>
           <Text style={heroText.title}>Durchführung</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einsätzen

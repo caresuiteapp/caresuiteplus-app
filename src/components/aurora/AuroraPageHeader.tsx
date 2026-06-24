@@ -89,7 +89,7 @@ export function AuroraPageHeader({
       <View style={auroraSharedStyles.heroContent}>
         <View style={styles.topRow}>
           <View style={styles.textCol}>
-            {moduleLabel ? <Text style={styles.eyebrow}>{moduleLabel.toUpperCase()}</Text> : null}
+            {/* eyebrow / moduleLabel removed per user request */}
             <Text style={styles.title}>{title}</Text>
             {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
             {description ? <Text style={styles.description}>{description}</Text> : null}

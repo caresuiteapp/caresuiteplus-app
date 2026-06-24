@@ -64,7 +64,7 @@ export function PortalTabScreen({
       scroll={scroll}
       rightSlot={signOutButton}
     >
-      {eyebrow ? <Text style={[styles.eyebrow, { color: text.muted }]}>{eyebrow}</Text> : null}
+      {/* eyebrow labels removed per user request */}
       <View style={styles.content}>{children}</View>
     </ScreenShell>
   );

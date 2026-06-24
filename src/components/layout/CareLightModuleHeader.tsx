@@ -48,7 +48,6 @@ export function CareLightModuleHeader({ moduleKey, subtitle, style }: CareLightM
         title={moduleTitles[moduleKey]}
         subtitle={subtitle}
       />
-      <Text style={styles.eyebrow}>{moduleKey.toUpperCase()} · DASHBOARD</Text>
     </View>
   );
 }

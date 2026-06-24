@@ -23,11 +23,11 @@ export function CatalogDetailHero({ catalog, itemCount }: CatalogDetailHeroProps
   textCol: { flex: 1, gap: 2 },
   eyebrow: {
     ...typography.caption,
-    color: colors.orange,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -42,7 +42,7 @@ export function CatalogDetailHero({ catalog, itemCount }: CatalogDetailHeroProps
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  desc: { ...typography.body, color: colors.textSecondary },
+  desc: { ...typography.body, color: 'rgba(255,255,255,0.85)' },
 }),
     [colors, typography, gradients],
   );
@@ -54,7 +54,6 @@ export function CatalogDetailHero({ catalog, itemCount }: CatalogDetailHeroProps
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>OFFICE · KATALOG</Text>
           <Text style={styles.title}>{catalog.name}</Text>
           <Text style={styles.meta}>
             {CATALOG_TYPE_LABELS[catalog.catalogType]} · {WORKFLOW_STATUS_LABELS[catalog.status]}

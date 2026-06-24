@@ -162,7 +162,6 @@ export function DashboardHero({
       <View style={styles.content}>
         <View style={styles.topRow}>
           <View style={styles.textCol}>
-            <Text style={styles.eyebrow}>{moduleLabel.toUpperCase()}</Text>
             <Text style={styles.greeting}>
               {snapshot.greeting}, {displayName}
             </Text>

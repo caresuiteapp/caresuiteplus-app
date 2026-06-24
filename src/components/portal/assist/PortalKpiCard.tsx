@@ -55,7 +55,7 @@ export function PortalKpiCard({
   const content = (
     <>
       {description ? (
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]} {...noBreakTextProps}>
+        <Text style={[type.caption, styles.eyebrow, { color: text.secondary }]} {...noBreakTextProps}>
           {description}
         </Text>
       ) : null}

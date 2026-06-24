@@ -40,7 +40,6 @@ export function KIMMailboxListHero({
     <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>BUSINESS · TELEMATIK</Text>
           <Text style={heroText.title}>KIM-Postfach</Text>
           <Text style={heroText.meta}>
             {syncLabel ?? 'Kommunikation im Medizinwesen — Demo-Postfach bis Live-Connector.'}

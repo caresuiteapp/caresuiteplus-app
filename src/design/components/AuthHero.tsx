@@ -37,9 +37,6 @@ export function AuthHero({
     <GlassCard glow style={styles.hero}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={type.eyebrow} numberOfLines={1}>
-            {eyebrow}
-          </Text>
           <Text style={type.h2} numberOfLines={2}>
             {title}
           </Text>

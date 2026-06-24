@@ -47,7 +47,6 @@ export function MedicationListHero({
     <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>PFLEGE · MEDIKATION</Text>
           <Text style={heroText.title}>Medikationsplan</Text>
           <Text style={heroText.meta}>
             {items.length} Verordnungen

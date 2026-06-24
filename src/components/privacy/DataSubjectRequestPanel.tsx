@@ -96,7 +96,6 @@ export function DataSubjectRequestPanel({
       <PremiumCard accentColor={showDeletionWarning ? colors.danger : colors.cyan}>
         <View style={styles.headerRow}>
           <View style={styles.headerText}>
-            <Text style={styles.eyebrow}>DSGVO · Betroffenenrechte</Text>
             <Text style={styles.title}>{title}</Text>
             <Text style={styles.subtitle}>{subtitle}</Text>
           </View>

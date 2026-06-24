@@ -32,7 +32,6 @@ export function TIAuditLogListHero({ items, totalCount, roleKey }: TIAuditLogLis
     <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>BUSINESS · TELEMATIK</Text>
           <Text style={heroText.title}>TI-Audit-Log</Text>
           <Text style={heroText.meta}>Nachvollziehbarkeit aller TI-Aktionen und Zugriffe</Text>
         </View>

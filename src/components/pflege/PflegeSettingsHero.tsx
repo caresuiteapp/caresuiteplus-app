@@ -32,19 +32,21 @@ export function PflegeSettingsHero({ settings, roleKey }: PflegeSettingsHeroProp
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   iconBadge: {
     width: iconSize,
@@ -76,7 +78,6 @@ export function PflegeSettingsHero({ settings, roleKey }: PflegeSettingsHeroProp
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>PFLEGE · EINSTELLUNGEN</Text>
           <Text style={styles.title}>Modul-Konfiguration</Text>
           <Text style={styles.meta}>
             {enabledCount} von {Object.keys(settings).length} Funktionen aktiv

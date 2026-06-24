@@ -33,19 +33,21 @@ export function PflegeReportsHero({ stats, roleKey }: PflegeReportsHeroProps) {
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   iconBadge: {
     width: iconSize,
@@ -86,7 +88,6 @@ export function PflegeReportsHero({ stats, roleKey }: PflegeReportsHeroProps) {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>PFLEGE · AUSWERTUNGEN</Text>
           <Text style={styles.title}>Pflege-Kennzahlen</Text>
           <Text style={styles.meta}>KPIs, MDK-Export und Qualitätsindikatoren</Text>
           <Text style={styles.subtitle}>

@@ -46,7 +46,6 @@ export function CasesListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>BERATUNG</Text>
           <Text style={heroText.title}>Beratungsfälle</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Fällen

@@ -105,7 +105,6 @@ export function DedicatedListScreen<T>({
       scroll={false}
     >
       <ScrollView contentContainerStyle={styles.header}>
-        {eyebrow ? <Text style={styles.eyebrow}>{eyebrow}</Text> : null}
         <PremiumInput
           label="Suche"
           placeholder="Filtern…"

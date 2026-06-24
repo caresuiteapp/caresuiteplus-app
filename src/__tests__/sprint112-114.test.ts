@@ -69,7 +69,6 @@ describe('Pflege CarePlan Create Form Hero (Sprint 114)', () => {
   it('CarePlanCreateScreen nutzt formHero via DomainCreateScreen', () => {
     const screen = readSrc('src/screens/pflege/CarePlanCreateScreen.tsx');
     expect(screen).toContain('formHero');
-    expect(screen).toContain('PFLEGE · PFLEGEPLAN');
     expect(screen).toContain('successRoute');
   });
 

@@ -54,7 +54,6 @@ export function EmployeesListHero({
     <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>OFFICE</Text>
           <Text style={heroText.title}>Mitarbeitende</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einträgen

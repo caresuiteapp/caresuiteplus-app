@@ -53,9 +53,6 @@ export function AuthHeroHeader({ eyebrow, title, subtitle, icon = '🔐', footer
     <View style={styles.authHero}>
       <View style={styles.authTop}>
         <View style={styles.authText}>
-          <Text style={type.eyebrow} numberOfLines={1}>
-            {eyebrow}
-          </Text>
           <Text style={type.h2} numberOfLines={2}>
             {title}
           </Text>

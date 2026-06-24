@@ -25,8 +25,8 @@ export function PlatformHubHero({ roleKey, ocrJobCount = 0, aiJobCount = 0 }: Pl
     color: '#A78BFA',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -50,7 +50,6 @@ export function PlatformHubHero({ roleKey, ocrJobCount = 0, aiJobCount = 0 }: Pl
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS · PLATTFORM</Text>
           <Text style={styles.title}>KI & OCR</Text>
           <Text style={styles.meta}>Dokumentenerkennung und KI-Assistenz — Demo-Jobs</Text>
         </View>

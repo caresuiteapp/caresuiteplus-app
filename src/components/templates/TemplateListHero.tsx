@@ -145,7 +145,6 @@ export function TemplateListHero({
     <PremiumListHeroFrame accentColor={config.accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>VORLAGENZENTRUM · PAKET F</Text>
           <Text style={heroText.title}>{config.title}</Text>
           <Text style={heroText.meta}>
             {countLabel} · {serviceMode === 'demo' ? 'Demo' : 'Supabase'}

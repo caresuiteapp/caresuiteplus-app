@@ -13,7 +13,6 @@ describe('Stationär Extension Heroes (Sprint 87)', () => {
   it('StationaerReportsHero nutzt PremiumListHeroFrame mit preparedOnly', () => {
     const hero = readSrc('src/components/stationaer/StationaerReportsHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('STATIONÄR');
     expect(hero).toContain('isStationaerExtensionLiveReady');
     expect(hero).toContain('buildStationaerReportsKpis');
   });
@@ -92,7 +91,6 @@ describe('Portal Profile Heroes (Sprint 87)', () => {
   it('PortalEmployeeProfileHero nutzt PremiumListHeroFrame mit preparedOnly', () => {
     const hero = readSrc('src/components/portal/PortalEmployeeProfileHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('MITARBEITERPORTAL · PROFIL');
     expect(hero).toContain('isPortalProfileLiveReady');
     expect(hero).toContain('buildEmployeePortalProfileKpis');
   });
@@ -100,7 +98,6 @@ describe('Portal Profile Heroes (Sprint 87)', () => {
   it('PortalClientProfileHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/portal/PortalClientProfileHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('KLIENT:INNENPORTAL · PROFIL');
     expect(hero).toContain('buildClientPortalProfileKpis');
   });
 

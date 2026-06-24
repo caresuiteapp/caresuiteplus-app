@@ -14,7 +14,6 @@ export function PaymentSettingsHero({
 }: PaymentSettingsHeroProps) {
   return (
     <View style={styles.hero}>
-      <Text style={styles.eyebrow}>OFFICE · ZAHLUNGEN</Text>
       <Text style={styles.title}>Zahlungsanbieter</Text>
       <Text style={styles.meta}>
         {providerLabel} · {environmentLabel} · Webhook: {webhookStatus}

@@ -31,19 +31,21 @@ export function KIMMessageDetailHero({ message, roleKey }: KIMMessageDetailHeroP
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   iconBadge: {
     width: iconSize,
@@ -84,7 +86,6 @@ export function KIMMessageDetailHero({ message, roleKey }: KIMMessageDetailHeroP
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS · KIM-NACHRICHT</Text>
           <Text style={styles.title}>{message.subject}</Text>
           <Text style={styles.meta}>
             Von {message.senderName ?? message.sender}

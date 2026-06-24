@@ -23,13 +23,13 @@ export function AssistServiceCatalogHero({
       StyleSheet.create({
         topRow: { flexDirection: 'row', gap: spacing.md },
         textCol: { flex: 1, gap: 2 },
-        eyebrow: { ...typography.caption, color: colors.orange },
-        title: { ...typography.h2 },
-        meta: { ...typography.caption, color: colors.textMuted },
+        eyebrow: { ...typography.caption, color: 'rgba(255,255,255,0.85)' },
+        title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+        meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         kpiItem: { flex: 1, minWidth: 100 },
-        hint: { ...typography.caption, color: colors.textMuted },
+        hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
         preview: { gap: spacing.xs, marginTop: spacing.sm },
         previewTitle: { ...typography.caption, color: colors.textPrimary, fontWeight: '600' },
         previewRow: {
@@ -42,7 +42,7 @@ export function AssistServiceCatalogHero({
         },
         previewKey: { ...typography.caption, color: colors.orange, width: 72 },
         previewLabel: { ...typography.body, color: colors.textPrimary, flex: 1 },
-        previewCategory: { ...typography.caption, color: colors.textMuted, maxWidth: 120 },
+        previewCategory: { ...typography.caption, color: 'rgba(255,255,255,0.75)', maxWidth: 120 },
       }),
     [colors, typography],
   );
@@ -62,7 +62,6 @@ export function AssistServiceCatalogHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>ASSIST · LEISTUNGSKATALOG</Text>
           <Text style={styles.title}>Leistungen & Aufgaben</Text>
           <Text style={styles.meta}>Mandantenscharfe Leistungen, Aufgabenpakete und Stundensätze</Text>
         </View>

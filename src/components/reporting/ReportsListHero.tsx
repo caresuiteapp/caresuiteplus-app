@@ -55,15 +55,17 @@ export function ReportsListHero({
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -85,7 +87,7 @@ export function ReportsListHero({
   },
   preparedHint: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   kpiRow: {
     flexDirection: 'row',
@@ -105,7 +107,6 @@ export function ReportsListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS</Text>
           <Text style={styles.title}>Berichte</Text>
           <Text style={styles.meta}>
             {filteredCount} von {totalCount} Berichten

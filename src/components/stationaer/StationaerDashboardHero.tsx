@@ -41,6 +41,8 @@ export function StationaerDashboardHero({ stats, roleKey, tenantName }: Stationa
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   tenant: {
     ...typography.bodyStrong,
@@ -48,7 +50,7 @@ export function StationaerDashboardHero({ stats, roleKey, tenantName }: Stationa
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -79,7 +81,6 @@ export function StationaerDashboardHero({ stats, roleKey, tenantName }: Stationa
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>STATIONÄR</Text>
           <Text style={styles.title}>Pflegeheim</Text>
           {tenantName ? <Text style={styles.tenant}>{tenantName}</Text> : null}
           <Text style={styles.meta}>

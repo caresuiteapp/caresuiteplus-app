@@ -48,15 +48,17 @@ export function DataSubjectRequestsAdminHero({
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: 1,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: 48,
@@ -93,7 +95,6 @@ export function DataSubjectRequestsAdminHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>DSGVO · BETROFFENENRECHTE</Text>
           <Text style={styles.title}>Anfragen-Übersicht</Text>
           <Text style={styles.meta}>
             {totalCount} Anfrage{totalCount === 1 ? '' : 'n'} · {modeLabel} · Frist {DSGVO_ART12_RESPONSE_DAYS} T.

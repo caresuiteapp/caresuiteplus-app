@@ -10,7 +10,6 @@ describe('Office Detail Heroes (Sprint 85)', () => {
   it('ClientDetailHero nutzt PremiumListHeroFrame mit Kontext-KPIs', () => {
     const hero = readSrc('src/components/office/ClientDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('OFFICE · KLIENT:INNEN-AKTE');
     expect(hero).toContain('buildClientDetailKpis');
     expect(hero).toContain('PremiumKpiCard');
   });
@@ -18,7 +17,6 @@ describe('Office Detail Heroes (Sprint 85)', () => {
   it('InvoiceDetailHero nutzt PremiumListHeroFrame mit DATEV preparedOnly', () => {
     const hero = readSrc('src/components/office/InvoiceDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('OFFICE · RECHNUNG');
     expect(hero).toContain('buildInvoiceDetailKpis');
     expect(hero).toContain('DATEV preparedOnly');
   });
@@ -26,7 +24,6 @@ describe('Office Detail Heroes (Sprint 85)', () => {
   it('BudgetDetailHero nutzt PremiumListHeroFrame mit Auslastungs-KPIs', () => {
     const hero = readSrc('src/components/office/BudgetDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('OFFICE · BUDGET');
     expect(hero).toContain('buildBudgetDetailKpis');
     expect(hero).toContain('Limit nahe');
   });

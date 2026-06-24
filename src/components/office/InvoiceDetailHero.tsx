@@ -46,19 +46,21 @@ export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetai
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.orange,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.bodyStrong,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -98,7 +100,6 @@ export function InvoiceDetailHero({ invoice, roleKey, isReadOnly }: InvoiceDetai
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>OFFICE · RECHNUNG</Text>
           <Text style={styles.title}>{invoice.invoiceNumber}</Text>
           <Text style={styles.meta}>{invoice.clientName}</Text>
           <Text style={styles.subtitle}>{invoice.nextActionHint}</Text>

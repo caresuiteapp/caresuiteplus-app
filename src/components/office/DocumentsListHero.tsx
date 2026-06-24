@@ -50,7 +50,6 @@ export function DocumentsListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>OFFICE</Text>
           <Text style={heroText.title}>Dokumente</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einträgen

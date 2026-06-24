@@ -23,7 +23,6 @@ describe('Pflege Premium Heroes Batch (Sprint 75)', () => {
   it('PflegeDashboardHero nutzt PremiumListHeroFrame mit Dashboard-KPIs', () => {
     const hero = readSrc('src/components/pflege/PflegeDashboardHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('PFLEGE · DASHBOARD');
     expect(hero).toContain('buildPflegeDashboardKpis');
   });
 

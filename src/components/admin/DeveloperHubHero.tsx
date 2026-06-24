@@ -17,8 +17,8 @@ export function DeveloperHubHero() {
     color: colors.violet,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -33,7 +33,7 @@ export function DeveloperHubHero() {
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  hint: { ...typography.caption, color: colors.textMuted },
+  hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
     [colors, typography, gradients],
   );
@@ -45,7 +45,6 @@ export function DeveloperHubHero() {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>ADMIN · __DEV__</Text>
           <Text style={styles.title}>Entwicklerwerkzeuge</Text>
           <Text style={styles.meta}>
             Interne Bereiche — Design System, Architektur und Debug-Routen

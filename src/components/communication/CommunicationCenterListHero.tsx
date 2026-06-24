@@ -39,15 +39,17 @@ export function CommunicationCenterListHero({
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -85,7 +87,6 @@ export function CommunicationCenterListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS</Text>
           <Text style={styles.title}>Kommunikationszentrum</Text>
           <Text style={styles.meta}>
             {filteredCount} von {totalCount} Threads

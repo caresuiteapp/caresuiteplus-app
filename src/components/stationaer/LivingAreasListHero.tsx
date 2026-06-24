@@ -45,10 +45,12 @@ export function LivingAreasListHero({
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -79,7 +81,7 @@ export function LivingAreasListHero({
   },
   preparedHint: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
 }),
     [colors, typography, gradients],
@@ -92,7 +94,6 @@ export function LivingAreasListHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>STATIONÄR</Text>
           <Text style={styles.title}>Wohnbereiche & Zimmer</Text>
           <Text style={styles.meta}>
             {items.length} Bereiche · Belegung und freie Betten im Überblick

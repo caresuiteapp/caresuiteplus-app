@@ -11,7 +11,6 @@ describe('KIM Message Detail Hero (Sprint 86)', () => {
   it('KIMMessageDetailHero nutzt PremiumListHeroFrame mit KIM-KPIs', () => {
     const hero = readSrc('src/components/ti/KIMMessageDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('BUSINESS · KIM-NACHRICHT');
     expect(hero).toContain('buildKimMessageDetailKpis');
     expect(hero).toContain('PremiumKpiCard');
   });

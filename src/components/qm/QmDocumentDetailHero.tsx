@@ -42,15 +42,17 @@ export function QmDocumentDetailHero({
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -91,7 +93,6 @@ export function QmDocumentDetailHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>QUALITÄTSMANAGEMENT · DOKUMENT</Text>
           <Text style={styles.title}>{document.title}</Text>
           <Text style={styles.meta}>
             {document.documentNumber}

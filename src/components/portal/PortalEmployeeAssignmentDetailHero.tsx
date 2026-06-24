@@ -66,14 +66,16 @@ export function PortalEmployeeAssignmentDetailHero({
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.bodyStrong,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -114,7 +116,6 @@ export function PortalEmployeeAssignmentDetailHero({
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>MITARBEITERPORTAL · EINSATZ</Text>
           <Text style={styles.title}>{assignment.title}</Text>
           <Text style={styles.meta}>{assignment.clientName}</Text>
           {assignment.location ? <Text style={styles.subtitle}>{assignment.location}</Text> : null}

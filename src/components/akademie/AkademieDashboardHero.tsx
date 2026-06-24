@@ -40,10 +40,12 @@ export function AkademieDashboardHero({ stats, roleKey }: AkademieDashboardHeroP
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -74,7 +76,6 @@ export function AkademieDashboardHero({ stats, roleKey }: AkademieDashboardHeroP
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>AKADEMIE</Text>
           <Text style={styles.title}>Schulungen & Zertifikate</Text>
           <Text style={styles.meta}>
             Kurse, Teilnehmer und Zertifikate — Pflichtschulungen und Fortbildungen im Überblick.

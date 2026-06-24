@@ -14,7 +14,6 @@ describe('Beratung Case Detail Hero (Sprint 61)', () => {
   it('CaseDetailHero nutzt PremiumListHeroFrame mit Fall-KPIs', () => {
     const hero = readSrc('src/components/beratung/CaseDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('BERATUNG · FALLAKTE');
     expect(hero).toContain('buildCaseDetailKpis');
     expect(hero).toContain('PremiumKpiCard');
   });

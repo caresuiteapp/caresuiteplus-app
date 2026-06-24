@@ -28,8 +28,8 @@ export function CertificateDetailHero({ certificate, roleKey }: CertificateDetai
     color: colors.success,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -55,7 +55,6 @@ export function CertificateDetailHero({ certificate, roleKey }: CertificateDetai
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>AKADEMIE · ZERTIFIKAT</Text>
           <Text style={styles.title}>{certificate.participantName}</Text>
           <Text style={styles.meta}>{certificate.courseTitle} · {certificate.nextActionHint}</Text>
         </View>

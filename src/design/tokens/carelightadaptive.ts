@@ -156,31 +156,29 @@ export function createCareLightContentStyles(c: CareLightResolved) {
   });
 }
 
-/** List-hero typography that stays readable on glass panels in dark mode. */
+/** List-hero typography — always white / light for readability on gradient hero frames. */
 export function useListHeroTextStyles() {
-  const { isDark, c } = useCareLightPalette();
-  const onAuroraHero = isDark;
   return useMemo(
     () => ({
       eyebrow: {
         ...careTypography.caption,
-        color: onAuroraHero ? 'rgba(255,255,255,0.85)' : careLightColors.cyan,
+        color: 'rgba(255,255,255,0.85)',
         letterSpacing: designTokens.hero.eyebrowLetterSpacing,
         fontWeight: '700' as TextStyle['fontWeight'],
       },
       title: {
         ...careTypography.h2,
-        color: onAuroraHero ? '#FFFFFF' : careLightColors.navy,
+        color: '#FFFFFF',
         fontWeight: '800' as TextStyle['fontWeight'],
       },
       meta: {
         ...careTypography.caption,
-        color: onAuroraHero ? 'rgba(255,255,255,0.75)' : careLightColors.muted,
+        color: 'rgba(255,255,255,0.75)',
       },
       iconBorder: {
-        borderColor: onAuroraHero ? 'rgba(255,255,255,0.4)' : careLightColors.border,
+        borderColor: 'rgba(255,255,255,0.4)',
       },
     }),
-    [onAuroraHero],
+    [],
   );
 }

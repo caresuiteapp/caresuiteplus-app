@@ -10,7 +10,6 @@ describe('QM Document Detail Hero (Sprint 84)', () => {
   it('QmDocumentDetailHero nutzt PremiumListHeroFrame mit KPIs', () => {
     const hero = readSrc('src/components/qm/QmDocumentDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('QUALITÄTSMANAGEMENT · DOKUMENT');
     expect(hero).toContain('PremiumKpiCard');
     expect(hero).toContain('buildQmDocumentDetailKpis');
     expect(hero).toContain('isQmDocumentsLiveReady');

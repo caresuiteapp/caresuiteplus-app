@@ -11,7 +11,6 @@ describe('Office Appointment Detail Hero (Sprint 82)', () => {
   it('AppointmentDetailHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/office/AppointmentDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('OFFICE · TERMIN');
     expect(hero).toContain('PremiumKpiCard');
   });
 

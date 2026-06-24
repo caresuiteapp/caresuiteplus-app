@@ -71,7 +71,6 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
   return (
     <>
       <GlassCard style={styles.card}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>MANDANT</Text>
         <View style={styles.mandantRow}>
           <View style={styles.mandantIconWrap}>
             <Text style={styles.mandantIcon}>🏢</Text>
@@ -93,7 +92,6 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
       </GlassCard>
 
       <GlassCard style={styles.card}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>PORTAL-STATUS</Text>
         <View style={styles.statusRow}>
           <View style={styles.statusLabelRow}>
             <View style={styles.statusDot} />
@@ -110,7 +108,6 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
       </GlassCard>
 
       <GlassCard style={styles.card}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>AUF EINEN BLICK</Text>
         {kpis.map((kpi) => (
           <View key={kpi.label} style={styles.glanceRow}>
             <Text style={[type.caption, { color: text.secondary, flex: 1 }]}>{kpi.label}</Text>
@@ -121,7 +118,6 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
       </GlassCard>
 
       <View style={styles.section}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SCHNELLZUGRIFF</Text>
         <View style={styles.quickRow}>
           {quickActions.map((action) => (
             <Pressable
@@ -140,7 +136,6 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
       </View>
 
       <GlassCard style={styles.card}>
-        <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>SUPPORT & HILFE</Text>
         <Pressable onPress={() => setHelpOpen(true)} style={styles.supportLink}>
           <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
             Hilfe & Dokumentation

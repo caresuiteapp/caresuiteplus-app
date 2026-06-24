@@ -79,9 +79,6 @@ export function PortalNextAppointmentHero({
     >
       <View style={styles.headerRow}>
         <View style={styles.headerCopy}>
-          <Text style={[type.caption, styles.eyebrow, { color: text.muted }]} {...noBreakTextProps}>
-            NÄCHSTER TERMIN
-          </Text>
           {appointment ? (
             <>
               <Text style={[type.cardTitle, { color: text.primary }]} {...noBreakTextProps} numberOfLines={2}>

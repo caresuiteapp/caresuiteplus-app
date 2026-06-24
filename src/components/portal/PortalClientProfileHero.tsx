@@ -38,8 +38,8 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
     color: colors.primary,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -54,7 +54,7 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  preparedHint: { ...typography.caption, color: colors.textMuted },
+  preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
     [colors, typography, gradients],
   );
@@ -68,7 +68,6 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>KLIENT:INNENPORTAL · PROFIL</Text>
           <Text style={styles.title}>{profile.displayName}</Text>
           <Text style={styles.meta}>
             {profile.nextAppointmentTitle

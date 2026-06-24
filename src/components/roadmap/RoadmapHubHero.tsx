@@ -29,19 +29,21 @@ export function RoadmapHubHero({ data, roleKey }: RoadmapHubHeroProps) {
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   iconBadge: {
     width: iconSize,
@@ -80,7 +82,6 @@ export function RoadmapHubHero({ data, roleKey }: RoadmapHubHeroProps) {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS · ROADMAP</Text>
           <Text style={styles.title}>Strategische Roadmap</Text>
           <Text style={styles.meta}>
             {data.activeMilestones} Meilensteine · Launch-Readiness {data.launchReadinessPercent}%

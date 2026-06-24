@@ -32,7 +32,6 @@ export function QmDocumentsListHero({ documents, roleKey }: QmDocumentsListHeroP
     <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>QUALITÄTSMANAGEMENT</Text>
           <Text style={heroText.title}>QM-Dokumente</Text>
           <Text style={heroText.meta}>
             {documents.length} Dokumente · Verfahren, Richtlinien und Formulare

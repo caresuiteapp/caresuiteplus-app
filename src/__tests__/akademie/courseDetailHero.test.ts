@@ -14,7 +14,6 @@ describe('Akademie Course Detail Hero (Sprint 68)', () => {
   it('CourseDetailHero nutzt PremiumListHeroFrame mit Kurs-KPIs', () => {
     const hero = readSrc('src/components/akademie/CourseDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('AKADEMIE · KURS');
     expect(hero).toContain('buildCourseDetailKpis');
     expect(hero).toContain('PremiumKpiCard');
   });

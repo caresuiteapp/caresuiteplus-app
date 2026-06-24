@@ -91,7 +91,6 @@ export function PortalUploadsOfficePanel({ tenantId, clientId }: PortalUploadsOf
 
   return (
     <View style={styles.container}>
-      <Text style={[type.caption, styles.eyebrow, { color: text.muted }]}>PORTAL-UPLOADS</Text>
       {error ? <ErrorState title="Portal-Uploads" message={error} onRetry={() => void refresh()} /> : null}
       {uploads.length === 0 ? (
         <GlassCard>

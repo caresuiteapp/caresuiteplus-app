@@ -32,7 +32,6 @@ export function BudgetsListHero({ items, roleKey, filteredCount, totalCount }: B
     <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>OFFICE</Text>
           <Text style={heroText.title}>Budgets</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einträgen

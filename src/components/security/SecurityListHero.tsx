@@ -24,12 +24,12 @@ export function SecurityListHero({ items, roleKey }: SecurityListHeroProps) {
   textCol: { flex: 1, gap: 2 },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
-  subtitle: { ...typography.caption, color: colors.textSecondary },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  subtitle: { ...typography.caption, color: 'rgba(255,255,255,0.85)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -44,7 +44,7 @@ export function SecurityListHero({ items, roleKey }: SecurityListHeroProps) {
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  preparedHint: { ...typography.caption, color: colors.textMuted },
+  preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
     [colors, typography, gradients],
   );
@@ -56,7 +56,6 @@ export function SecurityListHero({ items, roleKey }: SecurityListHeroProps) {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS · SECURITY</Text>
           <Text style={styles.title}>Security Findings</Text>
           <Text style={styles.meta}>
             {items.length} Findings · DSGVO, Access, Performance & Audit

@@ -37,7 +37,6 @@ describe('QM Handbuch entry polish', () => {
     const source = readSrc('src/components/qm/QmHandbookHero.tsx');
     expect(source).toContain('PremiumListHeroFrame');
     expect(source).toContain('PremiumKpiCard');
-    expect(source).toContain('QUALITÄTSMANAGEMENT');
   });
 
   it('QmHandbookScreen zeigt Hero und Kapitelbaum', () => {

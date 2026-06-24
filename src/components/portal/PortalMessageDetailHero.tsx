@@ -56,19 +56,21 @@ export function PortalMessageDetailHero({ message, scope }: PortalMessageDetailH
   },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
   title: {
     ...typography.h2,
+    color: '#FFFFFF',
+    fontWeight: '800',
   },
   meta: {
     ...typography.bodyStrong,
-    color: colors.textSecondary,
+    color: 'rgba(255,255,255,0.85)',
   },
   subtitle: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: 'rgba(255,255,255,0.75)',
   },
   iconBadge: {
     width: iconSize,
@@ -114,7 +116,6 @@ export function PortalMessageDetailHero({ message, scope }: PortalMessageDetailH
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>{scopeLabel} · NACHRICHT</Text>
           <Text style={styles.title}>{message.subject}</Text>
           <Text style={styles.meta}>Von {message.senderName}</Text>
           <Text style={styles.subtitle}>An {message.recipientName}</Text>

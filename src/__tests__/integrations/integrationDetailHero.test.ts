@@ -11,7 +11,6 @@ describe('Integration Detail Hero (Sprint 86)', () => {
   it('IntegrationDetailHero nutzt PremiumListHeroFrame mit Provider-KPIs', () => {
     const hero = readSrc('src/components/integrations/IntegrationDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('BUSINESS · INTEGRATION');
     expect(hero).toContain('buildIntegrationDetailKpis');
     expect(hero).toContain('PremiumKpiCard');
   });

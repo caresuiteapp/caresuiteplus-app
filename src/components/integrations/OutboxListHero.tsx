@@ -21,11 +21,11 @@ export function OutboxListHero({ items }: OutboxListHeroProps) {
   textCol: { flex: 1, gap: 2 },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -40,7 +40,7 @@ export function OutboxListHero({ items }: OutboxListHeroProps) {
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  hint: { ...typography.caption, color: colors.textMuted },
+  hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
     [colors, typography, gradients],
   );
@@ -52,7 +52,6 @@ export function OutboxListHero({ items }: OutboxListHeroProps) {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>BUSINESS · INTEGRATIONEN</Text>
           <Text style={styles.title}>Outbox</Text>
           <Text style={styles.meta}>Ausgehende E-Mails, SMS, Push und Webhooks</Text>
         </View>

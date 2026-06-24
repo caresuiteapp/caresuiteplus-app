@@ -21,11 +21,11 @@ export function MdShareViewHero({ packageTitle, documentCount, inspectionYear }:
   textCol: { flex: 1, gap: 2 },
   eyebrow: {
     ...typography.caption,
-    color: colors.cyan,
+    color: 'rgba(255,255,255,0.85)',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2 },
-  meta: { ...typography.caption, color: colors.textMuted },
+  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
+  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -40,7 +40,7 @@ export function MdShareViewHero({ packageTitle, documentCount, inspectionYear }:
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  preparedHint: { ...typography.caption, color: colors.textMuted },
+  preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
 }),
     [colors, typography, gradients],
   );
@@ -52,7 +52,6 @@ export function MdShareViewHero({ packageTitle, documentCount, inspectionYear }:
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.eyebrow}>MD-FREIGABE</Text>
           <Text style={styles.title}>{packageTitle}</Text>
           <Text style={styles.meta}>Token-validierte Einsicht — kein PDF-Download</Text>
         </View>

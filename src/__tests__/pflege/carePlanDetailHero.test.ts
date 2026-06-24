@@ -14,7 +14,6 @@ describe('Pflege Care Plan Detail Hero (Sprint 67)', () => {
   it('CarePlanDetailHero nutzt PremiumListHeroFrame mit Plan-KPIs', () => {
     const hero = readSrc('src/components/pflege/CarePlanDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('PFLEGE · PFLEGEPLAN');
     expect(hero).toContain('buildCarePlanDetailKpis');
     expect(hero).toContain('PremiumKpiCard');
   });

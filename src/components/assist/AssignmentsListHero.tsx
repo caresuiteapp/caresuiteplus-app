@@ -50,7 +50,6 @@ export function AssignmentsListHero({
     <PremiumListHeroFrame accentColor={accent}>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={heroText.eyebrow}>ASSIST · DISPOSITION</Text>
           <Text style={heroText.title}>Einsatzplanung</Text>
           <Text style={heroText.meta}>
             {filteredCount} von {totalCount} Einsätzen
