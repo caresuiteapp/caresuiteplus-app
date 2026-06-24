@@ -1,10 +1,12 @@
 import { useMemo, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import { TripsListView } from '@/components/assist/TripsListView';
 import { TrackingListView } from '@/components/assist/TrackingListView';
 import { EmptyState, ErrorState, LoadingState, SegmentedTabs, type TabOption } from '@/components/ui';
 import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
+import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useTripList } from '@/hooks/useTripList';
@@ -42,6 +44,7 @@ export function TripsListScreen({
   const [activeTab, setActiveTab] = useState<'fahrten' | 'tracking'>(canTrips ? 'fahrten' : 'tracking');
   const list = useTripList();
   const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
+  const assistAccent = moduleColor('assist');
 
   const panelStyles = useMemo(
     () =>
@@ -121,14 +124,17 @@ export function TripsListScreen({
   );
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title="Mobilität"
+      eyebrow="ASSIST · FAHRTENBUCH"
       subtitle={`Fahrtenbuch & Tracking${isReadOnly ? ' · Lesemodus' : ''} · ${roleSubtitle}`}
-      scroll={false}
+      moduleLabel="Assist"
       showBack={false}
+      scroll={false}
+      accentColor={assistAccent}
     >
       {wrappedList}
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

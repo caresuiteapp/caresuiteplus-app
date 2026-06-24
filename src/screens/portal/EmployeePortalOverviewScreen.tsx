@@ -14,14 +14,14 @@ export function EmployeePortalOverviewScreen() {
 
   if (!isReady) {
     return (
-      <PortalTabScreen title="Mitarbeiterportal">
+      <PortalTabScreen title="Mitarbeiterportal" eyebrow="PORTAL · MITARBEITENDE">
         <LoadingState message="Portal wird geladen…" />
       </PortalTabScreen>
     );
   }
 
   return (
-    <PortalTabScreen title="Mitarbeiterportal">
+    <PortalTabScreen title="Mitarbeiterportal" eyebrow="PORTAL · MITARBEITENDE">
       <PortalOverviewTab
         scope="portal_employee"
         displayName={displayName}

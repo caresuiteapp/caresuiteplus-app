@@ -3,6 +3,7 @@ import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalEmployeeAssignmentDetailHero } from '@/components/portal';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
@@ -69,8 +70,9 @@ export function PortalAssignmentDetailScreen() {
   if (!data) return null;
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title={data.title}
+      eyebrow="PORTAL · EINSATZ"
       subtitle={`${data.clientName} · ${roleLabel ?? 'Portal'}`}
       rightSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
@@ -113,7 +115,7 @@ export function PortalAssignmentDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

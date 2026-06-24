@@ -10,14 +10,14 @@ export function ClientPortalOverviewScreen() {
 
   if (!isReady) {
     return (
-      <PortalTabScreen title="Klient:innenportal" scroll={false} hideHeaderOnPhone>
+      <PortalTabScreen title="Klient:innenportal" scroll={false} hideHeaderOnPhone eyebrow="PORTAL · KLIENT:INNEN">
         <LoadingState message="Portal wird geladen…" />
       </PortalTabScreen>
     );
   }
 
   return (
-    <PortalTabScreen title="Klient:innenportal" scroll={false} hideHeaderOnPhone>
+    <PortalTabScreen title="Klient:innenportal" scroll={false} hideHeaderOnPhone eyebrow="PORTAL · KLIENT:INNEN">
       <AdaptivePortalOverview
         showSuccess={showSuccess}
         onRefresh={() => {

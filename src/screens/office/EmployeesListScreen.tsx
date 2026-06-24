@@ -1,11 +1,13 @@
 import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import { EmployeeCreateModal } from '@/components/office/employeecreatemodal';
 import { EmployeeDetailModal } from '@/components/office/employeedetailmodal';
 import { EmployeesListView } from '@/components/office/EmployeesListView';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
+import { moduleColor } from '@/design/tokens/modules';
 import { useEmployeeList } from '@/hooks/useEmployeeList';
 import { usePermissions } from '@/hooks/usePermissions';
 
@@ -30,6 +32,7 @@ export function EmployeesListScreen({
   const { can, isReadOnly } = usePermissions();
   const canCreate = can('office.employees.create');
   const list = useEmployeeList();
+  const officeAccent = moduleColor('office');
 
   const [createOpen, setCreateOpen] = useState(false);
   const [detailEmployeeId, setDetailEmployeeId] = useState<string | null>(null);
@@ -141,15 +144,20 @@ export function EmployeesListScreen({
 
   return (
     <>
-      <ScreenShell
+      <C14vSubpageShell
         title="Mitarbeitende"
-        subtitle={`Office Teamverwaltung${isReadOnly ? ' · Lesemodus' : ''}`}
-        rightSlot={
-          canCreate ? (
-            <PremiumButton title="+ Neu" onPress={openCreate} />
-          ) : null
-        }
+        eyebrow="OFFICE · TEAM"
+        subtitle={`Teamverwaltung${isReadOnly ? ' · Lesemodus' : ''}`}
+        moduleLabel="Office"
+        showBack={false}
         scroll={false}
+        accentColor={officeAccent}
+        actions={[
+          ...(canCreate
+            ? [{ key: 'create', label: '+ Neue:r Mitarbeiter:in', onPress: openCreate, variant: 'primary' as const }]
+            : []),
+          { key: 'refresh', label: 'Aktualisieren', onPress: () => list.refresh(), variant: 'ghost' as const },
+        ]}
       >
         <View style={styles.content}>
           {list.isEmpty && !list.hasActiveFilters ? (
@@ -163,7 +171,7 @@ export function EmployeesListScreen({
             listView
           )}
         </View>
-      </ScreenShell>
+      </C14vSubpageShell>
       {modals}
     </>
   );

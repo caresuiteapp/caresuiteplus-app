@@ -1,5 +1,6 @@
 import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useRouter } from 'expo-router';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
@@ -8,6 +9,7 @@ import {
   PremiumButton,
   SectionPanel,
 } from '@/components/ui';
+import { moduleColor } from '@/design/tokens/modules';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -20,6 +22,7 @@ export function OfficeBusinessSettingsScreen() {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { roleLabel } = usePermissions();
+  const officeAccent = moduleColor('office');
 
   const query = useAsyncQuery(
     () => {
@@ -56,7 +59,13 @@ export function OfficeBusinessSettingsScreen() {
   }
 
   return (
-    <ScreenShell title="Office Einstellungen" subtitle={`${snapshot.tenantLabel} · ${roleLabel ?? 'Demo'}`}>
+    <C14vSubpageShell
+      title="Office Einstellungen"
+      eyebrow="OFFICE · KONFIGURATION"
+      subtitle={`${snapshot.tenantLabel} · ${roleLabel ?? 'Demo'}`}
+      moduleLabel="Office"
+      accentColor={officeAccent}
+    >
       <ScrollView contentContainerStyle={styles.scroll}>
         <SectionPanel title="Einstellungsbereiche">
           <Text style={styles.lead}>Zentrale Office-Konfiguration — direkte Navigation zu Fachbereichen.</Text>
@@ -70,7 +79,7 @@ export function OfficeBusinessSettingsScreen() {
           ))}
         </SectionPanel>
       </ScrollView>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

@@ -1,15 +1,24 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { ScreenShell } from '@/components/layout';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { PremiumButton, SectionPanel } from '@/components/ui';
+import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import type { ModuleNavModalComponentProps } from '@/lib/navigation/modulenav/modalscreens';
 
 export function AssistSettingsScreen({ embeddedInModal = false }: ModuleNavModalComponentProps = {}) {
   const router = useRouter();
+  const assistAccent = moduleColor('assist');
 
   return (
-    <ScreenShell title="Assist-Einstellungen" subtitle="Modul & Verknüpfungen" showBack={false}>
+    <C14vSubpageShell
+      title="Assist-Einstellungen"
+      eyebrow="ASSIST · KONFIGURATION"
+      subtitle="Modul & Verknüpfungen"
+      moduleLabel="Assist"
+      showBack={false}
+      accentColor={assistAccent}
+    >
     <View style={styles.root}>
       <SectionPanel title="Assist-Modul" subtitle="Konfiguration und Verknüpfungen">
         <View style={styles.actions}>
@@ -40,7 +49,7 @@ export function AssistSettingsScreen({ embeddedInModal = false }: ModuleNavModal
         </SectionPanel>
       ) : null}
     </View>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

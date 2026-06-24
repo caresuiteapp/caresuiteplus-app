@@ -1,8 +1,10 @@
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { CareRecordsListView } from '@/components/assist/CareRecordsListView';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
+import { moduleColor } from '@/design/tokens/modules';
 import { useCareRecordList } from '@/hooks/useCareRecordList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
@@ -14,6 +16,7 @@ export function LeistungsnachweiseListScreen() {
   const { profile } = useAuth();
   const { can, check, roleLabel } = usePermissions();
   const roleKey = profile?.roleKey ?? 'caregiver';
+  const assistAccent = moduleColor('assist');
   const {
     items,
     totalCount,
@@ -55,17 +58,20 @@ export function LeistungsnachweiseListScreen() {
   }
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title="Leistungsnachweise"
+      eyebrow="ASSIST · NACHWEISE"
       subtitle={`Nachweise prüfen und abrechnungsbereit machen · ${filteredCount} Einträge`}
+      moduleLabel="Assist"
       showBack={false}
       scroll={false}
+      accentColor={assistAccent}
+      actions={[
+        { key: 'review', label: 'Nachweis-Prüfung & Portal-Freigabe', onPress: () => router.push('/assist/nachweise/review' as never), variant: 'primary' as const },
+        { key: 'refresh', label: 'Aktualisieren', onPress: refresh, variant: 'ghost' as const },
+      ]}
     >
       {showSuccess ? <SuccessState message="Liste aktualisiert." /> : null}
-      <PremiumButton
-        title="Nachweis-Prüfung & Portal-Freigabe"
-        onPress={() => router.push('/assist/nachweise/review' as never)}
-      />
       {items.length === 0 && !search ? (
         <EmptyState
           title="Keine Nachweise"
@@ -82,7 +88,7 @@ export function LeistungsnachweiseListScreen() {
           onRefresh={refresh}
         />
       )}
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

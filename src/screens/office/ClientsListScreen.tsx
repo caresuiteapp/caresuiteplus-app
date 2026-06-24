@@ -1,64 +1,37 @@
-import { useEffect, useState } from 'react';
-
+﻿import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-
 import { useLocalSearchParams, useRouter } from 'expo-router';
-
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
-
 import { ClientDetailModal } from '@/components/office/clientdetailmodal';
-
 import { ClientIntakeModal } from '@/components/office/clientintakemodal';
-
 import { ClientsListView } from '@/components/office/ClientsListView';
-
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
-
+import { moduleColor } from '@/design/tokens/modules';
 import { useClientList } from '@/hooks/useClientList';
-
 import { usePermissions } from '@/hooks/usePermissions';
-
 import { CLIENT_INTAKE_NEW_ROUTE } from '@/lib/navigation/clientRoutes';
 
-
-
 export function ClientsListScreen({
-
   onClientPress,
-
   selectedId,
-
   embedded = false,
-
   refreshToken = 0,
-
   useModals = true,
-
 }: {
-
   onClientPress?: (id: string) => void;
-
   selectedId?: string | null;
-
   embedded?: boolean;
-
   refreshToken?: number;
-
   /** When false, list actions navigate to full-page routes (master-detail embed). */
-
   useModals?: boolean;
-
 } = {}) {
-
   const router = useRouter();
-
   const params = useLocalSearchParams<{ create?: string; client?: string; edit?: string }>();
-
   const { can, isReadOnly } = usePermissions();
-
   const canCreate = can('office.clients.create');
-
   const list = useClientList();
+  const officeAccent = moduleColor('office');
 
 
 
@@ -264,92 +237,55 @@ export function ClientsListScreen({
 
 
   if (list.loading && list.allItems.length === 0) {
-
     return (
-
-      <ScreenShell title="Klient:innen" subtitle="Wird geladen…" scroll={false}>
-
-        <LoadingState message="Daten werden geladen…" />
-
+      <ScreenShell title="Klient:innen" subtitle="Wird geladenâ€¦" scroll={false}>
+        <LoadingState message="Daten werden geladenâ€¦" />
       </ScreenShell>
-
     );
-
   }
-
-
 
   if (list.error && list.allItems.length === 0) {
-
     return (
-
       <ScreenShell title="Klient:innen" subtitle="Fehler" scroll={false}>
-
         <ErrorState message={list.error} onRetry={list.refresh} />
-
       </ScreenShell>
-
     );
-
   }
 
-
-
   return (
-
     <>
-
-      <ScreenShell
-
+      <C14vSubpageShell
         title="Klient:innen"
-
-        subtitle={`Office Stammdaten${isReadOnly ? ' · Lesemodus' : ''}`}
-
-        rightSlot={
-
-          canCreate ? (
-
-            <PremiumButton title="+ Neu" onPress={openCreate} />
-
-          ) : null
-
-        }
-
+        eyebrow="OFFICE Â· STAMMDATEN"
+        subtitle={`Klientenverwaltung${isReadOnly ? ' Â· Lesemodus' : ''}`}
+        moduleLabel="Office"
+        showBack={false}
         scroll={false}
-
+        accentColor={officeAccent}
+        actions={[
+          ...(canCreate
+            ? [{ key: 'create', label: '+ Neue Klient:in', onPress: openCreate, variant: 'primary' as const }]
+            : []),
+          { key: 'refresh', label: 'Aktualisieren', onPress: () => list.refresh(), variant: 'ghost' as const },
+        ]}
       >
-
         <View style={styles.content}>
-
           {list.isEmpty && !list.hasActiveFilters ? (
-
             <EmptyState
-
               title="Keine Klient:innen"
-
               message="Legen Sie die erste Klient:in im Demo-Mandanten an."
-
               actionLabel={canCreate ? 'Klient:in anlegen' : undefined}
-
               onAction={canCreate ? openCreate : undefined}
-
             />
-
           ) : (
-
             listView
-
           )}
-
         </View>
-
-      </ScreenShell>
-
+      </C14vSubpageShell>
       {modals}
-
     </>
-
   );
+
 
 }
 

@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { ScreenShell } from '@/components/layout';
@@ -7,7 +7,9 @@ import { PremiumButton } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
+import { spacing, typography } from '@/theme';
 
 type PortalTabScreenProps = {
   title: string;
@@ -15,6 +17,7 @@ type PortalTabScreenProps = {
   scroll?: boolean;
   /** On phone: skip duplicate page header — hero or section title carries context. */
   hideHeaderOnPhone?: boolean;
+  eyebrow?: string;
 };
 
 export function PortalTabScreen({
@@ -22,11 +25,13 @@ export function PortalTabScreen({
   children,
   scroll = true,
   hideHeaderOnPhone = false,
+  eyebrow,
 }: PortalTabScreenProps) {
   const router = useRouter();
   const { signOut } = useAuth();
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
+  const text = useAuroraAdaptiveText();
   const signOutButton = (
     <PremiumButton
       title="Abmelden"
@@ -59,6 +64,7 @@ export function PortalTabScreen({
       scroll={scroll}
       rightSlot={signOutButton}
     >
+      {eyebrow ? <Text style={[styles.eyebrow, { color: text.muted }]}>{eyebrow}</Text> : null}
       <View style={styles.content}>{children}</View>
     </ScreenShell>
   );
@@ -78,5 +84,12 @@ const styles = StyleSheet.create({
   },
   bareContent: {
     flex: 1,
+  },
+  eyebrow: {
+    ...typography.caption,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 1.2,
+    marginBottom: spacing.xs,
   },
 });

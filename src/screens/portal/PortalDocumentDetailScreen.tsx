@@ -2,6 +2,7 @@ import { ScrollView, StyleSheet, Text } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalDocumentDetailHero } from '@/components/portal';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
@@ -67,8 +68,9 @@ export function PortalDocumentDetailScreen() {
   if (!data) return null;
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title={data.title}
+      eyebrow="PORTAL · DOKUMENT"
       subtitle={data.fileName}
       rightSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
@@ -96,7 +98,7 @@ export function PortalDocumentDetailScreen() {
           <Text style={styles.hint}>Download derzeit nicht verfügbar.</Text>
         )}
       </ScrollView>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

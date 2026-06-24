@@ -1,6 +1,7 @@
 import { StyleSheet, View } from 'react-native';
-import { ScreenShell } from '@/components/layout';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { OfficeMessagesListView } from '@/components/office/OfficeMessagesListView';
+import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 
 export function OfficeMessagesListScreen({
@@ -13,6 +14,7 @@ export function OfficeMessagesListScreen({
   embedded?: boolean;
 } = {}) {
   const { isReadOnly } = usePermissions();
+  const officeAccent = moduleColor('office');
 
   if (embedded) {
     return (
@@ -25,15 +27,19 @@ export function OfficeMessagesListScreen({
   }
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title="Nachrichten"
-      subtitle={`Office Kommunikation${isReadOnly ? ' · Lesemodus' : ''}`}
+      eyebrow="OFFICE · KOMMUNIKATION"
+      subtitle={`Interne & externe Kommunikation${isReadOnly ? ' · Lesemodus' : ''}`}
+      moduleLabel="Office"
+      showBack={false}
       scroll={false}
+      accentColor={officeAccent}
     >
       <View style={styles.content}>
         <OfficeMessagesListView onMessagePress={onMessagePress} selectedId={selectedId} />
       </View>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

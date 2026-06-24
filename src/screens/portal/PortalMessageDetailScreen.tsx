@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalMessageDetailHero } from '@/components/portal';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
@@ -75,8 +76,9 @@ export function PortalMessageDetailScreen() {
   };
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title={data.subject}
+      eyebrow="PORTAL · NACHRICHT"
       subtitle={`Von ${data.senderName}`}
       rightSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
@@ -115,7 +117,7 @@ export function PortalMessageDetailScreen() {
           />
         ) : null}
       </ScrollView>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

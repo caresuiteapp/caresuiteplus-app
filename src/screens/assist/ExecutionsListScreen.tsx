@@ -1,7 +1,9 @@
 import { StyleSheet, View } from 'react-native';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import { ExecutionsListView } from '@/components/assist/ExecutionsListView';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { moduleColor } from '@/design/tokens/modules';
 import { useExecutionList } from '@/hooks/useExecutionList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { fetchExecutionList } from '@/lib/assist/executionListService';
@@ -17,6 +19,7 @@ export function ExecutionsListScreen({
 } = {}) {
   const { isReadOnly, roleLabel } = usePermissions();
   const list = useExecutionList();
+  const assistAccent = moduleColor('assist');
 
   if (embedded) {
     return (
@@ -45,11 +48,17 @@ export function ExecutionsListScreen({
   }
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title="Durchführung"
+      eyebrow="ASSIST · CHECK-IN"
       subtitle={`Check-in & Zeiterfassung${isReadOnly ? ' · Lesemodus' : ''} · ${roleLabel ?? 'Demo'}`}
-      scroll={false}
+      moduleLabel="Assist"
       showBack={false}
+      scroll={false}
+      accentColor={assistAccent}
+      actions={[
+        { key: 'refresh', label: 'Aktualisieren', onPress: () => list.refresh(), variant: 'ghost' as const },
+      ]}
     >
       <View style={styles.content}>
         {list.isEmpty && !list.hasActiveFilters ? (
@@ -58,7 +67,7 @@ export function ExecutionsListScreen({
           <ExecutionsListView onExecutionPress={onExecutionPress} selectedId={selectedId} />
         )}
       </View>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

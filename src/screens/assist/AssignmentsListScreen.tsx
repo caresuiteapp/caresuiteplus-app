@@ -1,7 +1,9 @@
 import { StyleSheet, View } from 'react-native';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import { AssignmentsListView } from '@/components/assist/AssignmentsListView';
 import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { moduleColor } from '@/design/tokens/modules';
 import { useAssignmentList } from '@/hooks/useAssignmentList';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getServiceMode } from '@/lib/services/mode';
@@ -20,6 +22,7 @@ export function AssignmentsListScreen({
   const pageTitle = 'Einsatzplanung';
   const list = useAssignmentList();
   const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
+  const assistAccent = moduleColor('assist');
 
   if (embedded) {
     return (
@@ -48,10 +51,17 @@ export function AssignmentsListScreen({
   }
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title={pageTitle}
-      subtitle={`Assist Disposition${isReadOnly ? ' · Lesemodus' : ''} · ${roleSubtitle}`}
+      eyebrow="ASSIST · DISPOSITION"
+      subtitle={`Einsatzplanung & Zuordnung${isReadOnly ? ' · Lesemodus' : ''} · ${roleSubtitle}`}
+      moduleLabel="Assist"
+      showBack={false}
       scroll={false}
+      accentColor={assistAccent}
+      actions={[
+        { key: 'refresh', label: 'Aktualisieren', onPress: () => list.refresh(), variant: 'ghost' as const },
+      ]}
     >
       <View style={styles.content}>
         {list.isEmpty && !list.hasActiveFilters ? (
@@ -63,7 +73,7 @@ export function AssignmentsListScreen({
           <AssignmentsListView onAssignmentPress={onAssignmentPress} selectedId={selectedId} />
         )}
       </View>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 

@@ -1,8 +1,10 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import { DocumentsListView } from '@/components/office/DocumentsListView';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
+import { moduleColor } from '@/design/tokens/modules';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -15,6 +17,7 @@ export function OfficeDocumentsListScreen() {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const canUpload = can('office.documents.upload' as never);
+  const officeAccent = moduleColor('office');
 
   const query = useAsyncQuery(
     () => {
@@ -44,19 +47,20 @@ export function OfficeDocumentsListScreen() {
   const isEmpty = (query.data ?? []).length === 0;
 
   return (
-    <ScreenShell
+    <C14vSubpageShell
       title="Dokumente"
-      subtitle={`Office Ablage${isReadOnly ? ' · Lesemodus' : ''}`}
-      rightSlot={
-        canUpload ? (
-          <PremiumButton
-            title="Upload"
-            size="sm"
-            onPress={() => router.push('/business/office/documents/upload' as never)}
-          />
-        ) : null
-      }
+      eyebrow="OFFICE · ABLAGE"
+      subtitle={`Dokumentenverwaltung${isReadOnly ? ' · Lesemodus' : ''}`}
+      moduleLabel="Office"
+      showBack={false}
       scroll={false}
+      accentColor={officeAccent}
+      actions={[
+        ...(canUpload
+          ? [{ key: 'upload', label: 'Hochladen', onPress: () => router.push('/business/office/documents/upload' as never), variant: 'primary' as const }]
+          : []),
+        { key: 'refresh', label: 'Aktualisieren', onPress: () => query.refresh(), variant: 'ghost' as const },
+      ]}
     >
       <View style={styles.content}>
         {isEmpty ? (
@@ -70,7 +74,7 @@ export function OfficeDocumentsListScreen() {
           <DocumentsListView />
         )}
       </View>
-    </ScreenShell>
+    </C14vSubpageShell>
   );
 }
 
