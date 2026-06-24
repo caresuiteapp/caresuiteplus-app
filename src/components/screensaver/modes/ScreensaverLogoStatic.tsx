@@ -49,11 +49,11 @@ export function ScreensaverLogoStatic({ logoSize }: ScreensaverLogoStaticProps) 
 const styles = StyleSheet.create({
   root: {
     alignItems: 'center',
-    gap: 12,
+    gap: 20,
   },
   glassCard: {
-    padding: 28,
-    borderRadius: 28,
+    padding: 56,
+    borderRadius: 36,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.55)',
     backgroundColor: 'rgba(255,255,255,0.22)',
@@ -63,11 +63,11 @@ const styles = StyleSheet.create({
     shadowOffset: { width: 0, height: 8 },
   },
   tenant: {
-    fontSize: 18,
+    fontSize: 32,
     fontWeight: '500',
   },
   brand: {
-    fontSize: 14,
+    fontSize: 20,
     letterSpacing: 0.4,
   },
 });

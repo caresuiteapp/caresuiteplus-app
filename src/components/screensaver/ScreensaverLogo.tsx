@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
 import { Image, StyleSheet, View } from 'react-native';
 import { CareSuiteLogo } from '@/components/brand';
+import { CARESUITE_LOGO_SIZES } from '@/components/brand/CareSuiteLogoMark';
 import { useTenantBranding } from '@/hooks/useTenantDisplayName';
 import type { ScreensaverLogoSize } from '@/lib/screensaver/screensaverTypes';
 import { LOGO_SIZE_PX } from '@/lib/screensaver/screensaverTypes';
@@ -21,8 +22,10 @@ export function ScreensaverLogo({ size }: ScreensaverLogoProps) {
 
   const showRemote = trimmed.length > 0 && !logoFailed;
 
+  const fallbackScale = dim / CARESUITE_LOGO_SIZES.hero;
+
   return (
-    <View style={styles.wrap}>
+    <View style={[styles.wrap, { width: dim, height: dim }]}>
       {showRemote ? (
         <Image
           source={{ uri: trimmed }}
@@ -32,7 +35,10 @@ export function ScreensaverLogo({ size }: ScreensaverLogoProps) {
           onError={() => setLogoFailed(true)}
         />
       ) : !logoLoading ? (
-        <CareSuiteLogo size={size === 'small' ? 'lg' : size === 'medium' ? 'xxl' : 'hero'} />
+        <CareSuiteLogo
+          size="hero"
+          style={{ transform: [{ scale: fallbackScale }] }}
+        />
       ) : null}
     </View>
   );

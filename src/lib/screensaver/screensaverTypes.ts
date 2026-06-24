@@ -138,7 +138,7 @@ export const BOUNCE_SPEED_PX_PER_SEC: Record<ScreensaverBounceSpeed, number> = {
 };
 
 export const LOGO_SIZE_PX: Record<ScreensaverLogoSize, number> = {
-  small: 80,
-  medium: 120,
-  large: 160,
+  small: 160,
+  medium: 240,
+  large: 320,
 };

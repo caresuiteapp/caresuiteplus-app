@@ -74,32 +74,32 @@ export function ScreensaverClockDate({
 const styles = StyleSheet.create({
   root: {
     alignItems: 'center',
-    gap: 10,
+    gap: 20,
   },
   card: {
-    paddingHorizontal: 36,
-    paddingVertical: 28,
-    borderRadius: 24,
+    paddingHorizontal: 72,
+    paddingVertical: 56,
+    borderRadius: 32,
     borderWidth: 1,
     borderColor: 'rgba(255,255,255,0.5)',
     backgroundColor: 'rgba(255,255,255,0.2)',
     alignItems: 'center',
-    gap: 8,
+    gap: 16,
   },
   time: {
-    fontSize: 56,
+    fontSize: 112,
     fontWeight: '300',
-    letterSpacing: 2,
+    letterSpacing: 4,
     fontVariant: ['tabular-nums'],
   },
   date: {
-    fontSize: 20,
+    fontSize: 40,
     fontWeight: '400',
   },
   tenant: {
-    fontSize: 16,
+    fontSize: 32,
   },
   brand: {
-    fontSize: 13,
+    fontSize: 22,
   },
 });
