@@ -1,5 +1,5 @@
-import { useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View, type TextStyle } from 'react-native';
+import { useMemo } from 'react';
+import { Platform, Pressable, StyleSheet, Text, View, type TextStyle } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
 import { formatWebFontScaleLabel } from '@/design/web/webFontScaleConfig';
@@ -21,48 +21,38 @@ export function WebFontSizeControl({ compact = false }: WebFontSizeControlProps)
   const { colors, isDark } = useLegacyTheme();
   const { scale, increase, decrease, canIncrease, canDecrease } = useWebFontScale();
   const styles = useMemo(() => createStyles(isDark, colors, compact), [compact, isDark, colors]);
-  const [decreaseHovered, setDecreaseHovered] = useState(false);
-  const [increaseHovered, setIncreaseHovered] = useState(false);
 
   if (Platform.OS !== 'web') return null;
 
   return (
-    <View
-      style={styles.root}
-      accessibilityRole="group"
-      accessibilityLabel={`Schriftgröße, aktuell ${formatWebFontScaleLabel(scale)}`}
-    >
-      <Text
+    <View style={styles.root} accessibilityLabel={`Schriftgröße, aktuell ${formatWebFontScaleLabel(scale)}`}>
+      <Pressable
         onPress={canDecrease ? decrease : undefined}
-        style={[
-          styles.action,
-          canDecrease ? webPointer : webDisabled,
-          canDecrease && decreaseHovered ? styles.actionHover : null,
+        disabled={!canDecrease}
+        style={({ hovered }) => [
+          styles.actionWrap,
+          canDecrease && hovered ? styles.actionWrapHover : null,
         ]}
-        onHoverIn={() => setDecreaseHovered(true)}
-        onHoverOut={() => setDecreaseHovered(false)}
         accessibilityRole="button"
         accessibilityLabel="Schrift verkleinern"
         accessibilityState={{ disabled: !canDecrease }}
       >
-        A−
-      </Text>
+        <Text style={[styles.action, canDecrease ? webPointer : webDisabled]}>A−</Text>
+      </Pressable>
       <Text style={styles.label}>{formatWebFontScaleLabel(scale)}</Text>
-      <Text
+      <Pressable
         onPress={canIncrease ? increase : undefined}
-        style={[
-          styles.action,
-          canIncrease ? webPointer : webDisabled,
-          canIncrease && increaseHovered ? styles.actionHover : null,
+        disabled={!canIncrease}
+        style={({ hovered }) => [
+          styles.actionWrap,
+          canIncrease && hovered ? styles.actionWrapHover : null,
         ]}
-        onHoverIn={() => setIncreaseHovered(true)}
-        onHoverOut={() => setIncreaseHovered(false)}
         accessibilityRole="button"
         accessibilityLabel="Schrift vergrößern"
         accessibilityState={{ disabled: !canIncrease }}
       >
-        A+
-      </Text>
+        <Text style={[styles.action, canIncrease ? webPointer : webDisabled]}>A+</Text>
+      </Pressable>
     </View>
   );
 }
@@ -83,6 +73,12 @@ function createStyles(
       backgroundColor: isDark ? 'rgba(15, 23, 42, 0.55)' : 'rgba(0, 0, 0, 0.04)',
       gap: compact ? 2 : spacing.xs,
     },
+    actionWrap: {
+      paddingHorizontal: 2,
+    },
+    actionWrapHover: {
+      opacity: 0.85,
+    },
     action: {
       ...typography.bodyStrong,
       fontSize: compact ? 10 : 14,
@@ -90,10 +86,6 @@ function createStyles(
       fontWeight: '600',
       color: isDark ? '#E2E8F0' : colors.textPrimary,
       userSelect: 'none',
-    } as TextStyle,
-    actionHover: {
-      color: isDark ? '#FFFFFF' : colors.textPrimary,
-      opacity: 0.85,
     } as TextStyle,
     label: {
       ...typography.caption,

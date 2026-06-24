@@ -85,6 +85,7 @@ export async function fetchAssignmentList(
       data: visitResult.data.map((item) => ({
         id: item.id,
         tenantId: item.tenantId,
+        employeeId: item.employeeId,
         title: item.title,
         scheduledStart: item.scheduledStart,
         scheduledEnd: item.scheduledEnd,

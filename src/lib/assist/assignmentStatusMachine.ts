@@ -1,4 +1,5 @@
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
 
 export const ALLOWED_TRANSITIONS: Record<AssignmentStatus, AssignmentStatus[]> = {
   geplant: ['bestaetigt', 'unterwegs', 'storniert', 'nicht_erschienen'],
@@ -53,6 +54,8 @@ export function requiresDocumentationBeforeComplete(status: AssignmentStatus): b
 type ExecutionTransitionOptions = {
   requireArrivedBeforeStart?: boolean;
   hasDocumentation?: boolean;
+  hasRequiredSignature?: boolean;
+  signatureImpossibleJustified?: boolean;
 };
 
 export function validateExecutionTransition(
@@ -76,6 +79,6 @@ export function validateExecutionTransition(
 
 const NOTE_REQUIRED_STATUSES: AssignmentStatus[] = ['storniert', 'nicht_erschienen'];
 
-export function taskStatusRequiresNote(status: AssignmentStatus): boolean {
-  return NOTE_REQUIRED_STATUSES.includes(status);
+export function taskStatusRequiresNote(status: AssignmentStatus | ExtendedAssignmentTaskStatus): boolean {
+  return NOTE_REQUIRED_STATUSES.includes(status as AssignmentStatus);
 }

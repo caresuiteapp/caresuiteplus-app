@@ -88,12 +88,13 @@ export function createManagementTask(input: {
 
 export function listManagementTasks(
   tenantId: string,
-  filter?: { assignmentId?: string; status?: ManagementTaskStatus },
+  filter?: { assignmentId?: string; status?: ManagementTaskStatus; taskType?: ManagementTaskType },
 ): ManagementTask[] {
   if (!tenantId?.trim()) return [];
   return filterByTenant(LIVE_MONITOR_STORE.managementTasks, tenantId).filter((t) => {
     if (filter?.assignmentId && t.assignmentId !== filter.assignmentId) return false;
     if (filter?.status && t.status !== filter.status) return false;
+    if (filter?.taskType && t.taskType !== filter.taskType) return false;
     return true;
   });
 }

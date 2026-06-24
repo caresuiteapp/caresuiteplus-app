@@ -441,7 +441,7 @@ describe('QM Cockpit (Prompt 65)', () => {
     expect(tasks.length).toBe(1);
 
     const task = tasks[0];
-    updateManagementTaskStatus(TENANT, task.id, 'archived', 'admin-001');
+    updateManagementTaskStatus(TENANT, task.id, 'archived');
     expect(MANAGEMENT_TASK_AUTOMATION_RULES.length).toBe(13);
   });
 

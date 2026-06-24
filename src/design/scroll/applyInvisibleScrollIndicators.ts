@@ -18,7 +18,7 @@ function patchScrollDefaults(component: ScrollPrimitiveWithDefaults): void {
 
 /** Hide native scroll indicators app-wide; scrolling remains enabled. */
 export function applyInvisibleScrollIndicators(): void {
-  patchScrollDefaults(ScrollView);
-  patchScrollDefaults(FlatList);
-  patchScrollDefaults(SectionList);
+  patchScrollDefaults(ScrollView as unknown as ScrollPrimitiveWithDefaults);
+  patchScrollDefaults(FlatList as unknown as ScrollPrimitiveWithDefaults);
+  patchScrollDefaults(SectionList as unknown as ScrollPrimitiveWithDefaults);
 }

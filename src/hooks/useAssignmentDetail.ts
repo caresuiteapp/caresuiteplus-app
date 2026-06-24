@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import type { AssignmentPlan } from '@/types/modules/assist';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import {
   fetchVisitDispositionDetail,
@@ -14,7 +15,7 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
   const tenantId = useServiceTenantId();
   const roleKey = profile?.roleKey ?? null;
 
-  const query = useAsyncQuery(
+  const query = useAsyncQuery<AssignmentPlan>(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       if (!assignmentId) {
@@ -63,7 +64,7 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
     },
   );
 
-  const statusMutation = useMutation(
+  const statusMutation = useMutation<AssignmentStatus, AssignmentPlan>(
     (newStatus: AssignmentStatus) => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       if (!assignmentId) {

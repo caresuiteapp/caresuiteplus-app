@@ -60,10 +60,7 @@ describe('workspace access model', () => {
   });
 
   it('2. Mitarbeiter sieht nur eigene Einsätze', async () => {
-    const list = await fetchAssignmentList(TENANT, 'nurse', {
-      userId: 'nurse-1',
-      employeeId: 'employee-001',
-    });
+    const list = await fetchAssignmentList(TENANT, 'nurse');
     expect(list.ok).toBe(true);
     if (list.ok) {
       expect(list.data.every((a) => a.employeeId === 'employee-001')).toBe(true);
@@ -108,10 +105,7 @@ describe('workspace access model', () => {
   });
 
   it('6. Direkt-Route ohne Berechtigung wird blockiert', () => {
-    const decision = checkRoleAccess('/portal/employee', 'client_portal', {
-      tenantId: TENANT,
-      userId: 'c1',
-    });
+    const decision = checkRoleAccess('/portal/employee', 'client_portal');
     expect(decision.shouldRedirect).toBe(true);
   });
 
