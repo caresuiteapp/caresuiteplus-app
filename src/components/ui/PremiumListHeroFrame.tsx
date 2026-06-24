@@ -1,5 +1,5 @@
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { ListHeroSurfaceContext } from '@/design/tokens/listHeroSurfaceContext';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import { withAlpha } from '@/design/tokens/motion';
@@ -13,20 +13,25 @@ type PremiumListHeroFrameProps = {
   accentColor?: string;
 };
 
-/** Shared hero shell — Aurora gradient when aurora shell is active. */
+/** Shared hero shell — light surface in light mode, aurora gradient in dark mode. */
 export function PremiumListHeroFrame({ children, style, accentColor }: PremiumListHeroFrameProps) {
   const { mode } = useThemeMode();
-  const shellHostsAurora = useShellHostsAurora();
 
-  if (mode === 'light' && !shellHostsAurora) {
+  if (mode === 'light') {
     return (
-      <CareLightListHeroFrame style={style} accentColor={accentColor}>
-        {children}
-      </CareLightListHeroFrame>
+      <ListHeroSurfaceContext.Provider value="light">
+        <CareLightListHeroFrame style={style} accentColor={accentColor}>
+          {children}
+        </CareLightListHeroFrame>
+      </ListHeroSurfaceContext.Provider>
     );
   }
 
-  return <AuroraPremiumListHeroFrame style={style}>{children}</AuroraPremiumListHeroFrame>;
+  return (
+    <ListHeroSurfaceContext.Provider value="gradient">
+      <AuroraPremiumListHeroFrame style={style}>{children}</AuroraPremiumListHeroFrame>
+    </ListHeroSurfaceContext.Provider>
+  );
 }
 
 function AuroraPremiumListHeroFrame({ children, style }: PremiumListHeroFrameProps) {

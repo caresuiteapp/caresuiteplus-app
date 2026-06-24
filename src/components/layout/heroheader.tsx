@@ -1,7 +1,7 @@
-import { ReactNode, useMemo } from 'react';
+import { ReactNode } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { CareSuiteLogo, CareSuiteWordmark } from '@/components/brand';
-import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+import { useAuthFlowTypography } from '@/design/tokens/authTypography';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 
@@ -12,8 +12,8 @@ type HeroHeaderProps = {
 
 /** Public start-page hero — logo, claim, safe typography. */
 export function HeroHeader({ title, subtitle }: HeroHeaderProps) {
-  const { isPhone, isDesktopOrWide, width } = useDeviceClass();
-  const type = useMemo(() => resolveGalaxyTypography(width), [width]);
+  const { isPhone, isDesktopOrWide } = useDeviceClass();
+  const type = useAuthFlowTypography();
 
   return (
     <View style={styles.hero}>
@@ -46,8 +46,7 @@ type AuthHeroHeaderProps = {
 
 /** Simplified auth hero without KPI/debug panels. */
 export function AuthHeroHeader({ eyebrow, title, subtitle, icon = '🔐', footer }: AuthHeroHeaderProps) {
-  const { width } = useDeviceClass();
-  const type = useMemo(() => resolveGalaxyTypography(width), [width]);
+  const type = useAuthFlowTypography();
 
   return (
     <View style={styles.authHero}>

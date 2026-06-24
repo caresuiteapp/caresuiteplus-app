@@ -15,6 +15,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { designTokens } from '@/theme';
+import { ListHeroSurfaceContext, useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
 
 export type CareLightResolved = {
   isDark: boolean;
@@ -156,10 +157,54 @@ export function createCareLightContentStyles(c: CareLightResolved) {
   });
 }
 
-/** List-hero typography — always white / light for readability on gradient hero frames. */
-export function useListHeroTextStyles() {
-  return useMemo(
-    () => ({
+export type ListHeroTextVariant = 'gradient' | 'light';
+
+type ListHeroTextStyleOptions = {
+  /** `gradient` = white on colored/gradient heroes; `light` = dark on light surfaces. */
+  variant?: ListHeroTextVariant;
+  /** Shorthand for `variant: 'gradient' | 'light'`. */
+  onGradient?: boolean;
+};
+
+/** List-hero typography — context-aware contrast for gradient vs light hero surfaces. */
+export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
+  const text = useAuroraAdaptiveText();
+  const { c } = useCareLightPalette();
+  const surface = useListHeroSurface();
+
+  const variant: ListHeroTextVariant =
+    options?.variant ??
+    (options?.onGradient === true
+      ? 'gradient'
+      : options?.onGradient === false
+        ? 'light'
+        : surface);
+
+  return useMemo(() => {
+    if (variant === 'light') {
+      return {
+        eyebrow: {
+          ...careTypography.caption,
+          color: text.muted,
+          letterSpacing: designTokens.hero.eyebrowLetterSpacing,
+          fontWeight: '700' as TextStyle['fontWeight'],
+        },
+        title: {
+          ...careTypography.h2,
+          color: text.primary,
+          fontWeight: '800' as TextStyle['fontWeight'],
+        },
+        meta: {
+          ...careTypography.caption,
+          color: text.secondary,
+        },
+        iconBorder: {
+          borderColor: c.border,
+        },
+      };
+    }
+
+    return {
       eyebrow: {
         ...careTypography.caption,
         color: 'rgba(255,255,255,0.85)',
@@ -178,7 +223,6 @@ export function useListHeroTextStyles() {
       iconBorder: {
         borderColor: 'rgba(255,255,255,0.4)',
       },
-    }),
-    [],
-  );
+    };
+  }, [c.border, text.muted, text.primary, text.secondary, variant]);
 }
