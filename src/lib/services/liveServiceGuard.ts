@@ -2,6 +2,7 @@ import type { ServiceResult } from '@/types';
 import {
   assertDemoDataNotInProduction,
   assertTenantAllowedForMode,
+  isInternalTest,
   toGuardBlock,
 } from '@/lib/environment';
 import { getServiceMode } from '@/lib/services/mode';
@@ -49,12 +50,14 @@ export function isLiveServiceMode(): boolean {
   return getServiceMode() === 'supabase';
 }
 
-/** Mandantenprüfung + Live-Blocker für noch nicht angebundene Features. */
+/** Mandantenprüfung + Live-Blocker für noch nicht angebundene Features.
+ *  internal_test tenants (E2E / QA) bypass the live-mode feature block. */
 export function guardLiveDemoFeature<T>(
   tenantId: string,
   featureLabel: string,
 ): ServiceResult<T> | null {
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+  if (isInternalTest(tenantId)) return null;
   return blockDemoOnlyInLiveMode<T>(featureLabel);
 }

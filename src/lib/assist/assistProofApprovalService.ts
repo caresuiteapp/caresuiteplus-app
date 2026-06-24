@@ -15,6 +15,7 @@ import {
   ASSIST_PROOF_PORTAL_RELEASE_LABELS,
   ASSIST_PROOF_STATUS_LABELS,
 } from '@/lib/assist/assistProofLabels';
+import { invalidatePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 
 export { ASSIST_PROOF_PORTAL_RELEASE_LABELS, ASSIST_PROOF_STATUS_LABELS };
 
@@ -140,13 +141,15 @@ export async function releaseAssistProofToPortal(
   }
 
   const now = new Date().toISOString();
-  return updateVisitProofRow(tenantId, proofId, {
+  const result = await updateVisitProofRow(tenantId, proofId, {
     status: 'exported',
     portal_visible: true,
     released_to_portal_at: now,
     portal_release_status: 'released',
     updated_by: actorProfileId ?? null,
   });
+  if (result.ok) invalidatePortalProofCache();
+  return result;
 }
 
 export async function revokeAssistProofPortalRelease(
@@ -165,9 +168,11 @@ export async function revokeAssistProofPortalRelease(
     return { ok: false, error: 'Nachweis ist nicht im Klientenportal veröffentlicht.' };
   }
 
-  return updateVisitProofRow(tenantId, proofId, {
+  const result = await updateVisitProofRow(tenantId, proofId, {
     portal_visible: false,
     portal_release_status: 'revoked',
     updated_by: actorProfileId ?? null,
   });
+  if (result.ok) invalidatePortalProofCache();
+  return result;
 }

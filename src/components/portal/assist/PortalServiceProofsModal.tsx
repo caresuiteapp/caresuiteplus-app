@@ -14,6 +14,7 @@ import {
   resolvePortalServiceProofDownloadUrl,
   resolvePortalServiceProofStatusLabel,
 } from '@/lib/portal/assist/portalServiceProofService';
+import { subscribePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 import type { PortalServiceProof } from '@/types/portal/serviceProofs';
 import { LoadingState, PremiumButton } from '@/components/ui';
 
@@ -64,6 +65,12 @@ export function PortalServiceProofsModal({
 
   useEffect(() => {
     if (visible) void loadProofs();
+  }, [visible, loadProofs]);
+
+  useEffect(() => {
+    return subscribePortalProofCache(() => {
+      if (visible) void loadProofs();
+    });
   }, [visible, loadProofs]);
 
   const handleClose = () => {
