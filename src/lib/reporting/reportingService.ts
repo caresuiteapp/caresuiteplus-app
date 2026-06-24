@@ -1,5 +1,10 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { PdlCockpitSnapshot, ReportDetail, ReportListItem } from '@/types/reporting';
+import type {
+  ReportingDashboardKind,
+  ReportingDashboardSnapshot,
+  ReportingDateRangePreset,
+} from '@/types/reporting/metrics';
 import {
   demoReportList,
   getDemoPdlCockpit,
@@ -9,6 +14,10 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { reportingSupabaseRepository } from '@/lib/services/repositories/reportingRepository.supabase';
+import { buildDemoReportingMetricsBundle } from './reportingRepository.demo';
+import { buildReportingDashboardSnapshot } from './dashboardMetricsService';
+import { resolveReportingDashboardForRole } from './metricAccessControl';
+import { resolveReportingDateRange } from './reportingDateRangeUtils';
 
 /** WP507 — Service-Schicht Reporting */
 export async function fetchPdlCockpit(
@@ -97,4 +106,44 @@ export async function createReportDraft(
     updatedAt: new Date().toISOString(),
   });
   return { ok: true, data: { id } };
+}
+
+export type FetchReportingDashboardOptions = {
+  dashboardKind?: ReportingDashboardKind;
+  dateRangePreset?: ReportingDateRangePreset;
+};
+
+export async function fetchReportingDashboard(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+  options?: FetchReportingDashboardOptions,
+): Promise<ServiceResult<ReportingDashboardSnapshot>> {
+  const denied = enforcePermission<ReportingDashboardSnapshot>(actorRoleKey, 'business.reporting.view');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const kind = options?.dashboardKind ?? resolveReportingDashboardForRole(actorRoleKey ?? null) ?? 'admin';
+  const preset = options?.dateRangePreset ?? 'current_month';
+  const dateRange = resolveReportingDateRange(preset);
+  const bundle = buildDemoReportingMetricsBundle(tenantId, dateRange);
+  const preparedOnly = getServiceMode() !== 'supabase';
+
+  await new Promise((r) => setTimeout(r, 150));
+  return { ok: true, data: buildReportingDashboardSnapshot(bundle, kind, actorRoleKey ?? null, preparedOnly) };
+}
+
+export async function fetchCeoDashboard(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<ReportingDashboardSnapshot>> {
+  return fetchReportingDashboard(tenantId, actorRoleKey, { dashboardKind: 'ceo' });
+}
+
+export async function fetchBillingReportingDashboard(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<ReportingDashboardSnapshot>> {
+  return fetchReportingDashboard(tenantId, actorRoleKey, { dashboardKind: 'billing' });
 }

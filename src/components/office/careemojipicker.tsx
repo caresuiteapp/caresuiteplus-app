@@ -22,9 +22,9 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const chipStyles = useAuroraGlassChipStyles({ viewContext: 'form' });
-  const [activeCategory, setActiveCategory] = useState<CareEmojiCategory['id']>('reaktionen');
+  const [activeCategory, setActiveCategory] = useState<CareEmojiCategory['key']>('reaktionen');
 
-  const active = CARE_EMOJI_CATEGORIES.find((category) => category.id === activeCategory)
+  const active = CARE_EMOJI_CATEGORIES.find((category) => category.key === activeCategory)
     ?? CARE_EMOJI_CATEGORIES[0]!;
 
   const styles = useMemo(
@@ -73,12 +73,12 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
     >
       <View style={styles.tabs} accessibilityRole="tablist">
         {CARE_EMOJI_CATEGORIES.map((category) => {
-          const isActive = category.id === activeCategory;
+          const isActive = category.key === activeCategory;
           return (
             <Pressable
-              key={category.id}
+              key={category.key}
               style={[chipStyles.chip, isActive ? chipStyles.chipSelected : null]}
-              onPress={() => setActiveCategory(category.id)}
+              onPress={() => setActiveCategory(category.key)}
               accessibilityRole="tab"
               accessibilityState={{ selected: isActive }}
               accessibilityLabel={`Kategorie ${category.label}`}
@@ -94,7 +94,7 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
         <View style={styles.grid} accessibilityRole="menu">
           {active.emojis.map((emoji) => (
             <Pressable
-              key={`${active.id}-${emoji}`}
+              key={`${active.key}-${emoji}`}
               style={({ pressed }) => [
                 styles.emojiBtn,
                 pressed ? styles.emojiBtnPressed : null,

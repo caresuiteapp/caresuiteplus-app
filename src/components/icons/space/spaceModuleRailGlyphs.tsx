@@ -4,7 +4,7 @@ import type { MainModuleKey } from '@/types/navigation/platform';
 
 type ModuleRailGlyphProps = {
   accent: string;
-  size?: number;
+  size: number;
 };
 
 /** Fette, gut lesbare Modul-Icons speziell für die linke Haupt-Rail (48px). */

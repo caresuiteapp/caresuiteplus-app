@@ -25,32 +25,50 @@ const TASK_TITLES: Record<ManagementTaskType, string> = {
 
 export function createManagementTask(input: {
   tenantId: string;
-  assignmentId: string;
+  assignmentId?: string;
   taskType: ManagementTaskType;
+  title?: string;
   description?: string;
   priority?: NotificationPriority;
+  clientId?: string | null;
+  employeeId?: string | null;
+  relatedEntityType?: string | null;
+  relatedEntityId?: string | null;
+  dueAt?: string | null;
+  createdBy?: string | null;
+  metadata?: Record<string, string>;
 }): ManagementTask {
+  const assignmentId = input.assignmentId ?? '';
   const existing = LIVE_MONITOR_STORE.managementTasks.find(
     (t) =>
       t.tenantId === input.tenantId &&
-      t.assignmentId === input.assignmentId &&
+      t.assignmentId === assignmentId &&
       t.taskType === input.taskType &&
       t.status !== 'resolved' &&
       t.status !== 'archived',
   );
   if (existing) return existing;
 
+  const now = new Date().toISOString();
   const task: ManagementTask = {
     id: nextTaskId(),
     tenantId: input.tenantId,
-    assignmentId: input.assignmentId,
+    assignmentId,
     taskType: input.taskType,
     status: 'open',
-    title: TASK_TITLES[input.taskType],
-    description: input.description ?? TASK_TITLES[input.taskType],
+    title: input.title ?? TASK_TITLES[input.taskType] ?? input.taskType,
+    description: input.description ?? TASK_TITLES[input.taskType] ?? input.taskType,
     priority: input.priority ?? 'normal',
-    createdAt: new Date().toISOString(),
+    clientId: input.clientId ?? null,
+    employeeId: input.employeeId ?? null,
+    relatedEntityType: input.relatedEntityType ?? null,
+    relatedEntityId: input.relatedEntityId ?? null,
+    dueAt: input.dueAt ?? null,
+    createdBy: input.createdBy ?? null,
+    createdAt: now,
+    updatedAt: now,
     resolvedAt: null,
+    metadata: input.metadata,
   };
   LIVE_MONITOR_STORE.managementTasks.push(task);
 

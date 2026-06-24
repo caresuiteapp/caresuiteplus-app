@@ -16,6 +16,7 @@ import {
   type EmployeeAvatarPending,
   validateEmployeeAvatarFile,
 } from '@/lib/office/employeeAvatarService';
+import type { EmployeeProfilePhotoValue } from '@/types/forms/employeeForm';
 import { spacing, typography } from '@/theme';
 
 const AVATAR_SIZE = 140;

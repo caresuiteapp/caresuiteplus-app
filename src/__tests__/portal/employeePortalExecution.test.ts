@@ -189,12 +189,12 @@ describe('employee portal execution (Prompt 58)', () => {
     }
   });
 
-  it('3. Start ohne Berechtigung blockiert', () => {
+  it('3. Start ohne Berechtigung blockiert', async () => {
     const created = createTestAssignment();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const blocked = transitionEmployeePortalAssignment(
+    const blocked = await transitionEmployeePortalAssignment(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -204,12 +204,12 @@ describe('employee portal execution (Prompt 58)', () => {
     expect(blocked.ok).toBe(false);
   });
 
-  it('4. Statusfluss unterwegs → angekommen → gestartet', () => {
+  it('4. Statusfluss unterwegs → angekommen → gestartet', async () => {
     const created = createTestAssignment();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const onWay = transitionEmployeePortalAssignment(
+    const onWay = await transitionEmployeePortalAssignment(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -219,7 +219,7 @@ describe('employee portal execution (Prompt 58)', () => {
     expect(onWay.ok).toBe(true);
     if (onWay.ok) expect(onWay.data.status).toBe('unterwegs');
 
-    const arrived = transitionEmployeePortalAssignment(
+    const arrived = await transitionEmployeePortalAssignment(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -228,7 +228,7 @@ describe('employee portal execution (Prompt 58)', () => {
     );
     expect(arrived.ok).toBe(true);
 
-    const started = transitionEmployeePortalAssignment(
+    const started = await transitionEmployeePortalAssignment(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -239,12 +239,12 @@ describe('employee portal execution (Prompt 58)', () => {
     if (started.ok) expect(started.data.status).toBe('gestartet');
   });
 
-  it('5. Ungültiger Sprung geplant → abgeschlossen blockiert', () => {
+  it('5. Ungültiger Sprung geplant → abgeschlossen blockiert', async () => {
     const created = createTestAssignment();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const blocked = transitionEmployeePortalAssignment(
+    const blocked = await transitionEmployeePortalAssignment(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -254,13 +254,13 @@ describe('employee portal execution (Prompt 58)', () => {
     expect(blocked.ok).toBe(false);
   });
 
-  it('6. Start ohne Ankunft blockiert', () => {
+  it('6. Start ohne Ankunft blockiert', async () => {
     const created = createTestAssignment();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'unterwegs');
-    const blocked = transitionEmployeePortalAssignment(
+    await transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'unterwegs');
+    const blocked = await transitionEmployeePortalAssignment(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -378,7 +378,7 @@ describe('employee portal execution (Prompt 58)', () => {
     if (!created.ok) return;
 
     await runExecutionUntilDocumentation(created.data.id);
-    const blocked = completeEmployeePortalAssignment(
+    const blocked = await completeEmployeePortalAssignment(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -431,7 +431,7 @@ describe('employee portal execution (Prompt 58)', () => {
       expect(detail.data.documentationStatus).toBe('locked');
     }
 
-    const reOpen = transitionEmployeePortalAssignment(
+    const reOpen = await transitionEmployeePortalAssignment(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,

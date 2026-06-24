@@ -49,3 +49,33 @@ export function isAssignmentLocked(status: AssignmentStatus): boolean {
 export function requiresDocumentationBeforeComplete(status: AssignmentStatus): boolean {
   return status === 'beendet' || status === 'dokumentation_offen';
 }
+
+type ExecutionTransitionOptions = {
+  requireArrivedBeforeStart?: boolean;
+  hasDocumentation?: boolean;
+};
+
+export function validateExecutionTransition(
+  from: AssignmentStatus,
+  to: AssignmentStatus,
+  options?: ExecutionTransitionOptions,
+): { valid: true } | { valid: false; error: string } {
+  const base = validateAssignmentTransition(from, to);
+  if (!base.valid) return base;
+
+  if (options?.requireArrivedBeforeStart && to === 'gestartet' && from !== 'angekommen') {
+    return { valid: false, error: 'Ankunft muss vor dem Start bestätigt werden.' };
+  }
+
+  if (to === 'abgeschlossen' && requiresDocumentationBeforeComplete(from) && !options?.hasDocumentation) {
+    return { valid: false, error: 'Dokumentation muss vor Abschluss vorliegen.' };
+  }
+
+  return { valid: true };
+}
+
+const NOTE_REQUIRED_STATUSES: AssignmentStatus[] = ['storniert', 'nicht_erschienen'];
+
+export function taskStatusRequiresNote(status: AssignmentStatus): boolean {
+  return NOTE_REQUIRED_STATUSES.includes(status);
+}

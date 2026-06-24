@@ -135,8 +135,24 @@ export type ManagementTaskType =
   | 'problem_review'
   | 'emergency_review'
   | 'correction_review'
+  | 'correction_requested'
   | 'billing_release'
-  | 'service_proof_review';
+  | 'billing_blocker'
+  | 'service_proof_review'
+  | 'review_service_record'
+  | 'review_exception'
+  | 'client_cancel_request'
+  | 'client_reschedule_request'
+  | 'problem_report'
+  | 'emergency_follow_up'
+  | 'no_show_follow_up'
+  | 'employee_late'
+  | 'complaint'
+  | 'missing_contract'
+  | 'missing_consent'
+  | 'budget_warning'
+  | 'audit_review'
+  | 'master_data_review';
 
 export type ManagementTaskStatus =
   | 'open'
@@ -146,6 +162,8 @@ export type ManagementTaskStatus =
   | 'resolved'
   | 'archived';
 
+export type ManagementTaskPriority = NotificationPriority;
+
 export type ManagementTask = {
   id: string;
   tenantId: string;
@@ -154,9 +172,17 @@ export type ManagementTask = {
   status: ManagementTaskStatus;
   title: string;
   description: string;
-  priority: NotificationPriority;
+  priority: ManagementTaskPriority;
+  clientId: string | null;
+  employeeId: string | null;
+  relatedEntityType: string | null;
+  relatedEntityId: string | null;
+  dueAt: string | null;
+  createdBy: string | null;
   createdAt: string;
+  updatedAt: string;
   resolvedAt: string | null;
+  metadata?: Record<string, string>;
 };
 
 export type ProblemReportType =

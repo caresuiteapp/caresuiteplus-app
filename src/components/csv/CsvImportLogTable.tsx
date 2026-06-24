@@ -6,6 +6,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import type { CsvImportLogRecord } from '@/types/csv';
 import { buildErrorReportCsv } from '@/lib/csv/csvValidation';
 import { buildErrorReportFileName, triggerCsvDownload } from '@/lib/csv/csvDownload';
+import { getImportLogDetail } from '@/lib/csv/csvImportLogs';
 import { CsvErrorTable } from './CsvErrorTable';
 import { typography } from '@/theme';
 import type { RoleKey } from '@/types';

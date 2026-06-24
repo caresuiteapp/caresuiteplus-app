@@ -147,6 +147,40 @@ export async function createPersonalComplianceTask(
   return { ok: true, data: task };
 }
 
+export const PERSONAL_COMPLIANCE_COCKPIT_ROUTE = '/business/office/personal-compliance' as const;
+
+export const PERSONAL_COMPLIANCE_PREPARED_MESSAGE =
+  'Personal-Compliance-Cockpit ist vorbereitet. Echtdaten werden nach Live-Betrieb verfügbar.' as const;
+
+export function isPersonalComplianceLiveReady(): boolean {
+  return getServiceMode() === 'supabase';
+}
+
+export async function fetchPersonalComplianceSnapshot(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+  filter?: PersonalComplianceListFilter,
+  opts?: { userId?: string | null },
+): Promise<ServiceResult<PersonalComplianceSnapshot>> {
+  return fetchPersonalComplianceCockpit(tenantId, actorRoleKey, opts?.userId, filter);
+}
+
+export async function createPersonalComplianceTaskFromRisk(input: {
+  tenantId: string;
+  riskId: string;
+  actorRoleKey?: RoleKey | null;
+  actorId?: string | null;
+}): Promise<ServiceResult<ManagementTask>> {
+  return createPersonalComplianceTask({
+    tenantId: input.tenantId,
+    employeeId: input.riskId,
+    title: `Compliance-Risiko: ${input.riskId}`,
+    description: '',
+    actorId: input.actorId,
+    actorRole: input.actorRoleKey,
+  });
+}
+
 export function buildPersonalComplianceSnapshotForTests(
   tenantId: string,
   filter?: PersonalComplianceListFilter,

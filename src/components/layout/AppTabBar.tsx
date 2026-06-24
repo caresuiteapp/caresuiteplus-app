@@ -10,6 +10,7 @@ import {
   useAuroraGlassActive,
 } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import type { AppShellArea, ShellTabConfig } from '@/types/navigation/shell';
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 import { shouldUseCompactMobileNav } from '@/lib/navigation/shellMobileTabs';
 import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';

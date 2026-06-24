@@ -30,6 +30,13 @@ export function applyDemoProfileOverride(profile: Profile): Profile {
   return { ...profile, ...override };
 }
 
+export function patchDemoProfileOverride(
+  profileId: string,
+  patch: Partial<Profile>,
+): void {
+  demoOverrides.set(profileId, { ...demoOverrides.get(profileId), ...patch });
+}
+
 export async function saveUserProfile(
   profile: Profile,
   form: UserProfileForm,

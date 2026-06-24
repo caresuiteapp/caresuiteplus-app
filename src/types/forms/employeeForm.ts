@@ -7,6 +7,8 @@ export type EmployeeFormData = {
   phone: string;
   jobTitle: string;
   department: string;
+  status?: string;
+  profilePhoto?: EmployeeProfilePhotoValue | null;
 };
 
 export type EmployeeFormErrors = Partial<Record<keyof EmployeeFormData, string>>;

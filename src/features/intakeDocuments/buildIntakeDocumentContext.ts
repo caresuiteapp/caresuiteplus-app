@@ -128,6 +128,15 @@ export function listApplicableIntakeTemplates(
   return result;
 }
 
+export function resolveBillingHourlyRate(
+  form: ClientIntakeFormData,
+  tenant?: { name?: string; defaultHourlyRate?: string } | null,
+): string {
+  const formRate = (form as Record<string, unknown>).hourlyRate;
+  if (typeof formRate === 'string' && formRate.trim()) return formRate.trim();
+  return tenant?.defaultHourlyRate ?? '';
+}
+
 export function listAvailableContractTypes(contexts: ClientCareContext[]): IntakeContractTypeKey[] {
   const types = new Set<IntakeContractTypeKey>();
   for (const ctx of contexts) {

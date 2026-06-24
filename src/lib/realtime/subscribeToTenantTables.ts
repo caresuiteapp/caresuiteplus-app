@@ -12,6 +12,8 @@ import {
   type RealtimeHandler,
 } from './channelManager';
 
+export type { RealtimeHandler } from './channelManager';
+
 export type PostgresChangeEvent = 'INSERT' | 'UPDATE' | 'DELETE' | '*';
 
 export type TenantTableSpec = {

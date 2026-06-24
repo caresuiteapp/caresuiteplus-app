@@ -1,5 +1,5 @@
 import { createElement, useEffect, useLayoutEffect, useRef, useState, type CSSProperties } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import {
   LPB_CYCLE_S,
   lightPaperBackgroundAnimatedSvg,
@@ -149,20 +149,14 @@ export function AnimatedLightPaperBackground({
   );
 }
 
+const webFixedFull: ViewStyle = (Platform.OS === 'web'
+  ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }
+  : {}) as ViewStyle;
+
 const styles = StyleSheet.create({
   dimOverlay: {
     ...StyleSheet.absoluteFillObject,
-    ...(Platform.OS === 'web'
-      ? ({
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100vw',
-          height: '100vh',
-        } as const)
-      : null),
+    ...webFixedFull,
     backgroundColor: 'rgba(249,251,255,0.22)',
   },
 });

@@ -96,6 +96,24 @@ export function validateSendMessage(
   return { ok: true };
 }
 
+export function filterThreadsForPortalClient(
+  threads: OfficeMessageThread[],
+  clientId: string,
+): OfficeMessageThread[] {
+  return threads.filter(
+    (t) => t.threadType === 'client_office' && t.clientId === clientId,
+  );
+}
+
+export function filterThreadsForPortalEmployee(
+  threads: OfficeMessageThread[],
+  employeeId: string,
+): OfficeMessageThread[] {
+  return threads.filter(
+    (t) => t.threadType === 'employee_office' && t.employeeId === employeeId,
+  );
+}
+
 export function validateCreateThread(input: {
   threadType: OfficeThreadType;
   clientId?: string | null;

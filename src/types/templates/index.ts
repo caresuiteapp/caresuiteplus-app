@@ -75,7 +75,9 @@ export type CatalogType =
   | 'counseling_topic'
   | 'academy_course_type'
   | 'stationaer_living_area_type'
-  | 'consent_type';
+  | 'consent_type'
+  | 'employee_role'
+  | 'employee_department';
 
 export type CatalogEntry = {
   id: EntityId;

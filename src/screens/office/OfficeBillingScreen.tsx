@@ -14,6 +14,10 @@ import { useAuth } from '@/lib/auth/context';
 import { colors, spacing } from '@/theme';
 import { BudgetsListScreen } from './BudgetsListScreen';
 
+function InvoiceDetailModal(_props: { visible: boolean; invoiceId: string | null; onClose: () => void }) {
+  return null;
+}
+
 const BILLING_TABS: TabOption[] = [
   { key: 'invoices', label: 'Rechnungen' },
   { key: 'budgets', label: 'Budgets' },

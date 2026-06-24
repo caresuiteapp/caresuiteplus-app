@@ -29,3 +29,13 @@ export const CLIENT_DOCUMENT_CATEGORY_LABELS: Record<ClientDocumentRecord['categ
   einwilligung: 'Einwilligung',
   sonstige: 'Sonstige',
 };
+
+export const CLIENT_DOCUMENT_STATUS_LABELS: Record<WorkflowStatus, string> = {
+  entwurf: 'Entwurf',
+  aktiv: 'Aktiv',
+  in_bearbeitung: 'In Bearbeitung',
+  abgeschlossen: 'Abgeschlossen',
+  archiviert: 'Archiviert',
+  fehlerhaft: 'Fehlerhaft',
+  gesperrt: 'Gesperrt',
+};

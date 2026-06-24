@@ -37,6 +37,7 @@ type Props = {
   disabled?: boolean;
   style?: StyleProp<ViewStyle>;
   fullWidth?: boolean;
+  accessibilityLabel?: string;
 };
 
 export function PremiumButton({

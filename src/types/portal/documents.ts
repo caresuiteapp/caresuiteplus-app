@@ -3,6 +3,8 @@ import type { PortalScopedEntity } from './visibility';
 
 export type PortalDocumentCategory =
   | 'care_plan'
+  | 'contract'
+  | 'assignment'
   | 'invoice'
   | 'report'
   | 'consent'
@@ -33,7 +35,14 @@ export type PortalDocumentListItem = Pick<
   | 'updatedAt'
   | 'visibility'
   | 'sensitivity'
->;
+> & {
+  clientName?: string | null;
+  clientId?: string | null;
+  displayFileName?: string | null;
+  documentSource?: string | null;
+  sizeLabel?: string | null;
+  previewHtml?: string | null;
+};
 
 export type PortalDocumentDetail = PortalDocumentListItem & {
   createdAt: string;
@@ -43,6 +52,8 @@ export type PortalDocumentDetail = PortalDocumentListItem & {
 
 export const PORTAL_DOCUMENT_CATEGORY_LABELS: Record<PortalDocumentCategory, string> = {
   care_plan: 'Pflegeplan',
+  contract: 'Vertrag',
+  assignment: 'Einsatzvereinbarung',
   invoice: 'Rechnung',
   report: 'Bericht',
   consent: 'Einwilligung',

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import { DetailInfoRow } from '@/components/detail';
 import { ClientSectionEditModal } from '@/components/office/ClientSectionEditModal';

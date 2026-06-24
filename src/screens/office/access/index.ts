@@ -1,5 +1,6 @@
 export { AccessManagementDashboardScreen } from './AccessManagementDashboardScreen';
 export { InternalUsersScreen } from './InternalUsersScreen';
+export { InternalTasksScreen } from './InternalTasksScreen';
 export { InternalUserDetailScreen } from './InternalUserDetailScreen';
 export { CreateInternalUserScreen } from './CreateInternalUserScreen';
 export { EmployeePortalAccountsScreen } from './EmployeePortalAccountsScreen';

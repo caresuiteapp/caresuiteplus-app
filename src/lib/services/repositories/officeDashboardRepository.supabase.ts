@@ -21,15 +21,18 @@ function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
+// eslint-disable-next-line @typescript-eslint/no-explicit-any
+type AnyPostgrestQuery = any;
+
 async function countByFilter(
   table: string,
   tenantId: string,
-  applyFilter?: (query: ReturnType<typeof fromUnknownTable>) => ReturnType<typeof fromUnknownTable>,
+  applyFilter?: (query: AnyPostgrestQuery) => AnyPostgrestQuery,
 ): Promise<{ count: number; available: boolean }> {
   const supabase = getSupabaseClient();
   if (!supabase) return { count: 0, available: false };
 
-  let query = fromUnknownTable(supabase, table)
+  let query: AnyPostgrestQuery = fromUnknownTable(supabase, table)
     .select('id', { count: 'exact', head: true })
     .eq('tenant_id', tenantId);
 

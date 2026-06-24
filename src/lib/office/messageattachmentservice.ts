@@ -24,6 +24,33 @@ export type MessageAttachment = {
 
 const BUCKET = 'message-attachments';
 
+const MIME_ALIASES: Record<string, string> = {
+  'image/jpg': 'image/jpeg',
+  'application/x-pdf': 'application/pdf',
+};
+
+function normalizeMimeType(raw: string): string {
+  const lower = raw.trim().toLowerCase();
+  return MIME_ALIASES[lower] ?? lower;
+}
+
+const EXT_TO_MIME: Record<string, string> = {
+  jpg: 'image/jpeg',
+  jpeg: 'image/jpeg',
+  png: 'image/png',
+  gif: 'image/gif',
+  webp: 'image/webp',
+  pdf: 'application/pdf',
+  doc: 'application/msword',
+  docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
+  txt: 'text/plain',
+};
+
+function inferMimeTypeFromFileName(fileName: string): string | null {
+  const ext = fileName.split('.').pop()?.toLowerCase();
+  return ext ? (EXT_TO_MIME[ext] ?? null) : null;
+}
+
 function officeMessagingError(error: string): ServiceResult<never> {
   if (isMissingTableServiceError(error)) {
     return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
@@ -133,6 +160,8 @@ export async function uploadMessageAttachment(input: {
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const normalizedMimeType = normalizeMimeType(input.mimeType);
 
   const attachmentId =
     typeof globalThis.crypto?.randomUUID === 'function'

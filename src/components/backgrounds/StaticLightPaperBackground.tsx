@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { Image, Platform, StyleSheet, View } from 'react-native';
+import { Image, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 
 const LIGHT_PAPER_BACKGROUND_PNG = require('../../../assets/images/backgrounds/light-abstract-paper-background.png');
 const LIGHT_PAPER_BACKGROUND_SVG = require('../../../assets/images/backgrounds/light-abstract-paper-background.svg');
@@ -63,7 +63,7 @@ export function StaticLightPaperBackground({
     <View
       style={styles.root}
       pointerEvents="none"
-      aria-hidden
+      aria-hidden={true}
       accessibilityElementsHidden
       importantForAccessibility="no-hide-descendants"
       testID={testID}
@@ -73,7 +73,7 @@ export function StaticLightPaperBackground({
         <View
           style={[styles.image, { backgroundImage: `url(${WEB_SVG_URI})` }]}
           accessibilityIgnoresInvertColors
-          aria-hidden
+          aria-hidden={true}
         />
       ) : (
         <Image
@@ -81,7 +81,7 @@ export function StaticLightPaperBackground({
           style={styles.image}
           resizeMode="cover"
           accessibilityIgnoresInvertColors
-          aria-hidden
+          aria-hidden={true}
         />
       )}
       {dimmed ? <View style={styles.dimOverlay} pointerEvents="none" /> : null}
@@ -89,42 +89,25 @@ export function StaticLightPaperBackground({
   );
 }
 
+const webFixedFull: ViewStyle = (Platform.OS === 'web'
+  ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }
+  : {}) as ViewStyle;
+
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
     zIndex: 0,
-    ...(Platform.OS === 'web'
-      ? ({
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100vw',
-          height: '100vh',
-        } as const)
-      : null),
+    ...webFixedFull,
   },
   image: {
     ...StyleSheet.absoluteFillObject,
-    width: '100%',
-    height: '100%',
+    width: '100%' as ViewStyle['width'],
+    height: '100%' as ViewStyle['height'],
     ...(Platform.OS === 'web'
-      ? ({
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100vw',
-          height: '100vh',
-          objectFit: 'cover',
-          backgroundSize: 'cover',
-          backgroundPosition: 'center',
-          backgroundRepeat: 'no-repeat',
-        } as const)
-      : null),
+      ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh',
+          objectFit: 'cover', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
+      : null) as ViewStyle,
   },
   dimOverlay: {
     ...StyleSheet.absoluteFillObject,

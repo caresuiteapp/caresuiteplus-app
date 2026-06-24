@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle, useWindowDimensions } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
 import type { AppShellArea } from '@/types/navigation/shell';
@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     ...(Platform.OS === 'web'
       ? ({ overflow: 'auto', height: '100%' } as const)
-      : null),
+      : null) as ViewStyle,
   },
   kpiAlignScrollContent: {
     flexGrow: 1,

@@ -134,6 +134,7 @@ export function TemplateListHero({
   serviceMode,
   hasActiveSearch = false,
 }: TemplateListHeroProps) {
+  const heroText = useListHeroTextStyles();
   const config = resolveVariantConfig(variant);
   const kpis = buildKpis(templates);
   const countLabel = hasActiveSearch

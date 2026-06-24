@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   llgsBaseGradient,
@@ -192,7 +192,7 @@ function WebAuroraCanvas({ animate, particleCount }: { animate: boolean; particl
         height: '100%',
         pointerEvents: 'none',
       }}
-      aria-hidden
+      aria-hidden={true}
     />
   );
 }
@@ -220,7 +220,7 @@ export function LightLiquidGlassSpaceBackground({
       <View
         style={styles.root}
         pointerEvents="none"
-        aria-hidden
+        aria-hidden={true}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         testID="light-liquid-glass-space-background"
@@ -232,12 +232,16 @@ export function LightLiquidGlassSpaceBackground({
   }
 
   return (
-    <View style={styles.root} pointerEvents="none" aria-hidden testID="light-liquid-glass-space-background">
+    <View style={styles.root} pointerEvents="none" aria-hidden={true} testID="light-liquid-glass-space-background">
       <LinearGradient colors={[...llgsBaseGradient]} style={StyleSheet.absoluteFillObject} />
       {dimmed ? <View style={styles.dimOverlay} pointerEvents="none" /> : null}
     </View>
   );
 }
+
+const webFixedFull: ViewStyle = (Platform.OS === 'web'
+  ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }
+  : {}) as ViewStyle;
 
 const styles = StyleSheet.create({
   root: {
@@ -245,17 +249,7 @@ const styles = StyleSheet.create({
     overflow: 'hidden',
     zIndex: 0,
     backgroundColor: '#EAF4FF',
-    ...(Platform.OS === 'web'
-      ? ({
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100vw',
-          height: '100vh',
-        } as const)
-      : null),
+    ...webFixedFull,
   },
   dimOverlay: {
     ...StyleSheet.absoluteFillObject,

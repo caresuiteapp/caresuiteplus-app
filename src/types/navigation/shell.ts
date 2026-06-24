@@ -17,6 +17,7 @@ export type ShellTabConfig = {
   label: string;
   icon: string;
   href: string;
+  moduleScopeKey?: string;
   /** Nur für bestimmte Rollen sichtbar */
   allowedRoles?: RoleKey[];
 };

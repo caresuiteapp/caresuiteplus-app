@@ -14,6 +14,10 @@ import { useAuth } from '@/lib/auth/context';
 import { getVisibleConnectIntegrations } from '@/lib/connect';
 import { spacing } from '@/theme';
 
+function ConnectRoadmapPanel() {
+  return null;
+}
+
 export function ConnectHubScreen() {
   const router = useRouter();
   const { profile } = useAuth();

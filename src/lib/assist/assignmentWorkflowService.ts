@@ -14,6 +14,7 @@ import { createDemoAssignmentSeed } from '@/data/demo/assistAssignments';
 import { enforcePermission } from '@/lib/permissions';
 import { buildWorkspaceAccessContext, canViewAssignment } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { getPlanningBlockAbsences } from '@/lib/office/absenceStore';
 import { detectAssignmentConflicts, hasBlockingConflicts } from './assignmentConflictService';
 import { syncScheduleFromAssignments } from './scheduleFromAssignmentsService';
 import { emitWorkflowLiveEvent, handleStatusSideEffects } from './liveMonitorOrchestrator';
@@ -97,6 +98,12 @@ function upsertAssignment(record: AssignmentWorkflowRecord): AssignmentWorkflowR
 /** Interner Patch für Live-Monitor-Statusübergänge */
 export function upsertAssignmentWorkflowRecord(record: AssignmentWorkflowRecord): AssignmentWorkflowRecord {
   return upsertAssignment(record);
+}
+
+function getEmployeeAvailabilityBlocks(
+  _tenantId: string,
+): Array<{ employeeId: string; startsAt: string; endsAt: string }> {
+  return [];
 }
 
 function conflictContext(tenantId: string) {

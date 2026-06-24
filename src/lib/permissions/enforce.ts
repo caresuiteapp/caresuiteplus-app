@@ -3,7 +3,7 @@ import type { RoleKey } from '@/types/core/auth';
 import type { PermissionKey } from '@/types/permissions';
 import { permissionError } from './check';
 
-export function enforcePermission<T>(
+export function enforcePermission<T = never>(
   roleKey: RoleKey | null | undefined,
   permission: PermissionKey,
 ): ServiceResult<T> | null {

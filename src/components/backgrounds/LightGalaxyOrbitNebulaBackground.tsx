@@ -1,5 +1,5 @@
 import { useEffect, useRef } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle, useWindowDimensions } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
 import {
   LGON_LAYER_IDS,
@@ -392,7 +392,7 @@ function LayerCanvas({
       data-testid={testId}
       data-layer={layerId}
       style={layerCanvasStyle}
-      aria-hidden
+      aria-hidden={true}
     />
   );
 }
@@ -734,11 +734,10 @@ function LayerABaseAtmosphere() {
   if (Platform.OS === 'web') {
     return (
       <View
-        // @ts-expect-error web data-testid
         data-testid="lgoon-layer-a-base-atmosphere"
         style={styles.layerA}
         pointerEvents="none"
-        aria-hidden
+        aria-hidden={true}
       />
     );
   }
@@ -753,17 +752,16 @@ function LayerJReadabilityVeil() {
       <View
         style={styles.layerJNative}
         pointerEvents="none"
-        aria-hidden
+        aria-hidden={true}
       />
     );
   }
   return (
     <View
-      // @ts-expect-error web data-testid
       data-testid="lgoon-layer-j-readability-veil"
       style={styles.layerJ}
       pointerEvents="none"
-      aria-hidden
+      aria-hidden={true}
     />
   );
 }
@@ -790,11 +788,10 @@ export function LightGalaxyOrbitNebulaBackground({
       <View
         style={styles.root}
         pointerEvents="none"
-        aria-hidden
+        aria-hidden={true}
         accessibilityElementsHidden
         importantForAccessibility="no-hide-descendants"
         testID="light-galaxy-orbit-nebula-background"
-        // @ts-expect-error web data attribute
         data-layers={LGON_LAYER_IDS.join(',')}
         data-motion-engine="independent-layers"
       >
@@ -817,7 +814,7 @@ export function LightGalaxyOrbitNebulaBackground({
     <View
       style={styles.root}
       pointerEvents="none"
-      aria-hidden
+      aria-hidden={true}
       testID="light-galaxy-orbit-nebula-background"
     >
       <LayerABaseAtmosphere />
@@ -826,18 +823,9 @@ export function LightGalaxyOrbitNebulaBackground({
   );
 }
 
-const webRootStyle =
-  Platform.OS === 'web'
-    ? ({
-        position: 'fixed' as const,
-        top: 0,
-        left: 0,
-        right: 0,
-        bottom: 0,
-        width: '100vw' as const,
-        height: '100vh' as const,
-      } as const)
-    : ({} as const);
+const webRootStyle: ViewStyle = (Platform.OS === 'web'
+    ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }
+    : {}) as ViewStyle;
 
 const styles = StyleSheet.create({
   root: {
@@ -849,13 +837,13 @@ const styles = StyleSheet.create({
   },
   layerA: {
     ...StyleSheet.absoluteFillObject,
-    backgroundImage:
-      'linear-gradient(135deg, #A8AEB6 0%, #B8BEC6 28%, #C4CAD2 52%, #B0B6BE 78%, #9CA2AC 100%)',
+    ...(Platform.OS === 'web' ? { backgroundImage:
+      'linear-gradient(135deg, #A8AEB6 0%, #B8BEC6 28%, #C4CAD2 52%, #B0B6BE 78%, #9CA2AC 100%)' } : null) as ViewStyle,
   },
   layerJ: {
     ...StyleSheet.absoluteFillObject,
-    backgroundImage:
-      'radial-gradient(ellipse 96% 88% at 50% 44%, rgba(196,200,206,0.038) 0%, rgba(188,192,198,0.014) 42%, transparent 72%)',
+    ...(Platform.OS === 'web' ? { backgroundImage:
+      'radial-gradient(ellipse 96% 88% at 50% 44%, rgba(196,200,206,0.038) 0%, rgba(188,192,198,0.014) 42%, transparent 72%)' } : null) as ViewStyle,
     pointerEvents: 'none',
   },
   layerJNative: {

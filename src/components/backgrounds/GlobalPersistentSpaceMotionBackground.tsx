@@ -1,5 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
-import { Platform, StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import {
   PSM_LOOP_MS,
   PSM_SCENE,
@@ -382,7 +382,7 @@ function WebMotionCanvas({ animate, testID }: { animate: boolean; testID?: strin
       data-background-engine="persistent-space-canvas"
       data-loop-ms={String(PSM_LOOP_MS)}
       data-testid={testID}
-      aria-hidden
+      aria-hidden={true}
       style={{
         position: 'absolute',
         inset: 0,
@@ -448,22 +448,16 @@ export function GlobalPersistentSpaceMotionBackground({
   );
 }
 
+const webFixedFull: ViewStyle = (Platform.OS === 'web'
+  ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }
+  : {}) as ViewStyle;
+
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
     backgroundColor: 'transparent',
-    ...(Platform.OS === 'web'
-      ? ({
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100vw',
-          height: '100vh',
-        } as const)
-      : null),
+    ...webFixedFull,
   },
   dimmed: {
     opacity: 0.88,

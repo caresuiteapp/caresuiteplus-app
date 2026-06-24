@@ -1,5 +1,7 @@
 import type { WorkflowStatus } from '../core/base';
 
+export type { WorkflowStatus } from '../core/base';
+
 export type StatusTransition<TStatus extends string = WorkflowStatus> = {
   from: TStatus;
   to: TStatus;

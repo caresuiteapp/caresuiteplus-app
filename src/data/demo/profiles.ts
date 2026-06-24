@@ -4,7 +4,11 @@ import { DEMO_TENANT_ID } from './tenant';
 const BASE = '2025-01-15T08:00:00.000Z';
 const UPDATED = '2026-06-01T10:00:00.000Z';
 
-type DemoProfileSeed = Profile & { roleKey: RoleKey };
+type DemoProfileSeed = Omit<Profile, 'firstName' | 'lastName'> & {
+  roleKey: RoleKey;
+  firstName?: string | null;
+  lastName?: string | null;
+};
 
 /** Ein Demo-Profil je Rolle — für Login-Tests und Berechtigungsprüfung (WP 009/011) */
 export const demoProfiles: DemoProfileSeed[] = [
