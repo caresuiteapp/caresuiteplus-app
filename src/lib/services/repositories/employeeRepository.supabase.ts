@@ -87,10 +87,10 @@ export const employeeSupabaseRepository = {
       .eq('id', id)
       .maybeSingle();
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    if (!data || String((data as EmployeeDetailLiveRow).status ?? '') === 'deleted') {
+    if (!data || String((data as unknown as EmployeeDetailLiveRow).status ?? '') === 'deleted') {
       return { ok: true, data: null };
     }
-    return { ok: true, data: data as EmployeeDetailLiveRow };
+    return { ok: true, data: data as unknown as EmployeeDetailLiveRow };
   },
 
   async getDetailMapped(

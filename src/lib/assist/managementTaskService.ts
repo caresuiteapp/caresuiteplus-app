@@ -32,6 +32,7 @@ export function createManagementTask(input: {
   priority?: NotificationPriority;
   clientId?: string | null;
   employeeId?: string | null;
+  assignedTo?: string | null;
   relatedEntityType?: string | null;
   relatedEntityId?: string | null;
   dueAt?: string | null;

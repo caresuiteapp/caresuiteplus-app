@@ -198,7 +198,7 @@ export async function listThreads(
     return { ok: false, error: 'Keine Berechtigung für Portal-Nachrichten.' };
   }
 
-  return runService(async () => {
+  return runService<ThreadListItem[]>(async () => {
     const tenantErr = assertTenant(tenantId);
     if (tenantErr) return tenantErr;
 
@@ -286,7 +286,7 @@ export async function getThread(
     if (denied) return denied;
   }
 
-  return runService(async () => {
+  return runService<CommunicationThread>(async () => {
     const tenantErr = assertTenant(tenantId);
     if (tenantErr) return tenantErr;
 
@@ -378,7 +378,7 @@ export async function sendMessage(
   const threadResult = await getThread(tenantId, input.threadId, actorRoleKey, profileId);
   if (!threadResult.ok) return threadResult;
 
-  return runService(async () => {
+  return runService<CommunicationMessage>(async () => {
     const tenantErr = assertTenant(tenantId);
     if (tenantErr) return tenantErr;
 
@@ -761,7 +761,7 @@ export async function getCommunicationKpis(
   );
   if (denied) return denied;
 
-  return runService(async () => {
+  return runService<CommunicationCenterKpis>(async () => {
     const tenantErr = assertTenant(tenantId);
     if (tenantErr) return tenantErr;
 

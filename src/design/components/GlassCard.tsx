@@ -43,6 +43,9 @@ export function GlassCard({
       ? loginGlass.borderWhite
       : careEffects.glass.border;
 
+  const glowStyle: ViewStyle | null = useLightGlass ? null : (galaxyGlow.cyan as ViewStyle);
+  const selectedStyle: ViewStyle | null = useLightGlass ? null : (galaxyGlow.orange as ViewStyle);
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -55,8 +58,6 @@ export function GlassCard({
         cardDark: {
           backgroundColor: galaxyPalette.cardGlass,
         },
-        cardGlow: useLightGlass ? null : galaxyGlow.cyan,
-        selected: useLightGlass ? null : galaxyGlow.orange,
         accentRim: {
           borderLeftWidth: 3,
         },
@@ -76,10 +77,10 @@ export function GlassCard({
       style={[
         styles.card,
         useLightGlass ? auroraCardStyle : styles.cardDark,
-        glow && !useLightGlass ? styles.cardGlow : null,
-        selected && !useLightGlass ? styles.selected : null,
+        glow && !useLightGlass ? glowStyle : null,
+        selected && !useLightGlass ? selectedStyle : null,
         { borderColor },
-        accentColor && !selected ? [styles.accentRim, { borderLeftColor: accentColor }] : null,
+        accentColor && !selected ? { ...styles.accentRim, borderLeftColor: accentColor } : null,
         style,
       ]}
     >
@@ -113,7 +114,7 @@ export function GlassCard({
     <Pressable
       onPress={onPress}
       accessibilityRole="button"
-      style={({ pressed }) => (pressed ? styles.pressed : undefined)}
+      style={({ pressed }) => (pressed ? styles.pressed : undefined) as ViewStyle | undefined}
     >
       {inner}
     </Pressable>

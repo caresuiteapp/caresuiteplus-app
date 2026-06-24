@@ -68,14 +68,14 @@ export const wernerMuellerFull: ClientFullDetail = {
     {
       id: 'addr-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
       addressType: 'hauptwohnsitz', street: 'Prenzlauer Allee 88', zip: '10437', city: 'Berlin',
-      country: 'DE', isPrimary: true, accessNotes: 'EG, Stufe am Eingang', floor: 'EG', doorCode: '1234',
+      country: 'DE', isPrimary: true, accessNotes: 'EG, Stufe am Eingang', floor: 'EG', apartmentNumber: null, doorCode: '1234',
       createdAt: daysAgo(400), updatedAt: now,
     },
   ],
   contacts: [
     {
       id: 'contact-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
-      firstName: 'Klaus', lastName: 'Müller', relationship: 'kind', relationshipLabel: 'Sohn',
+      firstName: 'Klaus', lastName: 'Müller', contactType: 'relative', relationship: 'kind', relationshipLabel: 'Sohn',
       phone: '+49 171 9876543', email: 'klaus.mueller@demo.app', isEmergency: true,
       isPortalUser: true,
       portalPermissions: { canViewAppointments: true, canViewDocuments: true, canViewCarePlan: true, canSendMessages: true, canViewBilling: true },
@@ -83,7 +83,7 @@ export const wernerMuellerFull: ClientFullDetail = {
     },
     {
       id: 'contact-wm-2', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
-      firstName: 'Ingrid', lastName: 'Müller', relationship: 'ehepartner', relationshipLabel: 'Ehefrau',
+      firstName: 'Ingrid', lastName: 'Müller', contactType: 'relative', relationship: 'ehepartner', relationshipLabel: 'Ehefrau',
       phone: '+49 30 44556677', email: null, isEmergency: false, isPortalUser: false,
       portalPermissions: { canViewAppointments: false, canViewDocuments: false, canViewCarePlan: false, canSendMessages: false, canViewBilling: false },
       notes: 'Lebt im selben Haushalt', createdAt: daysAgo(350), updatedAt: now,
@@ -203,8 +203,8 @@ export const wernerMuellerFull: ClientFullDetail = {
   portalAccess: [
     {
       id: 'portal-wm-1', tenantId: DEMO_TENANT_ID, clientId: 'client-002',
-      contactId: 'contact-wm-1', email: 'klaus.mueller@demo.app', status: 'aktiv',
-      lastLoginAt: daysAgo(1), invitedAt: daysAgo(60),
+      contactId: 'contact-wm-1', email: 'klaus.mueller@demo.app', portalUsername: null, portalEnabled: true, status: 'aktiv',
+      lastLoginAt: daysAgo(1), invitedAt: daysAgo(60), codeCreatedAt: daysAgo(60), codeRotatedAt: null,
       modulesEnabled: ['appointments', 'messages', 'documents', 'careplan', 'billing'],
       twoFactorEnabled: true, createdAt: daysAgo(60), updatedAt: now,
     },

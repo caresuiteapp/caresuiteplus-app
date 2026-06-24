@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { mapClientEditLoadToIntakeForm } from '@/lib/clients/clientIntakeFormMappers';
-import { EMPTY_CLIENT_EDIT_FORM } from '@/types/forms/clientEditForm';
+import { EMPTY_CLIENT_EDIT_FORM, type ClientEditFormData } from '@/types/forms/clientEditForm';
 import type { ClientDetail } from '@/types/detail';
 import type { ClientFullDetail } from '@/types/modules/client';
 
@@ -29,6 +29,11 @@ function buildDetail(): ClientDetail {
     contacts: [],
     consents: [],
     contextCounts: { assignments: 0, documents: 0, invoices: 0, appointments: 0 },
+    admissionDate: null,
+    auditEntries: [],
+    history: [],
+    nextActionHint: '',
+    allowedStatusActions: [],
     createdAt: '2026-01-01T00:00:00.000Z',
     updatedAt: '2026-01-01T00:00:00.000Z',
   };
@@ -47,12 +52,12 @@ function buildFull(detail: ClientDetail): ClientFullDetail {
       gender: 'weiblich',
       dateOfBirth: detail.dateOfBirth,
       lifecycleStatus: 'aktiv',
-      insuranceNumber: detail.insuranceNumber,
+      insuranceNumber: detail.insuranceNumber ?? null,
       keySafeCode: null,
       diagnoses: [],
       primaryContactPhone: detail.primaryContactPhone,
-      city: detail.city,
-      zip: detail.zip,
+      city: detail.city ?? null,
+      zip: detail.zip ?? null,
       sensitivity: detail.sensitivity,
       visibility: detail.visibility,
       ownedByProfileId: null,
@@ -125,7 +130,7 @@ describe('mapClientEditLoadToIntakeForm', () => {
   it('maps core client fields into intake wizard defaults', () => {
     const detail = buildDetail();
     const full = buildFull(detail);
-    const editForm = {
+    const editForm: ClientEditFormData = {
       ...EMPTY_CLIENT_EDIT_FORM,
       firstName: detail.firstName,
       lastName: detail.lastName,

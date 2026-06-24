@@ -40,8 +40,8 @@ export function PortalGlassHero({
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const titleStyle = isPhone
-    ? [type.body, { color: text.primary, fontWeight: '700', fontSize: 15, lineHeight: 21 }]
-    : [type.cardTitle, { color: text.primary }];
+    ? { ...type.body, color: text.primary, fontWeight: '700' as const, fontSize: 15, lineHeight: 21 }
+    : { ...type.cardTitle, color: text.primary };
 
   const metaContent = meta ? (
     <View style={styles.metaRow}>
@@ -57,7 +57,7 @@ export function PortalGlassHero({
   ) : null;
 
   return (
-    <GlassCard style={[isPhone && styles.compactCard, style]}>
+    <GlassCard style={{ ...(isPhone ? styles.compactCard : undefined), ...style }}>
       {isPhone && leadingIcon ? (
         <View style={styles.phoneRow}>
           <View style={styles.leadingIconWrap}>{leadingIcon}</View>

@@ -17,7 +17,7 @@ async function persistProfilePhotoAfterCreate(
   form: EmployeeFormData,
 ): Promise<ServiceResult<void>> {
   const photo = form.profilePhoto;
-  if (photo.removed || !photo.pending) {
+  if (!photo || photo.removed || !photo.pending) {
     return { ok: true, data: undefined };
   }
 

@@ -70,14 +70,14 @@ export const helgaSchneiderFull: ClientFullDetail = {
     {
       id: 'addr-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
       addressType: 'hauptwohnsitz', street: 'Musterstraße 12', zip: '10115', city: 'Berlin',
-      country: 'DE', isPrimary: true, accessNotes: '2. OG, Aufzug vorhanden', floor: '2', doorCode: null,
+      country: 'DE', isPrimary: true, accessNotes: '2. OG, Aufzug vorhanden', floor: '2', apartmentNumber: null, doorCode: null,
       createdAt: daysAgo(365), updatedAt: now,
     },
   ],
   contacts: [
     {
       id: 'contact-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
-      firstName: 'Petra', lastName: 'Schneider', relationship: 'kind', relationshipLabel: 'Tochter',
+      firstName: 'Petra', lastName: 'Schneider', contactType: 'relative', relationship: 'kind', relationshipLabel: 'Tochter',
       phone: '+49 170 1234567', email: 'petra.schneider@demo.app', isEmergency: true,
       isPortalUser: true,
       portalPermissions: { canViewAppointments: true, canViewDocuments: true, canViewCarePlan: true, canSendMessages: true, canViewBilling: false },
@@ -85,7 +85,7 @@ export const helgaSchneiderFull: ClientFullDetail = {
     },
     {
       id: 'contact-hs-2', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
-      firstName: 'Dr. Martin', lastName: 'Weber', relationship: 'arzt', relationshipLabel: 'Hausarzt',
+      firstName: 'Dr. Martin', lastName: 'Weber', contactType: 'doctor', relationship: 'arzt', relationshipLabel: 'Hausarzt',
       phone: '+49 30 5551234', email: null, isEmergency: false, isPortalUser: false,
       portalPermissions: { canViewAppointments: false, canViewDocuments: false, canViewCarePlan: false, canSendMessages: false, canViewBilling: false },
       notes: null, createdAt: daysAgo(200), updatedAt: now,
@@ -191,8 +191,8 @@ export const helgaSchneiderFull: ClientFullDetail = {
   portalAccess: [
     {
       id: 'portal-hs-1', tenantId: DEMO_TENANT_ID, clientId: 'client-001',
-      contactId: 'contact-hs-1', email: 'petra.schneider@demo.app', status: 'aktiv',
-      lastLoginAt: daysAgo(3), invitedAt: daysAgo(30),
+      contactId: 'contact-hs-1', email: 'petra.schneider@demo.app', portalUsername: null, portalEnabled: true, status: 'aktiv',
+      lastLoginAt: daysAgo(3), invitedAt: daysAgo(30), codeCreatedAt: daysAgo(30), codeRotatedAt: null,
       modulesEnabled: ['appointments', 'messages', 'documents', 'careplan'],
       twoFactorEnabled: false, createdAt: daysAgo(30), updatedAt: now,
     },

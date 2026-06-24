@@ -21,7 +21,9 @@ import {
 
 export type IntakePlaceholderContext = Record<string, string>;
 
-export type IntakeTenantDisplay = Pick<TenantDisplayMeta, 'name' | 'street' | 'zip' | 'city'>;
+export type IntakeTenantDisplay = Partial<Pick<TenantDisplayMeta, 'name' | 'street' | 'zip' | 'city'>> & {
+  defaultHourlyRate?: string;
+};
 
 export function buildIntakePlaceholderContext(
   form: ClientIntakeFormData,

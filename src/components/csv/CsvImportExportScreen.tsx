@@ -48,14 +48,14 @@ type TabKey =
   | 'templates'
   | 'logs';
 
-const TAB_OPTIONS: Array<{ value: TabKey; label: string }> = [
-  { value: 'overview', label: 'Übersicht' },
-  { value: 'clients-import', label: 'Klient:innen Import' },
-  { value: 'clients-export', label: 'Klient:innen Export' },
-  { value: 'employees-import', label: 'MA Import' },
-  { value: 'employees-export', label: 'MA Export' },
-  { value: 'templates', label: 'Vorlagen' },
-  { value: 'logs', label: 'Protokolle' },
+const TAB_OPTIONS: Array<{ key: TabKey; label: string }> = [
+  { key: 'overview', label: 'Übersicht' },
+  { key: 'clients-import', label: 'Klient:innen Import' },
+  { key: 'clients-export', label: 'Klient:innen Export' },
+  { key: 'employees-import', label: 'MA Import' },
+  { key: 'employees-export', label: 'MA Export' },
+  { key: 'templates', label: 'Vorlagen' },
+  { key: 'logs', label: 'Protokolle' },
 ];
 
 export function CsvImportExportScreen() {
@@ -69,7 +69,7 @@ export function CsvImportExportScreen() {
 
   const [tab, setTab] = useState<TabKey>((params.tab as TabKey | undefined) ?? 'overview');
   useEffect(() => {
-    if (params.tab && TAB_OPTIONS.some((t) => t.value === params.tab)) {
+    if (params.tab && TAB_OPTIONS.some((t) => t.key === params.tab)) {
       setTab(params.tab as TabKey);
     }
   }, [params.tab]);
@@ -121,8 +121,8 @@ export function CsvImportExportScreen() {
         setError(result.error);
         return;
       }
-      if (importType === 'clients') setClientPreview(result.data);
-      else setEmployeePreview(result.data);
+      if (importType === 'clients') setClientPreview(result.data as PreviewState<ClientImportRow>);
+      else setEmployeePreview(result.data as PreviewState<EmployeeImportRow>);
       setMessage('Datei geprüft — bitte Vorschau bestätigen.');
     },
     [selectedFile, tenantId, roleOptions, can],
@@ -142,7 +142,7 @@ export function CsvImportExportScreen() {
               userId: user.id,
               actorProfileId: profile?.id,
               actorRoleKey: profile?.roleKey,
-              preview,
+              preview: preview as PreviewState<ClientImportRow>,
               validRowsOnly: validOnly,
             })
           : await executeEmployeeCsvImport({
@@ -150,7 +150,7 @@ export function CsvImportExportScreen() {
               userId: user.id,
               actorProfileId: profile?.id,
               actorRoleKey: profile?.roleKey,
-              preview,
+              preview: preview as PreviewState<EmployeeImportRow>,
               validRowsOnly: validOnly,
             });
       if (!result.ok) {

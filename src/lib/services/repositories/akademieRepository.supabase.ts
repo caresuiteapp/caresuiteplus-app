@@ -14,6 +14,7 @@ import {
   COURSE_LIVE_SELECT_COLUMNS,
   type CourseLiveRow,
 } from '@/lib/akademie/courseListMapper';
+import type { CourseListItem } from '@/types/modules/akademie';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -58,11 +59,11 @@ export const akademieSupabaseRepository = {
     return { ok: true, data: (data ?? []) as unknown as CourseLiveRow[] };
   },
 
-  async listMapped(tenantId: string) {
+  async listMapped(tenantId: string): Promise<ServiceResult<CourseListItem[]>> {
     const result = await this.listForCourses(tenantId);
     if (!result.ok) return result;
     if (result.tableMissing) {
-      return { ok: true, data: [], tableMissing: true };
+      return { ok: true, data: [] as CourseListItem[], tableMissing: true };
     }
     return mapCourseRowsToListItems(result.data);
   },

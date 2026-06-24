@@ -4,6 +4,8 @@ export type EntityId = string;
 export type WorkflowStatus =
   | 'entwurf'
   | 'aktiv'
+  | 'geplant'
+  | 'bestaetigt'
   | 'in_bearbeitung'
   | 'abgeschlossen'
   | 'archiviert'

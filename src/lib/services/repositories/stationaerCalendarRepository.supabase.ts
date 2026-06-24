@@ -1,4 +1,4 @@
-import type { ServiceResult } from '@/types';
+import type { ServiceResult, WorkflowStatus } from '@/types';
 import type { StationaerCalendarSourceType } from '@/types/calendar';
 import type {
   StationaerCalendarCreateInput,
@@ -69,7 +69,7 @@ function mapRow(row: CareRecordCalendarRow): StationaerCalendarEntity {
     startAt: row.starts_at ?? row.updated_at,
     endAt: row.ends_at ?? row.starts_at ?? row.updated_at,
     allDay: false,
-    status: row.status,
+    status: row.status as WorkflowStatus,
     relatedResidentId: row.related_resident_id,
     relatedWardId: row.related_ward_id,
     relatedEmployeeId: row.related_employee_id,
@@ -150,7 +150,7 @@ export const stationaerCalendarSupabaseRepository = {
       return { ok: false, error: toGermanSupabaseError(error) };
     }
 
-    return { ok: true, data: (data ?? []).map((row) => mapRow(row as CareRecordCalendarRow)) };
+    return { ok: true, data: (data ?? []).map((row) => mapRow(row as unknown as CareRecordCalendarRow)) };
   },
 
   async getById(
@@ -172,7 +172,7 @@ export const stationaerCalendarSupabaseRepository = {
       return { ok: false, error: toGermanSupabaseError(error) };
     }
     if (!data) return { ok: true, data: null };
-    return { ok: true, data: mapRow(data as CareRecordCalendarRow) };
+    return { ok: true, data: mapRow(data as unknown as CareRecordCalendarRow) };
   },
 
   async create(
@@ -188,7 +188,7 @@ export const stationaerCalendarSupabaseRepository = {
       .single();
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: mapRow(data as CareRecordCalendarRow) };
+    return { ok: true, data: mapRow(data as unknown as CareRecordCalendarRow) };
   },
 
   async update(
@@ -208,7 +208,7 @@ export const stationaerCalendarSupabaseRepository = {
       .single();
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return { ok: true, data: mapRow(data as CareRecordCalendarRow) };
+    return { ok: true, data: mapRow(data as unknown as CareRecordCalendarRow) };
   },
 
   async archive(tenantId: string, id: string): Promise<ServiceResult<void>> {

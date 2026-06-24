@@ -119,7 +119,7 @@ export function onBillingValidationFailed(input: {
   createManagementTask({
     tenantId: input.tenantId,
     taskType: 'billing_blocker',
-    assignmentId: input.assignmentId ?? null,
+    assignmentId: input.assignmentId ?? undefined,
     clientId: input.clientId,
     relatedEntityType: 'billable_item',
     relatedEntityId: input.billableItemId ?? input.report.validationRunId,
@@ -235,7 +235,7 @@ export function onBudgetWarning(input: {
   createManagementTask({
     tenantId: input.tenantId,
     taskType: 'budget_warning',
-    assignmentId: input.assignmentId ?? null,
+    assignmentId: input.assignmentId ?? undefined,
     clientId: input.clientId,
     relatedEntityType: 'client',
     relatedEntityId: input.clientId,
@@ -299,7 +299,7 @@ export function onComplaint(input: {
   createManagementTask({
     tenantId: input.tenantId,
     taskType: 'complaint',
-    assignmentId: input.assignmentId ?? null,
+    assignmentId: input.assignmentId ?? undefined,
     clientId: input.clientId,
     relatedEntityType: 'client',
     relatedEntityId: input.clientId,

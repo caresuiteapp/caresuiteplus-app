@@ -44,8 +44,7 @@ async function fetchUpcomingAppointments(
 
   const now = new Date().toISOString();
 
-  const { data, error } = await supabase
-    .from('assignments')
+  const { data, error } = await fromUnknownTable(supabase, 'assignments')
     .select('id, title, planned_start_at, planned_end_at, status, location')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
@@ -61,7 +60,7 @@ async function fetchUpcomingAppointments(
     return [];
   }
 
-  return (data as Record<string, unknown>[]).map((row) => ({
+  return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
     id: String(row.id ?? ''),
     title: String(row.title ?? 'Assist-Termin'),
     startsAt: String(row.planned_start_at ?? ''),
@@ -108,8 +107,7 @@ async function countBegleitungen(
   if (!supabase) return null;
 
   const now = new Date().toISOString();
-  const { count, error } = await supabase
-    .from('assignments')
+  const { count, error } = await fromUnknownTable(supabase, 'assignments')
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)

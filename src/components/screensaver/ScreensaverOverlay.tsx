@@ -87,9 +87,9 @@ const styles = StyleSheet.create({
           bottom: 0,
           width: '100vw',
           height: '100vh',
-        } as const)
-      : null),
-  },
+        } as unknown as ViewStyle)
+      : undefined),
+  } as ViewStyle,
   content: {
     flex: 1,
   },

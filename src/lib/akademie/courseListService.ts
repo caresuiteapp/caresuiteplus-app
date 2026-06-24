@@ -84,7 +84,7 @@ function buildLiveCourseStats(items: CourseListItem[]): AkademieDashboardStats {
 }
 
 type CourseListLoadResult =
-  | { ok: true; data: CourseListItem[]; usedDemoFallback: boolean; tableMissing?: boolean }
+  | { ok: true; data: CourseListItem[]; usedDemoFallback?: boolean; tableMissing?: boolean }
   | { ok: false; error: string };
 
 async function loadCourseList(

@@ -69,8 +69,7 @@ export async function fetchPortalWidgetData(
     tasks.push(
       safeCount(
         'assist_next_visit',
-        client
-          .from('assignments')
+        fromUnknownTable(client, 'assignments')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenantId)
           .eq('client_id', clientId)
@@ -81,8 +80,7 @@ export async function fetchPortalWidgetData(
       }),
       safeCount(
         'assist_trips',
-        client
-          .from('assignments')
+        fromUnknownTable(client, 'assignments')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenantId)
           .eq('client_id', clientId)
@@ -117,8 +115,7 @@ export async function fetchPortalWidgetData(
     tasks.push(
       safeCount(
         'pflege_care_plan',
-        client
-          .from('care_plans')
+        fromUnknownTable(client, 'care_plans')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenantId)
           .eq('client_id', clientId)
@@ -128,8 +125,7 @@ export async function fetchPortalWidgetData(
       }),
       safeCount(
         'pflege_vitals',
-        client
-          .from('vital_signs')
+        fromUnknownTable(client, 'vital_signs')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenantId)
           .eq('client_id', clientId),
@@ -138,8 +134,7 @@ export async function fetchPortalWidgetData(
       }),
       safeCount(
         'pflege_medications',
-        client
-          .from('medications')
+        fromUnknownTable(client, 'medications')
           .select('*', { count: 'exact', head: true })
           .eq('tenant_id', tenantId)
           .eq('client_id', clientId)

@@ -1,5 +1,11 @@
 /** Systemvorlagen für Pflegekassen / Krankenkassen (Stammdaten inkl. Adresse). */
-export type SystemCostCarrierType = 'pflegekasse' | 'krankenkasse';
+export type SystemCostCarrierType =
+  | 'pflegekasse'
+  | 'krankenkasse'
+  | 'privatversicherung'
+  | 'sozialamt'
+  | 'berufsgenossenschaft'
+  | 'unfallversicherung';
 
 export type SystemCostCarrierTemplate = {
   id: string;

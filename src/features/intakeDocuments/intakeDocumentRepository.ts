@@ -39,13 +39,14 @@ type TenantTemplateRow = {
   is_active: boolean;
 };
 
+type IntakeQueryBuilder = {
+  eq: (column: string, value: unknown) => IntakeQueryBuilder;
+  single: () => Promise<{ data: unknown; error: PostgrestError | null }>;
+} & Promise<{ data: unknown; error: PostgrestError | null }>;
+
 type IntakeDbClient = {
   from: (table: string) => {
-    select: (query?: string) => {
-      eq: (column: string, value: unknown) => {
-        eq: (column: string, value: unknown) => Promise<{ data: unknown; error: PostgrestError | null }>;
-      } & Promise<{ data: unknown; error: PostgrestError | null }>;
-    };
+    select: (query?: string) => IntakeQueryBuilder;
     upsert: (
       values: Record<string, unknown>,
       options?: { onConflict?: string },

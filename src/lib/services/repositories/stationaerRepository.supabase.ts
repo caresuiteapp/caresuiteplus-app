@@ -14,6 +14,7 @@ import {
   RESIDENT_LIVE_SELECT_COLUMNS,
   type ResidentLiveRow,
 } from '@/lib/stationaer/residentListMapper';
+import type { ResidentListItem } from '@/types/modules/stationaer';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -58,11 +59,11 @@ export const stationaerSupabaseRepository = {
     return { ok: true, data: (data ?? []) as unknown as ResidentLiveRow[] };
   },
 
-  async listMapped(tenantId: string) {
+  async listMapped(tenantId: string): Promise<ServiceResult<ResidentListItem[]>> {
     const result = await this.listForResidents(tenantId);
     if (!result.ok) return result;
     if (result.tableMissing) {
-      return { ok: true, data: [], tableMissing: true };
+      return { ok: true, data: [] as ResidentListItem[], tableMissing: true };
     }
     return mapResidentRowsToListItems(result.data);
   },

@@ -76,12 +76,12 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
         toggle: {
           minWidth: 24,
           height: 24,
-          borderRadius: 999,
-          borderWidth: 1,
           alignItems: 'center',
           justifyContent: 'center',
-          paddingHorizontal: 6,
           ...(auroraActive ? chipStyles.chip : {
+            borderRadius: 999,
+            borderWidth: 1,
+            paddingHorizontal: 6,
             borderColor: auroraGlass.innerBorder,
             backgroundColor: auroraGlass.chip,
           }),

@@ -1,7 +1,7 @@
 import 'react-native-reanimated';
 import { Stack } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
-import { View, StyleSheet, Platform } from 'react-native';
+import { View, StyleSheet, Platform, type ViewStyle } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { applyInvisibleScrollIndicators } from '@/design/scroll/applyInvisibleScrollIndicators';
 import { ThemeModeProvider, useThemeMode } from '@/design/ThemeModeProvider';
@@ -101,9 +101,9 @@ const styles = StyleSheet.create({
           bottom: 0,
           width: '100vw',
           height: '100vh',
-        } as const)
-      : null),
-  },
+        } as unknown as ViewStyle)
+      : undefined),
+  } as ViewStyle,
   contentLayer: {
     flex: 1,
     zIndex: 1,

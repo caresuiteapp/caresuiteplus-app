@@ -124,7 +124,7 @@ function buildDashboardStats(
 }
 
 type ResidentListLoadResult =
-  | { ok: true; data: ResidentListItem[]; usedDemoFallback: boolean; tableMissing?: boolean }
+  | { ok: true; data: ResidentListItem[]; usedDemoFallback?: boolean; tableMissing?: boolean }
   | { ok: false; error: string };
 
 async function loadResidentList(

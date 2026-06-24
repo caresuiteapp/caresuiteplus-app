@@ -58,6 +58,12 @@ export function resolveGalaxyTypography(width: number) {
       fontWeight: '400',
       color: galaxyPalette.textSecondary,
     } as TextStyle,
+    bodyStrong: {
+      fontSize: size(15),
+      lineHeight: size(22),
+      fontWeight: '600',
+      color: galaxyPalette.textPrimary,
+    } as TextStyle,
     label: {
       fontSize: size(12),
       lineHeight: size(16),

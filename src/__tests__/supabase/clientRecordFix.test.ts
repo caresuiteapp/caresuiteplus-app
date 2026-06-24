@@ -1,63 +1,53 @@
 import { describe, expect, it, afterEach } from 'vitest';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { getBreadcrumbs } from '@/lib/navigation/breadcrumbs';
+import type { PostgrestError } from '@supabase/supabase-js';
+
+function pgErr(code: string, message: string): PostgrestError {
+  return { code, message, details: '', hint: '' } as unknown as PostgrestError;
+}
 
 describe('toGermanSupabaseError', () => {
   const originalNodeEnv = process.env.NODE_ENV;
 
   afterEach(() => {
-    process.env.NODE_ENV = originalNodeEnv;
+    (process.env as Record<string, string | undefined>).NODE_ENV = originalNodeEnv;
   });
 
   it('maps RLS denial to German message', () => {
-    expect(toGermanSupabaseError({ code: '42501', message: 'permission denied', details: '', hint: '' })).toBe(
+    expect(toGermanSupabaseError(pgErr('42501', 'permission denied'))).toBe(
       'Kein Zugriff auf diesen Datensatz (RLS).',
     );
   });
 
   it('maps missing row to not-found message', () => {
-    expect(toGermanSupabaseError({ code: 'PGRST116', message: 'not found', details: '', hint: '' })).toBe(
+    expect(toGermanSupabaseError(pgErr('PGRST116', 'not found'))).toBe(
       'Datensatz wurde nicht gefunden.',
     );
   });
 
   it('shows helpful message for missing client_care_contexts in production', () => {
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     expect(
-      toGermanSupabaseError({
-        code: 'PGRST205',
-        message: "Could not find the table 'public.client_care_contexts'",
-        details: '',
-        hint: '',
-      }),
+      toGermanSupabaseError(pgErr('PGRST205', "Could not find the table 'public.client_care_contexts'")),
     ).toBe(
       'Datenbank-Schema unvollständig. Leistungsarten konnten nicht gespeichert werden — bitte erneut versuchen.',
     );
   });
 
   it('shows generic message in production for other missing tables', () => {
-    process.env.NODE_ENV = 'production';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'production';
     expect(
-      toGermanSupabaseError({
-        code: 'PGRST205',
-        message: "Could not find the table 'public.client_timeline_events'",
-        details: '',
-        hint: '',
-      }),
+      toGermanSupabaseError(pgErr('PGRST205', "Could not find the table 'public.client_timeline_events'")),
     ).toBe(
       'Datenbank-Schema unvollständig. Leistungsarten konnten nicht gespeichert werden — bitte erneut versuchen.',
     );
   });
 
   it('shows table hint in development', () => {
-    process.env.NODE_ENV = 'development';
+    (process.env as Record<string, string | undefined>).NODE_ENV = 'development';
     expect(
-      toGermanSupabaseError({
-        code: 'PGRST205',
-        message: "Could not find the table 'public.client_timeline_events'",
-        details: '',
-        hint: '',
-      }),
+      toGermanSupabaseError(pgErr('PGRST205', "Could not find the table 'public.client_timeline_events'")),
     ).toContain('client_timeline_events');
   });
 });
