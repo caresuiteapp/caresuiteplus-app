@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { InsightSnapshotItem } from '@/types/modules/insight';
 import { colors, typography } from '@/theme';
@@ -9,6 +10,8 @@ type InsightSnapshotsListTableProps = {
 };
 
 export function InsightSnapshotsListTable({ items, onItemPress }: InsightSnapshotsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -19,20 +22,20 @@ export function InsightSnapshotsListTable({ items, onItemPress }: InsightSnapsho
           key: 'title',
           label: 'Snapshot',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.title}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.title}</Text>,
         },
         {
           key: 'module',
           label: 'Modul',
           flex: 1.2,
-          render: (item) => <Text style={styles.cellText}>{item.moduleLabel}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.moduleLabel}</Text>,
         },
         {
           key: 'updated',
           label: 'Aktualisiert',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText}>
+            <Text style={tableText.cellText}>
               {new Date(item.updatedAt).toLocaleDateString('de-DE')}
             </Text>
           ),
@@ -62,7 +65,5 @@ export function InsightSnapshotsListTable({ items, onItemPress }: InsightSnapsho
   );
 }
 
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body, color: colors.textSecondary },
+const styles = StyleSheet.create({
 });

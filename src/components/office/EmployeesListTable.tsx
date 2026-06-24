@@ -3,7 +3,8 @@ import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { EmployeeListAvatar } from './EmployeeListAvatar';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, typography } from '@/theme';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
+import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 
 type EmployeesListTableProps = {
   employees: EmployeeListItem[];
@@ -38,6 +39,8 @@ export function EmployeesListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: EmployeesListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={employees}
@@ -65,7 +68,7 @@ export function EmployeesListTable({
                 avatarUrl={item.avatarUrl}
                 size="lg"
               />
-              <Text style={styles.name}>
+              <Text style={[tableText.name, styles.nameFlex]} numberOfLines={1}>
                 {item.lastName}, {item.firstName}
               </Text>
             </View>
@@ -89,8 +92,8 @@ export function EmployeesListTable({
           flex: 1.8,
           sortable: true,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
-              {item.jobTitle ?? '—'}
+            <Text style={tableText.cellText} numberOfLines={1}>
+              {resolveEmployeeRoleLabel(item.jobTitle)}
             </Text>
           ),
         },
@@ -127,15 +130,7 @@ const styles = StyleSheet.create({
     flex: 1,
     minWidth: 0,
   },
-  name: {
-    ...typography.bodyStrong,
+  nameFlex: {
     flex: 1,
-  },
-  cellText: {
-    ...typography.body,
-  },
-  muted: {
-    ...typography.caption,
-    color: colors.textMuted,
   },
 });

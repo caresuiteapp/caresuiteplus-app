@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { InsightExportItem } from '@/types/modules/insight';
 import { colors, typography } from '@/theme';
@@ -9,6 +10,8 @@ type InsightExportsListTableProps = {
 };
 
 export function InsightExportsListTable({ items, onItemPress }: InsightExportsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -19,19 +22,19 @@ export function InsightExportsListTable({ items, onItemPress }: InsightExportsLi
           key: 'title',
           label: 'Export',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.title}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.title}</Text>,
         },
         {
           key: 'format',
           label: 'Format',
           flex: 0.8,
-          render: (item) => <Text style={styles.cellText}>{item.format.toUpperCase()}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.format.toUpperCase()}</Text>,
         },
         {
           key: 'schedule',
           label: 'Rhythmus',
           flex: 1.2,
-          render: (item) => <Text style={styles.cellText}>{item.scheduleLabel}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.scheduleLabel}</Text>,
         },
         {
           key: 'status',
@@ -63,7 +66,5 @@ export function InsightExportsListTable({ items, onItemPress }: InsightExportsLi
   );
 }
 
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body, color: colors.textSecondary },
+const styles = StyleSheet.create({
 });

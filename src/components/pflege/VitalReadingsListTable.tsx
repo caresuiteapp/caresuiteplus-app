@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { VitalReadingListItem } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -47,6 +48,8 @@ export function VitalReadingsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: VitalReadingsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={readings}
@@ -62,14 +65,14 @@ export function VitalReadingsListTable({
           label: 'Klient:in',
           flex: 1.4,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.clientName}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.clientName}</Text>,
         },
         {
           key: 'type',
           label: 'Messart',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.typeLabel}
             </Text>
           ),
@@ -143,8 +146,6 @@ export function VitalReadingsListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
   value: { ...typography.bodyStrong },
   alertValue: { color: colors.danger },
   time: { ...typography.caption, color: colors.cyan },

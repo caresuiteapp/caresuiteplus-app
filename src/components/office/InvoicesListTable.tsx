@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { formatCurrency } from '@/lib/office';
 import type { InvoiceListItem } from '@/types/modules/billing';
@@ -46,6 +47,8 @@ export function InvoicesListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: InvoicesListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={invoices}
@@ -61,7 +64,7 @@ export function InvoicesListTable({
           label: 'Nummer',
           flex: 1.2,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.invoiceNumber}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.invoiceNumber}</Text>,
         },
         {
           key: 'clientName',
@@ -120,7 +123,6 @@ export function InvoicesListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
   meta: { ...typography.caption, color: colors.textMuted },
   amount: { ...typography.bodyStrong, color: colors.orange },
 });

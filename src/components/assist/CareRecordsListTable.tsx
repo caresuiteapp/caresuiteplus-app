@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CareRecordListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -19,6 +20,8 @@ function formatDate(iso: string): string {
 }
 
 export function CareRecordsListTable({ items, onItemPress }: CareRecordsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -29,25 +32,25 @@ export function CareRecordsListTable({ items, onItemPress }: CareRecordsListTabl
           key: 'assignment',
           label: 'Einsatz',
           flex: 1.6,
-          render: (item) => <Text style={styles.name}>{item.assignmentTitle}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.assignmentTitle}</Text>,
         },
         {
           key: 'client',
           label: 'Klient:in',
           flex: 1.2,
-          render: (item) => <Text style={styles.cellText}>{item.clientName}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.clientName}</Text>,
         },
         {
           key: 'employee',
           label: 'Mitarbeiter:in',
           flex: 1.2,
-          render: (item) => <Text style={styles.cellText}>{item.employeeName}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.employeeName}</Text>,
         },
         {
           key: 'recordedAt',
           label: 'Zeitpunkt',
           flex: 1.1,
-          render: (item) => <Text style={styles.cellText}>{formatDate(item.recordedAt)}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{formatDate(item.recordedAt)}</Text>,
         },
         {
           key: 'signature',
@@ -87,7 +90,5 @@ export function CareRecordsListTable({ items, onItemPress }: CareRecordsListTabl
   );
 }
 
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body, color: colors.textSecondary },
+const styles = StyleSheet.create({
 });

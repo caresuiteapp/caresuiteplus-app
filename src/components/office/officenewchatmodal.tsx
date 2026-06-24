@@ -5,6 +5,7 @@ import { PremiumInput } from '@/components/ui';
 import { fetchClientList, fetchEmployeeList } from '@/lib/office';
 import { listInternalUsers } from '@/lib/auth/accessManagementService';
 import { createOfficeMessageThread } from '@/lib/office/messageservice';
+import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 import { fetchOfficeMessageCategories } from '@/lib/office/messagethreadservice';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -143,7 +144,7 @@ export function OfficeNewChatModal({
             result.data.map((employee) => ({
               id: employee.id,
               label: `${employee.firstName} ${employee.lastName}`.trim(),
-              subtitle: employee.jobTitle ?? undefined,
+              subtitle: employee.jobTitle ? resolveEmployeeRoleLabel(employee.jobTitle) : undefined,
             })),
           );
         }

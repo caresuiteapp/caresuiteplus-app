@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { FollowUp } from '@/types/modules/beratung';
 import { typography } from '@/theme';
@@ -9,6 +10,8 @@ type FollowUpsListTableProps = {
 };
 
 export function FollowUpsListTable({ items, onItemPress }: FollowUpsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -19,21 +22,21 @@ export function FollowUpsListTable({ items, onItemPress }: FollowUpsListTablePro
           key: 'case',
           label: 'Fall',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.caseSubject}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.caseSubject}</Text>,
         },
         {
           key: 'dueAt',
           label: 'Fällig',
           flex: 1,
           render: (item) => (
-            <Text style={styles.cellText}>{new Date(item.dueAt).toLocaleDateString('de-DE')}</Text>
+            <Text style={tableText.cellText}>{new Date(item.dueAt).toLocaleDateString('de-DE')}</Text>
           ),
         },
         {
           key: 'assignee',
           label: 'Zuständig',
           flex: 1.2,
-          render: (item) => <Text style={styles.cellText}>{item.assigneeName}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.assigneeName}</Text>,
         },
         {
           key: 'status',
@@ -61,6 +64,4 @@ export function FollowUpsListTable({ items, onItemPress }: FollowUpsListTablePro
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
 });

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { ROLE_LABELS } from '@/data/constants';
@@ -8,6 +9,7 @@ import {
   buildEmployeeDetailSubtitle,
 } from '@/lib/office/employeeDetailStats';
 import { isEmployeeDetailLiveReady } from '@/lib/office/employeeModuleConfig';
+import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 
 import type { RoleKey } from '@/types';
 import type { EmployeeDetail } from '@/types/modules/employeeDetail';
@@ -37,6 +39,7 @@ function statusVariant(status: string) {
 
 export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDetailHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -48,24 +51,10 @@ export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDe
     flex: 1,
     gap: 2,
   },
-  eyebrow: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-  },
-  title: {
-    ...typography.h2,
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  meta: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
-  },
-  subtitle: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-  },
+  eyebrow: heroText.eyebrow,
+  title: heroText.title,
+  meta: heroText.meta,
+  subtitle: heroText.subtitle,
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -123,7 +112,9 @@ export function EmployeeDetailHero({ employee, roleKey, isReadOnly }: EmployeeDe
           variant={statusVariant(employee.status)}
           dot
         />
-        {employee.jobTitle ? <PremiumBadge label={employee.jobTitle} variant="cyan" /> : null}
+        {employee.jobTitle ? (
+          <PremiumBadge label={resolveEmployeeRoleLabel(employee.jobTitle)} variant="cyan" />
+        ) : null}
         <PremiumBadge label={ROLE_LABELS[roleKey]} variant="orange" dot />
         {isReadOnly ? <PremiumBadge label="Lesemodus" variant="muted" /> : null}
         {!isEmployeeDetailLiveReady() ? (

@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { Protocol } from '@/types/modules/beratung';
 import { typography } from '@/theme';
@@ -11,6 +12,8 @@ type ProtocolsListTableProps = {
 };
 
 export function ProtocolsListTable({ items, onItemPress }: ProtocolsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -21,14 +24,14 @@ export function ProtocolsListTable({ items, onItemPress }: ProtocolsListTablePro
           key: 'case',
           label: 'Fall',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.caseSubject}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.caseSubject}</Text>,
         },
         {
           key: 'recordedAt',
           label: 'Datum',
           flex: 1,
           render: (item) => (
-            <Text style={styles.cellText}>
+            <Text style={tableText.cellText}>
               {new Date(item.recordedAt).toLocaleDateString('de-DE')}
             </Text>
           ),
@@ -58,7 +61,5 @@ export function ProtocolsListTable({ items, onItemPress }: ProtocolsListTablePro
   );
 }
 
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
+const styles = StyleSheet.create({
 });

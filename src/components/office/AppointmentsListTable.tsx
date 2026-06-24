@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { AppointmentListItem } from '@/types/modules/appointmentList';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -45,6 +46,8 @@ export function AppointmentsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: AppointmentsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={appointments}
@@ -60,7 +63,7 @@ export function AppointmentsListTable({
           label: 'Titel',
           flex: 1.5,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.title}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.title}</Text>,
         },
         {
           key: 'clientName',
@@ -121,6 +124,5 @@ export function AppointmentsListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
   meta: { ...typography.caption, color: colors.textMuted },
 });

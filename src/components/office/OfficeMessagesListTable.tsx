@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { MessageListItem } from '@/types/portal/communication';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -47,6 +48,8 @@ export function OfficeMessagesListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: OfficeMessagesListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={messages}

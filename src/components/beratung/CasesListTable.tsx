@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CounselingListItem } from '@/types/modules/beratung';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -46,6 +47,8 @@ export function CasesListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: CasesListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={cases}
@@ -61,7 +64,7 @@ export function CasesListTable({
           label: 'Betreff',
           flex: 2,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.subject}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.subject}</Text>,
         },
         {
           key: 'client',
@@ -114,6 +117,5 @@ export function CasesListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
   meta: { ...typography.caption, color: colors.textMuted },
 });

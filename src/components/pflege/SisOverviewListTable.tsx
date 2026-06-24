@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { SisAssessment } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -32,6 +33,8 @@ export function SisOverviewListTable({
   onItemPress,
   onOpenDetail,
 }: SisOverviewListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -43,7 +46,7 @@ export function SisOverviewListTable({
           key: 'client',
           label: 'Klient:in',
           flex: 1.4,
-          render: (item) => <Text style={styles.name}>{item.clientName}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.clientName}</Text>,
         },
         {
           key: 'score',
@@ -90,7 +93,7 @@ export function SisOverviewListTable({
           label: 'Assessor:in',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.assessorName}
             </Text>
           ),
@@ -121,8 +124,6 @@ export function SisOverviewListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
   score: { ...typography.bodyStrong, color: colors.cyan },
-  cellText: { ...typography.body },
   time: { ...typography.caption, color: colors.cyan },
 });

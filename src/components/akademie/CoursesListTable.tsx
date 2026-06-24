@@ -1,8 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CourseListItem } from '@/types/modules/akademie';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, typography } from '@/theme';
 
 type CoursesListTableProps = {
   courses: CourseListItem[];
@@ -54,6 +54,8 @@ export function CoursesListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: CoursesListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={courses}
@@ -74,7 +76,7 @@ export function CoursesListTable({
           flex: 2,
           sortable: true,
           render: (item) => (
-            <Text style={styles.title} numberOfLines={1}>
+            <Text style={tableText.title} numberOfLines={1}>
               {item.title}
             </Text>
           ),
@@ -96,7 +98,7 @@ export function CoursesListTable({
           label: 'Kategorie',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.category}
             </Text>
           ),
@@ -106,7 +108,7 @@ export function CoursesListTable({
           label: 'Dauer',
           flex: 0.9,
           render: (item) => (
-            <Text style={styles.cellText}>{formatDuration(item.durationMinutes)}</Text>
+            <Text style={tableText.cellText}>{formatDuration(item.durationMinutes)}</Text>
           ),
         },
         {
@@ -114,7 +116,7 @@ export function CoursesListTable({
           label: 'Teilnehmende',
           flex: 1,
           render: (item) => (
-            <Text style={styles.cellText}>{item.enrollmentCount}</Text>
+            <Text style={tableText.cellText}>{item.enrollmentCount}</Text>
           ),
         },
         {
@@ -123,7 +125,7 @@ export function CoursesListTable({
           flex: 1,
           sortable: true,
           render: (item) => (
-            <Text style={styles.cellText}>{formatDate(item.startsAt)}</Text>
+            <Text style={tableText.cellText}>{formatDate(item.startsAt)}</Text>
           ),
         },
         {
@@ -150,16 +152,3 @@ export function CoursesListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  title: {
-    ...typography.bodyStrong,
-  },
-  cellText: {
-    ...typography.body,
-  },
-  muted: {
-    ...typography.caption,
-    color: colors.textMuted,
-  },
-});

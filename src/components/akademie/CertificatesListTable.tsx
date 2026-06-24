@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CertificateListItem } from '@/types/modules/akademie';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -29,6 +30,8 @@ export function CertificatesListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: CertificatesListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -44,7 +47,7 @@ export function CertificatesListTable({
           label: 'Teilnehmer:in',
           flex: 1.6,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.participantName}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.participantName}</Text>,
         },
         {
           key: 'course',
@@ -52,7 +55,7 @@ export function CertificatesListTable({
           flex: 2,
           sortable: true,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.courseTitle}
             </Text>
           ),
@@ -62,14 +65,14 @@ export function CertificatesListTable({
           label: 'Ausgestellt',
           flex: 1.2,
           sortable: true,
-          render: (item) => <Text style={styles.cellText}>{formatDate(item.issuedAt)}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{formatDate(item.issuedAt)}</Text>,
         },
         {
           key: 'expires',
           label: 'Gültig bis',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText}>
+            <Text style={tableText.cellText}>
               {item.expiresAt ? formatDate(item.expiresAt) : 'unbegrenzt'}
             </Text>
           ),
@@ -102,6 +105,4 @@ export function CertificatesListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
 });

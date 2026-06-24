@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { OcrJobListItem } from '@/types/modules/platform';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -23,6 +24,8 @@ function statusVariant(status: OcrJobListItem['status']) {
 }
 
 export function OcrJobsListTable({ items, onItemPress }: OcrJobsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -33,20 +36,20 @@ export function OcrJobsListTable({ items, onItemPress }: OcrJobsListTableProps) 
           key: 'document',
           label: 'Dokument',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.sourceDocumentTitle}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.sourceDocumentTitle}</Text>,
         },
         {
           key: 'provider',
           label: 'Provider',
           flex: 1.2,
-          render: (item) => <Text style={styles.cellText}>{item.providerKey}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.providerKey}</Text>,
         },
         {
           key: 'confidence',
           label: 'Konfidenz',
           flex: 0.9,
           render: (item) => (
-            <Text style={styles.cellText}>
+            <Text style={tableText.cellText}>
               {item.confidence != null ? `${Math.round(item.confidence * 100)}%` : '—'}
             </Text>
           ),
@@ -83,6 +86,4 @@ export function OcrJobsListTable({ items, onItemPress }: OcrJobsListTableProps) 
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body, color: colors.textSecondary },
 });

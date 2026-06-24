@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { MedicationListItem } from '@/data/demo/medications';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -32,6 +33,8 @@ export function MedicationListTable({
   onItemPress,
   onOpenDetail,
 }: MedicationListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -43,25 +46,25 @@ export function MedicationListTable({
           key: 'medication',
           label: 'Medikament',
           flex: 1.3,
-          render: (item) => <Text style={styles.title}>{item.medicationName}</Text>,
+          render: (item) => <Text style={tableText.title}>{item.medicationName}</Text>,
         },
         {
           key: 'client',
           label: 'Klient:in',
           flex: 1.2,
-          render: (item) => <Text style={styles.name}>{item.clientName}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.clientName}</Text>,
         },
         {
           key: 'dosage',
           label: 'Dosierung',
           flex: 1,
-          render: (item) => <Text style={styles.cellText}>{item.dosage}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.dosage}</Text>,
         },
         {
           key: 'schedule',
           label: 'Einnahme',
           flex: 1.1,
-          render: (item) => <Text style={styles.cellText}>{item.schedule}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.schedule}</Text>,
         },
         {
           key: 'status',
@@ -100,8 +103,5 @@ export function MedicationListTable({
   );
 }
 
-const styles = StyleSheet.create({
-  title: { ...typography.bodyStrong },
-  name: { ...typography.body },
-  cellText: { ...typography.body },
+const styles = StyleSheet.create({
 });

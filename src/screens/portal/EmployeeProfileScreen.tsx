@@ -13,6 +13,7 @@ import {
 } from '@/components/ui';
 import { useEmployeePortalProfile } from '@/hooks/useEmployeePortalProfile';
 import { usePermissions } from '@/hooks/usePermissions';
+import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
@@ -64,7 +65,9 @@ export function EmployeeProfileScreen() {
         <PortalEmployeeProfileHero profile={profile} />
 
         <PremiumCard accentColor={colors.cyan}>
-          {profile.jobTitle ? <DetailInfoRow label="Funktion" value={profile.jobTitle} /> : null}
+          {profile.jobTitle ? (
+            <DetailInfoRow label="Funktion" value={resolveEmployeeRoleLabel(profile.jobTitle)} />
+          ) : null}
           <DetailInfoRow label="Team" value={profile.teamName} />
           {profile.email ? <DetailInfoRow label="E-Mail" value={profile.email} /> : null}
           {profile.phone ? <DetailInfoRow label="Telefon" value={profile.phone} /> : null}

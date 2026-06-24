@@ -539,6 +539,39 @@ export function useAuroraGlassTableStyles() {
   );
 }
 
+/** Adaptive primary text for table/list body cells on light or dark surfaces. */
+export function useTableTextStyles() {
+  const text = useAuroraAdaptiveText();
+  const { typography } = useLegacyTheme();
+
+  return useMemo(
+    () =>
+      StyleSheet.create({
+        cellText: {
+          ...typography.body,
+          color: text.primary,
+        },
+        name: {
+          ...typography.bodyStrong,
+          color: text.primary,
+        },
+        title: {
+          ...typography.bodyStrong,
+          color: text.primary,
+        },
+        meta: {
+          ...typography.caption,
+          color: text.muted,
+        },
+        muted: {
+          ...typography.caption,
+          color: text.muted,
+        },
+      }),
+    [text.muted, text.primary, typography],
+  );
+}
+
 /** ListFilterSelect trigger + dropdown aurora styles. */
 export function useAuroraGlassSelectStyles(options: ShellGlassIntensityOptions = {}) {
   const { active, tokens: glass, colors, isLight } = useAuroraGlass();

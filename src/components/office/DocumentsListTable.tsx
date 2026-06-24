@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumDataTable } from '@/components/ui';
 import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
@@ -47,6 +48,8 @@ export function DocumentsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: DocumentsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={documents}
@@ -60,7 +63,7 @@ export function DocumentsListTable({
           label: 'Titel',
           flex: 2,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.title}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.title}</Text>,
         },
         {
           key: 'category',
@@ -113,7 +116,6 @@ export function DocumentsListTable({
   );
 }
 
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
+const styles = StyleSheet.create({
   meta: { ...typography.caption, color: colors.textMuted },
 });

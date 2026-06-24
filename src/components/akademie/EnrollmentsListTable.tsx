@@ -1,8 +1,8 @@
-import { StyleSheet, Text } from 'react-native';
+import { Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { EnrollmentListItem } from '@/types/modules/akademie';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { typography } from '@/theme';
 
 type EnrollmentsListTableProps = {
   items: EnrollmentListItem[];
@@ -21,6 +21,8 @@ export function EnrollmentsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: EnrollmentsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -36,7 +38,7 @@ export function EnrollmentsListTable({
           label: 'Teilnehmer:in',
           flex: 1.6,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.participantName}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.participantName}</Text>,
         },
         {
           key: 'course',
@@ -44,7 +46,7 @@ export function EnrollmentsListTable({
           flex: 2,
           sortable: true,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.courseTitle}
             </Text>
           ),
@@ -84,8 +86,3 @@ export function EnrollmentsListTable({
     />
   );
 }
-
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
-});

@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { WoundDocumentation } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -32,6 +33,8 @@ export function WoundDocumentationListTable({
   onItemPress,
   onOpenDetail,
 }: WoundDocumentationListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -43,14 +46,14 @@ export function WoundDocumentationListTable({
           key: 'location',
           label: 'Lokalisation',
           flex: 1.3,
-          render: (item) => <Text style={styles.title}>{item.bodyLocation}</Text>,
+          render: (item) => <Text style={tableText.title}>{item.bodyLocation}</Text>,
         },
         {
           key: 'description',
           label: 'Beschreibung',
           flex: 1.6,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={2}>
+            <Text style={tableText.cellText} numberOfLines={2}>
               {item.description}
             </Text>
           ),
@@ -102,8 +105,6 @@ export function WoundDocumentationListTable({
   );
 }
 
-const styles = StyleSheet.create({
-  title: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
+const styles = StyleSheet.create({
   time: { ...typography.caption },
 });

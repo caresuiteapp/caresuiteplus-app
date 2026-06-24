@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { REPORT_CATEGORY_LABELS } from '@/lib/reporting/reportListStats';
 import type { ReportListItem } from '@/types/reporting';
@@ -47,6 +48,8 @@ export function ReportsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: ReportsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={reports}
@@ -62,7 +65,7 @@ export function ReportsListTable({
           label: 'Titel',
           flex: 2,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.title}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.title}</Text>,
         },
         {
           key: 'category',
@@ -116,6 +119,5 @@ export function ReportsListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
   meta: { ...typography.caption, color: colors.textMuted },
 });

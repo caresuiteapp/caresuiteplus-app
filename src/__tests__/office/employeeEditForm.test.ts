@@ -28,6 +28,15 @@ const BASE_EMPLOYEE: EmployeeDetail = {
   mobile: '01701234567',
   employmentType: 'part_time',
   weeklyHours: 20,
+  street: 'Musterstr.',
+  houseNumber: '1',
+  postalCode: '44623',
+  city: 'Herne',
+  hasFirstAidCertificate: false,
+  hasDriverLicense: false,
+  driverLicenseClass: null,
+  hasPoliceClearance: false,
+  policeClearanceDate: null,
 };
 
 describe('employeeEditFormMappers', () => {
@@ -98,5 +107,15 @@ describe('employeeCatalogLabels', () => {
 
   it('resolveEmployeeRoleLabel maps alltagsbegleiter to German label', () => {
     expect(resolveEmployeeRoleLabel('alltagsbegleiter')).toBe('Alltagsbegleiter:in');
+  });
+
+  it('resolveEmployeeRoleLabel maps buerokraft and geschaeftsfuehrung with umlauts', () => {
+    expect(resolveEmployeeRoleLabel('buerokraft')).toBe('Bürokraft');
+    expect(resolveEmployeeRoleLabel('geschaeftsfuehrung')).toBe('Geschäftsführung');
+    expect(resolveEmployeeRoleLabel('pflegefachkraft')).toBe('Pflegefachkraft');
+  });
+
+  it('resolveEmployeeRoleLabel applies umlaut fallback for unknown keys', () => {
+    expect(resolveEmployeeRoleLabel('custom_ae_oe_ue')).toBe('Custom_ä_ö_ü');
   });
 });

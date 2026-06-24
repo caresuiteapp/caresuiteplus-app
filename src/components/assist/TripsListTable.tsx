@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { PURPOSE_LABELS } from '@/lib/assist';
 import type { TripLogListItem } from '@/types/modules/assist';
@@ -51,6 +52,8 @@ export function TripsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: TripsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={trips}
@@ -70,7 +73,7 @@ export function TripsListTable({
           label: 'Fahrer',
           flex: 1.6,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.employeeName}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.employeeName}</Text>,
         },
         {
           key: 'status',
@@ -89,7 +92,7 @@ export function TripsListTable({
           label: 'Zweck',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {PURPOSE_LABELS[item.purpose]}
             </Text>
           ),
@@ -99,7 +102,7 @@ export function TripsListTable({
           label: 'Route',
           flex: 2,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={2}>
+            <Text style={tableText.cellText} numberOfLines={2}>
               {item.routeSummary}
             </Text>
           ),
@@ -152,12 +155,6 @@ export function TripsListTable({
 }
 
 const styles = StyleSheet.create({
-  name: {
-    ...typography.bodyStrong,
-  },
-  cellText: {
-    ...typography.body,
-  },
   time: {
     ...typography.caption,
     color: colors.cyan,

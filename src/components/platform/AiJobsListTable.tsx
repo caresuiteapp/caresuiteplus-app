@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { AI_JOB_TYPE_LABELS, type AiJobListItem } from '@/types/modules/platform';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -23,6 +24,8 @@ function statusVariant(status: AiJobListItem['status']) {
 }
 
 export function AiJobsListTable({ items, onItemPress }: AiJobsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -33,19 +36,19 @@ export function AiJobsListTable({ items, onItemPress }: AiJobsListTableProps) {
           key: 'prompt',
           label: 'Auftrag',
           flex: 2,
-          render: (item) => <Text style={styles.name} numberOfLines={2}>{item.promptSummary}</Text>,
+          render: (item) => <Text style={tableText.name} numberOfLines={2}>{item.promptSummary}</Text>,
         },
         {
           key: 'type',
           label: 'Typ',
           flex: 1.4,
-          render: (item) => <Text style={styles.cellText}>{AI_JOB_TYPE_LABELS[item.jobType]}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{AI_JOB_TYPE_LABELS[item.jobType]}</Text>,
         },
         {
           key: 'provider',
           label: 'Provider',
           flex: 1,
-          render: (item) => <Text style={styles.cellText}>{item.providerKey}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.providerKey}</Text>,
         },
         {
           key: 'status',
@@ -78,7 +81,5 @@ export function AiJobsListTable({ items, onItemPress }: AiJobsListTableProps) {
   );
 }
 
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body, color: colors.textSecondary },
+const styles = StyleSheet.create({
 });

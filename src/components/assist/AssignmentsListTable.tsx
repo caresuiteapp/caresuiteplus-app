@@ -12,7 +12,7 @@ import {
   formatDurationMinutes,
   formatWeekday,
 } from '@/lib/formatters/dateTimeFormatters';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 
 type AssignmentsListTableProps = {
   assignments: AssignmentListItem[];
@@ -33,14 +33,14 @@ export function AssignmentsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: AssignmentsListTableProps) {
-  const text = useAuroraAdaptiveText();
+  const tableText = useTableTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        primary: { color: text.primary, fontWeight: '600' as const },
-        meta: { color: text.secondary, fontSize: 13 },
+        primary: tableText.name,
+        meta: { ...tableText.meta, fontSize: 13 },
       }),
-    [text],
+    [tableText],
   );
 
   return (

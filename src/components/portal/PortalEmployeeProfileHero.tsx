@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import {
@@ -7,6 +8,7 @@ import {
   PORTAL_PROFILE_PREPARED_MESSAGE,
 } from '@/lib/portal/portalModuleConfig';
 import { buildEmployeePortalProfileKpis } from '@/lib/portal/portalProfileStats';
+import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 
 import type { PortalEmployeeProfile } from '@/types/portal/employee';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -22,18 +24,15 @@ function statusVariant(status: string) {
 
 export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
   topRow: { flexDirection: 'row', gap: spacing.md },
   textCol: { flex: 1, gap: 2 },
-  eyebrow: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-  },
-  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  eyebrow: heroText.eyebrow,
+  title: heroText.title,
+  meta: heroText.meta,
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -63,7 +62,7 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
         <View style={styles.textCol}>
           <Text style={styles.title}>{profile.displayName}</Text>
           <Text style={styles.meta}>
-            {profile.jobTitle ? `${profile.jobTitle} · ` : ''}
+            {profile.jobTitle ? `${resolveEmployeeRoleLabel(profile.jobTitle)} · ` : ''}
             {profile.teamName}
           </Text>
         </View>

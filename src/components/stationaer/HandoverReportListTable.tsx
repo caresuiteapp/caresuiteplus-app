@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { HandoverReportListItem } from '@/types/modules/stationaer';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -30,6 +31,8 @@ export function HandoverReportListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: HandoverReportListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -45,14 +48,14 @@ export function HandoverReportListTable({
           label: 'Schicht',
           flex: 1.2,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.shiftLabel}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.shiftLabel}</Text>,
         },
         {
           key: 'wing',
           label: 'Bereich',
           flex: 1,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.wing ?? '—'}
             </Text>
           ),
@@ -61,14 +64,14 @@ export function HandoverReportListTable({
           key: 'author',
           label: 'Autor:in',
           flex: 1.4,
-          render: (item) => <Text style={styles.cellText}>{item.authorName}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.authorName}</Text>,
         },
         {
           key: 'handoverAt',
           label: 'Zeitpunkt',
           flex: 1.4,
           sortable: true,
-          render: (item) => <Text style={styles.cellText}>{formatDateTime(item.handoverAt)}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{formatDateTime(item.handoverAt)}</Text>,
         },
         {
           key: 'status',
@@ -98,6 +101,4 @@ export function HandoverReportListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
 });

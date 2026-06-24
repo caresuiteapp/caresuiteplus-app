@@ -3,7 +3,9 @@ import { PremiumBadge, PremiumCard } from '@/components/ui';
 import { EmployeeListAvatar } from './EmployeeListAvatar';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, spacing, typography } from '@/theme';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
+import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
+import { colors, spacing } from '@/theme';
 
 type EmployeeListCardProps = {
   employee: EmployeeListItem;
@@ -26,6 +28,7 @@ function statusVariant(status: EmployeeListItem['status']) {
 }
 
 export function EmployeeListCard({ employee, onPress, selected = false }: EmployeeListCardProps) {
+  const tableText = useTableTextStyles();
   const fullName = `${employee.firstName} ${employee.lastName}`;
 
   const inner = (
@@ -36,9 +39,9 @@ export function EmployeeListCard({ employee, onPress, selected = false }: Employ
         avatarUrl={employee.avatarUrl}
       />
       <View style={styles.main}>
-        <Text style={styles.name}>{fullName}</Text>
-        <Text style={styles.meta}>{employee.jobTitle ?? '—'}</Text>
-        {employee.email ? <Text style={styles.meta}>{employee.email}</Text> : null}
+        <Text style={tableText.name}>{fullName}</Text>
+        <Text style={tableText.meta}>{resolveEmployeeRoleLabel(employee.jobTitle)}</Text>
+        {employee.email ? <Text style={tableText.meta}>{employee.email}</Text> : null}
       </View>
       <PremiumBadge
         label={WORKFLOW_STATUS_LABELS[employee.status]}
@@ -80,6 +83,4 @@ const styles = StyleSheet.create({
   },
   row: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: spacing.sm },
   main: { flex: 1, gap: 2 },
-  name: { ...typography.bodyStrong },
-  meta: { ...typography.caption },
 });

@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { EXECUTION_PHASE_LABELS } from '@/lib/assist/executionListStats';
 import type { ActiveExecutionItem } from '@/types/modules/assist';
@@ -57,6 +58,8 @@ export function ExecutionsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: ExecutionsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={executions}
@@ -75,7 +78,7 @@ export function ExecutionsListTable({
           key: 'title',
           label: 'Einsatz',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.title}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.title}</Text>,
         },
         {
           key: 'client',
@@ -83,7 +86,7 @@ export function ExecutionsListTable({
           flex: 1.4,
           sortable: true,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.clientName}
             </Text>
           ),
@@ -116,7 +119,7 @@ export function ExecutionsListTable({
           label: 'Ort',
           flex: 1.4,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.location}
             </Text>
           ),
@@ -147,12 +150,6 @@ export function ExecutionsListTable({
 }
 
 const styles = StyleSheet.create({
-  name: {
-    ...typography.bodyStrong,
-  },
-  cellText: {
-    ...typography.body,
-  },
   time: {
     ...typography.caption,
     color: colors.cyan,

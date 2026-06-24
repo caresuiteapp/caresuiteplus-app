@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { InsightDataSourceItem } from '@/types/modules/insight';
 import { colors, typography } from '@/theme';
@@ -20,6 +21,8 @@ function connectionVariant(status: InsightDataSourceItem['connectionStatus']) {
 }
 
 export function InsightDataSourcesListTable({ items, onItemPress }: InsightDataSourcesListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -30,13 +33,13 @@ export function InsightDataSourcesListTable({ items, onItemPress }: InsightDataS
           key: 'label',
           label: 'Quelle',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.label}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.label}</Text>,
         },
         {
           key: 'module',
           label: 'Modul',
           flex: 1.2,
-          render: (item) => <Text style={styles.cellText}>{item.moduleKey}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.moduleKey}</Text>,
         },
         {
           key: 'status',
@@ -51,7 +54,7 @@ export function InsightDataSourcesListTable({ items, onItemPress }: InsightDataS
           label: 'Letzter Sync',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText}>
+            <Text style={tableText.cellText}>
               {item.lastSyncAt
                 ? new Date(item.lastSyncAt).toLocaleDateString('de-DE')
                 : '—'}
@@ -78,6 +81,4 @@ export function InsightDataSourcesListTable({ items, onItemPress }: InsightDataS
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body, color: colors.textSecondary },
 });

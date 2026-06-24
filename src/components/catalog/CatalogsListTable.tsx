@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import { CATALOG_TYPE_LABELS } from '@/types/modules/catalog';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -11,6 +12,8 @@ type CatalogsListTableProps = {
 };
 
 export function CatalogsListTable({ items, onItemPress }: CatalogsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -21,7 +24,7 @@ export function CatalogsListTable({ items, onItemPress }: CatalogsListTableProps
           key: 'name',
           label: 'Katalog',
           flex: 2,
-          render: (item) => <Text style={styles.name}>{item.name}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.name}</Text>,
         },
         {
           key: 'type',
@@ -35,7 +38,7 @@ export function CatalogsListTable({ items, onItemPress }: CatalogsListTableProps
           key: 'positions',
           label: 'Positionen',
           flex: 0.8,
-          render: (item) => <Text style={styles.cellText}>{item.itemCount}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.itemCount}</Text>,
         },
         {
           key: 'status',
@@ -64,7 +67,5 @@ export function CatalogsListTable({ items, onItemPress }: CatalogsListTableProps
   );
 }
 
-const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body, color: colors.textSecondary },
+const styles = StyleSheet.create({
 });

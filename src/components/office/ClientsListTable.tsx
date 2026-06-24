@@ -1,10 +1,9 @@
 import { StyleSheet, Text } from 'react-native';
-import { useMemo } from 'react';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 
 type ClientsListTableProps = {
   clients: ClientListItem[];
@@ -40,26 +39,7 @@ export function ClientsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: ClientsListTableProps) {
-  const text = useAuroraAdaptiveText();
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        name: {
-          color: text.primary,
-          fontWeight: '700',
-          fontSize: 15,
-        },
-        cellText: {
-          color: text.primary,
-          fontSize: 14,
-        },
-        muted: {
-          color: text.muted,
-          fontSize: 13,
-        },
-      }),
-    [text],
-  );
+  const tableText = useTableTextStyles();
 
   return (
     <PremiumDataTable
@@ -82,7 +62,7 @@ export function ClientsListTable({
           flex: 2,
           sortable: true,
           render: (item) => (
-            <Text style={styles.name}>
+            <Text style={tableText.name}>
               {item.lastName}, {item.firstName}
             </Text>
           ),
@@ -105,7 +85,7 @@ export function ClientsListTable({
           flex: 1.2,
           sortable: true,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.city ?? '—'}
             </Text>
           ),
@@ -118,7 +98,7 @@ export function ClientsListTable({
             item.careLevel ? (
               <PremiumBadge label={formatCareLevel(item.careLevel)} variant="cyan" />
             ) : (
-              <Text style={styles.muted}>—</Text>
+              <Text style={tableText.meta}>—</Text>
             ),
         },
         {

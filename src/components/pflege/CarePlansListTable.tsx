@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CarePlanListItem } from '@/types/modules/pflege';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -47,6 +48,8 @@ export function CarePlansListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: CarePlansListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={plans}
@@ -61,14 +64,14 @@ export function CarePlansListTable({
           key: 'title',
           label: 'Titel',
           flex: 1.6,
-          render: (item) => <Text style={styles.title}>{item.title}</Text>,
+          render: (item) => <Text style={tableText.title}>{item.title}</Text>,
         },
         {
           key: 'client',
           label: 'Klient:in',
           flex: 1.4,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.clientName}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.clientName}</Text>,
         },
         {
           key: 'status',
@@ -87,7 +90,7 @@ export function CarePlansListTable({
           label: 'Pflegegrad',
           flex: 0.9,
           render: (item) => (
-            <Text style={styles.cellText}>{item.careLevel ? formatCareLevel(item.careLevel) : '—'}</Text>
+            <Text style={tableText.cellText}>{item.careLevel ? formatCareLevel(item.careLevel) : '—'}</Text>
           ),
         },
         {
@@ -96,7 +99,7 @@ export function CarePlansListTable({
           width: 72,
           align: 'right',
           render: (item) => (
-            <Text style={item.alertCount > 0 ? styles.alertCount : styles.cellText}>
+            <Text style={item.alertCount > 0 ? styles.alertCount : tableText.cellText}>
               {item.alertCount > 0 ? item.alertCount : '—'}
             </Text>
           ),
@@ -137,9 +140,6 @@ export function CarePlansListTable({
 }
 
 const styles = StyleSheet.create({
-  title: { ...typography.bodyStrong },
-  name: { ...typography.body },
-  cellText: { ...typography.caption, color: colors.textMuted },
   alertCount: { ...typography.bodyStrong, color: colors.danger },
   time: { ...typography.caption, color: colors.cyan },
 });

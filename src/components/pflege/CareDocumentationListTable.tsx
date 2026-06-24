@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { CareDocumentationListItem } from '@/lib/pflege/careDocumentationTypes';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -33,6 +34,8 @@ export function CareDocumentationListTable({
   onItemPress,
   onOpenDetail,
 }: CareDocumentationListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -44,13 +47,13 @@ export function CareDocumentationListTable({
           key: 'title',
           label: 'Titel',
           flex: 1.4,
-          render: (item) => <Text style={styles.title}>{item.title}</Text>,
+          render: (item) => <Text style={tableText.title}>{item.title}</Text>,
         },
         {
           key: 'client',
           label: 'Klient:in',
           flex: 1.2,
-          render: (item) => <Text style={styles.name}>{item.clientName}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.clientName}</Text>,
         },
         {
           key: 'status',
@@ -110,8 +113,6 @@ export function CareDocumentationListTable({
 }
 
 const styles = StyleSheet.create({
-  title: { ...typography.bodyStrong },
-  name: { ...typography.body },
   time: { ...typography.caption, color: colors.cyan },
   flags: { ...typography.caption, color: colors.textMuted },
 });

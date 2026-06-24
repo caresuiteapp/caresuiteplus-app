@@ -12,6 +12,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import type { EmployeeListItem } from '@/types/modules/employeeList';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 import { spacing } from '@/theme';
 
 type EmployeeCompactRowProps = {
@@ -101,7 +102,7 @@ export function EmployeeCompactRow({ employee, selected = false, onPress }: Empl
           {fullName}
         </Text>
         <Text style={styles.meta} numberOfLines={1}>
-          {[employee.jobTitle, employee.email].filter(Boolean).join(' · ')}
+          {[resolveEmployeeRoleLabel(employee.jobTitle), employee.email].filter(Boolean).join(' · ')}
         </Text>
       </View>
       <View style={styles.badges}>
@@ -118,7 +119,7 @@ export function EmployeeCompactRow({ employee, selected = false, onPress }: Empl
     <GlassSurface
       radius={careRadius.md}
       glowOpacity={selected ? 0.14 : 0.06}
-      style={[styles.rowHost, selected ? styles.rowSelected : null]}
+      style={{ ...(styles.rowHost as import('react-native').ViewStyle), ...(selected ? (styles.rowSelected as import('react-native').ViewStyle) : {}) }}
     >
       {rowContent}
     </GlassSurface>

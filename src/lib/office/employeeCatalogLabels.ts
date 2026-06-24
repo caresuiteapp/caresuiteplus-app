@@ -1,5 +1,6 @@
 import { EMPLOYEE_OFFICE_CATALOGS } from '@/data/demo/templates/catalogs/employeeOffice';
 import { GLOBAL_STATUS_CATALOGS } from '@/data/demo/templates/catalogs/globalStatuses';
+import { formatGermanCatalogKey } from '@/lib/formatters/germanLabelFormatters';
 import type { CatalogType } from '@/types/templates';
 
 const labelMaps = new Map<CatalogType, Map<string, string>>();
@@ -19,7 +20,12 @@ export function resolveEmployeeCatalogLabel(
 ): string {
   if (!key?.trim()) return '—';
   ensureLabelMaps();
-  return labelMaps.get(catalogType)?.get(key.trim()) ?? key.trim();
+  return labelMaps.get(catalogType)?.get(key.trim()) ?? formatGermanCatalogKey(key);
+}
+
+/** Display label for employee role keys (catalog mapping + German umlaut fallback). */
+export function formatRoleLabel(roleKey: string | null | undefined): string {
+  return resolveEmployeeRoleLabel(roleKey);
 }
 
 export function resolveEmployeeDepartmentLabel(departmentKey: string | null | undefined): string {

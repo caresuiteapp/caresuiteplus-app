@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { ResidentListItem } from '@/types/modules/stationaer';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -47,6 +48,8 @@ export function ResidentsListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: ResidentsListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={residents}
@@ -67,7 +70,7 @@ export function ResidentsListTable({
           flex: 2,
           sortable: true,
           render: (item) => (
-            <Text style={styles.name}>
+            <Text style={tableText.name}>
               {item.lastName}, {item.firstName}
             </Text>
           ),
@@ -89,7 +92,7 @@ export function ResidentsListTable({
           label: 'Zimmer',
           flex: 1,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.roomName ?? '—'}
             </Text>
           ),
@@ -99,7 +102,7 @@ export function ResidentsListTable({
           label: 'Bereich',
           flex: 1,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.wing ?? '—'}
             </Text>
           ),
@@ -112,7 +115,7 @@ export function ResidentsListTable({
             item.careLevel ? (
               <PremiumBadge label={formatCareLevel(item.careLevel)} variant="cyan" />
             ) : (
-              <Text style={styles.muted}>—</Text>
+            <Text style={tableText.meta}>—</Text>
             ),
         },
         {
@@ -121,7 +124,7 @@ export function ResidentsListTable({
           flex: 1,
           sortable: true,
           render: (item) => (
-            <Text style={styles.cellText}>{formatDate(item.admissionDate)}</Text>
+            <Text style={tableText.cellText}>{formatDate(item.admissionDate)}</Text>
           ),
         },
         {
@@ -150,14 +153,8 @@ export function ResidentsListTable({
 }
 
 const styles = StyleSheet.create({
-  name: {
-    ...typography.bodyStrong,
-  },
-  cellText: {
-    ...typography.body,
-  },
-  muted: {
+  time: {
     ...typography.caption,
-    color: colors.textMuted,
+    color: colors.cyan,
   },
 });

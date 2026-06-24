@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumDataTable } from '@/components/ui';
 import type { ShiftScheduleListItem } from '@/lib/pflege/shiftScheduleDemo';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -28,6 +29,8 @@ export function ShiftScheduleListTable({
   items,
   selectedId = null,
 }: ShiftScheduleListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -38,20 +41,20 @@ export function ShiftScheduleListTable({
           key: 'employee',
           label: 'Mitarbeiter:in',
           flex: 1.3,
-          render: (item) => <Text style={styles.title}>{item.employeeName}</Text>,
+          render: (item) => <Text style={tableText.title}>{item.employeeName}</Text>,
         },
         {
           key: 'role',
           label: 'Rolle',
           flex: 1.1,
-          render: (item) => <Text style={styles.cellText}>{item.roleLabel}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.roleLabel}</Text>,
         },
         {
           key: 'date',
           label: 'Datum',
           flex: 1,
           render: (item) => (
-            <Text style={styles.cellText}>
+            <Text style={tableText.cellText}>
               {new Date(item.shiftDate).toLocaleDateString('de-DE')}
             </Text>
           ),
@@ -61,7 +64,7 @@ export function ShiftScheduleListTable({
           label: 'Zeit',
           flex: 1,
           render: (item) => (
-            <Text style={styles.cellText}>
+            <Text style={tableText.cellText}>
               {item.startTime} – {item.endTime}
             </Text>
           ),
@@ -71,7 +74,7 @@ export function ShiftScheduleListTable({
           label: 'Einsatzort',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.location}
             </Text>
           ),
@@ -94,6 +97,4 @@ export function ShiftScheduleListTable({
 }
 
 const styles = StyleSheet.create({
-  title: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
 });

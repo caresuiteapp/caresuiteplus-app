@@ -1,4 +1,5 @@
 import { StyleSheet, Text } from 'react-native';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import { PremiumBadge, PremiumButton, PremiumDataTable } from '@/components/ui';
 import type { LivingAreaListItem } from '@/types/modules/stationaer';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -32,6 +33,8 @@ export function LivingAreasListTable({
   sortDirection = 'asc',
   onSortColumn,
 }: LivingAreasListTableProps) {
+  const tableText = useTableTextStyles();
+
   return (
     <PremiumDataTable
       data={items}
@@ -47,14 +50,14 @@ export function LivingAreasListTable({
           label: 'Bereich',
           flex: 2,
           sortable: true,
-          render: (item) => <Text style={styles.name}>{item.name}</Text>,
+          render: (item) => <Text style={tableText.name}>{item.name}</Text>,
         },
         {
           key: 'wing',
           label: 'Flügel',
           flex: 1.2,
           render: (item) => (
-            <Text style={styles.cellText} numberOfLines={1}>
+            <Text style={tableText.cellText} numberOfLines={1}>
               {item.wing ?? '—'}
             </Text>
           ),
@@ -64,14 +67,14 @@ export function LivingAreasListTable({
           label: 'Kapazität',
           flex: 0.9,
           sortable: true,
-          render: (item) => <Text style={styles.cellText}>{item.capacity}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.capacity}</Text>,
         },
         {
           key: 'occupied',
           label: 'Belegt',
           flex: 0.8,
           sortable: true,
-          render: (item) => <Text style={styles.cellText}>{item.occupiedBeds}</Text>,
+          render: (item) => <Text style={tableText.cellText}>{item.occupiedBeds}</Text>,
         },
         {
           key: 'free',
@@ -116,6 +119,4 @@ export function LivingAreasListTable({
 }
 
 const styles = StyleSheet.create({
-  name: { ...typography.bodyStrong },
-  cellText: { ...typography.body },
 });
