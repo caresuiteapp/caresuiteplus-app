@@ -4,6 +4,7 @@ import { CareSuiteIcon } from '@/components/brand/CareSuiteIcon';
 import { authBackLinkColor, useAuthFlowTypography } from '@/design/tokens/authTypography';
 import { galaxyPalette } from '@/design/tokens/galaxy';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { GlassCard } from './GlassCard';
@@ -73,12 +74,13 @@ export function AuthScreenHeader({
 }: AuthScreenHeaderProps) {
   const type = useAuthFlowTypography();
   const auroraActive = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
 
   return (
     <View style={styles.header}>
       {showBack && onBack ? (
         <Pressable onPress={onBack} style={styles.backBtn} accessibilityRole="button">
-          <Text style={[styles.backText, { color: authBackLinkColor(auroraActive) }]}>← Zurück</Text>
+          <Text style={[styles.backText, { color: authBackLinkColor(auroraActive, isLight) }]}>← Zurück</Text>
         </Pressable>
       ) : null}
       <Text style={type.h1} numberOfLines={2}>

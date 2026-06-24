@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import type { TextStyle } from 'react-native';
 import { useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { galaxyPalette } from '@/design/tokens/galaxy';
+import { resolveInteractiveTextColor } from '@/design/tokens/accentContrast';
 import { llgsTypography } from '@/design/tokens/lightLiquidGlassSpace';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -23,11 +24,16 @@ export function useAuthFlowTypography() {
 
     const accentEyebrow: TextStyle = {
       ...sizes.eyebrow,
-      color: '#0284C7',
+      color: isLight ? text.muted : '#0284C7',
     };
 
     const bodyColor = isLight && isPhone ? text.primary : text.secondary;
     const captionColor = isLight && isPhone ? text.primary : text.muted;
+    const backLinkColor = resolveInteractiveTextColor({
+      isLight,
+      accentOnDark: '#0284C7',
+      lightText: text.primary,
+    });
 
     return {
       h1: { ...sizes.h1, color: text.primary },
@@ -39,7 +45,7 @@ export function useAuthFlowTypography() {
       caption: { ...sizes.caption, color: captionColor },
       eyebrow: accentEyebrow,
       backLink: {
-        color: '#0284C7',
+        color: backLinkColor,
         fontSize: sizes.body.fontSize,
         fontWeight: '600' as const,
       } as TextStyle,
@@ -49,6 +55,10 @@ export function useAuthFlowTypography() {
   }, [auroraActive, isLight, isPhone, text.muted, text.primary, text.secondary, width]);
 }
 
-export function authBackLinkColor(auroraActive: boolean): string {
-  return auroraActive ? '#0284C7' : galaxyPalette.galaxyCyan;
+export function authBackLinkColor(auroraActive: boolean, isLight = false): string {
+  return resolveInteractiveTextColor({
+    isLight: auroraActive && isLight,
+    accentOnDark: auroraActive ? '#0284C7' : galaxyPalette.galaxyCyan,
+    lightText: llgsTypography.primary,
+  });
 }

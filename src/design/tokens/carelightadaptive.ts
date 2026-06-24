@@ -15,6 +15,10 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { designTokens } from '@/theme';
+import {
+  LIGHT_SURFACE_INTERACTIVE_TEXT,
+  resolveInteractiveTextColor,
+} from '@/design/tokens/accentContrast';
 import { ListHeroSurfaceContext, useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
 
 export type CareLightResolved = {
@@ -92,6 +96,29 @@ export function useCareAdaptiveTokens() {
   return useMemo(() => ({ isDark, c, colors, typography }), [c, colors, isDark, typography]);
 }
 
+/**
+ * Text color for interactive controls (back links, tab pills, outline buttons).
+ * Dark on light surfaces; accent/white preserved on gradient heroes and dark aurora.
+ */
+export function useInteractiveTextColor(accentOnDark?: string) {
+  const { isLight, colors } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
+  const surface = useListHeroSurface();
+
+  return useMemo(
+    () =>
+      resolveInteractiveTextColor({
+        isLight,
+        onGradientHero: surface === 'gradient',
+        accentOnDark: accentOnDark ?? colors.cyan,
+        lightText: text.primary,
+      }),
+    [accentOnDark, colors.cyan, isLight, surface, text.primary],
+  );
+}
+
+export { LIGHT_SURFACE_INTERACTIVE_TEXT };
+
 /** Glass panel surface for dark PlatformShell / Aurora routes. */
 export function useGlassPanelStyle(): ViewStyle {
   return useAuroraGlassPanelStyle();
@@ -136,12 +163,12 @@ export function useAdaptiveContentStyles() {
         subheading: { ...typography.bodyStrong, color: text.primary, marginTop: careSpacing.sm },
         link: {
           ...typography.caption,
-          color: colors.cyan,
+          color: text.primary,
           fontWeight: '600' as TextStyle['fontWeight'],
         },
         error: { ...typography.caption, color: colors.error },
       }),
-    [colors.cyan, colors.error, text.muted, text.primary, text.secondary, typography],
+    [colors.error, text.muted, text.primary, text.secondary, typography],
   );
 }
 
@@ -153,7 +180,7 @@ export function createCareLightContentStyles(c: CareLightResolved) {
     caption: { ...careTypography.caption, color: c.muted },
     label: { ...careTypography.caption, color: c.muted, fontWeight: '600' as TextStyle['fontWeight'] },
     title: { ...careTypography.bodyStrong, color: c.text },
-    link: { ...careTypography.caption, color: c.cyan, fontWeight: '600' as TextStyle['fontWeight'] },
+    link: { ...careTypography.caption, color: c.text, fontWeight: '600' as TextStyle['fontWeight'] },
   });
 }
 

@@ -2,7 +2,8 @@ import { useEffect, useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import type { CalendarEventTemplate, CalendarModuleKey } from '@/types/calendar';
 import { SYSTEM_CALENDAR_TEMPLATES } from '@/data/calendar/defaultTemplates';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { auroraGlass, useActiveGlassTokens, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { LoadingState, PremiumButton } from '@/components/ui';
@@ -35,6 +36,8 @@ export function CalendarEventTemplatePicker({
   accentColor = '#62F3FF',
 }: CalendarEventTemplatePickerProps) {
   const text = useAuroraAdaptiveText();
+  const glass = useActiveGlassTokens();
+  const activeLabelColor = useInteractiveTextColor(accentColor);
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [templates, setTemplates] = useState<CalendarEventTemplate[]>([]);
@@ -113,10 +116,10 @@ export function CalendarEventTemplatePicker({
             onPress={() => setModuleFilter('all')}
             style={[
               styles.filterChip,
-              moduleFilter === 'all' && { borderColor: accentColor, backgroundColor: auroraGlass.chipActive },
+              moduleFilter === 'all' && { borderColor: accentColor, backgroundColor: glass.chipActive },
             ]}
           >
-            <Text style={{ color: moduleFilter === 'all' ? accentColor : text.primary, fontSize: 12, fontWeight: '700' }}>
+            <Text style={{ color: moduleFilter === 'all' ? activeLabelColor : text.primary, fontSize: 12, fontWeight: '700' }}>
               Alle
             </Text>
           </Pressable>
@@ -126,10 +129,10 @@ export function CalendarEventTemplatePicker({
               onPress={() => setModuleFilter(key)}
               style={[
                 styles.filterChip,
-                moduleFilter === key && { borderColor: accentColor, backgroundColor: auroraGlass.chipActive },
+                moduleFilter === key && { borderColor: accentColor, backgroundColor: glass.chipActive },
               ]}
             >
-              <Text style={{ color: moduleFilter === key ? accentColor : text.primary, fontSize: 12, fontWeight: '700' }}>
+              <Text style={{ color: moduleFilter === key ? activeLabelColor : text.primary, fontSize: 12, fontWeight: '700' }}>
                 {MODULE_LABELS[key] ?? key}
               </Text>
             </Pressable>
@@ -202,12 +205,12 @@ export function CalendarEventTemplatePicker({
         onPress={() => onSelect(template)}
         style={[
           styles.chip,
-          active && { borderColor: accentColor, backgroundColor: auroraGlass.chipActive },
+          active && { borderColor: accentColor, backgroundColor: glass.chipActive },
         ]}
         accessibilityRole="button"
         accessibilityState={{ selected: active }}
       >
-        <Text style={[styles.label, { color: active ? accentColor : text.primary }]}>
+        <Text style={[styles.label, { color: active ? activeLabelColor : text.primary }]}>
           {template.label}
         </Text>
         {template.description ? (

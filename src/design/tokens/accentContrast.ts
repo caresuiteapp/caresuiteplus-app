@@ -98,3 +98,25 @@ export function resolveLightPrimaryButtonStyle(accent: string): AccentChipStyle 
 export function resolveLightColoredTextColor(accent: string, fallback = '#475569'): string {
   return isLightAccentColor(accent) ? ACCENT_DARK_SOLID : accent;
 }
+
+/** Primary dark text for interactive controls (links, tabs, outline buttons) on light surfaces. */
+export const LIGHT_SURFACE_INTERACTIVE_TEXT = '#0F1B33';
+
+/**
+ * Text color for interactive controls on light vs dark/gradient surfaces.
+ * Light surfaces always use dark text; gradient heroes keep accent/white.
+ */
+export function resolveInteractiveTextColor(options: {
+  isLight: boolean;
+  onGradientHero?: boolean;
+  accentOnDark?: string;
+  lightText?: string;
+}): string {
+  if (options.onGradientHero && !options.isLight) {
+    return options.accentOnDark ?? '#FFFFFF';
+  }
+  if (options.isLight) {
+    return options.lightText ?? LIGHT_SURFACE_INTERACTIVE_TEXT;
+  }
+  return options.accentOnDark ?? '#62F3FF';
+}

@@ -1,7 +1,11 @@
+import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
-import { colors, typography } from '@/theme';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { typography } from '@/theme';
 
 type BreadcrumbTrailProps = {
   trail: BreadcrumbTrailType;
@@ -9,6 +13,47 @@ type BreadcrumbTrailProps = {
 
 export function BreadcrumbTrail({ trail }: BreadcrumbTrailProps) {
   const router = useRouter();
+  const { colors, isLight } = useLegacyTheme();
+  const text = useAuroraAdaptiveText();
+  const linkColor = useInteractiveTextColor();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        row: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          justifyContent: 'center',
+          alignItems: 'center',
+          marginBottom: 2,
+        },
+        segment: {
+          flexDirection: 'row',
+          alignItems: 'center',
+        },
+        link: {
+          ...typography.caption,
+          color: linkColor,
+          fontWeight: '600',
+        },
+        text: {
+          ...typography.caption,
+          color: isLight ? text.secondary : colors.cyan,
+          opacity: 0.7,
+        },
+        current: {
+          opacity: 1,
+          fontWeight: '600',
+          color: isLight ? text.primary : colors.cyan,
+        },
+        sep: {
+          ...typography.caption,
+          color: isLight ? text.muted : colors.cyan,
+          opacity: 0.5,
+        },
+      }),
+    [colors.cyan, isLight, linkColor, text.muted, text.primary, text.secondary],
+  );
 
   if (trail.length <= 1) return null;
 
@@ -39,36 +84,3 @@ export function BreadcrumbTrail({ trail }: BreadcrumbTrailProps) {
     </View>
   );
 }
-
-const styles = StyleSheet.create({
-  row: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    justifyContent: 'center',
-    alignItems: 'center',
-    marginBottom: 2,
-  },
-  segment: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  link: {
-    ...typography.caption,
-    color: colors.cyan,
-    fontWeight: '600',
-  },
-  text: {
-    ...typography.caption,
-    color: colors.cyan,
-    opacity: 0.7,
-  },
-  current: {
-    opacity: 1,
-    fontWeight: '600',
-  },
-  sep: {
-    ...typography.caption,
-    color: colors.cyan,
-    opacity: 0.5,
-  },
-});

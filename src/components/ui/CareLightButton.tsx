@@ -49,7 +49,7 @@ export function CareLightButton({
         style={[
           styles.label,
           isPrimary && { color: primaryStyle!.color },
-          (isSecondary || variant === 'ghost') && { color: accentColor },
+          (isSecondary || variant === 'ghost') && { color: careLightColors.text },
         ]}
       >
         {loading ? '…' : title}

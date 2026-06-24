@@ -1,5 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useActiveGlassTokens } from '@/design/tokens/auroraGlass';
+import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 
@@ -16,7 +17,7 @@ export function CalendarCreateAction({
   label = 'Neu',
   floating = false,
 }: CalendarCreateActionProps) {
-  const text = useAuroraAdaptiveText();
+  const labelColor = useInteractiveTextColor(accentColor);
 
   if (floating) {
     return (
@@ -31,13 +32,15 @@ export function CalendarCreateAction({
     );
   }
 
+  const glass = useActiveGlassTokens();
+
   return (
     <Pressable
       onPress={onPress}
-      style={[styles.button, { borderColor: accentColor }]}
+      style={[styles.button, { borderColor: accentColor, backgroundColor: glass.chip }]}
       accessibilityRole="button"
     >
-      <Text style={[styles.buttonLabel, { color: accentColor }]}>+ {label}</Text>
+      <Text style={[styles.buttonLabel, { color: labelColor }]}>+ {label}</Text>
     </Pressable>
   );
 }
@@ -49,7 +52,6 @@ const styles = StyleSheet.create({
     paddingVertical: careSpacing.xs,
     borderRadius: careRadius.full,
     borderWidth: 1,
-    backgroundColor: auroraGlass.chip,
     marginBottom: careSpacing.sm,
   },
   buttonLabel: { fontSize: 13, fontWeight: '700' },

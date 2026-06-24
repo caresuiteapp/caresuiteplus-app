@@ -10,6 +10,7 @@ import {
   useAuroraAdaptiveText,
   useAuroraGlassActive,
 } from '@/design/tokens/auroraGlass';
+import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -49,6 +50,7 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
       : null;
   const activeChip = useLightNav ? lightLiquidGlass.chipActive : auroraGlass.chipActive;
   const labelDefault = useLightNav ? text.primary : text.secondary;
+  const activeLabelColor = useInteractiveTextColor(accentColor);
   const mobileTabs = useMemo(() => resolveCompactShellMobileTabs(tabs, area), [tabs, area]);
   const activeKey = resolveActiveTabKey(pathname, mobileTabs);
   const bottomInset = Math.max(insets.bottom, careSpacing.sm);
@@ -62,7 +64,7 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
           paddingBottom: webSafeAreaPadding('bottom', bottomInset),
           backgroundColor: navSurface,
           borderTopColor: navBorder,
-        },
+        } as ViewStyle,
         navGlassFx,
       ]}
       testID="compact-mobile-nav"
@@ -90,7 +92,7 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
                 style={[
                   styles.label,
                   { color: labelDefault },
-                  active && { color: accentColor, fontWeight: '700' },
+                  active && { color: activeLabelColor, fontWeight: '700' },
                 ]}
                 numberOfLines={1}
               >

@@ -218,14 +218,16 @@ export function useAuroraAdaptiveText() {
         primary: glass.text.primary,
         secondary: glass.text.secondary,
         muted: glass.text.muted,
+        border: colors.borderSoft,
       };
     }
     return {
       primary: colors.textPrimary,
       secondary: colors.textSecondary,
       muted: colors.textMuted,
+      border: colors.borderSoft,
     };
-  }, [active, colors.textMuted, colors.textPrimary, colors.textSecondary, glass.text.muted, glass.text.primary, glass.text.secondary]);
+  }, [active, colors.borderSoft, colors.textMuted, colors.textPrimary, colors.textSecondary, glass.text.muted, glass.text.primary, glass.text.secondary]);
 }
 
 /** Full glass token set + legacy colors when inactive. */
@@ -643,7 +645,7 @@ export function useAuroraGlassSelectStyles(options: ShellGlassIntensityOptions =
         },
         modalCloseText: {
           ...typography.bodyStrong,
-          color: active && isLight ? text.secondary : careSuiteAuroraTheme.accent.cyan,
+          color: active && isLight ? text.primary : careSuiteAuroraTheme.accent.cyan,
         },
       }),
     [active, colors, glass, isLight, text.muted, text.primary, text.secondary, typography.body, typography.bodyStrong, typography.caption, typography.h3, typography.label, viewGlass],

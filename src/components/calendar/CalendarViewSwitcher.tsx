@@ -1,6 +1,8 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import type { CalendarViewMode } from '@/types/modules/calendarEvent';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useActiveGlassTokens, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 
@@ -26,6 +28,8 @@ export function CalendarViewSwitcher({
   includeYear = true,
 }: CalendarViewSwitcherProps) {
   const text = useAuroraAdaptiveText();
+  const glass = useActiveGlassTokens();
+  const activeLabelColor = useInteractiveTextColor(accentColor);
   const modes = includeYear
     ? [...CALENDAR_VIEW_MODES, { key: 'year' as CalendarViewMode, label: 'Jahr' }]
     : CALENDAR_VIEW_MODES;
@@ -38,11 +42,15 @@ export function CalendarViewSwitcher({
           <Pressable
             key={mode.key}
             onPress={() => onViewModeChange(mode.key)}
-            style={[styles.chip, active && { backgroundColor: auroraGlass.chipActive, borderColor: accentColor }]}
+            style={[
+              styles.chip,
+              { borderColor: glass.border, backgroundColor: glass.chip },
+              active && { backgroundColor: glass.chipActive, borderColor: accentColor },
+            ]}
             accessibilityRole="button"
             accessibilityState={{ selected: active }}
           >
-            <Text style={[styles.chipLabel, { color: active ? accentColor : text.primary }]}>
+            <Text style={[styles.chipLabel, { color: active ? activeLabelColor : text.primary }]}>
               {mode.label}
             </Text>
           </Pressable>
@@ -63,8 +71,6 @@ const styles = StyleSheet.create({
     paddingVertical: careSpacing.xs,
     borderRadius: careRadius.full,
     borderWidth: 1,
-    borderColor: auroraGlass.border,
-    backgroundColor: auroraGlass.chip,
   },
   chipLabel: {
     fontSize: 13,

@@ -12,6 +12,7 @@ import {
   resolveAccentTextChipStyle,
   resolveLightColoredTextColor,
   resolveLightPrimaryButtonStyle,
+  resolveInteractiveTextColor,
 } from '@/design/tokens/accentContrast';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -57,6 +58,18 @@ describe('accentContrast tokens', () => {
   it('falls back to dark text for light accents on plain surfaces', () => {
     expect(resolveLightColoredTextColor('#FACC15')).toBe('#0F172A');
     expect(resolveLightColoredTextColor('#8B5CF6')).toBe('#8B5CF6');
+  });
+
+  it('uses dark interactive text on light surfaces', () => {
+    expect(
+      resolveInteractiveTextColor({ isLight: true, accentOnDark: '#62F3FF' }),
+    ).toBe('#0F1B33');
+    expect(
+      resolveInteractiveTextColor({ isLight: false, onGradientHero: true, accentOnDark: '#FFFFFF' }),
+    ).toBe('#FFFFFF');
+    expect(
+      resolveInteractiveTextColor({ isLight: false, accentOnDark: '#62F3FF' }),
+    ).toBe('#62F3FF');
   });
 });
 

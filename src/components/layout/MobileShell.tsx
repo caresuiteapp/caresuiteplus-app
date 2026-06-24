@@ -2,6 +2,8 @@ import { ReactNode } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { AppShellArea } from '@/types/navigation/shell';
 import { useAppShell } from '@/hooks/useAppShell';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { colors, radius, spacing, typography } from '@/theme';
 import { AppTabBar } from './AppTabBar';
 import { ModuleSwitcher } from './ModuleSwitcher';
@@ -32,6 +34,8 @@ export function MobileShell({
     area === 'stationaer',
   tabsOverride,
 }: MobileShellProps) {
+  const { colors } = useLegacyTheme();
+  const linkColor = useInteractiveTextColor();
   const { tabs, switcherOpen, openSwitcher, closeSwitcher } = useAppShell(area);
   const effectiveTabs = tabsOverride?.length ? tabsOverride : tabs;
 
@@ -45,7 +49,7 @@ export function MobileShell({
           accessibilityRole="button"
           accessibilityLabel="Module wechseln"
         >
-          <Text style={styles.switcherFabText}>🧩 Module</Text>
+          <Text style={[styles.switcherFabText, { color: linkColor }]}>🧩 Module</Text>
         </Pressable>
       ) : null}
       <AppTabBar
@@ -81,6 +85,5 @@ const styles = StyleSheet.create({
   switcherFabText: {
     ...typography.caption,
     fontWeight: '700',
-    color: colors.cyan,
   },
 });

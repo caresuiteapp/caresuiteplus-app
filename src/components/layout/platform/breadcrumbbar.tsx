@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { spacing, typography } from '@/theme';
 
 export type BreadcrumbSegment = {
@@ -16,7 +17,8 @@ type BreadcrumbBarProps = {
 export function BreadcrumbBar({ segments }: BreadcrumbBarProps) {
   const router = useRouter();
   const { colors } = useLegacyTheme();
-  const styles = useMemo(() => createStyles(colors), [colors]);
+  const linkColor = useInteractiveTextColor();
+  const styles = useMemo(() => createStyles(colors, linkColor), [colors, linkColor]);
 
   if (segments.length <= 1) {
     return null;
@@ -45,7 +47,7 @@ export function BreadcrumbBar({ segments }: BreadcrumbBarProps) {
   );
 }
 
-function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
+function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors'], linkColor: string) {
   return StyleSheet.create({
     row: {
       flexDirection: 'row',
@@ -59,7 +61,7 @@ function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
     },
     link: {
       ...typography.caption,
-      color: colors.cyan,
+      color: linkColor,
       fontWeight: '600',
     },
     text: {

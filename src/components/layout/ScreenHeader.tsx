@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/breadcrumbs';
+import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { spacing, typography } from '@/theme';
@@ -26,6 +27,7 @@ export function ScreenHeader({
 }: ScreenHeaderProps) {
   const router = useRouter();
   const { colors } = useLegacyTheme();
+  const backLinkColor = useInteractiveTextColor();
   const shellHostsAurora = useShellHostsAurora();
 
   const styles = useMemo(
@@ -56,7 +58,7 @@ export function ScreenHeader({
         },
         backText: {
           ...typography.caption,
-          color: colors.cyan,
+          color: backLinkColor,
           fontWeight: '600',
         },
         title: {
@@ -71,7 +73,7 @@ export function ScreenHeader({
           marginTop: 2,
         },
       }),
-    [colors, shellHostsAurora],
+    [backLinkColor, colors, shellHostsAurora],
   );
 
   const handleBack = () => {
