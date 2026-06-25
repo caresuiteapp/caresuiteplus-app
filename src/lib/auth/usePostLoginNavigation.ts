@@ -21,7 +21,7 @@ export function usePostLoginNavigation({
   useEffect(() => {
     if (!pendingRoute || !authReady || !isAuthenticated) return;
 
-    router.replace(pendingRoute);
+    router.replace(pendingRoute as never);
     onNavigate?.();
     onClearPending?.();
   }, [authReady, isAuthenticated, onClearPending, onNavigate, pendingRoute, router]);

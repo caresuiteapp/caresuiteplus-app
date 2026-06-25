@@ -22,6 +22,7 @@ describe('ClientContacts', () => {
       lastName: 'Kontakt',
       relationship: 'nachbar',
       relationshipLabel: 'Nachbar',
+      contactType: 'family' as import('@/types/modules/client').ClientContactType,
       phone: '+49 170 0000000',
       email: 'test@demo.app',
       isEmergency: false,

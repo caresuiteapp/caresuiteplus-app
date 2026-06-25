@@ -165,8 +165,8 @@ export async function updateEmployeeMasterData(
   const demoFile = getDemoEmployeePersonnelFile(employeeId);
   const existingFile =
     getServiceMode() === 'supabase'
-      ? cached ?? (await loadEmployeePersonnelFileLive(tenantId, employeeId)).data
-      : demoFile;
+    ? cached ?? await loadEmployeePersonnelFileLive(tenantId, employeeId).then(r => r.ok ? r.data : null)
+    : demoFile;
 
   if (!existingFile) return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
   if (existingFile.tenantId !== tenantId) {

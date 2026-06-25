@@ -2,6 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { withAlpha } from '@/design/tokens/motion';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
@@ -31,6 +32,7 @@ export function FormScreenHero({
   accentColor,
 }: FormScreenHeroProps) {
   const { colors, typography } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const tenantName = useTenantDisplayName();
   const accent = accentColor ?? careSuiteAuroraTheme.accent.pink;
   const modeLabel = formMode === 'create' ? 'Anlegen' : 'Bearbeiten';
@@ -40,18 +42,14 @@ export function FormScreenHero({
       StyleSheet.create({
         topRow: { flexDirection: 'row', gap: spacing.md },
         textCol: { flex: 1, gap: 2 },
-        eyebrow: {
-          ...typography.caption,
-          letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-          color: withAlpha('#FFFFFF', 0.85),
-        },
-        title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-        meta: { ...typography.caption, color: withAlpha('#FFFFFF', 0.75) },
+        eyebrow: heroText.eyebrow,
+        title: heroText.title,
+        meta: heroText.meta,
         iconBadge: {
           width: iconSize,
           height: iconSize,
           borderRadius: iconSize / 2,
-          backgroundColor: withAlpha('#FFFFFF', 0.16),
+          backgroundColor: heroText.iconBadge.backgroundColor,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 2,

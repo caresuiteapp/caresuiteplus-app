@@ -10,13 +10,14 @@ export type OfficeMessageAuditAction =
   | 'office_message_assigned'
   | 'office_message_closed'
   | 'office_message_attachment_uploaded'
-  | 'office_message_internal_note';
+  | 'office_message_internal_note'
+  | 'office_message_export_requested';
 
 type AuditInput = {
   tenantId: string;
   action: OfficeMessageAuditAction;
   threadId: string;
-  threadType: OfficeThreadType;
+  threadType?: OfficeThreadType;
   clientId?: string | null;
   employeeId?: string | null;
   actorName?: string | null;
@@ -32,6 +33,7 @@ const ACTION_LABELS: Record<OfficeMessageAuditAction, string> = {
   office_message_closed: 'Chat abgeschlossen',
   office_message_attachment_uploaded: 'Anhang hochgeladen',
   office_message_internal_note: 'Interne Notiz',
+  office_message_export_requested: 'Chat-Export angefordert',
 };
 
 export async function logOfficeMessageAuditEvent(

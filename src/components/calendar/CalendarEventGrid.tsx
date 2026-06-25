@@ -12,7 +12,7 @@ type CalendarEventGridProps = {
   viewMode: CalendarViewMode;
   anchor: Date;
   events: CalendarEvent[];
-  weekStartDay: number;
+  weekStartDay: import('@/types/modules/calendarEvent').WeekStartDay;
   maxCollapsedEvents: number;
   dayViewStartHour: number;
   weekFullDay: boolean;

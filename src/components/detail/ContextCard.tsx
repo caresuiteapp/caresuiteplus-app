@@ -10,24 +10,24 @@ type ContextCardProps = {
 };
 
 /** Shared 2×2 grid for Verknüpfte Bereiche KPI cards — full SectionPanel width. */
-export const contextGridStyle: ViewStyle = {
+export const contextGridStyle = {
   width: '100%',
   alignSelf: 'stretch',
   gap: spacing.sm,
   ...(Platform.OS === 'web'
     ? { display: 'grid' as const, gridTemplateColumns: 'repeat(2, minmax(0, 1fr))' }
-    : { flexDirection: 'row', flexWrap: 'wrap' }),
-};
+    : { flexDirection: 'row' as const, flexWrap: 'wrap' as const }),
+} as ViewStyle;
 
 /** 4-column KPI row for ClientRecordScreen — full width, centered card content. */
-export const clientRecordKpiGridStyle: ViewStyle = {
+export const clientRecordKpiGridStyle = {
   width: '100%',
   alignSelf: 'stretch',
   gap: spacing.sm,
   ...(Platform.OS === 'web'
     ? { display: 'grid' as const, gridTemplateColumns: 'repeat(4, minmax(0, 1fr))' }
-    : { flexDirection: 'row', flexWrap: 'wrap' }),
-};
+    : { flexDirection: 'row' as const, flexWrap: 'wrap' as const }),
+} as ViewStyle;
 
 export function ContextCard({
   icon,

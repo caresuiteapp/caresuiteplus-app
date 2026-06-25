@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { ROLE_LABELS } from '@/data/constants';
 import { isConnectLiveReady } from '@/lib/connect';
 import type { ConnectCategory } from '@/types/modules/connect';
 import type { RoleKey } from '@/types';
-import { colors, designTokens, spacing, typography } from '@/theme';
+import { designTokens, spacing } from '@/theme';
 
 type ConnectHubHeroProps = {
   categories: ConnectCategory[];
@@ -13,6 +15,8 @@ type ConnectHubHeroProps = {
 };
 
 export function ConnectHubHero({ categories, roleKey }: ConnectHubHeroProps) {
+  const { colors } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const integrationCount = categories.reduce(
     (sum, category) => sum + category.integrations.filter((item) => item.readiness !== 'disabled').length,
     0,
@@ -23,19 +27,15 @@ export function ConnectHubHero({ categories, roleKey }: ConnectHubHeroProps) {
       StyleSheet.create({
         topRow: { flexDirection: 'row', gap: spacing.md },
         textCol: { flex: 1, gap: 2 },
-        eyebrow: {
-          ...typography.caption,
-          color: 'rgba(255,255,255,0.85)',
-          letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-        },
-        title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-        meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
-        subtitle: { ...typography.caption, color: 'rgba(255,255,255,0.85)' },
+        eyebrow: heroText.eyebrow,
+        title: heroText.title,
+        meta: heroText.meta,
+        subtitle: heroText.subtitle,
         iconBadge: {
           width: iconSize,
           height: iconSize,
           borderRadius: iconSize / 2,
-          backgroundColor: colors.bgElevated,
+          backgroundColor: heroText.iconBadge.backgroundColor,
           alignItems: 'center',
           justifyContent: 'center',
           borderWidth: 2,
@@ -44,7 +44,7 @@ export function ConnectHubHero({ categories, roleKey }: ConnectHubHeroProps) {
         iconText: { fontSize: 22 },
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, alignItems: 'center' },
       }),
-    [],
+    [colors, heroText],
   );
 
   return (

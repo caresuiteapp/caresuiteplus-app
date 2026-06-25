@@ -15,8 +15,9 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
-type AppointmentDetailSummaryPanelProps = {
+export type AppointmentDetailSummaryPanelProps = {
   appointmentId: string;
+  onOpenFullRecord?: () => void;
 };
 
 function SummaryRow({ label, value }: { label: string; value: string | null | undefined }) {

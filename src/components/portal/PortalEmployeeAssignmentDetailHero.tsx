@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 
@@ -48,6 +49,7 @@ export function PortalEmployeeAssignmentDetailHero({
   assignment,
 }: PortalEmployeeAssignmentDetailHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -64,11 +66,7 @@ export function PortalEmployeeAssignmentDetailHero({
     color: colors.amber,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: {
-    ...typography.h2,
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
+  title: heroText.title,
   meta: {
     ...typography.bodyStrong,
     color: 'rgba(255,255,255,0.85)',

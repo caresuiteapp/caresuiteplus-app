@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Platform, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
@@ -7,7 +7,7 @@ import { careEffects } from '@/design/tokens/effects';
 
 type GlassSurfaceProps = {
   children: ReactNode;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
   radius?: number;
   glowColor?: string;
   glowOpacity?: number;

@@ -18,7 +18,7 @@ import { buildExportFileName, triggerCsvDownload } from './csvDownload';
 import { serializeCsv } from './csvParser';
 import { CLIENT_IMPORT_ALL_FIELDS } from '@/types/clientImport';
 
-const LEISTUNGSART = getSystemCatalog('leistungsart').entries.map((e) => ({ key: e.value, label: e.label }));
+const LEISTUNGSART = getSystemCatalog('leistungsart').entries.map((e) => ({ key: e.key, label: e.label }));
 
 type ClientRow = {
   id: string;
@@ -78,7 +78,7 @@ export async function exportClientsCsv(input: {
     if (input.filters.statusFilter === 'inactive') query = query.eq('status', 'inactive');
   }
 
-  if (input.filters.careLevel) query = query.eq('care_level', input.filters.careLevel);
+  if (input.filters.careLevel) query = query.eq('care_level', input.filters.careLevel as never);
   if (input.filters.city) query = query.ilike('city', `%${input.filters.city}%`);
   if (input.filters.costBearer) query = query.ilike('cost_bearer', `%${input.filters.costBearer}%`);
   if (input.filters.serviceStartFrom) query = query.gte('admission_date', input.filters.serviceStartFrom);

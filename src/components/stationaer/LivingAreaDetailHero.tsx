@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { buildLivingAreaDetailKpis } from '@/lib/stationaer/livingAreaDetailStats';
@@ -18,6 +19,7 @@ type LivingAreaDetailHeroProps = {
 
 export function LivingAreaDetailHero({ area, roleKey }: LivingAreaDetailHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -28,8 +30,8 @@ export function LivingAreaDetailHero({ area, roleKey }: LivingAreaDetailHeroProp
     color: colors.violet,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  title: heroText.title,
+  meta: heroText.meta,
   iconBadge: {
     width: iconSize,
     height: iconSize,

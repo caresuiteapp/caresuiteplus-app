@@ -243,7 +243,7 @@ describe('Mitarbeiter-Offboarding (Prompt 78)', () => {
         jobTitle: 'Pflegefachkraft',
         email: 'mhi@example.com',
         phone: '',
-        status: 'active',
+        status: 'aktiv',
         updatedAt: '2026-06-01T00:00:00.000Z',
       },
     });

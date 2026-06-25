@@ -1,9 +1,14 @@
-import type { AppointmentCreateInput } from '@/lib/office/appointmentCreateService';
 import type { RoleKey, ServiceResult } from '@/types';
 import { createCalendarEventFromForm } from '@/lib/calendar/calendarEventSaveService';
 
-/** @deprecated Use createCalendarEventFromForm from calendarEventSaveService */
-export type { AppointmentCreateInput };
+export type AppointmentCreateInput = {
+  title: string;
+  description?: string | null;
+  startsAt?: string;
+  endsAt?: string;
+  allDay?: boolean;
+  location?: string | null;
+};
 
 /** WP206 — delegates to unified calendar save service */
 export async function createAppointment(

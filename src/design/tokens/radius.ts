@@ -4,5 +4,6 @@ export const careRadius = {
   lg: 18,
   xl: 22,
   card: 24,
+  full: 9999,
   capsule: 999,
 } as const;

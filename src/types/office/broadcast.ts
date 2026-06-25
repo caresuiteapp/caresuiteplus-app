@@ -2,7 +2,14 @@ export type BroadcastPriority = 'normal' | 'important' | 'urgent' | 'critical';
 
 export type BroadcastStatus = 'draft' | 'scheduled' | 'sent' | 'archived';
 
-export type BroadcastAudience = 'employees' | 'selected_employees' | 'role' | 'team' | 'location';
+export type BroadcastAudience =
+  | 'employees'
+  | 'clients'
+  | 'internal'
+  | 'selected_employees'
+  | 'role'
+  | 'team'
+  | 'location';
 
 export type BroadcastCategoryKey =
   | 'general'

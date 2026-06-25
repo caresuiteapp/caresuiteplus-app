@@ -41,7 +41,7 @@ const ALL_AREAS: QmCockpitAreaKey[] = [
 ];
 
 function isOpenItem(item: QmCockpitItem): boolean {
-  return item.status !== 'resolved' && item.status !== 'archived' && item.status !== 'rejected';
+  return item.status !== 'resolved' && item.status !== 'archived';
 }
 
 function billableItemToCockpitItem(item: BillableItem, area: QmCockpitAreaKey): QmCockpitItem {

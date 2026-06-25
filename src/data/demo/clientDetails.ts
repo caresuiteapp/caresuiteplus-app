@@ -16,6 +16,7 @@ function buildDetail(base: ClientListItem): ClientDetail {
     ...base,
     createdAt: daysAgo(90),
     dateOfBirth: '1948-03-15',
+    admissionDate: daysAgo(60),
     primaryContactPhone: '+49 30 98765432',
     street: 'Musterstraße 12',
     phone: '+49 30 98765432',

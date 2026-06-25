@@ -4,7 +4,7 @@ import { Platform, type ViewStyle } from 'react-native';
 export function webSafeAreaPadding(
   edge: 'top' | 'bottom' | 'left' | 'right',
   fallbackPx: number,
-): number | string {
+): import('react-native').DimensionValue {
   if (Platform.OS !== 'web') return fallbackPx;
   return `max(${fallbackPx}px, env(safe-area-inset-${edge}))`;
 }

@@ -32,6 +32,19 @@ function buildDetail(
         : base.status === 'entwurf'
           ? 'Onboarding noch nicht abgeschlossen.'
           : null,
+    mobile: null,
+    avatarUrl: null,
+    employmentType: null,
+    weeklyHours: null,
+    street: null,
+    houseNumber: null,
+    postalCode: null,
+    city: null,
+    hasFirstAidCertificate: false,
+    hasDriverLicense: false,
+    driverLicenseClass: null,
+    hasPoliceClearance: false,
+    policeClearanceDate: null,
   };
 }
 
@@ -43,7 +56,7 @@ export function getDemoEmployeeDetail(id: string): EmployeeDetail | null {
 
 export function updateDemoEmployeeDetail(
   id: string,
-  patch: Partial<Pick<EmployeeDetail, 'jobTitle' | 'phone' | 'department' | 'notes'>>,
+  patch: Partial<EmployeeDetail>,
 ): EmployeeDetail | null {
   const current = detailMap.get(id);
   if (!current) return null;

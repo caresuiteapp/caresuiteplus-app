@@ -17,6 +17,7 @@ export const helgaSchneiderFull: ClientFullDetail = {
   firstName: 'Helga',
   lastName: 'Schneider',
   dateOfBirth: '1948-03-15',
+  admissionDate: daysAgo(180),
   careLevel: 'PG 2',
   status: 'aktiv',
   primaryContactPhone: '+49 30 98765432',

@@ -65,6 +65,6 @@ export async function fetchOfficeReportingSummary(
   return {
     ok: true,
     data: buildDemoOfficeReportingKpis(),
-    previewData: isLiveMode || tenantId !== DEMO_TENANT_ID,
+    usedDemoFallback: isLiveMode || tenantId !== DEMO_TENANT_ID,
   };
 }

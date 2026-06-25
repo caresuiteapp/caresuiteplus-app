@@ -27,6 +27,8 @@ const liveProfile: Profile = {
   roleId: 'role-001',
   roleKey: 'business_admin',
   displayName: 'Live Admin',
+  firstName: 'Live',
+  lastName: 'Admin',
   email: 'admin@pilot.caresuiteplus.app',
   phone: null,
   avatarUrl: null,

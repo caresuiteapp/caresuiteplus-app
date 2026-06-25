@@ -27,7 +27,7 @@ export function CalendarEventPreviewStep({ form, template, moduleKey }: Calendar
   const text = useAuroraAdaptiveText();
   const startLabel = new Date(form.startAt).toLocaleString('de-DE');
   const endLabel = new Date(form.endAt).toLocaleString('de-DE');
-  const typeLabel = CALENDAR_EVENT_TYPE_LABELS[form.eventType] ?? form.eventType;
+  const typeLabel = (CALENDAR_EVENT_TYPE_LABELS as Record<string, string>)[form.eventType] ?? form.eventType;
 
   return (
     <View style={[styles.card, { borderColor: auroraGlass.border, backgroundColor: auroraGlass.card }]}>

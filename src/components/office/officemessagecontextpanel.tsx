@@ -42,6 +42,7 @@ type OfficeMessageContextPanelProps = {
   onUpdatePriority?: (priority: OfficeMessagePriority) => Promise<{ ok: boolean; error?: string }>;
   onUpdateCategory?: (categoryId: string) => Promise<{ ok: boolean; error?: string }>;
   readOnly?: boolean;
+  sheet?: boolean;
 };
 
 function ContextRow({ label, value }: { label: string; value: string }) {

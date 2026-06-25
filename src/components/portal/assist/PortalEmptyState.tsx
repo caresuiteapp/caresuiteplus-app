@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { surfaceContrastText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -13,6 +13,8 @@ type PortalEmptyStateProps = {
   compact?: boolean;
   ctaColor?: string;
   ctaSuffix?: string;
+  /** Helle Schrift auf dunklem Glas-Hintergrund. */
+  onDarkSurface?: boolean;
 };
 
 /** Glass-friendly empty state — no white surfaces. */
@@ -24,8 +26,9 @@ export function PortalEmptyState({
   compact = false,
   ctaColor = '#FF9500',
   ctaSuffix = '',
+  onDarkSurface = false,
 }: PortalEmptyStateProps) {
-  const text = useAuroraAdaptiveText();
+  const text = surfaceContrastText(onDarkSurface);
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const resolvedCtaColor = ctaColor === 'gold' ? PORTAL_MOBILE_CTA_GOLD : ctaColor;

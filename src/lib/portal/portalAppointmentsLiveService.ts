@@ -195,22 +195,20 @@ export async function fetchLivePortalClientAppointmentDetail(
       }),
     );
 
-    return {
-      ok: true,
-      data: {
-        id: row.id,
-        title: row.title?.trim() || 'Termin',
-        startsAt: row.planned_start_at,
-        endsAt: row.planned_end_at,
-        status: assignmentStatusToWorkflowFilter(assignmentStatus),
-        location: row.address_snapshot?.trim() || null,
-        caregiverName: personName(employee),
-        caregiverPhone: employee?.phone?.trim() || null,
-        serviceType: row.title?.trim() || 'Termin',
-        preparationNotes: row.client_visible_notes?.trim() || null,
-        canRequestChange: PLANNED_CHANGE_STATUSES.has(assignmentStatus),
-        liveVisit,
-      },
+    const detail: PortalClientAppointmentDetail = {
+      id: row.id,
+      title: row.title?.trim() || 'Termin',
+      startsAt: row.planned_start_at,
+      endsAt: row.planned_end_at,
+      status: assignmentStatusToWorkflowFilter(assignmentStatus),
+      location: row.address_snapshot?.trim() || null,
+      caregiverName: personName(employee),
+      caregiverPhone: employee?.phone?.trim() || null,
+      serviceType: row.title?.trim() || 'Termin',
+      preparationNotes: row.client_visible_notes?.trim() || null,
+      canRequestChange: PLANNED_CHANGE_STATUSES.has(assignmentStatus),
+      liveVisit: liveVisit as PortalClientAppointmentDetail['liveVisit'],
     };
+    return { ok: true as const, data: detail };
   });
 }

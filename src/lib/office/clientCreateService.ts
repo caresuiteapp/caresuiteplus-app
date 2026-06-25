@@ -8,6 +8,7 @@ export async function createClient(
   tenantId: string,
   form: ClientFormData,
   actorRoleKey?: RoleKey | null,
+  _mutationContext?: { actorProfileId?: string; actorDisplayName?: string | null },
 ): Promise<ServiceResult<{ id: string; detail: ClientDetail }>> {
   const denied = enforcePermission<{ id: string; detail: ClientDetail }>(
     actorRoleKey,

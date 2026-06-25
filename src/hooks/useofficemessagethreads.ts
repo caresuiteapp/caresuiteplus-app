@@ -1,21 +1,27 @@
 import { useCallback, useEffect } from 'react';
-import type { OfficeInboxFilter } from '@/types/office/messaging';
-import { fetchOfficeMessageThreads } from '@/lib/office/messagethreadservice';
+import type {
+  OfficeChatAgeFilter,
+  OfficeMessageAudience,
+} from '@/types/office/messaging';
+import { fetchOfficeMessageThreadsBySegment } from '@/lib/office/messagethreadservice';
 import { subscribeToOfficeMessageInbox } from '@/lib/office/officemessagerealtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { useAsyncQuery } from './core';
 
-export function useOfficeMessageThreads(filter: OfficeInboxFilter = 'inbox') {
+export function useOfficeMessageThreads(
+  audience: OfficeMessageAudience = 'employees',
+  chatAge: OfficeChatAgeFilter = 'new',
+) {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
 
   const query = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
-      return fetchOfficeMessageThreads(tenantId, profile?.roleKey, filter, profile?.id);
+      return fetchOfficeMessageThreadsBySegment(tenantId, profile?.roleKey, { audience, chatAge });
     },
-    [tenantId, profile?.roleKey, profile?.id, filter],
+    [tenantId, profile?.roleKey, profile?.id, audience, chatAge],
     { enabled: true },
   );
 

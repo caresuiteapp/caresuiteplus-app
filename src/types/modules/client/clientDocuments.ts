@@ -38,4 +38,6 @@ export const CLIENT_DOCUMENT_STATUS_LABELS: Record<WorkflowStatus, string> = {
   archiviert: 'Archiviert',
   fehlerhaft: 'Fehlerhaft',
   gesperrt: 'Gesperrt',
+  geplant: 'Geplant',
+  bestaetigt: 'Bestätigt',
 };

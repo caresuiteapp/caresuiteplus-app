@@ -74,12 +74,19 @@ export type OfficeMessage = TenantScopedEntity & {
   status: 'draft' | 'sent' | 'read' | 'archived' | 'deleted';
 };
 
+/** @deprecated Legacy URL param — prefer OfficeMessageAudience + OfficeChatAgeFilter */
 export type OfficeInboxFilter =
   | 'inbox'
   | 'clients'
   | 'employees'
   | 'internal'
   | 'closed';
+
+export type OfficeMessageAudience = 'clients' | 'employees' | 'internal';
+
+export type OfficeChatAgeFilter = 'new' | 'current' | 'old';
+
+export type OfficeMessengerView = 'chats' | 'broadcasts';
 
 export type OfficeMessageThreadDetail = OfficeMessageThread & {
   messages: OfficeMessage[];

@@ -17,6 +17,7 @@ export const wernerMuellerFull: ClientFullDetail = {
   firstName: 'Werner',
   lastName: 'Müller',
   dateOfBirth: '1942-11-08',
+  admissionDate: daysAgo(120),
   careLevel: 'PG 3',
   status: 'aktiv',
   primaryContactPhone: '+49 30 44556677',

@@ -82,7 +82,7 @@ const styles = StyleSheet.create({
   },
   backText: {
     ...careTypography.caption,
-    color: careLightColors.cyan,
+    color: careLightColors.navy,
     fontWeight: '600',
   },
   title: {

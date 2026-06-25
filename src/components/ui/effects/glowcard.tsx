@@ -1,12 +1,14 @@
 import { ReactNode } from 'react';
-import { Pressable, StyleSheet, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, View, type StyleProp, type ViewStyle } from 'react-native';
 import { GlassSurface } from './glasssurface';
 
-type GlowCardProps = {
+export type GlowCardProps = {
   children: ReactNode;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: StyleProp<ViewStyle>;
+  contentStyle?: ViewStyle;
   glowColor?: string;
+  glowOpacity?: number;
 };
 
 export function GlowCard({ children, onPress, style, glowColor }: GlowCardProps) {

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { DEV_TOOL_ENTRIES } from '@/data/navigation/moduleNavConfig';
@@ -7,6 +8,7 @@ import { designTokens, spacing } from '@/theme';
 
 export function DeveloperHubHero() {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -17,8 +19,8 @@ export function DeveloperHubHero() {
     color: colors.violet,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  title: heroText.title,
+  meta: heroText.meta,
   iconBadge: {
     width: iconSize,
     height: iconSize,

@@ -13,4 +13,5 @@ export type EmployeeListItem = Pick<
   | 'updatedAt'
 > & {
   avatarUrl?: string | null;
+  department?: string | null;
 };

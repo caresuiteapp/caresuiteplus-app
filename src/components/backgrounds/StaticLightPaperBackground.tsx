@@ -71,14 +71,14 @@ export function StaticLightPaperBackground({
     >
       {Platform.OS === 'web' && WEB_SVG_URI ? (
         <View
-          style={[styles.image, { backgroundImage: `url(${WEB_SVG_URI})` }]}
+          style={[styles.image, { backgroundImage: `url(${WEB_SVG_URI})` } as unknown as ViewStyle]}
           accessibilityIgnoresInvertColors
           aria-hidden={true}
         />
       ) : (
         <Image
           source={LIGHT_PAPER_BACKGROUND_PNG}
-          style={styles.image}
+          style={styles.image as import('react-native').ImageStyle}
           resizeMode="cover"
           accessibilityIgnoresInvertColors
           aria-hidden={true}
@@ -105,9 +105,9 @@ const styles = StyleSheet.create({
     width: '100%' as ViewStyle['width'],
     height: '100%' as ViewStyle['height'],
     ...(Platform.OS === 'web'
-      ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh',
-          objectFit: 'cover', backgroundSize: 'cover', backgroundPosition: 'center', backgroundRepeat: 'no-repeat' }
-      : null) as ViewStyle,
+      ? { position: 'fixed' as never, top: 0, left: 0, right: 0, bottom: 0, width: '100vw' as never, height: '100vh' as never,
+          objectFit: 'cover' as never, backgroundSize: 'cover' as never, backgroundPosition: 'center' as never, backgroundRepeat: 'no-repeat' as never }
+      : null) as unknown as ViewStyle,
   },
   dimOverlay: {
     ...StyleSheet.absoluteFillObject,

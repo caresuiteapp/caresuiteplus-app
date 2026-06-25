@@ -174,7 +174,7 @@ async function tryLinkUploadMessageThread(
     .select('id')
     .eq('tenant_id', input.tenantId)
     .eq('client_id', input.clientId)
-    .eq('thread_type', 'client_office')
+    .eq('thread_type', 'client_office' as never)
     .not('status', 'in', '("closed","resolved","archived")')
     .order('last_message_at', { ascending: false, nullsFirst: false })
     .limit(1);
@@ -197,7 +197,7 @@ async function tryLinkUploadMessageThread(
     sender_client_id: input.clientId,
     sent_at: now,
     status: 'sent',
-    metadata: { portalUploadId: upload.id, portalRequestId: requestId },
+    metadata: { portalUploadId: upload.id, portalRequestId: requestId } as never,
   });
 
   if (messageError && !isMissingTableError(messageError)) {

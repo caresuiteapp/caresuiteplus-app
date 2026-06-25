@@ -38,7 +38,7 @@ export function ModuleRailFontSizeControl() {
   return (
     <View
       style={styles.root}
-      accessibilityRole="group"
+      accessibilityRole={'group' as import('react-native').AccessibilityRole}
       accessibilityLabel={`Schriftgröße, aktuell ${formatWebFontScaleLabel(scale)}`}
     >
       <Pressable

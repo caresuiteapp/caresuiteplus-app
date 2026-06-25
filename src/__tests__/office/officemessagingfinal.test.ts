@@ -84,7 +84,7 @@ describe('Office Messaging Final Phase', () => {
   });
 
   it('Spec 5: Posteingang-Suche nach Name, Kategorie und Inhalt', () => {
-    const inbox = readSrc('src/components/office/OfficeMessagesInbox.tsx');
+    const inbox = readSrc('src/components/office/officemessagesinbox.tsx');
     expect(inbox).toContain('categoryLabel');
     expect(inbox).toContain('lastMessagePreview');
     expect(inbox).toContain('clientName');
@@ -92,10 +92,10 @@ describe('Office Messaging Final Phase', () => {
 
   it('Spec 6: Office-Navigation mit Messenger-Filtern und Vorlagen', () => {
     const nav = readSrc('src/lib/navigation/moduleNav/officeNav.ts');
-    expect(nav).toContain('/office/messages?filter=inbox');
-    expect(nav).toContain('/office/messages?filter=clients');
+    expect(nav).toContain('/office/messages?audience=clients');
+    expect(nav).toContain('/office/messages?audience=employees');
     expect(nav).toContain('/office/messages/templates');
-    expect(nav).not.toContain("label: 'Nachrichten'");
+    expect(nav).toContain("label: 'Nachrichten'");
   });
 
   it('Spec 7: Chat-Export-Stub mit Audit', () => {

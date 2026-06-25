@@ -98,10 +98,10 @@ function NebulaOrb({ orb, animate }: { orb: LightSpaceNebulaOrb; animate: boolea
       style={[
         styles.orb,
         {
-          top: orb.top,
-          left: orb.left,
-          right: orb.right,
-          bottom: orb.bottom,
+          top: orb.top as ViewStyle['top'],
+          left: orb.left as ViewStyle['left'],
+          right: orb.right as ViewStyle['right'],
+          bottom: orb.bottom as ViewStyle['bottom'],
           width: orb.size,
           height: orb.size,
           borderRadius: orb.size / 2,

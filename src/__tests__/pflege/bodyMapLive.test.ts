@@ -122,7 +122,6 @@ describe('BodyMap live MVP (Prompt 02)', () => {
         note: 'Live-Test Demo',
       },
       'nurse',
-      'profile-demo',
     );
     expect(created.ok).toBe(true);
 

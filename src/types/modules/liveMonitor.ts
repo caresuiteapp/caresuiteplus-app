@@ -152,13 +152,16 @@ export type ManagementTaskType =
   | 'missing_consent'
   | 'budget_warning'
   | 'audit_review'
-  | 'master_data_review';
+  | 'master_data_review'
+  | 'absence_replacement'
+  | 'absence_conflict';
 
 export type ManagementTaskStatus =
   | 'open'
   | 'in_progress'
   | 'waiting_for_employee'
   | 'waiting_for_client'
+  | 'waiting_for_management'
   | 'resolved'
   | 'archived';
 

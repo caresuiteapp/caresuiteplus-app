@@ -3,7 +3,7 @@ import { getSupabaseConfig, isSupabaseConfigured } from '@/lib/supabase/config';
 export type ServiceMode = 'demo' | 'supabase';
 
 export type LiveConfigIssue = {
-  code: 'missing_url' | 'missing_anon_key';
+  code: 'missing_url' | 'missing_anon_key' | 'demo_mode';
   message: string;
 };
 
@@ -30,6 +30,14 @@ export function assertLiveConfig(): { ok: true } | { ok: false; issues: LiveConf
       code: 'missing_anon_key',
       message:
         'EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY oder EXPO_PUBLIC_SUPABASE_ANON_KEY fehlt.',
+    });
+  }
+
+  const demoEnv = typeof process !== 'undefined' ? process.env?.EXPO_PUBLIC_DEMO_MODE : undefined;
+  if (demoEnv === 'true') {
+    issues.push({
+      code: 'demo_mode',
+      message: 'Demo-Modus ist aktiv — kein Live-Zugriff.',
     });
   }
 

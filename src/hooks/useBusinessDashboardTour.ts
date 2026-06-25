@@ -63,6 +63,8 @@ export function useBusinessDashboardTour({ ready, isEmptyTenant }: UseBusinessDa
       modules: modulesRef,
       nav: welcomeRef,
       firstClient: firstClientRef,
+      recent: welcomeRef,
+      moreActions: quickActionsRef,
     };
     const ref = refMap[anchor];
     if (!ref.current) {

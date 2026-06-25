@@ -6,8 +6,8 @@
 export type AssistMapPosition = {
   latitude: number;
   longitude: number;
-  accuracyMeters?: number | null;
-  capturedAt?: string | null;
+  accuracyMeters: number | null;
+  capturedAt: string | null;
 };
 
 export type AssistMapTileSource = 'osm' | 'mapbox';

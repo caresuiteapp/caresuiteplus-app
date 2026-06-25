@@ -221,12 +221,20 @@ function enrichPlan(plan: AssignmentSeed): AssignmentPlan {
 let assignmentStore: AssignmentSeed[] = ASSIGNMENT_SEEDS.map((seed) => ({ ...seed }));
 
 export function createDemoAssignmentSeed(
-  input: Omit<AssignmentSeed, 'id' | 'tenantId' | 'status'> & { tenantId?: string },
+  input: Pick<AssignmentSeed, 'clientId' | 'employeeId' | 'title' | 'scheduledStart' | 'scheduledEnd' | 'location' | 'notes'>
+    & Partial<Omit<AssignmentSeed, 'id' | 'status'>>
+    & { tenantId?: string },
 ): AssignmentSeed {
+  const now = new Date().toISOString();
   const seed: AssignmentSeed = {
     id: `assign-${Date.now().toString(36)}-${Math.random().toString(36).slice(2, 6)}`,
     tenantId: input.tenantId ?? DEMO_TENANT_ID,
     status: 'geplant',
+    appointmentId: null,
+    createdAt: now,
+    updatedAt: now,
+    visibility: 'team',
+    sensitivity: 'care',
     ...input,
   };
   assignmentStore.push(seed);

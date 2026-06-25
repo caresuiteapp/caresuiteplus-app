@@ -90,7 +90,7 @@ export function EmployeeCreateForm({ onCancel, onCreated }: EmployeeCreateFormPr
           <EmployeeProfilePhotoPicker
             firstName={form.firstName}
             lastName={form.lastName}
-            value={form.profilePhoto}
+            value={form.profilePhoto ?? { displayUri: null, pending: null, removed: false }}
             onChange={(profilePhoto) => updateField('profilePhoto', profilePhoto)}
             disabled={submitting}
           />
@@ -135,7 +135,7 @@ export function EmployeeCreateForm({ onCancel, onCreated }: EmployeeCreateFormPr
         <CatalogValueSelect
           catalogType="employee_status"
           label="Status"
-          value={form.status}
+          value={form.status ?? ''}
           onChange={(value) => updateField('status', value)}
         />
         {submitError ? <ErrorState title="Speichern" message={submitError} /> : null}

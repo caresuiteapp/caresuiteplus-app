@@ -16,7 +16,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { useAuroraGlassButtonStyles } from '@/design/tokens/auroraGlass';
+import { useAuroraGlassButtonStyles, darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useAccessibility } from '@/hooks/useAccessibility';
@@ -38,6 +38,8 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   fullWidth?: boolean;
   accessibilityLabel?: string;
+  /** Helle Schrift auf dunklem Button-Hintergrund (ghost/secondary). */
+  onDarkSurface?: boolean;
 };
 
 export function PremiumButton({
@@ -49,6 +51,7 @@ export function PremiumButton({
   disabled = false,
   style,
   fullWidth = false,
+  onDarkSurface = false,
 }: Props) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
@@ -79,6 +82,7 @@ export function PremiumButton({
   const isPrimary = variant === 'primary';
   const height = size === 'sm' ? buttonHeights.sm : buttonHeights.md;
   const isDisabled = disabled || loading;
+  const surfaceTextColor = onDarkSurface ? darkGlassSurfaceText.primary : undefined;
   const labelStyle = useMemo(() => {
     if (Platform.OS === 'web') {
       return {
@@ -115,7 +119,7 @@ export function PremiumButton({
         />
       ) : null}
       {loading ? (
-        <ActivityIndicator color={isPrimary ? '#FFFFFF' : colors.textPrimary} />
+        <ActivityIndicator color={isPrimary ? '#FFFFFF' : surfaceTextColor ?? colors.textPrimary} />
       ) : (
         <Text
           allowFontScaling
@@ -124,6 +128,7 @@ export function PremiumButton({
             labelStyle,
             isPrimary && styles.primaryText,
             !isPrimary && auroraButtonStyles.secondaryText,
+            surfaceTextColor ? { color: surfaceTextColor } : null,
           ]}
         >
           {title}

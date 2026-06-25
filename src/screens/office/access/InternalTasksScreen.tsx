@@ -157,7 +157,7 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.xs,
     borderRadius: 8,
     borderWidth: 1,
-    borderColor: colors.border,
+    borderColor: colors.borderSoft,
   },
   filterChipActive: { borderColor: colors.orange, backgroundColor: colors.bgElevated },
   filterText: { ...typography.caption },

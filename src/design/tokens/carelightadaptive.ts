@@ -253,3 +253,26 @@ export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
     };
   }, [c.border, text.muted, text.primary, text.secondary, variant]);
 }
+
+/** Shared hero typography for PremiumListHeroFrame children (list/detail/form heroes). */
+export function usePremiumHeroTextStyles() {
+  const hero = useListHeroTextStyles();
+  const { typography, colors } = useLegacyTheme();
+  const { c, isDark } = useCareLightPalette();
+  const surface = useListHeroSurface();
+  const isOnGradient = surface === 'gradient' && isDark;
+
+  return useMemo(
+    () => ({
+      eyebrow: hero.eyebrow,
+      title: hero.title,
+      meta: hero.meta,
+      subtitle: { ...typography.caption, color: hero.meta.color },
+      iconBadge: {
+        borderColor: isOnGradient ? 'rgba(255,255,255,0.4)' : c.border,
+        backgroundColor: isOnGradient ? 'rgba(255,255,255,0.16)' : colors.bgElevated,
+      },
+    }),
+    [c.border, colors.bgElevated, hero.eyebrow, hero.meta, hero.title, isOnGradient, typography.caption],
+  );
+}

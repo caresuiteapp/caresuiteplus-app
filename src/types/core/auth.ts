@@ -38,6 +38,7 @@ export type Profile = {
   email: string | null;
   phone: string | null;
   avatarUrl: string | null;
+  employeeId?: string | null;
   createdAt: ISODateTime;
   updatedAt: ISODateTime;
 };

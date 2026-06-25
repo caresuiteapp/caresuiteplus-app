@@ -40,7 +40,7 @@ function parseVisibleTypes(raw: unknown): Record<CalendarEventType, boolean> {
   const result = { ...DEFAULT_VISIBLE_TYPES };
   for (const key of Object.keys(DEFAULT_VISIBLE_TYPES) as CalendarEventType[]) {
     if (typeof input[key] === 'boolean') {
-      result[key] = input[key];
+      result[key] = input[key] as boolean;
     }
   }
   return result;
@@ -190,7 +190,7 @@ async function saveToSupabase(
 }
 
 export type TenantCalendarSettingsOptions = {
-  scope?: 'office' | 'assist';
+  scope?: import('@/types/modules/calendarEvent').CalendarModuleScope;
 };
 
 export async function fetchTenantCalendarSettings(

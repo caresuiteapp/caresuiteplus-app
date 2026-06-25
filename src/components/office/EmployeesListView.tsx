@@ -224,7 +224,7 @@ export function EmployeesListView({
           label="Status"
           value={statusFilter}
           options={statusFilters}
-          onChange={setStatusFilter}
+          onChange={setStatusFilter as (key: string) => void}
         />
         <ListFilterSelect
           label="Sortierung"

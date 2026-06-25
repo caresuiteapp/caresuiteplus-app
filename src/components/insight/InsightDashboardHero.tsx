@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
@@ -22,6 +23,7 @@ type InsightDashboardHeroProps = {
 
 export function InsightDashboardHero({ stats, roleKey }: InsightDashboardHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -32,8 +34,8 @@ export function InsightDashboardHero({ stats, roleKey }: InsightDashboardHeroPro
     color: '#2563EB',
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  title: heroText.title,
+  meta: heroText.meta,
   iconBadge: {
     width: iconSize,
     height: iconSize,

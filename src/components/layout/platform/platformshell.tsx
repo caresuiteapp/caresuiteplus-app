@@ -130,7 +130,7 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     ...(Platform.OS === 'web'
       ? ({ overflow: 'auto', height: '100%' } as const)
-      : null) as ViewStyle,
+      : null) as unknown as ViewStyle,
   },
   kpiAlignScrollContent: {
     flexGrow: 1,

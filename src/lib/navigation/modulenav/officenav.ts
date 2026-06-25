@@ -28,10 +28,31 @@ export const officeNav: ModuleNavConfig = {
     {
       title: 'Kommunikation',
       items: [
-        { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/office/messages?filter=inbox' },
-        { key: 'messages-clients', label: 'Klient:innen-Chats', icon: '👥', href: '/office/messages?filter=clients' },
-        { key: 'messages-employees', label: 'Mitarbeitenden-Chats', icon: '👤', href: '/office/messages?filter=employees' },
-        { key: 'broadcasts', label: 'Broadcast', icon: '📢', href: '/office/messages?tab=broadcasts' },
+        { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/office/messages?audience=employees&view=chats&chatAge=new' },
+        {
+          key: 'messages-clients',
+          label: 'Klient:innen',
+          icon: '👥',
+          href: '/office/messages?audience=clients&view=chats&chatAge=new',
+        },
+        {
+          key: 'messages-employees',
+          label: 'Mitarbeitende',
+          icon: '👤',
+          href: '/office/messages?audience=employees&view=chats&chatAge=new',
+        },
+        {
+          key: 'messages-internal',
+          label: 'Intern',
+          icon: '🏢',
+          href: '/office/messages?audience=internal&view=chats&chatAge=new',
+        },
+        {
+          key: 'broadcasts',
+          label: 'Broadcasts',
+          icon: '📢',
+          href: '/office/messages?audience=employees&view=broadcasts',
+        },
         { key: 'message-templates', label: 'Vorlagen', icon: '📝', href: '/office/messages/templates' },
         { key: 'message-settings', label: 'Einstellungen', icon: '⚙️', href: '/office/messages/settings' },
       ],

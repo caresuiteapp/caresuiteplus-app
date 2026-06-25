@@ -28,4 +28,6 @@ export const WORKFLOW_STATUS_LABELS: Record<WorkflowStatus, string> = {
   archiviert: 'Archiviert',
   fehlerhaft: 'Fehlerhaft',
   gesperrt: 'Gesperrt',
+  geplant: 'Geplant',
+  bestaetigt: 'Bestätigt',
 };

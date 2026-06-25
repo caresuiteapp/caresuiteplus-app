@@ -279,7 +279,11 @@ export type AssignmentConflictCode =
   | 'module_permission_missing'
   | 'max_hours_exceeded'
   | 'missing_tasks'
-  | 'missing_address';
+  | 'missing_address'
+  | 'mandatory_training_missing'
+  | 'training_expired'
+  | 'no_service_type'
+  | 'no_employee';
 
 export type AssignmentConflict = {
   code: AssignmentConflictCode;

@@ -6,14 +6,24 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import type { NotificationBroadcast } from '@/types/office/broadcast';
 import { BROADCAST_PRIORITIES } from '@/types/office/broadcast';
+import type { OfficeMessageAudience } from '@/types/office/messaging';
+import { OFFICE_AUDIENCE_LABELS } from '@/lib/office/officemessengerfilters';
 import { useOfficeBroadcasts } from '@/hooks/useofficebroadcasts';
 
 const PRIORITY_LABELS = Object.fromEntries(BROADCAST_PRIORITIES.map((p) => [p.key, p.label]));
 
 type OfficeBroadcastsListProps = {
+  audience: OfficeMessageAudience;
   selectedId: string | null;
   onSelect: (id: string) => void;
 };
+
+function broadcastMatchesAudience(
+  item: NotificationBroadcast,
+  audience: OfficeMessageAudience,
+): boolean {
+  return item.audience === audience;
+}
 
 function BroadcastRow({
   item,
@@ -98,26 +108,59 @@ function BroadcastRow({
   );
 }
 
-export function OfficeBroadcastsList({ selectedId, onSelect }: OfficeBroadcastsListProps) {
+export function OfficeBroadcastsList({ audience, selectedId, onSelect }: OfficeBroadcastsListProps) {
+  const { c } = useCareLightPalette();
+  const { typography } = useLegacyTheme();
   const { broadcasts, loading, error, refresh } = useOfficeBroadcasts();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        root: { flex: 1, minWidth: 0 },
+        sectionLabel: {
+          ...typography.caption,
+          color: c.muted,
+          textTransform: 'uppercase',
+          paddingHorizontal: spacing.sm,
+          paddingTop: spacing.sm,
+        },
+      }),
+    [c, typography],
+  );
+
+  const filteredBroadcasts = useMemo(
+    () => broadcasts.filter((item) => broadcastMatchesAudience(item, audience)),
+    [audience, broadcasts],
+  );
 
   if (loading) return <LoadingState message="Broadcasts werden geladen …" />;
   if (error) return <ErrorState message={error} onRetry={() => void refresh()} />;
-  if (broadcasts.length === 0) {
-    return <EmptyState title="Keine Broadcasts" message="Noch keine Mitteilungen an Mitarbeitende versendet." />;
+  if (filteredBroadcasts.length === 0) {
+    return (
+      <View style={styles.root}>
+        <Text style={styles.sectionLabel}>Broadcasts · {OFFICE_AUDIENCE_LABELS[audience]}</Text>
+        <EmptyState
+          title="Keine Broadcasts"
+          message={`Noch keine Mitteilungen an ${OFFICE_AUDIENCE_LABELS[audience]} versendet.`}
+        />
+      </View>
+    );
   }
 
   return (
-    <FlatList
-      data={broadcasts}
-      keyExtractor={(item) => item.id}
-      renderItem={({ item }) => (
-        <BroadcastRow
-          item={item}
-          selected={selectedId === item.id}
-          onPress={() => onSelect(item.id)}
-        />
-      )}
-    />
+    <View style={styles.root}>
+      <Text style={styles.sectionLabel}>Broadcasts · {OFFICE_AUDIENCE_LABELS[audience]}</Text>
+      <FlatList
+        data={filteredBroadcasts}
+        keyExtractor={(item) => item.id}
+        renderItem={({ item }) => (
+          <BroadcastRow
+            item={item}
+            selected={selectedId === item.id}
+            onPress={() => onSelect(item.id)}
+          />
+        )}
+      />
+    </View>
   );
 }

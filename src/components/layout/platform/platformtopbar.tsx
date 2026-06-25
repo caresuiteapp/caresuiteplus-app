@@ -15,7 +15,7 @@ import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText, lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
 import { glass as glassTokens } from '@/design/tokens/glass';
 import { withAlpha } from '@/design/tokens/motion';
 import {
@@ -316,7 +316,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     },
     dropdownText: {
       ...typography.body,
-      color: colors.textPrimary,
+      color: darkGlassSurfaceText.primary,
       fontWeight: '600',
       textAlign: 'center',
       width: '100%',

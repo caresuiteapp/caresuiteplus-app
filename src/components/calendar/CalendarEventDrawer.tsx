@@ -58,7 +58,7 @@ type CalendarEventDrawerProps = {
 
 
 
-function DrawerSection({ label, value, styles }: { label: string; value: string; styles: ReturnType<typeof StyleSheet.create> }) {
+function DrawerSection({ label, value, styles }: { label: string; value: string; styles: Record<string, import('react-native').TextStyle> }) {
 
   if (!value) return null;
 
@@ -66,9 +66,9 @@ function DrawerSection({ label, value, styles }: { label: string; value: string;
 
     <>
 
-      <Text style={styles.label}>{label}</Text>
+      <Text style={styles.label as import('react-native').TextStyle}>{label}</Text>
 
-      <Text style={styles.value}>{value}</Text>
+      <Text style={styles.value as import('react-native').TextStyle}>{value}</Text>
 
     </>
 

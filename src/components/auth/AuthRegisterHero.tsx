@@ -4,21 +4,19 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import { formatFreePlatformPrice } from '@/lib/billing/freePlatformService';
 import { designTokens, spacing, typography } from '@/theme';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 
 export function AuthRegisterHero() {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
   topRow: { flexDirection: 'row', gap: spacing.md },
   textCol: { flex: 1, gap: 2 },
-  eyebrow: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-  },
-  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  eyebrow: heroText.eyebrow,
+  title: heroText.title,
+  meta: heroText.meta,
   iconBadge: {
     width: iconSize,
     height: iconSize,

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import type { AssistServiceCatalogItem } from '@/types/assistServiceCatalog';
 import { ASSIST_SERVICE_AREA_LABELS } from '@/types/assistServiceCatalog';
@@ -18,14 +19,15 @@ export function AssistServiceCatalogHero({
   preparedMessage,
 }: AssistServiceCatalogHeroProps) {
   const { colors, typography } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
         topRow: { flexDirection: 'row', gap: spacing.md },
         textCol: { flex: 1, gap: 2 },
         eyebrow: { ...typography.caption, color: 'rgba(255,255,255,0.85)' },
-        title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-        meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+        title: heroText.title,
+        meta: heroText.meta,
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         kpiItem: { flex: 1, minWidth: 100 },

@@ -15,6 +15,7 @@ import {
 } from '@/lib/navigation/modulenav';
 import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
 import { useModalStack } from '@/hooks/useModalStack';
+import { useModuleNavBadges } from '@/hooks/useModuleNavBadges';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useAuroraAdaptiveText, lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
@@ -63,7 +64,7 @@ function NavItem({
       onPress={onPress}
       accessibilityRole="tab"
       accessibilityState={{ selected: active }}
-      accessibilityLabel={label}
+      accessibilityLabel={badge != null ? `${label}, ${badge}` : label}
       style={webCursor}
     >
       <View
@@ -108,6 +109,7 @@ export function ModuleNavSidebar({ mainModule, accentColor }: ModuleNavSidebarPr
   const accent = accentColor ?? colors.violet;
   const config = getModuleNavConfig(mainModule);
   const activeKey = resolveActiveModuleNavKey(pathname, config);
+  const navBadges = useModuleNavBadges(mainModule);
   const styles = useMemo(() => createStyles(isDark, colors, text, accent), [accent, isDark, colors, text]);
 
   return (
@@ -125,7 +127,7 @@ export function ModuleNavSidebar({ mainModule, accentColor }: ModuleNavSidebarPr
                 accent={accent}
                 icon={item.icon}
                 label={item.label}
-                badge={item.badge}
+                badge={navBadges[item.key] ?? item.badge}
                 isDark={isDark}
                 onPress={() =>
                   navigateModuleNavItem(item, router, openModal, adaptiveShell)

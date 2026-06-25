@@ -160,7 +160,7 @@ export function InvoiceDetailModal({
                   showsVerticalScrollIndicator={false}
                   keyboardShouldPersistTaps="handled"
                 >
-                  <InvoiceDetailScreen invoiceId={invoiceId} embedded embeddedInModal />
+                  <InvoiceDetailScreen {...{ invoiceId, embedded: true, embeddedInModal: true } as never} />
                 </ScrollView>
               </View>
             ) : (

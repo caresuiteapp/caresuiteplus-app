@@ -154,7 +154,7 @@ export async function updateClientTask(
     if (input.title !== undefined || input.description !== undefined) {
       const validation = validateClientTaskInput({
         title: input.title ?? '',
-        description: input.description,
+        description: input.description ?? null,
         moduleKey: input.moduleKey,
       });
       if (!validation.ok) return validation;

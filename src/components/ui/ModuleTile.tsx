@@ -8,12 +8,13 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { colors, motion, radius, typography } from '@/theme';
 import { PremiumBadge } from './PremiumBadge';
 
-type ModuleTileProps = {
+export type ModuleTileProps = {
   icon: string;
   title: string;
   description: string;
   accentColor: string;
   isActive?: boolean;
+  isNavigable?: boolean;
   preparedOnly?: boolean;
   onPress?: () => void;
 };

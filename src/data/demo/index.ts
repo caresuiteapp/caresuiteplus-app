@@ -38,7 +38,7 @@ export function getDemoFoundationSnapshot(
     products: demoProducts,
     tenantProducts: demoTenantProducts,
     roles: demoRoles,
-    profiles: demoProfiles,
+    profiles: demoProfiles.map((p) => ({ ...p, firstName: p.firstName ?? null, lastName: p.lastName ?? null })),
     isDemoMode,
     supabaseConnected,
   };

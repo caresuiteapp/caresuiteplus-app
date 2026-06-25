@@ -338,7 +338,7 @@ async function upsertContactByType(
     name: name.trim() || 'Kontakt',
     phone,
     relationship,
-    contactType,
+    contactType: contactType as import('@/types/modules/client').ClientContactType,
   });
 
   if (existing && typeof existing === 'object' && 'id' in existing) {

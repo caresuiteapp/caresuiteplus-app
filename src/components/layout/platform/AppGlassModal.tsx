@@ -46,7 +46,7 @@ export function AppGlassModal({
       variant={variant}
       maxWidth={maxWidth}
       maxHeightRatio={0.92}
-      glowColor={moduleColor(moduleKey)}
+      glowColor={moduleColor(moduleKey as import('@/design/tokens/modules').CareModuleKey)}
     >
       {children}
     </PlatformModal>

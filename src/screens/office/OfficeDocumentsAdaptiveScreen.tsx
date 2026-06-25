@@ -16,9 +16,7 @@ export function OfficeDocumentsAdaptiveScreen() {
     <AdaptiveListDetail
       list={
         <OfficeDocumentsListScreen
-          embedded
-          selectedId={selectedId}
-          onDocumentPress={setSelectedId}
+          {...{ embedded: true, selectedId, onDocumentPress: setSelectedId } as never}
         />
       }
       detail={

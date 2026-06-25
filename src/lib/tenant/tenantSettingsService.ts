@@ -239,7 +239,7 @@ async function saveToSupabase(
   if (brandingResult.error) {
     return {
       ok: true,
-      data: mapRowToSnapshot(tenantId, data, logoUrl),
+      data: mapRowToSnapshot(tenantId, data, logoUrl, form.assistDefaultHourlyRate),
     };
   }
 

@@ -75,17 +75,36 @@ export type AssistDashboardStats = {
 
 export type ExecutionPhase = 'pending' | 'checked_in' | 'in_progress' | 'completed' | 'cancelled';
 
+export type AssignmentExecutionTask = {
+  id: string;
+  title: string;
+  status: string;
+  isRequired: boolean;
+  notDoneReason: string | null;
+  requiresNoteIfNotDone: boolean;
+};
+
 export type AssignmentExecution = {
   assignmentId: string;
   tenantId: string;
+  status: import('@/types/modules/assignmentStatus').AssignmentStatus;
   phase: ExecutionPhase;
-  checkedInAt: string | null;
-  checkedOutAt: string | null;
+  plannedStartAt: string | null;
+  plannedEndAt: string | null;
+  onTheWayAt: string | null;
+  arrivedAt: string | null;
   actualStartAt: string | null;
   actualEndAt: string | null;
+  finishedAt: string | null;
+  documentationNotes: string | null;
+  checkedInAt: string | null;
+  checkedOutAt: string | null;
   durationMinutes: number | null;
   locationNote: string | null;
   activityNote: string | null;
+  tasks: AssignmentExecutionTask[];
+  allowedTransitions: import('@/types/modules/assignmentStatus').AssignmentStatus[];
+  serviceRecordId: string | null;
   updatedAt: string;
 };
 

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { TIConnectionStatusBadge } from './TIConnectionStatusBadge';
@@ -17,6 +18,7 @@ type TIDashboardHeroProps = {
 
 export function TIDashboardHero({ data, roleKey }: TIDashboardHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -28,24 +30,10 @@ export function TIDashboardHero({ data, roleKey }: TIDashboardHeroProps) {
     flex: 1,
     gap: 2,
   },
-  eyebrow: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-  },
-  title: {
-    ...typography.h2,
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  meta: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
-  },
-  subtitle: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-  },
+  eyebrow: heroText.eyebrow,
+  title: heroText.title,
+  meta: heroText.meta,
+  subtitle: heroText.subtitle,
   iconBadge: {
     width: iconSize,
     height: iconSize,

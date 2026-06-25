@@ -85,6 +85,7 @@ type EmptyStateProps = {
   message?: string;
   actionLabel?: string;
   onAction?: () => void;
+  accentColor?: string;
 };
 
 export function EmptyState({ title, message, actionLabel, onAction }: EmptyStateProps) {

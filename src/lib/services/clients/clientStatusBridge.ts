@@ -21,6 +21,8 @@ const WORKFLOW_TO_REMOTE: Record<WorkflowStatus, RemoteClientStatus> = {
   archiviert: 'archived',
   fehlerhaft: 'paused',
   gesperrt: 'blocked',
+  geplant: 'lead',
+  bestaetigt: 'active',
 };
 
 const REMOTE_TO_WORKFLOW: Record<string, WorkflowStatus> = {

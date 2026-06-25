@@ -77,7 +77,7 @@ export const BUSINESS_TABS: ShellTabConfig[] = [
     key: 'messages',
     label: 'Nachrichten',
     icon: '💬',
-    href: '/office/messages?filter=inbox',
+    href: '/office/messages?audience=employees&view=chats&chatAge=new',
     moduleScopeKey: 'communication',
     allowedRoles: ['business_admin', 'business_manager', 'billing', 'dispatch', 'nurse', 'caregiver', 'counselor'],
   },
@@ -141,7 +141,7 @@ export function getTabsForArea(
       if (!context.roleKey || !tab.allowedRoles.includes(context.roleKey)) return false;
     }
     if (!tab.moduleScopeKey) return true;
-    return isModuleScopeVisible(tab.moduleScopeKey, context);
+    return isModuleScopeVisible(tab.moduleScopeKey as import('@/types/modules/visibility').ModuleScopeKey, context);
   });
 }
 

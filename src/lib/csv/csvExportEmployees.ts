@@ -72,7 +72,7 @@ export async function exportEmployeesCsv(input: {
   if (input.filters.statusFilter === 'inactive') query = query.eq('status', 'inactive');
   if (input.filters.statusFilter === 'terminated') query = query.eq('status', 'terminated');
   if (input.filters.role) query = query.ilike('role_title', `%${input.filters.role}%`);
-  if (input.filters.employmentType) query = query.eq('employment_type', input.filters.employmentType);
+  if (input.filters.employmentType) query = query.eq('employment_type', input.filters.employmentType as never);
   if (input.filters.city) query = query.ilike('city', `%${input.filters.city}%`);
   if (input.filters.entryFrom) query = query.gte('entry_date', input.filters.entryFrom);
   if (input.filters.entryTo) query = query.lte('entry_date', input.filters.entryTo);

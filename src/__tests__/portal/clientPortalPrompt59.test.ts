@@ -261,17 +261,11 @@ describe('Klient:innenportal Prompt 59', () => {
   });
 
   it('10. Direkte Route ohne Portal-Berechtigung blockiert', () => {
-    const blocked = checkRoleAccess('/portal/client', 'employee_portal', {
-      tenantId: TENANT,
-      userId: 'employee-001',
-    });
+    const blocked = checkRoleAccess('/portal/client', 'employee_portal');
     expect(blocked.shouldRedirect).toBe(true);
     if (blocked.shouldRedirect) expect(blocked.reason).toBe('wrong_role');
 
-    const allowed = checkRoleAccess('/portal/client', CLIENT_ROLE, {
-      tenantId: TENANT,
-      userId: 'profile-client-001',
-    });
+    const allowed = checkRoleAccess('/portal/client', CLIENT_ROLE);
     expect(allowed.shouldRedirect).toBe(false);
   });
 

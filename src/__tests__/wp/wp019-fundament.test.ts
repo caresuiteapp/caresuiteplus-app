@@ -8,7 +8,7 @@ describe('WP19', () => {
   });
 
   it('Dashboard-Service liefert Snapshot', async () => {
-    const result = await fetchDashboardSnapshot('business_admin', 'business');
+    const result = await fetchDashboardSnapshot('demo-tenant', 'business_admin', 'business' as import('@/types/dashboard').DashboardScope);
     expect(result.ok).toBe(true);
     if (result.ok) expect(result.data.kpis.length).toBeGreaterThan(0);
   });

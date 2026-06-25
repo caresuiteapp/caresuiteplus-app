@@ -126,7 +126,7 @@ export async function loadEmployeePersonnelFileLive(
     return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
   }
 
-  const row = data as EmployeePersonnelLiveRow;
+  const row = data as unknown as EmployeePersonnelLiveRow;
   const [documents, portalAccount] = await Promise.all([
     loadEmployeeDocuments(tenantId, employeeId),
     loadEmployeePortalAccount(tenantId, employeeId),

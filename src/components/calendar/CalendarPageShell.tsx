@@ -79,7 +79,7 @@ export function CalendarPageShell({
     config,
   );
 
-  const weekStartDay = settings?.weekStartDay ?? 1;
+  const weekStartDay = (settings?.weekStartDay ?? 1) as import('@/types/modules/calendarEvent').WeekStartDay;
   const maxCollapsed = settings?.maxCollapsedEvents ?? 3;
   const dayViewStartHour = settings?.dayViewStartHour ?? 6;
   const weekFullDay = settings?.weekFullDay ?? true;

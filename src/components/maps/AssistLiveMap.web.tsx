@@ -81,8 +81,8 @@ const styles = StyleSheet.create({
   fallback: {
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: colors.borderSubtle,
-    backgroundColor: colors.surfaceMuted,
+    borderColor: colors.borderSoft,
+    backgroundColor: colors.bgSurface,
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,

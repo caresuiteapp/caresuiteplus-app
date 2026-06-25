@@ -68,7 +68,7 @@ describe('readPointerOffset', () => {
         offsetY: 17,
         clientX: 200,
         clientY: 100,
-      } as PointerEvent,
+      } as unknown as PointerEvent,
     });
     expect(offset).toEqual({ offsetX: 42, offsetY: 17 });
   });

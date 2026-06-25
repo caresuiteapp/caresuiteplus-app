@@ -588,11 +588,10 @@ export async function saveTenantModuleSettings(
     updated_at: new Date().toISOString(),
   }, actorRoleKey);
 
-  if (result.ok) {
-    setTenantModuleSettingsCache(tenantId, modules);
-    syncModuleAccessFromTenantSettings(tenantId, modules);
-  }
-  return result;
+  if (!result.ok) return result;
+  setTenantModuleSettingsCache(tenantId, modules);
+  syncModuleAccessFromTenantSettings(tenantId, modules);
+  return fetchTenantCenterSnapshot(tenantId, actorRoleKey);
 }
 
 export async function ensureTenantCatalogSeeded(

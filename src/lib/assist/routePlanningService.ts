@@ -357,12 +357,14 @@ export function checkEmployeeQualificationForAssignment(
   const deployability = evaluateEmployeeDeployability({
     tenantId,
     employeeId,
-    employmentStatus: file.employment.employmentStatus,
+    employment: file.employment,
+    portalAccess: file.portalAccess,
+    qualifications: file.qualifications ?? [],
+    backgroundCheck: file.backgroundCheck,
+    documents: file.documents,
     roleTitle: file.masterData.roleTitle,
     roleKey: file.portalAccess.roleKey,
-    portalActive: file.portalAccess.portalActive,
-    backgroundCheckOk,
-    noBlock: file.masterData.status !== 'gesperrt',
+    blocked: file.masterData.status === 'gesperrt',
     requiredDocsOk: !missingContract,
     qualifications: file.qualifications,
   });

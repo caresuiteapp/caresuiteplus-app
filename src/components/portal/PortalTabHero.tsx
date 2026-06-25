@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 
@@ -112,6 +113,7 @@ export function PortalTabHero({
   titleOverride,
 }: PortalTabHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -127,19 +129,9 @@ export function PortalTabHero({
     ...typography.caption,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: {
-    ...typography.h2,
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
-  meta: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
-  },
-  subtitle: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-  },
+  title: heroText.title,
+  meta: heroText.meta,
+  subtitle: heroText.subtitle,
   iconBadge: {
     width: iconSize,
     height: iconSize,

@@ -159,12 +159,12 @@ describe('Google Play readiness — auth flows', () => {
 
 describe('Google Play readiness — role isolation', () => {
   it('blocks client portal role from business paths', () => {
-    const decision = checkRoleAccess('/business', 'client_portal', { tenantId: 't1' });
+    const decision = checkRoleAccess('/business', 'client_portal');
     expect(decision.shouldRedirect).toBe(true);
   });
 
   it('blocks employee role from client portal paths when workspace denies', () => {
-    const decision = checkRoleAccess('/portal/client', 'caregiver', { tenantId: 't1' });
+    const decision = checkRoleAccess('/portal/client', 'caregiver');
     expect(decision.shouldRedirect).toBe(true);
   });
 

@@ -18,7 +18,10 @@ function patchScrollDefaults(component: ScrollPrimitiveWithDefaults): void {
 
 /** Hide native scroll indicators app-wide; scrolling remains enabled. */
 export function applyInvisibleScrollIndicators(): void {
-  patchScrollDefaults(ScrollView as unknown as ScrollPrimitiveWithDefaults);
-  patchScrollDefaults(FlatList as unknown as ScrollPrimitiveWithDefaults);
-  patchScrollDefaults(SectionList as unknown as ScrollPrimitiveWithDefaults);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  patchScrollDefaults(ScrollView as any as ScrollPrimitiveWithDefaults);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  patchScrollDefaults(FlatList as any as ScrollPrimitiveWithDefaults);
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  patchScrollDefaults(SectionList as any as ScrollPrimitiveWithDefaults);
 }

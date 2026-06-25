@@ -49,7 +49,7 @@ export function InputField({ label, hint, error, style, ...props }: InputFieldPr
           backgroundColor: loginGlass.input,
           color: text.primary,
           ...(Platform.OS === 'web'
-            ? (lightLiquidGlassWebFx(loginGlass.blurButton, loginGlass.saturateButton) as ViewStyle)
+            ? (lightLiquidGlassWebFx(loginGlass.blurButton, loginGlass.saturateButton) as unknown as Record<string, unknown>)
             : null),
         },
         inputDark: {
@@ -91,7 +91,7 @@ export function InputField({ label, hint, error, style, ...props }: InputFieldPr
           useLightInput ? styles.inputLight : styles.inputDark,
           error ? styles.inputError : null,
           style,
-        ]}
+        ] as import('react-native').TextStyle[]}
         {...props}
       />
       {error ? (

@@ -19,7 +19,7 @@ type GlassCardProps = {
   glow?: boolean;
   accentColor?: string;
   selected?: boolean;
-  style?: ViewStyle;
+  style?: import('react-native').StyleProp<ViewStyle>;
 };
 
 /** Liquid-glass card — LLGAN milchglas on light aurora, dark galaxy glass otherwise. */

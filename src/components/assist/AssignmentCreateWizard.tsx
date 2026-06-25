@@ -419,7 +419,7 @@ export function AssignmentCreateWizard({ visible, onClose, onCreated }: Assignme
       <ScrollView contentContainerStyle={styles.body} keyboardShouldPersistTaps="handled">
         <StepIndicator current={stepIndex} total={VISIT_CREATE_WIZARD_STEPS.length} />
         <Text style={styles.stepTitle}>{step.label}</Text>
-        {error ? <InfoBanner message={error} variant="error" /> : null}
+        {error ? <InfoBanner message={error} variant="danger" /> : null}
         {renderStep(step.key)}
       </ScrollView>
       <View style={styles.footer}>

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 
@@ -47,6 +48,7 @@ function statusVariant(status: string) {
 
 export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppointmentDetailHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -58,16 +60,8 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
     flex: 1,
     gap: 2,
   },
-  eyebrow: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-  },
-  title: {
-    ...typography.h2,
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
+  eyebrow: heroText.eyebrow,
+  title: heroText.title,
   meta: {
     ...typography.bodyStrong,
     color: 'rgba(255,255,255,0.85)',

@@ -1,6 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { persistClientEditData } from '@/lib/clients/clientEditPersistence';
 import { EMPTY_CLIENT_EDIT_FORM } from '@/types/forms/clientEditForm';
+import type { ClientCareContext } from '@/lib/clients/clientIntakeFieldRules';
 
 const mockClientsUpdate = vi.fn();
 const mockFrom = vi.fn();
@@ -33,8 +34,8 @@ const baseForm = {
   ...EMPTY_CLIENT_EDIT_FORM,
   firstName: 'Heinz-Peter',
   lastName: 'Reinhardt',
-  careLevel: '3',
-  careContexts: ['daily_assistance'] as const,
+  careLevel: 'pg3' as import('@/types').CareLevel,
+  careContexts: ['daily_assistance'] as ClientCareContext[],
   street: 'Ringstraße',
   houseNumber: '3',
   zip: '44623',

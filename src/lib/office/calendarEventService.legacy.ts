@@ -96,7 +96,7 @@ function mapAbsence(entry: {
     type,
     color: CALENDAR_EVENT_TYPE_COLORS[type],
     allDay: true,
-    sourceId: entry.absenceId,
+    sourceId: entry.id,
   };
 }
 

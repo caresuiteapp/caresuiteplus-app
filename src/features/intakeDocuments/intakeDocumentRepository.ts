@@ -293,7 +293,7 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
     for (const doc of finalizedDocs) {
       const intakeRowQuery = db.from('client_intake_documents').select('id').eq('tenant_id', tenantId).eq('client_id', clientId).eq('template_key', doc.templateKey);
       const { data: intakeRow } = await intakeRowQuery.single();
-      const intakeDocumentId = intakeRow?.id ?? null;
+      const intakeDocumentId = (intakeRow as { id?: string } | null)?.id ?? null;
       if (!intakeDocumentId) continue;
 
       const { data: existing } = await db

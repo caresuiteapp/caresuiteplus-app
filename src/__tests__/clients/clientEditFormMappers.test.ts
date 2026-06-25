@@ -124,7 +124,7 @@ function baseFullClient(detail: ClientDetail): ClientFullDetail {
     },
     contracts: [],
     preferences: null,
-    risks: [{ id: 'risk-1', tenantId: detail.tenantId, clientId: detail.id, category: 'sturz', level: 'mittel', description: 'Sturzgefahr im Bad', mitigation: null, createdAt: detail.createdAt, updatedAt: detail.updatedAt }],
+    risks: [{ id: 'risk-1', tenantId: detail.tenantId, clientId: detail.id, category: 'sturz' as const, level: 'mittel' as import('@/types/modules/client/clientRisks').RiskLevel, description: 'Sturzgefahr im Bad', mitigation: null, assessedAt: detail.createdAt, assessedBy: null, createdAt: detail.createdAt, updatedAt: detail.updatedAt }],
     emergencyPlan: null,
     consents: [],
     portalAccess: [],

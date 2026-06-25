@@ -17,7 +17,7 @@ export function isGpsTrackingLiveReady(): boolean {
 }
 
 export const GPS_TRACKING_PREPARED_MESSAGE =
-  'Einsätze, Nachweise und Standortdaten werden dauerhaft gespeichert. Die Kartenansicht nutzt OpenStreetMap — optional kann ein erweiterter Kartenmodus per Umgebungsvariable aktiviert werden.';
+  'Einsätze, Nachweise und Standortdaten werden dauerhaft gespeichert. Die Kartenansicht ist standardmäßig aktiv.';
 
 export const GPS_TRACKING_DEMO_MESSAGE =
   'Live-Tracking ist im Demo-Modus eingeschränkt. Tracking startet im Mitarbeiterportal nach Mandanten-Freigabe.';

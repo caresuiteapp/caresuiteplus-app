@@ -22,7 +22,7 @@ describe('C.14P.1 Fix 1 — internal_test execution allowed, production guarded'
     const result = guardLiveDemoFeature(PRODUCTION_TENANT, 'Mitarbeiterportal-Einsatzdetail');
     expect(result).not.toBeNull();
     expect(result?.ok).toBe(false);
-    expect(result?.error).toContain('Live-Modus');
+    expect(result && !result.ok ? result.error : undefined).toContain('Live-Modus');
   });
 
   it('isInternalTest returns true for Test Pflege GmbH tenant', async () => {

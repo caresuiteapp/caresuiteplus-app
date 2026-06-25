@@ -32,6 +32,22 @@ type ActiveEmployee = {
   userId: string | null;
 };
 
+type BroadcastRecipient = {
+  userId: string | null;
+  employeeId?: string | null;
+  clientId?: string | null;
+  profileId?: string | null;
+};
+
+function audienceSegment(filter?: BroadcastRecipientFilter): BroadcastRecipientFilter['audience'] {
+  return filter?.audience ?? 'employees';
+}
+
+function dbAudienceValue(segment: BroadcastRecipientFilter['audience']): BroadcastRecipientFilter['audience'] {
+  if (segment === 'employees' || segment === 'selected_employees') return segment;
+  return 'employees';
+}
+
 function enforceBroadcastCreate<T>(roleKey?: RoleKey | null): ServiceResult<T> | null {
   if (!roleKey) return { ok: false, error: 'Sie sind nicht angemeldet.' };
   if (BROADCAST_ALLOWED_ROLE_KEYS.has(roleKey)) return null;
@@ -59,6 +75,15 @@ function mapBroadcastRow(
   row: Record<string, unknown>,
   stats?: { recipientCount: number; readCount: number; acknowledgedCount: number },
 ): NotificationBroadcast {
+  const metadata =
+    row.metadata && typeof row.metadata === 'object'
+      ? (row.metadata as Record<string, unknown>)
+      : {};
+  const audienceSegment =
+    typeof metadata.audienceSegment === 'string'
+      ? metadata.audienceSegment
+      : (row.audience as NotificationBroadcast['audience']) ?? 'employees';
+
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -68,7 +93,7 @@ function mapBroadcastRow(
     category: String(row.category) as BroadcastCategoryKey,
     categoryLabel: categoryLabel(String(row.category)),
     priority: (row.priority as NotificationBroadcast['priority']) ?? 'normal',
-    audience: (row.audience as NotificationBroadcast['audience']) ?? 'employees',
+    audience: audienceSegment as NotificationBroadcast['audience'],
     allowReplies: Boolean(row.allow_replies),
     requireAcknowledgement: Boolean(row.require_acknowledgement),
     showInEmployeePortal: Boolean(row.show_in_employee_portal),
@@ -138,6 +163,101 @@ async function resolveActiveEmployees(
   return { ok: true, data: active };
 }
 
+async function resolveClientPortalRecipients(
+  tenantId: string,
+): Promise<ServiceResult<BroadcastRecipient[]>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const { data, error } = await fromUnknownTable(supabase, 'client_portal_access')
+    .select('client_id, auth_user_id, portal_enabled')
+    .eq('tenant_id', tenantId)
+    .eq('portal_enabled', true);
+
+  if (error) return broadcastError(toGermanSupabaseError(error));
+
+  const recipients = (data ?? [])
+    .filter((row) => row.auth_user_id)
+    .map((row) => ({
+      userId: String(row.auth_user_id),
+      clientId: row.client_id ? String(row.client_id) : null,
+    }));
+
+  if (recipients.length === 0) {
+    return {
+      ok: false,
+      error: 'Es wurden keine Klient:innen mit aktivem Portalzugang gefunden.',
+    };
+  }
+
+  return { ok: true, data: recipients };
+}
+
+async function resolveInternalLeadershipRecipients(
+  tenantId: string,
+): Promise<ServiceResult<BroadcastRecipient[]>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const roleKeys = [...BROADCAST_ALLOWED_ROLE_KEYS];
+  const { data, error } = await supabase
+    .from('profiles')
+    .select('id, user_id, role_key')
+    .eq('tenant_id', tenantId)
+    .in('role_key', roleKeys);
+
+  if (error) return broadcastError(toGermanSupabaseError(error));
+
+  const recipients = (data ?? [])
+    .filter((row) => row.user_id)
+    .map((row) => ({
+      userId: String(row.user_id),
+      profileId: String(row.id),
+    }));
+
+  if (recipients.length === 0) {
+    return {
+      ok: false,
+      error: 'Es wurden keine Profile für Verwaltung, Leitung oder Geschäftsführung gefunden.',
+    };
+  }
+
+  return { ok: true, data: recipients };
+}
+
+async function resolveBroadcastRecipients(
+  tenantId: string,
+  filter?: BroadcastRecipientFilter,
+): Promise<ServiceResult<{ segment: BroadcastRecipientFilter['audience']; recipients: BroadcastRecipient[] }>> {
+  const segment = audienceSegment(filter);
+
+  if (segment === 'clients') {
+    const result = await resolveClientPortalRecipients(tenantId);
+    if (!result.ok) return result;
+    return { ok: true, data: { segment, recipients: result.data } };
+  }
+
+  if (segment === 'internal') {
+    const result = await resolveInternalLeadershipRecipients(tenantId);
+    if (!result.ok) return result;
+    return { ok: true, data: { segment, recipients: result.data } };
+  }
+
+  const employeesResult = await resolveActiveEmployees(tenantId, filter);
+  if (!employeesResult.ok) return employeesResult;
+  return {
+    ok: true,
+    data: {
+      segment: 'employees',
+      recipients: employeesResult.data.map((employee) => ({
+        userId: employee.userId,
+        employeeId: employee.id,
+        profileId: employee.profileId,
+      })),
+    },
+  };
+}
+
 async function fetchRecipientStats(
   tenantId: string,
   broadcastIds: string[],
@@ -183,7 +303,7 @@ export async function sendBroadcast(
   if (!body) return { ok: false, error: 'Nachricht darf nicht leer sein.' };
   if (!actorUserId) return { ok: false, error: 'Benutzer nicht angemeldet.' };
 
-  const employeesResult = await resolveActiveEmployees(tenantId, input.recipientFilter);
+  const employeesResult = await resolveBroadcastRecipients(tenantId, input.recipientFilter);
   if (!employeesResult.ok) return employeesResult;
 
   const supabase = getSupabaseClient();
@@ -191,6 +311,7 @@ export async function sendBroadcast(
 
   const now = new Date().toISOString();
   const filter = input.recipientFilter ?? { audience: 'employees' as const };
+  const { segment, recipients } = employeesResult.data;
 
   const { data: broadcast, error: broadcastError_ } = await fromUnknownTable(
     supabase,
@@ -203,14 +324,14 @@ export async function sendBroadcast(
       body,
       category: input.category,
       priority: input.priority,
-      audience: filter.audience,
+      audience: dbAudienceValue(filter.audience),
       allow_replies: input.allowReplies,
       require_acknowledgement: input.requireAcknowledgement,
       show_in_employee_portal: input.showInEmployeePortal,
       status: 'sent',
       sent_at: now,
       expires_at: input.expiresAt ?? null,
-      metadata: { recipientFilter: filter },
+      metadata: { recipientFilter: filter, audienceSegment: segment },
     })
     .select('*')
     .single();
@@ -218,38 +339,41 @@ export async function sendBroadcast(
   if (broadcastError_) return broadcastError(toGermanSupabaseError(broadcastError_));
   const broadcastId = String(broadcast.id);
 
-  const recipients = employeesResult.data.map((employee) => ({
-    tenant_id: tenantId,
-    broadcast_id: broadcastId,
-    employee_id: employee.id,
-    user_id: employee.userId,
-    delivered_at: now,
-    is_read: false,
-    is_acknowledged: false,
-  }));
+  const employeeRecipients = recipients.filter((recipient) => recipient.employeeId);
+  if (employeeRecipients.length > 0) {
+    const recipientRows = employeeRecipients.map((recipient) => ({
+      tenant_id: tenantId,
+      broadcast_id: broadcastId,
+      employee_id: recipient.employeeId,
+      user_id: recipient.userId,
+      delivered_at: now,
+      is_read: false,
+      is_acknowledged: false,
+    }));
 
-  const { error: recipientsError } = await fromUnknownTable(
-    supabase,
-    'notification_broadcast_recipients',
-  ).insert(recipients);
+    const { error: recipientsError } = await fromUnknownTable(
+      supabase,
+      'notification_broadcast_recipients',
+    ).insert(recipientRows);
 
-  if (recipientsError) {
-    await logBroadcastAuditEvent({
-      tenantId,
-      actorUserId,
-      action: 'broadcast_send_failed',
-      broadcastId,
-      metadata: { error: recipientsError.message },
-    });
-    return broadcastError(toGermanSupabaseError(recipientsError));
+    if (recipientsError) {
+      await logBroadcastAuditEvent({
+        tenantId,
+        actorUserId,
+        action: 'broadcast_send_failed',
+        broadcastId,
+        metadata: { error: recipientsError.message },
+      });
+      return broadcastError(toGermanSupabaseError(recipientsError));
+    }
   }
 
-  const notifications = employeesResult.data
-    .filter((employee) => employee.userId)
-    .map((employee) => ({
+  const notifications = recipients
+    .filter((recipient) => recipient.userId)
+    .map((recipient) => ({
       tenant_id: tenantId,
-      recipient_user_id: employee.userId,
-      recipient_employee_id: employee.id,
+      recipient_user_id: recipient.userId,
+      recipient_employee_id: recipient.employeeId ?? null,
       notification_type: 'broadcast',
       title,
       body_preview: bodyPreview(body),
@@ -261,6 +385,9 @@ export async function sendBroadcast(
         category: input.category,
         requireAcknowledgement: input.requireAcknowledgement,
         allowReplies: input.allowReplies,
+        audienceSegment: segment,
+        clientId: recipient.clientId ?? null,
+        profileId: recipient.profileId ?? null,
       },
     }));
 
@@ -285,7 +412,7 @@ export async function sendBroadcast(
     actorUserId,
     action: 'broadcast_sent',
     broadcastId,
-    metadata: { recipientCount: employeesResult.data.length, title },
+    metadata: { recipientCount: recipients.length, title, audienceSegment: segment },
   });
 
   await logBroadcastAuditEvent({
@@ -293,12 +420,12 @@ export async function sendBroadcast(
     actorUserId,
     action: 'broadcast_recipients_created',
     broadcastId,
-    metadata: { count: employeesResult.data.length },
+    metadata: { count: recipients.length, audienceSegment: segment },
   });
 
   return {
     ok: true,
-    data: { broadcastId, recipientCount: employeesResult.data.length },
+    data: { broadcastId, recipientCount: recipients.length },
   };
 }
 

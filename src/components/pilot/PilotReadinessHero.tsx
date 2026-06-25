@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import { PILOT_MILESTONE_ID, PILOT_TENANT_IDS } from '@/lib/pilot/pilotConfig';
@@ -22,6 +23,7 @@ export function PilotReadinessHero({
   selectedTenantPhase,
 }: PilotReadinessHeroProps) {
   const { colors, typography } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -32,8 +34,8 @@ export function PilotReadinessHero({
           color: colors.violet,
           letterSpacing: designTokens.hero.eyebrowLetterSpacing,
         },
-        title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-        meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+        title: heroText.title,
+        meta: heroText.meta,
         iconBadge: {
           width: iconSize,
           height: iconSize,

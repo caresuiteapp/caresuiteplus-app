@@ -41,7 +41,7 @@ export function buildPortalDashboard(
     if (moduleFilter !== 'all' && widget.moduleKey !== 'global' && widget.moduleKey !== moduleFilter) {
       return false;
     }
-    if (!context.activeModuleKeys.includes(widget.moduleKey) && widget.moduleKey !== 'global') {
+    if (!(context.activeModuleKeys as readonly string[]).includes(widget.moduleKey as string) && widget.moduleKey !== 'global') {
       return false;
     }
     if (widget.featureKey) {

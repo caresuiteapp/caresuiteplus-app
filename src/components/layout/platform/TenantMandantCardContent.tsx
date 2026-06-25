@@ -50,7 +50,7 @@ export function TenantMandantCardContent({
         {showRemoteLogo ? (
           <Image
             source={{ uri: trimmedLogo }}
-            style={styles.logo}
+            style={styles.logo as unknown as import('react-native').ImageStyle}
             resizeMode="contain"
             accessibilityLabel="Mandant Logo"
             onError={() => setLogoFailed(true)}

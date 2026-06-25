@@ -14,6 +14,7 @@ export function detectEmployeeEligibilityConflicts(input: {
   actorRoleKey?: RoleKey | null;
   absent?: boolean;
   availabilityOk?: boolean;
+  requiresQualification?: boolean;
 }): AssignmentConflict[] {
   const conflicts: AssignmentConflict[] = [];
   if (!input.employeeId?.trim()) return conflicts;

@@ -1,23 +1,27 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { useAuroraAdaptiveText, useAuroraGlass } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText, useAuroraGlass, auroraGlass, darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
 import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
   label?: string;
   hint?: string;
   error?: string;
+  /** Erzwingt helle Schrift auf dunklem Eingabefeld (auroraGlass.input). */
+  onDarkSurface?: boolean;
 };
 
 export function PremiumInput({
   label,
   hint,
   error,
+  onDarkSurface = false,
   style,
   ...props
 }: PremiumInputProps) {
   const { colors, active, tokens } = useAuroraGlass();
-  const text = useAuroraAdaptiveText();
+  const adaptiveText = useAuroraAdaptiveText();
+  const text = onDarkSurface ? darkGlassSurfaceText : adaptiveText;
 
   const styles = useMemo(
     () =>
@@ -33,8 +37,8 @@ export function PremiumInput({
           minHeight: 48,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: active ? tokens.border : colors.borderStrong,
-          backgroundColor: active ? tokens.input : colors.bgInput,
+          borderColor: onDarkSurface ? auroraGlass.border : active ? tokens.border : colors.borderStrong,
+          backgroundColor: onDarkSurface ? auroraGlass.input : active ? tokens.input : colors.bgInput,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
           color: text.primary,
@@ -52,7 +56,7 @@ export function PremiumInput({
           color: colors.danger,
         },
       }),
-    [active, colors.danger, text.muted, text.primary, tokens.border, tokens.input],
+    [active, colors.danger, onDarkSurface, text.muted, text.primary, tokens.border, tokens.input],
   );
 
   return (

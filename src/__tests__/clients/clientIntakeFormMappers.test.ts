@@ -150,7 +150,7 @@ describe('mapClientEditLoadToIntakeForm', () => {
       city: 'Berlin',
       phone: '030123456',
       email: 'anna@example.com',
-      portalModules: ['office'],
+      portalModules: ['office' as import('@/types/modules/portal').PortalModuleKey],
     };
 
     const intake = mapClientEditLoadToIntakeForm({

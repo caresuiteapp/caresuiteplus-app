@@ -70,11 +70,11 @@ describe('Office employee & invoice services', () => {
         'employee-001',
         DEMO_TENANT_ID,
         {
-          jobTitle: detail.data.jobTitle ?? 'Test',
+          roleKey: detail.data.jobTitle ?? 'Test',
           phone: detail.data.phone ?? '',
-          department: detail.data.department ?? 'Allgemein',
+          departmentKey: detail.data.department ?? 'Allgemein',
           notes: 'Phase4 test',
-        },
+        } as import('@/types/forms/employeeEditForm').EmployeeEditFormData,
         'business_admin',
       );
       expect(updated.ok).toBe(true);

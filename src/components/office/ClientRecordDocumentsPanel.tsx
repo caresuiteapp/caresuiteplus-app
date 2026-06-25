@@ -62,10 +62,10 @@ function documentStatusLabel(doc: ClientDocumentRecord): string {
   return CLIENT_DOCUMENT_STATUS_LABELS[doc.status] ?? doc.status;
 }
 
-function documentStatusVariant(doc: ClientDocumentRecord): 'green' | 'cyan' | 'muted' | 'amber' {
+function documentStatusVariant(doc: ClientDocumentRecord): 'green' | 'cyan' | 'muted' | 'orange' {
   if (doc.intakeStatus === 'finalized' || doc.status === 'abgeschlossen') return 'green';
   if (doc.status === 'aktiv') return 'cyan';
-  if (doc.status === 'entwurf') return 'amber';
+  if (doc.status === 'entwurf') return 'orange';
   return 'muted';
 }
 
@@ -199,7 +199,7 @@ function DocumentCategoryGrid({
   );
 
   return (
-    <View style={gridStyle}>
+    <View style={gridStyle as import('react-native').ViewStyle}>
       {items.map((summary) => (
         <View key={summary.key} style={cellStyle}>
           <CategoryOverviewCard summary={summary} onPress={() => onSelect(summary.key)} />

@@ -118,7 +118,7 @@ function mapRecordTypeToUiType(eventType: CalendarEventRecordType): CalendarEven
         return eventType;
       }
       if (eventType === 'frist' || eventType === 'wiedervorlage') return 'erinnerung';
-      if (eventType === 'einsatz' || eventType === 'pflegevisite' || eventType === 'besuch') return 'einsatz';
+      if (eventType === 'pflegevisite' || eventType === 'besuch') return 'einsatz';
       return 'termin';
   }
 }

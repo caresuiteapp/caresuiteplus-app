@@ -113,7 +113,7 @@ export const demoOfficeMessageThreads: OfficeMessageThread[] = [
     id: 'thread-client-002',
     tenantId: DEMO_TENANT_ID,
     threadType: 'client_office',
-    status: 'waiting_for_response',
+    status: 'waiting_for_reply',
     priority: 'high',
     subject: 'MDK-Anfrage Unterlagen',
     categoryId: 'cat-client-billing',

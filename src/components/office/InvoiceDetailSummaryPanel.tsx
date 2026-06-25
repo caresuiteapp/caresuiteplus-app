@@ -16,8 +16,9 @@ import { formatCurrency } from '@/lib/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
 
-type InvoiceDetailSummaryPanelProps = {
+export type InvoiceDetailSummaryPanelProps = {
   invoiceId: string;
+  onOpenFullRecord?: () => void;
 };
 
 function SummaryRow({ label, value }: { label: string; value: string | null | undefined }) {

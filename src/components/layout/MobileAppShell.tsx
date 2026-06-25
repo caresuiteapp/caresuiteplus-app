@@ -1,5 +1,5 @@
 import { ReactNode, useState } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import type { AppShellArea } from '@/types/navigation/shell';
@@ -57,7 +57,7 @@ export function MobileAppShell({
 
   return (
     <View
-      style={[styles.root, { paddingTop: webSafeAreaPadding('top', topInset) }]}
+      style={[styles.root, { paddingTop: webSafeAreaPadding('top', topInset) } as ViewStyle]}
       testID="mobile-app-shell"
     >
       <ShellAppBar

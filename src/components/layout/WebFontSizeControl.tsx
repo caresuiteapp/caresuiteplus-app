@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type TextStyle } from 'react-native';
+import { Platform, Pressable, StyleSheet, Text, View, type TextStyle, type ViewStyle } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useWebFontScale } from '@/design/web/WebFontScaleProvider';
 import { formatWebFontScaleLabel } from '@/design/web/webFontScaleConfig';
@@ -29,9 +29,9 @@ export function WebFontSizeControl({ compact = false }: WebFontSizeControlProps)
       <Pressable
         onPress={canDecrease ? decrease : undefined}
         disabled={!canDecrease}
-        style={({ hovered }) => [
-          styles.actionWrap,
-          canDecrease && hovered ? styles.actionWrapHover : null,
+        style={({ hovered }: { hovered?: boolean }) => [
+          styles.actionWrap as ViewStyle,
+          canDecrease && hovered ? (styles.actionWrapHover as ViewStyle) : null,
         ]}
         accessibilityRole="button"
         accessibilityLabel="Schrift verkleinern"
@@ -43,9 +43,9 @@ export function WebFontSizeControl({ compact = false }: WebFontSizeControlProps)
       <Pressable
         onPress={canIncrease ? increase : undefined}
         disabled={!canIncrease}
-        style={({ hovered }) => [
-          styles.actionWrap,
-          canIncrease && hovered ? styles.actionWrapHover : null,
+        style={({ hovered }: { hovered?: boolean }) => [
+          styles.actionWrap as ViewStyle,
+          canIncrease && hovered ? (styles.actionWrapHover as ViewStyle) : null,
         ]}
         accessibilityRole="button"
         accessibilityLabel="Schrift vergrößern"

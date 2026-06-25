@@ -136,7 +136,6 @@ describe('Inventar — Kernlogik (14 Szenarien)', () => {
       DEMO_TENANT_ID,
       { itemId: 'inv-item-003', recipientEmployeeId: 'employee-001' },
       'business_admin',
-      'profile-admin',
     );
     expect(issued.ok).toBe(true);
     const audit = await fetchInventoryAuditEvents(DEMO_TENANT_ID, 'business_admin');

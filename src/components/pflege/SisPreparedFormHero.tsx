@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
 import {
@@ -26,18 +27,15 @@ export function SisPreparedFormHero({
   isReadOnly,
 }: SisPreparedFormHeroProps) {
   const { colors, typography, gradients } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
   topRow: { flexDirection: 'row', gap: spacing.md },
   textCol: { flex: 1, gap: 2 },
-  eyebrow: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.85)',
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-  },
-  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  eyebrow: heroText.eyebrow,
+  title: heroText.title,
+  meta: heroText.meta,
   subtitle: { ...typography.caption, color: 'rgba(255,255,255,0.85)' },
   iconBadge: {
     width: iconSize,

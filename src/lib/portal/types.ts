@@ -2,7 +2,7 @@ import type { RoleKey } from '@/types';
 import type { PortalClientCareProfile } from '@/lib/portal/engine/portalFeatureAccess';
 
 /** Care modules that compose the adaptive Klient:innenportal. */
-export type PortalModuleKey = 'assist' | 'pflege' | 'stationaer' | 'beratung';
+export type PortalModuleKey = 'office' | 'assist' | 'pflege' | 'stationaer' | 'beratung' | 'akademie';
 
 /** Portal actor sub-roles for visibility filtering. */
 export type PortalActorRole =

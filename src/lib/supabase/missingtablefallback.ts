@@ -43,7 +43,7 @@ export function isMissingTableError(error: unknown): boolean {
       );
     }
   }
-  return isSupabaseMissingTableError(error) || isMissingTableServiceError(error);
+  return isSupabaseMissingTableError(error as import('@supabase/postgrest-js').PostgrestError | null) || isMissingTableServiceError(typeof error === 'string' ? error : '');
 }
 
 export function isTableMissingResult<T>(result: ServiceResult<T> | { tableMissing?: boolean }): boolean {

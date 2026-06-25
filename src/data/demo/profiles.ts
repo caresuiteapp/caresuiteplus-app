@@ -146,10 +146,15 @@ export const demoProfiles: DemoProfileSeed[] = [
   },
 ];
 
+function seedToProfile(seed: DemoProfileSeed): Profile {
+  return {
+    ...seed,
+    firstName: seed.firstName ?? null,
+    lastName: seed.lastName ?? null,
+  };
+}
+
 export function getDemoProfileForRole(roleKey: RoleKey): Profile {
   const profile = demoProfiles.find((p) => p.roleKey === roleKey);
-  if (!profile) {
-    return demoProfiles[0];
-  }
-  return profile;
+  return seedToProfile(profile ?? demoProfiles[0]);
 }

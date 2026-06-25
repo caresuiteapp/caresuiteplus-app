@@ -340,7 +340,7 @@ export async function fetchModuleAssignmentHub(
       ok: true,
       data: HUB_SECTIONS.map((section, index) => ({
         ...section,
-        count: counts[index].ok ? counts[index].data : 0,
+        count: counts[index].ok ? (counts[index] as { ok: true; data: number }).data : 0,
       })),
     };
   }

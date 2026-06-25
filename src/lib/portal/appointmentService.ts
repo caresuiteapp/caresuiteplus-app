@@ -296,7 +296,7 @@ export async function fetchPortalClientAppointmentDetail(
             tenantId: appt.tenantId,
             clientId: appt.clientId,
             assignmentId: assignmentMatch.id,
-            status: assignmentMatch.status,
+            status: assignmentMatch.status as import('@/types/modules/assignmentStatus').AssignmentStatus,
             plannedStartAt: appt.startsAt,
             plannedEndAt: appt.endsAt,
             portalReleaseEnabled: true,
@@ -304,23 +304,21 @@ export async function fetchPortalClientAppointmentDetail(
         )
       : null;
 
-    return {
-      ok: true,
-      data: {
-        id: appt.id,
-        title: appt.title,
-        startsAt: appt.startsAt,
-        endsAt: appt.endsAt,
-        status: appt.status,
-        location: appt.location,
-        caregiverName: resolveEmployeeName(appt.employeeId),
-        caregiverPhone: resolveEmployeePhone(appt.employeeId),
-        serviceType: appt.title,
-        preparationNotes: CLIENT_PREP_NOTES[appt.id] ?? null,
-        canRequestChange,
-        liveVisit,
-      },
+    const detail: PortalClientAppointmentDetail = {
+      id: appt.id,
+      title: appt.title,
+      startsAt: appt.startsAt,
+      endsAt: appt.endsAt,
+      status: appt.status,
+      location: appt.location,
+      caregiverName: resolveEmployeeName(appt.employeeId),
+      caregiverPhone: resolveEmployeePhone(appt.employeeId),
+      serviceType: appt.title,
+      preparationNotes: CLIENT_PREP_NOTES[appt.id] ?? null,
+      canRequestChange,
+      liveVisit: liveVisit as PortalClientAppointmentDetail['liveVisit'],
     };
+    return { ok: true as const, data: detail };
   });
 }
 

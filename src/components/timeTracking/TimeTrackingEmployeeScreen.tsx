@@ -58,7 +58,7 @@ export function TimeTrackingEmployeeScreen() {
   const canView = can('time.tracking.own.view');
   const canStart = can('time.tracking.own.start');
 
-  const statusQuery = useAsyncQuery(
+  const statusQuery = useAsyncQuery<{ workday: import('@/types/modules/timeTracking').TimeWorkday | null; entries: import('@/types/modules/timeTracking').TimeEntry[]; multiTabConflict: boolean } | null>(
     useCallback(async () => {
       if (!tenantId || !canView) return { ok: true as const, data: null };
       return getCurrentWorkdayStatus(tenantId, userId, roleKey);
@@ -67,7 +67,7 @@ export function TimeTrackingEmployeeScreen() {
     { enabled: !!tenantId && canView },
   );
 
-  const catalogQuery = useAsyncQuery(
+  const catalogQuery = useAsyncQuery<{ organizations: import('@/types/modules/timeTracking').WorkOrganization[]; costCenters: import('@/types/modules/timeTracking').CostCenter[]; projects: import('@/types/modules/timeTracking').WorkProject[]; activityTypes: import('@/types/modules/timeTracking').ActivityType[] } | null>(
     useCallback(async () => {
       if (!tenantId || !canView) return { ok: true as const, data: null };
       return fetchTimeTrackingCatalogs(tenantId, roleKey);

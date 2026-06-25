@@ -1,4 +1,15 @@
 /** Allowed MIME types — aligned with migration 0091 storage bucket policy. */
+export const MESSAGE_ATTACHMENT_AUDIO_MIME_TYPES = [
+  'audio/webm',
+  'audio/ogg',
+  'audio/mpeg',
+  'audio/mp3',
+  'audio/wav',
+  'audio/mp4',
+  'audio/x-m4a',
+  'audio/m4a',
+] as const;
+
 export const MESSAGE_ATTACHMENT_ALLOWED_MIME_TYPES = [
   'image/jpeg',
   'image/png',
@@ -8,6 +19,7 @@ export const MESSAGE_ATTACHMENT_ALLOWED_MIME_TYPES = [
   'application/msword',
   'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   'text/plain',
+  ...MESSAGE_ATTACHMENT_AUDIO_MIME_TYPES,
 ] as const;
 
 export const MESSAGE_ATTACHMENT_MAX_BYTES = 10 * 1024 * 1024;
@@ -19,6 +31,10 @@ export type PendingMessageAttachment = {
   fileSizeBytes: number;
   fileData: Uint8Array;
 };
+
+export function normalizeAttachmentMimeType(mimeType: string): string {
+  return mimeType.toLowerCase().split(';')[0]?.trim() ?? '';
+}
 
 export function validateMessageAttachment(input: {
   fileName: string;
@@ -34,14 +50,14 @@ export function validateMessageAttachment(input: {
   if (input.fileSizeBytes > MESSAGE_ATTACHMENT_MAX_BYTES) {
     return { ok: false, error: 'Anhang darf maximal 10 MB groß sein.' };
   }
-  const mime = input.mimeType.toLowerCase();
+  const mime = normalizeAttachmentMimeType(input.mimeType);
   const allowed = MESSAGE_ATTACHMENT_ALLOWED_MIME_TYPES.some(
-    (type) => type === mime || (type.endsWith('/*') && mime.startsWith(type.replace('/*', ''))),
+    (type) => mime === type || (type.endsWith('/*') && mime.startsWith(type.replace('/*', ''))),
   );
   if (!allowed) {
     return {
       ok: false,
-      error: 'Dateityp nicht erlaubt. Erlaubt: Bilder, PDF, Word, Text.',
+      error: 'Dateityp nicht erlaubt. Erlaubt: Bilder, PDF, Word, Text, Sprachnachrichten.',
     };
   }
   return { ok: true };
@@ -53,4 +69,9 @@ export function isImageMimeType(mimeType: string | null | undefined): boolean {
 
 export function isPdfMimeType(mimeType: string | null | undefined): boolean {
   return mimeType?.toLowerCase() === 'application/pdf';
+}
+
+export function isAudioMimeType(mimeType: string | null | undefined): boolean {
+  const mime = normalizeAttachmentMimeType(mimeType ?? '');
+  return MESSAGE_ATTACHMENT_AUDIO_MIME_TYPES.some((type) => mime === type);
 }

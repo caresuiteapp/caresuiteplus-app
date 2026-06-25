@@ -12,7 +12,7 @@ type CareLightCardProps = {
   children: ReactNode;
   accentColor?: string;
   onPress?: () => void;
-  style?: ViewStyle;
+  style?: import('react-native').StyleProp<ViewStyle>;
 };
 
 export function CareLightCard({ children, accentColor, onPress, style }: CareLightCardProps) {

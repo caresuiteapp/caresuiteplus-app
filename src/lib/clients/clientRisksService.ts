@@ -9,9 +9,12 @@ export async function fetchClientRisks(
   tenantId: string,
   clientId: string,
 ): Promise<ServiceResult<{ risks: ClientRisk[]; emergencyPlan: ClientEmergencyPlan | null }>> {
-  return runService(async () => {
+  return runService(async (): Promise<ServiceResult<{ risks: ClientRisk[]; emergencyPlan: ClientEmergencyPlan | null }>> => {
     if (!isDemoClientBackend()) {
-      return getClientExtendedRepository().fetchRisks(tenantId, clientId);
+      const repo = getClientExtendedRepository();
+      const result = await repo.fetchRisks(tenantId, clientId);
+      if (!result.ok) return result;
+      return { ok: true, data: result.data };
     }
 
     const denied = assertDemoTenant(tenantId);

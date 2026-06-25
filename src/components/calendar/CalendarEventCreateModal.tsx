@@ -56,7 +56,7 @@ function resolveSteps(moduleKey: CalendarModuleKey, isEdit: boolean): CalendarFo
 
 function eventToForm(event: CalendarEvent): ReturnType<typeof createDefaultFormState> {
   const record = event.record;
-  const base = createDefaultFormState(event.moduleKey ?? 'office');
+  const base = createDefaultFormState((event.moduleKey ?? 'office') as import('@/types/calendar').CalendarModuleKey);
   return {
     ...base,
     title: event.title,

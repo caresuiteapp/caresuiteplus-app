@@ -19,7 +19,7 @@ export type AuroraPageHeaderProps = {
   avatarInitials?: string;
   primaryActionLabel?: string;
   onPrimaryAction?: () => void;
-  badges?: { label: string; variant?: 'default' | 'cyan' | 'pink' | 'muted' }[];
+  badges?: { label: string; variant?: 'default' | 'cyan' | 'pink' | 'muted' | 'green' | 'red' }[];
   children?: ReactNode;
   style?: ViewStyle;
 };

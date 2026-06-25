@@ -193,7 +193,7 @@ export function managementTaskToCockpitItem(task: ManagementTask): QmCockpitItem
     clientId: task.clientId,
     employeeId: task.employeeId,
     assignmentId: task.assignmentId,
-    relatedEntityType: task.relatedEntityType,
+    relatedEntityType: task.relatedEntityType as QmCockpitRelatedEntityType | null,
     relatedEntityId: task.relatedEntityId,
     dueAt: task.dueAt,
     updatedAt: task.updatedAt,

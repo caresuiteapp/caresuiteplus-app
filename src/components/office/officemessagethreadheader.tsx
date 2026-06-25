@@ -103,7 +103,7 @@ export function OfficeMessageThreadHeader({ detail }: OfficeMessageThreadHeaderP
     return (
       <View style={[styles.header, styles.heroHeader]}>
         <LinearGradient
-          colors={[...resolveGalaxyGradientColors('dashboardHero')]}
+          colors={[...resolveGalaxyGradientColors('dashboardHero')] as [string, string, ...string[]]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
           style={StyleSheet.absoluteFill}

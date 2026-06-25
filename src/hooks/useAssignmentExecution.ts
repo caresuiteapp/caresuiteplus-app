@@ -1,4 +1,5 @@
 import { useCallback } from 'react';
+import type { AssignmentExecution } from '@/types/modules/assist';
 import {
   checkInAssignment,
   checkOutAssignment,
@@ -15,7 +16,7 @@ export function useAssignmentExecution(assignmentId: string | undefined) {
   const tenantId = useServiceTenantId();
   const roleKey = profile?.roleKey ?? null;
 
-  const query = useAsyncQuery(
+  const query = useAsyncQuery<AssignmentExecution>(
     () => {
       if (!assignmentId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Einsatz-ID angegeben.' });
@@ -36,7 +37,7 @@ export function useAssignmentExecution(assignmentId: string | undefined) {
     },
   );
 
-  const checkInMutation = useMutation(
+  const checkInMutation = useMutation<string | undefined, AssignmentExecution>(
     (locationNote?: string) => {
       if (!assignmentId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Einsatz-ID angegeben.' });
@@ -46,11 +47,11 @@ export function useAssignmentExecution(assignmentId: string | undefined) {
     },
     {
       successMessage: 'Check-in erfolgreich — Sie sind vor Ort.',
-      onSuccess: (data) => query.setData(data),
+      onSuccess: (data: AssignmentExecution) => query.setData(data),
     },
   );
 
-  const startMutation = useMutation(
+  const startMutation = useMutation<void, AssignmentExecution>(
     (_?: void) => {
       if (!assignmentId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Einsatz-ID angegeben.' });
@@ -60,11 +61,11 @@ export function useAssignmentExecution(assignmentId: string | undefined) {
     },
     {
       successMessage: 'Einsatz gestartet — Zeiterfassung läuft.',
-      onSuccess: (data) => query.setData(data),
+      onSuccess: (data: AssignmentExecution) => query.setData(data),
     },
   );
 
-  const checkOutMutation = useMutation(
+  const checkOutMutation = useMutation<string | undefined, AssignmentExecution>(
     (activityNote?: string) => {
       if (!assignmentId) {
         return Promise.resolve({ ok: false as const, error: 'Keine Einsatz-ID angegeben.' });
@@ -74,7 +75,7 @@ export function useAssignmentExecution(assignmentId: string | undefined) {
     },
     {
       successMessage: 'Check-out erfolgreich — Einsatz abgeschlossen.',
-      onSuccess: (data) => query.setData(data),
+      onSuccess: (data: AssignmentExecution) => query.setData(data),
     },
   );
 

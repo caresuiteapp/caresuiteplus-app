@@ -1,11 +1,22 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type {
+  OfficeChatAgeFilter,
   OfficeInboxFilter,
+  OfficeMessageAudience,
   OfficeMessageCategory,
   OfficeMessagePriority,
   OfficeMessageThread,
   OfficeThreadStatus,
 } from '@/types/office/messaging';
+import {
+  filterThreadsByAudience,
+  filterThreadsByChatAge,
+  isNewChat,
+} from '@/lib/office/officemessengerfilters';
+import {
+  computeOfficeMessageNavBadgeCounts,
+  type OfficeMessageNavBadgeCounts,
+} from '@/lib/office/officeMessageNavBadges';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -139,6 +150,62 @@ export async function fetchOfficeMessageThreads(
   actorRoleKey?: RoleKey | null,
   filter: OfficeInboxFilter = 'inbox',
 ): Promise<PreviewAwareResult<OfficeMessageThread[]>> {
+  return fetchOfficeMessageThreadsBySegment(tenantId, actorRoleKey, {
+    audience: filter === 'clients' ? 'clients' : filter === 'internal' ? 'internal' : 'employees',
+    chatAge: filter === 'closed' ? 'old' : filter === 'inbox' ? 'new' : 'current',
+  });
+}
+
+export type OfficeMessageNavBadgeData = {
+  counts: OfficeMessageNavBadgeCounts;
+  newThreads: OfficeMessageThread[];
+};
+
+export async function fetchOfficeMessageNavBadgeData(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<PreviewAwareResult<OfficeMessageNavBadgeData>> {
+  const denied = enforcePermission<OfficeMessageNavBadgeData>(actorRoleKey, 'office.messages.view');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const result = await fetchThreadsLive(tenantId);
+  if (!result.ok && isMissingTableServiceError(result.error)) {
+    return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
+  }
+  if (!result.ok) return result;
+
+  const threads = filterThreadsByRole(result.data, actorRoleKey);
+  const newThreads = threads.filter(isNewChat);
+  return {
+    ok: true,
+    data: {
+      counts: computeOfficeMessageNavBadgeCounts(threads),
+      newThreads,
+    },
+    previewData: false,
+  };
+}
+
+export async function fetchOfficeMessageNewChatCounts(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<PreviewAwareResult<OfficeMessageNavBadgeCounts>> {
+  const result = await fetchOfficeMessageNavBadgeData(tenantId, actorRoleKey);
+  if (!result.ok) return result;
+  return { ok: true, data: result.data.counts, previewData: result.previewData };
+}
+
+export async function fetchOfficeMessageThreadsBySegment(
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+  segment: {
+    audience: OfficeMessageAudience;
+    chatAge: OfficeChatAgeFilter;
+  } = { audience: 'employees', chatAge: 'new' },
+): Promise<PreviewAwareResult<OfficeMessageThread[]>> {
   const denied = enforcePermission<OfficeMessageThread[]>(actorRoleKey, 'office.messages.view');
   if (denied) return denied;
 
@@ -152,7 +219,12 @@ export async function fetchOfficeMessageThreads(
   if (!result.ok) return result;
 
   const threads = filterThreadsByRole(result.data, actorRoleKey);
-  return { ok: true, data: filterThreadsByInbox(threads, filter), previewData: false };
+  const byAudience = filterThreadsByAudience(threads, segment.audience);
+  return {
+    ok: true,
+    data: filterThreadsByChatAge(byAudience, segment.chatAge),
+    previewData: false,
+  };
 }
 
 export async function fetchOfficeMessageThreadById(
@@ -261,7 +333,7 @@ export async function patchOfficeMessageThread(
 
   const { error } = await supabase
     .from('message_threads')
-    .update(update)
+    .update(update as never)
     .eq('tenant_id', tenantId)
     .eq('id', threadId);
 

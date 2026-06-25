@@ -41,10 +41,12 @@ import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 
-const PORTAL_ROLE_LABELS = {
+const PORTAL_ROLE_LABELS: Record<import('@/lib/portal/types').PortalActorRole, string> = {
   client: 'Klient:in',
   relative: 'Angehörige:r',
-} as const;
+  guardian: 'Betreuer:in',
+  invoice_recipient: 'Rechnungsempfänger:in',
+};
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-DE', {

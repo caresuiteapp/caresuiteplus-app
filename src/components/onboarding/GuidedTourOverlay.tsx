@@ -166,7 +166,7 @@ export function GuidedTourOverlay({
         <GlassSurface
           radius={careRadius.lg}
           elevated={lightGlassCard}
-          style={[styles.card, lightGlassCard ? styles.cardGlass : styles.cardLegacy, cardStyle]}
+          style={{ ...(styles.card as import('react-native').ViewStyle), ...(lightGlassCard ? (styles.cardGlass as import('react-native').ViewStyle) : (styles.cardLegacy as import('react-native').ViewStyle)), ...cardStyle }}
         >
           <View onLayout={(e) => setCardHeight(e.nativeEvent.layout.height)}>
             <GradientModalHeader title={step.title} onClose={onSkip} />

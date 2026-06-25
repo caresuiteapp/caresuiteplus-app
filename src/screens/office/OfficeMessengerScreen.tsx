@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
+import { AuroraSegmentedControl } from '@/components/aurora';
 import { ScreenShell } from '@/components/layout';
 import { OfficeBroadcastDetailModal } from '@/components/office/officebroadcastdetailmodal';
 import { OfficeBroadcastModal } from '@/components/office/officebroadcastmodal';
@@ -10,34 +11,74 @@ import { OfficeMessagesInbox } from '@/components/office/officemessagesinbox';
 import { OfficeNewChatModal, type NewChatMode } from '@/components/office/officenewchatmodal';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePermissions } from '@/hooks/usePermissions';
+import { canViewOfficeInternalMessages } from '@/lib/communication/officeComposeRouting';
 import { canCreateBroadcast } from '@/lib/office/broadcastpermissions';
+import {
+  OFFICE_AUDIENCE_LABELS,
+  OFFICE_MESSAGE_AUDIENCES,
+  OFFICE_MESSENGER_VIEWS,
+  newChatModeForAudience,
+  parseOfficeChatAgeFilter,
+  parseOfficeMessageAudience,
+  parseOfficeMessengerView,
+} from '@/lib/office/officemessengerfilters';
+import { setOfficeMessageNavBadgeMessengerView } from '@/lib/office/officeMessageNavBadgeSeenStore';
 import {
   officeMessengerColumnStyles,
   officeMessengerContainerHeight,
 } from '@/components/office/officemessengerlayout';
-import type { OfficeInboxFilter } from '@/types/office/messaging';
+import type {
+  OfficeChatAgeFilter,
+  OfficeMessageAudience,
+  OfficeMessengerView,
+} from '@/types/office/messaging';
 import { spacing, radius } from '@/theme';
 
-const INBOX_FILTERS: OfficeInboxFilter[] = ['inbox', 'clients', 'employees', 'internal', 'closed'];
+const NEW_CHAT_LABELS: Record<OfficeMessageAudience, string> = {
+  clients: 'Neuer Klient:innen-Chat',
+  employees: 'Neuer Mitarbeitenden-Chat',
+  internal: 'Neuer interner Chat',
+};
 
-function parseInboxFilter(value: unknown): OfficeInboxFilter {
-  return INBOX_FILTERS.includes(value as OfficeInboxFilter) ? (value as OfficeInboxFilter) : 'inbox';
-}
-
-function isBroadcastView(value: unknown): boolean {
-  return value === 'broadcasts';
-}
+const BROADCAST_LABELS: Record<OfficeMessageAudience, string> = {
+  clients: 'Broadcast an Klient:innen',
+  employees: 'Broadcast an Mitarbeitende',
+  internal: 'Broadcast an Leitung/Verwaltung',
+};
 
 export function OfficeMessengerScreen() {
-  const params = useLocalSearchParams<{ filter?: string; tab?: string; thread?: string }>();
+  const params = useLocalSearchParams<{
+    audience?: string;
+    filter?: string;
+    chatAge?: string;
+    view?: string;
+    tab?: string;
+    thread?: string;
+  }>();
   const { height } = useWindowDimensions();
   const { c } = useCareLightPalette();
+  const { typography } = useLegacyTheme();
   const { permissions, isReadOnly, roleKey } = usePermissions();
   const canBroadcast = canCreateBroadcast(roleKey, permissions);
-  const showBroadcastList = isBroadcastView(params.tab);
+  const canViewInternal = canViewOfficeInternalMessages(roleKey);
 
-  const [filter, setFilter] = useState<OfficeInboxFilter>(() => parseInboxFilter(params.filter));
+  const audienceOptions = useMemo(
+    () =>
+      canViewInternal
+        ? OFFICE_MESSAGE_AUDIENCES
+        : OFFICE_MESSAGE_AUDIENCES.filter((item) => item.key !== 'internal'),
+    [canViewInternal],
+  );
+
+  const [audience, setAudience] = useState<OfficeMessageAudience>(() =>
+    parseOfficeMessageAudience(params.audience ?? params.filter),
+  );
+  const [view, setView] = useState<OfficeMessengerView>(() =>
+    parseOfficeMessengerView(params.view, params.tab),
+  );
+  const [chatAge, setChatAge] = useState<OfficeChatAgeFilter>(() => parseOfficeChatAgeFilter(params.chatAge));
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [threadModalOpen, setThreadModalOpen] = useState(false);
   const [selectedBroadcastId, setSelectedBroadcastId] = useState<string | null>(null);
@@ -47,8 +88,22 @@ export function OfficeMessengerScreen() {
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
 
   useEffect(() => {
-    setFilter(parseInboxFilter(params.filter));
-  }, [params.filter]);
+    setAudience(parseOfficeMessageAudience(params.audience ?? params.filter));
+  }, [params.audience, params.filter]);
+
+  useEffect(() => {
+    setView(parseOfficeMessengerView(params.view, params.tab));
+  }, [params.view, params.tab]);
+
+  useEffect(() => {
+    setChatAge(parseOfficeChatAgeFilter(params.chatAge));
+  }, [params.chatAge]);
+
+  useEffect(() => {
+    if (!canViewInternal && audience === 'internal') {
+      setAudience('employees');
+    }
+  }, [audience, canViewInternal]);
 
   useEffect(() => {
     const threadParam = params.thread;
@@ -57,6 +112,11 @@ export function OfficeMessengerScreen() {
       setThreadModalOpen(true);
     }
   }, [params.thread]);
+
+  useEffect(() => {
+    setOfficeMessageNavBadgeMessengerView({ audience, view });
+    return () => setOfficeMessageNavBadgeMessengerView(null);
+  }, [audience, view]);
 
   const openThread = (threadId: string) => {
     setSelectedThreadId(threadId);
@@ -67,66 +127,79 @@ export function OfficeMessengerScreen() {
     () =>
       StyleSheet.create({
         root: officeMessengerContainerHeight(height),
+        controls: { gap: spacing.sm, marginBottom: spacing.sm },
+        audienceHint: {
+          ...typography.caption,
+          color: c.muted,
+          paddingHorizontal: spacing.xs,
+        },
         actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         messenger: {
           flex: 1,
           minHeight: 0,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: c.borderSoft,
+          borderColor: c.border,
           overflow: 'hidden',
-          backgroundColor: c.bgPanel,
+          backgroundColor: c.surface,
         },
         listPane: {
           flex: 1,
           minWidth: 0,
         },
       }),
-    [c, height],
+    [c, height, typography],
   );
 
+  const screenTitle =
+    view === 'broadcasts'
+      ? `Broadcast · ${OFFICE_AUDIENCE_LABELS[audience]}`
+      : `Nachrichten · ${OFFICE_AUDIENCE_LABELS[audience]}`;
+
   return (
-    <ScreenShell
-      title={showBroadcastList ? 'Broadcast' : 'Nachrichten'}
-      subtitle="Office Kommunikation"
-      scroll={false}
-    >
+    <ScreenShell title={screenTitle} subtitle="Office Kommunikation" scroll={false}>
       <View style={styles.root}>
-        {!showBroadcastList ? (
+        <View style={styles.controls}>
+          <AuroraSegmentedControl
+            options={audienceOptions}
+            value={audience}
+            onChange={(key) => setAudience(key as OfficeMessageAudience)}
+          />
+          <AuroraSegmentedControl
+            options={OFFICE_MESSENGER_VIEWS}
+            value={view}
+            onChange={(key) => setView(key as OfficeMessengerView)}
+          />
+          <Text style={styles.audienceHint}>
+            {view === 'broadcasts'
+              ? `Mitteilungen an ${audience === 'internal' ? 'Verwaltung, Leitung und Geschäftsführung' : audience === 'clients' ? 'alle Klient:innen' : 'alle Mitarbeitenden'}`
+              : `Chats mit ${OFFICE_AUDIENCE_LABELS[audience]} — sortiert nach Neue, Aktuelle und Alte`}
+          </Text>
+        </View>
+
+        {!isReadOnly ? (
           <View style={styles.actions}>
-            <PremiumButton
-              title="Neuer Klient:innen-Chat"
-              onPress={() => setNewChatMode('client')}
-              disabled={isReadOnly}
-            />
-            <PremiumButton
-              title="Neuer Mitarbeitenden-Chat"
-              onPress={() => setNewChatMode('employee')}
-              disabled={isReadOnly}
-            />
-            <PremiumButton
-              title="Neuer interner Chat"
-              onPress={() => setNewChatMode('internal')}
-              disabled={isReadOnly}
-            />
+            {view === 'chats' ? (
+              <PremiumButton
+                title={NEW_CHAT_LABELS[audience]}
+                onPress={() => setNewChatMode(newChatModeForAudience(audience))}
+              />
+            ) : null}
             {canBroadcast ? (
               <PremiumButton
-                title="Broadcast senden"
-                variant="secondary"
+                title={BROADCAST_LABELS[audience]}
+                variant={view === 'broadcasts' ? 'primary' : 'secondary'}
                 onPress={() => setShowBroadcastModal(true)}
               />
             ) : null}
-          </View>
-        ) : canBroadcast ? (
-          <View style={styles.actions}>
-            <PremiumButton title="Broadcast senden" onPress={() => setShowBroadcastModal(true)} />
           </View>
         ) : null}
 
         <View style={styles.messenger}>
           <View style={[officeMessengerColumnStyles.columnRoot, styles.listPane]}>
-            {showBroadcastList ? (
+            {view === 'broadcasts' ? (
               <OfficeBroadcastsList
+                audience={audience}
                 selectedId={selectedBroadcastId}
                 onSelect={(id) => {
                   setSelectedBroadcastId(id);
@@ -135,8 +208,9 @@ export function OfficeMessengerScreen() {
               />
             ) : (
               <OfficeMessagesInbox
-                filter={filter}
-                onFilterChange={setFilter}
+                audience={audience}
+                chatAge={chatAge}
+                onChatAgeChange={setChatAge}
                 selectedThreadId={selectedThreadId}
                 onThreadSelect={openThread}
                 search={search}
@@ -154,7 +228,7 @@ export function OfficeMessengerScreen() {
         onClose={() => setThreadModalOpen(false)}
         onNewThreadStarted={(threadId) => {
           openThread(threadId);
-          setFilter('inbox');
+          setChatAge('new');
         }}
       />
 
@@ -178,7 +252,7 @@ export function OfficeMessengerScreen() {
           onClose={() => setNewChatMode(null)}
           onCreated={(threadId) => {
             setNewChatMode(null);
-            setFilter('inbox');
+            setChatAge('new');
             openThread(threadId);
           }}
         />
@@ -187,6 +261,7 @@ export function OfficeMessengerScreen() {
       {showBroadcastModal ? (
         <OfficeBroadcastModal
           visible
+          audience={audience}
           onClose={() => setShowBroadcastModal(false)}
           onSent={() => {
             setShowBroadcastModal(false);

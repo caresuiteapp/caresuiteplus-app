@@ -8,6 +8,8 @@ export const CLIENT_STATUS_TRANSITIONS: Record<WorkflowStatus, WorkflowStatus[]>
   archiviert: ['aktiv'],
   fehlerhaft: ['in_bearbeitung', 'gesperrt'],
   gesperrt: ['aktiv'],
+  geplant: ['aktiv'],
+  bestaetigt: ['aktiv'],
 };
 
 export const CLIENT_STATUS_HINTS: Record<WorkflowStatus, string> = {
@@ -18,6 +20,8 @@ export const CLIENT_STATUS_HINTS: Record<WorkflowStatus, string> = {
   archiviert: 'Nur Lesezugriff. Reaktivierung durch Admin.',
   fehlerhaft: 'Fehlerhafte Daten korrigieren.',
   gesperrt: 'Klient:in ist gesperrt — Freigabe durch Geschäftsführung.',
+  geplant: 'Geplant — Termin steht aus.',
+  bestaetigt: 'Bestätigt — Einsatz kann beginnen.',
 };
 
 export function getAllowedStatusActions(status: WorkflowStatus): WorkflowStatus[] {

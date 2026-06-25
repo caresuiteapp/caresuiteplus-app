@@ -16,6 +16,10 @@ export type DomainMessageInput = {
   body: string;
   senderName?: string;
   recipientName?: string;
+  requireRecipient?: boolean;
+  recipientType?: string;
+  recipientId?: string;
+  recipientLabel?: string;
 };
 
 export type DomainMessageResult = {

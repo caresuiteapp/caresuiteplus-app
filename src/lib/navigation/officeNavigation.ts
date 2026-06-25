@@ -91,7 +91,7 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
     key: 'broadcasts',
     label: 'Broadcast',
     icon: '📢',
-    href: '/office/messages?tab=broadcasts',
+    href: '/office/messages?audience=employees&view=broadcasts',
     description: 'Rundschreiben an Mitarbeitende',
     accentColor: '#62F3FF',
   },

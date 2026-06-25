@@ -63,19 +63,19 @@ const OPEN_CORRECTION_STATUSES = new Set<QmCorrectionRequest['status']>([
   'waiting_for_employee',
 ]);
 
-const OPEN_TASK_STATUSES = new Set<ManagementTask['status']>([
+const OPEN_TASK_STATUSES = new Set([
   'open',
   'in_progress',
   'waiting_for_employee',
   'waiting_for_management',
-]);
+] as const);
 
-const PERSONNEL_TASK_TYPES = new Set<ManagementTask['taskType']>([
+const PERSONNEL_TASK_TYPES = new Set([
   'master_data_review',
   'missing_contract',
   'absence_replacement',
   'absence_conflict',
-]);
+] as const);
 
 const ACTIVE_ABSENCE_STATUSES = new Set<EmployeeAbsence['status']>(['approved', 'active']);
 

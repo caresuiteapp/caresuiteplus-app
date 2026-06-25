@@ -136,7 +136,7 @@ describe('portal request form payloads', () => {
       rueckrufzeit: 'mittag',
       telefonnummer: '+49 30 123456',
       nachricht: 'Bitte zeitnah',
-    });
+    } as never);
 
     expect(payload).toMatchObject({
       requestType: 'rueckruf',

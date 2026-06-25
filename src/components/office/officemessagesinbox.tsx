@@ -4,16 +4,17 @@ import { PremiumInput, EmptyState, LoadingState, ErrorState } from '@/components
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
-import type { OfficeInboxFilter, OfficeMessageThread } from '@/types/office/messaging';
+import type {
+  OfficeChatAgeFilter,
+  OfficeMessageAudience,
+  OfficeMessageThread,
+} from '@/types/office/messaging';
+import {
+  OFFICE_AUDIENCE_LABELS,
+  OFFICE_CHAT_AGE_FILTERS,
+  emptyChatMessage,
+} from '@/lib/office/officemessengerfilters';
 import { useOfficeMessageThreads } from '@/hooks/useofficemessagethreads';
-
-const INBOX_FILTERS: { key: OfficeInboxFilter; label: string }[] = [
-  { key: 'inbox', label: 'Posteingang' },
-  { key: 'clients', label: 'Klient:innen' },
-  { key: 'employees', label: 'Mitarbeitende' },
-  { key: 'internal', label: 'Intern' },
-  { key: 'closed', label: 'Abgeschlossen' },
-];
 
 const PRIORITY_LABELS: Record<OfficeMessageThread['priority'], string> = {
   low: 'Niedrig',
@@ -29,8 +30,9 @@ const THREAD_TYPE_LABELS: Record<OfficeMessageThread['threadType'], string> = {
 };
 
 type OfficeMessagesInboxProps = {
-  filter: OfficeInboxFilter;
-  onFilterChange: (filter: OfficeInboxFilter) => void;
+  audience: OfficeMessageAudience;
+  chatAge: OfficeChatAgeFilter;
+  onChatAgeChange: (chatAge: OfficeChatAgeFilter) => void;
   selectedThreadId: string | null;
   onThreadSelect: (threadId: string) => void;
   search: string;
@@ -83,7 +85,7 @@ function ThreadRow({
   );
 
   const participant =
-    thread.clientName ?? thread.employeeName ?? THREAD_TYPE_LABELS[thread.threadType];
+    thread.clientName ?? thread.employeeName ?? thread.participantName ?? THREAD_TYPE_LABELS[thread.threadType];
   const timeLabel = thread.lastMessageAt
     ? new Date(thread.lastMessageAt).toLocaleDateString('de-DE', {
         day: '2-digit',
@@ -111,9 +113,6 @@ function ThreadRow({
         {participant}: {thread.lastMessagePreview ?? '—'}
       </Text>
       <View style={styles.meta}>
-        <View style={styles.badge}>
-          <Text style={styles.badgeText}>{THREAD_TYPE_LABELS[thread.threadType]}</Text>
-        </View>
         {thread.categoryLabel ? (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{thread.categoryLabel}</Text>
@@ -130,8 +129,9 @@ function ThreadRow({
 }
 
 export function OfficeMessagesInbox({
-  filter,
-  onFilterChange,
+  audience,
+  chatAge,
+  onChatAgeChange,
   selectedThreadId,
   onThreadSelect,
   search,
@@ -139,12 +139,19 @@ export function OfficeMessagesInbox({
 }: OfficeMessagesInboxProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
-  const { threads, loading, error, refresh, isEmpty } = useOfficeMessageThreads(filter);
+  const { threads, loading, error, refresh, isEmpty } = useOfficeMessageThreads(audience, chatAge);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         root: { flex: 1, minWidth: 0 },
+        sectionLabel: {
+          ...typography.caption,
+          color: c.muted,
+          textTransform: 'uppercase',
+          paddingHorizontal: spacing.sm,
+          paddingTop: spacing.sm,
+        },
         filters: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, padding: spacing.sm },
         filterChip: {
           paddingHorizontal: spacing.sm,
@@ -170,6 +177,8 @@ export function OfficeMessagesInbox({
         thread.subject.toLowerCase().includes(term) ||
         (thread.clientName ?? '').toLowerCase().includes(term) ||
         (thread.employeeName ?? '').toLowerCase().includes(term) ||
+        (thread.participantName ?? '').toLowerCase().includes(term) ||
+        (thread.categoryLabel ?? '').toLowerCase().includes(term) ||
         (thread.lastMessagePreview ?? '').toLowerCase().includes(term),
     );
   }, [threads, search]);
@@ -192,13 +201,14 @@ export function OfficeMessagesInbox({
 
   return (
     <View style={styles.root}>
+      <Text style={styles.sectionLabel}>Chats · {OFFICE_AUDIENCE_LABELS[audience]}</Text>
       <View style={styles.filters}>
-        {INBOX_FILTERS.map((item) => {
-          const active = item.key === filter;
+        {OFFICE_CHAT_AGE_FILTERS.map((item) => {
+          const active = item.key === chatAge;
           return (
             <Pressable
               key={item.key}
-              onPress={() => onFilterChange(item.key)}
+              onPress={() => onChatAgeChange(item.key)}
               style={[styles.filterChip, active && styles.filterChipActive]}
             >
               <Text style={[styles.filterText, active && styles.filterTextActive]}>{item.label}</Text>
@@ -216,7 +226,12 @@ export function OfficeMessagesInbox({
       {isEmpty ? (
         <EmptyState
           title="Keine Chats"
-          message="In diesem Postfach sind noch keine Nachrichten vorhanden."
+          message={emptyChatMessage(audience, chatAge)}
+        />
+      ) : filteredThreads.length === 0 ? (
+        <EmptyState
+          title="Keine Treffer"
+          message="Keine Chats passen zur Suche."
         />
       ) : (
         <FlatList

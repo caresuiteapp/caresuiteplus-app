@@ -88,10 +88,7 @@ describe('Security hardening', () => {
     });
 
     it('listEmployeeAssignments filtert nur eigene Einsätze', async () => {
-      const list = await fetchAssignmentList(DEMO_TENANT_ID, 'nurse', {
-        userId: 'nurse-1',
-        employeeId: 'employee-001',
-      });
+      const list = await fetchAssignmentList(DEMO_TENANT_ID, 'nurse');
       expect(list.ok).toBe(true);
       if (list.ok) {
         expect(list.data.every((entry) => entry.employeeId === 'employee-001')).toBe(true);

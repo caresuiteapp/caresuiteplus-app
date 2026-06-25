@@ -30,6 +30,7 @@ async function loadPdfRenderer(): Promise<PdfRenderer> {
   if (!pdfRendererPromise) {
     pdfRendererPromise = Promise.all([
       import('html2canvas'),
+      // @ts-expect-error jspdf ships no type declarations for ESM entry
       import('jspdf/dist/jspdf.es.min.js'),
     ]).then(([html2canvasModule, jsPDFModule]) => ({
       html2canvas: html2canvasModule.default,

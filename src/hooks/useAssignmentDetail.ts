@@ -64,6 +64,7 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
     },
   );
 
+  const setData = query.setData;
   const statusMutation = useMutation<AssignmentStatus, AssignmentPlan>(
     (newStatus: AssignmentStatus) => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
@@ -104,7 +105,7 @@ export function useAssignmentDetail(assignmentId: string | undefined) {
     },
     {
       successMessage: 'Einsatzstatus erfolgreich aktualisiert.',
-      onSuccess: (updated) => query.setData(updated),
+      onSuccess: (updated: AssignmentPlan) => setData(updated),
     },
   );
 

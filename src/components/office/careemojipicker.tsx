@@ -22,7 +22,7 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const chipStyles = useAuroraGlassChipStyles({ viewContext: 'form' });
-  const [activeCategory, setActiveCategory] = useState<CareEmojiCategory['key']>('reaktionen');
+  const [activeCategory, setActiveCategory] = useState<CareEmojiCategory['key']>('alltagsbegleitung');
 
   const active = CARE_EMOJI_CATEGORIES.find((category) => category.key === activeCategory)
     ?? CARE_EMOJI_CATEGORIES[0]!;
@@ -65,7 +65,7 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
     <PlatformModal
       visible={visible}
       title="Emoji auswählen"
-      subtitle="Reaktionen, Pflege und Medizin"
+      subtitle="Alltagsbegleitung, Pflege, Stationär, Akademie, Verwaltung, Menschen, Essen & Trinken, Transport"
       onClose={onClose}
       variant="bottomSheet"
       maxWidth={420}
@@ -115,9 +115,14 @@ export function CareEmojiPicker({ visible, onClose, onSelect }: CareEmojiPickerP
 type CareEmojiPickerButtonProps = {
   onPress: () => void;
   disabled?: boolean;
+  onDarkSurface?: boolean;
 };
 
-export function CareEmojiPickerButton({ onPress, disabled }: CareEmojiPickerButtonProps) {
+export function CareEmojiPickerButton({
+  onPress,
+  disabled,
+  onDarkSurface = false,
+}: CareEmojiPickerButtonProps) {
   return (
     <PremiumButton
       title="😊"
@@ -125,6 +130,7 @@ export function CareEmojiPickerButton({ onPress, disabled }: CareEmojiPickerButt
       variant="ghost"
       onPress={onPress}
       disabled={disabled}
+      onDarkSurface={onDarkSurface}
       accessibilityLabel="Emoji-Auswahl öffnen"
     />
   );

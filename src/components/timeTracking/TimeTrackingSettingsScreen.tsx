@@ -55,7 +55,7 @@ export function TimeTrackingSettingsScreen() {
     [tenantId, roleKey, canManage],
   );
 
-  const catalogQuery = useAsyncQuery(
+  const catalogQuery = useAsyncQuery<{ organizations: import('@/types/modules/timeTracking').WorkOrganization[]; costCenters: import('@/types/modules/timeTracking').CostCenter[]; projects: import('@/types/modules/timeTracking').WorkProject[]; activityTypes: import('@/types/modules/timeTracking').ActivityType[] } | null>(
     useCallback(async () => {
       if (!tenantId || !canManage) return { ok: true as const, data: null };
       return fetchTimeTrackingCatalogs(tenantId, roleKey);

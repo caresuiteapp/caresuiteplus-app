@@ -309,9 +309,9 @@ export async function seedTenantServiceCatalogIfEmpty(tenantId: string): Promise
   const client = getSupabaseClient();
   if (!client) return { ok: false, error: 'Supabase ist nicht konfiguriert.' };
 
-  const { error: rpcError } = await client.rpc('seed_tenant_service_catalog', {
+  const { error: rpcError } = await client.rpc('seed_tenant_service_catalog' as never, {
     p_tenant_id: tenantId,
-  } as { p_tenant_id: string });
+  } as never);
 
   if (rpcError) return { ok: false, error: toGermanSupabaseError(rpcError) };
   return { ok: true, data: undefined };

@@ -39,7 +39,7 @@ function unavailable<T>(): ServiceResult<T> {
 }
 
 function fail<T>(error: unknown): ServiceResult<T> {
-  return { ok: false, error: toGermanSupabaseError(error) };
+  return { ok: false, error: toGermanSupabaseError(error as import('@supabase/postgrest-js').PostgrestError) };
 }
 
 async function ensureDefaultCategories(tenantId: string): Promise<ServiceResult<void>> {

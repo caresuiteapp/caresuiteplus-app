@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import { PremiumBadge, PremiumListHeroFrame } from '@/components/ui';
@@ -23,6 +24,7 @@ type StationaerDashboardHeroProps = {
 
 export function StationaerDashboardHero({ stats, roleKey, tenantName }: StationaerDashboardHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -39,19 +41,12 @@ export function StationaerDashboardHero({ stats, roleKey, tenantName }: Stationa
     color: colors.violet,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: {
-    ...typography.h2,
-    color: '#FFFFFF',
-    fontWeight: '800',
-  },
+  title: heroText.title,
   tenant: {
     ...typography.bodyStrong,
     color: colors.violet,
   },
-  meta: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
-  },
+  meta: heroText.meta,
   iconBadge: {
     width: iconSize,
     height: iconSize,

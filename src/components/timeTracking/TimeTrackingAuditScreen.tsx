@@ -60,7 +60,7 @@ export function TimeTrackingAuditScreen() {
 
   const canAudit = can('time.audit.view') || can('time.tracking.admin.view');
 
-  const summaryQuery = useAsyncQuery(
+  const summaryQuery = useAsyncQuery<{ workdays: import('@/types/modules/timeTracking').TimeWorkday[]; openCorrections: number; warnings: number; activityEvents: number } | null>(
     useCallback(async () => {
       if (!tenantId || !canAudit) return { ok: true as const, data: null };
       return fetchAuditDashboardSummary(tenantId, roleKey);
@@ -76,7 +76,7 @@ export function TimeTrackingAuditScreen() {
     [tenantId, roleKey, canAudit],
   );
 
-  const settingsQuery = useAsyncQuery(
+  const settingsQuery = useAsyncQuery<import('@/types/modules/timeTracking').TenantTimeTrackingSettings | null>(
     useCallback(async () => {
       if (!tenantId || !can('time.settings.manage')) return { ok: true as const, data: null };
       return fetchTimeTrackingSettings(tenantId, roleKey);

@@ -204,7 +204,7 @@ export const OFFICE_SIDEBAR_QUICK_ACTIONS: DashboardQuickAction[] = [
   { id: 'office-qa-appointment', label: 'Termin', icon: '📅', route: '/office/appointments?create=1' },
   { id: 'office-qa-document', label: 'Dokument', icon: '📄', route: '/office/documents/upload' },
   { id: 'office-qa-message', label: 'Nachricht', icon: '💬', route: '/office/messages?create=1' },
-  { id: 'office-qa-broadcast', label: 'Broadcast', icon: '📢', route: '/office/messages?tab=broadcasts' },
+  { id: 'office-qa-broadcast', label: 'Broadcast', icon: '📢', route: '/office/messages?audience=employees&view=broadcasts' },
   {
     id: 'office-qa-portal',
     label: 'Portalzugänge',
@@ -322,7 +322,7 @@ export function buildOfficeDashboardSections(snapshot: DashboardSnapshot): Offic
           id: 'comm-broadcast',
           label: 'Broadcast',
           description: 'Rundschreiben an Mitarbeitende',
-          route: '/office/messages?tab=broadcasts',
+          route: '/office/messages?audience=employees&view=broadcasts',
           icon: '📢',
         },
         {

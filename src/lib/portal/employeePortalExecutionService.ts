@@ -248,7 +248,7 @@ function mapTasks(record: NonNullable<ReturnType<typeof getAssignmentWorkflow>>)
     required: task.required,
     status: task.status,
     completionNote: task.completionNote,
-    requiresNote: taskStatusRequiresNote(task.status),
+    requiresNote: taskStatusRequiresNote(task.status as import('@/types/modules/assignmentStatus').AssignmentStatus),
   }));
 }
 
@@ -499,7 +499,7 @@ export function updateEmployeePortalTask(
   const accessDenied = assertEmployeeAccess(tenantId, employeeId, roleKey, assignmentId);
   if (accessDenied) return accessDenied;
 
-  if (taskStatusRequiresNote(status) && !completionNote?.trim()) {
+  if (taskStatusRequiresNote(status as import('@/types/modules/assignmentStatus').AssignmentStatus) && !completionNote?.trim()) {
     return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
   }
 

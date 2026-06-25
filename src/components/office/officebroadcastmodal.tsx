@@ -8,7 +8,9 @@ import { useAuth } from '@/lib/auth/context';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { sendBroadcast } from '@/lib/office/broadcastservice';
+import { OFFICE_BROADCAST_AUDIENCE_LABELS } from '@/lib/office/officemessengerfilters';
 import { spacing, radius } from '@/theme';
+import type { OfficeMessageAudience } from '@/types/office/messaging';
 import type {
   BroadcastCategoryKey,
   BroadcastPriority,
@@ -18,11 +20,51 @@ import { BROADCAST_CATEGORIES, BROADCAST_PRIORITIES } from '@/types/office/broad
 
 type OfficeBroadcastModalProps = {
   visible: boolean;
+  audience: OfficeMessageAudience;
   onClose: () => void;
   onSent: (recipientCount: number) => void;
 };
 
-export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadcastModalProps) {
+function broadcastAudienceForSegment(audience: OfficeMessageAudience): CreateBroadcastInput['recipientFilter'] {
+  switch (audience) {
+    case 'clients':
+      return { audience: 'clients' };
+    case 'internal':
+      return { audience: 'internal' };
+    case 'employees':
+    default:
+      return { audience: 'employees' };
+  }
+}
+
+function broadcastTitleForAudience(audience: OfficeMessageAudience): string {
+  switch (audience) {
+    case 'clients':
+      return 'Broadcast an Klient:innen senden';
+    case 'internal':
+      return 'Broadcast an Leitung/Verwaltung senden';
+    case 'employees':
+    default:
+      return 'Broadcast an Mitarbeitende senden';
+  }
+}
+
+function confirmMessageForAudience(
+  audience: OfficeMessageAudience,
+  tenantName: string,
+): string {
+  switch (audience) {
+    case 'clients':
+      return `Diese Nachricht wird an alle Klient:innen mit Portalzugang des Mandanten ${tenantName} gesendet. Möchten Sie fortfahren?`;
+    case 'internal':
+      return `Diese Nachricht wird an Verwaltung, Leitung und Geschäftsführung des Mandanten ${tenantName} gesendet. Möchten Sie fortfahren?`;
+    case 'employees':
+    default:
+      return `Diese Nachricht wird an alle aktiven Mitarbeitenden des Mandanten ${tenantName} gesendet. Möchten Sie fortfahren?`;
+  }
+}
+
+export function OfficeBroadcastModal({ visible, audience, onClose, onSent }: OfficeBroadcastModalProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const { profile, user } = useAuth();
@@ -35,7 +77,7 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
   const [priority, setPriority] = useState<BroadcastPriority>('normal');
   const [requireAck, setRequireAck] = useState(false);
   const [allowReplies, setAllowReplies] = useState(true);
-  const [showInPortal, setShowInPortal] = useState(true);
+  const [showInPortal, setShowInPortal] = useState(audience === 'employees');
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -84,10 +126,10 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
     setPriority('normal');
     setRequireAck(false);
     setAllowReplies(true);
-    setShowInPortal(true);
+    setShowInPortal(audience === 'employees');
     setConfirmOpen(false);
     setError(null);
-  }, []);
+  }, [audience]);
 
   const input: CreateBroadcastInput = {
     title,
@@ -97,7 +139,7 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
     allowReplies,
     requireAcknowledgement: requireAck,
     showInEmployeePortal: showInPortal,
-    recipientFilter: { audience: 'employees' },
+    recipientFilter: broadcastAudienceForSegment(audience),
   };
 
   const handleSend = async () => {
@@ -123,6 +165,14 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
 
   const categoryLabel = BROADCAST_CATEGORIES.find((item) => item.key === category)?.label ?? '';
   const priorityLabel = BROADCAST_PRIORITIES.find((item) => item.key === priority)?.label ?? '';
+  const recipientLabel = OFFICE_BROADCAST_AUDIENCE_LABELS[audience];
+
+  const portalOptionLabel =
+    audience === 'clients'
+      ? 'Zusätzlich im Klient:innenportal anzeigen'
+      : audience === 'employees'
+        ? 'Zusätzlich im Mitarbeiter:innenportal anzeigen'
+        : null;
 
   if (confirmOpen) {
     return (
@@ -135,10 +185,7 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
           { title: 'Jetzt senden', onPress: () => void handleSend(), loading: submitting },
         ]}
       >
-        <Text style={styles.optionText}>
-          Diese Nachricht wird an alle aktiven Mitarbeitenden des Mandanten {tenantName} gesendet.
-          Möchten Sie fortfahren?
-        </Text>
+        <Text style={styles.optionText}>{confirmMessageForAudience(audience, tenantName)}</Text>
       </PlatformModal>
     );
   }
@@ -146,7 +193,7 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
   return (
     <PlatformModal
       visible={visible}
-      title="Broadcast an Mitarbeitende senden"
+      title={broadcastTitleForAudience(audience)}
       onClose={() => {
         reset();
         onClose();
@@ -172,12 +219,7 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
           <View style={styles.form}>
             <View style={styles.section}>
               <Text style={styles.label}>Empfänger</Text>
-              <Text style={styles.recipientNote}>
-                Alle aktiven Mitarbeitenden des Mandanten
-              </Text>
-              <Text style={styles.recipientNote}>
-                Filter nach Rolle, Team oder Standort — in Vorbereitung
-              </Text>
+              <Text style={styles.recipientNote}>{recipientLabel}</Text>
             </View>
 
             <View style={styles.section}>
@@ -216,7 +258,7 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
 
             <View style={styles.section}>
               <Text style={styles.label}>Betreff</Text>
-              <PremiumInput value={title} onChangeText={setTitle} placeholder="z. B. Softwareumstellung heute" />
+              <PremiumInput value={title} onChangeText={setTitle} placeholder="z. B. Wichtige Mitteilung" />
             </View>
 
             <View style={styles.section}>
@@ -224,7 +266,7 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
               <PremiumInput
                 value={body}
                 onChangeText={setBody}
-                placeholder="Mitteilung an alle Mitarbeitenden …"
+                placeholder={`Mitteilung an ${recipientLabel.toLowerCase()} …`}
                 multiline
                 numberOfLines={6}
               />
@@ -234,8 +276,18 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
               <Text style={styles.label}>Optionen</Text>
               {[
                 { key: 'ack', label: 'Lesebestätigung erforderlich', value: requireAck, set: setRequireAck },
-                { key: 'replies', label: 'Rückfrage an Verwaltung erlauben', value: allowReplies, set: setAllowReplies },
-                { key: 'portal', label: 'Zusätzlich im Mitarbeiter:innenportal anzeigen', value: showInPortal, set: setShowInPortal },
+                {
+                  key: 'replies',
+                  label:
+                    audience === 'internal'
+                      ? 'Rückfrage im internen Postfach erlauben'
+                      : 'Rückfrage an Verwaltung erlauben',
+                  value: allowReplies,
+                  set: setAllowReplies,
+                },
+                ...(portalOptionLabel
+                  ? [{ key: 'portal', label: portalOptionLabel, value: showInPortal, set: setShowInPortal }]
+                  : []),
               ].map((opt) => (
                 <Pressable
                   key={opt.key}
@@ -258,7 +310,7 @@ export function OfficeBroadcastModal({ visible, onClose, onSent }: OfficeBroadca
               <Text style={styles.previewBody} numberOfLines={6}>
                 {body.trim() || 'Nachrichtentext …'}
               </Text>
-              <Text style={styles.previewBody}>🔔 Broadcast · An alle Mitarbeitenden</Text>
+              <Text style={styles.previewBody}>🔔 Broadcast · {recipientLabel}</Text>
             </View>
           </View>
         </View>

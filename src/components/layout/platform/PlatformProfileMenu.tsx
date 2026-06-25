@@ -14,7 +14,12 @@ import { useAuth } from '@/lib/auth/context';
 import { USER_PROFILE_ROUTE } from '@/lib/auth/userprofileroute';
 import { APPEARANCE_SETTINGS_ROUTE } from '@/lib/screensaver/appearanceSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { useAuroraAdaptiveText, useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
+import {
+  surfaceContrastText,
+  useAuroraAdaptiveText,
+  useAuroraGlassActive,
+  useShellGlassSurfaceStyle,
+} from '@/design/tokens/auroraGlass';
 import { llgsTypography } from '@/design/tokens/lightLiquidGlassSpace';
 import { radius, spacing, typography } from '@/theme';
 
@@ -34,8 +39,10 @@ const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as V
 export function PlatformProfileMenu({ accentColor, fullWidth = false }: PlatformProfileMenuProps) {
   const router = useRouter();
   const { profile, signOut } = useAuth();
-  const { colors, isDark } = useLegacyTheme();
+  const { colors, isDark, isLight } = useLegacyTheme();
   const text = useAuroraAdaptiveText();
+  const auroraActive = useAuroraGlassActive();
+  const dropdownInk = surfaceContrastText(!(auroraActive && isLight));
   const chipGlass = useShellGlassSurfaceStyle('chip');
   const modalGlass = useShellGlassSurfaceStyle('modal');
   const accent = accentColor ?? colors.violet;
@@ -52,8 +59,8 @@ export function PlatformProfileMenu({ accentColor, fullWidth = false }: Platform
   ];
 
   const styles = useMemo(
-    () => createStyles(isDark, colors, text, fullWidth),
-    [colors, fullWidth, isDark, text],
+    () => createStyles(isDark, colors, text, dropdownInk, fullWidth),
+    [colors, dropdownInk, fullWidth, isDark, text],
   );
 
   return (
@@ -110,6 +117,7 @@ function createStyles(
   isDark: boolean,
   colors: ReturnType<typeof useLegacyTheme>['colors'],
   text: ReturnType<typeof useAuroraAdaptiveText>,
+  dropdownInk: ReturnType<typeof surfaceContrastText>,
   fullWidth: boolean,
 ) {
   const topbarPrimaryNameText: TextStyle = {
@@ -187,14 +195,14 @@ function createStyles(
     },
     dropdownText: {
       ...typography.body,
-      color: text.primary,
+      color: dropdownInk.primary,
       fontWeight: '600',
       textAlign: 'center',
       width: '100%',
     },
     dropdownMeta: {
       ...typography.caption,
-      color: text.muted,
+      color: dropdownInk.muted,
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xs,
       borderBottomWidth: 1,

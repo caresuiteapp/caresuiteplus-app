@@ -16,7 +16,7 @@ function normalizeContext(
   if (input && typeof input === 'object' && 'portalSession' in input) {
     return input;
   }
-  return { profile: input ?? null, portalSession: null };
+  return { profile: (input as Profile | null | undefined) ?? null, portalSession: null };
 }
 
 /** Resolve tenant from authenticated profile or portal session — live-only, no demo fallback. */

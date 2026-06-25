@@ -12,7 +12,13 @@ import {
 import { useRouter } from 'expo-router';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { GlassCard } from '@/design/components/GlassCard';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  auroraGlass,
+  darkGlassSurfaceText,
+  lightSurfaceText,
+  useAuroraGlassActive,
+} from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -32,7 +38,10 @@ function openExternal(url: string) {
 /** Client portal context panel — mandant, status, KPIs, quick access, support. */
 export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSidebarProps) {
   const router = useRouter();
-  const text = useAuroraAdaptiveText();
+  const auroraActive = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
+  const cardText = auroraActive && isLight ? lightSurfaceText : darkGlassSurfaceText;
+  const panelText = darkGlassSurfaceText;
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const {
@@ -56,11 +65,11 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
     <>
       <View style={styles.root}>
         <GlassCard style={styles.card}>
-          <Text style={[type.caption, styles.sectionEyebrow, { color: text.muted }]}>MANDANT</Text>
-          <Text style={[type.bodyStrong, { color: text.primary }]} numberOfLines={2}>
+          <Text style={[type.caption, styles.sectionEyebrow, { color: cardText.muted }]}>MANDANT</Text>
+          <Text style={[type.bodyStrong, { color: cardText.primary }]} numberOfLines={2}>
             {context.tenantName}
           </Text>
-          <Text style={[type.caption, { color: text.secondary }]}>{moduleLabel}</Text>
+          <Text style={[type.caption, { color: cardText.secondary }]}>{moduleLabel}</Text>
           <Pressable
             onPress={() => setMandantOpen(true)}
             style={[styles.detailsBtn, webCursor]}
@@ -71,37 +80,37 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
         </GlassCard>
 
         <View style={styles.section}>
-          <Text style={[type.caption, styles.sectionEyebrow, { color: text.muted }]}>PORTAL-STATUS</Text>
+          <Text style={[type.caption, styles.sectionEyebrow, { color: panelText.muted }]}>PORTAL-STATUS</Text>
           <View style={styles.statusRow}>
-            <Text style={[type.caption, { color: text.secondary }]}>Freigabe</Text>
-            <Text style={[type.caption, { color: text.primary, fontWeight: '700' }]}>{releaseLabel}</Text>
+            <Text style={[type.caption, { color: panelText.secondary }]}>Freigabe</Text>
+            <Text style={[type.caption, { color: panelText.primary, fontWeight: '700' }]}>{releaseLabel}</Text>
           </View>
           <View style={styles.statusRow}>
-            <Text style={[type.caption, { color: text.secondary }]}>Rolle</Text>
-            <Text style={[type.caption, { color: text.primary, fontWeight: '700' }]}>
+            <Text style={[type.caption, { color: panelText.secondary }]}>Rolle</Text>
+            <Text style={[type.caption, { color: panelText.primary, fontWeight: '700' }]}>
               {terminology.personLabel}
             </Text>
           </View>
           <View style={styles.statusRow}>
-            <Text style={[type.caption, { color: text.secondary }]}>Modul</Text>
-            <Text style={[type.caption, { color: text.primary, fontWeight: '700' }]}>{moduleLabel}</Text>
+            <Text style={[type.caption, { color: panelText.secondary }]}>Modul</Text>
+            <Text style={[type.caption, { color: panelText.primary, fontWeight: '700' }]}>{moduleLabel}</Text>
           </View>
           <View style={styles.statusRow}>
-            <Text style={[type.caption, { color: text.secondary }]}>Letzter Login</Text>
-            <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]}>
+            <Text style={[type.caption, { color: panelText.secondary }]}>Letzter Login</Text>
+            <Text style={[type.caption, { color: panelText.primary, fontWeight: '600' }]}>
               {lastLoginFormatted}
             </Text>
           </View>
         </View>
 
         <View style={styles.section}>
-          <Text style={[type.caption, styles.sectionEyebrow, { color: text.muted }]}>
+          <Text style={[type.caption, styles.sectionEyebrow, { color: panelText.muted }]}>
             HEUTE AUF EINEN BLICK
           </Text>
           <ScrollView nestedScrollEnabled showsVerticalScrollIndicator={false} style={styles.kpiList}>
             {kpis.map((kpi) => (
               <View key={kpi.label} style={styles.kpiRow}>
-                <Text style={[type.caption, { color: text.secondary, flex: 1 }]}>{kpi.label}</Text>
+                <Text style={[type.caption, { color: panelText.secondary, flex: 1 }]}>{kpi.label}</Text>
                 <View style={[styles.kpiBadge, { backgroundColor: auroraGlass.chipActive }]}>
                   <Text style={[type.caption, { color: accentColor, fontWeight: '800' }]}>
                     {kpi.value ?? 0}
@@ -113,7 +122,7 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
         </View>
 
         <View style={styles.section}>
-          <Text style={[type.caption, styles.sectionEyebrow, { color: text.muted }]}>SCHNELLZUGRIFF</Text>
+          <Text style={[type.caption, styles.sectionEyebrow, { color: panelText.muted }]}>SCHNELLZUGRIFF</Text>
           <View style={styles.actionList}>
             {quickActions.map((action) => (
               <Pressable
@@ -123,7 +132,7 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
                 accessibilityRole="button"
               >
                 <Text style={styles.actionIcon}>{action.icon}</Text>
-                <Text style={[type.caption, { color: text.primary, fontWeight: '600' }]}>
+                <Text style={[type.caption, { color: panelText.primary, fontWeight: '600' }]}>
                   {action.label}
                 </Text>
               </Pressable>
@@ -132,21 +141,21 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
         </View>
 
         <View style={[styles.section, styles.supportSection]}>
-          <Text style={[type.caption, styles.sectionEyebrow, { color: text.muted }]}>
+          <Text style={[type.caption, styles.sectionEyebrow, { color: panelText.muted }]}>
             SUPPORT & HILFE
           </Text>
           <Pressable onPress={() => setHelpOpen(true)} style={styles.supportLink}>
-            <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
+            <Text style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]}>
               ❓ Hilfe & Kontakt
             </Text>
           </Pressable>
           <Pressable onPress={() => openExternal(SUPPORT_LINKS.privacy)} style={styles.supportLink}>
-            <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
+            <Text style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]}>
               🔒 Datenschutz
             </Text>
           </Pressable>
           <Pressable onPress={() => router.push('/portal/client/help' as never)} style={styles.supportLink}>
-            <Text style={[type.caption, { color: text.secondary, fontWeight: '600' }]}>
+            <Text style={[type.caption, { color: panelText.secondary, fontWeight: '600' }]}>
               📋 Betroffenenrechte
             </Text>
           </Pressable>
@@ -154,18 +163,18 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
       </View>
 
       <PortalGlassModal visible={mandantOpen} onClose={() => setMandantOpen(false)} title="Mandant">
-        <Text style={[type.body, { color: text.primary, fontWeight: '700' }]}>{context.tenantName}</Text>
-        <Text style={[type.body, { color: text.secondary, marginTop: careSpacing.sm }]}>
+        <Text style={[type.body, { color: cardText.primary, fontWeight: '700' }]}>{context.tenantName}</Text>
+        <Text style={[type.body, { color: cardText.secondary, marginTop: careSpacing.sm }]}>
           {moduleLabel} · {terminology.greetingLabel}
         </Text>
-        <Text style={[type.caption, { color: text.muted, marginTop: careSpacing.md }]}>
+        <Text style={[type.caption, { color: cardText.muted, marginTop: careSpacing.md }]}>
           Informationen zu Ihrem Pflegebüro — rein informativ, ohne Verwaltungsfunktionen.
         </Text>
       </PortalGlassModal>
 
       <PortalGlassModal visible={helpOpen} onClose={() => setHelpOpen(false)} title="Support & Hilfe">
         <Pressable onPress={() => openExternal(SUPPORT_LINKS.help)} style={styles.supportLink}>
-          <Text style={[type.body, { color: text.primary }]}>Hilfe & Dokumentation öffnen</Text>
+          <Text style={[type.body, { color: panelText.primary }]}>Hilfe & Dokumentation öffnen</Text>
         </Pressable>
         <Pressable
           onPress={() => {
@@ -174,7 +183,7 @@ export function PortalRightSidebar({ accentColor = '#FF9500' }: PortalRightSideb
           }}
           style={styles.supportLink}
         >
-          <Text style={[type.body, { color: text.primary }]}>Kontakt zum Pflegebüro</Text>
+          <Text style={[type.body, { color: panelText.primary }]}>Kontakt zum Pflegebüro</Text>
         </Pressable>
       </PortalGlassModal>
     </>
