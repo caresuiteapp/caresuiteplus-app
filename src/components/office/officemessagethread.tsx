@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatBubble } from '@/components/communication/ChatBubble';
-import { ChatComposer } from '@/components/communication/ChatComposer';
+import { MessageAttachmentList } from '@/components/office/messageattachmentlist';
+import { OfficeMessageComposer } from '@/components/office/officemessagecomposer';
 import { OfficeMessageThreadHeader } from '@/components/office/officemessagethreadheader';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -9,23 +10,29 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { useOfficeMessageThreadDetail } from '@/hooks/useofficemessagethreaddetail';
 import { mapOfficeMessageToChatBubble } from '@/lib/office/officemessagemappers';
+import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
+import { toUserFacingSendError } from '@/lib/office/voicemessageutils';
 import { officeMessengerEmptyStyles } from '@/components/office/officemessengerlayout';
 
 type OfficeMessageThreadProps = {
   threadId: string | null;
   onNewThreadStarted?: (newThreadId: string) => void;
   hideHeader?: boolean;
+  onDarkSurface?: boolean;
 };
 
 export function OfficeMessageThread({
   threadId,
   onNewThreadStarted,
   hideHeader = false,
+  onDarkSurface = false,
 }: OfficeMessageThreadProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
   const [draft, setDraft] = useState('');
   const [isInternalNote, setIsInternalNote] = useState(false);
+  const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
+  const [attachmentError, setAttachmentError] = useState<string | null>(null);
   const { detail, loading, error, sending, sendMessage, startNewChat, refresh } =
     useOfficeMessageThreadDetail(threadId);
 
@@ -86,10 +93,14 @@ export function OfficeMessageThread({
   }
 
   const handleSend = async () => {
-    const result = await sendMessage(draft, { isInternalNote });
+    const result = await sendMessage(draft, { isInternalNote, attachments: pendingAttachments });
     if (result.ok) {
       setDraft('');
       setIsInternalNote(false);
+      setPendingAttachments([]);
+      setAttachmentError(null);
+    } else {
+      setAttachmentError(toUserFacingSendError(result.error));
     }
   };
 
@@ -105,13 +116,29 @@ export function OfficeMessageThread({
       {!hideHeader ? <OfficeMessageThreadHeader detail={detail} /> : null}
 
       <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent}>
-        {detail.messages.map((message) => (
-          <ChatBubble
-            key={message.id}
-            message={mapOfficeMessageToChatBubble(message)}
-            isOwn={message.senderType === 'office_profile'}
-          />
-        ))}
+        {detail.messages.map((message) => {
+          const isVoiceOnly = message.body === '🎤 Sprachnachricht';
+          const isOwn = message.senderType === 'office_profile';
+          return (
+            <View key={message.id}>
+              {!isVoiceOnly ? (
+                <ChatBubble
+                  message={mapOfficeMessageToChatBubble(message)}
+                  isOwn={isOwn}
+                />
+              ) : null}
+              <MessageAttachmentList
+                messageId={message.id}
+                attachmentOnly={isVoiceOnly}
+                isOwn={isOwn}
+                senderDisplayName={message.senderDisplayName}
+                sentAt={message.sentAt}
+                showStatus
+                messageStatus={message.status === 'read' ? 'read' : 'sent'}
+              />
+            </View>
+          );
+        })}
       </ScrollView>
 
       {detail.isClosed ? (
@@ -123,7 +150,14 @@ export function OfficeMessageThread({
           <PremiumButton title="Neuen Chat starten" onPress={handleStartNewChat} />
         </View>
       ) : (
-        <ChatComposer
+        <>
+          {attachmentError ? (
+            <View style={{ paddingHorizontal: spacing.md, paddingBottom: spacing.xs }}>
+              <Text style={{ color: '#c0392b' }}>{attachmentError}</Text>
+              <PremiumButton title="Erneut senden" size="sm" onPress={() => void handleSend()} />
+            </View>
+          ) : null}
+          <OfficeMessageComposer
           text={draft}
           onChangeText={setDraft}
           onSend={handleSend}
@@ -131,7 +165,13 @@ export function OfficeMessageThread({
           showInternalToggle
           isInternalNote={isInternalNote}
           onToggleInternalNote={() => setIsInternalNote((value) => !value)}
+          onDarkSurface={onDarkSurface}
+          pendingAttachments={pendingAttachments}
+          onPendingAttachmentsChange={setPendingAttachments}
+          attachmentError={attachmentError}
+          onAttachmentError={setAttachmentError}
         />
+        </>
       )}
     </View>
   );

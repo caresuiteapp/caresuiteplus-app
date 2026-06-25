@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { Platform } from 'react-native';
+import {
+  buildVoiceFileName,
+  extensionForVoiceMime,
+  pickVoiceMimeType,
+  VOICE_RECORDING_MIN_BYTES,
+} from '@/lib/office/voicemessageutils';
 
 export type VoiceRecordingResult = {
   fileName: string;
@@ -11,28 +17,8 @@ export type VoiceRecordingResult = {
 export const MIC_PERMISSION_DENIED_ERROR =
   'Mikrofonzugriff verweigert. Bitte erlauben Sie den Zugriff in den Browser-Einstellungen.';
 
-function pickMimeType(): string {
-  if (typeof MediaRecorder === 'undefined') return 'audio/webm';
-  const candidates = [
-    'audio/webm;codecs=opus',
-    'audio/webm',
-    'audio/ogg;codecs=opus',
-    'audio/mp4',
-    'audio/mpeg',
-  ];
-  for (const type of candidates) {
-    if (MediaRecorder.isTypeSupported(type)) return type;
-  }
-  return 'audio/webm';
-}
-
-function extensionForMime(mimeType: string): string {
-  if (mimeType.includes('webm')) return 'webm';
-  if (mimeType.includes('ogg')) return 'ogg';
-  if (mimeType.includes('mp4') || mimeType.includes('m4a')) return 'm4a';
-  if (mimeType.includes('mpeg') || mimeType.includes('mp3')) return 'mp3';
-  if (mimeType.includes('wav')) return 'wav';
-  return 'webm';
+function normalizeRecordedMime(mimeType: string): string {
+  return mimeType.toLowerCase().split(';')[0]?.trim() || 'audio/webm';
 }
 
 export function useOfficeVoiceRecording() {
@@ -45,6 +31,7 @@ export function useOfficeVoiceRecording() {
   const streamRef = useRef<MediaStream | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const startedAtRef = useRef<number | null>(null);
+  const mimeTypeRef = useRef<string>('audio/webm');
 
   const cleanup = useCallback(() => {
     if (timerRef.current) {
@@ -76,7 +63,8 @@ export function useOfficeVoiceRecording() {
     try {
       const stream = await navigator.mediaDevices.getUserMedia({ audio: true });
       streamRef.current = stream;
-      const mimeType = pickMimeType();
+      const mimeType = pickVoiceMimeType();
+      mimeTypeRef.current = mimeType;
       const recorder = new MediaRecorder(stream, { mimeType });
       chunksRef.current = [];
       recorder.ondataavailable = (event) => {
@@ -116,10 +104,10 @@ export function useOfficeVoiceRecording() {
 
     return new Promise((resolve) => {
       recorder.onstop = async () => {
-        const mimeType = recorder.mimeType || pickMimeType();
-        const blob = new Blob(chunksRef.current, { type: mimeType });
-        const ext = extensionForMime(mimeType);
-        const fileName = `sprachnachricht-${Date.now()}.${ext}`;
+        const rawMime = recorder.mimeType || mimeTypeRef.current || pickVoiceMimeType();
+        const mimeType = normalizeRecordedMime(rawMime);
+        const blob = new Blob(chunksRef.current, { type: rawMime });
+        const fileName = buildVoiceFileName(mimeType);
         const buffer = await blob.arrayBuffer();
         const fileData = new Uint8Array(buffer);
 
@@ -127,16 +115,29 @@ export function useOfficeVoiceRecording() {
         setIsRecording(false);
         setDurationSeconds(0);
 
-        if (fileData.length === 0) {
+        if (fileData.length < VOICE_RECORDING_MIN_BYTES) {
           resolve({ ok: false, error: 'Aufnahme ist leer.' });
           return;
         }
 
         resolve({
           ok: true,
-          data: { fileName, mimeType, fileSizeBytes: fileData.length, fileData },
+          data: {
+            fileName,
+            mimeType,
+            fileSizeBytes: fileData.length,
+            fileData,
+          },
         });
       };
+
+      try {
+        if (recorder.state === 'recording') {
+          recorder.requestData();
+        }
+      } catch {
+        // requestData optional on some browsers
+      }
       recorder.stop();
     });
   }, [cleanup]);
@@ -145,7 +146,11 @@ export function useOfficeVoiceRecording() {
     const recorder = mediaRecorderRef.current;
     if (recorder && recorder.state !== 'inactive') {
       recorder.onstop = null;
-      recorder.stop();
+      try {
+        recorder.stop();
+      } catch {
+        // ignore
+      }
     }
     cleanup();
     setIsRecording(false);
@@ -164,3 +169,5 @@ export function useOfficeVoiceRecording() {
     isSupported: Platform.OS === 'web',
   };
 }
+
+export { pickVoiceMimeType, extensionForVoiceMime, buildVoiceFileName };

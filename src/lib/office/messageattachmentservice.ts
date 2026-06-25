@@ -3,12 +3,23 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
+import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import {
   auditFromThread,
   logOfficeMessageAuditEvent,
 } from '@/lib/office/officemessageauditservice';
-import { validateMessageAttachment } from '@/lib/office/messageattachmentvalidation';
+import {
+  normalizeAttachmentMimeType,
+  validateMessageAttachment,
+} from '@/lib/office/messageattachmentvalidation';
 import { fetchOfficeMessageThreadById, OFFICE_MESSAGING_SCHEMA_ERROR } from '@/lib/office/messagethreadservice';
+import {
+  toUserFacingAttachmentError,
+  VOICE_SIGNED_URL_TIMEOUT_MS,
+  VOICE_STORAGE_DOWNLOAD_TIMEOUT_MS,
+  VOICE_STORAGE_UPLOAD_TIMEOUT_MS,
+  withMessagingTimeout,
+} from '@/lib/office/voicemessageutils';
 
 export type MessageAttachment = {
   id: string;
@@ -30,8 +41,62 @@ const MIME_ALIASES: Record<string, string> = {
 };
 
 function normalizeMimeType(raw: string): string {
-  const lower = raw.trim().toLowerCase();
+  const lower = normalizeAttachmentMimeType(raw);
   return MIME_ALIASES[lower] ?? lower;
+}
+
+function toStorageUploadPayload(
+  fileData: Blob | ArrayBuffer | Uint8Array,
+  mimeType: string,
+): Blob | ArrayBuffer | Uint8Array {
+  const normalizedMime = normalizeMimeType(mimeType);
+  if (typeof Blob !== 'undefined') {
+    if (fileData instanceof Blob) {
+      return fileData.type ? fileData : new Blob([fileData], { type: normalizedMime });
+    }
+    const bytes = fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
+    return new Blob([bytes], { type: normalizedMime });
+  }
+  return fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
+}
+
+async function resolveAttachmentFileUrl(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  filePath: string,
+): Promise<string | null> {
+  try {
+    const { data, error } = await withMessagingTimeout(
+      supabase.storage.from(BUCKET).createSignedUrl(filePath, 3600),
+      VOICE_SIGNED_URL_TIMEOUT_MS,
+      'Signed-URL timeout',
+    );
+    if (error || !data?.signedUrl) return null;
+    return data.signedUrl;
+  } catch {
+    return null;
+  }
+}
+
+async function downloadAttachmentBlobUrl(
+  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
+  filePath: string,
+): Promise<ServiceResult<string>> {
+  try {
+    const { data, error } = await withMessagingTimeout(
+      supabase.storage.from(BUCKET).download(filePath),
+      VOICE_STORAGE_DOWNLOAD_TIMEOUT_MS,
+      'Download timeout',
+    );
+    if (error || !data) {
+      return { ok: false, error: toUserFacingAttachmentError() };
+    }
+    if (typeof URL !== 'undefined' && typeof URL.createObjectURL === 'function') {
+      return { ok: true, data: URL.createObjectURL(data) };
+    }
+    return { ok: false, error: toUserFacingAttachmentError() };
+  } catch {
+    return { ok: false, error: toUserFacingAttachmentError() };
+  }
 }
 
 const EXT_TO_MIME: Record<string, string> = {
@@ -44,6 +109,11 @@ const EXT_TO_MIME: Record<string, string> = {
   doc: 'application/msword',
   docx: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document',
   txt: 'text/plain',
+  webm: 'audio/webm',
+  ogg: 'audio/ogg',
+  mp3: 'audio/mpeg',
+  wav: 'audio/wav',
+  m4a: 'audio/mp4',
 };
 
 function inferMimeTypeFromFileName(fileName: string): string | null {
@@ -162,6 +232,7 @@ export async function uploadMessageAttachment(input: {
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
   const normalizedMimeType = normalizeMimeType(input.mimeType);
+  const uploadPayload = toStorageUploadPayload(input.fileData, normalizedMimeType);
 
   const attachmentId =
     typeof globalThis.crypto?.randomUUID === 'function'
@@ -174,18 +245,25 @@ export async function uploadMessageAttachment(input: {
     input.fileName,
   );
 
-  const { error: uploadError } = await supabase.storage
-    .from(BUCKET)
-    .upload(filePath, input.fileData, {
-      contentType: normalizedMimeType,
-      upsert: false,
-    });
+  try {
+    const { error: uploadError } = await withMessagingTimeout(
+      supabase.storage.from(BUCKET).upload(filePath, uploadPayload, {
+        contentType: normalizedMimeType,
+        upsert: false,
+      }),
+      VOICE_STORAGE_UPLOAD_TIMEOUT_MS,
+      'Datei-Upload Zeitüberschreitung. Bitte erneut versuchen.',
+    );
 
-  if (uploadError) return { ok: false, error: toGermanSupabaseError(uploadError) };
+    if (uploadError) {
+      return { ok: false, error: toStorageUploadError(uploadError.message) };
+    }
+  } catch (cause) {
+    const message = cause instanceof Error ? cause.message : 'Datei-Upload fehlgeschlagen.';
+    return { ok: false, error: toStorageUploadError(message) };
+  }
 
-  const { data: publicData } = supabase.storage.from(BUCKET).getPublicUrl(filePath);
-  const signed = await supabase.storage.from(BUCKET).createSignedUrl(filePath, 3600);
-  const fileUrl = signed.data?.signedUrl ?? publicData.publicUrl ?? null;
+  const fileUrl = await resolveAttachmentFileUrl(supabase, filePath);
 
   const { data, error } = await supabase
     .from('message_attachments')
@@ -204,20 +282,19 @@ export async function uploadMessageAttachment(input: {
 
   if (error) return officeMessagingError(toGermanSupabaseError(error));
 
-  const threadResult = await fetchOfficeMessageThreadById(
-    input.tenantId,
-    input.threadId,
-    input.actorRoleKey,
+  void fetchOfficeMessageThreadById(input.tenantId, input.threadId, input.actorRoleKey).then(
+    (threadResult) => {
+      if (threadResult.ok && threadResult.data) {
+        void logOfficeMessageAuditEvent({
+          tenantId: input.tenantId,
+          action: 'office_message_attachment_uploaded',
+          summary: `Anhang „${input.fileName}" hochgeladen.`,
+          actorName: input.actorName ?? 'Office',
+          ...auditFromThread(threadResult.data),
+        });
+      }
+    },
   );
-  if (threadResult.ok && threadResult.data) {
-    void logOfficeMessageAuditEvent({
-      tenantId: input.tenantId,
-      action: 'office_message_attachment_uploaded',
-      summary: `Anhang „${input.fileName}" hochgeladen.`,
-      actorName: input.actorName ?? 'Office',
-      ...auditFromThread(threadResult.data),
-    });
-  }
 
   return { ok: true, data: mapAttachmentRow(data as Record<string, unknown>) };
 }
@@ -266,34 +343,50 @@ export async function getMessageAttachmentSignedUrl(
   if (tenantBlock) return tenantBlock;
 
   const supabase = getSupabaseClient();
-  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+  if (!supabase) return { ok: false, error: toUserFacingAttachmentError() };
 
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(filePath, 3600);
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  if (!data?.signedUrl) return { ok: false, error: 'Download-Link konnte nicht erstellt werden.' };
-  return { ok: true, data: data.signedUrl };
+  try {
+    const { data, error } = await withMessagingTimeout(
+      supabase.storage.from(BUCKET).createSignedUrl(filePath, 3600),
+      VOICE_SIGNED_URL_TIMEOUT_MS,
+      'Signed-URL timeout',
+    );
+    if (error || !data?.signedUrl) {
+      return { ok: false, error: toUserFacingAttachmentError() };
+    }
+    return { ok: true, data: data.signedUrl };
+  } catch {
+    return { ok: false, error: toUserFacingAttachmentError() };
+  }
 }
 
-/** Liefert eine aktuelle Signed-URL; bevorzugt file_path gegenüber abgelaufener file_url. */
+/** Liefert abspielbare URL — Signed-URL mit Retry, sonst authentifizierter Blob-Download. */
 export async function resolveMessageAttachmentUrl(
   tenantId: string,
   attachment: MessageAttachment,
 ): Promise<ServiceResult<string>> {
-  if (attachment.filePath.trim()) {
-    const signed = await getMessageAttachmentSignedUrl(tenantId, attachment.filePath);
-    if (signed.ok) return signed;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (attachment.tenantId !== tenantId) {
+    return { ok: false, error: toUserFacingAttachmentError() };
   }
 
-  const storedUrl = attachment.fileUrl?.trim();
-  if (storedUrl) return { ok: true, data: storedUrl };
+  const filePath = attachment.filePath.trim();
+  if (!filePath) {
+    return { ok: false, error: toUserFacingAttachmentError() };
+  }
 
   const supabase = getSupabaseClient();
-  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+  if (!supabase) return { ok: false, error: toUserFacingAttachmentError() };
 
-  if (attachment.filePath.trim()) {
-    const { data } = supabase.storage.from(BUCKET).getPublicUrl(attachment.filePath);
-    if (data.publicUrl) return { ok: true, data: data.publicUrl };
+  for (let attempt = 0; attempt < 2; attempt++) {
+    const signed = await getMessageAttachmentSignedUrl(tenantId, filePath);
+    if (signed.ok) return signed;
+    if (attempt === 0) {
+      await new Promise((resolve) => setTimeout(resolve, 300));
+    }
   }
 
-  return { ok: false, error: 'Anhang-Link nicht verfügbar.' };
+  return downloadAttachmentBlobUrl(supabase, filePath);
 }

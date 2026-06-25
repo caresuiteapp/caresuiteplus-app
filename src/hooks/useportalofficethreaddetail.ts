@@ -9,6 +9,7 @@ import type { OfficeMessageThreadDetail } from '@/types/office/messaging';
 import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
 import { markPortalThreadMessagesRead } from '@/lib/office/messagereadservice';
 import { subscribeToOfficeMessageThread } from '@/lib/office/officemessagerealtime';
+import { toUserFacingSendError, VOICE_SEND_TIMEOUT_MS, withMessagingTimeout } from '@/lib/office/voicemessageutils';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
@@ -75,19 +76,25 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
 
       setSending(true);
       setSendError(null);
-      const result = await sendPortalOfficeMessage(
-        tenantId,
-        threadId,
-        actorResult.data,
-        body,
-        attachments,
-      );
-      setSending(false);
-      if (!result.ok) {
-        setSendError(result.error);
-        return result;
+      let result: Awaited<ReturnType<typeof sendPortalOfficeMessage>>;
+      try {
+        result = await withMessagingTimeout(
+          sendPortalOfficeMessage(tenantId, threadId, actorResult.data, body, attachments),
+          VOICE_SEND_TIMEOUT_MS,
+          'Send timeout',
+        );
+        if (!result.ok) {
+          setSendError(toUserFacingSendError(result.error));
+        }
+      } catch {
+        setSendError(toUserFacingSendError());
+        result = { ok: false as const, error: toUserFacingSendError() };
+      } finally {
+        setSending(false);
       }
-      await refresh();
+      if (result.ok) {
+        void refresh();
+      }
       return result;
     },
     [tenantId, threadId, profile, portalSession, refresh],

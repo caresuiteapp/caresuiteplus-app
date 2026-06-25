@@ -20,6 +20,9 @@ import {
   validateSendMessage,
 } from '@/lib/office/messagebusinessrules';
 import { fetchOfficeMessageThreadById } from '@/lib/office/messagethreadservice';
+import { uploadMessageAttachment } from '@/lib/office/messageattachmentservice';
+import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
+import { isAudioMimeType } from '@/lib/office/messageattachmentvalidation';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 function mapMessageRow(row: Record<string, unknown>): OfficeMessage {
@@ -117,7 +120,7 @@ export async function sendOfficeMessage(
   body: string,
   actorRoleKey?: RoleKey | null,
   profileId?: string | null,
-  options?: { isInternalNote?: boolean },
+  options?: { isInternalNote?: boolean; attachments?: PendingMessageAttachment[] },
 ): Promise<PreviewAwareResult<OfficeMessage>> {
   const denied = enforcePermission<OfficeMessage>(actorRoleKey, 'office.access');
   if (denied) return denied;
@@ -125,8 +128,11 @@ export async function sendOfficeMessage(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  const attachments = options?.attachments ?? [];
   const trimmed = body.trim();
-  if (!trimmed) return { ok: false, error: 'Nachricht darf nicht leer sein.' };
+  if (!trimmed && attachments.length === 0) {
+    return { ok: false, error: 'Nachricht oder Anhang erforderlich.' };
+  }
 
   const threadResult = await fetchOfficeMessageThreadById(tenantId, threadId, actorRoleKey);
   if (!threadResult.ok) return threadResult;
@@ -137,6 +143,13 @@ export async function sendOfficeMessage(
 
   const now = new Date().toISOString();
   const isInternalNote = options?.isInternalNote ?? false;
+  const messageBody =
+    trimmed ||
+    (attachments.length === 1
+      ? isAudioMimeType(attachments[0]!.mimeType)
+        ? '🎤 Sprachnachricht'
+        : `📎 ${attachments[0]!.fileName}`
+      : `📎 ${attachments.length} Anhänge`);
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
@@ -146,7 +159,7 @@ export async function sendOfficeMessage(
     .insert({
       tenant_id: tenantId,
       thread_id: threadId,
-      body: trimmed,
+      body: messageBody,
       is_internal_note: isInternalNote,
       is_system_message: false,
       sender_profile_id: profileId ?? null,
@@ -163,17 +176,41 @@ export async function sendOfficeMessage(
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
+  const message = mapMessageRow(data as Record<string, unknown>);
+
+  for (const attachment of attachments) {
+    const uploadResult = await uploadMessageAttachment({
+      tenantId,
+      threadId,
+      messageId: message.id,
+      fileName: attachment.fileName,
+      mimeType: attachment.mimeType,
+      fileSizeBytes: attachment.fileSizeBytes,
+      fileData: attachment.fileData,
+      actorRoleKey,
+      profileId,
+    });
+    if (!uploadResult.ok) {
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('id', message.id);
+      return uploadResult;
+    }
+  }
+
   await supabase
     .from('message_threads')
     .update({
       last_message_at: now,
-      last_message_preview: trimmed.slice(0, 120),
+      last_message_preview: messageBody.slice(0, 120),
       updated_at: now,
     })
     .eq('tenant_id', tenantId)
     .eq('id', threadId);
 
-  return { ok: true, data: mapMessageRow(data as Record<string, unknown>), previewData: false };
+  return { ok: true, data: message, previewData: false };
 }
 
 export async function startNewOfficeThreadFromClosed(

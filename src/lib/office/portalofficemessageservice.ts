@@ -32,6 +32,7 @@ import {
   mapMessageRow,
 } from '@/lib/office/messageservice';
 import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
+import { isAudioMimeType } from '@/lib/office/messageattachmentvalidation';
 import { uploadPortalMessageAttachment } from '@/lib/office/messageattachmentservice';
 import { OFFICE_MESSAGING_SCHEMA_ERROR, sortThreads } from '@/lib/office/messagethreadservice';
 import { fromDbThreadStatus, PORTAL_THREAD_STATUS_LABELS } from '@/lib/office/messagestatuslabels';
@@ -416,7 +417,11 @@ export async function sendPortalOfficeMessage(
   const now = new Date().toISOString();
   const messageBody =
     trimmed ||
-    (attachments.length === 1 ? `📎 ${attachments[0]!.fileName}` : `📎 ${attachments.length} Anhänge`);
+    (attachments.length === 1
+      ? isAudioMimeType(attachments[0]!.mimeType)
+        ? '🎤 Sprachnachricht'
+        : `📎 ${attachments[0]!.fileName}`
+      : `📎 ${attachments.length} Anhänge`);
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
@@ -455,7 +460,14 @@ export async function sendPortalOfficeMessage(
       actorName: actor.displayName,
       audience: actor.audience,
     });
-    if (!uploadResult.ok) return uploadResult;
+    if (!uploadResult.ok) {
+      await supabase
+        .from('messages')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('id', message.id);
+      return uploadResult;
+    }
   }
 
   const { data: threadRow } = await supabase

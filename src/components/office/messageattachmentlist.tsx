@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   Image,
@@ -20,7 +20,14 @@ import {
   resolveMessageAttachmentUrl,
   type MessageAttachment,
 } from '@/lib/office/messageattachmentservice';
-import { isImageMimeType, isPdfMimeType } from '@/lib/office/messageattachmentvalidation';
+import { isImageMimeType, isPdfMimeType, isAudioMimeType } from '@/lib/office/messageattachmentvalidation';
+import {
+  revokeBlobPlaybackUrl,
+  toUserFacingAttachmentError,
+  VOICE_URL_RESOLVE_TIMEOUT_MS,
+  withMessagingTimeout,
+} from '@/lib/office/voicemessageutils';
+import { VoiceMessageAttachmentPlayer } from '@/components/office/voicemessageattachmentplayer';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { MessageStatusTicks } from '@/components/communication/MessageStatusTicks';
@@ -65,6 +72,7 @@ function formatSize(bytes: number | null): string {
 function attachmentIcon(mimeType: string | null): string {
   if (isImageMimeType(mimeType)) return '🖼️';
   if (isPdfMimeType(mimeType)) return '📄';
+  if (isAudioMimeType(mimeType)) return '🎤';
   return '📎';
 }
 
@@ -87,6 +95,7 @@ export function MessageAttachmentList({
   const [listError, setListError] = useState<string | null>(null);
   const [urlById, setUrlById] = useState<Record<string, AttachmentUrlState>>({});
   const [preview, setPreview] = useState<PreviewState | null>(null);
+  const loadingAttachmentIdsRef = useRef<Set<string>>(new Set());
   const roleKey = resolveAttachmentRoleKey(profile?.roleKey, portalSession?.roleKey);
 
   const styles = useMemo(
@@ -217,25 +226,52 @@ export function MessageAttachmentList({
           return prev;
         }
         shouldLoad = true;
+        loadingAttachmentIdsRef.current.add(attachment.id);
         return {
           ...prev,
-          [attachment.id]: { url: current?.url ?? null, loading: true, error: null },
+          [attachment.id]: { url: null, loading: true, error: null },
         };
       });
       if (!shouldLoad) return;
 
-      const resolved = await resolveMessageAttachmentUrl(tenantId, attachment);
-      setUrlById((prev) => ({
-        ...prev,
-        [attachment.id]: {
-          url: resolved.ok ? resolved.data : null,
-          loading: false,
-          error: resolved.ok ? null : resolved.error,
-        },
-      }));
+      let resolved: Awaited<ReturnType<typeof resolveMessageAttachmentUrl>>;
+      try {
+        resolved = await withMessagingTimeout(
+          resolveMessageAttachmentUrl(tenantId, attachment),
+          VOICE_URL_RESOLVE_TIMEOUT_MS,
+          'URL resolve timeout',
+        );
+      } catch {
+        resolved = { ok: false, error: toUserFacingAttachmentError() };
+      } finally {
+        loadingAttachmentIdsRef.current.delete(attachment.id);
+      }
+
+      setUrlById((prev) => {
+        const previousUrl = prev[attachment.id]?.url;
+        if (previousUrl && previousUrl !== (resolved.ok ? resolved.data : null)) {
+          revokeBlobPlaybackUrl(previousUrl);
+        }
+        return {
+          ...prev,
+          [attachment.id]: {
+            url: resolved.ok ? resolved.data : null,
+            loading: false,
+            error: resolved.ok ? null : toUserFacingAttachmentError(),
+          },
+        };
+      });
     },
     [tenantId],
   );
+
+  useEffect(() => {
+    return () => {
+      for (const state of Object.values(urlById)) {
+        revokeBlobPlaybackUrl(state.url);
+      }
+    };
+  }, [urlById]);
 
   useEffect(() => {
     if (!tenantId || attachments.length === 0) return;
@@ -299,8 +335,46 @@ export function MessageAttachmentList({
     const urlState = urlById[attachment.id];
     const accessibilityLabel = `Anhang öffnen: ${attachment.fileName}`;
 
+    if (isAudioMimeType(attachment.mimeType)) {
+      const voiceLoading = !urlState || urlState.loading;
+      if (voiceLoading) {
+        return (
+          <View key={attachment.id} style={[styles.item, styles.thumbLoading]}>
+            <ActivityIndicator size="small" color={c.violet} />
+            <Text style={styles.metaText}>Sprachnachricht wird geladen…</Text>
+          </View>
+        );
+      }
+
+      if (urlState.error || !urlState.url) {
+        return (
+          <Pressable
+            key={attachment.id}
+            style={[styles.item, styles.thumbError]}
+            onPress={() => void loadUrl(attachment, true)}
+            accessibilityRole="button"
+            accessibilityLabel="Sprachnachricht erneut laden"
+          >
+            <Text style={styles.errorText}>{toUserFacingAttachmentError()}</Text>
+            <Text style={styles.metaText}>Erneut laden</Text>
+          </Pressable>
+        );
+      }
+
+      return (
+        <View key={attachment.id} style={styles.item}>
+          <VoiceMessageAttachmentPlayer
+            url={urlState.url}
+            fileName={attachment.fileName}
+            onRetry={() => void loadUrl(attachment, true)}
+          />
+        </View>
+      );
+    }
+
     if (isImageMimeType(attachment.mimeType)) {
-      if (urlState?.loading) {
+      const imageLoading = !urlState || urlState.loading;
+      if (imageLoading) {
         return (
           <View key={attachment.id} style={[styles.item, styles.thumbLoading]}>
             <ActivityIndicator size="small" color={c.violet} />

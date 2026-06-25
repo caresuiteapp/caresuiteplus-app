@@ -10,6 +10,7 @@ import { patchOfficeMessageThread } from '@/lib/office/messagethreadservice';
 import type { OfficeMessagePriority, OfficeThreadStatus } from '@/types/office/messaging';
 import { markOfficeThreadMessagesRead } from '@/lib/office/messagereadservice';
 import { subscribeToOfficeMessageThread } from '@/lib/office/officemessagerealtime';
+import { toUserFacingSendError, VOICE_SEND_TIMEOUT_MS, withMessagingTimeout } from '@/lib/office/voicemessageutils';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { useAsyncQuery } from './core';
@@ -25,7 +26,7 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
       if (!tenantId || !threadId) {
         return Promise.resolve({ ok: false as const, error: 'Kein Chat ausgewählt.' });
       }
-      return fetchOfficeMessageThreadDetail(tenantId, threadId, profile?.roleKey, profile?.id);
+      return fetchOfficeMessageThreadDetail(tenantId, threadId, profile?.roleKey);
     },
     [tenantId, threadId, profile?.roleKey, profile?.id],
     { enabled: !!tenantId && !!threadId },
@@ -51,20 +52,32 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
       if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
       setSending(true);
       setSendError(null);
-      const result = await sendOfficeMessage(
-        tenantId,
-        threadId,
-        body,
-        profile?.roleKey,
-        profile?.id,
-        options,
-      );
-      setSending(false);
-      if (!result.ok) {
-        setSendError(result.error);
-        return result;
+      let result: Awaited<ReturnType<typeof sendOfficeMessage>>;
+      try {
+        result = await withMessagingTimeout(
+          sendOfficeMessage(
+            tenantId,
+            threadId,
+            body,
+            profile?.roleKey,
+            profile?.id,
+            options,
+          ),
+          VOICE_SEND_TIMEOUT_MS,
+          'Send timeout',
+        );
+        if (!result.ok) {
+          setSendError(toUserFacingSendError(result.error));
+        }
+      } catch (cause) {
+        setSendError(toUserFacingSendError());
+        result = { ok: false as const, error: toUserFacingSendError() };
+      } finally {
+        setSending(false);
       }
-      await refresh();
+      if (result.ok) {
+        void refresh();
+      }
       return result;
     },
     [tenantId, threadId, profile?.roleKey, profile?.id, refresh],
@@ -83,7 +96,7 @@ export function useOfficeMessageThreadDetail(threadId: string | null) {
 
   const markAsRead = useCallback(async () => {
     if (!tenantId || !threadId || !profile?.id) return;
-    await markOfficeThreadMessagesRead(tenantId, threadId, profile.id);
+    await markOfficeThreadMessagesRead(tenantId, threadId, profile.roleKey);
     await refresh();
   }, [tenantId, threadId, profile?.id, refresh]);
 

@@ -1,6 +1,7 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
+import { darkGlassSurfaceText, surfaceContrastText, auroraGlass } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
@@ -10,6 +11,7 @@ type OfficeVoiceRecordingBarProps = {
   onStop: () => void;
   onCancel: () => void;
   stopping?: boolean;
+  onDarkSurface?: boolean;
 };
 
 function formatDuration(seconds: number): string {
@@ -23,9 +25,11 @@ export function OfficeVoiceRecordingBar({
   onStop,
   onCancel,
   stopping = false,
+  onDarkSurface = false,
 }: OfficeVoiceRecordingBarProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
+  const ink = onDarkSurface ? darkGlassSurfaceText : surfaceContrastText(false);
 
   const styles = useMemo(
     () =>
@@ -37,8 +41,8 @@ export function OfficeVoiceRecordingBar({
           padding: spacing.sm,
           borderRadius: radius.md,
           borderWidth: 1,
-          borderColor: c.violet,
-          backgroundColor: `${c.violet}12`,
+          borderColor: onDarkSurface ? auroraGlass.border : c.violet,
+          backgroundColor: onDarkSurface ? auroraGlass.chip : `${c.violet}12`,
         },
         pulse: {
           width: 10,
@@ -46,10 +50,15 @@ export function OfficeVoiceRecordingBar({
           borderRadius: 5,
           backgroundColor: '#e74c3c',
         },
-        label: { ...typography.caption, color: c.text, flex: 1, fontWeight: '600' },
-        timer: { ...typography.caption, color: c.violet, fontWeight: '700', minWidth: 44 },
+        label: { ...typography.caption, color: ink.primary, flex: 1, fontWeight: '600' },
+        timer: {
+          ...typography.caption,
+          color: onDarkSurface ? darkGlassSurfaceText.secondary : c.violet,
+          fontWeight: '700',
+          minWidth: 44,
+        },
       }),
-    [c, typography],
+    [c, ink, onDarkSurface, typography],
   );
 
   return (
@@ -73,6 +82,7 @@ export function OfficeVoiceRecordingBar({
         variant="ghost"
         onPress={onCancel}
         disabled={stopping}
+        onDarkSurface={onDarkSurface}
         accessibilityLabel="Aufnahme abbrechen"
       />
     </View>
