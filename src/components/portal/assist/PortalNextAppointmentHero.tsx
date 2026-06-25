@@ -1,7 +1,7 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText, useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -63,18 +63,20 @@ export function PortalNextAppointmentHero({
   emptyActionLabel,
 }: PortalNextAppointmentHeroProps) {
   const text = useAuroraAdaptiveText();
+  const useLightGlass = useLightLiquidGlassShell();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const router = useRouter();
 
   return (
     <GlassCard
-      glow
+      glow={!useLightGlass}
       accentColor="#7B61FF"
       style={[
         styles.card,
         isPhone && styles.cardPhone,
-        isPhone && styles.cardPhoneGlow,
+        isPhone && !useLightGlass && styles.cardPhoneDark,
+        isPhone && !useLightGlass && styles.cardPhoneGlow,
       ]}
     >
       <View style={styles.headerRow}>
@@ -127,6 +129,8 @@ const styles = StyleSheet.create({
   },
   cardPhone: {
     minHeight: 0,
+  },
+  cardPhoneDark: {
     backgroundColor: 'rgba(20,27,40,0.85)',
   },
   cardPhoneGlow: {

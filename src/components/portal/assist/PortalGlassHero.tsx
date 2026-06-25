@@ -1,7 +1,7 @@
 import { ReactNode } from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText, useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -37,6 +37,7 @@ export function PortalGlassHero({
   style,
 }: PortalGlassHeroProps) {
   const text = useAuroraAdaptiveText();
+  const useLightGlass = useLightLiquidGlassShell();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const titleStyle = isPhone
@@ -57,7 +58,13 @@ export function PortalGlassHero({
   ) : null;
 
   return (
-    <GlassCard style={{ ...(isPhone ? styles.compactCard : undefined), ...style }}>
+    <GlassCard
+      style={[
+        isPhone ? styles.compactCard : undefined,
+        isPhone && !useLightGlass ? styles.compactCardDark : undefined,
+        style,
+      ]}
+    >
       {isPhone && leadingIcon ? (
         <View style={styles.phoneRow}>
           <View style={styles.leadingIconWrap}>{leadingIcon}</View>
@@ -129,6 +136,8 @@ const styles = StyleSheet.create({
     paddingVertical: careSpacing.sm,
     paddingHorizontal: careSpacing.sm,
     gap: careSpacing.xs,
+  },
+  compactCardDark: {
     backgroundColor: 'rgba(20,27,40,0.85)',
   },
   eyebrowRow: {

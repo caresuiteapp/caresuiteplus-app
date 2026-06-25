@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 import {
@@ -28,6 +29,7 @@ function formatNextAppointment(iso: string | null): string {
 
 export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProps) {
   const { colors, typography, gradients, mode } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -38,8 +40,8 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
     color: colors.primary,
     letterSpacing: designTokens.hero.eyebrowLetterSpacing,
   },
-  title: { ...typography.h2, color: '#FFFFFF', fontWeight: '800' },
-  meta: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  title: heroText.title,
+  meta: heroText.meta,
   iconBadge: {
     width: iconSize,
     height: iconSize,
@@ -54,9 +56,9 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   kpiItem: { flex: 1, minWidth: 100 },
-  preparedHint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+  preparedHint: heroText.meta,
 }),
-    [colors, typography, gradients],
+    [colors, typography, gradients, heroText.meta],
   );
 
 

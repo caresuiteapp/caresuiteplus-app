@@ -173,6 +173,7 @@ describe('Assist portal mobile layout', () => {
     expect(hero).toContain('titleSecondary');
     expect(hero).toContain('phoneRow');
     expect(hero).toContain('showStatusDot');
+    expect(hero).toContain('useLightLiquidGlassShell');
     expect(hero).not.toContain('titleRowPhone');
   });
 

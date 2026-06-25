@@ -67,6 +67,9 @@ export function PortalTopBar({
   const barGlassFx = useLightBar ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light) : webGlassBlur;
   const menuInk = surfaceContrastText(!useLightBar);
   const dropdownGlass = useShellGlassSurfaceStyle('modal');
+  const profileChipSurface = useLightBar
+    ? { borderColor: lightLiquidGlass.borderAccent, backgroundColor: lightLiquidGlass.chip }
+    : { borderColor: auroraGlass.border, backgroundColor: auroraGlass.chip };
   const { profile, signOut } = useAuth();
   const { displayName } = usePortalActor();
   const { context } = usePortalContext();
@@ -185,7 +188,7 @@ export function PortalTopBar({
 
       <View style={styles.actions}>
         <View style={styles.profileWrap}>
-          <View style={styles.profileChip}>
+          <View style={[styles.profileChip, profileChipSurface]}>
             <TopbarProfileAvatar
               name={displayName}
               avatarUrl={avatarUrl}
@@ -302,8 +305,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.sm,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: auroraGlass.border,
-    backgroundColor: auroraGlass.chip,
     maxWidth: 200,
   },
   profileMenuTrigger: {

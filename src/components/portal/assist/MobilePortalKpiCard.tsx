@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View, type DimensionValue, type ViewStyle } from 'react-native';
 import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText, useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -45,6 +45,7 @@ export function MobilePortalKpiCard({
   hidden = false,
 }: MobilePortalKpiCardProps) {
   const text = useAuroraAdaptiveText();
+  const useLightGlass = useLightLiquidGlassShell();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const hasValue = value !== null && value !== undefined && value > 0;
@@ -95,7 +96,11 @@ export function MobilePortalKpiCard({
   );
 
   const card = (
-    <GlassCard glow accentColor={accentColor} style={[styles.card, neonGlow(accentColor)]}>
+    <GlassCard
+      glow={!useLightGlass}
+      accentColor={accentColor}
+      style={[styles.card, !useLightGlass && styles.cardDark, !useLightGlass && neonGlow(accentColor)]}
+    >
       {content}
     </GlassCard>
   );
@@ -128,6 +133,8 @@ const styles = StyleSheet.create({
     minHeight: 148,
     flex: 1,
     padding: careSpacing.sm,
+  },
+  cardDark: {
     backgroundColor: 'rgba(20,27,40,0.85)',
   },
   inner: {

@@ -12,7 +12,12 @@ import { useRouter } from 'expo-router';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PORTAL_MOBILE_CTA_GOLD } from '@/components/portal/assist/MobilePortalKpiCard';
 import { GlassCard } from '@/design/components/GlassCard';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  auroraGlass,
+  lightLiquidGlass,
+  useAuroraAdaptiveText,
+  useLightLiquidGlassShell,
+} from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -34,6 +39,9 @@ function openExternal(url: string) {
 export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD }: MobilePortalSidebarCardsProps) {
   const router = useRouter();
   const text = useAuroraAdaptiveText();
+  const useLightGlass = useLightLiquidGlassShell();
+  const chipSurface = useLightGlass ? lightLiquidGlass.chip : auroraGlass.chip;
+  const chipBorder = useLightGlass ? lightLiquidGlass.borderAccent : auroraGlass.border;
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const {
@@ -72,7 +80,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
     <>
       <GlassCard style={styles.card}>
         <View style={styles.mandantRow}>
-          <View style={styles.mandantIconWrap}>
+          <View style={[styles.mandantIconWrap, { borderColor: chipBorder, backgroundColor: chipSurface }]}>
             <Text style={styles.mandantIcon}>🏢</Text>
           </View>
           <View style={styles.mandantCopy}>
@@ -123,7 +131,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
             <Pressable
               key={action.key}
               onPress={() => navigateQuickAction(action.href)}
-              style={[styles.quickPill, webCursor]}
+              style={[styles.quickPill, { borderColor: chipBorder, backgroundColor: chipSurface }, webCursor]}
               accessibilityRole="button"
             >
               <Text style={styles.quickIcon}>{action.icon}</Text>
@@ -201,8 +209,6 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: 10,
     borderWidth: 1,
-    borderColor: auroraGlass.border,
-    backgroundColor: auroraGlass.chip,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -264,8 +270,6 @@ const styles = StyleSheet.create({
     paddingVertical: careSpacing.sm,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: auroraGlass.border,
-    backgroundColor: auroraGlass.chip,
   },
   quickIcon: {
     fontSize: 16,

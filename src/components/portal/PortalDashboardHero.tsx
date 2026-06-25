@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumListHeroFrame } from '@/components/ui';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
@@ -39,7 +40,8 @@ export function PortalDashboardHero({
   displayName,
   onPrimaryAction,
 }: PortalDashboardHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, gradients } = useLegacyTheme();
+  const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -55,17 +57,12 @@ export function PortalDashboardHero({
     ...typography.caption,
     letterSpacing: 1,
   },
-  greeting: {
-    ...typography.h2,
-  },
+  greeting: heroText.title,
   tenant: {
     ...typography.bodyStrong,
     color: colors.orange,
   },
-  meta: {
-    ...typography.caption,
-    color: 'rgba(255,255,255,0.75)',
-  },
+  meta: heroText.meta,
   iconBadge: {
     width: 52,
     height: 52,
@@ -84,7 +81,7 @@ export function PortalDashboardHero({
     gap: spacing.sm,
   },
 }),
-    [colors, typography, gradients],
+    [colors, typography, gradients, heroText.meta, heroText.title],
   );
 
 
