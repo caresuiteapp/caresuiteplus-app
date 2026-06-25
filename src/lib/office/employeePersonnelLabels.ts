@@ -4,15 +4,31 @@ import type {
   EmployeeEmploymentStatus,
   EmployeePersonnelTabKey,
   EmployeeQualificationStatus,
+  EmployeeQualificationType,
   EmployeeDeployabilityCheck,
 } from '@/types/modules/employeePersonnelFile';
+import { QUALIFICATION_TYPE_LABELS } from './employeePersonnelFieldRules';
 import { mapDbStatusToCatalogStatus } from './employeeStatusMapping';
 
 export const EMPLOYEE_DEPLOYABILITY_LABELS: Record<EmployeeDeployabilityResult, string> = {
   assignable: 'Einsatzfähig',
-  warning: 'Einschränkung',
+  warning: 'Offene Hinweise',
   blocked: 'Gesperrt',
 };
+
+/** Office Personalakte UI tabs (consolidated from legacy personnel tab keys). */
+export type PersonnelUiTabKey =
+  | 'overview'
+  | 'master_data'
+  | 'contact'
+  | 'employment'
+  | 'roles_permissions'
+  | 'qualifications'
+  | 'documents'
+  | 'portal'
+  | 'deployability'
+  | 'work_materials'
+  | 'audit';
 
 export const EMPLOYEE_BACKGROUND_CHECK_STATUS_LABELS: Record<EmployeeBackgroundCheckStatus, string> = {
   not_required: 'Nicht erforderlich',
@@ -59,7 +75,7 @@ const BLOCKER_TAB_ACTIONS: Partial<
   required_docs_missing: { label: 'Dokument hochladen', tab: 'documents' },
   employee_blocked: { label: 'Stammdaten bearbeiten', tab: 'master_data' },
   employment_inactive: { label: 'Anstellung prüfen', tab: 'employment' },
-  portal_inactive: { label: 'Portalzugang prüfen', tab: 'roles_permissions' },
+  portal_inactive: { label: 'Portalzugang anlegen', tab: 'portal' },
   compliance_training_missing: { label: 'Pflichtunterweisung erfassen', tab: 'qualifications' },
 };
 
@@ -75,6 +91,10 @@ export function labelQualificationStatus(
   value: EmployeeQualificationStatus | 'mixed' | string,
 ): string {
   return EMPLOYEE_QUALIFICATION_STATUS_LABELS[value as EmployeeQualificationStatus | 'mixed'] ?? value;
+}
+
+export function labelQualificationType(value: EmployeeQualificationType | string): string {
+  return QUALIFICATION_TYPE_LABELS[value as EmployeeQualificationType] ?? value;
 }
 
 export function labelEmploymentStatus(value: EmployeeEmploymentStatus | string): string {
@@ -100,6 +120,28 @@ export function resolvePersonnelBlockerActions(
   }
 
   return actions;
+}
+
+/** Maps legacy personnel tab keys to the consolidated office UI tabs. */
+export function resolvePersonnelUiTab(tab: EmployeePersonnelTabKey | string): PersonnelUiTabKey {
+  if (tab === 'personnel_file') return 'overview';
+  if (tab === 'background_check') return 'qualifications';
+  if (
+    tab === 'overview' ||
+    tab === 'master_data' ||
+    tab === 'contact' ||
+    tab === 'employment' ||
+    tab === 'roles_permissions' ||
+    tab === 'qualifications' ||
+    tab === 'documents' ||
+    tab === 'portal' ||
+    tab === 'deployability' ||
+    tab === 'work_materials' ||
+    tab === 'audit'
+  ) {
+    return tab;
+  }
+  return 'overview';
 }
 
 export function employeeEditRoute(employeeId: string): string {

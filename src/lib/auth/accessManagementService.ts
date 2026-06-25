@@ -174,6 +174,32 @@ export async function fetchEmployeePortalAccountById(
   return { ok: true, data: account };
 }
 
+export async function fetchEmployeePortalAccountByEmployeeId(
+  tenantId: string,
+  employeeId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<EmployeePortalAccount | null>> {
+  const denied = enforcePermission<EmployeePortalAccount | null>(
+    actorRoleKey,
+    'office.access' as never,
+  );
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'supabase') {
+    const { fetchEmployeePortalAccountByEmployeeId: fetchLive } = await import(
+      '@/lib/access/accessManagementLiveRepository'
+    );
+    return fetchLive(tenantId, employeeId);
+  }
+
+  await accessDemoDelay();
+  const account =
+    listEmployeePortalAccounts(tenantId).find((entry) => entry.employeeId === employeeId) ?? null;
+  return { ok: true, data: account };
+}
+
 export async function fetchRolePermissionProfiles(
   tenantId: string,
   actorRoleKey?: RoleKey | null,

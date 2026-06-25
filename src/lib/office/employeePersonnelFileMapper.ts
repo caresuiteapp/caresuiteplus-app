@@ -7,13 +7,16 @@ import type {
   EmployeeEmploymentDetails,
   EmployeeEmploymentStatus,
   EmployeeMasterData,
+  EmployeeAuditEvent,
   EmployeePersonnelFile,
   EmployeePortalAccessRecord,
   EmployeeQualificationRecord,
   EmployeeQualificationStatus,
   EmployeeQualificationType,
+  EmployeeWorkMaterialRecord,
+  EmployeeWorkMaterialStatus,
 } from '@/types/modules/employeePersonnelFile';
-import { mapDbStatusToCatalogStatus } from './employeeStatusMapping';
+import { mapDbStatusToCatalogStatus, mapEmploymentStatusToDbStatus } from './employeeStatusMapping';
 import { evaluateEmployeeDeployability } from './employeeDeployabilityService';
 import { ALL_EMPLOYEE_PERSONNEL_TABS } from './employeePersonnelFieldRules';
 import { computeQualificationStatus } from './employeeQualificationService';
@@ -89,18 +92,26 @@ const EMPLOYMENT_TYPE_LABELS: Record<string, string> = {
 function mapDbStatusToEmploymentStatus(status: string | null | undefined): EmployeeEmploymentStatus {
   switch (status?.trim().toLowerCase()) {
     case 'draft':
+    case 'entwurf':
       return 'onboarding';
     case 'active':
+    case 'aktiv':
       return 'active';
     case 'inactive':
+    case 'archiviert':
       return 'archived';
     case 'sick':
+    case 'krank':
       return 'sick_long_term';
     case 'vacation':
+    case 'urlaub':
       return 'on_leave';
     case 'terminated':
+    case 'ausgeschieden':
       return 'terminated';
     case 'blocked':
+    case 'gesperrt':
+    case 'fehlerhaft':
       return 'suspended';
     default:
       return 'active';
@@ -222,14 +233,96 @@ export function mapEmployeeDocumentsLiveRows(
   }));
 }
 
+export type InventoryAssignmentWorkMaterialRow = {
+  id: string;
+  tenant_id: string;
+  recipient_employee_id: string;
+  status: string;
+  issued_at?: string | null;
+  expected_return_at?: string | null;
+  created_at: string;
+  updated_at: string;
+  inventory_items?: {
+    name?: string | null;
+    inventory_categories?: {
+      group_key?: string | null;
+    } | null;
+  } | null;
+};
+
+function mapInventoryGroupToWorkMaterialCategory(
+  groupKey: string | null | undefined,
+): EmployeeWorkMaterialRecord['category'] {
+  switch (groupKey) {
+    case 'uniform':
+      return 'uniform';
+    case 'keys_access':
+      return 'keys';
+    case 'devices':
+    case 'mobile_sim':
+    case 'software_access':
+    case 'vehicles':
+      return 'equipment';
+    default:
+      return 'other';
+  }
+}
+
+function mapInventoryAssignmentStatusToWorkMaterialStatus(
+  status: string,
+): EmployeeWorkMaterialStatus {
+  switch (status) {
+    case 'return_requested':
+    case 'overdue':
+    case 'partially_returned':
+    case 'disputed':
+      return 'return_pending';
+    case 'damaged_returned':
+      return 'damaged';
+    case 'lost':
+      return 'lost';
+    case 'returned':
+    case 'archived':
+      return 'returned';
+    default:
+      return 'issued';
+  }
+}
+
+export function mapInventoryAssignmentToWorkMaterial(
+  row: InventoryAssignmentWorkMaterialRow,
+): EmployeeWorkMaterialRecord {
+  const item = row.inventory_items;
+  return {
+    id: row.id,
+    tenantId: row.tenant_id,
+    employeeId: row.recipient_employee_id,
+    itemName: item?.name?.trim() || 'Inventarposten',
+    category: mapInventoryGroupToWorkMaterialCategory(item?.inventory_categories?.group_key),
+    status: mapInventoryAssignmentStatusToWorkMaterialStatus(row.status),
+    issuedAt: row.issued_at ?? null,
+    returnDueAt: row.expected_return_at ?? null,
+    createdAt: row.created_at,
+    updatedAt: row.updated_at,
+  };
+}
+
 export function buildEmployeePersonnelFileFromLiveRows(input: {
   employee: EmployeePersonnelLiveRow;
   documents?: EmployeeDocumentLiveRow[];
   portalAccount?: EmployeePortalAccountLiveRow | null;
+  profileRoleKey?: RoleKey | null;
+  qualifications?: EmployeeQualificationRecord[];
+  backgroundCheck?: EmployeeBackgroundCheckRecord;
+  workMaterials?: EmployeeWorkMaterialRecord[];
+  auditEvents?: EmployeeAuditEvent[];
 }): EmployeePersonnelFile {
   const { employee: row } = input;
   const documents = mapEmployeeDocumentsLiveRows(input.documents ?? []);
-  const qualifications = buildQualificationsFromEmployeeRow(row);
+  const qualifications =
+    input.qualifications && input.qualifications.length > 0
+      ? input.qualifications
+      : buildQualificationsFromEmployeeRow(row);
   const portalAccount = input.portalAccount;
 
   const masterData: EmployeeMasterData = {
@@ -259,7 +352,7 @@ export function buildEmployeePersonnelFileFromLiveRows(input: {
   const portalAccess: EmployeePortalAccessRecord = {
     profileId: row.profile_id ?? null,
     portalActive: row.portal_enabled === true && portalAccount?.status !== 'blocked',
-    roleKey: null as RoleKey | null,
+    roleKey: input.profileRoleKey ?? null,
     lastLoginAt: portalAccount?.last_login_at ?? null,
     invitationSentAt: null,
     passwordConfigured: portalAccount?.first_login_completed ?? false,
@@ -276,20 +369,22 @@ export function buildEmployeePersonnelFileFromLiveRows(input: {
     employmentStatus: mapDbStatusToEmploymentStatus(row.status),
   };
 
-  const backgroundCheck: EmployeeBackgroundCheckRecord = {
-    id: `${row.id}-background-check`,
-    tenantId: row.tenant_id,
-    employeeId: row.id,
-    present: row.has_police_clearance === true,
-    issueDate: row.police_clearance_date ?? null,
-    verifiedAt: row.has_police_clearance ? row.police_clearance_date ?? null : null,
-    verifiedBy: null,
-    followUpDueAt: row.police_clearance_valid_until ?? null,
-    status: resolveBackgroundCheckStatus(row),
-    documentId: null,
-    createdAt: row.created_at,
-    updatedAt: row.updated_at,
-  };
+  const backgroundCheck: EmployeeBackgroundCheckRecord =
+    input.backgroundCheck ??
+    {
+      id: `${row.id}-background-check`,
+      tenantId: row.tenant_id,
+      employeeId: row.id,
+      present: row.has_police_clearance === true,
+      issueDate: row.police_clearance_date ?? null,
+      verifiedAt: row.has_police_clearance ? row.police_clearance_date ?? null : null,
+      verifiedBy: null,
+      followUpDueAt: row.police_clearance_valid_until ?? null,
+      status: resolveBackgroundCheckStatus(row),
+      documentId: null,
+      createdAt: row.created_at,
+      updatedAt: row.updated_at,
+    };
 
   const deployability = evaluateEmployeeDeployability({
     employment,
@@ -311,9 +406,9 @@ export function buildEmployeePersonnelFileFromLiveRows(input: {
     qualifications,
     backgroundCheck,
     documents,
-    workMaterials: [],
+    workMaterials: input.workMaterials ?? [],
     deployability,
-    auditEvents: [],
+    auditEvents: input.auditEvents ?? [],
     tabs: ALL_EMPLOYEE_PERSONNEL_TABS,
   };
 }
@@ -400,6 +495,34 @@ export function buildBackgroundCheckLiveUpdatePayload(
   }
   if (patch.policeClearanceValidUntil !== undefined) {
     out.police_clearance_valid_until = patch.policeClearanceValidUntil;
+  }
+
+  return out;
+}
+
+export type EmployeeEmploymentPatch = {
+  contractType?: string | null;
+  weeklyHours?: number | null;
+  entryDate?: string | null;
+  employmentStatus?: EmployeeEmploymentStatus;
+};
+
+export function buildEmploymentLiveUpdatePayload(
+  patch: EmployeeEmploymentPatch,
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+
+  if (patch.contractType !== undefined) {
+    out.employment_type = patch.contractType?.trim() || null;
+  }
+  if (patch.weeklyHours !== undefined) {
+    out.weekly_hours = patch.weeklyHours;
+  }
+  if (patch.entryDate !== undefined) {
+    out.entry_date = patch.entryDate || null;
+  }
+  if (patch.employmentStatus !== undefined) {
+    out.status = mapEmploymentStatusToDbStatus(patch.employmentStatus);
   }
 
   return out;

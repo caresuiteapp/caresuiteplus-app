@@ -168,10 +168,16 @@ describe('Pflichtunterweisungs- und Compliance-Modul', () => {
       roleTitle: file.masterData.roleTitle,
       backgroundCheckRequired: true,
       portalRequired: false,
+      tenantId: TENANT,
+      employeeId: EMPLOYEE_ID,
+      roleKey: 'caregiver',
     });
 
-    expect(isEmployeeAssignable(deployability)).toBe(false);
-    expect(deployability.blockers.length).toBeGreaterThan(0);
+    expect(deployability.result).toBe('warning');
+    expect(
+      deployability.warnings.some((issue) => issue.code === 'compliance_training_missing'),
+    ).toBe(true);
+    expect(isEmployeeAssignable(deployability)).toBe(true);
   });
 
   it('8 — Einsatzfähigkeit frei wenn Pflichtunterweisungen bestätigt', async () => {

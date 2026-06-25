@@ -22,6 +22,7 @@ import {
   hasRequiredQualifications,
   resolveQualificationOverview,
 } from './employeeQualificationService';
+import { labelQualificationType } from './employeePersonnelLabels';
 import { evaluateComplianceDeployability } from './complianceTrainingService';
 
 export type EvaluateEmployeeDeployabilityInput = {
@@ -78,10 +79,10 @@ export function evaluateEmployeeDeployability(
   const qualCheck = hasRequiredQualifications(input.qualifications, requiredTypes, reference);
   if (!qualCheck.ok) {
     for (const missing of qualCheck.missing) {
-      blockers.push({
+      warnings.push({
         code: 'qualification_missing',
-        message: `Pflichtqualifikation fehlt oder ungültig: ${missing}`,
-        severity: 'error',
+        message: `Pflichtqualifikation fehlt: ${labelQualificationType(missing)}`,
+        severity: 'warning',
       });
     }
   }
@@ -96,10 +97,10 @@ export function evaluateEmployeeDeployability(
       });
     }
     if (status === 'pending_review') {
-      blockers.push({
+      warnings.push({
         code: 'qualification_unverified',
         message: `Qualifikation nicht verifiziert: ${qualification.title}`,
-        severity: 'error',
+        severity: 'warning',
       });
     }
   }
@@ -111,10 +112,10 @@ export function evaluateEmployeeDeployability(
     (bgStatus !== 'missing' && bgStatus !== 'expired' && bgStatus !== 'rejected');
 
   if (input.backgroundCheckRequired && !backgroundCheckOk) {
-    blockers.push({
+    warnings.push({
       code: 'background_check_missing',
       message: 'Führungszeugnis fehlt, abgelaufen oder nicht verifiziert.',
-      severity: 'error',
+      severity: 'warning',
     });
   } else if (bgStatus === 'requested' || bgStatus === 'submitted') {
     warnings.push({
@@ -144,10 +145,10 @@ export function evaluateEmployeeDeployability(
     input.documents.some((doc) => doc.category === category),
   );
   if (!requiredDocsOk) {
-    blockers.push({
+    warnings.push({
       code: 'required_docs_missing',
       message: 'Pflichtdokumente (Vertrag/Datenschutz) fehlen.',
-      severity: 'error',
+      severity: 'warning',
     });
   }
 
@@ -180,10 +181,10 @@ export function evaluateEmployeeDeployability(
     );
     if (!compliance.ok) {
       for (const message of compliance.blockers) {
-        blockers.push({
+        warnings.push({
           code: 'compliance_training_missing',
           message,
-          severity: 'error',
+          severity: 'warning',
         });
       }
     }

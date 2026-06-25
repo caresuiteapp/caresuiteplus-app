@@ -95,6 +95,14 @@ describe('Office Mitarbeitende list', () => {
     expect(source).toContain('employeeSupabaseRepository');
   });
 
+  it('EmployeeDetailModal öffnet Personalakte im Popup', () => {
+    const source = readSrc('src/components/office/employeedetailmodal.tsx');
+    expect(source).toContain('EmployeePersonnelFilePanel');
+    expect(source).toContain("mode === 'personnel'");
+    expect(source).toContain('employeeId={employeeId}');
+    expect(source).toContain('onOpenFullRecord={handleOpenPersonnelRecord}');
+  });
+
   it('EmployeesListView nutzt Desktop-Tabellenansicht ab desktop breakpoint', () => {
     const source = readSrc('src/components/office/EmployeesListView.tsx');
     expect(source).toContain('useDeviceClass');

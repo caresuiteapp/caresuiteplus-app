@@ -1,5 +1,7 @@
 import React from 'react';
 import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { sanitizeUiText } from '@/lib/ui/uiVisibility';
 import { colors, radius, spacing, typography } from '@/theme';
 
 type Variant = 'info' | 'success' | 'warning' | 'danger';
@@ -57,8 +59,11 @@ export function InfoBanner({
   onAction,
   style,
 }: Props) {
+  const text = useAuroraAdaptiveText();
   const cfg = CONFIG[variant];
   const displayIcon = icon ?? cfg.icon;
+  const safeTitle = title ? sanitizeUiText(title) : undefined;
+  const safeMessage = sanitizeUiText(message);
 
   return (
     <View
@@ -71,10 +76,10 @@ export function InfoBanner({
     >
       <Text style={styles.icon}>{displayIcon}</Text>
       <View style={styles.content}>
-        {title ? (
-          <Text style={[styles.title, { color: cfg.title }]}>{title}</Text>
+        {safeTitle ? (
+          <Text style={[styles.title, { color: cfg.title }]}>{safeTitle}</Text>
         ) : null}
-        <Text style={styles.message}>{message}</Text>
+        <Text style={[styles.message, { color: text.secondary }]}>{safeMessage}</Text>
         {actionLabel && onAction ? (
           <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
             <Text style={[styles.action, { color: cfg.title }]}>{actionLabel}</Text>

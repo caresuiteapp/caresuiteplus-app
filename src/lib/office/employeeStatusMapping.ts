@@ -73,3 +73,29 @@ export function mapDbStatusToCatalogStatus(dbStatus: string | null | undefined):
   if (!isEmployeeDbStatus(normalized)) return normalized;
   return DB_TO_CATALOG[normalized];
 }
+
+/** Personnel-file employment status → live DB enum (employees.status). */
+export function mapEmploymentStatusToDbStatus(
+  status: string | null | undefined,
+): EmployeeDbStatus {
+  switch (status?.trim()) {
+    case 'applicant':
+    case 'onboarding':
+      return 'draft';
+    case 'active':
+      return 'active';
+    case 'paused':
+    case 'archived':
+      return 'inactive';
+    case 'sick_long_term':
+      return 'sick';
+    case 'on_leave':
+      return 'vacation';
+    case 'suspended':
+      return 'blocked';
+    case 'terminated':
+      return 'terminated';
+    default:
+      return 'active';
+  }
+}

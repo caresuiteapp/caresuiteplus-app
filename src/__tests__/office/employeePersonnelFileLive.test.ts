@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import {
   buildEmployeePersonnelFileFromLiveRows,
   buildQualificationsFromEmployeeRow,
 } from '@/lib/office/employeePersonnelFileMapper';
+
+const root = path.join(__dirname, '..', '..', '..');
+
+function readSrc(relativePath: string): string {
+  return readFileSync(path.join(root, relativePath), 'utf8');
+}
 
 const BASE_ROW = {
   id: '1bf39e72-8ae1-480e-9dfb-bcb5aa7b6a4f',
@@ -21,6 +29,16 @@ const BASE_ROW = {
 };
 
 describe('employeePersonnelFileLive mapper', () => {
+  it('loader fällt auf Detail-Select zurück (wie fetchEmployeeDetail)', () => {
+    const source = readSrc('src/lib/office/employeePersonnelFileLiveLoader.ts');
+    expect(source).toContain('EMPLOYEE_DETAIL_SELECT_COLUMNS');
+    expect(source).toContain('EMPLOYEE_BASE_SELECT_COLUMNS');
+    expect(source).not.toContain('job_title, department, start_date, notes');
+    expect(source).toContain('loadEmployeeWorkMaterials');
+    expect(source).toContain('loadEmployeeAuditEventsFromDb');
+    expect(source).toContain('loadEmployeeHomeOfficeOverride');
+  });
+
   it('maps live employee row to personnel file', () => {
     const file = buildEmployeePersonnelFileFromLiveRows({ employee: BASE_ROW });
 

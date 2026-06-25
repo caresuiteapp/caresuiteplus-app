@@ -102,7 +102,8 @@ describe('Personalakte Prompt 71', () => {
       blocked: true,
     });
     expect(deployability.qualificationOk).toBe(false);
-    expect(deployability.blockers.some((b) => b.code === 'qualification_missing')).toBe(true);
+    expect(deployability.warnings.some((b) => b.code === 'qualification_missing')).toBe(true);
+    expect(deployability.blockers.some((b) => b.code === 'employee_blocked')).toBe(true);
   });
 
   it('4 — Sensible Personalakten-Dokumente nur für autorisierte Rollen', () => {

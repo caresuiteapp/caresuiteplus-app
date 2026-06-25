@@ -6,6 +6,7 @@ import {
   isEmployeeAssignable,
   roleCanPerformAssignment,
 } from '@/lib/office/employeeDeployabilityService';
+import { evaluateComplianceDeployability } from '@/lib/office/complianceTrainingService';
 import { INACTIVE_EMPLOYMENT_STATUSES } from './employeepersonnelfieldrules';
 
 export function detectEmployeeEligibilityConflicts(input: {
@@ -72,6 +73,21 @@ export function detectEmployeeEligibilityConflicts(input: {
       message: 'Führungszeugnis fehlt oder abgelaufen.',
       severity: 'error',
     });
+  }
+
+  const compliance = evaluateComplianceDeployability(
+    input.tenantId,
+    input.employeeId,
+    input.actorRoleKey ?? file.portalAccess.roleKey,
+  );
+  if (!compliance.ok) {
+    for (const message of compliance.blockers) {
+      conflicts.push({
+        code: 'compliance_training_missing',
+        message,
+        severity: 'error',
+      });
+    }
   }
 
   if (input.absent) {

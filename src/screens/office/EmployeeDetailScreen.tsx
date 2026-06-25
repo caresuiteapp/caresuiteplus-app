@@ -171,6 +171,9 @@ export function EmployeeDetailScreen({
       onOpenPersonnelRecord();
       return;
     }
+    if (embeddedInModal) {
+      return;
+    }
     router.push(`/business/office/employees/${id}/personnel` as never);
   };
 
@@ -201,11 +204,13 @@ export function EmployeeDetailScreen({
         layout="wrap"
       />
 
-      <PremiumButton
-        title="Personalakte öffnen"
-        variant="secondary"
-        onPress={handleOpenPersonnelRecord}
-      />
+      {!embeddedInModal ? (
+        <PremiumButton
+          title="Personalakte öffnen"
+          variant="secondary"
+          onPress={handleOpenPersonnelRecord}
+        />
+      ) : null}
 
       {!isEmployeeDetailLiveReady() ? (
         <InfoBanner title="Daten in Erweiterung" message={EMPLOYEE_DETAIL_PREPARED_MESSAGE} />

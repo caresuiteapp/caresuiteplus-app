@@ -107,7 +107,6 @@ export async function fetchEmployeePersonnelFile(
 
     const enriched: EmployeePersonnelFile = {
       ...liveResult.data,
-      auditEvents: getEmployeeAuditEvents(employeeId),
       tabs: ALL_EMPLOYEE_PERSONNEL_TABS,
     };
 
@@ -198,7 +197,7 @@ export async function updateEmployeeMasterData(
       }
     }
 
-    auditEmployeeMasterDataChange({
+    await auditEmployeeMasterDataChange({
       tenantId,
       employeeId,
       actorId: actorId ?? null,
@@ -213,7 +212,7 @@ export async function updateEmployeeMasterData(
   if (!demoFile) return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
 
   demoFile.masterData = after;
-  auditEmployeeMasterDataChange({
+  await auditEmployeeMasterDataChange({
     tenantId,
     employeeId,
     actorId: actorId ?? null,

@@ -358,6 +358,25 @@ export async function fetchEmployeePortalAccountById(
   return { ok: true, data: mapEmployeePortalAccountRow(data as Record<string, unknown>) };
 }
 
+export async function fetchEmployeePortalAccountByEmployeeId(
+  tenantId: string,
+  employeeId: string,
+): Promise<ServiceResult<EmployeePortalAccount | null>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return unavailable();
+
+  const { data, error } = await supabase
+    .from('employee_portal_accounts_mgmt')
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId)
+    .maybeSingle();
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  if (!data) return { ok: true, data: null };
+  return { ok: true, data: mapEmployeePortalAccountRow(data as Record<string, unknown>) };
+}
+
 export async function fetchTenantUserById(
   tenantId: string,
   userId: string,
