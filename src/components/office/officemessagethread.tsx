@@ -130,6 +130,7 @@ export function OfficeMessageThread({
               <MessageAttachmentList
                 messageId={message.id}
                 attachmentOnly={isVoiceOnly}
+                expectVoiceAttachment={isVoiceOnly}
                 isOwn={isOwn}
                 senderDisplayName={message.senderDisplayName}
                 sentAt={message.sentAt}

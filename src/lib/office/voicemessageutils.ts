@@ -9,12 +9,15 @@ export const VOICE_MIME_CANDIDATES = [
 ] as const;
 
 export const VOICE_RECORDING_MIN_BYTES = 1;
-export const VOICE_SEND_TIMEOUT_MS = 60_000;
-export const VOICE_URL_RESOLVE_TIMEOUT_MS = 12_000;
-export const VOICE_PLAYER_METADATA_TIMEOUT_MS = 10_000;
-export const VOICE_SIGNED_URL_TIMEOUT_MS = 8_000;
-export const VOICE_STORAGE_UPLOAD_TIMEOUT_MS = 45_000;
-export const VOICE_STORAGE_DOWNLOAD_TIMEOUT_MS = 15_000;
+/** User-facing send must fail fast — not 60s spinner. */
+export const VOICE_SEND_TIMEOUT_MS = 15_000;
+export const VOICE_URL_RESOLVE_TIMEOUT_MS = 8_000;
+export const VOICE_PLAYER_METADATA_TIMEOUT_MS = 6_000;
+export const VOICE_SIGNED_URL_TIMEOUT_MS = 4_000;
+export const VOICE_STORAGE_UPLOAD_TIMEOUT_MS = 10_000;
+export const VOICE_STORAGE_DOWNLOAD_TIMEOUT_MS = 8_000;
+export const VOICE_ATTACHMENT_INSERT_TIMEOUT_MS = 8_000;
+export const VOICE_ATTACHMENT_LIST_TIMEOUT_MS = 8_000;
 
 export function pickVoiceMimeType(): string {
   if (typeof MediaRecorder === 'undefined') return 'audio/webm';

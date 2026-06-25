@@ -24,6 +24,7 @@ import { isImageMimeType, isPdfMimeType, isAudioMimeType } from '@/lib/office/me
 import {
   revokeBlobPlaybackUrl,
   toUserFacingAttachmentError,
+  VOICE_ATTACHMENT_LIST_TIMEOUT_MS,
   VOICE_URL_RESOLVE_TIMEOUT_MS,
   withMessagingTimeout,
 } from '@/lib/office/voicemessageutils';
@@ -49,6 +50,8 @@ type MessageAttachmentListProps = {
   isOwn?: boolean;
   /** Nachricht besteht nur aus Anhängen — Bubble-Chrome hier rendern. */
   attachmentOnly?: boolean;
+  /** Sprachnachricht ohne DB-Anhang (Teilfehler) — Fehlerzustand anzeigen. */
+  expectVoiceAttachment?: boolean;
   senderDisplayName?: string;
   sentAt?: string | null;
   showStatus?: boolean;
@@ -80,6 +83,7 @@ export function MessageAttachmentList({
   messageId,
   isOwn = false,
   attachmentOnly = false,
+  expectVoiceAttachment = false,
   senderDisplayName,
   sentAt,
   showStatus = false,
@@ -96,7 +100,10 @@ export function MessageAttachmentList({
   const [urlById, setUrlById] = useState<Record<string, AttachmentUrlState>>({});
   const [preview, setPreview] = useState<PreviewState | null>(null);
   const loadingAttachmentIdsRef = useRef<Set<string>>(new Set());
+  const urlByIdRef = useRef<Record<string, AttachmentUrlState>>({});
   const roleKey = resolveAttachmentRoleKey(profile?.roleKey, portalSession?.roleKey);
+
+  urlByIdRef.current = urlById;
 
   const styles = useMemo(
     () =>
@@ -198,7 +205,11 @@ export function MessageAttachmentList({
     setListLoading(true);
     setListError(null);
 
-    void listMessageAttachments(tenantId, messageId, roleKey).then((result) => {
+    void withMessagingTimeout(
+      listMessageAttachments(tenantId, messageId, roleKey),
+      VOICE_ATTACHMENT_LIST_TIMEOUT_MS,
+      'Attachment list timeout',
+    ).then((result) => {
       if (cancelled) return;
       setListLoading(false);
       if (!result.ok) {
@@ -207,6 +218,11 @@ export function MessageAttachmentList({
         return;
       }
       setAttachments(result.data);
+    }).catch(() => {
+      if (cancelled) return;
+      setListLoading(false);
+      setListError(toUserFacingAttachmentError());
+      setAttachments([]);
     });
 
     return () => {
@@ -267,10 +283,31 @@ export function MessageAttachmentList({
 
   useEffect(() => {
     return () => {
-      for (const state of Object.values(urlById)) {
+      for (const state of Object.values(urlByIdRef.current)) {
         revokeBlobPlaybackUrl(state.url);
       }
     };
+  }, [messageId]);
+
+  useEffect(() => {
+    const stuck = Object.entries(urlById).filter(([, state]) => state.loading);
+    if (stuck.length === 0) return;
+
+    const timer = setTimeout(() => {
+      setUrlById((prev) => {
+        let changed = false;
+        const next = { ...prev };
+        for (const [id, state] of Object.entries(prev)) {
+          if (state.loading) {
+            next[id] = { url: null, loading: false, error: toUserFacingAttachmentError() };
+            changed = true;
+          }
+        }
+        return changed ? next : prev;
+      });
+    }, VOICE_URL_RESOLVE_TIMEOUT_MS + 500);
+
+    return () => clearTimeout(timer);
   }, [urlById]);
 
   useEffect(() => {
@@ -329,7 +366,42 @@ export function MessageAttachmentList({
     );
   }
 
-  if (attachments.length === 0) return null;
+  if (attachments.length === 0) {
+    if (!expectVoiceAttachment) return null;
+
+    const missingVoice = (
+      <View style={[styles.item, styles.thumbError]}>
+        <Text style={styles.errorText}>{toUserFacingAttachmentError()}</Text>
+        <Text style={styles.metaText}>Sprachnachricht unvollständig</Text>
+      </View>
+    );
+
+    if (!attachmentOnly) {
+      return <View style={styles.inlineRoot}>{missingVoice}</View>;
+    }
+
+    return (
+      <View style={styles.rowWrap}>
+        <View style={[styles.bubble, isOwn ? styles.bubbleOwn : styles.bubbleOther]}>
+          {!isOwn && senderDisplayName ? (
+            <Text style={styles.sender}>{senderDisplayName}</Text>
+          ) : null}
+          {missingVoice}
+          <View style={styles.meta}>
+            {sentAt ? (
+              <Text style={styles.time}>
+                {new Date(sentAt).toLocaleTimeString('de-DE', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}
+              </Text>
+            ) : null}
+            {showStatus && isOwn ? <MessageStatusTicks status={messageStatus} /> : null}
+          </View>
+        </View>
+      </View>
+    );
+  }
 
   const renderAttachment = (attachment: MessageAttachment) => {
     const urlState = urlById[attachment.id];

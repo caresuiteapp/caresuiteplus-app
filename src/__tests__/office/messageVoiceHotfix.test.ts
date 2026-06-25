@@ -160,7 +160,7 @@ describe('Message voice hotfix', () => {
     }
   });
 
-  it('resolveMessageAttachmentUrl nutzt Download-Fallback wenn Signed-URL scheitert', async () => {
+  it('resolveMessageAttachmentUrl nutzt Download zuerst, Signed-URL als Fallback', async () => {
     const filePath = buildMessageAttachmentPath(
       TENANT_ID,
       'thread-1',
@@ -171,9 +171,13 @@ describe('Message voice hotfix', () => {
       data: new Blob([9, 8, 7], { type: 'audio/webm' }),
       error: null,
     });
+    const createSignedUrl = vi.fn().mockResolvedValue({
+      data: { signedUrl: 'https://example.com/signed.webm' },
+      error: null,
+    });
 
     mockStorageFrom.mockReturnValue({
-      createSignedUrl: vi.fn().mockResolvedValue({ data: null, error: { message: 'fail' } }),
+      createSignedUrl,
       download,
     });
 
@@ -197,6 +201,7 @@ describe('Message voice hotfix', () => {
 
     expect(result.ok).toBe(true);
     expect(download).toHaveBeenCalled();
+    expect(createSignedUrl).not.toHaveBeenCalled();
     if (result.ok) {
       expect(result.data).toBe('blob:voice-preview');
     }

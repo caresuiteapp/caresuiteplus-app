@@ -251,13 +251,13 @@ describe('Office Messaging Phase 3', () => {
       actorRoleKey: 'business_admin',
     });
 
-    await vi.advanceTimersByTimeAsync(46_000);
+    await vi.advanceTimersByTimeAsync(11_000);
     const result = await pending;
     vi.useRealTimers();
 
     expect(result.ok).toBe(false);
     if (!result.ok) {
-      expect(result.error).toMatch(/Zeitüberschreitung|Upload/i);
+      expect(result.error).toBe('Senden fehlgeschlagen. Bitte erneut versuchen.');
     }
   });
 

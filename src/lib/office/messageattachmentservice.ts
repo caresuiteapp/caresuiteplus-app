@@ -3,7 +3,6 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
-import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import {
   auditFromThread,
   logOfficeMessageAuditEvent,
@@ -15,6 +14,8 @@ import {
 import { fetchOfficeMessageThreadById, OFFICE_MESSAGING_SCHEMA_ERROR } from '@/lib/office/messagethreadservice';
 import {
   toUserFacingAttachmentError,
+  toUserFacingSendError,
+  VOICE_ATTACHMENT_INSERT_TIMEOUT_MS,
   VOICE_SIGNED_URL_TIMEOUT_MS,
   VOICE_STORAGE_DOWNLOAD_TIMEOUT_MS,
   VOICE_STORAGE_UPLOAD_TIMEOUT_MS,
@@ -58,23 +59,6 @@ function toStorageUploadPayload(
     return new Blob([bytes], { type: normalizedMime });
   }
   return fileData instanceof Uint8Array ? fileData : new Uint8Array(fileData);
-}
-
-async function resolveAttachmentFileUrl(
-  supabase: NonNullable<ReturnType<typeof getSupabaseClient>>,
-  filePath: string,
-): Promise<string | null> {
-  try {
-    const { data, error } = await withMessagingTimeout(
-      supabase.storage.from(BUCKET).createSignedUrl(filePath, 3600),
-      VOICE_SIGNED_URL_TIMEOUT_MS,
-      'Signed-URL timeout',
-    );
-    if (error || !data?.signedUrl) return null;
-    return data.signedUrl;
-  } catch {
-    return null;
-  }
 }
 
 async function downloadAttachmentBlobUrl(
@@ -256,31 +240,44 @@ export async function uploadMessageAttachment(input: {
     );
 
     if (uploadError) {
-      return { ok: false, error: toStorageUploadError(uploadError.message) };
+      return { ok: false, error: toUserFacingSendError(uploadError.message) };
     }
   } catch (cause) {
     const message = cause instanceof Error ? cause.message : 'Datei-Upload fehlgeschlagen.';
-    return { ok: false, error: toStorageUploadError(message) };
+    return { ok: false, error: toUserFacingSendError(message) };
   }
 
-  const fileUrl = await resolveAttachmentFileUrl(supabase, filePath);
+  let data: Record<string, unknown> | null = null;
+  let insertError: { message?: string } | null = null;
+  try {
+    const insertResult = await withMessagingTimeout(
+      supabase
+        .from('message_attachments')
+        .insert({
+          id: attachmentId,
+          tenant_id: input.tenantId,
+          message_id: input.messageId,
+          file_name: input.fileName,
+          file_path: filePath,
+          file_url: null,
+          file_size_bytes: input.fileSizeBytes,
+          mime_type: normalizedMimeType,
+        })
+        .select('*')
+        .single(),
+      VOICE_ATTACHMENT_INSERT_TIMEOUT_MS,
+      'Attachment insert timeout',
+    );
+    data = insertResult.data as Record<string, unknown> | null;
+    insertError = insertResult.error;
+  } catch {
+    insertError = { message: 'insert timeout' };
+  }
 
-  const { data, error } = await supabase
-    .from('message_attachments')
-    .insert({
-      id: attachmentId,
-      tenant_id: input.tenantId,
-      message_id: input.messageId,
-      file_name: input.fileName,
-      file_path: filePath,
-      file_url: fileUrl,
-      file_size_bytes: input.fileSizeBytes,
-      mime_type: normalizedMimeType,
-    })
-    .select('*')
-    .single();
-
-  if (error) return officeMessagingError(toGermanSupabaseError(error));
+  if (insertError || !data) {
+    await supabase.storage.from(BUCKET).remove([filePath]);
+    return { ok: false, error: toUserFacingSendError(insertError?.message) };
+  }
 
   void fetchOfficeMessageThreadById(input.tenantId, input.threadId, input.actorRoleKey).then(
     (threadResult) => {
@@ -360,7 +357,7 @@ export async function getMessageAttachmentSignedUrl(
   }
 }
 
-/** Liefert abspielbare URL — Signed-URL mit Retry, sonst authentifizierter Blob-Download. */
+/** Liefert abspielbare URL — authentifizierter Download zuerst (private Bucket), dann Signed-URL. */
 export async function resolveMessageAttachmentUrl(
   tenantId: string,
   attachment: MessageAttachment,
@@ -380,13 +377,8 @@ export async function resolveMessageAttachmentUrl(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: toUserFacingAttachmentError() };
 
-  for (let attempt = 0; attempt < 2; attempt++) {
-    const signed = await getMessageAttachmentSignedUrl(tenantId, filePath);
-    if (signed.ok) return signed;
-    if (attempt === 0) {
-      await new Promise((resolve) => setTimeout(resolve, 300));
-    }
-  }
+  const downloaded = await downloadAttachmentBlobUrl(supabase, filePath);
+  if (downloaded.ok) return downloaded;
 
-  return downloadAttachmentBlobUrl(supabase, filePath);
+  return getMessageAttachmentSignedUrl(tenantId, filePath);
 }
