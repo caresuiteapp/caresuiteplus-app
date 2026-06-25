@@ -1,15 +1,15 @@
-import { ReactNode } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { ReactNode, useMemo } from 'react';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { ScreenShell } from '@/components/layout';
-import { PremiumButton } from '@/components/ui';
-import { useAuth } from '@/lib/auth/context';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
-import { spacing, typography } from '@/theme';
+import {
+  resolvePortalMobileContentPaddingBottom,
+  webSafeAreaCalc,
+} from '@/lib/platform/webSafeArea';
+import { spacing } from '@/theme';
 
 type PortalTabScreenProps = {
   title: string;
@@ -25,34 +25,34 @@ export function PortalTabScreen({
   children,
   scroll = true,
   hideHeaderOnPhone = false,
-  eyebrow,
 }: PortalTabScreenProps) {
-  const router = useRouter();
-  const { signOut } = useAuth();
+  const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
-  const text = useAuroraAdaptiveText();
-  const signOutButton = (
-    <PremiumButton
-      title="Abmelden"
-      variant="ghost"
-      size="sm"
-      onPress={() => signOut().then(() => router.replace('/' as never))}
-    />
-  );
+
+  const bareBottomPadding = useMemo(() => {
+    if (!showBottomTabs) return spacing.md;
+    return resolvePortalMobileContentPaddingBottom(insets.bottom);
+  }, [insets.bottom, showBottomTabs]);
+
+  const barePaddingStyle = useMemo((): ViewStyle => {
+    if (!showBottomTabs) return {};
+    if (Platform.OS === 'web') {
+      return {
+        paddingBottom: webSafeAreaCalc(
+          'bottom',
+          PORTAL_MOBILE_NAV_HEIGHT + spacing.lg,
+        ) as number,
+      };
+    }
+    return { paddingBottom: bareBottomPadding };
+  }, [bareBottomPadding, showBottomTabs]);
 
   if (isPhone && hideHeaderOnPhone) {
     return (
-      <SafeAreaView style={styles.bare} edges={[]}>
-        <View
-          style={[
-            styles.bareContent,
-            showBottomTabs && { paddingBottom: PORTAL_MOBILE_NAV_HEIGHT },
-          ]}
-        >
-          {children}
-        </View>
-      </SafeAreaView>
+      <View style={styles.bare} testID="portal-tab-bare">
+        <View style={[styles.bareContent, barePaddingStyle]}>{children}</View>
+      </View>
     );
   }
 
@@ -62,9 +62,9 @@ export function PortalTabScreen({
       subtitle={isPhone ? undefined : 'Ihr persönlicher Portalbereich'}
       showBack={false}
       scroll={scroll}
-      rightSlot={signOutButton}
+      hideMobileLogout
+      mobileContentPaddingBottom={showBottomTabs ? bareBottomPadding : undefined}
     >
-      {/* eyebrow labels removed per user request */}
       <View style={styles.content}>{children}</View>
     </ScreenShell>
   );
@@ -75,21 +75,10 @@ const styles = StyleSheet.create({
   bare: {
     flex: 1,
     backgroundColor: 'transparent',
-  },
-  bareToolbar: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
-    paddingHorizontal: 12,
-    paddingBottom: 4,
+    minHeight: 0,
   },
   bareContent: {
     flex: 1,
-  },
-  eyebrow: {
-    ...typography.caption,
-    fontWeight: '700',
-    textTransform: 'uppercase',
-    letterSpacing: 1.2,
-    marginBottom: spacing.xs,
+    minHeight: 0,
   },
 });

@@ -12,7 +12,7 @@ describe('StaticLightPaperBackground component', () => {
     expect(source).toContain('backgroundSize: \'cover\'');
     expect(source).toContain('resizeMode="cover"');
     expect(source).toContain('pointerEvents="none"');
-    expect(source).toContain("position: 'fixed'");
+    expect(source).toContain('webFixedViewportCoverStyle');
     expect(source).toContain("testID = 'static-light-paper-background'");
   });
 

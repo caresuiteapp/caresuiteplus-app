@@ -7,6 +7,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { getBreadcrumbs } from '@/lib/navigation';
 import type { DomainA11yMeta } from '@/lib/a11y/domainScreenMeta';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { spacing } from '@/theme';
 import { CareLightPageShell } from './CareLightPageShell';
 import { ScreenHeader } from './ScreenHeader';
@@ -22,6 +23,10 @@ type ScreenShellProps = {
   showBreadcrumbs?: boolean;
   /** WP018 — optionale Barrierefreiheits-Metadaten */
   a11yMeta?: DomainA11yMeta;
+  /** Portal mobile: Abmelden only in nav drawer, not page header. */
+  hideMobileLogout?: boolean;
+  /** Extra bottom padding for scroll content under fixed bottom nav. */
+  mobileContentPaddingBottom?: number;
 };
 
 export function ScreenShell({
@@ -34,9 +39,13 @@ export function ScreenShell({
   scroll = true,
   showBreadcrumbs = true,
   a11yMeta,
+  hideMobileLogout = false,
+  mobileContentPaddingBottom,
 }: ScreenShellProps) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
+  const { isPhone } = useDeviceClass();
+  const effectiveRightSlot = hideMobileLogout && isPhone ? undefined : rightSlot;
 
   if (mode === 'light' && !shellHostsAurora) {
     return (
@@ -45,7 +54,7 @@ export function ScreenShell({
         subtitle={subtitle}
         showBack={showBack}
         onBack={onBack}
-        rightSlot={rightSlot}
+        rightSlot={effectiveRightSlot}
         scroll={scroll}
         showBreadcrumbs={showBreadcrumbs}
         a11yMeta={a11yMeta}
@@ -89,7 +98,7 @@ export function ScreenShell({
           flexGrow: shellHostsAurora ? 1 : undefined,
           padding: spacing.md,
           gap: spacing.md,
-          paddingBottom: spacing.xxl,
+          paddingBottom: mobileContentPaddingBottom ?? spacing.xxl,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
         content: {
@@ -115,7 +124,7 @@ export function ScreenShell({
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
       }),
-    [colors.bgBase, shellHostsAurora],
+    [colors.bgBase, mobileContentPaddingBottom, shellHostsAurora],
   );
 
   const header = (
@@ -125,7 +134,7 @@ export function ScreenShell({
       breadcrumbTrail={breadcrumbTrail}
       showBack={showBack}
       onBack={onBack}
-      rightSlot={rightSlot}
+      rightSlot={effectiveRightSlot}
     />
   );
 

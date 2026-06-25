@@ -1,5 +1,5 @@
-import { ReactNode, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { ReactNode, useMemo, useState } from 'react';
+import { StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AutoScrollView } from '@/components/layout/AutoScrollView';
 import { PortalLeftNav } from './PortalLeftNav';
@@ -17,6 +17,11 @@ import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalClientTabs } from '@/hooks/usePortalClientTabs';
 import { moduleColor } from '@/design/tokens/modules';
 import { BREAKPOINT_MIN } from '@/lib/platform/breakpoints';
+import {
+  resolvePortalMobileContentPaddingBottom,
+  webDynamicViewportMinHeightStyle,
+  webSafeAreaTopShell,
+} from '@/lib/platform/webSafeArea';
 
 export type PortalShellKind = 'client' | 'employee';
 
@@ -50,8 +55,22 @@ export function PortalShellLayout({
   const showLeftNav = isDesktopOrWide;
   const portalLabel = kind === 'employee' ? 'Mitarbeiterportal' : 'Klient:innenportal';
 
+  const topShellPadding = webSafeAreaTopShell(Math.max(insets.top, careSpacing.xs));
+  const mobileContentPaddingBottom = useMemo(
+    () => resolvePortalMobileContentPaddingBottom(insets.bottom),
+    [insets.bottom],
+  );
+  const bottomNavOffset = PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm);
+
   return (
-    <View style={[styles.root, { paddingTop: insets.top }]}>
+    <View
+      style={[
+        styles.root,
+        webDynamicViewportMinHeightStyle(),
+        isCompactShell ? ({ paddingTop: topShellPadding } as ViewStyle) : null,
+      ]}
+      testID="portal-shell-layout"
+    >
       <PortalTopBar
         accentColor={accentColor}
         compact={isCompactShell}
@@ -82,7 +101,9 @@ export function PortalShellLayout({
             style={styles.mainScroll}
             contentContainerStyle={[
               styles.mainContent,
-              showBottomTabs ? styles.mainContentWithBottomNav : null,
+              showBottomTabs
+                ? { paddingBottom: mobileContentPaddingBottom }
+                : null,
             ]}
             fillViewport
           >
@@ -94,7 +115,9 @@ export function PortalShellLayout({
       </View>
 
       {showBottomTabs ? (
-        <PortalMobileNav tabs={portalTabs} accentColor={accentColor} area="portal_client" />
+        <View style={styles.bottomNavHost}>
+          <PortalMobileNav tabs={portalTabs} accentColor={accentColor} area="portal_client" />
+        </View>
       ) : null}
       <PortalNavigationDrawer
         visible={drawerOpen}
@@ -104,7 +127,7 @@ export function PortalShellLayout({
         portalLabel={portalLabel}
       />
       <NotificationBellFab
-        bottomOffset={showBottomTabs ? PORTAL_MOBILE_NAV_HEIGHT + careSpacing.sm : 0}
+        bottomOffset={showBottomTabs ? bottomNavOffset : 0}
       />
     </View>
   );
@@ -114,6 +137,8 @@ const styles = StyleSheet.create({
   root: {
     flex: 1,
     backgroundColor: 'transparent',
+    minHeight: 0,
+    overflow: 'hidden',
   },
   body: {
     flex: 1,
@@ -135,7 +160,12 @@ const styles = StyleSheet.create({
     paddingBottom: careSpacing.xl,
     backgroundColor: 'transparent',
   },
-  mainContentWithBottomNav: {
-    paddingBottom: PORTAL_MOBILE_NAV_HEIGHT + careSpacing.xl,
+  bottomNavHost: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
+    zIndex: 15,
+    backgroundColor: 'transparent',
   },
 });

@@ -16,7 +16,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { resolveCompactShellMobileTabs } from '@/lib/navigation/shellMobileTabs';
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
-import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
+import { MOBILE_MIN_TOUCH_TARGET, webSafeAreaPadding } from '@/lib/platform/webSafeArea';
 import type { AppShellArea } from '@/types/navigation/shell';
 import type { ShellTabConfig } from '@/types/navigation/shell';
 
@@ -114,11 +114,12 @@ const styles = StyleSheet.create({
   tab: {
     flex: 1,
     alignItems: 'center',
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
   },
   pill: {
     alignItems: 'center',
     justifyContent: 'center',
-    minHeight: 44,
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
     paddingVertical: careSpacing.xs,
     paddingHorizontal: careSpacing.xs,
     borderRadius: 999,

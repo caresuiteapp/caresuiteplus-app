@@ -3,6 +3,7 @@ import { type PropsWithChildren } from 'react';
 import { DISABLE_HOVER_EFFECTS_CSS } from '@/design/web/disableHoverEffectsCss';
 import { INVISIBLE_SCROLLBARS_CSS } from '@/design/web/invisibleScrollbarsCss';
 import { WEB_FONT_SCALE_CSS } from '@/design/web/webFontScaleCss';
+import { WEB_SAFE_AREA_GLOBAL_CSS } from '@/lib/platform/webSafeArea';
 
 const ROOT_BG = '#050816';
 
@@ -24,6 +25,7 @@ export default function Root({ children }: PropsWithChildren) {
                 background-color: ${ROOT_BG} !important;
               }
               ${WEB_FONT_SCALE_CSS}
+              ${WEB_SAFE_AREA_GLOBAL_CSS}
               ${DISABLE_HOVER_EFFECTS_CSS}
               ${INVISIBLE_SCROLLBARS_CSS}
             `,

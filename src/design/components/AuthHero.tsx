@@ -6,6 +6,7 @@ import { galaxyPalette } from '@/design/tokens/galaxy';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
+import { MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { GlassCard } from './GlassCard';
 import { StatusBadge, type StatusKind } from './StatusBadge';
@@ -131,6 +132,9 @@ const styles = StyleSheet.create({
   backBtn: {
     alignSelf: 'flex-start',
     marginBottom: careSpacing.xs,
+    minWidth: MOBILE_MIN_TOUCH_TARGET,
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
+    justifyContent: 'center',
     paddingVertical: careSpacing.xs,
   },
   backText: {

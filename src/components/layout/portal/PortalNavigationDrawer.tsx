@@ -23,6 +23,12 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { withAlpha } from '@/design/tokens/motion';
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
+import { useAuth } from '@/lib/auth/context';
+import {
+  MOBILE_EDGE_INSET,
+  MOBILE_MIN_TOUCH_TARGET,
+  webSafeAreaPadding,
+} from '@/lib/platform/webSafeArea';
 import type { ShellTabConfig } from '@/types/navigation/shell';
 
 type PortalNavigationDrawerProps = {
@@ -46,6 +52,7 @@ export function PortalNavigationDrawer({
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
+  const { signOut } = useAuth();
   const text = useAuroraAdaptiveText();
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
@@ -81,7 +88,10 @@ export function PortalNavigationDrawer({
           style={[
             styles.panel,
             drawerSurface,
-            { paddingTop: insets.top + careSpacing.sm, paddingBottom: insets.bottom + careSpacing.sm },
+            {
+              paddingTop: webSafeAreaPadding('top', insets.top + careSpacing.sm) as number,
+              paddingBottom: webSafeAreaPadding('bottom', insets.bottom + careSpacing.sm) as number,
+            },
           ]}
         >
           <View style={styles.header}>
@@ -116,6 +126,21 @@ export function PortalNavigationDrawer({
               );
             })}
           </ScrollView>
+          <View style={[styles.logoutSection, { borderTopColor: drawerSurface.borderColor as string }]}>
+            <Pressable
+              onPress={() => {
+                onClose();
+                void signOut().then(() => router.replace('/' as never));
+              }}
+              style={[styles.logoutRow, webCursor]}
+              accessibilityRole="button"
+              accessibilityLabel="Abmelden"
+              testID="portal-drawer-logout"
+            >
+              <Text style={styles.navIcon}>⎋</Text>
+              <Text style={[styles.logoutLabel, { color: text.primary }]}>Abmelden</Text>
+            </Pressable>
+          </View>
         </View>
       </View>
     </Modal>
@@ -133,14 +158,20 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingBottom: careSpacing.sm,
   },
-  headerTitle: { ...careTypography.h3, fontWeight: '800' },
-  closeBtn: { width: 44, height: 44, alignItems: 'center', justifyContent: 'center' },
+  headerTitle: { ...careTypography.h3, fontWeight: '800', flex: 1, minWidth: 0 },
+  closeBtn: {
+    width: MOBILE_MIN_TOUCH_TARGET,
+    height: MOBILE_MIN_TOUCH_TARGET,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
   closeText: { fontSize: 18, fontWeight: '700' },
-  scrollContent: { paddingHorizontal: careSpacing.md, paddingBottom: careSpacing.xl, gap: careSpacing.xs },
+  scrollContent: { paddingHorizontal: MOBILE_EDGE_INSET, paddingBottom: careSpacing.md, gap: careSpacing.xs },
   navRow: {
     flexDirection: 'row',
     alignItems: 'center',
     gap: careSpacing.sm,
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
     paddingVertical: careSpacing.sm,
     paddingHorizontal: careSpacing.sm,
     borderRadius: 10,
@@ -149,4 +180,21 @@ const styles = StyleSheet.create({
   },
   navIcon: { fontSize: 18, width: 28, textAlign: 'center' },
   navLabel: { ...careTypography.body, fontWeight: '600', flex: 1 },
+  logoutSection: {
+    borderTopWidth: 1,
+    marginTop: careSpacing.sm,
+    paddingHorizontal: MOBILE_EDGE_INSET,
+    paddingTop: careSpacing.sm,
+    paddingBottom: careSpacing.xs,
+  },
+  logoutRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
+    paddingVertical: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
+    borderRadius: 10,
+  },
+  logoutLabel: { ...careTypography.body, fontWeight: '700', flex: 1 },
 });

@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { webFixedViewportCoverStyle } from '@/lib/platform/webSafeArea';
 import {
   PSM_LOOP_MS,
   PSM_SCENE,
@@ -87,9 +88,14 @@ function withMotionLayer(
   draw: () => void,
 ) {
   const { dx, dy } = psmMotionOffset(motion, phase);
+  const scaleX = w / PSM_VIEWBOX_W;
+  const scaleY = h / PSM_VIEWBOX_H;
+  const coverScale = Math.max(scaleX, scaleY);
+  const offsetX = (w - PSM_VIEWBOX_W * coverScale) / 2;
+  const offsetY = (h - PSM_VIEWBOX_H * coverScale) / 2;
   ctx.save();
-  ctx.translate(dx, dy);
-  ctx.scale(w / PSM_VIEWBOX_W, h / PSM_VIEWBOX_H);
+  ctx.translate(offsetX + dx, offsetY + dy);
+  ctx.scale(coverScale, coverScale);
   draw();
   ctx.restore();
 }
@@ -448,9 +454,7 @@ export function GlobalPersistentSpaceMotionBackground({
   );
 }
 
-const webFixedFull: ViewStyle = (Platform.OS === 'web'
-  ? { position: 'fixed', top: 0, left: 0, right: 0, bottom: 0, width: '100vw', height: '100vh' }
-  : {}) as ViewStyle;
+const webFixedFull: ViewStyle = (Platform.OS === 'web' ? webFixedViewportCoverStyle() : {}) as ViewStyle;
 
 const styles = StyleSheet.create({
   root: {

@@ -5,6 +5,8 @@ import type { BreadcrumbTrail as BreadcrumbTrailType } from '@/types/navigation/
 import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
 import { spacing, typography } from '@/theme';
 import { BreadcrumbTrail } from './BreadcrumbTrail';
 
@@ -15,6 +17,8 @@ type ScreenHeaderProps = {
   showBack?: boolean;
   onBack?: () => void;
   rightSlot?: React.ReactNode;
+  /** Hide breadcrumb trail on phone for compact portal pages. */
+  simplifyOnPhone?: boolean;
 };
 
 export function ScreenHeader({
@@ -24,11 +28,14 @@ export function ScreenHeader({
   showBack = true,
   onBack,
   rightSlot,
+  simplifyOnPhone = true,
 }: ScreenHeaderProps) {
   const router = useRouter();
   const { colors } = useLegacyTheme();
+  const { isPhone } = useDeviceClass();
   const backLinkColor = useInteractiveTextColor();
   const shellHostsAurora = useShellHostsAurora();
+  const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
 
   const styles = useMemo(
     () =>
@@ -48,12 +55,18 @@ export function ScreenHeader({
         center: {
           flex: 1,
           alignItems: 'center',
+          minWidth: 0,
         },
         right: {
-          width: 88,
+          minWidth: MOBILE_MIN_TOUCH_TARGET,
+          maxWidth: 120,
           alignItems: 'flex-end',
+          flexShrink: 0,
         },
         backButton: {
+          minWidth: MOBILE_MIN_TOUCH_TARGET,
+          minHeight: MOBILE_MIN_TOUCH_TARGET,
+          justifyContent: 'center',
           paddingVertical: spacing.xs,
         },
         backText: {
@@ -65,6 +78,7 @@ export function ScreenHeader({
           ...typography.h3,
           color: colors.textPrimary,
           textAlign: 'center',
+          flexShrink: 1,
         },
         subtitle: {
           ...typography.caption,
@@ -98,9 +112,15 @@ export function ScreenHeader({
         ) : null}
       </View>
       <View style={styles.center}>
-        {breadcrumbTrail ? <BreadcrumbTrail trail={breadcrumbTrail} /> : null}
-        <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {showBreadcrumbs ? <BreadcrumbTrail trail={breadcrumbTrail!} /> : null}
+        <Text style={styles.title} numberOfLines={2}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={styles.subtitle} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        ) : null}
       </View>
       <View style={styles.right}>{rightSlot}</View>
     </View>

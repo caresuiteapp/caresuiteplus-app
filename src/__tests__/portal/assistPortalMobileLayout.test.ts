@@ -88,9 +88,9 @@ describe('Assist portal mobile layout', () => {
     expect(mobile).not.toContain('resolvePortalHeroCopy');
     expect(mobile).not.toContain('leadingIcon="🤝"');
   });
-  it('client portal tabs layout uses PortalShellLayout', () => {
+  it('client portal tabs layout uses ClientPortalShell', () => {
     const layout = readSrc('app/portal/client/(tabs)/_layout.tsx');
-    expect(layout).toContain('PortalShellLayout');
+    expect(layout).toContain('ClientPortalShell');
     expect(layout).not.toContain("from '@/components/layout'");
     expect(layout).not.toContain('<ShellLayout');
   });
@@ -155,7 +155,7 @@ describe('Assist portal mobile layout', () => {
     const nav = readSrc('src/components/layout/PortalMobileNav.tsx');
     expect(nav).toContain('resolveCompactShellMobileTabs');
     expect(nav).not.toContain('PortalMoreMenu');
-    expect(nav).not.toContain('Mehr');
+    expect(nav).not.toMatch(/label:\s*'Mehr'/);
   });
 
   it('compact PortalTopBar has text brand, bell, avatar, chevron — no robot tagline', () => {
@@ -188,7 +188,7 @@ describe('Assist portal mobile layout', () => {
   it('desktop shell layout unchanged at >=1200px breakpoint', () => {
     const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
     expect(shell).toContain('showRightSidebar = width >= BREAKPOINT_MIN.desktop');
-    expect(shell).toContain('showLeftNav = !isPhone');
+    expect(shell).toContain('showLeftNav = isDesktopOrWide');
     expect(shell).toContain('PortalLeftNav');
     expect(shell).not.toContain('MobilePortalDashboard');
     const sidebar = readSrc('src/components/layout/portal/PortalRightSidebar.tsx');

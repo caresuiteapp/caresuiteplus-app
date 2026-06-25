@@ -27,6 +27,7 @@ import { useAuth } from '@/lib/auth/context';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalContext } from '@/hooks/usePortalContext';
 import { resolveCombinedModuleLabel } from '@/lib/portal/engine/portalTerminology';
+import { MOBILE_EDGE_INSET, MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
 
 type PortalTopBarProps = {
   accentColor?: string;
@@ -83,13 +84,15 @@ export function PortalTopBar({
 
   const avatarUrl = profile?.avatarUrl?.trim() || undefined;
 
-  const profileMenuItems = [
-    { label: 'Profil', href: '/portal/client/profile' },
-    {
-      label: 'Abmelden',
-      action: () => void signOut().then(() => router.replace('/' as never)),
-    },
-  ];
+  const profileMenuItems = compact
+    ? [{ label: 'Profil', href: '/portal/client/profile' }]
+    : [
+        { label: 'Profil', href: '/portal/client/profile' },
+        {
+          label: 'Abmelden',
+          action: () => void signOut().then(() => router.replace('/' as never)),
+        },
+      ];
 
   if (compact) {
     return (
@@ -106,8 +109,12 @@ export function PortalTopBar({
           </Pressable>
         ) : null}
         <View style={styles.compactBrand}>
-          <Text style={[styles.compactTitle, { color: text.primary }]}>CareSuite+</Text>
-          <Text style={[styles.compactPortal, { color: text.muted }]}>{portalLabel}</Text>
+          <Text style={[styles.compactTitle, { color: text.primary }]} numberOfLines={1}>
+            CareSuite+
+          </Text>
+          <Text style={[styles.compactPortal, { color: text.muted }]} numberOfLines={1}>
+            {portalLabel}
+          </Text>
         </View>
         <View style={styles.compactActions}>
           <View style={styles.compactProfileChip}>
@@ -352,15 +359,15 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: careSpacing.md,
+    paddingHorizontal: MOBILE_EDGE_INSET,
     paddingVertical: careSpacing.sm,
     borderBottomWidth: 1,
     zIndex: 10,
-    minHeight: 56,
+    minHeight: MOBILE_MIN_TOUCH_TARGET + careSpacing.sm,
   },
   hamburgerBtn: {
-    width: 44,
-    height: 44,
+    width: MOBILE_MIN_TOUCH_TARGET,
+    height: MOBILE_MIN_TOUCH_TARGET,
     alignItems: 'center',
     justifyContent: 'center',
     flexShrink: 0,
@@ -372,6 +379,8 @@ const styles = StyleSheet.create({
   compactBrand: {
     flex: 1,
     gap: 2,
+    minWidth: 0,
+    paddingHorizontal: careSpacing.xs,
   },
   compactTitle: {
     ...careTypography.body,
@@ -392,12 +401,14 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     alignItems: 'center',
     gap: 4,
-    minHeight: 48,
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
     paddingHorizontal: careSpacing.xs,
   },
   compactProfileMenuTrigger: {
-    minHeight: 48,
+    minWidth: MOBILE_MIN_TOUCH_TARGET,
+    minHeight: MOBILE_MIN_TOUCH_TARGET,
     justifyContent: 'center',
+    alignItems: 'center',
     paddingHorizontal: careSpacing.xs,
   },
 });
