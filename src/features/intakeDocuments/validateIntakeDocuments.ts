@@ -10,6 +10,8 @@ import { resolveContractTemplateKey } from './buildIntakeDocumentContext';
 export type IntakeDocumentsValidation = {
   ok: boolean;
   errors: Record<string, string>;
+  /** Non-blocking hints for mandatory docs that may be completed later in the employee portal. */
+  warnings: Record<string, string>;
   checklist: { key: string; label: string; complete: boolean }[];
 };
 
@@ -36,6 +38,7 @@ export function validateIntakeDocumentsStep(
   templates: IntakeDocumentTemplate[],
 ): IntakeDocumentsValidation {
   const errors: Record<string, string> = {};
+  const warnings: Record<string, string> = {};
   const checklist: IntakeDocumentsValidation['checklist'] = [];
 
   const privacyTemplate = templates.find((t) => t.templateKey === PRIVACY_TEMPLATE_KEY);
@@ -47,7 +50,8 @@ export function validateIntakeDocumentsStep(
     complete: privacyOk,
   });
   if (!privacyOk) {
-    errors.intakePrivacy = 'Datenschutz-Einwilligung muss gelesen, unterschrieben und abgeschlossen werden.';
+    warnings.intakePrivacy =
+      'Datenschutz-Einwilligung ist noch offen — kann nach dem Speichern im Mitarbeiter-Portal abgeschlossen werden.';
   }
 
   const contractKey = resolveContractTemplateKey(form);
@@ -62,7 +66,8 @@ export function validateIntakeDocumentsStep(
     complete: contractOk,
   });
   if (!contractOk) {
-    errors.intakeContract = 'Kundenvertrag muss vollständig eingesehen, unterschrieben und abgeschlossen werden.';
+    warnings.intakeContract =
+      'Kundenvertrag ist noch offen — kann nach dem Speichern im Mitarbeiter-Portal abgeschlossen werden.';
   }
 
   if (form.intakeAssignmentEnabled) {
@@ -102,6 +107,7 @@ export function validateIntakeDocumentsStep(
   return {
     ok: Object.keys(errors).length === 0,
     errors,
+    warnings,
     checklist,
   };
 }

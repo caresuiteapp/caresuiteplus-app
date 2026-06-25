@@ -275,6 +275,12 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
       </SectionPanel>
 
       <SectionPanel {...panelCtx} title="Pflichtdokumente">
+        {validation.warnings.intakePrivacy || validation.warnings.intakeContract ? (
+          <InfoBanner
+            variant="info"
+            message="Pflichtdokumente können auch nach dem Speichern von Mitarbeitenden im Portal gelesen, unterschrieben und abgeschlossen werden."
+          />
+        ) : null}
         {requiredDocs.map((template) => {
           const doc = form.intakeDocuments.find((d) => d.templateKey === template.templateKey);
           const status = doc?.status ?? 'not_started';
@@ -308,8 +314,6 @@ export function CareIntakeDocumentsStepPanel({ form, errors, tenantId, onChange,
             </PremiumCard>
           );
         })}
-        {errors.intakePrivacy ? <Text style={styles.error}>{errors.intakePrivacy}</Text> : null}
-        {errors.intakeContract ? <Text style={styles.error}>{errors.intakeContract}</Text> : null}
       </SectionPanel>
 
       <SectionPanel {...panelCtx} title="Optionale Dokumente">

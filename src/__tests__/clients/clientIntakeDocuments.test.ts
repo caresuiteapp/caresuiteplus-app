@@ -179,11 +179,13 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(result.ok).toBe(false);
   });
 
-  it('11. Datenschutz ist Pflicht — Weiter blockiert ohne Abschluss', () => {
+  it('11. Datenschutz ist optional beim Speichern — Hinweis statt Blockade', () => {
     const form = baseForm();
     const validation = validateIntakeDocumentsStep(form, listApplicableIntakeTemplates(form));
-    expect(validation.ok).toBe(false);
-    expect(validation.errors.intakePrivacy).toBeTruthy();
+    expect(validation.ok).toBe(true);
+    expect(validation.errors.intakePrivacy).toBeUndefined();
+    expect(validation.warnings.intakePrivacy).toBeTruthy();
+    expect(validation.warnings.intakeContract).toBeTruthy();
   });
 
   it('12. Vertrag erfordert Klient:in- und Mitarbeitenden-Unterschrift', () => {
@@ -228,10 +230,10 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     }
   });
 
-  it('17. validateIntakeStep integriert Dokumenten-Validierung', () => {
+  it('17. validateIntakeStep blockiert Speichern nicht wegen Pflichtdokumenten', () => {
     const errors = validateIntakeStep('vertraege_einwilligungen', baseForm());
-    expect(errors.intakePrivacy).toBeTruthy();
-    expect(errors.intakeContract).toBeTruthy();
+    expect(errors.intakePrivacy).toBeUndefined();
+    expect(errors.intakeContract).toBeUndefined();
   });
 
   it('18. vollständige Pflichtdokumente erlauben Weiter', () => {
@@ -239,11 +241,13 @@ describe('Client intake step 8 — Verträge & Einwilligungen', () => {
     expect(canProceedFromIntakeDocuments(form, listApplicableIntakeTemplates(form))).toBe(true);
   });
 
-  it('19. UI zeigt Systemvorlage-Hinweis, keine rechtssichere Garantie', () => {
+  it('19. UI zeigt Systemvorlage-Hinweis und Info-Banner für offene Pflichtdokumente', () => {
     const panel = readSrc('components/inputs/CareIntakeDocumentsStepPanel.tsx');
     expect(panel).toContain('Systemvorlage');
     expect(panel).toContain('vom Mandanten prüfbar');
+    expect(panel).toContain('im Portal');
     expect(panel).not.toContain('rechtssicher garantiert');
+    expect(panel).not.toContain('errors.intakePrivacy');
   });
 
   it('20. Signature Modal mit Löschen, Abbrechen und Bestätigen', () => {
