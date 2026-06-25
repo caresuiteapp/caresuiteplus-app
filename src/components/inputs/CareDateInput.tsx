@@ -1,3 +1,4 @@
+import { useEffect, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumInput } from '@/components/ui/PremiumInput';
 import { formatDate, parseGermanDate } from '@/lib/formatters/dateTimeFormatters';
@@ -12,17 +13,47 @@ type Props = {
 };
 
 export function CareDateInput({ label, value, onChange, error, placeholder = 'TT.MM.JJJJ' }: Props) {
-  const display = value ? formatDate(value) : '';
+  const formattedValue = value ? formatDate(value) : '';
+  const [draft, setDraft] = useState(formattedValue);
+  const lastCommittedValue = useRef(value);
+
+  useEffect(() => {
+    if (value !== lastCommittedValue.current) {
+      lastCommittedValue.current = value;
+      setDraft(formattedValue);
+    }
+  }, [formattedValue, value]);
 
   return (
     <View style={styles.wrap}>
       <PremiumInput
         label={label ?? 'Datum'}
-        value={display}
+        value={draft}
         onChangeText={(text) => {
+          setDraft(text);
           const iso = parseGermanDate(text);
-          if (iso) onChange(iso);
-          else if (!text.trim()) onChange('');
+          if (iso) {
+            lastCommittedValue.current = iso;
+            onChange(iso);
+          } else if (!text.trim()) {
+            lastCommittedValue.current = '';
+            onChange('');
+          }
+        }}
+        onBlur={() => {
+          const iso = parseGermanDate(draft);
+          if (iso) {
+            lastCommittedValue.current = iso;
+            onChange(iso);
+            setDraft(formatDate(iso));
+            return;
+          }
+          if (!draft.trim()) {
+            lastCommittedValue.current = '';
+            onChange('');
+            return;
+          }
+          setDraft(formattedValue);
         }}
         placeholder={placeholder}
         error={error}
