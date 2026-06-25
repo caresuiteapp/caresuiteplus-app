@@ -20,6 +20,12 @@ import { getTemplateDashboardStats } from '@/lib/templates';
 import { colors, spacing, typography } from '@/theme';
 
 const QUICK_ACTIONS = [
+  { title: 'Vorlagen & Dokumente', route: '/business/templates/documents-hub', icon: '📄' },
+  { title: 'Assist Kataloge', route: '/business/office/settings/assist-catalogs', icon: '🤝' },
+  { title: 'HTML-Dokumentvorlagen', route: '/business/templates/document-templates-html', icon: '📑' },
+  { title: 'Live-Vorschau', route: '/business/templates/live-preview', icon: '👁️' },
+  { title: 'CI & Layout', route: '/business/templates/ci-layout', icon: '🎨' },
+  { title: 'Platzhalter', route: '/business/templates/placeholders', icon: '🔗' },
   { title: 'Neue Vorlage', route: '/business/templates/create', icon: '➕' },
   { title: 'Systemvorlagen', route: '/business/templates/system', icon: '🏛️' },
   { title: 'Kataloge', route: '/business/templates/catalogs', icon: '📚' },

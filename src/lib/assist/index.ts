@@ -40,6 +40,7 @@ export {
   fetchVisitDispositionList,
   fetchVisitDispositionDetail,
   updateVisitDispositionStatus,
+  deleteVisitDisposition,
   createVisitFromWizard,
   buildVisitDispositionKpis,
 } from './visitService';

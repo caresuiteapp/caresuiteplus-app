@@ -10,6 +10,7 @@ import {
   BERATUNG_EXTENSION_PREPARED_MESSAGE,
   isBeratungExtensionLiveReady,
 } from '@/lib/beratung/beratungModuleConfig';
+import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
 import {
   BERATUNG_HEADER_PRIMARY_ACTIONS,
   BERATUNG_HEADER_SECONDARY_ACTIONS,
@@ -70,6 +71,12 @@ export function BeratungIndexScreen() {
         loading={loading}
         error={error}
         onRefresh={refresh}
+      />
+      <ModuleDocumentsSection
+        targetModule="beratung"
+        targetArea="case"
+        title="Beratungsvorlagen"
+        subtitle="Beratungsprotokoll, §37.3 Nachweis, Pflegegradberatung u. a."
       />
       <View
         accessible

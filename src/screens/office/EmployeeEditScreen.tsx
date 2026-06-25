@@ -24,6 +24,7 @@ import { EMPLOYMENT_TYPE_OPTIONS } from '@/lib/office/employeeCatalogLabels';
 import { formatEmployeeEditSummary } from '@/lib/office/employeeEditFormMappers';
 import { getServiceMode } from '@/lib/services/mode';
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
 import { spacing } from '@/theme';
 
 export function EmployeeEditScreen() {
@@ -329,6 +330,13 @@ export function EmployeeEditScreen() {
             {summaryRows.map((row) => (
               <DetailInfoRow key={row.label} label={row.label} value={row.value} />
             ))}
+            <ModuleDocumentsSection
+              targetModule="office"
+              targetArea="hr"
+              employeeId={id}
+              title="Personalformulare"
+              subtitle="Urlaubsantrag, Stundenzettel, Fortbildungsnachweis u. a."
+            />
             <PremiumButton
               title="Personalakte öffnen"
               variant="secondary"

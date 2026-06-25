@@ -35,7 +35,7 @@ export function EinsaetzeListScreen() {
       subtitle={`Einsatzliste mit Suche und Filter${isReadOnly ? ' · Lesemodus' : ''} · ${roleLabel ?? 'Demo'}`}
       rightSlot={
         !isReadOnly ? (
-          <PremiumButton title="+ Neu" size="sm" onPress={() => router.push('/assist/einsaetze/new' as never)} />
+          <PremiumButton title="Neuer Einsatz" size="sm" onPress={() => router.push('/assist/assignments' as never)} />
         ) : null
       }
       scroll={false}
@@ -45,10 +45,8 @@ export function EinsaetzeListScreen() {
           <EmptyState
             title="Noch keine Einsätze geplant"
             message="Planen Sie den ersten Einsatz für Ihr Team."
-            actionLabel={!isReadOnly ? '+ Einsatz planen' : undefined}
-            onAction={
-              !isReadOnly ? () => router.push('/assist/einsaetze/new' as never) : undefined
-            }
+            actionLabel={!isReadOnly ? 'Neuer Einsatz' : undefined}
+            onAction={!isReadOnly ? () => router.push('/assist/assignments' as never) : undefined}
           />
         ) : (
           <AssignmentsListView />

@@ -20,6 +20,8 @@ import {
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { bootstrapDocumentEngine } from './documentEngineBootstrap';
+import { documentTemplateSupabaseRepository } from './repository/documentTemplateRepository.supabase';
 import { fetchTenantDocumentSettings, mergeTenantSettingsIntoContext } from './tenantDocumentSettingsService';
 import type { SystemDocumentTemplate } from '@/types/documents/systemDocumentTemplate';
 import { SYSTEM_TEMPLATE_COPY_NOTICE } from './systemTemplateLegal';
@@ -144,6 +146,12 @@ export async function listDocumentTemplates(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
+  bootstrapDocumentEngine();
+
+  if (getServiceMode() === 'supabase') {
+    return documentTemplateSupabaseRepository.list(tenantId);
+  }
+
   seedDemoTemplates();
   await demoDelay();
 
@@ -160,6 +168,12 @@ export async function getDocumentTemplateDetail(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+
+  bootstrapDocumentEngine();
+
+  if (getServiceMode() === 'supabase') {
+    return documentTemplateSupabaseRepository.getDetail(tenantId, templateId);
+  }
 
   seedDemoTemplates();
   await demoDelay();
@@ -232,6 +246,12 @@ export async function updateDocumentTemplateVersion(
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
+
+  bootstrapDocumentEngine();
+
+  if (getServiceMode() === 'supabase') {
+    return documentTemplateSupabaseRepository.updateVersion(tenantId, versionId, input);
+  }
 
   seedDemoTemplates();
   const version = VERSIONS.get(versionId);
@@ -319,8 +339,69 @@ export async function runLivePreview(
   const tenantBlock = guardServiceTenant(request.tenantId);
   if (tenantBlock) return tenantBlock;
 
+  bootstrapDocumentEngine();
+
   if (getServiceMode() === 'supabase') {
-    return { ok: false, error: 'Live-Vorschau im Supabase-Modus: Repository erweitern — kein Demo-Fallback.' };
+    const detailResult = await documentTemplateSupabaseRepository.getDetail(
+      request.tenantId,
+      request.templateId,
+    );
+    if (!detailResult.ok) return detailResult;
+    const template = detailResult.data;
+    const version =
+      (request.versionId
+        ? template.versions.find((v) => v.id === request.versionId)
+        : null) ??
+      template.draftVersion ??
+      template.activeVersion;
+    if (!version) {
+      return { ok: false, error: 'Vorlagenversion nicht gefunden.' };
+    }
+
+    const sample = PREVIEW_SAMPLE_OPTIONS.find((s) => s.id === request.sampleId) ?? PREVIEW_SAMPLE_OPTIONS[0]!;
+    const contextResult = await buildDocumentContext(sample.entityType, sample.entityId, request.tenantId);
+    if (!contextResult.ok) {
+      return { ok: false, error: contextResult.error };
+    }
+
+    const settingsResult = await fetchTenantDocumentSettings(request.tenantId, actorRoleKey);
+    const settings = settingsResult.ok ? settingsResult.data : null;
+    const context = settings
+      ? mergeTenantSettingsIntoContext(contextResult.context, settings)
+      : contextResult.context;
+
+    const preview = buildDocumentPreview({
+      templateVersion: {
+        htmlTemplate: version.htmlTemplate,
+        cssTemplate: version.cssTemplate,
+        requiredFields: version.requiredFields,
+      },
+      context,
+      documentType: template.templateType,
+      tenantDocumentSettings: settings,
+      viewMode: request.viewMode ?? 'desktop',
+      showDraftWatermark: request.showDraftWatermark ?? version.versionStatus === 'draft',
+    });
+
+    const previewValid = preview.renderResult.validation.status !== 'error';
+    await documentTemplateSupabaseRepository.markPreviewResult(
+      request.tenantId,
+      version.id,
+      previewValid,
+    );
+
+    return {
+      ok: true,
+      data: {
+        html: preview.html,
+        renderResult: preview.renderResult,
+        viewMode: preview.viewMode,
+        sampleLabel: sample.label,
+        pdfPrepared: true,
+        pdfEngineAvailable: isPdfEngineAvailable(),
+        source: 'repository',
+      },
+    };
   }
 
   seedDemoTemplates();

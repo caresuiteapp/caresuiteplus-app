@@ -229,6 +229,9 @@ export {
   validateDocumentationRecord,
 } from './documentationValidation';
 
+export { bootstrapDocumentEngine, resetDocumentEngineBootstrap } from './documentEngineBootstrap';
+export { buildGeneratedDocumentFileName } from './documentFileNameService';
+
 export {
   assertDocumentActionAllowed,
   buildDocumentActionGateContext,

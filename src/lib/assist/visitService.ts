@@ -7,6 +7,7 @@ import {
   getDemoAssignmentSeedById,
   isAssignmentToday,
   isAssignmentUpcoming,
+  removeDemoAssignmentSeed,
   updateDemoAssignmentSeedStatus,
 } from '@/data/demo/assistAssignments';
 import { demoClients } from '@/data/demo/clients';
@@ -23,6 +24,7 @@ import type {
   VisitDispositionDetail,
   VisitDispositionListItem,
 } from '@/lib/assist/visitTypes';
+import { buildVisitRecurrenceJson } from '@/lib/assist/visitTypes';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import { getAllowedAssignmentTransitions } from '@/lib/assist/assignmentStatusMachine';
@@ -379,6 +381,35 @@ export async function updateVisitDispositionStatus(
   return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
 }
 
+export async function deleteVisitDisposition(
+  visitId: string,
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<void>> {
+  const denied = enforcePermission<void>(actorRoleKey, 'assist.assignments.manage');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'supabase') {
+    if (!isUuid(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
+    if (resolvedId) {
+      return visitSupabaseRepository.delete(tenantId, resolvedId);
+    }
+
+    return assignmentSupabaseRepository.delete(tenantId, visitId);
+  }
+
+  await new Promise((r) => setTimeout(r, 240));
+  if (!removeDemoAssignmentSeed(visitId)) {
+    return { ok: false, error: 'Einsatz nicht gefunden.' };
+  }
+  return { ok: true, data: undefined };
+}
+
 export async function createVisitFromWizard(
   tenantId: string,
   wizard: VisitCreateWizardData,
@@ -403,7 +434,10 @@ export async function createVisitFromWizard(
     tasks: wizard.tasks,
   });
 
-  const taskTitles = wizard.tasks.map((t) => t.trim()).filter(Boolean);
+  const taskTitles =
+    wizard.taskDrafts.length > 0
+      ? wizard.taskDrafts.map((t) => t.title)
+      : wizard.tasks.map((t) => t.trim()).filter(Boolean);
   const conflicts = detectAssignmentConflicts({
     assignment: {
       id: 'new',
@@ -450,6 +484,16 @@ export async function createVisitFromWizard(
     notifyEmployee: wizard.notifyEmployee,
     notifyClient: wizard.notifyClient,
     portalReleaseEnabled: wizard.portalReleaseEnabled,
+    saveAsDraft: wizard.saveAsDraft,
+    subjectKey: wizard.subjectKey || null,
+    assignmentTypeKey: wizard.assignmentTypeKey || null,
+    serviceCategoryKey: wizard.serviceCategoryKey || null,
+    taskPackageId: wizard.taskPackageId || null,
+    billingBudgetSourceKey: wizard.billingBudgetSourceKey || null,
+    proofTemplateKey: wizard.proofTemplateKey || null,
+    riskFlagKeys: wizard.riskFlagKeys,
+    recurrenceJson: buildVisitRecurrenceJson(wizard),
+    catalogSnapshotJson: wizard.catalogSnapshotJson,
   };
 
   if (getServiceMode() === 'supabase') {

@@ -82,7 +82,7 @@ async function fetchStoredDocumentBytes(storagePath: string): Promise<ServiceRes
   return { ok: true, data: new Uint8Array(buffer) };
 }
 
-async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
+export async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
     throw new Error('PDF-Erzeugung ist nur im Web-Browser verfügbar.');
   }

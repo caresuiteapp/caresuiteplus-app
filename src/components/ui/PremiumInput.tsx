@@ -1,6 +1,17 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
-import { useAuroraAdaptiveText, useAuroraGlass, auroraGlass, darkGlassSurfaceText } from '@/design/tokens/auroraGlass';
+import { Platform, StyleSheet, Text, TextInput, View, type TextInputProps } from 'react-native';
+import {
+  useAuroraAdaptiveText,
+  useAuroraGlass,
+  auroraGlass,
+  darkGlassSurfaceText,
+  lightLiquidGlassWebFx,
+} from '@/design/tokens/auroraGlass';
+import {
+  resolveLlganViewGlass,
+  type LlganViewContext,
+} from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { radius, spacing, typography } from '@/theme';
 
 type PremiumInputProps = TextInputProps & {
@@ -9,6 +20,8 @@ type PremiumInputProps = TextInputProps & {
   error?: string;
   /** Erzwingt helle Schrift auf dunklem Eingabefeld (auroraGlass.input). */
   onDarkSurface?: boolean;
+  /** LLGAN view — `form` in modal dialogs for visible borders on light glass. */
+  viewContext?: LlganViewContext;
 };
 
 export function PremiumInput({
@@ -16,12 +29,16 @@ export function PremiumInput({
   hint,
   error,
   onDarkSurface = false,
+  viewContext,
   style,
   ...props
 }: PremiumInputProps) {
   const { colors, active, tokens } = useAuroraGlass();
+  const { isLight } = useLegacyTheme();
   const adaptiveText = useAuroraAdaptiveText();
   const text = onDarkSurface ? darkGlassSurfaceText : adaptiveText;
+  const formGlass = resolveLlganViewGlass(viewContext ?? 'form', 'default');
+  const useFormGlass = Boolean(viewContext) && active && isLight && !onDarkSurface;
 
   const styles = useMemo(
     () =>
@@ -37,12 +54,27 @@ export function PremiumInput({
           minHeight: 48,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: onDarkSurface ? auroraGlass.border : active ? tokens.border : colors.borderStrong,
-          backgroundColor: onDarkSurface ? auroraGlass.input : active ? tokens.input : colors.bgInput,
+          borderColor: onDarkSurface
+            ? auroraGlass.border
+            : useFormGlass
+              ? formGlass.borderAccent
+              : active
+                ? tokens.border
+                : colors.borderStrong,
+          backgroundColor: onDarkSurface
+            ? auroraGlass.input
+            : useFormGlass
+              ? formGlass.input
+              : active
+                ? tokens.input
+                : colors.bgInput,
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
           color: text.primary,
           fontSize: 15,
+          ...(Platform.OS === 'web' && useFormGlass
+            ? lightLiquidGlassWebFx(formGlass.blurButton, formGlass.saturateButton)
+            : {}),
         },
         inputError: {
           borderColor: colors.danger,
@@ -56,7 +88,20 @@ export function PremiumInput({
           color: colors.danger,
         },
       }),
-    [active, colors.danger, onDarkSurface, text.muted, text.primary, tokens.border, tokens.input],
+    [
+      active,
+      colors.danger,
+      colors.borderStrong,
+      colors.bgInput,
+      formGlass.borderAccent,
+      formGlass.input,
+      onDarkSurface,
+      text.muted,
+      text.primary,
+      tokens.border,
+      tokens.input,
+      useFormGlass,
+    ],
   );
 
   return (

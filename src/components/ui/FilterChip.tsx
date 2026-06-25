@@ -26,8 +26,10 @@ export function FilterChip({ label, selected = false, onPress, style }: FilterCh
   );
 }
 
+type FilterChipOption<T extends string> = { label: string; key?: T; value?: T };
+
 type FilterChipGroupProps<T extends string> = {
-  options: { key: T; label: string }[];
+  options: FilterChipOption<T>[];
   /** Selected option key (preferred). */
   value?: T;
   /** Alias for `value` (recovery / SegmentedTabs-style callers). */
@@ -40,6 +42,14 @@ type FilterChipGroupProps<T extends string> = {
   /** Stack chips onto multiple lines instead of a horizontal scroll row. */
   wrap?: boolean;
 };
+
+function resolveFilterChipKey<T extends string>(opt: FilterChipOption<T>, index: number): T {
+  const key = opt.key ?? opt.value;
+  if (key == null) {
+    throw new Error(`FilterChipGroup option at index ${index} requires key or value`);
+  }
+  return key;
+}
 
 export function FilterChipGroup<T extends string>({
   options,
@@ -54,14 +64,17 @@ export function FilterChipGroup<T extends string>({
   const selected = value ?? selectedKey;
   const handleChange = onChange ?? onSelect;
 
-  const chips = options.map((opt) => (
-    <FilterChip
-      key={opt.key}
-      label={opt.label}
-      selected={selected === opt.key}
-      onPress={handleChange ? () => handleChange(opt.key) : undefined}
-    />
-  ));
+  const chips = options.map((opt, index) => {
+    const optKey = resolveFilterChipKey(opt, index);
+    return (
+      <FilterChip
+        key={optKey}
+        label={opt.label}
+        selected={selected === optKey}
+        onPress={handleChange ? () => handleChange(optKey) : undefined}
+      />
+    );
+  });
 
   if (wrap) {
     return <View style={[styles.row, { flexWrap: 'wrap' }, style]}>{chips}</View>;

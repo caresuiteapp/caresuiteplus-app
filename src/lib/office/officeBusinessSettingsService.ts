@@ -28,6 +28,12 @@ const SETTINGS_LINKS: OfficeSettingsLink[] = [
     description: 'Tätigkeitsnachweis, Kataloge und Inaktivitätseinstellungen',
   },
   {
+    id: 'assist-catalogs',
+    label: 'Assist-Vorlagen & Kataloge',
+    route: '/business/office/settings/assist-catalogs',
+    description: 'Einsatz-Betreff, Aufgabenpakete, Dokumentation und Neuaufnahme für Assist',
+  },
+  {
     id: 'templates',
     label: 'Vorlagen & Kataloge',
     route: '/business/templates/settings',

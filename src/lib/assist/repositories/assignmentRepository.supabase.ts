@@ -23,6 +23,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { Database } from '@/lib/supabase/database.types';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { isUuid } from '@/lib/validation/uuid';
+import { cancelCalendarEventBySourceAsync } from '@/lib/calendar/calendarSyncService';
 
 export type AssignmentTaskRow = {
   id: string;
@@ -595,5 +596,26 @@ export const assignmentSupabaseRepository = {
     });
 
     return { ok: true, data: { id: data.id } };
+  },
+
+  async delete(tenantId: string, assignmentId: string): Promise<ServiceResult<void>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const existing = await this.getById(tenantId, assignmentId);
+    if (!existing.ok) return existing;
+    if (!existing.data) {
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
+    }
+
+    cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', assignmentId);
+
+    const { error } = await fromUnknownTable(supabase, 'assignments')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('id', assignmentId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    return { ok: true, data: undefined };
   },
 };

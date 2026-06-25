@@ -51,8 +51,8 @@ Eigenes Beratungs-Cockpit mit 12 KPIs, sechs Workflow-Sektionen, Beratungs-Schne
 
 | Log | Ergebnis |
 |-----|----------|
-| `.audit-test-beratung-dashboard-ui-reality-fix.log` | siehe Testlauf |
-| `.audit-typecheck-beratung-dashboard-ui-reality-fix.log` | siehe Typecheck-Lauf |
+| `.audit-test-beratung-dashboard-ui-reality-fix.log` | ✅ 15/15 (`beratungDashboard.test.ts` 11 + `beratungDashboardHero.test.ts` 4) |
+| `.audit-typecheck-beratung-dashboard-ui-reality-fix.log` | ⚠️ Repo-weite vorbestehende TS-Fehler; geänderte Beratungs-Dateien ohne neue Fehler |
 
 ---
 

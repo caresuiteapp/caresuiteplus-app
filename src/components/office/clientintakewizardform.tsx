@@ -1,5 +1,7 @@
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
+import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
 import { useMemo } from 'react';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import {
   CareCatalogSelect,
   CareCostBearerTypeFields,
@@ -36,14 +38,17 @@ export function ClientIntakeSectionContent({
   wizard,
   contentStyles,
   panelViewContext,
+  clientId,
 }: {
   section: IntakeSectionKey;
   wizard: ReturnType<typeof useClientIntakeWizard>;
   contentStyles: ReturnType<typeof useAdaptiveContentStyles>;
   /** Use `form` when rendered inside AppGlassModal section edits. */
   panelViewContext?: LlganViewContext;
+  clientId?: string;
 }) {
-  const { form, errors, updateField, updateBillingTypes, updateCostBearerTypes, contextHint, tenantId, replaceForm } = wizard;
+  const { form, errors, updateField, updateBillingTypes, updateCostBearerTypes, contextHint, tenantId, replaceForm, createdId } = wizard;
+  const resolvedClientId = clientId ?? createdId ?? undefined;
   const panelCtx = panelViewContext ? { viewContext: panelViewContext } : {};
 
   if (section === 'leistungsart') {
@@ -99,7 +104,8 @@ export function ClientIntakeSectionContent({
         <PremiumInput label="Hausarzt" value={form.familyDoctor} onChangeText={(v) => updateField('familyDoctor', v)} error={errors.familyDoctor} />
         <CareCatalogSelect catalogKey="consulting_types" label="Beratungsart" value={form.consultingType} onChange={(v) => updateField('consultingType', v)} error={errors.consultingType} />
         <PremiumInput label="Beratungsanlass" value={form.consultingReason} onChangeText={(v) => updateField('consultingReason', v)} error={errors.consultingReason} />
-        <CareMultiCatalogSelect catalogKey="support_tasks" label="Gewünschte Unterstützung" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} error={errors.supportWishes} />
+        <CareMultiCatalogSelect catalogKey="support_tasks" label="Gewünschte Unterstützung (System)" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} error={errors.supportWishes} />
+        <AssistCatalogMultiSelect catalogKey="assist.intake.service_wish" label="Leistungswunsch (Office-Katalog)" values={form.supportWishes} onChange={(v) => updateField('supportWishes', v)} />
       </SectionPanel>
     );
   }
@@ -189,10 +195,18 @@ export function ClientIntakeSectionContent({
 
   if (section === 'dokumente') {
     return (
-      <SectionPanel {...panelCtx} title="Dokumente">
-        <CareDocumentUpload label="Dokument hochladen" onPicked={(f) => updateField('documentCategories', [...form.documentCategories, f.name])} />
-        <CarePhotoCapturePrepared />
-      </SectionPanel>
+      <>
+        <SectionPanel {...panelCtx} title="Dokumente">
+          <CareDocumentUpload label="Dokument hochladen" onPicked={(f) => updateField('documentCategories', [...form.documentCategories, f.name])} />
+          <CarePhotoCapturePrepared />
+        </SectionPanel>
+        <DocumentModuleTemplatesPanel
+          tenantId={tenantId}
+          targetModule="assist"
+          targetArea="intake"
+          clientId={resolvedClientId}
+        />
+      </>
     );
   }
 
@@ -349,7 +363,7 @@ export function ClientIntakeWizardForm({
             message="Wählen Sie mindestens eine Leistungsart, um die Aufnahme zu starten."
           />
         ) : null}
-        <ClientIntakeSectionContent section={currentSection} wizard={wizard} contentStyles={contentStyles} />
+        <ClientIntakeSectionContent section={currentSection} wizard={wizard} contentStyles={contentStyles} clientId={clientId} />
         {submitError ? <ErrorState message={submitError} /> : null}
       </ScrollView>
       <View style={styles.footer}>

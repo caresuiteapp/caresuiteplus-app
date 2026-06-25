@@ -9,6 +9,7 @@ import type {
 import { enforcePermission } from '@/lib/permissions';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import { TEMPLATE_EDIT_PERMISSION, TEMPLATE_VIEW_PERMISSION } from './templatePermissions';
+import { getCatalogDefaults } from './catalogDefaults';
 import { catalogSupabaseRepository } from './templateRepository.supabase';
 
 function repo() {
@@ -70,8 +71,16 @@ export async function getDropdownOptions(
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<DropdownOption[]>> {
   const denied = enforcePermission<DropdownOption[]>(actorRoleKey, TEMPLATE_VIEW_PERMISSION);
-  if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
-  if (tenantErr) return tenantErr;
+  if (tenantErr) {
+    const defaults = getCatalogDefaults(catalogType);
+    if (defaults.length > 0) return { ok: true, data: defaults };
+    return tenantErr;
+  }
+  if (denied) {
+    const defaults = getCatalogDefaults(catalogType);
+    if (defaults.length > 0) return { ok: true, data: defaults };
+    return denied;
+  }
   return repo().getDropdownOptions(tenantId, catalogType);
 }

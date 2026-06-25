@@ -123,10 +123,10 @@ export type PdfEngineInfo = {
 };
 
 export const PDF_ENGINE_INFO: PdfEngineInfo = {
-  mode: 'prepared',
-  productionAvailable: false,
+  mode: 'production',
+  productionAvailable: true,
   message:
-    'PDF-Erzeugung ist als serverseitiger Render-Job vorbereitet (Supabase Edge Function / Backend). Keine GoBD-Konformität behauptet.',
+    'PDF-Erzeugung via HTML→jsPDF (Web) mit Upload in Supabase Storage. Server-Render über Edge Function render-document-pdf.',
   recommendedBackend: 'supabase_edge_function',
 };
 

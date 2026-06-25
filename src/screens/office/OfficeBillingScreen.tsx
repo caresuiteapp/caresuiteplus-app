@@ -11,6 +11,7 @@ import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchBillingDashboardStats } from '@/lib/office';
 import { useAuth } from '@/lib/auth/context';
+import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
 import { colors, spacing } from '@/theme';
 import { BudgetsListScreen } from './BudgetsListScreen';
 
@@ -80,6 +81,12 @@ export function OfficeBillingScreen() {
       <View style={styles.content}>
         {activeTab === 'invoices' ? <InvoicesTabContent /> : <BudgetsListScreen embedded />}
       </View>
+      <ModuleDocumentsSection
+        targetModule="office"
+        targetArea="billing"
+        title="Rechnungen & Mahnungen"
+        subtitle="Rechnung, Mahnung, Leistungsnachweis, Kostenvoranschlag"
+      />
     </ScreenShell>
   );
 }

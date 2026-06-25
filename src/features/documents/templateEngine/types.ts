@@ -75,6 +75,7 @@ export type DocumentContext = {
   recipient: DocumentContextSection;
   invoice: DocumentContextSection;
   visit: DocumentContextSection;
+  employee: DocumentContextSection;
   contract: DocumentContextSection;
   signature: DocumentContextSection;
   document: DocumentContextSection;

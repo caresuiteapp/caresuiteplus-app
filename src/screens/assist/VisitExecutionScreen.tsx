@@ -7,6 +7,7 @@ import {
   VisitSignatureSection,
   VisitTasksPanel,
 } from '@/components/assist';
+import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -20,6 +21,7 @@ import {
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
+import { useAssistDocumentationBlocks } from '@/hooks/assistCatalog/useAssistCatalog';
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
@@ -79,6 +81,7 @@ export function VisitExecutionScreen() {
   } = useVisitDispositionDetail(id);
 
   const [documentationNote, setDocumentationNote] = useState('');
+  const { blocks: docBlocks } = useAssistDocumentationBlocks();
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
   const [localError, setLocalError] = useState<string | null>(null);
   const [taskLoading, setTaskLoading] = useState(false);
@@ -280,7 +283,25 @@ export function VisitExecutionScreen() {
         ) : null}
 
         {showDocumentation && canManage ? (
-          <SectionPanel title="Dokumentation" subtitle="Freitext — Pflicht vor Abschluss">
+          <SectionPanel title="Dokumentation" subtitle="Quick-Chips aus Office-Katalog">
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} style={{ marginBottom: 8 }}>
+              <View style={{ flexDirection: 'row', flexWrap: 'wrap', gap: 8 }}>
+                {docBlocks.slice(0, 12).map((block) => (
+                  <PremiumButton
+                    key={block.id}
+                    title={block.label}
+                    size="sm"
+                    variant="secondary"
+                    onPress={() =>
+                      setDocumentationNote((prev) => {
+                        const text = block.payloadJson.textBlock ?? block.description ?? block.label;
+                        return prev.trim() ? `${prev.trim()}\n${text}` : String(text);
+                      })
+                    }
+                  />
+                ))}
+              </View>
+            </ScrollView>
             <PremiumInput
               label="Was wurde erledigt?"
               value={documentationNote || visit.employeeNotes || ''}
@@ -297,6 +318,20 @@ export function VisitExecutionScreen() {
               onPress={handleSaveDocumentation}
             />
           </SectionPanel>
+        ) : null}
+
+        {showDocumentation && canManage && tenantId ? (
+          <DocumentModuleTemplatesPanel
+            tenantId={tenantId}
+            targetModule="assist"
+            targetArea="visit_complete"
+            clientId={visit.clientId}
+            assignmentId={visit.id}
+            employeeId={visit.employeeId ?? profile?.id}
+            assistOnly
+            title="Einsatz-Dokumente"
+            subtitle="Leistungsnachweise & Assist-Vorlagen"
+          />
         ) : null}
 
         {showSignature && canManage ? (

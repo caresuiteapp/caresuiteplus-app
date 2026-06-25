@@ -20,6 +20,7 @@ import {
   isShiftScheduleImportReady,
   SHIFT_SCHEDULE_IMPORT_PREPARED_MESSAGE,
 } from '@/lib/pflege/pflegeModuleConfig';
+import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
 import { colors, spacing } from '@/theme';
 
 export function ShiftScheduleListScreen() {
@@ -84,6 +85,12 @@ export function ShiftScheduleListScreen() {
         fullWidth
         disabled={!importReady || isReadOnly}
         onPress={() => undefined}
+      />
+      <ModuleDocumentsSection
+        targetModule="office"
+        targetArea="shift"
+        title="Dienstplan & Tourenplan"
+        subtitle="Dienstplan Soll/Ist, Tourenplan Wochen- und Tagessicht"
       />
     </View>
   );

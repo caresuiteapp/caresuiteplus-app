@@ -2,7 +2,7 @@ import { AssignmentDetailTabsPanel } from '@/components/assist/AssignmentDetailT
 import { useEffect, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
-import { auroraGlass } from '@/design/tokens/auroraGlass';
+import { useAuroraGlassModalStyle } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
@@ -12,20 +12,24 @@ type AssignmentDetailGlassModalProps = {
   assignmentId: string | null;
   title?: string;
   onClose: () => void;
+  onDeleted?: () => void;
 };
 
 type ModalMode = 'preview' | 'full';
 
 const PREVIEW_MAX_WIDTH = 920;
 const FULL_MAX_WIDTH = 1280;
+const FORM_CTX = { viewContext: 'form' as const };
 
 export function AssignmentDetailGlassModal({
   visible,
   assignmentId,
   title,
   onClose,
+  onDeleted,
 }: AssignmentDetailGlassModalProps) {
   const assistAccent = moduleColor('assist');
+  const formPanelStyle = useAuroraGlassModalStyle(FORM_CTX);
   const [mode, setMode] = useState<ModalMode>('preview');
 
   useEffect(() => {
@@ -39,6 +43,11 @@ export function AssignmentDetailGlassModal({
   if (!assignmentId) return null;
 
   const isFull = mode === 'full';
+
+  const handleDeleted = () => {
+    onDeleted?.();
+    onClose();
+  };
 
   return (
     <PlatformModal
@@ -59,12 +68,13 @@ export function AssignmentDetailGlassModal({
           keyboardShouldPersistTaps="handled"
           showsVerticalScrollIndicator={false}
         >
-          <View style={styles.detailPanel}>
+          <View style={[styles.detailPanel, formPanelStyle]}>
             <AssignmentDetailTabsPanel
               assignmentId={assignmentId}
               mode={isFull ? 'full' : 'preview'}
               onOpenFullRecord={() => setMode('full')}
               onClose={onClose}
+              onDeleted={handleDeleted}
             />
           </View>
         </ScrollView>
@@ -74,16 +84,13 @@ export function AssignmentDetailGlassModal({
 }
 
 const styles = StyleSheet.create({
-  modalBody: { paddingTop: 0, gap: 0, backgroundColor: auroraGlass.modal },
+  modalBody: { paddingTop: 0, gap: 0 },
   body: { gap: careSpacing.md },
   scroll: { flexGrow: 0, maxHeight: 560 },
   scrollFull: { maxHeight: 720 },
   scrollContent: { flexGrow: 1 },
   detailPanel: {
-    backgroundColor: auroraGlass.modal,
     borderRadius: careRadius.lg,
-    borderWidth: 1,
-    borderColor: auroraGlass.borderStrong,
     overflow: 'hidden',
   },
 });

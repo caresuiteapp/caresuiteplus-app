@@ -5,6 +5,7 @@ import { ActionToolbar, ModuleDashboardShell } from '@/components/layout/platfor
 import { moduleColor } from '@/design/tokens/modules';
 import { usePflegeDashboard } from '@/hooks/usePflegeDashboard';
 import { wp378A11y } from '@/lib/a11y/wp378-pflege';
+import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
 import {
   PFLEGE_HEADER_PRIMARY_ACTIONS,
   PFLEGE_HEADER_SECONDARY_ACTIONS,
@@ -62,6 +63,12 @@ export function PflegeIndexScreen() {
         loading={loading}
         error={error}
         onRefresh={refresh}
+      />
+      <ModuleDocumentsSection
+        targetModule="pflege"
+        targetArea="record"
+        title="Pflegefachliche Vorlagen"
+        subtitle="Pflegeanamnese, SIS, Maßnahmenplanung, Pflegebericht u. a."
       />
       <View
         accessible

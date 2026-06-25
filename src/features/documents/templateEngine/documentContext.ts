@@ -26,6 +26,7 @@ export function createEmptyDocumentContext(input: {
     recipient: emptySection(),
     invoice: emptySection(),
     visit: emptySection(),
+    employee: emptySection(),
     contract: emptySection(),
     signature: emptySection(),
     document: emptySection(),
@@ -93,6 +94,14 @@ function buildDemoDocumentContext(
       employee_name: 'Anna Pflege',
       documentation: 'Grundpflege durchgeführt, Klient:in wach und orientiert.',
       budget_reference: 'SGB XI — Entlastungsleistung',
+    },
+    employee: {
+      full_name: 'Anna Pflege',
+      first_name: 'Anna',
+      last_name: 'Pflege',
+      personnel_number: 'MA-0042',
+      role: 'Pflegefachkraft',
+      handzeichen: 'AP',
     },
     contract: {
       number: 'V-DEMO-001',

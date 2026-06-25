@@ -280,6 +280,13 @@ export function updateDemoAssignmentSeedStatus(
   return { ...assignmentStore[index] };
 }
 
+export function removeDemoAssignmentSeed(id: string): boolean {
+  const index = assignmentStore.findIndex((a) => a.id === id);
+  if (index < 0) return false;
+  assignmentStore.splice(index, 1);
+  return true;
+}
+
 export function updateDemoAssignmentFields(
   id: string,
   patch: Partial<Pick<AssignmentSeed, 'title' | 'location' | 'notes' | 'status'>>,

@@ -53,13 +53,20 @@ export async function updateVisitTaskStatus(
   const detail = await fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
   if (!detail.ok || !detail.data) return detail;
 
+  const reasonStatuses: VisitTaskStatus[] = [
+    'partial',
+    'not_requested',
+    'not_possible',
+    'cancelled',
+    'deferred',
+  ];
+
   const tasks = detail.data.tasks.map((t) =>
     t.id === taskId
       ? {
           ...t,
           status,
-          notDoneReason:
-            status === 'not_done' || status === 'not_requested'
+          notDoneReason: reasonStatuses.includes(status)
               ? (notDoneReason?.trim() ?? null)
               : null,
         }

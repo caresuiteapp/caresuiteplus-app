@@ -13,6 +13,8 @@ import type { RenderTemplateResult } from '@/features/documents/templateEngine/t
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { SYSTEM_TEMPLATE_SEEDS } from './systemTemplateSeeds';
+import { SYSTEM_DOCUMENT_CATALOG_TEMPLATES } from '@/data/seeds/documentCatalog';
+import { buildStandardExampleContext } from './systemTemplateSeeds';
 import { SYSTEM_TEMPLATE_LEGAL_DISCLAIMER } from './systemTemplateLegal';
 import {
   createTenantTemplateFromSystem,
@@ -29,11 +31,45 @@ function nextCopyId(prefix: string): string {
   return `${prefix}-${Date.now()}-${copyCounter}`;
 }
 
+function catalogEntryToSystemTemplate(
+  entry: (typeof SYSTEM_DOCUMENT_CATALOG_TEMPLATES)[number],
+): SystemDocumentTemplate {
+  return {
+    id: `sys-catalog-${entry.templateKey}`,
+    templateName: entry.name,
+    templateType: (entry.templateType as SystemDocumentTemplate['templateType']) ?? 'generic',
+    documentCategory: 'care',
+    templateStatus: 'active',
+    htmlTemplate: entry.htmlTemplate,
+    cssTemplate: entry.cssTemplate,
+    placeholderSchema: {},
+    requiredFields: (entry.manualFields ?? []).map((f) => ({
+      fieldKey: f.fieldKey,
+      label: f.label,
+      dataPath: `manual.${f.fieldKey}`,
+      isRequired: false,
+    })),
+    layoutSettings: { layoutKind: entry.layoutKind },
+    headerSettings: {},
+    footerSettings: {},
+    signatureSettings: {},
+    exampleContext: buildStandardExampleContext(),
+    validationRules: {},
+    isSystemTemplate: true,
+  };
+}
+
 /** Idempotentes Seeden — keine Duplikate bei erneutem Aufruf. */
 export function seedSystemTemplates(): void {
   for (const seed of SYSTEM_TEMPLATE_SEEDS) {
     if (!SYSTEM_TEMPLATES.has(seed.id)) {
       SYSTEM_TEMPLATES.set(seed.id, seed);
+    }
+  }
+  for (const catalogEntry of SYSTEM_DOCUMENT_CATALOG_TEMPLATES) {
+    const mapped = catalogEntryToSystemTemplate(catalogEntry);
+    if (!SYSTEM_TEMPLATES.has(mapped.id)) {
+      SYSTEM_TEMPLATES.set(mapped.id, mapped);
     }
   }
 }

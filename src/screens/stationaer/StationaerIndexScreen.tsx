@@ -11,6 +11,7 @@ import {
   STATIONAER_EXTENSION_PREPARED_MESSAGE,
   isStationaerExtensionLiveReady,
 } from '@/lib/stationaer/stationaerModuleConfig';
+import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
 import {
   STATIONAER_HEADER_PRIMARY_ACTIONS,
   STATIONAER_HEADER_SECONDARY_ACTIONS,
@@ -78,6 +79,12 @@ export function StationaerIndexScreen() {
         loading={loading}
         error={error}
         onRefresh={refresh}
+      />
+      <ModuleDocumentsSection
+        targetModule="stationaer"
+        targetArea="resident"
+        title="Stationäre Vorlagen"
+        subtitle="Bewohnerstammblatt, SIS, Pflegebericht, Trinkprotokoll u. a."
       />
       <View
         accessible

@@ -3,18 +3,18 @@ import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
+import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
+  PremiumBadge,
   PremiumButton,
-  PremiumCard,
   SectionPanel,
   SegmentedTabs,
   SuccessState,
   type TabOption,
 } from '@/components/ui';
-import { VisitDispositionBadge, VisitDispositionBadgeRow } from '@/components/assist/VisitDispositionBadge';
 import { VisitProofPreviewPanel } from '@/components/assist/VisitProofPreviewPanel';
 import { VisitTasksPanel } from '@/components/assist/VisitTasksPanel';
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
@@ -23,21 +23,21 @@ import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import {
   buildVisitProofPreview,
+  deleteVisitDisposition,
   updateVisitTaskStatus,
 } from '@/lib/assist';
 import type { VisitTaskStatus } from '@/lib/assist/visitTypes';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import {
   VISIT_BILLING_STATUS_LABELS,
-  VISIT_DOCUMENTATION_STATUS_LABELS,
   VISIT_EXECUTION_STATUS_LABELS,
   VISIT_PLANNING_STATUS_LABELS,
   VISIT_PORTAL_STATUS_LABELS,
   VISIT_PROOF_STATUS_LABELS,
-  VISIT_TASK_STATUS_LABELS,
 } from '@/lib/assist/visitTypes';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
+import { careSpacing } from '@/design/tokens/spacing';
 import { spacing, typography } from '@/theme';
 
 const DETAIL_TABS: TabOption[] = [
@@ -50,11 +50,14 @@ const DETAIL_TABS: TabOption[] = [
   { key: 'history', label: 'Verlauf' },
 ];
 
+const FORM_CTX = { viewContext: 'form' as const };
+
 type AssignmentDetailTabsPanelProps = {
   assignmentId: string;
   mode?: 'preview' | 'full';
   onOpenFullRecord?: () => void;
   onClose?: () => void;
+  onDeleted?: () => void;
 };
 
 function formatDateTime(iso: string | null | undefined): string {
@@ -81,17 +84,52 @@ function formatBudget(cents: number | null | undefined, currency = 'EUR'): strin
   return new Intl.NumberFormat('de-DE', { style: 'currency', currency }).format(cents / 100);
 }
 
+function StatusBadgeRow({
+  planningLabel,
+  proofLabel,
+  budgetLabel,
+  isAtRisk,
+  isIncomplete,
+}: {
+  planningLabel: string;
+  proofLabel: string;
+  budgetLabel: string;
+  isAtRisk?: boolean;
+  isIncomplete?: boolean;
+}) {
+  return (
+    <View style={statusBadgeStyles.row}>
+      <PremiumBadge label={planningLabel} variant="cyan" dot />
+      <PremiumBadge label={proofLabel} variant="purple" dot />
+      <PremiumBadge label={budgetLabel} variant="orange" dot />
+      {isAtRisk ? <PremiumBadge label="Gefährdet" variant="red" dot /> : null}
+      {isIncomplete ? <PremiumBadge label="Unvollständig" variant="orange" dot /> : null}
+    </View>
+  );
+}
+
+const statusBadgeStyles = StyleSheet.create({
+  row: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: spacing.xs,
+  },
+});
+
 export function AssignmentDetailTabsPanel({
   assignmentId,
   mode = 'full',
   onOpenFullRecord,
   onClose,
+  onDeleted,
 }: AssignmentDetailTabsPanelProps) {
   const router = useRouter();
   const { isReadOnly, roleLabel, can } = usePermissions();
   const [activeTab, setActiveTab] = useState('overview');
   const text = useAuroraAdaptiveText();
   const assistAccent = moduleColor('assist');
+  const tenantId = useServiceTenantId();
+  const { profile } = useAuth();
   const {
     data: visit,
     loading,
@@ -102,43 +140,48 @@ export function AssignmentDetailTabsPanel({
     changeStatus,
     notFound,
   } = useVisitDispositionDetail(assignmentId);
-  const { profile } = useAuth();
-  const tenantId = useServiceTenantId();
   const [taskLoading, setTaskLoading] = useState(false);
+
+  const isPreview = mode === 'preview';
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         panel: {
           flex: 1,
-          padding: spacing.md,
-          gap: spacing.md,
-          backgroundColor: auroraGlass.modal,
+          padding: careSpacing.md,
+          gap: careSpacing.md,
         },
-        title: { ...typography.h2, color: text.primary },
-        meta: { ...typography.caption, color: text.secondary },
+        title: { ...typography.h3, color: text.primary, fontWeight: '600' },
+        meta: { ...typography.body, color: text.secondary, marginTop: 4 },
         errorCard: {
-          backgroundColor: 'rgba(255,107,107,0.12)',
+          backgroundColor: 'rgba(239,68,68,0.08)',
           borderRadius: 12,
           borderWidth: 1,
-          borderColor: 'rgba(255,107,107,0.35)',
+          borderColor: 'rgba(239,68,68,0.25)',
           padding: spacing.md,
           gap: spacing.xs,
         },
-        errorTitle: { ...typography.bodyStrong, color: '#FF6B6B' },
+        errorTitle: { ...typography.bodyStrong, color: '#DC2626' },
         errorText: { ...typography.body, color: text.primary },
-        actions: { gap: spacing.sm },
+        actions: {
+          gap: spacing.sm,
+          paddingTop: spacing.xs,
+          borderTopWidth: 1,
+          borderTopColor: 'rgba(15,23,42,0.08)',
+        },
         actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         taskRow: {
           paddingVertical: spacing.xs,
           borderBottomWidth: 1,
-          borderBottomColor: auroraGlass.innerBorder,
+          borderBottomColor: 'rgba(15,23,42,0.08)',
         },
         taskTitle: { ...typography.body, color: text.primary },
         hint: { ...typography.caption, color: text.muted, fontStyle: 'italic' },
         tabs: { marginBottom: spacing.sm },
+        noteText: { ...typography.body, color: text.primary },
       }),
-    [text],
+    [text, isPreview],
   );
 
   if (loading) return <LoadingState message="Einsatz wird geladen…" />;
@@ -176,18 +219,24 @@ export function AssignmentDetailTabsPanel({
     await refresh();
   };
 
+  const handleDelete = async () => {
+    if (!tenantId) return { ok: false as const, error: 'Kein Mandant.' };
+    return deleteVisitDisposition(assignmentId, tenantId, profile?.roleKey);
+  };
+
   const proofPreview = buildVisitProofPreview(visit, visit.employeeNotes ?? visit.notes);
 
-  const isPreview = mode === 'preview';
   const visibleTabs = isPreview
     ? DETAIL_TABS.filter((t) => t.key === 'overview')
     : DETAIL_TABS;
+
+  const displayName = `${visit.serviceName ?? visit.title} · ${visit.clientName}`;
 
   const renderTabContent = () => {
     switch (activeTab) {
       case 'planning':
         return (
-          <SectionPanel title="Planung" subtitle="Disposition & Termin">
+          <SectionPanel {...FORM_CTX} title="Planung" subtitle="Disposition & Termin">
             <DetailInfoRow label="Planungsstatus" value={VISIT_PLANNING_STATUS_LABELS[visit.planningStatus]} />
             <DetailInfoRow label="Leistung" value={visit.serviceName ?? visit.title} />
             <DetailInfoRow label="Datum" value={formatDateTime(visit.scheduledStart)} />
@@ -207,7 +256,7 @@ export function AssignmentDetailTabsPanel({
         );
       case 'budget':
         return (
-          <SectionPanel title="Budget & Abrechnung">
+          <SectionPanel {...FORM_CTX} title="Budget & Abrechnung">
             <DetailInfoRow
               label="Abrechnungsstatus"
               value={VISIT_BILLING_STATUS_LABELS[visit.billingStatus]}
@@ -220,14 +269,13 @@ export function AssignmentDetailTabsPanel({
               <Text style={styles.hint}>{visit.budget.warning}</Text>
             ) : null}
             <Text style={styles.hint}>
-              {/* TODO: Billing snapshot history from assist_visit_billing_snapshots */}
               Abrechnungs-Snapshots werden nach Migration 0116 verfügbar.
             </Text>
           </SectionPanel>
         );
       case 'execution':
         return (
-          <SectionPanel title="Durchführung">
+          <SectionPanel {...FORM_CTX} title="Durchführung">
             <DetailInfoRow
               label="Ausführungsstatus"
               value={VISIT_EXECUTION_STATUS_LABELS[visit.executionStatus]}
@@ -249,12 +297,11 @@ export function AssignmentDetailTabsPanel({
         return <VisitProofPreviewPanel preview={proofPreview} />;
       case 'history':
         return (
-          <SectionPanel title="Verlauf">
+          <SectionPanel {...FORM_CTX} title="Verlauf">
             <DetailInfoRow label="Erstellt" value={formatDateTime(visit.createdAt)} />
             <DetailInfoRow label="Aktualisiert" value={formatDateTime(visit.updatedAt)} />
             <DetailInfoRow label="Portal" value={VISIT_PORTAL_STATUS_LABELS[visit.portalStatus]} />
             <Text style={styles.hint}>
-              {/* TODO: Load assist_visit_status_history + audit_logs */}
               Statusverlauf wird aus assist_visit_status_history geladen.
             </Text>
           </SectionPanel>
@@ -262,19 +309,31 @@ export function AssignmentDetailTabsPanel({
       default:
         return (
           <>
-            <PremiumCard accentColor={assistAccent} style={{ backgroundColor: auroraGlass.card }}>
+            <SectionPanel
+              {...FORM_CTX}
+              title="Einsatz"
+              subtitle={visit.clientName}
+              accentColor={assistAccent}
+            >
               <Text style={styles.title}>{visit.serviceName ?? visit.title}</Text>
               <Text style={styles.meta}>
                 {visit.clientName} · {visit.employeeName}
               </Text>
-              <VisitDispositionBadgeRow
+            </SectionPanel>
+
+            <SectionPanel {...FORM_CTX} title="Status" subtitle="Planung · Nachweis · Budget">
+              <StatusBadgeRow
                 planningLabel={VISIT_PLANNING_STATUS_LABELS[visit.planningStatus]}
                 proofLabel={VISIT_PROOF_STATUS_LABELS[visit.proofStatus]}
                 budgetLabel={VISIT_BILLING_STATUS_LABELS[visit.billingStatus]}
                 isAtRisk={visit.isAtRisk}
                 isIncomplete={visit.isIncomplete}
               />
-            </PremiumCard>
+              <DetailInfoRow
+                label="Workflow"
+                value={ASSIGNMENT_STATUS_LABELS[visit.assignmentStatus]}
+              />
+            </SectionPanel>
 
             {visit.errorMessage ? (
               <View style={styles.errorCard}>
@@ -286,7 +345,7 @@ export function AssignmentDetailTabsPanel({
               </View>
             ) : null}
 
-            <SectionPanel title="Zeit & Ort">
+            <SectionPanel {...FORM_CTX} title="Zeit & Ort">
               <DetailInfoRow label="Beginn" value={formatDateTime(visit.scheduledStart)} />
               <DetailInfoRow label="Ende" value={formatDateTime(visit.scheduledEnd)} />
               <DetailInfoRow label="Dauer" value={formatDuration(visit.durationMinutes)} />
@@ -295,17 +354,20 @@ export function AssignmentDetailTabsPanel({
             </SectionPanel>
 
             {visit.budget ? (
-              <SectionPanel title="Budget-Vorschau">
+              <SectionPanel {...FORM_CTX} title="Budget">
                 <DetailInfoRow
                   label="Betrag"
                   value={formatBudget(visit.budget.budgetAmountCents, visit.budget.currency)}
                 />
+                {visit.budget.warning ? (
+                  <Text style={styles.hint}>{visit.budget.warning}</Text>
+                ) : null}
               </SectionPanel>
             ) : null}
 
             {visit.notes ? (
-              <SectionPanel title="Notizen">
-                <Text style={{ ...typography.body, color: text.primary }}>{visit.notes}</Text>
+              <SectionPanel {...FORM_CTX} title="Notizen">
+                <Text style={styles.noteText}>{visit.notes}</Text>
               </SectionPanel>
             ) : null}
           </>
@@ -370,10 +432,20 @@ export function AssignmentDetailTabsPanel({
         visit.allowedStatusTransitions.includes('storniert') ? (
           <PremiumButton
             title="Absagen"
-            variant="ghost"
+            variant="secondary"
             fullWidth
             loading={actionLoading}
             onPress={() => changeStatus('storniert')}
+          />
+        ) : null}
+        {can('assist.assignments.manage') && !isReadOnly ? (
+          <OfficeRecordDeleteButton
+            recordLabel="Einsatz"
+            displayName={displayName}
+            onDelete={handleDelete}
+            onDeleted={onDeleted}
+            confirmTitle="Einsatz löschen?"
+            buttonTitle="Löschen"
           />
         ) : null}
         {onClose ? (
@@ -382,7 +454,7 @@ export function AssignmentDetailTabsPanel({
       </View>
 
       {!isPreview && can('assist.assignments.manage') ? (
-        <SectionPanel title="Status ändern" subtitle="Erlaubte Workflow-Übergänge">
+        <SectionPanel {...FORM_CTX} title="Status ändern" subtitle="Erlaubte Workflow-Übergänge">
           {(visit.allowedStatusTransitions?.length ?? 0) === 0 ? (
             <EmptyState
               title="Keine Aktionen"

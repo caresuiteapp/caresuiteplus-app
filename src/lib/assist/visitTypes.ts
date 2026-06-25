@@ -106,14 +106,23 @@ export type VisitStatusDimension =
   | 'billing'
   | 'portal';
 
-export type VisitTaskStatus = 'open' | 'done' | 'not_done' | 'not_requested' | 'cancelled';
+export type VisitTaskStatus =
+  | 'open'
+  | 'done'
+  | 'partial'
+  | 'not_requested'
+  | 'not_possible'
+  | 'cancelled'
+  | 'deferred';
 
 export const VISIT_TASK_STATUS_LABELS: Record<VisitTaskStatus, string> = {
   open: 'Offen',
   done: 'Erledigt',
-  not_done: 'Nicht erledigt',
-  not_requested: 'Nicht angefordert',
-  cancelled: 'Storniert',
+  partial: 'Teilweise erledigt',
+  not_requested: 'Nicht gewünscht',
+  not_possible: 'Nicht möglich',
+  cancelled: 'Abgebrochen',
+  deferred: 'Verschoben',
 };
 
 export type VisitTaskItem = {
@@ -122,6 +131,8 @@ export type VisitTaskItem = {
   status: VisitTaskStatus;
   isRequired: boolean;
   notDoneReason: string | null;
+  notCompletedReasonKey?: string | null;
+  note?: string | null;
 };
 
 export type VisitBudgetSnapshot = {
@@ -179,6 +190,44 @@ export type VisitDispositionDetail = VisitDispositionListItem & {
   createdAt: string;
 };
 
+/** Wiederholungsmuster für Einsatzplanung */
+export type VisitRecurrencePattern = 'none' | 'daily' | 'weekly' | 'biweekly' | 'monthly';
+
+export const VISIT_RECURRENCE_PATTERN_OPTIONS: { key: VisitRecurrencePattern; label: string }[] = [
+  { key: 'none', label: 'Einmalig' },
+  { key: 'daily', label: 'Täglich' },
+  { key: 'weekly', label: 'Wöchentlich' },
+  { key: 'biweekly', label: 'Alle 2 Wochen' },
+  { key: 'monthly', label: 'Monatlich' },
+];
+
+export const VISIT_RECURRENCE_PATTERN_LABELS: Record<VisitRecurrencePattern, string> = {
+  none: 'Einmalig',
+  daily: 'Täglich',
+  weekly: 'Wöchentlich',
+  biweekly: 'Alle 2 Wochen',
+  monthly: 'Monatlich',
+};
+
+export const VISIT_WEEKDAY_OPTIONS = [
+  { key: 'mo', label: 'Mo' },
+  { key: 'di', label: 'Di' },
+  { key: 'mi', label: 'Mi' },
+  { key: 'do', label: 'Do' },
+  { key: 'fr', label: 'Fr' },
+  { key: 'sa', label: 'Sa' },
+  { key: 'so', label: 'So' },
+] as const;
+
+export type VisitWeekdayKey = (typeof VISIT_WEEKDAY_OPTIONS)[number]['key'];
+
+export type VisitRecurrenceJson = {
+  pattern: VisitRecurrencePattern;
+  weekdays?: VisitWeekdayKey[];
+  endDate?: string | null;
+  occurrenceCount?: number | null;
+};
+
 export type VisitCreateInput = {
   clientId: string;
   employeeId: string | null;
@@ -196,6 +245,16 @@ export type VisitCreateInput = {
   notifyEmployee?: boolean;
   notifyClient?: boolean;
   portalReleaseEnabled?: boolean;
+  saveAsDraft?: boolean;
+  subjectKey?: string | null;
+  assignmentTypeKey?: string | null;
+  serviceCategoryKey?: string | null;
+  taskPackageId?: string | null;
+  billingBudgetSourceKey?: string | null;
+  proofTemplateKey?: string | null;
+  riskFlagKeys?: string[];
+  recurrenceJson?: VisitRecurrenceJson | Record<string, unknown>;
+  catalogSnapshotJson?: Record<string, unknown>;
 };
 
 export type VisitCreateWizardData = {
@@ -217,7 +276,61 @@ export type VisitCreateWizardData = {
   notifyEmployee: boolean;
   notifyClient: boolean;
   portalReleaseEnabled: boolean;
+  /** Office-Katalog-Felder (C.ASSIST-OFFICE-TEMPLATE.1) */
+  subjectKey: string;
+  assignmentTypeKey: string;
+  serviceCategoryKey: string;
+  taskPackageId: string;
+  taskDrafts: import('@/types/assistCatalog').AssistAssignmentTaskDraft[];
+  billingBudgetSourceKey: string;
+  riskFlagKeys: string[];
+  employeeNotes: string;
+  clientVisibleNotes: string;
+  proofTemplateKey: string;
+  saveAsDraft: boolean;
+  catalogSnapshotJson: Record<string, unknown>;
+  recurrencePattern: VisitRecurrencePattern;
+  recurrenceEndDate: string;
+  recurrenceWeekdays: VisitWeekdayKey[];
+  recurrenceOccurrenceCount: number | null;
 };
+
+export function buildVisitRecurrenceJson(
+  wizard: Pick<
+    VisitCreateWizardData,
+    | 'recurrencePattern'
+    | 'recurrenceWeekdays'
+    | 'recurrenceEndDate'
+    | 'recurrenceOccurrenceCount'
+  >,
+): VisitRecurrenceJson {
+  if (wizard.recurrencePattern === 'none') {
+    return { pattern: 'none' };
+  }
+  return {
+    pattern: wizard.recurrencePattern,
+    weekdays:
+      wizard.recurrencePattern === 'weekly' || wizard.recurrencePattern === 'biweekly'
+        ? wizard.recurrenceWeekdays
+        : undefined,
+    endDate: wizard.recurrenceEndDate.trim() || null,
+    occurrenceCount: wizard.recurrenceOccurrenceCount,
+  };
+}
+
+export const ASSIGNMENT_CREATE_SECTIONS = [
+  { key: 'basis', label: 'Basisdaten' },
+  { key: 'people', label: 'Klient & Mitarbeitende' },
+  { key: 'schedule', label: 'Termin & Wiederholung' },
+  { key: 'type', label: 'Einsatzart & Betreff' },
+  { key: 'tasks', label: 'Aufgabenpaket & Aufgaben' },
+  { key: 'hints', label: 'Hinweise & Risiken' },
+  { key: 'billing', label: 'Abrechnung & Budget' },
+  { key: 'documentation', label: 'Dokumentation & Nachweis' },
+  { key: 'review', label: 'Prüfung & Speichern' },
+] as const;
+
+export type AssignmentCreateSectionKey = (typeof ASSIGNMENT_CREATE_SECTIONS)[number]['key'];
 
 export const VISIT_CREATE_WIZARD_STEPS = [
   { key: 'grunddaten', label: 'Grunddaten' },
@@ -253,4 +366,20 @@ export const EMPTY_VISIT_WIZARD_DATA: VisitCreateWizardData = {
   notifyEmployee: true,
   notifyClient: false,
   portalReleaseEnabled: false,
+  subjectKey: '',
+  assignmentTypeKey: '',
+  serviceCategoryKey: '',
+  taskPackageId: '',
+  taskDrafts: [],
+  billingBudgetSourceKey: '',
+  riskFlagKeys: [],
+  employeeNotes: '',
+  clientVisibleNotes: '',
+  proofTemplateKey: '',
+  saveAsDraft: false,
+  catalogSnapshotJson: {},
+  recurrencePattern: 'none',
+  recurrenceEndDate: '',
+  recurrenceWeekdays: [],
+  recurrenceOccurrenceCount: null,
 };

@@ -155,6 +155,6 @@ Empfohlene Checks nach Login:
 | 12 | Browser-Abnahme durchgeführt | ⚠️ BLOCKED (Auth) |
 | 13 | Tests | ✅ 14/14 |
 | 14 | Typecheck geänderte Dateien | ✅ keine neuen Fehler |
-| 15 | Commit Hash | siehe Git |
-| 16 | Push erfolgreich | siehe Git |
+| 15 | Commit Hash | `374024a` |
+| 16 | Push erfolgreich | ✅ `origin/main` (ohne `[deploy]`) |
 | 17 | Berichtspfad | `docs/audit/module-management-ui-reality-fix-abnahmebericht.md` |

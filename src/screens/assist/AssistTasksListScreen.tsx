@@ -56,6 +56,10 @@ export function AssistTasksListScreen() {
         assignmentId={selectedTask?.id ?? null}
         title={selectedTask?.title ?? 'Aufgabe'}
         onClose={handleCloseModal}
+        onDeleted={() => {
+          handleCloseModal();
+          void list.refresh();
+        }}
       />
     </>
   );

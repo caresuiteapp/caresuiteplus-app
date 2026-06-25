@@ -16,10 +16,10 @@ describe('Assist Aufgaben list', () => {
     expect(source).not.toContain('router.push(`/assist/einsaetze/${item.id}`');
   });
 
-  it('AssignmentDetailGlassModal nutzt PlatformModal mit Summary-Panel', () => {
+  it('AssignmentDetailGlassModal nutzt PlatformModal mit Tabs-Panel', () => {
     const source = readSrc('src/components/assist/AssignmentDetailGlassModal.tsx');
     expect(source).toContain('PlatformModal');
-    expect(source).toContain('AssignmentDetailSummaryPanel');
+    expect(source).toContain('AssignmentDetailTabsPanel');
   });
 
   it('EntityListScreen nutzt Aurora-Glas und lesbare Textfarben', () => {

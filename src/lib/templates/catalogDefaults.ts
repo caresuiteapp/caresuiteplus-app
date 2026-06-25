@@ -1,12 +1,21 @@
 import type { CatalogType, DropdownOption } from '@/types/templates';
+import { getAllCatalogEntries } from '@/data/demo/templates/seeds';
 
-const MESSAGE_CATEGORY_DEFAULTS: DropdownOption[] = [
-  { value: 'intern', label: 'Intern', isSystem: true },
-  { value: 'klient', label: 'Klient:in', isSystem: true },
-  { value: 'mitarbeiter', label: 'Mitarbeiter:in', isSystem: true },
-];
+const DEFAULTS_BY_TYPE = getAllCatalogEntries().reduce<Partial<Record<CatalogType, DropdownOption[]>>>(
+  (acc, entry) => {
+    const list = acc[entry.catalogType] ?? [];
+    list.push({
+      value: entry.valueKey,
+      label: entry.label,
+      description: entry.description ?? undefined,
+      isSystem: entry.isSystem,
+    });
+    acc[entry.catalogType] = list;
+    return acc;
+  },
+  {},
+);
 
 export function getCatalogDefaults(catalogType: CatalogType): DropdownOption[] {
-  if (catalogType === 'message_category') return MESSAGE_CATEGORY_DEFAULTS;
-  return [];
+  return DEFAULTS_BY_TYPE[catalogType] ?? [];
 }

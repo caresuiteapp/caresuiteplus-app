@@ -10,6 +10,7 @@ import {
   AKADEMIE_EXTENSION_PREPARED_MESSAGE,
   isAkademieExtensionLiveReady,
 } from '@/lib/akademie/akademieModuleConfig';
+import { ModuleDocumentsSection } from '@/components/documents/ModuleDocumentsSection';
 import {
   AKADEMIE_HEADER_PRIMARY_ACTIONS,
   AKADEMIE_HEADER_SECONDARY_ACTIONS,
@@ -79,6 +80,12 @@ export function AkademieIndexScreen() {
         loading={loading}
         error={error}
         onRefresh={refresh}
+      />
+      <ModuleDocumentsSection
+        targetModule="akademie"
+        targetArea="course"
+        title="Akademie-Vorlagen"
+        subtitle="Teilnehmerliste, Zertifikat, Anwesenheitsliste, Prüfungsbogen u. a."
       />
       <View
         accessible

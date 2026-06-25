@@ -1,6 +1,9 @@
+export { DocumentModuleTemplatesPanel } from './DocumentModuleTemplatesPanel';
+export { ModuleDocumentsSection } from './ModuleDocumentsSection';
 export { DocumentPreviewValidationPanel } from './DocumentPreviewValidationPanel';
 export { DocumentTemplateEditor } from './DocumentTemplateEditor';
 export { DocumentTemplateEditorPanel } from './DocumentTemplateEditorPanel';
+export { DocumentTemplateListPanel } from './DocumentTemplateListPanel';
 export { DocumentHtmlPreview } from './DocumentHtmlPreview';
 export { DocumentBlockPicker } from './DocumentBlockPicker';
 export { DocumentTextSnippetPicker } from './DocumentTextSnippetPicker';

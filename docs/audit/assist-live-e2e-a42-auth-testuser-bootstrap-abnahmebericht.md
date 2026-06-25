@@ -205,8 +205,8 @@ Keine neuen Assist-Workflow-Regressionen. Typecheck-Fehler sind Repo-Baseline.
 | 15 | Rechnungsnummern verbraucht? | **Nein** |
 | 16 | Tests Ergebnis? | **18/18 passed** (Assist-Scope) |
 | 17 | Typecheck Ergebnis? | **Repo-Baseline rot** |
-| 18 | Commit Hash? | siehe Git nach Commit |
-| 19 | Push erfolgreich? | siehe Git nach Push |
+| 18 | Commit Hash? | `dc18743` |
+| 19 | Push erfolgreich? | **Ja** (`dc18743` → `origin/main`) |
 | 20 | A.4.3 freigegeben? | **Nein** |
 | 21 | K.6 weiterhin gesperrt? | **Ja** |
 | 22 | Berichtspfad? | `docs/audit/assist-live-e2e-a42-auth-testuser-bootstrap-abnahmebericht.md` |

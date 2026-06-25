@@ -1,4 +1,4 @@
-﻿/** Auto-generated - do not edit. Run: npm run fetch-remote-types */
+/** Auto-generated — do not edit. Run: npm run fetch-remote-types */
 export type Json =
   | string
   | number
@@ -6566,12 +6566,18 @@ export type Database = {
       }
       assist_visit_tasks: {
         Row: {
+          catalog_item_id: string | null
           completed_at: string | null
           completed_by: string | null
           created_at: string
           id: string
+          is_optional: boolean
           is_required: boolean
+          item_key: string | null
+          not_completed_reason_key: string | null
           not_done_reason: string | null
+          note: string | null
+          payload_json: Json
           requires_note_if_not_done: boolean
           sort_order: number
           status: string
@@ -6581,12 +6587,18 @@ export type Database = {
           visit_id: string
         }
         Insert: {
+          catalog_item_id?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
           id?: string
+          is_optional?: boolean
           is_required?: boolean
+          item_key?: string | null
+          not_completed_reason_key?: string | null
           not_done_reason?: string | null
+          note?: string | null
+          payload_json?: Json
           requires_note_if_not_done?: boolean
           sort_order?: number
           status?: string
@@ -6596,12 +6608,18 @@ export type Database = {
           visit_id: string
         }
         Update: {
+          catalog_item_id?: string | null
           completed_at?: string | null
           completed_by?: string | null
           created_at?: string
           id?: string
+          is_optional?: boolean
           is_required?: boolean
+          item_key?: string | null
+          not_completed_reason_key?: string | null
           not_done_reason?: string | null
+          note?: string | null
+          payload_json?: Json
           requires_note_if_not_done?: boolean
           sort_order?: number
           status?: string
@@ -6611,6 +6629,13 @@ export type Database = {
           visit_id?: string
         }
         Relationships: [
+          {
+            foreignKeyName: "assist_visit_tasks_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
           {
             foreignKeyName: "assist_visit_tasks_completed_by_fkey"
             columns: ["completed_by"]
@@ -6746,17 +6771,21 @@ export type Database = {
           address_snapshot: string | null
           arrived_at: string | null
           assignment_date: string
+          assignment_type_key: string | null
+          billing_budget_source_key: string | null
           billing_status: string
           budget_amount_cents: number | null
           budget_currency: string
           budget_warning: string | null
           canonical_status: string
+          catalog_snapshot_json: Json
           client_id: string
           client_visible_notes: string | null
           created_at: string
           created_by: string | null
           description: string | null
           documentation_status: string
+          documentation_template_key: string | null
           duration_minutes: number | null
           employee_id: string | null
           employee_notes: string | null
@@ -6778,10 +6807,17 @@ export type Database = {
           portal_release_enabled: boolean
           portal_released_at: string | null
           portal_status: string
+          priority_key: string | null
           proof_status: string
+          proof_template_key: string | null
+          recurrence_json: Json
+          risk_flag_keys: Json
           route_notes: string | null
+          service_category_key: string | null
           service_key: string | null
           service_name: string | null
+          subject_key: string | null
+          task_package_id: string | null
           tenant_id: string
           title: string
           updated_at: string
@@ -6793,17 +6829,21 @@ export type Database = {
           address_snapshot?: string | null
           arrived_at?: string | null
           assignment_date: string
+          assignment_type_key?: string | null
+          billing_budget_source_key?: string | null
           billing_status?: string
           budget_amount_cents?: number | null
           budget_currency?: string
           budget_warning?: string | null
           canonical_status?: string
+          catalog_snapshot_json?: Json
           client_id: string
           client_visible_notes?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           documentation_status?: string
+          documentation_template_key?: string | null
           duration_minutes?: number | null
           employee_id?: string | null
           employee_notes?: string | null
@@ -6825,10 +6865,17 @@ export type Database = {
           portal_release_enabled?: boolean
           portal_released_at?: string | null
           portal_status?: string
+          priority_key?: string | null
           proof_status?: string
+          proof_template_key?: string | null
+          recurrence_json?: Json
+          risk_flag_keys?: Json
           route_notes?: string | null
+          service_category_key?: string | null
           service_key?: string | null
           service_name?: string | null
+          subject_key?: string | null
+          task_package_id?: string | null
           tenant_id: string
           title: string
           updated_at?: string
@@ -6840,17 +6887,21 @@ export type Database = {
           address_snapshot?: string | null
           arrived_at?: string | null
           assignment_date?: string
+          assignment_type_key?: string | null
+          billing_budget_source_key?: string | null
           billing_status?: string
           budget_amount_cents?: number | null
           budget_currency?: string
           budget_warning?: string | null
           canonical_status?: string
+          catalog_snapshot_json?: Json
           client_id?: string
           client_visible_notes?: string | null
           created_at?: string
           created_by?: string | null
           description?: string | null
           documentation_status?: string
+          documentation_template_key?: string | null
           duration_minutes?: number | null
           employee_id?: string | null
           employee_notes?: string | null
@@ -6872,10 +6923,17 @@ export type Database = {
           portal_release_enabled?: boolean
           portal_released_at?: string | null
           portal_status?: string
+          priority_key?: string | null
           proof_status?: string
+          proof_template_key?: string | null
+          recurrence_json?: Json
+          risk_flag_keys?: Json
           route_notes?: string | null
+          service_category_key?: string | null
           service_key?: string | null
           service_name?: string | null
+          subject_key?: string | null
+          task_package_id?: string | null
           tenant_id?: string
           title?: string
           updated_at?: string
@@ -6985,6 +7043,13 @@ export type Database = {
             columns: ["legacy_assignment_id"]
             isOneToOne: false
             referencedRelation: "v_employee_today_assignments"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "assist_visits_task_package_id_fkey"
+            columns: ["task_package_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
             referencedColumns: ["id"]
           },
           {
@@ -9814,6 +9879,353 @@ export type Database = {
           },
         ]
       }
+      catalog_audit_events: {
+        Row: {
+          action: string
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          module_scope: string
+          new_value_json: Json | null
+          old_value_json: Json | null
+          summary: string | null
+          tenant_id: string | null
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          module_scope?: string
+          new_value_json?: Json | null
+          old_value_json?: Json | null
+          summary?: string | null
+          tenant_id?: string | null
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          module_scope?: string
+          new_value_json?: Json | null
+          old_value_json?: Json | null
+          summary?: string | null
+          tenant_id?: string | null
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_audit_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_audit_events_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      catalog_definitions: {
+        Row: {
+          catalog_key: string
+          catalog_type: string
+          created_at: string
+          created_by: string | null
+          description: string | null
+          group_id: string | null
+          id: string
+          is_active: boolean
+          is_editable: boolean
+          is_system_default: boolean
+          module_scope: string
+          name: string
+          required_permission: string | null
+          selection_mode: string
+          sort_order: number
+          tenant_id: string | null
+          updated_at: string
+          updated_by: string | null
+          visibility_scope: string
+        }
+        Insert: {
+          catalog_key: string
+          catalog_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_active?: boolean
+          is_editable?: boolean
+          is_system_default?: boolean
+          module_scope?: string
+          name: string
+          required_permission?: string | null
+          selection_mode?: string
+          sort_order?: number
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          visibility_scope?: string
+        }
+        Update: {
+          catalog_key?: string
+          catalog_type?: string
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_id?: string | null
+          id?: string
+          is_active?: boolean
+          is_editable?: boolean
+          is_system_default?: boolean
+          module_scope?: string
+          name?: string
+          required_permission?: string | null
+          selection_mode?: string
+          sort_order?: number
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          visibility_scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_group_id_fkey"
+            columns: ["group_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_groups"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_definitions_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+        ]
+      }
       catalog_entries: {
         Row: {
           catalog_type: string
@@ -9948,6 +10360,180 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_dashboard_base"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      catalog_groups: {
+        Row: {
+          color: string | null
+          created_at: string
+          created_by: string | null
+          description: string | null
+          group_key: string
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_system_default: boolean
+          module_scope: string
+          name: string
+          sort_order: number
+          tenant_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_key: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_default?: boolean
+          module_scope?: string
+          name: string
+          sort_order?: number
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          description?: string | null
+          group_key?: string
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_system_default?: boolean
+          module_scope?: string
+          name?: string
+          sort_order?: number
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_groups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_groups_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -10161,6 +10747,364 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_dashboard_base"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      catalog_item_deactivations: {
+        Row: {
+          catalog_item_id: string
+          deactivated_at: string
+          deactivated_by: string | null
+          tenant_id: string
+        }
+        Insert: {
+          catalog_item_id: string
+          deactivated_at?: string
+          deactivated_by?: string | null
+          tenant_id: string
+        }
+        Update: {
+          catalog_item_id?: string
+          deactivated_at?: string
+          deactivated_by?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_item_deactivations_catalog_item_id_fkey"
+            columns: ["catalog_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_deactivated_by_fkey"
+            columns: ["deactivated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_deactivated_by_fkey"
+            columns: ["deactivated_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_item_deactivations_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      catalog_items: {
+        Row: {
+          catalog_id: string
+          color: string | null
+          created_at: string
+          created_by: string | null
+          default_duration_minutes: number | null
+          default_price_hint: number | null
+          default_unit: string | null
+          description: string | null
+          helper_text: string | null
+          icon: string | null
+          id: string
+          is_active: boolean
+          is_billable_relevant: boolean
+          is_documentation_required: boolean
+          is_risk_relevant: boolean
+          is_signature_relevant: boolean
+          is_system_default: boolean
+          item_key: string
+          label: string
+          parent_item_id: string | null
+          payload_json: Json
+          short_label: string | null
+          sort_order: number
+          tags: Json
+          tenant_id: string | null
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          catalog_id: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_duration_minutes?: number | null
+          default_price_hint?: number | null
+          default_unit?: string | null
+          description?: string | null
+          helper_text?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_billable_relevant?: boolean
+          is_documentation_required?: boolean
+          is_risk_relevant?: boolean
+          is_signature_relevant?: boolean
+          is_system_default?: boolean
+          item_key: string
+          label: string
+          parent_item_id?: string | null
+          payload_json?: Json
+          short_label?: string | null
+          sort_order?: number
+          tags?: Json
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          catalog_id?: string
+          color?: string | null
+          created_at?: string
+          created_by?: string | null
+          default_duration_minutes?: number | null
+          default_price_hint?: number | null
+          default_unit?: string | null
+          description?: string | null
+          helper_text?: string | null
+          icon?: string | null
+          id?: string
+          is_active?: boolean
+          is_billable_relevant?: boolean
+          is_documentation_required?: boolean
+          is_risk_relevant?: boolean
+          is_signature_relevant?: boolean
+          is_system_default?: boolean
+          item_key?: string
+          label?: string
+          parent_item_id?: string | null
+          payload_json?: Json
+          short_label?: string | null
+          sort_order?: number
+          tags?: Json
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "catalog_items_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_parent_item_id_fkey"
+            columns: ["parent_item_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_items"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "catalog_items_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "catalog_items_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -15074,6 +16018,7 @@ export type Database = {
           document_type: string
           finalized_at: string | null
           finalized_html: string | null
+          generated_document_id: string | null
           id: string
           is_required: boolean
           missing_placeholders: Json
@@ -15096,6 +16041,7 @@ export type Database = {
           document_type: string
           finalized_at?: string | null
           finalized_html?: string | null
+          generated_document_id?: string | null
           id?: string
           is_required?: boolean
           missing_placeholders?: Json
@@ -15118,6 +16064,7 @@ export type Database = {
           document_type?: string
           finalized_at?: string | null
           finalized_html?: string | null
+          generated_document_id?: string | null
           id?: string
           is_required?: boolean
           missing_placeholders?: Json
@@ -15162,6 +16109,13 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_service_record_overview"
             referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "client_intake_documents_generated_document_id_fkey"
+            columns: ["generated_document_id"]
+            isOneToOne: false
+            referencedRelation: "generated_documents"
+            referencedColumns: ["id"]
           },
           {
             foreignKeyName: "client_intake_documents_tenant_id_fkey"
@@ -23585,6 +24539,157 @@ export type Database = {
           },
         ]
       }
+      document_audit_log: {
+        Row: {
+          action: string
+          actor_role: string | null
+          actor_user_id: string | null
+          created_at: string
+          entity_id: string
+          entity_type: string
+          id: string
+          ip_address: string | null
+          new_value_json: Json | null
+          old_value_json: Json | null
+          tenant_id: string
+          user_agent: string | null
+        }
+        Insert: {
+          action: string
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id: string
+          entity_type: string
+          id?: string
+          ip_address?: string | null
+          new_value_json?: Json | null
+          old_value_json?: Json | null
+          tenant_id: string
+          user_agent?: string | null
+        }
+        Update: {
+          action?: string
+          actor_role?: string | null
+          actor_user_id?: string | null
+          created_at?: string
+          entity_id?: string
+          entity_type?: string
+          id?: string
+          ip_address?: string | null
+          new_value_json?: Json | null
+          old_value_json?: Json | null
+          tenant_id?: string
+          user_agent?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_audit_log_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_actor_user_id_fkey"
+            columns: ["actor_user_id"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_audit_log_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       document_categories: {
         Row: {
           color: string | null
@@ -23853,6 +24958,1185 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_dashboard_base"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      document_render_jobs: {
+        Row: {
+          created_at: string
+          created_by: string | null
+          error_message: string | null
+          finished_at: string | null
+          html_output: string | null
+          id: string
+          job_status: string
+          job_type: string
+          pdf_path: string | null
+          related_entity_id: string | null
+          related_entity_table: string | null
+          started_at: string | null
+          template_id: string | null
+          template_version_id: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          html_output?: string | null
+          id?: string
+          job_status?: string
+          job_type?: string
+          pdf_path?: string | null
+          related_entity_id?: string | null
+          related_entity_table?: string | null
+          started_at?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          created_by?: string | null
+          error_message?: string | null
+          finished_at?: string | null
+          html_output?: string | null
+          id?: string
+          job_status?: string
+          job_type?: string
+          pdf_path?: string | null
+          related_entity_id?: string | null
+          related_entity_table?: string | null
+          started_at?: string | null
+          template_id?: string | null
+          template_version_id?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_render_jobs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_render_jobs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      document_send_logs: {
+        Row: {
+          created_at: string
+          document_id: string
+          error_message: string | null
+          id: string
+          integration_provider: string | null
+          message: string | null
+          recipient_email: string | null
+          recipient_fax: string | null
+          recipient_name: string | null
+          recipient_type: string | null
+          send_channel: string
+          sent_at: string | null
+          sent_by: string | null
+          status: string
+          subject: string | null
+          tenant_id: string
+        }
+        Insert: {
+          created_at?: string
+          document_id: string
+          error_message?: string | null
+          id?: string
+          integration_provider?: string | null
+          message?: string | null
+          recipient_email?: string | null
+          recipient_fax?: string | null
+          recipient_name?: string | null
+          recipient_type?: string | null
+          send_channel: string
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+          tenant_id: string
+        }
+        Update: {
+          created_at?: string
+          document_id?: string
+          error_message?: string | null
+          id?: string
+          integration_provider?: string | null
+          message?: string | null
+          recipient_email?: string | null
+          recipient_fax?: string | null
+          recipient_name?: string | null
+          recipient_type?: string | null
+          send_channel?: string
+          sent_at?: string | null
+          sent_by?: string | null
+          status?: string
+          subject?: string | null
+          tenant_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_send_logs_document_id_fkey"
+            columns: ["document_id"]
+            isOneToOne: false
+            referencedRelation: "generated_documents"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_sent_by_fkey"
+            columns: ["sent_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_send_logs_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      document_template_bindings: {
+        Row: {
+          binding_type: string
+          conditions_json: Json
+          created_at: string
+          id: string
+          is_active: boolean
+          is_default: boolean
+          is_required: boolean
+          sort_order: number
+          target_area: string
+          target_component: string | null
+          target_module: string
+          template_id: string
+          tenant_id: string
+          trigger_event: string | null
+          updated_at: string
+        }
+        Insert: {
+          binding_type?: string
+          conditions_json?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_required?: boolean
+          sort_order?: number
+          target_area: string
+          target_component?: string | null
+          target_module: string
+          template_id: string
+          tenant_id: string
+          trigger_event?: string | null
+          updated_at?: string
+        }
+        Update: {
+          binding_type?: string
+          conditions_json?: Json
+          created_at?: string
+          id?: string
+          is_active?: boolean
+          is_default?: boolean
+          is_required?: boolean
+          sort_order?: number
+          target_area?: string
+          target_component?: string | null
+          target_module?: string
+          template_id?: string
+          tenant_id?: string
+          trigger_event?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_template_bindings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      document_template_fields: {
+        Row: {
+          created_at: string
+          default_value: string | null
+          description: string | null
+          editable_after_autofill: boolean
+          field_key: string
+          field_type: string
+          id: string
+          label: string
+          options_json: Json
+          options_source: string | null
+          placeholder: string | null
+          required: boolean
+          sort_order: number
+          template_id: string
+          tenant_id: string
+          updated_at: string
+          validation_rule_json: Json
+          variable_path: string | null
+          visible_in_pdf: boolean
+          visible_in_preview: boolean
+        }
+        Insert: {
+          created_at?: string
+          default_value?: string | null
+          description?: string | null
+          editable_after_autofill?: boolean
+          field_key: string
+          field_type?: string
+          id?: string
+          label: string
+          options_json?: Json
+          options_source?: string | null
+          placeholder?: string | null
+          required?: boolean
+          sort_order?: number
+          template_id: string
+          tenant_id: string
+          updated_at?: string
+          validation_rule_json?: Json
+          variable_path?: string | null
+          visible_in_pdf?: boolean
+          visible_in_preview?: boolean
+        }
+        Update: {
+          created_at?: string
+          default_value?: string | null
+          description?: string | null
+          editable_after_autofill?: boolean
+          field_key?: string
+          field_type?: string
+          id?: string
+          label?: string
+          options_json?: Json
+          options_source?: string | null
+          placeholder?: string | null
+          required?: boolean
+          sort_order?: number
+          template_id?: string
+          tenant_id?: string
+          updated_at?: string
+          validation_rule_json?: Json
+          variable_path?: string | null
+          visible_in_pdf?: boolean
+          visible_in_preview?: boolean
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_template_fields_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_fields_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      document_template_versions: {
+        Row: {
+          activated_at: string | null
+          activated_by: string | null
+          archived_at: string | null
+          created_at: string
+          created_by: string | null
+          css_template: string
+          finalized_at: string | null
+          footer_settings: Json
+          header_settings: Json
+          html_template: string
+          id: string
+          json_schema: Json
+          layout_settings: Json
+          page_settings: Json
+          placeholder_schema: Json
+          required_fields: Json
+          signature_settings: Json
+          template_id: string
+          tenant_id: string
+          validation_rules: Json
+          version_number: number
+          version_status: string
+          watermark_settings: Json
+        }
+        Insert: {
+          activated_at?: string | null
+          activated_by?: string | null
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          css_template?: string
+          finalized_at?: string | null
+          footer_settings?: Json
+          header_settings?: Json
+          html_template?: string
+          id?: string
+          json_schema?: Json
+          layout_settings?: Json
+          page_settings?: Json
+          placeholder_schema?: Json
+          required_fields?: Json
+          signature_settings?: Json
+          template_id: string
+          tenant_id: string
+          validation_rules?: Json
+          version_number: number
+          version_status?: string
+          watermark_settings?: Json
+        }
+        Update: {
+          activated_at?: string | null
+          activated_by?: string | null
+          archived_at?: string | null
+          created_at?: string
+          created_by?: string | null
+          css_template?: string
+          finalized_at?: string | null
+          footer_settings?: Json
+          header_settings?: Json
+          html_template?: string
+          id?: string
+          json_schema?: Json
+          layout_settings?: Json
+          page_settings?: Json
+          placeholder_schema?: Json
+          required_fields?: Json
+          signature_settings?: Json
+          template_id?: string
+          tenant_id?: string
+          validation_rules?: Json
+          version_number?: number
+          version_status?: string
+          watermark_settings?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_template_versions_activated_by_fkey"
+            columns: ["activated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_activated_by_fkey"
+            columns: ["activated_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_template_versions_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      document_templates: {
+        Row: {
+          archive_settings_json: Json
+          archived_at: string | null
+          category: string | null
+          content_json: Json
+          content_schema_json: Json
+          created_at: string
+          created_by: string | null
+          current_version_id: string | null
+          default_file_name_pattern: string | null
+          default_storage_area: string | null
+          description: string | null
+          document_category: string | null
+          document_kind: string | null
+          form_schema_json: Json
+          id: string
+          is_active: boolean
+          is_assist_allowed: boolean
+          is_billable_relevant: boolean
+          is_care_related: boolean
+          is_client_signature_required: boolean
+          is_default: boolean
+          is_docx_enabled: boolean
+          is_editable: boolean
+          is_email_enabled: boolean
+          is_employee_signature_required: boolean
+          is_fax_enabled: boolean
+          is_fillable: boolean
+          is_imported_template: boolean
+          is_medical_or_treatment_related: boolean
+          is_office_signature_required: boolean
+          is_pdf_enabled: boolean
+          is_representative_signature_allowed: boolean
+          is_signature_required: boolean
+          is_system_template: boolean
+          is_tenant_template: boolean
+          label: string
+          layout_kind: string
+          mapping_schema_json: Json
+          module_scope: string[]
+          print_settings_json: Json
+          purpose: string | null
+          required_permission: string | null
+          requires_professional_role: boolean
+          send_settings_json: Json
+          short_name: string | null
+          subcategory: string | null
+          tags: string[]
+          target_record_type: string | null
+          template_key: string
+          template_name: string | null
+          template_number: number | null
+          template_status: string
+          template_type: string
+          tenant_id: string | null
+          updated_at: string
+          updated_by: string | null
+          validation_rules_json: Json
+          variable_schema_json: Json
+          version: number
+          visibility_scope: string
+        }
+        Insert: {
+          archive_settings_json?: Json
+          archived_at?: string | null
+          category?: string | null
+          content_json?: Json
+          content_schema_json?: Json
+          created_at?: string
+          created_by?: string | null
+          current_version_id?: string | null
+          default_file_name_pattern?: string | null
+          default_storage_area?: string | null
+          description?: string | null
+          document_category?: string | null
+          document_kind?: string | null
+          form_schema_json?: Json
+          id?: string
+          is_active?: boolean
+          is_assist_allowed?: boolean
+          is_billable_relevant?: boolean
+          is_care_related?: boolean
+          is_client_signature_required?: boolean
+          is_default?: boolean
+          is_docx_enabled?: boolean
+          is_editable?: boolean
+          is_email_enabled?: boolean
+          is_employee_signature_required?: boolean
+          is_fax_enabled?: boolean
+          is_fillable?: boolean
+          is_imported_template?: boolean
+          is_medical_or_treatment_related?: boolean
+          is_office_signature_required?: boolean
+          is_pdf_enabled?: boolean
+          is_representative_signature_allowed?: boolean
+          is_signature_required?: boolean
+          is_system_template?: boolean
+          is_tenant_template?: boolean
+          label: string
+          layout_kind?: string
+          mapping_schema_json?: Json
+          module_scope?: string[]
+          print_settings_json?: Json
+          purpose?: string | null
+          required_permission?: string | null
+          requires_professional_role?: boolean
+          send_settings_json?: Json
+          short_name?: string | null
+          subcategory?: string | null
+          tags?: string[]
+          target_record_type?: string | null
+          template_key: string
+          template_name?: string | null
+          template_number?: number | null
+          template_status?: string
+          template_type?: string
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          validation_rules_json?: Json
+          variable_schema_json?: Json
+          version?: number
+          visibility_scope?: string
+        }
+        Update: {
+          archive_settings_json?: Json
+          archived_at?: string | null
+          category?: string | null
+          content_json?: Json
+          content_schema_json?: Json
+          created_at?: string
+          created_by?: string | null
+          current_version_id?: string | null
+          default_file_name_pattern?: string | null
+          default_storage_area?: string | null
+          description?: string | null
+          document_category?: string | null
+          document_kind?: string | null
+          form_schema_json?: Json
+          id?: string
+          is_active?: boolean
+          is_assist_allowed?: boolean
+          is_billable_relevant?: boolean
+          is_care_related?: boolean
+          is_client_signature_required?: boolean
+          is_default?: boolean
+          is_docx_enabled?: boolean
+          is_editable?: boolean
+          is_email_enabled?: boolean
+          is_employee_signature_required?: boolean
+          is_fax_enabled?: boolean
+          is_fillable?: boolean
+          is_imported_template?: boolean
+          is_medical_or_treatment_related?: boolean
+          is_office_signature_required?: boolean
+          is_pdf_enabled?: boolean
+          is_representative_signature_allowed?: boolean
+          is_signature_required?: boolean
+          is_system_template?: boolean
+          is_tenant_template?: boolean
+          label?: string
+          layout_kind?: string
+          mapping_schema_json?: Json
+          module_scope?: string[]
+          print_settings_json?: Json
+          purpose?: string | null
+          required_permission?: string | null
+          requires_professional_role?: boolean
+          send_settings_json?: Json
+          short_name?: string | null
+          subcategory?: string | null
+          tags?: string[]
+          target_record_type?: string | null
+          template_key?: string
+          template_name?: string | null
+          template_number?: number | null
+          template_status?: string
+          template_type?: string
+          tenant_id?: string | null
+          updated_at?: string
+          updated_by?: string | null
+          validation_rules_json?: Json
+          variable_schema_json?: Json
+          version?: number
+          visibility_scope?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "document_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "document_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "document_templates_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -28352,6 +30636,331 @@ export type Database = {
           },
           {
             foreignKeyName: "form_templates_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      generated_documents: {
+        Row: {
+          archived_in_area: string | null
+          assignment_id: string | null
+          autofill_snapshot_json: Json
+          client_id: string | null
+          consultation_id: string | null
+          contract_id: string | null
+          course_id: string | null
+          created_at: string
+          created_by: string | null
+          current_version: number
+          document_number: string | null
+          document_type: string
+          docx_file_id: string | null
+          email_status: string
+          employee_id: string | null
+          fax_status: string
+          file_name: string | null
+          finalized_at: string | null
+          finalized_by: string | null
+          generated_content_json: Json
+          html_output: string | null
+          id: string
+          invoice_id: string | null
+          locked_at: string | null
+          manual_overrides_json: Json
+          metadata_json: Json
+          module_scope: string | null
+          pdf_file_id: string | null
+          pdf_path: string | null
+          preview_file_id: string | null
+          record_type: string | null
+          sent_at: string | null
+          signature_status: string
+          signed_file_id: string | null
+          status: string
+          template_id: string | null
+          template_version: number | null
+          template_version_id: string | null
+          tenant_id: string
+          title: string
+          updated_at: string
+          vehicle_id: string | null
+        }
+        Insert: {
+          archived_in_area?: string | null
+          assignment_id?: string | null
+          autofill_snapshot_json?: Json
+          client_id?: string | null
+          consultation_id?: string | null
+          contract_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          document_number?: string | null
+          document_type?: string
+          docx_file_id?: string | null
+          email_status?: string
+          employee_id?: string | null
+          fax_status?: string
+          file_name?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          generated_content_json?: Json
+          html_output?: string | null
+          id?: string
+          invoice_id?: string | null
+          locked_at?: string | null
+          manual_overrides_json?: Json
+          metadata_json?: Json
+          module_scope?: string | null
+          pdf_file_id?: string | null
+          pdf_path?: string | null
+          preview_file_id?: string | null
+          record_type?: string | null
+          sent_at?: string | null
+          signature_status?: string
+          signed_file_id?: string | null
+          status?: string
+          template_id?: string | null
+          template_version?: number | null
+          template_version_id?: string | null
+          tenant_id: string
+          title: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Update: {
+          archived_in_area?: string | null
+          assignment_id?: string | null
+          autofill_snapshot_json?: Json
+          client_id?: string | null
+          consultation_id?: string | null
+          contract_id?: string | null
+          course_id?: string | null
+          created_at?: string
+          created_by?: string | null
+          current_version?: number
+          document_number?: string | null
+          document_type?: string
+          docx_file_id?: string | null
+          email_status?: string
+          employee_id?: string | null
+          fax_status?: string
+          file_name?: string | null
+          finalized_at?: string | null
+          finalized_by?: string | null
+          generated_content_json?: Json
+          html_output?: string | null
+          id?: string
+          invoice_id?: string | null
+          locked_at?: string | null
+          manual_overrides_json?: Json
+          metadata_json?: Json
+          module_scope?: string | null
+          pdf_file_id?: string | null
+          pdf_path?: string | null
+          preview_file_id?: string | null
+          record_type?: string | null
+          sent_at?: string | null
+          signature_status?: string
+          signed_file_id?: string | null
+          status?: string
+          template_id?: string | null
+          template_version?: number | null
+          template_version_id?: string | null
+          tenant_id?: string
+          title?: string
+          updated_at?: string
+          vehicle_id?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "generated_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "clients"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_assignment_overview"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_client_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_client_id_fkey"
+            columns: ["client_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_record_overview"
+            referencedColumns: ["client_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_created_by_fkey"
+            columns: ["created_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "employees"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_assignment_overview"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_employee_overview"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_employee_id_fkey"
+            columns: ["employee_id"]
+            isOneToOne: false
+            referencedRelation: "v_service_record_overview"
+            referencedColumns: ["employee_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_finalized_by_fkey"
+            columns: ["finalized_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_finalized_by_fkey"
+            columns: ["finalized_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "document_templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_template_version_id_fkey"
+            columns: ["template_version_id"]
+            isOneToOne: false
+            referencedRelation: "document_template_versions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "generated_documents_tenant_id_fkey"
             columns: ["tenant_id"]
             isOneToOne: false
             referencedRelation: "v_tenant_dashboard_base"
@@ -51811,6 +54420,166 @@ export type Database = {
           },
         ]
       }
+      template_bindings: {
+        Row: {
+          binding_type: string
+          catalog_id: string | null
+          conditions_json: Json
+          created_at: string
+          id: string
+          is_default: boolean
+          is_required: boolean
+          sort_order: number
+          target_area: string
+          target_component: string | null
+          target_field: string | null
+          target_module: string
+          template_id: string | null
+          tenant_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          binding_type?: string
+          catalog_id?: string | null
+          conditions_json?: Json
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_required?: boolean
+          sort_order?: number
+          target_area: string
+          target_component?: string | null
+          target_field?: string | null
+          target_module?: string
+          template_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          binding_type?: string
+          catalog_id?: string | null
+          conditions_json?: Json
+          created_at?: string
+          id?: string
+          is_default?: boolean
+          is_required?: boolean
+          sort_order?: number
+          target_area?: string
+          target_component?: string | null
+          target_field?: string | null
+          target_module?: string
+          template_id?: string | null
+          tenant_id?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "template_bindings_catalog_id_fkey"
+            columns: ["catalog_id"]
+            isOneToOne: false
+            referencedRelation: "catalog_definitions"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_bindings_template_id_fkey"
+            columns: ["template_id"]
+            isOneToOne: false
+            referencedRelation: "templates"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "template_bindings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: false
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
       template_categories: {
         Row: {
           created_at: string
@@ -52785,19 +55554,23 @@ export type Database = {
           created_at: string
           created_by: string | null
           description: string | null
+          field_schema_json: Json
           id: string
           is_default: boolean
           is_required: boolean
           module_key: string
+          rules_json: Json
           scope: string
           sort_order: number
           status: string
           tags: Json
+          template_area: string | null
           template_type: string
           tenant_id: string | null
           title: string
           updated_at: string
           variables: Json
+          version_number: number
         }
         Insert: {
           category_key?: string | null
@@ -52805,19 +55578,23 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          field_schema_json?: Json
           id?: string
           is_default?: boolean
           is_required?: boolean
           module_key: string
+          rules_json?: Json
           scope?: string
           sort_order?: number
           status?: string
           tags?: Json
+          template_area?: string | null
           template_type: string
           tenant_id?: string | null
           title: string
           updated_at?: string
           variables?: Json
+          version_number?: number
         }
         Update: {
           category_key?: string | null
@@ -52825,19 +55602,23 @@ export type Database = {
           created_at?: string
           created_by?: string | null
           description?: string | null
+          field_schema_json?: Json
           id?: string
           is_default?: boolean
           is_required?: boolean
           module_key?: string
+          rules_json?: Json
           scope?: string
           sort_order?: number
           status?: string
           tags?: Json
+          template_area?: string | null
           template_type?: string
           tenant_id?: string | null
           title?: string
           updated_at?: string
           variables?: Json
+          version_number?: number
         }
         Relationships: [
           {
@@ -54985,6 +57766,193 @@ export type Database = {
             isOneToOne: false
             referencedRelation: "v_tenant_dashboard_base"
             referencedColumns: ["tenant_id"]
+          },
+        ]
+      }
+      tenant_document_settings: {
+        Row: {
+          accent_color: string | null
+          bank_name: string | null
+          bic: string | null
+          created_at: string
+          default_contract_clauses: string | null
+          default_document_language: string
+          default_dunning_terms: string | null
+          default_page_margin_bottom_mm: number | null
+          default_page_margin_left_mm: number | null
+          default_page_margin_right_mm: number | null
+          default_page_margin_top_mm: number | null
+          default_payment_terms_days: number | null
+          default_tax_notice: string | null
+          font_family: string | null
+          footer_layout: Json
+          header_layout: Json
+          iban: string | null
+          id: string
+          logo_url: string | null
+          primary_color: string | null
+          secondary_color: string | null
+          tenant_id: string
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          accent_color?: string | null
+          bank_name?: string | null
+          bic?: string | null
+          created_at?: string
+          default_contract_clauses?: string | null
+          default_document_language?: string
+          default_dunning_terms?: string | null
+          default_page_margin_bottom_mm?: number | null
+          default_page_margin_left_mm?: number | null
+          default_page_margin_right_mm?: number | null
+          default_page_margin_top_mm?: number | null
+          default_payment_terms_days?: number | null
+          default_tax_notice?: string | null
+          font_family?: string | null
+          footer_layout?: Json
+          header_layout?: Json
+          iban?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tenant_id: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          accent_color?: string | null
+          bank_name?: string | null
+          bic?: string | null
+          created_at?: string
+          default_contract_clauses?: string | null
+          default_document_language?: string
+          default_dunning_terms?: string | null
+          default_page_margin_bottom_mm?: number | null
+          default_page_margin_left_mm?: number | null
+          default_page_margin_right_mm?: number | null
+          default_page_margin_top_mm?: number | null
+          default_payment_terms_days?: number | null
+          default_tax_notice?: string | null
+          font_family?: string | null
+          footer_layout?: Json
+          header_layout?: Json
+          iban?: string | null
+          id?: string
+          logo_url?: string | null
+          primary_color?: string | null
+          secondary_color?: string | null
+          tenant_id?: string
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "tenants"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_app_compliance_overview"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_billing_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_caresuite_flutterflow_ready_check"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_caresuite_global_counts"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_caresuite_supabase_final_dashboard"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_operational_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_operations_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_product_world_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_system_catalog_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_template_system_dashboard_stats"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_tenant_id_fkey"
+            columns: ["tenant_id"]
+            isOneToOne: true
+            referencedRelation: "v_tenant_dashboard_base"
+            referencedColumns: ["tenant_id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "profiles"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "tenant_document_settings_updated_by_fkey"
+            columns: ["updated_by"]
+            isOneToOne: false
+            referencedRelation: "v_business_app_state"
+            referencedColumns: ["profile_id"]
           },
         ]
       }
@@ -58344,6 +61312,7 @@ export type Database = {
       tenant_template_settings: {
         Row: {
           allow_tenant_overrides: boolean
+          assist_proof_settings_json: Json
           default_locale: string
           show_system_templates: boolean
           tenant_id: string
@@ -58351,6 +61320,7 @@ export type Database = {
         }
         Insert: {
           allow_tenant_overrides?: boolean
+          assist_proof_settings_json?: Json
           default_locale?: string
           show_system_templates?: boolean
           tenant_id: string
@@ -58358,6 +61328,7 @@ export type Database = {
         }
         Update: {
           allow_tenant_overrides?: boolean
+          assist_proof_settings_json?: Json
           default_locale?: string
           show_system_templates?: boolean
           tenant_id?: string
@@ -78095,6 +81066,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      is_document_module_admin: { Args: never; Returns: boolean }
       is_feature_enabled: {
         Args: {
           input_feature_key: string

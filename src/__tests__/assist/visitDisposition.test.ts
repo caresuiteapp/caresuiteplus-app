@@ -49,7 +49,7 @@ describe('visitWorkflow transitions', () => {
 describe('Assist disposition list UI contracts', () => {
   it('AssignmentsListView rendert ohne Crash-relevante Imports', () => {
     const source = readSrc('src/components/assist/AssignmentsListView.tsx');
-    expect(source).toContain('AssignmentCreateWizard');
+    expect(source).toContain('AssignmentCreateForm');
     expect(source).toContain('buildVisitDispositionKpis');
     expect(source).toContain('auroraGlass');
     expect(source).not.toContain('backgroundColor: \'#fff\'');
@@ -60,13 +60,15 @@ describe('Assist disposition list UI contracts', () => {
     expect(source).toContain('if (!visit) return null');
     expect(source).toContain('allowedStatusTransitions');
     expect(source).toContain('ASSIGNMENT_STATUS_LABELS');
+    expect(source).toContain('OfficeRecordDeleteButton');
+    expect(source).toContain('viewContext: \'form\'');
     expect(source).not.toContain('WORKFLOW_STATUS_LABELS[status]');
   });
 
   it('AssignmentDetailGlassModal nutzt tabbed disposition panel', () => {
     const source = readSrc('src/components/assist/AssignmentDetailGlassModal.tsx');
     expect(source).toContain('AssignmentDetailTabsPanel');
-    expect(source).toContain('auroraGlass');
+    expect(source).toContain('useAuroraGlassModalStyle');
   });
 
   it('Status-Buttons nutzen AssignmentStatus Labels (kein Aktiv/Aktiv)', () => {

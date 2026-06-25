@@ -13,10 +13,12 @@ export function AssignmentsListScreen({
   onAssignmentPress,
   selectedId,
   embedded = false,
+  externalRefreshKey,
 }: {
   onAssignmentPress?: (id: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
+  externalRefreshKey?: number;
 } = {}) {
   const { isReadOnly, roleLabel } = usePermissions();
   const pageTitle = 'Einsatzplanung';
@@ -30,6 +32,7 @@ export function AssignmentsListScreen({
         onAssignmentPress={onAssignmentPress}
         selectedId={selectedId}
         embedded
+        externalRefreshKey={externalRefreshKey}
       />
     );
   }
@@ -70,7 +73,11 @@ export function AssignmentsListScreen({
             message="Für diesen Mandanten sind noch keine Einsätze geplant."
           />
         ) : (
-          <AssignmentsListView onAssignmentPress={onAssignmentPress} selectedId={selectedId} />
+          <AssignmentsListView
+            onAssignmentPress={onAssignmentPress}
+            selectedId={selectedId}
+            externalRefreshKey={externalRefreshKey}
+          />
         )}
       </View>
     </C14vSubpageShell>

@@ -1,8 +1,8 @@
 import { FlatList, Platform, RefreshControl, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useMemo, useState } from 'react';
+import { useMemo, useState, useEffect } from 'react';
 import { useRouter } from 'expo-router';
 import { AssignmentListCard } from './AssignmentListCard';
-import { AssignmentCreateWizard } from './AssignmentCreateWizard';
+import { AssignmentCreateForm } from './AssignmentCreateForm';
 import { AssignmentsListHero } from './AssignmentsListHero';
 import { AssignmentsListTable } from './AssignmentsListTable';
 import { LockedActionBanner } from '@/components/permissions';
@@ -34,12 +34,15 @@ type AssignmentsListViewProps = {
   onAssignmentPress?: (id: string) => void;
   selectedId?: string | null;
   embedded?: boolean;
+  /** Increment to trigger list refresh (e.g. after delete from preview modal). */
+  externalRefreshKey?: number;
 };
 
 export function AssignmentsListView({
   onAssignmentPress,
   selectedId = null,
   embedded = false,
+  externalRefreshKey = 0,
 }: AssignmentsListViewProps) {
   const router = useRouter();
   const [wizardVisible, setWizardVisible] = useState(false);
@@ -88,6 +91,12 @@ export function AssignmentsListView({
     isFilterEmpty,
     allItems,
   } = useAssignmentList();
+
+  useEffect(() => {
+    if (externalRefreshKey > 0) {
+      void refresh();
+    }
+  }, [externalRefreshKey, refresh]);
 
   const kpis = useMemo(
     () =>
@@ -208,7 +217,7 @@ export function AssignmentsListView({
         />
       ) : null}
 
-      <AssignmentCreateWizard
+      <AssignmentCreateForm
         visible={wizardVisible}
         onClose={() => setWizardVisible(false)}
         onCreated={(id) => {

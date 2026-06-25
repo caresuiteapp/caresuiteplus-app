@@ -386,7 +386,7 @@ export const visitSupabaseRepository = {
       duration_minutes: duration,
       address_snapshot: input.addressSnapshot ?? null,
       internal_notes: input.internalNotes ?? null,
-      planning_status: 'scheduled',
+      planning_status: input.saveAsDraft ? 'draft' : 'scheduled',
       execution_status: 'pending',
       documentation_status: 'none',
       proof_status: 'none',
@@ -395,6 +395,15 @@ export const visitSupabaseRepository = {
       canonical_status: assignmentStatusToRemote('geplant'),
       portal_release_enabled: input.portalReleaseEnabled ?? false,
       budget_amount_cents: input.budgetAmountCents ?? null,
+      subject_key: input.subjectKey ?? null,
+      assignment_type_key: input.assignmentTypeKey ?? null,
+      service_category_key: input.serviceCategoryKey ?? null,
+      task_package_id: input.taskPackageId ?? null,
+      billing_budget_source_key: input.billingBudgetSourceKey ?? null,
+      proof_template_key: input.proofTemplateKey ?? null,
+      risk_flag_keys: input.riskFlagKeys ?? [],
+      recurrence_json: input.recurrenceJson ?? {},
+      catalog_snapshot_json: input.catalogSnapshotJson ?? {},
       created_by: actorProfileId ?? null,
     };
 
@@ -639,6 +648,41 @@ export const visitSupabaseRepository = {
     if (!refreshed.ok) return refreshed;
     if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
     return { ok: true, data: refreshed.data };
+  },
+
+  async delete(tenantId: string, visitId: string): Promise<ServiceResult<void>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const { data: row, error: lookupError } = await fromUnknownTable(supabase, 'assist_visits')
+      .select('id, legacy_assignment_id')
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId)
+      .maybeSingle();
+
+    if (lookupError) return { ok: false, error: toGermanSupabaseError(lookupError) };
+    if (!row) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const legacyAssignmentId = (row as { legacy_assignment_id: string | null }).legacy_assignment_id;
+
+    cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);
+
+    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+      .delete()
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    if (legacyAssignmentId) {
+      cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', legacyAssignmentId);
+      await fromUnknownTable(supabase, 'assignments')
+        .delete()
+        .eq('tenant_id', tenantId)
+        .eq('id', legacyAssignmentId);
+    }
+
+    return { ok: true, data: undefined };
   },
 
   /** Resolve visit id from legacy assignment id (for execute flow bridge). */
