@@ -1,13 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatBubble } from '@/components/communication/ChatBubble';
-import { ChatComposer } from '@/components/communication/ChatComposer';
 import { MessageAttachmentList } from '@/components/office/messageattachmentlist';
-import { OfficeMessageAttachmentPicker } from '@/components/office/officemessageattachmentpicker';
+import { OfficeMessageComposer } from '@/components/office/officemessagecomposer';
 import { PortalOfficeStatusCard } from '@/components/portal/portalofficestatuscard';
+import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useMessagingGlassSurface } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { usePortalOfficeThreadDetail } from '@/hooks/useportalofficethreaddetail';
@@ -28,8 +28,8 @@ export function PortalOfficeThread({
 }: PortalOfficeThreadProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
-  const text = useAuroraAdaptiveText();
   const isGlass = variant === 'glass';
+  const { surfaces, onDarkSurface, ink } = useMessagingGlassSurface(isGlass);
   const [draft, setDraft] = useState('');
   const [pendingAttachments, setPendingAttachments] = useState<PendingMessageAttachment[]>([]);
   const [attachmentError, setAttachmentError] = useState<string | null>(null);
@@ -49,11 +49,11 @@ export function PortalOfficeThread({
         header: {
           padding: spacing.md,
           borderBottomWidth: 1,
-          borderBottomColor: isGlass ? auroraGlass.border : c.border,
+          borderBottomColor: isGlass ? surfaces.border : c.border,
           gap: spacing.xs,
         },
-        title: { ...typography.h3, color: isGlass ? text.primary : c.text },
-        meta: { ...typography.caption, color: isGlass ? text.muted : c.muted },
+        title: { ...typography.h3, color: ink?.primary ?? c.text },
+        meta: { ...typography.caption, color: ink?.secondary ?? c.muted },
         messages: { flex: 1 },
         messagesContent: { paddingVertical: spacing.md },
         closedBanner: {
@@ -61,20 +61,35 @@ export function PortalOfficeThread({
           padding: spacing.md,
           borderRadius: 8,
           gap: spacing.sm,
-          backgroundColor: isGlass ? auroraGlass.chip : `${c.muted}18`,
+          backgroundColor: isGlass ? surfaces.chip : `${c.muted}18`,
         },
-        closedText: { ...typography.body, color: isGlass ? text.secondary : c.muted },
+        closedText: { ...typography.body, color: ink?.secondary ?? c.muted },
+        emptyWrap: {
+          flex: 1,
+          justifyContent: 'center',
+          padding: spacing.lg,
+        },
       }),
-    [c, isGlass, text.muted, text.primary, text.secondary, typography],
+    [c, ink, isGlass, surfaces.border, surfaces.chip, typography],
   );
 
   if (!threadId) {
     return (
       <View style={styles.root}>
-        <EmptyState
-          title="Chat auswählen"
-          message="Wählen Sie einen Chat aus der Liste oder starten Sie einen neuen."
-        />
+        {isGlass ? (
+          <View style={styles.emptyWrap}>
+            <PortalEmptyState
+              title="Chat auswählen"
+              message="Wählen Sie einen Chat aus der Liste oder starten Sie einen neuen."
+              onDarkSurface={onDarkSurface}
+            />
+          </View>
+        ) : (
+          <EmptyState
+            title="Chat auswählen"
+            message="Wählen Sie einen Chat aus der Liste oder starten Sie einen neuen."
+          />
+        )}
       </View>
     );
   }
@@ -98,7 +113,17 @@ export function PortalOfficeThread({
   if (!detail) {
     return (
       <View style={styles.root}>
-        <EmptyState title="Chat nicht gefunden" message="Der ausgewählte Chat existiert nicht." />
+        {isGlass ? (
+          <View style={styles.emptyWrap}>
+            <PortalEmptyState
+              title="Chat nicht gefunden"
+              message="Der ausgewählte Chat existiert nicht."
+              onDarkSurface={onDarkSurface}
+            />
+          </View>
+        ) : (
+          <EmptyState title="Chat nicht gefunden" message="Der ausgewählte Chat existiert nicht." />
+        )}
       </View>
     );
   }
@@ -109,6 +134,8 @@ export function PortalOfficeThread({
       setDraft('');
       setPendingAttachments([]);
       setAttachmentError(null);
+    } else {
+      setAttachmentError(result.error);
     }
   };
 
@@ -132,7 +159,7 @@ export function PortalOfficeThread({
         </Text>
       </View>
 
-      <PortalOfficeStatusCard thread={detail} />
+      <PortalOfficeStatusCard thread={detail} variant={variant} />
 
       <ScrollView style={styles.messages} contentContainerStyle={styles.messagesContent}>
         {detail.messages.map((message) => (
@@ -156,21 +183,16 @@ export function PortalOfficeThread({
           <PremiumButton title="Verwaltung anschreiben" onPress={handleStartNewChat} />
         </View>
       ) : (
-        <ChatComposer
+        <OfficeMessageComposer
           text={draft}
           onChangeText={setDraft}
           onSend={handleSend}
           sending={sending}
-          canSendWithAttachments={pendingAttachments.length > 0}
-          attachmentPicker={
-            <OfficeMessageAttachmentPicker
-              attachments={pendingAttachments}
-              onChange={setPendingAttachments}
-              disabled={sending}
-              error={attachmentError}
-              onError={setAttachmentError}
-            />
-          }
+          onDarkSurface={onDarkSurface}
+          pendingAttachments={pendingAttachments}
+          onPendingAttachmentsChange={setPendingAttachments}
+          attachmentError={attachmentError}
+          onAttachmentError={setAttachmentError}
         />
       )}
     </View>

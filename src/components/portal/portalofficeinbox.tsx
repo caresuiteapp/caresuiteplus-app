@@ -3,7 +3,7 @@ import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumInput, EmptyState, LoadingState, ErrorState } from '@/components/ui';
 import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { auroraGlass } from '@/design/tokens/auroraGlass';
+import { useMessagingGlassSurface } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import type { PortalOfficeInboxFilter } from '@/lib/office/portalofficemessageservice';
@@ -32,24 +32,36 @@ function ThreadRow({
   thread,
   selected,
   onPress,
+  variant = 'default',
 }: {
   thread: OfficeMessageThread;
   selected: boolean;
   onPress: () => void;
+  variant?: 'default' | 'glass';
 }) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
+  const isGlass = variant === 'glass';
+  const { surfaces, ink } = useMessagingGlassSurface(isGlass);
   const styles = useMemo(
     () =>
       StyleSheet.create({
         row: {
           padding: spacing.md,
           borderBottomWidth: 1,
-          borderBottomColor: c.border,
+          borderBottomColor: isGlass ? surfaces.border : c.border,
           backgroundColor: selected ? `${c.violet}22` : 'transparent',
         },
-        subject: { ...typography.body, fontWeight: '700', color: c.text },
-        preview: { ...typography.caption, color: c.muted, marginTop: spacing.xs },
+        subject: {
+          ...typography.body,
+          fontWeight: '700',
+          color: ink?.primary ?? c.text,
+        },
+        preview: {
+          ...typography.caption,
+          color: ink?.secondary ?? c.muted,
+          marginTop: spacing.xs,
+        },
         meta: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
         badge: {
           paddingHorizontal: spacing.sm,
@@ -57,9 +69,9 @@ function ThreadRow({
           borderRadius: radius.capsule,
           backgroundColor: `${c.violet}18`,
         },
-        badgeText: { ...typography.caption, color: c.violet },
+        badgeText: { ...typography.caption, color: ink?.secondary ?? c.violet },
       }),
-    [c, selected, typography],
+    [c, ink, isGlass, surfaces.border, selected, typography],
   );
 
   return (
@@ -99,6 +111,7 @@ export function PortalOfficeInbox({
   const { typography } = useLegacyTheme();
   const { threads, loading, error, refresh, isEmpty } = usePortalOfficeMessages(filter);
   const isGlass = variant === 'glass';
+  const { surfaces, onDarkSurface, ink } = useMessagingGlassSurface(isGlass);
 
   const styles = useMemo(
     () =>
@@ -110,19 +123,19 @@ export function PortalOfficeInbox({
           paddingVertical: spacing.xs,
           borderRadius: radius.capsule,
           borderWidth: 1,
-          borderColor: isGlass ? auroraGlass.border : c.border,
+          borderColor: isGlass ? surfaces.border : c.border,
         },
         filterChipActive: {
-          backgroundColor: isGlass ? auroraGlass.chipActive : `${c.violet}22`,
+          backgroundColor: isGlass ? surfaces.chipActive : `${c.violet}22`,
           borderColor: isGlass ? '#FF9500' : c.violet,
         },
-        filterText: { ...typography.caption, color: isGlass ? auroraGlass.text.muted : c.muted },
+        filterText: { ...typography.caption, color: ink?.muted ?? c.muted },
         filterTextActive: { color: isGlass ? '#FF9500' : c.violet, fontWeight: '700' },
         search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
         list: { flex: 1 },
         emptyWrap: { padding: spacing.md },
       }),
-    [c, isGlass, typography],
+    [c, ink, isGlass, surfaces.border, surfaces.chipActive, typography],
   );
 
   const filteredThreads = useMemo(() => {
@@ -171,7 +184,12 @@ export function PortalOfficeInbox({
         })}
       </View>
       <View style={styles.search}>
-        <PremiumInput value={search} onChangeText={onSearchChange} placeholder="Suchen…" />
+        <PremiumInput
+          value={search}
+          onChangeText={onSearchChange}
+          placeholder="Suchen…"
+          onDarkSurface={onDarkSurface}
+        />
       </View>
       {isEmpty ? (
         <View style={styles.emptyWrap}>
@@ -181,6 +199,7 @@ export function PortalOfficeInbox({
               message="Schreiben Sie der Verwaltung — Ihre Nachricht erscheint im Verwaltungs-Postfach und Antworten sehen Sie hier."
               actionLabel={composeLabel}
               onAction={onCompose}
+              onDarkSurface={onDarkSurface}
             />
           ) : (
             <EmptyState
@@ -201,6 +220,7 @@ export function PortalOfficeInbox({
               thread={item}
               selected={item.id === selectedThreadId}
               onPress={() => onThreadSelect(item.id)}
+              variant={variant}
             />
           )}
           onRefresh={refresh}

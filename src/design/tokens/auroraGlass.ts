@@ -53,6 +53,26 @@ export const auroraGlass = {
   },
 } as const;
 
+export type SurfaceContrastText = {
+  primary: string;
+  secondary: string;
+  muted: string;
+};
+
+/** Weiße/helle Schrift auf dunklen Glasflächen (auroraGlass-Hintergründe). */
+export const darkGlassSurfaceText: SurfaceContrastText = auroraGlass.text;
+
+/** Dunkle Schrift auf hellen/weißen Flächen. */
+export const lightSurfaceText: SurfaceContrastText = {
+  primary: llgsTypography.primary,
+  secondary: llgsTypography.secondary,
+  muted: llgsTypography.secondary,
+};
+
+export function surfaceContrastText(isDarkBackground: boolean): SurfaceContrastText {
+  return isDarkBackground ? darkGlassSurfaceText : lightSurfaceText;
+}
+
 /** Frosted milchglas — Liquid Glass über hellem Space-Aurora-Hintergrund. */
 const llganDefaultSurface = resolveLlganGlassSurface('default');
 const llganSubtleSurface = resolveLlganGlassSurface('subtle');
@@ -204,6 +224,36 @@ export function useActiveGlassTokens(): GlassSurfaceTokens {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
   return active ? resolveActiveGlassTokens(isLight) : auroraGlass;
+}
+
+/** Light frosted shell (LLGAN) — dark text on milchglas, matches desktop portal/office. */
+export function useLightLiquidGlassShell(): boolean {
+  const active = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
+  return active && isLight;
+}
+
+/** Composer/input strip on dark glass — false on light LLGAN shell (mobile + desktop). */
+export function useComposerDarkSurface(): boolean {
+  const active = useAuroraGlassActive();
+  const { isLight } = useLegacyTheme();
+  return active && !isLight;
+}
+
+export type MessagingGlassSurface = {
+  useLightGlass: boolean;
+  surfaces: GlassSurfaceTokens;
+  onDarkSurface: boolean;
+  ink: SurfaceContrastText | null;
+};
+
+/** Portal messaging "glass" variant — light surfaces on light theme for readable mobile layout. */
+export function useMessagingGlassSurface(isGlassVariant: boolean): MessagingGlassSurface {
+  const useLightGlass = useLightLiquidGlassShell();
+  const surfaces = useLightGlass ? lightLiquidGlass : auroraGlass;
+  const onDarkSurface = isGlassVariant && !useLightGlass;
+  const ink = isGlassVariant ? surfaceContrastText(onDarkSurface) : null;
+  return { useLightGlass, surfaces, onDarkSurface, ink };
 }
 
 /** Adaptive text colors — glass text when shell active, theme palette otherwise. */
@@ -438,6 +488,7 @@ export function useAuroraGlassChipStyles(options: ShellGlassIntensityOptions = {
           borderWidth: 1,
           borderColor: active ? glass.border : colors.borderSoft,
           backgroundColor: active ? glass.chip : colors.bgSurface,
+          overflow: 'hidden',
         },
         tabActive: {
           borderColor: careSuiteAuroraTheme.accent.violet,

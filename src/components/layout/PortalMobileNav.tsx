@@ -14,7 +14,6 @@ import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { resolveCompactShellMobileTabs } from '@/lib/navigation/shellMobileTabs';
 import { resolveActiveTabKey } from '@/lib/navigation/shellConfig';
 import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
@@ -33,11 +32,10 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { isPhone } = useDeviceClass();
   const text = useAuroraAdaptiveText();
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
-  const useLightNav = auroraActive && isLight && isPhone;
+  const useLightNav = auroraActive && isLight;
   const navSurface = useLightNav ? lightLiquidGlass.panel : auroraGlass.panel;
   const navBorder = useLightNav ? lightLiquidGlass.borderAccent : auroraGlass.border;
   const navGlassFx = useLightNav

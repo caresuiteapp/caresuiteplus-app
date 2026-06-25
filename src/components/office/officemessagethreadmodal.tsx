@@ -21,6 +21,7 @@ import {
   resolveOfficeThreadHeaderSubtitle,
   resolveOfficeThreadParticipantName,
 } from '@/lib/office/officemessagemappers';
+import { useComposerDarkSurface } from '@/design/tokens/auroraGlass';
 import { spacing, radius } from '@/theme';
 
 type OfficeMessageThreadModalProps = {
@@ -49,6 +50,7 @@ export function OfficeMessageThreadModal({
 }: OfficeMessageThreadModalProps) {
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
   const { isDark, c } = useCareLightPalette();
+  const composerOnDarkSurface = useComposerDarkSurface();
   const officeAccent = moduleColor('office');
   const [tab, setTab] = useState<ModalTab>('chat');
   const showSideBySide = screenWidth >= SIDE_BY_SIDE_BREAKPOINT;
@@ -221,6 +223,7 @@ export function OfficeMessageThreadModal({
                   <OfficeMessageThread
                     threadId={threadId}
                     hideHeader
+                    onDarkSurface={composerOnDarkSurface}
                     onNewThreadStarted={(newThreadId) => {
                       onNewThreadStarted?.(newThreadId);
                       handleThreadUpdated();

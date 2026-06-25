@@ -11,7 +11,15 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
-import { auroraGlass, lightLiquidGlass, lightLiquidGlassWebFx, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import {
+  auroraGlass,
+  lightLiquidGlass,
+  lightLiquidGlassWebFx,
+  surfaceContrastText,
+  useAuroraAdaptiveText,
+  useAuroraGlassActive,
+  useShellGlassSurfaceStyle,
+} from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -57,6 +65,8 @@ export function PortalTopBar({
   const barSurface = useLightBar ? lightLiquidGlass.panel : auroraGlass.panel;
   const barBorder = useLightBar ? lightLiquidGlass.borderAccent : auroraGlass.border;
   const barGlassFx = useLightBar ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light) : webGlassBlur;
+  const menuInk = surfaceContrastText(!useLightBar);
+  const dropdownGlass = useShellGlassSurfaceStyle('modal');
   const { profile, signOut } = useAuth();
   const { displayName } = usePortalActor();
   const { context } = usePortalContext();
@@ -114,8 +124,8 @@ export function PortalTopBar({
           </View>
         </View>
         {profileOpen ? (
-          <View style={styles.dropdown}>
-            <Text style={[styles.dropdownMeta, { color: text.muted }]} numberOfLines={1}>
+          <View style={[styles.dropdown, dropdownGlass]}>
+            <Text style={[styles.dropdownMeta, { color: menuInk.muted, borderBottomColor: barBorder }]} numberOfLines={1}>
               {displayName}
             </Text>
             {profileMenuItems.map((item) => (
@@ -129,7 +139,7 @@ export function PortalTopBar({
                 style={[styles.dropdownItem, webCursor]}
                 accessibilityRole="button"
               >
-                <Text style={[styles.dropdownText, { color: text.primary }]}>{item.label}</Text>
+                <Text style={[styles.dropdownText, { color: menuInk.primary }]}>{item.label}</Text>
               </Pressable>
             ))}
           </View>
@@ -154,14 +164,22 @@ export function PortalTopBar({
         <Text style={[styles.subtitle, { color: text.secondary }]}>{moduleSubtitle}</Text>
       </View>
 
-      <View style={styles.searchWrap}>
-        <Text style={[styles.searchIcon, { color: text.muted }]}>⌕</Text>
+      <View
+        style={[
+          styles.searchWrap,
+          {
+            borderColor: useLightBar ? lightLiquidGlass.borderAccent : auroraGlass.border,
+            backgroundColor: useLightBar ? lightLiquidGlass.input : auroraGlass.input,
+          },
+        ]}
+      >
+        <Text style={[styles.searchIcon, { color: menuInk.muted }]}>⌕</Text>
         <TextInput
           value={query}
           onChangeText={setQuery}
           placeholder="Im Portal suchen…"
-          placeholderTextColor={text.muted}
-          style={[styles.searchInput, { color: text.primary }, webNoOutline]}
+          placeholderTextColor={menuInk.muted}
+          style={[styles.searchInput, { color: menuInk.primary }, webNoOutline]}
         />
       </View>
 
@@ -186,7 +204,7 @@ export function PortalTopBar({
             </Pressable>
           </View>
           {profileOpen ? (
-            <View style={styles.dropdown}>
+            <View style={[styles.dropdown, dropdownGlass]}>
               {profileMenuItems.map((item) => (
                 <Pressable
                   key={item.label}
@@ -198,7 +216,7 @@ export function PortalTopBar({
                   style={[styles.dropdownItem, webCursor]}
                   accessibilityRole="button"
                 >
-                  <Text style={[styles.dropdownText, { color: text.primary }]}>{item.label}</Text>
+                  <Text style={[styles.dropdownText, { color: menuInk.primary }]}>{item.label}</Text>
                 </Pressable>
               ))}
             </View>
@@ -258,8 +276,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: auroraGlass.border,
-    backgroundColor: auroraGlass.input,
   },
   searchIcon: {
     fontSize: 24,
@@ -313,9 +329,6 @@ const styles = StyleSheet.create({
     marginTop: careSpacing.xs,
     minWidth: 180,
     borderRadius: 12,
-    borderWidth: 1,
-    borderColor: auroraGlass.borderStrong,
-    backgroundColor: auroraGlass.modal,
     paddingVertical: careSpacing.xs,
     zIndex: 30,
   },
@@ -332,7 +345,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.md,
     paddingBottom: careSpacing.xs,
     borderBottomWidth: 1,
-    borderBottomColor: auroraGlass.border,
     marginBottom: careSpacing.xs,
   },
   compactRoot: {

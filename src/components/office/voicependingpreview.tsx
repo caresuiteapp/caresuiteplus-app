@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { surfaceContrastText } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import {
   createVoicePreviewUrl,
@@ -23,6 +24,7 @@ function formatDuration(seconds: number): string {
 export function VoicePendingPreview({ attachment, onDarkSurface = false }: VoicePendingPreviewProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
+  const ink = surfaceContrastText(onDarkSurface);
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const previewUrlRef = useRef<string | null>(null);
   const [playing, setPlaying] = useState(false);
@@ -52,12 +54,12 @@ export function VoicePendingPreview({ attachment, onDarkSurface = false }: Voice
         playLabel: { ...typography.caption, color: c.violet, fontWeight: '700' },
         label: {
           ...typography.caption,
-          color: onDarkSurface ? c.text : c.muted,
+          color: onDarkSurface ? ink.secondary : c.muted,
           flex: 1,
         },
-        meta: { ...typography.caption, color: c.muted },
+        meta: { ...typography.caption, color: onDarkSurface ? ink.muted : c.muted },
       }),
-    [c, onDarkSurface, typography],
+    [c, ink, onDarkSurface, typography],
   );
 
   useEffect(() => {

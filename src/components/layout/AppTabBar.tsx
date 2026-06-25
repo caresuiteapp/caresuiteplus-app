@@ -39,7 +39,7 @@ export function AppTabBar({
   const text = useAuroraAdaptiveText();
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
-  const useLightNav = auroraActive && isLight && isPhone;
+  const useLightNav = auroraActive && isLight;
   const effectiveArea = area ?? (portalOverflowNav ? 'portal_client' : undefined);
   const useCompactNav = shouldUseCompactMobileNav(tabs.length, isPhone);
   const activeKey = resolveActiveTabKey(pathname, tabs);
@@ -99,7 +99,7 @@ export function AppTabBar({
             }
           : auroraActive && styles.containerGlass,
         navGlassFx,
-        { paddingBottom: webSafeAreaPadding('bottom', bottomInset) },
+        { paddingBottom: webSafeAreaPadding('bottom', bottomInset) } as ViewStyle,
       ]}
     >
       {tabs.map(renderTab)}

@@ -37,7 +37,9 @@ import { careTypography } from '@/design/tokens/typography';
 import { withAlpha } from '@/design/tokens/motion';
 import type { MainModuleKey } from '@/types/navigation/platform';
 import { useModalStack } from '@/hooks/useModalStack';
+import { useModuleNavBadges } from '@/hooks/useModuleNavBadges';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
+import { AccentTextChip } from '@/components/ui/AccentTextChip';
 
 type ShellNavigationDrawerProps = {
   visible: boolean;
@@ -77,6 +79,7 @@ export function ShellNavigationDrawer({
 
   const navConfig = useMemo(() => getModuleNavConfig(mainModule), [mainModule]);
   const activeNavKey = resolveActiveModuleNavKey(pathname, navConfig);
+  const navBadges = useModuleNavBadges(mainModule);
 
   const drawerSurface = useMemo(() => {
     if (useLightDrawer) {
@@ -91,6 +94,20 @@ export function ShellNavigationDrawer({
       borderColor: auroraGlass.borderStrong,
     } as ViewStyle;
   }, [useLightDrawer]);
+
+  const moduleTileSurface = useMemo(
+    () =>
+      useLightDrawer
+        ? {
+            borderColor: lightLiquidGlass.borderAccent,
+            backgroundColor: lightLiquidGlass.chip,
+          }
+        : {
+            borderColor: auroraGlass.border,
+            backgroundColor: auroraGlass.chip,
+          },
+    [useLightDrawer],
+  );
 
   const handleModulePress = (path: string) => {
     onClose();
@@ -148,6 +165,7 @@ export function ShellNavigationDrawer({
                     onPress={() => handleModulePress(mod.path)}
                     style={[
                       styles.moduleTile,
+                      moduleTileSurface,
                       active && { borderColor: withAlpha(mod.accentColor, 0.6), backgroundColor: withAlpha(mod.accentColor, 0.12) },
                       webCursor,
                     ]}
@@ -179,6 +197,7 @@ export function ShellNavigationDrawer({
                     <Text style={[styles.groupTitle, { color: text.muted }]}>{group.title}</Text>
                     {group.items.map((item) => {
                       const active = item.key === activeNavKey;
+                      const badge = navBadges[item.key] ?? item.badge;
                       return (
                         <Pressable
                           key={item.key}
@@ -190,11 +209,15 @@ export function ShellNavigationDrawer({
                           ]}
                           accessibilityRole="button"
                           accessibilityState={{ selected: active }}
+                          accessibilityLabel={badge != null ? `${item.label}, ${badge}` : item.label}
                         >
                           <Text style={styles.navIcon}>{item.icon}</Text>
                           <Text style={[styles.navLabel, { color: active ? text.primary : text.secondary }, active && { fontWeight: '700' }]}>
                             {item.label}
                           </Text>
+                          {badge != null ? (
+                            <AccentTextChip label={String(badge)} accentColor={accentColor} textStyle={styles.navBadgeText} />
+                          ) : null}
                         </Pressable>
                       );
                     })}
@@ -275,8 +298,6 @@ const styles = StyleSheet.create({
     paddingHorizontal: careSpacing.xs,
     borderRadius: 12,
     borderWidth: 1,
-    borderColor: auroraGlass.border,
-    backgroundColor: auroraGlass.chip,
   },
   moduleLabel: {
     ...careTypography.caption,
@@ -303,6 +324,10 @@ const styles = StyleSheet.create({
     ...careTypography.body,
     fontWeight: '600',
     flex: 1,
+  },
+  navBadgeText: {
+    fontSize: 11,
+    fontWeight: '700',
   },
   groupTitle: {
     ...careTypography.caption,
