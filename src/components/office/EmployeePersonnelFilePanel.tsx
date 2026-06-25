@@ -6,7 +6,7 @@ import { CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmployeePortalAccessPanel } from '@/components/office/EmployeePortalAccessPanel';
-import { EmployeePersonnelRolesPanel } from '@/components/office/EmployeePersonnelRolesPanel';
+import { EmployeeRolesPermissionsHub } from '@/components/office/EmployeeRolesPermissionsHub';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import {
   EmptyState,
@@ -374,7 +374,16 @@ export function EmployeePersonnelFilePanel({
     );
   }
 
-  async function handleSaveRoles(patch: { roleKey: RoleKey; homeOfficeEnabled: boolean | null }) {
+  async function handleSaveRoles(patch: {
+    roleKey: RoleKey;
+    additionalRoleKeys?: RoleKey[];
+    homeOfficeEnabled: boolean | null;
+    timeTrackingMode?: import('@/lib/office/employeeHomeOfficeService').EmployeeTimeTrackingMode | null;
+    desiredPermissions?: import('@/types/permissions').PermissionKey[];
+    overrides?: import('@/types/permissions/rbac').EmployeePermissionOverride[];
+    dataScopes?: import('@/types/permissions/rbac').EmployeeDataScope[];
+    changeReason?: string | null;
+  }) {
     if (!tenantId) return;
     await runAction(
       () =>
@@ -638,13 +647,22 @@ export function EmployeePersonnelFilePanel({
       ) : null}
 
       {activeTab === 'roles_permissions' ? (
-        <EmployeePersonnelRolesPanel
+        <EmployeeRolesPermissionsHub
+          tenantId={tenantId ?? ''}
           employeeId={employeeId}
+          employeeName={`${file.masterData.firstName} ${file.masterData.lastName}`}
+          employmentStatus={labelEmploymentStatus(file.employment.employmentStatus)}
           roleKey={file.portalAccess.roleKey}
+          portalActive={file.portalAccess.portalActive}
+          lastLoginAt={file.portalAccess.lastLoginAt}
           canEdit={canEdit}
+          canManageTenantRoles={can('business.modules.manage') || can('business.tenant.manage')}
+          actorProfileId={profile?.id}
           saving={saving}
           panelCtx={panelCtx}
-          onSave={handleSaveRoles}
+          onSave={async (patch) => {
+            await handleSaveRoles(patch);
+          }}
         />
       ) : null}
 

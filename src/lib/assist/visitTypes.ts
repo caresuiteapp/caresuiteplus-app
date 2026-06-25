@@ -255,6 +255,8 @@ export type VisitCreateInput = {
   riskFlagKeys?: string[];
   recurrenceJson?: VisitRecurrenceJson | Record<string, unknown>;
   catalogSnapshotJson?: Record<string, unknown>;
+  budgetAllocation?: import('@/types/assist/assignmentBudgetAllocation').AssistBudgetAllocationResult | null;
+  budgetManualOverride?: import('@/types/assist/assignmentBudgetAllocation').ManualBudgetAllocationOverride | null;
 };
 
 export type VisitCreateWizardData = {
@@ -293,6 +295,9 @@ export type VisitCreateWizardData = {
   recurrenceEndDate: string;
   recurrenceWeekdays: VisitWeekdayKey[];
   recurrenceOccurrenceCount: number | null;
+  /** Auto-calculated budget allocation from client profile */
+  budgetAllocation?: import('@/types/assist/assignmentBudgetAllocation').AssistBudgetAllocationResult | null;
+  budgetManualOverride?: import('@/types/assist/assignmentBudgetAllocation').ManualBudgetAllocationOverride | null;
 };
 
 export function buildVisitRecurrenceJson(

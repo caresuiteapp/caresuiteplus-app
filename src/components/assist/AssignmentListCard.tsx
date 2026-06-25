@@ -13,7 +13,7 @@ import {
   type VisitProofStatus,
 } from '@/lib/assist/visitTypes';
 import { formatAssignmentSchedule } from '@/lib/formatters/dateTimeFormatters';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText, useAuroraGlass } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { spacing, typography } from '@/theme';
 
@@ -40,6 +40,7 @@ function statusVariant(status: AssignmentListItem['status']) {
 
 export function AssignmentListCard({ assignment, onPress, selected = false }: AssignmentListCardProps) {
   const text = useAuroraAdaptiveText();
+  const { tokens } = useAuroraGlass();
   const accent = moduleColor('assist');
   const planning = (assignment.planningStatus as VisitPlanningStatus) ?? 'scheduled';
   const proof = (assignment.proofStatus as VisitProofStatus) ?? 'none';
@@ -48,11 +49,11 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        card: { marginBottom: spacing.sm, backgroundColor: auroraGlass.card },
+        card: { marginBottom: spacing.sm },
         cardSelected: {
           borderColor: accent,
           borderWidth: 2,
-          backgroundColor: auroraGlass.rowSelected,
+          backgroundColor: tokens.rowSelected,
         },
         header: {
           flexDirection: 'row',
@@ -68,7 +69,7 @@ export function AssignmentListCard({ assignment, onPress, selected = false }: As
         location: { ...typography.caption, color: text.muted },
         openHint: { ...typography.caption, color: text.muted, marginTop: spacing.xs },
       }),
-    [text, accent],
+    [accent, text, tokens.rowSelected],
   );
 
   const inner = (

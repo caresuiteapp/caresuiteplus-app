@@ -11,7 +11,9 @@ export type OfficeMessageAuditAction =
   | 'office_message_closed'
   | 'office_message_attachment_uploaded'
   | 'office_message_internal_note'
-  | 'office_message_export_requested';
+  | 'office_message_export_requested'
+  | 'office_message_archived'
+  | 'office_message_deleted';
 
 type AuditInput = {
   tenantId: string;
@@ -34,6 +36,8 @@ const ACTION_LABELS: Record<OfficeMessageAuditAction, string> = {
   office_message_attachment_uploaded: 'Anhang hochgeladen',
   office_message_internal_note: 'Interne Notiz',
   office_message_export_requested: 'Chat-Export angefordert',
+  office_message_archived: 'Nachricht archiviert',
+  office_message_deleted: 'Nachricht gelöscht',
 };
 
 export async function logOfficeMessageAuditEvent(

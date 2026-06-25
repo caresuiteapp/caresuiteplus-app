@@ -1,8 +1,11 @@
-import { FlatList, Pressable, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { FlatList, RefreshControl, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
 import { useRouter } from 'expo-router';
 import { ScreenShell } from '@/components/layout';
 import { ModuleExtensionNavStrip } from '@/components/navigation/ModuleExtensionNavStrip';
-import { EmptyState, ErrorState, LoadingState, PremiumBadge } from '@/components/ui';
+import { ModuleAssignmentListCard } from '@/components/office/ModuleAssignmentListCard';
+import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -29,6 +32,22 @@ export function ModuleAssignedClientsScreen({
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const { roleLabel } = usePermissions();
+  const text = useAuroraAdaptiveText();
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        nav: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+        hint: {
+          ...typography.caption,
+          color: text.muted,
+          paddingHorizontal: spacing.md,
+          paddingBottom: spacing.sm,
+        },
+        list: { padding: spacing.md },
+      }),
+    [text.muted],
+  );
 
   const query = useAsyncQuery(
     () => {
@@ -77,19 +96,14 @@ export function ModuleAssignedClientsScreen({
           <RefreshControl refreshing={query.refreshing} onRefresh={query.refresh} tintColor={colors.primary} />
         }
         renderItem={({ item }) => (
-          <Pressable
-            style={styles.row}
+          <ModuleAssignmentListCard
+            title={item.clientName}
+            subtitle={`Zugeordnet ${new Date(item.assignedAt).toLocaleDateString('de-DE')}${
+              item.primaryEmployeeName ? ` · ${item.primaryEmployeeName}` : ''
+            }`}
+            status={item.status}
             onPress={() => openClientRecord(item.clientId)}
-          >
-            <View style={styles.main}>
-              <Text style={styles.name}>{item.clientName}</Text>
-              <Text style={styles.meta}>
-                Zugeordnet {new Date(item.assignedAt).toLocaleDateString('de-DE')}
-                {item.primaryEmployeeName ? ` · ${item.primaryEmployeeName}` : ''}
-              </Text>
-            </View>
-            <PremiumBadge label={item.status} variant="muted" />
-          </Pressable>
+          />
         )}
         ListEmptyComponent={
           <EmptyState
@@ -103,28 +117,3 @@ export function ModuleAssignedClientsScreen({
     </ScreenShell>
   );
 }
-
-const styles = StyleSheet.create({
-  nav: { paddingHorizontal: spacing.md, paddingTop: spacing.sm },
-  hint: {
-    ...typography.caption,
-    color: colors.textMuted,
-    paddingHorizontal: spacing.md,
-    paddingBottom: spacing.sm,
-  },
-  list: { padding: spacing.md },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: spacing.md,
-    backgroundColor: colors.bgElevated,
-    borderRadius: 12,
-    marginBottom: spacing.sm,
-    borderWidth: 1,
-    borderColor: colors.borderSoft,
-  },
-  main: { flex: 1, marginRight: spacing.sm },
-  name: { ...typography.body, fontWeight: '600', color: colors.textPrimary },
-  meta: { ...typography.caption, color: colors.textSecondary, marginTop: 2 },
-});

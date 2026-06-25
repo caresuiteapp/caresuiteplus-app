@@ -1,4 +1,4 @@
-import React, { useMemo } from 'react';
+import { useMemo, type ReactNode } from 'react';
 import {
   Platform,
   Pressable,
@@ -14,6 +14,7 @@ import Animated, {
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { CareLightCard } from './CareLightCard';
@@ -31,6 +32,93 @@ type Props = {
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
+/** Milchglas card body for light LLGAN — dark readable text on frosted white glass. */
+function LightLganPremiumCard({
+  children,
+  style,
+  onPress,
+  accentColor,
+}: {
+  children: React.ReactNode;
+  style?: StyleProp<ViewStyle>;
+  onPress?: () => void;
+  accentColor?: string;
+}) {
+  const glassCardStyle = useAuroraGlassCardStyle({ viewContext: 'dashboard', intensity: 'default' });
+  const scale = useSharedValue(1);
+  const animStyle = useAnimatedStyle(() => ({
+    transform: [{ scale: scale.value }],
+  }));
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        shadowHost: {
+          borderRadius: radius.card,
+          shadowColor: 'rgba(70,110,170,0.16)',
+          shadowOffset: { width: 0, height: 12 },
+          shadowOpacity: 0.2,
+          shadowRadius: 16,
+          elevation: 8,
+        },
+        wrapper: {
+          borderRadius: radius.card,
+          overflow: 'hidden',
+          position: 'relative',
+        },
+        innerBorder: {
+          ...StyleSheet.absoluteFillObject,
+          borderRadius: radius.card,
+          borderWidth: 1,
+          borderColor: 'rgba(255,255,255,0.58)',
+        },
+        accentRim: {
+          position: 'absolute',
+          top: 0,
+          left: 24,
+          right: 24,
+          height: 2,
+          borderRadius: 2,
+        },
+        content: {
+          padding: 20,
+        },
+      }),
+    [],
+  );
+
+  const inner = (
+    <View style={[styles.wrapper, glassCardStyle]}>
+      <View style={styles.innerBorder} pointerEvents="none" />
+      {accentColor ? (
+        <View style={[styles.accentRim, { backgroundColor: accentColor }]} pointerEvents="none" />
+      ) : null}
+      <View style={styles.content}>{children}</View>
+    </View>
+  );
+
+  if (!onPress) {
+    return <Animated.View style={[styles.shadowHost, animStyle, style]}>{inner}</Animated.View>;
+  }
+
+  return (
+    <Animated.View style={[styles.shadowHost, animStyle, style]}>
+      <Pressable
+        onPress={onPress}
+        onPressIn={() => {
+          scale.value = withSpring(0.987, motion.spring);
+        }}
+        onPressOut={() => {
+          scale.value = withSpring(1, motion.spring);
+        }}
+        style={webCursor}
+      >
+        {inner}
+      </Pressable>
+    </Animated.View>
+  );
+}
+
 export function PremiumCard({
   children,
   style,
@@ -47,6 +135,14 @@ export function PremiumCard({
       <CareLightCard accentColor={accentColor} onPress={onPress} style={style as ViewStyle}>
         {children}
       </CareLightCard>
+    );
+  }
+
+  if (mode === 'light' && shellHostsAurora) {
+    return (
+      <LightLganPremiumCard accentColor={accentColor} onPress={onPress} style={style}>
+        {children}
+      </LightLganPremiumCard>
     );
   }
 

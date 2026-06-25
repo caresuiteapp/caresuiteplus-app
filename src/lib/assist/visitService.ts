@@ -32,6 +32,15 @@ import { dedupeStatusTransitionButtons } from '@/lib/assist/visitWorkflow';
 import { assignmentStatusToDimensions } from '@/lib/assist/visitWorkflow';
 import { buildPlannedTimestamps } from '@/lib/assist/assignmentProductionValidation';
 import { detectAssignmentConflicts } from '@/lib/assist/assignmentConflictService';
+import {
+  expandVisitRecurrenceDates,
+} from '@/lib/assist/assignmentBudgetAllocationService';
+import {
+  calculateAssistBudgetAllocationFromProfile,
+  calculateSeriesBudgetAllocations,
+  resolveHourlyRateCents,
+} from '@/lib/assist/calculateAssistBudgetAllocation';
+import { getClientAssistBillingProfile } from '@/lib/assist/clientAssistBillingProfileService';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
@@ -438,6 +447,88 @@ export async function createVisitFromWizard(
     wizard.taskDrafts.length > 0
       ? wizard.taskDrafts.map((t) => t.title)
       : wizard.tasks.map((t) => t.trim()).filter(Boolean);
+
+  const durationMinutes = Math.max(
+    0,
+    Math.round(
+      (new Date(plannedEndAt).getTime() - new Date(plannedStartAt).getTime()) / 60000,
+    ),
+  );
+
+  let budgetAllocation = wizard.budgetAllocation ?? null;
+  if (wizard.clientId && !wizard.saveAsDraft) {
+    if (budgetAllocation) {
+      if (!budgetAllocation.canSave) {
+        return { ok: false, error: budgetAllocation.warnings[0] ?? 'Budget nicht speicherbar.' };
+      }
+    } else {
+      const profileResult = await getClientAssistBillingProfile({
+        tenantId,
+        clientId: wizard.clientId,
+        date: wizard.assignmentDate,
+      });
+      if (profileResult.ok) {
+        const hourlyRateCents = resolveHourlyRateCents(profileResult.data, wizard.serviceKey);
+        const minutes = durationMinutes;
+
+        if (wizard.recurrencePattern !== 'none') {
+          const dates = expandVisitRecurrenceDates({
+            assignmentDate: wizard.assignmentDate,
+            recurrencePattern: wizard.recurrencePattern,
+            recurrenceWeekdays: wizard.recurrenceWeekdays,
+            recurrenceEndDate: wizard.recurrenceEndDate || null,
+            recurrenceOccurrenceCount: wizard.recurrenceOccurrenceCount,
+            maxOccurrences: 12,
+          });
+          const series = calculateSeriesBudgetAllocations(
+            profileResult.data,
+            {
+              assignmentDate: wizard.assignmentDate,
+              plannedStart: wizard.plannedStartTime,
+              plannedEnd: wizard.plannedEndTime,
+              plannedMinutes: minutes,
+              hourlyRateCents,
+              serviceType: wizard.serviceKey,
+              manualOverride: wizard.budgetManualOverride,
+              actorRoleKey,
+            },
+            dates,
+          );
+          if (!series.seriesCanSave) {
+            return {
+              ok: false,
+              error: series.cumulativeWarnings[0] ?? 'Serien-Budget nicht ausreichend.',
+            };
+          }
+          budgetAllocation = series.perOccurrence[0] ?? null;
+        } else {
+          budgetAllocation = calculateAssistBudgetAllocationFromProfile(profileResult.data, {
+            plannedStart: wizard.plannedStartTime,
+            plannedEnd: wizard.plannedEndTime,
+            plannedMinutes: minutes,
+            hourlyRateCents,
+            serviceType: wizard.serviceKey,
+            manualOverride: wizard.budgetManualOverride,
+            actorRoleKey,
+            assignmentDate: wizard.assignmentDate,
+          });
+        }
+
+        if (budgetAllocation && !budgetAllocation.canSave) {
+          return {
+            ok: false,
+            error: budgetAllocation.warnings[0] ?? 'Budgetverteilung nicht speicherbar.',
+          };
+        }
+      }
+    }
+  }
+
+  const budgetAmountCents =
+    budgetAllocation?.statutoryAmountCents && budgetAllocation.statutoryAmountCents > 0
+      ? budgetAllocation.statutoryAmountCents + (budgetAllocation.selfPayerAmountCents ?? 0)
+      : wizard.budgetAmountCents;
+
   const conflicts = detectAssignmentConflicts({
     assignment: {
       id: 'new',
@@ -479,7 +570,7 @@ export async function createVisitFromWizard(
     plannedEndAt,
     addressSnapshot: wizard.addressSnapshot || null,
     tasks: taskTitles,
-    budgetAmountCents: wizard.budgetAmountCents,
+    budgetAmountCents: budgetAmountCents ?? wizard.budgetAmountCents,
     internalNotes: wizard.internalNotes,
     notifyEmployee: wizard.notifyEmployee,
     notifyClient: wizard.notifyClient,
@@ -489,11 +580,17 @@ export async function createVisitFromWizard(
     assignmentTypeKey: wizard.assignmentTypeKey || null,
     serviceCategoryKey: wizard.serviceCategoryKey || null,
     taskPackageId: wizard.taskPackageId || null,
-    billingBudgetSourceKey: wizard.billingBudgetSourceKey || null,
+    billingBudgetSourceKey:
+      budgetAllocation?.primaryCatalogKey ?? (wizard.billingBudgetSourceKey || null),
     proofTemplateKey: wizard.proofTemplateKey || null,
     riskFlagKeys: wizard.riskFlagKeys,
     recurrenceJson: buildVisitRecurrenceJson(wizard),
-    catalogSnapshotJson: wizard.catalogSnapshotJson,
+    catalogSnapshotJson: {
+      ...wizard.catalogSnapshotJson,
+      budgetAllocation: budgetAllocation ?? undefined,
+    },
+    budgetAllocation,
+    budgetManualOverride: wizard.budgetManualOverride ?? null,
   };
 
   if (getServiceMode() === 'supabase') {

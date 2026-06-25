@@ -7,6 +7,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { buildStreetLine } from '@/lib/clients/clientEditFormMappers';
 import { buildClientContactWritePayload } from '@/lib/clients/clientContactPayload';
+import { syncClientCareEntitlementFromLegacy } from '@/lib/assist/clientCareEntitlementSyncService';
 import type { ClientContactType } from '@/types/modules/client';
 
 function getClient() {
@@ -311,6 +312,8 @@ export async function persistClientEditData(
       if (error) return { ok: false, error: toGermanSupabaseError(error) };
     }
   }
+
+  await syncClientCareEntitlementFromLegacy(tenantId, clientId, { regenerateAccounts: true });
 
   return { ok: true, data: undefined };
 }

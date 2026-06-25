@@ -74,7 +74,14 @@ export function canSendMessageToThread(status: OfficeMessageThread['status']): b
 
 /** Rule 4: Internal notes are never visible in portals. */
 export function filterPortalVisibleMessages(messages: OfficeMessage[]): OfficeMessage[] {
-  return messages.filter((message) => !message.isInternalNote);
+  return filterActiveMessages(messages).filter((message) => !message.isInternalNote);
+}
+
+/** Active thread messages — archived/deleted entries stay out of all participant views. */
+export function filterActiveMessages(messages: OfficeMessage[]): OfficeMessage[] {
+  return messages.filter(
+    (message) => message.status !== 'archived' && message.status !== 'deleted',
+  );
 }
 
 export function isMessageVisibleInPortal(message: OfficeMessage): boolean {

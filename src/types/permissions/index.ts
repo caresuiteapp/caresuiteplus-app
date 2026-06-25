@@ -17,6 +17,8 @@ export type PermissionKey =
   | 'office.budgets.view'
   | 'office.documents.view'
   | 'office.messages.view'
+  | 'office.messages.archive'
+  | 'office.messages.delete'
   | 'office.employees.view'
   | 'office.appointments.view'
   | 'assist.access'
@@ -119,6 +121,16 @@ export type PermissionKey =
   | 'documents.archive'
   | 'documents.delete_draft'
   | 'assist.assignment.use_templates'
+  | 'assist.assignment.budget.view'
+  | 'assist.assignment.budget.auto_allocate'
+  | 'assist.assignment.budget.override'
+  | 'assist.assignment.budget.use_self_payer'
+  | 'assist.assignment.budget.use_preventive_care'
+  | 'assist.assignment.budget.use_joint_annual_budget'
+  | 'assist.assignment.budget.mark_internal_no_billing'
+  | 'assist.assignment.budget.mark_unclear'
+  | 'assist.assignment.budget.approve_final'
+  | 'assist.assignment.budget.audit.view'
   | 'assist.documentation.use_quick_blocks'
   | 'assist.intake.use_templates'
   | 'platform.ocr.view'
@@ -228,7 +240,15 @@ export type PermissionKey =
   | 'time.tracking.admin.correct'
   | 'time.tracking.admin.export'
   | 'time.audit.view'
-  | 'time.settings.manage';
+  | 'time.settings.manage'
+  | 'clients.billing_profile.view'
+  | 'clients.billing_profile.edit'
+  | 'clients.budgets.view'
+  | 'clients.budgets.edit'
+  | 'clients.budgets.transactions.view'
+  | 'clients.budgets.warnings.manage'
+  | 'system.budget_templates.view'
+  | 'system.budget_templates.edit';
 
 export type PermissionDecision = {
   allowed: boolean;

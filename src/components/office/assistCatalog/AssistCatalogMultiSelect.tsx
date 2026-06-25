@@ -69,7 +69,7 @@ function CatalogChipList({ label, items, values, onChange, loading, error }: Chi
             >
               <Text
                 style={[
-                  useGlass ? glassChips.label : styles.chipText,
+                  useGlass ? glassChips.label : [styles.chipText, { color: text.primary }],
                   selected &&
                     (useGlass
                       ? glassChips.labelSelected

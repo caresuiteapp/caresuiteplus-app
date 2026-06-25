@@ -1,4 +1,4 @@
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { PlatformModal } from '@/components/layout/platform';
 import {
@@ -27,6 +27,9 @@ import { fetchClientList } from '@/lib/office/clientListService';
 import { fetchAssignmentEmployeeList } from '@/lib/assist/assignmentEmployeeListService';
 import { fetchTenantServiceCatalog } from '@/lib/tenant/tenantServiceCatalogService';
 import { createVisitFromWizard } from '@/lib/assist/visitService';
+import { ClientBillingProfileSummary } from '@/components/office/ClientAssistBillingPanels';
+import { AssignmentBillingBudgetPanel } from '@/components/assist/AssignmentBillingBudgetPanel';
+import type { AssistBudgetAllocationResult, ManualBudgetAllocationOverride } from '@/types/assist/assignmentBudgetAllocation';
 import { loadTaskPackageItems, mergeTaskDrafts } from '@/lib/assistCatalog';
 import {
   ASSIGNMENT_CREATE_SECTIONS,
@@ -135,7 +138,7 @@ function ChipSelect({
               >
                 <Text
                   style={[
-                    useGlass ? glassChips.label : chipStyles.chipText,
+                    useGlass ? glassChips.label : [chipStyles.chipText, { color: text.primary }],
                     selected &&
                       (useGlass
                         ? glassChips.labelSelected
@@ -184,6 +187,8 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [removedTaskKeys, setRemovedTaskKeys] = useState<Set<string>>(new Set());
+  const [budgetAllocation, setBudgetAllocation] = useState<AssistBudgetAllocationResult | null>(null);
+  const [budgetManualOverride, setBudgetManualOverride] = useState<ManualBudgetAllocationOverride | null>(null);
 
   const patch = useCallback((partial: Partial<VisitCreateWizardData>) => {
     setForm((prev) => ({ ...prev, ...partial }));
@@ -195,6 +200,8 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
     setForm(EMPTY_VISIT_WIZARD_DATA);
     setError(null);
     setRemovedTaskKeys(new Set());
+    setBudgetAllocation(null);
+    setBudgetManualOverride(null);
     setListsLoading(true);
 
     void (async () => {
@@ -281,7 +288,12 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
         recurrenceEndDate: form.recurrenceEndDate || null,
         recurrenceWeekdays: form.recurrenceWeekdays,
         recurrenceOccurrenceCount: form.recurrenceOccurrenceCount,
+        budgetAllocation,
       },
+      budgetAllocation,
+      budgetManualOverride,
+      budgetAmountCents: budgetAllocation?.totalAmountCents ?? form.budgetAmountCents,
+      billingBudgetSourceKey: budgetAllocation?.primaryCatalogKey ?? form.billingBudgetSourceKey,
     };
     const res = await createVisitFromWizard(tenantId, payload, profile?.roleKey);
     setLoading(false);
@@ -295,7 +307,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
 
   const renderCatalogSectionHint = () => {
     if (optionsLoading) {
-      return <Text style={[styles.hint, { color: text.muted }]}>Kataloge werden geladen…</Text>;
+      return <Text style={[styles.hint, { color: text.primary }]}>Kataloge werden geladen…</Text>;
     }
     if (optionsError) {
       return <InfoBanner message={optionsError} variant="danger" />;
@@ -330,7 +342,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
         return (
           <SectionPanel {...FORM_CTX} title="Klient:in & Mitarbeitende:r">
             {listsLoading ? (
-              <Text style={[styles.hint, { color: text.muted }]}>Klient:innen und Mitarbeitende werden geladen…</Text>
+              <Text style={[styles.hint, { color: text.primary }]}>Klient:innen und Mitarbeitende werden geladen…</Text>
             ) : null}
             {!listsLoading && clients.length === 0 ? (
               <InfoBanner message="Keine aktiven Klient:innen gefunden." variant="warning" />
@@ -341,6 +353,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
               value={form.clientId}
               onChange={(v) => patch({ clientId: v as string })}
             />
+            {form.clientId ? <ClientBillingProfileSummary clientId={form.clientId} /> : null}
             <ChipSelect
               label="Mitarbeitende:r"
               options={employees}
@@ -375,7 +388,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
               placeholder="HH:MM"
             />
             {durationMinutes > 0 ? (
-              <Text style={[styles.hint, { color: text.muted }]}>Dauer: {durationMinutes} Minuten</Text>
+              <Text style={[styles.hint, { color: text.primary }]}>Dauer: {durationMinutes} Minuten</Text>
             ) : null}
             <ChipSelect
               label="Wiederholung"
@@ -487,7 +500,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
         return (
           <SectionPanel {...FORM_CTX} title="Aufgabenpaket & Aufgaben">
             {renderCatalogSectionHint()}
-            <Text style={[styles.hint, { color: text.muted }]}>
+            <Text style={[styles.hint, { color: text.primary }]}>
               Aufgabenpaket wählen — enthaltene Aufgaben werden automatisch geladen.
             </Text>
             {(options?.taskPackages?.length ?? 0) === 0 && !optionsLoading ? (
@@ -506,7 +519,7 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
                 >
                   <Text style={[styles.packageTitle, { color: text.primary }]}>{pkg.label}</Text>
                   {pkg.defaultDurationMinutes ? (
-                    <Text style={[styles.packageMeta, { color: text.muted }]}>
+                    <Text style={[styles.packageMeta, { color: text.primary }]}>
                       {pkg.defaultDurationMinutes} Min.
                     </Text>
                   ) : null}
@@ -588,23 +601,23 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
       case 'billing':
         return (
           <SectionPanel {...FORM_CTX} title="Abrechnung & Budget">
-            {renderCatalogSectionHint()}
-            <ChipSelect
-              label="Abrechnungstopf"
-              options={(options?.budgetSources ?? []).map((b) => ({
-                value: b.itemKey,
-                label: b.label,
-              }))}
-              value={form.billingBudgetSourceKey}
-              onChange={(v) => patch({ billingBudgetSourceKey: v as string })}
-            />
-            <PremiumInput
-              {...FORM_CTX}
-              label="Budget (Cent)"
-              value={form.budgetAmountCents != null ? String(form.budgetAmountCents) : ''}
-              onChangeText={(v) => patch({ budgetAmountCents: v ? Number(v) : null })}
-              keyboardType="numeric"
-            />
+            {form.clientId ? (
+              <AssignmentBillingBudgetPanel
+                clientId={form.clientId}
+                clientName={clients.find((c) => c.value === form.clientId)?.label}
+                assignmentDate={form.assignmentDate}
+                plannedStartTime={form.plannedStartTime}
+                plannedEndTime={form.plannedEndTime}
+                serviceKey={form.serviceKey}
+                plannedMinutes={durationMinutes}
+                allocation={budgetAllocation}
+                manualOverride={budgetManualOverride}
+                onAllocationChange={setBudgetAllocation}
+                onManualOverrideChange={setBudgetManualOverride}
+              />
+            ) : (
+              <InfoBanner message="Bitte zuerst eine:n Klient:in im Tab „Klient & Mitarbeitende“ auswählen." variant="warning" />
+            )}
           </SectionPanel>
         );
 
@@ -666,6 +679,16 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
             <InfoBanner
               message={`Aufgaben: ${form.taskDrafts.length || form.tasks.filter(Boolean).length}`}
             />
+            <InfoBanner
+              message={`Abrechnung: ${
+                budgetAllocation
+                  ? `${budgetAllocation.allocationProposal
+                      .filter((l) => l.amountCents > 0)
+                      .map((l) => `${l.label} ${(l.amountCents / 100).toFixed(2)} €`)
+                      .join(' · ') || '—'}`
+                  : 'Automatisch nach Klient:innenprofil'
+              }`}
+            />
             <View style={styles.actions}>
               <PremiumButton
                 title="Entwurf speichern"
@@ -713,14 +736,21 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
         wrap
         style={styles.tabBar}
       />
-      <View style={styles.sectionBody}>{renderSection()}</View>
+      <ScrollView
+        style={styles.sectionScroll}
+        contentContainerStyle={styles.sectionBody}
+        keyboardShouldPersistTaps="handled"
+      >
+        {renderSection()}
+      </ScrollView>
     </PlatformModal>
   );
 }
 
 const styles = StyleSheet.create({
   tabBar: { marginBottom: careSpacing.sm, flexGrow: 0 },
-  sectionBody: { gap: careSpacing.md, paddingBottom: careSpacing.sm, minHeight: 120 },
+  sectionScroll: { flexGrow: 1, flexShrink: 1, maxWidth: '100%' },
+  sectionBody: { gap: careSpacing.md, paddingBottom: careSpacing.lg, minHeight: 120 },
   hint: { ...typography.caption, marginBottom: spacing.sm },
   packageGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginBottom: spacing.md },
   packageCard: {

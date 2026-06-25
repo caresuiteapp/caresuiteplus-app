@@ -5,10 +5,12 @@ import { careSuiteColors } from '@/design/tokens/colors';
 import {
   auroraGlass as glassTokens,
   useAuroraAdaptiveText,
+  useAuroraGlassActive,
   useAuroraGlassCardStyle,
   useAuroraGlassInputStyle,
   useAuroraGlassModalStyle,
   useAuroraGlassPanelStyle,
+  useLightLiquidGlassShell,
 } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -20,6 +22,8 @@ import {
   resolveInteractiveTextColor,
 } from '@/design/tokens/accentContrast';
 import { ListHeroSurfaceContext, useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
+import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 
 export type CareLightResolved = {
   isDark: boolean;
@@ -147,29 +151,32 @@ export { glassTokens as glass };
  */
 export function useAdaptiveContentStyles() {
   const text = useAuroraAdaptiveText();
+  const lightShell = useLightLiquidGlassShell();
   const { typography, colors } = useLegacyTheme();
 
-  return useMemo(
-    () =>
-      StyleSheet.create({
-        primary: { color: text.primary },
-        secondary: { color: text.secondary },
-        muted: { color: text.muted },
-        body: { ...typography.body, color: text.secondary },
-        bodyStrong: { ...typography.bodyStrong, color: text.primary },
-        label: { ...typography.label, color: text.secondary },
-        caption: { ...typography.caption, color: text.muted },
-        title: { ...typography.bodyStrong, color: text.primary },
-        subheading: { ...typography.bodyStrong, color: text.primary, marginTop: careSpacing.sm },
-        link: {
-          ...typography.caption,
-          color: text.primary,
-          fontWeight: '600' as TextStyle['fontWeight'],
-        },
-        error: { ...typography.caption, color: colors.error },
-      }),
-    [colors.error, text.muted, text.primary, text.secondary, typography],
-  );
+  return useMemo(() => {
+    const secondaryInk = lightShell ? text.primary : text.secondary;
+    const bodyInk = lightShell ? text.primary : text.secondary;
+    const labelInk = lightShell ? text.primary : text.secondary;
+
+    return StyleSheet.create({
+      primary: { color: text.primary },
+      secondary: { color: secondaryInk },
+      muted: { color: text.muted },
+      body: { ...typography.body, color: bodyInk },
+      bodyStrong: { ...typography.bodyStrong, color: text.primary },
+      label: { ...typography.label, color: labelInk },
+      caption: { ...typography.caption, color: text.muted },
+      title: { ...typography.bodyStrong, color: text.primary },
+      subheading: { ...typography.bodyStrong, color: text.primary, marginTop: careSpacing.sm },
+      link: {
+        ...typography.caption,
+        color: text.primary,
+        fontWeight: '600' as TextStyle['fontWeight'],
+      },
+      error: { ...typography.caption, color: colors.error },
+    });
+  }, [colors.error, lightShell, text.muted, text.primary, text.secondary, typography]);
 }
 
 /** Static StyleSheet helper for components already using `useCareLightPalette()`. */
@@ -196,6 +203,7 @@ type ListHeroTextStyleOptions = {
 /** List-hero typography — context-aware contrast for gradient vs light hero surfaces. */
 export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
   const text = useAuroraAdaptiveText();
+  const lightShell = useLightLiquidGlassShell();
   const { c } = useCareLightPalette();
   const surface = useListHeroSurface();
 
@@ -212,7 +220,7 @@ export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
       return {
         eyebrow: {
           ...careTypography.caption,
-          color: text.muted,
+          color: lightShell ? text.primary : text.muted,
           letterSpacing: designTokens.hero.eyebrowLetterSpacing,
           fontWeight: '700' as TextStyle['fontWeight'],
         },
@@ -223,7 +231,7 @@ export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
         },
         meta: {
           ...careTypography.caption,
-          color: text.secondary,
+          color: lightShell ? text.primary : text.secondary,
         },
         iconBorder: {
           borderColor: c.border,
@@ -251,7 +259,7 @@ export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
         borderColor: 'rgba(255,255,255,0.4)',
       },
     };
-  }, [c.border, text.muted, text.primary, text.secondary, variant]);
+  }, [c.border, lightShell, text.muted, text.primary, text.secondary, variant]);
 }
 
 /** Shared hero typography for PremiumListHeroFrame children (list/detail/form heroes). */

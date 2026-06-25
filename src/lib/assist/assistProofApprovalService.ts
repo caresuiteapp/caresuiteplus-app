@@ -6,6 +6,8 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import { generateAssistProofPdf } from '@/lib/assist/assistProofPdfService';
+import { consumeOnProofApproval } from '@/lib/assist/clientBudgetTransactionService';
+import { fetchVisitForBilling } from '@/lib/billing/clientProofBillingMapper';
 import {
   fetchVisitProofById,
   updateVisitProofRow,
@@ -74,7 +76,7 @@ export async function approveAssistProof(
   }
 
   const now = new Date().toISOString();
-  return updateVisitProofRow(tenantId, proofId, {
+  const result = await updateVisitProofRow(tenantId, proofId, {
     status: 'approved',
     approved_at: now,
     approved_by: actorProfileId ?? null,
@@ -82,6 +84,22 @@ export async function approveAssistProof(
     rejection_reason: null,
     updated_by: actorProfileId ?? null,
   });
+
+  if (result.ok) {
+    const visit = await fetchVisitForBilling(tenantId, loaded.data.visitId);
+    if (visit?.client_id) {
+      await consumeOnProofApproval({
+        tenantId,
+        proofId,
+        visitId: loaded.data.visitId,
+        clientId: visit.client_id,
+        amountCents: visit.budget_amount_cents,
+        createdBy: actorProfileId,
+      });
+    }
+  }
+
+  return result;
 }
 
 export async function rejectAssistProof(

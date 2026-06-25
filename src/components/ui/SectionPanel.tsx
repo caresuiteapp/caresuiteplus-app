@@ -92,7 +92,7 @@ export function SectionPanel({
         subtitle: {
           ...(headerVariant === 'hero' ? typography.body : typography.caption),
           marginTop: headerVariant === 'hero' ? spacing.xs : 4,
-          color: text.secondary,
+          color: lightGlassShell ? text.primary : text.secondary,
           textAlign: headerAlign === 'center' ? 'center' : 'left',
         },
         body: {
@@ -113,6 +113,7 @@ export function SectionPanel({
       isDark,
       isLight,
       openSurface,
+      lightGlassShell,
       text.primary,
       text.secondary,
       typography.caption,

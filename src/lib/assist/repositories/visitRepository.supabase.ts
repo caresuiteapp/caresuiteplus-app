@@ -39,6 +39,14 @@ import {
   cancelCalendarEventBySourceAsync,
   syncCalendarEventAsync,
 } from '@/lib/calendar/calendarSyncService';
+import {
+  markAssignmentExecuted,
+  storno as stornoAssignmentReservation,
+} from '@/lib/assist/clientBudgetTransactionService';
+import {
+  persistAssignmentBudgetAllocations,
+  reserveAssignmentBudget,
+} from '@/lib/assist/assignmentBudgetAllocationService';
 import { isUuid } from '@/lib/validation/uuid';
 
 type VisitRow = {
@@ -467,6 +475,46 @@ export const visitSupabaseRepository = {
       }),
     );
 
+    if (
+      !input.saveAsDraft
+      && input.budgetAllocation
+      && input.budgetAllocation.allocationProposal.some(
+        (l) =>
+          l.amountCents > 0
+          && l.budgetAccountId
+          && l.catalogKey !== 'kulanz'
+          && l.catalogKey !== 'ungeklaert',
+      )
+    ) {
+      await persistAssignmentBudgetAllocations({
+        tenantId,
+        assignmentId: visitId,
+        clientId: input.clientId,
+        allocation: input.budgetAllocation,
+        manualOverride: input.budgetManualOverride ?? null,
+        actorProfileId,
+      });
+      await reserveAssignmentBudget({
+        tenantId,
+        clientId: input.clientId,
+        visitId,
+        allocation: input.budgetAllocation,
+        assignmentDate: input.assignmentDate,
+        createdBy: actorProfileId,
+      });
+    } else if (!input.saveAsDraft && input.budgetAmountCents && input.budgetAmountCents > 0) {
+      const { reserveForAssignment } = await import('@/lib/assist/clientBudgetTransactionService');
+      await reserveForAssignment({
+        tenantId,
+        clientId: input.clientId,
+        visitId,
+        amountCents: input.budgetAmountCents,
+        catalogKey: input.billingBudgetSourceKey,
+        assignmentDate: input.assignmentDate,
+        createdBy: actorProfileId,
+      });
+    }
+
     return { ok: true, data: { id: visitId } };
   },
 
@@ -533,7 +581,11 @@ export const visitSupabaseRepository = {
 
     if (toStatus === 'storniert') {
       cancelCalendarEventBySourceAsync(tenantId, 'assist_visit', visitId);
+      await stornoAssignmentReservation(tenantId, visitId, actorProfileId);
     } else {
+      if (toStatus === 'beendet' || toStatus === 'abgeschlossen') {
+        await markAssignmentExecuted(tenantId, visitId, actorProfileId);
+      }
       syncCalendarEventAsync(
         buildCalendarEventFromVisitDetail({
           tenantId,

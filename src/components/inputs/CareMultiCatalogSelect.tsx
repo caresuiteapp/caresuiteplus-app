@@ -49,7 +49,7 @@ export function CareMultiCatalogSelect({ catalogKey, label, values, onChange, er
             >
               <Text
                 style={[
-                  useGlass ? glassChips.label : styles.chipText,
+                  useGlass ? glassChips.label : [styles.chipText, { color: text.primary }],
                   selected && (useGlass ? glassChips.labelSelected : styles.chipTextSelected),
                 ]}
               >

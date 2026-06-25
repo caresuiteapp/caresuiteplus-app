@@ -1,4 +1,4 @@
-import type { RoleKey, ServiceResult } from '@/types';
+import type { Profile, RoleKey, ServiceResult } from '@/types';
 import type { AssistDashboardStats, AssignmentListItem } from '@/types/modules/assist';
 import {
   getDemoAssignmentListItems,
@@ -10,7 +10,7 @@ import { visitSupabaseRepository } from '@/lib/assist/repositories/visitReposito
 import { fetchVisitDispositionList } from '@/lib/assist/visitService';
 import { fetchTripLogList } from '@/lib/assist/tripLogService';
 import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
-import { enforcePermission } from '@/lib/permissions';
+import { enforceWithActor } from '@/lib/permissions/actorPermissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
@@ -67,9 +67,12 @@ function buildDashboardStats(
 export async function fetchAssignmentList(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<AssignmentListItem[]>> {
-  const denied = enforcePermission<AssignmentListItem[]>(
+  const denied = await enforceWithActor<AssignmentListItem[]>(
     actorRoleKey,
+    tenantId,
+    actorProfile,
     'assist.assignments.view',
   );
   if (denied) return denied;

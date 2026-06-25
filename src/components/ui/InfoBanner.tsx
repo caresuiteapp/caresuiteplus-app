@@ -79,7 +79,7 @@ export function InfoBanner({
         {safeTitle ? (
           <Text style={[styles.title, { color: cfg.title }]}>{safeTitle}</Text>
         ) : null}
-        <Text style={[styles.message, { color: text.secondary }]}>{safeMessage}</Text>
+        <Text style={[styles.message, { color: text.primary }]}>{safeMessage}</Text>
         {actionLabel && onAction ? (
           <Pressable onPress={onAction} hitSlop={8} accessibilityRole="button">
             <Text style={[styles.action, { color: cfg.title }]}>{actionLabel}</Text>
@@ -93,7 +93,7 @@ export function InfoBanner({
           accessibilityRole="button"
           accessibilityLabel="Schließen"
         >
-          <Text style={styles.dismiss}>✕</Text>
+          <Text style={[styles.dismiss, { color: text.muted }]}>✕</Text>
         </Pressable>
       ) : null}
     </View>
@@ -132,7 +132,6 @@ const styles = StyleSheet.create({
   },
   dismiss: {
     fontSize: 16,
-    color: colors.textMuted,
     padding: 2,
   },
 });

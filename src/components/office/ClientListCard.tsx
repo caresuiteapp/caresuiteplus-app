@@ -1,10 +1,11 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumCard } from '@/components/ui';
+import { useTableTextStyles } from '@/design/tokens/auroraGlass';
 import type { ClientListItem } from '@/types/modules/office';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { SENSITIVITY_LABELS } from '@/types/portal/visibility';
-import { colors, spacing, typography } from '@/theme';
+import { colors, spacing } from '@/theme';
 
 type ClientListCardProps = {
   client: ClientListItem;
@@ -28,19 +29,20 @@ function statusVariant(status: ClientListItem['status']) {
 }
 
 export function ClientListCard({ client, onPress, selected = false }: ClientListCardProps) {
+  const tableText = useTableTextStyles();
   const location = [client.zip, client.city].filter(Boolean).join(' ');
 
   const inner = (
     <>
       <View style={styles.header}>
-        <Text style={styles.name}>
+        <Text style={tableText.name}>
           {client.lastName}, {client.firstName}
         </Text>
         {client.careLevel ? (
           <PremiumBadge label={formatCareLevel(client.careLevel)} variant="cyan" />
         ) : null}
       </View>
-      {location ? <Text style={styles.location}>{location}</Text> : null}
+      {location ? <Text style={[tableText.meta, styles.location]}>{location}</Text> : null}
       <View style={styles.badges}>
         <PremiumBadge
           label={WORKFLOW_STATUS_LABELS[client.status]}
@@ -87,12 +89,7 @@ const styles = StyleSheet.create({
     gap: spacing.sm,
     marginBottom: 4,
   },
-  name: {
-    ...typography.bodyStrong,
-    flex: 1,
-  },
   location: {
-    ...typography.caption,
     marginBottom: spacing.sm,
   },
   badges: {

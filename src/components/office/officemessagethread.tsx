@@ -3,6 +3,7 @@ import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { ChatBubble } from '@/components/communication/ChatBubble';
 import { MessageAttachmentList } from '@/components/office/messageattachmentlist';
 import { OfficeMessageComposer } from '@/components/office/officemessagecomposer';
+import { OfficeMessageActionsMenu } from '@/components/office/officemessageactionsmenu';
 import { OfficeMessageThreadHeader } from '@/components/office/officemessagethreadheader';
 import { EmptyState, ErrorState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -120,24 +121,31 @@ export function OfficeMessageThread({
           const isVoiceOnly = message.body === '🎤 Sprachnachricht';
           const isOwn = message.senderType === 'office_profile';
           return (
-            <View key={message.id}>
-              {!isVoiceOnly ? (
-                <ChatBubble
-                  message={mapOfficeMessageToChatBubble(message)}
+            <OfficeMessageActionsMenu
+              key={message.id}
+              message={message}
+              disabled={detail.isClosed}
+              onChanged={refresh}
+            >
+              <View>
+                {!isVoiceOnly ? (
+                  <ChatBubble
+                    message={mapOfficeMessageToChatBubble(message)}
+                    isOwn={isOwn}
+                  />
+                ) : null}
+                <MessageAttachmentList
+                  messageId={message.id}
+                  attachmentOnly={isVoiceOnly}
+                  expectVoiceAttachment={isVoiceOnly}
                   isOwn={isOwn}
+                  senderDisplayName={message.senderDisplayName}
+                  sentAt={message.sentAt}
+                  showStatus
+                  messageStatus={message.status === 'read' ? 'read' : 'sent'}
                 />
-              ) : null}
-              <MessageAttachmentList
-                messageId={message.id}
-                attachmentOnly={isVoiceOnly}
-                expectVoiceAttachment={isVoiceOnly}
-                isOwn={isOwn}
-                senderDisplayName={message.senderDisplayName}
-                sentAt={message.sentAt}
-                showStatus
-                messageStatus={message.status === 'read' ? 'read' : 'sent'}
-              />
-            </View>
+              </View>
+            </OfficeMessageActionsMenu>
           );
         })}
       </ScrollView>

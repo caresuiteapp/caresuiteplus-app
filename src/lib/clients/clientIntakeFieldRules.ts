@@ -25,7 +25,11 @@ export type ClientRecordTabKey =
   | 'uebersicht'
   | 'stammdaten'
   | 'leistungsbereiche'
+  | 'pflegegrad_anspruch'
+  | 'leistungen_abrechnung'
   | 'budget'
+  | 'budgetverlauf'
+  | 'warnungen'
   | 'kontakt'
   | 'angehoerige'
   | 'pflegegrad'
@@ -123,7 +127,16 @@ function withCoreTabs(tabs: ClientRecordTabKey[]): ClientRecordTabKey[] {
   const result = [...tabs];
   if (!result.includes('leistungsbereiche')) {
     const insertAt = result.indexOf('stammdaten') + 1;
-    result.splice(insertAt, 0, 'leistungsbereiche', 'budget');
+    result.splice(
+      insertAt,
+      0,
+      'pflegegrad_anspruch',
+      'leistungen_abrechnung',
+      'budget',
+      'budgetverlauf',
+      'warnungen',
+      'leistungsbereiche',
+    );
   }
   if (!result.includes('portal') && !result.includes('beratungsanlass')) {
     const verlaufIdx = result.indexOf('verlauf');
@@ -366,10 +379,20 @@ export function normalizeClientRecordTabs(contextTabs: ClientRecordTabKey[]): Cl
 
   if (
     contextTabs.some((t) =>
-      ['leistungsbereiche', 'budget', 'pflegegrad', 'pflege', 'bewohnerdaten'].includes(t),
+      [
+        'leistungsbereiche',
+        'pflegegrad_anspruch',
+        'leistungen_abrechnung',
+        'budget',
+        'budgetverlauf',
+        'warnungen',
+        'pflegegrad',
+        'pflege',
+        'bewohnerdaten',
+      ].includes(t),
     )
   ) {
-    primary.push('leistungsbereiche');
+    primary.push('pflegegrad_anspruch', 'leistungen_abrechnung', 'budget', 'budgetverlauf', 'warnungen');
   }
   if (contextTabs.some((t) => ['kontakt', 'angehoerige'].includes(t))) {
     primary.push('kontakt');
@@ -391,6 +414,7 @@ export function normalizeClientRecordTabs(contextTabs: ClientRecordTabKey[]): Cl
 
   const covered = new Set<ClientRecordTabKey>([
     ...primary,
+    'leistungsbereiche',
     'budget',
     'angehoerige',
     'nachweise',
@@ -399,6 +423,8 @@ export function normalizeClientRecordTabs(contextTabs: ClientRecordTabKey[]): Cl
     'aufgaben',
     'aktionen',
     'audit',
+    'pflegegrad',
+    'abrechnung',
   ]);
   const overflow = contextTabs.filter((t) => !covered.has(t) && t !== 'mehr');
   if (overflow.length > 0 || contextTabs.includes('mehr')) {
@@ -520,7 +546,11 @@ export const CLIENT_RECORD_TAB_LABELS: Record<ClientRecordTabKey, string> = {
   uebersicht: 'Übersicht',
   stammdaten: 'Stammdaten',
   leistungsbereiche: 'Leistungen & Budget',
-  budget: 'Budget',
+  pflegegrad_anspruch: 'Pflegegrad & Anspruch',
+  leistungen_abrechnung: 'Leistungen & Abrechnung',
+  budget: 'Budgets',
+  budgetverlauf: 'Budgetverlauf',
+  warnungen: 'Warnungen',
   kontakt: 'Kontakte',
   angehoerige: 'Angehörige',
   pflegegrad: 'Pflegegrad & Kassen',

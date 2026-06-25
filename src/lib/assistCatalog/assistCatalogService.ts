@@ -1,4 +1,5 @@
-import type { RoleKey, ServiceResult } from '@/types';
+import type { Profile, RoleKey, ServiceResult } from '@/types';
+import type { PermissionKey } from '@/types/permissions';
 import type {
   AssistCatalogHubStats,
   CatalogAuditEvent,
@@ -10,18 +11,28 @@ import type {
   TemplateBinding,
   UpdateCatalogItemInput,
 } from '@/types/assistCatalog';
-import { enforcePermission } from '@/lib/permissions';
+import { enforceWithActor } from '@/lib/permissions/actorPermissions';
 import { assertTenantForMode } from '@/lib/tenant/tenantResolver';
 import { assistCatalogSupabaseRepository as repo } from './assistCatalogRepository.supabase';
 
-const VIEW = 'office.catalogs.view';
-const EDIT = 'office.catalogs.edit';
+const VIEW: PermissionKey = 'office.catalogs.view';
+const EDIT: PermissionKey = 'office.catalogs.edit';
+
+async function enforceCatalog<T>(
+  tenantId: string,
+  actorRoleKey: RoleKey | null | undefined,
+  actorProfile: Profile | null | undefined,
+  permission: PermissionKey,
+): Promise<ServiceResult<T> | null> {
+  return enforceWithActor<T>(actorRoleKey, tenantId, actorProfile, permission);
+}
 
 export async function loadCatalogGroups(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogGroup[]>> {
-  const denied = enforcePermission<CatalogGroup[]>(actorRoleKey, VIEW);
+  const denied = await enforceCatalog<CatalogGroup[]>(tenantId, actorRoleKey, actorProfile, VIEW);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -32,8 +43,9 @@ export async function loadCatalogs(
   tenantId: string,
   filters: CatalogListFilters = {},
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogDefinition[]>> {
-  const denied = enforcePermission<CatalogDefinition[]>(actorRoleKey, VIEW);
+  const denied = await enforceCatalog<CatalogDefinition[]>(tenantId, actorRoleKey, actorProfile, VIEW);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -45,12 +57,23 @@ export async function loadCatalogItems(
   catalogKey: string,
   filters: CatalogListFilters = {},
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogItem[]>> {
-  let denied = enforcePermission<CatalogItem[]>(actorRoleKey, VIEW);
+  let denied = await enforceCatalog<CatalogItem[]>(tenantId, actorRoleKey, actorProfile, VIEW);
   if (denied && catalogKey.startsWith('assist.')) {
-    denied = enforcePermission<CatalogItem[]>(actorRoleKey, 'assist.assignment.use_templates');
+    denied = await enforceCatalog<CatalogItem[]>(
+      tenantId,
+      actorRoleKey,
+      actorProfile,
+      'assist.assignment.use_templates',
+    );
     if (denied) {
-      denied = enforcePermission<CatalogItem[]>(actorRoleKey, 'assist.assignments.manage');
+      denied = await enforceCatalog<CatalogItem[]>(
+        tenantId,
+        actorRoleKey,
+        actorProfile,
+        'assist.assignments.manage',
+      );
     }
   }
   if (denied) return denied;
@@ -63,8 +86,9 @@ export async function createCatalogItem(
   tenantId: string,
   input: CreateCatalogItemInput,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogItem>> {
-  const denied = enforcePermission<CatalogItem>(actorRoleKey, EDIT);
+  const denied = await enforceCatalog<CatalogItem>(tenantId, actorRoleKey, actorProfile, EDIT);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -76,8 +100,9 @@ export async function updateCatalogItem(
   itemId: string,
   patch: UpdateCatalogItemInput,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogItem>> {
-  const denied = enforcePermission<CatalogItem>(actorRoleKey, EDIT);
+  const denied = await enforceCatalog<CatalogItem>(tenantId, actorRoleKey, actorProfile, EDIT);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -88,8 +113,9 @@ export async function deactivateCatalogItem(
   tenantId: string,
   itemId: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogItem>> {
-  const denied = enforcePermission<CatalogItem>(actorRoleKey, EDIT);
+  const denied = await enforceCatalog<CatalogItem>(tenantId, actorRoleKey, actorProfile, EDIT);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -100,16 +126,18 @@ export async function restoreCatalogItem(
   tenantId: string,
   itemId: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogItem>> {
-  return updateCatalogItem(tenantId, itemId, { isActive: true }, actorRoleKey);
+  return updateCatalogItem(tenantId, itemId, { isActive: true }, actorRoleKey, actorProfile);
 }
 
 export async function copySystemCatalogToTenant(
   tenantId: string,
   catalogKey: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogDefinition>> {
-  const denied = enforcePermission<CatalogDefinition>(actorRoleKey, EDIT);
+  const denied = await enforceCatalog<CatalogDefinition>(tenantId, actorRoleKey, actorProfile, EDIT);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -119,8 +147,9 @@ export async function copySystemCatalogToTenant(
 export async function loadTemplateBindings(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<TemplateBinding[]>> {
-  const denied = enforcePermission<TemplateBinding[]>(actorRoleKey, VIEW);
+  const denied = await enforceCatalog<TemplateBinding[]>(tenantId, actorRoleKey, actorProfile, VIEW);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -130,8 +159,9 @@ export async function loadTemplateBindings(
 export async function loadCatalogAuditEvents(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<CatalogAuditEvent[]>> {
-  const denied = enforcePermission<CatalogAuditEvent[]>(actorRoleKey, VIEW);
+  const denied = await enforceCatalog<CatalogAuditEvent[]>(tenantId, actorRoleKey, actorProfile, VIEW);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -141,8 +171,9 @@ export async function loadCatalogAuditEvents(
 export async function loadAssistCatalogHubStats(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<AssistCatalogHubStats>> {
-  const denied = enforcePermission<AssistCatalogHubStats>(actorRoleKey, VIEW);
+  const denied = await enforceCatalog<AssistCatalogHubStats>(tenantId, actorRoleKey, actorProfile, VIEW);
   if (denied) return denied;
   const tenantErr = assertTenantForMode(tenantId);
   if (tenantErr) return tenantErr;
@@ -179,8 +210,15 @@ export async function exportCatalogAsJson(
   tenantId: string,
   catalogKey: string,
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<{ catalogKey: string; items: CatalogItem[] }>> {
-  const items = await loadCatalogItems(tenantId, catalogKey, { includeInactive: true }, actorRoleKey);
+  const items = await loadCatalogItems(
+    tenantId,
+    catalogKey,
+    { includeInactive: true },
+    actorRoleKey,
+    actorProfile,
+  );
   if (!items.ok) return items;
   return { ok: true, data: { catalogKey, items: items.data } };
 }
@@ -190,17 +228,18 @@ export async function importCatalogFromJson(
   catalogKey: string,
   items: CreateCatalogItemInput[],
   actorRoleKey?: RoleKey | null,
+  actorProfile?: Profile | null,
 ): Promise<ServiceResult<{ imported: number }>> {
-  const denied = enforcePermission<{ imported: number }>(actorRoleKey, EDIT);
+  const denied = await enforceCatalog<{ imported: number }>(tenantId, actorRoleKey, actorProfile, EDIT);
   if (denied) return denied;
-  const defs = await loadCatalogs(tenantId, { catalogKey }, actorRoleKey);
+  const defs = await loadCatalogs(tenantId, { catalogKey }, actorRoleKey, actorProfile);
   if (!defs.ok) return defs;
   const def = defs.data[0];
   if (!def) return { ok: false, error: 'Katalog nicht gefunden.' };
 
   let imported = 0;
   for (const item of items) {
-    const res = await createCatalogItem(tenantId, { ...item, catalogId: def.id }, actorRoleKey);
+    const res = await createCatalogItem(tenantId, { ...item, catalogId: def.id }, actorRoleKey, actorProfile);
     if (res.ok) imported += 1;
   }
   return { ok: true, data: { imported } };

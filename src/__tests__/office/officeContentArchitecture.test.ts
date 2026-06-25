@@ -119,7 +119,8 @@ describe('Office content architecture', () => {
 
   it('ModuleAssignedClientsScreen verlinkt Office-Stammdaten', () => {
     const source = readSrc('src/screens/modules/ModuleAssignedClientsScreen.tsx');
-    expect(source).toContain('clientRecordRoute');
+    expect(source).toContain('openClientRecord');
+    expect(source).toContain('ModuleAssignmentListCard');
     expect(source).not.toContain('Coming Soon');
   });
 

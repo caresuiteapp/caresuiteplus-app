@@ -24,6 +24,7 @@ import {
   loadTemplateBindings,
 } from '@/lib/assistCatalog';
 import type { AssistCatalogHubStats, CatalogAuditEvent, TemplateBinding } from '@/types/assistCatalog';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { colors, spacing, typography } from '@/theme';
 
 const TABS = [
@@ -47,10 +48,11 @@ const TABS = [
 type TabKey = (typeof TABS)[number]['key'];
 
 function StatTile({ label, value }: { label: string; value: string | number }) {
+  const text = useAuroraAdaptiveText();
   return (
     <PremiumCard style={styles.statTile}>
-      <Text style={styles.statValue}>{value}</Text>
-      <Text style={styles.statLabel}>{label}</Text>
+      <Text style={[styles.statValue, { color: text.primary }]}>{value}</Text>
+      <Text style={[styles.statLabel, { color: text.primary }]}>{label}</Text>
     </PremiumCard>
   );
 }
@@ -314,8 +316,8 @@ const styles = StyleSheet.create({
     marginBottom: spacing.md,
   },
   statTile: { minWidth: 140, flexGrow: 1, padding: spacing.md },
-  statValue: { ...typography.h3, color: colors.primary },
-  statLabel: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.xs },
+  statValue: { ...typography.h3 },
+  statLabel: { ...typography.caption, marginTop: spacing.xs },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   auditHint: { ...typography.caption, color: colors.textSecondary, marginTop: spacing.md },
   bindingCard: { marginBottom: spacing.sm },

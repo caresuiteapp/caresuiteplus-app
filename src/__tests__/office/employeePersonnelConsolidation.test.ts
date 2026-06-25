@@ -39,7 +39,7 @@ describe('Personalakte consolidation', () => {
     expect(panel).toContain("label: 'Arbeitsmaterial'");
     expect(panel).toContain("label: 'Verlauf'");
     expect(panel).toContain('EmployeePortalAccessPanel');
-    expect(panel).toContain('EmployeePersonnelRolesPanel');
+    expect(panel).toContain('EmployeeRolesPermissionsHub');
     expect(panel).toContain('InfoBanner');
     expect(panel).toContain('resolvePersonnelUiTab');
     expect(panel).not.toContain('labelBackgroundCheckStatus(overview.backgroundCheckStatus)');

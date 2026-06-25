@@ -66,7 +66,7 @@ export const darkGlassSurfaceText: SurfaceContrastText = auroraGlass.text;
 export const lightSurfaceText: SurfaceContrastText = {
   primary: llgsTypography.primary,
   secondary: llgsTypography.secondary,
-  muted: llgsTypography.secondary,
+  muted: llgsTypography.muted,
 };
 
 export function surfaceContrastText(isDarkBackground: boolean): SurfaceContrastText {
@@ -106,7 +106,7 @@ export const lightLiquidGlass = {
   text: {
     primary: llgsTypography.primary,
     secondary: llgsTypography.secondary,
-    muted: llgsTypography.secondary,
+    muted: llgsTypography.muted,
   },
   shadow: llganDefaultSurface.shadow,
   shadowInset: llganDefaultSurface.shadowInset,
@@ -263,6 +263,14 @@ export function useAuroraAdaptiveText() {
   const glass = resolveActiveGlassTokens(isLight);
 
   return useMemo(() => {
+    if (active && isLight) {
+      return {
+        primary: lightLiquidGlass.text.primary,
+        secondary: lightLiquidGlass.text.secondary,
+        muted: lightLiquidGlass.text.muted,
+        border: colors.borderSoft,
+      };
+    }
     if (active) {
       return {
         primary: glass.text.primary,
@@ -273,11 +281,21 @@ export function useAuroraAdaptiveText() {
     }
     return {
       primary: colors.textPrimary,
-      secondary: colors.textSecondary,
-      muted: colors.textMuted,
+      secondary: isLight ? colors.textPrimary : colors.textSecondary,
+      muted: isLight ? colors.textSecondary : colors.textMuted,
       border: colors.borderSoft,
     };
-  }, [active, colors.borderSoft, colors.textMuted, colors.textPrimary, colors.textSecondary, glass.text.muted, glass.text.primary, glass.text.secondary]);
+  }, [
+    active,
+    colors.borderSoft,
+    colors.textMuted,
+    colors.textPrimary,
+    colors.textSecondary,
+    glass.text.muted,
+    glass.text.primary,
+    glass.text.secondary,
+    isLight,
+  ]);
 }
 
 /** Full glass token set + legacy colors when inactive. */
@@ -470,7 +488,7 @@ export function useAuroraGlassChipStyles(options: ShellGlassIntensityOptions = {
         label: {
           ...typography.caption,
           fontWeight: '600' as TextStyle['fontWeight'],
-          color: text.secondary,
+          color: active && isLight ? text.primary : text.secondary,
         },
         labelSelected: {
           color: active && isLight ? '#0F1B33' : careSuiteAuroraTheme.accent.pink,
@@ -495,7 +513,7 @@ export function useAuroraGlassChipStyles(options: ShellGlassIntensityOptions = {
           backgroundColor: active ? glass.chipActive : 'rgba(139, 92, 246, 0.12)',
         },
       }),
-    [active, colors, glass.border, glass.chip, glass.chipActive, text.secondary, typography.caption],
+    [active, colors, glass.border, glass.chip, glass.chipActive, isLight, text.primary, text.secondary, typography.caption],
   );
 }
 

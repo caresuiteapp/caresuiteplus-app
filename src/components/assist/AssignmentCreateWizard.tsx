@@ -7,7 +7,7 @@ import {
   PremiumInput,
   SectionPanel,
 } from '@/components/ui';
-import { auroraGlass } from '@/design/tokens/auroraGlass';
+import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAuth } from '@/lib/auth/context';
@@ -34,19 +34,21 @@ type AssignmentCreateWizardProps = {
 type SelectOption = { value: string; label: string };
 
 function StepIndicator({ current, total }: { current: number; total: number }) {
+  const text = useAuroraAdaptiveText();
   return (
-    <Text style={stepStyles.indicator}>
+    <Text style={[stepStyles.indicator, { color: text.muted }]}>
       Schritt {current + 1} von {total}
     </Text>
   );
 }
 
 const stepStyles = StyleSheet.create({
-  indicator: { ...typography.caption, color: auroraGlass.text.muted, marginBottom: spacing.sm },
+  indicator: { ...typography.caption, marginBottom: spacing.sm },
 });
 
 export function AssignmentCreateWizard({ visible, onClose, onCreated }: AssignmentCreateWizardProps) {
   const assistAccent = moduleColor('assist');
+  const text = useAuroraAdaptiveText();
   const tenantId = useServiceTenantId();
   const { profile } = useAuth();
   const { can } = usePermissions();
@@ -148,6 +150,26 @@ export function AssignmentCreateWizard({ visible, onClose, onCreated }: Assignme
     if (stepIndex > 0) setStepIndex((i) => i - 1);
     else onClose();
   };
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        body: { padding: careSpacing.md, gap: spacing.md },
+        stepTitle: { ...typography.h3, color: text.primary, marginBottom: spacing.sm },
+        footer: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          gap: spacing.sm,
+          padding: careSpacing.md,
+          borderTopWidth: 1,
+          borderTopColor: auroraGlass.border,
+        },
+        optionList: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
+        hint: { ...typography.caption, color: text.muted },
+        previewLine: { ...typography.body, color: text.primary, marginBottom: 4 },
+      }),
+    [text.muted, text.primary],
+  );
 
   const renderStep = (key: VisitCreateWizardStepKey) => {
     switch (key) {
@@ -433,19 +455,3 @@ export function AssignmentCreateWizard({ visible, onClose, onCreated }: Assignme
     </PlatformModal>
   );
 }
-
-const styles = StyleSheet.create({
-  body: { padding: careSpacing.md, gap: spacing.md },
-  stepTitle: { ...typography.h3, color: auroraGlass.text.primary, marginBottom: spacing.sm },
-  footer: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    gap: spacing.sm,
-    padding: careSpacing.md,
-    borderTopWidth: 1,
-    borderTopColor: auroraGlass.border,
-  },
-  optionList: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
-  hint: { ...typography.caption, color: auroraGlass.text.muted },
-  previewLine: { ...typography.body, color: auroraGlass.text.primary, marginBottom: 4 },
-});

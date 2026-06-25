@@ -5,6 +5,7 @@ export { ClientDetailHero } from './ClientDetailHero';
 export { InvoiceDetailHero } from './InvoiceDetailHero';
 export { OfficeBillingHero } from './OfficeBillingHero';
 export { ClientListCard } from './ClientListCard';
+export { ModuleAssignmentListCard } from './ModuleAssignmentListCard';
 export { EmployeeListCard } from './EmployeeListCard';
 export { ClientsListHero } from './ClientsListHero';
 export { ClientsListView } from './ClientsListView';

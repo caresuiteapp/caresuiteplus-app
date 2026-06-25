@@ -39,6 +39,7 @@ import {
   mergeClientRecordDocuments,
 } from '@/lib/clients/clientDocumentMerge';
 import { promoteFinalizedIntakeDocumentsToClientRecord } from '@/features/intakeDocuments/intakeDocumentRepository';
+import { syncClientCareEntitlementFromLegacy } from '@/lib/assist/clientCareEntitlementSyncService';
 import type { ClientContactInput } from '../clientContactsService';
 import {
   mapClientSchedulingWishes,
@@ -150,6 +151,8 @@ fromUnknownTable(supabase, 'client_timeline_events')
   if (firstError) {
     return { ok: false, error: toGermanSupabaseError(firstError) };
   }
+
+  await syncClientCareEntitlementFromLegacy(tenantId, clientId, { regenerateAccounts: false });
 
   return {
     ok: true,

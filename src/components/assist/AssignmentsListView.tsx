@@ -36,6 +36,9 @@ type AssignmentsListViewProps = {
   embedded?: boolean;
   /** Increment to trigger list refresh (e.g. after delete from preview modal). */
   externalRefreshKey?: number;
+  /** Controlled create-form visibility (e.g. shell action or ?create=1). */
+  createOpen?: boolean;
+  onCreateOpenChange?: (open: boolean) => void;
 };
 
 export function AssignmentsListView({
@@ -43,9 +46,13 @@ export function AssignmentsListView({
   selectedId = null,
   embedded = false,
   externalRefreshKey = 0,
+  createOpen,
+  onCreateOpenChange,
 }: AssignmentsListViewProps) {
   const router = useRouter();
-  const [wizardVisible, setWizardVisible] = useState(false);
+  const [internalCreateOpen, setInternalCreateOpen] = useState(false);
+  const wizardVisible = createOpen ?? internalCreateOpen;
+  const setWizardVisible = onCreateOpenChange ?? setInternalCreateOpen;
   const shellHostsAurora = useShellHostsAurora();
   const panelStyle = useAuroraGlassPanelStyle();
   const { profile } = useAuth();
@@ -56,7 +63,9 @@ export function AssignmentsListView({
   const { viewMode, setViewMode } = useDesktopListViewPreference('assist.assignments');
   const useTableLayout = isDesktop && viewMode === 'table';
   const canView = can('assist.assignments.view');
+  const canManage = can('assist.assignments.manage') && !isReadOnly;
   const roleKey = profile?.roleKey ?? 'dispatch';
+  const openCreate = () => setWizardVisible(true);
 
   const handleAssignmentPress = (id: string) => {
     if (onAssignmentPress) {
@@ -209,10 +218,10 @@ export function AssignmentsListView({
         />
       )}
 
-      {!isReadOnly && can('assist.assignments.manage') ? (
+      {canManage ? (
         <PremiumButton
           title="Neuer Einsatz"
-          onPress={() => setWizardVisible(true)}
+          onPress={openCreate}
           style={{ marginBottom: spacing.xs }}
         />
       ) : null}
@@ -272,6 +281,8 @@ export function AssignmentsListView({
           ? 'Für diesen Mandanten sind noch keine Einsätze geplant.'
           : 'Es sind keine Einsätze im Demo-Mandanten hinterlegt.'
       }
+      actionLabel={canManage ? 'Einsatz planen' : undefined}
+      onAction={canManage ? openCreate : undefined}
     />
   ) : isFilterEmpty ? (
     <EmptyState

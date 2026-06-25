@@ -13,6 +13,7 @@ import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabas
 import { type PreviewAwareResult } from '@/lib/supabase/missingtablefallback';
 import {
   canSendMessageToThread,
+  filterActiveMessages,
   filterPortalVisibleMessages,
   isThreadClosed,
   toDbThreadType,
@@ -80,7 +81,9 @@ async function fetchMessagesLive(
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
   return {
     ok: true,
-    data: (data ?? []).map((row) => mapMessageRow(row as Record<string, unknown>)),
+    data: filterActiveMessages(
+      (data ?? []).map((row) => mapMessageRow(row as Record<string, unknown>)),
+    ),
   };
 }
 

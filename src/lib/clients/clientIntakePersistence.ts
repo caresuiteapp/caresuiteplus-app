@@ -11,6 +11,7 @@ import {
 } from '@/lib/clients/clientIntakeCostBearerConfig';
 import { resolveIntakeBillingProfileType } from '@/lib/clients/clientIntakeBilling';
 import { serializeHomeAccessValues } from '@/lib/clients/clientIntakeHomeAccess';
+import { syncClientCareEntitlementFromLegacy } from '@/lib/assist/clientCareEntitlementSyncService';
 
 function getClient() {
   return getSupabaseClient();
@@ -224,6 +225,8 @@ export async function persistIntakeClientExtendedData(
     metadata: { source: 'intake' },
   });
   if (timelineError) return { ok: false, error: toGermanSupabaseError(timelineError) };
+
+  await syncClientCareEntitlementFromLegacy(tenantId, clientId, { regenerateAccounts: true });
 
   return { ok: true, data: undefined };
 }
@@ -603,6 +606,8 @@ export async function syncIntakeClientExtendedData(
     metadata: { source: 'intake_edit' },
   });
   if (timelineError) return { ok: false, error: toGermanSupabaseError(timelineError) };
+
+  await syncClientCareEntitlementFromLegacy(tenantId, clientId, { regenerateAccounts: true });
 
   return { ok: true, data: undefined };
 }

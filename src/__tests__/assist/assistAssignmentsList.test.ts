@@ -66,7 +66,31 @@ describe('Assist Einsatzplanung list', () => {
     expect(source).toContain('PremiumInput');
     expect(source).toContain('FilterChipGroup');
     expect(source).toContain('EmptyState');
+    expect(source).toContain('actionLabel={canManage ?');
     expect(source).not.toContain('Coming Soon');
+  });
+
+  it('AssignmentsListScreen rendert ListView auch bei leerer Liste mit Create-CTA', () => {
+    const source = readSrc('src/screens/assist/AssignmentsListScreen.tsx');
+    expect(source).toContain('AssignmentsListView');
+    expect(source).not.toContain('title="Keine Einsätze"');
+    expect(source).toContain('Neuer Einsatz');
+    expect(source).toContain('createOpen');
+    expect(source).toContain("params.create === '1'");
+  });
+
+  it('Schnellaktion Einsatz planen öffnet Create-Formular auf Assignments', () => {
+    const workspace = readSrc('src/lib/assist/assistDashboardWorkspace.ts');
+    expect(workspace).toContain('/assist/assignments?create=1');
+    const redirect = readSrc('app/assist/einsaetze/new.tsx');
+    expect(redirect).toContain('/assist/assignments?create=1');
+  });
+
+  it('business_admin hat assist.assignments.manage in Static-RBAC', () => {
+    const source = readSrc('src/lib/permissions/staticRolePermissions.ts');
+    expect(source).toContain('business_admin:');
+    expect(source).toContain("'assist.assignments.manage'");
+    expect(source).toContain('ASSIST_MANAGE');
   });
 
   it('AssignmentsAdaptiveScreen nutzt volle Breite mit AssignmentDetailGlassModal', () => {

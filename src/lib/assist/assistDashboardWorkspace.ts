@@ -96,13 +96,13 @@ export const ASSIST_HEADER_PRIMARY_ACTIONS: DashboardQuickAction[] = [
     id: 'assist-header-plan',
     label: 'Einsatz planen',
     icon: '➕',
-    route: '/assist/einsaetze/new',
+    route: '/assist/assignments?create=1',
     variant: 'primary',
   },
 ];
 
 export const ASSIST_SIDEBAR_QUICK_ACTIONS: DashboardQuickAction[] = [
-  { id: 'assist-qa-plan', label: 'Einsatz planen', icon: '📅', route: '/assist/einsaetze/new' },
+  { id: 'assist-qa-plan', label: 'Einsatz planen', icon: '📅', route: '/assist/assignments?create=1' },
   { id: 'assist-qa-live', label: 'Live-Status', icon: '📡', route: '/assist/live-status' },
   { id: 'assist-qa-proof', label: 'Nachweis prüfen', icon: '📝', route: '/assist/nachweise' },
   { id: 'assist-qa-package', label: 'Aufgabenpaket', icon: '☑️', route: '/assist/aufgaben' },

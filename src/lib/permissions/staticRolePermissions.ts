@@ -18,6 +18,8 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'office.budgets.view': 'Budgets ansehen',
   'office.documents.view': 'Office-Dokumente ansehen',
   'office.messages.view': 'Office-Nachrichten ansehen',
+  'office.messages.archive': 'Office-Nachrichten archivieren',
+  'office.messages.delete': 'Office-Nachrichten vollständig löschen',
   'office.employees.view': 'Mitarbeitende ansehen',
   'office.appointments.view': 'Termine ansehen',
   'assist.access': 'Assist-Modul öffnen',
@@ -120,6 +122,16 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'documents.archive': 'Dokumente archivieren',
   'documents.delete_draft': 'Dokumententwürfe löschen',
   'assist.assignment.use_templates': 'Einsatzvorlagen nutzen',
+  'assist.assignment.budget.view': 'Einsatz-Budget ansehen',
+  'assist.assignment.budget.auto_allocate': 'Automatische Budgetverteilung',
+  'assist.assignment.budget.override': 'Einsatz-Budget manuell überschreiben',
+  'assist.assignment.budget.use_self_payer': 'Selbstzahler bei Einsatz nutzen',
+  'assist.assignment.budget.use_preventive_care': 'Verhinderungspflege bei Einsatz nutzen',
+  'assist.assignment.budget.use_joint_annual_budget': 'Gemeinsames Jahresbudget nutzen',
+  'assist.assignment.budget.mark_internal_no_billing': 'Kulanz / intern nicht abrechnen',
+  'assist.assignment.budget.mark_unclear': 'Abrechnung als ungeklärt markieren',
+  'assist.assignment.budget.approve_final': 'Finale Einsatz-Abrechnung freigeben',
+  'assist.assignment.budget.audit.view': 'Einsatz-Budget-Audit ansehen',
   'assist.documentation.use_quick_blocks': 'Dokumentationsbausteine nutzen',
   'assist.intake.use_templates': 'Neuaufnahme-Vorlagen nutzen',
   'platform.ocr.view': 'OCR-Jobs ansehen',
@@ -230,6 +242,14 @@ export const PERMISSION_LABELS: Record<PermissionKey, string> = {
   'time.tracking.admin.export': 'Arbeitszeit exportieren',
   'time.audit.view': 'Arbeitszeit-Audit einsehen',
   'time.settings.manage': 'Homeoffice-Arbeitszeit konfigurieren',
+  'clients.billing_profile.view': 'Klient:innen-Abrechnungsprofil ansehen',
+  'clients.billing_profile.edit': 'Klient:innen-Abrechnungsprofil bearbeiten',
+  'clients.budgets.view': 'Klient:innen-Budgets ansehen',
+  'clients.budgets.edit': 'Klient:innen-Budgets bearbeiten',
+  'clients.budgets.transactions.view': 'Budgetverlauf ansehen',
+  'clients.budgets.warnings.manage': 'Abrechnungswarnungen verwalten',
+  'system.budget_templates.view': 'Budget-Vorlagen ansehen',
+  'system.budget_templates.edit': 'Budget-Vorlagen bearbeiten',
 };
 
 /** Compile-time guard: PERMISSION_LABELS keys stay aligned with PermissionKey union. */
@@ -252,6 +272,10 @@ export const PERMISSION_DENIED_MESSAGES: Partial<Record<PermissionKey, string>> 
     'Archivierung ist nur für Geschäftsführung und Bereichsleitung erlaubt.',
   'office.clients.delete':
     'Das Löschen von Klient:innen ist für Ihre Rolle nicht freigegeben. Bitte wenden Sie sich an die Geschäftsführung oder das Büro.',
+  'office.messages.archive':
+    'Das Archivieren von Nachrichten ist für Ihre Rolle nicht freigegeben.',
+  'office.messages.delete':
+    'Das vollständige Löschen von Nachrichten ist für Ihre Rolle nicht freigegeben.',
   'office.clients.view_sensitive':
     'Gesundheits- und Schutzdaten sind für Ihre Rolle nicht sichtbar. Es werden nur pflegerelevante Basisinformationen angezeigt.',
   'office.clients.manage_consents':
@@ -532,6 +556,16 @@ const TIME_TRACKING_ADMIN: PermissionKey[] = [
 
 const APPOINTMENTS_EDIT: PermissionKey[] = ['office.appointments.edit'];
 
+const CLIENT_BILLING: PermissionKey[] = [
+  'clients.billing_profile.view',
+  'clients.billing_profile.edit',
+  'clients.budgets.view',
+  'clients.budgets.edit',
+  'clients.budgets.transactions.view',
+  'clients.budgets.warnings.manage',
+  'system.budget_templates.view',
+];
+
 const OFFICE_FULL: PermissionKey[] = [
   ...OFFICE_VIEW,
   ...QM_FULL,
@@ -541,6 +575,8 @@ const OFFICE_FULL: PermissionKey[] = [
   'office.clients.status_change',
   'office.clients.archive',
   'office.clients.delete',
+  'office.messages.archive',
+  'office.messages.delete',
   'office.clients.view_sensitive',
   'office.clients.manage_consents',
   'office.clients.manage_contacts',
@@ -589,6 +625,7 @@ const OFFICE_FULL: PermissionKey[] = [
   'business.modules.manage',
   ...BUSINESS_PLATFORM,
   ...COMMUNICATION_FULL,
+  ...CLIENT_BILLING,
 ];
 
 const ASSIST_VIEW: PermissionKey[] = [
@@ -601,8 +638,30 @@ const ASSIST_VIEW: PermissionKey[] = [
   'dashboard.view',
 ];
 
+const ASSIST_BUDGET_VIEW: PermissionKey[] = [
+  'assist.assignment.budget.view',
+  'assist.assignment.budget.auto_allocate',
+  'assist.assignment.budget.audit.view',
+];
+
+const ASSIST_BUDGET_MANAGE: PermissionKey[] = [
+  ...ASSIST_BUDGET_VIEW,
+  'assist.assignment.budget.use_self_payer',
+  'assist.assignment.budget.use_preventive_care',
+  'assist.assignment.budget.use_joint_annual_budget',
+];
+
+const ASSIST_BUDGET_OVERRIDE: PermissionKey[] = [
+  ...ASSIST_BUDGET_MANAGE,
+  'assist.assignment.budget.override',
+  'assist.assignment.budget.mark_internal_no_billing',
+  'assist.assignment.budget.mark_unclear',
+  'assist.assignment.budget.approve_final',
+];
+
 const ASSIST_MANAGE: PermissionKey[] = [
   ...ASSIST_VIEW,
+  ...ASSIST_BUDGET_VIEW,
   'office.catalogs.view',
   'assist.assignments.manage',
   'assist.execution.manage',
@@ -674,6 +733,7 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
   business_admin: [
     ...OFFICE_FULL,
     ...ASSIST_MANAGE,
+    ...ASSIST_BUDGET_OVERRIDE,
     ...PFLEGE_VIEW,
     ...MODULE_VIEW_ALL,
     ...CONNECT_CONFIGURE,
@@ -688,10 +748,12 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...TIME_TRACKING_ADMIN,
     ...APPOINTMENTS_EDIT,
     'business.tenant.manage',
+    'system.budget_templates.edit',
   ],
   business_manager: [
     ...OFFICE_FULL,
     ...ASSIST_MANAGE,
+    ...ASSIST_BUDGET_OVERRIDE,
     ...PFLEGE_VIEW,
     ...MODULE_VIEW_ALL,
     ...CONNECT_VIEW,
@@ -723,6 +785,8 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     'time.tracking.team.view',
     'time.tracking.admin.view',
     'time.audit.view',
+    ...CLIENT_BILLING,
+    ...ASSIST_BUDGET_OVERRIDE,
     ...ABSENCES_VIEW,
     ...COMPLIANCE_VIEW,
   ],
@@ -730,7 +794,9 @@ export const ROLE_PERMISSIONS: RolePermissionMap = {
     ...OFFICE_VIEW,
     'office.clients.view_sensitive',
     'office.catalogs.view',
+    'office.messages.archive',
     ...ASSIST_MANAGE,
+    ...ASSIST_BUDGET_MANAGE,
     ...PFLEGE_VIEW,
     ...BERATUNG_VIEW,
     ...AKADEMIE_VIEW,

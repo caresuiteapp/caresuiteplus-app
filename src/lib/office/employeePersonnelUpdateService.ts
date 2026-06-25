@@ -1,4 +1,6 @@
 import type { RoleKey, ServiceResult } from '@/types';
+import type { PermissionKey } from '@/types/permissions';
+import type { EmployeeDataScope, EmployeePermissionOverride } from '@/types/permissions/rbac';
 import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
@@ -20,7 +22,12 @@ import { evaluateEmployeeDeployability } from './employeeDeployabilityService';
 import {
   persistEmployeeHomeOfficeOverride,
   getEmployeeHomeOfficeOverride,
+  persistEmployeeTimeTrackingModeOverride,
+  type EmployeeTimeTrackingMode,
 } from './employeeHomeOfficeService';
+import { setEmployeeRoleAssignments, writePermissionAuditLog } from '@/lib/permissions/rbacService';
+import { saveEmployeeRbacState } from '@/lib/office/employeeRbacSaveService';
+import { fetchPermissionCatalog } from '@/lib/permissions/permissionCatalogService';
 import { appendEmployeeAuditEvent } from './employeePersonnelAuditService';
 import { fetchEmployeePersonnelFile } from './employeePersonnelFileService';
 import { getCachedEmployeePersonnelFile, loadEmployeePersonnelFileLive } from './employeePersonnelFileLiveLoader';
@@ -422,7 +429,13 @@ export async function uploadEmployeePersonnelDocument(
 
 export type EmployeeRolesPermissionsPatch = {
   roleKey: RoleKey;
+  additionalRoleKeys?: RoleKey[];
   homeOfficeEnabled?: boolean | null;
+  timeTrackingMode?: EmployeeTimeTrackingMode | null;
+  desiredPermissions?: PermissionKey[];
+  overrides?: EmployeePermissionOverride[];
+  dataScopes?: EmployeeDataScope[];
+  changeReason?: string | null;
 };
 
 export async function updateEmployeeRolesPermissions(
@@ -450,6 +463,54 @@ export async function updateEmployeeRolesPermissions(
       patch.homeOfficeEnabled,
     );
     if (!savedHomeOffice.ok) return savedHomeOffice;
+  }
+
+  if (patch.timeTrackingMode !== undefined) {
+    const savedMode = await persistEmployeeTimeTrackingModeOverride(
+      tenantId,
+      employeeId,
+      patch.timeTrackingMode,
+    );
+    if (!savedMode.ok) return savedMode;
+  }
+
+  const allRoleKeys = [
+    patch.roleKey,
+    ...(patch.additionalRoleKeys ?? []).filter((k) => k !== patch.roleKey),
+  ];
+
+  const assignmentResult = await setEmployeeRoleAssignments(
+    tenantId,
+    employeeId,
+    allRoleKeys,
+    patch.roleKey,
+  );
+  if (!assignmentResult.ok) return assignmentResult;
+
+  if (
+    patch.desiredPermissions ||
+    patch.overrides ||
+    patch.dataScopes ||
+    patch.changeReason
+  ) {
+    const catalogResult = await fetchPermissionCatalog();
+    const catalog = catalogResult.ok ? catalogResult.data : [];
+    const rbacResult = await saveEmployeeRbacState(
+      tenantId,
+      employeeId,
+      {
+        roleKey: patch.roleKey,
+        additionalRoleKeys: patch.additionalRoleKeys,
+        desiredPermissions: patch.desiredPermissions,
+        overrides: patch.overrides,
+        dataScopes: patch.dataScopes,
+        changeReason: patch.changeReason,
+      },
+      catalog,
+      actorRoleKey,
+      actorProfileId,
+    );
+    if (!rbacResult.ok) return rbacResult;
   }
 
   if (getServiceMode() === 'supabase') {
@@ -488,6 +549,37 @@ export async function updateEmployeeRolesPermissions(
       after: patch.homeOfficeEnabled == null ? null : String(patch.homeOfficeEnabled),
     };
   }
+
+  if (patch.additionalRoleKeys) {
+    fieldChanges.additionalRoleKeys = {
+      before: null,
+      after: patch.additionalRoleKeys.join(','),
+    };
+  }
+
+  if (patch.timeTrackingMode !== undefined) {
+    fieldChanges.timeTrackingMode = {
+      before: null,
+      after: patch.timeTrackingMode ?? null,
+    };
+  }
+
+  await writePermissionAuditLog({
+    tenantId,
+    actorId: actorProfileId ?? null,
+    actorRole: actorRoleKey ?? null,
+    targetEmployeeId: employeeId,
+    targetRoleTemplateId: null,
+    action: 'employee_roles_updated',
+    oldValue: { roleKey: existing.portalAccess.roleKey },
+    newValue: {
+      roleKey: patch.roleKey,
+      additionalRoleKeys: patch.additionalRoleKeys,
+      timeTrackingMode: patch.timeTrackingMode,
+    },
+    reason: null,
+    ipAddress: null,
+  });
 
   await appendEmployeeAuditEvent({
     tenantId,

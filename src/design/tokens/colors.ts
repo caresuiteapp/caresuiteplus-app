@@ -18,9 +18,9 @@ export const careSuiteColors = {
       violet: '#8B7CFF',
     },
     text: {
-      primary: '#07122A',
-      secondary: '#475569',
-      muted: '#64748B',
+      primary: '#0F1B33',
+      secondary: '#334155',
+      muted: '#475569',
       inverse: '#F8FAFC',
     },
     status: {

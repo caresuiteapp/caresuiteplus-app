@@ -10,6 +10,14 @@ export {
   permissionError,
 } from './check';
 export { enforcePermission } from './enforce';
+export {
+  getActorEffectivePermissions,
+  getActorEffectivePermissionsSync,
+  buildEnforcementContext,
+  buildEnforcementContextSync,
+  enforceWithActor,
+  enforceWithActorSync,
+} from './actorPermissions';
 export { runPermissionMatrix, type PermissionMatrixCase } from './testMatrix';
 export {
   ROLE_PERMISSIONS,

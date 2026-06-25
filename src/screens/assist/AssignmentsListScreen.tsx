@@ -1,8 +1,10 @@
+import { useEffect, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import { AssignmentsListView } from '@/components/assist/AssignmentsListView';
-import { EmptyState, ErrorState, LoadingState } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { useAssignmentList } from '@/hooks/useAssignmentList';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -20,11 +22,22 @@ export function AssignmentsListScreen({
   embedded?: boolean;
   externalRefreshKey?: number;
 } = {}) {
-  const { isReadOnly, roleLabel } = usePermissions();
+  const router = useRouter();
+  const params = useLocalSearchParams<{ create?: string }>();
+  const { can, isReadOnly, roleLabel } = usePermissions();
+  const canManage = can('assist.assignments.manage') && !isReadOnly;
   const pageTitle = 'Einsatzplanung';
   const list = useAssignmentList();
   const roleSubtitle = getServiceMode() === 'supabase' ? roleLabel ?? 'Assist' : roleLabel ?? 'Demo';
   const assistAccent = moduleColor('assist');
+  const [createOpen, setCreateOpen] = useState(false);
+
+  useEffect(() => {
+    if (params.create === '1' && canManage) {
+      setCreateOpen(true);
+      router.setParams({ create: undefined } as never);
+    }
+  }, [params.create, canManage, router]);
 
   if (embedded) {
     return (
@@ -63,22 +76,27 @@ export function AssignmentsListScreen({
       scroll={false}
       accentColor={assistAccent}
       actions={[
+        ...(canManage
+          ? [
+              {
+                key: 'create',
+                label: 'Neuer Einsatz',
+                onPress: () => setCreateOpen(true),
+                variant: 'primary' as const,
+              },
+            ]
+          : []),
         { key: 'refresh', label: 'Aktualisieren', onPress: () => list.refresh(), variant: 'ghost' as const },
       ]}
     >
       <View style={styles.content}>
-        {list.isEmpty && !list.hasActiveFilters ? (
-          <EmptyState
-            title="Keine Einsätze"
-            message="Für diesen Mandanten sind noch keine Einsätze geplant."
-          />
-        ) : (
-          <AssignmentsListView
-            onAssignmentPress={onAssignmentPress}
-            selectedId={selectedId}
-            externalRefreshKey={externalRefreshKey}
-          />
-        )}
+        <AssignmentsListView
+          onAssignmentPress={onAssignmentPress}
+          selectedId={selectedId}
+          externalRefreshKey={externalRefreshKey}
+          createOpen={createOpen}
+          onCreateOpenChange={setCreateOpen}
+        />
       </View>
     </C14vSubpageShell>
   );

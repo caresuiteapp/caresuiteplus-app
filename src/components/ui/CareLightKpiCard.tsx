@@ -5,7 +5,7 @@ import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
-import { auroraGlass, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { auroraGlass, lightLiquidGlass, useAuroraAdaptiveText, useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { designTokens } from '@/theme';
 import { SpaceKpiIcon } from '@/components/icons/space';
@@ -38,14 +38,18 @@ export function CareLightKpiCard({
           flex: 1,
           minWidth: 140,
           backgroundColor: auroraActive
-            ? auroraGlass.card
+            ? isDark
+              ? auroraGlass.card
+              : lightLiquidGlass.card
             : isDark
               ? 'rgba(255,255,255,0.04)'
               : careLightColors.surface,
           borderRadius: careRadius.md,
           borderWidth: 1,
           borderColor: auroraActive
-            ? auroraGlass.border
+            ? isDark
+              ? auroraGlass.border
+              : lightLiquidGlass.border
             : isDark
               ? designTokens.glass.border
               : careLightColors.border,

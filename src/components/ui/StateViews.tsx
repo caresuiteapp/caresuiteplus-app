@@ -14,14 +14,14 @@ import { PremiumButton } from './PremiumButton';
 function useStateTextColors() {
   const auroraActive = useAuroraGlassActive();
   const adaptive = useAuroraAdaptiveText();
-  const { colors } = useLegacyTheme();
+  const { colors, isLight } = useLegacyTheme();
 
   return useMemo(
     () => ({
       primary: auroraActive ? adaptive.primary : colors.textPrimary,
-      secondary: auroraActive ? adaptive.secondary : colors.textSecondary,
+      secondary: auroraActive && isLight ? adaptive.primary : auroraActive ? adaptive.secondary : isLight ? colors.textPrimary : colors.textSecondary,
     }),
-    [adaptive.primary, adaptive.secondary, auroraActive, colors.textPrimary, colors.textSecondary],
+    [adaptive.primary, adaptive.secondary, auroraActive, colors.textPrimary, colors.textSecondary, isLight],
   );
 }
 

@@ -63,7 +63,7 @@ export function AssistCatalogGroupedChipSelect({
       <Text style={[styles.label, { color: text.primary }]}>{label}</Text>
       {groups.map((group) => (
         <View key={group.groupKey} style={styles.group}>
-          <Text style={[styles.groupTitle, { color: text.secondary }]}>{group.label}</Text>
+          <Text style={[styles.groupTitle, { color: text.primary }]}>{group.label}</Text>
           <View style={styles.row}>
             {group.items.map((item) => {
               const selected = value === item.itemKey;
@@ -81,7 +81,7 @@ export function AssistCatalogGroupedChipSelect({
                 >
                   <Text
                     style={[
-                      useGlass ? glassChips.label : styles.chipText,
+                      useGlass ? glassChips.label : [styles.chipText, { color: text.primary }],
                       selected &&
                         (useGlass
                           ? glassChips.labelSelected
