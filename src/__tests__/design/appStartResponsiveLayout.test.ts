@@ -33,7 +33,7 @@ describe('AppStartScreen adaptive layout', () => {
 
   it('shows only the landing headline in the hero', () => {
     expect(source).toContain(
-      'CareSuite+ Software für Office, Assist, Pflege (Ambulant & Stationär), Beratung und Akademie',
+      'CareSuite+ Software\\nfür Office, Assist, Pflege, Stationär,\\nBeratung und Akademie',
     );
     expect(source).not.toContain('CareBotCard');
     expect(source).not.toContain('VoiceFlowPanel');

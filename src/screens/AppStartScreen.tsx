@@ -17,7 +17,7 @@ import { fetchAppStartSnapshot } from '@/lib/landing/appStartService';
 import { shouldShowPortalChoice } from '@/lib/navigation/sessionRouting';
 
 const LANDING_HEADLINE =
-  'CareSuite+ Software für Office, Assist, Pflege (Ambulant & Stationär), Beratung und Akademie';
+  'CareSuite+ Software\nfür Office, Assist, Pflege, Stationär,\nBeratung und Akademie';
 
 const LANDING_MAX_WIDTH = 520;
 

@@ -2,7 +2,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AdaptiveCardGrid } from '@/components/adaptive';
 import { CareSuiteIcon } from '@/components/brand/CareSuiteIcon';
-import type { AppStartEntry } from '@/data/landing/appStartEntries';
+import {
+  resolveAppStartIconSize,
+  type AppStartEntry,
+} from '@/data/landing/appStartEntries';
 import { GlassCard } from '@/design/components';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -15,8 +18,9 @@ type PortalChoiceScreenProps = {
 /** Public portal entry cards — glass cards with icon containers. */
 export function PortalChoiceScreen({ entries }: PortalChoiceScreenProps) {
   const router = useRouter();
-  const { width } = useDeviceClass();
+  const { width, isPhone, isDesktopOrWide } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
+  const iconSize = resolveAppStartIconSize(isPhone, isDesktopOrWide);
 
   if (entries.length === 0) {
     return null;
@@ -34,7 +38,7 @@ export function PortalChoiceScreen({ entries }: PortalChoiceScreenProps) {
             <CareSuiteIcon
               iconKey={entry.iconKey}
               accentColor={entry.accentColor}
-              size={52}
+              size={iconSize}
               variant="aurora"
             />
             <Text style={[type.cardTitle, styles.cardTitle]} numberOfLines={2}>

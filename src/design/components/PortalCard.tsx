@@ -1,9 +1,13 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { CareSuiteIcon } from '@/components/brand/CareSuiteIcon';
-import type { AppStartIconKey } from '@/data/landing/appStartEntries';
+import {
+  resolveAppStartIconSize,
+  type AppStartIconKey,
+} from '@/data/landing/appStartEntries';
 import { useAuthFlowTypography } from '@/design/tokens/authTypography';
 import { careSpacing } from '@/design/tokens/spacing';
 import { noBreakTextProps } from '@/design/tokens/responsiveTypography';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { GlassCard } from './GlassCard';
 
 type PortalCardProps = {
@@ -17,6 +21,8 @@ type PortalCardProps = {
 /** Start-page entry card — glass surface, responsive title, no mid-word breaks. */
 export function PortalCard({ iconKey, title, description, accentColor, onPress }: PortalCardProps) {
   const type = useAuthFlowTypography();
+  const { isPhone, isDesktopOrWide } = useDeviceClass();
+  const iconSize = resolveAppStartIconSize(isPhone, isDesktopOrWide);
 
   return (
     <GlassCard onPress={onPress} accentColor={accentColor}>
@@ -24,7 +30,7 @@ export function PortalCard({ iconKey, title, description, accentColor, onPress }
         <CareSuiteIcon
           iconKey={iconKey}
           accentColor={accentColor}
-          size={52}
+          size={iconSize}
           variant="aurora"
         />
         <Text

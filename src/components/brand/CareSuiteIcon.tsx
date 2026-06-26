@@ -1,13 +1,13 @@
 import { Feather } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
-import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import type { AppStartIconKey } from '@/data/landing/appStartEntries';
 import {
   ACCENT_ICON_FRAME_GRADIENT,
   accentDarkSoftBorder,
 } from '@/design/tokens/accentContrast';
+import { withAlpha } from '@/design/tokens/motion';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { careRadius } from '@/design/tokens/radius';
 
 const VECTOR_MAP: Record<AppStartIconKey, keyof typeof Feather.glyphMap> = {
   building: 'briefcase',
@@ -36,8 +36,16 @@ export function CareSuiteIcon({
   const { isLight } = useLegacyTheme();
 
   if (iconKey && variant === 'aurora') {
-    const innerSize = size * 0.82;
-    const iconSize = size * 0.38;
+    const outerRadius = size * 0.28;
+    const innerSize = size * 0.84;
+    const innerRadius = innerSize * 0.24;
+    const iconSize = size * 0.44;
+    const webGlow =
+      Platform.OS === 'web'
+        ? ({
+            boxShadow: `0 8px 28px ${withAlpha(accentColor, 0.45)}, 0 2px 8px ${withAlpha(accentColor, 0.28)}, inset 0 1px 0 rgba(255,255,255,0.35)`,
+          } as ViewStyle)
+        : null;
 
     return (
       <View
@@ -46,32 +54,52 @@ export function CareSuiteIcon({
           {
             width: size,
             height: size,
-            borderRadius: size * 0.28,
+            borderRadius: outerRadius,
             shadowColor: accentColor,
           },
+          webGlow,
           style,
         ]}
       >
         <LinearGradient
-          colors={[`${accentColor}66`, `${accentColor}22`, 'rgba(255,255,255,0.06)']}
+          colors={[
+            withAlpha(accentColor, 0.88),
+            withAlpha(accentColor, 0.52),
+            withAlpha(accentColor, 0.24),
+            'rgba(255,255,255,0.10)',
+          ]}
           start={{ x: 0, y: 0 }}
           end={{ x: 1, y: 1 }}
-          style={[styles.auroraRing, { borderRadius: size * 0.28 }]}
+          style={[styles.auroraRing, { borderRadius: outerRadius }]}
         >
-          <View
+          <LinearGradient
+            colors={[...ACCENT_ICON_FRAME_GRADIENT]}
+            start={{ x: 0.1, y: 0 }}
+            end={{ x: 0.9, y: 1 }}
             style={[
               styles.auroraInner,
               {
                 width: innerSize,
                 height: innerSize,
-                borderRadius: innerSize * 0.26,
-                borderColor: `${accentColor}55`,
-                backgroundColor: `${accentColor}18`,
+                borderRadius: innerRadius,
+                borderColor: withAlpha(accentColor, 0.62),
               },
             ]}
           >
-            <Feather name={VECTOR_MAP[iconKey]} size={iconSize} color={accentColor} />
-          </View>
+            <LinearGradient
+              colors={['rgba(255,255,255,0.22)', 'transparent']}
+              start={{ x: 0.5, y: 0 }}
+              end={{ x: 0.5, y: 1 }}
+              style={[styles.auroraSheen, { borderRadius: innerRadius }]}
+              pointerEvents="none"
+            />
+            <Feather
+              name={VECTOR_MAP[iconKey]}
+              size={iconSize}
+              color={accentColor}
+              style={styles.auroraIcon}
+            />
+          </LinearGradient>
         </LinearGradient>
       </View>
     );
@@ -157,23 +185,31 @@ const styles = StyleSheet.create({
     textAlign: 'center',
   },
   auroraOuter: {
-    shadowOpacity: 0.42,
-    shadowRadius: 14,
-    shadowOffset: { width: 0, height: 0 },
-    elevation: 8,
+    shadowOpacity: 0.55,
+    shadowRadius: 18,
+    shadowOffset: { width: 0, height: 8 },
+    elevation: 12,
   },
   auroraRing: {
     flex: 1,
-    padding: 2,
+    padding: 3,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.14)',
+    borderColor: 'rgba(255,255,255,0.22)',
     overflow: 'hidden',
   },
   auroraInner: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    borderWidth: 1,
-    borderRadius: careRadius.md,
+    borderWidth: 1.5,
+    overflow: 'hidden',
+  },
+  auroraSheen: {
+    ...StyleSheet.absoluteFillObject,
+  },
+  auroraIcon: {
+    textShadowColor: withAlpha('#FFFFFF', 0.35),
+    textShadowOffset: { width: 0, height: 1 },
+    textShadowRadius: 6,
   },
 });

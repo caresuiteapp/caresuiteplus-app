@@ -8,6 +8,13 @@ export type AppStartEntry = {
   accentColor: string;
 };
 
+/** Responsive icon tile size for landing portal cards. */
+export function resolveAppStartIconSize(isPhone: boolean, isDesktopOrWide: boolean): number {
+  if (isPhone) return 60;
+  if (isDesktopOrWide) return 68;
+  return 64;
+}
+
 
 export const APP_START_ENTRIES: AppStartEntry[] = [
   {
