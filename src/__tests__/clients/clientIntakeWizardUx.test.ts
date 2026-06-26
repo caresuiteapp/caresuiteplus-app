@@ -29,6 +29,8 @@ describe('Client intake wizard UX fixes', () => {
     expect(input).toContain('useState');
     expect(input).toContain('setDraft');
     expect(input).toContain('onBlur');
+    expect(input).toContain("type: 'date'");
+    expect(input).toContain('showPicker');
   });
 
   it('Neuaufnahme-Wizard persistiert Entwürfe lokal', () => {

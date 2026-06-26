@@ -8,6 +8,7 @@ import {
   PremiumInput,
   SectionPanel,
 } from '@/components/ui';
+import { CareDateInput } from '@/components/inputs';
 import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
 import { AssistCatalogGroupedChipSelect } from '@/components/office/assistCatalog/AssistCatalogGroupedChipSelect';
 import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
@@ -366,12 +367,11 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
       case 'schedule':
         return (
           <SectionPanel {...FORM_CTX} title="Termin & Wiederholung">
-            <PremiumInput
+            <CareDateInput
               {...FORM_CTX}
               label="Datum *"
               value={form.assignmentDate}
-              onChangeText={(assignmentDate) => patch({ assignmentDate })}
-              placeholder="YYYY-MM-DD"
+              onChange={(assignmentDate) => patch({ assignmentDate })}
             />
             <PremiumInput
               {...FORM_CTX}
@@ -420,12 +420,12 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
             ) : null}
             {form.recurrencePattern !== 'none' ? (
               <>
-                <PremiumInput
+                <CareDateInput
                   {...FORM_CTX}
                   label="Wiederholen bis (optional)"
                   value={form.recurrenceEndDate}
-                  onChangeText={(recurrenceEndDate) => patch({ recurrenceEndDate })}
-                  placeholder="YYYY-MM-DD — leer = ohne Enddatum"
+                  onChange={(recurrenceEndDate) => patch({ recurrenceEndDate })}
+                  placeholder="TT.MM.JJJJ — leer = ohne Enddatum"
                 />
                 <PremiumInput
                   {...FORM_CTX}
