@@ -31,7 +31,7 @@ const PORTAL_CONFIG = (
     eyebrow: 'KLIENT:INNENPORTAL',
     icon: '🏠',
     accent: colors.cyan,
-    subtitle: 'Termine, Dokumente und Betreuungsteam — nach Portal-Freigabe gefiltert.',
+    subtitle: 'Einsätze, Dokumente und Betreuungsteam — nach Portal-Freigabe gefiltert.',
   },
 });
 

@@ -117,12 +117,15 @@ const styles = StyleSheet.create({
     flex: 1,
     minHeight: 0,
     minWidth: 0,
+    backgroundColor: 'transparent',
   },
   scrollNative: {
     flex: 1,
+    backgroundColor: 'transparent',
   },
   contentWidth: {
     width: '100%',
+    backgroundColor: 'transparent',
   },
   contentFill: {
     flexGrow: 1,

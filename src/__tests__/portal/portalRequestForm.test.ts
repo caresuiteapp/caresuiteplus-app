@@ -217,6 +217,21 @@ describe('PortalRequestFormModal UI', () => {
     expect(source).not.toContain("setRequestModal('nachweise')");
   });
 
+  it('opens zusatztermin form from open requests modal via action route', () => {
+    const overview = readSrc('src/components/portal/assist/AssistPortalOverview.tsx');
+    const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
+
+    expect(overview).toContain('openZusatzterminRequest');
+    expect(overview).toContain("router.replace('/portal/client?action=zusatztermin'");
+    expect(overview).toContain("setRequestModal('zusatztermin')");
+    expect(overview).not.toContain("setRequestModal('sonstiges')");
+    expect(overview).toMatch(/onNewRequest=\{\(\) => \{[\s\S]*openZusatzterminRequest\(\)/);
+
+    expect(mobile).toContain('openZusatzterminRequest');
+    expect(mobile).toContain("router.replace('/portal/client?action=zusatztermin'");
+    expect(mobile).not.toContain("setRequestModal('sonstiges')");
+  });
+
   it('renders dropdown fields for rueckruf callback form', () => {
     const source = readSrc('src/components/portal/assist/PortalRequestFormModal.tsx');
     expect(source).toContain('Bevorzugte Rückrufzeit');

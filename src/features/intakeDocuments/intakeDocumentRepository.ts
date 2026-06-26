@@ -5,6 +5,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import { getSystemIntakeTemplateByKey, INTAKE_DOCUMENT_SYSTEM_TEMPLATES } from './intakeDocumentSystemTemplates';
+import { resolveOfficeDocumentTitle } from '@/lib/office/officeDocumentDisplay';
 import type { IntakeDocumentTemplate } from './intakeDocumentTypes';
 
 type SystemTemplateRow = {
@@ -277,6 +278,82 @@ function mapIntakeDocCategory(documentType: string): string {
   return 'sonstige';
 }
 
+async function linkOrInsertPromotedIntakeDocument(
+  db: NonNullable<ReturnType<typeof getDb>>,
+  input: {
+    tenantId: string;
+    clientId: string;
+    intakeDocumentId: string;
+    templateKey: string;
+    documentType: string;
+    title: string;
+    actorProfileId?: string | null;
+  },
+): Promise<ServiceResult<void>> {
+  const fileName = `${input.templateKey}.html`;
+  const { data: existingByIntake } = await db
+    .from('client_documents')
+    .select('id')
+    .eq('tenant_id', input.tenantId)
+    .eq('client_id', input.clientId)
+    .eq('intake_document_id', input.intakeDocumentId)
+    .maybeSingle();
+  if (existingByIntake) return { ok: true, data: undefined };
+
+  const { data: existingByFile } = await db
+    .from('client_documents')
+    .select('id, intake_document_id, source, mime_type')
+    .eq('tenant_id', input.tenantId)
+    .eq('client_id', input.clientId)
+    .eq('file_name', fileName)
+    .maybeSingle();
+
+  if (existingByFile) {
+    if (!existingByFile.intake_document_id) {
+      const { error: linkError } = await db
+        .from('client_documents')
+        .update({
+          intake_document_id: input.intakeDocumentId,
+          source: 'intake',
+          mime_type: 'text/html',
+          title: resolveOfficeDocumentTitle({
+            title: input.title,
+            fileName,
+            documentSource: 'intake',
+          }),
+        })
+        .eq('id', existingByFile.id);
+      if (linkError) {
+        return { ok: false, error: toGermanSupabaseError(linkError) };
+      }
+    }
+    return { ok: true, data: undefined };
+  }
+
+  const { error } = await db.from('client_documents').insert({
+    tenant_id: input.tenantId,
+    client_id: input.clientId,
+    title: resolveOfficeDocumentTitle({
+      title: input.title,
+      fileName,
+      documentSource: 'intake',
+    }),
+    file_name: fileName,
+    mime_type: 'text/html',
+    category: mapIntakeDocCategory(input.documentType),
+    status: 'abgeschlossen',
+    sensitivity: 'care',
+    source: 'intake',
+    intake_document_id: input.intakeDocumentId,
+    uploaded_by: input.actorProfileId ?? null,
+  });
+  if (error && error.code !== '23505') {
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: undefined };
+}
+
 export async function promoteFinalizedIntakeDocumentsToClientRecord(
   tenantId: string,
   clientId: string,
@@ -296,32 +373,16 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
       const intakeDocumentId = (intakeRow as { id?: string } | null)?.id ?? null;
       if (!intakeDocumentId) continue;
 
-      const { data: existing } = await db
-        .from('client_documents')
-        .select('id')
-        .eq('tenant_id', tenantId)
-        .eq('client_id', clientId)
-        .eq('intake_document_id', intakeDocumentId)
-        .single();
-
-      if (existing) continue;
-
-      const { error } = await db.from('client_documents').insert({
-        tenant_id: tenantId,
-        client_id: clientId,
+      const linked = await linkOrInsertPromotedIntakeDocument(db, {
+        tenantId,
+        clientId,
+        intakeDocumentId,
+        templateKey: doc.templateKey,
+        documentType: doc.documentType,
         title: doc.title,
-        file_name: `${doc.templateKey}.html`,
-        mime_type: 'text/html',
-        category: mapIntakeDocCategory(doc.documentType),
-        status: 'abgeschlossen',
-        sensitivity: 'care',
-        source: 'intake',
-        intake_document_id: intakeDocumentId,
-        uploaded_by: actorProfileId ?? null,
+        actorProfileId,
       });
-      if (error && error.code !== '23505') {
-        return { ok: false, error: toGermanSupabaseError(error) };
-      }
+      if (!linked.ok) return linked;
     }
     return { ok: true, data: undefined };
   }
@@ -345,31 +406,16 @@ export async function promoteFinalizedIntakeDocumentsToClientRecord(
     status: string;
     finalized_html: string | null;
   }[] | null) ?? []) {
-    const { data: existing } = await db
-      .from('client_documents')
-      .select('id')
-      .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
-      .eq('intake_document_id', row.id)
-      .single();
-    if (existing) continue;
-
-    const { error } = await db.from('client_documents').insert({
-      tenant_id: tenantId,
-      client_id: clientId,
+    const linked = await linkOrInsertPromotedIntakeDocument(db, {
+      tenantId,
+      clientId,
+      intakeDocumentId: row.id,
+      templateKey: row.template_key,
+      documentType: row.document_type,
       title: row.title,
-      file_name: `${row.template_key}.html`,
-      mime_type: 'text/html',
-      category: mapIntakeDocCategory(row.document_type),
-      status: 'abgeschlossen',
-      sensitivity: 'care',
-      source: 'intake',
-      intake_document_id: row.id,
-      uploaded_by: actorProfileId ?? null,
+      actorProfileId,
     });
-    if (error && error.code !== '23505') {
-      return { ok: false, error: toGermanSupabaseError(error) };
-    }
+    if (!linked.ok) return linked;
   }
 
   return { ok: true, data: undefined };

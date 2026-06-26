@@ -6,8 +6,8 @@ import type {
   EmployeePortalTaskItem,
 } from '@/types/modules/employeePortalExecution';
 
-/** Portal kind — client vs employee vs office control. */
-export type PortalKind = 'client' | 'employee';
+/** Portal kind — client vs employee vs relative (Angehörige) vs office control. */
+export type PortalKind = 'client' | 'employee' | 'relative';
 
 /** Visibility matrix entry for a client portal feature. */
 export type PortalFeatureVisibility = {

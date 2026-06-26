@@ -29,6 +29,10 @@ type Props = {
   variant?: 'glass' | 'light';
   /** @deprecated Pulse animation removed — cards stay static on glass surfaces. */
   pulse?: boolean;
+  /** Allow multi-line values (e.g. long mime labels on mobile). Default 1. */
+  valueLines?: number;
+  /** Label casing — uppercase is default for dashboard KPIs. */
+  labelCase?: 'uppercase' | 'normal';
 };
 
 export function PremiumKpiCard({
@@ -41,6 +45,8 @@ export function PremiumKpiCard({
   trendValue,
   style,
   variant = 'glass',
+  valueLines = 1,
+  labelCase = 'uppercase',
 }: Props) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
@@ -107,8 +113,8 @@ export function PremiumKpiCard({
         },
         label: {
           ...typography.caption,
-          textTransform: 'uppercase',
-          letterSpacing: 0.4,
+          textTransform: labelCase === 'uppercase' ? 'uppercase' : 'none',
+          letterSpacing: labelCase === 'uppercase' ? 0.4 : 0,
           flexShrink: 0,
           color: isLight ? careLightColors.muted : text.secondary,
         },
@@ -138,6 +144,7 @@ export function PremiumKpiCard({
       isLight,
       text.muted,
       text.secondary,
+      labelCase,
       typography.caption,
     ],
   );
@@ -187,12 +194,17 @@ export function PremiumKpiCard({
             <SpaceKpiIcon icon={icon} accentColor={resolvedAccent} size={36} />
           </View>
         ) : null}
-        <Text style={styles.label} numberOfLines={1} adjustsFontSizeToFit minimumFontScale={0.75}>
+        <Text
+          style={styles.label}
+          numberOfLines={2}
+          adjustsFontSizeToFit={labelCase === 'uppercase'}
+          minimumFontScale={0.75}
+        >
           {label}
         </Text>
         <Text
           style={[styles.value, !isLight ? { color: resolvedAccent } : null]}
-          numberOfLines={1}
+          numberOfLines={valueLines}
         >
           {value}
         </Text>

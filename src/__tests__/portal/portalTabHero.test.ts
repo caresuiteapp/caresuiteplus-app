@@ -16,13 +16,12 @@ describe('Portal Tab Heroes (Sprint 53)', () => {
     expect(hero).toContain('KLIENT:INNENPORTAL');
   });
 
-  it('PortalTabHero deckt Nachrichten, Dokumente und Termine ab', () => {
+  it('PortalTabHero deckt Nachrichten, Dokumente und Einsätze ab', () => {
     const hero = readSrc('src/components/portal/PortalTabHero.tsx');
     expect(hero).toContain("'messages'");
     expect(hero).toContain("'documents'");
     expect(hero).toContain("'appointments'");
     expect(hero).toContain('Einsätze');
-    expect(hero).toContain('Termine');
   });
 
   it('PortalMessagesTab integriert PortalTabHero', () => {

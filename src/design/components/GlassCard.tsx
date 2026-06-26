@@ -39,9 +39,13 @@ export function GlassCard({
 
   const borderColor = selected
     ? accentColor ?? galaxyPalette.careOrange
-    : useLightGlass
-      ? loginGlass.borderWhite
-      : careEffects.glass.border;
+    : accentColor
+      ? accentColor
+      : useLightGlass
+        ? loginGlass.borderWhite
+        : careEffects.glass.border;
+
+  const borderWidth = accentColor ? 2 : 1;
 
   const glowStyle: ViewStyle | null = useLightGlass ? null : (galaxyGlow.cyan as ViewStyle);
   const selectedStyle: ViewStyle | null = useLightGlass ? null : (galaxyGlow.orange as ViewStyle);
@@ -57,9 +61,6 @@ export function GlassCard({
         },
         cardDark: {
           backgroundColor: galaxyPalette.cardGlass,
-        },
-        accentRim: {
-          borderLeftWidth: 3,
         },
         content: {
           position: 'relative',
@@ -79,8 +80,7 @@ export function GlassCard({
         useLightGlass ? auroraCardStyle : styles.cardDark,
         glow && !useLightGlass ? glowStyle : null,
         selected && !useLightGlass ? selectedStyle : null,
-        { borderColor },
-        accentColor && !selected ? { ...styles.accentRim, borderLeftColor: accentColor } : null,
+        { borderColor, borderWidth },
         style,
       ]}
     >

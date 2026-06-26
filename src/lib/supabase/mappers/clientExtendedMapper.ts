@@ -335,6 +335,7 @@ export function mapClientContract(row: ContractRow): ClientContract {
 type DocumentRow = ClientDocumentRow;
 
 export function mapClientDocument(row: DocumentRow): ClientDocumentRecord {
+  const source = row.source ?? null;
   return {
     id: row.id,
     tenantId: row.tenant_id,
@@ -350,6 +351,8 @@ export function mapClientDocument(row: DocumentRow): ClientDocumentRecord {
     validUntil: row.valid_until,
     createdAt: row.created_at,
     updatedAt: row.updated_at,
+    documentSource: source === 'intake' ? 'intake' : source === 'upload' ? 'upload' : null,
+    intakeDocumentId: row.intake_document_id ?? null,
   };
 }
 

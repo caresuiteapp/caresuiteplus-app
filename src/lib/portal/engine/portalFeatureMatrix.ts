@@ -2,7 +2,7 @@ import type { PortalFeature, PortalModuleKey } from '@/lib/portal/types';
 
 /** Static feature matrix — mirrors migration 0099 seed (offline + demo fallback). */
 export const PORTAL_FEATURE_MATRIX: PortalFeature[] = [
-  { moduleKey: 'assist', featureKey: 'appointments', label: 'Termine', description: 'Assist-Termine und Besuche', navGroup: 'module', sortOrder: 10 },
+  { moduleKey: 'assist', featureKey: 'appointments', label: 'Einsätze', description: 'Assist-Einsätze und Besuche', navGroup: 'module', sortOrder: 10 },
   { moduleKey: 'assist', featureKey: 'messages', label: 'Nachrichten', description: 'Chat mit der Verwaltung', navGroup: 'global', sortOrder: 20 },
   { moduleKey: 'assist', featureKey: 'documents', label: 'Dokumente', description: 'Freigegebene Assist-Dokumente', navGroup: 'global', sortOrder: 30 },
   { moduleKey: 'assist', featureKey: 'betreuung', label: 'Betreuung', description: 'Ihr Assist-Betreuungsteam', navGroup: 'module', sortOrder: 15 },

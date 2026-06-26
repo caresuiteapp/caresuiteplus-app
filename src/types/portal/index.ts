@@ -17,5 +17,5 @@ export const PORTAL_TAB_LABELS: Record<PortalTabKey, string> = {
 
 export const PORTAL_CLIENT_TAB_LABELS: Record<PortalTabKey, string> = {
   ...PORTAL_TAB_LABELS,
-  appointments: 'Termine',
+  appointments: 'Einsätze',
 };

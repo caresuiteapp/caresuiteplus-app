@@ -19,6 +19,7 @@ export { EmployeePortalLiveTimersPanel } from './EmployeePortalLiveTimersPanel';
 export { PortalShell } from './PortalShell';
 export { ClientPortalShell } from './ClientPortalShell';
 export { EmployeePortalShell } from './EmployeePortalShell';
+export { RelativePortalShell } from './RelativePortalShell';
 export { PortalNavigation } from './PortalNavigation';
 export { PortalSectionGate } from './PortalSectionGate';
 export { PortalEmptyState } from './PortalEmptyState';

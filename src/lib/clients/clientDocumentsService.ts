@@ -6,6 +6,11 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
 import { assertDemoTenant, getClientExtendedRepository, isDemoClientBackend } from './clientBackend';
 import { fetchClientDocuments } from './clientDocumentService';
+import { releaseClientDocumentsForPortal } from './clientDocumentPortalReleaseService';
+import {
+  canClientPortalSeeFeature,
+  fetchClientPortalSettingsResolved,
+} from '@/lib/client/clientPortalSettingsService';
 import {
   buildStorageObjectFileName,
   buildTenantStoragePath,
@@ -13,6 +18,26 @@ import {
 } from '@/lib/storage/storagePaths';
 
 const STORAGE_BUCKET = 'office-documents';
+
+export async function syncClientDocumentPortalReleaseIfEnabled(
+  tenantId: string,
+  clientId: string,
+): Promise<ServiceResult<{ synced: boolean; updated: number }>> {
+  const settings = await fetchClientPortalSettingsResolved(tenantId, clientId);
+  if (!settings.ok) return settings;
+
+  if (!canClientPortalSeeFeature(settings.data, 'documents')) {
+    return { ok: true, data: { synced: false, updated: 0 } };
+  }
+
+  const release = await releaseClientDocumentsForPortal(tenantId, clientId);
+  if (!release.ok) return release;
+
+  return {
+    ok: true,
+    data: { synced: true, updated: release.data.updated },
+  };
+}
 
 export type DocumentUploadInput = {
   category: string;
@@ -29,6 +54,9 @@ export async function listClientDocuments(
   tenantId: string,
   clientId: string,
 ): Promise<ServiceResult<ClientDocumentRecord[]>> {
+  if (!isDemoClientBackend()) {
+    await syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
+  }
   return fetchClientDocuments(tenantId, clientId);
 }
 
@@ -76,6 +104,11 @@ export async function uploadClientDocument(
         storagePath,
         sizeBytes: input.sizeBytes ?? payload.length,
         uploadedBy: input.uploadedBy ?? null,
+      }).then(async (result) => {
+        if (result.ok) {
+          await syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
+        }
+        return result;
       });
     }
 

@@ -88,6 +88,14 @@ export function MobilePortalDashboard({
     }
   }, [params.modal, router]);
 
+  const openZusatzterminRequest = useCallback(() => {
+    if (params.modal) {
+      router.replace('/portal/client?action=zusatztermin' as never);
+      return;
+    }
+    setRequestModal('zusatztermin');
+  }, [params.modal, router]);
+
   const openRequestsModal = useCallback(() => {
     if (!requestsReleased) return;
     setOpenRequestsModalOpen(true);
@@ -223,16 +231,16 @@ export function MobilePortalDashboard({
           appointment={data.nextAppointment}
           onRequestChange={() => setRequestModal('termin_aendern')}
           onRequestExtra={() => setRequestModal('zusatztermin')}
-          emptyActionLabel="Termin anfragen"
+          emptyActionLabel="Einsatz anfragen"
         />
 
         <View style={styles.kpiGrid}>
           <MobilePortalKpiCard
             icon="📅"
-            label="Termine"
+            label="Einsätze"
             value={data.kpis.appointments}
-            emptyMessage="Keine Termine geplant."
-            ctaLabel="Termin anfragen →"
+            emptyMessage="Keine Einsätze geplant."
+            ctaLabel="Einsatz anfragen →"
             accentColor="#4CC9F0"
             onCta={() => setRequestModal('zusatztermin')}
             onPress={() => router.push('/portal/client/appointments' as never)}
@@ -348,8 +356,7 @@ export function MobilePortalDashboard({
         }}
         onNewRequest={() => {
           setOpenRequestsModalOpen(false);
-          clearModalRoute();
-          setRequestModal('sonstiges');
+          openZusatzterminRequest();
         }}
       />
 

@@ -110,9 +110,9 @@ ALTER TABLE public.tenant_time_tracking_settings
   FOREIGN KEY (default_activity_type_id) REFERENCES public.tenant_activity_types(id) ON DELETE SET NULL;
 
 -- --------------------------------------------------------------------------
--- 6. time_workdays
+-- 6. homeoffice_workdays (distinct from legacy Assist GPS time_entries)
 -- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.time_workdays (
+CREATE TABLE IF NOT EXISTS public.homeoffice_workdays (
   id                    UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id             UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
   user_id               UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
@@ -131,20 +131,20 @@ CREATE TABLE IF NOT EXISTS public.time_workdays (
   UNIQUE (tenant_id, user_id, work_date)
 );
 
-CREATE INDEX IF NOT EXISTS idx_time_workdays_tenant_date
-  ON public.time_workdays (tenant_id, work_date DESC);
-CREATE INDEX IF NOT EXISTS idx_time_workdays_user
-  ON public.time_workdays (tenant_id, user_id, work_date DESC);
-CREATE INDEX IF NOT EXISTS idx_time_workdays_status
-  ON public.time_workdays (tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_workdays_tenant_date
+  ON public.homeoffice_workdays (tenant_id, work_date DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_workdays_user
+  ON public.homeoffice_workdays (tenant_id, user_id, work_date DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_workdays_status
+  ON public.homeoffice_workdays (tenant_id, status);
 
 -- --------------------------------------------------------------------------
--- 7. time_entries — multiple blocks per day (no fixed Mischzeit)
+-- 7. homeoffice_time_entries — multiple blocks per day (no fixed Mischzeit)
 -- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.time_entries (
+CREATE TABLE IF NOT EXISTS public.homeoffice_time_entries (
   id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id           UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  workday_id          UUID        NOT NULL REFERENCES public.time_workdays(id) ON DELETE CASCADE,
+  workday_id          UUID        NOT NULL REFERENCES public.homeoffice_workdays(id) ON DELETE CASCADE,
   user_id             UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   activity_type_id    UUID        REFERENCES public.tenant_activity_types(id) ON DELETE SET NULL,
   organization_id     UUID        REFERENCES public.tenant_work_organizations(id) ON DELETE SET NULL,
@@ -163,18 +163,18 @@ CREATE TABLE IF NOT EXISTS public.time_entries (
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_time_entries_workday
-  ON public.time_entries (workday_id, block_index);
-CREATE INDEX IF NOT EXISTS idx_time_entries_tenant_user
-  ON public.time_entries (tenant_id, user_id, started_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_time_entries_workday
+  ON public.homeoffice_time_entries (workday_id, block_index);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_time_entries_tenant_user
+  ON public.homeoffice_time_entries (tenant_id, user_id, started_at DESC);
 
 -- --------------------------------------------------------------------------
--- 8. time_activity_events — metadata only, no content
+-- 8. homeoffice_activity_events — metadata only, no content
 -- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.time_activity_events (
+CREATE TABLE IF NOT EXISTS public.homeoffice_activity_events (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id     UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  workday_id    UUID        REFERENCES public.time_workdays(id) ON DELETE SET NULL,
+  workday_id    UUID        REFERENCES public.homeoffice_workdays(id) ON DELETE SET NULL,
   user_id       UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   event_type    TEXT        NOT NULL
     CHECK (event_type IN (
@@ -189,18 +189,18 @@ CREATE TABLE IF NOT EXISTS public.time_activity_events (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_time_activity_events_workday
-  ON public.time_activity_events (workday_id, occurred_at DESC);
-CREATE INDEX IF NOT EXISTS idx_time_activity_events_tenant_user
-  ON public.time_activity_events (tenant_id, user_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_activity_events_workday
+  ON public.homeoffice_activity_events (workday_id, occurred_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_activity_events_tenant_user
+  ON public.homeoffice_activity_events (tenant_id, user_id, occurred_at DESC);
 
 -- --------------------------------------------------------------------------
--- 9. time_inactivity_checks
+-- 9. homeoffice_inactivity_checks
 -- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.time_inactivity_checks (
+CREATE TABLE IF NOT EXISTS public.homeoffice_inactivity_checks (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id       UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  workday_id      UUID        NOT NULL REFERENCES public.time_workdays(id) ON DELETE CASCADE,
+  workday_id      UUID        NOT NULL REFERENCES public.homeoffice_workdays(id) ON DELETE CASCADE,
   user_id         UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   triggered_at    TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   responded_at    TIMESTAMPTZ,
@@ -211,16 +211,16 @@ CREATE TABLE IF NOT EXISTS public.time_inactivity_checks (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_time_inactivity_checks_workday
-  ON public.time_inactivity_checks (workday_id, triggered_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_inactivity_checks_workday
+  ON public.homeoffice_inactivity_checks (workday_id, triggered_at DESC);
 
 -- --------------------------------------------------------------------------
--- 10. time_warnings
+-- 10. homeoffice_warnings
 -- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.time_warnings (
+CREATE TABLE IF NOT EXISTS public.homeoffice_warnings (
   id            UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id     UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  workday_id    UUID        NOT NULL REFERENCES public.time_workdays(id) ON DELETE CASCADE,
+  workday_id    UUID        NOT NULL REFERENCES public.homeoffice_workdays(id) ON DELETE CASCADE,
   user_id       UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   warning_type  TEXT        NOT NULL
     CHECK (warning_type IN ('inactivity_threshold', 'unclear_time', 'manual')),
@@ -230,17 +230,17 @@ CREATE TABLE IF NOT EXISTS public.time_warnings (
   created_at    TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_time_warnings_workday
-  ON public.time_warnings (workday_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_warnings_workday
+  ON public.homeoffice_warnings (workday_id, created_at DESC);
 
 -- --------------------------------------------------------------------------
--- 11. time_correction_requests
+-- 11. homeoffice_correction_requests
 -- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.time_correction_requests (
+CREATE TABLE IF NOT EXISTS public.homeoffice_correction_requests (
   id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id           UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  workday_id          UUID        NOT NULL REFERENCES public.time_workdays(id) ON DELETE CASCADE,
-  time_entry_id       UUID        REFERENCES public.time_entries(id) ON DELETE SET NULL,
+  workday_id          UUID        NOT NULL REFERENCES public.homeoffice_workdays(id) ON DELETE CASCADE,
+  time_entry_id       UUID        REFERENCES public.homeoffice_time_entries(id) ON DELETE SET NULL,
   requested_by        UUID        NOT NULL REFERENCES auth.users(id) ON DELETE CASCADE,
   status              TEXT        NOT NULL DEFAULT 'pending'
     CHECK (status IN ('pending', 'approved', 'rejected')),
@@ -251,21 +251,21 @@ CREATE TABLE IF NOT EXISTS public.time_correction_requests (
   reviewed_by         UUID        REFERENCES auth.users(id) ON DELETE SET NULL,
   reviewed_at         TIMESTAMPTZ,
   review_note         TEXT,
-  counter_entry_id    UUID        REFERENCES public.time_entries(id) ON DELETE SET NULL,
+  counter_entry_id    UUID        REFERENCES public.homeoffice_time_entries(id) ON DELETE SET NULL,
   created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
   updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_time_correction_requests_tenant
-  ON public.time_correction_requests (tenant_id, status, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_correction_requests_tenant
+  ON public.homeoffice_correction_requests (tenant_id, status, created_at DESC);
 
 -- --------------------------------------------------------------------------
--- 12. time_audit_logs — append-only with optional hash chain
+-- 12. homeoffice_audit_logs — append-only with optional hash chain
 -- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.time_audit_logs (
+CREATE TABLE IF NOT EXISTS public.homeoffice_audit_logs (
   id              UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id       UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  workday_id      UUID        REFERENCES public.time_workdays(id) ON DELETE SET NULL,
+  workday_id      UUID        REFERENCES public.homeoffice_workdays(id) ON DELETE SET NULL,
   entity_type     TEXT        NOT NULL,
   entity_id       UUID        NOT NULL,
   action          TEXT        NOT NULL,
@@ -277,10 +277,10 @@ CREATE TABLE IF NOT EXISTS public.time_audit_logs (
   created_at      TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_time_audit_logs_tenant
-  ON public.time_audit_logs (tenant_id, created_at DESC);
-CREATE INDEX IF NOT EXISTS idx_time_audit_logs_workday
-  ON public.time_audit_logs (workday_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_audit_logs_tenant
+  ON public.homeoffice_audit_logs (tenant_id, created_at DESC);
+CREATE INDEX IF NOT EXISTS idx_homeoffice_audit_logs_workday
+  ON public.homeoffice_audit_logs (workday_id, created_at DESC);
 
 -- --------------------------------------------------------------------------
 -- RLS
@@ -290,13 +290,13 @@ ALTER TABLE public.tenant_work_organizations ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tenant_cost_centers ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tenant_projects ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.tenant_activity_types ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.time_workdays ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.time_entries ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.time_activity_events ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.time_inactivity_checks ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.time_warnings ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.time_correction_requests ENABLE ROW LEVEL SECURITY;
-ALTER TABLE public.time_audit_logs ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homeoffice_workdays ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homeoffice_time_entries ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homeoffice_activity_events ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homeoffice_inactivity_checks ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homeoffice_warnings ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homeoffice_correction_requests ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.homeoffice_audit_logs ENABLE ROW LEVEL SECURITY;
 
 -- Settings: admin manage, all authenticated read own tenant
 DROP POLICY IF EXISTS time_settings_select ON public.tenant_time_tracking_settings;
@@ -386,8 +386,8 @@ CREATE POLICY time_activity_types_manage ON public.tenant_activity_types
   );
 
 -- Workdays: own or team/admin view
-DROP POLICY IF EXISTS time_workdays_select ON public.time_workdays;
-CREATE POLICY time_workdays_select ON public.time_workdays
+DROP POLICY IF EXISTS time_workdays_select ON public.homeoffice_workdays;
+CREATE POLICY time_workdays_select ON public.homeoffice_workdays
   FOR SELECT TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -400,8 +400,8 @@ CREATE POLICY time_workdays_select ON public.time_workdays
     )
   );
 
-DROP POLICY IF EXISTS time_workdays_insert ON public.time_workdays;
-CREATE POLICY time_workdays_insert ON public.time_workdays
+DROP POLICY IF EXISTS time_workdays_insert ON public.homeoffice_workdays;
+CREATE POLICY time_workdays_insert ON public.homeoffice_workdays
   FOR INSERT TO authenticated
   WITH CHECK (
     tenant_id = public.current_tenant_id()
@@ -409,8 +409,8 @@ CREATE POLICY time_workdays_insert ON public.time_workdays
     AND public.has_permission('time.tracking.own.start')
   );
 
-DROP POLICY IF EXISTS time_workdays_update ON public.time_workdays;
-CREATE POLICY time_workdays_update ON public.time_workdays
+DROP POLICY IF EXISTS time_workdays_update ON public.homeoffice_workdays;
+CREATE POLICY time_workdays_update ON public.homeoffice_workdays
   FOR UPDATE TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -427,8 +427,8 @@ CREATE POLICY time_workdays_update ON public.time_workdays
   );
 
 -- Time entries
-DROP POLICY IF EXISTS time_entries_select ON public.time_entries;
-CREATE POLICY time_entries_select ON public.time_entries
+DROP POLICY IF EXISTS time_entries_select ON public.homeoffice_time_entries;
+CREATE POLICY time_entries_select ON public.homeoffice_time_entries
   FOR SELECT TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -441,8 +441,8 @@ CREATE POLICY time_entries_select ON public.time_entries
     )
   );
 
-DROP POLICY IF EXISTS time_entries_insert ON public.time_entries;
-CREATE POLICY time_entries_insert ON public.time_entries
+DROP POLICY IF EXISTS time_entries_insert ON public.homeoffice_time_entries;
+CREATE POLICY time_entries_insert ON public.homeoffice_time_entries
   FOR INSERT TO authenticated
   WITH CHECK (
     tenant_id = public.current_tenant_id()
@@ -450,8 +450,8 @@ CREATE POLICY time_entries_insert ON public.time_entries
     AND public.has_permission('time.tracking.own.start')
   );
 
-DROP POLICY IF EXISTS time_entries_update ON public.time_entries;
-CREATE POLICY time_entries_update ON public.time_entries
+DROP POLICY IF EXISTS time_entries_update ON public.homeoffice_time_entries;
+CREATE POLICY time_entries_update ON public.homeoffice_time_entries
   FOR UPDATE TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -468,8 +468,8 @@ CREATE POLICY time_entries_update ON public.time_entries
   );
 
 -- Activity events — insert own, select own or admin
-DROP POLICY IF EXISTS time_activity_events_select ON public.time_activity_events;
-CREATE POLICY time_activity_events_select ON public.time_activity_events
+DROP POLICY IF EXISTS time_activity_events_select ON public.homeoffice_activity_events;
+CREATE POLICY time_activity_events_select ON public.homeoffice_activity_events
   FOR SELECT TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -481,8 +481,8 @@ CREATE POLICY time_activity_events_select ON public.time_activity_events
     )
   );
 
-DROP POLICY IF EXISTS time_activity_events_insert ON public.time_activity_events;
-CREATE POLICY time_activity_events_insert ON public.time_activity_events
+DROP POLICY IF EXISTS time_activity_events_insert ON public.homeoffice_activity_events;
+CREATE POLICY time_activity_events_insert ON public.homeoffice_activity_events
   FOR INSERT TO authenticated
   WITH CHECK (
     tenant_id = public.current_tenant_id()
@@ -490,8 +490,8 @@ CREATE POLICY time_activity_events_insert ON public.time_activity_events
   );
 
 -- Inactivity checks
-DROP POLICY IF EXISTS time_inactivity_select ON public.time_inactivity_checks;
-CREATE POLICY time_inactivity_select ON public.time_inactivity_checks
+DROP POLICY IF EXISTS time_inactivity_select ON public.homeoffice_inactivity_checks;
+CREATE POLICY time_inactivity_select ON public.homeoffice_inactivity_checks
   FOR SELECT TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -503,19 +503,19 @@ CREATE POLICY time_inactivity_select ON public.time_inactivity_checks
     )
   );
 
-DROP POLICY IF EXISTS time_inactivity_insert ON public.time_inactivity_checks;
-CREATE POLICY time_inactivity_insert ON public.time_inactivity_checks
+DROP POLICY IF EXISTS time_inactivity_insert ON public.homeoffice_inactivity_checks;
+CREATE POLICY time_inactivity_insert ON public.homeoffice_inactivity_checks
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id = public.current_tenant_id() AND user_id = auth.uid());
 
-DROP POLICY IF EXISTS time_inactivity_update ON public.time_inactivity_checks;
-CREATE POLICY time_inactivity_update ON public.time_inactivity_checks
+DROP POLICY IF EXISTS time_inactivity_update ON public.homeoffice_inactivity_checks;
+CREATE POLICY time_inactivity_update ON public.homeoffice_inactivity_checks
   FOR UPDATE TO authenticated
   USING (tenant_id = public.current_tenant_id() AND user_id = auth.uid());
 
 -- Warnings
-DROP POLICY IF EXISTS time_warnings_select ON public.time_warnings;
-CREATE POLICY time_warnings_select ON public.time_warnings
+DROP POLICY IF EXISTS time_warnings_select ON public.homeoffice_warnings;
+CREATE POLICY time_warnings_select ON public.homeoffice_warnings
   FOR SELECT TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -527,14 +527,14 @@ CREATE POLICY time_warnings_select ON public.time_warnings
     )
   );
 
-DROP POLICY IF EXISTS time_warnings_insert ON public.time_warnings;
-CREATE POLICY time_warnings_insert ON public.time_warnings
+DROP POLICY IF EXISTS time_warnings_insert ON public.homeoffice_warnings;
+CREATE POLICY time_warnings_insert ON public.homeoffice_warnings
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id = public.current_tenant_id());
 
 -- Corrections
-DROP POLICY IF EXISTS time_corrections_select ON public.time_correction_requests;
-CREATE POLICY time_corrections_select ON public.time_correction_requests
+DROP POLICY IF EXISTS time_corrections_select ON public.homeoffice_correction_requests;
+CREATE POLICY time_corrections_select ON public.homeoffice_correction_requests
   FOR SELECT TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -546,8 +546,8 @@ CREATE POLICY time_corrections_select ON public.time_correction_requests
     )
   );
 
-DROP POLICY IF EXISTS time_corrections_insert ON public.time_correction_requests;
-CREATE POLICY time_corrections_insert ON public.time_correction_requests
+DROP POLICY IF EXISTS time_corrections_insert ON public.homeoffice_correction_requests;
+CREATE POLICY time_corrections_insert ON public.homeoffice_correction_requests
   FOR INSERT TO authenticated
   WITH CHECK (
     tenant_id = public.current_tenant_id()
@@ -555,8 +555,8 @@ CREATE POLICY time_corrections_insert ON public.time_correction_requests
     AND public.has_permission('time.tracking.own.view')
   );
 
-DROP POLICY IF EXISTS time_corrections_update ON public.time_correction_requests;
-CREATE POLICY time_corrections_update ON public.time_correction_requests
+DROP POLICY IF EXISTS time_corrections_update ON public.homeoffice_correction_requests;
+CREATE POLICY time_corrections_update ON public.homeoffice_correction_requests
   FOR UPDATE TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -567,8 +567,8 @@ CREATE POLICY time_corrections_update ON public.time_correction_requests
   );
 
 -- Audit logs — append-only (insert + select, no update/delete)
-DROP POLICY IF EXISTS time_audit_logs_select ON public.time_audit_logs;
-CREATE POLICY time_audit_logs_select ON public.time_audit_logs
+DROP POLICY IF EXISTS time_audit_logs_select ON public.homeoffice_audit_logs;
+CREATE POLICY time_audit_logs_select ON public.homeoffice_audit_logs
   FOR SELECT TO authenticated
   USING (
     tenant_id = public.current_tenant_id()
@@ -579,8 +579,8 @@ CREATE POLICY time_audit_logs_select ON public.time_audit_logs
     )
   );
 
-DROP POLICY IF EXISTS time_audit_logs_insert ON public.time_audit_logs;
-CREATE POLICY time_audit_logs_insert ON public.time_audit_logs
+DROP POLICY IF EXISTS time_audit_logs_insert ON public.homeoffice_audit_logs;
+CREATE POLICY time_audit_logs_insert ON public.homeoffice_audit_logs
   FOR INSERT TO authenticated
   WITH CHECK (tenant_id = public.current_tenant_id());
 
@@ -590,13 +590,13 @@ GRANT SELECT, INSERT, UPDATE, DELETE ON public.tenant_work_organizations TO auth
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.tenant_cost_centers TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.tenant_projects TO authenticated;
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.tenant_activity_types TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON public.time_workdays TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON public.time_entries TO authenticated;
-GRANT SELECT, INSERT ON public.time_activity_events TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON public.time_inactivity_checks TO authenticated;
-GRANT SELECT, INSERT ON public.time_warnings TO authenticated;
-GRANT SELECT, INSERT, UPDATE ON public.time_correction_requests TO authenticated;
-GRANT SELECT, INSERT ON public.time_audit_logs TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.homeoffice_workdays TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.homeoffice_time_entries TO authenticated;
+GRANT SELECT, INSERT ON public.homeoffice_activity_events TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.homeoffice_inactivity_checks TO authenticated;
+GRANT SELECT, INSERT ON public.homeoffice_warnings TO authenticated;
+GRANT SELECT, INSERT, UPDATE ON public.homeoffice_correction_requests TO authenticated;
+GRANT SELECT, INSERT ON public.homeoffice_audit_logs TO authenticated;
 
 -- Permission seeds
 INSERT INTO public.role_permissions (role_id, permission_key)

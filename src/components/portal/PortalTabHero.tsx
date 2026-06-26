@@ -58,9 +58,9 @@ const SCOPE_CONFIG = (colors: LegacyColors): Record<'portal_employee' | 'portal_
         subtitle: 'Freigegebene Dokumente und Nachweise für Sie.',
       },
       appointments: {
-        title: 'Termine',
+        title: 'Einsätze',
         icon: '📅',
-        subtitle: 'Anstehende Termine und Besuche in Ihrer Übersicht.',
+        subtitle: 'Anstehende Einsätze und Besuche in Ihrer Übersicht.',
       },
     },
   },
@@ -94,7 +94,7 @@ export type PortalTabHeroProps = {
   unreadCount?: number;
   activeCount?: number;
   restrictedCount?: number;
-  /** Überschreibt den Tab-Titel (z. B. „Einsätze“ vs. „Termine“) */
+  /** Überschreibt den Tab-Titel (z. B. modulspezifische Einsatz-Labels) */
   titleOverride?: string;
 };
 

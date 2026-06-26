@@ -1,3 +1,8 @@
+import {
+  PORTAL_CLIENT_DOCUMENT_STATUSES,
+  PORTAL_INTERNAL_SENSITIVITIES,
+  PORTAL_PROOFS_CATEGORY,
+} from '@/lib/clients/clientDocumentPortalVisibility';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -40,7 +45,9 @@ export async function fetchClientPortalLiveMetrics(
         .eq('tenant_id', tenantId)
         .eq('client_id', clientId)
         .eq('portal_visible', true)
-        .eq('status', 'aktiv')
+        .in('status', [...PORTAL_CLIENT_DOCUMENT_STATUSES])
+        .not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`)
+        .neq('category', PORTAL_PROOFS_CATEGORY)
     : null;
 
   const [threadsResult, appointmentsResult, documentsResult] = await Promise.all([

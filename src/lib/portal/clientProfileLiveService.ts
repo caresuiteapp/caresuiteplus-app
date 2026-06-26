@@ -1,7 +1,7 @@
 import type { ServiceResult } from '@/types';
 import type { PortalClientCarePlanSummary, PortalClientProfile } from '@/types/portal/client';
 import type { PortalAccessStatus } from '@/types/modules/client/clientPortal';
-import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { fetchClientPortalSettingsResolved } from '@/lib/client/clientPortalSettingsService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -9,8 +9,33 @@ import { runService } from '@/lib/services/serviceRunner';
 import type { WorkflowStatus } from '@/types/workflow/status';
 import { formatClientPortalDisplayName } from './clientPortalDisplayName';
 import { fetchClientPortalLiveMetrics } from './clientPortalDashboardLive';
+import { buildClientPortalProfileProjection } from './clientPortalProfileProjection';
 
 const UPCOMING_ASSIGNMENT_STATUSES = ['geplant', 'bestaetigt', 'unterwegs', 'angekommen'] as const;
+
+const CLIENT_PROFILE_SELECT = [
+  'first_name',
+  'last_name',
+  'gender',
+  'care_level',
+  'city',
+  'postal_code',
+  'country',
+  'street',
+  'house_number',
+  'floor',
+  'apartment_number',
+  'doorbell_name',
+  'phone',
+  'mobile',
+  'email',
+  'date_of_birth',
+  'admission_date',
+  'insurance_name',
+  'insurance_number',
+  'cost_bearer',
+  'access_notes',
+].join(', ');
 
 export type ClientPortalAccessSummary = {
   portalUsername: string | null;
@@ -95,12 +120,16 @@ export async function fetchLiveClientPortalProfile(
     const [
       clientResult,
       accessResult,
+      settingsResult,
       metrics,
       nextAssignmentResult,
-      emergencyContactResult,
+      contactsResult,
+      insuranceResult,
+      careContextsResult,
+      supportPrefsResult,
     ] = await Promise.all([
       fromUnknownTable(supabase, 'clients')
-        .select('first_name, last_name, gender, care_level, city, postal_code, phone, mobile, email')
+        .select(CLIENT_PROFILE_SELECT)
         .eq('tenant_id', tenantId)
         .eq('id', clientId)
         .maybeSingle(),
@@ -109,6 +138,7 @@ export async function fetchLiveClientPortalProfile(
         .eq('tenant_id', tenantId)
         .eq('client_id', clientId)
         .maybeSingle(),
+      fetchClientPortalSettingsResolved(tenantId, clientId),
       fetchClientPortalLiveMetrics(tenantId, clientId),
       fromUnknownTable(supabase, 'assignments')
         .select('service_type, planned_start_at')
@@ -120,11 +150,27 @@ export async function fetchLiveClientPortalProfile(
         .limit(1)
         .maybeSingle(),
       fromUnknownTable(supabase, 'client_contacts')
-        .select('name, phone, is_emergency')
+        .select(
+          'id, first_name, last_name, full_name, name, relationship, relationship_label, phone, email, is_emergency, is_emergency_contact, is_portal_user, contact_type',
+        )
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId),
+      fromUnknownTable(supabase, 'client_insurance_profiles')
+        .select(
+          'care_level, care_level_valid_from, care_fund_name, health_insurance, insurance_number, is_primary',
+        )
         .eq('tenant_id', tenantId)
         .eq('client_id', clientId)
-        .eq('is_emergency', true)
-        .limit(1)
+        .eq('is_primary', true)
+        .maybeSingle(),
+      fromUnknownTable(supabase, 'client_care_contexts')
+        .select('context_key, is_primary')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId),
+      fromUnknownTable(supabase, 'client_support_preferences')
+        .select('communication')
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
         .maybeSingle(),
     ]);
 
@@ -138,6 +184,10 @@ export async function fetchLiveClientPortalProfile(
       return { ok: false, error: 'Klient:innenprofil nicht gefunden.' };
     }
 
+    if (!settingsResult.ok) {
+      return settingsResult;
+    }
+
     const row = clientResult.data as Record<string, unknown>;
     const displayName =
       formatClientPortalDisplayName({
@@ -146,40 +196,32 @@ export async function fetchLiveClientPortalProfile(
         gender: row.gender as string | null,
       }) ?? 'Portal';
 
-    const phone =
-      (typeof row.mobile === 'string' && row.mobile.trim() ? row.mobile.trim() : null) ??
-      (typeof row.phone === 'string' && row.phone.trim() ? row.phone.trim() : null);
-
-    let emergencyContact: string | null = null;
-    if (!emergencyContactResult.error && emergencyContactResult.data) {
-      const contact = emergencyContactResult.data as { name?: string | null; phone?: string | null };
-      const name = contact.name?.trim() ?? '';
-      const contactPhone = contact.phone?.trim() ?? '';
-      emergencyContact =
-        name && contactPhone ? `${name} (${contactPhone})` : name || contactPhone || null;
+    if (insuranceResult.error && !isMissingTableError(insuranceResult.error)) {
+      console.warn('[clientProfileLiveService] client_insurance_profiles:', insuranceResult.error.message);
+    }
+    if (careContextsResult.error && !isMissingTableError(careContextsResult.error)) {
+      console.warn('[clientProfileLiveService] client_care_contexts:', careContextsResult.error.message);
+    }
+    if (supportPrefsResult.error && !isMissingTableError(supportPrefsResult.error)) {
+      console.warn('[clientProfileLiveService] client_support_preferences:', supportPrefsResult.error.message);
+    }
+    if (contactsResult.error && !isMissingTableError(contactsResult.error)) {
+      console.warn('[clientProfileLiveService] client_contacts:', contactsResult.error.message);
     }
 
-    const assignment = nextAssignmentResult.data as Record<string, unknown> | null;
-    const nextAppointmentTitle = assignment
-      ? String(assignment.service_type ?? 'Termin').trim() || 'Termin'
-      : null;
-    const nextAppointmentAt = assignment?.planned_start_at
-      ? String(assignment.planned_start_at)
-      : null;
-
-    const profile: PortalClientProfile = {
+    const profile = buildClientPortalProfileProjection({
+      tenantId,
       clientId,
+      settings: settingsResult.data,
+      clientRow: row,
+      contacts: (contactsResult.data ?? []) as Record<string, unknown>[],
+      insuranceRow: (insuranceResult.data as Record<string, unknown> | null) ?? null,
+      careContexts: (careContextsResult.data ?? []) as Record<string, unknown>[],
+      supportPreferences: (supportPrefsResult.data as Record<string, unknown> | null) ?? null,
+      metrics,
+      nextAssignment: (nextAssignmentResult.data as Record<string, unknown> | null) ?? null,
       displayName,
-      careLevel: row.care_level ? formatCareLevel(String(row.care_level)) || null : null,
-      city: row.city ? String(row.city) : null,
-      zip: row.postal_code ? String(row.postal_code) : null,
-      primaryContactPhone: phone,
-      emergencyContact,
-      nextAppointmentTitle,
-      nextAppointmentAt,
-      openInvoices: 0,
-      sharedDocuments: metrics.documents,
-    };
+    });
 
     let portalAccess: ClientPortalAccessSummary | null = null;
     if (!accessResult.error && accessResult.data) {

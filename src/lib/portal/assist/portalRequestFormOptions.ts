@@ -65,7 +65,7 @@ export const CHANGE_TYPE_OPTIONS: ListFilterOption[] = [
   { key: 'uhrzeit_aendern', label: 'Uhrzeit ändern' },
   { key: 'tag_aendern', label: 'Tag ändern' },
   { key: 'tag_und_uhrzeit_aendern', label: 'Tag und Uhrzeit ändern' },
-  { key: 'absagen', label: 'Termin absagen' },
+  { key: 'absagen', label: 'Einsatz absagen' },
 ];
 
 export const ABSAGEGRUND_OPTIONS: ListFilterOption[] = [
@@ -89,7 +89,7 @@ export function showsNeuerWunschtag(aenderungsart: TerminAendernPayload['aenderu
 }
 
 export const RUECKRUF_TOPIC_OPTIONS: ListFilterOption[] = [
-  { key: 'termin', label: 'Termin' },
+  { key: 'termin', label: 'Einsatz' },
   { key: 'dokument', label: 'Dokument' },
   { key: 'rechnung', label: 'Rechnung' },
   { key: 'allgemeine_frage', label: 'Allgemeine Frage' },
@@ -113,7 +113,7 @@ export const STAMMDATEN_FIELD_OPTIONS: ListFilterOption[] = [
 ];
 
 export const FEEDBACK_BEREICH_OPTIONS: ListFilterOption[] = [
-  { key: 'termin', label: 'Termin' },
+  { key: 'termin', label: 'Einsatz' },
   { key: 'mitarbeiter', label: 'Mitarbeiter:in' },
   { key: 'leistung', label: 'Leistung' },
   { key: 'kommunikation', label: 'Kommunikation' },

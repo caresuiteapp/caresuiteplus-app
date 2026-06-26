@@ -1,5 +1,14 @@
 import type { WorkflowStatus } from '../core/base';
 
+export type PortalClientContactSummary = {
+  id: string;
+  name: string;
+  relationship: string | null;
+  phone: string | null;
+  email: string | null;
+  role: 'emergency' | 'representative' | 'relative' | 'doctor' | 'other';
+};
+
 export type PortalClientProfile = {
   clientId: string;
   displayName: string;
@@ -12,6 +21,25 @@ export type PortalClientProfile = {
   nextAppointmentAt: string | null;
   openInvoices: number;
   sharedDocuments: number;
+  email: string | null;
+  mobile: string | null;
+  phone: string | null;
+  preferredContactLabel: string | null;
+  dateOfBirth: string | null;
+  street: string | null;
+  floor: string | null;
+  apartmentNumber: string | null;
+  doorbellName: string | null;
+  country: string | null;
+  healthInsurance: string | null;
+  careFundName: string | null;
+  costBearer: string | null;
+  insuranceNumberMasked: string | null;
+  careLevelSince: string | null;
+  careStartDate: string | null;
+  careModels: string[];
+  representativeContacts: PortalClientContactSummary[];
+  portalHints: string | null;
 };
 
 export type PortalClientCarePlanSummary = {

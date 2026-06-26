@@ -18,7 +18,7 @@ import { spacing } from '@/theme';
 type PortalViewScreenProps = {
   portalLabel: string;
   scope: DashboardScope;
-  /** Klient:innenportal zeigt „Termine" statt „Einsätze" */
+  /** Klient:innenportal zeigt „Einsätze" */
   variant?: 'employee' | 'client';
   /** Direkte Tab-Auswahl für Deep-Links (WP 061) */
   initialTab?: PortalTabKey;
@@ -47,7 +47,8 @@ export function PortalViewScreen({
 
   const displayName = profile?.displayName ?? user?.displayName ?? 'Portal';
   const tabs = buildTabs(variant);
-  const appointmentsLabel = variant === 'client' ? 'Termine' : 'Einsätze';
+  const labels = variant === 'client' ? PORTAL_CLIENT_TAB_LABELS : PORTAL_TAB_LABELS;
+  const appointmentsLabel = labels.appointments;
 
   const handleRefreshSuccess = () => {
     setShowSuccess(true);

@@ -12,6 +12,7 @@ import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { runService } from '@/lib/services/serviceRunner';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { ensureTenantClientCoreSeeded } from './clientServiceTypeService';
+import { releaseClientDocumentsForPortal } from '@/lib/clients/clientDocumentPortalReleaseService';
 
 function mapTenantDefaults(row: Record<string, unknown>): TenantClientPortalDefaults {
   return {
@@ -293,6 +294,12 @@ export async function upsertClientPortalSettings(
       .upsert(payload, { onConflict: 'tenant_id,client_id' });
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
-    return fetchClientPortalSettingsResolved(tenantId, clientId);
+
+    const resolved = await fetchClientPortalSettingsResolved(tenantId, clientId);
+    if (resolved.ok && canClientPortalSeeFeature(resolved.data, 'documents')) {
+      await releaseClientDocumentsForPortal(tenantId, clientId);
+    }
+
+    return resolved;
   });
 }

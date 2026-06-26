@@ -4,8 +4,19 @@ import type { PortalScope } from '@/types/portal';
 import { demoPortalDocuments } from '@/data/demo/documents';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { enforcePermission } from '@/lib/permissions';
+import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
+import {
+  downloadLivePortalDocument,
+  fetchLivePortalDocumentDetail,
+  fetchLivePortalDocumentsForClient,
+} from './portalDocumentsLiveService';
 import { filterPortalEntities, resolvePortalScope } from './portalVisibility';
+
+export type PortalDocumentsPortalContext = {
+  tenantId?: string | null;
+  clientId?: string | null;
+};
 
 const SIMULATED_DELAY_MS = 350;
 
@@ -37,39 +48,50 @@ function mapDocumentListItem(
 export async function fetchPortalDocuments(
   profileId: string,
   roleKey: RoleKey | null,
+  portalContext?: PortalDocumentsPortalContext,
   options?: { simulateError?: boolean; simulateEmpty?: boolean },
 ): Promise<ServiceResult<PortalDocumentListItem[]>> {
+  if (options?.simulateError) {
+    return {
+      ok: false,
+      error: 'Dokumente konnten nicht geladen werden. Bitte erneut versuchen.',
+    };
+  }
+
+  if (!profileId || !roleKey) {
+    return { ok: false, error: 'Kein Profil für Dokumentenabruf vorhanden.' };
+  }
+
+  const employeeDenied = enforcePermission<PortalDocumentListItem[]>(
+    roleKey,
+    'portal.employee.documents.view',
+  );
+  if (employeeDenied && roleKey === 'employee_portal') return employeeDenied;
+
+  const clientDenied = enforcePermission<PortalDocumentListItem[]>(
+    roleKey,
+    'portal.client.documents.view',
+  );
+  if (clientDenied && isClientPortalRole(roleKey)) return clientDenied;
+
+  if (options?.simulateEmpty) {
+    return { ok: true, data: [] };
+  }
+
+  const scope: PortalScope = resolvePortalScope(roleKey);
+  const tenantId = portalContext?.tenantId ?? null;
+  const clientId = portalContext?.clientId ?? null;
+
+  if (getServiceMode() === 'supabase') {
+    if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
+      return fetchLivePortalDocumentsForClient(tenantId, clientId);
+    }
+    return { ok: true, data: [] };
+  }
+
   return runService(async () => {
     await delay(SIMULATED_DELAY_MS);
 
-    if (options?.simulateError) {
-      return {
-        ok: false,
-        error: 'Dokumente konnten nicht geladen werden. Bitte erneut versuchen.',
-      };
-    }
-
-    if (!profileId || !roleKey) {
-      return { ok: false, error: 'Kein Profil für Dokumentenabruf vorhanden.' };
-    }
-
-    const employeeDenied = enforcePermission<PortalDocumentListItem[]>(
-      roleKey,
-      'portal.employee.documents.view',
-    );
-    if (employeeDenied && roleKey === 'employee_portal') return employeeDenied;
-
-    const clientDenied = enforcePermission<PortalDocumentListItem[]>(
-      roleKey,
-      'portal.client.documents.view',
-    );
-    if (clientDenied && isClientPortalRole(roleKey)) return clientDenied;
-
-    if (options?.simulateEmpty) {
-      return { ok: true, data: [] };
-    }
-
-    const scope: PortalScope = resolvePortalScope(roleKey);
     const portalDocs = demoPortalDocuments.filter((doc) => doc.audienceScope === 'portal');
     const visible = filterPortalEntities(portalDocs, profileId, scope);
 
@@ -125,6 +147,7 @@ export async function fetchPortalDocumentDetail(
   documentId: string,
   profileId: string,
   roleKey: RoleKey | null,
+  portalContext?: PortalDocumentsPortalContext,
 ): Promise<ServiceResult<PortalDocumentDetail>> {
   const employeeDenied = enforcePermission<PortalDocumentDetail>(
     roleKey,
@@ -138,14 +161,24 @@ export async function fetchPortalDocumentDetail(
   );
   if (clientDenied && isClientPortalRole(roleKey)) return clientDenied;
 
+  if (!profileId || !roleKey) {
+    return { ok: false, error: 'Kein Profil für Dokumentenabruf vorhanden.' };
+  }
+
+  const scope: PortalScope = resolvePortalScope(roleKey);
+  const tenantId = portalContext?.tenantId ?? null;
+  const clientId = portalContext?.clientId ?? null;
+
+  if (getServiceMode() === 'supabase') {
+    if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
+      return fetchLivePortalDocumentDetail(tenantId, clientId, documentId);
+    }
+    return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
+  }
+
   return runService(async () => {
     await delay(SIMULATED_DELAY_MS);
 
-    if (!profileId || !roleKey) {
-      return { ok: false, error: 'Kein Profil für Dokumentenabruf vorhanden.' };
-    }
-
-    const scope: PortalScope = resolvePortalScope(roleKey);
     const portalDocs = demoPortalDocuments.filter((doc) => doc.audienceScope === 'portal');
     const visible = filterPortalEntities(portalDocs, profileId, scope);
     const doc = visible.find((d) => d.id === documentId);
@@ -161,6 +194,7 @@ export async function fetchPortalDocumentDetail(
         createdAt: doc.createdAt,
         description: DOCUMENT_DESCRIPTIONS[doc.id] ?? null,
         downloadReady: doc.status !== 'gesperrt',
+        viewReady: doc.status !== 'gesperrt',
       },
     };
   });
@@ -170,7 +204,8 @@ export async function downloadPortalDocument(
   documentId: string,
   profileId: string,
   roleKey: RoleKey | null,
-): Promise<ServiceResult<{ fileName: string; mimeType: string }>> {
+  portalContext?: PortalDocumentsPortalContext,
+): Promise<ServiceResult<{ fileName: string; mimeType: string; downloadUrl?: string }>> {
   if (roleKey === 'employee_portal') {
     const denied = enforcePermission<{ fileName: string; mimeType: string }>(
       roleKey,
@@ -187,11 +222,21 @@ export async function downloadPortalDocument(
     return { ok: false, error: 'Keine Berechtigung zum Download.' };
   }
 
-  const detail = await fetchPortalDocumentDetail(documentId, profileId, roleKey);
+  const detail = await fetchPortalDocumentDetail(documentId, profileId, roleKey, portalContext);
   if (!detail.ok) return detail;
 
   if (!detail.data.downloadReady) {
     return { ok: false, error: 'Dieses Dokument steht aktuell nicht zum Download bereit.' };
+  }
+
+  if (getServiceMode() === 'supabase' && isClientPortalRole(roleKey)) {
+    const tenantId = portalContext?.tenantId ?? null;
+    const clientId = portalContext?.clientId ?? null;
+    if (!tenantId?.trim() || !clientId?.trim()) {
+      return { ok: false, error: 'Download konnte nicht vorbereitet werden.' };
+    }
+
+    return downloadLivePortalDocument(tenantId, clientId, documentId);
   }
 
   return runService(async () => {

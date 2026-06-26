@@ -21,7 +21,7 @@ const LIST_SELECT = `
   employees(first_name, last_name, phone)
 `;
 
-/** Remote assignment statuses visible as portal Termine (non-terminal). */
+/** Remote assignment statuses visible as portal Einsätze (non-terminal). */
 const PORTAL_APPOINTMENT_STATUSES = [
   'planned',
   'confirmed',
@@ -81,7 +81,7 @@ function mapAssignmentRow(row: AssignmentLiveListRow): PortalAppointmentItem {
   const assignmentStatus = remoteStatusToAssignment(row.status);
   return {
     id: row.id,
-    title: row.title?.trim() || 'Termin',
+    title: row.title?.trim() || 'Einsatz',
     startsAt: row.planned_start_at,
     endsAt: row.planned_end_at,
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
@@ -120,7 +120,7 @@ async function fetchLivePortalAppointments(
       if (!isMissingTableError(error)) {
         console.warn('[portalAppointmentsLiveService] assignments:', error.message);
       }
-      return { ok: false, error: 'Termine konnten nicht geladen werden. Bitte erneut versuchen.' };
+      return { ok: false, error: 'Einsätze konnten nicht geladen werden. Bitte erneut versuchen.' };
     }
 
     const rows = (data ?? []) as unknown as AssignmentLiveListRow[];
@@ -159,7 +159,7 @@ export async function fetchLivePortalClientAppointmentDetail(
       return { ok: false, error: 'Supabase ist nicht verfügbar.' };
     }
     if (!tenantId.trim() || !clientId.trim() || !assignmentId.trim()) {
-      return { ok: false, error: 'Termin nicht gefunden.' };
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
     const { data, error } = await fromUnknownTable(supabase, 'assignments')
@@ -173,10 +173,10 @@ export async function fetchLivePortalClientAppointmentDetail(
       if (!isMissingTableError(error)) {
         console.warn('[portalAppointmentsLiveService] assignment detail:', error.message);
       }
-      return { ok: false, error: 'Termin nicht gefunden.' };
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
     if (!data) {
-      return { ok: false, error: 'Termin nicht gefunden.' };
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
     const row = data as unknown as AssignmentLiveListRow;
@@ -197,14 +197,14 @@ export async function fetchLivePortalClientAppointmentDetail(
 
     const detail: PortalClientAppointmentDetail = {
       id: row.id,
-      title: row.title?.trim() || 'Termin',
+      title: row.title?.trim() || 'Einsatz',
       startsAt: row.planned_start_at,
       endsAt: row.planned_end_at,
       status: assignmentStatusToWorkflowFilter(assignmentStatus),
       location: row.address_snapshot?.trim() || null,
       caregiverName: personName(employee),
       caregiverPhone: employee?.phone?.trim() || null,
-      serviceType: row.title?.trim() || 'Termin',
+      serviceType: row.title?.trim() || 'Einsatz',
       preparationNotes: row.client_visible_notes?.trim() || null,
       canRequestChange: PLANNED_CHANGE_STATUSES.has(assignmentStatus),
       liveVisit: liveVisit as PortalClientAppointmentDetail['liveVisit'],

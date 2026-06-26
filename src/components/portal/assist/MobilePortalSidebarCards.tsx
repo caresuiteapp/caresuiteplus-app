@@ -59,7 +59,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
   const quickActions = useMemo(() => {
     const actions = [
       { key: 'message', label: 'Nachricht', icon: '💬', href: '/portal/client/messages?compose=1' },
-      { key: 'termin', label: 'Termin anfragen', icon: '📅', href: '/portal/client?action=zusatztermin' },
+      { key: 'termin', label: 'Einsatz anfragen', icon: '📅', href: '/portal/client?action=zusatztermin' },
       { key: 'upload', label: 'Upload', icon: '📎', href: '/portal/client?action=upload' },
       { key: 'rueckruf', label: 'Rückrufbitte', icon: '📞', href: '/portal/client?action=rueckruf' },
     ];

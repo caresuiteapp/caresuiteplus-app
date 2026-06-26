@@ -23,7 +23,7 @@ import {
   webSafeAreaTopShell,
 } from '@/lib/platform/webSafeArea';
 
-export type PortalShellKind = 'client' | 'employee';
+export type PortalShellKind = 'client' | 'employee' | 'relative';
 
 type PortalShellLayoutProps = {
   children: ReactNode;
@@ -53,7 +53,12 @@ export function PortalShellLayout({
   const isCompactShell = !isDesktopOrWide;
   const showRightSidebar = width >= BREAKPOINT_MIN.desktop && kind === 'client';
   const showLeftNav = isDesktopOrWide;
-  const portalLabel = kind === 'employee' ? 'Mitarbeiterportal' : 'Klient:innenportal';
+  const portalLabel =
+    kind === 'employee'
+      ? 'Mitarbeiterportal'
+      : kind === 'relative'
+        ? 'Angehörigenportal'
+        : 'Klient:innenportal';
 
   const topShellPadding = webSafeAreaTopShell(Math.max(insets.top, careSpacing.xs));
   const mobileContentPaddingBottom = useMemo(
@@ -144,6 +149,7 @@ const styles = StyleSheet.create({
     flex: 1,
     flexDirection: 'row',
     minHeight: 0,
+    zIndex: 1,
   },
   main: {
     flex: 1,

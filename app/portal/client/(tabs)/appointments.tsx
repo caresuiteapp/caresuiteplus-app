@@ -3,9 +3,9 @@ import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 
 export default function ClientAppointmentsRoute() {
   return (
-    <PortalTabScreen title="Termine" hideHeaderOnPhone>
+    <PortalTabScreen title="Einsätze" hideHeaderOnPhone>
       <PortalAppointmentsTab
-        appointmentsLabel="Termine"
+        appointmentsLabel="Einsätze"
         detailBasePath="/portal/client/appointments"
       />
     </PortalTabScreen>

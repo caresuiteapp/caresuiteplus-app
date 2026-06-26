@@ -1,10 +1,17 @@
-import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
 import { useMemo } from 'react';
 import { buildDocumentPreviewFallbackLabel } from '@/lib/office/officeDocumentDisplay';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { breakpoints } from '@/design/tokens/breakpoints';
 import { spacing } from '@/theme';
+
+function resolvePreviewHeight(viewportHeight: number, isCompact: boolean): number {
+  const vhRatio = isCompact ? 0.6 : 0.7;
+  const minPx = isCompact ? 480 : 560;
+  return Math.max(minPx, Math.round(viewportHeight * vhRatio));
+}
 
 type DocumentHtmlPreviewProps = {
   title: string;
@@ -15,6 +22,9 @@ type DocumentHtmlPreviewProps = {
 export function DocumentHtmlPreview({ title, previewHtml, fallbackLabel }: DocumentHtmlPreviewProps) {
   const content = useAdaptiveContentStyles();
   const { colors } = useLegacyTheme();
+  const { width, height } = useWindowDimensions();
+  const isCompact = width < breakpoints.tablet;
+  const previewHeight = resolvePreviewHeight(height, isCompact);
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -23,17 +33,25 @@ export function DocumentHtmlPreview({ title, previewHtml, fallbackLabel }: Docum
           borderColor: colors.borderSoft,
           borderRadius: 8,
           overflow: 'hidden',
+          width: '100%',
+          maxWidth: '100%',
+          alignSelf: 'stretch',
+          flex: 1,
+          minHeight: previewHeight,
         },
         textPreview: {
-          maxHeight: 320,
+          minHeight: previewHeight,
+          flex: 1,
           backgroundColor: colors.bgElevated,
           padding: spacing.sm,
           borderRadius: 8,
+          width: '100%',
+          maxWidth: '100%',
         },
         previewText: { ...content.caption, color: colors.textPrimary },
         previewMeta: content.caption,
       }),
-    [colors, content],
+    [colors, content, previewHeight],
   );
 
   if (!previewHtml) {
@@ -51,7 +69,16 @@ export function DocumentHtmlPreview({ title, previewHtml, fallbackLabel }: Docum
         <iframe
           title={title}
           srcDoc={previewHtml}
-          style={{ width: '100%', height: 360, border: 'none', backgroundColor: '#fff' }}
+          style={{
+            width: '100%',
+            maxWidth: '100%',
+            height: previewHeight,
+            minHeight: previewHeight,
+            border: 'none',
+            backgroundColor: '#fff',
+            display: 'block',
+            boxSizing: 'border-box',
+          }}
           sandbox="allow-same-origin"
         />
       </View>

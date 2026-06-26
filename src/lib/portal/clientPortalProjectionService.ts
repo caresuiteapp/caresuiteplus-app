@@ -19,6 +19,7 @@ import {
   listReleasedProofsForClientPortal,
 } from '@/lib/portal/assist/portalAssistVisitProofService';
 import { getPortalVisibilityMatrixForClient, sanitizeClientPortalPayload } from './portalVisibilityService';
+import { countLivePortalDocumentsForClient } from './portalDocumentsLiveService';
 import { runService } from '@/lib/services/serviceRunner';
 
 export {
@@ -101,7 +102,8 @@ export async function getClientPortalDocumentProjection(
     if (!canClientPortalSeeFeature(settings.data, 'documents')) {
       return { ok: true, data: { count: 0 } };
     }
-    return { ok: true, data: { count: 0 } };
+    const count = await countLivePortalDocumentsForClient(tenantId, clientId);
+    return { ok: true, data: { count } };
   });
 }
 
@@ -129,13 +131,16 @@ export async function getClientPortalDashboardProjection(
 
     const showMessages = canClientPortalSeeFeature(settings.data, 'messages');
     const showDocuments = canClientPortalSeeFeature(settings.data, 'documents');
+    const documentCount = showDocuments
+      ? await countLivePortalDocumentsForClient(tenantId, clientId)
+      : 0;
 
     return {
       ok: true,
       data: {
         nextVisits: canClientPortalSeeFeature(settings.data, 'appointments') ? visits : [],
         recentProofs: proofsResult.data.slice(0, 5),
-        documentCount: showDocuments ? 0 : 0,
+        documentCount: showDocuments ? documentCount : 0,
         messageCount: showMessages ? 0 : 0,
         budgetSummary: budgetResult.data,
         helpAvailable: settings.data.portalEnabled,

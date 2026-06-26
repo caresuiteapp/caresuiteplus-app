@@ -150,6 +150,12 @@ describe('buildPortalDashboard', () => {
 });
 
 describe('portalTerminology', () => {
+  it('uses Einsatz labels for assist primary module', () => {
+    const terms = resolvePortalTerminology('assist');
+    expect(terms.appointmentLabel).toBe('Einsatz');
+    expect(terms.appointmentLabelPlural).toBe('Einsätze');
+  });
+
   it('uses Einsatz labels for pflege primary module', () => {
     const terms = resolvePortalTerminology('pflege');
     expect(terms.appointmentLabel).toBe('Einsatz');

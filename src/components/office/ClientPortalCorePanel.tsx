@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { StyleSheet, Switch, Text, View } from 'react-native';
 import {
   EmptyState,
@@ -24,6 +24,7 @@ import {
   upsertClientPortalSettings,
 } from '@/lib/client/clientPortalSettingsService';
 import { listPortalSyncRowsForClient } from '@/lib/portal/portalSyncChainService';
+import { syncClientDocumentPortalReleaseIfEnabled } from '@/lib/clients/clientDocumentsService';
 import { useAuth } from '@/lib/auth/context';
 import type { ClientFullDetail } from '@/types/modules/client';
 import { colors, spacing, typography } from '@/theme';
@@ -35,7 +36,7 @@ type Props = {
 };
 
 const FEATURE_LABELS: Record<string, string> = {
-  appointments: 'Termine',
+  appointments: 'Einsätze',
   messages: 'Nachrichten',
   documents: 'Dokumente',
   proofs: 'Nachweise',
@@ -46,7 +47,7 @@ const FEATURE_TOGGLES: Array<{
   key: 'showAppointments' | 'showMessages' | 'showDocuments' | 'showProofs';
   label: string;
 }> = [
-  { key: 'showAppointments', label: 'Termine' },
+  { key: 'showAppointments', label: 'Einsätze' },
   { key: 'showMessages', label: 'Nachrichten' },
   { key: 'showDocuments', label: 'Dokumente' },
   { key: 'showProofs', label: 'Nachweise' },
@@ -94,6 +95,13 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
     { enabled: !!tenantId && !!clientId },
   );
 
+  const settings = settingsQuery.data;
+
+  useEffect(() => {
+    if (!tenantId || !clientId || !settings?.portalEnabled || !settings.showDocuments) return;
+    void syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
+  }, [tenantId, clientId, settings?.portalEnabled, settings?.showDocuments]);
+
   if (settingsQuery.loading && !settingsQuery.data) {
     return <LoadingState message="Portal-Einstellungen werden geladen…" />;
   }
@@ -101,7 +109,6 @@ export function ClientPortalCorePanel({ clientId, fullClient, onRecordRefresh }:
     return <ErrorState message={settingsQuery.error} onRetry={settingsQuery.refresh} />;
   }
 
-  const settings = settingsQuery.data;
   const features = featuresQuery.data ?? [];
   const requests = requestsQuery.data ?? [];
 

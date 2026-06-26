@@ -43,10 +43,36 @@ describe('Client portal profile live wiring', () => {
     expect(screen).toContain('PortalRequestFormModal');
   });
 
+  it('profile screen shows expanded profile sections', () => {
+    const screen = readSrc('src/screens/portal/ClientPortalProfileScreen.tsx');
+    expect(screen).toContain('KONTAKT & ERREICHBARKEIT');
+    expect(screen).toContain('VERSICHERUNG / KOSTENTRÄGER');
+    expect(screen).toContain('BETREUUNG & PFLEGE');
+    expect(screen).toContain('ANSPRECHPARTNER / BEVOLLMÄCHTIGTE');
+    expect(screen).toContain('PORTAL-HINWEISE');
+    expect(screen).toContain('clientPortalProfileProjection');
+  });
+
+  it('profile projection masks insurance and respects portal settings', () => {
+    const projection = readSrc('src/lib/portal/clientPortalProfileProjection.ts');
+    expect(projection).toContain('maskPortalInsuranceNumber');
+    expect(projection).toContain('canClientPortalSeeProfileField');
+    const live = readSrc('src/lib/portal/clientProfileLiveService.ts');
+    expect(live).toContain('buildClientPortalProfileProjection');
+    expect(live).toContain('client_insurance_profiles');
+    expect(live).toContain('client_care_contexts');
+  });
+
   it('migration 0105 adds portal self-select RLS', () => {
     const sql = readSrc('supabase/migrations/0105_portal_profile_self_rls.sql');
     expect(sql).toContain('client_portal_access_portal_self_select');
     expect(sql).toContain('client_contacts_portal_self_select');
     expect(sql).toContain('care_plans_portal_self_select');
+  });
+
+  it('migration 0182 adds portal profile extended RLS', () => {
+    const sql = readSrc('supabase/migrations/0182_portal_profile_extended_rls.sql');
+    expect(sql).toContain('client_insurance_profiles_portal_self_select');
+    expect(sql).toContain('client_care_contexts_portal_self_select');
   });
 });

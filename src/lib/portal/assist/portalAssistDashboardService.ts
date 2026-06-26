@@ -62,7 +62,7 @@ async function fetchUpcomingAppointments(
 
   return ((data ?? []) as Record<string, unknown>[]).map((row) => ({
     id: String(row.id ?? ''),
-    title: String(row.title ?? 'Assist-Termin'),
+    title: String(row.title ?? 'Assist-Einsatz'),
     startsAt: String(row.planned_start_at ?? ''),
     endsAt: row.planned_end_at ? String(row.planned_end_at) : null,
     location: row.location ? String(row.location) : null,

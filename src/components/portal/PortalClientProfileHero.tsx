@@ -73,7 +73,7 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
           <Text style={styles.title}>{profile.displayName}</Text>
           <Text style={styles.meta}>
             {profile.nextAppointmentTitle
-              ? `Nächster Termin: ${profile.nextAppointmentTitle}`
+              ? `Nächster Einsatz: ${profile.nextAppointmentTitle}`
               : 'Ihr persönlicher Portal-Bereich'}
           </Text>
         </View>
@@ -105,7 +105,7 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
         ))}
         {profile.nextAppointmentAt ? (
           <PremiumKpiCard
-            label="Nächster Termin"
+            label="Nächster Einsatz"
             value={formatNextAppointment(profile.nextAppointmentAt)}
             subValue={profile.nextAppointmentTitle ?? undefined}
             icon="📅"

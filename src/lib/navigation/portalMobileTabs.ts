@@ -21,7 +21,7 @@ const FALLBACK_MOBILE_TABS: Record<PortalMobileTabKey, ShellTabConfig> = {
   overview: { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/client' },
   'assist-appointments': {
     key: 'assist-appointments',
-    label: 'Termine',
+    label: 'Einsätze',
     icon: '📅',
     href: '/portal/client/appointments',
   },
@@ -31,7 +31,7 @@ const FALLBACK_MOBILE_TABS: Record<PortalMobileTabKey, ShellTabConfig> = {
 };
 
 /**
- * Resolves the five fixed mobile portal tabs (Übersicht, Termine, Dokumente, Nachrichten, Profil).
+ * Resolves the five fixed mobile portal tabs (Übersicht, Einsätze, Dokumente, Nachrichten, Profil).
  * Merges href/icon from dynamic portal tabs when available.
  */
 export function resolveFixedMobilePortalTabs(tabs: ShellTabConfig[]): ShellTabConfig[] {

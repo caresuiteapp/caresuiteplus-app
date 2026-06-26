@@ -13,7 +13,7 @@ type PortalNextAppointmentHeroProps = {
   appointment: PortalNextAppointment | null;
   onRequestChange?: () => void;
   onRequestExtra?: () => void;
-  /** Override empty-state CTA label (mobile uses „Termin anfragen →“). */
+  /** Override empty-state CTA label (mobile uses „Einsatz anfragen →"). */
   emptyActionLabel?: string;
 };
 
@@ -93,8 +93,8 @@ export function PortalNextAppointmentHero({
             </>
           ) : (
             <PortalEmptyState
-              message="Noch kein Assist-Termin geplant."
-              actionLabel={emptyActionLabel ?? 'Zusatztermin anfragen'}
+              message="Noch kein Assist-Einsatz geplant."
+              actionLabel={emptyActionLabel ?? 'Zusatzeinsatz anfragen'}
               onAction={onRequestExtra}
               ctaColor={isPhone ? 'gold' : '#FF9500'}
               ctaSuffix={isPhone ? ' →' : ''}
@@ -115,7 +115,7 @@ export function PortalNextAppointmentHero({
             gold={isPhone}
           />
           {onRequestChange ? (
-            <HeroLink label="Termin ändern" onPress={onRequestChange} gold={isPhone} />
+            <HeroLink label="Einsatz ändern" onPress={onRequestChange} gold={isPhone} />
           ) : null}
         </View>
       ) : null}

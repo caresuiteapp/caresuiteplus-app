@@ -40,8 +40,8 @@ describe('Portal appointments live wiring', () => {
     expect(hook).toContain('clientId');
   });
 
-  it('client Termine tab shows live empty state copy', () => {
+  it('client Einsätze tab shows live empty state copy', () => {
     const tab = readSrc('src/components/portal/PortalAppointmentsTab.tsx');
-    expect(tab).toContain('Keine Termine geplant');
+    expect(tab).toContain('Keine ${appointmentsLabel.toLowerCase()} geplant');
   });
 });

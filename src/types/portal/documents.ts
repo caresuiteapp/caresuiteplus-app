@@ -48,6 +48,7 @@ export type PortalDocumentDetail = PortalDocumentListItem & {
   createdAt: string;
   description: string | null;
   downloadReady: boolean;
+  viewReady: boolean;
 };
 
 export const PORTAL_DOCUMENT_CATEGORY_LABELS: Record<PortalDocumentCategory, string> = {

@@ -113,8 +113,8 @@ export function AssistPortalOverview({
   const quickActions = useMemo(() => {
     const actions: PortalQuickAction[] = [
       { key: 'nav_messages', label: 'Nachricht', icon: '💬' },
-      { key: 'termin_aendern', label: 'Terminänderung', icon: '📅' },
-      { key: 'zusatztermin', label: 'Zusatztermin', icon: '➕' },
+      { key: 'termin_aendern', label: 'Einsatzänderung', icon: '📅' },
+      { key: 'zusatztermin', label: 'Zusatzeinsatz', icon: '➕' },
       { key: 'upload', label: 'Upload', icon: '📎' },
       { key: 'rueckruf', label: 'Rückruf', icon: '📞' },
     ];
@@ -128,6 +128,14 @@ export function AssistPortalOverview({
     if (params.modal) {
       router.replace('/portal/client' as never);
     }
+  }, [params.modal, router]);
+
+  const openZusatzterminRequest = useCallback(() => {
+    if (params.modal) {
+      router.replace('/portal/client?action=zusatztermin' as never);
+      return;
+    }
+    setRequestModal('zusatztermin');
   }, [params.modal, router]);
 
   const openRequestsModal = useCallback(() => {
@@ -287,11 +295,11 @@ export function AssistPortalOverview({
 
         <View style={styles.kpiGrid}>
           <PortalKpiCard
-            label="Termine"
+            label="Einsätze"
             description="Anstehend"
             value={data.kpis.appointments}
-            emptyMessage="Keine Termine geplant."
-            ctaLabel="Zusatztermin"
+            emptyMessage="Keine Einsätze geplant."
+            ctaLabel="Zusatzeinsatz"
             onCta={() => setRequestModal('zusatztermin')}
             onPress={() => router.push('/portal/client/appointments' as never)}
           />
@@ -344,7 +352,7 @@ export function AssistPortalOverview({
             value={data.kpis.openRequests}
             emptyMessage="Keine offenen Anfragen."
             ctaLabel="Anfrage stellen"
-            onCta={() => setRequestModal('sonstiges')}
+            onCta={openZusatzterminRequest}
             onPress={openRequestsModal}
             hidden={!requestsReleased}
           />
@@ -415,8 +423,7 @@ export function AssistPortalOverview({
         }}
         onNewRequest={() => {
           setOpenRequestsModalOpen(false);
-          clearModalRoute();
-          setRequestModal('sonstiges');
+          openZusatzterminRequest();
         }}
       />
 

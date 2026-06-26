@@ -15,8 +15,8 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
 
 const REQUEST_TYPE_LABELS: Record<PortalRequestType, string> = {
-  termin_aendern: 'Terminänderung',
-  zusatztermin: 'Zusatztermin',
+  termin_aendern: 'Einsatzänderung',
+  zusatztermin: 'Zusatzeinsatz',
   rueckruf: 'Rückruf',
   nachricht: 'Nachricht',
   upload: 'Dokument-Upload',

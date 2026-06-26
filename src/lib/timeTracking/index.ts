@@ -73,6 +73,7 @@ export {
 
 export { resetTimeTrackingStore } from './timeTrackingStore';
 export { seedDemoTimeTrackingCatalog, resetDemoTimeTrackingSeedFlag } from './timeTrackingDemoSeed';
+export { HOMEOFFICE_TIME_TABLES, ASSIST_GPS_TIME_ENTRIES_TABLE } from './homeofficeTableNames';
 
 export const TIME_TRACKING_EMPLOYEE_ROUTE = '/business/office/time-tracking';
 export const TIME_TRACKING_SETTINGS_ROUTE = '/business/office/settings/time-tracking';

@@ -17,7 +17,7 @@ function readSrc(relativePath: string): string {
 
 const sampleTabs: ShellTabConfig[] = [
   { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/client' },
-  { key: 'assist-appointments', label: 'Termine', icon: '📅', href: '/portal/client/appointments' },
+  { key: 'assist-appointments', label: 'Einsätze', icon: '📅', href: '/portal/client/appointments' },
   { key: 'assist-betreuung', label: 'Betreuung', icon: '🤝', href: '/portal/client?module=assist&section=betreuung' },
   { key: 'assist-budget', label: 'Budget', icon: '💶', href: '/portal/client/budget' },
   { key: 'assist-anfragen', label: 'Anfragen', icon: '📨', href: '/portal/client?modal=anfragen' },
@@ -33,7 +33,7 @@ describe('resolveFixedMobilePortalTabs', () => {
     expect(tabs.map((tab) => tab.key)).toEqual([...PORTAL_MOBILE_TAB_KEYS]);
     expect(tabs.map((tab) => tab.label)).toEqual([
       'Übersicht',
-      'Termine',
+      'Einsätze',
       'Dokumente',
       'Nachrichten',
       'Profil',
@@ -65,8 +65,8 @@ describe('resolvePortalHeroCopy', () => {
       terminology: {
         greetingLabel: 'Willkommen in Ihrem Assist-Portal',
         moduleLabel: 'Assist',
-        appointmentLabel: 'Termin',
-        appointmentLabelPlural: 'Termine',
+        appointmentLabel: 'Einsatz',
+        appointmentLabelPlural: 'Einsätze',
         personLabel: 'Klient:in',
         careTeamLabel: 'Assist-Team',
       },
@@ -110,7 +110,7 @@ describe('Assist portal mobile layout', () => {
     expect(mobile).toContain("width: '100%'");
     expect(mobile).toContain('MobilePortalKpiCard');
     expect(mobile).toContain('MobilePortalSidebarCards');
-    expect(mobile).toContain('emptyActionLabel="Termin anfragen"');
+    expect(mobile).toContain('emptyActionLabel="Einsatz anfragen"');
     expect(mobile).toContain('greetingLabel');
     expect(mobile).not.toContain('PortalQuickActions');
   });
@@ -133,7 +133,7 @@ describe('Assist portal mobile layout', () => {
 
   it('MobilePortalSidebarCards uses reference Schnellzugriff pills', () => {
     const sidebar = readSrc('src/components/portal/assist/MobilePortalSidebarCards.tsx');
-    expect(sidebar).toContain('Termin anfragen');
+    expect(sidebar).toContain('Einsatz anfragen');
     expect(sidebar).toContain('Rückrufbitte');
     expect(sidebar).toContain("flexWrap: 'wrap'");
     expect(sidebar).toContain("width: '48%'");

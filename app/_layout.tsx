@@ -1,5 +1,5 @@
 import 'react-native-reanimated';
-import { Stack } from 'expo-router';
+import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
 import { View, StyleSheet, Platform, type ViewStyle } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
@@ -7,6 +7,7 @@ import { applyInvisibleScrollIndicators } from '@/design/scroll/applyInvisibleSc
 import { ThemeModeProvider, useThemeMode } from '@/design/ThemeModeProvider';
 import { WebFontScaleProvider } from '@/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
+import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/components/navigation/ModalStackProvider';
@@ -23,6 +24,8 @@ const SURFACE_COLOR = 'transparent';
 
 function RootShell() {
   const { mode } = useThemeMode();
+  const pathname = usePathname();
+  const hostsGlobalBackground = !isPortalRoutePath(pathname);
   const isDark = mode === 'dark';
   const navigationTheme = isDark
     ? {
@@ -41,9 +44,11 @@ function RootShell() {
   return (
     <ThemeProvider value={navigationTheme}>
       <View style={[styles.root, isDark ? styles.rootDark : styles.rootLight]}>
-        <View style={styles.backgroundLayer} pointerEvents="none">
-          <GlobalAnimatedBackground mode={mode} animated />
-        </View>
+        {hostsGlobalBackground ? (
+          <View style={styles.backgroundLayer} pointerEvents="none">
+            <GlobalAnimatedBackground mode={mode} animated />
+          </View>
+        ) : null}
         <View style={styles.contentLayer} pointerEvents="box-none">
           <StatusBar style={isDark ? 'light' : 'dark'} />
           <Stack

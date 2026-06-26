@@ -1,22 +1,38 @@
 import { useCallback } from 'react';
+import { Linking } from 'react-native';
 import { downloadPortalDocument, fetchPortalDocumentDetail } from '@/lib/portal';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { isDemoMode } from '@/lib/supabase/config';
 import { useAsyncQuery, useMutation } from './core';
 
 export function usePortalDocumentDetail(documentId: string | undefined) {
-  const { profile } = useAuth();
-  const profileId = profile?.id ?? '';
-  const roleKey = profile?.roleKey ?? null;
+  const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
+  const profileId = actorId ?? '';
 
   const query = useAsyncQuery(
-    () => fetchPortalDocumentDetail(documentId ?? '', profileId, roleKey),
-    [documentId, profileId, roleKey],
-    { enabled: !!documentId && !!profileId && !!roleKey },
+    () =>
+      fetchPortalDocumentDetail(documentId ?? '', profileId, roleKey, {
+        tenantId,
+        clientId,
+      }),
+    [documentId, profileId, roleKey, tenantId, clientId],
+    { enabled: !!documentId && isReady },
   );
 
   const downloadMutation = useMutation(
-    (_: null) => downloadPortalDocument(documentId ?? '', profileId, roleKey),
-    { successMessage: 'Download vorbereitet (Demo).' },
+    (_: null) =>
+      downloadPortalDocument(documentId ?? '', profileId, roleKey, {
+        tenantId,
+        clientId,
+      }),
+    {
+      successMessage: isDemoMode() ? 'Download vorbereitet.' : 'Download gestartet.',
+      onSuccess: async (data) => {
+        if (data.downloadUrl) {
+          await Linking.openURL(data.downloadUrl);
+        }
+      },
+    },
   );
 
   const refresh = useCallback(async () => {

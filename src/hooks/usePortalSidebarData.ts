@@ -93,7 +93,7 @@ export function usePortalSidebarData() {
   const kpis = useMemo((): PortalSidebarKpi[] => {
     if (dashboard) {
       return [
-        { label: 'Termine', value: dashboard.kpis.appointments },
+        { label: 'Einsätze', value: dashboard.kpis.appointments },
         { label: 'Nachrichten', value: dashboard.kpis.messages },
         { label: 'Dokumente', value: dashboard.kpis.documents },
         { label: 'Anfragen offen', value: dashboard.kpis.openRequests },
@@ -101,7 +101,7 @@ export function usePortalSidebarData() {
     }
     if (!context) return [];
     return [
-      { label: 'Termine', value: context.metrics.upcomingAppointments },
+      { label: 'Einsätze', value: context.metrics.upcomingAppointments },
       { label: 'Nachrichten', value: context.metrics.openMessages },
       { label: 'Dokumente', value: context.metrics.documents },
     ];
@@ -110,8 +110,8 @@ export function usePortalSidebarData() {
   const quickActions = useMemo((): PortalSidebarQuickAction[] => {
     const actions: PortalSidebarQuickAction[] = [
       { key: 'message', label: 'Nachricht', icon: '💬', href: '/portal/client/messages?compose=1' },
-      { key: 'termin', label: 'Terminänderung', icon: '📅', href: '/portal/client?action=termin_aendern' },
-      { key: 'zusatztermin', label: 'Zusatztermin', icon: '➕', href: '/portal/client?action=zusatztermin' },
+      { key: 'termin', label: 'Einsatzänderung', icon: '📅', href: '/portal/client?action=termin_aendern' },
+      { key: 'zusatztermin', label: 'Zusatzeinsatz', icon: '➕', href: '/portal/client?action=zusatztermin' },
       { key: 'upload', label: 'Upload', icon: '📎', href: '/portal/client?action=upload' },
       { key: 'rueckruf', label: 'Rückruf', icon: '📞', href: '/portal/client?action=rueckruf' },
     ];

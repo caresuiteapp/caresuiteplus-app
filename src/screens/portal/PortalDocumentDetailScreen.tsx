@@ -1,5 +1,6 @@
-import { ScrollView, StyleSheet, Text } from 'react-native';
+import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
+import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalDocumentDetailHero } from '@/components/portal';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
@@ -71,7 +72,7 @@ export function PortalDocumentDetailScreen() {
     <C14vSubpageShell
       title={data.title}
       eyebrow="PORTAL · DOKUMENT"
-      subtitle={data.fileName}
+      subtitle={data.displayFileName ?? undefined}
       rightSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
       }
@@ -80,6 +81,15 @@ export function PortalDocumentDetailScreen() {
         {successMessage ? <SuccessState message={successMessage} /> : null}
 
         <PortalDocumentDetailHero document={data} scope="employee" />
+
+        {data.viewReady && data.previewHtml ? (
+          <View style={styles.previewSection}>
+            <DocumentHtmlPreview
+              title={data.title}
+              previewHtml={data.previewHtml}
+            />
+          </View>
+        ) : null}
 
         {downloadError ? <Text style={styles.error}>{downloadError}</Text> : null}
 
@@ -95,7 +105,11 @@ export function PortalDocumentDetailScreen() {
             roleLabel={roleLabel}
           />
         ) : (
-          <Text style={styles.hint}>Download derzeit nicht verfügbar.</Text>
+          <Text style={styles.hint}>
+            {data.viewReady
+              ? 'Dieses Dokument können Sie oben im Portal lesen.'
+              : 'Download derzeit nicht verfügbar.'}
+          </Text>
         )}
       </ScrollView>
     </C14vSubpageShell>
@@ -106,6 +120,13 @@ const styles = StyleSheet.create({
   scroll: {
     gap: spacing.md,
     paddingBottom: spacing.xxl,
+    flexGrow: 1,
+  },
+  previewSection: {
+    flex: 1,
+    width: '100%',
+    alignSelf: 'stretch',
+    minWidth: 0,
   },
   error: {
     ...typography.caption,

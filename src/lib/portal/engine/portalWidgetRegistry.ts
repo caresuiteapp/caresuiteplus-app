@@ -5,8 +5,8 @@ import { PORTAL_MODULE_PRIORITY } from './portalModuleKeys';
 export const PORTAL_WIDGET_REGISTRY: PortalWidget[] = [
   { moduleKey: 'global', widgetKey: 'messages_kpi', title: 'Nachrichten', description: 'Offene Nachrichten', emptyState: 'Noch keine Nachrichten.', priority: 100, featureKey: 'messages', sortOrder: 10 },
   { moduleKey: 'global', widgetKey: 'documents_kpi', title: 'Dokumente', description: 'Freigegebene Dokumente', emptyState: 'Noch keine Dokumente freigegeben.', priority: 90, featureKey: 'documents', sortOrder: 20 },
-  { moduleKey: 'global', widgetKey: 'appointments_kpi', title: 'Termine', description: 'Anstehende Termine', emptyState: 'Keine Termine geplant.', priority: 80, featureKey: 'appointments', sortOrder: 30 },
-  { moduleKey: 'assist', widgetKey: 'assist_next_visit', title: 'Nächster Assist-Termin', description: 'Ihr nächster geplanter Besuch', emptyState: 'Noch kein Assist-Termin geplant.', priority: 60, featureKey: 'appointments', sortOrder: 10 },
+  { moduleKey: 'global', widgetKey: 'appointments_kpi', title: 'Einsätze', description: 'Anstehende Einsätze', emptyState: 'Keine Einsätze geplant.', priority: 80, featureKey: 'appointments', sortOrder: 30 },
+  { moduleKey: 'assist', widgetKey: 'assist_next_visit', title: 'Nächster Assist-Einsatz', description: 'Ihr nächster geplanter Besuch', emptyState: 'Noch kein Assist-Einsatz geplant.', priority: 60, featureKey: 'appointments', sortOrder: 10 },
   { moduleKey: 'assist', widgetKey: 'assist_trips', title: 'Begleitungen', description: 'Geplante Begleitungen', emptyState: 'Keine Begleitungen geplant.', priority: 50, featureKey: 'trips', sortOrder: 20 },
   { moduleKey: 'assist', widgetKey: 'assist_budget', title: 'Budget', description: '§45b / §45a Übersicht', emptyState: 'Budget noch nicht freigegeben.', priority: 45, featureKey: 'budget', sortOrder: 30 },
   { moduleKey: 'assist', widgetKey: 'assist_proofs', title: 'Nachweise', description: 'Offene Nachweise', emptyState: 'Keine Nachweise offen.', priority: 40, featureKey: 'nachweise', sortOrder: 35 },

@@ -90,12 +90,12 @@ export async function fetchPortalAppointments(
   if (options?.simulateError) {
     return {
       ok: false,
-      error: 'Termine konnten nicht geladen werden. Bitte erneut versuchen.',
+      error: 'Einsätze konnten nicht geladen werden. Bitte erneut versuchen.',
     };
   }
 
   if (!profileId || !roleKey) {
-    return { ok: false, error: 'Kein Profil für Terminabruf vorhanden.' };
+    return { ok: false, error: 'Kein Profil für Einsatzabruf vorhanden.' };
   }
 
   const employeeDenied = enforcePermission<PortalAppointmentItem[]>(
@@ -209,7 +209,7 @@ export async function fetchPortalAppointmentDetail(
       link.clientId &&
       appt.clientId !== link.clientId
     ) {
-      return { ok: false, error: 'Dieser Termin ist Ihnen nicht zugeordnet.' };
+      return { ok: false, error: 'Dieser Einsatz ist Ihnen nicht zugeordnet.' };
     }
 
     const assignment = getDemoAssignmentSeeds().find((a) => a.appointmentId === appointmentId);
@@ -258,7 +258,7 @@ export async function fetchPortalClientAppointmentDetail(
   if (denied && isClientPortalRole(roleKey)) return denied;
 
   if (!profileId || !roleKey) {
-    return { ok: false, error: 'Kein Profil für Terminabruf vorhanden.' };
+    return { ok: false, error: 'Kein Profil für Einsatzabruf vorhanden.' };
   }
 
   const tenantId = portalContext?.tenantId ?? null;
@@ -273,12 +273,12 @@ export async function fetchPortalClientAppointmentDetail(
 
     const appt = demoAppointments.find((a) => a.id === appointmentId);
     if (!appt) {
-      return { ok: false, error: 'Termin nicht gefunden.' };
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
 
     const link = getPortalProfileLink(profileId);
     if (link.clientId && appt.clientId !== link.clientId) {
-      return { ok: false, error: 'Dieser Termin ist Ihnen nicht zugeordnet.' };
+      return { ok: false, error: 'Dieser Einsatz ist Ihnen nicht zugeordnet.' };
     }
 
     const canRequestChange =
@@ -351,7 +351,7 @@ export async function requestPortalAppointmentChange(
     if (!detail.ok) return detail;
 
     if (!detail.data.canRequestChange) {
-      return { ok: false, error: 'Für diesen Termin kann keine Änderung angefragt werden.' };
+      return { ok: false, error: 'Für diesen Einsatz kann keine Änderung angefragt werden.' };
     }
 
     return {

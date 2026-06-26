@@ -13,8 +13,8 @@ export type PortalQuickAction = {
 
 const DEFAULT_ACTIONS: PortalQuickAction[] = [
   { key: 'nav_messages', label: 'Nachricht', icon: '💬' },
-  { key: 'termin_aendern', label: 'Terminänderung', icon: '📅' },
-  { key: 'zusatztermin', label: 'Zusatztermin', icon: '➕' },
+  { key: 'termin_aendern', label: 'Einsatzänderung', icon: '📅' },
+  { key: 'zusatztermin', label: 'Zusatzeinsatz', icon: '➕' },
   { key: 'upload', label: 'Upload', icon: '📎' },
   { key: 'rueckruf', label: 'Rückruf', icon: '📞' },
   { key: 'nachweise', label: 'Nachweise', icon: '📋' },

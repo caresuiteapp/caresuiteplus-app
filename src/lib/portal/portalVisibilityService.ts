@@ -18,7 +18,7 @@ import { PORTAL_BLOCKED_SNAPSHOT_KEYS } from '@/lib/assist/assistProofPdfPayload
 import { runService } from '@/lib/services/serviceRunner';
 
 const FEATURE_LABELS: Record<ClientPortalFeatureKey, string> = {
-  appointments: 'Termine / Einsätze',
+  appointments: 'Einsätze',
   messages: 'Nachrichten',
   documents: 'Dokumente',
   proofs: 'Nachweise',

@@ -16,16 +16,44 @@ export function isIntakeTemplateFileName(fileName: string): boolean {
   return Boolean(getSystemIntakeTemplateByKey(templateKey));
 }
 
+export function resolveIntakeTemplateKey(
+  doc: Pick<ClientDocumentRecord, 'title' | 'fileName' | 'documentSource'>,
+): string | null {
+  if (doc.documentSource === 'intake' || isIntakeTemplateFileName(doc.fileName)) {
+    return doc.fileName.replace(/\.html$/i, '');
+  }
+
+  const title = doc.title?.trim();
+  if (!title) return null;
+  if (isIntakeTemplateFileName(title)) return title.replace(/\.html$/i, '');
+  if (getSystemIntakeTemplateByKey(title)) return title;
+
+  return null;
+}
+
+export function isTechnicalIntakeDocumentTitle(title: string, fileName: string): boolean {
+  const trimmed = title.trim();
+  if (!trimmed) return true;
+  if (trimmed === fileName.trim()) return true;
+  if (isIntakeTemplateFileName(trimmed)) return true;
+  if (getSystemIntakeTemplateByKey(trimmed)) return true;
+  return false;
+}
+
 export function resolveOfficeDocumentTitle(doc: Pick<ClientDocumentRecord, 'title' | 'fileName' | 'documentSource'>): string {
   const title = doc.title?.trim();
-  if (title) return title;
+  const templateKey = resolveIntakeTemplateKey(doc);
 
-  if (doc.documentSource === 'intake' || isIntakeTemplateFileName(doc.fileName)) {
-    const templateKey = doc.fileName.replace(/\.html$/i, '');
+  if (title && !isTechnicalIntakeDocumentTitle(title, doc.fileName)) {
+    return title;
+  }
+
+  if (templateKey) {
     const template = getSystemIntakeTemplateByKey(templateKey);
     if (template?.title) return template.title;
   }
 
+  if (title) return title;
   return doc.fileName;
 }
 
@@ -37,22 +65,33 @@ export function mapIntakeDocumentTypeToPortalCategory(documentType: string | nul
   return null;
 }
 
-export function mapClientCategoryToPortalCategory(
-  category: ClientDocumentRecord['category'],
-): PortalDocumentCategory {
+export function mapCatalogCategoryToPortalCategory(category: string): PortalDocumentCategory {
   switch (category) {
-    case 'pflegeplan':
-      return 'care_plan';
+    case 'vertrag':
+    case 'vertraege':
+      return 'contract';
+    case 'datenschutz':
     case 'einwilligung':
       return 'consent';
-    case 'vertrag':
-      return 'contract';
+    case 'pflegeplan':
+    case 'pflegebericht':
+      return 'care_plan';
     case 'arztbrief':
     case 'md_gutachten':
+    case 'pflegegradbescheid':
       return 'report';
+    case 'rechnung':
+    case 'mahnung':
+      return 'invoice';
     default:
       return 'other';
   }
+}
+
+export function mapClientCategoryToPortalCategory(
+  category: ClientDocumentRecord['category'],
+): PortalDocumentCategory {
+  return mapCatalogCategoryToPortalCategory(category);
 }
 
 export function resolvePortalDocumentCategory(doc: ClientDocumentRecord): PortalDocumentCategory {
@@ -63,14 +102,18 @@ export function resolvePortalDocumentCategory(doc: ClientDocumentRecord): Portal
 }
 
 export function resolveOfficeDocumentSizeLabel(
-  doc: Pick<ClientDocumentRecord, 'documentSource' | 'mimeType' | 'fileName'>,
+  doc: Pick<ClientDocumentRecord, 'documentSource' | 'mimeType' | 'fileName' | 'previewHtml'>,
   fileSizeBytes: number,
 ): string | null {
+  if (doc.previewHtml?.trim()) return 'HTML-Dokument';
+
   const isIntakeHtml =
     doc.documentSource === 'intake' ||
     (doc.mimeType === 'text/html' && isIntakeTemplateFileName(doc.fileName));
 
-  if (isIntakeHtml) return null;
+  if (isIntakeHtml) {
+    return null;
+  }
   if (fileSizeBytes <= 0) return null;
   if (fileSizeBytes < 1024) return `${fileSizeBytes} B`;
   if (fileSizeBytes < 1024 * 1024) return `${(fileSizeBytes / 1024).toFixed(1)} KB`;
@@ -179,12 +222,15 @@ export function buildDocumentPreviewStatusSubtitle(doc: ClientDocumentRecord): s
   return parts.join(' · ');
 }
 
-/** Test helper mirroring officeDocumentsService list mapping */
-export function mapClientDocumentToPortalItemForTest(
+export function mapClientDocumentToPortalListItem(
   doc: ClientDocumentRecord,
-  clientName?: string | null,
+  options?: {
+    fileSizeBytes?: number;
+    visibility?: PortalDocumentListItem['visibility'];
+    clientName?: string | null;
+  },
 ): PortalDocumentListItem {
-  const fileSizeBytes = 0;
+  const fileSizeBytes = options?.fileSizeBytes ?? 0;
   return {
     id: doc.id,
     title: resolveOfficeDocumentTitle(doc),
@@ -194,13 +240,21 @@ export function mapClientDocumentToPortalItemForTest(
     fileSizeBytes,
     status: doc.status,
     updatedAt: doc.updatedAt,
-    visibility: 'team',
+    visibility: options?.visibility ?? 'team',
     sensitivity: doc.sensitivity,
     clientId: doc.clientId,
-    clientName: clientName ?? null,
+    clientName: options?.clientName ?? null,
     previewHtml: doc.previewHtml ?? null,
-    documentSource: doc.documentSource,
+    documentSource: doc.documentSource ?? null,
     displayFileName: resolveOfficeDocumentDisplayFileName(doc),
     sizeLabel: resolveOfficeDocumentSizeLabel(doc, fileSizeBytes),
   };
+}
+
+/** Test helper mirroring portal/office list mapping */
+export function mapClientDocumentToPortalItemForTest(
+  doc: ClientDocumentRecord,
+  clientName?: string | null,
+): PortalDocumentListItem {
+  return mapClientDocumentToPortalListItem(doc, { clientName });
 }

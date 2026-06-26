@@ -1,5 +1,6 @@
 import type { WorkflowStatus } from '@/types/core/base';
 import type { ClientDocumentRecord } from '@/types/modules/client';
+import { isIntakeTemplateFileName, isTechnicalIntakeDocumentTitle, resolveIntakeTemplateKey } from '@/lib/office/officeDocumentDisplay';
 
 type IntakeDocumentRow = {
   id: string;
@@ -52,20 +53,34 @@ function resolveIntakeDocumentHtml(row: Pick<IntakeDocumentRow, 'finalized_html'
   return row.finalized_html ?? row.preview_html;
 }
 
+type IntakeDocumentHtmlSource = Pick<
+  IntakeDocumentRow,
+  'id' | 'template_key' | 'document_type' | 'title' | 'status' | 'finalized_html' | 'preview_html'
+>;
+
 function enrichStoredDocumentWithIntakeHtml(
   doc: ClientDocumentRecord,
-  intakeById: Map<string, IntakeDocumentRow>,
-  intakeByTemplateKey: Map<string, IntakeDocumentRow>,
+  intakeById: Map<string, IntakeDocumentHtmlSource>,
+  intakeByTemplateKey: Map<string, IntakeDocumentHtmlSource>,
 ): ClientDocumentRecord {
+  const templateKey =
+    resolveIntakeTemplateKey(doc)
+    ?? (isIntakeTemplateFileName(doc.fileName) ? doc.fileName.replace(/\.html$/i, '') : null);
   const intakeRow =
     (doc.intakeDocumentId ? intakeById.get(doc.intakeDocumentId) : undefined)
-    ?? intakeByTemplateKey.get(doc.fileName.replace(/\.html$/i, ''));
+    ?? (templateKey ? intakeByTemplateKey.get(templateKey) : undefined);
 
   if (!intakeRow) return doc;
 
   const previewHtml = doc.previewHtml ?? resolveIntakeDocumentHtml(intakeRow);
+  const title =
+    doc.title?.trim() && !isTechnicalIntakeDocumentTitle(doc.title, doc.fileName)
+      ? doc.title
+      : intakeRow.title || doc.title;
+
   return {
     ...doc,
+    title,
     previewHtml,
     documentSource: doc.documentSource ?? 'intake',
     intakeDocumentId: doc.intakeDocumentId ?? intakeRow.id,
@@ -118,6 +133,15 @@ export function mapStoredDocumentRow(row: StoredDocumentRow): ClientDocumentReco
     documentSource: row.source === 'intake' ? 'intake' : 'upload',
     intakeDocumentId: row.intake_document_id ?? null,
   };
+}
+
+export function enrichClientDocumentWithIntakeRows(
+  doc: ClientDocumentRecord,
+  intakeRows: IntakeDocumentHtmlSource[],
+): ClientDocumentRecord {
+  const intakeById = new Map(intakeRows.map((row) => [row.id, row]));
+  const intakeByTemplateKey = new Map(intakeRows.map((row) => [row.template_key, row]));
+  return enrichStoredDocumentWithIntakeHtml(doc, intakeById, intakeByTemplateKey);
 }
 
 export function mergeClientRecordDocuments(

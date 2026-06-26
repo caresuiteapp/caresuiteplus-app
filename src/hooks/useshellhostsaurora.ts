@@ -3,7 +3,8 @@
  * shells must stay transparent so glass surfaces and typography remain readable
  * (RN Web defaults Views to white). Background may be light space nebula or dark aurora.
  *
- * Aurora is mounted once in `app/_layout.tsx` for all routes (web + native).
+ * Aurora is mounted in `app/_layout.tsx` for office routes and in
+ * `app/portal/_layout.tsx` for all portal routes (web + native).
  */
 export function useShellHostsAurora(embedded?: boolean): boolean {
   if (embedded !== undefined) return embedded;

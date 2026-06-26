@@ -4,8 +4,8 @@ import { PORTAL_MODULE_LABELS } from './portalModuleKeys';
 const TERMINOLOGY_BY_MODULE: Record<PortalModuleKey, PortalTerminology> = {
   assist: {
     greetingLabel: 'Willkommen in Ihrem Assist-Portal',
-    appointmentLabel: 'Termin',
-    appointmentLabelPlural: 'Termine',
+    appointmentLabel: 'Einsatz',
+    appointmentLabelPlural: 'Einsätze',
     personLabel: 'Klient:in',
     careTeamLabel: 'Assist-Team',
     moduleLabel: 'Assist',
@@ -38,8 +38,8 @@ const TERMINOLOGY_BY_MODULE: Record<PortalModuleKey, PortalTerminology> = {
 
 const DEFAULT_TERMINOLOGY: PortalTerminology = {
   greetingLabel: 'Willkommen in Ihrem Portal',
-  appointmentLabel: 'Termin',
-  appointmentLabelPlural: 'Termine',
+  appointmentLabel: 'Einsatz',
+  appointmentLabelPlural: 'Einsätze',
   personLabel: 'Klient:in',
   careTeamLabel: 'Betreuungsteam',
   moduleLabel: 'Portal',

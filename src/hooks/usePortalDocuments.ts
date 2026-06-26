@@ -1,19 +1,22 @@
 import { useCallback, useState } from 'react';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { fetchPortalDocuments } from '@/lib/portal';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 
 export function usePortalDocuments() {
-  const { profile } = useAuth();
-  const profileId = profile?.id ?? '';
-  const roleKey = profile?.roleKey ?? null;
+  const { tenantId, clientId, actorId, roleKey, isReady } = usePortalActor();
+  const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
 
   const query = useAsyncQuery(
-    () => fetchPortalDocuments(profileId, roleKey),
-    [profileId, roleKey],
-    { enabled: !!profileId && !!roleKey },
+    () =>
+      fetchPortalDocuments(profileId, roleKey, {
+        tenantId,
+        clientId,
+      }),
+    [profileId, roleKey, tenantId, clientId],
+    { enabled: isReady },
   );
 
   const items = query.data ?? [];

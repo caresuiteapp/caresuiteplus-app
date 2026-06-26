@@ -40,7 +40,7 @@ export function PortalClientAppointmentDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Termin" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Einsatz" subtitle={roleLabel ?? 'Portal'}>
         <LockedActionBanner
           message={check('portal.client.appointments.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
@@ -51,18 +51,18 @@ export function PortalClientAppointmentDetailScreen() {
 
   if (loading) {
     return (
-      <ScreenShell title="Termin" subtitle="Wird geladen…">
-        <LoadingState message="Termindetails werden geladen…" />
+      <ScreenShell title="Einsatz" subtitle="Wird geladen…">
+        <LoadingState message="Einsatzdetails werden geladen…" />
       </ScreenShell>
     );
   }
 
   if (notFound || error) {
     return (
-      <ScreenShell title="Termin" subtitle="Fehler">
+      <ScreenShell title="Einsatz" subtitle="Fehler">
         <ErrorState
           title={notFound ? 'Nicht gefunden' : 'Fehler'}
-          message={error ?? 'Der Termin existiert nicht.'}
+          message={error ?? 'Der Einsatz existiert nicht.'}
           onRetry={refresh}
         />
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
@@ -122,7 +122,7 @@ export function PortalClientAppointmentDetailScreen() {
         {data.canRequestChange && canRequestChange ? (
           <View style={styles.changeBox}>
             <PremiumInput
-              label="Terminänderung anfragen"
+              label="Einsatzänderung anfragen"
               value={changeReason}
               onChangeText={setChangeReason}
               placeholder="z. B. anderer Wunschtermin, Verschiebung wegen Arzttermin…"
