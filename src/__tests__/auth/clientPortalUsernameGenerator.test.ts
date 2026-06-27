@@ -35,4 +35,14 @@ describe('clientPortalUsernameGenerator', () => {
     expect(sanitizePortalUsernameInput('Ellen.Zacharias!')).toBe('ellen.zacharias');
     expect(sanitizePortalUsernameInput('heinz-peter.')).toBe('heinz-peter.');
   });
+
+  it('sanitizePortalUsernameInput preserves @ in email-style usernames', () => {
+    expect(sanitizePortalUsernameInput('audit-client@caresuiteplus.test')).toBe(
+      'audit-client@caresuiteplus.test',
+    );
+    expect(sanitizePortalUsernameInput('Audit-Client@CareSuitePlus.Test')).toBe(
+      'audit-client@caresuiteplus.test',
+    );
+    expect(sanitizePortalUsernameInput('user@domain.')).toBe('user@domain.');
+  });
 });

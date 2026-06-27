@@ -197,5 +197,7 @@ export type AccessCredentialsReveal = {
 };
 
 export const USERNAME_MAX_LENGTH = 20;
+/** Login input allows longer email-style portal usernames (generated names stay at 20). */
+export const PORTAL_USERNAME_INPUT_MAX_LENGTH = 64;
 export const PORTAL_CODE_LENGTH = 6;
 export const PORTAL_CODE_CHARSET = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';

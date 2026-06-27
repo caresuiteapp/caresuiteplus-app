@@ -570,7 +570,7 @@ async function main() {
   const employeeUser = pick(env, ['AUDIT_EMPLOYEE_USERNAME']) || 'audit-employee@caresuiteplus.test';
   const employeePass = pick(env, ['AUDIT_EMPLOYEE_PASSWORD']) || process.env.AUDIT_EMPLOYEE_PASSWORD;
   const clientUser = pick(env, ['AUDIT_CLIENT_USERNAME']) || 'audit-client@caresuiteplus.test';
-  const clientUserSanitized = clientUser.toLowerCase().replace(/[^a-z0-9.-]/g, '').slice(0, 20);
+  const clientUserSanitized = clientUser.toLowerCase().replace(/[^a-z0-9.@.-]/g, '').slice(0, 64);
   const clientCode = pick(env, ['AUDIT_CLIENT_PORTAL_CODE']) || '123456';
 
   if (!employeePass) {
