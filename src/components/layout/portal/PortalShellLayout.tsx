@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useState } from 'react';
-import { StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AutoScrollView } from '@/components/layout/AutoScrollView';
 import { PortalLeftNav } from './PortalLeftNav';
@@ -20,7 +20,8 @@ import { BREAKPOINT_MIN } from '@/lib/platform/breakpoints';
 import {
   resolvePortalMobileContentPaddingBottom,
   webDynamicViewportMinHeightStyle,
-  webSafeAreaTopShell,
+  webSafeAreaCalc,
+  webSafeAreaPadding,
 } from '@/lib/platform/webSafeArea';
 
 export type PortalShellKind = 'client' | 'employee' | 'relative';
@@ -60,12 +61,14 @@ export function PortalShellLayout({
         ? 'Angehörigenportal'
         : 'Klient:innenportal';
 
-  const topShellPadding = webSafeAreaTopShell(Math.max(insets.top, careSpacing.xs));
-  const mobileContentPaddingBottom = useMemo(
-    () => resolvePortalMobileContentPaddingBottom(insets.bottom),
-    [insets.bottom],
-  );
+  const topInset = Math.max(insets.top, careSpacing.xs);
   const bottomNavOffset = PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm);
+  const mobileContentPaddingBottom = useMemo(() => {
+    if (Platform.OS === 'web') {
+      return webSafeAreaCalc('bottom', bottomNavOffset + careSpacing.lg) as number;
+    }
+    return resolvePortalMobileContentPaddingBottom(insets.bottom);
+  }, [bottomNavOffset, insets.bottom]);
 
   const mobileNavArea: import('@/types/navigation/shell').AppShellArea =
     kind === 'employee' ? 'portal_employee' : 'portal_client';
@@ -75,7 +78,7 @@ export function PortalShellLayout({
       style={[
         styles.root,
         webDynamicViewportMinHeightStyle(),
-        isCompactShell ? ({ paddingTop: topShellPadding } as ViewStyle) : null,
+        isCompactShell ? ({ paddingTop: webSafeAreaPadding('top', topInset) } as ViewStyle) : null,
       ]}
       testID="portal-shell-layout"
     >

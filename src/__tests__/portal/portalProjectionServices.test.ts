@@ -22,6 +22,9 @@ describe('portal projection services', () => {
     expect(readSrc('src/lib/portal/employeePortalProjectionService.ts')).toContain(
       'getEmployeePortalProjection',
     );
+    expect(readSrc('src/lib/portal/employeePortalProjectionService.ts')).toContain(
+      'fetchLiveEmployeePortalOverview',
+    );
     expect(readSrc('src/lib/portal/portalVisibilityService.ts')).toContain(
       'getPortalVisibilityMatrixForClient',
     );

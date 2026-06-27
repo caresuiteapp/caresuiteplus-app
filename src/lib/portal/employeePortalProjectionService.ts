@@ -17,8 +17,13 @@ import {
   fetchEmployeePortalAssignmentDetail,
   fetchEmployeePortalOverview,
 } from './employeePortalExecutionService';
+import {
+  buildEmployeePortalDashboardFromOverview,
+  fetchLiveEmployeePortalOverview,
+} from './employeePortalLiveOverviewService';
 import { listAssignmentWorkflows } from '@/lib/assist/assignmentWorkflowService';
 import { canViewAccessHints, canViewEmergencyContact } from './employeePortalModuleAccess';
+import { getServiceMode } from '@/lib/services/mode';
 import { runService } from '@/lib/services/serviceRunner';
 
 export function canEmployeePortalSeeVisit(
@@ -143,20 +148,16 @@ export async function getEmployeePortalDashboardProjection(
   roleKey: RoleKey | null,
 ): Promise<ServiceResult<EmployeePortalDashboardProjection>> {
   return runService(async () => {
+    if (getServiceMode() === 'supabase') {
+      const liveOverview = await fetchLiveEmployeePortalOverview(tenantId, employeeId);
+      if (!liveOverview.ok) return liveOverview;
+      return { ok: true, data: buildEmployeePortalDashboardFromOverview(liveOverview.data) };
+    }
+
     const overview = fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
     if (!overview.ok) return overview;
 
-    return {
-      ok: true,
-      data: {
-        todayAssignments: overview.data.todayAssignments,
-        upcomingAssignments: overview.data.nextAssignments,
-        openTasks: [],
-        openDocumentationCount: overview.data.openDocumentations,
-        missingSignatureCount: overview.data.missingSignatures,
-        messageCount: overview.data.adminMessageCount,
-      },
-    };
+    return { ok: true, data: buildEmployeePortalDashboardFromOverview(overview.data) };
   });
 }
 

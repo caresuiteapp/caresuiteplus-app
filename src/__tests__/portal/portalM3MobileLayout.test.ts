@@ -53,6 +53,19 @@ describe('portal M.3 mobile layout', () => {
     expect(readSrc('app/portal/client/(tabs)/_layout.tsx')).not.toContain('ClientPortalShell');
   });
 
+  it('employee and client portal layouts constrain stack slot for mobile safe area', () => {
+    const employeeLayout = readSrc('app/portal/employee/_layout.tsx');
+    const clientLayout = readSrc('app/portal/client/_layout.tsx');
+    expect(employeeLayout).toContain('overflow:');
+    expect(clientLayout).toContain('overflow:');
+  });
+
+  it('EmployeeProfileScreen imports usePermissions', () => {
+    const profile = readSrc('src/screens/portal/EmployeeProfileScreen.tsx');
+    expect(profile).toContain('usePermissions');
+    expect(profile).toMatch(/import\s*\{[^}]*usePermissions[^}]*\}\s*from\s*['"]@\/hooks\/usePermissions['"]/);
+  });
+
   it('PortalShellLayout passes employee mobile nav area', () => {
     const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
     expect(shell).toContain("'portal_employee'");
@@ -65,6 +78,12 @@ describe('portal M.3 mobile layout', () => {
     expect(route).toContain('EmployeePortalDashboardScreen');
     expect(route).not.toContain('PortalOverviewTab');
     expect(route).toContain('hideHeaderOnPhone');
+  });
+
+  it('employee schedule route uses live portal appointments hook', () => {
+    const route = readSrc('app/portal/employee/(tabs)/schedule.tsx');
+    expect(route).toContain('usePortalAppointments');
+    expect(route).not.toContain('fetchEmployeePortalOverview');
   });
 
   it('portal welcome gate is mounted at app root', () => {

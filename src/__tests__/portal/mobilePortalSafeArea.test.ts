@@ -27,8 +27,9 @@ describe('PortalShellLayout mobile safe area', () => {
   const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
 
   it('uses web safe-area top shell padding on compact widths', () => {
-    expect(shell).toContain('webSafeAreaTopShell');
+    expect(shell).toContain('webSafeAreaPadding');
     expect(shell).toContain('webDynamicViewportMinHeightStyle');
+    expect(shell).toContain('webSafeAreaCalc');
     expect(shell).toContain('resolvePortalMobileContentPaddingBottom');
   });
 

@@ -10,6 +10,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useEmployeePortalDashboard } from '@/hooks/useEmployeePortalDashboard';
+import { isActiveEmployeeAssignment } from '@/lib/portal/employeePortalLiveOverviewService';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -24,7 +25,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { useAuth } from '@/lib/auth/context';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 
 type EmployeePortalDashboardScreenProps = {
   showSuccess?: boolean;
@@ -42,7 +43,7 @@ function formatDateTime(iso: string): string {
 }
 
 function resolveWorkStatus(assignments: EmployeePortalAssignmentListItem[]): string {
-  const active = assignments.find((item) => item.status === 'aktiv' || item.status === 'in_bearbeitung');
+  const active = assignments.find((item) => isActiveEmployeeAssignment(item.status));
   if (active) return 'Im Einsatz';
   if (assignments.length > 0) return 'Einsätze heute';
   return 'Keine Einsätze heute';
@@ -73,8 +74,8 @@ function AssignmentCard({
           {item.title}
         </Text>
         <PremiumBadge
-          label={WORKFLOW_STATUS_LABELS[item.status] ?? item.status}
-          variant={item.status === 'aktiv' ? 'green' : 'orange'}
+          label={ASSIGNMENT_STATUS_LABELS[item.status] ?? item.status}
+          variant={isActiveEmployeeAssignment(item.status) ? 'green' : 'orange'}
         />
       </View>
       <Text style={[type.body, { color: text.secondary }]}>{item.clientName}</Text>
@@ -121,9 +122,7 @@ export function EmployeePortalDashboardScreen({
 
   const currentAssignment = useMemo(() => {
     if (!dashboard) return null;
-    const active = dashboard.todayAssignments.find(
-      (item) => item.status === 'aktiv' || item.status === 'in_bearbeitung',
-    );
+    const active = dashboard.todayAssignments.find((item) => isActiveEmployeeAssignment(item.status));
     return active ?? dashboard.todayAssignments[0] ?? dashboard.upcomingAssignments[0] ?? null;
   }, [dashboard]);
 

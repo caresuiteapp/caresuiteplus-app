@@ -20,5 +20,5 @@ export default function ClientPortalLayout() {
 }
 
 const styles = StyleSheet.create({
-  slot: { flex: 1, backgroundColor: 'transparent', minHeight: 0 },
+  slot: { flex: 1, backgroundColor: 'transparent', minHeight: 0, overflow: 'hidden' },
 });

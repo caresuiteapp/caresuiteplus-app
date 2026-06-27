@@ -6,10 +6,10 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalActor } from '@/hooks/usePortalActor';
-import { fetchEmployeePortalOverview } from '@/lib/portal/employeePortalExecutionService';
+import { usePortalAppointments } from '@/hooks/usePortalAppointments';
+import { buildEmployeePortalOverviewFromAppointments } from '@/lib/portal/employeePortalLiveOverviewService';
 import { EmptyState, ErrorState, LoadingState, PremiumBadge } from '@/components/ui';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { useAsyncQuery } from '@/hooks/core';
+import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 
 function formatDateTime(iso: string): string {
@@ -24,24 +24,16 @@ function formatDateTime(iso: string): string {
 
 export default function EmployeeScheduleRoute() {
   const router = useRouter();
-  const { tenantId, employeeId, roleKey, isReady } = usePortalActor();
+  const { isReady } = usePortalActor();
+  const { items, loading, error, refresh } = usePortalAppointments();
   const text = useAuroraAdaptiveText();
   const cardStyle = useAuroraGlassCardStyle();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
 
-  const query = useAsyncQuery(
-    async () => {
-      if (!tenantId || !employeeId) throw new Error('Dienstplan konnte nicht geladen werden.');
-      const result = fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
-      if (!result.ok) throw new Error(result.error);
-      return result.data.weeklyPlan;
-    },
-    [tenantId, employeeId, roleKey],
-    { enabled: isReady && Boolean(tenantId && employeeId) },
-  );
+  const weeklyItems = buildEmployeePortalOverviewFromAppointments(items).weeklyPlan;
 
-  if (!isReady || (query.loading && !query.data)) {
+  if (!isReady || (loading && items.length === 0)) {
     return (
       <PortalTabScreen title="Dienstplan">
         <LoadingState message="Dienstplan wird geladen…" />
@@ -49,33 +41,31 @@ export default function EmployeeScheduleRoute() {
     );
   }
 
-  if (query.error && !query.data) {
+  if (error && items.length === 0) {
     return (
       <PortalTabScreen title="Dienstplan">
         <ErrorState
           title="Dienstplan nicht geladen"
-          message={query.error}
-          onRetry={() => void query.refresh()}
+          message={error}
+          onRetry={() => void refresh()}
         />
       </PortalTabScreen>
     );
   }
 
-  const items = query.data ?? [];
-
   return (
     <PortalTabScreen title="Dienstplan">
       <View style={styles.container}>
         <Text style={[type.label, { color: text.primary }]}>Wochenplan</Text>
-        {items.length === 0 ? (
+        {weeklyItems.length === 0 ? (
           <EmptyState
             title="Keine Einsätze geplant"
             message="In dieser Woche sind keine Einsätze eingetragen."
             actionLabel="Erneut laden"
-            onAction={() => void query.refresh()}
+            onAction={() => void refresh()}
           />
         ) : (
-          items.map((item) => (
+          weeklyItems.map((item) => (
             <GlassCard
               key={item.assignmentId}
               style={cardStyle}
@@ -86,12 +76,14 @@ export default function EmployeeScheduleRoute() {
               <View style={styles.row}>
                 <Text style={[type.cardTitle, { color: text.primary, flex: 1 }]}>{item.title}</Text>
                 <PremiumBadge
-                  label={WORKFLOW_STATUS_LABELS[item.status] ?? item.status}
+                  label={ASSIGNMENT_STATUS_LABELS[item.status] ?? item.status}
                   variant="orange"
                 />
               </View>
               <Text style={[type.body, { color: text.secondary }]}>{item.clientName}</Text>
-              <Text style={[type.caption, { color: text.muted }]}>{formatDateTime(item.plannedStartAt)}</Text>
+              <Text style={[type.caption, { color: text.muted }]}>
+                {formatDateTime(item.plannedStartAt)}
+              </Text>
             </GlassCard>
           ))
         )}

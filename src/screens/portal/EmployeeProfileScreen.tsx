@@ -12,6 +12,7 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { useEmployeePortalProfile } from '@/hooks/useEmployeePortalProfile';
+import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
