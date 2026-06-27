@@ -313,20 +313,25 @@ export async function createRelativePortalAccess(input: {
   });
 }
 
-export async function resetEmployeePortalPassword(accountId: string, actorId: string | null) {
-  return resetEmployeePassword(accountId, actorId);
+export async function resetEmployeePortalPassword(
+  accountId: string,
+  actorId: string | null,
+  tenantId: string,
+) {
+  return resetEmployeePassword(accountId, actorId, tenantId);
 }
 
 export async function blockEmployeePortalAccount(
   accountId: string,
   actorId: string | null,
   reason: string,
+  tenantId: string,
 ) {
-  return blockEmployeeAccess(accountId, actorId, reason);
+  return blockEmployeeAccess(accountId, actorId, reason, tenantId);
 }
 
-export async function unblockEmployeePortalAccount(accountId: string) {
-  return unblockEmployeeAccess(accountId);
+export async function unblockEmployeePortalAccount(accountId: string, tenantId: string) {
+  return unblockEmployeeAccess(accountId, tenantId);
 }
 
 export function setUserModulePermissions(

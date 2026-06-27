@@ -30,6 +30,14 @@ describe('Access management live config', () => {
     expect(repo).toContain('tenant_users');
     expect(repo).toContain('login_audit_events');
   });
+
+  it('resetEmployeePortalPassword verlangt tenantId für Live-Reset', () => {
+    const service = readSrc('src/lib/auth/accessManagementService.ts');
+    const auth = readSrc('src/lib/auth/employeePortalAuthService.ts');
+    expect(service).toMatch(/resetEmployeePortalPassword\([\s\S]*tenantId: string/);
+    expect(auth).toContain('resolveLiveTenantId');
+    expect(auth).toContain('Mandant fehlt für diese Portal-Aktion.');
+  });
 });
 
 describe('Access screens live wiring', () => {

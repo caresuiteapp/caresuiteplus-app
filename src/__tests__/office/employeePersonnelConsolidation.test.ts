@@ -27,6 +27,8 @@ describe('Personalakte consolidation', () => {
     const panel = readSrc('src/components/office/EmployeePortalAccessPanel.tsx');
     expect(panel).toContain('Zugang anlegen');
     expect(panel).toContain('createEmployeePortalAccount');
+    expect(panel).toContain('resetEmployeePortalPassword');
+    expect(panel).toContain('tenantId');
   });
 
   it('EmployeePersonnelFilePanel definiert Office-Tabs inkl. Portal und Dokumente', () => {

@@ -82,6 +82,7 @@ export function EmployeePortalAccessPanel({
     );
     setLoading(false);
     if (!result.ok) {
+      setAccount(null);
       setError(result.error);
       return;
     }
@@ -122,7 +123,11 @@ export function EmployeePortalAccessPanel({
     setSaving(true);
     setError(null);
     setCopyMessage(null);
-    const result = await resetEmployeePortalPassword(account.id, profile?.id ?? null);
+    const result = await resetEmployeePortalPassword(
+      account.id,
+      profile?.id ?? null,
+      tenantId,
+    );
     setSaving(false);
 
     if (!result.ok) {

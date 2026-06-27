@@ -330,14 +330,26 @@ function getEmployeeAccountById(tenantId: string, accountId: string): EmployeePo
   return getEmployeePortalAccounts(tenantId).find((entry) => entry.id === accountId);
 }
 
+function resolveLiveTenantId(tenantId?: string): ServiceResult<string> {
+  if (tenantId?.trim()) {
+    return { ok: true, data: tenantId.trim() };
+  }
+  return {
+    ok: false,
+    error: 'Mandant fehlt für diese Portal-Aktion.',
+  };
+}
+
 export async function resetEmployeePassword(
   accountId: string,
   actorId: string | null,
   tenantId?: string,
 ): Promise<ServiceResult<AccessCredentialsReveal>> {
-  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
-
   if (getServiceMode() === 'supabase') {
+    const tenantResult = resolveLiveTenantId(tenantId);
+    if (!tenantResult.ok) return tenantResult;
+    const resolvedTenantId = tenantResult.data;
+
     const existing = await fetchEmployeePortalAccountById(resolvedTenantId, accountId);
     if (!existing.ok) return existing;
     if (!existing.data) return { ok: false, error: 'Zugang nicht gefunden.' };
@@ -363,6 +375,7 @@ export async function resetEmployeePassword(
     };
   }
 
+  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
   const account = getEmployeeAccountById(resolvedTenantId, accountId);
   if (!account) {
     return { ok: false, error: 'Zugang nicht gefunden.' };
@@ -400,11 +413,12 @@ export async function blockEmployeeAccess(
   reason: string,
   tenantId?: string,
 ): Promise<ServiceResult<EmployeePortalAccount>> {
-  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
-
   if (getServiceMode() === 'supabase') {
+    const tenantResult = resolveLiveTenantId(tenantId);
+    if (!tenantResult.ok) return tenantResult;
+
     return updateEmployeePortalAccountStatus({
-      tenantId: resolvedTenantId,
+      tenantId: tenantResult.data,
       accountId,
       status: 'blocked',
       blockedAt: nowIso(),
@@ -413,6 +427,7 @@ export async function blockEmployeeAccess(
     });
   }
 
+  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
   const account = getEmployeeAccountById(resolvedTenantId, accountId);
   if (!account) {
     return { ok: false, error: 'Zugang nicht gefunden.' };
@@ -431,9 +446,11 @@ export async function unblockEmployeeAccess(
   accountId: string,
   tenantId?: string,
 ): Promise<ServiceResult<EmployeePortalAccount>> {
-  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
-
   if (getServiceMode() === 'supabase') {
+    const tenantResult = resolveLiveTenantId(tenantId);
+    if (!tenantResult.ok) return tenantResult;
+    const resolvedTenantId = tenantResult.data;
+
     const existing = await fetchEmployeePortalAccountById(resolvedTenantId, accountId);
     if (!existing.ok) return existing;
     if (!existing.data) return { ok: false, error: 'Zugang nicht gefunden.' };
@@ -448,6 +465,7 @@ export async function unblockEmployeeAccess(
     });
   }
 
+  const resolvedTenantId = tenantId ?? DEMO_TENANT_ID;
   const account = getEmployeeAccountById(resolvedTenantId, accountId);
   if (!account) {
     return { ok: false, error: 'Zugang nicht gefunden.' };
