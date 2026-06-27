@@ -129,13 +129,25 @@ describe('authAccessModel', () => {
     const completed = await completeFirstLogin({
       accountId: created.data.account.id,
       sessionToken: login.data.portalSession?.sessionToken,
-      newPassword: 'NeuesPasswort1',
-      confirmPassword: 'NeuesPasswort1',
+      newPassword: 'NeuesPasswort1!',
+      confirmPassword: 'NeuesPasswort1!',
     });
     expect(completed.ok).toBe(true);
     if (completed.ok) {
       expect(completed.data.firstLoginCompleted).toBe(true);
       expect(completed.data.mustChangePassword).toBe(false);
+    }
+
+    const otpRetry = await loginEmployeePortal(
+      created.data.account.username,
+      created.data.credentials.oneTimePassword!,
+    );
+    expect(otpRetry.ok).toBe(false);
+
+    const newLogin = await loginEmployeePortal(created.data.account.username, 'NeuesPasswort1!');
+    expect(newLogin.ok).toBe(true);
+    if (newLogin.ok) {
+      expect(newLogin.data.mustChangePassword).toBe(false);
     }
   });
 

@@ -33,7 +33,7 @@ describe('Workflow Builder + Employee First Login Heroes (Sprint 112)', () => {
     expect(screen).not.toContain('PremiumCard accentColor={colors.cyan}');
     const hero = readSrc('src/components/auth/EmployeeFirstLoginHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('preparedOnly Auth');
+    expect(hero).toContain('Pflichtschritt');
   });
 });
 

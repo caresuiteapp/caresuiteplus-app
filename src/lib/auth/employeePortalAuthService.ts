@@ -256,7 +256,9 @@ export async function completeFirstLogin(input: {
   newPassword: string;
   confirmPassword: string;
 }): Promise<ServiceResult<EmployeePortalAccount>> {
-  const validationError = validatePermanentPassword(input.newPassword, input.confirmPassword);
+  const validationError = validatePermanentPassword(input.newPassword, input.confirmPassword, {
+    rejectPassword: input.currentPassword,
+  });
   if (validationError) {
     return { ok: false, error: validationError };
   }
@@ -280,6 +282,15 @@ export async function completeFirstLogin(input: {
     if (!result.ok) {
       return { ok: false, error: result.error };
     }
+
+    await recordLoginAuditEvent({
+      tenantId: result.data.account.tenantId,
+      loginType: 'employee_portal',
+      accountId: result.data.account.id,
+      usernameOrCodeHint: result.data.account.username,
+      success: true,
+      failureReason: 'Erstlogin: Passwort geändert.',
+    });
 
     return { ok: true, data: result.data.account };
   }
@@ -309,6 +320,13 @@ export async function completeFirstLogin(input: {
     return { ok: false, error: 'Aktuelles Passwort ist ungültig.' };
   }
 
+  const otpMatchesNew =
+    (tempRecord && (await verifyTemporaryPassword(input.newPassword, tempRecord)).ok) ||
+    (hash && (await verifySecret(input.newPassword, hash)));
+  if (otpMatchesNew) {
+    return { ok: false, error: 'Das neue Passwort darf nicht mit dem Einmalpasswort identisch sein.' };
+  }
+
   account.mustChangePassword = false;
   account.firstLoginCompleted = true;
   account.status = 'active';
@@ -322,6 +340,15 @@ export async function completeFirstLogin(input: {
 
   await setPasswordHash(`employee:${account.id}`, await hashSecret(input.newPassword));
   saveEmployeePortalAccount(account);
+
+  await recordLoginAuditEvent({
+    tenantId: account.tenantId,
+    loginType: 'employee_portal',
+    accountId: account.id,
+    usernameOrCodeHint: account.username,
+    success: true,
+    failureReason: 'Erstlogin: Passwort geändert.',
+  });
 
   return { ok: true, data: account };
 }

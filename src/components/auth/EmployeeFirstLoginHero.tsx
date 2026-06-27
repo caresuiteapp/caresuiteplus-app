@@ -41,9 +41,9 @@ export function EmployeeFirstLoginHero() {
     <PremiumListHeroFrame>
       <View style={styles.topRow}>
         <View style={styles.textCol}>
-          <Text style={styles.title}>Passwort neu vergeben</Text>
+          <Text style={styles.title}>Bitte vergeben Sie ein eigenes Passwort.</Text>
           <Text style={styles.meta}>
-            Einmalpasswort ersetzen, Datenschutz bestätigen und Zugang aktivieren
+            Ersetzen Sie Ihr Einmalpasswort durch ein persönliches Passwort und bestätigen Sie die Nutzungsbedingungen.
           </Text>
         </View>
         <View style={styles.iconBadge}>
@@ -52,7 +52,7 @@ export function EmployeeFirstLoginHero() {
       </View>
       <View style={styles.badges}>
         <PremiumBadge label="Mitarbeiterportal" variant="cyan" dot />
-        <PremiumBadge label="preparedOnly Auth" variant="muted" />
+        <PremiumBadge label="Pflichtschritt" variant="muted" />
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard
@@ -81,7 +81,7 @@ export function EmployeeFirstLoginHero() {
         />
       </View>
       <Text style={styles.hint}>
-        Nach Abschluss wird das Einmalpasswort ungültig. Demo-Prototyp — kein Store-Release.
+        Mindestens 10 Zeichen mit Groß-, Kleinbuchstaben, Zahl und Sonderzeichen. Das Einmalpasswort wird danach ungültig.
       </Text>
     </PremiumListHeroFrame>
   );

@@ -61,7 +61,7 @@ export function EmployeeFirstLoginPasswordScreen() {
   };
 
   return (
-    <ScreenShell title="Neues Passwort setzen" subtitle="Erstlogin abschließen" scroll>
+    <ScreenShell title="Bitte vergeben Sie ein eigenes Passwort." subtitle="Erstlogin abschließen" scroll>
       <View style={styles.content}>
         <EmployeeFirstLoginHero />
       </View>

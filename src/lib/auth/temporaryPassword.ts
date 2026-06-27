@@ -93,15 +93,28 @@ export async function verifyTemporaryPassword(
   return { ok: true };
 }
 
-export function validatePermanentPassword(password: string, confirmPassword: string): string | null {
+const PERMANENT_PASSWORD_SPECIAL = /[!@#$%&*?]/;
+
+export function validatePermanentPassword(
+  password: string,
+  confirmPassword: string,
+  options?: { rejectPassword?: string | null },
+): string | null {
   if (password.length < 10) {
     return 'Das Passwort muss mindestens 10 Zeichen haben.';
   }
   if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
     return 'Das Passwort muss Groß-, Kleinbuchstaben und Zahlen enthalten.';
   }
+  if (!PERMANENT_PASSWORD_SPECIAL.test(password)) {
+    return 'Das Passwort muss mindestens ein Sonderzeichen enthalten (!@#$%&*?).';
+  }
   if (password !== confirmPassword) {
     return 'Passwörter stimmen nicht überein.';
+  }
+  const rejectPassword = options?.rejectPassword?.trim();
+  if (rejectPassword && password === rejectPassword) {
+    return 'Das neue Passwort darf nicht mit dem Einmalpasswort identisch sein.';
   }
   return null;
 }

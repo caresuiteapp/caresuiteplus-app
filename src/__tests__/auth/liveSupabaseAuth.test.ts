@@ -159,15 +159,15 @@ describe('liveSupabaseAuthServices', () => {
     const result = await completeFirstLogin({
       accountId: 'epa-1',
       sessionToken: 'session-token',
-      newPassword: 'NeuesPasswort1',
-      confirmPassword: 'NeuesPasswort1',
+      newPassword: 'NeuesPasswort1!',
+      confirmPassword: 'NeuesPasswort1!',
     });
 
     expect(invokeEdgeFunction).toHaveBeenCalledWith('employee-portal-complete-first-login', {
       accountId: 'epa-1',
       sessionToken: 'session-token',
-      newPassword: 'NeuesPasswort1',
-      confirmPassword: 'NeuesPasswort1',
+      newPassword: 'NeuesPasswort1!',
+      confirmPassword: 'NeuesPasswort1!',
       currentPassword: undefined,
     });
     expect(result.ok).toBe(true);

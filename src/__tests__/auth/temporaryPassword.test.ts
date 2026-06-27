@@ -52,7 +52,11 @@ describe('temporaryPassword', () => {
   it('validates permanent password rules', () => {
     expect(validatePermanentPassword('Short1', 'Short1')).toMatch(/10 Zeichen/);
     expect(validatePermanentPassword('alllowercase1', 'alllowercase1')).toMatch(/Groß/);
-    expect(validatePermanentPassword('ValidPass1', 'ValidPass1')).toBeNull();
-    expect(validatePermanentPassword('ValidPass1', 'OtherPass1')).toMatch(/stimmen nicht/);
+    expect(validatePermanentPassword('ValidPass1', 'ValidPass1')).toMatch(/Sonderzeichen/);
+    expect(validatePermanentPassword('ValidPass1!', 'ValidPass1!')).toBeNull();
+    expect(validatePermanentPassword('ValidPass1!', 'OtherPass1!')).toMatch(/stimmen nicht/);
+    expect(
+      validatePermanentPassword('ValidPass1!', 'ValidPass1!', { rejectPassword: 'ValidPass1!' }),
+    ).toMatch(/Einmalpasswort/);
   });
 });

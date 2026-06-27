@@ -1,6 +1,6 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { hashSecret, verifySecret } from '../_shared/crypto.ts';
-import { corsHeaders, getServiceClient, jsonResponse } from '../_shared/http.ts';
+import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
 
 type CompleteFirstLoginBody = {
   accountId: string;
@@ -37,6 +37,9 @@ function validatePermanentPassword(password: string, confirmPassword: string): s
   }
   if (!/[A-Z]/.test(password) || !/[a-z]/.test(password) || !/[0-9]/.test(password)) {
     return 'Das Passwort muss Groß-, Kleinbuchstaben und Zahlen enthalten.';
+  }
+  if (!/[!@#$%&*?]/.test(password)) {
+    return 'Das Passwort muss mindestens ein Sonderzeichen enthalten (!@#$%&*?).';
   }
   if (password !== confirmPassword) {
     return 'Passwörter stimmen nicht überein.';
@@ -122,6 +125,13 @@ serve(async (req) => {
       }
     }
 
+    if (storedHash && (await verifySecret(body.newPassword, storedHash))) {
+      return jsonResponse(
+        { ok: false, error: 'Das neue Passwort darf nicht mit dem Einmalpasswort identisch sein.' },
+        400,
+      );
+    }
+
     const now = new Date().toISOString();
     const newHash = await hashSecret(body.newPassword);
 
@@ -151,6 +161,18 @@ serve(async (req) => {
     if (refreshError || !refreshed) {
       return jsonResponse({ ok: false, error: refreshError?.message ?? 'Zugang nicht gefunden.' }, 500);
     }
+
+    const meta = readClientMeta(req);
+    await tryInsert(supabase, 'login_audit_events', {
+      tenant_id: refreshed.tenant_id as string,
+      login_type: 'employee_portal',
+      account_id: accountId,
+      username_or_code_hint: refreshed.username as string,
+      success: true,
+      failure_reason: 'Erstlogin: Passwort geändert.',
+      ip_address: meta.ipAddress,
+      user_agent: meta.userAgent,
+    });
 
     return jsonResponse({
       ok: true,
