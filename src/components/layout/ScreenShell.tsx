@@ -66,7 +66,6 @@ export function ScreenShell({
 
   const pathname = usePathname();
   const { colors } = useLegacyTheme();
-  const { isPhone } = useDeviceClass();
   const breadcrumbTrail =
     showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
   const shellScroll = scroll && !(shellHostsAurora && isPhone);
