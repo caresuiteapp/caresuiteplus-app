@@ -12,7 +12,7 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { useEmployeePortalProfile } from '@/hooks/useEmployeePortalProfile';
-import { usePermissions } from '@/hooks/usePermissions';
+import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { colors, spacing, typography } from '@/theme';
@@ -26,7 +26,7 @@ export function EmployeeProfileScreen() {
 
   if (!canViewProfile) {
     return (
-      <ScreenShell title="Profil" subtitle={roleLabel ?? 'Portal'} showBack={false}>
+      <ScreenShell title="Profil" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')} showBack={false}>
         <LockedActionBanner
           message={check('portal.employee.profile.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}

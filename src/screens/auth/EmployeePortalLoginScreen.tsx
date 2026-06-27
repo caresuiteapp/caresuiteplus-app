@@ -8,7 +8,7 @@ import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/compone
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
 import { completePortalLogin } from '@/lib/auth/portalloginflow';
 import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
-import { resolveEmployeeFirstLoginHref } from '@/lib/auth/loginRouter';
+import { resolveEmployeeFirstLoginHref, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { careSpacing } from '@/design/tokens/spacing';
 
@@ -65,6 +65,7 @@ export function EmployeePortalLoginScreen() {
 
     markPortalWelcomePending('employee');
     setSuccess(true);
+    router.replace(resolvePostLoginRoute('employee_portal') as never);
   };
 
   return (

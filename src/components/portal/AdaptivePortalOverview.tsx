@@ -44,7 +44,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
   const [activeModule, setActiveModule] = useState<PortalModuleKey | 'all'>(routeModule ?? 'all');
   const text = useAuroraAdaptiveText();
   const heroStyle = useAuroraGlassCardStyle();
-  const { width } = useDeviceClass();
+  const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
 
   const effectiveModule = activeModule;
@@ -67,17 +67,23 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
   };
 
   if (loading || !isReady) {
-    return <LoadingState message="Portal wird geladen…" />;
+    return <LoadingState message="Klient:innenportal wird geladen…" />;
   }
 
   if (error) {
-    return <ErrorState title="Portal nicht verfügbar" message={error} onRetry={handleRefresh} />;
+    return (
+      <ErrorState
+        title="Klient:innenportal nicht geladen"
+        message={error}
+        onRetry={handleRefresh}
+      />
+    );
   }
 
   if (!context) {
     return (
       <EmptyState
-        title="Portal nicht verfügbar"
+        title="Klient:innenportal nicht verfügbar"
         message="Ihre Sitzung konnte nicht aufgelöst werden."
         actionLabel="Erneut laden"
         onAction={handleRefresh}
@@ -143,9 +149,8 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
   }
 
   const moduleTabs = context.activeModuleKeys;
-
-  return (
-    <ScrollView contentContainerStyle={styles.container}>
+  const overviewBody = (
+    <>
       {showSuccess ? <SuccessState message="Daten erfolgreich aktualisiert." /> : null}
 
       <GlassCard style={heroStyle}>
@@ -191,6 +196,16 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
       <AdaptivePortalDashboard widgets={widgets} />
 
       <PremiumButton title="Aktualisieren" variant="secondary" onPress={handleRefresh} fullWidth />
+    </>
+  );
+
+  if (isPhone) {
+    return <View style={styles.container}>{overviewBody}</View>;
+  }
+
+  return (
+    <ScrollView contentContainerStyle={styles.container}>
+      {overviewBody}
     </ScrollView>
   );
 }

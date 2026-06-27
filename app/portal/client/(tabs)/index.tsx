@@ -11,7 +11,7 @@ export default function ClientPortalOverviewRoute() {
   if (!isReady) {
     return (
       <PortalTabScreen title="Klient:innenportal" scroll={false} hideHeaderOnPhone>
-        <LoadingState message="Portal wird geladen…" />
+        <LoadingState message="Klient:innenportal wird geladen…" />
       </PortalTabScreen>
     );
   }

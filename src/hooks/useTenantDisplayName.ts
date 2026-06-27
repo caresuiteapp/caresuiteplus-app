@@ -8,6 +8,7 @@ import {
   getCachedTenantBrandingLogoUrl,
   subscribeToTenantBrandingLogoChanges,
 } from '@/lib/tenant/tenantBrandingService';
+import { TENANT_NAME_FALLBACK } from '@/lib/portal/portalDisplayLabels';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 
 export type TenantBranding = {
@@ -22,7 +23,7 @@ export function useTenantDisplayName(): string {
   const isLive = getServiceMode() === 'supabase';
   const cachedName = portalSession?.tenantName?.trim();
   const [name, setName] = useState(
-    cachedName ?? (isLive ? 'Ihr Mandant' : demoTenant.name),
+    cachedName ?? (isLive ? TENANT_NAME_FALLBACK : demoTenant.name),
   );
 
   useEffect(() => {
@@ -32,7 +33,7 @@ export function useTenantDisplayName(): string {
     }
 
     if (!isLive || !tenantId) {
-      setName(isLive ? 'Ihr Mandant' : demoTenant.name);
+      setName(isLive ? TENANT_NAME_FALLBACK : demoTenant.name);
       return;
     }
 
@@ -57,7 +58,7 @@ export function useTenantBranding(): TenantBranding {
   const cachedLogoOnMount =
     isLive && tenantId ? getCachedTenantBrandingLogoUrl(tenantId) : undefined;
   const [name, setName] = useState(
-    cachedName ?? (isLive ? 'Ihr Mandant' : demoTenant.name),
+    cachedName ?? (isLive ? TENANT_NAME_FALLBACK : demoTenant.name),
   );
   const [logoUrl, setLogoUrl] = useState(cachedLogoOnMount ?? '');
   const [logoLoading, setLogoLoading] = useState(
@@ -71,7 +72,7 @@ export function useTenantBranding(): TenantBranding {
     }
 
     if (!isLive || !tenantId) {
-      setName(isLive ? 'Ihr Mandant' : demoTenant.name);
+      setName(isLive ? TENANT_NAME_FALLBACK : demoTenant.name);
       return;
     }
 

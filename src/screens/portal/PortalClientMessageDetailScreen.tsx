@@ -12,7 +12,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { usePortalMessageDetail } from '@/hooks/usePortalMessageDetail';
-import { usePermissions } from '@/hooks/usePermissions';
+import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 
 export function PortalClientMessageDetailScreen() {
@@ -37,7 +37,7 @@ export function PortalClientMessageDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Nachricht" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Nachricht" subtitle={resolvePortalScreenSubtitle(roleLabel, 'client')}>
         <LockedActionBanner
           message={check('portal.client.messages.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}

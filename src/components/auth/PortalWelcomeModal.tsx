@@ -112,7 +112,6 @@ export function PortalWelcomeModal({
         </Text>
         <Text style={styles.tenant}>{tenantName}</Text>
         <Text style={styles.role}>{roleLabel}</Text>
-        <Text style={styles.tenantHint}>Mandant {tenantName}</Text>
       </View>
     </PlatformModal>
   );

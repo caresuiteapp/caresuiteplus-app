@@ -183,11 +183,17 @@ export function MobilePortalDashboard({
   };
 
   if (loading && !dashboard) {
-    return <LoadingState message="Assist-Portal wird geladen…" />;
+    return <LoadingState message="Klient:innenportal wird geladen…" />;
   }
 
   if (error && !dashboard) {
-    return <ErrorState title="Assist-Portal" message={error} onRetry={handleRefresh} />;
+    return (
+      <ErrorState
+        title="Klient:innenportal nicht geladen"
+        message={error}
+        onRetry={handleRefresh}
+      />
+    );
   }
 
   const data = dashboard!;

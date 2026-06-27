@@ -12,7 +12,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { usePortalDocumentDetail } from '@/hooks/usePortalDocumentDetail';
-import { usePermissions } from '@/hooks/usePermissions';
+import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 
 export function PortalDocumentDetailScreen() {
@@ -36,7 +36,7 @@ export function PortalDocumentDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Dokument" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Dokument" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
         <LockedActionBanner
           message={check('portal.employee.documents.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}

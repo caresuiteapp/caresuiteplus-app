@@ -3,6 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { PORTAL_EMPLOYEE_LABEL } from '@/lib/portal/portalDisplayLabels';
 
 import type { PortalAppointmentDetail } from '@/types/portal/employee';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -128,7 +129,7 @@ export function PortalEmployeeAssignmentDetailHero({
           variant={statusVariant(assignment.status)}
           dot
         />
-        <PremiumBadge label="Portal-Sicht" variant="cyan" />
+        <PremiumBadge label={PORTAL_EMPLOYEE_LABEL} variant="cyan" />
         {assignment.canStartExecution ? (
           <PremiumBadge label="Durchführung möglich" variant="green" />
         ) : null}

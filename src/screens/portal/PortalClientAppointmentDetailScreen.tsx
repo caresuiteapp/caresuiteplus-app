@@ -15,7 +15,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { usePortalClientAppointmentDetail } from '@/hooks/usePortalClientAppointmentDetail';
-import { usePermissions } from '@/hooks/usePermissions';
+import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 
 export function PortalClientAppointmentDetailScreen() {
@@ -40,7 +40,7 @@ export function PortalClientAppointmentDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Einsatz" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Einsatz" subtitle={resolvePortalScreenSubtitle(roleLabel, 'client')}>
         <LockedActionBanner
           message={check('portal.client.appointments.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}

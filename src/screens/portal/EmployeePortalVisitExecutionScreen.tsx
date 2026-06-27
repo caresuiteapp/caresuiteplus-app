@@ -21,7 +21,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
-import { usePermissions } from '@/hooks/usePermissions';
+import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
@@ -164,7 +164,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
   if (!can('portal.employee.appointments.view')) {
     return (
-      <ScreenShell title="Einsatz durchführen" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Einsatz durchführen" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
         <LockedActionBanner
           message={check('portal.employee.appointments.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}

@@ -123,7 +123,7 @@ export function PortalAppointmentDetailHero({ appointment, scope }: PortalAppoin
           variant={statusVariant(appointment.status)}
           dot
         />
-        <PremiumBadge label="Portal-Sicht" variant="cyan" />
+        <PremiumBadge label={scopeLabel} variant="cyan" />
       </View>
       <View style={styles.kpiRow}>
         <PremiumKpiCard

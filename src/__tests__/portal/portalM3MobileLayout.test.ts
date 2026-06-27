@@ -92,5 +92,33 @@ describe('portal M.3 mobile layout', () => {
   it('removes Portal-Sicht placeholder badges from portal heroes', () => {
     expect(readSrc('src/components/portal/PortalDashboardHero.tsx')).not.toContain('Portal-Sicht');
     expect(readSrc('src/components/portal/PortalTabHero.tsx')).not.toContain('Portal-Sicht');
+    expect(readSrc('src/components/portal/PortalAppointmentDetailHero.tsx')).not.toContain('Portal-Sicht');
+    expect(readSrc('src/components/portal/PortalEmployeeAssignmentDetailHero.tsx')).not.toContain('Portal-Sicht');
+  });
+
+  it('login screens redirect to portal dashboard after sign-in', () => {
+    expect(readSrc('src/screens/auth/EmployeePortalLoginScreen.tsx')).toContain(
+      "router.replace(resolvePostLoginRoute('employee_portal')",
+    );
+    expect(readSrc('src/screens/auth/PortalCodeLoginScreen.tsx')).toContain(
+      "router.replace(resolvePostLoginRoute('client_portal')",
+    );
+  });
+
+  it('TopbarProfileAvatar applies cache bust for stored avatars', () => {
+    expect(readSrc('src/components/layout/TopbarProfileAvatar.tsx')).toContain('appendProfileAvatarCacheBust');
+  });
+
+  it('landing cards include German descriptions', () => {
+    const entries = readSrc('src/data/landing/appStartEntries.ts');
+    expect(entries).toContain('Office, Personal, Abrechnung');
+    expect(entries).toContain('Einsätze, Dienstplan');
+    expect(entries).toContain('Termine, Dokumente');
+  });
+
+  it('AdaptivePortalOverview avoids nested ScrollView on phone', () => {
+    const overview = readSrc('src/components/portal/AdaptivePortalOverview.tsx');
+    expect(overview).toContain('if (isPhone)');
+    expect(overview).toContain('<View style={styles.container}>{overviewBody}</View>');
   });
 });

@@ -7,13 +7,14 @@ import {
   markPortalWelcomeSeen,
   type PortalWelcomeKind,
 } from '@/lib/auth/portalWelcomeSession';
+import { TENANT_NAME_FALLBACK } from '@/lib/portal/portalDisplayLabels';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { ROLE_LABELS } from '@/data/constants';
 import { PortalWelcomeModal } from './PortalWelcomeModal';
 
-const FALLBACK_TENANT = 'Ihr Unternehmen';
+const FALLBACK_TENANT = TENANT_NAME_FALLBACK;
 
 function resolvePortalWelcomeKind(
   loginType: string | undefined,

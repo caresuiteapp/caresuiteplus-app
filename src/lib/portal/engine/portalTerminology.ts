@@ -37,12 +37,12 @@ const TERMINOLOGY_BY_MODULE: Record<PortalModuleKey, PortalTerminology> = {
 };
 
 const DEFAULT_TERMINOLOGY: PortalTerminology = {
-  greetingLabel: 'Willkommen in Ihrem Portal',
+  greetingLabel: 'Willkommen in Ihrem Klient:innenportal',
   appointmentLabel: 'Einsatz',
   appointmentLabelPlural: 'Einsätze',
   personLabel: 'Klient:in',
   careTeamLabel: 'Betreuungsteam',
-  moduleLabel: 'Portal',
+  moduleLabel: 'Klient:innenportal',
 };
 
 export function resolvePortalTerminology(
@@ -57,7 +57,7 @@ export function resolveModuleTerminology(moduleKey: PortalModuleKey): PortalTerm
 }
 
 export function resolveCombinedModuleLabel(modules: PortalModuleKey[]): string {
-  if (modules.length === 0) return 'Portal';
+  if (modules.length === 0) return 'Klient:innenportal';
   if (modules.length === 1) return PORTAL_MODULE_LABELS[modules[0]];
   return modules.map((m) => PORTAL_MODULE_LABELS[m]).join(' · ');
 }

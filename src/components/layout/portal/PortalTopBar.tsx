@@ -172,7 +172,7 @@ export function PortalTopBar({
             <Text style={[styles.crumbLink, { color: text.muted }]}>Start</Text>
           </Pressable>
           <Text style={[styles.crumbSep, { color: text.muted }]}> › </Text>
-          <Text style={[styles.crumbLink, { color: text.muted }]}>Portal</Text>
+          <Text style={[styles.crumbLink, { color: text.muted }]}>{portalLabel}</Text>
           <Text style={[styles.crumbSep, { color: text.muted }]}> › </Text>
           <Text style={[styles.crumbCurrent, { color: text.primary }]}>{portalLabel}</Text>
         </View>

@@ -14,7 +14,7 @@ import {
 } from '@/components/ui';
 import { usePortalDocumentDetail } from '@/hooks/usePortalDocumentDetail';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
-import { usePermissions } from '@/hooks/usePermissions';
+import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -57,7 +57,7 @@ export function PortalClientDocumentDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Dokument" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Dokument" subtitle={resolvePortalScreenSubtitle(roleLabel, 'client')}>
         <LockedActionBanner
           message={check('portal.client.documents.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}

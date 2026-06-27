@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { Linking, StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { CareSuiteLogo } from '@/components/brand';
 import {
   AuthLayout,
@@ -15,6 +16,7 @@ import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGene
 import { completePortalLogin } from '@/lib/auth/portalloginflow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
 import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
+import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 
@@ -23,6 +25,7 @@ function openExternal(url: string) {
 }
 
 export function PortalCodeLoginScreen() {
+  const router = useRouter();
   const { signInPortalSession } = useAuth();
   const [username, setUsername] = useState('');
   const [code, setCode] = useState('');
@@ -62,6 +65,7 @@ export function PortalCodeLoginScreen() {
       await signInPortalSession(completed.data.portalSession);
       markPortalWelcomePending('client');
       setSuccess(true);
+      router.replace(resolvePostLoginRoute('client_portal') as never);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
     }

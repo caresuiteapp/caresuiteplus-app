@@ -13,7 +13,7 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
-import { usePermissions } from '@/hooks/usePermissions';
+import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 
 function formatDateTime(iso: string): string {
@@ -38,7 +38,7 @@ export function PortalAssignmentDetailScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Einsatz" subtitle={roleLabel ?? 'Portal'}>
+      <ScreenShell title="Einsatz" subtitle={resolvePortalScreenSubtitle(roleLabel, 'employee')}>
         <LockedActionBanner
           message={check('portal.employee.appointments.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
@@ -74,7 +74,7 @@ export function PortalAssignmentDetailScreen() {
     <C14vSubpageShell
       title={data.title}
       eyebrow="PORTAL · EINSATZ"
-      subtitle={`${data.clientName} · ${roleLabel ?? 'Portal'}`}
+      subtitle={`${data.clientName} · ${resolvePortalScreenSubtitle(roleLabel, 'employee')}`}
       rightSlot={
         <PremiumButton title="Zurück" size="sm" variant="ghost" onPress={() => router.back()} />
       }

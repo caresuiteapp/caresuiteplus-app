@@ -11,6 +11,7 @@ import {
 import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { useAuth } from '@/lib/auth/context';
 import { pickUserAvatarFile } from '@/lib/auth/pickUserAvatarFile';
+import { appendProfileAvatarCacheBust } from '@/lib/auth/profileAvatarUrl';
 import { saveUserProfileAvatar } from '@/lib/auth/useravatarservice';
 
 type TopbarProfileAvatarProps = {
@@ -51,7 +52,12 @@ export function TopbarProfileAvatar({
   }, [avatarUrl]);
 
   const canUpload = Boolean(profile?.tenantId && authUserId);
-  const displayUri = previewUri ?? (avatarUrl?.trim() || undefined);
+  const rawUri = previewUri ?? (avatarUrl?.trim() || undefined);
+  const displayUri = useMemo(() => {
+    if (!rawUri) return undefined;
+    if (previewUri) return previewUri;
+    return appendProfileAvatarCacheBust(rawUri, profile?.updatedAt ?? profile?.avatarUrl);
+  }, [previewUri, rawUri, profile?.updatedAt, profile?.avatarUrl]);
   const showOverlay = canUpload && (hovered || uploading);
 
   const styles = useMemo(
