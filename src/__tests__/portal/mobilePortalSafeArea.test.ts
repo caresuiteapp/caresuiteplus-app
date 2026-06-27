@@ -36,6 +36,19 @@ describe('PortalShellLayout mobile safe area', () => {
   it('locks compact shell to dvh and pins top bar above scroll body', () => {
     expect(shell).toContain('topBarHost');
     expect(shell).toContain('flexShrink: 0');
+    expect(shell).toContain('styles.content');
+    expect(shell).toContain('testID="portal-shell-scroll"');
+  });
+
+  it('scroll chain matches MobileAppShell — no overflow clip on route slots', () => {
+    const portalShell = readSrc('src/components/portal/PortalShell.tsx');
+    const employeeLayout = readSrc('app/portal/employee/_layout.tsx');
+    const clientLayout = readSrc('app/portal/client/_layout.tsx');
+    expect(portalShell).not.toContain("overflow: 'hidden'");
+    expect(portalShell).not.toContain('styles.slot');
+    expect(employeeLayout).not.toContain("overflow: 'hidden'");
+    expect(clientLayout).not.toContain("overflow: 'hidden'");
+    expect(employeeLayout).toContain('minHeight: 0');
   });
 
   it('pins bottom nav above safe area with absolute host', () => {

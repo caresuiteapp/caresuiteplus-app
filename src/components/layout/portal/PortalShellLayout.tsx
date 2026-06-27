@@ -93,40 +93,55 @@ export function PortalShellLayout({
         />
       </View>
 
-      <View style={styles.body}>
-        {showLeftNav ? (
-          kind === 'employee' ? (
-            <PortalTabLeftNav
-              tabs={portalTabs}
-              accentColor={accentColor}
-              portalLabel={portalLabel}
-            />
-          ) : (
-            <PortalLeftNav
-              accentColor={accentColor}
-              collapsed={navCollapsed}
-              onToggleCollapse={() => setNavCollapsed((v) => !v)}
-            />
-          )
-        ) : null}
-
-        <View style={styles.main}>
+      {isCompactShell ? (
+        <View style={styles.content}>
           <AutoScrollView
             style={styles.mainScroll}
             contentContainerStyle={[
               styles.mainContent,
-              showBottomTabs
-                ? { paddingBottom: mobileContentPaddingBottom }
-                : null,
+              showBottomTabs ? { paddingBottom: mobileContentPaddingBottom } : null,
             ]}
             fillViewport
+            testID="portal-shell-scroll"
           >
             {children}
           </AutoScrollView>
         </View>
+      ) : (
+        <View style={styles.body}>
+          {showLeftNav ? (
+            kind === 'employee' ? (
+              <PortalTabLeftNav
+                tabs={portalTabs}
+                accentColor={accentColor}
+                portalLabel={portalLabel}
+              />
+            ) : (
+              <PortalLeftNav
+                accentColor={accentColor}
+                collapsed={navCollapsed}
+                onToggleCollapse={() => setNavCollapsed((v) => !v)}
+              />
+            )
+          ) : null}
 
-        {showRightSidebar ? <PortalRightSidebar accentColor={accentColor} /> : null}
-      </View>
+          <View style={styles.main}>
+            <AutoScrollView
+              style={styles.mainScroll}
+              contentContainerStyle={[
+                styles.mainContent,
+                showBottomTabs ? { paddingBottom: mobileContentPaddingBottom } : null,
+              ]}
+              fillViewport
+              testID="portal-shell-scroll"
+            >
+              {children}
+            </AutoScrollView>
+          </View>
+
+          {showRightSidebar ? <PortalRightSidebar accentColor={accentColor} /> : null}
+        </View>
+      )}
 
       {showBottomTabs ? (
         <View style={styles.bottomNavHost}>
@@ -157,6 +172,11 @@ const styles = StyleSheet.create({
   topBarHost: {
     flexShrink: 0,
     zIndex: 10,
+  },
+  content: {
+    flex: 1,
+    minHeight: 0,
+    minWidth: 0,
   },
   body: {
     flex: 1,

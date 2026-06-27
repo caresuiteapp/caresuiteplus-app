@@ -68,9 +68,10 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(topbar).not.toContain('compactProfileMenuTrigger');
   });
 
-  it('PortalShell slot keeps minHeight 0 for shell scroll chain', () => {
+  it('PortalShell passes children directly without flex slot wrapper', () => {
     const portalShell = readSrc('src/components/portal/PortalShell.tsx');
-    expect(portalShell).toContain('minHeight: 0');
+    expect(portalShell).not.toContain('styles.slot');
+    expect(portalShell).toContain('{children}');
   });
 
   it('AutoScrollView enables touch scrolling on web', () => {

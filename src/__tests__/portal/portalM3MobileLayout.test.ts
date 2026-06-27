@@ -53,11 +53,13 @@ describe('portal M.3 mobile layout', () => {
     expect(readSrc('app/portal/client/(tabs)/_layout.tsx')).not.toContain('ClientPortalShell');
   });
 
-  it('employee and client portal layouts constrain stack slot for mobile safe area', () => {
+  it('employee and client portal layouts use minHeight 0 slot without overflow clip', () => {
     const employeeLayout = readSrc('app/portal/employee/_layout.tsx');
     const clientLayout = readSrc('app/portal/client/_layout.tsx');
-    expect(employeeLayout).toContain('overflow:');
-    expect(clientLayout).toContain('overflow:');
+    expect(employeeLayout).toContain('minHeight: 0');
+    expect(clientLayout).toContain('minHeight: 0');
+    expect(employeeLayout).not.toContain("overflow: 'hidden'");
+    expect(clientLayout).not.toContain("overflow: 'hidden'");
   });
 
   it('EmployeeProfileScreen imports usePermissions', () => {

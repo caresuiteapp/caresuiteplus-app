@@ -1,5 +1,4 @@
 import { ReactNode } from 'react';
-import { StyleSheet, View } from 'react-native';
 import type { PortalKind } from '@/types/portalSystem';
 import { PortalShellLayout, type PortalShellKind } from '@/components/layout/portal';
 import { moduleColor } from '@/design/tokens/modules';
@@ -12,6 +11,7 @@ type PortalShellProps = {
 
 /**
  * Unified portal shell — client and employee use PortalShellLayout (scroll-only mobile).
+ * Children pass through without a flex slot wrapper so AutoScrollView can measure content height.
  */
 export function PortalShell({ kind, children, accentColor }: PortalShellProps) {
   const resolvedAccent = accentColor ?? moduleColor('assist');
@@ -20,11 +20,7 @@ export function PortalShell({ kind, children, accentColor }: PortalShellProps) {
 
   return (
     <PortalShellLayout accentColor={resolvedAccent} kind={shellKind}>
-      <View style={styles.slot}>{children}</View>
+      {children}
     </PortalShellLayout>
   );
 }
-
-const styles = StyleSheet.create({
-  slot: { flex: 1, minHeight: 0, minWidth: 0 },
-});
