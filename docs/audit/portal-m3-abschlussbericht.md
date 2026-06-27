@@ -100,8 +100,8 @@ Vollständige M.3-Nachlieferung nach verworfener Produktionsabnahme: Platzhalter
 
 ## Commit & Deploy
 
-- **Commit-Hash:** _(nach Push eintragen)_
-- **Deploy-Status:** _(nach Netlify-Build eintragen)_
+- **Commit-Hash:** `2925fd3`
+- **Deploy-Status:** Push an `origin/main` mit `[deploy]` — Netlify-Build ausgelöst (Stand: 2026-06-27)
 - **Commit-Message:** `feat(portal): complete M.3 overhaul — avatars, labels, login, landing [deploy]`
 
 ---
