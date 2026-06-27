@@ -153,13 +153,13 @@ describe('employee portal execution (Prompt 58)', () => {
     resetWorkspaceAuditStore();
   });
 
-  it('1. Übersicht zeigt nur eigene Einsätze', () => {
+  it('1. Übersicht zeigt nur eigene Einsätze', async () => {
     const own = createTestAssignment({ employeeId: EMPLOYEE_ID, title: 'Eigener Einsatz' });
     const foreign = createTestAssignment({ employeeId: OTHER_EMPLOYEE, title: 'Fremder Einsatz' });
     expect(own.ok).toBe(true);
     expect(foreign.ok).toBe(true);
 
-    const overview = fetchEmployeePortalOverview(TENANT, EMPLOYEE_ID, EMPLOYEE);
+    const overview = await fetchEmployeePortalOverview(TENANT, EMPLOYEE_ID, EMPLOYEE);
     expect(overview.ok).toBe(true);
     if (overview.ok) {
       const ids = [
@@ -172,12 +172,12 @@ describe('employee portal execution (Prompt 58)', () => {
     }
   });
 
-  it('2. Fremder Einsatz ist nicht einsehbar', () => {
+  it('2. Fremder Einsatz ist nicht einsehbar', async () => {
     const foreign = createTestAssignment({ employeeId: OTHER_EMPLOYEE });
     expect(foreign.ok).toBe(true);
     if (!foreign.ok) return;
 
-    const detail = fetchEmployeePortalAssignmentDetail(
+    const detail = await fetchEmployeePortalAssignmentDetail(
       TENANT,
       foreign.data.id,
       EMPLOYEE_ID,
@@ -279,18 +279,18 @@ describe('employee portal execution (Prompt 58)', () => {
     }
   });
 
-  it('7. Pause und Fortsetzen werden gespeichert', () => {
+  it('7. Pause und Fortsetzen werden gespeichert', async () => {
     const created = createTestAssignment();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'unterwegs');
-    transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'angekommen');
-    transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'gestartet');
-    transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'pausiert');
-    transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'gestartet');
+    await transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'unterwegs');
+    await transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'angekommen');
+    await transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'gestartet');
+    await transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'pausiert');
+    await transitionEmployeePortalAssignment(TENANT, created.data.id, EMPLOYEE_ID, EMPLOYEE, 'gestartet');
 
-    const detail = fetchEmployeePortalAssignmentDetail(
+    const detail = await fetchEmployeePortalAssignmentDetail(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -303,12 +303,12 @@ describe('employee portal execution (Prompt 58)', () => {
     }
   });
 
-  it('8. Aufgabe not_possible ohne Notiz blockiert', () => {
+  it('8. Aufgabe not_possible ohne Notiz blockiert', async () => {
     const created = createTestAssignment();
     expect(created.ok).toBe(true);
     if (!created.ok) return;
 
-    const detail = fetchEmployeePortalAssignmentDetail(
+    const detail = await fetchEmployeePortalAssignmentDetail(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -318,7 +318,7 @@ describe('employee portal execution (Prompt 58)', () => {
     if (!detail.ok) return;
 
     const taskId = detail.data.tasks[0]?.id;
-    const blocked = updateEmployeePortalTask(
+    const blocked = await updateEmployeePortalTask(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,
@@ -419,7 +419,7 @@ describe('employee portal execution (Prompt 58)', () => {
       expect(result.data.serviceProofJobId).toBeTruthy();
     }
 
-    const detail = fetchEmployeePortalAssignmentDetail(
+    const detail = await fetchEmployeePortalAssignmentDetail(
       TENANT,
       created.data.id,
       EMPLOYEE_ID,

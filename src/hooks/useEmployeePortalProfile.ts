@@ -1,23 +1,24 @@
 import { useCallback } from 'react';
 import { fetchEmployeePortalProfile, fetchEmployeeTimesheet } from '@/lib/portal';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 
 export function useEmployeePortalProfile() {
-  const { profile } = useAuth();
-  const profileId = profile?.id ?? '';
-  const roleKey = profile?.roleKey ?? null;
+  const { tenantId, employeeId, actorId, roleKey, isReady } = usePortalActor();
+  const profileId = actorId ?? '';
+
+  const portalContext = { tenantId, employeeId };
 
   const profileQuery = useAsyncQuery(
-    () => fetchEmployeePortalProfile(profileId, roleKey),
-    [profileId, roleKey],
-    { enabled: !!profileId && !!roleKey },
+    () => fetchEmployeePortalProfile(profileId, roleKey, portalContext),
+    [profileId, roleKey, tenantId, employeeId],
+    { enabled: isReady && !!profileId && !!roleKey },
   );
 
   const timesheetQuery = useAsyncQuery(
-    () => fetchEmployeeTimesheet(profileId, roleKey),
-    [profileId, roleKey],
-    { enabled: !!profileId && !!roleKey },
+    () => fetchEmployeeTimesheet(profileId, roleKey, portalContext),
+    [profileId, roleKey, tenantId, employeeId],
+    { enabled: isReady && !!profileId && !!roleKey },
   );
 
   const refresh = useCallback(async () => {
@@ -30,5 +31,6 @@ export function useEmployeePortalProfile() {
     loading: profileQuery.loading || timesheetQuery.loading,
     error: profileQuery.error ?? timesheetQuery.error,
     refresh,
+    missingEmployeeLink: isReady && !employeeId,
   };
 }

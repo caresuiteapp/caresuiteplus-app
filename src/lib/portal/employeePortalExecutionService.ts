@@ -39,6 +39,12 @@ import {
 import { guardLiveDemoFeature } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import {
+  fetchLiveEmployeePortalAssignmentDetail,
+  fetchLiveEmployeePortalOverviewWrapped,
+  transitionLiveEmployeePortalAssignment,
+  updateLiveEmployeePortalTask,
+} from './employeePortalExecutionLiveService';
+import {
   canCaptureGps,
   canViewAccessHints,
   canViewEmergencyContact,
@@ -273,14 +279,19 @@ function signatureStatus(
   return 'none';
 }
 
-export function fetchEmployeePortalOverview(
+export async function fetchEmployeePortalOverview(
   tenantId: string,
   employeeId: string,
   roleKey: RoleKey | null,
   tenantModules?: TenantModuleFlags,
-): ServiceResult<EmployeePortalOverview> {
+): Promise<ServiceResult<EmployeePortalOverview>> {
   const denied = enforcePermission<EmployeePortalOverview>(roleKey, 'portal.employee.appointments.view');
   if (denied && roleKey === 'employee_portal') return denied;
+
+  if (getServiceMode() === 'supabase') {
+    void tenantModules;
+    return fetchLiveEmployeePortalOverviewWrapped(tenantId, employeeId, roleKey);
+  }
 
   const liveBlock = guardLiveDemoFeature<EmployeePortalOverview>(
     tenantId,
@@ -315,18 +326,28 @@ export function fetchEmployeePortalOverview(
   };
 }
 
-export function fetchEmployeePortalAssignmentDetail(
+export async function fetchEmployeePortalAssignmentDetail(
   tenantId: string,
   assignmentId: string,
   employeeId: string,
   roleKey: RoleKey | null,
   tenantModules?: TenantModuleFlags,
-): ServiceResult<EmployeePortalAssignmentDetail> {
+): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(
     roleKey,
     'portal.employee.appointments.view',
   );
   if (denied && roleKey === 'employee_portal') return denied;
+
+  if (getServiceMode() === 'supabase') {
+    return fetchLiveEmployeePortalAssignmentDetail(
+      tenantId,
+      assignmentId,
+      employeeId,
+      roleKey,
+      tenantModules,
+    );
+  }
 
   const liveBlock = guardLiveDemoFeature<EmployeePortalAssignmentDetail>(
     tenantId,
@@ -401,6 +422,16 @@ export async function transitionEmployeePortalAssignment(
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
+
+  if (getServiceMode() === 'supabase') {
+    return transitionLiveEmployeePortalAssignment(
+      tenantId,
+      assignmentId,
+      employeeId,
+      roleKey,
+      toStatus,
+    );
+  }
 
   const liveBlock = guardLiveDemoFeature<EmployeePortalAssignmentDetail>(
     tenantId,
@@ -478,7 +509,7 @@ export async function transitionEmployeePortalAssignment(
   return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
 }
 
-export function updateEmployeePortalTask(
+export async function updateEmployeePortalTask(
   tenantId: string,
   assignmentId: string,
   employeeId: string,
@@ -486,9 +517,21 @@ export function updateEmployeePortalTask(
   taskId: string,
   status: ExtendedAssignmentTaskStatus,
   completionNote?: string,
-): ServiceResult<EmployeePortalAssignmentDetail> {
+): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
+
+  if (getServiceMode() === 'supabase') {
+    return updateLiveEmployeePortalTask(
+      tenantId,
+      assignmentId,
+      employeeId,
+      roleKey,
+      taskId,
+      status,
+      completionNote,
+    );
+  }
 
   const liveBlock = guardLiveDemoFeature<EmployeePortalAssignmentDetail>(
     tenantId,

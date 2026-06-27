@@ -13,6 +13,8 @@ import type { PortalEmployeeProfile } from '@/types/portal/employee';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { designTokens, spacing } from '@/theme';
 
+const iconSize = designTokens.hero.iconBadgeSize;
+
 type PortalEmployeeProfileHeroProps = {
   profile: PortalEmployeeProfile;
 };
@@ -96,6 +98,4 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
     </PremiumListHeroFrame>
   );
 }
-
-const iconSize = designTokens.hero.iconBadgeSize;
 

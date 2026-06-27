@@ -1,17 +1,20 @@
 import { useCallback } from 'react';
 import { fetchPortalAppointmentDetail } from '@/lib/portal';
-import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from './core';
 
 export function usePortalAppointmentDetail(appointmentId: string | undefined) {
-  const { profile } = useAuth();
-  const profileId = profile?.id ?? '';
-  const roleKey = profile?.roleKey ?? null;
+  const { tenantId, employeeId, actorId, roleKey, isReady } = usePortalActor();
+  const profileId = actorId ?? '';
 
   const query = useAsyncQuery(
-    () => fetchPortalAppointmentDetail(appointmentId ?? '', profileId, roleKey),
-    [appointmentId, profileId, roleKey],
-    { enabled: !!appointmentId && !!profileId && !!roleKey },
+    () =>
+      fetchPortalAppointmentDetail(appointmentId ?? '', profileId, roleKey, {
+        tenantId,
+        employeeId,
+      }),
+    [appointmentId, profileId, roleKey, tenantId, employeeId],
+    { enabled: !!appointmentId && isReady && !!profileId && !!roleKey },
   );
 
   const refresh = useCallback(async () => {

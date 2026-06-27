@@ -52,9 +52,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       if (!tenantId || !assignmentId || !employeeId) {
         return Promise.resolve({ ok: false as const, error: 'Einsatzdaten unvollständig.' });
       }
-      return Promise.resolve(
-        fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey),
-      );
+      return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
     },
     [tenantId, assignmentId, employeeId, roleKey],
     { enabled: Boolean(tenantId && assignmentId && employeeId) },
@@ -162,7 +160,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       if (!tenantId || !assignmentId) {
         return { ok: false as const, error: 'Keine Einsatz-ID.' };
       }
-      const result = updateEmployeePortalTask(
+      const result = await updateEmployeePortalTask(
         tenantId,
         assignmentId,
         employeeId,

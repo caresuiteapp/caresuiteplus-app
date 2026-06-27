@@ -4,6 +4,7 @@ import type { WorkflowStatus } from '@/types/core/base';
 import type { Appointment } from '@/types/modules/office';
 import type { PortalClientAppointmentDetail } from '@/types/portal/client';
 import type { PortalAppointmentDetail } from '@/types/portal/employee';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { demoAppointments } from '@/data/demo/appointments';
 import { getDemoAssignmentSeeds } from '@/data/demo/assistAssignments';
 import { demoClients } from '@/data/demo/clients';
@@ -23,6 +24,7 @@ import {
   fetchLivePortalAppointmentsForEmployee,
   fetchLivePortalClientAppointmentDetail,
 } from './portalAppointmentsLiveService';
+import { fetchLiveEmployeePortalAssignmentDetail } from './employeePortalExecutionLiveService';
 import {
   projectClientPortalAssistLiveVisit,
   sanitizeClientPortalLiveVisitPayload,
@@ -174,16 +176,79 @@ const ASSIGNMENT_TASKS: Record<string, string[]> = {
   'assign-003': ['Küche reinigen', 'Wäsche sortieren', 'Lebensmittel prüfen'],
 };
 
+function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
+  const map: Partial<Record<AssignmentStatus, WorkflowStatus>> = {
+    geplant: 'entwurf',
+    bestaetigt: 'aktiv',
+    unterwegs: 'aktiv',
+    angekommen: 'in_bearbeitung',
+    gestartet: 'in_bearbeitung',
+    pausiert: 'in_bearbeitung',
+    beendet: 'in_bearbeitung',
+    dokumentation_offen: 'in_bearbeitung',
+    unterschrift_offen: 'in_bearbeitung',
+    abgeschlossen: 'abgeschlossen',
+    storniert: 'fehlerhaft',
+    nicht_erschienen: 'fehlerhaft',
+  };
+  return map[status] ?? 'aktiv';
+}
+
 export async function fetchPortalAppointmentDetail(
   appointmentId: string,
   profileId: string,
   roleKey: RoleKey | null,
+  portalContext?: PortalAppointmentsPortalContext,
 ): Promise<ServiceResult<PortalAppointmentDetail>> {
   const denied = enforcePermission<PortalAppointmentDetail>(
     roleKey,
     'portal.employee.appointments.view',
   );
   if (denied && roleKey === 'employee_portal') return denied;
+
+  if (!profileId || !roleKey) {
+    return { ok: false, error: 'Kein Profil für Einsatzabruf vorhanden.' };
+  }
+
+  const tenantId = portalContext?.tenantId ?? null;
+  const employeeId = portalContext?.employeeId ?? null;
+
+  if (getServiceMode() === 'supabase' && tenantId?.trim() && employeeId?.trim() && appointmentId?.trim()) {
+    const live = await fetchLiveEmployeePortalAssignmentDetail(
+      tenantId,
+      appointmentId,
+      employeeId,
+      roleKey,
+    );
+    if (!live.ok) return live;
+    const detail = live.data;
+    const canStart =
+      detail.canStartExecution &&
+      (detail.status === 'bestaetigt' ||
+        detail.status === 'geplant' ||
+        detail.status === 'unterwegs' ||
+        detail.status === 'angekommen' ||
+        detail.status === 'gestartet');
+    return {
+      ok: true,
+      data: {
+        id: detail.assignmentId,
+        assignmentId: detail.assignmentId,
+        title: detail.title,
+        startsAt: detail.plannedStartAt,
+        endsAt: detail.plannedEndAt,
+        status: assignmentStatusToWorkflowFilter(detail.status),
+        location: detail.locationAddress || null,
+        clientId: detail.clientId,
+        clientName: detail.clientName,
+        clientPhone: null,
+        notes: detail.notesForEmployee || null,
+        tasks: detail.tasks.map((task) => task.title),
+        canStartExecution: canStart,
+        executionRoute: `/portal/employee/assignments/${detail.assignmentId}/execute`,
+      },
+    };
+  }
 
   return runService(async () => {
     await delay(SIMULATED_DELAY_MS);

@@ -19,8 +19,8 @@ import {
 } from './employeePortalExecutionService';
 import {
   buildEmployeePortalDashboardFromOverview,
-  fetchLiveEmployeePortalOverview,
 } from './employeePortalLiveOverviewService';
+import { fetchLiveEmployeePortalOverviewWrapped } from './employeePortalExecutionLiveService';
 import { listAssignmentWorkflows } from '@/lib/assist/assignmentWorkflowService';
 import { canViewAccessHints, canViewEmergencyContact } from './employeePortalModuleAccess';
 import { getServiceMode } from '@/lib/services/mode';
@@ -79,7 +79,10 @@ export async function getEmployeeAssignedVisitsProjection(
   roleKey: RoleKey | null,
 ): Promise<ServiceResult<EmployeePortalVisitProjection[]>> {
   return runService(async () => {
-    const overview = fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
+    const overview =
+      getServiceMode() === 'supabase'
+        ? await fetchLiveEmployeePortalOverviewWrapped(tenantId, employeeId, roleKey)
+        : await fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
     if (!overview.ok) return overview;
 
     const items = overview.data.weeklyPlan
@@ -105,9 +108,15 @@ export async function getEmployeePortalVisitProjection(
     );
     if (!detail.ok) return detail;
 
-    const record = listAssignmentWorkflows(tenantId).find((a) => a.id === assignmentId);
-    if (!canEmployeePortalSeeVisit(tenantId, employeeId, assignmentId, record?.employeeId)) {
+    if (!canEmployeePortalSeeVisit(tenantId, employeeId, assignmentId, employeeId)) {
       return { ok: false, error: 'Einsatz nicht zugewiesen.' };
+    }
+
+    if (getServiceMode() !== 'supabase') {
+      const record = listAssignmentWorkflows(tenantId).find((a) => a.id === assignmentId);
+      if (!canEmployeePortalSeeVisit(tenantId, employeeId, assignmentId, record?.employeeId)) {
+        return { ok: false, error: 'Einsatz nicht zugewiesen.' };
+      }
     }
 
     const allowed = getAllowedClientFieldsForEmployeeVisit({
@@ -149,12 +158,12 @@ export async function getEmployeePortalDashboardProjection(
 ): Promise<ServiceResult<EmployeePortalDashboardProjection>> {
   return runService(async () => {
     if (getServiceMode() === 'supabase') {
-      const liveOverview = await fetchLiveEmployeePortalOverview(tenantId, employeeId);
+      const liveOverview = await fetchLiveEmployeePortalOverviewWrapped(tenantId, employeeId, roleKey);
       if (!liveOverview.ok) return liveOverview;
       return { ok: true, data: buildEmployeePortalDashboardFromOverview(liveOverview.data) };
     }
 
-    const overview = fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
+    const overview = await fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
     if (!overview.ok) return overview;
 
     return { ok: true, data: buildEmployeePortalDashboardFromOverview(overview.data) };
@@ -192,7 +201,10 @@ export async function getEmployeePortalProjection(
   roleKey: RoleKey | null,
 ): Promise<ServiceResult<EmployeePortalProjection>> {
   return runService(async () => {
-    const overview = fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
+    const overview =
+      getServiceMode() === 'supabase'
+        ? await fetchLiveEmployeePortalOverviewWrapped(tenantId, employeeId, roleKey)
+        : await fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
     if (!overview.ok) return overview;
 
     const assigned = await getEmployeeAssignedVisitsProjection(tenantId, employeeId, roleKey);

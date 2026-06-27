@@ -1,4 +1,4 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it, beforeEach, vi } from 'vitest';
 
 const INTERNAL_TEST_TENANT = 'a4ba83bd-65db-46cf-8cf7-61492cc78315';
 const PRODUCTION_TENANT = '56180c22-b894-4fab-b55e-a563c94dd6e7';
@@ -31,27 +31,42 @@ describe('C.14X — employee execution production render crash fix', () => {
       expect(result?.ok).toBe(false);
     });
 
-    it('fetchEmployeePortalAssignmentDetail returns error for production tenant', async () => {
+    it('fetchEmployeePortalAssignmentDetail uses live path in supabase mode', async () => {
+      vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+      vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+      vi.stubEnv('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'test-key');
+
+      const liveSpy = vi.spyOn(
+        await import('@/lib/portal/employeePortalExecutionLiveService'),
+        'fetchLiveEmployeePortalAssignmentDetail',
+      ).mockResolvedValue({ ok: false, error: 'Einsatz nicht gefunden.' });
+
       const { fetchEmployeePortalAssignmentDetail } = await import(
         '@/lib/portal/employeePortalExecutionService'
       );
-      const result = fetchEmployeePortalAssignmentDetail(
+      const result = await fetchEmployeePortalAssignmentDetail(
         PRODUCTION_TENANT,
         'assign-001',
         EMPLOYEE_ID,
         'employee_portal',
       );
+      expect(liveSpy).toHaveBeenCalled();
       expect(result.ok).toBe(false);
       if (!result.ok) {
-        expect(result.error).toContain('Live-Modus');
+        expect(result.error).toBe('Einsatz nicht gefunden.');
       }
+      liveSpy.mockRestore();
     });
 
     it('fetchEmployeePortalAssignmentDetail succeeds for internal_test tenant with valid data', async () => {
+      vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+      vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', '');
+      vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
+
       const { fetchEmployeePortalAssignmentDetail } = await import(
         '@/lib/portal/employeePortalExecutionService'
       );
-      const result = fetchEmployeePortalAssignmentDetail(
+      const result = await fetchEmployeePortalAssignmentDetail(
         INTERNAL_TEST_TENANT,
         'assign-nonexistent',
         EMPLOYEE_ID,
@@ -85,19 +100,49 @@ describe('C.14X — employee execution production render crash fix', () => {
   });
 
   describe('fetchEmployeePortalOverview guard consistency', () => {
-    it('overview returns error for production tenant', async () => {
+    it('overview delegates to live service in supabase mode', async () => {
+      vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+      vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', 'https://example.supabase.co');
+      vi.stubEnv('EXPO_PUBLIC_SUPABASE_PUBLISHABLE_KEY', 'test-key');
+
+      const liveSpy = vi.spyOn(
+        await import('@/lib/portal/employeePortalExecutionLiveService'),
+        'fetchLiveEmployeePortalOverviewWrapped',
+      ).mockResolvedValue({
+        ok: true,
+        data: {
+          todayAssignments: [],
+          nextAssignments: [],
+          weeklyPlan: [],
+          openDocumentations: 0,
+          missingSignatures: 0,
+          adminMessageCount: 0,
+          canReportProblem: true,
+        },
+      });
+
       const { fetchEmployeePortalOverview } = await import(
         '@/lib/portal/employeePortalExecutionService'
       );
-      const result = fetchEmployeePortalOverview(PRODUCTION_TENANT, EMPLOYEE_ID, 'employee_portal');
-      expect(result.ok).toBe(false);
+      const result = await fetchEmployeePortalOverview(
+        PRODUCTION_TENANT,
+        EMPLOYEE_ID,
+        'employee_portal',
+      );
+      expect(liveSpy).toHaveBeenCalled();
+      expect(result.ok).toBe(true);
+      liveSpy.mockRestore();
     });
 
     it('overview returns data for internal_test tenant', async () => {
+      vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
+      vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', '');
+      vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
+
       const { fetchEmployeePortalOverview } = await import(
         '@/lib/portal/employeePortalExecutionService'
       );
-      const result = fetchEmployeePortalOverview(INTERNAL_TEST_TENANT, EMPLOYEE_ID, 'employee_portal');
+      const result = await fetchEmployeePortalOverview(INTERNAL_TEST_TENANT, EMPLOYEE_ID, 'employee_portal');
       expect(result.ok).toBe(true);
     });
   });
