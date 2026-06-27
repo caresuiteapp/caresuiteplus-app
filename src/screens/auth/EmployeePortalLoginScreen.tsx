@@ -7,6 +7,7 @@ import { ScreenShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
 import { completePortalLogin } from '@/lib/auth/portalloginflow';
+import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
 import { resolveEmployeeFirstLoginHref } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -62,6 +63,7 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
+    markPortalWelcomePending('employee');
     setSuccess(true);
   };
 

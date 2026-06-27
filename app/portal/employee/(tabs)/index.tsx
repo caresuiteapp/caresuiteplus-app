@@ -1,18 +1,24 @@
 import { useState } from 'react';
-import { PortalOverviewTab } from '@/components/portal';
+import { EmployeePortalDashboardScreen } from '@/screens/portal/EmployeePortalDashboardScreen';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
-import { useAuth } from '@/lib/auth/context';
+import { LoadingState } from '@/components/ui';
+import { usePortalActor } from '@/hooks/usePortalActor';
 
 export default function EmployeePortalOverviewRoute() {
-  const { profile, user } = useAuth();
+  const { isReady } = usePortalActor();
   const [showSuccess, setShowSuccess] = useState(false);
-  const displayName = profile?.displayName ?? user?.displayName ?? 'Portal';
+
+  if (!isReady) {
+    return (
+      <PortalTabScreen title="Mitarbeiterportal" scroll={false} hideHeaderOnPhone>
+        <LoadingState message="Portal wird geladen…" />
+      </PortalTabScreen>
+    );
+  }
 
   return (
-    <PortalTabScreen title="Mitarbeiterportal">
-      <PortalOverviewTab
-        scope="portal_employee"
-        displayName={displayName}
+    <PortalTabScreen title="Mitarbeiterportal" scroll={false} hideHeaderOnPhone>
+      <EmployeePortalDashboardScreen
         showSuccess={showSuccess}
         onRefresh={() => {
           setShowSuccess(true);

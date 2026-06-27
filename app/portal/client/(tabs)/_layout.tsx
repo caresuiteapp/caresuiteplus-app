@@ -1,17 +1,15 @@
 import { Slot } from 'expo-router';
 import { View, StyleSheet } from 'react-native';
-import { ClientPortalShell } from '@/components/portal/ClientPortalShell';
 
+/** Shell lives in app/portal/client/_layout.tsx — tabs render content only. */
 export default function ClientPortalTabsLayout() {
   return (
-    <ClientPortalShell>
-      <View style={styles.slot}>
-        <Slot />
-      </View>
-    </ClientPortalShell>
+    <View style={styles.slot}>
+      <Slot />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  slot: { flex: 1 },
+  slot: { flex: 1, backgroundColor: 'transparent', minHeight: 0 },
 });

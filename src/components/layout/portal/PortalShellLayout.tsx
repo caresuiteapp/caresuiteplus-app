@@ -67,6 +67,9 @@ export function PortalShellLayout({
   );
   const bottomNavOffset = PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm);
 
+  const mobileNavArea: import('@/types/navigation/shell').AppShellArea =
+    kind === 'employee' ? 'portal_employee' : 'portal_client';
+
   return (
     <View
       style={[
@@ -82,6 +85,7 @@ export function PortalShellLayout({
         showHamburger={isCompactShell}
         onMenuPress={() => setDrawerOpen(true)}
         portalLabel={portalLabel}
+        portalKind={kind}
       />
 
       <View style={styles.body}>
@@ -121,7 +125,7 @@ export function PortalShellLayout({
 
       {showBottomTabs ? (
         <View style={styles.bottomNavHost}>
-          <PortalMobileNav tabs={portalTabs} accentColor={accentColor} area="portal_client" />
+          <PortalMobileNav tabs={portalTabs} accentColor={accentColor} area={mobileNavArea} />
         </View>
       ) : null}
       <PortalNavigationDrawer

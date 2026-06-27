@@ -28,6 +28,7 @@ import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalContext } from '@/hooks/usePortalContext';
 import { resolveCombinedModuleLabel } from '@/lib/portal/engine/portalTerminology';
 import { MOBILE_EDGE_INSET, MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
+import type { PortalShellKind } from '@/components/layout/portal/PortalShellLayout';
 
 type PortalTopBarProps = {
   accentColor?: string;
@@ -36,6 +37,7 @@ type PortalTopBarProps = {
   showHamburger?: boolean;
   onMenuPress?: () => void;
   portalLabel?: string;
+  portalKind?: PortalShellKind;
 };
 
 const webNoOutline =
@@ -57,6 +59,7 @@ export function PortalTopBar({
   showHamburger = false,
   onMenuPress,
   portalLabel = 'Klient:innenportal',
+  portalKind = 'client',
 }: PortalTopBarProps) {
   const router = useRouter();
   const text = useAuroraAdaptiveText();
@@ -84,10 +87,13 @@ export function PortalTopBar({
 
   const avatarUrl = profile?.avatarUrl?.trim() || undefined;
 
+  const profilePath =
+    portalKind === 'employee' ? '/portal/employee/profile' : '/portal/client/profile';
+
   const profileMenuItems = compact
-    ? [{ label: 'Profil', href: '/portal/client/profile' }]
+    ? [{ label: 'Profil', href: profilePath }]
     : [
-        { label: 'Profil', href: '/portal/client/profile' },
+        { label: 'Profil', href: profilePath },
         {
           label: 'Abmelden',
           action: () => void signOut().then(() => router.replace('/' as never)),
@@ -168,9 +174,9 @@ export function PortalTopBar({
           <Text style={[styles.crumbSep, { color: text.muted }]}> › </Text>
           <Text style={[styles.crumbLink, { color: text.muted }]}>Portal</Text>
           <Text style={[styles.crumbSep, { color: text.muted }]}> › </Text>
-          <Text style={[styles.crumbCurrent, { color: text.primary }]}>Klient:innenportal</Text>
+          <Text style={[styles.crumbCurrent, { color: text.primary }]}>{portalLabel}</Text>
         </View>
-        <Text style={[styles.title, { color: text.primary }]}>Klient:innenportal</Text>
+        <Text style={[styles.title, { color: text.primary }]}>{portalLabel}</Text>
         <Text style={[styles.subtitle, { color: text.secondary }]}>{moduleSubtitle}</Text>
       </View>
 

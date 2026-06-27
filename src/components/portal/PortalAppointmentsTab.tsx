@@ -56,7 +56,7 @@ export function PortalAppointmentsTab({
   if (error && items.length === 0) {
     return (
       <ErrorState
-        title={`${appointmentsLabel} nicht verfügbar`}
+        title={`${appointmentsLabel} konnten nicht geladen werden`}
         message={error}
         onRetry={refresh}
       />
@@ -87,13 +87,13 @@ export function PortalAppointmentsTab({
         <EmptyState
           title={
             scope === 'portal_employee'
-              ? `Keine ${appointmentsLabel.toLowerCase()}`
-              : `Keine ${appointmentsLabel.toLowerCase()} geplant`
+              ? 'Keine Einsätze geplant'
+              : 'Keine Einsätze geplant'
           }
           message={
             scope === 'portal_employee'
-              ? `Aktuell sind keine ${appointmentsLabel.toLowerCase()} für Sie sichtbar.`
-              : `Aktuell sind keine ${appointmentsLabel.toLowerCase()} für Sie geplant.`
+              ? 'Aktuell sind keine Einsätze für Sie eingetragen.'
+              : 'Aktuell sind keine Einsätze für Sie geplant.'
           }
           actionLabel="Erneut laden"
           onAction={refresh}

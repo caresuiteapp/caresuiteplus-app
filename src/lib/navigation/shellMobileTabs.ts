@@ -1,6 +1,9 @@
 import type { AppShellArea } from '@/types/navigation/shell';
 import type { ShellTabConfig } from '@/types/navigation/shell';
-import { resolveFixedMobilePortalTabs } from './portalMobileTabs';
+import {
+  resolveFixedMobileEmployeePortalTabs,
+  resolveFixedMobilePortalTabs,
+} from './portalMobileTabs';
 
 /** Max primary tabs before the fixed „Mehr“ slot on phone bottom nav. */
 export const SHELL_MOBILE_PRIMARY_MAX = 4;
@@ -10,7 +13,7 @@ export const SHELL_MOBILE_TAB_KEYS: Partial<Record<AppShellArea, readonly string
   business: ['index', 'schedule', 'clients', 'employees', 'more'],
   office: ['index', 'clients', 'employees', 'invoices', 'more'],
   assist: ['index', 'assignments', 'durchfuehrung', 'nachweise', 'more'],
-  portal_employee: ['index', 'assignments', 'messages', 'times', 'more'],
+  portal_employee: ['overview', 'assignments', 'schedule', 'messages', 'profile'],
 };
 
 const FALLBACK_MORE: ShellTabConfig = {
@@ -50,6 +53,10 @@ export function resolveCompactShellMobileTabs(
 ): ShellTabConfig[] {
   if (area === 'portal_client') {
     return resolveFixedMobilePortalTabs(tabs);
+  }
+
+  if (area === 'portal_employee') {
+    return resolveFixedMobileEmployeePortalTabs(tabs);
   }
 
   const keys = area ? SHELL_MOBILE_TAB_KEYS[area] : undefined;

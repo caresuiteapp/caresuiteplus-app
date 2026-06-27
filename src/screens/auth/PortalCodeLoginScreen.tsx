@@ -14,6 +14,7 @@ import { loginClientPortal } from '@/lib/auth/clientPortalAuthService';
 import { sanitizePortalUsernameInput } from '@/lib/auth/clientPortalUsernameGenerator';
 import { completePortalLogin } from '@/lib/auth/portalloginflow';
 import { normalizePortalCodeInput } from '@/lib/auth/portalCodeGenerator';
+import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
 import { useAuth } from '@/lib/auth/context';
 import { SUPPORT_LINKS } from '@/lib/platform/supportLinks';
 
@@ -59,6 +60,7 @@ export function PortalCodeLoginScreen() {
 
     try {
       await signInPortalSession(completed.data.portalSession);
+      markPortalWelcomePending('client');
       setSuccess(true);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');

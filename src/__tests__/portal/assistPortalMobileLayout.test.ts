@@ -79,20 +79,17 @@ describe('resolvePortalHeroCopy', () => {
 });
 
 describe('Assist portal mobile layout', () => {
-  it('MobilePortalDashboard uses full welcome hero copy on phone', () => {
+  it('MobilePortalDashboard uses time-based greeting on phone', () => {
     const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
-    expect(mobile).toContain('greetingLabel');
+    expect(mobile).toContain('resolveTimeBasedGermanGreeting');
     expect(mobile).toContain('titleSecondary={context.displayName}');
     expect(mobile).toContain('showStatusDot');
-    expect(mobile).toContain('Feather name="heart"');
     expect(mobile).not.toContain('resolvePortalHeroCopy');
-    expect(mobile).not.toContain('leadingIcon="🤝"');
+    expect(mobile).not.toContain('ScrollView');
   });
-  it('client portal tabs layout uses ClientPortalShell', () => {
-    const layout = readSrc('app/portal/client/(tabs)/_layout.tsx');
+  it('client portal tabs layout delegates shell to root layout', () => {
+    const layout = readSrc('app/portal/client/_layout.tsx');
     expect(layout).toContain('ClientPortalShell');
-    expect(layout).not.toContain("from '@/components/layout'");
-    expect(layout).not.toContain('<ShellLayout');
   });
 
   it('delegates phone overview to MobilePortalDashboard without touching desktop JSX', () => {
@@ -103,15 +100,16 @@ describe('Assist portal mobile layout', () => {
     expect(overview).toContain('PortalKpiCard');
   });
 
-  it('MobilePortalDashboard uses safe bottom padding and single scroll surface', () => {
+  it('MobilePortalDashboard uses single scroll surface via portal shell', () => {
     const mobile = readSrc('src/components/portal/assist/MobilePortalDashboard.tsx');
-    expect(mobile).toContain('useSafeAreaInsets');
-    expect(mobile).toContain('PORTAL_MOBILE_NAV_HEIGHT');
+    expect(mobile).not.toContain('useSafeAreaInsets');
+    expect(mobile).not.toContain('PORTAL_MOBILE_NAV_HEIGHT');
+    expect(mobile).not.toContain('ScrollView');
     expect(mobile).toContain("width: '100%'");
     expect(mobile).toContain('MobilePortalKpiCard');
     expect(mobile).toContain('MobilePortalSidebarCards');
     expect(mobile).toContain('emptyActionLabel="Einsatz anfragen"');
-    expect(mobile).toContain('greetingLabel');
+    expect(mobile).toContain('Wichtig für Sie');
     expect(mobile).not.toContain('PortalQuickActions');
   });
 

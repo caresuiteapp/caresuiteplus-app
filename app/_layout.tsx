@@ -13,6 +13,7 @@ import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
 import { ModalStackProvider } from '@/components/navigation/ModalStackProvider';
 import { AuthProvider } from '@/lib/auth';
 import { BusinessWelcomeGate } from '@/components/auth/BusinessWelcomeGate';
+import { PortalWelcomeGate } from '@/components/auth/PortalWelcomeGate';
 
 applyInvisibleScrollIndicators();
 
@@ -73,6 +74,7 @@ export default function RootLayout() {
             <ModalStackProvider>
               <ScreensaverSettingsProvider>
                 <BusinessWelcomeGate />
+                <PortalWelcomeGate />
                 <GlobalScreensaver />
                 <RootShell />
               </ScreensaverSettingsProvider>

@@ -25,7 +25,7 @@ export function usePortalActor(): PortalActor {
   const employeeId = portalSession?.employeeId ?? null;
 
   const fallbackDisplayName = useMemo(
-    () => getPortalDisplayName(profile, user, portalSession, 'Portal'),
+    () => getPortalDisplayName(profile, user, portalSession, 'Willkommen'),
     [profile, portalSession, user],
   );
 

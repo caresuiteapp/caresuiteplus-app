@@ -196,7 +196,7 @@ export function PortalTabHero({
         <View style={styles.textCol}>
           <Text style={styles.title}>{title}</Text>
           <Text style={styles.meta}>
-            {totalCount} {totalCount === 1 ? 'Eintrag' : 'Einträge'} · Portal-Sicht
+            {totalCount} {totalCount === 1 ? 'Eintrag' : 'Einträge'}
           </Text>
           <Text style={styles.subtitle}>{tabConfig.subtitle}</Text>
         </View>
@@ -205,7 +205,6 @@ export function PortalTabHero({
         </View>
       </View>
       <View style={styles.badges}>
-        <PremiumBadge label="Portal-Sicht" variant="cyan" />
         {scopeKey === 'portal_family' ? (
           <PremiumBadge label="Geteilte Sicht" variant="muted" />
         ) : null}

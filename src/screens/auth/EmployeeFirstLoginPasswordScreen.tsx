@@ -6,6 +6,7 @@ import { ScreenShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { completeFirstLogin } from '@/lib/auth/employeePortalAuthService';
 import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
+import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
 import { useAuth } from '@/lib/auth/context';
 import { spacing } from '@/theme';
 
@@ -54,6 +55,7 @@ export function EmployeeFirstLoginPasswordScreen() {
     }
 
     await updatePortalSession({ mustChangePassword: false });
+    markPortalWelcomePending('employee');
     setCompleted(true);
     router.replace(resolvePostLoginRoute('employee_portal') as never);
   };

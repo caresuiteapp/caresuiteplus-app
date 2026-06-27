@@ -169,11 +169,11 @@ describe('Native app structure (Prompt 110)', () => {
 
   it('employee shell uses native primary navigation labels', () => {
     expect(PORTAL_EMPLOYEE_TABS.map((tab) => tab.label)).toEqual([
-      'Heute',
+      'Übersicht',
       'Einsätze',
+      'Dienstplan',
       'Nachrichten',
-      'Zeiten',
-      'Mehr',
+      'Profil',
     ]);
   });
 

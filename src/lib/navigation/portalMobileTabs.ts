@@ -1,7 +1,7 @@
 import type { ShellTabConfig } from '@/types/navigation/shell';
 import type { PortalModuleKey } from '@/lib/portal/types';
 
-/** Fixed bottom-nav tabs on phone — no overflow / „Mehr“. */
+/** Fixed bottom-nav tabs on phone — Klient:innenportal. */
 export const PORTAL_MOBILE_TAB_KEYS = [
   'overview',
   'assist-appointments',
@@ -12,12 +12,23 @@ export const PORTAL_MOBILE_TAB_KEYS = [
 
 export type PortalMobileTabKey = (typeof PORTAL_MOBILE_TAB_KEYS)[number];
 
+/** Fixed bottom-nav tabs on phone — Mitarbeiterportal. */
+export const PORTAL_EMPLOYEE_MOBILE_TAB_KEYS = [
+  'overview',
+  'assignments',
+  'schedule',
+  'messages',
+  'profile',
+] as const;
+
+export type PortalEmployeeMobileTabKey = (typeof PORTAL_EMPLOYEE_MOBILE_TAB_KEYS)[number];
+
 /** @deprecated Legacy overflow split — desktop/tablet unaffected; mobile uses fixed tabs. */
 export const PORTAL_MOBILE_PRIMARY_MAX = 4;
 /** @deprecated Legacy inline max before overflow menu. */
 export const PORTAL_MOBILE_INLINE_MAX = 5;
 
-const FALLBACK_MOBILE_TABS: Record<PortalMobileTabKey, ShellTabConfig> = {
+const FALLBACK_CLIENT_MOBILE_TABS: Record<PortalMobileTabKey, ShellTabConfig> = {
   overview: { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/client' },
   'assist-appointments': {
     key: 'assist-appointments',
@@ -28,6 +39,29 @@ const FALLBACK_MOBILE_TABS: Record<PortalMobileTabKey, ShellTabConfig> = {
   documents: { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents' },
   messages: { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
   profile: { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile' },
+};
+
+const FALLBACK_EMPLOYEE_MOBILE_TABS: Record<PortalEmployeeMobileTabKey, ShellTabConfig> = {
+  overview: { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/employee' },
+  assignments: {
+    key: 'assignments',
+    label: 'Einsätze',
+    icon: '📅',
+    href: '/portal/employee/assignments',
+  },
+  schedule: {
+    key: 'schedule',
+    label: 'Dienstplan',
+    icon: '🗓️',
+    href: '/portal/employee/schedule',
+  },
+  messages: {
+    key: 'messages',
+    label: 'Nachrichten',
+    icon: '💬',
+    href: '/portal/employee/messages',
+  },
+  profile: { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
 };
 
 /**
@@ -41,7 +75,17 @@ export function resolveFixedMobilePortalTabs(tabs: ShellTabConfig[]): ShellTabCo
       (key === 'assist-appointments'
         ? tabs.find((tab) => tab.key === 'appointments')
         : undefined);
-    return dynamic ?? FALLBACK_MOBILE_TABS[key];
+    return dynamic ?? FALLBACK_CLIENT_MOBILE_TABS[key];
+  });
+}
+
+/** Five fixed employee mobile tabs — Übersicht, Einsätze, Dienstplan, Nachrichten, Profil. */
+export function resolveFixedMobileEmployeePortalTabs(tabs: ShellTabConfig[]): ShellTabConfig[] {
+  return PORTAL_EMPLOYEE_MOBILE_TAB_KEYS.map((key) => {
+    const dynamic =
+      tabs.find((tab) => tab.key === key) ??
+      (key === 'overview' ? tabs.find((tab) => tab.key === 'index') : undefined);
+    return dynamic ?? FALLBACK_EMPLOYEE_MOBILE_TABS[key];
   });
 }
 

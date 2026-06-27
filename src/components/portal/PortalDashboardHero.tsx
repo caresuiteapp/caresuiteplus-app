@@ -107,7 +107,6 @@ export function PortalDashboardHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge label={ROLE_LABELS[snapshot.roleKey]} variant="orange" dot />
-        <PremiumBadge label="Portal-Sicht" variant="cyan" />
       </View>
       <PremiumButton
         title={`${snapshot.primaryAction.icon} ${snapshot.primaryAction.label}`}

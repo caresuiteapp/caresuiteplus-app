@@ -1,7 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
-import { Feather } from '@expo/vector-icons';
-import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { useCallback, useEffect, useState } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
 import { MobilePortalKpiCard } from '@/components/portal/assist/MobilePortalKpiCard';
@@ -27,8 +25,8 @@ import {
 import {
   canAccessPortalFeature,
   resolvePortalTerminology,
+  resolveTimeBasedGermanGreeting,
 } from '@/lib/portal/engine';
-import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assist';
 import type { PortalStructuredRequestPayload } from '@/types/portal/requestPayloads';
@@ -50,16 +48,8 @@ export function MobilePortalDashboard({
   onRefresh,
   initialModal = null,
 }: MobilePortalDashboardProps) {
-  const insets = useSafeAreaInsets();
   const router = useRouter();
   const params = useLocalSearchParams<{ modal?: string; action?: string }>();
-  const contentPadding = useMemo(
-    () => ({
-      paddingHorizontal: careSpacing.md,
-      paddingBottom: PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm),
-    }),
-    [insets.bottom],
-  );
   const { actorId } = usePortalActor();
 
   const [dashboard, setDashboard] = useState<AssistDashboardData | null>(null);
@@ -75,8 +65,7 @@ export function MobilePortalDashboard({
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const terminology = resolvePortalTerminology('assist');
-  const releaseLabel =
-    context.visibleFeatures.length > 0 ? 'Freigabe aktiv' : 'Freigabe ausstehend';
+  const greeting = resolveTimeBasedGermanGreeting();
   const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
   const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
@@ -205,11 +194,7 @@ export function MobilePortalDashboard({
 
   return (
     <AssistPortalShell>
-      <ScrollView
-        style={styles.scroll}
-        contentContainerStyle={[styles.container, contentPadding]}
-        showsVerticalScrollIndicator={false}
-      >
+      <View style={styles.container}>
         {showSuccess || localSuccess ? (
           <SuccessState message="Ihre Anfrage wurde übermittelt." />
         ) : null}
@@ -218,11 +203,10 @@ export function MobilePortalDashboard({
         ) : null}
 
         <PortalGlassHero
-          leadingIcon={<Feather name="heart" size={22} color="#7B61FF" />}
-          title={`${terminology.greetingLabel},`}
+          title={`${greeting},`}
           titleSecondary={context.displayName}
           subtitle={context.tenantName}
-          meta={`${terminology.moduleLabel} · Rolle: ${terminology.personLabel} · ${releaseLabel}`}
+          meta={`${terminology.moduleLabel} · ${terminology.personLabel}`}
           badge={terminology.moduleLabel}
           showStatusDot
         />
@@ -234,17 +218,8 @@ export function MobilePortalDashboard({
           emptyActionLabel="Einsatz anfragen"
         />
 
-        <View style={styles.kpiGrid}>
-          <MobilePortalKpiCard
-            icon="📅"
-            label="Einsätze"
-            value={data.kpis.appointments}
-            emptyMessage="Keine Einsätze geplant."
-            ctaLabel="Einsatz anfragen →"
-            accentColor="#4CC9F0"
-            onCta={() => setRequestModal('zusatztermin')}
-            onPress={() => router.push('/portal/client/appointments' as never)}
-          />
+        <Text style={styles.sectionLabel}>Wichtig für Sie</Text>
+        <View style={styles.priorityGrid}>
           <MobilePortalKpiCard
             icon="💬"
             label="Nachrichten"
@@ -275,6 +250,20 @@ export function MobilePortalDashboard({
             onCta={() => setProofsModalOpen(true)}
             onPress={() => setProofsModalOpen(true)}
             hidden={!proofsReleased}
+          />
+        </View>
+
+        <Text style={styles.sectionLabel}>Weitere Bereiche</Text>
+        <View style={styles.kpiGrid}>
+          <MobilePortalKpiCard
+            icon="📅"
+            label="Einsätze"
+            value={data.kpis.appointments}
+            emptyMessage="Keine Einsätze geplant."
+            ctaLabel="Einsatz anfragen →"
+            accentColor="#4CC9F0"
+            onCta={() => setRequestModal('zusatztermin')}
+            onPress={() => router.push('/portal/client/appointments' as never)}
           />
           <MobilePortalKpiCard
             icon="✍️"
@@ -324,7 +313,7 @@ export function MobilePortalDashboard({
         </View>
 
         <MobilePortalSidebarCards />
-      </ScrollView>
+      </View>
 
       <PortalDocumentUploadModal
         visible={uploadModalOpen}
@@ -386,13 +375,23 @@ export function MobilePortalDashboard({
 }
 
 const styles = StyleSheet.create({
-  scroll: {
-    flex: 1,
-  },
   container: {
-    gap: careSpacing.sm,
+    gap: careSpacing.lg,
     width: '100%',
     maxWidth: '100%',
+  },
+  sectionLabel: {
+    fontSize: 13,
+    fontWeight: '700',
+    letterSpacing: 0.4,
+    opacity: 0.85,
+  },
+  priorityGrid: {
+    flexDirection: 'row',
+    flexWrap: 'wrap',
+    gap: careSpacing.sm,
+    width: '100%',
+    justifyContent: 'space-between',
   },
   kpiGrid: {
     flexDirection: 'row',
