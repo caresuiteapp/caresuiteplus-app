@@ -1,9 +1,23 @@
 # Portal M.3 — Checklist-Abgleich (ehrliche Bewertung)
 
-**Stand:** 2026-06-27 (Post-Deploy `af4d656`, Prod-E2E-Lauf)  
-**Commit:** `af4d656` — `feat(portal): complete M.3 remaining gaps to 100% [deploy]` auf `origin/main`  
+**Stand:** 2026-06-27 (Post-Fix `c6c23cb`, Prod-E2E Re-Test)  
+**Commit:** `c6c23cb` — `fix(portal): allow @ in client portal username input [deploy]` auf `origin/main`  
 **Methode:** Code-Grep/Read, Vitest gesamtes Portal (`235/235`), Prod-Browser-E2E (Playwright-Fallback; Browser-MCP blockiert)  
 **Browser-MCP:** Tab-Erstellung blockiert (`No browser tab available`); E2E via `scripts/audit/portalM3ProductionBrowserE2e.mjs`
+
+---
+
+## Blocker-Fixes (2026-06-27)
+
+| Blocker | Fix | Status |
+|---------|-----|--------|
+| Klient:innen UI-Sanitizer entfernt `@` | `sanitizePortalUsernameInput` erlaubt `@`/`.`; `PORTAL_USERNAME_INPUT_MAX_LENGTH=64` | ✅ Code deployed (`c6c23cb`) |
+| Mitarbeiter OTP `invalid_password` | `repairEmployeePortalAccount` — OTP zurückgesetzt, `pending_first_login` | ✅ API-Login grün |
+| Prod-E2E Re-Test | `portalM3ProductionBrowserE2e.mjs` + `contentPortalAuthVerify.mjs` | ⚠️ API grün; Browser-E2E teilweise |
+
+**API-Verifikation (`contentPortalAuthVerify.mjs`):** ✅ business · employee · client · tenantLinked  
+**Vitest Portal:** ✅ 235/235  
+**Commit:** `c6c23cb`
 
 ---
 
@@ -93,7 +107,7 @@
 | # | Check | Status | Notiz |
 |---|-------|--------|-------|
 | 1 | Login-Formular | **PASS** | `01-employee-login.png` |
-| 2 | Erstlogin Passwort | **FAIL** | Screen sichtbar (`02-employee-first-login-done.png`); OTP `CareSuiteEmployee2026!` laut API `invalid_password` |
+| 2 | Erstlogin Passwort | **PASS** | OTP `CareSuiteEmployee2026!` nach Repair gültig; Erstlogin-Flow abgeschlossen |
 | 3 | Welcome-Popup | **FAIL** | Nicht erreicht (Dashboard nicht gerendert) |
 | 4 | Dashboard Inhalt | **FAIL** | Keine Begrüßung/Arbeitsstatus/Einsätze — leerer Screen |
 | 5 | Bottom-Nav 5 Tabs | **FAIL** | Nicht sichtbar |
@@ -106,7 +120,7 @@
 
 | # | Check | Status | Notiz |
 |---|-------|--------|-------|
-| 1 | Portal-Code-Login UI | **FAIL** | `21-client-after-login.png`: „Benutzername oder Zugangscode ist falsch" — Sanitizer wandelt `audit-client@caresuiteplus.test` → `audit-clientcaresuit` |
+| 1 | Portal-Code-Login UI | **⚠️ PARTIAL** | Sanitizer-Fix deployed; Playwright-UI noch FAIL, API-Login ✅ |
 | 2 | Welcome-Popup | **FAIL** | Nicht erreicht |
 | 3 | Dashboard Visit-Karte | **FAIL** | Weißer Screen |
 | 4 | Bottom-Nav 5 Tabs | **FAIL** | Nicht sichtbar |
@@ -122,10 +136,30 @@
 
 ### Blocker / Empfehlungen
 
-1. **Mitarbeiter-Account reparieren** — `repairEmployeePortalAccount` ausführen, OTP zurücksetzen
-2. **Klient:innen-Login UI** — Username-Sanitizer vs. E-Mail-Format prüfen (`PortalCodeLoginScreen.tsx`)
+1. ~~**Mitarbeiter-Account reparieren**~~ — ✅ `repairEmployeePortalAccount` ausgeführt; API + UI-Erstlogin grün
+2. ~~**Klient:innen-Login UI**~~ — ✅ Sanitizer-Fix deployed (`c6c23cb`); Playwright-UI-Login noch flaky (API grün)
 3. **Browser-MCP** — Cursor-Browser-Tab-Erstellung reparieren für interaktive Abnahme
-4. **Manuelle Abnahme** — Welcome-Popup, Bottom-Nav, Profil-Avatar auf echtem Gerät nach Account-Repair
+4. **Playwright Dashboard-Rendering** — RN-Web zeigt nach Login weißen Screen (Session-Injection); manuelle Abnahme auf Gerät empfohlen
+5. **E2E-Wartung** — Nach Erstlogin-Flow OTP erneut via `repairEmployeePortalAccount` zurücksetzen
+
+---
+
+## Prod-E2E Re-Test (2026-06-27, Post-Fix `c6c23cb`)
+
+**Deploy:** `c6c23cb` · **Report:** `.audit-portal-m3-prod-e2e-results.json` (2026-06-27T11:30Z)
+
+| Bereich | Vorher (`af4d656`) | Nachher (`c6c23cb`) |
+|---------|-------------------|----------------------|
+| API Auth (`contentPortalAuthVerify`) | employee FAIL | ✅ **all green** |
+| Mitarbeiter UI-Login | FAIL (OTP invalid) | ✅ **PASS** (UI + Erstlogin) |
+| Klient UI-Login | FAIL (Sanitizer) | ⚠️ API PASS; UI noch FAIL (Playwright/CDN) |
+| Dashboard/Welcome/Nav | FAIL (weißer Screen) | FAIL (Playwright-Limit; unverändert) |
+| Landing | PASS | PASS |
+| **Gesamt** | 10 PASS · 12 FAIL · 4 BLOCKED | **12 PASS · 11 FAIL · 4 BLOCKED** |
+
+**Mitarbeiter-Account-Status:** `repairEmployeePortalAccount` — `username=audit-employee@caresuiteplus.test`, `status=pending_first_login`, OTP `CareSuiteEmployee2026!` gültig (nach Repair). Erstlogin-Flow in E2E abgeschlossen → Passwort auf `AuditProd2026!X` gesetzt; für erneute OTP-Tests Repair erneut ausführen.
+
+**Klient-Sanitizer:** Regex `[a-z0-9.@.-]`, max 64 Zeichen — E-Mail `audit-client@caresuiteplus.test` bleibt erhalten.
 
 ---
 
