@@ -9,7 +9,7 @@ export type TenantDisplayMeta = {
 };
 
 export const DEFAULT_TENANT_DISPLAY: TenantDisplayMeta = {
-  name: 'Ihr Mandant',
+  name: 'Ihr Unternehmen',
   street: '',
   zip: '',
   city: '',

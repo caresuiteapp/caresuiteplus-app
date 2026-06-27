@@ -7,8 +7,12 @@ export type LiveConfigIssue = {
   message: string;
 };
 
-/** CareSuite+ is live-only — always routes through Supabase services. */
+/** Live Supabase when configured; demo in-memory path when EXPO_PUBLIC_DEMO_MODE=true. */
 export function getServiceMode(): ServiceMode {
+  const demoEnv = typeof process !== 'undefined' ? process.env?.EXPO_PUBLIC_DEMO_MODE : undefined;
+  if (demoEnv === 'true') {
+    return 'demo';
+  }
   return 'supabase';
 }
 

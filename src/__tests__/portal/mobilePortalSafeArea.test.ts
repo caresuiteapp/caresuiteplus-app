@@ -43,7 +43,8 @@ describe('Abmelden placement on mobile portal', () => {
   it('PortalTopBar compact profile menu excludes Abmelden', () => {
     const topbar = readSrc('src/components/layout/portal/PortalTopBar.tsx');
     expect(topbar).toContain('profileMenuItems = compact');
-    expect(topbar).toContain("? [{ label: 'Profil', href: '/portal/client/profile' }]");
+    expect(topbar).toContain("? [{ label: 'Profil', href: profilePath }]");
+    expect(topbar).toContain('profilePath');
   });
 
   it('PortalNavigationDrawer has separated logout as last item', () => {

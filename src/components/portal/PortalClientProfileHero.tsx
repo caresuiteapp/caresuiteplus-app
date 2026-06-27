@@ -3,6 +3,7 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { PORTAL_CLIENT_LABEL } from '@/lib/portal/portalDisplayLabels';
 import {
   isPortalProfileLiveReady,
   PORTAL_PROFILE_PREPARED_MESSAGE,
@@ -85,11 +86,10 @@ export function PortalClientProfileHero({ profile }: PortalClientProfileHeroProp
         {profile.careLevel ? (
           <PremiumBadge label={formatCareLevel(profile.careLevel)} variant="green" dot />
         ) : null}
+        <PremiumBadge label={PORTAL_CLIENT_LABEL} variant="cyan" />
         {profileDataLive ? (
           <PremiumBadge label="Cloud Live" variant="green" dot />
-        ) : authLive ? null : (
-          <PremiumBadge label="Demo / preparedOnly" variant="muted" />
-        )}
+        ) : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

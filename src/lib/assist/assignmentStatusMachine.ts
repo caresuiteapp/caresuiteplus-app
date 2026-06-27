@@ -63,12 +63,12 @@ export function validateExecutionTransition(
   to: AssignmentStatus,
   options?: ExecutionTransitionOptions,
 ): { valid: true } | { valid: false; error: string } {
-  const base = validateAssignmentTransition(from, to);
-  if (!base.valid) return base;
-
   if (options?.requireArrivedBeforeStart && to === 'gestartet' && from !== 'angekommen') {
     return { valid: false, error: 'Ankunft muss vor dem Start bestätigt werden.' };
   }
+
+  const base = validateAssignmentTransition(from, to);
+  if (!base.valid) return base;
 
   if (to === 'abgeschlossen' && requiresDocumentationBeforeComplete(from) && !options?.hasDocumentation) {
     return { valid: false, error: 'Dokumentation muss vor Abschluss vorliegen.' };
@@ -80,5 +80,6 @@ export function validateExecutionTransition(
 const NOTE_REQUIRED_STATUSES: AssignmentStatus[] = ['storniert', 'nicht_erschienen'];
 
 export function taskStatusRequiresNote(status: AssignmentStatus | ExtendedAssignmentTaskStatus): boolean {
+  if (status === 'not_possible') return true;
   return NOTE_REQUIRED_STATUSES.includes(status as AssignmentStatus);
 }

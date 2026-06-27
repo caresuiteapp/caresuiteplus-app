@@ -720,6 +720,10 @@ const PORTAL_EMPLOYEE: PermissionKey[] = [
   'portal.employee.documents.download',
   'portal.employee.profile.view',
   'portal.employee.timesheet.view',
+  'assist.execution.manage',
+  'assist.records.create',
+  'assist.records.sign',
+  'geo.location.capture',
   ...PORTAL_EMPLOYEE_EXTENDED,
 ];
 

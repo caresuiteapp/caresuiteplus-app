@@ -40,8 +40,12 @@ describe('Portal animated background wiring', () => {
   it('client and employee tab shells stay transparent', () => {
     const clientTabs = readSrc('app/portal/client/(tabs)/_layout.tsx');
     const employeeTabs = readSrc('app/portal/employee/(tabs)/_layout.tsx');
-    expect(clientTabs).toContain('ClientPortalShell');
-    expect(employeeTabs).toContain('EmployeePortalShell');
+    const clientLayout = readSrc('app/portal/client/_layout.tsx');
+    const employeeLayout = readSrc('app/portal/employee/_layout.tsx');
+    expect(clientTabs).toContain("backgroundColor: 'transparent'");
+    expect(employeeTabs).toContain("backgroundColor: 'transparent'");
+    expect(clientLayout).toContain('ClientPortalShell');
+    expect(employeeLayout).toContain('EmployeePortalShell');
   });
 
   it('relative portal uses RelativePortalShell', () => {

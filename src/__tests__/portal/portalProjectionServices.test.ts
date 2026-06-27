@@ -32,8 +32,8 @@ describe('portal projection services', () => {
     expect(readSrc('src/components/portal/PortalShell.tsx')).toContain("kind: PortalKind");
     expect(readSrc('src/components/portal/ClientPortalShell.tsx')).toContain('ClientPortalShell');
     expect(readSrc('src/components/portal/EmployeePortalShell.tsx')).toContain('EmployeePortalShell');
-    expect(readSrc('app/portal/client/(tabs)/_layout.tsx')).toContain('ClientPortalShell');
-    expect(readSrc('app/portal/employee/(tabs)/_layout.tsx')).toContain('EmployeePortalShell');
+    expect(readSrc('app/portal/client/_layout.tsx')).toContain('ClientPortalShell');
+    expect(readSrc('app/portal/employee/_layout.tsx')).toContain('EmployeePortalShell');
   });
 
   it('employee impact summary blocks budget and full record', () => {

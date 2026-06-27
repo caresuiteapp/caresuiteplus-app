@@ -7,12 +7,12 @@ describe('Service mode switching', () => {
     vi.unstubAllEnvs();
   });
 
-  it('ist immer Supabase (live-only)', () => {
+  it('nutzt Demo-Pfad wenn EXPO_PUBLIC_DEMO_MODE=true', () => {
     vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_URL', '');
     vi.stubEnv('EXPO_PUBLIC_SUPABASE_ANON_KEY', '');
 
-    expect(getServiceMode()).toBe('supabase');
+    expect(getServiceMode()).toBe('demo');
     expect(isDemoMode()).toBe(false);
     expect(isSupabaseConfigured()).toBe(false);
   });

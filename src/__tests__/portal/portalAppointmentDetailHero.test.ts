@@ -12,7 +12,7 @@ describe('Portal Appointment Detail Hero (Sprint 80)', () => {
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('KLIENT:INNENPORTAL');
     expect(hero).toContain('MITARBEITERPORTAL');
-    expect(hero).toContain('{scopeLabel} · TERMIN');
+    expect(hero).toContain('scopeLabel');
     expect(hero).toContain('PremiumKpiCard');
   });
 

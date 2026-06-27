@@ -12,7 +12,7 @@ export function useTenantDisplayMeta(): TenantDisplayMeta {
   const tenantId = useServiceTenantId();
   const isLive = getServiceMode() === 'supabase';
   const [meta, setMeta] = useState<TenantDisplayMeta>(() =>
-    isLive ? { ...DEFAULT_TENANT_DISPLAY, name: 'Ihr Mandant' } : demoTenantDisplayMeta(),
+    isLive ? DEFAULT_TENANT_DISPLAY : demoTenantDisplayMeta(),
   );
 
   useEffect(() => {

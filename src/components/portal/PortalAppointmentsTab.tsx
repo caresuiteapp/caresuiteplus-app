@@ -9,6 +9,7 @@ import {
   PremiumCard,
   SuccessState,
 } from '@/components/ui';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
 import { useAuth } from '@/lib/auth/context';
 import { resolvePortalScope } from '@/lib/portal/portalVisibility';
@@ -37,6 +38,7 @@ export function PortalAppointmentsTab({
   detailBasePath,
 }: PortalAppointmentsTabProps) {
   const router = useRouter();
+  const { isPhone } = useDeviceClass();
   const { profile } = useAuth();
   const scope = resolvePortalScope(profile?.roleKey ?? null);
   const {
@@ -63,14 +65,8 @@ export function PortalAppointmentsTab({
     );
   }
 
-  return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
-      }
-      contentContainerStyle={styles.scroll}
-    >
+  const listBody = (
+    <>
       <PortalTabHero
         tab="appointments"
         scope={scope}
@@ -126,6 +122,22 @@ export function PortalAppointmentsTab({
           </PremiumCard>
         ))
       )}
+    </>
+  );
+
+  if (isPhone) {
+    return <View style={styles.scroll}>{listBody}</View>;
+  }
+
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+      }
+      contentContainerStyle={styles.scroll}
+    >
+      {listBody}
     </ScrollView>
   );
 }

@@ -7,7 +7,10 @@ import {
   markPortalWelcomeSeen,
   type PortalWelcomeKind,
 } from '@/lib/auth/portalWelcomeSession';
-import { TENANT_NAME_FALLBACK } from '@/lib/portal/portalDisplayLabels';
+import {
+  resolvePortalScreenSubtitle,
+  TENANT_NAME_FALLBACK,
+} from '@/lib/portal/portalDisplayLabels';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
@@ -92,7 +95,9 @@ export function PortalWelcomeGate() {
   }
 
   const resolvedName = displayName || getUserDisplayName(profile, user, 'Willkommen');
-  const roleLabel = roleKey ? (ROLE_LABELS[roleKey] ?? roleKey) : 'Portalzugang';
+  const roleLabel = roleKey
+    ? (ROLE_LABELS[roleKey] ?? roleKey)
+    : resolvePortalScreenSubtitle(undefined, welcomeKind === 'employee' ? 'employee' : 'client');
 
   return (
     <PortalWelcomeModal

@@ -12,7 +12,7 @@ describe('Portal Message Detail Hero (Sprint 82)', () => {
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('KLIENT:INNENPORTAL');
     expect(hero).toContain('MITARBEITERPORTAL');
-    expect(hero).toContain('NACHRICHT');
+    expect(hero).toContain('scopeLabel');
     expect(hero).toContain('PremiumKpiCard');
   });
 

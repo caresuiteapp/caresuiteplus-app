@@ -1,4 +1,4 @@
-import { describe, expect, it } from 'vitest';
+import { afterEach, describe, expect, it, vi } from 'vitest';
 import {
   capitalizeNamePart,
   fetchClientPortalDisplayName,
@@ -46,7 +46,12 @@ describe('capitalizeNamePart', () => {
 });
 
 describe('fetchClientPortalDisplayName', () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+  });
+
   it('resolves demo client name by clientId', async () => {
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
     const name = await fetchClientPortalDisplayName('demo-tenant', 'client-001');
     expect(name).toBe('Helga Schneider');
   });

@@ -10,7 +10,7 @@ describe('Portal Employee Assignment Detail Hero (Sprint 81)', () => {
   it('PortalEmployeeAssignmentDetailHero nutzt PremiumListHeroFrame', () => {
     const hero = readSrc('src/components/portal/PortalEmployeeAssignmentDetailHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('MITARBEITERPORTAL · EINSATZ');
+    expect(hero).toContain('PORTAL_EMPLOYEE_LABEL');
     expect(hero).toContain('PremiumKpiCard');
     expect(hero).toContain('Aufgaben');
   });

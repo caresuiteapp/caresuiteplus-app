@@ -5,6 +5,10 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
 
 import { buildPortalAnnouncementsKpis } from '@/lib/portal/portalAnnouncementsStats';
+import {
+  PORTAL_CLIENT_LABEL,
+  PORTAL_EMPLOYEE_LABEL,
+} from '@/lib/portal/portalDisplayLabels';
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
 
@@ -83,7 +87,10 @@ export function PortalAnnouncementsHero({
         </View>
       </View>
       <View style={styles.badges}>
-        <PremiumBadge label="Portal preparedOnly" variant="muted" />
+        <PremiumBadge
+          label={scope === 'portal_employee' ? PORTAL_EMPLOYEE_LABEL : PORTAL_CLIENT_LABEL}
+          variant={scope === 'portal_employee' ? 'orange' : 'cyan'}
+        />
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (

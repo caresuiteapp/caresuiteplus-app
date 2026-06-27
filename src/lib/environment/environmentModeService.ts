@@ -25,6 +25,8 @@ function resolveGlobalModeFromEnv(): EnvironmentMode | null {
 export function getGlobalEnvironmentMode(): EnvironmentMode {
   const configured = resolveGlobalModeFromEnv();
   if (configured) return configured;
+  const legacyDemo = process.env.EXPO_PUBLIC_DEMO_MODE?.trim().toLowerCase();
+  if (legacyDemo === 'true') return 'demo';
   return 'production';
 }
 
