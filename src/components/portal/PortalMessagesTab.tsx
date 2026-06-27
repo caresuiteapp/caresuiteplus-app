@@ -9,6 +9,7 @@ import {
   PremiumCard,
   SuccessState,
 } from '@/components/ui';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useMessages } from '@/hooks/useMessages';
 import { useAuth } from '@/lib/auth/context';
 import { resolvePortalScope } from '@/lib/portal/portalVisibility';
@@ -29,6 +30,7 @@ type PortalMessagesTabProps = {
 
 export function PortalMessagesTab({ detailBasePath }: PortalMessagesTabProps = {}) {
   const router = useRouter();
+  const { isPhone } = useDeviceClass();
   const { profile } = useAuth();
   const scope = resolvePortalScope(profile?.roleKey ?? null);
   const {
@@ -56,14 +58,8 @@ export function PortalMessagesTab({ detailBasePath }: PortalMessagesTabProps = {
     );
   }
 
-  return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
-      }
-      contentContainerStyle={styles.scroll}
-    >
+  const listBody = (
+    <>
       <PortalTabHero
         tab="messages"
         scope={scope}
@@ -114,6 +110,22 @@ export function PortalMessagesTab({ detailBasePath }: PortalMessagesTabProps = {
           </PremiumCard>
         ))
       )}
+    </>
+  );
+
+  if (isPhone) {
+    return <View style={styles.scroll}>{listBody}</View>;
+  }
+
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+      }
+      contentContainerStyle={styles.scroll}
+    >
+      {listBody}
     </ScrollView>
   );
 }

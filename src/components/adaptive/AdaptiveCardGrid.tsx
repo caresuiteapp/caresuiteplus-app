@@ -55,6 +55,7 @@ const styles = StyleSheet.create({
   cell: {
     minWidth: 0,
     flexGrow: 1,
+    alignSelf: 'stretch',
   },
   cellFull: {
     width: '100%',

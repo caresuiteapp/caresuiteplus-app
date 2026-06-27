@@ -90,6 +90,14 @@ export function PortalTopBar({
   const profilePath =
     portalKind === 'employee' ? '/portal/employee/profile' : '/portal/client/profile';
 
+  const portalBasePath = portalKind === 'employee' ? '/portal/employee' : '/portal/client';
+
+  const handleSearchSubmit = () => {
+    const trimmed = query.trim();
+    if (!trimmed) return;
+    router.push(`${portalBasePath}/documents` as never);
+  };
+
   const profileMenuItems = compact
     ? [{ label: 'Profil', href: profilePath }]
     : [
@@ -180,24 +188,30 @@ export function PortalTopBar({
         <Text style={[styles.subtitle, { color: text.secondary }]}>{moduleSubtitle}</Text>
       </View>
 
-      <View
-        style={[
-          styles.searchWrap,
-          {
-            borderColor: useLightBar ? lightLiquidGlass.borderAccent : auroraGlass.border,
-            backgroundColor: useLightBar ? lightLiquidGlass.input : auroraGlass.input,
-          },
-        ]}
-      >
-        <Text style={[styles.searchIcon, { color: menuInk.muted }]}>⌕</Text>
-        <TextInput
-          value={query}
-          onChangeText={setQuery}
-          placeholder="Im Portal suchen…"
-          placeholderTextColor={menuInk.muted}
-          style={[styles.searchInput, { color: menuInk.primary }, webNoOutline]}
-        />
-      </View>
+      {!compact ? (
+        <View
+          style={[
+            styles.searchWrap,
+            {
+              borderColor: useLightBar ? lightLiquidGlass.borderAccent : auroraGlass.border,
+              backgroundColor: useLightBar ? lightLiquidGlass.input : auroraGlass.input,
+            },
+          ]}
+        >
+          <Text style={[styles.searchIcon, { color: menuInk.muted }]}>⌕</Text>
+          <TextInput
+            value={query}
+            onChangeText={setQuery}
+            onSubmitEditing={handleSearchSubmit}
+            returnKeyType="search"
+            placeholder="Im Portal suchen…"
+            placeholderTextColor={menuInk.muted}
+            accessibilityLabel="Im Portal suchen"
+            accessibilityHint="Enter öffnet die Dokumente"
+            style={[styles.searchInput, { color: menuInk.primary }, webNoOutline]}
+          />
+        </View>
+      ) : null}
 
       <View style={styles.actions}>
         <View style={styles.profileWrap}>

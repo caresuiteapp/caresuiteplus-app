@@ -105,8 +105,11 @@ describe('portal M.3 mobile layout', () => {
     );
   });
 
-  it('TopbarProfileAvatar applies cache bust for stored avatars', () => {
-    expect(readSrc('src/components/layout/TopbarProfileAvatar.tsx')).toContain('appendProfileAvatarCacheBust');
+  it('TopbarProfileAvatar resolves display URLs with cache bust', () => {
+    expect(readSrc('src/components/layout/TopbarProfileAvatar.tsx')).toContain(
+      'resolveProfileAvatarDisplayUrl',
+    );
+    expect(readSrc('src/lib/auth/profileAvatarUrl.ts')).toContain('appendProfileAvatarCacheBust');
   });
 
   it('landing cards include German descriptions', () => {
@@ -120,5 +123,19 @@ describe('portal M.3 mobile layout', () => {
     const overview = readSrc('src/components/portal/AdaptivePortalOverview.tsx');
     expect(overview).toContain('if (isPhone)');
     expect(overview).toContain('<View style={styles.container}>{overviewBody}</View>');
+  });
+
+  it('PortalDocumentsTab and PortalMessagesTab avoid nested ScrollView on phone', () => {
+    const documents = readSrc('src/components/portal/PortalDocumentsTab.tsx');
+    const messages = readSrc('src/components/portal/PortalMessagesTab.tsx');
+    expect(documents).toContain('if (isPhone)');
+    expect(messages).toContain('if (isPhone)');
+  });
+
+  it('TopbarProfileAvatar resolves signed avatar URLs', () => {
+    expect(readSrc('src/lib/auth/profileAvatarUrl.ts')).toContain('createSignedUrl');
+    expect(readSrc('src/components/layout/TopbarProfileAvatar.tsx')).toContain(
+      'resolveProfileAvatarDisplayUrl',
+    );
   });
 });

@@ -8,7 +8,6 @@ import {
   GlassCard,
   InputField,
   PremiumButton,
-  SuccessState,
 } from '@/design/components';
 import { careSpacing } from '@/design/tokens/spacing';
 import { loginClientPortal } from '@/lib/auth/clientPortalAuthService';
@@ -31,11 +30,9 @@ export function PortalCodeLoginScreen() {
   const [code, setCode] = useState('');
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
-  const [success, setSuccess] = useState(false);
 
   const handleSubmit = async () => {
     setError(null);
-    setSuccess(false);
     setLoading(true);
     const result = await loginClientPortal(username, code);
     setLoading(false);
@@ -64,7 +61,6 @@ export function PortalCodeLoginScreen() {
     try {
       await signInPortalSession(completed.data.portalSession);
       markPortalWelcomePending('client');
-      setSuccess(true);
       router.replace(resolvePostLoginRoute('client_portal') as never);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
@@ -81,7 +77,6 @@ export function PortalCodeLoginScreen() {
         <CareSuiteLogo size="md" />
       </View>
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      {success ? <SuccessState message="Anmeldung erfolgreich — Weiterleitung…" /> : null}
       <GlassCard glow accentColor="#FFD166">
         <InputField
           label="Benutzername"

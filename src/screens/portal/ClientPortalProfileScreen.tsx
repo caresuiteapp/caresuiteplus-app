@@ -1,12 +1,16 @@
-import { useCallback, useMemo, useState, type ReactNode } from 'react';
+import { useMemo, useState, type ReactNode } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { LockedActionBanner } from '@/components/permissions';
+import { MobilePortalKpiCard } from '@/components/portal/assist/MobilePortalKpiCard';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import {
@@ -42,6 +46,7 @@ import type { PortalClientContactSummary, PortalClientProfile } from '@/types/po
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { useAuth } from '@/lib/auth/context';
 
 const PORTAL_ROLE_LABELS: Record<import('@/lib/portal/types').PortalActorRole, string> = {
   client: 'Klient:in',
@@ -253,6 +258,8 @@ function renderProfileSections(profile: PortalClientProfile, isWide: boolean, te
 }
 
 export function ClientPortalProfileScreen() {
+  const router = useRouter();
+  const { profile: authProfile } = useAuth();
   const { can, check, roleLabel } = usePermissions();
   const canViewProfile = can('portal.client.profile.view');
   const canViewCarePlan = can('portal.client.careplan.view');
@@ -382,6 +389,14 @@ export function ClientPortalProfileScreen() {
           title={profile.displayName}
           subtitle={context?.tenantName ?? 'Ihr persönlicher Portalbereich'}
           badge={releaseLabel}
+          leadingIcon={
+            <TopbarProfileAvatar
+              name={profile.displayName}
+              avatarUrl={authProfile?.avatarUrl}
+              accentColor={moduleColor('assist')}
+              size="md"
+            />
+          }
         />
 
         {requestSuccess ? (

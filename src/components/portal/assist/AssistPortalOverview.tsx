@@ -256,7 +256,7 @@ export function AssistPortalOverview({
   };
 
   if (loading && !dashboard) {
-    return <LoadingState message="Assist-Portal wird geladen…" />;
+    return <LoadingState message="Klient:innenportal wird geladen…" />;
   }
 
   if (error && !dashboard) {

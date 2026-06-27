@@ -59,7 +59,7 @@ function mimeLabel(mimeType: string, compact = false): string {
 }
 
 function downloadSubLabel(downloadReady: boolean, viewReady: boolean): string | undefined {
-  if (downloadReady) return isDemoMode() ? 'Demo-Download' : undefined;
+  if (downloadReady) return isDemoMode() ? 'Demo-Download' : 'Download bereit';
   if (viewReady) return 'Dokument im Portal lesbar';
   return 'Derzeit nicht verfügbar';
 }

@@ -1,12 +1,14 @@
 import { useMemo, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { Redirect, useLocalSearchParams } from 'expo-router';
+import { Redirect, useLocalSearchParams, useRouter } from 'expo-router';
 import { AdaptivePortalDashboard } from '@/components/portal/AdaptivePortalDashboard';
 import {
   AssistPortalOverview,
   AssistPortalSectionBlocked,
   AssistPortalSectionView,
 } from '@/components/portal/assist';
+import { MobilePortalKpiCard } from '@/components/portal/assist/MobilePortalKpiCard';
+import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText, useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
@@ -21,6 +23,7 @@ import {
   canAccessPortalFeature,
   resolveCombinedModuleLabel,
   resolvePortalTerminology,
+  resolveTimeBasedGermanGreeting,
 } from '@/lib/portal/engine';
 import {
   PORTAL_MODULE_ICONS,
@@ -35,6 +38,7 @@ type AdaptivePortalOverviewProps = {
 };
 
 export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePortalOverviewProps) {
+  const router = useRouter();
   const { context, loading, error, refresh, isReady } = usePortalContext();
   const params = useLocalSearchParams<{ module?: string; section?: string }>();
   const routeModule = typeof params.module === 'string' && isPortalModuleKey(params.module)
@@ -149,23 +153,73 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
   }
 
   const moduleTabs = context.activeModuleKeys;
+  const greeting = resolveTimeBasedGermanGreeting();
   const overviewBody = (
     <>
       {showSuccess ? <SuccessState message="Daten erfolgreich aktualisiert." /> : null}
 
-      <GlassCard style={heroStyle}>
-        <Text style={[type.caption, { color: text.muted }]}>KLIENT:INNENPORTAL</Text>
-        <Text style={[type.cardTitle, { color: text.primary }]}>
-          {terminology.greetingLabel}, {context.displayName}
-        </Text>
-        <Text style={[type.body, { color: text.secondary, fontWeight: '600' }]}>
-          {context.tenantName}
-        </Text>
-        <Text style={[type.caption, { color: text.muted }]}>
-          {resolveCombinedModuleLabel(context.activeModuleKeys)} ·{' '}
-          {terminology.appointmentLabelPlural} und {terminology.careTeamLabel} nach Freigabe
-        </Text>
-      </GlassCard>
+      {isPhone ? (
+        <PortalGlassHero
+          title={`${greeting},`}
+          titleSecondary={context.displayName}
+          subtitle={context.tenantName}
+          meta={`${resolveCombinedModuleLabel(context.activeModuleKeys)} · ${terminology.appointmentLabelPlural}`}
+          badge={PORTAL_MODULE_LABELS[context.primaryModule ?? 'assist']}
+          showStatusDot
+        />
+      ) : (
+        <GlassCard style={heroStyle}>
+          <Text style={[type.caption, { color: text.muted }]}>KLIENT:INNENPORTAL</Text>
+          <Text style={[type.cardTitle, { color: text.primary }]}>
+            {terminology.greetingLabel}, {context.displayName}
+          </Text>
+          <Text style={[type.body, { color: text.secondary, fontWeight: '600' }]}>
+            {context.tenantName}
+          </Text>
+          <Text style={[type.caption, { color: text.muted }]}>
+            {resolveCombinedModuleLabel(context.activeModuleKeys)} ·{' '}
+            {terminology.appointmentLabelPlural} und {terminology.careTeamLabel} nach Freigabe
+          </Text>
+        </GlassCard>
+      )}
+
+      {isPhone ? (
+        <>
+          <Text style={[type.label, { color: text.primary }]}>Wichtig für Sie</Text>
+          <View style={styles.priorityGrid}>
+            <MobilePortalKpiCard
+              icon="📅"
+              label={terminology.appointmentLabelPlural}
+              value={widgets.find((w) => w.widgetKey.includes('appointment'))?.metricValue ?? null}
+              emptyMessage={`Keine ${terminology.appointmentLabelPlural.toLowerCase()} geplant.`}
+              ctaLabel={`${terminology.appointmentLabelPlural} öffnen →`}
+              accentColor="#7B61FF"
+              onCta={() => router.push('/portal/client/appointments' as never)}
+              onPress={() => router.push('/portal/client/appointments' as never)}
+            />
+            <MobilePortalKpiCard
+              icon="💬"
+              label="Nachrichten"
+              value={widgets.find((w) => w.widgetKey.includes('message'))?.metricValue ?? null}
+              emptyMessage="Keine neuen Nachrichten."
+              ctaLabel="Nachrichten öffnen →"
+              accentColor="#FF9500"
+              onCta={() => router.push('/portal/client/messages' as never)}
+              onPress={() => router.push('/portal/client/messages' as never)}
+            />
+            <MobilePortalKpiCard
+              icon="📄"
+              label="Dokumente"
+              value={widgets.find((w) => w.widgetKey.includes('document'))?.metricValue ?? null}
+              emptyMessage="Keine neuen Dokumente."
+              ctaLabel="Dokumente öffnen →"
+              accentColor="#22C55E"
+              onCta={() => router.push('/portal/client/documents' as never)}
+              onPress={() => router.push('/portal/client/documents' as never)}
+            />
+          </View>
+        </>
+      ) : null}
 
       {moduleTabs.length > 1 ? (
         <View style={styles.moduleTabs}>
@@ -237,5 +291,8 @@ const styles = StyleSheet.create({
   },
   chipIcon: {
     fontSize: 14,
+  },
+  priorityGrid: {
+    gap: careSpacing.sm,
   },
 });

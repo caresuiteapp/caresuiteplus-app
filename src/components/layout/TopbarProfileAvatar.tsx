@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Alert,
   Platform,
@@ -11,7 +11,7 @@ import {
 import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
 import { useAuth } from '@/lib/auth/context';
 import { pickUserAvatarFile } from '@/lib/auth/pickUserAvatarFile';
-import { appendProfileAvatarCacheBust } from '@/lib/auth/profileAvatarUrl';
+import { resolveProfileAvatarDisplayUrl } from '@/lib/auth/profileAvatarUrl';
 import { saveUserProfileAvatar } from '@/lib/auth/useravatarservice';
 
 type TopbarProfileAvatarProps = {
@@ -42,6 +42,7 @@ export function TopbarProfileAvatar({
   const { profile, session, updateProfile } = useAuth();
   const authUserId = session?.user.id ?? null;
   const [previewUri, setPreviewUri] = useState<string | null>(null);
+  const [resolvedUri, setResolvedUri] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -51,13 +52,26 @@ export function TopbarProfileAvatar({
     }
   }, [avatarUrl]);
 
+  useEffect(() => {
+    if (previewUri) {
+      setResolvedUri(previewUri);
+      return;
+    }
+
+    let cancelled = false;
+    void resolveProfileAvatarDisplayUrl(avatarUrl, profile?.updatedAt ?? profile?.avatarUrl).then(
+      (url) => {
+        if (!cancelled) setResolvedUri(url);
+      },
+    );
+
+    return () => {
+      cancelled = true;
+    };
+  }, [avatarUrl, previewUri, profile?.updatedAt, profile?.avatarUrl]);
+
   const canUpload = Boolean(profile?.tenantId && authUserId);
-  const rawUri = previewUri ?? (avatarUrl?.trim() || undefined);
-  const displayUri = useMemo(() => {
-    if (!rawUri) return undefined;
-    if (previewUri) return previewUri;
-    return appendProfileAvatarCacheBust(rawUri, profile?.updatedAt ?? profile?.avatarUrl);
-  }, [previewUri, rawUri, profile?.updatedAt, profile?.avatarUrl]);
+  const displayUri = previewUri ?? resolvedUri;
   const showOverlay = canUpload && (hovered || uploading);
 
   const styles = useMemo(

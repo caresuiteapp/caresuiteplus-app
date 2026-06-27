@@ -51,12 +51,12 @@ describe('post-login redirect routing', () => {
     expect(guard).toContain('resolveAuthSessionTarget');
 
     expect(employee).not.toContain('signInDemo');
-    expect(employee).not.toContain('resolvePostLoginRoute');
-    expect(employee).toContain('setSuccess(true)');
+    expect(employee).toContain('router.replace(resolvePostLoginRoute');
+    expect(employee).not.toContain('setSuccess(true)');
 
     expect(client).not.toContain('signInDemo');
-    expect(client).not.toContain('resolvePostLoginRoute');
-    expect(client).toContain('setSuccess(true)');
+    expect(client).toContain('router.replace(resolvePostLoginRoute');
+    expect(client).not.toContain('setSuccess(true)');
   });
 
   it('RequireAuth waits for authReady and checks live session before redirect', () => {

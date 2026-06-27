@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
@@ -53,54 +52,47 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
   const scope = resolvePortalScope(profile?.roleKey ?? null);
-  const contentPadding = useMemo(
-    () => ({
-      paddingHorizontal: isPhone ? careSpacing.sm : 0,
-      paddingBottom: showBottomTabs
-        ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
-        : spacing.xxl,
-    }),
-    [insets.bottom, isPhone, showBottomTabs],
-  );
-  const styles = useMemo(
-    () =>
-      StyleSheet.create({
-        scroll: {
-          gap: spacing.md,
-          width: '100%',
-          maxWidth: '100%',
-          alignSelf: 'stretch',
-        },
-        cardHeader: {
-          flexDirection: 'row',
-          justifyContent: 'space-between',
-          alignItems: 'flex-start',
-          gap: spacing.sm,
-          marginBottom: spacing.xs,
-        },
-        title: {
-          ...content.title,
-          flex: 1,
-          minWidth: 0,
-        },
-        fileName: content.secondary,
-        meta: {
-          ...content.caption,
-          marginTop: spacing.xs,
-        },
-        badges: {
-          flexDirection: 'row',
-          flexWrap: 'wrap',
-          gap: spacing.xs,
-          marginTop: spacing.sm,
-        },
-        card: {
-          width: '100%',
-          alignSelf: 'stretch',
-        },
-      }),
-    [content],
-  );
+  const contentPadding = {
+    paddingHorizontal: isPhone ? careSpacing.sm : 0,
+    paddingBottom: showBottomTabs
+      ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
+      : spacing.xxl,
+  };
+  const styles = StyleSheet.create({
+    scroll: {
+      gap: spacing.md,
+      width: '100%',
+      maxWidth: '100%',
+      alignSelf: 'stretch',
+    },
+    cardHeader: {
+      flexDirection: 'row',
+      justifyContent: 'space-between',
+      alignItems: 'flex-start',
+      gap: spacing.sm,
+      marginBottom: spacing.xs,
+    },
+    title: {
+      ...content.title,
+      flex: 1,
+      minWidth: 0,
+    },
+    fileName: content.secondary,
+    meta: {
+      ...content.caption,
+      marginTop: spacing.xs,
+    },
+    badges: {
+      flexDirection: 'row',
+      flexWrap: 'wrap',
+      gap: spacing.xs,
+      marginTop: spacing.sm,
+    },
+    card: {
+      width: '100%',
+      alignSelf: 'stretch',
+    },
+  });
   const {
     items,
     loading,
@@ -125,14 +117,8 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
     );
   }
 
-  return (
-    <ScrollView
-      showsVerticalScrollIndicator={false}
-      refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
-      }
-      contentContainerStyle={[styles.scroll, contentPadding]}
-    >
+  const listBody = (
+    <>
       <PortalTabHero
         tab="documents"
         scope={scope}
@@ -182,6 +168,22 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
           </PremiumCard>
         ))
       )}
+    </>
+  );
+
+  if (isPhone) {
+    return <View style={[styles.scroll, contentPadding]}>{listBody}</View>;
+  }
+
+  return (
+    <ScrollView
+      showsVerticalScrollIndicator={false}
+      refreshControl={
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+      }
+      contentContainerStyle={[styles.scroll, contentPadding]}
+    >
+      {listBody}
     </ScrollView>
   );
 }

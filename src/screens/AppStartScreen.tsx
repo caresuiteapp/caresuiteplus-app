@@ -100,13 +100,14 @@ export function AppStartScreen() {
 
   const logoSize = isPhone ? 'xl' : isDesktopOrWide ? 'hero' : 'xxl';
 
-  const entryCards = mainEntries.map((entry) => (
+  const entryCards = mainEntries.map((entry, index) => (
     <PortalCard
       key={entry.path}
       iconKey={entry.iconKey}
       title={entry.label}
       description={entry.description}
       accentColor={entry.accentColor}
+      enterIndex={index}
       onPress={() => router.push(entry.path as never)}
     />
   ));

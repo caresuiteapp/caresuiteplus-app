@@ -11,7 +11,7 @@ export function EmployeePortalOverviewScreen() {
   if (!isReady) {
     return (
       <PortalTabScreen title="Mitarbeiterportal" scroll={false} hideHeaderOnPhone>
-        <LoadingState message="Portal wird geladen…" />
+        <LoadingState message="Übersicht wird geladen…" />
       </PortalTabScreen>
     );
   }
