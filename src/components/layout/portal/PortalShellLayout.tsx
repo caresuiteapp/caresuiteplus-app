@@ -161,6 +161,7 @@ const styles = StyleSheet.create({
   main: {
     flex: 1,
     minWidth: 0,
+    minHeight: 0,
     backgroundColor: 'transparent',
   },
   mainScroll: {

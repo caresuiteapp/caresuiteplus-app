@@ -1,6 +1,7 @@
 import { ReactNode, useMemo } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
+import { PortalMobileTabHeader } from '@/components/portal/PortalMobileTabHeader';
 import { ScreenShell } from '@/components/layout';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
@@ -13,6 +14,7 @@ import { spacing } from '@/theme';
 
 type PortalTabScreenProps = {
   title: string;
+  subtitle?: string;
   children: ReactNode;
   scroll?: boolean;
   /** On phone: skip duplicate page header — hero or section title carries context. */
@@ -22,9 +24,11 @@ type PortalTabScreenProps = {
 
 export function PortalTabScreen({
   title,
+  subtitle,
   children,
   scroll = true,
   hideHeaderOnPhone = false,
+  eyebrow,
 }: PortalTabScreenProps) {
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
@@ -51,17 +55,24 @@ export function PortalTabScreen({
   if (isPhone && hideHeaderOnPhone) {
     return (
       <View style={styles.bare} testID="portal-tab-bare">
-        <View style={[styles.bareContent, barePaddingStyle]}>{children}</View>
+        <View style={[styles.bareContent, barePaddingStyle]}>
+          {subtitle || eyebrow ? (
+            <PortalMobileTabHeader title={title} subtitle={subtitle} eyebrow={eyebrow} />
+          ) : null}
+          {children}
+        </View>
       </View>
     );
   }
 
+  const shellScroll = isPhone ? false : scroll;
+
   return (
     <ScreenShell
       title={title}
-      subtitle={isPhone ? undefined : 'Ihr persönlicher Portalbereich'}
+      subtitle={isPhone ? subtitle : subtitle ?? 'Ihr persönlicher Portalbereich'}
       showBack={false}
-      scroll={scroll}
+      scroll={shellScroll}
       hideMobileLogout
       mobileContentPaddingBottom={showBottomTabs ? bareBottomPadding : undefined}
     >
@@ -71,14 +82,13 @@ export function PortalTabScreen({
 }
 
 const styles = StyleSheet.create({
-  content: { flex: 1 },
+  content: { flex: 1, width: '100%' },
   bare: {
-    flex: 1,
+    width: '100%',
     backgroundColor: 'transparent',
-    minHeight: 0,
   },
   bareContent: {
-    flex: 1,
-    minHeight: 0,
+    width: '100%',
+    gap: spacing.md,
   },
 });

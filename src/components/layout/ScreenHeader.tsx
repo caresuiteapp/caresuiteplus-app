@@ -36,6 +36,7 @@ export function ScreenHeader({
   const backLinkColor = useInteractiveTextColor();
   const shellHostsAurora = useShellHostsAurora();
   const showBreadcrumbs = simplifyOnPhone ? !isPhone && breadcrumbTrail : breadcrumbTrail;
+  const sideInsetWidth = showBack || rightSlot ? 88 : 0;
 
   const styles = useMemo(
     () =>
@@ -50,7 +51,8 @@ export function ScreenHeader({
           backgroundColor: shellHostsAurora ? 'transparent' : colors.bgPremium,
         },
         left: {
-          width: 88,
+          width: sideInsetWidth,
+          minWidth: sideInsetWidth,
         },
         center: {
           flex: 1,
@@ -58,8 +60,9 @@ export function ScreenHeader({
           minWidth: 0,
         },
         right: {
-          minWidth: MOBILE_MIN_TOUCH_TARGET,
-          maxWidth: 120,
+          width: sideInsetWidth,
+          minWidth: sideInsetWidth,
+          maxWidth: sideInsetWidth || 120,
           alignItems: 'flex-end',
           flexShrink: 0,
         },
@@ -87,7 +90,7 @@ export function ScreenHeader({
           marginTop: 2,
         },
       }),
-    [backLinkColor, colors, shellHostsAurora],
+    [backLinkColor, colors, shellHostsAurora, sideInsetWidth],
   );
 
   const handleBack = () => {

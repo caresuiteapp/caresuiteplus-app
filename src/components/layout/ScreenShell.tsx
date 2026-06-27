@@ -66,8 +66,10 @@ export function ScreenShell({
 
   const pathname = usePathname();
   const { colors } = useLegacyTheme();
+  const { isPhone } = useDeviceClass();
   const breadcrumbTrail =
     showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
+  const shellScroll = scroll && !(shellHostsAurora && isPhone);
 
   const styles = useMemo(
     () =>
@@ -145,7 +147,7 @@ export function ScreenShell({
   } as const;
 
   if (shellHostsAurora) {
-    const body = scroll ? (
+    const body = shellScroll ? (
       <ScrollView
         style={styles.scrollHost}
         contentContainerStyle={styles.scroll}
@@ -171,7 +173,7 @@ export function ScreenShell({
     );
   }
 
-  const content = scroll ? (
+  const content = shellScroll ? (
     <ScrollView
       style={styles.scrollView}
       contentContainerStyle={styles.scroll}

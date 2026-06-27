@@ -25,6 +25,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { useAuth } from '@/lib/auth/context';
 import { usePortalActor } from '@/hooks/usePortalActor';
+import { usePortalProfileAvatar } from '@/hooks/usePortalProfileAvatar';
 import { usePortalContext } from '@/hooks/usePortalContext';
 import { resolveCombinedModuleLabel } from '@/lib/portal/engine/portalTerminology';
 import { MOBILE_EDGE_INSET, MOBILE_MIN_TOUCH_TARGET } from '@/lib/platform/webSafeArea';
@@ -76,6 +77,7 @@ export function PortalTopBar({
     : { borderColor: auroraGlass.border, backgroundColor: auroraGlass.chip };
   const { profile, signOut } = useAuth();
   const { displayName } = usePortalActor();
+  const { avatarUrl, avatarVersion } = usePortalProfileAvatar();
   const { context } = usePortalContext();
   const [query, setQuery] = useState('');
   const [profileOpen, setProfileOpen] = useState(false);
@@ -84,8 +86,6 @@ export function PortalTopBar({
     if (!context?.hasModuleAssignments) return 'Ihr persönlicher Portalbereich';
     return resolveCombinedModuleLabel(context.activeModuleKeys);
   }, [context]);
-
-  const avatarUrl = profile?.avatarUrl?.trim() || undefined;
 
   const profilePath =
     portalKind === 'employee' ? '/portal/employee/profile' : '/portal/client/profile';
@@ -131,21 +131,20 @@ export function PortalTopBar({
           </Text>
         </View>
         <View style={styles.compactActions}>
-          <View style={styles.compactProfileChip}>
+          <Pressable
+            onPress={() => setProfileOpen((v) => !v)}
+            style={[styles.compactProfileChip, webCursor]}
+            accessibilityRole="button"
+            accessibilityLabel="Profilmenü"
+          >
             <TopbarProfileAvatar
               name={displayName}
               avatarUrl={avatarUrl}
+              avatarVersion={avatarVersion}
               accentColor={accentColor}
+              size="sm"
             />
-            <Pressable
-              onPress={() => setProfileOpen((v) => !v)}
-              style={[styles.compactProfileMenuTrigger, webCursor]}
-              accessibilityRole="button"
-              accessibilityLabel="Profilmenü"
-            >
-              <Text style={[styles.chevron, { color: text.muted }]}>{profileOpen ? '▴' : '▾'}</Text>
-            </Pressable>
-          </View>
+          </Pressable>
         </View>
         {profileOpen ? (
           <View style={[styles.dropdown, dropdownGlass]}>
@@ -219,6 +218,7 @@ export function PortalTopBar({
             <TopbarProfileAvatar
               name={displayName}
               avatarUrl={avatarUrl}
+              avatarVersion={avatarVersion}
               accentColor={accentColor}
             />
             <Pressable
@@ -418,13 +418,6 @@ const styles = StyleSheet.create({
     gap: careSpacing.sm,
   },
   compactProfileChip: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 4,
-    minHeight: MOBILE_MIN_TOUCH_TARGET,
-    paddingHorizontal: careSpacing.xs,
-  },
-  compactProfileMenuTrigger: {
     minWidth: MOBILE_MIN_TOUCH_TARGET,
     minHeight: MOBILE_MIN_TOUCH_TARGET,
     justifyContent: 'center',

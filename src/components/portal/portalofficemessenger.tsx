@@ -92,15 +92,24 @@ export function PortalOfficeMessenger({
 
       StyleSheet.create({
 
-        root: { flex: 1, gap: isGlass ? careSpacing.md : spacing.md },
+        root: {
+          flex: 1,
+          gap: isGlass ? careSpacing.md : spacing.md,
+          width: '100%',
+          maxWidth: isCompact ? 720 : undefined,
+          alignSelf: 'center',
+        },
 
-        header: { gap: spacing.sm },
+        header: {
+          gap: spacing.sm,
+          width: '100%',
+        },
 
         messenger: {
 
           flex: 1,
 
-          minHeight: 420,
+          minHeight: isCompact ? 260 : 420,
 
           flexDirection: 'row',
 
@@ -113,6 +122,8 @@ export function PortalOfficeMessenger({
           backgroundColor: isGlass ? surfaces.panel : c.surface,
 
           overflow: 'hidden',
+
+          width: '100%',
 
         },
 

@@ -38,6 +38,7 @@ export function getDemoEmployeeProfile(employeeId: string): PortalEmployeeProfil
   return {
     employeeId: employee.id,
     displayName: `${employee.firstName} ${employee.lastName}`,
+    avatarUrl: employee.avatarUrl ?? null,
     jobTitle: employee.jobTitle,
     email: employee.email,
     phone: employee.phone,

@@ -6,6 +6,7 @@ import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
+import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { usePermissions } from '@/hooks/usePermissions';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -64,9 +65,16 @@ export function EmployeePortalOfficeMessagesScreen() {
   }
 
   return (
-    <ScreenShell title="Nachrichten" subtitle="Mitarbeiter:innenportal · Verwaltung" showBack={false}>
-      <PortalOfficeMessenger audience="employee" />
-    </ScreenShell>
+    <PortalTabScreen
+      title="Nachrichten"
+      subtitle="Schreiben Sie der Verwaltung — Antworten erscheinen hier im Chat."
+      hideHeaderOnPhone
+      scroll={false}
+    >
+      <View style={styles.employeeMessages}>
+        <PortalOfficeMessenger audience="employee" />
+      </View>
+    </PortalTabScreen>
   );
 }
 
@@ -124,6 +132,12 @@ const styles = StyleSheet.create({
     gap: careSpacing.md,
     paddingHorizontal: careSpacing.md,
     paddingBottom: careSpacing.md,
+  },
+  employeeMessages: {
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+    gap: careSpacing.md,
   },
   thread: { flex: 1, minHeight: 400, paddingHorizontal: careSpacing.md },
 });

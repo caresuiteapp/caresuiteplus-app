@@ -3,6 +3,7 @@ import type { WorkflowStatus } from '../core/base';
 export type PortalEmployeeProfile = {
   employeeId: string;
   displayName: string;
+  avatarUrl: string | null;
   jobTitle: string | null;
   email: string | null;
   phone: string | null;

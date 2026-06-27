@@ -17,6 +17,7 @@ import { saveUserProfileAvatar } from '@/lib/auth/useravatarservice';
 type TopbarProfileAvatarProps = {
   name: string;
   avatarUrl?: string | null;
+  avatarVersion?: string | null;
   accentColor?: string;
   size?: 'sm' | 'md';
   style?: ViewStyle;
@@ -35,6 +36,7 @@ function showUploadError(message: string) {
 export function TopbarProfileAvatar({
   name,
   avatarUrl,
+  avatarVersion,
   accentColor,
   size = 'md',
   style,
@@ -45,6 +47,7 @@ export function TopbarProfileAvatar({
   const [resolvedUri, setResolvedUri] = useState<string | undefined>(undefined);
   const [uploading, setUploading] = useState(false);
   const [hovered, setHovered] = useState(false);
+  const cacheVersion = avatarVersion ?? profile?.updatedAt ?? profile?.avatarUrl;
 
   useEffect(() => {
     if (!avatarUrl?.trim()) {
@@ -59,16 +62,14 @@ export function TopbarProfileAvatar({
     }
 
     let cancelled = false;
-    void resolveProfileAvatarDisplayUrl(avatarUrl, profile?.updatedAt ?? profile?.avatarUrl).then(
-      (url) => {
-        if (!cancelled) setResolvedUri(url);
-      },
-    );
+    void resolveProfileAvatarDisplayUrl(avatarUrl, cacheVersion).then((url) => {
+      if (!cancelled) setResolvedUri(url);
+    });
 
     return () => {
       cancelled = true;
     };
-  }, [avatarUrl, previewUri, profile?.updatedAt, profile?.avatarUrl]);
+  }, [avatarUrl, previewUri, cacheVersion]);
 
   const canUpload = Boolean(profile?.tenantId && authUserId);
   const displayUri = previewUri ?? resolvedUri;

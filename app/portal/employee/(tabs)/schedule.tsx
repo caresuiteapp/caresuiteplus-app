@@ -35,7 +35,7 @@ export default function EmployeeScheduleRoute() {
 
   if (!isReady || (loading && items.length === 0)) {
     return (
-      <PortalTabScreen title="Dienstplan">
+      <PortalTabScreen title="Dienstplan" subtitle="Ihr Wochenplan" hideHeaderOnPhone scroll={false}>
         <LoadingState message="Dienstplan wird geladen…" />
       </PortalTabScreen>
     );
@@ -43,7 +43,7 @@ export default function EmployeeScheduleRoute() {
 
   if (error && items.length === 0) {
     return (
-      <PortalTabScreen title="Dienstplan">
+      <PortalTabScreen title="Dienstplan" subtitle="Ihr Wochenplan" hideHeaderOnPhone scroll={false}>
         <ErrorState
           title="Dienstplan nicht geladen"
           message={error}
@@ -54,9 +54,9 @@ export default function EmployeeScheduleRoute() {
   }
 
   return (
-    <PortalTabScreen title="Dienstplan">
+    <PortalTabScreen title="Dienstplan" subtitle="Ihr Wochenplan" hideHeaderOnPhone scroll={false}>
       <View style={styles.container}>
-        <Text style={[type.label, { color: text.primary }]}>Wochenplan</Text>
+        <Text style={[type.label, styles.sectionLabel, { color: text.primary }]}>Wochenplan</Text>
         {weeklyItems.length === 0 ? (
           <EmptyState
             title="Keine Einsätze geplant"
@@ -95,6 +95,12 @@ export default function EmployeeScheduleRoute() {
 const styles = StyleSheet.create({
   container: {
     gap: careSpacing.md,
+    width: '100%',
+    maxWidth: 720,
+    alignSelf: 'center',
+  },
+  sectionLabel: {
+    textAlign: 'center',
     width: '100%',
   },
   row: {

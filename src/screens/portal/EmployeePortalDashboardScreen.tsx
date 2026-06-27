@@ -10,6 +10,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useEmployeePortalDashboard } from '@/hooks/useEmployeePortalDashboard';
+import { usePortalProfileAvatar } from '@/hooks/usePortalProfileAvatar';
 import { isActiveEmployeeAssignment } from '@/lib/portal/employeePortalLiveOverviewService';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
@@ -24,7 +25,6 @@ import {
   PremiumButton,
   SuccessState,
 } from '@/components/ui';
-import { useAuth } from '@/lib/auth/context';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 
 type EmployeePortalDashboardScreenProps = {
@@ -103,14 +103,14 @@ export function EmployeePortalDashboardScreen({
   onRefresh,
 }: EmployeePortalDashboardScreenProps) {
   const router = useRouter();
-  const { profile } = useAuth();
   const { displayName, isReady } = usePortalActor();
+  const { avatarUrl, avatarVersion } = usePortalProfileAvatar();
   const { roleLabel } = usePermissions();
   const tenantName = useTenantDisplayName();
   const { dashboard, loading, error, refresh } = useEmployeePortalDashboard();
   const text = useAuroraAdaptiveText();
   const heroStyle = useAuroraGlassCardStyle();
-  const { width } = useDeviceClass();
+  const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const accent = moduleColor('assist');
   const greeting = resolveTimeBasedGermanGreeting();
@@ -198,7 +198,8 @@ export function EmployeePortalDashboardScreen({
           </View>
           <TopbarProfileAvatar
             name={displayName}
-            avatarUrl={profile?.avatarUrl}
+            avatarUrl={avatarUrl}
+            avatarVersion={avatarVersion}
             accentColor={accent}
             size="md"
           />
@@ -238,20 +239,30 @@ export function EmployeePortalDashboardScreen({
 
       <Text style={[type.label, { color: text.primary, marginTop: careSpacing.sm }]}>Tagesübersicht</Text>
       <View style={styles.statsGrid}>
-        <GlassCard style={[heroStyle, styles.statTile]}>
-          <Text style={[type.caption, { color: text.muted }]}>Einsätze heute</Text>
+        <GlassCard style={[heroStyle, styles.statTile, isPhone && styles.statTilePhone]}>
+          <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps}>
+            Einsätze heute
+          </Text>
           <Text style={[type.h2, { color: text.primary }]}>{dayStats.assignments}</Text>
         </GlassCard>
-        <GlassCard style={[heroStyle, styles.statTile]}>
-          <Text style={[type.caption, { color: text.muted }]}>Geplante Stunden</Text>
-          <Text style={[type.h2, { color: text.primary }]}>{dayStats.hoursLabel}</Text>
+        <GlassCard style={[heroStyle, styles.statTile, isPhone && styles.statTilePhone]}>
+          <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps}>
+            Geplante Stunden
+          </Text>
+          <Text style={[type.h2, { color: text.primary }]} {...noBreakTextProps}>
+            {dayStats.hoursLabel}
+          </Text>
         </GlassCard>
-        <GlassCard style={[heroStyle, styles.statTile]}>
-          <Text style={[type.caption, { color: text.muted }]}>Offene Dokumentation</Text>
+        <GlassCard style={[heroStyle, styles.statTile, isPhone && styles.statTilePhone]}>
+          <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps}>
+            Offene Dokumentation
+          </Text>
           <Text style={[type.h2, { color: text.primary }]}>{dayStats.openDocs}</Text>
         </GlassCard>
-        <GlassCard style={[heroStyle, styles.statTile]}>
-          <Text style={[type.caption, { color: text.muted }]}>Nachrichten</Text>
+        <GlassCard style={[heroStyle, styles.statTile, isPhone && styles.statTilePhone]}>
+          <Text style={[type.caption, { color: text.muted }]} {...noBreakTextProps}>
+            Nachrichten
+          </Text>
           <Text style={[type.h2, { color: text.primary }]}>{dayStats.messages}</Text>
         </GlassCard>
       </View>
@@ -342,19 +353,30 @@ const styles = StyleSheet.create({
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: careSpacing.sm,
+    width: '100%',
   },
   statTile: {
-    width: '48%',
-    minHeight: 88,
+    flexGrow: 1,
+    flexBasis: '48%',
+    minWidth: 152,
+    maxWidth: '100%',
+    minHeight: 96,
     paddingVertical: careSpacing.sm,
+  },
+  statTilePhone: {
+    minHeight: 104,
   },
   quickGrid: {
     flexDirection: 'row',
     flexWrap: 'wrap',
     gap: careSpacing.sm,
+    width: '100%',
   },
   quickTile: {
-    width: '48%',
+    flexGrow: 1,
+    flexBasis: '48%',
+    minWidth: 152,
+    maxWidth: '100%',
     minHeight: 88,
   },
   quickCard: {

@@ -6,11 +6,12 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { runService } from '@/lib/services/serviceRunner';
+import { mapEmployeeAvatarUrl } from '@/lib/office/employeeAvatarService';
 import { fetchLivePortalAppointmentsForEmployee } from './portalAppointmentsLiveService';
 import { mapPortalAppointmentToListItem } from './employeePortalLiveOverviewService';
 
 const EMPLOYEE_SELECT =
-  'id, tenant_id, first_name, last_name, role_title, email, phone, status, department, weekly_hours';
+  'id, tenant_id, first_name, last_name, role_title, email, phone, status, department, weekly_hours, avatar_url, updated_at';
 
 function mapEmployeeStatus(value: unknown): WorkflowStatus {
   const key = String(value ?? 'active').trim().toLowerCase();
@@ -119,6 +120,9 @@ export async function fetchLiveEmployeePortalProfile(
     const profile: PortalEmployeeProfile = {
       employeeId,
       displayName: personName(row as { first_name?: string | null; last_name?: string | null }),
+      avatarUrl: mapEmployeeAvatarUrl(
+        typeof row.avatar_url === 'string' ? row.avatar_url : null,
+      ),
       jobTitle: String(row.role_title ?? '').trim() || null,
       email: String(row.email ?? '').trim() || null,
       phone: String(row.phone ?? row.mobile ?? '').trim() || null,
