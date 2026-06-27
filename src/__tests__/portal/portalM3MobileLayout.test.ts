@@ -138,4 +138,10 @@ describe('portal M.3 mobile layout', () => {
       'resolveProfileAvatarDisplayUrl',
     );
   });
+
+  it('TopbarProfileAvatar imports useMemo when styles hook is used', () => {
+    const avatar = readSrc('src/components/layout/TopbarProfileAvatar.tsx');
+    expect(avatar).toContain('useMemo(');
+    expect(avatar).toMatch(/import\s*\{[^}]*useMemo[^}]*\}\s*from\s*['"]react['"]/);
+  });
 });
