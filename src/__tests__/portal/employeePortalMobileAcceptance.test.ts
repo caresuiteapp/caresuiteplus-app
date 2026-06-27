@@ -68,6 +68,17 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(topbar).not.toContain('compactProfileMenuTrigger');
   });
 
+  it('PortalShell slot keeps minHeight 0 for shell scroll chain', () => {
+    const portalShell = readSrc('src/components/portal/PortalShell.tsx');
+    expect(portalShell).toContain('minHeight: 0');
+  });
+
+  it('AutoScrollView enables touch scrolling on web', () => {
+    const scroll = readSrc('src/components/layout/AutoScrollView.tsx');
+    expect(scroll).toContain('WebkitOverflowScrolling');
+    expect(scroll).toContain('touchAction');
+  });
+
   it('ScreenHeader balances side insets for centered titles', () => {
     const header = readSrc('src/components/layout/ScreenHeader.tsx');
     expect(header).toContain('sideInsetWidth');

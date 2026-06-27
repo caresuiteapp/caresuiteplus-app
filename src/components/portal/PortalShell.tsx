@@ -26,5 +26,5 @@ export function PortalShell({ kind, children, accentColor }: PortalShellProps) {
 }
 
 const styles = StyleSheet.create({
-  slot: { flex: 1 },
+  slot: { flex: 1, minHeight: 0, minWidth: 0 },
 });

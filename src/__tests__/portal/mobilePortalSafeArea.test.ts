@@ -28,9 +28,14 @@ describe('PortalShellLayout mobile safe area', () => {
 
   it('uses web safe-area top shell padding on compact widths', () => {
     expect(shell).toContain('webSafeAreaPadding');
-    expect(shell).toContain('webDynamicViewportMinHeightStyle');
+    expect(shell).toContain('webShellViewportLockStyle');
     expect(shell).toContain('webSafeAreaCalc');
     expect(shell).toContain('resolvePortalMobileContentPaddingBottom');
+  });
+
+  it('locks compact shell to dvh and pins top bar above scroll body', () => {
+    expect(shell).toContain('topBarHost');
+    expect(shell).toContain('flexShrink: 0');
   });
 
   it('pins bottom nav above safe area with absolute host', () => {

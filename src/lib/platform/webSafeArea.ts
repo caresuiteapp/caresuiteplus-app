@@ -56,6 +56,20 @@ export function webDynamicViewportMinHeightStyle(): ViewStyle {
   };
 }
 
+/**
+ * Web compact shell — lock height to the dynamic viewport so the middle pane can
+ * scroll. minHeight-only dvh lets the root grow with content and disables overflow.
+ */
+export function webShellViewportLockStyle(): ViewStyle {
+  if (Platform.OS !== 'web') return { flex: 1, minHeight: 0 };
+  return {
+    flex: 1,
+    height: '100dvh' as DimensionValue,
+    maxHeight: '100dvh' as DimensionValue,
+    minHeight: 0,
+  };
+}
+
 /** Fixed full-viewport layer — dvh on web (svh fallback via WEB_SAFE_AREA_GLOBAL_CSS). */
 export function webFixedViewportCoverStyle(): ViewStyle {
   if (Platform.OS !== 'web') return StyleSheetAbsoluteFill();

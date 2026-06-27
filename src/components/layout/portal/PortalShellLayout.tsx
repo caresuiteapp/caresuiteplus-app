@@ -19,9 +19,9 @@ import { moduleColor } from '@/design/tokens/modules';
 import { BREAKPOINT_MIN } from '@/lib/platform/breakpoints';
 import {
   resolvePortalMobileContentPaddingBottom,
-  webDynamicViewportMinHeightStyle,
   webSafeAreaCalc,
   webSafeAreaPadding,
+  webShellViewportLockStyle,
 } from '@/lib/platform/webSafeArea';
 
 export type PortalShellKind = 'client' | 'employee' | 'relative';
@@ -77,19 +77,21 @@ export function PortalShellLayout({
     <View
       style={[
         styles.root,
-        webDynamicViewportMinHeightStyle(),
+        isCompactShell ? webShellViewportLockStyle() : null,
         isCompactShell ? ({ paddingTop: webSafeAreaPadding('top', topInset) } as ViewStyle) : null,
       ]}
       testID="portal-shell-layout"
     >
-      <PortalTopBar
-        accentColor={accentColor}
-        compact={isCompactShell}
-        showHamburger={isCompactShell}
-        onMenuPress={() => setDrawerOpen(true)}
-        portalLabel={portalLabel}
-        portalKind={kind}
-      />
+      <View style={isCompactShell ? styles.topBarHost : undefined}>
+        <PortalTopBar
+          accentColor={accentColor}
+          compact={isCompactShell}
+          showHamburger={isCompactShell}
+          onMenuPress={() => setDrawerOpen(true)}
+          portalLabel={portalLabel}
+          portalKind={kind}
+        />
+      </View>
 
       <View style={styles.body}>
         {showLeftNav ? (
@@ -151,6 +153,10 @@ const styles = StyleSheet.create({
     backgroundColor: 'transparent',
     minHeight: 0,
     overflow: 'hidden',
+  },
+  topBarHost: {
+    flexShrink: 0,
+    zIndex: 10,
   },
   body: {
     flex: 1,
