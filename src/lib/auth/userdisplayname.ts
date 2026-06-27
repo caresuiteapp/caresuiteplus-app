@@ -2,6 +2,13 @@ import type { AuthUser, Profile } from '@/types';
 import { isPortalUsernameLabel } from '@/lib/portal/clientPortalDisplayName';
 import type { PortalSessionRecord } from './portalSessionStore';
 
+/** Supabase portal auth uses synthetic local emails — never show in UI. */
+export function isSyntheticPortalEmail(value: string | null | undefined): boolean {
+  const trimmed = value?.trim();
+  if (!trimmed) return false;
+  return trimmed.endsWith('@caresuite-portal.local');
+}
+
 export function composeUserFullName(
   firstName?: string | null,
   lastName?: string | null,
@@ -19,11 +26,11 @@ export function getUserDisplayName(
   const composed = composeUserFullName(profile?.firstName, profile?.lastName);
   if (composed) return composed;
 
-  const displayName = profile?.displayName?.trim() || user?.displayName?.trim();
+  const displayName = resolveNonUsernameLabel(profile?.displayName ?? user?.displayName);
   if (displayName) return displayName;
 
   const email = profile?.email?.trim() || user?.email?.trim();
-  if (email) return email;
+  if (email && !isSyntheticPortalEmail(email)) return email;
 
   return fallback;
 }
@@ -32,6 +39,12 @@ function isClientPortalSession(
   portalSession: PortalSessionRecord | null | undefined,
 ): boolean {
   return portalSession?.loginType === 'client_portal' || portalSession?.roleKey === 'client_portal';
+}
+
+function isEmployeePortalSession(
+  portalSession: PortalSessionRecord | null | undefined,
+): boolean {
+  return portalSession?.loginType === 'employee_portal' || portalSession?.roleKey === 'employee_portal';
 }
 
 function resolveNonUsernameLabel(value: string | null | undefined): string | null {
@@ -50,7 +63,10 @@ export function getPortalDisplayName(
   const portalLabel = resolveNonUsernameLabel(portalSession?.displayName);
   if (portalLabel) return portalLabel;
 
-  if (isClientPortalSession(portalSession)) {
+  if (isClientPortalSession(portalSession) || isEmployeePortalSession(portalSession)) {
+    const composed = composeUserFullName(profile?.firstName, profile?.lastName);
+    if (composed && !isPortalUsernameLabel(composed)) return composed;
+
     const profileLabel = resolveNonUsernameLabel(profile?.displayName);
     if (profileLabel) return profileLabel;
 

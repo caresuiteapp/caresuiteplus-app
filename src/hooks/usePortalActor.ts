@@ -3,6 +3,7 @@ import { useAuth } from '@/lib/auth/context';
 import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { getPortalDisplayName } from '@/lib/auth/userdisplayname';
 import { fetchClientPortalDisplayName, isPortalUsernameLabel } from '@/lib/portal/clientPortalDisplayName';
+import { fetchEmployeePortalDisplayName } from '@/lib/portal/employeePortalDisplayName';
 import type { RoleKey } from '@/types';
 export type PortalActor = {
   tenantId: string | null;
@@ -17,6 +18,7 @@ export type PortalActor = {
 export function usePortalActor(): PortalActor {
   const { profile, portalSession, user } = useAuth();
   const [clientDisplayName, setClientDisplayName] = useState<string | null>(null);
+  const [employeeDisplayName, setEmployeeDisplayName] = useState<string | null>(null);
 
   const tenantId = profile?.tenantId ?? portalSession?.tenantId ?? null;
   const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
@@ -48,8 +50,28 @@ export function usePortalActor(): PortalActor {
     };
   }, [roleKey, clientId, tenantId]);
 
+  useEffect(() => {
+    if (roleKey !== 'employee_portal' || !employeeId || !tenantId) {
+      setEmployeeDisplayName(null);
+      return;
+    }
+
+    let cancelled = false;
+
+    void fetchEmployeePortalDisplayName(tenantId, employeeId).then((name) => {
+      if (!cancelled && name) {
+        setEmployeeDisplayName(name);
+      }
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [roleKey, employeeId, tenantId]);
+
   const displayName =
     clientDisplayName ??
+    employeeDisplayName ??
     (portalSession?.displayName && !isPortalUsernameLabel(portalSession.displayName)
       ? portalSession.displayName.trim()
       : null) ??

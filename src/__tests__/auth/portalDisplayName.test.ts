@@ -67,4 +67,46 @@ describe('getPortalDisplayName', () => {
       ),
     ).toBe('Ellen Zacharias');
   });
+
+  it('skips synthetic portal emails for employee portal sessions', () => {
+    const portalSession: PortalSessionRecord = {
+      sessionToken: 'token',
+      tenantId: 'tenant-1',
+      loginType: 'employee_portal',
+      roleKey: 'employee_portal',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      accountId: 'epa-1',
+      employeeId: 'emp-1',
+    };
+
+    expect(
+      getPortalDisplayName(
+        { email: 'portal.employee.0c48b8fb@caresuite-portal.local' } as never,
+        { email: 'portal.employee.0c48b8fb@caresuite-portal.local' } as never,
+        portalSession,
+        'Willkommen',
+      ),
+    ).toBe('Willkommen');
+  });
+
+  it('uses profile first and last name for employee portal sessions', () => {
+    const portalSession: PortalSessionRecord = {
+      sessionToken: 'token',
+      tenantId: 'tenant-1',
+      loginType: 'employee_portal',
+      roleKey: 'employee_portal',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      accountId: 'epa-1',
+      employeeId: 'emp-1',
+    };
+
+    expect(
+      getPortalDisplayName(
+        { firstName: 'Anna', lastName: 'Müller' } as never,
+        { email: 'portal.employee.abc@caresuite-portal.local' } as never,
+        portalSession,
+        'Willkommen',
+      ),
+    ).toBe('Anna Müller');
+  });
 });

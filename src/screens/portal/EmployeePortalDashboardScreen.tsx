@@ -161,17 +161,17 @@ export function EmployeePortalDashboardScreen({
     return <LoadingState message="Übersicht wird geladen…" />;
   }
 
-  if (error && !dashboard) {
+  if (!dashboard) {
     return (
       <ErrorState
         title="Übersicht nicht geladen"
-        message={error}
+        message={error ?? 'Mitarbeiterprofil konnte nicht geladen werden.'}
         onRetry={() => void handleRefresh()}
       />
     );
   }
 
-  const data = dashboard!;
+  const data = dashboard;
 
   const quickActions = [
     { key: 'assignments', label: 'Einsätze', icon: '📅', href: '/portal/employee/assignments' },

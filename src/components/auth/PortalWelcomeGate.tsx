@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { useAuth } from '@/lib/auth/context';
-import { getUserDisplayName } from '@/lib/auth/userdisplayname';
+import { getPortalDisplayName } from '@/lib/auth/userdisplayname';
 import {
   clearPortalWelcomePending,
   hydratePortalWelcomePending,
@@ -94,7 +94,9 @@ export function PortalWelcomeGate() {
     return null;
   }
 
-  const resolvedName = displayName || getUserDisplayName(profile, user, 'Willkommen');
+  const resolvedName =
+    displayName ||
+    getPortalDisplayName(profile, user, portalSession, 'Willkommen');
   const roleLabel = roleKey
     ? (ROLE_LABELS[roleKey] ?? roleKey)
     : resolvePortalScreenSubtitle(undefined, welcomeKind === 'employee' ? 'employee' : 'client');
