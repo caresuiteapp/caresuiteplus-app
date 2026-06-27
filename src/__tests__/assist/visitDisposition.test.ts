@@ -63,6 +63,42 @@ describe('Assist disposition list UI contracts', () => {
     expect(source).toContain('OfficeRecordDeleteButton');
     expect(source).toContain('viewContext: \'form\'');
     expect(source).not.toContain('WORKFLOW_STATUS_LABELS[status]');
+    expect(source).not.toContain('Migration 0116');
+    expect(source).not.toContain('assist_visit_status_history');
+    expect(source).not.toContain('assist_visit_proofs');
+    expect(source).toContain('fetchVisitStatusHistory');
+    expect(source).toContain('useDeviceClass');
+  });
+
+  it('AssignmentsListTable nutzt PremiumDataTable mit flex-Spalten (kein Scroll-Wrapper)', () => {
+    const source = readSrc('src/components/assist/AssignmentsListTable.tsx');
+    expect(source).toContain('PremiumDataTable');
+    expect(source).toContain('Wochentag');
+    expect(source).toContain('Klient:in');
+    expect(source).not.toContain('GlassScrollView');
+    expect(source).not.toContain('ScrollView');
+    expect(source).not.toContain('tableMinWidth');
+    expect(source).not.toContain('scrollShell');
+  });
+
+  it('AssignmentsListView zeigt Filter-Chips oberhalb der Tabelle', () => {
+    const source = readSrc('src/components/assist/AssignmentsListView.tsx');
+    expect(source).toContain('FilterChipGroup');
+    expect(source).toContain('Sortierung');
+    expect(source).not.toContain('GlassSlidePanel');
+    expect(source).not.toContain('filterPanelOpen');
+  });
+
+  it('assignmentListService importiert enforcePermission für Dashboard', () => {
+    const source = readSrc('src/lib/assist/assignmentListService.ts');
+    expect(source).toContain("import { enforcePermission } from '@/lib/permissions'");
+    expect(source).toContain('fetchAssistDashboardStats');
+  });
+
+  it('visitProofPreviewService ohne interne Tabellennamen', () => {
+    const source = readSrc('src/lib/assist/visitProofPreviewService.ts');
+    expect(source).not.toContain('assist_visit_proofs');
+    expect(source).toContain('incompleteHint');
   });
 
   it('AssignmentDetailGlassModal nutzt tabbed disposition panel', () => {

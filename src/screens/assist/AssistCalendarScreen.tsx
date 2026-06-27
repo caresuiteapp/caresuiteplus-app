@@ -4,6 +4,7 @@ import { CalendarShell } from '@/components/calendar/CalendarShell';
 import { CalendarEventDrawer } from '@/components/calendar/CalendarEventDrawer';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { buildModuleCalendarConfig } from '@/lib/calendar/calendarEventService';
+import { resolveCalendarEventDisplay } from '@/lib/calendar/calendarEventDisplay';
 import { usePermissions } from '@/hooks/usePermissions';
 import { getServiceMode } from '@/lib/services/mode';
 
@@ -18,7 +19,7 @@ export function AssistCalendarScreen() {
   const handleEventPress = useCallback((event: CalendarEvent) => {
     if (event.type === 'einsatz' && event.sourceId) {
       setSelectedAssignmentId(event.sourceId);
-      setSelectedAssignmentTitle(event.title);
+      setSelectedAssignmentTitle(resolveCalendarEventDisplay(event).clientName ?? event.title);
       return;
     }
     setDrawerEvent(event);

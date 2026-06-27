@@ -6,12 +6,12 @@ import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass'
 import { careSpacing } from '@/design/tokens/spacing';
 import {
   eventsForDay,
-  formatTime,
   formatWeekRange,
   getWeekDays,
   isSameDay,
   toDateKey,
 } from '@/lib/office/calendarDateUtils';
+import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip';
 
 type OfficeCalendarWeekViewProps = {
@@ -151,14 +151,12 @@ export function OfficeCalendarWeekView({
                         },
                       ];
                       const inner = (
-                        <>
-                          <Text style={[styles.timedTitle, { color: text.primary }]} numberOfLines={2}>
-                            {event.title}
-                          </Text>
-                          <Text style={[styles.timedMeta, { color: text.muted }]}>
-                            {formatTime(event.start)} – {formatTime(event.end)}
-                          </Text>
-                        </>
+                        <CalendarEventLabel
+                          event={event}
+                          variant="stacked"
+                          showService={pos.height >= HOUR_HEIGHT}
+                          numberOfLines={pos.height >= HOUR_HEIGHT * 1.5 ? 4 : 3}
+                        />
                       );
                       if (onEventPress) {
                         return (
@@ -223,6 +221,4 @@ const styles = StyleSheet.create({
     padding: 4,
     overflow: 'hidden',
   },
-  timedTitle: { fontSize: 11, fontWeight: '600' },
-  timedMeta: { fontSize: 9 },
 });

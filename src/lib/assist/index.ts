@@ -43,7 +43,9 @@ export {
   deleteVisitDisposition,
   createVisitFromWizard,
   buildVisitDispositionKpis,
+  fetchVisitStatusHistory,
 } from './visitService';
+export type { VisitStatusHistoryEntry } from './visitService';
 export {
   updateVisitTaskStatus,
   updateVisitDocumentation,

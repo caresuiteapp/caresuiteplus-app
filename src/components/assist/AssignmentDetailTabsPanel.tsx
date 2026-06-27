@@ -18,15 +18,20 @@ import {
 import { VisitProofPreviewPanel } from '@/components/assist/VisitProofPreviewPanel';
 import { VisitTasksPanel } from '@/components/assist/VisitTasksPanel';
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
+import { useAsyncQuery } from '@/hooks/core';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
+import { isDesktopClass } from '@/lib/platform/breakpoints';
 import {
   buildVisitProofPreview,
   deleteVisitDisposition,
+  fetchVisitStatusHistory,
   updateVisitTaskStatus,
 } from '@/lib/assist';
 import type { VisitTaskStatus } from '@/lib/assist/visitTypes';
+import { VISIT_TASK_STATUS_LABELS } from '@/lib/assist/visitTypes';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import {
   VISIT_BILLING_STATUS_LABELS,
@@ -116,6 +121,19 @@ const statusBadgeStyles = StyleSheet.create({
   },
 });
 
+function formatHistoryEntry(
+  dimensionLabel: string,
+  fromLabel: string | null,
+  toLabel: string,
+  changedAt: string,
+): string {
+  const when = formatDateTime(changedAt);
+  if (fromLabel) {
+    return `${dimensionLabel}: ${fromLabel} → ${toLabel} · ${when}`;
+  }
+  return `${dimensionLabel}: ${toLabel} · ${when}`;
+}
+
 export function AssignmentDetailTabsPanel({
   assignmentId,
   mode = 'full',
@@ -124,6 +142,8 @@ export function AssignmentDetailTabsPanel({
   onDeleted,
 }: AssignmentDetailTabsPanelProps) {
   const router = useRouter();
+  const deviceClass = useDeviceClass();
+  const isWideOverview = isDesktopClass(deviceClass);
   const { isReadOnly, roleLabel, can } = usePermissions();
   const [activeTab, setActiveTab] = useState('overview');
   const text = useAuroraAdaptiveText();
@@ -141,6 +161,17 @@ export function AssignmentDetailTabsPanel({
     notFound,
   } = useVisitDispositionDetail(assignmentId);
   const [taskLoading, setTaskLoading] = useState(false);
+
+  const historyQuery = useAsyncQuery(
+    () => {
+      if (!tenantId || !assignmentId) {
+        return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
+      }
+      return fetchVisitStatusHistory(assignmentId, tenantId, profile?.roleKey);
+    },
+    [tenantId, assignmentId, profile?.roleKey],
+    { enabled: activeTab === 'history' && Boolean(tenantId) && Boolean(assignmentId) },
+  );
 
   const isPreview = mode === 'preview';
 
@@ -180,8 +211,41 @@ export function AssignmentDetailTabsPanel({
         hint: { ...typography.caption, color: text.muted, fontStyle: 'italic' },
         tabs: { marginBottom: spacing.sm },
         noteText: { ...typography.body, color: text.primary },
+        overviewGrid: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: careSpacing.md,
+          alignItems: 'flex-start',
+        },
+        overviewStack: { gap: careSpacing.md },
+        overviewCell: {
+          flexGrow: 1,
+          flexBasis: isWideOverview ? '48%' : '100%',
+          minWidth: isWideOverview ? 280 : undefined,
+        },
+        overviewCellFull: {
+          flexBasis: '100%',
+          width: '100%',
+        },
+        taskChips: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, paddingTop: spacing.xs },
+        taskChip: {
+          borderWidth: 1,
+          borderColor: 'rgba(15,23,42,0.12)',
+          borderRadius: 16,
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 4,
+        },
+        taskChipTitle: { ...typography.caption, color: text.primary },
+        taskChipMeta: { ...typography.caption, color: text.muted, fontSize: 11 },
+        historyItem: {
+          ...typography.body,
+          color: text.primary,
+          paddingVertical: spacing.xs,
+          borderBottomWidth: 1,
+          borderBottomColor: 'rgba(15,23,42,0.08)',
+        },
       }),
-    [text, isPreview],
+    [text, isPreview, isWideOverview],
   );
 
   if (loading) return <LoadingState message="Einsatz wird geladen…" />;
@@ -243,6 +307,10 @@ export function AssignmentDetailTabsPanel({
             <DetailInfoRow label="Dauer" value={formatDuration(visit.durationMinutes)} />
             <DetailInfoRow label="Klient:in" value={visit.clientName} />
             <DetailInfoRow label="Mitarbeitende:r" value={visit.employeeName} />
+            <DetailInfoRow
+              label="Ort"
+              value={visit.location === '—' ? 'Noch kein Ort hinterlegt' : visit.location}
+            />
           </SectionPanel>
         );
       case 'tasks':
@@ -268,9 +336,9 @@ export function AssignmentDetailTabsPanel({
             {visit.budget?.warning ? (
               <Text style={styles.hint}>{visit.budget.warning}</Text>
             ) : null}
-            <Text style={styles.hint}>
-              Abrechnungs-Snapshots werden nach Migration 0116 verfügbar.
-            </Text>
+            {visit.budget?.budgetAmountCents == null ? (
+              <Text style={styles.hint}>Noch keine Abrechnungsdaten</Text>
+            ) : null}
           </SectionPanel>
         );
       case 'execution':
@@ -301,42 +369,105 @@ export function AssignmentDetailTabsPanel({
             <DetailInfoRow label="Erstellt" value={formatDateTime(visit.createdAt)} />
             <DetailInfoRow label="Aktualisiert" value={formatDateTime(visit.updatedAt)} />
             <DetailInfoRow label="Portal" value={VISIT_PORTAL_STATUS_LABELS[visit.portalStatus]} />
-            <Text style={styles.hint}>
-              Statusverlauf wird aus assist_visit_status_history geladen.
-            </Text>
+            {historyQuery.loading ? (
+              <LoadingState message="Statusverlauf wird geladen…" />
+            ) : historyQuery.error ? (
+              <Text style={styles.hint}>{historyQuery.error}</Text>
+            ) : (historyQuery.data?.length ?? 0) === 0 ? (
+              <EmptyState
+                title="Kein Statusverlauf"
+                message="Für diesen Einsatz sind noch keine Statusänderungen protokolliert."
+              />
+            ) : (
+              historyQuery.data?.map((entry) => (
+                <Text key={entry.id} style={styles.historyItem}>
+                  {formatHistoryEntry(
+                    entry.dimensionLabel,
+                    entry.fromStatusLabel,
+                    entry.toStatusLabel,
+                    entry.changedAt,
+                  )}
+                  {entry.note ? `\n${entry.note}` : ''}
+                </Text>
+              ))
+            )}
           </SectionPanel>
         );
       default:
         return (
-          <>
-            <SectionPanel
-              {...FORM_CTX}
-              title="Einsatz"
-              subtitle={visit.clientName}
-              accentColor={assistAccent}
-            >
-              <Text style={styles.title}>{visit.serviceName ?? visit.title}</Text>
-              <Text style={styles.meta}>
-                {visit.clientName} · {visit.employeeName}
-              </Text>
-            </SectionPanel>
+          <View style={isWideOverview ? styles.overviewGrid : styles.overviewStack}>
+            <View style={styles.overviewCellFull}>
+              <SectionPanel
+                {...FORM_CTX}
+                title="Einsatz"
+                subtitle={visit.clientName}
+                accentColor={assistAccent}
+              >
+                <Text style={styles.title}>{visit.serviceName ?? visit.title}</Text>
+                <Text style={styles.meta}>
+                  {visit.clientName} · {visit.employeeName}
+                </Text>
+              </SectionPanel>
+            </View>
 
-            <SectionPanel {...FORM_CTX} title="Status" subtitle="Planung · Nachweis · Budget">
-              <StatusBadgeRow
-                planningLabel={VISIT_PLANNING_STATUS_LABELS[visit.planningStatus]}
-                proofLabel={VISIT_PROOF_STATUS_LABELS[visit.proofStatus]}
-                budgetLabel={VISIT_BILLING_STATUS_LABELS[visit.billingStatus]}
-                isAtRisk={visit.isAtRisk}
-                isIncomplete={visit.isIncomplete}
-              />
-              <DetailInfoRow
-                label="Workflow"
-                value={ASSIGNMENT_STATUS_LABELS[visit.assignmentStatus]}
-              />
-            </SectionPanel>
+            <View style={styles.overviewCell}>
+              <SectionPanel {...FORM_CTX} title="Status" subtitle="Planung · Nachweis · Budget">
+                <StatusBadgeRow
+                  planningLabel={VISIT_PLANNING_STATUS_LABELS[visit.planningStatus]}
+                  proofLabel={VISIT_PROOF_STATUS_LABELS[visit.proofStatus]}
+                  budgetLabel={VISIT_BILLING_STATUS_LABELS[visit.billingStatus]}
+                  isAtRisk={visit.isAtRisk}
+                  isIncomplete={visit.isIncomplete}
+                />
+                <DetailInfoRow
+                  label="Workflow"
+                  value={ASSIGNMENT_STATUS_LABELS[visit.assignmentStatus]}
+                />
+              </SectionPanel>
+            </View>
+
+            <View style={styles.overviewCell}>
+              <SectionPanel {...FORM_CTX} title="Zeit & Ort">
+                <DetailInfoRow label="Beginn" value={formatDateTime(visit.scheduledStart)} />
+                <DetailInfoRow label="Ende" value={formatDateTime(visit.scheduledEnd)} />
+                <DetailInfoRow label="Dauer" value={formatDuration(visit.durationMinutes)} />
+                <DetailInfoRow
+                  label="Ort"
+                  value={visit.location === '—' ? 'Noch kein Ort hinterlegt' : visit.location}
+                />
+                {visit.tasks.length > 0 ? (
+                  <View style={styles.taskChips}>
+                    {visit.tasks.map((task) => (
+                      <View key={task.id} style={styles.taskChip}>
+                        <Text style={styles.taskChipTitle}>{task.title}</Text>
+                        <Text style={styles.taskChipMeta}>
+                          {VISIT_TASK_STATUS_LABELS[task.status]}
+                        </Text>
+                      </View>
+                    ))}
+                  </View>
+                ) : (
+                  <DetailInfoRow label="Aufgaben" value="Keine hinterlegt" />
+                )}
+              </SectionPanel>
+            </View>
+
+            {visit.budget ? (
+              <View style={styles.overviewCell}>
+                <SectionPanel {...FORM_CTX} title="Budget">
+                  <DetailInfoRow
+                    label="Betrag"
+                    value={formatBudget(visit.budget.budgetAmountCents, visit.budget.currency)}
+                  />
+                  {visit.budget.warning ? (
+                    <Text style={styles.hint}>{visit.budget.warning}</Text>
+                  ) : null}
+                </SectionPanel>
+              </View>
+            ) : null}
 
             {visit.errorMessage ? (
-              <View style={styles.errorCard}>
+              <View style={[styles.overviewCellFull, styles.errorCard]}>
                 <Text style={styles.errorTitle}>Fehlerhaft</Text>
                 <Text style={styles.errorText}>{visit.errorMessage}</Text>
                 {visit.errorCode ? (
@@ -345,32 +476,14 @@ export function AssignmentDetailTabsPanel({
               </View>
             ) : null}
 
-            <SectionPanel {...FORM_CTX} title="Zeit & Ort">
-              <DetailInfoRow label="Beginn" value={formatDateTime(visit.scheduledStart)} />
-              <DetailInfoRow label="Ende" value={formatDateTime(visit.scheduledEnd)} />
-              <DetailInfoRow label="Dauer" value={formatDuration(visit.durationMinutes)} />
-              <DetailInfoRow label="Ort" value={visit.location} />
-              <DetailInfoRow label="Aufgaben" value={String(visit.tasks.length)} />
-            </SectionPanel>
-
-            {visit.budget ? (
-              <SectionPanel {...FORM_CTX} title="Budget">
-                <DetailInfoRow
-                  label="Betrag"
-                  value={formatBudget(visit.budget.budgetAmountCents, visit.budget.currency)}
-                />
-                {visit.budget.warning ? (
-                  <Text style={styles.hint}>{visit.budget.warning}</Text>
-                ) : null}
-              </SectionPanel>
-            ) : null}
-
             {visit.notes ? (
-              <SectionPanel {...FORM_CTX} title="Notizen">
-                <Text style={styles.noteText}>{visit.notes}</Text>
-              </SectionPanel>
+              <View style={styles.overviewCellFull}>
+                <SectionPanel {...FORM_CTX} title="Notizen">
+                  <Text style={styles.noteText}>{visit.notes}</Text>
+                </SectionPanel>
+              </View>
             ) : null}
-          </>
+          </View>
         );
     }
   };

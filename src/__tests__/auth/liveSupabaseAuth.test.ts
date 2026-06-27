@@ -96,6 +96,49 @@ describe('liveSupabaseAuthServices', () => {
           tenantId: 'tenant-1',
           employeeId: 'emp-1',
           username: 'helfe.max.must',
+          status: 'pending_first_login',
+          mustChangePassword: true,
+          firstLoginCompleted: false,
+          temporaryPasswordCreatedAt: null,
+          temporaryPasswordExpiresAt: null,
+          lastLoginAt: null,
+          createdBy: null,
+          createdAt: '2026-01-01T00:00:00.000Z',
+          updatedAt: '2026-01-01T00:00:00.000Z',
+          blockedAt: null,
+          blockedBy: null,
+          blockedReason: null,
+        },
+        mustChangePassword: true,
+        sessionToken: 'session-token',
+        expiresAt: '2026-01-02T00:00:00.000Z',
+        supabaseAccessToken: 'access-token',
+        supabaseRefreshToken: 'refresh-token',
+      },
+    });
+
+    const result = await loginEmployeePortal('helfe.max.must', 'TempPass1!');
+    expect(invokeEdgeFunction).toHaveBeenCalledWith('employee-portal-login', {
+      username: 'helfe.max.must',
+      password: 'TempPass1!',
+    });
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.portalSession?.sessionToken).toBe('session-token');
+      expect(result.data.portalSession?.mustChangePassword).toBe(true);
+      expect(result.data.mustChangePassword).toBe(true);
+    }
+  });
+
+  it('completes employee first login via edge function', async () => {
+    invokeEdgeFunction.mockResolvedValueOnce({
+      ok: true,
+      data: {
+        account: {
+          id: 'epa-1',
+          tenantId: 'tenant-1',
+          employeeId: 'emp-1',
+          username: 'helfe.max.must',
           status: 'active',
           mustChangePassword: false,
           firstLoginCompleted: true,
@@ -109,21 +152,25 @@ describe('liveSupabaseAuthServices', () => {
           blockedBy: null,
           blockedReason: null,
         },
-        mustChangePassword: false,
-        sessionToken: 'session-token',
-        expiresAt: '2026-01-02T00:00:00.000Z',
       },
     });
 
-    const result = await loginEmployeePortal('helfe.max.must', 'TempPass1!');
-    expect(invokeEdgeFunction).toHaveBeenCalledWith('employee-portal-login', {
-      username: 'helfe.max.must',
-      password: 'TempPass1!',
+    const { completeFirstLogin } = await import('@/lib/auth/employeePortalAuthService');
+    const result = await completeFirstLogin({
+      accountId: 'epa-1',
+      sessionToken: 'session-token',
+      newPassword: 'NeuesPasswort1',
+      confirmPassword: 'NeuesPasswort1',
+    });
+
+    expect(invokeEdgeFunction).toHaveBeenCalledWith('employee-portal-complete-first-login', {
+      accountId: 'epa-1',
+      sessionToken: 'session-token',
+      newPassword: 'NeuesPasswort1',
+      confirmPassword: 'NeuesPasswort1',
+      currentPassword: undefined,
     });
     expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.portalSession?.sessionToken).toBe('session-token');
-    }
   });
 
   it('validates client portal login via edge function with username and code', async () => {

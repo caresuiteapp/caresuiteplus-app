@@ -1,12 +1,19 @@
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 import { getVisitSignature, type VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
-import { VISIT_TASK_STATUS_LABELS } from '@/lib/assist/visitTypes';
+import { VISIT_TASK_STATUS_LABELS, type VisitTaskStatus } from '@/lib/assist/visitTypes';
 
 export type VisitProofPreviewField = {
   label: string;
   value: string;
   required: boolean;
   missing: boolean;
+};
+
+export type VisitProofPreviewTaskItem = {
+  id: string;
+  title: string;
+  status: VisitTaskStatus;
+  statusLabel: string;
 };
 
 export type VisitProofPreview = {
@@ -20,11 +27,11 @@ export type VisitProofPreview = {
   durationMinutes: number | null;
   location: string;
   documentationNote: string | null;
-  tasksSummary: string;
+  tasks: VisitProofPreviewTaskItem[];
   signature: VisitSignatureCapture | null;
   fields: VisitProofPreviewField[];
   readyForExport: boolean;
-  storageGapMessage: string;
+  incompleteHint: string;
 };
 
 function formatDateTime(iso: string): string {
@@ -37,10 +44,7 @@ function formatDateTime(iso: string): string {
   });
 }
 
-/**
- * Build Leistungsnachweis preview from visit detail + session signature.
- * GAP (Phase 3): persist via assistVisitProofPersistenceService after Migration 0156 apply.
- */
+/** Build Leistungsnachweis preview from visit detail + session signature. */
 export function buildVisitProofPreview(
   visit: VisitDispositionDetail,
   documentationNote?: string | null,
@@ -48,12 +52,12 @@ export function buildVisitProofPreview(
   const signature = getVisitSignature(visit.id);
   const docText = documentationNote?.trim() || visit.employeeNotes?.trim() || visit.notes?.trim() || null;
 
-  const tasksSummary =
-    visit.tasks.length === 0
-      ? 'Keine Aufgaben hinterlegt'
-      : visit.tasks
-          .map((t) => `${t.title}: ${VISIT_TASK_STATUS_LABELS[t.status]}`)
-          .join(' · ');
+  const tasks: VisitProofPreviewTaskItem[] = visit.tasks.map((task) => ({
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    statusLabel: VISIT_TASK_STATUS_LABELS[task.status],
+  }));
 
   const fields: VisitProofPreviewField[] = [
     {
@@ -84,19 +88,13 @@ export function buildVisitProofPreview(
       label: 'Ort',
       value: visit.location,
       required: true,
-      missing: !visit.location.trim(),
+      missing: !visit.location.trim() || visit.location === '—',
     },
     {
       label: 'Dokumentation',
       value: docText ?? '—',
       required: true,
       missing: !docText,
-    },
-    {
-      label: 'Aufgaben',
-      value: tasksSummary,
-      required: false,
-      missing: false,
     },
     {
       label: 'Unterschrift',
@@ -121,11 +119,11 @@ export function buildVisitProofPreview(
     durationMinutes: visit.durationMinutes,
     location: visit.location,
     documentationNote: docText,
-    tasksSummary,
+    tasks,
     signature,
     fields,
     readyForExport,
-    storageGapMessage:
-      'Leistungsnachweis wird nach Einsatzabschluss in assist_visit_proofs persistiert. Prüfung und Portal-Freigabe unter Assist → Nachweise → Prüfung.',
+    incompleteHint:
+      'Der Leistungsnachweis wird nach Einsatzabschluss erstellt. Prüfung und Freigabe finden Sie unter Assist → Nachweise → Prüfung.',
   };
 }

@@ -64,6 +64,26 @@ describe('resolveAuthSessionTarget', () => {
     expect(target.homePath).toBe('/portal/client');
   });
 
+  it('redirects employee portal first-login before dashboard when OTP login pending', () => {
+    const target = resolveAuthSessionTarget({
+      profile: null,
+      portalSession: {
+        sessionToken: 'token',
+        tenantId: 'tenant-1',
+        loginType: 'employee_portal',
+        roleKey: 'employee_portal',
+        expiresAt: '2099-01-01T00:00:00.000Z',
+        accountId: 'epa-1',
+        employeeId: 'emp-1',
+        mustChangePassword: true,
+      },
+      user: null,
+    });
+
+    expect(target.homePath).toBe('/auth/employee-first-login?accountId=epa-1');
+    expect(target.canRedirectHome).toBe(true);
+  });
+
   it('does not redirect authenticated users back to public start', () => {
     const target = resolveAuthSessionTarget({
       profile: null,

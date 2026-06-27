@@ -7,9 +7,9 @@ import { careSpacing } from '@/design/tokens/spacing';
 import {
   eventsForDay,
   formatDayHeader,
-  formatTime,
   isSameDay,
 } from '@/lib/office/calendarDateUtils';
+import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
 import { OfficeCalendarEventChip } from './OfficeCalendarEventChip';
 
 type OfficeCalendarDayViewProps = {
@@ -70,12 +70,7 @@ export function OfficeCalendarDayView({
                   {slotEvents.map((event) => {
                     const blockStyle = [styles.eventBlock, { borderLeftColor: event.color }];
                     const inner = (
-                      <>
-                        <Text style={[styles.eventTitle, { color: text.primary }]}>{event.title}</Text>
-                        <Text style={[styles.eventMeta, { color: text.muted }]}>
-                          {formatTime(event.start)} – {formatTime(event.end)}
-                        </Text>
-                      </>
+                      <CalendarEventLabel event={event} variant="stacked" showService />
                     );
                     if (onEventPress) {
                       return (
@@ -139,6 +134,4 @@ const styles = StyleSheet.create({
     borderRadius: 6,
     padding: careSpacing.sm,
   },
-  eventTitle: { fontSize: 14, fontWeight: '600' },
-  eventMeta: { fontSize: 12, marginTop: 2 },
 });

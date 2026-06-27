@@ -16,6 +16,7 @@ import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignme
 import {
   visitDispositionKpiLabels,
   visitSupabaseRepository,
+  type VisitStatusHistoryEntry,
 } from '@/lib/assist/repositories/visitRepository.supabase';
 import { validateVisitStatusTransition } from '@/lib/assist/visitWorkflow';
 import type {
@@ -388,6 +389,33 @@ export async function updateVisitDispositionStatus(
   };
   updateDemoAssignmentSeedStatus(visitId, workflowMap[toStatus] ?? 'aktiv');
   return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+}
+
+export type { VisitStatusHistoryEntry } from '@/lib/assist/repositories/visitRepository.supabase';
+
+export async function fetchVisitStatusHistory(
+  visitId: string,
+  tenantId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<VisitStatusHistoryEntry[]>> {
+  const denied = enforcePermission<VisitStatusHistoryEntry[]>(
+    actorRoleKey,
+    'assist.assignments.view',
+  );
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() === 'supabase') {
+    if (!isUuid(visitId)) return { ok: true, data: [] };
+
+    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
+    const targetId = resolvedId ?? visitId;
+    return visitSupabaseRepository.fetchStatusHistory(tenantId, targetId);
+  }
+
+  return { ok: true, data: [] };
 }
 
 export async function deleteVisitDisposition(

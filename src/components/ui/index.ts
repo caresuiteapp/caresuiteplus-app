@@ -39,6 +39,8 @@ export { PremiumAvatar } from './PremiumAvatar';
 export { PremiumDivider } from './PremiumDivider';
 export { PremiumListRow } from './PremiumListRow';
 export { PremiumDataTable, type DataTableColumn } from './PremiumDataTable';
+export { GlassScrollView, glassScrollSurfaceColor } from './GlassScrollView';
+export { GlassSlidePanel } from './GlassSlidePanel';
 export { InfoBanner } from './InfoBanner';
 export { OfflineNotice } from './OfflineNotice';
 export {

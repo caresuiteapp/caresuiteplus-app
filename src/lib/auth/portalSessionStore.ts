@@ -11,6 +11,8 @@ export type PortalSessionRecord = {
   roleKey: RoleKey;
   expiresAt: string;
   accountId: string;
+  /** True until the employee sets a permanent password after OTP login. */
+  mustChangePassword?: boolean;
   /** Cached client display label for welcome text (real name, not portal username). */
   displayName?: string | null;
   /** Cached tenant label when direct tenants SELECT is blocked by RLS. */

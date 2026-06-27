@@ -333,6 +333,15 @@ export function AuthProvider({ children }: AuthProviderProps) {
     }
   }, []);
 
+  const updatePortalSession = useCallback(async (patch: Partial<PortalSessionRecord>) => {
+    setPortalSession((current) => {
+      if (!current) return current;
+      const next = { ...current, ...patch };
+      void savePortalSession(next);
+      return next;
+    });
+  }, []);
+
   const updateProfile = useCallback((nextProfile: Profile) => {
     setProfile(nextProfile);
     setUser((prev) =>
@@ -378,6 +387,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       profileBootstrapError,
       signInWithSupabaseSession,
       signInPortalSession,
+      updatePortalSession,
       retryProfileBootstrap,
       signOut,
       updateProfile,
@@ -393,6 +403,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
       profileBootstrapError,
       signInWithSupabaseSession,
       signInPortalSession,
+      updatePortalSession,
       retryProfileBootstrap,
       signOut,
       updateProfile,

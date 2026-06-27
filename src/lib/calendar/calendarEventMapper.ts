@@ -1,6 +1,7 @@
 import type { CalendarEventRecord, CalendarEventRecordType, CalendarSourceType } from '@/types/calendar';
 import type { CalendarEvent, CalendarEventType } from '@/types/modules/calendarEvent';
 import { resolveCalendarEventColor } from '@/lib/calendar/calendarColors';
+import { parseLegacyAssignmentTitle } from '@/lib/calendar/calendarEventDisplay';
 import { resolveCalendarEventHref } from '@/lib/calendar/calendarRouteRegistry';
 
 type CalendarEventRow = {
@@ -170,8 +171,31 @@ export function mapCalendarEventRow(row: CalendarEventRow): CalendarEventRecord 
   };
 }
 
+function parseAssignmentNamesFromDescription(description: string | null): {
+  clientName: string | null;
+  employeeName: string | null;
+} {
+  if (!description?.trim()) {
+    return { clientName: null, employeeName: null };
+  }
+  const parts = description.split(' · ').map((part) => part.trim()).filter(Boolean);
+  if (parts.length >= 2) {
+    return { clientName: parts[0] ?? null, employeeName: parts[1] ?? null };
+  }
+  if (parts.length === 1) {
+    return { clientName: parts[0] ?? null, employeeName: null };
+  }
+  return { clientName: null, employeeName: null };
+}
+
 export function mapCalendarEventRecordToUi(record: CalendarEventRecord): CalendarEvent {
   const uiType = mapRecordTypeToUiType(record.eventType);
+  const parsedTitle = parseLegacyAssignmentTitle(record.title);
+  const parsedDescription = parseAssignmentNamesFromDescription(record.description);
+  const isAssistAssignment =
+    record.eventType === 'einsatz'
+    || (record.moduleKey === 'assist' && record.sourceType === 'assist_visit');
+
   return {
     id: record.id,
     title: record.title,
@@ -185,6 +209,11 @@ export function mapCalendarEventRecordToUi(record: CalendarEventRecord): Calenda
     moduleKey: record.moduleKey,
     status: record.status,
     href: resolveCalendarEventHref(record),
+    clientName: isAssistAssignment
+      ? parsedDescription.clientName ?? parsedTitle.clientName ?? undefined
+      : undefined,
+    employeeName: isAssistAssignment ? parsedDescription.employeeName ?? undefined : undefined,
+    serviceTitle: isAssistAssignment ? parsedTitle.serviceTitle : undefined,
     record,
   };
 }

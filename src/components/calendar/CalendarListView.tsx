@@ -6,6 +6,7 @@ import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass'
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { formatTime } from '@/lib/office/calendarDateUtils';
+import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
 
 type CalendarListViewProps = {
   events: CalendarEvent[];
@@ -42,13 +43,11 @@ export function CalendarListView({ events, onEventPress }: CalendarListViewProps
             >
               <Text style={[styles.cell, styles.colDate, { color: text.secondary }]}>{dateLabel}</Text>
               <Text style={[styles.cell, styles.colTime, { color: text.secondary }]}>
-                {event.allDay ? '—' : formatTime(event.start)}
+                {event.allDay ? '—' : `${formatTime(event.start)} – ${formatTime(event.end)}`}
               </Text>
               <View style={styles.colTitle}>
                 <View style={[styles.accent, { backgroundColor: event.color }]} />
-                <Text style={[styles.cell, { color: text.primary }]} numberOfLines={1}>
-                  {event.title}
-                </Text>
+                <CalendarEventLabel event={event} variant="inline" showTime={false} numberOfLines={2} />
               </View>
               <Text style={[styles.cell, styles.colType, { color: text.muted }]}>{typeLabel}</Text>
               <Text style={[styles.cell, styles.colModule, { color: text.muted }]}>
@@ -82,7 +81,7 @@ const styles = StyleSheet.create({
   headerCell: { fontSize: 11, fontWeight: '700', textTransform: 'uppercase' },
   cell: { fontSize: 13 },
   colDate: { width: 72 },
-  colTime: { width: 52 },
+  colTime: { width: 96 },
   colTitle: { flex: 1, flexDirection: 'row', alignItems: 'center', gap: 6, minWidth: 0 },
   colType: { width: 88 },
   colModule: { width: 72 },

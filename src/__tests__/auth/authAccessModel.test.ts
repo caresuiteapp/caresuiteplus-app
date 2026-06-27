@@ -9,6 +9,7 @@ import {
 import {
   generateEmployeeAccess,
   loginEmployeePortal,
+  completeFirstLogin,
   blockEmployeeAccess,
   resetEmployeePassword,
 } from '@/lib/auth/employeePortalAuthService';
@@ -101,6 +102,40 @@ describe('authAccessModel', () => {
     expect(employee.ok).toBe(true);
     if (employee.ok) {
       expect(employee.data.account.username.length).toBeLessThanOrEqual(20);
+    }
+  });
+
+  it('requires first-login password change after OTP login', async () => {
+    const created = await generateEmployeeAccess({
+      tenantId: DEMO_TENANT_ID,
+      companyName: 'Demo',
+      employeeId: 'emp-first-login',
+      firstName: 'First',
+      lastName: 'Login',
+      createdBy: null,
+    });
+    expect(created.ok).toBe(true);
+    if (!created.ok) return;
+
+    const login = await loginEmployeePortal(
+      created.data.account.username,
+      created.data.credentials.oneTimePassword!,
+    );
+    expect(login.ok).toBe(true);
+    if (!login.ok) return;
+    expect(login.data.mustChangePassword).toBe(true);
+    expect(login.data.portalSession?.mustChangePassword).toBe(true);
+
+    const completed = await completeFirstLogin({
+      accountId: created.data.account.id,
+      sessionToken: login.data.portalSession?.sessionToken,
+      newPassword: 'NeuesPasswort1',
+      confirmPassword: 'NeuesPasswort1',
+    });
+    expect(completed.ok).toBe(true);
+    if (completed.ok) {
+      expect(completed.data.firstLoginCompleted).toBe(true);
+      expect(completed.data.mustChangePassword).toBe(false);
     }
   });
 

@@ -1,14 +1,18 @@
 import { useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useLocalSearchParams } from 'expo-router';
+import { useLocalSearchParams, useRouter } from 'expo-router';
 import { EmployeeFirstLoginHero } from '@/components/auth/EmployeeFirstLoginHero';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { completeFirstLogin } from '@/lib/auth/employeePortalAuthService';
+import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
+import { useAuth } from '@/lib/auth/context';
 import { spacing } from '@/theme';
 
 export function EmployeeFirstLoginPasswordScreen() {
+  const router = useRouter();
   const params = useLocalSearchParams<{ accountId?: string }>();
+  const { portalSession, updatePortalSession } = useAuth();
   const [currentPassword, setCurrentPassword] = useState('');
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
@@ -17,12 +21,18 @@ export function EmployeeFirstLoginPasswordScreen() {
   const [loading, setLoading] = useState(false);
   const [completed, setCompleted] = useState(false);
 
+  const accountId = params.accountId ?? portalSession?.accountId;
+  const skipCurrentPassword =
+    portalSession?.loginType === 'employee_portal' &&
+    portalSession.mustChangePassword === true &&
+    Boolean(portalSession.sessionToken);
+
   const handleSubmit = async () => {
     if (!acceptedTerms) {
       setError('Bitte bestätigen Sie Datenschutz und Nutzungsbedingungen.');
       return;
     }
-    if (!params.accountId) {
+    if (!accountId) {
       setError('Zugang nicht gefunden.');
       return;
     }
@@ -30,8 +40,9 @@ export function EmployeeFirstLoginPasswordScreen() {
     setError(null);
     setLoading(true);
     const result = await completeFirstLogin({
-      accountId: params.accountId,
-      currentPassword,
+      accountId,
+      sessionToken: portalSession?.sessionToken,
+      currentPassword: skipCurrentPassword ? undefined : currentPassword,
       newPassword,
       confirmPassword,
     });
@@ -42,25 +53,39 @@ export function EmployeeFirstLoginPasswordScreen() {
       return;
     }
 
+    await updatePortalSession({ mustChangePassword: false });
     setCompleted(true);
+    router.replace(resolvePostLoginRoute('employee_portal') as never);
   };
 
   return (
-    <ScreenShell title="Passwort neu vergeben" subtitle="Erstlogin abschließen" scroll>
+    <ScreenShell title="Neues Passwort setzen" subtitle="Erstlogin abschließen" scroll>
       <View style={styles.content}>
         <EmployeeFirstLoginHero />
       </View>
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
-      <PremiumInput label="Einmalpasswort" value={currentPassword} onChangeText={setCurrentPassword} secureTextEntry />
+      {!skipCurrentPassword ? (
+        <PremiumInput
+          label="Einmalpasswort"
+          value={currentPassword}
+          onChangeText={setCurrentPassword}
+          secureTextEntry
+        />
+      ) : null}
       <PremiumInput label="Neues Passwort" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-      <PremiumInput label="Passwort bestätigen" value={confirmPassword} onChangeText={setConfirmPassword} secureTextEntry />
+      <PremiumInput
+        label="Passwort bestätigen"
+        value={confirmPassword}
+        onChangeText={setConfirmPassword}
+        secureTextEntry
+      />
       <PremiumButton
         title={acceptedTerms ? 'Datenschutz bestätigt' : 'Datenschutz / Nutzungsbedingungen bestätigen'}
         variant="secondary"
         onPress={() => setAcceptedTerms(true)}
         fullWidth
       />
-      <PremiumButton title="Login abschließen" onPress={handleSubmit} loading={loading} fullWidth />
+      <PremiumButton title="Passwort speichern" onPress={handleSubmit} loading={loading} fullWidth />
       {completed ? (
         <SuccessState message="Passwort gespeichert — Weiterleitung zum Mitarbeiterportal…" />
       ) : (

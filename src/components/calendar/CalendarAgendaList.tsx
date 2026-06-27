@@ -5,6 +5,7 @@ import { GlassCard } from '@/design/components/GlassCard';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { formatDayHeader, formatTime } from '@/lib/office/calendarDateUtils';
+import { formatCalendarEventTimeRange } from '@/lib/calendar/calendarEventDisplay';
 import { OfficeCalendarEventChip } from '@/components/office/calendar/OfficeCalendarEventChip';
 
 type CalendarAgendaListProps = {
@@ -47,10 +48,10 @@ export function CalendarAgendaList({ events, onEventPress }: CalendarAgendaListP
                 accessibilityRole="button"
               >
                 <Text style={[styles.time, { color: text.muted }]}>
-                  {event.allDay ? 'Ganztägig' : formatTime(event.start)}
+                  {event.allDay ? 'Ganztägig' : formatCalendarEventTimeRange(event) ?? formatTime(event.start)}
                 </Text>
                 <View style={styles.chipWrap}>
-                  <OfficeCalendarEventChip event={event} onEventPress={onEventPress} />
+                  <OfficeCalendarEventChip event={event} showTime={false} onEventPress={onEventPress} />
                 </View>
               </Pressable>
             ))}
@@ -74,6 +75,6 @@ const styles = StyleSheet.create({
     borderBottomWidth: StyleSheet.hairlineWidth,
     borderBottomColor: auroraGlass.border,
   },
-  time: { width: 72, fontSize: 12, paddingTop: 6 },
+  time: { width: 92, fontSize: 11, paddingTop: 6 },
   chipWrap: { flex: 1 },
 });

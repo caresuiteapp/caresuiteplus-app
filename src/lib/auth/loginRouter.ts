@@ -38,6 +38,10 @@ export function resolveFirstLoginRoute(loginType: AuthLoginType): Href | null {
   return null;
 }
 
+export function resolveEmployeeFirstLoginHref(accountId: string): Href {
+  return `/auth/employee-first-login?accountId=${encodeURIComponent(accountId)}` as Href;
+}
+
 export function resolveBlockedAccessMessage(): string {
   return 'Zugang gesperrt. Bitte wenden Sie sich an die Verwaltung.';
 }

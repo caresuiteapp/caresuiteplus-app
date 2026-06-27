@@ -1,33 +1,42 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
+import { CalendarEventLabel } from '@/components/calendar/CalendarEventLabel';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { formatTime } from '@/lib/office/calendarDateUtils';
+import { isAssignmentCalendarEvent } from '@/lib/calendar/calendarEventDisplay';
 
 type OfficeCalendarEventChipProps = {
   event: CalendarEvent;
   compact?: boolean;
+  showTime?: boolean;
   onEventPress?: (event: CalendarEvent) => void;
 };
 
 export function OfficeCalendarEventChip({
   event,
   compact = false,
+  showTime = true,
   onEventPress,
 }: OfficeCalendarEventChipProps) {
   const text = useAuroraAdaptiveText();
   const router = useRouter();
+  const isAssignment = isAssignmentCalendarEvent(event);
   const timeLabel = event.allDay ? 'Ganztägig' : formatTime(event.start);
 
   const content = (
     <View style={[styles.chip, compact && styles.chipCompact, { borderLeftColor: event.color }]}>
-      {!event.allDay && !compact ? (
+      {!isAssignment && !event.allDay && showTime && !compact ? (
         <Text style={[styles.time, { color: text.muted }]}>{timeLabel}</Text>
       ) : null}
-      <Text style={[styles.title, { color: text.primary }, compact && styles.titleCompact]} numberOfLines={1}>
-        {event.title}
-      </Text>
+      <CalendarEventLabel
+        event={event}
+        variant={compact ? 'compact' : 'stacked'}
+        showTime={isAssignment ? showTime : false}
+        showService={!compact}
+        numberOfLines={compact ? 2 : 3}
+      />
     </View>
   );
 
@@ -64,12 +73,5 @@ const styles = StyleSheet.create({
   time: {
     fontSize: 10,
     marginBottom: 1,
-  },
-  title: {
-    fontSize: 12,
-    fontWeight: '500',
-  },
-  titleCompact: {
-    fontSize: 11,
   },
 });

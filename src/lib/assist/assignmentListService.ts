@@ -10,6 +10,7 @@ import { visitSupabaseRepository } from '@/lib/assist/repositories/visitReposito
 import { fetchVisitDispositionList } from '@/lib/assist/visitService';
 import { fetchTripLogList } from '@/lib/assist/tripLogService';
 import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
+import { enforcePermission } from '@/lib/permissions';
 import { enforceWithActor } from '@/lib/permissions/actorPermissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';

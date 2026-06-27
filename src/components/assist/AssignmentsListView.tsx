@@ -158,8 +158,10 @@ export function AssignmentsListView({
           flex: 1,
           borderRadius: 12,
           overflow: 'hidden',
+          minWidth: 0,
           ...webGlassBlur,
         },
+        flatListWeb: Platform.OS === 'web' ? ({ minWidth: 0 } as ViewStyle) : null,
         toolbar: { gap: spacing.sm, marginBottom: spacing.md, backgroundColor: 'transparent' },
         filterLabel: {
           ...typography.label,
@@ -311,7 +313,7 @@ export function AssignmentsListView({
 
   const tableView = (
     <ScrollView
-      style={styles.flatList}
+      style={[styles.flatList, styles.flatListWeb]}
       contentContainerStyle={styles.list}
       showsVerticalScrollIndicator={false}
       refreshControl={

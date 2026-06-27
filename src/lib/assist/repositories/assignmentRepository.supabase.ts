@@ -22,6 +22,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { Database } from '@/lib/supabase/database.types';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
+import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
 import { isUuid } from '@/lib/validation/uuid';
 import { cancelCalendarEventBySourceAsync } from '@/lib/calendar/calendarSyncService';
 
@@ -56,7 +57,14 @@ export type AssignmentLiveRow = {
   address_snapshot: string | null;
   created_at: string;
   updated_at: string;
-  clients?: { first_name: string | null; last_name: string | null } | null;
+  clients?: {
+    first_name: string | null;
+    last_name: string | null;
+    street?: string | null;
+    house_number?: string | null;
+    postal_code?: string | null;
+    city?: string | null;
+  } | null;
   employees?: { first_name: string | null; last_name: string | null } | null;
 };
 
@@ -101,7 +109,7 @@ const LIST_SELECT = `
   planned_start_at, planned_end_at, actual_start_at, actual_end_at,
   on_the_way_at, arrived_at, finished_at, documentation_notes,
   status, title, address_snapshot, created_at, updated_at,
-  clients(first_name, last_name),
+  clients(first_name, last_name, street, house_number, postal_code, city),
   employees(first_name, last_name)
 `;
 
@@ -152,6 +160,13 @@ function mapTaskRow(row: AssignmentTaskRow): AssignmentTaskItem {
   };
 }
 
+function assignmentLocationFromRow(row: AssignmentLiveRow): string {
+  return resolveVisitLocation({
+    addressSnapshot: row.address_snapshot,
+    client: row.clients,
+  });
+}
+
 function mapListItem(row: AssignmentLiveRow): AssignmentListItem {
   const assignmentStatus = remoteStatusToAssignment(row.status);
   return {
@@ -161,7 +176,7 @@ function mapListItem(row: AssignmentLiveRow): AssignmentListItem {
     scheduledStart: row.planned_start_at,
     scheduledEnd: row.planned_end_at,
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
-    location: row.address_snapshot?.trim() || '—',
+    location: assignmentLocationFromRow(row),
     clientName: personName(row.clients),
     employeeName: personName(row.employees),
     updatedAt: row.updated_at,
@@ -181,7 +196,7 @@ function mapDetail(row: AssignmentLiveRow & { assignment_tasks?: AssignmentTaskR
     scheduledStart: row.planned_start_at,
     scheduledEnd: row.planned_end_at,
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
-    location: row.address_snapshot?.trim() || '—',
+    location: assignmentLocationFromRow(row),
     notes: row.documentation_notes ?? null,
     clientName: personName(row.clients),
     employeeName: personName(row.employees),

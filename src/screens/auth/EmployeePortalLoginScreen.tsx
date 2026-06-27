@@ -6,7 +6,8 @@ import { CareSuiteLogo } from '@/components/brand';
 import { ScreenShell } from '@/components/layout';
 import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
 import { loginEmployeePortal } from '@/lib/auth/employeePortalAuthService';
-import { resolveFirstLoginRoute } from '@/lib/auth/loginRouter';
+import { completePortalLogin } from '@/lib/auth/portalloginflow';
+import { resolveEmployeeFirstLoginHref } from '@/lib/auth/loginRouter';
 import { useAuth } from '@/lib/auth/context';
 import { careSpacing } from '@/design/tokens/spacing';
 
@@ -38,15 +39,26 @@ export function EmployeePortalLoginScreen() {
       return;
     }
 
+    const completed = await completePortalLogin(result.data.portalSession, {
+      supabaseAccessToken: result.data.supabaseAccessToken,
+      supabaseRefreshToken: result.data.supabaseRefreshToken,
+    });
+    if (!completed.ok) {
+      setError(completed.error);
+      return;
+    }
+
     try {
-      await signInPortalSession(result.data.portalSession);
+      await signInPortalSession(completed.data.portalSession);
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Anmeldung fehlgeschlagen.');
       return;
     }
 
     if (result.data.mustChangePassword) {
-      router.replace(`${resolveFirstLoginRoute('employee_portal')}?accountId=${result.data.account.id}` as never);
+      router.replace(
+        resolveEmployeeFirstLoginHref(result.data.account.id) as never,
+      );
       return;
     }
 

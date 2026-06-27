@@ -28,6 +28,12 @@ export type CalendarEvent = {
   moduleKey?: string;
   status?: string;
   href?: string;
+  /** Klient:innenname — primär für Einsätze. */
+  clientName?: string;
+  /** Mitarbeitendenname — primär für Einsätze. */
+  employeeName?: string;
+  /** Leistung / Servicetitel — sekundär für Einsätze. */
+  serviceTitle?: string;
   record?: import('@/types/calendar').CalendarEventRecord;
 };
 

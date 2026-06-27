@@ -42,15 +42,22 @@ function mapAssignment(entry: {
   startsAt: string;
   endsAt: string;
   clientName?: string;
+  employeeName?: string;
+  serviceName?: string | null;
 }): CalendarEvent {
   return {
     id: `einsatz-${entry.id}`,
-    title: entry.clientName ? `${entry.title} · ${entry.clientName}` : entry.title,
+    title: entry.title,
     start: entry.startsAt,
     end: entry.endsAt,
     type: 'einsatz',
     color: CALENDAR_EVENT_TYPE_COLORS.einsatz,
     sourceId: entry.id,
+    sourceType: 'assist_visit',
+    moduleKey: 'assist',
+    clientName: entry.clientName,
+    employeeName: entry.employeeName,
+    serviceTitle: entry.serviceName ?? entry.title,
     href: `/assist/assignments/${entry.id}`,
   };
 }
@@ -62,6 +69,8 @@ function mapAssistAssignmentListItem(item: AssignmentListItem): CalendarEvent {
     startsAt: item.scheduledStart,
     endsAt: item.scheduledEnd,
     clientName: item.clientName,
+    employeeName: item.employeeName,
+    serviceName: item.serviceName,
   });
 }
 

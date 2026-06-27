@@ -21,6 +21,7 @@ export type AuthContextValue = {
   profileBootstrapError: string | null;
   signInWithSupabaseSession: (session: Session) => Promise<void>;
   signInPortalSession: (session: PortalSessionRecord) => Promise<void>;
+  updatePortalSession: (patch: Partial<PortalSessionRecord>) => Promise<void>;
   retryProfileBootstrap: () => Promise<void>;
   signOut: () => Promise<void>;
   updateProfile: (profile: Profile) => void;

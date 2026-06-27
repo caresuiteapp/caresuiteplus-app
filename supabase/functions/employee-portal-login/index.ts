@@ -1,6 +1,7 @@
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts';
 import { verifySecret } from '../_shared/crypto.ts';
 import { corsHeaders, getServiceClient, jsonResponse, readClientMeta, tryInsert } from '../_shared/http.ts';
+import { ensurePortalSupabaseAuth } from '../_shared/portalAuth.ts';
 
 type LoginBody = {
   username: string;
@@ -50,6 +51,27 @@ async function verifyEmployeePassword(
   }
 
   return { ok: true };
+}
+
+async function resolveEmployeeDisplayName(
+  supabase: ReturnType<typeof getServiceClient>,
+  employeeId: string,
+  fallbackUsername: string,
+): Promise<string> {
+  const { data: employeeRow } = await supabase
+    .from('employees')
+    .select('first_name, last_name')
+    .eq('id', employeeId)
+    .maybeSingle();
+
+  if (employeeRow) {
+    const first = ((employeeRow.first_name as string | null) ?? '').trim();
+    const last = ((employeeRow.last_name as string | null) ?? '').trim();
+    const fullName = [first, last].filter(Boolean).join(' ').trim();
+    if (fullName) return fullName;
+  }
+
+  return fallbackUsername;
 }
 
 serve(async (req) => {
@@ -159,12 +181,34 @@ serve(async (req) => {
     const account = mapAccount(matched);
     const mustChangePassword = account.mustChangePassword || !account.firstLoginCompleted;
 
+    const displayName = await resolveEmployeeDisplayName(
+      supabase,
+      matched.employee_id as string,
+      account.username,
+    );
+
+    const authResult = await ensurePortalSupabaseAuth(supabase, {
+      portalType: 'employee',
+      accountId: account.id,
+      tenantId: account.tenantId,
+      roleKey: 'employee_portal',
+      displayName,
+      linkTable: 'employee_portal_accounts',
+      linkRowId: account.id,
+    });
+
+    if (!authResult.ok) {
+      return jsonResponse({ ok: false, error: authResult.error }, 500);
+    }
+
     return jsonResponse({
       ok: true,
       account,
       mustChangePassword,
       sessionToken,
       expiresAt,
+      supabaseAccessToken: authResult.accessToken,
+      supabaseRefreshToken: authResult.refreshToken,
     });
   } catch (err) {
     return jsonResponse({ ok: false, error: String(err) }, 500);

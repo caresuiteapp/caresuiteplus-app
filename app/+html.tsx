@@ -1,6 +1,7 @@
 import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 import { DISABLE_HOVER_EFFECTS_CSS } from '@/design/web/disableHoverEffectsCss';
+import { GLASS_SCROLLBARS_CSS } from '@/design/web/glassScrollbarsCss';
 import { INVISIBLE_SCROLLBARS_CSS } from '@/design/web/invisibleScrollbarsCss';
 import { WEB_FONT_SCALE_CSS } from '@/design/web/webFontScaleCss';
 import { WEB_SAFE_AREA_GLOBAL_CSS } from '@/lib/platform/webSafeArea';
@@ -28,6 +29,7 @@ export default function Root({ children }: PropsWithChildren) {
               ${WEB_SAFE_AREA_GLOBAL_CSS}
               ${DISABLE_HOVER_EFFECTS_CSS}
               ${INVISIBLE_SCROLLBARS_CSS}
+              ${GLASS_SCROLLBARS_CSS}
             `,
           }}
         />

@@ -122,6 +122,8 @@ export async function loginEmployeePortal(
     account: EmployeePortalAccount;
     mustChangePassword: boolean;
     portalSession?: PortalSessionRecord;
+    supabaseAccessToken?: string;
+    supabaseRefreshToken?: string;
   }>
 > {
   if (getServiceMode() === 'supabase') {
@@ -130,12 +132,15 @@ export async function loginEmployeePortal(
       mustChangePassword: boolean;
       sessionToken: string;
       expiresAt: string;
+      supabaseAccessToken?: string;
+      supabaseRefreshToken?: string;
     }>('employee-portal-login', { username, password });
 
     if (!login.ok) {
       return { ok: false, error: login.error };
     }
 
+    const mustChangePassword = login.data.mustChangePassword;
     const portalSession: PortalSessionRecord = {
       sessionToken: login.data.sessionToken,
       tenantId: login.data.account.tenantId,
@@ -144,14 +149,17 @@ export async function loginEmployeePortal(
       expiresAt: login.data.expiresAt,
       accountId: login.data.account.id,
       employeeId: login.data.account.employeeId,
+      mustChangePassword,
     };
 
     return {
       ok: true,
       data: {
         account: login.data.account,
-        mustChangePassword: login.data.mustChangePassword,
+        mustChangePassword,
         portalSession,
+        supabaseAccessToken: login.data.supabaseAccessToken,
+        supabaseRefreshToken: login.data.supabaseRefreshToken,
       },
     };
   }
@@ -219,24 +227,61 @@ export async function loginEmployeePortal(
     failureReason: null,
   });
 
+  const mustChangePassword = account.mustChangePassword || !account.firstLoginCompleted;
+  const portalSession: PortalSessionRecord = {
+    sessionToken: createId('ps'),
+    tenantId,
+    loginType: 'employee_portal',
+    roleKey: 'employee_portal',
+    expiresAt: new Date(Date.now() + 12 * 60 * 60 * 1000).toISOString(),
+    accountId: account.id,
+    employeeId: account.employeeId,
+    mustChangePassword,
+  };
+
   return {
     ok: true,
     data: {
       account,
-      mustChangePassword: account.mustChangePassword || !account.firstLoginCompleted,
+      mustChangePassword,
+      portalSession,
     },
   };
 }
 
 export async function completeFirstLogin(input: {
   accountId: string;
-  currentPassword: string;
+  sessionToken?: string;
+  currentPassword?: string;
   newPassword: string;
   confirmPassword: string;
 }): Promise<ServiceResult<EmployeePortalAccount>> {
   const validationError = validatePermanentPassword(input.newPassword, input.confirmPassword);
   if (validationError) {
     return { ok: false, error: validationError };
+  }
+
+  if (getServiceMode() === 'supabase') {
+    if (!input.sessionToken?.trim()) {
+      return { ok: false, error: 'Sitzung ungültig. Bitte erneut anmelden.' };
+    }
+
+    const result = await invokeEdgeFunction<{ account: EmployeePortalAccount }>(
+      'employee-portal-complete-first-login',
+      {
+        accountId: input.accountId,
+        sessionToken: input.sessionToken,
+        newPassword: input.newPassword,
+        confirmPassword: input.confirmPassword,
+        currentPassword: input.currentPassword,
+      },
+    );
+
+    if (!result.ok) {
+      return { ok: false, error: result.error };
+    }
+
+    return { ok: true, data: result.data.account };
   }
 
   const tenantId = DEMO_TENANT_ID;
@@ -249,12 +294,18 @@ export async function completeFirstLogin(input: {
 
   const hash = getPasswordHash(`employee:${account.id}`);
   const tempRecord = tempPasswordRecords.get(account.id);
-  const tempCheck = tempRecord
-    ? await verifyTemporaryPassword(input.currentPassword, tempRecord)
-    : { ok: false, reason: 'Kein Einmalpasswort.' };
+  const currentPassword = input.currentPassword?.trim() ?? '';
+  const trustedSession = Boolean(input.sessionToken?.trim()) && (account.mustChangePassword || !account.firstLoginCompleted);
 
-  const permanentValid = hash ? await verifySecret(input.currentPassword, hash) : false;
-  if (!tempCheck.ok && !permanentValid) {
+  if (currentPassword) {
+    const tempCheck = tempRecord
+      ? await verifyTemporaryPassword(currentPassword, tempRecord)
+      : { ok: false, reason: 'Kein Einmalpasswort.' };
+    const permanentValid = hash ? await verifySecret(currentPassword, hash) : false;
+    if (!tempCheck.ok && !permanentValid) {
+      return { ok: false, error: 'Aktuelles Passwort ist ungültig.' };
+    }
+  } else if (!trustedSession) {
     return { ok: false, error: 'Aktuelles Passwort ist ungültig.' };
   }
 

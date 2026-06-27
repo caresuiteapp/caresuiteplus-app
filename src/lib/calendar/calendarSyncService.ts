@@ -83,12 +83,12 @@ export function buildCalendarEventFromAssignment(
     sourceType: 'assist_visit',
     sourceId: item.id,
     eventType: 'einsatz',
-    title: item.clientName ? `${item.title} · ${item.clientName}` : item.title,
+    title: item.serviceName?.trim() || item.title,
+    description: [item.clientName, item.employeeName].filter(Boolean).join(' · ') || null,
     startAt: item.scheduledStart,
     endAt: item.scheduledEnd,
     status: item.status,
-    relatedClientId: null,
-    relatedEmployeeId: null,
+    relatedEmployeeId: item.employeeId ?? null,
     isOfficeVisible: true,
     isModuleVisible: true,
     isClientPortalVisible: false,
@@ -105,17 +105,23 @@ export function buildCalendarEventFromVisitDetail(input: {
   plannedEndAt: string;
   clientId: string;
   employeeId: string | null;
+  clientName?: string | null;
+  employeeName?: string | null;
+  serviceName?: string | null;
   canonicalStatus: string;
   portalReleaseEnabled: boolean;
   employeePortalVisible: boolean;
 }): CalendarSyncPayload {
+  const serviceTitle = input.serviceName?.trim() || input.title;
+  const descriptionParts = [input.clientName, input.employeeName].filter(Boolean);
   return {
     tenantId: input.tenantId,
     moduleKey: 'assist',
     sourceType: 'assist_visit',
     sourceId: input.id,
     eventType: 'einsatz',
-    title: input.title,
+    title: serviceTitle,
+    description: descriptionParts.length > 0 ? descriptionParts.join(' · ') : null,
     startAt: input.plannedStartAt,
     endAt: input.plannedEndAt,
     status: input.canonicalStatus,
@@ -423,6 +429,9 @@ export async function syncCalendarEventFromSource(
           plannedEndAt: visit.data.scheduledEnd,
           clientId: visit.data.clientId,
           employeeId: visit.data.employeeId,
+          clientName: visit.data.clientName,
+          employeeName: visit.data.employeeName,
+          serviceName: visit.data.serviceName,
           canonicalStatus: visit.data.assignmentStatus,
           portalReleaseEnabled: visit.data.portalReleaseEnabled,
           employeePortalVisible: visit.data.employeePortalVisible,

@@ -11,6 +11,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode, isDemoMode } from '@/lib/services/mode';
 import { recordsToUiEvents } from '@/lib/calendar/calendarFilters';
+import { enrichCalendarEventWithAssignment } from '@/lib/calendar/calendarEventDisplay';
 import { mapCalendarEventRecordToUi } from '@/lib/calendar/calendarEventMapper';
 import { calendarEventRepository } from '@/lib/calendar/calendarEventRepository';
 import {
@@ -142,6 +143,33 @@ async function fetchLegacyFallbackOnce(
   return legacy;
 }
 
+async function enrichAssistCalendarEvents(
+  tenantId: string,
+  events: CalendarEvent[],
+  actorRoleKey?: RoleKey | null,
+): Promise<CalendarEvent[]> {
+  const needsEnrichment = events.some(
+    (event) =>
+      event.type === 'einsatz'
+      && event.sourceId
+      && (!event.clientName?.trim() || !event.employeeName?.trim()),
+  );
+  if (!needsEnrichment) return events;
+
+  const { fetchAssignmentList } = await import('@/lib/assist/assignmentListService');
+  const assignmentsResult = await fetchAssignmentList(tenantId, actorRoleKey);
+  if (!assignmentsResult.ok) return events;
+
+  const byId = new Map(assignmentsResult.data.map((item) => [item.id, item]));
+
+  return events.map((event) => {
+    if (event.type !== 'einsatz' || !event.sourceId) return event;
+    const assignment = byId.get(event.sourceId);
+    if (!assignment) return event;
+    return enrichCalendarEventWithAssignment(event, assignment);
+  });
+}
+
 export async function getCalendarEvents(
   params: GetCalendarEventsParams,
 ): Promise<ServiceResult<CalendarEvent[]>> {
@@ -152,8 +180,21 @@ export async function getCalendarEvents(
   const tenantBlock = guardServiceTenant(params.tenantId);
   if (tenantBlock) return tenantBlock;
 
+  const isAssistModule =
+    params.config.calendarScope === 'module' && params.config.moduleKey === 'assist';
+
   const central = await fetchFromCentralStore(params);
-  if (central.ok && central.data.length > 0) return central;
+  if (central.ok && central.data.length > 0) {
+    if (isAssistModule) {
+      const enriched = await enrichAssistCalendarEvents(
+        params.tenantId,
+        central.data,
+        params.actorRoleKey,
+      );
+      return { ok: true, data: enriched };
+    }
+    return central;
+  }
 
   const isStationaerModule =
     params.config.calendarScope === 'module' && params.config.moduleKey === 'stationaer';
@@ -165,16 +206,33 @@ export async function getCalendarEvents(
     );
     await syncStationaerCalendarBootstrap(params.tenantId);
     const retry = await fetchFromCentralStore(params);
-    if (retry.ok && retry.data.length > 0) return retry;
+    if (retry.ok && retry.data.length > 0) {
+      if (isAssistModule) {
+        const enriched = await enrichAssistCalendarEvents(
+          params.tenantId,
+          retry.data,
+          params.actorRoleKey,
+        );
+        return { ok: true, data: enriched };
+      }
+      return retry;
+    }
   }
 
   const isOfficeMain =
     params.config.calendarScope === 'office' || params.config.showAllModules;
-  const isAssistModule =
-    params.config.calendarScope === 'module' && params.config.moduleKey === 'assist';
 
   if (isAssistModule) {
-    return fetchLegacyFallbackOnce(params, fetchLegacyAssistCalendarEvents);
+    const legacy = await fetchLegacyFallbackOnce(params, fetchLegacyAssistCalendarEvents);
+    if (legacy.ok) {
+      const enriched = await enrichAssistCalendarEvents(
+        params.tenantId,
+        legacy.data,
+        params.actorRoleKey,
+      );
+      return { ok: true, data: enriched };
+    }
+    return legacy;
   }
   if (isOfficeMain) {
     return fetchLegacyFallbackOnce(params, fetchLegacyCalendarEvents);

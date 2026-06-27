@@ -27,7 +27,10 @@ import type {
 } from '@/lib/assist/visitTypes';
 import {
   VISIT_BILLING_STATUS_LABELS,
+  VISIT_DOCUMENTATION_STATUS_LABELS,
+  VISIT_EXECUTION_STATUS_LABELS,
   VISIT_PLANNING_STATUS_LABELS,
+  VISIT_PORTAL_STATUS_LABELS,
   VISIT_PROOF_STATUS_LABELS,
 } from '@/lib/assist/visitTypes';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -47,6 +50,8 @@ import {
   persistAssignmentBudgetAllocations,
   reserveAssignmentBudget,
 } from '@/lib/assist/assignmentBudgetAllocationService';
+import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
+import { isSupabaseMissingTableError } from '@/lib/supabase/errors';
 import { isUuid } from '@/lib/validation/uuid';
 
 type VisitRow = {
@@ -90,8 +95,27 @@ type VisitRow = {
   error_message: string | null;
   created_at: string;
   updated_at: string;
-  clients?: { first_name: string | null; last_name: string | null } | null;
+  clients?: {
+    first_name: string | null;
+    last_name: string | null;
+    street?: string | null;
+    house_number?: string | null;
+    postal_code?: string | null;
+    city?: string | null;
+  } | null;
   employees?: { first_name: string | null; last_name: string | null } | null;
+};
+
+export type VisitStatusHistoryEntry = {
+  id: string;
+  dimension: string;
+  dimensionLabel: string;
+  fromStatus: string | null;
+  fromStatusLabel: string | null;
+  toStatus: string;
+  toStatusLabel: string;
+  note: string | null;
+  changedAt: string;
 };
 
 type VisitTaskRow = {
@@ -105,6 +129,9 @@ type VisitTaskRow = {
   sort_order: number;
 };
 
+const CLIENT_LOCATION_SELECT =
+  'first_name, last_name, street, house_number, postal_code, city';
+
 const LIST_SELECT = `
   id, tenant_id, legacy_assignment_id, client_id, employee_id,
   service_key, service_name, title, description,
@@ -113,7 +140,7 @@ const LIST_SELECT = `
   proof_status, billing_status, portal_status, canonical_status,
   is_at_risk, is_incomplete, budget_amount_cents, budget_warning,
   error_code, error_message, created_at, updated_at,
-  clients(first_name, last_name),
+  clients(${CLIENT_LOCATION_SELECT}),
   employees(first_name, last_name)
 `;
 
@@ -173,6 +200,70 @@ function mapTaskRow(row: VisitTaskRow): VisitTaskItem {
   };
 }
 
+const VISIT_STATUS_DIMENSION_LABELS: Record<string, string> = {
+  planning: 'Planung',
+  execution: 'Durchführung',
+  documentation: 'Dokumentation',
+  proof: 'Nachweis',
+  billing: 'Abrechnung',
+  portal: 'Portal',
+  canonical: 'Workflow',
+};
+
+function resolveVisitStatusLabel(dimension: string, status: string): string {
+  switch (dimension) {
+    case 'planning':
+      return VISIT_PLANNING_STATUS_LABELS[status as VisitPlanningStatus] ?? status;
+    case 'execution':
+      return VISIT_EXECUTION_STATUS_LABELS[status as VisitExecutionStatus] ?? status;
+    case 'documentation':
+      return VISIT_DOCUMENTATION_STATUS_LABELS[status as VisitDocumentationStatus] ?? status;
+    case 'proof':
+      return VISIT_PROOF_STATUS_LABELS[status as VisitProofStatus] ?? status;
+    case 'billing':
+      return VISIT_BILLING_STATUS_LABELS[status as VisitBillingStatus] ?? status;
+    case 'portal':
+      return VISIT_PORTAL_STATUS_LABELS[status as VisitPortalStatus] ?? status;
+    case 'canonical': {
+      const assignmentStatus = remoteStatusToAssignment(status);
+      return ASSIGNMENT_STATUS_LABELS[assignmentStatus] ?? status;
+    }
+    default:
+      return status;
+  }
+}
+
+function mapStatusHistoryRow(row: {
+  id: string;
+  dimension: string;
+  from_status: string | null;
+  to_status: string;
+  note: string | null;
+  changed_at: string;
+}): VisitStatusHistoryEntry {
+  return {
+    id: row.id,
+    dimension: row.dimension,
+    dimensionLabel: VISIT_STATUS_DIMENSION_LABELS[row.dimension] ?? row.dimension,
+    fromStatus: row.from_status,
+    fromStatusLabel: row.from_status
+      ? resolveVisitStatusLabel(row.dimension, row.from_status)
+      : null,
+    toStatus: row.to_status,
+    toStatusLabel: resolveVisitStatusLabel(row.dimension, row.to_status),
+    note: row.note,
+    changedAt: row.changed_at,
+  };
+}
+
+function visitLocationFromRow(row: VisitRow): string {
+  return resolveVisitLocation({
+    addressSnapshot: row.address_snapshot,
+    locationNotes: row.location_notes,
+    client: row.clients,
+  });
+}
+
 function mapListItem(row: VisitRow): VisitDispositionListItem {
   const assignmentStatus = remoteStatusToAssignment(row.canonical_status);
   const atRisk = isVisitAtRisk({
@@ -200,7 +291,7 @@ function mapListItem(row: VisitRow): VisitDispositionListItem {
     planningStatus: row.planning_status,
     proofStatus: row.proof_status,
     billingStatus: row.billing_status,
-    location: row.address_snapshot?.trim() || '—',
+    location: visitLocationFromRow(row),
     clientName: personName(row.clients),
     employeeName: personName(row.employees),
     isAtRisk: atRisk,
@@ -595,6 +686,9 @@ export const visitSupabaseRepository = {
           plannedEndAt: refreshed.data.scheduledEnd,
           clientId: refreshed.data.clientId,
           employeeId: refreshed.data.employeeId,
+          clientName: refreshed.data.clientName,
+          employeeName: refreshed.data.employeeName,
+          serviceName: refreshed.data.serviceName,
           canonicalStatus: refreshed.data.assignmentStatus,
           portalReleaseEnabled: refreshed.data.portalReleaseEnabled,
           employeePortalVisible: refreshed.data.employeePortalVisible,
@@ -755,6 +849,39 @@ export const visitSupabaseRepository = {
       .maybeSingle();
 
     return (data as { id: string } | null)?.id ?? null;
+  },
+
+  async fetchStatusHistory(
+    tenantId: string,
+    visitId: string,
+  ): Promise<ServiceResult<VisitStatusHistoryEntry[]>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+    if (!isUuid(visitId)) return { ok: true, data: [] };
+
+    const { data, error } = await fromUnknownTable(supabase, 'assist_visit_status_history')
+      .select('id, dimension, from_status, to_status, note, changed_at')
+      .eq('tenant_id', tenantId)
+      .eq('visit_id', visitId)
+      .order('changed_at', { ascending: false });
+
+    if (error) {
+      if (isSupabaseMissingTableError(error)) {
+        return { ok: true, data: [] };
+      }
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
+
+    const rows = (data ?? []) as Array<{
+      id: string;
+      dimension: string;
+      from_status: string | null;
+      to_status: string;
+      note: string | null;
+      changed_at: string;
+    }>;
+
+    return { ok: true, data: rows.map(mapStatusHistoryRow) };
   },
 };
 

@@ -1,5 +1,6 @@
 import { resolveSessionHomeRoute } from '@/lib/navigation/sessionRouting';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types';
+import { resolveEmployeeFirstLoginHref } from './loginRouter';
 import type { PortalSessionRecord } from './portalSessionStore';
 
 export type SessionTargetInput = {
@@ -29,7 +30,13 @@ export function resolveAuthSessionTarget(input: SessionTargetInput) {
   const hasSessionTarget = Boolean(input.portalSession || roleKey || hasSupabaseSession);
 
   let homePath = String(resolveSessionHomeRoute(roleKey, input.portalSession));
-  if (hasSupabaseSession && !input.portalSession && !roleKey) {
+  if (
+    input.portalSession?.loginType === 'employee_portal' &&
+    input.portalSession.mustChangePassword &&
+    input.portalSession.accountId
+  ) {
+    homePath = String(resolveEmployeeFirstLoginHref(input.portalSession.accountId));
+  } else if (hasSupabaseSession && !input.portalSession && !roleKey) {
     homePath = BUSINESS_FALLBACK_HOME;
   }
 

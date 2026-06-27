@@ -21,6 +21,7 @@ export const APP_ROUTES: AppRoute[] = [
   { path: '/auth/register', label: 'Registrierung', group: 'auth', requiresAuth: false },
   { path: '/auth/register-business', label: 'Business-Registrierung', group: 'auth', requiresAuth: false },
   { path: '/auth/employee-login', label: 'Mitarbeiter-Anmeldung', group: 'auth', requiresAuth: false },
+  { path: '/auth/employee-portal-login', label: 'Mitarbeiterportal-Anmeldung', group: 'auth', requiresAuth: false },
   { path: '/auth/employee-first-login', label: 'Erstlogin Mitarbeiter', group: 'auth', requiresAuth: false },
   { path: '/auth/client-login', label: 'Klient:innen-Anmeldung', group: 'auth', requiresAuth: false },
   { path: '/auth/portal-code-login', label: 'Portal-Code Login', group: 'auth', requiresAuth: false },
