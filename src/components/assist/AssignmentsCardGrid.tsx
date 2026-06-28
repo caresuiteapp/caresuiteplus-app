@@ -1,9 +1,11 @@
-import { StyleSheet, View, useWindowDimensions } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { ReactNode, useMemo } from 'react';
 import { AssignmentCompactCard } from '@/components/assist/AssignmentCompactCard';
 import type { AssignmentListItem } from '@/types/modules/assist';
-import { useResponsiveValue } from '@/hooks/useResponsiveValue';
 import { careSpacing } from '@/design/tokens/spacing';
+
+/** Max width for assignment cards — one card per row, centered on wide screens. */
+const CARD_LIST_MAX_WIDTH = 840;
 
 type AssignmentsCardGridProps = {
   assignments: AssignmentListItem[];
@@ -35,46 +37,27 @@ export function AssignmentsCardGrid({
   ListFooterComponent,
   ListEmptyComponent,
 }: AssignmentsCardGridProps) {
-  const { width } = useWindowDimensions();
-  const minCardWidth = useResponsiveValue({
-    phone: width - careSpacing.md * 2,
-    tablet: 280,
-    desktop: 280,
-    wide: 260,
-  });
-  const columns = useResponsiveValue({
-    phone: 1,
-    tablet: 2,
-    desktop: 3,
-    wide: 4,
-  });
-
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        host: { width: '100%', gap: careSpacing.md },
+        host: {
+          width: '100%',
+          gap: careSpacing.md,
+        },
         grid: {
-          flexDirection: 'row',
-          flexWrap: 'wrap',
+          flexDirection: 'column',
           gap: careSpacing.md,
           width: '100%',
+          maxWidth: CARD_LIST_MAX_WIDTH,
+          alignSelf: 'center',
         },
         cell: {
+          width: '100%',
           minWidth: 0,
-          flexGrow: 1,
         },
       }),
     [],
   );
-
-  const cellStyle =
-    columns === 1
-      ? { width: '100%' as const }
-      : {
-          width: `${100 / columns - 1.5}%` as const,
-          minWidth: minCardWidth,
-          maxWidth: columns === 1 ? undefined : (`${100 / columns}%` as const),
-        };
 
   if (assignments.length === 0 && ListEmptyComponent) {
     return (
@@ -91,7 +74,7 @@ export function AssignmentsCardGrid({
       {ListHeaderComponent}
       <View style={styles.grid}>
         {assignments.map((assignment) => (
-          <View key={assignment.id} style={[styles.cell, cellStyle]}>
+          <View key={assignment.id} style={styles.cell}>
             <AssignmentCompactCard
               assignment={assignment}
               selected={selectedId === assignment.id}

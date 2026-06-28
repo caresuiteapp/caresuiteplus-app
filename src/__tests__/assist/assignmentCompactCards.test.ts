@@ -72,11 +72,19 @@ describe('Assignment compact cards UI', () => {
     expect(source).toContain('resolveAssignmentCardAccent');
   });
 
-  it('AssignmentsCardGrid provides responsive card layout', () => {
+  it('AssignmentsCardGrid uses single-column card layout on all breakpoints', () => {
     const source = readSrc('src/components/assist/AssignmentsCardGrid.tsx');
     expect(source).toContain('AssignmentCompactCard');
-    expect(source).toContain('useResponsiveValue');
-    expect(source).toContain('columns === 1');
+    expect(source).toContain("flexDirection: 'column'");
+    expect(source).toContain('width: \'100%\'');
+    expect(source).not.toContain('useResponsiveValue');
+    expect(source).not.toContain('flexWrap: \'wrap\'');
+  });
+
+  it('AssignmentCompactCard does not truncate client or employee names', () => {
+    const source = readSrc('src/components/assist/AssignmentCompactCard.tsx');
+    expect(source).not.toMatch(/clientName[\s\S]{0,120}numberOfLines/);
+    expect(source).not.toMatch(/metaRow[\s\S]{0,120}numberOfLines/);
   });
 
   it('AssignmentsListView uses card grid and view toggle with table fallback', () => {

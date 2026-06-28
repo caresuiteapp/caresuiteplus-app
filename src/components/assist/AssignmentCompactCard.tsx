@@ -83,11 +83,12 @@ export function AssignmentCompactCard({
         },
         headerRow: {
           flexDirection: 'row',
+          flexWrap: 'wrap',
           alignItems: 'flex-start',
           justifyContent: 'space-between',
           gap: spacing.sm,
         },
-        clientName: { ...typography.bodyStrong, flex: 1, color: text.primary },
+        clientName: { ...typography.bodyStrong, flex: 1, flexShrink: 1, color: text.primary },
         scheduleRow: {
           flexDirection: 'row',
           flexWrap: 'wrap',
@@ -144,9 +145,7 @@ export function AssignmentCompactCard({
       <View style={styles.accentBar} />
       <View style={styles.inner}>
         <View style={styles.headerRow}>
-          <Text style={styles.clientName} numberOfLines={1}>
-            {assignment.clientName}
-          </Text>
+          <Text style={styles.clientName}>{assignment.clientName}</Text>
           <PremiumBadge
             label={WORKFLOW_STATUS_LABELS[assignment.status]}
             variant={
@@ -177,15 +176,11 @@ export function AssignmentCompactCard({
         </View>
 
         <View style={styles.serviceRow}>
-          <Text style={styles.serviceName} numberOfLines={1}>
-            {assignment.serviceName ?? assignment.title}
-          </Text>
+          <Text style={styles.serviceName}>{assignment.serviceName ?? assignment.title}</Text>
           <Text style={styles.sgbRef}>{sgbRef}</Text>
         </View>
 
-        <Text style={styles.metaRow} numberOfLines={1}>
-          {assignment.employeeName}
-        </Text>
+        <Text style={styles.metaRow}>{assignment.employeeName}</Text>
 
         <View style={styles.locationRow}>
           <Text style={styles.location} numberOfLines={1}>
