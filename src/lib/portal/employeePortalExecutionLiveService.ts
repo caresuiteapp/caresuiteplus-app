@@ -46,6 +46,12 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
+import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
+import { upsertLegacyAssignmentFromVisit } from '@/lib/assist/assistVisitLegacyAssignmentSync';
+import {
+  mapVisitDetailToAssignmentDetail,
+  visitMirrorInputFromDetail,
+} from './employeePortalAssignmentBridge';
 
 function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
   return {
@@ -180,6 +186,10 @@ function assertLiveEmployeeAssignmentAccess(
   roleKey: RoleKey | null,
   detail: AssignmentDetail,
 ): ServiceResult<never> | null {
+  if (!detail.employeeId) {
+    return { ok: false, error: 'Einsatz nicht zugewiesen.' };
+  }
+
   if (detail.employeeId !== employeeId) {
     return { ok: false, error: 'Einsatz nicht zugewiesen.' };
   }
@@ -194,6 +204,35 @@ function assertLiveEmployeeAssignmentAccess(
     return { ok: false, error: view.message ?? 'Kein Zugriff auf diesen Einsatz.' };
   }
   return null;
+}
+
+async function loadEmployeePortalAssignmentDetail(
+  tenantId: string,
+  assignmentId: string,
+): Promise<ServiceResult<AssignmentDetail | null>> {
+  const fromAssignments = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
+  if (!fromAssignments.ok) return fromAssignments;
+  if (fromAssignments.data) return fromAssignments;
+
+  const fromVisit = await visitSupabaseRepository.getById(tenantId, assignmentId);
+  if (!fromVisit.ok) return fromVisit;
+  if (!fromVisit.data) return { ok: true, data: null };
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    const mirror = await upsertLegacyAssignmentFromVisit(
+      supabase,
+      visitMirrorInputFromDetail(fromVisit.data),
+    );
+    if (!mirror.ok) {
+      console.warn('[employeePortalExecutionLiveService] assignment mirror:', mirror.error);
+    } else {
+      const retry = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
+      if (retry.ok && retry.data) return retry;
+    }
+  }
+
+  return { ok: true, data: mapVisitDetailToAssignmentDetail(fromVisit.data) };
 }
 
 export function isEmployeePortalLiveMode(): boolean {
@@ -262,7 +301,7 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
   if (denied && roleKey === 'employee_portal') return denied;
 
   return runService(async () => {
-    const loaded = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
+    const loaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId);
     if (!loaded.ok) return loaded;
     if (!loaded.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -287,7 +326,7 @@ export async function transitionLiveEmployeePortalAssignment(
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
-  const existing = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
+  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId);
   if (!existing.ok) return existing;
   if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -303,13 +342,31 @@ export async function transitionLiveEmployeePortalAssignment(
   if (!validation.valid) return { ok: false, error: validation.error };
 
   const fromStatus = existing.data.assignmentStatus;
-  const updated = await assignmentSupabaseRepository.updateStatus(
-    tenantId,
-    assignmentId,
-    toStatus,
-    { actorProfileId: employeeId, actorEmployeeId: employeeId },
-  );
-  if (!updated.ok) return updated;
+  let detailAfterUpdate: AssignmentDetail | null = null;
+
+  const visitRow = await visitSupabaseRepository.getById(tenantId, assignmentId);
+  if (visitRow.ok && visitRow.data) {
+    const visitUpdated = await visitSupabaseRepository.updateAssignmentStatus(
+      tenantId,
+      assignmentId,
+      toStatus,
+      employeeId,
+    );
+    if (!visitUpdated.ok) return visitUpdated;
+    const reloaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId);
+    if (!reloaded.ok) return reloaded;
+    if (!reloaded.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    detailAfterUpdate = reloaded.data;
+  } else {
+    const updated = await assignmentSupabaseRepository.updateStatus(
+      tenantId,
+      assignmentId,
+      toStatus,
+      { actorProfileId: employeeId, actorEmployeeId: employeeId },
+    );
+    if (!updated.ok) return updated;
+    detailAfterUpdate = updated.data;
+  }
 
   applyEmployeePortalTrackingForStatus(tenantId, assignmentId, fromStatus, toStatus);
   const entry = peekEmployeePortalTrackingEntry(tenantId, assignmentId);
@@ -319,17 +376,17 @@ export async function transitionLiveEmployeePortalAssignment(
       assignmentId,
       employeeId,
       profileId: employeeId,
-      locationAddress: updated.data.location,
+      locationAddress: detailAfterUpdate.location,
     },
     fromStatus,
     toStatus,
     entry.geofenceLastCheck,
   );
 
-  const extras = await fetchAssignmentExtras(tenantId, assignmentId, updated.data.clientId);
+  const extras = await fetchAssignmentExtras(tenantId, assignmentId, detailAfterUpdate.clientId);
   return {
     ok: true,
-    data: mapDetailToPortal(updated.data, roleKey, employeeId, undefined, extras),
+    data: mapDetailToPortal(detailAfterUpdate, roleKey, employeeId, undefined, extras),
   };
 }
 
@@ -349,7 +406,7 @@ export async function updateLiveEmployeePortalTask(
     return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
   }
 
-  const existing = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
+  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId);
   if (!existing.ok) return existing;
   if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 

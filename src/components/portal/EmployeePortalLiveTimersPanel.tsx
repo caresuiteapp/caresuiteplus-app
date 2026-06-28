@@ -1,6 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
 import { PremiumBadge, SectionPanel } from '@/components/ui';
+import { isAssistTrackingPersistenceActive } from '@/lib/assist/gpsTrackingConfig';
 import type { EmployeePortalLiveTimers } from '@/types/modules/employeePortalTracking';
 import { colors, spacing, typography } from '@/theme';
 
@@ -37,9 +38,11 @@ export function EmployeePortalLiveTimersPanel({ timers }: EmployeePortalLiveTime
       <DetailInfoRow label="Anfahrt" value={formatDuration(timers.driveSeconds)} />
       <DetailInfoRow label="Einsatz" value={formatDuration(timers.serviceSeconds)} />
       <DetailInfoRow label="Pause gesamt" value={formatDuration(timers.pauseSeconds)} />
-      <Text style={styles.hint}>
-        Persistente Zeit-Events (assist_time_events) fehlen im Schema — Werte sind sessionbasiert.
-      </Text>
+      {!isAssistTrackingPersistenceActive() ? (
+        <Text style={styles.hint}>
+          Persistente Zeit-Events (assist_time_events) fehlen im Schema — Werte sind sessionbasiert.
+        </Text>
+      ) : null}
     </SectionPanel>
   );
 }

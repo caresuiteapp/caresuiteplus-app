@@ -15,7 +15,10 @@ import {
   fetchClientPortalSettingsResolved,
 } from '@/lib/client/clientPortalSettingsService';
 import { assertClientPortalVisibility } from '@/lib/geo/geoGuard';
-import { computeClientPortalVisibilityWindow } from '@/lib/geo/geoModuleConfig';
+import {
+  computeClientPortalVisibilityWindow,
+  isWithinLiveTrackingWindow,
+} from '@/lib/geo/geoModuleConfig';
 import { fetchClientPortalRestrictedLiveStatus } from '@/lib/portal/clientPortalVisitTrackingViewService';
 import {
   buildEmployeePortalTrackingSnapshot,
@@ -25,13 +28,7 @@ import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode, isSupabaseConfigured } from '@/lib/supabase/config';
 
 const ACTIVE_VISIT_STATUSES = new Set<AssignmentStatus>(['unterwegs', 'angekommen', 'gestartet']);
-
-export type ClientPortalAssistLiveVisitProjection = {
-  mapVisible: boolean;
-  statusLabel: string | null;
-  lastPosition: AssistMapPosition | null;
-  fallbackMessage: string | null;
-};
+const PRE_START_STATUSES = new Set<AssignmentStatus>(['bestaetigt', 'geplant']);
 
 const FALLBACK_NOT_ACTIVE =
   'Live-Karte ist nur während eines laufenden Einsatzes verfügbar.';
@@ -41,6 +38,46 @@ const FALLBACK_OUTSIDE_WINDOW =
   'Live-Karte ist derzeit nicht im sichtbaren Zeitfenster.';
 const FALLBACK_NO_POSITION =
   'Noch keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.';
+const FALLBACK_PRE_START =
+  'Ihre Betreuungskraft ist für den Einsatz eingeplant — Live-Standort erscheint bei Anfahrt.';
+
+function isClientPortalLiveMapEligible(
+  status: AssignmentStatus,
+  plannedStartAt: string,
+  plannedEndAt: string,
+  now: Date = new Date(),
+): { eligible: boolean; fallback: string | null } {
+  const window = computeClientPortalVisibilityWindow(plannedStartAt, plannedEndAt);
+  const inWindow = assertClientPortalVisibility(window, now).allowed;
+  const inPreStartBuffer = isWithinLiveTrackingWindow(plannedStartAt, now);
+  const isActive = ACTIVE_VISIT_STATUSES.has(status);
+  const isPreStart = PRE_START_STATUSES.has(status);
+
+  if (!inWindow && !isActive) {
+    return { eligible: false, fallback: FALLBACK_OUTSIDE_WINDOW };
+  }
+
+  if (isActive && inWindow) {
+    return { eligible: true, fallback: null };
+  }
+
+  if (inPreStartBuffer && inWindow && isPreStart) {
+    return { eligible: true, fallback: FALLBACK_PRE_START };
+  }
+
+  if (!isActive) {
+    return { eligible: false, fallback: FALLBACK_NOT_ACTIVE };
+  }
+
+  return { eligible: true, fallback: null };
+}
+
+export type ClientPortalAssistLiveVisitProjection = {
+  mapVisible: boolean;
+  statusLabel: string | null;
+  lastPosition: AssistMapPosition | null;
+  fallbackMessage: string | null;
+};
 
 function assignmentBelongsToClient(
   tenantId: string,
@@ -96,19 +133,18 @@ export async function projectClientPortalAssistLiveVisit(input: {
     return empty;
   }
 
-  if (!ACTIVE_VISIT_STATUSES.has(input.status)) {
-    return { ...empty, fallbackMessage: FALLBACK_NOT_ACTIVE };
-  }
-
   const portalReleased = input.portalReleaseEnabled !== false;
   if (!portalReleased) {
     return { ...empty, fallbackMessage: FALLBACK_NOT_RELEASED };
   }
 
-  const window = computeClientPortalVisibilityWindow(input.plannedStartAt, input.plannedEndAt);
-  const visibility = assertClientPortalVisibility(window);
-  if (!visibility.allowed) {
-    return { ...empty, fallbackMessage: FALLBACK_OUTSIDE_WINDOW };
+  const eligibility = isClientPortalLiveMapEligible(
+    input.status,
+    input.plannedStartAt,
+    input.plannedEndAt,
+  );
+  if (!eligibility.eligible) {
+    return { ...empty, fallbackMessage: eligibility.fallback };
   }
 
   const liveStatus = await fetchClientPortalRestrictedLiveStatus(input.tenantId, input.assignmentId);
@@ -160,7 +196,7 @@ export async function projectClientPortalAssistLiveVisit(input: {
       mapVisible: Boolean(lastPosition),
       statusLabel: liveStatus.label,
       lastPosition,
-      fallbackMessage: lastPosition ? null : FALLBACK_NO_POSITION,
+      fallbackMessage: lastPosition ? null : eligibility.fallback ?? FALLBACK_NO_POSITION,
     };
   }
 
@@ -177,7 +213,7 @@ export async function projectClientPortalAssistLiveVisit(input: {
     mapVisible: Boolean(lastPosition && snapshot.trackingActive),
     statusLabel: liveStatus.visible ? liveStatus.label : null,
     lastPosition,
-    fallbackMessage: lastPosition ? null : FALLBACK_NO_POSITION,
+    fallbackMessage: lastPosition ? null : eligibility.fallback ?? FALLBACK_NO_POSITION,
   };
 }
 
