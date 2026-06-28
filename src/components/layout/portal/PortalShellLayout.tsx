@@ -82,7 +82,7 @@ export function PortalShellLayout({
       ]}
       testID="portal-shell-layout"
     >
-      <View style={isCompactShell ? styles.topBarHost : undefined}>
+      <View style={styles.topBarHost}>
         <PortalTopBar
           accentColor={accentColor}
           compact={isCompactShell}
@@ -171,7 +171,9 @@ const styles = StyleSheet.create({
   },
   topBarHost: {
     flexShrink: 0,
-    zIndex: 10,
+    position: 'relative',
+    zIndex: 20,
+    overflow: 'visible',
   },
   content: {
     flex: 1,

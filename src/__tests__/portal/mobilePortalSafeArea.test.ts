@@ -36,8 +36,10 @@ describe('PortalShellLayout mobile safe area', () => {
   it('locks compact shell to dvh and pins top bar above scroll body', () => {
     expect(shell).toContain('topBarHost');
     expect(shell).toContain('flexShrink: 0');
+    expect(shell).toContain('overflow: \'visible\'');
     expect(shell).toContain('styles.content');
     expect(shell).toContain('testID="portal-shell-scroll"');
+    expect(shell).not.toMatch(/isCompactShell \? styles\.topBarHost/);
   });
 
   it('scroll chain matches MobileAppShell — no overflow clip on route slots', () => {

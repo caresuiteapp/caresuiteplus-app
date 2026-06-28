@@ -43,6 +43,18 @@ describe('PortalShellLayout', () => {
     expect(topbar).not.toContain('Mandant wechseln');
   });
 
+  it('PortalTopBar profile dropdown stays above scroll body for clicks', () => {
+    const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
+    const topbar = readSrc('src/components/layout/portal/PortalTopBar.tsx');
+    expect(shell).toContain('<View style={styles.topBarHost}>');
+    expect(shell).toContain("overflow: 'visible'");
+    expect(shell).toContain('zIndex: 20');
+    expect(topbar).toContain('profileWrap');
+    expect(topbar).toMatch(/profileWrap:[\s\S]*zIndex: 12/);
+    expect(topbar).toContain("label: 'Abmelden'");
+    expect(topbar).toContain('router.push(item.href');
+  });
+
   it('PortalLeftNav builds from portal engine not office nav', () => {
     const nav = readSrc('src/components/layout/portal/PortalLeftNav.tsx');
     expect(nav).toContain('buildPortalNavigation');

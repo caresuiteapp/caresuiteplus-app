@@ -259,13 +259,14 @@ export function PortalTopBar({
 
 const styles = StyleSheet.create({
   root: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     gap: careSpacing.md,
     paddingHorizontal: careSpacing.lg,
     paddingVertical: careSpacing.sm,
     borderBottomWidth: 1,
-    zIndex: 10,
+    zIndex: 20,
   },
   leading: {
     flex: 1,
@@ -320,9 +321,11 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     gap: careSpacing.sm,
     flexShrink: 0,
+    zIndex: 12,
   },
   profileWrap: {
     position: 'relative',
+    zIndex: 12,
   },
   profileChip: {
     flexDirection: 'row',
@@ -376,14 +379,16 @@ const styles = StyleSheet.create({
     marginBottom: careSpacing.xs,
   },
   compactRoot: {
+    position: 'relative',
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
     paddingHorizontal: MOBILE_EDGE_INSET,
     paddingVertical: careSpacing.sm,
     borderBottomWidth: 1,
-    zIndex: 10,
+    zIndex: 20,
     minHeight: MOBILE_MIN_TOUCH_TARGET + careSpacing.sm,
+    overflow: 'visible',
   },
   hamburgerBtn: {
     width: MOBILE_MIN_TOUCH_TARGET,
