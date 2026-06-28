@@ -123,8 +123,41 @@ describe('realtime wiring', () => {
     const indexSource = readSrc('src/lib/realtime/index.ts');
     expect(indexSource).toContain('subscribeToEmployeeListChanges');
     expect(indexSource).toContain('subscribeToEmployeeDetailChanges');
+    expect(indexSource).toContain('subscribeToEmployeePortalChanges');
     expect(indexSource).toContain('subscribeToAssistOperationsChanges');
     expect(indexSource).toContain('subscribeToTimeTrackingChanges');
     expect(indexSource).toContain('subscribeToClientListChanges');
+  });
+
+  it('useEmployeePortalDashboard nutzt Live-Refresh für Einsätze und KPIs', () => {
+    const source = readSrc('src/hooks/useEmployeePortalDashboard.ts');
+    expect(source).toContain('subscribeToEmployeePortalChanges');
+    expect(source).toContain('live:');
+    expect(source).toContain('isLiveConnected');
+  });
+
+  it('usePortalAppointments nutzt employee- oder client-spezifisches Live-Subscribe', () => {
+    const source = readSrc('src/hooks/usePortalAppointments.ts');
+    expect(source).toContain('subscribeToEmployeePortalChanges');
+    expect(source).toContain('subscribeToPortalAssistChanges');
+    expect(source).toContain('live:');
+    expect(source).toContain('isLiveConnected');
+  });
+
+  it('useEmployeePortalRealtime nutzt useLiveRefresh mit Polling und Fokus', () => {
+    const source = readSrc('src/hooks/useEmployeePortalRealtime.ts');
+    expect(source).toContain('useLiveRefresh');
+    expect(source).toContain('DEFAULT_LIVE_POLL_MS');
+    expect(source).toContain('refreshOnFocus');
+    expect(source).toContain('subscribeToEmployeePortalChanges');
+  });
+
+  it('subscribeToEmployeePortalChanges abonniert Einsätze, Nachrichten und WFM', () => {
+    const source = readSrc('src/lib/realtime/presets.ts');
+    expect(source).toContain('subscribeToEmployeePortalChanges');
+    expect(source).toContain("'assignments'");
+    expect(source).toContain("'message_threads'");
+    expect(source).toContain("'workforce_work_sessions'");
+    expect(source).toContain('demoPollMs');
   });
 });

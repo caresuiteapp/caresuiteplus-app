@@ -1,6 +1,7 @@
 import { useCallback } from 'react';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from '@/hooks/core';
+import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import { getEmployeePortalDashboardProjection } from '@/lib/portal/employeePortalProjectionService';
 
 export function useEmployeePortalDashboard() {
@@ -17,7 +18,16 @@ export function useEmployeePortalDashboard() {
       return getEmployeePortalDashboardProjection(tenantId, employeeId, roleKey);
     },
     [tenantId, employeeId, roleKey],
-    { enabled: isReady && Boolean(tenantId && employeeId) },
+    {
+      enabled: isReady && Boolean(tenantId && employeeId),
+      live:
+        tenantId && employeeId
+          ? {
+              tenantId,
+              subscribe: (tid, handler) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
+            }
+          : undefined,
+    },
   );
 
   const refresh = useCallback(async () => {
@@ -31,5 +41,6 @@ export function useEmployeePortalDashboard() {
     refreshing: query.refreshing,
     refresh,
     isReady,
+    isLiveConnected: query.isLiveConnected,
   };
 }

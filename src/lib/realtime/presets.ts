@@ -242,6 +242,34 @@ export function subscribeToWfmLiveChanges(
   );
 }
 
+/**
+ * Mitarbeiterportal — Dashboard-KPIs, Einsätze, Nachrichten, WFM-Sessions.
+ * Filtert nach tenant_id und employee_id wo möglich.
+ */
+export function subscribeToEmployeePortalChanges(
+  tenantId: string,
+  employeeId: string,
+  handler: RealtimeHandler,
+): () => void {
+  const tenant = tenantFilter(tenantId);
+  const employee = `employee_id=eq.${employeeId}`;
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `employee-portal:${tenantId}:${employeeId}`,
+      channelName: `portal:employee:${tenantId}:${employeeId}`,
+      demoPollMs: 30_000,
+      specs: [
+        { table: 'assignments', filter: employee },
+        { table: 'message_threads', filter: employee },
+        { table: 'workforce_work_sessions', filter: employee },
+        { table: 'employees', filter: `id=eq.${employeeId}` },
+        { table: 'messages', filter: tenant },
+      ],
+    },
+    handler,
+  );
+}
+
 /** Office Klientenliste. */
 export function subscribeToClientListChanges(
   tenantId: string,

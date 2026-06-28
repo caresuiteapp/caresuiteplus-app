@@ -29,7 +29,8 @@ import {
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
-import { useAsyncQuery, useMutation } from './core';
+import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery, useMutation } from './core';
 
 export function useEmployeePortalVisitExecution(assignmentId: string | undefined) {
   const { profile } = useAuth();
@@ -55,7 +56,17 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
     },
     [tenantId, assignmentId, employeeId, roleKey],
-    { enabled: Boolean(tenantId && assignmentId && employeeId) },
+    {
+      enabled: Boolean(tenantId && assignmentId && employeeId),
+      live:
+        tenantId && employeeId
+          ? {
+              tenantId,
+              subscribe: (tid, handler) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
+              pollMs: OPERATIONAL_LIVE_POLL_MS,
+            }
+          : undefined,
+    },
   );
 
   const hasData = query.data != null;

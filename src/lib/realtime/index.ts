@@ -19,6 +19,7 @@ export {
   subscribeToClientRecordChanges,
   subscribeToEmployeeDetailChanges,
   subscribeToEmployeeListChanges,
+  subscribeToEmployeePortalChanges,
   subscribeToNotificationChanges,
   subscribeToOfficeDashboardChanges,
   subscribeToPortalAssistChanges,

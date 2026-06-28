@@ -1,7 +1,8 @@
 import { useCallback } from 'react';
 import { fetchPortalAppointmentDetail } from '@/lib/portal';
 import { usePortalActor } from '@/hooks/usePortalActor';
-import { useAsyncQuery } from './core';
+import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
+import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery } from './core';
 
 export function usePortalAppointmentDetail(appointmentId: string | undefined) {
   const { tenantId, employeeId, actorId, roleKey, isReady } = usePortalActor();
@@ -14,7 +15,17 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
         employeeId,
       }),
     [appointmentId, profileId, roleKey, tenantId, employeeId],
-    { enabled: !!appointmentId && isReady && !!profileId && !!roleKey },
+    {
+      enabled: !!appointmentId && isReady && !!profileId && !!roleKey,
+      live:
+        tenantId && employeeId
+          ? {
+              tenantId,
+              subscribe: (tid, handler) => subscribeToEmployeePortalChanges(tid, employeeId, handler),
+              pollMs: OPERATIONAL_LIVE_POLL_MS,
+            }
+          : undefined,
+    },
   );
 
   const refresh = useCallback(async () => {
@@ -27,5 +38,6 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
     error: query.error,
     refresh,
     notFound: !query.loading && !query.error && !query.data && !!appointmentId,
+    isLiveConnected: query.isLiveConnected,
   };
 }

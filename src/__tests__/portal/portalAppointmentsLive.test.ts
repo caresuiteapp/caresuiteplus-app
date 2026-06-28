@@ -17,6 +17,13 @@ describe('Portal appointments live wiring', () => {
     expect(hook).not.toContain('useAuth');
   });
 
+  it('appointments hook uses live refresh for employee and client portals', () => {
+    const hook = readSrc('src/hooks/usePortalAppointments.ts');
+    expect(hook).toContain('subscribeToEmployeePortalChanges');
+    expect(hook).toContain('subscribeToPortalAssistChanges');
+    expect(hook).toContain('isLiveConnected');
+  });
+
   it('appointment service loads live Supabase assignments for portal actors', () => {
     const service = readSrc('src/lib/portal/appointmentService.ts');
     expect(service).toContain('fetchLivePortalAppointmentsForClient');

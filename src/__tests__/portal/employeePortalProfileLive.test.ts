@@ -16,6 +16,20 @@ describe('Employee portal profile live wiring', () => {
     expect(hook).not.toContain('useAuth');
   });
 
+  it('profile hook uses employee portal live refresh', () => {
+    const hook = readSrc('src/hooks/useEmployeePortalProfile.ts');
+    expect(hook).toContain('subscribeToEmployeePortalChanges');
+    expect(hook).toContain('live:');
+    expect(hook).toContain('isLiveConnected');
+  });
+
+  it('dashboard hook uses employee portal live refresh', () => {
+    const hook = readSrc('src/hooks/useEmployeePortalDashboard.ts');
+    expect(hook).toContain('subscribeToEmployeePortalChanges');
+    expect(hook).toContain('live:');
+    expect(hook).toContain('isLiveConnected');
+  });
+
   it('profile service loads live Supabase data when employeeId is present', () => {
     const service = readSrc('src/lib/portal/employeeProfileService.ts');
     expect(service).toContain('fetchLiveEmployeePortalProfile');
