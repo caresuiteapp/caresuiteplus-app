@@ -1,5 +1,5 @@
 -- ==========================================================================
--- CareSuite+ — Migration 0190: WFM Foundation (PROPOSAL — NOT APPLIED)
+-- CareSuite+ — Migration 0190: WFM Foundation
 -- Zentrale Workforce-Zeiterfassung: time_events, work_sessions, absences,
 -- approvals, time_accounts. RLS: tenant + employee self + office admin.
 --
@@ -125,6 +125,60 @@ ALTER TABLE public.workforce_time_events
 ALTER TABLE public.workforce_time_events
   ADD CONSTRAINT workforce_time_events_session_id_fkey
   FOREIGN KEY (session_id) REFERENCES public.workforce_work_sessions(id) ON DELETE SET NULL;
+
+-- --------------------------------------------------------------------------
+-- 2b. Legacy employee_absences (FK target; remote had 0051 in history without table)
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.employee_absences (
+  id                      UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id               UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  employee_id             UUID        NOT NULL REFERENCES public.employees(id) ON DELETE CASCADE,
+  absence_type            TEXT        NOT NULL CHECK (absence_type IN (
+    'vacation', 'sick_leave', 'child_sick_leave', 'unpaid_leave', 'training',
+    'public_holiday', 'blocked_time', 'appointment', 'no_availability', 'suspension', 'other'
+  )),
+  status                  TEXT        NOT NULL DEFAULT 'requested' CHECK (status IN (
+    'requested', 'approved', 'rejected', 'cancelled', 'active', 'completed', 'requires_review', 'archived'
+  )),
+  starts_at               TIMESTAMPTZ NOT NULL,
+  ends_at                 TIMESTAMPTZ NOT NULL,
+  all_day                 BOOLEAN     NOT NULL DEFAULT TRUE,
+  internal_notes          TEXT        NOT NULL DEFAULT '',
+  employee_visible_note   TEXT        NOT NULL DEFAULT '',
+  sick_details            TEXT,
+  au_document_id          UUID,
+  certificate_document_id UUID,
+  replacement_required    BOOLEAN     NOT NULL DEFAULT FALSE,
+  hide_details_from_admin BOOLEAN     NOT NULL DEFAULT FALSE,
+  requested_days          NUMERIC(5,1),
+  approved_by             UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  approved_at             TIMESTAMPTZ,
+  rejected_by             UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  rejected_at             TIMESTAMPTZ,
+  rejection_reason        TEXT,
+  cancelled_at            TIMESTAMPTZ,
+  qualification_updated   BOOLEAN     NOT NULL DEFAULT FALSE,
+  created_by              UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  updated_by              UUID        REFERENCES public.profiles(id) ON DELETE SET NULL,
+  created_at              TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at              TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_employee_absences_tenant_employee
+  ON public.employee_absences (tenant_id, employee_id, starts_at);
+
+CREATE INDEX IF NOT EXISTS idx_employee_absences_tenant_status
+  ON public.employee_absences (tenant_id, status, starts_at);
+
+ALTER TABLE public.employee_absences ENABLE ROW LEVEL SECURITY;
+
+DROP POLICY IF EXISTS employee_absences_tenant ON public.employee_absences;
+CREATE POLICY employee_absences_tenant ON public.employee_absences
+  FOR ALL
+  USING (tenant_id = public.current_tenant_id())
+  WITH CHECK (tenant_id = public.current_tenant_id());
+
+
 
 -- --------------------------------------------------------------------------
 -- 3. workforce_absences — canonical Abwesenheit (sync employee_absences Phase 2)
