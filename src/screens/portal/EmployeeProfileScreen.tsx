@@ -1,4 +1,5 @@
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalEmployeeProfileHero } from '@/components/portal';
@@ -7,6 +8,7 @@ import {
   ErrorState,
   LoadingState,
   PremiumBadge,
+  PremiumButton,
   PremiumCard,
   SectionPanel,
 } from '@/components/ui';
@@ -27,6 +29,7 @@ function ProfileBody({
   canViewTimesheet,
   timesheetDeniedMessage,
   roleLabel,
+  router,
 }: {
   loading: boolean;
   refresh: () => void;
@@ -35,6 +38,7 @@ function ProfileBody({
   canViewTimesheet: boolean;
   timesheetDeniedMessage: string;
   roleLabel: string | null;
+  router: ReturnType<typeof useRouter>;
 }) {
   return (
     <>
@@ -48,6 +52,14 @@ function ProfileBody({
         {profile.email ? <DetailInfoRow label="E-Mail" value={profile.email} /> : null}
         {profile.phone ? <DetailInfoRow label="Telefon" value={profile.phone} /> : null}
       </PremiumCard>
+
+      <SectionPanel title="Mobilität">
+        <PremiumButton
+          title="Verkehrsmittel & Routen"
+          variant="secondary"
+          onPress={() => router.push('/portal/employee/mobilitaet' as never)}
+        />
+      </SectionPanel>
 
       {canViewTimesheet ? (
         <SectionPanel title="Zeiterfassung (letzte Einsätze)">
@@ -83,6 +95,7 @@ function ProfileBody({
 }
 
 export function EmployeeProfileScreen() {
+  const router = useRouter();
   const { isPhone } = useDeviceClass();
   const { can, check, roleLabel } = usePermissions();
   const canViewProfile = can('portal.employee.profile.view');
@@ -130,6 +143,7 @@ export function EmployeeProfileScreen() {
         check('portal.employee.timesheet.view').reason ?? 'Keine Berechtigung.'
       }
       roleLabel={roleLabel}
+      router={router}
     />
   );
 

@@ -13,6 +13,7 @@ import {
   SectionPanel,
 } from '@/components/ui';
 import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
+import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 

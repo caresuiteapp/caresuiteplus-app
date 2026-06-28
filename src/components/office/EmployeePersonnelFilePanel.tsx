@@ -6,6 +6,7 @@ import { CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmployeePortalAccessPanel } from '@/components/office/EmployeePortalAccessPanel';
+import { EmployeeMobilityOfficePanel } from '@/components/office/EmployeeMobilityOfficePanel';
 import { EmployeeRolesPermissionsHub } from '@/components/office/EmployeeRolesPermissionsHub';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import {
@@ -583,16 +584,19 @@ export function EmployeePersonnelFilePanel({
       ) : null}
 
       {activeTab === 'contact' ? (
-        <SectionPanel title="Kontakt">
-          <DetailInfoRow label="E-Mail" value={file.masterData.email} />
-          <DetailInfoRow label="Telefon" value={file.masterData.phone} />
-          <DetailInfoRow label="Mobil" value={file.masterData.mobile} />
-          <DetailInfoRow label="Notfallkontakt" value={file.masterData.emergencyContactName} />
-          <DetailInfoRow label="Notfalltelefon" value={file.masterData.emergencyContactPhone} />
-          {canEdit ? (
-            <PremiumButton title="Kontakt bearbeiten" variant="secondary" onPress={handleEditMasterData} />
-          ) : null}
-        </SectionPanel>
+        <>
+          <SectionPanel title="Kontakt">
+            <DetailInfoRow label="E-Mail" value={file.masterData.email} />
+            <DetailInfoRow label="Telefon" value={file.masterData.phone} />
+            <DetailInfoRow label="Mobil" value={file.masterData.mobile} />
+            <DetailInfoRow label="Notfallkontakt" value={file.masterData.emergencyContactName} />
+            <DetailInfoRow label="Notfalltelefon" value={file.masterData.emergencyContactPhone} />
+            {canEdit ? (
+              <PremiumButton title="Kontakt bearbeiten" variant="secondary" onPress={handleEditMasterData} />
+            ) : null}
+          </SectionPanel>
+          <EmployeeMobilityOfficePanel employeeId={employeeId} />
+        </>
       ) : null}
 
       {activeTab === 'employment' ? (

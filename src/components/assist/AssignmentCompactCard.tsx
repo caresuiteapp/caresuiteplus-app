@@ -6,8 +6,8 @@ import {
   buildAssignmentFooterChips,
   resolveAssignmentCardAccent,
   resolveSgbReference,
-  resolveTravelTimeMinutes,
 } from '@/lib/assist/assignmentCardPresentation';
+import { useAssignmentTravelTime } from '@/hooks/useAssignmentTravelTime';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import {
@@ -47,7 +47,7 @@ export function AssignmentCompactCard({
   const statusAccent = resolveAssignmentCardAccent(assignment.status);
   const footerChips = buildAssignmentFooterChips(assignment);
   const sgbRef = resolveSgbReference(assignment);
-  const travelMinutes = resolveTravelTimeMinutes(assignment);
+  const travelTime = useAssignmentTravelTime(assignment);
   const [hovered, setHovered] = useState(false);
 
   const styles = useMemo(
@@ -186,8 +186,10 @@ export function AssignmentCompactCard({
           <Text style={styles.location} numberOfLines={1}>
             {assignment.location}
           </Text>
-          {travelMinutes != null ? (
-            <Text style={styles.travel}>🚗 {travelMinutes} Min.</Text>
+          {travelTime.label ? (
+            <Text style={styles.travel}>{travelTime.label}</Text>
+          ) : travelTime.loading ? (
+            <Text style={styles.travel}>…</Text>
           ) : null}
         </View>
 

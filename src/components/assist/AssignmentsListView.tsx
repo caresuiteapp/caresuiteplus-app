@@ -13,7 +13,7 @@ import { AssignmentCreateForm } from './AssignmentCreateForm';
 import { AssignmentsListHero } from './AssignmentsListHero';
 import { AssignmentsListTable } from './AssignmentsListTable';
 import { AssignmentsCardGrid } from './AssignmentsCardGrid';
-import { AssignmentsFilterSidebar } from './AssignmentsFilterSidebar';
+import { ASSIGNMENT_DATE_RANGE_FILTERS } from '@/lib/assist/assignmentListFilters';
 import {
   AssignmentMobileActionSheet,
   type AssignmentMobileAction,
@@ -183,13 +183,6 @@ export function AssignmentsListView({
     () =>
       StyleSheet.create({
         container: { flex: 1, backgroundColor: 'transparent' },
-        layoutRow: {
-          flex: 1,
-          flexDirection: 'row',
-          gap: spacing.md,
-          minWidth: 0,
-        },
-        mainColumn: { flex: 1, minWidth: 0 },
         flatList: { flex: 1, backgroundColor: 'transparent' },
         listPanel: {
           flex: 1,
@@ -219,7 +212,17 @@ export function AssignmentsListView({
         },
         embeddedTitle: { ...typography.h3, color: colors.textPrimary },
         embeddedMeta: { ...typography.caption, color: colors.textMuted },
-        mobileFilters: { gap: spacing.xs },
+        filterRows: { gap: spacing.xs },
+        filterPairRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.md,
+        },
+        filterHalf: {
+          flex: 1,
+          minWidth: 200,
+          gap: spacing.xs,
+        },
         viewToggleRow: {
           flexDirection: 'row',
           justifyContent: 'flex-end',
@@ -354,37 +357,39 @@ export function AssignmentsListView({
         hint={`${filteredCount} von ${totalCount} Einsätzen`}
       />
 
-      {isMobile ? (
-        <View style={styles.mobileFilters}>
-          <Text style={styles.filterLabel}>Zeitraum</Text>
-          <FilterChipGroup
-            options={[
-              { key: 'all', label: 'Alle' },
-              { key: 'today', label: 'Heute' },
-              { key: 'tomorrow', label: 'Morgen' },
-              { key: 'week', label: 'Woche' },
-            ]}
-            value={dateRange}
-            onChange={setDateRange}
-          />
-          <Text style={styles.filterLabel}>Status</Text>
-          <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
-          <Text style={styles.filterLabel}>Sortierung</Text>
-          <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+      <View style={styles.filterRows}>
+        <Text style={styles.filterLabel}>Zeitraum</Text>
+        <FilterChipGroup
+          options={ASSIGNMENT_DATE_RANGE_FILTERS}
+          value={dateRange}
+          onChange={setDateRange}
+        />
+
+        <Text style={styles.filterLabel}>Status</Text>
+        <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
+
+        <View style={styles.filterPairRow}>
+          <View style={styles.filterHalf}>
+            <Text style={styles.filterLabel}>Mitarbeiter:in</Text>
+            <FilterChipGroup
+              options={employeeOptions}
+              value={employeeFilter}
+              onChange={setEmployeeFilter}
+            />
+          </View>
+          <View style={styles.filterHalf}>
+            <Text style={styles.filterLabel}>Leistung</Text>
+            <FilterChipGroup
+              options={serviceOptions}
+              value={serviceFilter}
+              onChange={setServiceFilter}
+            />
+          </View>
         </View>
-      ) : useTableLayout ? (
-        <>
-          <Text style={styles.filterLabel}>Status</Text>
-          <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
-          <Text style={styles.filterLabel}>Sortierung</Text>
-          <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
-        </>
-      ) : (
-        <>
-          <Text style={styles.filterLabel}>Sortierung</Text>
-          <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
-        </>
-      )}
+
+        <Text style={styles.filterLabel}>Sortierung</Text>
+        <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+      </View>
     </View>
   );
 
@@ -502,28 +507,7 @@ export function AssignmentsListView({
     </ScrollView>
   );
 
-  const desktopCardLayout = (
-    <View style={styles.layoutRow}>
-      {!embedded ? (
-        <AssignmentsFilterSidebar
-          dateRange={dateRange}
-          onDateRangeChange={setDateRange}
-          statusFilter={statusFilter}
-          onStatusFilterChange={setStatusFilter}
-          statusFilters={statusFilters}
-          employeeFilter={employeeFilter}
-          onEmployeeFilterChange={setEmployeeFilter}
-          employeeOptions={employeeOptions}
-          serviceFilter={serviceFilter}
-          onServiceFilterChange={setServiceFilter}
-          serviceOptions={serviceOptions}
-        />
-      ) : null}
-      <View style={styles.mainColumn}>{cardScrollView}</View>
-    </View>
-  );
-
-  const body = useTableLayout ? tableView : isDesktop ? desktopCardLayout : cardScrollView;
+  const body = useTableLayout ? tableView : cardScrollView;
 
   return (
     <View style={styles.container}>

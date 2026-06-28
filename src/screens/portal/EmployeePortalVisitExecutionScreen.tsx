@@ -21,6 +21,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
+import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';

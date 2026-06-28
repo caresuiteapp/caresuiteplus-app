@@ -87,13 +87,17 @@ describe('Assignment compact cards UI', () => {
     expect(source).not.toMatch(/metaRow[\s\S]{0,120}numberOfLines/);
   });
 
-  it('AssignmentsListView uses card grid and view toggle with table fallback', () => {
+  it('AssignmentsListView uses card grid and top filter rows with table fallback', () => {
     const source = readSrc('src/components/assist/AssignmentsListView.tsx');
     expect(source).toContain('AssignmentsCardGrid');
     expect(source).toContain('AssignmentsListTable');
     expect(source).toContain("useDesktopListViewPreference('assist.assignments.v2', 'cards')");
     expect(source).toContain('AssignmentMobileActionSheet');
-    expect(source).toContain('AssignmentsFilterSidebar');
+    expect(source).toContain('ASSIGNMENT_DATE_RANGE_FILTERS');
+    expect(source).toContain('employeeFilter');
+    expect(source).toContain('serviceFilter');
+    expect(source).not.toContain('AssignmentsFilterSidebar');
+    expect(source).not.toContain('layoutRow');
   });
 
   it('AssignmentMobileActionSheet uses bottom sheet variant', () => {
