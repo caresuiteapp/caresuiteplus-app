@@ -94,7 +94,7 @@ async function loadEmployeeSection(tenantId: string, employeeId: string) {
   if (!supabase) return null;
 
   const { data } = await fromUnknownTable(supabase, 'employees')
-    .select('id, first_name, last_name, email, phone, personnel_number, role_key')
+    .select('id, first_name, last_name, email, phone, employee_number, role_title')
     .eq('tenant_id', tenantId)
     .eq('id', employeeId)
     .maybeSingle();
@@ -108,8 +108,8 @@ async function loadEmployeeSection(tenantId: string, employeeId: string) {
     full_name: `${firstName} ${lastName}`.trim(),
     first_name: firstName,
     last_name: lastName,
-    personnel_number: e.personnel_number ? String(e.personnel_number) : '',
-    role: e.role_key ? String(e.role_key) : '',
+    personnel_number: e.employee_number ? String(e.employee_number) : '',
+    role: e.role_title ? String(e.role_title) : '',
     phone: e.phone ? String(e.phone) : '',
     email: e.email ? String(e.email) : '',
   };

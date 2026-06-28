@@ -12,6 +12,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import {
   isSupabaseMissingTableError,
   isSupabaseRlsError,
+  isSupabaseSchemaMismatchError,
   toGermanSupabaseError,
 } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -218,9 +219,20 @@ export function resolveEffectivePermissionsSync(
   );
 }
 
+const UUID_PATTERN =
+  /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
+
+function isValidRbacContext(tenantId: string, employeeId: string): boolean {
+  return UUID_PATTERN.test(tenantId) && UUID_PATTERN.test(employeeId);
+}
+
 function shouldUseSyncRbacFallback(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
-  return isSupabaseMissingTableError(error) || isSupabaseRlsError(error);
+  return (
+    isSupabaseMissingTableError(error) ||
+    isSupabaseRlsError(error) ||
+    isSupabaseSchemaMismatchError(error)
+  );
 }
 
 function syncEffectivePermissionsFallback(
@@ -242,6 +254,10 @@ export async function resolveEffectivePermissions(
   additionalRoleKeys: RoleKey[] = [],
 ): Promise<ServiceResult<EffectivePermissionSet>> {
   if (getServiceMode() !== 'supabase') {
+    return syncEffectivePermissionsFallback(tenantId, employeeId, primaryRoleKey, additionalRoleKeys);
+  }
+
+  if (!isValidRbacContext(tenantId, employeeId)) {
     return syncEffectivePermissionsFallback(tenantId, employeeId, primaryRoleKey, additionalRoleKeys);
   }
 
@@ -489,6 +505,10 @@ export async function fetchEmployeePermissionOverrides(
     return { ok: true, data: getEmployeeRbacStateSync(tenantId, employeeId).overrides };
   }
 
+  if (!isValidRbacContext(tenantId, employeeId)) {
+    return { ok: true, data: getEmployeeRbacStateSync(tenantId, employeeId).overrides };
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) {
     return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -502,7 +522,7 @@ export async function fetchEmployeePermissionOverrides(
     .eq('employee_id', employeeId);
 
   if (error) {
-    if (isSupabaseMissingTableError(error) || isSupabaseRlsError(error)) {
+    if (shouldUseSyncRbacFallback(error)) {
       return { ok: true, data: getEmployeeRbacStateSync(tenantId, employeeId).overrides };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
@@ -536,6 +556,10 @@ export async function fetchEmployeeDataScopes(
     return { ok: true, data: getEmployeeRbacStateSync(tenantId, employeeId).scopes };
   }
 
+  if (!isValidRbacContext(tenantId, employeeId)) {
+    return { ok: true, data: getEmployeeRbacStateSync(tenantId, employeeId).scopes };
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) {
     return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -547,7 +571,7 @@ export async function fetchEmployeeDataScopes(
     .eq('employee_id', employeeId);
 
   if (error) {
-    if (isSupabaseMissingTableError(error) || isSupabaseRlsError(error)) {
+    if (shouldUseSyncRbacFallback(error)) {
       return { ok: true, data: getEmployeeRbacStateSync(tenantId, employeeId).scopes };
     }
     return { ok: false, error: toGermanSupabaseError(error) };

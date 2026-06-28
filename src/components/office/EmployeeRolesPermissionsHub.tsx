@@ -350,6 +350,12 @@ export function EmployeeRolesPermissionsHub({
 
 
 
+    if (!tenantId || !employeeId) {
+      setRbacLoaded(true);
+      setRbacLoadError(null);
+      return;
+    }
+
     (async () => {
 
       const overridesResult = await fetchEmployeePermissionOverrides(tenantId, employeeId);

@@ -22,6 +22,21 @@ export function isSupabaseRlsError(error: PostgrestError | unknown): boolean {
   return msg.includes('permission denied') || msg.includes('row-level security');
 }
 
+/** Column/relation drift or invalid filter values (e.g. empty tenant UUID). */
+export function isSupabaseSchemaMismatchError(error: PostgrestError | unknown): boolean {
+  if (!error || typeof error !== 'object') return false;
+  const record = error as { code?: string; message?: string };
+  if (record.code === '42703' || record.code === 'PGRST204' || record.code === '22P02') {
+    return true;
+  }
+  const msg = record.message ?? '';
+  return (
+    (msg.includes('column') && msg.includes('does not exist')) ||
+    msg.includes('invalid input syntax for type uuid') ||
+    (msg.includes('Could not find the') && msg.includes('column'))
+  );
+}
+
 /** Detects missing-table errors on translated or raw service error strings. */
 export function isMissingTableServiceError(message: string): boolean {
   return (

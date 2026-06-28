@@ -29,6 +29,7 @@ describe('profileRoleBridge', () => {
     expect(updater).toContain('updateProfileRoleKey');
     expect(bridge).toContain("select('role_id, roles(key)')");
     expect(bridge).toContain("update({ role_id:");
+    expect(bridge).toContain('.eq(\'tenant_id\', tenantId)');
   });
 });
 
@@ -51,8 +52,11 @@ describe('EmployeeRolesPermissionsHub RBAC load', () => {
 
     expect(hub).toContain('rbacLoadError');
     expect(hub).toContain('resolveEffectivePermissions');
+    expect(hub).toContain('if (!tenantId || !employeeId)');
     expect(rbac).toContain('persistEmployeeRbacState(tenantId, employeeId, { overrides');
     expect(rbac).toContain('persistEmployeeRbacState(tenantId, employeeId, { scopes');
     expect(rbac).toContain('shouldUseSyncRbacFallback');
+    expect(rbac).toContain('isSupabaseSchemaMismatchError');
+    expect(rbac).toContain('isValidRbacContext');
   });
 });

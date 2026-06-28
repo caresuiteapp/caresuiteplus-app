@@ -747,9 +747,9 @@ export function EmployeePersonnelFilePanel({
         />
       ) : null}
 
-      {activeTab === 'roles_permissions' ? (
+      {activeTab === 'roles_permissions' && tenantId ? (
         <EmployeeRolesPermissionsHub
-          tenantId={tenantId ?? ''}
+          tenantId={tenantId}
           employeeId={employeeId}
           employeeName={`${file.masterData.firstName} ${file.masterData.lastName}`}
           employmentStatus={labelEmploymentStatus(file.employment.employmentStatus)}

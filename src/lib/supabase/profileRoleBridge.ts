@@ -77,6 +77,7 @@ export async function fetchProfileRoleKey(
     .from('roles')
     .select('key')
     .eq('id', row.role_id)
+    .eq('tenant_id', tenantId)
     .maybeSingle();
 
   if (roleError || !roleRow?.key) return null;
@@ -102,6 +103,7 @@ export async function updateProfileRoleKey(
     .from('roles')
     .select('id')
     .eq('key', dbRoleKey)
+    .eq('tenant_id', tenantId)
     .order('created_at', { ascending: true })
     .limit(1)
     .maybeSingle();

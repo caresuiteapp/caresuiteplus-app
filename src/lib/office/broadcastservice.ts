@@ -14,6 +14,7 @@ import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { mapLegacyRoleKeyToRoleKey } from '@/lib/permissions/workspaceRoles';
 import {
   BROADCAST_ALLOWED_ROLE_KEYS,
   BROADCAST_CREATE_PERMISSION,
@@ -199,19 +200,22 @@ async function resolveInternalLeadershipRecipients(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  const roleKeys = [...BROADCAST_ALLOWED_ROLE_KEYS];
   const { data, error } = await supabase
     .from('profiles')
-    .select('id, user_id, role_key')
-    .eq('tenant_id', tenantId)
-    .in('role_key', roleKeys);
+    .select('id, auth_user_id, role_id, roles(key)')
+    .eq('tenant_id', tenantId);
 
   if (error) return broadcastError(toGermanSupabaseError(error));
 
   const recipients = (data ?? [])
-    .filter((row) => row.user_id)
+    .filter((row) => {
+      const legacyKey = (row.roles as { key?: string } | null)?.key ?? null;
+      const csRole = mapLegacyRoleKeyToRoleKey(legacyKey);
+      return csRole != null && BROADCAST_ALLOWED_ROLE_KEYS.has(csRole);
+    })
+    .filter((row) => row.auth_user_id)
     .map((row) => ({
-      userId: String(row.user_id),
+      userId: String(row.auth_user_id),
       profileId: String(row.id),
     }));
 
