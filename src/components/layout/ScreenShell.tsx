@@ -114,7 +114,7 @@ export function ScreenShell({
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
         scroll: {
-          flexGrow: shellHostsAurora ? 1 : undefined,
+          flexGrow: shellHostsAurora && !(isPhone && isAuthRoute) ? 1 : undefined,
           padding: spacing.md,
           gap: spacing.md,
           paddingBottom: authMobileBottomPad,
@@ -143,7 +143,7 @@ export function ScreenShell({
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
       }),
-    [authMobileBottomPad, colors.bgBase, shellHostsAurora],
+    [authMobileBottomPad, colors.bgBase, isAuthRoute, isPhone, shellHostsAurora],
   );
 
   const header = (

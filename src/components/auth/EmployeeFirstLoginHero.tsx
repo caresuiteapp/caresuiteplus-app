@@ -61,38 +61,40 @@ export function EmployeeFirstLoginHero() {
         <PremiumBadge label="Mitarbeiterportal" variant="cyan" dot />
         <PremiumBadge label="Pflichtschritt" variant="muted" />
       </View>
-      <View style={styles.kpiRow}>
-        <PremiumKpiCard
-          label="Schritt 1"
-          value="Einmalpasswort"
-          subValue="Vom Admin erhalten"
-          icon="📨"
-          accentColor={colors.cyan}
-          style={styles.kpiItem}
-          labelCase="normal"
-          valueLines={2}
-        />
-        <PremiumKpiCard
-          label="Schritt 2"
-          value="Neues Passwort"
-          subValue="Persönlich wählen"
-          icon="🔒"
-          accentColor={colors.orange}
-          style={styles.kpiItem}
-          labelCase="normal"
-          valueLines={2}
-        />
-        <PremiumKpiCard
-          label="Schritt 3"
-          value="DSGVO"
-          subValue="Bestätigen"
-          icon="✓"
-          accentColor={colors.violet}
-          style={styles.kpiItem}
-          labelCase="normal"
-          valueLines={2}
-        />
-      </View>
+      {!isPhone ? (
+        <View style={styles.kpiRow}>
+          <PremiumKpiCard
+            label="Schritt 1"
+            value="Einmalpasswort"
+            subValue="Vom Admin erhalten"
+            icon="📨"
+            accentColor={colors.cyan}
+            style={styles.kpiItem}
+            labelCase="normal"
+            valueLines={2}
+          />
+          <PremiumKpiCard
+            label="Schritt 2"
+            value="Neues Passwort"
+            subValue="Persönlich wählen"
+            icon="🔒"
+            accentColor={colors.orange}
+            style={styles.kpiItem}
+            labelCase="normal"
+            valueLines={2}
+          />
+          <PremiumKpiCard
+            label="Schritt 3"
+            value="DSGVO"
+            subValue="Bestätigen"
+            icon="✓"
+            accentColor={colors.violet}
+            style={styles.kpiItem}
+            labelCase="normal"
+            valueLines={2}
+          />
+        </View>
+      ) : null}
       <Text style={styles.hint}>
         Mindestens 10 Zeichen mit Groß-, Kleinbuchstaben, Zahl und Sonderzeichen. Das Einmalpasswort wird danach ungültig.
       </Text>

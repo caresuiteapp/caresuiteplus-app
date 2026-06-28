@@ -3,7 +3,8 @@ import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { EmployeeFirstLoginHero } from '@/components/auth/EmployeeFirstLoginHero';
 import { ScreenShell } from '@/components/layout';
-import { ErrorState, PremiumButton, PremiumInput, SuccessState } from '@/components/ui';
+import { ErrorState, PremiumButton, SuccessState } from '@/components/ui';
+import { InputField } from '@/design/components';
 import { completeFirstLogin } from '@/lib/auth/employeePortalAuthService';
 import { resolvePostLoginRoute } from '@/lib/auth/loginRouter';
 import { markPortalWelcomePending } from '@/lib/auth/portalWelcomeSession';
@@ -67,15 +68,15 @@ export function EmployeeFirstLoginPasswordScreen() {
       </View>
       {error ? <ErrorState message={error} onRetry={() => setError(null)} /> : null}
       {!skipCurrentPassword ? (
-        <PremiumInput
+        <InputField
           label="Einmalpasswort"
           value={currentPassword}
           onChangeText={setCurrentPassword}
           secureTextEntry
         />
       ) : null}
-      <PremiumInput label="Neues Passwort" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
-      <PremiumInput
+      <InputField label="Neues Passwort" value={newPassword} onChangeText={setNewPassword} secureTextEntry />
+      <InputField
         label="Passwort bestätigen"
         value={confirmPassword}
         onChangeText={setConfirmPassword}
