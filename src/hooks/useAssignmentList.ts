@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { ListSortOption } from '@/types/list';
 import type { WorkflowStatus } from '@/types';
@@ -7,6 +7,10 @@ import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import {
+  matchesDateRangeFilter,
+  type AssignmentDateRangeFilter,
+} from '@/lib/assist/assignmentListFilters';
 import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery, useListState } from './core';
 
 export const ASSIGNMENT_STATUS_FILTERS: { key: WorkflowStatus | 'all'; label: string }[] = [
@@ -46,6 +50,9 @@ export function useAssignmentList() {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [showSuccess, setShowSuccess] = useState(false);
+  const [dateRange, setDateRange] = useState<AssignmentDateRangeFilter>('all');
+  const [employeeFilter, setEmployeeFilter] = useState('all');
+  const [serviceFilter, setServiceFilter] = useState('all');
 
   const query = useAsyncQuery(
     () => {
@@ -70,11 +77,52 @@ export function useAssignmentList() {
   const list = useListState<AssignmentListItem, 'scheduledStart' | 'clientName'>({
     items: allItems,
     pageSize: PAGE_SIZE,
-    searchFields: ['title', 'clientName', 'employeeName', 'location'],
+    searchFields: ['title', 'clientName', 'employeeName', 'location', 'id', 'serviceName'],
     statusField: 'status',
     sortOptions: ASSIGNMENT_SORT_OPTIONS,
     defaultSortKey: 'time_asc',
   });
+
+  const filteredItems = useMemo(() => {
+    let result = list.filtered;
+    if (dateRange !== 'all') {
+      result = result.filter((item) => matchesDateRangeFilter(item.scheduledStart, dateRange));
+    }
+    if (employeeFilter !== 'all') {
+      result = result.filter((item) => item.employeeName === employeeFilter);
+    }
+    if (serviceFilter !== 'all') {
+      result = result.filter(
+        (item) => (item.serviceName ?? item.title) === serviceFilter,
+      );
+    }
+    return result;
+  }, [list.filtered, dateRange, employeeFilter, serviceFilter]);
+
+  const paginatedItems = useMemo(() => {
+    const end = list.page * PAGE_SIZE;
+    return {
+      items: filteredItems.slice(0, end),
+      total: filteredItems.length,
+      page: list.page,
+      pageSize: PAGE_SIZE,
+      hasMore: end < filteredItems.length,
+    };
+  }, [filteredItems, list.page]);
+
+  const employeeOptions = useMemo(() => {
+    const names = [...new Set(allItems.map((item) => item.employeeName).filter(Boolean))].sort(
+      (a, b) => a.localeCompare(b, 'de'),
+    );
+    return [{ key: 'all', label: 'Alle' }, ...names.map((name) => ({ key: name, label: name }))];
+  }, [allItems]);
+
+  const serviceOptions = useMemo(() => {
+    const names = [
+      ...new Set(allItems.map((item) => item.serviceName ?? item.title).filter(Boolean)),
+    ].sort((a, b) => a.localeCompare(b, 'de'));
+    return [{ key: 'all', label: 'Alle' }, ...names.map((name) => ({ key: name, label: name }))];
+  }, [allItems]);
 
   const refresh = useCallback(async () => {
     await query.refresh();
@@ -82,11 +130,21 @@ export function useAssignmentList() {
     setTimeout(() => setShowSuccess(false), 2000);
   }, [query]);
 
+  const resetFilters = useCallback(() => {
+    list.resetFilters();
+    setDateRange('all');
+    setEmployeeFilter('all');
+    setServiceFilter('all');
+  }, [list]);
+
+  const hasExtendedFilters =
+    dateRange !== 'all' || employeeFilter !== 'all' || serviceFilter !== 'all';
+
   return {
-    items: list.paginated.items,
+    items: paginatedItems.items,
     allItems,
     totalCount: allItems.length,
-    filteredCount: list.filtered.length,
+    filteredCount: filteredItems.length,
     loading: query.loading,
     error: query.error,
     refreshing: query.refreshing,
@@ -95,18 +153,29 @@ export function useAssignmentList() {
     setSearch: list.setSearch,
     statusFilter: list.statusFilter as WorkflowStatus | 'all',
     setStatusFilter: list.setStatusFilter as (v: WorkflowStatus | 'all') => void,
+    dateRange,
+    setDateRange,
+    employeeFilter,
+    setEmployeeFilter,
+    employeeOptions,
+    serviceFilter,
+    setServiceFilter,
+    serviceOptions,
     sortKey: list.sortKey,
     setSortKey: list.setSortKey,
     sortOptions: ASSIGNMENT_SORT_OPTIONS,
     statusFilters: ASSIGNMENT_STATUS_FILTERS,
-    hasMore: list.paginated.hasMore,
+    hasMore: paginatedItems.hasMore,
     loadMore: list.loadMore,
     refresh,
-    resetFilters: list.resetFilters,
-    hasActiveFilters: list.hasActiveFilters,
+    resetFilters,
+    hasActiveFilters: list.hasActiveFilters || hasExtendedFilters,
     isEmpty: !query.loading && !query.error && allItems.length === 0,
     isFilterEmpty:
-      !query.loading && !query.error && list.filtered.length === 0 && list.hasActiveFilters,
+      !query.loading &&
+      !query.error &&
+      filteredItems.length === 0 &&
+      (list.hasActiveFilters || hasExtendedFilters),
     isLiveConnected: query.isLiveConnected,
   };
 }

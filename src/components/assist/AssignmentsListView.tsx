@@ -1,10 +1,23 @@
-import { FlatList, Platform, RefreshControl, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
-import { useMemo, useState, useEffect } from 'react';
+import {
+  Platform,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+  type ViewStyle,
+} from 'react-native';
+import { useMemo, useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'expo-router';
-import { AssignmentListCard } from './AssignmentListCard';
 import { AssignmentCreateForm } from './AssignmentCreateForm';
 import { AssignmentsListHero } from './AssignmentsListHero';
 import { AssignmentsListTable } from './AssignmentsListTable';
+import { AssignmentsCardGrid } from './AssignmentsCardGrid';
+import { AssignmentsFilterSidebar } from './AssignmentsFilterSidebar';
+import {
+  AssignmentMobileActionSheet,
+  type AssignmentMobileAction,
+} from './AssignmentMobileActionSheet';
 import { LockedActionBanner } from '@/components/permissions';
 import {
   EmptyState,
@@ -28,6 +41,7 @@ import { useTableColumnSort } from '@/lib/table/tableColumnSort';
 import { useAuth } from '@/lib/auth/context';
 import { getServiceMode } from '@/lib/services/mode';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import type { AssignmentListItem } from '@/types/modules/assist';
 import { spacing } from '@/theme';
 
 type AssignmentsListViewProps = {
@@ -51,6 +65,9 @@ export function AssignmentsListView({
 }: AssignmentsListViewProps) {
   const router = useRouter();
   const [internalCreateOpen, setInternalCreateOpen] = useState(false);
+  const [mobileSheetAssignment, setMobileSheetAssignment] = useState<AssignmentListItem | null>(
+    null,
+  );
   const wizardVisible = createOpen ?? internalCreateOpen;
   const setWizardVisible = onCreateOpenChange ?? setInternalCreateOpen;
   const shellHostsAurora = useShellHostsAurora();
@@ -60,20 +77,24 @@ export function AssignmentsListView({
   const { shellVariant } = usePlatformLayout();
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
-  const { viewMode, setViewMode } = useDesktopListViewPreference('assist.assignments');
+  const isMobile = !isDesktop;
+  const { viewMode, setViewMode } = useDesktopListViewPreference('assist.assignments', 'cards');
   const useTableLayout = isDesktop && viewMode === 'table';
   const canView = can('assist.assignments.view');
   const canManage = can('assist.assignments.manage') && !isReadOnly;
   const roleKey = profile?.roleKey ?? 'dispatch';
   const openCreate = () => setWizardVisible(true);
 
-  const handleAssignmentPress = (id: string) => {
-    if (onAssignmentPress) {
-      onAssignmentPress(id);
-      return;
-    }
-    router.push(`/assist/assignments/${id}` as never);
-  };
+  const navigateToAssignment = useCallback(
+    (id: string) => {
+      if (onAssignmentPress) {
+        onAssignmentPress(id);
+        return;
+      }
+      router.push(`/assist/assignments/${id}` as never);
+    },
+    [onAssignmentPress, router],
+  );
 
   const {
     items,
@@ -87,6 +108,14 @@ export function AssignmentsListView({
     setSearch,
     statusFilter,
     setStatusFilter,
+    dateRange,
+    setDateRange,
+    employeeFilter,
+    setEmployeeFilter,
+    employeeOptions,
+    serviceFilter,
+    setServiceFilter,
+    serviceOptions,
     sortKey,
     setSortKey,
     sortOptions,
@@ -153,6 +182,13 @@ export function AssignmentsListView({
     () =>
       StyleSheet.create({
         container: { flex: 1, backgroundColor: 'transparent' },
+        layoutRow: {
+          flex: 1,
+          flexDirection: 'row',
+          gap: spacing.md,
+          minWidth: 0,
+        },
+        mainColumn: { flex: 1, minWidth: 0 },
         flatList: { flex: 1, backgroundColor: 'transparent' },
         listPanel: {
           flex: 1,
@@ -182,8 +218,66 @@ export function AssignmentsListView({
         },
         embeddedTitle: { ...typography.h3, color: colors.textPrimary },
         embeddedMeta: { ...typography.caption, color: colors.textMuted },
+        mobileFilters: { gap: spacing.xs },
       }),
     [colors, typography, webGlassBlur],
+  );
+
+  const buildMobileActions = useCallback(
+    (assignment: AssignmentListItem): AssignmentMobileAction[] => [
+      {
+        key: 'start',
+        label: 'Einsatz starten',
+        variant: 'primary',
+        onPress: () => router.push(`/assist/assignments/${assignment.id}/execute` as never),
+      },
+      {
+        key: 'edit',
+        label: 'Bearbeiten',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+      {
+        key: 'open',
+        label: 'Öffnen',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+      {
+        key: 'docs',
+        label: 'Dokumentation',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+      {
+        key: 'attachments',
+        label: 'Anhänge',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+      {
+        key: 'nav',
+        label: 'Navigation',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+      {
+        key: 'call',
+        label: 'Anrufen',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+      {
+        key: 'message',
+        label: 'Nachricht',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+      {
+        key: 'route',
+        label: 'Route',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+      {
+        key: 'proof',
+        label: 'Nachweis',
+        onPress: () => navigateToAssignment(assignment.id),
+      },
+    ],
+    [navigateToAssignment, router],
   );
 
   if (!canView) {
@@ -233,7 +327,7 @@ export function AssignmentsListView({
         onClose={() => setWizardVisible(false)}
         onCreated={(id) => {
           setWizardVisible(false);
-          handleAssignmentPress(id);
+          navigateToAssignment(id);
           void refresh();
         }}
       />
@@ -242,7 +336,7 @@ export function AssignmentsListView({
 
       <PremiumInput
         label="Suche"
-        placeholder="Leistung, Klient, Mitarbeiter, Ort oder Status…"
+        placeholder="Klient, Mitarbeiter, Adresse, Einsatznummer…"
         value={search}
         onChangeText={setSearch}
         autoCapitalize="words"
@@ -250,11 +344,37 @@ export function AssignmentsListView({
         hint={`${filteredCount} von ${totalCount} Einsätzen`}
       />
 
-      <Text style={styles.filterLabel}>Status</Text>
-      <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
-
-      <Text style={styles.filterLabel}>Sortierung</Text>
-      <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+      {isMobile ? (
+        <View style={styles.mobileFilters}>
+          <Text style={styles.filterLabel}>Zeitraum</Text>
+          <FilterChipGroup
+            options={[
+              { key: 'all', label: 'Alle' },
+              { key: 'today', label: 'Heute' },
+              { key: 'tomorrow', label: 'Morgen' },
+              { key: 'week', label: 'Woche' },
+            ]}
+            value={dateRange}
+            onChange={setDateRange}
+          />
+          <Text style={styles.filterLabel}>Status</Text>
+          <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
+          <Text style={styles.filterLabel}>Sortierung</Text>
+          <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+        </View>
+      ) : useTableLayout ? (
+        <>
+          <Text style={styles.filterLabel}>Status</Text>
+          <FilterChipGroup options={statusFilters} value={statusFilter} onChange={setStatusFilter} />
+          <Text style={styles.filterLabel}>Sortierung</Text>
+          <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+        </>
+      ) : (
+        <>
+          <Text style={styles.filterLabel}>Sortierung</Text>
+          <FilterChipGroup options={sortOptions} value={sortKey} onChange={setSortKey} />
+        </>
+      )}
     </View>
   );
 
@@ -311,6 +431,27 @@ export function AssignmentsListView({
       </Text>
     ) : null;
 
+  const cardGrid = (
+    <AssignmentsCardGrid
+      assignments={items}
+      selectedId={selectedId}
+      showHoverDetails={isDesktop}
+      showInlineActions={isDesktop}
+      onOpen={navigateToAssignment}
+      onStart={(id) => router.push(`/assist/assignments/${id}/execute` as never)}
+      onEdit={navigateToAssignment}
+      onMore={(id) => navigateToAssignment(id)}
+      onCardTap={
+        isMobile
+          ? (assignment) => setMobileSheetAssignment(assignment)
+          : undefined
+      }
+      ListHeaderComponent={toolbar}
+      ListEmptyComponent={emptyContent}
+      ListFooterComponent={footerContent}
+    />
+  );
+
   const tableView = (
     <ScrollView
       style={[styles.flatList, styles.flatListWeb]}
@@ -326,8 +467,8 @@ export function AssignmentsListView({
           <AssignmentsListTable
             assignments={items}
             selectedId={selectedId}
-            onAssignmentPress={handleAssignmentPress}
-            onOpenDetail={handleAssignmentPress}
+            onAssignmentPress={navigateToAssignment}
+            onOpenDetail={navigateToAssignment}
             sortColumnKey={tableSort.sortColumnKey}
             sortDirection={tableSort.sortDirection}
             onSortColumn={tableSort.onSortColumn}
@@ -338,30 +479,41 @@ export function AssignmentsListView({
     </ScrollView>
   );
 
-  const cardView = (
-    <FlatList
-      style={styles.flatList}
-      data={items}
-      keyExtractor={(item) => item.id}
-      ListHeaderComponent={toolbar}
-      ListEmptyComponent={emptyContent}
-      ListFooterComponent={footerContent}
-      renderItem={({ item }) => (
-        <AssignmentListCard
-          assignment={item}
-          selected={selectedId === item.id}
-          onPress={() => handleAssignmentPress(item.id)}
-        />
-      )}
+  const cardScrollView = (
+    <ScrollView
+      style={[styles.flatList, styles.flatListWeb]}
       contentContainerStyle={styles.list}
       showsVerticalScrollIndicator={false}
       refreshControl={
         <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
       }
-    />
+    >
+      {cardGrid}
+    </ScrollView>
   );
 
-  const body = useTableLayout ? tableView : cardView;
+  const desktopCardLayout = (
+    <View style={styles.layoutRow}>
+      {!embedded ? (
+        <AssignmentsFilterSidebar
+          dateRange={dateRange}
+          onDateRangeChange={setDateRange}
+          statusFilter={statusFilter}
+          onStatusFilterChange={setStatusFilter}
+          statusFilters={statusFilters}
+          employeeFilter={employeeFilter}
+          onEmployeeFilterChange={setEmployeeFilter}
+          employeeOptions={employeeOptions}
+          serviceFilter={serviceFilter}
+          onServiceFilterChange={setServiceFilter}
+          serviceOptions={serviceOptions}
+        />
+      ) : null}
+      <View style={styles.mainColumn}>{cardScrollView}</View>
+    </View>
+  );
+
+  const body = useTableLayout ? tableView : isDesktop ? desktopCardLayout : cardScrollView;
 
   return (
     <View style={styles.container}>
@@ -370,7 +522,12 @@ export function AssignmentsListView({
       ) : (
         body
       )}
+      <AssignmentMobileActionSheet
+        visible={mobileSheetAssignment != null}
+        assignment={mobileSheetAssignment}
+        onClose={() => setMobileSheetAssignment(null)}
+        actions={mobileSheetAssignment ? buildMobileActions(mobileSheetAssignment) : []}
+      />
     </View>
   );
 }
-
