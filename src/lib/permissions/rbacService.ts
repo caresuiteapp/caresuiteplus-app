@@ -350,6 +350,8 @@ export async function resolveEffectivePermissions(
     effective.permissions = [...merged].sort();
   }
 
+  persistEmployeeRbacState(tenantId, employeeId, { assignments, overrides, scopes });
+
   return { ok: true, data: effective };
 }
 
@@ -487,19 +489,23 @@ export async function fetchEmployeePermissionOverrides(
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
+  const overrides: EmployeePermissionOverride[] = (data ?? []).map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    employeeId: row.employee_id as string,
+    permissionKey: row.permission_key as PermissionKey,
+    allowed: Boolean(row.allowed),
+    reason: (row.reason as string | null) ?? null,
+    validFrom: (row.valid_from as string | null) ?? null,
+    validUntil: (row.valid_until as string | null) ?? null,
+    createdBy: (row.created_by as string | null) ?? null,
+  }));
+
+  persistEmployeeRbacState(tenantId, employeeId, { overrides });
+
   return {
     ok: true,
-    data: (data ?? []).map((row) => ({
-      id: row.id as string,
-      tenantId: row.tenant_id as string,
-      employeeId: row.employee_id as string,
-      permissionKey: row.permission_key as PermissionKey,
-      allowed: Boolean(row.allowed),
-      reason: (row.reason as string | null) ?? null,
-      validFrom: (row.valid_from as string | null) ?? null,
-      validUntil: (row.valid_until as string | null) ?? null,
-      createdBy: (row.created_by as string | null) ?? null,
-    })),
+    data: overrides,
   };
 }
 
@@ -528,16 +534,20 @@ export async function fetchEmployeeDataScopes(
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
+  const scopes: EmployeeDataScope[] = (data ?? []).map((row) => ({
+    id: row.id as string,
+    tenantId: row.tenant_id as string,
+    employeeId: row.employee_id as string,
+    module: row.module as string,
+    scopeType: row.scope_type as string,
+    scopeValue: (row.scope_value as string | null) ?? null,
+  }));
+
+  persistEmployeeRbacState(tenantId, employeeId, { scopes });
+
   return {
     ok: true,
-    data: (data ?? []).map((row) => ({
-      id: row.id as string,
-      tenantId: row.tenant_id as string,
-      employeeId: row.employee_id as string,
-      module: row.module as string,
-      scopeType: row.scope_type as string,
-      scopeValue: (row.scope_value as string | null) ?? null,
-    })),
+    data: scopes,
   };
 }
 

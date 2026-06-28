@@ -22,6 +22,7 @@ import {
   type EmployeePortalAccountLiveRow,
   type InventoryAssignmentWorkMaterialRow,
 } from './employeePersonnelFileMapper';
+import { fetchProfileRoleKey } from '@/lib/supabase/profileRoleBridge';
 import { loadEmployeeHomeOfficeOverride } from './employeeHomeOfficeService';
 import { loadEmployeeAuditEventsFromDb } from './employeePersonnelAuditService';
 
@@ -150,18 +151,7 @@ async function loadEmployeeProfileRole(
   profileId: string | null | undefined,
 ): Promise<import('@/types/core/auth').RoleKey | null> {
   if (!profileId) return null;
-  const supabase = getSupabaseClient();
-  if (!supabase) return null;
-
-  const { data, error } = await fromUnknownTable(supabase, 'profiles')
-    .select('role_key')
-    .eq('tenant_id', tenantId)
-    .eq('id', profileId)
-    .maybeSingle();
-
-  if (error || !data) return null;
-  const roleKey = (data as { role_key?: string | null }).role_key;
-  return (roleKey as import('@/types/core/auth').RoleKey) ?? null;
+  return fetchProfileRoleKey(tenantId, profileId);
 }
 
 async function loadEmployeePortalAccount(

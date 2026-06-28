@@ -11,6 +11,7 @@ import {
   PremiumKpiCard,
   SectionPanel,
   SuccessState,
+  InfoBanner,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
@@ -85,6 +86,8 @@ export function TimeTrackingEmployeeScreen() {
 
   const canView = can('time.tracking.own.view');
   const canStart = can('time.tracking.own.start');
+  const canAdminView = can('time.tracking.admin.view');
+  const isAdminWithoutEmployee = !employeeId && canAdminView;
 
   const wfmOptions = useMemo(
     () => ({ employeeId, source: wfmSource }),
@@ -99,9 +102,15 @@ export function TimeTrackingEmployeeScreen() {
           data: { session: null, events: [], statusLabel: 'Nicht gestartet', blockCount: 0 },
         };
       }
+      if (isAdminWithoutEmployee) {
+        return {
+          ok: true as const,
+          data: { session: null, events: [], statusLabel: 'Administrator', blockCount: 0 },
+        };
+      }
       return getWfmTodayStatus(tenantId, userId, roleKey, wfmOptions);
-    }, [tenantId, userId, roleKey, canView, wfmOptions]),
-    [tenantId, userId, roleKey, canView, wfmOptions],
+    }, [tenantId, userId, roleKey, canView, wfmOptions, isAdminWithoutEmployee]),
+    [tenantId, userId, roleKey, canView, wfmOptions, isAdminWithoutEmployee],
     { enabled: !!tenantId && !!userId && canView },
   );
 
@@ -195,9 +204,66 @@ export function TimeTrackingEmployeeScreen() {
   }
 
   if (statusQuery.error && !statusQuery.data) {
+    const isMissingEmployeeProfile =
+      statusQuery.error.includes('Kein Mitarbeiterprofil') && canAdminView;
+    if (isMissingEmployeeProfile) {
+      return (
+        <ScreenShell title="Arbeitszeit" subtitle={subtitle} scroll>
+          <InfoBanner
+            variant="info"
+            title="Team-Übersicht nutzen"
+            message="Als Administrator haben Sie kein verknüpftes Mitarbeiterprofil. Nutzen Sie die Team-Übersicht zur Verwaltung der Arbeitszeiten."
+          />
+          <SectionPanel title="Team & Live">
+            <PremiumButton
+              title="Zur Team-Übersicht"
+              variant="primary"
+              onPress={() => router.push('/business/office/time-tracking/team' as never)}
+            />
+            <PremiumButton
+              title="Live-Mitarbeiter"
+              variant="secondary"
+              onPress={() => router.push('/business/office/time-tracking/live' as never)}
+            />
+          </SectionPanel>
+        </ScreenShell>
+      );
+    }
+
     return (
       <ScreenShell title="Arbeitszeit" subtitle={subtitle}>
         <ErrorState title="Fehler" message={statusQuery.error} onRetry={() => void refresh()} />
+      </ScreenShell>
+    );
+  }
+
+  if (isAdminWithoutEmployee) {
+    return (
+      <ScreenShell title="Arbeitszeit" subtitle={subtitle} scroll>
+        <InfoBanner
+          variant="info"
+          title="Team-Übersicht nutzen"
+          message="Als Administrator nutzen Sie die Team-Übersicht. Ein verknüpftes Mitarbeiterprofil ist für die persönliche Stempeluhr nicht erforderlich."
+        />
+        <SectionPanel title="Team & Live">
+          <PremiumButton
+            title="Zur Team-Übersicht"
+            variant="primary"
+            onPress={() => router.push('/business/office/time-tracking/team' as never)}
+          />
+          <PremiumButton
+            title="Live-Mitarbeiter"
+            variant="secondary"
+            onPress={() => router.push('/business/office/time-tracking/live' as never)}
+          />
+          {can('time.settings.manage') && !pathname.startsWith('/portal/') ? (
+            <PremiumButton
+              title="Einstellungen"
+              variant="ghost"
+              onPress={() => router.push('/business/office/settings/time-tracking' as never)}
+            />
+          ) : null}
+        </SectionPanel>
       </ScreenShell>
     );
   }

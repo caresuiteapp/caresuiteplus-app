@@ -70,6 +70,8 @@ import {
 
   listPermissionAuditLogForEmployee,
 
+  resolveEffectivePermissions,
+
   resolveEffectivePermissionsSync,
 
   resolveRoleBasePermissionsSync,
@@ -322,6 +324,8 @@ export function EmployeeRolesPermissionsHub({
 
   const [rbacLoaded, setRbacLoaded] = useState(false);
 
+  const [rbacLoadError, setRbacLoadError] = useState<string | null>(null);
+
 
 
   useEffect(() => {
@@ -338,29 +342,79 @@ export function EmployeeRolesPermissionsHub({
 
   useEffect(() => {
 
-    void fetchEmployeePermissionOverrides(tenantId, employeeId).then((result) => {
+    let cancelled = false;
 
-      if (result.ok) {
+    setRbacLoaded(false);
 
-        setDraftOverrides(result.data.map((item) => ({ ...item, tenantId, employeeId })));
+    setRbacLoadError(null);
+
+
+
+    (async () => {
+
+      const [overridesResult, scopesResult, effectiveResult] = await Promise.all([
+
+        fetchEmployeePermissionOverrides(tenantId, employeeId),
+
+        fetchEmployeeDataScopes(tenantId, employeeId),
+
+        resolveEffectivePermissions(tenantId, employeeId, primaryRole, selectedRoles.filter((r) => r !== primaryRole)),
+
+      ]);
+
+
+
+      if (cancelled) return;
+
+
+
+      const errors = [overridesResult, scopesResult, effectiveResult]
+
+        .filter((result) => !result.ok)
+
+        .map((result) => result.error)
+
+        .filter((message): message is string => Boolean(message));
+
+
+
+      if (errors.length > 0) {
+
+        setRbacLoadError(errors[0] ?? 'Rollen & Rechte konnten nicht geladen werden.');
 
       }
 
-    });
 
-    void fetchEmployeeDataScopes(tenantId, employeeId).then((result) => {
 
-      if (result.ok) {
+      if (overridesResult.ok) {
 
-        setDraftScopes(result.data.map((item) => ({ ...item, tenantId, employeeId })));
+        setDraftOverrides(overridesResult.data.map((item) => ({ ...item, tenantId, employeeId })));
 
       }
+
+
+
+      if (scopesResult.ok) {
+
+        setDraftScopes(scopesResult.data.map((item) => ({ ...item, tenantId, employeeId })));
+
+      }
+
+
 
       setRbacLoaded(true);
 
-    });
+    })();
 
-  }, [tenantId, employeeId]);
+
+
+    return () => {
+
+      cancelled = true;
+
+    };
+
+  }, [tenantId, employeeId, primaryRole, selectedRoles.join('|')]);
 
 
 
@@ -583,6 +637,12 @@ export function EmployeeRolesPermissionsHub({
   return (
 
     <SectionPanel {...panelCtx} title="Rollen & Rechte">
+
+      {rbacLoadError ? (
+
+        <InfoBanner variant="error" title="Laden fehlgeschlagen" message={rbacLoadError} />
+
+      ) : null}
 
       <View style={styles.headerBlock}>
 

@@ -5,6 +5,7 @@ import { getDemoEmployeePersonnelFile } from '@/data/demo/employeePersonnelFile'
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
+import { updateProfileRoleKey } from '@/lib/supabase/profileRoleBridge';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -514,20 +515,13 @@ export async function updateEmployeeRolesPermissions(
   }
 
   if (getServiceMode() === 'supabase') {
-    const supabase = getSupabaseClient();
-    if (!supabase) {
-      return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-    }
-
     if (existing.portalAccess.profileId) {
-      const { error } = await fromUnknownTable(supabase, 'profiles')
-        .update({ role_key: patch.roleKey, updated_at: new Date().toISOString() })
-        .eq('tenant_id', tenantId)
-        .eq('id', existing.portalAccess.profileId);
-
-      if (error) {
-        return { ok: false, error: toGermanSupabaseError(error) };
-      }
+      const profileRoleResult = await updateProfileRoleKey(
+        tenantId,
+        existing.portalAccess.profileId,
+        patch.roleKey,
+      );
+      if (!profileRoleResult.ok) return profileRoleResult;
     }
   } else {
     const demoFile = getDemoEmployeePersonnelFile(employeeId);
