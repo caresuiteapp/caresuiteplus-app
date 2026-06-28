@@ -19,7 +19,7 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
-import { getWfmLiveEmployeeOverview } from '@/lib/wfm';
+import { getOfficeLiveEmployees } from '@/features/liveTracking/getOfficeLiveEmployees';
 import { typography } from '@/theme';
 
 function formatTime(iso: string | null): string {
@@ -41,7 +41,7 @@ export function OfficeLiveEmployeesScreen() {
       if (!tenantId || !canView) {
         return { ok: true as const, data: { rows: [], onlineCount: 0, totalCount: 0 } };
       }
-      return getWfmLiveEmployeeOverview(tenantId, roleKey);
+      return getOfficeLiveEmployees(tenantId, roleKey);
     }, [tenantId, canView, roleKey]),
     [tenantId, canView, roleKey],
     { enabled: !!tenantId && canView },

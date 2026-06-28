@@ -236,7 +236,11 @@ export function subscribeToWfmLiveChanges(
       subscriptionKey: `wfm-live:${tenantId}`,
       channelName: `wfm:live:${tenantId}`,
       demoPollMs: 10_000,
-      specs: [{ table: 'workforce_work_sessions', filter: tenantFilter(tenantId) }],
+      specs: [
+        { table: 'workforce_work_sessions', filter: tenantFilter(tenantId) },
+        { table: 'assist_tracking_sessions', filter: tenantFilter(tenantId) },
+        { table: 'assist_location_points', filter: tenantFilter(tenantId) },
+      ],
     },
     handler,
   );
@@ -257,11 +261,13 @@ export function subscribeToEmployeePortalChanges(
     {
       subscriptionKey: `employee-portal:${tenantId}:${employeeId}`,
       channelName: `portal:employee:${tenantId}:${employeeId}`,
-      demoPollMs: 30_000,
+      demoPollMs: 10_000,
       specs: [
         { table: 'assignments', filter: employee },
         { table: 'message_threads', filter: employee },
         { table: 'workforce_work_sessions', filter: employee },
+        { table: 'assist_tracking_sessions', filter: tenant },
+        { table: 'assist_location_points', filter: tenant },
         { table: 'employees', filter: `id=eq.${employeeId}` },
         { table: 'messages', filter: tenant },
       ],

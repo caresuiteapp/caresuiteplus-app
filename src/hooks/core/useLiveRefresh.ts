@@ -3,6 +3,8 @@ import { AppState, Platform } from 'react-native';
 
 export const DEFAULT_LIVE_POLL_MS = 30_000;
 export const OPERATIONAL_LIVE_POLL_MS = 15_000;
+/** Live tracking: 10s polling fallback alongside Realtime. */
+export const LIVE_TRACKING_POLL_MS = 10_000;
 
 export type LiveRefreshOptions = {
   enabled?: boolean;

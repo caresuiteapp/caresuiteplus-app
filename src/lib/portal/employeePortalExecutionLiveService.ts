@@ -46,12 +46,8 @@ import {
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
+import { resolveLiveAssignment } from '@/features/liveTracking/resolveLiveAssignment';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
-import { upsertLegacyAssignmentFromVisit } from '@/lib/assist/assistVisitLegacyAssignmentSync';
-import {
-  mapVisitDetailToAssignmentDetail,
-  visitMirrorInputFromDetail,
-} from './employeePortalAssignmentBridge';
 
 function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
   return {
@@ -209,30 +205,16 @@ function assertLiveEmployeeAssignmentAccess(
 async function loadEmployeePortalAssignmentDetail(
   tenantId: string,
   assignmentId: string,
+  employeeId?: string | null,
 ): Promise<ServiceResult<AssignmentDetail | null>> {
-  const fromAssignments = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
-  if (!fromAssignments.ok) return fromAssignments;
-  if (fromAssignments.data) return fromAssignments;
-
-  const fromVisit = await visitSupabaseRepository.getById(tenantId, assignmentId);
-  if (!fromVisit.ok) return fromVisit;
-  if (!fromVisit.data) return { ok: true, data: null };
-
-  const supabase = getSupabaseClient();
-  if (supabase) {
-    const mirror = await upsertLegacyAssignmentFromVisit(
-      supabase,
-      visitMirrorInputFromDetail(fromVisit.data),
-    );
-    if (!mirror.ok) {
-      console.warn('[employeePortalExecutionLiveService] assignment mirror:', mirror.error);
-    } else {
-      const retry = await assignmentSupabaseRepository.getById(tenantId, assignmentId);
-      if (retry.ok && retry.data) return retry;
-    }
-  }
-
-  return { ok: true, data: mapVisitDetailToAssignmentDetail(fromVisit.data) };
+  const resolved = await resolveLiveAssignment({
+    tenantId,
+    rawId: assignmentId,
+    employeeId,
+  });
+  if (!resolved.ok) return resolved;
+  if (!resolved.data) return { ok: true, data: null };
+  return { ok: true, data: resolved.data.detail };
 }
 
 export function isEmployeePortalLiveMode(): boolean {
@@ -301,7 +283,7 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
   if (denied && roleKey === 'employee_portal') return denied;
 
   return runService(async () => {
-    const loaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId);
+    const loaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
     if (!loaded.ok) return loaded;
     if (!loaded.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -326,7 +308,7 @@ export async function transitionLiveEmployeePortalAssignment(
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
-  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId);
+  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
   if (!existing.ok) return existing;
   if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -353,7 +335,7 @@ export async function transitionLiveEmployeePortalAssignment(
       employeeId,
     );
     if (!visitUpdated.ok) return visitUpdated;
-    const reloaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId);
+    const reloaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
     if (!reloaded.ok) return reloaded;
     if (!reloaded.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
     detailAfterUpdate = reloaded.data;
@@ -406,7 +388,7 @@ export async function updateLiveEmployeePortalTask(
     return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
   }
 
-  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId);
+  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
   if (!existing.ok) return existing;
   if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 

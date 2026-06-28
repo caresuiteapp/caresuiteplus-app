@@ -1,5 +1,5 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Linking, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
@@ -83,34 +83,62 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const handleGrantConsent = useCallback(async () => {
     setConsentLoading(true);
-    await grantConsent();
-    setConsentLoading(false);
-    setLocalSuccess('Einwilligung gespeichert.');
-  }, [grantConsent]);
+    setLocalError(null);
+    setLocalSuccess(null);
+    try {
+      await grantConsent();
+      await refresh();
+      if (notFound) {
+        setLocalError('Einsatz nicht gefunden — Einwilligung konnte nicht verknüpft werden.');
+        return;
+      }
+      setLocalSuccess('Einwilligung gespeichert.');
+    } catch (err) {
+      setLocalError(
+        err instanceof Error ? err.message : 'Einwilligung konnte nicht gespeichert werden.',
+      );
+    } finally {
+      setConsentLoading(false);
+    }
+  }, [grantConsent, refresh, notFound]);
 
   const handleRequestPermission = useCallback(async () => {
+    setLocalError(null);
+    setLocalSuccess(null);
     const status = await requestLocationPermission();
     if (status === 'granted') {
       setLocalSuccess('Standortberechtigung erteilt.');
+    } else if (status === 'denied') {
+      setLocalError(
+        Platform.OS === 'ios'
+          ? 'Standortberechtigung abgelehnt — bitte in Safari-Einstellungen unter „Standort“ freigeben.'
+          : 'Standortberechtigung nicht erteilt — bitte in den Geräteeinstellungen prüfen.',
+      );
     } else {
-      setLocalError('Standortberechtigung nicht erteilt — bitte in den Geräteeinstellungen prüfen.');
+      setLocalError('Standortberechtigung ausstehend — bitte erneut über die Schaltfläche anfordern.');
     }
   }, [requestLocationPermission]);
 
   const handleStartDrive = useCallback(async () => {
     setLocalError(null);
+    setLocalSuccess(null);
     if (!consent?.granted) {
       setLocalError('Bitte zuerst Standort-Einwilligung bestätigen.');
       return;
     }
-    await requestLocationPermission();
+    const perm = await requestLocationPermission();
+    if (perm !== 'granted') {
+      setLocalError('Standortberechtigung erforderlich — bitte zuerst freigeben.');
+      return;
+    }
     const pos = await capturePosition();
-    if (!pos.ok && gpsPermission !== 'granted') {
+    if (!pos.ok) {
       setLocalError(pos.error);
+      return;
     }
     await changeStatus('unterwegs');
     setLocalSuccess('Anfahrt gestartet — Assist wird informiert.');
-  }, [consent, requestLocationPermission, capturePosition, changeStatus, gpsPermission]);
+  }, [consent, requestLocationPermission, capturePosition, changeStatus]);
 
   const handleArrived = useCallback(async () => {
     setLocalError(null);
@@ -193,7 +221,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
-      {localSuccess ? <SuccessState message={localSuccess} /> : null}
+      {localSuccess && !localError ? <SuccessState message={localSuccess} /> : null}
       {localError ? <ErrorState message={localError} /> : null}
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>

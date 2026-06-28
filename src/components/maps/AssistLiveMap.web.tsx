@@ -1,14 +1,16 @@
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { GoogleMapsLiveMap } from '@/components/maps/GoogleMapsLiveMap.web';
 import {
   buildOsmEmbedUrl,
   formatMapLastUpdated,
-  getGoogleMapsApiKey,
-  isGoogleMapsConfigured,
   type AssistLiveMapMarker,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
+import {
+  getGoogleMapsBrowserKey,
+  isGoogleMapsBrowserKeyConfiguredSync,
+} from '@/lib/maps/getGoogleMapsBrowserKey';
 import { colors, spacing, typography } from '@/theme';
 
 export type AssistLiveMapProps = {
@@ -21,6 +23,7 @@ export type AssistLiveMapProps = {
   fallbackMessage?: string;
   demoMode?: boolean;
   lastUpdatedLabel?: string;
+  tenantId?: string | null;
 };
 
 export function AssistLiveMap(props: AssistLiveMapProps) {
@@ -34,18 +37,28 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
     fallbackMessage = 'Keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.',
     demoMode = false,
     lastUpdatedLabel = 'Letzte Aktualisierung',
+    tenantId = null,
   } = props;
 
-  const useGoogleMaps = isGoogleMapsConfigured();
+  const [mapsConfigured, setMapsConfigured] = useState(isGoogleMapsBrowserKeyConfiguredSync());
+
+  useEffect(() => {
+    if (mapsConfigured) return;
+    let cancelled = false;
+    void getGoogleMapsBrowserKey(tenantId).then((key) => {
+      if (!cancelled) setMapsConfigured(Boolean(key));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, mapsConfigured]);
 
   const embedUrl = useMemo(() => {
-    if (useGoogleMaps || !position) return null;
+    if (mapsConfigured || !position) return null;
     return buildOsmEmbedUrl(position.latitude, position.longitude);
-  }, [useGoogleMaps, position?.latitude, position?.longitude]);
+  }, [mapsConfigured, position?.latitude, position?.longitude]);
 
-  const hasMapData = Boolean(
-    position || (markers && markers.length > 0),
-  );
+  const hasMapData = Boolean(position || (markers && markers.length > 0));
 
   if (!hasMapData) {
     return (
@@ -56,7 +69,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
     );
   }
 
-  if (useGoogleMaps && Platform.OS === 'web') {
+  if (mapsConfigured && Platform.OS === 'web') {
     return (
       <GoogleMapsLiveMap
         position={position}
@@ -68,6 +81,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
         fallbackMessage={fallbackMessage}
         demoMode={demoMode}
         lastUpdatedLabel={lastUpdatedLabel}
+        tenantId={tenantId}
       />
     );
   }
@@ -77,7 +91,7 @@ export function AssistLiveMap(props: AssistLiveMapProps) {
       <View style={[styles.fallback, { minHeight: height }]}>
         <Text style={styles.fallbackIcon}>🗺️</Text>
         <Text style={styles.fallbackText}>
-          {getGoogleMapsApiKey()
+          {mapsConfigured
             ? 'Interaktive Karte nur im Browser verfügbar.'
             : fallbackMessage}
         </Text>

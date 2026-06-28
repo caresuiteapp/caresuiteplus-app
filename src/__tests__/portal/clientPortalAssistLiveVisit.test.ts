@@ -33,6 +33,8 @@ describe('clientPortalAssistLiveVisitService', () => {
         capturedAt: '2026-06-23T10:00:00.000Z',
       },
       fallbackMessage: null,
+      assignmentId: '00000000-0000-0000-0000-000000000099',
+      visitId: '00000000-0000-0000-0000-000000000099',
     });
 
     expect(Object.keys(sanitized)).toEqual([
@@ -40,6 +42,7 @@ describe('clientPortalAssistLiveVisitService', () => {
       'statusLabel',
       'lastPosition',
       'fallbackMessage',
+      'assignmentId',
     ]);
     expect(sanitized.lastPosition).toEqual({
       latitude: 52.52,

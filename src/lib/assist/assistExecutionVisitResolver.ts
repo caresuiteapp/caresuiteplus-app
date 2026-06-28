@@ -1,4 +1,4 @@
-import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
+import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
 import { getServiceMode } from '@/lib/services/mode';
 import { isUuid } from '@/lib/validation/uuid';
 
@@ -8,5 +8,5 @@ export async function resolveAssistVisitIdForPersistence(
   assignmentOrVisitId: string,
 ): Promise<string | null> {
   if (getServiceMode() !== 'supabase' || !isUuid(assignmentOrVisitId)) return null;
-  return visitSupabaseRepository.resolveVisitId(tenantId, assignmentOrVisitId);
+  return resolveLiveVisitId(tenantId, assignmentOrVisitId);
 }

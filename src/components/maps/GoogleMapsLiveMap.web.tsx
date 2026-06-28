@@ -2,9 +2,9 @@ import { useEffect, useMemo, useRef, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   formatMapLastUpdated,
-  getGoogleMapsApiKey,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
+import { getGoogleMapsBrowserKey } from '@/lib/maps/getGoogleMapsBrowserKey';
 import {
   loadGoogleMapsApi,
   type GoogleInfoWindowInstance,
@@ -33,6 +33,7 @@ export type GoogleMapsLiveMapProps = {
   fallbackMessage?: string;
   demoMode?: boolean;
   lastUpdatedLabel?: string;
+  tenantId?: string | null;
 };
 
 function buildInfoContent(marker: GoogleMapsLiveMarker, demoMode: boolean): string {
@@ -85,6 +86,7 @@ export function GoogleMapsLiveMap({
   fallbackMessage = 'Keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.',
   demoMode = false,
   lastUpdatedLabel = 'Letzte Aktualisierung',
+  tenantId = null,
 }: GoogleMapsLiveMapProps) {
   const mapContainerRef = useRef<HTMLDivElement | null>(null);
   const mapRef = useRef<GoogleMapInstance | null>(null);
@@ -92,6 +94,7 @@ export function GoogleMapsLiveMap({
   const infoWindowRef = useRef<GoogleInfoWindowInstance | null>(null);
   const [loadError, setLoadError] = useState<string | null>(null);
   const [mapReady, setMapReady] = useState(false);
+  const [apiKey, setApiKey] = useState<string | null>(null);
 
   const resolvedMarkers = useMemo(
     () => resolveMarkers(markers, position, markerLabel),
@@ -106,7 +109,16 @@ export function GoogleMapsLiveMap({
   }, [resolvedMarkers, selectedMarkerId]);
 
   useEffect(() => {
-    const apiKey = getGoogleMapsApiKey();
+    let cancelled = false;
+    void getGoogleMapsBrowserKey(tenantId).then((key) => {
+      if (!cancelled) setApiKey(key);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId]);
+
+  useEffect(() => {
     if (!apiKey || resolvedMarkers.length === 0) return;
 
     let cancelled = false;
@@ -136,10 +148,9 @@ export function GoogleMapsLiveMap({
     return () => {
       cancelled = true;
     };
-  }, [resolvedMarkers.length, primaryMarker?.latitude, primaryMarker?.longitude]);
+  }, [apiKey, resolvedMarkers.length, primaryMarker?.latitude, primaryMarker?.longitude]);
 
   useEffect(() => {
-    const apiKey = getGoogleMapsApiKey();
     if (!apiKey || !mapReady || !mapRef.current) return;
 
     void loadGoogleMapsApi(apiKey).then((google) => {
@@ -188,13 +199,24 @@ export function GoogleMapsLiveMap({
         }
       }
     });
-  }, [mapReady, resolvedMarkers, selectedMarkerId, onMarkerSelect, demoMode]);
+  }, [apiKey, mapReady, resolvedMarkers, selectedMarkerId, onMarkerSelect, demoMode]);
 
   if (resolvedMarkers.length === 0) {
     return (
       <View style={[styles.fallback, { minHeight: height }]}>
         <Text style={styles.fallbackIcon}>🗺️</Text>
         <Text style={styles.fallbackText}>{fallbackMessage}</Text>
+      </View>
+    );
+  }
+
+  if (!apiKey) {
+    return (
+      <View style={[styles.fallback, { minHeight: height }]}>
+        <Text style={styles.fallbackIcon}>🗺️</Text>
+        <Text style={styles.fallbackText}>
+          Google Maps ist nicht konfiguriert — Kartenansicht nicht verfügbar.
+        </Text>
       </View>
     );
   }

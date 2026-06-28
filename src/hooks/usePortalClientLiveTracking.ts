@@ -1,14 +1,14 @@
 import { useCallback, useEffect, useState } from 'react';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import {
-  projectClientPortalAssistLiveVisit,
-  sanitizeClientPortalLiveVisitPayload,
-  type ClientPortalAssistLiveVisitProjection,
-} from '@/lib/portal/clientPortalAssistLiveVisitService';
+  getClientLiveVisitLocation,
+  sanitizeClientLiveVisitLocation,
+} from '@/features/liveTracking/getClientLiveVisitLocation';
+import type { ClientPortalAssistLiveVisitProjection } from '@/lib/portal/clientPortalAssistLiveVisitService';
 import { fetchActiveLivePortalAssignmentForClient } from '@/lib/portal/portalAppointmentsLiveService';
 import { usePortalActor } from '@/hooks/usePortalActor';
-import { subscribeToPortalAssistChanges } from '@/lib/realtime';
-import { useAsyncQuery } from './core';
+import { subscribeToAssistLiveTrackingChanges } from '@/lib/realtime/presets';
+import { LIVE_TRACKING_POLL_MS, useAsyncQuery } from './core';
 
 export type PortalClientLiveTrackingState = {
   assignmentId: string | null;
@@ -37,8 +37,8 @@ async function resolveActiveLiveTracking(
   const active = activeResult.data;
   if (!active) return empty;
 
-  const liveVisit = sanitizeClientPortalLiveVisitPayload(
-    await projectClientPortalAssistLiveVisit({
+  const liveVisit = sanitizeClientLiveVisitLocation(
+    await getClientLiveVisitLocation({
       tenantId,
       clientId,
       assignmentId: active.id,
@@ -47,7 +47,7 @@ async function resolveActiveLiveTracking(
       plannedEndAt: active.endsAt,
       portalReleaseEnabled: true,
     }),
-  );
+  ) as ClientPortalAssistLiveVisitProjection;
 
   return {
     assignmentId: active.id,
@@ -63,17 +63,17 @@ export function usePortalClientLiveTracking() {
   const [tick, setTick] = useState(0);
 
   useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
+    const id = setInterval(() => setTick((t) => t + 1), LIVE_TRACKING_POLL_MS);
     return () => clearInterval(id);
   }, []);
 
   useEffect(() => {
-    if (!tenantId || !clientId) return;
-    const unsubscribe = subscribeToPortalAssistChanges(tenantId, clientId, () => {
+    if (!tenantId) return;
+    const unsubscribe = subscribeToAssistLiveTrackingChanges(tenantId, () => {
       setTick((t) => t + 1);
     });
     return unsubscribe;
-  }, [tenantId, clientId]);
+  }, [tenantId]);
 
   const query = useAsyncQuery(
     async () => {
