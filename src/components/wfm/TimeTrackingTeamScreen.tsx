@@ -20,11 +20,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
-  formatWfmStatusLabel,
-  listTeamSessionsToday,
+  getWfmLiveEmployeeOverview,
   reviewWfmAbsence,
   reviewWfmApproval,
 } from '@/lib/wfm';
+import { WfmRuleWarningsPanel } from '@/components/wfm/WfmRuleWarningsPanel';
 import { WFM_APPROVAL_TYPE_LABELS } from '@/types/modules/wfm';
 import { typography } from '@/theme';
 
@@ -46,10 +46,12 @@ export function TimeTrackingTeamScreen() {
   const canView = can('time.tracking.team.view');
   const canApprove = can('office.employees.absences.approve');
 
-  const sessionsQuery = useAsyncQuery(
+  const teamQuery = useAsyncQuery(
     useCallback(async () => {
-      if (!tenantId || !canView) return { ok: true as const, data: [] };
-      return listTeamSessionsToday(tenantId, roleKey);
+      if (!tenantId || !canView) {
+        return { ok: true as const, data: { rows: [], onlineCount: 0, totalCount: 0 } };
+      }
+      return getWfmLiveEmployeeOverview(tenantId, roleKey);
     }, [tenantId, canView, roleKey]),
     [tenantId, canView, roleKey],
   );
@@ -90,13 +92,13 @@ export function TimeTrackingTeamScreen() {
     );
   }
 
-  const sessions = sessionsQuery.data ?? [];
-  const online = sessions.filter((s) => s.isOnline && s.status !== 'ended').length;
+  const teamRows = teamQuery.data?.rows ?? [];
+  const online = teamQuery.data?.onlineCount ?? 0;
 
   return (
     <ScreenShell title="Team-Arbeitszeit" subtitle="Übersicht aller Mitarbeitenden heute" scroll>
       <View style={styles.kpiRow}>
-        <PremiumKpiCard label="Erfasst" value={String(sessions.length)} accentColor={accent} />
+        <PremiumKpiCard label="Erfasst" value={String(teamQuery.data?.totalCount ?? 0)} accentColor={accent} />
         <PremiumKpiCard label="Aktiv" value={String(online)} accentColor={accent} />
         <PremiumKpiCard label="Offene Anträge" value={String(approvalsQuery.data?.length ?? 0)} accentColor={accent} />
       </View>
@@ -107,19 +109,37 @@ export function TimeTrackingTeamScreen() {
         <PremiumButton title="Eigene Erfassung" variant="ghost" onPress={() => router.push('/business/office/time-tracking' as never)} />
       </View>
 
+      <SectionPanel title="ArbZG-Teamwarnungen">
+        {tenantId && reviewerId ? (
+          <WfmRuleWarningsPanel
+            tenantId={tenantId}
+            userId={reviewerId}
+            roleKey={roleKey}
+            teamView
+            compact
+          />
+        ) : null}
+      </SectionPanel>
+
       <SectionPanel title="Team heute">
-        {sessionsQuery.loading ? <LoadingState message="Team wird geladen…" /> : null}
-        {sessions.length === 0 ? (
+        {teamQuery.loading ? <LoadingState message="Team wird geladen…" /> : null}
+        {teamRows.length === 0 ? (
           <EmptyState title="Keine Erfassungen" message="Heute wurden noch keine Arbeitszeiten erfasst." />
         ) : (
-          sessions.map((session) => (
-            <View key={session.id} style={styles.row}>
+          teamRows.map((row) => (
+            <View key={row.employeeId} style={styles.row}>
               <Text style={[styles.rowTitle, { color: text.primary }]}>
-                MA {session.employeeId.slice(0, 8)}
+                {row.employeeName}
               </Text>
-              <PremiumBadge label={formatWfmStatusLabel(session)} variant={session.isOnline ? 'green' : 'muted'} />
+              <PremiumBadge
+                label={row.statusLabel}
+                variant={row.session?.isOnline ? 'green' : 'muted'}
+              />
               <Text style={{ color: text.secondary, ...typography.caption }}>
-                {formatTime(session.lastEventAt)} · {session.netMinutes || session.grossMinutes} Min.
+                {formatTime(row.lastEventAt)}
+                {row.session?.netMinutes || row.session?.grossMinutes
+                  ? ` · ${row.session.netMinutes || row.session.grossMinutes} Min.`
+                  : ''}
               </Text>
             </View>
           ))

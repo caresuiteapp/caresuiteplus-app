@@ -41,6 +41,32 @@ export {
 } from './wfmHomeofficeAdapter';
 
 export {
+  isLegacyTimeTrackingStoreEnabled,
+  WFM_LEGACY_STORE_DISABLED_MESSAGE,
+} from './wfmLegacyGate';
+
+export {
+  resetWfmCheckinDemoStore,
+  buildCheckinQrPayload,
+  listWfmCheckinTokens,
+  createWfmCheckinToken,
+  wfmOfficeCheckInByToken,
+  wfmOfficeCheckOut,
+  type WfmCheckinToken,
+} from './wfmCheckinService';
+
+export {
+  resetWfmRuleDemoStore,
+  evaluateArbzgRules,
+  evaluateAndStoreArbzgForToday,
+  listWfmRuleViolationsForDate,
+  listWfmTeamRuleViolationsToday,
+  type WfmRuleKey,
+  type WfmRuleViolation,
+  type WfmRuleEvaluationResult,
+} from './wfmRuleEngine';
+
+export {
   resetWfmAbsenceDemoStore,
   listWfmAbsencesForEmployee,
   listWfmAbsencesForTeam,
@@ -67,9 +93,13 @@ export { listEmployeeVisitTimes } from './wfmPortalTimesService';
 
 export {
   exportWfmSessionsCsv,
+  exportWfmSessionsDatev,
+  exportWfmSessionsPdf,
   createWfmExportJob,
   buildWfmPdfStub,
   type WfmExportRow,
+  type WfmExportFormat,
+  type WfmExportResult,
 } from './wfmExportService';
 
 export {

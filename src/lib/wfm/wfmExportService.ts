@@ -9,6 +9,8 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { formatWfmStatusLabel } from './wfmClockService';
 import { listSessionsForDate } from './wfmWorkSessionRepository';
 
+export type WfmExportFormat = 'csv' | 'pdf' | 'datev';
+
 export type WfmExportRow = {
   workDate: string;
   employeeId: string;
@@ -17,6 +19,16 @@ export type WfmExportRow = {
   grossMinutes: number;
   netMinutes: number;
   pauseMinutes: number;
+};
+
+export type WfmExportResult = {
+  jobId: string;
+  format: WfmExportFormat;
+  content: string;
+  mimeType: string;
+  fileName: string;
+  rowCount: number;
+  checksum: string;
 };
 
 function buildCsv(rows: WfmExportRow[]): string {
@@ -30,6 +42,31 @@ function buildCsv(rows: WfmExportRow[]): string {
   return `${header}\n${body}`;
 }
 
+/**
+ * DATEV LOHN & Gehalt — minimales EXTF-kompatibles ASCII-Format.
+ * Felder: PersonalNr (= employeeId-Kurzform), Datum (TTMMJJJJ), Stunden (Dezimal).
+ */
+function buildDatev(rows: WfmExportRow[], year: number, month: number): string {
+  const periodLabel = `${String(month).padStart(2, '0')}${year}`;
+  const header = [
+    '"EXTF";700;21;"LOHN";"CareSuite+ WFM";"";"";"";"";""',
+    `"BeraterNr";"MandantNr";"PersonalNr";"Datum";"StundenArt";"Stunden";"PauseMin"`,
+  ].join('\r\n');
+
+  const body = rows
+    .map((r) => {
+      const [y, m, d] = r.workDate.split('-');
+      const datevDate = `${d}${m}${y}`;
+      const hours = (r.netMinutes / 60).toFixed(2).replace('.', ',');
+      const personalNr = r.employeeId.slice(0, 8).toUpperCase();
+      const stundenArt = r.status === 'homeoffice' ? 'HO' : r.status === 'office' ? 'BU' : 'AZ';
+      return `"1001";"1";"${personalNr}";"${datevDate}";"${stundenArt}";"${hours}";"${r.pauseMinutes}"`;
+    })
+    .join('\r\n');
+
+  return `${header}\r\n${body}\r\n;Zeitraum ${periodLabel};Datensätze ${rows.length}`;
+}
+
 function simpleChecksum(content: string): string {
   let hash = 0;
   for (let i = 0; i < content.length; i++) {
@@ -38,12 +75,12 @@ function simpleChecksum(content: string): string {
   return hash.toString(16);
 }
 
-export async function exportWfmSessionsCsv(
+async function collectExportRows(
   tenantId: string,
   actorRoleKey: RoleKey | null,
   year: number,
   month: number,
-): Promise<ServiceResult<{ csv: string; rowCount: number; checksum: string }>> {
+): Promise<ServiceResult<WfmExportRow[]>> {
   const denied = enforcePermission(actorRoleKey, 'time.tracking.admin.export');
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
@@ -69,8 +106,106 @@ export async function exportWfmSessionsCsv(
     }
   }
 
-  const csv = buildCsv(rows);
-  return { ok: true, data: { csv, rowCount: rows.length, checksum: simpleChecksum(csv) } };
+  return { ok: true, data: rows };
+}
+
+export async function exportWfmSessionsCsv(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+  year: number,
+  month: number,
+): Promise<ServiceResult<{ csv: string; rowCount: number; checksum: string }>> {
+  const rowsResult = await collectExportRows(tenantId, actorRoleKey, year, month);
+  if (!rowsResult.ok) return rowsResult;
+  const csv = buildCsv(rowsResult.data);
+  return { ok: true, data: { csv, rowCount: rowsResult.data.length, checksum: simpleChecksum(csv) } };
+}
+
+export async function exportWfmSessionsDatev(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+  year: number,
+  month: number,
+): Promise<ServiceResult<{ datev: string; rowCount: number; checksum: string }>> {
+  const rowsResult = await collectExportRows(tenantId, actorRoleKey, year, month);
+  if (!rowsResult.ok) return rowsResult;
+  const datev = buildDatev(rowsResult.data, year, month);
+  return { ok: true, data: { datev, rowCount: rowsResult.data.length, checksum: simpleChecksum(datev) } };
+}
+
+async function renderWfmPdfText(rows: WfmExportRow[], year: number, month: number, tenantId: string): Promise<string> {
+  const lines = [
+    'CareSuite+ Arbeitszeit-Export',
+    `Mandant: ${tenantId.slice(0, 8)}…`,
+    `Zeitraum: ${String(month).padStart(2, '0')}/${year}`,
+    `Erstellt: ${new Date().toLocaleString('de-DE')}`,
+    '',
+    'Datum       | MA-ID    | Status        | Netto-Min | Pause',
+    '------------|----------|---------------|-----------|------',
+    ...rows.slice(0, 200).map(
+      (r) =>
+        `${r.workDate} | ${r.employeeId.slice(0, 8)} | ${r.statusLabel.padEnd(13).slice(0, 13)} | ${String(r.netMinutes).padStart(9)} | ${r.pauseMinutes}`,
+    ),
+  ];
+  if (rows.length > 200) lines.push(`… und ${rows.length - 200} weitere Datensätze`);
+
+  const textContent = lines.join('\n');
+
+  if (typeof document === 'undefined') {
+    return textContent;
+  }
+
+  try {
+    // @ts-expect-error jspdf ships no type declarations for ESM entry
+    const jsPDFModule = await import('jspdf/dist/jspdf.es.min.js');
+    const jsPDF = jsPDFModule.jsPDF;
+    const pdf = new jsPDF('p', 'mm', 'a4');
+    pdf.setFontSize(14);
+    pdf.text('CareSuite+ Arbeitszeit-Export', 14, 20);
+    pdf.setFontSize(10);
+    pdf.text(`Zeitraum: ${String(month).padStart(2, '0')}/${year}`, 14, 28);
+    pdf.text(`Datensätze: ${rows.length}`, 14, 34);
+    pdf.setFontSize(8);
+    let y = 44;
+    for (const line of lines.slice(5)) {
+      if (y > 280) {
+        pdf.addPage();
+        y = 20;
+      }
+      pdf.text(line, 14, y);
+      y += 4;
+    }
+    return pdf.output('datauristring');
+  } catch {
+    return textContent;
+  }
+}
+
+export async function exportWfmSessionsPdf(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+  year: number,
+  month: number,
+): Promise<ServiceResult<{ pdf: string; rowCount: number; checksum: string }>> {
+  const rowsResult = await collectExportRows(tenantId, actorRoleKey, year, month);
+  if (!rowsResult.ok) return rowsResult;
+  const pdf = await renderWfmPdfText(rowsResult.data, year, month, tenantId);
+  return { ok: true, data: { pdf, rowCount: rowsResult.data.length, checksum: simpleChecksum(pdf) } };
+}
+
+/** @deprecated Nutzen Sie exportWfmSessionsPdf */
+export function buildWfmPdfStub(
+  tenantId: string,
+  year: number,
+  month: number,
+  rowCount: number,
+): string {
+  return [
+    'CareSuite+ Arbeitszeit-Export',
+    `Mandant: ${tenantId}`,
+    `Zeitraum: ${String(month).padStart(2, '0')}/${year}`,
+    `Datensätze: ${rowCount}`,
+  ].join('\n');
 }
 
 export async function createWfmExportJob(
@@ -79,10 +214,37 @@ export async function createWfmExportJob(
   actorRoleKey: RoleKey | null,
   year: number,
   month: number,
-  format: 'csv' | 'pdf' = 'csv',
-): Promise<ServiceResult<{ jobId: string; csv: string; rowCount: number; checksum: string }>> {
-  const exportResult = await exportWfmSessionsCsv(tenantId, actorRoleKey, year, month);
-  if (!exportResult.ok) return exportResult;
+  format: WfmExportFormat = 'csv',
+): Promise<ServiceResult<WfmExportResult>> {
+  let content = '';
+  let rowCount = 0;
+  let checksum = '';
+  let mimeType = 'text/csv';
+  let fileName = `arbeitszeit-${year}-${String(month).padStart(2, '0')}.csv`;
+
+  if (format === 'csv') {
+    const exportResult = await exportWfmSessionsCsv(tenantId, actorRoleKey, year, month);
+    if (!exportResult.ok) return exportResult;
+    content = exportResult.data.csv;
+    rowCount = exportResult.data.rowCount;
+    checksum = exportResult.data.checksum;
+  } else if (format === 'datev') {
+    const exportResult = await exportWfmSessionsDatev(tenantId, actorRoleKey, year, month);
+    if (!exportResult.ok) return exportResult;
+    content = exportResult.data.datev;
+    rowCount = exportResult.data.rowCount;
+    checksum = exportResult.data.checksum;
+    mimeType = 'text/plain';
+    fileName = `datev-lohn-${year}-${String(month).padStart(2, '0')}.csv`;
+  } else {
+    const exportResult = await exportWfmSessionsPdf(tenantId, actorRoleKey, year, month);
+    if (!exportResult.ok) return exportResult;
+    content = exportResult.data.pdf;
+    rowCount = exportResult.data.rowCount;
+    checksum = exportResult.data.checksum;
+    mimeType = content.startsWith('data:application/pdf') ? 'application/pdf' : 'text/plain';
+    fileName = `arbeitszeit-${year}-${String(month).padStart(2, '0')}.pdf`;
+  }
 
   const jobId =
     typeof globalThis.crypto?.randomUUID === 'function'
@@ -100,8 +262,8 @@ export async function createWfmExportJob(
         period_year: year,
         period_month: month,
         status: 'completed',
-        row_count: exportResult.data.rowCount,
-        checksum: exportResult.data.checksum,
+        row_count: rowCount,
+        checksum,
         completed_at: new Date().toISOString(),
       });
       if (error && !isSupabaseMissingTableError(error)) {
@@ -112,28 +274,6 @@ export async function createWfmExportJob(
 
   return {
     ok: true,
-    data: {
-      jobId,
-      csv: exportResult.data.csv,
-      rowCount: exportResult.data.rowCount,
-      checksum: exportResult.data.checksum,
-    },
+    data: { jobId, format, content, mimeType, fileName, rowCount, checksum },
   };
-}
-
-export function buildWfmPdfStub(
-  tenantId: string,
-  year: number,
-  month: number,
-  rowCount: number,
-): string {
-  return [
-    'CareSuite+ Arbeitszeit-Export',
-    `Mandant: ${tenantId}`,
-    `Zeitraum: ${String(month).padStart(2, '0')}/${year}`,
-    `Datensätze: ${rowCount}`,
-    '',
-    'PDF-Generierung wird in einer späteren Version ergänzt.',
-    'Bitte verwenden Sie vorerst den CSV-Export.',
-  ].join('\n');
 }

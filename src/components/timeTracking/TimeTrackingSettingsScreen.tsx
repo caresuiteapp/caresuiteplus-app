@@ -24,6 +24,7 @@ import {
   upsertCostCenter,
   upsertWorkOrganization,
 } from '@/lib/timeTracking';
+import { WfmCheckinQrPanel } from '@/components/wfm/WfmCheckinQrPanel';
 import { typography } from '@/theme';
 
 type SettingsTab = 'general' | 'activities' | 'organizations' | 'cost_centers' | 'projects';
@@ -37,8 +38,9 @@ const TABS: Array<{ key: SettingsTab; label: string }> = [
 ];
 
 export function TimeTrackingSettingsScreen() {
-  const { profile } = useAuth();
+  const { profile, user } = useAuth();
   const tenantId = useServiceTenantId();
+  const userId = user?.id ?? profile?.id ?? '';
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
   const text = useAuroraAdaptiveText();
@@ -105,6 +107,7 @@ export function TimeTrackingSettingsScreen() {
       <AuroraSegmentedControl options={TABS} value={tab} onChange={(key) => setTab(key as SettingsTab)} />
 
       {tab === 'general' ? (
+        <>
         <SectionPanel title="Allgemein">
           <Text style={{ color: text.primary }}>Modul aktiv: {settings.moduleEnabled ? 'Ja' : 'Nein'}</Text>
           <Text style={{ color: text.primary }}>
@@ -125,6 +128,10 @@ export function TimeTrackingSettingsScreen() {
             }}
           />
         </SectionPanel>
+        {tenantId && userId ? (
+          <WfmCheckinQrPanel tenantId={tenantId} userId={userId} />
+        ) : null}
+        </>
       ) : null}
 
       {tab === 'activities' ? (

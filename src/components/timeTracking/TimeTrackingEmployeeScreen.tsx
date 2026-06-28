@@ -33,6 +33,8 @@ import {
   wfmSwitchWorkType,
 } from '@/lib/wfm';
 import { WfmTimeAccountPanel } from '@/components/wfm/WfmTimeAccountPanel';
+import { WfmCheckinScanPanel } from '@/components/wfm/WfmCheckinScanPanel';
+import { WfmRuleWarningsPanel } from '@/components/wfm/WfmRuleWarningsPanel';
 import type { WfmEventSource, WfmWorkTypeKey } from '@/types/modules/wfm';
 import { typography } from '@/theme';
 
@@ -216,6 +218,26 @@ export function TimeTrackingEmployeeScreen() {
           />
         </View>
       </SectionPanel>
+
+      {tenantId && userId ? (
+        <WfmCheckinScanPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+          session={session}
+          onSuccess={() => void refresh()}
+        />
+      ) : null}
+
+      {tenantId && userId ? (
+        <WfmRuleWarningsPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+        />
+      ) : null}
 
       {tenantId && userId ? (
         <WfmTimeAccountPanel

@@ -31,6 +31,10 @@ import {
 import { recordTimeActivityEvent } from './timeTrackingActivityBridge';
 import { evaluateTrafficLight } from './timeTrackingAmpelService';
 import { mirrorHomeofficeToWfm } from '@/lib/wfm/wfmHomeofficeAdapter';
+import {
+  isLegacyTimeTrackingStoreEnabled,
+  WFM_LEGACY_STORE_DISABLED_MESSAGE,
+} from '@/lib/wfm/wfmLegacyGate';
 import { detectMultiTabConflict, registerActiveSession } from './timeTrackingMultiTabService';
 
 function todayDate(): string {
@@ -90,6 +94,9 @@ export function startWorkday(
   actorRoleKey: RoleKey | null,
   input: StartWorkdayInput,
 ): ServiceResult<{ workday: TimeWorkday; entry: TimeEntry }> {
+  if (!isLegacyTimeTrackingStoreEnabled()) {
+    return { ok: false, error: WFM_LEGACY_STORE_DISABLED_MESSAGE };
+  }
   const denied = enforcePermission(actorRoleKey, 'time.tracking.own.start');
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);

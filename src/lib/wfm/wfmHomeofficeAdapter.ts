@@ -23,8 +23,8 @@ function newUuid(): string {
 }
 
 /**
- * Spiegelt Homeoffice-Arbeitstag (0161) in workforce_* — Dual-Write während Migration.
- * Fehler werden still ignoriert, damit HO-Modul nicht blockiert.
+ * Spiegelt Homeoffice-Arbeitstag (0161) in workforce_* — Legacy Dual-Write.
+ * @deprecated UI nutzt WFM direkt; dieser Adapter bleibt für Rückwärtskompatibilität.
  */
 export async function syncHomeofficeActionToWfm(
   tenantId: string,

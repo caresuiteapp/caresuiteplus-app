@@ -16,7 +16,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { buildWfmPdfStub, createWfmExportJob } from '@/lib/wfm';
+import { buildWfmPdfStub, createWfmExportJob, type WfmExportFormat } from '@/lib/wfm/wfmExportService';
 
 export function WfmExportScreen() {
   const router = useRouter();
@@ -32,11 +32,12 @@ export function WfmExportScreen() {
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
-  const [lastCsv, setLastCsv] = useState<string | null>(null);
+  const [lastPreview, setLastPreview] = useState<string | null>(null);
+  const [lastFormat, setLastFormat] = useState<WfmExportFormat>('csv');
 
   const canExport = can('time.tracking.admin.export');
 
-  const runExport = async (format: 'csv' | 'pdf') => {
+  const runExport = async (format: WfmExportFormat) => {
     if (!tenantId || !userId) return;
     setLoading(true);
     setError(null);
@@ -50,14 +51,17 @@ export function WfmExportScreen() {
       return;
     }
 
-    if (format === 'csv') {
-      setLastCsv(result.data.csv);
-      setMessage(`CSV-Export erstellt: ${result.data.rowCount} Datensätze (Prüfsumme ${result.data.checksum}).`);
-    } else {
-      const stub = buildWfmPdfStub(tenantId, year, month, result.data.rowCount);
-      setLastCsv(stub);
-      setMessage(`PDF-Vorlage erstellt (${result.data.rowCount} Datensätze). Vollständiges PDF folgt in Phase 5.`);
-    }
+    setLastPreview(result.data.content);
+    setLastFormat(format);
+
+    const formatLabels: Record<WfmExportFormat, string> = {
+      csv: 'CSV',
+      pdf: 'PDF',
+      datev: 'DATEV',
+    };
+    setMessage(
+      `${formatLabels[format]}-Export erstellt: ${result.data.rowCount} Datensätze (Prüfsumme ${result.data.checksum}).`,
+    );
   };
 
   if (!canExport) {
@@ -72,7 +76,7 @@ export function WfmExportScreen() {
   }
 
   return (
-    <ScreenShell title="Arbeitszeit-Export" subtitle="CSV und PDF für Lohnbuchhaltung" scroll>
+    <ScreenShell title="Arbeitszeit-Export" subtitle="CSV, PDF und DATEV für Lohnbuchhaltung" scroll>
       <PremiumButton title="← Team-Übersicht" variant="ghost" onPress={() => router.push('/business/office/time-tracking/team' as never)} />
 
       <View style={styles.kpiRow}>
@@ -93,13 +97,16 @@ export function WfmExportScreen() {
       <SectionPanel title="Export starten">
         {loading ? <LoadingState message="Export wird erstellt…" /> : null}
         <PremiumButton title="CSV exportieren" onPress={() => void runExport('csv')} disabled={loading} />
-        <PremiumButton title="PDF-Vorlage" variant="secondary" onPress={() => void runExport('pdf')} disabled={loading} />
+        <PremiumButton title="PDF exportieren" variant="secondary" onPress={() => void runExport('pdf')} disabled={loading} />
+        <PremiumButton title="DATEV LOHN exportieren" variant="secondary" onPress={() => void runExport('datev')} disabled={loading} />
       </SectionPanel>
 
-      {lastCsv ? (
-        <SectionPanel title="Export-Vorschau" subtitle="Erste Zeilen">
+      {lastPreview ? (
+        <SectionPanel title="Export-Vorschau" subtitle={`Format: ${lastFormat.toUpperCase()}`}>
           <Text style={styles.preview} numberOfLines={12}>
-            {lastCsv.split('\n').slice(0, 8).join('\n')}
+            {lastFormat === 'pdf' && lastPreview.startsWith('data:')
+              ? '[PDF-Datei erzeugt — Download im Browser verfügbar]'
+              : lastPreview.split('\n').slice(0, 8).join('\n')}
           </Text>
         </SectionPanel>
       ) : null}
