@@ -5,8 +5,8 @@ import { spacing } from '@/theme';
 export type DesktopListViewMode = 'cards' | 'table';
 
 const VIEW_TABS = [
-  { key: 'cards' as const, label: 'Karten' },
-  { key: 'table' as const, label: 'Tabelle' },
+  { key: 'cards' as const, label: 'Kartenansicht' },
+  { key: 'table' as const, label: 'Tabellenansicht' },
 ];
 
 type DesktopListViewToggleProps = {
@@ -30,5 +30,6 @@ export function DesktopListViewToggle({ value, onChange }: DesktopListViewToggle
 const styles = StyleSheet.create({
   wrapper: {
     marginTop: spacing.xs,
+    alignSelf: 'flex-end',
   },
 });

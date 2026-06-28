@@ -57,6 +57,7 @@ export function AssignmentsListTable({
           key: 'weekday',
           label: 'Wochentag',
           flex: 1,
+          minWidth: 92,
           sortable: true,
           render: (item) => (
             <Text style={styles.primary}>{formatWeekday(item.scheduledStart)}</Text>
@@ -66,6 +67,7 @@ export function AssignmentsListTable({
           key: 'date',
           label: 'Datum',
           flex: 1,
+          minWidth: 96,
           sortable: true,
           render: (item) => (
             <Text style={styles.meta}>{formatDate(item.scheduledStart)}</Text>
@@ -75,6 +77,7 @@ export function AssignmentsListTable({
           key: 'timeRange',
           label: 'Uhrzeit von bis',
           flex: 1.6,
+          minWidth: 128,
           sortable: true,
           render: (item) => (
             <Text style={styles.meta}>
@@ -86,6 +89,7 @@ export function AssignmentsListTable({
           key: 'duration',
           label: 'Zeit insgesamt',
           flex: 1,
+          minWidth: 112,
           render: (item) => (
             <Text style={styles.meta}>{formatDurationMinutes(item.durationMinutes) || '—'}</Text>
           ),
@@ -94,6 +98,7 @@ export function AssignmentsListTable({
           key: 'client',
           label: 'Klient:in',
           flex: 1.3,
+          minWidth: 120,
           sortable: true,
           render: (item) => <Text style={styles.primary}>{item.clientName}</Text>,
         },
@@ -101,12 +106,14 @@ export function AssignmentsListTable({
           key: 'employee',
           label: 'Mitarbeiter:in',
           flex: 1.3,
+          minWidth: 120,
           render: (item) => <Text style={styles.meta}>{item.employeeName}</Text>,
         },
         {
           key: 'service',
           label: 'Leistung',
           flex: 1.4,
+          minWidth: 140,
           render: (item) => (
             <View>
               <Text style={styles.meta}>{item.serviceName ?? item.title}</Text>
@@ -120,6 +127,7 @@ export function AssignmentsListTable({
           key: 'status',
           label: 'Status',
           flex: 1.2,
+          minWidth: 100,
           render: (item) => (
             <StatusBadgesDropdown badges={buildAssignmentStatusBadges(item)} />
           ),
@@ -128,6 +136,7 @@ export function AssignmentsListTable({
           key: 'actions',
           label: 'Öffnen',
           flex: 0.9,
+          minWidth: 88,
           render: (item) =>
             onOpenDetail ? (
               <PremiumButton

@@ -1,5 +1,5 @@
 import React from 'react';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useAuroraGlassTableStyles } from '@/design/tokens/auroraGlass';
 
 export type DataTableColumn<T> = {
@@ -7,10 +7,26 @@ export type DataTableColumn<T> = {
   label: string;
   flex?: number;
   width?: number;
+  minWidth?: number;
   align?: 'left' | 'center' | 'right';
   sortable?: boolean;
   render: (item: T) => React.ReactNode;
 };
+
+function columnCellStyle<T>(col: DataTableColumn<T>): ViewStyle[] {
+  return [
+    col.flex != null ? { flex: col.flex, flexShrink: col.minWidth != null ? 0 : 1 } : null,
+    col.width != null ? { width: col.width } : null,
+    col.minWidth != null ? { minWidth: col.minWidth } : null,
+    col.align === 'center' ? { alignItems: 'center' as const } : null,
+    col.align === 'right' ? { alignItems: 'flex-end' as const } : null,
+  ].filter(Boolean) as ViewStyle[];
+}
+
+const headerTextWebStyle =
+  Platform.OS === 'web'
+    ? ({ whiteSpace: 'nowrap' } as unknown as ViewStyle)
+    : null;
 
 type PremiumDataTableProps<T> = {
   columns: DataTableColumn<T>[];
@@ -54,7 +70,7 @@ export function PremiumDataTable<T>({
     );
   }
 
-  return (
+  const tableBody = (
     <View style={styles.table} testID="table-container">
       <View style={styles.headerRow}>
         {columns.map((col) => {
@@ -63,21 +79,17 @@ export function PremiumDataTable<T>({
             <Text
               style={[
                 styles.headerText,
+                headerTextWebStyle,
                 col.sortable && sortColumnKey === col.key ? styles.headerTextActive : null,
               ]}
+              numberOfLines={1}
             >
               {col.label}
               {indicator}
             </Text>
           );
 
-          const cellStyle = [
-            styles.headerCell,
-            col.flex != null ? { flex: col.flex } : null,
-            col.width != null ? { width: col.width } : null,
-            col.align === 'center' ? styles.alignCenter : null,
-            col.align === 'right' ? styles.alignRight : null,
-          ];
+          const cellStyle = [styles.headerCell, ...columnCellStyle(col)];
 
           if (col.sortable && onSortColumn) {
             return (
@@ -113,16 +125,7 @@ export function PremiumDataTable<T>({
             ]}
           >
             {columns.map((col) => (
-              <View
-                key={col.key}
-                style={[
-                  styles.dataCell,
-                  col.flex != null ? { flex: col.flex } : null,
-                  col.width != null ? { width: col.width } : null,
-                  col.align === 'center' ? styles.alignCenter : null,
-                  col.align === 'right' ? styles.alignRight : null,
-                ]}
-              >
+              <View key={col.key} style={[styles.dataCell, ...columnCellStyle(col)]}>
                 {col.render(item)}
               </View>
             ))}
@@ -141,4 +144,16 @@ export function PremiumDataTable<T>({
       })}
     </View>
   );
+
+  const needsHorizontalScroll = columns.some((col) => col.minWidth != null);
+
+  if (needsHorizontalScroll) {
+    return (
+      <ScrollView horizontal showsHorizontalScrollIndicator={false}>
+        {tableBody}
+      </ScrollView>
+    );
+  }
+
+  return tableBody;
 }

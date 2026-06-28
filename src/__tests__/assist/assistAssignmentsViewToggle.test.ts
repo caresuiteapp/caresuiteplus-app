@@ -20,8 +20,9 @@ describe('Desktop list view toggle Einsatzplanung (Sprint 92)', () => {
     const source = readSrc('src/components/assist/AssignmentsListView.tsx');
     expect(source).toContain('viewMode');
     expect(source).toContain('setViewMode');
-    expect(source).toContain("useDesktopListViewPreference('assist.assignments', 'cards')");
-    expect(source).toContain('showViewToggle={isDesktop');
+    expect(source).toContain("useDesktopListViewPreference('assist.assignments.v2', 'cards')");
+    expect(source).toContain('DesktopListViewToggle');
+    expect(source).toContain('viewToggleRow');
     expect(source).toContain('useTableLayout = isDesktop && viewMode');
     expect(source).toContain('AssignmentsListTable');
     expect(source).toContain('AssignmentsCardGrid');

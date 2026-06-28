@@ -83,7 +83,7 @@ describe('Assignment compact cards UI', () => {
     const source = readSrc('src/components/assist/AssignmentsListView.tsx');
     expect(source).toContain('AssignmentsCardGrid');
     expect(source).toContain('AssignmentsListTable');
-    expect(source).toContain("useDesktopListViewPreference('assist.assignments', 'cards')");
+    expect(source).toContain("useDesktopListViewPreference('assist.assignments.v2', 'cards')");
     expect(source).toContain('AssignmentMobileActionSheet');
     expect(source).toContain('AssignmentsFilterSidebar');
   });

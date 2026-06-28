@@ -111,7 +111,7 @@ describe('Desktop list view preference persistence (Sprint 38)', () => {
   it('AssignmentsListView nutzt useDesktopListViewPreference (Sprint 92)', () => {
     const source = readSrc('src/components/assist/AssignmentsListView.tsx');
     expect(source).toContain('useDesktopListViewPreference');
-    expect(source).toContain("'assist.assignments'");
+    expect(source).toContain("'assist.assignments.v2'");
   });
 
   it('DocumentsListView nutzt useDesktopListViewPreference (Sprint 95)', () => {

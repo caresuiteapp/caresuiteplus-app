@@ -27,6 +27,7 @@ import {
   PremiumButton,
   PremiumInput,
   SuccessState,
+  DesktopListViewToggle,
 } from '@/components/ui';
 import { buildVisitDispositionKpis } from '@/lib/assist/visitService';
 import { auroraGlass, useAuroraGlassPanelStyle } from '@/design/tokens/auroraGlass';
@@ -78,7 +79,7 @@ export function AssignmentsListView({
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
   const isMobile = !isDesktop;
-  const { viewMode, setViewMode } = useDesktopListViewPreference('assist.assignments', 'cards');
+  const { viewMode, setViewMode } = useDesktopListViewPreference('assist.assignments.v2', 'cards');
   const useTableLayout = isDesktop && viewMode === 'table';
   const canView = can('assist.assignments.view');
   const canManage = can('assist.assignments.manage') && !isReadOnly;
@@ -219,6 +220,12 @@ export function AssignmentsListView({
         embeddedTitle: { ...typography.h3, color: colors.textPrimary },
         embeddedMeta: { ...typography.caption, color: colors.textMuted },
         mobileFilters: { gap: spacing.xs },
+        viewToggleRow: {
+          flexDirection: 'row',
+          justifyContent: 'flex-end',
+          alignItems: 'center',
+          marginBottom: spacing.xs,
+        },
       }),
     [colors, typography, webGlassBlur],
   );
@@ -291,6 +298,12 @@ export function AssignmentsListView({
 
   const toolbar = (
     <View style={styles.toolbar}>
+      {isDesktop && !embedded ? (
+        <View style={styles.viewToggleRow}>
+          <DesktopListViewToggle value={viewMode} onChange={setViewMode} />
+        </View>
+      ) : null}
+
       {embedded ? (
         <View style={styles.embeddedHeader}>
           <Text style={styles.embeddedTitle}>Einsatzplanung</Text>
@@ -307,9 +320,6 @@ export function AssignmentsListView({
           totalCount={totalCount}
           isReadOnly={isReadOnly}
           compact={compactHero}
-          viewMode={viewMode}
-          onViewModeChange={setViewMode}
-          showViewToggle={isDesktop && !embedded}
           onCalendarPress={() => router.push('/assist/kalender' as never)}
         />
       )}
