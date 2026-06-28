@@ -12,7 +12,7 @@ type AssignmentCardHoverDetailsProps = {
 /** Desktop hover overlay — address, contact hints, notes, last documentation. */
 export function AssignmentCardHoverDetails({ assignment }: AssignmentCardHoverDetailsProps) {
   const text = useAuroraAdaptiveText();
-  const glassStyle = useAuroraGlassCardStyle({ viewContext: 'dashboard', intensity: 'elevated' });
+  const glassStyle = useAuroraGlassCardStyle({ viewContext: 'dashboard', intensity: 'strong' });
   const details = resolveAssignmentCardHoverDetails(assignment);
 
   const styles = useMemo(
