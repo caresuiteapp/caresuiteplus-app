@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import {
   ESCOOTER_WALKING_MAX_KM,
   formatTravelTimeLabel,
+  formatTravelTimePlaceholder,
   mapTransportModeToGoogle,
 } from '@/lib/maps/transportModeMapping';
 import { resolveRouteStartAddress, resolveRouteEndAddress } from '@/lib/maps/employeeRouteEndpointResolver';
@@ -36,6 +37,10 @@ describe('transportModeMapping', () => {
   it('formatTravelTimeLabel returns German label with icon', () => {
     expect(formatTravelTimeLabel('car', 14)).toBe('🚗 14 Min.');
     expect(formatTravelTimeLabel('transit', null)).toBeNull();
+  });
+
+  it('formatTravelTimePlaceholder returns icon with em dash', () => {
+    expect(formatTravelTimePlaceholder('car')).toBe('🚗 —');
   });
 });
 

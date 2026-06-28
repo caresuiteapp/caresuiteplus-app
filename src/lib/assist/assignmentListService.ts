@@ -162,6 +162,7 @@ function dispositionToAssignmentListItem(item: VisitDispositionListItem): Assign
   return {
     id: item.id,
     tenantId: item.tenantId,
+    employeeId: item.employeeId ?? '',
     title: item.title,
     scheduledStart: item.scheduledStart,
     scheduledEnd: item.scheduledEnd,

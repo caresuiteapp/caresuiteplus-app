@@ -1,7 +1,13 @@
 import { useEffect, useState } from 'react';
-import { resolveRouteStartAddress } from '@/lib/maps/employeeRouteEndpointResolver';
+import {
+  formatGermanAddress,
+  resolveRouteStartAddress,
+} from '@/lib/maps/employeeRouteEndpointResolver';
 import { fetchAssignmentTravelTime } from '@/lib/maps/googleMapsTravelService';
-import { formatTravelTimeLabel } from '@/lib/maps/transportModeMapping';
+import {
+  formatTravelTimeLabel,
+  formatTravelTimePlaceholder,
+} from '@/lib/maps/transportModeMapping';
 import {
   buildDefaultMobilitySettings,
   fetchEmployeeMobilitySettings,
@@ -16,6 +22,9 @@ export type AssignmentTravelTimeDisplay = {
   transportMode: EmployeeTransportMode;
   loading: boolean;
   source: 'google' | 'heuristic' | 'unavailable' | 'demo' | null;
+  error: string | null;
+  /** Ready-to-render text for compact cards (icon + minutes or placeholder). */
+  displayText: string | null;
 };
 
 export function useAssignmentTravelTime(
@@ -28,6 +37,8 @@ export function useAssignmentTravelTime(
     transportMode: 'car',
     loading: false,
     source: null,
+    error: null,
+    displayText: null,
   });
 
   const enabled = options?.enabled !== false;
@@ -41,12 +52,19 @@ export function useAssignmentTravelTime(
         transportMode: 'car',
         loading: false,
         source: 'unavailable',
+        error: null,
+        displayText: null,
       });
       return;
     }
 
     let cancelled = false;
-    setState((prev) => ({ ...prev, loading: true }));
+    setState((prev) => ({
+      ...prev,
+      loading: true,
+      error: null,
+      displayText: formatTravelTimePlaceholder('car'),
+    }));
 
     (async () => {
       const [settingsRes, addressRes] = await Promise.all([
@@ -61,12 +79,24 @@ export function useAssignmentTravelTime(
         ? addressRes.data
         : { employeeHome: {}, tenantOffice: {} };
 
-      const origin = resolveRouteStartAddress({
+      if (!cancelled) {
+        setState((prev) => ({
+          ...prev,
+          transportMode: settings.transportMode,
+          displayText: formatTravelTimePlaceholder(settings.transportMode),
+        }));
+      }
+
+      let origin = resolveRouteStartAddress({
         settings,
         employeeHome: addressContext.employeeHome,
         tenantOffice: addressContext.tenantOffice,
         lastAssignmentAddress: options?.lastAssignmentAddress ?? null,
       });
+
+      if (!origin?.trim()) {
+        origin = formatGermanAddress(addressContext.tenantOffice);
+      }
 
       const travel = await fetchAssignmentTravelTime({
         tenantId: assignment.tenantId,
@@ -78,12 +108,15 @@ export function useAssignmentTravelTime(
       if (cancelled) return;
 
       const label = formatTravelTimeLabel(settings.transportMode, travel.durationMinutes);
+      const unavailable = travel.source === 'unavailable' || label == null;
       setState({
         label,
         minutes: travel.durationMinutes,
         transportMode: settings.transportMode,
         loading: false,
         source: travel.source,
+        error: unavailable ? travel.note : null,
+        displayText: label ?? formatTravelTimePlaceholder(settings.transportMode),
       });
     })().catch(() => {
       if (!cancelled) {
@@ -93,6 +126,8 @@ export function useAssignmentTravelTime(
           transportMode: 'car',
           loading: false,
           source: 'unavailable',
+          error: 'Fahrzeit konnte nicht geladen werden.',
+          displayText: formatTravelTimePlaceholder('car'),
         });
       }
     });

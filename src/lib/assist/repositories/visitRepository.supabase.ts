@@ -293,6 +293,7 @@ function mapListItem(row: VisitRow): VisitDispositionListItem {
     billingStatus: row.billing_status,
     location: visitLocationFromRow(row),
     clientName: personName(row.clients),
+    employeeId: row.employee_id,
     employeeName: personName(row.employees),
     isAtRisk: atRisk,
     isIncomplete: incomplete,

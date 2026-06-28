@@ -249,6 +249,7 @@ export function getDemoAssignmentListItems(): AssignmentListItem[] {
   return assignmentStore.map((plan) => ({
     id: plan.id,
     tenantId: plan.tenantId,
+    employeeId: plan.employeeId,
     title: plan.title,
     scheduledStart: plan.scheduledStart,
     scheduledEnd: plan.scheduledEnd,

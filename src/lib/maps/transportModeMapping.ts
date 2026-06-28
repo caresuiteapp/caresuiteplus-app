@@ -2,6 +2,7 @@ import type {
   EmployeeTransportMode,
   GoogleTravelMode,
 } from '@/types/modules/employeeMobility';
+import { EMPLOYEE_TRANSPORT_MODE_ICONS } from '@/types/modules/employeeMobility';
 
 export type MappedGoogleTravelMode = {
   googleMode: GoogleTravelMode;
@@ -50,15 +51,12 @@ export function formatTravelTimeLabel(
   minutes: number | null | undefined,
 ): string | null {
   if (minutes == null || !Number.isFinite(minutes) || minutes <= 0) return null;
-  const icon =
-    transportMode === 'car'
-      ? '🚗'
-      : transportMode === 'transit'
-        ? '🚇'
-        : transportMode === 'bicycle'
-          ? '🚲'
-          : transportMode === 'escooter'
-            ? '🛴'
-            : '🚶';
+  const icon = EMPLOYEE_TRANSPORT_MODE_ICONS[transportMode];
   return `${icon} ${Math.round(minutes)} Min.`;
+}
+
+export function formatTravelTimePlaceholder(
+  transportMode: EmployeeTransportMode,
+): string {
+  return `${EMPLOYEE_TRANSPORT_MODE_ICONS[transportMode]} —`;
 }

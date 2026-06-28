@@ -178,6 +178,7 @@ function mapListItem(row: AssignmentLiveRow): AssignmentListItem {
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
     location: assignmentLocationFromRow(row),
     clientName: personName(row.clients),
+    employeeId: row.employee_id ?? null,
     employeeName: personName(row.employees),
     updatedAt: row.updated_at,
   };

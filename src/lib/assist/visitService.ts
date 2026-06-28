@@ -86,6 +86,7 @@ function assignmentListItemToDisposition(item: AssignmentListItem): VisitDisposi
     billingStatus: dims.billing,
     location: item.location,
     clientName: item.clientName,
+    employeeId: item.employeeId ?? null,
     employeeName: item.employeeName,
     isAtRisk: item.status === 'fehlerhaft',
     isIncomplete: item.status === 'in_bearbeitung',

@@ -110,6 +110,7 @@ export function AssignmentCompactCard({
         },
         location: { ...typography.caption, color: text.muted, flex: 1 },
         travel: { ...typography.caption, color: text.muted },
+        travelUnavailable: { opacity: 0.65 },
         footerChips: {
           flexDirection: 'row',
           flexWrap: 'wrap',
@@ -186,10 +187,15 @@ export function AssignmentCompactCard({
           <Text style={styles.location} numberOfLines={1}>
             {assignment.location}
           </Text>
-          {travelTime.label ? (
-            <Text style={styles.travel}>{travelTime.label}</Text>
-          ) : travelTime.loading ? (
-            <Text style={styles.travel}>…</Text>
+          {travelTime.displayText ? (
+            <Text
+              style={[
+                styles.travel,
+                travelTime.error && !travelTime.loading ? styles.travelUnavailable : null,
+              ]}
+            >
+              {travelTime.displayText}
+            </Text>
           ) : null}
         </View>
 

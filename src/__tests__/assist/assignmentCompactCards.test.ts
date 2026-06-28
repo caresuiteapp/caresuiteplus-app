@@ -70,6 +70,17 @@ describe('Assignment compact cards UI', () => {
     expect(source).toContain('accentBar');
     expect(source).toContain('buildAssignmentFooterChips');
     expect(source).toContain('resolveAssignmentCardAccent');
+    expect(source).toContain('useAssignmentTravelTime');
+    expect(source).toContain('displayText');
+  });
+
+  it('assignment list pipeline preserves employeeId for travel time hook', () => {
+    const visitRepo = readSrc('src/lib/assist/repositories/visitRepository.supabase.ts');
+    const listService = readSrc('src/lib/assist/assignmentListService.ts');
+    const hook = readSrc('src/hooks/useAssignmentTravelTime.ts');
+    expect(visitRepo).toContain('employeeId: row.employee_id');
+    expect(listService).toContain('employeeId: item.employeeId');
+    expect(hook).toContain('assignment.employeeId');
   });
 
   it('AssignmentsCardGrid uses single-column card layout on all breakpoints', () => {

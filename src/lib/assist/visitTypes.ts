@@ -157,6 +157,7 @@ export type VisitDispositionListItem = {
   billingStatus: VisitBillingStatus;
   location: string;
   clientName: string;
+  employeeId: string | null;
   employeeName: string;
   isAtRisk: boolean;
   isIncomplete: boolean;
