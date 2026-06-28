@@ -68,4 +68,12 @@ describe('getBreadcrumbs client record path', () => {
     expect(labels.filter((l) => l === 'Business-Bereich')).toHaveLength(1);
     expect(labels[labels.length - 1]).toBe('Dokumente');
   });
+
+  it('does not repeat Business-Bereich for /business/office/time-tracking', () => {
+    const trail = getBreadcrumbs('/business/office/time-tracking');
+    const labels = trail.map((item) => item.label);
+    expect(labels.filter((l) => l === 'Business-Bereich')).toHaveLength(1);
+    expect(labels).toContain('Office');
+    expect(labels[labels.length - 1]).toBe('Arbeitszeit');
+  });
 });

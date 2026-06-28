@@ -1,5 +1,5 @@
 import type { BreadcrumbItem, BreadcrumbTrail } from '@/types/navigation/breadcrumbs';
-import { APP_ROUTES, getRouteByPath } from './routes';
+import { APP_ROUTES } from './routes';
 
 const SEGMENT_LABELS: Record<string, string> = {
   create: 'Neu anlegen',
@@ -28,8 +28,12 @@ const SEGMENT_LABELS: Record<string, string> = {
   zertifikate: 'Zertifikate',
   protokolle: 'Protokolle',
   wiedervorlagen: 'Wiedervorlagen',
+  tenant: 'Mandant',
+  offboarding: 'Offboarding',
+  'time-tracking': 'Arbeitszeit',
+  arbeitszeit: 'Arbeitszeit',
+  office: 'Office',
   audit: 'Audit-Log',
-  consent: 'Einwilligungen',
   kim: 'KIM-Postfach',
   documents: 'Dokumente',
   appointments: 'Termine',
@@ -43,6 +47,28 @@ function normalizePathname(pathname: string): string {
   return pathname.split('?')[0].replace(/\/$/, '') || '/';
 }
 
+function matchDynamicRoute(pattern: string, pathname: string): boolean {
+  if (!pattern.includes('[')) return false;
+  const regexSource = pattern
+    .split('/')
+    .map((segment) => {
+      if (segment.startsWith('[') && segment.endsWith(']')) return '[^/]+';
+      return segment.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+    })
+    .join('/');
+  return new RegExp(`^${regexSource}$`).test(pathname);
+}
+
+function resolveRouteLabel(pathname: string): string | null {
+  const exact = APP_ROUTES.find((route) => route.path === pathname);
+  if (exact) return exact.label;
+
+  const dynamic = APP_ROUTES.find((route) => matchDynamicRoute(route.path, pathname));
+  if (dynamic) return dynamic.label;
+
+  return null;
+}
+
 function isDynamicSegment(segment: string): boolean {
   if (segment.startsWith('[')) return true;
   if (/^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i.test(segment)) {
@@ -52,8 +78,8 @@ function isDynamicSegment(segment: string): boolean {
 }
 
 function labelForSegment(segment: string, cumulativePath: string): string {
-  const route = getRouteByPath(cumulativePath);
-  if (route) return route.label;
+  const routeLabel = resolveRouteLabel(cumulativePath);
+  if (routeLabel) return routeLabel;
 
   if (SEGMENT_LABELS[segment]) return SEGMENT_LABELS[segment];
   if (segment === 'create') return 'Neu anlegen';

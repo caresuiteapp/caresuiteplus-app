@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
+import { Modal, StyleSheet, Text, View } from 'react-native';
+import { usePathname, useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { AuroraSegmentedControl } from '@/components/aurora';
@@ -19,38 +19,63 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
+import { ensureTimeTrackingSettings } from '@/lib/timeTracking';
 import {
-  closeWorkday,
-  ensureTimeTrackingSettings,
-  fetchTimeTrackingCatalogs,
-  getCurrentWorkdayStatus,
-  pauseWorkday,
-  requestTimeCorrection,
-  respondToInactivityCheck,
-  resumeWorkday,
-  startWorkday,
-  switchActivity,
-  triggerInactivityCheck,
-} from '@/lib/timeTracking';
-import type { ActivityType, TimeEntry, TimeWorkday } from '@/types/modules/timeTracking';
+  formatWfmStatusLabel,
+  getWfmTodayStatus,
+  isWfmSessionActive,
+  isWfmSessionPaused,
+  listWfmWorkTypesForClockIn,
+  wfmClockIn,
+  wfmClockOut,
+  wfmPause,
+  wfmResume,
+  wfmSwitchWorkType,
+} from '@/lib/wfm';
+import type { WfmEventSource, WfmWorkTypeKey } from '@/types/modules/wfm';
 import { typography } from '@/theme';
+
+const WORK_TYPES = listWfmWorkTypesForClockIn();
+
+function resolveWfmSource(pathname: string): WfmEventSource {
+  return pathname.startsWith('/portal/') ? 'portal' : 'office';
+}
+
+function eventTypeLabel(eventType: string): string {
+  const map: Record<string, string> = {
+    clock_in: 'Arbeitsbeginn',
+    clock_out: 'Feierabend',
+    pause_start: 'Pause',
+    pause_end: 'Fortsetzung',
+    homeoffice_start: 'Home Office',
+    homeoffice_end: 'Home Office Ende',
+    office_check_in: 'Büro',
+    office_check_out: 'Büro Ende',
+    visit_started: 'Einsatz',
+    standby_start: 'Bereitschaft',
+    training_start: 'Fortbildung',
+    meeting_start: 'Besprechung',
+    travel_start: 'Fahrt',
+  };
+  return map[eventType] ?? eventType;
+}
 
 export function TimeTrackingEmployeeScreen() {
   const router = useRouter();
+  const pathname = usePathname();
   const { profile, user } = useAuth();
   const tenantId = useServiceTenantId();
-  const userId = user?.id ?? profile?.id ?? 'demo-user';
+  const userId = user?.id ?? profile?.id ?? '';
+  const employeeId = profile?.employeeId ?? null;
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
+  const wfmSource = resolveWfmSource(pathname);
 
   const [privacyAccepted, setPrivacyAccepted] = useState(false);
   const [showPrivacyModal, setShowPrivacyModal] = useState(false);
-  const [showInactivityModal, setShowInactivityModal] = useState(false);
-  const [showWarningModal, setShowWarningModal] = useState(false);
-  const [pendingCheckId, setPendingCheckId] = useState<string | null>(null);
-  const [selectedActivityId, setSelectedActivityId] = useState<string | null>(null);
+  const [selectedWorkType, setSelectedWorkType] = useState<WfmWorkTypeKey>('buero');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [actionLoading, setActionLoading] = useState(false);
@@ -58,22 +83,18 @@ export function TimeTrackingEmployeeScreen() {
   const canView = can('time.tracking.own.view');
   const canStart = can('time.tracking.own.start');
 
-  const statusQuery = useAsyncQuery<{ workday: import('@/types/modules/timeTracking').TimeWorkday | null; entries: import('@/types/modules/timeTracking').TimeEntry[]; multiTabConflict: boolean } | null>(
-    useCallback(async () => {
-      if (!tenantId || !canView) return { ok: true as const, data: null };
-      return getCurrentWorkdayStatus(tenantId, userId, roleKey);
-    }, [tenantId, userId, roleKey, canView]),
-    [tenantId, userId, roleKey, canView],
-    { enabled: !!tenantId && canView },
+  const wfmOptions = useMemo(
+    () => ({ employeeId, source: wfmSource }),
+    [employeeId, wfmSource],
   );
 
-  const catalogQuery = useAsyncQuery<{ organizations: import('@/types/modules/timeTracking').WorkOrganization[]; costCenters: import('@/types/modules/timeTracking').CostCenter[]; projects: import('@/types/modules/timeTracking').WorkProject[]; activityTypes: import('@/types/modules/timeTracking').ActivityType[] } | null>(
+  const statusQuery = useAsyncQuery(
     useCallback(async () => {
-      if (!tenantId || !canView) return { ok: true as const, data: null };
-      return fetchTimeTrackingCatalogs(tenantId, roleKey);
-    }, [tenantId, roleKey, canView]),
-    [tenantId, roleKey, canView],
-    { enabled: !!tenantId && canView },
+      if (!tenantId || !canView || !userId) return { ok: true as const, data: null };
+      return getWfmTodayStatus(tenantId, userId, roleKey, wfmOptions);
+    }, [tenantId, userId, roleKey, canView, wfmOptions]),
+    [tenantId, userId, roleKey, canView, wfmOptions],
+    { enabled: !!tenantId && !!userId && canView },
   );
 
   const settingsQuery = useAsyncQuery(
@@ -84,115 +105,71 @@ export function TimeTrackingEmployeeScreen() {
     [tenantId, roleKey],
   );
 
-  const workday = statusQuery.data?.workday ?? null;
-  const entries = statusQuery.data?.entries ?? [];
-  const activityTypes: ActivityType[] = catalogQuery.data?.activityTypes ?? [];
-  const multiTabConflict = statusQuery.data?.multiTabConflict ?? false;
+  const session = statusQuery.data?.session ?? null;
+  const events = statusQuery.data?.events ?? [];
+  const statusLabel = statusQuery.data?.statusLabel ?? formatWfmStatusLabel(null);
+  const sessionActive = isWfmSessionActive(session);
+  const sessionPaused = isWfmSessionPaused(session);
 
   useEffect(() => {
-    if (settingsQuery.data?.requirePrivacyConsent && !workday?.privacyConsentAt) {
-      setShowPrivacyModal(true);
+    if (settingsQuery.data?.requirePrivacyConsent && sessionActive && !privacyAccepted) {
+      setShowPrivacyModal(false);
     }
-  }, [settingsQuery.data, workday?.privacyConsentAt]);
+  }, [settingsQuery.data, sessionActive, privacyAccepted]);
 
   const refresh = useCallback(async () => {
     await statusQuery.refresh();
   }, [statusQuery]);
 
-  const defaultActivityId = useMemo(
-    () => selectedActivityId ?? settingsQuery.data?.defaultActivityTypeId ?? activityTypes[0]?.id ?? null,
-    [selectedActivityId, settingsQuery.data, activityTypes],
-  );
-
-  const handleStart = async () => {
-    if (!tenantId || !defaultActivityId) return;
+  const runAction = async (action: () => Promise<{ ok: boolean; error?: string }>) => {
     setActionLoading(true);
     setError(null);
-    const result = await startWorkday(tenantId, userId, roleKey, {
-      activityTypeId: defaultActivityId,
-      privacyConsentAccepted: privacyAccepted || !settingsQuery.data?.requirePrivacyConsent,
-      sessionId: `tab-${Date.now()}`,
-    });
+    const result = await action();
     setActionLoading(false);
     if (!result.ok) {
-      setError(result.error);
+      setError(result.error ?? 'Aktion fehlgeschlagen.');
       return;
     }
+    await refresh();
+  };
+
+  const handleStart = async () => {
+    if (!tenantId || !userId) return;
+    await runAction(async () => {
+      const result = await wfmClockIn(tenantId, userId, roleKey, selectedWorkType, wfmOptions);
+      if (result.ok) setMessage('Arbeitstag gestartet.');
+      return result;
+    });
     setShowPrivacyModal(false);
-    setMessage('Arbeitstag gestartet.');
-    await refresh();
   };
 
-  const handlePause = async () => {
-    if (!tenantId) return;
-    setActionLoading(true);
-    const result = await pauseWorkday(tenantId, userId, roleKey);
-    setActionLoading(false);
-    if (!result.ok) setError(result.error);
-    else await refresh();
-  };
+  const handlePause = () =>
+    void runAction(async () => wfmPause(tenantId!, userId, roleKey, wfmOptions));
 
-  const handleResume = async () => {
-    if (!tenantId) return;
-    setActionLoading(true);
-    const result = await resumeWorkday(tenantId, userId, roleKey);
-    setActionLoading(false);
-    if (!result.ok) setError(result.error);
-    else await refresh();
-  };
+  const handleResume = () =>
+    void runAction(async () => wfmResume(tenantId!, userId, roleKey, wfmOptions));
 
-  const handleSwitch = async () => {
-    if (!tenantId || !defaultActivityId) return;
-    setActionLoading(true);
-    const result = await switchActivity(tenantId, userId, roleKey, {
-      activityTypeId: defaultActivityId,
+  const handleSwitch = () =>
+    void runAction(async () => {
+      const result = await wfmSwitchWorkType(tenantId!, userId, roleKey, selectedWorkType, wfmOptions);
+      if (result.ok) setMessage('Tätigkeit gewechselt.');
+      return result;
     });
-    setActionLoading(false);
-    if (!result.ok) setError(result.error);
-    else {
-      setMessage('Tätigkeit gewechselt.');
-      await refresh();
-    }
-  };
 
-  const handleClose = async () => {
-    if (!tenantId) return;
-    setActionLoading(true);
-    const result = await closeWorkday(tenantId, userId, roleKey);
-    setActionLoading(false);
-    if (!result.ok) setError(result.error);
-    else {
-      setMessage(`Tag abgeschlossen — Ampel: ${result.data.ampel.trafficLight}`);
-      await refresh();
-    }
-  };
-
-  const simulateInactivity = async () => {
-    if (!tenantId) return;
-    const result = await triggerInactivityCheck(tenantId, userId, roleKey);
-    if (result.ok) {
-      setPendingCheckId(result.data.id);
-      setShowInactivityModal(true);
-      if ((result.data ? 1 : 0) && statusQuery.data) {
-        const count = entries.length;
-        if (count >= 0) setShowWarningModal(false);
-      }
-    }
-  };
-
-  const handleInactivityResponse = async (action: 'continue' | 'pause' | 'switch' | 'unclear') => {
-    if (!tenantId || !pendingCheckId) return;
-    await respondToInactivityCheck(tenantId, userId, roleKey, pendingCheckId, action, {
-      activityTypeId: defaultActivityId ?? undefined,
+  const handleClose = () =>
+    void runAction(async () => {
+      const result = await wfmClockOut(tenantId!, userId, roleKey, wfmOptions);
+      if (result.ok) setMessage('Arbeitstag abgeschlossen.');
+      return result;
     });
-    setShowInactivityModal(false);
-    setPendingCheckId(null);
-    await refresh();
-  };
+
+  const subtitle = pathname.startsWith('/portal/')
+    ? 'Ihre Arbeitszeit — live synchronisiert'
+    : 'Zentrale Zeiterfassung für Büro und Home Office';
 
   if (!canView) {
     return (
-      <ScreenShell title="Arbeitszeit" subtitle="Homeoffice & Tätigkeitsnachweis">
+      <ScreenShell title="Arbeitszeit" subtitle={subtitle}>
         <LockedActionBanner
           message={check('time.tracking.own.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
@@ -201,7 +178,7 @@ export function TimeTrackingEmployeeScreen() {
     );
   }
 
-  if ((statusQuery.loading && !statusQuery.data) || catalogQuery.loading) {
+  if (statusQuery.loading && !statusQuery.data) {
     return (
       <ScreenShell title="Arbeitszeit" subtitle="Wird geladen…">
         <LoadingState message="Arbeitszeit wird geladen…" />
@@ -209,54 +186,63 @@ export function TimeTrackingEmployeeScreen() {
     );
   }
 
-  return (
-    <ScreenShell title="Arbeitszeit" subtitle="Homeoffice & Tätigkeitsnachweis — nur Metadaten" scroll>
-      {multiTabConflict ? (
-        <SectionPanel title="Hinweis">
-          <Text style={[styles.warn, { color: text.primary }]}>
-            Arbeitszeit wird möglicherweise in einem anderen Tab erfasst. Bitte nur eine aktive Sitzung nutzen.
-          </Text>
-        </SectionPanel>
-      ) : null}
+  if (statusQuery.error && !statusQuery.data) {
+    return (
+      <ScreenShell title="Arbeitszeit" subtitle={subtitle}>
+        <ErrorState title="Fehler" message={statusQuery.error} onRetry={() => void refresh()} />
+      </ScreenShell>
+    );
+  }
 
+  const startBlockedByPrivacy =
+    settingsQuery.data?.requirePrivacyConsent && !privacyAccepted && !sessionActive;
+
+  return (
+    <ScreenShell title="Arbeitszeit" subtitle={subtitle} scroll>
       <SectionPanel title="Status heute">
         <View style={styles.kpiRow}>
-          <PremiumKpiCard label="Status" value={workday?.status ?? 'Nicht gestartet'} accentColor={accent} />
-          <PremiumKpiCard label="Blöcke" value={String(entries.length)} accentColor={accent} />
-          <PremiumKpiCard label="Ampel" value={workday?.trafficLight ?? '—'} accentColor={accent} />
+          <PremiumKpiCard label="Status" value={statusLabel} accentColor={accent} />
+          <PremiumKpiCard label="Blöcke" value={String(events.length)} accentColor={accent} />
+          <PremiumKpiCard
+            label="Netto"
+            value={session ? `${session.netMinutes || session.grossMinutes} Min.` : '—'}
+            accentColor={accent}
+          />
         </View>
       </SectionPanel>
 
       <SectionPanel title="Tätigkeit wählen">
         <AuroraSegmentedControl
-          options={activityTypes.map((a) => ({ key: a.id, label: a.name }))}
-          value={defaultActivityId ?? ''}
-          onChange={(key) => setSelectedActivityId(key)}
+          options={WORK_TYPES.map((t) => ({ key: t.key, label: t.label }))}
+          value={selectedWorkType}
+          onChange={(key) => setSelectedWorkType(key as WfmWorkTypeKey)}
         />
       </SectionPanel>
 
       <SectionPanel title="Aktionen">
-        {!workday || workday.status === 'closed' || workday.status === 'submitted' ? (
+        {!sessionActive ? (
           <PremiumButton
             title="Arbeitstag starten"
-            onPress={() => (settingsQuery.data?.requirePrivacyConsent ? setShowPrivacyModal(true) : handleStart())}
-            disabled={!canStart || actionLoading || !defaultActivityId}
+            onPress={() =>
+              startBlockedByPrivacy ? setShowPrivacyModal(true) : void handleStart()
+            }
+            disabled={!canStart || actionLoading}
           />
         ) : null}
-        {workday?.status === 'active' ? (
+        {sessionActive && !sessionPaused ? (
           <>
             <PremiumButton title="Pause" variant="secondary" onPress={handlePause} disabled={actionLoading} />
             <PremiumButton title="Tätigkeit wechseln" variant="secondary" onPress={handleSwitch} disabled={actionLoading} />
             <PremiumButton title="Tag abschließen" variant="secondary" onPress={handleClose} disabled={actionLoading} />
           </>
         ) : null}
-        {workday?.status === 'paused' ? (
+        {sessionPaused ? (
           <>
             <PremiumButton title="Fortsetzen" onPress={handleResume} disabled={actionLoading} />
             <PremiumButton title="Tag abschließen" variant="secondary" onPress={handleClose} disabled={actionLoading} />
           </>
         ) : null}
-        {can('time.settings.manage') ? (
+        {can('time.settings.manage') && !pathname.startsWith('/portal/') ? (
           <PremiumButton
             title="Einstellungen"
             variant="ghost"
@@ -265,16 +251,18 @@ export function TimeTrackingEmployeeScreen() {
         ) : null}
       </SectionPanel>
 
-      <SectionPanel title="Zeitblöcke heute" subtitle="Mehrere Blöcke — kein Mischzeit-Feld">
-        {entries.length === 0 ? (
+      <SectionPanel title="Zeitblöcke heute" subtitle="Erfasste Stempelungen des Arbeitstags">
+        {events.length === 0 ? (
           <Text style={{ color: text.secondary }}>Noch keine Zeitblöcke erfasst.</Text>
         ) : (
-          entries.map((entry: TimeEntry) => (
+          events.map((entry) => (
             <View key={entry.id} style={styles.blockRow}>
               <Text style={{ color: text.primary, ...typography.body }}>
-                Block {entry.blockIndex}: {activityTypes.find((a) => a.id === entry.activityTypeId)?.name ?? '—'} —{' '}
-                {entry.status}
-                {entry.isUnclear ? ' (unklar)' : ''}
+                {new Date(entry.occurredAt).toLocaleTimeString('de-DE', {
+                  hour: '2-digit',
+                  minute: '2-digit',
+                })}{' '}
+                — {eventTypeLabel(entry.eventType)}
               </Text>
             </View>
           ))
@@ -293,20 +281,6 @@ export function TimeTrackingEmployeeScreen() {
         }}
         onDecline={() => setShowPrivacyModal(false)}
       />
-
-      <InactivityModal
-        visible={showInactivityModal}
-        onContinue={() => void handleInactivityResponse('continue')}
-        onPause={() => void handleInactivityResponse('pause')}
-        onSwitch={() => void handleInactivityResponse('switch')}
-        onUnclear={() => void handleInactivityResponse('unclear')}
-      />
-
-      <WarningModal visible={showWarningModal} onDismiss={() => setShowWarningModal(false)} />
-
-      {__DEV__ ? (
-        <PremiumButton title="[Dev] Inaktivität simulieren" variant="ghost" onPress={() => void simulateInactivity()} />
-      ) : null}
     </ScreenShell>
   );
 }
@@ -320,10 +294,10 @@ function PrivacyConsentModal(props: {
     <Modal visible={props.visible} transparent animationType="fade">
       <View style={styles.modalBackdrop}>
         <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Datenschutz & Aktivitätserfassung</Text>
+          <Text style={styles.modalTitle}>Datenschutz & Zeiterfassung</Text>
           <Text style={styles.modalBody}>
-            CareSuite+ erfasst ausschließlich Metadaten (Modul, Zeitstempel, Ressourcen-ID) — keine Tastatureingaben,
-            Screenshots oder Kameradaten. Sie können jederzeit pausieren oder den Tag abschließen.
+            CareSuite+ erfasst Arbeitszeiten zentral für Büro, Home Office und Einsätze. Es werden nur
+            Zeitstempel und Tätigkeitsarten gespeichert — keine Inhaltsdaten Ihrer Arbeit.
           </Text>
           <PremiumButton title="Verstanden & starten" onPress={props.onAccept} />
           <PremiumButton title="Abbrechen" variant="ghost" onPress={props.onDecline} />
@@ -333,50 +307,9 @@ function PrivacyConsentModal(props: {
   );
 }
 
-function InactivityModal(props: {
-  visible: boolean;
-  onContinue: () => void;
-  onPause: () => void;
-  onSwitch: () => void;
-  onUnclear: () => void;
-}) {
-  return (
-    <Modal visible={props.visible} transparent animationType="fade">
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Sind Sie noch tätig?</Text>
-          <Text style={styles.modalBody}>Keine Aktivität seit 5 Minuten. Bitte bestätigen Sie Ihre Tätigkeit.</Text>
-          <PremiumButton title="Ja, weiterarbeiten" onPress={props.onContinue} />
-          <PremiumButton title="Pause" variant="secondary" onPress={props.onPause} />
-          <PremiumButton title="Tätigkeit wechseln" variant="secondary" onPress={props.onSwitch} />
-          <PremiumButton title="Zeit unklar" variant="ghost" onPress={props.onUnclear} />
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
-function WarningModal(props: { visible: boolean; onDismiss: () => void }) {
-  return (
-    <Modal visible={props.visible} transparent animationType="fade">
-      <View style={styles.modalBackdrop}>
-        <View style={styles.modalCard}>
-          <Text style={styles.modalTitle}>Hinweis</Text>
-          <Text style={styles.modalBody}>
-            Mehrere Inaktivitätsprüfungen heute. Bitte prüfen Sie Ihre Tätigkeitszuordnung — dies ist ein Hinweis, keine
-            Bewertung.
-          </Text>
-          <PremiumButton title="Verstanden" onPress={props.onDismiss} />
-        </View>
-      </View>
-    </Modal>
-  );
-}
-
 const styles = StyleSheet.create({
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm },
   blockRow: { paddingVertical: careSpacing.xs },
-  warn: { ...typography.caption },
   modalBackdrop: {
     flex: 1,
     backgroundColor: 'rgba(0,0,0,0.45)',
