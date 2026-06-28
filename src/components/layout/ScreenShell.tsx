@@ -1,14 +1,21 @@
 import { ReactNode, useMemo } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-native';
 import { usePathname } from 'expo-router';
-import { SafeAreaView } from 'react-native-safe-area-context';
+import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { getBreadcrumbs } from '@/lib/navigation';
+import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import type { DomainA11yMeta } from '@/lib/a11y/domainScreenMeta';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import {
+  MOBILE_AUTH_BOTTOM_RESERVE,
+  webSafeAreaCalc,
+  webShellViewportLockStyle,
+} from '@/lib/platform/webSafeArea';
 import { spacing } from '@/theme';
+import { AutoScrollView } from './AutoScrollView';
 import { CareLightPageShell } from './CareLightPageShell';
 import { ScreenHeader } from './ScreenHeader';
 
@@ -65,10 +72,21 @@ export function ScreenShell({
   }
 
   const pathname = usePathname();
+  const insets = useSafeAreaInsets();
   const { colors } = useLegacyTheme();
   const breadcrumbTrail =
     showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
-  const shellScroll = scroll && !(shellHostsAurora && isPhone);
+  const isPortalShell = isPortalRoutePath(pathname);
+  const isAuthRoute = isAuthRoutePath(pathname);
+  const disableMobileInnerScroll = shellHostsAurora && isPhone && isPortalShell;
+  const shellScroll = scroll && !disableMobileInnerScroll;
+  const useMobileTouchScroll = shellScroll && isPhone && !isPortalShell;
+  const authMobileBottomPad =
+    isPhone && isAuthRoute
+      ? Platform.OS === 'web'
+        ? (webSafeAreaCalc('bottom', MOBILE_AUTH_BOTTOM_RESERVE) as number)
+        : MOBILE_AUTH_BOTTOM_RESERVE + Math.max(insets.bottom, spacing.sm)
+      : (mobileContentPaddingBottom ?? spacing.xxl);
 
   const styles = useMemo(
     () =>
@@ -99,7 +117,7 @@ export function ScreenShell({
           flexGrow: shellHostsAurora ? 1 : undefined,
           padding: spacing.md,
           gap: spacing.md,
-          paddingBottom: mobileContentPaddingBottom ?? spacing.xxl,
+          paddingBottom: authMobileBottomPad,
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
         content: {
@@ -125,7 +143,7 @@ export function ScreenShell({
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
       }),
-    [colors.bgBase, mobileContentPaddingBottom, shellHostsAurora],
+    [authMobileBottomPad, colors.bgBase, shellHostsAurora],
   );
 
   const header = (
@@ -147,20 +165,36 @@ export function ScreenShell({
 
   if (shellHostsAurora) {
     const body = shellScroll ? (
-      <ScrollView
-        style={styles.scrollHost}
-        contentContainerStyle={styles.scroll}
-        showsVerticalScrollIndicator={false}
-      >
-        {children}
-      </ScrollView>
+      useMobileTouchScroll ? (
+        <AutoScrollView
+          style={styles.scrollHost}
+          contentContainerStyle={styles.scroll}
+          fillViewport={false}
+        >
+          {children}
+        </AutoScrollView>
+      ) : (
+        <ScrollView
+          style={styles.scrollHost}
+          contentContainerStyle={styles.scroll}
+          showsVerticalScrollIndicator={false}
+          keyboardShouldPersistTaps="handled"
+        >
+          {children}
+        </ScrollView>
+      )
     ) : (
       <View style={styles.contentHost}>{children}</View>
     );
 
+    const auroraRootStyle: ViewStyle[] = [styles.auroraRoot];
+    if (useMobileTouchScroll && Platform.OS === 'web') {
+      auroraRootStyle.push(webShellViewportLockStyle());
+    }
+
     return (
       <View
-        style={styles.auroraRoot}
+        style={auroraRootStyle}
         testID="screen-shell"
         accessibilityLabel={a11yMeta ? `${a11yMeta.screenLabel} · WP ${a11yMeta.wpNumber}` : title}
       >

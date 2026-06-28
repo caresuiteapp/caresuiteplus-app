@@ -34,6 +34,8 @@ describe('Workflow Builder + Employee First Login Heroes (Sprint 112)', () => {
     const hero = readSrc('src/components/auth/EmployeeFirstLoginHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('Pflichtschritt');
+    expect(hero).toContain('useDeviceClass');
+    expect(hero).toContain('Einmalpasswort');
   });
 });
 

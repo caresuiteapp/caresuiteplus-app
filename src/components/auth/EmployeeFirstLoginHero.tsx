@@ -3,39 +3,46 @@ import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 
 import { designTokens, spacing } from '@/theme';
 
 export function EmployeeFirstLoginHero() {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, typography, gradients } = useLegacyTheme();
+  const { isPhone } = useDeviceClass();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
-  topRow: { flexDirection: 'row', gap: spacing.md },
-  textCol: { flex: 1, gap: 2 },
-  eyebrow: heroText.eyebrow,
-  title: heroText.title,
-  meta: heroText.meta,
-  iconBadge: {
-    width: iconSize,
-    height: iconSize,
-    borderRadius: iconSize / 2,
-    backgroundColor: colors.bgElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(98,243,255,0.35)',
-  },
-  iconText: { fontSize: 22 },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  kpiItem: { flex: 1, minWidth: 100 },
-  hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
-}),
-    [colors, typography, gradients],
+        topRow: { flexDirection: 'row', gap: spacing.md },
+        textCol: { flex: 1, gap: 2 },
+        eyebrow: heroText.eyebrow,
+        title: heroText.title,
+        meta: heroText.meta,
+        iconBadge: {
+          width: iconSize,
+          height: iconSize,
+          borderRadius: iconSize / 2,
+          backgroundColor: colors.bgElevated,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 2,
+          borderColor: 'rgba(98,243,255,0.35)',
+        },
+        iconText: { fontSize: 22 },
+        badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+        kpiRow: {
+          flexDirection: isPhone ? 'column' : 'row',
+          flexWrap: isPhone ? 'nowrap' : 'wrap',
+          gap: spacing.sm,
+        },
+        kpiItem: isPhone
+          ? { width: '100%', flexGrow: 0, flexShrink: 0, minWidth: 0 }
+          : { flex: 1, minWidth: 140 },
+        hint: { ...typography.caption, color: 'rgba(255,255,255,0.75)' },
+      }),
+    [colors, typography, gradients, heroText, isPhone],
   );
-
 
   return (
     <PremiumListHeroFrame>
@@ -57,19 +64,23 @@ export function EmployeeFirstLoginHero() {
       <View style={styles.kpiRow}>
         <PremiumKpiCard
           label="Schritt 1"
-          value="Einmal-PW"
+          value="Einmalpasswort"
           subValue="Vom Admin erhalten"
           icon="📨"
           accentColor={colors.cyan}
           style={styles.kpiItem}
+          labelCase="normal"
+          valueLines={2}
         />
         <PremiumKpiCard
           label="Schritt 2"
-          value="Neues PW"
+          value="Neues Passwort"
           subValue="Persönlich wählen"
           icon="🔒"
           accentColor={colors.orange}
           style={styles.kpiItem}
+          labelCase="normal"
+          valueLines={2}
         />
         <PremiumKpiCard
           label="Schritt 3"
@@ -78,6 +89,8 @@ export function EmployeeFirstLoginHero() {
           icon="✓"
           accentColor={colors.violet}
           style={styles.kpiItem}
+          labelCase="normal"
+          valueLines={2}
         />
       </View>
       <Text style={styles.hint}>
@@ -88,4 +101,3 @@ export function EmployeeFirstLoginHero() {
 }
 
 const iconSize = designTokens.hero.iconBadgeSize;
-

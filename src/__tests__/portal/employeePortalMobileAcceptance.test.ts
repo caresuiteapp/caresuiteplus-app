@@ -16,9 +16,10 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(screen).not.toMatch(/bareContent:[\s\S]*flex:\s*1/);
   });
 
-  it('ScreenShell disables inner scroll on phone when aurora shell hosts background', () => {
+  it('ScreenShell disables inner scroll on phone only inside portal shell', () => {
     const shell = readSrc('src/components/layout/ScreenShell.tsx');
-    expect(shell).toContain('const shellScroll = scroll && !(shellHostsAurora && isPhone)');
+    expect(shell).toContain('const disableMobileInnerScroll = shellHostsAurora && isPhone && isPortalShell');
+    expect(shell).toContain('isAuthRoutePath(pathname)');
   });
 
   it('employee dashboard KPI tiles use responsive flex basis and noBreak labels', () => {

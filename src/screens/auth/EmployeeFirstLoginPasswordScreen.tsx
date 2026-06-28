@@ -82,12 +82,18 @@ export function EmployeeFirstLoginPasswordScreen() {
         secureTextEntry
       />
       <PremiumButton
-        title={acceptedTerms ? 'Datenschutz bestätigt' : 'Datenschutz / Nutzungsbedingungen bestätigen'}
-        variant="secondary"
-        onPress={() => setAcceptedTerms(true)}
+        title={acceptedTerms ? 'Datenschutz bestätigt ✓' : 'Datenschutz / Nutzungsbedingungen bestätigen'}
+        variant={acceptedTerms ? 'primary' : 'secondary'}
+        onPress={() => setAcceptedTerms((prev) => !prev)}
         fullWidth
       />
-      <PremiumButton title="Passwort speichern" onPress={handleSubmit} loading={loading} fullWidth />
+      <PremiumButton
+        title="Passwort speichern"
+        onPress={handleSubmit}
+        loading={loading}
+        fullWidth
+        disabled={!acceptedTerms || loading}
+      />
       {completed ? (
         <SuccessState message="Passwort gespeichert — Weiterleitung zum Mitarbeiterportal…" />
       ) : (

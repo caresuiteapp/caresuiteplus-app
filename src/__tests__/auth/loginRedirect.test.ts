@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import { isAuthSetupRoute, resolvePostLoginRoute } from '@/lib/auth/loginRouter';
+import { isAuthRoutePath } from '@/lib/navigation/isPortalRoute';
 import { checkRoleAccess } from '@/lib/navigation/redirects';
 
 const root = path.join(__dirname, '..', '..', '..');
@@ -35,6 +36,12 @@ describe('post-login redirect routing', () => {
     expect(isAuthSetupRoute('/auth/employee-first-login')).toBe(true);
     expect(isAuthSetupRoute('/auth/employee-first-login?accountId=1')).toBe(true);
     expect(isAuthSetupRoute('/auth/business-login')).toBe(false);
+  });
+
+  it('isAuthRoutePath matches auth tree routes', () => {
+    expect(isAuthRoutePath('/auth/employee-first-login')).toBe(true);
+    expect(isAuthRoutePath('/auth/employee-first-login?accountId=1')).toBe(true);
+    expect(isAuthRoutePath('/portal/employee')).toBe(false);
   });
 
   it('login screens defer navigation to RedirectIfAuthenticated', () => {
