@@ -7,7 +7,7 @@ alwaysApply: true
 
 Deploy ist ein **separater, manueller Schritt** und darf **nur** auf explizite Anfrage des Nutzers erfolgen.
 
-Git-Pushes lösen **keinen** Netlify-Build mehr aus (`netlify.toml`: `ignore = "exit 0"`).
+Git-Pushes ohne `[deploy]` in der Commit-Message lösen **keinen** Netlify-Build aus (`netlify.toml`: ignore-Script).
 
 ## Verboten (ohne explizite Anfrage)
 
@@ -27,7 +27,13 @@ Git-Pushes lösen **keinen** Netlify-Build mehr aus (`netlify.toml`: `ignore = "
 
 ## Deploy auslösen (wenn angefragt)
 
-1. Im **Netlify-Dashboard** manuell „Trigger deploy“ ausführen (Standardweg), **oder**
-2. Auf ausdrückliche Nutzer-Anfrage hin deployen — **nicht** durch Push allein
+**Standardweg:** Commit mit `[deploy]` in der Message pushen (nur wenn der Nutzer deployen will).
 
-Commit/Push und Deploy sind getrennte Schritte. Ein Git-Push startet **keinen** Netlify-Build mehr.
+Alternativen ohne `[deploy]`-Commit:
+
+1. **Build Hook** im Netlify-Dashboard (Site settings → Build & deploy → Build hooks) — Build Hooks **umgehen** das ignore-Script.
+2. **Netlify CLI:** `netlify login` dann `netlify deploy --prod --build` (lokal bauen und hochladen).
+
+**Nicht zuverlässig bei ignore-Script:** Dashboard → Deploys → „Trigger deploy“ — Netlify führt ignore **auch** bei manuellen Triggern aus; mit `exit 0` oder ohne `[deploy]` im Commit → **Canceled**.
+
+Commit/Push und Deploy sind getrennte Schritte. Ein normaler Push (ohne `[deploy]`) startet **keinen** Production-Build.
