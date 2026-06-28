@@ -13,6 +13,8 @@
   EXPO_PUBLIC_SUPABASE_URL = "https://euagyyztvmemuaiumvxm.supabase.co"
   EXPO_PUBLIC_SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImV1YWd5eXp0dm1lbXVhaXVtdnhtIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA5MjU5MDMsImV4cCI6MjA5NjUwMTkwM30.WlzLh30maRgWePjQFEj32mfW7DGqN8sFaroREbYsss0"
   EXPO_PUBLIC_AUTH_REDIRECT_URL = "https://caresuiteplus.app"
+  # Google Maps JavaScript API (HTTP referrer-restricted key) — in Netlify UI setzen:
+  # EXPO_PUBLIC_GOOGLE_MAPS_API_KEY = "your-browser-restricted-key"
 
 [[redirects]]
   from = "/*"

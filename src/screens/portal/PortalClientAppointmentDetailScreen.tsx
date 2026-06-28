@@ -14,6 +14,7 @@ import {
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
+import { usePermissions } from '@/hooks/usePermissions';
 import { usePortalClientAppointmentDetail } from '@/hooks/usePortalClientAppointmentDetail';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
@@ -101,7 +102,7 @@ export function PortalClientAppointmentDetailScreen() {
 
         {data.liveVisit ? (
           <SectionPanel
-            title="Live-Einsatz"
+            title="Live-Standort Ihrer Betreuungskraft"
             subtitle={data.liveVisit.statusLabel ?? 'Aktueller Einsatzstatus'}
           >
             {data.liveVisit.mapVisible && data.liveVisit.lastPosition ? (

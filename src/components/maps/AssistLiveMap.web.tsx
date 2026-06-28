@@ -1,14 +1,21 @@
 import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
+import { GoogleMapsLiveMap } from '@/components/maps/GoogleMapsLiveMap.web';
 import {
   buildOsmEmbedUrl,
   formatMapLastUpdated,
+  getGoogleMapsApiKey,
+  isGoogleMapsConfigured,
+  type AssistLiveMapMarker,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
 import { colors, spacing, typography } from '@/theme';
 
 export type AssistLiveMapProps = {
   position: AssistMapPosition | null;
+  markers?: AssistLiveMapMarker[];
+  selectedMarkerId?: string | null;
+  onMarkerSelect?: (markerId: string) => void;
   height?: number;
   markerLabel?: string;
   fallbackMessage?: string;
@@ -16,23 +23,64 @@ export type AssistLiveMapProps = {
   lastUpdatedLabel?: string;
 };
 
-export function AssistLiveMap({
-  position,
-  height = 280,
-  markerLabel,
-  fallbackMessage = 'Keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.',
-  demoMode = false,
-  lastUpdatedLabel = 'Letzte Aktualisierung',
-}: AssistLiveMapProps) {
+export function AssistLiveMap(props: AssistLiveMapProps) {
+  const {
+    position,
+    markers,
+    selectedMarkerId,
+    onMarkerSelect,
+    height = 280,
+    markerLabel,
+    fallbackMessage = 'Keine Standortdaten — Tracking startet im Mitarbeiterportal während der Einsatzdurchführung.',
+    demoMode = false,
+    lastUpdatedLabel = 'Letzte Aktualisierung',
+  } = props;
+
+  const useGoogleMaps = isGoogleMapsConfigured();
+
   const embedUrl = useMemo(() => {
-    if (!position) return null;
+    if (useGoogleMaps || !position) return null;
     return buildOsmEmbedUrl(position.latitude, position.longitude);
-  }, [position?.latitude, position?.longitude]);
+  }, [useGoogleMaps, position?.latitude, position?.longitude]);
+
+  const hasMapData = Boolean(
+    position || (markers && markers.length > 0),
+  );
+
+  if (!hasMapData) {
+    return (
+      <View style={[styles.fallback, { minHeight: height }]}>
+        <Text style={styles.fallbackIcon}>🗺️</Text>
+        <Text style={styles.fallbackText}>{fallbackMessage}</Text>
+      </View>
+    );
+  }
+
+  if (useGoogleMaps && Platform.OS === 'web') {
+    return (
+      <GoogleMapsLiveMap
+        position={position}
+        markers={markers}
+        selectedMarkerId={selectedMarkerId}
+        onMarkerSelect={onMarkerSelect}
+        height={height}
+        markerLabel={markerLabel}
+        fallbackMessage={fallbackMessage}
+        demoMode={demoMode}
+        lastUpdatedLabel={lastUpdatedLabel}
+      />
+    );
+  }
 
   if (!position || !embedUrl) {
     return (
       <View style={[styles.fallback, { minHeight: height }]}>
-        <Text style={styles.fallbackText}>{fallbackMessage}</Text>
+        <Text style={styles.fallbackIcon}>🗺️</Text>
+        <Text style={styles.fallbackText}>
+          {getGoogleMapsApiKey()
+            ? 'Interaktive Karte nur im Browser verfügbar.'
+            : fallbackMessage}
+        </Text>
       </View>
     );
   }
@@ -86,7 +134,9 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     justifyContent: 'center',
     padding: spacing.lg,
+    gap: spacing.sm,
   },
+  fallbackIcon: { fontSize: 28 },
   fallbackText: {
     ...typography.caption,
     color: colors.textMuted,

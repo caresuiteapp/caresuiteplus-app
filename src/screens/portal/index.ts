@@ -5,6 +5,7 @@ export { PortalMessageDetailScreen } from './PortalMessageDetailScreen';
 export { PortalDocumentDetailScreen } from './PortalDocumentDetailScreen';
 export { EmployeeProfileScreen } from './EmployeeProfileScreen';
 export { PortalClientAppointmentDetailScreen } from './PortalClientAppointmentDetailScreen';
+export { PortalClientLiveTrackingScreen } from './PortalClientLiveTrackingScreen';
 export { PortalClientMessageDetailScreen } from './PortalClientMessageDetailScreen';
 export { PortalClientDocumentDetailScreen } from './PortalClientDocumentDetailScreen';
 export { ClientPortalProfileScreen } from './ClientPortalProfileScreen';

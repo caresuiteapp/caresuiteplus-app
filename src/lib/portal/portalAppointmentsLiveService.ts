@@ -128,6 +128,65 @@ async function fetchLivePortalAppointments(
   });
 }
 
+const ACTIVE_LIVE_STATUSES = ['on_the_way', 'arrived', 'started'] as const;
+
+export async function fetchActiveLivePortalAssignmentForClient(
+  tenantId: string,
+  clientId: string,
+): Promise<
+  ServiceResult<{
+    id: string;
+    title: string;
+    status: AssignmentStatus;
+    startsAt: string;
+    endsAt: string;
+    caregiverName: string | null;
+  } | null>
+> {
+  return runService(async () => {
+    const supabase = getSupabaseClient();
+    if (!supabase) {
+      return { ok: false, error: 'Supabase ist nicht verfügbar.' };
+    }
+    if (!tenantId.trim() || !clientId.trim()) {
+      return { ok: true, data: null };
+    }
+
+    const { data, error } = await fromUnknownTable(supabase, 'assignments')
+      .select(LIST_SELECT)
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .in('status', [...ACTIVE_LIVE_STATUSES])
+      .order('planned_start_at', { ascending: true })
+      .limit(1)
+      .maybeSingle();
+
+    if (error) {
+      if (!isMissingTableError(error)) {
+        console.warn('[portalAppointmentsLiveService] active live assignment:', error.message);
+      }
+      return { ok: false, error: 'Aktiver Einsatz konnte nicht geladen werden.' };
+    }
+    if (!data) {
+      return { ok: true, data: null };
+    }
+
+    const row = data as unknown as AssignmentLiveListRow;
+    const assignmentStatus = remoteStatusToAssignment(row.status);
+    return {
+      ok: true,
+      data: {
+        id: row.id,
+        title: row.title?.trim() || 'Einsatz',
+        status: assignmentStatus,
+        startsAt: row.planned_start_at,
+        endsAt: row.planned_end_at,
+        caregiverName: personName(row.employees),
+      },
+    };
+  });
+}
+
 export async function fetchLivePortalAppointmentsForClient(
   tenantId: string,
   clientId: string,

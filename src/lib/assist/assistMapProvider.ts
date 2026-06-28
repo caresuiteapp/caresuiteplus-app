@@ -1,5 +1,5 @@
 /**
- * Assist live map — OpenStreetMap by default, optional Mapbox upgrade via env.
+ * Assist live map — Google Maps (preferred), Mapbox or OpenStreetMap fallback via env.
  * No provider names in user-facing copy.
  */
 
@@ -10,7 +10,17 @@ export type AssistMapPosition = {
   capturedAt: string | null;
 };
 
-export type AssistMapTileSource = 'osm' | 'mapbox';
+export type AssistLiveMapMarker = {
+  id: string;
+  latitude: number;
+  longitude: number;
+  label: string;
+  subtitle?: string;
+  capturedAt?: string | null;
+  accuracyMeters?: number | null;
+};
+
+export type AssistMapTileSource = 'google' | 'osm' | 'mapbox';
 
 const DEMO_MAP_POSITION: AssistMapPosition = {
   latitude: 52.520008,
@@ -26,6 +36,14 @@ function readEnv(key: string): string | undefined {
   return undefined;
 }
 
+export function getGoogleMapsApiKey(): string | null {
+  return readEnv('EXPO_PUBLIC_GOOGLE_MAPS_API_KEY') ?? null;
+}
+
+export function isGoogleMapsConfigured(): boolean {
+  return Boolean(getGoogleMapsApiKey());
+}
+
 export function getMapboxAccessToken(): string | null {
   return (
     readEnv('EXPO_PUBLIC_MAPBOX_ACCESS_TOKEN') ??
@@ -35,10 +53,12 @@ export function getMapboxAccessToken(): string | null {
 }
 
 export function getAssistMapTileSource(): AssistMapTileSource {
-  return getMapboxAccessToken() ? 'mapbox' : 'osm';
+  if (getGoogleMapsApiKey()) return 'google';
+  if (getMapboxAccessToken()) return 'mapbox';
+  return 'osm';
 }
 
-/** OSM tiles work without API keys — always considered configured. */
+/** Kartenansicht verfügbar (Google bevorzugt, sonst OSM/Mapbox). */
 export function isAssistMapProviderConfigured(): boolean {
   return true;
 }
@@ -77,11 +97,27 @@ export function buildMapboxStaticMapUrl(
   return `https://api.mapbox.com/styles/v1/mapbox/streets-v12/static/pin-s+285AEB(${longitude},${latitude})/${longitude},${latitude},14,0/${width}x${height}@2x?access_token=${encodeURIComponent(token)}`;
 }
 
+export function buildGoogleStaticMapUrl(
+  latitude: number,
+  longitude: number,
+  apiKey: string,
+  size: { width: number; height: number } = { width: 640, height: 360 },
+): string {
+  const { width, height } = size;
+  const center = `${latitude},${longitude}`;
+  const marker = `color:red|${latitude},${longitude}`;
+  return `https://maps.googleapis.com/maps/api/staticmap?center=${encodeURIComponent(center)}&zoom=15&size=${width}x${height}&scale=2&markers=${encodeURIComponent(marker)}&key=${encodeURIComponent(apiKey)}`;
+}
+
 export function buildAssistMapImageUrl(
   latitude: number,
   longitude: number,
   size?: { width: number; height: number },
 ): string {
+  const googleKey = getGoogleMapsApiKey();
+  if (googleKey) {
+    return buildGoogleStaticMapUrl(latitude, longitude, googleKey, size);
+  }
   const token = getMapboxAccessToken();
   if (token) {
     return buildMapboxStaticMapUrl(latitude, longitude, token, size);
