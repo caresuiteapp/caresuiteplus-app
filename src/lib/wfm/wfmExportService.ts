@@ -134,50 +134,17 @@ export async function exportWfmSessionsDatev(
 }
 
 async function renderWfmPdfText(rows: WfmExportRow[], year: number, month: number, tenantId: string): Promise<string> {
-  const lines = [
-    'CareSuite+ Arbeitszeit-Export',
-    `Mandant: ${tenantId.slice(0, 8)}…`,
-    `Zeitraum: ${String(month).padStart(2, '0')}/${year}`,
-    `Erstellt: ${new Date().toLocaleString('de-DE')}`,
-    '',
-    'Datum       | MA-ID    | Status        | Netto-Min | Pause',
-    '------------|----------|---------------|-----------|------',
-    ...rows.slice(0, 200).map(
-      (r) =>
-        `${r.workDate} | ${r.employeeId.slice(0, 8)} | ${r.statusLabel.padEnd(13).slice(0, 13)} | ${String(r.netMinutes).padStart(9)} | ${r.pauseMinutes}`,
-    ),
-  ];
-  if (rows.length > 200) lines.push(`… und ${rows.length - 200} weitere Datensätze`);
-
-  const textContent = lines.join('\n');
-
   if (typeof document === 'undefined') {
-    return textContent;
+    const { buildWfmPdfPlainText } = await import('./wfmPdfWeb');
+    return buildWfmPdfPlainText(rows, year, month, tenantId);
   }
 
   try {
-    // @ts-expect-error jspdf ships no type declarations for ESM entry
-    const jsPDFModule = await import('jspdf/dist/jspdf.es.min.js');
-    const jsPDF = jsPDFModule.jsPDF;
-    const pdf = new jsPDF('p', 'mm', 'a4');
-    pdf.setFontSize(14);
-    pdf.text('CareSuite+ Arbeitszeit-Export', 14, 20);
-    pdf.setFontSize(10);
-    pdf.text(`Zeitraum: ${String(month).padStart(2, '0')}/${year}`, 14, 28);
-    pdf.text(`Datensätze: ${rows.length}`, 14, 34);
-    pdf.setFontSize(8);
-    let y = 44;
-    for (const line of lines.slice(5)) {
-      if (y > 280) {
-        pdf.addPage();
-        y = 20;
-      }
-      pdf.text(line, 14, y);
-      y += 4;
-    }
-    return pdf.output('datauristring');
+    const { renderWfmPdfDataUri, buildWfmPdfPlainText } = await import('./wfmPdfWeb');
+    return await renderWfmPdfDataUri(rows, year, month, tenantId);
   } catch {
-    return textContent;
+    const { buildWfmPdfPlainText } = await import('./wfmPdfWeb');
+    return buildWfmPdfPlainText(rows, year, month, tenantId);
   }
 }
 
