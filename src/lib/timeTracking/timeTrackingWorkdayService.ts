@@ -30,6 +30,7 @@ import {
 } from './timeTrackingStore';
 import { recordTimeActivityEvent } from './timeTrackingActivityBridge';
 import { evaluateTrafficLight } from './timeTrackingAmpelService';
+import { mirrorHomeofficeToWfm } from '@/lib/wfm/wfmHomeofficeAdapter';
 import { detectMultiTabConflict, registerActiveSession } from './timeTrackingMultiTabService';
 
 function todayDate(): string {
@@ -191,6 +192,8 @@ export function startWorkday(
     summary: 'Arbeitstag gestartet',
   });
 
+  mirrorHomeofficeToWfm(tenantId, userId, 'start', { employeeId: workday.employeeId });
+
   return { ok: true, data: { workday, entry } };
 }
 
@@ -235,6 +238,8 @@ export function pauseWorkday(
     summary: 'Arbeitstag pausiert',
   });
 
+  mirrorHomeofficeToWfm(tenantId, userId, 'pause', { employeeId: workday.employeeId });
+
   return { ok: true, data: updated };
 }
 
@@ -278,6 +283,8 @@ export function resumeWorkday(
     actorId: userId,
     summary: 'Arbeitstag fortgesetzt',
   });
+
+  mirrorHomeofficeToWfm(tenantId, userId, 'resume', { employeeId: workday.employeeId });
 
   return { ok: true, data: updated };
 }
@@ -412,6 +419,8 @@ export function closeWorkday(
     summary: 'Arbeitstag abgeschlossen',
     metadata: { trafficLight: ampel.trafficLight },
   });
+
+  mirrorHomeofficeToWfm(tenantId, userId, 'close', { employeeId: workday.employeeId });
 
   return { ok: true, data: { workday: updated, ampel } };
 }

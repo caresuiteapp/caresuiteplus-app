@@ -215,7 +215,26 @@ export function subscribeToTimeTrackingChanges(
       subscriptionKey: `time-tracking:${tenantId}`,
       channelName: `office:time:${tenantId}`,
       demoPollMs: 15_000,
-      specs: [{ table: 'time_entries', filter: tenantFilter(tenantId) }],
+      specs: [
+        { table: 'time_entries', filter: tenantFilter(tenantId) },
+        { table: 'workforce_work_sessions', filter: tenantFilter(tenantId) },
+      ],
+    },
+    handler,
+  );
+}
+
+/** WFM Live-Dashboard — workforce_work_sessions Realtime. */
+export function subscribeToWfmLiveChanges(
+  tenantId: string,
+  handler: RealtimeHandler,
+): () => void {
+  return subscribeToTenantTables(
+    {
+      subscriptionKey: `wfm-live:${tenantId}`,
+      channelName: `wfm:live:${tenantId}`,
+      demoPollMs: 10_000,
+      specs: [{ table: 'workforce_work_sessions', filter: tenantFilter(tenantId) }],
     },
     handler,
   );

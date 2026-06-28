@@ -33,6 +33,8 @@ type SessionRow = {
   net_minutes: number;
   pause_minutes: number;
   is_online: boolean;
+  location_label?: string | null;
+  current_visit_id?: string | null;
 };
 
 type EventRow = {
@@ -72,6 +74,8 @@ function mapSessionRow(row: SessionRow): WfmWorkSession {
     netMinutes: row.net_minutes,
     pauseMinutes: row.pause_minutes,
     isOnline: row.is_online,
+    locationLabel: row.location_label ?? null,
+    currentVisitId: row.current_visit_id ?? null,
   };
 }
 
@@ -329,4 +333,118 @@ export async function resolveEmployeeIdForUser(
     return { ok: false, error: 'Kein Mitarbeiterprofil für diesen Benutzer gefunden.' };
   }
   return { ok: true, data: data.id };
+}
+
+export async function listSessionsForDate(
+  tenantId: string,
+  workDate: string,
+): Promise<ServiceResult<WfmWorkSession[]>> {
+  if (getServiceMode() !== 'supabase') {
+    const sessions: WfmWorkSession[] = [];
+    for (const session of demoSessions.values()) {
+      if (session.tenantId === tenantId && session.workDate === workDate) {
+        sessions.push(session);
+      }
+    }
+    return { ok: true, data: sessions };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, SESSIONS_TABLE)
+    .select(
+      'id, tenant_id, employee_id, user_id, work_date, status, work_mode, display_status, started_at, ended_at, last_event_at, gross_minutes, net_minutes, pause_minutes, is_online, location_label, current_visit_id',
+    )
+    .eq('tenant_id', tenantId)
+    .eq('work_date', workDate)
+    .order('last_event_at', { ascending: false, nullsFirst: false });
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: [] };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: (data ?? []).map((row) => mapSessionRow(row as SessionRow)) };
+}
+
+export async function fetchEmployeeEventsInRange(
+  tenantId: string,
+  employeeId: string,
+  fromIso: string,
+  toIso: string,
+): Promise<ServiceResult<WfmTimeEvent[]>> {
+  if (getServiceMode() !== 'supabase') {
+    const events: WfmTimeEvent[] = [];
+    for (const list of demoEvents.values()) {
+      for (const event of list) {
+        if (
+          event.tenantId === tenantId &&
+          event.employeeId === employeeId &&
+          event.occurredAt >= fromIso &&
+          event.occurredAt <= toIso
+        ) {
+          events.push(event);
+        }
+      }
+    }
+    events.sort((a, b) => a.occurredAt.localeCompare(b.occurredAt));
+    return { ok: true, data: events };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
+    .select(
+      'id, tenant_id, employee_id, user_id, event_type, work_mode, source, occurred_at, session_id, note',
+    )
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId)
+    .gte('occurred_at', fromIso)
+    .lte('occurred_at', toIso)
+    .order('occurred_at', { ascending: true });
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: [] };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: (data ?? []).map((row) => mapEventRow(row as EventRow)) };
+}
+
+export async function updateWorkSessionLocation(
+  sessionId: string,
+  locationLabel: string | null,
+  gpsStatus?: string | null,
+): Promise<ServiceResult<WfmWorkSession>> {
+  const dbPatch: Record<string, unknown> = {
+    updated_at: new Date().toISOString(),
+    location_label: locationLabel,
+  };
+  if (gpsStatus !== undefined) dbPatch.gps_status = gpsStatus;
+
+  if (getServiceMode() !== 'supabase') {
+    for (const [key, session] of demoSessions.entries()) {
+      if (session.id !== sessionId) continue;
+      const updated = { ...session };
+      demoSessions.set(key, updated);
+      return { ok: true, data: updated };
+    }
+    return { ok: false, error: 'Arbeitssitzung nicht gefunden.' };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, SESSIONS_TABLE)
+    .update(dbPatch)
+    .eq('id', sessionId)
+    .select(
+      'id, tenant_id, employee_id, user_id, work_date, status, work_mode, display_status, started_at, ended_at, last_event_at, gross_minutes, net_minutes, pause_minutes, is_online',
+    )
+    .single();
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  return { ok: true, data: mapSessionRow(data as SessionRow) };
 }

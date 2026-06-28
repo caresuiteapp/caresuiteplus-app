@@ -151,6 +151,18 @@ export async function persistEmployeePortalStatusTransition(
       ctx.profileId ?? ctx.employeeId ?? null,
     );
     if (!recorded.ok) warnings.push(recorded.error);
+    else if (ctx.employeeId || ctx.profileId) {
+      const { syncAssistTimeEventToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+      const syncResult = await syncAssistTimeEventToWfm(
+        ctx.tenantId,
+        ctx.employeeId ?? null,
+        ctx.profileId ?? null,
+        visitId,
+        eventType,
+        now,
+      );
+      if (!syncResult.ok) warnings.push(syncResult.error ?? 'WFM-Sync fehlgeschlagen.');
+    }
   }
 
   if (toStatus === 'unterwegs') {

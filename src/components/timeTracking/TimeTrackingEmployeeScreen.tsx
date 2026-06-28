@@ -32,6 +32,7 @@ import {
   wfmResume,
   wfmSwitchWorkType,
 } from '@/lib/wfm';
+import { WfmTimeAccountPanel } from '@/components/wfm/WfmTimeAccountPanel';
 import type { WfmEventSource, WfmWorkTypeKey } from '@/types/modules/wfm';
 import { typography } from '@/theme';
 
@@ -90,7 +91,12 @@ export function TimeTrackingEmployeeScreen() {
 
   const statusQuery = useAsyncQuery(
     useCallback(async () => {
-      if (!tenantId || !canView || !userId) return { ok: true as const, data: null };
+      if (!tenantId || !canView || !userId) {
+        return {
+          ok: true as const,
+          data: { session: null, events: [], statusLabel: 'Nicht gestartet', blockCount: 0 },
+        };
+      }
       return getWfmTodayStatus(tenantId, userId, roleKey, wfmOptions);
     }, [tenantId, userId, roleKey, canView, wfmOptions]),
     [tenantId, userId, roleKey, canView, wfmOptions],
@@ -210,6 +216,50 @@ export function TimeTrackingEmployeeScreen() {
           />
         </View>
       </SectionPanel>
+
+      {tenantId && userId ? (
+        <WfmTimeAccountPanel
+          tenantId={tenantId}
+          userId={userId}
+          roleKey={roleKey}
+          employeeId={employeeId}
+        />
+      ) : null}
+
+      {pathname.startsWith('/portal/') ? (
+        <SectionPanel title="Weitere Bereiche">
+          <PremiumButton
+            title="Fahrten & Zeiten"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/times' as never)}
+          />
+          <PremiumButton
+            title="Urlaub"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/arbeitszeit/urlaub' as never)}
+          />
+          <PremiumButton
+            title="Abwesenheiten"
+            variant="secondary"
+            onPress={() => router.push('/portal/employee/arbeitszeit/abwesenheiten' as never)}
+          />
+        </SectionPanel>
+      ) : null}
+
+      {!pathname.startsWith('/portal/') && can('time.tracking.team.view') ? (
+        <SectionPanel title="Team & Live">
+          <PremiumButton
+            title="Team-Übersicht"
+            variant="secondary"
+            onPress={() => router.push('/business/office/time-tracking/team' as never)}
+          />
+          <PremiumButton
+            title="Live-Mitarbeiter"
+            variant="secondary"
+            onPress={() => router.push('/business/office/time-tracking/live' as never)}
+          />
+        </SectionPanel>
+      ) : null}
 
       <SectionPanel title="Tätigkeit wählen">
         <AuroraSegmentedControl
