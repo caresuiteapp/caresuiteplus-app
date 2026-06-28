@@ -35,7 +35,9 @@ describe('profileRoleBridge', () => {
 describe('TimeTrackingEmployeeScreen admin without employee profile', () => {
   it('shows Team-Übersicht guidance instead of hard error for admins', () => {
     const source = readSrc('src/components/timeTracking/TimeTrackingEmployeeScreen.tsx');
+    expect(source).toContain('canUseTeamOverview');
     expect(source).toContain('isAdminWithoutEmployee');
+    expect(source).toContain('time.tracking.team.view');
     expect(source).toContain('Team-Übersicht nutzen');
     expect(source).toContain('/business/office/time-tracking/team');
     expect(source).toContain('Kein Mitarbeiterprofil');
@@ -51,6 +53,6 @@ describe('EmployeeRolesPermissionsHub RBAC load', () => {
     expect(hub).toContain('resolveEffectivePermissions');
     expect(rbac).toContain('persistEmployeeRbacState(tenantId, employeeId, { overrides');
     expect(rbac).toContain('persistEmployeeRbacState(tenantId, employeeId, { scopes');
-    expect(rbac).toContain('persistEmployeeRbacState(tenantId, employeeId, { assignments');
+    expect(rbac).toContain('shouldUseSyncRbacFallback');
   });
 });

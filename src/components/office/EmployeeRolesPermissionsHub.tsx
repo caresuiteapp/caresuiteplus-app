@@ -352,15 +352,21 @@ export function EmployeeRolesPermissionsHub({
 
     (async () => {
 
-      const [overridesResult, scopesResult, effectiveResult] = await Promise.all([
+      const overridesResult = await fetchEmployeePermissionOverrides(tenantId, employeeId);
 
-        fetchEmployeePermissionOverrides(tenantId, employeeId),
+      const scopesResult = await fetchEmployeeDataScopes(tenantId, employeeId);
 
-        fetchEmployeeDataScopes(tenantId, employeeId),
+      const effectiveResult = await resolveEffectivePermissions(
 
-        resolveEffectivePermissions(tenantId, employeeId, primaryRole, selectedRoles.filter((r) => r !== primaryRole)),
+        tenantId,
 
-      ]);
+        employeeId,
+
+        primaryRole,
+
+        selectedRoles.filter((r) => r !== primaryRole),
+
+      );
 
 
 
@@ -381,6 +387,10 @@ export function EmployeeRolesPermissionsHub({
       if (errors.length > 0) {
 
         setRbacLoadError(errors[0] ?? 'Rollen & Rechte konnten nicht geladen werden.');
+
+      } else {
+
+        setRbacLoadError(null);
 
       }
 

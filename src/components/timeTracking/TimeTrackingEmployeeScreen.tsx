@@ -87,7 +87,9 @@ export function TimeTrackingEmployeeScreen() {
   const canView = can('time.tracking.own.view');
   const canStart = can('time.tracking.own.start');
   const canAdminView = can('time.tracking.admin.view');
-  const isAdminWithoutEmployee = !employeeId && canAdminView;
+  const canTeamView = can('time.tracking.team.view');
+  const canUseTeamOverview = canAdminView || canTeamView;
+  const isAdminWithoutEmployee = !employeeId && canUseTeamOverview;
 
   const wfmOptions = useMemo(
     () => ({ employeeId, source: wfmSource }),
@@ -205,7 +207,7 @@ export function TimeTrackingEmployeeScreen() {
 
   if (statusQuery.error && !statusQuery.data) {
     const isMissingEmployeeProfile =
-      statusQuery.error.includes('Kein Mitarbeiterprofil') && canAdminView;
+      statusQuery.error.includes('Kein Mitarbeiterprofil') && canUseTeamOverview;
     if (isMissingEmployeeProfile) {
       return (
         <ScreenShell title="Arbeitszeit" subtitle={subtitle} scroll>

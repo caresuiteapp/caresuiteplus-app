@@ -9,7 +9,11 @@ import type {
 } from '@/types/permissions/rbac';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
+import {
+  isSupabaseMissingTableError,
+  isSupabaseRlsError,
+  toGermanSupabaseError,
+} from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getPermissionsForRole, ROLE_PERMISSIONS } from './staticRolePermissions';
@@ -214,6 +218,23 @@ export function resolveEffectivePermissionsSync(
   );
 }
 
+function shouldUseSyncRbacFallback(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  return isSupabaseMissingTableError(error) || isSupabaseRlsError(error);
+}
+
+function syncEffectivePermissionsFallback(
+  tenantId: string,
+  employeeId: string,
+  primaryRoleKey: RoleKey | null,
+  additionalRoleKeys: RoleKey[],
+): ServiceResult<EffectivePermissionSet> {
+  return {
+    ok: true,
+    data: resolveEffectivePermissionsSync(tenantId, employeeId, primaryRoleKey, additionalRoleKeys),
+  };
+}
+
 export async function resolveEffectivePermissions(
   tenantId: string,
   employeeId: string,
@@ -221,10 +242,7 @@ export async function resolveEffectivePermissions(
   additionalRoleKeys: RoleKey[] = [],
 ): Promise<ServiceResult<EffectivePermissionSet>> {
   if (getServiceMode() !== 'supabase') {
-    return {
-      ok: true,
-      data: resolveEffectivePermissionsSync(tenantId, employeeId, primaryRoleKey, additionalRoleKeys),
-    };
+    return syncEffectivePermissionsFallback(tenantId, employeeId, primaryRoleKey, additionalRoleKeys);
   }
 
   const supabase = getSupabaseClient();
@@ -237,7 +255,11 @@ export async function resolveEffectivePermissions(
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId);
 
-  if (assignmentsResult.error && !isSupabaseMissingTableError(assignmentsResult.error)) {
+  if (assignmentsResult.error && shouldUseSyncRbacFallback(assignmentsResult.error)) {
+    return syncEffectivePermissionsFallback(tenantId, employeeId, primaryRoleKey, additionalRoleKeys);
+  }
+
+  if (assignmentsResult.error) {
     return { ok: false, error: toGermanSupabaseError(assignmentsResult.error) };
   }
 
@@ -248,7 +270,11 @@ export async function resolveEffectivePermissions(
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId);
 
-  if (overridesResult.error && !isSupabaseMissingTableError(overridesResult.error)) {
+  if (overridesResult.error && shouldUseSyncRbacFallback(overridesResult.error)) {
+    return syncEffectivePermissionsFallback(tenantId, employeeId, primaryRoleKey, additionalRoleKeys);
+  }
+
+  if (overridesResult.error) {
     return { ok: false, error: toGermanSupabaseError(overridesResult.error) };
   }
 
@@ -257,19 +283,12 @@ export async function resolveEffectivePermissions(
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId);
 
-  if (scopesResult.error && !isSupabaseMissingTableError(scopesResult.error)) {
-    return { ok: false, error: toGermanSupabaseError(scopesResult.error) };
+  if (scopesResult.error && shouldUseSyncRbacFallback(scopesResult.error)) {
+    return syncEffectivePermissionsFallback(tenantId, employeeId, primaryRoleKey, additionalRoleKeys);
   }
 
-  if (
-    (assignmentsResult.error && isSupabaseMissingTableError(assignmentsResult.error)) ||
-    (overridesResult.error && isSupabaseMissingTableError(overridesResult.error)) ||
-    (scopesResult.error && isSupabaseMissingTableError(scopesResult.error))
-  ) {
-    return {
-      ok: true,
-      data: resolveEffectivePermissionsSync(tenantId, employeeId, primaryRoleKey, additionalRoleKeys),
-    };
+  if (scopesResult.error) {
+    return { ok: false, error: toGermanSupabaseError(scopesResult.error) };
   }
 
   const assignments: EmployeeRoleAssignment[] = (assignmentsResult.data ?? []).map((row) => ({
@@ -483,7 +502,7 @@ export async function fetchEmployeePermissionOverrides(
     .eq('employee_id', employeeId);
 
   if (error) {
-    if (isSupabaseMissingTableError(error)) {
+    if (isSupabaseMissingTableError(error) || isSupabaseRlsError(error)) {
       return { ok: true, data: getEmployeeRbacStateSync(tenantId, employeeId).overrides };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
@@ -528,7 +547,7 @@ export async function fetchEmployeeDataScopes(
     .eq('employee_id', employeeId);
 
   if (error) {
-    if (isSupabaseMissingTableError(error)) {
+    if (isSupabaseMissingTableError(error) || isSupabaseRlsError(error)) {
       return { ok: true, data: getEmployeeRbacStateSync(tenantId, employeeId).scopes };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
