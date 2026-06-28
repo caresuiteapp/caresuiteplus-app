@@ -3,6 +3,7 @@ import {
   PORTAL_INTERNAL_SENSITIVITIES,
   PORTAL_PROOFS_CATEGORY,
 } from '@/lib/clients/clientDocumentPortalVisibility';
+import { PORTAL_UPCOMING_ASSIGNMENT_STATUSES } from '@/lib/portal/portalAssignmentStatusFilters';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -18,18 +19,6 @@ const EMPTY_METRICS: ClientPortalLiveMetrics = {
   documents: 0,
   openMessages: 0,
 };
-
-const UPCOMING_ASSIGNMENT_STATUSES = [
-  'geplant',
-  'bestaetigt',
-  'unterwegs',
-  'angekommen',
-  'gestartet',
-  'pausiert',
-  'beendet',
-  'dokumentation_offen',
-  'unterschrift_offen',
-] as const;
 
 /** Live KPI counts for client portal dashboard — RLS scopes rows to the portal actor. */
 export async function fetchClientPortalLiveMetrics(
@@ -55,7 +44,7 @@ export async function fetchClientPortalLiveMetrics(
     .select('*', { count: 'exact', head: true })
     .eq('tenant_id', tenantId)
     .gte('planned_start_at', now)
-    .in('status', [...UPCOMING_ASSIGNMENT_STATUSES]);
+    .in('status', [...PORTAL_UPCOMING_ASSIGNMENT_STATUSES]);
 
   if (clientId?.trim()) {
     assignmentsQuery = assignmentsQuery.eq('client_id', clientId);

@@ -21,18 +21,10 @@ const LIST_SELECT = `
   employees(first_name, last_name, phone)
 `;
 
-/** Remote assignment statuses visible as portal Einsätze (non-terminal). */
-const PORTAL_APPOINTMENT_STATUSES = [
-  'planned',
-  'confirmed',
-  'on_the_way',
-  'arrived',
-  'started',
-  'paused',
-  'finished',
-  'documentation_open',
-  'signature_open',
-] as const;
+import {
+  PORTAL_ACTIVE_LIVE_ASSIGNMENT_STATUSES,
+  PORTAL_APPOINTMENT_STATUSES,
+} from '@/lib/portal/portalAssignmentStatusFilters';
 
 const PLANNED_CHANGE_STATUSES = new Set<AssignmentStatus>(['geplant', 'bestaetigt']);
 
@@ -128,7 +120,7 @@ async function fetchLivePortalAppointments(
   });
 }
 
-const ACTIVE_LIVE_STATUSES = ['on_the_way', 'arrived', 'started'] as const;
+const ACTIVE_LIVE_STATUSES = PORTAL_ACTIVE_LIVE_ASSIGNMENT_STATUSES;
 
 export async function fetchActiveLivePortalAssignmentForClient(
   tenantId: string,

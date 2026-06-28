@@ -11,7 +11,7 @@ import { formatClientPortalDisplayName } from './clientPortalDisplayName';
 import { fetchClientPortalLiveMetrics } from './clientPortalDashboardLive';
 import { buildClientPortalProfileProjection } from './clientPortalProfileProjection';
 
-const UPCOMING_ASSIGNMENT_STATUSES = ['geplant', 'bestaetigt', 'unterwegs', 'angekommen'] as const;
+import { PORTAL_UPCOMING_ASSIGNMENT_STATUSES } from '@/lib/portal/portalAssignmentStatusFilters';
 
 const CLIENT_PROFILE_SELECT = [
   'first_name',
@@ -145,7 +145,7 @@ export async function fetchLiveClientPortalProfile(
         .eq('tenant_id', tenantId)
         .eq('client_id', clientId)
         .gte('planned_start_at', new Date().toISOString())
-        .in('status', [...UPCOMING_ASSIGNMENT_STATUSES])
+        .in('status', [...PORTAL_UPCOMING_ASSIGNMENT_STATUSES])
         .order('planned_start_at', { ascending: true })
         .limit(1)
         .maybeSingle(),

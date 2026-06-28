@@ -16,19 +16,10 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
 
-const UPCOMING_ASSIGNMENT_STATUSES = [
-  'geplant',
-  'bestaetigt',
-  'unterwegs',
-  'angekommen',
-  'gestartet',
-  'pausiert',
-  'beendet',
-  'dokumentation_offen',
-  'unterschrift_offen',
-] as const;
-
-const PLANNED_BEGLEITUNG_STATUSES = ['geplant', 'bestaetigt'] as const;
+import {
+  PORTAL_PLANNED_ASSIGNMENT_STATUSES,
+  PORTAL_UPCOMING_ASSIGNMENT_STATUSES,
+} from '@/lib/portal/portalAssignmentStatusFilters';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -49,7 +40,7 @@ async function fetchUpcomingAppointments(
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .gte('planned_start_at', now)
-    .in('status', [...UPCOMING_ASSIGNMENT_STATUSES])
+    .in('status', [...PORTAL_UPCOMING_ASSIGNMENT_STATUSES])
     .order('planned_start_at', { ascending: true })
     .limit(limit);
 
@@ -112,7 +103,7 @@ async function countBegleitungen(
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .gte('planned_start_at', now)
-    .in('status', [...PLANNED_BEGLEITUNG_STATUSES]);
+    .in('status', [...PORTAL_PLANNED_ASSIGNMENT_STATUSES]);
 
   if (error) {
     if (!isMissingTableError(error)) {

@@ -43,6 +43,11 @@ import {
   syncCalendarEventAsync,
 } from '@/lib/calendar/calendarSyncService';
 import {
+  syncLegacyAssignmentStatusFromVisit,
+  syncLegacyAssignmentTasksFromVisit,
+  upsertLegacyAssignmentFromVisit,
+} from '@/lib/assist/assistVisitLegacyAssignmentSync';
+import {
   markAssignmentExecuted,
   storno as stornoAssignmentReservation,
 } from '@/lib/assist/clientBudgetTransactionService';
@@ -533,6 +538,35 @@ export const visitSupabaseRepository = {
       if (taskError) return { ok: false, error: toGermanSupabaseError(taskError) };
     }
 
+    const legacySync = await upsertLegacyAssignmentFromVisit(supabase, {
+      visitId,
+      tenantId,
+      clientId: input.clientId,
+      employeeId: input.employeeId,
+      assignmentDate: input.assignmentDate,
+      plannedStartAt: input.plannedStartAt,
+      plannedEndAt: input.plannedEndAt,
+      title: input.title,
+      description: input.description ?? null,
+      addressSnapshot: input.addressSnapshot ?? null,
+      internalNotes: input.internalNotes ?? null,
+      clientVisibleNotes: null,
+      canonicalStatus: insertRow.canonical_status,
+      saveAsDraft: input.saveAsDraft ?? false,
+      createdBy: actorProfileId ?? null,
+    });
+    if (!legacySync.ok) return legacySync;
+
+    if (taskTitles.length > 0 && !input.saveAsDraft) {
+      const taskMirror = await syncLegacyAssignmentTasksFromVisit(
+        supabase,
+        tenantId,
+        visitId,
+        taskTitles,
+      );
+      if (!taskMirror.ok) return taskMirror;
+    }
+
     if (input.budgetAmountCents) {
       await fromUnknownTable(supabase, 'assist_visit_budget_snapshots').insert({
         tenant_id: tenantId,
@@ -648,6 +682,22 @@ export const visitSupabaseRepository = {
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
 
+    const legacyStatusSync = await syncLegacyAssignmentStatusFromVisit(
+      supabase,
+      tenantId,
+      visitId,
+      remoteStatus,
+      {
+        on_the_way_at: patch.on_the_way_at,
+        arrived_at: patch.arrived_at,
+        actual_start_at: patch.actual_start_at,
+        actual_end_at: patch.actual_end_at,
+        finished_at: patch.finished_at,
+        updated_by: actorProfileId ?? null,
+      },
+    );
+    if (!legacyStatusSync.ok) return legacyStatusSync;
+
     await writeStatusHistory(
       tenantId,
       visitId,
@@ -664,8 +714,6 @@ export const visitSupabaseRepository = {
       `${ASSIGNMENT_STATUS_LABELS[fromStatus]} → ${ASSIGNMENT_STATUS_LABELS[toStatus]}`,
       actorProfileId,
     );
-
-    // TODO: Sync legacy assignments row if legacy_assignment_id present
 
     const refreshed = await this.getById(tenantId, visitId);
     if (!refreshed.ok) return refreshed;

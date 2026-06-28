@@ -5,19 +5,10 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 const UPCOMING_APPOINTMENT_STATUSES = ['aktiv', 'in_bearbeitung'] as const;
 
-const UPCOMING_ASSIGNMENT_STATUSES = [
-  'geplant',
-  'bestaetigt',
-  'unterwegs',
-  'angekommen',
-  'gestartet',
-  'pausiert',
-  'beendet',
-  'dokumentation_offen',
-  'unterschrift_offen',
-] as const;
-
-const PLANNED_ASSIGNMENT_STATUSES = ['geplant', 'bestaetigt'] as const;
+import {
+  PORTAL_PLANNED_ASSIGNMENT_STATUSES,
+  PORTAL_UPCOMING_ASSIGNMENT_STATUSES,
+} from '@/lib/portal/portalAssignmentStatusFilters';
 
 const ACTIVE_CASE_STATUSES = ['aktiv', 'in_bearbeitung', 'entwurf'] as const;
 
@@ -74,7 +65,7 @@ export async function fetchPortalWidgetData(
           .eq('tenant_id', tenantId)
           .eq('client_id', clientId)
           .gte('planned_start_at', now)
-          .in('status', [...UPCOMING_ASSIGNMENT_STATUSES]),
+          .in('status', [...PORTAL_UPCOMING_ASSIGNMENT_STATUSES]),
       ).then((count) => {
         result.assist_next_visit = count;
       }),
@@ -85,7 +76,7 @@ export async function fetchPortalWidgetData(
           .eq('tenant_id', tenantId)
           .eq('client_id', clientId)
           .gte('planned_start_at', now)
-          .in('status', [...PLANNED_ASSIGNMENT_STATUSES]),
+          .in('status', [...PORTAL_PLANNED_ASSIGNMENT_STATUSES]),
       ).then((count) => {
         result.assist_trips = count;
       }),
