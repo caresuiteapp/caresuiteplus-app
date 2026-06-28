@@ -33,6 +33,22 @@ describe('realtime wiring', () => {
   it('usePortalSidebarData nutzt usePortalAssistRealtime', () => {
     const source = readSrc('src/hooks/usePortalSidebarData.ts');
     expect(source).toContain('usePortalAssistRealtime');
+    expect(source).toContain('loadDashboardKpis');
+  });
+
+  it('usePortalAssistRealtime nutzt useLiveRefresh mit Polling und Fokus', () => {
+    const source = readSrc('src/hooks/usePortalAssistRealtime.ts');
+    expect(source).toContain('useLiveRefresh');
+    expect(source).toContain('DEFAULT_LIVE_POLL_MS');
+    expect(source).toContain('refreshOnFocus');
+    expect(source).toContain('subscribeToPortalAssistChanges');
+  });
+
+  it('subscribeToPortalAssistChanges abonniert Nachrichten-Tabellen', () => {
+    const source = readSrc('src/lib/realtime/presets.ts');
+    expect(source).toContain("'messages'");
+    expect(source).toContain("'message_threads'");
+    expect(source).toContain('demoPollMs');
   });
 
   it('AssistPortalOverview lädt Dashboard still bei Live-Events', () => {

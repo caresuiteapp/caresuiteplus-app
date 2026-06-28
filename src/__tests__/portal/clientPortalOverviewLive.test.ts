@@ -35,6 +35,8 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
     expect(resolver).toContain('fetchPortalWidgetData');
     const live = readSrc('src/lib/portal/clientPortalDashboardLive.ts');
     expect(live).toContain('portal_visible');
+    expect(live).toContain('portal_unread_count');
+    expect(live).toContain('assignments');
   });
 
   it('treats assignment fetch failure as not configured (not empty modules)', () => {

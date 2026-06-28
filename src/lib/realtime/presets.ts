@@ -20,6 +20,7 @@ function withTenantAndClient(tenantId: string, clientId: string): TenantTableSpe
     { table: 'assignments', filter: client },
     { table: 'appointments', filter: tenant },
     { table: 'message_threads', filter: client },
+    { table: 'messages', filter: tenant },
   ];
 }
 
@@ -33,6 +34,7 @@ export function subscribeToPortalAssistChanges(
     {
       subscriptionKey: `portal-assist:${tenantId}:${clientId}`,
       channelName: `portal:assist:${tenantId}:${clientId}`,
+      demoPollMs: 30_000,
       specs: withTenantAndClient(tenantId, clientId),
     },
     handler,

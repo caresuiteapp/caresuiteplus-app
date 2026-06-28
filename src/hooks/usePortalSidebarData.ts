@@ -67,16 +67,21 @@ export function usePortalSidebarData() {
   const [dashboard, setDashboard] = useState<AssistDashboardData | null>(null);
   const [lastLogin, setLastLogin] = useState<string | null>(null);
 
-  const loadSidebarData = useCallback(async () => {
-    if (!context) return;
+  const loadDashboardKpis = useCallback(async () => {
+    if (!context || context.primaryModule !== 'assist') return;
 
-    const loginPromise = fetchClientLastLogin(context.tenantId, context.clientId);
-    if (context.primaryModule === 'assist') {
-      const result = await fetchAssistDashboardData(context);
-      if (result.ok) setDashboard(result.data);
-    }
-    setLastLogin(await loginPromise);
+    const result = await fetchAssistDashboardData(context);
+    if (result.ok) setDashboard(result.data);
   }, [context]);
+
+  const loadLastLogin = useCallback(async () => {
+    if (!context) return;
+    setLastLogin(await fetchClientLastLogin(context.tenantId, context.clientId));
+  }, [context]);
+
+  const loadSidebarData = useCallback(async () => {
+    await Promise.all([loadDashboardKpis(), loadLastLogin()]);
+  }, [loadDashboardKpis, loadLastLogin]);
 
   useEffect(() => {
     void loadSidebarData();
@@ -86,7 +91,7 @@ export function usePortalSidebarData() {
     context?.tenantId,
     context?.primaryModule === 'assist' ? context.clientId : null,
     () => {
-      void loadSidebarData();
+      void loadDashboardKpis();
     },
   );
 
