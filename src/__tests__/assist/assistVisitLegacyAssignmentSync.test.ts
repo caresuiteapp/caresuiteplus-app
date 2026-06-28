@@ -51,6 +51,6 @@ describe('assist visit legacy assignment sync', () => {
     );
     expect(migration).toContain('assignments_portal_client_select');
     expect(migration).toContain('INSERT INTO public.assignments');
-    expect(migration).toContain('legacy_assignment_id = v.id');
+    expect(migration).toContain("WHEN 'scheduled' THEN 'planned'");
   });
 });

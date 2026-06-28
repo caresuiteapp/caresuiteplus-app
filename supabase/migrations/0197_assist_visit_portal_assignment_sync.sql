@@ -47,7 +47,22 @@ SELECT
   v.address_snapshot,
   v.internal_notes,
   v.client_visible_notes,
-  v.canonical_status::public.assignment_status,
+  CASE v.canonical_status
+    WHEN 'planned' THEN 'planned'::public.assignment_status
+    WHEN 'confirmed' THEN 'confirmed'::public.assignment_status
+    WHEN 'on_the_way' THEN 'on_the_way'::public.assignment_status
+    WHEN 'arrived' THEN 'arrived'::public.assignment_status
+    WHEN 'started' THEN 'started'::public.assignment_status
+    WHEN 'paused' THEN 'paused'::public.assignment_status
+    WHEN 'finished' THEN 'finished'::public.assignment_status
+    WHEN 'documentation_open' THEN 'documentation_open'::public.assignment_status
+    WHEN 'signature_open' THEN 'signature_open'::public.assignment_status
+    WHEN 'completed' THEN 'completed'::public.assignment_status
+    WHEN 'cancelled' THEN 'cancelled'::public.assignment_status
+    WHEN 'no_show' THEN 'no_show'::public.assignment_status
+    WHEN 'scheduled' THEN 'planned'::public.assignment_status
+    ELSE 'planned'::public.assignment_status
+  END,
   'assist'::public.product_key,
   v.created_by,
   v.created_at,
