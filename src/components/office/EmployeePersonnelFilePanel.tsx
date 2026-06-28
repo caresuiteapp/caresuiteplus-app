@@ -7,6 +7,7 @@ import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import { EmployeePortalAccessPanel } from '@/components/office/EmployeePortalAccessPanel';
 import { EmployeeMobilityOfficePanel } from '@/components/office/EmployeeMobilityOfficePanel';
+import { EmployeePayrollPersonnelPanel } from '@/components/office/EmployeePayrollPersonnelPanel';
 import { EmployeeRolesPermissionsHub } from '@/components/office/EmployeeRolesPermissionsHub';
 import { OfficeRecordDeleteButton } from '@/components/office/OfficeRecordDeleteButton';
 import {
@@ -70,6 +71,9 @@ export const OFFICE_PERSONNEL_UI_TABS: Array<{ key: EmployeePersonnelUiTabKey; l
   { key: 'master_data', label: 'Stammdaten' },
   { key: 'contact', label: 'Kontakt' },
   { key: 'employment', label: 'Anstellung' },
+  { key: 'compensation', label: 'Vergütung & Bank' },
+  { key: 'tax_social', label: 'Steuer & SV' },
+  { key: 'secondary_employment', label: 'Mehrfachbeschäftigung' },
   { key: 'roles_permissions', label: 'Rollen & Rechte' },
   { key: 'qualifications', label: 'Qualifikationen' },
   { key: 'documents', label: 'Dokumente' },
@@ -571,16 +575,34 @@ export function EmployeePersonnelFilePanel({
         </SectionPanel>
       ) : null}
 
-      {activeTab === 'master_data' ? (
-        <SectionPanel title="Stammdaten">
-          <DetailInfoRow label="Personalnummer" value={file.masterData.employeeNumber} />
-          <DetailInfoRow label="Vorname" value={file.masterData.firstName} />
-          <DetailInfoRow label="Nachname" value={file.masterData.lastName} />
-          <DetailInfoRow label="Kostenstelle" value={file.masterData.costCenter} />
-          {canEdit ? (
-            <PremiumButton title="Stammdaten bearbeiten" variant="secondary" onPress={handleEditMasterData} />
-          ) : null}
-        </SectionPanel>
+      {activeTab === 'master_data' && tenantId ? (
+        <>
+          <SectionPanel title="Organisation">
+            <DetailInfoRow label="Personalnummer" value={file.masterData.employeeNumber} />
+            <DetailInfoRow label="Vorname" value={file.masterData.firstName} />
+            <DetailInfoRow label="Nachname" value={file.masterData.lastName} />
+            <DetailInfoRow label="Kostenstelle" value={file.masterData.costCenter} />
+            {canEdit ? (
+              <PremiumButton title="Stammdaten bearbeiten" variant="secondary" onPress={handleEditMasterData} />
+            ) : null}
+          </SectionPanel>
+          <EmployeePayrollPersonnelPanel
+            tab="master_data"
+            tenantId={tenantId}
+            employeeId={employeeId}
+            masterData={file.masterData}
+            payroll={file.payrollPersonnel}
+            canEdit={canEdit}
+            saving={saving}
+            actorRoleKey={profile?.roleKey}
+            actorProfileId={profile?.id}
+            panelCtx={panelCtx}
+            onSaved={refresh}
+            onError={setActionError}
+            onSuccess={setActionSuccess}
+            setSaving={setSaving}
+          />
+        </>
       ) : null}
 
       {activeTab === 'contact' ? (
@@ -599,55 +621,130 @@ export function EmployeePersonnelFilePanel({
         </>
       ) : null}
 
-      {activeTab === 'employment' ? (
-        <SectionPanel {...panelCtx} title="Anstellung">
-          {canEdit ? (
-            <View style={styles.formBlock}>
-              <Text style={styles.fieldLabel}>Vertragsart</Text>
-              <FilterChipGroup
-                options={employmentTypeOptions}
-                value={contractType || employmentTypeOptions[0]?.key || ''}
-                onChange={setContractType}
-              />
-              <Text style={styles.fieldLabel}>Anstellungsstatus</Text>
-              <FilterChipGroup
-                options={employmentStatusOptions}
-                value={employmentStatus}
-                onChange={(value) => setEmploymentStatus(value as EmployeeEmploymentStatus)}
-              />
-              <PremiumInput
-                label="Wochenstunden"
-                value={weeklyHours}
-                onChangeText={(value) => {
-                  setWeeklyHours(value);
-                  setWeeklyHoursError(null);
-                }}
-                error={weeklyHoursError ?? undefined}
-                keyboardType="decimal-pad"
-                placeholder="z. B. 20"
-              />
-              <CareDateInput label="Eintrittsdatum" value={entryDate} onChange={setEntryDate} />
-              <PremiumButton title="Anstellung speichern" loading={saving} onPress={handleSaveEmployment} />
-            </View>
-          ) : (
-            <>
-              <DetailInfoRow
-                label="Vertragsart"
-                value={resolveEmploymentTypeLabel(file.employment.contractType)}
-              />
-              <DetailInfoRow
-                label="Anstellungsstatus"
-                value={labelEmploymentStatus(file.employment.employmentStatus)}
-              />
-              <DetailInfoRow
-                label="Wochenstunden"
-                value={file.employment.weeklyHours?.toString() ?? '—'}
-              />
-              <DetailInfoRow label="Eintrittsdatum" value={file.masterData.entryDate ?? '—'} />
-              <DetailInfoRow label="Einsatzbereich" value={file.employment.deploymentArea ?? '—'} />
-            </>
-          )}
-        </SectionPanel>
+      {activeTab === 'employment' && tenantId ? (
+        <>
+          <SectionPanel {...panelCtx} title="Anstellungsstatus">
+            {canEdit ? (
+              <View style={styles.formBlock}>
+                <Text style={styles.fieldLabel}>Vertragsart</Text>
+                <FilterChipGroup
+                  options={employmentTypeOptions}
+                  value={contractType || employmentTypeOptions[0]?.key || ''}
+                  onChange={setContractType}
+                />
+                <Text style={styles.fieldLabel}>Anstellungsstatus</Text>
+                <FilterChipGroup
+                  options={employmentStatusOptions}
+                  value={employmentStatus}
+                  onChange={(value) => setEmploymentStatus(value as EmployeeEmploymentStatus)}
+                />
+                <PremiumInput
+                  label="Wochenstunden"
+                  value={weeklyHours}
+                  onChangeText={(value) => {
+                    setWeeklyHours(value);
+                    setWeeklyHoursError(null);
+                  }}
+                  error={weeklyHoursError ?? undefined}
+                  keyboardType="decimal-pad"
+                  placeholder="z. B. 20"
+                />
+                <CareDateInput label="Eintrittsdatum" value={entryDate} onChange={setEntryDate} />
+                <PremiumButton title="Anstellung speichern" loading={saving} onPress={handleSaveEmployment} />
+              </View>
+            ) : (
+              <>
+                <DetailInfoRow
+                  label="Vertragsart"
+                  value={resolveEmploymentTypeLabel(file.employment.contractType)}
+                />
+                <DetailInfoRow
+                  label="Anstellungsstatus"
+                  value={labelEmploymentStatus(file.employment.employmentStatus)}
+                />
+                <DetailInfoRow
+                  label="Wochenstunden"
+                  value={file.employment.weeklyHours?.toString() ?? '—'}
+                />
+                <DetailInfoRow label="Eintrittsdatum" value={file.masterData.entryDate ?? '—'} />
+                <DetailInfoRow label="Einsatzbereich" value={file.employment.deploymentArea ?? '—'} />
+              </>
+            )}
+          </SectionPanel>
+          <EmployeePayrollPersonnelPanel
+            tab="employment"
+            tenantId={tenantId}
+            employeeId={employeeId}
+            masterData={file.masterData}
+            payroll={file.payrollPersonnel}
+            canEdit={canEdit}
+            saving={saving}
+            actorRoleKey={profile?.roleKey}
+            actorProfileId={profile?.id}
+            panelCtx={panelCtx}
+            onSaved={refresh}
+            onError={setActionError}
+            onSuccess={setActionSuccess}
+            setSaving={setSaving}
+          />
+        </>
+      ) : null}
+
+      {activeTab === 'compensation' && tenantId ? (
+        <EmployeePayrollPersonnelPanel
+          tab="compensation"
+          tenantId={tenantId}
+          employeeId={employeeId}
+          masterData={file.masterData}
+          payroll={file.payrollPersonnel}
+          canEdit={canEdit}
+          saving={saving}
+          actorRoleKey={profile?.roleKey}
+          actorProfileId={profile?.id}
+          panelCtx={panelCtx}
+          onSaved={refresh}
+          onError={setActionError}
+          onSuccess={setActionSuccess}
+          setSaving={setSaving}
+        />
+      ) : null}
+
+      {activeTab === 'tax_social' && tenantId ? (
+        <EmployeePayrollPersonnelPanel
+          tab="tax_social"
+          tenantId={tenantId}
+          employeeId={employeeId}
+          masterData={file.masterData}
+          payroll={file.payrollPersonnel}
+          canEdit={canEdit}
+          saving={saving}
+          actorRoleKey={profile?.roleKey}
+          actorProfileId={profile?.id}
+          panelCtx={panelCtx}
+          onSaved={refresh}
+          onError={setActionError}
+          onSuccess={setActionSuccess}
+          setSaving={setSaving}
+        />
+      ) : null}
+
+      {activeTab === 'secondary_employment' && tenantId ? (
+        <EmployeePayrollPersonnelPanel
+          tab="secondary_employment"
+          tenantId={tenantId}
+          employeeId={employeeId}
+          masterData={file.masterData}
+          payroll={file.payrollPersonnel}
+          canEdit={canEdit}
+          saving={saving}
+          actorRoleKey={profile?.roleKey}
+          actorProfileId={profile?.id}
+          panelCtx={panelCtx}
+          onSaved={refresh}
+          onError={setActionError}
+          onSuccess={setActionSuccess}
+          setSaving={setSaving}
+        />
       ) : null}
 
       {activeTab === 'roles_permissions' ? (

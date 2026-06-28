@@ -22,6 +22,9 @@ export type PersonnelUiTabKey =
   | 'master_data'
   | 'contact'
   | 'employment'
+  | 'compensation'
+  | 'tax_social'
+  | 'secondary_employment'
   | 'roles_permissions'
   | 'qualifications'
   | 'documents'
@@ -131,6 +134,9 @@ export function resolvePersonnelUiTab(tab: EmployeePersonnelTabKey | string): Pe
     tab === 'master_data' ||
     tab === 'contact' ||
     tab === 'employment' ||
+    tab === 'compensation' ||
+    tab === 'tax_social' ||
+    tab === 'secondary_employment' ||
     tab === 'roles_permissions' ||
     tab === 'qualifications' ||
     tab === 'documents' ||

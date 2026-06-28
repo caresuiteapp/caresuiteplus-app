@@ -25,6 +25,7 @@ import {
 import { fetchProfileRoleKey } from '@/lib/supabase/profileRoleBridge';
 import { loadEmployeeHomeOfficeOverride } from './employeeHomeOfficeService';
 import { loadEmployeeAuditEventsFromDb } from './employeePersonnelAuditService';
+import { loadEmployeePayrollPersonnelBundle } from './employeePayrollPersonnelLoader';
 
 /** Columns known from migrations 0005 + 0132 (+ detail mapper extras when present). */
 const EMPLOYEE_PERSONNEL_SAFE_SELECT = [
@@ -39,6 +40,10 @@ const EMPLOYEE_PERSONNEL_SAFE_SELECT = [
   'cost_center',
   'notes',
   'start_date',
+  'salutation',
+  'academic_title',
+  'nationality',
+  'address_supplement',
 ].join(', ');
 
 const personnelFileCache = new Map<string, EmployeePersonnelFile>();
@@ -331,8 +336,16 @@ export async function loadEmployeePersonnelFileLive(
   const employeeResult = await loadEmployeeRow(tenantId, employeeId);
   if (!employeeResult.ok) return employeeResult;
 
-  const [documents, portalAccount, qualifications, backgroundCheck, profileRoleKey, workMaterials, auditEvents] =
-    await Promise.all([
+  const [
+    documents,
+    portalAccount,
+    qualifications,
+    backgroundCheck,
+    profileRoleKey,
+    workMaterials,
+    auditEvents,
+    payrollPersonnel,
+  ] = await Promise.all([
     loadEmployeeDocuments(tenantId, employeeId),
     loadEmployeePortalAccount(tenantId, employeeId),
     loadEmployeeQualifications(tenantId, employeeId),
@@ -340,6 +353,13 @@ export async function loadEmployeePersonnelFileLive(
     loadEmployeeProfileRole(tenantId, employeeResult.data.profile_id),
     loadEmployeeWorkMaterials(tenantId, employeeId),
     loadEmployeeAuditEventsFromDb(tenantId, employeeId),
+    loadEmployeePayrollPersonnelBundle(tenantId, employeeId, {
+      salutation: employeeResult.data.salutation,
+      academic_title: employeeResult.data.academic_title,
+      nationality: employeeResult.data.nationality,
+      address_supplement: employeeResult.data.address_supplement,
+      entry_date: employeeResult.data.entry_date,
+    }),
   ]);
 
   await loadEmployeeHomeOfficeOverride(tenantId, employeeId);
@@ -353,6 +373,7 @@ export async function loadEmployeePersonnelFileLive(
     backgroundCheck: backgroundCheck ?? undefined,
     workMaterials,
     auditEvents,
+    payrollPersonnel: payrollPersonnel.ok ? payrollPersonnel.data : undefined,
   });
 
   personnelFileCache.set(cacheKey(tenantId, employeeId), file);

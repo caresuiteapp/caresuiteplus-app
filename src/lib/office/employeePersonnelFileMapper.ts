@@ -20,6 +20,8 @@ import { mapDbStatusToCatalogStatus, mapEmploymentStatusToDbStatus } from './emp
 import { evaluateEmployeeDeployability } from './employeeDeployabilityService';
 import { ALL_EMPLOYEE_PERSONNEL_TABS } from './employeePersonnelFieldRules';
 import { computeQualificationStatus } from './employeeQualificationService';
+import type { EmployeePayrollPersonnelBundle } from '@/types/modules/employeePayrollPersonnel';
+import { buildPayrollPersonnelBundle } from './employeePayrollPersonnelMapper';
 
 export type EmployeePersonnelLiveRow = {
   id: string;
@@ -56,6 +58,10 @@ export type EmployeePersonnelLiveRow = {
   qualification?: string | null;
   qualification_notes?: string | null;
   internal_notes?: string | null;
+  salutation?: string | null;
+  academic_title?: string | null;
+  nationality?: string | null;
+  address_supplement?: string | null;
   created_at: string;
   updated_at: string;
 };
@@ -316,6 +322,7 @@ export function buildEmployeePersonnelFileFromLiveRows(input: {
   backgroundCheck?: EmployeeBackgroundCheckRecord;
   workMaterials?: EmployeeWorkMaterialRecord[];
   auditEvents?: EmployeeAuditEvent[];
+  payrollPersonnel?: EmployeePayrollPersonnelBundle;
 }): EmployeePersonnelFile {
   const { employee: row } = input;
   const documents = mapEmployeeDocumentsLiveRows(input.documents ?? []);
@@ -403,6 +410,17 @@ export function buildEmployeePersonnelFileFromLiveRows(input: {
     masterData,
     portalAccess,
     employment,
+    payrollPersonnel:
+      input.payrollPersonnel ??
+      buildPayrollPersonnelBundle({
+        employee: {
+          salutation: row.salutation,
+          academic_title: row.academic_title,
+          nationality: row.nationality,
+          address_supplement: row.address_supplement,
+          entry_date: row.entry_date,
+        },
+      }),
     qualifications,
     backgroundCheck,
     documents,

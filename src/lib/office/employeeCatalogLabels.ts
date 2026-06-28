@@ -1,4 +1,5 @@
 import { EMPLOYEE_OFFICE_CATALOGS } from '@/data/demo/templates/catalogs/employeeOffice';
+import { EMPLOYEE_PAYROLL_CATALOGS } from '@/data/demo/templates/catalogs/employeePayroll';
 import { GLOBAL_STATUS_CATALOGS } from '@/data/demo/templates/catalogs/globalStatuses';
 import { formatGermanCatalogKey } from '@/lib/formatters/germanLabelFormatters';
 import type { CatalogType } from '@/types/templates';
@@ -7,7 +8,7 @@ const labelMaps = new Map<CatalogType, Map<string, string>>();
 
 function ensureLabelMaps(): void {
   if (labelMaps.size > 0) return;
-  for (const entry of [...EMPLOYEE_OFFICE_CATALOGS, ...GLOBAL_STATUS_CATALOGS]) {
+  for (const entry of [...EMPLOYEE_OFFICE_CATALOGS, ...EMPLOYEE_PAYROLL_CATALOGS, ...GLOBAL_STATUS_CATALOGS]) {
     const map = labelMaps.get(entry.catalogType) ?? new Map<string, string>();
     map.set(entry.valueKey, entry.label);
     labelMaps.set(entry.catalogType, map);

@@ -77,7 +77,10 @@ export type CatalogType =
   | 'stationaer_living_area_type'
   | 'consent_type'
   | 'employee_role'
-  | 'employee_department';
+  | 'employee_department'
+  | 'employee_job_title'
+  | 'employee_tax_calculation'
+  | 'employee_health_insurance';
 
 export type CatalogEntry = {
   id: EntityId;

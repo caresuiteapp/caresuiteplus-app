@@ -1,5 +1,6 @@
 import type { RoleKey } from '@/types/core/auth';
 import type { TenantScopedEntity } from '../core/base';
+import type { EmployeePayrollPersonnelBundle } from './employeePayrollPersonnel';
 
 export type EmployeeEmploymentStatus =
   | 'applicant'
@@ -213,6 +214,7 @@ export type EmployeePersonnelFile = {
   masterData: EmployeeMasterData;
   portalAccess: EmployeePortalAccessRecord;
   employment: EmployeeEmploymentDetails;
+  payrollPersonnel: EmployeePayrollPersonnelBundle;
   qualifications: EmployeeQualificationRecord[];
   backgroundCheck: EmployeeBackgroundCheckRecord;
   documents: EmployeeDocumentRecord[];

@@ -11,6 +11,7 @@ import type {
 import { DEMO_TENANT_ID } from '@/data/demo/tenant';
 import { getDemoEmployeeDetail } from '@/data/demo/employeeDetails';
 import { evaluateEmployeeDeployability } from '@/lib/office/employeeDeployabilityService';
+import { buildPayrollPersonnelBundle } from '@/lib/office/employeePayrollPersonnelMapper';
 
 const REFERENCE = new Date('2026-06-16T12:00:00.000Z');
 
@@ -326,6 +327,45 @@ export function getDemoEmployeePersonnelFile(employeeId: string): EmployeePerson
     masterData,
     portalAccess,
     employment,
+    payrollPersonnel: buildPayrollPersonnelBundle({
+      employee: {
+        salutation: employeeId === 'employee-002' ? 'frau' : 'herr',
+        academic_title: null,
+        nationality: 'DE',
+        address_supplement: null,
+        entry_date: masterData.entryDate,
+      },
+      contract: {
+        job_title_key: 'pflegefachkraft',
+        education_degrees: ['Examinierte Pflegefachkraft'],
+        work_days: { mon: 8, tue: 8, wed: 8, thu: 8, fri: 7.5, sat: 0, sun: 0 },
+        work_on_holidays: false,
+        annual_vacation_days: 30,
+      },
+      payroll: {
+        compensation_type: 'salary',
+        compensation_amount: employeeId === 'employee-003' ? 556 : 3200,
+        payout_interval: 'monthly',
+        payout_method: 'transfer',
+        iban: 'DE89370400440532013000',
+        bank_name: 'Commerzbank',
+        account_holder: `${masterData.firstName} ${masterData.lastName}`,
+        alternate_account_holder: null,
+      },
+      tax: {
+        tax_calculation_type: employeeId === 'employee-003' ? 'pauschsteuer_minijob' : 'lohnsteuer_tabelle',
+        tax_id: '12345678901',
+      },
+      socialInsurance: {
+        insurance_type: 'statutory',
+        health_insurance_key: 'tk',
+        pension_fund_registered: false,
+        social_security_number: '12150565M007',
+        employer_relationship: false,
+      },
+      secondaryEmployments: [],
+      vacationDaysUsed: employeeId === 'employee-001' ? 5 : 0,
+    }),
     qualifications,
     backgroundCheck,
     documents,
