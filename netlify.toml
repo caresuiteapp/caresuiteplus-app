@@ -1,12 +1,12 @@
-# Deploy nur bei Bedarf:
-# Letzter Deploy-Trigger: 2026-06-23
-# - Commit-Message mit [deploy] pushen, ODER
-# - Im Netlify-Dashboard „Trigger deploy“ ausführen
-# Ohne [deploy] wird der Build übersprungen (ignore exit 0 = skip, exit 1 = build).
+# Kein automatisches Deploy bei Git-Push.
+# Deploy NUR über Netlify-Dashboard „Trigger deploy“ oder auf explizite Nutzer-Anfrage.
+# ignore exit 0 = Build überspringen (immer bei Push). exit 1 = Build ausführen.
+# Früherer [deploy]-Trigger in Commit-Messages ist deaktiviert — siehe .cursor/rules/no-auto-deploy.mdc
 [build]
   command = "npm ci && npx expo export --platform web"
   publish = "dist"
-  ignore = "bash -c 'if git log -1 --pretty=%B | grep -q \"\\[deploy\\]\"; then exit 1; else exit 0; fi'"
+  ignore = "exit 0"
+  # ignore = "bash -c 'if git log -1 --pretty=%B | grep -q \"\\[deploy\\]\"; then exit 1; else exit 0; fi'"
 
 [build.environment]
   EXPO_PUBLIC_DEMO_MODE = "false"

@@ -1,5 +1,7 @@
 import type { CareSuiteTemplate, CatalogEntry, TemplateCategory } from '@/types/templates';
 import { GLOBAL_STATUS_CATALOGS } from '../catalogs/globalStatuses';
+import { EMPLOYEE_OFFICE_CATALOGS } from '../catalogs/employeeOffice';
+import { EMPLOYEE_PAYROLL_CATALOGS } from '../catalogs/employeePayroll';
 import { DOCUMENT_CATEGORY_CATALOGS } from '../catalogs/documentCategories';
 import { UPLOAD_CATEGORY_CATALOGS } from '../catalogs/uploadCategories';
 import { OFFICE_TEMPLATES } from '../modules/officeTemplates';
@@ -89,6 +91,8 @@ export function getAllSystemTemplates(): CareSuiteTemplate[] {
 export function getAllCatalogEntries(): CatalogEntry[] {
   return [
     ...GLOBAL_STATUS_CATALOGS,
+    ...EMPLOYEE_OFFICE_CATALOGS,
+    ...EMPLOYEE_PAYROLL_CATALOGS,
     ...DOCUMENT_CATEGORY_CATALOGS,
     ...UPLOAD_CATEGORY_CATALOGS,
     ...LEGACY_CATALOGS,
