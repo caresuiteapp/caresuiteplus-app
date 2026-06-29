@@ -30,6 +30,8 @@ check('AP2-05', 'saveEmployeeConsentBundle.ts', fileExists('src/features/employe
 check('AP2-06', 'needsPermissionOnboarding module', fileExists('src/features/employeePermissions/needsPermissionOnboarding.ts'), 'gate');
 check('AP2-07', 'getEmployeePermissionOverview module', fileExists('src/features/employeePermissions/getEmployeePermissionOverview.ts'), 'overview');
 check('AP2-08', 'Migration 0207', fileExists('supabase/migrations/0207_assist_permissions_2_consent_repair.sql'), 'ddl');
+check('AP2-08b', 'Migration 0208 dual-role RLS', fileExists('supabase/migrations/0208_assist_permissions_2b_dual_role_portal_rls.sql'), 'ddl');
+check('AP2-08c', 'is_employee_portal_rls_context helper', fileContains('supabase/migrations/0208_assist_permissions_2b_dual_role_portal_rls.sql', 'is_employee_portal_rls_context'), 'helper');
 check('AP2-09', 'Bundle version TEXT migration', fileContains('supabase/migrations/0207_assist_permissions_2_consent_repair.sql', 'ALTER COLUMN bundle_version TYPE TEXT'), 'text version');
 check('AP2-10', 'Onboarding DB hydrate', fileContains('src/components/portal/EmployeePermissionOnboarding.tsx', 'getEmployeeConsentBundle'), 'hydrate');
 check('AP2-11', 'Internal consent always persisted', fileContains('src/components/portal/EmployeePermissionOnboarding.tsx', 'persistInternalLocationConsent'), 'scope save');

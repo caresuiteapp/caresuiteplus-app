@@ -169,7 +169,10 @@ export async function persistEmployeePortalStatusTransition(
         eventType,
         now,
       );
-      if (!syncResult.ok) warnings.push(syncResult.error ?? 'WFM-Sync fehlgeschlagen.');
+      // WFM mirror is best-effort — must not block arrival / status transitions.
+      if (!syncResult.ok && process.env.NODE_ENV !== 'production') {
+        warnings.push(syncResult.error ?? 'WFM-Sync fehlgeschlagen.');
+      }
     }
   }
 

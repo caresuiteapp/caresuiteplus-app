@@ -11,7 +11,6 @@ export async function needsPermissionOnboarding(
 ): Promise<boolean> {
   const snapshot = await getEmployeeConsentBundle(tenantId, employeeId);
   if (!snapshot.ok) {
-    // Transient read failure — prefer not to loop-block portal; treat as complete if internal consent exists
     return false;
   }
   return !snapshot.data.onboardingCompleted;

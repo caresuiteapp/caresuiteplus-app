@@ -74,7 +74,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     usePortalActor();
   const tenantId = useServiceTenantId() ?? portalTenantId;
   const employeeId = portalEmployeeId ?? '';
-  const roleKey = profile?.roleKey ?? portalRoleKey ?? null;
+  const roleKey = portalRoleKey ?? profile?.roleKey ?? null;
 
   const [gpsPermission, setGpsPermission] = useState<EmployeePortalGpsPermissionStatus>('undetermined');
   const [tick, setTick] = useState(0);
