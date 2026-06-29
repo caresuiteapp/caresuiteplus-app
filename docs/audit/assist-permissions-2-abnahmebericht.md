@@ -59,4 +59,9 @@ ASSIST.PERMISSIONS.2 fixes two production bugs:
 
 ## Commit
 
+- **Hash:** `edb23a45`
 - **Message:** `ASSIST.PERMISSIONS.2 fix persistent consent and mark arrived db error [deploy]`
+
+## Deploy status (Netlify)
+
+- **2026-06-29:** Production HTML still referenced `entry-df556c3f`; commits `4764f8df` / `8664c349` (ASSIST.PERMISSIONS.2b/2c) not yet live. Doc-only retrigger with `[deploy]` to publish bundle with markArrived warn-and-continue and assignments-first persistence.
