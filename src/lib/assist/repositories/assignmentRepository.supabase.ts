@@ -113,7 +113,9 @@ const LIST_SELECT = `
   employees(first_name, last_name)
 `;
 
-const DETAIL_SELECT = `${LIST_SELECT}, assignment_tasks(*)`;
+const DETAIL_SELECT = LIST_SELECT;
+
+const DETAIL_TASKS_SELECT = '*';
 
 function getClient() {
   return getSupabaseClient();
@@ -291,9 +293,22 @@ export const assignmentSupabaseRepository = {
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     if (!data) return { ok: true, data: null };
 
+    const { data: taskRows, error: taskError } = await fromUnknownTable(supabase, 'assignment_tasks')
+      .select(DETAIL_TASKS_SELECT)
+      .eq('tenant_id', tenantId)
+      .eq('assignment_id', assignmentId)
+      .order('sort_order', { ascending: true });
+
+    if (taskError) {
+      console.warn('[assignmentRepository] assignment_tasks:', taskError.message);
+    }
+
+    const row = data as unknown as AssignmentLiveRow;
+    const tasks = (taskRows ?? []) as unknown as AssignmentTaskRow[];
+
     return {
       ok: true,
-      data: mapDetail(data as unknown as AssignmentLiveRow & { assignment_tasks?: AssignmentTaskRow[] }),
+      data: mapDetail({ ...row, assignment_tasks: tasks }),
     };
   },
 

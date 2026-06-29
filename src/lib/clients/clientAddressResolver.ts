@@ -1,3 +1,4 @@
+import { formatStreetLine } from '@/lib/formatAddress';
 import type { ClientAddress } from '@/types/modules/client';
 
 type ClientAddressSource = {
@@ -13,9 +14,7 @@ type ClientAddressSource = {
 };
 
 export function resolveClientStreetLine(source: ClientAddressSource): string | null {
-  const street = source.street?.trim() ?? '';
-  const houseNumber = source.house_number?.trim() ?? '';
-  const combined = [street, houseNumber].filter(Boolean).join(' ');
+  const combined = formatStreetLine(source.street, source.house_number);
   return combined || null;
 }
 

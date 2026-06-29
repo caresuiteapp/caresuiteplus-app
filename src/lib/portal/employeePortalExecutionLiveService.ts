@@ -148,7 +148,7 @@ async function fetchAssignmentExtras(
       .select('full_name, name, first_name, last_name, phone, is_emergency, is_emergency_contact')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
-      .or('is_emergency.eq.true,is_emergency_contact.eq.true')
+      .or('is_emergency_contact.eq.true')
       .limit(1),
   ]);
 

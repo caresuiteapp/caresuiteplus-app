@@ -1,8 +1,5 @@
-import {
-  formatClientAddressLine,
-  resolveClientStreetLine,
-  resolveClientZip,
-} from '@/lib/clients/clientAddressResolver';
+import { resolveClientZip } from '@/lib/clients/clientAddressResolver';
+import { formatAddressFromSnapshotOrParts } from '@/lib/formatAddress';
 
 export type VisitLocationClientRow = {
   street?: string | null;
@@ -26,16 +23,13 @@ export function resolveVisitLocation(source: VisitLocationSource): string {
   if (notes) return notes;
 
   const client = source.client;
-  if (client) {
-    const street = resolveClientStreetLine({
-      id: '',
-      tenant_id: '',
-      street: client.street,
-      house_number: client.house_number,
-    });
-    const line = formatClientAddressLine(street, resolveClientZip(client), client.city);
-    if (line) return line;
-  }
+  const formatted = formatAddressFromSnapshotOrParts(null, {
+    street: client?.street,
+    houseNumber: client?.house_number,
+    zip: client ? resolveClientZip(client) : null,
+    city: client?.city,
+  });
+  if (formatted) return formatted;
 
   return '—';
 }
