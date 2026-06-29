@@ -115,7 +115,10 @@ Vitest: `liveTrackingLtGmaps2.test.ts` (formatAddress, errors, resolver smoke).
 
 ## 23. Deploy Status
 
-Commit mit `[deploy]` → Netlify Production Build.
+- `13b5db17` (Commit-Message mit `[deploy]`) liefert LT.GMAPS.2-App-Code.
+- `206b68ca` (docs-only, ohne `[deploy]`) → Netlify **Canceled** (erwartet, `netlify.toml` ignore).
+- **2026-06-29 Prod-Check:** caresuiteplus.app-Bundle noch LT.GMAPS.1 (z. B. „Anfahrt gestartet — Assist wird informiert.“); LT.GMAPS.2-Producer fehlt → **`13b5db17`-App war zum Prüfzeitpunkt nicht live.**
+- **Redeploy:** dieser Commit mit `[deploy]`.
 
 ## 24. Production-Prüfschritte für Kevin
 
