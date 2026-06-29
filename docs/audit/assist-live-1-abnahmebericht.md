@@ -50,3 +50,13 @@ Assist Live-Status Hauptbereich zeigte 0 Einsätze, Sidebar HEUTE zeigte 1/1 —
 ## Commit
 
 Message: `ASSIST.LIVE.1 fix assist live employee monitoring display [deploy]`
+
+## Deploy status
+
+| Check | Ergebnis |
+|-------|----------|
+| origin/main | 45e31046 (ASSIST.LIVE.1 [deploy]) |
+| Production HTML entry | entry-44a440cb46562783cbf96b60d1aafc2f.js (2026-06-29) |
+| getAssistLiveMonitoring in entry bundle | **Nein** — Live-Fix noch nicht ausgeliefert |
+| Aktion | Docs-Redeploy-Commit mit [deploy] ausgelöst |
+
