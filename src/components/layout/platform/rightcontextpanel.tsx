@@ -17,6 +17,7 @@ import { useBeratungDashboard } from '@/hooks/useBeratungDashboard';
 import { useAkademieDashboard } from '@/hooks/useAkademieDashboard';
 import { useStationaerDashboard } from '@/hooks/useStationaerDashboard';
 import { useAssistDashboard } from '@/hooks/useAssistDashboard';
+import { useAssistLiveMonitoring } from '@/features/assistLive/useAssistLiveMonitoring';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
 import { useModalStack } from '@/hooks/useModalStack';
@@ -85,6 +86,9 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   const { stats: beratungStats } = useBeratungDashboard();
   const { stats: akademieStats } = useAkademieDashboard();
   const { stats: assistStats } = useAssistDashboard();
+  const { counters: assistLiveCounters } = useAssistLiveMonitoring({
+    enabled: mainModule === 'assist',
+  });
   const isLive = getServiceMode() === 'supabase';
   const styles = useMemo(() => createStyles(isDark, colors, accent), [isDark, colors, accent]);
 
@@ -117,6 +121,7 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
     beratungStats,
     akademieStats,
     assistStats,
+    assistLiveCounters,
   );
 
   return (

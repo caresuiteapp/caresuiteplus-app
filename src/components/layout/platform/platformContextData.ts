@@ -18,6 +18,7 @@ import {
 } from '@/lib/assist/assistDashboardWorkspace';
 import type { AkademieDashboardStats } from '@/types/modules/akademie';
 import type { AssistDashboardStats } from '@/types/modules/assist';
+import type { AssistLiveSidebarCounters } from '@/lib/assist/assistDashboardWorkspace';
 import type { BeratungDashboardStats } from '@/types/modules/beratung';
 import type { StationaerDashboardStats } from '@/types/modules/stationaer';
 import { getModuleNavConfig } from '@/lib/navigation/modulenav';
@@ -287,9 +288,10 @@ export function buildOpenTasks(
   beratungStats?: BeratungDashboardStats | null,
   akademieStats?: AkademieDashboardStats | null,
   assistStats?: AssistDashboardStats | null,
+  assistLiveCounters?: AssistLiveSidebarCounters | null,
 ): { title: string; count: number | string }[] {
   if (mainModule === 'assist') {
-    return buildAssistOpenTasks(assistStats);
+    return buildAssistOpenTasks(assistStats, assistLiveCounters);
   }
 
   if (mainModule === 'stationaer') {

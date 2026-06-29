@@ -22,11 +22,11 @@ import {
   PremiumCard,
   SectionPanel,
 } from '@/components/ui';
-import { useAssistLiveStatus } from '@/hooks/useAssistLiveStatus';
+import { useAssistLiveMonitoring } from '@/features/assistLive/useAssistLiveMonitoring';
+import type { AssistLiveMonitoringRow } from '@/features/assistLive/getAssistLiveMonitoring';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { formatTimerSeconds } from '@/lib/assist/assistLiveTrackingViewService';
-import type { AssistLiveStatusRow } from '@/lib/assist/assistLiveTrackingViewService';
 import { getAssistMapDemoPosition, isGoogleMapsConfigured } from '@/lib/assist/assistMapProvider';
 import {
   GPS_TRACKING_DEMO_MESSAGE,
@@ -43,7 +43,10 @@ function formatTime(iso: string): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
-function pickMapRow(rows: AssistLiveStatusRow[], selectedId: string | null): AssistLiveStatusRow | null {
+function pickMapRow(
+  rows: AssistLiveMonitoringRow[],
+  selectedId: string | null,
+): AssistLiveMonitoringRow | null {
   if (selectedId) {
     const selected = rows.find((row) => row.assignmentId === selectedId);
     if (selected?.tracking?.lastPosition) return selected;
@@ -64,7 +67,7 @@ export function AssistLiveStatusScreen() {
   const { can, check, roleLabel } = usePermissions();
   const canView = can('assist.assignments.view');
   const tenantId = useServiceTenantId();
-  const { overview, loading, error, refresh } = useAssistLiveStatus();
+  const { overview, loading, error, refresh } = useAssistLiveMonitoring();
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
 
   const rows = overview?.rows ?? [];
@@ -72,21 +75,7 @@ export function AssistLiveStatusScreen() {
   const mapProviderReady = isAssistMapProviderConfigured();
   const demoMapPreview = getServiceMode() !== 'supabase' || isDemoMode();
 
-  const mapMarkers = useMemo(
-    () =>
-      rows
-        .filter((row) => row.tracking?.lastPosition)
-        .map((row) => ({
-          id: row.assignmentId,
-          latitude: row.tracking!.lastPosition!.latitude,
-          longitude: row.tracking!.lastPosition!.longitude,
-          label: row.title,
-          subtitle: row.tracking?.trackingActive ? 'Live-Tracking aktiv' : undefined,
-          capturedAt: row.tracking!.lastPosition!.capturedAt,
-          accuracyMeters: row.tracking!.lastPosition!.accuracyMeters,
-        })),
-    [rows],
-  );
+  const mapMarkers = overview?.mapMarkers ?? [];
 
   const mapRow = useMemo(
     () => pickMapRow(rows, selectedAssignmentId),
@@ -157,6 +146,9 @@ export function AssistLiveStatusScreen() {
                   <Text style={styles.title}>{row.title}</Text>
                   <PremiumBadge label={ASSIGNMENT_STATUS_LABELS[row.status]} variant="orange" dot />
                 </View>
+                {row.employeeName ? (
+                  <Text style={styles.meta}>{row.employeeName}</Text>
+                ) : null}
                 <Text style={styles.meta}>
                   {formatTime(row.plannedStartAt)} – {formatTime(row.plannedEndAt)}
                 </Text>
@@ -237,9 +229,14 @@ export function AssistLiveStatusScreen() {
           <InfoBanner variant="warning" title="Tracking-Persistenz" message={GPS_TRACKING_DEMO_MESSAGE} />
         ) : null}
 
+        {error ? (
+          <InfoBanner variant="warning" title="Daten teilweise nicht verfügbar" message={error} />
+        ) : null}
+
         {overview ? (
           <View style={styles.kpiRow}>
-            <PremiumBadge label={`${rows.length} Einsätze`} variant="muted" />
+            <PremiumBadge label={`${overview.todayCount} Einsätze`} variant="muted" />
+            <PremiumBadge label={`${overview.runningCount} laufend`} variant="orange" />
             <PremiumBadge label={`${overview.activeTrackingCount} Tracking aktiv`} variant="cyan" />
             <PremiumBadge label={`${overview.consentPendingCount} Einwilligung offen`} variant="orange" />
             {mapProviderReady ? (

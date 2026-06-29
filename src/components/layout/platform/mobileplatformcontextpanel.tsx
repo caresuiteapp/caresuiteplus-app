@@ -21,6 +21,7 @@ import { useBeratungDashboard } from '@/hooks/useBeratungDashboard';
 import { useAkademieDashboard } from '@/hooks/useAkademieDashboard';
 import { useStationaerDashboard } from '@/hooks/useStationaerDashboard';
 import { useAssistDashboard } from '@/hooks/useAssistDashboard';
+import { useAssistLiveMonitoring } from '@/features/assistLive/useAssistLiveMonitoring';
 import { resolveActiveModuleNavKey } from '@/lib/navigation/modulenav';
 import { navigateModuleNavItem } from '@/lib/navigation/modulenav/navigateModuleNavItem';
 import { useModalStack } from '@/hooks/useModalStack';
@@ -74,6 +75,9 @@ export function MobilePlatformContextPanel({
   const { stats: beratungStats } = useBeratungDashboard();
   const { stats: akademieStats } = useAkademieDashboard();
   const { stats: assistStats } = useAssistDashboard();
+  const { counters: assistLiveCounters } = useAssistLiveMonitoring({
+    enabled: mainModule === 'assist',
+  });
   const isLive = getServiceMode() === 'supabase';
 
   const openTasks = useMemo(
@@ -86,8 +90,18 @@ export function MobilePlatformContextPanel({
         beratungStats,
         akademieStats,
         assistStats,
+        assistLiveCounters,
       ),
-    [akademieStats, assistStats, beratungStats, isLive, mainModule, officeData, stationaerStats],
+    [
+      akademieStats,
+      assistLiveCounters,
+      assistStats,
+      beratungStats,
+      isLive,
+      mainModule,
+      officeData,
+      stationaerStats,
+    ],
   );
 
   const quickActions =

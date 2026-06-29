@@ -126,17 +126,24 @@ export const ASSIST_QUICK_ACCESS: DashboardQuickAction[] = [
   { id: 'assist-qa-settings', label: 'Einstellungen', icon: '⚙️', route: '/assist/einstellungen' },
 ];
 
+export type AssistLiveSidebarCounters = {
+  todayCount: number;
+  runningCount: number;
+};
+
 export function buildAssistOpenTasks(
   stats: AssistDashboardStats | null | undefined,
+  liveCounters?: AssistLiveSidebarCounters | null,
 ): { title: string; count: number | string }[] {
   if (!stats) {
     return [{ title: 'Keine Assist-Daten', count: '—' }];
   }
 
-  const runningNow = stats.activeCount + stats.inProgressCount;
+  const runningNow = liveCounters?.runningCount ?? stats.activeCount + stats.inProgressCount;
+  const todayCount = liveCounters?.todayCount ?? stats.todayCount;
 
   return [
-    { title: 'Heutige Einsätze', count: stats.todayCount },
+    { title: 'Heutige Einsätze', count: todayCount },
     { title: 'Laufende Einsätze', count: runningNow },
     { title: 'Dokumentation offen', count: stats.incompleteCount },
     { title: 'Signatur offen', count: stats.openSignatureCount },
