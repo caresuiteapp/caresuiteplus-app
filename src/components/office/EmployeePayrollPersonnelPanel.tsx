@@ -1,6 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
-import { CareDateInput } from '@/components/inputs';
+import { CareAddressSearch, CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';
 import { FilterChipGroup, PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -22,6 +22,7 @@ import {
   updateEmployeeSocialInsuranceSettings,
   updateEmployeeTaxSettings,
 } from '@/lib/office/employeePayrollPersonnelUpdateService';
+import { updateEmployeeMasterData } from '@/lib/office/employeePersonnelUpdateService';
 import type { EmployeePayrollPersonnelBundle } from '@/types/modules/employeePayrollPersonnel';
 import type { EmployeeMasterData } from '@/types/modules/employeePersonnelFile';
 import type { RoleKey } from '@/types/core/auth';
@@ -98,6 +99,12 @@ export function EmployeePayrollPersonnelPanel({
   const [academicTitle, setAcademicTitle] = useState('');
   const [nationality, setNationality] = useState('DE');
   const [addressSupplement, setAddressSupplement] = useState('');
+  const [street, setStreet] = useState('');
+  const [houseNumber, setHouseNumber] = useState('');
+  const [postalCode, setPostalCode] = useState('');
+  const [city, setCity] = useState('');
+  const [country, setCountry] = useState('DE');
+  const [dateOfBirth, setDateOfBirth] = useState('');
 
   const [jobTitleKey, setJobTitleKey] = useState('');
   const [educationDegree, setEducationDegree] = useState('');
@@ -132,6 +139,13 @@ export function EmployeePayrollPersonnelPanel({
     setAcademicTitle(p.academicTitle ?? '');
     setNationality(p.nationality ?? 'DE');
     setAddressSupplement(p.addressSupplement ?? '');
+
+    setStreet(masterData.street ?? '');
+    setHouseNumber(masterData.houseNumber ?? '');
+    setPostalCode(masterData.postalCode ?? '');
+    setCity(masterData.city ?? '');
+    setCountry(masterData.country ?? 'DE');
+    setDateOfBirth(masterData.dateOfBirth ?? '');
 
     const c = payroll.contract;
     setJobTitleKey(c.jobTitleKey ?? '');
@@ -173,7 +187,16 @@ export function EmployeePayrollPersonnelPanel({
         grossMonthlyIncome: row.grossMonthlyIncome != null ? String(row.grossMonthlyIncome) : '',
       })),
     );
-  }, [payroll, masterData.exitDate]);
+  }, [
+    payroll,
+    masterData.exitDate,
+    masterData.street,
+    masterData.houseNumber,
+    masterData.postalCode,
+    masterData.city,
+    masterData.country,
+    masterData.dateOfBirth,
+  ]);
 
   async function runSave(action: () => Promise<{ ok: boolean; error?: string }>, success: string) {
     setSaving(true);
@@ -208,20 +231,29 @@ export function EmployeePayrollPersonnelPanel({
             <PremiumInput label="Akademischer Titel" value={academicTitle} onChangeText={setAcademicTitle} />
             <PremiumInput label="Staatsangehörigkeit (ISO)" value={nationality} onChangeText={setNationality} />
             <PremiumInput label="Adresszusatz" value={addressSupplement} onChangeText={setAddressSupplement} />
-            <DetailInfoRow label="Straße" value={[masterData.street, masterData.houseNumber].filter(Boolean).join(' ') || '—'} />
-            <DetailInfoRow
-              label="Ort"
-              value={[masterData.postalCode, masterData.city].filter(Boolean).join(' ') || '—'}
+            <CareAddressSearch
+              values={{
+                street,
+                houseNumber,
+                zip: postalCode,
+                city,
+              }}
+              onChange={(address) => {
+                setStreet(address.street);
+                setHouseNumber(address.houseNumber);
+                setPostalCode(address.zip);
+                setCity(address.city);
+              }}
             />
-            <DetailInfoRow label="Land" value={masterData.country ?? 'DE'} />
-            <DetailInfoRow label="Geburtsdatum" value={masterData.dateOfBirth ?? '—'} />
+            <PremiumInput label="Land (ISO)" value={country} onChangeText={setCountry} />
+            <CareDateInput label="Geburtsdatum" value={dateOfBirth} onChange={setDateOfBirth} />
             <PremiumButton
               title="Persönliche Daten speichern"
               loading={saving}
               onPress={() =>
                 void runSave(
-                  () =>
-                    updateEmployeePersonalPayrollData(
+                  async () => {
+                    const payrollResult = await updateEmployeePersonalPayrollData(
                       tenantId,
                       employeeId,
                       {
@@ -232,7 +264,26 @@ export function EmployeePayrollPersonnelPanel({
                       },
                       actorRoleKey,
                       actorProfileId,
-                    ).then((r) => ({ ok: r.ok, error: r.ok ? undefined : r.error })),
+                    );
+                    if (!payrollResult.ok) {
+                      return { ok: false, error: payrollResult.error };
+                    }
+                    const masterResult = await updateEmployeeMasterData(
+                      tenantId,
+                      employeeId,
+                      {
+                        street: street.trim() || null,
+                        houseNumber: houseNumber.trim() || null,
+                        postalCode: postalCode.trim() || null,
+                        city: city.trim() || null,
+                        country: country.trim() || 'DE',
+                        dateOfBirth: dateOfBirth.trim() || null,
+                      },
+                      actorRoleKey,
+                      actorProfileId,
+                    );
+                    return { ok: masterResult.ok, error: masterResult.ok ? undefined : masterResult.error };
+                  },
                   'Persönliche Daten gespeichert.',
                 )
               }
@@ -249,6 +300,15 @@ export function EmployeePayrollPersonnelPanel({
             <DetailInfoRow label="Akademischer Titel" value={payroll.personalData.academicTitle ?? '—'} />
             <DetailInfoRow label="Staatsangehörigkeit" value={payroll.personalData.nationality ?? 'DE'} />
             <DetailInfoRow label="Adresszusatz" value={payroll.personalData.addressSupplement ?? '—'} />
+            <DetailInfoRow
+              label="Straße"
+              value={[masterData.street, masterData.houseNumber].filter(Boolean).join(' ') || '—'}
+            />
+            <DetailInfoRow
+              label="Ort"
+              value={[masterData.postalCode, masterData.city].filter(Boolean).join(' ') || '—'}
+            />
+            <DetailInfoRow label="Land" value={masterData.country ?? 'DE'} />
             <DetailInfoRow label="Geburtsdatum" value={masterData.dateOfBirth ?? '—'} />
           </>
         )}

@@ -152,10 +152,12 @@ describe('lightLiquidGlassAuroraNebula tokens', () => {
   it('liefert view-spezifische Glas-Tokens für Dashboard und Mandanten-Center', () => {
     const dashboard = resolveLlganViewGlass('dashboard', 'default');
     const settings = resolveLlganViewGlass('settings', 'default');
+    const form = resolveLlganViewGlass('form', 'default');
     expect(dashboard.card).toBe('rgba(255,255,255,0.52)');
     expect(settings.card).toBe('rgba(255,255,255,0.62)');
     expect(settings.button).toBe('rgba(255,255,255,0.64)');
     expect(settings.borderAccent).toBe('rgba(110,160,255,0.18)');
+    expect(form.panel).toBe('rgba(255,255,255,0.78)');
   });
 
   it('definiert bunte Light-Modal-Header-Gradient-Stops', () => {

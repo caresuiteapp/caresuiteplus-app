@@ -14,11 +14,13 @@ import { buildStorageObjectFileName, buildTenantStoragePath, toStorageUploadErro
 import {
   buildBackgroundCheckLiveUpdatePayload,
   buildEmploymentLiveUpdatePayload,
+  buildMasterDataLiveUpdatePayload,
   buildQualificationFlagsLiveUpdatePayload,
   type EmployeeBackgroundCheckPatch,
   type EmployeeEmploymentPatch,
   type EmployeeQualificationFlagsPatch,
 } from './employeePersonnelFileMapper';
+import type { EmployeeMasterData } from '@/types/modules/employeePersonnelFile';
 import { evaluateEmployeeDeployability } from './employeeDeployabilityService';
 import {
   persistEmployeeHomeOfficeOverride,
@@ -203,6 +205,25 @@ async function persistEmployeeRowPatch(
   if (patch.entry_date !== undefined) {
     demoFile.masterData.entryDate = typeof patch.entry_date === 'string' ? patch.entry_date : null;
   }
+  if (patch.street !== undefined) {
+    demoFile.masterData.street = typeof patch.street === 'string' ? patch.street : null;
+  }
+  if (patch.house_number !== undefined) {
+    demoFile.masterData.houseNumber = typeof patch.house_number === 'string' ? patch.house_number : null;
+  }
+  if (patch.postal_code !== undefined) {
+    demoFile.masterData.postalCode = typeof patch.postal_code === 'string' ? patch.postal_code : null;
+  }
+  if (patch.city !== undefined) {
+    demoFile.masterData.city = typeof patch.city === 'string' ? patch.city : null;
+  }
+  if (patch.country !== undefined) {
+    demoFile.masterData.country = typeof patch.country === 'string' ? patch.country : null;
+  }
+  if (patch.date_of_birth !== undefined) {
+    demoFile.masterData.dateOfBirth = typeof patch.date_of_birth === 'string' ? patch.date_of_birth : null;
+  }
+
   if (patch.status !== undefined && typeof patch.status === 'string') {
     const dbStatus = patch.status;
     const statusMap: Record<string, typeof demoFile.employment.employmentStatus> = {
@@ -239,6 +260,38 @@ async function persistEmployeeRowPatch(
   });
 
   return { ok: true, data: undefined };
+}
+
+export async function updateEmployeeMasterData(
+  tenantId: string,
+  employeeId: string,
+  patch: Partial<EmployeeMasterData>,
+  actorRoleKey?: RoleKey | null,
+  actorProfileId?: string | null,
+) {
+  const denied = enforcePermission(actorRoleKey, 'office.employees.edit');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const existing = await loadExistingFile(tenantId, employeeId);
+  if (!existing) return { ok: false, error: 'Mitarbeitende:r nicht gefunden.' };
+
+  const updatePayload = buildMasterDataLiveUpdatePayload(patch);
+  const saved = await persistEmployeeRowPatch(tenantId, employeeId, updatePayload, actorRoleKey);
+  if (!saved.ok) return saved;
+
+  await appendEmployeeAuditEvent({
+    tenantId,
+    employeeId,
+    action: 'master_data_updated',
+    actorId: actorProfileId ?? null,
+    actorRole: actorRoleKey ?? null,
+    summary: 'Stammdaten aktualisiert.',
+  });
+
+  return fetchEmployeePersonnelFile(tenantId, employeeId, actorRoleKey);
 }
 
 export async function updateEmployeeQualificationFlags(

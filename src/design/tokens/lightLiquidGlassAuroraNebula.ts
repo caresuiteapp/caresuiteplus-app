@@ -201,7 +201,14 @@ export function resolveLlganViewGlass(
             : view === 'form'
               ? v.modalAlpha
               : v.settingsCardAlpha;
-  const panelAlpha = view === 'dashboard' ? v.dashboardPanelAlpha : v.dashboardPanelAlpha + 0.04;
+  const panelAlpha =
+    view === 'form'
+      ? v.modalAlpha
+      : view === 'table'
+        ? v.tableAlpha
+        : view === 'dashboard'
+          ? v.dashboardPanelAlpha
+          : v.dashboardPanelAlpha + 0.04;
   const buttonAlpha = v.settingsButtonAlpha;
   const blur =
     view === 'settings' || view === 'form' || view === 'table'
