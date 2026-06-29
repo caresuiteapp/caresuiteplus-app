@@ -16,6 +16,7 @@ import type {
   EmployeeWorkMaterialRecord,
   EmployeeWorkMaterialStatus,
 } from '@/types/modules/employeePersonnelFile';
+import { parseGermanDate } from '@/lib/formatters/dateTimeFormatters';
 import { mapDbStatusToCatalogStatus, mapEmploymentStatusToDbStatus } from './employeeStatusMapping';
 import { evaluateEmployeeDeployability } from './employeeDeployabilityService';
 import { ALL_EMPLOYEE_PERSONNEL_TABS } from './employeePersonnelFieldRules';
@@ -438,7 +439,14 @@ export function buildMasterDataLiveUpdatePayload(
 
   if (patch.firstName !== undefined) out.first_name = patch.firstName.trim();
   if (patch.lastName !== undefined) out.last_name = patch.lastName.trim();
-  if (patch.dateOfBirth !== undefined) out.date_of_birth = patch.dateOfBirth;
+  if (patch.dateOfBirth !== undefined) {
+    const raw = patch.dateOfBirth?.trim() || null;
+    if (!raw) {
+      out.date_of_birth = null;
+    } else {
+      out.date_of_birth = parseGermanDate(raw) ?? (/^\d{4}-\d{2}-\d{2}/.test(raw) ? raw.slice(0, 10) : raw);
+    }
+  }
   if (patch.employeeNumber !== undefined) out.employee_number = patch.employeeNumber?.trim() || null;
   if (patch.street !== undefined) out.street = patch.street?.trim() || null;
   if (patch.houseNumber !== undefined) out.house_number = patch.houseNumber?.trim() || null;

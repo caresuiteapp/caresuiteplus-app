@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useEffect, useMemo, useState } from 'react';
 import { CareAddressSearch, CareDateInput } from '@/components/inputs';
 import { DetailInfoRow } from '@/components/detail';
@@ -27,7 +27,21 @@ import type { EmployeePayrollPersonnelBundle } from '@/types/modules/employeePay
 import type { EmployeeMasterData } from '@/types/modules/employeePersonnelFile';
 import type { RoleKey } from '@/types/core/auth';
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
+import { formatDate, parseGermanDate } from '@/lib/formatters/dateTimeFormatters';
 import { spacing } from '@/theme';
+
+function toIsoDateOrNull(value: string): string | null {
+  const trimmed = value.trim();
+  if (!trimmed) return null;
+  return parseGermanDate(trimmed) ?? (/^\d{4}-\d{2}-\d{2}/.test(trimmed) ? trimmed.slice(0, 10) : null);
+}
+
+async function flushFocusedInputs(): Promise<void> {
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    (document.activeElement as HTMLElement | null)?.blur?.();
+    await Promise.resolve();
+  }
+}
 
 type PayrollTabKey = 'master_data' | 'employment' | 'compensation' | 'tax_social' | 'secondary_employment';
 
@@ -250,7 +264,8 @@ export function EmployeePayrollPersonnelPanel({
             <PremiumButton
               title="Persönliche Daten speichern"
               loading={saving}
-              onPress={() =>
+              onPress={async () => {
+                await flushFocusedInputs();
                 void runSave(
                   async () => {
                     const payrollResult = await updateEmployeePersonalPayrollData(
@@ -277,7 +292,7 @@ export function EmployeePayrollPersonnelPanel({
                         postalCode: postalCode.trim() || null,
                         city: city.trim() || null,
                         country: country.trim() || 'DE',
-                        dateOfBirth: dateOfBirth.trim() || null,
+                        dateOfBirth: toIsoDateOrNull(dateOfBirth),
                       },
                       actorRoleKey,
                       actorProfileId,
@@ -285,8 +300,8 @@ export function EmployeePayrollPersonnelPanel({
                     return { ok: masterResult.ok, error: masterResult.ok ? undefined : masterResult.error };
                   },
                   'Persönliche Daten gespeichert.',
-                )
-              }
+                );
+              }}
             />
           </View>
         ) : (
@@ -309,7 +324,10 @@ export function EmployeePayrollPersonnelPanel({
               value={[masterData.postalCode, masterData.city].filter(Boolean).join(' ') || '—'}
             />
             <DetailInfoRow label="Land" value={masterData.country ?? 'DE'} />
-            <DetailInfoRow label="Geburtsdatum" value={masterData.dateOfBirth ?? '—'} />
+            <DetailInfoRow
+              label="Geburtsdatum"
+              value={masterData.dateOfBirth ? formatDate(masterData.dateOfBirth) : '—'}
+            />
           </>
         )}
       </SectionPanel>

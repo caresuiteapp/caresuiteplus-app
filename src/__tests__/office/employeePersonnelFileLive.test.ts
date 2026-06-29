@@ -3,6 +3,7 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   buildEmployeePersonnelFileFromLiveRows,
+  buildMasterDataLiveUpdatePayload,
   buildQualificationsFromEmployeeRow,
 } from '@/lib/office/employeePersonnelFileMapper';
 
@@ -30,22 +31,29 @@ const BASE_ROW = {
 
 describe('employeePersonnelFileLive mapper', () => {
   it('loader fällt auf Detail-Select zurück (wie fetchEmployeeDetail)', () => {
-    const source = readSrc('src/lib/office/employeePersonnelFileLiveLoader.ts');
-    expect(source).toContain('EMPLOYEE_DETAIL_SELECT_COLUMNS');
-    expect(source).toContain('EMPLOYEE_BASE_SELECT_COLUMNS');
-    expect(source).not.toContain('job_title, department, start_date, notes');
-    expect(source).toContain('loadEmployeeWorkMaterials');
-    expect(source).toContain('loadEmployeeAuditEventsFromDb');
-    expect(source).toContain('loadEmployeeHomeOfficeOverride');
+    const loaderSource = readSrc('src/lib/office/employeePersonnelFileLiveLoader.ts');
+    const detailSource = readSrc('src/lib/office/employeeDetailMapper.ts');
+    expect(loaderSource).toContain('EMPLOYEE_DETAIL_SELECT_COLUMNS');
+    expect(loaderSource).toContain('EMPLOYEE_BASE_SELECT_COLUMNS');
+    expect(loaderSource).not.toContain('job_title, department, start_date, notes');
+    expect(loaderSource).toContain('internal_notes');
+    expect(loaderSource).not.toContain("'notes'");
+    expect(detailSource).toContain('date_of_birth');
+    expect(loaderSource).toContain('loadEmployeeWorkMaterials');
+    expect(loaderSource).toContain('loadEmployeeAuditEventsFromDb');
+    expect(loaderSource).toContain('loadEmployeeHomeOfficeOverride');
   });
 
   it('maps live employee row to personnel file', () => {
-    const file = buildEmployeePersonnelFileFromLiveRows({ employee: BASE_ROW });
+    const file = buildEmployeePersonnelFileFromLiveRows({
+      employee: { ...BASE_ROW, date_of_birth: '1985-06-12' },
+    });
 
     expect(file.employeeId).toBe(BASE_ROW.id);
     expect(file.tenantId).toBe(BASE_ROW.tenant_id);
     expect(file.masterData.firstName).toBe('Mhi Aldeen');
     expect(file.masterData.lastName).toBe('Al Jlelati');
+    expect(file.masterData.dateOfBirth).toBe('1985-06-12');
     expect(file.masterData.roleTitle).toBe('Alltagsbegleiter:in');
     expect(file.masterData.status).toBe('aktiv');
     expect(file.employment.employmentStatus).toBe('active');
@@ -54,6 +62,18 @@ describe('employeePersonnelFileLive mapper', () => {
     expect(file.qualifications).toEqual([]);
     expect(file.documents).toEqual([]);
     expect(file.tabs.length).toBeGreaterThan(0);
+  });
+
+  it('serializes Geburtsdatum for live employee update', () => {
+    expect(buildMasterDataLiveUpdatePayload({ dateOfBirth: '15.03.1990' })).toEqual({
+      date_of_birth: '1990-03-15',
+    });
+    expect(buildMasterDataLiveUpdatePayload({ dateOfBirth: '1990-03-15' })).toEqual({
+      date_of_birth: '1990-03-15',
+    });
+    expect(buildMasterDataLiveUpdatePayload({ dateOfBirth: null })).toEqual({
+      date_of_birth: null,
+    });
   });
 
   it('derives qualifications from employee flags', () => {

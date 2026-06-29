@@ -203,6 +203,16 @@ describe('Personalakte Prompt 71', () => {
       'admin-1',
     );
     expect(update.ok).toBe(true);
+
+    const dobUpdate = await updateEmployeeMasterData(
+      TENANT,
+      'employee-001',
+      { dateOfBirth: '1990-03-15' },
+      ADMIN,
+      'admin-1',
+    );
+    expect(dobUpdate.ok).toBe(true);
+    expect(dobUpdate.data?.masterData.dateOfBirth).toBe('1990-03-15');
   });
 
   it('11 — Kein Demo-Fallback im Production-Modus', () => {
