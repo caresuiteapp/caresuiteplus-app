@@ -111,7 +111,7 @@ Vitest: `liveTrackingLtGmaps2.test.ts` (formatAddress, errors, resolver smoke).
 
 ## 22. Commit Hash
 
-*(wird nach Commit ergänzt)*
+`13b5db17` — LT.GMAPS.2 repair employee live tracking database producer [deploy]
 
 ## 23. Deploy Status
 
