@@ -91,9 +91,9 @@ SELECT * FROM normalize_assist_workflow_repair_status('en_route');
 ## Commit & deploy
 
 - **Message:** `ASSIST.STABILIZE.1 fix repair rpc enum cast [deploy]`
-- **Commit hash:** _(filled after push)_
-- **Deploy status:** _(filled after Netlify)_
-- **Bundle note:** SQL-only RPC fix; app bundle unchanged except audit/deploy metadata. Prior STABILIZE.1 RPC caller (`repairWorkflowState.ts`) already passes German status — now succeeds against fixed DB function.
+- **Commit hash:** `a68ca676`
+- **Deploy status:** Netlify production live — bundle `entry-ed4a3a8e5b8ec67113ab1439503d9232.js` (prior STABILIZE.1: `82393788`)
+- **Bundle note:** SQL-only RPC fix; app bundle contains `repair_assist_visit_workflow_status` caller (unchanged `repairWorkflowState.ts`). New deploy hash confirms publish; DB fix is migration 0213.
 
 ## Repair-RPC production ready
 
