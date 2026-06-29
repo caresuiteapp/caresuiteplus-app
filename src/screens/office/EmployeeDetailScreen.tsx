@@ -28,7 +28,7 @@ import {
   EMPLOYEE_DETAIL_PREPARED_MESSAGE,
   isEmployeeDetailLiveReady,
 } from '@/lib/office/employeeModuleConfig';
-import { fetchEmployeeEquipmentSummary, INVENTORY_PREPARED_MESSAGE } from '@/lib/inventory';
+import { fetchEmployeeEquipmentSummary, INVENTORY_PREPARED_MESSAGE, isInventoryLiveReady } from '@/lib/inventory';
 import {
   resolveEmployeeDepartmentLabel,
   resolveEmployeeRoleLabel,
@@ -287,7 +287,9 @@ export function EmployeeDetailScreen({
             variant="secondary"
             onPress={() => router.push('/business/office/inventory' as never)}
           />
-          <InfoBanner title="Inventar" message={INVENTORY_PREPARED_MESSAGE} />
+          {!isInventoryLiveReady() ? (
+            <InfoBanner title="Inventar" message={INVENTORY_PREPARED_MESSAGE} />
+          ) : null}
         </SectionPanel>
       ) : null}
 

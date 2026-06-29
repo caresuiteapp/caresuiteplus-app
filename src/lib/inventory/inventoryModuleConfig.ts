@@ -7,12 +7,12 @@ export function isInventoryLiveReady(): boolean {
 }
 
 export const INVENTORY_PREPARED_MESSAGE =
-  'Inventar, Ausgabe und Rückgabe sind vorbereitet. Live-Persistenz folgt nach Migration 0051 und Freigabe.';
+  'Inventar, Ausgabe und Rückgabe sind vorbereitet. Live-Persistenz folgt nach Migration 0135 und Freigabe.';
 
 export const INVENTORY_MDM_PREPARED_MESSAGE =
   'MDM/Geräteverwaltung ist vorbereitet — Remote Lock/Wipe erst nach Anbindung eines MDM-Providers.';
 
-export const INVENTORY_MIGRATION = '0051_inventory_prepared.sql';
+export const INVENTORY_MIGRATION = '0135_inventory_prepared.sql';
 
 export const INVENTORY_RETURN_PROTOCOL_PDF_PREPARED = true;
 

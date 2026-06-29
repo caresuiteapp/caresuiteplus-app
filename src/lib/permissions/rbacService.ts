@@ -226,6 +226,11 @@ function isValidRbacContext(tenantId: string, employeeId: string): boolean {
   return UUID_PATTERN.test(tenantId) && UUID_PATTERN.test(employeeId);
 }
 
+function sanitizeRoleTemplateId(templateId: string | null | undefined): string | null {
+  if (!templateId) return null;
+  return UUID_PATTERN.test(templateId) ? templateId : null;
+}
+
 function shouldUseSyncRbacFallback(error: { code?: string; message?: string } | null): boolean {
   if (!error) return false;
   return (
@@ -456,7 +461,7 @@ export async function setEmployeeRoleAssignments(
   const rows = assignments.map((a) => ({
     tenant_id: tenantId,
     employee_id: employeeId,
-    role_template_id: a.roleTemplateId,
+    role_template_id: sanitizeRoleTemplateId(a.roleTemplateId),
     role_key: a.roleKey,
     is_primary: a.isPrimary,
     assigned_at: a.assignedAt,

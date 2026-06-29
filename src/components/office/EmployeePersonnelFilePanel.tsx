@@ -57,7 +57,7 @@ import {
   getEmployeeHomeOfficeOverride,
   resolveEmployeeTimeTrackingMode,
 } from '@/lib/office/employeeHomeOfficeService';
-import { fetchEmployeeEquipmentSummary, INVENTORY_PREPARED_MESSAGE } from '@/lib/inventory';
+import { fetchEmployeeEquipmentSummary, INVENTORY_PREPARED_MESSAGE, isInventoryLiveReady } from '@/lib/inventory';
 import type { EmployeeEmploymentStatus, EmployeeWorkMaterialStatus } from '@/types/modules/employeePersonnelFile';
 import type { RoleKey } from '@/types/core/auth';
 import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
@@ -229,6 +229,10 @@ export function EmployeePersonnelFilePanel({
   useEffect(() => {
     setActiveTab(initialTab);
   }, [employeeId, initialTab]);
+
+  useEffect(() => {
+    setActionError(null);
+  }, [activeTab]);
 
   function resolveBlockerTab(tab: string): EmployeePersonnelUiTabKey {
     return resolvePersonnelUiTab(tab);
@@ -960,7 +964,9 @@ export function EmployeePersonnelFilePanel({
               onPress={() => router.push('/business/office/inventory' as never)}
             />
           ) : null}
-          <InfoBanner title="Inventar" message={INVENTORY_PREPARED_MESSAGE} />
+          {!isInventoryLiveReady() ? (
+            <InfoBanner title="Inventar" message={INVENTORY_PREPARED_MESSAGE} />
+          ) : null}
         </SectionPanel>
       ) : null}
 

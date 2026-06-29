@@ -23,7 +23,7 @@ import {
 } from '@/lib/inventory';
 
 const root = path.join(__dirname, '..', '..', '..');
-const migrationPath = path.join(root, 'supabase/migrations/0051_inventory_prepared.sql');
+const migrationPath = path.join(root, 'supabase/migrations/0135_inventory_prepared.sql');
 
 function readMigration(): string {
   return readFileSync(migrationPath, 'utf8');

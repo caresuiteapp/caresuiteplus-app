@@ -13,7 +13,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 export const TENANT_PRODUCT_SELECT =
-  'id, tenant_id, product_id, is_active, activated_at, access_source, included_by_module_key, is_base_included, billing_status, access_type, price_cents, premium_ready, products(key)';
+  'id, tenant_id, product_id, is_active, activated_at, access_source, included_by_module_key, is_base_included, billing_status, access_type, price_cents, premium_ready, products(product_key)';
 
 export type TenantProductLiveRow = {
   id: string;
@@ -28,7 +28,7 @@ export type TenantProductLiveRow = {
   access_type: TenantProduct['accessType'] | null;
   price_cents: number | null;
   premium_ready: boolean | null;
-  products: { key: ProductKey } | null;
+  products: { product_key: ProductKey; key?: ProductKey } | null;
 };
 
 function unavailable<T>(): ServiceResult<T> {
@@ -59,7 +59,7 @@ function buildInactiveModule(tenantId: string, productKey: ProductKey): TenantPr
 }
 
 export function mapTenantProductRow(row: TenantProductLiveRow): TenantProduct | null {
-  const productKey = row.products?.key;
+  const productKey = row.products?.product_key ?? row.products?.key;
   if (!isProductKey(productKey)) {
     return null;
   }
@@ -101,7 +101,7 @@ export function mapTenantProductRows(
   return ALL_PRODUCT_KEYS.map((key) => byKey.get(key)!);
 }
 
-/** Live Supabase — Mandanten-Module aus tenant_products + products.key */
+/** Live Supabase — Mandanten-Module aus tenant_products + products.product_key */
 export async function fetchTenantModulesFromSupabase(
   tenantId: string,
 ): Promise<ServiceResult<TenantProduct[]>> {

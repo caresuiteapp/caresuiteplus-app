@@ -428,7 +428,7 @@ export async function uploadEmployeePersonnelDocument(
         uploaded_by: actorProfileId ?? null,
         uploaded_at: new Date().toISOString(),
         status: 'active',
-        visibility: 'internal_only',
+        visibility: 'internal',
         released_to_employee_portal: false,
       });
       if (legacyInsert.error) {
