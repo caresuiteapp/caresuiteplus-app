@@ -24,7 +24,9 @@ function fileContains(rel: string, needle: string): boolean {
 
 check('AS1-01', 'Preflight doc', fileExists('docs/audit/assist-stabilize-1-stop-the-line-preflight.md'), 'preflight');
 check('AS1-02', 'Migration 0212', fileExists('supabase/migrations/0212_assist_stabilize_1_workflow_repair.sql'), 'DDL');
-check('AS1-03', 'repair RPC', fileContains('supabase/migrations/0212_assist_stabilize_1_workflow_repair.sql', 'repair_assist_visit_workflow_status'), 'rpc');
+check('AS1-02b', 'Migration 0213 enum fix', fileExists('supabase/migrations/0213_fix_repair_assist_visit_workflow_status_enum_cast.sql'), 'DDL');
+check('AS1-03', 'repair RPC', fileContains('supabase/migrations/0213_fix_repair_assist_visit_workflow_status_enum_cast.sql', 'repair_assist_visit_workflow_status'), 'rpc');
+check('AS1-03b', 'enum cast fix', fileContains('supabase/migrations/0213_fix_repair_assist_visit_workflow_status_enum_cast.sql', 'normalize_assist_workflow_repair_status'), 'rpc');
 check('AS1-04', 'detectWorkflowInconsistencies', fileExists('src/features/assistWorkflow/detectWorkflowInconsistencies.ts'), 'detect');
 check('AS1-05', 'repairWorkflowState', fileExists('src/features/assistWorkflow/repairWorkflowState.ts'), 'repair');
 check('AS1-06', 'deriveWorkflowStatus', fileExists('src/features/assistWorkflow/deriveWorkflowStatus.ts'), 'derive');
