@@ -10,6 +10,7 @@ import { validateWorkflowTransition } from '../assistVisitStateMachine';
 import { resolveAssistExecutionContext } from '../resolveAssistExecutionContext';
 import type { AssistExecutionContext } from '../types';
 import {
+  assistWorkflowErrorFromSupabase,
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
 } from '../assistWorkflowErrors';
@@ -19,6 +20,12 @@ export type TransitionOptions = {
   hasDocumentation?: boolean;
   hasRequiredSignature?: boolean;
   signatureImpossibleJustified?: boolean;
+  /** When true, caller persists status side-effects (markArrived). */
+  skipStatusPersistence?: boolean;
+  arrivalOptions?: {
+    arrivalMode?: 'gps' | 'without_gps' | 'manual';
+    manualReason?: string | null;
+  };
 };
 
 export async function transitionAssistExecutionStatus(
@@ -57,9 +64,25 @@ export async function transitionAssistExecutionStatus(
     ctx.employeeId,
     roleKey,
     toStatus,
+    options?.skipStatusPersistence
+      ? { skipStatusPersistence: true, arrivalOptions: options.arrivalOptions }
+      : undefined,
   );
 
   if (!result.ok) {
+    if (result.error?.includes('Datenbankfehler')) {
+      return assistWorkflowErrorToResult(
+        assistWorkflowErrorFromSupabase(
+          { message: result.error },
+          {
+            tenantId: ctx.tenantId,
+            assignmentId: ctx.assignmentId,
+            employeeId: ctx.employeeId,
+            operation: 'transitionAssistExecutionStatus',
+          },
+        ),
+      );
+    }
     return { ok: false, error: result.error };
   }
 

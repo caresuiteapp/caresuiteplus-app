@@ -4,9 +4,11 @@ import { PremiumButton, PremiumCard, SectionPanel } from '@/components/ui';
 import {
   completePermissionOnboardingBundle,
   EMPLOYEE_PERMISSION_EXPLANATIONS,
+  getEmployeeConsentBundle,
   getEmployeePermissionOverview,
   needsPermissionOnboarding,
   PERMISSION_KINDS,
+  persistInternalLocationConsent,
   requestLocationPermissionOnce,
   type EmployeePermissionKind,
   type EmployeePermissionOverviewItem,
@@ -54,20 +56,27 @@ export function EmployeePermissionOnboarding({
   const [step, setStep] = useState(0);
   const [items, setItems] = useState<EmployeePermissionOverviewItem[]>([]);
   const [loading, setLoading] = useState(false);
+  const [hydrating, setHydrating] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [locationConsentGranted, setLocationConsentGranted] = useState(false);
 
-  const refreshOverview = useCallback(async () => {
-    const overview = await getEmployeePermissionOverview(tenantId, employeeId, {
-      locationInternalConsentGranted: locationConsentGranted,
-    });
+  const hydrateFromDb = useCallback(async () => {
+    setHydrating(true);
+    const [consentSnapshot, overview] = await Promise.all([
+      getEmployeeConsentBundle(tenantId, employeeId),
+      getEmployeePermissionOverview(tenantId, employeeId),
+    ]);
+    if (consentSnapshot.ok && consentSnapshot.data.locationInternalConsentGranted) {
+      setLocationConsentGranted(true);
+    }
     if (overview.ok) setItems(overview.data.items);
-  }, [tenantId, employeeId, locationConsentGranted]);
+    setHydrating(false);
+  }, [tenantId, employeeId]);
 
   useEffect(() => {
     if (!visible) return;
-    void refreshOverview();
-  }, [visible, refreshOverview]);
+    void hydrateFromDb();
+  }, [visible, hydrateFromDb]);
 
   const currentKind = PERMISSION_KINDS[step] as EmployeePermissionKind | undefined;
   const currentItem = items.find((i) => i.kind === currentKind);
@@ -75,30 +84,43 @@ export function EmployeePermissionOnboarding({
   const isLastStep = step >= PERMISSION_KINDS.length - 1;
 
   const handleGrantLocationConsent = useCallback(async () => {
-    if (!assignmentId) {
-      markEmployeePortalConsentExplained(tenantId, 'onboarding');
-      grantEmployeePortalLocationConsent(tenantId, 'onboarding');
-      setLocationConsentGranted(true);
-      return;
-    }
     setLoading(true);
     setError(null);
-    markEmployeePortalConsentExplained(tenantId, assignmentId);
-    const local = grantEmployeePortalLocationConsent(tenantId, assignmentId);
-    const saved = await saveEmployeeLocationConsent({
+    const now = new Date().toISOString();
+
+    markEmployeePortalConsentExplained(tenantId, assignmentId ?? 'onboarding');
+    const local = grantEmployeePortalLocationConsent(tenantId, assignmentId ?? 'onboarding');
+
+    const scopeSaved = await persistInternalLocationConsent(
       tenantId,
       employeeId,
-      routeParamId: assignmentId,
-      profileId: profileId ?? employeeId,
-      consentExplainedAt: local.explainedAt,
-      localConsent: local,
-    });
-    setLoading(false);
-    if (!saved.ok) {
-      setError(saved.error ?? 'Einwilligung konnte nicht gespeichert werden.');
+      local.grantedAt ?? now,
+      local.explainedAt ?? now,
+    );
+    if (!scopeSaved.ok) {
+      setLoading(false);
+      setError(scopeSaved.error ?? 'Interne Einwilligung konnte nicht gespeichert werden.');
       return;
     }
+
+    if (assignmentId) {
+      const saved = await saveEmployeeLocationConsent({
+        tenantId,
+        employeeId,
+        routeParamId: assignmentId,
+        profileId: profileId ?? employeeId,
+        consentExplainedAt: local.explainedAt,
+        localConsent: local,
+      });
+      if (!saved.ok) {
+        setLoading(false);
+        setError(saved.error ?? 'Einsatz-Einwilligung konnte nicht gespeichert werden.');
+        return;
+      }
+    }
+
     setLocationConsentGranted(true);
+    setLoading(false);
   }, [tenantId, employeeId, assignmentId, profileId]);
 
   const handleRequestBrowserPermission = useCallback(async () => {
@@ -106,8 +128,9 @@ export function EmployeePermissionOnboarding({
     setLoading(true);
     await requestLocationPermissionOnce(tenantId, employeeId);
     setLoading(false);
-    await refreshOverview();
-  }, [currentKind, tenantId, employeeId, refreshOverview]);
+    const overview = await getEmployeePermissionOverview(tenantId, employeeId);
+    if (overview.ok) setItems(overview.data.items);
+  }, [currentKind, tenantId, employeeId]);
 
   const handleNext = useCallback(async () => {
     if (currentKind === 'location' && !locationConsentGranted) {
@@ -173,11 +196,11 @@ export function EmployeePermissionOnboarding({
                 <PremiumButton
                   title="Standort-Einwilligung erteilen"
                   fullWidth
-                  loading={loading}
+                  loading={loading || hydrating}
                   onPress={handleGrantLocationConsent}
                 />
               ) : (
-                <Text style={styles.success}>✓ Interne Einwilligung gespeichert</Text>
+                <Text style={styles.success}>✓ Interne Einwilligung gespeichert (Supabase)</Text>
               )}
               <PremiumButton
                 title="Browser-Standort anfragen (optional)"
@@ -206,7 +229,7 @@ export function EmployeePermissionOnboarding({
             <PremiumButton
               title={isLastStep ? 'Fertig — Portal nutzen' : 'Weiter'}
               fullWidth
-              loading={loading}
+              loading={loading || hydrating}
               onPress={handleNext}
             />
           </View>
@@ -216,7 +239,7 @@ export function EmployeePermissionOnboarding({
   );
 }
 
-/** Hook — show onboarding on first portal use when bundle not completed. */
+/** Hook — show onboarding on first portal use when bundle not completed in Supabase. */
 export function useEmployeePermissionOnboardingGate(
   tenantId: string | null | undefined,
   employeeId: string | null | undefined,

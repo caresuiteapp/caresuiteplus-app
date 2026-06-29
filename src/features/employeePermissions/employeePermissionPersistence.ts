@@ -8,6 +8,7 @@ import type {
   EmployeeBrowserPermissionStatus,
   EmployeePermissionKind,
 } from './employeePermissionCenter';
+import { EMPLOYEE_CONSENT_BUNDLE_VERSION } from './permissionConsentVersion';
 
 const STATES_TABLE = 'employee_permission_states';
 const BUNDLE_TABLE = 'employee_consent_bundle';
@@ -21,7 +22,7 @@ export type EmployeePermissionStateRow = {
 };
 
 export type EmployeeConsentBundleRow = {
-  bundleVersion: number;
+  bundleVersion: string;
   completedAt: string;
   explainedPermissions: EmployeePermissionKind[];
   locationInternalAt: string | null;
@@ -36,7 +37,7 @@ type StateDbRow = {
 };
 
 type BundleDbRow = {
-  bundle_version: number;
+  bundle_version: string | number;
   completed_at: string;
   explained_permissions: string[] | null;
   location_internal_at: string | null;
@@ -148,7 +149,7 @@ export async function fetchEmployeeConsentBundle(
     .select('bundle_version, completed_at, explained_permissions, location_internal_at')
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId)
-    .eq('bundle_version', 1)
+    .eq('bundle_version', EMPLOYEE_CONSENT_BUNDLE_VERSION)
     .maybeSingle();
 
   if (error) {
@@ -161,7 +162,7 @@ export async function fetchEmployeeConsentBundle(
   return {
     ok: true,
     data: {
-      bundleVersion: row.bundle_version,
+      bundleVersion: String(row.bundle_version),
       completedAt: row.completed_at,
       explainedPermissions: (row.explained_permissions ?? []) as EmployeePermissionKind[],
       locationInternalAt: row.location_internal_at,
@@ -173,7 +174,7 @@ export async function upsertEmployeeConsentBundle(
   tenantId: string,
   employeeId: string,
   input: {
-    bundleVersion: number;
+    bundleVersion: string;
     completedAt: string;
     explainedPermissions: EmployeePermissionKind[];
     locationInternalAt?: string | null;
@@ -188,7 +189,7 @@ export async function upsertEmployeeConsentBundle(
       {
         tenant_id: tenantId,
         employee_id: employeeId,
-        bundle_version: input.bundleVersion,
+        bundle_version: input.bundleVersion || EMPLOYEE_CONSENT_BUNDLE_VERSION,
         completed_at: input.completedAt,
         explained_permissions: input.explainedPermissions,
         location_internal_at: input.locationInternalAt ?? null,

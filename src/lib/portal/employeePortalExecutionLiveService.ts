@@ -304,6 +304,13 @@ export async function transitionLiveEmployeePortalAssignment(
   employeeId: string,
   roleKey: RoleKey | null,
   toStatus: AssignmentStatus,
+  options?: {
+    skipStatusPersistence?: boolean;
+    arrivalOptions?: {
+      arrivalMode?: 'gps' | 'without_gps' | 'manual';
+      manualReason?: string | null;
+    };
+  },
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
@@ -351,19 +358,22 @@ export async function transitionLiveEmployeePortalAssignment(
   }
 
   applyEmployeePortalTrackingForStatus(tenantId, assignmentId, fromStatus, toStatus);
-  const entry = peekEmployeePortalTrackingEntry(tenantId, assignmentId);
-  await persistEmployeePortalStatusTransition(
-    {
-      tenantId,
-      assignmentId,
-      employeeId,
-      profileId: employeeId,
-      locationAddress: detailAfterUpdate.location,
-    },
-    fromStatus,
-    toStatus,
-    entry.geofenceLastCheck,
-  );
+  if (!options?.skipStatusPersistence) {
+    const entry = peekEmployeePortalTrackingEntry(tenantId, assignmentId);
+    await persistEmployeePortalStatusTransition(
+      {
+        tenantId,
+        assignmentId,
+        employeeId,
+        profileId: employeeId,
+        locationAddress: detailAfterUpdate.location,
+      },
+      fromStatus,
+      toStatus,
+      entry.geofenceLastCheck,
+      options?.arrivalOptions,
+    );
+  }
 
   const extras = await fetchAssignmentExtras(tenantId, assignmentId, detailAfterUpdate.clientId);
   return {

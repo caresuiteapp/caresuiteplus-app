@@ -1,6 +1,7 @@
 /**
- * ASSIST.PERMISSIONS.1 — Mark arrived at client location.
+ * ASSIST.PERMISSIONS.2 — Mark arrived at client location.
  * Allows arrival without GPS proof — records arrived_without_gps / arrived_manual audit events.
+ * Persists execution state + time events; idempotent when already arrived.
  */
 import type { ServiceResult } from '@/types';
 import type { GeofenceSoftCheckResult } from '@/lib/assist/geofenceSoftCheck';
@@ -11,7 +12,12 @@ import {
   setEmployeePortalArrivalProof,
 } from '@/lib/portal/employeePortalVisitTrackingService';
 import { persistEmployeePortalStatusTransition } from '@/lib/portal/employeePortalVisitTrackingPersistence';
+import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
+import {
+  assistWorkflowErrorToResult,
+  createAssistWorkflowError,
+} from './assistWorkflowErrors';
 import type { AssistExecutionContext } from './types';
 
 export type ArrivalMode = 'gps' | 'without_gps' | 'manual';
@@ -38,6 +44,10 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
   const { ctx, geofence, manualReason } = input;
   const fromStatus = ctx.assignmentStatus;
 
+  if (fromStatus === 'angekommen') {
+    return { ok: true, data: ctx, arrivalWarning: null };
+  }
+
   const entry = peekEmployeePortalTrackingEntry(ctx.tenantId, ctx.assignmentId);
   let arrivalMode: ArrivalMode = input.arrivalMode ?? 'without_gps';
 
@@ -51,11 +61,15 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
   }
 
   setEmployeePortalArrivalProof(ctx.tenantId, ctx.assignmentId, arrivalMode);
-
   applyEmployeePortalTrackingForStatus(ctx.tenantId, ctx.assignmentId, fromStatus, 'angekommen');
   const updatedEntry = peekEmployeePortalTrackingEntry(ctx.tenantId, ctx.assignmentId);
 
-  await persistEmployeePortalStatusTransition(
+  const transition = await transitionAssistExecutionStatus(ctx, 'angekommen', {
+    skipStatusPersistence: true,
+  });
+  if (!transition.ok) return transition;
+
+  const persistResult = await persistEmployeePortalStatusTransition(
     {
       tenantId: ctx.tenantId,
       assignmentId: ctx.assignmentId,
@@ -69,8 +83,24 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
     { arrivalMode, manualReason: manualReason ?? updatedEntry.geofenceOverrideReason },
   );
 
-  const transition = await transitionAssistExecutionStatus(ctx, 'angekommen');
-  if (!transition.ok) return transition;
+  if (!persistResult.ok) {
+    const classified = createAssistWorkflowError('AWF_DATABASE_ERROR', {
+      tenantId: ctx.tenantId,
+      assignmentId: ctx.assignmentId,
+      employeeId: ctx.employeeId,
+      operation: 'markArrived.persist',
+      supabaseMessage: persistResult.warnings.join('; '),
+    });
+    return assistWorkflowErrorToResult(classified) as MarkArrivedResult;
+  }
+
+  const execState = await upsertAssistVisitExecutionState(
+    ctx.tenantId,
+    ctx.assignmentId,
+    'angekommen',
+    { employeeId: ctx.employeeId },
+  );
+  if (!execState.ok) return execState as MarkArrivedResult;
 
   let arrivalWarning: string | null = null;
   if (arrivalMode === 'without_gps') arrivalWarning = ARRIVED_WITHOUT_GPS_WARNING;

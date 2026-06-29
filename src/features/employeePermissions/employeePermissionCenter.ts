@@ -1,5 +1,5 @@
 /**
- * ASSIST.PERMISSIONS.1 — Central employee permission/consent center.
+ * ASSIST.PERMISSIONS.2 — Central employee permission/consent center.
  * Separates: internal consent (DB) vs browser permission vs workflow vs GPS proof.
  */
 import type { ServiceResult } from '@/types';
@@ -8,10 +8,11 @@ import {
   getEmployeePortalGpsPermissionStatus,
   requestEmployeePortalForegroundLocationPermission,
 } from '@/lib/portal/employeePortalVisitTrackingService';
+import { upsertEmployeeLocationConsentRecord } from '@/features/liveTracking/employeeLocationConsentPersistence';
+import { saveEmployeeConsentBundle } from './saveEmployeeConsentBundle';
+import { EMPLOYEE_CONSENT_BUNDLE_VERSION } from './permissionConsentVersion';
 import {
-  fetchEmployeeConsentBundle,
   fetchEmployeePermissionStates,
-  upsertEmployeeConsentBundle,
   upsertEmployeePermissionState,
 } from './employeePermissionPersistence';
 
@@ -43,9 +44,10 @@ export type EmployeePermissionOverview = {
   onboardingCompleted: boolean;
   onboardingCompletedAt: string | null;
   locationInternalConsentGranted: boolean;
+  locationInternalConsentAt: string | null;
 };
 
-export const EMPLOYEE_PERMISSION_BUNDLE_VERSION = 1;
+export { EMPLOYEE_CONSENT_BUNDLE_VERSION as EMPLOYEE_PERMISSION_BUNDLE_VERSION };
 
 export const EMPLOYEE_PERMISSION_EXPLANATIONS: Record<
   EmployeePermissionKind,
@@ -76,7 +78,7 @@ export const EMPLOYEE_PERMISSION_EXPLANATIONS: Record<
   },
 };
 
-const PERMISSION_KINDS: EmployeePermissionKind[] = [
+export const PERMISSION_KINDS: EmployeePermissionKind[] = [
   'location',
   'notifications',
   'camera',
@@ -98,64 +100,6 @@ function mapGpsToBrowserStatus(
 
 function sessionKey(tenantId: string, employeeId: string): string {
   return `${tenantId}:${employeeId}`;
-}
-
-/** Load permission overview — merges DB state with live browser checks. */
-export async function getEmployeePermissionOverview(
-  tenantId: string,
-  employeeId: string,
-  options?: { locationInternalConsentGranted?: boolean },
-): Promise<ServiceResult<EmployeePermissionOverview>> {
-  const [statesResult, bundleResult, liveLocation] = await Promise.all([
-    fetchEmployeePermissionStates(tenantId, employeeId),
-    fetchEmployeeConsentBundle(tenantId, employeeId),
-    getEmployeePortalGpsPermissionStatus(),
-  ]);
-
-  if (!statesResult.ok) return statesResult as ServiceResult<never>;
-  if (!bundleResult.ok) return bundleResult as ServiceResult<never>;
-
-  const stateMap = new Map(statesResult.data.map((s) => [s.permissionKind, s]));
-
-  const items: EmployeePermissionOverviewItem[] = PERMISSION_KINDS.map((kind) => {
-    const stored = stateMap.get(kind);
-    const explanation = EMPLOYEE_PERMISSION_EXPLANATIONS[kind];
-    let browserStatus: EmployeeBrowserPermissionStatus =
-      stored?.browserStatus ?? 'undetermined';
-
-    if (kind === 'location') {
-      browserStatus = mapGpsToBrowserStatus(liveLocation);
-    }
-
-    return {
-      kind,
-      label: explanation.label,
-      description: explanation.description,
-      browserStatus,
-      explainedAt: stored?.explainedAt ?? null,
-      lastRequestedAt: stored?.lastRequestedAt ?? null,
-    };
-  });
-
-  return {
-    ok: true,
-    data: {
-      items,
-      onboardingCompleted: Boolean(bundleResult.data?.completedAt),
-      onboardingCompletedAt: bundleResult.data?.completedAt ?? null,
-      locationInternalConsentGranted: options?.locationInternalConsentGranted ?? false,
-    },
-  };
-}
-
-/** True when employee has not completed central permission onboarding. */
-export async function needsPermissionOnboarding(
-  tenantId: string,
-  employeeId: string,
-): Promise<boolean> {
-  const bundle = await fetchEmployeeConsentBundle(tenantId, employeeId);
-  if (!bundle.ok) return true;
-  return !bundle.data?.completedAt;
 }
 
 /**
@@ -191,7 +135,24 @@ export async function requestLocationPermissionOnce(
   return requested;
 }
 
-/** Mark all permissions as explained and complete onboarding bundle. */
+/** Persist internal location consent to employee_location_consents (tenant scope). */
+export async function persistInternalLocationConsent(
+  tenantId: string,
+  employeeId: string,
+  grantedAt: string,
+  explainedAt: string | null,
+): Promise<ServiceResult<{ grantedAt: string }>> {
+  const saved = await upsertEmployeeLocationConsentRecord(
+    tenantId,
+    employeeId,
+    grantedAt,
+    explainedAt,
+  );
+  if (!saved.ok) return saved as ServiceResult<never>;
+  return { ok: true, data: { grantedAt: saved.data.grantedAt ?? grantedAt } };
+}
+
+/** Mark all permissions as explained and complete onboarding bundle in Supabase. */
 export async function completePermissionOnboardingBundle(
   tenantId: string,
   employeeId: string,
@@ -202,6 +163,12 @@ export async function completePermissionOnboardingBundle(
 ): Promise<ServiceResult<{ completedAt: string }>> {
   const now = new Date().toISOString();
   const kinds = options?.explainedKinds ?? PERMISSION_KINDS;
+  const locationAt = options?.locationInternalConsentAt ?? null;
+
+  if (locationAt) {
+    const loc = await persistInternalLocationConsent(tenantId, employeeId, locationAt, locationAt);
+    if (!loc.ok) return loc as ServiceResult<never>;
+  }
 
   for (const kind of kinds) {
     const stored = await fetchEmployeePermissionStates(tenantId, employeeId);
@@ -213,11 +180,10 @@ export async function completePermissionOnboardingBundle(
     });
   }
 
-  return upsertEmployeeConsentBundle(tenantId, employeeId, {
-    bundleVersion: EMPLOYEE_PERMISSION_BUNDLE_VERSION,
+  return saveEmployeeConsentBundle(tenantId, employeeId, {
     completedAt: now,
     explainedPermissions: kinds,
-    locationInternalAt: options?.locationInternalConsentAt ?? null,
+    locationInternalAt: locationAt,
   });
 }
 
@@ -239,5 +205,3 @@ export async function recordBrowserPermissionCheck(
 export function resetLocationPermissionPromptGuardForTests(): void {
   locationPromptedKeys.clear();
 }
-
-export { PERMISSION_KINDS };
