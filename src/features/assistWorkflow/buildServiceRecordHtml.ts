@@ -74,6 +74,7 @@ export function buildServiceRecordHtml(input: ServiceRecordContentInput): string
       <dt>Einsatz</dt><dd>${formatDuration(visitTimes?.serviceSeconds ?? null)}</dd>
       <dt>Pause</dt><dd>${formatDuration(visitTimes?.pauseSeconds ?? null)}</dd>
       <dt>Angekommen</dt><dd>${formatDateTime(visitTimes?.arrivedAt)}</dd>
+      <dt>Einsatz gestartet</dt><dd>${formatDateTime(visitTimes?.serviceStartedAt)}</dd>
       <dt>Einsatz beendet</dt><dd>${formatDateTime(visitTimes?.serviceEndedAt)}</dd>
     </dl>
   </section>

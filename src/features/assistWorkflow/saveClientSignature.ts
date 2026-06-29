@@ -1,5 +1,5 @@
 /**
- * ASSIST.WORKFLOW.1 — Capture and persist client signature.
+ * ASSIST.WORKFLOW.2 — Capture client signature and advance to proof/finalize step.
  */
 import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types';
@@ -7,6 +7,7 @@ import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employ
 import { persistEmployeePortalSignature } from '@/lib/portal/employeePortalVisitTrackingPersistence';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
+import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import type { AssistExecutionContext } from './types';
 import {
@@ -19,28 +20,45 @@ export type SaveClientSignatureInput = {
   signature: EmployeePortalSignatureCaptureInput;
 };
 
+export type SaveClientSignatureResult = {
+  ctx: AssistExecutionContext;
+  readyToFinalize: boolean;
+};
+
 export async function saveClientSignature(
   input: SaveClientSignatureInput,
-): Promise<ServiceResult<AssistExecutionContext>> {
+): Promise<ServiceResult<SaveClientSignatureResult>> {
   const { ctx, signature } = input;
 
   if (signature.signatureImpossibleReason?.trim()) {
-    return resolveAssistExecutionContext({
+    const refreshed = await resolveAssistExecutionContext({
       tenantId: ctx.tenantId,
       assignmentId: ctx.assignmentId,
       employeeId: ctx.employeeId,
       profileId: ctx.profileId,
       roleKey: ctx.roleKey as RoleKey | null,
     });
+    if (!refreshed.ok) return { ok: false, error: refreshed.error };
+    return { ok: true, data: { ctx: refreshed.data, readyToFinalize: false } };
   }
 
   if (!signature.signatureDataUrl?.trim() || !signature.signerName?.trim()) {
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_SIGNATURE_REQUIRED', {
+      createAssistWorkflowError('WORKFLOW_SIGNATURE_REQUIRED', {
         tenantId: ctx.tenantId,
         assignmentId: ctx.assignmentId,
         operation: 'saveClientSignature',
       }, 'Signatur und Name des Unterzeichners sind erforderlich.'),
+    );
+  }
+
+  if (ctx.assignmentStatus !== 'dokumentation_offen' && ctx.assignmentStatus !== 'unterschrift_offen') {
+    return assistWorkflowErrorToResult(
+      createAssistWorkflowError('WORKFLOW_DOCUMENTATION_REQUIRED', {
+        tenantId: ctx.tenantId,
+        assignmentId: ctx.assignmentId,
+        operation: 'saveClientSignature',
+      }, 'Dokumentation muss vor der Unterschrift gespeichert werden.'),
     );
   }
 
@@ -68,19 +86,37 @@ export async function saveClientSignature(
     return { ok: false, error: persist.error ?? 'Signatur konnte nicht gespeichert werden.' };
   }
 
+  let updatedCtx = ctx;
   if (ctx.assignmentStatus === 'dokumentation_offen') {
-    return transitionAssistExecutionStatus(ctx, 'unterschrift_offen', {
+    const transitioned = await transitionAssistExecutionStatus(ctx, 'unterschrift_offen', {
       hasDocumentation: true,
+      hasRequiredSignature: true,
     });
+    if (!transitioned.ok) return { ok: false, error: transitioned.error };
+    updatedCtx = transitioned.data;
   }
 
-  return resolveAssistExecutionContext({
+  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'unterschrift_offen', {
+    employeeId: ctx.employeeId,
+    visitTimes: updatedCtx.visitTimes,
+    documentationComplete: true,
+    signatureComplete: true,
+  });
+
+  const refreshed = await resolveAssistExecutionContext({
     tenantId: ctx.tenantId,
     assignmentId: ctx.assignmentId,
     employeeId: ctx.employeeId,
     profileId: ctx.profileId,
     roleKey: ctx.roleKey as RoleKey | null,
   });
+
+  if (!refreshed.ok) return { ok: false, error: refreshed.error };
+
+  return {
+    ok: true,
+    data: { ctx: refreshed.data, readyToFinalize: true },
+  };
 }
 
 /** Check whether a valid DB signature exists for the visit. */

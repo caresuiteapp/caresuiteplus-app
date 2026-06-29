@@ -1,5 +1,5 @@
 /**
- * ASSIST.WORKFLOW.1 — Save visit documentation to DB.
+ * ASSIST.WORKFLOW.2 — Save visit documentation and chain to signature step.
  */
 import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types';
@@ -9,6 +9,8 @@ import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
+import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
+import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import type { AssistExecutionContext } from './types';
 import {
@@ -19,6 +21,11 @@ import {
 export type SaveVisitDocumentationInput = {
   ctx: AssistExecutionContext;
   documentation: EmployeePortalDocumentationInput;
+};
+
+export type SaveVisitDocumentationResult = {
+  ctx: AssistExecutionContext;
+  nextStep: 'signature' | 'finalize';
 };
 
 function buildDocumentationText(doc: EmployeePortalDocumentationInput): string {
@@ -92,12 +99,12 @@ async function persistDocumentationToAssistVisit(
 
 export async function saveVisitDocumentation(
   input: SaveVisitDocumentationInput,
-): Promise<ServiceResult<AssistExecutionContext>> {
+): Promise<ServiceResult<SaveVisitDocumentationResult>> {
   const { ctx, documentation } = input;
 
   if (!documentation.shortDescription.trim()) {
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_DOCUMENTATION_REQUIRED', {
+      createAssistWorkflowError('WORKFLOW_DOCUMENTATION_REQUIRED', {
         tenantId: ctx.tenantId,
         assignmentId: ctx.assignmentId,
         operation: 'saveVisitDocumentation',
@@ -115,16 +122,28 @@ export async function saveVisitDocumentation(
     );
   }
 
-  const allowedStatuses = ['beendet', 'dokumentation_offen', 'gestartet'];
+  if (!ctx.visitTimes?.serviceStartedAt) {
+    return assistWorkflowErrorToResult(
+      createAssistWorkflowError('WORKFLOW_SERVICE_NOT_STARTED', {
+        tenantId: ctx.tenantId,
+        assignmentId: ctx.assignmentId,
+        operation: 'saveVisitDocumentation',
+      }),
+    );
+  }
+
+  const allowedStatuses = ['beendet', 'dokumentation_offen'];
   if (!allowedStatuses.includes(ctx.assignmentStatus)) {
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_INVALID_TRANSITION', {
+      createAssistWorkflowError('WORKFLOW_INVALID_STATE', {
         tenantId: ctx.tenantId,
         assignmentId: ctx.assignmentId,
         operation: 'saveVisitDocumentation',
       }, 'Dokumentation erst nach Beendigung des Einsatzes möglich.'),
     );
   }
+
+  const docText = buildDocumentationText(documentation);
 
   if (getServiceMode() === 'supabase') {
     const visitDoc = await persistDocumentationToAssistVisit(
@@ -134,11 +153,10 @@ export async function saveVisitDocumentation(
       ctx.profileId,
     );
     if (!visitDoc.ok) {
-      const text = buildDocumentationText(documentation);
       const legacy = await assignmentSupabaseRepository.completeWithDocumentation(
         ctx.tenantId,
         ctx.assignmentId,
-        text,
+        docText,
         {
           actorProfileId: ctx.profileId ?? ctx.employeeId,
           actorEmployeeId: ctx.employeeId,
@@ -146,33 +164,46 @@ export async function saveVisitDocumentation(
       );
       if (!legacy.ok) return { ok: false, error: legacy.error };
     } else {
-      const text = buildDocumentationText(documentation);
       await fromUnknownTable(getSupabaseClient()!, 'assignments')
         .update({
-          documentation_notes: text,
+          documentation_notes: docText,
           updated_at: new Date().toISOString(),
         })
         .eq('tenant_id', ctx.tenantId)
         .eq('id', ctx.assignmentId);
-      if (ctx.assignmentStatus === 'beendet') {
-        await assignmentSupabaseRepository.updateStatus(
-          ctx.tenantId,
-          ctx.assignmentId,
-          'dokumentation_offen',
-          {
-            actorProfileId: ctx.profileId ?? ctx.employeeId,
-            actorEmployeeId: ctx.employeeId,
-          },
-        );
-      }
     }
   }
 
-  return resolveAssistExecutionContext({
+  let updatedCtx = ctx;
+  if (ctx.assignmentStatus === 'beendet') {
+    const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
+      hasServiceStarted: true,
+      hasDocumentation: true,
+    });
+    if (!transitioned.ok) return { ok: false, error: transitioned.error };
+    updatedCtx = transitioned.data;
+  }
+
+  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'dokumentation_offen', {
+    employeeId: ctx.employeeId,
+    visitTimes: updatedCtx.visitTimes,
+    documentationComplete: true,
+  });
+
+  const refreshed = await resolveAssistExecutionContext({
     tenantId: ctx.tenantId,
     assignmentId: ctx.assignmentId,
     employeeId: ctx.employeeId,
     profileId: ctx.profileId,
     roleKey: ctx.roleKey as RoleKey | null,
   });
+
+  if (!refreshed.ok) return { ok: false, error: refreshed.error };
+
+  const nextStep = refreshed.data.detail.requiresSignature ? 'signature' : 'finalize';
+
+  return {
+    ok: true,
+    data: { ctx: refreshed.data, nextStep },
+  };
 }

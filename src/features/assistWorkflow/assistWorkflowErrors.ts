@@ -20,7 +20,14 @@ export type AssistWorkflowErrorCode =
   | 'AWF_VALIDATION'
   | 'AWF_DATABASE_ERROR'
   | 'AWF_GPS_REQUIRED'
-  | 'AWF_CONSENT_REQUIRED';
+  | 'AWF_CONSENT_REQUIRED'
+  | 'WORKFLOW_SERVICE_NOT_STARTED'
+  | 'WORKFLOW_TRAVEL_NOT_STOPPED'
+  | 'WORKFLOW_INVALID_STATE'
+  | 'WORKFLOW_TIME_EVENT_FAILED'
+  | 'WORKFLOW_DOCUMENTATION_REQUIRED'
+  | 'WORKFLOW_SIGNATURE_REQUIRED'
+  | 'WORKFLOW_PROOF_REQUIRED';
 
 export type AssistWorkflowErrorContext = {
   tenantId?: string | null;
@@ -53,6 +60,13 @@ const USER_MESSAGES: Record<AssistWorkflowErrorCode, string> = {
   AWF_DATABASE_ERROR: 'Datenbankoperation fehlgeschlagen.',
   AWF_GPS_REQUIRED: 'Standortberechtigung erforderlich.',
   AWF_CONSENT_REQUIRED: 'Standort-Einwilligung erforderlich.',
+  WORKFLOW_SERVICE_NOT_STARTED: 'Einsatz wurde noch nicht gestartet — bitte „Einsatz starten“ bestätigen.',
+  WORKFLOW_TRAVEL_NOT_STOPPED: 'Anfahrt läuft noch — bitte zuerst „Angekommen“ bestätigen.',
+  WORKFLOW_INVALID_STATE: 'Einsatzstatus ist inkonsistent — bitte Schritte in Reihenfolge ausführen.',
+  WORKFLOW_TIME_EVENT_FAILED: 'Zeitstempel konnten nicht gespeichert werden.',
+  WORKFLOW_DOCUMENTATION_REQUIRED: 'Dokumentation ist vor der Unterschrift erforderlich.',
+  WORKFLOW_SIGNATURE_REQUIRED: 'Unterschrift ist vor dem Abschluss erforderlich.',
+  WORKFLOW_PROOF_REQUIRED: 'Leistungsnachweis konnte nicht erstellt werden.',
 };
 
 export function createAssistWorkflowError(

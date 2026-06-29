@@ -1,7 +1,9 @@
 /**
- * ASSIST.WORKFLOW.1 — Compute drive / service / pause durations from time events.
+ * ASSIST.WORKFLOW.2 — Compute drive / service / pause durations from time events.
+ * Supabase assist_time_events is source of truth; travel stops at arrive/drive_end.
  */
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import { getVisitTimeSegments } from './getVisitTimeSegments';
 
 export type TimeEventLike = {
   eventType: string;
@@ -29,6 +31,16 @@ function diffSeconds(from: string, to: string): number {
   return Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 1000));
 }
 
+const PAST_ARRIVAL_STATUSES: AssignmentStatus[] = [
+  'angekommen',
+  'gestartet',
+  'pausiert',
+  'beendet',
+  'dokumentation_offen',
+  'unterschrift_offen',
+  'abgeschlossen',
+];
+
 /** Derive visit timers from assist_time_events rows (or equivalent). */
 export function calculateVisitTimes(
   events: TimeEventLike[],
@@ -36,16 +48,27 @@ export function calculateVisitTimes(
   now: Date = new Date(),
 ): VisitTimesSummary {
   const nowIso = now.toISOString();
+  const segments = getVisitTimeSegments(events, now);
+
   const driveStart = byType(events, 'drive_start').at(-1) ?? null;
   const driveEnd = byType(events, 'drive_end').at(-1) ?? byType(events, 'arrive').at(-1) ?? null;
   const serviceStart = byType(events, 'service_start').at(-1) ?? null;
   const serviceEnd = byType(events, 'service_end').at(-1) ?? null;
   const arrivedAt = byType(events, 'arrive').at(-1) ?? null;
 
-  let driveSeconds: number | null = null;
-  if (driveStart) {
-    const end = driveEnd ?? (currentStatus === 'unterwegs' ? nowIso : null);
-    if (end) driveSeconds = diffSeconds(driveStart, end);
+  let driveSeconds: number | null = segments.find((s) => s.kind === 'drive')?.durationSeconds ?? null;
+
+  // Travel timer STOPS at arrived — never extend drive past arrival even if drive_end missing.
+  if (driveStart && driveSeconds == null && PAST_ARRIVAL_STATUSES.includes(currentStatus)) {
+    if (arrivedAt) {
+      driveSeconds = diffSeconds(driveStart, arrivedAt);
+    } else if (driveEnd) {
+      driveSeconds = diffSeconds(driveStart, driveEnd);
+    }
+  }
+
+  if (driveStart && driveSeconds == null && currentStatus === 'unterwegs') {
+    driveSeconds = diffSeconds(driveStart, nowIso);
   }
 
   const pauseStarts = byType(events, 'pause_start');
@@ -68,10 +91,15 @@ export function calculateVisitTimes(
     }
   }
 
+  // Active timer: drive ONLY while unterwegs and travel not yet ended in events.
   let activeTimer: VisitTimesSummary['activeTimer'] = null;
-  if (currentStatus === 'unterwegs') activeTimer = 'drive';
-  else if (currentStatus === 'pausiert') activeTimer = 'pause';
-  else if (currentStatus === 'gestartet') activeTimer = 'service';
+  if (currentStatus === 'unterwegs' && driveStart && !driveEnd && !arrivedAt) {
+    activeTimer = 'drive';
+  } else if (currentStatus === 'pausiert') {
+    activeTimer = 'pause';
+  } else if (currentStatus === 'gestartet') {
+    activeTimer = 'service';
+  }
 
   const parts = [driveSeconds, serviceSeconds].filter((v): v is number => v != null);
   const totalSeconds = parts.length ? parts.reduce((a, b) => a + b, 0) : null;

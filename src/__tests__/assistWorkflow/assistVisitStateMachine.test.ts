@@ -46,4 +46,9 @@ describe('assistVisitStateMachine (ASSIST.WORKFLOW.1)', () => {
     const r = validateWorkflowTransition('pausiert', 'gestartet', { requireArrivedBeforeStart: true });
     expect(r.valid).toBe(true);
   });
+
+  it('blocks beendet without service start', () => {
+    const r = validateWorkflowTransition('gestartet', 'beendet', { hasServiceStarted: false });
+    expect(r.valid).toBe(false);
+  });
 });

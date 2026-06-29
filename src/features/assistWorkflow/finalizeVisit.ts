@@ -7,6 +7,7 @@ import { validateVisitCloseReadiness } from '@/lib/assist/visitExecutionService'
 import { hasPersistedClientSignature } from './saveClientSignature';
 import { generateServiceRecord } from './generateServiceRecord';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
+import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
@@ -90,6 +91,15 @@ export async function finalizeVisit(
   if (!transitioned.ok) {
     return { ok: false, error: transitioned.error };
   }
+
+  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'abgeschlossen', {
+    employeeId: ctx.employeeId,
+    visitTimes: transitioned.data.visitTimes,
+    documentationComplete: true,
+    signatureComplete: hasSignature,
+    proofGenerated: record.ok ? record.data.proofPersisted : false,
+    finalizedAt: new Date().toISOString(),
+  });
 
   return {
     ok: true,

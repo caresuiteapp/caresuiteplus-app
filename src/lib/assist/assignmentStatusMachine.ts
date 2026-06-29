@@ -53,6 +53,8 @@ export function requiresDocumentationBeforeComplete(status: AssignmentStatus): b
 
 type ExecutionTransitionOptions = {
   requireArrivedBeforeStart?: boolean;
+  hasServiceStarted?: boolean;
+  hasTravelEnded?: boolean;
   hasDocumentation?: boolean;
   hasRequiredSignature?: boolean;
   signatureImpossibleJustified?: boolean;
@@ -72,11 +74,40 @@ export function validateExecutionTransition(
     return { valid: false, error: 'Ankunft muss vor dem Start bestätigt werden.' };
   }
 
+  if (to === 'beendet' && options?.hasServiceStarted === false) {
+    return {
+      valid: false,
+      error: 'Einsatz kann erst beendet werden, nachdem „Einsatz starten“ bestätigt wurde.',
+    };
+  }
+
+  if (to === 'beendet' && options?.hasTravelEnded === false) {
+    return {
+      valid: false,
+      error: 'Ankunft muss vor dem Beenden bestätigt werden.',
+    };
+  }
+
+  if (to === 'dokumentation_offen' && from === 'gestartet') {
+    return {
+      valid: false,
+      error: 'Dokumentation erst nach Beendigung des Einsatzes möglich.',
+    };
+  }
+
+  if (to === 'unterschrift_offen' && !options?.hasDocumentation) {
+    return { valid: false, error: 'Dokumentation muss vor der Unterschrift vorliegen.' };
+  }
+
   const base = validateAssignmentTransition(from, to);
   if (!base.valid) return base;
 
   if (to === 'abgeschlossen' && requiresDocumentationBeforeComplete(from) && !options?.hasDocumentation) {
     return { valid: false, error: 'Dokumentation muss vor Abschluss vorliegen.' };
+  }
+
+  if (to === 'abgeschlossen' && options?.hasRequiredSignature === false) {
+    return { valid: false, error: 'Klient:innen-Unterschrift fehlt.' };
   }
 
   return { valid: true };

@@ -27,6 +27,7 @@ import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitE
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { getPrimaryWorkflowAction } from '@/features/assistWorkflow';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 
@@ -89,8 +90,12 @@ export function EmployeePortalVisitExecutionScreen() {
     requestLocationPermission,
     setGeofenceOverride,
     openRoute,
+    effectiveWorkflow,
     notFound,
   } = useEmployeePortalVisitExecution(id);
+
+  const effectiveStatus: AssignmentStatus =
+    effectiveWorkflow?.effectiveStatus ?? visit?.status ?? 'geplant';
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
@@ -101,9 +106,9 @@ export function EmployeePortalVisitExecutionScreen() {
   const [showGeofenceOverride, setShowGeofenceOverride] = useState(false);
   const [noShowNote, setNoShowNote] = useState('');
   const [showNoShowForm, setShowNoShowForm] = useState(false);
+  const [awaitingSignature, setAwaitingSignature] = useState(false);
 
-  const primaryNext = visit ? getPrimaryWorkflowAction(visit.status) : undefined;
-  const trackingActive = Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
+  const primaryNext = visit ? getPrimaryWorkflowAction(effectiveStatus) : undefined;
 
   const isLocked = useMemo(
     () =>
@@ -114,10 +119,30 @@ export function EmployeePortalVisitExecutionScreen() {
     [visit],
   );
 
-  const showTasks = visit && ['gestartet', 'pausiert', 'beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit.status);
-  const showDocumentation = visit && ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit.status);
-  const showSignature = visit && visit.requiresSignature && ['dokumentation_offen', 'unterschrift_offen'].includes(visit.status);
-  const showFinalize = visit && visit.status === 'unterschrift_offen';
+  const trackingActive = Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
+
+  const statusBlocksDoc =
+    effectiveWorkflow?.inconsistent &&
+    ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit?.status ?? '');
+
+  const showTasks =
+    visit &&
+    ['gestartet', 'pausiert', 'beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(
+      effectiveStatus,
+    ) &&
+    !statusBlocksDoc;
+  const showDocumentation =
+    visit &&
+    !statusBlocksDoc &&
+    ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit.status);
+  const showSignature =
+    visit &&
+    visit.requiresSignature &&
+    !statusBlocksDoc &&
+    (awaitingSignature ||
+      ['dokumentation_offen', 'unterschrift_offen'].includes(visit.status));
+  const showFinalize =
+    visit && visit.status === 'unterschrift_offen' && !statusBlocksDoc;
 
   const handleGrantConsent = useCallback(async () => {
     setConsentLoading(true);
@@ -187,7 +212,7 @@ export function EmployeePortalVisitExecutionScreen() {
       return;
     }
     if (primaryNext === 'gestartet') {
-      if (visit.status === 'pausiert') {
+      if (effectiveStatus === 'pausiert') {
         const r = await endPause();
         if (!r.ok) setLocalError(r.error ?? 'Fortsetzen fehlgeschlagen.');
         else setLocalSuccess('Einsatz fortgesetzt.');
@@ -203,7 +228,7 @@ export function EmployeePortalVisitExecutionScreen() {
       if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
       else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
     }
-  }, [visit, primaryNext, handleStartDrive, handleArrived, startService, endPause, endService]);
+  }, [visit, effectiveStatus, primaryNext, handleStartDrive, handleArrived, startService, endPause, endService]);
 
   const handleNoShow = useCallback(async () => {
     if (!noShowNote.trim()) {
@@ -275,13 +300,13 @@ export function EmployeePortalVisitExecutionScreen() {
           ? 'Mit GPS'
           : '—';
   const primaryLabel =
-    visit.status === 'unterwegs'
+    effectiveStatus === 'unterwegs'
       ? 'Angekommen'
-      : visit.status === 'angekommen'
+      : effectiveStatus === 'angekommen'
         ? 'Einsatz starten'
-        : visit.status === 'gestartet'
+        : effectiveStatus === 'gestartet'
           ? 'Einsatz beenden'
-          : visit.status === 'pausiert'
+          : effectiveStatus === 'pausiert'
             ? 'Pause beenden'
             : primaryNext === 'unterwegs'
               ? 'Anfahrt starten'
@@ -296,6 +321,10 @@ export function EmployeePortalVisitExecutionScreen() {
         <InfoBanner variant="warning" message={`Live-Kontext: ${liveContextError}`} />
       ) : null}
 
+      {effectiveWorkflow?.inconsistent && effectiveWorkflow.repairHint ? (
+        <InfoBanner variant="warning" message={effectiveWorkflow.repairHint} />
+      ) : null}
+
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
         <EmployeePortalLocationConsentBanner
           consent={consent}
@@ -304,11 +333,11 @@ export function EmployeePortalVisitExecutionScreen() {
         />
 
         <PremiumCard accentColor={colors.amber}>
-          <Text style={styles.phase}>{ASSIGNMENT_STATUS_LABELS[visit.status]}</Text>
-          <PremiumBadge label={ASSIGNMENT_STATUS_LABELS[visit.status]} variant="orange" dot />
+          <Text style={styles.phase}>{ASSIGNMENT_STATUS_LABELS[effectiveStatus]}</Text>
+          <PremiumBadge label={ASSIGNMENT_STATUS_LABELS[effectiveStatus]} variant="orange" dot />
           {workflowStep ? (
             <EmployeePortalVisitWorkflowTimeline
-              status={visit.status}
+              status={effectiveStatus}
               requiresSignature={visit.requiresSignature}
             />
           ) : null}
@@ -327,7 +356,7 @@ export function EmployeePortalVisitExecutionScreen() {
           {errorCode ? <Text style={styles.errorCode}>Support-Code: {errorCode}</Text> : null}
         </SectionPanel>
 
-        <EmployeePortalLiveTimersPanel timers={timers} assignmentStatus={visit.status} />
+        <EmployeePortalLiveTimersPanel timers={timers} assignmentStatus={effectiveStatus} />
 
         {tracking?.warnings.map((w) => (
           <InfoBanner key={w} variant="warning" message={w} />
@@ -361,10 +390,10 @@ export function EmployeePortalVisitExecutionScreen() {
 
             <PremiumButton title="Karte / Route" variant="secondary" fullWidth onPress={handleOpenMap} />
 
-            {primaryLabel && !isLocked ? (
+            {primaryLabel && !isLocked && !statusBlocksDoc ? (
               <PremiumButton
                 title={
-                  trackingActive && visit.status === 'unterwegs'
+                  trackingActive && effectiveStatus === 'unterwegs'
                     ? 'Anfahrt läuft — Angekommen'
                     : primaryLabel
                 }
@@ -375,7 +404,7 @@ export function EmployeePortalVisitExecutionScreen() {
               />
             ) : null}
 
-            {visit.status === 'gestartet' ? (
+            {effectiveStatus === 'gestartet' ? (
               <PremiumButton
                 title="Pause"
                 variant="ghost"
@@ -431,7 +460,16 @@ export function EmployeePortalVisitExecutionScreen() {
         {showDocumentation && !isLocked ? (
           <EmployeePortalVisitDocumentationPanel
             loading={actionLoading}
-            onSubmit={saveDocumentation}
+            onSubmit={async (doc) => {
+              const r = await saveDocumentation(doc);
+              if (r.ok) {
+                setLocalSuccess('Dokumentation gespeichert — Unterschrift erforderlich.');
+                if (visit.requiresSignature) setAwaitingSignature(true);
+              } else {
+                setLocalError(r.error ?? 'Dokumentation fehlgeschlagen.');
+              }
+              return r;
+            }}
           />
         ) : null}
 
@@ -439,7 +477,16 @@ export function EmployeePortalVisitExecutionScreen() {
           <EmployeePortalVisitSignaturePanel
             clientName={visit.clientName}
             loading={actionLoading}
-            onCapture={saveSignature}
+            onCapture={async (sig) => {
+              const r = await saveSignature(sig);
+              if (r.ok) {
+                setAwaitingSignature(false);
+                setLocalSuccess('Unterschrift gespeichert — Einsatz kann abgeschlossen werden.');
+              } else {
+                setLocalError(r.error ?? 'Signatur fehlgeschlagen.');
+              }
+              return r;
+            }}
           />
         ) : null}
 

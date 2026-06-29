@@ -17,6 +17,8 @@ import {
 
 export type TransitionOptions = {
   noShowNote?: string | null;
+  hasServiceStarted?: boolean;
+  hasTravelEnded?: boolean;
   hasDocumentation?: boolean;
   hasRequiredSignature?: boolean;
   signatureImpossibleJustified?: boolean;
@@ -33,8 +35,18 @@ export async function transitionAssistExecutionStatus(
   toStatus: AssignmentStatus,
   options?: TransitionOptions,
 ): Promise<ServiceResult<AssistExecutionContext>> {
+  const hasServiceStarted =
+    options?.hasServiceStarted ??
+    Boolean(ctx.visitTimes?.serviceStartedAt);
+
+  const hasTravelEnded =
+    options?.hasTravelEnded ??
+    Boolean(ctx.visitTimes?.arrivedAt);
+
   const validation = validateWorkflowTransition(ctx.assignmentStatus, toStatus, {
     requireArrivedBeforeStart: true,
+    hasServiceStarted: toStatus === 'beendet' ? hasServiceStarted : undefined,
+    hasTravelEnded: toStatus === 'beendet' ? hasTravelEnded : undefined,
     hasDocumentation: options?.hasDocumentation,
     hasRequiredSignature: options?.hasRequiredSignature,
     signatureImpossibleJustified: options?.signatureImpossibleJustified,

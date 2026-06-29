@@ -38,6 +38,20 @@ describe('calculateVisitTimes', () => {
     expect(times.driveSeconds).toBe(600);
   });
 
+  it('stops drive after arrive without extending to now on beendet', () => {
+    const times = calculateVisitTimes(
+      [
+        { eventType: 'drive_start', occurredAt: '2026-06-29T08:00:00.000Z' },
+        { eventType: 'arrive', occurredAt: '2026-06-29T08:30:00.000Z' },
+      ],
+      'beendet',
+      new Date('2026-06-29T10:00:00.000Z'),
+    );
+    expect(times.driveSeconds).toBe(1800);
+    expect(times.activeTimer).toBeNull();
+    expect(times.serviceSeconds).toBeNull();
+  });
+
   it('counts service time while paused', () => {
     const times = calculateVisitTimes(
       [

@@ -38,6 +38,7 @@ import {
   markArrived,
   reportNoShow,
   resolveAssistExecutionContext,
+  resolveEffectiveWorkflowStatus,
   saveClientSignature,
   saveTaskResults,
   saveVisitDocumentation,
@@ -46,6 +47,7 @@ import {
   startService,
   type AssistExecutionContext,
   type AssistWorkflowStep,
+  type EffectiveWorkflowStatus,
   type MarkArrivedResult,
 } from '@/features/assistWorkflow';
 import { useAuth } from '@/lib/auth/context';
@@ -222,8 +224,14 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const workflowStep: AssistWorkflowStep | null = useMemo(() => {
     if (!query.data) return null;
-    return assignmentStatusToWorkflowStep(query.data.status);
-  }, [query.data]);
+    const effective = resolveEffectiveWorkflowStatus(query.data.status, executionContext?.visitTimes ?? null);
+    return assignmentStatusToWorkflowStep(effective.effectiveStatus);
+  }, [query.data, executionContext?.visitTimes]);
+
+  const effectiveWorkflow: EffectiveWorkflowStatus | null = useMemo(() => {
+    if (!query.data) return null;
+    return resolveEffectiveWorkflowStatus(query.data.status, executionContext?.visitTimes ?? null);
+  }, [query.data, executionContext?.visitTimes]);
 
   const syncAfterWorkflow = useCallback(
     async (ctx: AssistExecutionContext) => {
@@ -251,7 +259,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       if (result.ok) {
         const payload = result.data;
         if (payload && typeof payload === 'object') {
-          if ('ctx' in payload && payload.ctx) {
+          if ('ctx' in payload && payload.ctx && typeof payload.ctx === 'object' && 'assignmentStatus' in payload.ctx) {
             await syncAfterWorkflow(payload.ctx as AssistExecutionContext);
           } else if ('detail' in payload) {
             await syncAfterWorkflow(payload as unknown as AssistExecutionContext);
@@ -493,6 +501,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     data: visitWithAddress,
     executionContext,
     workflowStep,
+    effectiveWorkflow,
     liveContext,
     tracking,
     timers,

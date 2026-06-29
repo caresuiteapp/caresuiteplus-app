@@ -18,6 +18,12 @@ export {
 export type { AssistWorkflowError, AssistWorkflowErrorCode } from './assistWorkflowErrors';
 export { calculateVisitTimes } from './calculateVisitTimes';
 export type { VisitTimesSummary, TimeEventLike } from './calculateVisitTimes';
+export { getVisitTimeSegments, hasServiceStarted, hasTravelEnded } from './getVisitTimeSegments';
+export type { VisitTimeSegment } from './getVisitTimeSegments';
+export { saveVisitTimeEvent, ensureVisitTimeEvent } from './saveVisitTimeEvent';
+export type { SaveVisitTimeEventInput, VisitTimeEventType } from './saveVisitTimeEvent';
+export { resolveEffectiveWorkflowStatus } from './resolveEffectiveWorkflowStatus';
+export type { EffectiveWorkflowStatus } from './resolveEffectiveWorkflowStatus';
 export { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 export { startEnRoute } from './startEnRoute';
 export {

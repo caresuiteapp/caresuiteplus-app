@@ -122,6 +122,8 @@ export function validateWorkflowTransition(
   to: AssignmentStatus,
   options?: {
     requireArrivedBeforeStart?: boolean;
+    hasServiceStarted?: boolean;
+    hasTravelEnded?: boolean;
     hasDocumentation?: boolean;
     hasRequiredSignature?: boolean;
     signatureImpossibleJustified?: boolean;
@@ -134,6 +136,8 @@ export function validateWorkflowTransition(
 
   return validateExecutionTransition(from, to, {
     requireArrivedBeforeStart: options?.requireArrivedBeforeStart ?? true,
+    hasServiceStarted: options?.hasServiceStarted,
+    hasTravelEnded: options?.hasTravelEnded,
     hasDocumentation: options?.hasDocumentation,
     hasRequiredSignature: options?.hasRequiredSignature,
     signatureImpossibleJustified: options?.signatureImpossibleJustified,
