@@ -170,6 +170,59 @@ export async function insertClientCostCarrierAssignment(
   return { ok: true, data: { id: data.id } };
 }
 
+/** Updates the active primary assignment or inserts when none exists (edit-safe). */
+export async function upsertClientCostCarrierAssignment(
+  input: Database['public']['Tables']['client_cost_carrier_assignments']['Insert'],
+): Promise<ServiceResult<{ id: string }>> {
+  const supabase = getClient();
+  if (!supabase) return unavailable();
+
+  const { data: existing, error: lookupError } = await supabase
+    .from('client_cost_carrier_assignments')
+    .select('id')
+    .eq('tenant_id', input.tenant_id)
+    .eq('client_id', input.client_id)
+    .eq('carrier_type', input.carrier_type)
+    .eq('is_primary', true)
+    .is('archived_at', null)
+    .maybeSingle();
+
+  if (lookupError) {
+    return { ok: false, error: toGermanSupabaseError(lookupError) };
+  }
+
+  if (existing?.id) {
+    const updatePayload: Database['public']['Tables']['client_cost_carrier_assignments']['Update'] = {
+      system_template_id: input.system_template_id ?? null,
+      tenant_override_id: input.tenant_override_id ?? null,
+      name_snapshot: input.name_snapshot,
+      ik_number_snapshot: input.ik_number_snapshot ?? null,
+      address_snapshot: input.address_snapshot ?? null,
+      insurance_number: input.insurance_number ?? null,
+      care_level_relevant: input.care_level_relevant ?? false,
+      billing_relevant: input.billing_relevant ?? true,
+      is_primary: input.is_primary ?? true,
+      updated_by: input.updated_by ?? null,
+    };
+
+    const { data, error } = await supabase
+      .from('client_cost_carrier_assignments')
+      .update(updatePayload)
+      .eq('id', existing.id)
+      .eq('tenant_id', input.tenant_id)
+      .select('id')
+      .single();
+
+    if (error || !data) {
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
+
+    return { ok: true, data: { id: data.id } };
+  }
+
+  return insertClientCostCarrierAssignment(input);
+}
+
 export async function countCostCarrierSystemTemplatesByType(): Promise<
   ServiceResult<Record<CostCarrierDbType, number>>
 > {

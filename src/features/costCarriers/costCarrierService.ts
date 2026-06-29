@@ -24,10 +24,10 @@ import {
   mapUiCostBearerTypeToDbCarrierType,
 } from './costCarrierTypes';
 import {
-  insertClientCostCarrierAssignment,
   insertTenantCostCarrierOverride,
   searchCostCarrierSystemTemplatesRemote,
   searchTenantCostCarrierOverrides,
+  upsertClientCostCarrierAssignment,
 } from './costCarrierRepository';
 
 export const COST_CARRIER_SEARCH_MIN_QUERY_LENGTH = 2;
@@ -217,7 +217,7 @@ export async function persistIntakeCostCarriers(
       tenantOverrideId = overrideResult.data.id;
     }
 
-    const assignmentResult = await insertClientCostCarrierAssignment({
+    const assignmentResult = await upsertClientCostCarrierAssignment({
       tenant_id: tenantId,
       client_id: clientId,
       carrier_type: carrierType,

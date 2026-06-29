@@ -220,6 +220,16 @@ describe('Client intake step 5 — Kostenträger / Abrechnung', () => {
     expect(service).toContain('tenant_override_id');
   });
 
+  it('aktualisiert bestehende primäre Kostenträger-Zuordnung beim Speichern (kein Duplicate-Key)', () => {
+    const service = readSrc('features/costCarriers/costCarrierService.ts');
+    const repository = readSrc('features/costCarriers/costCarrierRepository.ts');
+    expect(service).toContain('upsertClientCostCarrierAssignment');
+    expect(service).not.toContain('insertClientCostCarrierAssignment');
+    expect(repository).toContain('upsertClientCostCarrierAssignment');
+    expect(repository).toContain(".eq('is_primary', true)");
+    expect(repository).toContain(".is('archived_at', null)");
+  });
+
   it('kennt die verifizierten Supabase-Stammdaten-Zählwerte', () => {
     expect(DB_CARRIER_TYPE_COUNTS.care_insurance).toBe(93);
     expect(DB_CARRIER_TYPE_COUNTS.health_insurance).toBe(93);
