@@ -6,7 +6,6 @@ import type {
 } from '@/types/modules/employeePortalExecution';
 import type {
   EmployeePortalGpsPermissionStatus,
-  EmployeePortalLiveTimers,
   EmployeePortalTrackingSnapshot,
 } from '@/types/modules/employeePortalTracking';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
@@ -40,7 +39,6 @@ import {
   resolveAssistExecutionContext,
   resolveEffectiveWorkflowStatus,
   saveClientSignature,
-  saveTaskResults,
   saveVisitDocumentation,
   startEnRoute,
   startPause,
@@ -54,21 +52,9 @@ import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
+import { useLiveVisitTimers } from '@/hooks/useLiveVisitTimers';
+import { useTaskResultDrafts } from '@/hooks/useTaskResultDrafts';
 import { LIVE_TRACKING_POLL_MS, useAsyncQuery, useMutation } from './core';
-
-function timersFromVisitTimes(
-  visitTimes: ReturnType<typeof calculateVisitTimes>,
-): EmployeePortalLiveTimers {
-  return {
-    driveSeconds: visitTimes.driveSeconds,
-    serviceSeconds: visitTimes.serviceSeconds,
-    pauseSeconds: visitTimes.pauseSeconds,
-    activeTimer: visitTimes.activeTimer,
-    driveStartedAt: visitTimes.driveStartedAt,
-    serviceStartedAt: visitTimes.serviceStartedAt,
-    pauseStartedAt: visitTimes.pauseStartedAt,
-  };
-}
 
 export function useEmployeePortalVisitExecution(assignmentId: string | undefined) {
   const { profile } = useAuth();
@@ -79,12 +65,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const roleKey = portalRoleKey ?? profile?.roleKey ?? null;
 
   const [gpsPermission, setGpsPermission] = useState<EmployeePortalGpsPermissionStatus>('undetermined');
-  const [tick, setTick] = useState(0);
   const [liveContext, setLiveContext] = useState<EmployeeLiveContext | null>(null);
   const [executionContext, setExecutionContext] = useState<AssistExecutionContext | null>(null);
   const [liveContextError, setLiveContextError] = useState<string | null>(null);
   const [liveErrorCode, setLiveErrorCode] = useState<LiveTrackingErrorCode | null>(null);
-  const [dbTimers, setDbTimers] = useState<EmployeePortalLiveTimers | null>(null);
   const [consentRevision, setConsentRevision] = useState(0);
   const [workflowLoading, setWorkflowLoading] = useState(false);
 
@@ -137,22 +121,6 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       grantEmployeePortalLocationConsent(tenantId, assignmentId);
     }
 
-    if (result.data.visitTimes) {
-      setDbTimers(timersFromVisitTimes(result.data.visitTimes));
-    } else if (result.data.liveContext?.assistVisitId) {
-      const events = await fetchTimeEventsForVisit(
-        tenantId,
-        result.data.liveContext.assistVisitId,
-        100,
-      );
-      if (events.ok && events.data.length) {
-        const times = calculateVisitTimes(
-          events.data.map((e) => ({ eventType: e.eventType, occurredAt: e.occurredAt })),
-          result.data.assignmentStatus,
-        );
-        setDbTimers(timersFromVisitTimes(times));
-      }
-    }
     return result.data;
   }, [tenantId, assignmentId, employeeId, profile?.id, roleKey]);
 
@@ -169,16 +137,21 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     dbSessionActive: Boolean(liveContext?.trackingSessionActive),
   });
 
-  const hasData = query.data != null;
-  useEffect(() => {
-    if (!hasData) return;
-    const id = setInterval(() => setTick((t) => t + 1), 1000);
-    return () => clearInterval(id);
-  }, [hasData]);
+  const effectiveWorkflow: EffectiveWorkflowStatus | null = useMemo(() => {
+    if (!query.data) return null;
+    return resolveEffectiveWorkflowStatus(query.data.status, executionContext?.visitTimes ?? null);
+  }, [query.data, executionContext?.visitTimes]);
+
+  const effectiveStatus = effectiveWorkflow?.effectiveStatus ?? query.data?.status ?? null;
+
+  const timers = useLiveVisitTimers(
+    executionContext?.timeEvents ?? [],
+    effectiveStatus,
+    executionContext?.visitTimes ?? null,
+  );
 
   const tracking: EmployeePortalTrackingSnapshot | null = useMemo(() => {
     if (!tenantId || !assignmentId || !query.data) return null;
-    void tick;
     const base = buildEmployeePortalTrackingSnapshot(
       tenantId,
       assignmentId,
@@ -212,33 +185,20 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             capturedAt: gpsTracking.state.lastSnapshot.capturedAt,
           }
         : base.lastPosition,
+      timers: timers ?? base.timers,
     };
-  }, [tenantId, assignmentId, query.data, gpsPermission, tick, liveContext, gpsTracking.state]);
-
-  const timers = useMemo(() => {
-    if (!tenantId || !assignmentId || !query.data) return null;
-    void tick;
-    if (dbTimers) return dbTimers;
-    return null;
-  }, [tenantId, assignmentId, query.data, tick, dbTimers]);
+  }, [tenantId, assignmentId, query.data, gpsPermission, liveContext, gpsTracking.state, timers]);
 
   const workflowStep: AssistWorkflowStep | null = useMemo(() => {
-    if (!query.data) return null;
-    const effective = resolveEffectiveWorkflowStatus(query.data.status, executionContext?.visitTimes ?? null);
-    return assignmentStatusToWorkflowStep(effective.effectiveStatus);
-  }, [query.data, executionContext?.visitTimes]);
-
-  const effectiveWorkflow: EffectiveWorkflowStatus | null = useMemo(() => {
-    if (!query.data) return null;
-    return resolveEffectiveWorkflowStatus(query.data.status, executionContext?.visitTimes ?? null);
-  }, [query.data, executionContext?.visitTimes]);
+    if (!query.data || !effectiveStatus) return null;
+    return assignmentStatusToWorkflowStep(effectiveStatus);
+  }, [query.data, effectiveStatus]);
 
   const syncAfterWorkflow = useCallback(
     async (ctx: AssistExecutionContext) => {
       setExecutionContext(ctx);
       setLiveContext(ctx.liveContext);
       query.setData(ctx.detail);
-      if (ctx.visitTimes) setDbTimers(timersFromVisitTimes(ctx.visitTimes));
       return ctx;
     },
     [query],
@@ -246,8 +206,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const runWorkflow = useCallback(
     async <T,>(
-      fn: (ctx: AssistExecutionContext) => Promise<{ ok: boolean; data?: T; error?: string }>,
-    ): Promise<{ ok: boolean; data?: T; error?: string }> => {
+      fn: (ctx: AssistExecutionContext) => Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }>,
+    ): Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }> => {
       let ctx = executionContext;
       if (!ctx) {
         ctx = await refreshExecutionContext();
@@ -261,8 +221,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         if (payload && typeof payload === 'object') {
           if ('ctx' in payload && payload.ctx && typeof payload.ctx === 'object' && 'assignmentStatus' in payload.ctx) {
             await syncAfterWorkflow(payload.ctx as AssistExecutionContext);
-          } else if ('detail' in payload) {
-            await syncAfterWorkflow(payload as unknown as AssistExecutionContext);
+          } else if ('detail' in payload && 'allowedActions' in payload) {
+            await syncAfterWorkflow(payload as AssistExecutionContext);
           } else {
             await refreshExecutionContext();
           }
@@ -273,6 +233,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return result;
     },
     [executionContext, refreshExecutionContext, syncAfterWorkflow],
+  );
+
+  const taskDrafts = useTaskResultDrafts(
+    query.data?.tasks ?? [],
+    executionContext,
+    syncAfterWorkflow,
   );
 
   const grantConsent = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
@@ -393,15 +359,23 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     [runWorkflow],
   );
 
-  const handleEndService = useCallback(
-    () => runWorkflow((ctx) => endService(ctx)),
-    [runWorkflow],
-  );
+  const handleEndService = useCallback(async () => {
+    const result = await runWorkflow((ctx) => endService(ctx));
+    if (
+      !result.ok &&
+      result.errorCode === 'WORKFLOW_SERVICE_NOT_STARTED'
+    ) {
+      await refreshExecutionContext();
+    }
+    return result;
+  }, [runWorkflow, refreshExecutionContext]);
 
   const handleSaveTask = useCallback(
-    (taskId: string, status: ExtendedAssignmentTaskStatus, note?: string) =>
-      runWorkflow((ctx) => saveTaskResults({ ctx, taskId, status, completionNote: note })),
-    [runWorkflow],
+    (taskId: string, status: ExtendedAssignmentTaskStatus, note?: string) => {
+      taskDrafts.updateTask(taskId, status, note);
+      return Promise.resolve({ ok: true as const });
+    },
+    [taskDrafts],
   );
 
   const handleSaveDocumentation = useCallback(
@@ -494,12 +468,17 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     return {
       ...query.data,
       locationAddress: liveContext.clientAddress || query.data.locationAddress,
+      tasks: taskDrafts.tasks,
     };
-  }, [query.data, liveContext?.clientAddress]);
+  }, [query.data, liveContext?.clientAddress, taskDrafts.tasks]);
+
+  const allowedActions = executionContext?.allowedActions ?? [];
 
   return {
     data: visitWithAddress,
     executionContext,
+    allowedActions,
+    diagnostics: executionContext?.diagnostics ?? null,
     workflowStep,
     effectiveWorkflow,
     liveContext,
@@ -514,6 +493,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     liveContextError,
     queryError: query.error,
     actionLoading: workflowLoading,
+    taskSaving: taskDrafts.saving,
+    taskSaveError: taskDrafts.saveError,
     refresh,
     grantConsent,
     startDriveTracking,

@@ -1,5 +1,5 @@
 /**
- * ASSIST.WORKFLOW.1 — Resolve full execution context for employee portal workflow.
+ * ASSIST.WORKFLOW.1/3 — Resolve full execution context for employee portal workflow.
  */
 import type { RoleKey, ServiceResult } from '@/types';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
@@ -12,6 +12,10 @@ import {
   assistWorkflowErrorToResult,
   createAssistWorkflowError,
 } from './assistWorkflowErrors';
+import {
+  resolveAllowedActions,
+  resolveAssistExecutionDiagnostics,
+} from './resolveAllowedActions';
 
 export type ResolveAssistExecutionContextInput = {
   tenantId: string;
@@ -60,15 +64,21 @@ export async function resolveAssistExecutionContext(
   const assistVisitId = liveContext?.assistVisitId ?? assignmentId;
 
   let visitTimes = null;
+  let timeEvents: AssistExecutionContext['timeEvents'] = [];
   if (liveContext?.assistVisitId) {
     const events = await fetchTimeEventsForVisit(tenantId, liveContext.assistVisitId, 100);
     if (events.ok) {
-      visitTimes = calculateVisitTimes(
-        events.data.map((e) => ({ eventType: e.eventType, occurredAt: e.occurredAt })),
-        detailResult.data.status,
-      );
+      timeEvents = events.data.map((e) => ({ eventType: e.eventType, occurredAt: e.occurredAt }));
+      visitTimes = calculateVisitTimes(timeEvents, detailResult.data.status);
     }
   }
+
+  const diagnostics = resolveAssistExecutionDiagnostics(detailResult.data.status, visitTimes);
+  const allowedActions = resolveAllowedActions({
+    assignmentStatus: detailResult.data.status,
+    visitTimes,
+    detail: detailResult.data,
+  });
 
   return {
     ok: true,
@@ -83,6 +93,9 @@ export async function resolveAssistExecutionContext(
       detail: detailResult.data,
       liveContext,
       visitTimes,
+      timeEvents,
+      allowedActions,
+      diagnostics,
     },
   };
 }

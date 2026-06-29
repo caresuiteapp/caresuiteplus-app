@@ -424,6 +424,62 @@ export async function updateLiveEmployeePortalTask(
   };
 }
 
+export async function updateLiveEmployeePortalTasksBatch(
+  tenantId: string,
+  assignmentId: string,
+  employeeId: string,
+  roleKey: RoleKey | null,
+  updates: Array<{
+    taskId: string;
+    status: ExtendedAssignmentTaskStatus;
+    completionNote?: string;
+  }>,
+): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
+  const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
+  if (denied) return denied;
+  if (!updates.length) {
+    return fetchLiveEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
+  }
+
+  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
+  if (!existing.ok) return existing;
+  if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+  const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
+  if (accessDenied) return accessDenied;
+
+  for (const item of updates) {
+    if (taskStatusRequiresNote(item.status as AssignmentStatus) && !item.completionNote?.trim()) {
+      return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
+    }
+  }
+
+  const mapped = updates.map((item) => ({
+    taskId: item.taskId,
+    status:
+      item.status === 'done'
+        ? 'done'
+        : item.status === 'not_done'
+          ? 'not_done'
+          : (item.status as 'open' | 'skipped'),
+    notDoneReason: item.completionNote,
+  }));
+
+  const updated = await assignmentSupabaseRepository.updateTasksBatch(
+    tenantId,
+    assignmentId,
+    mapped,
+    { actorProfileId: employeeId, actorEmployeeId: employeeId },
+  );
+  if (!updated.ok) return updated;
+
+  const extras = await fetchAssignmentExtras(tenantId, assignmentId, updated.data.clientId);
+  return {
+    ok: true,
+    data: mapDetailToPortal(updated.data, roleKey, employeeId, undefined, extras),
+  };
+}
+
 export async function fetchLiveEmployeePortalOverviewFromAppointments(
   tenantId: string,
   employeeId: string,

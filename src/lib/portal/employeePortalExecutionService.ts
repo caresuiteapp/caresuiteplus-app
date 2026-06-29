@@ -43,6 +43,7 @@ import {
   fetchLiveEmployeePortalOverviewWrapped,
   transitionLiveEmployeePortalAssignment,
   updateLiveEmployeePortalTask,
+  updateLiveEmployeePortalTasksBatch,
 } from './employeePortalExecutionLiveService';
 import {
   canCaptureGps,
@@ -563,6 +564,48 @@ export async function updateEmployeePortalTask(
 
   upsertAssignmentWorkflowRecord({ ...record, tasks, updatedBy: employeeId });
 
+  return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
+}
+
+export async function updateEmployeePortalTasksBatch(
+  tenantId: string,
+  assignmentId: string,
+  employeeId: string,
+  roleKey: RoleKey | null,
+  updates: Array<{
+    taskId: string;
+    status: ExtendedAssignmentTaskStatus;
+    completionNote?: string;
+  }>,
+): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
+  const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
+  if (denied) return denied;
+
+  if (getServiceMode() === 'supabase') {
+    return updateLiveEmployeePortalTasksBatch(
+      tenantId,
+      assignmentId,
+      employeeId,
+      roleKey,
+      updates,
+    );
+  }
+
+  let detail: ServiceResult<EmployeePortalAssignmentDetail> | null = null;
+  for (const item of updates) {
+    detail = await updateEmployeePortalTask(
+      tenantId,
+      assignmentId,
+      employeeId,
+      roleKey,
+      item.taskId,
+      item.status,
+      item.completionNote,
+    );
+    if (!detail.ok) return detail;
+  }
+
+  if (detail) return detail;
   return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
 }
 

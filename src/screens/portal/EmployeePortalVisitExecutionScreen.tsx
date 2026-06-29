@@ -1,5 +1,6 @@
 import { useCallback, useMemo, useState } from 'react';
-import { Linking, Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
@@ -26,7 +27,11 @@ import {
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
-import { getPrimaryWorkflowAction } from '@/features/assistWorkflow';
+import {
+  ASSIST_WORKFLOW_ACTION_LABELS,
+  primaryAllowedAction,
+  type AssistWorkflowAllowedAction,
+} from '@/features/assistWorkflow/resolveAllowedActions';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
@@ -62,6 +67,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const {
     data: visit,
     workflowStep,
+    allowedActions,
     liveContext,
     tracking,
     timers,
@@ -74,6 +80,8 @@ export function EmployeePortalVisitExecutionScreen() {
     queryError,
     hasAssignment,
     actionLoading,
+    taskSaving,
+    taskSaveError,
     refresh,
     grantConsent,
     startDriveTracking,
@@ -108,7 +116,9 @@ export function EmployeePortalVisitExecutionScreen() {
   const [showNoShowForm, setShowNoShowForm] = useState(false);
   const [awaitingSignature, setAwaitingSignature] = useState(false);
 
-  const primaryNext = visit ? getPrimaryWorkflowAction(effectiveStatus) : undefined;
+  const primaryAction = primaryAllowedAction(allowedActions, effectiveStatus);
+  const primaryLabel = primaryAction ? ASSIST_WORKFLOW_ACTION_LABELS[primaryAction] : undefined;
+  const insets = useSafeAreaInsets();
 
   const isLocked = useMemo(
     () =>
@@ -198,37 +208,44 @@ export function EmployeePortalVisitExecutionScreen() {
     }
   }, [markArrived, tracking, geofenceOverride, setGeofenceOverride]);
 
-  const handlePrimary = useCallback(async () => {
-    if (!visit || !primaryNext) return;
-    setLocalError(null);
-    setLocalSuccess(null);
+  const runAllowedAction = useCallback(
+    async (action: AssistWorkflowAllowedAction) => {
+      setLocalError(null);
+      setLocalSuccess(null);
 
-    if (primaryNext === 'unterwegs') {
-      await handleStartDrive();
-      return;
-    }
-    if (visit.status === 'unterwegs' || primaryNext === 'angekommen') {
-      await handleArrived();
-      return;
-    }
-    if (primaryNext === 'gestartet') {
-      if (effectiveStatus === 'pausiert') {
-        const r = await endPause();
-        if (!r.ok) setLocalError(r.error ?? 'Fortsetzen fehlgeschlagen.');
-        else setLocalSuccess('Einsatz fortgesetzt.');
-      } else {
+      if (action === 'start_en_route') {
+        await handleStartDrive();
+        return;
+      }
+      if (action === 'mark_arrived') {
+        await handleArrived();
+        return;
+      }
+      if (action === 'start_service') {
         const r = await startService();
         if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
         else setLocalSuccess('Einsatz gestartet.');
+        return;
       }
-      return;
-    }
-    if (primaryNext === 'beendet') {
-      const r = await endService();
-      if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
-      else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
-    }
-  }, [visit, effectiveStatus, primaryNext, handleStartDrive, handleArrived, startService, endPause, endService]);
+      if (action === 'end_pause') {
+        const r = await endPause();
+        if (!r.ok) setLocalError(r.error ?? 'Fortsetzen fehlgeschlagen.');
+        else setLocalSuccess('Einsatz fortgesetzt.');
+        return;
+      }
+      if (action === 'end_service') {
+        const r = await endService();
+        if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
+        else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
+      }
+    },
+    [handleStartDrive, handleArrived, startService, endPause, endService],
+  );
+
+  const handlePrimary = useCallback(async () => {
+    if (!visit || !primaryAction) return;
+    await runAllowedAction(primaryAction);
+  }, [visit, primaryAction, runAllowedAction]);
 
   const handleNoShow = useCallback(async () => {
     if (!noShowNote.trim()) {
@@ -299,23 +316,27 @@ export function EmployeePortalVisitExecutionScreen() {
         : tracking?.arrivalProof === 'gps'
           ? 'Mit GPS'
           : '—';
-  const primaryLabel =
-    effectiveStatus === 'unterwegs'
-      ? 'Angekommen'
-      : effectiveStatus === 'angekommen'
-        ? 'Einsatz starten'
-        : effectiveStatus === 'gestartet'
-          ? 'Einsatz beenden'
-          : effectiveStatus === 'pausiert'
-            ? 'Pause beenden'
-            : primaryNext === 'unterwegs'
-              ? 'Anfahrt starten'
-              : undefined;
+  const primaryButtonLabel =
+    trackingActive && effectiveStatus === 'unterwegs' && primaryAction === 'mark_arrived'
+      ? 'Anfahrt läuft — Angekommen'
+      : primaryLabel;
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
       {showSuccess ? <SuccessState message={localSuccess!} /> : null}
-      {localError ? <ErrorState message={localError} /> : null}
+      {localError ? (
+        <View style={styles.dismissibleError}>
+          <ErrorState message={localError} />
+          <TouchableOpacity onPress={() => setLocalError(null)} accessibilityRole="button">
+            <Text style={styles.dismissText}>Schließen</Text>
+          </TouchableOpacity>
+        </View>
+      ) : null}
+      {taskSaveError ? (
+        <View style={styles.dismissibleError}>
+          <ErrorState message={taskSaveError} />
+        </View>
+      ) : null}
       {localWarning ? <InfoBanner variant="warning" message={localWarning} /> : null}
       {liveContextError && !queryError ? (
         <InfoBanner variant="warning" message={`Live-Kontext: ${liveContextError}`} />
@@ -325,7 +346,10 @@ export function EmployeePortalVisitExecutionScreen() {
         <InfoBanner variant="warning" message={effectiveWorkflow.repairHint} />
       ) : null}
 
-      <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + 32 + insets.bottom }]}
+        showsVerticalScrollIndicator={false}
+      >
         <EmployeePortalLocationConsentBanner
           consent={consent}
           onAccept={handleGrantConsent}
@@ -390,13 +414,9 @@ export function EmployeePortalVisitExecutionScreen() {
 
             <PremiumButton title="Karte / Route" variant="secondary" fullWidth onPress={handleOpenMap} />
 
-            {primaryLabel && !isLocked && !statusBlocksDoc ? (
+            {primaryButtonLabel && !isLocked && !statusBlocksDoc ? (
               <PremiumButton
-                title={
-                  trackingActive && effectiveStatus === 'unterwegs'
-                    ? 'Anfahrt läuft — Angekommen'
-                    : primaryLabel
-                }
+                title={primaryButtonLabel}
                 fullWidth
                 loading={actionLoading || driveLoading}
                 disabled={actionLoading || driveLoading}
@@ -404,7 +424,7 @@ export function EmployeePortalVisitExecutionScreen() {
               />
             ) : null}
 
-            {effectiveStatus === 'gestartet' ? (
+            {allowedActions.includes('start_pause') && !isLocked && !statusBlocksDoc ? (
               <PremiumButton
                 title="Pause"
                 variant="ghost"
@@ -418,7 +438,7 @@ export function EmployeePortalVisitExecutionScreen() {
               />
             ) : null}
 
-            {visit.allowedTransitions.includes('nicht_erschienen') && !isLocked ? (
+            {allowedActions.includes('report_no_show') && !isLocked ? (
               <>
                 {!showNoShowForm ? (
                   <PremiumButton
@@ -452,7 +472,7 @@ export function EmployeePortalVisitExecutionScreen() {
           <EmployeePortalVisitTasksPanel
             tasks={visit.tasks}
             disabled={isLocked}
-            loading={actionLoading}
+            loading={taskSaving}
             onUpdateTask={saveTask}
           />
         ) : null}
@@ -514,4 +534,11 @@ const styles = StyleSheet.create({
   phase: { ...typography.body, marginBottom: spacing.sm },
   actions: { gap: spacing.sm },
   errorCode: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
+  dismissibleError: { gap: spacing.xs },
+  dismissText: {
+    ...typography.caption,
+    color: colors.textMuted,
+    textAlign: 'center',
+    paddingVertical: spacing.xs,
+  },
 });

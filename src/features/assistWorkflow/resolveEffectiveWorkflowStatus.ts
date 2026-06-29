@@ -19,11 +19,26 @@ const POST_SERVICE_DOC_STATUSES: AssignmentStatus[] = [
   'unterschrift_offen',
 ];
 
+const IN_SERVICE_STATUSES: AssignmentStatus[] = ['gestartet', 'pausiert'];
+
 /** When documentation/signature steps exist without service_start, revert UI to correct step. */
 export function resolveEffectiveWorkflowStatus(
   recordedStatus: AssignmentStatus,
   visitTimes: VisitTimesSummary | null,
 ): EffectiveWorkflowStatus {
+  if (
+    IN_SERVICE_STATUSES.includes(recordedStatus) &&
+    !visitTimes?.serviceStartedAt
+  ) {
+    return {
+      effectiveStatus: visitTimes?.arrivedAt ? 'angekommen' : 'unterwegs',
+      recordedStatus,
+      inconsistent: true,
+      repairHint:
+        'Einsatzstatus ohne Zeitstempel — bitte „Einsatz starten“ bestätigen.',
+    };
+  }
+
   if (
     POST_SERVICE_DOC_STATUSES.includes(recordedStatus) &&
     !visitTimes?.serviceStartedAt

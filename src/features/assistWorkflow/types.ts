@@ -1,7 +1,11 @@
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
-import type { VisitTimesSummary } from './calculateVisitTimes';
+import type { TimeEventLike, VisitTimesSummary } from './calculateVisitTimes';
+import type {
+  AssistExecutionDiagnostics,
+  AssistWorkflowAllowedAction,
+} from './resolveAllowedActions';
 
 /** Guided employee-portal workflow steps (ASSIST.WORKFLOW.1). */
 export type AssistWorkflowStep =
@@ -29,6 +33,10 @@ export type AssistExecutionContext = {
   detail: EmployeePortalAssignmentDetail;
   liveContext: EmployeeLiveContext | null;
   visitTimes: VisitTimesSummary | null;
+  /** Raw assist_time_events for live timer ticks (no per-second DB reads). */
+  timeEvents: TimeEventLike[];
+  allowedActions: AssistWorkflowAllowedAction[];
+  diagnostics: AssistExecutionDiagnostics;
 };
 
 export type AssistWorkflowActionResult<T = void> =

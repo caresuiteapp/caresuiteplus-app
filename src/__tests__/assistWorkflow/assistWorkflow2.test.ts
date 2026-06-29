@@ -41,16 +41,32 @@ function mockCtx(overrides: Partial<AssistExecutionContext>): AssistExecutionCon
       serviceEndedAt: null,
       activeTimer: null,
     },
+    timeEvents: [],
+    allowedActions: [],
+    diagnostics: {
+      isServiceStarted: false,
+      isServiceEnded: false,
+      isTravelEnded: true,
+      canEndService: false,
+      inconsistentStatus: true,
+      repairHint: null,
+    },
     ...overrides,
   };
 }
 
-describe('resolveEffectiveWorkflowStatus (ASSIST.WORKFLOW.2)', () => {
+describe('resolveEffectiveWorkflowStatus (ASSIST.WORKFLOW.2/3)', () => {
   it('reverts beendet without service_start to angekommen when arrived', () => {
     const r = resolveEffectiveWorkflowStatus('beendet', mockCtx({}).visitTimes);
     expect(r.inconsistent).toBe(true);
     expect(r.effectiveStatus).toBe('angekommen');
     expect(r.repairHint).toContain('Einsatz starten');
+  });
+
+  it('reverts gestartet without service_start to angekommen', () => {
+    const r = resolveEffectiveWorkflowStatus('gestartet', mockCtx({}).visitTimes);
+    expect(r.inconsistent).toBe(true);
+    expect(r.effectiveStatus).toBe('angekommen');
   });
 
   it('returns consistent when service started', () => {

@@ -39,6 +39,18 @@ export { startPause } from './startPause';
 export { endPause } from './endPause';
 export { endService } from './endService';
 export { saveTaskResults } from './saveTaskResults';
+export { saveTaskResultsBatch } from './saveTaskResultsBatch';
+export type { TaskResultBatchItem, SaveTaskResultsBatchInput } from './saveTaskResultsBatch';
+export {
+  resolveAllowedActions,
+  resolveAssistExecutionDiagnostics,
+  primaryAllowedAction,
+  ASSIST_WORKFLOW_ACTION_LABELS,
+} from './resolveAllowedActions';
+export type {
+  AssistWorkflowAllowedAction,
+  AssistExecutionDiagnostics,
+} from './resolveAllowedActions';
 export { saveVisitDocumentation } from './saveVisitDocumentation';
 export { saveClientSignature, hasPersistedClientSignature } from './saveClientSignature';
 export { generateServiceRecord } from './generateServiceRecord';

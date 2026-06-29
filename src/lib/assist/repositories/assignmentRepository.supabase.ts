@@ -536,6 +536,78 @@ export const assignmentSupabaseRepository = {
     return { ok: true, data: refreshed.data };
   },
 
+  async updateTasksBatch(
+    tenantId: string,
+    assignmentId: string,
+    updates: Array<{
+      taskId: string;
+      status: AssignmentTaskStatus;
+      notDoneReason?: string;
+    }>,
+    context?: AssignmentMutationContext,
+  ): Promise<ServiceResult<AssignmentDetail>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+    if (!updates.length) {
+      const current = await this.getById(tenantId, assignmentId);
+      return current;
+    }
+
+    const now = new Date().toISOString();
+    for (const item of updates) {
+      const { data: task, error: taskError } = await supabase
+        .from('assignment_tasks')
+        .select('*')
+        .eq('tenant_id', tenantId)
+        .eq('assignment_id', assignmentId)
+        .eq('id', item.taskId)
+        .maybeSingle();
+
+      if (taskError) return { ok: false, error: toGermanSupabaseError(taskError) };
+      if (!task) return { ok: false, error: 'Aufgabe nicht gefunden.' };
+
+      if (
+        item.status === 'not_done' &&
+        (task.requires_note_if_not_done ?? false) &&
+        !item.notDoneReason?.trim()
+      ) {
+        return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
+      }
+
+      const { error: updateError } = await supabase
+        .from('assignment_tasks')
+        .update({
+          status: item.status,
+          not_done_reason: item.status === 'not_done' ? (item.notDoneReason?.trim() ?? null) : null,
+          completed_at: item.status === 'done' ? now : null,
+          completed_by_employee_id:
+            item.status === 'done' ? (context?.actorEmployeeId ?? null) : null,
+          updated_at: now,
+        })
+        .eq('tenant_id', tenantId)
+        .eq('id', item.taskId);
+
+      if (updateError) {
+        return { ok: false, error: toGermanSupabaseError(updateError) };
+      }
+
+      await writeAssignmentAudit(supabase, {
+        tenantId,
+        assignmentId,
+        action: 'task_update',
+        details: `Aufgabe „${task.title}“ → ${item.status}`,
+        actor: context,
+      });
+    }
+
+    const refreshed = await this.getById(tenantId, assignmentId);
+    if (!refreshed.ok) return refreshed;
+    if (!refreshed.data) {
+      return { ok: false, error: 'Einsatz nicht gefunden.' };
+    }
+    return { ok: true, data: refreshed.data };
+  },
+
   async completeWithDocumentation(
     tenantId: string,
     assignmentId: string,

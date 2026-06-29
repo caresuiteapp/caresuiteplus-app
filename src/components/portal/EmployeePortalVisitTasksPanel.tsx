@@ -47,12 +47,13 @@ export function EmployeePortalVisitTasksPanel({
     [text],
   );
 
-  const handleStatus = async (taskId: string, status: ExtendedAssignmentTaskStatus) => {
+  const handleStatus = (taskId: string, status: ExtendedAssignmentTaskStatus) => {
     if (status === 'not_done' && !note.trim()) {
       setPendingId(taskId);
       return;
     }
-    await onUpdateTask(taskId, status, note.trim() || undefined);
+    setPendingId(taskId);
+    void onUpdateTask(taskId, status, note.trim() || undefined);
     setPendingId(null);
     setNote('');
   };
@@ -76,7 +77,7 @@ export function EmployeePortalVisitTasksPanel({
                   key={s}
                   title={s === 'done' ? 'Erledigt' : s === 'not_done' ? 'Nicht erledigt' : 'Offen'}
                   variant={task.status === s ? 'primary' : 'ghost'}
-                  loading={loading}
+                  loading={loading && pendingId === task.id}
                   onPress={() => handleStatus(task.id, s)}
                 />
               ))}
