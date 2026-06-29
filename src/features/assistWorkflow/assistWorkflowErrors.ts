@@ -27,7 +27,13 @@ export type AssistWorkflowErrorCode =
   | 'WORKFLOW_TIME_EVENT_FAILED'
   | 'WORKFLOW_DOCUMENTATION_REQUIRED'
   | 'WORKFLOW_SIGNATURE_REQUIRED'
-  | 'WORKFLOW_PROOF_REQUIRED';
+  | 'WORKFLOW_PROOF_REQUIRED'
+  | 'START_SERVICE_RLS_DENIED'
+  | 'START_SERVICE_SCHEMA_MISSING'
+  | 'START_SERVICE_DB_ERROR'
+  | 'START_SERVICE_CONTEXT_MISSING'
+  | 'START_SERVICE_INVALID_TRANSITION'
+  | 'START_SERVICE_TIMEOUT';
 
 export type AssistWorkflowErrorContext = {
   tenantId?: string | null;
@@ -67,6 +73,12 @@ const USER_MESSAGES: Record<AssistWorkflowErrorCode, string> = {
   WORKFLOW_DOCUMENTATION_REQUIRED: 'Dokumentation ist vor der Unterschrift erforderlich.',
   WORKFLOW_SIGNATURE_REQUIRED: 'Unterschrift ist vor dem Abschluss erforderlich.',
   WORKFLOW_PROOF_REQUIRED: 'Leistungsnachweis konnte nicht erstellt werden.',
+  START_SERVICE_RLS_DENIED: 'Einsatzstart gespeichert — kein Zugriff (Berechtigung prüfen).',
+  START_SERVICE_SCHEMA_MISSING: 'Datenbankschema für Einsatzstart unvollständig — Support informieren.',
+  START_SERVICE_DB_ERROR: 'Einsatzstart konnte nicht in der Datenbank gespeichert werden.',
+  START_SERVICE_CONTEXT_MISSING: 'Einsatzkontext nach Start konnte nicht geladen werden.',
+  START_SERVICE_INVALID_TRANSITION: 'Einsatz kann im aktuellen Status nicht gestartet werden.',
+  START_SERVICE_TIMEOUT: 'Einsatzstart dauert zu lange — bitte erneut versuchen.',
 };
 
 export function createAssistWorkflowError(

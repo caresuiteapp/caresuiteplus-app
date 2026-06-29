@@ -80,6 +80,8 @@ export function EmployeePortalVisitExecutionScreen() {
     queryError,
     hasAssignment,
     actionLoading,
+    startServiceLoading,
+    refetchWarning,
     taskSaving,
     taskSaveError,
     refresh,
@@ -321,6 +323,14 @@ export function EmployeePortalVisitExecutionScreen() {
     trackingActive && effectiveStatus === 'unterwegs' && primaryAction === 'mark_arrived'
       ? 'Anfahrt läuft — Angekommen'
       : primaryLabel;
+  const primaryButtonLoading =
+    primaryAction === 'start_service'
+      ? startServiceLoading
+      : actionLoading || driveLoading;
+  const primaryButtonDisabled =
+    primaryAction === 'start_service'
+      ? startServiceLoading || driveLoading
+      : actionLoading || driveLoading;
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
@@ -346,6 +356,7 @@ export function EmployeePortalVisitExecutionScreen() {
       {consistencyStatus === 'repairable' && nextActionHint ? (
         <InfoBanner variant="info" message={nextActionHint} />
       ) : null}
+      {refetchWarning ? <InfoBanner variant="warning" message={refetchWarning} /> : null}
 
       <ScrollView
         contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + 32 + insets.bottom }]}
@@ -419,8 +430,8 @@ export function EmployeePortalVisitExecutionScreen() {
               <PremiumButton
                 title={primaryButtonLabel}
                 fullWidth
-                loading={actionLoading || driveLoading}
-                disabled={actionLoading || driveLoading}
+                loading={primaryButtonLoading}
+                disabled={primaryButtonDisabled}
                 onPress={handlePrimary}
               />
             ) : null}
