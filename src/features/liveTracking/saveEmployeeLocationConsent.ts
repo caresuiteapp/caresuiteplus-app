@@ -16,6 +16,7 @@ import {
   logLiveTrackingError,
 } from './liveTrackingErrors';
 import { resolveEmployeeLiveContext } from './resolveEmployeeLiveContext';
+import { upsertEmployeeLocationConsentRecord } from './employeeLocationConsentPersistence';
 
 export type SaveEmployeeLocationConsentInput = {
   tenantId: string;
@@ -98,6 +99,21 @@ async function verifyConsentReadBack(
   return { ok: true, data: latest.data };
 }
 
+async function persistEmployeeConsentScope(
+  tenantId: string,
+  employeeId: string,
+  grantedAt: string,
+  explainedAt: string | null,
+): Promise<void> {
+  await upsertEmployeeLocationConsentRecord(tenantId, employeeId, grantedAt, explainedAt);
+}
+
+function successResult(
+  data: SaveEmployeeLocationConsentResult,
+): ServiceResult<SaveEmployeeLocationConsentResult> {
+  return { ok: true, data };
+}
+
 /** Persist consent idempotently; safe to call on reload or double-click. */
 export async function saveEmployeeLocationConsent(
   input: SaveEmployeeLocationConsentInput,
@@ -119,17 +135,20 @@ export async function saveEmployeeLocationConsent(
   if (ctx.consentStatus.granted && ctx.consentStatus.grantedAt) {
     const sessionId = ctx.trackingSessionId ?? (await fetchLatestSessionForVisit(input.tenantId, ctx.assistVisitId)).data?.id;
     if (sessionId) {
-      return {
-        ok: true,
-        data: {
-          sessionId,
-          consentGrantedAt: ctx.consentStatus.grantedAt,
-          consentExplainedAt: ctx.consentStatus.explainedAt,
-          assistVisitId: ctx.assistVisitId,
-          assignmentId: ctx.assignmentId,
-          alreadyGranted: true,
-        },
-      };
+      await persistEmployeeConsentScope(
+        input.tenantId,
+        input.employeeId,
+        ctx.consentStatus.grantedAt,
+        ctx.consentStatus.explainedAt,
+      );
+      return successResult({
+        sessionId,
+        consentGrantedAt: ctx.consentStatus.grantedAt,
+        consentExplainedAt: ctx.consentStatus.explainedAt,
+        assistVisitId: ctx.assistVisitId,
+        assignmentId: ctx.assignmentId,
+        alreadyGranted: true,
+      });
     }
   }
 
@@ -139,17 +158,20 @@ export async function saveEmployeeLocationConsent(
   }
 
   if (active.data?.consentGrantedAt) {
-    return {
-      ok: true,
-      data: {
-        sessionId: active.data.id,
-        consentGrantedAt: active.data.consentGrantedAt,
-        consentExplainedAt: active.data.consentExplainedAt,
-        assistVisitId: ctx.assistVisitId,
-        assignmentId: ctx.assignmentId,
-        alreadyGranted: true,
-      },
-    };
+    await persistEmployeeConsentScope(
+      input.tenantId,
+      input.employeeId,
+      active.data.consentGrantedAt,
+      active.data.consentExplainedAt,
+    );
+    return successResult({
+      sessionId: active.data.id,
+      consentGrantedAt: active.data.consentGrantedAt,
+      consentExplainedAt: active.data.consentExplainedAt,
+      assistVisitId: ctx.assistVisitId,
+      assignmentId: ctx.assignmentId,
+      alreadyGranted: true,
+    });
   }
 
   const supabase = getSupabaseClient();
@@ -181,33 +203,40 @@ export async function saveEmployeeLocationConsent(
     const verified = await verifyConsentReadBack(input.tenantId, ctx.assistVisitId, now);
     if (!verified.ok) return verified as ServiceResult<never>;
 
-    return {
-      ok: true,
-      data: {
-        sessionId: active.data.id,
-        consentGrantedAt: verified.data.consent_granted_at ?? now,
-        consentExplainedAt: verified.data.consent_explained_at,
-        assistVisitId: ctx.assistVisitId,
-        assignmentId: ctx.assignmentId,
-        alreadyGranted: false,
-      },
-    };
+    await persistEmployeeConsentScope(
+      input.tenantId,
+      input.employeeId,
+      verified.data.consent_granted_at ?? now,
+      verified.data.consent_explained_at,
+    );
+
+    return successResult({
+      sessionId: active.data.id,
+      consentGrantedAt: verified.data.consent_granted_at ?? now,
+      consentExplainedAt: verified.data.consent_explained_at,
+      assistVisitId: ctx.assistVisitId,
+      assignmentId: ctx.assignmentId,
+      alreadyGranted: false,
+    });
   }
 
   const latest = await fetchLatestSessionForVisit(input.tenantId, ctx.assistVisitId);
   if (!latest.ok) return latest as ServiceResult<never>;
   if (latest.data?.consent_granted_at) {
-    return {
-      ok: true,
-      data: {
-        sessionId: latest.data.id,
-        consentGrantedAt: latest.data.consent_granted_at,
-        consentExplainedAt: latest.data.consent_explained_at,
-        assistVisitId: ctx.assistVisitId,
-        assignmentId: ctx.assignmentId,
-        alreadyGranted: true,
-      },
-    };
+    await persistEmployeeConsentScope(
+      input.tenantId,
+      input.employeeId,
+      latest.data.consent_granted_at,
+      latest.data.consent_explained_at,
+    );
+    return successResult({
+      sessionId: latest.data.id,
+      consentGrantedAt: latest.data.consent_granted_at,
+      consentExplainedAt: latest.data.consent_explained_at,
+      assistVisitId: ctx.assistVisitId,
+      assignmentId: ctx.assignmentId,
+      alreadyGranted: true,
+    });
   }
 
   const started = await startTrackingSession(input.tenantId, {
@@ -223,17 +252,20 @@ export async function saveEmployeeLocationConsent(
     if (duplicate) {
       const retryActive = await fetchActiveTrackingSession(input.tenantId, ctx.assistVisitId);
       if (retryActive.ok && retryActive.data?.consentGrantedAt) {
-        return {
-          ok: true,
-          data: {
-            sessionId: retryActive.data.id,
-            consentGrantedAt: retryActive.data.consentGrantedAt,
-            consentExplainedAt: retryActive.data.consentExplainedAt,
-            assistVisitId: ctx.assistVisitId,
-            assignmentId: ctx.assignmentId,
-            alreadyGranted: true,
-          },
-        };
+        await persistEmployeeConsentScope(
+          input.tenantId,
+          input.employeeId,
+          retryActive.data.consentGrantedAt,
+          retryActive.data.consentExplainedAt,
+        );
+        return successResult({
+          sessionId: retryActive.data.id,
+          consentGrantedAt: retryActive.data.consentGrantedAt,
+          consentExplainedAt: retryActive.data.consentExplainedAt,
+          assistVisitId: ctx.assistVisitId,
+          assignmentId: ctx.assignmentId,
+          alreadyGranted: true,
+        });
       }
     }
 
@@ -252,15 +284,19 @@ export async function saveEmployeeLocationConsent(
   const verified = await verifyConsentReadBack(input.tenantId, ctx.assistVisitId, now);
   if (!verified.ok) return verified as ServiceResult<never>;
 
-  return {
-    ok: true,
-    data: {
-      sessionId: started.data.id,
-      consentGrantedAt: verified.data.consent_granted_at ?? now,
-      consentExplainedAt: verified.data.consent_explained_at,
-      assistVisitId: ctx.assistVisitId,
-      assignmentId: ctx.assignmentId,
-      alreadyGranted: false,
-    },
-  };
+  await persistEmployeeConsentScope(
+    input.tenantId,
+    input.employeeId,
+    verified.data.consent_granted_at ?? now,
+    verified.data.consent_explained_at,
+  );
+
+  return successResult({
+    sessionId: started.data.id,
+    consentGrantedAt: verified.data.consent_granted_at ?? now,
+    consentExplainedAt: verified.data.consent_explained_at,
+    assistVisitId: ctx.assistVisitId,
+    assignmentId: ctx.assignmentId,
+    alreadyGranted: false,
+  });
 }

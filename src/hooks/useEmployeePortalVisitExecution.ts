@@ -20,6 +20,7 @@ import {
   getEmployeePortalLocationConsent,
   grantEmployeePortalLocationConsent,
   markEmployeePortalConsentExplained,
+  rebuildEmployeePortalTrackingWarnings,
   requestEmployeePortalForegroundLocationPermission,
   setEmployeePortalGeofenceOverrideReason,
 } from '@/lib/portal/employeePortalVisitTrackingService';
@@ -180,6 +181,14 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       gpsPermission,
     );
 
+    const resolvedConsent = liveContext?.consentStatus.granted
+      ? {
+          granted: true as const,
+          grantedAt: liveContext.consentStatus.grantedAt,
+          explainedAt: liveContext.consentStatus.explainedAt,
+        }
+      : base.consent;
+
     const dbActive =
       liveContext?.trackingSessionActive ||
       gpsTracking.state.trackingActive ||
@@ -187,6 +196,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
     return {
       ...base,
+      consent: resolvedConsent,
+      warnings: rebuildEmployeePortalTrackingWarnings(resolvedConsent, gpsPermission, base.warnings),
       trackingActive: dbActive || base.trackingActive,
       lastPosition: gpsTracking.state.lastSnapshot
         ? {

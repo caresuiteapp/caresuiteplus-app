@@ -7,6 +7,7 @@ import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePor
 import {
   fetchActiveTrackingSession,
   fetchLatestLocationPointForVisit,
+  fetchLatestTrackingSessionWithConsent,
   fetchTimeEventsForVisit,
 } from '@/lib/assist/assistTrackingPersistenceService';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
@@ -27,6 +28,7 @@ import {
   normalizeSupabaseError,
 } from './liveTrackingDiagnostics';
 import { resolveLiveAssignment, type LiveAssignmentResolution } from './resolveLiveAssignment';
+import { fetchEmployeeLocationConsentRecord } from './employeeLocationConsentPersistence';
 
 export type EmployeeLiveContext = {
   tenantId: string;
@@ -225,6 +227,14 @@ export async function resolveEmployeeLiveContext(
     return { ok: false, error: sessionResult.error };
   }
 
+  const latestConsentSession = sessionResult.data?.consentGrantedAt
+    ? sessionResult
+    : await fetchLatestTrackingSessionWithConsent(tenantId, resolution.visitId);
+  const employeeConsent = await fetchEmployeeLocationConsentRecord(tenantId, employeeId);
+  if (!employeeConsent.ok) {
+    return { ok: false, error: employeeConsent.error };
+  }
+
   const latestLocation = await fetchLatestLocationPointForVisit(tenantId, resolution.visitId);
   if (!latestLocation.ok) {
     const err = logLiveTrackingRuntimeError(
@@ -256,15 +266,32 @@ export async function resolveEmployeeLiveContext(
     return liveTrackingErrorToServiceResult(err);
   }
 
-  const dbConsentGranted = Boolean(sessionResult.data?.consentGrantedAt);
+  const sessionRow = sessionResult.data;
+  const visitConsentRow =
+    latestConsentSession.ok && latestConsentSession.data ? latestConsentSession.data : null;
+  const employeeConsentRow = employeeConsent.data;
+
+  const dbConsentGranted = Boolean(
+    sessionRow?.consentGrantedAt ||
+      visitConsentRow?.consentGrantedAt ||
+      employeeConsentRow?.granted,
+  );
   const localConsent = input.localConsent;
   const consentGranted = localConsent?.granted || dbConsentGranted;
   const consentGrantedAt =
-    localConsent?.grantedAt ?? sessionResult.data?.consentGrantedAt ?? null;
+    localConsent?.grantedAt ??
+    sessionRow?.consentGrantedAt ??
+    visitConsentRow?.consentGrantedAt ??
+    employeeConsentRow?.grantedAt ??
+    null;
   const consentExplainedAt =
-    localConsent?.explainedAt ?? sessionResult.data?.consentExplainedAt ?? null;
+    localConsent?.explainedAt ??
+    sessionRow?.consentExplainedAt ??
+    visitConsentRow?.consentExplainedAt ??
+    employeeConsentRow?.explainedAt ??
+    null;
 
-  const sessionActive = Boolean(sessionResult.data?.isActive);
+  const sessionActive = Boolean(sessionRow?.isActive);
   const trackingActive =
     sessionActive ||
     assignmentStatus === 'unterwegs' ||
@@ -323,7 +350,7 @@ export async function resolveEmployeeLiveContext(
         grantedAt: consentGrantedAt,
         explainedAt: consentExplainedAt,
       },
-      trackingSessionId: sessionResult.data?.id ?? null,
+      trackingSessionId: sessionRow?.id ?? visitConsentRow?.id ?? null,
       trackingSessionActive: trackingActive,
       lastLocationAt: latestLocation.data?.recordedAt ?? null,
       lastLocationAccuracyMeters: latestLocation.data?.accuracyMeters ?? null,

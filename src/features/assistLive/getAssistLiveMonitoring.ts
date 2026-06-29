@@ -6,10 +6,12 @@ import type { RoleKey, ServiceResult, WorkflowStatus } from '@/types';
 import type { DayMonitorAssignmentRow } from '@/types/modules/liveMonitor';
 import type { EmployeePortalTrackingSnapshot } from '@/types/modules/employeePortalTracking';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import type { AssistTrackingSessionRow } from '@/types/assistExecutionPersistence';
 import { isAssignmentToday } from '@/data/demo/assistAssignments';
 import {
   fetchActiveTrackingSession,
   fetchLatestLocationPointForVisit,
+  fetchLatestTrackingSessionWithConsent,
   fetchTimeEventsForVisit,
 } from '@/lib/assist/assistTrackingPersistenceService';
 import { fetchDayMonitor } from '@/lib/assist/liveMonitorService';
@@ -20,7 +22,10 @@ import { DAY_MONITOR_STATUS_COLORS } from '@/types/modules/liveMonitor';
 import {
   buildEmployeePortalTrackingSnapshot,
   getEmployeePortalGpsPermissionStatus,
+  rebuildEmployeePortalTrackingWarnings,
 } from '@/lib/portal/employeePortalVisitTrackingService';
+import type { EmployeePortalLocationConsent } from '@/types/modules/employeePortalTracking';
+import { fetchEmployeeLocationConsentRecord } from '@/features/liveTracking/employeeLocationConsentPersistence';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
@@ -103,10 +108,50 @@ function diffSeconds(fromIso: string, toIso: string): number {
   return Math.max(0, Math.round((new Date(toIso).getTime() - new Date(fromIso).getTime()) / 1000));
 }
 
+function resolvePersistedConsent(
+  session: AssistTrackingSessionRow | null,
+  visitConsent: AssistTrackingSessionRow | null,
+  employeeConsent: EmployeePortalLocationConsent | null,
+  trackingActive: boolean,
+  hasLocation: boolean,
+  inMemory: EmployeePortalLocationConsent,
+): EmployeePortalLocationConsent {
+  if (session?.consentGrantedAt) {
+    return {
+      granted: true,
+      grantedAt: session.consentGrantedAt,
+      explainedAt: session.consentExplainedAt,
+    };
+  }
+  if (visitConsent?.consentGrantedAt) {
+    return {
+      granted: true,
+      grantedAt: visitConsent.consentGrantedAt,
+      explainedAt: visitConsent.consentExplainedAt,
+    };
+  }
+  if (employeeConsent?.granted) {
+    return employeeConsent;
+  }
+  if (trackingActive && hasLocation) {
+    return { granted: true, grantedAt: null, explainedAt: null };
+  }
+  return inMemory;
+}
+
+function isConsentPendingForMonitoring(row: AssistLiveMonitoringRow): boolean {
+  const tracking = row.tracking;
+  if (!tracking) return false;
+  if (tracking.consent.granted) return false;
+  if (tracking.trackingActive && tracking.lastPosition) return false;
+  return true;
+}
+
 async function enrichTrackingFromPersistence(
   tenantId: string,
   visitId: string,
   assignmentId: string,
+  employeeId: string | null,
   status: AssignmentStatus,
   gpsPermission: EmployeePortalTrackingSnapshot['gpsPermission'],
   inMemory: EmployeePortalTrackingSnapshot,
@@ -116,19 +161,25 @@ async function enrichTrackingFromPersistence(
   const resolvedVisitId = await resolveLiveVisitId(tenantId, visitId);
   const persistenceVisitId = resolvedVisitId ?? visitId;
 
-  const [sessionRes, pointRes, eventsRes] = await Promise.all([
+  const [sessionRes, visitConsentRes, pointRes, eventsRes, employeeConsentRes] = await Promise.all([
     fetchActiveTrackingSession(tenantId, persistenceVisitId),
+    fetchLatestTrackingSessionWithConsent(tenantId, persistenceVisitId),
     fetchLatestLocationPointForVisit(tenantId, persistenceVisitId),
     fetchTimeEventsForVisit(tenantId, persistenceVisitId),
+    employeeId
+      ? fetchEmployeeLocationConsentRecord(tenantId, employeeId)
+      : Promise.resolve({ ok: true as const, data: null }),
   ]);
 
-  if (!sessionRes.ok || !pointRes.ok || !eventsRes.ok) {
+  if (!sessionRes.ok || !visitConsentRes.ok || !pointRes.ok || !eventsRes.ok || !employeeConsentRes.ok) {
     return inMemory;
   }
 
   const session = sessionRes.data;
+  const visitConsent = visitConsentRes.data;
   const point = pointRes.data;
   const events = eventsRes.data;
+  const employeeConsent = employeeConsentRes.data;
 
   const trackingActive = session?.isActive ?? inMemory.trackingActive;
   const lastPosition =
@@ -161,18 +212,25 @@ async function enrichTrackingFromPersistence(
     if (serviceEnd) serviceSeconds = diffSeconds(serviceStart, serviceEnd);
   }
 
-  const consent = session
-    ? {
-        granted: true,
-        grantedAt: session.consentGrantedAt,
-        explainedAt: session.consentExplainedAt,
-      }
-    : inMemory.consent;
+  const consent = resolvePersistedConsent(
+    session,
+    visitConsent,
+    employeeConsent,
+    trackingActive,
+    Boolean(lastPosition),
+    inMemory.consent,
+  );
 
   const assistVisible =
     trackingActive &&
     (status === 'unterwegs' || status === 'angekommen' || status === 'gestartet') &&
     Boolean(lastPosition);
+
+  const warnings = rebuildEmployeePortalTrackingWarnings(
+    consent,
+    gpsPermission,
+    inMemory.warnings,
+  );
 
   return {
     ...inMemory,
@@ -181,6 +239,7 @@ async function enrichTrackingFromPersistence(
     lastPosition,
     assistVisible,
     clientPortalVisible: false,
+    warnings,
     timers: {
       ...inMemory.timers,
       driveSeconds,
@@ -275,6 +334,7 @@ async function buildRowsFromDayMonitor(
         tenantId,
         row.assignmentId,
         row.assignmentId,
+        row.employeeId,
         row.status,
         gpsPermission,
         inMemory,
@@ -371,6 +431,7 @@ export async function getAssistLiveMonitoring(
           tenantId,
           item.id,
           item.id,
+          item.employeeId,
           assignmentStatus,
           gpsPermission,
           inMemory,
@@ -391,7 +452,7 @@ export async function getAssistLiveMonitoring(
   const todayCount = rows.length;
   const runningCount = computeRunningCount(rows, visitWorkflowStatuses);
   const activeTrackingCount = rows.filter((r) => r.tracking?.trackingActive).length;
-  const consentPendingCount = rows.filter((r) => r.tracking && !r.tracking.consent.granted).length;
+  const consentPendingCount = rows.filter(isConsentPendingForMonitoring).length;
   const gpsDeniedCount = rows.filter((r) => r.tracking?.gpsPermission === 'denied').length;
   const mapMarkers = buildMapMarkers(rows);
 

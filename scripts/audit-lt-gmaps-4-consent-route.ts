@@ -43,6 +43,9 @@ check('G4-15', 'Pause empty label', fileContains('src/components/portal/Employee
 check('G4-16', 'Preflight doc', fileExists('docs/audit/lt-gmaps-4-consent-route-preflight.md'), 'preflight');
 check('G4-17', 'Abnahmebericht', fileExists('docs/audit/lt-gmaps-4-consent-route-abnahmebericht.md'), 'abnahmebericht');
 check('G4-18', 'Unit tests', fileExists('src/__tests__/liveTracking/liveTrackingLtGmaps4.test.ts'), 'vitest coverage');
+check('G4-19', 'Migration 0205 employee consent', fileExists('supabase/migrations/0205_employee_location_consent_persist.sql'), 'permanent consent table');
+check('G4-20', 'Employee consent persistence module', fileExists('src/features/liveTracking/employeeLocationConsentPersistence.ts'), 'tenant+employee scope');
+check('G4-21', 'Assist monitoring consent rebuild', fileContains('src/features/assistLive/getAssistLiveMonitoring.ts', 'rebuildEmployeePortalTrackingWarnings'), 'no stale warning');
 
 const passed = checks.filter((c) => c.ok).length;
 const failed = checks.filter((c) => !c.ok);

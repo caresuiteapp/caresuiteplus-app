@@ -35,6 +35,9 @@ type TrackingEntry = {
 
 const TRACKING_STORE = new Map<string, TrackingEntry>();
 
+export const EMPLOYEE_PORTAL_CONSENT_PENDING_WARNING =
+  'Standort-Einwilligung ausstehend — Tracking startet erst nach Bestätigung.';
+
 function storeKey(tenantId: string, assignmentId: string): string {
   return `${tenantId}:${assignmentId}`;
 }
@@ -311,7 +314,7 @@ export function buildEmployeePortalTrackingSnapshot(
   const warnings: string[] = [];
 
   if (!entry.consent.granted) {
-    warnings.push('Standort-Einwilligung ausstehend — Tracking startet erst nach Bestätigung.');
+    warnings.push(EMPLOYEE_PORTAL_CONSENT_PENDING_WARNING);
   } else if (gpsPermission === 'denied') {
     warnings.push('Standortberechtigung verweigert — keine Live-Position, Timer laufen weiter.');
   } else if (gpsPermission === 'unavailable') {
@@ -363,6 +366,23 @@ export function listEmployeePortalTrackingSnapshots(
       gpsPermission,
     ),
   );
+}
+
+/** Rebuild consent/GPS warnings after DB enrichment (Assist live monitor read path). */
+export function rebuildEmployeePortalTrackingWarnings(
+  consent: EmployeePortalLocationConsent,
+  gpsPermission: EmployeePortalGpsPermissionStatus,
+  existingWarnings: string[],
+): string[] {
+  const withoutConsentWarning = existingWarnings.filter(
+    (w) => w !== EMPLOYEE_PORTAL_CONSENT_PENDING_WARNING,
+  );
+
+  if (consent.granted) {
+    return withoutConsentWarning;
+  }
+
+  return [EMPLOYEE_PORTAL_CONSENT_PENDING_WARNING, ...withoutConsentWarning];
 }
 
 export function resetEmployeePortalVisitTrackingStore(): void {

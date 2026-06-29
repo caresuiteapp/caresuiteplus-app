@@ -209,6 +209,37 @@ function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 }
 
+/** Latest tracking session for visit (any active state) with consent timestamp. */
+export async function fetchLatestTrackingSessionWithConsent(
+  tenantId: string,
+  visitId: string,
+): Promise<ServiceResult<AssistTrackingSessionRow | null>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return unavailable();
+
+  const { data, error } = await fromUnknownTable(
+    supabase,
+    ASSIST_EXECUTION_TABLES.trackingSessions,
+  )
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('visit_id', visitId)
+    .not('consent_granted_at', 'is', null)
+    .order('started_at', { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) {
+      return { ok: true, data: null, tableMissing: true };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  if (!data) return { ok: true, data: null };
+  return { ok: true, data: mapSessionRow(data as SessionDbRow) };
+}
+
 /** Read active tracking session for visit — Assist monitor read path. */
 export async function fetchActiveTrackingSession(
   tenantId: string,

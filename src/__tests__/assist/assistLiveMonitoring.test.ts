@@ -72,6 +72,9 @@ describe('getAssistLiveMonitoring', () => {
     const row = result.data.rows.find((r) => r.assignmentId === record.id);
     expect(row?.tracking?.consent.granted).toBe(true);
     expect(row?.tracking?.trackingActive).toBe(true);
+    expect(row?.tracking?.warnings).not.toContain(
+      'Standort-Einwilligung ausstehend — Tracking startet erst nach Bestätigung.',
+    );
   });
 
   it('todayCount und runningCount stimmen mit rows überein', async () => {
