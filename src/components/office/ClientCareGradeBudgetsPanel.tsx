@@ -34,6 +34,14 @@ import {
   BudgetInfoBanners,
   BudgetModeSwitch,
 } from '@/components/office/ClientBudgetAccountsGrid';
+import {
+  BudgetCorrectionModal,
+  BudgetRecalcModal,
+  ConversionToggleModal,
+  EditCareFundModal,
+  EditCareGradeModal,
+  EditValidFromModal,
+} from '@/components/office/ClientCareGradeBudgetsModals';
 import { formatCurrency } from '@/lib/formatters/numberFormatters';
 import { formatCareLevel } from '@/lib/formatters/unitFormatters';
 import { formatDate, formatDateTime } from '@/lib/formatters/dateTimeFormatters';
@@ -78,6 +86,9 @@ export function ClientCareGradeBudgetsPanel({
   const { isReadOnly } = usePermissions();
   const query = useBillingProfile(clientId);
   const [typeFilter, setTypeFilter] = useState('all');
+  const [modal, setModal] = useState<
+    'careGrade' | 'careFund' | 'validFrom' | 'conversion' | 'correction' | 'recalc' | null
+  >(null);
 
   const txQuery = useAsyncQuery(
     () => {
@@ -153,6 +164,20 @@ export function ClientCareGradeBudgetsPanel({
               Kein Anspruchsdatensatz — Pflegegrad in Stammdaten oder Aufnahme pflegen.
             </Text>
           )}
+          {!isReadOnly ? (
+            <View style={styles.actionRow}>
+              <PremiumButton title="Pflegegrad" variant="secondary" onPress={() => setModal('careGrade')} />
+              <PremiumButton title="Pflegekasse" variant="secondary" onPress={() => setModal('careFund')} />
+              <PremiumButton title="Gültig ab" variant="secondary" onPress={() => setModal('validFrom')} />
+              {profile.conversionEligible ? (
+                <PremiumButton
+                  title={profile.careEntitlement?.conversionEnabled ? 'Umwandlung aus' : 'Umwandlung an'}
+                  variant="glass"
+                  onPress={() => setModal('conversion')}
+                />
+              ) : null}
+            </View>
+          ) : null}
         </PremiumCard>
       </SectionPanel>
 
@@ -201,6 +226,12 @@ export function ClientCareGradeBudgetsPanel({
           isReadOnly={isReadOnly}
           onChanged={refreshAll}
         />
+        {!isReadOnly ? (
+          <View style={styles.actionRow}>
+            <PremiumButton title="Korrektur buchen" variant="secondary" onPress={() => setModal('correction')} />
+            <PremiumButton title="Neu berechnen" variant="secondary" onPress={() => setModal('recalc')} />
+          </View>
+        ) : null}
         {!isReadOnly && profile.budgetAccounts.length === 0 ? (
           <PremiumButton
             title="Budgetkonten aus Vorlage 2026 erzeugen"
@@ -311,6 +342,55 @@ export function ClientCareGradeBudgetsPanel({
           ))
         )}
       </SectionPanel>
+
+      <EditCareGradeModal
+        visible={modal === 'careGrade'}
+        onClose={() => setModal(null)}
+        onSaved={refreshAll}
+        isReadOnly={isReadOnly}
+        clientId={clientId}
+        profile={profile}
+      />
+      <EditCareFundModal
+        visible={modal === 'careFund'}
+        onClose={() => setModal(null)}
+        onSaved={refreshAll}
+        isReadOnly={isReadOnly}
+        clientId={clientId}
+        profile={profile}
+      />
+      <EditValidFromModal
+        visible={modal === 'validFrom'}
+        onClose={() => setModal(null)}
+        onSaved={refreshAll}
+        isReadOnly={isReadOnly}
+        clientId={clientId}
+        profile={profile}
+      />
+      <ConversionToggleModal
+        visible={modal === 'conversion'}
+        onClose={() => setModal(null)}
+        onSaved={refreshAll}
+        isReadOnly={isReadOnly}
+        clientId={clientId}
+        profile={profile}
+      />
+      <BudgetCorrectionModal
+        visible={modal === 'correction'}
+        onClose={() => setModal(null)}
+        onSaved={refreshAll}
+        isReadOnly={isReadOnly}
+        clientId={clientId}
+        accounts={profile.budgetAccounts}
+      />
+      <BudgetRecalcModal
+        visible={modal === 'recalc'}
+        onClose={() => setModal(null)}
+        onSaved={refreshAll}
+        isReadOnly={isReadOnly}
+        clientId={clientId}
+        profile={profile}
+      />
     </View>
   );
 }
@@ -323,4 +403,5 @@ const styles = StyleSheet.create({
   badgeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
   linkRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
 });

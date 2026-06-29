@@ -4,6 +4,7 @@ import {
   BUDGET_TEMPLATE_LABELS,
   type ClientAssistBillingProfile,
   type ClientBudgetAccount,
+  type ClientCareGrade,
   type ClientServiceEntitlement,
 } from '@/types/assist/clientAssistBilling';
 
@@ -118,4 +119,46 @@ export const PFLEGEGRAD_BUDGETS_TAB_ALIASES: Record<string, string> = {
 export function resolvePflegegradBudgetsTabAlias(tab: string | undefined): string | undefined {
   if (!tab) return tab;
   return PFLEGEGRAD_BUDGETS_TAB_ALIASES[tab] ?? tab;
+}
+
+export const CARE_GRADE_OPTIONS: { key: ClientCareGrade; label: string }[] = [
+  { key: 'kein', label: 'Kein Pflegegrad' },
+  { key: 'pg1', label: 'PG 1' },
+  { key: 'pg2', label: 'PG 2' },
+  { key: 'pg3', label: 'PG 3' },
+  { key: 'pg4', label: 'PG 4' },
+  { key: 'pg5', label: 'PG 5' },
+  { key: 'hospiz', label: 'Hospiz' },
+];
+
+export type BudgetCorrectionFormValues = {
+  budgetAccountId: string;
+  amountEuro: string;
+  reason: string;
+  effectiveDate: string;
+};
+
+export function validateBudgetCorrectionForm(
+  values: BudgetCorrectionFormValues,
+): { ok: true } | { ok: false; error: string } {
+  if (!values.budgetAccountId) return { ok: false, error: 'Budgetkonto ist Pflicht.' };
+  if (!values.reason.trim()) return { ok: false, error: 'Begründung ist Pflicht.' };
+  if (!values.effectiveDate.trim()) return { ok: false, error: 'Wirksamkeitsdatum ist Pflicht.' };
+  const trimmed = values.amountEuro.trim().replace(',', '.');
+  const parsed = parseFloat(trimmed);
+  if (!trimmed || Number.isNaN(parsed) || parsed === 0) {
+    return { ok: false, error: 'Betrag muss ungleich 0 sein (± erlaubt).' };
+  }
+  return { ok: true };
+}
+
+export function parseCorrectionAmountCents(amountEuro: string): number {
+  const parsed = parseFloat(amountEuro.trim().replace(',', '.'));
+  return Math.round(parsed * 100);
+}
+
+export function hasRecalculationChanges(
+  diffs: import('./clientCareGradeBudgetsService').BudgetRecalcDiff[],
+): boolean {
+  return diffs.some((d) => !d.skipped && d.deltaCents !== 0);
 }

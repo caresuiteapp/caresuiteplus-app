@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, Switch, Text, useWindowDimensions, View } from 'react-native';
 import { AppGlassModal } from '@/components/layout/platform/AppGlassModal';
 import {
   EmptyState,
@@ -11,6 +11,7 @@ import {
   PremiumInput,
   type DataTableColumn,
 } from '@/components/ui';
+import { BudgetDeactivateModal } from '@/components/office/ClientCareGradeBudgetsModals';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import {
@@ -32,6 +33,12 @@ import {
 import { spacing, typography } from '@/theme';
 
 const FORM_CTX = { viewContext: 'form' as const };
+const MOBILE_BREAKPOINT = 768;
+
+function useIsMobileLayout(): boolean {
+  const { width } = useWindowDimensions();
+  return width < MOBILE_BREAKPOINT;
+}
 
 function accountLabel(a: ClientBudgetAccount): string {
   return a.label ?? BUDGET_TEMPLATE_LABELS[a.catalogKey as keyof typeof BUDGET_TEMPLATE_LABELS] ?? a.catalogKey;
@@ -123,9 +130,9 @@ function BudgetAccountEditModal({
       subtitle={formatBudgetPeriodLabelCapitalized(account.period, account.catalogKey)}
       onClose={onClose}
       footerActions={[
-        { label: 'Abbrechen', onPress: onClose, variant: 'secondary' },
+        { title: 'Abbrechen', onPress: onClose, variant: 'secondary' },
         {
-          label: saving ? 'Speichern…' : 'Speichern',
+          title: saving ? 'Speichern…' : 'Speichern',
           onPress: async () => {
             if (isReadOnly || !tenantId) return;
             setSaving(true);
@@ -254,7 +261,7 @@ export function BudgetModeSwitch({
         }}
         footerActions={[
           {
-            label: 'Abbrechen',
+            title: 'Abbrechen',
             onPress: () => {
               setPendingMode(null);
               setReason('');
@@ -262,7 +269,7 @@ export function BudgetModeSwitch({
             variant: 'secondary',
           },
           {
-            label: saving ? 'Speichern…' : 'Bestätigen',
+            title: saving ? 'Speichern…' : 'Bestätigen',
             onPress: confirmModeChange,
             variant: 'primary',
             disabled: saving || !reason.trim(),
@@ -300,11 +307,17 @@ export function BudgetAccountsEditableGrid({
 }) {
   const tenantId = useServiceTenantId();
   const text = useAuroraAdaptiveText();
+  const isMobile = useIsMobileLayout();
   const [editAccount, setEditAccount] = useState<ClientBudgetAccount | null>(null);
+  const [deactivateAccount, setDeactivateAccount] = useState<ClientBudgetAccount | null>(null);
 
   async function handleToggle(account: ClientBudgetAccount, enabled: boolean) {
     if (!tenantId || isReadOnly) return;
-    await setClientBudgetEnabled(tenantId, clientId, account.id, enabled);
+    if (!enabled) {
+      setDeactivateAccount(account);
+      return;
+    }
+    await setClientBudgetEnabled(tenantId, clientId, account.id, true);
     onChanged();
   }
 
@@ -436,10 +449,12 @@ export function BudgetAccountsEditableGrid({
       {
         key: 'actions',
         label: 'Aktionen',
-        width: 88,
+        width: 120,
         render: (a) =>
           !isReadOnly ? (
-            <PremiumButton title="Bearbeiten" variant="glass" onPress={() => setEditAccount(a)} />
+            <View style={styles.actionCell}>
+              <PremiumButton title="Bearbeiten" variant="glass" onPress={() => setEditAccount(a)} />
+            </View>
           ) : (
             <Text style={[styles.cellSecondary, { color: text.secondary }]}>—</Text>
           ),
@@ -447,6 +462,52 @@ export function BudgetAccountsEditableGrid({
     ],
     [isReadOnly, profile.canUseBudgetByCatalogKey, text.primary, text.secondary],
   );
+
+  function renderMobileCard(a: ClientBudgetAccount) {
+    const available = a.remainingCents ?? computeAvailableCents(a);
+    const statusLabel = a.locked
+      ? 'gesperrt'
+      : profile.canUseBudgetByCatalogKey[a.catalogKey]
+        ? 'OK'
+        : 'leer';
+    const statusVariant = a.locked ? 'orange' as const : profile.canUseBudgetByCatalogKey[a.catalogKey] ? 'green' as const : 'gray' as const;
+
+    return (
+      <PremiumCard key={a.id} style={styles.mobileCard}>
+        <View style={styles.rowBetween}>
+          <Text style={[styles.cardTitle, { color: text.primary }]}>{accountLabel(a)}</Text>
+          <PremiumBadge label={statusLabel} variant={statusVariant} />
+        </View>
+        <Text style={[styles.meta, { color: text.secondary }]}>
+          {formatBudgetPeriodLabelCapitalized(a.period, a.catalogKey)}
+        </Text>
+        <View style={styles.mobileStats}>
+          <Text style={[styles.meta, { color: text.secondary }]}>
+            Zugewiesen: {formatCurrency(a.allocatedCents, true)}
+          </Text>
+          <Text style={[styles.meta, { color: text.secondary }]}>
+            Reserviert: {formatCurrency(a.reservedCents, true)}
+          </Text>
+          <Text style={[styles.meta, { color: text.secondary }]}>
+            Verbraucht: {formatCurrency(a.usedCents, true)}
+          </Text>
+          <Text style={[styles.meta, { color: text.primary }]}>
+            Verfügbar: {formatCurrency(available, true)}
+          </Text>
+        </View>
+        <View style={styles.rowBetween}>
+          <Switch
+            value={a.isEnabled !== false && a.status === 'active'}
+            onValueChange={(v) => handleToggle(a, v)}
+            disabled={isReadOnly || a.locked}
+          />
+          {!isReadOnly ? (
+            <PremiumButton title="Bearbeiten" variant="glass" onPress={() => setEditAccount(a)} />
+          ) : null}
+        </View>
+      </PremiumCard>
+    );
+  }
 
   if (profile.budgetAccounts.length === 0) {
     return (
@@ -459,20 +520,34 @@ export function BudgetAccountsEditableGrid({
 
   return (
     <>
-      <ScrollView horizontal showsHorizontalScrollIndicator style={styles.tableScroll}>
-        <PremiumDataTable
-          columns={columns}
-          data={profile.budgetAccounts}
-          keyExtractor={(a) => a.id}
-          emptyMessage="Keine Budgetkonten"
-        />
-      </ScrollView>
+      {isMobile ? (
+        <View style={styles.mobileList}>
+          {profile.budgetAccounts.map(renderMobileCard)}
+        </View>
+      ) : (
+        <ScrollView horizontal showsHorizontalScrollIndicator style={styles.tableScroll}>
+          <PremiumDataTable
+            columns={columns}
+            data={profile.budgetAccounts}
+            keyExtractor={(a) => a.id}
+            emptyMessage="Keine Budgetkonten"
+          />
+        </ScrollView>
+      )}
       <BudgetAccountEditModal
         account={editAccount}
         visible={editAccount !== null}
         isReadOnly={isReadOnly}
         onClose={() => setEditAccount(null)}
         onSaved={onChanged}
+      />
+      <BudgetDeactivateModal
+        visible={deactivateAccount !== null}
+        onClose={() => setDeactivateAccount(null)}
+        onSaved={onChanged}
+        isReadOnly={isReadOnly}
+        clientId={clientId}
+        account={deactivateAccount}
       />
     </>
   );
@@ -485,6 +560,11 @@ const styles = StyleSheet.create({
   bannerStack: { gap: spacing.sm, marginBottom: spacing.sm },
   modeRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm, marginTop: spacing.sm },
   tableScroll: { maxWidth: '100%' },
+  mobileList: { gap: spacing.sm },
+  mobileCard: { marginBottom: spacing.xs },
+  mobileStats: { gap: spacing.xs, marginVertical: spacing.xs },
+  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: spacing.sm },
+  actionCell: { flexDirection: 'row', gap: spacing.xs },
   cellPrimary: { ...typography.caption },
   cellSecondary: { ...typography.caption, fontSize: 11 },
   modalBody: { gap: spacing.md },
