@@ -87,5 +87,10 @@ LT.GMAPS.4 behebt zwei verbleibende Mitarbeiterportal-Bugs nach LT.GMAPS.3:
 |-----------|--------|
 | Migration 0202 | Ja |
 | Code + Tests | Ja |
-| Bundle GMAPS.4 | Nach Deploy prüfen |
+| Commit | `e59504f4` — LT.GMAPS.4 fix consent loop and route context [deploy] |
+| Local export bundle | `entry-ce8510a31650b30cff9d2146b42f12f4.js` (saveEmployeeLocationConsent + buildEmployeePortalLiveRoute) |
+| Production bundle | Nach Netlify-Build prüfen |
 | **Production ready** | **Ja (nach iPhone-Abnahme)** |
+
+## LT.GMAPS.5 redeploy note 2026-06-29 [deploy]
+Production bundle check: entry-2620b2a lacked consent persistence symbols.
