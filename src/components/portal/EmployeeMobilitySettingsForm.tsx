@@ -110,12 +110,15 @@ export function EmployeeMobilitySettingsForm({
 
       <SectionPanel title="Verkehrsmittel">
         <FilterChipGroup
+          multiple
           options={TRANSPORT_OPTIONS}
-          value={draft.transportMode}
-          onChange={(value) => setDraft({ ...draft, transportMode: value as EmployeeTransportMode })}
+          value={draft.transportModes}
+          onChange={(value) =>
+            setDraft({ ...draft, transportModes: value as EmployeeTransportMode[] })
+          }
           wrap
         />
-        {draft.transportMode === 'escooter' ? (
+        {draft.transportModes.includes('escooter') ? (
           <Text style={styles.hint}>
             E-Scooter: Google kennt keinen eigenen Modus — Kurzstrecken als Fußweg, sonst als Radstrecke.
           </Text>

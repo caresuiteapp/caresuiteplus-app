@@ -30,17 +30,21 @@ type FilterChipOption<T extends string> = { label: string; key?: T; value?: T };
 
 type FilterChipGroupProps<T extends string> = {
   options: FilterChipOption<T>[];
-  /** Selected option key (preferred). */
-  value?: T;
-  /** Alias for `value` (recovery / SegmentedTabs-style callers). */
+  /** Selected option key (single-select) or keys (multi-select). */
+  value?: T | T[];
+  /** Alias for `value` (single-select). */
   selectedKey?: T;
-  /** Called when the user picks a chip (preferred). */
-  onChange?: (key: T) => void;
-  /** Alias for `onChange`. */
+  /** Called when the user picks a chip (single) or toggles chips (multi). */
+  onChange?: (key: T | T[]) => void;
+  /** Alias for `onChange` (single-select). */
   onSelect?: (key: T) => void;
   style?: ViewStyle;
   /** Stack chips onto multiple lines instead of a horizontal scroll row. */
   wrap?: boolean;
+  /** Allow multiple chips to be selected at once (toggle on tap). */
+  multiple?: boolean;
+  /** Minimum selections when `multiple` is true (default 1). */
+  minSelected?: number;
 };
 
 function resolveFilterChipKey<T extends string>(opt: FilterChipOption<T>, index: number): T {
@@ -59,6 +63,8 @@ export function FilterChipGroup<T extends string>({
   onSelect,
   style,
   wrap = false,
+  multiple = false,
+  minSelected = 1,
 }: FilterChipGroupProps<T>) {
   const styles = useAuroraGlassChipStyles();
   const selected = value ?? selectedKey;
@@ -66,12 +72,36 @@ export function FilterChipGroup<T extends string>({
 
   const chips = options.map((opt, index) => {
     const optKey = resolveFilterChipKey(opt, index);
+    const isSelected = multiple
+      ? Array.isArray(selected) && selected.includes(optKey)
+      : selected === optKey;
+
     return (
       <FilterChip
         key={optKey}
         label={opt.label}
-        selected={selected === optKey}
-        onPress={handleChange ? () => handleChange(optKey) : undefined}
+        selected={isSelected}
+        onPress={
+          handleChange
+            ? () => {
+                if (multiple) {
+                  const current = Array.isArray(selected) ? selected : [];
+                  const has = current.includes(optKey);
+                  if (has && current.length <= minSelected) return;
+                  const next = has
+                    ? current.filter((key) => key !== optKey)
+                    : [...current, optKey];
+                  onChange?.(next);
+                  return;
+                }
+                if (onChange) {
+                  onChange(optKey);
+                  return;
+                }
+                onSelect?.(optKey);
+              }
+            : undefined
+        }
       />
     );
   });

@@ -60,3 +60,21 @@ export function formatTravelTimePlaceholder(
 ): string {
   return `${EMPLOYEE_TRANSPORT_MODE_ICONS[transportMode]} —`;
 }
+
+export function formatTravelTimesPlaceholder(
+  transportModes: EmployeeTransportMode[],
+): string {
+  return transportModes.map(formatTravelTimePlaceholder).join(' ');
+}
+
+export function formatTravelTimesDisplay(
+  transportModes: EmployeeTransportMode[],
+  minutesByMode: Partial<Record<EmployeeTransportMode, number | null | undefined>>,
+): string {
+  return transportModes
+    .map((mode) => {
+      const label = formatTravelTimeLabel(mode, minutesByMode[mode]);
+      return label ?? formatTravelTimePlaceholder(mode);
+    })
+    .join(' ');
+}

@@ -6,7 +6,8 @@ import {
 import { fetchAssignmentTravelTime } from '@/lib/maps/googleMapsTravelService';
 import {
   formatTravelTimeLabel,
-  formatTravelTimePlaceholder,
+  formatTravelTimesDisplay,
+  formatTravelTimesPlaceholder,
 } from '@/lib/maps/transportModeMapping';
 import {
   buildDefaultMobilitySettings,
@@ -19,11 +20,11 @@ import type { EmployeeTransportMode } from '@/types/modules/employeeMobility';
 export type AssignmentTravelTimeDisplay = {
   label: string | null;
   minutes: number | null;
-  transportMode: EmployeeTransportMode;
+  transportModes: EmployeeTransportMode[];
   loading: boolean;
   source: 'google' | 'heuristic' | 'unavailable' | 'demo' | null;
   error: string | null;
-  /** Ready-to-render text for compact cards (icon + minutes or placeholder). */
+  /** Ready-to-render text for compact cards (icons + minutes for all selected modes). */
   displayText: string | null;
 };
 
@@ -34,7 +35,7 @@ export function useAssignmentTravelTime(
   const [state, setState] = useState<AssignmentTravelTimeDisplay>({
     label: null,
     minutes: null,
-    transportMode: 'car',
+    transportModes: ['car'],
     loading: false,
     source: null,
     error: null,
@@ -49,7 +50,7 @@ export function useAssignmentTravelTime(
       setState({
         label: null,
         minutes: null,
-        transportMode: 'car',
+        transportModes: ['car'],
         loading: false,
         source: 'unavailable',
         error: null,
@@ -63,7 +64,7 @@ export function useAssignmentTravelTime(
       ...prev,
       loading: true,
       error: null,
-      displayText: formatTravelTimePlaceholder('car'),
+      displayText: formatTravelTimesPlaceholder(['car']),
     }));
 
     (async () => {
@@ -78,12 +79,13 @@ export function useAssignmentTravelTime(
       const addressContext = addressRes.ok
         ? addressRes.data
         : { employeeHome: {}, tenantOffice: {} };
+      const transportModes = settings.transportModes;
 
       if (!cancelled) {
         setState((prev) => ({
           ...prev,
-          transportMode: settings.transportMode,
-          displayText: formatTravelTimePlaceholder(settings.transportMode),
+          transportModes,
+          displayText: formatTravelTimesPlaceholder(transportModes),
         }));
       }
 
@@ -98,36 +100,52 @@ export function useAssignmentTravelTime(
         origin = formatGermanAddress(addressContext.tenantOffice);
       }
 
-      const travel = await fetchAssignmentTravelTime({
-        tenantId: assignment.tenantId,
-        assignmentAddress: assignment.location,
-        originAddress: origin,
-        transportMode: settings.transportMode,
-      });
+      const travelResults = await Promise.all(
+        transportModes.map(async (mode) => {
+          const travel = await fetchAssignmentTravelTime({
+            tenantId: assignment.tenantId,
+            assignmentAddress: assignment.location,
+            originAddress: origin,
+            transportMode: mode,
+          });
+          return { mode, travel };
+        }),
+      );
 
       if (cancelled) return;
 
-      const label = formatTravelTimeLabel(settings.transportMode, travel.durationMinutes);
-      const unavailable = travel.source === 'unavailable' || label == null;
+      const minutesByMode = Object.fromEntries(
+        travelResults.map(({ mode, travel }) => [mode, travel.durationMinutes]),
+      ) as Partial<Record<EmployeeTransportMode, number | null>>;
+
+      const displayText = formatTravelTimesDisplay(transportModes, minutesByMode);
+      const primaryMode = transportModes[0] ?? 'car';
+      const primaryTravel = travelResults.find(({ mode }) => mode === primaryMode)?.travel;
+      const primaryLabel = formatTravelTimeLabel(primaryMode, primaryTravel?.durationMinutes ?? null);
+      const unavailable =
+        travelResults.every(
+          ({ travel }) => travel.source === 'unavailable' || travel.durationMinutes == null,
+        ) && primaryLabel == null;
+
       setState({
-        label,
-        minutes: travel.durationMinutes,
-        transportMode: settings.transportMode,
+        label: primaryLabel,
+        minutes: primaryTravel?.durationMinutes ?? null,
+        transportModes,
         loading: false,
-        source: travel.source,
-        error: unavailable ? travel.note : null,
-        displayText: label ?? formatTravelTimePlaceholder(settings.transportMode),
+        source: primaryTravel?.source ?? 'unavailable',
+        error: unavailable ? primaryTravel?.note ?? null : null,
+        displayText,
       });
     })().catch(() => {
       if (!cancelled) {
         setState({
           label: null,
           minutes: null,
-          transportMode: 'car',
+          transportModes: ['car'],
           loading: false,
           source: 'unavailable',
           error: 'Fahrzeit konnte nicht geladen werden.',
-          displayText: formatTravelTimePlaceholder('car'),
+          displayText: formatTravelTimesPlaceholder(['car']),
         });
       }
     });

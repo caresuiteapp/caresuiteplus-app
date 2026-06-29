@@ -3,6 +3,8 @@ import {
   ESCOOTER_WALKING_MAX_KM,
   formatTravelTimeLabel,
   formatTravelTimePlaceholder,
+  formatTravelTimesDisplay,
+  formatTravelTimesPlaceholder,
   mapTransportModeToGoogle,
 } from '@/lib/maps/transportModeMapping';
 import { resolveRouteStartAddress, resolveRouteEndAddress } from '@/lib/maps/employeeRouteEndpointResolver';
@@ -41,6 +43,19 @@ describe('transportModeMapping', () => {
 
   it('formatTravelTimePlaceholder returns icon with em dash', () => {
     expect(formatTravelTimePlaceholder('car')).toBe('🚗 —');
+  });
+
+  it('formatTravelTimesPlaceholder joins placeholders for all modes', () => {
+    expect(formatTravelTimesPlaceholder(['car', 'bicycle'])).toBe('🚗 — 🚲 —');
+  });
+
+  it('formatTravelTimesDisplay joins labels for all modes', () => {
+    expect(formatTravelTimesDisplay(['car', 'bicycle'], { car: 14, bicycle: 22 })).toBe(
+      '🚗 14 Min. 🚲 22 Min.',
+    );
+    expect(formatTravelTimesDisplay(['car', 'transit'], { car: null, transit: 28 })).toBe(
+      '🚗 — 🚇 28 Min.',
+    );
   });
 });
 

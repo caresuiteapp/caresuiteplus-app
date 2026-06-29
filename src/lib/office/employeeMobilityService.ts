@@ -1,6 +1,7 @@
 import type { ServiceResult } from '@/types';
 import {
   DEFAULT_EMPLOYEE_MOBILITY_SETTINGS,
+  normalizeTransportModes,
   type EmployeeMobilitySettings,
   type EmployeeRouteEndType,
   type EmployeeRouteStartType,
@@ -30,6 +31,7 @@ type MobilityRow = {
   tenant_id: string;
   employee_id: string;
   transport_mode: EmployeeTransportMode;
+  transport_modes?: EmployeeTransportMode[] | null;
   route_start_type: EmployeeRouteStartType;
   route_end_type: EmployeeRouteEndType;
   route_start_address: string | null;
@@ -38,11 +40,16 @@ type MobilityRow = {
 };
 
 function mapRow(row: MobilityRow): EmployeeMobilitySettings {
+  const transportModes =
+    row.transport_modes != null && row.transport_modes.length > 0
+      ? normalizeTransportModes(row.transport_modes)
+      : normalizeTransportModes(row.transport_mode);
+
   return {
     id: row.id,
     tenantId: row.tenant_id,
     employeeId: row.employee_id,
-    transportMode: row.transport_mode,
+    transportModes,
     routeStartType: row.route_start_type,
     routeEndType: row.route_end_type,
     routeStartAddress: row.route_start_address,
@@ -78,7 +85,7 @@ export async function fetchEmployeeMobilitySettings(
 
   const { data, error } = await fromUnknownTable(supabase, TABLE)
     .select(
-      'id, tenant_id, employee_id, transport_mode, route_start_type, route_end_type, route_start_address, route_end_address, updated_at',
+      'id, tenant_id, employee_id, transport_mode, transport_modes, route_start_type, route_end_type, route_start_address, route_end_address, updated_at',
     )
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId)
@@ -101,10 +108,12 @@ export async function fetchEmployeeMobilitySettings(
 export async function saveEmployeeMobilitySettings(
   settings: EmployeeMobilitySettings,
 ): Promise<ServiceResult<EmployeeMobilitySettings>> {
+  const transportModes = normalizeTransportModes(settings.transportModes);
   const payload = {
     tenant_id: settings.tenantId,
     employee_id: settings.employeeId,
-    transport_mode: settings.transportMode,
+    transport_mode: transportModes[0],
+    transport_modes: transportModes,
     route_start_type: settings.routeStartType,
     route_end_type: settings.routeEndType,
     route_start_address: settings.routeStartAddress?.trim() || null,
@@ -127,7 +136,7 @@ export async function saveEmployeeMobilitySettings(
   const { data, error } = await fromUnknownTable(supabase, TABLE)
     .upsert(payload, { onConflict: 'tenant_id,employee_id' })
     .select(
-      'id, tenant_id, employee_id, transport_mode, route_start_type, route_end_type, route_start_address, route_end_address, updated_at',
+      'id, tenant_id, employee_id, transport_mode, transport_modes, route_start_type, route_end_type, route_start_address, route_end_address, updated_at',
     )
     .single();
 
