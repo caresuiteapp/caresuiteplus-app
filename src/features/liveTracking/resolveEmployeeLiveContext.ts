@@ -22,6 +22,10 @@ import {
   logLiveTrackingError,
   type LiveTrackingErrorCode,
 } from './liveTrackingErrors';
+import {
+  logLiveTrackingRuntimeError,
+  normalizeSupabaseError,
+} from './liveTrackingDiagnostics';
 import { resolveLiveAssignment, type LiveAssignmentResolution } from './resolveLiveAssignment';
 
 export type EmployeeLiveContext = {
@@ -222,8 +226,35 @@ export async function resolveEmployeeLiveContext(
   }
 
   const latestLocation = await fetchLatestLocationPointForVisit(tenantId, resolution.visitId);
+  if (!latestLocation.ok) {
+    const err = logLiveTrackingRuntimeError(
+      'resolveEmployeeLiveContext.latestLocation',
+      normalizeSupabaseError({ message: latestLocation.error }),
+      {
+        ...baseContext,
+        assignmentId: resolution.assignmentId,
+        assistVisitId: resolution.visitId,
+        tableOrRpc: 'assist_location_points',
+      },
+    );
+    return liveTrackingErrorToServiceResult(err);
+  }
+
   const pointCount = await countLocationPoints(tenantId, resolution.visitId);
   const timeEvents = await fetchTimeEventsForVisit(tenantId, resolution.visitId, 100);
+  if (!timeEvents.ok) {
+    const err = logLiveTrackingRuntimeError(
+      'resolveEmployeeLiveContext.timeEvents',
+      normalizeSupabaseError({ message: timeEvents.error }),
+      {
+        ...baseContext,
+        assignmentId: resolution.assignmentId,
+        assistVisitId: resolution.visitId,
+        tableOrRpc: 'assist_time_events',
+      },
+    );
+    return liveTrackingErrorToServiceResult(err);
+  }
 
   const dbConsentGranted = Boolean(sessionResult.data?.consentGrantedAt);
   const localConsent = input.localConsent;
@@ -294,16 +325,14 @@ export async function resolveEmployeeLiveContext(
       },
       trackingSessionId: sessionResult.data?.id ?? null,
       trackingSessionActive: trackingActive,
-      lastLocationAt: latestLocation.ok ? (latestLocation.data?.recordedAt ?? null) : null,
-      lastLocationAccuracyMeters: latestLocation.ok
-        ? (latestLocation.data?.accuracyMeters ?? null)
-        : null,
+      lastLocationAt: latestLocation.data?.recordedAt ?? null,
+      lastLocationAccuracyMeters: latestLocation.data?.accuracyMeters ?? null,
       locationPointCount: pointCount,
       canStartTracking,
       reasonCode,
       resolution,
       detail: null,
-      timeEventsLoaded: timeEvents.ok,
+      timeEventsLoaded: true,
     },
   };
 }

@@ -75,6 +75,9 @@ export function EmployeePortalVisitExecutionScreen() {
     loading,
     error,
     errorCode,
+    liveContextError,
+    queryError,
+    hasAssignment,
     actionLoading,
     refresh,
     changeStatus,
@@ -219,6 +222,18 @@ export function EmployeePortalVisitExecutionScreen() {
     );
   }
 
+  if (queryError && !hasAssignment) {
+    return (
+      <ScreenShell title={shellTitle} subtitle="Datenbankfehler">
+        <ErrorState message={queryError} onRetry={refresh} />
+        {errorCode ? (
+          <Text style={styles.errorCode}>Support-Code: {errorCode}</Text>
+        ) : null}
+        <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
+      </ScreenShell>
+    );
+  }
+
   if (notFound || !visit) {
     return (
       <ScreenShell title={shellTitle} subtitle="Fehler">
@@ -237,7 +252,13 @@ export function EmployeePortalVisitExecutionScreen() {
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
       {showSuccess ? <SuccessState message={localSuccess!} /> : null}
       {localError ? <ErrorState message={localError} /> : null}
-      {error && !localError ? (
+      {liveContextError && !queryError ? (
+        <InfoBanner
+          variant="warning"
+          message={`Live-Kontext: ${liveContextError}${errorCode ? ` (${errorCode})` : ''}`}
+        />
+      ) : null}
+      {error && !localError && !liveContextError ? (
         <InfoBanner variant="warning" message={error} />
       ) : null}
 

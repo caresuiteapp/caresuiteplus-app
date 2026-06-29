@@ -115,6 +115,14 @@ const LIST_SELECT = `
 
 const DETAIL_SELECT = LIST_SELECT;
 
+/** Flat select — no nested clients/employees (RLS-safe for employee portal). */
+const PORTAL_DETAIL_SELECT = `
+  id, tenant_id, client_id, employee_id, assignment_date,
+  planned_start_at, planned_end_at, actual_start_at, actual_end_at,
+  on_the_way_at, arrived_at, finished_at, documentation_notes,
+  status, title, address_snapshot, created_at, updated_at
+`;
+
 const DETAIL_TASKS_SELECT = '*';
 
 function getClient() {
@@ -276,6 +284,7 @@ export const assignmentSupabaseRepository = {
   async getById(
     tenantId: string,
     assignmentId: string,
+    options?: { portalEmployeeId?: string | null },
   ): Promise<ServiceResult<AssignmentDetail | null>> {
     const supabase = getClient();
     if (!supabase) return unavailable();
@@ -284,14 +293,35 @@ export const assignmentSupabaseRepository = {
       return { ok: true, data: null };
     }
 
-    const { data, error } = await fromUnknownTable(supabase, 'assignments')
-      .select(DETAIL_SELECT)
+    const portalEmployeeId = options?.portalEmployeeId?.trim();
+    const usePortalFlatSelect = Boolean(portalEmployeeId);
+
+    let query = fromUnknownTable(supabase, 'assignments')
+      .select(usePortalFlatSelect ? PORTAL_DETAIL_SELECT : DETAIL_SELECT)
       .eq('tenant_id', tenantId)
-      .eq('id', assignmentId)
-      .maybeSingle();
+      .eq('id', assignmentId);
+
+    if (portalEmployeeId) {
+      query = query.eq('employee_id', portalEmployeeId);
+    }
+
+    const { data, error } = await query.maybeSingle();
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     if (!data) return { ok: true, data: null };
+
+    const row = data as unknown as AssignmentLiveRow;
+
+    if (usePortalFlatSelect && row.client_id) {
+      const { data: clientRow } = await fromUnknownTable(supabase, 'clients')
+        .select('first_name, last_name, street, house_number, postal_code, city')
+        .eq('tenant_id', tenantId)
+        .eq('id', row.client_id)
+        .maybeSingle();
+      if (clientRow) {
+        row.clients = clientRow as AssignmentLiveRow['clients'];
+      }
+    }
 
     const { data: taskRows, error: taskError } = await fromUnknownTable(supabase, 'assignment_tasks')
       .select(DETAIL_TASKS_SELECT)
@@ -303,7 +333,6 @@ export const assignmentSupabaseRepository = {
       console.warn('[assignmentRepository] assignment_tasks:', taskError.message);
     }
 
-    const row = data as unknown as AssignmentLiveRow;
     const tasks = (taskRows ?? []) as unknown as AssignmentTaskRow[];
 
     return {

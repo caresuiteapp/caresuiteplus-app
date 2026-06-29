@@ -104,7 +104,9 @@ export async function resolveLiveAssignment(
     return { ok: true, data: null };
   }
 
-  const fromAssignments = await assignmentSupabaseRepository.getById(tenantId, rawId);
+  const fromAssignments = await assignmentSupabaseRepository.getById(tenantId, rawId, {
+    portalEmployeeId: input.employeeId,
+  });
   if (!fromAssignments.ok) return fromAssignments;
   if (fromAssignments.data) {
     const visitId =

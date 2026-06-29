@@ -149,10 +149,13 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     if (!result.ok) {
       setLiveContextError(result.error);
       setLiveContext(null);
+      const code = (result as { errorCode?: LiveTrackingErrorCode }).errorCode;
+      if (code) setLiveErrorCode(code);
       return null;
     }
     setLiveContext(result.data);
     setLiveContextError(null);
+    setLiveErrorCode(null);
 
     const events = await fetchTimeEventsForVisit(tenantId, result.data.assistVisitId, 100);
     if (events.ok && events.data.length) {
@@ -419,6 +422,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     loading: query.loading,
     error: query.error ?? liveContextError ?? statusMutation.error,
     errorCode: liveErrorCode ?? gpsTracking.state.errorCode,
+    liveContextError,
+    queryError: query.error,
     actionLoading: statusMutation.loading,
     refresh,
     changeStatus,
@@ -430,5 +435,6 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     openRoute,
     updateTask,
     notFound: !query.loading && !query.error && !query.data,
+    hasAssignment: Boolean(query.data),
   };
 }

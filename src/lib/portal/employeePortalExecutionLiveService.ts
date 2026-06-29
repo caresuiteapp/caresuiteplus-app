@@ -145,10 +145,10 @@ async function fetchAssignmentExtras(
       .eq('id', assignmentId)
       .maybeSingle(),
     fromUnknownTable(supabase, 'client_contacts')
-      .select('full_name, name, first_name, last_name, phone, is_emergency, is_emergency_contact')
+      .select('full_name, first_name, last_name, phone, is_emergency_contact')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
-      .or('is_emergency_contact.eq.true')
+      .eq('is_emergency_contact', true)
       .limit(1),
   ]);
 
@@ -161,7 +161,7 @@ async function fetchAssignmentExtras(
   if (!contactResult.error && contactResult.data?.length) {
     const contact = contactResult.data[0] as Record<string, unknown>;
     const name =
-      String(contact.full_name ?? contact.name ?? '').trim() ||
+      String(contact.full_name ?? '').trim() ||
       `${contact.first_name ?? ''} ${contact.last_name ?? ''}`.trim();
     const phone = String(contact.phone ?? '').trim();
     emergencyContact = name ? `${name}${phone ? ` (${phone})` : ''}` : null;
