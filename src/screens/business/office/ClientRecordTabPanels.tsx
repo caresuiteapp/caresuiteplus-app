@@ -22,13 +22,7 @@ import { ClientRecordDocumentsPanel } from '@/components/office/ClientRecordDocu
 import { ClientRecordContractsPanel } from '@/components/office/ClientRecordContractsPanel';
 import { ClientServiceProfilesPanel } from '@/components/office/ClientServiceProfilesPanel';
 import { ClientBudgetCorePanel } from '@/components/office/ClientBudgetCorePanel';
-import {
-  ClientBillingWarningsPanel,
-  ClientBudgetAccountsPanel,
-  ClientBudgetVerlaufPanel,
-  ClientLeistungenAbrechnungPanel,
-  ClientPflegegradAnspruchPanel,
-} from '@/components/office/ClientAssistBillingPanels';
+import { ClientCareGradeBudgetsPanel } from '@/components/office/ClientCareGradeBudgetsPanel';
 import { ClientPortalCorePanel } from '@/components/office/ClientPortalCorePanel';
 import { addClientMedication, fetchClientMedications } from '@/lib/clients/clientMedicationService';
 import { addTimelineEvent, fetchClientTimeline } from '@/lib/clients/clientTimelineService';
@@ -447,14 +441,15 @@ export function ClientRecordTabContent({
       return <ClientRecordTimelinePanel {...panelProps} />;
     case 'module':
       return <ClientRecordModulesPanel {...panelProps} />;
+    case 'pflegegrad_budgets':
     case 'pflegegrad_anspruch':
-      return <ClientPflegegradAnspruchPanel clientId={clientId} />;
     case 'leistungen_abrechnung':
-      return <ClientLeistungenAbrechnungPanel clientId={clientId} />;
+    case 'budget':
     case 'budgetverlauf':
-      return <ClientBudgetVerlaufPanel clientId={clientId} />;
     case 'warnungen':
-      return <ClientBillingWarningsPanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
+      return (
+        <ClientCareGradeBudgetsPanel clientId={clientId} onRecordRefresh={onRecordRefresh} />
+      );
     case 'leistungsbereiche':
       return (
         <View style={styles.panel}>
@@ -462,8 +457,6 @@ export function ClientRecordTabContent({
           <ClientRecordBudgetCorePanel clientId={clientId} onRecordRefresh={onRecordRefresh} />
         </View>
       );
-    case 'budget':
-      return <ClientBudgetAccountsPanel clientId={clientId} onRecordRefresh={onRecordRefresh} />;
     case 'portal':
       return <ClientRecordPortalPanel {...panelProps} />;
     case 'aufgaben':

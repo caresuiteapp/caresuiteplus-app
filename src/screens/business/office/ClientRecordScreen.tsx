@@ -28,7 +28,7 @@ import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { buildClientRecordOverview } from '@/lib/clients/clientRecordOverview';
 import { formatCareLevel, formatSalutation } from '@/lib/formatters/unitFormatters';
 import { getCatalogLabel } from '@/lib/catalogs/systemCatalogs';
-import { CLIENT_RECORD_TAB_LABELS, type ClientCareContext, type ClientRecordTabKey, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
+import { CLIENT_RECORD_TAB_LABELS, resolveClientRecordTabKey, type ClientCareContext, type ClientRecordTabKey, type IntakeSectionKey } from '@/lib/clients/clientIntakeFieldRules';
 import { buildClientDetailKpis } from '@/lib/office/clientDetailStats';
 import { ClientRecordTabContent } from '@/screens/business/office/ClientRecordTabPanels';
 import { AngehoerigeTab, KontaktAdresseTab } from '@/screens/office/ClientFullDetailTabs';
@@ -165,18 +165,19 @@ export function ClientRecordScreen({
   const fullQuery = useClientFullDetail(id);
   const [archiving, setArchiving] = useState(false);
   const [archiveError, setArchiveError] = useState<string | null>(null);
-  const resolvedTabParam = initialTabOverride ?? tabParam;
+  const resolvedTabParam = resolveClientRecordTabKey(initialTabOverride ?? tabParam);
   const initialTab =
-    resolvedTabParam && tabs.includes(resolvedTabParam as ClientRecordTabKey)
-      ? (resolvedTabParam as ClientRecordTabKey)
+    resolvedTabParam && tabs.includes(resolvedTabParam)
+      ? resolvedTabParam
       : 'uebersicht';
   const [activeTab, setActiveTab] = useState<ClientRecordTabKey>(initialTab);
   const [masterDataEditOpen, setMasterDataEditOpen] = useState(initialMasterDataEditOpen);
   const sectionEdit = useSectionEditModal<IntakeSectionKey>();
 
   useEffect(() => {
-    if (resolvedTabParam && tabs.includes(resolvedTabParam as ClientRecordTabKey)) {
-      setActiveTab(resolvedTabParam as ClientRecordTabKey);
+    const resolved = resolveClientRecordTabKey(resolvedTabParam);
+    if (resolved && tabs.includes(resolved)) {
+      setActiveTab(resolved);
     }
   }, [resolvedTabParam, tabs]);
 

@@ -25,6 +25,7 @@ export type ClientRecordTabKey =
   | 'uebersicht'
   | 'stammdaten'
   | 'leistungsbereiche'
+  | 'pflegegrad_budgets'
   | 'pflegegrad_anspruch'
   | 'leistungen_abrechnung'
   | 'budget'
@@ -130,11 +131,7 @@ function withCoreTabs(tabs: ClientRecordTabKey[]): ClientRecordTabKey[] {
     result.splice(
       insertAt,
       0,
-      'pflegegrad_anspruch',
-      'leistungen_abrechnung',
-      'budget',
-      'budgetverlauf',
-      'warnungen',
+      'pflegegrad_budgets',
       'leistungsbereiche',
     );
   }
@@ -381,18 +378,14 @@ export function normalizeClientRecordTabs(contextTabs: ClientRecordTabKey[]): Cl
     contextTabs.some((t) =>
       [
         'leistungsbereiche',
-        'pflegegrad_anspruch',
-        'leistungen_abrechnung',
-        'budget',
-        'budgetverlauf',
-        'warnungen',
+        'pflegegrad_budgets',
         'pflegegrad',
         'pflege',
         'bewohnerdaten',
       ].includes(t),
     )
   ) {
-    primary.push('pflegegrad_anspruch', 'leistungen_abrechnung', 'budget', 'budgetverlauf', 'warnungen');
+    primary.push('pflegegrad_budgets');
   }
   if (contextTabs.some((t) => ['kontakt', 'angehoerige'].includes(t))) {
     primary.push('kontakt');
@@ -416,6 +409,10 @@ export function normalizeClientRecordTabs(contextTabs: ClientRecordTabKey[]): Cl
     ...primary,
     'leistungsbereiche',
     'budget',
+    'pflegegrad_anspruch',
+    'leistungen_abrechnung',
+    'budgetverlauf',
+    'warnungen',
     'angehoerige',
     'nachweise',
     'einwilligungen',
@@ -546,6 +543,7 @@ export const CLIENT_RECORD_TAB_LABELS: Record<ClientRecordTabKey, string> = {
   uebersicht: 'Übersicht',
   stammdaten: 'Stammdaten',
   leistungsbereiche: 'Leistungen & Budget',
+  pflegegrad_budgets: 'Pflegegrad & Budgets',
   pflegegrad_anspruch: 'Pflegegrad & Anspruch',
   leistungen_abrechnung: 'Leistungen & Abrechnung',
   budget: 'Budgets',
@@ -598,4 +596,20 @@ export function getSupportOnlyHint(contexts: ClientCareContext[]): string | null
 
 export function requiresNursingFields(contexts: ClientCareContext[]): boolean {
   return hasAmbulatoryCare(contexts) || hasStationaryCare(contexts);
+}
+
+const PFLEGEGRAD_BUDGETS_TAB_ALIASES: Partial<Record<ClientRecordTabKey, ClientRecordTabKey>> = {
+  pflegegrad_anspruch: 'pflegegrad_budgets',
+  leistungen_abrechnung: 'pflegegrad_budgets',
+  budget: 'pflegegrad_budgets',
+  budgetverlauf: 'pflegegrad_budgets',
+  warnungen: 'pflegegrad_budgets',
+  pflegegrad: 'pflegegrad_budgets',
+};
+
+/** Resolve legacy budget-tab deep links to consolidated Pflegegrad & Budgets tab. */
+export function resolveClientRecordTabKey(tab: string | undefined): ClientRecordTabKey | undefined {
+  if (!tab) return undefined;
+  const key = tab as ClientRecordTabKey;
+  return PFLEGEGRAD_BUDGETS_TAB_ALIASES[key] ?? key;
 }
