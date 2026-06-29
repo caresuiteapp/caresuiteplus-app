@@ -1,5 +1,5 @@
 /**
- * ASSIST.WORKFLOW.1/3 — Resolve full execution context for employee portal workflow.
+ * ASSIST.STABILIZE.1 — Enhance resolveAssistExecutionContext with derived status + auto-repair.
  */
 import type { RoleKey, ServiceResult } from '@/types';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
@@ -7,6 +7,8 @@ import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceS
 import { resolveEmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
 import { getEmployeePortalLocationConsent } from '@/lib/portal/employeePortalVisitTrackingService';
 import { calculateVisitTimes } from './calculateVisitTimes';
+import { deriveWorkflowStatus } from './deriveWorkflowStatus';
+import { repairWorkflowState } from './repairWorkflowState';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
@@ -23,12 +25,14 @@ export type ResolveAssistExecutionContextInput = {
   employeeId: string;
   profileId?: string | null;
   roleKey?: RoleKey | null;
+  /** When true (default), attempt auto-repair for unambiguous inconsistencies. */
+  autoRepair?: boolean;
 };
 
 export async function resolveAssistExecutionContext(
   input: ResolveAssistExecutionContextInput,
 ): Promise<ServiceResult<AssistExecutionContext>> {
-  const { tenantId, assignmentId, employeeId, profileId, roleKey } = input;
+  const { tenantId, assignmentId, employeeId, profileId, roleKey, autoRepair = true } = input;
 
   if (!tenantId || !assignmentId || !employeeId) {
     return assistWorkflowErrorToResult(
@@ -73,29 +77,52 @@ export async function resolveAssistExecutionContext(
     }
   }
 
-  const diagnostics = resolveAssistExecutionDiagnostics(detailResult.data.status, visitTimes);
+  const workflow = deriveWorkflowStatus(detailResult.data.status, visitTimes);
+  const diagnostics = resolveAssistExecutionDiagnostics(
+    detailResult.data.status,
+    visitTimes,
+    workflow,
+  );
   const allowedActions = resolveAllowedActions({
     assignmentStatus: detailResult.data.status,
     visitTimes,
     detail: detailResult.data,
+    derivedStatus: workflow.derivedStatus,
+    canStartService: workflow.canStartService,
   });
 
-  return {
-    ok: true,
-    data: {
-      tenantId,
-      assignmentId,
-      employeeId,
-      profileId: profileId ?? null,
-      roleKey: roleKey ?? null,
-      assistVisitId,
-      assignmentStatus: detailResult.data.status,
-      detail: detailResult.data,
-      liveContext,
-      visitTimes,
-      timeEvents,
-      allowedActions,
-      diagnostics,
-    },
+  let ctx: AssistExecutionContext = {
+    tenantId,
+    assignmentId,
+    employeeId,
+    profileId: profileId ?? null,
+    roleKey: roleKey ?? null,
+    assistVisitId,
+    assignmentStatus: detailResult.data.status,
+    derivedStatus: workflow.derivedStatus,
+    consistencyStatus: workflow.consistencyStatus,
+    inconsistencies: workflow.inconsistencies,
+    repairOptions: workflow.repairOptions,
+    detail: detailResult.data,
+    liveContext,
+    visitTimes,
+    timeEvents,
+    allowedActions,
+    diagnostics,
   };
+
+  if (autoRepair && workflow.consistencyStatus === 'repairable') {
+    const needsReset =
+      workflow.derivedStatus !== detailResult.data.status &&
+      !['gestartet', 'pausiert'].includes(detailResult.data.status);
+
+    if (needsReset) {
+      const repaired = await repairWorkflowState(ctx, { autoOnly: true });
+      if (repaired.ok && repaired.data.repaired) {
+        ctx = repaired.data.ctx;
+      }
+    }
+  }
+
+  return { ok: true, data: ctx };
 }

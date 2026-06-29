@@ -6,6 +6,8 @@ import type {
   AssistExecutionDiagnostics,
   AssistWorkflowAllowedAction,
 } from './resolveAllowedActions';
+import type { WorkflowConsistencyStatus, WorkflowInconsistency } from './detectWorkflowInconsistencies';
+import type { WorkflowRepairOption } from './deriveWorkflowStatus';
 
 /** Guided employee-portal workflow steps (ASSIST.WORKFLOW.1). */
 export type AssistWorkflowStep =
@@ -30,6 +32,11 @@ export type AssistExecutionContext = {
   roleKey: string | null;
   assistVisitId: string;
   assignmentStatus: AssignmentStatus;
+  /** Timestamp-derived status for UI and actions (single source). */
+  derivedStatus: AssignmentStatus;
+  consistencyStatus: WorkflowConsistencyStatus;
+  inconsistencies: WorkflowInconsistency[];
+  repairOptions: WorkflowRepairOption[];
   detail: EmployeePortalAssignmentDetail;
   liveContext: EmployeeLiveContext | null;
   visitTimes: VisitTimesSummary | null;

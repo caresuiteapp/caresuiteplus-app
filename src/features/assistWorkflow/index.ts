@@ -24,6 +24,17 @@ export { saveVisitTimeEvent, ensureVisitTimeEvent } from './saveVisitTimeEvent';
 export type { SaveVisitTimeEventInput, VisitTimeEventType } from './saveVisitTimeEvent';
 export { resolveEffectiveWorkflowStatus } from './resolveEffectiveWorkflowStatus';
 export type { EffectiveWorkflowStatus } from './resolveEffectiveWorkflowStatus';
+export { deriveWorkflowStatus } from './deriveWorkflowStatus';
+export { detectWorkflowInconsistencies, resolveConsistencyStatus } from './detectWorkflowInconsistencies';
+export { repairWorkflowState } from './repairWorkflowState';
+export { adminRepairVisitWorkflow, adminRepairVisitWorkflowSafe } from './adminRepairVisitWorkflow';
+export type { DerivedWorkflowStatus, WorkflowRepairOption } from './deriveWorkflowStatus';
+export type {
+  WorkflowInconsistency,
+  WorkflowInconsistencyCode,
+  WorkflowConsistencyStatus,
+} from './detectWorkflowInconsistencies';
+export type { AdminRepairVisitWorkflowInput, AdminRepairVisitWorkflowResult } from './adminRepairVisitWorkflow';
 export { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 export { startEnRoute } from './startEnRoute';
 export {

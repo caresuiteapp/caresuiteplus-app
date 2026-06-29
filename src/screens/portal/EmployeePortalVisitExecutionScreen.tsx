@@ -98,12 +98,13 @@ export function EmployeePortalVisitExecutionScreen() {
     requestLocationPermission,
     setGeofenceOverride,
     openRoute,
-    effectiveWorkflow,
+    derivedStatus,
+    consistencyStatus,
+    nextActionHint,
     notFound,
   } = useEmployeePortalVisitExecution(id);
 
-  const effectiveStatus: AssignmentStatus =
-    effectiveWorkflow?.effectiveStatus ?? visit?.status ?? 'geplant';
+  const effectiveStatus: AssignmentStatus = derivedStatus ?? visit?.status ?? 'geplant';
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
@@ -132,7 +133,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const trackingActive = Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
 
   const statusBlocksDoc =
-    effectiveWorkflow?.inconsistent &&
+    consistencyStatus === 'repairable' &&
     ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit?.status ?? '');
 
   const showTasks =
@@ -342,8 +343,8 @@ export function EmployeePortalVisitExecutionScreen() {
         <InfoBanner variant="warning" message={`Live-Kontext: ${liveContextError}`} />
       ) : null}
 
-      {effectiveWorkflow?.inconsistent && effectiveWorkflow.repairHint ? (
-        <InfoBanner variant="warning" message={effectiveWorkflow.repairHint} />
+      {consistencyStatus === 'repairable' && nextActionHint ? (
+        <InfoBanner variant="info" message={nextActionHint} />
       ) : null}
 
       <ScrollView

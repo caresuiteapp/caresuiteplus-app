@@ -5,7 +5,8 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
 import { isAssignmentLocked } from './assistVisitStateMachine';
 import type { VisitTimesSummary } from './calculateVisitTimes';
-import { resolveEffectiveWorkflowStatus } from './resolveEffectiveWorkflowStatus';
+import { deriveWorkflowStatus } from './deriveWorkflowStatus';
+import type { DerivedWorkflowStatus } from './deriveWorkflowStatus';
 
 export type AssistWorkflowAllowedAction =
   | 'start_en_route'
@@ -29,8 +30,9 @@ export type AssistExecutionDiagnostics = {
 export function resolveAssistExecutionDiagnostics(
   recordedStatus: AssignmentStatus,
   visitTimes: VisitTimesSummary | null,
+  workflow?: DerivedWorkflowStatus,
 ): AssistExecutionDiagnostics {
-  const effective = resolveEffectiveWorkflowStatus(recordedStatus, visitTimes);
+  const derived = workflow ?? deriveWorkflowStatus(recordedStatus, visitTimes);
   const isServiceStarted = Boolean(visitTimes?.serviceStartedAt);
   const isServiceEnded = Boolean(visitTimes?.serviceEndedAt);
   const isTravelEnded = Boolean(visitTimes?.arrivedAt);
@@ -40,8 +42,8 @@ export function resolveAssistExecutionDiagnostics(
     isServiceEnded,
     isTravelEnded,
     canEndService: isServiceStarted && !isServiceEnded,
-    inconsistentStatus: effective.inconsistent,
-    repairHint: effective.repairHint,
+    inconsistentStatus: derived.consistencyStatus !== 'consistent',
+    repairHint: derived.nextActionHint,
   };
 }
 
@@ -49,6 +51,8 @@ export function resolveAllowedActions(input: {
   assignmentStatus: AssignmentStatus;
   visitTimes: VisitTimesSummary | null;
   detail: EmployeePortalAssignmentDetail;
+  derivedStatus?: AssignmentStatus;
+  canStartService?: boolean;
 }): AssistWorkflowAllowedAction[] {
   const { assignmentStatus, visitTimes, detail } = input;
 
@@ -56,9 +60,9 @@ export function resolveAllowedActions(input: {
     return ['open_route'];
   }
 
-  const effective = resolveEffectiveWorkflowStatus(assignmentStatus, visitTimes);
-  const status = effective.effectiveStatus;
-  const diagnostics = resolveAssistExecutionDiagnostics(assignmentStatus, visitTimes);
+  const workflow = deriveWorkflowStatus(assignmentStatus, visitTimes);
+  const status = input.derivedStatus ?? workflow.derivedStatus;
+  const diagnostics = resolveAssistExecutionDiagnostics(assignmentStatus, visitTimes, workflow);
   const actions: AssistWorkflowAllowedAction[] = ['open_route'];
 
   if (status === 'geplant' || status === 'bestaetigt') {
@@ -67,7 +71,7 @@ export function resolveAllowedActions(input: {
   if (status === 'unterwegs') {
     actions.push('mark_arrived');
   }
-  if (status === 'angekommen') {
+  if (status === 'angekommen' && (input.canStartService ?? workflow.canStartService)) {
     actions.push('start_service');
   }
   if (status === 'gestartet' && diagnostics.canEndService) {

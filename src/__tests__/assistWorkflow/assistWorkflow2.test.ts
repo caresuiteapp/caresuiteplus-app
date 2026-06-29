@@ -13,6 +13,10 @@ function mockCtx(overrides: Partial<AssistExecutionContext>): AssistExecutionCon
     roleKey: 'employee',
     assistVisitId: 'v1',
     assignmentStatus: 'beendet',
+    derivedStatus: 'angekommen',
+    consistencyStatus: 'repairable',
+    inconsistencies: [],
+    repairOptions: [],
     detail: {
       assignmentId: 'a1',
       title: 'Test',

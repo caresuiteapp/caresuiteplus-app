@@ -25,19 +25,16 @@ import {
   requestEmployeePortalForegroundLocationPermission,
   setEmployeePortalGeofenceOverrideReason,
 } from '@/lib/portal/employeePortalVisitTrackingService';
-import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { resolveEmployeeLiveContext, type EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
 import type { LiveTrackingErrorCode } from '@/features/liveTracking/liveTrackingErrors';
 import {
   assignmentStatusToWorkflowStep,
-  calculateVisitTimes,
   endPause,
   endService,
   finalizeVisit,
   markArrived,
   reportNoShow,
   resolveAssistExecutionContext,
-  resolveEffectiveWorkflowStatus,
   saveClientSignature,
   saveVisitDocumentation,
   startEnRoute,
@@ -45,7 +42,6 @@ import {
   startService,
   type AssistExecutionContext,
   type AssistWorkflowStep,
-  type EffectiveWorkflowStatus,
   type MarkArrivedResult,
 } from '@/features/assistWorkflow';
 import { useAuth } from '@/lib/auth/context';
@@ -137,12 +133,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     dbSessionActive: Boolean(liveContext?.trackingSessionActive),
   });
 
-  const effectiveWorkflow: EffectiveWorkflowStatus | null = useMemo(() => {
-    if (!query.data) return null;
-    return resolveEffectiveWorkflowStatus(query.data.status, executionContext?.visitTimes ?? null);
-  }, [query.data, executionContext?.visitTimes]);
-
-  const effectiveStatus = effectiveWorkflow?.effectiveStatus ?? query.data?.status ?? null;
+  const effectiveStatus = executionContext?.derivedStatus ?? query.data?.status ?? null;
 
   const timers = useLiveVisitTimers(
     executionContext?.timeEvents ?? [],
@@ -479,8 +470,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     executionContext,
     allowedActions,
     diagnostics: executionContext?.diagnostics ?? null,
+    derivedStatus: executionContext?.derivedStatus ?? null,
+    consistencyStatus: executionContext?.consistencyStatus ?? 'consistent',
+    nextActionHint: executionContext?.diagnostics?.repairHint ?? null,
     workflowStep,
-    effectiveWorkflow,
     liveContext,
     tracking,
     timers,
