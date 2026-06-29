@@ -1,22 +1,21 @@
+import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
-import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
+import type {
+  EmployeePortalDocumentationInput,
+  EmployeePortalSignatureCaptureInput,
+} from '@/types/modules/employeePortalExecution';
 import type {
   EmployeePortalGpsPermissionStatus,
   EmployeePortalLiveTimers,
   EmployeePortalTrackingSnapshot,
 } from '@/types/modules/employeePortalTracking';
-import {
-  fetchEmployeePortalAssignmentDetail,
-  transitionEmployeePortalAssignment,
-  updateEmployeePortalTask,
-} from '@/lib/portal/employeePortalExecutionService';
+import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
+import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
 import { buildEmployeePortalLiveRoute } from '@/features/liveTracking/buildEmployeePortalLiveRoute';
 import { saveEmployeeLocationConsent } from '@/features/liveTracking/saveEmployeeLocationConsent';
 import {
   buildEmployeePortalTrackingSnapshot,
   captureEmployeePortalForegroundPosition,
-  computeEmployeePortalLiveTimers,
   getEmployeePortalGpsPermissionStatus,
   getEmployeePortalLocationConsent,
   grantEmployeePortalLocationConsent,
@@ -26,70 +25,42 @@ import {
 } from '@/lib/portal/employeePortalVisitTrackingService';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { resolveEmployeeLiveContext, type EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
-import { startEmployeeLiveTracking } from '@/features/liveTracking/startEmployeeLiveTracking';
-import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
 import type { LiveTrackingErrorCode } from '@/features/liveTracking/liveTrackingErrors';
+import {
+  assignmentStatusToWorkflowStep,
+  calculateVisitTimes,
+  endPause,
+  endService,
+  finalizeVisit,
+  markArrived,
+  reportNoShow,
+  resolveAssistExecutionContext,
+  saveClientSignature,
+  saveTaskResults,
+  saveVisitDocumentation,
+  startEnRoute,
+  startPause,
+  startService,
+  type AssistExecutionContext,
+  type AssistWorkflowStep,
+} from '@/features/assistWorkflow';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import { LIVE_TRACKING_POLL_MS, useAsyncQuery, useMutation } from './core';
 
-function timersFromTimeEvents(
-  events: Array<{ eventType: string; occurredAt: string }>,
-  currentStatus: AssignmentStatus,
-  now: Date,
+function timersFromVisitTimes(
+  visitTimes: ReturnType<typeof calculateVisitTimes>,
 ): EmployeePortalLiveTimers {
-  const nowIso = now.toISOString();
-  const byType = (type: string) =>
-    events.filter((e) => e.eventType === type).map((e) => e.occurredAt);
-
-  const driveStart = byType('drive_start').at(-1) ?? null;
-  const driveEnd = byType('drive_end').at(-1) ?? byType('arrive').at(-1) ?? null;
-  const serviceStart = byType('service_start').at(-1) ?? null;
-  const serviceEnd = byType('service_end').at(-1) ?? null;
-
-  const diff = (from: string, to: string) =>
-    Math.max(0, Math.round((new Date(to).getTime() - new Date(from).getTime()) / 1000));
-
-  let driveSeconds: number | null = null;
-  if (driveStart) {
-    const end = driveEnd ?? (currentStatus === 'unterwegs' ? nowIso : null);
-    if (end) driveSeconds = diff(driveStart, end);
-  }
-
-  let pauseSeconds: number | null = null;
-  const pauseStarts = byType('pause_start');
-  const pauseEnds = byType('pause_end');
-  if (pauseStarts.length) {
-    pauseSeconds = pauseStarts.reduce((sum, start, idx) => {
-      const end = pauseEnds[idx] ?? (currentStatus === 'pausiert' ? nowIso : start);
-      return sum + diff(start, end);
-    }, 0);
-  }
-
-  let serviceSeconds: number | null = null;
-  if (serviceStart) {
-    const end = serviceEnd ?? (currentStatus === 'gestartet' ? nowIso : null);
-    if (end) {
-      serviceSeconds = Math.max(0, diff(serviceStart, end) - (pauseSeconds ?? 0));
-    }
-  }
-
-  let activeTimer: EmployeePortalLiveTimers['activeTimer'] = null;
-  if (currentStatus === 'unterwegs') activeTimer = 'drive';
-  else if (currentStatus === 'pausiert') activeTimer = 'pause';
-  else if (currentStatus === 'gestartet') activeTimer = 'service';
-
   return {
-    driveSeconds,
-    serviceSeconds,
-    pauseSeconds: pauseSeconds && pauseSeconds > 0 ? pauseSeconds : null,
-    activeTimer,
-    driveStartedAt: driveStart,
-    serviceStartedAt: serviceStart,
-    pauseStartedAt:
-      currentStatus === 'pausiert' ? (pauseStarts.at(-1) ?? null) : null,
+    driveSeconds: visitTimes.driveSeconds,
+    serviceSeconds: visitTimes.serviceSeconds,
+    pauseSeconds: visitTimes.pauseSeconds,
+    activeTimer: visitTimes.activeTimer,
+    driveStartedAt: visitTimes.driveStartedAt,
+    serviceStartedAt: visitTimes.serviceStartedAt,
+    pauseStartedAt: visitTimes.pauseStartedAt,
   };
 }
 
@@ -104,10 +75,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [gpsPermission, setGpsPermission] = useState<EmployeePortalGpsPermissionStatus>('undetermined');
   const [tick, setTick] = useState(0);
   const [liveContext, setLiveContext] = useState<EmployeeLiveContext | null>(null);
+  const [executionContext, setExecutionContext] = useState<AssistExecutionContext | null>(null);
   const [liveContextError, setLiveContextError] = useState<string | null>(null);
   const [liveErrorCode, setLiveErrorCode] = useState<LiveTrackingErrorCode | null>(null);
   const [dbTimers, setDbTimers] = useState<EmployeePortalLiveTimers | null>(null);
   const [consentRevision, setConsentRevision] = useState(0);
+  const [workflowLoading, setWorkflowLoading] = useState(false);
 
   useEffect(() => {
     if (!assignmentId) return;
@@ -135,47 +108,52 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     },
   );
 
-  const refreshLiveContext = useCallback(async () => {
+  const refreshExecutionContext = useCallback(async () => {
     if (!tenantId || !assignmentId || !employeeId) return null;
-    const consent = getEmployeePortalLocationConsent(tenantId, assignmentId);
-    const result = await resolveEmployeeLiveContext({
+    const result = await resolveAssistExecutionContext({
       tenantId,
+      assignmentId,
       employeeId,
-      routeParamId: assignmentId,
-      portalAccountId: profile?.id ?? employeeId,
-      localConsent: consent,
+      profileId: profile?.id ?? employeeId,
+      roleKey,
     });
     if (!result.ok) {
       setLiveContextError(result.error);
-      setLiveContext(null);
-      const code = (result as { errorCode?: LiveTrackingErrorCode }).errorCode;
-      if (code) setLiveErrorCode(code);
+      setExecutionContext(null);
       return null;
     }
-    setLiveContext(result.data);
+    setExecutionContext(result.data);
+    setLiveContext(result.data.liveContext);
     setLiveContextError(null);
     setLiveErrorCode(null);
 
-    if (result.data.consentStatus.granted) {
+    if (result.data.liveContext?.consentStatus.granted) {
       grantEmployeePortalLocationConsent(tenantId, assignmentId);
     }
 
-    const events = await fetchTimeEventsForVisit(tenantId, result.data.assistVisitId, 100);
-    if (events.ok && events.data.length) {
-      setDbTimers(
-        timersFromTimeEvents(
+    if (result.data.visitTimes) {
+      setDbTimers(timersFromVisitTimes(result.data.visitTimes));
+    } else if (result.data.liveContext?.assistVisitId) {
+      const events = await fetchTimeEventsForVisit(
+        tenantId,
+        result.data.liveContext.assistVisitId,
+        100,
+      );
+      if (events.ok && events.data.length) {
+        const times = calculateVisitTimes(
           events.data.map((e) => ({ eventType: e.eventType, occurredAt: e.occurredAt })),
           result.data.assignmentStatus,
-        ),
-      );
+        );
+        setDbTimers(timersFromVisitTimes(times));
+      }
     }
     return result.data;
-  }, [tenantId, assignmentId, employeeId, profile?.id]);
+  }, [tenantId, assignmentId, employeeId, profile?.id, roleKey]);
 
   useEffect(() => {
     if (!query.data) return;
-    void refreshLiveContext();
-  }, [query.data, refreshLiveContext]);
+    void refreshExecutionContext();
+  }, [query.data, refreshExecutionContext]);
 
   const gpsTracking = useEmployeeGpsTracking({
     tenantId,
@@ -219,45 +197,60 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           }
         : base.lastPosition,
     };
-  }, [
-    tenantId,
-    assignmentId,
-    query.data,
-    gpsPermission,
-    tick,
-    liveContext,
-    gpsTracking.state,
-  ]);
+  }, [tenantId, assignmentId, query.data, gpsPermission, tick, liveContext, gpsTracking.state]);
 
   const timers = useMemo(() => {
     if (!tenantId || !assignmentId || !query.data) return null;
     void tick;
-    if (dbTimers && (dbTimers.driveSeconds != null || dbTimers.serviceSeconds != null)) {
-      return dbTimers;
-    }
-    return computeEmployeePortalLiveTimers(tenantId, assignmentId, query.data.status);
+    if (dbTimers) return dbTimers;
+    return null;
   }, [tenantId, assignmentId, query.data, tick, dbTimers]);
 
-  const statusMutation = useMutation(
-    (toStatus: AssignmentStatus) => {
-      if (!tenantId || !assignmentId) {
-        return Promise.resolve({ ok: false as const, error: 'Keine Einsatz-ID.' });
-      }
-      return transitionEmployeePortalAssignment(tenantId, assignmentId, employeeId, roleKey, toStatus);
+  const workflowStep: AssistWorkflowStep | null = useMemo(() => {
+    if (!query.data) return null;
+    return assignmentStatusToWorkflowStep(query.data.status);
+  }, [query.data]);
+
+  const syncAfterWorkflow = useCallback(
+    async (ctx: AssistExecutionContext) => {
+      setExecutionContext(ctx);
+      setLiveContext(ctx.liveContext);
+      query.setData(ctx.detail);
+      if (ctx.visitTimes) setDbTimers(timersFromVisitTimes(ctx.visitTimes));
+      return ctx;
     },
-    {
-      onSuccess: (detail: EmployeePortalAssignmentDetail) => {
-        query.setData(detail);
-        void refreshLiveContext();
-      },
-    },
+    [query],
   );
 
-  const changeStatus = useCallback(
-    async (toStatus: AssignmentStatus) => {
-      await statusMutation.mutate(toStatus);
+  const runWorkflow = useCallback(
+    async <T,>(
+      fn: (ctx: AssistExecutionContext) => Promise<{ ok: boolean; data?: T; error?: string }>,
+    ): Promise<{ ok: boolean; data?: T; error?: string }> => {
+      let ctx = executionContext;
+      if (!ctx) {
+        ctx = await refreshExecutionContext();
+        if (!ctx) return { ok: false, error: 'Einsatzkontext fehlt.' };
+      }
+      setWorkflowLoading(true);
+      const result = await fn(ctx);
+      setWorkflowLoading(false);
+      if (result.ok) {
+        const payload = result.data;
+        if (payload && typeof payload === 'object') {
+          if ('ctx' in payload && payload.ctx) {
+            await syncAfterWorkflow(payload.ctx as AssistExecutionContext);
+          } else if ('detail' in payload) {
+            await syncAfterWorkflow(payload as unknown as AssistExecutionContext);
+          } else {
+            await refreshExecutionContext();
+          }
+        } else {
+          await refreshExecutionContext();
+        }
+      }
+      return result;
     },
-    [statusMutation],
+    [executionContext, refreshExecutionContext, syncAfterWorkflow],
   );
 
   const grantConsent = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
@@ -283,9 +276,9 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
     grantEmployeePortalLocationConsent(tenantId, assignmentId);
     setConsentRevision((n) => n + 1);
-    await refreshLiveContext();
+    await refreshExecutionContext();
     return { ok: true };
-  }, [tenantId, assignmentId, employeeId, profile?.id, refreshLiveContext]);
+  }, [tenantId, assignmentId, employeeId, profile?.id, refreshExecutionContext]);
 
   const startDriveTracking = useCallback(async (): Promise<{ ok: boolean; error?: string; errorCode?: LiveTrackingErrorCode }> => {
     if (!tenantId || !assignmentId) {
@@ -310,15 +303,15 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     const consent = getEmployeePortalLocationConsent(tenantId, assignmentId);
     const now = consent.grantedAt ?? new Date().toISOString();
 
-    const started = await startEmployeeLiveTracking({
+    const started = await startEnRoute({
       tenantId,
       employeeId,
-      routeParamId: assignmentId,
+      assignmentId,
       profileId: profile?.id ?? employeeId,
+      roleKey,
       consentGrantedAt: now,
       consentExplainedAt: consent.explainedAt,
       gpsSnapshot: snapshot,
-      transitionToEnRoute: true,
       localConsent: consent,
     });
 
@@ -327,12 +320,74 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return { ok: false, error: started.error };
     }
 
-    setLiveContext(started.data.context);
+    setLiveContext(started.data.liveContext);
+    setExecutionContext(started.data);
     setLiveErrorCode(null);
-    await query.refresh();
+    query.setData(started.data.detail);
     await gpsTracking.startWatching();
     return { ok: true };
-  }, [tenantId, assignmentId, employeeId, profile?.id, gpsTracking, query]);
+  }, [tenantId, assignmentId, employeeId, profile?.id, roleKey, gpsTracking, query]);
+
+  const handleMarkArrived = useCallback(async () => {
+    const localConsent = tenantId && assignmentId
+      ? getEmployeePortalLocationConsent(tenantId, assignmentId)
+      : null;
+    return runWorkflow(async (ctx) => {
+      const pos = await captureEmployeePortalForegroundPosition(tenantId!, assignmentId!);
+      if (!pos.ok && localConsent?.granted) {
+        return { ok: false, error: pos.error };
+      }
+      return markArrived({ ctx, geofence: tracking?.geofence ?? null });
+    });
+  }, [runWorkflow, tenantId, assignmentId, tracking?.geofence]);
+
+  const handleStartService = useCallback(
+    () => runWorkflow((ctx) => startService(ctx)),
+    [runWorkflow],
+  );
+
+  const handleStartPause = useCallback(
+    () => runWorkflow((ctx) => startPause(ctx)),
+    [runWorkflow],
+  );
+
+  const handleEndPause = useCallback(
+    () => runWorkflow((ctx) => endPause(ctx)),
+    [runWorkflow],
+  );
+
+  const handleEndService = useCallback(
+    () => runWorkflow((ctx) => endService(ctx)),
+    [runWorkflow],
+  );
+
+  const handleSaveTask = useCallback(
+    (taskId: string, status: ExtendedAssignmentTaskStatus, note?: string) =>
+      runWorkflow((ctx) => saveTaskResults({ ctx, taskId, status, completionNote: note })),
+    [runWorkflow],
+  );
+
+  const handleSaveDocumentation = useCallback(
+    (documentation: EmployeePortalDocumentationInput) =>
+      runWorkflow((ctx) => saveVisitDocumentation({ ctx, documentation })),
+    [runWorkflow],
+  );
+
+  const handleSaveSignature = useCallback(
+    (signature: EmployeePortalSignatureCaptureInput) =>
+      runWorkflow((ctx) => saveClientSignature({ ctx, signature })),
+    [runWorkflow],
+  );
+
+  const handleFinalize = useCallback(
+    () => runWorkflow((ctx) => finalizeVisit(ctx)),
+    [runWorkflow],
+  );
+
+  const handleNoShow = useCallback(
+    (note: string) => runWorkflow((ctx) => reportNoShow(ctx, note)),
+    [runWorkflow],
+  );
 
   const requestLocationPermission = useCallback(async () => {
     const status = await requestEmployeePortalForegroundLocationPermission();
@@ -372,26 +427,6 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     });
   }, [tenantId, assignmentId, employeeId, roleKey, profile?.id]);
 
-  const updateTask = useCallback(
-    async (taskId: string, status: EmployeePortalAssignmentDetail['tasks'][number]['status'], note?: string) => {
-      if (!tenantId || !assignmentId) {
-        return { ok: false as const, error: 'Keine Einsatz-ID.' };
-      }
-      const result = await updateEmployeePortalTask(
-        tenantId,
-        assignmentId,
-        employeeId,
-        roleKey,
-        taskId,
-        status,
-        note,
-      );
-      if (result.ok) query.setData(result.data);
-      return result;
-    },
-    [tenantId, assignmentId, employeeId, roleKey, query],
-  );
-
   const consent = useMemo(() => {
     if (!tenantId || !assignmentId) return null;
     if (liveContext?.consentStatus.granted) {
@@ -413,8 +448,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const refresh = useCallback(async () => {
     await query.refresh();
-    await refreshLiveContext();
-  }, [query, refreshLiveContext]);
+    await refreshExecutionContext();
+  }, [query, refreshExecutionContext]);
 
   const visitWithAddress = useMemo(() => {
     if (!query.data) return null;
@@ -427,6 +462,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   return {
     data: visitWithAddress,
+    executionContext,
+    workflowStep,
     liveContext,
     tracking,
     timers,
@@ -434,20 +471,28 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     gpsPermission,
     gpsTracking,
     loading: query.loading,
-    error: query.error ?? liveContextError ?? statusMutation.error,
+    error: query.error ?? liveContextError,
     errorCode: liveErrorCode ?? gpsTracking.state.errorCode,
     liveContextError,
     queryError: query.error,
-    actionLoading: statusMutation.loading,
+    actionLoading: workflowLoading,
     refresh,
-    changeStatus,
     grantConsent,
     startDriveTracking,
+    markArrived: handleMarkArrived,
+    startService: handleStartService,
+    startPause: handleStartPause,
+    endPause: handleEndPause,
+    endService: handleEndService,
+    saveTask: handleSaveTask,
+    saveDocumentation: handleSaveDocumentation,
+    saveSignature: handleSaveSignature,
+    finalizeVisit: handleFinalize,
+    reportNoShow: handleNoShow,
     requestLocationPermission,
     capturePosition,
     setGeofenceOverride,
     openRoute,
-    updateTask,
     notFound: !query.loading && !query.error && !query.data,
     hasAssignment: Boolean(query.data),
   };

@@ -1,0 +1,132 @@
+/**
+ * ASSIST.WORKFLOW.1 — HTML/print view for Leistungsnachweis.
+ */
+import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
+import type { VisitTimesSummary } from './calculateVisitTimes';
+
+export type ServiceRecordContentInput = {
+  detail: EmployeePortalAssignmentDetail;
+  visitTimes: VisitTimesSummary | null;
+  documentationText?: string | null;
+  signatureSummary?: { signerName: string; signedAt: string } | null;
+};
+
+function formatDuration(seconds: number | null): string {
+  if (seconds == null) return '—';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return `${h}h ${m}min`;
+  return `${m} min`;
+}
+
+function formatDateTime(iso: string | null | undefined): string {
+  if (!iso) return '—';
+  return new Date(iso).toLocaleString('de-DE', {
+    day: '2-digit',
+    month: '2-digit',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+  });
+}
+
+export function buildServiceRecordHtml(input: ServiceRecordContentInput): string {
+  const { detail, visitTimes, documentationText, signatureSummary } = input;
+  const tasksHtml = detail.tasks
+    .map(
+      (t) =>
+        `<tr><td>${escapeHtml(t.title)}</td><td>${escapeHtml(t.status)}</td><td>${escapeHtml(t.completionNote ?? '')}</td></tr>`,
+    )
+    .join('');
+
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <title>Leistungsnachweis — ${escapeHtml(detail.title)}</title>
+  <style>
+    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; color: #1a1a1a; }
+    h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
+    .meta { color: #666; font-size: 0.875rem; margin-bottom: 1.5rem; }
+    section { margin-bottom: 1.25rem; }
+    h2 { font-size: 1rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
+    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
+    th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #eee; }
+    .times { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
+    .times dt { font-weight: 600; }
+    .doc { white-space: pre-wrap; background: #f9f9f9; padding: 0.75rem; border-radius: 4px; }
+  </style>
+</head>
+<body>
+  <h1>Leistungsnachweis</h1>
+  <p class="meta">${escapeHtml(detail.clientName)} · ${formatDateTime(detail.plannedStartAt)}</p>
+
+  <section>
+    <h2>Einsatz</h2>
+    <p><strong>${escapeHtml(detail.title)}</strong></p>
+    <p>${escapeHtml(detail.locationAddress)}</p>
+  </section>
+
+  <section>
+    <h2>Zeiten</h2>
+    <dl class="times">
+      <dt>Anfahrt</dt><dd>${formatDuration(visitTimes?.driveSeconds ?? null)}</dd>
+      <dt>Einsatz</dt><dd>${formatDuration(visitTimes?.serviceSeconds ?? null)}</dd>
+      <dt>Pause</dt><dd>${formatDuration(visitTimes?.pauseSeconds ?? null)}</dd>
+      <dt>Angekommen</dt><dd>${formatDateTime(visitTimes?.arrivedAt)}</dd>
+      <dt>Einsatz beendet</dt><dd>${formatDateTime(visitTimes?.serviceEndedAt)}</dd>
+    </dl>
+  </section>
+
+  <section>
+    <h2>Aufgaben</h2>
+    <table>
+      <thead><tr><th>Aufgabe</th><th>Status</th><th>Hinweis</th></tr></thead>
+      <tbody>${tasksHtml || '<tr><td colspan="3">Keine Aufgaben</td></tr>'}</tbody>
+    </table>
+  </section>
+
+  <section>
+    <h2>Dokumentation</h2>
+    <div class="doc">${escapeHtml(documentationText?.trim() || '—')}</div>
+  </section>
+
+  ${
+    signatureSummary
+      ? `<section><h2>Unterschrift</h2><p>${escapeHtml(signatureSummary.signerName)} · ${formatDateTime(signatureSummary.signedAt)}</p></section>`
+      : ''
+  }
+
+  <p class="meta">Erstellt ${formatDateTime(new Date().toISOString())} · CareSuite+ Assist</p>
+</body>
+</html>`;
+}
+
+function escapeHtml(text: string): string {
+  return text
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;');
+}
+
+export function buildServiceRecordSnapshot(input: ServiceRecordContentInput): Record<string, unknown> {
+  return {
+    assignmentId: input.detail.assignmentId,
+    clientId: input.detail.clientId,
+    title: input.detail.title,
+    clientName: input.detail.clientName,
+    plannedStartAt: input.detail.plannedStartAt,
+    plannedEndAt: input.detail.plannedEndAt,
+    visitTimes: input.visitTimes,
+    tasks: input.detail.tasks.map((t) => ({
+      id: t.id,
+      title: t.title,
+      status: t.status,
+      note: t.completionNote,
+    })),
+    documentation: input.documentationText ?? null,
+    signature: input.signatureSummary ?? null,
+    generatedAt: new Date().toISOString(),
+  };
+}

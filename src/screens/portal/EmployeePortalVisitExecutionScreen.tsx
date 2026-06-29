@@ -6,10 +6,13 @@ import { LockedActionBanner } from '@/components/permissions';
 import {
   EmployeePortalLiveTimersPanel,
   EmployeePortalLocationConsentBanner,
+  EmployeePortalVisitDocumentationPanel,
+  EmployeePortalVisitSignaturePanel,
+  EmployeePortalVisitTasksPanel,
+  EmployeePortalVisitWorkflowTimeline,
 } from '@/components/portal';
 import { ScreenShell } from '@/components/layout';
 import {
-  EmptyState,
   ErrorState,
   InfoBanner,
   LoadingState,
@@ -23,19 +26,9 @@ import {
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
 import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
+import { getPrimaryWorkflowAction } from '@/features/assistWorkflow';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
-import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
-
-const PRIMARY_NEXT: Partial<Record<AssignmentStatus, AssignmentStatus>> = {
-  geplant: 'unterwegs',
-  bestaetigt: 'unterwegs',
-  unterwegs: 'angekommen',
-  angekommen: 'gestartet',
-  gestartet: 'beendet',
-  pausiert: 'gestartet',
-  beendet: 'dokumentation_offen',
-};
 
 function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -67,6 +60,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const {
     data: visit,
+    workflowStep,
     liveContext,
     tracking,
     timers,
@@ -80,11 +74,19 @@ export function EmployeePortalVisitExecutionScreen() {
     hasAssignment,
     actionLoading,
     refresh,
-    changeStatus,
     grantConsent,
     startDriveTracking,
+    markArrived,
+    startService,
+    startPause,
+    endPause,
+    endService,
+    saveTask,
+    saveDocumentation,
+    saveSignature,
+    finalizeVisit,
+    reportNoShow,
     requestLocationPermission,
-    capturePosition,
     setGeofenceOverride,
     openRoute,
     notFound,
@@ -96,107 +98,11 @@ export function EmployeePortalVisitExecutionScreen() {
   const [driveLoading, setDriveLoading] = useState(false);
   const [geofenceOverride, setGeofenceOverrideInput] = useState('');
   const [showGeofenceOverride, setShowGeofenceOverride] = useState(false);
+  const [noShowNote, setNoShowNote] = useState('');
+  const [showNoShowForm, setShowNoShowForm] = useState(false);
 
-  const primaryNext = visit ? PRIMARY_NEXT[visit.status] : undefined;
+  const primaryNext = visit ? getPrimaryWorkflowAction(visit.status) : undefined;
   const trackingActive = Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
-
-  const handleGrantConsent = useCallback(async () => {
-    setConsentLoading(true);
-    setLocalError(null);
-    setLocalSuccess(null);
-    const result = await grantConsent();
-    if (!result.ok) {
-      setLocalError(result.error ?? 'Einwilligung konnte nicht gespeichert werden.');
-    } else {
-      setLocalSuccess('Einwilligung gespeichert.');
-    }
-    setConsentLoading(false);
-  }, [grantConsent]);
-
-  const handleRequestPermission = useCallback(async () => {
-    setLocalError(null);
-    setLocalSuccess(null);
-    const status = await requestLocationPermission();
-    if (status === 'granted') {
-      setLocalSuccess('Standortberechtigung erteilt.');
-    } else if (status === 'denied') {
-      setLocalError(
-        Platform.OS === 'ios'
-          ? 'Standortberechtigung abgelehnt — bitte in Safari-Einstellungen unter „Standort“ freigeben.'
-          : 'Standortberechtigung nicht erteilt — bitte in den Geräteeinstellungen prüfen.',
-      );
-    } else {
-      setLocalError('Standortberechtigung ausstehend — bitte erneut über die Schaltfläche anfordern.');
-    }
-  }, [requestLocationPermission]);
-
-  const handleStartDrive = useCallback(async () => {
-    setDriveLoading(true);
-    setLocalError(null);
-    setLocalSuccess(null);
-    if (!consent?.granted) {
-      setLocalError('Bitte zuerst Standort-Einwilligung bestätigen.');
-      setDriveLoading(false);
-      return;
-    }
-    const result = await startDriveTracking();
-    if (!result.ok) {
-      setLocalError(result.error ?? 'Tracking konnte nicht gestartet werden.');
-    } else {
-      setLocalSuccess('Anfahrt gestartet — Tracking aktiv.');
-    }
-    setDriveLoading(false);
-  }, [consent, startDriveTracking]);
-
-  const handleArrived = useCallback(async () => {
-    setLocalError(null);
-    setLocalSuccess(null);
-    const pos = await capturePosition();
-    if (!pos.ok && consent?.granted) {
-      setLocalError(pos.error);
-    }
-    if (tracking?.geofence?.warning && !tracking.geofence.overridden && !geofenceOverride.trim()) {
-      setShowGeofenceOverride(true);
-      setLocalError(tracking.geofence.warning);
-      return;
-    }
-    if (geofenceOverride.trim()) {
-      setGeofenceOverride(geofenceOverride.trim());
-    }
-    await changeStatus('angekommen');
-    setLocalSuccess('Angekommen — Anfahrt-Timer gestoppt.');
-  }, [capturePosition, consent, tracking, geofenceOverride, setGeofenceOverride, changeStatus]);
-
-  const handlePrimary = useCallback(async () => {
-    if (!visit || !primaryNext) return;
-    if (primaryNext === 'unterwegs') {
-      await handleStartDrive();
-      return;
-    }
-    if (primaryNext === 'angekommen') {
-      await handleArrived();
-      return;
-    }
-    setLocalError(null);
-    setLocalSuccess(null);
-    await changeStatus(primaryNext);
-    setLocalSuccess(`Status: ${ASSIGNMENT_STATUS_LABELS[primaryNext]}`);
-  }, [visit, primaryNext, handleStartDrive, handleArrived, changeStatus]);
-
-  const handleOpenMap = useCallback(async () => {
-    setLocalError(null);
-    const route = await openRoute();
-    if (route.ok && route.data.mapUrl) {
-      await Linking.openURL(route.data.mapUrl);
-      setLocalSuccess(
-        route.data.clientAddress
-          ? `Route geöffnet — ${route.data.clientAddress}`
-          : 'Route in Google Maps geöffnet.',
-      );
-    } else {
-      setLocalError(route.ok ? 'Keine Karten-URL.' : route.error);
-    }
-  }, [openRoute]);
 
   const isLocked = useMemo(
     () =>
@@ -206,6 +112,108 @@ export function EmployeePortalVisitExecutionScreen() {
       visit?.isLocked,
     [visit],
   );
+
+  const showTasks = visit && ['gestartet', 'pausiert', 'beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit.status);
+  const showDocumentation = visit && ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit.status);
+  const showSignature = visit && visit.requiresSignature && ['dokumentation_offen', 'unterschrift_offen'].includes(visit.status);
+  const showFinalize = visit && visit.status === 'unterschrift_offen';
+
+  const handleGrantConsent = useCallback(async () => {
+    setConsentLoading(true);
+    setLocalError(null);
+    setLocalSuccess(null);
+    const result = await grantConsent();
+    if (!result.ok) setLocalError(result.error ?? 'Einwilligung konnte nicht gespeichert werden.');
+    else setLocalSuccess('Einwilligung gespeichert.');
+    setConsentLoading(false);
+  }, [grantConsent]);
+
+  const handleRequestPermission = useCallback(async () => {
+    setLocalError(null);
+    const status = await requestLocationPermission();
+    if (status === 'granted') setLocalSuccess('Standortberechtigung erteilt.');
+    else if (status === 'denied') {
+      setLocalError(
+        Platform.OS === 'ios'
+          ? 'Standortberechtigung abgelehnt — bitte in Safari-Einstellungen freigeben.'
+          : 'Standortberechtigung nicht erteilt.',
+      );
+    }
+  }, [requestLocationPermission]);
+
+  const handleStartDrive = useCallback(async () => {
+    setDriveLoading(true);
+    setLocalError(null);
+    if (!consent?.granted) {
+      setLocalError('Bitte zuerst Standort-Einwilligung bestätigen.');
+      setDriveLoading(false);
+      return;
+    }
+    const result = await startDriveTracking();
+    if (!result.ok) setLocalError(result.error ?? 'Tracking konnte nicht gestartet werden.');
+    else setLocalSuccess('Anfahrt gestartet — Tracking aktiv.');
+    setDriveLoading(false);
+  }, [consent, startDriveTracking]);
+
+  const handleArrived = useCallback(async () => {
+    setLocalError(null);
+    if (tracking?.geofence?.warning && !tracking.geofence.overridden && !geofenceOverride.trim()) {
+      setShowGeofenceOverride(true);
+      setLocalError(tracking.geofence.warning);
+      return;
+    }
+    if (geofenceOverride.trim()) setGeofenceOverride(geofenceOverride.trim());
+    const result = await markArrived();
+    if (!result.ok) setLocalError(result.error ?? 'Ankunft konnte nicht gespeichert werden.');
+    else setLocalSuccess('Angekommen — Anfahrt-Timer gestoppt.');
+  }, [markArrived, tracking, geofenceOverride, setGeofenceOverride]);
+
+  const handlePrimary = useCallback(async () => {
+    if (!visit || !primaryNext) return;
+    setLocalError(null);
+    setLocalSuccess(null);
+
+    if (primaryNext === 'unterwegs') {
+      await handleStartDrive();
+      return;
+    }
+    if (visit.status === 'unterwegs' || primaryNext === 'angekommen') {
+      await handleArrived();
+      return;
+    }
+    if (primaryNext === 'gestartet') {
+      const r = await startService();
+      if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
+      else setLocalSuccess('Einsatz gestartet.');
+      return;
+    }
+    if (primaryNext === 'beendet') {
+      const r = await endService();
+      if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
+      else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
+    }
+  }, [visit, primaryNext, handleStartDrive, handleArrived, startService, endService]);
+
+  const handleNoShow = useCallback(async () => {
+    if (!noShowNote.trim()) {
+      setLocalError('Begründung für „Nicht angetroffen“ ist erforderlich.');
+      return;
+    }
+    const r = await reportNoShow(noShowNote.trim());
+    if (!r.ok) setLocalError(r.error ?? 'Status konnte nicht gespeichert werden.');
+    else setLocalSuccess('Als nicht angetroffen gemeldet.');
+  }, [noShowNote, reportNoShow]);
+
+  const handleOpenMap = useCallback(async () => {
+    setLocalError(null);
+    const route = await openRoute();
+    if (route.ok && route.data.mapUrl) {
+      await Linking.openURL(route.data.mapUrl);
+      setLocalSuccess('Route in Google Maps geöffnet.');
+    } else {
+      setLocalError(route.ok ? 'Keine Karten-URL.' : route.error);
+    }
+  }, [openRoute]);
 
   const shellTitle = visit?.title ?? (loading ? 'Einsatz wird geladen…' : 'Einsatz durchführen');
 
@@ -232,9 +240,6 @@ export function EmployeePortalVisitExecutionScreen() {
     return (
       <ScreenShell title={shellTitle} subtitle="Datenbankfehler">
         <ErrorState message={queryError} onRetry={refresh} />
-        {errorCode ? (
-          <Text style={styles.errorCode}>Support-Code: {errorCode}</Text>
-        ) : null}
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
       </ScreenShell>
     );
@@ -244,28 +249,31 @@ export function EmployeePortalVisitExecutionScreen() {
     return (
       <ScreenShell title={shellTitle} subtitle="Fehler">
         <ErrorState message={error ?? 'Einsatz nicht gefunden.'} onRetry={refresh} />
-        {errorCode ? (
-          <Text style={styles.errorCode}>Support-Code: {errorCode}</Text>
-        ) : null}
         <PremiumButton title="Zurück" variant="secondary" onPress={() => router.back()} />
       </ScreenShell>
     );
   }
 
   const showSuccess = localSuccess && !localError;
+  const primaryLabel =
+    visit.status === 'unterwegs'
+      ? 'Angekommen'
+      : visit.status === 'angekommen'
+        ? 'Einsatz starten'
+        : visit.status === 'gestartet'
+          ? 'Einsatz beenden'
+          : visit.status === 'pausiert'
+            ? 'Pause beenden'
+            : primaryNext === 'unterwegs'
+              ? 'Anfahrt starten'
+              : undefined;
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
       {showSuccess ? <SuccessState message={localSuccess!} /> : null}
       {localError ? <ErrorState message={localError} /> : null}
       {liveContextError && !queryError ? (
-        <InfoBanner
-          variant="warning"
-          message={`Live-Kontext: ${liveContextError}${errorCode ? ` (${errorCode})` : ''}`}
-        />
-      ) : null}
-      {error && !localError && !liveContextError ? (
-        <InfoBanner variant="warning" message={error} />
+        <InfoBanner variant="warning" message={`Live-Kontext: ${liveContextError}`} />
       ) : null}
 
       <ScrollView contentContainerStyle={styles.scroll} showsVerticalScrollIndicator={false}>
@@ -278,10 +286,15 @@ export function EmployeePortalVisitExecutionScreen() {
         <PremiumCard accentColor={colors.amber}>
           <Text style={styles.phase}>{ASSIGNMENT_STATUS_LABELS[visit.status]}</Text>
           <PremiumBadge label={ASSIGNMENT_STATUS_LABELS[visit.status]} variant="orange" dot />
+          {workflowStep ? (
+            <EmployeePortalVisitWorkflowTimeline
+              status={visit.status}
+              requiresSignature={visit.requiresSignature}
+            />
+          ) : null}
         </PremiumCard>
 
         <SectionPanel title="Live-Status" subtitle="Einsatz · GPS · Tracking">
-          <DetailInfoRow label="Einsatz gefunden" value={liveContext ? 'Ja' : 'Prüfung…'} />
           <DetailInfoRow label="Klient:in" value={visit.clientName} />
           <DetailInfoRow label="Adresse" value={visit.locationAddress} />
           <DetailInfoRow label="Geplant" value={formatDateTime(visit.plannedStartAt)} />
@@ -290,21 +303,7 @@ export function EmployeePortalVisitExecutionScreen() {
             label="Tracking"
             value={trackingStatusLabel(trackingActive, gpsPermission, errorCode)}
           />
-          {liveContext?.lastLocationAt ? (
-            <DetailInfoRow
-              label="Letzte Standortübertragung"
-              value={formatDateTime(liveContext.lastLocationAt)}
-            />
-          ) : null}
-          {liveContext?.lastLocationAccuracyMeters != null ? (
-            <DetailInfoRow
-              label="Genauigkeit"
-              value={`±${Math.round(liveContext.lastLocationAccuracyMeters)} m`}
-            />
-          ) : null}
-          {errorCode ? (
-            <Text style={styles.errorCode}>Support-Code: {errorCode}</Text>
-          ) : null}
+          {errorCode ? <Text style={styles.errorCode}>Support-Code: {errorCode}</Text> : null}
         </SectionPanel>
 
         <EmployeePortalLiveTimersPanel timers={timers} assignmentStatus={visit.status} />
@@ -314,12 +313,11 @@ export function EmployeePortalVisitExecutionScreen() {
         ))}
 
         {showGeofenceOverride ? (
-          <SectionPanel title="Geofence-Hinweis" subtitle="Weicher Check — kein Hard-Block">
+          <SectionPanel title="Geofence-Hinweis">
             <PremiumInput
               label="Begründung (optional)"
               value={geofenceOverride}
               onChangeText={setGeofenceOverrideInput}
-              placeholder="z. B. Parkplatz nebenan, Hausmeister-Zutritt…"
             />
           </SectionPanel>
         ) : null}
@@ -342,22 +340,16 @@ export function EmployeePortalVisitExecutionScreen() {
 
             <PremiumButton title="Karte / Route" variant="secondary" fullWidth onPress={handleOpenMap} />
 
-            {primaryNext && !isLocked ? (
+            {primaryLabel && !isLocked ? (
               <PremiumButton
                 title={
                   trackingActive && visit.status === 'unterwegs'
-                    ? 'Anfahrt läuft'
-                    : primaryNext === 'unterwegs'
-                      ? 'Anfahrt starten'
-                      : primaryNext === 'angekommen'
-                        ? 'Angekommen'
-                        : primaryNext === 'gestartet'
-                          ? 'Einsatz starten'
-                          : `Weiter: ${ASSIGNMENT_STATUS_LABELS[primaryNext]}`
+                    ? 'Anfahrt läuft — Angekommen'
+                    : primaryLabel
                 }
                 fullWidth
                 loading={actionLoading || driveLoading}
-                disabled={actionLoading || driveLoading || (trackingActive && visit.status === 'unterwegs')}
+                disabled={actionLoading || driveLoading}
                 onPress={handlePrimary}
               />
             ) : null}
@@ -368,36 +360,94 @@ export function EmployeePortalVisitExecutionScreen() {
                 variant="ghost"
                 fullWidth
                 loading={actionLoading}
-                onPress={() => changeStatus('pausiert')}
+                onPress={async () => {
+                  const r = await startPause();
+                  if (r.ok) setLocalSuccess('Pause gestartet.');
+                  else setLocalError(r.error ?? 'Pause fehlgeschlagen.');
+                }}
               />
             ) : null}
 
-            {visit.allowedTransitions.includes('nicht_erschienen') ? (
+            {visit.status === 'pausiert' ? (
               <PremiumButton
-                title="Nicht angetroffen"
-                variant="ghost"
+                title="Pause beenden"
+                variant="secondary"
                 fullWidth
                 loading={actionLoading}
-                onPress={() => changeStatus('nicht_erschienen')}
+                onPress={async () => {
+                  const r = await endPause();
+                  if (r.ok) setLocalSuccess('Einsatz fortgesetzt.');
+                  else setLocalError(r.error ?? 'Fortsetzen fehlgeschlagen.');
+                }}
               />
+            ) : null}
+
+            {visit.allowedTransitions.includes('nicht_erschienen') && !isLocked ? (
+              <>
+                {!showNoShowForm ? (
+                  <PremiumButton
+                    title="Nicht angetroffen"
+                    variant="ghost"
+                    fullWidth
+                    onPress={() => setShowNoShowForm(true)}
+                  />
+                ) : (
+                  <SectionPanel title="Nicht angetroffen">
+                    <PremiumInput
+                      label="Begründung *"
+                      value={noShowNote}
+                      onChangeText={setNoShowNote}
+                      multiline
+                    />
+                    <PremiumButton
+                      title="Melden"
+                      fullWidth
+                      loading={actionLoading}
+                      onPress={handleNoShow}
+                    />
+                  </SectionPanel>
+                )}
+              </>
             ) : null}
           </View>
         )}
 
-        {visit.tasks.length > 0 ? (
-          <SectionPanel title="Aufgaben" subtitle={isLocked ? 'Einsatz abgeschlossen' : undefined}>
-            {visit.tasks.map((task) => (
-              <Text
-                key={task.id}
-                style={[styles.task, isLocked ? styles.taskMuted : null]}
-              >
-                • {task.title} ({task.status})
-              </Text>
-            ))}
-          </SectionPanel>
-        ) : (
-          <EmptyState title="Keine Aufgaben" message="Für diesen Einsatz sind keine Aufgaben hinterlegt." />
-        )}
+        {showTasks && visit.tasks.length > 0 ? (
+          <EmployeePortalVisitTasksPanel
+            tasks={visit.tasks}
+            disabled={isLocked}
+            loading={actionLoading}
+            onUpdateTask={saveTask}
+          />
+        ) : null}
+
+        {showDocumentation && !isLocked ? (
+          <EmployeePortalVisitDocumentationPanel
+            loading={actionLoading}
+            onSubmit={saveDocumentation}
+          />
+        ) : null}
+
+        {showSignature && !isLocked ? (
+          <EmployeePortalVisitSignaturePanel
+            clientName={visit.clientName}
+            loading={actionLoading}
+            onCapture={saveSignature}
+          />
+        ) : null}
+
+        {showFinalize && !isLocked ? (
+          <PremiumButton
+            title="Einsatz abschließen"
+            fullWidth
+            loading={actionLoading}
+            onPress={async () => {
+              const r = await finalizeVisit();
+              if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
+              else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
+            }}
+          />
+        ) : null}
 
         <PremiumButton title="Zurück zur Übersicht" variant="ghost" fullWidth onPress={() => router.back()} />
       </ScrollView>
@@ -409,11 +459,5 @@ const styles = StyleSheet.create({
   scroll: { paddingBottom: spacing.xxl + 32, gap: spacing.md },
   phase: { ...typography.body, marginBottom: spacing.sm },
   actions: { gap: spacing.sm },
-  task: { ...typography.body, marginBottom: spacing.xs },
-  taskMuted: { color: colors.textMuted },
-  errorCode: {
-    ...typography.caption,
-    color: colors.textMuted,
-    marginTop: spacing.xs,
-  },
+  errorCode: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
 });
