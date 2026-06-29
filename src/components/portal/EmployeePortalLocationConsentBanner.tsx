@@ -27,6 +27,7 @@ export function EmployeePortalLocationConsentBanner({
         title="Einwilligung erteilen & verstanden"
         fullWidth
         loading={loading}
+        disabled={loading}
         onPress={onAccept}
       />
       <Text style={styles.note}>

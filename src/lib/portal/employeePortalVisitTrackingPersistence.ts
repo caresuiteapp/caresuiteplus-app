@@ -81,21 +81,25 @@ async function resolveVisit(ctx: EmployeePortalPersistenceContext): Promise<stri
 export async function persistEmployeePortalLocationConsent(
   ctx: EmployeePortalPersistenceContext,
 ): Promise<{ ok: boolean; sessionId?: string; error?: string }> {
-  const visitId = await resolveVisit(ctx);
-  if (!visitId) return { ok: true };
+  if (getServiceMode() !== 'supabase') return { ok: true };
+  if (!ctx.employeeId) return { ok: false, error: 'Mitarbeiterprofil fehlt.' };
 
   const entry = peekEmployeePortalTrackingEntry(ctx.tenantId, ctx.assignmentId);
-  const started = await startTrackingSession(ctx.tenantId, {
-    visitId,
-    employeeId: ctx.employeeId ?? null,
-    consentGrantedAt: entry.consent.grantedAt ?? new Date().toISOString(),
+  const { saveEmployeeLocationConsent } = await import(
+    '@/features/liveTracking/saveEmployeeLocationConsent'
+  );
+  const saved = await saveEmployeeLocationConsent({
+    tenantId: ctx.tenantId,
+    employeeId: ctx.employeeId,
+    routeParamId: ctx.assignmentId,
+    profileId: ctx.profileId,
     consentExplainedAt: entry.consent.explainedAt,
-    source: 'employee_portal',
+    localConsent: entry.consent,
   });
 
-  if (!started.ok) return { ok: false, error: started.error };
-  sessionByKey.set(ctxKey(ctx.tenantId, ctx.assignmentId), started.data.id);
-  return { ok: true, sessionId: started.data.id };
+  if (!saved.ok) return { ok: false, error: saved.error };
+  sessionByKey.set(ctxKey(ctx.tenantId, ctx.assignmentId), saved.data.sessionId);
+  return { ok: true, sessionId: saved.data.sessionId };
 }
 
 /** Persist foreground GPS point for active session. */

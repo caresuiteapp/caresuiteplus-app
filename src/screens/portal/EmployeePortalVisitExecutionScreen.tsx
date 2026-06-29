@@ -184,9 +184,15 @@ export function EmployeePortalVisitExecutionScreen() {
   }, [visit, primaryNext, handleStartDrive, handleArrived, changeStatus]);
 
   const handleOpenMap = useCallback(async () => {
+    setLocalError(null);
     const route = await openRoute();
     if (route.ok && route.data.mapUrl) {
       await Linking.openURL(route.data.mapUrl);
+      setLocalSuccess(
+        route.data.clientAddress
+          ? `Route geöffnet — ${route.data.clientAddress}`
+          : 'Route in Google Maps geöffnet.',
+      );
     } else {
       setLocalError(route.ok ? 'Keine Karten-URL.' : route.error);
     }

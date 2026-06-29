@@ -7,14 +7,12 @@ import type {
   EmployeePortalTrackingSnapshot,
 } from '@/types/modules/employeePortalTracking';
 import {
-  buildEmployeePortalRoute,
   fetchEmployeePortalAssignmentDetail,
   transitionEmployeePortalAssignment,
   updateEmployeePortalTask,
 } from '@/lib/portal/employeePortalExecutionService';
-import {
-  persistEmployeePortalLocationConsent,
-} from '@/lib/portal/employeePortalVisitTrackingPersistence';
+import { buildEmployeePortalLiveRoute } from '@/features/liveTracking/buildEmployeePortalLiveRoute';
+import { saveEmployeeLocationConsent } from '@/features/liveTracking/saveEmployeeLocationConsent';
 import {
   buildEmployeePortalTrackingSnapshot,
   captureEmployeePortalForegroundPosition,
@@ -109,6 +107,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [liveContextError, setLiveContextError] = useState<string | null>(null);
   const [liveErrorCode, setLiveErrorCode] = useState<LiveTrackingErrorCode | null>(null);
   const [dbTimers, setDbTimers] = useState<EmployeePortalLiveTimers | null>(null);
+  const [consentRevision, setConsentRevision] = useState(0);
 
   useEffect(() => {
     if (!assignmentId) return;
@@ -156,6 +155,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     setLiveContext(result.data);
     setLiveContextError(null);
     setLiveErrorCode(null);
+
+    if (result.data.consentStatus.granted) {
+      grantEmployeePortalLocationConsent(tenantId, assignmentId);
+    }
 
     const events = await fetchTimeEventsForVisit(tenantId, result.data.assistVisitId, 100);
     if (events.ok && events.data.length) {
@@ -258,37 +261,31 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const grantConsent = useCallback(async (): Promise<{ ok: boolean; error?: string }> => {
-    if (!tenantId || !assignmentId) {
+    if (!tenantId || !assignmentId || !employeeId) {
       return { ok: false, error: 'Einsatzdaten unvollständig.' };
     }
 
-    const ctx = await resolveEmployeeLiveContext({
+    markEmployeePortalConsentExplained(tenantId, assignmentId);
+    const local = grantEmployeePortalLocationConsent(tenantId, assignmentId);
+
+    const persisted = await saveEmployeeLocationConsent({
       tenantId,
       employeeId,
       routeParamId: assignmentId,
-      portalAccountId: profile?.id ?? employeeId,
-    });
-    if (!ctx.ok) {
-      return { ok: false, error: ctx.error };
-    }
-
-    markEmployeePortalConsentExplained(tenantId, assignmentId);
-    grantEmployeePortalLocationConsent(tenantId, assignmentId);
-    const persisted = await persistEmployeePortalLocationConsent({
-      tenantId,
-      assignmentId,
-      employeeId,
       profileId: profile?.id ?? employeeId,
+      consentExplainedAt: local.explainedAt,
+      localConsent: local,
     });
 
     if (!persisted.ok) {
       return { ok: false, error: persisted.error ?? 'Einwilligung konnte nicht gespeichert werden.' };
     }
 
+    grantEmployeePortalLocationConsent(tenantId, assignmentId);
+    setConsentRevision((n) => n + 1);
     await refreshLiveContext();
-    await query.refresh();
     return { ok: true };
-  }, [tenantId, assignmentId, employeeId, profile?.id, query, refreshLiveContext]);
+  }, [tenantId, assignmentId, employeeId, profile?.id, refreshLiveContext]);
 
   const startDriveTracking = useCallback(async (): Promise<{ ok: boolean; error?: string; errorCode?: LiveTrackingErrorCode }> => {
     if (!tenantId || !assignmentId) {
@@ -363,11 +360,17 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const openRoute = useCallback(async () => {
-    if (!tenantId || !assignmentId) {
+    if (!tenantId || !assignmentId || !employeeId) {
       return { ok: false as const, error: 'Keine Einsatz-ID.' };
     }
-    return buildEmployeePortalRoute(tenantId, assignmentId, employeeId, roleKey);
-  }, [tenantId, assignmentId, employeeId, roleKey]);
+    return buildEmployeePortalLiveRoute({
+      tenantId,
+      employeeId,
+      routeParamId: assignmentId,
+      roleKey,
+      portalAccountId: profile?.id ?? employeeId,
+    });
+  }, [tenantId, assignmentId, employeeId, roleKey, profile?.id]);
 
   const updateTask = useCallback(
     async (taskId: string, status: EmployeePortalAssignmentDetail['tasks'][number]['status'], note?: string) => {
@@ -389,13 +392,24 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     [tenantId, assignmentId, employeeId, roleKey, query],
   );
 
-  const consent = useMemo(
-    () =>
-      tenantId && assignmentId
-        ? getEmployeePortalLocationConsent(tenantId, assignmentId)
-        : null,
-    [tenantId, assignmentId, tick, liveContext?.consentStatus.granted],
-  );
+  const consent = useMemo(() => {
+    if (!tenantId || !assignmentId) return null;
+    if (liveContext?.consentStatus.granted) {
+      return {
+        granted: true,
+        grantedAt: liveContext.consentStatus.grantedAt,
+        explainedAt: liveContext.consentStatus.explainedAt,
+      };
+    }
+    return getEmployeePortalLocationConsent(tenantId, assignmentId);
+  }, [
+    tenantId,
+    assignmentId,
+    consentRevision,
+    liveContext?.consentStatus.granted,
+    liveContext?.consentStatus.grantedAt,
+    liveContext?.consentStatus.explainedAt,
+  ]);
 
   const refresh = useCallback(async () => {
     await query.refresh();
