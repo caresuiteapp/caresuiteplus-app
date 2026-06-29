@@ -1,9 +1,10 @@
-import { useState } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 type EmployeePortalVisitTasksPanelProps = {
   tasks: EmployeePortalTaskItem[];
@@ -24,8 +25,27 @@ export function EmployeePortalVisitTasksPanel({
   loading = false,
   onUpdateTask,
 }: EmployeePortalVisitTasksPanelProps) {
+  const text = useAuroraAdaptiveText();
   const [pendingId, setPendingId] = useState<string | null>(null);
   const [note, setNote] = useState('');
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        taskRow: {
+          paddingVertical: spacing.sm,
+          borderBottomWidth: 1,
+          borderBottomColor: auroraGlass.innerBorder,
+          gap: spacing.xs,
+        },
+        taskTitle: { ...typography.bodyStrong, color: text.primary },
+        taskStatus: { ...typography.caption, color: text.muted },
+        taskNote: { ...typography.caption, color: text.secondary },
+        actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
+        noteBox: { gap: spacing.sm, marginTop: spacing.sm },
+      }),
+    [text],
+  );
 
   const handleStatus = async (taskId: string, status: ExtendedAssignmentTaskStatus) => {
     if (status === 'not_done' && !note.trim()) {
@@ -82,17 +102,3 @@ export function EmployeePortalVisitTasksPanel({
     </SectionPanel>
   );
 }
-
-const styles = StyleSheet.create({
-  taskRow: {
-    paddingVertical: spacing.sm,
-    borderBottomWidth: 1,
-    borderBottomColor: colors.textMuted,
-    gap: spacing.xs,
-  },
-  taskTitle: { ...typography.bodyStrong },
-  taskStatus: { ...typography.caption, color: colors.textMuted },
-  taskNote: { ...typography.caption, color: colors.textSecondary },
-  actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
-  noteBox: { gap: spacing.sm, marginTop: spacing.sm },
-});
