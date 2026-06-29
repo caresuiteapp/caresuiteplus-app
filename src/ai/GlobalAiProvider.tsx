@@ -1,5 +1,7 @@
 import {
   createContext,
+  lazy,
+  Suspense,
   useCallback,
   useContext,
   useEffect,
@@ -17,7 +19,9 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
 import { isSupabaseConfigured } from '@/lib/supabase/config';
 import { AiApprovalSheet } from './AiApprovalSheet';
-import { AiMiniPanel } from './AiMiniPanel';
+const AiMiniPanel = lazy(() =>
+  import('./AiMiniPanel').then((m) => ({ default: m.AiMiniPanel })),
+);
 import { dispatchAiNavigation, useAiNavigationBridge } from './aiNavigationBridge';
 import { getRegisteredPageContext } from './registerAiPageContext';
 import type {
@@ -539,24 +543,28 @@ export function GlobalAiProvider({ children }: GlobalAiProviderProps) {
             onLongPress={stopVoice}
             disabled={isStarting}
           />
-          <AiMiniPanel
-            visible={panelOpen}
-            onClose={closePanel}
-            tenantId={tenantId!}
-            currentModule={currentModule}
-            currentRoute={currentRoute}
-            pendingActions={pendingActions}
-            messages={messages}
-            lastGoal={lastGoal}
-            lastStep={lastStep}
-            memorySummary={memorySummary}
-            onStartVoice={() => void startVoice()}
-            onStopVoice={stopVoice}
-            isListening={isListening}
-            isStartingVoice={isStarting}
-            voiceAvailable={true}
-            onReviewDraft={() => closePanel()}
-          />
+          {panelOpen ? (
+            <Suspense fallback={null}>
+              <AiMiniPanel
+                visible={panelOpen}
+                onClose={closePanel}
+                tenantId={tenantId!}
+                currentModule={currentModule}
+                currentRoute={currentRoute}
+                pendingActions={pendingActions}
+                messages={messages}
+                lastGoal={lastGoal}
+                lastStep={lastStep}
+                memorySummary={memorySummary}
+                onStartVoice={() => void startVoice()}
+                onStopVoice={stopVoice}
+                isListening={isListening}
+                isStartingVoice={isStarting}
+                voiceAvailable={true}
+                onReviewDraft={() => closePanel()}
+              />
+            </Suspense>
+          ) : null}
           <AiApprovalSheet pendingActions={pendingActions} tenantId={tenantId!} />
         </View>
       ) : null}

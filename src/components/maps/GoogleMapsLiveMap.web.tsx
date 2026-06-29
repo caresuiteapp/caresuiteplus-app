@@ -1,17 +1,15 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { memo, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import {
   formatMapLastUpdated,
   type AssistMapPosition,
 } from '@/lib/assist/assistMapProvider';
 import { getGoogleMapsBrowserKey } from '@/lib/maps/getGoogleMapsBrowserKey';
-import {
-  loadGoogleMapsApi,
-  type GoogleInfoWindowInstance,
-  type GoogleMapInstance,
-  type GoogleMarkerInstance,
-} from '@/lib/maps/googleMapsLoader';
 import { colors, spacing, typography } from '@/theme';
+import { useStableGoogleMap } from './useStableGoogleMap';
+import { useStableMapMarkers, type StableMapMarker } from './useStableMapMarkers';
+import { useVisibleMapPolling } from './useVisibleMapPolling';
+import { LIVE_TRACKING_POLL_MS } from '@/hooks/core';
 
 export type GoogleMapsLiveMarker = {
   id: string;
@@ -34,6 +32,8 @@ export type GoogleMapsLiveMapProps = {
   demoMode?: boolean;
   lastUpdatedLabel?: string;
   tenantId?: string | null;
+  /** Optional refresh when map visible (e.g. refetch live positions). */
+  onVisiblePoll?: () => void;
 };
 
 function buildInfoContent(marker: GoogleMapsLiveMarker, demoMode: boolean): string {
@@ -76,7 +76,7 @@ function resolveMarkers(
   ];
 }
 
-export function GoogleMapsLiveMap({
+function GoogleMapsLiveMapInner({
   position = null,
   markers,
   selectedMarkerId = null,
@@ -87,13 +87,8 @@ export function GoogleMapsLiveMap({
   demoMode = false,
   lastUpdatedLabel = 'Letzte Aktualisierung',
   tenantId = null,
+  onVisiblePoll,
 }: GoogleMapsLiveMapProps) {
-  const mapContainerRef = useRef<HTMLDivElement | null>(null);
-  const mapRef = useRef<GoogleMapInstance | null>(null);
-  const markerRefs = useRef<Map<string, GoogleMarkerInstance>>(new Map());
-  const infoWindowRef = useRef<GoogleInfoWindowInstance | null>(null);
-  const [loadError, setLoadError] = useState<string | null>(null);
-  const [mapReady, setMapReady] = useState(false);
   const [apiKey, setApiKey] = useState<string | null>(null);
 
   const resolvedMarkers = useMemo(
@@ -108,6 +103,23 @@ export function GoogleMapsLiveMap({
     return resolvedMarkers[0] ?? null;
   }, [resolvedMarkers, selectedMarkerId]);
 
+  const center = useMemo(() => {
+    const m = primaryMarker ?? resolvedMarkers[0];
+    return m ? { lat: m.latitude, lng: m.longitude } : null;
+  }, [primaryMarker, resolvedMarkers]);
+
+  const stableMarkers: StableMapMarker[] = useMemo(
+    () =>
+      resolvedMarkers.map((m) => ({
+        id: m.id,
+        latitude: m.latitude,
+        longitude: m.longitude,
+        label: m.label,
+        infoHtml: buildInfoContent(m, demoMode),
+      })),
+    [resolvedMarkers, demoMode],
+  );
+
   useEffect(() => {
     let cancelled = false;
     void getGoogleMapsBrowserKey(tenantId).then((key) => {
@@ -118,88 +130,29 @@ export function GoogleMapsLiveMap({
     };
   }, [tenantId]);
 
-  useEffect(() => {
-    if (!apiKey || resolvedMarkers.length === 0) return;
+  const { containerRef: mapContainerRef, isVisible } = useVisibleMapPolling({
+    enabled: Boolean(onVisiblePoll),
+    intervalMs: LIVE_TRACKING_POLL_MS,
+    onPoll: () => onVisiblePoll?.(),
+  });
 
-    let cancelled = false;
+  const { map, google, ready, error: mapError } = useStableGoogleMap({
+    apiKey,
+    containerRef: mapContainerRef,
+    center,
+    zoom: resolvedMarkers.length === 1 ? 15 : 13,
+    enabled: resolvedMarkers.length > 0 && Boolean(apiKey),
+  });
 
-    void loadGoogleMapsApi(apiKey)
-      .then((google) => {
-        if (cancelled || !mapContainerRef.current) return;
-
-        const center = primaryMarker ?? resolvedMarkers[0];
-        const map = new google.maps.Map(mapContainerRef.current, {
-          center: { lat: center.latitude, lng: center.longitude },
-          zoom: resolvedMarkers.length === 1 ? 15 : 13,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: true,
-        });
-        mapRef.current = map;
-        infoWindowRef.current = new google.maps.InfoWindow();
-        setMapReady(true);
-        setLoadError(null);
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return;
-        setLoadError(err instanceof Error ? err.message : 'Karte konnte nicht geladen werden.');
-      });
-
-    return () => {
-      cancelled = true;
-    };
-  }, [apiKey, resolvedMarkers.length, primaryMarker?.latitude, primaryMarker?.longitude]);
-
-  useEffect(() => {
-    if (!apiKey || !mapReady || !mapRef.current) return;
-
-    void loadGoogleMapsApi(apiKey).then((google) => {
-      const map = mapRef.current;
-      if (!map) return;
-
-      markerRefs.current.forEach((marker) => marker.setMap(null));
-      markerRefs.current.clear();
-
-      const bounds = new google.maps.LatLngBounds();
-      resolvedMarkers.forEach((item) => {
-        bounds.extend({ lat: item.latitude, lng: item.longitude });
-        const marker = new google.maps.Marker({
-          map,
-          position: { lat: item.latitude, lng: item.longitude },
-          title: item.label,
-        });
-        marker.addListener('click', () => {
-          onMarkerSelect?.(item.id);
-          const info = infoWindowRef.current ?? new google.maps.InfoWindow();
-          infoWindowRef.current = info;
-          info.setContent(buildInfoContent(item, demoMode));
-          info.open({ map, anchor: marker });
-        });
-        markerRefs.current.set(item.id, marker);
-      });
-
-      if (resolvedMarkers.length === 1) {
-        map.setCenter({
-          lat: resolvedMarkers[0].latitude,
-          lng: resolvedMarkers[0].longitude,
-        });
-      } else if (resolvedMarkers.length > 1) {
-        map.fitBounds(bounds);
-      }
-
-      if (selectedMarkerId) {
-        const selected = resolvedMarkers.find((m) => m.id === selectedMarkerId);
-        const marker = markerRefs.current.get(selectedMarkerId);
-        if (selected && marker) {
-          map.panTo({ lat: selected.latitude, lng: selected.longitude });
-          const info = infoWindowRef.current ?? new google.maps.InfoWindow();
-          infoWindowRef.current = info;
-          info.setContent(buildInfoContent(selected, demoMode));
-          info.open({ map, anchor: marker });
-        }
-      }
-    });
-  }, [apiKey, mapReady, resolvedMarkers, selectedMarkerId, onMarkerSelect, demoMode]);
+  useStableMapMarkers({
+    map,
+    google,
+    markers: stableMarkers,
+    selectedMarkerId,
+    onMarkerSelect,
+    demoMode,
+    buildInfoContent: (m) => m.infoHtml ?? buildInfoContent(m as GoogleMapsLiveMarker, demoMode),
+  });
 
   if (resolvedMarkers.length === 0) {
     return (
@@ -221,11 +174,11 @@ export function GoogleMapsLiveMap({
     );
   }
 
-  if (loadError) {
+  if (mapError) {
     return (
       <View style={[styles.fallback, { minHeight: height }]}>
         <Text style={styles.fallbackIcon}>🗺️</Text>
-        <Text style={styles.fallbackText}>{loadError}</Text>
+        <Text style={styles.fallbackText}>{mapError}</Text>
       </View>
     );
   }
@@ -240,9 +193,14 @@ export function GoogleMapsLiveMap({
     <View style={styles.container}>
       <View style={[styles.mapFrame, { height }]}>
         <div ref={mapContainerRef} style={{ width: '100%', height: '100%' }} />
-        {!mapReady ? (
+        {!ready ? (
           <View style={styles.loadingOverlay}>
             <Text style={styles.loadingText}>Karte wird geladen…</Text>
+          </View>
+        ) : null}
+        {!isVisible && onVisiblePoll ? (
+          <View style={styles.pausedBadge} pointerEvents="none">
+            <Text style={styles.pausedText}>Karte pausiert (nicht sichtbar)</Text>
           </View>
         ) : null}
       </View>
@@ -267,6 +225,8 @@ export function GoogleMapsLiveMap({
   );
 }
 
+export const GoogleMapsLiveMap = memo(GoogleMapsLiveMapInner);
+
 const styles = StyleSheet.create({
   container: { gap: spacing.xs },
   mapFrame: {
@@ -284,6 +244,16 @@ const styles = StyleSheet.create({
     backgroundColor: 'rgba(15, 23, 42, 0.35)',
   },
   loadingText: { ...typography.caption, color: colors.textPrimary },
+  pausedBadge: {
+    position: 'absolute',
+    top: 8,
+    right: 8,
+    backgroundColor: 'rgba(15, 23, 42, 0.65)',
+    paddingHorizontal: 8,
+    paddingVertical: 4,
+    borderRadius: 6,
+  },
+  pausedText: { ...typography.caption, color: colors.textPrimary, fontSize: 10 },
   metaRow: { gap: 2 },
   meta: { ...typography.caption, color: colors.textMuted },
   fallback: {

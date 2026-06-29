@@ -9,6 +9,8 @@ import { fetchActiveLivePortalAssignmentForClient } from '@/lib/portal/portalApp
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToAssistLiveTrackingChanges } from '@/lib/realtime/presets';
 import { LIVE_TRACKING_POLL_MS, useAsyncQuery } from './core';
+import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
+import { useDevicePerformance, livePollIntervalMs } from '@/lib/performance';
 
 export type PortalClientLiveTrackingState = {
   assignmentId: string | null;
@@ -60,20 +62,22 @@ async function resolveActiveLiveTracking(
 
 export function usePortalClientLiveTracking() {
   const { tenantId, clientId, isReady } = usePortalActor();
+  const perf = useDevicePerformance();
   const [tick, setTick] = useState(0);
 
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), LIVE_TRACKING_POLL_MS);
-    return () => clearInterval(id);
-  }, []);
+  const bump = useCallback(() => setTick((t) => t + 1), []);
+
+  useVisibilityAwarePolling({
+    enabled: Boolean(tenantId && clientId),
+    intervalMs: livePollIntervalMs(perf.profile, LIVE_TRACKING_POLL_MS),
+    onPoll: bump,
+  });
 
   useEffect(() => {
     if (!tenantId) return;
-    const unsubscribe = subscribeToAssistLiveTrackingChanges(tenantId, () => {
-      setTick((t) => t + 1);
-    });
+    const unsubscribe = subscribeToAssistLiveTrackingChanges(tenantId, bump);
     return unsubscribe;
-  }, [tenantId]);
+  }, [tenantId, bump]);
 
   const query = useAsyncQuery(
     async () => {

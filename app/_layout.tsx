@@ -14,11 +14,14 @@ import { ModalStackProvider } from '@/components/navigation/ModalStackProvider';
 import { AuthProvider } from '@/lib/auth';
 import { BusinessWelcomeGate } from '@/components/auth/BusinessWelcomeGate';
 import { PortalWelcomeGate } from '@/components/auth/PortalWelcomeGate';
+import { PerformanceProvider, useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
+import { installPerformanceDiagnostics } from '@/lib/performance/performanceDiagnostics';
 
 applyInvisibleScrollIndicators();
 
 if (__DEV__ && Platform.OS === 'web') {
   require('@/devtools/registerDevAudit');
+  installPerformanceDiagnostics(120_000);
 }
 
 const SURFACE_COLOR = 'transparent';
@@ -26,7 +29,10 @@ const SURFACE_COLOR = 'transparent';
 function RootShell() {
   const { mode } = useThemeMode();
   const pathname = usePathname();
+  const perf = useDevicePerformance();
   const hostsGlobalBackground = !isPortalRoutePath(pathname);
+  const backgroundAnimated =
+    hostsGlobalBackground && shouldUseHeavyEffects(perf) && !perf.isMobile;
   const isDark = mode === 'dark';
   const navigationTheme = isDark
     ? {
@@ -47,7 +53,7 @@ function RootShell() {
       <View style={[styles.root, isDark ? styles.rootDark : styles.rootLight]}>
         {hostsGlobalBackground ? (
           <View style={styles.backgroundLayer} pointerEvents="none">
-            <GlobalAnimatedBackground mode={mode} animated />
+            <GlobalAnimatedBackground mode={mode} animated={backgroundAnimated} />
           </View>
         ) : null}
         <View style={styles.contentLayer} pointerEvents="box-none">
@@ -69,18 +75,20 @@ export default function RootLayout() {
   return (
     <AuthProvider>
       <ThemeModeProvider>
-        <WebFontScaleProvider>
-          <GlobalAiProvider>
-            <ModalStackProvider>
-              <ScreensaverSettingsProvider>
-                <BusinessWelcomeGate />
-                <PortalWelcomeGate />
-                <GlobalScreensaver />
-                <RootShell />
-              </ScreensaverSettingsProvider>
-            </ModalStackProvider>
-          </GlobalAiProvider>
-        </WebFontScaleProvider>
+        <PerformanceProvider>
+          <WebFontScaleProvider>
+            <GlobalAiProvider>
+              <ModalStackProvider>
+                <ScreensaverSettingsProvider>
+                  <BusinessWelcomeGate />
+                  <PortalWelcomeGate />
+                  <GlobalScreensaver />
+                  <RootShell />
+                </ScreensaverSettingsProvider>
+              </ModalStackProvider>
+            </GlobalAiProvider>
+          </WebFontScaleProvider>
+        </PerformanceProvider>
       </ThemeModeProvider>
     </AuthProvider>
   );

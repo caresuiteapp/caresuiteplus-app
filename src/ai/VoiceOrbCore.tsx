@@ -15,6 +15,7 @@ import { resolveMainModuleFromPath } from '@/lib/navigation/resolvemainmodule';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import { resolvePlatformShellSideInsets } from '@/lib/platform/shellLayoutMetrics';
 import { spacing } from '@/theme';
+import { useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
 import { VoiceWave } from './VoiceWave';
 import type { AiStatus } from './aiToolTypes';
 
@@ -43,11 +44,20 @@ export function VoiceOrbCore({
   containerStyle,
 }: VoiceOrbProps & { containerStyle?: ViewStyle }) {
   const { containerStyle: placementStyle } = useVoiceOrbPlacement();
+  const perf = useDevicePerformance();
+  const allowMotion = shouldUseHeavyEffects(perf) && !perf.isMobile;
   const pulse = useSharedValue(1);
   const orbit = useSharedValue(0);
   const errorGlow = useSharedValue(0);
 
   useEffect(() => {
+    if (!allowMotion) {
+      pulse.value = 1;
+      orbit.value = 0;
+      errorGlow.value = 0;
+      return;
+    }
+
     if (status === 'error') {
       errorGlow.value = withRepeat(
         withSequence(
@@ -60,9 +70,15 @@ export function VoiceOrbCore({
       return;
     }
     errorGlow.value = withTiming(0, { duration: 200 });
-  }, [errorGlow, status]);
+  }, [allowMotion, errorGlow, status]);
 
   useEffect(() => {
+    if (!allowMotion) {
+      pulse.value = 1;
+      orbit.value = 0;
+      return;
+    }
+
     if (isToolLoading) {
       orbit.value = withRepeat(withTiming(1, { duration: 1200, easing: Easing.linear }), -1, false);
       pulse.value = withTiming(1.04, { duration: 250 });
@@ -106,7 +122,7 @@ export function VoiceOrbCore({
     }
 
     pulse.value = withTiming(1, { duration: 250 });
-  }, [hasPending, isConnected, isListening, isSpeaking, isToolLoading, orbit, pulse]);
+  }, [allowMotion, hasPending, isConnected, isListening, isSpeaking, isToolLoading, orbit, pulse]);
 
   const animatedContainer = useAnimatedStyle(() => ({
     transform: [{ scale: pulse.value }],
@@ -163,6 +179,7 @@ export function VoiceOrbCore({
             hasPending && styles.stateHaloPending,
             status === 'error' && styles.stateHaloError,
             status === 'error' && errorHaloStyle,
+            !allowMotion && styles.motionReduced,
           ]}
         />
         <Animated.View
@@ -172,6 +189,7 @@ export function VoiceOrbCore({
             isToolLoading && styles.orbitActive,
             status === 'error' && styles.orbitError,
             hasPending && styles.orbitPending,
+            !allowMotion && styles.motionReduced,
           ]}
         />
         <View style={[styles.core, isSpeaking && styles.coreSpeaking, isListening && styles.coreListening]} />
@@ -275,6 +293,9 @@ const styles = StyleSheet.create({
   },
   orbitError: {
     borderTopColor: 'rgba(255, 90, 90, 0.95)',
+  },
+  motionReduced: {
+    opacity: 0,
   },
   core: {
     width: 34,

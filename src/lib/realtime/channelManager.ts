@@ -1,5 +1,6 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabase/client';
+import { createVisibilityAwareInterval } from '@/lib/polling/useVisibilityAwarePolling';
 
 export type RealtimeHandler = () => void;
 
@@ -99,7 +100,11 @@ export function createDemoPollSubscription(
   }
 
   const sub: Subscription = { handlers: new Set([handler]), timer: null };
-  sub.timer = setInterval(() => dispatchRealtimeHandlers(sub), intervalMs);
+  let pollCleanup: (() => void) | null = null;
+  pollCleanup = createVisibilityAwareInterval(() => dispatchRealtimeHandlers(sub), intervalMs);
   registerRealtimeSubscription(key, sub);
-  return () => detachRealtimeHandler(key, handler);
+  return () => {
+    pollCleanup?.();
+    detachRealtimeHandler(key, handler);
+  };
 }

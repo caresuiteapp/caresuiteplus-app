@@ -32,3 +32,4 @@ export {
   type TenantTableSpec,
 } from './subscribeToTenantTables';
 export { useSupabaseRealtime } from './useSupabaseRealtime';
+export { useManagedSupabaseChannel, subscribeManagedChannel } from './useManagedSupabaseChannel';

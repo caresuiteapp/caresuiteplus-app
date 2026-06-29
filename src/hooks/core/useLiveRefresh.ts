@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { AppState, Platform } from 'react-native';
+import { createVisibilityAwareInterval } from '@/lib/polling/useVisibilityAwarePolling';
 
 export const DEFAULT_LIVE_POLL_MS = 30_000;
 export const OPERATIONAL_LIVE_POLL_MS = 15_000;
-/** Live tracking: 10s polling fallback alongside Realtime. */
-export const LIVE_TRACKING_POLL_MS = 10_000;
+/** Live tracking: 15s polling fallback alongside Realtime (PERF.1: was 10s). */
+export const LIVE_TRACKING_POLL_MS = 15_000;
 
 export type LiveRefreshOptions = {
   enabled?: boolean;
@@ -17,9 +18,16 @@ export type LiveRefreshOptions = {
   refreshOnFocus?: boolean;
 };
 
+function isDocumentHidden(): boolean {
+  if (Platform.OS === 'web' && typeof document !== 'undefined') {
+    return document.visibilityState === 'hidden';
+  }
+  return AppState.currentState !== 'active';
+}
+
 /**
  * Keeps screen data fresh: realtime postgres_changes (when subscribed),
- * periodic polling fallback, and refresh on app/tab focus.
+ * visibility-aware periodic polling fallback, and refresh on app/tab focus.
  */
 export function useLiveRefresh(options: LiveRefreshOptions): { isLiveConnected: boolean } {
   const {
@@ -41,20 +49,22 @@ export function useLiveRefresh(options: LiveRefreshOptions): { isLiveConnected: 
     }
 
     const trigger = () => {
-      onRefreshRef.current();
+      if (!isDocumentHidden()) {
+        onRefreshRef.current();
+      }
     };
 
-    let pollTimer: ReturnType<typeof setInterval> | null = null;
+    let pollCleanup: (() => void) | null = null;
     const unsubscribeRealtime = subscribe?.(trigger) ?? null;
     setIsLiveConnected(Boolean(subscribe));
 
     if (pollMs > 0) {
-      pollTimer = setInterval(trigger, pollMs);
+      pollCleanup = createVisibilityAwareInterval(trigger, pollMs);
     }
 
     return () => {
       unsubscribeRealtime?.();
-      if (pollTimer) clearInterval(pollTimer);
+      pollCleanup?.();
       setIsLiveConnected(false);
     };
   }, [enabled, subscribe, pollMs]);

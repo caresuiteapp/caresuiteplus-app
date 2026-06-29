@@ -4,26 +4,31 @@ import type { AssistLiveStatusOverview } from '@/lib/assist/assistLiveTrackingVi
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { subscribeToAssistLiveTrackingChanges } from '@/lib/realtime';
+import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
+import { DEFAULT_LIVE_POLL_MS } from '@/hooks/core';
+import { useDevicePerformance, livePollIntervalMs } from '@/lib/performance';
 import { useAsyncQuery } from './core';
 
 export function useAssistLiveStatus() {
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const roleKey = profile?.roleKey ?? null;
+  const perf = useDevicePerformance();
   const [tick, setTick] = useState(0);
 
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  const bump = useCallback(() => setTick((t) => t + 1), []);
+
+  useVisibilityAwarePolling({
+    enabled: Boolean(tenantId),
+    intervalMs: livePollIntervalMs(perf.profile, DEFAULT_LIVE_POLL_MS),
+    onPoll: bump,
+  });
 
   useEffect(() => {
     if (!tenantId) return;
-    const unsubscribe = subscribeToAssistLiveTrackingChanges(tenantId, () => {
-      setTick((t) => t + 1);
-    });
+    const unsubscribe = subscribeToAssistLiveTrackingChanges(tenantId, bump);
     return unsubscribe;
-  }, [tenantId]);
+  }, [tenantId, bump]);
 
   const query = useAsyncQuery(
     () => {

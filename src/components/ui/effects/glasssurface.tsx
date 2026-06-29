@@ -4,6 +4,7 @@ import { useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { careEffects } from '@/design/tokens/effects';
+import { useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
 
 type GlassSurfaceProps = {
   children: ReactNode;
@@ -31,6 +32,8 @@ export function GlassSurface({
 }: GlassSurfaceProps) {
   const { isDark } = useCareLightPalette();
   const shellHostsAurora = useShellHostsAurora();
+  const perf = useDevicePerformance();
+  const useBlur = shouldUseHeavyEffects(perf);
   const lightGlass = useShellGlassSurfaceStyle(
     elevated ? 'modal' : 'card',
     elevated ? { viewContext: 'form' } : {},
@@ -65,7 +68,7 @@ export function GlassSurface({
           borderColor,
           backgroundColor,
           overflow: 'hidden',
-          ...(elevated ? webModalBlur(careEffects.glass.blur.medium) : null),
+          ...(elevated && useBlur ? webModalBlur(careEffects.glass.blur.medium) : null),
         },
         style,
       ]}

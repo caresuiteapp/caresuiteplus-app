@@ -1,22 +1,28 @@
 /**
- * LT.GMAPS.2 — Foreground GPS watch with throttled DB writes (iOS Safari compatible).
+ * LT.GMAPS.2 + PERF.1 — Foreground GPS watch with throttled DB writes (singleton watch).
  */
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Platform } from 'react-native';
 import {
   appendLocationPoint,
 } from '@/lib/assist/assistTrackingPersistenceService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
+  getDevicePerformanceProfile,
+  gpsMinMoveMeters,
+  gpsMinWriteIntervalMs,
+} from '@/lib/performance/devicePerformance';
+import {
+  acquireGeolocationWatch,
+  captureGeolocationOnce,
+  type GeolocationSnapshot,
+} from './useSingleGeolocationWatch';
+import {
   createLiveTrackingError,
   logLiveTrackingError,
   type LiveTrackingErrorCode,
 } from './liveTrackingErrors';
 import type { EmployeeGpsSnapshot } from './startEmployeeLiveTracking';
-
-const MIN_WRITE_INTERVAL_MS = 20_000;
-const MIN_MOVE_METERS = 20;
 
 export type UseEmployeeGpsTrackingOptions = {
   tenantId: string | null;
@@ -79,12 +85,12 @@ function mapGeolocationError(code: number): LiveTrackingErrorCode {
   return 'LIVE_GPS_POSITION_UNAVAILABLE';
 }
 
-function snapshotFromPosition(position: GeolocationPosition): EmployeeGpsSnapshot {
+function snapshotFromGeolocation(snapshot: GeolocationSnapshot): EmployeeGpsSnapshot {
   return {
-    latitude: position.coords.latitude,
-    longitude: position.coords.longitude,
-    accuracyMeters: position.coords.accuracy ?? null,
-    capturedAt: new Date(position.timestamp).toISOString(),
+    latitude: snapshot.latitude,
+    longitude: snapshot.longitude,
+    accuracyMeters: snapshot.accuracyMeters,
+    capturedAt: snapshot.capturedAt,
   };
 }
 
@@ -94,7 +100,7 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   stopWatching: () => void;
   captureOnce: () => Promise<EmployeeGpsSnapshot | null>;
 } {
-  const watchIdRef = useRef<number | null>(null);
+  const releaseWatchRef = useRef<(() => void) | null>(null);
   const lastWriteRef = useRef<number>(0);
   const lastCoordsRef = useRef<{ lat: number; lon: number } | null>(null);
 
@@ -121,15 +127,18 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
     async (snapshot: EmployeeGpsSnapshot, force = false): Promise<boolean> => {
       if (!options.tenantId || !options.assistVisitId || !options.sessionId) return false;
 
+      const profile = getDevicePerformanceProfile();
+      const minWriteInterval = gpsMinWriteIntervalMs(profile.profile);
+      const minMove = gpsMinMoveMeters(profile.profile);
+
       const now = Date.now();
       const last = lastCoordsRef.current;
       const moved =
         !last ||
-        haversineMeters(last.lat, last.lon, snapshot.latitude, snapshot.longitude) >=
-          MIN_MOVE_METERS;
+        haversineMeters(last.lat, last.lon, snapshot.latitude, snapshot.longitude) >= minMove;
       const elapsed = now - lastWriteRef.current;
 
-      if (!force && elapsed < MIN_WRITE_INTERVAL_MS && !moved) {
+      if (!force && elapsed < minWriteInterval && !moved) {
         return true;
       }
 
@@ -179,7 +188,8 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   );
 
   const captureOnce = useCallback(async (): Promise<EmployeeGpsSnapshot | null> => {
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
+    const snap = await captureGeolocationOnce();
+    if (!snap) {
       setState((prev) => ({
         ...prev,
         errorCode: 'LIVE_GPS_POSITION_UNAVAILABLE',
@@ -187,46 +197,19 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       }));
       return null;
     }
-
-    return new Promise((resolve) => {
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const snapshot = snapshotFromPosition(position);
-          setState((prev) => ({
-            ...prev,
-            lastSnapshot: snapshot,
-            errorCode: null,
-            errorMessage: null,
-          }));
-          resolve(snapshot);
-        },
-        (geoError) => {
-          const code = mapGeolocationError(geoError.code);
-          const err = createLiveTrackingError(code, {
-            operation: 'useEmployeeGpsTracking.getCurrentPosition',
-          });
-          logLiveTrackingError(err);
-          setState((prev) => ({
-            ...prev,
-            errorCode: code,
-            errorMessage: err.userMessage,
-          }));
-          resolve(null);
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 15_000,
-          maximumAge: 5_000,
-        },
-      );
-    });
+    const snapshot = snapshotFromGeolocation(snap);
+    setState((prev) => ({
+      ...prev,
+      lastSnapshot: snapshot,
+      errorCode: null,
+      errorMessage: null,
+    }));
+    return snapshot;
   }, []);
 
   const stopWatching = useCallback(() => {
-    if (watchIdRef.current != null && typeof navigator !== 'undefined' && navigator.geolocation) {
-      navigator.geolocation.clearWatch(watchIdRef.current);
-      watchIdRef.current = null;
-    }
+    releaseWatchRef.current?.();
+    releaseWatchRef.current = null;
     setState((prev) => ({
       ...prev,
       watching: false,
@@ -237,15 +220,6 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
   const startWatching = useCallback(async (): Promise<boolean> => {
     if (!options.enabled || !options.sessionId) return false;
 
-    if (typeof navigator === 'undefined' || !navigator.geolocation) {
-      setState((prev) => ({
-        ...prev,
-        errorCode: 'LIVE_GPS_POSITION_UNAVAILABLE',
-        errorMessage: 'Standortdienst nicht verfügbar.',
-      }));
-      return false;
-    }
-
     stopWatching();
 
     const first = await captureOnce();
@@ -253,29 +227,27 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
       await persistSnapshot(first, true);
     }
 
-    watchIdRef.current = navigator.geolocation.watchPosition(
-      (position) => {
-        const snapshot = snapshotFromPosition(position);
-        void persistSnapshot(snapshot);
+    const sessionKey = `${options.tenantId ?? 't'}:${options.sessionId}`;
+
+    releaseWatchRef.current = acquireGeolocationWatch({
+      sessionKey,
+      enabled: true,
+      onSnapshot: (snap) => {
+        void persistSnapshot(snapshotFromGeolocation(snap));
       },
-      (geoError) => {
-        const code = mapGeolocationError(geoError.code);
-        const err = createLiveTrackingError(code, {
+      onError: (code) => {
+        const mapped = mapGeolocationError(code);
+        const err = createLiveTrackingError(mapped, {
           operation: 'useEmployeeGpsTracking.watchPosition',
         });
         logLiveTrackingError(err);
         setState((prev) => ({
           ...prev,
-          errorCode: code,
+          errorCode: mapped,
           errorMessage: err.userMessage,
         }));
       },
-      {
-        enableHighAccuracy: true,
-        timeout: 15_000,
-        maximumAge: Platform.OS === 'ios' ? 5_000 : 10_000,
-      },
-    );
+    });
 
     setState((prev) => ({
       ...prev,
@@ -284,7 +256,7 @@ export function useEmployeeGpsTracking(options: UseEmployeeGpsTrackingOptions): 
     }));
 
     return true;
-  }, [options.enabled, options.sessionId, captureOnce, persistSnapshot, stopWatching]);
+  }, [options.enabled, options.sessionId, options.tenantId, captureOnce, persistSnapshot, stopWatching]);
 
   useEffect(() => {
     return () => stopWatching();
