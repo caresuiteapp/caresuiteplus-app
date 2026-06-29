@@ -22,6 +22,13 @@ import {
 } from '@/lib/portal/employeePortalVisitTrackingService';
 import type { AssistExecutionContext } from '@/features/assistWorkflow/types';
 
+vi.mock('@/lib/portal/employeePortalVisitTrackingPersistence', () => ({
+  persistEmployeePortalStatusTransition: vi.fn(async () => ({
+    ok: true,
+    warnings: ['assist_geofence_events: Kein Zugriff'],
+  })),
+}));
+
 vi.mock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
   transitionAssistExecutionStatus: vi.fn(async (ctx: AssistExecutionContext) => ({
     ok: true,
@@ -135,12 +142,21 @@ describe('ASSIST.PERMISSIONS.2 markArrived', () => {
     expect(result.arrivalWarning).toBe(ARRIVED_MANUAL_WARNING);
   });
 
+  it('succeeds when ancillary persist writes warn (geofence/driving log)', async () => {
+    const result = await markArrived({
+      ctx: minimalCtx(),
+      arrivalMode: 'without_gps',
+    });
+    expect(result.ok).toBe(true);
+    expect(result.arrivalWarning).toBe(ARRIVED_WITHOUT_GPS_WARNING);
+  });
+
   it('uses structured errors not generic Datenbankfehler in transition path', () => {
     const src = readFileSync(
       join(process.cwd(), 'src/features/assistWorkflow/markArrived.ts'),
       'utf8',
     );
-    expect(src).toContain('assistWorkflowErrorToResult');
+    expect(src).toContain('createAssistWorkflowError');
     expect(src).toContain('upsertAssistVisitExecutionState');
   });
 });

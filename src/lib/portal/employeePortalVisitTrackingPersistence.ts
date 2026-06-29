@@ -252,7 +252,8 @@ export async function persistEmployeePortalStatusTransition(
     sessionByKey.delete(key);
   }
 
-  return { ok: warnings.length === 0, warnings };
+  // Ancillary writes (geofence, driving log, WFM mirror) are best-effort — never block workflow.
+  return { ok: true, warnings };
 }
 
 /** Persist captured signature to Storage + assist_visit_signatures. */

@@ -122,6 +122,15 @@ async function transitionAssignmentToEnRoute(
     }
   }
 
+  // Best-effort mirror — prevents visit/assignment canonical drift on arrival.
+  const { visitSupabaseRepository } = await import('@/lib/assist/repositories/visitRepository.supabase');
+  void visitSupabaseRepository.updateAssignmentStatus(
+    tenantId,
+    assignmentId,
+    'unterwegs',
+    employeeId,
+  );
+
   return { ok: true, data: undefined };
 }
 

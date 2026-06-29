@@ -331,8 +331,18 @@ export async function transitionLiveEmployeePortalAssignment(
   if (!validation.valid) return { ok: false, error: validation.error };
 
   const fromStatus = existing.data.assignmentStatus;
-  let detailAfterUpdate: AssignmentDetail | null = null;
 
+  // Assignments table is source of truth for portal execution (RLS + set_assignment_status RPC).
+  const updated = await assignmentSupabaseRepository.updateStatus(
+    tenantId,
+    assignmentId,
+    toStatus,
+    { actorProfileId: employeeId, actorEmployeeId: employeeId },
+  );
+  if (!updated.ok) return updated;
+  let detailAfterUpdate: AssignmentDetail = updated.data;
+
+  // Best-effort mirror to assist_visits when a visit row exists (may lag assignments canonical).
   const visitRow = await visitSupabaseRepository.getById(tenantId, assignmentId);
   if (visitRow.ok && visitRow.data) {
     const visitUpdated = await visitSupabaseRepository.updateAssignmentStatus(
@@ -341,20 +351,10 @@ export async function transitionLiveEmployeePortalAssignment(
       toStatus,
       employeeId,
     );
-    if (!visitUpdated.ok) return visitUpdated;
-    const reloaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
-    if (!reloaded.ok) return reloaded;
-    if (!reloaded.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
-    detailAfterUpdate = reloaded.data;
-  } else {
-    const updated = await assignmentSupabaseRepository.updateStatus(
-      tenantId,
-      assignmentId,
-      toStatus,
-      { actorProfileId: employeeId, actorEmployeeId: employeeId },
-    );
-    if (!updated.ok) return updated;
-    detailAfterUpdate = updated.data;
+    if (visitUpdated.ok && visitUpdated.data) {
+      const reloaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
+      if (reloaded.ok && reloaded.data) detailAfterUpdate = reloaded.data;
+    }
   }
 
   applyEmployeePortalTrackingForStatus(tenantId, assignmentId, fromStatus, toStatus);

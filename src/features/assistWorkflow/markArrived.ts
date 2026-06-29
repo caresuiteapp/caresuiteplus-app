@@ -14,10 +14,7 @@ import {
 import { persistEmployeePortalStatusTransition } from '@/lib/portal/employeePortalVisitTrackingPersistence';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
-import {
-  assistWorkflowErrorToResult,
-  createAssistWorkflowError,
-} from './assistWorkflowErrors';
+import { logAssistWorkflowError, createAssistWorkflowError } from './assistWorkflowErrors';
 import type { AssistExecutionContext } from './types';
 
 export type ArrivalMode = 'gps' | 'without_gps' | 'manual';
@@ -83,24 +80,22 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
     { arrivalMode, manualReason: manualReason ?? updatedEntry.geofenceOverrideReason },
   );
 
-  if (!persistResult.ok) {
-    const classified = createAssistWorkflowError('AWF_DATABASE_ERROR', {
-      tenantId: ctx.tenantId,
-      assignmentId: ctx.assignmentId,
-      employeeId: ctx.employeeId,
-      operation: 'markArrived.persist',
-      supabaseMessage: persistResult.warnings.join('; '),
-    });
-    return assistWorkflowErrorToResult(classified) as MarkArrivedResult;
+  if (persistResult.warnings.length) {
+    logAssistWorkflowError(
+      createAssistWorkflowError('AWF_DATABASE_ERROR', {
+        tenantId: ctx.tenantId,
+        assignmentId: ctx.assignmentId,
+        employeeId: ctx.employeeId,
+        operation: 'markArrived.persist',
+        supabaseMessage: persistResult.warnings.join('; '),
+      }),
+    );
   }
 
-  const execState = await upsertAssistVisitExecutionState(
-    ctx.tenantId,
-    ctx.assignmentId,
-    'angekommen',
-    { employeeId: ctx.employeeId },
-  );
-  if (!execState.ok) return execState as MarkArrivedResult;
+  // Best-effort — status transition already succeeded; must not block arrival UX.
+  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'angekommen', {
+    employeeId: ctx.employeeId,
+  });
 
   let arrivalWarning: string | null = null;
   if (arrivalMode === 'without_gps') arrivalWarning = ARRIVED_WITHOUT_GPS_WARNING;
