@@ -13,6 +13,7 @@ import {
 } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePortalClientLiveTracking } from '@/hooks/usePortalClientLiveTracking';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 
@@ -20,6 +21,7 @@ export function PortalClientLiveTrackingScreen() {
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
   const canView = can('portal.client.appointments.view');
+  const tenantId = useServiceTenantId();
   const { state, loading, error, refresh } = usePortalClientLiveTracking();
 
   if (!canView) {
@@ -91,6 +93,7 @@ export function PortalClientLiveTrackingScreen() {
                 position={liveVisit.lastPosition}
                 markerLabel={state?.caregiverName ?? 'Betreuungskraft'}
                 height={320}
+                tenantId={tenantId}
               />
             ) : (
               <View style={styles.fallbackBox}>

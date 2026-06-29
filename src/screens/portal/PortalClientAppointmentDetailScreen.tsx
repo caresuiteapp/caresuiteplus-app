@@ -16,6 +16,7 @@ import {
 } from '@/components/ui';
 import { usePermissions } from '@/hooks/usePermissions';
 import { usePortalClientAppointmentDetail } from '@/hooks/usePortalClientAppointmentDetail';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 
@@ -25,6 +26,7 @@ export function PortalClientAppointmentDetailScreen() {
   const { can, check, roleLabel } = usePermissions();
   const canView = can('portal.client.appointments.view');
   const canRequestChange = can('portal.client.appointments.request_change');
+  const tenantId = useServiceTenantId();
 
   const [changeReason, setChangeReason] = useState('');
   const {
@@ -110,6 +112,7 @@ export function PortalClientAppointmentDetailScreen() {
                 position={data.liveVisit.lastPosition}
                 markerLabel={data.caregiverName ?? 'Mitarbeitende:r'}
                 height={260}
+                tenantId={tenantId}
               />
             ) : (
               <Text style={styles.notes}>

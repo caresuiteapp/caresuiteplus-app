@@ -88,7 +88,7 @@ export function OfficeWfmLiveMapScreen() {
       <View style={splitLayout ? styles.split : undefined}>
         <View style={[styles.mapWrap, splitLayout && styles.mapHalf]}>
           {mapPosition && mapProviderReady ? (
-            <AssistLiveMap position={mapPosition} height={splitLayout ? 420 : 280} />
+            <AssistLiveMap position={mapPosition} height={splitLayout ? 420 : 280} tenantId={tenantId} />
           ) : (
             <EmptyState
               title="Keine Kartenposition"

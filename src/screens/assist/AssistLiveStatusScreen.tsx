@@ -24,6 +24,7 @@ import {
 } from '@/components/ui';
 import { useAssistLiveStatus } from '@/hooks/useAssistLiveStatus';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { formatTimerSeconds } from '@/lib/assist/assistLiveTrackingViewService';
 import type { AssistLiveStatusRow } from '@/lib/assist/assistLiveTrackingViewService';
 import { getAssistMapDemoPosition, isGoogleMapsConfigured } from '@/lib/assist/assistMapProvider';
@@ -62,6 +63,7 @@ export function AssistLiveStatusScreen() {
   const splitLayout = width >= 1024;
   const { can, check, roleLabel } = usePermissions();
   const canView = can('assist.assignments.view');
+  const tenantId = useServiceTenantId();
   const { overview, loading, error, refresh } = useAssistLiveStatus();
   const [selectedAssignmentId, setSelectedAssignmentId] = useState<string | null>(null);
 
@@ -209,6 +211,7 @@ export function AssistLiveStatusScreen() {
           demoMode={demoMapPreview && !mapRow?.tracking?.lastPosition}
           fallbackMessage={GPS_TRACKING_BACKEND_EMPTY_MESSAGE}
           height={splitLayout ? 420 : 280}
+          tenantId={tenantId}
         />
       )}
       {persistenceActive && rows.length > 0 && !mapRow?.tracking?.lastPosition && !demoMapPreview ? (

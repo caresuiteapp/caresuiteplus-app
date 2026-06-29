@@ -18,6 +18,7 @@ export type AssistLiveMapProps = {
   fallbackMessage?: string;
   demoMode?: boolean;
   lastUpdatedLabel?: string;
+  tenantId?: string | null;
 };
 
 export function AssistLiveMap({
