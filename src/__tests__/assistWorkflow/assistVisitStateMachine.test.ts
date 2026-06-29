@@ -41,4 +41,9 @@ describe('assistVisitStateMachine (ASSIST.WORKFLOW.1)', () => {
     const r = validateWorkflowTransition('unterwegs', 'gestartet', { requireArrivedBeforeStart: true });
     expect(r.valid).toBe(false);
   });
+
+  it('allows resume from pause to gestartet', () => {
+    const r = validateWorkflowTransition('pausiert', 'gestartet', { requireArrivedBeforeStart: true });
+    expect(r.valid).toBe(true);
+  });
 });

@@ -60,7 +60,9 @@ export function calculateVisitTimes(
 
   let serviceSeconds: number | null = null;
   if (serviceStart) {
-    const end = serviceEnd ?? (currentStatus === 'gestartet' ? nowIso : null);
+    const end =
+      serviceEnd ??
+      (currentStatus === 'gestartet' || currentStatus === 'pausiert' ? nowIso : null);
     if (end) {
       serviceSeconds = Math.max(0, diffSeconds(serviceStart, end) - (pauseSeconds ?? 0));
     }

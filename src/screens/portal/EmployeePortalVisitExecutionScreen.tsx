@@ -187,9 +187,15 @@ export function EmployeePortalVisitExecutionScreen() {
       return;
     }
     if (primaryNext === 'gestartet') {
-      const r = await startService();
-      if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
-      else setLocalSuccess('Einsatz gestartet.');
+      if (visit.status === 'pausiert') {
+        const r = await endPause();
+        if (!r.ok) setLocalError(r.error ?? 'Fortsetzen fehlgeschlagen.');
+        else setLocalSuccess('Einsatz fortgesetzt.');
+      } else {
+        const r = await startService();
+        if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
+        else setLocalSuccess('Einsatz gestartet.');
+      }
       return;
     }
     if (primaryNext === 'beendet') {
@@ -197,7 +203,7 @@ export function EmployeePortalVisitExecutionScreen() {
       if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
       else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
     }
-  }, [visit, primaryNext, handleStartDrive, handleArrived, startService, endService]);
+  }, [visit, primaryNext, handleStartDrive, handleArrived, startService, endPause, endService]);
 
   const handleNoShow = useCallback(async () => {
     if (!noShowNote.trim()) {
@@ -379,20 +385,6 @@ export function EmployeePortalVisitExecutionScreen() {
                   const r = await startPause();
                   if (r.ok) setLocalSuccess('Pause gestartet.');
                   else setLocalError(r.error ?? 'Pause fehlgeschlagen.');
-                }}
-              />
-            ) : null}
-
-            {visit.status === 'pausiert' ? (
-              <PremiumButton
-                title="Pause beenden"
-                variant="secondary"
-                fullWidth
-                loading={actionLoading}
-                onPress={async () => {
-                  const r = await endPause();
-                  if (r.ok) setLocalSuccess('Einsatz fortgesetzt.');
-                  else setLocalError(r.error ?? 'Fortsetzen fehlgeschlagen.');
                 }}
               />
             ) : null}

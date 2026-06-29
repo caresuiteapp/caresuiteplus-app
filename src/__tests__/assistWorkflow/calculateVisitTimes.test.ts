@@ -37,4 +37,18 @@ describe('calculateVisitTimes', () => {
     expect(times.activeTimer).toBe('drive');
     expect(times.driveSeconds).toBe(600);
   });
+
+  it('counts service time while paused', () => {
+    const times = calculateVisitTimes(
+      [
+        { eventType: 'service_start', occurredAt: '2026-06-29T09:00:00.000Z' },
+        { eventType: 'pause_start', occurredAt: '2026-06-29T09:20:00.000Z' },
+      ],
+      'pausiert',
+      new Date('2026-06-29T09:30:00.000Z'),
+    );
+    expect(times.activeTimer).toBe('pause');
+    expect(times.pauseSeconds).toBe(600);
+    expect(times.serviceSeconds).toBe(1200);
+  });
 });

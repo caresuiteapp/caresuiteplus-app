@@ -63,7 +63,12 @@ export function validateExecutionTransition(
   to: AssignmentStatus,
   options?: ExecutionTransitionOptions,
 ): { valid: true } | { valid: false; error: string } {
-  if (options?.requireArrivedBeforeStart && to === 'gestartet' && from !== 'angekommen') {
+  if (
+    options?.requireArrivedBeforeStart &&
+    to === 'gestartet' &&
+    from !== 'angekommen' &&
+    from !== 'pausiert'
+  ) {
     return { valid: false, error: 'Ankunft muss vor dem Start bestätigt werden.' };
   }
 
