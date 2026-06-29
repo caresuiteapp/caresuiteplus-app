@@ -13,6 +13,7 @@ import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWor
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
 import { buildEmployeePortalLiveRoute } from '@/features/liveTracking/buildEmployeePortalLiveRoute';
 import { saveEmployeeLocationConsent } from '@/features/liveTracking/saveEmployeeLocationConsent';
+import { requestLocationPermissionOnce } from '@/features/employeePermissions';
 import {
   buildEmployeePortalTrackingSnapshot,
   captureEmployeePortalForegroundPosition,
@@ -20,6 +21,7 @@ import {
   getEmployeePortalLocationConsent,
   grantEmployeePortalLocationConsent,
   markEmployeePortalConsentExplained,
+  peekEmployeePortalTrackingEntry,
   rebuildEmployeePortalTrackingWarnings,
   requestEmployeePortalForegroundLocationPermission,
   setEmployeePortalGeofenceOverrideReason,
@@ -44,6 +46,7 @@ import {
   startService,
   type AssistExecutionContext,
   type AssistWorkflowStep,
+  type MarkArrivedResult,
 } from '@/features/assistWorkflow';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -296,7 +299,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       return { ok: false, error: 'Keine Einsatz-ID.' };
     }
 
-    const perm = await requestEmployeePortalForegroundLocationPermission();
+    const perm = await requestLocationPermissionOnce(tenantId, employeeId);
     setGpsPermission(perm);
     if (perm !== 'granted') {
       return { ok: false, error: 'Standortberechtigung erforderlich.', errorCode: 'LIVE_GPS_PERMISSION_DENIED' };
@@ -339,17 +342,32 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     return { ok: true };
   }, [tenantId, assignmentId, employeeId, profile?.id, roleKey, gpsTracking, query]);
 
-  const handleMarkArrived = useCallback(async () => {
-    const localConsent = tenantId && assignmentId
-      ? getEmployeePortalLocationConsent(tenantId, assignmentId)
-      : null;
+  const handleMarkArrived = useCallback(async (): Promise<MarkArrivedResult> => {
     return runWorkflow(async (ctx) => {
-      const pos = await captureEmployeePortalForegroundPosition(tenantId!, assignmentId!);
-      if (!pos.ok && localConsent?.granted) {
-        return { ok: false, error: pos.error };
+      let gpsSnapshot = null;
+      let arrivalMode: 'gps' | 'without_gps' | 'manual' = 'without_gps';
+
+      if (tenantId && assignmentId) {
+        const pos = await captureEmployeePortalForegroundPosition(tenantId, assignmentId);
+        if (pos.ok) {
+          gpsSnapshot = pos.data;
+          arrivalMode = 'gps';
+        } else {
+          const entry = peekEmployeePortalTrackingEntry(tenantId, assignmentId);
+          if (entry.geofenceOverrideReason?.trim()) {
+            arrivalMode = 'manual';
+          }
+        }
       }
-      return markArrived({ ctx, geofence: tracking?.geofence ?? null });
-    });
+
+      return markArrived({
+        ctx,
+        geofence: tracking?.geofence ?? null,
+        gpsSnapshot,
+        arrivalMode,
+        manualReason: tracking?.geofence?.overrideReason ?? null,
+      });
+    }) as Promise<MarkArrivedResult>;
   }, [runWorkflow, tenantId, assignmentId, tracking?.geofence]);
 
   const handleStartService = useCallback(

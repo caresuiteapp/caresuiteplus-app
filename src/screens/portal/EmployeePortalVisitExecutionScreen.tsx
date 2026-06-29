@@ -94,6 +94,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
+  const [localWarning, setLocalWarning] = useState<string | null>(null);
   const [consentLoading, setConsentLoading] = useState(false);
   const [driveLoading, setDriveLoading] = useState(false);
   const [geofenceOverride, setGeofenceOverrideInput] = useState('');
@@ -157,15 +158,19 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const handleArrived = useCallback(async () => {
     setLocalError(null);
+    setLocalWarning(null);
     if (tracking?.geofence?.warning && !tracking.geofence.overridden && !geofenceOverride.trim()) {
       setShowGeofenceOverride(true);
-      setLocalError(tracking.geofence.warning);
+      setLocalWarning(tracking.geofence.warning);
       return;
     }
     if (geofenceOverride.trim()) setGeofenceOverride(geofenceOverride.trim());
     const result = await markArrived();
     if (!result.ok) setLocalError(result.error ?? 'Ankunft konnte nicht gespeichert werden.');
-    else setLocalSuccess('Angekommen — Anfahrt-Timer gestoppt.');
+    else {
+      setLocalSuccess('Angekommen — Anfahrt-Timer gestoppt.');
+      if (result.arrivalWarning) setLocalWarning(result.arrivalWarning);
+    }
   }, [markArrived, tracking, geofenceOverride, setGeofenceOverride]);
 
   const handlePrimary = useCallback(async () => {
@@ -255,6 +260,14 @@ export function EmployeePortalVisitExecutionScreen() {
   }
 
   const showSuccess = localSuccess && !localError;
+  const arrivalProofLabel =
+    tracking?.arrivalProof === 'without_gps'
+      ? 'Ohne GPS'
+      : tracking?.arrivalProof === 'manual'
+        ? 'Manuell'
+        : tracking?.arrivalProof === 'gps'
+          ? 'Mit GPS'
+          : '—';
   const primaryLabel =
     visit.status === 'unterwegs'
       ? 'Angekommen'
@@ -272,6 +285,7 @@ export function EmployeePortalVisitExecutionScreen() {
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
       {showSuccess ? <SuccessState message={localSuccess!} /> : null}
       {localError ? <ErrorState message={localError} /> : null}
+      {localWarning ? <InfoBanner variant="warning" message={localWarning} /> : null}
       {liveContextError && !queryError ? (
         <InfoBanner variant="warning" message={`Live-Kontext: ${liveContextError}`} />
       ) : null}
@@ -299,6 +313,7 @@ export function EmployeePortalVisitExecutionScreen() {
           <DetailInfoRow label="Adresse" value={visit.locationAddress} />
           <DetailInfoRow label="Geplant" value={formatDateTime(visit.plannedStartAt)} />
           <DetailInfoRow label="GPS-Berechtigung" value={gpsPermission} />
+          <DetailInfoRow label="Ankunftsnachweis" value={arrivalProofLabel} />
           <DetailInfoRow
             label="Tracking"
             value={trackingStatusLabel(trackingActive, gpsPermission, errorCode)}

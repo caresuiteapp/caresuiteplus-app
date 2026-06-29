@@ -26,6 +26,8 @@ export type EmployeePortalLiveTimers = {
   pauseStartedAt: string | null;
 };
 
+export type EmployeePortalArrivalProof = 'gps' | 'without_gps' | 'manual' | null;
+
 export type EmployeePortalTrackingSnapshot = {
   assignmentId: string;
   tenantId: string;
@@ -37,6 +39,8 @@ export type EmployeePortalTrackingSnapshot = {
   timers: EmployeePortalLiveTimers;
   geofence: GeofenceSoftCheckResult | null;
   warnings: string[];
+  /** How arrival was confirmed — separate from GPS permission */
+  arrivalProof: EmployeePortalArrivalProof;
   /** Assist/Office darf Position sehen — nur während aktiver Fahrt/Anfahrt */
   assistVisible: boolean;
   /** Klientenportal — eingeschränkt, nur im Freigabefenster (Gap wenn kein Backend) */

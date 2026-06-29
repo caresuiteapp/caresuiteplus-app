@@ -20,7 +20,14 @@ export { calculateVisitTimes } from './calculateVisitTimes';
 export type { VisitTimesSummary, TimeEventLike } from './calculateVisitTimes';
 export { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 export { startEnRoute } from './startEnRoute';
-export { markArrived } from './markArrived';
+export {
+  markArrived,
+  ARRIVED_WITHOUT_GPS_WARNING,
+  ARRIVED_MANUAL_WARNING,
+  type ArrivalMode,
+  type MarkArrivedInput,
+  type MarkArrivedResult,
+} from './markArrived';
 export { startService } from './startService';
 export { startPause } from './startPause';
 export { endPause } from './endPause';

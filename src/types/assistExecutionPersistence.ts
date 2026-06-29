@@ -36,7 +36,9 @@ export type AssistTimeEventType =
   | 'pause_start'
   | 'pause_end'
   | 'arrive'
-  | 'depart';
+  | 'depart'
+  | 'arrived_without_gps'
+  | 'arrived_manual';
 
 export type AssistGeofenceCheckType = 'arrival' | 'departure' | 'periodic';
 

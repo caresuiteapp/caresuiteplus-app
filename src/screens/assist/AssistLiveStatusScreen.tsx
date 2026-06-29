@@ -164,6 +164,11 @@ export function AssistLiveStatusScreen() {
                       {row.tracking.lastPosition
                         ? ` · ${row.tracking.lastPosition.latitude.toFixed(4)}, ${row.tracking.lastPosition.longitude.toFixed(4)}`
                         : ' · Keine Position'}
+                      {row.tracking.arrivalProof === 'without_gps'
+                        ? ' · Ankunft ohne GPS'
+                        : row.tracking.arrivalProof === 'manual'
+                          ? ' · Ankunft manuell'
+                          : ''}
                     </Text>
                     {row.tracking.warnings[0] ? (
                       <Text style={styles.warning}>{row.tracking.warnings[0]}</Text>

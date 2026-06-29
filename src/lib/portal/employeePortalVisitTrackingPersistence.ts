@@ -138,6 +138,10 @@ export async function persistEmployeePortalStatusTransition(
   fromStatus: AssignmentStatus,
   toStatus: AssignmentStatus,
   geofence?: GeofenceSoftCheckResult | null,
+  arrivalOptions?: {
+    arrivalMode?: 'gps' | 'without_gps' | 'manual';
+    manualReason?: string | null;
+  },
 ): Promise<{ ok: boolean; warnings: string[] }> {
   const warnings: string[] = [];
   const visitId = await resolveVisit(ctx);
@@ -186,26 +190,49 @@ export async function persistEmployeePortalStatusTransition(
     if (!drive.ok) warnings.push(drive.error);
   }
 
-  if (toStatus === 'angekommen' && geofence?.checked) {
-    const pos = entry.lastPosition;
-    const target = entry.targetCoordinates;
-    const geo = await recordGeofenceEvent(ctx.tenantId, {
-      visitId,
-      sessionId,
-      checkType: 'arrival',
-      latitude: pos?.latitude ?? null,
-      longitude: pos?.longitude ?? null,
-      targetLatitude: target?.latitude ?? null,
-      targetLongitude: target?.longitude ?? null,
-      distanceMeters: geofence.distanceMeters,
-      toleranceMeters: geofence.toleranceMeters,
-      insideTolerance: geofence.insideTolerance,
-      overridden: geofence.overridden,
-      overrideReason: entry.geofenceOverrideReason,
-      warningText: geofence.warning,
-      checkedAt: now,
-    });
-    if (!geo.ok) warnings.push(geo.error);
+  if (toStatus === 'angekommen') {
+    const arrivalMode = arrivalOptions?.arrivalMode ?? 'gps';
+    if (arrivalMode === 'without_gps' || arrivalMode === 'manual') {
+      const auditType = arrivalMode === 'manual' ? 'arrived_manual' : 'arrived_without_gps';
+      const recorded = await recordTimeEvent(
+        ctx.tenantId,
+        {
+          visitId,
+          sessionId,
+          eventType: auditType,
+          occurredAt: now,
+          metadata: {
+            arrival_mode: arrivalMode,
+            manual_reason: arrivalOptions?.manualReason ?? entry.geofenceOverrideReason ?? null,
+            gps_permission_denied: arrivalMode === 'without_gps',
+          },
+        },
+        ctx.profileId ?? ctx.employeeId ?? null,
+      );
+      if (!recorded.ok) warnings.push(recorded.error);
+    }
+
+    if (geofence?.checked) {
+      const pos = entry.lastPosition;
+      const target = entry.targetCoordinates;
+      const geo = await recordGeofenceEvent(ctx.tenantId, {
+        visitId,
+        sessionId,
+        checkType: 'arrival',
+        latitude: pos?.latitude ?? null,
+        longitude: pos?.longitude ?? null,
+        targetLatitude: target?.latitude ?? null,
+        targetLongitude: target?.longitude ?? null,
+        distanceMeters: geofence.distanceMeters,
+        toleranceMeters: geofence.toleranceMeters,
+        insideTolerance: geofence.insideTolerance,
+        overridden: geofence.overridden,
+        overrideReason: entry.geofenceOverrideReason,
+        warningText: geofence.warning,
+        checkedAt: now,
+      });
+      if (!geo.ok) warnings.push(geo.error);
+    }
 
     const driveEnd = await completeDrivingLogForVisit(
       ctx.tenantId,

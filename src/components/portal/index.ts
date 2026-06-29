@@ -16,6 +16,10 @@ export { PortalMobileTabHeader } from './PortalMobileTabHeader';
 export { PortalAnnouncementsHero } from './PortalAnnouncementsHero';
 export { PortalRelativeConversationHero } from './PortalRelativeConversationHero';
 export { EmployeePortalLocationConsentBanner } from './EmployeePortalLocationConsentBanner';
+export {
+  EmployeePermissionOnboarding,
+  useEmployeePermissionOnboardingGate,
+} from './EmployeePermissionOnboarding';
 export { EmployeePortalLiveTimersPanel } from './EmployeePortalLiveTimersPanel';
 export { EmployeePortalVisitWorkflowTimeline } from './EmployeePortalVisitWorkflowTimeline';
 export { EmployeePortalVisitTasksPanel } from './EmployeePortalVisitTasksPanel';

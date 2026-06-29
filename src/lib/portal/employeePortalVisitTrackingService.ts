@@ -31,6 +31,7 @@ type TrackingEntry = {
   geofenceLastCheck: GeofenceSoftCheckResult | null;
   geofenceOverrideReason: string | null;
   targetCoordinates: GeoCoordinate | null;
+  arrivalProof: import('@/types/modules/employeePortalTracking').EmployeePortalArrivalProof;
 };
 
 const TRACKING_STORE = new Map<string, TrackingEntry>();
@@ -52,7 +53,16 @@ function emptyEntry(): TrackingEntry {
     geofenceLastCheck: null,
     geofenceOverrideReason: null,
     targetCoordinates: null,
+    arrivalProof: null,
   };
+}
+
+export function setEmployeePortalArrivalProof(
+  tenantId: string,
+  assignmentId: string,
+  proof: TrackingEntry['arrivalProof'],
+): void {
+  getEntry(tenantId, assignmentId).arrivalProof = proof;
 }
 
 function getEntry(tenantId: string, assignmentId: string): TrackingEntry {
@@ -276,12 +286,14 @@ export function applyEmployeePortalTrackingForStatus(
     entry.trackingActive = entry.consent.granted;
   }
 
-  if (toStatus === 'angekommen' && entry.lastPosition) {
-    entry.geofenceLastCheck = runGeofenceSoftCheck({
-      current: entry.lastPosition,
-      target: entry.targetCoordinates,
-      overrideReason: entry.geofenceOverrideReason,
-    });
+  if (toStatus === 'angekommen') {
+    if (entry.lastPosition && entry.targetCoordinates) {
+      entry.geofenceLastCheck = runGeofenceSoftCheck({
+        current: entry.lastPosition,
+        target: entry.targetCoordinates,
+        overrideReason: entry.geofenceOverrideReason,
+      });
+    }
     entry.trackingActive = false;
   }
 
@@ -336,6 +348,12 @@ export function buildEmployeePortalTrackingSnapshot(
     (status === 'unterwegs' || status === 'angekommen') &&
     Boolean(entry.lastPosition);
 
+  if (entry.arrivalProof === 'without_gps' && status === 'angekommen') {
+    warnings.push('Ankunft ohne GPS-Nachweis — manuelle Bestätigung.');
+  } else if (entry.arrivalProof === 'manual' && status === 'angekommen') {
+    warnings.push('Ankunft manuell bestätigt (Geofence überschrieben).');
+  }
+
   return {
     assignmentId,
     tenantId,
@@ -347,6 +365,7 @@ export function buildEmployeePortalTrackingSnapshot(
     timers,
     geofence: entry.geofenceLastCheck ? { ...entry.geofenceLastCheck } : null,
     warnings,
+    arrivalProof: entry.arrivalProof,
     assistVisible,
     clientPortalVisible: false,
   };
