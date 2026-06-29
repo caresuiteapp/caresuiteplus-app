@@ -80,6 +80,7 @@ export function resolveAllowedActions(input: {
   }
   if (status === 'pausiert' && diagnostics.canEndService) {
     actions.push('end_pause');
+    actions.push('end_service');
   }
   if (detail.allowedTransitions.includes('nicht_erschienen')) {
     actions.push('report_no_show');

@@ -73,7 +73,10 @@ export async function resolveAssistExecutionContext(
     const events = await fetchTimeEventsForVisit(tenantId, liveContext.assistVisitId, 100);
     if (events.ok) {
       timeEvents = events.data.map((e) => ({ eventType: e.eventType, occurredAt: e.occurredAt }));
-      visitTimes = calculateVisitTimes(timeEvents, detailResult.data.status);
+      const preliminaryTimes = calculateVisitTimes(timeEvents, detailResult.data.status);
+      const workflowPreview = deriveWorkflowStatus(detailResult.data.status, preliminaryTimes);
+      // ASSIST.STABILIZE.3 — timers follow derived status so pause freezes service display.
+      visitTimes = calculateVisitTimes(timeEvents, workflowPreview.derivedStatus);
     }
   }
 

@@ -81,13 +81,29 @@ export function calculateVisitTimes(
     }, 0);
   }
 
+  const completedPauseSeconds = pauseStarts.reduce((sum, start, idx) => {
+    const end = pauseEnds[idx];
+    if (!end) return sum;
+    return sum + diffSeconds(start, end);
+  }, 0);
+
   let serviceSeconds: number | null = null;
   if (serviceStart) {
+    const openPauseStart =
+      pauseStarts.length > pauseEnds.length ? (pauseStarts.at(-1) ?? null) : null;
     const end =
       serviceEnd ??
-      (currentStatus === 'gestartet' || currentStatus === 'pausiert' ? nowIso : null);
+      (currentStatus === 'gestartet'
+        ? nowIso
+        : currentStatus === 'pausiert'
+          ? openPauseStart
+          : null);
     if (end) {
-      serviceSeconds = Math.max(0, diffSeconds(serviceStart, end) - (pauseSeconds ?? 0));
+      const pauseDeduction =
+        currentStatus === 'pausiert' && openPauseStart
+          ? completedPauseSeconds
+          : (pauseSeconds ?? 0);
+      serviceSeconds = Math.max(0, diffSeconds(serviceStart, end) - pauseDeduction);
     }
   }
 

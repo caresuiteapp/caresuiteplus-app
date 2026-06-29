@@ -87,3 +87,32 @@ export async function ensureVisitTimeEvent(
 
   return { ok: true, data: { id: saved.data.id, created: true } };
 }
+
+/** True when pause_start count exceeds pause_end (open pause segment). */
+export function hasOpenPauseSegment(events: Array<{ eventType: string }>): boolean {
+  const starts = events.filter((e) => e.eventType === 'pause_start').length;
+  const ends = events.filter((e) => e.eventType === 'pause_end').length;
+  return starts > ends;
+}
+
+/** Idempotent — writes pause_start only when no open pause exists. */
+export async function ensureOpenPauseStartEvent(
+  input: SaveVisitTimeEventInput,
+  existingEvents: Array<{ eventType: string }>,
+): Promise<ServiceResult<{ id: string; created: boolean }>> {
+  if (hasOpenPauseSegment(existingEvents)) {
+    return { ok: true, data: { id: 'existing', created: false } };
+  }
+  return ensureVisitTimeEvent({ ...input, eventType: 'pause_start' }, []);
+}
+
+/** Idempotent — writes pause_end only when an open pause exists. */
+export async function ensureOpenPauseEndEvent(
+  input: SaveVisitTimeEventInput,
+  existingEvents: Array<{ eventType: string }>,
+): Promise<ServiceResult<{ id: string; created: boolean }>> {
+  if (!hasOpenPauseSegment(existingEvents)) {
+    return { ok: true, data: { id: 'existing', created: false } };
+  }
+  return ensureVisitTimeEvent({ ...input, eventType: 'pause_end' }, []);
+}

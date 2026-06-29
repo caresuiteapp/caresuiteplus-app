@@ -62,9 +62,10 @@ function statusToTimeEventType(
     events.push('drive_end');
   }
   if (toStatus === 'gestartet' && fromStatus === 'pausiert') events.push('pause_end');
-  if (toStatus === 'gestartet') events.push('service_start');
+  if (toStatus === 'gestartet' && fromStatus === 'angekommen') events.push('service_start');
   if (toStatus === 'pausiert') events.push('pause_start');
   if (toStatus === 'beendet') {
+    if (fromStatus === 'pausiert') events.push('pause_end');
     events.push('service_end');
     events.push('depart');
   }
