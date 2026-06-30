@@ -7,7 +7,9 @@ import {
   View,
   useWindowDimensions,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
+import { OrientationGate } from '@/components/layout/OrientationGate';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
@@ -29,18 +31,6 @@ type Props = {
   disabled?: boolean;
 };
 
-function lockWebLandscapeOrientation(): (() => void) | undefined {
-  if (Platform.OS !== 'web' || typeof screen === 'undefined') return undefined;
-  const orientation = screen.orientation as ScreenOrientation & {
-    lock?: (orientation: string) => Promise<void>;
-  };
-  if (typeof orientation?.lock !== 'function') return undefined;
-  void orientation.lock('landscape').catch(() => undefined);
-  return () => {
-    void orientation.unlock?.().catch(() => undefined);
-  };
-}
-
 export function CareSignatureModal({ visible, label, onConfirm, onClose, disabled }: Props) {
   const { colors, typography, isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
@@ -49,6 +39,7 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
   const safeTypography = typography ?? resolveCareTypography('dark');
   const { isPhone } = useDeviceClass();
   const fullscreen = isPhone;
+  const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
   const styles = useMemo(
@@ -77,7 +68,7 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
         fullscreenBody: {
           flex: 1,
           paddingHorizontal: spacing.md,
-          paddingBottom: spacing.md,
+          paddingBottom: Math.max(spacing.sm, insets.bottom),
           gap: spacing.xs,
           minHeight: 0,
         },
@@ -91,7 +82,7 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
         subtitle: { ...safeTypography.caption, color: safeColors.textMuted, marginBottom: spacing.xs },
         canvasSlot: { width: '100%', alignSelf: 'stretch', flex: 1, minHeight: 0 },
       }),
-    [lightModal, safeColors, safeTypography],
+    [insets.bottom, lightModal, safeColors, safeTypography],
   );
 
   const sheetWidth = useMemo(
@@ -106,18 +97,7 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
   const desktopCanvasHeight = Math.max(DESKTOP_CANVAS_HEIGHT, 200);
 
   useEffect(() => {
-    if (!visible) return;
-
-    let unlockOrientation: (() => void) | undefined;
-    if (fullscreen) {
-      unlockOrientation = lockWebLandscapeOrientation();
-    }
-
-    if (Platform.OS !== 'web') {
-      return () => {
-        unlockOrientation?.();
-      };
-    }
+    if (!visible || Platform.OS !== 'web') return;
 
     const prevOverflow = document.body.style.overflow;
     const prevOverscroll = document.body.style.overscrollBehavior;
@@ -136,9 +116,8 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
       document.body.style.overscrollBehavior = prevOverscroll;
       document.body.style.touchAction = prevTouchAction;
       document.removeEventListener('touchmove', blockTouchMove);
-      unlockOrientation?.();
     };
-  }, [fullscreen, visible]);
+  }, [visible]);
 
   const handleConfirm = useCallback(
     (dataUrl: string) => {
@@ -170,13 +149,17 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
         statusBarTranslucent
         presentationStyle="fullScreen"
       >
-        <View style={styles.fullscreenRoot} accessibilityViewIsModal pointerEvents="box-none">
-          <GradientModalHeader title="Unterschrift" onClose={onClose} />
-          <View style={styles.fullscreenBody} pointerEvents="box-none">
-            <Text style={styles.subtitle}>{label}</Text>
-            <View style={styles.canvasSlot}>{canvas}</View>
+        <OrientationGate screenKey="signature" active={visible} options={{ autoLock: true }}>
+          <View style={styles.fullscreenRoot} accessibilityViewIsModal pointerEvents="box-none">
+            <GradientModalHeader title="Unterschrift" onClose={onClose} />
+            <View style={styles.fullscreenBody} pointerEvents="box-none">
+              <Text style={styles.subtitle} numberOfLines={2}>
+                {label}
+              </Text>
+              <View style={styles.canvasSlot}>{canvas}</View>
+            </View>
           </View>
-        </View>
+        </OrientationGate>
       </Modal>
     );
   }
@@ -195,9 +178,7 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
             <GradientModalHeader title="Unterschrift" onClose={onClose} />
             <View style={styles.body}>
               <Text style={styles.subtitle}>{label}</Text>
-              <View style={styles.canvasSlot}>
-                {canvas}
-              </View>
+              <View style={styles.canvasSlot}>{canvas}</View>
             </View>
           </GlassSurface>
         </View>

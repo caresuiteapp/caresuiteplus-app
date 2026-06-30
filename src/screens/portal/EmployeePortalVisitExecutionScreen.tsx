@@ -13,6 +13,7 @@ import {
   EmployeePortalVisitWorkflowTimeline,
 } from '@/components/portal';
 import { ScreenShell } from '@/components/layout';
+import { OrientationGate } from '@/components/layout/OrientationGate';
 import {
   ErrorState,
   InfoBanner,
@@ -361,6 +362,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
+      <OrientationGate screenKey="visitExecution">
       {showSuccess ? <SuccessState message={localSuccess!} /> : null}
       {localError ? (
         <View style={styles.dismissibleError}>
@@ -592,6 +594,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
         <PremiumButton title="Zurück zur Übersicht" variant="ghost" fullWidth onPress={() => router.back()} />
       </ScrollView>
+      </OrientationGate>
     </ScreenShell>
   );
 }

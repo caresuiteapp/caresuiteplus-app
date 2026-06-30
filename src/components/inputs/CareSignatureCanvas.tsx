@@ -7,6 +7,7 @@ import {
   Text,
   View,
 } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumButton } from '@/components/ui';
 import {
   clientToCanvasPoint,
@@ -16,6 +17,7 @@ import {
 } from '@/components/inputs/signatureCanvasCoords';
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 import { resolveCareTypography } from '@/design/tokens/typography';
+import { useOrientation } from '@/hooks/useOrientation';
 import { spacing } from '@/theme';
 
 type Point = { x: number; y: number };
@@ -64,6 +66,7 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
           gap: spacing.sm,
           flexWrap: actionLayout === 'bar' ? 'nowrap' : 'wrap',
           alignItems: 'center',
+          flexShrink: 0,
         },
         actionsBar: {
           paddingTop: spacing.xs,
@@ -133,6 +136,7 @@ function SignatureActions({
   onClear,
   onCancel,
   onConfirm,
+  safeBottom = 0,
 }: {
   actionLayout: 'default' | 'bar';
   styles: ReturnType<typeof useSignatureCanvasStyles>;
@@ -141,6 +145,7 @@ function SignatureActions({
   onClear: () => void;
   onCancel?: () => void;
   onConfirm: () => void;
+  safeBottom?: number;
 }) {
   const confirmButton = (
     <PremiumButton
@@ -154,7 +159,7 @@ function SignatureActions({
 
   if (actionLayout === 'bar') {
     return (
-      <View style={[styles.actions, styles.actionsBar]}>
+      <View style={[styles.actions, styles.actionsBar, { paddingBottom: Math.max(spacing.sm, safeBottom) }]}>
         <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} />
         {onCancel ? (
           <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} />
@@ -199,6 +204,8 @@ function WebSignatureCanvas({
   actionLayout = 'default',
 }: Props) {
   const styles = useSignatureCanvasStyles(fillAvailable, actionLayout);
+  const insets = useSafeAreaInsets();
+  const orientation = useOrientation();
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const activePointerId = useRef<number | null>(null);
@@ -306,6 +313,10 @@ function WebSignatureCanvas({
       observer.disconnect();
     };
   }, [dims.height, dims.width, syncCanvasToDisplay]);
+
+  useEffect(() => {
+    syncCanvasToDisplay();
+  }, [orientation.isLandscape, orientation.width, orientation.height, syncCanvasToDisplay]);
 
   const handleClear = useCallback(() => {
     strokesRef.current = [];
@@ -421,6 +432,7 @@ function WebSignatureCanvas({
         onClear={handleClear}
         onCancel={onCancel}
         onConfirm={handleConfirm}
+        safeBottom={actionLayout === 'bar' ? insets.bottom : 0}
       />
     </View>
   );
@@ -440,6 +452,7 @@ function NativeSignatureCanvas({
   actionLayout = 'default',
 }: Props) {
   const styles = useSignatureCanvasStyles(fillAvailable, actionLayout);
+  const insets = useSafeAreaInsets();
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [current, setCurrent] = useState<Point[]>([]);
   const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
@@ -531,6 +544,7 @@ function NativeSignatureCanvas({
         onClear={handleClear}
         onCancel={onCancel}
         onConfirm={handleConfirm}
+        safeBottom={actionLayout === 'bar' ? insets.bottom : 0}
       />
     </View>
   );

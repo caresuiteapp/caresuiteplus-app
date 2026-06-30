@@ -14,6 +14,8 @@ export { CareLightScreen } from './CareLightScreen';
 export { CareLightModuleDashboard } from './CareLightModuleDashboard';
 export type { CareLightKpiItem } from './CareLightModuleDashboard';
 export { CareLightPageHeader } from './CareLightPageHeader';
+export { LandscapeRequiredOverlay } from './LandscapeRequiredOverlay';
+export { OrientationGate } from './OrientationGate';
 export { ScreenShell } from './ScreenShell';
 export { CareLightPageShell } from './CareLightPageShell';
 export { CareLightScreenHeader } from './CareLightScreenHeader';

@@ -87,20 +87,32 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(header).toContain('width: sideInsetWidth');
   });
 
-  it('signature modal uses fullscreen mobile capture without backdrop dismiss', () => {
+  it('signature modal uses fullscreen mobile capture with orientation gate', () => {
     const modal = readSrc('src/components/inputs/CareSignatureModal.tsx');
     const canvas = readSrc('src/components/inputs/CareSignatureCanvas.tsx');
     const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
+    const orientation = readSrc('src/lib/orientation/requestLandscapeLock.ts');
     expect(modal).toContain('presentationStyle="fullScreen"');
     expect(modal).toContain('fillAvailable={fullscreen}');
+    expect(modal).toContain('OrientationGate');
+    expect(modal).toContain('screenKey="signature"');
     expect(modal).not.toContain('Pressable style={StyleSheet.absoluteFill}');
     expect(modal).toContain('overscrollBehavior');
-    expect(modal).toContain('lockWebLandscapeOrientation');
+    expect(modal).not.toContain('lockWebLandscapeOrientation');
+    expect(orientation).toContain("lock('landscape')");
     expect(canvas).toContain('fillAvailable');
     expect(canvas).toContain('actionLayout');
+    expect(canvas).toContain('useOrientation');
+    expect(canvas).toContain('scaleCanvasPoints');
     expect(canvas).toContain('Löschen');
     expect(canvas).toContain('Abbrechen');
     expect(canvas).toContain('Unterschrift bestätigen');
     expect(panel).toContain('CareSignatureModal');
+  });
+
+  it('visit execution screen uses orientation gate for mobile landscape hint', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    expect(screen).toContain('OrientationGate');
+    expect(screen).toContain('screenKey="visitExecution"');
   });
 });
