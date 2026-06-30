@@ -8,7 +8,7 @@ import {
   PremiumInput,
   SectionPanel,
 } from '@/components/ui';
-import { CareDateInput } from '@/components/inputs';
+import { CareDateInput, CareTimeInput } from '@/components/inputs';
 import { DocumentModuleTemplatesPanel } from '@/components/documents/DocumentModuleTemplatesPanel';
 import { AssistCatalogGroupedChipSelect } from '@/components/office/assistCatalog/AssistCatalogGroupedChipSelect';
 import { AssistCatalogMultiSelect } from '@/components/office/assistCatalog/AssistCatalogMultiSelect';
@@ -373,19 +373,19 @@ export function AssignmentCreateForm({ visible, onClose, onCreated }: Assignment
               value={form.assignmentDate}
               onChange={(assignmentDate) => patch({ assignmentDate })}
             />
-            <PremiumInput
+            <CareTimeInput
               {...FORM_CTX}
               label="Beginn *"
               value={form.plannedStartTime}
-              onChangeText={(plannedStartTime) => patch({ plannedStartTime })}
-              placeholder="HH:MM"
+              onChange={(plannedStartTime) => patch({ plannedStartTime })}
+              showFormatHint={false}
             />
-            <PremiumInput
+            <CareTimeInput
               {...FORM_CTX}
               label="Ende *"
               value={form.plannedEndTime}
-              onChangeText={(plannedEndTime) => patch({ plannedEndTime })}
-              placeholder="HH:MM"
+              onChange={(plannedEndTime) => patch({ plannedEndTime })}
+              showFormatHint={false}
             />
             {durationMinutes > 0 ? (
               <Text style={[styles.hint, { color: text.primary }]}>Dauer: {durationMinutes} Minuten</Text>

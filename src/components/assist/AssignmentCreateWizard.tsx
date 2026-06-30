@@ -7,6 +7,7 @@ import {
   PremiumInput,
   SectionPanel,
 } from '@/components/ui';
+import { CareTimeInput } from '@/components/inputs';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -274,17 +275,17 @@ export function AssignmentCreateWizard({ visible, onClose, onCreated }: Assignme
               onChangeText={(assignmentDate) => patch({ assignmentDate })}
               placeholder="JJJJ-MM-TT"
             />
-            <PremiumInput
+            <CareTimeInput
               label="Start"
               value={form.plannedStartTime}
-              onChangeText={(plannedStartTime) => patch({ plannedStartTime })}
-              placeholder="HH:MM"
+              onChange={(plannedStartTime) => patch({ plannedStartTime })}
+              showFormatHint={false}
             />
-            <PremiumInput
+            <CareTimeInput
               label="Ende"
               value={form.plannedEndTime}
-              onChangeText={(plannedEndTime) => patch({ plannedEndTime })}
-              placeholder="HH:MM"
+              onChange={(plannedEndTime) => patch({ plannedEndTime })}
+              showFormatHint={false}
             />
             <Text style={styles.hint}>Dauer: {durationMinutes} Minuten</Text>
           </SectionPanel>

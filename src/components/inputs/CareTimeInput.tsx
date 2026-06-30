@@ -1,5 +1,7 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumInput } from '@/components/ui/PremiumInput';
+import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { normalizeTimeInput } from '@/lib/formatters/normalizeTimeInput';
 import { colors, spacing, typography } from '@/theme';
 
 type Props = {
@@ -7,20 +9,53 @@ type Props = {
   value: string;
   onChange: (value: string) => void;
   error?: string;
+  placeholder?: string;
+  viewContext?: LlganViewContext;
+  showFormatHint?: boolean;
 };
 
-export function CareTimeInput({ label, value, onChange, error }: Props) {
+function shouldAutoFormatWhileTyping(text: string): boolean {
+  return /^\d{4}$/.test(text) && !/[:.]/.test(text);
+}
+
+export function CareTimeInput({
+  label,
+  value,
+  onChange,
+  error,
+  placeholder = 'HH:MM',
+  viewContext,
+  showFormatHint = true,
+}: Props) {
+  const handleChangeText = (text: string) => {
+    if (shouldAutoFormatWhileTyping(text)) {
+      const normalized = normalizeTimeInput(text);
+      onChange(normalized !== text ? normalized : text);
+      return;
+    }
+    onChange(text);
+  };
+
+  const handleBlur = () => {
+    const normalized = normalizeTimeInput(value);
+    if (normalized !== value) {
+      onChange(normalized);
+    }
+  };
+
   return (
     <View style={styles.wrap}>
       <PremiumInput
         label={label ?? 'Uhrzeit'}
         value={value}
-        onChangeText={onChange}
-        placeholder="HH:MM"
+        viewContext={viewContext}
+        onChangeText={handleChangeText}
+        onBlur={handleBlur}
+        placeholder={placeholder}
         error={error}
         keyboardType="numbers-and-punctuation"
       />
-      <Text style={styles.hint}>Format: HH:MM Uhr</Text>
+      {showFormatHint ? <Text style={styles.hint}>Format: HH:MM Uhr</Text> : null}
     </View>
   );
 }
