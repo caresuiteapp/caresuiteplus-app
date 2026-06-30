@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react';
 import {
   LayoutChangeEvent,
   Platform,
@@ -8,6 +8,12 @@ import {
   View,
 } from 'react-native';
 import { PremiumButton } from '@/components/ui';
+import {
+  clientToCanvasPoint,
+  readCanvasCoordinateSpace,
+  scaleCanvasPoints,
+  type CanvasCoordinateSpace,
+} from '@/components/inputs/signatureCanvasCoords';
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 import { resolveCareTypography } from '@/design/tokens/typography';
 import { spacing } from '@/theme';
@@ -169,6 +175,16 @@ function SignatureActions({
   );
 }
 
+function drawStrokePath(ctx: CanvasRenderingContext2D, stroke: Point[]) {
+  if (stroke.length < 1) return;
+  ctx.beginPath();
+  ctx.moveTo(stroke[0].x, stroke[0].y);
+  for (let index = 1; index < stroke.length; index += 1) {
+    ctx.lineTo(stroke[index].x, stroke[index].y);
+  }
+  ctx.stroke();
+}
+
 function WebSignatureCanvas({
   label,
   onConfirm,
@@ -185,6 +201,10 @@ function WebSignatureCanvas({
   const styles = useSignatureCanvasStyles(fillAvailable, actionLayout);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
+  const activePointerId = useRef<number | null>(null);
+  const strokesRef = useRef<Point[][]>([]);
+  const currentStrokeRef = useRef<Point[]>([]);
+  const drawSpaceRef = useRef<CanvasCoordinateSpace | null>(null);
   const [hasStroke, setHasStroke] = useState(false);
   const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
   const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
@@ -204,62 +224,174 @@ function WebSignatureCanvas({
     [fillAvailable],
   );
 
-  const setupCanvas = useCallback(() => {
+  const redrawStrokes = useCallback(
+    (ctx: CanvasRenderingContext2D, space: CanvasCoordinateSpace) => {
+      ctx.clearRect(0, 0, space.drawWidth, space.drawHeight);
+      for (const stroke of strokesRef.current) {
+        drawStrokePath(ctx, stroke);
+      }
+      if (currentStrokeRef.current.length > 0) {
+        drawStrokePath(ctx, currentStrokeRef.current);
+      }
+    },
+    [],
+  );
+
+  const syncCanvasToDisplay = useCallback(() => {
     const canvas = canvasRef.current;
-    if (!canvas) return;
+    if (!canvas) return null;
+    const rect = canvas.getBoundingClientRect();
+    const displayWidth = rect.width;
+    const displayHeight = rect.height;
+    if (displayWidth < 1 || displayHeight < 1) return null;
+
     const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-    canvas.width = Math.round(dims.width * dpr);
-    canvas.height = Math.round(dims.height * dpr);
+    const nextSpace: CanvasCoordinateSpace = {
+      displayWidth,
+      displayHeight,
+      drawWidth: displayWidth,
+      drawHeight: displayHeight,
+    };
+    const previousSpace = drawSpaceRef.current;
+
+    canvas.width = Math.round(displayWidth * dpr);
+    canvas.height = Math.round(displayHeight * dpr);
+
     const ctx = canvas.getContext('2d');
-    if (ctx) {
-      ctx.setTransform(1, 0, 0, 1, 0, 0);
-      ctx.scale(dpr, dpr);
-      ctx.lineCap = 'round';
-      ctx.lineJoin = 'round';
-      ctx.strokeStyle = '#111';
-      ctx.lineWidth = strokeWidth;
+    if (!ctx) return null;
+
+    ctx.setTransform(1, 0, 0, 1, 0, 0);
+    ctx.scale(dpr, dpr);
+    ctx.lineCap = 'round';
+    ctx.lineJoin = 'round';
+    ctx.strokeStyle = '#111';
+    ctx.lineWidth = strokeWidth;
+
+    if (
+      previousSpace &&
+      (previousSpace.drawWidth !== nextSpace.drawWidth ||
+        previousSpace.drawHeight !== nextSpace.drawHeight)
+    ) {
+      strokesRef.current = strokesRef.current.map((stroke) =>
+        scaleCanvasPoints(stroke, previousSpace, nextSpace),
+      );
+      if (currentStrokeRef.current.length > 0) {
+        currentStrokeRef.current = scaleCanvasPoints(
+          currentStrokeRef.current,
+          previousSpace,
+          nextSpace,
+        );
+      }
     }
-  }, [dims.width, dims.height, strokeWidth]);
+
+    drawSpaceRef.current = nextSpace;
+    redrawStrokes(ctx, nextSpace);
+    return { ctx, space: nextSpace };
+  }, [redrawStrokes, strokeWidth]);
 
   useEffect(() => {
-    setupCanvas();
-  }, [setupCanvas]);
-
-  const getCtx = () => canvasRef.current?.getContext('2d') ?? null;
-
-  const handleClear = () => {
-    const ctx = getCtx();
     const canvas = canvasRef.current;
-    if (ctx && canvas) {
-      const dpr = typeof window !== 'undefined' ? window.devicePixelRatio || 1 : 1;
-      ctx.clearRect(0, 0, canvas.width / dpr, canvas.height / dpr);
+    if (!canvas || typeof ResizeObserver === 'undefined') {
+      syncCanvasToDisplay();
+      return;
+    }
+
+    const observer = new ResizeObserver(() => {
+      syncCanvasToDisplay();
+    });
+    observer.observe(canvas);
+    syncCanvasToDisplay();
+
+    return () => {
+      observer.disconnect();
+    };
+  }, [dims.height, dims.width, syncCanvasToDisplay]);
+
+  const handleClear = useCallback(() => {
+    strokesRef.current = [];
+    currentStrokeRef.current = [];
+    const synced = syncCanvasToDisplay();
+    if (synced) {
+      synced.ctx.clearRect(0, 0, synced.space.drawWidth, synced.space.drawHeight);
     }
     setHasStroke(false);
     onClear?.();
-  };
+  }, [onClear, syncCanvasToDisplay]);
 
-  const handleConfirm = () => {
+  const handleConfirm = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !hasStroke) return;
     onConfirm(canvas.toDataURL('image/png'));
-  };
+  }, [hasStroke, onConfirm]);
 
-  const drawAt = (clientX: number, clientY: number, start: boolean) => {
-    const ctx = getCtx();
+  const drawAt = useCallback((clientX: number, clientY: number, start: boolean) => {
     const canvas = canvasRef.current;
-    if (!ctx || !canvas) return;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    if (!ctx) return;
+
     const rect = canvas.getBoundingClientRect();
-    const x = clientX - rect.left;
-    const y = clientY - rect.top;
+    const space = readCanvasCoordinateSpace(canvas);
+    const point = clientToCanvasPoint(clientX, clientY, rect, space);
+
     if (start) {
+      currentStrokeRef.current = [point];
       ctx.beginPath();
-      ctx.moveTo(x, y);
-    } else {
-      ctx.lineTo(x, y);
-      ctx.stroke();
-      setHasStroke(true);
+      ctx.moveTo(point.x, point.y);
+      return;
     }
-  };
+
+    const stroke = currentStrokeRef.current;
+    const lastPoint = stroke[stroke.length - 1];
+    if (lastPoint && lastPoint.x === point.x && lastPoint.y === point.y) return;
+
+    stroke.push(point);
+    ctx.lineTo(point.x, point.y);
+    ctx.stroke();
+    setHasStroke(true);
+  }, []);
+
+  const endStroke = useCallback(() => {
+    if (currentStrokeRef.current.length > 1) {
+      strokesRef.current = [...strokesRef.current, currentStrokeRef.current];
+    }
+    currentStrokeRef.current = [];
+    drawing.current = false;
+    activePointerId.current = null;
+  }, []);
+
+  const handlePointerDown = useCallback(
+    (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (disabled) return;
+      event.preventDefault();
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      canvas.setPointerCapture(event.pointerId);
+      drawing.current = true;
+      activePointerId.current = event.pointerId;
+      drawAt(event.clientX, event.clientY, true);
+    },
+    [disabled, drawAt],
+  );
+
+  const handlePointerMove = useCallback(
+    (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (!drawing.current || disabled || activePointerId.current !== event.pointerId) return;
+      event.preventDefault();
+      drawAt(event.clientX, event.clientY, false);
+    },
+    [disabled, drawAt],
+  );
+
+  const handlePointerEnd = useCallback(
+    (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (activePointerId.current !== event.pointerId) return;
+      event.preventDefault();
+      canvasRef.current?.releasePointerCapture(event.pointerId);
+      endStroke();
+    },
+    [endStroke],
+  );
 
   return (
     <View style={styles.wrap}>
@@ -268,44 +400,17 @@ function WebSignatureCanvas({
         <canvas
           ref={canvasRef}
           style={{
-            width: fillAvailable ? '100%' : '100%',
+            width: '100%',
             height: fillAvailable ? '100%' : dims.height,
             touchAction: 'none',
             background: '#fff',
             borderRadius: fillAvailable ? 0 : 8,
             display: 'block',
           }}
-          onMouseDown={(e) => {
-            if (disabled) return;
-            drawing.current = true;
-            drawAt(e.clientX, e.clientY, true);
-          }}
-          onMouseMove={(e) => {
-            if (!drawing.current || disabled) return;
-            drawAt(e.clientX, e.clientY, false);
-          }}
-          onMouseUp={() => {
-            drawing.current = false;
-          }}
-          onMouseLeave={() => {
-            drawing.current = false;
-          }}
-          onTouchStart={(e) => {
-            if (disabled) return;
-            e.preventDefault();
-            drawing.current = true;
-            const touch = e.touches[0];
-            drawAt(touch.clientX, touch.clientY, true);
-          }}
-          onTouchMove={(e) => {
-            if (!drawing.current || disabled) return;
-            e.preventDefault();
-            const touch = e.touches[0];
-            drawAt(touch.clientX, touch.clientY, false);
-          }}
-          onTouchEnd={() => {
-            drawing.current = false;
-          }}
+          onPointerDown={handlePointerDown}
+          onPointerMove={handlePointerMove}
+          onPointerUp={handlePointerEnd}
+          onPointerCancel={handlePointerEnd}
         />
       </View>
       <SignatureActions

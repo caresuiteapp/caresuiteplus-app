@@ -6,14 +6,14 @@ export type CanvasCoordinateSpace = {
   /** CSS layout size from getBoundingClientRect(). */
   displayWidth: number;
   displayHeight: number;
-  /** Canvas 2D context coordinate space (canvas.width / devicePixelRatio). */
+  /** Canvas 2D draw space (canvas.width / devicePixelRatio when ctx.scale(dpr) is applied). */
   drawWidth: number;
   drawHeight: number;
 };
 
 /**
  * Maps pointer offset (relative to canvas padding edge) into canvas draw coordinates.
- * When draw space is synced to display size (ResizeObserver), offset maps 1:1.
+ * Equivalent to scaling by canvas.width/rect.width when draw space matches display size.
  */
 export function pointerToCanvasPoint(
   offsetX: number,
@@ -33,8 +33,9 @@ export function pointerToCanvasPoint(
 }
 
 /**
- * Maps viewport (client) coordinates to canvas draw coordinates.
- * Prefer pointerToCanvasPoint with offsetX/offsetY when the event target is the canvas.
+ * Maps viewport (client) coordinates to canvas draw coordinates via getBoundingClientRect().
+ * x = (clientX - rect.left) * (drawWidth / rect.width)
+ * Handles modal/scroll/transform offsets because rect is viewport-relative.
  */
 export function clientToCanvasPoint(
   clientX: number,
@@ -58,23 +59,17 @@ export function readCanvasCoordinateSpace(
   };
 }
 
-/** Prefer offsetX/Y when the canvas is the event target (1:1 on web). */
-export function readPointerOffset(event: {
-  nativeEvent: PointerEvent;
-  currentTarget: HTMLCanvasElement;
-}): { offsetX: number; offsetY: number } {
-  const native = event.nativeEvent;
-  const canvas = event.currentTarget;
-  if (
-    native.target === canvas &&
-    Number.isFinite(native.offsetX) &&
-    Number.isFinite(native.offsetY)
-  ) {
-    return { offsetX: native.offsetX, offsetY: native.offsetY };
-  }
-  const rect = canvas.getBoundingClientRect();
-  return {
-    offsetX: native.clientX - rect.left,
-    offsetY: native.clientY - rect.top,
-  };
+/** Scale stored stroke points when the canvas draw area changes size. */
+export function scaleCanvasPoints(
+  points: CanvasPoint[],
+  from: Pick<CanvasCoordinateSpace, 'drawWidth' | 'drawHeight'>,
+  to: Pick<CanvasCoordinateSpace, 'drawWidth' | 'drawHeight'>,
+): CanvasPoint[] {
+  if (from.drawWidth <= 0 || from.drawHeight <= 0) return points;
+  const scaleX = to.drawWidth / from.drawWidth;
+  const scaleY = to.drawHeight / from.drawHeight;
+  return points.map((point) => ({
+    x: point.x * scaleX,
+    y: point.y * scaleY,
+  }));
 }

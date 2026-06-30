@@ -3,7 +3,7 @@ import {
   clientToCanvasPoint,
   pointerToCanvasPoint,
   readCanvasCoordinateSpace,
-  readPointerOffset,
+  scaleCanvasPoints,
 } from '@/components/inputs/signatureCanvasCoords';
 
 describe('pointerToCanvasPoint', () => {
@@ -35,6 +35,30 @@ describe('pointerToCanvasPoint', () => {
     expect(pointerToCanvasPoint(-10, -5, space)).toEqual({ x: 0, y: 0 });
     expect(pointerToCanvasPoint(500, 300, space)).toEqual({ x: 400, y: 200 });
   });
+
+  it('matches canvas.width/rect.width formula in draw space', () => {
+    const rectWidth = 598;
+    const rectHeight = 318;
+    const dpr = 3;
+    const canvasWidth = rectWidth * dpr;
+    const canvasHeight = rectHeight * dpr;
+    const space = {
+      displayWidth: rectWidth,
+      displayHeight: rectHeight,
+      drawWidth: canvasWidth / dpr,
+      drawHeight: canvasHeight / dpr,
+    };
+    const clientX = 100;
+    const clientY = 50;
+    const rectLeft = 12;
+    const rectTop = 8;
+    const expectedX = ((clientX - rectLeft) * canvasWidth) / rectWidth / dpr;
+    const expectedY = ((clientY - rectTop) * canvasHeight) / rectHeight / dpr;
+
+    const result = pointerToCanvasPoint(clientX - rectLeft, clientY - rectTop, space);
+    expect(result.x).toBeCloseTo(expectedX, 5);
+    expect(result.y).toBeCloseTo(expectedY, 5);
+  });
 });
 
 describe('clientToCanvasPoint', () => {
@@ -57,39 +81,6 @@ describe('clientToCanvasPoint', () => {
   });
 });
 
-describe('readPointerOffset', () => {
-  it('uses offsetX/Y when canvas is the event target', () => {
-    const canvas = { tagName: 'CANVAS' } as HTMLCanvasElement;
-    const offset = readPointerOffset({
-      currentTarget: canvas,
-      nativeEvent: {
-        target: canvas,
-        offsetX: 42,
-        offsetY: 17,
-        clientX: 200,
-        clientY: 100,
-      } as unknown as PointerEvent,
-    });
-    expect(offset).toEqual({ offsetX: 42, offsetY: 17 });
-  });
-
-  it('falls back to client coords relative to canvas rect', () => {
-    const canvas = {
-      tagName: 'CANVAS',
-      getBoundingClientRect: () => ({ left: 100, top: 50, width: 400, height: 200 }),
-    } as HTMLCanvasElement;
-    const offset = readPointerOffset({
-      currentTarget: canvas,
-      nativeEvent: {
-        target: {} as EventTarget,
-        clientX: 200,
-        clientY: 100,
-      } as PointerEvent,
-    });
-    expect(offset).toEqual({ offsetX: 100, offsetY: 50 });
-  });
-});
-
 describe('readCanvasCoordinateSpace', () => {
   it('derives draw size from canvas buffer and dpr', () => {
     const canvas = {
@@ -104,5 +95,23 @@ describe('readCanvasCoordinateSpace', () => {
       drawWidth: 600,
       drawHeight: 320,
     });
+  });
+});
+
+describe('scaleCanvasPoints', () => {
+  it('scales stroke points proportionally on resize', () => {
+    const points = [
+      { x: 100, y: 50 },
+      { x: 200, y: 100 },
+    ];
+    const scaled = scaleCanvasPoints(
+      points,
+      { drawWidth: 400, drawHeight: 200 },
+      { drawWidth: 800, drawHeight: 400 },
+    );
+    expect(scaled).toEqual([
+      { x: 200, y: 100 },
+      { x: 400, y: 200 },
+    ]);
   });
 });
