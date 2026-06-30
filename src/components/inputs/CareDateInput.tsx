@@ -64,6 +64,7 @@ export function CareDateInput({
   showFormatHint = true,
 }: Props) {
   const formattedValue = value ? formatDate(value) : '';
+  const germanDisplay = formattedValue;
   const [draft, setDraft] = useState(formattedValue);
   const lastCommittedValue = useRef(value);
   const webDateInputRef = useRef<HTMLInputElement | null>(null);
@@ -141,7 +142,13 @@ export function CareDateInput({
         value={toIsoDateValue(value)}
         onChange={commitIso}
       />
-      {showFormatHint ? <Text style={styles.hint}>Format: TT.MM.JJJJ</Text> : null}
+      {showFormatHint ? (
+        <Text style={styles.hint}>
+          {germanDisplay ? `${germanDisplay} · ` : ''}Format: TT.MM.JJJJ
+        </Text>
+      ) : germanDisplay ? (
+        <Text style={styles.hint}>{germanDisplay}</Text>
+      ) : null}
     </View>
   );
 }

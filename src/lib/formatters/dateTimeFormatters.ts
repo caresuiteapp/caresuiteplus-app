@@ -28,17 +28,36 @@ const fullDateFormatter = new Intl.DateTimeFormat(APP_LOCALE, {
 
 function toDate(value: string | Date): Date | null {
   if (value instanceof Date) return value;
-  const parsed = new Date(value);
+  const trimmed = value.trim();
+  const isoDateOnly = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+  if (isoDateOnly) {
+    const [, year, month, day] = isoDateOnly;
+    const parsed = new Date(Number(year), Number(month) - 1, Number(day));
+    return Number.isNaN(parsed.getTime()) ? null : parsed;
+  }
+  const parsed = new Date(trimmed);
   return Number.isNaN(parsed.getTime()) ? null : parsed;
 }
 
-/** TT.MM.JJJJ */
+/** TT.MM.JJJJ — zentrale Anzeige für Datumsfelder (ISO, Date oder bereits TT.MM.JJJJ). */
 export function formatDate(value: string | Date | null | undefined): string {
   if (!value) return '';
+  if (typeof value === 'string') {
+    const trimmed = value.trim();
+    const isoDateOnly = trimmed.match(/^(\d{4})-(\d{2})-(\d{2})$/);
+    if (isoDateOnly) {
+      const [, year, month, day] = isoDateOnly;
+      return `${day}.${month}.${year}`;
+    }
+    if (/^(\d{2})\.(\d{2})\.(\d{4})$/.test(trimmed)) return trimmed;
+  }
   const d = toDate(value);
   if (!d) return '';
   return dateFormatter.format(d);
 }
+
+/** Alias für konsistente Verwendung in Detail- und Formular-Ansichten. */
+export const formatDateForDisplay = formatDate;
 
 /** HH:MM Uhr */
 export function formatTime(value: string | Date | null | undefined): string {
