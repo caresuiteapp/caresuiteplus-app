@@ -4,7 +4,10 @@ import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton } from '@/components/ui';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { formatAssignmentTimeRange, formatWeekday } from '@/lib/formatters/dateTimeFormatters';
+import {
+  formatAssignmentTimeRange,
+  formatAssignmentWeekdayDate,
+} from '@/lib/formatters/dateTimeFormatters';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { spacing, typography } from '@/theme';
 
@@ -49,7 +52,7 @@ export function AssignmentMobileActionSheet({
     <PlatformModal
       visible={visible}
       title={assignment.clientName}
-      subtitle={`${WORKFLOW_STATUS_LABELS[assignment.status]} · ${formatWeekday(assignment.scheduledStart)}`}
+      subtitle={`${WORKFLOW_STATUS_LABELS[assignment.status]} · ${formatAssignmentWeekdayDate(assignment.scheduledStart)}`}
       onClose={onClose}
       variant="bottomSheet"
       animationType="slide"

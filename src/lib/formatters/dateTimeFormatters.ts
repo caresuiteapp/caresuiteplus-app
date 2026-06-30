@@ -86,6 +86,16 @@ export function formatWeekday(value: string | Date | null | undefined): string {
   return weekdayFormatter.format(d);
 }
 
+/** Freitag, 04.07.2026 — Wochentag mit Kalenderdatum für Einsatzkarten */
+export function formatAssignmentWeekdayDate(
+  value: string | Date | null | undefined,
+): string {
+  if (!value) return '';
+  const d = toDate(value);
+  if (!d) return '';
+  return `${formatWeekday(d)}, ${formatDate(d)}`;
+}
+
 /** 09:00 Uhr bis 10:00 Uhr */
 export function formatAssignmentTimeRange(
   start: string | Date,

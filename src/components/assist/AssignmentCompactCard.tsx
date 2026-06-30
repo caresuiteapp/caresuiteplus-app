@@ -12,8 +12,8 @@ import type { AssignmentListItem } from '@/types/modules/assist';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import {
   formatAssignmentTimeRange,
+  formatAssignmentWeekdayDate,
   formatDurationMinutes,
-  formatWeekday,
 } from '@/lib/formatters/dateTimeFormatters';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
@@ -165,7 +165,9 @@ export function AssignmentCompactCard({
         </View>
 
         <View style={styles.scheduleRow}>
-          <Text style={styles.weekday}>{formatWeekday(assignment.scheduledStart)}</Text>
+          <Text style={styles.weekday}>
+            {formatAssignmentWeekdayDate(assignment.scheduledStart)}
+          </Text>
           <Text style={styles.timeRange}>
             {formatAssignmentTimeRange(assignment.scheduledStart, assignment.scheduledEnd)}
           </Text>

@@ -6,6 +6,7 @@ import {
   resolveAssignmentCardAccent,
   resolveSgbReference,
 } from '@/lib/assist/assignmentCardPresentation';
+import { formatAssignmentWeekdayDate } from '@/lib/formatters/dateTimeFormatters';
 import {
   isAssignmentTomorrow,
   matchesDateRangeFilter,
@@ -65,6 +66,10 @@ describe('Assignment compact cards UI', () => {
     expect(isAssignmentTomorrow(tomorrow.toISOString())).toBe(true);
   });
 
+  it('formatAssignmentWeekdayDate includes weekday and German calendar date', () => {
+    expect(formatAssignmentWeekdayDate('2026-07-03')).toMatch(/Freitag, 03\.07\.2026/);
+  });
+
   it('AssignmentCompactCard renders status accent bar and footer chips', () => {
     const source = readSrc('src/components/assist/AssignmentCompactCard.tsx');
     expect(source).toContain('accentBar');
@@ -72,6 +77,7 @@ describe('Assignment compact cards UI', () => {
     expect(source).toContain('resolveAssignmentCardAccent');
     expect(source).toContain('useAssignmentTravelTime');
     expect(source).toContain('displayText');
+    expect(source).toContain('formatAssignmentWeekdayDate');
   });
 
   it('assignment list pipeline preserves employeeId for travel time hook', () => {
