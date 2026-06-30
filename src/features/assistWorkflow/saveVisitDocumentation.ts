@@ -5,6 +5,7 @@ import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types';
 import type { EmployeePortalDocumentationInput } from '@/types/modules/employeePortalExecution';
 import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -40,6 +41,22 @@ function buildDocumentationText(doc: EmployeePortalDocumentationInput): string {
   if (doc.referralRequired) parts.push('Weiterleitung erforderlich.');
   if (doc.emergencyOrProblem) parts.push('Notfall/Problem gemeldet.');
   return parts.join('\n\n');
+}
+
+function normalizeDocumentationInput(
+  documentation: EmployeePortalDocumentationInput,
+): EmployeePortalDocumentationInput {
+  const shortDescription =
+    documentation.shortDescription.trim() ||
+    documentation.specialNotes?.trim() ||
+    '';
+  return {
+    ...documentation,
+    shortDescription,
+    specialNotes: documentation.specialNotes?.trim() || undefined,
+    deviations: documentation.deviations?.trim() || undefined,
+    deviationJustification: documentation.deviationJustification?.trim() || undefined,
+  };
 }
 
 async function persistDocumentationToAssistVisit(
@@ -85,7 +102,7 @@ async function persistDocumentationToAssistVisit(
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
-  await fromUnknownTable(supabase, 'assist_visits')
+  const { error: visitUpdateError } = await fromUnknownTable(supabase, 'assist_visits')
     .update({
       documentation_status: 'complete',
       employee_notes: buildDocumentationText(doc),
@@ -94,31 +111,45 @@ async function persistDocumentationToAssistVisit(
     .eq('tenant_id', tenantId)
     .eq('id', visitId);
 
+  if (visitUpdateError) {
+    return { ok: false, error: toGermanSupabaseError(visitUpdateError) };
+  }
+
   return { ok: true, data: undefined };
 }
 
 export async function saveVisitDocumentation(
   input: SaveVisitDocumentationInput,
 ): Promise<ServiceResult<SaveVisitDocumentationResult>> {
-  const { ctx, documentation } = input;
+  const { ctx } = input;
+  const documentation = normalizeDocumentationInput(input.documentation);
+  const masterAssignmentId = resolveVisitMasterId(ctx.assignmentId);
 
   if (!documentation.shortDescription.trim()) {
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError('WORKFLOW_DOCUMENTATION_REQUIRED', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'saveVisitDocumentation',
-      }, 'Kurzbeschreibung ist erforderlich.'),
+      createAssistWorkflowError(
+        'WORKFLOW_DOCUMENTATION_REQUIRED',
+        {
+          tenantId: ctx.tenantId,
+          assignmentId: ctx.assignmentId,
+          operation: 'saveVisitDocumentation',
+        },
+        'Kurzbeschreibung ist erforderlich.',
+      ),
     );
   }
 
   if (documentation.deviations?.trim() && !documentation.deviationJustification?.trim()) {
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError('AWF_VALIDATION', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'saveVisitDocumentation',
-      }, 'Abweichungen müssen begründet werden.'),
+      createAssistWorkflowError(
+        'AWF_VALIDATION',
+        {
+          tenantId: ctx.tenantId,
+          assignmentId: ctx.assignmentId,
+          operation: 'saveVisitDocumentation',
+        },
+        'Abweichungen müssen begründet werden.',
+      ),
     );
   }
 
@@ -135,15 +166,20 @@ export async function saveVisitDocumentation(
   const allowedStatuses = ['beendet', 'dokumentation_offen'];
   if (!allowedStatuses.includes(ctx.assignmentStatus)) {
     return assistWorkflowErrorToResult(
-      createAssistWorkflowError('WORKFLOW_INVALID_STATE', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'saveVisitDocumentation',
-      }, 'Dokumentation erst nach Beendigung des Einsatzes möglich.'),
+      createAssistWorkflowError(
+        'WORKFLOW_INVALID_STATE',
+        {
+          tenantId: ctx.tenantId,
+          assignmentId: ctx.assignmentId,
+          operation: 'saveVisitDocumentation',
+        },
+        'Dokumentation erst nach Beendigung des Einsatzes möglich.',
+      ),
     );
   }
 
   const docText = buildDocumentationText(documentation);
+  let documentationPersisted = false;
 
   if (getServiceMode() === 'supabase') {
     const visitDoc = await persistDocumentationToAssistVisit(
@@ -155,22 +191,28 @@ export async function saveVisitDocumentation(
     if (!visitDoc.ok) {
       const legacy = await assignmentSupabaseRepository.completeWithDocumentation(
         ctx.tenantId,
-        ctx.assignmentId,
+        masterAssignmentId,
         docText,
         {
-          actorProfileId: ctx.profileId ?? ctx.employeeId,
+          actorProfileId: ctx.profileId ?? undefined,
           actorEmployeeId: ctx.employeeId,
         },
       );
       if (!legacy.ok) return { ok: false, error: legacy.error };
+      documentationPersisted = true;
     } else {
-      await fromUnknownTable(getSupabaseClient()!, 'assignments')
+      documentationPersisted = true;
+      const { error: notesError } = await fromUnknownTable(getSupabaseClient()!, 'assignments')
         .update({
           documentation_notes: docText,
           updated_at: new Date().toISOString(),
         })
         .eq('tenant_id', ctx.tenantId)
-        .eq('id', ctx.assignmentId);
+        .eq('id', masterAssignmentId);
+
+      if (notesError) {
+        return { ok: false, error: toGermanSupabaseError(notesError) };
+      }
     }
   }
 
@@ -180,11 +222,14 @@ export async function saveVisitDocumentation(
       hasServiceStarted: true,
       hasDocumentation: true,
     });
-    if (!transitioned.ok) return { ok: false, error: transitioned.error };
-    updatedCtx = transitioned.data;
+    if (transitioned.ok) {
+      updatedCtx = transitioned.data;
+    } else if (!documentationPersisted) {
+      return { ok: false, error: transitioned.error };
+    }
   }
 
-  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'dokumentation_offen', {
+  void upsertAssistVisitExecutionState(ctx.tenantId, masterAssignmentId, 'dokumentation_offen', {
     employeeId: ctx.employeeId,
     visitTimes: updatedCtx.visitTimes,
     documentationComplete: true,

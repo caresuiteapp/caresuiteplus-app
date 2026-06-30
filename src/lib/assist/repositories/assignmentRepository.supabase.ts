@@ -23,6 +23,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { Database } from '@/lib/supabase/database.types';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { isUuid } from '@/lib/validation/uuid';
 import { cancelCalendarEventBySourceAsync } from '@/lib/calendar/calendarSyncService';
 
@@ -414,7 +415,8 @@ export const assignmentSupabaseRepository = {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
-    const existing = await this.getById(tenantId, assignmentId);
+    const masterAssignmentId = resolveVisitMasterId(assignmentId);
+    const existing = await this.getById(tenantId, masterAssignmentId);
     if (!existing.ok) return existing;
     if (!existing.data) {
       return { ok: false, error: 'Einsatz nicht gefunden.' };
@@ -431,7 +433,7 @@ export const assignmentSupabaseRepository = {
     const timestampPatch = timestampPatchForStatus(toStatus, now);
 
     const { error: rpcError } = await supabase.rpc('set_assignment_status', {
-      input_assignment_id: assignmentId,
+      input_assignment_id: masterAssignmentId,
       input_status: remoteStatus,
       input_note: note,
       input_employee_id: context?.actorEmployeeId,
@@ -448,7 +450,7 @@ export const assignmentSupabaseRepository = {
       const { error: updateError } = await fromUnknownTable(supabase, 'assignments')
         .update(patch)
         .eq('tenant_id', tenantId)
-        .eq('id', assignmentId);
+        .eq('id', masterAssignmentId);
 
       if (updateError) {
         return { ok: false, error: toGermanSupabaseError(updateError) };
@@ -457,7 +459,7 @@ export const assignmentSupabaseRepository = {
 
     await writeAssignmentAudit(supabase, {
       tenantId,
-      assignmentId,
+      assignmentId: masterAssignmentId,
       action: 'status_change',
       fromStatus,
       toStatus,
@@ -465,7 +467,7 @@ export const assignmentSupabaseRepository = {
       actor: context,
     });
 
-    const refreshed = await this.getById(tenantId, assignmentId);
+    const refreshed = await this.getById(tenantId, masterAssignmentId);
     if (!refreshed.ok) return refreshed;
     if (!refreshed.data) {
       return { ok: false, error: 'Einsatz nach Statuswechsel nicht gefunden.' };

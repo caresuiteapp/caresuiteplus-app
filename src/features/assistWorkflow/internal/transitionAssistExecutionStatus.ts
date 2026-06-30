@@ -77,8 +77,12 @@ export async function transitionAssistExecutionStatus(
     roleKey,
     toStatus,
     options?.skipStatusPersistence
-      ? { skipStatusPersistence: true, arrivalOptions: options.arrivalOptions }
-      : undefined,
+      ? {
+          profileId: ctx.profileId,
+          skipStatusPersistence: true,
+          arrivalOptions: options.arrivalOptions,
+        }
+      : { profileId: ctx.profileId },
   );
 
   if (!result.ok) {

@@ -86,10 +86,11 @@ export function createAssistWorkflowError(
   context: AssistWorkflowErrorContext = {},
   technicalMessage?: string,
 ): AssistWorkflowError {
+  const defaultMessage = USER_MESSAGES[code];
   return {
     code,
-    userMessage: USER_MESSAGES[code],
-    technicalMessage: technicalMessage ?? USER_MESSAGES[code],
+    userMessage: technicalMessage?.trim() ? technicalMessage : defaultMessage,
+    technicalMessage: technicalMessage ?? defaultMessage,
     context,
   };
 }

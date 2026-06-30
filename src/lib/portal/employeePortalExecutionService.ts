@@ -420,6 +420,14 @@ export async function transitionEmployeePortalAssignment(
   employeeId: string,
   roleKey: RoleKey | null,
   toStatus: AssignmentStatus,
+  options?: {
+    profileId?: string | null;
+    skipStatusPersistence?: boolean;
+    arrivalOptions?: {
+      arrivalMode?: 'gps' | 'without_gps' | 'manual';
+      manualReason?: string | null;
+    };
+  },
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
@@ -431,6 +439,7 @@ export async function transitionEmployeePortalAssignment(
       employeeId,
       roleKey,
       toStatus,
+      options,
     );
   }
 

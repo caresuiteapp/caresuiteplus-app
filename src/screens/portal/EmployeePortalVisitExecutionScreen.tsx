@@ -493,6 +493,7 @@ export function EmployeePortalVisitExecutionScreen() {
           <EmployeePortalVisitDocumentationPanel
             loading={actionLoading}
             onSubmit={async (doc) => {
+              setLocalError(null);
               const r = await saveDocumentation(doc);
               if (r.ok) {
                 setLocalSuccess('Dokumentation gespeichert — Unterschrift erforderlich.');

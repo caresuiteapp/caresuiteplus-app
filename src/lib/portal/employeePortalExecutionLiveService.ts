@@ -305,6 +305,7 @@ export async function transitionLiveEmployeePortalAssignment(
   roleKey: RoleKey | null,
   toStatus: AssignmentStatus,
   options?: {
+    profileId?: string | null;
     skipStatusPersistence?: boolean;
     arrivalOptions?: {
       arrivalMode?: 'gps' | 'without_gps' | 'manual';
@@ -337,7 +338,10 @@ export async function transitionLiveEmployeePortalAssignment(
     tenantId,
     assignmentId,
     toStatus,
-    { actorProfileId: employeeId, actorEmployeeId: employeeId },
+    {
+      actorProfileId: options?.profileId ?? null,
+      actorEmployeeId: employeeId,
+    },
   );
   if (!updated.ok) return updated;
   let detailAfterUpdate: AssignmentDetail = updated.data;

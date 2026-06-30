@@ -20,15 +20,28 @@ export function EmployeePortalVisitDocumentationPanel({
   const [deviations, setDeviations] = useState('');
   const [deviationJustification, setDeviationJustification] = useState('');
 
-  const handleSubmit = () =>
-    onSubmit({
-      shortDescription,
-      specialNotes: specialNotes || undefined,
-      deviations: deviations || undefined,
-      deviationJustification: deviationJustification || undefined,
+  const handleSubmit = () => {
+    if (!shortDescription.trim() && !specialNotes.trim()) {
+      return Promise.resolve({
+        ok: false as const,
+        error: 'Kurzbeschreibung ist erforderlich.',
+      });
+    }
+    if (deviations.trim() && !deviationJustification.trim()) {
+      return Promise.resolve({
+        ok: false as const,
+        error: 'Abweichungen müssen begründet werden.',
+      });
+    }
+    return onSubmit({
+      shortDescription: shortDescription.trim() || specialNotes.trim(),
+      specialNotes: specialNotes.trim() || undefined,
+      deviations: deviations.trim() || undefined,
+      deviationJustification: deviationJustification.trim() || undefined,
       referralRequired: false,
       emergencyOrProblem: false,
     });
+  };
 
   return (
     <SectionPanel title="Dokumentation" subtitle="Pflicht vor Abschluss">
