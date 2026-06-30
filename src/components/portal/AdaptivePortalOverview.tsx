@@ -39,7 +39,7 @@ type AdaptivePortalOverviewProps = {
 
 export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePortalOverviewProps) {
   const router = useRouter();
-  const { context, loading, error, refresh, isReady } = usePortalContext();
+  const { context, loading, error, refresh } = usePortalContext();
   const params = useLocalSearchParams<{ module?: string; section?: string }>();
   const routeModule = typeof params.module === 'string' && isPortalModuleKey(params.module)
     ? params.module
@@ -70,7 +70,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
     onRefresh?.();
   };
 
-  if (loading || !isReady) {
+  if (loading && !context) {
     return <LoadingState message="Klient:innenportal wird geladen…" />;
   }
 

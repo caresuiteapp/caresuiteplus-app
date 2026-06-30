@@ -36,7 +36,7 @@ async function fetchUpcomingAppointments(
   const now = new Date().toISOString();
 
   const { data, error } = await fromUnknownTable(supabase, 'assignments')
-    .select('id, title, planned_start_at, planned_end_at, status, location')
+    .select('id, title, planned_start_at, planned_end_at, status')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .gte('planned_start_at', now)
@@ -56,7 +56,7 @@ async function fetchUpcomingAppointments(
     title: String(row.title ?? 'Assist-Einsatz'),
     startsAt: String(row.planned_start_at ?? ''),
     endsAt: row.planned_end_at ? String(row.planned_end_at) : null,
-    location: row.location ? String(row.location) : null,
+    location: null,
     status: String(row.status ?? ''),
   }));
 }
@@ -70,7 +70,7 @@ async function fetchPortalClientContactPhone(
 
   const { data, error } = await supabase
     .from('clients')
-    .select('primary_contact_phone, phone')
+    .select('phone, mobile')
     .eq('tenant_id', tenantId)
     .eq('id', clientId)
     .maybeSingle();
@@ -82,8 +82,8 @@ async function fetchPortalClientContactPhone(
     return null;
   }
 
-  const row = data as { primary_contact_phone?: string | null; phone?: string | null };
-  const phone = row.primary_contact_phone ?? row.phone ?? null;
+  const row = data as { phone?: string | null; mobile?: string | null };
+  const phone = row.mobile ?? row.phone ?? null;
   return phone?.trim() || null;
 }
 
@@ -130,7 +130,6 @@ async function countSignatures(tenantId: string, clientId: string): Promise<numb
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .eq('portal_visible', true)
-    .eq('signature_required', true)
     .is('signed_at', null);
 
   if (error) {

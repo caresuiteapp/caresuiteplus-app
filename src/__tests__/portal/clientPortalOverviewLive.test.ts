@@ -44,10 +44,14 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
     expect(resolver).toContain('assignmentLoadFailed');
   });
 
-  it('uses adaptive migration tables', () => {
-    const sql = readSrc('supabase/migrations/0099_adaptive_portal_engine.sql');
-    expect(sql).toContain('portal_feature_matrix');
-    expect(sql).toContain('portal_widget_registry');
-    expect(sql).toContain('client_module_assignments_portal_select');
+  it('surfaces missing client link and timeout instead of infinite loading', () => {
+    const hook = readSrc('src/hooks/usePortalContext.ts');
+    expect(hook).toContain('Kein Klient:innenprofil verknüpft');
+    expect(hook).toContain('withTimeout');
+    expect(hook).toContain('isResolvingClientLink');
+    const overview = readSrc('src/components/portal/AdaptivePortalOverview.tsx');
+    expect(overview).toContain('loading && !context');
+    const actor = readSrc('src/hooks/usePortalActor.ts');
+    expect(actor).toContain('fetchPortalClientIdByAccessAccount');
   });
 });

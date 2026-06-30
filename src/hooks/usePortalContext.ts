@@ -1,8 +1,9 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { PortalContext } from '@/lib/portal/types';
 import { resolvePortalContext } from '@/lib/portal/engine/resolvePortalContext';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
+import { AsyncTimeoutError, withTimeout } from '@/lib/async/withTimeout';
 
 export type PortalContextState = {
   context: PortalContext | null;
@@ -12,17 +13,35 @@ export type PortalContextState = {
   isReady: boolean;
 };
 
+const PORTAL_CONTEXT_TIMEOUT_MS = 25_000;
+
 export function usePortalContext(): PortalContextState {
-  const { tenantId, clientId, roleKey, displayName, isReady: actorReady } = usePortalActor();
+  const { tenantId, clientId, roleKey, displayName, isReady: actorReady, isResolvingClientLink } =
+    usePortalActor();
   const { portalSession } = useAuth();
   const [context, setContext] = useState<PortalContext | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const displayNameRef = useRef(displayName);
+  displayNameRef.current = displayName;
 
   const refresh = useCallback(async () => {
-    if (!tenantId || !clientId || !roleKey) {
+    if (!tenantId || !roleKey) {
       setContext(null);
       setError(null);
+      setLoading(false);
+      return;
+    }
+
+    if (!clientId) {
+      if (isResolvingClientLink) {
+        setContext(null);
+        setError(null);
+        setLoading(true);
+        return;
+      }
+      setContext(null);
+      setError('Kein Klient:innenprofil verknüpft. Bitte melden Sie sich erneut an.');
       setLoading(false);
       return;
     }
@@ -31,21 +50,29 @@ export function usePortalContext(): PortalContextState {
     setError(null);
 
     try {
-      const resolved = await resolvePortalContext({
-        tenantId,
-        clientId,
-        roleKey,
-        displayName,
-        tenantNameHint: portalSession?.tenantName ?? null,
-      });
+      const resolved = await withTimeout(
+        resolvePortalContext({
+          tenantId,
+          clientId,
+          roleKey,
+          displayName: displayNameRef.current,
+          tenantNameHint: portalSession?.tenantName ?? null,
+        }),
+        PORTAL_CONTEXT_TIMEOUT_MS,
+        'Portal-Kontext konnte nicht rechtzeitig geladen werden.',
+      );
       setContext(resolved);
-    } catch {
+    } catch (caught) {
       setContext(null);
-      setError('Portal-Kontext konnte nicht geladen werden.');
+      if (caught instanceof AsyncTimeoutError) {
+        setError(caught.message);
+      } else {
+        setError('Portal-Kontext konnte nicht geladen werden.');
+      }
     } finally {
       setLoading(false);
     }
-  }, [tenantId, clientId, roleKey, displayName, portalSession?.tenantName]);
+  }, [tenantId, clientId, roleKey, portalSession?.tenantName, isResolvingClientLink]);
 
   useEffect(() => {
     if (!actorReady) {
