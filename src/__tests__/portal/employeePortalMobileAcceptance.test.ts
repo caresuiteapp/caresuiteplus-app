@@ -86,4 +86,21 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(header).toContain('sideInsetWidth');
     expect(header).toContain('width: sideInsetWidth');
   });
+
+  it('signature modal uses fullscreen mobile capture without backdrop dismiss', () => {
+    const modal = readSrc('src/components/inputs/CareSignatureModal.tsx');
+    const canvas = readSrc('src/components/inputs/CareSignatureCanvas.tsx');
+    const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
+    expect(modal).toContain('presentationStyle="fullScreen"');
+    expect(modal).toContain('fillAvailable={fullscreen}');
+    expect(modal).not.toContain('Pressable style={StyleSheet.absoluteFill}');
+    expect(modal).toContain('overscrollBehavior');
+    expect(modal).toContain('lockWebLandscapeOrientation');
+    expect(canvas).toContain('fillAvailable');
+    expect(canvas).toContain('actionLayout');
+    expect(canvas).toContain('Löschen');
+    expect(canvas).toContain('Abbrechen');
+    expect(canvas).toContain('Unterschrift bestätigen');
+    expect(panel).toContain('CareSignatureModal');
+  });
 });

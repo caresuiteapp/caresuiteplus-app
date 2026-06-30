@@ -1,5 +1,12 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
-import { Platform, PanResponder, StyleSheet, Text, View } from 'react-native';
+import {
+  LayoutChangeEvent,
+  Platform,
+  PanResponder,
+  StyleSheet,
+  Text,
+  View,
+} from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 import { resolveCareTypography } from '@/design/tokens/typography';
@@ -11,31 +18,60 @@ const COMPACT_WIDTH = 320;
 const COMPACT_HEIGHT = 120;
 const STROKE_WIDTH_COMPACT = 2;
 const STROKE_WIDTH_LARGE = 3.5;
+const DEFAULT_LARGE_WIDTH = 600;
+const DEFAULT_LARGE_HEIGHT = 320;
 
 const FALLBACK_TYPOGRAPHY = resolveCareTypography('dark');
 const FALLBACK_COLORS = legacyColorsFromPalette('dark');
 
-function useSignatureCanvasStyles() {
+function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default' | 'bar') {
   return useMemo(
     () =>
       StyleSheet.create({
-        wrap: { gap: spacing.sm },
+        wrap: {
+          gap: spacing.sm,
+          ...(fillAvailable ? { flex: 1, minHeight: 0 } : null),
+          ...Platform.select({
+            web: fillAvailable ? { touchAction: 'none' as const } : {},
+            default: {},
+          }),
+        },
         label: { ...FALLBACK_TYPOGRAPHY.body, fontWeight: '600' },
         canvasWrap: {
           height: COMPACT_HEIGHT,
           borderWidth: 1,
           borderColor: FALLBACK_COLORS.borderSoft,
-          borderRadius: 8,
+          borderRadius: fillAvailable ? 0 : 8,
           backgroundColor: '#fff',
           overflow: 'hidden',
+          ...(fillAvailable
+            ? {
+                flex: 1,
+                height: undefined,
+                minHeight: 160,
+                alignSelf: 'stretch',
+              }
+            : null),
         },
-        actions: { flexDirection: 'row', gap: spacing.sm, flexWrap: 'wrap' },
+        actions: {
+          flexDirection: 'row',
+          gap: spacing.sm,
+          flexWrap: actionLayout === 'bar' ? 'nowrap' : 'wrap',
+          alignItems: 'center',
+        },
+        actionsBar: {
+          paddingTop: spacing.xs,
+        },
+        confirmBar: {
+          flex: 1,
+          minWidth: 0,
+        },
         dot: {
           position: 'absolute',
           backgroundColor: '#111',
         },
       }),
-    [],
+    [actionLayout, fillAvailable],
   );
 }
 
@@ -49,13 +85,23 @@ type Props = {
   width?: number;
   height?: number;
   showLabel?: boolean;
+  fillAvailable?: boolean;
+  actionLayout?: 'default' | 'bar';
 };
 
-function resolveDimensions(size: 'compact' | 'large', width?: number, height?: number) {
+function resolveDimensions(
+  size: 'compact' | 'large',
+  width?: number,
+  height?: number,
+  measured?: { width: number; height: number },
+) {
+  if (measured && measured.width > 0 && measured.height > 0) {
+    return measured;
+  }
   if (size === 'large') {
     return {
-      width: width ?? 600,
-      height: height ?? 320,
+      width: width ?? DEFAULT_LARGE_WIDTH,
+      height: height ?? DEFAULT_LARGE_HEIGHT,
     };
   }
   return { width: COMPACT_WIDTH, height: COMPACT_HEIGHT };
@@ -73,6 +119,56 @@ function pointsToSvgDataUrl(strokes: Point[][], width: number, height: number): 
   return `data:image/svg+xml;base64,${btoa(unescape(encodeURIComponent(svg)))}`;
 }
 
+function SignatureActions({
+  actionLayout,
+  styles,
+  disabled,
+  hasStroke,
+  onClear,
+  onCancel,
+  onConfirm,
+}: {
+  actionLayout: 'default' | 'bar';
+  styles: ReturnType<typeof useSignatureCanvasStyles>;
+  disabled?: boolean;
+  hasStroke: boolean;
+  onClear: () => void;
+  onCancel?: () => void;
+  onConfirm: () => void;
+}) {
+  const confirmButton = (
+    <PremiumButton
+      title="Unterschrift bestätigen"
+      variant="primary"
+      onPress={onConfirm}
+      disabled={disabled || !hasStroke}
+      style={actionLayout === 'bar' ? styles.confirmBar : undefined}
+    />
+  );
+
+  if (actionLayout === 'bar') {
+    return (
+      <View style={[styles.actions, styles.actionsBar]}>
+        <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} />
+        {onCancel ? (
+          <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} />
+        ) : null}
+        {confirmButton}
+      </View>
+    );
+  }
+
+  return (
+    <View style={styles.actions}>
+      <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} />
+      {onCancel ? (
+        <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} />
+      ) : null}
+      {confirmButton}
+    </View>
+  );
+}
+
 function WebSignatureCanvas({
   label,
   onConfirm,
@@ -83,13 +179,30 @@ function WebSignatureCanvas({
   width: widthProp,
   height: heightProp,
   showLabel = true,
+  fillAvailable = false,
+  actionLayout = 'default',
 }: Props) {
-  const styles = useSignatureCanvasStyles();
+  const styles = useSignatureCanvasStyles(fillAvailable, actionLayout);
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const drawing = useRef(false);
   const [hasStroke, setHasStroke] = useState(false);
-  const dims = resolveDimensions(size, widthProp, heightProp);
+  const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
+  const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
   const strokeWidth = size === 'large' ? STROKE_WIDTH_LARGE : STROKE_WIDTH_COMPACT;
+
+  const handleCanvasLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (!fillAvailable) return;
+      const { width, height } = event.nativeEvent.layout;
+      if (width < 1 || height < 1) return;
+      setMeasured((prev) => {
+        const next = { width: Math.floor(width), height: Math.floor(height) };
+        if (prev?.width === next.width && prev?.height === next.height) return prev;
+        return next;
+      });
+    },
+    [fillAvailable],
+  );
 
   const setupCanvas = useCallback(() => {
     const canvas = canvasRef.current;
@@ -151,15 +264,15 @@ function WebSignatureCanvas({
   return (
     <View style={styles.wrap}>
       {showLabel && label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.canvasWrap, { height: dims.height }]}>
+      <View style={styles.canvasWrap} onLayout={handleCanvasLayout}>
         <canvas
           ref={canvasRef}
           style={{
-            width: '100%',
-            height: dims.height,
+            width: fillAvailable ? '100%' : '100%',
+            height: fillAvailable ? '100%' : dims.height,
             touchAction: 'none',
             background: '#fff',
-            borderRadius: 8,
+            borderRadius: fillAvailable ? 0 : 8,
             display: 'block',
           }}
           onMouseDown={(e) => {
@@ -171,8 +284,12 @@ function WebSignatureCanvas({
             if (!drawing.current || disabled) return;
             drawAt(e.clientX, e.clientY, false);
           }}
-          onMouseUp={() => { drawing.current = false; }}
-          onMouseLeave={() => { drawing.current = false; }}
+          onMouseUp={() => {
+            drawing.current = false;
+          }}
+          onMouseLeave={() => {
+            drawing.current = false;
+          }}
           onTouchStart={(e) => {
             if (disabled) return;
             e.preventDefault();
@@ -186,21 +303,20 @@ function WebSignatureCanvas({
             const touch = e.touches[0];
             drawAt(touch.clientX, touch.clientY, false);
           }}
-          onTouchEnd={() => { drawing.current = false; }}
+          onTouchEnd={() => {
+            drawing.current = false;
+          }}
         />
       </View>
-      <View style={styles.actions}>
-        <PremiumButton title="Löschen" variant="ghost" onPress={handleClear} disabled={disabled} />
-        {onCancel ? (
-          <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} />
-        ) : null}
-        <PremiumButton
-          title="Unterschrift bestätigen"
-          variant="primary"
-          onPress={handleConfirm}
-          disabled={disabled || !hasStroke}
-        />
-      </View>
+      <SignatureActions
+        actionLayout={actionLayout}
+        styles={styles}
+        disabled={disabled}
+        hasStroke={hasStroke}
+        onClear={handleClear}
+        onCancel={onCancel}
+        onConfirm={handleConfirm}
+      />
     </View>
   );
 }
@@ -215,12 +331,29 @@ function NativeSignatureCanvas({
   width: widthProp,
   height: heightProp,
   showLabel = true,
+  fillAvailable = false,
+  actionLayout = 'default',
 }: Props) {
-  const styles = useSignatureCanvasStyles();
+  const styles = useSignatureCanvasStyles(fillAvailable, actionLayout);
   const [strokes, setStrokes] = useState<Point[][]>([]);
   const [current, setCurrent] = useState<Point[]>([]);
-  const dims = resolveDimensions(size, widthProp, heightProp);
+  const [measured, setMeasured] = useState<{ width: number; height: number } | null>(null);
+  const dims = resolveDimensions(size, widthProp, heightProp, measured ?? undefined);
   const dotSize = size === 'large' ? 3 : 2;
+
+  const handleCanvasLayout = useCallback(
+    (event: LayoutChangeEvent) => {
+      if (!fillAvailable) return;
+      const { width, height } = event.nativeEvent.layout;
+      if (width < 1 || height < 1) return;
+      setMeasured((prev) => {
+        const next = { width: Math.floor(width), height: Math.floor(height) };
+        if (prev?.width === next.width && prev?.height === next.height) return prev;
+        return next;
+      });
+    },
+    [fillAvailable],
+  );
 
   const pan = useMemo(
     () =>
@@ -252,7 +385,7 @@ function NativeSignatureCanvas({
   const handleConfirm = useCallback(() => {
     if (strokes.length === 0) return;
     onConfirm(pointsToSvgDataUrl(strokes, dims.width, dims.height));
-  }, [onConfirm, strokes, dims.width, dims.height]);
+  }, [dims.height, dims.width, onConfirm, strokes]);
 
   const allPoints = [...strokes, current];
   const hasStroke = strokes.length > 0;
@@ -260,30 +393,40 @@ function NativeSignatureCanvas({
   return (
     <View style={styles.wrap}>
       {showLabel && label ? <Text style={styles.label}>{label}</Text> : null}
-      <View style={[styles.canvasWrap, { height: dims.height }]} {...pan.panHandlers}>
+      <View
+        style={styles.canvasWrap}
+        onLayout={handleCanvasLayout}
+        {...pan.panHandlers}
+      >
         {allPoints.map((stroke, si) =>
           stroke.map((p, pi) =>
             pi > 0 ? (
               <View
                 key={`${si}-${pi}`}
-                style={[styles.dot, { left: p.x - dotSize / 2, top: p.y - dotSize / 2, width: dotSize, height: dotSize, borderRadius: dotSize / 2 }]}
+                style={[
+                  styles.dot,
+                  {
+                    left: p.x - dotSize / 2,
+                    top: p.y - dotSize / 2,
+                    width: dotSize,
+                    height: dotSize,
+                    borderRadius: dotSize / 2,
+                  },
+                ]}
               />
             ) : null,
           ),
         )}
       </View>
-      <View style={styles.actions}>
-        <PremiumButton title="Löschen" variant="ghost" onPress={handleClear} disabled={disabled} />
-        {onCancel ? (
-          <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} />
-        ) : null}
-        <PremiumButton
-          title="Unterschrift bestätigen"
-          variant="primary"
-          onPress={handleConfirm}
-          disabled={disabled || !hasStroke}
-        />
-      </View>
+      <SignatureActions
+        actionLayout={actionLayout}
+        styles={styles}
+        disabled={disabled}
+        hasStroke={hasStroke}
+        onClear={handleClear}
+        onCancel={onCancel}
+        onConfirm={handleConfirm}
+      />
     </View>
   );
 }
