@@ -5,6 +5,8 @@ import type { RoleKey, ServiceResult } from '@/types';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { resolveEmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
+import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getEmployeePortalLocationConsent } from '@/lib/portal/employeePortalVisitTrackingService';
 import { calculateVisitTimes } from './calculateVisitTimes';
 import { deriveWorkflowStatus } from './deriveWorkflowStatus';
@@ -65,12 +67,16 @@ export async function resolveAssistExecutionContext(
   });
 
   const liveContext = liveResult.ok ? liveResult.data : null;
-  const assistVisitId = liveContext?.assistVisitId ?? assignmentId;
+  const resolvedVisitId =
+    liveContext?.assistVisitId ??
+    (await resolveLiveVisitId(tenantId, assignmentId)) ??
+    resolveVisitMasterId(assignmentId);
+  const assistVisitId = resolvedVisitId;
 
   let visitTimes = null;
   let timeEvents: AssistExecutionContext['timeEvents'] = [];
-  if (liveContext?.assistVisitId) {
-    const events = await fetchTimeEventsForVisit(tenantId, liveContext.assistVisitId, 100);
+  if (assistVisitId) {
+    const events = await fetchTimeEventsForVisit(tenantId, assistVisitId, 100);
     if (events.ok) {
       timeEvents = events.data.map((e) => ({ eventType: e.eventType, occurredAt: e.occurredAt }));
       const preliminaryTimes = calculateVisitTimes(timeEvents, detailResult.data.status);

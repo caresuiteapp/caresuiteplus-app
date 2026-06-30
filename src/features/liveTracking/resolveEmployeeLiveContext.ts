@@ -15,7 +15,7 @@ import { formatAddressFromSnapshotOrParts } from '@/lib/formatAddress';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { getServiceMode } from '@/lib/services/mode';
-import { isUuid } from '@/lib/validation/uuid';
+import { isResolvableVisitId } from '@/lib/assist/visitRecurrenceExpansion';
 import {
   createLiveTrackingError,
   liveTrackingErrorFromSupabase,
@@ -165,7 +165,7 @@ export async function resolveEmployeeLiveContext(
     logLiveTrackingError(err);
     return liveTrackingErrorToServiceResult(err);
   }
-  if (!routeParamId || !isUuid(routeParamId)) {
+  if (!routeParamId || !isResolvableVisitId(routeParamId)) {
     const err = createLiveTrackingError('LIVE_ASSIGNMENT_NOT_FOUND', {
       ...baseContext,
       assignmentId: routeParamId,
