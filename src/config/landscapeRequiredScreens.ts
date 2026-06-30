@@ -28,8 +28,9 @@ export function resolveLandscapeRequirement(
 export function shouldBlockUntilLandscape(
   requirement: LandscapeRequirement,
   isMobile: boolean,
+  bypass: boolean,
 ): boolean {
-  if (!isMobile) return false;
+  if (!isMobile || bypass) return false;
   return requirement === 'required';
 }
 
@@ -38,7 +39,21 @@ export function shouldShowLandscapeOverlay(
   requirement: LandscapeRequirement,
   isLandscape: boolean,
   isMobile: boolean,
+  dismissed: boolean,
 ): boolean {
-  if (!isMobile || isLandscape) return false;
+  if (!isMobile || isLandscape || dismissed) return false;
   return requirement === 'required' || requirement === 'preferred';
+}
+
+export type LandscapeOverlayVariant = 'blocking' | 'banner' | 'hint';
+
+/** Resolve which overlay presentation to use for the current state. */
+export function resolveLandscapeOverlayVariant(
+  requirement: LandscapeRequirement,
+  lockFailed: boolean,
+  portraitBypass: boolean,
+): LandscapeOverlayVariant {
+  if (requirement === 'preferred') return 'banner';
+  if (lockFailed || portraitBypass) return 'hint';
+  return 'blocking';
 }

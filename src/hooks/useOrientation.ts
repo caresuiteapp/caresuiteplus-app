@@ -1,9 +1,11 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Platform, useWindowDimensions } from 'react-native';
 import {
+  resolveLandscapeOverlayVariant,
   resolveLandscapeRequirement,
   shouldBlockUntilLandscape,
   shouldShowLandscapeOverlay,
+  type LandscapeOverlayVariant,
   type LandscapeRequirement,
   type LandscapeScreenKey,
 } from '@/config/landscapeRequiredScreens';
@@ -13,6 +15,7 @@ import {
   type OrientationSnapshot,
 } from '@/lib/orientation/detectOrientation';
 import {
+  isLandscapeLockAvailable,
   requestLandscapeLock,
   type LandscapeLockResult,
 } from '@/lib/orientation/requestLandscapeLock';
@@ -24,7 +27,13 @@ export {
   matchesLandscapeMediaQuery,
   readScreenOrientationType,
 } from '@/lib/orientation/detectOrientation';
-export { requestLandscapeLock, type LandscapeLockResult } from '@/lib/orientation/requestLandscapeLock';
+export {
+  isLandscapeLockAvailable,
+  requestLandscapeLock,
+  type LandscapeLockResult,
+} from '@/lib/orientation/requestLandscapeLock';
+
+const LOG_PREFIX = '[CareSuite orientation]';
 
 export function useOrientation(): OrientationSnapshot {
   const { width, height } = useWindowDimensions();
@@ -67,11 +76,14 @@ export type UseLandscapeRequiredOptions = {
 export type LandscapeRequiredState = OrientationSnapshot & {
   requirement: LandscapeRequirement;
   landscapeRequired: boolean;
+  overlayVariant: LandscapeOverlayVariant;
   showOverlay: boolean;
   blockContent: boolean;
   lockPending: boolean;
-  lockError: string | null;
+  lockFailed: boolean;
   requestLandscapeLock: () => Promise<LandscapeLockResult>;
+  dismissBanner: () => void;
+  continueInPortrait: () => void;
 };
 
 export function useLandscapeRequired(
@@ -84,28 +96,63 @@ export function useLandscapeRequired(
   const requirement = resolveLandscapeRequirement(screenKey);
   const unlockRef = useRef<(() => void) | undefined>(undefined);
   const [lockPending, setLockPending] = useState(false);
-  const [lockError, setLockError] = useState<string | null>(null);
+  const [lockFailed, setLockFailed] = useState(
+    () => autoLock && !isLandscapeLockAvailable(),
+  );
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [portraitBypass, setPortraitBypass] = useState(false);
 
   const landscapeRequired = requirement === 'required' || requirement === 'preferred';
-  const showOverlay = active && shouldShowLandscapeOverlay(requirement, orientation.isLandscape, isPhone);
-  const blockContent = active && shouldBlockUntilLandscape(requirement, isPhone) && !orientation.isLandscape;
+  const bypass = lockFailed || portraitBypass;
+  const overlayVariant = resolveLandscapeOverlayVariant(requirement, lockFailed, portraitBypass);
+  const overlayDismissed = bannerDismissed || portraitBypass;
+  const showOverlay =
+    active &&
+    shouldShowLandscapeOverlay(requirement, orientation.isLandscape, isPhone, overlayDismissed);
+  const blockContent =
+    active && shouldBlockUntilLandscape(requirement, isPhone, bypass) && !orientation.isLandscape;
 
   const runLock = useCallback(async (): Promise<LandscapeLockResult> => {
     setLockPending(true);
-    setLockError(null);
     const result = await requestLandscapeLock({ tryFullscreen: tryFullscreenOnRequest });
     setLockPending(false);
     if (result.ok) {
       unlockRef.current = result.unlock;
+      setLockFailed(false);
     } else {
-      setLockError(result.error ?? 'Querformat konnte nicht aktiviert werden.');
+      console.warn(LOG_PREFIX, 'landscape lock request failed', result.error ?? 'unknown');
+      setLockFailed(true);
     }
     return result;
   }, [tryFullscreenOnRequest]);
 
+  const dismissBanner = useCallback(() => {
+    setBannerDismissed(true);
+  }, []);
+
+  const continueInPortrait = useCallback(() => {
+    setPortraitBypass(true);
+  }, []);
+
   useEffect(() => {
-    if (!active || !autoLock || !isPhone || !landscapeRequired) return;
-    void runLock();
+    if (!active) {
+      setLockFailed(false);
+      setBannerDismissed(false);
+      setPortraitBypass(false);
+      return;
+    }
+
+    if (!isPhone || !landscapeRequired) return;
+
+    if (autoLock && !isLandscapeLockAvailable()) {
+      console.warn(LOG_PREFIX, 'autoLock skipped — orientation.lock unavailable');
+      setLockFailed(true);
+      return;
+    }
+
+    if (autoLock) {
+      void runLock();
+    }
   }, [active, autoLock, isPhone, landscapeRequired, runLock]);
 
   useEffect(() => {
@@ -123,10 +170,13 @@ export function useLandscapeRequired(
     ...orientation,
     requirement,
     landscapeRequired,
+    overlayVariant,
     showOverlay,
     blockContent,
     lockPending,
-    lockError,
+    lockFailed,
     requestLandscapeLock: runLock,
+    dismissBanner,
+    continueInPortrait,
   };
 }

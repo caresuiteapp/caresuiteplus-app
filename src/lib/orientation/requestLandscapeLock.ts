@@ -8,6 +8,15 @@ export type LandscapeLockResult = {
   unlock?: () => void;
 };
 
+/** Synchronous check — iOS Safari often lacks orientation.lock entirely. */
+export function isLandscapeLockAvailable(): boolean {
+  if (Platform.OS !== 'web' || typeof screen === 'undefined') return false;
+  const orientation = screen.orientation as ScreenOrientation & {
+    lock?: (orientation: string) => Promise<void>;
+  };
+  return typeof orientation?.lock === 'function';
+}
+
 async function tryLockLandscape(): Promise<LandscapeLockResult> {
   if (Platform.OS !== 'web' || typeof screen === 'undefined') {
     return { ok: false, error: 'not-web' };
@@ -19,6 +28,7 @@ async function tryLockLandscape(): Promise<LandscapeLockResult> {
   };
 
   if (typeof orientation?.lock !== 'function') {
+    console.warn(LOG_PREFIX, 'orientation.lock unavailable on this browser');
     return { ok: false, error: 'lock-unavailable' };
   }
 

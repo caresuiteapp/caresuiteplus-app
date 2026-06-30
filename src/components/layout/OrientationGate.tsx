@@ -27,11 +27,16 @@ export function OrientationGate({ screenKey, children, active = true, options }:
       </View>
       <LandscapeRequiredOverlay
         visible={state.showOverlay}
+        variant={state.overlayVariant}
         pending={state.lockPending}
-        error={state.lockError}
+        lockFailed={state.lockFailed}
         onActivateLandscape={() => {
           void state.requestLandscapeLock();
         }}
+        onDismiss={state.overlayVariant === 'banner' ? state.dismissBanner : undefined}
+        onContinuePortrait={
+          state.overlayVariant === 'hint' ? state.continueInPortrait : undefined
+        }
       />
     </View>
   );

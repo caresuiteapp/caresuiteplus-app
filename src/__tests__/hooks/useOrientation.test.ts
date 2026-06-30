@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   LANDSCAPE_REQUIRED_SCREENS,
+  resolveLandscapeOverlayVariant,
   resolveLandscapeRequirement,
   shouldBlockUntilLandscape,
   shouldShowLandscapeOverlay,
@@ -27,20 +28,34 @@ describe('landscapeRequiredScreens config', () => {
 
 describe('shouldShowLandscapeOverlay', () => {
   it('shows overlay for required/preferred on mobile portrait only', () => {
-    expect(shouldShowLandscapeOverlay('required', false, true)).toBe(true);
-    expect(shouldShowLandscapeOverlay('preferred', false, true)).toBe(true);
-    expect(shouldShowLandscapeOverlay('required', true, true)).toBe(false);
-    expect(shouldShowLandscapeOverlay('required', false, false)).toBe(false);
-    expect(shouldShowLandscapeOverlay('supported', false, true)).toBe(false);
-    expect(shouldShowLandscapeOverlay('portrait', false, true)).toBe(false);
+    expect(shouldShowLandscapeOverlay('required', false, true, false)).toBe(true);
+    expect(shouldShowLandscapeOverlay('preferred', false, true, false)).toBe(true);
+    expect(shouldShowLandscapeOverlay('required', true, true, false)).toBe(false);
+    expect(shouldShowLandscapeOverlay('required', false, false, false)).toBe(false);
+    expect(shouldShowLandscapeOverlay('supported', false, true, false)).toBe(false);
+    expect(shouldShowLandscapeOverlay('portrait', false, true, false)).toBe(false);
+  });
+
+  it('hides overlay when user dismissed the banner', () => {
+    expect(shouldShowLandscapeOverlay('preferred', false, true, true)).toBe(false);
   });
 });
 
 describe('shouldBlockUntilLandscape', () => {
-  it('blocks only required screens on mobile', () => {
-    expect(shouldBlockUntilLandscape('required', true)).toBe(true);
-    expect(shouldBlockUntilLandscape('preferred', true)).toBe(false);
-    expect(shouldBlockUntilLandscape('required', false)).toBe(false);
+  it('blocks only required screens on mobile without bypass', () => {
+    expect(shouldBlockUntilLandscape('required', true, false)).toBe(true);
+    expect(shouldBlockUntilLandscape('preferred', true, false)).toBe(false);
+    expect(shouldBlockUntilLandscape('required', false, false)).toBe(false);
+    expect(shouldBlockUntilLandscape('required', true, true)).toBe(false);
+  });
+});
+
+describe('resolveLandscapeOverlayVariant', () => {
+  it('uses banner for preferred and hint after lock failure on required', () => {
+    expect(resolveLandscapeOverlayVariant('preferred', false, false)).toBe('banner');
+    expect(resolveLandscapeOverlayVariant('required', false, false)).toBe('blocking');
+    expect(resolveLandscapeOverlayVariant('required', true, false)).toBe('hint');
+    expect(resolveLandscapeOverlayVariant('required', false, true)).toBe('hint');
   });
 });
 

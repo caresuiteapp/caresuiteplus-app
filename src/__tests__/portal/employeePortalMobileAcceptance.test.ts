@@ -112,7 +112,10 @@ describe('employee portal mobile acceptance fixes', () => {
 
   it('visit execution screen uses orientation gate for mobile landscape hint', () => {
     const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    const overlay = readSrc('src/components/layout/LandscapeRequiredOverlay.tsx');
     expect(screen).toContain('OrientationGate');
     expect(screen).toContain('screenKey="visitExecution"');
+    expect(overlay).not.toContain('lock-unavailable');
+    expect(overlay).not.toContain('styles.error');
   });
 });
