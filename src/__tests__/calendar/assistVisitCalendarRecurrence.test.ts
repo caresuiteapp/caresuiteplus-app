@@ -79,6 +79,33 @@ describe('assistVisitCalendarRecurrence', () => {
       true,
     );
     expect(merged.filter((event) => event.sourceId === VISIT_ID)).toHaveLength(1);
+    expect(merged.every((event) => event.type === 'einsatz')).toBe(true);
+  });
+
+  it('behält Nicht-Assist-Ereignisse und ersetzt nur assist_visit-Zeilen', () => {
+    const officeEvent: CalendarEvent = {
+      id: 'cal-office',
+      title: 'Team-Meeting',
+      start: '2026-07-07T10:00:00.000Z',
+      end: '2026-07-07T11:00:00.000Z',
+      type: 'besprechung',
+      color: '#7C5CFF',
+      sourceType: 'office_appointment',
+      moduleKey: 'office',
+    };
+    const expanded = [
+      baseListItem(),
+      baseListItem({
+        id: buildVisitOccurrenceId(VISIT_ID, '2026-07-14'),
+        scheduledStart: '2026-07-14T07:00:00.000Z',
+        scheduledEnd: '2026-07-14T09:00:00.000Z',
+      }),
+    ];
+
+    const merged = mergeExpandedAssistVisitCalendarEvents([masterCalendarEvent(), officeEvent], expanded);
+
+    expect(merged).toHaveLength(3);
+    expect(merged.some((event) => event.id === 'cal-office')).toBe(true);
   });
 
   it('lässt einmalige Kalenderereignisse unverändert', () => {

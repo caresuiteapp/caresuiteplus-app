@@ -468,6 +468,7 @@ export const visitSupabaseRepository = {
       if (options.dateTo) inRangeQuery = inRangeQuery.lte('planned_start_at', options.dateTo);
 
       let recurringQuery = baseQuery()
+        .neq('recurrence_json->>pattern', 'none')
         .lte('assignment_date', dateToKey)
         .order('planned_start_at', { ascending: true });
 
@@ -485,9 +486,7 @@ export const visitSupabaseRepository = {
         byId.set(row.id, row);
       }
       for (const row of (recurringResult.data ?? []) as unknown as VisitRow[]) {
-        if (parseVisitRecurrenceJson(row.recurrence_json).pattern !== 'none') {
-          byId.set(row.id, row);
-        }
+        byId.set(row.id, row);
       }
       rows = [...byId.values()];
     } else {

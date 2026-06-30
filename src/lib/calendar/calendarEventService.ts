@@ -145,6 +145,17 @@ async function fetchLegacyFallbackOnce(
   return legacy;
 }
 
+async function loadExpandedAssistVisitsForCalendar(
+  tenantId: string,
+  rangeStart?: string,
+  rangeEnd?: string,
+) {
+  return visitSupabaseRepository.list(tenantId, {
+    dateFrom: rangeStart,
+    dateTo: rangeEnd,
+  });
+}
+
 async function enrichAssistCalendarEvents(
   tenantId: string,
   events: CalendarEvent[],
@@ -152,17 +163,11 @@ async function enrichAssistCalendarEvents(
   rangeStart?: string,
   rangeEnd?: string,
 ): Promise<CalendarEvent[]> {
-  let enriched = events;
-
-  if (rangeStart || rangeEnd) {
-    const visitResult = await visitSupabaseRepository.list(tenantId, {
-      dateFrom: rangeStart,
-      dateTo: rangeEnd,
-    });
-    if (visitResult.ok && visitResult.data.length > 0) {
-      enriched = mergeExpandedAssistVisitCalendarEvents(enriched, visitResult.data);
-    }
-  }
+  const visitResult = await loadExpandedAssistVisitsForCalendar(tenantId, rangeStart, rangeEnd);
+  let enriched =
+    visitResult.ok && visitResult.data.length > 0
+      ? mergeExpandedAssistVisitCalendarEvents(events, visitResult.data)
+      : events;
 
   const needsEnrichment = enriched.some(
     (event) =>
@@ -331,7 +336,8 @@ async function mergePortalAssistRecurrenceEvents(
     dateFrom: rangeStart,
     dateTo: rangeEnd,
   });
-  if (!visitResult.ok || visitResult.data.length === 0) return events;
+  if (!visitResult.ok) return events;
+  if (visitResult.data.length === 0) return events;
 
   const hrefBase = filter.clientId ? '/portal/client/appointments' : '/portal/employee/assignments';
   const merged = mergeExpandedAssistVisitCalendarEvents(events, visitResult.data);
@@ -398,7 +404,17 @@ export async function getPortalCalendarEvents(
       moduleKey: 'assist',
       href: `${hrefBase}/${item.id}`,
     }));
-    return { ok: true, data: events };
+    const merged = await mergePortalAssistRecurrenceEvents(
+      tenantId,
+      events,
+      {
+        clientId: context.portalType === 'client' ? context.clientId : undefined,
+        employeeId: context.portalType === 'employee' ? context.employeeId : undefined,
+      },
+      options?.rangeStart,
+      options?.rangeEnd,
+    );
+    return { ok: true, data: merged };
   }
 
   return { ok: true, data: [] };

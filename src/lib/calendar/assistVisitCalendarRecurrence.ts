@@ -30,38 +30,26 @@ export function visitListItemToCalendarEvent(item: VisitDispositionListItem): Ca
   };
 }
 
-/** Replace single master assist_visit calendar rows with expanded recurrence occurrences. */
+/**
+ * Replace assist_visit rows from calendar_events with expanded visit-disposition items.
+ * Uses the visit repository as source of truth (same path as Einsatzplanung list).
+ */
 export function mergeExpandedAssistVisitCalendarEvents(
   events: CalendarEvent[],
   expandedVisits: VisitDispositionListItem[],
 ): CalendarEvent[] {
   if (expandedVisits.length === 0) return events;
 
-  const recurringMasterIds = new Set<string>();
-  for (const item of expandedVisits) {
-    const masterId = resolveVisitMasterId(item.id);
-    if (item.id !== masterId) {
-      recurringMasterIds.add(masterId);
-    }
-  }
+  const visitMasterIds = new Set(expandedVisits.map((item) => resolveVisitMasterId(item.id)));
 
-  const filtered = events.filter((event) => {
+  const withoutAssistVisits = events.filter((event) => {
     if (event.sourceType !== 'assist_visit' || !event.sourceId) return true;
-    const masterId = resolveVisitMasterId(event.sourceId);
-    return !(recurringMasterIds.has(masterId) && event.sourceId === masterId);
+    return !visitMasterIds.has(resolveVisitMasterId(event.sourceId));
   });
 
-  const existingSourceIds = new Set(
-    filtered
-      .filter((event) => event.sourceType === 'assist_visit' && event.sourceId)
-      .map((event) => event.sourceId!),
-  );
+  const visitEvents = expandedVisits.map(visitListItemToCalendarEvent);
 
-  const synthetic = expandedVisits
-    .filter((item) => !existingSourceIds.has(item.id))
-    .map(visitListItemToCalendarEvent);
-
-  return [...filtered, ...synthetic].sort(
+  return [...withoutAssistVisits, ...visitEvents].sort(
     (a, b) => new Date(a.start).getTime() - new Date(b.start).getTime(),
   );
 }
