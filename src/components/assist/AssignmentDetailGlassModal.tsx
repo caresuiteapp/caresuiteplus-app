@@ -1,6 +1,6 @@
 import { AssignmentDetailTabsPanel } from '@/components/assist/AssignmentDetailTabsPanel';
 import { useEffect, useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { Platform, StyleSheet, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { useAuroraGlassModalStyle } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
@@ -60,15 +60,17 @@ export function AssignmentDetailGlassModal({
       glowColor={assistAccent}
       bodyStyle={styles.modalBody}
     >
-      <View style={[styles.detailPanel, formPanelStyle]}>
-        <AssignmentDetailTabsPanel
-          assignmentId={assignmentId}
-          mode={isFull ? 'full' : 'preview'}
-          layout="modal"
-          onOpenFullRecord={() => setMode('full')}
-          onClose={onClose}
-          onDeleted={handleDeleted}
-        />
+      <View style={styles.shell}>
+        <View style={[styles.detailPanel, formPanelStyle]}>
+          <AssignmentDetailTabsPanel
+            assignmentId={assignmentId}
+            mode={isFull ? 'full' : 'preview'}
+            layout="modal"
+            onOpenFullRecord={() => setMode('full')}
+            onClose={onClose}
+            onDeleted={handleDeleted}
+          />
+        </View>
       </View>
     </PlatformModal>
   );
@@ -78,15 +80,25 @@ const styles = StyleSheet.create({
   modalBody: {
     paddingTop: 0,
     gap: 0,
-    flexGrow: 1,
-    flexShrink: 1,
+    flex: 1,
     minHeight: 0,
+    ...Platform.select({
+      web: {
+        overflow: 'hidden' as const,
+      },
+      default: {},
+    }),
+  },
+  shell: {
+    flex: 1,
+    minHeight: 0,
+    flexDirection: 'column',
   },
   detailPanel: {
     borderRadius: careRadius.lg,
     overflow: 'hidden',
-    flexGrow: 1,
-    flexShrink: 1,
+    flex: 1,
     minHeight: 0,
+    flexDirection: 'column',
   },
 });

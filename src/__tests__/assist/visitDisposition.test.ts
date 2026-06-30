@@ -107,13 +107,17 @@ describe('Assist disposition list UI contracts', () => {
     expect(source).toContain('layout="modal"');
     expect(source).toContain('useAuroraGlassModalStyle');
     expect(source).not.toContain('maxHeight: 560');
+    expect(source).toContain("overflow: 'hidden'");
+    expect(source).toContain('styles.shell');
   });
 
-  it('AssignmentDetailTabsPanel nutzt modal toolbar actions auf Desktop', () => {
+  it('AssignmentDetailTabsPanel nutzt modal scroll + footer actions auf Desktop', () => {
     const panel = readSrc('src/components/assist/AssignmentDetailTabsPanel.tsx');
     expect(panel).toContain("layout?: 'page' | 'modal'");
     expect(panel).toContain('useActionToolbar');
-    expect(panel).toContain("position: 'sticky'");
+    expect(panel).toContain('contentScroll');
+    expect(panel).toContain('renderActions');
+    expect(panel).not.toContain("position: 'sticky'");
   });
 
   it('Status-Buttons nutzen AssignmentStatus Labels (kein Aktiv/Aktiv)', () => {
