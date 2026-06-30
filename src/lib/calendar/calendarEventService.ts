@@ -22,6 +22,8 @@ import {
 } from '@/lib/calendar/calendarSyncService';
 import { resolveCalendarPermission } from '@/lib/calendar/calendarPermissions';
 import { isStationaerCalendarSourceType } from '@/lib/calendar/calendarSourceRegistry';
+import { mergeExpandedAssistVisitCalendarEvents, visitListItemToCalendarEvent } from '@/lib/calendar/assistVisitCalendarRecurrence';
+import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import {
   fetchCalendarEvents as fetchLegacyCalendarEvents,
   fetchAssistCalendarEvents as fetchLegacyAssistCalendarEvents,
@@ -147,24 +149,39 @@ async function enrichAssistCalendarEvents(
   tenantId: string,
   events: CalendarEvent[],
   actorRoleKey?: RoleKey | null,
+  rangeStart?: string,
+  rangeEnd?: string,
 ): Promise<CalendarEvent[]> {
-  const needsEnrichment = events.some(
+  let enriched = events;
+
+  if (rangeStart || rangeEnd) {
+    const visitResult = await visitSupabaseRepository.list(tenantId, {
+      dateFrom: rangeStart,
+      dateTo: rangeEnd,
+    });
+    if (visitResult.ok && visitResult.data.length > 0) {
+      enriched = mergeExpandedAssistVisitCalendarEvents(enriched, visitResult.data);
+    }
+  }
+
+  const needsEnrichment = enriched.some(
     (event) =>
       event.type === 'einsatz'
       && event.sourceId
       && (!event.clientName?.trim() || !event.employeeName?.trim()),
   );
-  if (!needsEnrichment) return events;
+  if (!needsEnrichment) return enriched;
 
   const { fetchAssignmentList } = await import('@/lib/assist/assignmentListService');
   const assignmentsResult = await fetchAssignmentList(tenantId, actorRoleKey);
-  if (!assignmentsResult.ok) return events;
+  if (!assignmentsResult.ok) return enriched;
 
   const byId = new Map(assignmentsResult.data.map((item) => [item.id, item]));
 
-  return events.map((event) => {
+  return enriched.map((event) => {
     if (event.type !== 'einsatz' || !event.sourceId) return event;
-    const assignment = byId.get(event.sourceId);
+    const masterId = event.sourceId.includes('::') ? event.sourceId.split('::')[0]! : event.sourceId;
+    const assignment = byId.get(event.sourceId) ?? byId.get(masterId);
     if (!assignment) return event;
     return enrichCalendarEventWithAssignment(event, assignment);
   });
@@ -182,14 +199,19 @@ export async function getCalendarEvents(
 
   const isAssistModule =
     params.config.calendarScope === 'module' && params.config.moduleKey === 'assist';
+  const isOfficeMain =
+    params.config.calendarScope === 'office' || params.config.showAllModules;
+  const shouldExpandAssistRecurrences = isAssistModule || isOfficeMain;
 
   const central = await fetchFromCentralStore(params);
   if (central.ok && central.data.length > 0) {
-    if (isAssistModule) {
+    if (shouldExpandAssistRecurrences) {
       const enriched = await enrichAssistCalendarEvents(
         params.tenantId,
         central.data,
         params.actorRoleKey,
+        params.rangeStart,
+        params.rangeEnd,
       );
       return { ok: true, data: enriched };
     }
@@ -207,20 +229,19 @@ export async function getCalendarEvents(
     await syncStationaerCalendarBootstrap(params.tenantId);
     const retry = await fetchFromCentralStore(params);
     if (retry.ok && retry.data.length > 0) {
-      if (isAssistModule) {
+      if (shouldExpandAssistRecurrences) {
         const enriched = await enrichAssistCalendarEvents(
           params.tenantId,
           retry.data,
           params.actorRoleKey,
+          params.rangeStart,
+          params.rangeEnd,
         );
         return { ok: true, data: enriched };
       }
       return retry;
     }
   }
-
-  const isOfficeMain =
-    params.config.calendarScope === 'office' || params.config.showAllModules;
 
   if (isAssistModule) {
     const legacy = await fetchLegacyFallbackOnce(params, fetchLegacyAssistCalendarEvents);
@@ -229,6 +250,8 @@ export async function getCalendarEvents(
         params.tenantId,
         legacy.data,
         params.actorRoleKey,
+        params.rangeStart,
+        params.rangeEnd,
       );
       return { ok: true, data: enriched };
     }
@@ -294,6 +317,30 @@ function portalEventsToAppointmentItems(
   }));
 }
 
+async function mergePortalAssistRecurrenceEvents(
+  tenantId: string,
+  events: CalendarEvent[],
+  filter: { employeeId?: string; clientId?: string },
+  rangeStart?: string,
+  rangeEnd?: string,
+): Promise<CalendarEvent[]> {
+  const visitResult = await visitSupabaseRepository.list(tenantId, {
+    employeeId: filter.employeeId,
+    clientId: filter.clientId,
+    portalAudience: filter.clientId ? 'client' : 'employee',
+    dateFrom: rangeStart,
+    dateTo: rangeEnd,
+  });
+  if (!visitResult.ok || visitResult.data.length === 0) return events;
+
+  const hrefBase = filter.clientId ? '/portal/client/appointments' : '/portal/employee/assignments';
+  const merged = mergeExpandedAssistVisitCalendarEvents(events, visitResult.data);
+  return merged.map((event) => {
+    if (event.sourceType !== 'assist_visit' || !event.sourceId) return event;
+    return { ...event, href: `${hrefBase}/${event.sourceId}` };
+  });
+}
+
 export async function getPortalCalendarEvents(
   tenantId: string,
   context: PortalCalendarContext,
@@ -309,7 +356,18 @@ export async function getPortalCalendarEvents(
     options?.rangeEnd,
   );
   if (result.ok && result.data.length > 0) {
-    return { ok: true, data: recordsToUiEvents(result.data) };
+    const events = recordsToUiEvents(result.data);
+    const merged = await mergePortalAssistRecurrenceEvents(
+      tenantId,
+      events,
+      {
+        clientId: context.portalType === 'client' ? context.clientId : undefined,
+        employeeId: context.portalType === 'employee' ? context.employeeId : undefined,
+      },
+      options?.rangeStart,
+      options?.rangeEnd,
+    );
+    return { ok: true, data: merged };
   }
 
   // LEGACY capped fallback: assignments-only reads when central store empty
@@ -326,7 +384,9 @@ export async function getPortalCalendarEvents(
 
     if (!live.ok) return live;
 
-    const events: CalendarEvent[] = live.data.slice(0, 50).map((item) => ({
+    const hrefBase =
+      context.portalType === 'client' ? '/portal/client/appointments' : '/portal/employee/assignments';
+    const events: CalendarEvent[] = live.data.slice(0, 200).map((item) => ({
       id: item.id,
       title: item.title,
       start: item.startsAt,
@@ -336,11 +396,8 @@ export async function getPortalCalendarEvents(
       sourceId: item.id,
       sourceType: 'assist_visit',
       moduleKey: 'assist',
-      href: context.portalType === 'client'
-        ? `/portal/client/appointments/${item.id}`
-        : `/portal/employee/assignments/${item.id}`,
+      href: `${hrefBase}/${item.id}`,
     }));
-
     return { ok: true, data: events };
   }
 
@@ -362,7 +419,15 @@ export async function getEmployeeCalendarEvents(
     options?.rangeEnd,
   );
   if (!result.ok) return result;
-  return { ok: true, data: recordsToUiEvents(result.data) };
+  const events = recordsToUiEvents(result.data);
+  const merged = await mergePortalAssistRecurrenceEvents(
+    tenantId,
+    events,
+    { employeeId },
+    options?.rangeStart,
+    options?.rangeEnd,
+  );
+  return { ok: true, data: merged };
 }
 
 export async function getClientCalendarEvents(
@@ -380,7 +445,15 @@ export async function getClientCalendarEvents(
     options?.rangeEnd,
   );
   if (!result.ok) return result;
-  return { ok: true, data: recordsToUiEvents(result.data) };
+  const events = recordsToUiEvents(result.data);
+  const merged = await mergePortalAssistRecurrenceEvents(
+    tenantId,
+    events,
+    { clientId },
+    options?.rangeStart,
+    options?.rangeEnd,
+  );
+  return { ok: true, data: merged };
 }
 
 export async function createCalendarEventFromSource(

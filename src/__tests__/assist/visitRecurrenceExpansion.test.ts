@@ -5,6 +5,7 @@ import {
   buildVisitOccurrenceId,
   expandVisitDispositionListItems,
   expandVisitRowToListItems,
+  filterVisitListItemsByDateRange,
   isResolvableVisitId,
   parseVisitOccurrenceId,
   parseVisitRecurrenceJson,
@@ -172,6 +173,47 @@ describe('visitRecurrenceExpansion', () => {
     expect(expanded[0]?.scheduledStart.slice(0, 10)).toBe(seriesDates[0]);
     expect(expanded[1]?.scheduledStart.slice(0, 10)).toBe(seriesDates[1]);
     expect(expanded[2]?.scheduledStart.slice(0, 10)).toBe('2026-08-01');
+  });
+
+  it('filtert expandierte Termine auf sichtbaren Datumsbereich', () => {
+    const assignmentDate = '2026-07-06';
+    const item = baseListItem({
+      scheduledStart: `${assignmentDate}T07:00:00.000Z`,
+      scheduledEnd: `${assignmentDate}T09:00:00.000Z`,
+    });
+    const expanded = expandVisitRowToListItems(
+      {
+        assignment_date: assignmentDate,
+        planned_start_at: item.scheduledStart,
+        planned_end_at: item.scheduledEnd,
+        recurrence_json: { pattern: 'weekly', weekdays: ['mo'], occurrenceCount: 4 },
+      },
+      item,
+      { dateFrom: '2026-07-13T00:00:00.000Z', dateTo: '2026-07-31T23:59:59.999Z' },
+    );
+
+    expect(expanded.length).toBeGreaterThan(0);
+    expect(expanded.every((entry) => entry.scheduledStart >= '2026-07-13')).toBe(true);
+    expect(expanded.every((entry) => entry.scheduledStart <= '2026-07-31T23:59:59.999Z')).toBe(true);
+  });
+
+  it('filterVisitListItemsByDateRange schneidet außerhalb liegende Termine', () => {
+    const items = [
+      baseListItem({ scheduledStart: '2026-07-07T07:00:00.000Z' }),
+      baseListItem({
+        id: buildVisitOccurrenceId(VISIT_ID, '2026-07-14'),
+        scheduledStart: '2026-07-14T07:00:00.000Z',
+      }),
+    ];
+
+    const filtered = filterVisitListItemsByDateRange(
+      items,
+      '2026-07-10T00:00:00.000Z',
+      '2026-07-20T23:59:59.999Z',
+    );
+
+    expect(filtered).toHaveLength(1);
+    expect(filtered[0]?.scheduledStart.slice(0, 10)).toBe('2026-07-14');
   });
 
   it('passt Detailansicht für Serientermin an', () => {

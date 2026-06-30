@@ -9,6 +9,11 @@ import {
 } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import { mapVisitDetailToAssignmentDetail } from '@/lib/portal/employeePortalAssignmentBridge';
+import {
+  parseVisitOccurrenceId,
+  resolveVisitMasterId,
+  shiftVisitScheduleToDate,
+} from '@/lib/assist/visitRecurrenceExpansion';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -70,21 +75,40 @@ export async function resolveLiveAssignment(
   if (!tenantId?.trim() || !rawId?.trim()) {
     return { ok: false, error: 'Einsatzdaten unvollständig.' };
   }
-  if (!isUuid(rawId)) {
+
+  const masterId = resolveVisitMasterId(rawId);
+  const { occurrenceDate } = parseVisitOccurrenceId(rawId);
+  if (!isUuid(masterId)) {
     return { ok: true, data: null };
   }
 
+  function applyOccurrenceToAssignmentDetail(detail: AssignmentDetail): AssignmentDetail {
+    if (!occurrenceDate) return detail;
+    const shifted = shiftVisitScheduleToDate(
+      detail.plannedStartAt,
+      detail.plannedEndAt,
+      occurrenceDate,
+    );
+    return {
+      ...detail,
+      id: rawId,
+      plannedStartAt: shifted.scheduledStart,
+      plannedEndAt: shifted.scheduledEnd,
+    };
+  }
+
   if (getServiceMode() !== 'supabase') {
-    const fromAssignments = await assignmentSupabaseRepository.getById(tenantId, rawId);
+    const fromAssignments = await assignmentSupabaseRepository.getById(tenantId, masterId);
     if (!fromAssignments.ok) return fromAssignments;
     if (fromAssignments.data) {
+      const detail = applyOccurrenceToAssignmentDetail(fromAssignments.data);
       const scope = assertScope(
         {
-          assignmentId: fromAssignments.data.id,
-          visitId: fromAssignments.data.id,
-          clientId: fromAssignments.data.clientId,
-          employeeId: fromAssignments.data.employeeId || null,
-          detail: fromAssignments.data,
+          assignmentId: rawId,
+          visitId: masterId,
+          clientId: detail.clientId,
+          employeeId: detail.employeeId || null,
+          detail,
         },
         input,
       );
@@ -92,11 +116,11 @@ export async function resolveLiveAssignment(
       return {
         ok: true,
         data: {
-          assignmentId: fromAssignments.data.id,
-          visitId: fromAssignments.data.id,
-          clientId: fromAssignments.data.clientId,
-          employeeId: fromAssignments.data.employeeId || null,
-          detail: fromAssignments.data,
+          assignmentId: rawId,
+          visitId: masterId,
+          clientId: detail.clientId,
+          employeeId: detail.employeeId || null,
+          detail,
           source: 'assignments',
         },
       };
@@ -104,20 +128,21 @@ export async function resolveLiveAssignment(
     return { ok: true, data: null };
   }
 
-  const fromAssignments = await assignmentSupabaseRepository.getById(tenantId, rawId, {
+  const fromAssignments = await assignmentSupabaseRepository.getById(tenantId, masterId, {
     portalEmployeeId: input.employeeId,
   });
   if (!fromAssignments.ok) return fromAssignments;
   if (fromAssignments.data) {
     const visitId =
-      (await visitSupabaseRepository.resolveVisitId(tenantId, rawId)) ?? fromAssignments.data.id;
+      (await visitSupabaseRepository.resolveVisitId(tenantId, masterId)) ?? fromAssignments.data.id;
+    const detail = applyOccurrenceToAssignmentDetail(fromAssignments.data);
     const scope = assertScope(
       {
-        assignmentId: fromAssignments.data.id,
+        assignmentId: rawId,
         visitId,
-        clientId: fromAssignments.data.clientId,
-        employeeId: fromAssignments.data.employeeId || null,
-        detail: fromAssignments.data,
+        clientId: detail.clientId,
+        employeeId: detail.employeeId || null,
+        detail,
       },
       input,
     );
@@ -125,24 +150,24 @@ export async function resolveLiveAssignment(
     return {
       ok: true,
       data: {
-        assignmentId: fromAssignments.data.id,
+        assignmentId: rawId,
         visitId,
-        clientId: fromAssignments.data.clientId,
-        employeeId: fromAssignments.data.employeeId || null,
-        detail: fromAssignments.data,
+        clientId: detail.clientId,
+        employeeId: detail.employeeId || null,
+        detail,
         source: 'assignments',
       },
     };
   }
 
-  const fromVisit = await visitSupabaseRepository.getById(tenantId, rawId);
+  const fromVisit = await visitSupabaseRepository.getById(tenantId, masterId);
   if (!fromVisit.ok) return fromVisit;
   if (fromVisit.data) {
-    const detail = mapVisitDetailToAssignmentDetail(fromVisit.data);
+    const detail = applyOccurrenceToAssignmentDetail(mapVisitDetailToAssignmentDetail(fromVisit.data));
     const scope = assertScope(
       {
-        assignmentId: fromVisit.data.id,
-        visitId: fromVisit.data.id,
+        assignmentId: rawId,
+        visitId: masterId,
         clientId: fromVisit.data.clientId,
         employeeId: fromVisit.data.employeeId ?? null,
         detail,
@@ -153,8 +178,8 @@ export async function resolveLiveAssignment(
     return {
       ok: true,
       data: {
-        assignmentId: fromVisit.data.id,
-        visitId: fromVisit.data.id,
+        assignmentId: rawId,
+        visitId: masterId,
         clientId: fromVisit.data.clientId,
         employeeId: fromVisit.data.employeeId ?? null,
         detail,
@@ -163,12 +188,14 @@ export async function resolveLiveAssignment(
     };
   }
 
-  const legacyVisitId = await findVisitIdByLegacyAssignment(tenantId, rawId);
+  const legacyVisitId = await findVisitIdByLegacyAssignment(tenantId, masterId);
   if (legacyVisitId) {
     const legacyVisit = await visitSupabaseRepository.getById(tenantId, legacyVisitId);
     if (!legacyVisit.ok) return legacyVisit;
     if (legacyVisit.data) {
-      const detail = mapVisitDetailToAssignmentDetail(legacyVisit.data);
+      const detail = applyOccurrenceToAssignmentDetail(
+        mapVisitDetailToAssignmentDetail(legacyVisit.data),
+      );
       const scope = assertScope(
         {
           assignmentId: rawId,

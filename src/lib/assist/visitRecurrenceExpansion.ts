@@ -97,13 +97,39 @@ export type VisitRecurrenceSourceRow = {
   recurrence_json?: unknown;
 };
 
+export type ExpandVisitRecurrenceOptions = {
+  dateFrom?: string;
+  dateTo?: string;
+};
+
+function isScheduledWithinRange(
+  scheduledStart: string,
+  dateFrom?: string,
+  dateTo?: string,
+): boolean {
+  const startMs = new Date(scheduledStart).getTime();
+  if (dateFrom && startMs < new Date(dateFrom).getTime()) return false;
+  if (dateTo && startMs > new Date(dateTo).getTime()) return false;
+  return true;
+}
+
+export function filterVisitListItemsByDateRange(
+  items: VisitDispositionListItem[],
+  dateFrom?: string,
+  dateTo?: string,
+): VisitDispositionListItem[] {
+  if (!dateFrom && !dateTo) return items;
+  return items.filter((item) => isScheduledWithinRange(item.scheduledStart, dateFrom, dateTo));
+}
+
 export function expandVisitRowToListItems(
   row: VisitRecurrenceSourceRow,
   item: VisitDispositionListItem,
+  options?: ExpandVisitRecurrenceOptions,
 ): VisitDispositionListItem[] {
   const recurrence = parseVisitRecurrenceJson(row.recurrence_json);
   if (recurrence.pattern === 'none') {
-    return [item];
+    return filterVisitListItemsByDateRange([item], options?.dateFrom, options?.dateTo);
   }
 
   const dates = expandVisitRecurrenceDates({
@@ -116,10 +142,10 @@ export function expandVisitRowToListItems(
   });
 
   if (dates.length <= 1) {
-    return [item];
+    return filterVisitListItemsByDateRange([item], options?.dateFrom, options?.dateTo);
   }
 
-  return dates.map((dateKey, index) => {
+  const expanded = dates.map((dateKey, index) => {
     const shifted = shiftVisitScheduleToDate(row.planned_start_at, row.planned_end_at, dateKey);
     return {
       ...item,
@@ -133,15 +159,22 @@ export function expandVisitRowToListItems(
       ),
     };
   });
+
+  return filterVisitListItemsByDateRange(expanded, options?.dateFrom, options?.dateTo);
 }
 
 export function expandVisitDispositionListItems(
   rows: Array<{ row: VisitRecurrenceSourceRow; item: VisitDispositionListItem }>,
+  options?: ExpandVisitRecurrenceOptions,
 ): VisitDispositionListItem[] {
-  const expanded = rows.flatMap(({ row, item }) => expandVisitRowToListItems(row, item));
+  const expanded = rows.flatMap(({ row, item }) => expandVisitRowToListItems(row, item, options));
   return expanded.sort(
     (a, b) => new Date(a.scheduledStart).getTime() - new Date(b.scheduledStart).getTime(),
   );
+}
+
+export function hasRecurringVisitOccurrences(items: VisitDispositionListItem[]): boolean {
+  return items.some((item) => resolveVisitMasterId(item.id) !== item.id);
 }
 
 export function applyOccurrenceDateToVisitDetail(

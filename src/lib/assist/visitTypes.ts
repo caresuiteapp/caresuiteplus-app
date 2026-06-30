@@ -146,6 +146,7 @@ export type VisitBudgetSnapshot = {
 export type VisitDispositionListItem = {
   id: string;
   tenantId: string;
+  clientId?: string;
   title: string;
   serviceName: string | null;
   scheduledStart: string;

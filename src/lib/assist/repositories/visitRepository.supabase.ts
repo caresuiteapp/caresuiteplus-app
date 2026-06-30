@@ -55,7 +55,10 @@ import {
   persistAssignmentBudgetAllocations,
   reserveAssignmentBudget,
 } from '@/lib/assist/assignmentBudgetAllocationService';
-import { expandVisitDispositionListItems } from '@/lib/assist/visitRecurrenceExpansion';
+import {
+  expandVisitDispositionListItems,
+  parseVisitRecurrenceJson,
+} from '@/lib/assist/visitRecurrenceExpansion';
 import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
 import { isSupabaseMissingTableError } from '@/lib/supabase/errors';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
@@ -290,6 +293,7 @@ function mapListItem(row: VisitRow): VisitDispositionListItem {
   return {
     id: row.id,
     tenantId: row.tenant_id,
+    clientId: row.client_id,
     title: row.title?.trim() || row.service_name?.trim() || 'Einsatz',
     serviceName: row.service_name,
     scheduledStart: row.planned_start_at,
@@ -413,6 +417,8 @@ export type VisitListOptions = {
   serviceKey?: string;
   dateFrom?: string;
   dateTo?: string;
+  /** Filter for portal visibility (client or employee portal). */
+  portalAudience?: 'client' | 'employee';
 };
 
 export const visitSupabaseRepository = {
@@ -425,26 +431,74 @@ export const visitSupabaseRepository = {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
-    let query = fromUnknownTable(supabase, 'assist_visits')
-      .select(LIST_SELECT)
-      .eq('tenant_id', tenantId)
-      .order('planned_start_at', { ascending: true });
+    const baseQuery = () => {
+      let query = fromUnknownTable(supabase, 'assist_visits')
+        .select(LIST_SELECT)
+        .eq('tenant_id', tenantId);
 
-    if (options?.planningStatus && options.planningStatus !== 'all') {
-      query = query.eq('planning_status', options.planningStatus);
+      if (options?.planningStatus && options.planningStatus !== 'all') {
+        query = query.eq('planning_status', options.planningStatus);
+      } else if (options?.portalAudience) {
+        query = query.neq('planning_status', 'draft');
+      }
+      if (options?.clientId) query = query.eq('client_id', options.clientId);
+      if (options?.employeeId) query = query.eq('employee_id', options.employeeId);
+      if (options?.serviceKey) query = query.eq('service_key', options.serviceKey);
+      if (options?.portalAudience === 'client') {
+        query = query.eq('portal_release_enabled', true);
+      }
+      if (options?.portalAudience === 'employee') {
+        query = query.eq('employee_portal_visible', true);
+      }
+      return query;
+    };
+
+    const expandOptions = {
+      dateFrom: options?.dateFrom,
+      dateTo: options?.dateTo,
+    };
+
+    let rows: VisitRow[] = [];
+
+    if (options?.dateFrom || options?.dateTo) {
+      const dateToKey = options.dateTo?.slice(0, 10) ?? '9999-12-31';
+
+      let inRangeQuery = baseQuery().order('planned_start_at', { ascending: true });
+      if (options.dateFrom) inRangeQuery = inRangeQuery.gte('planned_start_at', options.dateFrom);
+      if (options.dateTo) inRangeQuery = inRangeQuery.lte('planned_start_at', options.dateTo);
+
+      let recurringQuery = baseQuery()
+        .lte('assignment_date', dateToKey)
+        .order('planned_start_at', { ascending: true });
+
+      const [inRangeResult, recurringResult] = await Promise.all([inRangeQuery, recurringQuery]);
+
+      if (inRangeResult.error) {
+        return { ok: false, error: toGermanSupabaseError(inRangeResult.error) };
+      }
+      if (recurringResult.error) {
+        return { ok: false, error: toGermanSupabaseError(recurringResult.error) };
+      }
+
+      const byId = new Map<string, VisitRow>();
+      for (const row of (inRangeResult.data ?? []) as unknown as VisitRow[]) {
+        byId.set(row.id, row);
+      }
+      for (const row of (recurringResult.data ?? []) as unknown as VisitRow[]) {
+        if (parseVisitRecurrenceJson(row.recurrence_json).pattern !== 'none') {
+          byId.set(row.id, row);
+        }
+      }
+      rows = [...byId.values()];
+    } else {
+      const { data, error } = await baseQuery().order('planned_start_at', { ascending: true });
+      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+      rows = (data ?? []) as unknown as VisitRow[];
     }
-    if (options?.clientId) query = query.eq('client_id', options.clientId);
-    if (options?.employeeId) query = query.eq('employee_id', options.employeeId);
-    if (options?.serviceKey) query = query.eq('service_key', options.serviceKey);
-    if (options?.dateFrom) query = query.gte('planned_start_at', options.dateFrom);
-    if (options?.dateTo) query = query.lte('planned_start_at', options.dateTo);
 
-    const { data, error } = await query;
-    if (error) return { ok: false, error: toGermanSupabaseError(error) };
-
-    const rows = (data ?? []) as unknown as VisitRow[];
     const expanded = expandVisitDispositionListItems(
       rows.map((row) => ({ row, item: mapListItem(row) })),
+      expandOptions,
     );
     return { ok: true, data: expanded };
   },
