@@ -48,6 +48,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { resolveLiveAssignment } from '@/features/liveTracking/resolveLiveAssignment';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
+import { resolveEmployeePortalDocumentationFlags } from './resolveEmployeePortalSignatureRequirement';
 
 function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
   return {
@@ -70,6 +71,9 @@ function mapDetailToPortal(
     notesForEmployee?: string | null;
     accessHints?: string | null;
     emergencyContact?: string | null;
+    requiresSignature?: boolean;
+    requiresDocumentation?: boolean;
+    signatureStatus?: EmployeePortalAssignmentDetail['signatureStatus'];
   },
 ): EmployeePortalAssignmentDetail {
   const status = detail.assignmentStatus;
@@ -80,8 +84,8 @@ function mapDetailToPortal(
     employeeId: detail.employeeId,
     clientId: detail.clientId,
   });
-  const requiresDocumentation = true;
-  const requiresSignature = false;
+  const requiresDocumentation = extras?.requiresDocumentation ?? true;
+  const requiresSignature = extras?.requiresSignature ?? false;
   const docNotes = detail.documentationNotes?.trim();
   const documentationStatus: EmployeePortalAssignmentDetail['documentationStatus'] =
     !docNotes && (status === 'beendet' || status === 'dokumentation_offen')
@@ -89,11 +93,13 @@ function mapDetailToPortal(
       : docNotes
         ? 'submitted'
         : 'none';
-  const signatureStatus: EmployeePortalAssignmentDetail['signatureStatus'] = requiresSignature
-    ? status === 'unterschrift_offen'
-      ? 'pending'
-      : 'none'
-    : 'none';
+  const signatureStatus: EmployeePortalAssignmentDetail['signatureStatus'] =
+    extras?.signatureStatus ??
+    (requiresSignature
+      ? status === 'unterschrift_offen' || status === 'dokumentation_offen'
+        ? 'pending'
+        : 'none'
+      : 'none');
 
   return {
     assignmentId: detail.id,
@@ -291,9 +297,20 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
     if (accessDenied) return accessDenied;
 
     const extras = await fetchAssignmentExtras(tenantId, assignmentId, loaded.data.clientId);
+    const docFlags = await resolveEmployeePortalDocumentationFlags(
+      tenantId,
+      assignmentId,
+      loaded.data.assignmentStatus,
+      loaded.data.documentationNotes,
+    );
     return {
       ok: true,
-      data: mapDetailToPortal(loaded.data, roleKey, employeeId, tenantModules, extras),
+      data: mapDetailToPortal(loaded.data, roleKey, employeeId, tenantModules, {
+        ...extras,
+        requiresSignature: docFlags.requiresSignature,
+        requiresDocumentation: docFlags.requiresDocumentation,
+        signatureStatus: docFlags.signatureStatus,
+      }),
     };
   });
 }
@@ -380,9 +397,20 @@ export async function transitionLiveEmployeePortalAssignment(
   }
 
   const extras = await fetchAssignmentExtras(tenantId, assignmentId, detailAfterUpdate.clientId);
+  const docFlags = await resolveEmployeePortalDocumentationFlags(
+    tenantId,
+    assignmentId,
+    detailAfterUpdate.assignmentStatus,
+    detailAfterUpdate.documentationNotes,
+  );
   return {
     ok: true,
-    data: mapDetailToPortal(detailAfterUpdate, roleKey, employeeId, undefined, extras),
+    data: mapDetailToPortal(detailAfterUpdate, roleKey, employeeId, undefined, {
+      ...extras,
+      requiresSignature: docFlags.requiresSignature,
+      requiresDocumentation: docFlags.requiresDocumentation,
+      signatureStatus: docFlags.signatureStatus,
+    }),
   };
 }
 
@@ -422,9 +450,20 @@ export async function updateLiveEmployeePortalTask(
   if (!updated.ok) return updated;
 
   const extras = await fetchAssignmentExtras(tenantId, assignmentId, updated.data.clientId);
+  const docFlags = await resolveEmployeePortalDocumentationFlags(
+    tenantId,
+    assignmentId,
+    updated.data.assignmentStatus,
+    updated.data.documentationNotes,
+  );
   return {
     ok: true,
-    data: mapDetailToPortal(updated.data, roleKey, employeeId, undefined, extras),
+    data: mapDetailToPortal(updated.data, roleKey, employeeId, undefined, {
+      ...extras,
+      requiresSignature: docFlags.requiresSignature,
+      requiresDocumentation: docFlags.requiresDocumentation,
+      signatureStatus: docFlags.signatureStatus,
+    }),
   };
 }
 
@@ -478,9 +517,20 @@ export async function updateLiveEmployeePortalTasksBatch(
   if (!updated.ok) return updated;
 
   const extras = await fetchAssignmentExtras(tenantId, assignmentId, updated.data.clientId);
+  const docFlags = await resolveEmployeePortalDocumentationFlags(
+    tenantId,
+    assignmentId,
+    updated.data.assignmentStatus,
+    updated.data.documentationNotes,
+  );
   return {
     ok: true,
-    data: mapDetailToPortal(updated.data, roleKey, employeeId, undefined, extras),
+    data: mapDetailToPortal(updated.data, roleKey, employeeId, undefined, {
+      ...extras,
+      requiresSignature: docFlags.requiresSignature,
+      requiresDocumentation: docFlags.requiresDocumentation,
+      signatureStatus: docFlags.signatureStatus,
+    }),
   };
 }
 

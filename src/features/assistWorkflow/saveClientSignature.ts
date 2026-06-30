@@ -6,6 +6,7 @@ import type { RoleKey } from '@/types';
 import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employeePortalExecution';
 import { persistEmployeePortalSignature } from '@/lib/portal/employeePortalVisitTrackingPersistence';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
+import { generateServiceRecord } from './generateServiceRecord';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
@@ -23,6 +24,7 @@ export type SaveClientSignatureInput = {
 export type SaveClientSignatureResult = {
   ctx: AssistExecutionContext;
   readyToFinalize: boolean;
+  proofGenerated: boolean;
 };
 
 export async function saveClientSignature(
@@ -39,7 +41,7 @@ export async function saveClientSignature(
       roleKey: ctx.roleKey as RoleKey | null,
     });
     if (!refreshed.ok) return { ok: false, error: refreshed.error };
-    return { ok: true, data: { ctx: refreshed.data, readyToFinalize: false } };
+    return { ok: true, data: { ctx: refreshed.data, readyToFinalize: false, proofGenerated: false } };
   }
 
   if (!signature.signatureDataUrl?.trim() || !signature.signerName?.trim()) {
@@ -96,13 +98,6 @@ export async function saveClientSignature(
     updatedCtx = transitioned.data;
   }
 
-  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'unterschrift_offen', {
-    employeeId: ctx.employeeId,
-    visitTimes: updatedCtx.visitTimes,
-    documentationComplete: true,
-    signatureComplete: true,
-  });
-
   const refreshed = await resolveAssistExecutionContext({
     tenantId: ctx.tenantId,
     assignmentId: ctx.assignmentId,
@@ -113,9 +108,25 @@ export async function saveClientSignature(
 
   if (!refreshed.ok) return { ok: false, error: refreshed.error };
 
+  const documentationText =
+    refreshed.data.detail.documentationStatus === 'submitted' ? 'submitted' : null;
+  const proof = await generateServiceRecord(refreshed.data, documentationText);
+
+  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'unterschrift_offen', {
+    employeeId: ctx.employeeId,
+    visitTimes: refreshed.data.visitTimes,
+    documentationComplete: true,
+    signatureComplete: true,
+    proofGenerated: proof.ok ? proof.data.proofPersisted : false,
+  });
+
   return {
     ok: true,
-    data: { ctx: refreshed.data, readyToFinalize: true },
+    data: {
+      ctx: refreshed.data,
+      readyToFinalize: true,
+      proofGenerated: proof.ok ? proof.data.proofPersisted : false,
+    },
   };
 }
 

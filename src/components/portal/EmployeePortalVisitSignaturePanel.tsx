@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
@@ -10,6 +10,8 @@ type EmployeePortalVisitSignaturePanelProps = {
   disabled?: boolean;
   loading?: boolean;
   capturedPreview?: string | null;
+  /** Increment to request opening the signature modal (e.g. after documentation save). */
+  openRequest?: number;
   onCapture: (input: EmployeePortalSignatureCaptureInput) => Promise<{ ok: boolean; error?: string }>;
 };
 
@@ -18,11 +20,18 @@ export function EmployeePortalVisitSignaturePanel({
   disabled = false,
   loading = false,
   capturedPreview,
+  openRequest = 0,
   onCapture,
 }: EmployeePortalVisitSignaturePanelProps) {
   const [modalVisible, setModalVisible] = useState(false);
   const [signerName, setSignerName] = useState(clientName);
   const [preview, setPreview] = useState<string | null>(capturedPreview ?? null);
+
+  useEffect(() => {
+    if (openRequest > 0 && !disabled && !preview) {
+      setModalVisible(true);
+    }
+  }, [openRequest, disabled, preview]);
 
   const handleConfirm = async (dataUrl: string) => {
     const result = await onCapture({

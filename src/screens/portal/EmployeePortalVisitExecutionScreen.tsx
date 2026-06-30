@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useState } from 'react';
+import { useCallback, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -118,6 +118,9 @@ export function EmployeePortalVisitExecutionScreen() {
   const [noShowNote, setNoShowNote] = useState('');
   const [showNoShowForm, setShowNoShowForm] = useState(false);
   const [awaitingSignature, setAwaitingSignature] = useState(false);
+  const scrollRef = useRef<ScrollView>(null);
+  const signatureSectionY = useRef(0);
+  const [signaturePanelOpenRequest, setSignaturePanelOpenRequest] = useState(0);
 
   const primaryAction = primaryAllowedAction(allowedActions, effectiveStatus);
   const primaryLabel = primaryAction ? ASSIST_WORKFLOW_ACTION_LABELS[primaryAction] : undefined;
@@ -144,18 +147,32 @@ export function EmployeePortalVisitExecutionScreen() {
       effectiveStatus,
     ) &&
     !statusBlocksDoc;
-  const showDocumentation =
+  const documentationSubmitted = visit?.documentationStatus === 'submitted';
+  const signatureCaptured = visit?.signatureStatus === 'captured';
+  const showDocumentationForm =
     visit &&
     !statusBlocksDoc &&
-    ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit.status);
+    !documentationSubmitted &&
+    ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(effectiveStatus);
   const showSignature =
     visit &&
     visit.requiresSignature &&
     !statusBlocksDoc &&
+    documentationSubmitted &&
+    !signatureCaptured &&
     (awaitingSignature ||
-      ['dokumentation_offen', 'unterschrift_offen'].includes(visit.status));
+      ['dokumentation_offen', 'unterschrift_offen'].includes(effectiveStatus));
   const showFinalize =
-    visit && visit.status === 'unterschrift_offen' && !statusBlocksDoc;
+    visit &&
+    !statusBlocksDoc &&
+    documentationSubmitted &&
+    (effectiveStatus === 'unterschrift_offen' ||
+      (!visit.requiresSignature && effectiveStatus === 'dokumentation_offen'));
+
+  const scrollToSignature = useCallback(() => {
+    scrollRef.current?.scrollTo({ y: Math.max(signatureSectionY.current - 16, 0), animated: true });
+    setSignaturePanelOpenRequest((n) => n + 1);
+  }, []);
 
   const handleGrantConsent = useCallback(async () => {
     setConsentLoading(true);
@@ -240,9 +257,19 @@ export function EmployeePortalVisitExecutionScreen() {
         const r = await endService();
         if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
         else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
+        return;
+      }
+      if (action === 'capture_signature') {
+        scrollToSignature();
+        return;
+      }
+      if (action === 'finalize_visit') {
+        const r = await finalizeVisit();
+        if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
+        else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
       }
     },
-    [handleStartDrive, handleArrived, startService, endPause, endService],
+    [handleStartDrive, handleArrived, startService, endPause, endService, scrollToSignature, finalizeVisit],
   );
 
   const handlePrimary = useCallback(async () => {
@@ -359,6 +386,7 @@ export function EmployeePortalVisitExecutionScreen() {
       {refetchWarning ? <InfoBanner variant="warning" message={refetchWarning} /> : null}
 
       <ScrollView
+        ref={scrollRef}
         contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + 32 + insets.bottom }]}
         showsVerticalScrollIndicator={false}
       >
@@ -489,15 +517,25 @@ export function EmployeePortalVisitExecutionScreen() {
           />
         ) : null}
 
-        {showDocumentation && !isLocked ? (
+        {showDocumentationForm && !isLocked ? (
           <EmployeePortalVisitDocumentationPanel
             loading={actionLoading}
             onSubmit={async (doc) => {
               setLocalError(null);
               const r = await saveDocumentation(doc);
               if (r.ok) {
-                setLocalSuccess('Dokumentation gespeichert — Unterschrift erforderlich.');
-                if (visit.requiresSignature) setAwaitingSignature(true);
+                const needsSignature =
+                  visit.requiresSignature ||
+                  (r.data && 'nextStep' in r.data && r.data.nextStep === 'signature');
+                setLocalSuccess(
+                  needsSignature
+                    ? 'Dokumentation gespeichert — Unterschrift erforderlich.'
+                    : 'Dokumentation gespeichert — Einsatz kann abgeschlossen werden.',
+                );
+                if (needsSignature) {
+                  setAwaitingSignature(true);
+                  setTimeout(() => scrollToSignature(), 150);
+                }
               } else {
                 setLocalError(r.error ?? 'Dokumentation fehlgeschlagen.');
               }
@@ -506,21 +544,37 @@ export function EmployeePortalVisitExecutionScreen() {
           />
         ) : null}
 
+        {documentationSubmitted && visit.requiresSignature && !signatureCaptured ? (
+          <InfoBanner variant="info" message="Dokumentation gespeichert — bitte Unterschrift erfassen." />
+        ) : null}
+
         {showSignature && !isLocked ? (
-          <EmployeePortalVisitSignaturePanel
-            clientName={visit.clientName}
-            loading={actionLoading}
-            onCapture={async (sig) => {
-              const r = await saveSignature(sig);
-              if (r.ok) {
-                setAwaitingSignature(false);
-                setLocalSuccess('Unterschrift gespeichert — Einsatz kann abgeschlossen werden.');
-              } else {
-                setLocalError(r.error ?? 'Signatur fehlgeschlagen.');
-              }
-              return r;
+          <View
+            onLayout={(event) => {
+              signatureSectionY.current = event.nativeEvent.layout.y;
             }}
-          />
+          >
+            <EmployeePortalVisitSignaturePanel
+              clientName={visit.clientName}
+              loading={actionLoading}
+              openRequest={signaturePanelOpenRequest}
+              onCapture={async (sig) => {
+                const r = await saveSignature(sig);
+                if (r.ok) {
+                  setAwaitingSignature(false);
+                  const proofOk = r.data && 'proofGenerated' in r.data && r.data.proofGenerated;
+                  setLocalSuccess(
+                    proofOk
+                      ? 'Unterschrift gespeichert — Leistungsnachweis erstellt. Einsatz kann abgeschlossen werden.'
+                      : 'Unterschrift gespeichert — Einsatz kann abgeschlossen werden.',
+                  );
+                } else {
+                  setLocalError(r.error ?? 'Signatur fehlgeschlagen.');
+                }
+                return r;
+              }}
+            />
+          </View>
         ) : null}
 
         {showFinalize && !isLocked ? (

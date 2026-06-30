@@ -16,7 +16,10 @@ export type AssistWorkflowAllowedAction =
   | 'start_pause'
   | 'end_pause'
   | 'report_no_show'
-  | 'open_route';
+  | 'open_route'
+  | 'save_documentation'
+  | 'capture_signature'
+  | 'finalize_visit';
 
 export type AssistExecutionDiagnostics = {
   isServiceStarted: boolean;
@@ -86,6 +89,35 @@ export function resolveAllowedActions(input: {
     actions.push('report_no_show');
   }
 
+  const docSubmitted = detail.documentationStatus === 'submitted';
+  const signatureCaptured = detail.signatureStatus === 'captured';
+
+  if (
+    ['beendet', 'dokumentation_offen'].includes(status) &&
+    detail.requiresDocumentation &&
+    !docSubmitted
+  ) {
+    actions.push('save_documentation');
+  }
+
+  if (
+    detail.requiresSignature &&
+    docSubmitted &&
+    ['dokumentation_offen', 'unterschrift_offen'].includes(status) &&
+    !signatureCaptured
+  ) {
+    actions.push('capture_signature');
+  }
+
+  const readyToFinalize =
+    docSubmitted &&
+    (status === 'unterschrift_offen' ||
+      (status === 'dokumentation_offen' && (!detail.requiresSignature || signatureCaptured)));
+
+  if (readyToFinalize) {
+    actions.push('finalize_visit');
+  }
+
   return actions;
 }
 
@@ -93,6 +125,9 @@ export function primaryAllowedAction(
   actions: AssistWorkflowAllowedAction[],
   status: AssignmentStatus,
 ): AssistWorkflowAllowedAction | null {
+  if (actions.includes('capture_signature')) return 'capture_signature';
+  if (actions.includes('finalize_visit')) return 'finalize_visit';
+  if (actions.includes('save_documentation')) return 'save_documentation';
   if (actions.includes('mark_arrived') && status === 'unterwegs') return 'mark_arrived';
   if (actions.includes('start_service') && status === 'angekommen') return 'start_service';
   if (actions.includes('end_service') && status === 'gestartet') return 'end_service';
@@ -110,4 +145,7 @@ export const ASSIST_WORKFLOW_ACTION_LABELS: Record<AssistWorkflowAllowedAction, 
   end_pause: 'Pause beenden',
   report_no_show: 'Nicht angetroffen',
   open_route: 'Karte / Route',
+  save_documentation: 'Dokumentation speichern',
+  capture_signature: 'Unterschrift erfassen',
+  finalize_visit: 'Einsatz abschließen',
 };
