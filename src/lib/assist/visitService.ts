@@ -45,7 +45,12 @@ import { getClientAssistBillingProfile } from '@/lib/assist/clientAssistBillingP
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { isUuid } from '@/lib/validation/uuid';
+import {
+  applyOccurrenceDateToVisitDetail,
+  isResolvableVisitId,
+  parseVisitOccurrenceId,
+  resolveVisitMasterId,
+} from '@/lib/assist/visitRecurrenceExpansion';
 
 export type VisitDispositionKpi = {
   id: string;
@@ -189,14 +194,20 @@ export async function fetchVisitDispositionDetail(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    if (!isUuid(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
-    const visitResult = await visitSupabaseRepository.getById(tenantId, visitId);
+    const { visitId: masterVisitId, occurrenceDate } = parseVisitOccurrenceId(visitId);
+
+    const visitResult = await visitSupabaseRepository.getById(tenantId, masterVisitId);
     if (visitResult.ok && visitResult.data) {
-      return { ok: true, data: visitResult.data };
+      const detail =
+        occurrenceDate != null
+          ? applyOccurrenceDateToVisitDetail(visitResult.data, occurrenceDate, visitId)
+          : visitResult.data;
+      return { ok: true, data: detail };
     }
 
-    const assignmentResult = await assignmentSupabaseRepository.getById(tenantId, visitId);
+    const assignmentResult = await assignmentSupabaseRepository.getById(tenantId, masterVisitId);
     if (!assignmentResult.ok) return assignmentResult;
     if (!assignmentResult.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -206,60 +217,64 @@ export async function fetchVisitDispositionDetail(
       getAllowedAssignmentTransitions(detail.assignmentStatus),
     );
 
+    const legacyDetail: VisitDispositionDetail = {
+      id: occurrenceDate != null ? visitId : detail.id,
+      tenantId: detail.tenantId,
+      title: detail.title,
+      serviceName: detail.title,
+      scheduledStart: detail.scheduledStart,
+      scheduledEnd: detail.scheduledEnd,
+      durationMinutes: Math.round(
+        (new Date(detail.scheduledEnd).getTime() - new Date(detail.scheduledStart).getTime()) /
+          60000,
+      ),
+      status: detail.status,
+      planningStatus: dims.planning,
+      proofStatus: dims.proof,
+      billingStatus: dims.billing,
+      location: detail.location,
+      clientName: detail.clientName,
+      employeeName: detail.employeeName,
+      isAtRisk: detail.status === 'fehlerhaft',
+      isIncomplete: detail.status === 'in_bearbeitung',
+      updatedAt: detail.updatedAt,
+      clientId: detail.clientId,
+      employeeId: detail.employeeId,
+      serviceKey: null,
+      description: null,
+      notes: detail.notes,
+      employeeNotes: null,
+      executionStatus: dims.execution,
+      documentationStatus: dims.documentation,
+      portalStatus: dims.portal,
+      assignmentStatus: detail.assignmentStatus,
+      allowedStatusTransitions: allowed,
+      tasks: detail.tasks.map((t) => ({
+        id: t.id,
+        title: t.title,
+        status: t.status as VisitDispositionDetail['tasks'][0]['status'],
+        isRequired: t.isRequired,
+        notDoneReason: t.notDoneReason,
+      })),
+      budget: null,
+      portalReleaseEnabled: false,
+      employeePortalVisible: true,
+      errorCode: detail.status === 'fehlerhaft' ? 'legacy_error' : null,
+      errorMessage: detail.status === 'fehlerhaft' ? 'Einsatz fehlerhaft — bitte prüfen.' : null,
+      onTheWayAt: detail.onTheWayAt,
+      arrivedAt: detail.arrivedAt,
+      finishedAt: detail.finishedAt,
+      actualStartAt: detail.actualStartAt,
+      actualEndAt: detail.actualEndAt,
+      createdAt: detail.createdAt,
+    };
+
     return {
       ok: true,
-      data: {
-        id: detail.id,
-        tenantId: detail.tenantId,
-        title: detail.title,
-        serviceName: detail.title,
-        scheduledStart: detail.scheduledStart,
-        scheduledEnd: detail.scheduledEnd,
-        durationMinutes: Math.round(
-          (new Date(detail.scheduledEnd).getTime() -
-            new Date(detail.scheduledStart).getTime()) /
-            60000,
-        ),
-        status: detail.status,
-        planningStatus: dims.planning,
-        proofStatus: dims.proof,
-        billingStatus: dims.billing,
-        location: detail.location,
-        clientName: detail.clientName,
-        employeeName: detail.employeeName,
-        isAtRisk: detail.status === 'fehlerhaft',
-        isIncomplete: detail.status === 'in_bearbeitung',
-        updatedAt: detail.updatedAt,
-        clientId: detail.clientId,
-        employeeId: detail.employeeId,
-        serviceKey: null,
-        description: null,
-        notes: detail.notes,
-        employeeNotes: null,
-        executionStatus: dims.execution,
-        documentationStatus: dims.documentation,
-        portalStatus: dims.portal,
-        assignmentStatus: detail.assignmentStatus,
-        allowedStatusTransitions: allowed,
-        tasks: detail.tasks.map((t) => ({
-          id: t.id,
-          title: t.title,
-          status: t.status as VisitDispositionDetail['tasks'][0]['status'],
-          isRequired: t.isRequired,
-          notDoneReason: t.notDoneReason,
-        })),
-        budget: null,
-        portalReleaseEnabled: false,
-        employeePortalVisible: true,
-        errorCode: detail.status === 'fehlerhaft' ? 'legacy_error' : null,
-        errorMessage: detail.status === 'fehlerhaft' ? 'Einsatz fehlerhaft — bitte prüfen.' : null,
-        onTheWayAt: detail.onTheWayAt,
-        arrivedAt: detail.arrivedAt,
-        finishedAt: detail.finishedAt,
-        actualStartAt: detail.actualStartAt,
-        actualEndAt: detail.actualEndAt,
-        createdAt: detail.createdAt,
-      },
+      data:
+        occurrenceDate != null
+          ? applyOccurrenceDateToVisitDetail(legacyDetail, occurrenceDate, visitId)
+          : legacyDetail,
     };
   }
 
@@ -334,7 +349,7 @@ export async function updateVisitDispositionStatus(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    if (!isUuid(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
     const existing = await fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
     if (!existing.ok) return existing;
@@ -350,14 +365,17 @@ export async function updateVisitDispositionStatus(
 
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
     if (resolvedId) {
-      return visitSupabaseRepository.updateAssignmentStatus(tenantId, resolvedId, toStatus);
+      const updated = await visitSupabaseRepository.updateAssignmentStatus(
+        tenantId,
+        resolvedId,
+        toStatus,
+      );
+      if (!updated.ok) return updated;
+      return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
     }
 
-    const updated = await assignmentSupabaseRepository.updateStatus(
-      tenantId,
-      visitId,
-      toStatus,
-    );
+    const masterVisitId = resolveVisitMasterId(visitId);
+    const updated = await assignmentSupabaseRepository.updateStatus(tenantId, masterVisitId, toStatus);
     if (!updated.ok) return updated;
     return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
   }
@@ -409,10 +427,10 @@ export async function fetchVisitStatusHistory(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    if (!isUuid(visitId)) return { ok: true, data: [] };
+    if (!isResolvableVisitId(visitId)) return { ok: true, data: [] };
 
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
-    const targetId = resolvedId ?? visitId;
+    const targetId = resolvedId ?? resolveVisitMasterId(visitId);
     return visitSupabaseRepository.fetchStatusHistory(tenantId, targetId);
   }
 
@@ -431,14 +449,14 @@ export async function deleteVisitDisposition(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase') {
-    if (!isUuid(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
     if (resolvedId) {
       return visitSupabaseRepository.delete(tenantId, resolvedId);
     }
 
-    return assignmentSupabaseRepository.delete(tenantId, visitId);
+    return assignmentSupabaseRepository.delete(tenantId, resolveVisitMasterId(visitId));
   }
 
   await new Promise((r) => setTimeout(r, 240));

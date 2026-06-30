@@ -6,7 +6,7 @@ import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignme
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { isUuid } from '@/lib/validation/uuid';
+import { isResolvableVisitId, resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { fetchVisitDispositionDetail } from '@/lib/assist/visitService';
 
 export async function updateVisitTaskStatus(
@@ -26,7 +26,7 @@ export async function updateVisitTaskStatus(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  if (getServiceMode() === 'supabase' && isUuid(visitId)) {
+  if (getServiceMode() === 'supabase' && isResolvableVisitId(visitId)) {
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
     if (resolvedId) {
       return visitSupabaseRepository.updateTask(
@@ -40,7 +40,7 @@ export async function updateVisitTaskStatus(
 
     const legacy = await assignmentSupabaseRepository.updateTask(
       tenantId,
-      visitId,
+      resolveVisitMasterId(visitId),
       taskId,
       status,
       notDoneReason ?? undefined,
@@ -95,7 +95,7 @@ export async function updateVisitDocumentation(
     return { ok: false, error: 'Dokumentation darf nicht leer sein.' };
   }
 
-  if (getServiceMode() === 'supabase' && isUuid(visitId)) {
+  if (getServiceMode() === 'supabase' && isResolvableVisitId(visitId)) {
     const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
     if (resolvedId) {
       return visitSupabaseRepository.updateDocumentation(tenantId, resolvedId, employeeNotes);

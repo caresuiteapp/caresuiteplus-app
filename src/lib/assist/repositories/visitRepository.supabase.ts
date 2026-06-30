@@ -55,8 +55,10 @@ import {
   persistAssignmentBudgetAllocations,
   reserveAssignmentBudget,
 } from '@/lib/assist/assignmentBudgetAllocationService';
+import { expandVisitDispositionListItems } from '@/lib/assist/visitRecurrenceExpansion';
 import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
 import { isSupabaseMissingTableError } from '@/lib/supabase/errors';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { isUuid } from '@/lib/validation/uuid';
 
 type VisitRow = {
@@ -100,6 +102,7 @@ type VisitRow = {
   error_message: string | null;
   created_at: string;
   updated_at: string;
+  recurrence_json?: unknown;
   clients?: {
     first_name: string | null;
     last_name: string | null;
@@ -144,7 +147,7 @@ const LIST_SELECT = `
   address_snapshot, planning_status, execution_status, documentation_status,
   proof_status, billing_status, portal_status, canonical_status,
   is_at_risk, is_incomplete, budget_amount_cents, budget_warning,
-  error_code, error_message, created_at, updated_at,
+  error_code, error_message, created_at, updated_at, recurrence_json,
   clients(${CLIENT_LOCATION_SELECT}),
   employees(first_name, last_name)
 `;
@@ -440,7 +443,10 @@ export const visitSupabaseRepository = {
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
 
     const rows = (data ?? []) as unknown as VisitRow[];
-    return { ok: true, data: rows.map(mapListItem) };
+    const expanded = expandVisitDispositionListItems(
+      rows.map((row) => ({ row, item: mapListItem(row) })),
+    );
+    return { ok: true, data: expanded };
   },
 
   async getById(
@@ -886,10 +892,11 @@ export const visitSupabaseRepository = {
     assignmentOrVisitId: string,
   ): Promise<string | null> {
     const supabase = getClient();
-    if (!supabase || !isUuid(assignmentOrVisitId)) return null;
+    const masterId = resolveVisitMasterId(assignmentOrVisitId);
+    if (!supabase || !isUuid(masterId)) return null;
 
-    const direct = await this.getById(tenantId, assignmentOrVisitId);
-    if (direct.ok && direct.data) return assignmentOrVisitId;
+    const direct = await this.getById(tenantId, masterId);
+    if (direct.ok && direct.data) return masterId;
 
     const { data } = await fromUnknownTable(supabase, 'assist_visits')
       .select('id')
