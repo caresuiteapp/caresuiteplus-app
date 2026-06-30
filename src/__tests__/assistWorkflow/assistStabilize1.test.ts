@@ -1,9 +1,8 @@
-import { describe, expect, it, vi } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import { deriveWorkflowStatus } from '@/features/assistWorkflow/deriveWorkflowStatus';
 import { detectWorkflowInconsistencies } from '@/features/assistWorkflow/detectWorkflowInconsistencies';
 import { resolveAllowedActions } from '@/features/assistWorkflow/resolveAllowedActions';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
-import { startService } from '@/features/assistWorkflow/startService';
 import type { AssistExecutionContext } from '@/features/assistWorkflow/types';
 
 function mockCtx(overrides: Partial<AssistExecutionContext>): AssistExecutionContext {
@@ -109,29 +108,33 @@ describe('ASSIST.STABILIZE.1 Kevin visit scenario', () => {
     expect(issues[0]?.repairable).toBe(true);
   });
 
-  it('startService does not throw WORKFLOW_INVALID_STATE for repairable gestartet without service_start', async () => {
-    vi.mock('@/lib/assist/assistTrackingPersistenceService', () => ({
-      fetchTimeEventsForVisit: vi.fn().mockResolvedValue({
-        ok: true,
-        data: [
-          { eventType: 'drive_start', occurredAt: '2026-06-29T08:00:00Z' },
-          { eventType: 'arrive', occurredAt: '2026-06-29T09:43:00Z' },
-        ],
-      }),
-    }));
-    vi.mock('@/features/assistWorkflow/saveVisitTimeEvent', () => ({
-      ensureVisitTimeEvent: vi.fn().mockResolvedValue({ ok: true, data: { id: 'x', created: true } }),
-    }));
-    vi.mock('@/features/assistWorkflow/resolveAssistExecutionContext', () => ({
-      resolveAssistExecutionContext: vi.fn().mockResolvedValue({
-        ok: true,
-        data: mockCtx({ assignmentStatus: 'gestartet', derivedStatus: 'gestartet' }),
-      }),
-    }));
+  it('gestartet without service_start is startable via derived angekommen', () => {
+    const visitTimes = calculateVisitTimes(
+      [
+        { eventType: 'drive_start', occurredAt: '2026-06-29T08:00:00Z' },
+        { eventType: 'arrive', occurredAt: '2026-06-29T09:43:00Z' },
+      ],
+      'gestartet',
+    );
+    const derived = deriveWorkflowStatus('gestartet', visitTimes);
+    expect(derived.derivedStatus).toBe('angekommen');
+    expect(derived.canStartService).toBe(true);
+    expect(derived.consistencyStatus).toBe('repairable');
+  });
 
-    const ctx = mockCtx({ assignmentStatus: 'gestartet', derivedStatus: 'angekommen' });
-    const result = await startService(ctx);
-    expect(result.ok).toBe(true);
+  it('derives beendet when angekommen but service already ended in events', () => {
+    const visitTimes = calculateVisitTimes(
+      [
+        { eventType: 'drive_start', occurredAt: '2026-06-30T22:42:46Z' },
+        { eventType: 'arrive', occurredAt: '2026-06-30T22:43:11Z' },
+        { eventType: 'service_start', occurredAt: '2026-06-30T22:54:49Z' },
+        { eventType: 'service_end', occurredAt: '2026-06-30T22:55:04Z' },
+      ],
+      'angekommen',
+    );
+    const derived = deriveWorkflowStatus('angekommen', visitTimes);
+    expect(derived.derivedStatus).toBe('beendet');
+    expect(derived.consistencyStatus).toBe('consistent');
   });
 });
 

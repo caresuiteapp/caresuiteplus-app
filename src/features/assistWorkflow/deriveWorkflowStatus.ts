@@ -77,6 +77,25 @@ export function deriveWorkflowStatus(
     derivedStatus = 'angekommen';
   }
 
+  // Time events are source of truth when DB status lagged (e.g. after manual repair + re-run flow).
+  if (visitTimes?.serviceEndedAt) {
+    const preCompletion: AssignmentStatus[] = [
+      'geplant',
+      'bestaetigt',
+      'unterwegs',
+      'angekommen',
+      'gestartet',
+      'pausiert',
+    ];
+    if (preCompletion.includes(derivedStatus)) {
+      derivedStatus = 'beendet';
+    }
+  } else if (visitTimes?.serviceStartedAt) {
+    if (derivedStatus === 'unterwegs' || derivedStatus === 'angekommen') {
+      derivedStatus = 'gestartet';
+    }
+  }
+
   const canStartService =
     derivedStatus === 'angekommen' &&
     Boolean(visitTimes?.arrivedAt || recordedStatus === 'angekommen');

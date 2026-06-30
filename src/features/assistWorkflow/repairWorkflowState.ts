@@ -8,11 +8,6 @@ import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
-import {
-  detectWorkflowInconsistencies,
-  resolveConsistencyStatus,
-  type WorkflowInconsistency,
-} from './detectWorkflowInconsistencies';
 import { deriveWorkflowStatus } from './deriveWorkflowStatus';
 import type { AssistExecutionContext } from './types';
 import {
@@ -81,15 +76,9 @@ export async function repairWorkflowState(
   ctx: AssistExecutionContext,
   options?: { autoOnly?: boolean },
 ): Promise<ServiceResult<RepairWorkflowResult>> {
-  const inconsistencies = detectWorkflowInconsistencies(
-    ctx.assignmentStatus,
-    ctx.visitTimes,
-  );
-  const consistencyStatus = resolveConsistencyStatus(inconsistencies);
-
-  if (consistencyStatus === 'consistent') {
-    return { ok: true, data: { repaired: false, ctx, appliedRepairs: [] } };
-  }
+  const derived = deriveWorkflowStatus(ctx.assignmentStatus, ctx.visitTimes);
+  const consistencyStatus = derived.consistencyStatus;
+  const appliedRepairs: string[] = [];
 
   if (consistencyStatus === 'blocked') {
     return assistWorkflowErrorToResult(
@@ -101,12 +90,18 @@ export async function repairWorkflowState(
     );
   }
 
-  const derived = deriveWorkflowStatus(ctx.assignmentStatus, ctx.visitTimes);
-  const appliedRepairs: string[] = [];
+  const needsStatusReset = derived.derivedStatus !== ctx.assignmentStatus;
 
-  const needsStatusReset =
-    derived.derivedStatus !== ctx.assignmentStatus &&
-    !['gestartet', 'pausiert'].includes(ctx.assignmentStatus);
+  const blockedReset =
+    ['gestartet', 'pausiert'].includes(ctx.assignmentStatus) &&
+    !['beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen'].includes(
+      derived.derivedStatus,
+    ) &&
+    derived.consistencyStatus !== 'repairable';
+
+  if (!needsStatusReset || blockedReset) {
+    return { ok: true, data: { repaired: false, ctx, appliedRepairs: [] } };
+  }
 
   if (needsStatusReset) {
     const repair = await forceRepairAssignmentStatus(

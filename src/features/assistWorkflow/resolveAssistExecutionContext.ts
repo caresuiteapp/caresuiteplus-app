@@ -120,16 +120,17 @@ export async function resolveAssistExecutionContext(
     diagnostics,
   };
 
-  if (autoRepair && workflow.consistencyStatus === 'repairable') {
-    const needsReset =
-      workflow.derivedStatus !== detailResult.data.status &&
-      !['gestartet', 'pausiert'].includes(detailResult.data.status);
+  const statusDrift = workflow.derivedStatus !== detailResult.data.status;
+  const canForwardRepair =
+    statusDrift &&
+    (workflow.consistencyStatus === 'repairable' ||
+      workflow.derivedStatus === 'beendet' ||
+      workflow.derivedStatus === 'gestartet');
 
-    if (needsReset) {
-      const repaired = await repairWorkflowState(ctx, { autoOnly: true });
-      if (repaired.ok && repaired.data.repaired) {
-        ctx = repaired.data.ctx;
-      }
+  if (autoRepair && canForwardRepair) {
+    const repaired = await repairWorkflowState(ctx, { autoOnly: true });
+    if (repaired.ok && repaired.data.repaired) {
+      ctx = repaired.data.ctx;
     }
   }
 
