@@ -99,7 +99,7 @@ describe('Office Broadcast (Spec Testfälle 1–8)', () => {
       if (table === 'notification_broadcast_recipients') {
         return { insert: vi.fn().mockResolvedValue({ error: null }) };
       }
-      if (table === 'notifications') {
+      if (table === 'office_notifications') {
         return { insert: vi.fn().mockResolvedValue({ error: null }) };
       }
       if (table === 'broadcast_audit_events') {
@@ -132,7 +132,7 @@ describe('Office Broadcast (Spec Testfälle 1–8)', () => {
 
   it('Testfall 2: Mitarbeiter:in sieht nur eigene Notifications', async () => {
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'notifications') {
+      if (table === 'office_notifications') {
         return createChain([
           {
             id: NOTIFICATION_ID,
@@ -165,7 +165,7 @@ describe('Office Broadcast (Spec Testfälle 1–8)', () => {
   it('Testfall 3: Öffnen setzt read_at', async () => {
     const updateMock = vi.fn().mockResolvedValue({ error: null });
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'notifications') {
+      if (table === 'office_notifications') {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnThis(),
@@ -206,7 +206,7 @@ describe('Office Broadcast (Spec Testfälle 1–8)', () => {
   it('Testfall 4: Lesebestätigung setzt acknowledged_at', async () => {
     const recipientUpdate = vi.fn().mockReturnValue({ eq: vi.fn().mockReturnThis() });
     mockFrom.mockImplementation((table: string) => {
-      if (table === 'notifications') {
+      if (table === 'office_notifications') {
         return {
           select: vi.fn().mockReturnValue({
             eq: vi.fn().mockReturnThis(),

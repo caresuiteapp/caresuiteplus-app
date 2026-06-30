@@ -6,11 +6,14 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { logBroadcastAuditEvent } from '@/lib/office/broadcastauditservice';
-import { BROADCAST_SCHEMA_ERROR } from '@/lib/office/broadcastservice';
+import {
+  OFFICE_NOTIFICATIONS_SCHEMA_ERROR,
+  OFFICE_NOTIFICATIONS_TABLE,
+} from '@/lib/office/notificationtable';
 
 function notificationError(error: string): ServiceResult<never> {
   if (isMissingTableServiceError(error)) {
-    return { ok: false, error: BROADCAST_SCHEMA_ERROR };
+    return { ok: false, error: OFFICE_NOTIFICATIONS_SCHEMA_ERROR };
   }
   return { ok: false, error };
 }
@@ -71,7 +74,7 @@ export async function fetchUserNotifications(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
 
-  let query = fromUnknownTable(supabase, 'notifications')
+  let query = fromUnknownTable(supabase, OFFICE_NOTIFICATIONS_TABLE)
     .select('*')
     .eq('tenant_id', tenantId)
     .order('is_read', { ascending: true })
@@ -111,7 +114,10 @@ export async function markNotificationRead(
 
   const now = new Date().toISOString();
 
-  const { data: notification, error: fetchError } = await fromUnknownTable(supabase, 'notifications')
+  const { data: notification, error: fetchError } = await fromUnknownTable(
+    supabase,
+    OFFICE_NOTIFICATIONS_TABLE,
+  )
     .select('related_broadcast_id, recipient_employee_id')
     .eq('tenant_id', tenantId)
     .eq('id', notificationId)
@@ -120,7 +126,7 @@ export async function markNotificationRead(
   if (fetchError) return notificationError(toGermanSupabaseError(fetchError));
   if (!notification) return { ok: false, error: 'Benachrichtigung nicht gefunden.' };
 
-  const { error } = await fromUnknownTable(supabase, 'notifications')
+  const { error } = await fromUnknownTable(supabase, OFFICE_NOTIFICATIONS_TABLE)
     .update({ is_read: true, read_at: now })
     .eq('tenant_id', tenantId)
     .eq('id', notificationId);
@@ -180,7 +186,10 @@ export async function acknowledgeBroadcastNotification(
 
   const now = new Date().toISOString();
 
-  const { data: notification, error: fetchError } = await fromUnknownTable(supabase, 'notifications')
+  const { data: notification, error: fetchError } = await fromUnknownTable(
+    supabase,
+    OFFICE_NOTIFICATIONS_TABLE,
+  )
     .select('related_broadcast_id, metadata')
     .eq('tenant_id', tenantId)
     .eq('id', notificationId)
@@ -199,7 +208,7 @@ export async function acknowledgeBroadcastNotification(
     : null;
   if (!broadcastId) return { ok: false, error: 'Kein Broadcast verknüpft.' };
 
-  await fromUnknownTable(supabase, 'notifications')
+  await fromUnknownTable(supabase, OFFICE_NOTIFICATIONS_TABLE)
     .update({
       is_read: true,
       read_at: now,

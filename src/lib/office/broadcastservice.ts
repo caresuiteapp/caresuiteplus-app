@@ -21,6 +21,7 @@ import {
 } from '@/lib/office/broadcastpermissions';
 import { logBroadcastAuditEvent } from '@/lib/office/broadcastauditservice';
 import { createOfficeMessageThread } from '@/lib/office/messageservice';
+import { OFFICE_NOTIFICATIONS_TABLE } from '@/lib/office/notificationtable';
 
 export const BROADCAST_SCHEMA_ERROR =
   'Broadcast-System: Supabase-Tabellen fehlen. Migration 0094_office_broadcast_notifications anwenden.';
@@ -396,9 +397,10 @@ export async function sendBroadcast(
     }));
 
   if (notifications.length > 0) {
-    const { error: notificationsError } = await fromUnknownTable(supabase, 'notifications').insert(
-      notifications,
-    );
+    const { error: notificationsError } = await fromUnknownTable(
+      supabase,
+      OFFICE_NOTIFICATIONS_TABLE,
+    ).insert(notifications);
     if (notificationsError) {
       await logBroadcastAuditEvent({
         tenantId,
