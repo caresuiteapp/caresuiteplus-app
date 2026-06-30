@@ -117,9 +117,10 @@ describe('Assignment compact cards UI', () => {
     expect(source).not.toContain('layoutRow');
   });
 
-  it('AssignmentMobileActionSheet uses bottom sheet variant', () => {
+  it('AssignmentMobileActionSheet uses bottom sheet on mobile only', () => {
     const source = readSrc('src/components/assist/AssignmentMobileActionSheet.tsx');
-    expect(source).toContain('variant="bottomSheet"');
+    expect(source).toContain("'bottomSheet'");
+    expect(source).toContain('isDesktopClass');
   });
 
   it('useAssignmentList extends search to assignment id and service name', () => {

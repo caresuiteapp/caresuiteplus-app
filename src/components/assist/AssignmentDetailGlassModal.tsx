@@ -1,10 +1,9 @@
 import { AssignmentDetailTabsPanel } from '@/components/assist/AssignmentDetailTabsPanel';
 import { useEffect, useState } from 'react';
-import { ScrollView, StyleSheet, View } from 'react-native';
+import { StyleSheet, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { useAuroraGlassModalStyle } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
-import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 
 type AssignmentDetailGlassModalProps = {
@@ -61,36 +60,33 @@ export function AssignmentDetailGlassModal({
       glowColor={assistAccent}
       bodyStyle={styles.modalBody}
     >
-      <View style={styles.body}>
-        <ScrollView
-          style={[styles.scroll, isFull ? styles.scrollFull : null]}
-          contentContainerStyle={styles.scrollContent}
-          keyboardShouldPersistTaps="handled"
-          showsVerticalScrollIndicator={false}
-        >
-          <View style={[styles.detailPanel, formPanelStyle]}>
-            <AssignmentDetailTabsPanel
-              assignmentId={assignmentId}
-              mode={isFull ? 'full' : 'preview'}
-              onOpenFullRecord={() => setMode('full')}
-              onClose={onClose}
-              onDeleted={handleDeleted}
-            />
-          </View>
-        </ScrollView>
+      <View style={[styles.detailPanel, formPanelStyle]}>
+        <AssignmentDetailTabsPanel
+          assignmentId={assignmentId}
+          mode={isFull ? 'full' : 'preview'}
+          layout="modal"
+          onOpenFullRecord={() => setMode('full')}
+          onClose={onClose}
+          onDeleted={handleDeleted}
+        />
       </View>
     </PlatformModal>
   );
 }
 
 const styles = StyleSheet.create({
-  modalBody: { paddingTop: 0, gap: 0 },
-  body: { gap: careSpacing.md },
-  scroll: { flexGrow: 0, maxHeight: 560 },
-  scrollFull: { maxHeight: 720 },
-  scrollContent: { flexGrow: 1 },
+  modalBody: {
+    paddingTop: 0,
+    gap: 0,
+    flexGrow: 1,
+    flexShrink: 1,
+    minHeight: 0,
+  },
   detailPanel: {
     borderRadius: careRadius.lg,
     overflow: 'hidden',
+    flexGrow: 1,
+    flexShrink: 1,
+    minHeight: 0,
   },
 });

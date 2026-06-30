@@ -9,6 +9,8 @@ import {
   formatAssignmentWeekdayDate,
 } from '@/lib/formatters/dateTimeFormatters';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
+import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing, typography } from '@/theme';
 
 export type AssignmentMobileAction = {
@@ -33,6 +35,8 @@ export function AssignmentMobileActionSheet({
   actions,
 }: AssignmentMobileActionSheetProps) {
   const text = useAuroraAdaptiveText();
+  const deviceClass = useDeviceClass();
+  const isMobile = !isDesktopClass(deviceClass);
 
   const styles = useMemo(
     () =>
@@ -54,8 +58,9 @@ export function AssignmentMobileActionSheet({
       title={assignment.clientName}
       subtitle={`${WORKFLOW_STATUS_LABELS[assignment.status]} · ${formatAssignmentWeekdayDate(assignment.scheduledStart)}`}
       onClose={onClose}
-      variant="bottomSheet"
-      animationType="slide"
+      variant={isMobile ? 'bottomSheet' : 'center'}
+      animationType={isMobile ? 'slide' : 'fade'}
+      maxWidth={480}
     >
       <View style={styles.summary}>
         <Text style={styles.title}>{assignment.serviceName ?? assignment.title}</Text>

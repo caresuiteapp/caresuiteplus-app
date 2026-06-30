@@ -104,7 +104,16 @@ describe('Assist disposition list UI contracts', () => {
   it('AssignmentDetailGlassModal nutzt tabbed disposition panel', () => {
     const source = readSrc('src/components/assist/AssignmentDetailGlassModal.tsx');
     expect(source).toContain('AssignmentDetailTabsPanel');
+    expect(source).toContain('layout="modal"');
     expect(source).toContain('useAuroraGlassModalStyle');
+    expect(source).not.toContain('maxHeight: 560');
+  });
+
+  it('AssignmentDetailTabsPanel nutzt modal toolbar actions auf Desktop', () => {
+    const panel = readSrc('src/components/assist/AssignmentDetailTabsPanel.tsx');
+    expect(panel).toContain("layout?: 'page' | 'modal'");
+    expect(panel).toContain('useActionToolbar');
+    expect(panel).toContain("position: 'sticky'");
   });
 
   it('Status-Buttons nutzen AssignmentStatus Labels (kein Aktiv/Aktiv)', () => {

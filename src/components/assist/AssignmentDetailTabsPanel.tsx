@@ -1,4 +1,4 @@
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
@@ -60,6 +60,8 @@ const FORM_CTX = { viewContext: 'form' as const };
 type AssignmentDetailTabsPanelProps = {
   assignmentId: string;
   mode?: 'preview' | 'full';
+  /** Modal shell uses sticky toolbar actions on desktop instead of a stacked sheet. */
+  layout?: 'page' | 'modal';
   onOpenFullRecord?: () => void;
   onClose?: () => void;
   onDeleted?: () => void;
@@ -137,6 +139,7 @@ function formatHistoryEntry(
 export function AssignmentDetailTabsPanel({
   assignmentId,
   mode = 'full',
+  layout = 'page',
   onOpenFullRecord,
   onClose,
   onDeleted,
@@ -174,12 +177,14 @@ export function AssignmentDetailTabsPanel({
   );
 
   const isPreview = mode === 'preview';
+  const isModalLayout = layout === 'modal';
+  const useActionToolbar = isModalLayout && isWideOverview;
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         panel: {
-          flex: 1,
+          ...(isModalLayout ? { flexGrow: 0 } : { flex: 1 }),
           padding: careSpacing.md,
           gap: careSpacing.md,
         },
@@ -196,11 +201,30 @@ export function AssignmentDetailTabsPanel({
         errorTitle: { ...typography.bodyStrong, color: '#DC2626' },
         errorText: { ...typography.body, color: text.primary },
         actions: {
+          flexDirection: useActionToolbar ? 'row' : 'column',
+          flexWrap: useActionToolbar ? 'wrap' : 'nowrap',
+          alignItems: useActionToolbar ? 'center' : 'stretch',
           gap: spacing.sm,
-          paddingTop: spacing.xs,
+          paddingTop: spacing.sm,
           borderTopWidth: 1,
           borderTopColor: 'rgba(15,23,42,0.08)',
+          flexShrink: 0,
+          ...(useActionToolbar
+            ? Platform.select({
+                web: {
+                  position: 'sticky' as const,
+                  bottom: 0,
+                  zIndex: 2,
+                  backgroundColor: 'rgba(255,255,255,0.96)',
+                  paddingBottom: spacing.xs,
+                },
+                default: {},
+              })
+            : {}),
         },
+        actionBtn: useActionToolbar
+          ? { flexGrow: 1, flexBasis: '30%', minWidth: 132, maxWidth: '100%' as const }
+          : { width: '100%' as const },
         actionGrid: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
         taskRow: {
           paddingVertical: spacing.xs,
@@ -245,7 +269,7 @@ export function AssignmentDetailTabsPanel({
           borderBottomColor: 'rgba(15,23,42,0.08)',
         },
       }),
-    [text, isPreview, isWideOverview],
+    [text, isModalLayout, isPreview, isWideOverview, useActionToolbar],
   );
 
   if (loading) return <LoadingState message="Einsatz wird geladen…" />;
@@ -513,14 +537,22 @@ export function AssignmentDetailTabsPanel({
 
       <View style={styles.actions}>
         {isPreview && onOpenFullRecord ? (
-          <PremiumButton title="Vollständig öffnen" fullWidth onPress={onOpenFullRecord} />
+          <PremiumButton
+            title="Vollständig öffnen"
+            size={useActionToolbar ? 'sm' : 'md'}
+            fullWidth={!useActionToolbar}
+            onPress={onOpenFullRecord}
+            style={useActionToolbar ? styles.actionBtn : undefined}
+          />
         ) : null}
         {can('assist.assignments.manage') && !isReadOnly ? (
           <PremiumButton
             title="Bearbeiten"
             variant="secondary"
-            fullWidth
+            size={useActionToolbar ? 'sm' : 'md'}
+            fullWidth={!useActionToolbar}
             onPress={() => router.push(`/assist/einsaetze/${visit.id}/edit` as never)}
+            style={useActionToolbar ? styles.actionBtn : undefined}
           />
         ) : null}
         {can('assist.assignments.manage') &&
@@ -528,17 +560,21 @@ export function AssignmentDetailTabsPanel({
           <PremiumButton
             title="Freigeben"
             variant="secondary"
-            fullWidth
+            size={useActionToolbar ? 'sm' : 'md'}
+            fullWidth={!useActionToolbar}
             loading={actionLoading}
             onPress={() => changeStatus('bestaetigt')}
+            style={useActionToolbar ? styles.actionBtn : undefined}
           />
         ) : null}
         {can('assist.execution.view') ? (
           <PremiumButton
             title="Durchführen"
             variant="secondary"
-            fullWidth
+            size={useActionToolbar ? 'sm' : 'md'}
+            fullWidth={!useActionToolbar}
             onPress={() => router.push(`/assist/assignments/${visit.id}/execute` as never)}
+            style={useActionToolbar ? styles.actionBtn : undefined}
           />
         ) : null}
         {can('assist.assignments.manage') &&
@@ -546,23 +582,35 @@ export function AssignmentDetailTabsPanel({
           <PremiumButton
             title="Absagen"
             variant="secondary"
-            fullWidth
+            size={useActionToolbar ? 'sm' : 'md'}
+            fullWidth={!useActionToolbar}
             loading={actionLoading}
             onPress={() => changeStatus('storniert')}
+            style={useActionToolbar ? styles.actionBtn : undefined}
           />
         ) : null}
         {can('assist.assignments.manage') && !isReadOnly ? (
-          <OfficeRecordDeleteButton
-            recordLabel="Einsatz"
-            displayName={displayName}
-            onDelete={handleDelete}
-            onDeleted={onDeleted}
-            confirmTitle="Einsatz löschen?"
-            buttonTitle="Löschen"
-          />
+          <View style={useActionToolbar ? styles.actionBtn : undefined}>
+            <OfficeRecordDeleteButton
+              recordLabel="Einsatz"
+              displayName={displayName}
+              onDelete={handleDelete}
+              onDeleted={onDeleted}
+              confirmTitle="Einsatz löschen?"
+              buttonTitle="Löschen"
+              fullWidth={!useActionToolbar}
+            />
+          </View>
         ) : null}
         {onClose ? (
-          <PremiumButton title="Schließen" variant="ghost" fullWidth onPress={onClose} />
+          <PremiumButton
+            title="Schließen"
+            variant="ghost"
+            size={useActionToolbar ? 'sm' : 'md'}
+            fullWidth={!useActionToolbar}
+            onPress={onClose}
+            style={useActionToolbar ? styles.actionBtn : undefined}
+          />
         ) : null}
       </View>
 
