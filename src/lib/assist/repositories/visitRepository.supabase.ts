@@ -106,6 +106,15 @@ type VisitRow = {
   created_at: string;
   updated_at: string;
   recurrence_json?: unknown;
+  subject_key?: string | null;
+  assignment_type_key?: string | null;
+  service_category_key?: string | null;
+  task_package_id?: string | null;
+  billing_budget_source_key?: string | null;
+  proof_template_key?: string | null;
+  risk_flag_keys?: unknown;
+  catalog_snapshot_json?: unknown;
+  client_visible_notes?: string | null;
   clients?: {
     first_name: string | null;
     last_name: string | null;
@@ -158,7 +167,9 @@ const LIST_SELECT = `
 const DETAIL_SELECT = `${LIST_SELECT},
   actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at,
   location_notes, internal_notes, employee_notes, portal_release_enabled, employee_portal_visible,
-  budget_currency, assist_visit_tasks(*)`;
+  budget_currency, subject_key, assignment_type_key, service_category_key, task_package_id,
+  billing_budget_source_key, proof_template_key, risk_flag_keys, catalog_snapshot_json,
+  client_visible_notes, assist_visit_tasks(*)`;
 
 function getClient() {
   return getSupabaseClient();
@@ -337,9 +348,27 @@ function mapDetail(
     clientId: row.client_id,
     employeeId: row.employee_id,
     serviceKey: row.service_key,
+    assignmentDate: row.assignment_date,
     description: row.description,
     notes: row.internal_notes,
     employeeNotes: row.employee_notes,
+    clientVisibleNotes: row.client_visible_notes ?? null,
+    addressSnapshot: row.address_snapshot,
+    locationNotes: row.location_notes,
+    subjectKey: row.subject_key ?? null,
+    assignmentTypeKey: row.assignment_type_key ?? null,
+    serviceCategoryKey: row.service_category_key ?? null,
+    taskPackageId: row.task_package_id ?? null,
+    billingBudgetSourceKey: row.billing_budget_source_key ?? null,
+    proofTemplateKey: row.proof_template_key ?? null,
+    riskFlagKeys: Array.isArray(row.risk_flag_keys)
+      ? row.risk_flag_keys.filter((key): key is string => typeof key === 'string')
+      : [],
+    catalogSnapshotJson:
+      row.catalog_snapshot_json && typeof row.catalog_snapshot_json === 'object'
+        ? (row.catalog_snapshot_json as Record<string, unknown>)
+        : {},
+    recurrenceJson: parseVisitRecurrenceJson(row.recurrence_json),
     executionStatus: row.execution_status,
     documentationStatus: row.documentation_status,
     portalStatus: row.portal_status,
@@ -902,6 +931,117 @@ export const visitSupabaseRepository = {
       visitId,
       'documentation',
       'Durchführungsdokumentation gespeichert',
+      actorProfileId,
+    );
+
+    const refreshed = await this.getById(tenantId, visitId);
+    if (!refreshed.ok) return refreshed;
+    if (!refreshed.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+    return { ok: true, data: refreshed.data };
+  },
+
+  async update(
+    tenantId: string,
+    visitId: string,
+    input: VisitCreateInput,
+    actorProfileId?: string | null,
+  ): Promise<ServiceResult<VisitDispositionDetail>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const existing = await this.getById(tenantId, visitId);
+    if (!existing.ok) return existing;
+    if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const duration = durationMinutes(input.plannedStartAt, input.plannedEndAt, null);
+    const taskTitles = input.tasks.map((task) => task.trim()).filter(Boolean);
+
+    const patch = {
+      client_id: input.clientId,
+      employee_id: input.employeeId,
+      service_key: input.serviceKey,
+      service_name: input.serviceName,
+      title: input.title.trim(),
+      description: input.description ?? null,
+      assignment_date: input.assignmentDate,
+      planned_start_at: input.plannedStartAt,
+      planned_end_at: input.plannedEndAt,
+      duration_minutes: duration,
+      address_snapshot: input.addressSnapshot ?? null,
+      internal_notes: input.internalNotes ?? null,
+      portal_release_enabled: input.portalReleaseEnabled ?? false,
+      budget_amount_cents: input.budgetAmountCents ?? null,
+      subject_key: input.subjectKey ?? null,
+      assignment_type_key: input.assignmentTypeKey ?? null,
+      service_category_key: input.serviceCategoryKey ?? null,
+      task_package_id: input.taskPackageId ?? null,
+      billing_budget_source_key: input.billingBudgetSourceKey ?? null,
+      proof_template_key: input.proofTemplateKey ?? null,
+      risk_flag_keys: input.riskFlagKeys ?? [],
+      recurrence_json: input.recurrenceJson ?? {},
+      catalog_snapshot_json: input.catalogSnapshotJson ?? {},
+      updated_by: actorProfileId ?? null,
+    };
+
+    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+      .update(patch)
+      .eq('tenant_id', tenantId)
+      .eq('id', visitId);
+
+    if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+    const legacySync = await upsertLegacyAssignmentFromVisit(supabase, {
+      visitId,
+      tenantId,
+      clientId: input.clientId,
+      employeeId: input.employeeId,
+      assignmentDate: input.assignmentDate,
+      plannedStartAt: input.plannedStartAt,
+      plannedEndAt: input.plannedEndAt,
+      title: input.title,
+      description: input.description ?? null,
+      addressSnapshot: input.addressSnapshot ?? null,
+      internalNotes: input.internalNotes ?? null,
+      clientVisibleNotes: null,
+      canonicalStatus: assignmentStatusToRemote(existing.data.assignmentStatus),
+      saveAsDraft: input.saveAsDraft ?? false,
+      createdBy: actorProfileId ?? null,
+    });
+    if (!legacySync.ok) return legacySync;
+
+    if (taskTitles.length > 0) {
+      const taskMirror = await syncLegacyAssignmentTasksFromVisit(
+        supabase,
+        tenantId,
+        visitId,
+        taskTitles,
+      );
+      if (!taskMirror.ok) return taskMirror;
+    }
+
+    syncCalendarEventAsync(
+      buildCalendarEventFromVisitDetail({
+        tenantId,
+        id: visitId,
+        title: input.title.trim(),
+        plannedStartAt: input.plannedStartAt,
+        plannedEndAt: input.plannedEndAt,
+        clientId: input.clientId,
+        employeeId: input.employeeId,
+        clientName: existing.data.clientName,
+        employeeName: existing.data.employeeName,
+        serviceName: input.serviceName,
+        canonicalStatus: existing.data.assignmentStatus,
+        portalReleaseEnabled: input.portalReleaseEnabled ?? false,
+        employeePortalVisible: existing.data.employeePortalVisible,
+      }),
+    );
+
+    await writeAuditLog(
+      tenantId,
+      visitId,
+      'update',
+      `Einsatz „${input.title.trim()}“ aktualisiert`,
       actorProfileId,
     );
 

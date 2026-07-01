@@ -13,6 +13,7 @@ export { AssignmentsListHero } from './AssignmentsListHero';
 export { AssignmentsListTable } from './AssignmentsListTable';
 export { AssignmentsListView } from './AssignmentsListView';
 export { AssignmentCreateForm } from './AssignmentCreateForm';
+export { AssignmentEditForm } from './AssignmentEditForm';
 export { AssignmentCreateWizard } from './AssignmentCreateWizard';
 export { AssignmentDetailTabsPanel } from './AssignmentDetailTabsPanel';
 export { VisitDispositionBadge, VisitDispositionBadgeRow } from './VisitDispositionBadge';

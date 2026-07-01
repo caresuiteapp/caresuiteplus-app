@@ -8,6 +8,7 @@ import {
   isAssignmentToday,
   isAssignmentUpcoming,
   removeDemoAssignmentSeed,
+  updateDemoAssignmentFields,
   updateDemoAssignmentSeedStatus,
 } from '@/data/demo/assistAssignments';
 import { demoClients } from '@/data/demo/clients';
@@ -51,6 +52,10 @@ import {
   parseVisitOccurrenceId,
   resolveVisitMasterId,
 } from '@/lib/assist/visitRecurrenceExpansion';
+import {
+  buildVisitUpdateInputFromEditForm,
+  type VisitEditFormData,
+} from '@/lib/assist/visitEditMappers';
 
 export type VisitDispositionKpi = {
   id: string;
@@ -650,6 +655,76 @@ export async function createVisitFromWizard(
 
   await new Promise((r) => setTimeout(r, 320));
   return { ok: true, data: { id: `visit-demo-${Date.now()}`, conflicts } };
+}
+
+export async function updateVisitFromWizard(
+  tenantId: string,
+  visitId: string,
+  form: VisitEditFormData,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<{ id: string }>> {
+  const denied = enforcePermission<{ id: string }>(actorRoleKey, 'assist.assignments.manage');
+  if (denied) return denied;
+
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const payload = buildVisitUpdateInputFromEditForm(form);
+  const { assignmentStatus, ...input } = payload;
+
+  if (getServiceMode() === 'supabase') {
+    if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const masterVisitId = resolveVisitMasterId(visitId);
+    const existing = await fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+    if (!existing.ok) return existing;
+    if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
+    const targetVisitId = resolvedId ?? masterVisitId;
+
+    const updated = await visitSupabaseRepository.update(tenantId, targetVisitId, input);
+    if (!updated.ok) return updated;
+
+    if (assignmentStatus !== existing.data.assignmentStatus) {
+      const statusResult = await visitSupabaseRepository.updateAssignmentStatus(
+        tenantId,
+        targetVisitId,
+        assignmentStatus,
+      );
+      if (!statusResult.ok) return statusResult;
+    }
+
+    return { ok: true, data: { id: visitId } };
+  }
+
+  await new Promise((r) => setTimeout(r, 280));
+  const workflowMap: Partial<
+    Record<AssignmentStatus, import('@/types/core/base').WorkflowStatus>
+  > = {
+    geplant: 'entwurf',
+    bestaetigt: 'aktiv',
+    unterwegs: 'aktiv',
+    angekommen: 'in_bearbeitung',
+    gestartet: 'in_bearbeitung',
+    pausiert: 'in_bearbeitung',
+    beendet: 'in_bearbeitung',
+    dokumentation_offen: 'in_bearbeitung',
+    unterschrift_offen: 'in_bearbeitung',
+    abgeschlossen: 'abgeschlossen',
+    storniert: 'fehlerhaft',
+    nicht_erschienen: 'fehlerhaft',
+  };
+
+  const demoUpdated = updateDemoAssignmentFields(visitId, {
+    title: input.title.trim(),
+    location: input.addressSnapshot?.trim() ?? '',
+    notes: input.internalNotes?.trim() ?? '',
+    status: workflowMap[assignmentStatus] ?? 'aktiv',
+  });
+  if (!demoUpdated) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+  return { ok: true, data: { id: visitId } };
 }
 
 export { visitDispositionKpiLabels };

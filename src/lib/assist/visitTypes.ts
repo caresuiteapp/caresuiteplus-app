@@ -171,10 +171,23 @@ export type VisitDispositionDetail = VisitDispositionListItem & {
   clientId: string;
   employeeId: string | null;
   serviceKey: string | null;
+  assignmentDate?: string;
   description: string | null;
   notes: string | null;
   /** Durchführungsnotiz (employee_notes in 0116). */
   employeeNotes: string | null;
+  clientVisibleNotes?: string | null;
+  addressSnapshot?: string | null;
+  locationNotes?: string | null;
+  subjectKey?: string | null;
+  assignmentTypeKey?: string | null;
+  serviceCategoryKey?: string | null;
+  taskPackageId?: string | null;
+  billingBudgetSourceKey?: string | null;
+  proofTemplateKey?: string | null;
+  riskFlagKeys?: string[];
+  catalogSnapshotJson?: Record<string, unknown>;
+  recurrenceJson?: VisitRecurrenceJson | Record<string, unknown>;
   executionStatus: VisitExecutionStatus;
   documentationStatus: VisitDocumentationStatus;
   portalStatus: VisitPortalStatus;
