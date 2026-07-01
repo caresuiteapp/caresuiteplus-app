@@ -3,11 +3,13 @@
  * Reads assist_visits.service_key → assist_service_catalog_items when available.
  */
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
-import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
+import { resolveLiveAssignment, resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { isUuid } from '@/lib/validation/uuid';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
 
 export type EmployeePortalDocumentationFlags = {
@@ -29,17 +31,58 @@ function signatureStatusFromState(input: {
   return 'none';
 }
 
+/** Align visit id resolution with execution context + persistence (employee-scoped). */
+export async function resolvePortalSignatureVisitId(
+  tenantId: string,
+  assignmentId: string,
+  employeeId?: string | null,
+): Promise<string | null> {
+  const masterId = resolveVisitMasterId(assignmentId);
+  if (!isUuid(masterId)) return null;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return masterId;
+
+  const resolved = await resolveLiveAssignment({
+    tenantId,
+    rawId: assignmentId,
+    employeeId: employeeId ?? undefined,
+  });
+  if (resolved.ok && resolved.data?.visitId) {
+    return resolved.data.visitId;
+  }
+
+  const liveVisitId = await resolveLiveVisitId(tenantId, assignmentId);
+  if (liveVisitId) return liveVisitId;
+
+  return masterId;
+}
+
+export async function hasPortalPersistedClientSignature(
+  tenantId: string,
+  assignmentId: string,
+  employeeId?: string | null,
+): Promise<boolean> {
+  const visitId = await resolvePortalSignatureVisitId(tenantId, assignmentId, employeeId);
+  if (!visitId) return false;
+  const sig = await fetchValidVisitSignature(tenantId, visitId);
+  return sig.ok && Boolean(sig.data);
+}
+
 export async function resolveEmployeePortalDocumentationFlags(
   tenantId: string,
   assignmentId: string,
   status: AssignmentStatus,
   documentationNotes?: string | null,
+  employeeId?: string | null,
 ): Promise<EmployeePortalDocumentationFlags> {
   let requiresSignature = status === 'unterschrift_offen';
   let requiresDocumentation = true;
 
   const supabase = getSupabaseClient();
-  const visitId = supabase ? await resolveLiveVisitId(tenantId, assignmentId) : null;
+  const visitId = supabase
+    ? await resolvePortalSignatureVisitId(tenantId, assignmentId, employeeId)
+    : resolveVisitMasterId(assignmentId);
 
   if (supabase && visitId) {
     const { data: visitRow, error: visitError } = await fromUnknownTable(supabase, 'assist_visits')

@@ -4,7 +4,7 @@
 import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types';
 import { validateVisitCloseReadiness } from '@/lib/assist/visitExecutionService';
-import { hasPersistedClientSignature } from './saveClientSignature';
+import { hasPortalPersistedClientSignature } from '@/lib/portal/resolveEmployeePortalSignatureRequirement';
 import { generateServiceRecord } from './generateServiceRecord';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
@@ -39,7 +39,11 @@ export async function finalizeVisit(
 
   const hasSignature =
     ctx.detail.requiresSignature
-      ? await hasPersistedClientSignature(ctx.tenantId, ctx.assistVisitId)
+      ? await hasPortalPersistedClientSignature(
+          ctx.tenantId,
+          ctx.assignmentId,
+          ctx.employeeId,
+        )
       : true;
 
   const docText =

@@ -13,6 +13,7 @@ import { colors, spacing, typography } from '@/theme';
 type EmployeePortalVisitWorkflowTimelineProps = {
   status: AssignmentStatus;
   requiresSignature?: boolean;
+  signatureCaptured?: boolean;
 };
 
 const STEP_ORDER: AssistWorkflowStep[] = [
@@ -30,6 +31,7 @@ const STEP_ORDER: AssistWorkflowStep[] = [
 export function EmployeePortalVisitWorkflowTimeline({
   status,
   requiresSignature = true,
+  signatureCaptured = false,
 }: EmployeePortalVisitWorkflowTimelineProps) {
   const current = assignmentStatusToWorkflowStep(status);
   const steps = getWorkflowTimelineSteps(status, { requiresSignature }).filter(
@@ -48,7 +50,10 @@ export function EmployeePortalVisitWorkflowTimeline({
     <View style={styles.wrap}>
       {steps.map((step) => {
         const isCurrent = step === current || (current === 'paused' && step === 'in_service');
-        const done = isWorkflowStepComplete(step, status);
+        const done =
+          step === 'signature' && signatureCaptured
+            ? true
+            : isWorkflowStepComplete(step, status);
         return (
           <View key={step} style={styles.row}>
             <View

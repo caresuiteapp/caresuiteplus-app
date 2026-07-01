@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
-import { PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { PremiumButton, PremiumInput, SectionPanel, InfoBanner } from '@/components/ui';
 import { requestLandscapeLock } from '@/lib/orientation/requestLandscapeLock';
 import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employeePortalExecution';
 import { spacing, typography } from '@/theme';
@@ -33,12 +33,17 @@ export function EmployeePortalVisitSignaturePanel({
   const [modalVisible, setModalVisible] = useState(false);
   const [signerName, setSignerName] = useState(clientName);
   const [preview, setPreview] = useState<string | null>(capturedPreview ?? null);
+  const [captureError, setCaptureError] = useState<string | null>(null);
   const lastCaptureRequest = useRef(0);
   const onModalOpenChangeRef = useRef(onModalOpenChange);
 
   useEffect(() => {
     onModalOpenChangeRef.current = onModalOpenChange;
   }, [onModalOpenChange]);
+
+  useEffect(() => {
+    setPreview(capturedPreview ?? null);
+  }, [capturedPreview]);
 
   const openSignatureModal = useCallback(() => {
     if (Platform.OS === 'web') {
@@ -68,6 +73,7 @@ export function EmployeePortalVisitSignaturePanel({
   );
 
   const handleConfirm = async (dataUrl: string) => {
+    setCaptureError(null);
     const result = await onCapture({
       signatureType: 'service_proof',
       signerName: signerName.trim(),
@@ -76,6 +82,8 @@ export function EmployeePortalVisitSignaturePanel({
     if (result.ok) {
       setPreview(dataUrl);
       closeModal();
+    } else {
+      setCaptureError(result.error ?? 'Unterschrift konnte nicht gespeichert werden.');
     }
   };
 
@@ -91,6 +99,9 @@ export function EmployeePortalVisitSignaturePanel({
       </View>
       {preview ? (
         <Image source={{ uri: preview }} style={styles.preview} resizeMode="contain" />
+      ) : null}
+      {captureError ? (
+        <InfoBanner variant="error" message={captureError} />
       ) : null}
       {!disabled ? (
         <PremiumButton

@@ -264,7 +264,15 @@ export async function persistEmployeePortalSignature(
   payload: VisitSignaturePayloadInput,
 ): Promise<{ ok: boolean; error?: string }> {
   const visitId = await resolveVisit(ctx);
-  if (!visitId) return { ok: true };
+  if (!visitId) {
+    if (getServiceMode() === 'supabase') {
+      return {
+        ok: false,
+        error: 'Einsatzbesuch konnte nicht zugeordnet werden — Unterschrift nicht gespeichert.',
+      };
+    }
+    return { ok: true };
+  }
 
   if (!input.signatureDataUrl?.trim()) return { ok: true };
 

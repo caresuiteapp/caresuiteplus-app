@@ -84,7 +84,7 @@ describe('employee portal execution screen wiring', () => {
       require('node:path').join(process.cwd(), 'src/lib/portal/employeePortalExecutionLiveService.ts'),
       'utf8',
     );
-    expect(live).toContain('docFlagsForValidation.signatureStatus === \'captured\'');
+    expect(live).toContain('hasPortalPersistedClientSignature');
     expect(live).not.toMatch(/hasRequiredSignature:\s*false/);
   });
 

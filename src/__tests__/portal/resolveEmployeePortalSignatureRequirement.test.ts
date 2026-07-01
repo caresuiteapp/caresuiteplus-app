@@ -2,6 +2,7 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const fetchValidVisitSignature = vi.fn();
 const resolveLiveVisitId = vi.fn();
+const resolveLiveAssignment = vi.fn();
 const fromUnknownTable = vi.fn();
 
 vi.mock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({
@@ -10,6 +11,7 @@ vi.mock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({
 
 vi.mock('@/features/liveTracking/resolveLiveAssignment', () => ({
   resolveLiveVisitId: (...args: unknown[]) => resolveLiveVisitId(...args),
+  resolveLiveAssignment: (...args: unknown[]) => resolveLiveAssignment(...args),
 }));
 
 vi.mock('@/lib/supabase/client', () => ({
@@ -21,10 +23,15 @@ vi.mock('@/lib/supabase/untypedTable', () => ({
 }));
 
 describe('resolveEmployeePortalDocumentationFlags', () => {
+  const tenantId = '56180c22-b894-4fab-b55e-a563c94dd6e7';
+  const assignmentId = '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab';
+  const visitId = '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab';
+
   beforeEach(() => {
     vi.clearAllMocks();
     fetchValidVisitSignature.mockResolvedValue({ ok: true, data: null });
-    resolveLiveVisitId.mockResolvedValue('visit-1');
+    resolveLiveVisitId.mockResolvedValue(visitId);
+    resolveLiveAssignment.mockResolvedValue({ ok: true, data: { visitId } });
   });
 
   it('requires signature when catalog item requires_signature is true', async () => {
@@ -65,8 +72,8 @@ describe('resolveEmployeePortalDocumentationFlags', () => {
     );
 
     const flags = await resolveEmployeePortalDocumentationFlags(
-      'tenant-1',
-      'assignment-1',
+      tenantId,
+      assignmentId,
       'dokumentation_offen',
       'Leistung erbracht',
     );
@@ -118,12 +125,35 @@ describe('resolveEmployeePortalDocumentationFlags', () => {
     );
 
     const flags = await resolveEmployeePortalDocumentationFlags(
-      'tenant-1',
-      'assignment-1',
+      tenantId,
+      assignmentId,
       'unterschrift_offen',
       'Leistung erbracht',
     );
 
+    expect(flags.signatureStatus).toBe('captured');
+  });
+
+  it('falls back to master assignment id when live visit resolver returns null', async () => {
+    resolveLiveAssignment.mockResolvedValue({ ok: true, data: null });
+    resolveLiveVisitId.mockResolvedValue(null);
+    fetchValidVisitSignature.mockResolvedValue({
+      ok: true,
+      data: { id: 'sig-2', signerName: 'Heinz-Peter', signedAt: '2026-07-01T10:00:00Z' },
+    });
+
+    const { resolveEmployeePortalDocumentationFlags } = await import(
+      '@/lib/portal/resolveEmployeePortalSignatureRequirement'
+    );
+
+    const flags = await resolveEmployeePortalDocumentationFlags(
+      tenantId,
+      assignmentId,
+      'unterschrift_offen',
+      'Leistung erbracht',
+    );
+
+    expect(fetchValidVisitSignature).toHaveBeenCalledWith(tenantId, assignmentId);
     expect(flags.signatureStatus).toBe('captured');
   });
 });

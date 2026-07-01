@@ -468,6 +468,7 @@ export function EmployeePortalVisitExecutionScreen() {
             <EmployeePortalVisitWorkflowTimeline
               status={effectiveStatus}
               requiresSignature={visit.requiresSignature}
+              signatureCaptured={signatureCaptured}
             />
           ) : null}
         </PremiumCard>

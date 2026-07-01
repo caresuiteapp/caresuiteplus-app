@@ -48,7 +48,10 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { resolveLiveAssignment } from '@/features/liveTracking/resolveLiveAssignment';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
-import { resolveEmployeePortalDocumentationFlags } from './resolveEmployeePortalSignatureRequirement';
+import {
+  hasPortalPersistedClientSignature,
+  resolveEmployeePortalDocumentationFlags,
+} from './resolveEmployeePortalSignatureRequirement';
 
 function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
   return {
@@ -302,6 +305,7 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
       assignmentId,
       loaded.data.assignmentStatus,
       loaded.data.documentationNotes,
+      employeeId,
     );
     return {
       ok: true,
@@ -345,14 +349,19 @@ export async function transitionLiveEmployeePortalAssignment(
     assignmentId,
     existing.data.assignmentStatus,
     existing.data.documentationNotes,
+    employeeId,
+  );
+  const hasPersistedSignature = await hasPortalPersistedClientSignature(
+    tenantId,
+    assignmentId,
+    employeeId,
   );
 
   const validation = validateExecutionTransition(existing.data.assignmentStatus, toStatus, {
     requireArrivedBeforeStart: true,
     hasDocumentation: Boolean(existing.data.documentationNotes?.trim()),
     hasRequiredSignature:
-      !docFlagsForValidation.requiresSignature ||
-      docFlagsForValidation.signatureStatus === 'captured',
+      !docFlagsForValidation.requiresSignature || hasPersistedSignature,
     signatureImpossibleJustified: false,
   });
   if (!validation.valid) return { ok: false, error: validation.error };
@@ -411,6 +420,7 @@ export async function transitionLiveEmployeePortalAssignment(
     assignmentId,
     detailAfterUpdate.assignmentStatus,
     detailAfterUpdate.documentationNotes,
+    employeeId,
   );
   return {
     ok: true,
@@ -464,6 +474,7 @@ export async function updateLiveEmployeePortalTask(
     assignmentId,
     updated.data.assignmentStatus,
     updated.data.documentationNotes,
+    employeeId,
   );
   return {
     ok: true,
@@ -531,6 +542,7 @@ export async function updateLiveEmployeePortalTasksBatch(
     assignmentId,
     updated.data.assignmentStatus,
     updated.data.documentationNotes,
+    employeeId,
   );
   return {
     ok: true,
