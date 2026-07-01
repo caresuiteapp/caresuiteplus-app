@@ -128,9 +128,13 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(panel).toContain('CareSignatureModal');
     expect(panel).toContain('useFocusEffect');
     expect(panel).toContain('modalVisible ?');
-    expect(panel).toContain('openCaptureRequest');
-    expect(panel).not.toContain('initialModalOpen');
-    expect(panel).toContain('lastCaptureRequest');
+    expect(panel).toContain('openSignatureModal');
+    expect(panel).toContain('onModalOpenChangeRef');
+    expect(panel).toContain('requestLandscapeLock');
+    expect(panel).toContain('tryFullscreen: true');
+    expect(panel).not.toMatch(
+      /useEffect\(\(\) => \{\s*return \(\) => \{\s*closeModal\(\);\s*\};\s*\}, \[closeModal\]\);/,
+    );
   });
 
   it('visit execution screen uses workflow persistence without global landscape gate', () => {
@@ -140,6 +144,7 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(screen).not.toContain('OrientationGate');
     expect(screen).not.toContain('screenKey="visitExecution"');
     expect(screen).toContain('useWorkflowPersistence');
+    expect(screen).toContain('handleSignatureModalOpenChange');
     expect(screen).toContain('openSignatureCapture');
     expect(screen).toContain('scrollToSignatureSection');
     expect(screen).not.toContain('setSignatureModalOpen');

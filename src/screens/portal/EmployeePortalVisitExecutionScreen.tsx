@@ -211,6 +211,13 @@ export function EmployeePortalVisitExecutionScreen() {
     setSignatureCaptureRequest((n) => n + 1);
   }, [scrollToSignatureSection]);
 
+  const handleSignatureModalOpenChange = useCallback(
+    (open: boolean) => {
+      if (open) workflowPersistence.setStep('signature');
+    },
+    [workflowPersistence],
+  );
+
   useEffect(() => {
     if (!id || !visit) return;
     workflowPersistence.persist({
@@ -617,9 +624,7 @@ export function EmployeePortalVisitExecutionScreen() {
               loading={actionLoading}
               openCaptureRequest={signatureCaptureRequest}
               visitId={id}
-              onModalOpenChange={(open) => {
-                if (open) workflowPersistence.setStep('signature');
-              }}
+              onModalOpenChange={handleSignatureModalOpenChange}
               onCapture={async (sig) => {
                 const r = await saveSignature(sig);
                 if (r.ok) {

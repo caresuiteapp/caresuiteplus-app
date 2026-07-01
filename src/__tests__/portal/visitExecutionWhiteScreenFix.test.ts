@@ -76,6 +76,28 @@ describe('visit workflow persistence merge', () => {
   });
 });
 
+describe('signature capture modal open stability', () => {
+  function readSrc(relativePath: string): string {
+    return readFileSync(path.join(__dirname, '..', '..', '..', relativePath), 'utf8');
+  }
+
+  it('opens modal from button without closeModal effect churn on parent re-render', () => {
+    const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
+    expect(panel).toContain('onModalOpenChangeRef');
+    expect(panel).toContain('openSignatureModal');
+    expect(panel).toContain('onPress={openSignatureModal}');
+    expect(panel).not.toMatch(
+      /useEffect\(\(\) => \{\s*return \(\) => \{\s*closeModal\(\);\s*\};\s*\}, \[closeModal\]\);/,
+    );
+    expect(panel).toMatch(/const closeModal = useCallback\([\s\S]*\[\s*\]/);
+  });
+
+  it('attempts landscape lock on user gesture when opening signature modal', () => {
+    const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
+    expect(panel).toContain('requestLandscapeLock({ tryFullscreen: true })');
+  });
+});
+
 describe('signature overlay touch targets', () => {
   function readSrc(relativePath: string): string {
     return readFileSync(path.join(__dirname, '..', '..', '..', relativePath), 'utf8');

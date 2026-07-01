@@ -1,8 +1,9 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { requestLandscapeLock } from '@/lib/orientation/requestLandscapeLock';
 import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employeePortalExecution';
 import { spacing, typography } from '@/theme';
 
@@ -33,23 +34,30 @@ export function EmployeePortalVisitSignaturePanel({
   const [signerName, setSignerName] = useState(clientName);
   const [preview, setPreview] = useState<string | null>(capturedPreview ?? null);
   const lastCaptureRequest = useRef(0);
+  const onModalOpenChangeRef = useRef(onModalOpenChange);
+
+  useEffect(() => {
+    onModalOpenChangeRef.current = onModalOpenChange;
+  }, [onModalOpenChange]);
+
+  const openSignatureModal = useCallback(() => {
+    if (Platform.OS === 'web') {
+      void requestLandscapeLock({ tryFullscreen: true });
+    }
+    setModalVisible(true);
+    onModalOpenChangeRef.current?.(true);
+  }, []);
+
+  const closeModal = useCallback(() => {
+    setModalVisible(false);
+    onModalOpenChangeRef.current?.(false);
+  }, []);
 
   useEffect(() => {
     if (openCaptureRequest <= lastCaptureRequest.current || disabled || preview) return;
     lastCaptureRequest.current = openCaptureRequest;
-    setModalVisible(true);
-    onModalOpenChange?.(true);
-  }, [openCaptureRequest, disabled, preview, onModalOpenChange]);
-
-  const handleModalVisibility = (open: boolean) => {
-    setModalVisible(open);
-    onModalOpenChange?.(open);
-  };
-
-  const closeModal = useCallback(() => {
-    setModalVisible(false);
-    onModalOpenChange?.(false);
-  }, [onModalOpenChange]);
+    openSignatureModal();
+  }, [openCaptureRequest, disabled, preview, openSignatureModal]);
 
   useFocusEffect(
     useCallback(() => {
@@ -58,12 +66,6 @@ export function EmployeePortalVisitSignaturePanel({
       };
     }, [closeModal]),
   );
-
-  useEffect(() => {
-    return () => {
-      closeModal();
-    };
-  }, [closeModal]);
 
   const handleConfirm = async (dataUrl: string) => {
     const result = await onCapture({
@@ -95,7 +97,7 @@ export function EmployeePortalVisitSignaturePanel({
           title={preview ? 'Unterschrift erneut erfassen' : 'Unterschrift erfassen'}
           fullWidth
           loading={loading}
-          onPress={() => handleModalVisibility(true)}
+          onPress={openSignatureModal}
         />
       ) : preview ? (
         <Text style={styles.saved}>Unterschrift gespeichert.</Text>
