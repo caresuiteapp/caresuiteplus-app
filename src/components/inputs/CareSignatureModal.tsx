@@ -17,6 +17,7 @@ import { careRadius } from '@/design/tokens/radius';
 import { resolveCareTypography } from '@/design/tokens/typography';
 import { legacyColorsFromPalette, useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useOrientation } from '@/hooks/useOrientation';
 import { spacing } from '@/theme';
 
 const DESKTOP_MIN_WIDTH = 600;
@@ -29,16 +30,27 @@ type Props = {
   onConfirm: (dataUrl: string) => void;
   onClose: () => void;
   disabled?: boolean;
+  /** sessionStorage scope for landscape dismiss — typically visitId. */
+  dismissScope?: string;
 };
 
-export function CareSignatureModal({ visible, label, onConfirm, onClose, disabled }: Props) {
+export function CareSignatureModal({
+  visible,
+  label,
+  onConfirm,
+  onClose,
+  disabled,
+  dismissScope = 'signature',
+}: Props) {
   const { colors, typography, isLight } = useLegacyTheme();
   const auroraActive = useAuroraGlassActive();
   const lightModal = isLight && auroraActive;
   const safeColors = colors ?? legacyColorsFromPalette('dark');
   const safeTypography = typography ?? resolveCareTypography('dark');
   const { isPhone } = useDeviceClass();
+  const orientation = useOrientation();
   const fullscreen = isPhone;
+  const portraitMobile = fullscreen && !orientation.isLandscape;
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
 
@@ -67,9 +79,10 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
         },
         fullscreenBody: {
           flex: 1,
-          paddingHorizontal: spacing.md,
+          paddingHorizontal: portraitMobile ? spacing.sm : spacing.md,
+          paddingTop: portraitMobile ? spacing.xs : spacing.sm,
           paddingBottom: Math.max(spacing.sm, insets.bottom),
-          gap: spacing.xs,
+          gap: portraitMobile ? spacing.xs : spacing.sm,
           minHeight: 0,
         },
         sheetHost: {
@@ -79,10 +92,19 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
           padding: spacing.lg,
           gap: spacing.sm,
         },
-        subtitle: { ...safeTypography.caption, color: safeColors.textMuted, marginBottom: spacing.xs },
-        canvasSlot: { width: '100%', alignSelf: 'stretch', flex: 1, minHeight: 0 },
+        subtitle: {
+          ...safeTypography.caption,
+          color: safeColors.textMuted,
+          marginBottom: portraitMobile ? 0 : spacing.xs,
+        },
+        canvasSlot: {
+          width: '100%',
+          alignSelf: 'stretch',
+          flex: 1,
+          minHeight: portraitMobile ? 140 : 160,
+        },
       }),
-    [insets.bottom, lightModal, safeColors, safeTypography],
+    [insets.bottom, lightModal, portraitMobile, safeColors, safeTypography],
   );
 
   const sheetWidth = useMemo(
@@ -149,8 +171,16 @@ export function CareSignatureModal({ visible, label, onConfirm, onClose, disable
         statusBarTranslucent
         presentationStyle="fullScreen"
       >
-        <OrientationGate screenKey="signature" active={visible} options={{ autoLock: true }}>
-          <View style={styles.fullscreenRoot} accessibilityViewIsModal pointerEvents="box-none">
+        <OrientationGate
+          screenKey="signature"
+          active={visible}
+          options={{ autoLock: true, dismissScope }}
+        >
+          <View
+            style={[styles.fullscreenRoot, { paddingTop: insets.top }]}
+            accessibilityViewIsModal
+            pointerEvents="box-none"
+          >
             <GradientModalHeader title="Unterschrift" onClose={onClose} />
             <View style={styles.fullscreenBody} pointerEvents="box-none">
               <Text style={styles.subtitle} numberOfLines={2}>

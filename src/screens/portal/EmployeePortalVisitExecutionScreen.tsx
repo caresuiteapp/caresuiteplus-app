@@ -1,4 +1,4 @@
-import { useCallback, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, useRouter } from 'expo-router';
@@ -13,7 +13,6 @@ import {
   EmployeePortalVisitWorkflowTimeline,
 } from '@/components/portal';
 import { ScreenShell } from '@/components/layout';
-import { OrientationGate } from '@/components/layout/OrientationGate';
 import {
   ErrorState,
   InfoBanner,
@@ -27,6 +26,7 @@ import {
 } from '@/components/ui';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
 import { usePermissions } from '@/hooks/usePermissions';
+import { useWorkflowPersistence } from '@/hooks/useWorkflowPersistence';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import {
   ASSIST_WORKFLOW_ACTION_LABELS,
@@ -59,11 +59,13 @@ function trackingStatusLabel(
 }
 
 export function EmployeePortalVisitExecutionScreen() {
-  const { id: rawId } = useLocalSearchParams<{ id: string }>();
+  const { id: rawId, step: rawStep } = useLocalSearchParams<{ id: string; step?: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
+  const urlStep = Array.isArray(rawStep) ? rawStep[0] : rawStep;
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
   const canExecute = can('assist.execution.manage');
+  const workflowPersistence = useWorkflowPersistence(id);
 
   const {
     data: visit,
@@ -122,6 +124,33 @@ export function EmployeePortalVisitExecutionScreen() {
   const scrollRef = useRef<ScrollView>(null);
   const signatureSectionY = useRef(0);
   const [signaturePanelOpenRequest, setSignaturePanelOpenRequest] = useState(0);
+  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const restoredRef = useRef(false);
+
+  useEffect(() => {
+    if (!id || !visit || restoredRef.current) return;
+    const snapshot = workflowPersistence.restore();
+    restoredRef.current = true;
+    workflowPersistence.markHydrated();
+
+    if (snapshot?.awaitingSignature) setAwaitingSignature(true);
+    if (snapshot?.showNoShowForm) setShowNoShowForm(true);
+    if (snapshot?.signatureModalOpen) {
+      setSignatureModalOpen(true);
+      setSignaturePanelOpenRequest((n) => n + 1);
+    }
+
+    const step = urlStep ?? snapshot?.step;
+    if (step === 'signature') {
+      setAwaitingSignature(true);
+      setTimeout(() => {
+        scrollRef.current?.scrollTo({ y: Math.max(signatureSectionY.current - 16, 0), animated: false });
+        setSignaturePanelOpenRequest((n) => n + 1);
+      }, 100);
+    } else if (step) {
+      workflowPersistence.setStep(step);
+    }
+  }, [id, visit, urlStep, workflowPersistence]);
 
   const primaryAction = primaryAllowedAction(allowedActions, effectiveStatus);
   const primaryLabel = primaryAction ? ASSIST_WORKFLOW_ACTION_LABELS[primaryAction] : undefined;
@@ -173,7 +202,30 @@ export function EmployeePortalVisitExecutionScreen() {
   const scrollToSignature = useCallback(() => {
     scrollRef.current?.scrollTo({ y: Math.max(signatureSectionY.current - 16, 0), animated: true });
     setSignaturePanelOpenRequest((n) => n + 1);
-  }, []);
+    workflowPersistence.setStep('signature');
+  }, [workflowPersistence]);
+
+  useEffect(() => {
+    if (!id || !visit) return;
+    workflowPersistence.persist({
+      step: urlStep ?? null,
+      awaitingSignature,
+      signatureModalOpen,
+      showNoShowForm,
+      documentationSubmitted,
+      signatureCaptured,
+    });
+  }, [
+    id,
+    visit,
+    urlStep,
+    awaitingSignature,
+    signatureModalOpen,
+    showNoShowForm,
+    documentationSubmitted,
+    signatureCaptured,
+    workflowPersistence,
+  ]);
 
   const handleGrantConsent = useCallback(async () => {
     setConsentLoading(true);
@@ -362,7 +414,6 @@ export function EmployeePortalVisitExecutionScreen() {
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
-      <OrientationGate screenKey="visitExecution">
       {showSuccess ? <SuccessState message={localSuccess!} /> : null}
       {localError ? (
         <View style={styles.dismissibleError}>
@@ -560,10 +611,18 @@ export function EmployeePortalVisitExecutionScreen() {
               clientName={visit.clientName}
               loading={actionLoading}
               openRequest={signaturePanelOpenRequest}
+              initialModalOpen={signatureModalOpen}
+              visitId={id}
+              onModalOpenChange={(open) => {
+                setSignatureModalOpen(open);
+                if (open) workflowPersistence.setStep('signature');
+              }}
               onCapture={async (sig) => {
                 const r = await saveSignature(sig);
                 if (r.ok) {
                   setAwaitingSignature(false);
+                  setSignatureModalOpen(false);
+                  workflowPersistence.setStep(null);
                   const proofOk = r.data && 'proofGenerated' in r.data && r.data.proofGenerated;
                   setLocalSuccess(
                     proofOk
@@ -594,7 +653,6 @@ export function EmployeePortalVisitExecutionScreen() {
 
         <PremiumButton title="Zurück zur Übersicht" variant="ghost" fullWidth onPress={() => router.back()} />
       </ScrollView>
-      </OrientationGate>
     </ScreenShell>
   );
 }

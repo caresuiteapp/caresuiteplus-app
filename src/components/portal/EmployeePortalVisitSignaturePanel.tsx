@@ -12,6 +12,11 @@ type EmployeePortalVisitSignaturePanelProps = {
   capturedPreview?: string | null;
   /** Increment to request opening the signature modal (e.g. after documentation save). */
   openRequest?: number;
+  /** Restore modal open state after rotation / session restore. */
+  initialModalOpen?: boolean;
+  /** Visit id for landscape dismiss scope and workflow persistence. */
+  visitId?: string;
+  onModalOpenChange?: (open: boolean) => void;
   onCapture: (input: EmployeePortalSignatureCaptureInput) => Promise<{ ok: boolean; error?: string }>;
 };
 
@@ -21,17 +26,32 @@ export function EmployeePortalVisitSignaturePanel({
   loading = false,
   capturedPreview,
   openRequest = 0,
+  initialModalOpen = false,
+  visitId,
+  onModalOpenChange,
   onCapture,
 }: EmployeePortalVisitSignaturePanelProps) {
-  const [modalVisible, setModalVisible] = useState(false);
+  const [modalVisible, setModalVisible] = useState(initialModalOpen);
   const [signerName, setSignerName] = useState(clientName);
   const [preview, setPreview] = useState<string | null>(capturedPreview ?? null);
 
   useEffect(() => {
-    if (openRequest > 0 && !disabled && !preview) {
+    if (initialModalOpen && !disabled && !preview) {
       setModalVisible(true);
     }
-  }, [openRequest, disabled, preview]);
+  }, [initialModalOpen, disabled, preview]);
+
+  useEffect(() => {
+    if (openRequest > 0 && !disabled && !preview) {
+      setModalVisible(true);
+      onModalOpenChange?.(true);
+    }
+  }, [openRequest, disabled, preview, onModalOpenChange]);
+
+  const handleModalVisibility = (open: boolean) => {
+    setModalVisible(open);
+    onModalOpenChange?.(open);
+  };
 
   const handleConfirm = async (dataUrl: string) => {
     const result = await onCapture({
@@ -41,7 +61,7 @@ export function EmployeePortalVisitSignaturePanel({
     });
     if (result.ok) {
       setPreview(dataUrl);
-      setModalVisible(false);
+      handleModalVisibility(false);
     }
   };
 
@@ -63,7 +83,7 @@ export function EmployeePortalVisitSignaturePanel({
           title={preview ? 'Unterschrift erneut erfassen' : 'Unterschrift erfassen'}
           fullWidth
           loading={loading}
-          onPress={() => setModalVisible(true)}
+          onPress={() => handleModalVisibility(true)}
         />
       ) : preview ? (
         <Text style={styles.saved}>Unterschrift gespeichert.</Text>
@@ -71,7 +91,8 @@ export function EmployeePortalVisitSignaturePanel({
       <CareSignatureModal
         visible={modalVisible}
         label="Klient:innen-Unterschrift"
-        onClose={() => setModalVisible(false)}
+        dismissScope={visitId ?? 'signature'}
+        onClose={() => handleModalVisibility(false)}
         onConfirm={(dataUrl) => {
           void handleConfirm(dataUrl);
         }}

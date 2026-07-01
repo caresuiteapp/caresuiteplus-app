@@ -87,18 +87,22 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(header).toContain('width: sideInsetWidth');
   });
 
-  it('signature modal uses fullscreen mobile capture with orientation gate', () => {
+  it('signature modal uses fullscreen mobile capture with orientation gate and dismiss scope', () => {
     const modal = readSrc('src/components/inputs/CareSignatureModal.tsx');
     const canvas = readSrc('src/components/inputs/CareSignatureCanvas.tsx');
     const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
     const orientation = readSrc('src/lib/orientation/requestLandscapeLock.ts');
+    const prompt = readSrc('src/components/layout/LandscapePrompt.tsx');
     expect(modal).toContain('presentationStyle="fullScreen"');
     expect(modal).toContain('fillAvailable={fullscreen}');
     expect(modal).toContain('OrientationGate');
     expect(modal).toContain('screenKey="signature"');
+    expect(modal).toContain('dismissScope');
     expect(modal).not.toContain('Pressable style={StyleSheet.absoluteFill}');
     expect(modal).toContain('overscrollBehavior');
     expect(modal).not.toContain('lockWebLandscapeOrientation');
+    expect(prompt).toContain('Trotzdem fortfahren');
+    expect(prompt).not.toContain('position: \'absolute\'');
     expect(orientation).toContain("lock('landscape')");
     expect(canvas).toContain('fillAvailable');
     expect(canvas).toContain('actionLayout');
@@ -108,14 +112,24 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(canvas).toContain('Abbrechen');
     expect(canvas).toContain('Unterschrift bestätigen');
     expect(panel).toContain('CareSignatureModal');
+    expect(panel).toContain('visitId');
   });
 
-  it('visit execution screen uses orientation gate for mobile landscape hint', () => {
+  it('visit execution screen uses workflow persistence without global landscape gate', () => {
     const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    const overlay = readSrc('src/components/layout/LandscapeRequiredOverlay.tsx');
-    expect(screen).toContain('OrientationGate');
-    expect(screen).toContain('screenKey="visitExecution"');
-    expect(overlay).not.toContain('lock-unavailable');
-    expect(overlay).not.toContain('styles.error');
+    const gate = readSrc('src/components/layout/OrientationGate.tsx');
+    const prompt = readSrc('src/components/layout/LandscapePrompt.tsx');
+    expect(screen).not.toContain('OrientationGate');
+    expect(screen).not.toContain('screenKey="visitExecution"');
+    expect(screen).toContain('useWorkflowPersistence');
+    expect(gate).toContain('LandscapePrompt');
+    expect(gate).not.toContain('LandscapeRequiredOverlay');
+    expect(prompt).not.toContain('lock-unavailable');
+  });
+
+  it('employee schedule uses roster orientation gate only', () => {
+    const route = readSrc('app/portal/employee/(tabs)/schedule.tsx');
+    expect(route).toContain('OrientationGate');
+    expect(route).toContain('screenKey="roster"');
   });
 });

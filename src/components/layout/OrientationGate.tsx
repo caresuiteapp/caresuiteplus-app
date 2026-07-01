@@ -1,31 +1,31 @@
 import type { ReactNode } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { LandscapeRequiredOverlay } from '@/components/layout/LandscapeRequiredOverlay';
+import { LandscapePrompt } from '@/components/layout/LandscapePrompt';
 import type { LandscapeScreenKey } from '@/config/landscapeRequiredScreens';
+import { hasLandscapeSoftFallback } from '@/config/landscapeRequiredScreens';
 import { useLandscapeRequired, type UseLandscapeRequiredOptions } from '@/hooks/useOrientation';
 
 type Props = {
   screenKey: LandscapeScreenKey;
   children: ReactNode;
-  /** When false, gate is transparent (no overlay, no lock). */
+  /** When false, gate is transparent (no prompt, no lock). */
   active?: boolean;
   options?: Omit<UseLandscapeRequiredOptions, 'active'>;
 };
 
+/**
+ * Per-screen landscape hint — wraps specific screens only, never PortalShell globally.
+ * Renders a bottom-sheet prompt as flex sibling; workflow content stays interactive.
+ */
 export function OrientationGate({ screenKey, children, active = true, options }: Props) {
-  const state = useLandscapeRequired(screenKey, { ...options, active });
+  const dismissScope = options?.dismissScope ?? screenKey;
+  const state = useLandscapeRequired(screenKey, { ...options, active, dismissScope });
+  const softFallback = hasLandscapeSoftFallback(screenKey);
 
   return (
     <View style={styles.host}>
-      <View
-        style={state.blockContent ? styles.blocked : styles.content}
-        pointerEvents={state.blockContent ? 'none' : 'auto'}
-        accessibilityElementsHidden={state.blockContent}
-        importantForAccessibility={state.blockContent ? 'no-hide-descendants' : 'auto'}
-      >
-        {children}
-      </View>
-      <LandscapeRequiredOverlay
+      <View style={styles.content}>{children}</View>
+      <LandscapePrompt
         visible={state.showOverlay}
         variant={state.overlayVariant}
         pending={state.lockPending}
@@ -33,9 +33,10 @@ export function OrientationGate({ screenKey, children, active = true, options }:
         onActivateLandscape={() => {
           void state.requestLandscapeLock();
         }}
-        onDismiss={state.overlayVariant === 'banner' ? state.dismissBanner : undefined}
         onContinuePortrait={
-          state.overlayVariant === 'hint' ? state.continueInPortrait : undefined
+          softFallback || state.lockFailed || state.overlayVariant === 'hint'
+            ? state.continueInPortrait
+            : undefined
         }
       />
     </View>
@@ -50,10 +51,5 @@ const styles = StyleSheet.create({
   content: {
     flex: 1,
     minHeight: 0,
-  },
-  blocked: {
-    flex: 1,
-    minHeight: 0,
-    opacity: 0.35,
   },
 });

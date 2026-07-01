@@ -1,5 +1,6 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
+import { OrientationGate } from '@/components/layout/OrientationGate';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText, useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -55,6 +56,7 @@ export default function EmployeeScheduleRoute() {
 
   return (
     <PortalTabScreen title="Dienstplan" subtitle="Ihr Wochenplan" hideHeaderOnPhone scroll={false}>
+      <OrientationGate screenKey="roster">
       <View style={styles.container}>
         <Text style={[type.label, styles.sectionLabel, { color: text.primary }]}>Wochenplan</Text>
         {weeklyItems.length === 0 ? (
@@ -88,6 +90,7 @@ export default function EmployeeScheduleRoute() {
           ))
         )}
       </View>
+      </OrientationGate>
     </PortalTabScreen>
   );
 }
