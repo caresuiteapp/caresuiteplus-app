@@ -340,10 +340,19 @@ export async function transitionLiveEmployeePortalAssignment(
   const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
   if (accessDenied) return accessDenied;
 
+  const docFlagsForValidation = await resolveEmployeePortalDocumentationFlags(
+    tenantId,
+    assignmentId,
+    existing.data.assignmentStatus,
+    existing.data.documentationNotes,
+  );
+
   const validation = validateExecutionTransition(existing.data.assignmentStatus, toStatus, {
     requireArrivedBeforeStart: true,
     hasDocumentation: Boolean(existing.data.documentationNotes?.trim()),
-    hasRequiredSignature: false,
+    hasRequiredSignature:
+      !docFlagsForValidation.requiresSignature ||
+      docFlagsForValidation.signatureStatus === 'captured',
     signatureImpossibleJustified: false,
   });
   if (!validation.valid) return { ok: false, error: validation.error };

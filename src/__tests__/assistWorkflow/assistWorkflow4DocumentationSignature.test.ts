@@ -79,13 +79,22 @@ describe('employee portal execution screen wiring', () => {
     expect(live).not.toContain('const requiresSignature = false');
   });
 
+  it('validates persisted signature before live abgeschlossen transition', () => {
+    const live = require('node:fs').readFileSync(
+      require('node:path').join(process.cwd(), 'src/lib/portal/employeePortalExecutionLiveService.ts'),
+      'utf8',
+    );
+    expect(live).toContain('docFlagsForValidation.signatureStatus === \'captured\'');
+    expect(live).not.toMatch(/hasRequiredSignature:\s*false/);
+  });
+
   it('scrolls to signature panel after documentation save', () => {
     const screen = require('node:fs').readFileSync(
       require('node:path').join(process.cwd(), 'src/screens/portal/EmployeePortalVisitExecutionScreen.tsx'),
       'utf8',
     );
-    expect(screen).toContain('scrollToSignature');
-    expect(screen).toContain('signaturePanelOpenRequest');
+    expect(screen).toContain('scrollToSignatureSection');
+    expect(screen).toContain('signatureCaptureRequest');
     expect(screen).toContain('showDocumentationForm');
   });
 });
