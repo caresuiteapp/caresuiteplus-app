@@ -6,6 +6,10 @@ import {
 } from '@/features/assistWorkflow/resolveAllowedActions';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
 import type { AssistExecutionContext } from '@/features/assistWorkflow/types';
+import {
+  buildTimeEventsFromVisitTimesSummary,
+  computeLiveVisitTimers,
+} from '@/features/assistWorkflow/computeLiveVisitTimers';
 
 function baseDetail(): AssistExecutionContext['detail'] {
   return {
@@ -89,7 +93,75 @@ describe('resolveAssistExecutionDiagnostics (ASSIST.WORKFLOW.3)', () => {
 
 describe('useLiveVisitTimers (ASSIST.WORKFLOW.3)', () => {
   it('module exports hook for live timer tick', async () => {
-    const mod = await import('@/hooks/useLiveVisitTimers');
-    expect(mod.useLiveVisitTimers).toBeTypeOf('function');
+    const mod = await import('@/features/assistWorkflow/computeLiveVisitTimers');
+    expect(mod.computeLiveVisitTimers).toBeTypeOf('function');
+  });
+
+  it('continues service timer from fallback anchors when time events are stale', () => {
+    const startedAt = '2026-06-29T08:00:00.000Z';
+    const fallbackTimes = {
+      driveSeconds: 600,
+      serviceSeconds: 120,
+      pauseSeconds: null,
+      totalSeconds: 720,
+      driveStartedAt: '2026-06-29T07:50:00.000Z',
+      serviceStartedAt: startedAt,
+      pauseStartedAt: null,
+      arrivedAt: '2026-06-29T07:59:00.000Z',
+      serviceEndedAt: null,
+      activeTimer: 'service' as const,
+    };
+
+    const t0 = computeLiveVisitTimers([], 'gestartet', fallbackTimes, new Date('2026-06-29T08:02:00.000Z'));
+    const t1 = computeLiveVisitTimers([], 'gestartet', fallbackTimes, new Date('2026-06-29T08:02:05.000Z'));
+
+    expect(t0?.serviceSeconds).toBe(120);
+    expect(t1?.serviceSeconds).toBe(125);
+    expect(t1?.activeTimer).toBe('service');
+  });
+
+  it('uses local store fallback when server events and visitTimes are unavailable', () => {
+    const driveStartedAt = '2026-06-29T08:00:00.000Z';
+    const localTimers = (now: Date) => ({
+      driveSeconds: Math.max(
+        0,
+        Math.round((now.getTime() - new Date(driveStartedAt).getTime()) / 1000),
+      ),
+      serviceSeconds: null,
+      pauseSeconds: null,
+      activeTimer: 'drive' as const,
+      driveStartedAt,
+      serviceStartedAt: null,
+      pauseStartedAt: null,
+    });
+
+    const first = computeLiveVisitTimers([], 'unterwegs', null, new Date('2026-06-29T08:00:30.000Z'), true, localTimers);
+    const second = computeLiveVisitTimers([], 'unterwegs', null, new Date('2026-06-29T08:00:40.000Z'), true, localTimers);
+
+    expect(first?.driveSeconds).toBe(30);
+    expect(second?.driveSeconds).toBe(40);
+    expect(buildTimeEventsFromVisitTimesSummary({
+      driveSeconds: 10,
+      serviceSeconds: null,
+      pauseSeconds: null,
+      totalSeconds: 10,
+      driveStartedAt: '2026-06-29T08:00:00.000Z',
+      serviceStartedAt: null,
+      pauseStartedAt: null,
+      arrivedAt: null,
+      serviceEndedAt: null,
+      activeTimer: 'drive',
+    })).toEqual([{ eventType: 'drive_start', occurredAt: '2026-06-29T08:00:00.000Z' }]);
+  });
+
+  it('keeps ticking from time events without network-derived refresh', () => {
+    const events = [
+      { eventType: 'service_start', occurredAt: '2026-06-29T08:00:00.000Z' },
+    ];
+    const atTwoMinutes = computeLiveVisitTimers(events, 'gestartet', null, new Date('2026-06-29T08:02:00.000Z'));
+    const atThreeMinutes = computeLiveVisitTimers(events, 'gestartet', null, new Date('2026-06-29T08:03:00.000Z'));
+
+    expect(atTwoMinutes?.serviceSeconds).toBe(120);
+    expect(atThreeMinutes?.serviceSeconds).toBe(180);
   });
 });

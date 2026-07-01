@@ -1,6 +1,6 @@
 import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
 import type { EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type {
   EmployeePortalDocumentationInput,
   EmployeePortalSignatureCaptureInput,
@@ -25,6 +25,7 @@ import {
   rebuildEmployeePortalTrackingWarnings,
   requestEmployeePortalForegroundLocationPermission,
   setEmployeePortalGeofenceOverrideReason,
+  computeEmployeePortalLiveTimers,
 } from '@/lib/portal/employeePortalVisitTrackingService';
 import { isEmployeePortalVisitLiveTrackingActive } from '@/lib/portal/employeePortalLiveOverviewService';
 import type { LiveTrackingErrorCode } from '@/features/liveTracking/liveTrackingErrors';
@@ -76,6 +77,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [startServiceLoading, setStartServiceLoading] = useState(false);
   const [refetchWarning, setRefetchWarning] = useState<string | null>(null);
+  const executionContextRef = useRef<AssistExecutionContext | null>(null);
+  executionContextRef.current = executionContext;
 
   useEffect(() => {
     if (!assignmentId) return;
@@ -119,9 +122,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       );
       if (!result.ok) {
         setLiveContextError(result.error);
-        setExecutionContext(null);
-        setRefetchWarning(null);
-        return null;
+        setRefetchWarning(result.error);
+        return executionContextRef.current;
       }
       setExecutionContext(result.data);
       setLiveContext(result.data.liveContext);
@@ -168,11 +170,20 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     dbSessionActive: liveTrackingEnabled,
   });
 
+  const resolveLocalVisitTimers = useCallback(
+    (now: Date) => {
+      if (!tenantId || !assignmentId || !effectiveStatus) return null;
+      return computeEmployeePortalLiveTimers(tenantId, assignmentId, effectiveStatus, now);
+    },
+    [tenantId, assignmentId, effectiveStatus],
+  );
+
   const timers = useLiveVisitTimers(
     executionContext?.timeEvents ?? [],
     effectiveStatus,
     executionContext?.visitTimes ?? null,
-    Boolean(query.data),
+    Boolean(effectiveStatus),
+    resolveLocalVisitTimers,
   );
 
   const tracking: EmployeePortalTrackingSnapshot | null = useMemo(() => {
