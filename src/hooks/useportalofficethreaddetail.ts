@@ -11,31 +11,48 @@ import { markPortalThreadMessagesRead } from '@/lib/office/messagereadservice';
 import { subscribeToOfficeMessageThread } from '@/lib/office/officemessagerealtime';
 import { toUserFacingSendError, VOICE_SEND_TIMEOUT_MS, withMessagingTimeout } from '@/lib/office/voicemessageutils';
 import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
 
 export function usePortalOfficeThreadDetail(threadId: string | null) {
   const { profile, portalSession } = useAuth();
   const tenantId = useServiceTenantId();
+  const { clientId, employeeId, actorId, roleKey, displayName, isLinkedReady } = usePortalActor();
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
+
+  const resolveActor = useCallback(() => {
+    return resolvePortalActor(
+      profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
+      portalSession,
+      profile?.id ?? actorId ?? portalSession?.accountId,
+      profile?.displayName ?? displayName,
+      { clientId, employeeId },
+    );
+  }, [
+    profile?.roleKey,
+    profile?.id,
+    profile?.displayName,
+    roleKey,
+    portalSession,
+    actorId,
+    displayName,
+    clientId,
+    employeeId,
+  ]);
 
   const query = useAsyncQuery(
     () => {
       if (!tenantId || !threadId) {
         return Promise.resolve({ ok: false as const, error: 'Kein Chat ausgewählt.' });
       }
-      const actorResult = resolvePortalActor(
-        profile?.roleKey ?? portalSession?.roleKey ?? null,
-        portalSession,
-        profile?.id ?? portalSession?.accountId,
-        profile?.displayName,
-      );
+      const actorResult = resolveActor();
       if (!actorResult.ok) return Promise.resolve(actorResult);
       return fetchPortalOfficeThreadDetail(tenantId, threadId, actorResult.data);
     },
-    [tenantId, threadId, profile?.roleKey, profile?.id, profile?.displayName, portalSession],
-    { enabled: !!tenantId && !!threadId },
+    [tenantId, threadId, resolveActor],
+    { enabled: !!tenantId && !!threadId && isLinkedReady },
   );
 
   const refresh = useCallback(async () => {
@@ -52,26 +69,16 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
 
   const markAsRead = useCallback(async () => {
     if (!tenantId || !threadId) return;
-    const actorResult = resolvePortalActor(
-      profile?.roleKey ?? portalSession?.roleKey ?? null,
-      portalSession,
-      profile?.id ?? portalSession?.accountId,
-      profile?.displayName,
-    );
+    const actorResult = resolveActor();
     if (!actorResult.ok) return;
     await markPortalThreadMessagesRead(tenantId, threadId, actorResult.data);
     await refresh();
-  }, [tenantId, threadId, profile, portalSession, refresh]);
+  }, [tenantId, threadId, resolveActor, refresh]);
 
   const sendMessage = useCallback(
     async (body: string, attachments: PendingMessageAttachment[] = []) => {
       if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
-      const actorResult = resolvePortalActor(
-        profile?.roleKey ?? portalSession?.roleKey ?? null,
-        portalSession,
-        profile?.id ?? portalSession?.accountId,
-        profile?.displayName,
-      );
+      const actorResult = resolveActor();
       if (!actorResult.ok) return actorResult;
 
       setSending(true);
@@ -97,23 +104,18 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       }
       return result;
     },
-    [tenantId, threadId, profile, portalSession, refresh],
+    [tenantId, threadId, resolveActor, refresh],
   );
 
   const startNewChat = useCallback(async () => {
     if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
-    const actorResult = resolvePortalActor(
-      profile?.roleKey ?? portalSession?.roleKey ?? null,
-      portalSession,
-      profile?.id ?? portalSession?.accountId,
-      profile?.displayName,
-    );
+    const actorResult = resolveActor();
     if (!actorResult.ok) return actorResult;
 
     const result = await startNewPortalThreadFromClosed(tenantId, threadId, actorResult.data);
     if (result.ok) await refresh();
     return result;
-  }, [tenantId, threadId, profile, portalSession, refresh]);
+  }, [tenantId, threadId, resolveActor, refresh]);
 
   return {
     detail: query.data as OfficeMessageThreadDetail | undefined,

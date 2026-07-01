@@ -53,5 +53,22 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
     expect(overview).toContain('loading && !context');
     const actor = readSrc('src/hooks/usePortalActor.ts');
     expect(actor).toContain('fetchPortalClientIdByAccessAccount');
+    expect(actor).toContain('isLinkedReady');
+  });
+
+  it('portal messaging hooks wait for resolved client link via usePortalActor', () => {
+    const messagesHook = readSrc('src/hooks/usePortalOfficeMessages.ts');
+    expect(messagesHook).toContain('usePortalActor');
+    expect(messagesHook).toContain('isLinkedReady');
+    expect(messagesHook).toContain('clientId');
+    expect(messagesHook).toContain('{ clientId, employeeId }');
+
+    const threadHook = readSrc('src/hooks/usePortalOfficeThreadDetail.ts');
+    expect(threadHook).toContain('usePortalActor');
+    expect(threadHook).toContain('isLinkedReady');
+
+    const modal = readSrc('src/components/portal/portalnewchatmodal.tsx');
+    expect(modal).toContain('usePortalActor');
+    expect(modal).toContain('isLinkedReady');
   });
 });

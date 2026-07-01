@@ -6,7 +6,7 @@ import { subscribeToEmployeePortalChanges, subscribeToPortalAssistChanges } from
 import { useAsyncQuery } from './core';
 
 export function usePortalAppointments() {
-  const { tenantId, clientId, employeeId, actorId, roleKey, isReady } = usePortalActor();
+  const { tenantId, clientId, employeeId, actorId, roleKey, isLinkedReady } = usePortalActor();
   const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
 
@@ -37,7 +37,7 @@ export function usePortalAppointments() {
         employeeId,
       }),
     [profileId, roleKey, tenantId, clientId, employeeId],
-    { enabled: isReady, live: liveConfig },
+    { enabled: isLinkedReady, live: liveConfig },
   );
 
   const items = query.data ?? [];

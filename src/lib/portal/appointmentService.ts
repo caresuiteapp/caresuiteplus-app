@@ -125,14 +125,31 @@ export async function fetchPortalAppointments(
 
   if (getServiceMode() === 'supabase') {
     if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
-      const calendar = await getPortalCalendarEvents(tenantId, {
-        portalType: 'client',
-        clientId,
-      });
-      if (calendar.ok && calendar.data.length > 0) {
-        return { ok: true, data: mapCalendarToPortalItems(calendar.data) };
+      const [calendar, live] = await Promise.all([
+        getPortalCalendarEvents(tenantId, {
+          portalType: 'client',
+          clientId,
+        }),
+        fetchLivePortalAppointmentsForClient(tenantId, clientId),
+      ]);
+      if (!live.ok) return live;
+
+      const calendarItems = calendar.ok ? mapCalendarToPortalItems(calendar.data) : [];
+      const byId = new Map<string, PortalAppointmentItem>();
+      for (const item of live.data) {
+        byId.set(item.id, item);
       }
-      return fetchLivePortalAppointmentsForClient(tenantId, clientId);
+      for (const item of calendarItems) {
+        if (!byId.has(item.id)) {
+          byId.set(item.id, item);
+        }
+      }
+      return {
+        ok: true,
+        data: [...byId.values()].sort(
+          (a, b) => new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime(),
+        ),
+      };
     }
     if (scope === 'portal_employee' && tenantId?.trim() && employeeId?.trim()) {
       const calendar = await getEmployeeCalendarEvents(tenantId, employeeId);

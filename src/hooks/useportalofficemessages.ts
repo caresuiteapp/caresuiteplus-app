@@ -6,27 +6,42 @@ import {
 } from '@/lib/office/portalofficemessageservice';
 import { subscribeToOfficeMessageInbox } from '@/lib/office/officemessagerealtime';
 import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
 
 export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open') {
   const { profile, portalSession } = useAuth();
   const tenantId = useServiceTenantId();
+  const { clientId, employeeId, actorId, roleKey, displayName, isLinkedReady } = usePortalActor();
 
   const query = useAsyncQuery(
     () => {
       if (!tenantId) return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       const actorResult = resolvePortalActor(
-        profile?.roleKey ?? portalSession?.roleKey ?? null,
+        profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
         portalSession,
-        profile?.id ?? portalSession?.accountId,
-        profile?.displayName,
+        profile?.id ?? actorId ?? portalSession?.accountId,
+        profile?.displayName ?? displayName,
+        { clientId, employeeId },
       );
       if (!actorResult.ok) return Promise.resolve(actorResult);
       return fetchPortalOfficeThreads(tenantId, actorResult.data, filter);
     },
-    [tenantId, profile?.roleKey, profile?.id, profile?.displayName, portalSession, filter],
-    { enabled: !!tenantId && !!(profile?.roleKey || portalSession?.roleKey) },
+    [
+      tenantId,
+      profile?.roleKey,
+      profile?.id,
+      profile?.displayName,
+      portalSession,
+      filter,
+      roleKey,
+      actorId,
+      displayName,
+      clientId,
+      employeeId,
+    ],
+    { enabled: !!tenantId && isLinkedReady },
   );
 
   const refresh = useCallback(async () => {

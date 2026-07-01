@@ -4,7 +4,10 @@ import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { getPortalDisplayName } from '@/lib/auth/userdisplayname';
 import { fetchClientPortalDisplayName, isPortalUsernameLabel } from '@/lib/portal/clientPortalDisplayName';
 import { fetchEmployeePortalDisplayName } from '@/lib/portal/employeePortalDisplayName';
-import { fetchPortalClientIdByAccessAccount } from '@/lib/portal/resolvePortalClientLink';
+import {
+  fetchPortalClientIdByAccessAccount,
+  fetchPortalClientIdForAuthUser,
+} from '@/lib/portal/resolvePortalClientLink';
 import { getSession } from '@/lib/supabase';
 import type { RoleKey } from '@/types';
 export type PortalActor = {
@@ -16,6 +19,8 @@ export type PortalActor = {
   displayName: string;
   isReady: boolean;
   isResolvingClientLink: boolean;
+  /** True when portal actor has tenant, role, profile and linked client/employee id. */
+  isLinkedReady: boolean;
 };
 
 export function usePortalActor(): PortalActor {
@@ -55,6 +60,14 @@ export function usePortalActor(): PortalActor {
       }
 
       if (!portalAccountId) {
+        const linkedByAuth = await fetchPortalClientIdForAuthUser(tenantId);
+        if (cancelled) return;
+        if (linkedByAuth) {
+          setResolvedClientId(linkedByAuth);
+          if (portalSession) {
+            void updatePortalSession({ clientId: linkedByAuth });
+          }
+        }
         if (!cancelled) setIsResolvingClientLink(false);
         return;
       }
@@ -66,6 +79,14 @@ export function usePortalActor(): PortalActor {
         setResolvedClientId(linkedClientId);
         if (portalSession) {
           void updatePortalSession({ clientId: linkedClientId });
+        }
+      } else {
+        const linkedByAuth = await fetchPortalClientIdForAuthUser(tenantId);
+        if (!cancelled && linkedByAuth) {
+          setResolvedClientId(linkedByAuth);
+          if (portalSession) {
+            void updatePortalSession({ clientId: linkedByAuth });
+          }
         }
       }
 
@@ -129,18 +150,28 @@ export function usePortalActor(): PortalActor {
       : null) ??
     fallbackDisplayName;
 
-  return useMemo(
-    () => ({
+  return useMemo(() => {
+    const isReady = Boolean(tenantId && roleKey && actorId);
+    const isLinkedReady =
+      isReady &&
+      !isResolvingClientLink &&
+      ((roleKey === 'client_portal' || roleKey === 'family_portal'
+        ? Boolean(clientId)
+        : roleKey === 'employee_portal'
+          ? Boolean(employeeId)
+          : true));
+
+    return {
       tenantId,
       roleKey,
       actorId,
       clientId,
       employeeId,
       displayName,
-      isReady: Boolean(tenantId && roleKey && actorId),
+      isReady,
       isResolvingClientLink,
-    }),
-    [tenantId, roleKey, actorId, clientId, employeeId, displayName, isResolvingClientLink],
-  );
+      isLinkedReady,
+    };
+  }, [tenantId, roleKey, actorId, clientId, employeeId, displayName, isResolvingClientLink]);
 }
 

@@ -12,6 +12,7 @@ import {
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useAuth } from '@/lib/auth/context';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { spacing, radius } from '@/theme';
 import type { OfficeMessageCategory } from '@/types/office/messaging';
@@ -35,6 +36,7 @@ export function PortalNewChatModal({
   const { typography } = useLegacyTheme();
   const { profile, portalSession } = useAuth();
   const tenantId = useServiceTenantId();
+  const { clientId, employeeId, actorId, roleKey, displayName, isLinkedReady } = usePortalActor();
   const [subject, setSubject] = useState('');
   const [initialMessage, setInitialMessage] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
@@ -71,14 +73,15 @@ export function PortalNewChatModal({
   }, []);
 
   useEffect(() => {
-    if (!visible || !tenantId) return;
+    if (!visible || !tenantId || !isLinkedReady) return;
     reset();
     void (async () => {
       const actorResult = resolvePortalActor(
-        profile?.roleKey ?? portalSession?.roleKey ?? null,
+        profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
         portalSession,
-        profile?.id ?? portalSession?.accountId,
-        profile?.displayName,
+        profile?.id ?? actorId ?? portalSession?.accountId,
+        profile?.displayName ?? displayName,
+        { clientId, employeeId },
       );
       if (!actorResult.ok) return;
       const result = await fetchPortalOfficeCategories(tenantId, actorResult.data);
@@ -87,7 +90,19 @@ export function PortalNewChatModal({
         setCategoryId(result.data[0]?.id ?? null);
       }
     })();
-  }, [visible, tenantId, profile, portalSession, reset]);
+  }, [
+    visible,
+    tenantId,
+    isLinkedReady,
+    profile,
+    portalSession,
+    reset,
+    roleKey,
+    actorId,
+    displayName,
+    clientId,
+    employeeId,
+  ]);
 
   const handleCreate = async () => {
     if (!tenantId || !categoryId) return;
@@ -97,10 +112,11 @@ export function PortalNewChatModal({
     }
 
     const actorResult = resolvePortalActor(
-      profile?.roleKey ?? portalSession?.roleKey ?? null,
+      profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
       portalSession,
-      profile?.id ?? portalSession?.accountId,
-      profile?.displayName,
+      profile?.id ?? actorId ?? portalSession?.accountId,
+      profile?.displayName ?? displayName,
+      { clientId, employeeId },
     );
     if (!actorResult.ok) {
       setError(actorResult.error);

@@ -445,9 +445,7 @@ export const visitSupabaseRepository = {
       if (options?.clientId) query = query.eq('client_id', options.clientId);
       if (options?.employeeId) query = query.eq('employee_id', options.employeeId);
       if (options?.serviceKey) query = query.eq('service_key', options.serviceKey);
-      if (options?.portalAudience === 'client') {
-        query = query.eq('portal_release_enabled', true);
-      }
+      // Client portal lists all non-draft own visits; portal_release_enabled gates live-tracking/detail only.
       if (options?.portalAudience === 'employee') {
         query = query.eq('employee_portal_visible', true);
       }

@@ -14,6 +14,7 @@ describe('Portal appointments live wiring', () => {
     expect(hook).toContain('usePortalActor');
     expect(hook).toContain('clientId');
     expect(hook).toContain('tenantId');
+    expect(hook).toContain('isLinkedReady');
     expect(hook).not.toContain('useAuth');
   });
 
@@ -32,9 +33,8 @@ describe('Portal appointments live wiring', () => {
     expect(service).toContain('fetchLivePortalAppointmentsForEmployee');
 
     const live = readSrc('src/lib/portal/portalAppointmentsLiveService.ts');
-    expect(live).toContain("fromUnknownTable(supabase, 'assignments')");
-    expect(live).toContain(".eq('client_id', filter.clientId)");
-    expect(live).toContain("'planned'");
+    expect(live).toContain('visitSupabaseRepository.list');
+    expect(live).toContain("portalAudience: filter.clientId ? 'client' : 'employee'");
     expect(live).not.toContain('demoAppointments');
     expect(live).not.toContain('Helga Schneider');
   });

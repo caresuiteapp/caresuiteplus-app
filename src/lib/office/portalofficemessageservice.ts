@@ -60,16 +60,22 @@ function officeMessagingError(error: string): ServiceResult<never> {
   return { ok: false, error };
 }
 
+export type PortalActorLinkOverrides = {
+  clientId?: string | null;
+  employeeId?: string | null;
+};
+
 export function resolvePortalActor(
   roleKey: RoleKey | null | undefined,
   portalSession: PortalSessionRecord | null,
   profileId?: string | null,
   displayName?: string | null,
+  linkOverrides?: PortalActorLinkOverrides,
 ): ServiceResult<PortalActor> {
   if (!roleKey) return { ok: false, error: 'Kein Profil für Portal-Nachrichten.' };
 
   if (roleKey === 'client_portal' || roleKey === 'family_portal') {
-    const clientId = portalSession?.clientId ?? null;
+    const clientId = linkOverrides?.clientId ?? portalSession?.clientId ?? null;
     if (!clientId) return { ok: false, error: 'Kein Klient:innen-Konto verknüpft.' };
     return {
       ok: true,
@@ -85,7 +91,7 @@ export function resolvePortalActor(
   }
 
   if (roleKey === 'employee_portal') {
-    const employeeId = portalSession?.employeeId ?? null;
+    const employeeId = linkOverrides?.employeeId ?? portalSession?.employeeId ?? null;
     if (!employeeId) return { ok: false, error: 'Kein Mitarbeiter:innen-Konto verknüpft.' };
     return {
       ok: true,
