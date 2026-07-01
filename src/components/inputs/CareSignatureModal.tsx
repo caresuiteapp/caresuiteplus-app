@@ -11,6 +11,7 @@ import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
 import { OrientationGate } from '@/components/layout/OrientationGate';
 import { GradientModalHeader } from '@/components/layout/platform';
+import { FullscreenOverlay } from '@/components/ui/FullscreenOverlay';
 import { GlassSurface } from '@/components/ui/effects';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
@@ -47,9 +48,9 @@ export function CareSignatureModal({
   const lightModal = isLight && auroraActive;
   const safeColors = colors ?? legacyColorsFromPalette('dark');
   const safeTypography = typography ?? resolveCareTypography('dark');
-  const { isPhone } = useDeviceClass();
+  const { isPhone, isTablet } = useDeviceClass();
   const orientation = useOrientation();
-  const fullscreen = isPhone;
+  const fullscreen = isPhone || isTablet;
   const portraitMobile = fullscreen && !orientation.isLandscape;
   const insets = useSafeAreaInsets();
   const { width: screenWidth, height: screenHeight } = useWindowDimensions();
@@ -66,12 +67,12 @@ export function CareSignatureModal({
         },
         fullscreenRoot: {
           flex: 1,
-          width: '100%',
-          height: '100%',
+          minHeight: 0,
+          flexDirection: 'column',
           backgroundColor: '#fff',
           ...Platform.select({
             web: {
-              overscrollBehavior: 'none',
+              overscrollBehavior: 'contain',
               touchAction: 'none',
             },
             default: {},
@@ -79,11 +80,9 @@ export function CareSignatureModal({
         },
         fullscreenBody: {
           flex: 1,
-          paddingHorizontal: portraitMobile ? spacing.sm : spacing.md,
-          paddingTop: portraitMobile ? spacing.xs : spacing.sm,
-          paddingBottom: Math.max(spacing.sm, insets.bottom),
-          gap: portraitMobile ? spacing.xs : spacing.sm,
           minHeight: 0,
+          paddingHorizontal: portraitMobile ? spacing.xs : spacing.sm,
+          paddingTop: spacing.xs,
         },
         sheetHost: {
           overflow: 'hidden',
@@ -95,16 +94,16 @@ export function CareSignatureModal({
         subtitle: {
           ...safeTypography.caption,
           color: safeColors.textMuted,
-          marginBottom: portraitMobile ? 0 : spacing.xs,
+          marginBottom: spacing.xs,
         },
         canvasSlot: {
           width: '100%',
           alignSelf: 'stretch',
           flex: 1,
-          minHeight: portraitMobile ? 140 : 160,
+          minHeight: 0,
         },
       }),
-    [insets.bottom, lightModal, portraitMobile, safeColors, safeTypography],
+    [lightModal, portraitMobile, safeColors, safeTypography],
   );
 
   const sheetWidth = useMemo(
@@ -119,13 +118,13 @@ export function CareSignatureModal({
   const desktopCanvasHeight = Math.max(DESKTOP_CANVAS_HEIGHT, 200);
 
   useEffect(() => {
-    if (!visible || Platform.OS !== 'web') return;
+    if (!visible || Platform.OS !== 'web' || fullscreen) return;
 
     const prevOverflow = document.body.style.overflow;
     const prevOverscroll = document.body.style.overscrollBehavior;
     const prevTouchAction = document.body.style.touchAction;
     document.body.style.overflow = 'hidden';
-    document.body.style.overscrollBehavior = 'none';
+    document.body.style.overscrollBehavior = 'contain';
     document.body.style.touchAction = 'none';
 
     const blockTouchMove = (event: TouchEvent) => {
@@ -139,7 +138,7 @@ export function CareSignatureModal({
       document.body.style.touchAction = prevTouchAction;
       document.removeEventListener('touchmove', blockTouchMove);
     };
-  }, [visible]);
+  }, [fullscreen, visible]);
 
   const handleConfirm = useCallback(
     (dataUrl: string) => {
@@ -164,13 +163,7 @@ export function CareSignatureModal({
 
   if (fullscreen) {
     return (
-      <Modal
-        visible={visible}
-        animationType="fade"
-        onRequestClose={onClose}
-        statusBarTranslucent
-        presentationStyle="fullScreen"
-      >
+      <FullscreenOverlay visible={visible} onRequestClose={onClose} testID="signature-fullscreen-overlay">
         <OrientationGate
           screenKey="signature"
           active={visible}
@@ -178,19 +171,15 @@ export function CareSignatureModal({
         >
           <View
             style={[styles.fullscreenRoot, { paddingTop: insets.top }]}
-            accessibilityViewIsModal
             pointerEvents="box-none"
           >
-            <GradientModalHeader title="Unterschrift" onClose={onClose} />
+            <GradientModalHeader title="Unterschrift" subtitle={label} onClose={onClose} />
             <View style={styles.fullscreenBody} pointerEvents="box-none">
-              <Text style={styles.subtitle} numberOfLines={2}>
-                {label}
-              </Text>
               <View style={styles.canvasSlot}>{canvas}</View>
             </View>
           </View>
         </OrientationGate>
-      </Modal>
+      </FullscreenOverlay>
     );
   }
 

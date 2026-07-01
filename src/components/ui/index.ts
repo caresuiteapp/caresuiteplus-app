@@ -10,6 +10,7 @@ export {
   SuccessState,
 } from './StateViews';
 export { FullScreenLoader } from './FullScreenLoader';
+export { FullscreenOverlay, FULLSCREEN_OVERLAY_Z_INDEX } from './FullscreenOverlay';
 export { ModuleTile } from './ModuleTile';
 export { CareLightCard } from './CareLightCard';
 export { PremiumKpiCard } from './PremiumKpiCard';

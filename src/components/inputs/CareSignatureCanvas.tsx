@@ -37,8 +37,10 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
     () =>
       StyleSheet.create({
         wrap: {
-          gap: spacing.sm,
-          ...(fillAvailable ? { flex: 1, minHeight: 0 } : null),
+          gap: fillAvailable && actionLayout === 'bar' ? spacing.xs : spacing.sm,
+          ...(fillAvailable
+            ? { flex: 1, minHeight: 0, flexDirection: 'column' as const }
+            : null),
           ...Platform.select({
             web: fillAvailable ? { touchAction: 'none' as const } : {},
             default: {},
@@ -56,7 +58,7 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
             ? {
                 flex: 1,
                 height: undefined,
-                minHeight: 160,
+                minHeight: 0,
                 alignSelf: 'stretch',
               }
             : null),
