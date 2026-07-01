@@ -40,6 +40,22 @@ function baseVisit(
 }
 
 describe('resolveVisitExecutionUiState', () => {
+  it('shows signature when proof required and documentation submitted on confirmed status', () => {
+    const state = resolveVisitExecutionUiState({
+      visit: baseVisit({
+        status: 'bestaetigt',
+        documentationStatus: 'submitted',
+      }),
+      effectiveStatus: 'bestaetigt',
+      consistencyStatus: 'consistent',
+      allowedActions: ['open_route'],
+      awaitingSignature: false,
+      hasServiceEnded: false,
+    });
+
+    expect(state.showSignature).toBe(true);
+  });
+
   it('shows signature when service ended but DB status still confirmed', () => {
     const state = resolveVisitExecutionUiState({
       visit: baseVisit({

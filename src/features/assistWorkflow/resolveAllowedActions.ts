@@ -103,7 +103,6 @@ export function resolveAllowedActions(input: {
   if (
     detail.requiresSignature &&
     docSubmitted &&
-    ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(status) &&
     !signatureCaptured
   ) {
     actions.push('capture_signature');

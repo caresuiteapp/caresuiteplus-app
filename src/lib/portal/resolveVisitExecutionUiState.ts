@@ -75,10 +75,7 @@ export function resolveVisitExecutionUiState(
     visit.requiresSignature &&
     !statusBlocksDoc &&
     documentationSubmitted &&
-    !signatureCaptured &&
-    (awaitingSignature ||
-      allowedActions.includes('capture_signature') ||
-      postServiceReady);
+    !signatureCaptured;
 
   const showFinalize =
     !statusBlocksDoc &&
