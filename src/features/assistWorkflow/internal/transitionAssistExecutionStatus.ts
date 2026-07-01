@@ -35,6 +35,16 @@ export async function transitionAssistExecutionStatus(
   toStatus: AssignmentStatus,
   options?: TransitionOptions,
 ): Promise<ServiceResult<AssistExecutionContext>> {
+  if (ctx.assignmentStatus === toStatus) {
+    return resolveAssistExecutionContext({
+      tenantId: ctx.tenantId,
+      assignmentId: ctx.assignmentId,
+      employeeId: ctx.employeeId,
+      profileId: ctx.profileId,
+      roleKey: ctx.roleKey as RoleKey | null,
+    });
+  }
+
   const hasServiceStarted =
     options?.hasServiceStarted ??
     Boolean(ctx.visitTimes?.serviceStartedAt);

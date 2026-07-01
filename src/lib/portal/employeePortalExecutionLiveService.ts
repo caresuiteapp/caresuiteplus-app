@@ -344,6 +344,27 @@ export async function transitionLiveEmployeePortalAssignment(
   const accessDenied = assertLiveEmployeeAssignmentAccess(tenantId, employeeId, roleKey, existing.data);
   if (accessDenied) return accessDenied;
 
+  const fromStatus = existing.data.assignmentStatus;
+  if (fromStatus === toStatus) {
+    const extras = await fetchAssignmentExtras(tenantId, assignmentId, existing.data.clientId);
+    const docFlags = await resolveEmployeePortalDocumentationFlags(
+      tenantId,
+      assignmentId,
+      fromStatus,
+      existing.data.documentationNotes,
+      employeeId,
+    );
+    return {
+      ok: true,
+      data: mapDetailToPortal(existing.data, roleKey, employeeId, undefined, {
+        ...extras,
+        requiresSignature: docFlags.requiresSignature,
+        requiresDocumentation: docFlags.requiresDocumentation,
+        signatureStatus: docFlags.signatureStatus,
+      }),
+    };
+  }
+
   const docFlagsForValidation = await resolveEmployeePortalDocumentationFlags(
     tenantId,
     assignmentId,
@@ -365,8 +386,6 @@ export async function transitionLiveEmployeePortalAssignment(
     signatureImpossibleJustified: false,
   });
   if (!validation.valid) return { ok: false, error: validation.error };
-
-  const fromStatus = existing.data.assignmentStatus;
 
   // Assignments table is source of truth for portal execution (RLS + set_assignment_status RPC).
   const updated = await assignmentSupabaseRepository.updateStatus(

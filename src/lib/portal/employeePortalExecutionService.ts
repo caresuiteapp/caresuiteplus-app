@@ -212,6 +212,10 @@ function updateWorkflowStatus(
     return { ok: false, error: 'Abgeschlossener Einsatz ist gesperrt.' };
   }
 
+  if (record.status === toStatus) {
+    return { ok: true, data: record };
+  }
+
   const doc = STORE.documentations.get(storeKey(tenantId, assignmentId));
   const validation = validateExecutionTransition(record.status, toStatus, {
     requireArrivedBeforeStart: true,
