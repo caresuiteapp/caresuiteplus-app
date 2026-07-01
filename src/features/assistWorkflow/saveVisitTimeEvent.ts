@@ -27,13 +27,34 @@ export type SaveVisitTimeEventInput = {
   eventType: VisitTimeEventType;
   occurredAt?: string;
   recordedBy?: string | null;
+  employeeId?: string | null;
+  profileId?: string | null;
   metadata?: Record<string, unknown>;
 };
+
+async function mirrorAssistEventToWfm(input: SaveVisitTimeEventInput): Promise<void> {
+  if (!input.employeeId && !input.profileId) return;
+
+  const { syncAssistTimeEventToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+  const occurredAt = input.occurredAt ?? new Date().toISOString();
+  const syncResult = await syncAssistTimeEventToWfm(
+    input.tenantId,
+    input.employeeId ?? null,
+    input.profileId ?? input.recordedBy ?? null,
+    input.visitId,
+    input.eventType,
+    occurredAt,
+  );
+  if (!syncResult.ok && process.env.NODE_ENV !== 'production') {
+    console.warn('[saveVisitTimeEvent] WFM-Sync fehlgeschlagen:', syncResult.error);
+  }
+}
 
 export async function saveVisitTimeEvent(
   input: SaveVisitTimeEventInput,
 ): Promise<ServiceResult<{ id: string }>> {
   if (getServiceMode() !== 'supabase') {
+    await mirrorAssistEventToWfm(input);
     return { ok: true, data: { id: 'demo' } };
   }
 
@@ -62,6 +83,8 @@ export async function saveVisitTimeEvent(
     );
   }
 
+  await mirrorAssistEventToWfm(input);
+
   return recorded;
 }
 
@@ -71,6 +94,7 @@ export async function ensureVisitTimeEvent(
   existingEvents: Array<{ eventType: string }>,
 ): Promise<ServiceResult<{ id: string; created: boolean }>> {
   if (existingEvents.some((e) => e.eventType === input.eventType)) {
+    await mirrorAssistEventToWfm(input);
     return { ok: true, data: { id: 'existing', created: false } };
   }
 

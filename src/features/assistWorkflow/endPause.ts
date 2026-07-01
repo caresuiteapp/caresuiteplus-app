@@ -114,6 +114,8 @@ async function persistPauseEndEvent(
       tenantId: ctx.tenantId,
       visitId: ctx.assistVisitId,
       recordedBy: ctx.profileId ?? ctx.employeeId,
+      employeeId: ctx.employeeId,
+      profileId: ctx.profileId,
     },
     existing,
   );

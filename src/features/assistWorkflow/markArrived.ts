@@ -53,6 +53,8 @@ async function backfillTravelEndEvents(ctx: AssistExecutionContext): Promise<str
         eventType: 'arrive',
         occurredAt: now,
         recordedBy: ctx.profileId ?? ctx.employeeId,
+        employeeId: ctx.employeeId,
+        profileId: ctx.profileId,
       },
       existing,
     );
@@ -65,6 +67,8 @@ async function backfillTravelEndEvents(ctx: AssistExecutionContext): Promise<str
         eventType: 'drive_end',
         occurredAt: now,
         recordedBy: ctx.profileId ?? ctx.employeeId,
+        employeeId: ctx.employeeId,
+        profileId: ctx.profileId,
       },
       existing,
     );

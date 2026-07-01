@@ -99,16 +99,27 @@ export function resetWfmDemoStore(): void {
   demoEvents.clear();
 }
 
+/** Local calendar date (YYYY-MM-DD) — matches German "heute" in Office Arbeitszeit. */
 export function todayWorkDate(): string {
-  return new Date().toISOString().slice(0, 10);
+  return workDateFromDate(new Date());
 }
 
-export async function fetchTodaySession(
+export function workDateFromIso(iso: string): string {
+  return workDateFromDate(new Date(iso));
+}
+
+function workDateFromDate(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, '0');
+  const day = String(date.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
+export async function fetchSessionForDate(
   tenantId: string,
   employeeId: string,
+  workDate: string,
 ): Promise<ServiceResult<WfmWorkSession | null>> {
-  const workDate = todayWorkDate();
-
   if (getServiceMode() !== 'supabase') {
     return { ok: true, data: demoSessions.get(sessionKey(tenantId, employeeId, workDate)) ?? null };
   }
@@ -132,6 +143,13 @@ export async function fetchTodaySession(
 
   if (!data) return { ok: true, data: null };
   return { ok: true, data: mapSessionRow(data as SessionRow) };
+}
+
+export async function fetchTodaySession(
+  tenantId: string,
+  employeeId: string,
+): Promise<ServiceResult<WfmWorkSession | null>> {
+  return fetchSessionForDate(tenantId, employeeId, todayWorkDate());
 }
 
 export async function fetchSessionEvents(
@@ -164,7 +182,7 @@ export async function fetchSessionEvents(
 export async function insertWorkSession(
   input: Omit<WfmWorkSession, 'grossMinutes' | 'netMinutes' | 'pauseMinutes'>,
 ): Promise<ServiceResult<WfmWorkSession>> {
-  const payload = {
+  const payload: Record<string, unknown> = {
     tenant_id: input.tenantId,
     employee_id: input.employeeId,
     user_id: input.userId,
@@ -180,6 +198,7 @@ export async function insertWorkSession(
     net_minutes: 0,
     pause_minutes: 0,
   };
+  if (input.currentVisitId) payload.current_visit_id = input.currentVisitId;
 
   if (getServiceMode() !== 'supabase') {
     const session: WfmWorkSession = {
@@ -268,11 +287,40 @@ export async function updateWorkSession(
   return { ok: true, data: mapSessionRow(data as SessionRow) };
 }
 
+export async function hasAssistWfmEvent(
+  tenantId: string,
+  employeeId: string,
+  eventType: WfmEventType,
+  visitId: string,
+): Promise<boolean> {
+  if (getServiceMode() !== 'supabase') return false;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  const { data, error } = await fromUnknownTable(supabase, EVENTS_TABLE)
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId)
+    .eq('event_type', eventType)
+    .eq('reference_type', 'visit')
+    .eq('reference_id', visitId)
+    .limit(1)
+    .maybeSingle();
+
+  if (error) return false;
+  return Boolean(data);
+}
+
 export async function insertTimeEvent(
-  input: Omit<WfmTimeEvent, 'occurredAt'> & { occurredAt?: string },
+  input: Omit<WfmTimeEvent, 'occurredAt'> & {
+    occurredAt?: string;
+    referenceType?: 'visit' | 'assignment' | null;
+    referenceId?: string | null;
+  },
 ): Promise<ServiceResult<WfmTimeEvent>> {
   const occurredAt = input.occurredAt ?? new Date().toISOString();
-  const payload = {
+  const payload: Record<string, unknown> = {
     id: input.id,
     tenant_id: input.tenantId,
     employee_id: input.employeeId,
@@ -284,6 +332,8 @@ export async function insertTimeEvent(
     session_id: input.sessionId,
     note: input.note,
   };
+  if (input.referenceType) payload.reference_type = input.referenceType;
+  if (input.referenceId) payload.reference_id = input.referenceId;
 
   if (getServiceMode() !== 'supabase') {
     const event: WfmTimeEvent = { ...input, occurredAt };

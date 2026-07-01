@@ -116,6 +116,16 @@ export async function finalizeVisit(
     finalizedAt: new Date().toISOString(),
   });
 
+  if (getServiceMode() === 'supabase' && ctx.employeeId && ctx.assistVisitId) {
+    const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
+    void syncAssistVisitTimesToWfm(
+      ctx.tenantId,
+      ctx.employeeId,
+      ctx.profileId ?? null,
+      ctx.assistVisitId,
+    );
+  }
+
   return {
     ok: true,
     data: {

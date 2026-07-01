@@ -128,6 +128,8 @@ async function persistEndServiceEvents(
         tenantId: ctx.tenantId,
         visitId: ctx.assistVisitId,
         recordedBy: ctx.profileId ?? ctx.employeeId,
+        employeeId: ctx.employeeId,
+        profileId: ctx.profileId,
       },
       existing,
     );
@@ -147,6 +149,8 @@ async function persistEndServiceEvents(
       visitId: ctx.assistVisitId,
       eventType: 'service_end',
       recordedBy: ctx.profileId ?? ctx.employeeId,
+      employeeId: ctx.employeeId,
+      profileId: ctx.profileId,
     },
     eventList,
   );

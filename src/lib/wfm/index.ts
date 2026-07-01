@@ -10,6 +10,7 @@ export {
   fetchSessionEvents,
   resolveEmployeeIdForUser,
   todayWorkDate,
+  workDateFromIso,
   listSessionsForDate,
   fetchEmployeeEventsInRange,
 } from './wfmWorkSessionRepository';
@@ -31,6 +32,8 @@ export { listTeamSessionsToday, listActiveTeamSessions } from './wfmSessionServi
 export {
   mapAssistEventToWfm,
   syncAssistTimeEventToWfm,
+  syncAssistVisitTimesToWfm,
+  applyAssistServiceEndToWfmSession,
   resetWfmAssistAdapterState,
 } from './wfmAssistAdapter';
 

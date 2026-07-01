@@ -148,6 +148,8 @@ async function persistServiceStartEvent(
       visitId: ctx.assistVisitId,
       eventType: 'service_start',
       recordedBy: ctx.profileId ?? ctx.employeeId,
+      employeeId: ctx.employeeId,
+      profileId: ctx.profileId,
     },
     existing,
   );
