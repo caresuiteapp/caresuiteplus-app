@@ -24,7 +24,7 @@ import {
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
-import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
+import { isEmployeePortalVisitLiveTrackingActive } from '@/lib/portal/employeePortalLiveOverviewService';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkflowPersistence } from '@/hooks/useWorkflowPersistence';
 import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
@@ -165,6 +165,11 @@ export function EmployeePortalVisitExecutionScreen() {
       visit?.status === 'nicht_erschienen' ||
       visit?.isLocked,
     [visit],
+  );
+
+  const showLiveTracking = useMemo(
+    () => !isLocked && isEmployeePortalVisitLiveTrackingActive(effectiveStatus),
+    [isLocked, effectiveStatus],
   );
 
   const trackingActive = Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
@@ -473,20 +478,24 @@ export function EmployeePortalVisitExecutionScreen() {
           ) : null}
         </PremiumCard>
 
-        <SectionPanel title="Live-Status" subtitle="Einsatz · GPS · Tracking">
-          <DetailInfoRow label="Klient:in" value={visit.clientName} />
-          <DetailInfoRow label="Adresse" value={visit.locationAddress} />
-          <DetailInfoRow label="Geplant" value={formatDateTime(visit.plannedStartAt)} />
-          <DetailInfoRow label="GPS-Berechtigung" value={gpsPermission} />
-          <DetailInfoRow label="Ankunftsnachweis" value={arrivalProofLabel} />
-          <DetailInfoRow
-            label="Tracking"
-            value={trackingStatusLabel(trackingActive, gpsPermission, errorCode)}
-          />
-          {errorCode ? <Text style={styles.errorCode}>Support-Code: {errorCode}</Text> : null}
-        </SectionPanel>
+        {showLiveTracking ? (
+          <SectionPanel title="Live-Status" subtitle="Einsatz · GPS · Tracking">
+            <DetailInfoRow label="Klient:in" value={visit.clientName} />
+            <DetailInfoRow label="Adresse" value={visit.locationAddress} />
+            <DetailInfoRow label="Geplant" value={formatDateTime(visit.plannedStartAt)} />
+            <DetailInfoRow label="GPS-Berechtigung" value={gpsPermission} />
+            <DetailInfoRow label="Ankunftsnachweis" value={arrivalProofLabel} />
+            <DetailInfoRow
+              label="Tracking"
+              value={trackingStatusLabel(trackingActive, gpsPermission, errorCode)}
+            />
+            {errorCode ? <Text style={styles.errorCode}>Support-Code: {errorCode}</Text> : null}
+          </SectionPanel>
+        ) : null}
 
-        <EmployeePortalLiveTimersPanel timers={timers} assignmentStatus={effectiveStatus} />
+        {showLiveTracking ? (
+          <EmployeePortalLiveTimersPanel timers={timers} assignmentStatus={effectiveStatus} />
+        ) : null}
 
         {tracking?.warnings.map((w) => (
           <InfoBanner key={w} variant="warning" message={w} />

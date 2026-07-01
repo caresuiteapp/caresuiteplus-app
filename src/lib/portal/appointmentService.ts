@@ -42,6 +42,8 @@ export type PortalAppointmentItem = Pick<
   'id' | 'title' | 'startsAt' | 'endsAt' | 'status' | 'location' | 'clientId' | 'employeeId'
 > & {
   clientName?: string;
+  /** When set (live assist_visits), preferred over workflow status mapping. */
+  assignmentStatus?: AssignmentStatus;
 };
 
 const SIMULATED_DELAY_MS = 350;

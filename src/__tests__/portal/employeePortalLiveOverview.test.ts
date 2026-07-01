@@ -36,5 +36,24 @@ describe('employeePortalLiveOverviewService', () => {
   it('recognises active assignment statuses', () => {
     expect(isActiveEmployeeAssignment('gestartet')).toBe(true);
     expect(isActiveEmployeeAssignment('geplant')).toBe(false);
+    expect(isActiveEmployeeAssignment('abgeschlossen')).toBe(false);
+  });
+
+  it('preserves abgeschlossen when assignmentStatus is provided (not collapsed to gestartet)', () => {
+    const item = mapPortalAppointmentToListItem({
+      ...BASE,
+      status: 'in_bearbeitung',
+      assignmentStatus: 'abgeschlossen',
+    });
+    expect(item.status).toBe('abgeschlossen');
+    expect(item.isLocked).toBe(true);
+  });
+
+  it('maps finished/beendet workflow slice back to gestartet without assignmentStatus (legacy)', () => {
+    const item = mapPortalAppointmentToListItem({
+      ...BASE,
+      status: 'in_bearbeitung',
+    });
+    expect(item.status).toBe('gestartet');
   });
 });

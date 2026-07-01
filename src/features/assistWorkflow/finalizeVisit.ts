@@ -5,6 +5,7 @@ import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types';
 import { validateVisitCloseReadiness } from '@/lib/assist/visitExecutionService';
 import { hasPortalPersistedClientSignature } from '@/lib/portal/resolveEmployeePortalSignatureRequirement';
+import { getServiceMode } from '@/lib/services/mode';
 import { generateServiceRecord } from './generateServiceRecord';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
@@ -86,6 +87,16 @@ export async function finalizeVisit(
   }
 
   const record = await generateServiceRecord(ctx, docText);
+
+  if (getServiceMode() === 'supabase' && (!record.ok || !record.data.proofPersisted)) {
+    return assistWorkflowErrorToResult(
+      createAssistWorkflowError('AWF_PROOF_GENERATION_FAILED', {
+        tenantId: ctx.tenantId,
+        assignmentId: ctx.assignmentId,
+        operation: 'finalizeVisit',
+      }, record.ok ? 'Leistungsnachweis konnte nicht gespeichert werden.' : (record.error ?? 'Leistungsnachweis konnte nicht erstellt werden.')),
+    );
+  }
 
   const transitioned = await transitionAssistExecutionStatus(ctx, 'abgeschlossen', {
     hasDocumentation: Boolean(docText),

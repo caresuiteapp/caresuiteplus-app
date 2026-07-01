@@ -152,7 +152,7 @@ export async function persistVisitProof(
   const payloadHash =
     input.payloadHash ?? (await computeVisitProofPayloadHash(input.payloadSnapshot));
   const snapshotJson = JSON.stringify(input.payloadSnapshot);
-  const storagePath =
+  let storagePath =
     input.storagePath ??
     buildAssistVisitProofStoragePath(tenantId, input.visitId, proofId, 'json');
 
@@ -164,7 +164,8 @@ export async function persistVisitProof(
         upsert: false,
       });
     if (uploadError) {
-      return { ok: false, error: toStorageUploadError(uploadError.message) };
+      // Payload is also stored in DB — do not block proof row on Storage RLS gaps.
+      storagePath = '';
     }
   }
 
@@ -176,7 +177,7 @@ export async function persistVisitProof(
       visit_id: input.visitId,
       signature_id: input.signatureId ?? null,
       status: input.status ?? 'draft',
-      storage_path: storagePath,
+      storage_path: storagePath || null,
       payload_snapshot: input.payloadSnapshot,
       payload_hash: payloadHash,
       generated_at: now,

@@ -300,6 +300,7 @@ function mapListItem(row: VisitRow): VisitDispositionListItem {
     scheduledEnd: row.planned_end_at,
     durationMinutes: durationMinutes(row.planned_start_at, row.planned_end_at, row.duration_minutes),
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
+    assignmentStatus,
     planningStatus: row.planning_status,
     proofStatus: row.proof_status,
     billingStatus: row.billing_status,
@@ -732,7 +733,15 @@ export const visitSupabaseRepository = {
     if (toStatus === 'beendet' || toStatus === 'abgeschlossen') {
       patch.actual_end_at = now;
       patch.finished_at = now;
+      patch.execution_status = 'completed';
     }
+    if (toStatus === 'abgeschlossen') {
+      patch.documentation_status = 'complete';
+    }
+    if (toStatus === 'unterwegs') patch.execution_status = 'on_way';
+    if (toStatus === 'angekommen') patch.execution_status = 'arrived';
+    if (toStatus === 'gestartet') patch.execution_status = 'in_progress';
+    if (toStatus === 'pausiert') patch.execution_status = 'paused';
 
     const { error } = await fromUnknownTable(supabase, 'assist_visits')
       .update(patch)

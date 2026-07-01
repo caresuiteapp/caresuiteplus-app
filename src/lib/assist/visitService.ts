@@ -72,9 +72,10 @@ function demoEmployeeName(employeeId: string): string {
 }
 
 function assignmentListItemToDisposition(item: AssignmentListItem): VisitDispositionListItem {
-  const dims = assignmentStatusToDimensions(
-    remoteStatusToAssignment(item.status === 'entwurf' ? 'planned' : item.status),
+  const assignmentStatus = remoteStatusToAssignment(
+    item.status === 'entwurf' ? 'planned' : item.status,
   );
+  const dims = assignmentStatusToDimensions(assignmentStatus);
   return {
     id: item.id,
     tenantId: item.tenantId,
@@ -86,6 +87,7 @@ function assignmentListItemToDisposition(item: AssignmentListItem): VisitDisposi
       (new Date(item.scheduledEnd).getTime() - new Date(item.scheduledStart).getTime()) / 60000,
     ),
     status: item.status,
+    assignmentStatus,
     planningStatus: dims.planning,
     proofStatus: dims.proof,
     billingStatus: dims.billing,

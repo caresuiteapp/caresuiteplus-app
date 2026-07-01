@@ -153,6 +153,8 @@ export type VisitDispositionListItem = {
   scheduledEnd: string;
   durationMinutes: number | null;
   status: import('@/types/core/base').WorkflowStatus;
+  /** Canonical assignment status — avoids workflow filter round-trip in portal lists. */
+  assignmentStatus: AssignmentStatus;
   planningStatus: VisitPlanningStatus;
   proofStatus: VisitProofStatus;
   billingStatus: VisitBillingStatus;

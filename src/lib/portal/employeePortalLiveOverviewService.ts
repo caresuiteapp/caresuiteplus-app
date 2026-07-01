@@ -18,6 +18,12 @@ const ACTIVE_ASSIGNMENT_STATUSES = new Set<AssignmentStatus>([
   'pausiert',
 ]);
 
+const COMPLETED_ASSIGNMENT_STATUSES = new Set<AssignmentStatus>([
+  'abgeschlossen',
+  'storniert',
+  'nicht_erschienen',
+]);
+
 function workflowStatusToAssignment(status: WorkflowStatus): AssignmentStatus {
   const map: Partial<Record<WorkflowStatus, AssignmentStatus>> = {
     entwurf: 'geplant',
@@ -53,7 +59,7 @@ function isSameWeek(iso: string, ref: Date): boolean {
 export function mapPortalAppointmentToListItem(
   item: PortalAppointmentItem,
 ): EmployeePortalAssignmentListItem {
-  const status = workflowStatusToAssignment(item.status);
+  const status = item.assignmentStatus ?? workflowStatusToAssignment(item.status);
   return {
     assignmentId: item.id,
     title: item.title,
@@ -106,6 +112,15 @@ export function buildEmployeePortalDashboardFromOverview(
 
 export function isActiveEmployeeAssignment(status: AssignmentStatus): boolean {
   return ACTIVE_ASSIGNMENT_STATUSES.has(status);
+}
+
+export function isCompletedEmployeeAssignment(status: AssignmentStatus): boolean {
+  return COMPLETED_ASSIGNMENT_STATUSES.has(status);
+}
+
+/** Live GPS / tracking UI only while execution is in progress. */
+export function isEmployeePortalVisitLiveTrackingActive(status: AssignmentStatus): boolean {
+  return isActiveEmployeeAssignment(status);
 }
 
 export async function fetchLiveEmployeePortalOverview(

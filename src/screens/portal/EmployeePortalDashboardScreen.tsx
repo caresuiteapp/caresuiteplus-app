@@ -122,8 +122,7 @@ export function EmployeePortalDashboardScreen({
 
   const currentAssignment = useMemo(() => {
     if (!dashboard) return null;
-    const active = dashboard.todayAssignments.find((item) => isActiveEmployeeAssignment(item.status));
-    return active ?? dashboard.todayAssignments[0] ?? dashboard.upcomingAssignments[0] ?? null;
+    return dashboard.todayAssignments.find((item) => isActiveEmployeeAssignment(item.status)) ?? null;
   }, [dashboard]);
 
   const workStatus = useMemo(
@@ -215,17 +214,20 @@ export function EmployeePortalDashboardScreen({
             router.push(`/portal/employee/assignments/${currentAssignment.assignmentId}` as never)
           }
           onNavigate={
-            currentAssignment.locationAddress
+            isActiveEmployeeAssignment(currentAssignment.status) && currentAssignment.locationAddress
               ? () =>
                   router.push(
                     `/portal/employee/assignments/${currentAssignment.assignmentId}/execute` as never,
                   )
               : undefined
           }
-          onStart={() =>
-            router.push(
-              `/portal/employee/assignments/${currentAssignment.assignmentId}/execute` as never,
-            )
+          onStart={
+            isActiveEmployeeAssignment(currentAssignment.status)
+              ? () =>
+                  router.push(
+                    `/portal/employee/assignments/${currentAssignment.assignmentId}/execute` as never,
+                  )
+              : undefined
           }
         />
       ) : (

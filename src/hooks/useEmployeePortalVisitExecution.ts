@@ -25,7 +25,7 @@ import {
   requestEmployeePortalForegroundLocationPermission,
   setEmployeePortalGeofenceOverrideReason,
 } from '@/lib/portal/employeePortalVisitTrackingService';
-import { resolveEmployeeLiveContext, type EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
+import { isEmployeePortalVisitLiveTrackingActive } from '@/lib/portal/employeePortalLiveOverviewService';
 import type { LiveTrackingErrorCode } from '@/features/liveTracking/liveTrackingErrors';
 import {
   assignmentStatusToWorkflowStep,
@@ -148,15 +148,23 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     void refreshExecutionContext();
   }, [query.data, refreshExecutionContext]);
 
+  const effectiveStatus = executionContext?.derivedStatus ?? query.data?.status ?? null;
+
+  const liveTrackingEnabled = useMemo(
+    () =>
+      Boolean(liveContext?.trackingSessionActive) &&
+      effectiveStatus != null &&
+      isEmployeePortalVisitLiveTrackingActive(effectiveStatus),
+    [liveContext?.trackingSessionActive, effectiveStatus],
+  );
+
   const gpsTracking = useEmployeeGpsTracking({
     tenantId,
     assistVisitId: liveContext?.assistVisitId ?? null,
     sessionId: liveContext?.trackingSessionId ?? null,
-    enabled: Boolean(liveContext?.trackingSessionActive),
-    dbSessionActive: Boolean(liveContext?.trackingSessionActive),
+    enabled: liveTrackingEnabled,
+    dbSessionActive: liveTrackingEnabled,
   });
-
-  const effectiveStatus = executionContext?.derivedStatus ?? query.data?.status ?? null;
 
   const timers = useLiveVisitTimers(
     executionContext?.timeEvents ?? [],

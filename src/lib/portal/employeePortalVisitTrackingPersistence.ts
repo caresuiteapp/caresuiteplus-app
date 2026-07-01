@@ -25,9 +25,13 @@ import {
 } from '@/lib/assist/assistVisitSignaturePersistenceService';
 import {
   computeVisitProofPayloadHash,
+  fetchLatestVisitProof,
   persistVisitProof,
 } from '@/lib/assist/assistVisitProofPersistenceService';
 import { getServiceMode } from '@/lib/services/mode';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { peekEmployeePortalTrackingEntry } from './employeePortalVisitTrackingService';
 
 export type EmployeePortalPersistenceContext = {
@@ -300,7 +304,20 @@ export async function persistEmployeePortalVisitProof(
   signatureId?: string | null,
 ): Promise<{ ok: boolean; error?: string }> {
   const visitId = await resolveVisit(ctx);
-  if (!visitId) return { ok: true };
+  if (!visitId) {
+    if (getServiceMode() === 'supabase') {
+      return {
+        ok: false,
+        error: 'Einsatzbesuch konnte nicht zugeordnet werden — Leistungsnachweis nicht gespeichert.',
+      };
+    }
+    return { ok: true };
+  }
+
+  const existing = await fetchLatestVisitProof(ctx.tenantId, visitId);
+  if (existing.ok && existing.data) {
+    return { ok: true };
+  }
 
   const payloadHash = await computeVisitProofPayloadHash(snapshot);
   const saved = await persistVisitProof(
@@ -315,7 +332,25 @@ export async function persistEmployeePortalVisitProof(
     ctx.profileId ?? ctx.employeeId ?? null,
   );
 
-  return saved.ok ? { ok: true } : { ok: false, error: saved.error };
+  if (!saved.ok) {
+    return { ok: false, error: saved.error };
+  }
+
+  const supabase = getSupabaseClient();
+  if (supabase) {
+    const { error } = await fromUnknownTable(supabase, 'assist_visits')
+      .update({
+        proof_status: 'pending',
+        updated_by: ctx.profileId ?? null,
+      })
+      .eq('tenant_id', ctx.tenantId)
+      .eq('id', visitId);
+    if (error) {
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
+  }
+
+  return { ok: true };
 }
 
 export function getPersistedSessionId(tenantId: string, assignmentId: string): string | null {

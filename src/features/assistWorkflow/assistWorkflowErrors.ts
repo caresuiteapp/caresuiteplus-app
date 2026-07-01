@@ -13,6 +13,7 @@ export type AssistWorkflowErrorCode =
   | 'AWF_DOCUMENTATION_REQUIRED'
   | 'AWF_SIGNATURE_REQUIRED'
   | 'AWF_TASKS_INCOMPLETE'
+  | 'AWF_PROOF_GENERATION_FAILED'
   | 'AWF_NO_SHOW_NOTE_REQUIRED'
   | 'AWF_RLS_DENIED'
   | 'AWF_SCHEMA_MISMATCH'
@@ -58,6 +59,7 @@ const USER_MESSAGES: Record<AssistWorkflowErrorCode, string> = {
   AWF_DOCUMENTATION_REQUIRED: 'Dokumentation ist vor Abschluss erforderlich.',
   AWF_SIGNATURE_REQUIRED: 'Klient:innen-Unterschrift fehlt.',
   AWF_TASKS_INCOMPLETE: 'Pflichtaufgaben sind noch offen.',
+  AWF_PROOF_GENERATION_FAILED: 'Leistungsnachweis konnte nicht erstellt werden.',
   AWF_NO_SHOW_NOTE_REQUIRED: 'Begründung für „Nicht angetroffen“ ist erforderlich.',
   AWF_RLS_DENIED: 'Kein Zugriff — Berechtigung prüfen.',
   AWF_SCHEMA_MISMATCH: 'Datenbankschema passt nicht — Support informieren.',
