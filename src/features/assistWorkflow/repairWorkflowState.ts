@@ -22,6 +22,33 @@ export type RepairWorkflowResult = {
   appliedRepairs: string[];
 };
 
+const WORKFLOW_STATUS_ORDER: AssignmentStatus[] = [
+  'geplant',
+  'bestaetigt',
+  'unterwegs',
+  'angekommen',
+  'gestartet',
+  'pausiert',
+  'beendet',
+  'dokumentation_offen',
+  'unterschrift_offen',
+  'abgeschlossen',
+];
+
+const POST_SERVICE_ASSIGNMENT_STATUSES: AssignmentStatus[] = [
+  'beendet',
+  'dokumentation_offen',
+  'unterschrift_offen',
+  'abgeschlossen',
+];
+
+function isWorkflowStatusRegression(from: AssignmentStatus, to: AssignmentStatus): boolean {
+  const fromIdx = WORKFLOW_STATUS_ORDER.indexOf(from);
+  const toIdx = WORKFLOW_STATUS_ORDER.indexOf(to);
+  if (fromIdx < 0 || toIdx < 0) return false;
+  return toIdx < fromIdx;
+}
+
 async function forceRepairAssignmentStatus(
   tenantId: string,
   assignmentId: string,
@@ -100,6 +127,15 @@ export async function repairWorkflowState(
     derived.consistencyStatus !== 'repairable';
 
   if (!needsStatusReset || blockedReset) {
+    return { ok: true, data: { repaired: false, ctx, appliedRepairs: [] } };
+  }
+
+  const wouldRegressStatus = isWorkflowStatusRegression(ctx.assignmentStatus, derived.derivedStatus);
+  if (
+    wouldRegressStatus &&
+    (ctx.visitTimes?.serviceEndedAt ||
+      POST_SERVICE_ASSIGNMENT_STATUSES.includes(ctx.assignmentStatus))
+  ) {
     return { ok: true, data: { repaired: false, ctx, appliedRepairs: [] } };
   }
 

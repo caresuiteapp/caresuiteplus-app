@@ -27,7 +27,13 @@ describe('employeePortalLiveOverviewService', () => {
   });
 
   it('builds today and weekly slices from appointment items', () => {
-    const overview = buildEmployeePortalOverviewFromAppointments([BASE]);
+    const start = new Date();
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(10, 0, 0, 0);
+    const overview = buildEmployeePortalOverviewFromAppointments([
+      { ...BASE, startsAt: start.toISOString(), endsAt: end.toISOString() },
+    ]);
     expect(overview.todayAssignments).toHaveLength(1);
     expect(overview.weeklyPlan).toHaveLength(1);
     expect(overview.nextAssignments).toHaveLength(0);
@@ -55,5 +61,35 @@ describe('employeePortalLiveOverviewService', () => {
       status: 'in_bearbeitung',
     });
     expect(item.status).toBe('gestartet');
+  });
+
+  it('prefers assignmentStatus over stale workflow status after end service', () => {
+    const item = mapPortalAppointmentToListItem({
+      ...BASE,
+      status: 'aktiv',
+      assignmentStatus: 'beendet',
+    });
+    expect(item.status).toBe('beendet');
+    expect(isActiveEmployeeAssignment(item.status)).toBe(false);
+    expect(item.documentationPending).toBe(true);
+  });
+
+  it('does not show Start for beendet assignments in today overview', () => {
+    const start = new Date();
+    start.setHours(10, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(13, 0, 0, 0);
+
+    const overview = buildEmployeePortalOverviewFromAppointments([
+      {
+        ...BASE,
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
+        status: 'aktiv',
+        assignmentStatus: 'beendet',
+      },
+    ]);
+    expect(overview.todayAssignments[0]?.status).toBe('beendet');
+    expect(isActiveEmployeeAssignment(overview.todayAssignments[0]?.status ?? 'geplant')).toBe(false);
   });
 });

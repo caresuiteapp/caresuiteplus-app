@@ -70,7 +70,7 @@ export function mapPortalAppointmentToListItem(
     locationAddress: item.location ?? '',
     status,
     canonicalStatus: assignmentStatusToRemote(status),
-    documentationPending: status === 'dokumentation_offen',
+    documentationPending: status === 'dokumentation_offen' || status === 'beendet',
     signaturePending: status === 'unterschrift_offen',
     isLocked: status === 'abgeschlossen' || status === 'storniert',
   };

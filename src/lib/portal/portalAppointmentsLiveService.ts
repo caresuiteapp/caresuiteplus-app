@@ -40,6 +40,43 @@ function visitListItemToPortalAppointment(item: VisitDispositionListItem): Porta
   };
 }
 
+/** assignments.status is source of truth for portal execution; assist_visits.canonical_status may lag. */
+async function enrichEmployeePortalAppointmentsWithAssignmentStatus(
+  tenantId: string,
+  items: PortalAppointmentItem[],
+): Promise<PortalAppointmentItem[]> {
+  if (items.length === 0) return items;
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return items;
+
+  const ids = items.map((item) => item.id);
+  const { data, error } = await fromUnknownTable(supabase, 'assignments')
+    .select('id, status')
+    .eq('tenant_id', tenantId)
+    .in('id', ids);
+
+  if (error) {
+    if (!isMissingTableError(error)) {
+      console.warn('[portalAppointmentsLiveService] assignment status overlay:', error.message);
+    }
+    return items;
+  }
+
+  const statusById = new Map(
+    (data ?? []).map((row) => {
+      const record = row as { id: string; status: string };
+      return [record.id, remoteStatusToAssignment(record.status)] as const;
+    }),
+  );
+
+  return items.map((item) => {
+    const assignmentStatus = statusById.get(item.id);
+    if (!assignmentStatus) return item;
+    return { ...item, assignmentStatus };
+  });
+}
+
 async function fetchLivePortalAppointments(
   tenantId: string,
   filter: { clientId?: string; employeeId?: string },
@@ -57,9 +94,14 @@ async function fetchLivePortalAppointments(
       };
     }
 
+    let items = visitResult.data.map(visitListItemToPortalAppointment);
+    if (filter.employeeId) {
+      items = await enrichEmployeePortalAppointmentsWithAssignmentStatus(tenantId, items);
+    }
+
     return {
       ok: true,
-      data: visitResult.data.map(visitListItemToPortalAppointment),
+      data: items,
     };
   });
 }

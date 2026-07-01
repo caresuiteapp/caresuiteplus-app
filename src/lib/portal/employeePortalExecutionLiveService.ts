@@ -211,6 +211,29 @@ function assertLiveEmployeeAssignmentAccess(
   return null;
 }
 
+/** Mirror assignments.status into assist_visits via SECURITY DEFINER RPC (direct visit UPDATE may fail RLS). */
+async function mirrorAssistVisitStatusFromAssignment(
+  tenantId: string,
+  assignmentId: string,
+  targetStatus: AssignmentStatus,
+  actorEmployeeId: string,
+): Promise<void> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return;
+
+  const { error } = await supabase.rpc('repair_assist_visit_workflow_status', {
+    p_tenant_id: tenantId,
+    p_assignment_id: assignmentId,
+    p_target_status: targetStatus,
+    p_reason: 'portal_execution_status_mirror',
+    p_actor_employee_id: actorEmployeeId,
+  });
+
+  if (error) {
+    console.warn('[employeePortalExecutionLiveService] visit status mirror:', error.message);
+  }
+}
+
 async function loadEmployeePortalAssignmentDetail(
   tenantId: string,
   assignmentId: string,
@@ -400,7 +423,9 @@ export async function transitionLiveEmployeePortalAssignment(
   if (!updated.ok) return updated;
   let detailAfterUpdate: AssignmentDetail = updated.data;
 
-  // Best-effort mirror to assist_visits when a visit row exists (may lag assignments canonical).
+  // assignments is source of truth; mirror into assist_visits (RPC — direct UPDATE often blocked by RLS).
+  await mirrorAssistVisitStatusFromAssignment(tenantId, assignmentId, toStatus, employeeId);
+
   const visitRow = await visitSupabaseRepository.getById(tenantId, assignmentId);
   if (visitRow.ok && visitRow.data) {
     const visitUpdated = await visitSupabaseRepository.updateAssignmentStatus(

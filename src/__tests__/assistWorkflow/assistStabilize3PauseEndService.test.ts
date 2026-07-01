@@ -138,6 +138,19 @@ describe('ASSIST.STABILIZE.3 calculateVisitTimes', () => {
     expect(times.serviceEndedAt).toBe('2026-06-29T10:00:00.000Z');
     expect(times.activeTimer).toBeNull();
   });
+
+  it('derives beendet when service_end exists even if recorded status is gestartet', () => {
+    const visitTimes = calculateVisitTimes(
+      [
+        { eventType: 'service_start', occurredAt: '2026-06-29T09:00:00.000Z' },
+        { eventType: 'service_end', occurredAt: '2026-06-29T10:00:00.000Z' },
+      ],
+      'gestartet',
+    );
+    const workflow = deriveWorkflowStatus('gestartet', visitTimes);
+    expect(workflow.derivedStatus).toBe('beendet');
+    expect(workflow.canStartService).toBe(false);
+  });
 });
 
 describe('ASSIST.STABILIZE.3 resolveAllowedActions', () => {
