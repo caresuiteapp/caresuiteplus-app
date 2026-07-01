@@ -1,5 +1,5 @@
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import { useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
@@ -30,7 +30,7 @@ import {
   fetchVisitStatusHistory,
   updateVisitTaskStatus,
 } from '@/lib/assist';
-import type { VisitTaskStatus } from '@/lib/assist/visitTypes';
+import type { VisitDispositionDetail, VisitTaskStatus } from '@/lib/assist/visitTypes';
 import { VISIT_TASK_STATUS_LABELS } from '@/lib/assist/visitTypes';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import {
@@ -63,8 +63,12 @@ type AssignmentDetailTabsPanelProps = {
   /** Modal shell uses sticky toolbar actions on desktop instead of a stacked sheet. */
   layout?: 'page' | 'modal';
   onOpenFullRecord?: () => void;
+  /** Opens edit overlay instead of navigating to /edit (used from Einsatzvorschau modal). */
+  onEdit?: (visit: VisitDispositionDetail) => void;
   onClose?: () => void;
   onDeleted?: () => void;
+  /** Increment to reload visit detail after an external save (e.g. edit modal). */
+  refreshTrigger?: number;
 };
 
 function formatDateTime(iso: string | null | undefined): string {
@@ -141,8 +145,10 @@ export function AssignmentDetailTabsPanel({
   mode = 'full',
   layout = 'page',
   onOpenFullRecord,
+  onEdit,
   onClose,
   onDeleted,
+  refreshTrigger,
 }: AssignmentDetailTabsPanelProps) {
   const router = useRouter();
   const deviceClass = useDeviceClass();
@@ -164,6 +170,10 @@ export function AssignmentDetailTabsPanel({
     notFound,
   } = useVisitDispositionDetail(assignmentId);
   const [taskLoading, setTaskLoading] = useState(false);
+
+  useEffect(() => {
+    if (refreshTrigger) void refresh();
+  }, [refreshTrigger, refresh]);
 
   const historyQuery = useAsyncQuery(
     () => {
@@ -577,7 +587,9 @@ export function AssignmentDetailTabsPanel({
           variant="secondary"
           size={useActionToolbar ? 'sm' : 'md'}
           fullWidth={!useActionToolbar}
-          onPress={() => router.push(`/assist/einsaetze/${visit.id}/edit` as never)}
+          onPress={() =>
+            onEdit ? onEdit(visit) : router.push(`/assist/einsaetze/${visit.id}/edit` as never)
+          }
           style={useActionToolbar ? styles.actionBtn : undefined}
         />
       ) : null}

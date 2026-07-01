@@ -125,4 +125,22 @@ describe('AssignmentEditForm UI contract', () => {
     expect(screen).not.toContain('getDemoAssignmentSeedById');
     expect(screen).not.toContain('updateDemoAssignmentFields');
   });
+
+  it('AssignmentEditModal wraps form in PlatformModal overlay', () => {
+    const modal = readSrc('src/components/assist/AssignmentEditModal.tsx');
+    expect(modal).toContain('PlatformModal');
+    expect(modal).toContain('AssignmentEditForm');
+    expect(modal).toContain('initialVisit={visit}');
+    expect(modal).toContain('onSaved={handleSaved}');
+  });
+
+  it('Einsatzvorschau Bearbeiten opens edit modal instead of router.push', () => {
+    const glass = readSrc('src/components/assist/AssignmentDetailGlassModal.tsx');
+    expect(glass).toContain('AssignmentEditModal');
+    expect(glass).toContain('onEdit={handleEdit}');
+
+    const panel = readSrc('src/components/assist/AssignmentDetailTabsPanel.tsx');
+    expect(panel).toContain('onEdit?: (visit: VisitDispositionDetail) => void');
+    expect(panel).toContain('onEdit ? onEdit(visit) : router.push');
+  });
 });

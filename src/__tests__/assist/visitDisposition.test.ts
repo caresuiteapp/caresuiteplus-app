@@ -104,7 +104,9 @@ describe('Assist disposition list UI contracts', () => {
   it('AssignmentDetailGlassModal nutzt tabbed disposition panel', () => {
     const source = readSrc('src/components/assist/AssignmentDetailGlassModal.tsx');
     expect(source).toContain('AssignmentDetailTabsPanel');
+    expect(source).toContain('AssignmentEditModal');
     expect(source).toContain('layout="modal"');
+    expect(source).toContain('onEdit={handleEdit}');
     expect(source).toContain('useAuroraGlassModalStyle');
     expect(source).not.toContain('maxHeight: 560');
     expect(source).toContain("overflow: 'hidden'");
