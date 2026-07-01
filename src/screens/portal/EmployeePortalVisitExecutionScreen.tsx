@@ -25,6 +25,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { isEmployeePortalVisitLiveTrackingActive } from '@/lib/portal/employeePortalLiveOverviewService';
+import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkflowPersistence } from '@/hooks/useWorkflowPersistence';
 import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
