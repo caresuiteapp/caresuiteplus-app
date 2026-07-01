@@ -6,6 +6,25 @@ import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFull
 export const FULLSCREEN_OVERLAY_Z_INDEX = 9999;
 export { cleanupOrphanedFullscreenOverlays };
 
+/** Apply fixed viewport shell on the portal host so RN Web z-index cannot leak app chrome. */
+export function applyWebPortalHostStyles(host: HTMLElement, zIndex: number): void {
+  host.style.position = 'fixed';
+  host.style.top = '0';
+  host.style.left = '0';
+  host.style.right = '0';
+  host.style.bottom = '0';
+  host.style.width = '100vw';
+  host.style.height = '100dvh';
+  host.style.maxHeight = '100dvh';
+  host.style.minHeight = '100vh';
+  host.style.zIndex = String(zIndex);
+  host.style.display = 'flex';
+  host.style.flexDirection = 'column';
+  host.style.backgroundColor = '#fff';
+  host.style.overscrollBehavior = 'contain';
+  host.style.isolation = 'isolate';
+}
+
 type Props = {
   visible: boolean;
   children: ReactNode;
@@ -39,15 +58,14 @@ function useWebBodyScrollLock(active: boolean) {
 const webFixedShell =
   Platform.OS === 'web'
     ? ({
-        position: 'fixed',
+        position: 'absolute',
         top: 0,
         left: 0,
         right: 0,
         bottom: 0,
-        width: '100vw',
-        height: '100dvh',
-        maxHeight: '100dvh',
-        minHeight: '100vh',
+        width: '100%',
+        height: '100%',
+        flex: 1,
         display: 'flex',
         flexDirection: 'column',
         overscrollBehavior: 'contain',
@@ -87,6 +105,7 @@ export function FullscreenOverlay({
 
     const host = document.createElement('div');
     host.setAttribute('data-caresuite-fullscreen-overlay', testID);
+    applyWebPortalHostStyles(host, zIndex);
     document.body.appendChild(host);
     setPortalHost(host);
 
@@ -95,7 +114,7 @@ export function FullscreenOverlay({
       setPortalHost((current) => (current === host ? null : current));
       cleanupOrphanedFullscreenOverlays();
     };
-  }, [visible, testID]);
+  }, [visible, testID, zIndex]);
 
   if (!visible) return null;
 

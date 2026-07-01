@@ -109,8 +109,24 @@ describe('signature overlay touch targets', () => {
     const canvas = readSrc('src/components/inputs/CareSignatureCanvas.tsx');
 
     expect(overlay).not.toContain("document.body.style.touchAction = 'none'");
+    expect(overlay).not.toMatch(/applyWebPortalHostStyles[\s\S]*touchAction:\s*'none'/);
     expect(modal).not.toMatch(/fullscreenRoot:[\s\S]*touchAction:\s*'none'/);
     expect(canvas).toContain("touchAction: 'manipulation'");
     expect(canvas).toMatch(/<canvas[\s\S]*touchAction:\s*'none'/);
+  });
+
+  it('applies fixed viewport styles on web portal host for true fullscreen', () => {
+    const overlay = readSrc('src/components/ui/FullscreenOverlay.tsx');
+    expect(overlay).toContain('applyWebPortalHostStyles');
+    expect(overlay).toContain("host.style.position = 'fixed'");
+    expect(overlay).toContain("host.style.height = '100dvh'");
+    expect(overlay).toContain('applyWebPortalHostStyles(host, zIndex)');
+  });
+
+  it('requests fullscreen before landscape lock when tryFullscreen is set', () => {
+    const orientation = readSrc('src/lib/orientation/requestLandscapeLock.ts');
+    expect(orientation).toMatch(
+      /if \(options\?\.tryFullscreen\) \{\s*return tryFullscreenThenLock\(\);\s*\}/,
+    );
   });
 });

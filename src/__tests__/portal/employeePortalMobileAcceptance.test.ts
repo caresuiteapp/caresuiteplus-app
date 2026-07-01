@@ -109,6 +109,8 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(overlay).toContain('document.body');
     expect(overlay).toContain('useLayoutEffect');
     expect(overlay).toContain('data-caresuite-fullscreen-overlay');
+    expect(overlay).toContain('applyWebPortalHostStyles');
+    expect(overlay).toContain("host.style.position = 'fixed'");
     expect(overlay).toContain('100dvh');
     expect(overlay).toContain('presentationStyle="fullScreen"');
     expect(overlay).toContain('cleanupOrphanedFullscreenOverlays');
@@ -118,6 +120,9 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(prompt).toContain('Trotzdem fortfahren');
     expect(prompt).not.toContain('position: \'absolute\'');
     expect(orientation).toContain("lock('landscape')");
+    expect(orientation).toMatch(
+      /if \(options\?\.tryFullscreen\) \{\s*return tryFullscreenThenLock\(\);\s*\}/,
+    );
     expect(canvas).toContain('fillAvailable');
     expect(canvas).toContain('actionLayout');
     expect(canvas).toContain('useOrientation');

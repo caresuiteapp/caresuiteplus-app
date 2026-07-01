@@ -78,12 +78,9 @@ async function tryFullscreenThenLock(): Promise<LandscapeLockResult> {
 export async function requestLandscapeLock(options?: {
   tryFullscreen?: boolean;
 }): Promise<LandscapeLockResult> {
-  const first = await tryLockLandscape();
-  if (first.ok) return first;
-
   if (options?.tryFullscreen) {
     return tryFullscreenThenLock();
   }
 
-  return first;
+  return tryLockLandscape();
 }

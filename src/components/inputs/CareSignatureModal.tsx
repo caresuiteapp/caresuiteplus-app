@@ -65,6 +65,9 @@ export function CareSignatureModal({
           alignItems: 'center',
           padding: spacing.lg,
         },
+        fullscreenHeader: {
+          flexShrink: 0,
+        },
         fullscreenRoot: {
           flex: 1,
           minHeight: 0,
@@ -72,6 +75,7 @@ export function CareSignatureModal({
           backgroundColor: '#fff',
           ...Platform.select({
             web: {
+              height: '100%',
               overscrollBehavior: 'contain',
             },
             default: {},
@@ -168,10 +172,15 @@ export function CareSignatureModal({
           options={{ autoLock: true, dismissScope }}
         >
           <View
-            style={[styles.fullscreenRoot, { paddingTop: insets.top }]}
+            style={[
+              styles.fullscreenRoot,
+              { paddingTop: insets.top, paddingBottom: insets.bottom },
+            ]}
             pointerEvents="box-none"
           >
-            <GradientModalHeader title="Unterschrift" subtitle={label} onClose={onClose} />
+            <View style={styles.fullscreenHeader}>
+              <GradientModalHeader title="Unterschrift" subtitle={label} onClose={onClose} />
+            </View>
             <View style={styles.fullscreenBody} pointerEvents="box-none">
               <View style={styles.canvasSlot}>{canvas}</View>
             </View>

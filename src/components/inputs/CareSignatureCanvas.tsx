@@ -317,6 +317,22 @@ function WebSignatureCanvas({
   }, [dims.height, dims.width, syncCanvasToDisplay]);
 
   useEffect(() => {
+    if (!fillAvailable || typeof window === 'undefined') return;
+
+    let raf2 = 0;
+    const raf1 = window.requestAnimationFrame(() => {
+      raf2 = window.requestAnimationFrame(() => {
+        syncCanvasToDisplay();
+      });
+    });
+
+    return () => {
+      window.cancelAnimationFrame(raf1);
+      if (raf2) window.cancelAnimationFrame(raf2);
+    };
+  }, [fillAvailable, syncCanvasToDisplay]);
+
+  useEffect(() => {
     syncCanvasToDisplay();
   }, [orientation.isLandscape, orientation.width, orientation.height, syncCanvasToDisplay]);
 
