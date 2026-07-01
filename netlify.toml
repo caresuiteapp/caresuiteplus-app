@@ -4,7 +4,7 @@
 # - Dashboard „Trigger deploy“ läuft ebenfalls durch ignore — bei exit 0 immer Canceled!
 #   Für manuelles Deploy ohne Commit: Build Hook (umgeht ignore) oder `netlify deploy --prod --build`.
 # ignore exit 0 = jeder Build abgebrochen (auch Dashboard). exit 1 = Build ausführen.
-# Last production deploy request: 2026-06-29 (explicit user request)
+# Last production deploy request: 2026-07-01 (proof review preview retrigger)
 [build]
   command = "npm ci && npx expo export --platform web"
   publish = "dist"
