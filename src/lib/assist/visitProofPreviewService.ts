@@ -44,12 +44,12 @@ function formatDateTime(iso: string): string {
   });
 }
 
-/** Build Leistungsnachweis preview from visit detail + session signature. */
+/** Build Leistungsnachweis preview from visit detail + persisted/session signature. */
 export function buildVisitProofPreview(
   visit: VisitDispositionDetail,
   documentationNote?: string | null,
 ): VisitProofPreview {
-  const signature = getVisitSignature(visit.id);
+  const signature = visit.persistedSignature ?? getVisitSignature(visit.id);
   const docText = documentationNote?.trim() || visit.employeeNotes?.trim() || visit.notes?.trim() || null;
 
   const tasks: VisitProofPreviewTaskItem[] = visit.tasks.map((task) => ({

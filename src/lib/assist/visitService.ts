@@ -46,6 +46,7 @@ import { getClientAssistBillingProfile } from '@/lib/assist/clientAssistBillingP
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
+import { enrichVisitDispositionDetail } from '@/lib/assist/visitDispositionExecutionEnrichment';
 import {
   applyOccurrenceDateToVisitDetail,
   isResolvableVisitId,
@@ -207,10 +208,15 @@ export async function fetchVisitDispositionDetail(
 
     const visitResult = await visitSupabaseRepository.getById(tenantId, masterVisitId);
     if (visitResult.ok && visitResult.data) {
-      const detail =
+      const baseDetail =
         occurrenceDate != null
           ? applyOccurrenceDateToVisitDetail(visitResult.data, occurrenceDate, visitId)
           : visitResult.data;
+      const enriched = await enrichVisitDispositionDetail(tenantId, baseDetail);
+      const detail =
+        occurrenceDate != null
+          ? applyOccurrenceDateToVisitDetail(enriched, occurrenceDate, visitId)
+          : enriched;
       return { ok: true, data: detail };
     }
 

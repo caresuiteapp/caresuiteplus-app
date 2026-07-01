@@ -205,6 +205,8 @@ export type VisitDispositionDetail = VisitDispositionListItem & {
   actualStartAt: string | null;
   actualEndAt: string | null;
   createdAt: string;
+  /** Persisted client signature from assist_visit_signatures (office enrichment). */
+  persistedSignature?: import('@/lib/assist/visitSignatureSessionStore').VisitSignatureCapture | null;
 };
 
 /** Wiederholungsmuster für Einsatzplanung */
