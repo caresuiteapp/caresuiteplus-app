@@ -29,6 +29,21 @@ function baseDetail(
 }
 
 describe('resolveAllowedActions — documentation → signature → finalize', () => {
+  it('offers capture_signature on beendet after documentation submitted', () => {
+    const actions = resolveAllowedActions({
+      assignmentStatus: 'beendet',
+      visitTimes: { serviceEndedAt: '2026-07-01T10:00:00Z' } as import('@/features/assistWorkflow/calculateVisitTimes').VisitTimesSummary,
+      detail: baseDetail({
+        status: 'beendet',
+        documentationStatus: 'submitted',
+        signatureStatus: 'pending',
+      }),
+      derivedStatus: 'beendet',
+    });
+    expect(actions).toContain('capture_signature');
+    expect(primaryAllowedAction(actions, 'beendet')).toBe('capture_signature');
+  });
+
   it('offers capture_signature after documentation is submitted', () => {
     const actions = resolveAllowedActions({
       assignmentStatus: 'dokumentation_offen',

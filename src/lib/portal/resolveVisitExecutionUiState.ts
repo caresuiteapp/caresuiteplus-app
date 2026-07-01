@@ -64,7 +64,12 @@ export function resolveVisitExecutionUiState(
   const showDocumentationForm =
     !statusBlocksDoc &&
     !documentationSubmitted &&
-    POST_SERVICE_STATUSES.includes(effectiveStatus);
+    (POST_SERVICE_STATUSES.includes(effectiveStatus) ||
+      (hasServiceEnded && !documentationSubmitted));
+
+  const postServiceReady =
+    POST_SERVICE_STATUSES.includes(effectiveStatus) ||
+    (hasServiceEnded && documentationSubmitted);
 
   const showSignature =
     visit.requiresSignature &&
@@ -73,7 +78,7 @@ export function resolveVisitExecutionUiState(
     !signatureCaptured &&
     (awaitingSignature ||
       allowedActions.includes('capture_signature') ||
-      POST_SERVICE_STATUSES.includes(effectiveStatus));
+      postServiceReady);
 
   const showFinalize =
     !statusBlocksDoc &&

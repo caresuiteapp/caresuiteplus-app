@@ -11,6 +11,7 @@ import { getEmployeePortalLocationConsent } from '@/lib/portal/employeePortalVis
 import { calculateVisitTimes } from './calculateVisitTimes';
 import { deriveWorkflowStatus } from './deriveWorkflowStatus';
 import { repairWorkflowState } from './repairWorkflowState';
+import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
@@ -131,6 +132,20 @@ export async function resolveAssistExecutionContext(
     const repaired = await repairWorkflowState(ctx, { autoOnly: true });
     if (repaired.ok && repaired.data.repaired) {
       ctx = repaired.data.ctx;
+    }
+  }
+
+  if (
+    autoRepair &&
+    ctx.detail.documentationStatus === 'submitted' &&
+    ctx.assignmentStatus === 'beendet'
+  ) {
+    const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
+      hasDocumentation: true,
+      hasServiceStarted: Boolean(ctx.visitTimes?.serviceStartedAt),
+    });
+    if (transitioned.ok) {
+      ctx = transitioned.data;
     }
   }
 

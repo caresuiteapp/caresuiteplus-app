@@ -28,10 +28,12 @@ function signatureStatusFromState(input: {
   requiresSignature: boolean;
   status: AssignmentStatus;
   hasPersistedSignature: boolean;
+  hasSubmittedDocumentation?: boolean;
 }): EmployeePortalAssignmentDetail['signatureStatus'] {
   if (!input.requiresSignature) return 'none';
   if (input.hasPersistedSignature) return 'captured';
   if (SIGNATURE_WORKFLOW_STATUSES.includes(input.status)) return 'pending';
+  if (input.hasSubmittedDocumentation) return 'pending';
   return 'none';
 }
 
@@ -88,9 +90,11 @@ export async function resolveEmployeePortalDocumentationFlags(
     ? await resolvePortalSignatureVisitId(tenantId, assignmentId, employeeId)
     : resolveVisitMasterId(assignmentId);
 
+  let visitDocumentationComplete = false;
+
   if (supabase && visitId) {
     const { data: visitRow, error: visitError } = await fromUnknownTable(supabase, 'assist_visits')
-      .select('service_key, proof_status')
+      .select('service_key, proof_status, proof_template_key, documentation_status')
       .eq('tenant_id', tenantId)
       .eq('id', visitId)
       .maybeSingle();
@@ -100,6 +104,13 @@ export async function resolveEmployeePortalDocumentationFlags(
       if (proofStatus === 'pending' || proofStatus === 'signed') {
         requiresSignature = true;
       }
+
+      const proofTemplateKey = String(visitRow.proof_template_key ?? '').trim();
+      if (proofTemplateKey) {
+        requiresSignature = true;
+      }
+
+      visitDocumentationComplete = String(visitRow.documentation_status ?? '') === 'complete';
 
       const serviceKey = String(visitRow.service_key ?? '').trim();
       if (serviceKey) {
@@ -113,7 +124,7 @@ export async function resolveEmployeePortalDocumentationFlags(
           .maybeSingle();
 
         if (catalogError && isMissingTableError(catalogError)) {
-          // catalog table not deployed — keep status heuristic below
+          // catalog table not deployed — proof_template_key / heuristics below
         } else if (!catalogError && catalogRow) {
           requiresSignature = Boolean(catalogRow.requires_signature);
           requiresDocumentation = catalogRow.requires_documentation !== false;
@@ -122,8 +133,12 @@ export async function resolveEmployeePortalDocumentationFlags(
     }
   }
 
-  const hasSubmittedDocumentation = Boolean(documentationNotes?.trim());
-  if (SIGNATURE_WORKFLOW_STATUSES.includes(status) && hasSubmittedDocumentation) {
+  const hasSubmittedDocumentation =
+    Boolean(documentationNotes?.trim()) || visitDocumentationComplete;
+  if (
+    hasSubmittedDocumentation &&
+    (SIGNATURE_WORKFLOW_STATUSES.includes(status) || requiresSignature)
+  ) {
     requiresSignature = true;
   }
 
@@ -140,6 +155,7 @@ export async function resolveEmployeePortalDocumentationFlags(
       requiresSignature,
       status,
       hasPersistedSignature,
+      hasSubmittedDocumentation,
     }),
   };
 }

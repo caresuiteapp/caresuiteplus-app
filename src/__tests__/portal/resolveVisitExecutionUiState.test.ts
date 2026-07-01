@@ -40,6 +40,22 @@ function baseVisit(
 }
 
 describe('resolveVisitExecutionUiState', () => {
+  it('shows signature when service ended but DB status still confirmed', () => {
+    const state = resolveVisitExecutionUiState({
+      visit: baseVisit({
+        status: 'bestaetigt',
+        documentationStatus: 'submitted',
+      }),
+      effectiveStatus: 'bestaetigt',
+      consistencyStatus: 'consistent',
+      allowedActions: ['open_route'],
+      awaitingSignature: false,
+      hasServiceEnded: true,
+    });
+
+    expect(state.showSignature).toBe(true);
+  });
+
   it('shows signature panel when documentation submitted on beendet with requiresSignature', () => {
     const state = resolveVisitExecutionUiState({
       visit: baseVisit({ status: 'beendet' }),

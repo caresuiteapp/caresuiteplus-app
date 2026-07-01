@@ -9,6 +9,7 @@ import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersi
 import { generateServiceRecord } from './generateServiceRecord';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
+import { repairWorkflowState } from './repairWorkflowState';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import type { AssistExecutionContext } from './types';
 import {
@@ -54,7 +55,8 @@ export async function saveClientSignature(
     );
   }
 
-  if (ctx.assignmentStatus !== 'dokumentation_offen' && ctx.assignmentStatus !== 'unterschrift_offen') {
+  const docSubmitted = ctx.detail.documentationStatus === 'submitted';
+  if (!docSubmitted) {
     return assistWorkflowErrorToResult(
       createAssistWorkflowError('WORKFLOW_DOCUMENTATION_REQUIRED', {
         tenantId: ctx.tenantId,
@@ -64,22 +66,61 @@ export async function saveClientSignature(
     );
   }
 
+  let workingCtx = ctx;
+  const signatureReadyStatuses = ['dokumentation_offen', 'unterschrift_offen'] as const;
+  if (!signatureReadyStatuses.includes(workingCtx.assignmentStatus as (typeof signatureReadyStatuses)[number])) {
+    const postServiceDerived = ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(
+      workingCtx.derivedStatus ?? '',
+    );
+    if (
+      postServiceDerived &&
+      workingCtx.derivedStatus !== workingCtx.assignmentStatus
+    ) {
+      const repaired = await repairWorkflowState(workingCtx, { autoOnly: false });
+      if (repaired.ok && repaired.data.repaired) {
+        workingCtx = repaired.data.ctx;
+      }
+    }
+
+    if (workingCtx.assignmentStatus === 'beendet') {
+      const transitioned = await transitionAssistExecutionStatus(workingCtx, 'dokumentation_offen', {
+        hasDocumentation: true,
+        hasServiceStarted: Boolean(workingCtx.visitTimes?.serviceStartedAt),
+      });
+      if (transitioned.ok) {
+        workingCtx = transitioned.data;
+      }
+    }
+
+    if (
+      !signatureReadyStatuses.includes(workingCtx.assignmentStatus as (typeof signatureReadyStatuses)[number])
+    ) {
+      return assistWorkflowErrorToResult(
+        createAssistWorkflowError('WORKFLOW_INVALID_STATE', {
+          tenantId: ctx.tenantId,
+          assignmentId: ctx.assignmentId,
+          operation: 'saveClientSignature',
+        }, 'Einsatzstatus erlaubt Unterschrift noch nicht — bitte Seite neu laden.'),
+      );
+    }
+  }
+
   const persist = await persistEmployeePortalSignature(
     {
-      tenantId: ctx.tenantId,
-      assignmentId: ctx.assignmentId,
-      employeeId: ctx.employeeId,
-      profileId: ctx.profileId,
-      locationAddress: ctx.detail.locationAddress,
+      tenantId: workingCtx.tenantId,
+      assignmentId: workingCtx.assignmentId,
+      employeeId: workingCtx.employeeId,
+      profileId: workingCtx.profileId,
+      locationAddress: workingCtx.detail.locationAddress,
     },
     signature,
     {
-      visitId: ctx.assistVisitId,
-      clientId: ctx.detail.clientId,
-      employeeId: ctx.employeeId,
-      plannedStartAt: ctx.detail.plannedStartAt,
-      plannedEndAt: ctx.detail.plannedEndAt,
-      taskStatuses: ctx.detail.tasks.map((t) => ({ taskId: t.id, status: t.status })),
+      visitId: workingCtx.assistVisitId,
+      clientId: workingCtx.detail.clientId,
+      employeeId: workingCtx.employeeId,
+      plannedStartAt: workingCtx.detail.plannedStartAt,
+      plannedEndAt: workingCtx.detail.plannedEndAt,
+      taskStatuses: workingCtx.detail.tasks.map((t) => ({ taskId: t.id, status: t.status })),
       documentationNote: null,
     },
   );
@@ -88,9 +129,9 @@ export async function saveClientSignature(
     return { ok: false, error: persist.error ?? 'Signatur konnte nicht gespeichert werden.' };
   }
 
-  let updatedCtx = ctx;
-  if (ctx.assignmentStatus === 'dokumentation_offen') {
-    const transitioned = await transitionAssistExecutionStatus(ctx, 'unterschrift_offen', {
+  let updatedCtx = workingCtx;
+  if (workingCtx.assignmentStatus === 'dokumentation_offen') {
+    const transitioned = await transitionAssistExecutionStatus(workingCtx, 'unterschrift_offen', {
       hasDocumentation: true,
       hasRequiredSignature: true,
     });
@@ -99,11 +140,11 @@ export async function saveClientSignature(
   }
 
   const refreshed = await resolveAssistExecutionContext({
-    tenantId: ctx.tenantId,
-    assignmentId: ctx.assignmentId,
-    employeeId: ctx.employeeId,
-    profileId: ctx.profileId,
-    roleKey: ctx.roleKey as RoleKey | null,
+    tenantId: workingCtx.tenantId,
+    assignmentId: workingCtx.assignmentId,
+    employeeId: workingCtx.employeeId,
+    profileId: workingCtx.profileId,
+    roleKey: workingCtx.roleKey as RoleKey | null,
   });
 
   if (!refreshed.ok) return { ok: false, error: refreshed.error };
@@ -112,8 +153,8 @@ export async function saveClientSignature(
     refreshed.data.detail.documentationStatus === 'submitted' ? 'submitted' : null;
   const proof = await generateServiceRecord(refreshed.data, documentationText);
 
-  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'unterschrift_offen', {
-    employeeId: ctx.employeeId,
+  void upsertAssistVisitExecutionState(workingCtx.tenantId, workingCtx.assignmentId, 'unterschrift_offen', {
+    employeeId: workingCtx.employeeId,
     visitTimes: refreshed.data.visitTimes,
     documentationComplete: true,
     signatureComplete: true,

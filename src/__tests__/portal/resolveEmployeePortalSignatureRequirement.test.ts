@@ -82,6 +82,59 @@ describe('resolveEmployeePortalDocumentationFlags', () => {
     expect(flags.signatureStatus).toBe('pending');
   });
 
+  it('requires signature when proof_template_key is set (catalog table absent)', async () => {
+    fromUnknownTable.mockImplementation((_supabase: unknown, table: string) => {
+      if (table === 'assist_visits') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    service_key: 'assist.alltagsbegleitung',
+                    proof_status: 'none',
+                    proof_template_key: 'einzel',
+                    documentation_status: 'complete',
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'assist_service_catalog_items') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: null,
+                  error: { code: '42P01', message: 'relation does not exist' },
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const { resolveEmployeePortalDocumentationFlags } = await import(
+      '@/lib/portal/resolveEmployeePortalSignatureRequirement'
+    );
+
+    const flags = await resolveEmployeePortalDocumentationFlags(
+      tenantId,
+      assignmentId,
+      'bestaetigt',
+      'Alles erledigt',
+    );
+
+    expect(flags.requiresSignature).toBe(true);
+    expect(flags.signatureStatus).toBe('pending');
+  });
+
   it('requires signature on beendet when documentation notes are submitted', async () => {
     fromUnknownTable.mockImplementation((_supabase: unknown, table: string) => {
       if (table === 'assist_visits') {
