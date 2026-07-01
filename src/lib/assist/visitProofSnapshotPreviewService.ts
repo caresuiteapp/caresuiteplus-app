@@ -6,6 +6,8 @@ import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
 import { ASSIST_EXECUTION_STORAGE_BUCKET } from '@/lib/assist/assistStoragePaths';
+import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
+import { formatStreetLine } from '@/lib/formatAddress';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -71,6 +73,50 @@ function formatDuration(seconds: number | null | undefined): string {
 function personName(row?: { first_name?: string | null; last_name?: string | null } | null): string {
   if (!row) return '';
   return [row.first_name, row.last_name].filter(Boolean).join(' ').trim();
+}
+
+type ClientAddressRow = {
+  street?: string | null;
+  house_number?: string | null;
+  postal_code?: string | null;
+  city?: string | null;
+};
+
+function formatLocationFromClient(client?: ClientAddressRow | null): string | null {
+  if (!client) return null;
+  const street = formatStreetLine(client.street, client.house_number);
+  const line = formatClientAddressLine(street || client.street, client.postal_code, client.city);
+  return line.trim() || null;
+}
+
+function resolveAddressSnapshot(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const text = value.trim();
+    return text || null;
+  }
+  if (value && typeof value === 'object') {
+    const formatted = String((value as { formatted?: string }).formatted ?? '').trim();
+    return formatted || null;
+  }
+  return null;
+}
+
+function snapshotTasksLookStale(snapshot: Record<string, unknown>): boolean {
+  const tasks = parseTasksFromSnapshot(snapshot);
+  if (tasks.length === 0) return true;
+  return tasks.every((task) => task.status === 'open');
+}
+
+function mapDbTasks(
+  rows: Array<{ id: string; title: string; status: string }> | undefined,
+): VisitProofPreviewTaskItem[] {
+  if (!rows?.length) return [];
+  return rows.map((task) => ({
+    id: task.id,
+    title: task.title,
+    status: task.status as VisitTaskStatus,
+    statusLabel: resolveTaskStatusLabel(task.status),
+  }));
 }
 
 function resolveTaskStatusLabel(status: string): string {
@@ -211,7 +257,7 @@ export function buildVisitProofPreviewFromProof(
 
   const fields = [
     { label: 'Klient:in', value: clientName, required: true, missing: clientName === '—' },
-    { label: 'Mitarbeitende:r', value: employeeName, required: true, missing: employeeName === '—' },
+    { label: 'Mitarbeitende:r', value: employeeName, required: false, missing: employeeName === '—' },
     { label: 'Leistung', value: serviceName, required: true, missing: !serviceName.trim() },
     {
       label: 'Termin',
@@ -251,7 +297,7 @@ export function buildVisitProofPreviewFromProof(
     {
       label: 'Ort',
       value: location,
-      required: true,
+      required: false,
       missing: !location.trim() || location === '—',
     },
     {
@@ -270,7 +316,19 @@ export function buildVisitProofPreviewFromProof(
     },
   ];
 
-  const readyForExport = fields.filter((field) => field.required).every((field) => !field.missing);
+  const signed = hasClientSignature(snapshot, signature, proof.signatureId);
+  const readyForExport = fields
+    .filter((field) => field.required)
+    .every((field) => !field.missing);
+
+  const softMissing = fields.filter((field) => field.missing && !field.required);
+  const incompleteHint = readyForExport
+    ? softMissing.length > 0
+      ? 'Pflichtfelder vollständig — einige Zusatzangaben fehlen noch.'
+      : 'Alle Pflichtfelder sind vorhanden.'
+    : signed
+      ? 'Einige Pflichtfelder fehlen noch — Snapshot und Einsatzdaten werden ergänzt.'
+      : 'Einige Pflichtfelder fehlen im Snapshot — Daten werden aus dem Einsatz ergänzt, sofern möglich.';
 
   return {
     visitId: proof.visitId,
@@ -287,9 +345,7 @@ export function buildVisitProofPreviewFromProof(
     signature,
     fields,
     readyForExport,
-    incompleteHint: readyForExport
-      ? 'Alle Pflichtfelder sind vorhanden.'
-      : 'Einige Pflichtfelder fehlen im Snapshot — Daten werden aus dem Einsatz ergänzt, sofern möglich.',
+    incompleteHint,
     visitTimes,
     signatureImageUrl,
   };
@@ -302,21 +358,38 @@ type VisitEnrichmentRow = {
   planned_start_at: string | null;
   planned_end_at: string | null;
   address_snapshot: unknown;
+  employee_id?: string | null;
+  legacy_assignment_id?: string | null;
   employees?: { first_name: string | null; last_name: string | null } | null;
+  clients?: ClientAddressRow | null;
   assist_visit_tasks?: Array<{
     id: string;
     title: string;
     status: string;
-    completion_note?: string | null;
+    note?: string | null;
   }>;
 };
 
 type AssignmentEnrichmentRow = {
   id: string;
   title: string | null;
-  location_address?: string | null;
+  address_snapshot?: string | null;
+  employee_id?: string | null;
   employees?: { first_name: string | null; last_name: string | null } | null;
+  clients?: ClientAddressRow | null;
+  assignment_tasks?: Array<{
+    id: string;
+    title: string;
+    status: string;
+    sort_order?: number;
+  }>;
 };
+
+const VISIT_ENRICHMENT_SELECT =
+  'id, title, service_name, planned_start_at, planned_end_at, address_snapshot, employee_id, legacy_assignment_id, employees(first_name, last_name), clients(street, house_number, postal_code, city), assist_visit_tasks(id, title, status, note)';
+
+const ASSIGNMENT_ENRICHMENT_SELECT =
+  'id, title, address_snapshot, employee_id, employees(first_name, last_name), clients(street, house_number, postal_code, city), assignment_tasks(id, title, status, sort_order)';
 
 /** Load missing employee, tasks, times and signature from related tables. */
 export async function enrichVisitProofForPreview(
@@ -330,17 +403,33 @@ export async function enrichVisitProofForPreview(
   const enrichment: VisitProofSnapshotEnrichment = {};
 
   const needsEmployee = !readString(snapshot, 'employeeName');
-  const needsTasks = !Array.isArray(snapshot.tasks) || (snapshot.tasks as unknown[]).length === 0;
+  const staleSnapshotTasks = snapshotTasksLookStale(snapshot);
+  const needsTasks =
+    !Array.isArray(snapshot.tasks) ||
+    (snapshot.tasks as unknown[]).length === 0 ||
+    staleSnapshotTasks;
+  const needsLocation =
+    !readString(snapshot, 'location') &&
+    !readString(snapshot, 'locationAddress') &&
+    !resolveAddressSnapshot(snapshot.address_snapshot);
   const needsTimes = !snapshot.visitTimes;
   const needsSchedule =
     !readString(snapshot, 'scheduledStart') &&
     !readString(snapshot, 'plannedStartAt');
 
-  if (needsEmployee || needsTasks || needsTimes || needsSchedule || !readString(snapshot, 'serviceName')) {
+  let resolvedAssignmentId = readString(snapshot, 'assignmentId');
+  let visitRow: VisitEnrichmentRow | null = null;
+
+  if (
+    needsEmployee ||
+    needsTasks ||
+    needsTimes ||
+    needsSchedule ||
+    needsLocation ||
+    !readString(snapshot, 'serviceName')
+  ) {
     const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
-      .select(
-        'id, title, service_name, planned_start_at, planned_end_at, address_snapshot, employees(first_name, last_name), assist_visit_tasks(id, title, status, completion_note)',
-      )
+      .select(VISIT_ENRICHMENT_SELECT)
       .eq('tenant_id', tenantId)
       .eq('id', proof.visitId)
       .maybeSingle();
@@ -350,48 +439,75 @@ export async function enrichVisitProofForPreview(
     }
 
     if (data) {
-      const visit = data as VisitEnrichmentRow;
-      if (needsEmployee) enrichment.employeeName = personName(visit.employees) || null;
-      if (!readString(snapshot, 'serviceName')) enrichment.serviceName = visit.service_name;
+      visitRow = data as VisitEnrichmentRow;
+      if (needsEmployee) enrichment.employeeName = personName(visitRow.employees) || null;
+      if (!readString(snapshot, 'serviceName')) enrichment.serviceName = visitRow.service_name;
       if (needsSchedule) {
-        enrichment.scheduledStart = visit.planned_start_at;
-        enrichment.scheduledEnd = visit.planned_end_at;
+        enrichment.scheduledStart = visitRow.planned_start_at;
+        enrichment.scheduledEnd = visitRow.planned_end_at;
       }
-      if (!readString(snapshot, 'location') && !readString(snapshot, 'locationAddress')) {
+      if (needsLocation) {
         enrichment.location =
-          typeof visit.address_snapshot === 'string'
-            ? visit.address_snapshot
-            : visit.address_snapshot && typeof visit.address_snapshot === 'object'
-              ? String((visit.address_snapshot as { formatted?: string }).formatted ?? '').trim() || null
-              : null;
+          resolveAddressSnapshot(visitRow.address_snapshot) ??
+          formatLocationFromClient(visitRow.clients) ??
+          null;
       }
-      if (needsTasks && visit.assist_visit_tasks?.length) {
-        enrichment.tasks = visit.assist_visit_tasks.map((task) => ({
-          id: task.id,
-          title: task.title,
-          status: task.status as VisitTaskStatus,
-          statusLabel: resolveTaskStatusLabel(task.status),
-        }));
+      if (!resolvedAssignmentId && visitRow.legacy_assignment_id) {
+        resolvedAssignmentId = visitRow.legacy_assignment_id;
+      }
+      if (needsTasks && visitRow.assist_visit_tasks?.length && !staleSnapshotTasks) {
+        enrichment.tasks = mapDbTasks(visitRow.assist_visit_tasks);
       }
     }
   }
 
-  const assignmentId = readString(snapshot, 'assignmentId');
-  const employeeId = readString(snapshot, 'employeeId');
-  if (assignmentId && needsEmployee) {
-    const { data: assignmentData } = await fromUnknownTable(supabase, 'assignments')
-      .select('id, title, location_address, employees(first_name, last_name)')
+  const employeeId = readString(snapshot, 'employeeId') ?? visitRow?.employee_id ?? null;
+  const shouldLoadAssignment =
+    Boolean(resolvedAssignmentId) &&
+    (needsEmployee || needsLocation || staleSnapshotTasks || needsTasks);
+
+  if (shouldLoadAssignment && resolvedAssignmentId) {
+    const { data: assignmentData, error: assignmentError } = await fromUnknownTable(
+      supabase,
+      'assignments',
+    )
+      .select(ASSIGNMENT_ENRICHMENT_SELECT)
       .eq('tenant_id', tenantId)
-      .eq('id', assignmentId)
+      .eq('id', resolvedAssignmentId)
       .maybeSingle();
+
+    if (assignmentError && !isSupabaseMissingTableError(assignmentError)) {
+      return { ok: false, error: toGermanSupabaseError(assignmentError) };
+    }
 
     if (assignmentData) {
       const assignment = assignmentData as AssignmentEnrichmentRow;
-      if (!enrichment.employeeName) {
+      if (needsEmployee && !enrichment.employeeName) {
         enrichment.employeeName = personName(assignment.employees) || null;
       }
-      if (!enrichment.location) {
-        enrichment.location = assignment.location_address ?? null;
+      if (needsLocation && !enrichment.location) {
+        enrichment.location =
+          resolveAddressSnapshot(assignment.address_snapshot) ??
+          formatLocationFromClient(assignment.clients) ??
+          null;
+      }
+      if ((needsTasks || staleSnapshotTasks) && assignment.assignment_tasks?.length) {
+        enrichment.tasks = mapDbTasks(
+          [...assignment.assignment_tasks].sort(
+            (a, b) => (a.sort_order ?? 0) - (b.sort_order ?? 0),
+          ),
+        );
+      }
+      if (needsEmployee && !enrichment.employeeName && assignment.employee_id) {
+        const { data: employeeData } = await fromUnknownTable(supabase, 'employees')
+          .select('first_name, last_name')
+          .eq('tenant_id', tenantId)
+          .eq('id', assignment.employee_id)
+          .maybeSingle();
+
+        if (employeeData) {
+          enrichment.employeeName = personName(employeeData) || null;
+        }
       }
     }
   }

@@ -4,6 +4,7 @@ import path from 'node:path';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import {
   buildVisitProofPreviewFromProof,
+  enrichVisitProofForPreview,
   proofHasClientSignature,
 } from '@/lib/assist/visitProofSnapshotPreviewService';
 
@@ -107,11 +108,24 @@ describe('visitProofSnapshotPreviewService', () => {
           ],
         },
       }),
+      {
+        employeeName: 'Kevin Reinhardt',
+        serviceName: 'Alltagsbegleitung §45a SGB XI',
+        location: 'Ringstraße 3, 44627 Herne',
+        tasks: [
+          { id: 't1', title: 'Einsatzbeginn dokumentieren', status: 'done', statusLabel: 'Erledigt' },
+          { id: 't2', title: 'Küche aufräumen', status: 'done', statusLabel: 'Erledigt' },
+        ],
+      },
     );
 
     expect(preview.clientName).toBe('Heinz-Peter Reinhardt');
+    expect(preview.employeeName).toBe('Kevin Reinhardt');
+    expect(preview.location).toBe('Ringstraße 3, 44627 Herne');
     expect(preview.tasks).toHaveLength(2);
+    expect(preview.tasks.every((task) => task.status === 'done')).toBe(true);
     expect(preview.documentationNote).toBe('Erledigt');
+    expect(preview.readyForExport).toBe(true);
     expect(preview.fields.find((f) => f.label === 'Unterschrift')?.missing).toBe(false);
     expect(proofHasClientSignature(sampleProof({ signatureId: '71602374-b79e-4c96-ac53-b9b93443b8b3' }))).toBe(
       true,
@@ -132,6 +146,130 @@ describe('visitProofSnapshotPreviewService', () => {
         }),
       ),
     ).toBe(true);
+  });
+
+  it('marks signed proof as export-ready without employee or location in snapshot', () => {
+    const preview = buildVisitProofPreviewFromProof(
+      sampleProof({
+        signatureId: 'sig-1',
+        payloadSnapshot: {
+          clientName: 'Heinz-Peter Reinhardt',
+          title: 'Alltagsbegleitung',
+          plannedStartAt: '2026-06-30T23:00:00.000Z',
+          plannedEndAt: '2026-07-01T00:00:00.000Z',
+          documentation: 'Erledigt',
+          signature: {
+            signedAt: '2026-07-01T01:49:03.371Z',
+            signerName: 'Heinz-Peter Reinhardt',
+          },
+        },
+      }),
+    );
+
+    expect(preview.readyForExport).toBe(true);
+    expect(preview.fields.find((f) => f.label === 'Mitarbeitende:r')?.required).toBe(false);
+    expect(preview.fields.find((f) => f.label === 'Ort')?.required).toBe(false);
+  });
+});
+
+const mockFromUnknownTable = vi.fn();
+const mockFetchValidVisitSignature = vi.fn();
+
+vi.mock('@/lib/supabase/untypedTable', () => ({
+  fromUnknownTable: (...args: unknown[]) => mockFromUnknownTable(...args),
+}));
+
+vi.mock('@/lib/supabase/client', () => ({
+  getSupabaseClient: () => ({
+    storage: {
+      from: () => ({
+        createSignedUrl: vi.fn(async () => ({ data: null })),
+      }),
+    },
+  }),
+}));
+
+vi.mock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({
+  fetchValidVisitSignature: (...args: unknown[]) => mockFetchValidVisitSignature(...args),
+}));
+
+function mockQueryResult(data: unknown, error: unknown = null) {
+  return {
+    select: vi.fn().mockReturnThis(),
+    eq: vi.fn().mockReturnThis(),
+    maybeSingle: vi.fn(async () => ({ data, error })),
+  };
+}
+
+describe('enrichVisitProofForPreview', () => {
+  beforeEach(() => {
+    vi.clearAllMocks();
+    mockFetchValidVisitSignature.mockResolvedValue({ ok: false });
+  });
+
+  it('loads employee, location and assignment task statuses without DB error', async () => {
+    mockFromUnknownTable.mockImplementation((_client, table: string) => {
+      if (table === 'assist_visits') {
+        return mockQueryResult({
+          id: '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab',
+          service_name: 'Alltagsbegleitung §45a SGB XI',
+          planned_start_at: '2026-06-30T23:00:00.000Z',
+          planned_end_at: '2026-07-01T00:00:00.000Z',
+          address_snapshot: null,
+          employee_id: 'e036ecd3-8ff7-4453-af93-ebbcbd0820f2',
+          legacy_assignment_id: '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab',
+          employees: { first_name: 'Kevin', last_name: 'Reinhardt' },
+          clients: {
+            street: 'Ringstraße 3',
+            house_number: '3',
+            postal_code: '44627',
+            city: 'Herne',
+          },
+          assist_visit_tasks: [{ id: 't1', title: 'Küche aufräumen', status: 'open', note: null }],
+        });
+      }
+      if (table === 'assignments') {
+        return mockQueryResult({
+          id: '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab',
+          address_snapshot: null,
+          employee_id: 'e036ecd3-8ff7-4453-af93-ebbcbd0820f2',
+          employees: { first_name: 'Kevin', last_name: 'Reinhardt' },
+          clients: {
+            street: 'Ringstraße 3',
+            house_number: '3',
+            postal_code: '44627',
+            city: 'Herne',
+          },
+          assignment_tasks: [
+            { id: 'at1', title: 'Küche aufräumen', status: 'done', sort_order: 1 },
+            { id: 'at2', title: 'Staubsaugen', status: 'done', sort_order: 2 },
+          ],
+        });
+      }
+      return mockQueryResult(null);
+    });
+
+    const proof = sampleProof({
+      visitId: '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab',
+      payloadSnapshot: {
+        clientName: 'Heinz-Peter Reinhardt',
+        title: 'Regelmäßige Alltagsbegleitung',
+        plannedStartAt: '2026-06-30T23:00:00.000Z',
+        plannedEndAt: '2026-07-01T00:00:00.000Z',
+        documentation: 'Erledigt',
+        assignmentId: '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab',
+        tasks: [{ id: 't1', title: 'Küche aufräumen', status: 'open' }],
+      },
+    });
+
+    const result = await enrichVisitProofForPreview('tenant-1', proof);
+
+    expect(result.ok).toBe(true);
+    expect(result.data?.employeeName).toBe('Kevin Reinhardt');
+    expect(result.data?.location).toBe('Ringstraße 3, 44627 Herne');
+    expect(result.data?.tasks?.every((task) => task.status === 'done')).toBe(true);
+    expect(mockFromUnknownTable).toHaveBeenCalledWith(expect.anything(), 'assist_visits');
+    expect(mockFromUnknownTable).toHaveBeenCalledWith(expect.anything(), 'assignments');
   });
 });
 
