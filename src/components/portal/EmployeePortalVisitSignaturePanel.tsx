@@ -1,5 +1,6 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employeePortalExecution';
@@ -53,6 +54,25 @@ export function EmployeePortalVisitSignaturePanel({
     onModalOpenChange?.(open);
   };
 
+  const closeModal = useCallback(() => {
+    setModalVisible(false);
+    onModalOpenChange?.(false);
+  }, [onModalOpenChange]);
+
+  useFocusEffect(
+    useCallback(() => {
+      return () => {
+        closeModal();
+      };
+    }, [closeModal]),
+  );
+
+  useEffect(() => {
+    return () => {
+      closeModal();
+    };
+  }, [closeModal]);
+
   const handleConfirm = async (dataUrl: string) => {
     const result = await onCapture({
       signatureType: 'service_proof',
@@ -61,7 +81,7 @@ export function EmployeePortalVisitSignaturePanel({
     });
     if (result.ok) {
       setPreview(dataUrl);
-      handleModalVisibility(false);
+      closeModal();
     }
   };
 
@@ -88,15 +108,17 @@ export function EmployeePortalVisitSignaturePanel({
       ) : preview ? (
         <Text style={styles.saved}>Unterschrift gespeichert.</Text>
       ) : null}
-      <CareSignatureModal
-        visible={modalVisible}
-        label="Klient:innen-Unterschrift"
-        dismissScope={visitId ?? 'signature'}
-        onClose={() => handleModalVisibility(false)}
-        onConfirm={(dataUrl) => {
-          void handleConfirm(dataUrl);
-        }}
-      />
+      {modalVisible ? (
+        <CareSignatureModal
+          visible
+          label="Klient:innen-Unterschrift"
+          dismissScope={visitId ?? 'signature'}
+          onClose={closeModal}
+          onConfirm={(dataUrl) => {
+            void handleConfirm(dataUrl);
+          }}
+        />
+      ) : null}
     </SectionPanel>
   );
 }

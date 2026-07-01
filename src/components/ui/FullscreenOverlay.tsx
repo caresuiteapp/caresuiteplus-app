@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react';
+import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Modal, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 
@@ -59,6 +59,9 @@ const webFixedShell =
 /**
  * Screen-filling overlay — portals to document.body on web to escape parent
  * overflow/transform clipping; uses native Modal elsewhere.
+ *
+ * Portal host is created only while `visible` and removed on hide/unmount so
+ * a white shell cannot leak onto other routes when the parent screen stays mounted.
  */
 export function FullscreenOverlay({
   visible,
@@ -68,6 +71,24 @@ export function FullscreenOverlay({
   testID = 'fullscreen-overlay',
 }: Props) {
   useWebBodyScrollLock(visible);
+  const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
+
+  useLayoutEffect(() => {
+    if (!visible || Platform.OS !== 'web' || typeof document === 'undefined') {
+      setPortalHost(null);
+      return;
+    }
+
+    const host = document.createElement('div');
+    host.setAttribute('data-caresuite-fullscreen-overlay', testID);
+    document.body.appendChild(host);
+    setPortalHost(host);
+
+    return () => {
+      host.remove();
+      setPortalHost((current) => (current === host ? null : current));
+    };
+  }, [visible, testID]);
 
   if (!visible) return null;
 
@@ -84,7 +105,8 @@ export function FullscreenOverlay({
   );
 
   if (Platform.OS === 'web' && typeof document !== 'undefined') {
-    return createPortal(content, document.body);
+    if (!portalHost) return null;
+    return createPortal(content, portalHost);
   }
 
   return (

@@ -95,6 +95,7 @@ describe('employee portal mobile acceptance fixes', () => {
     const orientation = readSrc('src/lib/orientation/requestLandscapeLock.ts');
     const prompt = readSrc('src/components/layout/LandscapePrompt.tsx');
     expect(modal).toContain('FullscreenOverlay');
+    expect(modal).toContain('if (!visible) return null');
     expect(modal).toContain('isPhone || isTablet');
     expect(modal).toContain('fillAvailable={fullscreen}');
     expect(modal).toContain('OrientationGate');
@@ -105,6 +106,8 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(modal).not.toContain('lockWebLandscapeOrientation');
     expect(overlay).toContain('createPortal');
     expect(overlay).toContain('document.body');
+    expect(overlay).toContain('useLayoutEffect');
+    expect(overlay).toContain('data-caresuite-fullscreen-overlay');
     expect(overlay).toContain('100dvh');
     expect(overlay).toContain('presentationStyle="fullScreen"');
     expect(overlay).toContain('FULLSCREEN_OVERLAY_Z_INDEX');
@@ -119,6 +122,8 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(canvas).toContain('Abbrechen');
     expect(canvas).toContain('Unterschrift bestätigen');
     expect(panel).toContain('CareSignatureModal');
+    expect(panel).toContain('useFocusEffect');
+    expect(panel).toContain('modalVisible ?');
     expect(panel).toContain('visitId');
   });
 
