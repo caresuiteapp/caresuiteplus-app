@@ -112,6 +112,9 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(overlay).toContain('100dvh');
     expect(overlay).toContain('presentationStyle="fullScreen"');
     expect(overlay).toContain('cleanupOrphanedFullscreenOverlays');
+    expect(overlay).not.toMatch(/webFixedShell[\s\S]*touchAction:\s*'none'/);
+    expect(canvas).toContain("touchAction: 'manipulation'");
+    expect(canvas).toContain("touchAction: 'none'");
     expect(prompt).toContain('Trotzdem fortfahren');
     expect(prompt).not.toContain('position: \'absolute\'');
     expect(orientation).toContain("lock('landscape')");

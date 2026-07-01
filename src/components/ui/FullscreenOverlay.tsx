@@ -20,10 +20,8 @@ function useWebBodyScrollLock(active: boolean) {
 
     const prevOverflow = document.body.style.overflow;
     const prevOverscroll = document.body.style.overscrollBehavior;
-    const prevTouchAction = document.body.style.touchAction;
     document.body.style.overflow = 'hidden';
     document.body.style.overscrollBehavior = 'contain';
-    document.body.style.touchAction = 'none';
 
     const blockTouchMove = (event: TouchEvent) => {
       event.preventDefault();
@@ -33,7 +31,6 @@ function useWebBodyScrollLock(active: boolean) {
     return () => {
       document.body.style.overflow = prevOverflow;
       document.body.style.overscrollBehavior = prevOverscroll;
-      document.body.style.touchAction = prevTouchAction;
       document.removeEventListener('touchmove', blockTouchMove);
     };
   }, [active]);
@@ -54,7 +51,6 @@ const webFixedShell =
         display: 'flex',
         flexDirection: 'column',
         overscrollBehavior: 'contain',
-        touchAction: 'none',
       } as ViewStyle)
     : null;
 

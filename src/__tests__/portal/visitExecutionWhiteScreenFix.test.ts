@@ -1,4 +1,6 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
+import { readFileSync } from 'node:fs';
+import path from 'node:path';
 import {
   isVisitExecutionRoute,
   visitExecutionRouteMatchesSnapshot,
@@ -71,5 +73,22 @@ describe('visit workflow persistence merge', () => {
 
     writeVisitWorkflowSnapshot(cleared);
     expect(readVisitWorkflowSnapshot('v1')?.signatureModalOpen).toBe(false);
+  });
+});
+
+describe('signature overlay touch targets', () => {
+  function readSrc(relativePath: string): string {
+    return readFileSync(path.join(__dirname, '..', '..', '..', relativePath), 'utf8');
+  }
+
+  it('keeps touch-action:none scoped to canvas only so footer buttons receive taps', () => {
+    const overlay = readSrc('src/components/ui/FullscreenOverlay.tsx');
+    const modal = readSrc('src/components/inputs/CareSignatureModal.tsx');
+    const canvas = readSrc('src/components/inputs/CareSignatureCanvas.tsx');
+
+    expect(overlay).not.toContain("document.body.style.touchAction = 'none'");
+    expect(modal).not.toMatch(/fullscreenRoot:[\s\S]*touchAction:\s*'none'/);
+    expect(canvas).toContain("touchAction: 'manipulation'");
+    expect(canvas).toMatch(/<canvas[\s\S]*touchAction:\s*'none'/);
   });
 });

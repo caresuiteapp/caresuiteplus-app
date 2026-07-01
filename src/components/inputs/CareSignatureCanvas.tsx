@@ -41,10 +41,6 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
           ...(fillAvailable
             ? { flex: 1, minHeight: 0, flexDirection: 'column' as const }
             : null),
-          ...Platform.select({
-            web: fillAvailable ? { touchAction: 'none' as const } : {},
-            default: {},
-          }),
         },
         label: { ...FALLBACK_TYPOGRAPHY.body, fontWeight: '600' },
         canvasWrap: {
@@ -69,6 +65,10 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
           flexWrap: actionLayout === 'bar' ? 'nowrap' : 'wrap',
           alignItems: 'center',
           flexShrink: 0,
+          ...Platform.select({
+            web: { touchAction: 'manipulation' as const },
+            default: {},
+          }),
         },
         actionsBar: {
           paddingTop: spacing.xs,
