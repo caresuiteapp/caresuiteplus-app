@@ -82,6 +82,40 @@ describe('resolveEmployeePortalDocumentationFlags', () => {
     expect(flags.signatureStatus).toBe('pending');
   });
 
+  it('requires signature on beendet when documentation notes are submitted', async () => {
+    fromUnknownTable.mockImplementation((_supabase: unknown, table: string) => {
+      if (table === 'assist_visits') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: { service_key: '', proof_status: 'none' },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      return {};
+    });
+
+    const { resolveEmployeePortalDocumentationFlags } = await import(
+      '@/lib/portal/resolveEmployeePortalSignatureRequirement'
+    );
+
+    const flags = await resolveEmployeePortalDocumentationFlags(
+      tenantId,
+      assignmentId,
+      'beendet',
+      'Leistung erbracht',
+    );
+
+    expect(flags.requiresSignature).toBe(true);
+    expect(flags.signatureStatus).toBe('pending');
+  });
+
   it('marks signature captured when persisted signature exists', async () => {
     fetchValidVisitSignature.mockResolvedValue({
       ok: true,

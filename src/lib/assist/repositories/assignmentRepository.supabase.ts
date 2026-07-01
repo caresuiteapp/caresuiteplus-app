@@ -423,6 +423,10 @@ export const assignmentSupabaseRepository = {
     }
 
     const fromStatus = existing.data.assignmentStatus;
+    if (fromStatus === toStatus) {
+      return { ok: true, data: existing.data };
+    }
+
     const validation = validateAssignmentTransition(fromStatus, toStatus);
     if (!validation.valid) {
       return { ok: false, error: validation.error };

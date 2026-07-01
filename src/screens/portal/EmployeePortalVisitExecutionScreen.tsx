@@ -29,6 +29,7 @@ import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitE
 import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkflowPersistence } from '@/hooks/useWorkflowPersistence';
 import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
+import { resolveVisitExecutionUiState } from '@/lib/portal/resolveVisitExecutionUiState';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import {
   ASSIST_WORKFLOW_ACTION_LABELS,
@@ -110,6 +111,7 @@ export function EmployeePortalVisitExecutionScreen() {
     consistencyStatus,
     nextActionHint,
     notFound,
+    isServiceEnded,
   } = useEmployeePortalVisitExecution(id);
 
   const effectiveStatus: AssignmentStatus = derivedStatus ?? visit?.status ?? 'geplant';
@@ -175,37 +177,43 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const trackingActive = Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
 
-  const statusBlocksDoc =
-    consistencyStatus === 'repairable' &&
-    ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(visit?.status ?? '');
-
-  const showTasks =
-    visit &&
-    ['gestartet', 'pausiert', 'beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(
+  const uiState = useMemo(() => {
+    if (!visit) return null;
+    return resolveVisitExecutionUiState({
+      visit,
       effectiveStatus,
-    ) &&
-    !statusBlocksDoc;
-  const documentationSubmitted = visit?.documentationStatus === 'submitted';
-  const signatureCaptured = visit?.signatureStatus === 'captured';
-  const showDocumentationForm =
-    visit &&
-    !statusBlocksDoc &&
-    !documentationSubmitted &&
-    ['beendet', 'dokumentation_offen', 'unterschrift_offen'].includes(effectiveStatus);
-  const showSignature =
-    visit &&
-    visit.requiresSignature &&
-    !statusBlocksDoc &&
-    documentationSubmitted &&
-    !signatureCaptured &&
-    (awaitingSignature ||
-      ['dokumentation_offen', 'unterschrift_offen'].includes(effectiveStatus));
-  const showFinalize =
-    visit &&
-    !statusBlocksDoc &&
-    documentationSubmitted &&
-    (effectiveStatus === 'unterschrift_offen' ||
-      (!visit.requiresSignature && effectiveStatus === 'dokumentation_offen'));
+      consistencyStatus,
+      allowedActions,
+      awaitingSignature,
+      hasServiceEnded,
+    });
+  }, [
+    visit,
+    effectiveStatus,
+    consistencyStatus,
+    allowedActions,
+    awaitingSignature,
+    hasServiceEnded,
+  ]);
+
+  const statusBlocksDoc = uiState?.statusBlocksDoc ?? false;
+  const showTasks = uiState?.showTasks ?? false;
+  const documentationSubmitted = uiState?.documentationSubmitted ?? false;
+  const signatureCaptured = uiState?.signatureCaptured ?? false;
+  const showDocumentationForm = uiState?.showDocumentationForm ?? false;
+  const showSignature = uiState?.showSignature ?? false;
+  const showFinalize = uiState?.showFinalize ?? false;
+
+  useEffect(() => {
+    if (
+      visit?.requiresSignature &&
+      documentationSubmitted &&
+      !signatureCaptured &&
+      allowedActions.includes('capture_signature')
+    ) {
+      setAwaitingSignature(true);
+    }
+  }, [visit?.requiresSignature, documentationSubmitted, signatureCaptured, allowedActions]);
 
   const scrollToSignatureSection = useCallback(() => {
     scrollRef.current?.scrollTo({ y: Math.max(signatureSectionY.current - 16, 0), animated: true });

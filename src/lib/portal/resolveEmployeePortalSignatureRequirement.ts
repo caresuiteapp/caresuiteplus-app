@@ -18,7 +18,11 @@ export type EmployeePortalDocumentationFlags = {
   signatureStatus: EmployeePortalAssignmentDetail['signatureStatus'];
 };
 
-const SIGNATURE_WORKFLOW_STATUSES: AssignmentStatus[] = ['dokumentation_offen', 'unterschrift_offen'];
+const SIGNATURE_WORKFLOW_STATUSES: AssignmentStatus[] = [
+  'beendet',
+  'dokumentation_offen',
+  'unterschrift_offen',
+];
 
 function signatureStatusFromState(input: {
   requiresSignature: boolean;
@@ -118,7 +122,8 @@ export async function resolveEmployeePortalDocumentationFlags(
     }
   }
 
-  if (SIGNATURE_WORKFLOW_STATUSES.includes(status) && Boolean(documentationNotes?.trim())) {
+  const hasSubmittedDocumentation = Boolean(documentationNotes?.trim());
+  if (SIGNATURE_WORKFLOW_STATUSES.includes(status) && hasSubmittedDocumentation) {
     requiresSignature = true;
   }
 

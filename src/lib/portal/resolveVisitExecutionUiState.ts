@@ -1,0 +1,94 @@
+import type { AssistWorkflowAllowedAction } from '@/features/assistWorkflow/resolveAllowedActions';
+import type { WorkflowConsistencyStatus } from '@/features/assistWorkflow/detectWorkflowInconsistencies';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
+
+const TASK_STATUSES: AssignmentStatus[] = [
+  'gestartet',
+  'pausiert',
+  'beendet',
+  'dokumentation_offen',
+  'unterschrift_offen',
+];
+
+const POST_SERVICE_STATUSES: AssignmentStatus[] = [
+  'beendet',
+  'dokumentation_offen',
+  'unterschrift_offen',
+];
+
+export type VisitExecutionUiStateInput = {
+  visit: EmployeePortalAssignmentDetail;
+  effectiveStatus: AssignmentStatus;
+  consistencyStatus: WorkflowConsistencyStatus;
+  allowedActions: AssistWorkflowAllowedAction[];
+  awaitingSignature: boolean;
+  /** True when service_end time event exists — avoids blocking doc/signature after valid end. */
+  hasServiceEnded?: boolean;
+};
+
+export type VisitExecutionUiState = {
+  statusBlocksDoc: boolean;
+  showTasks: boolean;
+  documentationSubmitted: boolean;
+  signatureCaptured: boolean;
+  showDocumentationForm: boolean;
+  showSignature: boolean;
+  showFinalize: boolean;
+};
+
+export function resolveVisitExecutionUiState(
+  input: VisitExecutionUiStateInput,
+): VisitExecutionUiState {
+  const {
+    visit,
+    effectiveStatus,
+    consistencyStatus,
+    allowedActions,
+    awaitingSignature,
+    hasServiceEnded = false,
+  } = input;
+
+  const documentationSubmitted = visit.documentationStatus === 'submitted';
+  const signatureCaptured = visit.signatureStatus === 'captured';
+
+  const statusBlocksDoc =
+    consistencyStatus === 'repairable' &&
+    POST_SERVICE_STATUSES.includes(visit.status) &&
+    !hasServiceEnded &&
+    !documentationSubmitted;
+
+  const showTasks =
+    TASK_STATUSES.includes(effectiveStatus) && !statusBlocksDoc;
+
+  const showDocumentationForm =
+    !statusBlocksDoc &&
+    !documentationSubmitted &&
+    POST_SERVICE_STATUSES.includes(effectiveStatus);
+
+  const showSignature =
+    visit.requiresSignature &&
+    !statusBlocksDoc &&
+    documentationSubmitted &&
+    !signatureCaptured &&
+    (awaitingSignature ||
+      allowedActions.includes('capture_signature') ||
+      POST_SERVICE_STATUSES.includes(effectiveStatus));
+
+  const showFinalize =
+    !statusBlocksDoc &&
+    documentationSubmitted &&
+    (effectiveStatus === 'unterschrift_offen' ||
+      (!visit.requiresSignature && effectiveStatus === 'dokumentation_offen') ||
+      (signatureCaptured && effectiveStatus === 'dokumentation_offen'));
+
+  return {
+    statusBlocksDoc,
+    showTasks,
+    documentationSubmitted,
+    signatureCaptured,
+    showDocumentationForm,
+    showSignature,
+    showFinalize,
+  };
+}

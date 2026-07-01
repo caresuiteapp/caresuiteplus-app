@@ -57,6 +57,7 @@ import {
   WorkflowActionTimeoutError,
   WORKFLOW_ACTION_TIMEOUT_MS,
 } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
+import { isStaleWorkflowTransitionError } from '@/features/assistWorkflow/internal/isStaleWorkflowTransitionError';
 
 export function useEmployeePortalVisitExecution(assignmentId: string | undefined) {
   const { profile } = useAuth();
@@ -233,10 +234,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       fn: (ctx: AssistExecutionContext) => Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }>,
       options?: { timeoutLabel?: string; loadingMode?: 'generic' | 'start_service' },
     ): Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }> => {
-      let ctx = executionContext;
+      let ctx = await refreshExecutionContext();
       if (!ctx) {
-        ctx = await refreshExecutionContext();
-        if (!ctx) return { ok: false, error: 'Einsatzkontext fehlt.', errorCode: 'START_SERVICE_CONTEXT_MISSING' };
+        ctx = executionContext;
+      }
+      if (!ctx) {
+        return { ok: false, error: 'Einsatzkontext fehlt.', errorCode: 'START_SERVICE_CONTEXT_MISSING' };
       }
 
       const loadingMode = options?.loadingMode ?? 'generic';
@@ -267,6 +270,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             }
           } else {
             await refreshExecutionContext();
+          }
+        } else if (isStaleWorkflowTransitionError(result.error)) {
+          const refreshed = await refreshExecutionContext();
+          if (refreshed) {
+            await syncAfterWorkflow(refreshed);
+            return { ok: true, data: refreshed as T };
           }
         }
 
@@ -575,5 +584,6 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     openRoute,
     notFound: !query.loading && !query.error && !query.data,
     hasAssignment: Boolean(query.data),
+    isServiceEnded: Boolean(executionContext?.visitTimes?.serviceEndedAt),
   };
 }
