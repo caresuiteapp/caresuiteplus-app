@@ -74,6 +74,18 @@ function getEntry(tenantId: string, assignmentId: string): TrackingEntry {
   return entry;
 }
 
+/** Read-only view for render paths — must not mutate TRACKING_STORE (React #421). */
+function readOnlyTrackingEntry(tenantId: string, assignmentId: string): TrackingEntry {
+  const existing = TRACKING_STORE.get(storeKey(tenantId, assignmentId));
+  if (!existing) return emptyEntry();
+  return {
+    ...existing,
+    consent: { ...existing.consent },
+    lastPosition: existing.lastPosition ? { ...existing.lastPosition } : null,
+    geofenceLastCheck: existing.geofenceLastCheck ? { ...existing.geofenceLastCheck } : null,
+  };
+}
+
 function loadExpoLocation(): typeof ExpoLocation | null {
   try {
     // eslint-disable-next-line @typescript-eslint/no-require-imports
@@ -93,7 +105,7 @@ export function getEmployeePortalLocationConsent(
   tenantId: string,
   assignmentId: string,
 ): EmployeePortalLocationConsent {
-  return { ...getEntry(tenantId, assignmentId).consent };
+  return { ...readOnlyTrackingEntry(tenantId, assignmentId).consent };
 }
 
 export function grantEmployeePortalLocationConsent(
@@ -216,7 +228,7 @@ export function computeEmployeePortalLiveTimers(
   currentStatus: AssignmentStatus,
   now: Date = new Date(),
 ): EmployeePortalLiveTimers {
-  const entry = getEntry(tenantId, assignmentId);
+  const entry = readOnlyTrackingEntry(tenantId, assignmentId);
   const nowIso = now.toISOString();
   const pauses = peekEmployeePortalPauseEvents(tenantId, assignmentId);
 
@@ -321,7 +333,7 @@ export function buildEmployeePortalTrackingSnapshot(
   status: AssignmentStatus,
   gpsPermission: EmployeePortalGpsPermissionStatus,
 ): EmployeePortalTrackingSnapshot {
-  const entry = getEntry(tenantId, assignmentId);
+  const entry = readOnlyTrackingEntry(tenantId, assignmentId);
   const timers = computeEmployeePortalLiveTimers(tenantId, assignmentId, status);
   const warnings: string[] = [];
 
@@ -406,6 +418,11 @@ export function rebuildEmployeePortalTrackingWarnings(
 
 export function resetEmployeePortalVisitTrackingStore(): void {
   TRACKING_STORE.clear();
+}
+
+/** @internal Vitest — assert render-safe reads do not populate the in-memory store. */
+export function getEmployeePortalTrackingStoreSizeForTests(): number {
+  return TRACKING_STORE.size;
 }
 
 export function peekEmployeePortalTrackingEntry(

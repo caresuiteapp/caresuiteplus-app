@@ -97,6 +97,30 @@ describe('C.14X — employee execution production render crash fix', () => {
       const c2 = getEmployeePortalLocationConsent(INTERNAL_TEST_TENANT, 'assign-x');
       expect(c1).toEqual(c2);
     });
+
+    it('read-only consent and snapshot paths do not populate TRACKING_STORE', async () => {
+      const {
+        buildEmployeePortalTrackingSnapshot,
+        getEmployeePortalLocationConsent,
+        getEmployeePortalTrackingStoreSizeForTests,
+        resetEmployeePortalVisitTrackingStore,
+      } = await import('@/lib/portal/employeePortalVisitTrackingService');
+
+      resetEmployeePortalVisitTrackingStore();
+      expect(getEmployeePortalTrackingStoreSizeForTests()).toBe(0);
+
+      for (let i = 0; i < 20; i += 1) {
+        getEmployeePortalLocationConsent(INTERNAL_TEST_TENANT, `assign-read-${i}`);
+        buildEmployeePortalTrackingSnapshot(
+          INTERNAL_TEST_TENANT,
+          `assign-read-${i}`,
+          'unterwegs',
+          'granted',
+        );
+      }
+
+      expect(getEmployeePortalTrackingStoreSizeForTests()).toBe(0);
+    });
   });
 
   describe('fetchEmployeePortalOverview guard consistency', () => {

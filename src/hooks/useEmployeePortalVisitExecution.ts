@@ -1,4 +1,5 @@
 import { useEmployeeGpsTracking } from '@/features/liveTracking/useEmployeeGpsTracking';
+import type { EmployeeLiveContext } from '@/features/liveTracking/resolveEmployeeLiveContext';
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import type {
   EmployeePortalDocumentationInput,
@@ -62,7 +63,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const { tenantId: portalTenantId, employeeId: portalEmployeeId, roleKey: portalRoleKey } =
     usePortalActor();
   const tenantId = useServiceTenantId() ?? portalTenantId;
-  const employeeId = portalEmployeeId ?? '';
+  const employeeId = portalEmployeeId ?? profile?.employeeId ?? '';
   const roleKey = portalRoleKey ?? profile?.roleKey ?? null;
 
   const [gpsPermission, setGpsPermission] = useState<EmployeePortalGpsPermissionStatus>('undetermined');
@@ -170,6 +171,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     executionContext?.timeEvents ?? [],
     effectiveStatus,
     executionContext?.visitTimes ?? null,
+    Boolean(query.data),
   );
 
   const tracking: EmployeePortalTrackingSnapshot | null = useMemo(() => {

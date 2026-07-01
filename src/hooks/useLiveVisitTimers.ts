@@ -27,13 +27,15 @@ export function useLiveVisitTimers(
   timeEvents: TimeEventLike[],
   effectiveStatus: AssignmentStatus | null,
   fallbackTimes: VisitTimesSummary | null = null,
+  enabled = true,
 ): EmployeePortalLiveTimers | null {
   const [now, setNow] = useState(() => new Date());
 
   const needsLiveTick =
-    effectiveStatus === 'unterwegs' ||
-    effectiveStatus === 'gestartet' ||
-    effectiveStatus === 'pausiert';
+    enabled &&
+    (effectiveStatus === 'unterwegs' ||
+      effectiveStatus === 'gestartet' ||
+      effectiveStatus === 'pausiert');
 
   useEffect(() => {
     if (!needsLiveTick) return;
