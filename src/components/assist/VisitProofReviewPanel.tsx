@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
-import { VisitProofPreviewPanel } from '@/components/assist/VisitProofPreviewPanel';
+import { VisitProofPdfPreviewPanel } from '@/components/assist/VisitProofPdfPreviewPanel';
 import {
   EmptyState,
   FilterChipGroup,
@@ -152,12 +152,24 @@ export function VisitProofReviewPanel({
         />
       ) : null}
 
-      <VisitProofPreviewPanel preview={preview} />
-      {previewLoading && !enrichedPreview ? (
-        <Text style={{ color: text.muted, ...typography.caption }}>
-          Einsatzdaten werden ergänzt…
-        </Text>
-      ) : null}
+      <VisitProofPdfPreviewPanel
+        tenantId={tenantId}
+        proof={proof}
+        enrichment={{
+          employeeName: preview?.employeeName,
+          serviceName: preview?.serviceName,
+          location: preview?.location,
+          scheduledStart: preview?.scheduledStart,
+          scheduledEnd: preview?.scheduledEnd,
+          documentationNote: preview?.documentationNote,
+          visitTimes: preview?.visitTimes ?? null,
+          signatureImageUrl: preview?.signatureImageUrl ?? null,
+          signature: preview?.signature ?? null,
+          tasks: preview?.tasks,
+        }}
+        htmlPreview={preview}
+        htmlPreviewLoading={previewLoading && !enrichedPreview}
+      />
 
       {(proof.status === 'pending_review' || proof.status === 'rejected') && (
         <PremiumInput

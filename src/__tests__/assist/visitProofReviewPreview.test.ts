@@ -276,6 +276,7 @@ describe('enrichVisitProofForPreview', () => {
 const mockFetchProof = vi.fn();
 const mockUpdateProof = vi.fn();
 const mockGeneratePdf = vi.fn();
+const mockUpsertDocument = vi.fn();
 
 vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({
   fetchVisitProofById: (...args: unknown[]) => mockFetchProof(...args),
@@ -284,6 +285,11 @@ vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({
 
 vi.mock('@/lib/assist/assistProofPdfService', () => ({
   generateAssistProofPdf: (...args: unknown[]) => mockGeneratePdf(...args),
+}));
+
+vi.mock('@/lib/assist/assistProofPortalDocumentService', () => ({
+  upsertAssistProofClientPortalDocument: (...args: unknown[]) => mockUpsertDocument(...args),
+  revokeAssistProofClientPortalDocument: vi.fn(async () => ({ ok: true, data: undefined })),
 }));
 
 vi.mock('@/lib/assist/clientBudgetTransactionService', () => ({
@@ -302,6 +308,10 @@ import {
 describe('assist proof release modes', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    mockUpsertDocument.mockResolvedValue({
+      ok: true,
+      data: { clientDocumentId: 'proof-1' },
+    });
     mockGeneratePdf.mockResolvedValue({
       ok: true,
       data: { ...sampleProof(), status: 'approved', pdfStoragePath: 'tenant/proof.pdf' },
@@ -398,12 +408,43 @@ describe('assist proof release modes', () => {
     const releasePatch = mockUpdateProof.mock.calls.at(-1)?.[2] as Record<string, unknown>;
     expect(releasePatch.portal_release_status).toBe('pending_client_signature');
   });
+
+  it('portal release upserts client_documents mirror', async () => {
+    mockUpsertDocument.mockResolvedValue({
+      ok: true,
+      data: { clientDocumentId: 'proof-1' },
+    });
+    mockFetchProof.mockResolvedValueOnce({
+      ok: true,
+      data: sampleProof({ status: 'approved', pdfStoragePath: 'tenant/proof.pdf' }),
+    });
+    mockUpdateProof.mockResolvedValueOnce({
+      ok: true,
+      data: sampleProof({
+        status: 'exported',
+        portalVisible: true,
+        portalReleaseStatus: 'released',
+        pdfStoragePath: 'tenant/proof.pdf',
+      }),
+    });
+
+    const result = await releaseAssistProofToPortal(
+      'tenant-1',
+      'proof-1',
+      'user-1',
+      'business_admin',
+      'full',
+    );
+
+    expect(result.ok).toBe(true);
+    expect(mockUpsertDocument).toHaveBeenCalled();
+  });
 });
 
 describe('VisitProofReviewPanel wiring', () => {
   it('always embeds preview panel with snapshot fallback', () => {
     const panel = readSrc('src/components/assist/VisitProofReviewPanel.tsx');
-    expect(panel).toContain('VisitProofPreviewPanel');
+    expect(panel).toContain('VisitProofPdfPreviewPanel');
     expect(panel).toContain('buildVisitProofPreviewFromProof');
     expect(panel).toContain('snapshotPreview');
     expect(panel).not.toMatch(/\{preview \?\s*\(\s*\n?\s*<VisitProofPreviewPanel/);

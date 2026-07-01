@@ -58,6 +58,8 @@ function sampleProof(overrides: Partial<AssistVisitProofRow> = {}): AssistVisitP
 const mockFetchProof = vi.fn();
 const mockUpdateProof = vi.fn();
 const mockGeneratePdf = vi.fn();
+const mockUpsertDocument = vi.fn();
+const mockRevokeDocument = vi.fn();
 
 vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({
   fetchVisitProofById: (...args: unknown[]) => mockFetchProof(...args),
@@ -66,6 +68,15 @@ vi.mock('@/lib/assist/assistVisitProofPersistenceService', () => ({
 
 vi.mock('@/lib/assist/assistProofPdfService', () => ({
   generateAssistProofPdf: (...args: unknown[]) => mockGeneratePdf(...args),
+}));
+
+vi.mock('@/lib/assist/assistProofPortalDocumentService', () => ({
+  upsertAssistProofClientPortalDocument: (...args: unknown[]) => mockUpsertDocument(...args),
+  revokeAssistProofClientPortalDocument: (...args: unknown[]) => mockRevokeDocument(...args),
+}));
+
+vi.mock('@/lib/assist/visitProofSnapshotPreviewService', () => ({
+  enrichVisitProofForPreview: vi.fn(async () => ({ ok: true, data: {} })),
 }));
 
 const mockFromUnknown = vi.fn();
@@ -154,6 +165,20 @@ function installProofStore(store: ProofStore) {
   );
 }
 
+function chainMock(resolver: () => unknown) {
+  const chain: Record<string, unknown> = {};
+  const handler: ProxyHandler<object> = {
+    get(_target, prop) {
+      if (prop === 'then') {
+        return (resolve: (value: unknown) => void) => resolve(resolver());
+      }
+      if (typeof prop === 'symbol') return undefined;
+      return (..._args: unknown[]) => new Proxy(chain, handler);
+    },
+  };
+  return new Proxy(chain, handler);
+}
+
 function installPortalMocks(options: {
   tenantId: string;
   clientId: string;
@@ -173,57 +198,59 @@ function installPortalMocks(options: {
     if (table === 'assist_visits') {
       return {
         select: (columns?: string) => ({
-          eq: () => {
-            if (columns?.includes('scheduled_start')) {
-              return {
-                in: () =>
-                  Promise.resolve({
-                    data: options.visitIds.map((id) => ({
-                      id,
-                      title: 'Hausbesuch',
-                      scheduled_start: '2026-06-20T09:00:00.000Z',
-                      scheduled_end: '2026-06-20T10:00:00.000Z',
-                    })),
+          eq: () => ({
+            eq: () => {
+              if (columns?.includes('client_id')) {
+                return {
+                  maybeSingle: async () => ({
+                    data: {
+                      id: options.visitIds[0] ?? 'visit-1',
+                      client_id: options.clientId,
+                      service_key: null,
+                      service_name: 'Grundpflege',
+                      planned_start_at: null,
+                      planned_end_at: null,
+                      duration_minutes: null,
+                      budget_amount_cents: null,
+                    },
                     error: null,
                   }),
-              };
-            }
+                };
+              }
 
-            return {
-              eq: () =>
-                Promise.resolve({
-                  data: options.visitIds.map((id) => ({ id })),
-                  error: null,
-                }),
-            };
-          },
+              return Promise.resolve({
+                data: options.visitIds.map((id) => ({ id })),
+                error: null,
+              });
+            },
+            in: async () => ({
+              data: options.visitIds.map((id) => ({
+                id,
+                title: 'Hausbesuch',
+                scheduled_start: '2026-06-20T09:00:00.000Z',
+                scheduled_end: '2026-06-20T10:00:00.000Z',
+              })),
+              error: null,
+            }),
+          }),
         }),
       };
     }
 
     if (table === 'assist_visit_proofs') {
-      return {
-        select: () => ({
-          eq: () => ({
-            eq: () => ({
-              eq: () => ({
-                in: () => ({
-                  order: () =>
-                    Promise.resolve({
-                      data: options.proofs.filter(
-                        (proof) =>
-                          proof.portal_visible &&
-                          proof.portal_release_status === 'released' &&
-                          options.visitIds.includes(proof.visit_id),
-                      ),
-                      error: null,
-                    }),
-                }),
-              }),
-            }),
-          }),
-        }),
-      };
+      return chainMock(() => ({
+        data: options.proofs.filter(
+          (proof) =>
+            proof.portal_visible &&
+            ['released', 'pending_client_signature'].includes(proof.portal_release_status) &&
+            options.visitIds.includes(proof.visit_id),
+        ),
+        error: null,
+      }));
+    }
+
+    if (table === 'client_documents') {
+      return chainMock(() => ({ data: null, error: null }));
     }
 
     return { select: () => ({ eq: () => Promise.resolve({ data: [], error: null }) }) };
@@ -237,6 +264,40 @@ describe('assist proof approval → portal release flow', () => {
     vi.clearAllMocks();
     store = new Map([['proof-1', sampleProof()]]);
     installProofStore(store);
+    mockUpsertDocument.mockResolvedValue({
+      ok: true,
+      data: { clientDocumentId: 'proof-1' },
+    });
+    mockRevokeDocument.mockResolvedValue({ ok: true, data: undefined });
+    mockFromUnknown.mockImplementation((_client: unknown, table: string) => {
+      if (table === 'assist_visits') {
+        return {
+          select: () => ({
+            eq: () => ({
+              eq: () => ({
+                maybeSingle: async () => ({
+                  data: {
+                    id: 'visit-1',
+                    client_id: 'client-1',
+                    service_key: null,
+                    service_name: 'Grundpflege',
+                    planned_start_at: null,
+                    planned_end_at: null,
+                    duration_minutes: null,
+                    budget_amount_cents: null,
+                  },
+                  error: null,
+                }),
+              }),
+            }),
+          }),
+        };
+      }
+      if (table === 'client_documents') {
+        return chainMock(() => ({ data: null, error: null }));
+      }
+      return { select: () => ({ eq: () => Promise.resolve({ data: [], error: null }) }) };
+    });
     mockGeneratePdf.mockResolvedValue({
       ok: true,
       data: sampleProof({
@@ -474,7 +535,7 @@ describe('assist nachweise review wiring', () => {
   it('portal service queries released-only proofs', () => {
     const service = readSrc('src/lib/portal/assist/portalAssistVisitProofService.ts');
     expect(service).toContain(".eq('portal_visible', true)");
-    expect(service).toContain(".eq('portal_release_status', 'released')");
+    expect(service).toContain(".in('portal_release_status', ['released', 'pending_client_signature'])");
     expect(service).toContain('stripPortalBlockedKeysFromSnapshot');
   });
 });

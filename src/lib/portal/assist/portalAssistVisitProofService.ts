@@ -10,6 +10,7 @@ import type {
 } from '@/types/assistExecutionPersistence';
 import type { PortalDocumentDetail } from '@/types/portal/documents';
 import { buildAssistProofPdfPayload, stripPortalBlockedKeysFromSnapshot } from '@/lib/assist/assistProofPdfPayload';
+import { fetchVisitProofById } from '@/lib/assist/assistVisitProofPersistenceService';
 import { ASSIST_EXECUTION_STORAGE_BUCKET } from '@/lib/assist/assistStoragePaths';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';

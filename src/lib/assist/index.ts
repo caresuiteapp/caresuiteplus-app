@@ -96,7 +96,14 @@ export {
 export {
   generateAssistProofPdf,
   downloadAssistProofPdfInBrowser,
+  resolveAssistProofPdfPreviewUrl,
+  renderAssistProofPdfBytes,
+  renderHtmlToPdfBytes,
 } from './assistProofPdfService';
+export {
+  upsertAssistProofClientPortalDocument,
+  revokeAssistProofClientPortalDocument,
+} from './assistProofPortalDocumentService';
 export {
   fetchActiveTrackingSession,
   fetchLatestLocationPointForVisit,

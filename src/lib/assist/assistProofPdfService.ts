@@ -11,6 +11,7 @@ import {
   buildAssistProofPdfPayload,
   type AssistProofPdfPayload,
 } from '@/lib/assist/assistProofPdfPayload';
+import type { VisitProofSnapshotEnrichment } from '@/lib/assist/visitProofSnapshotPreviewService';
 import {
   fetchVisitProofById,
   updateVisitProofRow,
@@ -25,6 +26,12 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 export type { AssistProofPdfPayload };
 export { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
+
+export type AssistProofPdfPreviewResult = {
+  url: string;
+  fileName: string;
+  kind: 'storage' | 'blob';
+};
 
 type PdfRenderer = {
   html2canvas: typeof import('html2canvas').default;
@@ -47,7 +54,7 @@ async function loadPdfRenderer(): Promise<PdfRenderer> {
   return pdfRendererPromise;
 }
 
-async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
+export async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
   if (Platform.OS !== 'web' || typeof document === 'undefined') {
     throw new Error('PDF-Erzeugung ist nur im Web-Browser verfügbar.');
   }
@@ -97,10 +104,62 @@ async function renderHtmlToPdfBytes(html: string): Promise<Uint8Array> {
   }
 }
 
+export async function renderAssistProofPdfBytes(
+  proof: AssistVisitProofRow,
+  enrichment?: VisitProofSnapshotEnrichment,
+): Promise<Uint8Array> {
+  const payload = buildAssistProofPdfPayload(proof, enrichment);
+  return renderHtmlToPdfBytes(payload.html);
+}
+
+/** Signed storage URL or in-browser blob URL for PDF preview in Nachweis-Prüfung. */
+export async function resolveAssistProofPdfPreviewUrl(
+  tenantId: string,
+  proof: AssistVisitProofRow,
+  enrichment?: VisitProofSnapshotEnrichment,
+): Promise<ServiceResult<AssistProofPdfPreviewResult>> {
+  const payload = buildAssistProofPdfPayload(proof, enrichment);
+
+  if (proof.pdfStoragePath?.trim()) {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+    const { data, error } = await supabase.storage
+      .from(ASSIST_EXECUTION_STORAGE_BUCKET)
+      .createSignedUrl(proof.pdfStoragePath, 3600);
+
+    if (error || !data?.signedUrl) {
+      return { ok: false, error: error?.message ?? 'PDF-Vorschau konnte nicht geladen werden.' };
+    }
+
+    return {
+      ok: true,
+      data: { url: data.signedUrl, fileName: payload.fileName, kind: 'storage' },
+    };
+  }
+
+  if (Platform.OS !== 'web' || typeof URL === 'undefined') {
+    return { ok: false, error: 'PDF-Vorschau ist nur im Web-Browser verfügbar.' };
+  }
+
+  try {
+    const pdfBytes = await renderAssistProofPdfBytes(proof, enrichment);
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    return { ok: true, data: { url, fileName: payload.fileName, kind: 'blob' } };
+  } catch (error) {
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'PDF-Vorschau konnte nicht erzeugt werden.',
+    };
+  }
+}
+
 /** Generate PDF, upload to Storage, persist pdf_storage_path + pdf_hash. */
 export async function generateAssistProofPdf(
   tenantId: string,
   proofId: string,
+  enrichment?: VisitProofSnapshotEnrichment,
 ): Promise<ServiceResult<AssistVisitProofRow>> {
   const loaded = await fetchVisitProofById(tenantId, proofId);
   if (!loaded.ok) return loaded;
@@ -114,11 +173,9 @@ export async function generateAssistProofPdf(
     };
   }
 
-  const payload = buildAssistProofPdfPayload(proof);
-
   let pdfBytes: Uint8Array;
   try {
-    pdfBytes = await renderHtmlToPdfBytes(payload.html);
+    pdfBytes = await renderAssistProofPdfBytes(proof, enrichment);
   } catch (error) {
     return {
       ok: false,

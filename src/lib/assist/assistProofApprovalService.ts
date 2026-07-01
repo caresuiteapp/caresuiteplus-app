@@ -6,7 +6,12 @@
 import type { RoleKey, ServiceResult } from '@/types';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import { generateAssistProofPdf } from '@/lib/assist/assistProofPdfService';
+import {
+  revokeAssistProofClientPortalDocument,
+  upsertAssistProofClientPortalDocument,
+} from '@/lib/assist/assistProofPortalDocumentService';
 import { consumeOnProofApproval } from '@/lib/assist/clientBudgetTransactionService';
+import { enrichVisitProofForPreview } from '@/lib/assist/visitProofSnapshotPreviewService';
 import { fetchVisitForBilling } from '@/lib/billing/clientProofBillingMapper';
 import {
   fetchVisitProofById,
@@ -151,8 +156,11 @@ async function releaseApprovedProofToPortal(
   }
 
   let proof = loaded.data;
+  const enrichment = await enrichVisitProofForPreview(tenantId, proof);
+  const enrichmentData = enrichment.ok ? enrichment.data : undefined;
+
   if (!proof.pdfStoragePath) {
-    const pdfResult = await generateAssistProofPdf(tenantId, proofId);
+    const pdfResult = await generateAssistProofPdf(tenantId, proofId, enrichmentData);
     if (!pdfResult.ok) return pdfResult;
     proof = pdfResult.data;
   }
@@ -166,7 +174,18 @@ async function releaseApprovedProofToPortal(
       releaseMode === 'restricted' ? 'pending_client_signature' : 'released',
     updated_by: actorProfileId ?? null,
   });
-  if (result.ok) invalidatePortalProofCache();
+
+  if (result.ok) {
+    const documentSync = await upsertAssistProofClientPortalDocument(tenantId, result.data, {
+      actorProfileId,
+      signatureRequired: releaseMode === 'restricted',
+    });
+    if (!documentSync.ok) {
+      return { ok: false, error: documentSync.error ?? 'Portal-Dokument konnte nicht angelegt werden.' };
+    }
+    invalidatePortalProofCache();
+  }
+
   return result;
 }
 
@@ -236,6 +255,9 @@ export async function revokeAssistProofPortalRelease(
     portal_release_status: 'revoked',
     updated_by: actorProfileId ?? null,
   });
-  if (result.ok) invalidatePortalProofCache();
+  if (result.ok) {
+    await revokeAssistProofClientPortalDocument(tenantId, proofId);
+    invalidatePortalProofCache();
+  }
   return result;
 }
