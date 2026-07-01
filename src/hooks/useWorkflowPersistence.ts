@@ -7,6 +7,7 @@ import {
   writeVisitWorkflowSnapshot,
   type VisitWorkflowUiState,
 } from '@/lib/portal/visitWorkflowPersistence';
+import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
 
 export type { VisitWorkflowSnapshot, VisitWorkflowUiState } from '@/lib/portal/visitWorkflowPersistence';
 export {
@@ -66,12 +67,16 @@ export function useWorkflowPersistence(visitId: string | undefined, options: Opt
   }, []);
 
   useEffect(() => {
-    if (!enabled || !visitId || hydratedRef.current) return;
+    if (!enabled || !visitId || hydratedRef.current || !isVisitExecutionRoute(pathname)) return;
     const snapshot = readVisitWorkflowSnapshot(visitId);
-    if (snapshot?.step && !urlStep) {
+    if (
+      snapshot?.step &&
+      !urlStep &&
+      visitExecutionRouteMatchesSnapshot(pathname, snapshot.route)
+    ) {
       router.setParams({ step: snapshot.step } as Record<string, string | undefined>);
     }
-  }, [enabled, visitId, urlStep, router]);
+  }, [enabled, visitId, urlStep, pathname, router]);
 
   return {
     urlStep: urlStep ?? null,

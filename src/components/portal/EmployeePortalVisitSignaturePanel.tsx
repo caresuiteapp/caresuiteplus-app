@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
@@ -11,10 +11,8 @@ type EmployeePortalVisitSignaturePanelProps = {
   disabled?: boolean;
   loading?: boolean;
   capturedPreview?: string | null;
-  /** Increment to request opening the signature modal (e.g. after documentation save). */
-  openRequest?: number;
-  /** Restore modal open state after rotation / session restore. */
-  initialModalOpen?: boolean;
+  /** Increment to open the signature capture modal (explicit user/workflow action only). */
+  openCaptureRequest?: number;
   /** Visit id for landscape dismiss scope and workflow persistence. */
   visitId?: string;
   onModalOpenChange?: (open: boolean) => void;
@@ -26,28 +24,22 @@ export function EmployeePortalVisitSignaturePanel({
   disabled = false,
   loading = false,
   capturedPreview,
-  openRequest = 0,
-  initialModalOpen = false,
+  openCaptureRequest = 0,
   visitId,
   onModalOpenChange,
   onCapture,
 }: EmployeePortalVisitSignaturePanelProps) {
-  const [modalVisible, setModalVisible] = useState(initialModalOpen);
+  const [modalVisible, setModalVisible] = useState(false);
   const [signerName, setSignerName] = useState(clientName);
   const [preview, setPreview] = useState<string | null>(capturedPreview ?? null);
+  const lastCaptureRequest = useRef(0);
 
   useEffect(() => {
-    if (initialModalOpen && !disabled && !preview) {
-      setModalVisible(true);
-    }
-  }, [initialModalOpen, disabled, preview]);
-
-  useEffect(() => {
-    if (openRequest > 0 && !disabled && !preview) {
-      setModalVisible(true);
-      onModalOpenChange?.(true);
-    }
-  }, [openRequest, disabled, preview, onModalOpenChange]);
+    if (openCaptureRequest <= lastCaptureRequest.current || disabled || preview) return;
+    lastCaptureRequest.current = openCaptureRequest;
+    setModalVisible(true);
+    onModalOpenChange?.(true);
+  }, [openCaptureRequest, disabled, preview, onModalOpenChange]);
 
   const handleModalVisibility = (open: boolean) => {
     setModalVisible(open);

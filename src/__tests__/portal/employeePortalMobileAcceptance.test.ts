@@ -96,6 +96,7 @@ describe('employee portal mobile acceptance fixes', () => {
     const prompt = readSrc('src/components/layout/LandscapePrompt.tsx');
     expect(modal).toContain('FullscreenOverlay');
     expect(modal).toContain('if (!visible) return null');
+    expect(modal).toContain('visible={visible}');
     expect(modal).toContain('isPhone || isTablet');
     expect(modal).toContain('fillAvailable={fullscreen}');
     expect(modal).toContain('OrientationGate');
@@ -110,7 +111,7 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(overlay).toContain('data-caresuite-fullscreen-overlay');
     expect(overlay).toContain('100dvh');
     expect(overlay).toContain('presentationStyle="fullScreen"');
-    expect(overlay).toContain('FULLSCREEN_OVERLAY_Z_INDEX');
+    expect(overlay).toContain('cleanupOrphanedFullscreenOverlays');
     expect(prompt).toContain('Trotzdem fortfahren');
     expect(prompt).not.toContain('position: \'absolute\'');
     expect(orientation).toContain("lock('landscape')");
@@ -124,7 +125,9 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(panel).toContain('CareSignatureModal');
     expect(panel).toContain('useFocusEffect');
     expect(panel).toContain('modalVisible ?');
-    expect(panel).toContain('visitId');
+    expect(panel).toContain('openCaptureRequest');
+    expect(panel).not.toContain('initialModalOpen');
+    expect(panel).toContain('lastCaptureRequest');
   });
 
   it('visit execution screen uses workflow persistence without global landscape gate', () => {
@@ -134,6 +137,11 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(screen).not.toContain('OrientationGate');
     expect(screen).not.toContain('screenKey="visitExecution"');
     expect(screen).toContain('useWorkflowPersistence');
+    expect(screen).toContain('openSignatureCapture');
+    expect(screen).toContain('scrollToSignatureSection');
+    expect(screen).not.toContain('setSignatureModalOpen');
+    expect(screen).toContain('signatureModalOpen: false');
+    expect(screen).toContain('isVisitExecutionRoute');
     expect(gate).toContain('LandscapePrompt');
     expect(gate).not.toContain('LandscapeRequiredOverlay');
     expect(prompt).not.toContain('lock-unavailable');

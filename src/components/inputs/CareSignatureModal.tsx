@@ -165,7 +165,7 @@ export function CareSignatureModal({
     if (!visible) return null;
 
     return (
-      <FullscreenOverlay visible onRequestClose={onClose} testID="signature-fullscreen-overlay">
+      <FullscreenOverlay visible={visible} onRequestClose={onClose} testID="signature-fullscreen-overlay">
         <OrientationGate
           screenKey="signature"
           active={visible}

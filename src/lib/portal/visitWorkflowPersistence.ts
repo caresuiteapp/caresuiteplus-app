@@ -57,11 +57,17 @@ export function mergeVisitWorkflowSnapshot(
   partial: VisitWorkflowUiState,
 ): VisitWorkflowSnapshot {
   const existing = readVisitWorkflowSnapshot(visitId);
-  return {
+  const merged: VisitWorkflowSnapshot = {
     visitId,
     route,
     updatedAt: Date.now(),
     ...existing,
     ...partial,
   };
+  if ('signatureModalOpen' in partial) {
+    merged.signatureModalOpen = partial.signatureModalOpen ?? false;
+  } else {
+    merged.signatureModalOpen = false;
+  }
+  return merged;
 }

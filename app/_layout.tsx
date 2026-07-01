@@ -1,12 +1,14 @@
 import 'react-native-reanimated';
 import { Stack, usePathname } from 'expo-router';
 import { StatusBar } from 'expo-status-bar';
+import { useEffect } from 'react';
 import { View, StyleSheet, Platform, type ViewStyle } from 'react-native';
 import { DarkTheme, DefaultTheme, ThemeProvider } from '@react-navigation/native';
 import { applyInvisibleScrollIndicators } from '@/design/scroll/applyInvisibleScrollIndicators';
 import { ThemeModeProvider, useThemeMode } from '@/design/ThemeModeProvider';
 import { WebFontScaleProvider } from '@/design/web/WebFontScaleProvider';
 import { GlobalAnimatedBackground } from '@/components/ui/effects';
+import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
 import { isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import { GlobalScreensaver, ScreensaverSettingsProvider } from '@/components/screensaver';
 import { GlobalAiProvider } from '@/ai/GlobalAiProvider';
@@ -31,6 +33,14 @@ function RootShell() {
   const pathname = usePathname();
   const perf = useDevicePerformance();
   const hostsGlobalBackground = !isPortalRoutePath(pathname);
+
+  useEffect(() => {
+    cleanupOrphanedFullscreenOverlays();
+  }, []);
+
+  useEffect(() => {
+    cleanupOrphanedFullscreenOverlays();
+  }, [pathname]);
   const backgroundAnimated =
     hostsGlobalBackground && shouldUseHeavyEffects(perf) && !perf.isMobile;
   const isDark = mode === 'dark';

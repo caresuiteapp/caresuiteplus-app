@@ -1,8 +1,10 @@
 import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Modal, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
+import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
 
 export const FULLSCREEN_OVERLAY_Z_INDEX = 9999;
+export { cleanupOrphanedFullscreenOverlays };
 
 type Props = {
   visible: boolean;
@@ -74,10 +76,18 @@ export function FullscreenOverlay({
   const [portalHost, setPortalHost] = useState<HTMLElement | null>(null);
 
   useLayoutEffect(() => {
-    if (!visible || Platform.OS !== 'web' || typeof document === 'undefined') {
+    if (Platform.OS !== 'web' || typeof document === 'undefined') {
       setPortalHost(null);
       return;
     }
+
+    if (!visible) {
+      cleanupOrphanedFullscreenOverlays();
+      setPortalHost(null);
+      return;
+    }
+
+    cleanupOrphanedFullscreenOverlays();
 
     const host = document.createElement('div');
     host.setAttribute('data-caresuite-fullscreen-overlay', testID);
@@ -87,6 +97,7 @@ export function FullscreenOverlay({
     return () => {
       host.remove();
       setPortalHost((current) => (current === host ? null : current));
+      cleanupOrphanedFullscreenOverlays();
     };
   }, [visible, testID]);
 

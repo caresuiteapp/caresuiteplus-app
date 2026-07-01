@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { useLocalSearchParams, useRouter } from 'expo-router';
+import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import {
@@ -27,6 +27,7 @@ import {
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkflowPersistence } from '@/hooks/useWorkflowPersistence';
+import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import {
   ASSIST_WORKFLOW_ACTION_LABELS,
@@ -62,6 +63,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const { id: rawId, step: rawStep } = useLocalSearchParams<{ id: string; step?: string }>();
   const id = Array.isArray(rawId) ? rawId[0] : rawId;
   const urlStep = Array.isArray(rawStep) ? rawStep[0] : rawStep;
+  const pathname = usePathname();
   const router = useRouter();
   const { can, check, roleLabel } = usePermissions();
   const canExecute = can('assist.execution.manage');
@@ -123,34 +125,34 @@ export function EmployeePortalVisitExecutionScreen() {
   const [awaitingSignature, setAwaitingSignature] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
   const signatureSectionY = useRef(0);
-  const [signaturePanelOpenRequest, setSignaturePanelOpenRequest] = useState(0);
-  const [signatureModalOpen, setSignatureModalOpen] = useState(false);
+  const [signatureCaptureRequest, setSignatureCaptureRequest] = useState(0);
   const restoredRef = useRef(false);
 
   useEffect(() => {
-    if (!id || !visit || restoredRef.current) return;
+    if (!id || !visit || restoredRef.current || !isVisitExecutionRoute(pathname)) return;
     const snapshot = workflowPersistence.restore();
     restoredRef.current = true;
     workflowPersistence.markHydrated();
 
-    if (snapshot?.awaitingSignature) setAwaitingSignature(true);
-    if (snapshot?.showNoShowForm) setShowNoShowForm(true);
-    if (snapshot?.signatureModalOpen) {
-      setSignatureModalOpen(true);
-      setSignaturePanelOpenRequest((n) => n + 1);
-    }
+    const snapshotMatchesRoute = visitExecutionRouteMatchesSnapshot(pathname, snapshot?.route);
 
-    const step = urlStep ?? snapshot?.step;
+    if (snapshotMatchesRoute && snapshot?.awaitingSignature) setAwaitingSignature(true);
+    if (snapshotMatchesRoute && snapshot?.showNoShowForm) setShowNoShowForm(true);
+
+    const step = urlStep ?? (snapshotMatchesRoute ? snapshot?.step : null);
     if (step === 'signature') {
       setAwaitingSignature(true);
       setTimeout(() => {
         scrollRef.current?.scrollTo({ y: Math.max(signatureSectionY.current - 16, 0), animated: false });
-        setSignaturePanelOpenRequest((n) => n + 1);
       }, 100);
     } else if (step) {
       workflowPersistence.setStep(step);
     }
-  }, [id, visit, urlStep, workflowPersistence]);
+
+    if (snapshot?.signatureModalOpen) {
+      workflowPersistence.persist({ signatureModalOpen: false });
+    }
+  }, [id, visit, urlStep, pathname, workflowPersistence]);
 
   const primaryAction = primaryAllowedAction(allowedActions, effectiveStatus);
   const primaryLabel = primaryAction ? ASSIST_WORKFLOW_ACTION_LABELS[primaryAction] : undefined;
@@ -199,18 +201,22 @@ export function EmployeePortalVisitExecutionScreen() {
     (effectiveStatus === 'unterschrift_offen' ||
       (!visit.requiresSignature && effectiveStatus === 'dokumentation_offen'));
 
-  const scrollToSignature = useCallback(() => {
+  const scrollToSignatureSection = useCallback(() => {
     scrollRef.current?.scrollTo({ y: Math.max(signatureSectionY.current - 16, 0), animated: true });
-    setSignaturePanelOpenRequest((n) => n + 1);
     workflowPersistence.setStep('signature');
   }, [workflowPersistence]);
+
+  const openSignatureCapture = useCallback(() => {
+    scrollToSignatureSection();
+    setSignatureCaptureRequest((n) => n + 1);
+  }, [scrollToSignatureSection]);
 
   useEffect(() => {
     if (!id || !visit) return;
     workflowPersistence.persist({
       step: urlStep ?? null,
       awaitingSignature,
-      signatureModalOpen,
+      signatureModalOpen: false,
       showNoShowForm,
       documentationSubmitted,
       signatureCaptured,
@@ -220,7 +226,6 @@ export function EmployeePortalVisitExecutionScreen() {
     visit,
     urlStep,
     awaitingSignature,
-    signatureModalOpen,
     showNoShowForm,
     documentationSubmitted,
     signatureCaptured,
@@ -313,7 +318,7 @@ export function EmployeePortalVisitExecutionScreen() {
         return;
       }
       if (action === 'capture_signature') {
-        scrollToSignature();
+        openSignatureCapture();
         return;
       }
       if (action === 'finalize_visit') {
@@ -322,7 +327,7 @@ export function EmployeePortalVisitExecutionScreen() {
         else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
       }
     },
-    [handleStartDrive, handleArrived, startService, endPause, endService, scrollToSignature, finalizeVisit],
+    [handleStartDrive, handleArrived, startService, endPause, endService, openSignatureCapture, finalizeVisit],
   );
 
   const handlePrimary = useCallback(async () => {
@@ -587,7 +592,7 @@ export function EmployeePortalVisitExecutionScreen() {
                 );
                 if (needsSignature) {
                   setAwaitingSignature(true);
-                  setTimeout(() => scrollToSignature(), 150);
+                  setTimeout(() => scrollToSignatureSection(), 150);
                 }
               } else {
                 setLocalError(r.error ?? 'Dokumentation fehlgeschlagen.');
@@ -610,18 +615,15 @@ export function EmployeePortalVisitExecutionScreen() {
             <EmployeePortalVisitSignaturePanel
               clientName={visit.clientName}
               loading={actionLoading}
-              openRequest={signaturePanelOpenRequest}
-              initialModalOpen={signatureModalOpen}
+              openCaptureRequest={signatureCaptureRequest}
               visitId={id}
               onModalOpenChange={(open) => {
-                setSignatureModalOpen(open);
                 if (open) workflowPersistence.setStep('signature');
               }}
               onCapture={async (sig) => {
                 const r = await saveSignature(sig);
                 if (r.ok) {
                   setAwaitingSignature(false);
-                  setSignatureModalOpen(false);
                   workflowPersistence.setStep(null);
                   const proofOk = r.data && 'proofGenerated' in r.data && r.data.proofGenerated;
                   setLocalSuccess(
