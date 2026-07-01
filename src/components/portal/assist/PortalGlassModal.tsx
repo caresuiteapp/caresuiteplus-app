@@ -14,6 +14,7 @@ type PortalGlassModalProps = {
   primaryLabel?: string;
   onPrimary?: () => void;
   primaryLoading?: boolean;
+  primaryDisabled?: boolean;
 };
 
 /** Glass overlay modal — opaque shell via PlatformModal + GlassSurface elevated. */
@@ -25,6 +26,7 @@ export function PortalGlassModal({
   primaryLabel,
   onPrimary,
   primaryLoading,
+  primaryDisabled,
 }: PortalGlassModalProps) {
   const formPanelStyle = useAuroraGlassModalStyle({ viewContext: 'form' });
 
@@ -51,6 +53,7 @@ export function PortalGlassModal({
               title={primaryLabel}
               onPress={onPrimary}
               loading={primaryLoading}
+              disabled={primaryDisabled}
             />
           ) : null}
         </View>

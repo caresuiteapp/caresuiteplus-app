@@ -70,5 +70,7 @@ describe('ClientPortalOverviewScreen adaptive engine wiring', () => {
     const modal = readSrc('src/components/portal/portalnewchatmodal.tsx');
     expect(modal).toContain('usePortalActor');
     expect(modal).toContain('isLinkedReady');
+    expect(modal).toContain('readPortalNewChatDraft');
+    expect(modal).toContain('writePortalNewChatDraft');
   });
 });

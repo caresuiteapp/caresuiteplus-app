@@ -1,5 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PremiumInput } from '@/components/ui';
@@ -9,6 +9,11 @@ import {
   resolvePortalActor,
   type PortalOfficeAudience,
 } from '@/lib/office/portalofficemessageservice';
+import {
+  clearPortalNewChatDraft,
+  readPortalNewChatDraft,
+  writePortalNewChatDraft,
+} from '@/lib/portal/portalNewChatDraftStore';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useAuth } from '@/lib/auth/context';
@@ -36,13 +41,23 @@ export function PortalNewChatModal({
   const { typography } = useLegacyTheme();
   const { profile, portalSession } = useAuth();
   const tenantId = useServiceTenantId();
-  const { clientId, employeeId, actorId, roleKey, displayName, isLinkedReady } = usePortalActor();
+  const {
+    clientId,
+    employeeId,
+    actorId,
+    roleKey,
+    displayName,
+    isLinkedReady,
+    isResolvingClientLink,
+  } = usePortalActor();
+  const draftActorId = actorId ?? portalSession?.accountId ?? null;
   const [subject, setSubject] = useState('');
   const [initialMessage, setInitialMessage] = useState('');
   const [categoryId, setCategoryId] = useState<string | null>(null);
   const [categories, setCategories] = useState<OfficeMessageCategory[]>([]);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const canSend = isLinkedReady && Boolean(categoryId) && !submitting;
 
   const styles = useMemo(
     () =>
@@ -65,16 +80,35 @@ export function PortalNewChatModal({
     [c, typography],
   );
 
-  const reset = useCallback(() => {
-    setSubject('');
-    setInitialMessage('');
-    setCategoryId(null);
-    setError(null);
-  }, []);
+  useEffect(() => {
+    if (!visible || !tenantId) return;
+
+    const savedDraft = readPortalNewChatDraft(tenantId, audience, draftActorId);
+    if (savedDraft) {
+      setSubject(savedDraft.subject);
+      setInitialMessage(savedDraft.initialMessage);
+      setCategoryId(savedDraft.categoryId);
+      setError(null);
+    } else {
+      setSubject('');
+      setInitialMessage('');
+      setCategoryId(null);
+      setError(null);
+    }
+  }, [visible, tenantId, audience, draftActorId]);
+
+  useEffect(() => {
+    if (!visible || !tenantId) return;
+    if (!subject.trim() && !initialMessage.trim() && !categoryId) return;
+    writePortalNewChatDraft(tenantId, audience, draftActorId, {
+      subject,
+      initialMessage,
+      categoryId,
+    });
+  }, [visible, tenantId, audience, draftActorId, subject, initialMessage, categoryId]);
 
   useEffect(() => {
     if (!visible || !tenantId || !isLinkedReady) return;
-    reset();
     void (async () => {
       const actorResult = resolvePortalActor(
         profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
@@ -87,7 +121,12 @@ export function PortalNewChatModal({
       const result = await fetchPortalOfficeCategories(tenantId, actorResult.data);
       if (result.ok) {
         setCategories(result.data);
-        setCategoryId(result.data[0]?.id ?? null);
+        setCategoryId((current) => {
+          if (current && result.data.some((category) => category.id === current)) {
+            return current;
+          }
+          return result.data[0]?.id ?? null;
+        });
       }
     })();
   }, [
@@ -96,7 +135,6 @@ export function PortalNewChatModal({
     isLinkedReady,
     profile,
     portalSession,
-    reset,
     roleKey,
     actorId,
     displayName,
@@ -106,6 +144,14 @@ export function PortalNewChatModal({
 
   const handleCreate = async () => {
     if (!tenantId || !categoryId) return;
+    if (!isLinkedReady) {
+      setError(
+        isResolvingClientLink
+          ? 'Klient:innen-Konto wird geladen… bitte kurz warten und erneut senden.'
+          : 'Kein Klient:innen-Konto verknüpft. Bitte wenden Sie sich an die Verwaltung.',
+      );
+      return;
+    }
     if (!subject.trim()) {
       setError('Bitte einen Betreff eingeben.');
       return;
@@ -136,6 +182,7 @@ export function PortalNewChatModal({
       setError(result.error);
       return;
     }
+    clearPortalNewChatDraft(tenantId, audience, draftActorId);
     onCreated(result.data.id);
     onClose();
   };
@@ -186,6 +233,7 @@ export function PortalNewChatModal({
         primaryLabel="Nachricht senden"
         onPrimary={handleCreate}
         primaryLoading={submitting}
+        primaryDisabled={!canSend}
       >
         {formBody}
       </PortalGlassModal>
@@ -199,7 +247,12 @@ export function PortalNewChatModal({
       onClose={onClose}
       footerActions={[
         { title: 'Abbrechen', onPress: onClose, variant: 'glass' },
-        { title: 'Nachricht senden', onPress: handleCreate, loading: submitting },
+        {
+          title: 'Nachricht senden',
+          onPress: handleCreate,
+          loading: submitting,
+          disabled: !canSend,
+        },
       ]}
       maxWidth={560}
     >
