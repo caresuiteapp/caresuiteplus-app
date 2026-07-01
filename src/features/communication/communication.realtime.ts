@@ -1,5 +1,6 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isDemoMode } from '@/lib/supabase/config';
+import { createVisibilityAwareInterval } from '@/lib/polling/useVisibilityAwarePolling';
 import { COMMUNICATION_REALTIME_CHANNELS } from './communication.constants';
 
 export type RealtimeEventType =
@@ -22,7 +23,7 @@ export type RealtimeEvent = {
 type Subscription = {
   channel: string;
   handler: (event: RealtimeEvent) => void;
-  timer: ReturnType<typeof setInterval> | null;
+  pollCleanup: (() => void) | null;
   supabaseChannel?: { unsubscribe: () => void };
 };
 
@@ -37,10 +38,12 @@ export function subscribeToThread(
   const key = `thread:${threadId}`;
 
   if (isDemoMode()) {
-    const timer = setInterval(() => {
-      handler({ type: 'thread_updated', threadId, payload: { demo: true } });
-    }, 30_000);
-    subscriptions.set(key, { channel, handler, timer });
+    const sub: Subscription = { channel, handler, pollCleanup: null };
+    sub.pollCleanup = createVisibilityAwareInterval(
+      () => handler({ type: 'thread_updated', threadId, payload: { demo: true } }),
+      30_000,
+    );
+    subscriptions.set(key, sub);
     return () => unsubscribeFromThread(threadId);
   }
 
@@ -65,13 +68,13 @@ export function subscribeToThread(
     subscriptions.set(key, {
       channel,
       handler,
-      timer: null,
+      pollCleanup: null,
       supabaseChannel: { unsubscribe: () => supabase.removeChannel(rtChannel) },
     });
     return () => unsubscribeFromThread(threadId);
   }
 
-  subscriptions.set(key, { channel, handler, timer: null });
+  subscriptions.set(key, { channel, handler, pollCleanup: null });
   return () => unsubscribeFromThread(threadId);
 }
 
@@ -83,13 +86,15 @@ export function subscribeToThreadList(
   const key = `list:${tenantId}`;
 
   if (isDemoMode()) {
-    const timer = setInterval(() => {
-      handler({ type: 'thread_updated', payload: { demo: true } });
-    }, 45_000);
-    subscriptions.set(key, { channel, handler, timer });
+    const sub: Subscription = { channel, handler, pollCleanup: null };
+    sub.pollCleanup = createVisibilityAwareInterval(
+      () => handler({ type: 'thread_updated', payload: { demo: true } }),
+      45_000,
+    );
+    subscriptions.set(key, sub);
     return () => {
-      const sub = subscriptions.get(key);
-      if (sub?.timer) clearInterval(sub.timer);
+      const current = subscriptions.get(key);
+      current?.pollCleanup?.();
       subscriptions.delete(key);
     };
   }
@@ -115,7 +120,7 @@ export function subscribeToThreadList(
     subscriptions.set(key, {
       channel,
       handler,
-      timer: null,
+      pollCleanup: null,
       supabaseChannel: { unsubscribe: () => supabase.removeChannel(rtChannel) },
     });
     return () => {
@@ -125,7 +130,7 @@ export function subscribeToThreadList(
     };
   }
 
-  subscriptions.set(key, { channel, handler, timer: null });
+  subscriptions.set(key, { channel, handler, pollCleanup: null });
   return () => {
     subscriptions.delete(key);
   };
@@ -134,7 +139,7 @@ export function subscribeToThreadList(
 export function unsubscribeFromThread(threadId: string): void {
   const key = `thread:${threadId}`;
   const sub = subscriptions.get(key);
-  if (sub?.timer) clearInterval(sub.timer);
+  sub?.pollCleanup?.();
   sub?.supabaseChannel?.unsubscribe();
   subscriptions.delete(key);
 }
@@ -155,7 +160,7 @@ export function getActiveSubscriptionCount(): number {
 
 export function clearAllRealtimeSubscriptions(): void {
   for (const [, sub] of subscriptions) {
-    if (sub.timer) clearInterval(sub.timer);
+    sub.pollCleanup?.();
     sub.supabaseChannel?.unsubscribe();
   }
   subscriptions.clear();

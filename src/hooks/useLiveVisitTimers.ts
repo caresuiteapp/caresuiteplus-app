@@ -2,6 +2,7 @@
  * ASSIST.WORKFLOW.3 — 1s UI tick for visit timers without per-second DB writes.
  */
 import { useEffect, useMemo, useState } from 'react';
+import { AppState, Platform } from 'react-native';
 import {
   calculateVisitTimes,
   type TimeEventLike,
@@ -36,7 +37,17 @@ export function useLiveVisitTimers(
 
   useEffect(() => {
     if (!needsLiveTick) return;
-    const id = setInterval(() => setNow(new Date()), 1000);
+
+    const isHidden = () => {
+      if (Platform.OS === 'web' && typeof document !== 'undefined') {
+        return document.visibilityState === 'hidden';
+      }
+      return AppState.currentState !== 'active';
+    };
+
+    const id = setInterval(() => {
+      if (!isHidden()) setNow(new Date());
+    }, 1000);
     return () => clearInterval(id);
   }, [needsLiveTick]);
 

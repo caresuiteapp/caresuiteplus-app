@@ -5,6 +5,8 @@ import {
 } from '@/lib/portal';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToPortalAssistChanges } from '@/lib/realtime';
+import { useVisibilityAwarePolling } from '@/lib/polling/useVisibilityAwarePolling';
+import { DEFAULT_LIVE_POLL_MS } from './core';
 import { useAsyncQuery, useMutation } from './core';
 
 export function usePortalClientAppointmentDetail(appointmentId: string | undefined) {
@@ -12,10 +14,11 @@ export function usePortalClientAppointmentDetail(appointmentId: string | undefin
   const profileId = actorId ?? '';
   const [tick, setTick] = useState(0);
 
-  useEffect(() => {
-    const id = setInterval(() => setTick((t) => t + 1), 30_000);
-    return () => clearInterval(id);
-  }, []);
+  useVisibilityAwarePolling({
+    enabled: Boolean(tenantId && clientId),
+    intervalMs: DEFAULT_LIVE_POLL_MS,
+    onPoll: () => setTick((t) => t + 1),
+  });
 
   useEffect(() => {
     if (!tenantId || !clientId) return;

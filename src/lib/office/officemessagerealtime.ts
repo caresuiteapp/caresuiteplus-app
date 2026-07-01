@@ -1,6 +1,7 @@
 import type { RealtimeChannel, SupabaseClient } from '@supabase/supabase-js';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isDemoMode } from '@/lib/supabase/config';
+import { createVisibilityAwareInterval } from '@/lib/polling/useVisibilityAwarePolling';
 
 export type OfficeMessageRealtimeEvent = {
   type: 'message_changed' | 'thread_changed';
@@ -10,7 +11,7 @@ export type OfficeMessageRealtimeEvent = {
 
 type Subscription = {
   handlers: Set<(event: OfficeMessageRealtimeEvent) => void>;
-  timer: ReturnType<typeof setInterval> | null;
+  pollCleanup: (() => void) | null;
   supabaseChannel?: RealtimeChannel;
 };
 
@@ -78,10 +79,11 @@ export function subscribeToOfficeMessageThread(
   }
 
   if (isDemoMode()) {
-    const sub: Subscription = { handlers: new Set([handler]), timer: null };
-    sub.timer = setInterval(() => {
-      dispatch(sub, { type: 'message_changed', threadId, tenantId });
-    }, POLL_INTERVAL_MS);
+    const sub: Subscription = { handlers: new Set([handler]), pollCleanup: null };
+    sub.pollCleanup = createVisibilityAwareInterval(
+      () => dispatch(sub, { type: 'message_changed', threadId, tenantId }),
+      POLL_INTERVAL_MS,
+    );
     subscriptions.set(key, sub);
     return () => detachHandler(key, handler);
   }
@@ -121,13 +123,13 @@ export function subscribeToOfficeMessageThread(
 
     subscriptions.set(key, {
       handlers: new Set([handler]),
-      timer: null,
+      pollCleanup: null,
       supabaseChannel: rtChannel,
     });
     return () => detachHandler(key, handler);
   }
 
-  subscriptions.set(key, { handlers: new Set([handler]), timer: null });
+  subscriptions.set(key, { handlers: new Set([handler]), pollCleanup: null });
   return () => detachHandler(key, handler);
 }
 
@@ -142,10 +144,11 @@ export function subscribeToOfficeMessageInbox(
   }
 
   if (isDemoMode()) {
-    const sub: Subscription = { handlers: new Set([handler]), timer: null };
-    sub.timer = setInterval(() => {
-      dispatch(sub, { type: 'thread_changed', tenantId });
-    }, POLL_INTERVAL_MS);
+    const sub: Subscription = { handlers: new Set([handler]), pollCleanup: null };
+    sub.pollCleanup = createVisibilityAwareInterval(
+      () => dispatch(sub, { type: 'thread_changed', tenantId }),
+      POLL_INTERVAL_MS,
+    );
     subscriptions.set(key, sub);
     return () => detachHandler(key, handler);
   }
@@ -178,13 +181,13 @@ export function subscribeToOfficeMessageInbox(
 
     subscriptions.set(key, {
       handlers: new Set([handler]),
-      timer: null,
+      pollCleanup: null,
       supabaseChannel: rtChannel,
     });
     return () => detachHandler(key, handler);
   }
 
-  subscriptions.set(key, { handlers: new Set([handler]), timer: null });
+  subscriptions.set(key, { handlers: new Set([handler]), pollCleanup: null });
   return () => detachHandler(key, handler);
 }
 
@@ -193,7 +196,7 @@ export function unsubscribeOfficeMessageThread(threadId: string): void {
   const sub = subscriptions.get(key);
   if (!sub) return;
 
-  if (sub.timer) clearInterval(sub.timer);
+  sub?.pollCleanup?.();
   if (sub.supabaseChannel) {
     const supabase = getSupabaseClient();
     if (supabase) void supabase.removeChannel(sub.supabaseChannel);
@@ -206,7 +209,7 @@ export function unsubscribeOfficeMessageInbox(tenantId: string): void {
   const sub = subscriptions.get(key);
   if (!sub) return;
 
-  if (sub.timer) clearInterval(sub.timer);
+  sub?.pollCleanup?.();
   if (sub.supabaseChannel) {
     const supabase = getSupabaseClient();
     if (supabase) void supabase.removeChannel(sub.supabaseChannel);
@@ -216,7 +219,7 @@ export function unsubscribeOfficeMessageInbox(tenantId: string): void {
 
 export function clearAllOfficeMessageRealtimeSubscriptions(): void {
   for (const [, sub] of subscriptions) {
-    if (sub.timer) clearInterval(sub.timer);
+    sub?.pollCleanup?.();
     if (sub.supabaseChannel) {
       const supabase = getSupabaseClient();
       if (supabase) void supabase.removeChannel(sub.supabaseChannel);

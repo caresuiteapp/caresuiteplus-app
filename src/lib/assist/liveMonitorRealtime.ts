@@ -1,6 +1,7 @@
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isDemoMode } from '@/lib/supabase/config';
 import { getServiceMode } from '@/lib/services/mode';
+import { createVisibilityAwareInterval } from '@/lib/polling/useVisibilityAwarePolling';
 import { listLiveOperationEvents } from './liveOperationEventService';
 
 export type LiveMonitorRealtimeEvent = {
@@ -12,7 +13,7 @@ export type LiveMonitorRealtimeEvent = {
 type Subscription = {
   tenantId: string;
   handler: (event: LiveMonitorRealtimeEvent) => void;
-  timer: ReturnType<typeof setInterval> | null;
+  pollCleanup: (() => void) | null;
   supabaseChannel?: { unsubscribe: () => void };
   lastEventCount: number;
 };
@@ -50,11 +51,12 @@ export function subscribeToLiveMonitor(
   const initialCount = listLiveOperationEvents(tenantId).length;
 
   if (isDemoMode() || getServiceMode() !== 'supabase') {
-    const timer = setInterval(() => {
-      const sub = subscriptions.get(key);
-      if (sub) emitIfNewEvents(sub);
+    const sub: Subscription = { tenantId, handler, pollCleanup: null, lastEventCount: initialCount };
+    sub.pollCleanup = createVisibilityAwareInterval(() => {
+      const current = subscriptions.get(key);
+      if (current) emitIfNewEvents(current);
     }, POLL_INTERVAL_MS);
-    subscriptions.set(key, { tenantId, handler, timer, lastEventCount: initialCount });
+    subscriptions.set(key, sub);
     return () => unsubscribeFromLiveMonitor(tenantId);
   }
 
@@ -80,35 +82,36 @@ export function subscribeToLiveMonitor(
       )
       .subscribe();
 
-    const fallbackTimer = setInterval(() => {
-      const sub = subscriptions.get(key);
-      if (sub) {
-        sub.handler({ type: 'poll_refresh', tenantId });
-      }
-    }, POLL_INTERVAL_MS);
-
-    subscriptions.set(key, {
+    const sub: Subscription = {
       tenantId,
       handler,
-      timer: fallbackTimer,
+      pollCleanup: null,
       supabaseChannel: { unsubscribe: () => supabase.removeChannel(rtChannel) },
       lastEventCount: initialCount,
-    });
+    };
+    sub.pollCleanup = createVisibilityAwareInterval(() => {
+      const current = subscriptions.get(key);
+      if (current) {
+        current.handler({ type: 'poll_refresh', tenantId });
+      }
+    }, POLL_INTERVAL_MS);
+    subscriptions.set(key, sub);
     return () => unsubscribeFromLiveMonitor(tenantId);
   }
 
-  const timer = setInterval(() => {
-    const sub = subscriptions.get(key);
-    if (sub) emitIfNewEvents(sub);
+  const sub: Subscription = { tenantId, handler, pollCleanup: null, lastEventCount: initialCount };
+  sub.pollCleanup = createVisibilityAwareInterval(() => {
+    const current = subscriptions.get(key);
+    if (current) emitIfNewEvents(current);
   }, POLL_INTERVAL_MS);
-  subscriptions.set(key, { tenantId, handler, timer, lastEventCount: initialCount });
+  subscriptions.set(key, sub);
   return () => unsubscribeFromLiveMonitor(tenantId);
 }
 
 export function unsubscribeFromLiveMonitor(tenantId: string): void {
   const key = `monitor:${tenantId}`;
   const sub = subscriptions.get(key);
-  if (sub?.timer) clearInterval(sub.timer);
+  sub?.pollCleanup?.();
   sub?.supabaseChannel?.unsubscribe();
   subscriptions.delete(key);
 }
@@ -119,7 +122,7 @@ export function getLiveMonitorSubscriptionCount(): number {
 
 export function clearAllLiveMonitorSubscriptions(): void {
   for (const [, sub] of subscriptions) {
-    if (sub.timer) clearInterval(sub.timer);
+    sub.pollCleanup?.();
     sub.supabaseChannel?.unsubscribe();
   }
   subscriptions.clear();

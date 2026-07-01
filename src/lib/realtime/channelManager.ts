@@ -6,7 +6,7 @@ export type RealtimeHandler = () => void;
 
 type Subscription = {
   handlers: Set<RealtimeHandler>;
-  timer: ReturnType<typeof setInterval> | null;
+  pollCleanup: (() => void) | null;
   supabaseChannel?: RealtimeChannel;
 };
 
@@ -71,7 +71,7 @@ export function unsubscribeRealtime(key: string): void {
   const sub = subscriptions.get(key);
   if (!sub) return;
 
-  if (sub.timer) clearInterval(sub.timer);
+  sub?.pollCleanup?.();
   if (sub.supabaseChannel) {
     const supabase = getSupabaseClient();
     if (supabase) void supabase.removeChannel(sub.supabaseChannel);
@@ -99,12 +99,8 @@ export function createDemoPollSubscription(
     return attachRealtimeHandler(key, handler);
   }
 
-  const sub: Subscription = { handlers: new Set([handler]), timer: null };
-  let pollCleanup: (() => void) | null = null;
-  pollCleanup = createVisibilityAwareInterval(() => dispatchRealtimeHandlers(sub), intervalMs);
+  const sub: Subscription = { handlers: new Set([handler]), pollCleanup: null };
+  sub.pollCleanup = createVisibilityAwareInterval(() => dispatchRealtimeHandlers(sub), intervalMs);
   registerRealtimeSubscription(key, sub);
-  return () => {
-    pollCleanup?.();
-    detachRealtimeHandler(key, handler);
-  };
+  return () => detachRealtimeHandler(key, handler);
 }
