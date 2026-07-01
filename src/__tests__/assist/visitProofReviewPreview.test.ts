@@ -74,6 +74,50 @@ describe('visitProofSnapshotPreviewService', () => {
     expect(preview.fields.find((f) => f.label === 'Unterschrift')?.missing).toBe(true);
   });
 
+  it('builds preview from live proof a8f3c2e1 snapshot shape', () => {
+    const preview = buildVisitProofPreviewFromProof(
+      sampleProof({
+        id: 'a8f3c2e1-4b5d-6a7c-8e9f-0d1c2b3a4e5f',
+        visitId: '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab',
+        signatureId: '71602374-b79e-4c96-ac53-b9b93443b8b3',
+        status: 'pending_review',
+        payloadSnapshot: {
+          clientName: 'Heinz-Peter Reinhardt',
+          title: 'Regelmäßige Alltagsbegleitung',
+          plannedStartAt: '2026-06-30T23:00:00.000Z',
+          plannedEndAt: '2026-07-01T00:00:00.000Z',
+          documentation: 'Erledigt',
+          assignmentId: '27be8d4e-e6e1-4b2a-bccb-918ade0ad1ab',
+          signature: {
+            signedAt: '2026-07-01T01:49:03.371Z',
+            signerName: 'Heinz-Peter Reinhardt',
+          },
+          visitTimes: {
+            driveSeconds: 25,
+            serviceSeconds: 15,
+            totalSeconds: 40,
+            driveStartedAt: '2026-06-30T22:42:46.072Z',
+            arrivedAt: '2026-06-30T22:43:11.163Z',
+            serviceStartedAt: '2026-06-30T22:54:49.076Z',
+            serviceEndedAt: '2026-06-30T22:55:04.773Z',
+          },
+          tasks: [
+            { id: 't1', title: 'Einsatzbeginn dokumentieren', status: 'open' },
+            { id: 't2', title: 'Küche aufräumen', status: 'open' },
+          ],
+        },
+      }),
+    );
+
+    expect(preview.clientName).toBe('Heinz-Peter Reinhardt');
+    expect(preview.tasks).toHaveLength(2);
+    expect(preview.documentationNote).toBe('Erledigt');
+    expect(preview.fields.find((f) => f.label === 'Unterschrift')?.missing).toBe(false);
+    expect(proofHasClientSignature(sampleProof({ signatureId: '71602374-b79e-4c96-ac53-b9b93443b8b3' }))).toBe(
+      true,
+    );
+  });
+
   it('detects client signature from snapshot or signature id', () => {
     expect(proofHasClientSignature(sampleProof())).toBe(false);
     expect(
@@ -219,12 +263,16 @@ describe('assist proof release modes', () => {
 });
 
 describe('VisitProofReviewPanel wiring', () => {
-  it('embeds preview panel and release modes', () => {
+  it('always embeds preview panel with snapshot fallback', () => {
     const panel = readSrc('src/components/assist/VisitProofReviewPanel.tsx');
     expect(panel).toContain('VisitProofPreviewPanel');
+    expect(panel).toContain('buildVisitProofPreviewFromProof');
+    expect(panel).toContain('snapshotPreview');
+    expect(panel).not.toMatch(/\{preview \?\s*\(\s*\n?\s*<VisitProofPreviewPanel/);
     expect(panel).toContain('approveAndReleaseAssistProof');
     expect(panel).toContain('Eingeschränkt freigeben');
     expect(panel).toContain('useVisitProofReviewPreview');
+    expect(panel).toContain('previewError');
   });
 
   it('labels pending_client_signature portal release', () => {

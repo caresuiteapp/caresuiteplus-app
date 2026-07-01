@@ -25,7 +25,10 @@ import {
   revokeAssistProofPortalRelease,
   submitProofForReview,
 } from '@/lib/assist/assistProofApprovalService';
-import { proofHasClientSignature } from '@/lib/assist/visitProofSnapshotPreviewService';
+import {
+  buildVisitProofPreviewFromProof,
+  proofHasClientSignature,
+} from '@/lib/assist/visitProofSnapshotPreviewService';
 import {
   downloadAssistProofPdfInBrowser,
   generateAssistProofPdf,
@@ -61,7 +64,13 @@ export function VisitProofReviewPanel({
   onUpdated,
 }: VisitProofReviewPanelProps) {
   const text = useAuroraAdaptiveText();
-  const { preview, loading: previewLoading } = useVisitProofReviewPreview(tenantId, proof);
+  const snapshotPreview = useMemo(() => buildVisitProofPreviewFromProof(proof), [proof]);
+  const {
+    preview: enrichedPreview,
+    loading: previewLoading,
+    error: previewError,
+  } = useVisitProofReviewPreview(tenantId, proof);
+  const preview = enrichedPreview ?? snapshotPreview;
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approvalNote, setApprovalNote] = useState('');
@@ -135,29 +144,19 @@ export function VisitProofReviewPanel({
         {proof.approvalNote ? <DetailInfoRow label="Freigabe-Notiz" value={proof.approvalNote} /> : null}
       </View>
 
-      {preview ? (
-        <VisitProofPreviewPanel preview={preview} loading={previewLoading} />
-      ) : previewLoading ? (
-        <VisitProofPreviewPanel
-          preview={{
-            visitId: proof.visitId,
-            title: serviceName,
-            clientName,
-            employeeName,
-            serviceName,
-            scheduledStart: '',
-            scheduledEnd: '',
-            durationMinutes: null,
-            location: '—',
-            documentationNote: null,
-            tasks: [],
-            signature: null,
-            fields: [],
-            readyForExport: false,
-            incompleteHint: 'Vorschau wird geladen…',
-          }}
-          loading
+      {previewError ? (
+        <InfoBanner
+          variant="warning"
+          title="Vorschau ergänzen fehlgeschlagen"
+          message={`${previewError} — Snapshot-Daten werden angezeigt.`}
         />
+      ) : null}
+
+      <VisitProofPreviewPanel preview={preview} />
+      {previewLoading && !enrichedPreview ? (
+        <Text style={{ color: text.muted, ...typography.caption }}>
+          Einsatzdaten werden ergänzt…
+        </Text>
       ) : null}
 
       {(proof.status === 'pending_review' || proof.status === 'rejected') && (
