@@ -63,6 +63,9 @@ import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
 import { isSupabaseMissingTableError } from '@/lib/supabase/errors';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { isUuid } from '@/lib/validation/uuid';
+import {
+  overlayVisitDispositionListFromAssignments,
+} from '@/lib/assist/overlayVisitDispositionFromAssignment';
 
 type VisitRow = {
   id: string;
@@ -527,7 +530,8 @@ export const visitSupabaseRepository = {
       rows.map((row) => ({ row, item: mapListItem(row) })),
       expandOptions,
     );
-    return { ok: true, data: expanded };
+    const synced = await overlayVisitDispositionListFromAssignments(tenantId, expanded);
+    return { ok: true, data: synced };
   },
 
   async getById(

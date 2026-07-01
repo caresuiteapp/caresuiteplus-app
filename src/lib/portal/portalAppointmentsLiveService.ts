@@ -41,7 +41,7 @@ function visitListItemToPortalAppointment(item: VisitDispositionListItem): Porta
 }
 
 /** assignments.status is source of truth for portal execution; assist_visits.canonical_status may lag. */
-async function enrichEmployeePortalAppointmentsWithAssignmentStatus(
+async function enrichPortalAppointmentsWithAssignmentStatus(
   tenantId: string,
   items: PortalAppointmentItem[],
 ): Promise<PortalAppointmentItem[]> {
@@ -95,9 +95,7 @@ async function fetchLivePortalAppointments(
     }
 
     let items = visitResult.data.map(visitListItemToPortalAppointment);
-    if (filter.employeeId) {
-      items = await enrichEmployeePortalAppointmentsWithAssignmentStatus(tenantId, items);
-    }
+    items = await enrichPortalAppointmentsWithAssignmentStatus(tenantId, items);
 
     return {
       ok: true,

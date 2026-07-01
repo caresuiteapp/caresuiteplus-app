@@ -182,19 +182,6 @@ function mapAssignmentTasks(
     }));
 }
 
-function visitDetailLooksStale(
-  detail: VisitDispositionDetail,
-  assignmentStatus: AssignmentStatus | null,
-  assignmentHasExecution: boolean,
-): boolean {
-  if (!assignmentStatus) return false;
-  if (STATUS_PROGRESS[assignmentStatus] > STATUS_PROGRESS[detail.assignmentStatus]) return true;
-  if (assignmentHasExecution && !detail.onTheWayAt && !detail.actualStartAt && !detail.actualEndAt) {
-    return true;
-  }
-  return visitTasksLookStale(detail.tasks);
-}
-
 export function mergeVisitDispositionWithExecution(input: {
   detail: VisitDispositionDetail;
   assignmentStatus: AssignmentStatus;
@@ -377,16 +364,6 @@ export async function enrichVisitDispositionDetail(
   if (!assignmentRow) return detail;
 
   const assignmentStatus = remoteStatusToAssignment(assignmentRow.status);
-  const assignmentHasExecution = Boolean(
-    assignmentRow.actual_start_at ||
-      assignmentRow.actual_end_at ||
-      assignmentRow.on_the_way_at ||
-      assignmentRow.arrived_at,
-  );
-
-  if (!visitDetailLooksStale(detail, assignmentStatus, assignmentHasExecution)) {
-    return detail;
-  }
 
   const executionState = executionStateResult.data as {
     assignment_status?: string;
