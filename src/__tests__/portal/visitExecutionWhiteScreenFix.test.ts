@@ -130,3 +130,16 @@ describe('signature overlay touch targets', () => {
     );
   });
 });
+
+describe('EmployeePortalVisitExecutionScreen isServiceEnded wiring', () => {
+  function readSrc(relativePath: string): string {
+    return readFileSync(path.join(__dirname, '..', '..', '..', relativePath), 'utf8');
+  }
+
+  it('passes isServiceEnded from hook to resolveVisitExecutionUiState (no ReferenceError)', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    expect(screen).toContain('isServiceEnded,');
+    expect(screen).toContain('hasServiceEnded: isServiceEnded');
+    expect(screen).not.toMatch(/\bhasServiceEnded,\s*\n\s*\]\);/);
+  });
+});

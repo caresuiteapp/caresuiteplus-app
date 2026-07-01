@@ -185,7 +185,7 @@ export function EmployeePortalVisitExecutionScreen() {
       consistencyStatus,
       allowedActions,
       awaitingSignature,
-      hasServiceEnded,
+      hasServiceEnded: isServiceEnded,
     });
   }, [
     visit,
@@ -193,7 +193,7 @@ export function EmployeePortalVisitExecutionScreen() {
     consistencyStatus,
     allowedActions,
     awaitingSignature,
-    hasServiceEnded,
+    isServiceEnded,
   ]);
 
   const statusBlocksDoc = uiState?.statusBlocksDoc ?? false;
