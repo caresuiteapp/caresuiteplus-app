@@ -26,6 +26,10 @@ import { mapClientDocument } from '@/lib/supabase/mappers/clientExtendedMapper';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
+import {
+  fetchAssistProofPortalDocumentDetail,
+  getProofPdfForClientPortal,
+} from '@/lib/portal/assist/portalAssistVisitProofService';
 
 const STORAGE_BUCKET = 'office-documents';
 
@@ -280,6 +284,8 @@ export async function fetchLivePortalDocumentDetail(
       return { ok: false, error: error.message };
     }
     if (!data) {
+      const assistProof = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
+      if (assistProof.ok) return assistProof;
       return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
     }
 
@@ -343,6 +349,20 @@ export async function downloadLivePortalDocument(
       .maybeSingle();
 
     if (error || !data) {
+      const assistPdf = await getProofPdfForClientPortal(tenantId, clientId, documentId);
+      if (assistPdf.ok) {
+        const assistDetail = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
+        if (assistDetail.ok) {
+          return {
+            ok: true,
+            data: {
+              fileName: assistDetail.data.fileName,
+              mimeType: assistDetail.data.mimeType,
+              downloadUrl: assistPdf.data,
+            },
+          };
+        }
+      }
       return { ok: false, error: 'Download konnte nicht vorbereitet werden.' };
     }
 

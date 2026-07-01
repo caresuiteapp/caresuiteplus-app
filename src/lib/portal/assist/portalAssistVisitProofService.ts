@@ -4,8 +4,12 @@
  */
 
 import type { ServiceResult } from '@/types';
-import type { ClientPortalAssistVisitProof } from '@/types/assistExecutionPersistence';
-import { stripPortalBlockedKeysFromSnapshot } from '@/lib/assist/assistProofPdfPayload';
+import type {
+  ClientPortalAssistVisitProof,
+  AssistVisitProofRow,
+} from '@/types/assistExecutionPersistence';
+import type { PortalDocumentDetail } from '@/types/portal/documents';
+import { buildAssistProofPdfPayload, stripPortalBlockedKeysFromSnapshot } from '@/lib/assist/assistProofPdfPayload';
 import { ASSIST_EXECUTION_STORAGE_BUCKET } from '@/lib/assist/assistStoragePaths';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -27,6 +31,8 @@ type ProofRow = {
   payload_snapshot: Record<string, unknown>;
   pdf_storage_path: string | null;
   released_to_portal_at: string | null;
+  portal_release_status: string;
+  signature_id: string | null;
 };
 
 type VisitRow = {
@@ -38,6 +44,11 @@ type VisitRow = {
 
 function mapReleasedProof(proof: ProofRow, visit?: VisitRow | null): ClientPortalAssistVisitProof {
   const snapshot = stripPortalBlockedKeysFromSnapshot(proof.payload_snapshot ?? {});
+  const signedAt = readString(snapshot, 'signedAt');
+  const signerName = readString(snapshot, 'signerName');
+  const hasSignature = Boolean(proof.signature_id || signedAt || signerName);
+  const portalReleaseStatus =
+    proof.portal_release_status as ClientPortalAssistVisitProof['portalReleaseStatus'];
 
   return {
     id: proof.id,
@@ -51,10 +62,12 @@ function mapReleasedProof(proof: ProofRow, visit?: VisitRow | null): ClientPorta
     scheduledEnd: readString(snapshot, 'scheduledEnd') ?? visit?.scheduled_end ?? null,
     documentationNote:
       readString(snapshot, 'documentationNote') ?? readString(snapshot, 'documentation'),
-    signedAt: readString(snapshot, 'signedAt'),
-    signerName: readString(snapshot, 'signerName'),
+    signedAt,
+    signerName,
     releasedAt: proof.released_to_portal_at,
     pdfStoragePath: proof.pdf_storage_path,
+    portalReleaseStatus,
+    signatureRequired: portalReleaseStatus === 'pending_client_signature' || !hasSignature,
   };
 }
 
@@ -90,10 +103,12 @@ export async function listReleasedProofsForClientPortal(
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const { data, error } = await fromUnknownTable(supabase, ASSIST_EXECUTION_TABLES.proofs)
-    .select('id, visit_id, proof_number, payload_snapshot, pdf_storage_path, released_to_portal_at')
+    .select(
+      'id, visit_id, proof_number, payload_snapshot, pdf_storage_path, released_to_portal_at, portal_release_status, signature_id',
+    )
     .eq('tenant_id', tenantId)
     .eq('portal_visible', true)
-    .eq('portal_release_status', 'released')
+    .in('portal_release_status', ['released', 'pending_client_signature'])
     .in('visit_id', visitIdsResult.data)
     .order('released_to_portal_at', { ascending: false });
 
@@ -159,4 +174,58 @@ export async function getProofPdfForClientPortal(
   }
 
   return { ok: true, data: data.signedUrl };
+}
+
+function mapAssistProofToPortalDocumentDetail(
+  proof: ClientPortalAssistVisitProof,
+  fullProof: AssistVisitProofRow | null,
+): PortalDocumentDetail {
+  const previewHtml = fullProof ? buildAssistProofPdfPayload(fullProof).html : null;
+  const fileName = proof.proofNumber
+    ? `Leistungsnachweis-${proof.proofNumber}.pdf`
+    : 'Leistungsnachweis.pdf';
+
+  return {
+    id: proof.id,
+    title: proof.title,
+    fileName,
+    mimeType: 'application/pdf',
+    category: 'assignment',
+    fileSizeBytes: 0,
+    status: 'aktiv',
+    updatedAt: proof.releasedAt ?? proof.scheduledStart ?? new Date().toISOString(),
+    visibility: 'portal',
+    sensitivity: 'standard',
+    clientName: proof.clientName,
+    displayFileName: fileName,
+    documentSource: 'assist_visit_proof',
+    previewHtml,
+    createdAt: proof.releasedAt ?? proof.scheduledStart ?? new Date().toISOString(),
+    description: proof.signatureRequired
+      ? 'Dieser Leistungsnachweis wartet auf Ihre Unterschrift im Klientenportal.'
+      : null,
+    downloadReady: Boolean(proof.pdfStoragePath),
+    viewReady: Boolean(previewHtml || proof.pdfStoragePath),
+  };
+}
+
+/** Client portal document detail for released assist visit proofs. */
+export async function fetchAssistProofPortalDocumentDetail(
+  tenantId: string,
+  clientId: string,
+  proofId: string,
+): Promise<ServiceResult<PortalDocumentDetail>> {
+  const released = await getReleasedProofForClientPortal(tenantId, clientId, proofId);
+  if (!released.ok) return released;
+  if (!released.data) {
+    return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
+  }
+
+  const full = await fetchVisitProofById(tenantId, proofId);
+  const fullProof = full.ok ? full.data : null;
+
+  return {
+    ok: true,
+    data: mapAssistProofToPortalDocumentDetail(released.data, fullProof),
+  };
 }

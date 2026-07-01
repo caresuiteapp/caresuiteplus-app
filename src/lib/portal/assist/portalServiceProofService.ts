@@ -183,6 +183,7 @@ async function appendAssistVisitProofs(
       status: 'aktiv',
       portal_visible: true,
       signed_at: proof.signedAt,
+      signature_required: proof.signatureRequired === true,
       created_at: proof.releasedAt ?? proof.scheduledStart,
     }),
   );

@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
+import { VisitProofPreviewPanel } from '@/components/assist/VisitProofPreviewPanel';
 import {
   EmptyState,
   FilterChipGroup,
@@ -17,16 +18,19 @@ import {
   ASSIST_PROOF_STATUS_LABELS,
 } from '@/lib/assist/assistProofLabels';
 import {
+  approveAndReleaseAssistProof,
   approveAssistProof,
   rejectAssistProof,
   releaseAssistProofToPortal,
   revokeAssistProofPortalRelease,
   submitProofForReview,
 } from '@/lib/assist/assistProofApprovalService';
+import { proofHasClientSignature } from '@/lib/assist/visitProofSnapshotPreviewService';
 import {
   downloadAssistProofPdfInBrowser,
   generateAssistProofPdf,
 } from '@/lib/assist/assistProofPdfService';
+import { useVisitProofReviewPreview } from '@/hooks/useVisitProofReviewPreview';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { spacing, typography } from '@/theme';
 
@@ -57,15 +61,19 @@ export function VisitProofReviewPanel({
   onUpdated,
 }: VisitProofReviewPanelProps) {
   const text = useAuroraAdaptiveText();
+  const { preview, loading: previewLoading } = useVisitProofReviewPreview(tenantId, proof);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approvalNote, setApprovalNote] = useState('');
   const [rejectionReason, setRejectionReason] = useState('');
 
   const snapshot = proof.payloadSnapshot ?? {};
-  const clientName = String(snapshot.clientName ?? '—');
-  const employeeName = String(snapshot.employeeName ?? '—');
-  const serviceName = String(snapshot.serviceName ?? snapshot.title ?? 'Leistungsnachweis');
+  const clientName = preview?.clientName ?? String(snapshot.clientName ?? '—');
+  const employeeName = preview?.employeeName ?? String(snapshot.employeeName ?? '—');
+  const serviceName =
+    preview?.serviceName ??
+    String(snapshot.serviceName ?? snapshot.title ?? 'Leistungsnachweis');
+  const hasSignature = preview ? !preview.fields.find((f) => f.label === 'Unterschrift')?.missing : proofHasClientSignature(proof);
 
   const styles = useMemo(
     () =>
@@ -127,6 +135,31 @@ export function VisitProofReviewPanel({
         {proof.approvalNote ? <DetailInfoRow label="Freigabe-Notiz" value={proof.approvalNote} /> : null}
       </View>
 
+      {preview ? (
+        <VisitProofPreviewPanel preview={preview} loading={previewLoading} />
+      ) : previewLoading ? (
+        <VisitProofPreviewPanel
+          preview={{
+            visitId: proof.visitId,
+            title: serviceName,
+            clientName,
+            employeeName,
+            serviceName,
+            scheduledStart: '',
+            scheduledEnd: '',
+            durationMinutes: null,
+            location: '—',
+            documentationNote: null,
+            tasks: [],
+            signature: null,
+            fields: [],
+            readyForExport: false,
+            incompleteHint: 'Vorschau wird geladen…',
+          }}
+          loading
+        />
+      ) : null}
+
       {(proof.status === 'pending_review' || proof.status === 'rejected') && (
         <PremiumInput
           label="Freigabe-Notiz (optional)"
@@ -161,7 +194,7 @@ export function VisitProofReviewPanel({
         {proof.status === 'pending_review' && (
           <>
             <PremiumButton
-              title="Freigeben"
+              title="Freigeben (ohne Portal)"
               disabled={busy}
               onPress={() =>
                 runAction(() =>
@@ -175,6 +208,39 @@ export function VisitProofReviewPanel({
                 )
               }
             />
+            {hasSignature ? (
+              <PremiumButton
+                title="Freigeben & ins Portal veröffentlichen"
+                disabled={busy}
+                onPress={() =>
+                  runAction(() =>
+                    approveAndReleaseAssistProof(
+                      tenantId,
+                      proof.id,
+                      actorProfileId,
+                      actorRoleKey,
+                      { approvalNote, releaseMode: 'full' },
+                    ),
+                  )
+                }
+              />
+            ) : (
+              <PremiumButton
+                title="Eingeschränkt freigeben (Klient:in unterschreibt)"
+                disabled={busy}
+                onPress={() =>
+                  runAction(() =>
+                    approveAndReleaseAssistProof(
+                      tenantId,
+                      proof.id,
+                      actorProfileId,
+                      actorRoleKey,
+                      { approvalNote, releaseMode: 'restricted' },
+                    ),
+                  )
+                }
+              />
+            )}
             <PremiumButton
               title="Ablehnen"
               variant="secondary"
@@ -211,18 +277,32 @@ export function VisitProofReviewPanel({
         )}
 
         {(proof.status === 'approved' || proof.status === 'exported') && !proof.portalVisible && (
-          <PremiumButton
-            title="Ins Klientenportal freigeben"
-            disabled={busy}
-            onPress={() =>
-              runAction(() =>
-                releaseAssistProofToPortal(tenantId, proof.id, actorProfileId, actorRoleKey),
-              )
-            }
-          />
+          <>
+            <PremiumButton
+              title={
+                hasSignature
+                  ? 'Ins Klientenportal freigeben'
+                  : 'Eingeschränkt ins Portal (Unterschrift ausstehend)'
+              }
+              disabled={busy}
+              onPress={() =>
+                runAction(() =>
+                  releaseAssistProofToPortal(
+                    tenantId,
+                    proof.id,
+                    actorProfileId,
+                    actorRoleKey,
+                    hasSignature ? 'full' : 'restricted',
+                  ),
+                )
+              }
+            />
+          </>
         )}
 
-        {proof.portalVisible && proof.portalReleaseStatus === 'released' && (
+        {proof.portalVisible &&
+          (proof.portalReleaseStatus === 'released' ||
+            proof.portalReleaseStatus === 'pending_client_signature') && (
           <PremiumButton
             title="Portal-Freigabe zurückziehen"
             variant="secondary"

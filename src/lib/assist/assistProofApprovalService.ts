@@ -132,15 +132,14 @@ export async function rejectAssistProof(
   });
 }
 
-export async function releaseAssistProofToPortal(
+export type AssistProofPortalReleaseMode = 'full' | 'restricted';
+
+async function releaseApprovedProofToPortal(
   tenantId: string,
   proofId: string,
-  actorProfileId?: string | null,
-  actorRoleKey?: RoleKey | null,
+  actorProfileId: string | null | undefined,
+  releaseMode: AssistProofPortalReleaseMode,
 ): Promise<ServiceResult<AssistVisitProofRow>> {
-  const perm = denied<AssistVisitProofRow>(actorRoleKey, 'assist.records.sign');
-  if (perm) return perm;
-
   const loaded = await loadProof(tenantId, proofId);
   if (!loaded.ok) return loaded;
 
@@ -163,11 +162,53 @@ export async function releaseAssistProofToPortal(
     status: 'exported',
     portal_visible: true,
     released_to_portal_at: now,
-    portal_release_status: 'released',
+    portal_release_status:
+      releaseMode === 'restricted' ? 'pending_client_signature' : 'released',
     updated_by: actorProfileId ?? null,
   });
   if (result.ok) invalidatePortalProofCache();
   return result;
+}
+
+export async function releaseAssistProofToPortal(
+  tenantId: string,
+  proofId: string,
+  actorProfileId?: string | null,
+  actorRoleKey?: RoleKey | null,
+  releaseMode: AssistProofPortalReleaseMode = 'full',
+): Promise<ServiceResult<AssistVisitProofRow>> {
+  const perm = denied<AssistVisitProofRow>(actorRoleKey, 'assist.records.sign');
+  if (perm) return perm;
+
+  return releaseApprovedProofToPortal(tenantId, proofId, actorProfileId, releaseMode);
+}
+
+/** Approve pending proof and release to client portal in one step. */
+export async function approveAndReleaseAssistProof(
+  tenantId: string,
+  proofId: string,
+  actorProfileId: string | null | undefined,
+  actorRoleKey: RoleKey | null | undefined,
+  options: {
+    approvalNote?: string | null;
+    releaseMode: AssistProofPortalReleaseMode;
+  },
+): Promise<ServiceResult<AssistVisitProofRow>> {
+  const approved = await approveAssistProof(
+    tenantId,
+    proofId,
+    actorProfileId,
+    actorRoleKey,
+    options.approvalNote,
+  );
+  if (!approved.ok) return approved;
+
+  return releaseApprovedProofToPortal(
+    tenantId,
+    proofId,
+    actorProfileId,
+    options.releaseMode,
+  );
 }
 
 export async function revokeAssistProofPortalRelease(
@@ -182,7 +223,11 @@ export async function revokeAssistProofPortalRelease(
   const loaded = await loadProof(tenantId, proofId);
   if (!loaded.ok) return loaded;
 
-  if (loaded.data.portalReleaseStatus !== 'released' || !loaded.data.portalVisible) {
+  if (
+    (loaded.data.portalReleaseStatus !== 'released' &&
+      loaded.data.portalReleaseStatus !== 'pending_client_signature') ||
+    !loaded.data.portalVisible
+  ) {
     return { ok: false, error: 'Nachweis ist nicht im Klientenportal veröffentlicht.' };
   }
 

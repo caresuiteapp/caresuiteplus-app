@@ -32,6 +32,9 @@ export async function generateServiceRecord(
     visitTimes: ctx.visitTimes,
     documentationText,
     signatureSummary,
+    visitId: ctx.assistVisitId,
+    employeeId: ctx.employeeId,
+    serviceName: ctx.detail.title,
   });
 
   const snapshot = buildServiceRecordSnapshot({
@@ -39,6 +42,9 @@ export async function generateServiceRecord(
     visitTimes: ctx.visitTimes,
     documentationText,
     signatureSummary,
+    visitId: ctx.assistVisitId,
+    employeeId: ctx.employeeId,
+    serviceName: ctx.detail.title,
   });
 
   const proof = await persistEmployeePortalVisitProof(

@@ -9,6 +9,10 @@ export type ServiceRecordContentInput = {
   visitTimes: VisitTimesSummary | null;
   documentationText?: string | null;
   signatureSummary?: { signerName: string; signedAt: string } | null;
+  visitId?: string | null;
+  employeeId?: string | null;
+  employeeName?: string | null;
+  serviceName?: string | null;
 };
 
 function formatDuration(seconds: number | null): string {
@@ -112,22 +116,37 @@ function escapeHtml(text: string): string {
 }
 
 export function buildServiceRecordSnapshot(input: ServiceRecordContentInput): Record<string, unknown> {
+  const tasks = input.detail.tasks.map((t) => ({
+    id: t.id,
+    title: t.title,
+    status: t.status,
+    note: t.completionNote,
+  }));
+  const tasksSummary = tasks.map((t) => `${t.title} (${t.status})`).join('; ') || null;
+
   return {
     assignmentId: input.detail.assignmentId,
     clientId: input.detail.clientId,
+    visitId: input.visitId ?? null,
+    employeeId: input.employeeId ?? null,
     title: input.detail.title,
     clientName: input.detail.clientName,
+    employeeName: input.employeeName ?? '—',
+    serviceName: input.serviceName ?? input.detail.title,
+    location: input.detail.locationAddress,
+    locationAddress: input.detail.locationAddress,
     plannedStartAt: input.detail.plannedStartAt,
     plannedEndAt: input.detail.plannedEndAt,
+    scheduledStart: input.detail.plannedStartAt,
+    scheduledEnd: input.detail.plannedEndAt,
     visitTimes: input.visitTimes,
-    tasks: input.detail.tasks.map((t) => ({
-      id: t.id,
-      title: t.title,
-      status: t.status,
-      note: t.completionNote,
-    })),
+    tasks,
+    tasksSummary,
     documentation: input.documentationText ?? null,
+    documentationNote: input.documentationText ?? null,
     signature: input.signatureSummary ?? null,
+    signerName: input.signatureSummary?.signerName ?? null,
+    signedAt: input.signatureSummary?.signedAt ?? null,
     generatedAt: new Date().toISOString(),
   };
 }

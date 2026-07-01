@@ -12,5 +12,6 @@ export const ASSIST_PROOF_STATUS_LABELS: Record<AssistVisitProofRow['status'], s
 export const ASSIST_PROOF_PORTAL_RELEASE_LABELS = {
   none: 'Nicht veröffentlicht',
   released: 'Im Klientenportal',
+  pending_client_signature: 'Portal — Unterschrift ausstehend',
   revoked: 'Zurückgezogen',
 } as const;

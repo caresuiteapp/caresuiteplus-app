@@ -75,10 +75,16 @@ export {
 export {
   submitProofForReview,
   approveAssistProof,
+  approveAndReleaseAssistProof,
   rejectAssistProof,
   releaseAssistProofToPortal,
   revokeAssistProofPortalRelease,
 } from './assistProofApprovalService';
+export {
+  buildVisitProofPreviewFromProof,
+  enrichVisitProofForPreview,
+  proofHasClientSignature,
+} from './visitProofSnapshotPreviewService';
 export {
   ASSIST_PROOF_STATUS_LABELS,
   ASSIST_PROOF_PORTAL_RELEASE_LABELS,

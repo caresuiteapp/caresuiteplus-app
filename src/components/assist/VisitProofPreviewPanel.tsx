@@ -1,16 +1,21 @@
-import { useMemo } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useMemo, useState } from 'react';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
 import { InfoBanner, PremiumBadge, SectionPanel } from '@/components/ui';
 import type { VisitProofPreview } from '@/lib/assist/visitProofPreviewService';
+import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { spacing, typography } from '@/theme';
 
 type VisitProofPreviewPanelProps = {
-  preview: VisitProofPreview;
+  preview: VisitProofPreview & {
+    visitTimes?: VisitTimesSummary | null;
+    signatureImageUrl?: string | null;
+  };
+  loading?: boolean;
 };
 
-export function VisitProofPreviewPanel({ preview }: VisitProofPreviewPanelProps) {
+export function VisitProofPreviewPanel({ preview, loading }: VisitProofPreviewPanelProps) {
   const text = useAuroraAdaptiveText();
 
   const styles = useMemo(
@@ -32,9 +37,25 @@ export function VisitProofPreviewPanel({ preview }: VisitProofPreviewPanelProps)
         },
         taskChipText: { ...typography.caption, color: text.primary },
         taskChipMeta: { ...typography.caption, color: text.muted, fontSize: 11 },
+        signatureImage: {
+          width: '100%',
+          maxWidth: 320,
+          height: 120,
+          resizeMode: 'contain',
+          borderRadius: 8,
+          backgroundColor: 'rgba(255,255,255,0.92)',
+        },
       }),
     [text],
   );
+
+  if (loading) {
+    return (
+      <SectionPanel title="Leistungsnachweis-Vorschau" subtitle="Wird geladen…">
+        <Text style={{ color: text.muted }}>Vorschau wird aus Snapshot und Einsatzdaten geladen…</Text>
+      </SectionPanel>
+    );
+  }
 
   return (
     <SectionPanel title="Leistungsnachweis-Vorschau" subtitle={preview.serviceName}>
@@ -45,7 +66,7 @@ export function VisitProofPreviewPanel({ preview }: VisitProofPreviewPanelProps)
       <View style={styles.header}>
         <Text style={styles.title}>{preview.title}</Text>
         <PremiumBadge
-          label={preview.readyForExport ? 'Exportbereit (Vorschau)' : 'Unvollständig'}
+          label={preview.readyForExport ? 'Prüfbereit' : 'Unvollständig'}
           variant={preview.readyForExport ? 'green' : 'orange'}
           dot
         />
@@ -76,6 +97,20 @@ export function VisitProofPreviewPanel({ preview }: VisitProofPreviewPanelProps)
           </View>
         )}
       </View>
+
+      {preview.documentationNote ? (
+        <View style={styles.tasksBlock}>
+          <Text style={styles.tasksTitle}>Dokumentation</Text>
+          <Text style={styles.taskChipText}>{preview.documentationNote}</Text>
+        </View>
+      ) : null}
+
+      {preview.signatureImageUrl ? (
+        <View style={styles.tasksBlock}>
+          <Text style={styles.tasksTitle}>Unterschrift Klient:in</Text>
+          <Image source={{ uri: preview.signatureImageUrl }} style={styles.signatureImage} />
+        </View>
+      ) : null}
     </SectionPanel>
   );
 }

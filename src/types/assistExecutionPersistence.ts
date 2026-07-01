@@ -17,7 +17,11 @@ export type AssistVisitProofStatus =
   | 'archived'
   | 'rejected';
 
-export type AssistVisitProofPortalReleaseStatus = 'none' | 'released' | 'revoked';
+export type AssistVisitProofPortalReleaseStatus =
+  | 'none'
+  | 'released'
+  | 'pending_client_signature'
+  | 'revoked';
 
 export type AssistTrackingSessionEndReason =
   | 'completed'
@@ -123,6 +127,8 @@ export type ClientPortalAssistVisitProof = {
   signerName: string | null;
   releasedAt: string | null;
   pdfStoragePath: string | null;
+  portalReleaseStatus?: AssistVisitProofPortalReleaseStatus;
+  signatureRequired?: boolean;
 };
 
 export type AssistVisitProofInsert = {
