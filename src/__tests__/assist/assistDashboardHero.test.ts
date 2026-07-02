@@ -66,15 +66,17 @@ describe('Assist Dashboard Hero (UI Reality Fix)', () => {
     expect(open.some((c) => c.label === 'Dokumentation offen')).toBe(true);
   });
 
-  it('AssistIndexScreen nutzt Modul-Dashboard-Shell', () => {
+  it('AssistIndexScreen nutzt HealthOSModuleShell (H4)', () => {
     const screen = readSrc('src/screens/assist/AssistIndexScreen.tsx');
-    expect(screen).toContain('ModuleDashboardShell');
-    expect(screen).toContain('AssistDashboardView');
+    expect(screen).toContain('HealthOSModuleShell');
+    expect(screen).toContain('HealthOSAssistOperationsView');
     expect(screen).toContain('Einsatzplanung, Durchführung und Leistungsnachweise');
     expect(screen).toContain('ASSIST_HEADER_PRIMARY_ACTIONS');
     expect(screen).not.toContain('AssistSetupHintsBanner');
     expect(screen).not.toContain('ScreenShell');
     expect(screen).not.toContain('CareLightScreen');
+    expect(screen).not.toContain('ModuleDashboardShell');
+    expect(screen).not.toContain('AssistDashboardView');
   });
 
   it('Erweiterungen sind demo-funktional', () => {

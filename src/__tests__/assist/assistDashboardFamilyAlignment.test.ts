@@ -76,10 +76,10 @@ describe('Assist dashboard family alignment', () => {
     expect(labels).not.toContain('K.6');
   });
 
-  it('AssistIndexScreen nutzt ModuleDashboardShell und AssistDashboardView', () => {
+  it('AssistIndexScreen nutzt HealthOSModuleShell und HealthOSAssistOperationsView (H4)', () => {
     const source = readSrc('src/screens/assist/AssistIndexScreen.tsx');
-    expect(source).toContain('ModuleDashboardShell');
-    expect(source).toContain('AssistDashboardView');
+    expect(source).toContain('HealthOSModuleShell');
+    expect(source).toContain('HealthOSAssistOperationsView');
     expect(source).toContain('Assist & Alltagsbegleitung');
     expect(source).toContain('Einsatzplanung, Durchführung und Leistungsnachweise');
     expect(source).toContain('ASSIST_HEADER_PRIMARY_ACTIONS');
@@ -88,6 +88,8 @@ describe('Assist dashboard family alignment', () => {
     expect(source).not.toContain('Live-Status öffnen');
     expect(source).not.toContain('Geschäftsführung');
     expect(source).not.toContain('AssistDashboardHero');
+    expect(source).not.toContain('ModuleDashboardShell');
+    expect(source).not.toContain('AssistDashboardView');
   });
 
   it('AssistDashboardView folgt Modul-Family-Layout', () => {

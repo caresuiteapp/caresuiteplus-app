@@ -1,23 +1,32 @@
 import { StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
-import { AssistDashboardView } from '@/components/dashboard/AssistDashboardView';
 import { AssistDataSourceBanner } from '@/components/assist';
-import { ActionToolbar, ModuleDashboardShell } from '@/components/layout/platform';
+import {
+  HealthOSBreadcrumbs,
+  HealthOSModuleShell,
+  HealthOSTopBar,
+} from '@/components/healthos';
+import { HealthOSAssistOperationsView } from '@/components/healthos/assist';
+import { ActionToolbar } from '@/components/layout/platform';
 import { PremiumBadge } from '@/components/ui';
 import { careSpacing } from '@/design/tokens/spacing';
 import { moduleColor } from '@/design/tokens/modules';
 import { useActiveExecutions } from '@/hooks/useActiveExecutions';
 import { useAssistDashboard } from '@/hooks/useAssistDashboard';
+import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { wp258A11y } from '@/lib/a11y/wp258-assist-planning';
 import { ASSIST_HEADER_PRIMARY_ACTIONS } from '@/lib/assist/assistDashboardWorkspace';
 
 export function AssistIndexScreen() {
   const router = useRouter();
+  const { profile, user } = useAuth();
   const { can } = usePermissions();
   const assistAccent = moduleColor('assist');
   const { stats, todayAssignments, loading, error, refresh, isLiveConnected } = useAssistDashboard();
   const { items: activeExecutions, loading: activeLoading } = useActiveExecutions();
+  const displayName =
+    profile?.displayName ?? user?.displayName ?? 'Assist & Alltagsbegleitung';
 
   const canPlan = can('assist.assignments.manage');
 
@@ -47,14 +56,25 @@ export function AssistIndexScreen() {
   ];
 
   return (
-    <ModuleDashboardShell
+    <HealthOSModuleShell
       moduleLabel="Assist & Alltagsbegleitung"
-      title="Assist"
-      subtitle="Einsatzplanung, Durchführung und Leistungsnachweise"
-      breadcrumbs={[
-        { label: 'Start', href: '/business' },
-        { label: 'Assist' },
-      ]}
+      testID="healthos-assist-operations-shell"
+      topBar={
+        <HealthOSTopBar
+          title="Assist Operations"
+          subtitle="Einsatzplanung, Durchführung und Leistungsnachweise"
+          compact={false}
+        />
+      }
+      breadcrumbs={
+        <HealthOSBreadcrumbs
+          segments={[
+            { label: 'Start', href: '/business' },
+            { label: 'Assist', href: '/assist' },
+            { label: 'Operations' },
+          ]}
+        />
+      }
     >
       <AssistDataSourceBanner />
       <ActionToolbar
@@ -69,15 +89,15 @@ export function AssistIndexScreen() {
           </View>
         }
       />
-      <AssistDashboardView
+      <HealthOSAssistOperationsView
         stats={stats}
         todayAssignments={todayAssignments}
         activeExecutions={activeExecutions}
         activeLoading={activeLoading}
         loading={loading}
         error={error}
+        displayName={displayName}
         onRefresh={refresh}
-        canPlan={canPlan}
       />
       <View
         accessible
@@ -85,7 +105,7 @@ export function AssistIndexScreen() {
         accessibilityRole={wp258A11y.headingRole}
         style={styles.a11yAnchor}
       />
-    </ModuleDashboardShell>
+    </HealthOSModuleShell>
   );
 }
 
