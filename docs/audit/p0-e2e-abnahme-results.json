@@ -2,7 +2,7 @@
   "timestamp": "2026-07-02T16:21:46.536Z",
   "baseUrl": "https://caresuiteplus.app",
   "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
-  "deployedNote": "Local dev server with uncommitted P0 fixes",
+  "deployedNote": "Production https://caresuiteplus.app — Bundle entry-49410f4…; Migration 0225 live angewendet; gültiger GO-Lauf Visit 678696dc… (2026-07-02 16:15–16:21 UTC)",
   "brokenReferenceVisit": "70f800b8-a04f-44ae-846f-dcc7f6f6497a",
   "criteria": [
     {
@@ -463,7 +463,14 @@
       "greenCount": 2,
       "total": 2
     },
-    "restrictedGo": "GO"
+    "restrictedGo": "GO",
+    "fullProductionGoBudgetWfm": true,
+    "officeZeitkontoUi": {
+      "ergebnis": "gelb",
+      "reason": "DB grün (5 WFM-Events, Session afa07556… wiederverwendet); Office-Zeitkonto-Screen nicht separat geöffnet",
+      "blocker": false
+    },
+    "notes": "Production GO mit dokumentierten Nicht-Blockern: C7 Mirror gelb by design; Office-Zeitkonto UI gelb (Restrisiko)"
   },
   "summary": {
     "green": 14,
@@ -471,7 +478,44 @@
     "red": 0,
     "total": 15,
     "goNoGo": "GO",
-    "restrictedGo": "GO"
+    "restrictedGo": "GO",
+    "fullProductionGoBudgetWfm": true
+  },
+  "p0Verification": {
+    "section": "P0.1 WFM Production Auto-Sync Verify",
+    "validVisitId": "678696dc-0568-4501-aa09-22305f2fa372",
+    "invalidRuns": [
+      {
+        "visitId": "a19a4d8e-b6d7-4533-95db-d10b774207df",
+        "reason": "Doc-Validation vor Finalize; 0 WFM-Events — kein GO-Nachweis"
+      }
+    ],
+    "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
+    "tenantName": "Test Pflege GmbH",
+    "employeeId": "c0e5e002-e002-4000-8000-000000000002",
+    "employeeLabel": "P0-Test",
+    "login": "p0.mhi.test@caresuiteplus.test",
+    "runWindowUtc": "2026-07-02T16:15:00Z — 2026-07-02T16:21:00Z",
+    "flow": "Bootstrap → MP-Workflow → Finalize → DB-Verify",
+    "backfillUsedInGoRun": false,
+    "autoSyncAfterFinalize": true,
+    "newWfmEventsCount": 5,
+    "newWorkSessionsCount": 0,
+    "reusedDaySessionId": "afa07556-a628-4b89-9e5f-cd4e1ec9e2d9",
+    "tenantCorrect": true,
+    "employeeCorrect": true,
+    "startEndDurationPlausible": true,
+    "rlsGreen": true,
+    "blockerInboxGreen": true,
+    "finalizeBannerCleared": true,
+    "c9BudgetDb": "gruen",
+    "c10WfmDb": "gruen",
+    "c7ClientDocumentMirror": "gelb_by_design",
+    "officeZeitkontoUi": "gelb_not_opened",
+    "fullProductionGoBudgetWfm": true,
+    "rootCause": "0224 tenant mismatch",
+    "fixMigration": "0225_wfm_assist_portal_sync_tenant_fix.sql",
+    "backfillPolicy": "Nur für alte/fehlerhafte Debug-Läufe; nicht im GO-Lauf"
   },
   "visits": {
     "test": "678696dc-0568-4501-aa09-22305f2fa372",

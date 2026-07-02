@@ -1,8 +1,9 @@
 # P0 Betriebssystem E2E — Abnahmebericht (Stabilisierung Runde 21)
 
 **Datum:** 2026-07-02  
-**Status: Full GO** — P0.1 WFM post-0225: Auto-Sync ohne Backfill bestätigt (C10 direct grün, 5 Events)  
-**Deploy:** `59c3d452` [deploy] → Code `03163041` → `entry-49410f4…` live auf https://caresuiteplus.app
+**Status: Full Production GO (Budget + WFM)** — gültiger Nachweis-Visit `678696dc-0568-4501-aa09-22305f2fa372`  
+**Deploy (Bundle):** `59c3d452` [deploy] → Code `03163041` → `entry-49410f4…` live auf https://caresuiteplus.app  
+**Migration 0225:** auf Supabase angewendet (RPC-Fix live ohne Bundle-Deploy)
 
 ---
 
@@ -126,7 +127,7 @@ Artefakte: `docs/audit/p0-e2e-abnahme-results.json`, `.audit-p01-prod-smoke-depl
 | **Root Cause E** | Budget (C9) grün trotz RPC-Fehler möglich: `markAssignmentExecuted` Direct-UPDATE-Fallback |
 | **Root Cause F** | `wfmAssistAdapter` behandelte RPC `0` als Erfolg → kein `wfmSyncFailed`-Signal bei leerem Mirror |
 | **Migration 0225** | `0225_wfm_assist_portal_sync_tenant_fix.sql` — Tenant-Zugriff via `employee_portal_accounts` + Visit-Zuweisungs-Check; auf Supabase angewendet |
-| **Code (uncommitted)** | `wfmAssistAdapter`: Zero-Insert + mappable Assist-Events = Fehler; `finalizeVisit`: `assistVisitId ?? assignmentId` |
+| **Code (uncommitted)** | `wfmAssistAdapter`: Zero-Insert + mappable Assist-Events = Fehler; `finalizeVisit`: `assistVisitId ?? assignmentId` — **Commit-Readiness vorbereitet** |
 | **Vitest** | **12/12 grün** (`wfmAssistAdapterRpc`, `finalizeVisitProof`, `clientBudgetMarkExecuted`) |
 | **Prod Re-Verify (post-0225)** | Manueller RPC-Backfill Smoke-Visit: **5** `workforce_time_events` (`source=assist`) ✓ |
 | **Deploy nötig?** | **Migration-only** für RPC-Fix auf bestehendem Bundle `entry-49410f4…`; Code-Härtung (Zero-Insert) erst nach Deploy |
@@ -137,7 +138,102 @@ Artefakte: `docs/audit/p0-e2e-abnahme-results.json`, `.audit-p01-prod-smoke-depl
 
 ---
 
-## P0.1 — WFM post-0225 Production Verification (2026-07-02)
+## P0.1 WFM Production Auto-Sync Verify (2026-07-02) — **gültiger GO-Nachweis**
+
+| Prüfpunkt | Ergebnis |
+|-----------|----------|
+| **Gültiger Visit** | `678696dc-0568-4501-aa09-22305f2fa372` (Test Pflege GmbH `a4ba83bd-65db-46cf-8cf7-61492cc78315`) |
+| **Mitarbeiter** | P0-Test `c0e5e002-e002-4000-8000-000000000002` |
+| **Login** | `p0.mhi.test@caresuiteplus.test` / Browser-Form auf https://caresuiteplus.app |
+| **Laufzeit** | 2026-07-02, 16:15–16:21 UTC |
+| **Ablauf** | Bootstrap → MP-Workflow (Consent→Anfahrt→Start→Ende→Doku→Signatur) → **Finalize** → DB-Verify |
+| **Backfill im GO-Lauf** | **Nein** — kein manuelles SQL, kein Repair-Skript |
+| **Auto-Sync nach Finalize** | **Ja** — 5 `workforce_time_events` batch-insert `16:20:46 UTC` nach Assist-Events `16:17–16:18` |
+| **Neue WFM-Events (nur dieser Lauf)** | **5** (`source=assist`) |
+| **Neue Sessions (nur dieser Lauf)** | **0** — bestehende Tages-Session `afa07556-a628-4b89-9e5f-cd4e1ec9e2d9` wiederverwendet |
+| **Tenant korrekt** | **Ja** |
+| **Mitarbeiter korrekt** | **Ja** |
+| **Start/Ende/Dauer plausibel** | **Ja** — `visit_started` 16:18:32 → `visit_ended` 16:18:54 (~22 s Service); Assignment `actual_start_at`/`actual_end_at` konsistent |
+| **Finalize-Banner** | **Weg** nach Abschluss — Erfolg *„Einsatz abgeschlossen — Leistungsnachweis erstellt.“* |
+| **RLS** | **Grün** (C13) |
+| **Blocker-Inbox** | **Grün** (C15) |
+| **C9 Budget (DB)** | **Grün** — `lifecycle_status=durchgefuehrt` |
+| **C10 WFM (DB)** | **Grün** — 5 direct, kein `assist_time_events`-Proxy |
+| **C7 Client-Document-Mirror** | **Gelb by design** — Proof@Finalize ja; `client_documents=0` erwartet bis `releaseAssistProofToPortal` |
+| **Office-Zeitkonto UI** | **Gelb (Restrisiko)** — DB grün; Office-Screen nicht separat geöffnet |
+| **Full Production GO Budget + WFM** | **Ja** |
+
+**Root Cause (Production vor Fix):** Migration **0224** RPC `sync_assist_visit_times_to_wfm` lehnte Portal-Finalize mit **`tenant mismatch`** ab (`p_tenant_id IS DISTINCT FROM current_tenant_id()`), wenn JWT-/Profil-Tenant-Auflösung vom Client-`ctx.tenantId` abwich. Budget-RPC konnte per Direct-UPDATE-Fallback maskiert werden; WFM nicht.
+
+**Fix:** Migration **0225** — Portal-sichere Tenant-Autorisierung via `employee_portal_accounts.auth_user_id` + Visit-Zuweisungs-Check; idempotenter Event-Loop unverändert aus 0224.
+
+**Backfill-Historie (nicht GO-relevant):**
+
+| Visit | WFM direct | Herkunft |
+|-------|------------|----------|
+| `aaa9f848…` | 5 (Batch 15:48 UTC) | **Manuelles Backfill** (Pre-0225-Debug) |
+| `38156f2d…` | 5 (Batch 16:01 UTC) | Auto-Sync (Zwischenlauf, nicht finaler Nachweis) |
+| `a19a4d8e…` | **0** | **Ungültig** — Doc-Validation vor Finalize, kein WFM |
+| `678696dc…` | **5** (Batch 16:20 UTC) | **Gültiger Auto-Sync-Nachweis** |
+
+**Dual-Scoring (Production GO mit dokumentierten Nicht-Blockern):**
+
+| Kriterium | Ergebnis | Blocker? |
+|-----------|----------|----------|
+| C9 Budget | **Grün** | Nein |
+| C10 WFM | **Grün** | Nein |
+| C7 Mirror | **Gelb** | Nein (by design) |
+| Office-Zeitkonto UI | **Gelb** | Nein (DB-Nachweis ausreichend) |
+| **restrictedGo / Full GO Budget+WFM** | **GO** | — |
+
+Artefakte: `docs/audit/p0-e2e-abnahme-results.json` (Visit `678696dc…`), `.audit-p0-fresh-wfm-e2e-retry.log`
+
+---
+
+## Migration 0225 — Dokumentation
+
+| Aspekt | Detail |
+|--------|--------|
+| **Datei** | `supabase/migrations/0225_wfm_assist_portal_sync_tenant_fix.sql` |
+| **Zweck** | Portal-sichere Tenant-Autorisierung für RPC `sync_assist_visit_times_to_wfm` |
+| **Betroffene Funktion** | `public.sync_assist_visit_times_to_wfm(p_tenant_id UUID, p_visit_id UUID)` (SECURITY DEFINER, ersetzt 0224-Body) |
+| **Policies/Grants** | Keine neuen pauschalen Grants; nutzt bestehende `GRANT EXECUTE … TO authenticated` aus 0224 |
+| **Warum 0224 scheiterte** | Strikter Guard `p_tenant_id = current_tenant_id()` → `tenant mismatch` im Employee-Portal-Kontext |
+| **0225-Logik** | Tenant erlaubt wenn: `current_tenant_id()` match **oder** aktiver `employee_portal_accounts`-Eintrag für `auth.uid()` **oder** Admin/Correct-Permission |
+| **Portal-Sicherheit** | Zusätzlich: Visit muss dem `resolve_current_employee_id()` zugewiesen sein |
+| **Tenant-sicher** | **Ja** — kein Cross-Tenant-Insert; Employee-Scope + Visit-Ownership |
+| **Idempotent** | **Ja** — `EXISTS`-Check pro Event-Typ/Reference vor INSERT; Session upsert per `work_date` |
+| **Live angewendet** | **Ja** — Supabase `euagyyztvmemuaiumvxm` (vor Commit `3bbc7c45`) |
+| **Deploy für RPC-Fix nötig** | **Nein** — reine DB-Migration; Bundle `entry-49410f4…` ruft RPC bereits auf |
+| **RLS nach 0225** | **Grün** — C13 unverändert bestanden im GO-Lauf |
+
+---
+
+## P0.1 — Code-Härtung (Commit-Readiness, noch nicht deployed)
+
+| Datei | Änderung | Deploy nötig? |
+|-------|----------|---------------|
+| `src/lib/wfm/wfmAssistAdapter.ts` | RPC `0`-Insert bei mappable Assist-Events → **Fehler** statt stillem Erfolg | **Ja** (Observability / `wfmSyncFailed`-Signal) |
+| `src/features/assistWorkflow/finalizeVisit.ts` | WFM-Visit-ID Fallback `assistVisitId ?? assignmentId` | **Ja** (Edge-Case-Robustheit) |
+| `src/__tests__/wfm/wfmAssistAdapterRpc.test.ts` | 5 Tests: RPC ok, zero-insert fail, tenant denied, migration fallback, `wfmSyncFailed` | Nein |
+
+**Entscheidung:**
+
+| Frage | Antwort |
+|-------|---------|
+| Produktionsrelevant für WFM-Persistenz? | **Nein** — Fix ist **Migration/RPC 0225** (live) |
+| Deploy nötig für WFM Auto-Sync? | **Nein** |
+| Trotzdem committen? | **Ja** — reproduzierbarer Stand, verhindert Regression (Zero-Insert-Schutz) |
+| Neue Risiken? | **Gering** — strengere Fehlererkennung; kein Schema-Change |
+| Tests | **12/12 grün** (`wfmAssistAdapterRpc` 5/5, `finalizeVisitProof` 5/5, `clientBudgetMarkExecuted` 2/2) |
+
+**Empfehlung:** Code-Härtung **mit** Audit-Docs in einem Commit `fix(p0.1): verify production wfm auto sync` — **ohne `[deploy]`**. Separates Deploy erst bei expliziter Freigabe (Observability-Härtung).
+
+---
+
+## P0.1 — WFM post-0225 Production Verification (2026-07-02, Zwischenlauf)
+
+> **Hinweis:** Dieser Abschnitt dokumentiert den Zwischenlauf `38156f2d…`. Der **verbindliche GO-Nachweis** ist Visit **`678696dc…`** (siehe oben).
 
 | Prüfpunkt | Ergebnis |
 |-----------|----------|

@@ -202,6 +202,14 @@ export async function applyAssistServiceEndToWfmSession(
   return { ok: true, data: undefined };
 }
 
+function hasMappableAssistTimeEvents(
+  events: Array<{ eventType: string }>,
+): boolean {
+  return events.some(
+    (event) => mapAssistEventToWfm(event.eventType as AssistTimeEventType) !== null,
+  );
+}
+
 async function syncAssistVisitTimesToWfmViaRpc(
   tenantId: string,
   visitId: string,
@@ -222,7 +230,18 @@ async function syncAssistVisitTimesToWfmViaRpc(
     return { ok: false, error: message };
   }
 
-  return { ok: true, data: typeof data === 'number' ? data : Number(data ?? 0) };
+  const inserted = typeof data === 'number' ? data : Number(data ?? 0);
+  if (inserted === 0) {
+    const eventsResult = await fetchTimeEventsForVisit(tenantId, visitId, 50);
+    if (eventsResult.ok && hasMappableAssistTimeEvents(eventsResult.data)) {
+      return {
+        ok: false,
+        error: 'WFM-Sync-RPC hat keine Zeitereignisse gespiegelt.',
+      };
+    }
+  }
+
+  return { ok: true, data: inserted };
 }
 
 /** Backfill: alle Assist-Events eines Besuchs in WFM spiegeln (idempotent). */

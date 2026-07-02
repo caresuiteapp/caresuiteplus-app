@@ -127,13 +127,14 @@ export async function finalizeVisit(
   }
 
   let wfmSyncFailed = false;
-  if (getServiceMode() === 'supabase' && ctx.employeeId && ctx.assistVisitId) {
+  const wfmVisitId = ctx.assistVisitId ?? ctx.assignmentId;
+  if (getServiceMode() === 'supabase' && ctx.employeeId && wfmVisitId) {
     const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
     const wfmSync = await syncAssistVisitTimesToWfm(
       ctx.tenantId,
       ctx.employeeId,
       ctx.profileId ?? null,
-      ctx.assistVisitId,
+      wfmVisitId,
     );
     if (!wfmSync.ok) {
       wfmSyncFailed = true;
