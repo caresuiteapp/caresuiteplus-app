@@ -1,7 +1,12 @@
 import { useRouter } from 'expo-router';
 import { StyleSheet, View } from 'react-native';
-import { OfficeDashboardView } from '@/components/dashboard/OfficeDashboardView';
-import { ActionToolbar, ModuleDashboardShell } from '@/components/layout/platform';
+import {
+  HealthOSBreadcrumbs,
+  HealthOSModuleShell,
+  HealthOSTopBar,
+} from '@/components/healthos';
+import { HealthOSOfficeCommandCenterView } from '@/components/healthos/office';
+import { ActionToolbar } from '@/components/layout/platform';
 import { moduleColor } from '@/design/tokens/modules';
 import { useOfficeDashboard } from '@/hooks/useOfficeDashboard';
 import { useAuth } from '@/lib/auth/context';
@@ -57,17 +62,28 @@ export function OfficeIndexScreen() {
   ];
 
   return (
-    <ModuleDashboardShell
-      moduleLabel="Office"
-      title="Office"
-      subtitle="Verwaltung, Organisation und Kommunikation"
-      breadcrumbs={[
-        { label: 'Start', href: '/business' },
-        { label: 'Office' },
-      ]}
+    <HealthOSModuleShell
+      moduleLabel="Office Command Center"
+      testID="healthos-office-command-center-shell"
+      topBar={
+        <HealthOSTopBar
+          title="Command Center"
+          subtitle="Steuerungszentrale für Geschäftsführung, Verwaltung und Qualität"
+          compact={false}
+        />
+      }
+      breadcrumbs={
+        <HealthOSBreadcrumbs
+          segments={[
+            { label: 'Start', href: '/business' },
+            { label: 'Office', href: '/office' },
+            { label: 'Command Center' },
+          ]}
+        />
+      }
     >
       <ActionToolbar actions={toolbarActions} accentColor={officeAccent} />
-      <OfficeDashboardView
+      <HealthOSOfficeCommandCenterView
         snapshot={data}
         loading={loading}
         error={error}
@@ -80,7 +96,7 @@ export function OfficeIndexScreen() {
         accessibilityRole={wp158A11y.headingRole}
         style={styles.a11yAnchor}
       />
-    </ModuleDashboardShell>
+    </HealthOSModuleShell>
   );
 }
 

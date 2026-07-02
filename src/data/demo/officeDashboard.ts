@@ -13,6 +13,8 @@ import {
   OFFICE_HEADER_PRIMARY_ACTIONS,
   OFFICE_SIDEBAR_QUICK_ACTIONS,
 } from '@/lib/office/officeDashboardWorkspace';
+import { pickOfficeCommandCenterReadMetrics } from '@/lib/office/officeCommandCenterModel';
+import { buildOfficeStatusCardsFromMetrics } from '@/lib/office/officeDashboardMetrics';
 import { demoAppointments, demoInvoices } from './seedCatalog';
 import { demoClients } from './clients';
 import { demoEmployees } from './employees';
@@ -36,6 +38,9 @@ const OFFICE_DEMO_METRICS = {
   openPortalRequests: 1,
   appointmentsThisWeek: demoAppointments.length,
   appointmentsToday: Math.min(2, demoAppointments.length),
+  assignmentsToday: 4,
+  executionBlockers: 2,
+  budgetWarnings: 1,
   activeModules: demoTenantProducts.filter((p) => p.isActive).length,
   totalModules: demoTenantProducts.length,
   tableAvailability: {
@@ -144,6 +149,7 @@ function getGreeting(): string {
 }
 
 export function buildOfficeDashboard(roleKey: RoleKey): DashboardSnapshot {
+  const statusCards = buildOfficeStatusCardsFromMetrics(OFFICE_DEMO_METRICS);
   return {
     scope: 'office',
     roleKey,
@@ -154,9 +160,10 @@ export function buildOfficeDashboard(roleKey: RoleKey): DashboardSnapshot {
     moduleLabel: 'CareSuite+ Office',
     primaryAction: OFFICE_HEADER_PRIMARY_ACTIONS[0],
     kpis: OFFICE_KPIS,
-    statusCards: OFFICE_STATUS_CARDS,
+    statusCards,
     quickActions: OFFICE_QUICK_ACTIONS,
     activities: OFFICE_ACTIVITIES,
     areaShortcuts: OFFICE_AREA_SHORTCUTS,
+    officeReadMetrics: pickOfficeCommandCenterReadMetrics(OFFICE_DEMO_METRICS),
   };
 }

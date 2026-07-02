@@ -23,6 +23,7 @@ import {
 } from '@/lib/office/officeDashboardMetrics';
 import { buildOfficeAreaShortcutsFromMetrics } from '@/lib/office/officeAreaShortcuts';
 import { buildOfficeWorkspaceSnapshotFields } from '@/lib/office/officeDashboardWorkspace';
+import { pickOfficeCommandCenterReadMetrics } from '@/lib/office/officeCommandCenterModel';
 
 function getGreeting(): string {
   const hour = new Date().getHours();
@@ -245,5 +246,6 @@ export function buildLiveOfficeDashboardSnapshot(
     quickActions: workspaceFields.quickActions,
     activities,
     areaShortcuts: buildOfficeAreaShortcutsFromMetrics(metrics),
+    officeReadMetrics: pickOfficeCommandCenterReadMetrics(metrics),
   };
 }

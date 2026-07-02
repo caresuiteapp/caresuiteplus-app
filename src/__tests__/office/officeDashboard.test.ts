@@ -72,23 +72,23 @@ describe('Office dashboard workspace', () => {
     expect(OFFICE_AREA_SHORTCUTS.some((a) => a.route === '/office/clients')).toBe(true);
   });
 
-  it('OfficeIndexScreen nutzt Verwaltungszentrale-Header', () => {
+  it('OfficeIndexScreen nutzt HealthOS Command Center', () => {
     const source = readSrc('src/screens/office/OfficeIndexScreen.tsx');
-    expect(source).toContain('OfficeDashboardView');
+    expect(source).toContain('HealthOSOfficeCommandCenterView');
     expect(source).toContain('useOfficeDashboard');
-    expect(source).toContain('Verwaltung, Organisation und Kommunikation');
-    expect(source).toContain("label: 'Office'");
+    expect(source).toContain('HealthOSModuleShell');
+    expect(source).toContain('Command Center');
     expect(source).not.toContain('Coming Soon');
   });
 
-  it('OfficeDashboardView ist Office-Verwaltungszentrale ohne Zentrale-Modulkarten', () => {
-    const source = readSrc('src/components/dashboard/OfficeDashboardView.tsx');
-    expect(source).toContain('LoadingState');
-    expect(source).toContain('ErrorState');
-    expect(source).toContain('EmptyState');
+  it('HealthOSOfficeCommandCenterView ist Office-Steuerungszentrale', () => {
+    const source = readSrc('src/components/healthos/office/HealthOSOfficeCommandCenterView.tsx');
+    expect(source).toContain('HealthOSLoadingState');
+    expect(source).toContain('HealthOSErrorState');
+    expect(source).toContain('HealthOSEmptyState');
     expect(source).toContain('onRefresh');
-    expect(source).toContain('Heute im Office');
-    expect(source).toContain('buildOfficeDashboardSections');
+    expect(source).toContain('Betriebsstatus heute');
+    expect(source).toContain('buildOfficeCommandCenterModel');
     expect(source).not.toContain('ModuleOverviewDashboard');
     expect(source).not.toContain('Zentrale Dashboard');
     expect(source).not.toContain('Coming Soon');

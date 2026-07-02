@@ -69,4 +69,30 @@ export type DashboardSnapshot = {
   activities: DashboardActivity[];
   /** Office Arbeitsbereiche with optional live counts — never demo-sourced in supabase mode. */
   areaShortcuts?: OfficeAreaShortcut[];
+  /** H3 — read-only Office Command Center metrics passthrough (no write paths). */
+  officeReadMetrics?: OfficeCommandCenterReadMetrics;
+};
+
+/** Subset of dashboard repository metrics for Office Command Center display only. */
+export type OfficeCommandCenterReadMetrics = {
+  assignmentsToday: number;
+  appointmentsToday: number;
+  executionBlockers: number;
+  budgetWarnings: number;
+  openServiceRecords: number;
+  documentsForReview: number;
+  draftInvoices: number;
+  openInvoices: number;
+  activeEmployees: number;
+  openTasks: number;
+  overdueTasks: number;
+  tableAvailability: {
+    assignments: boolean;
+    budgets: boolean;
+    serviceRecords: boolean;
+    documents: boolean;
+    invoices: boolean;
+    employees: boolean;
+    appointments: boolean;
+  };
 };
