@@ -1,8 +1,8 @@
 # P0 Betriebssystem E2E — Abnahmebericht (Stabilisierung Runde 21)
 
 **Datum:** 2026-07-02  
-**Status: GO mit Risiken** (Production-Smoke 15/15 grün; Direct-DB WFM/Budget-Ledger noch Proxy)  
-**Deploy:** `8646b0bb` [deploy] → Code `354c6d15` live auf https://caresuiteplus.app
+**Status: Full GO** — P0.1 WFM post-0225: Auto-Sync ohne Backfill bestätigt (C10 direct grün, 5 Events)  
+**Deploy:** `59c3d452` [deploy] → Code `03163041` → `entry-49410f4…` live auf https://caresuiteplus.app
 
 ---
 
@@ -76,6 +76,101 @@
 **Hinweis:** Erster E2E-Lauf (Visit `ade25ab2…`) brach bei MP-Timeout ab („Einsatzdaten konnten nicht rechtzeitig geladen werden“); Retry mit frischem Bootstrap erfolgreich.
 
 **Empfehlung P0.1 WFM:** **GO-RISIKO → GO für Persistenz** — Budget + WFM Direct-DB grün; UI-Kernworkflow grün; verbleibendes Risiko nur C3-Listen-Flake + erwartetes C7-Mirror.
+
+---
+
+## P0.1 Production Re-Smoke (2026-07-02)
+
+| Prüfpunkt | Ergebnis |
+|-----------|----------|
+| **Pre-Deploy** | `origin/main` = `03163041`; Prod-Bundle **alt** (`entry-cbd6b68…`, `sync_assist_visit_times_to_wfm` fehlend) |
+| **Deploy-Trigger** | `59c3d452` `chore(deploy): release p0.1 persistence hardening [deploy]` |
+| **Code-Commit** | `03163041` fix(p0.1): harden production persistence for budget wfm |
+| **Netlify Build** | Ja — Bundle gewechselt (`entry-cbd6b68…` → `entry-49410f4…`) nach ~3,5 min |
+| **P0.1 Marker** | `sync_assist_visit_times_to_wfm=True` im neuen Bundle ✓ |
+| **Bootstrap** | `budget_reservation` **OK** (0222 Grants; kein 42501) |
+| **Test-Visit** | `aaa9f848-883d-4745-9a72-a84dc06773a0` (Test Pflege GmbH) |
+| **E2E UI** | **13/15 grün**, 2 gelb, 0 rot → **GO** (~341 s) |
+| **MP-Ablauf** | **Vollständig** (doc → signature → finalize); Finalize-Banner **„Abgeschlossen“** ohne DB-Fehler |
+| **Dual-Scoring UI** | `uiScore`: 13 grün / 2 gelb / 0 rot → **GO** |
+| **Dual-Scoring DB** | Budget **grün** (`durchgefuehrt`); WFM **gelb** (0 direct, 6 assist proxy); client_documents **gelb** (Proof@Finalize ja, Mirror N/A) |
+| **restrictedGo** | **GO-RISIKO** |
+| **C3 MP-Sichtbar** | **grün** |
+| **C7 Proof/Klient** | **gelb** — `client_documents=0` bei Finalize erwartet (Mirror erst nach `releaseAssistProofToPortal`) |
+| **C9 Budget-Lifecycle** | **grün** — `client_budget_transactions.lifecycle_status=durchgefuehrt` (Direct-DB + E2E) |
+| **C10 WFM/Zeitkonto** | **gelb** — `workforce_time_events=0`; `assist_time_events=6` Proxy; UI grün |
+| **workforce_work_sessions** | 1 Session (Tenant, letzte 2 h) — **nicht** visit-verknüpft |
+| **assist_visit_proofs** | **1** draft, `payload_hash` gesetzt ✓ |
+| **RLS** | **grün** — Fremd-MA sieht fremden Visit nicht |
+| **Blocker-Inbox** | **grün** — Panel geladen, kein falscher Blocker auf Test-Visit |
+| **42501** | **Kein** Budget-Grant-Fehler mehr (0222 wirksam) |
+
+**WFM Root Cause (Production):** Bundle enthält RPC-first `wfmAssistAdapter`, Migration 0224 live — dennoch 0 `workforce_time_events` nach Finalize. Postgres-Log: `sync_assist_visit_times_to_wfm: tenant mismatch`. Strenger Guard `p_tenant_id IS DISTINCT FROM current_tenant_id()` schlägt fehl, wenn JWT-/Profil-Tenant-Auflösung vom Client-`ctx.tenantId` abweicht. Budget-RPC scheitert ggf. ebenfalls, wird aber durch Direct-UPDATE-Fallback maskiert.
+
+**Empfehlung P0.1 Production:** **Restricted GO (GO-RISIKO)** — Kern-Workflow production-fähig; Budget-Ledger-direct **grün** (P0.1 Hauptziel). WFM-Direct-Spiegelung in Production noch offen → kein Full GO bis WFM-RPC-Hit verifiziert.
+
+**Rollback-Option:** Leerer `[deploy]`-Commit auf vorherigen Bundle-Stand (`8646b0bb` / `entry-cbd6b68…`) oder Netlify Rollback auf Deploy vor `59c3d452`.
+
+Artefakte: `docs/audit/p0-e2e-abnahme-results.json`, `.audit-p01-prod-smoke-deploy.log`, `.audit-p01-prod-db-verify-deploy.log`
+
+---
+
+## P0.1 — WFM Production Debug (2026-07-02)
+
+| Prüfpunkt | Ergebnis |
+|-----------|----------|
+| **Root Cause A** | Migration **0224** RPC live (`20260702142401`); Grants `authenticated` ✓ |
+| **Root Cause B** | Postgres-Log + manueller Service-Role-Call: **`tenant mismatch`** bei striktem `current_tenant_id()`-Guard |
+| **Root Cause C** | P0-Smoke-Visit `aaa9f848…`: 6 `assist_time_events`, 0 `workforce_time_events` vor Fix |
+| **Root Cause D** | Portal-Account `p0.mhi.test` → Employee `c0e5e002…`, Profil-Tenant korrekt; RPC mit simuliertem JWT insertet **5** Events |
+| **Root Cause E** | Budget (C9) grün trotz RPC-Fehler möglich: `markAssignmentExecuted` Direct-UPDATE-Fallback |
+| **Root Cause F** | `wfmAssistAdapter` behandelte RPC `0` als Erfolg → kein `wfmSyncFailed`-Signal bei leerem Mirror |
+| **Migration 0225** | `0225_wfm_assist_portal_sync_tenant_fix.sql` — Tenant-Zugriff via `employee_portal_accounts` + Visit-Zuweisungs-Check; auf Supabase angewendet |
+| **Code (uncommitted)** | `wfmAssistAdapter`: Zero-Insert + mappable Assist-Events = Fehler; `finalizeVisit`: `assistVisitId ?? assignmentId` |
+| **Vitest** | **12/12 grün** (`wfmAssistAdapterRpc`, `finalizeVisitProof`, `clientBudgetMarkExecuted`) |
+| **Prod Re-Verify (post-0225)** | Manueller RPC-Backfill Smoke-Visit: **5** `workforce_time_events` (`source=assist`) ✓ |
+| **Deploy nötig?** | **Migration-only** für RPC-Fix auf bestehendem Bundle `entry-49410f4…`; Code-Härtung (Zero-Insert) erst nach Deploy |
+
+**Empfehlung P0.1 WFM Debug:** **GO-RISIKO → GO für WFM-Direct (DB)** nach 0225 + frischem Production-Finalize. Code-Änderungen committen, aber nicht deployen bis Abnahme. Nächster Schritt: neuer P0-Smoke-Visit finalisieren (ohne manuellen Backfill) und C10 direct prüfen.
+
+**Commit/Deploy-Readiness:** Migration **0225** angewendet (P0-DB). Code bereit für Review-Commit; **kein Deploy** ohne explizite Freigabe.
+
+---
+
+## P0.1 — WFM post-0225 Production Verification (2026-07-02)
+
+| Prüfpunkt | Ergebnis |
+|-----------|----------|
+| **Migration 0225** | Auf Supabase angewendet (Tenant-Guard via `employee_portal_accounts` + Visit-Zuweisung) |
+| **Prod-Bundle** | `entry-49410f4…` — `sync_assist_visit_times_to_wfm` RPC vorhanden ✓ |
+| **Bootstrap (Retry)** | `budget_reservation` **OK**; frischer Assignment nach erstem Doc-Validation-Abbruch |
+| **Test-Visit** | `38156f2d-d040-43cd-a574-4e3efb375e7f` (Test Pflege GmbH, Tenant `a4ba83bd…`) |
+| **Login** | `p0.mhi.test@caresuiteplus.test` / Browser-Form auf https://caresuiteplus.app |
+| **E2E UI** | **14/15 grün**, 1 gelb, 0 rot → **GO** (~329 s, Retry nach Doc-Flake) |
+| **MP-Ablauf** | **Vollständig** (doc → signature → finalize); erster Lauf brach bei „Kurzbeschreibung ist erforderlich“ ab |
+| **Dual-Scoring UI** | `uiScore`: 14 grün / 1 gelb / 0 rot → **GO** |
+| **Dual-Scoring DB** | Budget **grün** (`durchgefuehrt`); WFM **grün** (5 direct, kein Proxy); client_documents **gelb** (Mirror by design) |
+| **restrictedGo** | **GO** (Full GO — Budget + WFM Direct-DB beide grün) |
+| **C10 WFM/Zeitkonto** | **grün** — `workforce_time_events=5` (`source=assist`); `dbScore.gruen`; kein Proxy-Fallback |
+| **workforce_time_events** | **5** direct — `visit_drive_start`, `travel_end`, `visit_arrived`, `visit_started`, `visit_ended` |
+| **workforce_work_sessions** | **1** Session `afa07556…` — alle 5 Events verknüpft (`session_id`); Status `clocked_in` |
+| **assist_time_events** | **6** (Quelle); WFM-Mirror erfolgte **automatisch** beim Finalize — **kein manueller Backfill** |
+| **client_budget_transactions** | **durchgefuehrt** ✓ |
+| **assist_visit_proofs** | **1** draft, `payload_hash` gesetzt ✓ |
+| **C7 Proof/Klient** | **gelb** — Proof@Finalize ja; `client_documents=0` erwartet (Mirror erst nach `releaseAssistProofToPortal`) |
+
+**Erster Lauf (Visit `0db14863…`):** MP-Dokumentation nicht gespeichert → 5 rot, C10 gelb (0 WFM direct). Retry mit frischem Bootstrap erfolgreich.
+
+**Vergleich pre/post-0225:**
+
+| Visit | WFM direct | Backfill |
+|-------|------------|----------|
+| `aaa9f848…` (pre-0225) | 0 | manuell → 5 |
+| `38156f2d…` (post-0225) | **5** | **keiner** |
+
+**Empfehlung P0.1 WFM post-0225:** **Full GO** — Migration 0225 + Bundle `entry-49410f4…` reichen für WFM Auto-Sync in Production. Verbleibendes gelb nur C7 (Mirror by design). Code-Härtung (`wfmAssistAdapter` Zero-Insert) weiterhin empfohlen, aber kein Blocker für WFM-Persistenz.
+
+Artefakte: `docs/audit/p0-e2e-abnahme-results.json`, `.audit-p0-portal-auth-bootstrap-results.json`, Direct-DB via `.audit-p0-prod-db-verify.mjs` (`P0_VISIT_ID=38156f2d…`).
 
 ---
 

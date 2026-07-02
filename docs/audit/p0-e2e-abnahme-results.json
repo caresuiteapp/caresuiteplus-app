@@ -1,6 +1,6 @@
 {
-  "timestamp": "2026-07-02T14:40:14.855Z",
-  "baseUrl": "http://localhost:8082",
+  "timestamp": "2026-07-02T16:21:46.536Z",
+  "baseUrl": "https://caresuiteplus.app",
   "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
   "deployedNote": "Local dev server with uncommitted P0 fixes",
   "brokenReferenceVisit": "70f800b8-a04f-44ae-846f-dcc7f6f6497a",
@@ -92,9 +92,9 @@
       "testAbnahme": null,
       "restrisiko": null,
       "details": {
-        "freshVisit": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+        "freshVisit": "678696dc-0568-4501-aa09-22305f2fa372",
         "assignment": {
-          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+          "id": "678696dc-0568-4501-aa09-22305f2fa372",
           "status": "confirmed",
           "documentation_notes": null,
           "employee_id": "c0e5e002-e002-4000-8000-000000000002",
@@ -130,16 +130,16 @@
       "restrisiko": null,
       "details": {
         "reloadOk": true,
-        "visitId": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04"
+        "visitId": "678696dc-0568-4501-aa09-22305f2fa372"
       },
       "screenshot": "docs/audit/p0-e2e-screenshots/step-04-mp-execution.png"
     },
     {
       "criterionId": 3,
       "geprueft": true,
-      "ergebnis": "rot",
+      "ergebnis": "gruen",
       "betroffeneDateien": [],
-      "erkannteLuecke": "Einsätze nicht sichtbar",
+      "erkannteLuecke": null,
       "reparatur": null,
       "testAbnahme": null,
       "restrisiko": null,
@@ -156,7 +156,7 @@
       "testAbnahme": null,
       "restrisiko": null,
       "details": {
-        "visitMhi": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+        "visitMhi": "678696dc-0568-4501-aa09-22305f2fa372",
         "mpWorkflow": {
           "steps": [
             "location_consent",
@@ -172,7 +172,7 @@
             "finalize_clicked"
           ],
           "completed": true,
-          "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nUnterschrift offen\nUnterschrift offen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
+          "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nErfolgreich\nEinsatz abgeschlossen — Leistungsnachweis erstellt.\nAbgeschlossen\nAbgeschlossen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
         },
         "assignmentStatus": "completed"
       },
@@ -192,11 +192,11 @@
         "count": 1,
         "data": [
           {
-            "id": "b2bb1782-f5bd-4a85-8f91-e8c8ad0b1c78",
+            "id": "5a7a0a56-6f24-402c-b74e-e4eb199462f1",
             "status": "draft",
             "pdf_storage_path": null,
             "portal_visible": false,
-            "payload_hash": "sha256:30ba7259d6b38273c07386e9158af8db13f193713fde2cd9b369a774ff33952f"
+            "payload_hash": "sha256:f9cb3c82efdcd1fd5ff5535727047be4d58208d49c50d8f6cf5d05ba19fc0e8e"
           }
         ]
       },
@@ -212,11 +212,11 @@
       "testAbnahme": null,
       "restrisiko": null,
       "details": {
-        "id": "b2bb1782-f5bd-4a85-8f91-e8c8ad0b1c78",
+        "id": "5a7a0a56-6f24-402c-b74e-e4eb199462f1",
         "status": "draft",
         "pdf_storage_path": null,
         "portal_visible": false,
-        "payload_hash": "sha256:30ba7259d6b38273c07386e9158af8db13f193713fde2cd9b369a774ff33952f"
+        "payload_hash": "sha256:f9cb3c82efdcd1fd5ff5535727047be4d58208d49c50d8f6cf5d05ba19fc0e8e"
       },
       "screenshot": null
     },
@@ -274,7 +274,7 @@
         "count": 1,
         "data": [
           {
-            "id": "dde50c38-46ba-49f9-a9cd-b7c58b306878",
+            "id": "4cba9081-07df-4361-bec9-2f9e12ac11a8",
             "transaction_type": "reservation",
             "amount_cents": 5000,
             "lifecycle_status": "durchgefuehrt"
@@ -303,33 +303,33 @@
         "count": 5,
         "data": [
           {
-            "id": "701da22f-10d1-459e-999b-7dbcc17c06ee",
+            "id": "dc6ba1f3-6063-4ff0-8e76-976dac7cc087",
             "event_type": "visit_drive_start",
-            "occurred_at": "2026-07-02T14:36:48.964+00:00",
+            "occurred_at": "2026-07-02T16:17:57.143+00:00",
             "source": "assist"
           },
           {
-            "id": "9b2c300e-9a46-4cb2-95a5-ecd0e130832a",
+            "id": "d7b46082-6a28-4163-a22e-4c7eae31862b",
             "event_type": "travel_end",
-            "occurred_at": "2026-07-02T14:37:09.388+00:00",
+            "occurred_at": "2026-07-02T16:18:20.475+00:00",
             "source": "assist"
           },
           {
-            "id": "7dc402fc-a20e-4df1-8643-cd06f8f3f958",
+            "id": "409225f6-7e9c-4cef-bfc5-9d0e1de16393",
             "event_type": "visit_arrived",
-            "occurred_at": "2026-07-02T14:37:09.388+00:00",
+            "occurred_at": "2026-07-02T16:18:20.475+00:00",
             "source": "assist"
           },
           {
-            "id": "4782ab1d-370d-43eb-a8eb-ac065118540f",
+            "id": "fd3f12b0-fa94-4b29-933a-21983a066118",
             "event_type": "visit_started",
-            "occurred_at": "2026-07-02T14:37:24.19+00:00",
+            "occurred_at": "2026-07-02T16:18:32.66+00:00",
             "source": "assist"
           },
           {
-            "id": "7c6415c8-e93f-4f0c-b3a8-09e269391452",
+            "id": "29fbd125-5b0c-45f3-a05e-dadec0e10f27",
             "event_type": "visit_ended",
-            "occurred_at": "2026-07-02T14:37:39.638+00:00",
+            "occurred_at": "2026-07-02T16:18:54.688+00:00",
             "source": "assist"
           }
         ],
@@ -357,14 +357,14 @@
       "restrisiko": null,
       "details": {
         "assignment": {
-          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+          "id": "678696dc-0568-4501-aa09-22305f2fa372",
           "status": "completed",
           "documentation_notes": "P0-E2E Testdokumentation — automatischer Abnahmelauf.",
           "employee_id": "c0e5e002-e002-4000-8000-000000000002",
           "client_id": "ec4f159f-e794-4326-8b0e-15c0166df1ea"
         },
         "visit": {
-          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+          "id": "678696dc-0568-4501-aa09-22305f2fa372",
           "canonical_status": "completed",
           "execution_status": "completed",
           "documentation_status": "complete",
@@ -389,10 +389,10 @@
         "foreignBrowserLogin": true,
         "foreignLoginDetail": {
           "ok": true,
-          "currentUrl": "http://localhost:8082/portal/employee",
+          "currentUrl": "https://caresuiteplus.app/portal/employee",
           "loginFailed": false,
           "onFirstLogin": false,
-          "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPF\nMITARBEITERPORTAL\nGuten Tag, P0 Test Foreign\nTest Pflege GmbH\nMitarbeiterportal · Keine Einsätze heute\nPF\nAktueller Einsatz\nKeine Einsätze geplant\nFür heute sind keine Einsätze eingetragen.\nDienstplan ansehen\nTagesübersicht\nEinsätze heute\n0\nGeplante Stunden\n0 Std.\nOffene Dokumentation\n0\nNachrichten\n0\nSchnellzugriff\n📅\nEinsätze\n🗓️\nDienstplan\n💬\nNachrichten\n👤\nProf"
+          "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPF\nÜbersicht wird geladen…\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
         }
       },
       "screenshot": "docs/audit/p0-e2e-screenshots/step-13-rls-foreign-visit.png"
@@ -437,10 +437,10 @@
   ],
   "dualScoring": {
     "uiScore": {
-      "green": 13,
+      "green": 14,
       "yellow": 1,
-      "red": 1,
-      "goNoGo": "NO-GO"
+      "red": 0,
+      "goNoGo": "GO"
     },
     "dbScore": {
       "budget": {
@@ -463,18 +463,18 @@
       "greenCount": 2,
       "total": 2
     },
-    "restrictedGo": "NO-GO"
+    "restrictedGo": "GO"
   },
   "summary": {
-    "green": 13,
+    "green": 14,
     "yellow": 1,
-    "red": 1,
+    "red": 0,
     "total": 15,
-    "goNoGo": "NO-GO",
-    "restrictedGo": "NO-GO"
+    "goNoGo": "GO",
+    "restrictedGo": "GO"
   },
   "visits": {
-    "test": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+    "test": "678696dc-0568-4501-aa09-22305f2fa372",
     "foreignRls": "70f800b8-a04f-44ae-846f-dcc7f6f6497a"
   },
   "employeeUsername": "p0.mhi.test@caresuiteplus.test",
@@ -486,7 +486,7 @@
       "count": 1,
       "data": [
         {
-          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+          "id": "678696dc-0568-4501-aa09-22305f2fa372",
           "status": "confirmed",
           "documentation_notes": null,
           "employee_id": "c0e5e002-e002-4000-8000-000000000002",
@@ -506,7 +506,7 @@
       "count": 1,
       "data": [
         {
-          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+          "id": "678696dc-0568-4501-aa09-22305f2fa372",
           "canonical_status": "confirmed",
           "execution_status": "pending",
           "documentation_status": "none",
@@ -526,7 +526,7 @@
       "count": 1,
       "data": [
         {
-          "id": "dde50c38-46ba-49f9-a9cd-b7c58b306878",
+          "id": "4cba9081-07df-4361-bec9-2f9e12ac11a8",
           "transaction_type": "reservation",
           "amount_cents": 5000,
           "lifecycle_status": "geplant"
@@ -552,7 +552,7 @@
       "count": 1,
       "data": [
         {
-          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+          "id": "678696dc-0568-4501-aa09-22305f2fa372",
           "status": "completed",
           "documentation_notes": "P0-E2E Testdokumentation — automatischer Abnahmelauf.",
           "employee_id": "c0e5e002-e002-4000-8000-000000000002",
@@ -565,11 +565,11 @@
       "count": 1,
       "data": [
         {
-          "id": "b2bb1782-f5bd-4a85-8f91-e8c8ad0b1c78",
+          "id": "5a7a0a56-6f24-402c-b74e-e4eb199462f1",
           "status": "draft",
           "pdf_storage_path": null,
           "portal_visible": false,
-          "payload_hash": "sha256:30ba7259d6b38273c07386e9158af8db13f193713fde2cd9b369a774ff33952f"
+          "payload_hash": "sha256:f9cb3c82efdcd1fd5ff5535727047be4d58208d49c50d8f6cf5d05ba19fc0e8e"
         }
       ]
     },
@@ -578,7 +578,7 @@
       "count": 1,
       "data": [
         {
-          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
+          "id": "678696dc-0568-4501-aa09-22305f2fa372",
           "canonical_status": "completed",
           "execution_status": "completed",
           "documentation_status": "complete",
@@ -592,33 +592,33 @@
       "count": 5,
       "data": [
         {
-          "id": "701da22f-10d1-459e-999b-7dbcc17c06ee",
+          "id": "dc6ba1f3-6063-4ff0-8e76-976dac7cc087",
           "event_type": "visit_drive_start",
-          "occurred_at": "2026-07-02T14:36:48.964+00:00",
+          "occurred_at": "2026-07-02T16:17:57.143+00:00",
           "source": "assist"
         },
         {
-          "id": "9b2c300e-9a46-4cb2-95a5-ecd0e130832a",
+          "id": "d7b46082-6a28-4163-a22e-4c7eae31862b",
           "event_type": "travel_end",
-          "occurred_at": "2026-07-02T14:37:09.388+00:00",
+          "occurred_at": "2026-07-02T16:18:20.475+00:00",
           "source": "assist"
         },
         {
-          "id": "7dc402fc-a20e-4df1-8643-cd06f8f3f958",
+          "id": "409225f6-7e9c-4cef-bfc5-9d0e1de16393",
           "event_type": "visit_arrived",
-          "occurred_at": "2026-07-02T14:37:09.388+00:00",
+          "occurred_at": "2026-07-02T16:18:20.475+00:00",
           "source": "assist"
         },
         {
-          "id": "4782ab1d-370d-43eb-a8eb-ac065118540f",
+          "id": "fd3f12b0-fa94-4b29-933a-21983a066118",
           "event_type": "visit_started",
-          "occurred_at": "2026-07-02T14:37:24.19+00:00",
+          "occurred_at": "2026-07-02T16:18:32.66+00:00",
           "source": "assist"
         },
         {
-          "id": "7c6415c8-e93f-4f0c-b3a8-09e269391452",
+          "id": "29fbd125-5b0c-45f3-a05e-dadec0e10f27",
           "event_type": "visit_ended",
-          "occurred_at": "2026-07-02T14:37:39.638+00:00",
+          "occurred_at": "2026-07-02T16:18:54.688+00:00",
           "source": "assist"
         }
       ]
@@ -628,7 +628,7 @@
       "count": 1,
       "data": [
         {
-          "id": "dde50c38-46ba-49f9-a9cd-b7c58b306878",
+          "id": "4cba9081-07df-4361-bec9-2f9e12ac11a8",
           "transaction_type": "reservation",
           "amount_cents": 5000,
           "lifecycle_status": "durchgefuehrt"
@@ -656,6 +656,6 @@
       "finalize_clicked"
     ],
     "completed": true,
-    "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nUnterschrift offen\nUnterschrift offen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
+    "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nErfolgreich\nEinsatz abgeschlossen — Leistungsnachweis erstellt.\nAbgeschlossen\nAbgeschlossen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
   }
 }
