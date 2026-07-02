@@ -11,7 +11,11 @@ import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/respo
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useEmployeePortalDashboard } from '@/hooks/useEmployeePortalDashboard';
 import { usePortalProfileAvatar } from '@/hooks/usePortalProfileAvatar';
-import { isActiveEmployeeAssignment } from '@/lib/portal/employeePortalLiveOverviewService';
+import {
+  isActiveEmployeeAssignment,
+  isDocumentationPendingEmployeeAssignment,
+  resolveDashboardCurrentAssignment,
+} from '@/lib/portal/employeePortalLiveOverviewService';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -45,8 +49,29 @@ function formatDateTime(iso: string): string {
 function resolveWorkStatus(assignments: EmployeePortalAssignmentListItem[]): string {
   const active = assignments.find((item) => isActiveEmployeeAssignment(item.status));
   if (active) return 'Im Einsatz';
+  const docPending = assignments.find(
+    (item) => item.documentationPending || isDocumentationPendingEmployeeAssignment(item.status),
+  );
+  if (docPending) return 'Dokumentation offen';
   if (assignments.length > 0) return 'Einsätze heute';
   return 'Keine Einsätze heute';
+}
+
+function resolvePrimaryAction(item: EmployeePortalAssignmentListItem): {
+  label: string;
+  route: string;
+} | null {
+  const executeRoute = `/portal/employee/assignments/${item.assignmentId}/execute`;
+  if (isActiveEmployeeAssignment(item.status)) {
+    return { label: 'Fortsetzen', route: executeRoute };
+  }
+  if (item.documentationPending || isDocumentationPendingEmployeeAssignment(item.status)) {
+    return { label: 'Dokumentation fortsetzen', route: executeRoute };
+  }
+  if (item.status === 'bestaetigt' || item.status === 'geplant') {
+    return { label: 'Einsatz starten', route: executeRoute };
+  }
+  return null;
 }
 
 function AssignmentCard({
@@ -55,12 +80,14 @@ function AssignmentCard({
   onOpen,
   onNavigate,
   onStart,
+  primaryActionLabel,
 }: {
   item: EmployeePortalAssignmentListItem;
   accentColor: string;
   onOpen: () => void;
   onNavigate?: () => void;
   onStart?: () => void;
+  primaryActionLabel?: string;
 }) {
   const text = useAuroraAdaptiveText();
   const cardStyle = useAuroraGlassCardStyle();
@@ -90,7 +117,7 @@ function AssignmentCard({
           <PremiumButton title="Navigation" variant="secondary" onPress={onNavigate} />
         ) : null}
         {onStart ? (
-          <PremiumButton title="Starten" variant="primary" onPress={onStart} />
+          <PremiumButton title={primaryActionLabel ?? 'Starten'} variant="primary" onPress={onStart} />
         ) : null}
         <PremiumButton title="Öffnen" variant="secondary" onPress={onOpen} />
       </View>
@@ -122,8 +149,13 @@ export function EmployeePortalDashboardScreen({
 
   const currentAssignment = useMemo(() => {
     if (!dashboard) return null;
-    return dashboard.todayAssignments.find((item) => isActiveEmployeeAssignment(item.status)) ?? null;
+    return resolveDashboardCurrentAssignment(dashboard.todayAssignments);
   }, [dashboard]);
+
+  const primaryAction = useMemo(
+    () => (currentAssignment ? resolvePrimaryAction(currentAssignment) : null),
+    [currentAssignment],
+  );
 
   const workStatus = useMemo(
     () => resolveWorkStatus(dashboard?.todayAssignments ?? []),
@@ -210,6 +242,7 @@ export function EmployeePortalDashboardScreen({
         <AssignmentCard
           item={currentAssignment}
           accentColor={accent}
+          primaryActionLabel={primaryAction?.label}
           onOpen={() =>
             router.push(`/portal/employee/assignments/${currentAssignment.assignmentId}` as never)
           }
@@ -222,20 +255,29 @@ export function EmployeePortalDashboardScreen({
               : undefined
           }
           onStart={
-            isActiveEmployeeAssignment(currentAssignment.status)
-              ? () =>
-                  router.push(
-                    `/portal/employee/assignments/${currentAssignment.assignmentId}/execute` as never,
-                  )
+            primaryAction
+              ? () => router.push(primaryAction.route as never)
               : undefined
           }
         />
       ) : (
         <EmptyState
-          title="Keine Einsätze geplant"
-          message="Für heute sind keine Einsätze eingetragen."
-          actionLabel="Dienstplan ansehen"
-          onAction={() => router.push('/portal/employee/schedule' as never)}
+          title={
+            data.todayAssignments.length > 0 ? 'Kein laufender Einsatz' : 'Keine Einsätze geplant'
+          }
+          message={
+            data.todayAssignments.length > 0
+              ? 'Alle heutigen Einsätze sind abgeschlossen. Offene Dokumentation findest du unter Einsätze.'
+              : 'Für heute sind keine Einsätze eingetragen.'
+          }
+          actionLabel={data.todayAssignments.length > 0 ? 'Einsätze ansehen' : 'Dienstplan ansehen'}
+          onAction={() =>
+            router.push(
+              (data.todayAssignments.length > 0
+                ? '/portal/employee/assignments'
+                : '/portal/employee/schedule') as never,
+            )
+          }
         />
       )}
 

@@ -114,8 +114,30 @@ export function isActiveEmployeeAssignment(status: AssignmentStatus): boolean {
   return ACTIVE_ASSIGNMENT_STATUSES.has(status);
 }
 
+export function isDocumentationPendingEmployeeAssignment(status: AssignmentStatus): boolean {
+  return status === 'beendet' || status === 'dokumentation_offen';
+}
+
 export function isCompletedEmployeeAssignment(status: AssignmentStatus): boolean {
   return COMPLETED_ASSIGNMENT_STATUSES.has(status);
+}
+
+/** Prefer in-progress visit, then open documentation, then next startable slot today. */
+export function resolveDashboardCurrentAssignment(
+  todayAssignments: EmployeePortalAssignmentListItem[],
+): EmployeePortalAssignmentListItem | null {
+  const active = todayAssignments.find((item) => isActiveEmployeeAssignment(item.status));
+  if (active) return active;
+
+  const documentationPending = todayAssignments.find(
+    (item) => item.documentationPending || isDocumentationPendingEmployeeAssignment(item.status),
+  );
+  if (documentationPending) return documentationPending;
+
+  const startable = todayAssignments.find(
+    (item) => item.status === 'bestaetigt' || item.status === 'geplant',
+  );
+  return startable ?? null;
 }
 
 /** Live GPS / tracking UI only while execution is in progress. */

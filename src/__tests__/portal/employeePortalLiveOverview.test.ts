@@ -2,7 +2,9 @@ import { describe, expect, it } from 'vitest';
 import {
   buildEmployeePortalOverviewFromAppointments,
   isActiveEmployeeAssignment,
+  isDocumentationPendingEmployeeAssignment,
   mapPortalAppointmentToListItem,
+  resolveDashboardCurrentAssignment,
 } from '@/lib/portal/employeePortalLiveOverviewService';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 
@@ -91,5 +93,56 @@ describe('employeePortalLiveOverviewService', () => {
     ]);
     expect(overview.todayAssignments[0]?.status).toBe('beendet');
     expect(isActiveEmployeeAssignment(overview.todayAssignments[0]?.status ?? 'geplant')).toBe(false);
+  });
+
+  it('prefers active assignment for dashboard current slot', () => {
+    const start = new Date();
+    start.setHours(9, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(11, 0, 0, 0);
+    const laterStart = new Date(start);
+    laterStart.setHours(14, 0, 0, 0);
+    const laterEnd = new Date(laterStart);
+    laterEnd.setHours(16, 0, 0, 0);
+
+    const overview = buildEmployeePortalOverviewFromAppointments([
+      {
+        ...BASE,
+        id: 'done-1',
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
+        assignmentStatus: 'beendet',
+      },
+      {
+        ...BASE,
+        id: 'active-1',
+        startsAt: laterStart.toISOString(),
+        endsAt: laterEnd.toISOString(),
+        assignmentStatus: 'gestartet',
+      },
+    ]);
+
+    expect(resolveDashboardCurrentAssignment(overview.todayAssignments)?.assignmentId).toBe('active-1');
+  });
+
+  it('falls back to documentation-pending assignment when none active', () => {
+    const start = new Date();
+    start.setHours(10, 0, 0, 0);
+    const end = new Date(start);
+    end.setHours(12, 0, 0, 0);
+
+    const overview = buildEmployeePortalOverviewFromAppointments([
+      {
+        ...BASE,
+        id: 'doc-1',
+        startsAt: start.toISOString(),
+        endsAt: end.toISOString(),
+        assignmentStatus: 'beendet',
+      },
+    ]);
+
+    const current = resolveDashboardCurrentAssignment(overview.todayAssignments);
+    expect(current?.assignmentId).toBe('doc-1');
+    expect(isDocumentationPendingEmployeeAssignment(current?.status ?? 'geplant')).toBe(true);
   });
 });
