@@ -1,5 +1,5 @@
 {
-  "timestamp": "2026-07-02T12:34:15.987Z",
+  "timestamp": "2026-07-02T14:40:14.855Z",
   "baseUrl": "http://localhost:8082",
   "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
   "deployedNote": "Local dev server with uncommitted P0 fixes",
@@ -92,9 +92,9 @@
       "testAbnahme": null,
       "restrisiko": null,
       "details": {
-        "freshVisit": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+        "freshVisit": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
         "assignment": {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
           "status": "confirmed",
           "documentation_notes": null,
           "employee_id": "c0e5e002-e002-4000-8000-000000000002",
@@ -130,16 +130,16 @@
       "restrisiko": null,
       "details": {
         "reloadOk": true,
-        "visitId": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b"
+        "visitId": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04"
       },
       "screenshot": "docs/audit/p0-e2e-screenshots/step-04-mp-execution.png"
     },
     {
       "criterionId": 3,
       "geprueft": true,
-      "ergebnis": "gruen",
+      "ergebnis": "rot",
       "betroffeneDateien": [],
-      "erkannteLuecke": null,
+      "erkannteLuecke": "Einsätze nicht sichtbar",
       "reparatur": null,
       "testAbnahme": null,
       "restrisiko": null,
@@ -156,7 +156,7 @@
       "testAbnahme": null,
       "restrisiko": null,
       "details": {
-        "visitMhi": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+        "visitMhi": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
         "mpWorkflow": {
           "steps": [
             "location_consent",
@@ -172,7 +172,7 @@
             "finalize_clicked"
           ],
           "completed": true,
-          "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nErfolgreich\nEinsatz abgeschlossen — Leistungsnachweis erstellt.\nAbgeschlossen\nAbgeschlossen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
+          "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nUnterschrift offen\nUnterschrift offen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
         },
         "assignmentStatus": "completed"
       },
@@ -192,11 +192,11 @@
         "count": 1,
         "data": [
           {
-            "id": "34fa9a94-b0a3-4fdd-a834-4ceb1fa3cc41",
+            "id": "b2bb1782-f5bd-4a85-8f91-e8c8ad0b1c78",
             "status": "draft",
             "pdf_storage_path": null,
             "portal_visible": false,
-            "payload_hash": "sha256:e69bd4cb564ec005aa449d403038d436a3948a0bcf1123d2b44b0ae900b06ef5"
+            "payload_hash": "sha256:30ba7259d6b38273c07386e9158af8db13f193713fde2cd9b369a774ff33952f"
           }
         ]
       },
@@ -212,20 +212,20 @@
       "testAbnahme": null,
       "restrisiko": null,
       "details": {
-        "id": "34fa9a94-b0a3-4fdd-a834-4ceb1fa3cc41",
+        "id": "b2bb1782-f5bd-4a85-8f91-e8c8ad0b1c78",
         "status": "draft",
         "pdf_storage_path": null,
         "portal_visible": false,
-        "payload_hash": "sha256:e69bd4cb564ec005aa449d403038d436a3948a0bcf1123d2b44b0ae900b06ef5"
+        "payload_hash": "sha256:30ba7259d6b38273c07386e9158af8db13f193713fde2cd9b369a774ff33952f"
       },
       "screenshot": null
     },
     {
       "criterionId": 7,
       "geprueft": true,
-      "ergebnis": "gruen",
+      "ergebnis": "gelb",
       "betroffeneDateien": [],
-      "erkannteLuecke": null,
+      "erkannteLuecke": "Proof bei Finalize vorhanden — client_documents Mirror erst nach releaseAssistProofToPortal",
       "reparatur": null,
       "testAbnahme": null,
       "restrisiko": null,
@@ -235,6 +235,15 @@
           "ok": true,
           "count": 0,
           "data": []
+        },
+        "proofAtFinalize": true,
+        "mirrorAfterRelease": false,
+        "scoringNote": "client_documents erwartet erst nach releaseAssistProofToPortal, nicht bei Finalize",
+        "dbScore": {
+          "ergebnis": "gelb",
+          "reason": "Proof bei Finalize vorhanden — client_documents Mirror erst nach releaseAssistProofToPortal",
+          "proofAtFinalize": true,
+          "mirrorAfterRelease": false
         }
       },
       "screenshot": null
@@ -265,11 +274,18 @@
         "count": 1,
         "data": [
           {
-            "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
-            "billing_status": "preview"
+            "id": "dde50c38-46ba-49f9-a9cd-b7c58b306878",
+            "transaction_type": "reservation",
+            "amount_cents": 5000,
+            "lifecycle_status": "durchgefuehrt"
           }
         ],
-        "proxy": "assist_visits.billing_status"
+        "dbScore": {
+          "ergebnis": "gruen",
+          "reason": null,
+          "lifecycle": "durchgefuehrt"
+        },
+        "uiScore": "gruen"
       },
       "screenshot": null
     },
@@ -284,40 +300,46 @@
       "restrisiko": null,
       "details": {
         "ok": true,
-        "count": 6,
+        "count": 5,
         "data": [
           {
-            "id": "85e0bcc9-989e-4a5a-b8c6-6b73083c49c4",
-            "event_type": "service_end",
-            "occurred_at": "2026-07-02T12:31:18.036+00:00"
+            "id": "701da22f-10d1-459e-999b-7dbcc17c06ee",
+            "event_type": "visit_drive_start",
+            "occurred_at": "2026-07-02T14:36:48.964+00:00",
+            "source": "assist"
           },
           {
-            "id": "a5cae442-b539-4937-9980-c99fbbd19fcb",
-            "event_type": "depart",
-            "occurred_at": "2026-07-02T12:31:18.036+00:00"
+            "id": "9b2c300e-9a46-4cb2-95a5-ecd0e130832a",
+            "event_type": "travel_end",
+            "occurred_at": "2026-07-02T14:37:09.388+00:00",
+            "source": "assist"
           },
           {
-            "id": "e08b06e8-e6a6-433a-9733-bcc174cd3fce",
-            "event_type": "service_start",
-            "occurred_at": "2026-07-02T12:30:59.872+00:00"
+            "id": "7dc402fc-a20e-4df1-8643-cd06f8f3f958",
+            "event_type": "visit_arrived",
+            "occurred_at": "2026-07-02T14:37:09.388+00:00",
+            "source": "assist"
           },
           {
-            "id": "dbc8a413-ea41-47d9-965a-5fb8c11e5b78",
-            "event_type": "arrive",
-            "occurred_at": "2026-07-02T12:30:43.836+00:00"
+            "id": "4782ab1d-370d-43eb-a8eb-ac065118540f",
+            "event_type": "visit_started",
+            "occurred_at": "2026-07-02T14:37:24.19+00:00",
+            "source": "assist"
           },
           {
-            "id": "75b24a67-ac1e-4547-b16f-77ab091f0af3",
-            "event_type": "drive_end",
-            "occurred_at": "2026-07-02T12:30:43.836+00:00"
-          },
-          {
-            "id": "b9311c02-bccd-4299-93ac-0f6937e97731",
-            "event_type": "drive_start",
-            "occurred_at": "2026-07-02T12:30:26.19+00:00"
+            "id": "7c6415c8-e93f-4f0c-b3a8-09e269391452",
+            "event_type": "visit_ended",
+            "occurred_at": "2026-07-02T14:37:39.638+00:00",
+            "source": "assist"
           }
         ],
-        "proxy": "assist_time_events"
+        "dbScore": {
+          "ergebnis": "gruen",
+          "reason": null,
+          "wfmCount": 5,
+          "proxy": null
+        },
+        "uiScore": "gruen"
       },
       "screenshot": null
     },
@@ -335,19 +357,19 @@
       "restrisiko": null,
       "details": {
         "assignment": {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
           "status": "completed",
           "documentation_notes": "P0-E2E Testdokumentation — automatischer Abnahmelauf.",
           "employee_id": "c0e5e002-e002-4000-8000-000000000002",
           "client_id": "ec4f159f-e794-4326-8b0e-15c0166df1ea"
         },
         "visit": {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
           "canonical_status": "completed",
           "execution_status": "completed",
           "documentation_status": "complete",
           "proof_status": "pending",
-          "billing_status": "preview"
+          "billing_status": "reserved"
         }
       },
       "screenshot": null
@@ -413,14 +435,46 @@
       "screenshot": "docs/audit/p0-e2e-screenshots/step-09-problem-inbox.png"
     }
   ],
+  "dualScoring": {
+    "uiScore": {
+      "green": 13,
+      "yellow": 1,
+      "red": 1,
+      "goNoGo": "NO-GO"
+    },
+    "dbScore": {
+      "budget": {
+        "ergebnis": "gruen",
+        "reason": null,
+        "lifecycle": "durchgefuehrt"
+      },
+      "wfm": {
+        "ergebnis": "gruen",
+        "reason": null,
+        "wfmCount": 5,
+        "proxy": null
+      },
+      "clientDocument": {
+        "ergebnis": "gelb",
+        "reason": "Proof bei Finalize vorhanden — client_documents Mirror erst nach releaseAssistProofToPortal",
+        "proofAtFinalize": true,
+        "mirrorAfterRelease": false
+      },
+      "greenCount": 2,
+      "total": 2
+    },
+    "restrictedGo": "NO-GO"
+  },
   "summary": {
-    "green": 15,
-    "red": 0,
+    "green": 13,
+    "yellow": 1,
+    "red": 1,
     "total": 15,
-    "goNoGo": "GO"
+    "goNoGo": "NO-GO",
+    "restrictedGo": "NO-GO"
   },
   "visits": {
-    "test": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+    "test": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
     "foreignRls": "70f800b8-a04f-44ae-846f-dcc7f6f6497a"
   },
   "employeeUsername": "p0.mhi.test@caresuiteplus.test",
@@ -432,7 +486,7 @@
       "count": 1,
       "data": [
         {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
           "status": "confirmed",
           "documentation_notes": null,
           "employee_id": "c0e5e002-e002-4000-8000-000000000002",
@@ -452,7 +506,7 @@
       "count": 1,
       "data": [
         {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
           "canonical_status": "confirmed",
           "execution_status": "pending",
           "documentation_status": "none",
@@ -463,26 +517,21 @@
     "wfm": {
       "ok": true,
       "count": 0,
-      "data": [
-        {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
-          "execution_status": "pending",
-          "actual_start_at": null,
-          "actual_end_at": null
-        }
-      ],
-      "proxy": "assist_visits.execution_status"
+      "data": [],
+      "assistFallback": null,
+      "proxy": "none"
     },
     "budgetTx": {
       "ok": true,
       "count": 1,
       "data": [
         {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
-          "billing_status": "preview"
+          "id": "dde50c38-46ba-49f9-a9cd-b7c58b306878",
+          "transaction_type": "reservation",
+          "amount_cents": 5000,
+          "lifecycle_status": "geplant"
         }
-      ],
-      "proxy": "assist_visits.billing_status"
+      ]
     },
     "brokenReference": {
       "ok": true,
@@ -503,7 +552,7 @@
       "count": 1,
       "data": [
         {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
           "status": "completed",
           "documentation_notes": "P0-E2E Testdokumentation — automatischer Abnahmelauf.",
           "employee_id": "c0e5e002-e002-4000-8000-000000000002",
@@ -516,11 +565,11 @@
       "count": 1,
       "data": [
         {
-          "id": "34fa9a94-b0a3-4fdd-a834-4ceb1fa3cc41",
+          "id": "b2bb1782-f5bd-4a85-8f91-e8c8ad0b1c78",
           "status": "draft",
           "pdf_storage_path": null,
           "portal_visible": false,
-          "payload_hash": "sha256:e69bd4cb564ec005aa449d403038d436a3948a0bcf1123d2b44b0ae900b06ef5"
+          "payload_hash": "sha256:30ba7259d6b38273c07386e9158af8db13f193713fde2cd9b369a774ff33952f"
         }
       ]
     },
@@ -529,62 +578,62 @@
       "count": 1,
       "data": [
         {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "id": "e02708a7-c845-42fc-9b1c-7e3f0ddd1b04",
           "canonical_status": "completed",
           "execution_status": "completed",
           "documentation_status": "complete",
           "proof_status": "pending",
-          "billing_status": "preview"
+          "billing_status": "reserved"
         }
       ]
     },
     "wfm": {
       "ok": true,
-      "count": 6,
+      "count": 5,
       "data": [
         {
-          "id": "85e0bcc9-989e-4a5a-b8c6-6b73083c49c4",
-          "event_type": "service_end",
-          "occurred_at": "2026-07-02T12:31:18.036+00:00"
+          "id": "701da22f-10d1-459e-999b-7dbcc17c06ee",
+          "event_type": "visit_drive_start",
+          "occurred_at": "2026-07-02T14:36:48.964+00:00",
+          "source": "assist"
         },
         {
-          "id": "a5cae442-b539-4937-9980-c99fbbd19fcb",
-          "event_type": "depart",
-          "occurred_at": "2026-07-02T12:31:18.036+00:00"
+          "id": "9b2c300e-9a46-4cb2-95a5-ecd0e130832a",
+          "event_type": "travel_end",
+          "occurred_at": "2026-07-02T14:37:09.388+00:00",
+          "source": "assist"
         },
         {
-          "id": "e08b06e8-e6a6-433a-9733-bcc174cd3fce",
-          "event_type": "service_start",
-          "occurred_at": "2026-07-02T12:30:59.872+00:00"
+          "id": "7dc402fc-a20e-4df1-8643-cd06f8f3f958",
+          "event_type": "visit_arrived",
+          "occurred_at": "2026-07-02T14:37:09.388+00:00",
+          "source": "assist"
         },
         {
-          "id": "dbc8a413-ea41-47d9-965a-5fb8c11e5b78",
-          "event_type": "arrive",
-          "occurred_at": "2026-07-02T12:30:43.836+00:00"
+          "id": "4782ab1d-370d-43eb-a8eb-ac065118540f",
+          "event_type": "visit_started",
+          "occurred_at": "2026-07-02T14:37:24.19+00:00",
+          "source": "assist"
         },
         {
-          "id": "75b24a67-ac1e-4547-b16f-77ab091f0af3",
-          "event_type": "drive_end",
-          "occurred_at": "2026-07-02T12:30:43.836+00:00"
-        },
-        {
-          "id": "b9311c02-bccd-4299-93ac-0f6937e97731",
-          "event_type": "drive_start",
-          "occurred_at": "2026-07-02T12:30:26.19+00:00"
+          "id": "7c6415c8-e93f-4f0c-b3a8-09e269391452",
+          "event_type": "visit_ended",
+          "occurred_at": "2026-07-02T14:37:39.638+00:00",
+          "source": "assist"
         }
-      ],
-      "proxy": "assist_time_events"
+      ]
     },
     "budgetTx": {
       "ok": true,
       "count": 1,
       "data": [
         {
-          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
-          "billing_status": "preview"
+          "id": "dde50c38-46ba-49f9-a9cd-b7c58b306878",
+          "transaction_type": "reservation",
+          "amount_cents": 5000,
+          "lifecycle_status": "durchgefuehrt"
         }
-      ],
-      "proxy": "assist_visits.billing_status"
+      ]
     },
     "clientDocs": {
       "ok": true,
@@ -607,6 +656,6 @@
       "finalize_clicked"
     ],
     "completed": true,
-    "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nErfolgreich\nEinsatz abgeschlossen — Leistungsnachweis erstellt.\nAbgeschlossen\nAbgeschlossen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
+    "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nUnterschrift offen\nUnterschrift offen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
   }
 }

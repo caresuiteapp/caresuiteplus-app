@@ -762,7 +762,7 @@ async function queryBudgetLifecycle(admin, visitId, tenantId) {
   const visit = await queryDb(
     admin,
     'assist_visits',
-    `id=eq.${visitId}&tenant_id=eq.${tenantId}&select=id,billing_status`,
+    `id=eq.${visitId}&tenant_id=eq.${tenantId}&select=id,billing_status,budget_amount_cents`,
   );
   if (!visit.ok) return direct;
   const billed = visit.data?.[0]?.billing_status && visit.data[0].billing_status !== 'none';
@@ -775,11 +775,30 @@ async function queryBudgetLifecycle(admin, visitId, tenantId) {
   };
 }
 
+function scoreBudgetDb(dbBudget) {
+  const rows = dbBudget?.data ?? [];
+  const reservation = rows.find((r) => r.transaction_type === 'reservation');
+  const lifecycle = reservation?.lifecycle_status ?? null;
+  if (lifecycle === 'durchgefuehrt' || lifecycle === 'nachgewiesen' || lifecycle === 'freigegeben') {
+    return { ergebnis: 'gruen', reason: null, lifecycle };
+  }
+  if (dbBudget?.proxy === 'assist_visits.billing_status') {
+    const status = dbBudget?.data?.[0]?.billing_status;
+    if (status === 'preview' || status === 'reserved') {
+      return { ergebnis: 'gelb', reason: 'Nur billing_status-Proxy, kein Ledger lifecycle=durchgefuehrt', lifecycle: status };
+    }
+  }
+  if (lifecycle === 'geplant') {
+    return { ergebnis: 'rot', reason: 'Reservierung noch geplant', lifecycle };
+  }
+  return { ergebnis: 'rot', reason: 'Keine Budget-Buchung / lifecycle nicht durchgefuehrt', lifecycle };
+}
+
 async function queryWfmEvents(admin, visitId, tenantId) {
   const direct = await queryDb(
     admin,
     'workforce_time_events',
-    `reference_id=eq.${visitId}&tenant_id=eq.${tenantId}&select=id,event_type,occurred_at`,
+    `reference_id=eq.${visitId}&tenant_id=eq.${tenantId}&select=id,event_type,occurred_at,source`,
   );
   if (direct.ok && direct.count > 0) return direct;
   const assistEvents = await queryDb(
@@ -787,25 +806,50 @@ async function queryWfmEvents(admin, visitId, tenantId) {
     'assist_time_events',
     `visit_id=eq.${visitId}&tenant_id=eq.${tenantId}&select=id,event_type,occurred_at`,
   );
-  if (assistEvents.ok && assistEvents.count > 0) {
-    return { ...assistEvents, proxy: 'assist_time_events' };
-  }
-  const visit = await queryDb(
-    admin,
-    'assist_visits',
-    `id=eq.${visitId}&tenant_id=eq.${tenantId}&select=id,execution_status,actual_start_at,actual_end_at`,
-  );
-  if (!visit.ok) return direct;
-  const hasExecution =
-    visit.data?.[0]?.execution_status === 'completed' ||
-    Boolean(visit.data?.[0]?.actual_start_at);
   return {
-    ok: true,
-    count: hasExecution ? 1 : 0,
-    data: visit.data,
-    proxy: 'assist_visits.execution_status',
+    ok: direct.ok || assistEvents.ok,
+    count: direct.count ?? 0,
+    data: direct.data,
+    assistFallback: assistEvents.ok && assistEvents.count > 0 ? assistEvents : null,
+    proxy: direct.count > 0 ? null : assistEvents.count > 0 ? 'assist_time_events' : 'none',
     directError: direct.error,
   };
+}
+
+function scoreWfmDb(dbWfm) {
+  const wfmCount = dbWfm?.count ?? 0;
+  if (wfmCount > 0) {
+    return { ergebnis: 'gruen', reason: null, wfmCount, proxy: null };
+  }
+  const assistCount = dbWfm?.assistFallback?.count ?? 0;
+  if (assistCount > 0) {
+    return {
+      ergebnis: 'gelb',
+      reason: 'assist_time_events vorhanden, workforce_time_events leer',
+      wfmCount: 0,
+      proxy: 'assist_time_events',
+    };
+  }
+  return { ergebnis: 'rot', reason: 'Keine WFM-Zeitbuchung', wfmCount: 0, proxy: dbWfm?.proxy ?? null };
+}
+
+function scoreClientDocumentDb(dbAfter) {
+  const proofCount = dbAfter?.proofs?.count ?? 0;
+  const clientDocCount = dbAfter?.clientDocs?.count ?? 0;
+  const proofAtFinalize = proofCount > 0;
+  const mirrorAfterRelease = clientDocCount > 0;
+  if (mirrorAfterRelease) {
+    return { ergebnis: 'gruen', reason: null, proofAtFinalize, mirrorAfterRelease };
+  }
+  if (proofAtFinalize) {
+    return {
+      ergebnis: 'gelb',
+      reason: 'Proof bei Finalize vorhanden — client_documents Mirror erst nach releaseAssistProofToPortal',
+      proofAtFinalize,
+      mirrorAfterRelease,
+    };
+  }
+  return { ergebnis: 'rot', reason: 'Kein Proof / kein Klienten-Dokument', proofAtFinalize, mirrorAfterRelease };
 }
 
 async function queryClientDocsForProof(admin, visitId, tenantId, clientId, proofId) {
@@ -1049,9 +1093,16 @@ async function main() {
     }),
   );
   results.push(
-    criterion(7, dbAfter?.assignment?.data?.[0]?.client_id && proofCount > 0 ? 'gruen' : 'rot', {
-      gap: proofCount > 0 ? null : 'Kein Proof — client_documents Mirror nicht prüfbar',
-      details: { clientId: dbAfter?.assignment?.data?.[0]?.client_id, clientDocs: dbAfter?.clientDocs },
+    criterion(7, scoreClientDocumentDb(dbAfter).ergebnis === 'gruen' ? 'gruen' : scoreClientDocumentDb(dbAfter).ergebnis === 'gelb' ? 'gelb' : 'rot', {
+      gap: scoreClientDocumentDb(dbAfter).reason,
+      details: {
+        clientId: dbAfter?.assignment?.data?.[0]?.client_id,
+        clientDocs: dbAfter?.clientDocs,
+        proofAtFinalize: (dbAfter?.proofs?.count ?? 0) > 0,
+        mirrorAfterRelease: (dbAfter?.clientDocs?.count ?? 0) > 0,
+        scoringNote: 'client_documents erwartet erst nach releaseAssistProofToPortal, nicht bei Finalize',
+        dbScore: scoreClientDocumentDb(dbAfter),
+      },
     }),
   );
   results.push(
@@ -1070,19 +1121,21 @@ async function main() {
     await shot(bizPage, 'step-09-problem-inbox.png');
   }
 
-  // C9-10 Budget/WFM — DB (direct table or assist proxy fallback)
-  const wfmCount = dbAfter?.wfm?.count ?? 0;
-  const budgetCount = dbAfter?.budgetTx?.count ?? 0;
+  // C9-10 Budget/WFM — dual scoring (ui vs db)
+  const budgetDbScore = scoreBudgetDb(dbAfter?.budgetTx);
+  const wfmDbScore = scoreWfmDb(dbAfter?.wfm);
+  const uiBudgetOk = budgetDbScore.ergebnis === 'gruen' || budgetDbScore.ergebnis === 'gelb';
+  const uiWfmOk = wfmDbScore.ergebnis !== 'rot';
   results.push(
-    criterion(9, budgetCount > 0 ? 'gruen' : 'rot', {
-      gap: budgetCount > 0 ? null : 'Keine Budget-Buchung für Test-Visit (direct oder assist_visits.billing_status)',
-      details: dbAfter?.budgetTx,
+    criterion(9, budgetDbScore.ergebnis, {
+      gap: budgetDbScore.reason,
+      details: { ...dbAfter?.budgetTx, dbScore: budgetDbScore, uiScore: uiBudgetOk ? 'gruen' : 'rot' },
     }),
   );
   results.push(
-    criterion(10, wfmCount > 0 ? 'gruen' : 'rot', {
-      gap: wfmCount > 0 ? null : 'Keine Zeitbuchung für Test-Visit (direct oder assist_time_events Proxy)',
-      details: dbAfter?.wfm,
+    criterion(10, wfmDbScore.ergebnis, {
+      gap: wfmDbScore.reason,
+      details: { ...dbAfter?.wfm, dbScore: wfmDbScore, uiScore: uiWfmOk ? 'gruen' : 'rot' },
     }),
   );
 
@@ -1163,7 +1216,11 @@ async function main() {
   await mobileRls.close().catch(() => null);
 
   const green = results.filter((r) => r.ergebnis === 'gruen').length;
+  const yellow = results.filter((r) => r.ergebnis === 'gelb').length;
   const red = results.filter((r) => r.ergebnis === 'rot').length;
+  const dbScoreGreen = [budgetDbScore, wfmDbScore].filter((s) => s.ergebnis === 'gruen').length;
+  const dbScoreTotal = 2;
+  const restrictedGo = red === 0 && dbScoreGreen === dbScoreTotal ? 'GO' : red === 0 ? 'GO-RISIKO' : 'NO-GO';
   const goNoGo = red === 0 ? 'GO' : 'NO-GO';
 
   const output = {
@@ -1174,7 +1231,18 @@ async function main() {
     brokenReferenceVisit,
     criteria: CRITERIA,
     results,
-    summary: { green, red, total: results.length, goNoGo },
+    dualScoring: {
+      uiScore: { green, yellow, red, goNoGo },
+      dbScore: {
+        budget: budgetDbScore,
+        wfm: wfmDbScore,
+        clientDocument: scoreClientDocumentDb(dbAfter),
+        greenCount: dbScoreGreen,
+        total: dbScoreTotal,
+      },
+      restrictedGo,
+    },
+    summary: { green, yellow, red, total: results.length, goNoGo, restrictedGo },
     visits: { test: visitMhi, foreignRls: foreignVisitForRls },
     employeeUsername: empUser,
     foreignEmployeeUsername: foreignEmpUser,

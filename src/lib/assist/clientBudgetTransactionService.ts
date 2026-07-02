@@ -355,28 +355,34 @@ export async function markAssignmentExecuted(
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-    let rpcUsed = false;
     const rpcResult = await markAssignmentExecutedViaRpc(tenantId, visitId, createdBy);
     if (rpcResult.ok && rpcResult.data > 0) {
-      rpcUsed = true;
-    } else if (!rpcResult.ok && !rpcResult.error.includes('0221')) {
-      // Fall through to direct update for office users when RPC unavailable or permission-based.
-    }
-
-    if (!rpcUsed) {
+      for (const reservation of reservations) {
+        await writeBillingAuditLog(
+          tenantId,
+          reservation.client_id as string,
+          'assignment_executed',
+          'client_budget_transactions',
+          reservation.id as string,
+          { visitId, lifecycleStatus: 'durchgefuehrt', via: 'rpc' },
+          createdBy,
+        );
+      }
+    } else {
+      let directUpdated = 0;
       for (const reservation of reservations) {
         const { error } = await fromUnknownTable(client, 'client_budget_transactions')
           .update({ lifecycle_status: 'durchgefuehrt' })
           .eq('id', reservation.id as string);
 
         if (error) {
-          const rpcFallback = await markAssignmentExecutedViaRpc(tenantId, visitId, createdBy);
-          if (!rpcFallback.ok || rpcFallback.data === 0) {
-            return { ok: false, error: toGermanSupabaseError(error) };
-          }
-          rpcUsed = true;
-          break;
+          const message =
+            rpcResult.ok && rpcResult.data === 0
+              ? 'Budget-Reservierung konnte nicht auf „durchgeführt“ gesetzt werden.'
+              : rpcResult.error ?? toGermanSupabaseError(error);
+          return { ok: false, error: message };
         }
+        directUpdated += 1;
 
         await writeBillingAuditLog(
           tenantId,
@@ -388,17 +394,13 @@ export async function markAssignmentExecuted(
           createdBy,
         );
       }
-    } else {
-      for (const reservation of reservations) {
-        await writeBillingAuditLog(
-          tenantId,
-          reservation.client_id as string,
-          'assignment_executed',
-          'client_budget_transactions',
-          reservation.id as string,
-          { visitId, lifecycleStatus: 'durchgefuehrt', via: 'rpc' },
-          createdBy,
-        );
+      if (directUpdated === 0) {
+        return {
+          ok: false,
+          error:
+            rpcResult.error ??
+            'Budget-Reservierung konnte nicht auf „durchgeführt“ gesetzt werden.',
+        };
       }
     }
 

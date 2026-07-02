@@ -3,6 +3,8 @@ import type { ServiceResult } from '@/types';
 import type { WfmEventType, WfmSessionStatus, WfmDisplayStatus } from '@/types/modules/wfm';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
+import { getSupabaseClient } from '@/lib/supabase/client';
+import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import {
   fetchSessionForDate,
   hasAssistWfmEvent,
@@ -200,6 +202,29 @@ export async function applyAssistServiceEndToWfmSession(
   return { ok: true, data: undefined };
 }
 
+async function syncAssistVisitTimesToWfmViaRpc(
+  tenantId: string,
+  visitId: string,
+): Promise<ServiceResult<number>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const { data, error } = await supabase.rpc('sync_assist_visit_times_to_wfm', {
+    p_tenant_id: tenantId,
+    p_visit_id: visitId,
+  });
+
+  if (error) {
+    const message = toGermanSupabaseError(error);
+    if (/function.*does not exist|42883/i.test(message)) {
+      return { ok: false, error: 'WFM-Sync-RPC fehlt — Migration 0224 anwenden.' };
+    }
+    return { ok: false, error: message };
+  }
+
+  return { ok: true, data: typeof data === 'number' ? data : Number(data ?? 0) };
+}
+
 /** Backfill: alle Assist-Events eines Besuchs in WFM spiegeln (idempotent). */
 export async function syncAssistVisitTimesToWfm(
   tenantId: string,
@@ -207,6 +232,12 @@ export async function syncAssistVisitTimesToWfm(
   userId: string | null,
   visitId: string,
 ): Promise<ServiceResult<void>> {
+  const rpcSync = await syncAssistVisitTimesToWfmViaRpc(tenantId, visitId);
+  if (rpcSync.ok) return { ok: true, data: undefined };
+  if (!/Migration 0224/i.test(rpcSync.error ?? '')) {
+    return { ok: false, error: rpcSync.error };
+  }
+
   const eventsResult = await fetchTimeEventsForVisit(tenantId, visitId, 50);
   if (!eventsResult.ok) return { ok: false, error: eventsResult.error };
 

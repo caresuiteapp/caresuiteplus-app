@@ -218,10 +218,16 @@ async function syncBudgetLifecycleAfterPortalStatus(
   assignmentId: string,
   targetStatus: AssignmentStatus,
   actorProfileId?: string | null,
-): Promise<void> {
-  if (targetStatus !== 'beendet' && targetStatus !== 'abgeschlossen') return;
+): Promise<ServiceResult<void>> {
+  if (targetStatus !== 'beendet' && targetStatus !== 'abgeschlossen') {
+    return { ok: true, data: undefined };
+  }
   const { markAssignmentExecuted } = await import('@/lib/assist/clientBudgetTransactionService');
-  await markAssignmentExecuted(tenantId, assignmentId, actorProfileId ?? null);
+  const budgetResult = await markAssignmentExecuted(tenantId, assignmentId, actorProfileId ?? null);
+  if (!budgetResult.ok) {
+    return { ok: false, error: budgetResult.error ?? 'Budget-Reservierung konnte nicht verbucht werden.' };
+  }
+  return { ok: true, data: undefined };
 }
 
 /** Mirror assignments.status into assist_visits via SECURITY DEFINER RPC (direct visit UPDATE may fail RLS). */
@@ -243,12 +249,18 @@ export async function mirrorAssistVisitStatusFromAssignment(
   });
 
   if (!error) {
-    await syncBudgetLifecycleAfterPortalStatus(
+    const budgetSync = await syncBudgetLifecycleAfterPortalStatus(
       tenantId,
       assignmentId,
       targetStatus,
       actorProfileId,
     );
+    if (!budgetSync.ok) {
+      return {
+        ok: false,
+        error: budgetSync.error ?? 'Budget-Reservierung konnte nicht auf „durchgeführt“ gesetzt werden.',
+      };
+    }
     return { ok: true };
   }
 
@@ -259,12 +271,18 @@ export async function mirrorAssistVisitStatusFromAssignment(
     actorProfileId ?? null,
   );
   if (visitUpdated.ok) {
-    await syncBudgetLifecycleAfterPortalStatus(
+    const budgetSync = await syncBudgetLifecycleAfterPortalStatus(
       tenantId,
       assignmentId,
       targetStatus,
       actorProfileId,
     );
+    if (!budgetSync.ok) {
+      return {
+        ok: false,
+        error: budgetSync.error ?? 'Budget-Reservierung konnte nicht auf „durchgeführt“ gesetzt werden.',
+      };
+    }
     return { ok: true };
   }
 

@@ -1,17 +1,19 @@
 {
   "generatedAt": "2026-07-02T12:03:41.052Z",
-  "completedAt": "2026-07-02T12:34:15.987Z",
+  "completedAt": "2026-07-02T14:40:14.855Z",
   "baseUrl": "http://localhost:8082",
   "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
-  "goNoGo": "GO",
+  "goNoGo": "NO-GO",
   "testVisitId": "316c38a9-4950-422d-95fa-4bf712d087a6",
   "bestWorkflowVisitId": "316c38a9-4950-422d-95fa-4bf712d087a6",
   "runde": 20,
   "summary": {
-    "green": 15,
-    "red": 0,
+    "green": 13,
+    "yellow": 1,
+    "red": 1,
     "total": 15,
-    "goNoGo": "GO"
+    "goNoGo": "NO-GO",
+    "restrictedGo": "NO-GO"
   },
   "steps": [
     {

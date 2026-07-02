@@ -19,6 +19,7 @@ export type FinalizeVisitResult = {
   ctx: AssistExecutionContext;
   serviceRecordId: string | null;
   proofPersisted: boolean;
+  wfmSyncFailed?: boolean;
 };
 
 export async function finalizeVisit(
@@ -125,6 +126,7 @@ export async function finalizeVisit(
     return { ok: false, error: executionState.error ?? 'Einsatzstatus konnte nicht gespeichert werden.' };
   }
 
+  let wfmSyncFailed = false;
   if (getServiceMode() === 'supabase' && ctx.employeeId && ctx.assistVisitId) {
     const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
     const wfmSync = await syncAssistVisitTimesToWfm(
@@ -134,12 +136,10 @@ export async function finalizeVisit(
       ctx.assistVisitId,
     );
     if (!wfmSync.ok) {
-      return {
-        ok: false,
-        error:
-          wfmSync.error ??
-          'Einsatz abgeschlossen, aber Arbeitszeit konnte nicht synchronisiert werden. Bitte Office informieren.',
-      };
+      wfmSyncFailed = true;
+      if (process.env.NODE_ENV !== 'production') {
+        console.warn('[finalizeVisit] WFM sync failed (non-blocking):', wfmSync.error);
+      }
     }
   }
 
@@ -149,6 +149,7 @@ export async function finalizeVisit(
       ctx: transitioned.data,
       serviceRecordId: record.ok ? record.data.serviceRecordId : null,
       proofPersisted: record.ok ? record.data.proofPersisted : false,
+      wfmSyncFailed,
     },
   };
 }

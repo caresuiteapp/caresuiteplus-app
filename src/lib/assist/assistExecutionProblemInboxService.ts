@@ -16,8 +16,11 @@ export type AssistExecutionProblemCode =
   | 'proof_missing_client_document'
   | 'proof_not_portal_visible'
   | 'budget_reservation_not_executed'
+  | 'budget_reservation_failed'
+  | 'budget_ledger_missing'
   | 'budget_usage_missing_after_approval'
   | 'wfm_sync_missing'
+  | 'wfm_sync_failed'
   | 'assignment_visit_execution_drift';
 
 export type AssistExecutionProblemItem = {
@@ -37,6 +40,23 @@ const FINISHED_REMOTE_STATUSES = [
   'signature_open',
   'completed',
 ] as const;
+
+async function hasBudgetLedgerMissing(
+  tenantId: string,
+  visitId: string,
+): Promise<boolean> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return false;
+
+  const { data } = await fromUnknownTable(supabase, 'client_budget_transactions')
+    .select('id')
+    .eq('tenant_id', tenantId)
+    .eq('reference_type', 'assist_visit')
+    .eq('reference_id', visitId)
+    .limit(1);
+
+  return (data ?? []).length === 0;
+}
 
 async function hasBudgetReservationNotExecuted(
   tenantId: string,
@@ -196,7 +216,7 @@ export async function fetchAssistExecutionProblems(
       const budgetNotExecuted = await hasBudgetReservationNotExecuted(tenantId, visitId);
       if (budgetNotExecuted) {
         problems.push({
-          code: 'budget_reservation_not_executed',
+          code: 'budget_reservation_failed',
           assignmentId,
           visitId,
           clientId,
@@ -204,6 +224,26 @@ export async function fetchAssistExecutionProblems(
           title,
           message: 'Budget-Reservierung nicht auf „durchgeführt“ gesetzt.',
         });
+      } else if (status === 'abgeschlossen' && (await hasBudgetLedgerMissing(tenantId, visitId))) {
+        const { data: visitBilling } = await fromUnknownTable(supabase, 'assist_visits')
+          .select('billing_status, budget_amount_cents')
+          .eq('tenant_id', tenantId)
+          .eq('id', visitId)
+          .maybeSingle();
+        const expectsBudget =
+          Number(visitBilling?.budget_amount_cents ?? 0) > 0 ||
+          String(visitBilling?.billing_status ?? '') === 'preview';
+        if (expectsBudget) {
+          problems.push({
+            code: 'budget_ledger_missing',
+            assignmentId,
+            visitId,
+            clientId,
+            employeeId,
+            title,
+            message: 'Einsatz abgeschlossen, aber keine Budget-Ledger-Buchung vorhanden.',
+          });
+        }
       }
     }
 
@@ -224,7 +264,7 @@ export async function fetchAssistExecutionProblems(
 
       if (serviceEnd?.id && !wfmSynced) {
         problems.push({
-          code: 'wfm_sync_missing',
+          code: 'wfm_sync_failed',
           assignmentId,
           visitId,
           clientId,

@@ -128,6 +128,7 @@ describe('finalizeVisit — proof + completion sync', () => {
   );
 
   it('completes when proof persisted and transition succeeds', async () => {
+    const wfmSync = vi.fn(async () => ({ ok: true }));
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
       hasPortalPersistedClientSignature: vi.fn(async () => true),
@@ -148,7 +149,7 @@ describe('finalizeVisit — proof + completion sync', () => {
       upsertAssistVisitExecutionState: vi.fn(async () => ({ ok: true })),
     }));
     vi.doMock('@/lib/wfm/wfmAssistAdapter', () => ({
-      syncAssistVisitTimesToWfm: vi.fn(async () => ({ ok: true })),
+      syncAssistVisitTimesToWfm: wfmSync,
     }));
 
     const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
@@ -157,6 +158,42 @@ describe('finalizeVisit — proof + completion sync', () => {
     if (result.ok) {
       expect(result.data.proofPersisted).toBe(true);
       expect(result.data.ctx.assignmentStatus).toBe('abgeschlossen');
+      expect(result.data.wfmSyncFailed).toBeFalsy();
+    }
+  });
+
+  it('completes with wfmSyncFailed flag when WFM sync fails after transition', async () => {
+    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
+    vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
+      hasPortalPersistedClientSignature: vi.fn(async () => true),
+    }));
+    vi.doMock('@/features/assistWorkflow/generateServiceRecord', () => ({
+      generateServiceRecord: vi.fn(async () => ({
+        ok: true,
+        data: { serviceRecordId: 'sr-1', proofPersisted: true, html: '<p/>' },
+      })),
+    }));
+    vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
+      transitionAssistExecutionStatus: vi.fn(async () => ({
+        ok: true,
+        data: buildCtx({ assignmentStatus: 'abgeschlossen', derivedStatus: 'abgeschlossen' }),
+      })),
+    }));
+    vi.doMock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
+      upsertAssistVisitExecutionState: vi.fn(async () => ({ ok: true })),
+    }));
+    vi.doMock('@/lib/wfm/wfmAssistAdapter', () => ({
+      syncAssistVisitTimesToWfm: vi.fn(async () => ({
+        ok: false,
+        error: 'Kein Zugriff auf workforce_time_events.',
+      })),
+    }));
+
+    const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
+    const result = await finalizeVisit(buildCtx(), 'Erledigt');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.wfmSyncFailed).toBe(true);
     }
   });
 
