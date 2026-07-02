@@ -6,6 +6,7 @@ const PENDING_KEY = 'portal-welcome-pending';
 const SEEN_PREFIX = 'portal-welcome-seen';
 
 let pendingPortalWelcome: PortalWelcomeKind | null = null;
+const seenPortalWelcomeKeys = new Set<string>();
 
 export function markPortalWelcomePending(kind: PortalWelcomeKind): void {
   pendingPortalWelcome = kind;
@@ -35,6 +36,12 @@ export function clearPortalWelcomePending(): void {
   void AsyncStorage.removeItem(PENDING_KEY).catch(() => undefined);
 }
 
+/** @internal tests */
+export function resetPortalWelcomeSessionForTests(): void {
+  pendingPortalWelcome = null;
+  seenPortalWelcomeKeys.clear();
+}
+
 function seenStorageKey(kind: PortalWelcomeKind, accountId: string): string {
   return `${SEEN_PREFIX}:${kind}:${accountId}`;
 }
@@ -44,7 +51,9 @@ export async function markPortalWelcomeSeen(
   accountId: string,
 ): Promise<void> {
   if (!accountId.trim()) return;
-  await AsyncStorage.setItem(seenStorageKey(kind, accountId), new Date().toISOString());
+  const key = seenStorageKey(kind, accountId);
+  seenPortalWelcomeKeys.add(key);
+  await AsyncStorage.setItem(key, new Date().toISOString());
   clearPortalWelcomePending();
 }
 
@@ -53,9 +62,15 @@ export async function isPortalWelcomeSeen(
   accountId: string,
 ): Promise<boolean> {
   if (!accountId.trim()) return false;
+  const key = seenStorageKey(kind, accountId);
+  if (seenPortalWelcomeKeys.has(key)) return true;
   try {
-    const value = await AsyncStorage.getItem(seenStorageKey(kind, accountId));
-    return Boolean(value);
+    const value = await AsyncStorage.getItem(key);
+    if (value) {
+      seenPortalWelcomeKeys.add(key);
+      return true;
+    }
+    return false;
   } catch {
     return false;
   }

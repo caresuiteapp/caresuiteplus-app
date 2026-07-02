@@ -16,7 +16,10 @@ import { transitionAssistExecutionStatus } from './internal/transitionAssistExec
 import { ensureVisitTimeEvent } from './saveVisitTimeEvent';
 import { hasTravelEnded } from './getVisitTimeSegments';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
+import { resolveAllowedActions } from './resolveAllowedActions';
 import { logAssistWorkflowError, createAssistWorkflowError, assistWorkflowErrorToResult } from './assistWorkflowErrors';
+import { getServiceMode } from '@/lib/services/mode';
+import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import type { AssistExecutionContext } from './types';
 
 export type ArrivalMode = 'gps' | 'without_gps' | 'manual';
@@ -171,26 +174,57 @@ export async function markArrived(input: MarkArrivedInput): Promise<MarkArrivedR
     );
   }
 
-  const refreshed = await resolveAssistExecutionContext({
-    tenantId: ctx.tenantId,
-    assignmentId: ctx.assignmentId,
-    employeeId: ctx.employeeId,
-    profileId: ctx.profileId,
-    roleKey: ctx.roleKey as import('@/types').RoleKey | null,
-  });
-
   void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'angekommen', {
     employeeId: ctx.employeeId,
-    visitTimes: refreshed.ok ? refreshed.data.visitTimes : transition.data.visitTimes,
+    visitTimes: transition.data.visitTimes,
   });
+
+  if (getServiceMode() === 'supabase') {
+    void mirrorAssistVisitStatusFromAssignment(
+      ctx.tenantId,
+      ctx.assignmentId,
+      'angekommen',
+      ctx.profileId ?? null,
+    );
+  }
 
   let arrivalWarning: string | null = null;
   if (arrivalMode === 'without_gps') arrivalWarning = ARRIVED_WITHOUT_GPS_WARNING;
   if (arrivalMode === 'manual') arrivalWarning = ARRIVED_MANUAL_WARNING;
 
+  const arrivedAt =
+    transition.data.visitTimes?.arrivedAt ??
+    transition.data.detail.arrivedAt ??
+    new Date().toISOString();
+  const visitTimes = transition.data.visitTimes
+    ? { ...transition.data.visitTimes, arrivedAt }
+    : transition.data.visitTimes;
+  const detail = {
+    ...transition.data.detail,
+    status: 'angekommen' as const,
+    arrivedAt: transition.data.detail.arrivedAt ?? arrivedAt,
+  };
+  const arrivedContext: AssistExecutionContext =
+    transition.data.derivedStatus === 'angekommen'
+      ? { ...transition.data, detail, visitTimes }
+      : {
+          ...transition.data,
+          assignmentStatus: 'angekommen',
+          derivedStatus: 'angekommen',
+          detail,
+          visitTimes,
+          allowedActions: resolveAllowedActions({
+            assignmentStatus: 'angekommen',
+            visitTimes,
+            detail,
+            derivedStatus: 'angekommen',
+            canStartService: true,
+          }),
+        };
+
   return {
     ok: true,
-    data: refreshed.ok ? refreshed.data : transition.data,
+    data: arrivedContext,
     arrivalWarning,
   };
 }

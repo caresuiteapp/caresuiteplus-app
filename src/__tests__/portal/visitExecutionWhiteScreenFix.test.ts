@@ -142,4 +142,14 @@ describe('EmployeePortalVisitExecutionScreen isServiceEnded wiring', () => {
     expect(screen).toContain('hasServiceEnded: isServiceEnded');
     expect(screen).not.toMatch(/\bhasServiceEnded,\s*\n\s*\]\);/);
   });
+
+  it('uses effectiveStatus from hook instead of local derivedStatus fallback', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    const hook = readSrc('src/hooks/useEmployeePortalVisitExecution.ts');
+    expect(hook).toContain('effectiveStatus,');
+    expect(screen).toContain('effectiveStatus: hookEffectiveStatus');
+    expect(screen).not.toMatch(
+      /const effectiveStatus: AssignmentStatus = derivedStatus \?\? visit\?\.status/,
+    );
+  });
 });

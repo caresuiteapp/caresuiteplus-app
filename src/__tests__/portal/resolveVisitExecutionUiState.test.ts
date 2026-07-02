@@ -133,7 +133,7 @@ describe('resolveVisitExecutionUiState', () => {
     expect(state.showDocumentationForm).toBe(false);
   });
 
-  it('shows finalize after signature captured on dokumentation_offen', () => {
+  it('shows finalize when finalize_visit is allowed', () => {
     const state = resolveVisitExecutionUiState({
       visit: baseVisit({
         status: 'dokumentation_offen',
@@ -148,5 +148,22 @@ describe('resolveVisitExecutionUiState', () => {
 
     expect(state.showFinalize).toBe(true);
     expect(state.showSignature).toBe(false);
+  });
+
+  it('hides finalize when finalize_visit not allowed', () => {
+    const state = resolveVisitExecutionUiState({
+      visit: baseVisit({
+        status: 'dokumentation_offen',
+        signatureStatus: 'pending',
+      }),
+      effectiveStatus: 'dokumentation_offen',
+      consistencyStatus: 'consistent',
+      allowedActions: ['capture_signature', 'open_route'],
+      awaitingSignature: false,
+      hasServiceEnded: true,
+    });
+
+    expect(state.showFinalize).toBe(false);
+    expect(state.showSignature).toBe(true);
   });
 });

@@ -9,7 +9,11 @@ import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePers
 import { repairWorkflowState } from './repairWorkflowState';
 import { ensureVisitTimeEvent } from './saveVisitTimeEvent';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
+import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
+import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
+import { getServiceMode } from '@/lib/services/mode';
 import type { AssistExecutionContext } from './types';
+import type { VisitTimesSummary } from './calculateVisitTimes';
 import {
   assistWorkflowErrorFromSupabase,
   assistWorkflowErrorToResult,
@@ -122,9 +126,65 @@ async function verifyStartServiceReadback(
   return refreshed;
 }
 
+function mergeServiceStartedVisitTimes(
+  ctx: AssistExecutionContext,
+  visitTimes: VisitTimesSummary | null | undefined,
+  fallbackIso?: string,
+): VisitTimesSummary {
+  const serviceStartedAt =
+    visitTimes?.serviceStartedAt ?? ctx.detail.actualStartAt ?? fallbackIso ?? new Date().toISOString();
+  return {
+    driveSeconds: visitTimes?.driveSeconds ?? null,
+    serviceSeconds: visitTimes?.serviceSeconds ?? null,
+    pauseSeconds: visitTimes?.pauseSeconds ?? null,
+    totalSeconds: visitTimes?.totalSeconds ?? null,
+    driveStartedAt: visitTimes?.driveStartedAt ?? ctx.detail.onTheWayAt ?? null,
+    serviceStartedAt,
+    pauseStartedAt: visitTimes?.pauseStartedAt ?? null,
+    arrivedAt: visitTimes?.arrivedAt ?? ctx.detail.arrivedAt ?? null,
+    serviceEndedAt: visitTimes?.serviceEndedAt ?? null,
+    activeTimer: visitTimes?.activeTimer ?? 'service',
+  };
+}
+
+function buildOptimisticStartedContext(
+  ctx: AssistExecutionContext,
+  visitTimes: VisitTimesSummary,
+): AssistExecutionContext {
+  const detail = {
+    ...ctx.detail,
+    status: 'gestartet' as const,
+    actualStartAt: visitTimes.serviceStartedAt ?? ctx.detail.actualStartAt,
+  };
+  const workflow = {
+    derivedStatus: 'gestartet' as const,
+    recordedStatus: 'gestartet' as const,
+    consistencyStatus: ctx.consistencyStatus,
+    inconsistencies: ctx.inconsistencies,
+    repairOptions: ctx.repairOptions,
+    canStartService: false,
+    nextActionHint: null,
+  };
+  return {
+    ...ctx,
+    assignmentStatus: 'gestartet',
+    derivedStatus: 'gestartet',
+    detail,
+    visitTimes,
+    diagnostics: resolveAssistExecutionDiagnostics('gestartet', visitTimes, workflow),
+    allowedActions: resolveAllowedActions({
+      assignmentStatus: 'gestartet',
+      visitTimes,
+      detail,
+      derivedStatus: 'gestartet',
+      canStartService: false,
+    }),
+  };
+}
+
 async function persistServiceStartEvent(
   ctx: AssistExecutionContext,
-): Promise<ServiceResult<void>> {
+): Promise<ServiceResult<{ occurredAt: string }>> {
   const events = await fetchTimeEventsForVisit(ctx.tenantId, ctx.assistVisitId, 50);
   if (!events.ok) {
     return assistWorkflowErrorToResult(
@@ -158,7 +218,10 @@ async function persistServiceStartEvent(
     return startServiceError(mapStartServiceFailureCode(saved as WorkflowFail), ctx, saved.error);
   }
 
-  return { ok: true, data: undefined };
+  return {
+    ok: true,
+    data: { occurredAt: new Date().toISOString() },
+  };
 }
 
 async function applyExecutionStateAfterStart(
@@ -194,13 +257,25 @@ async function backfillServiceStart(
     return startServiceError('START_SERVICE_CONTEXT_MISSING', ctx, refreshed.error);
   }
 
-  const stateWrite = await applyExecutionStateAfterStart(ctx, refreshed.data.visitTimes);
+  const mergedTimes = mergeServiceStartedVisitTimes(
+    refreshed.data,
+    refreshed.data.visitTimes,
+    saved.data.occurredAt,
+  );
+  const stateWrite = await applyExecutionStateAfterStart(refreshed.data, mergedTimes);
   if (!stateWrite.ok) return stateWrite;
 
-  return verifyStartServiceReadback(ctx);
-}
+  if (getServiceMode() === 'supabase') {
+    void mirrorAssistVisitStatusFromAssignment(
+      refreshed.data.tenantId,
+      refreshed.data.assignmentId,
+      'gestartet',
+      refreshed.data.profileId ?? null,
+    );
+  }
 
-/** Normal angekommen → gestartet transition with time event + execution state. */
+  return { ok: true, data: buildOptimisticStartedContext(refreshed.data, mergedTimes) };
+}
 async function transitionToServiceStart(
   ctx: AssistExecutionContext,
 ): Promise<ServiceResult<AssistExecutionContext>> {
@@ -212,10 +287,32 @@ async function transitionToServiceStart(
     return startServiceError(mapStartServiceFailureCode(result as WorkflowFail), ctx, result.error);
   }
 
-  const stateWrite = await applyExecutionStateAfterStart(ctx, result.data.visitTimes);
+  const eventSaved = await persistServiceStartEvent(result.data);
+  if (!eventSaved.ok) return eventSaved;
+
+  const reloaded = await reloadContext(result.data);
+  if (!reloaded.ok) {
+    return startServiceError('START_SERVICE_CONTEXT_MISSING', ctx, reloaded.error);
+  }
+
+  const mergedTimes = mergeServiceStartedVisitTimes(
+    reloaded.data,
+    reloaded.data.visitTimes,
+    eventSaved.data.occurredAt,
+  );
+  const stateWrite = await applyExecutionStateAfterStart(reloaded.data, mergedTimes);
   if (!stateWrite.ok) return stateWrite;
 
-  return verifyStartServiceReadback(ctx);
+  if (getServiceMode() === 'supabase') {
+    void mirrorAssistVisitStatusFromAssignment(
+      reloaded.data.tenantId,
+      reloaded.data.assignmentId,
+      'gestartet',
+      reloaded.data.profileId ?? null,
+    );
+  }
+
+  return { ok: true, data: buildOptimisticStartedContext(reloaded.data, mergedTimes) };
 }
 
 export async function startService(

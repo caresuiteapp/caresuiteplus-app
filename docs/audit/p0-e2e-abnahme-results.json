@@ -1,0 +1,612 @@
+{
+  "timestamp": "2026-07-02T12:34:15.987Z",
+  "baseUrl": "http://localhost:8082",
+  "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
+  "deployedNote": "Local dev server with uncommitted P0 fixes",
+  "brokenReferenceVisit": "70f800b8-a04f-44ae-846f-dcc7f6f6497a",
+  "criteria": [
+    {
+      "id": 1,
+      "key": "office_planung",
+      "label": "Office plant realistischen Einsatz"
+    },
+    {
+      "id": 2,
+      "key": "assist_anzeige",
+      "label": "Assist zeigt Einsatz korrekt"
+    },
+    {
+      "id": 3,
+      "key": "mp_sichtbar",
+      "label": "MP zeigt Einsatz beim richtigen MA"
+    },
+    {
+      "id": 4,
+      "key": "mp_ablauf",
+      "label": "MP kompletter Statuslauf"
+    },
+    {
+      "id": 5,
+      "key": "proof_erzeugt",
+      "label": "Leistungsnachweis erzeugt"
+    },
+    {
+      "id": 6,
+      "key": "proof_inhalt",
+      "label": "Nachweis enthält korrekte Daten"
+    },
+    {
+      "id": 7,
+      "key": "proof_klient",
+      "label": "Nachweis beim richtigen Klienten"
+    },
+    {
+      "id": 8,
+      "key": "proof_sichtbarkeit",
+      "label": "Nachweis in Assist/Office/KP"
+    },
+    {
+      "id": 9,
+      "key": "budget_lifecycle",
+      "label": "Budget-Lifecycle korrekt"
+    },
+    {
+      "id": 10,
+      "key": "wfm_zeitkonto",
+      "label": "WFM/Zeitkonto korrekt"
+    },
+    {
+      "id": 11,
+      "key": "reload_konsistenz",
+      "label": "Reload/Refresh konsistent"
+    },
+    {
+      "id": 12,
+      "key": "realtime_sync",
+      "label": "Sync Office/Assist/Portale"
+    },
+    {
+      "id": 13,
+      "key": "rls_datenschutz",
+      "label": "Datenschutz/RLS"
+    },
+    {
+      "id": 14,
+      "key": "keine_demo_texte",
+      "label": "Keine Demo/Prepared-Texte Live"
+    },
+    {
+      "id": 15,
+      "key": "blocker_sichtbar",
+      "label": "Blocker sichtbar wenn fehlend"
+    }
+  ],
+  "results": [
+    {
+      "criterionId": 1,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "freshVisit": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+        "assignment": {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "status": "confirmed",
+          "documentation_notes": null,
+          "employee_id": "c0e5e002-e002-4000-8000-000000000002",
+          "client_id": "ec4f159f-e794-4326-8b0e-15c0166df1ea",
+          "title": "P0-E2E Testeinsatz",
+          "internal_notes": null
+        }
+      },
+      "screenshot": "docs/audit/p0-e2e-screenshots/step-02-assist-einsaetze.png"
+    },
+    {
+      "criterionId": 2,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [
+        "src/lib/assist/overlayVisitDispositionFromAssignment.ts"
+      ],
+      "erkannteLuecke": "Assist nicht erreichbar",
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": null,
+      "screenshot": "docs/audit/p0-e2e-screenshots/step-01-office-assist.png"
+    },
+    {
+      "criterionId": 11,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "reloadOk": true,
+        "visitId": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b"
+      },
+      "screenshot": "docs/audit/p0-e2e-screenshots/step-04-mp-execution.png"
+    },
+    {
+      "criterionId": 3,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": null,
+      "screenshot": "docs/audit/p0-e2e-screenshots/step-03-mp-liste.png"
+    },
+    {
+      "criterionId": 4,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "visitMhi": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+        "mpWorkflow": {
+          "steps": [
+            "location_consent",
+            "/Anfahrt starten/i",
+            "/Angekommen/i",
+            "/Einsatz starten/i",
+            "/Einsatz beenden/i",
+            "doc_filled",
+            "doc_saved",
+            "signature_drawn",
+            "signature_confirmed",
+            "signature_saved",
+            "finalize_clicked"
+          ],
+          "completed": true,
+          "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nErfolgreich\nEinsatz abgeschlossen — Leistungsnachweis erstellt.\nAbgeschlossen\nAbgeschlossen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
+        },
+        "assignmentStatus": "completed"
+      },
+      "screenshot": "docs/audit/p0-e2e-screenshots/step-04-mp-execution.png"
+    },
+    {
+      "criterionId": 5,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "ok": true,
+        "count": 1,
+        "data": [
+          {
+            "id": "34fa9a94-b0a3-4fdd-a834-4ceb1fa3cc41",
+            "status": "draft",
+            "pdf_storage_path": null,
+            "portal_visible": false,
+            "payload_hash": "sha256:e69bd4cb564ec005aa449d403038d436a3948a0bcf1123d2b44b0ae900b06ef5"
+          }
+        ]
+      },
+      "screenshot": null
+    },
+    {
+      "criterionId": 6,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "id": "34fa9a94-b0a3-4fdd-a834-4ceb1fa3cc41",
+        "status": "draft",
+        "pdf_storage_path": null,
+        "portal_visible": false,
+        "payload_hash": "sha256:e69bd4cb564ec005aa449d403038d436a3948a0bcf1123d2b44b0ae900b06ef5"
+      },
+      "screenshot": null
+    },
+    {
+      "criterionId": 7,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "clientId": "ec4f159f-e794-4326-8b0e-15c0166df1ea",
+        "clientDocs": {
+          "ok": true,
+          "count": 0,
+          "data": []
+        }
+      },
+      "screenshot": null
+    },
+    {
+      "criterionId": 8,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": null,
+      "screenshot": "docs/audit/p0-e2e-screenshots/step-09-assist-nachweise.png"
+    },
+    {
+      "criterionId": 9,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "ok": true,
+        "count": 1,
+        "data": [
+          {
+            "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+            "billing_status": "preview"
+          }
+        ],
+        "proxy": "assist_visits.billing_status"
+      },
+      "screenshot": null
+    },
+    {
+      "criterionId": 10,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "ok": true,
+        "count": 6,
+        "data": [
+          {
+            "id": "85e0bcc9-989e-4a5a-b8c6-6b73083c49c4",
+            "event_type": "service_end",
+            "occurred_at": "2026-07-02T12:31:18.036+00:00"
+          },
+          {
+            "id": "a5cae442-b539-4937-9980-c99fbbd19fcb",
+            "event_type": "depart",
+            "occurred_at": "2026-07-02T12:31:18.036+00:00"
+          },
+          {
+            "id": "e08b06e8-e6a6-433a-9733-bcc174cd3fce",
+            "event_type": "service_start",
+            "occurred_at": "2026-07-02T12:30:59.872+00:00"
+          },
+          {
+            "id": "dbc8a413-ea41-47d9-965a-5fb8c11e5b78",
+            "event_type": "arrive",
+            "occurred_at": "2026-07-02T12:30:43.836+00:00"
+          },
+          {
+            "id": "75b24a67-ac1e-4547-b16f-77ab091f0af3",
+            "event_type": "drive_end",
+            "occurred_at": "2026-07-02T12:30:43.836+00:00"
+          },
+          {
+            "id": "b9311c02-bccd-4299-93ac-0f6937e97731",
+            "event_type": "drive_start",
+            "occurred_at": "2026-07-02T12:30:26.19+00:00"
+          }
+        ],
+        "proxy": "assist_time_events"
+      },
+      "screenshot": null
+    },
+    {
+      "criterionId": 12,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [
+        "src/lib/assist/overlayVisitDispositionFromAssignment.ts",
+        "src/lib/assist/resolveAssignmentExecutionSnapshot.ts"
+      ],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "assignment": {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "status": "completed",
+          "documentation_notes": "P0-E2E Testdokumentation — automatischer Abnahmelauf.",
+          "employee_id": "c0e5e002-e002-4000-8000-000000000002",
+          "client_id": "ec4f159f-e794-4326-8b0e-15c0166df1ea"
+        },
+        "visit": {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "canonical_status": "completed",
+          "execution_status": "completed",
+          "documentation_status": "complete",
+          "proof_status": "pending",
+          "billing_status": "preview"
+        }
+      },
+      "screenshot": null
+    },
+    {
+      "criterionId": 13,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "foreignVisitForRls": "70f800b8-a04f-44ae-846f-dcc7f6f6497a",
+        "foreignEmpUser": "audit-employee-b@caresuiteplus.test",
+        "foreignBrowserLogin": true,
+        "foreignLoginDetail": {
+          "ok": true,
+          "currentUrl": "http://localhost:8082/portal/employee",
+          "loginFailed": false,
+          "onFirstLogin": false,
+          "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPF\nMITARBEITERPORTAL\nGuten Tag, P0 Test Foreign\nTest Pflege GmbH\nMitarbeiterportal · Keine Einsätze heute\nPF\nAktueller Einsatz\nKeine Einsätze geplant\nFür heute sind keine Einsätze eingetragen.\nDienstplan ansehen\nTagesübersicht\nEinsätze heute\n0\nGeplante Stunden\n0 Std.\nOffene Dokumentation\n0\nNachrichten\n0\nSchnellzugriff\n📅\nEinsätze\n🗓️\nDienstplan\n💬\nNachrichten\n👤\nProf"
+        }
+      },
+      "screenshot": "docs/audit/p0-e2e-screenshots/step-13-rls-foreign-visit.png"
+    },
+    {
+      "criterionId": 14,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "forbiddenHits": []
+      },
+      "screenshot": null
+    },
+    {
+      "criterionId": 15,
+      "geprueft": true,
+      "ergebnis": "gruen",
+      "betroffeneDateien": [
+        "src/lib/assist/assistExecutionProblemInboxService.ts",
+        "src/components/assist/AssistExecutionProblemInboxPanel.tsx"
+      ],
+      "erkannteLuecke": null,
+      "reparatur": null,
+      "testAbnahme": null,
+      "restrisiko": null,
+      "details": {
+        "blockerVisible": false,
+        "brokenReference": {
+          "id": "70f800b8-a04f-44ae-846f-dcc7f6f6497a",
+          "execution_status": "pending",
+          "documentation_status": "none",
+          "proof_status": "none"
+        }
+      },
+      "screenshot": "docs/audit/p0-e2e-screenshots/step-09-problem-inbox.png"
+    }
+  ],
+  "summary": {
+    "green": 15,
+    "red": 0,
+    "total": 15,
+    "goNoGo": "GO"
+  },
+  "visits": {
+    "test": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+    "foreignRls": "70f800b8-a04f-44ae-846f-dcc7f6f6497a"
+  },
+  "employeeUsername": "p0.mhi.test@caresuiteplus.test",
+  "foreignEmployeeUsername": "audit-employee-b@caresuiteplus.test",
+  "loginMethod": "browser_form",
+  "dbBaseline": {
+    "assignment": {
+      "ok": true,
+      "count": 1,
+      "data": [
+        {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "status": "confirmed",
+          "documentation_notes": null,
+          "employee_id": "c0e5e002-e002-4000-8000-000000000002",
+          "client_id": "ec4f159f-e794-4326-8b0e-15c0166df1ea",
+          "title": "P0-E2E Testeinsatz",
+          "internal_notes": null
+        }
+      ]
+    },
+    "proofs": {
+      "ok": true,
+      "count": 0,
+      "data": []
+    },
+    "visit": {
+      "ok": true,
+      "count": 1,
+      "data": [
+        {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "canonical_status": "confirmed",
+          "execution_status": "pending",
+          "documentation_status": "none",
+          "proof_status": "none"
+        }
+      ]
+    },
+    "wfm": {
+      "ok": true,
+      "count": 0,
+      "data": [
+        {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "execution_status": "pending",
+          "actual_start_at": null,
+          "actual_end_at": null
+        }
+      ],
+      "proxy": "assist_visits.execution_status"
+    },
+    "budgetTx": {
+      "ok": true,
+      "count": 1,
+      "data": [
+        {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "billing_status": "preview"
+        }
+      ],
+      "proxy": "assist_visits.billing_status"
+    },
+    "brokenReference": {
+      "ok": true,
+      "count": 1,
+      "data": [
+        {
+          "id": "70f800b8-a04f-44ae-846f-dcc7f6f6497a",
+          "execution_status": "pending",
+          "documentation_status": "none",
+          "proof_status": "none"
+        }
+      ]
+    }
+  },
+  "dbAfter": {
+    "assignment": {
+      "ok": true,
+      "count": 1,
+      "data": [
+        {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "status": "completed",
+          "documentation_notes": "P0-E2E Testdokumentation — automatischer Abnahmelauf.",
+          "employee_id": "c0e5e002-e002-4000-8000-000000000002",
+          "client_id": "ec4f159f-e794-4326-8b0e-15c0166df1ea"
+        }
+      ]
+    },
+    "proofs": {
+      "ok": true,
+      "count": 1,
+      "data": [
+        {
+          "id": "34fa9a94-b0a3-4fdd-a834-4ceb1fa3cc41",
+          "status": "draft",
+          "pdf_storage_path": null,
+          "portal_visible": false,
+          "payload_hash": "sha256:e69bd4cb564ec005aa449d403038d436a3948a0bcf1123d2b44b0ae900b06ef5"
+        }
+      ]
+    },
+    "visit": {
+      "ok": true,
+      "count": 1,
+      "data": [
+        {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "canonical_status": "completed",
+          "execution_status": "completed",
+          "documentation_status": "complete",
+          "proof_status": "pending",
+          "billing_status": "preview"
+        }
+      ]
+    },
+    "wfm": {
+      "ok": true,
+      "count": 6,
+      "data": [
+        {
+          "id": "85e0bcc9-989e-4a5a-b8c6-6b73083c49c4",
+          "event_type": "service_end",
+          "occurred_at": "2026-07-02T12:31:18.036+00:00"
+        },
+        {
+          "id": "a5cae442-b539-4937-9980-c99fbbd19fcb",
+          "event_type": "depart",
+          "occurred_at": "2026-07-02T12:31:18.036+00:00"
+        },
+        {
+          "id": "e08b06e8-e6a6-433a-9733-bcc174cd3fce",
+          "event_type": "service_start",
+          "occurred_at": "2026-07-02T12:30:59.872+00:00"
+        },
+        {
+          "id": "dbc8a413-ea41-47d9-965a-5fb8c11e5b78",
+          "event_type": "arrive",
+          "occurred_at": "2026-07-02T12:30:43.836+00:00"
+        },
+        {
+          "id": "75b24a67-ac1e-4547-b16f-77ab091f0af3",
+          "event_type": "drive_end",
+          "occurred_at": "2026-07-02T12:30:43.836+00:00"
+        },
+        {
+          "id": "b9311c02-bccd-4299-93ac-0f6937e97731",
+          "event_type": "drive_start",
+          "occurred_at": "2026-07-02T12:30:26.19+00:00"
+        }
+      ],
+      "proxy": "assist_time_events"
+    },
+    "budgetTx": {
+      "ok": true,
+      "count": 1,
+      "data": [
+        {
+          "id": "ce4b5753-43ac-41ac-8eaf-a832a3c6064b",
+          "billing_status": "preview"
+        }
+      ],
+      "proxy": "assist_visits.billing_status"
+    },
+    "clientDocs": {
+      "ok": true,
+      "count": 0,
+      "data": []
+    }
+  },
+  "mpWorkflow": {
+    "steps": [
+      "location_consent",
+      "/Anfahrt starten/i",
+      "/Angekommen/i",
+      "/Einsatz starten/i",
+      "/Einsatz beenden/i",
+      "doc_filled",
+      "doc_saved",
+      "signature_drawn",
+      "signature_confirmed",
+      "signature_saved",
+      "finalize_clicked"
+    ],
+    "completed": true,
+    "bodySnippet": "☰\nCareSuite+\nMitarbeiterportal\nPP\n← Zurück\nP0-E2E Testeinsatz\nErika Mustermann · Mitarbeiterportal\nErfolgreich\nEinsatz abgeschlossen — Leistungsnachweis erstellt.\nAbgeschlossen\nAbgeschlossen\nEinwilligung\nAnfahrt\nAngekommen\nEinsatz\nAufgaben\nDokumentation\nUnterschrift\nAbschluss\nAbgeschlossen\nKarte / Route\nZurück zur Übersicht\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil"
+  }
+}

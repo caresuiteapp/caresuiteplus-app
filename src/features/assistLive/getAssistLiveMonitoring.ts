@@ -27,6 +27,7 @@ import {
 import type { EmployeePortalLocationConsent } from '@/types/modules/employeePortalTracking';
 import { fetchEmployeeLocationConsentRecord } from '@/features/liveTracking/employeeLocationConsentPersistence';
 import { getServiceMode } from '@/lib/services/mode';
+import { fetchAssignmentExecutionSnapshotBatch } from '@/lib/assist/resolveAssignmentExecutionSnapshot';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
 
@@ -360,6 +361,53 @@ function buildMapMarkers(rows: AssistLiveMonitoringRow[]): AssistLiveMapMarker[]
     }));
 }
 
+async function enrichLiveMonitorRowsFromExecutionSnapshots(
+  tenantId: string,
+  rows: AssistLiveMonitoringRow[],
+): Promise<AssistLiveMonitoringRow[]> {
+  if (getServiceMode() !== 'supabase' || rows.length === 0) return rows;
+
+  const snapshots = await fetchAssignmentExecutionSnapshotBatch(
+    tenantId,
+    rows.map((row) => ({
+      assignmentId: row.assignmentId,
+      visitId: row.visitId ?? row.assignmentId,
+      fallbackStatus: row.status,
+    })),
+  );
+
+  return rows.map((row) => {
+    const snapshot = snapshots.get(row.assignmentId);
+    if (!snapshot) return row;
+
+    const status = snapshot.assignmentStatus;
+    let docStatus = row.docStatus;
+    let signatureStatus = row.signatureStatus;
+
+    if (snapshot.hasDocumentation) {
+      docStatus = 'ok';
+    } else if (status === 'beendet' || status === 'dokumentation_offen') {
+      docStatus = 'missing';
+    }
+
+    if (snapshot.hasSignature) {
+      signatureStatus = 'ok';
+    } else if (status === 'unterschrift_offen') {
+      signatureStatus = 'missing';
+    }
+
+    const displayStatus = fallbackDisplayStatus(status);
+    return {
+      ...row,
+      status,
+      displayStatus,
+      statusColor: DAY_MONITOR_STATUS_COLORS[displayStatus],
+      docStatus,
+      signatureStatus,
+    };
+  });
+}
+
 function computeRunningCount(rows: AssistLiveMonitoringRow[], visitWorkflowStatuses?: WorkflowStatus[]): number {
   if (visitWorkflowStatuses?.length) {
     return visitWorkflowStatuses.filter(isRunningWorkflowStatus).length;
@@ -448,7 +496,7 @@ export async function getAssistLiveMonitoring(
 
   if (!rowsResult.ok) return rowsResult;
 
-  const rows = rowsResult.data;
+  const rows = await enrichLiveMonitorRowsFromExecutionSnapshots(tenantId, rowsResult.data);
   const todayCount = rows.length;
   const runningCount = computeRunningCount(rows, visitWorkflowStatuses);
   const activeTrackingCount = rows.filter((r) => r.tracking?.trackingActive).length;

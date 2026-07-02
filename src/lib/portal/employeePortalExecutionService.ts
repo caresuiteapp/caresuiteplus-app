@@ -238,6 +238,10 @@ function updateWorkflowStatus(
       patch?.actualStartAt ??
       record.actualStartAt ??
       (toStatus === 'gestartet' ? now : record.actualStartAt),
+    onTheWayAt:
+      toStatus === 'unterwegs' ? now : (record as { onTheWayAt?: string | null }).onTheWayAt ?? null,
+    arrivedAt:
+      toStatus === 'angekommen' ? now : (record as { arrivedAt?: string | null }).arrivedAt ?? null,
     actualEndAt:
       patch?.actualEndAt ?? record.actualEndAt ?? (toStatus === 'beendet' ? now : record.actualEndAt),
     lockedAt: patch?.lockedAt ?? record.lockedAt,
@@ -391,6 +395,8 @@ export async function fetchEmployeePortalAssignmentDetail(
       plannedEndAt: record.plannedEndAt,
       actualStartAt: record.actualStartAt,
       actualEndAt: record.actualEndAt,
+      onTheWayAt: (record as { onTheWayAt?: string | null }).onTheWayAt ?? null,
+      arrivedAt: (record as { arrivedAt?: string | null }).arrivedAt ?? null,
       status: record.status,
       canonicalStatus: record.canonicalStatus,
       notesForEmployee: record.notesForEmployee,

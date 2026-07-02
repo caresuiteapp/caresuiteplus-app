@@ -37,7 +37,9 @@ export type StartEmployeeLiveTrackingInput = {
   profileId?: string | null;
   consentGrantedAt: string;
   consentExplainedAt?: string | null;
-  gpsSnapshot: EmployeeGpsSnapshot;
+  gpsSnapshot?: EmployeeGpsSnapshot | null;
+  /** Skip location point when browser GPS unavailable but consent granted. */
+  withoutGps?: boolean;
   /** When true, also sets assignment status to unterwegs. */
   transitionToEnRoute?: boolean;
   localConsent?: {
@@ -85,6 +87,7 @@ async function transitionAssignmentToEnRoute(
   tenantId: string,
   assignmentId: string,
   employeeId: string,
+  profileId?: string | null,
 ): Promise<ServiceResult<void>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase ist nicht verfügbar.' };
@@ -122,13 +125,15 @@ async function transitionAssignmentToEnRoute(
     }
   }
 
-  // Best-effort mirror — prevents visit/assignment canonical drift on arrival.
-  const { visitSupabaseRepository } = await import('@/lib/assist/repositories/visitRepository.supabase');
-  void visitSupabaseRepository.updateAssignmentStatus(
+  // Best-effort mirror — prevents visit/assignment canonical drift on en-route.
+  const { mirrorAssistVisitStatusFromAssignment } = await import(
+    '@/lib/portal/employeePortalExecutionLiveService'
+  );
+  void mirrorAssistVisitStatusFromAssignment(
     tenantId,
     assignmentId,
     'unterwegs',
-    employeeId,
+    profileId ?? null,
   );
 
   return { ok: true, data: undefined };
@@ -228,15 +233,17 @@ export async function startEmployeeLiveTracking(
     return liveTrackingErrorToServiceResult(err);
   }
 
-  const location = await appendLocationPoint(input.tenantId, {
-    sessionId,
-    visitId: ctx.assistVisitId,
-    latitude: input.gpsSnapshot.latitude,
-    longitude: input.gpsSnapshot.longitude,
-    accuracyMeters: input.gpsSnapshot.accuracyMeters,
-    recordedAt: input.gpsSnapshot.capturedAt,
-    source: 'device',
-  });
+  const location = input.withoutGps || !input.gpsSnapshot
+    ? ({ ok: true, data: { id: 'without-gps' } } as ServiceResult<{ id: string }>)
+    : await appendLocationPoint(input.tenantId, {
+        sessionId,
+        visitId: ctx.assistVisitId,
+        latitude: input.gpsSnapshot.latitude,
+        longitude: input.gpsSnapshot.longitude,
+        accuracyMeters: input.gpsSnapshot.accuracyMeters,
+        recordedAt: input.gpsSnapshot.capturedAt,
+        source: 'device',
+      });
 
   if (!location.ok) {
     const err = createLiveTrackingError('LIVE_LOCATION_INSERT_FAILED', {
@@ -251,13 +258,15 @@ export async function startEmployeeLiveTracking(
     return liveTrackingErrorToServiceResult(err);
   }
 
-  const sessionUpdate = await updateSessionLastLocation(
-    input.tenantId,
-    sessionId,
-    input.gpsSnapshot.capturedAt,
-  );
-  if (!sessionUpdate.ok) {
-    return sessionUpdate as ServiceResult<never>;
+  if (!input.withoutGps && input.gpsSnapshot) {
+    const sessionUpdate = await updateSessionLastLocation(
+      input.tenantId,
+      sessionId,
+      input.gpsSnapshot.capturedAt,
+    );
+    if (!sessionUpdate.ok) {
+      return sessionUpdate as ServiceResult<never>;
+    }
   }
 
   let statusUpdated = false;
@@ -266,6 +275,7 @@ export async function startEmployeeLiveTracking(
       input.tenantId,
       ctx.assignmentId,
       input.employeeId,
+      input.profileId ?? null,
     );
     if (!statusResult.ok) return statusResult as ServiceResult<never>;
     statusUpdated = true;

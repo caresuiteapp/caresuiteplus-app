@@ -761,12 +761,14 @@ export const visitSupabaseRepository = {
     if (toStatus === 'unterwegs') patch.on_the_way_at = now;
     if (toStatus === 'angekommen') patch.arrived_at = now;
     if (toStatus === 'gestartet') patch.actual_start_at = now;
-    if (toStatus === 'beendet' || toStatus === 'abgeschlossen') {
+    if (toStatus === 'beendet') {
       patch.actual_end_at = now;
-      patch.finished_at = now;
       patch.execution_status = 'completed';
     }
     if (toStatus === 'abgeschlossen') {
+      patch.actual_end_at = now;
+      patch.finished_at = now;
+      patch.execution_status = 'completed';
       patch.documentation_status = 'complete';
     }
     if (toStatus === 'unterwegs') patch.execution_status = 'on_way';

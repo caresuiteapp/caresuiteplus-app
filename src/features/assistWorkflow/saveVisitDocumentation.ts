@@ -4,7 +4,7 @@
 import type { ServiceResult } from '@/types';
 import type { RoleKey } from '@/types';
 import type { EmployeePortalDocumentationInput } from '@/types/modules/employeePortalExecution';
-import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
+import { resolveAssistVisitIdForPersistence } from '@/lib/assist/assistExecutionVisitResolver';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -13,6 +13,7 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
 import { upsertAssistVisitExecutionState } from './assistVisitExecutionStatePersistence';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
+import { resolveAllowedActions } from './resolveAllowedActions';
 import type { AssistExecutionContext } from './types';
 import {
   assistWorkflowErrorToResult,
@@ -83,7 +84,7 @@ async function persistDocumentationToAssistVisit(
     care_report_notes: doc.careReportNotes?.trim() ?? null,
     photo_references: doc.photoReferences ?? [],
     submitted_at: now,
-    submitted_by: profileId,
+    submitted_by: null,
     locked: false,
   };
 
@@ -153,18 +154,26 @@ export async function saveVisitDocumentation(
     );
   }
 
-  if (!ctx.visitTimes?.serviceStartedAt) {
-    return assistWorkflowErrorToResult(
-      createAssistWorkflowError('WORKFLOW_SERVICE_NOT_STARTED', {
-        tenantId: ctx.tenantId,
-        assignmentId: ctx.assignmentId,
-        operation: 'saveVisitDocumentation',
-      }),
-    );
+  if (!ctx.visitTimes?.serviceStartedAt && !ctx.detail.actualStartAt) {
+    if (!['beendet', 'dokumentation_offen', 'unterschrift_offen', 'abgeschlossen', 'gestartet', 'pausiert'].includes(ctx.assignmentStatus)) {
+      return assistWorkflowErrorToResult(
+        createAssistWorkflowError('WORKFLOW_SERVICE_NOT_STARTED', {
+          tenantId: ctx.tenantId,
+          assignmentId: ctx.assignmentId,
+          operation: 'saveVisitDocumentation',
+        }),
+      );
+    }
   }
 
-  const allowedStatuses = ['beendet', 'dokumentation_offen'];
-  if (!allowedStatuses.includes(ctx.assignmentStatus)) {
+  const allowedStatuses = ['beendet', 'dokumentation_offen'] as const;
+  const canSaveDocumentation =
+    allowedStatuses.includes(ctx.assignmentStatus as (typeof allowedStatuses)[number]) ||
+    allowedStatuses.includes(ctx.derivedStatus as (typeof allowedStatuses)[number]) ||
+    Boolean(ctx.visitTimes?.serviceEndedAt) ||
+    Boolean(ctx.detail.actualEndAt);
+
+  if (!canSaveDocumentation) {
     return assistWorkflowErrorToResult(
       createAssistWorkflowError(
         'WORKFLOW_INVALID_STATE',
@@ -182,42 +191,73 @@ export async function saveVisitDocumentation(
   let documentationPersisted = false;
 
   if (getServiceMode() === 'supabase') {
+    const visitId =
+      ctx.assistVisitId ||
+      (await resolveAssistVisitIdForPersistence(ctx.tenantId, masterAssignmentId));
+
+    if (!visitId) {
+      return assistWorkflowErrorToResult(
+        createAssistWorkflowError(
+          'AWF_DATABASE_ERROR',
+          {
+            tenantId: ctx.tenantId,
+            assignmentId: ctx.assignmentId,
+            operation: 'saveVisitDocumentation.resolveVisit',
+          },
+          'Einsatzbesuch konnte nicht zugeordnet werden — Dokumentation nicht gespeichert.',
+        ),
+      );
+    }
+
     const visitDoc = await persistDocumentationToAssistVisit(
       ctx.tenantId,
-      ctx.assistVisitId,
+      visitId,
       documentation,
       ctx.profileId,
     );
     if (!visitDoc.ok) {
-      const legacy = await assignmentSupabaseRepository.completeWithDocumentation(
-        ctx.tenantId,
-        masterAssignmentId,
-        docText,
-        {
-          actorProfileId: ctx.profileId ?? undefined,
-          actorEmployeeId: ctx.employeeId,
-        },
-      );
-      if (!legacy.ok) return { ok: false, error: legacy.error };
-      documentationPersisted = true;
-    } else {
-      documentationPersisted = true;
-      const { error: notesError } = await fromUnknownTable(getSupabaseClient()!, 'assignments')
-        .update({
-          documentation_notes: docText,
-          updated_at: new Date().toISOString(),
-        })
-        .eq('tenant_id', ctx.tenantId)
-        .eq('id', masterAssignmentId);
+      return { ok: false, error: visitDoc.error };
+    }
+    documentationPersisted = true;
 
-      if (notesError) {
-        return { ok: false, error: toGermanSupabaseError(notesError) };
-      }
+    const { error: notesError } = await fromUnknownTable(getSupabaseClient()!, 'assignments')
+      .update({
+        documentation_notes: docText,
+        updated_at: new Date().toISOString(),
+      })
+      .eq('tenant_id', ctx.tenantId)
+      .eq('id', masterAssignmentId);
+
+    if (notesError) {
+      return { ok: false, error: toGermanSupabaseError(notesError) };
     }
   }
 
   let updatedCtx = ctx;
-  if (ctx.assignmentStatus === 'beendet') {
+  if (documentationPersisted && ctx.assignmentStatus === 'beendet') {
+    void transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
+      hasServiceStarted: true,
+      hasDocumentation: true,
+    }).then((transitioned) => {
+      if (transitioned.ok) {
+        void upsertAssistVisitExecutionState(
+          ctx.tenantId,
+          masterAssignmentId,
+          'dokumentation_offen',
+          {
+            employeeId: ctx.employeeId,
+            visitTimes: transitioned.data.visitTimes,
+            documentationComplete: true,
+          },
+        );
+      }
+    });
+    updatedCtx = {
+      ...ctx,
+      assignmentStatus: 'dokumentation_offen',
+      derivedStatus: 'dokumentation_offen',
+    };
+  } else if (ctx.assignmentStatus === 'beendet') {
     const transitioned = await transitionAssistExecutionStatus(ctx, 'dokumentation_offen', {
       hasServiceStarted: true,
       hasDocumentation: true,
@@ -229,13 +269,57 @@ export async function saveVisitDocumentation(
     }
   }
 
-  void upsertAssistVisitExecutionState(ctx.tenantId, masterAssignmentId, 'dokumentation_offen', {
-    employeeId: ctx.employeeId,
-    visitTimes: updatedCtx.visitTimes,
-    documentationComplete: true,
-  });
+  if (getServiceMode() === 'supabase' && documentationPersisted) {
+    void upsertAssistVisitExecutionState(
+      ctx.tenantId,
+      masterAssignmentId,
+      'dokumentation_offen',
+      {
+        employeeId: ctx.employeeId,
+        visitTimes: updatedCtx.visitTimes,
+        documentationComplete: true,
+      },
+    );
+  } else {
+    const executionState = await upsertAssistVisitExecutionState(
+      ctx.tenantId,
+      masterAssignmentId,
+      'dokumentation_offen',
+      {
+        employeeId: ctx.employeeId,
+        visitTimes: updatedCtx.visitTimes,
+        documentationComplete: true,
+      },
+    );
 
-  const refreshed = await resolveAssistExecutionContext({
+    if (!executionState.ok && getServiceMode() === 'supabase') {
+      return { ok: false, error: executionState.error ?? 'Dokumentationsstatus konnte nicht gespeichert werden.' };
+    }
+  }
+
+  const detail = {
+    ...updatedCtx.detail,
+    status: 'dokumentation_offen' as const,
+    documentationStatus: 'submitted' as const,
+    documentationNotes: docText,
+  };
+  const visitTimes = updatedCtx.visitTimes;
+  const optimisticCtx: AssistExecutionContext = {
+    ...updatedCtx,
+    assignmentStatus: 'dokumentation_offen',
+    derivedStatus: 'dokumentation_offen',
+    detail,
+    allowedActions: resolveAllowedActions({
+      assignmentStatus: 'dokumentation_offen',
+      visitTimes,
+      detail,
+      derivedStatus: 'dokumentation_offen',
+      canStartService: false,
+    }),
+  };
+  const nextStep = detail.requiresSignature ? 'signature' : 'finalize';
+
+  void resolveAssistExecutionContext({
     tenantId: ctx.tenantId,
     assignmentId: ctx.assignmentId,
     employeeId: ctx.employeeId,
@@ -243,12 +327,8 @@ export async function saveVisitDocumentation(
     roleKey: ctx.roleKey as RoleKey | null,
   });
 
-  if (!refreshed.ok) return { ok: false, error: refreshed.error };
-
-  const nextStep = refreshed.data.detail.requiresSignature ? 'signature' : 'finalize';
-
   return {
     ok: true,
-    data: { ctx: refreshed.data, nextStep },
+    data: { ctx: optimisticCtx, nextStep },
   };
 }

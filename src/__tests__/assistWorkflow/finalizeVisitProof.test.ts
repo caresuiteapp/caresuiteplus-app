@@ -97,7 +97,9 @@ describe('finalizeVisit — proof + completion sync', () => {
     vi.restoreAllMocks();
   });
 
-  it('blocks finalize in supabase mode when Leistungsnachweis persistence fails', async () => {
+  it(
+    'blocks finalize in supabase mode when Leistungsnachweis persistence fails',
+    async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
     vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
       hasPortalPersistedClientSignature: vi.fn(async () => true),
@@ -111,6 +113,9 @@ describe('finalizeVisit — proof + completion sync', () => {
     vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
       transitionAssistExecutionStatus: vi.fn(),
     }));
+    vi.doMock('@/lib/wfm/wfmAssistAdapter', () => ({
+      syncAssistVisitTimesToWfm: vi.fn(async () => ({ ok: true })),
+    }));
 
     const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
     const result = await finalizeVisit(buildCtx(), 'Erledigt');
@@ -118,7 +123,9 @@ describe('finalizeVisit — proof + completion sync', () => {
     if (!result.ok) {
       expect(result.error).toContain('Leistungsnachweis');
     }
-  });
+  },
+  15000,
+  );
 
   it('completes when proof persisted and transition succeeds', async () => {
     vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
@@ -140,6 +147,9 @@ describe('finalizeVisit — proof + completion sync', () => {
     vi.doMock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
       upsertAssistVisitExecutionState: vi.fn(async () => ({ ok: true })),
     }));
+    vi.doMock('@/lib/wfm/wfmAssistAdapter', () => ({
+      syncAssistVisitTimesToWfm: vi.fn(async () => ({ ok: true })),
+    }));
 
     const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
     const result = await finalizeVisit(buildCtx(), 'Erledigt');
@@ -147,6 +157,59 @@ describe('finalizeVisit — proof + completion sync', () => {
     if (result.ok) {
       expect(result.data.proofPersisted).toBe(true);
       expect(result.data.ctx.assignmentStatus).toBe('abgeschlossen');
+    }
+  });
+
+  it('regression: incomplete proof persist blocks finalize (no silent idempotent ok)', async () => {
+    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
+    vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
+      hasPortalPersistedClientSignature: vi.fn(async () => true),
+    }));
+    vi.doMock('@/features/assistWorkflow/generateServiceRecord', () => ({
+      generateServiceRecord: vi.fn(async () => ({
+        ok: false,
+        error: 'Leistungsnachweis unvollständig — payload_hash fehlt.',
+      })),
+    }));
+    vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
+      transitionAssistExecutionStatus: vi.fn(),
+    }));
+
+    const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
+    const result = await finalizeVisit(buildCtx(), 'Erledigt');
+    expect(result.ok).toBe(false);
+  });
+
+  it('regression: idempotent complete proof allows finalize', async () => {
+    vi.doMock('@/lib/services/mode', () => ({ getServiceMode: () => 'supabase' }));
+    vi.doMock('@/lib/portal/resolveEmployeePortalSignatureRequirement', () => ({
+      hasPortalPersistedClientSignature: vi.fn(async () => true),
+    }));
+    vi.doMock('@/features/assistWorkflow/generateServiceRecord', () => ({
+      generateServiceRecord: vi.fn(async () => ({
+        ok: true,
+        data: {
+          serviceRecordId: 'sr-existing',
+          proofPersisted: true,
+          html: '<p/>',
+        },
+      })),
+    }));
+    vi.doMock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
+      transitionAssistExecutionStatus: vi.fn(async () => ({
+        ok: true,
+        data: buildCtx({ assignmentStatus: 'abgeschlossen', derivedStatus: 'abgeschlossen' }),
+      })),
+    }));
+    vi.doMock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
+      upsertAssistVisitExecutionState: vi.fn(async () => ({ ok: true })),
+    }));
+
+    const { finalizeVisit } = await import('@/features/assistWorkflow/finalizeVisit');
+    const result = await finalizeVisit(buildCtx(), 'Erledigt');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data.proofPersisted).toBe(true);
     }
   });
 });

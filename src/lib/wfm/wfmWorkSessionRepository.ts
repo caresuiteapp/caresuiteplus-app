@@ -357,6 +357,49 @@ export async function insertTimeEvent(
   return { ok: true, data: mapEventRow(data as EventRow) };
 }
 
+/**
+ * Resolve auth.users.id for workforce_work_sessions.user_id.
+ * Never returns employees.id — FK targets auth.users only.
+ */
+export async function resolveAuthUserIdForWfmSession(
+  tenantId: string,
+  employeeId: string,
+  candidateUserId?: string | null,
+): Promise<string | null> {
+  if (candidateUserId && candidateUserId !== employeeId) {
+    return candidateUserId;
+  }
+
+  if (getServiceMode() !== 'supabase') {
+    return null;
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const { data: employee, error: employeeError } = await supabase
+    .from('employees')
+    .select('profile_id')
+    .eq('tenant_id', tenantId)
+    .eq('id', employeeId)
+    .maybeSingle();
+
+  if (employeeError) return null;
+  if (employee?.profile_id) return employee.profile_id;
+
+  const { data: portalAccount, error: portalError } = await supabase
+    .from('employee_portal_accounts')
+    .select('auth_user_id')
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId)
+    .maybeSingle();
+
+  if (portalError) return null;
+  if (portalAccount?.auth_user_id) return String(portalAccount.auth_user_id);
+
+  return null;
+}
+
 export async function resolveEmployeeIdForUser(
   tenantId: string,
   userId: string,

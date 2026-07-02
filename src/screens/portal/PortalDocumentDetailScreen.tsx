@@ -12,6 +12,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { usePortalDocumentDetail } from '@/hooks/usePortalDocumentDetail';
+import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 

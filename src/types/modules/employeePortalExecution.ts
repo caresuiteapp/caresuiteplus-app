@@ -62,6 +62,8 @@ export type EmployeePortalAssignmentDetail = {
   plannedEndAt: string;
   actualStartAt: string | null;
   actualEndAt: string | null;
+  onTheWayAt: string | null;
+  arrivedAt: string | null;
   status: AssignmentStatus;
   canonicalStatus: CanonicalAssignmentStatus;
   notesForEmployee: string;

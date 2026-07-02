@@ -315,6 +315,30 @@ export async function reserveForAssignment(
   });
 }
 
+async function markAssignmentExecutedViaRpc(
+  tenantId: string,
+  visitId: string,
+  actorEmployeeId?: string | null,
+): Promise<ServiceResult<number>> {
+  const client = getSupabaseClient();
+  if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await client.rpc('mark_assist_visit_budget_executed', {
+    p_tenant_id: tenantId,
+    p_visit_id: visitId,
+    p_actor_employee_id: actorEmployeeId ?? null,
+  });
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) {
+      return { ok: false, error: 'Budget-RPC fehlt — Migration 0221 anwenden.' };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: typeof data === 'number' ? data : Number(data ?? 0) };
+}
+
 /** Execute — assignment completed; reservation stays, lifecycle moves to durchgefuehrt (no final consume). */
 export async function markAssignmentExecuted(
   tenantId: string,
@@ -331,22 +355,51 @@ export async function markAssignmentExecuted(
     const client = getSupabaseClient();
     if (!client) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-    for (const reservation of reservations) {
-      const { error } = await fromUnknownTable(client, 'client_budget_transactions')
-        .update({ lifecycle_status: 'durchgefuehrt' })
-        .eq('id', reservation.id as string);
+    let rpcUsed = false;
+    const rpcResult = await markAssignmentExecutedViaRpc(tenantId, visitId, createdBy);
+    if (rpcResult.ok && rpcResult.data > 0) {
+      rpcUsed = true;
+    } else if (!rpcResult.ok && !rpcResult.error.includes('0221')) {
+      // Fall through to direct update for office users when RPC unavailable or permission-based.
+    }
 
-      if (error) return { ok: false, error: toGermanSupabaseError(error) };
+    if (!rpcUsed) {
+      for (const reservation of reservations) {
+        const { error } = await fromUnknownTable(client, 'client_budget_transactions')
+          .update({ lifecycle_status: 'durchgefuehrt' })
+          .eq('id', reservation.id as string);
 
-      await writeBillingAuditLog(
-        tenantId,
-        reservation.client_id as string,
-        'assignment_executed',
-        'client_budget_transactions',
-        reservation.id as string,
-        { visitId, lifecycleStatus: 'durchgefuehrt' },
-        createdBy,
-      );
+        if (error) {
+          const rpcFallback = await markAssignmentExecutedViaRpc(tenantId, visitId, createdBy);
+          if (!rpcFallback.ok || rpcFallback.data === 0) {
+            return { ok: false, error: toGermanSupabaseError(error) };
+          }
+          rpcUsed = true;
+          break;
+        }
+
+        await writeBillingAuditLog(
+          tenantId,
+          reservation.client_id as string,
+          'assignment_executed',
+          'client_budget_transactions',
+          reservation.id as string,
+          { visitId, lifecycleStatus: 'durchgefuehrt' },
+          createdBy,
+        );
+      }
+    } else {
+      for (const reservation of reservations) {
+        await writeBillingAuditLog(
+          tenantId,
+          reservation.client_id as string,
+          'assignment_executed',
+          'client_budget_transactions',
+          reservation.id as string,
+          { visitId, lifecycleStatus: 'durchgefuehrt', via: 'rpc' },
+          createdBy,
+        );
+      }
     }
 
     return {

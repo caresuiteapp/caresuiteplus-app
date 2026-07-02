@@ -1,20 +1,27 @@
 /**
- * Idempotent employee portal account repair for E2E test tenant only.
+ * Idempotent employee portal account repair for E2E/P0 test tenants only.
  */
 import { hashSecret } from './portalAccountCrypto.mjs';
 import { pick, PLACEHOLDER_RE } from './auditSupabaseClient.mjs';
 
 export const E2E_TENANT_ID = 'a4ba83bd-65db-46cf-8cf7-61492cc78315';
 export const E2E_EMPLOYEE_ID = '911a9b50-0325-45ce-a1ce-87cc9376c816';
+export const P0_EMPLOYEE_B_ID = 'c0e5e001-e001-4000-8000-000000000001';
+export const P0_MHI_EMPLOYEE_ID = 'c0e5e002-e002-4000-8000-000000000002';
+export const LIVE_TENANT_BLOCKLIST = ['56180c22-b894-4fab-b55e-a563c94dd6e7'];
 
-export function employeeEnvCreds(env) {
-  const username = pick(env, ['AUDIT_EMPLOYEE_USERNAME', 'TEST_EMPLOYEE_USERNAME']);
-  const password = pick(env, ['AUDIT_EMPLOYEE_PASSWORD', 'TEST_EMPLOYEE_PASSWORD']);
-  return { username, password };
+export function normalizePortalUsername(value) {
+  return String(value ?? '').trim().toLowerCase();
 }
 
-export function validateEmployeeEnv(env) {
-  const { username, password } = employeeEnvCreds(env);
+export function employeeEnvCreds(env, keys = ['AUDIT_EMPLOYEE_USERNAME', 'TEST_EMPLOYEE_USERNAME']) {
+  const username = pick(env, keys);
+  const password = pick(env, ['AUDIT_EMPLOYEE_PASSWORD', 'TEST_EMPLOYEE_PASSWORD']);
+  return { username: username ? normalizePortalUsername(username) : '', password };
+}
+
+export function validateEmployeeEnv(env, usernameKeys) {
+  const { username, password } = employeeEnvCreds(env, usernameKeys);
   if (!username || !password) {
     return { ok: false, failureClass: 'env_missing' };
   }
@@ -24,9 +31,24 @@ export function validateEmployeeEnv(env) {
   return { ok: true, username, password };
 }
 
+function assertSafeTenant(tenantId) {
+  if (LIVE_TENANT_BLOCKLIST.includes(tenantId)) {
+    return { ok: false, failureClass: 'live_tenant_blocked' };
+  }
+  return { ok: true };
+}
+
 export async function repairEmployeePortalAccount(adminClient, env, options = {}) {
   const tenantId = options.tenantId ?? E2E_TENANT_ID;
   const employeeId = options.employeeId ?? E2E_EMPLOYEE_ID;
+  const usernameKeys = options.usernameEnvKeys ?? ['AUDIT_EMPLOYEE_USERNAME', 'TEST_EMPLOYEE_USERNAME'];
+  const repairMode = options.repairMode ?? 'p0_audit_ready';
+
+  const tenantGuard = assertSafeTenant(tenantId);
+  if (!tenantGuard.ok) {
+    return { ok: false, diag: { failureClass: tenantGuard.failureClass, failureStep: 'tenant_guard' } };
+  }
+
   const diag = {
     accountFound: false,
     accountRepaired: false,
@@ -34,11 +56,13 @@ export async function repairEmployeePortalAccount(adminClient, env, options = {}
     employeeActive: false,
     tenantLinked: false,
     usernameAligned: false,
+    duplicateAccounts: 0,
     failureClass: null,
     failureStep: null,
+    repairMode,
   };
 
-  const creds = validateEmployeeEnv(env);
+  const creds = validateEmployeeEnv(env, usernameKeys);
   if (!creds.ok) {
     diag.failureClass = creds.failureClass;
     diag.failureStep = 'env';
@@ -47,9 +71,17 @@ export async function repairEmployeePortalAccount(adminClient, env, options = {}
 
   const { username, password } = creds;
 
+  const dupRes = await adminClient.restSelect(
+    'employee_portal_accounts',
+    `username=ilike.${encodeURIComponent(username)}&select=id,tenant_id,employee_id,status`,
+  );
+  if (dupRes.ok && Array.isArray(dupRes.data)) {
+    diag.duplicateAccounts = dupRes.data.filter((row) => row.status !== 'archived').length;
+  }
+
   const empRow = await adminClient.restSelect(
     'employees',
-    `id=eq.${employeeId}&tenant_id=eq.${tenantId}&select=id,status,deleted_at`,
+    `id=eq.${employeeId}&tenant_id=eq.${tenantId}&select=id,status,deleted_at,first_name,last_name`,
   );
   if (!empRow.ok || !Array.isArray(empRow.data) || !empRow.data.length) {
     diag.failureClass = 'employee_not_linked';
@@ -75,25 +107,38 @@ export async function repairEmployeePortalAccount(adminClient, env, options = {}
   diag.tenantLinked = true;
 
   const now = new Date().toISOString();
-  const expires = new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
   const tempHash = await hashSecret(password, `cs-${Date.now().toString(36)}`);
 
-  const patchBody = {
-    username,
-    status: 'pending_first_login',
-    must_change_password: true,
-    first_login_completed: false,
-    temporary_password_hash: tempHash,
-    temporary_password_created_at: now,
-    temporary_password_expires_at: expires,
-    blocked_at: null,
-    blocked_by: null,
-    blocked_reason: null,
-  };
+  const patchBody =
+    repairMode === 'first_login_otp'
+      ? {
+          username,
+          status: 'pending_first_login',
+          must_change_password: true,
+          first_login_completed: false,
+          temporary_password_hash: tempHash,
+          temporary_password_created_at: now,
+          temporary_password_expires_at: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString(),
+          blocked_at: null,
+          blocked_by: null,
+          blocked_reason: null,
+        }
+      : {
+          username,
+          status: 'active',
+          must_change_password: false,
+          first_login_completed: true,
+          temporary_password_hash: tempHash,
+          temporary_password_created_at: now,
+          temporary_password_expires_at: null,
+          blocked_at: null,
+          blocked_by: null,
+          blocked_reason: null,
+        };
 
   let repairOk;
   if (account) {
-    diag.usernameAligned = account.username?.toLowerCase() === username.toLowerCase();
+    diag.usernameAligned = normalizePortalUsername(account.username) === username;
     repairOk = await adminClient.restPatch(
       'employee_portal_accounts',
       `id=eq.${account.id}`,
@@ -107,7 +152,7 @@ export async function repairEmployeePortalAccount(adminClient, env, options = {}
         employee_id: employeeId,
         ...patchBody,
       },
-      'tenant_id,username',
+      'tenant_id,employee_id',
     );
     diag.usernameAligned = true;
   }
@@ -120,7 +165,7 @@ export async function repairEmployeePortalAccount(adminClient, env, options = {}
 
   diag.accountRepaired = true;
   diag.usernameAligned = true;
-  return { ok: true, diag, username };
+  return { ok: true, diag, username, employeeId, tenantId };
 }
 
 export async function tryEmployeePortalLogin(publicClient, username, password) {
@@ -132,16 +177,20 @@ export async function tryEmployeePortalLogin(publicClient, username, password) {
       apikey: key,
       'Content-Type': 'application/json',
     },
-    body: JSON.stringify({ username, password }),
+    body: JSON.stringify({ username: normalizePortalUsername(username), password }),
   });
   const data = await res.json().catch(() => ({}));
   const ok = res.ok && Boolean(data.sessionToken ?? data.ok);
-  let failureClass = 'unknown';
-  if (!ok) {
-    if (res.status === 401) failureClass = 'invalid_password';
-    else if (res.status === 400) failureClass = 'invalid_request';
-    else if (res.status >= 500) failureClass = 'edge_function_failed';
-    else failureClass = 'login_failed';
-  }
-  return { ok, httpStatus: res.status, failureClass, hasSession: Boolean(data.sessionToken) };
+  return {
+    ok,
+    httpStatus: res.status,
+    failureClass: data.errorClass ?? (res.status === 401 ? 'invalid_password' : 'login_failed'),
+    error: data.error ?? null,
+    hasSession: Boolean(data.sessionToken),
+    mustChangePassword: Boolean(data.mustChangePassword),
+  };
+}
+
+export async function diagnoseLivePortalLogin(publicClient, username, password) {
+  return tryEmployeePortalLogin(publicClient, username, password);
 }

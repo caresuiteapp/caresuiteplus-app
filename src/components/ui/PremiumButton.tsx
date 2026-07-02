@@ -38,6 +38,7 @@ type Props = {
   style?: StyleProp<ViewStyle>;
   fullWidth?: boolean;
   accessibilityLabel?: string;
+  testID?: string;
   /** Helle Schrift auf dunklem Button-Hintergrund (ghost/secondary). */
   onDarkSurface?: boolean;
 };
@@ -52,6 +53,8 @@ export function PremiumButton({
   style,
   fullWidth = false,
   onDarkSurface = false,
+  accessibilityLabel,
+  testID,
 }: Props) {
   const { mode } = useThemeMode();
   const shellHostsAurora = useShellHostsAurora();
@@ -140,6 +143,19 @@ export function PremiumButton({
   const webPressableStyle =
     Platform.OS === 'web' ? ({ cursor: isDisabled ? 'default' : 'pointer' } as ViewStyle) : null;
 
+  const webClickProps =
+    Platform.OS === 'web' && onPress && !isDisabled
+      ? ({
+          // Playwright force-click and some browser automation paths bypass RN Pressable;
+          // native onClick ensures consent/workflow handlers still run on web.
+          onClick: (event: { preventDefault?: () => void; stopPropagation?: () => void }) => {
+            event.preventDefault?.();
+            event.stopPropagation?.();
+            onPress();
+          },
+        } as Record<string, unknown>)
+      : {};
+
   return (
     <Animated.View
       style={[animStyle, fullWidth && styles.fullWidth]}
@@ -149,7 +165,10 @@ export function PremiumButton({
         disabled={isDisabled}
         onPress={onPress}
         accessibilityRole="button"
+        accessibilityLabel={accessibilityLabel ?? title}
+        testID={testID}
         style={[fullWidth && styles.fullWidth, webPressableStyle]}
+        {...webClickProps}
         onPressIn={() => {
           if (!isDisabled) scale.value = withSpring(0.96, motion.spring);
         }}

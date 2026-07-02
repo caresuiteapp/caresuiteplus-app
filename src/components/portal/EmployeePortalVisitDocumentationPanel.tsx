@@ -1,8 +1,9 @@
-import { useState } from 'react';
-import { StyleSheet, View } from 'react-native';
+import { forwardRef, useCallback, useImperativeHandle, useRef, useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import type { EmployeePortalDocumentationInput } from '@/types/modules/employeePortalExecution';
-import { spacing } from '@/theme';
+import { spacing, typography } from '@/theme';
+import { useAuroraGlass } from '@/design/tokens/auroraGlass';
 
 type EmployeePortalVisitDocumentationPanelProps = {
   disabled?: boolean;
@@ -10,46 +11,92 @@ type EmployeePortalVisitDocumentationPanelProps = {
   onSubmit: (doc: EmployeePortalDocumentationInput) => Promise<{ ok: boolean; error?: string }>;
 };
 
-export function EmployeePortalVisitDocumentationPanel({
+export type EmployeePortalVisitDocumentationPanelHandle = {
+  submit: () => Promise<void>;
+};
+
+export const EmployeePortalVisitDocumentationPanel = forwardRef<
+  EmployeePortalVisitDocumentationPanelHandle,
+  EmployeePortalVisitDocumentationPanelProps
+>(function EmployeePortalVisitDocumentationPanel(
+  {
   disabled = false,
   loading = false,
   onSubmit,
-}: EmployeePortalVisitDocumentationPanelProps) {
+  },
+  ref,
+) {
+  const { colors } = useAuroraGlass();
   const [shortDescription, setShortDescription] = useState('');
   const [specialNotes, setSpecialNotes] = useState('');
   const [deviations, setDeviations] = useState('');
   const [deviationJustification, setDeviationJustification] = useState('');
+  const [localError, setLocalError] = useState<string | null>(null);
+  const shortDescriptionRef = useRef('');
 
-  const handleSubmit = () => {
-    if (!shortDescription.trim() && !specialNotes.trim()) {
-      return Promise.resolve({
-        ok: false as const,
-        error: 'Kurzbeschreibung ist erforderlich.',
-      });
+  const resolveShortDescription = () => {
+    const fromState = shortDescription.trim() || shortDescriptionRef.current.trim();
+    if (fromState) return fromState;
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const el = document.querySelector(
+        '[data-testid="portal-doc-short-description"]',
+      ) as HTMLInputElement | HTMLTextAreaElement | null;
+      return el?.value?.trim() ?? '';
+    }
+    return '';
+  };
+
+  const handleSubmit = useCallback(async () => {
+    const effectiveShort = resolveShortDescription();
+    const effectiveNotes = specialNotes.trim();
+    if (!effectiveShort && !effectiveNotes) {
+      setLocalError('Kurzbeschreibung ist erforderlich.');
+      return;
     }
     if (deviations.trim() && !deviationJustification.trim()) {
-      return Promise.resolve({
-        ok: false as const,
-        error: 'Abweichungen müssen begründet werden.',
-      });
+      setLocalError('Abweichungen müssen begründet werden.');
+      return;
     }
-    return onSubmit({
-      shortDescription: shortDescription.trim() || specialNotes.trim(),
-      specialNotes: specialNotes.trim() || undefined,
+    setLocalError(null);
+    const result = await onSubmit({
+      shortDescription: effectiveShort || effectiveNotes,
+      specialNotes: effectiveNotes || undefined,
       deviations: deviations.trim() || undefined,
       deviationJustification: deviationJustification.trim() || undefined,
       referralRequired: false,
       emergencyOrProblem: false,
     });
-  };
+    if (!result.ok) {
+      setLocalError(result.error ?? 'Dokumentation konnte nicht gespeichert werden.');
+    }
+  }, [
+    deviationJustification,
+    deviations,
+    onSubmit,
+    shortDescription,
+    specialNotes,
+  ]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      submit: () => handleSubmit(),
+    }),
+    [handleSubmit],
+  );
 
   return (
     <SectionPanel title="Dokumentation" subtitle="Pflicht vor Abschluss">
       <View style={styles.fields}>
         <PremiumInput
           label="Kurzbeschreibung *"
+          testID="portal-doc-short-description"
+          accessibilityLabel="Kurzbeschreibung Eingabe"
           value={shortDescription}
-          onChangeText={setShortDescription}
+          onChangeText={(value) => {
+            shortDescriptionRef.current = value;
+            setShortDescription(value);
+          }}
           placeholder="Was wurde geleistet?"
           multiline
           editable={!disabled}
@@ -80,16 +127,21 @@ export function EmployeePortalVisitDocumentationPanel({
         {!disabled ? (
           <PremiumButton
             title="Dokumentation speichern"
+            testID="portal-doc-save-button"
             fullWidth
             loading={loading}
-            onPress={handleSubmit}
+            onPress={() => {
+              void handleSubmit();
+            }}
           />
         ) : null}
+        {localError ? <Text style={[styles.error, { color: colors.danger }]}>{localError}</Text> : null}
       </View>
     </SectionPanel>
   );
-}
+});
 
 const styles = StyleSheet.create({
   fields: { gap: spacing.sm },
+  error: { ...typography.caption },
 });

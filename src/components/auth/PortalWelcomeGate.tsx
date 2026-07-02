@@ -4,6 +4,7 @@ import { getPortalDisplayName } from '@/lib/auth/userdisplayname';
 import {
   clearPortalWelcomePending,
   hydratePortalWelcomePending,
+  isPortalWelcomeSeen,
   markPortalWelcomeSeen,
   type PortalWelcomeKind,
 } from '@/lib/auth/portalWelcomeSession';
@@ -54,8 +55,21 @@ export function PortalWelcomeGate() {
     let cancelled = false;
 
     void (async () => {
+      if (accountId.trim()) {
+        const alreadySeen = await isPortalWelcomeSeen(portalKind, accountId);
+        if (cancelled) return;
+        if (alreadySeen) {
+          clearPortalWelcomePending();
+          setShowWelcome(false);
+          return;
+        }
+      }
+
       const pending = await hydratePortalWelcomePending();
-      if (cancelled || pending !== portalKind) return;
+      if (cancelled || pending !== portalKind) {
+        setShowWelcome(false);
+        return;
+      }
       setWelcomeKind(portalKind);
       setShowWelcome(true);
     })();
@@ -63,7 +77,7 @@ export function PortalWelcomeGate() {
     return () => {
       cancelled = true;
     };
-  }, [authReady, isPortalSession, portalKind]);
+  }, [authReady, isPortalSession, portalKind, accountId]);
 
   useEffect(() => {
     if (!tenantId) {

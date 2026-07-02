@@ -18,7 +18,9 @@ export type StartEnRouteInput = {
   roleKey?: RoleKey | null;
   consentGrantedAt: string;
   consentExplainedAt?: string | null;
-  gpsSnapshot: EmployeeGpsSnapshot;
+  gpsSnapshot?: EmployeeGpsSnapshot | null;
+  /** When true, transition to en-route without recording a GPS point. */
+  withoutGps?: boolean;
   localConsent?: {
     granted: boolean;
     grantedAt: string | null;
@@ -47,7 +49,8 @@ export async function startEnRoute(
     profileId: input.profileId,
     consentGrantedAt: input.consentGrantedAt,
     consentExplainedAt: input.consentExplainedAt,
-    gpsSnapshot: input.gpsSnapshot,
+    gpsSnapshot: input.gpsSnapshot ?? null,
+    withoutGps: input.withoutGps ?? !input.gpsSnapshot,
     transitionToEnRoute: true,
     localConsent: input.localConsent,
   });

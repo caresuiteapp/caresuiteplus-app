@@ -107,23 +107,40 @@ export async function finalizeVisit(
     return { ok: false, error: transitioned.error };
   }
 
-  void upsertAssistVisitExecutionState(ctx.tenantId, ctx.assignmentId, 'abgeschlossen', {
-    employeeId: ctx.employeeId,
-    visitTimes: transitioned.data.visitTimes,
-    documentationComplete: true,
-    signatureComplete: hasSignature,
-    proofGenerated: record.ok ? record.data.proofPersisted : false,
-    finalizedAt: new Date().toISOString(),
-  });
+  const executionState = await upsertAssistVisitExecutionState(
+    ctx.tenantId,
+    ctx.assignmentId,
+    'abgeschlossen',
+    {
+      employeeId: ctx.employeeId,
+      visitTimes: transitioned.data.visitTimes,
+      documentationComplete: true,
+      signatureComplete: hasSignature,
+      proofGenerated: record.ok ? record.data.proofPersisted : false,
+      finalizedAt: new Date().toISOString(),
+    },
+  );
+
+  if (!executionState.ok) {
+    return { ok: false, error: executionState.error ?? 'Einsatzstatus konnte nicht gespeichert werden.' };
+  }
 
   if (getServiceMode() === 'supabase' && ctx.employeeId && ctx.assistVisitId) {
     const { syncAssistVisitTimesToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
-    void syncAssistVisitTimesToWfm(
+    const wfmSync = await syncAssistVisitTimesToWfm(
       ctx.tenantId,
       ctx.employeeId,
       ctx.profileId ?? null,
       ctx.assistVisitId,
     );
+    if (!wfmSync.ok) {
+      return {
+        ok: false,
+        error:
+          wfmSync.error ??
+          'Einsatz abgeschlossen, aber Arbeitszeit konnte nicht synchronisiert werden. Bitte Office informieren.',
+      };
+    }
   }
 
   return {

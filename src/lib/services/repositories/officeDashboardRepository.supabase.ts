@@ -225,6 +225,15 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
     }).length;
   }
 
+  try {
+    const { countAssistExecutionProblems } = await import(
+      '@/lib/assist/assistExecutionProblemInboxService'
+    );
+    metrics.executionBlockers = await countAssistExecutionProblems(tenantId);
+  } catch {
+    metrics.executionBlockers = 0;
+  }
+
   return metrics;
 }
 

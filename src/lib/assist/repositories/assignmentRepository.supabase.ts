@@ -459,6 +459,16 @@ export const assignmentSupabaseRepository = {
       if (updateError) {
         return { ok: false, error: toGermanSupabaseError(updateError) };
       }
+    } else if (Object.keys(timestampPatch).length > 0) {
+      // set_assignment_status updates status only — patch lifecycle timestamps separately.
+      const { error: timestampError } = await fromUnknownTable(supabase, 'assignments')
+        .update({ ...timestampPatch, updated_at: now })
+        .eq('tenant_id', tenantId)
+        .eq('id', masterAssignmentId);
+
+      if (timestampError) {
+        return { ok: false, error: toGermanSupabaseError(timestampError) };
+      }
     }
 
     await writeAssignmentAudit(supabase, {

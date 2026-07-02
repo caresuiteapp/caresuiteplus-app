@@ -13,6 +13,7 @@ import {
   SuccessState,
 } from '@/components/ui';
 import { usePortalDocumentDetail } from '@/hooks/usePortalDocumentDetail';
+import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';

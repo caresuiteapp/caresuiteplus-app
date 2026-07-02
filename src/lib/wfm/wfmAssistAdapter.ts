@@ -8,6 +8,7 @@ import {
   hasAssistWfmEvent,
   insertTimeEvent,
   insertWorkSession,
+  resolveAuthUserIdForWfmSession,
   resolveEmployeeIdForUser,
   updateWorkSession,
   workDateFromIso,
@@ -95,6 +96,7 @@ export async function syncAssistTimeEventToWfm(
   if (!resolvedEmployee.ok) return resolvedEmployee;
 
   const empId = resolvedEmployee.data;
+  const authUserId = await resolveAuthUserIdForWfmSession(tenantId, empId, userId);
   const now = occurredAt ?? new Date().toISOString();
   const workDate = workDateFromIso(now);
 
@@ -118,7 +120,7 @@ export async function syncAssistTimeEventToWfm(
       id: sessionId,
       tenantId,
       employeeId: empId,
-      userId,
+      userId: authUserId,
       workDate,
       status: sessionStatus,
       workMode: 'field',
@@ -147,7 +149,7 @@ export async function syncAssistTimeEventToWfm(
     id: newUuid(),
     tenantId,
     employeeId: empId,
-    userId,
+    userId: authUserId,
     eventType: wfmEventType,
     workMode: 'field',
     source: 'assist',

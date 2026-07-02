@@ -23,7 +23,10 @@ export {
 export { EmployeePortalLiveTimersPanel } from './EmployeePortalLiveTimersPanel';
 export { EmployeePortalVisitWorkflowTimeline } from './EmployeePortalVisitWorkflowTimeline';
 export { EmployeePortalVisitTasksPanel } from './EmployeePortalVisitTasksPanel';
-export { EmployeePortalVisitDocumentationPanel } from './EmployeePortalVisitDocumentationPanel';
+export {
+  EmployeePortalVisitDocumentationPanel,
+  type EmployeePortalVisitDocumentationPanelHandle,
+} from './EmployeePortalVisitDocumentationPanel';
 export { EmployeePortalVisitSignaturePanel } from './EmployeePortalVisitSignaturePanel';
 export { PortalShell } from './PortalShell';
 export { ClientPortalShell } from './ClientPortalShell';

@@ -37,10 +37,13 @@ async function mirrorAssistEventToWfm(input: SaveVisitTimeEventInput): Promise<v
 
   const { syncAssistTimeEventToWfm } = await import('@/lib/wfm/wfmAssistAdapter');
   const occurredAt = input.occurredAt ?? new Date().toISOString();
+  const wfmUserId =
+    input.profileId ??
+    (input.recordedBy && input.recordedBy !== input.employeeId ? input.recordedBy : null);
   const syncResult = await syncAssistTimeEventToWfm(
     input.tenantId,
     input.employeeId ?? null,
-    input.profileId ?? input.recordedBy ?? null,
+    wfmUserId,
     input.visitId,
     input.eventType,
     occurredAt,

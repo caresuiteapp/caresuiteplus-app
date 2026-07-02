@@ -8,6 +8,7 @@ import {
   EmployeePortalLiveTimersPanel,
   EmployeePortalLocationConsentBanner,
   EmployeePortalVisitDocumentationPanel,
+  type EmployeePortalVisitDocumentationPanelHandle,
   EmployeePortalVisitSignaturePanel,
   EmployeePortalVisitTasksPanel,
   EmployeePortalVisitWorkflowTimeline,
@@ -107,14 +108,15 @@ export function EmployeePortalVisitExecutionScreen() {
     requestLocationPermission,
     setGeofenceOverride,
     openRoute,
-    derivedStatus,
+    effectiveStatus: hookEffectiveStatus,
     consistencyStatus,
     nextActionHint,
     notFound,
     isServiceEnded,
   } = useEmployeePortalVisitExecution(id);
 
-  const effectiveStatus: AssignmentStatus = derivedStatus ?? visit?.status ?? 'geplant';
+  const effectiveStatus: AssignmentStatus =
+    hookEffectiveStatus ?? visit?.status ?? 'geplant';
 
   const [localError, setLocalError] = useState<string | null>(null);
   const [localSuccess, setLocalSuccess] = useState<string | null>(null);
@@ -127,6 +129,8 @@ export function EmployeePortalVisitExecutionScreen() {
   const [showNoShowForm, setShowNoShowForm] = useState(false);
   const [awaitingSignature, setAwaitingSignature] = useState(false);
   const scrollRef = useRef<ScrollView>(null);
+  const docPanelRef = useRef<EmployeePortalVisitDocumentationPanelHandle>(null);
+  const actionsSectionY = useRef(0);
   const signatureSectionY = useRef(0);
   const [signatureCaptureRequest, setSignatureCaptureRequest] = useState(0);
   const restoredRef = useRef(false);
@@ -157,10 +161,6 @@ export function EmployeePortalVisitExecutionScreen() {
     }
   }, [id, visit, urlStep, pathname, workflowPersistence]);
 
-  const primaryAction = primaryAllowedAction(allowedActions, effectiveStatus);
-  const primaryLabel = primaryAction ? ASSIST_WORKFLOW_ACTION_LABELS[primaryAction] : undefined;
-  const insets = useSafeAreaInsets();
-
   const isLocked = useMemo(
     () =>
       visit?.status === 'abgeschlossen' ||
@@ -170,12 +170,34 @@ export function EmployeePortalVisitExecutionScreen() {
     [visit],
   );
 
+  const primaryAction = primaryAllowedAction(allowedActions, effectiveStatus);
+  const primaryActionResolved =
+    primaryAction ??
+    (effectiveStatus === 'angekommen' && !isLocked && canExecute ? 'start_service' : null);
+  const primaryLabel = primaryActionResolved
+    ? ASSIST_WORKFLOW_ACTION_LABELS[primaryActionResolved]
+    : undefined;
+
+  useEffect(() => {
+    if (!primaryActionResolved) return;
+    const timer = setTimeout(() => {
+      scrollRef.current?.scrollTo({
+        y: Math.max(actionsSectionY.current - 16, 0),
+        animated: false,
+      });
+    }, 150);
+    return () => clearTimeout(timer);
+  }, [primaryActionResolved, effectiveStatus]);
+  const insets = useSafeAreaInsets();
+
   const showLiveTracking = useMemo(
     () => !isLocked && isEmployeePortalVisitLiveTrackingActive(effectiveStatus),
     [isLocked, effectiveStatus],
   );
 
-  const trackingActive = Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
+  const trackingActive =
+    effectiveStatus === 'unterwegs' &&
+    Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
 
   const uiState = useMemo(() => {
     if (!visit) return null;
@@ -338,6 +360,10 @@ export function EmployeePortalVisitExecutionScreen() {
         else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
         return;
       }
+      if (action === 'save_documentation') {
+        await docPanelRef.current?.submit();
+        return;
+      }
       if (action === 'capture_signature') {
         openSignatureCapture();
         return;
@@ -352,9 +378,9 @@ export function EmployeePortalVisitExecutionScreen() {
   );
 
   const handlePrimary = useCallback(async () => {
-    if (!visit || !primaryAction) return;
-    await runAllowedAction(primaryAction);
-  }, [visit, primaryAction, runAllowedAction]);
+    if (!visit || !primaryActionResolved) return;
+    await runAllowedAction(primaryActionResolved);
+  }, [visit, primaryActionResolved, runAllowedAction]);
 
   const handleNoShow = useCallback(async () => {
     if (!noShowNote.trim()) {
@@ -426,15 +452,18 @@ export function EmployeePortalVisitExecutionScreen() {
           ? 'Mit GPS'
           : '—';
   const primaryButtonLabel =
-    trackingActive && effectiveStatus === 'unterwegs' && primaryAction === 'mark_arrived'
+    trackingActive &&
+    effectiveStatus === 'unterwegs' &&
+    primaryActionResolved === 'mark_arrived' &&
+    !allowedActions.includes('start_service')
       ? 'Anfahrt läuft — Angekommen'
       : primaryLabel;
   const primaryButtonLoading =
-    primaryAction === 'start_service'
+    primaryActionResolved === 'start_service'
       ? startServiceLoading
       : actionLoading || driveLoading;
   const primaryButtonDisabled =
-    primaryAction === 'start_service'
+    primaryActionResolved === 'start_service'
       ? startServiceLoading || driveLoading
       : actionLoading || driveLoading;
 
@@ -526,7 +555,12 @@ export function EmployeePortalVisitExecutionScreen() {
             roleLabel={roleLabel}
           />
         ) : (
-          <View style={styles.actions}>
+          <View
+            style={styles.actions}
+            onLayout={(event) => {
+              actionsSectionY.current = event.nativeEvent.layout.y;
+            }}
+          >
             {!consent?.granted ? null : gpsPermission !== 'granted' ? (
               <PremiumButton
                 title="Standortberechtigung anfragen"
@@ -603,6 +637,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
         {showDocumentationForm && !isLocked ? (
           <EmployeePortalVisitDocumentationPanel
+            ref={docPanelRef}
             loading={actionLoading}
             onSubmit={async (doc) => {
               setLocalError(null);
@@ -667,6 +702,7 @@ export function EmployeePortalVisitExecutionScreen() {
         {showFinalize && !isLocked ? (
           <PremiumButton
             title="Einsatz abschließen"
+            testID="portal-finalize-button"
             fullWidth
             loading={actionLoading}
             onPress={async () => {

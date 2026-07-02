@@ -79,10 +79,7 @@ export function resolveVisitExecutionUiState(
 
   const showFinalize =
     !statusBlocksDoc &&
-    documentationSubmitted &&
-    (effectiveStatus === 'unterschrift_offen' ||
-      (!visit.requiresSignature && effectiveStatus === 'dokumentation_offen') ||
-      (signatureCaptured && effectiveStatus === 'dokumentation_offen'));
+    allowedActions.includes('finalize_visit');
 
   return {
     statusBlocksDoc,

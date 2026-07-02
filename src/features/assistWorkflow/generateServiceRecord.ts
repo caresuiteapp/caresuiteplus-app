@@ -59,6 +59,10 @@ export async function generateServiceRecord(
     sig.ok && sig.data ? sig.data.id : null,
   );
 
+  if (!proof.ok) {
+    return { ok: false, error: proof.error ?? 'Leistungsnachweis konnte nicht gespeichert werden.' };
+  }
+
   const record = await assignmentSupabaseRepository.prepareServiceRecord(
     ctx.tenantId,
     ctx.assignmentId,
@@ -68,11 +72,15 @@ export async function generateServiceRecord(
     },
   );
 
+  if (!record.ok) {
+    return { ok: false, error: record.error ?? 'Leistungsnachweis konnte nicht vorbereitet werden.' };
+  }
+
   return {
     ok: true,
     data: {
-      serviceRecordId: record.ok && record.data ? record.data.id : null,
-      proofPersisted: proof.ok,
+      serviceRecordId: record.data?.id ?? null,
+      proofPersisted: true,
       html,
     },
   };

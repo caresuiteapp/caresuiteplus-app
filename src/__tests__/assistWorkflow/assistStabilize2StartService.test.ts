@@ -133,6 +133,14 @@ function mockCtx(overrides: Partial<AssistExecutionContext>): AssistExecutionCon
 describe('ASSIST.STABILIZE.2 startService', () => {
   beforeEach(() => {
     vi.clearAllMocks();
+    fetchEventsMock.mockResolvedValue({
+      ok: true,
+      data: [
+        { eventType: 'drive_start', occurredAt: '2026-06-29T08:00:00Z' },
+        { eventType: 'arrive', occurredAt: '2026-06-29T08:30:00Z' },
+      ],
+    });
+    ensureEventMock.mockResolvedValue({ ok: true, data: { id: 'evt1', created: true } });
     upsertStateMock.mockResolvedValue({ ok: true, data: { visitId: 'v1', currentStep: 'in_service' } });
   });
 

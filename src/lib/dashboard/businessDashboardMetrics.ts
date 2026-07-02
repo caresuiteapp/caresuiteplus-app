@@ -17,6 +17,7 @@ export type BusinessDashboardMetrics = {
   documentsForReview: number;
   openPortalRequests: number;
   openServiceRecords: number;
+  executionBlockers: number;
   budgetWarnings: number;
   appointmentsThisWeek: number;
   appointmentsToday: number;
@@ -57,6 +58,7 @@ export function emptyBusinessDashboardMetrics(): BusinessDashboardMetrics {
     documentsForReview: 0,
     openPortalRequests: 0,
     openServiceRecords: 0,
+    executionBlockers: 0,
     budgetWarnings: 0,
     appointmentsThisWeek: 0,
     appointmentsToday: 0,

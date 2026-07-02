@@ -16,6 +16,7 @@ const ensureOpenPauseStartMock = vi.fn();
 const ensureOpenPauseEndMock = vi.fn();
 const ensureVisitTimeEventMock = vi.fn();
 const upsertStateMock = vi.fn();
+const markAssignmentExecutedMock = vi.fn();
 
 vi.mock('@/features/assistWorkflow/internal/transitionAssistExecutionStatus', () => ({
   transitionAssistExecutionStatus: (...args: unknown[]) => transitionMock(...args),
@@ -41,6 +42,14 @@ vi.mock('@/features/assistWorkflow/saveVisitTimeEvent', async (importOriginal) =
 
 vi.mock('@/features/assistWorkflow/assistVisitExecutionStatePersistence', () => ({
   upsertAssistVisitExecutionState: (...args: unknown[]) => upsertStateMock(...args),
+}));
+
+vi.mock('@/lib/assist/clientBudgetTransactionService', () => ({
+  markAssignmentExecuted: (...args: unknown[]) => markAssignmentExecutedMock(...args),
+}));
+
+vi.mock('@/lib/services/mode', () => ({
+  getServiceMode: () => 'supabase',
 }));
 
 function baseDetail(status: AssistExecutionContext['assignmentStatus']): EmployeePortalAssignmentDetail {
@@ -282,6 +291,7 @@ describe('ASSIST.STABILIZE.3 endService', () => {
     ensureOpenPauseEndMock.mockResolvedValue({ ok: true, data: { id: 'x', created: false } });
     ensureVisitTimeEventMock.mockResolvedValue({ ok: true, data: { id: 'se1', created: true } });
     upsertStateMock.mockResolvedValue({ ok: true, data: { visitId: 'v1', currentStep: 'documentation' } });
+    markAssignmentExecutedMock.mockResolvedValue({ ok: true, data: null });
   });
 
   it('persists service_end and verifies readback', async () => {
@@ -316,6 +326,7 @@ describe('ASSIST.STABILIZE.3 endService', () => {
 
     expect(result.ok).toBe(true);
     expect(transitionMock).toHaveBeenCalledWith(input, 'beendet', expect.any(Object));
+    expect(markAssignmentExecutedMock).not.toHaveBeenCalled();
     expect(ensureVisitTimeEventMock).toHaveBeenCalledWith(
       expect.objectContaining({ eventType: 'service_end' }),
       expect.any(Array),

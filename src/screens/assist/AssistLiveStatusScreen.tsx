@@ -9,6 +9,7 @@ import {
   View,
 } from 'react-native';
 import { useRouter } from 'expo-router';
+import { AssistExecutionProblemInboxPanel } from '@/components/assist/AssistExecutionProblemInboxPanel';
 import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
@@ -264,6 +265,8 @@ export function AssistLiveStatusScreen() {
             {mapPanel}
           </>
         )}
+
+        {getServiceMode() === 'supabase' ? <AssistExecutionProblemInboxPanel /> : null}
       </ScrollView>
     </ScreenShell>
   );

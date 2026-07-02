@@ -94,6 +94,17 @@ export function buildOfficeStatusCardsFromMetrics(
     });
   }
 
+  if (metrics.executionBlockers > 0) {
+    cards.push({
+      id: 'office-sc-execution-blockers',
+      title: 'Einsatz-Blocker',
+      description: 'Fehlende Doku, Unterschrift oder Leistungsnachweis',
+      status: 'fehlerhaft',
+      count: metrics.executionBlockers,
+      sensitivity: 'care',
+    });
+  }
+
   return cards;
 }
 

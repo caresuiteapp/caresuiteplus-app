@@ -111,15 +111,34 @@ export function getEmployeePortalLocationConsent(
 export function grantEmployeePortalLocationConsent(
   tenantId: string,
   assignmentId: string,
+  grantedAt?: string,
+  explainedAt?: string | null,
 ): EmployeePortalLocationConsent {
   const entry = getEntry(tenantId, assignmentId);
-  const now = new Date().toISOString();
+  const now = grantedAt ?? new Date().toISOString();
   entry.consent = {
     granted: true,
     grantedAt: now,
-    explainedAt: entry.consent.explainedAt ?? now,
+    explainedAt: explainedAt ?? entry.consent.explainedAt ?? now,
   };
   return { ...entry.consent };
+}
+
+/** Apply persisted employee- or visit-level consent into the in-memory portal store. */
+export function applyEmployeePortalLocationConsent(
+  tenantId: string,
+  assignmentId: string,
+  consent: EmployeePortalLocationConsent,
+): EmployeePortalLocationConsent {
+  if (!consent.granted) {
+    return getEmployeePortalLocationConsent(tenantId, assignmentId);
+  }
+  return grantEmployeePortalLocationConsent(
+    tenantId,
+    assignmentId,
+    consent.grantedAt ?? undefined,
+    consent.explainedAt,
+  );
 }
 
 export function markEmployeePortalConsentExplained(

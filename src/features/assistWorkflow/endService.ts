@@ -17,7 +17,11 @@ import {
   ensureVisitTimeEvent,
   hasOpenPauseSegment,
 } from './saveVisitTimeEvent';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import { getServiceMode } from '@/lib/services/mode';
+import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
+import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 
 type WorkflowFail = { ok: false; error: string; errorCode?: string };
 
@@ -54,6 +58,64 @@ async function reloadContext(
   });
 }
 
+import type { VisitTimesSummary } from './calculateVisitTimes';
+
+function mergeServiceEndedVisitTimes(
+  ctx: AssistExecutionContext,
+  visitTimes: VisitTimesSummary | null | undefined,
+  fallbackIso?: string,
+): VisitTimesSummary {
+  const serviceEndedAt =
+    visitTimes?.serviceEndedAt ?? ctx.detail.actualEndAt ?? fallbackIso ?? new Date().toISOString();
+  return {
+    driveSeconds: visitTimes?.driveSeconds ?? null,
+    serviceSeconds: visitTimes?.serviceSeconds ?? 0,
+    pauseSeconds: visitTimes?.pauseSeconds ?? null,
+    totalSeconds: visitTimes?.totalSeconds ?? null,
+    driveStartedAt: visitTimes?.driveStartedAt ?? ctx.detail.onTheWayAt ?? null,
+    serviceStartedAt: visitTimes?.serviceStartedAt ?? ctx.detail.actualStartAt ?? null,
+    pauseStartedAt: visitTimes?.pauseStartedAt ?? null,
+    arrivedAt: visitTimes?.arrivedAt ?? ctx.detail.arrivedAt ?? null,
+    serviceEndedAt,
+    activeTimer: null,
+  };
+}
+
+function buildOptimisticEndedContext(
+  ctx: AssistExecutionContext,
+  visitTimes: VisitTimesSummary,
+): AssistExecutionContext {
+  const detail = {
+    ...ctx.detail,
+    status: 'beendet' as const,
+    actualEndAt: visitTimes.serviceEndedAt ?? ctx.detail.actualEndAt,
+  };
+  const workflow = {
+    derivedStatus: 'beendet' as const,
+    recordedStatus: 'beendet' as const,
+    consistencyStatus: ctx.consistencyStatus,
+    inconsistencies: ctx.inconsistencies,
+    repairOptions: ctx.repairOptions,
+    canStartService: false,
+    nextActionHint: null,
+  };
+  return {
+    ...ctx,
+    assignmentStatus: 'beendet',
+    derivedStatus: 'beendet',
+    detail,
+    visitTimes,
+    diagnostics: resolveAssistExecutionDiagnostics('beendet', visitTimes, workflow),
+    allowedActions: resolveAllowedActions({
+      assignmentStatus: 'beendet',
+      visitTimes,
+      detail,
+      derivedStatus: 'beendet',
+      canStartService: false,
+    }),
+  };
+}
+
 async function verifyEndServiceReadback(
   ctx: AssistExecutionContext,
 ): Promise<ServiceResult<AssistExecutionContext>> {
@@ -71,7 +133,9 @@ async function verifyEndServiceReadback(
     );
   }
 
-  if (data.visitTimes.serviceSeconds == null) {
+  if (data.visitTimes.serviceSeconds == null && data.visitTimes.serviceEndedAt) {
+    // Zero-length service is valid after immediate end.
+  } else if (data.visitTimes.serviceSeconds == null) {
     return endServiceError(
       'WORKFLOW_TIME_EVENT_FAILED',
       ctx,
@@ -205,13 +269,11 @@ export async function endService(
     return endServiceError('WORKFLOW_INVALID_STATE', ctx, result.error);
   }
 
-  const eventsWritten = await persistEndServiceEvents(ctx);
+  const eventsWritten = await persistEndServiceEvents(result.data);
   if (!eventsWritten.ok) return eventsWritten;
 
-  const refreshed = await reloadContext(ctx);
-  if (!refreshed.ok) {
-    return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
-  }
+  const endedAt = new Date().toISOString();
+  const mergedTimes = mergeServiceEndedVisitTimes(result.data, result.data.visitTimes, endedAt);
 
   const upserted = await upsertAssistVisitExecutionState(
     ctx.tenantId,
@@ -219,7 +281,7 @@ export async function endService(
     'beendet',
     {
       employeeId: ctx.employeeId,
-      visitTimes: refreshed.data.visitTimes,
+      visitTimes: mergedTimes,
       documentationComplete: false,
     },
   );
@@ -228,5 +290,14 @@ export async function endService(
     return endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, upserted.error);
   }
 
-  return verifyEndServiceReadback(ctx);
+  if (getServiceMode() === 'supabase') {
+    void mirrorAssistVisitStatusFromAssignment(
+      ctx.tenantId,
+      ctx.assignmentId,
+      'beendet',
+      ctx.profileId ?? null,
+    );
+  }
+
+  return { ok: true, data: buildOptimisticEndedContext(result.data, mergedTimes) };
 }

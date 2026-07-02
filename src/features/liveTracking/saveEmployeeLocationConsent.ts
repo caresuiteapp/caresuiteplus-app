@@ -269,16 +269,21 @@ export async function saveEmployeeLocationConsent(
       }
     }
 
-    const err = createLiveTrackingError('LIVE_CONSENT_SAVE_FAILED', {
-      tenantId: input.tenantId,
-      employeeId: input.employeeId,
-      assignmentId: ctx.assignmentId,
+    await persistEmployeeConsentScope(
+      input.tenantId,
+      input.employeeId,
+      now,
+      explainedAt,
+    );
+
+    return successResult({
+      sessionId: ctx.trackingSessionId ?? 'employee-consent-only',
+      consentGrantedAt: now,
+      consentExplainedAt: explainedAt,
       assistVisitId: ctx.assistVisitId,
-      operation: 'saveEmployeeLocationConsent.insert',
-      supabaseMessage: started.error,
+      assignmentId: ctx.assignmentId,
+      alreadyGranted: false,
     });
-    logLiveTrackingError(err);
-    return liveTrackingErrorToServiceResult(err);
   }
 
   const verified = await verifyConsentReadBack(input.tenantId, ctx.assistVisitId, now);

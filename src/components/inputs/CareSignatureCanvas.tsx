@@ -155,6 +155,7 @@ function SignatureActions({
       variant="primary"
       onPress={onConfirm}
       disabled={disabled || !hasStroke}
+      testID="portal-signature-confirm-button"
       style={actionLayout === 'bar' ? styles.confirmBar : undefined}
     />
   );
@@ -389,37 +390,97 @@ function WebSignatureCanvas({
     activePointerId.current = null;
   }, []);
 
+  const beginStroke = useCallback(
+    (clientX: number, clientY: number, pointerId: number) => {
+      if (disabled) return;
+      const canvas = canvasRef.current;
+      if (!canvas) return;
+      try {
+        canvas.setPointerCapture(pointerId);
+      } catch {
+        /* Playwright mouse automation may not provide a capturable pointer id */
+      }
+      drawing.current = true;
+      activePointerId.current = pointerId;
+      drawAt(clientX, clientY, true);
+    },
+    [disabled, drawAt],
+  );
+
+  const continueStroke = useCallback(
+    (clientX: number, clientY: number) => {
+      if (!drawing.current || disabled) return;
+      drawAt(clientX, clientY, false);
+    },
+    [disabled, drawAt],
+  );
+
+  const finishStroke = useCallback(
+    (pointerId: number) => {
+      if (activePointerId.current !== pointerId) return;
+      try {
+        canvasRef.current?.releasePointerCapture(pointerId);
+      } catch {
+        /* ignore */
+      }
+      endStroke();
+    },
+    [endStroke],
+  );
+
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
       if (disabled) return;
       event.preventDefault();
-      const canvas = canvasRef.current;
-      if (!canvas) return;
-      canvas.setPointerCapture(event.pointerId);
-      drawing.current = true;
-      activePointerId.current = event.pointerId;
-      drawAt(event.clientX, event.clientY, true);
+      beginStroke(event.clientX, event.clientY, event.pointerId);
     },
-    [disabled, drawAt],
+    [disabled, beginStroke],
   );
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
       if (!drawing.current || disabled || activePointerId.current !== event.pointerId) return;
       event.preventDefault();
-      drawAt(event.clientX, event.clientY, false);
+      continueStroke(event.clientX, event.clientY);
     },
-    [disabled, drawAt],
+    [disabled, continueStroke],
   );
 
   const handlePointerEnd = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
       if (activePointerId.current !== event.pointerId) return;
       event.preventDefault();
-      canvasRef.current?.releasePointerCapture(event.pointerId);
-      endStroke();
+      finishStroke(event.pointerId);
     },
-    [endStroke],
+    [finishStroke],
+  );
+
+  /** Mouse fallback — Playwright automation uses mouse events, not always pointer capture. */
+  const handleMouseDown = useCallback(
+    (event: React.MouseEvent<HTMLCanvasElement>) => {
+      if (disabled || event.button !== 0 || activePointerId.current !== null) return;
+      event.preventDefault();
+      beginStroke(event.clientX, event.clientY, -1);
+    },
+    [disabled, beginStroke],
+  );
+
+  const handleMouseMove = useCallback(
+    (event: React.MouseEvent<HTMLCanvasElement>) => {
+      if (!drawing.current || disabled || activePointerId.current !== -1) return;
+      event.preventDefault();
+      continueStroke(event.clientX, event.clientY);
+    },
+    [disabled, continueStroke],
+  );
+
+  const handleMouseUp = useCallback(
+    (event: React.MouseEvent<HTMLCanvasElement>) => {
+      if (activePointerId.current !== -1) return;
+      event.preventDefault();
+      finishStroke(-1);
+    },
+    [finishStroke],
   );
 
   return (
@@ -428,6 +489,7 @@ function WebSignatureCanvas({
       <View style={styles.canvasWrap} onLayout={handleCanvasLayout}>
         <canvas
           ref={canvasRef}
+          data-testid="portal-signature-canvas"
           style={{
             width: '100%',
             height: fillAvailable ? '100%' : dims.height,
@@ -440,6 +502,10 @@ function WebSignatureCanvas({
           onPointerMove={handlePointerMove}
           onPointerUp={handlePointerEnd}
           onPointerCancel={handlePointerEnd}
+          onMouseDown={handleMouseDown}
+          onMouseMove={handleMouseMove}
+          onMouseUp={handleMouseUp}
+          onMouseLeave={handleMouseUp}
         />
       </View>
       <SignatureActions

@@ -13,13 +13,19 @@ import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWor
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
 import { buildEmployeePortalLiveRoute } from '@/features/liveTracking/buildEmployeePortalLiveRoute';
 import { saveEmployeeLocationConsent } from '@/features/liveTracking/saveEmployeeLocationConsent';
-import { requestLocationPermissionOnce } from '@/features/employeePermissions';
+import { getEmployeeLocationConsent } from '@/features/liveTracking/getEmployeeLocationConsent';
+import { fetchEmployeeLocationConsentRecord } from '@/features/liveTracking/employeeLocationConsentPersistence';
+import {
+  persistInternalLocationConsent,
+  requestLocationPermissionOnce,
+} from '@/features/employeePermissions';
 import {
   buildEmployeePortalTrackingSnapshot,
   captureEmployeePortalForegroundPosition,
   getEmployeePortalGpsPermissionStatus,
   getEmployeePortalLocationConsent,
   grantEmployeePortalLocationConsent,
+  applyEmployeePortalLocationConsent,
   markEmployeePortalConsentExplained,
   peekEmployeePortalTrackingEntry,
   rebuildEmployeePortalTrackingWarnings,
@@ -57,16 +63,142 @@ import {
   withWorkflowTimeout,
   WorkflowActionTimeoutError,
   WORKFLOW_ACTION_TIMEOUT_MS,
+  WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS,
+  WORKFLOW_END_SERVICE_TIMEOUT_MS,
+  WORKFLOW_MARK_ARRIVED_TIMEOUT_MS,
+  WORKFLOW_START_SERVICE_TIMEOUT_MS,
 } from '@/features/assistWorkflow/internal/withWorkflowTimeout';
 import { isStaleWorkflowTransitionError } from '@/features/assistWorkflow/internal/isStaleWorkflowTransitionError';
 
+function unwrapWorkflowContextPayload(payload: unknown): AssistExecutionContext | null {
+  if (!payload || typeof payload !== 'object') return null;
+
+  if (
+    'ctx' in payload &&
+    payload.ctx &&
+    typeof payload.ctx === 'object' &&
+    'assignmentStatus' in payload.ctx
+  ) {
+    return payload.ctx as AssistExecutionContext;
+  }
+
+  if ('detail' in payload && 'allowedActions' in payload) {
+    return payload as AssistExecutionContext;
+  }
+
+  if (
+    'ok' in payload &&
+    (payload as { ok: boolean }).ok &&
+    'data' in payload &&
+    (payload as { data?: unknown }).data &&
+    typeof (payload as { data: unknown }).data === 'object'
+  ) {
+    return unwrapWorkflowContextPayload((payload as { data: unknown }).data);
+  }
+
+  return null;
+}
+
+function resolveRecordedAssignmentStatus(
+  detail: import('@/types/modules/employeePortalExecution').EmployeePortalAssignmentDetail,
+): AssignmentStatus {
+  const normalizedStatus = detail.status;
+  if (
+    detail.actualEndAt ||
+    normalizedStatus === 'beendet' ||
+    normalizedStatus === 'dokumentation_offen' ||
+    normalizedStatus === 'unterschrift_offen'
+  ) {
+    return detail.actualEndAt ? 'beendet' : normalizedStatus;
+  }
+  if (
+    detail.actualStartAt ||
+    normalizedStatus === 'gestartet' ||
+    normalizedStatus === 'pausiert'
+  ) {
+    return normalizedStatus;
+  }
+  if (detail.arrivedAt || normalizedStatus === 'angekommen') {
+    return 'angekommen';
+  }
+  if (detail.onTheWayAt || normalizedStatus === 'unterwegs') {
+    return 'unterwegs';
+  }
+  return normalizedStatus;
+}
+
+const ASSIGNMENT_STATUS_PROGRESS: Partial<Record<AssignmentStatus, number>> = {
+  geplant: 10,
+  bestaetigt: 20,
+  unterwegs: 30,
+  angekommen: 40,
+  gestartet: 50,
+  pausiert: 55,
+  beendet: 60,
+  dokumentation_offen: 65,
+  unterschrift_offen: 70,
+  abgeschlossen: 80,
+};
+
+function pickEffectiveAssignmentStatus(
+  ...candidates: Array<AssignmentStatus | null | undefined>
+): AssignmentStatus | null {
+  const ranked = candidates.filter(Boolean) as AssignmentStatus[];
+  if (!ranked.length) return null;
+  return ranked.reduce((best, current) =>
+    (ASSIGNMENT_STATUS_PROGRESS[current] ?? 0) > (ASSIGNMENT_STATUS_PROGRESS[best] ?? 0)
+      ? current
+      : best,
+  );
+}
+
+function mergeVisitTimesFromPortalDetail(
+  visitTimes: VisitTimesSummary | null,
+  detail: import('@/types/modules/employeePortalExecution').EmployeePortalAssignmentDetail,
+): VisitTimesSummary | null {
+  const hasDetailTimes =
+    Boolean(detail.onTheWayAt) ||
+    Boolean(detail.arrivedAt) ||
+    Boolean(detail.actualStartAt) ||
+    Boolean(detail.actualEndAt);
+  if (!visitTimes && !hasDetailTimes) return visitTimes;
+
+  const base: VisitTimesSummary =
+    visitTimes ??
+    ({
+      driveSeconds: null,
+      serviceSeconds: null,
+      pauseSeconds: null,
+      totalSeconds: null,
+      driveStartedAt: null,
+      serviceStartedAt: null,
+      pauseStartedAt: null,
+      arrivedAt: null,
+      serviceEndedAt: null,
+      activeTimer: null,
+    } satisfies VisitTimesSummary);
+
+  return {
+    ...base,
+    driveStartedAt: base.driveStartedAt ?? detail.onTheWayAt ?? null,
+    arrivedAt: base.arrivedAt ?? detail.arrivedAt ?? null,
+    serviceStartedAt: base.serviceStartedAt ?? detail.actualStartAt ?? null,
+    serviceEndedAt: base.serviceEndedAt ?? detail.actualEndAt ?? null,
+  };
+}
+import { deriveWorkflowStatus } from '@/features/assistWorkflow/deriveWorkflowStatus';
+import { resolveAllowedActions } from '@/features/assistWorkflow/resolveAllowedActions';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
+import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
+
 export function useEmployeePortalVisitExecution(assignmentId: string | undefined) {
   const { profile } = useAuth();
-  const { tenantId: portalTenantId, employeeId: portalEmployeeId, roleKey: portalRoleKey } =
+  const { tenantId: portalTenantId, employeeId: portalEmployeeId, roleKey: portalRoleKey, actorId } =
     usePortalActor();
   const tenantId = useServiceTenantId() ?? portalTenantId;
   const employeeId = portalEmployeeId ?? profile?.employeeId ?? '';
   const roleKey = portalRoleKey ?? profile?.roleKey ?? null;
+  const authProfileId = profile?.id ?? actorId ?? null;
 
   const [gpsPermission, setGpsPermission] = useState<EmployeePortalGpsPermissionStatus>('undetermined');
   const [liveContext, setLiveContext] = useState<EmployeeLiveContext | null>(null);
@@ -74,11 +206,46 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [liveContextError, setLiveContextError] = useState<string | null>(null);
   const [liveErrorCode, setLiveErrorCode] = useState<LiveTrackingErrorCode | null>(null);
   const [consentRevision, setConsentRevision] = useState(0);
+  const [employeeLevelConsent, setEmployeeLevelConsent] = useState<{
+    granted: boolean;
+    grantedAt: string | null;
+    explainedAt: string | null;
+  } | null>(null);
   const [workflowLoading, setWorkflowLoading] = useState(false);
   const [startServiceLoading, setStartServiceLoading] = useState(false);
   const [refetchWarning, setRefetchWarning] = useState<string | null>(null);
   const executionContextRef = useRef<AssistExecutionContext | null>(null);
+  const skipContextRefreshRef = useRef(false);
   executionContextRef.current = executionContext;
+
+  useEffect(() => {
+    if (!tenantId || !assignmentId || !employeeId) return;
+    let cancelled = false;
+    void (async () => {
+      const employeeRecord = await fetchEmployeeLocationConsentRecord(tenantId, employeeId);
+      if (cancelled) return;
+      if (employeeRecord.ok && employeeRecord.data?.granted) {
+        setEmployeeLevelConsent(employeeRecord.data);
+        applyEmployeePortalLocationConsent(tenantId, assignmentId, employeeRecord.data);
+        setConsentRevision((n) => n + 1);
+        return;
+      }
+      const visitConsent = await getEmployeeLocationConsent({
+        tenantId,
+        employeeId,
+        routeParamId: assignmentId,
+        portalAccountId: authProfileId,
+        localConsent: getEmployeePortalLocationConsent(tenantId, assignmentId),
+      });
+      if (cancelled || !visitConsent.ok || !visitConsent.data.granted) return;
+      setEmployeeLevelConsent(visitConsent.data);
+      applyEmployeePortalLocationConsent(tenantId, assignmentId, visitConsent.data);
+      setConsentRevision((n) => n + 1);
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [tenantId, assignmentId, employeeId, authProfileId]);
 
   useEffect(() => {
     if (!assignmentId) return;
@@ -114,10 +281,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
           tenantId,
           assignmentId,
           employeeId,
-          profileId: profile?.id ?? employeeId,
+          profileId: authProfileId,
           roleKey,
         }),
-        WORKFLOW_ACTION_TIMEOUT_MS,
+        WORKFLOW_CONTEXT_REFRESH_TIMEOUT_MS,
         'resolveAssistExecutionContext',
       );
       if (!result.ok) {
@@ -125,6 +292,32 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         setRefetchWarning(result.error);
         return executionContextRef.current;
       }
+
+      const currentEndedAt =
+        executionContextRef.current?.visitTimes?.serviceEndedAt ??
+        executionContextRef.current?.detail.actualEndAt ??
+        null;
+      const incomingEndedAt =
+        result.data.visitTimes?.serviceEndedAt ?? result.data.detail.actualEndAt ?? null;
+      const currentRank = pickEffectiveAssignmentStatus(
+        currentEndedAt ? 'beendet' : null,
+        executionContextRef.current?.derivedStatus,
+        executionContextRef.current?.assignmentStatus,
+      );
+      const incomingRank = pickEffectiveAssignmentStatus(
+        incomingEndedAt ? 'beendet' : null,
+        result.data.derivedStatus,
+        result.data.assignmentStatus,
+      );
+      if (
+        currentRank &&
+        incomingRank &&
+        (ASSIGNMENT_STATUS_PROGRESS[currentRank] ?? 0) >
+          (ASSIGNMENT_STATUS_PROGRESS[incomingRank] ?? 0)
+      ) {
+        return executionContextRef.current;
+      }
+
       setExecutionContext(result.data);
       setLiveContext(result.data.liveContext);
       setLiveContextError(null);
@@ -145,19 +338,59 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       setLiveContextError(message);
       return null;
     }
-  }, [tenantId, assignmentId, employeeId, profile?.id, roleKey]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey]);
 
   useEffect(() => {
     if (!query.data) return;
+    if (skipContextRefreshRef.current) {
+      skipContextRefreshRef.current = false;
+      return;
+    }
     void refreshExecutionContext();
   }, [query.data, refreshExecutionContext]);
 
-  const effectiveStatus = executionContext?.derivedStatus ?? query.data?.status ?? null;
+  const workflowDerived = useMemo(() => {
+    if (executionContext) {
+      return {
+        derivedStatus: executionContext.derivedStatus,
+        recordedStatus: executionContext.assignmentStatus,
+        consistencyStatus: executionContext.consistencyStatus,
+        inconsistencies: executionContext.inconsistencies,
+        repairOptions: executionContext.repairOptions,
+        canStartService:
+          executionContext.derivedStatus === 'angekommen' &&
+          Boolean(
+            executionContext.visitTimes?.arrivedAt ||
+              executionContext.assignmentStatus === 'angekommen',
+          ),
+        nextActionHint: executionContext.diagnostics.repairHint,
+      };
+    }
+    if (!query.data) return null;
+    const visitTimes = mergeVisitTimesFromPortalDetail(null, query.data);
+    const recordedStatus = resolveRecordedAssignmentStatus(query.data);
+    return deriveWorkflowStatus(recordedStatus, visitTimes);
+  }, [executionContext, query.data]);
+
+  const serviceEndedAt =
+    executionContext?.visitTimes?.serviceEndedAt ??
+    executionContext?.detail.actualEndAt ??
+    query.data?.actualEndAt ??
+    null;
+
+  const effectiveStatus = pickEffectiveAssignmentStatus(
+    serviceEndedAt ? 'beendet' : null,
+    executionContext?.derivedStatus,
+    executionContext?.assignmentStatus,
+    workflowDerived?.derivedStatus,
+    workflowDerived?.recordedStatus,
+    query.data?.status,
+  );
 
   const liveTrackingEnabled = useMemo(
     () =>
+      effectiveStatus === 'unterwegs' &&
       Boolean(liveContext?.trackingSessionActive) &&
-      effectiveStatus != null &&
       isEmployeePortalVisitLiveTrackingActive(effectiveStatus),
     [liveContext?.trackingSessionActive, effectiveStatus],
   );
@@ -187,11 +420,11 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const tracking: EmployeePortalTrackingSnapshot | null = useMemo(() => {
-    if (!tenantId || !assignmentId || !query.data) return null;
+    if (!tenantId || !assignmentId || !query.data || !effectiveStatus) return null;
     const base = buildEmployeePortalTrackingSnapshot(
       tenantId,
       assignmentId,
-      query.data.status,
+      effectiveStatus,
       gpsPermission,
     );
 
@@ -204,15 +437,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       : base.consent;
 
     const dbActive =
-      liveContext?.trackingSessionActive ||
-      gpsTracking.state.trackingActive ||
-      gpsTracking.state.dbSessionActive;
+      effectiveStatus === 'unterwegs' &&
+      (liveContext?.trackingSessionActive ||
+        gpsTracking.state.trackingActive ||
+        gpsTracking.state.dbSessionActive);
 
     return {
       ...base,
       consent: resolvedConsent,
       warnings: rebuildEmployeePortalTrackingWarnings(resolvedConsent, gpsPermission, base.warnings),
-      trackingActive: dbActive || base.trackingActive,
+      trackingActive: dbActive || (effectiveStatus === 'unterwegs' && base.trackingActive),
       lastPosition: gpsTracking.state.lastSnapshot
         ? {
             latitude: gpsTracking.state.lastSnapshot.latitude,
@@ -223,7 +457,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         : base.lastPosition,
       timers: timers ?? base.timers,
     };
-  }, [tenantId, assignmentId, query.data, gpsPermission, liveContext, gpsTracking.state, timers]);
+  }, [tenantId, assignmentId, query.data, effectiveStatus, gpsPermission, liveContext, gpsTracking.state, timers]);
 
   const workflowStep: AssistWorkflowStep | null = useMemo(() => {
     if (!query.data || !effectiveStatus) return null;
@@ -232,10 +466,90 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const syncAfterWorkflow = useCallback(
     async (ctx: AssistExecutionContext) => {
-      setExecutionContext(ctx);
-      setLiveContext(ctx.liveContext);
-      query.setData(ctx.detail);
-      return ctx;
+      const arrived =
+        ctx.derivedStatus === 'angekommen' || ctx.assignmentStatus === 'angekommen';
+      const inService =
+        ctx.derivedStatus === 'gestartet' ||
+        ctx.derivedStatus === 'pausiert' ||
+        ctx.assignmentStatus === 'gestartet' ||
+        ctx.assignmentStatus === 'pausiert';
+      const hasServiceEnded = Boolean(ctx.visitTimes?.serviceEndedAt || ctx.detail.actualEndAt);
+      const postServicePhase =
+        ctx.assignmentStatus === 'dokumentation_offen' ||
+        ctx.assignmentStatus === 'unterschrift_offen' ||
+        ctx.derivedStatus === 'dokumentation_offen' ||
+        ctx.derivedStatus === 'unterschrift_offen';
+      const ended =
+        hasServiceEnded ||
+        ctx.derivedStatus === 'beendet' ||
+        ctx.assignmentStatus === 'beendet' ||
+        postServicePhase;
+      const syncedAssignmentStatus: AssignmentStatus = postServicePhase
+        ? ctx.assignmentStatus === 'unterschrift_offen' || ctx.derivedStatus === 'unterschrift_offen'
+          ? 'unterschrift_offen'
+          : 'dokumentation_offen'
+        : ended
+          ? 'beendet'
+          : ctx.assignmentStatus;
+      const syncedDerivedStatus: AssignmentStatus = postServicePhase
+        ? ctx.derivedStatus === 'unterschrift_offen' || ctx.assignmentStatus === 'unterschrift_offen'
+          ? 'unterschrift_offen'
+          : 'dokumentation_offen'
+        : ended
+          ? 'beendet'
+          : ctx.derivedStatus;
+
+      let visitTimes = ctx.visitTimes;
+      if (ended) {
+        const serviceEndedAt =
+          visitTimes?.serviceEndedAt ?? ctx.detail.actualEndAt ?? new Date().toISOString();
+        visitTimes = visitTimes
+          ? { ...visitTimes, serviceEndedAt, activeTimer: null }
+          : {
+              driveSeconds: null,
+              serviceSeconds: null,
+              pauseSeconds: null,
+              totalSeconds: null,
+              driveStartedAt: ctx.detail.onTheWayAt ?? null,
+              serviceStartedAt: ctx.detail.actualStartAt ?? null,
+              pauseStartedAt: null,
+              arrivedAt: ctx.detail.arrivedAt ?? null,
+              serviceEndedAt,
+              activeTimer: null,
+            };
+      }
+
+      const liveContext =
+        (arrived || inService || ended) && ctx.liveContext
+          ? { ...ctx.liveContext, trackingSessionActive: false }
+          : ctx.liveContext;
+
+      const synced: AssistExecutionContext = {
+        ...(liveContext ? { ...ctx, liveContext } : ctx),
+        assignmentStatus: syncedAssignmentStatus,
+        derivedStatus: syncedDerivedStatus,
+        visitTimes: visitTimes ?? ctx.visitTimes,
+        detail: ended
+          ? {
+              ...ctx.detail,
+              status: syncedAssignmentStatus,
+              actualEndAt: visitTimes?.serviceEndedAt ?? ctx.detail.actualEndAt,
+            }
+          : ctx.detail,
+      };
+
+      skipContextRefreshRef.current = true;
+      setExecutionContext(synced);
+      setLiveContext(liveContext);
+      query.setData({
+        ...synced.detail,
+        status: synced.assignmentStatus,
+        onTheWayAt: synced.detail.onTheWayAt ?? synced.visitTimes?.driveStartedAt ?? null,
+        arrivedAt: synced.detail.arrivedAt ?? synced.visitTimes?.arrivedAt ?? null,
+        actualStartAt: synced.detail.actualStartAt ?? synced.visitTimes?.serviceStartedAt ?? null,
+        actualEndAt: synced.detail.actualEndAt ?? synced.visitTimes?.serviceEndedAt ?? null,
+      });
+      return synced;
     },
     [query],
   );
@@ -243,9 +557,20 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const runWorkflow = useCallback(
     async <T,>(
       fn: (ctx: AssistExecutionContext) => Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }>,
-      options?: { timeoutLabel?: string; loadingMode?: 'generic' | 'start_service' },
+      options?: {
+        timeoutLabel?: string;
+        loadingMode?: 'generic' | 'start_service';
+        timeoutMs?: number;
+        preferExistingContext?: boolean;
+      },
     ): Promise<{ ok: boolean; data?: T; error?: string; errorCode?: string }> => {
-      let ctx = await refreshExecutionContext();
+      let ctx =
+        options?.preferExistingContext && executionContextRef.current
+          ? executionContextRef.current
+          : null;
+      if (!ctx) {
+        ctx = await refreshExecutionContext();
+      }
       if (!ctx) {
         ctx = executionContext;
       }
@@ -260,25 +585,17 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       try {
         const result = await withWorkflowTimeout(
           fn(ctx),
-          WORKFLOW_ACTION_TIMEOUT_MS,
+          options?.timeoutMs ??
+            (loadingMode === 'start_service'
+              ? WORKFLOW_START_SERVICE_TIMEOUT_MS
+              : WORKFLOW_ACTION_TIMEOUT_MS),
           options?.timeoutLabel ?? 'workflow',
         );
 
         if (result.ok) {
-          const payload = result.data;
-          if (payload && typeof payload === 'object') {
-            if (
-              'ctx' in payload &&
-              payload.ctx &&
-              typeof payload.ctx === 'object' &&
-              'assignmentStatus' in payload.ctx
-            ) {
-              await syncAfterWorkflow(payload.ctx as AssistExecutionContext);
-            } else if ('detail' in payload && 'allowedActions' in payload) {
-              await syncAfterWorkflow(payload as AssistExecutionContext);
-            } else {
-              await refreshExecutionContext();
-            }
+          const syncedContext = unwrapWorkflowContextPayload(result.data);
+          if (syncedContext) {
+            await syncAfterWorkflow(syncedContext);
           } else {
             await refreshExecutionContext();
           }
@@ -293,6 +610,11 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         return result;
       } catch (error) {
         if (error instanceof WorkflowActionTimeoutError) {
+          const recovered = await refreshExecutionContext();
+          if (recovered) {
+            await syncAfterWorkflow(recovered);
+            return { ok: true, data: recovered as T };
+          }
           return {
             ok: false,
             error: 'Zeitüberschreitung — bitte erneut versuchen.',
@@ -321,58 +643,82 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
     markEmployeePortalConsentExplained(tenantId, assignmentId);
     const local = grantEmployeePortalLocationConsent(tenantId, assignmentId);
+    setEmployeeLevelConsent(local);
+    setConsentRevision((n) => n + 1);
+
+    const employeePersisted = await persistInternalLocationConsent(
+      tenantId,
+      employeeId,
+      local.grantedAt ?? new Date().toISOString(),
+      local.explainedAt,
+    );
 
     const persisted = await saveEmployeeLocationConsent({
       tenantId,
       employeeId,
       routeParamId: assignmentId,
-      profileId: profile?.id ?? employeeId,
+      profileId: authProfileId,
       consentExplainedAt: local.explainedAt,
       localConsent: local,
     });
 
-    if (!persisted.ok) {
-      return { ok: false, error: persisted.error ?? 'Einwilligung konnte nicht gespeichert werden.' };
+    if (!persisted.ok && !employeePersisted.ok) {
+      return { ok: false, error: persisted.error ?? employeePersisted.error ?? 'Einwilligung konnte nicht gespeichert werden.' };
     }
 
     grantEmployeePortalLocationConsent(tenantId, assignmentId);
     setConsentRevision((n) => n + 1);
+
+    setLiveContext((prev) =>
+      prev
+        ? {
+            ...prev,
+            consentStatus: {
+              granted: true,
+              grantedAt: local.grantedAt,
+              explainedAt: local.explainedAt,
+            },
+          }
+        : prev,
+    );
+
     await refreshExecutionContext();
     return { ok: true };
-  }, [tenantId, assignmentId, employeeId, profile?.id, refreshExecutionContext]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, refreshExecutionContext]);
 
   const startDriveTracking = useCallback(async (): Promise<{ ok: boolean; error?: string; errorCode?: LiveTrackingErrorCode }> => {
     if (!tenantId || !assignmentId) {
       return { ok: false, error: 'Keine Einsatz-ID.' };
     }
 
+    const consent = getEmployeePortalLocationConsent(tenantId, assignmentId);
+    if (!consent.granted) {
+      return { ok: false, error: 'Bitte zuerst Standort-Einwilligung bestätigen.', errorCode: 'LIVE_CONSENT_SAVE_FAILED' };
+    }
+
     const perm = await requestLocationPermissionOnce(tenantId, employeeId);
     setGpsPermission(perm);
-    if (perm !== 'granted') {
-      return { ok: false, error: 'Standortberechtigung erforderlich.', errorCode: 'LIVE_GPS_PERMISSION_DENIED' };
-    }
 
-    let snapshot = await gpsTracking.captureOnce();
-    if (!snapshot) {
-      const captured = await captureEmployeePortalForegroundPosition(tenantId, assignmentId);
-      if (!captured.ok) {
-        return { ok: false, error: captured.error, errorCode: 'LIVE_GPS_POSITION_UNAVAILABLE' };
+    let snapshot = null;
+    if (perm === 'granted') {
+      snapshot = await gpsTracking.captureOnce();
+      if (!snapshot) {
+        const captured = await captureEmployeePortalForegroundPosition(tenantId, assignmentId);
+        if (captured.ok) snapshot = captured.data;
       }
-      snapshot = captured.data;
     }
 
-    const consent = getEmployeePortalLocationConsent(tenantId, assignmentId);
     const now = consent.grantedAt ?? new Date().toISOString();
-
     const started = await startEnRoute({
       tenantId,
       employeeId,
       assignmentId,
-      profileId: profile?.id ?? employeeId,
+      profileId: authProfileId,
       roleKey,
       consentGrantedAt: now,
       consentExplainedAt: consent.explainedAt,
       gpsSnapshot: snapshot,
+      withoutGps: !snapshot,
       localConsent: consent,
     });
 
@@ -385,17 +731,24 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     setExecutionContext(started.data);
     setLiveErrorCode(null);
     query.setData(started.data.detail);
-    await gpsTracking.startWatching();
+    if (snapshot) {
+      await gpsTracking.startWatching();
+    }
     return { ok: true };
-  }, [tenantId, assignmentId, employeeId, profile?.id, roleKey, gpsTracking, query]);
+  }, [tenantId, assignmentId, employeeId, authProfileId, roleKey, gpsTracking, query]);
 
   const handleMarkArrived = useCallback(async (): Promise<MarkArrivedResult> => {
-    return runWorkflow(async (ctx) => {
+    const result = (await runWorkflow(async (ctx) => {
       let gpsSnapshot = null;
       let arrivalMode: 'gps' | 'without_gps' | 'manual' = 'without_gps';
 
       if (tenantId && assignmentId) {
-        const pos = await captureEmployeePortalForegroundPosition(tenantId, assignmentId);
+        const pos = await Promise.race([
+          captureEmployeePortalForegroundPosition(tenantId, assignmentId),
+          new Promise<{ ok: false; error: string }>((resolve) => {
+            setTimeout(() => resolve({ ok: false, error: 'GPS timeout' }), 4000);
+          }),
+        ]);
         if (pos.ok) {
           gpsSnapshot = pos.data;
           arrivalMode = 'gps';
@@ -414,7 +767,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         arrivalMode,
         manualReason: tracking?.geofence?.overrideReason ?? null,
       });
-    }) as Promise<MarkArrivedResult>;
+    }, {
+      timeoutLabel: 'markArrived',
+      timeoutMs: WORKFLOW_MARK_ARRIVED_TIMEOUT_MS,
+    })) as MarkArrivedResult;
+
+    return result;
   }, [runWorkflow, tenantId, assignmentId, tracking?.geofence]);
 
   const handleStartService = useCallback(
@@ -437,7 +795,10 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleEndService = useCallback(async () => {
-    const result = await runWorkflow((ctx) => endService(ctx));
+    const result = await runWorkflow((ctx) => endService(ctx), {
+      timeoutLabel: 'endService',
+      timeoutMs: WORKFLOW_END_SERVICE_TIMEOUT_MS,
+    });
     if (
       !result.ok &&
       result.errorCode === 'WORKFLOW_SERVICE_NOT_STARTED'
@@ -456,9 +817,40 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   );
 
   const handleSaveDocumentation = useCallback(
-    (documentation: EmployeePortalDocumentationInput) =>
-      runWorkflow((ctx) => saveVisitDocumentation({ ctx, documentation })),
-    [runWorkflow],
+    async (documentation: EmployeePortalDocumentationInput) => {
+      const ctx = executionContextRef.current ?? executionContext;
+      if (!ctx) {
+        return { ok: false, error: 'Einsatzkontext fehlt.' };
+      }
+
+      setWorkflowLoading(true);
+      try {
+        const result = await withWorkflowTimeout(
+          saveVisitDocumentation({ ctx, documentation }),
+          WORKFLOW_END_SERVICE_TIMEOUT_MS,
+          'saveDocumentation',
+        );
+        if (result.ok) {
+          const synced = unwrapWorkflowContextPayload(result.data);
+          if (synced) {
+            await syncAfterWorkflow(synced);
+          }
+        }
+        return result;
+      } catch (error) {
+        if (error instanceof WorkflowActionTimeoutError) {
+          return {
+            ok: false,
+            error: 'Zeitüberschreitung — bitte erneut versuchen.',
+            errorCode: 'START_SERVICE_TIMEOUT',
+          };
+        }
+        throw error;
+      } finally {
+        setWorkflowLoading(false);
+      }
+    },
+    [executionContext, syncAfterWorkflow],
   );
 
   const handleSaveSignature = useCallback(
@@ -511,24 +903,41 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       employeeId,
       routeParamId: assignmentId,
       roleKey,
-      portalAccountId: profile?.id ?? employeeId,
+      portalAccountId: authProfileId,
     });
-  }, [tenantId, assignmentId, employeeId, roleKey, profile?.id]);
+  }, [tenantId, assignmentId, employeeId, roleKey, authProfileId]);
 
   const consent = useMemo(() => {
     if (!tenantId || !assignmentId) return null;
-    if (liveContext?.consentStatus.granted) {
-      return {
-        granted: true,
-        grantedAt: liveContext.consentStatus.grantedAt,
-        explainedAt: liveContext.consentStatus.explainedAt,
-      };
+
+    const assignmentConsent = getEmployeePortalLocationConsent(tenantId, assignmentId);
+    const granted =
+      liveContext?.consentStatus.granted ||
+      assignmentConsent.granted ||
+      employeeLevelConsent?.granted;
+
+    if (!granted) {
+      return assignmentConsent;
     }
-    return getEmployeePortalLocationConsent(tenantId, assignmentId);
+
+    return {
+      granted: true as const,
+      grantedAt:
+        liveContext?.consentStatus.grantedAt ??
+        assignmentConsent.grantedAt ??
+        employeeLevelConsent?.grantedAt ??
+        null,
+      explainedAt:
+        liveContext?.consentStatus.explainedAt ??
+        assignmentConsent.explainedAt ??
+        employeeLevelConsent?.explainedAt ??
+        null,
+    };
   }, [
     tenantId,
     assignmentId,
     consentRevision,
+    employeeLevelConsent,
     liveContext?.consentStatus.granted,
     liveContext?.consentStatus.grantedAt,
     liveContext?.consentStatus.explainedAt,
@@ -549,14 +958,64 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     };
   }, [query.data, liveContext?.clientAddress, taskDrafts.tasks]);
 
-  const allowedActions = executionContext?.allowedActions ?? [];
+  const allowedActions = useMemo(() => {
+    if (executionContext && effectiveStatus) {
+      let visitTimes = executionContext.visitTimes;
+      const hasServiceEnded = Boolean(
+        visitTimes?.serviceEndedAt ??
+          executionContext.detail.actualEndAt ??
+          query.data?.actualEndAt,
+      );
+      if (effectiveStatus === 'gestartet' && !visitTimes?.serviceStartedAt && !hasServiceEnded) {
+        visitTimes = {
+          driveSeconds: visitTimes?.driveSeconds ?? null,
+          serviceSeconds: visitTimes?.serviceSeconds ?? null,
+          pauseSeconds: visitTimes?.pauseSeconds ?? null,
+          totalSeconds: visitTimes?.totalSeconds ?? null,
+          driveStartedAt: visitTimes?.driveStartedAt ?? executionContext.detail.onTheWayAt ?? null,
+          serviceStartedAt:
+            executionContext.detail.actualStartAt ?? new Date().toISOString(),
+          pauseStartedAt: visitTimes?.pauseStartedAt ?? null,
+          arrivedAt: visitTimes?.arrivedAt ?? executionContext.detail.arrivedAt ?? null,
+          serviceEndedAt: visitTimes?.serviceEndedAt ?? null,
+          activeTimer: 'service',
+        };
+      }
+      return resolveAllowedActions({
+        assignmentStatus: executionContext.assignmentStatus,
+        visitTimes,
+        detail: {
+          ...executionContext.detail,
+          status: effectiveStatus,
+          actualStartAt: visitTimes?.serviceStartedAt ?? executionContext.detail.actualStartAt,
+        },
+        derivedStatus: effectiveStatus,
+        canStartService:
+          effectiveStatus === 'angekommen' &&
+          Boolean(
+            visitTimes?.arrivedAt || executionContext.assignmentStatus === 'angekommen',
+          ),
+      });
+    }
+    if (!query.data || !workflowDerived) return [];
+    const visitTimes = mergeVisitTimesFromPortalDetail(null, query.data);
+    const recordedStatus = resolveRecordedAssignmentStatus(query.data);
+    return resolveAllowedActions({
+      assignmentStatus: recordedStatus,
+      visitTimes,
+      detail: { ...query.data, status: recordedStatus },
+      derivedStatus: workflowDerived.derivedStatus,
+      canStartService: workflowDerived.canStartService,
+    });
+  }, [executionContext, effectiveStatus, query.data, workflowDerived]);
 
   return {
     data: visitWithAddress,
     executionContext,
     allowedActions,
     diagnostics: executionContext?.diagnostics ?? null,
-    derivedStatus: executionContext?.derivedStatus ?? null,
+    derivedStatus: workflowDerived?.derivedStatus ?? null,
+    effectiveStatus,
     consistencyStatus: executionContext?.consistencyStatus ?? 'consistent',
     nextActionHint: executionContext?.diagnostics?.repairHint ?? null,
     workflowStep,
@@ -595,6 +1054,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     openRoute,
     notFound: !query.loading && !query.error && !query.data,
     hasAssignment: Boolean(query.data),
-    isServiceEnded: Boolean(executionContext?.visitTimes?.serviceEndedAt),
+    isServiceEnded: Boolean(
+      serviceEndedAt ||
+        (effectiveStatus &&
+          (effectiveStatus === 'beendet' ||
+            effectiveStatus === 'dokumentation_offen' ||
+            effectiveStatus === 'unterschrift_offen')),
+    ),
   };
 }

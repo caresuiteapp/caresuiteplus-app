@@ -28,6 +28,10 @@ import {
   fetchLatestVisitProof,
   persistVisitProof,
 } from '@/lib/assist/assistVisitProofPersistenceService';
+import {
+  isStoredVisitProofComplete,
+  visitProofNeedsRefresh,
+} from '@/lib/assist/visitProofCompleteness';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -79,7 +83,8 @@ function statusToTimeEventType(
 
 async function resolveVisit(ctx: EmployeePortalPersistenceContext): Promise<string | null> {
   if (getServiceMode() !== 'supabase') return null;
-  return resolveAssistVisitIdForPersistence(ctx.tenantId, ctx.assignmentId);
+  const resolved = await resolveAssistVisitIdForPersistence(ctx.tenantId, ctx.assignmentId);
+  return resolved ?? ctx.assignmentId;
 }
 
 /** Persist consent + optional session start (employee portal only). */
@@ -316,7 +321,32 @@ export async function persistEmployeePortalVisitProof(
 
   const existing = await fetchLatestVisitProof(ctx.tenantId, visitId);
   if (existing.ok && existing.data) {
-    return { ok: true };
+    const complete = isStoredVisitProofComplete(existing.data, {
+      requireSignature: Boolean(signatureId),
+    });
+    if (complete) {
+      return { ok: true };
+    }
+    if (!visitProofNeedsRefresh(existing.data, { requireSignature: Boolean(signatureId) })) {
+      return { ok: true };
+    }
+    const payloadHash = await computeVisitProofPayloadHash(snapshot);
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { error: updateError } = await fromUnknownTable(supabase, 'assist_visit_proofs')
+        .update({
+          signature_id: signatureId ?? existing.data.signatureId,
+          payload_snapshot: snapshot,
+          payload_hash: payloadHash,
+          updated_at: new Date().toISOString(),
+        })
+        .eq('tenant_id', ctx.tenantId)
+        .eq('id', existing.data.id);
+      if (updateError) {
+        return { ok: false, error: toGermanSupabaseError(updateError) };
+      }
+      return { ok: true };
+    }
   }
 
   const payloadHash = await computeVisitProofPayloadHash(snapshot);

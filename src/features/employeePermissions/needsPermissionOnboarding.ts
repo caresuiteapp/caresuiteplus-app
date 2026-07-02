@@ -13,5 +13,11 @@ export async function needsPermissionOnboarding(
   if (!snapshot.ok) {
     return false;
   }
-  return !snapshot.data.onboardingCompleted;
+  if (snapshot.data.onboardingCompleted) {
+    return false;
+  }
+  if (snapshot.data.locationInternalConsentGranted) {
+    return false;
+  }
+  return true;
 }

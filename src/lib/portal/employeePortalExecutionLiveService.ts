@@ -115,6 +115,8 @@ function mapDetailToPortal(
     plannedEndAt: detail.plannedEndAt,
     actualStartAt: detail.actualStartAt,
     actualEndAt: detail.actualEndAt,
+    onTheWayAt: detail.onTheWayAt ?? null,
+    arrivedAt: detail.arrivedAt ?? null,
     status,
     canonicalStatus,
     notesForEmployee: extras?.notesForEmployee?.trim() ?? '',
@@ -211,27 +213,64 @@ function assertLiveEmployeeAssignmentAccess(
   return null;
 }
 
-/** Mirror assignments.status into assist_visits via SECURITY DEFINER RPC (direct visit UPDATE may fail RLS). */
-async function mirrorAssistVisitStatusFromAssignment(
+async function syncBudgetLifecycleAfterPortalStatus(
   tenantId: string,
   assignmentId: string,
   targetStatus: AssignmentStatus,
-  actorEmployeeId: string,
+  actorProfileId?: string | null,
 ): Promise<void> {
+  if (targetStatus !== 'beendet' && targetStatus !== 'abgeschlossen') return;
+  const { markAssignmentExecuted } = await import('@/lib/assist/clientBudgetTransactionService');
+  await markAssignmentExecuted(tenantId, assignmentId, actorProfileId ?? null);
+}
+
+/** Mirror assignments.status into assist_visits via SECURITY DEFINER RPC (direct visit UPDATE may fail RLS). */
+export async function mirrorAssistVisitStatusFromAssignment(
+  tenantId: string,
+  assignmentId: string,
+  targetStatus: AssignmentStatus,
+  actorProfileId?: string | null,
+): Promise<{ ok: boolean; error?: string }> {
   const supabase = getSupabaseClient();
-  if (!supabase) return;
+  if (!supabase) return { ok: true };
 
   const { error } = await supabase.rpc('repair_assist_visit_workflow_status', {
     p_tenant_id: tenantId,
     p_assignment_id: assignmentId,
     p_target_status: targetStatus,
     p_reason: 'portal_execution_status_mirror',
-    p_actor_employee_id: actorEmployeeId,
+    p_actor_employee_id: actorProfileId ?? null,
   });
 
-  if (error) {
-    console.warn('[employeePortalExecutionLiveService] visit status mirror:', error.message);
+  if (!error) {
+    await syncBudgetLifecycleAfterPortalStatus(
+      tenantId,
+      assignmentId,
+      targetStatus,
+      actorProfileId,
+    );
+    return { ok: true };
   }
+
+  const visitUpdated = await visitSupabaseRepository.updateAssignmentStatus(
+    tenantId,
+    assignmentId,
+    targetStatus,
+    actorProfileId ?? null,
+  );
+  if (visitUpdated.ok) {
+    await syncBudgetLifecycleAfterPortalStatus(
+      tenantId,
+      assignmentId,
+      targetStatus,
+      actorProfileId,
+    );
+    return { ok: true };
+  }
+
+  const message = `${error.message}; visit fallback: ${visitUpdated.error ?? 'failed'}`;
+  console.warn('[employeePortalExecutionLiveService] visit status mirror:', message);
+  return { ok: false, error: message };
 }
 
 async function loadEmployeePortalAssignmentDetail(
@@ -423,23 +462,6 @@ export async function transitionLiveEmployeePortalAssignment(
   if (!updated.ok) return updated;
   let detailAfterUpdate: AssignmentDetail = updated.data;
 
-  // assignments is source of truth; mirror into assist_visits (RPC — direct UPDATE often blocked by RLS).
-  await mirrorAssistVisitStatusFromAssignment(tenantId, assignmentId, toStatus, employeeId);
-
-  const visitRow = await visitSupabaseRepository.getById(tenantId, assignmentId);
-  if (visitRow.ok && visitRow.data) {
-    const visitUpdated = await visitSupabaseRepository.updateAssignmentStatus(
-      tenantId,
-      assignmentId,
-      toStatus,
-      employeeId,
-    );
-    if (visitUpdated.ok && visitUpdated.data) {
-      const reloaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
-      if (reloaded.ok && reloaded.data) detailAfterUpdate = reloaded.data;
-    }
-  }
-
   applyEmployeePortalTrackingForStatus(tenantId, assignmentId, fromStatus, toStatus);
   if (!options?.skipStatusPersistence) {
     const entry = peekEmployeePortalTrackingEntry(tenantId, assignmentId);
@@ -448,7 +470,7 @@ export async function transitionLiveEmployeePortalAssignment(
         tenantId,
         assignmentId,
         employeeId,
-        profileId: employeeId,
+        profileId: options?.profileId ?? null,
         locationAddress: detailAfterUpdate.location,
       },
       fromStatus,
@@ -456,6 +478,19 @@ export async function transitionLiveEmployeePortalAssignment(
       entry.geofenceLastCheck,
       options?.arrivalOptions,
     );
+  }
+
+  await mirrorAssistVisitStatusFromAssignment(
+    tenantId,
+    assignmentId,
+    toStatus,
+    options?.profileId ?? null,
+  );
+
+  const visitRow = await visitSupabaseRepository.getById(tenantId, assignmentId);
+  if (visitRow.ok && visitRow.data) {
+    const reloaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
+    if (reloaded.ok && reloaded.data) detailAfterUpdate = reloaded.data;
   }
 
   const extras = await fetchAssignmentExtras(tenantId, assignmentId, detailAfterUpdate.clientId);

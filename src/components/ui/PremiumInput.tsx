@@ -31,6 +31,7 @@ export function PremiumInput({
   onDarkSurface = false,
   viewContext,
   style,
+  onChangeText,
   ...props
 }: PremiumInputProps) {
   const { colors, active, tokens } = useAuroraGlass();
@@ -110,6 +111,18 @@ export function PremiumInput({
       <TextInput
         placeholderTextColor={text.muted}
         style={[styles.input, error ? styles.inputError : null, style]}
+        onChangeText={onChangeText}
+        {...(Platform.OS === 'web'
+          ? {
+              onChange: (event) => {
+                const value =
+                  typeof event?.nativeEvent?.text === 'string'
+                    ? event.nativeEvent.text
+                    : ((event as unknown as { target?: { value?: string } }).target?.value ?? '');
+                onChangeText?.(value);
+              },
+            }
+          : {})}
         {...props}
       />
       {error ? <Text style={styles.error}>{error}</Text> : null}

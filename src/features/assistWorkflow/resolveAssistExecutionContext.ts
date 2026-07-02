@@ -8,7 +8,43 @@ import { resolveEmployeeLiveContext } from '@/features/liveTracking/resolveEmplo
 import { resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getEmployeePortalLocationConsent } from '@/lib/portal/employeePortalVisitTrackingService';
-import { calculateVisitTimes } from './calculateVisitTimes';
+import { calculateVisitTimes, type VisitTimesSummary } from './calculateVisitTimes';
+import type { AssignmentDetail } from '@/lib/assist/repositories/assignmentRepository.supabase';
+
+function mergeVisitTimesFromAssignment(
+  visitTimes: VisitTimesSummary | null,
+  detail: AssignmentDetail,
+): VisitTimesSummary | null {
+  const hasAssignmentTimes =
+    Boolean(detail.onTheWayAt) ||
+    Boolean(detail.arrivedAt) ||
+    Boolean(detail.actualStartAt) ||
+    Boolean(detail.actualEndAt);
+  if (!visitTimes && !hasAssignmentTimes) return null;
+
+  const base: VisitTimesSummary =
+    visitTimes ??
+    ({
+      driveSeconds: null,
+      serviceSeconds: null,
+      pauseSeconds: null,
+      totalSeconds: null,
+      driveStartedAt: null,
+      serviceStartedAt: null,
+      pauseStartedAt: null,
+      arrivedAt: null,
+      serviceEndedAt: null,
+      activeTimer: null,
+    } satisfies VisitTimesSummary);
+
+  return {
+    ...base,
+    driveStartedAt: base.driveStartedAt ?? detail.onTheWayAt ?? null,
+    arrivedAt: base.arrivedAt ?? detail.arrivedAt ?? null,
+    serviceStartedAt: base.serviceStartedAt ?? detail.actualStartAt ?? null,
+    serviceEndedAt: base.serviceEndedAt ?? detail.actualEndAt ?? null,
+  };
+}
 import { deriveWorkflowStatus } from './deriveWorkflowStatus';
 import { repairWorkflowState } from './repairWorkflowState';
 import { transitionAssistExecutionStatus } from './internal/transitionAssistExecutionStatus';
@@ -63,7 +99,7 @@ export async function resolveAssistExecutionContext(
     tenantId,
     employeeId,
     routeParamId: assignmentId,
-    portalAccountId: profileId ?? employeeId,
+    portalAccountId: profileId ?? null,
     localConsent,
   });
 
@@ -84,7 +120,12 @@ export async function resolveAssistExecutionContext(
       const workflowPreview = deriveWorkflowStatus(detailResult.data.status, preliminaryTimes);
       // ASSIST.STABILIZE.3 — timers follow derived status so pause freezes service display.
       visitTimes = calculateVisitTimes(timeEvents, workflowPreview.derivedStatus);
+      visitTimes = mergeVisitTimesFromAssignment(visitTimes, detailResult.data);
     }
+  }
+
+  if (!visitTimes) {
+    visitTimes = mergeVisitTimesFromAssignment(null, detailResult.data);
   }
 
   const workflow = deriveWorkflowStatus(detailResult.data.status, visitTimes);

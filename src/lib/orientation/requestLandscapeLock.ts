@@ -37,9 +37,16 @@ async function tryLockLandscape(): Promise<LandscapeLockResult> {
     return {
       ok: true,
       unlock: () => {
-        void orientation.unlock?.().catch((err: unknown) => {
+        try {
+          const unlockResult = orientation.unlock?.();
+          if (unlockResult != null && typeof (unlockResult as Promise<void>).catch === 'function') {
+            void (unlockResult as Promise<void>).catch((err: unknown) => {
+              console.warn(LOG_PREFIX, 'unlock failed', err);
+            });
+          }
+        } catch (err) {
           console.warn(LOG_PREFIX, 'unlock failed', err);
-        });
+        }
       },
     };
   } catch (err) {

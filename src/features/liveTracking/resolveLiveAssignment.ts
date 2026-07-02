@@ -160,6 +160,11 @@ export async function resolveLiveAssignment(
     };
   }
 
+  // Portal employee scope: never fall back to assist_visits when assignment row is filtered out.
+  if (input.employeeId?.trim()) {
+    return { ok: false, error: 'Einsatz nicht zugewiesen.' };
+  }
+
   const fromVisit = await visitSupabaseRepository.getById(tenantId, masterId);
   if (!fromVisit.ok) return fromVisit;
   if (fromVisit.data) {

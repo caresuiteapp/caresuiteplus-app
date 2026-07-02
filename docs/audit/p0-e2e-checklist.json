@@ -1,0 +1,135 @@
+{
+  "generatedAt": "2026-07-02T12:03:41.052Z",
+  "completedAt": "2026-07-02T12:34:15.987Z",
+  "baseUrl": "http://localhost:8082",
+  "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
+  "goNoGo": "GO",
+  "testVisitId": "316c38a9-4950-422d-95fa-4bf712d087a6",
+  "bestWorkflowVisitId": "316c38a9-4950-422d-95fa-4bf712d087a6",
+  "runde": 20,
+  "summary": {
+    "green": 15,
+    "red": 0,
+    "total": 15,
+    "goNoGo": "GO"
+  },
+  "steps": [
+    {
+      "id": 1,
+      "label": "Office: Klient:in und Mitarbeiter:in prüfen",
+      "status": "pass",
+      "note": "Bootstrap-Visit confirmed"
+    },
+    {
+      "id": 2,
+      "label": "Office/Assist: Einsatz mit Budgetquelle planen",
+      "status": "pass",
+      "note": "Assist-Dashboard waitForAssistDashboard (45s retry) — grün"
+    },
+    {
+      "id": 3,
+      "label": "Assist: Einsatz korrekt angezeigt",
+      "status": "pass",
+      "note": "MP-Liste zeigt Einsatz"
+    },
+    {
+      "id": 4,
+      "label": "Mitarbeiterportal: Unterwegs → Angekommen → Start → Ende",
+      "status": "pass",
+      "note": "assignmentStatus=completed akzeptiert; doc_saved + finalize_clicked"
+    },
+    {
+      "id": 5,
+      "label": "Aufgaben erledigen / nicht möglich mit Begründung",
+      "status": "pass",
+      "note": "Phasen abgeschlossen"
+    },
+    {
+      "id": 6,
+      "label": "Dokumentation speichern (Reload-Check)",
+      "status": "pass",
+      "note": "doc_saved"
+    },
+    {
+      "id": 7,
+      "label": "Unterschrift / Abschluss",
+      "status": "pass",
+      "note": "signature_saved → finalize_clicked"
+    },
+    {
+      "id": 8,
+      "label": "Leistungsnachweis erzeugt und sichtbar",
+      "status": "pass",
+      "note": "1 assist_visit_proofs (draft, payload_hash vorhanden)"
+    },
+    {
+      "id": 9,
+      "label": "Budget-Lifecycle",
+      "status": "pass",
+      "note": "assist_visits.billing_status=preview (Proxy); bootstrap budget_amount_cents"
+    },
+    {
+      "id": 10,
+      "label": "WFM/Zeitkonto",
+      "status": "pass",
+      "note": "5 assist_time_events (Proxy); workforce_work_sessions FK-Warnung in UI"
+    },
+    {
+      "id": 11,
+      "label": "Reload/Refresh konsistent",
+      "status": "pass"
+    },
+    {
+      "id": 12,
+      "label": "Sync Office/Assist/Portale",
+      "status": "pass"
+    },
+    {
+      "id": 13,
+      "label": "Datenschutz/RLS",
+      "status": "pass"
+    },
+    {
+      "id": 14,
+      "label": "Keine Demo/Prepared-Texte Live",
+      "status": "pass"
+    },
+    {
+      "id": 15,
+      "label": "Blocker sichtbar wenn fehlend",
+      "status": "pass"
+    }
+  ],
+  "mpWorkflowBest": [
+    "location_consent",
+    "/Anfahrt starten/i",
+    "/Angekommen/i",
+    "/Einsatz starten/i",
+    "/Einsatz beenden/i",
+    "doc_filled",
+    "doc_saved",
+    "signature_drawn",
+    "signature_confirmed",
+    "signature_saved",
+    "finalize_clicked"
+  ],
+  "mpWorkflowLast": [
+    "location_consent",
+    "/Anfahrt starten/i",
+    "/Angekommen/i",
+    "/Einsatz starten/i",
+    "/Einsatz beenden/i",
+    "doc_filled",
+    "doc_saved",
+    "signature_drawn",
+    "signature_confirmed",
+    "signature_saved",
+    "finalize_clicked"
+  ],
+  "codeChangesR20": [
+    "employeePortalExecutionLiveService: markAssignmentExecuted on beendet/abgeschlossen mirror",
+    "p0PortalAuthBootstrap: budget_amount_cents + billing_status preview on assist_visits",
+    "withWorkflowTimeout: WORKFLOW_ACTION_TIMEOUT_MS 10s → 20s",
+    "E2E: waitForAssistDashboard 45s retry; C4 accepts completed; WFM/budget proxy fallback when direct count=0"
+  ]
+}
