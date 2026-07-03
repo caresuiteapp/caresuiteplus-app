@@ -19,6 +19,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
 import { ensureTimeTrackingSettings } from '@/lib/timeTracking';
 import {
@@ -68,9 +69,10 @@ export function TimeTrackingEmployeeScreen() {
   const router = useRouter();
   const pathname = usePathname();
   const { profile, user } = useAuth();
+  const { employeeId: portalEmployeeId } = usePortalActor();
   const tenantId = useServiceTenantId();
   const userId = user?.id ?? profile?.id ?? '';
-  const employeeId = profile?.employeeId ?? null;
+  const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
   const text = useAuroraAdaptiveText();
@@ -190,7 +192,10 @@ export function TimeTrackingEmployeeScreen() {
     return (
       <ScreenShell title="Arbeitszeit" subtitle={subtitle}>
         <LockedActionBanner
-          message={check('time.tracking.own.view').reason ?? 'Keine Berechtigung.'}
+          message={
+            check('time.tracking.own.view').reason ??
+            'Sie haben keine Berechtigung, diese Arbeitszeiten zu öffnen.'
+          }
           roleLabel={roleLabel}
         />
       </ScreenShell>
@@ -207,7 +212,9 @@ export function TimeTrackingEmployeeScreen() {
 
   if (statusQuery.error && !statusQuery.data) {
     const isMissingEmployeeProfile =
-      statusQuery.error.includes('Kein Mitarbeiterprofil') && canUseTeamOverview;
+      (statusQuery.error.includes('Portalzugang') ||
+        statusQuery.error.includes('Kein Mitarbeiterprofil')) &&
+      canUseTeamOverview;
     if (isMissingEmployeeProfile) {
       return (
         <ScreenShell title="Arbeitszeit" subtitle={subtitle} scroll>

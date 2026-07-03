@@ -18,6 +18,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
 import {
   listWfmAbsencesForEmployee,
@@ -47,9 +48,10 @@ export function WfmAbsencePortalScreen({
 }: WfmAbsencePortalScreenProps) {
   const router = useRouter();
   const { profile, user } = useAuth();
+  const { employeeId: portalEmployeeId } = usePortalActor();
   const tenantId = useServiceTenantId();
   const userId = user?.id ?? profile?.id ?? '';
-  const employeeId = profile?.employeeId ?? null;
+  const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
   const text = useAuroraAdaptiveText();

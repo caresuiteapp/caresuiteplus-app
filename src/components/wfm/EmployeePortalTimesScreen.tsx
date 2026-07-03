@@ -15,6 +15,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
 import { listEmployeeVisitTimes } from '@/lib/wfm';
 import { typography } from '@/theme';
@@ -37,9 +38,10 @@ function formatDuration(seconds: number | null): string {
 
 export function EmployeePortalTimesScreen() {
   const { profile, user } = useAuth();
+  const { employeeId: portalEmployeeId } = usePortalActor();
   const tenantId = useServiceTenantId();
   const userId = user?.id ?? profile?.id ?? '';
-  const employeeId = profile?.employeeId ?? null;
+  const employeeId = portalEmployeeId ?? profile?.employeeId ?? null;
   const roleKey = profile?.roleKey ?? null;
   const { can, check, roleLabel } = usePermissions();
   const text = useAuroraAdaptiveText();
@@ -61,7 +63,10 @@ export function EmployeePortalTimesScreen() {
     return (
       <ScreenShell title="Fahrten & Zeiten" subtitle="Einsatzzeiten der letzten 14 Tage">
         <LockedActionBanner
-          message={check('time.tracking.own.view').reason ?? 'Keine Berechtigung.'}
+          message={
+            check('time.tracking.own.view').reason ??
+            'Sie haben keine Berechtigung, diese Arbeitszeiten zu öffnen.'
+          }
           roleLabel={roleLabel}
         />
       </ScreenShell>
@@ -93,7 +98,7 @@ export function EmployeePortalTimesScreen() {
         {visitTimes.length === 0 ? (
           <EmptyState
             title="Keine Einsatzzeiten"
-            message="Zeitstempel erscheinen hier, sobald Sie Einsätze in der Durchführung starten."
+            message="Für den ausgewählten Zeitraum sind noch keine Zeiten erfasst."
           />
         ) : (
           visitTimes.map((row) => (

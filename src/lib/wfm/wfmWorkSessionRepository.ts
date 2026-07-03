@@ -400,32 +400,68 @@ export async function resolveAuthUserIdForWfmSession(
   return null;
 }
 
+const WFM_EMPLOYEE_LINK_MISSING =
+  'Ihr Portalzugang ist noch keinem Mitarbeiterprofil zugeordnet. Bitte wenden Sie sich an das Office.';
+
+function isActiveEmployeePortalAccount(row: {
+  status?: string | null;
+  blocked_at?: string | null;
+}): boolean {
+  const status = row.status ?? '';
+  if (status === 'archived' || status === 'blocked') return false;
+  if (row.blocked_at) return false;
+  return true;
+}
+
 export async function resolveEmployeeIdForUser(
   tenantId: string,
   userId: string,
   knownEmployeeId?: string | null,
 ): Promise<ServiceResult<string>> {
-  if (knownEmployeeId) return { ok: true, data: knownEmployeeId };
-
   if (getServiceMode() !== 'supabase') {
+    if (knownEmployeeId) return { ok: true, data: knownEmployeeId };
     return { ok: true, data: `demo-employee-${userId}` };
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-  const { data, error } = await supabase
+  if (knownEmployeeId) {
+    const { data: knownRow, error: knownError } = await supabase
+      .from('employees')
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('id', knownEmployeeId)
+      .maybeSingle();
+
+    if (knownError) return { ok: false, error: toGermanSupabaseError(knownError) };
+    if (!knownRow?.id) return { ok: false, error: WFM_EMPLOYEE_LINK_MISSING };
+    return { ok: true, data: knownEmployeeId };
+  }
+
+  const { data: businessEmployee, error: businessError } = await supabase
     .from('employees')
     .select('id')
     .eq('tenant_id', tenantId)
     .eq('profile_id', userId)
     .maybeSingle();
 
-  if (error) return { ok: false, error: toGermanSupabaseError(error) };
-  if (!data?.id) {
-    return { ok: false, error: 'Kein Mitarbeiterprofil für diesen Benutzer gefunden.' };
+  if (businessError) return { ok: false, error: toGermanSupabaseError(businessError) };
+  if (businessEmployee?.id) return { ok: true, data: businessEmployee.id };
+
+  const { data: portalAccount, error: portalError } = await supabase
+    .from('employee_portal_accounts')
+    .select('employee_id, status, blocked_at')
+    .eq('tenant_id', tenantId)
+    .eq('auth_user_id', userId)
+    .maybeSingle();
+
+  if (portalError) return { ok: false, error: toGermanSupabaseError(portalError) };
+  if (portalAccount?.employee_id && isActiveEmployeePortalAccount(portalAccount)) {
+    return { ok: true, data: String(portalAccount.employee_id) };
   }
-  return { ok: true, data: data.id };
+
+  return { ok: false, error: WFM_EMPLOYEE_LINK_MISSING };
 }
 
 export async function listSessionsForDate(
