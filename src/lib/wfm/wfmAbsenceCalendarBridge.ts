@@ -104,3 +104,5 @@ export function cancelWfmAbsenceCalendarAsync(absence: WfmAbsence): void {
 export function buildCalendarPayloadFromWfmAbsence(absence: WfmAbsence) {
   return buildCalendarEventFromAbsence(mapWfmAbsenceToEmployeeAbsence(absence));
 }
+
+export { normalizeAllDayFloatingUtcBounds as normalizeWfmAbsenceCalendarBounds } from '@/lib/office/calendarDateUtils';

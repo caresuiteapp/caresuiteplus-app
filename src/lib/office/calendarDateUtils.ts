@@ -2,6 +2,45 @@ import type { WeekStartDay } from '@/types/modules/calendarEvent';
 
 const MS_PER_DAY = 86_400_000;
 
+export const DEFAULT_CALENDAR_TIMEZONE = 'Europe/Berlin';
+
+/** Calendar date (YYYY-MM-DD) for an instant in the given IANA timezone. */
+export function toTimezoneDateKey(
+  iso: string | Date,
+  timeZone: string = DEFAULT_CALENDAR_TIMEZONE,
+): string {
+  const date = typeof iso === 'string' ? new Date(iso) : iso;
+  return new Intl.DateTimeFormat('en-CA', {
+    timeZone,
+    year: 'numeric',
+    month: '2-digit',
+    day: '2-digit',
+  }).format(date);
+}
+
+/** All-day events use date-only UTC instants (legacy calendar convention). */
+export function floatingUtcDayStart(dateKey: string): string {
+  return `${dateKey}T00:00:00.000Z`;
+}
+
+export function floatingUtcDayEnd(dateKey: string): string {
+  return `${dateKey}T23:59:59.999Z`;
+}
+
+/** Normalizes all-day bounds to inclusive floating UTC days in Europe/Berlin. */
+export function normalizeAllDayFloatingUtcBounds(
+  startIso: string,
+  endIso: string,
+  timeZone: string = DEFAULT_CALENDAR_TIMEZONE,
+): { startAt: string; endAt: string } {
+  const startKey = toTimezoneDateKey(startIso, timeZone);
+  const endKey = toTimezoneDateKey(endIso, timeZone);
+  return {
+    startAt: floatingUtcDayStart(startKey),
+    endAt: floatingUtcDayEnd(endKey),
+  };
+}
+
 export function toDateKey(date: Date): string {
   const y = date.getFullYear();
   const m = String(date.getMonth() + 1).padStart(2, '0');
@@ -119,7 +158,19 @@ export function formatTime(iso: string, locale = 'de-DE'): string {
   return new Date(iso).toLocaleTimeString(locale, { hour: '2-digit', minute: '2-digit' });
 }
 
-export function eventOverlapsDay(eventStart: string, eventEnd: string, day: Date): boolean {
+export function eventOverlapsDay(
+  eventStart: string,
+  eventEnd: string,
+  day: Date,
+  options?: { allDay?: boolean },
+): boolean {
+  if (options?.allDay) {
+    const dayKey = toDateKey(day);
+    const startKey = eventStart.slice(0, 10);
+    const endKey = eventEnd.slice(0, 10);
+    return startKey <= dayKey && endKey >= dayKey;
+  }
+
   const dayStart = startOfDay(day).getTime();
   const dayEnd = dayStart + MS_PER_DAY - 1;
   const start = new Date(eventStart).getTime();
@@ -127,8 +178,11 @@ export function eventOverlapsDay(eventStart: string, eventEnd: string, day: Date
   return start <= dayEnd && end >= dayStart;
 }
 
-export function eventsForDay<T extends { start: string; end: string }>(events: T[], day: Date): T[] {
-  return events.filter((e) => eventOverlapsDay(e.start, e.end, day));
+export function eventsForDay<T extends { start: string; end: string; allDay?: boolean }>(
+  events: T[],
+  day: Date,
+): T[] {
+  return events.filter((e) => eventOverlapsDay(e.start, e.end, day, { allDay: e.allDay }));
 }
 
 export const WEEKDAY_LABELS_DE: Record<WeekStartDay, string[]> = {

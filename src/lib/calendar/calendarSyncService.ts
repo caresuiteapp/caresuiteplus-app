@@ -8,6 +8,7 @@ import type { AppointmentListItem } from '@/types/modules/appointmentList';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import type { CourseListItem } from '@/types/modules/akademie';
 import type { EmployeeAbsence } from '@/types/modules/employeeAbsence';
+import { normalizeAllDayFloatingUtcBounds } from '@/lib/office/calendarDateUtils';
 import type { InternalTask } from '@/types/modules/internalTasks';
 import type { ConsultationFollowUp } from '@/types/modules/consultation';
 import type { ShiftScheduleListItem } from '@/lib/pflege/shiftScheduleDemo';
@@ -146,8 +147,18 @@ function resolveAbsenceCalendarTitle(absence: EmployeeAbsence): string {
   return 'Abwesenheit';
 }
 
+function mapAbsenceStatusToCalendar(status: EmployeeAbsence['status']): string {
+  if (status === 'approved' || status === 'active') return 'aktiv';
+  if (status === 'cancelled' || status === 'rejected') return 'cancelled';
+  return status;
+}
+
 export function buildCalendarEventFromAbsence(absence: EmployeeAbsence): CalendarSyncPayload {
   const sourceType = resolveAbsenceSourceType(absence.absenceType);
+  const bounds = absence.allDay
+    ? normalizeAllDayFloatingUtcBounds(absence.startsAt, absence.endsAt)
+    : { startAt: absence.startsAt, endAt: absence.endsAt };
+
   return {
     tenantId: absence.tenantId,
     moduleKey: 'office',
@@ -155,10 +166,11 @@ export function buildCalendarEventFromAbsence(absence: EmployeeAbsence): Calenda
     sourceId: absence.id,
     eventType: resolveAbsenceEventType(absence.absenceType),
     title: resolveAbsenceCalendarTitle(absence),
-    startAt: absence.startsAt,
-    endAt: absence.endsAt,
+    startAt: bounds.startAt,
+    endAt: bounds.endAt,
     allDay: absence.allDay,
-    status: absence.status,
+    timezone: 'Europe/Berlin',
+    status: mapAbsenceStatusToCalendar(absence.status),
     relatedEmployeeId: absence.employeeId,
     isOfficeVisible: true,
     isModuleVisible: true,

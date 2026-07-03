@@ -2,6 +2,7 @@ import type { CalendarEventRecord, CalendarViewConfig } from '@/types/calendar';
 import type { CalendarEvent } from '@/types/modules/calendarEvent';
 import { MODULE_EVENT_TYPES } from '@/lib/calendar/calendarColors';
 import { mapCalendarEventRecordToUi } from '@/lib/calendar/calendarEventMapper';
+import { toTimezoneDateKey } from '@/lib/office/calendarDateUtils';
 
 export type CalendarFilterState = {
   moduleKey?: string | null;
@@ -78,7 +79,19 @@ export function filterCalendarRecordsByRange(
   if (!rangeStart && !rangeEnd) return records;
   const startMs = rangeStart ? new Date(rangeStart).getTime() : -Infinity;
   const endMs = rangeEnd ? new Date(rangeEnd).getTime() : Infinity;
+
   return records.filter((record) => {
+    if (record.allDay) {
+      const eventStartKey = record.startAt.slice(0, 10);
+      const eventEndKey = record.endAt.slice(0, 10);
+      const tz = record.timezone;
+      const filterStartKey = rangeStart ? toTimezoneDateKey(rangeStart, tz) : null;
+      const filterEndKey = rangeEnd ? toTimezoneDateKey(rangeEnd, tz) : null;
+      if (filterStartKey && eventEndKey < filterStartKey) return false;
+      if (filterEndKey && eventStartKey > filterEndKey) return false;
+      return true;
+    }
+
     const eventStart = new Date(record.startAt).getTime();
     const eventEnd = new Date(record.endAt).getTime();
     return eventStart <= endMs && eventEnd >= startMs;

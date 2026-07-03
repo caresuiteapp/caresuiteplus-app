@@ -217,3 +217,20 @@ to the internal calendar.
 | Office sync failure visible | ✅ `calendarSyncWarning` + InfoBanner |
 | No commit/push/deploy | ✅ |
 | ZEIT.2 stash untouched | ✅ |
+
+---
+
+## P1b — Calendar last-day cell visibility (2026-07-03)
+
+| Item | Status |
+|------|--------|
+| Multi-day 15.08–16.08 → both month cells | ✅ Date-key overlap + floating UTC normalization |
+| Single day 16.08 → 16.08 cell | ✅ Same pipeline |
+| Timed spans → instant overlap unchanged | ✅ |
+| Range query includes all-day multi-day | ✅ `filterCalendarRecordsByRange` |
+| Calendar sync status `approved` → `aktiv` | ✅ |
+| Tests `wfmAbsenceP1.test.ts` | ✅ 18/18 |
+| No commit/push/deploy | ✅ |
+| ZEIT.2 stash untouched | ✅ |
+
+**Production follow-up:** Re-smoke `/office/calendar` August 2026 after deploy — confirm 16.08 TEST row visible and whether sync warning persists (RLS/upsert path separate from overlap fix).
