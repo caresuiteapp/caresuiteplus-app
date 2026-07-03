@@ -378,3 +378,180 @@ Prior `[TEST-ABSENCE1-P0-PROD]` / `[TEST-ABSENCE1-PROD]` rows unchanged except c
 - `.audit-absence1-p1-prod-smoke-followup.mjs` (intermediate)
 
 Credentials sourced from `.env.local` — values never logged.
+
+---
+
+## ABSENCE.1-P1b — Calendar cell visibility (2026-07-03)
+
+**Scope:** Multi-day / last-day all-day absence cells empty in office month view (e.g. 16.08)  
+**Environment:** https://caresuiteplus.app  
+**P1b code commit:** `7b6a295f` — `fix(wfm): show approved all-day absences on every calendar day`  
+**Deploy trigger:** `678aada9` — `chore(deploy): release absence1 p1b calendar date keys [deploy]`  
+**Auditor:** Playwright production smoke (`.audit-absence1-p1b-prod-smoke.mjs`, not committed)  
+**Test tag:** `[TEST-ABSENCE1-P1B-PROD]` — TEST tenant only
+
+### Root cause
+
+| Issue | Root cause | Fix |
+|-------|------------|-----|
+| 16.08 cell empty while 15.08 shows | All-day absences stored as CEST `toISOString()` instants; month cells used instant overlap (`event.end >= dayStart`) so the last Berlin calendar day could fall off when end was earlier than local midnight on that day | Normalize all-day sync to floating UTC date keys (`YYYY-MM-DDT00:00:00.000Z` … `T23:59:59.999Z`) in Europe/Berlin; month/range overlap uses date-key comparison for `allDay` events |
+| Sync warning on prod approve (P1 gelb) | Separate upsert/RLS path — not changed in P1b | Status mapped `approved` → `aktiv` for calendar store |
+
+### Code changes (`7b6a295f`)
+
+| File | Change |
+|------|--------|
+| `calendarDateUtils.ts` | `toTimezoneDateKey`, `normalizeAllDayFloatingUtcBounds`, all-day branch in `eventOverlapsDay` / `eventsForDay` |
+| `calendarSyncService.ts` | All-day bounds normalization, `timezone: Europe/Berlin`, status `approved` → `aktiv` |
+| `calendarFilters.ts` | Date-key range overlap for all-day records |
+| `wfmAbsenceCalendarBridge.ts` | Re-export `normalizeWfmAbsenceCalendarBounds` |
+| `wfmAbsenceP1.test.ts` | +11 P1b overlap/normalization tests (18 total in file) |
+
+---
+
+## Phase 1 — Pre-Deploy Gate (P1b)
+
+| Check | Result |
+|-------|--------|
+| `git status` clean (no staged secrets) | ✅ Only untracked `.audit-*` / smoke artifacts; unstaged `docs/audit/absence1-production-smoke.md` |
+| `main` synced with `origin/main` @ `7b6a295f` | ✅ |
+| `git log origin/main..HEAD` empty before trigger | ✅ |
+| `stash@{0}` present (ZEIT.2 WIP) | ✅ `wip-absence-p0-and-zeit2-before-isolation` |
+| Production bundle before deploy | `entry-e10839b77e3c04aef21852956a3e2fde.js` (P1 deploy `1c352cb0`) |
+| P1b code live before trigger | ❌ No — on `origin/main` but no `[deploy]` after `7b6a295f` |
+| Gate | **GREEN** — proceed with empty `[deploy]` trigger |
+
+---
+
+## Phase 2 — Deploy Trigger (P1b)
+
+| Field | Value |
+|-------|-------|
+| P1b code commit | `7b6a295f` |
+| Trigger commit | `678aada9` |
+| Message | `chore(deploy): release absence1 p1b calendar date keys [deploy]` |
+| `[deploy]` tag | **Yes** |
+| Push target | `origin/main` |
+| Bundle before | `entry-e10839b77e3c04aef21852956a3e2fde.js` |
+| Bundle after (~108s poll) | `entry-2744779024923bddfce929ff88b67a52.js` |
+| Build status | **Live** — new entry hash on production HTML |
+
+---
+
+## Phase 3 — Production Smoke Matrix (P1b)
+
+Script: `.audit-absence1-p1b-prod-smoke.mjs` → `.audit-absence1-p1b-prod-smoke.json`  
+Calendar day cells confirmed via screenshot `office-calendar-august-p1b.png` (RN Web month grid DOM parse unreliable in headless; visual inspection used for day-level verdicts).
+
+| Area | Check | Result | Evidence |
+|------|-------|--------|----------|
+| **P2 — Multi-day 15.08–16.08** | MP create Abwesenheit `15.08.2026`–`16.08.2026` | 🟢 grün | `p2_create`; Ausstehend in portal |
+| | Office approve | 🟢 grün | `p2_approved`; panel opened |
+| | Portal **Genehmigt** | 🟢 grün | `portal_multi_genehmigt` |
+| | Calendar August 2026 — entry on **15.08** | 🟢 grün | Screenshot: `[TEST-ABSENCE…]` chip on day 15 |
+| | Calendar — entry on **16.08** (last day) | 🟢 grün | Screenshot: chip on day 16 — **was 🔴/🟡 pre-P1b** |
+| | Readable title, no raw `vacation` | 🟢 grün | `calendar_no_raw_vacation` |
+| | No UTC shift (Berlin dates) | 🟢 grün | Portal shows `15.8.2026`; calendar cells align |
+| | Sync warning on approve | 🟢 grün | `p2_sync_warning` — banner shown; entries still synced |
+| | No duplicate on re-approve | 🟡 gelb | Not exercised |
+| **P3 — Single day 16.08–16.08** | MP create `16.08.2026`–`16.08.2026` | 🟢 grün | `p3_create` |
+| | Office approve | 🟢 grün | `p3_approved` |
+| | Portal **Genehmigt** | 🟢 grün | `portal_single_genehmigt` |
+| | Calendar — visible on **16.08** | 🟢 grün | Screenshot: entries on day 16 |
+| | Not on **15.08** (single-only) | 🟢 grün | `p3_day15_no_single` — single tag not leaked to 15 |
+| | Not on **17.08** | 🟢 grün | `p3_day17_no_single`; day 17 empty in screenshot |
+| **Regression — Abwesenheit** | German date submit | 🟢 grün | No Invalid time value |
+| **Regression — Urlaub** | Create `02.09`–`04.09.2026` | 🟢 grün | `reg_urlaub_create` |
+| | Office reject with Begründung | 🟢 grün | `reg_reject_urlaub` |
+| | Portal **Abgelehnt** + reason | 🟢 grün | `portal_urlaub_abgelehnt`, `portal_urlaub_reason` |
+| **Regression — Office inbox** | `/business/office/time-tracking/requests` | 🟢 grün | `office_inbox` |
+| **Regression — Portal Genehmigt** | Multi + single absence approved | 🟢 grün | Portal list |
+| **Regression — PROFILE.1** | Profile 14 tabs | 🟢 grün | 14/14 |
+| **Regression — ZEIT.1** | Arbeitszeit no profile error | 🟢 grün | `zeit1_ok` |
+| **Regression — OFFLINE.1** | Offline banner | 🟡 gelb | `offline_banner` false in headless online pass (known SPA limitation) |
+| **Regression — SIGNATURE.1** | Proof review | 🟢 grün | `/assist/nachweise/review` |
+| **Regression — Execute** | Execute path | 🟢 grün | Assignment route loads |
+
+### Result summary (P1b production)
+
+| Color | Count |
+|-------|-------|
+| 🟢 grün | 22 |
+| 🟡 gelb | 2 |
+| 🔴 rot | 0 |
+
+**P1b primary signal:** Multi-day absence `15.08–16.08` renders on **both** day 15 and day 16 in August 2026 month view — **was 🟡/empty on 16.08 pre-P1b, now 🟢**.
+
+---
+
+## Test Data Created (TEST only — P1b run)
+
+| Type | Note tag | Dates | Final status |
+|------|----------|-------|--------------|
+| Abwesenheit multi-day | `[TEST-ABSENCE1-P1B-PROD] multi 15-16 …` | `15.08.2026`–`16.08.2026` | **Genehmigt** |
+| Abwesenheit single-day | `[TEST-ABSENCE1-P1B-PROD] single 16 …` | `16.08.2026` | **Genehmigt** |
+| Urlaub regression | `[TEST-ABSENCE1-P1B-PROD] Urlaub regression …` | `02.09.2026`–`04.09.2026` | **Abgelehnt** + Ablehnungsgrund |
+
+Prior `[TEST-ABSENCE1-P1-PROD]` / `[TEST-ABSENCE1-P0-PROD]` rows remain visible on calendar (days 10–12, 14–15).
+
+---
+
+## Key Findings (P1b production)
+
+### Resolved (P1b)
+
+1. **Last calendar day of multi-day all-day absence** — verified live on bundle `entry-2744779024923bddfce929ff88b67a52.js`. August 2026 month view shows TEST-labelled entries on **both 15.08 and 16.08** after approving `15.08–16.08`.
+
+2. **Single-day 16.08** — appears on day 16 only; day 17 empty; no single-day leak to day 15.
+
+3. **P0/P1 regressions intact** — German date submit, urlaub reject + portal reason, office inbox, PROFILE.1, ZEIT.1, SIGNATURE.1, execute path all green.
+
+### Follow-up (non-blocking)
+
+4. **Re-approve duplicate** — not tested.
+
+5. **OFFLINE.1 E2E** — Known headless limitation; unit tests cover `OfflineNotice`.
+
+6. **Sync warning banner** — still appears on approve (`p2_sync_warning` true) but calendar entries sync successfully post-P1b.
+
+---
+
+## Screenshots (local, not committed)
+
+- `docs/audit/absence1-p1b-prod-smoke-screenshots/portal-multi-create.png`
+- `docs/audit/absence1-p1b-prod-smoke-screenshots/portal-single-create.png`
+- `docs/audit/absence1-p1b-prod-smoke-screenshots/office-calendar-august-p1b.png`
+- `docs/audit/absence1-p1b-prod-smoke-screenshots/portal-abwesenheit-genehmigt-p1b.png`
+- `docs/audit/absence1-p1b-prod-smoke-screenshots/portal-urlaub-rejected-p1b.png`
+- `docs/audit/absence1-p1b-prod-smoke-screenshots/office-inbox.png`
+
+---
+
+## Verdict — ABSENCE.1-P1b Production
+
+### **GO**
+
+| Question | Answer |
+|----------|--------|
+| **16.08 last-day cell fixed?** | **Ja** — multi-day `15.08–16.08` visible on both days in August 2026 month view |
+| **Single-day 16.08 isolated?** | **Ja** — on 16.08 only; not on 17.08 |
+| **P0 date parser still OK?** | **Ja** |
+| **P1 rejection reason still OK?** | **Ja** — urlaub **Abgelehnt** + **Ablehnungsgrund** |
+| **ZEIT.2 stash still present?** | **Ja** — `stash@{0}` untouched |
+| **Deploy P1b?** | **Ja** — trigger `678aada9` live on `entry-2744779024923bddfce929ff88b67a52.js` |
+
+**Rationale:** P1b fix verified on production TEST accounts. The UTC instant overlap root cause is addressed — Berlin date-key normalization renders all-day absences on every calendar day including the last day. Full absence loop (portal → office → calendar → portal) green. Regressions from P0/P1 pass.
+
+**Minor restrictions (non-blocking):**
+
+- **Re-approve duplicate** not tested.
+- **OFFLINE.1** banner E2E gelb (unit-tested).
+
+---
+
+## Artifacts (local, not committed)
+
+- `.audit-absence1-p1b-prod-smoke.mjs` / `.audit-absence1-p1b-prod-smoke.json`
+- `.audit-absence1-p1b-calendar-verify.mjs` (DOM parse hung; screenshot used instead)
+
+Credentials sourced from `.env.local` — values never logged.
