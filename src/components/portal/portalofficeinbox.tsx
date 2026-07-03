@@ -6,6 +6,7 @@ import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useMessagingGlassSurface } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
+import { isEmployeeGroupChatThread } from '@/lib/office/employeeGroupChatService';
 import type { PortalOfficeInboxFilter } from '@/lib/office/portalofficemessageservice';
 import { getPortalStatusLabel } from '@/lib/office/portalofficemessageservice';
 import type { OfficeMessageThread } from '@/types/office/messaging';
@@ -69,10 +70,27 @@ function ThreadRow({
           borderRadius: radius.capsule,
           backgroundColor: `${c.violet}18`,
         },
+        badgeGroup: {
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 2,
+          borderRadius: radius.capsule,
+          backgroundColor: `${c.violet}22`,
+        },
+        badgeGroupText: {
+          ...typography.caption,
+          color: ink?.secondary ?? c.violet,
+          fontWeight: '700',
+        },
         badgeText: { ...typography.caption, color: ink?.secondary ?? c.violet },
       }),
     [c, ink, isGlass, surfaces.border, selected, typography],
   );
+
+  const isGroup = isEmployeeGroupChatThread(thread);
+  const memberCount = thread.memberCount ?? thread.employeeParticipantIds?.length ?? 0;
+  const previewPrefix = isGroup
+    ? (thread.participantName ?? `${memberCount} Mitglieder`)
+    : null;
 
   return (
     <Pressable onPress={onPress} style={styles.row}>
@@ -80,9 +98,15 @@ function ThreadRow({
         {thread.subject}
       </Text>
       <Text style={styles.preview} numberOfLines={2}>
+        {previewPrefix ? `${previewPrefix}: ` : ''}
         {thread.lastMessagePreview ?? '—'}
       </Text>
       <View style={styles.meta}>
+        {isGroup ? (
+          <View style={styles.badgeGroup}>
+            <Text style={styles.badgeGroupText}>👥 Gruppe · {memberCount} Mitglieder</Text>
+          </View>
+        ) : null}
         <View style={styles.badge}>
           <Text style={styles.badgeText}>{getPortalStatusLabel(thread.status)}</Text>
         </View>
@@ -145,7 +169,9 @@ export function PortalOfficeInbox({
       (thread) =>
         thread.subject.toLowerCase().includes(term) ||
         (thread.lastMessagePreview ?? '').toLowerCase().includes(term) ||
-        (thread.categoryLabel ?? '').toLowerCase().includes(term),
+        (thread.categoryLabel ?? '').toLowerCase().includes(term) ||
+        (thread.participantName ?? '').toLowerCase().includes(term) ||
+        (thread.employeeParticipantNames ?? []).some((name) => name.toLowerCase().includes(term)),
     );
   }, [threads, search]);
 

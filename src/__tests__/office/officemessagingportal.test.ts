@@ -73,6 +73,31 @@ const threads: OfficeMessageThread[] = [
   },
   {
     ...baseThread,
+    id: 't-group-ab',
+    threadType: 'employee_group_office',
+    clientId: null,
+    clientName: null,
+    employeeId: null,
+    employeeName: null,
+    subject: 'Team Nord',
+    employeeParticipantIds: [EMPLOYEE_A, EMPLOYEE_B],
+    memberCount: 2,
+    lastMessagePreview: 'Hallo Team',
+  },
+  {
+    ...baseThread,
+    id: 't-group-b-only',
+    threadType: 'employee_group_office',
+    clientId: null,
+    clientName: null,
+    employeeId: null,
+    employeeName: null,
+    subject: 'Team Süd',
+    employeeParticipantIds: [EMPLOYEE_B],
+    memberCount: 1,
+  },
+  {
+    ...baseThread,
     id: 't-internal',
     threadType: 'internal',
     clientId: null,
@@ -83,9 +108,27 @@ const threads: OfficeMessageThread[] = [
 ];
 
 const mockFrom = vi.fn();
+const mockParticipantSelect = vi.fn();
 
 vi.mock('@/lib/supabase/client', () => ({
   getSupabaseClient: () => ({ from: mockFrom }),
+}));
+
+vi.mock('@/lib/supabase/untypedTable', () => ({
+  fromUnknownTable: (_client: unknown, table: string) => {
+    if (table === 'message_thread_employee_participants') {
+      return {
+        select: vi.fn().mockReturnValue({
+          eq: vi.fn().mockReturnValue({
+            in: vi.fn().mockReturnValue({
+              eq: mockParticipantSelect,
+            }),
+          }),
+        }),
+      };
+    }
+    return { select: vi.fn() };
+  },
 }));
 
 function createQueryChain(finalData: unknown = [], finalError: unknown = null) {
@@ -166,11 +209,40 @@ describe('Portal Office Messaging Phase 2B', () => {
     expect(visible.every((t) => t.clientId === CLIENT_A)).toBe(true);
   });
 
-  it('Mitarbeiter:in sieht nur eigene employee_office-Threads', () => {
+  it('Mitarbeiter:in sieht eigene 1:1-Chats und keine fremden', () => {
     const visible = filterThreadsForPortalEmployee(threads, EMPLOYEE_A);
-    expect(visible).toHaveLength(1);
-    expect(visible[0]?.id).toBe('t-employee-a');
-    expect(visible.every((t) => t.employeeId === EMPLOYEE_A)).toBe(true);
+    const directOnly = visible.filter((t) => t.threadType === 'employee_office');
+    expect(directOnly).toHaveLength(1);
+    expect(directOnly[0]?.id).toBe('t-employee-a');
+    expect(directOnly.every((t) => t.employeeId === EMPLOYEE_A)).toBe(true);
+  });
+
+  it('Mitarbeiter:in sieht Gruppen-Chats nur als Mitglied', () => {
+    const visibleA = filterThreadsForPortalEmployee(threads, EMPLOYEE_A);
+    const visibleB = filterThreadsForPortalEmployee(threads, EMPLOYEE_B);
+
+    expect(visibleA.some((t) => t.id === 't-group-ab')).toBe(true);
+    expect(visibleA.some((t) => t.id === 't-group-b-only')).toBe(false);
+    expect(visibleB.some((t) => t.id === 't-group-ab')).toBe(true);
+    expect(visibleB.some((t) => t.id === 't-group-b-only')).toBe(true);
+  });
+
+  it('filterThreadsForPortalActor schließt fremde Gruppen und interne Chats aus', () => {
+    const actorResult = resolvePortalActor('employee_portal', {
+      sessionToken: 'tok',
+      tenantId: TENANT_ID,
+      loginType: 'employee_portal',
+      roleKey: 'employee_portal',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      accountId: 'acc-emp-a',
+      employeeId: EMPLOYEE_A,
+    });
+    expect(actorResult.ok).toBe(true);
+    if (!actorResult.ok) return;
+
+    const visible = filterThreadsForPortalActor(threads, actorResult.data);
+    expect(visible.map((t) => t.id).sort()).toEqual(['t-employee-a', 't-group-ab'].sort());
+    expect(visible.every((t) => t.threadType !== 'internal')).toBe(true);
   });
 
   it('filterThreadsForPortalActor schließt fremde und interne Chats aus', () => {
@@ -264,6 +336,82 @@ describe('Portal Office Messaging Phase 2B', () => {
     if (result.ok) {
       expect(result.data.every((t) => t.clientId === CLIENT_A)).toBe(true);
       expect(result.data.every((t) => t.threadType === 'client_office')).toBe(true);
+    }
+  });
+
+  it('fetchPortalOfficeThreads liefert Gruppen-Chat für Mitglied mit UI-Metadaten', async () => {
+    mockParticipantSelect.mockResolvedValueOnce({
+      data: [
+        { thread_id: 't-group-ab', employee_id: EMPLOYEE_A, is_active: true },
+        { thread_id: 't-group-ab', employee_id: EMPLOYEE_B, is_active: true },
+      ],
+      error: null,
+    });
+
+    mockFrom.mockImplementation((table: string) => {
+      if (table === 'message_categories') {
+        return createQueryChain([
+          {
+            id: 'cat-1',
+            tenant_id: TENANT_ID,
+            key: 'general',
+            label: 'Allgemein',
+            audience: 'employee',
+            sort_order: 1,
+            is_active: true,
+            created_at: '2026-06-10T08:00:00.000Z',
+            updated_at: '2026-06-10T08:00:00.000Z',
+          },
+        ]);
+      }
+      if (table === 'message_threads') {
+        return createQueryChain([
+          {
+            id: 't-group-ab',
+            tenant_id: TENANT_ID,
+            thread_type: 'employee_group',
+            status: 'received',
+            priority: 'normal',
+            subject: 'Team Nord',
+            category_id: null,
+            client_id: null,
+            employee_id: null,
+            last_message_at: '2026-06-18T08:00:00.000Z',
+            last_message_preview: 'Hallo Team',
+            created_at: '2026-06-18T08:00:00.000Z',
+            updated_at: '2026-06-18T08:00:00.000Z',
+            portal_unread_count: 0,
+          },
+        ]);
+      }
+      if (table === 'employees') {
+        return createQueryChain([
+          { id: EMPLOYEE_A, first_name: 'Clara', last_name: 'Meier' },
+          { id: EMPLOYEE_B, first_name: 'Tom', last_name: 'Keller' },
+        ]);
+      }
+      return createQueryChain([]);
+    });
+
+    const actorResult = resolvePortalActor('employee_portal', {
+      sessionToken: 'tok',
+      tenantId: TENANT_ID,
+      loginType: 'employee_portal',
+      roleKey: 'employee_portal',
+      expiresAt: '2099-01-01T00:00:00.000Z',
+      accountId: 'acc-emp-a',
+      employeeId: EMPLOYEE_A,
+    });
+    expect(actorResult.ok).toBe(true);
+    if (!actorResult.ok) return;
+
+    const result = await fetchPortalOfficeThreads(TENANT_ID, actorResult.data, 'open');
+    expect(result.ok).toBe(true);
+    if (result.ok) {
+      expect(result.data).toHaveLength(1);
+      expect(result.data[0]?.threadType).toBe('employee_group_office');
+      expect(result.data[0]?.subject).toBe('Team Nord');
+      expect(result.data[0]?.memberCount).toBe(2);
     }
   });
 });

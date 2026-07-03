@@ -11,7 +11,12 @@ import { useMessagingGlassSurface } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing } from '@/theme';
 import { usePortalOfficeThreadDetail } from '@/hooks/useportalofficethreaddetail';
-import { mapOfficeMessageToChatBubble } from '@/lib/office/officemessagemappers';
+import { isEmployeeGroupChatThread } from '@/lib/office/employeeGroupChatService';
+import {
+  mapOfficeMessageToChatBubble,
+  resolveOfficeThreadHeaderSubtitle,
+  resolveOfficeThreadParticipantName,
+} from '@/lib/office/officemessagemappers';
 import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
 import { getPortalStatusLabel } from '@/lib/office/portalofficemessageservice';
 
@@ -149,14 +154,15 @@ export function PortalOfficeThread({
   const isOwnMessage = (senderType: string) =>
     senderType === 'client_portal' || senderType === 'employee_portal';
 
+  const isGroup = isEmployeeGroupChatThread(detail);
+  const headerTitle = resolveOfficeThreadParticipantName(detail);
+  const headerSubtitle = resolveOfficeThreadHeaderSubtitle(detail, getPortalStatusLabel(detail.status));
+
   return (
     <View style={styles.root}>
       <View style={styles.header}>
-        <Text style={styles.title}>{detail.subject}</Text>
-        <Text style={styles.meta}>
-          Status: {getPortalStatusLabel(detail.status)}
-          {detail.categoryLabel ? ` · ${detail.categoryLabel}` : ''}
-        </Text>
+        <Text style={styles.title}>{headerTitle}</Text>
+        <Text style={styles.meta}>{headerSubtitle}</Text>
       </View>
 
       <PortalOfficeStatusCard thread={detail} variant={variant} />
@@ -177,10 +183,13 @@ export function PortalOfficeThread({
       {detail.isClosed ? (
         <View style={styles.closedBanner}>
           <Text style={styles.closedText}>
-            Dieser Chat ist abgeschlossen und schreibgeschützt. Bei erneutem Kontakt schreiben Sie
-            der Verwaltung erneut.
+            {isGroup
+              ? 'Dieser Gruppen-Chat ist abgeschlossen und schreibgeschützt.'
+              : 'Dieser Chat ist abgeschlossen und schreibgeschützt. Bei erneutem Kontakt schreiben Sie der Verwaltung erneut.'}
           </Text>
-          <PremiumButton title="Verwaltung anschreiben" onPress={handleStartNewChat} />
+          {!isGroup ? (
+            <PremiumButton title="Verwaltung anschreiben" onPress={handleStartNewChat} />
+          ) : null}
         </View>
       ) : (
         <OfficeMessageComposer

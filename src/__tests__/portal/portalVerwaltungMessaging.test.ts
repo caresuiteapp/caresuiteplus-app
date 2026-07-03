@@ -68,8 +68,17 @@ describe('Portal Verwaltung messaging', () => {
     expect(overview).toContain("'/portal/client/messages?compose=1'");
   });
 
-  it('portal feature matrix describes Verwaltung chat', () => {
-    const matrix = readSrc('src/lib/portal/engine/portalFeatureMatrix.ts');
-    expect(matrix).toContain('Chat mit der Verwaltung');
+  it('employee portal inbox shows group badge labels', () => {
+    const inbox = readSrc('src/components/portal/portalofficeinbox.tsx');
+    expect(inbox).toContain('👥 Gruppe');
+    expect(inbox).toContain('Mitglieder');
+    expect(inbox).toContain('isEmployeeGroupChatThread');
+  });
+
+  it('employee portal thread header uses group labels', () => {
+    const threadView = readSrc('src/components/portal/portalofficethread.tsx');
+    expect(threadView).toContain('resolveOfficeThreadParticipantName');
+    expect(threadView).toContain('resolveOfficeThreadHeaderSubtitle');
+    expect(threadView).toContain('isEmployeeGroupChatThread');
   });
 });
