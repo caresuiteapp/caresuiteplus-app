@@ -1,12 +1,16 @@
 import { ReactNode } from 'react';
+import { View, StyleSheet } from 'react-native';
 import { PortalShell } from './PortalShell';
 import {
   EmployeePermissionOnboarding,
   useEmployeePermissionOnboardingGate,
 } from './EmployeePermissionOnboarding';
+import { OfflineNotice } from '@/components/ui/OfflineNotice';
 import { useAuth } from '@/lib/auth/context';
+import { useConnectivity } from '@/hooks/useConnectivity';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { spacing } from '@/theme';
 
 type EmployeePortalShellProps = {
   children: ReactNode;
@@ -17,6 +21,7 @@ export function EmployeePortalShell({ children, accentColor }: EmployeePortalShe
   const { profile } = useAuth();
   const { tenantId: portalTenantId, employeeId } = usePortalActor();
   const tenantId = useServiceTenantId() ?? portalTenantId;
+  const { isOffline } = useConnectivity();
   const { showOnboarding, complete, dismiss } = useEmployeePermissionOnboardingGate(
     tenantId,
     employeeId,
@@ -34,7 +39,19 @@ export function EmployeePortalShell({ children, accentColor }: EmployeePortalShe
           onDismiss={dismiss}
         />
       ) : null}
+      {isOffline ? (
+        <View style={styles.offlineBanner} accessibilityLiveRegion="polite">
+          <OfflineNotice visible />
+        </View>
+      ) : null}
       {children}
     </PortalShell>
   );
 }
+
+const styles = StyleSheet.create({
+  offlineBanner: {
+    paddingHorizontal: spacing.md,
+    paddingTop: spacing.sm,
+  },
+});

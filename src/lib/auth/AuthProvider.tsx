@@ -20,6 +20,7 @@ import {
 } from './portalSessionStore';
 import { clearBusinessWelcomePending } from './businessWelcomeSession';
 import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
+import { clearOfflineDb } from '@/lib/offline/idb';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -361,6 +362,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
     try {
       await supabaseSignOut();
       await clearPortalSession();
+      void clearOfflineDb();
       clearBusinessWelcomePending();
       setUser(null);
       setProfile(null);

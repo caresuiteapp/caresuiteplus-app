@@ -4,7 +4,10 @@ type OfflineNoticeProps = {
   visible?: boolean;
 };
 
-/** Prepared offline state — wire to connectivity when NetInfo is available. */
+/** OFFLINE.1 — honest connectivity banner; full offline persistence comes in later phases. */
+export const OFFLINE_NOTICE_MESSAGE =
+  'Keine Verbindung. Einige Funktionen sind eingeschränkt. Offline-Speicherung wird schrittweise vorbereitet.';
+
 export function OfflineNotice({ visible = false }: OfflineNoticeProps) {
   if (!visible) return null;
 
@@ -12,7 +15,7 @@ export function OfflineNotice({ visible = false }: OfflineNoticeProps) {
     <InfoBanner
       variant="warning"
       title="Offline"
-      message="Keine Verbindung. Einige Funktionen sind erst wieder online verfügbar."
+      message={OFFLINE_NOTICE_MESSAGE}
       icon="📡"
     />
   );
