@@ -1,4 +1,5 @@
 import type { RoleKey, ServiceResult } from '@/types';
+import type { AssignmentTaskStatus } from '@/types/modules/assignmentStatus';
 import type { VisitTaskStatus } from '@/lib/assist/visitTypes';
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
@@ -8,6 +9,33 @@ import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { isResolvableVisitId, resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { fetchVisitDispositionDetail } from '@/lib/assist/visitService';
+
+const VISIT_TASK_REASON_STATUSES: VisitTaskStatus[] = [
+  'partial',
+  'not_requested',
+  'not_possible',
+  'cancelled',
+  'deferred',
+];
+
+function mapVisitTaskStatusToAssignmentStatus(status: VisitTaskStatus): AssignmentTaskStatus {
+  switch (status) {
+    case 'done':
+      return 'done';
+    case 'open':
+      return 'open';
+    case 'not_requested':
+      return 'not_requested';
+    case 'cancelled':
+      return 'cancelled';
+    case 'partial':
+    case 'not_possible':
+    case 'deferred':
+      return 'not_done';
+    default:
+      return 'not_done';
+  }
+}
 
 export async function updateVisitTaskStatus(
   visitId: string,
@@ -27,23 +55,34 @@ export async function updateVisitTaskStatus(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase' && isResolvableVisitId(visitId)) {
-    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
-    if (resolvedId) {
-      return visitSupabaseRepository.updateTask(
+    const masterAssignmentId = resolveVisitMasterId(visitId);
+    const resolvedVisitId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
+
+    if (resolvedVisitId) {
+      const visitUpdate = await visitSupabaseRepository.updateTask(
         tenantId,
-        resolvedId,
+        resolvedVisitId,
         taskId,
         status,
         notDoneReason,
       );
+      if (visitUpdate.ok) {
+        return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+      }
+      if (visitUpdate.error !== 'Aufgabe nicht gefunden.') {
+        return visitUpdate;
+      }
     }
 
+    const assignmentStatus = mapVisitTaskStatusToAssignmentStatus(status);
     const legacy = await assignmentSupabaseRepository.updateTask(
       tenantId,
-      resolveVisitMasterId(visitId),
+      masterAssignmentId,
       taskId,
-      status,
-      notDoneReason ?? undefined,
+      assignmentStatus,
+      VISIT_TASK_REASON_STATUSES.includes(status) || assignmentStatus === 'not_done'
+        ? (notDoneReason ?? undefined)
+        : undefined,
     );
     if (!legacy.ok) return legacy;
     return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);

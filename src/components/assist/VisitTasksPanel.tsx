@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
 import { VisitDispositionBadge } from '@/components/assist/VisitDispositionBadge';
 import { useAssistCatalogItems } from '@/hooks/assistCatalog/useAssistCatalog';
@@ -134,13 +134,31 @@ export function VisitTasksPanel({
                 <ScrollView horizontal showsHorizontalScrollIndicator={false}>
                   <View style={styles.chipRow}>
                     {reasonOptions.map((opt) => (
-                      <TouchableOpacity
+                      <Pressable
                         key={opt.id}
-                        style={[styles.chip, reasonKey === opt.itemKey && styles.chipSelected]}
+                        style={[
+                          styles.chip,
+                          reasonKey === opt.itemKey && styles.chipSelected,
+                          Platform.OS === 'web'
+                            ? ({ cursor: 'pointer' } as unknown as ViewStyle)
+                            : null,
+                        ]}
                         onPress={() => setReasonKey(opt.itemKey)}
+                        {...(Platform.OS === 'web'
+                          ? ({
+                              onClick: (event: {
+                                preventDefault?: () => void;
+                                stopPropagation?: () => void;
+                              }) => {
+                                event.preventDefault?.();
+                                event.stopPropagation?.();
+                                setReasonKey(opt.itemKey);
+                              },
+                            } as Record<string, unknown>)
+                          : {})}
                       >
                         <Text style={styles.chipText}>{opt.label}</Text>
-                      </TouchableOpacity>
+                      </Pressable>
                     ))}
                   </View>
                 </ScrollView>

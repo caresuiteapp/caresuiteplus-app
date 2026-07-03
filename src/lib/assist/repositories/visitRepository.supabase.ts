@@ -860,21 +860,46 @@ export const visitSupabaseRepository = {
     const supabase = getClient();
     if (!supabase) return unavailable();
 
-    if (status === 'not_done' && !notDoneReason?.trim()) {
-      return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
-    }
     if (status === 'not_requested' && !notDoneReason?.trim()) {
       return { ok: false, error: '„Nicht gewünscht“ erfordert eine kurze Begründung.' };
     }
+    if (
+      (status === 'partial' ||
+        status === 'not_possible' ||
+        status === 'cancelled' ||
+        status === 'deferred') &&
+      !notDoneReason?.trim()
+    ) {
+      return { ok: false, error: 'Abweichung erfordert eine Begründung.' };
+    }
+
+    const { data: existingTask, error: fetchError } = await fromUnknownTable(
+      supabase,
+      'assist_visit_tasks',
+    )
+      .select('id')
+      .eq('tenant_id', tenantId)
+      .eq('visit_id', visitId)
+      .eq('id', taskId)
+      .maybeSingle();
+
+    if (fetchError) return { ok: false, error: toGermanSupabaseError(fetchError) };
+    if (!existingTask) return { ok: false, error: 'Aufgabe nicht gefunden.' };
 
     const now = new Date().toISOString();
+    const reasonStatuses: VisitTaskStatus[] = [
+      'not_requested',
+      'partial',
+      'not_possible',
+      'cancelled',
+      'deferred',
+    ];
     const { error } = await fromUnknownTable(supabase, 'assist_visit_tasks')
       .update({
         status,
-        not_done_reason:
-          status === 'not_done' || status === 'not_requested'
-            ? (notDoneReason?.trim() ?? null)
-            : null,
+        not_done_reason: reasonStatuses.includes(status)
+          ? (notDoneReason?.trim() ?? null)
+          : null,
         completed_at: status === 'done' ? now : null,
         updated_at: now,
       })

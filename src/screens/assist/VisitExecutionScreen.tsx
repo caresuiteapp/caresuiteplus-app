@@ -99,7 +99,10 @@ export function VisitExecutionScreen() {
 
   const handleUpdateTask = useCallback(
     async (taskId: string, status: VisitTaskStatus, notDoneReason?: string) => {
-      if (!id || !tenantId) return;
+      if (!id || !tenantId) {
+        setLocalError('Einsatz oder Mandant fehlt — bitte Seite neu laden.');
+        return;
+      }
       setTaskLoading(true);
       const result = await updateVisitTaskStatus(
         id,
@@ -111,8 +114,12 @@ export function VisitExecutionScreen() {
       );
       setTaskLoading(false);
       if (result.ok) {
+        setLocalError(null);
         setLocalSuccess('Aufgabe aktualisiert.');
         await refresh();
+      } else {
+        setLocalSuccess(null);
+        setLocalError(result.error ?? 'Aufgabe konnte nicht gespeichert werden.');
       }
     },
     [id, tenantId, profile?.roleKey, refresh],
@@ -143,7 +150,11 @@ export function VisitExecutionScreen() {
       const validation = validateVisitCloseReadiness({
         tasks: visit.tasks,
         documentationNote: docText,
-        hasSignature: hasVisitSignature(visit.id),
+        hasSignature:
+          hasVisitSignature(visit.id) ||
+          Boolean(visit.persistedSignature) ||
+          visit.proofStatus === 'signed' ||
+          visit.proofStatus === 'verified',
       });
       if (!validation.valid) {
         setLocalSuccess(null);
@@ -338,8 +349,32 @@ export function VisitExecutionScreen() {
           <VisitSignatureSection
             visitId={visit.id}
             clientName={visit.clientName}
+            tenantId={tenantId}
+            signedByProfileId={profile?.id ?? null}
+            signaturePayload={{
+              visitId: visit.id,
+              clientId: visit.clientId,
+              employeeId: visit.employeeId ?? null,
+              plannedStartAt: visit.scheduledStart,
+              plannedEndAt: visit.scheduledEnd,
+              taskStatuses: visit.tasks.map((task) => ({
+                taskId: task.id,
+                status: task.status,
+              })),
+              documentationNote: docText || visit.employeeNotes,
+            }}
             disabled={isLocked}
-            onSigned={() => setLocalSuccess('Unterschrift erfasst (Session).')}
+            onSigned={async ({ persisted, warning }) => {
+              setLocalError(null);
+              if (persisted) {
+                setLocalSuccess('Unterschrift dauerhaft gespeichert.');
+              } else if (warning) {
+                setLocalSuccess('Unterschrift erfasst — nur für diese Sitzung (siehe Hinweis).');
+              } else {
+                setLocalSuccess('Unterschrift erfasst.');
+              }
+              await refresh();
+            }}
           />
         ) : null}
 
