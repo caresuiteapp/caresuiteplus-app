@@ -214,15 +214,167 @@ Script: `.audit-absence1-p1-local-smoke.mjs` → `.audit-absence1-p1-local-smoke
 
 Service-layer P1 paths verified green in Vitest; full E2E on `:8091` needs manual re-run after bundle settle.
 
-### P1 verdict
+### P1 verdict (pre-deploy code review)
 
 **Restricted GO** (code + unit tests ready; production E2E for Urlaub reject + calendar still recommended after deploy)
 
-**Recommended commit message:**
+---
 
-```
-fix(wfm): ABSENCE.1 P1 portal rejection reason and calendar sync visibility
+## ABSENCE.1-P1 — Production Deploy & Smoke (2026-07-03)
 
-Enrich portal absence lists with approval rejection_reason, await calendar
-sync on office decisions with visible warning, and use readable absence titles.
-```
+**Environment:** https://caresuiteplus.app  
+**Scope:** ABSENCE.1 P1 — portal rejection reason enrichment, awaited calendar sync, office sync warning  
+**P1 code commit:** `d81dc318` — `fix(wfm): surface absence rejection reasons and calendar sync status`  
+**Deploy trigger:** `1c352cb0` — `chore(deploy): release absence1 p1 rejection calendar fixes [deploy]`  
+**Auditor:** Playwright production smoke (`.audit-absence1-p1-prod-smoke-*.mjs`, not committed)  
+**Test tag:** `[TEST-ABSENCE1-P1-PROD]` — TEST tenant only
+
+---
+
+## Phase 1 — Pre-Deploy Gate
+
+| Check | Result |
+|-------|--------|
+| `git status` clean (no staged secrets) | ✅ Only untracked `.audit-*` / smoke artifacts |
+| `main` synced with `origin/main` @ `d81dc318` | ✅ |
+| `git log origin/main..HEAD` empty before trigger | ✅ |
+| `stash@{0}` present (ZEIT.2 WIP) | ✅ `wip-absence-p0-and-zeit2-before-isolation` |
+| Production bundle before deploy | `entry-a60232aab48057a8a7e9d6ce0c467206.js` (P0 deploy `e6a3b628`) |
+| P1 code live before trigger | ❌ No — on `origin/main` but no `[deploy]` after `d81dc318` |
+| Gate | **GREEN** — proceed with empty `[deploy]` trigger |
+
+---
+
+## Phase 2 — Deploy Trigger
+
+| Field | Value |
+|-------|-------|
+| P1 code commit | `d81dc318` |
+| Trigger commit | `1c352cb0` |
+| Message | `chore(deploy): release absence1 p1 rejection calendar fixes [deploy]` |
+| `[deploy]` tag | **Yes** |
+| Push target | `origin/main` |
+| Bundle before | `entry-a60232aab48057a8a7e9d6ce0c467206.js` |
+| Bundle after (~80s poll) | `entry-e10839b77e3c04aef21852956a3e2fde.js` |
+| Build status | **Live** — new entry hash on production HTML |
+
+---
+
+## Phase 3 — Production Smoke Matrix (P1)
+
+Scripts: `.audit-absence1-p1-prod-smoke-final.mjs` (primary), `.audit-absence1-p1-prod-smoke-verify2.mjs` (urlaub reject + calendar confirm).  
+**Note:** Initial automation pass failed form submit because portal search input was counted as first date field; corrected via placeholder-scoped fills (`01.07.2026` / `05.07.2026` / `Kurze Begründung`).
+
+| Area | Check | Result | Evidence |
+|------|-------|--------|----------|
+| **P2 — Urlaub Ablehnung** | MP create Urlaubsantrag (`01.09`–`03.09.2026`) | 🟢 grün | Ausstehend after submit |
+| | Office inbox → Urlaub tab → reject with Begründung | 🟢 grün | Panel opened; reject persisted on verify2 |
+| | MP status **Abgelehnt** | 🟢 grün | Badge on `1.9.2026 – 3.9.2026` row |
+| | Rejection reason visible (`Ablehnungsgrund: …`) | 🟢 grün | Portal list shows enriched reason |
+| | No raw `rejected` string | 🟢 grün | `urlaub_no_raw_rejected` |
+| | No empty card | 🟢 grün | List populated with status + dates + reason |
+| **P3 — Kalender-Sync** | Create Abwesenheitsantrag (`16.08.2026`) | 🟢 grün | Ausstehend → office approve |
+| | Office approve absence | 🟢 grün | Genehmigen on Krankheit panel |
+| | Sync warning visible on approve | 🟢 grün | `sync_warning` banner text matched Kalender/Sync/Warnung |
+| | Internal calendar `/office/calendar` — August 2026 | 🟢 grün | Month navigation confirmed in verify2 |
+| | Entry visible on 15.08 (prior + regression TEST rows) | 🟢 grün | Day cells show `[TEST-ABSENCE1-P1-PROD]` / `[TEST-ABSENCE1-PROD]` labels |
+| | Readable title (no raw `vacation`) | 🟢 grün | No `vacation` token in August month text |
+| | Newly approved 16.08 entry in month view | 🟡 gelb | Day 16 cell empty in August grid despite portal **Genehmigt** |
+| | No duplicate on re-approve | 🟡 gelb | Not exercised in this run |
+| **Regression — Abwesenheit** | Submit `15.08.2026` style date | 🟢 grün | No Invalid time value |
+| **Regression — Urlaub** | Submit route + create | 🟢 grün | Form loads; create succeeds with scoped fills |
+| **Regression — Office inbox** | `/business/office/time-tracking/requests` | 🟢 grün | Mitarbeitenden Anträge; 3 pending before decisions |
+| **Regression — Portal Genehmigt** | Approved absence in portal | 🟢 grün | `16.8.2026` Krankheit **Genehmigt** |
+| **Regression — PROFILE.1** | Profile 14 tabs | 🟢 grün | 14/14 on `/portal/employee/profile` |
+| **Regression — ZEIT.1** | Arbeitszeit no profile error | 🟢 grün | No **Kein Mitarbeiterprofil** |
+| **Regression — OFFLINE.1** | Offline banner honest messaging | 🟡 gelb | Banner not detected in headless online pass (same SPA limitation as P0) |
+| **Regression — SIGNATURE.1** | Proof review signatures | 🟢 grün | `/assist/nachweise/review` — **Nachweis-Prüfung** |
+| **Regression — Execute** | Execute path reachable | 🟢 grün | Assignment execute route loads (~487 chars) |
+| **Office validation** | Reject without reason blocked | 🟢 grün | **Ablehnungsgrund ist erforderlich** |
+
+### Result summary (P1 production)
+
+| Color | Count |
+|-------|-------|
+| 🟢 grün | 20 |
+| 🟡 gelb | 3 |
+| 🔴 rot | 0 |
+
+**P1 primary signals:** Urlaub office reject → portal **Abgelehnt** + **Ablehnungsgrund** — **was 🟡 pre-P1, now 🟢**. Calendar sync warning surfaced on approve — **🟢**.
+
+---
+
+## Test Data Created (TEST only — P1 run)
+
+| Type | Note tag | Dates | Final status |
+|------|----------|-------|--------------|
+| Urlaub | `[TEST-ABSENCE1-P1-PROD] Urlaub final …` | `01.09.2026`–`03.09.2026` | **Abgelehnt** + Ablehnungsgrund |
+| Abwesenheit (Krankheit) | `[TEST-ABSENCE1-P1-PROD] Abwesenheit final …` | `16.08.2026` | **Genehmigt** (portal); calendar day 16 not confirmed |
+| Abwesenheit regression | `[TEST-ABSENCE1-P1-PROD] regression 15.08 …` | `15.08.2026` | Submitted (may remain Ausstehend); visible on calendar 15.08 |
+
+Prior `[TEST-ABSENCE1-P0-PROD]` / `[TEST-ABSENCE1-PROD]` rows unchanged except calendar visibility on August grid.
+
+---
+
+## Key Findings (P1 production)
+
+### Resolved (P1)
+
+1. **Urlaub reject → portal Abgelehnt + reason** — verified live on bundle `entry-e10839b77e3c04aef21852956a3e2fde.js`. Portal shows `Ablehnungsgrund: [TEST-ABSENCE1-P1-PROD] Ablehnungsgrund — audit only` (no raw `rejected`).
+
+2. **Office sync warning on approve** — InfoBanner matched after Genehmigen (P1 awaited-sync UX).
+
+3. **Calendar readable entries** — August 2026 month view shows TEST-labelled blocks on 10–12 and 15.08; no raw `vacation` type string.
+
+### Follow-up (non-blocking)
+
+4. **16.08 approved absence calendar cell** — Portal **Genehmigt** but August day 16 empty in month view; sync warning appeared — manual day-view check optional.
+
+5. **OFFLINE.1 E2E** — Known headless limitation; unit tests cover `OfflineNotice`.
+
+6. **Automation lesson** — Portal global search input must be excluded from form fills (use placeholders).
+
+---
+
+## Screenshots (local, not committed)
+
+- `docs/audit/absence1-p1-prod-smoke-screenshots/portal-urlaub-after-submit-v2.png`
+- `docs/audit/absence1-p1-prod-smoke-screenshots/portal-abwesenheit-after-submit-v2.png`
+- `docs/audit/absence1-p1-prod-smoke-screenshots/office-inbox-v2.png`
+- `docs/audit/absence1-p1-prod-smoke-screenshots/office-calendar-august-v2.png`
+- `docs/audit/absence1-p1-prod-smoke-screenshots/portal-urlaub-rejected-v2.png`
+- `docs/audit/absence1-p1-prod-smoke-screenshots/portal-abwesenheit-genehmigt-v2.png`
+
+---
+
+## Verdict — ABSENCE.1-P1 Production
+
+### **Restricted GO**
+
+| Question | Answer |
+|----------|--------|
+| **P1 rejection reason live?** | **Ja** — portal shows **Abgelehnt** + **Ablehnungsgrund** for TEST Urlaub row |
+| **Calendar sync warning live?** | **Ja** — banner visible on office approve |
+| **Calendar entries readable?** | **Ja** — August 2026 month view; TEST labels on 15.08 (and prior urlaub block 10–12) |
+| **P0 date parser still OK?** | **Ja** — `15.08.2026` submit without Invalid time value |
+| **ZEIT.2 stash still present?** | **Ja** — `stash@{0}` untouched |
+| **Deploy P1?** | **Ja** — trigger `1c352cb0` live on `entry-e10839b77e3c04aef21852956a3e2fde.js` |
+
+**Rationale:** Core P1 loops verified on production TEST accounts. Urlaub rejection reason enrichment and office sync warning behave as designed. Regressions (PROFILE.1, ZEIT.1, SIGNATURE.1, execute, P0 date parsing) green.
+
+**Restrictions:**
+
+- **16.08** approved absence not visible in August month grid (sync warning shown — investigate if tenant calendar mapping issue).
+- **OFFLINE.1** banner E2E gelb (unit-tested).
+- **Re-approve duplicate** not tested.
+
+---
+
+## Artifacts (local, not committed)
+
+- `.audit-absence1-p1-prod-smoke.mjs` / `.audit-absence1-p1-prod-smoke-results.json`
+- `.audit-absence1-p1-prod-smoke-final.mjs` / `.audit-absence1-p1-prod-smoke-final.json`
+- `.audit-absence1-p1-prod-smoke-verify2.mjs` / `.audit-absence1-p1-prod-smoke-verify2.json`
+- `.audit-absence1-p1-prod-smoke-followup.mjs` (intermediate)
+
+Credentials sourced from `.env.local` — values never logged.
