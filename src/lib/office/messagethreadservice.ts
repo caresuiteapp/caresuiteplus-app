@@ -23,6 +23,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { type PreviewAwareResult } from '@/lib/supabase/missingtablefallback';
 import { fromDbThreadType } from '@/lib/office/messagebusinessrules';
+import { enrichThreadsWithEmployeeGroupParticipants } from '@/lib/office/employeeGroupChatService';
 import { fromDbThreadStatus, isClosedAppStatus, toDbThreadStatus } from '@/lib/office/messagestatuslabels';
 import { canViewOfficeInternalMessages } from '@/lib/communication/officeComposeRouting';
 
@@ -45,7 +46,10 @@ function filterThreadsByInbox(
     case 'clients':
       return threads.filter((thread) => thread.threadType === 'client_office');
     case 'employees':
-      return threads.filter((thread) => thread.threadType === 'employee_office');
+      return threads.filter(
+        (thread) =>
+          thread.threadType === 'employee_office' || thread.threadType === 'employee_group_office',
+      );
     case 'internal':
       return threads.filter((thread) => thread.threadType === 'internal');
     case 'closed':
@@ -111,7 +115,7 @@ async function fetchThreadsLive(tenantId: string): Promise<ServiceResult<OfficeM
     .from('message_threads')
     .select('*')
     .eq('tenant_id', tenantId)
-    .in('thread_type', ['client', 'employee', 'internal'])
+    .in('thread_type', ['client', 'employee', 'employee_group', 'internal'])
     .order('last_message_at', { ascending: false, nullsFirst: false });
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
@@ -120,7 +124,8 @@ async function fetchThreadsLive(tenantId: string): Promise<ServiceResult<OfficeM
     .map((row) => mapThreadRow(row as Record<string, unknown>))
     .filter((thread): thread is OfficeMessageThread => thread !== null);
 
-  return { ok: true, data: threads };
+  const enriched = await enrichThreadsWithEmployeeGroupParticipants(tenantId, threads);
+  return { ok: true, data: enriched };
 }
 
 async function fetchThreadByIdLive(
@@ -142,6 +147,11 @@ async function fetchThreadByIdLive(
 
   const thread = mapThreadRow(data as Record<string, unknown>);
   if (!thread) return { ok: true, data: null };
+
+  if (thread.threadType === 'employee_group_office') {
+    const [enriched] = await enrichThreadsWithEmployeeGroupParticipants(tenantId, [thread]);
+    return { ok: true, data: enriched ?? thread };
+  }
   return { ok: true, data: thread };
 }
 

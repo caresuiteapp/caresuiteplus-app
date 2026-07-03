@@ -71,6 +71,29 @@ describe('officeMessageMappers participant names', () => {
     ).toBe('Sabine Muster');
   });
 
+  it('liefert Gruppennamen für employee_group_office', () => {
+    const value = resolveOfficeThreadParticipantName(
+      thread({
+        threadType: 'employee_group_office',
+        subject: 'Team Nord',
+        participantName: 'Anna · Tom',
+      }),
+    );
+    expect(value).toBe('Team Nord');
+  });
+
+  it('baut Untertitel für Gruppen-Chat mit Mitgliederzahl', () => {
+    const subtitle = resolveOfficeThreadHeaderSubtitle(
+      thread({
+        threadType: 'employee_group_office',
+        subject: 'Schichtplanung KW 27',
+        memberCount: 4,
+      }),
+      'In Bearbeitung',
+    );
+    expect(subtitle).toBe('Gruppen-Chat · 4 Mitglieder · Schichtplanung KW 27 · Status: In Bearbeitung');
+  });
+
   it('baut Untertitel mit Typ, Betreff und Status', () => {
     const subtitle = resolveOfficeThreadHeaderSubtitle(
       thread({ threadType: 'employee_office', subject: 'Rückmeldung' }),

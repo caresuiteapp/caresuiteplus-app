@@ -35,6 +35,7 @@ import type { PendingMessageAttachment } from '@/lib/office/messageattachmentval
 import { isAudioMimeType } from '@/lib/office/messageattachmentvalidation';
 import { uploadPortalMessageAttachment } from '@/lib/office/messageattachmentservice';
 import { OFFICE_MESSAGING_SCHEMA_ERROR, sortThreads } from '@/lib/office/messagethreadservice';
+import { enrichThreadsWithEmployeeGroupParticipants } from '@/lib/office/employeeGroupChatService';
 import { fromDbThreadStatus, PORTAL_THREAD_STATUS_LABELS } from '@/lib/office/messagestatuslabels';
 import { fromDbThreadType } from '@/lib/office/messagebusinessrules';
 
@@ -114,9 +115,16 @@ function expectedThreadType(audience: PortalOfficeAudience): OfficeThreadType {
 }
 
 function threadBelongsToActor(thread: OfficeMessageThread, actor: PortalActor): boolean {
-  if (thread.threadType !== expectedThreadType(actor.audience)) return false;
-  if (actor.audience === 'client') return thread.clientId === actor.clientId;
-  return thread.employeeId === actor.employeeId;
+  if (actor.audience === 'client') {
+    return thread.threadType === 'client_office' && thread.clientId === actor.clientId;
+  }
+  if (thread.threadType === 'employee_office') {
+    return thread.employeeId === actor.employeeId;
+  }
+  if (thread.threadType === 'employee_group_office') {
+    return (thread.employeeParticipantIds ?? []).includes(actor.employeeId ?? '');
+  }
+  return false;
 }
 
 function filterByInbox(
@@ -172,13 +180,12 @@ async function fetchPortalThreadsLive(
   let query = supabase
     .from('message_threads')
     .select('*')
-    .eq('tenant_id', tenantId)
-    .eq('thread_type', dbType);
+    .eq('tenant_id', tenantId);
 
   if (actor.audience === 'client') {
-    query = query.eq('client_id', actor.clientId!);
+    query = query.eq('thread_type', dbType).eq('client_id', actor.clientId!);
   } else {
-    query = query.eq('employee_id', actor.employeeId!);
+    query = query.in('thread_type', ['employee', 'employee_group']);
   }
 
   const { data, error } = await query.order('last_message_at', {
@@ -188,10 +195,15 @@ async function fetchPortalThreadsLive(
 
   if (error) return officeMessagingError(toGermanSupabaseError(error));
 
-  const threads = (data ?? [])
+  let threads = (data ?? [])
     .map((row) => mapThreadRow(row as Record<string, unknown>))
-    .filter((thread): thread is OfficeMessageThread => thread !== null)
-    .filter((thread) => threadBelongsToActor(thread, actor));
+    .filter((thread): thread is OfficeMessageThread => thread !== null);
+
+  if (actor.audience === 'employee') {
+    threads = await enrichThreadsWithEmployeeGroupParticipants(tenantId, threads);
+  }
+
+  threads = threads.filter((thread) => threadBelongsToActor(thread, actor));
 
   return { ok: true, data: threads };
 }

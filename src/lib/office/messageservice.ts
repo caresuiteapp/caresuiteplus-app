@@ -21,6 +21,7 @@ import {
   validateSendMessage,
 } from '@/lib/office/messagebusinessrules';
 import { fetchOfficeMessageThreadById } from '@/lib/office/messagethreadservice';
+import { insertEmployeeGroupParticipants } from '@/lib/office/employeeGroupChatService';
 import { uploadMessageAttachment } from '@/lib/office/messageattachmentservice';
 import type { PendingMessageAttachment } from '@/lib/office/messageattachmentvalidation';
 import { isAudioMimeType } from '@/lib/office/messageattachmentvalidation';
@@ -204,7 +205,9 @@ export async function sendOfficeMessage(
   }
 
   const bumpPortalUnread =
-    !isInternalNote && threadResult.data.threadType === 'client_office';
+    !isInternalNote &&
+    (threadResult.data.threadType === 'client_office' ||
+      threadResult.data.threadType === 'employee_group_office');
 
   const threadUpdate: {
     last_message_at: string;
@@ -360,6 +363,15 @@ export async function createOfficeMessageThread(
     await fromUnknownTable(supabase, 'message_thread_participants').insert(rows);
   }
 
+  if (input.threadType === 'employee_group_office' && input.employeeParticipantIds?.length) {
+    const participantResult = await insertEmployeeGroupParticipants(
+      tenantId,
+      threadId,
+      input.employeeParticipantIds,
+    );
+    if (!participantResult.ok) return participantResult;
+  }
+
   if (input.initialMessage?.trim()) {
     await supabase.from('messages').insert({
       tenant_id: tenantId,
@@ -370,7 +382,7 @@ export async function createOfficeMessageThread(
       status: 'sent',
     });
 
-    if (input.threadType === 'client_office') {
+    if (input.threadType === 'client_office' || input.threadType === 'employee_group_office') {
       await supabase
         .from('message_threads')
         .update({ portal_unread_count: 1, updated_at: now })

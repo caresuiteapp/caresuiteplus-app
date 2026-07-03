@@ -9,6 +9,7 @@ import { OfficeBroadcastsList } from '@/components/office/officebroadcastslist';
 import { OfficeMessageThreadModal } from '@/components/office/officemessagethreadmodal';
 import { OfficeMessagesInbox } from '@/components/office/officemessagesinbox';
 import { OfficeNewChatModal, type NewChatMode } from '@/components/office/officenewchatmodal';
+import { OfficeNewGroupChatModal } from '@/components/office/officenewgroupchatmodal';
 import { PremiumButton } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -85,6 +86,7 @@ export function OfficeMessengerScreen() {
   const [broadcastDetailOpen, setBroadcastDetailOpen] = useState(false);
   const [search, setSearch] = useState('');
   const [newChatMode, setNewChatMode] = useState<NewChatMode | null>(null);
+  const [showGroupChatModal, setShowGroupChatModal] = useState(false);
   const [showBroadcastModal, setShowBroadcastModal] = useState(false);
 
   useEffect(() => {
@@ -180,10 +182,19 @@ export function OfficeMessengerScreen() {
         {!isReadOnly ? (
           <View style={styles.actions}>
             {view === 'chats' ? (
-              <PremiumButton
-                title={NEW_CHAT_LABELS[audience]}
-                onPress={() => setNewChatMode(newChatModeForAudience(audience))}
-              />
+              <>
+                <PremiumButton
+                  title={NEW_CHAT_LABELS[audience]}
+                  onPress={() => setNewChatMode(newChatModeForAudience(audience))}
+                />
+                {audience === 'employees' ? (
+                  <PremiumButton
+                    title="Neuer Gruppen-Chat"
+                    variant="secondary"
+                    onPress={() => setShowGroupChatModal(true)}
+                  />
+                ) : null}
+              </>
             ) : null}
             {canBroadcast ? (
               <PremiumButton
@@ -252,6 +263,18 @@ export function OfficeMessengerScreen() {
           onClose={() => setNewChatMode(null)}
           onCreated={(threadId) => {
             setNewChatMode(null);
+            setChatAge('new');
+            openThread(threadId);
+          }}
+        />
+      ) : null}
+
+      {showGroupChatModal ? (
+        <OfficeNewGroupChatModal
+          visible
+          onClose={() => setShowGroupChatModal(false)}
+          onCreated={(threadId) => {
+            setShowGroupChatModal(false);
             setChatAge('new');
             openThread(threadId);
           }}

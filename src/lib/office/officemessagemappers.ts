@@ -5,6 +5,7 @@ import type { OfficeMessage, OfficeMessageThread, OfficeThreadType } from '@/typ
 export const OFFICE_THREAD_TYPE_LABELS: Record<OfficeThreadType, string> = {
   client_office: 'Klient:in',
   employee_office: 'Mitarbeiter:in',
+  employee_group_office: 'Gruppen-Chat',
   internal: 'Intern',
 };
 
@@ -46,6 +47,9 @@ export function resolveOfficeThreadParticipantName(
 
   if (thread.threadType === 'client_office' && thread.clientName) return thread.clientName;
   if (thread.threadType === 'employee_office' && thread.employeeName) return thread.employeeName;
+  if (thread.threadType === 'employee_group_office') {
+    return thread.subject?.trim() || 'Gruppen-Chat';
+  }
   if (thread.threadType === 'internal' && thread.participantName) return thread.participantName;
 
   return (
@@ -64,7 +68,11 @@ export function resolveOfficeThreadHeaderSubtitle(
 
   const typeLabel = OFFICE_THREAD_TYPE_LABELS[thread.threadType];
   const subject = thread.subject?.trim();
-  const parts = [typeLabel, subject, `Status: ${statusLabel}`].filter(Boolean);
+  const memberSuffix =
+    thread.threadType === 'employee_group_office' && thread.memberCount
+      ? `${thread.memberCount} Mitglieder`
+      : null;
+  const parts = [typeLabel, memberSuffix, subject, `Status: ${statusLabel}`].filter(Boolean);
   return parts.join(' · ');
 }
 

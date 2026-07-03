@@ -40,6 +40,7 @@ export function threadAudience(thread: OfficeMessageThread): OfficeMessageAudien
     case 'client_office':
       return 'clients';
     case 'employee_office':
+    case 'employee_group_office':
       return 'employees';
     case 'internal':
       return 'internal';

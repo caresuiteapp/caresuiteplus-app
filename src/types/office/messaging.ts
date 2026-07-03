@@ -1,7 +1,7 @@
 import type { ISODateTime, TenantScopedEntity } from '@/types/core/base';
 
-/** Spec thread types — mapped to DB enum client | employee | internal */
-export type OfficeThreadType = 'client_office' | 'employee_office' | 'internal';
+/** Spec thread types — mapped to DB enum client | employee | employee_group | internal */
+export type OfficeThreadType = 'client_office' | 'employee_office' | 'employee_group_office' | 'internal';
 
 export type OfficeThreadStatus =
   | 'open'
@@ -47,6 +47,12 @@ export type OfficeMessageThread = TenantScopedEntity & {
   closedAt?: ISODateTime | null;
   closedByUserId?: string | null;
   participantProfileIds?: string[];
+  /** Active employee members for employee_group_office threads. */
+  employeeParticipantIds?: string[];
+  /** Display names aligned with employeeParticipantIds (when enriched). */
+  employeeParticipantNames?: string[];
+  /** Member count for group chats (includes all active participants). */
+  memberCount?: number;
   lastMessageAt: ISODateTime | null;
   lastMessagePreview: string | null;
   unreadCount: number;
@@ -101,6 +107,16 @@ export type CreateOfficeThreadInput = {
   clientId?: string | null;
   employeeId?: string | null;
   participantProfileIds?: string[];
+  /** Required for employee_group_office — at least two unique employee IDs. */
+  employeeParticipantIds?: string[];
+  initialMessage?: string;
+  priority?: OfficeMessagePriority;
+};
+
+export type CreateEmployeeGroupChatInput = {
+  subject: string;
+  categoryId?: string | null;
+  employeeIds: string[];
   initialMessage?: string;
   priority?: OfficeMessagePriority;
 };

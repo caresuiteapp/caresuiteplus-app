@@ -14,6 +14,7 @@ import {
   OFFICE_CHAT_AGE_FILTERS,
   emptyChatMessage,
 } from '@/lib/office/officemessengerfilters';
+import { isEmployeeGroupChatThread } from '@/lib/office/employeeGroupChatService';
 import { useOfficeMessageThreads } from '@/hooks/useofficemessagethreads';
 
 const PRIORITY_LABELS: Record<OfficeMessageThread['priority'], string> = {
@@ -26,6 +27,7 @@ const PRIORITY_LABELS: Record<OfficeMessageThread['priority'], string> = {
 const THREAD_TYPE_LABELS: Record<OfficeMessageThread['threadType'], string> = {
   client_office: 'Klient:in',
   employee_office: 'Mitarbeiter:in',
+  employee_group_office: 'Gruppe',
   internal: 'Intern',
 };
 
@@ -70,6 +72,13 @@ function ThreadRow({
           borderRadius: radius.capsule,
           backgroundColor: c.surfaceAlt,
         },
+        badgeGroup: {
+          paddingHorizontal: spacing.sm,
+          paddingVertical: 2,
+          borderRadius: radius.capsule,
+          backgroundColor: `${c.violet}18`,
+        },
+        badgeGroupText: { ...typography.caption, color: c.violet, fontWeight: '700' },
         badgeText: { ...typography.caption, color: c.muted },
         unread: {
           minWidth: 20,
@@ -84,8 +93,11 @@ function ThreadRow({
     [c, typography, selected],
   );
 
+  const isGroup = isEmployeeGroupChatThread(thread);
   const participant =
-    thread.clientName ?? thread.employeeName ?? thread.participantName ?? THREAD_TYPE_LABELS[thread.threadType];
+    isGroup
+      ? (thread.participantName ?? `${thread.memberCount ?? 0} Mitglieder`)
+      : (thread.clientName ?? thread.employeeName ?? thread.participantName ?? THREAD_TYPE_LABELS[thread.threadType]);
   const timeLabel = thread.lastMessageAt
     ? new Date(thread.lastMessageAt).toLocaleDateString('de-DE', {
         day: '2-digit',
@@ -113,6 +125,13 @@ function ThreadRow({
         {participant}: {thread.lastMessagePreview ?? '—'}
       </Text>
       <View style={styles.meta}>
+        {isGroup ? (
+          <View style={styles.badgeGroup}>
+            <Text style={styles.badgeGroupText}>
+              👥 Gruppe · {thread.memberCount ?? thread.employeeParticipantIds?.length ?? 0} Mitglieder
+            </Text>
+          </View>
+        ) : null}
         {thread.categoryLabel ? (
           <View style={styles.badge}>
             <Text style={styles.badgeText}>{thread.categoryLabel}</Text>
@@ -178,6 +197,8 @@ export function OfficeMessagesInbox({
         (thread.clientName ?? '').toLowerCase().includes(term) ||
         (thread.employeeName ?? '').toLowerCase().includes(term) ||
         (thread.participantName ?? '').toLowerCase().includes(term) ||
+        (thread.employeeParticipantNames ?? []).some((name) => name.toLowerCase().includes(term)) ||
+        String(thread.memberCount ?? '').includes(term) ||
         (thread.categoryLabel ?? '').toLowerCase().includes(term) ||
         (thread.lastMessagePreview ?? '').toLowerCase().includes(term),
     );

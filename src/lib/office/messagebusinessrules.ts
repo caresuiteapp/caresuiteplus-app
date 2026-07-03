@@ -7,6 +7,7 @@ import type {
 const OFFICE_THREAD_TYPES: OfficeThreadType[] = [
   'client_office',
   'employee_office',
+  'employee_group_office',
   'internal',
 ];
 
@@ -18,7 +19,7 @@ const CLOSED_STATUSES = new Set<OfficeMessageThread['status']>([
 ]);
 
 /** DB enum values used in message_threads.thread_type */
-export type DbThreadType = 'client' | 'employee' | 'internal';
+export type DbThreadType = 'client' | 'employee' | 'employee_group' | 'internal';
 
 export function toDbThreadType(threadType: OfficeThreadType): DbThreadType {
   switch (threadType) {
@@ -26,6 +27,8 @@ export function toDbThreadType(threadType: OfficeThreadType): DbThreadType {
       return 'client';
     case 'employee_office':
       return 'employee';
+    case 'employee_group_office':
+      return 'employee_group';
     case 'internal':
       return 'internal';
   }
@@ -37,11 +40,19 @@ export function fromDbThreadType(value: string): OfficeThreadType | null {
       return 'client_office';
     case 'employee':
       return 'employee_office';
+    case 'employee_group':
+      return 'employee_group_office';
     case 'internal':
       return 'internal';
     default:
       return null;
   }
+}
+
+export function isEmployeeGroupThread(
+  thread: Pick<OfficeMessageThread, 'threadType'>,
+): boolean {
+  return thread.threadType === 'employee_group_office';
 }
 
 /** Rule 1: Messages belong ONLY to the Office module (valid thread types). */
@@ -59,6 +70,9 @@ export function assertNoDirectClientEmployeeComms(thread: Pick<OfficeMessageThre
   }
   if (thread.threadType === 'employee_office') {
     return thread.employeeId !== null && thread.clientId === null;
+  }
+  if (thread.threadType === 'employee_group_office') {
+    return thread.clientId === null && thread.employeeId === null;
   }
   return false;
 }
@@ -117,8 +131,25 @@ export function filterThreadsForPortalEmployee(
   employeeId: string,
 ): OfficeMessageThread[] {
   return threads.filter(
-    (t) => t.threadType === 'employee_office' && t.employeeId === employeeId,
+    (t) =>
+      (t.threadType === 'employee_office' && t.employeeId === employeeId) ||
+      (t.threadType === 'employee_group_office' &&
+        (t.employeeParticipantIds ?? []).includes(employeeId)),
   );
+}
+
+export function validateEmployeeGroupChatInput(input: {
+  subject: string;
+  employeeIds: string[];
+}): { ok: true } | { ok: false; error: string } {
+  const subject = input.subject.trim();
+  if (!subject) return { ok: false, error: 'Gruppenname darf nicht leer sein.' };
+
+  const uniqueIds = [...new Set(input.employeeIds.filter(Boolean))];
+  if (uniqueIds.length < 2) {
+    return { ok: false, error: 'Bitte mindestens zwei Mitarbeitende auswählen.' };
+  }
+  return { ok: true };
 }
 
 export function validateCreateThread(input: {
@@ -141,6 +172,12 @@ export function validateCreateThread(input: {
   }
   if (input.threadType === 'employee_office' && !input.employeeId) {
     return { ok: false, error: 'Mitarbeiter:in erforderlich.' };
+  }
+  if (input.threadType === 'employee_group_office') {
+    const uniqueIds = [...new Set((input.employeeParticipantIds ?? []).filter(Boolean))];
+    if (uniqueIds.length < 2) {
+      return { ok: false, error: 'Bitte mindestens zwei Mitarbeitende auswählen.' };
+    }
   }
   return { ok: true };
 }

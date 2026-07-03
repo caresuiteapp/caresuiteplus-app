@@ -128,7 +128,7 @@ export function OfficeMessageContextPanel({
         const audience =
           thread.threadType === 'client_office'
             ? 'client'
-            : thread.threadType === 'employee_office'
+            : thread.threadType === 'employee_office' || thread.threadType === 'employee_group_office'
               ? 'employee'
               : 'internal';
         setCategories(
