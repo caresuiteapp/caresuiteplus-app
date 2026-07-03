@@ -1,0 +1,97 @@
+{
+  "timestamp": "2026-07-03T04:42:32.283Z",
+  "baseUrl": "http://localhost:8084",
+  "portalRoute": "/portal/employee",
+  "auth": {
+    "ok": true
+  },
+  "desktop": {
+    "label": "desktop",
+    "bodyLength": 1095,
+    "sectionsFound": [
+      "Heute",
+      "Meine Einsätze",
+      "Meine Zeiten",
+      "Offene Aufgaben",
+      "Schnellzugriffe"
+    ],
+    "sectionsMissing": [],
+    "technicalHits": [],
+    "hasPortalShell": true,
+    "hasTimeInfo": true,
+    "horizontalOverflow": false,
+    "whiteScreen": false,
+    "sampleText": "Start\n › \nMitarbeiterportal\n › \nMitarbeiterportal\nMitarbeiterportal\nIhr persönlicher Portalbereich\n⌕\nPA\nP0 Test Admin\n▾\nCareSuite+\nPflege & Betreuung\nMITARBEITERPORTAL\n🏠\nÜbersicht\n📅\nEinsätze\n🗓️\nDienstplan\n💬\nNachrichten\n👤\nProfil\nStart\n › \nPortal\n › \nMitarbeiterportal\nMitarbeiterportal\nIhr persönlicher Portalbereich\nHeute\nMitarbeiterportal · P0 Test Admin · Tagesübersicht\nEINSÄTZE HEUTE\n0\nKeine Einsätze geplant\nGEPLANTE STUNDEN\n0 Std.\nKein Dienst heute\nOFFENE DOKUMENTATION\n0\nAlles dokumentiert\nNACHRICHTEN\n0\nKeine neuen Nachrichten\nMeine Einsätze\nHeutige und nächste Einsätze — Tap für Details\nKeine Einsätze\nFür heute und die nächsten Tage sind keine Einsätze eingetragen.\nMeine Zeiten\nArbeitszeit und Abwesenheiten — lesende Übersicht\nℹ️\nZeiterfassung\nArbeitszeiten und Abwesenheitsanträge sind über den Bereich Arbeitszeit verfügbar.\n⏱️\nZur Zeiterfassung\n›\nOffene Aufgaben\nDokumentation und Unterschriften mit Handlungsbedarf\nAlles erledigt\nKeine offenen Dokumentationen oder Unterschriften.\nSchnellzugriffe\nPortalnavigation\n🏠\nHeute\n›\n📅\nMeine Einsätze\n›\n💬\nNachrichten\n›\n👤\nProfil\n›",
+    "screenshot": "docs\\audit\\h5-employee-portal-smoke-screenshots\\employee-portal-desktop.png"
+  },
+  "mobile": {
+    "label": "mobile",
+    "bodyLength": 857,
+    "sectionsFound": [
+      "Heute",
+      "Meine Einsätze",
+      "Meine Zeiten",
+      "Offene Aufgaben",
+      "Schnellzugriffe"
+    ],
+    "sectionsMissing": [],
+    "technicalHits": [],
+    "hasPortalShell": true,
+    "hasTimeInfo": true,
+    "horizontalOverflow": false,
+    "whiteScreen": false,
+    "sampleText": "☰\nCareSuite+\nMitarbeiterportal\nPA\nHeute\nMitarbeiterportal · P0 Test Admin · Tagesübersicht\nEINSÄTZE HEUTE\n0\nKeine Einsätze geplant\nGEPLANTE STUNDEN\n0 Std.\nKein Dienst heute\nOFFENE DOKUMENTATION\n0\nAlles dokumentiert\nNACHRICHTEN\n0\nKeine neuen Nachrichten\nMeine Einsätze\nHeutige und nächste Einsätze — Tap für Details\nKeine Einsätze\nFür heute und die nächsten Tage sind keine Einsätze eingetragen.\nMeine Zeiten\nArbeitszeit und Abwesenheiten — lesende Übersicht\nℹ️\nZeiterfassung\nArbeitszeiten und Abwesenheitsanträge sind über den Bereich Arbeitszeit verfügbar.\n⏱️\nZur Zeiterfassung\n›\nOffene Aufgaben\nDokumentation und Unterschriften mit Handlungsbedarf\nAlles erledigt\nKeine offenen Dokumentationen oder Unterschriften.\nSchnellzugriffe\nPortalnavigation\n🏠\nHeute\n›\n📅\nMeine Einsätze\n›\n💬\nNachrichten\n›\n👤\nProfil\n›\nÜbersicht\nEinsätze\nDienstplan\nNachrichten\nProfil",
+    "screenshot": "docs\\audit\\h5-employee-portal-smoke-screenshots\\employee-portal-mobile.png"
+  },
+  "executeLink": {
+    "ok": true,
+    "url": "http://localhost:8084/portal/employee/assignments"
+  },
+  "runtimeErrors": [],
+  "consoleErrors": [
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 403 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 400 ()",
+    "Failed to load resource: the server responded with a status of 403 ()"
+  ],
+  "verdict": {
+    "browserSmoke": "gruen",
+    "desktop": "gruen",
+    "mobile": "gruen",
+    "runtimeErrors": "nein",
+    "technicalTexts": "nein",
+    "executeLinkPlausible": "ja",
+    "redZoneUntouched": "ja",
+    "commitReady": "ja"
+  },
+  "setup": {
+    "devServerStarted": true,
+    "devServerPort": 8084,
+    "testAccountProvisioned": true,
+    "testAccountUsername": "audit-employee@caresuiteplus.test",
+    "testTenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
+    "provisionScript": "scripts/audit/p0PortalAuthBootstrap.mjs",
+    "loginSuccessful": true,
+    "loginMethod": "employee-portal-login"
+  },
+  "summary": {
+    "devServerStarted": "yes",
+    "testAccountProvisionedUsed": "yes",
+    "browserSmoke": "green",
+    "loginSuccessful": "yes",
+    "mobileGreen": "yes",
+    "desktopGreen": "yes",
+    "executeReachable": "yes",
+    "technicalTextsVisible": "no",
+    "runtimeErrors": "no",
+    "p0RedZonesUntouched": "yes",
+    "commitReadiness": "yes"
+  }
+}
