@@ -88,10 +88,10 @@ describe('Stationär Extension Heroes (Sprint 87)', () => {
 });
 
 describe('Portal Profile Heroes (Sprint 87)', () => {
-  it('PortalEmployeeProfileHero nutzt PremiumListHeroFrame mit preparedOnly', () => {
+  it('PortalEmployeeProfileHero nutzt PremiumListHeroFrame mit Live-Avatar', () => {
     const hero = readSrc('src/components/portal/PortalEmployeeProfileHero.tsx');
     expect(hero).toContain('PremiumListHeroFrame');
-    expect(hero).toContain('isPortalProfileLiveReady');
+    expect(hero).toContain('PortalReadOnlyAvatar');
     expect(hero).toContain('buildEmployeePortalProfileKpis');
   });
 
