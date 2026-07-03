@@ -135,6 +135,17 @@ export function buildCalendarEventFromVisitDetail(input: {
   };
 }
 
+function resolveAbsenceCalendarTitle(absence: EmployeeAbsence): string {
+  const note = absence.employeeVisibleNote?.trim() || absence.internalNotes?.trim();
+  if (note) return note;
+  if (absence.absenceType === 'vacation') return 'Urlaub';
+  if (absence.absenceType === 'sick_leave' || absence.absenceType === 'child_sick_leave') {
+    return 'Krankheit';
+  }
+  if (absence.absenceType === 'training') return 'Fortbildung';
+  return 'Abwesenheit';
+}
+
 export function buildCalendarEventFromAbsence(absence: EmployeeAbsence): CalendarSyncPayload {
   const sourceType = resolveAbsenceSourceType(absence.absenceType);
   return {
@@ -143,7 +154,7 @@ export function buildCalendarEventFromAbsence(absence: EmployeeAbsence): Calenda
     sourceType,
     sourceId: absence.id,
     eventType: resolveAbsenceEventType(absence.absenceType),
-    title: absence.internalNotes?.trim() || absence.employeeVisibleNote?.trim() || sourceType,
+    title: resolveAbsenceCalendarTitle(absence),
     startAt: absence.startsAt,
     endAt: absence.endsAt,
     allDay: absence.allDay,

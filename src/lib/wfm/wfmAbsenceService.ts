@@ -12,7 +12,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { resolveEmployeeIdForUser } from './wfmWorkSessionRepository';
-import { createWfmApproval } from './wfmApprovalService';
+import { createWfmApproval, listWfmApprovalsForAbsenceReferences } from './wfmApprovalService';
 
 const TABLE = 'workforce_absences';
 
@@ -63,6 +63,54 @@ export function resetWfmAbsenceDemoStore(): void {
   demoAbsences.clear();
 }
 
+export function resolveWfmPortalRejectionReason(
+  absence: WfmAbsence,
+  approvalByReferenceId?: Map<string, { rejectionReason: string | null; status: string }>,
+): string {
+  if (absence.status !== 'rejected') return '';
+  const fromNote = absence.internalNote.trim();
+  if (fromNote) return fromNote;
+  const approval = approvalByReferenceId?.get(absence.id);
+  if (approval?.status === 'rejected') {
+    return approval.rejectionReason?.trim() ?? '';
+  }
+  return '';
+}
+
+async function enrichAbsencesForPortal(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+  absences: WfmAbsence[],
+): Promise<WfmAbsence[]> {
+  const rejectedIds = absences.filter((a) => a.status === 'rejected').map((a) => a.id);
+  if (rejectedIds.length === 0) return absences;
+
+  const approvalsResult = await listWfmApprovalsForAbsenceReferences(
+    tenantId,
+    actorRoleKey,
+    rejectedIds,
+  );
+  if (!approvalsResult.ok) return absences;
+
+  const approvalByReferenceId = new Map<
+    string,
+    { rejectionReason: string | null; status: string }
+  >();
+  for (const approval of approvalsResult.data) {
+    if (!approval.referenceId || approvalByReferenceId.has(approval.referenceId)) continue;
+    approvalByReferenceId.set(approval.referenceId, {
+      rejectionReason: approval.rejectionReason,
+      status: approval.status,
+    });
+  }
+
+  return absences.map((absence) => {
+    const portalRejectionReason = resolveWfmPortalRejectionReason(absence, approvalByReferenceId);
+    if (!portalRejectionReason) return absence;
+    return { ...absence, portalRejectionReason };
+  });
+}
+
 export async function listWfmAbsencesForEmployee(
   tenantId: string,
   userId: string,
@@ -86,7 +134,8 @@ export async function listWfmAbsencesForEmployee(
         new Date(a.startsAt).getFullYear() === year,
     );
     list.sort((a, b) => b.startsAt.localeCompare(a.startsAt));
-    return { ok: true, data: list };
+    const enriched = await enrichAbsencesForPortal(tenantId, actorRoleKey, list);
+    return { ok: true, data: enriched };
   }
 
   const supabase = getSupabaseClient();
@@ -110,7 +159,9 @@ export async function listWfmAbsencesForEmployee(
     return { ok: false, error: toGermanSupabaseError(error) };
   }
 
-  return { ok: true, data: (data ?? []).map((row) => mapRow(row as AbsenceRow)) };
+  const mapped = (data ?? []).map((row) => mapRow(row as AbsenceRow));
+  const enriched = await enrichAbsencesForPortal(tenantId, actorRoleKey, mapped);
+  return { ok: true, data: enriched };
 }
 
 export async function listWfmAbsencesForTeam(

@@ -1,10 +1,13 @@
 import type { EmployeeAbsence, AbsenceType } from '@/types/modules/employeeAbsence';
 import type { WfmAbsence, WfmAbsenceType } from '@/types/modules/wfm';
 import {
+  syncCalendarEventFromAbsence,
   syncCalendarEventFromAbsenceAsync,
+  cancelCalendarEventBySource,
   cancelCalendarEventBySourceAsync,
   buildCalendarEventFromAbsence,
 } from '@/lib/calendar/calendarSyncService';
+import type { ServiceResult } from '@/types';
 
 function mapWfmTypeToAbsenceType(type: WfmAbsenceType): AbsenceType {
   switch (type) {
@@ -73,6 +76,24 @@ export function mapWfmAbsenceToEmployeeAbsence(absence: WfmAbsence): EmployeeAbs
 export function syncWfmAbsenceToCalendarAsync(absence: WfmAbsence): void {
   if (absence.status !== 'approved' && absence.status !== 'active') return;
   syncCalendarEventFromAbsenceAsync(mapWfmAbsenceToEmployeeAbsence(absence));
+}
+
+export async function syncWfmAbsenceToCalendar(
+  absence: WfmAbsence,
+): Promise<ServiceResult<void>> {
+  if (absence.status !== 'approved' && absence.status !== 'active') {
+    return { ok: true, data: undefined };
+  }
+  const result = await syncCalendarEventFromAbsence(mapWfmAbsenceToEmployeeAbsence(absence));
+  if (!result.ok) return { ok: false, error: result.error };
+  return { ok: true, data: undefined };
+}
+
+export async function cancelWfmAbsenceCalendar(
+  absence: WfmAbsence,
+): Promise<ServiceResult<void>> {
+  const payload = buildCalendarEventFromAbsence(mapWfmAbsenceToEmployeeAbsence(absence));
+  return cancelCalendarEventBySource(absence.tenantId, payload.sourceType, absence.id);
 }
 
 export function cancelWfmAbsenceCalendarAsync(absence: WfmAbsence): void {

@@ -77,12 +77,14 @@ export {
   reviewWfmAbsence,
   getWfmAbsenceById,
   withdrawWfmAbsence,
+  resolveWfmPortalRejectionReason,
 } from './wfmAbsenceService';
 
 export {
   resetWfmApprovalDemoStore,
   createWfmApproval,
   listPendingWfmApprovals,
+  listWfmApprovalsForAbsenceReferences,
   reviewWfmApproval,
 } from './wfmApprovalService';
 
@@ -96,7 +98,10 @@ export {
 
 export {
   mapWfmAbsenceToEmployeeAbsence,
+  buildCalendarPayloadFromWfmAbsence,
+  syncWfmAbsenceToCalendar,
   syncWfmAbsenceToCalendarAsync,
+  cancelWfmAbsenceCalendar,
   cancelWfmAbsenceCalendarAsync,
 } from './wfmAbsenceCalendarBridge';
 

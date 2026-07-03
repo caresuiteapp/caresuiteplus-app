@@ -126,6 +126,48 @@ export async function createWfmApproval(
   return { ok: true, data: mapRow(data as ApprovalRow) };
 }
 
+export async function listWfmApprovalsForAbsenceReferences(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+  absenceIds: string[],
+): Promise<ServiceResult<WfmApproval[]>> {
+  const denied = enforcePermission(actorRoleKey, 'portal.employee.absences.view');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const uniqueIds = [...new Set(absenceIds.filter(Boolean))];
+  if (uniqueIds.length === 0) return { ok: true, data: [] };
+
+  if (getServiceMode() !== 'supabase') {
+    const list = [...demoApprovals.values()].filter(
+      (a) =>
+        a.tenantId === tenantId
+        && a.referenceType === 'workforce_absence'
+        && a.referenceId
+        && uniqueIds.includes(a.referenceId),
+    );
+    return { ok: true, data: list };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, TABLE)
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('reference_type', 'workforce_absence')
+    .in('reference_id', uniqueIds)
+    .order('reviewed_at', { ascending: false });
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: [] };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: (data ?? []).map((row) => mapRow(row as ApprovalRow)) };
+}
+
 export async function listPendingWfmApprovals(
   tenantId: string,
   actorRoleKey: RoleKey | null,

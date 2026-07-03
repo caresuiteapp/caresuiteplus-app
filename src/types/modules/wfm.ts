@@ -167,6 +167,8 @@ export interface WfmAbsence {
   requestedDays: number | null;
   employeeNote: string;
   internalNote: string;
+  /** Portal list: internal_note or linked approval rejection_reason */
+  portalRejectionReason?: string;
   createdAt: string;
   updatedAt: string;
 }

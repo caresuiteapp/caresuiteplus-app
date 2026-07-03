@@ -62,7 +62,7 @@
 - Create vacation/absence requests via existing WFM service
 - `usePortalActor().employeeId` scoping preserved
 - Status badges: Ausstehend / Genehmigt / Abgelehnt / Zurückgezogen
-- Rejection reason visible when `internal_note` set on reject
+- Rejection reason visible when `internal_note` or linked `workforce_approvals.rejection_reason` set on reject
 - Withdraw (`cancelled`) for pending requests
 - Urlaub vs Abwesenheit filtered lists
 - Abwesenheit types: Krankmeldung, Blockierte Zeit (Arzttermin), Fortbildung, Sonderurlaub, Sonstige
@@ -81,6 +81,8 @@
 - `wfmAbsenceCalendarBridge.ts` maps `WfmAbsence` → `EmployeeAbsence` for `calendarSyncService`
 - Idempotent upsert by `source_id` = absence id
 - Cancel on reject/withdraw
+- Office decision awaits sync; shows warning banner if calendar upsert fails
+- Readable calendar titles (Urlaub/Krankheit/Fortbildung/Abwesenheit)
 
 ### New / modified files
 
@@ -105,6 +107,7 @@
 | `wfmAbsenceApprovalWorkflow.test.ts` | ✅ 9/9 |
 | `parseGermanOrIsoDateInput.test.ts` | ✅ 12/12 |
 | `wfmAbsencePortalDateSubmit.test.ts` | ✅ 5/5 |
+| `wfmAbsenceP1.test.ts` | ✅ 7/7 (P1 rejection + calendar bridge) |
 | PROFILE regression (`employeePortalProfileLive.test.ts`) | ✅ 24/24 |
 | ZEIT regression (`zeit1EmployeeResolverScreens.test.ts`) | ✅ 4/4 |
 
@@ -199,4 +202,18 @@ to the internal calendar.
 1. **Vacation balance warning** — conflict service supports it but live balance lookup not wired (no blocking).
 2. **Migration 0223** — portal RLS alignment may improve employee self-insert; not applied without approval.
 3. **Notifications** — no new notification channel; status visible in portal lists only.
-4. **Full E2E create→approve→calendar** — smoke verifies screens; live approve/calendar E2E not run in this session (demo mode tests cover service layer).
+4. **Full E2E create→approve→calendar** — P1 unit tests cover service + UI filter layer; local Playwright on `:8091` gelb (timing); prod re-smoke after deploy recommended.
+
+---
+
+## P1 — Rejection + calendar (2026-07-03)
+
+| Item | Status |
+|------|--------|
+| Urlaub reject → portal **Abgelehnt** + reason | ✅ Service + enrichment tests |
+| Reject without reason blocked | ✅ Existing + P1 test |
+| Approved absence → calendar payload + office UI filter | ✅ P1 calendar bridge test |
+| Idempotent upsert (same source_id) | ✅ P1 test |
+| Office sync failure visible | ✅ `calendarSyncWarning` + InfoBanner |
+| No commit/push/deploy | ✅ |
+| ZEIT.2 stash untouched | ✅ |

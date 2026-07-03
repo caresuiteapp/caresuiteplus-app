@@ -159,3 +159,70 @@ Credentials sourced from `.env` / `.env.local` — values never logged.
 1. **P1:** Manual confirm urlaub reject → portal **Abgelehnt** + reason on remaining `[TEST-ABSENCE1-P0-PROD]` row.
 2. **P1:** Office calendar August 2026 — confirm absence block for audit employee after approve.
 3. **Defer:** ZEIT.2, OFFLINE.2, migrations, RLS (out of scope for this deploy).
+
+---
+
+## P1 — Urlaub rejection + calendar visibility (2026-07-03)
+
+**Scope:** ABSENCE.1-P1 — portal rejection reason, awaited calendar sync, office warning  
+**Branch:** `main` (no commit in this session)  
+**Preflight:** ✅ `62785baa` present; ZEIT.2 only in `stash@{0}`; no ZEIT.2 files in working tree
+
+### Root cause analysis
+
+| Issue | Root cause | Fix |
+|-------|------------|-----|
+| Urlaub **Abgelehnt** + reason in portal (P0 gelb) | P0 prod automation often approved Urlaub first (`i === 0` fallback) or did not target Urlaubsantrag panel; portal only read `internal_note`, not `workforce_approvals.rejection_reason` fallback | `listWfmAbsencesForEmployee` enriches rejected rows with `portalRejectionReason` from approval; portal UI shows `portalRejectionReason \|\| internalNote` |
+| Calendar entry not confirmed (P0 gelb) | Async fire-and-forget sync hid upsert failures; absence calendar title fell back to raw `vacation` source type | `reviewWfmAbsenceRequest` awaits sync/cancel; office inbox shows `InfoBanner` on failure; `buildCalendarEventFromAbsence` uses human-readable titles (Urlaub/Krankheit/…) |
+
+### Code changes (uncommitted)
+
+| File | Change |
+|------|--------|
+| `wfmAbsenceService.ts` | `resolveWfmPortalRejectionReason`, approval enrichment on employee list |
+| `wfmApprovalService.ts` | `listWfmApprovalsForAbsenceReferences` |
+| `WfmAbsencePortalScreen.tsx` | Display enriched rejection reason |
+| `wfmAbsenceApprovalWorkflow.ts` | Await calendar sync; return `calendarSyncWarning` |
+| `WfmEmployeeRequestsOfficeScreen.tsx` | Warning banner when sync fails |
+| `wfmAbsenceCalendarBridge.ts` | Sync/cancel await helpers |
+| `calendarSyncService.ts` | Readable absence event titles |
+| `wfmAbsenceP1.test.ts` | P1 unit/regression suite (7 tests) |
+
+### Tests (local)
+
+| Suite | Result |
+|-------|--------|
+| `wfmAbsenceP1.test.ts` | ✅ 7/7 |
+| `wfmAbsenceApprovalWorkflow.test.ts` | ✅ 9/9 |
+| `wfmAbsencePortalDateSubmit.test.ts` | ✅ 5/5 |
+| `wfmAbsenceService.test.ts` | ✅ 1/1 |
+| **Total WFM absence** | ✅ **22/22** |
+
+### Local browser smoke (`:8091`)
+
+Script: `.audit-absence1-p1-local-smoke.mjs` → `.audit-absence1-p1-local-smoke.json`
+
+| Check | Result | Notes |
+|-------|--------|-------|
+| Portal Urlaub create | 🟡 gelb | Headless run did not reach form submit (bundle/login timing) |
+| Portal Abwesenheit create | 🟡 gelb | Same |
+| Office approve absence | 🟡 gelb | Depends on prior creates |
+| Office reject Urlaub + reason | 🟡 gelb | Same |
+| Calendar entry visible | 🟡 gelb | Same |
+| Portal Urlaub Abgelehnt + reason | 🟡 gelb | Same |
+| Portal Abwesenheit Genehmigt | 🟡 gelb | Same |
+
+Service-layer P1 paths verified green in Vitest; full E2E on `:8091` needs manual re-run after bundle settle.
+
+### P1 verdict
+
+**Restricted GO** (code + unit tests ready; production E2E for Urlaub reject + calendar still recommended after deploy)
+
+**Recommended commit message:**
+
+```
+fix(wfm): ABSENCE.1 P1 portal rejection reason and calendar sync visibility
+
+Enrich portal absence lists with approval rejection_reason, await calendar
+sync on office decisions with visible warning, and use readable absence titles.
+```

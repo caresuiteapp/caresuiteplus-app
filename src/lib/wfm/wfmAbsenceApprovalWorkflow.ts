@@ -20,7 +20,9 @@ import {
 } from './wfmAbsenceService';
 import { listPendingWfmApprovals, reviewWfmApproval } from './wfmApprovalService';
 import {
+  cancelWfmAbsenceCalendar,
   cancelWfmAbsenceCalendarAsync,
+  syncWfmAbsenceToCalendar,
   syncWfmAbsenceToCalendarAsync,
 } from './wfmAbsenceCalendarBridge';
 
@@ -137,7 +139,13 @@ export async function reviewWfmAbsenceRequest(
   approvalId: string,
   decision: 'approved' | 'rejected',
   options?: { rejectionReason?: string; approvalComment?: string },
-): Promise<ServiceResult<{ approval: WfmApproval; absence: WfmAbsence | null }>> {
+): Promise<
+  ServiceResult<{
+    approval: WfmApproval;
+    absence: WfmAbsence | null;
+    calendarSyncWarning?: string;
+  }>
+> {
   const denied = enforcePermission(actorRoleKey, 'office.employees.absences.approve');
   if (denied) return denied;
 
@@ -156,6 +164,7 @@ export async function reviewWfmAbsenceRequest(
   if (!approvalResult.ok) return approvalResult;
 
   let absence: WfmAbsence | null = null;
+  let calendarSyncWarning: string | undefined;
   const referenceId = approvalResult.data.referenceId;
 
   if (referenceId && approvalResult.data.referenceType === 'workforce_absence') {
@@ -172,13 +181,21 @@ export async function reviewWfmAbsenceRequest(
     absence = absenceResult.data;
 
     if (decision === 'approved') {
-      syncWfmAbsenceToCalendarAsync(absence);
+      const syncResult = await syncWfmAbsenceToCalendar(absence);
+      if (!syncResult.ok) {
+        calendarSyncWarning =
+          syncResult.error ?? 'Kalendereintrag konnte nicht synchronisiert werden.';
+      }
     } else {
-      cancelWfmAbsenceCalendarAsync(absence);
+      const cancelResult = await cancelWfmAbsenceCalendar(absence);
+      if (!cancelResult.ok) {
+        calendarSyncWarning =
+          cancelResult.error ?? 'Kalendereintrag konnte nicht storniert werden.';
+      }
     }
   }
 
-  return { ok: true, data: { approval: approvalResult.data, absence } };
+  return { ok: true, data: { approval: approvalResult.data, absence, calendarSyncWarning } };
 }
 
 export async function withdrawWfmAbsenceRequest(

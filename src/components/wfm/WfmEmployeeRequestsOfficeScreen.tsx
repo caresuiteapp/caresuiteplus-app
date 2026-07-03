@@ -11,6 +11,7 @@ import {
   PremiumBadge,
   PremiumButton,
   SectionPanel,
+  InfoBanner,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -57,6 +58,7 @@ export function WfmEmployeeRequestsOfficeScreen() {
   const [rejectionReason, setRejectionReason] = useState('');
   const [approvalComment, setApprovalComment] = useState('');
   const [actionError, setActionError] = useState<string | null>(null);
+  const [calendarSyncWarning, setCalendarSyncWarning] = useState<string | null>(null);
   const [acting, setActing] = useState(false);
 
   const canApprove = can('office.employees.absences.approve');
@@ -76,6 +78,7 @@ export function WfmEmployeeRequestsOfficeScreen() {
   const handleDecision = async (decision: 'approved' | 'rejected') => {
     if (!tenantId || !selected) return;
     setActionError(null);
+    setCalendarSyncWarning(null);
     setActing(true);
 
     const result = await reviewWfmAbsenceRequest(
@@ -99,6 +102,9 @@ export function WfmEmployeeRequestsOfficeScreen() {
     setSelectedId(null);
     setRejectionReason('');
     setApprovalComment('');
+    if (result.data.calendarSyncWarning) {
+      setCalendarSyncWarning(result.data.calendarSyncWarning);
+    }
     await listQuery.refresh();
   };
 
@@ -217,6 +223,13 @@ export function WfmEmployeeRequestsOfficeScreen() {
       ) : null}
 
       {actionError ? <ErrorState title="Fehler" message={actionError} onRetry={() => setActionError(null)} /> : null}
+      {calendarSyncWarning ? (
+        <InfoBanner
+          variant="warning"
+          title="Kalender-Synchronisation"
+          message={calendarSyncWarning}
+        />
+      ) : null}
     </ScreenShell>
   );
 }

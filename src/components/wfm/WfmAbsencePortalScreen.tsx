@@ -260,9 +260,11 @@ export function WfmAbsencePortalScreen({
                   {absence.employeeNote}
                 </Text>
               ) : null}
-              {absence.status === 'rejected' && absence.internalNote.trim() ? (
+              {absence.status === 'rejected' &&
+              (absence.portalRejectionReason?.trim() || absence.internalNote.trim()) ? (
                 <Text style={{ color: text.secondary, ...typography.caption, marginTop: 4 }}>
-                  Ablehnungsgrund: {absence.internalNote.trim()}
+                  Ablehnungsgrund:{' '}
+                  {(absence.portalRejectionReason?.trim() || absence.internalNote.trim())}
                 </Text>
               ) : null}
               {absence.status === 'requested' && canRequest ? (
