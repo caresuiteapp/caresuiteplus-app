@@ -21,8 +21,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import {
   getWfmLiveEmployeeOverview,
-  reviewWfmAbsence,
-  reviewWfmApproval,
+  reviewWfmAbsenceRequest,
 } from '@/lib/wfm';
 import { WfmRuleWarningsPanel } from '@/components/wfm/WfmRuleWarningsPanel';
 import { WFM_APPROVAL_TYPE_LABELS } from '@/types/modules/wfm';
@@ -65,18 +64,20 @@ export function TimeTrackingTeamScreen() {
     [tenantId, canApprove, roleKey],
   );
 
-  const handleApproval = async (approvalId: string, decision: 'approved' | 'rejected', referenceId?: string | null) => {
+  const handleApproval = async (approvalId: string, decision: 'approved' | 'rejected') => {
     if (!tenantId) return;
     setActionError(null);
-    const result = await reviewWfmApproval(tenantId, reviewerId, roleKey, approvalId, decision);
+    const result = await reviewWfmAbsenceRequest(
+      tenantId,
+      reviewerId,
+      roleKey,
+      approvalId,
+      decision,
+      decision === 'rejected' ? { rejectionReason: 'Schnellentscheidung ohne Detailansicht' } : undefined,
+    );
     if (!result.ok) {
       setActionError(result.error);
       return;
-    }
-    if (referenceId && decision === 'approved') {
-      await reviewWfmAbsence(tenantId, reviewerId, roleKey, referenceId, 'approved');
-    } else if (referenceId && decision === 'rejected') {
-      await reviewWfmAbsence(tenantId, reviewerId, roleKey, referenceId, 'rejected');
     }
     await approvalsQuery.refresh();
   };
@@ -106,6 +107,7 @@ export function TimeTrackingTeamScreen() {
       <View style={styles.nav}>
         <PremiumButton title="Live-Mitarbeiter" variant="secondary" onPress={() => router.push('/business/office/time-tracking/live' as never)} />
         <PremiumButton title="Export" variant="ghost" onPress={() => router.push('/business/office/time-tracking/export' as never)} />
+        <PremiumButton title="Mitarbeitenden Anträge" variant="secondary" onPress={() => router.push('/business/office/time-tracking/requests' as never)} />
         <PremiumButton title="Eigene Erfassung" variant="ghost" onPress={() => router.push('/business/office/time-tracking' as never)} />
       </View>
 
@@ -157,8 +159,8 @@ export function TimeTrackingTeamScreen() {
                   {WFM_APPROVAL_TYPE_LABELS[approval.approvalType]}
                 </Text>
                 <View style={styles.approvalActions}>
-                  <PremiumButton title="Genehmigen" onPress={() => void handleApproval(approval.id, 'approved', approval.referenceId)} />
-                  <PremiumButton title="Ablehnen" variant="secondary" onPress={() => void handleApproval(approval.id, 'rejected', approval.referenceId)} />
+                  <PremiumButton title="Genehmigen" onPress={() => void handleApproval(approval.id, 'approved')} />
+                  <PremiumButton title="Ablehnen" variant="secondary" onPress={() => void handleApproval(approval.id, 'rejected')} />
                 </View>
               </View>
             ))

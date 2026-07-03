@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
@@ -23,18 +23,45 @@ import { useAuth } from '@/lib/auth/context';
 import {
   listWfmAbsencesForEmployee,
   requestWfmAbsence,
+  withdrawWfmAbsenceRequest,
 } from '@/lib/wfm';
 import {
-  WFM_ABSENCE_STATUS_LABELS,
   WFM_ABSENCE_TYPE_LABELS,
+  WFM_PORTAL_ABSENCE_STATUS_LABELS,
+  type WfmAbsence,
+  type WfmAbsenceStatus,
   type WfmAbsenceType,
 } from '@/types/modules/wfm';
 import { typography } from '@/theme';
 
-const REQUEST_TYPES: WfmAbsenceType[] = ['vacation', 'sick_leave', 'training', 'special_leave', 'other'];
+const VACATION_TYPES: WfmAbsenceType[] = ['vacation'];
+const GENERAL_ABSENCE_TYPES: WfmAbsenceType[] = [
+  'sick_leave',
+  'blocked_time',
+  'training',
+  'special_leave',
+  'other',
+];
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-DE');
+}
+
+function statusBadgeVariant(status: WfmAbsenceStatus): 'green' | 'red' | 'orange' | 'muted' {
+  if (status === 'approved' || status === 'active') return 'green';
+  if (status === 'rejected') return 'red';
+  if (status === 'cancelled') return 'muted';
+  return 'orange';
+}
+
+function filterAbsencesForMode(
+  absences: WfmAbsence[],
+  mode: 'vacation' | 'general',
+): WfmAbsence[] {
+  if (mode === 'vacation') {
+    return absences.filter((a) => a.absenceType === 'vacation');
+  }
+  return absences.filter((a) => a.absenceType !== 'vacation');
 }
 
 type WfmAbsencePortalScreenProps = {
@@ -56,13 +83,19 @@ export function WfmAbsencePortalScreen({
   const { can, check, roleLabel } = usePermissions();
   const text = useAuroraAdaptiveText();
 
-  const [selectedType, setSelectedType] = useState<WfmAbsenceType>(defaultType);
+  const mode: 'vacation' | 'general' = defaultType === 'vacation' ? 'vacation' : 'general';
+  const requestTypes = mode === 'vacation' ? VACATION_TYPES : GENERAL_ABSENCE_TYPES;
+
+  const [selectedType, setSelectedType] = useState<WfmAbsenceType>(
+    requestTypes.includes(defaultType) ? defaultType : requestTypes[0]!,
+  );
   const [startsAt, setStartsAt] = useState('');
   const [endsAt, setEndsAt] = useState('');
   const [note, setNote] = useState('');
   const [message, setMessage] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
+  const [withdrawingId, setWithdrawingId] = useState<string | null>(null);
 
   const canView = can('portal.employee.absences.view');
   const canRequest = can('portal.employee.absences.request');
@@ -73,6 +106,11 @@ export function WfmAbsencePortalScreen({
       return listWfmAbsencesForEmployee(tenantId, userId, roleKey, { employeeId });
     }, [tenantId, userId, roleKey, canView, employeeId]),
     [tenantId, userId, roleKey, canView, employeeId],
+  );
+
+  const visibleAbsences = useMemo(
+    () => filterAbsencesForMode(listQuery.data ?? [], mode),
+    [listQuery.data, mode],
   );
 
   const handleSubmit = async () => {
@@ -109,6 +147,26 @@ export function WfmAbsencePortalScreen({
     await listQuery.refresh();
   };
 
+  const handleWithdraw = async (absenceId: string) => {
+    if (!tenantId || !userId) return;
+    setWithdrawingId(absenceId);
+    setError(null);
+    const result = await withdrawWfmAbsenceRequest(
+      tenantId,
+      userId,
+      roleKey,
+      absenceId,
+      employeeId,
+    );
+    setWithdrawingId(null);
+    if (!result.ok) {
+      setError(result.error);
+      return;
+    }
+    setMessage('Antrag wurde zurückgezogen.');
+    await listQuery.refresh();
+  };
+
   if (!canView) {
     return (
       <ScreenShell title={title}>
@@ -130,14 +188,20 @@ export function WfmAbsencePortalScreen({
 
       {canRequest ? (
         <SectionPanel title="Neuer Antrag">
-          <AuroraSegmentedControl
-            options={REQUEST_TYPES.map((t) => ({
-              key: t,
-              label: WFM_ABSENCE_TYPE_LABELS[t],
-            }))}
-            value={selectedType}
-            onChange={(key) => setSelectedType(key as WfmAbsenceType)}
-          />
+          {requestTypes.length > 1 ? (
+            <AuroraSegmentedControl
+              options={requestTypes.map((t) => ({
+                key: t,
+                label: WFM_ABSENCE_TYPE_LABELS[t],
+              }))}
+              value={selectedType}
+              onChange={(key) => setSelectedType(key as WfmAbsenceType)}
+            />
+          ) : (
+            <Text style={[styles.label, { color: text.secondary }]}>
+              Art: {WFM_ABSENCE_TYPE_LABELS[selectedType]}
+            </Text>
+          )}
           <Text style={[styles.label, { color: text.secondary }]}>Von (TT.MM.JJJJ)</Text>
           <TextInput
             style={styles.input}
@@ -164,22 +228,22 @@ export function WfmAbsencePortalScreen({
         </SectionPanel>
       ) : null}
 
-      <SectionPanel title="Meine Abwesenheiten">
+      <SectionPanel title={mode === 'vacation' ? 'Meine Urlaubsanträge' : 'Meine Abwesenheiten'}>
         {listQuery.loading && !listQuery.data ? (
           <LoadingState message="Abwesenheiten werden geladen…" />
         ) : null}
-        {(listQuery.data ?? []).length === 0 ? (
-          <EmptyState title="Keine Einträge" message="Es liegen keine Abwesenheiten vor." />
+        {visibleAbsences.length === 0 ? (
+          <EmptyState title="Keine Einträge" message="Es liegen keine Anträge vor." />
         ) : (
-          (listQuery.data ?? []).map((absence) => (
+          visibleAbsences.map((absence) => (
             <View key={absence.id} style={styles.row}>
               <View style={styles.rowHeader}>
                 <Text style={[styles.rowTitle, { color: text.primary }]}>
                   {WFM_ABSENCE_TYPE_LABELS[absence.absenceType]}
                 </Text>
                 <PremiumBadge
-                  label={WFM_ABSENCE_STATUS_LABELS[absence.status]}
-                  variant={absence.status === 'approved' ? 'green' : absence.status === 'rejected' ? 'red' : 'orange'}
+                  label={WFM_PORTAL_ABSENCE_STATUS_LABELS[absence.status]}
+                  variant={statusBadgeVariant(absence.status)}
                 />
               </View>
               <Text style={{ color: text.secondary, ...typography.caption }}>
@@ -189,6 +253,19 @@ export function WfmAbsencePortalScreen({
                 <Text style={{ color: text.secondary, ...typography.caption, marginTop: 4 }}>
                   {absence.employeeNote}
                 </Text>
+              ) : null}
+              {absence.status === 'rejected' && absence.internalNote.trim() ? (
+                <Text style={{ color: text.secondary, ...typography.caption, marginTop: 4 }}>
+                  Ablehnungsgrund: {absence.internalNote.trim()}
+                </Text>
+              ) : null}
+              {absence.status === 'requested' && canRequest ? (
+                <PremiumButton
+                  title="Zurückziehen"
+                  variant="ghost"
+                  onPress={() => void handleWithdraw(absence.id)}
+                  disabled={withdrawingId === absence.id}
+                />
               ) : null}
             </View>
           ))

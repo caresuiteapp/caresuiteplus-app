@@ -75,6 +75,8 @@ export {
   listWfmAbsencesForTeam,
   requestWfmAbsence,
   reviewWfmAbsence,
+  getWfmAbsenceById,
+  withdrawWfmAbsence,
 } from './wfmAbsenceService';
 
 export {
@@ -83,6 +85,26 @@ export {
   listPendingWfmApprovals,
   reviewWfmApproval,
 } from './wfmApprovalService';
+
+export {
+  listWfmAbsenceApprovalDetails,
+  reviewWfmAbsenceRequest,
+  withdrawWfmAbsenceRequest,
+  loadAbsenceConflictsForReview,
+  type WfmAbsenceApprovalDetail,
+} from './wfmAbsenceApprovalWorkflow';
+
+export {
+  mapWfmAbsenceToEmployeeAbsence,
+  syncWfmAbsenceToCalendarAsync,
+  cancelWfmAbsenceCalendarAsync,
+} from './wfmAbsenceCalendarBridge';
+
+export {
+  detectWfmAbsenceOverlapConflicts,
+  detectWfmAssignmentConflicts,
+  type WfmAbsenceConflictWarning,
+} from './wfmAbsenceConflictService';
 
 export {
   resetWfmTimeAccountDemoStore,

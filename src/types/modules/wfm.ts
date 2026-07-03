@@ -261,6 +261,16 @@ export const WFM_ABSENCE_STATUS_LABELS: Record<WfmAbsenceStatus, string> = {
   completed: 'Abgeschlossen',
 };
 
+/** Portal-facing status labels (ABSENCE.1) */
+export const WFM_PORTAL_ABSENCE_STATUS_LABELS: Record<WfmAbsenceStatus, string> = {
+  requested: 'Ausstehend',
+  approved: 'Genehmigt',
+  rejected: 'Abgelehnt',
+  cancelled: 'Zurückgezogen',
+  active: 'Aktiv',
+  completed: 'Abgeschlossen',
+};
+
 export const WFM_APPROVAL_TYPE_LABELS: Record<WfmApprovalType, string> = {
   vacation: 'Urlaubsantrag',
   absence: 'Abwesenheit',

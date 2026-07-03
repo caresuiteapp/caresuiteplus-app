@@ -232,26 +232,63 @@ export async function requestWfmAbsence(
   return { ok: true, data: absence };
 }
 
-export async function reviewWfmAbsence(
+export async function getWfmAbsenceById(
   tenantId: string,
-  reviewerId: string,
   actorRoleKey: RoleKey | null,
   absenceId: string,
-  decision: 'approved' | 'rejected',
-  rejectionReason?: string,
+): Promise<ServiceResult<WfmAbsence | null>> {
+  const denied = enforcePermission(actorRoleKey, 'office.employees.absences.view');
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (getServiceMode() !== 'supabase') {
+    const existing = demoAbsences.get(absenceId);
+    if (!existing || existing.tenantId !== tenantId) return { ok: true, data: null };
+    return { ok: true, data: existing };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await fromUnknownTable(supabase, TABLE)
+    .select('*')
+    .eq('id', absenceId)
+    .eq('tenant_id', tenantId)
+    .maybeSingle();
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: null };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+  if (!data) return { ok: true, data: null };
+  return { ok: true, data: mapRow(data as AbsenceRow) };
+}
+
+export async function withdrawWfmAbsence(
+  tenantId: string,
+  userId: string,
+  actorRoleKey: RoleKey | null,
+  absenceId: string,
+  employeeId?: string | null,
 ): Promise<ServiceResult<WfmAbsence>> {
-  const denied = enforcePermission(actorRoleKey, 'office.employees.absences.approve');
+  const denied = enforcePermission(actorRoleKey, 'portal.employee.absences.request');
   if (denied) return denied;
 
-  const newStatus: WfmAbsenceStatus = decision === 'approved' ? 'approved' : 'rejected';
+  const employeeResult = await resolveEmployeeIdForUser(tenantId, userId, employeeId);
+  if (!employeeResult.ok) return employeeResult;
+
   const now = new Date().toISOString();
 
   if (getServiceMode() !== 'supabase') {
     const existing = demoAbsences.get(absenceId);
-    if (!existing || existing.tenantId !== tenantId) {
+    if (!existing || existing.tenantId !== tenantId || existing.employeeId !== employeeResult.data) {
       return { ok: false, error: 'Abwesenheit nicht gefunden.' };
     }
-    const updated = { ...existing, status: newStatus, updatedAt: now };
+    if (existing.status !== 'requested') {
+      return { ok: false, error: 'Nur ausstehende Anträge können zurückgezogen werden.' };
+    }
+    const updated = { ...existing, status: 'cancelled' as const, updatedAt: now };
     demoAbsences.set(absenceId, updated);
     return { ok: true, data: updated };
   }
@@ -260,7 +297,74 @@ export async function reviewWfmAbsence(
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const { data, error } = await fromUnknownTable(supabase, TABLE)
-    .update({ status: newStatus, updated_at: now, internal_note: rejectionReason ?? '' })
+    .update({ status: 'cancelled', updated_at: now })
+    .eq('id', absenceId)
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeResult.data)
+    .eq('status', 'requested')
+    .select('*')
+    .maybeSingle();
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+  if (!data) {
+    return { ok: false, error: 'Antrag nicht gefunden oder bereits bearbeitet.' };
+  }
+  return { ok: true, data: mapRow(data as AbsenceRow) };
+}
+
+export async function reviewWfmAbsence(
+  tenantId: string,
+  reviewerId: string,
+  actorRoleKey: RoleKey | null,
+  absenceId: string,
+  decision: 'approved' | 'rejected',
+  rejectionReason?: string,
+  approvalComment?: string,
+): Promise<ServiceResult<WfmAbsence>> {
+  const denied = enforcePermission(actorRoleKey, 'office.employees.absences.approve');
+  if (denied) return denied;
+
+  if (decision === 'rejected' && !rejectionReason?.trim()) {
+    return { ok: false, error: 'Ablehnungsgrund ist erforderlich.' };
+  }
+
+  const newStatus: WfmAbsenceStatus = decision === 'approved' ? 'approved' : 'rejected';
+  const now = new Date().toISOString();
+  const internalNote =
+    decision === 'rejected'
+      ? rejectionReason?.trim() ?? ''
+      : approvalComment?.trim() ?? '';
+
+  if (getServiceMode() !== 'supabase') {
+    const existing = demoAbsences.get(absenceId);
+    if (!existing || existing.tenantId !== tenantId) {
+      return { ok: false, error: 'Abwesenheit nicht gefunden.' };
+    }
+    const updated = {
+      ...existing,
+      status: newStatus,
+      internalNote: internalNote || existing.internalNote,
+      updatedAt: now,
+    };
+    demoAbsences.set(absenceId, updated);
+    return { ok: true, data: updated };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const updatePayload: Record<string, unknown> = {
+    status: newStatus,
+    updated_at: now,
+  };
+  if (decision === 'rejected') {
+    updatePayload.internal_note = rejectionReason?.trim() ?? '';
+  } else if (approvalComment?.trim()) {
+    updatePayload.internal_note = approvalComment.trim();
+  }
+
+  const { data, error } = await fromUnknownTable(supabase, TABLE)
+    .update(updatePayload)
     .eq('id', absenceId)
     .eq('tenant_id', tenantId)
     .select('*')
