@@ -1,6 +1,10 @@
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
 import type { VisitProofSnapshotEnrichment } from '@/lib/assist/visitProofSnapshotPreviewService';
+import {
+  formatSignatureMetadataLine,
+  pickSignatureImageUrl,
+} from '@/lib/assist/visitSignatureImageService';
 
 export type AssistProofPdfPayload = {
   proofId: string;
@@ -184,9 +188,10 @@ export function buildAssistProofPdfPayload(
     enrichment.scheduledEnd ??
     readSnapshotString(snapshot, 'scheduledEnd') ??
     readSnapshotString(snapshot, 'plannedEndAt');
-  const signatureImageUrl =
-    enrichment.signatureImageUrl ??
-    (enrichment.signature?.dataUrl?.trim() ? enrichment.signature.dataUrl : null);
+  const signatureImageUrl = pickSignatureImageUrl(
+    enrichment.signatureImageUrl,
+    enrichment.signature?.dataUrl,
+  );
 
   const tasks = enrichment.tasks?.length
     ? enrichment.tasks.map((task) => ({
@@ -198,10 +203,20 @@ export function buildAssistProofPdfPayload(
   const proofNumber = proof.proofNumber?.trim() || proof.id.slice(0, 8).toUpperCase();
   const fileName = `Leistungsnachweis-${proofNumber}.pdf`;
 
+  const signatureMetaLine = formatSignatureMetadataLine({
+    signerName,
+    signedAt,
+    signatureType: readSnapshotString(snapshot, 'signerRole') ?? enrichment.signature?.signerRole ?? null,
+  });
+
+  const signatureMetaHtml = signatureMetaLine
+    ? `<p style="margin:4px 0 0;font-size:13px;color:#555;">${escapeHtml(signatureMetaLine)}</p>`
+    : '';
+
   const signatureBlock = signatureImageUrl
-    ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="max-width:280px;max-height:120px;margin-top:8px;" />`
-    : signerName
-      ? `<p style="margin:8px 0 0;">${escapeHtml(signerName)} · ${escapeHtml(formatDateTime(signedAt))}</p>`
+    ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="max-width:280px;max-height:120px;margin-top:8px;object-fit:contain;" />${signatureMetaHtml}`
+    : signerName || signedAt
+      ? `<p style="margin:8px 0 0;color:#666;font-style:italic;">Keine gezeichnete Unterschrift gespeichert.</p>${signatureMetaHtml}`
       : '<p style="margin:8px 0 0;color:#666;">—</p>';
 
   const html = `<!DOCTYPE html>

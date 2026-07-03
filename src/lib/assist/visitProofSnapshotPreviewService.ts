@@ -5,7 +5,12 @@ import type { ServiceResult } from '@/types';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
 import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
-import { ASSIST_EXECUTION_STORAGE_BUCKET } from '@/lib/assist/assistStoragePaths';
+import {
+  mapSignatureRowToCapture,
+  pickSignatureImageUrl,
+  resolveSignatureFieldStatus,
+  resolveVisitSignatureImageUrl,
+} from '@/lib/assist/visitSignatureImageService';
 import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { formatStreetLine } from '@/lib/formatAddress';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -249,7 +254,7 @@ export function buildVisitProofPreviewFromProof(
   const signature = enrichment.signature ?? parseSignatureFromSnapshot(snapshot);
   const signatureImageUrl =
     enrichment.signatureImageUrl ??
-    (signature?.dataUrl?.trim() ? signature.dataUrl : null);
+    pickSignatureImageUrl(null, signature?.dataUrl);
 
   const tasks = enrichment.tasks?.length
     ? enrichment.tasks
@@ -308,9 +313,10 @@ export function buildVisitProofPreviewFromProof(
     },
     {
       label: 'Unterschrift',
-      value: signature
-        ? `${signature.signerName} (${signature.signerRole}) · ${formatDateTime(signature.signedAt)}`
-        : '—',
+      value: resolveSignatureFieldStatus({
+        hasSignatureRecord: hasClientSignature(snapshot, signature, proof.signatureId),
+        hasDrawnImage: Boolean(signatureImageUrl),
+      }),
       required: true,
       missing: !hasClientSignature(snapshot, signature, proof.signatureId),
     },
@@ -524,27 +530,31 @@ export async function enrichVisitProofForPreview(
     }
   }
 
-  if (!parseSignatureFromSnapshot(snapshot)) {
+  const snapshotSig = parseSignatureFromSnapshot(snapshot);
+  if (snapshotSig) {
+    enrichment.signature = { ...snapshotSig, visitId: proof.visitId };
+    if (!enrichment.signatureImageUrl && snapshotSig.dataUrl?.trim()) {
+      enrichment.signatureImageUrl = pickSignatureImageUrl(null, snapshotSig.dataUrl);
+    }
+  }
+
+  if (!enrichment.signatureImageUrl?.trim()) {
     const sig = await fetchValidVisitSignature(tenantId, proof.visitId);
     if (sig.ok && sig.data) {
-      enrichment.signature = {
-        visitId: proof.visitId,
-        signerName: sig.data.signerName,
-        signerRole: sig.data.signerRole,
-        signedAt: sig.data.signedAt,
-      };
-
-      if (sig.data.storagePath?.trim()) {
-        const signed = await supabase.storage
-          .from(ASSIST_EXECUTION_STORAGE_BUCKET)
-          .createSignedUrl(sig.data.storagePath, 3600);
-        if (signed.data?.signedUrl) {
-          enrichment.signatureImageUrl = signed.data.signedUrl;
+      if (!enrichment.signature) {
+        const signatureImageUrl = await resolveVisitSignatureImageUrl(sig.data.storagePath);
+        enrichment.signature = mapSignatureRowToCapture(proof.visitId, sig.data, signatureImageUrl);
+        enrichment.signatureImageUrl = signatureImageUrl;
+      } else {
+        enrichment.signatureImageUrl = await resolveVisitSignatureImageUrl(sig.data.storagePath);
+        if (enrichment.signatureImageUrl) {
+          enrichment.signature = {
+            ...enrichment.signature,
+            dataUrl: enrichment.signatureImageUrl,
+          };
         }
       }
     }
-  } else if (enrichment.signature?.dataUrl?.trim()) {
-    enrichment.signatureImageUrl = enrichment.signature.dataUrl;
   }
 
   if (!enrichment.documentationNote) {

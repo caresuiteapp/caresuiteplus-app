@@ -139,6 +139,41 @@ describe('visitDispositionExecutionEnrichment', () => {
     expect(merged.proofStatus).toBe('signed');
     expect(merged.isIncomplete).toBe(false);
     const preview = buildVisitProofPreview(merged, merged.employeeNotes);
+    const signatureField = preview.fields.find((field) => field.label === 'Unterschrift');
+    expect(signatureField?.missing).toBe(false);
+    expect(signatureField?.value).toBe('Metadaten ohne Signaturbild');
+    expect(preview.signatureImageUrl).toBeNull();
     expect(preview.readyForExport).toBe(true);
+  });
+
+  it('shows drawn signature in preview when persistedSignature includes image URL', () => {
+    const merged = mergeVisitDispositionWithExecution({
+      detail: baseDetail(),
+      assignmentStatus: 'unterschrift_offen',
+      assignmentTasks: [],
+      documentationText: 'Alles erledigt',
+      visitTimes: null,
+      executionStateStatus: 'unterschrift_offen',
+      hasSignature: true,
+      hasProof: false,
+      persistedSignature: {
+        visitId: '70f800b8-a04f-44ae-846f-dcc7f6f6497a',
+        signerName: 'Heinz-Peter Reinhardt',
+        signerRole: 'client',
+        signedAt: '2026-07-01T18:40:00.000Z',
+        dataUrl: 'https://storage.example/signatures/sig.png',
+      },
+      assignmentOnTheWayAt: null,
+      assignmentArrivedAt: null,
+      assignmentActualStartAt: null,
+      assignmentActualEndAt: null,
+      assignmentFinishedAt: null,
+    });
+
+    const preview = buildVisitProofPreview(merged, merged.employeeNotes);
+    expect(preview.signatureImageUrl).toBe('https://storage.example/signatures/sig.png');
+    expect(preview.fields.find((field) => field.label === 'Unterschrift')?.value).toBe(
+      'Gezeichnete Unterschrift vorhanden',
+    );
   });
 });

@@ -7,6 +7,10 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { fetchTimeEventsForVisit } from '@/lib/assist/assistTrackingPersistenceService';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
+import {
+  mapSignatureRowToCapture,
+  resolveVisitSignatureImageUrl,
+} from '@/lib/assist/visitSignatureImageService';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
 import {
   assignmentStatusToDimensions,
@@ -436,16 +440,11 @@ export async function enrichVisitDispositionDetail(
   const hasDocumentation =
     Boolean(documentationText?.trim()) || Boolean(executionState?.documentation_complete);
 
-  const persistedSignature: VisitSignatureCapture | null =
-    signatureResult.ok && signatureResult.data
-      ? {
-          visitId,
-          signerName: signatureResult.data.signerName,
-          signerRole: signatureResult.data.signerRole,
-          signedAt: signatureResult.data.signedAt,
-          dataUrl: '',
-        }
-      : null;
+  let persistedSignature: VisitSignatureCapture | null = null;
+  if (signatureResult.ok && signatureResult.data) {
+    const signatureImageUrl = await resolveVisitSignatureImageUrl(signatureResult.data.storagePath);
+    persistedSignature = mapSignatureRowToCapture(visitId, signatureResult.data, signatureImageUrl);
+  }
 
   return mergeVisitDispositionWithExecution({
     detail,

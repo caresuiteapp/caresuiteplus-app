@@ -68,6 +68,13 @@ export {
   fetchValidVisitSignature,
 } from './assistExecutionPersistenceService';
 export {
+  resolveVisitSignatureImageUrl,
+  loadVisitSignatureDisplayData,
+  pickSignatureImageUrl,
+  formatSignatureMetadataLine,
+  resolveSignatureFieldStatus,
+} from './visitSignatureImageService';
+export {
   fetchLatestVisitProof,
   fetchVisitProofById,
   listVisitProofs,

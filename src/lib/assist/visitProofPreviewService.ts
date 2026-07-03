@@ -1,5 +1,9 @@
 import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 import { getVisitSignature, type VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
+import {
+  pickSignatureImageUrl,
+  resolveSignatureFieldStatus,
+} from '@/lib/assist/visitSignatureImageService';
 import { VISIT_TASK_STATUS_LABELS, type VisitTaskStatus } from '@/lib/assist/visitTypes';
 
 export type VisitProofPreviewField = {
@@ -29,6 +33,7 @@ export type VisitProofPreview = {
   documentationNote: string | null;
   tasks: VisitProofPreviewTaskItem[];
   signature: VisitSignatureCapture | null;
+  signatureImageUrl?: string | null;
   fields: VisitProofPreviewField[];
   readyForExport: boolean;
   incompleteHint: string;
@@ -50,6 +55,7 @@ export function buildVisitProofPreview(
   documentationNote?: string | null,
 ): VisitProofPreview {
   const signature = visit.persistedSignature ?? getVisitSignature(visit.id);
+  const signatureImageUrl = pickSignatureImageUrl(null, signature?.dataUrl);
   const docText = documentationNote?.trim() || visit.employeeNotes?.trim() || visit.notes?.trim() || null;
 
   const tasks: VisitProofPreviewTaskItem[] = visit.tasks.map((task) => ({
@@ -98,9 +104,10 @@ export function buildVisitProofPreview(
     },
     {
       label: 'Unterschrift',
-      value: signature
-        ? `${signature.signerName} (${signature.signerRole}) · ${formatDateTime(signature.signedAt)}`
-        : '—',
+      value: resolveSignatureFieldStatus({
+        hasSignatureRecord: Boolean(signature),
+        hasDrawnImage: Boolean(signatureImageUrl),
+      }),
       required: true,
       missing: !signature,
     },
@@ -121,6 +128,7 @@ export function buildVisitProofPreview(
     documentationNote: docText,
     tasks,
     signature,
+    signatureImageUrl,
     fields,
     readyForExport,
     incompleteHint:

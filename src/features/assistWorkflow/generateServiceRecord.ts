@@ -5,6 +5,7 @@ import type { ServiceResult } from '@/types';
 import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import { persistEmployeePortalVisitProof } from '@/lib/portal/employeePortalVisitTrackingPersistence';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
+import { resolveVisitSignatureImageUrl } from '@/lib/assist/visitSignatureImageService';
 import { buildServiceRecordHtml, buildServiceRecordSnapshot } from './buildServiceRecordHtml';
 import type { AssistExecutionContext } from './types';
 
@@ -18,13 +19,17 @@ export async function generateServiceRecord(
   ctx: AssistExecutionContext,
   documentationText?: string | null,
 ): Promise<ServiceResult<GenerateServiceRecordResult>> {
-  let signatureSummary: { signerName: string; signedAt: string } | null = null;
+  let signatureSummary: { signerName: string; signedAt: string; signerRole?: string | null } | null =
+    null;
+  let signatureImageUrl: string | null = null;
   const sig = await fetchValidVisitSignature(ctx.tenantId, ctx.assistVisitId);
   if (sig.ok && sig.data) {
     signatureSummary = {
       signerName: sig.data.signerName,
       signedAt: sig.data.signedAt,
+      signerRole: sig.data.signerRole,
     };
+    signatureImageUrl = await resolveVisitSignatureImageUrl(sig.data.storagePath);
   }
 
   const html = buildServiceRecordHtml({
@@ -32,6 +37,7 @@ export async function generateServiceRecord(
     visitTimes: ctx.visitTimes,
     documentationText,
     signatureSummary,
+    signatureImageUrl,
     visitId: ctx.assistVisitId,
     employeeId: ctx.employeeId,
     serviceName: ctx.detail.title,

@@ -3,12 +3,14 @@
  */
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
 import type { VisitTimesSummary } from './calculateVisitTimes';
+import { formatSignatureMetadataLine } from '@/lib/assist/visitSignatureImageService';
 
 export type ServiceRecordContentInput = {
   detail: EmployeePortalAssignmentDetail;
   visitTimes: VisitTimesSummary | null;
   documentationText?: string | null;
-  signatureSummary?: { signerName: string; signedAt: string } | null;
+  signatureSummary?: { signerName: string; signedAt: string; signerRole?: string | null } | null;
+  signatureImageUrl?: string | null;
   visitId?: string | null;
   employeeId?: string | null;
   employeeName?: string | null;
@@ -35,13 +37,30 @@ function formatDateTime(iso: string | null | undefined): string {
 }
 
 export function buildServiceRecordHtml(input: ServiceRecordContentInput): string {
-  const { detail, visitTimes, documentationText, signatureSummary } = input;
+  const { detail, visitTimes, documentationText, signatureSummary, signatureImageUrl } = input;
   const tasksHtml = detail.tasks
     .map(
       (t) =>
         `<tr><td>${escapeHtml(t.title)}</td><td>${escapeHtml(t.status)}</td><td>${escapeHtml(t.completionNote ?? '')}</td></tr>`,
     )
     .join('');
+
+  const signatureSection = signatureSummary
+    ? (() => {
+        const metaLine = formatSignatureMetadataLine({
+          signerName: signatureSummary.signerName,
+          signedAt: signatureSummary.signedAt,
+          signatureType: signatureSummary.signerRole ?? null,
+        });
+        const metaHtml = metaLine
+          ? `<p style="margin:4px 0 0;font-size:0.875rem;color:#555;">${escapeHtml(metaLine)}</p>`
+          : '';
+        const imageHtml = signatureImageUrl?.trim()
+          ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="max-width:280px;max-height:120px;margin-top:8px;object-fit:contain;" />`
+          : `<p style="margin:8px 0 0;color:#666;font-style:italic;">Keine gezeichnete Unterschrift gespeichert.</p>`;
+        return `<section><h2>Unterschrift Klient:in</h2>${imageHtml}${metaHtml}</section>`;
+      })()
+    : '';
 
   return `<!DOCTYPE html>
 <html lang="de">
@@ -96,11 +115,7 @@ export function buildServiceRecordHtml(input: ServiceRecordContentInput): string
     <div class="doc">${escapeHtml(documentationText?.trim() || '—')}</div>
   </section>
 
-  ${
-    signatureSummary
-      ? `<section><h2>Unterschrift</h2><p>${escapeHtml(signatureSummary.signerName)} · ${formatDateTime(signatureSummary.signedAt)}</p></section>`
-      : ''
-  }
+  ${signatureSection}
 
   <p class="meta">Erstellt ${formatDateTime(new Date().toISOString())} · CareSuite+ Assist</p>
 </body>

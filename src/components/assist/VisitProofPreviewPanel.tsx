@@ -1,6 +1,7 @@
-import { useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { DetailInfoRow } from '@/components/detail';
+import { SignatureDisplay } from '@/components/signatures';
 import { InfoBanner, PremiumBadge, SectionPanel } from '@/components/ui';
 import type { VisitProofPreview } from '@/lib/assist/visitProofPreviewService';
 import type { VisitTimesSummary } from '@/features/assistWorkflow/calculateVisitTimes';
@@ -37,17 +38,14 @@ export function VisitProofPreviewPanel({ preview, loading }: VisitProofPreviewPa
         },
         taskChipText: { ...typography.caption, color: text.primary },
         taskChipMeta: { ...typography.caption, color: text.muted, fontSize: 11 },
-        signatureImage: {
-          width: '100%',
-          maxWidth: 320,
-          height: 120,
-          resizeMode: 'contain',
-          borderRadius: 8,
-          backgroundColor: 'rgba(255,255,255,0.92)',
-        },
       }),
     [text],
   );
+
+  const checklistFields = preview.fields.filter((field) => field.label !== 'Unterschrift');
+  const signatureImageUrl =
+    preview.signatureImageUrl ??
+    (preview.signature?.dataUrl?.trim() ? preview.signature.dataUrl : null);
 
   if (loading) {
     return (
@@ -73,7 +71,7 @@ export function VisitProofPreviewPanel({ preview, loading }: VisitProofPreviewPa
       </View>
 
       <View style={styles.row}>
-        {preview.fields.map((field) => (
+        {checklistFields.map((field) => (
           <DetailInfoRow
             key={field.label}
             label={`${field.label}${field.required ? ' *' : ''}`}
@@ -105,12 +103,14 @@ export function VisitProofPreviewPanel({ preview, loading }: VisitProofPreviewPa
         </View>
       ) : null}
 
-      {preview.signatureImageUrl ? (
-        <View style={styles.tasksBlock}>
-          <Text style={styles.tasksTitle}>Unterschrift Klient:in</Text>
-          <Image source={{ uri: preview.signatureImageUrl }} style={styles.signatureImage} />
-        </View>
-      ) : null}
+      <SignatureDisplay
+        label="Unterschrift Klient:in"
+        signatureImageUrl={signatureImageUrl}
+        signatureDataUrl={preview.signature?.dataUrl}
+        signerName={preview.signature?.signerName}
+        signedAt={preview.signature?.signedAt}
+        signatureType={preview.signature?.signerRole}
+      />
     </SectionPanel>
   );
 }
