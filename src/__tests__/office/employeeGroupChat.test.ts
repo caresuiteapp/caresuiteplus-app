@@ -7,7 +7,7 @@ import {
   resolveEmployeeGroupParticipantLabel,
 } from '@/lib/office/employeeGroupChatService';
 import { filterThreadsByAudience } from '@/lib/office/officemessengerfilters';
-import { validateEmployeeGroupChatInput } from '@/lib/office/messagebusinessrules';
+import { validateEmployeeGroupChatInput, validateCreateThread } from '@/lib/office/messagebusinessrules';
 import type { OfficeMessageThread } from '@/types/office/messaging';
 
 const TENANT_ID = '11111111-1111-1111-1111-111111111111';
@@ -146,6 +146,26 @@ describe('employee group chat', () => {
     expect(validateEmployeeGroupChatInput({ subject: '', employeeIds: ['a', 'b'] }).ok).toBe(false);
     expect(validateEmployeeGroupChatInput({ subject: 'Team Nord', employeeIds: ['a'] }).ok).toBe(false);
     expect(validateEmployeeGroupChatInput({ subject: 'Team Nord', employeeIds: ['a', 'b'] }).ok).toBe(true);
+  });
+
+  it('validateCreateThread accepts employee group chats with two or more participant ids', () => {
+    expect(
+      validateCreateThread({
+        threadType: 'employee_group_office',
+        employeeParticipantIds: ['emp-1', 'emp-2'],
+      }).ok,
+    ).toBe(true);
+    expect(
+      validateCreateThread({
+        threadType: 'employee_group_office',
+        employeeParticipantIds: ['emp-1'],
+      }).ok,
+    ).toBe(false);
+    expect(
+      validateCreateThread({
+        threadType: 'employee_group_office',
+      }).ok,
+    ).toBe(false);
   });
 
   it('creates employee group chat via office thread service', async () => {

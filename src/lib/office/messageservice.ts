@@ -314,6 +314,7 @@ export async function createOfficeMessageThread(
     threadType: input.threadType,
     clientId: input.clientId,
     employeeId: input.employeeId,
+    employeeParticipantIds: input.employeeParticipantIds,
   });
   if (!validation.ok) return validation;
 

@@ -145,17 +145,22 @@ export function validateEmployeeGroupChatInput(input: {
   const subject = input.subject.trim();
   if (!subject) return { ok: false, error: 'Gruppenname darf nicht leer sein.' };
 
-  const uniqueIds = [...new Set(input.employeeIds.filter(Boolean))];
+  const uniqueIds = uniqueEmployeeGroupParticipantIds(input.employeeIds);
   if (uniqueIds.length < 2) {
     return { ok: false, error: 'Bitte mindestens zwei Mitarbeitende auswählen.' };
   }
   return { ok: true };
 }
 
+export function uniqueEmployeeGroupParticipantIds(employeeIds: string[]): string[] {
+  return [...new Set(employeeIds.filter(Boolean))];
+}
+
 export function validateCreateThread(input: {
   threadType: OfficeThreadType;
   clientId?: string | null;
   employeeId?: string | null;
+  employeeParticipantIds?: string[];
 }): { ok: true } | { ok: false; error: string } {
   if (!isOfficeModuleThread(input.threadType)) {
     return { ok: false, error: 'Ungültiger Chat-Typ.' };
@@ -174,7 +179,7 @@ export function validateCreateThread(input: {
     return { ok: false, error: 'Mitarbeiter:in erforderlich.' };
   }
   if (input.threadType === 'employee_group_office') {
-    const uniqueIds = [...new Set((input.employeeParticipantIds ?? []).filter(Boolean))];
+    const uniqueIds = uniqueEmployeeGroupParticipantIds(input.employeeParticipantIds ?? []);
     if (uniqueIds.length < 2) {
       return { ok: false, error: 'Bitte mindestens zwei Mitarbeitende auswählen.' };
     }

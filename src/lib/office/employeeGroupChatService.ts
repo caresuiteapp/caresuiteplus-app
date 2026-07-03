@@ -10,6 +10,7 @@ import { isMissingTableServiceError, toGermanSupabaseError } from '@/lib/supabas
 import { type PreviewAwareResult } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
+  uniqueEmployeeGroupParticipantIds,
   validateEmployeeGroupChatInput,
 } from '@/lib/office/messagebusinessrules';
 import {
@@ -57,7 +58,7 @@ export async function createEmployeeGroupChat(
   });
   if (!validation.ok) return validation;
 
-  const uniqueEmployeeIds = [...new Set(input.employeeIds.filter(Boolean))];
+  const uniqueEmployeeIds = uniqueEmployeeGroupParticipantIds(input.employeeIds);
 
   return createOfficeMessageThread(
     tenantId,

@@ -4,6 +4,7 @@ import { PlatformModal } from '@/components/layout/platform';
 import { PremiumInput } from '@/components/ui';
 import { fetchEmployeeList } from '@/lib/office';
 import { createEmployeeGroupChat } from '@/lib/office/employeeGroupChatService';
+import { uniqueEmployeeGroupParticipantIds } from '@/lib/office/messagebusinessrules';
 import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 import { fetchOfficeMessageCategories } from '@/lib/office/messagethreadservice';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
@@ -126,6 +127,11 @@ export function OfficeNewGroupChatModal({
     );
   }, [items, search]);
 
+  const selectedParticipantIds = useMemo(
+    () => uniqueEmployeeGroupParticipantIds(selectedEmployeeIds),
+    [selectedEmployeeIds],
+  );
+
   const toggleEmployee = (id: string) => {
     setSelectedEmployeeIds((current) => {
       if (current.includes(id)) return current.filter((value) => value !== id);
@@ -139,7 +145,7 @@ export function OfficeNewGroupChatModal({
       setError('Bitte einen Gruppennamen eingeben.');
       return;
     }
-    if (selectedEmployeeIds.length < 2) {
+    if (selectedParticipantIds.length < 2) {
       setError('Bitte mindestens zwei Mitarbeitende auswählen.');
       return;
     }
@@ -151,7 +157,7 @@ export function OfficeNewGroupChatModal({
       {
         subject: subject.trim(),
         categoryId,
-        employeeIds: selectedEmployeeIds,
+        employeeIds: selectedParticipantIds,
         initialMessage: initialMessage.trim() || undefined,
       },
       profile?.roleKey,
@@ -217,9 +223,9 @@ export function OfficeNewGroupChatModal({
 
       <View style={styles.section}>
         <Text style={styles.label}>Mitarbeitende *</Text>
-        {selectedEmployeeIds.length > 0 ? (
+        {selectedParticipantIds.length > 0 ? (
           <Text style={styles.selectionSummary}>
-            {selectedEmployeeIds.length} ausgewählt
+            {selectedParticipantIds.length} ausgewählt
           </Text>
         ) : null}
         <PremiumInput value={search} onChangeText={setSearch} placeholder="Suchen…" />
