@@ -1,19 +1,14 @@
 import { useMemo } from 'react';
+import { StyleSheet, Text, View } from 'react-native';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
-import { StyleSheet, Text, View } from 'react-native';
-import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
-import { useAuth } from '@/lib/auth/context';
+import { PortalReadOnlyAvatar } from '@/components/portal/PortalReadOnlyAvatar';
 import { PORTAL_EMPLOYEE_LABEL } from '@/lib/portal/portalDisplayLabels';
 import { buildEmployeePortalProfileKpis } from '@/lib/portal/portalProfileStats';
-import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
-
 import type { PortalEmployeeProfile } from '@/types/portal/employee';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { designTokens, spacing } from '@/theme';
-
-const iconSize = designTokens.hero.iconBadgeSize;
+import { spacing } from '@/theme';
 
 type PortalEmployeeProfileHeroProps = {
   profile: PortalEmployeeProfile;
@@ -24,54 +19,75 @@ function statusVariant(status: string) {
 }
 
 export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHeroProps) {
-  const { profile: authProfile } = useAuth();
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+  const { colors, mode } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
       StyleSheet.create({
-  topRow: { flexDirection: 'row', gap: spacing.md },
-  textCol: { flex: 1, gap: 2 },
-  eyebrow: heroText.eyebrow,
-  title: heroText.title,
-  meta: heroText.meta,
-  iconBadge: {
-    width: iconSize,
-    height: iconSize,
-    borderRadius: iconSize / 2,
-    backgroundColor: colors.bgElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-    borderColor: 'rgba(98,243,255,0.35)',
-    overflow: 'hidden',
-  },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
-  kpiItem: { flex: 1, minWidth: 100 },
-}),
-    [colors, typography, gradients],
+        layout: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          gap: spacing.md,
+        },
+        avatarCol: {
+          flexShrink: 0,
+        },
+        textCol: {
+          flex: 1,
+          gap: spacing.xs,
+          minWidth: 0,
+        },
+        title: heroText.title,
+        meta: heroText.meta,
+        badges: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          marginTop: spacing.sm,
+        },
+        kpiRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+          marginTop: spacing.md,
+        },
+        kpiItem: {
+          flex: 1,
+          minWidth: 100,
+        },
+      }),
+    [heroText],
   );
 
   const kpis = buildEmployeePortalProfileKpis(profile, mode);
+  const roleLine = [profile.jobTitleLabel, profile.departmentLabel]
+    .filter((part) => part && part !== '—')
+    .join(' · ');
 
   return (
     <PremiumListHeroFrame>
-      <View style={styles.topRow}>
-        <View style={styles.textCol}>
-          <Text style={styles.title}>{profile.displayName}</Text>
-          <Text style={styles.meta}>
-            {profile.jobTitle ? `${resolveEmployeeRoleLabel(profile.jobTitle)} · ` : ''}
-            {profile.teamName}
-          </Text>
-        </View>
-        <View style={styles.iconBadge}>
-          <TopbarProfileAvatar
+      <View style={styles.layout}>
+        <View style={styles.avatarCol}>
+          <PortalReadOnlyAvatar
             name={profile.displayName}
-            avatarUrl={authProfile?.avatarUrl}
+            avatarUrl={profile.avatarUrl}
+            avatarVersion={profile.avatarUpdatedAt ?? profile.avatarUrl}
             accentColor={colors.cyan}
-            size="md"
+            size="xl"
           />
+        </View>
+        <View style={styles.textCol}>
+          <Text style={styles.title} numberOfLines={2}>
+            {profile.displayName}
+          </Text>
+          {roleLine ? (
+            <Text style={styles.meta} numberOfLines={2}>
+              {roleLine}
+            </Text>
+          ) : null}
+          {profile.employeeNumber ? (
+            <Text style={styles.meta}>Personalnummer {profile.employeeNumber}</Text>
+          ) : null}
         </View>
       </View>
       <View style={styles.badges}>
@@ -82,20 +98,21 @@ export function PortalEmployeeProfileHero({ profile }: PortalEmployeeProfileHero
         />
         <PremiumBadge label={PORTAL_EMPLOYEE_LABEL} variant="cyan" />
       </View>
-      <View style={styles.kpiRow}>
-        {kpis.map((kpi) => (
-          <PremiumKpiCard
-            key={kpi.id}
-            label={kpi.label}
-            value={kpi.value}
-            subValue={kpi.subValue}
-            icon={kpi.icon}
-            accentColor={kpi.accentColor}
-            style={styles.kpiItem}
-          />
-        ))}
-      </View>
+      {kpis.length > 0 ? (
+        <View style={styles.kpiRow}>
+          {kpis.map((kpi) => (
+            <PremiumKpiCard
+              key={kpi.id}
+              label={kpi.label}
+              value={kpi.value}
+              subValue={kpi.subValue}
+              icon={kpi.icon}
+              accentColor={kpi.accentColor}
+              style={styles.kpiItem}
+            />
+          ))}
+        </View>
+      ) : null}
     </PremiumListHeroFrame>
   );
 }
-

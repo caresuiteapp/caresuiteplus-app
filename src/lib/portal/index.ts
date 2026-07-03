@@ -24,6 +24,7 @@ export {
   fetchEmployeePortalProfile,
   fetchEmployeeTimesheet,
 } from './employeeProfileService';
+export { fetchEmployeePortalPersonnelView } from './employeePortalPersonnelService';
 export {
   fetchClientPortalProfile,
   fetchClientCarePlanSummaries,

@@ -7,11 +7,16 @@ import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { runService } from '@/lib/services/serviceRunner';
 import { mapEmployeeAvatarUrl } from '@/lib/office/employeeAvatarService';
+import {
+  resolveEmployeeDepartmentLabel,
+  resolveEmployeeRoleLabel,
+  resolveEmploymentTypeLabel,
+} from '@/lib/office/employeeCatalogLabels';
 import { fetchLivePortalAppointmentsForEmployee } from './portalAppointmentsLiveService';
 import { mapPortalAppointmentToListItem } from './employeePortalLiveOverviewService';
 
 const EMPLOYEE_SELECT =
-  'id, tenant_id, first_name, last_name, role_title, email, phone, status, department, weekly_hours, avatar_url, updated_at';
+  'id, tenant_id, first_name, last_name, role_title, email, phone, mobile, status, department, weekly_hours, avatar_url, updated_at, entry_date, employment_type, city, qualification, employee_number';
 
 function mapEmployeeStatus(value: unknown): WorkflowStatus {
   const key = String(value ?? 'active').trim().toLowerCase();
@@ -39,6 +44,24 @@ function formatDate(iso: string): string {
     month: '2-digit',
     year: 'numeric',
   });
+}
+
+function formatOptionalDate(value: unknown): string | null {
+  if (typeof value !== 'string' || !value.trim()) return null;
+  const parsed = new Date(value);
+  if (Number.isNaN(parsed.getTime())) return null;
+  return formatDate(value);
+}
+
+function resolveLocationLabel(row: Record<string, unknown>): string | null {
+  const city = String(row.city ?? '').trim();
+  const department = resolveEmployeeDepartmentLabel(
+    typeof row.department === 'string' ? row.department : null,
+  );
+  if (city && department && department !== '—') return `${department} · ${city}`;
+  if (city) return city;
+  if (department && department !== '—') return department;
+  return null;
 }
 
 function isSameWeek(iso: string, ref: Date): boolean {
@@ -117,21 +140,42 @@ export async function fetchLiveEmployeePortalProfile(
         return sum + Math.max(0, Math.round((end - start) / 60000));
       }, 0);
 
+    const roleTitle = String(row.role_title ?? '').trim() || null;
+    const weeklyHoursTarget =
+      row.weekly_hours == null || row.weekly_hours === ''
+        ? null
+        : Number(row.weekly_hours) || null;
+
     const profile: PortalEmployeeProfile = {
       employeeId,
       displayName: personName(row as { first_name?: string | null; last_name?: string | null }),
       avatarUrl: mapEmployeeAvatarUrl(
         typeof row.avatar_url === 'string' ? row.avatar_url : null,
       ),
-      jobTitle: String(row.role_title ?? '').trim() || null,
+      avatarUpdatedAt:
+        typeof row.updated_at === 'string' ? row.updated_at.trim() || null : null,
+      jobTitle: roleTitle,
+      jobTitleLabel: roleTitle ? resolveEmployeeRoleLabel(roleTitle) : null,
       email: String(row.email ?? '').trim() || null,
-      phone: String(row.phone ?? row.mobile ?? '').trim() || null,
+      phone: String(row.phone ?? '').trim() || null,
+      mobile: String(row.mobile ?? '').trim() || null,
       status: mapEmployeeStatus(row.status),
-      teamName: String(row.department ?? '').trim() || 'Team',
-      weeklyHoursTarget: Number(row.weekly_hours ?? 38) || 38,
+      teamName: resolveEmployeeDepartmentLabel(
+        typeof row.department === 'string' ? row.department : null,
+      ),
+      departmentLabel: resolveEmployeeDepartmentLabel(
+        typeof row.department === 'string' ? row.department : null,
+      ),
+      employmentTypeLabel: resolveEmploymentTypeLabel(
+        typeof row.employment_type === 'string' ? row.employment_type : null,
+      ),
+      startDate: formatOptionalDate(row.entry_date),
+      locationLabel: resolveLocationLabel(row),
+      qualificationLabel: String(row.qualification ?? '').trim() || null,
+      employeeNumber: String(row.employee_number ?? '').trim() || null,
+      weeklyHoursTarget,
       weeklyHoursLogged: Math.round((loggedMinutes / 60) * 10) / 10,
       upcomingShifts: upcoming.length,
-      openRequests: 0,
     };
 
     return { ok: true, data: profile };

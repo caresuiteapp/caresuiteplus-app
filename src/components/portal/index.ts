@@ -1,5 +1,6 @@
 export { PortalClientProfileHero } from './PortalClientProfileHero';
 export { PortalEmployeeProfileHero } from './PortalEmployeeProfileHero';
+export { PortalReadOnlyAvatar } from './PortalReadOnlyAvatar';
 export { PortalAppointmentDetailHero } from './PortalAppointmentDetailHero';
 export { PortalDocumentDetailHero } from './PortalDocumentDetailHero';
 export { PortalEmployeeAssignmentDetailHero } from './PortalEmployeeAssignmentDetailHero';
@@ -36,3 +37,10 @@ export { PortalNavigation } from './PortalNavigation';
 export { PortalSectionGate } from './PortalSectionGate';
 export { PortalEmptyState } from './PortalEmptyState';
 export type { PortalTabKind, PortalTabHeroProps } from './PortalTabHero';
+export {
+  OFFICE_PROFILE_HINT,
+  PORTAL_EMPLOYEE_PROFILE_TABS,
+  PORTAL_PROFILE_EMPTY_MESSAGES,
+  PortalEmployeeProfileTabContent,
+  PortalProfileInfoRow,
+} from './profile';

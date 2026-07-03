@@ -14,40 +14,42 @@ export type PortalProfileKpi = {
 
 export function buildEmployeePortalProfileKpis(profile: PortalEmployeeProfile, mode: ColorMode = 'dark'): PortalProfileKpi[]  {
   const colors = legacyColorsFromPalette(mode);
-  return [
-    {
+  const kpis: PortalProfileKpi[] = [];
+
+  if (profile.weeklyHoursTarget != null) {
+    kpis.push({
       id: 'target-hours',
       label: 'Soll (Woche)',
       value: `${profile.weeklyHoursTarget} h`,
       subValue: 'Arbeitszeit',
       icon: '🎯',
       accentColor: colors.cyan,
-    },
-    {
+    });
+  }
+
+  if (profile.weeklyHoursLogged != null) {
+    kpis.push({
       id: 'logged-hours',
       label: 'Ist (Woche)',
       value: `${profile.weeklyHoursLogged} h`,
       subValue: 'Erfasst',
       icon: '⏱️',
       accentColor: colors.violet,
-    },
-    {
+    });
+  }
+
+  if (profile.upcomingShifts > 0) {
+    kpis.push({
       id: 'shifts',
       label: 'Einsätze',
       value: String(profile.upcomingShifts),
       subValue: 'Anstehend',
       icon: '📅',
       accentColor: colors.amber,
-    },
-    {
-      id: 'requests',
-      label: 'Anfragen',
-      value: String(profile.openRequests),
-      subValue: 'Offen',
-      icon: '📬',
-      accentColor: colors.success,
-    },
-  ];
+    });
+  }
+
+  return kpis;
 }
 
 export function buildClientPortalProfileKpis(profile: PortalClientProfile, mode: ColorMode = 'dark'): PortalProfileKpi[]  {

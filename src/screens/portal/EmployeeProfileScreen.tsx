@@ -1,107 +1,78 @@
+import { useCallback, useMemo, useState } from 'react';
 import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
-import { DetailInfoRow } from '@/components/detail';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { LockedActionBanner } from '@/components/permissions';
-import { PortalEmployeeProfileHero } from '@/components/portal';
+import {
+  OFFICE_PROFILE_HINT,
+  PortalEmployeeProfileTabContent,
+  PORTAL_EMPLOYEE_PROFILE_TABS,
+  PortalEmployeeProfileHero,
+} from '@/components/portal';
+import { GlassCard } from '@/design/components/GlassCard';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { careSpacing } from '@/design/tokens/spacing';
+import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
   PremiumBadge,
-  PremiumButton,
-  PremiumCard,
-  SectionPanel,
+  SegmentedTabs,
 } from '@/components/ui';
+import { HealthOSAlert } from '@/components/healthos';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useEmployeePortalPersonnelView } from '@/hooks/useEmployeePortalPersonnelView';
 import { useEmployeePortalProfile } from '@/hooks/useEmployeePortalProfile';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
-import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
+import { isTechnicalPortalErrorMessage } from '@/lib/portal/portalErrorSanitizer';
+import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
-import { colors, spacing, typography } from '@/theme';
-
-function ProfileBody({
-  loading,
-  refresh,
-  profile,
-  timesheet,
-  canViewTimesheet,
-  timesheetDeniedMessage,
-  roleLabel,
-  router,
-}: {
-  loading: boolean;
-  refresh: () => void;
-  profile: NonNullable<ReturnType<typeof useEmployeePortalProfile>['profile']>;
-  timesheet: NonNullable<ReturnType<typeof useEmployeePortalProfile>['timesheet']>;
-  canViewTimesheet: boolean;
-  timesheetDeniedMessage: string;
-  roleLabel: string | null;
-  router: ReturnType<typeof useRouter>;
-}) {
-  return (
-    <>
-      <PortalEmployeeProfileHero profile={profile} />
-
-      <PremiumCard accentColor={colors.cyan}>
-        {profile.jobTitle ? (
-          <DetailInfoRow label="Funktion" value={resolveEmployeeRoleLabel(profile.jobTitle)} />
-        ) : null}
-        <DetailInfoRow label="Team" value={profile.teamName} />
-        {profile.email ? <DetailInfoRow label="E-Mail" value={profile.email} /> : null}
-        {profile.phone ? <DetailInfoRow label="Telefon" value={profile.phone} /> : null}
-      </PremiumCard>
-
-      <SectionPanel title="Mobilität">
-        <PremiumButton
-          title="Verkehrsmittel & Routen"
-          variant="secondary"
-          onPress={() => router.push('/portal/employee/mobilitaet' as never)}
-        />
-      </SectionPanel>
-
-      {canViewTimesheet ? (
-        <SectionPanel title="Zeiterfassung (letzte Einsätze)">
-          {timesheet.length === 0 ? (
-            <EmptyState
-              title="Keine Einträge"
-              message="Für diese Woche sind noch keine Zeiten erfasst."
-            />
-          ) : (
-            timesheet.map((entry) => (
-              <PremiumCard key={entry.id} style={styles.timesheetCard}>
-                <Text style={styles.entryTitle}>{entry.assignmentTitle}</Text>
-                <Text style={styles.entryMeta}>
-                  {entry.date} · {entry.startTime}–{entry.endTime} ({entry.durationMinutes} Min.)
-                </Text>
-                <Text style={styles.entryMeta}>Klient:in: {entry.clientName}</Text>
-                <PremiumBadge label={WORKFLOW_STATUS_LABELS[entry.status]} variant="muted" />
-              </PremiumCard>
-            ))
-          )}
-        </SectionPanel>
-      ) : (
-        <LockedActionBanner message={timesheetDeniedMessage} roleLabel={roleLabel} />
-      )}
-
-      {loading ? (
-        <LoadingState message="Profil wird aktualisiert…" />
-      ) : (
-        <View style={styles.refreshSpacer} />
-      )}
-    </>
-  );
-}
+import type { PortalEmployeeProfileTabKey } from '@/types/portal/employeePersonnel';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 
 export function EmployeeProfileScreen() {
-  const router = useRouter();
-  const { isPhone } = useDeviceClass();
+  const { isPhone, isTablet, isDesktop, width } = useDeviceClass();
   const { can, check, roleLabel } = usePermissions();
   const canViewProfile = can('portal.employee.profile.view');
-  const canViewTimesheet = can('portal.employee.timesheet.view');
+  const text = useAuroraAdaptiveText();
+  const { colors } = useLegacyTheme();
+  const type = resolveGalaxyTypography(width);
+  const insets = useSafeAreaInsets();
+  const { showBottomTabs } = usePlatformLayout();
+  const [activeTab, setActiveTab] = useState<PortalEmployeeProfileTabKey>('overview');
 
-  const { profile, timesheet, loading, error, refresh } = useEmployeePortalProfile();
+  const { profile, loading: profileLoading, error: profileError, refresh: refreshProfile, missingEmployeeLink } =
+    useEmployeePortalProfile();
+  const {
+    personnelView,
+    loading: personnelLoading,
+    error: personnelError,
+    refresh: refreshPersonnel,
+  } = useEmployeePortalPersonnelView();
+
+  const loading = profileLoading || personnelLoading;
+  const error = profileError ?? personnelError;
+  const isWide = isTablet || isDesktop;
+
+  const contentPadding = useMemo(
+    () => ({
+      paddingHorizontal: careSpacing.md,
+      paddingBottom: showBottomTabs
+        ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
+        : careSpacing.xl + insets.bottom,
+      gap: careSpacing.md,
+    }),
+    [insets.bottom, showBottomTabs],
+  );
+
+  const handleRefresh = useCallback(() => {
+    void Promise.all([refreshProfile(), refreshPersonnel()]);
+  }, [refreshProfile, refreshPersonnel]);
+
+  const tabLayout = isPhone ? 'scroll' : 'wrap';
 
   if (!canViewProfile) {
     return (
@@ -114,7 +85,7 @@ export function EmployeeProfileScreen() {
     );
   }
 
-  if (loading && !profile) {
+  if (loading && !profile && !personnelView) {
     return (
       <PortalTabScreen title="Profil" subtitle="Wird geladen…" hideHeaderOnPhone scroll={false}>
         <LoadingState message="Profil wird geladen…" />
@@ -122,49 +93,81 @@ export function EmployeeProfileScreen() {
     );
   }
 
-  if (error && !profile) {
+  if (missingEmployeeLink) {
+    return (
+      <PortalTabScreen title="Profil" hideHeaderOnPhone scroll={false}>
+        <EmptyState
+          title="Profil nicht verfügbar"
+          message="Ihr Portalzugang ist noch keinem Mitarbeiterprofil zugeordnet. Bitte wenden Sie sich an das Office."
+        />
+      </PortalTabScreen>
+    );
+  }
+
+  if (error && !profile && !personnelView) {
+    const friendlyMessage = isTechnicalPortalErrorMessage(error)
+      ? 'Keine Profildaten hinterlegt. Bitte wenden Sie sich an das Office.'
+      : error;
+
     return (
       <PortalTabScreen title="Profil" subtitle="Fehler" hideHeaderOnPhone scroll={false}>
-        <ErrorState title="Profil nicht verfügbar" message={error} onRetry={refresh} />
+        <ErrorState title="Profil nicht verfügbar" message={friendlyMessage} onRetry={handleRefresh} />
       </PortalTabScreen>
     );
   }
 
-  if (!profile) return null;
-
-  const body = (
-    <ProfileBody
-      loading={loading}
-      refresh={refresh}
-      profile={profile}
-      timesheet={timesheet}
-      canViewTimesheet={canViewTimesheet}
-      timesheetDeniedMessage={
-        check('portal.employee.timesheet.view').reason ?? 'Keine Berechtigung.'
-      }
-      roleLabel={roleLabel}
-      router={router}
-    />
-  );
-
-  if (isPhone) {
+  if (!profile || !personnelView) {
     return (
-      <PortalTabScreen title="Profil" subtitle={profile.displayName} hideHeaderOnPhone scroll={false}>
-        {body}
+      <PortalTabScreen title="Profil" hideHeaderOnPhone scroll={false}>
+        <EmptyState
+          title="Keine Profildaten"
+          message="Keine Profildaten hinterlegt. Bitte wenden Sie sich an das Office."
+        />
       </PortalTabScreen>
     );
   }
+
+  const contactLine = [profile.email, profile.mobile ?? profile.phone].filter(Boolean).join(' · ');
 
   return (
-    <PortalTabScreen title="Profil" subtitle={profile.displayName} scroll={false}>
+    <PortalTabScreen title="Profil" subtitle={profile.displayName} hideHeaderOnPhone scroll={false}>
       <ScrollView
         showsVerticalScrollIndicator={false}
         refreshControl={
-          <RefreshControl refreshing={loading} onRefresh={refresh} tintColor={colors.primary} />
+          <RefreshControl refreshing={loading} onRefresh={handleRefresh} tintColor={colors.primary} />
         }
-        contentContainerStyle={styles.scroll}
+        contentContainerStyle={[styles.scroll, contentPadding]}
       >
-        {body}
+        <PortalEmployeeProfileHero profile={profile} />
+
+        <GlassCard>
+          <View style={styles.headerMeta}>
+            {profile.jobTitleLabel && profile.jobTitleLabel !== '—' ? (
+              <Text style={[type.body, { color: text.primary }]}>{profile.jobTitleLabel}</Text>
+            ) : null}
+            <View style={styles.statusRow}>
+              <PremiumBadge
+                label={WORKFLOW_STATUS_LABELS[profile.status]}
+                variant={profile.status === 'aktiv' ? 'green' : 'orange'}
+                dot
+              />
+            </View>
+            {contactLine ? (
+              <Text style={[type.caption, { color: text.secondary }]}>{contactLine}</Text>
+            ) : null}
+          </View>
+          <HealthOSAlert variant="info" title="Stammdaten" message={OFFICE_PROFILE_HINT} />
+        </GlassCard>
+
+        <SegmentedTabs
+          tabs={PORTAL_EMPLOYEE_PROFILE_TABS}
+          activeKey={activeTab}
+          onSelect={(key) => setActiveTab(key as PortalEmployeeProfileTabKey)}
+          layout={tabLayout}
+          rows={isWide ? 2 : undefined}
+        />
+
+        <PortalEmployeeProfileTabContent tab={activeTab} view={personnelView} />
       </ScrollView>
     </PortalTabScreen>
   );
@@ -172,22 +175,14 @@ export function EmployeeProfileScreen() {
 
 const styles = StyleSheet.create({
   scroll: {
-    gap: spacing.md,
-    paddingBottom: spacing.xxl,
+    flexGrow: 1,
   },
-  timesheetCard: {
-    marginBottom: spacing.sm,
+  headerMeta: {
+    gap: careSpacing.xs,
+    marginBottom: careSpacing.sm,
   },
-  entryTitle: {
-    ...typography.bodyStrong,
-    marginBottom: spacing.xs,
-  },
-  entryMeta: {
-    ...typography.caption,
-    color: colors.textSecondary,
-    marginBottom: 2,
-  },
-  refreshSpacer: {
-    height: spacing.xs,
+  statusRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
   },
 });

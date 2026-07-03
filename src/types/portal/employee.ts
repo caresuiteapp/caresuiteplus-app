@@ -4,15 +4,23 @@ export type PortalEmployeeProfile = {
   employeeId: string;
   displayName: string;
   avatarUrl: string | null;
+  avatarUpdatedAt: string | null;
   jobTitle: string | null;
+  jobTitleLabel: string | null;
   email: string | null;
   phone: string | null;
+  mobile: string | null;
   status: WorkflowStatus;
-  teamName: string;
-  weeklyHoursTarget: number;
-  weeklyHoursLogged: number;
+  teamName: string | null;
+  departmentLabel: string | null;
+  employmentTypeLabel: string | null;
+  startDate: string | null;
+  locationLabel: string | null;
+  qualificationLabel: string | null;
+  employeeNumber: string | null;
+  weeklyHoursTarget: number | null;
+  weeklyHoursLogged: number | null;
   upcomingShifts: number;
-  openRequests: number;
 };
 
 export type PortalTimesheetEntry = {
