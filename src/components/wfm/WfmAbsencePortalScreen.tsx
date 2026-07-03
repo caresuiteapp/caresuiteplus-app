@@ -32,6 +32,7 @@ import {
   type WfmAbsenceStatus,
   type WfmAbsenceType,
 } from '@/types/modules/wfm';
+import { parseWfmAbsenceDateRange } from '@/lib/formatters/dateTimeFormatters';
 import { typography } from '@/theme';
 
 const VACATION_TYPES: WfmAbsenceType[] = ['vacation'];
@@ -119,18 +120,23 @@ export function WfmAbsencePortalScreen({
     setError(null);
     setMessage(null);
 
-    const startIso = startsAt ? new Date(startsAt).toISOString() : '';
-    const endIso = endsAt ? new Date(endsAt).toISOString() : '';
-    if (!startIso || !endIso) {
+    if (!startsAt.trim() || !endsAt.trim()) {
       setError('Bitte Start- und Enddatum angeben.');
+      setSubmitting(false);
+      return;
+    }
+
+    const parsed = parseWfmAbsenceDateRange(startsAt, endsAt);
+    if (!parsed.ok) {
+      setError(parsed.error);
       setSubmitting(false);
       return;
     }
 
     const result = await requestWfmAbsence(tenantId, userId, roleKey, {
       absenceType: selectedType,
-      startsAt: startIso,
-      endsAt: endIso,
+      startsAt: parsed.startsAt,
+      endsAt: parsed.endsAt,
       employeeNote: note,
       employeeId,
     });

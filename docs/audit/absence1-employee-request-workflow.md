@@ -103,8 +103,44 @@
 |-------|--------|
 | `wfmAbsenceService.test.ts` | ✅ 1/1 |
 | `wfmAbsenceApprovalWorkflow.test.ts` | ✅ 9/9 |
+| `parseGermanOrIsoDateInput.test.ts` | ✅ 12/12 |
+| `wfmAbsencePortalDateSubmit.test.ts` | ✅ 5/5 |
 | PROFILE regression (`employeePortalProfileLive.test.ts`) | ✅ 24/24 |
 | ZEIT regression (`zeit1EmployeeResolverScreens.test.ts`) | ✅ 4/4 |
+
+---
+
+## P0 Hotfix — German date parsing (2026-07-03)
+
+### Problem
+
+Production smoke: Abwesenheit submit on `/portal/employee/arbeitszeit/abwesenheiten` threw **`Invalid time value`** when users entered `DD.MM.YYYY` (e.g. `15.08.2026`). Root cause: `WfmAbsencePortalScreen.handleSubmit` called `new Date(startsAt).toISOString()` on German-formatted strings. Days > 12 fail in locale-dependent `Date` parsing; Urlaub partially worked only when dates happened to parse (wrong month).
+
+### Fix
+
+| File | Change |
+|------|--------|
+| `src/lib/formatters/dateTimeFormatters.ts` | Added `parseGermanOrIsoDateInput`, `parseGermanOrIsoDateInputToIso`, `parseWfmAbsenceDateRange` with calendar validation |
+| `src/components/wfm/WfmAbsencePortalScreen.tsx` | Submit uses `parseWfmAbsenceDateRange`; user-facing error **„Bitte prüfen Sie das Datum.“** |
+
+Accepted inputs: `YYYY-MM-DD`, `YYYY-MM-DDTHH:mm`, `DD.MM.YYYY`, `DD.MM.YYYY HH:mm`, `DD.MM.YYYY, HH:mm`, `Date`. All-day requests use local day start/end (00:00 / 23:59:59.999).
+
+### Local verification (`:8089`)
+
+| Check | Status |
+|-------|--------|
+| Abwesenheit submit `15.08.2026` | 🟢 — Ausstehend, no page error |
+| Urlaub submit `10.08.2026–12.08.2026` | 🟢 — correct August dates in DB |
+| PROFILE / ZEIT.1 / OFFLINE.1 / SIGNATURE regressions | 🟢 |
+
+**Recommended commit message:**
+
+```
+fix(wfm): parse German dates on absence portal submit (ABSENCE.1 P0)
+
+Replace new Date(DD.MM.YYYY) with parseWfmAbsenceDateRange so Abwesenheit
+and Urlaub forms accept TT.MM.JJJJ without Invalid time value.
+```
 
 ---
 
