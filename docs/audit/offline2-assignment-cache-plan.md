@@ -97,7 +97,7 @@ Es werden **nur** Felder gecacht, die bereits durch Live-Services permission-gef
 | Punkt | Status |
 |-------|--------|
 | Reload bei vollem Offline ohne SW | **offen** (OFFLINE.8) |
-| TTL 24h enforced | **offen** — aktuell overwrite-only |
+| TTL 24h enforced | **offen** — Merge + stale flag, kein hartes TTL |
 | Stale ohne Online-Refresh | Banner + Timestamp |
 | Private Mode / Quota | Graceful degrade (null DB) |
 
@@ -105,23 +105,9 @@ Es werden **nur** Felder gecacht, die bereits durch Live-Services permission-gef
 
 ## Testplan
 
-- Unit: `assignmentCacheService.test.ts` — **Multi-Assignment** (11 Szenarien)
-- Regression: `offlineNotice`, `offlineIdb`, `useConnectivity`, ZEIT.1, ZEIT.2
-- Manuell: Online laden → Offline → Liste/Detail/Execute sichtbar
-
----
-
-## Multi-Assignment (Pflicht)
-
-| Anforderung | Umsetzung |
-|-------------|-----------|
-| Mehrere Einsätze/Tag | Liste + Detail + Execute pro `assignment_id` |
-| Eindeutige IDB-Keys | `{tenant}:{employee}:{id}:portal` / `:execution` |
-| Kein Überschreiben | `putStoreRecord` pro ID; Listen-Merge mit Stale-Erhalt |
-| Sortierung | `sortPortalAppointmentItems`: heute → Startzeit → kommend |
-| Stale statt Löschen | `mergeAssignmentListsWithStalePreservation` + Badge „Veraltet“ |
-| Execute by ID | `loadExecutionDetailWithCache(tenant, assignmentId, …)` |
-| Prefetch | max. 6 heute/künftige Portal- + Execution-Details |
+- Unit: `assignmentCacheService.test.ts` — **15 Tests** (Multi-Assignment, Sort, Merge/Stale, A/B/C Details)
+- Regression: `offlineNotice`, `offlineIdb`, `useConnectivity`, `zeit1EmployeeResolverScreens`, `employeePortalProfileLive`
+- Manuell: Online laden → Offline → mehrere Einsätze sichtbar, sortiert, einzeln öffnbar
 
 ---
 
