@@ -1,10 +1,11 @@
-import { useCallback, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { useState } from 'react';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
+  InfoBanner,
   LoadingState,
   PremiumButton,
   PremiumKpiCard,
@@ -13,10 +14,42 @@ import {
 } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
+import { triggerCsvDownload } from '@/lib/csv/csvDownload';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
-import { buildWfmPdfStub, createWfmExportJob, type WfmExportFormat } from '@/lib/wfm/wfmExportService';
+import { createWfmExportJob, type WfmExportFormat } from '@/lib/wfm/wfmExportService';
+
+function triggerWebFileDownload(content: string, mimeType: string, fileName: string): void {
+  if (Platform.OS !== 'web' || typeof document === 'undefined') return;
+
+  try {
+    if (content.startsWith('data:')) {
+      const anchor = document.createElement('a');
+      anchor.href = content;
+      anchor.download = fileName;
+      anchor.click();
+      return;
+    }
+
+    if (mimeType.includes('csv') || mimeType.includes('text/plain')) {
+      triggerCsvDownload(content, fileName);
+      return;
+    }
+
+    if (typeof Blob !== 'undefined' && typeof URL?.createObjectURL === 'function') {
+      const blob = new Blob([content], { type: mimeType });
+      const url = URL.createObjectURL(blob);
+      const anchor = document.createElement('a');
+      anchor.href = url;
+      anchor.download = fileName;
+      anchor.click();
+      URL.revokeObjectURL(url);
+    }
+  } catch {
+    // Headless or restricted browser — UI preview remains available.
+  }
+}
 
 export function WfmExportScreen() {
   const router = useRouter();
@@ -36,9 +69,10 @@ export function WfmExportScreen() {
   const [lastFormat, setLastFormat] = useState<WfmExportFormat>('csv');
 
   const canExport = can('time.tracking.admin.export');
+  const exportReady = Boolean(tenantId && userId);
 
   const runExport = async (format: WfmExportFormat) => {
-    if (!tenantId || !userId) return;
+    if (!exportReady) return;
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -53,6 +87,7 @@ export function WfmExportScreen() {
 
     setLastPreview(result.data.content);
     setLastFormat(format);
+    triggerWebFileDownload(result.data.content, result.data.mimeType, result.data.fileName);
 
     const formatLabels: Record<WfmExportFormat, string> = {
       csv: 'CSV',
@@ -67,16 +102,19 @@ export function WfmExportScreen() {
   if (!canExport) {
     return (
       <ScreenShell title="Arbeitszeit-Export">
-        <LockedActionBanner
-          message={check('time.tracking.admin.export').reason ?? 'Keine Berechtigung.'}
-          roleLabel={roleLabel}
-        />
+        <View testID="wfm-export-screen" accessibilityLabel="Arbeitszeit-Export">
+          <LockedActionBanner
+            message={check('time.tracking.admin.export').reason ?? 'Keine Berechtigung.'}
+            roleLabel={roleLabel}
+          />
+        </View>
       </ScreenShell>
     );
   }
 
   return (
     <ScreenShell title="Arbeitszeit-Export" subtitle="CSV, PDF und DATEV für Lohnbuchhaltung" scroll>
+      <View testID="wfm-export-screen" accessibilityLabel="Arbeitszeit-Export">
       <PremiumButton title="← Team-Übersicht" variant="ghost" onPress={() => router.push('/business/office/time-tracking/team' as never)} />
 
       <View style={styles.kpiRow}>
@@ -95,10 +133,28 @@ export function WfmExportScreen() {
       </SectionPanel>
 
       <SectionPanel title="Export starten">
+        {!exportReady ? (
+          <InfoBanner message="Sitzung wird geladen — Export starten, sobald Mandant und Benutzer bereit sind." />
+        ) : null}
         {loading ? <LoadingState message="Export wird erstellt…" /> : null}
-        <PremiumButton title="CSV exportieren" onPress={() => void runExport('csv')} disabled={loading} />
-        <PremiumButton title="PDF exportieren" variant="secondary" onPress={() => void runExport('pdf')} disabled={loading} />
-        <PremiumButton title="DATEV LOHN exportieren" variant="secondary" onPress={() => void runExport('datev')} disabled={loading} />
+        <PremiumButton
+          title="CSV exportieren"
+          testID="wfm-export-csv"
+          onPress={() => void runExport('csv')}
+          disabled={loading || !exportReady}
+        />
+        <PremiumButton
+          title="PDF exportieren"
+          variant="secondary"
+          onPress={() => void runExport('pdf')}
+          disabled={loading || !exportReady}
+        />
+        <PremiumButton
+          title="DATEV LOHN exportieren"
+          variant="secondary"
+          onPress={() => void runExport('datev')}
+          disabled={loading || !exportReady}
+        />
       </SectionPanel>
 
       {lastPreview ? (
@@ -113,6 +169,7 @@ export function WfmExportScreen() {
 
       {message ? <SuccessState title="Erfolg" message={message} /> : null}
       {error ? <ErrorState title="Fehler" message={error} onRetry={() => setError(null)} /> : null}
+      </View>
     </ScreenShell>
   );
 }

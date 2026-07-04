@@ -216,6 +216,42 @@ export interface WfmLiveEmployeeRow {
   lastEventAt: string | null;
 }
 
+export interface WfmTeamTodayKpis {
+  capturedToday: number;
+  activeCount: number;
+  onPauseCount: number;
+  onVisitCount: number;
+  inOfficeCount: number;
+  homeofficeCount: number;
+  pendingReviewCount: number;
+  openRequestsCount: number;
+}
+
+export interface WfmTeamTodayRow {
+  employeeId: string;
+  employeeName: string;
+  avatarUrl: string | null;
+  statusLabel: string;
+  workTypeLabel: string | null;
+  startedAt: string | null;
+  endedAt: string | null;
+  breakMinutes: number;
+  totalMinutes: number;
+  lastEventSourceLabel: string | null;
+  warnings: string[];
+  session: WfmWorkSession | null;
+  absence: WfmAbsence | null;
+  events: WfmTimeEvent[];
+  lastEventAt: string | null;
+  isOnline: boolean;
+}
+
+export interface WfmTeamTodayOverview {
+  kpis: WfmTeamTodayKpis;
+  rows: WfmTeamTodayRow[];
+  workDate: string;
+}
+
 export interface WfmVisitTimeRow {
   id: string;
   visitId: string;
