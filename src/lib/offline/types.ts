@@ -42,13 +42,20 @@ export type OfflineRecordEnvelope<T = Record<string, unknown>> = {
   updatedAt: string;
 };
 
+/** OFFLINE.2 — portal list item with optional stale flag after online refresh. */
+export type CachedPortalAppointmentItem =
+  import('@/lib/portal/appointmentService').PortalAppointmentItem & {
+    /** True when item was cached but missing from last successful online list. */
+    cacheStale?: boolean;
+  };
+
 /** OFFLINE.2 — assignment list cache in `assignments` store. */
 export type AssignmentListCacheRecord = {
   key: string;
   tenantId: string;
   employeeId: string;
   kind: 'list';
-  items: import('@/lib/portal/appointmentService').PortalAppointmentItem[];
+  items: CachedPortalAppointmentItem[];
   cachedAt: string;
 };
 

@@ -19,6 +19,7 @@ import type {
   AssignmentExecutionDetailCacheRecord,
   AssignmentListCacheRecord,
   AssignmentPortalDetailCacheRecord,
+  CachedPortalAppointmentItem,
 } from './types';
 
 const ASSIGNMENTS_STORE = 'assignments' as const;
@@ -26,6 +27,64 @@ const MAX_PREFETCH_DETAILS = 6;
 
 function listCacheKey(tenantId: string, employeeId: string): string {
   return `${tenantId}:${employeeId}:list`;
+}
+
+/** Sort: today first → by start time → upcoming chronologically → past last. */
+export function sortCachedAssignments(
+  items: CachedPortalAppointmentItem[],
+): CachedPortalAppointmentItem[] {
+  const now = new Date();
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+  const tomorrowStart = new Date(todayStart);
+  tomorrowStart.setDate(todayStart.getDate() + 1);
+
+  const dayRank = (startsAt: string): number => {
+    const start = new Date(startsAt);
+    if (start >= todayStart && start < tomorrowStart) return 0;
+    if (start >= tomorrowStart) return 1;
+    return 2;
+  };
+
+  return [...items].sort((a, b) => {
+    const rankDiff = dayRank(a.startsAt) - dayRank(b.startsAt);
+    if (rankDiff !== 0) return rankDiff;
+    return new Date(a.startsAt).getTime() - new Date(b.startsAt).getTime();
+  });
+}
+
+/** @deprecated Use sortCachedAssignments — kept for internal call sites. */
+export const sortPortalAppointmentItems = sortCachedAssignments;
+
+/** Prefer fresh online rows over stale cache duplicates (same assignment_id). */
+export function dedupeAssignmentItemsById(
+  items: CachedPortalAppointmentItem[],
+): CachedPortalAppointmentItem[] {
+  const byId = new Map<string, CachedPortalAppointmentItem>();
+  for (const item of items) {
+    const existing = byId.get(item.id);
+    if (!existing) {
+      byId.set(item.id, item);
+      continue;
+    }
+    if (existing.cacheStale && !item.cacheStale) {
+      byId.set(item.id, item);
+    }
+  }
+  return [...byId.values()];
+}
+
+/** Keep cached assignments missing from online response as stale instead of deleting. */
+export function mergeAssignmentListsWithStalePreservation(
+  onlineItems: PortalAppointmentItem[],
+  cachedItems: CachedPortalAppointmentItem[],
+): CachedPortalAppointmentItem[] {
+  const onlineIds = new Set(onlineItems.map((item) => item.id));
+  const fresh = onlineItems.map((item) => ({ ...item, cacheStale: false as const }));
+  const stalePreserved = cachedItems
+    .filter((item) => item.id && !onlineIds.has(item.id))
+    .map((item) => ({ ...item, cacheStale: true as const }));
+  return dedupeAssignmentItemsById([...fresh, ...stalePreserved]);
 }
 
 function portalDetailCacheKey(tenantId: string, employeeId: string, assignmentId: string): string {
@@ -65,7 +124,7 @@ async function touchAssignmentSyncMeta(tenantId: string): Promise<void> {
 export async function writeAssignmentListCache(
   tenantId: string,
   employeeId: string,
-  items: PortalAppointmentItem[],
+  items: CachedPortalAppointmentItem[],
 ): Promise<boolean> {
   const cachedAt = new Date().toISOString();
   const ok = await putStoreRecord<AssignmentListCacheRecord>(ASSIGNMENTS_STORE, {
@@ -73,12 +132,29 @@ export async function writeAssignmentListCache(
     tenantId,
     employeeId,
     kind: 'list',
-    items,
+    items: sortPortalAppointmentItems(items),
     cachedAt,
   });
   if (ok) await touchAssignmentSyncMeta(tenantId);
   return ok;
 }
+
+/** Merge online list with existing cache — stale entries are preserved, not deleted. */
+export async function mergeAssignmentListCache(
+  tenantId: string,
+  employeeId: string,
+  onlineItems: PortalAppointmentItem[],
+): Promise<CachedPortalAppointmentItem[]> {
+  const cached = await readAssignmentListCache(tenantId, employeeId);
+  const merged = sortPortalAppointmentItems(
+    mergeAssignmentListsWithStalePreservation(onlineItems, cached?.items ?? []),
+  );
+  await writeAssignmentListCache(tenantId, employeeId, merged);
+  return merged;
+}
+
+/** @deprecated Use mergeAssignmentListCache. */
+export const mergeAndWriteAssignmentListCache = mergeAssignmentListCache;
 
 export async function readAssignmentListCache(
   tenantId: string,
@@ -172,20 +248,23 @@ export async function loadPortalAppointmentsWithCache(
   roleKey: RoleKey | null,
   tenantId: string | null | undefined,
   employeeId: string | null | undefined,
-): Promise<ServiceResult<PortalAppointmentItem[]> & AssignmentCacheMeta> {
+): Promise<ServiceResult<CachedPortalAppointmentItem[]> & AssignmentCacheMeta> {
   const online = await fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId });
   if (online.ok && tenantId?.trim() && employeeId?.trim()) {
-    void writeAssignmentListCache(tenantId, employeeId, online.data);
-    return withCacheMeta(online, emptyCacheMeta());
+    const merged = await mergeAssignmentListCache(tenantId, employeeId, online.data);
+    return withCacheMeta({ ok: true, data: merged }, emptyCacheMeta());
   }
 
   if (tenantId?.trim() && employeeId?.trim()) {
     const cached = await readAssignmentListCache(tenantId, employeeId);
     if (cached?.items.length) {
-      return withCacheMeta({ ok: true, data: cached.items }, {
-        fromCache: true,
-        cachedAt: cached.cachedAt,
-      });
+      return withCacheMeta(
+        { ok: true, data: sortPortalAppointmentItems(cached.items) },
+        {
+          fromCache: true,
+          cachedAt: cached.cachedAt,
+        },
+      );
     }
   }
 
@@ -282,26 +361,30 @@ export async function prefetchEmployeeAssignmentCache(
   const listResult = await fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId });
   if (!listResult.ok || !listResult.data.length) return;
 
-  await writeAssignmentListCache(tenantId, employeeId, listResult.data);
+  await mergeAssignmentListCache(tenantId, employeeId, listResult.data);
 
   const now = new Date();
-  const candidates = listResult.data
+  const todayStart = new Date(now);
+  todayStart.setHours(0, 0, 0, 0);
+
+  const candidates = sortPortalAppointmentItems(listResult.data.map((item) => ({ ...item })))
     .filter((item) => {
       const start = new Date(item.startsAt);
-      return start >= now || start.toDateString() === now.toDateString();
+      return start >= todayStart;
     })
     .slice(0, MAX_PREFETCH_DETAILS);
 
   await Promise.all(
     candidates.map(async (item) => {
-      const detail = await fetchLiveEmployeePortalAssignmentDetail(
-        tenantId,
-        item.id,
-        employeeId,
-        roleKey,
-      );
-      if (detail.ok) {
-        await writeExecutionDetailCache(tenantId, employeeId, detail.data);
+      const [executionDetail, portalDetail] = await Promise.all([
+        fetchLiveEmployeePortalAssignmentDetail(tenantId, item.id, employeeId, roleKey),
+        fetchPortalAppointmentDetail(item.id, profileId, roleKey, { tenantId, employeeId }),
+      ]);
+      if (executionDetail.ok) {
+        await writeExecutionDetailCache(tenantId, employeeId, executionDetail.data);
+      }
+      if (portalDetail.ok) {
+        await writePortalAppointmentDetailCache(tenantId, employeeId, portalDetail.data);
       }
     }),
   );

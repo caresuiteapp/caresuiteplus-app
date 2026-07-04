@@ -23,13 +23,26 @@ Bestehender Store `assignments` (v1, `keyPath: 'key'`) wird wiederverwendet.
 
 | Record `kind` | Key-Muster | Inhalt |
 |---------------|------------|--------|
-| `list` | `{tenantId}:{employeeId}:list` | `PortalAppointmentItem[]` |
+| `list` | `{tenantId}:{employeeId}:list` | `CachedPortalAppointmentItem[]` (alle Einsätze, sortiert) |
 | `portal_detail` | `{tenantId}:{employeeId}:{assignmentId}:portal` | `PortalAppointmentDetail` |
 | `execution_detail` | `{tenantId}:{employeeId}:{assignmentId}:execution` | `EmployeePortalAssignmentDetail` |
 
 `sync_meta` wird bei Listen-Cache-Write mit `lastSyncAt` aktualisiert.
 
-**Invalidierung:** Overwrite bei erfolgreichem Online-Refresh; `clearOfflineDb()` bei Logout (OFFLINE.1, unverändert).
+**Invalidierung:** Partial Merge bei Online-Refresh (`mergeAssignmentListCache`); fehlende Online-IDs bleiben mit `cacheStale: true` erhalten; `clearOfflineDb()` bei Logout (OFFLINE.1, unverändert).
+
+---
+
+## Multi-Assignment (Pflicht OFFLINE.2)
+
+| Anforderung | Umsetzung |
+|-------------|-----------|
+| Mehrere Einsätze in Liste | Ein List-Record mit allen Items, stabil per `id` |
+| Sortierung | `sortCachedAssignments`: heute → Startzeit → kommende chronologisch |
+| Online-Refresh | `mergeAssignmentListCache` upsertet Online-Rows, markiert fehlende als stale |
+| Detail pro Einsatz | Separate Keys `:portal` / `:execution` pro `assignmentId` |
+| Execute-Isolation | A/B/C nie vermischt — Key enthält `assignmentId` |
+| UI | `CachedDataBanner` in Liste, Detail, Dashboard, Execute |
 
 ---
 
@@ -92,9 +105,23 @@ Es werden **nur** Felder gecacht, die bereits durch Live-Services permission-gef
 
 ## Testplan
 
-- Unit: `assignmentCacheService.test.ts`
-- Regression: `offlineNotice`, `offlineIdb`, `useConnectivity`
+- Unit: `assignmentCacheService.test.ts` — **Multi-Assignment** (11 Szenarien)
+- Regression: `offlineNotice`, `offlineIdb`, `useConnectivity`, ZEIT.1, ZEIT.2
 - Manuell: Online laden → Offline → Liste/Detail/Execute sichtbar
+
+---
+
+## Multi-Assignment (Pflicht)
+
+| Anforderung | Umsetzung |
+|-------------|-----------|
+| Mehrere Einsätze/Tag | Liste + Detail + Execute pro `assignment_id` |
+| Eindeutige IDB-Keys | `{tenant}:{employee}:{id}:portal` / `:execution` |
+| Kein Überschreiben | `putStoreRecord` pro ID; Listen-Merge mit Stale-Erhalt |
+| Sortierung | `sortPortalAppointmentItems`: heute → Startzeit → kommend |
+| Stale statt Löschen | `mergeAssignmentListsWithStalePreservation` + Badge „Veraltet“ |
+| Execute by ID | `loadExecutionDetailWithCache(tenant, assignmentId, …)` |
+| Prefetch | max. 6 heute/künftige Portal- + Execution-Details |
 
 ---
 

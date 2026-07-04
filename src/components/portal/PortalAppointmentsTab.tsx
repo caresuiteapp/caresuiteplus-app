@@ -12,6 +12,7 @@ import {
 } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
+import type { CachedPortalAppointmentItem } from '@/lib/offline/types';
 import { useAuth } from '@/lib/auth/context';
 import { resolvePortalScope } from '@/lib/portal/portalVisibility';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -100,7 +101,9 @@ export function PortalAppointmentsTab({
           onAction={refresh}
         />
       ) : (
-        items.map((appt) => (
+        items.map((appt) => {
+          const cachedItem = appt as CachedPortalAppointmentItem;
+          return (
           <PremiumCard
             key={appt.id}
             accentColor={colors.cyan}
@@ -112,10 +115,15 @@ export function PortalAppointmentsTab({
           >
             <View style={styles.cardHeader}>
               <Text style={styles.title}>{appt.title}</Text>
-              <PremiumBadge
-                label={WORKFLOW_STATUS_LABELS[appt.status]}
-                variant={appt.status === 'aktiv' ? 'green' : 'muted'}
-              />
+              <View style={styles.badgeRow}>
+                {cachedItem.cacheStale ? (
+                  <PremiumBadge label="Veraltet" variant="muted" />
+                ) : null}
+                <PremiumBadge
+                  label={WORKFLOW_STATUS_LABELS[appt.status]}
+                  variant={appt.status === 'aktiv' ? 'green' : 'muted'}
+                />
+              </View>
             </View>
             <Text style={styles.meta}>{formatDateTime(appt.startsAt)}</Text>
             {appt.clientName ? (
@@ -125,7 +133,8 @@ export function PortalAppointmentsTab({
               <Text style={styles.location}>{appt.location}</Text>
             ) : null}
           </PremiumCard>
-        ))
+          );
+        })
       )}
     </>
   );
@@ -158,6 +167,11 @@ const styles = StyleSheet.create({
     alignItems: 'flex-start',
     gap: spacing.sm,
     marginBottom: spacing.xs,
+  },
+  badgeRow: {
+    flexDirection: 'row',
+    gap: spacing.xs,
+    flexShrink: 0,
   },
   title: {
     ...typography.bodyStrong,
