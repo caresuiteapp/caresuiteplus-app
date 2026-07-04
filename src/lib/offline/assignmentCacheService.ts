@@ -13,9 +13,11 @@ import {
 } from '@/lib/portal/employeePortalLiveOverviewService';
 import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
+import { isBrowserOffline } from './connectivity';
 import { getStoreRecord, openOfflineDb, putStoreRecord, putSyncMeta } from './idb';
 import type {
   AssignmentCacheMeta,
+  AssignmentCacheLoadOptions,
   AssignmentExecutionDetailCacheRecord,
   AssignmentListCacheRecord,
   AssignmentPortalDetailCacheRecord,
@@ -103,6 +105,31 @@ function emptyCacheMeta(): AssignmentCacheMeta {
   return { fromCache: false, cachedAt: null };
 }
 
+const OFFLINE_LIST_ERROR =
+  'Keine Verbindung. Zwischengespeicherte Einsätze sind nicht verfügbar.';
+const OFFLINE_DETAIL_ERROR =
+  'Keine Verbindung. Zwischengespeicherte Einsatzdetails sind nicht verfügbar.';
+
+function normalizeListItems(items: CachedPortalAppointmentItem[]): CachedPortalAppointmentItem[] {
+  return sortPortalAppointmentItems(items.filter((item) => Boolean(item.id?.trim())));
+}
+
+function hasScopedEmployeeCache(
+  tenantId: string | null | undefined,
+  employeeId: string | null | undefined,
+): tenantId is string {
+  return Boolean(tenantId?.trim() && employeeId?.trim());
+}
+
+async function readSortedAssignmentListCache(
+  tenantId: string,
+  employeeId: string,
+): Promise<AssignmentListCacheRecord | null> {
+  const cached = await readAssignmentListCache(tenantId, employeeId);
+  if (!cached?.items.length) return null;
+  return { ...cached, items: normalizeListItems(cached.items) };
+}
+
 function withCacheMeta<T>(
   result: ServiceResult<T>,
   meta: AssignmentCacheMeta,
@@ -126,17 +153,34 @@ export async function writeAssignmentListCache(
   employeeId: string,
   items: CachedPortalAppointmentItem[],
 ): Promise<boolean> {
+  await openOfflineDb();
+  const normalized = normalizeListItems(items);
+  if (items.length > 0 && normalized.length === 0) {
+    console.warn(
+      '[CareSuite offline] writeAssignmentListCache skipped: all items missing id',
+      { tenantId, employeeId, inputCount: items.length },
+    );
+    return false;
+  }
   const cachedAt = new Date().toISOString();
   const ok = await putStoreRecord<AssignmentListCacheRecord>(ASSIGNMENTS_STORE, {
     key: listCacheKey(tenantId, employeeId),
     tenantId,
     employeeId,
     kind: 'list',
-    items: sortPortalAppointmentItems(items),
+    items: normalized,
     cachedAt,
   });
-  if (ok) await touchAssignmentSyncMeta(tenantId);
-  return ok;
+  if (!ok) {
+    console.warn('[CareSuite offline] writeAssignmentListCache failed', {
+      tenantId,
+      employeeId,
+      itemCount: normalized.length,
+    });
+    return false;
+  }
+  await touchAssignmentSyncMeta(tenantId);
+  return true;
 }
 
 /** Merge online list with existing cache — stale entries are preserved, not deleted. */
@@ -174,8 +218,9 @@ export async function writePortalAppointmentDetailCache(
   employeeId: string,
   payload: PortalAppointmentDetail,
 ): Promise<boolean> {
+  await openOfflineDb();
   const assignmentId = payload.assignmentId ?? payload.id;
-  if (!assignmentId) return false;
+  if (!assignmentId?.trim()) return false;
   return putStoreRecord<AssignmentPortalDetailCacheRecord>(ASSIGNMENTS_STORE, {
     key: portalDetailCacheKey(tenantId, employeeId, assignmentId),
     tenantId,
@@ -212,6 +257,8 @@ export async function writeExecutionDetailCache(
   employeeId: string,
   payload: EmployeePortalAssignmentDetail,
 ): Promise<boolean> {
+  await openOfflineDb();
+  if (!payload.assignmentId?.trim()) return false;
   return putStoreRecord<AssignmentExecutionDetailCacheRecord>(ASSIGNMENTS_STORE, {
     key: executionDetailCacheKey(tenantId, employeeId, payload.assignmentId),
     tenantId,
@@ -248,22 +295,34 @@ export async function loadPortalAppointmentsWithCache(
   roleKey: RoleKey | null,
   tenantId: string | null | undefined,
   employeeId: string | null | undefined,
+  options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<CachedPortalAppointmentItem[]> & AssignmentCacheMeta> {
+  await openOfflineDb();
+  const scoped = hasScopedEmployeeCache(tenantId, employeeId);
+
+  if (scoped && isBrowserOffline(options?.preferCache)) {
+    const cached = await readSortedAssignmentListCache(tenantId, employeeId);
+    if (cached) {
+      return withCacheMeta(
+        { ok: true, data: cached.items },
+        { fromCache: true, cachedAt: cached.cachedAt },
+      );
+    }
+    return withCacheMeta({ ok: false, error: OFFLINE_LIST_ERROR }, emptyCacheMeta());
+  }
+
   const online = await fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId });
-  if (online.ok && tenantId?.trim() && employeeId?.trim()) {
+  if (online.ok && scoped) {
     const merged = await mergeAssignmentListCache(tenantId, employeeId, online.data);
     return withCacheMeta({ ok: true, data: merged }, emptyCacheMeta());
   }
 
-  if (tenantId?.trim() && employeeId?.trim()) {
-    const cached = await readAssignmentListCache(tenantId, employeeId);
-    if (cached?.items.length) {
+  if (scoped) {
+    const cached = await readSortedAssignmentListCache(tenantId, employeeId);
+    if (cached) {
       return withCacheMeta(
-        { ok: true, data: sortPortalAppointmentItems(cached.items) },
-        {
-          fromCache: true,
-          cachedAt: cached.cachedAt,
-        },
+        { ok: true, data: cached.items },
+        { fromCache: true, cachedAt: cached.cachedAt },
       );
     }
   }
@@ -277,23 +336,46 @@ export async function loadPortalAppointmentDetailWithCache(
   roleKey: RoleKey | null,
   tenantId: string | null | undefined,
   employeeId: string | null | undefined,
+  options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<PortalAppointmentDetail> & AssignmentCacheMeta> {
+  await openOfflineDb();
+  const scoped = hasScopedEmployeeCache(tenantId, employeeId);
+  const assignmentKey = appointmentId?.trim() ?? '';
+
+  if (scoped && assignmentKey && isBrowserOffline(options?.preferCache)) {
+    const cached = await readPortalAppointmentDetailCache(tenantId, employeeId, assignmentKey);
+    if (cached) {
+      return withCacheMeta(
+        { ok: true, data: cached.payload },
+        { fromCache: true, cachedAt: cached.cachedAt },
+      );
+    }
+    return withCacheMeta({ ok: false, error: OFFLINE_DETAIL_ERROR }, emptyCacheMeta());
+  }
+
   const online = await fetchPortalAppointmentDetail(appointmentId, profileId, roleKey, {
     tenantId,
     employeeId,
   });
-  if (online.ok && tenantId?.trim() && employeeId?.trim()) {
-    void writePortalAppointmentDetailCache(tenantId, employeeId, online.data);
+  if (online.ok && scoped) {
+    const wrote = await writePortalAppointmentDetailCache(tenantId, employeeId, online.data);
+    if (!wrote) {
+      console.warn('[CareSuite offline] writePortalAppointmentDetailCache failed', {
+        tenantId,
+        employeeId,
+        assignmentId: assignmentKey,
+      });
+    }
     return withCacheMeta(online, emptyCacheMeta());
   }
 
-  if (tenantId?.trim() && employeeId?.trim() && appointmentId?.trim()) {
-    const cached = await readPortalAppointmentDetailCache(tenantId, employeeId, appointmentId);
+  if (scoped && assignmentKey) {
+    const cached = await readPortalAppointmentDetailCache(tenantId, employeeId, assignmentKey);
     if (cached) {
-      return withCacheMeta({ ok: true, data: cached.payload }, {
-        fromCache: true,
-        cachedAt: cached.cachedAt,
-      });
+      return withCacheMeta(
+        { ok: true, data: cached.payload },
+        { fromCache: true, cachedAt: cached.cachedAt },
+      );
     }
   }
 
@@ -305,7 +387,22 @@ export async function loadExecutionDetailWithCache(
   assignmentId: string,
   employeeId: string,
   roleKey: RoleKey | null,
+  options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail> & AssignmentCacheMeta> {
+  await openOfflineDb();
+  const assignmentKey = assignmentId?.trim() ?? '';
+
+  if (assignmentKey && isBrowserOffline(options?.preferCache)) {
+    const cached = await readExecutionDetailCache(tenantId, employeeId, assignmentKey);
+    if (cached) {
+      return withCacheMeta(
+        { ok: true, data: cached.payload },
+        { fromCache: true, cachedAt: cached.cachedAt },
+      );
+    }
+    return withCacheMeta({ ok: false, error: OFFLINE_DETAIL_ERROR }, emptyCacheMeta());
+  }
+
   const online = await fetchEmployeePortalAssignmentDetail(
     tenantId,
     assignmentId,
@@ -313,16 +410,25 @@ export async function loadExecutionDetailWithCache(
     roleKey,
   );
   if (online.ok) {
-    void writeExecutionDetailCache(tenantId, employeeId, online.data);
+    const wrote = await writeExecutionDetailCache(tenantId, employeeId, online.data);
+    if (!wrote) {
+      console.warn('[CareSuite offline] writeExecutionDetailCache failed', {
+        tenantId,
+        employeeId,
+        assignmentId: assignmentKey,
+      });
+    }
     return withCacheMeta(online, emptyCacheMeta());
   }
 
-  const cached = await readExecutionDetailCache(tenantId, employeeId, assignmentId);
-  if (cached) {
-    return withCacheMeta({ ok: true, data: cached.payload }, {
-      fromCache: true,
-      cachedAt: cached.cachedAt,
-    });
+  if (assignmentKey) {
+    const cached = await readExecutionDetailCache(tenantId, employeeId, assignmentKey);
+    if (cached) {
+      return withCacheMeta(
+        { ok: true, data: cached.payload },
+        { fromCache: true, cachedAt: cached.cachedAt },
+      );
+    }
   }
 
   return withCacheMeta(online, emptyCacheMeta());

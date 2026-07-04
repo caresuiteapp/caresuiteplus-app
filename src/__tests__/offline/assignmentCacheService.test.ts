@@ -554,4 +554,144 @@ describe('assignmentCacheService', () => {
     expect(formatAssignmentCacheTimestamp('2026-07-04T10:30:00.000Z')).toMatch(/04\.07\.2026/);
     expect(formatAssignmentCacheTimestamp(null)).toBe('unbekannt');
   });
+
+  it('writes 14 normalized list entries with tenant and employee keys', async () => {
+    const manyItems = Array.from({ length: 14 }, (_, index) =>
+      makeItem(
+        `asg-${index}`,
+        `Einsatz ${index}`,
+        new Date(Date.UTC(2026, 6, 4, 8 + (index % 8), 0, 0)).toISOString(),
+      ),
+    );
+
+    vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: true, data: manyItems });
+
+    const result = await loadPortalAppointmentsWithCache(
+      'profile-1',
+      'employee_portal',
+      'tenant-1',
+      'emp-1',
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toHaveLength(14);
+
+    const cached = await readAssignmentListCache('tenant-1', 'emp-1');
+    expect(cached?.tenantId).toBe('tenant-1');
+    expect(cached?.employeeId).toBe('emp-1');
+    expect(cached?.key).toBe('tenant-1:emp-1:list');
+    expect(cached?.items).toHaveLength(14);
+    expect(cached?.items.every((item) => Boolean(item.id))).toBe(true);
+  });
+
+  it('skips network fetch when preferCache is true and serves cached list', async () => {
+    await writeAssignmentListCache('tenant-1', 'emp-1', threeSameDay);
+
+    const result = await loadPortalAppointmentsWithCache(
+      'profile-1',
+      'employee_portal',
+      'tenant-1',
+      'emp-1',
+      { preferCache: true },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.fromCache).toBe(true);
+    expect(result.data).toHaveLength(3);
+    expect(fetchPortalAppointments).not.toHaveBeenCalled();
+  });
+
+  it('returns honest offline error when preferCache is true and cache is empty', async () => {
+    const result = await loadPortalAppointmentsWithCache(
+      'profile-1',
+      'employee_portal',
+      'tenant-1',
+      'emp-1',
+      { preferCache: true },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.fromCache).toBe(false);
+    expect(result.error).toMatch(/Keine Verbindung/i);
+    expect(fetchPortalAppointments).not.toHaveBeenCalled();
+  });
+
+  it('persists list cache after delayed IndexedDB open', async () => {
+    resetOfflineDbCacheForTests();
+    vi.unstubAllGlobals();
+
+    let resolveOpen: ((db: MemoryDatabase) => void) | null = null;
+    const openGate = new Promise<MemoryDatabase>((resolve) => {
+      resolveOpen = resolve;
+    });
+
+    vi.stubGlobal('indexedDB', {
+      open(name: string) {
+        const request = {
+          result: null as MemoryDatabase | null,
+          error: null as DOMException | null,
+          onsuccess: null as ((event: Event) => void) | null,
+          onerror: null as ((event: Event) => void) | null,
+          onupgradeneeded: null as ((event: Event) => void) | null,
+          onblocked: null as ((event: Event) => void) | null,
+        };
+
+        void openGate.then((db) => {
+          request.result = db;
+          request.onsuccess?.({ target: request } as unknown as Event);
+        });
+
+        return request as unknown as IDBOpenDBRequest;
+      },
+      deleteDatabase() {
+        const request = {
+          onsuccess: null as ((event: Event) => void) | null,
+        };
+        queueMicrotask(() => request.onsuccess?.({ target: request } as unknown as Event));
+        return request as unknown as IDBOpenDBRequest;
+      },
+    });
+
+    const writePromise = writeAssignmentListCache('tenant-1', 'emp-1', sampleItems);
+    resolveOpen?.(new MemoryDatabase());
+    expect(await writePromise).toBe(true);
+
+    const cached = await readAssignmentListCache('tenant-1', 'emp-1');
+    expect(cached?.items).toHaveLength(1);
+  });
+
+  it('logs and skips write when all list items are missing id', async () => {
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+
+    const ok = await writeAssignmentListCache('tenant-1', 'emp-1', [
+      { ...makeItem('', 'Ohne ID', '2026-07-04T08:00:00.000Z') },
+    ]);
+
+    expect(ok).toBe(false);
+    expect(warnSpy).toHaveBeenCalledWith(
+      expect.stringContaining('writeAssignmentListCache skipped'),
+      expect.objectContaining({ tenantId: 'tenant-1', employeeId: 'emp-1' }),
+    );
+
+    warnSpy.mockRestore();
+  });
+
+  it('returns network error without white-screen when IndexedDB write fails but fetch succeeded', async () => {
+    vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: true, data: sampleItems });
+    vi.stubGlobal('indexedDB', undefined);
+    resetOfflineDbCacheForTests();
+
+    const warnSpy = vi.spyOn(console, 'warn').mockImplementation(() => undefined);
+    const result = await loadPortalAppointmentsWithCache(
+      'profile-1',
+      'employee_portal',
+      'tenant-1',
+      'emp-1',
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.data).toHaveLength(1);
+    expect(warnSpy).toHaveBeenCalled();
+    warnSpy.mockRestore();
+  });
 });

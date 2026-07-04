@@ -270,11 +270,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         assignmentId,
         employeeId,
         roleKey,
+        { preferCache: isOffline },
       );
       setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
       return result;
     },
-    [tenantId, assignmentId, employeeId, roleKey],
+    [tenantId, assignmentId, employeeId, roleKey, isOffline],
     {
       enabled: Boolean(tenantId && assignmentId && employeeId),
       live:

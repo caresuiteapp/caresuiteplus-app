@@ -1,12 +1,14 @@
 import { useCallback, useState } from 'react';
 import { loadPortalAppointmentDetailWithCache } from '@/lib/offline/assignmentCacheService';
 import type { AssignmentCacheMeta } from '@/lib/offline/types';
+import { useConnectivity } from '@/hooks/useConnectivity';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery } from './core';
 
 export function usePortalAppointmentDetail(appointmentId: string | undefined) {
   const { tenantId, employeeId, actorId, roleKey, isReady } = usePortalActor();
+  const { isOffline } = useConnectivity();
   const profileId = actorId ?? '';
   const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
     fromCache: false,
@@ -21,11 +23,12 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
         roleKey,
         tenantId,
         employeeId,
+        { preferCache: isOffline },
       );
       setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
       return result;
     },
-    [appointmentId, profileId, roleKey, tenantId, employeeId],
+    [appointmentId, profileId, roleKey, tenantId, employeeId, isOffline],
     {
       enabled: !!appointmentId && isReady && !!profileId && !!roleKey,
       live:

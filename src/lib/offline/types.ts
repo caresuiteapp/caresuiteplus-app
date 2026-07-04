@@ -85,3 +85,8 @@ export type AssignmentCacheMeta = {
   fromCache: boolean;
   cachedAt: string | null;
 };
+
+export type AssignmentCacheLoadOptions = {
+  /** Skip network fetch and read IndexedDB only (e.g. MP offline). */
+  preferCache?: boolean;
+};
