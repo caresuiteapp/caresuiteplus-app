@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { formatWfmDurationMinutes, formatWfmTime } from '@/lib/wfm/wfmDisplayHelpers';
+import { formatWfmDurationMinutes, formatWfmPlanTimeRange, formatWfmActualTimeRange, formatWfmAmpelLabel } from '@/lib/wfm/wfmDisplayHelpers';
 import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import {
   WFM_DEVIATION_AMPEL_LABELS,
@@ -22,6 +22,19 @@ function ampelVariant(ampel: string | null): 'green' | 'yellow' | 'red' | 'muted
   if (ampel === 'yellow') return 'yellow';
   if (ampel === 'red' || ampel === 'blue') return 'red';
   return 'muted';
+}
+
+function rowStatusLabel(entry: WfmOfficeTimeEntry): string {
+  if (entry.rowKind === 'planned_missing_actual' || entry.flags.includes('missing_booking')) {
+    return 'Fehlende Buchung';
+  }
+  if (entry.rowKind === 'unplanned_actual' || entry.flags.includes('unplanned')) {
+    return 'Ungeplante Arbeitszeit';
+  }
+  if (entry.rowKind === 'manual_entry') {
+    return 'Office-Nachtrag';
+  }
+  return WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus];
 }
 
 export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props) {
@@ -50,20 +63,35 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props
             <View style={styles.main}>
               <Text style={{ color: text.primary, ...typography.bodyMedium }}>
                 {entry.workDate} · {entry.employeeName}
+                {entry.clientLabel || entry.assignmentTitle
+                  ? ` · ${entry.clientLabel ?? entry.assignmentTitle}`
+                  : ''}
               </Text>
               <Text style={{ color: text.secondary, ...typography.caption }}>
-                {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]} ·{' '}
-                {formatWfmTime(entry.actualStartAt)} – {formatWfmTime(entry.actualEndAt)} ·{' '}
-                {formatWfmDurationMinutes(entry.netMinutes)}
+                {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]} · Ist:{' '}
+                {formatWfmActualTimeRange(entry.actualStartAt, entry.actualEndAt, entry.actualDisplayStatus)}{' '}
+                · {formatWfmDurationMinutes(entry.netMinutes)}
               </Text>
               <Text style={{ color: text.secondary, ...typography.caption }}>
-                Plan: {formatWfmTime(entry.plannedStartAt)} – {formatWfmTime(entry.plannedEndAt)}
+                Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
+              </Text>
+              <Text style={{ color: text.secondary, ...typography.caption }}>
+                {formatWfmAmpelLabel(entry.startAmpel, 'start')} · {formatWfmAmpelLabel(entry.endAmpel, 'end')} ·{' '}
+                {entry.overallAmpel
+                  ? `Gesamt ${WFM_DEVIATION_AMPEL_LABELS[entry.overallAmpel]}`
+                  : formatWfmAmpelLabel(null, 'overall')}
               </Text>
             </View>
             <View style={styles.badges}>
               <PremiumBadge
-                label={WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus]}
-                variant={entry.reviewStatus === 'approved' ? 'green' : 'muted'}
+                label={rowStatusLabel(entry)}
+                variant={
+                  entry.reviewStatus === 'approved'
+                    ? 'green'
+                    : entry.flags.includes('missing_booking') || entry.flags.includes('unplanned')
+                      ? 'orange'
+                      : 'muted'
+                }
               />
               {entry.overallAmpel ? (
                 <PremiumBadge
@@ -72,7 +100,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props
                 />
               ) : null}
               {entry.hasOpenOfficeMessage ? (
-                <PremiumBadge label="Office-Meldung" variant="yellow" />
+                <PremiumBadge label="Office-Meldung" variant="orange" />
               ) : null}
             </View>
             <PremiumButton

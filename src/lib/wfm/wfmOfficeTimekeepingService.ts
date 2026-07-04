@@ -44,6 +44,13 @@ import {
   listSessionsForDate,
   todayWorkDate,
 } from './wfmWorkSessionRepository';
+import { joinOfficeTimekeepingData } from './wfmOfficeDataJoinService';
+import {
+  fetchActiveEmployeeIds,
+  listPlannedVisitsForPeriod,
+} from './wfmOfficePlannedVisitRepository';
+import { listWfmAbsencesForTeam } from './wfmAbsenceService';
+import { isWfmAbsenceCoveringDate } from './wfmDisplayHelpers';
 
 const TERMINAL_STATUSES = new Set<WfmOfficeTimeEntryStatus>(['exported', 'locked']);
 
@@ -127,8 +134,9 @@ function buildVisitEntryFromEvents(
   const pauseMinutes = overlay.pauseMinutes ?? session?.pauseMinutes ?? 0;
   const netMinutes = overlay.netMinutes ?? Math.max(0, grossMinutes - pauseMinutes);
 
-  const startAmpel = startEval.noPlannedTime ? null : startEval.ampel;
-  const endAmpel = endEval.noPlannedTime ? null : endEval.ampel;
+  const startAmpel =
+    plannedStartAt && actualStartAt && !startEval.noPlannedTime ? startEval.ampel : null;
+  const endAmpel = plannedEndAt && actualEndAt && !endEval.noPlannedTime ? endEval.ampel : null;
   const overallAmpel = combineDeviationAmpel(startAmpel, endAmpel);
 
   const entryId = overlay.id ?? `visit:${visitId}:${workDate}`;
@@ -285,13 +293,34 @@ async function buildEntriesForDate(
   return entries;
 }
 
-function computeKpis(entries: WfmOfficeTimeEntry[], openRequestsCount: number): WfmOfficeTimeKpis {
+function computeKpis(
+  entries: WfmOfficeTimeEntry[],
+  openRequestsCount: number,
+  plannedVisitCount: number,
+  absentEmployeeIds: Set<string>,
+): WfmOfficeTimeKpis {
   const today = todayWorkDate();
   const todayEntries = entries.filter((e) => e.workDate === today);
   const activeEmployees = new Set(entries.map((e) => e.employeeId)).size;
+  const employeesWithTime = new Set(
+    entries.filter((e) => e.actualStartAt).map((e) => e.employeeId),
+  ).size;
+  const employeesPlanned = new Set(
+    entries.filter((e) => e.plannedStartAt || e.plannedEndAt || e.rowKind === 'planned_missing_actual').map(
+      (e) => e.employeeId,
+    ),
+  ).size;
 
   const sumNet = (filter: (e: WfmOfficeTimeEntry) => boolean) =>
     entries.filter(filter).reduce((acc, e) => acc + e.netMinutes, 0);
+
+  const missingBookings = entries.filter(
+    (e) => e.rowKind === 'planned_missing_actual' || e.flags.includes('missing_booking'),
+  ).length;
+  const unplannedBookings = entries.filter(
+    (e) => e.rowKind === 'unplanned_actual' || e.flags.includes('unplanned'),
+  ).length;
+  const recordedVisits = entries.filter((e) => e.actualStartAt && e.workKind === 'einsatz').length;
 
   return {
     totalHours: Math.round((sumNet(() => true) / 60) * 10) / 10,
@@ -304,7 +333,7 @@ function computeKpis(entries: WfmOfficeTimeEntry[], openRequestsCount: number): 
     pendingReviewCount: entries.filter((e) => e.reviewStatus === 'pending_review').length,
     openOfficeMessages: entries.filter((e) => e.hasOpenOfficeMessage).length,
     correctionCount: entries.filter((e) => e.source === 'correction' || e.workKind === 'korrektur').length,
-    missingBookings: entries.filter((e) => !e.actualStartAt || !e.actualEndAt).length,
+    missingBookings,
     planningDeviations: entries.filter(
       (e) => e.overallAmpel === 'yellow' || e.overallAmpel === 'red' || e.overallAmpel === 'blue',
     ).length,
@@ -317,6 +346,12 @@ function computeKpis(entries: WfmOfficeTimeEntry[], openRequestsCount: number): 
     inOfficeCount: todayEntries.filter((e) => e.workKind === 'buero').length,
     homeofficeCount: todayEntries.filter((e) => e.workKind === 'homeoffice').length,
     openRequestsCount,
+    plannedVisits: plannedVisitCount,
+    recordedVisits,
+    unplannedBookings,
+    employeesWithTime,
+    employeesPlanned,
+    employeesAbsent: absentEmployeeIds.size,
   };
 }
 
@@ -391,40 +426,77 @@ export async function getWfmOfficeTimeOverview(
   );
   const dates = enumerateWorkDates(period.fromDate, period.toDate);
 
-  const allEntries: WfmOfficeTimeEntry[] = [];
+  const plannedResult = await listPlannedVisitsForPeriod(tenantId, period.fromDate, period.toDate);
+  const plannedVisits = plannedResult.ok ? plannedResult.data : [];
+
+  const allActualEntries: WfmOfficeTimeEntry[] = [];
   const employeeIdSet = new Set<string>();
 
   for (const workDate of dates) {
     const dayEntries = await buildEntriesForDate(tenantId, workDate, new Map());
     for (const e of dayEntries) {
       employeeIdSet.add(e.employeeId);
-      allEntries.push(e);
+      allActualEntries.push(e);
     }
   }
 
+  for (const planned of plannedVisits) {
+    employeeIdSet.add(planned.employeeId);
+  }
+
+  const activeEmployeesResult = await fetchActiveEmployeeIds(tenantId);
+  if (activeEmployeesResult.ok) {
+    for (const id of activeEmployeesResult.data) employeeIdSet.add(id);
+  }
+
   const profiles = await fetchEmployeeProfiles(tenantId, [...employeeIdSet]);
-  const enriched = allEntries.map((e) => ({
+  const employeeNames = new Map([...profiles.entries()].map(([id, p]) => [id, p.name]));
+
+  const enrichedActual = allActualEntries.map((e) => ({
     ...e,
     employeeName: profiles.get(e.employeeId)?.name ?? e.employeeName,
   }));
+
+  const joined = joinOfficeTimekeepingData(plannedVisits, enrichedActual, employeeNames);
+
+  const absencesResult = await listWfmAbsencesForTeam(tenantId, actorRoleKey);
+  const absentEmployeeIds = new Set<string>();
+  if (absencesResult.ok) {
+    for (const absence of absencesResult.data) {
+      for (const workDate of dates) {
+        if (isWfmAbsenceCoveringDate(absence, workDate)) {
+          absentEmployeeIds.add(absence.employeeId);
+          employeeIdSet.add(absence.employeeId);
+        }
+      }
+    }
+  }
+
+  for (const id of employeeIdSet) {
+    if (!profiles.has(id)) {
+      profiles.set(id, { id, name: `MA ${id.slice(0, 8)}` });
+    }
+  }
 
   const approvals = await listPendingWfmApprovals(tenantId, actorRoleKey);
   const openRequestsCount = approvals.ok
     ? approvals.data.filter((a) => a.approvalType === 'vacation' || a.approvalType === 'absence').length
     : 0;
 
-  const filtered = applyFilters(enriched, options?.filters);
+  const filtered = applyFilters(joined, options?.filters);
   filtered.sort((a, b) => {
     const dateCmp = b.workDate.localeCompare(a.workDate);
     if (dateCmp !== 0) return dateCmp;
-    return (b.actualStartAt ?? '').localeCompare(a.actualStartAt ?? '');
+    return (b.plannedStartAt ?? b.actualStartAt ?? '').localeCompare(
+      a.plannedStartAt ?? a.actualStartAt ?? '',
+    );
   });
 
   return {
     ok: true,
     data: {
       period,
-      kpis: computeKpis(enriched, openRequestsCount),
+      kpis: computeKpis(joined, openRequestsCount, plannedVisits.length, absentEmployeeIds),
       entries: filtered,
       employees: [...profiles.values()],
     },

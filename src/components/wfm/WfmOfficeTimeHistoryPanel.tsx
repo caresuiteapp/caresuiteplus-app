@@ -5,7 +5,7 @@ import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { formatWfmDurationMinutes, formatWfmTime } from '@/lib/wfm/wfmDisplayHelpers';
+import { formatWfmDurationMinutes, formatWfmPlanTimeRange, formatWfmActualTimeRange, formatWfmAmpelLabel } from '@/lib/wfm/wfmDisplayHelpers';
 import { listWfmOfficeAuditForEntry } from '@/lib/wfm/wfmOfficeAuditService';
 import {
   applyWfmOfficeTimeCorrection,
@@ -51,6 +51,7 @@ export function WfmOfficeTimeHistoryPanel({ tenantId, reviewerId, roleKey, canCo
   const [customTo, setCustomTo] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [filterAmpel, setFilterAmpel] = useState<string | null>(null);
+  const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
   const [correctionReason, setCorrectionReason] = useState('');
   const [reviewNote, setReviewNote] = useState('');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
@@ -59,6 +60,7 @@ export function WfmOfficeTimeHistoryPanel({ tenantId, reviewerId, roleKey, canCo
   if (filterAmpel === 'rot_blau') filters.onlyRotBlau = true;
   if (filterAmpel === 'pending') filters.onlyPendingReview = true;
   if (filterAmpel === 'office_msg') filters.onlyOfficeMessages = true;
+  if (filterEmployeeId) filters.employeeIds = [filterEmployeeId];
 
   const historyQuery = useAsyncQuery(
     useCallback(async () => {
@@ -69,8 +71,8 @@ export function WfmOfficeTimeHistoryPanel({ tenantId, reviewerId, roleKey, canCo
         toDate: preset === 'custom' ? customTo : null,
         filters,
       });
-    }, [tenantId, roleKey, preset, customFrom, customTo, filterAmpel]),
-    [tenantId, roleKey, preset, customFrom, customTo, filterAmpel],
+    }, [tenantId, roleKey, preset, customFrom, customTo, filterAmpel, filterEmployeeId]),
+    [tenantId, roleKey, preset, customFrom, customTo, filterAmpel, filterEmployeeId],
     { enabled: !!tenantId },
   );
 
@@ -167,6 +169,22 @@ export function WfmOfficeTimeHistoryPanel({ tenantId, reviewerId, roleKey, canCo
 
       <View style={styles.filterRow}>
         <PremiumButton
+          title="Alle MA"
+          variant={!filterEmployeeId ? 'secondary' : 'ghost'}
+          onPress={() => setFilterEmployeeId(null)}
+        />
+        {(overview?.employees ?? []).slice(0, 8).map((emp) => (
+          <PremiumButton
+            key={emp.id}
+            title={emp.name.split(' ')[0] ?? emp.name}
+            variant={filterEmployeeId === emp.id ? 'secondary' : 'ghost'}
+            onPress={() => setFilterEmployeeId(emp.id)}
+          />
+        ))}
+      </View>
+
+      <View style={styles.filterRow}>
+        <PremiumButton
           title="Nur Rot/Blau"
           variant={filterAmpel === 'rot_blau' ? 'secondary' : 'ghost'}
           onPress={() => setFilterAmpel((v) => (v === 'rot_blau' ? null : 'rot_blau'))}
@@ -185,14 +203,16 @@ export function WfmOfficeTimeHistoryPanel({ tenantId, reviewerId, roleKey, canCo
 
       {kpis ? (
         <View style={styles.kpiRow}>
+          <PremiumKpiCard label="Geplante Einsätze" value={String(kpis.plannedVisits ?? 0)} accentColor={accent} />
+          <PremiumKpiCard label="Erfasste Einsätze" value={String(kpis.recordedVisits ?? 0)} accentColor={accent} />
+          <PremiumKpiCard label="Fehlende Buchungen" value={String(kpis.missingBookings ?? 0)} accentColor={accent} />
+          <PremiumKpiCard label="Ungeplante Buchungen" value={String(kpis.unplannedBookings ?? 0)} accentColor={accent} />
           <PremiumKpiCard label="Gesamtstunden" value={String(kpis.totalHours)} accentColor={accent} />
-          <PremiumKpiCard label="Einsatzstunden" value={String(kpis.visitHours)} accentColor={accent} />
-          <PremiumKpiCard label="Pausen (Min.)" value={String(kpis.pauseMinutes)} accentColor={accent} />
           <PremiumKpiCard label="Offene Prüfungen" value={String(kpis.pendingReviewCount)} accentColor={accent} />
-          <PremiumKpiCard label="Office-Meldungen" value={String(kpis.openOfficeMessages)} accentColor={accent} />
-          <PremiumKpiCard label="Exportbereit" value={String(kpis.exportReadyCount)} accentColor={accent} />
-          <PremiumKpiCard label="Exportiert" value={String(kpis.exportedCount)} accentColor={accent} />
           <PremiumKpiCard label="Abweichungen" value={String(kpis.planningDeviations)} accentColor={accent} />
+          <PremiumKpiCard label="MA mit Arbeitszeit" value={String(kpis.employeesWithTime ?? 0)} accentColor={accent} />
+          <PremiumKpiCard label="MA geplant" value={String(kpis.employeesPlanned ?? 0)} accentColor={accent} />
+          <PremiumKpiCard label="Exportiert" value={String(kpis.exportedCount)} accentColor={accent} />
         </View>
       ) : null}
 
@@ -208,16 +228,32 @@ export function WfmOfficeTimeHistoryPanel({ tenantId, reviewerId, roleKey, canCo
             {selected.employeeName} — {selected.workDate}
           </Text>
           <Text style={{ color: text.secondary, ...typography.caption }}>
-            {selected.clientLabel ?? '—'} · Status {WFM_OFFICE_TIME_STATUS_LABELS[selected.reviewStatus]}
+            {selected.clientLabel ?? selected.assignmentTitle ?? '—'} · Status{' '}
+            {WFM_OFFICE_TIME_STATUS_LABELS[selected.reviewStatus]}
+            {selected.rowKind ? ` · ${selected.rowKind}` : ''}
           </Text>
           <Text style={{ color: text.secondary, ...typography.caption }}>
-            Start: Plan {formatWfmTime(selected.plannedStartAt)} / Ist {formatWfmTime(selected.actualStartAt)}{' '}
-            {selected.startAmpel ? `(${WFM_DEVIATION_AMPEL_LABELS[selected.startAmpel]})` : ''}
+            Plan: {formatWfmPlanTimeRange(selected.plannedStartAt, selected.plannedEndAt, selected.planDisplayStatus)}
           </Text>
           <Text style={{ color: text.secondary, ...typography.caption }}>
-            Ende: Plan {formatWfmTime(selected.plannedEndAt)} / Ist {formatWfmTime(selected.actualEndAt)}{' '}
-            {selected.endAmpel ? `(${WFM_DEVIATION_AMPEL_LABELS[selected.endAmpel]})` : ''}
+            Ist: {formatWfmActualTimeRange(selected.actualStartAt, selected.actualEndAt, selected.actualDisplayStatus)}
           </Text>
+          <Text style={{ color: text.secondary, ...typography.caption }}>
+            {formatWfmAmpelLabel(selected.startAmpel, 'start')} · {formatWfmAmpelLabel(selected.endAmpel, 'end')} ·{' '}
+            {selected.overallAmpel
+              ? `Gesamt (${WFM_DEVIATION_AMPEL_LABELS[selected.overallAmpel]})`
+              : 'Gesamt: nicht berechnet'}
+          </Text>
+          {selected.flags.includes('missing_booking') ? (
+            <Text style={{ color: text.secondary, ...typography.caption }}>
+              Hinweis: Fehlende Buchung — geplanter Einsatz ohne Ist-Zeit.
+            </Text>
+          ) : null}
+          {selected.flags.includes('unplanned') ? (
+            <Text style={{ color: text.secondary, ...typography.caption }}>
+              Hinweis: Ungeplante Arbeitszeit — Zuordnung prüfen.
+            </Text>
+          ) : null}
           {selected.startJustification ? (
             <Text style={{ color: text.secondary, ...typography.caption }}>
               Start-Begründung: {selected.startJustification}

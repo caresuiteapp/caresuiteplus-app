@@ -34,6 +34,24 @@ export type WfmOfficeWorkKind =
   | 'nachtrag'
   | 'sonstige';
 
+/** ZEIT.3.1 — Zeilentyp nach Daten-JOIN */
+export type WfmOfficeTimeRowKind =
+  | 'planned_with_actual'
+  | 'planned_missing_actual'
+  | 'unplanned_actual'
+  | 'manual_entry'
+  | 'session_only';
+
+export type WfmOfficePlanDisplayStatus =
+  | 'planned'
+  | 'plan_missing'
+  | 'no_planned_visit';
+
+export type WfmOfficeActualDisplayStatus =
+  | 'captured'
+  | 'not_captured'
+  | 'partial';
+
 export type WfmOfficePeriodPreset =
   | 'today'
   | 'yesterday'
@@ -70,6 +88,12 @@ export interface WfmOfficeTimeEntry {
   employeeId: string;
   employeeName: string;
   workDate: string;
+  /** ZEIT.3.1 — JOIN-Zeilentyp */
+  rowKind?: WfmOfficeTimeRowKind;
+  planDisplayStatus?: WfmOfficePlanDisplayStatus;
+  actualDisplayStatus?: WfmOfficeActualDisplayStatus;
+  assignmentStatus?: string | null;
+  assignmentTitle?: string | null;
   assignmentId: string | null;
   visitId: string | null;
   clientLabel: string | null;
@@ -124,6 +148,26 @@ export interface WfmOfficeTimeKpis {
   inOfficeCount: number;
   homeofficeCount: number;
   openRequestsCount: number;
+  /** ZEIT.3.1 — Zeitraum-KPIs aus vollständigem JOIN */
+  plannedVisits: number;
+  recordedVisits: number;
+  unplannedBookings: number;
+  employeesWithTime: number;
+  employeesPlanned: number;
+  employeesAbsent: number;
+}
+
+export interface WfmOfficePlannedVisit {
+  assignmentId: string;
+  visitId: string | null;
+  tenantId: string;
+  employeeId: string;
+  workDate: string;
+  plannedStartAt: string | null;
+  plannedEndAt: string | null;
+  clientLabel: string | null;
+  assignmentTitle: string | null;
+  assignmentStatus: string | null;
 }
 
 export interface WfmOfficeTimeFilters {

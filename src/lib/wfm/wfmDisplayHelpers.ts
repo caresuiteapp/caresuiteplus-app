@@ -49,6 +49,44 @@ export function formatWfmTime(iso: string | null | undefined): string {
   return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
+/** ZEIT.3.1 — Planzeiten mit klarem Fallback statt „— — —“ */
+export function formatWfmPlanTimeRange(
+  plannedStart: string | null | undefined,
+  plannedEnd: string | null | undefined,
+  planStatus?: import('@/types/modules/wfmOfficeTimekeeping').WfmOfficePlanDisplayStatus,
+): string {
+  if (planStatus === 'no_planned_visit') return 'Kein geplanter Einsatz zugeordnet';
+  if (planStatus === 'plan_missing' || (!plannedStart && !plannedEnd)) return 'Planzeit fehlt';
+  return `${formatWfmTime(plannedStart)} – ${formatWfmTime(plannedEnd)}`;
+}
+
+/** ZEIT.3.1 — Ist-Zeiten mit klarem Fallback */
+export function formatWfmActualTimeRange(
+  actualStart: string | null | undefined,
+  actualEnd: string | null | undefined,
+  actualStatus?: import('@/types/modules/wfmOfficeTimekeeping').WfmOfficeActualDisplayStatus,
+): string {
+  if (actualStatus === 'not_captured' || (!actualStart && !actualEnd)) return 'Noch nicht erfasst';
+  if (actualStatus === 'partial') {
+    return `${formatWfmTime(actualStart)} – (offen)`;
+  }
+  return `${formatWfmTime(actualStart)} – ${formatWfmTime(actualEnd)}`;
+}
+
+export function formatWfmAmpelLabel(
+  ampel: import('@/types/modules/wfmOfficeTimekeeping').WfmDeviationAmpel | null | undefined,
+  kind: 'start' | 'end' | 'overall',
+): string {
+  if (!ampel) {
+    if (kind === 'start') return 'Start: nicht erfasst';
+    if (kind === 'end') return 'Ende: nicht erfasst';
+    return 'Gesamt: —';
+  }
+  const labels = { green: 'Grün', yellow: 'Gelb', red: 'Rot', blue: 'Blau' };
+  const prefix = kind === 'start' ? 'Start' : kind === 'end' ? 'Ende' : 'Gesamt';
+  return `${prefix}: ${labels[ampel]}`;
+}
+
 export function formatWfmDurationMinutes(minutes: number): string {
   if (minutes <= 0) return '—';
   const h = Math.floor(minutes / 60);
