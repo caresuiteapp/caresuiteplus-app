@@ -8,6 +8,7 @@ import {
   readPortalAppointmentDetailCache,
 } from '@/lib/offline/assignmentCacheService';
 import {
+  classifyPrefetchApiNoise,
   prefetchAssignmentDetailCaches,
   resetAssignmentDetailPrefetchForTests,
   selectPrefetchAssignmentCandidates,
@@ -361,5 +362,16 @@ describe('OFFLINE.3 detail prefetch integration', () => {
       const cached = await readPortalAppointmentDetailCache('tenant-1', 'emp-1', 'asg-1');
       expect(cached?.payload.title).toBe('Portal 1');
     });
+  });
+});
+
+describe('CONSOLE.1 prefetch API noise classification', () => {
+  it('marks RLS/access messages as expected_access', () => {
+    expect(classifyPrefetchApiNoise('Keine Berechtigung für diesen Einsatz.')).toBe('expected_access');
+  });
+
+  it('marks not-found messages separately from unexpected failures', () => {
+    expect(classifyPrefetchApiNoise('Einsatz nicht gefunden.')).toBe('not_found');
+    expect(classifyPrefetchApiNoise('write_failed')).toBe('unexpected');
   });
 });

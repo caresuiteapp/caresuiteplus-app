@@ -12,6 +12,21 @@ export type PrefetchDetailResult = {
   failures: Array<{ assignmentId: string; portalError?: string; executionError?: string }>;
 };
 
+/** CONSOLE.1 — classify service-layer prefetch errors vs bootstrap REST noise. */
+export type PrefetchApiNoiseClass = 'expected_access' | 'not_found' | 'unexpected';
+
+export function classifyPrefetchApiNoise(error: string | undefined): PrefetchApiNoiseClass {
+  if (!error?.trim()) return 'unexpected';
+  const msg = error.toLowerCase();
+  if (/einsatz nicht gefunden|nicht zugewiesen|kein zugriff|kein profil/.test(msg)) {
+    return 'not_found';
+  }
+  if (/berechtigung|permission|row level|policy|403|401|nicht verfügbar/.test(msg)) {
+    return 'expected_access';
+  }
+  return 'unexpected';
+}
+
 let activePrefetchAbort: AbortController | null = null;
 
 function hasScopedEmployeeCache(
@@ -42,9 +57,14 @@ export function selectPrefetchAssignmentCandidates(
 }
 
 function logPrefetchFailure(assignmentId: string, kind: 'portal' | 'execution', error: string): void {
-  if (process.env.NODE_ENV !== 'production') {
-    console.debug(`[CareSuite offline] prefetch ${kind} detail failed`, { assignmentId, error });
-  }
+  if (process.env.NODE_ENV === 'production') return;
+  const noiseClass = classifyPrefetchApiNoise(error);
+  if (noiseClass === 'expected_access' || noiseClass === 'not_found') return;
+  console.debug(`[CareSuite offline] prefetch ${kind} detail failed`, {
+    assignmentId,
+    error,
+    noiseClass,
+  });
 }
 
 function delayMs(ms: number, signal?: AbortSignal): Promise<void> {
@@ -149,6 +169,7 @@ export function scheduleAssignmentDetailPrefetch(
   items: CachedPortalAppointmentItem[],
 ): void {
   if (!hasScopedEmployeeCache(tenantId, employeeId)) return;
+  if (!profileId?.trim() || !roleKey) return;
   if (isBrowserOffline()) return;
   if (!items.length) return;
 
