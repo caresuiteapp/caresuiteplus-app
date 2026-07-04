@@ -20,6 +20,7 @@ import {
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getServiceMode } from '@/lib/services/mode';
 import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
+import { checkVisitDeviationGate } from '@/lib/wfm/wfmOfficeTimekeepingService';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 
@@ -258,6 +259,23 @@ export async function endService(
   if (ctx.visitTimes?.serviceEndedAt) {
     const refreshed = await reloadContext(ctx);
     return refreshed.ok ? refreshed : endServiceError('WORKFLOW_TIME_EVENT_FAILED', ctx, refreshed.error);
+  }
+
+  const actualEnd = new Date().toISOString();
+  const deviationGate = checkVisitDeviationGate(
+    ctx.tenantId,
+    ctx.employeeId,
+    ctx.assistVisitId,
+    'end',
+    ctx.detail.plannedEndAt,
+    actualEnd,
+  );
+  if (deviationGate.blocked) {
+    return endServiceError(
+      'WORKFLOW_INVALID_STATE',
+      ctx,
+      'Abweichung zur geplanten Einsatz-Endzeit — schriftliche Begründung erforderlich.',
+    );
   }
 
   const result = await transitionAssistExecutionStatus(ctx, 'beendet', {

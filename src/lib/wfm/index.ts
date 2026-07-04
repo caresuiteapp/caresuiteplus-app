@@ -152,3 +152,30 @@ export {
   listPendingWfmCorrections,
   type WfmCorrectionRequest,
 } from './wfmCorrectionService';
+
+export {
+  evaluateVisitTimeDeviation,
+  combineDeviationAmpel,
+  resolveAmpelFromDeviationMinutes,
+  validateDeviationJustification,
+  formatDeviationDirectionLabel,
+  shouldAutoPendingReview,
+  WFM_DEVIATION_JUSTIFICATION_MIN_LENGTH,
+} from './wfmVisitDeviationAmpelService';
+
+export { resolveOfficeTimePeriod, enumerateWorkDates } from './wfmOfficeDateRange';
+
+export {
+  getWfmOfficeTimeOverview,
+  applyWfmOfficeTimeCorrection,
+  createWfmOfficeManualEntry,
+  reviewWfmOfficeTimeEntry,
+  submitVisitDeviationJustification,
+  checkVisitDeviationGate,
+  getWfmOfficeExportWarnings,
+  listOfficeMessages,
+} from './wfmOfficeTimekeepingService';
+
+export { writeWfmOfficeAudit, listWfmOfficeAuditForEntry } from './wfmOfficeAuditService';
+
+export { resetWfmOfficeTimekeepingStore } from './wfmOfficeTimekeepingStore';

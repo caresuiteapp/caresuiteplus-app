@@ -19,6 +19,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { createWfmExportJob, type WfmExportFormat } from '@/lib/wfm/wfmExportService';
+import { getWfmOfficeExportWarnings } from '@/lib/wfm/wfmOfficeTimekeepingService';
 
 function triggerWebFileDownload(content: string, mimeType: string, fileName: string): void {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
@@ -67,6 +68,7 @@ export function WfmExportScreen() {
   const [error, setError] = useState<string | null>(null);
   const [lastPreview, setLastPreview] = useState<string | null>(null);
   const [lastFormat, setLastFormat] = useState<WfmExportFormat>('csv');
+  const [exportWarnings, setExportWarnings] = useState<string[]>([]);
 
   const canExport = can('time.tracking.admin.export');
   const exportReady = Boolean(tenantId && userId);
@@ -76,6 +78,12 @@ export function WfmExportScreen() {
     setLoading(true);
     setError(null);
     setMessage(null);
+    setExportWarnings([]);
+
+    const warnResult = await getWfmOfficeExportWarnings(tenantId, roleKey, 'this_month');
+    if (warnResult.ok && warnResult.data.warnings.length) {
+      setExportWarnings(warnResult.data.warnings);
+    }
 
     const result = await createWfmExportJob(tenantId, userId, roleKey, year, month, format);
     setLoading(false);
@@ -137,6 +145,9 @@ export function WfmExportScreen() {
           <InfoBanner message="Sitzung wird geladen — Export starten, sobald Mandant und Benutzer bereit sind." />
         ) : null}
         {loading ? <LoadingState message="Export wird erstellt…" /> : null}
+        {exportWarnings.map((w) => (
+          <InfoBanner key={w} variant="warning" message={w} />
+        ))}
         <PremiumButton
           title="CSV exportieren"
           testID="wfm-export-csv"

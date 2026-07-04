@@ -22,6 +22,7 @@ import { useAuth } from '@/lib/auth/context';
 import { getWfmTeamTodayOverview } from '@/lib/wfm/wfmTeamTodayService';
 import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
 import { WfmRuleWarningsPanel } from '@/components/wfm/WfmRuleWarningsPanel';
+import { WfmOfficeTimeHistoryPanel } from '@/components/wfm/WfmOfficeTimeHistoryPanel';
 import { WfmTeamTodayDetailPanel } from '@/components/wfm/WfmTeamTodayDetailPanel';
 import { WfmTeamTodayEmployeeCard } from '@/components/wfm/WfmTeamTodayEmployeeCard';
 import { typography } from '@/theme';
@@ -38,6 +39,7 @@ export function TimeTrackingTeamScreen() {
 
   const canView = can('time.tracking.team.view');
   const canApprove = can('office.employees.absences.approve');
+  const canCorrect = can('time.tracking.admin.correct');
 
   const teamQuery = useAsyncQuery(
     useCallback(async () => {
@@ -90,7 +92,7 @@ export function TimeTrackingTeamScreen() {
   const selectedRow = teamRows.find((r) => r.employeeId === selectedEmployeeId) ?? null;
 
   return (
-    <ScreenShell title="Team-Arbeitszeit" subtitle="Übersicht aller Mitarbeitenden heute" scroll>
+    <ScreenShell title="Team-Arbeitszeit" subtitle="Historie, Prüfung und Live-Übersicht" scroll>
       <View style={styles.kpiRow}>
         <PremiumKpiCard label="Heute erfasst" value={String(kpis?.capturedToday ?? 0)} accentColor={accent} />
         <PremiumKpiCard label="Aktive MA" value={String(kpis?.activeCount ?? 0)} accentColor={accent} />
@@ -132,6 +134,15 @@ export function TimeTrackingTeamScreen() {
           onPress={() => router.push('/business/office/time-tracking' as never)}
         />
       </View>
+
+      {tenantId && reviewerId ? (
+        <WfmOfficeTimeHistoryPanel
+          tenantId={tenantId}
+          reviewerId={reviewerId}
+          roleKey={roleKey}
+          canCorrect={canCorrect}
+        />
+      ) : null}
 
       {(kpis?.openRequestsCount ?? 0) > 0 && canApprove ? (
         <InfoBanner

@@ -37,6 +37,7 @@ import {
 import { WfmTimeAccountPanel } from '@/components/wfm/WfmTimeAccountPanel';
 import { WfmCheckinScanPanel } from '@/components/wfm/WfmCheckinScanPanel';
 import { WfmRuleWarningsPanel } from '@/components/wfm/WfmRuleWarningsPanel';
+import { WfmOfficeManualEntryPanel } from '@/components/wfm/WfmOfficeManualEntryPanel';
 import type { WfmEventSource, WfmWorkTypeKey } from '@/types/modules/wfm';
 import { typography } from '@/theme';
 
@@ -320,6 +321,15 @@ export function TimeTrackingEmployeeScreen() {
           userId={userId}
           roleKey={roleKey}
           employeeId={employeeId}
+        />
+      ) : null}
+
+      {tenantId && userId && can('time.tracking.admin.correct') && !pathname.startsWith('/portal/') ? (
+        <WfmOfficeManualEntryPanel
+          tenantId={tenantId}
+          actorId={userId}
+          roleKey={roleKey}
+          employees={employeeId ? [{ id: employeeId, name: profile?.fullName ?? profile?.email ?? 'Aktueller MA' }] : []}
         />
       ) : null}
 

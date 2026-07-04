@@ -28,6 +28,15 @@ import {
 } from '@/components/ui';
 import { isEmployeePortalVisitLiveTrackingActive } from '@/lib/portal/employeePortalLiveOverviewService';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
+import { usePortalActor } from '@/hooks/usePortalActor';
+import { useAuth } from '@/lib/auth/context';
+import { WfmVisitDeviationJustificationModal } from '@/components/wfm/WfmVisitDeviationJustificationModal';
+import {
+  checkVisitDeviationGate,
+  submitVisitDeviationJustification,
+} from '@/lib/wfm/wfmOfficeTimekeepingService';
+import { evaluateVisitTimeDeviation } from '@/lib/wfm/wfmVisitDeviationAmpelService';
+import type { WfmDeviationPhase } from '@/types/modules/wfmOfficeTimekeeping';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkflowPersistence } from '@/hooks/useWorkflowPersistence';
 import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
@@ -118,7 +127,12 @@ export function EmployeePortalVisitExecutionScreen() {
     fromCache,
     cachedAt,
     partialDetail,
+    executionContext,
   } = useEmployeePortalVisitExecution(id);
+
+  const { tenantId: portalTenantId, employeeId: portalEmployeeId } = usePortalActor();
+  const { user, profile } = useAuth();
+  const actorId = user?.id ?? profile?.id ?? portalEmployeeId ?? '';
 
   const effectiveStatus: AssignmentStatus =
     hookEffectiveStatus ?? visit?.status ?? 'geplant';
@@ -133,6 +147,12 @@ export function EmployeePortalVisitExecutionScreen() {
   const [noShowNote, setNoShowNote] = useState('');
   const [showNoShowForm, setShowNoShowForm] = useState(false);
   const [awaitingSignature, setAwaitingSignature] = useState(false);
+  const [deviationModal, setDeviationModal] = useState<{
+    phase: WfmDeviationPhase;
+    pendingAction: 'start_service' | 'end_service';
+  } | null>(null);
+  const [deviationSubmitting, setDeviationSubmitting] = useState(false);
+  const [deviationError, setDeviationError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const docPanelRef = useRef<EmployeePortalVisitDocumentationPanelHandle>(null);
   const actionsSectionY = useRef(0);
@@ -334,6 +354,41 @@ export function EmployeePortalVisitExecutionScreen() {
     }
   }, [markArrived, tracking, geofenceOverride, setGeofenceOverride]);
 
+  const resolveDeviationCheck = useCallback(
+    (phase: WfmDeviationPhase) => {
+      const ctx = executionContext;
+      if (!ctx) return null;
+      const planned = phase === 'start' ? ctx.detail.plannedStartAt : ctx.detail.plannedEndAt;
+      const actual = new Date().toISOString();
+      const gate = checkVisitDeviationGate(
+        ctx.tenantId,
+        ctx.employeeId,
+        ctx.assistVisitId,
+        phase,
+        planned,
+        actual,
+      );
+      const evaluation = evaluateVisitTimeDeviation(planned, actual, phase);
+      return { gate, evaluation, planned, actual };
+    },
+    [executionContext],
+  );
+
+  const proceedAfterDeviation = useCallback(
+    async (action: 'start_service' | 'end_service') => {
+      if (action === 'start_service') {
+        const r = await startService();
+        if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
+        else setLocalSuccess('Einsatz gestartet.');
+        return;
+      }
+      const r = await endService();
+      if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
+      else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
+    },
+    [startService, endService],
+  );
+
   const runAllowedAction = useCallback(
     async (action: AssistWorkflowAllowedAction) => {
       setLocalError(null);
@@ -348,9 +403,16 @@ export function EmployeePortalVisitExecutionScreen() {
         return;
       }
       if (action === 'start_service') {
-        const r = await startService();
-        if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht gestartet werden.');
-        else setLocalSuccess('Einsatz gestartet.');
+        const check = resolveDeviationCheck('start');
+        if (check?.gate.needsJustification && check.gate.blocked) {
+          setDeviationError(null);
+          setDeviationModal({ phase: 'start', pendingAction: 'start_service' });
+          return;
+        }
+        if (check?.evaluation.ampel === 'yellow') {
+          setLocalWarning('Leichte Abweichung zur geplanten Startzeit.');
+        }
+        await proceedAfterDeviation('start_service');
         return;
       }
       if (action === 'end_pause') {
@@ -360,9 +422,16 @@ export function EmployeePortalVisitExecutionScreen() {
         return;
       }
       if (action === 'end_service') {
-        const r = await endService();
-        if (!r.ok) setLocalError(r.error ?? 'Einsatz konnte nicht beendet werden.');
-        else setLocalSuccess('Einsatz beendet — Dokumentation erforderlich.');
+        const check = resolveDeviationCheck('end');
+        if (check?.gate.needsJustification && check.gate.blocked) {
+          setDeviationError(null);
+          setDeviationModal({ phase: 'end', pendingAction: 'end_service' });
+          return;
+        }
+        if (check?.evaluation.ampel === 'yellow') {
+          setLocalWarning('Leichte Abweichung zur geplanten Endzeit.');
+        }
+        await proceedAfterDeviation('end_service');
         return;
       }
       if (action === 'save_documentation') {
@@ -379,7 +448,7 @@ export function EmployeePortalVisitExecutionScreen() {
         else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
       }
     },
-    [handleStartDrive, handleArrived, startService, endPause, endService, openSignatureCapture, finalizeVisit],
+    [handleStartDrive, handleArrived, proceedAfterDeviation, resolveDeviationCheck, endPause, openSignatureCapture, finalizeVisit],
   );
 
   const handlePrimary = useCallback(async () => {
@@ -734,6 +803,59 @@ export function EmployeePortalVisitExecutionScreen() {
 
         <PremiumButton title="Zurück zur Übersicht" variant="ghost" fullWidth onPress={() => router.back()} />
       </ScrollView>
+
+      {deviationModal && executionContext ? (
+        <WfmVisitDeviationJustificationModal
+          visible
+          phase={deviationModal.phase}
+          evaluation={
+            resolveDeviationCheck(deviationModal.phase)?.evaluation ?? {
+              ampel: 'red',
+              deviationMinutes: 0,
+              direction: 'unknown',
+              plannedAt: null,
+              actualAt: null,
+              requiresJustification: true,
+              blocksUntilJustification: true,
+              noPlannedTime: false,
+            }
+          }
+          loading={deviationSubmitting}
+          error={deviationError}
+          onCancel={() => {
+            setDeviationModal(null);
+            setDeviationError(null);
+          }}
+          onSubmit={async (justification) => {
+            const check = resolveDeviationCheck(deviationModal.phase);
+            if (!check) return;
+            setDeviationSubmitting(true);
+            setDeviationError(null);
+            const result = await submitVisitDeviationJustification(
+              executionContext.tenantId,
+              executionContext.employeeId,
+              actorId,
+              {
+                visitId: executionContext.assistVisitId,
+                assignmentId: executionContext.assignmentId,
+                clientLabel: executionContext.detail.clientName,
+                phase: deviationModal.phase,
+                plannedAt: check.planned,
+                actualAt: check.actual,
+                justification,
+              },
+            );
+            setDeviationSubmitting(false);
+            if (!result.ok) {
+              setDeviationError(result.error);
+              return;
+            }
+            const pending = deviationModal.pendingAction;
+            setDeviationModal(null);
+            await proceedAfterDeviation(pending);
+          }}
+        />
+      ) : null}
     </ScreenShell>
   );
 }

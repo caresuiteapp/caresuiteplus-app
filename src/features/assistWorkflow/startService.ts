@@ -11,6 +11,7 @@ import { ensureVisitTimeEvent } from './saveVisitTimeEvent';
 import { resolveAssistExecutionContext } from './resolveAssistExecutionContext';
 import { resolveAllowedActions, resolveAssistExecutionDiagnostics } from './resolveAllowedActions';
 import { mirrorAssistVisitStatusFromAssignment } from '@/lib/portal/employeePortalExecutionLiveService';
+import { checkVisitDeviationGate } from '@/lib/wfm/wfmOfficeTimekeepingService';
 import { getServiceMode } from '@/lib/services/mode';
 import type { AssistExecutionContext } from './types';
 import type { VisitTimesSummary } from './calculateVisitTimes';
@@ -384,6 +385,23 @@ export async function startService(
 
   if (workingCtx.assignmentStatus === 'gestartet' && !workingCtx.visitTimes?.serviceStartedAt) {
     return backfillServiceStart(workingCtx);
+  }
+
+  const actualStart = new Date().toISOString();
+  const deviationGate = checkVisitDeviationGate(
+    workingCtx.tenantId,
+    workingCtx.employeeId,
+    workingCtx.assistVisitId,
+    'start',
+    workingCtx.detail.plannedStartAt,
+    actualStart,
+  );
+  if (deviationGate.blocked) {
+    return startServiceError(
+      'START_SERVICE_INVALID_TRANSITION',
+      workingCtx,
+      'Abweichung zur geplanten Einsatzzeit — schriftliche Begründung erforderlich.',
+    );
   }
 
   return transitionToServiceStart(workingCtx);
