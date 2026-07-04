@@ -27,14 +27,14 @@ describe('readInitialConnectivityState', () => {
     expect(state.connectionType).toBe('unknown');
   });
 
-  it('reflects navigator.onLine when window is present', () => {
+  it('returns optimistic online on web hydration pass even when navigator is offline (HYDRATION.1)', () => {
     vi.stubGlobal('window', {});
     vi.stubGlobal('navigator', { onLine: false });
 
     const state = readInitialConnectivityState();
-    expect(state.isConnected).toBe(false);
-    expect(state.isOffline).toBe(true);
-    expect(state.isInternetReachable).toBe(false);
+    expect(state.isConnected).toBe(true);
+    expect(state.isOffline).toBe(false);
+    expect(state.isInternetReachable).toBeNull();
   });
 
   it('marks online when navigator.onLine is true', () => {

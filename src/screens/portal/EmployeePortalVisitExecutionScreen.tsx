@@ -24,6 +24,7 @@ import {
   PremiumInput,
   SectionPanel,
   SuccessState,
+  CachedDataBanner,
 } from '@/components/ui';
 import { isEmployeePortalVisitLiveTrackingActive } from '@/lib/portal/employeePortalLiveOverviewService';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
@@ -113,6 +114,9 @@ export function EmployeePortalVisitExecutionScreen() {
     nextActionHint,
     notFound,
     isServiceEnded,
+    readOnlyExecution,
+    fromCache,
+    cachedAt,
   } = useEmployeePortalVisitExecution(id);
 
   const effectiveStatus: AssignmentStatus =
@@ -463,9 +467,10 @@ export function EmployeePortalVisitExecutionScreen() {
       ? startServiceLoading
       : actionLoading || driveLoading;
   const primaryButtonDisabled =
-    primaryActionResolved === 'start_service'
+    readOnlyExecution ||
+    (primaryActionResolved === 'start_service'
       ? startServiceLoading || driveLoading
-      : actionLoading || driveLoading;
+      : actionLoading || driveLoading);
 
   return (
     <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
@@ -492,6 +497,14 @@ export function EmployeePortalVisitExecutionScreen() {
         <InfoBanner variant="info" message={nextActionHint} />
       ) : null}
       {refetchWarning ? <InfoBanner variant="warning" message={refetchWarning} /> : null}
+      <CachedDataBanner visible={fromCache || readOnlyExecution} cachedAt={cachedAt} readOnly={readOnlyExecution} />
+      {readOnlyExecution ? (
+        <InfoBanner
+          variant="warning"
+          title="Nur Ansicht"
+          message="Offline oder zwischengespeichert — Workflow-Aktionen sind deaktiviert."
+        />
+      ) : null}
 
       <ScrollView
         ref={scrollRef}

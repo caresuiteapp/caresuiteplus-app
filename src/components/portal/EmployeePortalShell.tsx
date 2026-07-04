@@ -8,6 +8,8 @@ import {
 import { OfflineNotice } from '@/components/ui/OfflineNotice';
 import { useAuth } from '@/lib/auth/context';
 import { useConnectivity } from '@/hooks/useConnectivity';
+import { useOfflineAssignmentPrefetch } from '@/hooks/useOfflineAssignmentPrefetch';
+import { useOfflineDbInit } from '@/hooks/useOfflineDbInit';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { spacing } from '@/theme';
@@ -22,6 +24,8 @@ export function EmployeePortalShell({ children, accentColor }: EmployeePortalShe
   const { tenantId: portalTenantId, employeeId } = usePortalActor();
   const tenantId = useServiceTenantId() ?? portalTenantId;
   const { isOffline } = useConnectivity();
+  useOfflineDbInit();
+  useOfflineAssignmentPrefetch();
   const { showOnboarding, complete, dismiss } = useEmployeePermissionOnboardingGate(
     tenantId,
     employeeId,

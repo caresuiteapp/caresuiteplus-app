@@ -10,7 +10,9 @@ import type {
   EmployeePortalTrackingSnapshot,
 } from '@/types/modules/employeePortalTracking';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
-import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
+import { loadExecutionDetailWithCache } from '@/lib/offline/assignmentCacheService';
+import type { AssignmentCacheMeta } from '@/lib/offline/types';
+import { useConnectivity } from '@/hooks/useConnectivity';
 import { buildEmployeePortalLiveRoute } from '@/features/liveTracking/buildEmployeePortalLiveRoute';
 import { saveEmployeeLocationConsent } from '@/features/liveTracking/saveEmployeeLocationConsent';
 import { getEmployeeLocationConsent } from '@/features/liveTracking/getEmployeeLocationConsent';
@@ -199,6 +201,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const employeeId = portalEmployeeId ?? profile?.employeeId ?? '';
   const roleKey = portalRoleKey ?? profile?.roleKey ?? null;
   const authProfileId = profile?.id ?? actorId ?? null;
+  const { isOffline } = useConnectivity();
+  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
+    fromCache: false,
+    cachedAt: null,
+  });
+  const readOnlyExecution = isOffline || cacheMeta.fromCache;
 
   const [gpsPermission, setGpsPermission] = useState<EmployeePortalGpsPermissionStatus>('undetermined');
   const [liveContext, setLiveContext] = useState<EmployeeLiveContext | null>(null);
@@ -253,11 +261,18 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   }, [assignmentId]);
 
   const query = useAsyncQuery(
-    () => {
+    async () => {
       if (!tenantId || !assignmentId || !employeeId) {
-        return Promise.resolve({ ok: false as const, error: 'Einsatzdaten unvollständig.' });
+        return { ok: false as const, error: 'Einsatzdaten unvollständig.' };
       }
-      return fetchEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId, roleKey);
+      const result = await loadExecutionDetailWithCache(
+        tenantId,
+        assignmentId,
+        employeeId,
+        roleKey,
+      );
+      setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
+      return result;
     },
     [tenantId, assignmentId, employeeId, roleKey],
     {
@@ -959,6 +974,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   }, [query.data, liveContext?.clientAddress, taskDrafts.tasks]);
 
   const allowedActions = useMemo(() => {
+    if (readOnlyExecution) return [];
     if (executionContext && effectiveStatus) {
       let visitTimes = executionContext.visitTimes;
       const hasServiceEnded = Boolean(
@@ -1007,7 +1023,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
       derivedStatus: workflowDerived.derivedStatus,
       canStartService: workflowDerived.canStartService,
     });
-  }, [executionContext, effectiveStatus, query.data, workflowDerived]);
+  }, [executionContext, effectiveStatus, query.data, workflowDerived, readOnlyExecution]);
 
   return {
     data: visitWithAddress,
@@ -1061,5 +1077,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             effectiveStatus === 'dokumentation_offen' ||
             effectiveStatus === 'unterschrift_offen')),
     ),
+    readOnlyExecution,
+    fromCache: cacheMeta.fromCache,
+    cachedAt: cacheMeta.cachedAt,
   };
 }

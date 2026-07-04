@@ -3,6 +3,7 @@ import {
   OFFLINE_DB_VERSION,
   OFFLINE_STORE_NAMES,
   type OfflineDbHealth,
+  type OfflineStoreName,
   type SyncMetaRecord,
 } from './types';
 
@@ -143,6 +144,42 @@ export async function getOfflineDbHealth(): Promise<OfflineDbHealth> {
       storeCount: 0,
       error: mapOpenError(error),
     };
+  }
+}
+
+export async function putStoreRecord<T extends { key: string }>(
+  storeName: OfflineStoreName,
+  record: T,
+): Promise<boolean> {
+  const db = await openOfflineDb();
+  if (!db) return false;
+
+  try {
+    await runTransaction(db, storeName, 'readwrite', (store) =>
+      store.put({ ...record, key: record.key }),
+    );
+    return true;
+  } catch (error) {
+    console.warn(`[CareSuite offline] putStoreRecord(${storeName}) failed:`, mapOpenError(error));
+    return false;
+  }
+}
+
+export async function getStoreRecord<T extends { key: string }>(
+  storeName: OfflineStoreName,
+  key: string,
+): Promise<T | null> {
+  const db = await openOfflineDb();
+  if (!db) return null;
+
+  try {
+    const result = await runTransaction<T | undefined>(db, storeName, 'readonly', (store) =>
+      store.get(key),
+    );
+    return result ?? null;
+  } catch (error) {
+    console.warn(`[CareSuite offline] getStoreRecord(${storeName}) failed:`, mapOpenError(error));
+    return null;
   }
 }
 

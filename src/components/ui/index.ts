@@ -44,6 +44,7 @@ export { GlassScrollView, glassScrollSurfaceColor } from './GlassScrollView';
 export { GlassSlidePanel } from './GlassSlidePanel';
 export { InfoBanner } from './InfoBanner';
 export { OfflineNotice } from './OfflineNotice';
+export { CachedDataBanner } from './CachedDataBanner';
 export {
   COMPONENT_CATALOG,
   getComponentsByCategory,

@@ -11,6 +11,7 @@ import {
   LoadingState,
   PremiumButton,
   SectionPanel,
+  CachedDataBanner,
 } from '@/components/ui';
 import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -35,7 +36,8 @@ export function PortalAssignmentDetailScreen() {
   const { can, check, roleLabel } = usePermissions();
   const canView = can('portal.employee.appointments.view');
 
-  const { data, loading, error, refresh, notFound } = usePortalAppointmentDetail(id);
+  const { data, loading, error, refresh, notFound, fromCache, cachedAt } =
+    usePortalAppointmentDetail(id);
 
   if (!canView) {
     return (
@@ -81,6 +83,7 @@ export function PortalAssignmentDetailScreen() {
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
+        <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
         <PortalEmployeeAssignmentDetailHero assignment={data} />
 
         <View style={styles.detailsCard}>
@@ -110,7 +113,7 @@ export function PortalAssignmentDetailScreen() {
           <EmptyState title="Keine Aufgaben" message="Für diesen Einsatz sind keine Aufgaben hinterlegt." />
         )}
 
-        {data.canStartExecution && data.executionRoute ? (
+        {data.canStartExecution && data.executionRoute && !fromCache ? (
           <PremiumButton
             title="Zur Einsatzdurchführung"
             onPress={() => router.push(data.executionRoute as never)}

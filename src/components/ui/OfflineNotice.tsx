@@ -4,9 +4,9 @@ type OfflineNoticeProps = {
   visible?: boolean;
 };
 
-/** OFFLINE.1 — honest connectivity banner; full offline persistence comes in later phases. */
+/** OFFLINE.2 — honest connectivity banner with assignment cache hint. */
 export const OFFLINE_NOTICE_MESSAGE =
-  'Keine Verbindung. Einige Funktionen sind eingeschränkt. Offline-Speicherung wird schrittweise vorbereitet.';
+  'Keine Verbindung. Zwischengespeicherte Einsatzdaten können eingesehen werden. Aktionen sind eingeschränkt.';
 
 export function OfflineNotice({ visible = false }: OfflineNoticeProps) {
   if (!visible) return null;

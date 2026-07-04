@@ -8,6 +8,7 @@ import {
   PremiumBadge,
   PremiumCard,
   SuccessState,
+  CachedDataBanner,
 } from '@/components/ui';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalAppointments } from '@/hooks/usePortalAppointments';
@@ -49,6 +50,8 @@ export function PortalAppointmentsTab({
     showSuccess,
     refresh,
     isEmpty,
+    fromCache,
+    cachedAt,
   } = usePortalAppointments();
 
   if (loading && items.length === 0) {
@@ -78,6 +81,8 @@ export function PortalAppointmentsTab({
       {showSuccess ? (
         <SuccessState message={`${appointmentsLabel} aktualisiert.`} />
       ) : null}
+
+      <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
 
       {isEmpty ? (
         <EmptyState

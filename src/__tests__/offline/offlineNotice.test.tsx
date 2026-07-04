@@ -6,9 +6,9 @@ describe('OfflineNotice', () => {
   const root = path.join(__dirname, '..', '..');
   const noticeSource = readFileSync(path.join(root, 'components/ui/OfflineNotice.tsx'), 'utf8');
 
-  it('exports honest OFFLINE.1 stage message', () => {
+  it('exports honest OFFLINE.2 connectivity message', () => {
     expect(noticeSource).toContain(
-      'Keine Verbindung. Einige Funktionen sind eingeschränkt. Offline-Speicherung wird schrittweise vorbereitet.',
+      'Keine Verbindung. Zwischengespeicherte Einsatzdaten können eingesehen werden. Aktionen sind eingeschränkt.',
     );
     expect(noticeSource).not.toMatch(/alle.*daten.*gespeichert/i);
   });
@@ -24,7 +24,7 @@ describe('OfflineNotice', () => {
     expect(noticeSource).toContain('OFFLINE_NOTICE_MESSAGE');
   });
 
-  it('is wired in EmployeePortalShell via useConnectivity', () => {
+  it('is wired in EmployeePortalShell via useConnectivity and OFFLINE.2 init', () => {
     const source = readFileSync(
       path.join(root, 'components/portal/EmployeePortalShell.tsx'),
       'utf8',
@@ -32,5 +32,7 @@ describe('OfflineNotice', () => {
     expect(source).toContain('useConnectivity');
     expect(source).toContain('OfflineNotice');
     expect(source).toContain('isOffline');
+    expect(source).toContain('useOfflineDbInit');
+    expect(source).toContain('useOfflineAssignmentPrefetch');
   });
 });

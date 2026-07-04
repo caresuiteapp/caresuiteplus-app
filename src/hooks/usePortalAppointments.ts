@@ -1,6 +1,7 @@
 import { useCallback, useMemo, useState } from 'react';
 import type { PortalAppointmentItem } from '@/lib/portal';
-import { fetchPortalAppointments } from '@/lib/portal';
+import { loadPortalAppointmentsWithCache } from '@/lib/offline/assignmentCacheService';
+import type { AssignmentCacheMeta } from '@/lib/offline/types';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges, subscribeToPortalAssistChanges } from '@/lib/realtime';
 import { useAsyncQuery } from './core';
@@ -9,6 +10,10 @@ export function usePortalAppointments() {
   const { tenantId, clientId, employeeId, actorId, roleKey, isLinkedReady } = usePortalActor();
   const profileId = actorId ?? '';
   const [showSuccess, setShowSuccess] = useState(false);
+  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
+    fromCache: false,
+    cachedAt: null,
+  });
 
   const liveConfig = useMemo(() => {
     if (!tenantId) return undefined;
@@ -30,12 +35,16 @@ export function usePortalAppointments() {
   }, [tenantId, employeeId, clientId]);
 
   const query = useAsyncQuery(
-    () =>
-      fetchPortalAppointments(profileId, roleKey, {
+    async () => {
+      const result = await loadPortalAppointmentsWithCache(
+        profileId,
+        roleKey,
         tenantId,
-        clientId,
         employeeId,
-      }),
+      );
+      setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
+      return result;
+    },
     [profileId, roleKey, tenantId, clientId, employeeId],
     { enabled: isLinkedReady, live: liveConfig },
   );
@@ -57,6 +66,8 @@ export function usePortalAppointments() {
     refresh,
     isEmpty: !query.loading && !query.error && items.length === 0,
     isLiveConnected: query.isLiveConnected,
+    fromCache: cacheMeta.fromCache,
+    cachedAt: cacheMeta.cachedAt,
   };
 }
 

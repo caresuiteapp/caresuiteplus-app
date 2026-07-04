@@ -14,7 +14,7 @@ import {
   HealthOSStatusBadge,
 } from '@/components/healthos';
 import { resolveHealthOSShellBreakpoint } from '@/components/healthos/shell/healthosShellLayoutRules';
-import { PremiumListRow } from '@/components/ui';
+import { PremiumListRow, CachedDataBanner } from '@/components/ui';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
@@ -34,6 +34,8 @@ type Props = {
   error: string | null;
   displayName: string;
   onRefresh: () => void;
+  fromCache?: boolean;
+  cachedAt?: string | null;
 };
 
 // ─── Sub-components ──────────────────────────────────────────────────────────
@@ -179,6 +181,8 @@ export function HealthOSEmployeePortalTodayView({
   error,
   displayName,
   onRefresh,
+  fromCache = false,
+  cachedAt = null,
 }: Props) {
   const router = useRouter();
   const { width } = useHydrationSafeWindowDimensions();
@@ -235,6 +239,7 @@ export function HealthOSEmployeePortalTodayView({
 
   return (
     <HealthOSPage scroll testID="healthos-employee-portal-today">
+      <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
       {/* A: Tagesübersicht */}
       <HealthOSSection
         title="Heute"

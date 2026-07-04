@@ -1,5 +1,6 @@
-import { useCallback } from 'react';
-import { fetchPortalAppointmentDetail } from '@/lib/portal';
+import { useCallback, useState } from 'react';
+import { loadPortalAppointmentDetailWithCache } from '@/lib/offline/assignmentCacheService';
+import type { AssignmentCacheMeta } from '@/lib/offline/types';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
 import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery } from './core';
@@ -7,13 +8,23 @@ import { OPERATIONAL_LIVE_POLL_MS, useAsyncQuery } from './core';
 export function usePortalAppointmentDetail(appointmentId: string | undefined) {
   const { tenantId, employeeId, actorId, roleKey, isReady } = usePortalActor();
   const profileId = actorId ?? '';
+  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
+    fromCache: false,
+    cachedAt: null,
+  });
 
   const query = useAsyncQuery(
-    () =>
-      fetchPortalAppointmentDetail(appointmentId ?? '', profileId, roleKey, {
+    async () => {
+      const result = await loadPortalAppointmentDetailWithCache(
+        appointmentId ?? '',
+        profileId,
+        roleKey,
         tenantId,
         employeeId,
-      }),
+      );
+      setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
+      return result;
+    },
     [appointmentId, profileId, roleKey, tenantId, employeeId],
     {
       enabled: !!appointmentId && isReady && !!profileId && !!roleKey,
@@ -39,5 +50,7 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
     refresh,
     notFound: !query.loading && !query.error && !query.data && !!appointmentId,
     isLiveConnected: query.isLiveConnected,
+    fromCache: cacheMeta.fromCache,
+    cachedAt: cacheMeta.cachedAt,
   };
 }

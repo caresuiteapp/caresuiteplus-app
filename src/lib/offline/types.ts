@@ -41,3 +41,40 @@ export type OfflineRecordEnvelope<T = Record<string, unknown>> = {
   payload: T;
   updatedAt: string;
 };
+
+/** OFFLINE.2 — assignment list cache in `assignments` store. */
+export type AssignmentListCacheRecord = {
+  key: string;
+  tenantId: string;
+  employeeId: string;
+  kind: 'list';
+  items: import('@/lib/portal/appointmentService').PortalAppointmentItem[];
+  cachedAt: string;
+};
+
+/** OFFLINE.2 — portal appointment detail cache in `assignments` store. */
+export type AssignmentPortalDetailCacheRecord = {
+  key: string;
+  tenantId: string;
+  employeeId: string;
+  assignmentId: string;
+  kind: 'portal_detail';
+  payload: import('@/types/portal/employee').PortalAppointmentDetail;
+  cachedAt: string;
+};
+
+/** OFFLINE.2 — execute-screen assignment detail cache in `assignments` store. */
+export type AssignmentExecutionDetailCacheRecord = {
+  key: string;
+  tenantId: string;
+  employeeId: string;
+  assignmentId: string;
+  kind: 'execution_detail';
+  payload: import('@/types/modules/employeePortalExecution').EmployeePortalAssignmentDetail;
+  cachedAt: string;
+};
+
+export type AssignmentCacheMeta = {
+  fromCache: boolean;
+  cachedAt: string | null;
+};

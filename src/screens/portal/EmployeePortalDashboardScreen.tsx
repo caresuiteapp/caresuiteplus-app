@@ -13,7 +13,7 @@ export function EmployeePortalDashboardScreen({
   onRefresh,
 }: EmployeePortalDashboardScreenProps) {
   const { displayName } = usePortalActor();
-  const { dashboard, loading, error, refresh } = useEmployeePortalDashboard();
+  const { dashboard, loading, error, refresh, fromCache, cachedAt } = useEmployeePortalDashboard();
   const router = useRouter();
 
   const handleRefresh = useCallback(async () => {
@@ -28,6 +28,8 @@ export function EmployeePortalDashboardScreen({
       error={error}
       displayName={displayName ?? 'Mitarbeiter:in'}
       onRefresh={() => void handleRefresh()}
+      fromCache={fromCache}
+      cachedAt={cachedAt}
     />
   );
 }

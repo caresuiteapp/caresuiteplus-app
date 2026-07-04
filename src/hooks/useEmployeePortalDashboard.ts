@@ -1,23 +1,37 @@
-import { useCallback } from 'react';
+import { useCallback, useState } from 'react';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAsyncQuery } from '@/hooks/core';
 import { subscribeToEmployeePortalChanges } from '@/lib/realtime';
-import { getEmployeePortalDashboardProjection } from '@/lib/portal/employeePortalProjectionService';
+import { loadDashboardProjectionWithCache } from '@/lib/offline/assignmentCacheService';
+import type { AssignmentCacheMeta } from '@/lib/offline/types';
 
 export function useEmployeePortalDashboard() {
-  const { tenantId, employeeId, roleKey, isReady } = usePortalActor();
+  const { tenantId, employeeId, roleKey, actorId, isReady } = usePortalActor();
+  const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
+    fromCache: false,
+    cachedAt: null,
+  });
 
   const query = useAsyncQuery(
-    () => {
+    async () => {
       if (!tenantId || !employeeId) {
-        return Promise.resolve({
+        return {
           ok: false as const,
           error: 'Mitarbeiterprofil konnte nicht geladen werden.',
-        });
+          fromCache: false,
+          cachedAt: null,
+        };
       }
-      return getEmployeePortalDashboardProjection(tenantId, employeeId, roleKey);
+      const result = await loadDashboardProjectionWithCache(
+        tenantId,
+        employeeId,
+        roleKey,
+        actorId ?? '',
+      );
+      setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
+      return result;
     },
-    [tenantId, employeeId, roleKey],
+    [tenantId, employeeId, roleKey, actorId],
     {
       enabled: isReady && Boolean(tenantId && employeeId),
       live:
@@ -42,5 +56,7 @@ export function useEmployeePortalDashboard() {
     refresh,
     isReady,
     isLiveConnected: query.isLiveConnected,
+    fromCache: cacheMeta.fromCache,
+    cachedAt: cacheMeta.cachedAt,
   };
 }
