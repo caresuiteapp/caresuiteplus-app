@@ -8,6 +8,7 @@ import {
 } from '@/lib/assist/visitSignatureImageService';
 import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
 import type { AssistVisitProofRow } from '@/types/assistExecutionPersistence';
+import { pngDataUrl } from '@/__tests__/signatures/signatureTestFixtures';
 
 const root = path.join(__dirname, '..', '..', '..');
 
@@ -82,6 +83,12 @@ describe('SignatureDisplay component wiring', () => {
     expect(panel).toContain('Unterschrift Klient:in');
     expect(panel).not.toContain('signerName} (${');
   });
+
+  it('SignatureDisplay corrects tall signature buffers on load', () => {
+    const source = readSrc('src/components/signatures/SignatureDisplay.tsx');
+    expect(source).toContain('needsSignatureOrientationCorrection');
+    expect(source).toContain("rotate: '-90deg'");
+  });
 });
 
 describe('PDF signature rendering', () => {
@@ -135,5 +142,31 @@ describe('PDF signature rendering', () => {
     expect(payload.html).toContain('Keine gezeichnete Unterschrift gespeichert');
     expect(payload.html).toContain('Ellen Zacharias');
     expect(payload.html).not.toContain('<img');
+  });
+
+  it('rotates portrait signature buffers in PDF HTML for horizontal readability', () => {
+    const portraitSignature = pngDataUrl(240, 480);
+    const payload = buildAssistProofPdfPayload(sampleProof(), {
+      signatureImageUrl: portraitSignature,
+      signatureImageWidth: 240,
+      signatureImageHeight: 480,
+    });
+
+    expect(payload.html).toContain(portraitSignature);
+    expect(payload.html).toContain('rotate(-90deg)');
+    expect(payload.html).toContain('object-fit:contain');
+  });
+
+  it('keeps landscape signature buffers unchanged in PDF HTML', () => {
+    const landscapeSignature = pngDataUrl(640, 320);
+    const payload = buildAssistProofPdfPayload(sampleProof(), {
+      signatureImageUrl: landscapeSignature,
+      signatureImageWidth: 640,
+      signatureImageHeight: 320,
+    });
+
+    expect(payload.html).toContain(landscapeSignature);
+    expect(payload.html).not.toContain('rotate(-90deg)');
+    expect(payload.html).toContain('max-width:280px');
   });
 });

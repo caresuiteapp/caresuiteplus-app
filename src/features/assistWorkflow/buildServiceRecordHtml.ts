@@ -4,6 +4,11 @@
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
 import type { VisitTimesSummary } from './calculateVisitTimes';
 import { formatSignatureMetadataLine } from '@/lib/assist/visitSignatureImageService';
+import {
+  buildSignatureProofImageStyle,
+  resolveSignatureImageDimensions,
+  signatureProofImageStyleToCss,
+} from '@/lib/signatures/signatureOrientation';
 
 export type ServiceRecordContentInput = {
   detail: EmployeePortalAssignmentDetail;
@@ -11,6 +16,8 @@ export type ServiceRecordContentInput = {
   documentationText?: string | null;
   signatureSummary?: { signerName: string; signedAt: string; signerRole?: string | null } | null;
   signatureImageUrl?: string | null;
+  signatureImageWidth?: number | null;
+  signatureImageHeight?: number | null;
   visitId?: string | null;
   employeeId?: string | null;
   employeeName?: string | null;
@@ -37,7 +44,15 @@ function formatDateTime(iso: string | null | undefined): string {
 }
 
 export function buildServiceRecordHtml(input: ServiceRecordContentInput): string {
-  const { detail, visitTimes, documentationText, signatureSummary, signatureImageUrl } = input;
+  const {
+    detail,
+    visitTimes,
+    documentationText,
+    signatureSummary,
+    signatureImageUrl,
+    signatureImageWidth,
+    signatureImageHeight,
+  } = input;
   const tasksHtml = detail.tasks
     .map(
       (t) =>
@@ -55,8 +70,19 @@ export function buildServiceRecordHtml(input: ServiceRecordContentInput): string
         const metaHtml = metaLine
           ? `<p style="margin:4px 0 0;font-size:0.875rem;color:#555;">${escapeHtml(metaLine)}</p>`
           : '';
+        const signatureDimensions = resolveSignatureImageDimensions(
+          signatureImageUrl,
+          signatureImageWidth,
+          signatureImageHeight,
+        );
+        const signatureImageStyle = signatureProofImageStyleToCss(
+          buildSignatureProofImageStyle(
+            signatureDimensions?.width,
+            signatureDimensions?.height,
+          ),
+        );
         const imageHtml = signatureImageUrl?.trim()
-          ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="max-width:280px;max-height:120px;margin-top:8px;object-fit:contain;" />`
+          ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="${signatureImageStyle}" />`
           : `<p style="margin:8px 0 0;color:#666;font-style:italic;">Keine gezeichnete Unterschrift gespeichert.</p>`;
         return `<section><h2>Unterschrift Klient:in</h2>${imageHtml}${metaHtml}</section>`;
       })()

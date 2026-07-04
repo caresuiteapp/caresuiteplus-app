@@ -6,6 +6,7 @@ import { assignmentSupabaseRepository } from '@/lib/assist/repositories/assignme
 import { persistEmployeePortalVisitProof } from '@/lib/portal/employeePortalVisitTrackingPersistence';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
 import { resolveVisitSignatureImageUrl } from '@/lib/assist/visitSignatureImageService';
+import { probeSignatureImageDimensions } from '@/lib/signatures/signatureOrientation';
 import { buildServiceRecordHtml, buildServiceRecordSnapshot } from './buildServiceRecordHtml';
 import type { AssistExecutionContext } from './types';
 
@@ -32,12 +33,24 @@ export async function generateServiceRecord(
     signatureImageUrl = await resolveVisitSignatureImageUrl(sig.data.storagePath);
   }
 
+  let signatureImageWidth: number | null = null;
+  let signatureImageHeight: number | null = null;
+  if (signatureImageUrl) {
+    const dimensions = await probeSignatureImageDimensions(signatureImageUrl);
+    if (dimensions) {
+      signatureImageWidth = dimensions.width;
+      signatureImageHeight = dimensions.height;
+    }
+  }
+
   const html = buildServiceRecordHtml({
     detail: ctx.detail,
     visitTimes: ctx.visitTimes,
     documentationText,
     signatureSummary,
     signatureImageUrl,
+    signatureImageWidth,
+    signatureImageHeight,
     visitId: ctx.assistVisitId,
     employeeId: ctx.employeeId,
     serviceName: ctx.detail.title,

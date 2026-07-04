@@ -1,78 +1,109 @@
-# SIGNATURE.2 — Mini-Regression Check (Drawn Signatures as Images)
+# SIGNATURE.2 — Signatur-Orientierung im Leistungsnachweis
 
 **Datum:** 2026-07-04  
-**Basis-HEAD:** `7b47c82b`  
-**Scope:** Verifizierung Signatur/Proof-Anzeige — gezeichnete Unterschriften als Bild  
-**Ausgeschlossen:** Legacy-PDF-Massenfix, Migrationen, Deploy
+**Scope:** Gezeichnete Unterschriften im Leistungsnachweis immer horizontal lesbar  
+**Ausgeschlossen:** Massen-PDF-Regenerierung, Migrationen, Deploy
 
 ---
 
 ## Executive Summary
 
-SIGNATURE.1 (2026-07-03) adressierte die Root Cause: Metadaten ohne Bild-URL. **SIGNATURE.2** bestätigt per Unit-Tests und Source-Wiring, dass die Fix-Pfade **intakt** sind — keine Regression in S1.
-
 | Prüfpunkt | Ergebnis |
 |-----------|----------|
-| `pickSignatureImageUrl` bevorzugt Storage-URL | ✅ |
-| `SignatureDisplay` rendert `<Image>` bei URI | ✅ |
-| Metadaten-only → ehrliche Meldung, kein Text-as-Signature | ✅ |
-| PDF-Payload embeds `<img>` bei enrichment URL | ✅ |
-| Vitest `signatureDisplay.test.ts` | **10/10 grün** |
+| Root Cause identifiziert | ✅ Capture (Canvas-Buffer), nicht Storage/Render allein |
+| Normalisierung bei Erfassung (neu) | ✅ `exportSignatureCanvasPng` |
+| Render-Korrektur alte PNGs | ✅ `SignatureDisplay` + PDF/HTML via IHDR-Heuristik |
+| SIGNATURE.1 Regression | ✅ 13/13 `signatureDisplay.test.ts` |
+| Orientierungstests | ✅ 8/8 `signatureOrientation.test.ts` |
+| Koordinaten-Regression | ✅ 9/9 `signatureCanvasCoords.test.ts` |
 
 ---
 
-## Test-Lauf (S1)
+## Root Cause
+
+**Ebene: Capture (primär), Render (sekundär für Altbestand)**
+
+Bei mobiler Querformat-Erfassung (`CareSignatureModal` + `fillAvailable`) kann der HTML-Canvas-Buffer **höher als breit** exportiert werden (Layout/Orientierungswechsel, DPR, ResizeObserver-Race). Die PNG landet korrekt in Storage — aber mit vertikalem Seitenverhältnis. Beim Einbetten in den Leistungsnachweis (querformatiges `<img>`-Fenster 280×120 px) wirkt die Unterschrift gedreht/unleserlich.
+
+- **Storage:** Speichert PNG bytes unverändert (kein EXIF, keine Metadaten-Orientierung).
+- **Render (vor Fix):** `<img style="object-fit:contain">` ohne Orientierungskorrektur.
+- **EXIF:** Für Canvas-PNG nicht verfügbar → **Dimensionen-Heuristik** (`height > width`).
+
+---
+
+## Implementierte Normalisierung
+
+| Phase | Mechanismus | Datei |
+|-------|-------------|-------|
+| **Capture** | Bei `height > width`: Canvas −90° rotieren, dann PNG exportieren | `normalizeSignatureCapture.ts`, `CareSignatureCanvas.tsx` |
+| **UI-Anzeige** | `SignatureDisplay`: `onLoad` prüft Dimensionen, CSS `rotate(-90deg)` + angepasste maxWidth/maxHeight | `SignatureDisplay.tsx` |
+| **PDF / HTML** | IHDR-Dimensionen → `buildSignatureProofImageStyle` → CSS transform, `object-fit:contain` | `signatureOrientation.ts`, `assistProofPdfPayload.ts`, `buildServiceRecordHtml.ts` |
+| **Enrichment** | `probeSignatureImageDimensions` für Storage-URLs + inline data URLs | `visitProofSnapshotPreviewService.ts`, `generateServiceRecord.ts` |
+
+**Heuristik:** Nur wenn `height > width` (portrait buffer). Landscape (`width >= height`) bleibt unverändert — kein Beschnitt, kein Stretching, Transparenz erhalten.
+
+---
+
+## Alte vs. neue Signaturen
+
+| Typ | Verhalten nach Fix |
+|-----|-------------------|
+| **Neue Erfassungen** | PNG wird bei Confirm normalisiert (`width >= height`) → korrekt in Storage + Proof |
+| **Alte PNGs in Storage** (height > width) | Korrektur **zur Render-Zeit** in UI/PDF/HTML — **kein Re-Upload**, **keine Massen-PDF-Regenerierung** |
+| **Bereits exportierte Legacy-PDFs** | Unverändert (gelb) — nur bei manueller Neugenerierung korrekt |
+| **Landscape-korrekte Alt-PNGs** | Keine Änderung |
+
+---
+
+## Testergebnisse
 
 ```
-npx vitest run src/__tests__/signatures/signatureDisplay.test.ts
-→ 10/10 passed
+npx vitest run signatureDisplay signatureCanvasCoords signatureOrientation
+→ 30/30 passed
+
+npx vitest run assistProofPdfPreview visitDispositionExecutionEnrichment
+→ 8/8 passed
 ```
 
-Abgedeckte Szenarien:
-
-| Test | Verhalten |
-|------|-----------|
-| A | Explizite Image-URL > inline data URL |
-| B | Metadaten ohne Bild → „Metadaten ohne Signaturbild“ |
-| C | `notRequired` → „Nicht erforderlich“ |
-| D | `refusedReason` → „Nicht möglich (begründet)“ |
-| E | Gezeichnetes Bild → „Gezeichnete Unterschrift vorhanden“ |
-| Component wiring | `SignatureDisplay.tsx` enthält Image + Fehlertexte |
-| VisitProofPreviewPanel | Nutzt `SignatureDisplay`, kein Text-only Row |
-| PDF enrichment | `<img>` mit data URL embedded |
-| PDF legacy | Kein `<img>`, Meldung „Keine gezeichnete Unterschrift gespeichert“ |
+| Szenario | Test | Ergebnis |
+|----------|------|----------|
+| Portrait-Buffer (240×480) → Proof-PDF | `rotate(-90deg)` in HTML | ✅ |
+| Landscape-Buffer (640×320) → Proof-PDF | Kein rotate, max-width 280px | ✅ |
+| IHDR-Parsing inline data URL | `readPngDimensionsFromDataUrl` | ✅ |
+| Capture-Pipeline | `exportSignatureCanvasPng` wired | ✅ |
+| SIGNATURE.1 States A–E + PDF enrichment | `signatureDisplay.test.ts` | ✅ 13/13 |
+| Koordinaten SIGNATURE.0/1 | `signatureCanvasCoords.test.ts` | ✅ 9/9 |
 
 ---
 
-## Display-Pfad Matrix
-
-| Surface | Komponente / Service | Bildquelle |
-|---------|---------------------|------------|
-| Proof Review UI | `VisitProofPreviewPanel` → `SignatureDisplay` | `pickSignatureImageUrl(storage, dataUrl)` |
-| Disposition / Execution | Shared preview panels | `visitProofSnapshotPreviewService` + Storage |
-| PDF Generation | `buildAssistProofPdfPayload` | enrichment `signatureImageUrl` |
-| Service Record HTML | `buildServiceRecordHtml` | `generateServiceRecord` lädt URL |
-| Capture (unverändert) | Canvas → Storage PNG | Schreibpfad unberührt |
-
-**Kern-Service:** `src/lib/assist/visitSignatureImageService.ts`
-
----
-
-## Bekannte Grenzen (gelb, nicht S1)
+## Gelbe Punkte (verbleibend)
 
 | Item | Ampel | Hinweis |
 |------|-------|---------|
-| Legacy PDFs in Storage (pre-SIGNATURE.1) | Gelb | Regenerate erforderlich — kein Mass-Fix |
-| Signed URL TTL (1h) | Info | Refresh bei langem Review |
-| RLS auf `assist_visit_signatures` | Grün | `fetchValidVisitSignature` respektiert Policies |
+| Legacy-PDFs in Storage (pre-Fix, bereits generiert) | Gelb | Nur bei manueller Neugenerierung korrekt |
+| Heuristik `height > width` | Gelb | Sehr seltene echte Portrait-Canvas-Erfassungen (Desktop schmal) würden rotiert — im Produktfluss durch Landscape-Gate abgedeckt |
+| SVG-Native-Signatures (non-web) | Info | Separater Pfad, nicht betroffen |
+| Signed URL TTL (1h) | Info | Unverändert aus SIGNATURE.1 |
 
 ---
 
-## Regression gegen SIGNATURE.1
+## Geänderte Dateien
 
-Keine Code-Änderungen in S1. Alle SIGNATURE.1-Dateien unverändert seit Fix-Commit.
+### Neu
+- `src/lib/signatures/signatureOrientation.ts`
+- `src/lib/signatures/normalizeSignatureCapture.ts`
+- `src/__tests__/signatures/signatureOrientation.test.ts`
+- `src/__tests__/signatures/signatureTestFixtures.ts`
 
-**Verdict SIGNATURE.2:** **Grün** — Mini-Regression bestanden.
+### Geändert
+- `src/components/inputs/CareSignatureCanvas.tsx`
+- `src/components/signatures/SignatureDisplay.tsx`
+- `src/lib/assist/assistProofPdfPayload.ts`
+- `src/lib/assist/visitProofSnapshotPreviewService.ts`
+- `src/features/assistWorkflow/buildServiceRecordHtml.ts`
+- `src/features/assistWorkflow/generateServiceRecord.ts`
+- `src/__tests__/signatures/signatureDisplay.test.ts`
+- `docs/audit/signature2-regression-check.md`
 
 ---
 
@@ -80,4 +111,3 @@ Keine Code-Änderungen in S1. Alle SIGNATURE.1-Dateien unverändert seit Fix-Com
 
 - `docs/audit/signature1-rendering-fix.md`
 - `docs/audit/signature1-production-smoke.md`
-- `src/__tests__/signatures/signatureDisplay.test.ts`

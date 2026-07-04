@@ -13,6 +13,7 @@ import {
 } from '@/lib/assist/visitSignatureImageService';
 import { formatClientAddressLine } from '@/lib/clients/clientAddressResolver';
 import { formatStreetLine } from '@/lib/formatAddress';
+import { probeSignatureImageDimensions } from '@/lib/signatures/signatureOrientation';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
@@ -30,6 +31,8 @@ export type VisitProofSnapshotEnrichment = {
   visitTimes?: VisitTimesSummary | null;
   signature?: VisitSignatureCapture | null;
   signatureImageUrl?: string | null;
+  signatureImageWidth?: number | null;
+  signatureImageHeight?: number | null;
   tasks?: VisitProofPreviewTaskItem[];
   documentationNote?: string | null;
 };
@@ -560,6 +563,14 @@ export async function enrichVisitProofForPreview(
   if (!enrichment.documentationNote) {
     enrichment.documentationNote =
       readString(snapshot, 'documentationNote') ?? readString(snapshot, 'documentation');
+  }
+
+  if (enrichment.signatureImageUrl?.trim()) {
+    const dimensions = await probeSignatureImageDimensions(enrichment.signatureImageUrl);
+    if (dimensions) {
+      enrichment.signatureImageWidth = dimensions.width;
+      enrichment.signatureImageHeight = dimensions.height;
+    }
   }
 
   return { ok: true, data: enrichment };

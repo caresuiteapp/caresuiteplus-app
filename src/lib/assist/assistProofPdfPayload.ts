@@ -5,6 +5,11 @@ import {
   formatSignatureMetadataLine,
   pickSignatureImageUrl,
 } from '@/lib/assist/visitSignatureImageService';
+import {
+  buildSignatureProofImageStyle,
+  resolveSignatureImageDimensions,
+  signatureProofImageStyleToCss,
+} from '@/lib/signatures/signatureOrientation';
 
 export type AssistProofPdfPayload = {
   proofId: string;
@@ -213,8 +218,20 @@ export function buildAssistProofPdfPayload(
     ? `<p style="margin:4px 0 0;font-size:13px;color:#555;">${escapeHtml(signatureMetaLine)}</p>`
     : '';
 
+  const signatureDimensions = resolveSignatureImageDimensions(
+    signatureImageUrl,
+    enrichment.signatureImageWidth,
+    enrichment.signatureImageHeight,
+  );
+  const signatureImageStyle = signatureProofImageStyleToCss(
+    buildSignatureProofImageStyle(
+      signatureDimensions?.width,
+      signatureDimensions?.height,
+    ),
+  );
+
   const signatureBlock = signatureImageUrl
-    ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="max-width:280px;max-height:120px;margin-top:8px;object-fit:contain;" />${signatureMetaHtml}`
+    ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="${signatureImageStyle}" />${signatureMetaHtml}`
     : signerName || signedAt
       ? `<p style="margin:8px 0 0;color:#666;font-style:italic;">Keine gezeichnete Unterschrift gespeichert.</p>${signatureMetaHtml}`
       : '<p style="margin:8px 0 0;color:#666;">—</p>';

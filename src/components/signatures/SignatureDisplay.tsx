@@ -1,9 +1,13 @@
-import { useMemo, useState } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import { useEffect, useMemo, useState } from 'react';
+import { Image, StyleSheet, Text, View, type ImageStyle } from 'react-native';
 import {
   formatSignatureMetadataLine,
   pickSignatureImageUrl,
 } from '@/lib/assist/visitSignatureImageService';
+import {
+  buildSignatureProofImageStyle,
+  needsSignatureOrientationCorrection,
+} from '@/lib/signatures/signatureOrientation';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { spacing, typography } from '@/theme';
 
@@ -41,6 +45,7 @@ export function SignatureDisplay({
 }: SignatureDisplayProps) {
   const text = useAuroraAdaptiveText();
   const [imageError, setImageError] = useState(false);
+  const [orientationCorrected, setOrientationCorrected] = useState(false);
 
   const imageUri = pickSignatureImageUrl(signatureImageUrl, signatureDataUrl);
   const metadataLine = formatSignatureMetadataLine({
@@ -50,6 +55,10 @@ export function SignatureDisplay({
   });
   const hasMetadata = Boolean(metadataLine);
   const showImage = Boolean(imageUri) && !imageError && !imageLoadFailed;
+
+  useEffect(() => {
+    setOrientationCorrected(false);
+  }, [imageUri]);
 
   const styles = useMemo(
     () =>
@@ -87,6 +96,17 @@ export function SignatureDisplay({
     [text, compact],
   );
 
+  const correctedImageStyle = useMemo((): ImageStyle => {
+    if (!orientationCorrected) return styles.image;
+    const layout = buildSignatureProofImageStyle(100, 200);
+    return {
+      ...styles.image,
+      maxWidth: layout.maxWidth,
+      maxHeight: layout.maxHeight,
+      transform: [{ rotate: '-90deg' }],
+    };
+  }, [orientationCorrected, styles.image]);
+
   let statusMessage: string | null = null;
 
   if (notRequired) {
@@ -108,10 +128,14 @@ export function SignatureDisplay({
       {showImage ? (
         <Image
           source={{ uri: imageUri! }}
-          style={styles.image}
+          style={correctedImageStyle}
           resizeMode="contain"
           accessibilityLabel={`Gezeichnete ${label}`}
           onError={() => setImageError(true)}
+          onLoad={(event) => {
+            const { width, height } = event.nativeEvent.source;
+            setOrientationCorrected(needsSignatureOrientationCorrection(width, height));
+          }}
         />
       ) : null}
 

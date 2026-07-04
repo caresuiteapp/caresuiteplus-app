@@ -15,6 +15,7 @@ import {
   scaleCanvasPoints,
   type CanvasCoordinateSpace,
 } from '@/components/inputs/signatureCanvasCoords';
+import { exportSignatureCanvasPng } from '@/lib/signatures/normalizeSignatureCapture';
 import { legacyColorsFromPalette } from '@/design/tokens/themeBridge';
 import { resolveCareTypography } from '@/design/tokens/typography';
 import { useOrientation } from '@/hooks/useOrientation';
@@ -351,7 +352,7 @@ function WebSignatureCanvas({
   const handleConfirm = useCallback(() => {
     const canvas = canvasRef.current;
     if (!canvas || !hasStroke) return;
-    onConfirm(canvas.toDataURL('image/png'));
+    onConfirm(exportSignatureCanvasPng(canvas));
   }, [hasStroke, onConfirm]);
 
   const drawAt = useCallback((clientX: number, clientY: number, start: boolean) => {
