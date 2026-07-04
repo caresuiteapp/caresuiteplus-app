@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import {
@@ -26,6 +26,7 @@ import {
   type EmployeePortalTodayAssignment,
 } from '@/lib/portal/employee/employeePortalTodayModel';
 import { spacing, typography } from '@/theme';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 
 type Props = {
   dashboard: EmployeePortalDashboardProjection | null;
@@ -180,7 +181,7 @@ export function HealthOSEmployeePortalTodayView({
   onRefresh,
 }: Props) {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width } = useHydrationSafeWindowDimensions();
   const breakpoint = resolveHealthOSShellBreakpoint(width);
   const kpiColumns =
     breakpoint === 'mobile'

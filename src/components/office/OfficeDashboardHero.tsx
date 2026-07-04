@@ -10,6 +10,7 @@ import {
   OFFICE_DASHBOARD_PREPARED_MESSAGE,
 } from '@/lib/office/officeModuleConfig';
 import { ROLE_LABELS } from '@/data/constants';
+import { useClientGreeting } from '@/hooks/useClientGreeting';
 
 import type { RoleKey } from '@/types';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
@@ -28,6 +29,7 @@ export function OfficeDashboardHero({
   roleKey,
   onPrimaryAction,
 }: OfficeDashboardHeroProps) {
+  const greeting = useClientGreeting(snapshot.greeting);
   const { colors, typography, gradients, mode } = useLegacyTheme();
   const text = useAuroraAdaptiveText();
   const styles = useMemo(
@@ -67,7 +69,7 @@ export function OfficeDashboardHero({
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={styles.title}>
-            {snapshot.greeting}, {displayName}
+            {greeting}, {displayName}
           </Text>
           <Text style={styles.meta}>{snapshot.heroSubtitle}</Text>
         </View>

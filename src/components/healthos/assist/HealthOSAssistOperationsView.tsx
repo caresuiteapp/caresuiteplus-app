@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import {
@@ -25,6 +25,7 @@ import {
   type AssistOperationsBlockerRow,
 } from '@/lib/assist/assistOperationsModel';
 import { spacing, typography } from '@/theme';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 
 type Props = {
   stats: AssistDashboardStats | null;
@@ -150,7 +151,7 @@ export function HealthOSAssistOperationsView({
   onRefresh,
 }: Props) {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width } = useHydrationSafeWindowDimensions();
   const breakpoint = resolveHealthOSShellBreakpoint(width);
   const kpiColumns =
     breakpoint === 'mobile'

@@ -1,5 +1,4 @@
 import { useMemo } from 'react';
-import { useWindowDimensions } from 'react-native';
 import {
   type AdaptiveDeviceClass,
   isAdaptiveDesktop,
@@ -7,11 +6,12 @@ import {
   isAdaptiveTablet,
   resolveAdaptiveDeviceClass,
 } from '@/design/tokens/breakpoints';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 
 export type { AdaptiveDeviceClass };
 
 export function useDeviceClass() {
-  const { width } = useWindowDimensions();
+  const { width } = useHydrationSafeWindowDimensions();
   const deviceClass = useMemo(() => resolveAdaptiveDeviceClass(width), [width]);
 
   return {

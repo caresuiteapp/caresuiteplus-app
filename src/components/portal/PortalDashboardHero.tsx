@@ -5,6 +5,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumButton, PremiumListHeroFrame } from '@/components/ui';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
 import { ROLE_LABELS } from '@/data/constants';
+import { useClientGreeting } from '@/hooks/useClientGreeting';
 
 import type { DashboardScope } from '@/types/dashboard';
 import { spacing } from '@/theme';
@@ -41,6 +42,7 @@ export function PortalDashboardHero({
   onPrimaryAction,
 }: PortalDashboardHeroProps) {
   const { colors, typography, gradients } = useLegacyTheme();
+  const greeting = useClientGreeting(snapshot.greeting);
   const heroText = usePremiumHeroTextStyles();
   const styles = useMemo(
     () =>
@@ -96,7 +98,7 @@ export function PortalDashboardHero({
       <View style={styles.topRow}>
         <View style={styles.textCol}>
           <Text style={styles.greeting}>
-            {snapshot.greeting}, {displayName}
+            {greeting}, {displayName}
           </Text>
           <Text style={styles.tenant}>{snapshot.tenantName}</Text>
           <Text style={styles.meta}>{config.subtitle}</Text>

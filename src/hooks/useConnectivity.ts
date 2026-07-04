@@ -82,10 +82,8 @@ function readWebState(): ConnectivityState {
 /** SSR-safe initial snapshot before effects run. */
 export function readInitialConnectivityState(): ConnectivityState {
   if (Platform.OS === 'web') {
-    if (typeof window === 'undefined') {
-      return buildState(true, null, 'unknown', 'web');
-    }
-    return readWebState();
+    // Always assume online for SSR and the hydration pass — sync in useEffect.
+    return buildState(true, null, 'unknown', 'web');
   }
 
   // Native without NetInfo — assume online until listener updates.

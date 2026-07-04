@@ -15,6 +15,7 @@ import { fxMotion, neonGlow, withAlpha } from '@/design/tokens/motion';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
 import { ROLE_LABELS } from '@/data/constants';
 import { radius, spacing } from '@/theme';
+import { useClientGreeting } from '@/hooks/useClientGreeting';
 
 type DashboardHeroProps = {
   snapshot: DashboardSnapshot;
@@ -31,6 +32,7 @@ export function DashboardHero({
   onPrimaryAction,
 }: DashboardHeroProps) {
   const { colors, typography, gradients, isDark } = useLegacyTheme();
+  const greeting = useClientGreeting(snapshot.greeting);
   const moduleLabel = snapshot.moduleLabel ?? 'CareSuite+';
 
   const roleLabel = ROLE_LABELS[snapshot.roleKey] ?? snapshot.roleKey;
@@ -163,7 +165,7 @@ export function DashboardHero({
         <View style={styles.topRow}>
           <View style={styles.textCol}>
             <Text style={styles.greeting}>
-              {snapshot.greeting}, {displayName}
+              {greeting}, {displayName}
             </Text>
             <Text style={styles.tenant}>{snapshot.tenantName}</Text>
             <Text style={styles.meta}>{snapshot.heroSubtitle}</Text>

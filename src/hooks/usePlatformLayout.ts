@@ -1,12 +1,12 @@
 import { useMemo } from 'react';
-import { useWindowDimensions } from 'react-native';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import { masterPaneWidth } from '@/lib/platform/breakpoints';
 import { buildPlatformLayoutSnapshot } from '@/lib/platform/layoutSnapshot';
 import { resolvePlatformTarget } from '@/lib/platform/platform';
 
 export function usePlatformLayout() {
-  const { width, height } = useWindowDimensions();
+  const { width, height } = useHydrationSafeWindowDimensions();
   const { deviceClass, isPhone, isTablet, isDesktop, isWide } = useDeviceClass();
 
   const layout = useMemo(() => {

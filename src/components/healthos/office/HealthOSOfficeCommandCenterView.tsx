@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { Pressable, StyleSheet, Text, View, useWindowDimensions } from 'react-native';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { AdaptiveKpiGrid } from '@/components/adaptive';
 import {
@@ -17,6 +17,8 @@ import { PremiumListRow, Timeline } from '@/components/ui';
 import type { DashboardSnapshot } from '@/types/dashboard';
 import { useMainModuleAccent } from '@/hooks/useMainModuleAccent';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
+import { useClientGreetingLine } from '@/hooks/useClientGreeting';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import {
   buildOfficeCommandCenterModel,
   type OfficeCommandCenterMetric,
@@ -110,7 +112,8 @@ export function HealthOSOfficeCommandCenterView({
   onRefresh,
 }: Props) {
   const router = useRouter();
-  const { width } = useWindowDimensions();
+  const { width } = useHydrationSafeWindowDimensions();
+  const greetingLine = useClientGreetingLine(displayName, snapshot?.greeting);
   const breakpoint = resolveHealthOSShellBreakpoint(width);
   const kpiColumns =
     breakpoint === 'mobile'
@@ -158,7 +161,7 @@ export function HealthOSOfficeCommandCenterView({
     <HealthOSPage scroll testID="healthos-office-command-center">
       <HealthOSSection
         title="Betriebsstatus heute"
-        subtitle={`${model.greetingLine} · Steuerungszentrale`}
+        subtitle={`${greetingLine} · Steuerungszentrale`}
         accentColor={moduleAccent}
       >
         <MetricsSection

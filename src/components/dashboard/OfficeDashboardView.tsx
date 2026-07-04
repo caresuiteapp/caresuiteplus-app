@@ -19,6 +19,7 @@ import {
   OFFICE_WORKSPACE_KPI_COUNT,
 } from '@/lib/office/officeDashboardWorkspace';
 import { spacing, typography } from '@/theme';
+import { useClientGreetingLine } from '@/hooks/useClientGreeting';
 
 type OfficeDashboardViewProps = {
   snapshot: DashboardSnapshot | null;
@@ -61,6 +62,7 @@ export function OfficeDashboardView({
   onRefresh,
 }: OfficeDashboardViewProps) {
   const router = useRouter();
+  const greetingLine = useClientGreetingLine(displayName, snapshot?.greeting);
   const shellHostsAurora = useShellHostsAurora();
   const moduleAccent = useMainModuleAccent();
   const styles = useMemo(
@@ -103,7 +105,7 @@ export function OfficeDashboardView({
     <View style={styles.container}>
       <SectionPanel
         title="Heute im Office"
-        subtitle={`${snapshot.greeting}, ${displayName} · Verwaltungszentrale`}
+        subtitle={`${greetingLine} · Verwaltungszentrale`}
         headerAlign="left"
         accentColor={moduleAccent}
         surface="open"

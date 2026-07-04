@@ -25,11 +25,10 @@ import { buildOfficeAreaShortcutsFromMetrics } from '@/lib/office/officeAreaShor
 import { buildOfficeWorkspaceSnapshotFields } from '@/lib/office/officeDashboardWorkspace';
 import { pickOfficeCommandCenterReadMetrics } from '@/lib/office/officeCommandCenterModel';
 
+import { getTimeOfDayGreeting } from '@/lib/dashboard/timeOfDayGreeting';
+
 function getGreeting(): string {
-  const hour = new Date().getHours();
-  if (hour < 12) return 'Guten Morgen';
-  if (hour < 18) return 'Guten Tag';
-  return 'Guten Abend';
+  return getTimeOfDayGreeting();
 }
 
 function getModuleLabel(scope: DashboardScope): string | undefined {

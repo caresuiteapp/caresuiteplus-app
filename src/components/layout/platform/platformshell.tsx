@@ -1,5 +1,5 @@
 import { ReactNode } from 'react';
-import { Platform, StyleSheet, View, type ViewStyle, useWindowDimensions } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { usePathname } from 'expo-router';
 import type { AppShellArea } from '@/types/navigation/shell';
@@ -12,6 +12,7 @@ import {
 } from '@/lib/platform/shellLayoutMetrics';
 import { breakpoints } from '@/design/tokens/breakpoints';
 import { spacing } from '@/theme';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import { MainModuleRail } from './mainmodulerail';
 import { MobilePlatformContextPanel } from './mobileplatformcontextpanel';
 import { ModuleNavSidebar } from './modulenavsidebar';
@@ -43,7 +44,7 @@ function isZentraleKpiDashboard(pathname: string, mainModule: MainModuleKey): bo
 export function PlatformShell({ area: _area, children, accentColor }: PlatformShellProps) {
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width } = useHydrationSafeWindowDimensions();
   const mainModule = resolveMainModuleFromPath(pathname);
   const accent = resolveMainModuleAccent(mainModule);
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, type ReactNode } from 'react';
-import { useWindowDimensions } from 'react-native';
 import { usePrefersReducedMotion } from '@/hooks/useprefersreducedmotion';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import {
   getDevicePerformanceProfile,
   type DevicePerformanceSnapshot,
@@ -16,7 +16,7 @@ type PerformanceProviderProps = {
 };
 
 export function PerformanceProvider({ children }: PerformanceProviderProps) {
-  const { width } = useWindowDimensions();
+  const { width } = useHydrationSafeWindowDimensions();
   const prefersReducedMotion = usePrefersReducedMotion();
 
   const snapshot = useMemo(
@@ -37,7 +37,7 @@ export function PerformanceProvider({ children }: PerformanceProviderProps) {
 }
 
 export function useDevicePerformance(): DevicePerformanceSnapshot {
-  const { width } = useWindowDimensions();
+  const { width } = useHydrationSafeWindowDimensions();
   const prefersReducedMotion = usePrefersReducedMotion();
   return useMemo(
     () =>

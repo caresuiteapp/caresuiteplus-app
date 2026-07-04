@@ -18,6 +18,7 @@ import { BusinessWelcomeGate } from '@/components/auth/BusinessWelcomeGate';
 import { PortalWelcomeGate } from '@/components/auth/PortalWelcomeGate';
 import { PerformanceProvider, useDevicePerformance, shouldUseHeavyEffects } from '@/lib/performance';
 import { installPerformanceDiagnostics } from '@/lib/performance/performanceDiagnostics';
+import { useHydrated } from '@/hooks/useHydrated';
 
 applyInvisibleScrollIndicators();
 
@@ -31,6 +32,7 @@ const SURFACE_COLOR = 'transparent';
 function RootShell() {
   const { mode } = useThemeMode();
   const pathname = usePathname();
+  const hydrated = useHydrated();
   const perf = useDevicePerformance();
   const hostsGlobalBackground = !isPortalRoutePath(pathname);
 
@@ -42,7 +44,7 @@ function RootShell() {
     cleanupOrphanedFullscreenOverlays();
   }, [pathname]);
   const backgroundAnimated =
-    hostsGlobalBackground && shouldUseHeavyEffects(perf) && !perf.isMobile;
+    hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf) && !perf.isMobile;
   const isDark = mode === 'dark';
   const navigationTheme = isDark
     ? {

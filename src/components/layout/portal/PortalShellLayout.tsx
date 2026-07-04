@@ -1,5 +1,5 @@
 import { ReactNode, useMemo, useState } from 'react';
-import { Platform, StyleSheet, View, useWindowDimensions, type ViewStyle } from 'react-native';
+import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AutoScrollView } from '@/components/layout/AutoScrollView';
 import { PortalLeftNav } from './PortalLeftNav';
@@ -15,6 +15,7 @@ import { PORTAL_EMPLOYEE_TABS } from '@/lib/navigation/shellConfig';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalClientTabs } from '@/hooks/usePortalClientTabs';
+import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import { moduleColor } from '@/design/tokens/modules';
 import { BREAKPOINT_MIN } from '@/lib/platform/breakpoints';
 import {
@@ -43,7 +44,7 @@ export function PortalShellLayout({
   kind = 'client',
 }: PortalShellLayoutProps) {
   const insets = useSafeAreaInsets();
-  const { width } = useWindowDimensions();
+  const { width } = useHydrationSafeWindowDimensions();
   const { isDesktopOrWide } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
   const clientTabs = usePortalClientTabs();
