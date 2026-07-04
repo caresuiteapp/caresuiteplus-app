@@ -2,11 +2,14 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { OFFLINE_DB_VERSION, OFFLINE_STORE_NAMES } from '@/lib/offline/types';
 import { resetOfflineDbCacheForTests } from '@/lib/offline/idb';
 import {
+  buildExecutionDetailFromListItem,
+  buildPortalDetailFromListItem,
   dedupeAssignmentItemsById,
   formatAssignmentCacheTimestamp,
   loadExecutionDetailWithCache,
   loadPortalAppointmentDetailWithCache,
   loadPortalAppointmentsWithCache,
+  MAX_PREFETCH_DETAILS,
   mergeAssignmentListCache,
   mergeAssignmentListsWithStalePreservation,
   readAssignmentListCache,
@@ -17,6 +20,10 @@ import {
   writeExecutionDetailCache,
   writePortalAppointmentDetailCache,
 } from '@/lib/offline/assignmentCacheService';
+import {
+  resetAssignmentDetailPrefetchForTests,
+  selectPrefetchAssignmentCandidates,
+} from '@/lib/offline/assignmentDetailPrefetch';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
 import type { PortalAppointmentDetail } from '@/types/portal/employee';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
@@ -284,17 +291,29 @@ vi.mock('@/lib/portal/employeePortalExecutionService', async (importOriginal) =>
   };
 });
 
+vi.mock('@/lib/portal/employeePortalExecutionLiveService', async (importOriginal) => {
+  const actual =
+    await importOriginal<typeof import('@/lib/portal/employeePortalExecutionLiveService')>();
+  return {
+    ...actual,
+    fetchLiveEmployeePortalAssignmentDetail: vi.fn(),
+  };
+});
+
 import { fetchPortalAppointments, fetchPortalAppointmentDetail } from '@/lib/portal/appointmentService';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
+import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
 
 describe('assignmentCacheService', () => {
   beforeEach(() => {
     vi.unstubAllGlobals();
     resetOfflineDbCacheForTests();
+    resetAssignmentDetailPrefetchForTests();
     installMemoryIndexedDb();
     vi.mocked(fetchPortalAppointments).mockReset();
     vi.mocked(fetchPortalAppointmentDetail).mockReset();
     vi.mocked(fetchEmployeePortalAssignmentDetail).mockReset();
+    vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockReset();
   });
 
   it('writes and reads assignment list cache', async () => {
@@ -693,5 +712,103 @@ describe('assignmentCacheService', () => {
     expect(result.data).toHaveLength(1);
     expect(warnSpy).toHaveBeenCalled();
     warnSpy.mockRestore();
+  });
+
+  it('returns partial portal detail from list cache when detail prefetch missing', async () => {
+    await writeAssignmentListCache('tenant-1', 'emp-1', threeSameDay);
+    vi.mocked(fetchPortalAppointmentDetail).mockResolvedValue({
+      ok: false,
+      error: 'Offline',
+    });
+
+    const result = await loadPortalAppointmentDetailWithCache(
+      'asg-b',
+      'profile-1',
+      'employee_portal',
+      'tenant-1',
+      'emp-1',
+      { preferCache: true },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.partialDetail).toBe(true);
+    expect(result.cacheSource).toBe('list_basis');
+    expect(result.data.title).toBe('Morgen');
+    expect(result.data.tasks).toEqual([]);
+  });
+
+  it('returns partial execution detail from list cache when execution cache missing', async () => {
+    await writeAssignmentListCache('tenant-1', 'emp-1', threeSameDay);
+    vi.mocked(fetchEmployeePortalAssignmentDetail).mockResolvedValue({
+      ok: false,
+      error: 'Offline',
+    });
+
+    const result = await loadExecutionDetailWithCache(
+      'tenant-1',
+      'asg-c',
+      'emp-1',
+      'employee_portal',
+      { preferCache: true },
+    );
+
+    expect(result.ok).toBe(true);
+    expect(result.partialDetail).toBe(true);
+    expect(result.data.clientName).toBe('Klient asg-c');
+    expect(result.data.isLocked).toBe(true);
+  });
+
+  it('returns honest offline error when list and detail caches are missing', async () => {
+    const result = await loadPortalAppointmentDetailWithCache(
+      'asg-x',
+      'profile-1',
+      'employee_portal',
+      'tenant-1',
+      'emp-1',
+      { preferCache: true },
+    );
+
+    expect(result.ok).toBe(false);
+    expect(result.error).toMatch(/Keine Verbindung/i);
+    expect(result.partialDetail).toBeFalsy();
+  });
+
+  it('buildPortalDetailFromListItem never mixes assignment ids', () => {
+    const detailA = buildPortalDetailFromListItem(makeItem('asg-a', 'A', '2026-07-04T08:00:00.000Z'));
+    const detailB = buildPortalDetailFromListItem(makeItem('asg-b', 'B', '2026-07-04T09:00:00.000Z'));
+    expect(detailA.id).toBe('asg-a');
+    expect(detailB.id).toBe('asg-b');
+    expect(detailA.title).toBe('A');
+    expect(detailB.title).toBe('B');
+  });
+
+  it('selectPrefetchAssignmentCandidates caps at MAX_PREFETCH_DETAILS', () => {
+    const many = Array.from({ length: 14 }, (_, index) =>
+      makeItem(`asg-${index}`, `Einsatz ${index}`, new Date(Date.UTC(2026, 6, 4 + index, 8)).toISOString()),
+    );
+    expect(selectPrefetchAssignmentCandidates(many).length).toBe(MAX_PREFETCH_DETAILS);
+  });
+
+  it('schedules detail prefetch after successful online list load', async () => {
+    vi.mocked(fetchPortalAppointments).mockResolvedValue({ ok: true, data: threeSameDay });
+    vi.mocked(fetchPortalAppointmentDetail).mockImplementation(async (id) => ({
+      ok: true,
+      data: makePortalDetail(String(id), `Portal ${id}`),
+    }));
+    vi.mocked(fetchLiveEmployeePortalAssignmentDetail).mockResolvedValue({ ok: false, error: 'skip' });
+
+    await loadPortalAppointmentsWithCache('profile-1', 'employee_portal', 'tenant-1', 'emp-1');
+
+    await vi.waitFor(async () => {
+      const cached = await readPortalAppointmentDetailCache('tenant-1', 'emp-1', 'asg-b');
+      expect(cached).not.toBeNull();
+    });
+  });
+
+  it('buildExecutionDetailFromListItem uses list row client name', () => {
+    const item = makeItem('asg-z', 'Z', '2026-07-04T08:00:00.000Z');
+    const detail = buildExecutionDetailFromListItem(item, 'tenant-1');
+    expect(detail.assignmentId).toBe('asg-z');
+    expect(detail.clientName).toBe('Klient asg-z');
   });
 });

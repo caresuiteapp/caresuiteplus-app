@@ -13,6 +13,8 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
   const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
     fromCache: false,
     cachedAt: null,
+    partialDetail: false,
+    cacheSource: 'live',
   });
 
   const query = useAsyncQuery(
@@ -25,7 +27,12 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
         employeeId,
         { preferCache: isOffline },
       );
-      setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
+      setCacheMeta({
+        fromCache: result.fromCache,
+        cachedAt: result.cachedAt,
+        partialDetail: result.partialDetail,
+        cacheSource: result.cacheSource,
+      });
       return result;
     },
     [appointmentId, profileId, roleKey, tenantId, employeeId, isOffline],
@@ -55,5 +62,7 @@ export function usePortalAppointmentDetail(appointmentId: string | undefined) {
     isLiveConnected: query.isLiveConnected,
     fromCache: cacheMeta.fromCache,
     cachedAt: cacheMeta.cachedAt,
+    partialDetail: cacheMeta.partialDetail ?? false,
+    cacheSource: cacheMeta.cacheSource ?? 'live',
   };
 }

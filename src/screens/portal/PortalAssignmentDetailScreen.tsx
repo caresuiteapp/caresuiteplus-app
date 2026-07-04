@@ -36,7 +36,7 @@ export function PortalAssignmentDetailScreen() {
   const { can, check, roleLabel } = usePermissions();
   const canView = can('portal.employee.appointments.view');
 
-  const { data, loading, error, refresh, notFound, fromCache, cachedAt } =
+  const { data, loading, error, refresh, notFound, fromCache, cachedAt, partialDetail } =
     usePortalAppointmentDetail(id);
 
   if (!canView) {
@@ -83,7 +83,7 @@ export function PortalAssignmentDetailScreen() {
       }
     >
       <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scroll}>
-        <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
+        <CachedDataBanner visible={fromCache} cachedAt={cachedAt} partialDetail={partialDetail} />
         <PortalEmployeeAssignmentDetailHero assignment={data} />
 
         <View style={styles.detailsCard}>

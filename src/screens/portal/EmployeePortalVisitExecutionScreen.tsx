@@ -117,6 +117,7 @@ export function EmployeePortalVisitExecutionScreen() {
     readOnlyExecution,
     fromCache,
     cachedAt,
+    partialDetail,
   } = useEmployeePortalVisitExecution(id);
 
   const effectiveStatus: AssignmentStatus =
@@ -497,7 +498,12 @@ export function EmployeePortalVisitExecutionScreen() {
         <InfoBanner variant="info" message={nextActionHint} />
       ) : null}
       {refetchWarning ? <InfoBanner variant="warning" message={refetchWarning} /> : null}
-      <CachedDataBanner visible={fromCache || readOnlyExecution} cachedAt={cachedAt} readOnly={readOnlyExecution} />
+      <CachedDataBanner
+        visible={fromCache || readOnlyExecution}
+        cachedAt={cachedAt}
+        readOnly={readOnlyExecution}
+        partialDetail={partialDetail}
+      />
       {readOnlyExecution ? (
         <InfoBanner
           variant="warning"

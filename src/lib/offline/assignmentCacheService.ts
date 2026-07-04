@@ -11,8 +11,8 @@ import {
   buildEmployeePortalDashboardFromOverview,
   buildEmployeePortalOverviewFromAppointments,
 } from '@/lib/portal/employeePortalLiveOverviewService';
-import { fetchLiveEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionLiveService';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { isBrowserOffline } from './connectivity';
 import { getStoreRecord, openOfflineDb, putStoreRecord, putSyncMeta } from './idb';
 import type {
@@ -25,7 +25,7 @@ import type {
 } from './types';
 
 const ASSIGNMENTS_STORE = 'assignments' as const;
-const MAX_PREFETCH_DETAILS = 6;
+export const MAX_PREFETCH_DETAILS = 6;
 
 function listCacheKey(tenantId: string, employeeId: string): string {
   return `${tenantId}:${employeeId}:list`;
@@ -102,7 +102,97 @@ function executionDetailCacheKey(
 }
 
 function emptyCacheMeta(): AssignmentCacheMeta {
-  return { fromCache: false, cachedAt: null };
+  return { fromCache: false, cachedAt: null, cacheSource: 'live' };
+}
+
+function liveCacheMeta(): AssignmentCacheMeta {
+  return { fromCache: false, cachedAt: null, cacheSource: 'live' };
+}
+
+export function buildPortalDetailFromListItem(
+  item: CachedPortalAppointmentItem,
+): PortalAppointmentDetail {
+  const assignmentId = item.id;
+  const canStart =
+    item.status === 'aktiv' ||
+    item.status === 'entwurf' ||
+    item.status === 'in_bearbeitung';
+  return {
+    id: assignmentId,
+    assignmentId,
+    title: item.title,
+    startsAt: item.startsAt,
+    endsAt: item.endsAt,
+    status: item.status,
+    location: item.location ?? null,
+    clientId: item.clientId,
+    clientName: item.clientName,
+    clientPhone: null,
+    notes: null,
+    tasks: [],
+    canStartExecution: canStart,
+    executionRoute: `/portal/employee/assignments/${assignmentId}/execute`,
+  };
+}
+
+function partialCanonicalStatus(
+  status: AssignmentStatus,
+): EmployeePortalAssignmentDetail['canonicalStatus'] {
+  const map: Partial<Record<AssignmentStatus, EmployeePortalAssignmentDetail['canonicalStatus']>> = {
+    geplant: 'planned',
+    bestaetigt: 'confirmed',
+    unterwegs: 'on_the_way',
+    angekommen: 'arrived',
+    gestartet: 'started',
+    pausiert: 'paused',
+    beendet: 'finished',
+    dokumentation_offen: 'documentation_open',
+    unterschrift_offen: 'signature_open',
+    abgeschlossen: 'completed',
+    storniert: 'cancelled',
+    nicht_erschienen: 'no_show',
+  };
+  return map[status] ?? 'confirmed';
+}
+
+export function buildExecutionDetailFromListItem(
+  item: CachedPortalAppointmentItem,
+  tenantId: string,
+): EmployeePortalAssignmentDetail {
+  const status = item.assignmentStatus ?? 'bestaetigt';
+  return {
+    assignmentId: item.id,
+    tenantId,
+    title: item.title,
+    clientId: item.clientId,
+    clientName: item.clientName,
+    locationAddress: item.location ?? '',
+    plannedStartAt: item.startsAt,
+    plannedEndAt: item.endsAt,
+    actualStartAt: null,
+    actualEndAt: null,
+    onTheWayAt: null,
+    arrivedAt: null,
+    status,
+    canonicalStatus: partialCanonicalStatus(status),
+    notesForEmployee: '',
+    accessHints: null,
+    emergencyContact: null,
+    tasks: [],
+    statusHistory: [],
+    pauseEvents: [],
+    documentationStatus: 'none',
+    signatureStatus: 'none',
+    requiresSignature: false,
+    requiresDocumentation: false,
+    requiresRoute: false,
+    canStartExecution: false,
+    canOpenRoute: false,
+    canCaptureGps: false,
+    allowedTransitions: [],
+    isLocked: true,
+    enabledModules: [],
+  };
 }
 
 const OFFLINE_LIST_ERROR =
@@ -314,7 +404,10 @@ export async function loadPortalAppointmentsWithCache(
   const online = await fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId });
   if (online.ok && scoped) {
     const merged = await mergeAssignmentListCache(tenantId, employeeId, online.data);
-    return withCacheMeta({ ok: true, data: merged }, emptyCacheMeta());
+    void import('./assignmentDetailPrefetch').then((mod) =>
+      mod.scheduleAssignmentDetailPrefetch(profileId, roleKey, tenantId, employeeId, merged),
+    );
+    return withCacheMeta({ ok: true, data: merged }, liveCacheMeta());
   }
 
   if (scoped) {
@@ -347,9 +440,28 @@ export async function loadPortalAppointmentDetailWithCache(
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.payload },
-        { fromCache: true, cachedAt: cached.cachedAt },
+        {
+          fromCache: true,
+          cachedAt: cached.cachedAt,
+          cacheSource: 'portal_detail',
+        },
       );
     }
+
+    const listCached = await readSortedAssignmentListCache(tenantId, employeeId);
+    const listItem = listCached?.items.find((item) => item.id === assignmentKey);
+    if (listItem) {
+      return withCacheMeta(
+        { ok: true, data: buildPortalDetailFromListItem(listItem) },
+        {
+          fromCache: true,
+          cachedAt: listCached.cachedAt,
+          partialDetail: true,
+          cacheSource: 'list_basis',
+        },
+      );
+    }
+
     return withCacheMeta({ ok: false, error: OFFLINE_DETAIL_ERROR }, emptyCacheMeta());
   }
 
@@ -366,7 +478,7 @@ export async function loadPortalAppointmentDetailWithCache(
         assignmentId: assignmentKey,
       });
     }
-    return withCacheMeta(online, emptyCacheMeta());
+    return withCacheMeta(online, liveCacheMeta());
   }
 
   if (scoped && assignmentKey) {
@@ -374,7 +486,25 @@ export async function loadPortalAppointmentDetailWithCache(
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.payload },
-        { fromCache: true, cachedAt: cached.cachedAt },
+        {
+          fromCache: true,
+          cachedAt: cached.cachedAt,
+          cacheSource: 'portal_detail',
+        },
+      );
+    }
+
+    const listCached = await readSortedAssignmentListCache(tenantId, employeeId);
+    const listItem = listCached?.items.find((item) => item.id === assignmentKey);
+    if (listItem) {
+      return withCacheMeta(
+        { ok: true, data: buildPortalDetailFromListItem(listItem) },
+        {
+          fromCache: true,
+          cachedAt: listCached.cachedAt,
+          partialDetail: true,
+          cacheSource: 'list_basis',
+        },
       );
     }
   }
@@ -397,9 +527,28 @@ export async function loadExecutionDetailWithCache(
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.payload },
-        { fromCache: true, cachedAt: cached.cachedAt },
+        {
+          fromCache: true,
+          cachedAt: cached.cachedAt,
+          cacheSource: 'execution_detail',
+        },
       );
     }
+
+    const listCached = await readSortedAssignmentListCache(tenantId, employeeId);
+    const listItem = listCached?.items.find((item) => item.id === assignmentKey);
+    if (listItem) {
+      return withCacheMeta(
+        { ok: true, data: buildExecutionDetailFromListItem(listItem, tenantId) },
+        {
+          fromCache: true,
+          cachedAt: listCached.cachedAt,
+          partialDetail: true,
+          cacheSource: 'list_basis',
+        },
+      );
+    }
+
     return withCacheMeta({ ok: false, error: OFFLINE_DETAIL_ERROR }, emptyCacheMeta());
   }
 
@@ -418,7 +567,7 @@ export async function loadExecutionDetailWithCache(
         assignmentId: assignmentKey,
       });
     }
-    return withCacheMeta(online, emptyCacheMeta());
+    return withCacheMeta(online, liveCacheMeta());
   }
 
   if (assignmentKey) {
@@ -426,7 +575,25 @@ export async function loadExecutionDetailWithCache(
     if (cached) {
       return withCacheMeta(
         { ok: true, data: cached.payload },
-        { fromCache: true, cachedAt: cached.cachedAt },
+        {
+          fromCache: true,
+          cachedAt: cached.cachedAt,
+          cacheSource: 'execution_detail',
+        },
+      );
+    }
+
+    const listCached = await readSortedAssignmentListCache(tenantId, employeeId);
+    const listItem = listCached?.items.find((item) => item.id === assignmentKey);
+    if (listItem) {
+      return withCacheMeta(
+        { ok: true, data: buildExecutionDetailFromListItem(listItem, tenantId) },
+        {
+          fromCache: true,
+          cachedAt: listCached.cachedAt,
+          partialDetail: true,
+          cacheSource: 'list_basis',
+        },
       );
     }
   }
@@ -467,32 +634,9 @@ export async function prefetchEmployeeAssignmentCache(
   const listResult = await fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId });
   if (!listResult.ok || !listResult.data.length) return;
 
-  await mergeAssignmentListCache(tenantId, employeeId, listResult.data);
-
-  const now = new Date();
-  const todayStart = new Date(now);
-  todayStart.setHours(0, 0, 0, 0);
-
-  const candidates = sortPortalAppointmentItems(listResult.data.map((item) => ({ ...item })))
-    .filter((item) => {
-      const start = new Date(item.startsAt);
-      return start >= todayStart;
-    })
-    .slice(0, MAX_PREFETCH_DETAILS);
-
-  await Promise.all(
-    candidates.map(async (item) => {
-      const [executionDetail, portalDetail] = await Promise.all([
-        fetchLiveEmployeePortalAssignmentDetail(tenantId, item.id, employeeId, roleKey),
-        fetchPortalAppointmentDetail(item.id, profileId, roleKey, { tenantId, employeeId }),
-      ]);
-      if (executionDetail.ok) {
-        await writeExecutionDetailCache(tenantId, employeeId, executionDetail.data);
-      }
-      if (portalDetail.ok) {
-        await writePortalAppointmentDetailCache(tenantId, employeeId, portalDetail.data);
-      }
-    }),
+  const merged = await mergeAssignmentListCache(tenantId, employeeId, listResult.data);
+  void import('./assignmentDetailPrefetch').then((mod) =>
+    mod.scheduleAssignmentDetailPrefetch(profileId, roleKey, tenantId, employeeId, merged),
   );
 }
 

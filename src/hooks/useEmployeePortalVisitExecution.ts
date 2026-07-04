@@ -205,6 +205,8 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
   const [cacheMeta, setCacheMeta] = useState<AssignmentCacheMeta>({
     fromCache: false,
     cachedAt: null,
+    partialDetail: false,
+    cacheSource: 'live',
   });
   const readOnlyExecution = isOffline || cacheMeta.fromCache;
 
@@ -272,7 +274,12 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         roleKey,
         { preferCache: isOffline },
       );
-      setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });
+      setCacheMeta({
+        fromCache: result.fromCache,
+        cachedAt: result.cachedAt,
+        partialDetail: result.partialDetail,
+        cacheSource: result.cacheSource,
+      });
       return result;
     },
     [tenantId, assignmentId, employeeId, roleKey, isOffline],
@@ -1081,5 +1088,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     readOnlyExecution,
     fromCache: cacheMeta.fromCache,
     cachedAt: cacheMeta.cachedAt,
+    partialDetail: cacheMeta.partialDetail ?? false,
+    cacheSource: cacheMeta.cacheSource ?? 'live',
   };
 }

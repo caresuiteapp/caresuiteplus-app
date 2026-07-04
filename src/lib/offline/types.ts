@@ -81,9 +81,18 @@ export type AssignmentExecutionDetailCacheRecord = {
   cachedAt: string;
 };
 
+export type AssignmentCacheSource =
+  | 'live'
+  | 'portal_detail'
+  | 'execution_detail'
+  | 'list_basis';
+
 export type AssignmentCacheMeta = {
   fromCache: boolean;
   cachedAt: string | null;
+  /** True when only list-row fields are available offline (no full detail prefetch). */
+  partialDetail?: boolean;
+  cacheSource?: AssignmentCacheSource;
 };
 
 export type AssignmentCacheLoadOptions = {
