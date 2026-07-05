@@ -1,7 +1,9 @@
 import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, type ViewStyle } from 'react-native';
-import { PremiumCard } from '@/components/ui';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { CareLightCard } from '@/components/ui/CareLightCard';
+import {
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import { spacing, typography } from '@/theme';
 
 type EmployeePortalVisitCompactCardProps = {
@@ -21,7 +23,7 @@ export function EmployeePortalVisitCompactCard({
   testID,
   accentColor,
 }: EmployeePortalVisitCompactCardProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
 
   const styles = useMemo(
     () =>
@@ -36,12 +38,12 @@ export function EmployeePortalVisitCompactCard({
   );
 
   const content = (
-    <PremiumCard accentColor={accentColor} style={styles.card}>
+    <CareLightCard accentColor={accentColor} style={styles.card}>
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.status}>{status}</Text>
       {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
       {onPress ? <Text style={styles.action}>Öffnen →</Text> : null}
-    </PremiumCard>
+    </CareLightCard>
   );
 
   if (!onPress) return content;

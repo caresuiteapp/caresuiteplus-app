@@ -100,6 +100,8 @@ describe('employee portal mobile acceptance fixes', () => {
     const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
     const orientation = readSrc('src/lib/orientation/requestLandscapeLock.ts');
     const prompt = readSrc('src/components/layout/LandscapePrompt.tsx');
+    expect(modal).toContain('PlainSignatureHeader');
+    expect(modal).not.toContain('GlassSurface');
     expect(modal).toContain('FullscreenOverlay');
     expect(modal).toContain('if (!visible) return null');
     expect(modal).toContain('visible={visible}');
@@ -136,6 +138,7 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(canvas).toContain('Löschen');
     expect(canvas).toContain('Abbrechen');
     expect(canvas).toContain('Unterschrift bestätigen');
+    expect(canvas).toContain("'Bestätigen'");
     expect(panel).toContain('CareSignatureModal');
     expect(panel).toContain('useFocusEffect');
     expect(panel).toContain('modalVisible ?');

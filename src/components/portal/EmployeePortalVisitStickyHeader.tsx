@@ -2,7 +2,11 @@ import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumBadge } from '@/components/ui';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionShadow,
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import type { EmployeePortalLiveTimers } from '@/types/modules/employeePortalTracking';
@@ -58,20 +62,21 @@ export function EmployeePortalVisitStickyHeader({
   signatureCaptured = false,
   showProgress = true,
 }: EmployeePortalVisitStickyHeaderProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const insets = useSafeAreaInsets();
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         root: {
-          backgroundColor: auroraGlass.elevated,
+          backgroundColor: employeePortalExecutionSurface.background,
           borderBottomWidth: 1,
-          borderBottomColor: auroraGlass.innerBorder,
+          borderBottomColor: employeePortalExecutionSurface.border,
           paddingHorizontal: spacing.md,
           paddingTop: Platform.OS === 'web' ? spacing.sm : Math.max(insets.top, spacing.sm),
           paddingBottom: spacing.sm,
           gap: spacing.xs,
+          ...employeePortalExecutionShadow,
           ...(Platform.OS === 'web'
             ? ({ position: 'sticky', top: 0, zIndex: 20 } as ViewStyle)
             : null),

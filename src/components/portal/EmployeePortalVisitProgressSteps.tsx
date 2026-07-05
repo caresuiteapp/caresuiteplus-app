@@ -4,7 +4,10 @@ import {
   assignmentStatusToWorkflowStep,
   isWorkflowStepComplete,
 } from '@/features/assistWorkflow';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 
@@ -82,7 +85,7 @@ export function EmployeePortalVisitProgressSteps({
   requiresSignature = true,
   signatureCaptured = false,
 }: EmployeePortalVisitProgressStepsProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const current = assignmentStatusToWorkflowStep(status);
 
   const visibleSteps = PROGRESS_STEPS.filter(
@@ -104,9 +107,10 @@ export function EmployeePortalVisitProgressSteps({
           height: 18,
           borderRadius: 9,
           borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
+          borderColor: employeePortalExecutionSurface.borderStrong,
           alignItems: 'center',
           justifyContent: 'center',
+          backgroundColor: employeePortalExecutionSurface.subtleBackground,
         },
         dotDone: { backgroundColor: colors.success, borderColor: colors.success },
         dotActive: { borderColor: colors.amber, backgroundColor: 'rgba(255, 149, 0, 0.15)' },
