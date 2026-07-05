@@ -14,7 +14,7 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumButton, LoadingState, ErrorState } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { lightLiquidGlass, lightSurfaceText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
@@ -45,7 +45,7 @@ export function EmployeePortalAssignmentPreviewSheet({
 }: EmployeePortalAssignmentPreviewSheetProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
-  const text = useAuroraAdaptiveText();
+  const text = lightSurfaceText;
   const { data, loading, error, refresh, fromCache } = usePortalAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );
@@ -77,7 +77,13 @@ export function EmployeePortalAssignmentPreviewSheet({
     >
       <View style={styles.overlay}>
         <Pressable style={styles.backdrop} onPress={onClose} accessibilityLabel="Vorschau schließen" />
-        <View style={[styles.sheet, panelStyle, { backgroundColor: '#F8FAFC' }]}>
+        <View
+          style={[
+            styles.sheet,
+            panelStyle,
+            { backgroundColor: lightLiquidGlass.elevated, borderColor: lightLiquidGlass.borderAccent },
+          ]}
+        >
           <View style={styles.handleRow}>
             <View style={styles.handle} />
             <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityLabel="Schließen">
