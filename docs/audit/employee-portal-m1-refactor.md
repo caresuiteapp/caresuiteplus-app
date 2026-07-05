@@ -196,9 +196,12 @@ Office kann über bestehende `approvePortalUpload` / `rejectPortalUpload` weiter
 
 ### Migration 0226
 
-Remote-Push in Cloud-Umgebung ohne Supabase-Login nicht möglich. Manuell:
+**Status (2026-07-05):** Remote noch nicht angewendet (`portal_uploads.employee_id` fehlt auf Production).
+
+Manuell (lokal mit Supabase-Login):
 
 ```bash
+supabase login
 supabase link --project-ref euagyyztvmemuaiumvxm
 supabase db push
 ```
