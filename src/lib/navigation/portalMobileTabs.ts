@@ -16,9 +16,9 @@ export type PortalMobileTabKey = (typeof PORTAL_MOBILE_TAB_KEYS)[number];
 export const PORTAL_EMPLOYEE_MOBILE_TAB_KEYS = [
   'overview',
   'assignments',
+  'uploads',
   'calendar',
   'messages',
-  'profile',
 ] as const;
 
 export type PortalEmployeeMobileTabKey = (typeof PORTAL_EMPLOYEE_MOBILE_TAB_KEYS)[number];
@@ -46,8 +46,14 @@ const FALLBACK_EMPLOYEE_MOBILE_TABS: Record<PortalEmployeeMobileTabKey, ShellTab
   assignments: {
     key: 'assignments',
     label: 'Einsätze',
-    icon: '📅',
+    icon: '📋',
     href: '/portal/employee/assignments',
+  },
+  uploads: {
+    key: 'uploads',
+    label: 'Uploads / Dokumente',
+    icon: '📤',
+    href: '/portal/employee/uploads',
   },
   calendar: {
     key: 'calendar',
@@ -61,7 +67,6 @@ const FALLBACK_EMPLOYEE_MOBILE_TABS: Record<PortalEmployeeMobileTabKey, ShellTab
     icon: '💬',
     href: '/portal/employee/messages',
   },
-  profile: { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
 };
 
 /**
@@ -79,7 +84,7 @@ export function resolveFixedMobilePortalTabs(tabs: ShellTabConfig[]): ShellTabCo
   });
 }
 
-/** Five fixed employee mobile tabs — Übersicht, Einsätze, Kalender, Nachrichten, Profil. */
+/** Five fixed employee mobile tabs — Übersicht, Einsätze, Uploads, Kalender, Nachrichten. */
 export function resolveFixedMobileEmployeePortalTabs(tabs: ShellTabConfig[]): ShellTabConfig[] {
   return PORTAL_EMPLOYEE_MOBILE_TAB_KEYS.map((key) => {
     const dynamic =

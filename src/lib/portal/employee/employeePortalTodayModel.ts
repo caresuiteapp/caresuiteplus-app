@@ -1,6 +1,6 @@
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 import type { EmployeePortalAssignmentListItem } from '@/types/modules/employeePortalExecution';
-import { getVisibleNavItemsForRole } from '@/components/healthos/navigation/resolveHealthOSNavigation';
+import { EMPLOYEE_PORTAL_NAV_TABS } from '@/lib/navigation/employeePortalNavigation';
 import {
   isActiveEmployeeAssignment,
   isDocumentationPendingEmployeeAssignment,
@@ -242,27 +242,12 @@ function buildOffeneAufgaben(
 // ─── Section D: Schnellzugriffe ───────────────────────────────────────────────
 
 function buildSchnellzugriffe(): EmployeePortalTodayLink[] {
-  const navLinks = getVisibleNavItemsForRole('employee_portal')
-    .filter((item) => item.href)
-    .map((item) => ({
-      id: item.key,
-      label: item.label,
-      route: item.href!,
-      icon: item.icon,
-    }));
-
-  const m1Links: EmployeePortalTodayLink[] = [
-    { id: 'calendar', label: 'Kalender', route: '/portal/employee/calendar', icon: '📅' },
-    { id: 'clients', label: 'Klientenakten', route: '/portal/employee/clients', icon: '👥' },
-    { id: 'uploads', label: 'Uploads / Dokumente', route: '/portal/employee/uploads', icon: '📤' },
-    { id: 'times', label: 'Meine Zeiten', route: '/portal/employee/times', icon: '⏱️' },
-  ];
-
-  const merged = [...m1Links];
-  for (const link of navLinks) {
-    if (!merged.some((entry) => entry.route === link.route)) merged.push(link);
-  }
-  return merged;
+  return EMPLOYEE_PORTAL_NAV_TABS.map((tab) => ({
+    id: tab.key,
+    label: tab.label,
+    route: tab.href,
+    icon: tab.icon,
+  }));
 }
 
 // ─── Main builder ─────────────────────────────────────────────────────────────
