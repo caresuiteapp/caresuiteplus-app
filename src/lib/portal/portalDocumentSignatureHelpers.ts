@@ -1,6 +1,8 @@
 import type {
   PortalSignatureDocument,
+  PortalSignatureDocumentSourceType,
   PortalSignatureDocumentStatus,
+  PortalSignatureField,
   PortalSignatureFilterTab,
 } from '@/types/portal/documentSignatures';
 
@@ -129,7 +131,28 @@ export function countPortalSignatureDashboard(
   };
 }
 
+export function mapPortalSignatureField(value: unknown): PortalSignatureField | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const role = row.role === 'client' ? 'client' : 'employee';
+  return {
+    id: String(row.id ?? `${role}_signature`),
+    role,
+    label: String(row.label ?? (role === 'employee' ? 'Mitarbeiter-Unterschrift' : 'Klient:innen-Unterschrift')),
+    order: Number(row.order ?? 1),
+    required: row.required !== false,
+  };
+}
+
 export function mapPortalSignatureDocumentRow(row: Record<string, unknown>): PortalSignatureDocument {
+  const signatureFieldsRaw = Array.isArray(row.signature_fields_json)
+    ? row.signature_fields_json
+    : [];
+  const signatureFields = signatureFieldsRaw
+    .map((field) => mapPortalSignatureField(field))
+    .filter((field): field is PortalSignatureField => field != null)
+    .sort((a, b) => a.order - b.order);
+
   return {
     id: String(row.id),
     tenantId: String(row.tenant_id),
@@ -152,6 +175,11 @@ export function mapPortalSignatureDocumentRow(row: Record<string, unknown>): Por
     allowDownload: row.allow_download !== false,
     previewHtml: row.preview_html ? String(row.preview_html) : null,
     previewPdfUrl: row.final_storage_path ? String(row.final_storage_path) : null,
+    storagePath: row.storage_path ? String(row.storage_path) : null,
+    sourceDocumentId: row.source_document_id ? String(row.source_document_id) : null,
+    documentSourceType:
+      (row.document_source_type as PortalSignatureDocumentSourceType) ?? 'office_write',
+    signatureFields,
     versionNumber: Number(row.version_number ?? 1),
     employeeSigned: Boolean(row.employee_signed),
     clientSigned: Boolean(row.client_signed),

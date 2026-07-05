@@ -19,9 +19,12 @@ import {
   fetchLivePortalSignatureDashboardCounts,
   fetchLivePortalSignatureDocumentDetail,
   fetchLivePortalSignatureDocuments,
+  resolveLivePortalSignatureStorageUrl,
   signLivePortalDocument,
   withdrawLiveOfficeSignatureDocument,
 } from '@/lib/portal/portalDocumentSignatureLiveService';
+import { composeOfficeSignatureDocument } from '@/lib/portal/officeSignatureDocumentComposerService';
+import type { ComposeOfficeSignatureDocumentInput } from '@/lib/portal/officeSignatureDocumentComposerService';
 
 export {
   countPortalSignatureDashboard,
@@ -130,6 +133,42 @@ export async function createOfficeSignatureDocument(
   }
 
   return createLiveOfficeSignatureDocument(input);
+}
+
+export async function composeOfficeSignatureDocumentForPortal(
+  input: ComposeOfficeSignatureDocumentInput,
+  roleKey: RoleKey | null,
+): Promise<ServiceResult<PortalSignatureDocument>> {
+  const denied = enforcePermission<PortalSignatureDocument>(
+    roleKey,
+    'office.documents.signatures.manage',
+  );
+  if (denied) return denied;
+
+  const liveBlock = requireLiveMode<PortalSignatureDocument>();
+  if (liveBlock) return liveBlock;
+
+  if (!input.title.trim()) {
+    return { ok: false, error: 'Dokumenttitel erforderlich.' };
+  }
+  if (!input.employeeId) {
+    return { ok: false, error: 'Mitarbeiter für Portal-Zustellung erforderlich.' };
+  }
+
+  return composeOfficeSignatureDocument(input, roleKey);
+}
+
+export async function resolvePortalSignatureStorageUrl(
+  storagePath: string,
+  roleKey: RoleKey | null,
+): Promise<ServiceResult<string>> {
+  const denied = enforcePermission<string>(roleKey, 'portal.employee.signatures.view');
+  if (denied) return denied;
+
+  const liveBlock = requireLiveMode<string>();
+  if (liveBlock) return liveBlock;
+
+  return resolveLivePortalSignatureStorageUrl(storagePath);
 }
 
 export async function fetchOfficeSignatureDocuments(

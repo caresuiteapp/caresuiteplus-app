@@ -32,6 +32,10 @@ function sampleDoc(overrides: Partial<PortalSignatureDocument> = {}): PortalSign
     allowDownload: true,
     previewHtml: null,
     previewPdfUrl: null,
+    storagePath: null,
+    sourceDocumentId: null,
+    documentSourceType: 'office_write',
+    signatureFields: [],
     versionNumber: 1,
     employeeSigned: false,
     clientSigned: false,
@@ -135,6 +139,7 @@ describe('portal signature live-only facade', () => {
     );
     expect(source).toContain('Signaturdokumente sind nur im Live-Modus');
     expect(source).toContain('fetchLivePortalSignatureDocuments');
+    expect(source).toContain('composeOfficeSignatureDocumentForPortal');
     expect(source).not.toContain('demoPortalSignatureDocuments');
   });
 });

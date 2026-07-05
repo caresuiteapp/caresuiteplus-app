@@ -1,4 +1,4 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { DocumentHtmlPreview } from '@/components/office/DocumentHtmlPreview';
@@ -10,6 +10,7 @@ import {
   PremiumInput,
   SectionPanel,
 } from '@/components/ui';
+import { usePortalSignatureSourcePdf } from '@/hooks/usePortalSignatureSourcePdf';
 import { requestLandscapeLock } from '@/lib/orientation/requestLandscapeLock';
 import type {
   PortalSignatureDocumentDetail,
@@ -48,6 +49,21 @@ export function PortalSignatureCapturePanel({
 
   const nextRole = detail.nextSignerRole;
   const canSign = !disabled && nextRole != null && detail.status !== 'completed';
+  const { url: sourcePdfUrl, loading: pdfLoading, error: pdfError } = usePortalSignatureSourcePdf(
+    detail.documentSourceType === 'pdf_upload' ? detail.storagePath : null,
+  );
+
+  const pendingFields = useMemo(
+    () =>
+      detail.signatureFields.filter((field) => {
+        if (field.role === 'employee') return !detail.employeeSigned;
+        if (field.role === 'client') return !detail.clientSigned;
+        return true;
+      }),
+    [detail.signatureFields, detail.employeeSigned, detail.clientSigned],
+  );
+
+  const showPdfPreview = detail.documentSourceType === 'pdf_upload' && Platform.OS === 'web';
 
   const openModal = useCallback(() => {
     if (Platform.OS === 'web') {
@@ -85,11 +101,63 @@ export function PortalSignatureCapturePanel({
   return (
     <>
       <SectionPanel title="Dokumentvorschau" subtitle="Vollständig lesen vor der Unterschrift">
-        <DocumentHtmlPreview
-          title={detail.title}
-          previewHtml={detail.previewHtml ?? '<p>Keine Vorschau verfügbar.</p>'}
-        />
+        {showPdfPreview ? (
+          <>
+            {pdfLoading ? <Text style={styles.metaLine}>PDF wird geladen…</Text> : null}
+            {pdfError ? (
+              <InfoBanner variant="warning" message={pdfError} />
+            ) : sourcePdfUrl ? (
+              <View style={styles.pdfFrame}>
+                {/* eslint-disable-next-line react/no-unknown-property */}
+                <iframe
+                  title={detail.title}
+                  src={sourcePdfUrl}
+                  style={{
+                    width: '100%',
+                    height: 480,
+                    border: 'none',
+                    backgroundColor: '#fff',
+                  }}
+                />
+              </View>
+            ) : null}
+            {detail.previewHtml ? (
+              <DocumentHtmlPreview title={detail.title} previewHtml={detail.previewHtml} />
+            ) : null}
+          </>
+        ) : (
+          <DocumentHtmlPreview
+            title={detail.title}
+            previewHtml={detail.previewHtml ?? '<p>Keine Vorschau verfügbar.</p>'}
+          />
+        )}
       </SectionPanel>
+
+      {detail.signatureFields.length > 0 ? (
+        <SectionPanel title="Signaturfelder" subtitle="Markierte Unterschriftsstellen">
+          {detail.signatureFields.map((field) => {
+            const signed =
+              (field.role === 'employee' && detail.employeeSigned) ||
+              (field.role === 'client' && detail.clientSigned);
+            const isNext = field.role === nextRole && canSign;
+            return (
+              <View key={field.id} style={styles.fieldRow}>
+                <Text style={styles.metaLine}>{field.label}</Text>
+                <PremiumBadge
+                  label={signed ? 'Unterschrieben' : isNext ? 'Jetzt erforderlich' : 'Ausstehend'}
+                  variant={signed ? 'green' : isNext ? 'cyan' : 'muted'}
+                />
+              </View>
+            );
+          })}
+          {pendingFields.length > 0 && canSign ? (
+            <InfoBanner
+              variant="info"
+              message={`Als Nächstes: ${pendingFields[0]?.label ?? 'Unterschrift erfassen'}`}
+            />
+          ) : null}
+        </SectionPanel>
+      ) : null}
 
       <SectionPanel title="Unterschriften" subtitle={PORTAL_SIGNATURE_STATUS_LABELS[detail.status]}>
         {detail.captures.map((capture) => (
@@ -155,6 +223,21 @@ const styles = StyleSheet.create({
   captureRow: { marginBottom: spacing.md },
   signBlock: { gap: spacing.sm, marginTop: spacing.sm },
   metaLine: { ...typography.body, marginBottom: spacing.xs },
+  fieldRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: spacing.xs,
+    gap: spacing.sm,
+  },
+  pdfFrame: {
+    borderWidth: 1,
+    borderColor: 'rgba(15,23,42,0.12)',
+    borderRadius: 12,
+    overflow: 'hidden',
+    marginBottom: spacing.sm,
+    minHeight: 480,
+  },
   badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.sm },
   auditLine: { ...typography.caption, marginTop: spacing.xs },
 });

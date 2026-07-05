@@ -2,7 +2,7 @@ import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, View } from 'react-native';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { AuroraSegmentedControl } from '@/components/aurora';
-import { OfficeSignatureDocumentCreatePanel } from '@/components/office/OfficeSignatureDocumentCreatePanel';
+import { OfficeSignatureDocumentComposer } from '@/components/office/OfficeSignatureDocumentComposer';
 import {
   EmptyState,
   ErrorState,
@@ -33,7 +33,7 @@ function formatDate(iso: string | null): string {
 export function OfficeDocumentSignaturesScreen() {
   const officeAccent = moduleColor('office');
   const { can } = usePermissions();
-  const { items, loading, error, refresh, create, withdraw } = useOfficeDocumentSignatures();
+  const { items, loading, error, refresh, compose, withdraw } = useOfficeDocumentSignatures();
   const [filter, setFilter] = useState<OfficeFilter>('open');
   const [showCreate, setShowCreate] = useState(false);
 
@@ -92,11 +92,11 @@ export function OfficeDocumentSignaturesScreen() {
 
         {showCreate ? (
           <PremiumCard accentColor={officeAccent} style={styles.createCard}>
-            <OfficeSignatureDocumentCreatePanel
+            <OfficeSignatureDocumentComposer
               accentColor={officeAccent}
               onCancel={() => setShowCreate(false)}
               onSubmit={async (input) => {
-                const result = await create(input);
+                const result = await compose(input);
                 if (result.ok) setShowCreate(false);
                 return result;
               }}
@@ -145,6 +145,9 @@ function SignatureDocumentCard({
       </View>
       <Text style={styles.meta}>
         {PORTAL_SIGNATURE_DOCUMENT_TYPE_LABELS[doc.documentType]} · {doc.clientName ?? 'Mitarbeiter'}
+        {doc.documentSourceType !== 'office_write'
+          ? ` · ${doc.documentSourceType === 'template' ? 'Vorlage' : 'PDF'}`
+          : ''}
       </Text>
       <Text style={styles.meta}>
         Fällig: {formatDate(doc.dueDate)} · Priorität: {PORTAL_SIGNATURE_PRIORITY_LABELS[doc.priority]}

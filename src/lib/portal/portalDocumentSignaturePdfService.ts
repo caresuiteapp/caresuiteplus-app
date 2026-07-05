@@ -10,6 +10,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { toStorageUploadError } from '@/lib/storage/storagePaths';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import type { ServiceResult } from '@/types';
+import { applyCapturedSignatureToHtml } from '@/lib/portal/portalSignatureFieldParser';
 
 function escapeHtml(value: string): string {
   return value
@@ -37,9 +38,32 @@ export function buildPortalSignatureFinalHtml(input: {
   captures: PortalSignatureCapture[];
   signatureImageUrls: Array<string | null>;
 }): string {
-  const signatureBlocks = input.captures
+  let bodyHtml = input.document.previewHtml ?? '<p>Dokumentinhalt</p>';
+
+  input.captures.forEach((capture, index) => {
+    const imageUrl = input.signatureImageUrls[index];
+    const fieldId =
+      capture.signerRole === 'employee'
+        ? input.document.signatureFields.find((f) => f.role === 'employee')?.id ?? 'employee_signature'
+        : input.document.signatureFields.find((f) => f.role === 'client')?.id ?? 'client_signature';
+
+    bodyHtml = applyCapturedSignatureToHtml(bodyHtml, fieldId, {
+      signerName: capture.signerName,
+      signedAt: capture.signedAt,
+      imageUrl,
+    });
+  });
+
+  const orphanCaptures = input.captures.filter((capture) => {
+    const fieldId =
+      capture.signerRole === 'employee' ? 'employee_signature' : 'client_signature';
+    return !bodyHtml.includes(`data-signature-field-id="${fieldId}"`) &&
+      !bodyHtml.includes(capture.signerName);
+  });
+
+  const signatureBlocks = orphanCaptures
     .map((capture, index) => {
-      const imageUrl = input.signatureImageUrls[index];
+      const imageUrl = input.signatureImageUrls[input.captures.indexOf(capture)];
       const roleLabel = capture.signerRole === 'employee' ? 'Mitarbeiter' : 'Klient';
       const imageHtml = imageUrl
         ? `<img src="${escapeHtml(imageUrl)}" alt="Unterschrift" style="max-width:280px;height:120px;object-fit:contain;" />`
@@ -60,10 +84,8 @@ export function buildPortalSignatureFinalHtml(input: {
       <head><meta charset="utf-8" /><title>${escapeHtml(input.document.title)}</title></head>
       <body style="font-family:Arial,sans-serif;color:#111;padding:24px;">
         <h1>${escapeHtml(input.document.title)}</h1>
-        ${input.document.previewHtml ?? '<p>Dokumentinhalt</p>'}
-        <hr />
-        <h2>Unterschriften</h2>
-        ${signatureBlocks}
+        ${bodyHtml}
+        ${signatureBlocks ? `<hr /><h2>Weitere Unterschriften</h2>${signatureBlocks}` : ''}
         <p style="margin-top:32px;font-size:11px;color:#888;">Finalisiert · Version ${input.document.versionNumber}</p>
       </body>
     </html>`;

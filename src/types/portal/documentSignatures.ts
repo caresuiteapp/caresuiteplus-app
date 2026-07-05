@@ -78,6 +78,16 @@ export const PORTAL_SIGNATURE_FILTER_TAB_LABELS: Record<PortalSignatureFilterTab
 
 export type PortalSignatureSignerRole = 'employee' | 'client';
 
+export type PortalSignatureDocumentSourceType = 'template' | 'pdf_upload' | 'office_write';
+
+export type PortalSignatureField = {
+  id: string;
+  role: PortalSignatureSignerRole;
+  label: string;
+  order: number;
+  required: boolean;
+};
+
 export type PortalSignatureDocument = {
   id: string;
   tenantId: string;
@@ -100,6 +110,10 @@ export type PortalSignatureDocument = {
   allowDownload: boolean;
   previewHtml: string | null;
   previewPdfUrl: string | null;
+  storagePath: string | null;
+  sourceDocumentId: string | null;
+  documentSourceType: PortalSignatureDocumentSourceType;
+  signatureFields: PortalSignatureField[];
   versionNumber: number;
   employeeSigned: boolean;
   clientSigned: boolean;
@@ -159,6 +173,10 @@ export type OfficeCreateSignatureDocumentInput = {
   allowDownload?: boolean;
   previewHtml?: string | null;
   storagePath?: string | null;
+  sourceDocumentId?: string | null;
+  documentSourceType?: PortalSignatureDocumentSourceType;
+  signatureFields?: PortalSignatureField[];
+  documentId?: string;
   creatorName: string;
   creatorProfileId?: string | null;
 };

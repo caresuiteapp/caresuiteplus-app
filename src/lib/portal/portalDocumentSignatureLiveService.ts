@@ -457,11 +457,13 @@ export async function createLiveOfficeSignatureDocument(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
+  const documentId = input.documentId ?? crypto.randomUUID?.() ?? `psd-${Date.now()}`;
   const sentAt = new Date().toISOString();
   const nextSignerRole = resolveInitialNextSignerRole(input.signatureRequirement);
 
   const { data, error } = await fromUnknownTable(supabase, PORTAL_SIGNATURE_TABLES.documents)
     .insert({
+      id: documentId,
       tenant_id: input.tenantId,
       title: input.title.trim(),
       document_type: input.documentType,
@@ -477,6 +479,9 @@ export async function createLiveOfficeSignatureDocument(
       status: 'open',
       preview_html: input.previewHtml ?? null,
       storage_path: input.storagePath ?? null,
+      source_document_id: input.sourceDocumentId ?? null,
+      document_source_type: input.documentSourceType ?? 'office_write',
+      signature_fields_json: input.signatureFields ?? [],
       allow_download: input.allowDownload ?? true,
       created_by: input.creatorProfileId ?? null,
       creator_name: input.creatorName,
@@ -503,7 +508,12 @@ export async function createLiveOfficeSignatureDocument(
     eventType: 'document_sent',
     summary: `Dokument „${doc.title}" an Portal gesendet.`,
     actorName: input.creatorName,
-    metadata: { recipientType: input.recipientType, employeeId: input.employeeId },
+    metadata: {
+      recipientType: input.recipientType,
+      employeeId: input.employeeId,
+      documentSourceType: input.documentSourceType ?? 'office_write',
+      signatureFieldCount: input.signatureFields?.length ?? 0,
+    },
   });
 
   return { ok: true, data: doc };
@@ -564,4 +574,25 @@ export async function recordLivePortalSignatureView(
     eventType: 'document_viewed',
     summary: 'Dokument angesehen.',
   });
+}
+
+export async function resolveLivePortalSignatureStorageUrl(
+  storagePath: string,
+): Promise<ServiceResult<string>> {
+  if (!storagePath.trim()) {
+    return { ok: false, error: 'Keine Datei verfügbar.' };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
+
+  const { data, error } = await supabase.storage
+    .from(PORTAL_SIGNATURE_STORAGE_BUCKET)
+    .createSignedUrl(storagePath, 3600);
+
+  if (error || !data?.signedUrl) {
+    return { ok: false, error: error?.message ?? 'Vorschau konnte nicht geladen werden.' };
+  }
+
+  return { ok: true, data: data.signedUrl };
 }
