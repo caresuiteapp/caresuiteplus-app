@@ -7,6 +7,7 @@ import {
   updateEmployeePortalAccountPasswordReset,
   updateEmployeePortalAccountStatus,
 } from '@/lib/access/accessManagementLiveRepository';
+import { resolveEmployeeIdForPortalAccess } from '@/lib/access/resolveEmployeeIdForPortalAccess';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
 import { invokeEdgeFunction } from '@/lib/supabase/edgeFunctions';
@@ -63,9 +64,21 @@ export async function generateEmployeeAccess(input: {
   const tempRecord = await createTemporaryPasswordRecord(oneTimePassword);
 
   if (getServiceMode() === 'supabase') {
+    const resolvedEmployee = await resolveEmployeeIdForPortalAccess(
+      input.tenantId,
+      input.employeeId,
+    );
+    if (!resolvedEmployee.ok) return resolvedEmployee;
+
+    const firstName = input.firstName.trim() || resolvedEmployee.data.firstName;
+    const lastName = input.lastName.trim() || resolvedEmployee.data.lastName;
+    if (!firstName || !lastName) {
+      return { ok: false, error: 'Vor- und Nachname sind erforderlich.' };
+    }
+
     const inserted = await insertEmployeePortalAccount({
       tenantId: input.tenantId,
-      employeeId: input.employeeId,
+      employeeId: resolvedEmployee.data.employeeId,
       username,
       tempPasswordHash: tempRecord.hash,
       tempPasswordCreatedAt: tempRecord.createdAt,
