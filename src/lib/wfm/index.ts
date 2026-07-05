@@ -133,7 +133,7 @@ export {
   WFM_EVENT_SOURCE_LABELS,
 } from './wfmDisplayHelpers';
 
-export { listEmployeeVisitTimes } from './wfmPortalTimesService';
+export { listEmployeeVisitTimes, PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS } from './wfmPortalTimesService';
 
 export {
   exportWfmSessionsCsv,

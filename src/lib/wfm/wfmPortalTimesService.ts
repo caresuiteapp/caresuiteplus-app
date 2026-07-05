@@ -10,6 +10,9 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { ASSIST_EXECUTION_TABLES } from '@/types/assistExecutionPersistence';
 import { resolveEmployeeIdForUser } from './wfmWorkSessionRepository';
 
+/** Default lookback for portal "Meine Zeiten" — own assignments only. */
+export const PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS = 60;
+
 const EMPLOYEE_TIME_EVENT_LABELS: Record<string, string> = {
   drive_start: 'Anfahrt begonnen',
   drive_end: 'Anfahrt beendet',
@@ -170,8 +173,9 @@ export async function listEmployeeVisitTimes(
   const employeeResult = await resolveEmployeeIdForUser(tenantId, userId, options?.employeeId);
   if (!employeeResult.ok) return employeeResult;
 
-  const days = options?.days ?? 14;
+  const days = options?.days ?? PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS;
   const fromIso = new Date(Date.now() - days * 86400000).toISOString();
+  const employeeId = employeeResult.data;
 
   if (getServiceMode() !== 'supabase') {
     return {
@@ -183,15 +187,54 @@ export async function listEmployeeVisitTimes(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
+  const { data: employeeVisits, error: visitsError } = await fromUnknownTable(
+    supabase,
+    'assist_visits',
+  )
+    .select('id, title, planned_start_at, planned_end_at, clients(first_name, last_name)')
+    .eq('tenant_id', tenantId)
+    .eq('employee_id', employeeId);
+
+  if (visitsError) {
+    if (isSupabaseMissingTableError(visitsError)) {
+      return { ok: true, data: { visitTimes: [], visitSummaries: [], drivingLogs: [] } };
+    }
+    return { ok: false, error: toGermanSupabaseError(visitsError) };
+  }
+
+  const visitMetaById = new Map<string, VisitMeta>();
+  const employeeVisitIds: string[] = [];
+  for (const row of employeeVisits ?? []) {
+    const visit = row as {
+      id: string;
+      title: string | null;
+      planned_start_at: string | null;
+      planned_end_at: string | null;
+      clients?: { first_name: string | null; last_name: string | null } | null;
+    };
+    employeeVisitIds.push(visit.id);
+    visitMetaById.set(visit.id, {
+      title: visit.title?.trim() || 'Einsatz',
+      clientName: personName(visit.clients),
+      plannedStart: visit.planned_start_at,
+      plannedEnd: visit.planned_end_at,
+    });
+  }
+
+  if (employeeVisitIds.length === 0) {
+    return { ok: true, data: { visitTimes: [], visitSummaries: [], drivingLogs: [] } };
+  }
+
   const { data: timeEvents, error: timeError } = await fromUnknownTable(
     supabase,
     ASSIST_EXECUTION_TABLES.timeEvents,
   )
     .select('id, visit_id, event_type, occurred_at, duration_seconds')
     .eq('tenant_id', tenantId)
+    .in('visit_id', employeeVisitIds)
     .gte('occurred_at', fromIso)
     .order('occurred_at', { ascending: false })
-    .limit(200);
+    .limit(500);
 
   if (timeError) {
     if (isSupabaseMissingTableError(timeError)) {
@@ -201,31 +244,6 @@ export async function listEmployeeVisitTimes(
   }
 
   const rawEvents = (timeEvents ?? []) as RawTimeEvent[];
-  const visitIds = [...new Set(rawEvents.map((row) => row.visit_id))];
-
-  const visitMetaById = new Map<string, VisitMeta>();
-  if (visitIds.length > 0) {
-    const { data: visits } = await fromUnknownTable(supabase, 'assist_visits')
-      .select('id, title, planned_start_at, planned_end_at, clients(first_name, last_name)')
-      .eq('tenant_id', tenantId)
-      .in('id', visitIds);
-
-    for (const row of visits ?? []) {
-      const visit = row as {
-        id: string;
-        title: string | null;
-        planned_start_at: string | null;
-        planned_end_at: string | null;
-        clients?: { first_name: string | null; last_name: string | null } | null;
-      };
-      visitMetaById.set(visit.id, {
-        title: visit.title?.trim() || 'Einsatz',
-        clientName: personName(visit.clients),
-        plannedStart: visit.planned_start_at,
-        plannedEnd: visit.planned_end_at,
-      });
-    }
-  }
 
   const visitSummaries = buildVisitSummaries(rawEvents, visitMetaById);
 
@@ -247,10 +265,10 @@ export async function listEmployeeVisitTimes(
       'id, visit_id, purpose, started_at, ended_at, distance_km, start_address, end_address, status',
     )
     .eq('tenant_id', tenantId)
-    .eq('employee_id', employeeResult.data)
+    .eq('employee_id', employeeId)
     .gte('started_at', fromIso)
     .order('started_at', { ascending: false })
-    .limit(30);
+    .limit(100);
 
   if (driveError && !isSupabaseMissingTableError(driveError)) {
     return { ok: false, error: toGermanSupabaseError(driveError) };

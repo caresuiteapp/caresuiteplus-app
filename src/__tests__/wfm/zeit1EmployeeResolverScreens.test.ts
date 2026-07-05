@@ -28,6 +28,14 @@ describe('ZEIT.1 portal employeeId preference on WFM screens', () => {
       expect(source).toContain(fragment);
     }
     expect(source).toContain('Für den ausgewählten Zeitraum sind noch keine Zeiten erfasst.');
+    expect(source).toContain('PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS');
+  });
+
+  it('wfmPortalTimesService filters visit times to resolved employee only', () => {
+    const service = readSrc('src/lib/wfm/wfmPortalTimesService.ts');
+    expect(service).toContain("PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS = 60");
+    expect(service).toContain(".eq('employee_id', employeeId)");
+    expect(service).toContain(".in('visit_id', employeeVisitIds)");
   });
 
   it('WfmAbsencePortalScreen prefers portal employeeId over profile', () => {

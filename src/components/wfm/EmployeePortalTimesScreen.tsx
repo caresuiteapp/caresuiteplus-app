@@ -16,7 +16,7 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
-import { listEmployeeVisitTimes } from '@/lib/wfm';
+import { listEmployeeVisitTimes, PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS } from '@/lib/wfm';
 import { typography } from '@/theme';
 
 function formatDateTime(iso: string): string {
@@ -57,7 +57,10 @@ export function EmployeePortalTimesScreen() {
           data: { visitTimes: [], visitSummaries: [], drivingLogs: [] },
         };
       }
-      return listEmployeeVisitTimes(tenantId, userId, roleKey, { employeeId, days: 14 });
+      return listEmployeeVisitTimes(tenantId, userId, roleKey, {
+        employeeId,
+        days: PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS,
+      });
     }, [tenantId, userId, roleKey, canView, employeeId]),
     [tenantId, userId, roleKey, canView, employeeId],
     { enabled: !!tenantId && !!userId && canView },
@@ -65,7 +68,7 @@ export function EmployeePortalTimesScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Fahrten & Zeiten" subtitle="Einsatzzeiten der letzten 14 Tage">
+      <ScreenShell title="Fahrten & Zeiten" subtitle={`Einsatzzeiten der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}>
         <LockedActionBanner
           message={
             check('time.tracking.own.view').reason ??
@@ -97,7 +100,11 @@ export function EmployeePortalTimesScreen() {
   const drivingLogs = query.data?.drivingLogs ?? [];
 
   return (
-    <ScreenShell title="Fahrten & Zeiten" subtitle="Einsatzzeiten der letzten 14 Tage" scroll>
+    <ScreenShell
+      title="Fahrten & Zeiten"
+      subtitle={`Einsatzzeiten der letzten ${PORTAL_EMPLOYEE_TIMES_LOOKBACK_DAYS} Tage`}
+      scroll
+    >
       <SectionPanel
         title="Einsatz-Zeitstempel"
         subtitle="Ihre Einsätze — zusammengefasst und chronologisch"
