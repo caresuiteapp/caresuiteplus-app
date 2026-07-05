@@ -40,8 +40,9 @@ export type EmployeePortalClientRecordDetail = EmployeePortalClientRecordListIte
   }>;
 };
 
-/** Safe clients columns for portal reads (production schema). */
-const CLIENT_PORTAL_SELECT = 'id, first_name, last_name, street, zip, postal_code, city, care_level, phone';
+/** Safe clients columns for portal reads (production schema — postal_code, no zip). */
+const CLIENT_PORTAL_SELECT =
+  'id, first_name, last_name, street, postal_code, city, care_level, phone';
 
 type ClientRow = {
   id: string;
@@ -90,9 +91,7 @@ async function loadEmployeeClientVisits(
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
-    .select(
-      `id, client_id, planned_start_at, canonical_status, client_visible_notes, title, clients(${CLIENT_PORTAL_SELECT})`,
-    )
+    .select('id, client_id, planned_start_at, canonical_status, client_visible_notes, title')
     .eq('tenant_id', tenantId)
     .eq('employee_id', employeeId)
     .neq('planning_status', 'draft')
@@ -210,7 +209,7 @@ export async function fetchEmployeePortalClientRecords(
     const visitsResult = await loadEmployeeClientVisits(tenantId, employeeId);
     if (!visitsResult.ok) {
       const appts = await fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
-      if (!appts.ok) return appts;
+      if (!appts.ok) return visitsResult;
       if (appts.data.length === 0) return { ok: true, data: [] };
 
       const clientIds = [...new Set(appts.data.map((item) => item.clientId).filter(Boolean))];
@@ -334,7 +333,7 @@ export async function fetchEmployeePortalClientRecordDetail(
       supabase,
       'client_contacts',
     )
-      .select('full_name, name, first_name, last_name, phone, relationship, is_emergency_contact')
+      .select('full_name, first_name, last_name, phone, relationship, is_emergency_contact')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
       .eq('is_emergency_contact', true)

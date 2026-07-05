@@ -102,17 +102,26 @@ describe('employee portal M.1 refactor', () => {
     const service = readSrc('src/lib/portal/employeePortalClientRecordsService.ts');
     expect(service).toContain('CLIENT_PORTAL_SELECT');
     expect(service).toContain('care_level');
+    expect(service).toContain('postal_code');
     expect(service).not.toContain('care_grade');
     expect(service).not.toContain('notes_for_employee');
     expect(service).not.toContain('access_hint');
+    expect(service).toMatch(
+      /CLIENT_PORTAL_SELECT\s*=\s*'[^']*postal_code[^']*'/,
+    );
+    expect(service).not.toMatch(
+      /CLIENT_PORTAL_SELECT\s*=\s*'[^']*\bzip\b/,
+    );
     expect(service).toContain('loadEmployeeClientVisits');
     expect(service).toContain('assist_visits');
+    expect(service).not.toMatch(/assist_visits[\s\S]*clients\(/);
   });
 
-  it('visit repository client embed avoids missing house_number column', () => {
+  it('visit repository client embed avoids missing production columns', () => {
     const repo = readSrc('src/lib/assist/repositories/visitRepository.supabase.ts');
-    expect(repo).toContain("CLIENT_LOCATION_SELECT");
+    expect(repo).toContain('CLIENT_LOCATION_SELECT');
     expect(repo).not.toMatch(/clients\([\s\S]*house_number/);
+    expect(repo).not.toMatch(/CLIENT_LOCATION_SELECT[\s\S]*\bzip\b/);
   });
 
   it('migration 0226 extends portal_uploads for employees', () => {

@@ -153,7 +153,7 @@ type VisitTaskRow = {
 };
 
 const CLIENT_LOCATION_SELECT =
-  'first_name, last_name, street, zip, postal_code, city';
+  'first_name, last_name, street, postal_code, city';
 
 const LIST_SELECT = `
   id, tenant_id, legacy_assignment_id, client_id, employee_id,
