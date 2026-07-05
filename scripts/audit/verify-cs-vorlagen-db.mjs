@@ -73,14 +73,20 @@ function parseExpectedFromSql(sql) {
   };
 }
 
-async function countRemoteTable(admin, table, filter = 'select=id') {
-  const res = await admin.restSelect(table, `${filter}&limit=1`);
+const TABLE_SELECT_COLUMNS = {
+  cs_template_delivery_defaults: 'template_id',
+};
+
+async function countRemoteTable(admin, table, filter) {
+  const selectCol = TABLE_SELECT_COLUMNS[table] ?? 'id';
+  const query = filter ?? `select=${selectCol}`;
+  const res = await admin.restSelect(table, `${query}&limit=1`);
   if (!res.ok) {
     return { ok: false, error: res.error?.message ?? 'query_failed', count: null };
   }
   const rows = Array.isArray(res.data) ? res.data.length : 0;
   // PostgREST without count header — fetch capped list
-  const full = await admin.restSelect(table, `${filter}&limit=5000`);
+  const full = await admin.restSelect(table, `${query}&limit=5000`);
   if (!full.ok) {
     return { ok: false, error: full.error?.message ?? 'query_failed', count: null };
   }
@@ -99,24 +105,24 @@ async function probeRemote(env) {
 
   const admin = createAuditAdminClient(env);
   const tables = [
-    'cs_template_categories',
-    'cs_template_placeholders',
-    'cs_document_templates',
-    'cs_document_template_versions',
-    'cs_template_signature_fields',
-    'cs_template_delivery_defaults',
+    { name: 'cs_template_categories', select: 'id' },
+    { name: 'cs_template_placeholders', select: 'id' },
+    { name: 'cs_document_templates', select: 'id' },
+    { name: 'cs_document_template_versions', select: 'id' },
+    { name: 'cs_template_signature_fields', select: 'id' },
+    { name: 'cs_template_delivery_defaults', select: 'template_id' },
   ];
 
   const remoteCounts = {};
   const remoteErrors = [];
 
   for (const table of tables) {
-    const result = await countRemoteTable(admin, table);
+    const result = await countRemoteTable(admin, table.name, `select=${table.select}`);
     if (!result.ok) {
-      remoteErrors.push({ table, error: result.error });
-      remoteCounts[table] = null;
+      remoteErrors.push({ table: table.name, error: result.error });
+      remoteCounts[table.name] = null;
     } else {
-      remoteCounts[table] = result.count;
+      remoteCounts[table.name] = result.count;
     }
   }
 
@@ -132,8 +138,8 @@ async function probeRemote(env) {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        p_html: '<p>{{tenant.legal_name}}</p>',
-        p_context: { tenant: { legal_name: 'CareSuite Test' } },
+        _html: '<p>{{tenant.legal_name}}</p>',
+        _context: { tenant: { legal_name: 'CareSuite Test' } },
       }),
     });
     const text = await res.text();

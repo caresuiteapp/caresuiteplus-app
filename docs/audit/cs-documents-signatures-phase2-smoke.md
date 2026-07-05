@@ -1,10 +1,23 @@
-# CareSuite+ — Phase 2 Smoke: Dokumente & Unterschriften
+# CareSuite+ — Phase 2 / 2.1 Smoke: Dokumente & Unterschriften
+
+Stand: 2026-07-05 (Phase 2.1 abgeschlossen bis Remote-Verify + Unit-Tests)
 
 ## Scope
 
 End-to-End-Flow: Office → Send-Wizard → Portal → Signatur → Erledigt
 
-**Nicht in Phase 2:** Einsatzstart-Blockade, PDF-Archiv, produktives Deploy.
+**Nicht in Phase 2/2.1:** Einsatzstart-Blockade, PDF-Archiv, produktives Deploy.
+
+## Phase 2.1 Abschluss (automatisiert)
+
+| Check | Befehl | Ergebnis 2026-07-05 |
+|-------|--------|----------------------|
+| Feature-Commit | `a075fc8d` | Ja (Branch `cursor/cs-vorlagen-documents-signatures-phase2`) |
+| Migration remote | `0233_cs_vorlagen_datenbank.sql` (Teilschritte) | **Angewendet** |
+| Verify | `node scripts/audit/verify-cs-vorlagen-db.mjs` | **Exit 0** |
+| Unit-Tests | `npm test -- src/__tests__/documents/csTemplateDatabase.test.ts` | **19/19 grün** |
+| E2E Browser-Smoke | Manuell (unten) | **Noch offen** |
+| Push / Deploy | — | **Nein** |
 
 ## Automatisierte Checks
 
@@ -13,7 +26,7 @@ End-to-End-Flow: Office → Send-Wizard → Portal → Signatur → Erledigt
 | Unit/Service-Tests | `npm test -- src/__tests__/documents/csTemplateDatabase.test.ts` |
 | Migration + Seed | `node scripts/audit/verify-cs-vorlagen-db.mjs` |
 
-## Manuelle Smoke-Checkliste
+## Manuelle E2E-Smoke-Checkliste (noch ausstehend)
 
 ### Office (`/business/office/documents/signatures`)
 
@@ -49,16 +62,25 @@ End-to-End-Flow: Office → Send-Wizard → Portal → Signatur → Erledigt
 - [ ] HTML-Archiv (`rendered_html`) nachvollziehbar
 - [ ] Kein Fake-PDF in `cs_document_request_files`
 
-## Bekannte Phase-2-Grenzen
+## Bekannte Grenzen
 
 | Thema | Status |
 |-------|--------|
-| Migration remote | Manuell anwenden + `verify-cs-vorlagen-db.mjs` |
+| Migration remote | **Erledigt** (0233, verify Exit 0) |
 | PDF-Export | Phase 4 |
 | `hasBlockingCsDocumentForAssignment` | Vorbereitet, **nicht** am Einsatzstart |
 | Audit-Log | Best-effort über `audit_logs` wenn Tabelle existiert |
 | Juristische Vorlagen | Technische Muster — nicht rechtsverbindlich |
+| E2E Browser-Smoke | **Nächster Schritt** |
 
 ## Ergebnis dokumentieren
 
-Nach jedem Lauf: Datum, Umgebung (lokal/staging/prod), Pass/Fail pro Schritt, Screenshots optional unter `.audit-screenshots-*` (nicht committen).
+Nach jedem E2E-Lauf: Datum, Umgebung (lokal/staging/prod), Pass/Fail pro Schritt. Screenshots optional unter `.audit-screenshots-*` (**nicht committen**).
+
+## Empfehlung
+
+| Kriterium | Bereit? |
+|-----------|---------|
+| E2E-Smoke (manuell) | **Ja** — Remote-DB + Code committed, Verify grün |
+| Phase 3 (Einsatz-Blockade) | **Nein** — erst nach E2E-Smoke |
+| Deploy | **Nein** — explizit nicht Teil Phase 2.1 |
