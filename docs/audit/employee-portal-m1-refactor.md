@@ -196,15 +196,12 @@ Office kann über bestehende `approvePortalUpload` / `rejectPortalUpload` weiter
 
 ### Migration 0226
 
-**Status (2026-07-05):** Remote noch nicht angewendet (`portal_uploads.employee_id` fehlt auf Production).
+**Status (2026-07-05):** Auf Production angewendet (`employee_portal_uploads`, Version `20260705021917`).
 
-Manuell (lokal mit Supabase-Login):
-
-```bash
-supabase login
-supabase link --project-ref euagyyztvmemuaiumvxm
-supabase db push
-```
+Verifiziert:
+- Spalten `employee_id`, `upload_context`; `client_id` nullable
+- RLS `portal_uploads_employee_portal_select` / `_insert`
+- Storage-Policies für Mitarbeiter- und Klienten-Uploads
 
 ---
 
