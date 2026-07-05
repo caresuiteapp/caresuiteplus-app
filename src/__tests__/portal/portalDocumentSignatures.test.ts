@@ -114,9 +114,17 @@ describe('portal signature dashboard model', () => {
 });
 
 describe('portal signature navigation', () => {
-  it('employee tabs include Unterschriften', async () => {
-    const { PORTAL_EMPLOYEE_TABS } = await import('@/lib/navigation/shellConfig');
-    expect(PORTAL_EMPLOYEE_TABS.some((t) => t.key === 'signatures')).toBe(true);
+  it('employee drawer navigation includes Unterschriften', async () => {
+    const { PORTAL_EMPLOYEE_DRAWER_TABS } = await import('@/lib/navigation/employeePortalNavigation');
+    expect(PORTAL_EMPLOYEE_DRAWER_TABS.some((t) => t.key === 'signatures')).toBe(true);
+  });
+
+  it('healthos employee nav includes Unterschriften', async () => {
+    const { HEALTHOS_EMPLOYEE_PORTAL_NAV } = await import(
+      '@/components/healthos/navigation/healthosNavigationConfig'
+    );
+    const items = HEALTHOS_EMPLOYEE_PORTAL_NAV.groups.flatMap((group) => group.items);
+    expect(items.some((item) => item.key === 'signatures')).toBe(true);
   });
 
   it('office nav includes Dokumente & Unterschriften', async () => {

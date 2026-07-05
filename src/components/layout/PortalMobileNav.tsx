@@ -51,6 +51,7 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
   const activeLabelColor = useInteractiveTextColor(accentColor);
   const mobileTabs = useMemo(() => resolveCompactShellMobileTabs(tabs, area), [tabs, area]);
   const activeKey = resolveActiveTabKey(pathname, mobileTabs);
+  const compactLabels = mobileTabs.length >= 5;
   const bottomInset = Math.max(insets.bottom, careSpacing.sm);
   const iconSize = 22;
 
@@ -89,10 +90,13 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
               <Text
                 style={[
                   styles.label,
+                  compactLabels && styles.labelCompact,
                   { color: labelDefault },
                   active && { color: activeLabelColor, fontWeight: '700' },
                 ]}
-                numberOfLines={1}
+                numberOfLines={compactLabels ? 2 : 1}
+                adjustsFontSizeToFit={compactLabels}
+                minimumFontScale={0.85}
               >
                 {tab.label}
               </Text>
@@ -121,9 +125,9 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     minHeight: MOBILE_MIN_TOUCH_TARGET,
     paddingVertical: careSpacing.xs,
-    paddingHorizontal: careSpacing.xs,
+    paddingHorizontal: 2,
     borderRadius: 999,
-    minWidth: 56,
+    minWidth: 48,
     maxWidth: '100%',
     gap: 2,
   },
@@ -135,5 +139,10 @@ const styles = StyleSheet.create({
     fontSize: 10,
     fontWeight: '600',
     textAlign: 'center',
+    lineHeight: 12,
+  },
+  labelCompact: {
+    fontSize: 9,
+    lineHeight: 11,
   },
 });

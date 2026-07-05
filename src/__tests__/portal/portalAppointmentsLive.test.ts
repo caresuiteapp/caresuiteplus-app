@@ -49,7 +49,7 @@ describe('Portal appointments live wiring', () => {
 
   it('client Einsätze tab shows live empty state copy', () => {
     const tab = readSrc('src/components/portal/PortalAppointmentsTab.tsx');
-    expect(tab).toContain("'Keine Einsätze geplant'");
+    expect(tab).toContain('Keine Einsätze geplant');
     expect(tab).toContain('ErrorState');
   });
 });

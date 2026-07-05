@@ -13,7 +13,7 @@ export const SHELL_MOBILE_TAB_KEYS: Partial<Record<AppShellArea, readonly string
   business: ['index', 'schedule', 'clients', 'employees', 'more'],
   office: ['index', 'clients', 'employees', 'invoices', 'more'],
   assist: ['index', 'assignments', 'durchfuehrung', 'nachweise', 'more'],
-  portal_employee: ['overview', 'assignments', 'schedule', 'messages', 'profile'],
+  portal_employee: ['overview', 'assignments', 'calendar', 'messages', 'profile'],
 };
 
 const FALLBACK_MORE: ShellTabConfig = {

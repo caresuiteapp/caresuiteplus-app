@@ -1,4 +1,6 @@
+import { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Linking } from 'react-native';
 import { useLocalSearchParams, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
@@ -6,11 +8,10 @@ import { PortalEmployeeAssignmentDetailHero } from '@/components/portal';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { ScreenShell } from '@/components/layout';
 import {
-  EmptyState,
   ErrorState,
   LoadingState,
   PremiumButton,
-  SectionPanel,
+  PremiumCard,
   CachedDataBanner,
 } from '@/components/ui';
 import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
@@ -18,15 +19,16 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import { colors, spacing, typography } from '@/theme';
 
-function formatDateTime(iso: string): string {
-  return new Date(iso).toLocaleString('de-DE', {
-    weekday: 'long',
-    day: '2-digit',
-    month: '2-digit',
-    year: 'numeric',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
+}
+
+function formatDurationMinutes(startsAt: string, endsAt: string): string {
+  const mins = Math.max(0, Math.round((new Date(endsAt).getTime() - new Date(startsAt).getTime()) / 60_000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0) return `${h} Std. ${m} Min.`;
+  return `${m} Min.`;
 }
 
 export function PortalAssignmentDetailScreen() {
@@ -38,6 +40,18 @@ export function PortalAssignmentDetailScreen() {
 
   const { data, loading, error, refresh, notFound, fromCache, cachedAt, partialDetail } =
     usePortalAppointmentDetail(id);
+
+  const styles = useMemo(
+    () =>
+      StyleSheet.create({
+        scroll: { gap: spacing.md, paddingBottom: spacing.xxl },
+        previewCard: { padding: spacing.md, gap: spacing.sm },
+        previewTitle: { ...typography.h3, color: colors.textPrimary },
+        notes: { ...typography.body, color: colors.textSecondary },
+        actions: { gap: spacing.sm, marginTop: spacing.sm },
+      }),
+    [],
+  );
 
   if (!canView) {
     return (
@@ -73,6 +87,11 @@ export function PortalAssignmentDetailScreen() {
 
   if (!data) return null;
 
+  const handleCall = () => {
+    if (!data.clientPhone) return;
+    void Linking.openURL(`tel:${data.clientPhone.replace(/\s/g, '')}`);
+  };
+
   return (
     <C14vSubpageShell
       title={data.title}
@@ -86,58 +105,39 @@ export function PortalAssignmentDetailScreen() {
         <CachedDataBanner visible={fromCache} cachedAt={cachedAt} partialDetail={partialDetail} />
         <PortalEmployeeAssignmentDetailHero assignment={data} />
 
-        <View style={styles.detailsCard}>
-          <DetailInfoRow label="Beginn" value={formatDateTime(data.startsAt)} />
-          <DetailInfoRow label="Ende" value={formatDateTime(data.endsAt)} />
-          {data.location ? <DetailInfoRow label="Ort" value={data.location} /> : null}
+        <PremiumCard style={styles.previewCard}>
+          <Text style={styles.previewTitle}>Einsatzvorschau</Text>
+          <DetailInfoRow label="Klient:in" value={data.clientName} />
+          {data.location ? <DetailInfoRow label="Adresse" value={data.location} /> : null}
+          <DetailInfoRow
+            label="Einsatzzeit"
+            value={`${formatTime(data.startsAt)} – ${formatTime(data.endsAt)}`}
+          />
+          <DetailInfoRow
+            label="Geplante Dauer"
+            value={formatDurationMinutes(data.startsAt, data.endsAt)}
+          />
+          {data.clientPhone ? <DetailInfoRow label="Telefon" value={data.clientPhone} /> : null}
+          {data.notes ? (
+            <>
+              <DetailInfoRow label="Hinweise" value="" />
+              <Text style={styles.notes}>{data.notes}</Text>
+            </>
+          ) : null}
+        </PremiumCard>
+
+        <View style={styles.actions}>
           {data.clientPhone ? (
-            <DetailInfoRow label="Kontakt Klient:in" value={data.clientPhone} />
+            <PremiumButton title="Anrufen" variant="secondary" onPress={handleCall} />
+          ) : null}
+          {data.canStartExecution && data.executionRoute && !fromCache ? (
+            <PremiumButton
+              title="Einsatz starten"
+              onPress={() => router.push(data.executionRoute as never)}
+            />
           ) : null}
         </View>
-
-        {data.notes ? (
-          <SectionPanel title="Hinweise">
-            <Text style={styles.notes}>{data.notes}</Text>
-          </SectionPanel>
-        ) : null}
-
-        {data.tasks.length > 0 ? (
-          <SectionPanel title="Aufgaben">
-            {data.tasks.map((task) => (
-              <Text key={task} style={styles.task}>
-                • {task}
-              </Text>
-            ))}
-          </SectionPanel>
-        ) : (
-          <EmptyState title="Keine Aufgaben" message="Für diesen Einsatz sind keine Aufgaben hinterlegt." />
-        )}
-
-        {data.canStartExecution && data.executionRoute && !fromCache ? (
-          <PremiumButton
-            title="Zur Einsatzdurchführung"
-            onPress={() => router.push(data.executionRoute as never)}
-          />
-        ) : null}
       </ScrollView>
     </C14vSubpageShell>
   );
 }
-
-const styles = StyleSheet.create({
-  scroll: {
-    gap: spacing.md,
-    paddingBottom: spacing.xxl,
-  },
-  detailsCard: {
-    gap: spacing.xs,
-  },
-  notes: {
-    ...typography.body,
-    color: colors.textSecondary,
-  },
-  task: {
-    ...typography.body,
-    marginBottom: spacing.xs,
-  },
-});

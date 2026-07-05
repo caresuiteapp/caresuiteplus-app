@@ -1,3 +1,9 @@
+export { EmployeePortalCalendarScreen } from './EmployeePortalCalendarScreen';
+export { EmployeePortalAssignmentCard } from './EmployeePortalAssignmentCard';
+export { EmployeePortalAssignmentPreviewSheet } from './EmployeePortalAssignmentPreviewSheet';
+export { EmployeePortalClientRecordsScreen } from './EmployeePortalClientRecordsScreen';
+export { EmployeePortalClientRecordDetailScreen } from './EmployeePortalClientRecordDetailScreen';
+export { EmployeePortalUploadScreen } from './EmployeePortalUploadScreen';
 export { PortalClientProfileHero } from './PortalClientProfileHero';
 export { PortalEmployeeProfileHero } from './PortalEmployeeProfileHero';
 export { PortalReadOnlyAvatar } from './PortalReadOnlyAvatar';
@@ -23,6 +29,18 @@ export {
 } from './EmployeePermissionOnboarding';
 export { EmployeePortalLiveTimersPanel } from './EmployeePortalLiveTimersPanel';
 export { EmployeePortalVisitWorkflowTimeline } from './EmployeePortalVisitWorkflowTimeline';
+export { EmployeePortalVisitStickyHeader } from './EmployeePortalVisitStickyHeader';
+export { EmployeePortalVisitProgressSteps } from './EmployeePortalVisitProgressSteps';
+export { EmployeePortalVisitCompactCard } from './EmployeePortalVisitCompactCard';
+export { EmployeePortalVisitLiveDashboard } from './EmployeePortalVisitLiveDashboard';
+export { EmployeePortalVisitBottomBar } from './EmployeePortalVisitBottomBar';
+export { EmployeePortalVisitFabMenu } from './EmployeePortalVisitFabMenu';
+export { EmployeePortalVisitCompletionPanel } from './EmployeePortalVisitCompletionPanel';
+export { EmployeePortalVisitSummaryPanel } from './EmployeePortalVisitSummaryPanel';
+export { EmployeePortalVisitDocumentationAiModal } from './EmployeePortalVisitDocumentationAiModal';
+export { EmployeePortalVisitPhotoModal } from './EmployeePortalVisitPhotoModal';
+export { EmployeePortalVisitVoiceNoteModal } from './EmployeePortalVisitVoiceNoteModal';
+export { EmployeePortalVisitMoreMenu } from './EmployeePortalVisitMoreMenu';
 export { EmployeePortalVisitTasksPanel } from './EmployeePortalVisitTasksPanel';
 export {
   EmployeePortalVisitDocumentationPanel,

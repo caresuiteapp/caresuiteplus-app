@@ -131,7 +131,7 @@ async function loadDocumentDetail(
 
   if (docError) {
     if (isSupabaseMissingTableError(docError)) {
-      return { ok: false, error: 'portal_signature_documents (0226) nicht verfügbar.' };
+      return { ok: false, error: 'portal_signature_documents (0227) nicht verfügbar.' };
     }
     return { ok: false, error: toGermanSupabaseError(docError) };
   }
@@ -198,7 +198,7 @@ export async function fetchLivePortalSignatureDocuments(
 
   if (error) {
     if (isSupabaseMissingTableError(error)) {
-      return { ok: false, error: 'portal_signature_documents (0226) nicht verfügbar.' };
+      return { ok: false, error: 'portal_signature_documents (0227) nicht verfügbar.' };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
   }
@@ -433,7 +433,7 @@ export async function fetchLiveOfficeSignatureDocuments(
 
   if (error) {
     if (isSupabaseMissingTableError(error)) {
-      return { ok: false, error: 'portal_signature_documents (0226) nicht verfügbar.' };
+      return { ok: false, error: 'portal_signature_documents (0227) nicht verfügbar.' };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
   }
@@ -496,7 +496,7 @@ export async function createLiveOfficeSignatureDocument(
 
   if (error) {
     if (isSupabaseMissingTableError(error)) {
-      return { ok: false, error: 'portal_signature_documents (0226) nicht verfügbar.' };
+      return { ok: false, error: 'portal_signature_documents (0227) nicht verfügbar.' };
     }
     return { ok: false, error: toGermanSupabaseError(error) };
   }

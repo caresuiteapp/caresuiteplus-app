@@ -22,29 +22,35 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(shell).toContain('isAuthRoutePath(pathname)');
   });
 
-  it('employee dashboard KPI tiles use responsive flex basis and noBreak labels', () => {
+  it('employee dashboard delegates to HealthOS today view with KPI metrics', () => {
     const dashboard = readSrc('src/screens/portal/EmployeePortalDashboardScreen.tsx');
-    expect(dashboard).toContain('flexBasis');
-    expect(dashboard).toContain('minWidth: 152');
-    expect(dashboard).toContain('noBreakTextProps');
-    expect(dashboard).toContain('usePortalProfileAvatar');
+    const todayView = readSrc('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
+    expect(dashboard).toContain('HealthOSEmployeePortalTodayView');
+    expect(dashboard).toContain('useEmployeePortalDashboard');
+    expect(todayView).toContain('AdaptiveKpiGrid');
+    expect(todayView).toContain('HealthOSMetricCard');
+    expect(todayView).toContain('buildEmployeePortalTodayModel');
   });
 
-  it('schedule route centers content with mobile tab header', () => {
-    const route = readSrc('app/portal/employee/(tabs)/schedule.tsx');
+  it('calendar route uses EmployeePortalCalendarScreen with tab header', () => {
+    const route = readSrc('app/portal/employee/(tabs)/calendar.tsx');
     expect(route).toContain('hideHeaderOnPhone');
-    expect(route).toContain('alignSelf: \'center\'');
-    expect(route).toContain('subtitle="Ihr Wochenplan"');
+    expect(route).toContain('EmployeePortalCalendarScreen');
+    expect(route).toContain('subtitle="Einsätze, Termine und Abwesenheiten"');
   });
 
-  it('employee messages use portal tab screen without nested ScreenShell scroll', () => {
+  it('legacy schedule route redirects to calendar', () => {
+    const route = readSrc('app/portal/employee/(tabs)/schedule.tsx');
+    expect(route).toContain('Redirect');
+    expect(route).toContain('/portal/employee/calendar');
+  });
+
+  it('employee messages use glass variant for light chat design', () => {
     const screen = readSrc('src/screens/portal/portalofficemessagesscreens.tsx');
     expect(screen).toContain('PortalTabScreen');
     expect(screen).toContain('hideHeaderOnPhone');
     expect(screen).toContain('PortalOfficeMessenger audience="employee"');
-    expect(screen).toMatch(
-      /return \(\s*<PortalTabScreen[\s\S]*PortalOfficeMessenger audience="employee"/,
-    );
+    expect(screen).toContain('variant="glass"');
   });
 
   it('portal profile avatar resolves employee avatar_url before user profile', () => {
@@ -160,9 +166,10 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(prompt).not.toContain('lock-unavailable');
   });
 
-  it('employee schedule uses roster orientation gate only', () => {
-    const route = readSrc('app/portal/employee/(tabs)/schedule.tsx');
-    expect(route).toContain('OrientationGate');
-    expect(route).toContain('screenKey="roster"');
+  it('employee calendar screen provides day/week/month/year toolbar', () => {
+    const calendar = readSrc('src/components/portal/EmployeePortalCalendarScreen.tsx');
+    expect(calendar).toContain('CalendarToolbar');
+    expect(calendar).toContain('CalendarEventGrid');
+    expect(calendar).toContain('onToday');
   });
 });

@@ -30,9 +30,9 @@ describe('employeePortalLiveOverviewService', () => {
 
   it('builds today and weekly slices from appointment items', () => {
     const start = new Date();
-    start.setHours(9, 0, 0, 0);
+    start.setHours(Math.max(0, start.getHours() - 1), 0, 0, 0);
     const end = new Date(start);
-    end.setHours(10, 0, 0, 0);
+    end.setHours(start.getHours() + 1);
     const overview = buildEmployeePortalOverviewFromAppointments([
       { ...BASE, startsAt: start.toISOString(), endsAt: end.toISOString() },
     ]);

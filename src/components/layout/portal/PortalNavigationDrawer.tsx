@@ -13,9 +13,9 @@ import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import {
   auroraGlass,
+  darkGlassSurfaceText,
   lightLiquidGlass,
-  lightLiquidGlassWebFx,
-  useAuroraAdaptiveText,
+  lightSurfaceText,
   useAuroraGlassActive,
 } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -53,22 +53,21 @@ export function PortalNavigationDrawer({
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
-  const text = useAuroraAdaptiveText();
   const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
   const useLightDrawer = auroraActive && isLight;
+  const drawerText = useLightDrawer ? lightSurfaceText : darkGlassSurfaceText;
   const activeKey = resolveActiveTabKey(pathname, tabs);
 
   const drawerSurface = useMemo(() => {
     if (useLightDrawer) {
       return {
-        backgroundColor: lightLiquidGlass.modal,
+        backgroundColor: lightLiquidGlass.elevated,
         borderColor: lightLiquidGlass.borderAccent,
-        ...lightLiquidGlassWebFx(lightLiquidGlass.blur.medium),
       } as ViewStyle;
     }
     return {
-      backgroundColor: auroraGlass.modal,
+      backgroundColor: '#0F172A',
       borderColor: auroraGlass.borderStrong,
     } as ViewStyle;
   }, [useLightDrawer]);
@@ -95,9 +94,9 @@ export function PortalNavigationDrawer({
           ]}
         >
           <View style={styles.header}>
-            <Text style={[styles.headerTitle, { color: text.primary }]}>{portalLabel}</Text>
+            <Text style={[styles.headerTitle, { color: drawerText.primary }]}>{portalLabel}</Text>
             <Pressable onPress={onClose} style={[styles.closeBtn, webCursor]} accessibilityRole="button" accessibilityLabel="Schließen">
-              <Text style={[styles.closeText, { color: text.muted }]}>✕</Text>
+              <Text style={[styles.closeText, { color: drawerText.muted }]}>✕</Text>
             </Pressable>
           </View>
           <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
@@ -119,7 +118,7 @@ export function PortalNavigationDrawer({
                   accessibilityState={{ selected: active }}
                 >
                   <Text style={styles.navIcon}>{tab.icon}</Text>
-                  <Text style={[styles.navLabel, { color: active ? text.primary : text.secondary }, active && { fontWeight: '700' }]}>
+                  <Text style={[styles.navLabel, { color: active ? drawerText.primary : drawerText.secondary }, active && { fontWeight: '700' }]}>
                     {tab.label}
                   </Text>
                 </Pressable>
@@ -138,7 +137,7 @@ export function PortalNavigationDrawer({
               testID="portal-drawer-logout"
             >
               <Text style={styles.navIcon}>⎋</Text>
-              <Text style={[styles.logoutLabel, { color: text.primary }]}>Abmelden</Text>
+              <Text style={[styles.logoutLabel, { color: drawerText.primary }]}>Abmelden</Text>
             </Pressable>
           </View>
         </View>
@@ -149,8 +148,8 @@ export function PortalNavigationDrawer({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
-  panel: { width: '82%', maxWidth: 320, borderLeftWidth: 1, elevation: 8 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)' },
+  panel: { width: '86%', maxWidth: 340, borderLeftWidth: 1, elevation: 12 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

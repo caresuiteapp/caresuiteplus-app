@@ -12,6 +12,7 @@ import { PortalTopBar } from './PortalTopBar';
 import { careSpacing } from '@/design/tokens/spacing';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import { PORTAL_EMPLOYEE_TABS } from '@/lib/navigation/shellConfig';
+import { resolveEmployeePortalNavigationTabs } from '@/lib/navigation/employeePortalNavigation';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
 import { usePortalClientTabs } from '@/hooks/usePortalClientTabs';
@@ -49,6 +50,8 @@ export function PortalShellLayout({
   const { showBottomTabs } = usePlatformLayout();
   const clientTabs = usePortalClientTabs();
   const portalTabs = kind === 'employee' ? PORTAL_EMPLOYEE_TABS : clientTabs;
+  const drawerTabs =
+    kind === 'employee' ? resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS) : portalTabs;
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
 
@@ -113,7 +116,7 @@ export function PortalShellLayout({
           {showLeftNav ? (
             kind === 'employee' ? (
               <PortalTabLeftNav
-                tabs={portalTabs}
+                tabs={drawerTabs}
                 accentColor={accentColor}
                 portalLabel={portalLabel}
               />
@@ -152,7 +155,7 @@ export function PortalShellLayout({
       <PortalNavigationDrawer
         visible={drawerOpen}
         onClose={() => setDrawerOpen(false)}
-        tabs={portalTabs}
+        tabs={drawerTabs}
         accentColor={accentColor}
         portalLabel={portalLabel}
       />

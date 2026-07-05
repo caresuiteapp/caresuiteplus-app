@@ -18,3 +18,20 @@ export function buildAssistVisitProofStoragePath(
 ): string {
   return buildTenantStoragePath(tenantId, 'assist', 'visits', visitId, 'proofs', `${proofId}.${extension}`);
 }
+
+export function buildAssistVisitAttachmentStoragePath(
+  tenantId: string,
+  visitId: string,
+  attachmentId: string,
+  fileName: string,
+): string {
+  const ext = fileName.includes('.') ? fileName.split('.').pop() ?? 'bin' : 'bin';
+  return buildTenantStoragePath(
+    tenantId,
+    'assist',
+    'visits',
+    visitId,
+    'attachments',
+    `${attachmentId}.${ext}`,
+  );
+}
