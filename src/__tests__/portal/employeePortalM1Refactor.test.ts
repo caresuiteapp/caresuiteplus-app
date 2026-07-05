@@ -98,13 +98,21 @@ describe('employee portal M.1 refactor', () => {
     expect(service).toContain("defaultView: 'agenda'");
   });
 
-  it('client records service uses valid clients columns', () => {
+  it('client records service uses valid clients columns and direct assist_visits load', () => {
     const service = readSrc('src/lib/portal/employeePortalClientRecordsService.ts');
+    expect(service).toContain('CLIENT_PORTAL_SELECT');
     expect(service).toContain('care_level');
     expect(service).not.toContain('care_grade');
     expect(service).not.toContain('notes_for_employee');
     expect(service).not.toContain('access_hint');
-    expect(service).toContain('client_addresses');
+    expect(service).toContain('loadEmployeeClientVisits');
+    expect(service).toContain('assist_visits');
+  });
+
+  it('visit repository client embed avoids missing house_number column', () => {
+    const repo = readSrc('src/lib/assist/repositories/visitRepository.supabase.ts');
+    expect(repo).toContain("CLIENT_LOCATION_SELECT");
+    expect(repo).not.toMatch(/clients\([\s\S]*house_number/);
   });
 
   it('migration 0226 extends portal_uploads for employees', () => {
