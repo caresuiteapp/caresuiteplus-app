@@ -73,6 +73,8 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
         },
         actionsBar: {
           paddingTop: spacing.xs,
+          flexDirection: 'column',
+          alignItems: 'stretch',
         },
         confirmBar: {
           flex: 1,
@@ -152,21 +154,22 @@ function SignatureActions({
 }) {
   const confirmButton = (
     <PremiumButton
-      title="Unterschrift bestätigen"
+      title={actionLayout === 'bar' ? 'Bestätigen' : 'Unterschrift bestätigen'}
       variant="primary"
       onPress={onConfirm}
       disabled={disabled || !hasStroke}
       testID="portal-signature-confirm-button"
-      style={actionLayout === 'bar' ? styles.confirmBar : undefined}
+      fullWidth={actionLayout === 'bar'}
+      style={actionLayout === 'bar' ? undefined : styles.confirmBar}
     />
   );
 
   if (actionLayout === 'bar') {
     return (
       <View style={[styles.actions, styles.actionsBar, { paddingBottom: Math.max(spacing.sm, safeBottom) }]}>
-        <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} />
+        <PremiumButton title="Löschen" variant="ghost" onPress={onClear} disabled={disabled} fullWidth />
         {onCancel ? (
-          <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} />
+          <PremiumButton title="Abbrechen" variant="secondary" onPress={onCancel} disabled={disabled} fullWidth />
         ) : null}
         {confirmButton}
       </View>

@@ -1,8 +1,12 @@
 import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
-import { PremiumButton, PremiumCard } from '@/components/ui';
+import { CareLightCard } from '@/components/ui/CareLightCard';
+import { PremiumButton } from '@/components/ui';
 import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import { colors, spacing, typography } from '@/theme';
 
@@ -27,7 +31,7 @@ export function EmployeePortalVisitCompletionPanel({
   loading = false,
   onFinalize,
 }: EmployeePortalVisitCompletionPanelProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const tasksDone = tasks.length === 0 || countDoneTasks(tasks) === tasks.length;
 
   const items: CheckItem[] = [
@@ -61,9 +65,9 @@ export function EmployeePortalVisitCompletionPanel({
           backgroundColor: colors.success,
         },
         pending: {
-          backgroundColor: 'transparent',
+          backgroundColor: employeePortalExecutionSurface.subtleBackground,
           borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
+          borderColor: employeePortalExecutionSurface.borderStrong,
         },
         checkMark: { color: '#fff', fontWeight: '700', fontSize: 12 },
         label: { ...typography.body, color: text.primary },
@@ -73,7 +77,7 @@ export function EmployeePortalVisitCompletionPanel({
   );
 
   return (
-    <PremiumCard style={styles.card}>
+    <CareLightCard style={styles.card}>
       <Text style={styles.title}>Einsatz abschließen</Text>
       {serviceDurationLabel ? <Text style={styles.meta}>Dauer: {serviceDurationLabel}</Text> : null}
       {items.map((item) => (
@@ -92,6 +96,6 @@ export function EmployeePortalVisitCompletionPanel({
         disabled={!allReady}
         onPress={onFinalize}
       />
-    </PremiumCard>
+    </CareLightCard>
   );
 }

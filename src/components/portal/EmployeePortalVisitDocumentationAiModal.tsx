@@ -9,7 +9,10 @@ import {
   DOCUMENTATION_AI_FUNCTION_LABELS,
   type DocumentationAiFunction,
 } from '@/lib/portal/documentationAiTypes';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing, typography } from '@/theme';
@@ -51,7 +54,7 @@ export function EmployeePortalVisitDocumentationAiModal({
   onClose,
   onAccept,
 }: EmployeePortalVisitDocumentationAiModalProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
   const [selectedFn, setSelectedFn] = useState<DocumentationAiFunction>('professional');
@@ -69,11 +72,12 @@ export function EmployeePortalVisitDocumentationAiModal({
         fnLabel: { ...typography.body, color: text.primary },
         preview: {
           borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
+          borderColor: employeePortalExecutionSurface.border,
           borderRadius: 10,
           padding: spacing.sm,
           minHeight: 120,
           marginTop: spacing.sm,
+          backgroundColor: employeePortalExecutionSurface.subtleBackground,
         },
         previewText: { ...typography.body, color: text.primary },
         previewHint: { ...typography.caption, color: text.muted, marginTop: spacing.xs },
@@ -84,19 +88,31 @@ export function EmployeePortalVisitDocumentationAiModal({
     [text],
   );
 
+  const applyLocalFallback = () => {
+    const fallback = applyDocumentationAiFallback(selectedFn, sourceText);
+    if (!fallback.trim()) {
+      setError('Aus dem eingegebenen Text konnte keine Vorlage erstellt werden.');
+      return false;
+    }
+    setUsedLocalFallback(true);
+    setSuggestion(fallback);
+    return true;
+  };
+
   const handleLocalFallback = () => {
     if (!sourceText.trim()) {
-      setError('Bitte zuerst einen Text oder Stichpunkte eingeben.');
+      setError('Bitte zuerst einen Text oder Stichpunkte eingeben — oder erledigte Aufgaben als Stichpunkte nutzen.');
       return;
     }
     setError(null);
-    setUsedLocalFallback(true);
-    setSuggestion(applyDocumentationAiFallback(selectedFn, sourceText));
+    applyLocalFallback();
   };
 
   const handleGenerate = async () => {
     if (!sourceText.trim()) {
-      setError('Bitte zuerst einen Text oder Stichpunkte eingeben.');
+      setError(
+        'Bitte zuerst in der Dokumentation Text eingeben. Alternativ erledigte Aufgaben als Stichpunkte verwenden.',
+      );
       return;
     }
 
@@ -117,17 +133,28 @@ export function EmployeePortalVisitDocumentationAiModal({
       currentRoute: '/portal/employee/assignments/execute',
     });
     setLoading(false);
+
     if (!result.ok) {
-      setError(
-        `${result.error ?? 'KI-Vorschlag konnte nicht erstellt werden.'} Lokale Textvorlage verfügbar.`,
-      );
+      if (applyLocalFallback()) {
+        setError(
+          `Cloud-KI nicht erreichbar (${result.error ?? 'unbekannter Fehler'}). Lokale Vorlage wurde erstellt.`,
+        );
+      } else {
+        setError(result.error ?? 'KI-Vorschlag konnte nicht erstellt werden.');
+      }
       return;
     }
+
     const reply = result.data.assistant_message?.trim() ?? '';
     if (!reply) {
-      setError('Kein Vorschlag erhalten. Nutzen Sie die lokale Textvorlage.');
+      if (applyLocalFallback()) {
+        setError('Kein KI-Vorschlag erhalten. Lokale Vorlage wurde erstellt.');
+      } else {
+        setError('Kein Vorschlag erhalten. Nutzen Sie die lokale Textvorlage.');
+      }
       return;
     }
+
     setSuggestion(reply);
   };
 
@@ -171,7 +198,7 @@ export function EmployeePortalVisitDocumentationAiModal({
           ) : null}
         </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
-        {error && aiAvailability.canUseLocalFallback ? (
+        {error && aiAvailability.canUseLocalFallback && !suggestion ? (
           <PremiumButton title="Lokale Vorlage nutzen" variant="ghost" onPress={handleLocalFallback} />
         ) : null}
         {suggestion ? (

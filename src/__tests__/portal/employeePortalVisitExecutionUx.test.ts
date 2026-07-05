@@ -58,6 +58,7 @@ describe('employee portal visit execution UX completion', () => {
     expect(modal).toContain('resolveDocumentationAiAvailability');
     expect(modal).toContain('applyDocumentationAiFallback');
     expect(modal).toContain('Lokale Vorlage');
+    expect(modal).toContain('employeePortalExecutionSurface');
   });
 
   it('live execution service enriches task categories for grouping', () => {

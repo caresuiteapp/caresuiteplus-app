@@ -4,7 +4,10 @@ import * as DocumentPicker from 'expo-document-picker';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton } from '@/components/ui';
 import { uploadEmployeePortalVisitAttachment } from '@/lib/portal/employeePortalVisitAttachmentService';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing, typography } from '@/theme';
@@ -43,7 +46,7 @@ export function EmployeePortalVisitPhotoModal({
   onClose,
   onUploaded,
 }: EmployeePortalVisitPhotoModalProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
   const [picked, setPicked] = useState<PickedPhoto | null>(null);
@@ -54,7 +57,14 @@ export function EmployeePortalVisitPhotoModal({
     () =>
       StyleSheet.create({
         body: { gap: spacing.sm },
-        preview: { width: '100%', height: 180, borderRadius: 10, backgroundColor: auroraGlass.elevated },
+        preview: {
+          width: '100%',
+          height: 180,
+          borderRadius: 10,
+          backgroundColor: employeePortalExecutionSurface.subtleBackground,
+          borderWidth: 1,
+          borderColor: employeePortalExecutionSurface.border,
+        },
         meta: { ...typography.caption, color: text.muted },
         error: { ...typography.caption, color: '#EF4444' },
         list: { gap: spacing.xs },
