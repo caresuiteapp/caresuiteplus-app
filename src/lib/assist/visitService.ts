@@ -47,6 +47,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { enrichVisitDispositionDetail } from '@/lib/assist/visitDispositionExecutionEnrichment';
+import { overlayVisitDispositionDetailFromAssignment } from '@/lib/assist/overlayVisitDispositionFromAssignment';
 import {
   applyOccurrenceDateToVisitDetail,
   isResolvableVisitId,
@@ -213,10 +214,11 @@ export async function fetchVisitDispositionDetail(
           ? applyOccurrenceDateToVisitDetail(visitResult.data, occurrenceDate, visitId)
           : visitResult.data;
       const enriched = await enrichVisitDispositionDetail(tenantId, baseDetail);
+      const overlaid = await overlayVisitDispositionDetailFromAssignment(tenantId, enriched);
       const detail =
         occurrenceDate != null
-          ? applyOccurrenceDateToVisitDetail(enriched, occurrenceDate, visitId)
-          : enriched;
+          ? applyOccurrenceDateToVisitDetail(overlaid, occurrenceDate, visitId)
+          : overlaid;
       return { ok: true, data: detail };
     }
 
@@ -282,12 +284,17 @@ export async function fetchVisitDispositionDetail(
       createdAt: detail.createdAt,
     };
 
+    const overlaidLegacy = await overlayVisitDispositionDetailFromAssignment(
+      tenantId,
+      legacyDetail,
+    );
+
     return {
       ok: true,
       data:
         occurrenceDate != null
-          ? applyOccurrenceDateToVisitDetail(legacyDetail, occurrenceDate, visitId)
-          : legacyDetail,
+          ? applyOccurrenceDateToVisitDetail(overlaidLegacy, occurrenceDate, visitId)
+          : overlaidLegacy,
     };
   }
 

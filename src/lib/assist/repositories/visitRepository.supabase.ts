@@ -60,7 +60,10 @@ import {
   parseVisitRecurrenceJson,
 } from '@/lib/assist/visitRecurrenceExpansion';
 import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
-import { isSupabaseMissingTableError } from '@/lib/supabase/errors';
+import {
+  isSupabaseMissingTableError,
+  isSupabaseSchemaMismatchError,
+} from '@/lib/supabase/errors';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { isUuid } from '@/lib/validation/uuid';
 import {
@@ -152,27 +155,91 @@ type VisitTaskRow = {
   sort_order: number;
 };
 
-const CLIENT_LOCATION_SELECT =
-  'first_name, last_name, street, postal_code, city';
+/** clients.postal_code — never clients.zip (column does not exist on live DB). */
+export const VISIT_CLIENT_NESTED_SELECT =
+  'first_name, last_name, street, house_number, postal_code, city';
 
-const LIST_SELECT = `
+const CLIENT_LOCATION_SELECT = VISIT_CLIENT_NESTED_SELECT;
+
+const VISIT_LIST_CORE_SELECT = `
   id, tenant_id, legacy_assignment_id, client_id, employee_id,
   service_key, service_name, title, description,
   assignment_date, planned_start_at, planned_end_at, duration_minutes,
   address_snapshot, planning_status, execution_status, documentation_status,
   proof_status, billing_status, portal_status, canonical_status,
   is_at_risk, is_incomplete, budget_amount_cents, budget_warning,
-  error_code, error_message, created_at, updated_at, recurrence_json,
-  clients(${CLIENT_LOCATION_SELECT}),
-  employees(first_name, last_name)
-`;
+  error_code, error_message, created_at, updated_at, recurrence_json`;
 
-const DETAIL_SELECT = `${LIST_SELECT},
+const LIST_SELECT = `${VISIT_LIST_CORE_SELECT},
+  clients(${CLIENT_LOCATION_SELECT}),
+  employees(first_name, last_name)`;
+
+const DETAIL_EXTRA_SELECT = `
   actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at,
   location_notes, internal_notes, employee_notes, portal_release_enabled, employee_portal_visible,
   budget_currency, subject_key, assignment_type_key, service_category_key, task_package_id,
   billing_budget_source_key, proof_template_key, risk_flag_keys, catalog_snapshot_json,
-  client_visible_notes, assist_visit_tasks(*)`;
+  client_visible_notes`;
+
+const DETAIL_SELECT = `${VISIT_LIST_CORE_SELECT},
+  ${DETAIL_EXTRA_SELECT},
+  clients(${CLIENT_LOCATION_SELECT}),
+  employees(first_name, last_name),
+  assist_visit_tasks(*)`;
+
+const DETAIL_FLAT_SELECT = `${VISIT_LIST_CORE_SELECT},
+  ${DETAIL_EXTRA_SELECT}`;
+
+function shouldFallbackVisitEmbeddedSelect(error: { code?: string; message?: string } | null): boolean {
+  if (!error) return false;
+  if (isSupabaseSchemaMismatchError(error)) return true;
+  const msg = error.message ?? '';
+  return msg.includes('Could not find a relationship') || msg.includes('Could not embed');
+}
+
+async function hydrateVisitRowRelations(
+  tenantId: string,
+  row: VisitRow,
+  options?: { includeTasks?: boolean },
+): Promise<VisitRow & { assist_visit_tasks?: VisitTaskRow[] }> {
+  const supabase = getClient();
+  const enriched: VisitRow & { assist_visit_tasks?: VisitTaskRow[] } = { ...row };
+
+  if (!supabase) return enriched;
+
+  if (row.client_id) {
+    const { data: clientRow } = await fromUnknownTable(supabase, 'clients')
+      .select(CLIENT_LOCATION_SELECT)
+      .eq('tenant_id', tenantId)
+      .eq('id', row.client_id)
+      .maybeSingle();
+    if (clientRow) {
+      enriched.clients = clientRow as VisitRow['clients'];
+    }
+  }
+
+  if (row.employee_id) {
+    const { data: employeeRow } = await fromUnknownTable(supabase, 'employees')
+      .select('first_name, last_name')
+      .eq('tenant_id', tenantId)
+      .eq('id', row.employee_id)
+      .maybeSingle();
+    if (employeeRow) {
+      enriched.employees = employeeRow as VisitRow['employees'];
+    }
+  }
+
+  if (options?.includeTasks) {
+    const { data: taskRows } = await fromUnknownTable(supabase, 'assist_visit_tasks')
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .eq('visit_id', row.id)
+      .order('sort_order', { ascending: true });
+    enriched.assist_visit_tasks = (taskRows ?? []) as VisitTaskRow[];
+  }
+
+  return enriched;
+}
 
 function getClient() {
   return getSupabaseClient();
@@ -522,8 +589,34 @@ export const visitSupabaseRepository = {
       rows = [...byId.values()];
     } else {
       const { data, error } = await baseQuery().order('planned_start_at', { ascending: true });
-      if (error) return { ok: false, error: toGermanSupabaseError(error) };
-      rows = (data ?? []) as unknown as VisitRow[];
+      if (error && shouldFallbackVisitEmbeddedSelect(error)) {
+        let flatQuery = fromUnknownTable(supabase, 'assist_visits')
+          .select(VISIT_LIST_CORE_SELECT)
+          .eq('tenant_id', tenantId);
+        if (options?.planningStatus && options.planningStatus !== 'all') {
+          flatQuery = flatQuery.eq('planning_status', options.planningStatus);
+        } else if (options?.portalAudience) {
+          flatQuery = flatQuery.neq('planning_status', 'draft');
+        }
+        if (options?.clientId) flatQuery = flatQuery.eq('client_id', options.clientId);
+        if (options?.employeeId) flatQuery = flatQuery.eq('employee_id', options.employeeId);
+        if (options?.serviceKey) flatQuery = flatQuery.eq('service_key', options.serviceKey);
+        if (options?.portalAudience === 'employee') {
+          flatQuery = flatQuery.eq('employee_portal_visible', true);
+        }
+        const flatResult = await flatQuery.order('planned_start_at', { ascending: true });
+        if (flatResult.error) {
+          return { ok: false, error: toGermanSupabaseError(flatResult.error) };
+        }
+        const flatRows = (flatResult.data ?? []) as unknown as VisitRow[];
+        rows = await Promise.all(
+          flatRows.map((row) => hydrateVisitRowRelations(tenantId, row)),
+        );
+      } else if (error) {
+        return { ok: false, error: toGermanSupabaseError(error) };
+      } else {
+        rows = (data ?? []) as unknown as VisitRow[];
+      }
     }
 
     const expanded = expandVisitDispositionListItems(
@@ -547,6 +640,24 @@ export const visitSupabaseRepository = {
       .eq('tenant_id', tenantId)
       .eq('id', visitId)
       .maybeSingle();
+
+    if (error && shouldFallbackVisitEmbeddedSelect(error)) {
+      const { data: flatRow, error: flatError } = await fromUnknownTable(supabase, 'assist_visits')
+        .select(DETAIL_FLAT_SELECT)
+        .eq('tenant_id', tenantId)
+        .eq('id', visitId)
+        .maybeSingle();
+
+      if (flatError) return { ok: false, error: toGermanSupabaseError(flatError) };
+      if (!flatRow) return { ok: true, data: null };
+
+      const hydrated = await hydrateVisitRowRelations(
+        tenantId,
+        flatRow as unknown as VisitRow,
+        { includeTasks: true },
+      );
+      return { ok: true, data: mapDetail(hydrated) };
+    }
 
     if (error) return { ok: false, error: toGermanSupabaseError(error) };
     if (!data) return { ok: true, data: null };

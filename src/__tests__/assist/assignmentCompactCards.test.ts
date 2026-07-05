@@ -89,6 +89,14 @@ describe('Assignment compact cards UI', () => {
     expect(hook).toContain('assignment.employeeId');
   });
 
+  it('assist visit client nested select uses postal_code not legacy zip column', () => {
+    const visitRepo = readSrc('src/lib/assist/repositories/visitRepository.supabase.ts');
+    expect(visitRepo).toContain('VISIT_CLIENT_NESTED_SELECT');
+    expect(visitRepo).toContain('house_number, postal_code, city');
+    expect(visitRepo).not.toMatch(/clients\([^)]*\bzip\b/);
+    expect(visitRepo).toContain('shouldFallbackVisitEmbeddedSelect');
+  });
+
   it('AssignmentsCardGrid uses single-column card layout on all breakpoints', () => {
     const source = readSrc('src/components/assist/AssignmentsCardGrid.tsx');
     expect(source).toContain('AssignmentCompactCard');
