@@ -1,4 +1,4 @@
-import { forwardRef, useCallback, useImperativeHandle, useMemo, useRef, useState } from 'react';
+import { forwardRef, useCallback, useEffect, useImperativeHandle, useMemo, useRef, useState } from 'react';
 import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton, PremiumInput } from '@/components/ui';
@@ -26,6 +26,9 @@ type EmployeePortalVisitDocumentationPanelProps = {
   embedded?: boolean;
   lastSavedAt?: string | null;
   initialShortDescription?: string;
+  initialSpecialNotes?: string;
+  photoReferences?: string[];
+  openAiRequest?: number;
   onSubmit: (doc: EmployeePortalDocumentationInput) => Promise<{ ok: boolean; error?: string }>;
 };
 
@@ -46,6 +49,9 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
     embedded = false,
     lastSavedAt = null,
     initialShortDescription = '',
+    initialSpecialNotes = '',
+    photoReferences = [],
+    openAiRequest = 0,
     onSubmit,
   },
   ref,
@@ -54,13 +60,24 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
   const [shortDescription, setShortDescription] = useState(initialShortDescription);
-  const [specialNotes, setSpecialNotes] = useState('');
+  const [specialNotes, setSpecialNotes] = useState(initialSpecialNotes);
   const [deviations, setDeviations] = useState('');
   const [deviationJustification, setDeviationJustification] = useState('');
   const [localError, setLocalError] = useState<string | null>(null);
   const [showQuickBlocks, setShowQuickBlocks] = useState(false);
   const [showAiModal, setShowAiModal] = useState(false);
+  const lastAiRequest = useRef(0);
   const shortDescriptionRef = useRef(initialShortDescription);
+
+  useEffect(() => {
+    setSpecialNotes(initialSpecialNotes);
+  }, [initialSpecialNotes]);
+
+  useEffect(() => {
+    if (openAiRequest <= lastAiRequest.current) return;
+    lastAiRequest.current = openAiRequest;
+    setShowAiModal(true);
+  }, [openAiRequest]);
 
   const styles = useMemo(
     () =>
@@ -69,6 +86,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
         fields: { gap: spacing.sm },
         toolbar: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs },
         quickBlocks: { gap: spacing.xs, marginTop: spacing.xs },
+        attachments: { ...typography.caption, color: text.muted },
         error: { ...typography.caption, color: '#EF4444' },
       }),
     [text],
@@ -105,11 +123,12 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
       deviationJustification: deviationJustification.trim() || undefined,
       referralRequired: false,
       emergencyOrProblem: false,
+      photoReferences: photoReferences.length ? photoReferences : undefined,
     });
     if (!result.ok) {
       setLocalError(result.error ?? 'Dokumentation konnte nicht gespeichert werden.');
     }
-  }, [deviationJustification, deviations, onSubmit, shortDescription, specialNotes]);
+  }, [deviationJustification, deviations, onSubmit, photoReferences, shortDescription, specialNotes]);
 
   useImperativeHandle(
     ref,
@@ -174,6 +193,9 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
               />
             ))}
           </View>
+        ) : null}
+        {photoReferences.length > 0 ? (
+          <Text style={styles.attachments}>{photoReferences.length} Anhang/Anhänge werden mitgespeichert</Text>
         ) : null}
         <PremiumInput
           label="Besonderheiten"

@@ -1,5 +1,6 @@
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
+import { resolveVisitTaskCategory } from '@/lib/portal/resolveVisitTaskCategory';
 
 export type VisitTaskCategoryKey =
   | 'haushalt'
@@ -25,24 +26,13 @@ export type VisitTaskCategoryGroup = {
   isComplete: boolean;
 };
 
-const CATEGORY_KEYWORDS: Record<Exclude<VisitTaskCategoryKey, 'sonstiges'>, string[]> = {
-  haushalt: ['haushalt', 'staub', 'wisch', 'putz', 'geschirr', 'müll', 'fenster', 'bügel', 'wäsche'],
-  betreuung: ['betreu', 'begleit', 'spazier', 'aktivier', 'demenz', 'gespräch', 'sozial'],
-  einkauf: ['einkauf', 'apotheke', 'lebensmittel', 'besorg'],
-  pflege: ['pflege', 'körper', 'anzieh', 'medik', 'mobilis', 'ernähr', 'essen', 'trink'],
-};
-
-function inferCategory(task: EmployeePortalTaskItem): VisitTaskCategoryKey {
-  const haystack = `${task.title} ${task.description ?? ''}`.toLowerCase();
-  for (const [key, keywords] of Object.entries(CATEGORY_KEYWORDS) as Array<
-    [Exclude<VisitTaskCategoryKey, 'sonstiges'>, string[]]
-  >) {
-    if (keywords.some((word) => haystack.includes(word))) {
-      return key;
-    }
-  }
-  return 'sonstiges';
-}
+const GROUP_ORDER: VisitTaskCategoryKey[] = [
+  'haushalt',
+  'betreuung',
+  'einkauf',
+  'pflege',
+  'sonstiges',
+];
 
 export function isTaskDone(status: ExtendedAssignmentTaskStatus): boolean {
   return status === 'done';
@@ -53,29 +43,38 @@ export function countDoneTasks(tasks: EmployeePortalTaskItem[]): number {
 }
 
 export function groupEmployeePortalTasks(tasks: EmployeePortalTaskItem[]): VisitTaskCategoryGroup[] {
-  const buckets = new Map<VisitTaskCategoryKey, EmployeePortalTaskItem[]>();
+  const buckets = new Map<
+    string,
+    { key: VisitTaskCategoryKey; label: string; tasks: EmployeePortalTaskItem[] }
+  >();
 
   for (const task of tasks) {
-    const key = inferCategory(task);
-    const list = buckets.get(key) ?? [];
-    list.push(task);
-    buckets.set(key, list);
+    const resolved = resolveVisitTaskCategory(task);
+    const bucketId = `${resolved.key}::${resolved.label}`;
+    const existing = buckets.get(bucketId);
+    if (existing) {
+      existing.tasks.push(task);
+    } else {
+      buckets.set(bucketId, { key: resolved.key, label: resolved.label, tasks: [task] });
+    }
   }
 
-  const order: VisitTaskCategoryKey[] = ['haushalt', 'betreuung', 'einkauf', 'pflege', 'sonstiges'];
-
-  return order
-    .filter((key) => (buckets.get(key)?.length ?? 0) > 0)
-    .map((key) => {
-      const groupTasks = buckets.get(key) ?? [];
-      const doneCount = countDoneTasks(groupTasks);
+  return [...buckets.values()]
+    .sort((a, b) => {
+      const ai = GROUP_ORDER.indexOf(a.key);
+      const bi = GROUP_ORDER.indexOf(b.key);
+      if (ai !== bi) return ai - bi;
+      return a.label.localeCompare(b.label, 'de');
+    })
+    .map((bucket) => {
+      const doneCount = countDoneTasks(bucket.tasks);
       return {
-        key,
-        label: VISIT_TASK_CATEGORY_LABELS[key],
-        tasks: groupTasks,
+        key: bucket.key,
+        label: bucket.label,
+        tasks: bucket.tasks,
         doneCount,
-        totalCount: groupTasks.length,
-        isComplete: doneCount === groupTasks.length && groupTasks.length > 0,
+        totalCount: bucket.tasks.length,
+        isComplete: doneCount === bucket.tasks.length && bucket.tasks.length > 0,
       };
     });
 }

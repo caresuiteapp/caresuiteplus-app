@@ -89,6 +89,8 @@ export type AssignmentTaskItem = {
   isRequired: boolean;
   notDoneReason: string | null;
   requiresNoteIfNotDone: boolean;
+  categoryKey?: string | null;
+  categoryLabel?: string | null;
 };
 
 export type AssignmentCreateInput = {

@@ -59,7 +59,7 @@ export function EmployeePortalVisitTasksPanel({
   useEffect(() => {
     const next: Record<string, boolean> = {};
     for (const group of groups) {
-      next[group.key] = !group.isComplete;
+      next[`${group.key}::${group.label}`] = !group.isComplete;
     }
     setExpanded((prev) => ({ ...next, ...prev }));
   }, [groups]);
@@ -163,10 +163,11 @@ export function EmployeePortalVisitTasksPanel({
   );
 
   const renderGroup = (group: VisitTaskCategoryGroup) => {
-    const isOpen = expanded[group.key] ?? false;
+    const groupId = `${group.key}::${group.label}`;
+    const isOpen = expanded[groupId] ?? false;
     return (
-      <View key={group.key} style={styles.group}>
-        <Pressable style={styles.groupHeader} onPress={() => toggleGroup(group.key)}>
+      <View key={groupId} style={styles.group}>
+        <Pressable style={styles.groupHeader} onPress={() => toggleGroup(groupId)}>
           <View>
             <Text style={styles.groupTitle}>{group.label}</Text>
             <Text style={styles.groupMeta}>

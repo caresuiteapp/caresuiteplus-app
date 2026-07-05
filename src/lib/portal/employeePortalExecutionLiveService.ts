@@ -62,6 +62,8 @@ function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
     status: task.status as ExtendedAssignmentTaskStatus,
     completionNote: task.notDoneReason,
     requiresNote: task.requiresNoteIfNotDone,
+    categoryKey: task.categoryKey ?? null,
+    categoryLabel: task.categoryLabel ?? null,
   };
 }
 

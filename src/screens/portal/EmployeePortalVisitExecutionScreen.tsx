@@ -10,9 +10,12 @@ import {
   EmployeePortalVisitCompletionPanel,
   EmployeePortalVisitDocumentationPanel,
   type EmployeePortalVisitDocumentationPanelHandle,
+  EmployeePortalVisitDocumentationAiModal,
   EmployeePortalVisitFabMenu,
   EmployeePortalVisitLiveDashboard,
   EmployeePortalVisitMoreMenu,
+  EmployeePortalVisitPhotoModal,
+  EmployeePortalVisitVoiceNoteModal,
   EmployeePortalVisitSignaturePanel,
   EmployeePortalVisitStickyHeader,
   EmployeePortalVisitSummaryPanel,
@@ -159,6 +162,22 @@ export function EmployeePortalVisitExecutionScreen() {
   const [documentationOpen, setDocumentationOpen] = useState(false);
   const [moreOpen, setMoreOpen] = useState(false);
   const [docLastSavedAt, setDocLastSavedAt] = useState<string | null>(null);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [photoReferences, setPhotoReferences] = useState<string[]>([]);
+  const [documentationDraftText, setDocumentationDraftText] = useState('');
+  const [documentationSpecialNotes, setDocumentationSpecialNotes] = useState('');
+  const [aiHelpRequest, setAiHelpRequest] = useState(0);
+  const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
+
+  const assistVisitId = executionContext?.assistVisitId ?? null;
+
+  const appendDocumentationNote = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setDocumentationSpecialNotes((prev) => (prev.trim() ? `${prev.trim()}\n${trimmed}` : trimmed));
+    setDocumentationOpen(true);
+  }, []);
 
   useEffect(() => {
     if (!id || !visit || restoredRef.current || !isVisitExecutionRoute(pathname)) return;
@@ -664,9 +683,11 @@ export function EmployeePortalVisitExecutionScreen() {
             signatureCaptured={signatureCaptured}
             requiresSignature={visit.requiresSignature}
             serviceSeconds={timers?.serviceSeconds ?? null}
+            attachmentCount={photoReferences.length}
             onOpenTasks={() => setTasksOpen(true)}
             onOpenDocumentation={() => setDocumentationOpen(true)}
             onOpenSignature={openSignatureCapture}
+            onOpenAttachments={() => setPhotoModalOpen(true)}
           />
 
           {phase === 'live' && primaryButtonLabel && !isLocked && !statusBlocksDoc ? (
@@ -884,6 +905,10 @@ export function EmployeePortalVisitExecutionScreen() {
           visible={documentationOpen}
           onClose={() => setDocumentationOpen(false)}
           lastSavedAt={docLastSavedAt}
+          initialShortDescription={documentationDraftText}
+          initialSpecialNotes={documentationSpecialNotes}
+          photoReferences={photoReferences}
+          openAiRequest={aiHelpRequest}
           onSubmit={async (doc) => {
             setLocalError(null);
             const r = await saveDocumentation(doc);
@@ -931,7 +956,7 @@ export function EmployeePortalVisitExecutionScreen() {
               key: 'photo',
               label: 'Foto',
               icon: '📷',
-              onPress: () => setLocalWarning('Foto-Anhang ist in dieser Version noch nicht verfügbar.'),
+              onPress: () => setPhotoModalOpen(true),
             },
             {
               key: 'more',
@@ -948,19 +973,59 @@ export function EmployeePortalVisitExecutionScreen() {
         <EmployeePortalVisitFabMenu
           actions={[
             { key: 'note', label: 'Kurze Notiz', onPress: () => setDocumentationOpen(true) },
-            { key: 'photo', label: 'Foto aufnehmen', onPress: () => setLocalWarning('Foto-Funktion folgt.') },
-            { key: 'voice', label: 'Sprachnotiz', onPress: () => setLocalWarning('Sprachnotiz folgt.') },
-            { key: 'doc', label: 'Dokument hinzufügen', onPress: () => setDocumentationOpen(true) },
+            { key: 'photo', label: 'Foto aufnehmen', onPress: () => setPhotoModalOpen(true) },
+            { key: 'voice', label: 'Sprachnotiz', onPress: () => setVoiceModalOpen(true) },
+            { key: 'doc', label: 'Dokument hinzufügen', onPress: () => setPhotoModalOpen(true) },
             {
               key: 'ai',
               label: 'KI-Hilfe',
               onPress: () => {
-                setDocumentationOpen(true);
+                if (showDocumentationForm) {
+                  setDocumentationOpen(true);
+                  setAiHelpRequest((n) => n + 1);
+                } else {
+                  setAiHelpStandaloneOpen(true);
+                }
               },
             },
           ]}
         />
       ) : null}
+
+      <EmployeePortalVisitPhotoModal
+        visible={photoModalOpen}
+        tenantId={portalTenantId}
+        visitId={assistVisitId}
+        existingReferences={photoReferences}
+        onClose={() => setPhotoModalOpen(false)}
+        onUploaded={(paths) => {
+          setPhotoReferences(paths);
+          setLocalSuccess('Foto gespeichert — wird mit der Dokumentation übernommen.');
+        }}
+      />
+
+      <EmployeePortalVisitVoiceNoteModal
+        visible={voiceModalOpen}
+        tenantId={portalTenantId}
+        visitId={assistVisitId}
+        onClose={() => setVoiceModalOpen(false)}
+        onAppendText={appendDocumentationNote}
+        onAudioUploaded={(storagePath) => {
+          setPhotoReferences((prev) => [...prev, storagePath]);
+        }}
+      />
+
+      <EmployeePortalVisitDocumentationAiModal
+        visible={aiHelpStandaloneOpen}
+        tenantId={portalTenantId}
+        sourceText={documentationDraftText || documentationSpecialNotes}
+        onClose={() => setAiHelpStandaloneOpen(false)}
+        onAccept={(textValue) => {
+          setDocumentationDraftText(textValue);
+          setAiHelpStandaloneOpen(false);
+          setDocumentationOpen(true);
+        }}
+      />
 
       {moreOpen ? (
         <EmployeePortalVisitMoreMenu

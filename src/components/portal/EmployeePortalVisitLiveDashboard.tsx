@@ -11,9 +11,11 @@ type EmployeePortalVisitLiveDashboardProps = {
   signatureCaptured: boolean;
   requiresSignature: boolean;
   serviceSeconds: number | null;
+  attachmentCount?: number;
   onOpenTasks: () => void;
   onOpenDocumentation: () => void;
   onOpenSignature: () => void;
+  onOpenAttachments?: () => void;
 };
 
 function formatTimer(seconds: number | null): string {
@@ -47,9 +49,11 @@ export function EmployeePortalVisitLiveDashboard({
   signatureCaptured,
   requiresSignature,
   serviceSeconds,
+  attachmentCount = 0,
   onOpenTasks,
   onOpenDocumentation,
   onOpenSignature,
+  onOpenAttachments,
 }: EmployeePortalVisitLiveDashboardProps) {
   const done = countDoneTasks(tasks);
 
@@ -77,6 +81,14 @@ export function EmployeePortalVisitLiveDashboard({
           status={signatureCaptured ? 'Gespeichert' : 'Noch offen'}
           onPress={onOpenSignature}
           testID="portal-open-signature"
+        />
+      ) : null}
+      {onOpenAttachments ? (
+        <EmployeePortalVisitCompactCard
+          title="Fotos / Anhänge"
+          status={attachmentCount > 0 ? `${attachmentCount} gespeichert` : 'Optional'}
+          onPress={onOpenAttachments}
+          testID="portal-open-attachments"
         />
       ) : null}
     </View>

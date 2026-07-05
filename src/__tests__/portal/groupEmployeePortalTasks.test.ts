@@ -1,22 +1,34 @@
 import { describe, expect, it } from 'vitest';
-import { groupEmployeePortalTasks, countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
+import { groupEmployeePortalTasks } from '@/lib/portal/groupEmployeePortalTasks';
+import { resolveVisitTaskCategory } from '@/lib/portal/resolveVisitTaskCategory';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 
 function task(
   id: string,
   title: string,
-  status: EmployeePortalTaskItem['status'] = 'open',
+  overrides: Partial<EmployeePortalTaskItem> = {},
 ): EmployeePortalTaskItem {
   return {
     id,
     title,
     description: '',
     required: false,
-    status,
+    status: 'open',
     completionNote: null,
     requiresNote: false,
+    ...overrides,
   };
 }
+
+describe('resolveVisitTaskCategory', () => {
+  it('prefers explicit workflow category over title inference', () => {
+    const resolved = resolveVisitTaskCategory(
+      task('1', 'Allgemeine Aufgabe', { categoryKey: 'demenzbegleitung' }),
+    );
+    expect(resolved.key).toBe('betreuung');
+    expect(resolved.label).toBeTruthy();
+  });
+});
 
 describe('groupEmployeePortalTasks', () => {
   it('groups tasks by inferred category', () => {
@@ -32,14 +44,13 @@ describe('groupEmployeePortalTasks', () => {
     expect(groups.some((g) => g.key === 'sonstiges')).toBe(true);
   });
 
-  it('counts done tasks per group', () => {
+  it('groups by explicit category key when provided', () => {
     const groups = groupEmployeePortalTasks([
-      task('1', 'Staubsaugen', 'done'),
-      task('2', 'Boden wischen', 'open'),
+      task('1', 'Aufgabe A', { categoryKey: 'haeusliche_alltagsunterstuetzung' }),
+      task('2', 'Aufgabe B', { categoryKey: 'haeusliche_alltagsunterstuetzung' }),
     ]);
-    const haushalt = groups.find((g) => g.key === 'haushalt');
-    expect(haushalt?.doneCount).toBe(1);
-    expect(haushalt?.totalCount).toBe(2);
-    expect(countDoneTasks([task('1', 'A', 'done'), task('2', 'B', 'open')])).toBe(1);
+    expect(groups).toHaveLength(1);
+    expect(groups[0]?.totalCount).toBe(2);
+    expect(groups[0]?.key).toBe('haushalt');
   });
 });

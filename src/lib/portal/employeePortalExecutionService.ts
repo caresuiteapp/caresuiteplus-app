@@ -264,6 +264,8 @@ function mapTasks(record: NonNullable<ReturnType<typeof getAssignmentWorkflow>>)
     status: task.status,
     completionNote: task.completionNote,
     requiresNote: taskStatusRequiresNote(task.status as import('@/types/modules/assignmentStatus').AssignmentStatus),
+    categoryKey: task.taskCategory ?? null,
+    categoryLabel: null,
   }));
 }
 
