@@ -149,7 +149,7 @@ Office kann über bestehende `approvePortalUpload` / `rejectPortalUpload` weiter
 |---------|----------|
 | `npx vitest run src/__tests__/portal/employeePortalM1Refactor.test.ts` | ✅ 10/10 grün |
 | `npx vitest run src/__tests__/portal/portalM3MobileLayout.test.ts` | ✅ 20/20 grün |
-| `npx vitest run src/__tests__/portal/employeePortal` | ✅ (bestehende Suite unverändert grün) |
+| `npx vitest run src/__tests__/portal/employeePortal` | ✅ 82/82 grün (nach Review-Fixes) |
 | `npm run typecheck` | ⚠️ Repo-weit vorbestehende TS-Fehler; **keine neuen Fehler in M.1-Dateien** |
 
 ### Smoke-Checkliste (manuell / Browser)
