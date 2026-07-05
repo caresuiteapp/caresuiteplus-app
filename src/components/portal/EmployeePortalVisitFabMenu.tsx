@@ -1,11 +1,15 @@
 import { useMemo, useState } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton } from '@/components/ui';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing, typography } from '@/theme';
+
+const FAB_SIZE = 52;
+const BOTTOM_BAR_HEIGHT = 64;
 
 type FabAction = {
   key: string;
@@ -21,7 +25,10 @@ export function EmployeePortalVisitFabMenu({ actions }: EmployeePortalVisitFabMe
   const text = useAuroraAdaptiveText();
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
+  const insets = useSafeAreaInsets();
   const [open, setOpen] = useState(false);
+
+  const fabBottom = Math.max(insets.bottom, spacing.sm) + BOTTOM_BAR_HEIGHT;
 
   const styles = useMemo(
     () =>
@@ -29,10 +36,10 @@ export function EmployeePortalVisitFabMenu({ actions }: EmployeePortalVisitFabMe
         fab: {
           position: 'absolute',
           right: spacing.md,
-          bottom: 88,
-          width: 52,
-          height: 52,
-          borderRadius: 26,
+          bottom: fabBottom,
+          width: FAB_SIZE,
+          height: FAB_SIZE,
+          borderRadius: FAB_SIZE / 2,
           backgroundColor: '#8B5CF6',
           alignItems: 'center',
           justifyContent: 'center',
@@ -49,15 +56,9 @@ export function EmployeePortalVisitFabMenu({ actions }: EmployeePortalVisitFabMe
         },
         fabLabel: { color: '#fff', fontSize: 28, lineHeight: 30, fontWeight: '300' },
         menu: { gap: spacing.xs },
-        menuItem: {
-          borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
-          borderRadius: 10,
-          padding: spacing.sm,
-        },
         menuLabel: { ...typography.body, color: text.primary },
       }),
-    [text],
+    [fabBottom, text],
   );
 
   return (

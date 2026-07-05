@@ -255,18 +255,22 @@ function updateWorkflowStatus(
   return { ok: true, data: next };
 }
 
+import { enrichPortalTaskCategory } from './enrichPortalTaskCategory';
+
 function mapTasks(record: NonNullable<ReturnType<typeof getAssignmentWorkflow>>): EmployeePortalTaskItem[] {
-  return record.tasks.map((task) => ({
-    id: task.id,
-    title: task.taskTitle,
-    description: task.taskDescription,
-    required: task.required,
-    status: task.status,
-    completionNote: task.completionNote,
-    requiresNote: taskStatusRequiresNote(task.status as import('@/types/modules/assignmentStatus').AssignmentStatus),
-    categoryKey: task.taskCategory ?? null,
-    categoryLabel: null,
-  }));
+  return record.tasks.map((task) =>
+    enrichPortalTaskCategory({
+      id: task.id,
+      title: task.taskTitle,
+      description: task.taskDescription,
+      required: task.required,
+      status: task.status,
+      completionNote: task.completionNote,
+      requiresNote: taskStatusRequiresNote(task.status as import('@/types/modules/assignmentStatus').AssignmentStatus),
+      categoryKey: task.taskCategory ?? null,
+      categoryLabel: null,
+    }),
+  );
 }
 
 function documentationStatus(

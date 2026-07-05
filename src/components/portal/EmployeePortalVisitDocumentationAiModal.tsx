@@ -1,31 +1,18 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
-import { PremiumButton } from '@/components/ui';
+import { InfoBanner, PremiumButton } from '@/components/ui';
 import { sendAiTextMessage } from '@/ai/aiTextChatService';
+import { applyDocumentationAiFallback } from '@/lib/portal/documentationAiFallback';
+import { resolveDocumentationAiAvailability } from '@/lib/portal/documentationAiAvailability';
+import {
+  DOCUMENTATION_AI_FUNCTION_LABELS,
+  type DocumentationAiFunction,
+} from '@/lib/portal/documentationAiTypes';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing, typography } from '@/theme';
-
-export type DocumentationAiFunction =
-  | 'from_bullets'
-  | 'professional'
-  | 'grammar'
-  | 'summarize'
-  | 'neutral_care'
-  | 'short'
-  | 'detailed';
-
-const AI_FUNCTION_LABELS: Record<DocumentationAiFunction, string> = {
-  from_bullets: 'Aus Stichpunkten erstellen',
-  professional: 'Professioneller formulieren',
-  grammar: 'Grammatik korrigieren',
-  summarize: 'Einsatz zusammenfassen',
-  neutral_care: 'Neutrale Pflegeformulierung',
-  short: 'Kurze Version',
-  detailed: 'Ausführliche Version',
-};
 
 function buildAiPrompt(fn: DocumentationAiFunction, sourceText: string): string {
   const base = sourceText.trim();
@@ -71,18 +58,14 @@ export function EmployeePortalVisitDocumentationAiModal({
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [suggestion, setSuggestion] = useState<string | null>(null);
+  const [usedLocalFallback, setUsedLocalFallback] = useState(false);
+
+  const aiAvailability = useMemo(() => resolveDocumentationAiAvailability(tenantId), [tenantId]);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
         fnList: { gap: spacing.xs, marginBottom: spacing.sm },
-        fnRow: {
-          borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
-          borderRadius: 10,
-          padding: spacing.sm,
-        },
-        fnRowActive: { borderColor: '#8B5CF6', backgroundColor: 'rgba(139,92,246,0.08)' },
         fnLabel: { ...typography.body, color: text.primary },
         preview: {
           borderWidth: 1,
@@ -93,26 +76,41 @@ export function EmployeePortalVisitDocumentationAiModal({
           marginTop: spacing.sm,
         },
         previewText: { ...typography.body, color: text.primary },
+        previewHint: { ...typography.caption, color: text.muted, marginTop: spacing.xs },
         error: { ...typography.caption, color: '#EF4444', marginTop: spacing.xs },
         actions: { gap: spacing.sm, marginTop: spacing.md },
+        actionRow: { gap: spacing.sm },
       }),
     [text],
   );
 
-  const handleGenerate = async () => {
-    if (!tenantId) {
-      setError('KI-Hilfe ist derzeit nicht verfügbar.');
-      return;
-    }
+  const handleLocalFallback = () => {
     if (!sourceText.trim()) {
       setError('Bitte zuerst einen Text oder Stichpunkte eingeben.');
       return;
     }
+    setError(null);
+    setUsedLocalFallback(true);
+    setSuggestion(applyDocumentationAiFallback(selectedFn, sourceText));
+  };
+
+  const handleGenerate = async () => {
+    if (!sourceText.trim()) {
+      setError('Bitte zuerst einen Text oder Stichpunkte eingeben.');
+      return;
+    }
+
+    if (!aiAvailability.available) {
+      handleLocalFallback();
+      return;
+    }
+
     setLoading(true);
     setError(null);
+    setUsedLocalFallback(false);
     const prompt = buildAiPrompt(selectedFn, sourceText);
     const result = await sendAiTextMessage({
-      tenantId,
+      tenantId: tenantId!,
       sessionId: null,
       message: prompt,
       currentModule: 'portal.employee',
@@ -120,12 +118,14 @@ export function EmployeePortalVisitDocumentationAiModal({
     });
     setLoading(false);
     if (!result.ok) {
-      setError(result.error ?? 'KI-Vorschlag konnte nicht erstellt werden.');
+      setError(
+        `${result.error ?? 'KI-Vorschlag konnte nicht erstellt werden.'} Lokale Textvorlage verfügbar.`,
+      );
       return;
     }
     const reply = result.data.assistant_message?.trim() ?? '';
     if (!reply) {
-      setError('Kein Vorschlag erhalten. Bitte erneut versuchen.');
+      setError('Kein Vorschlag erhalten. Nutzen Sie die lokale Textvorlage.');
       return;
     }
     setSuggestion(reply);
@@ -142,26 +142,44 @@ export function EmployeePortalVisitDocumentationAiModal({
       maxWidth={560}
     >
       <ScrollView showsVerticalScrollIndicator={false}>
+        {!aiAvailability.available && aiAvailability.reason ? (
+          <InfoBanner variant="warning" message={aiAvailability.reason} />
+        ) : null}
         <View style={styles.fnList}>
-          {(Object.keys(AI_FUNCTION_LABELS) as DocumentationAiFunction[]).map((fn) => (
+          {(Object.keys(DOCUMENTATION_AI_FUNCTION_LABELS) as DocumentationAiFunction[]).map((fn) => (
             <PremiumButton
               key={fn}
-              title={AI_FUNCTION_LABELS[fn]}
+              title={DOCUMENTATION_AI_FUNCTION_LABELS[fn]}
               variant={selectedFn === fn ? 'primary' : 'ghost'}
               size="sm"
               onPress={() => setSelectedFn(fn)}
             />
           ))}
         </View>
-        <PremiumButton
-          title="Vorschlag erstellen"
-          loading={loading}
-          onPress={() => void handleGenerate()}
-        />
+        <View style={styles.actionRow}>
+          <PremiumButton
+            title={aiAvailability.available ? 'Vorschlag erstellen' : 'Lokale Vorlage erstellen'}
+            loading={loading}
+            onPress={() => void handleGenerate()}
+          />
+          {aiAvailability.canUseLocalFallback && aiAvailability.available ? (
+            <PremiumButton
+              title="Lokale Vorlage"
+              variant="secondary"
+              onPress={handleLocalFallback}
+            />
+          ) : null}
+        </View>
         {error ? <Text style={styles.error}>{error}</Text> : null}
+        {error && aiAvailability.canUseLocalFallback ? (
+          <PremiumButton title="Lokale Vorlage nutzen" variant="ghost" onPress={handleLocalFallback} />
+        ) : null}
         {suggestion ? (
           <View style={styles.preview}>
             <Text style={styles.previewText}>{suggestion}</Text>
+            {usedLocalFallback ? (
+              <Text style={styles.previewHint}>Lokale Textvorlage (ohne KI-Verbindung)</Text>
+            ) : null}
           </View>
         ) : null}
         {suggestion ? (
@@ -174,3 +192,5 @@ export function EmployeePortalVisitDocumentationAiModal({
     </PlatformModal>
   );
 }
+
+export type { DocumentationAiFunction } from '@/lib/portal/documentationAiTypes';

@@ -22,12 +22,13 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(shell).toContain('isAuthRoutePath(pathname)');
   });
 
-  it('employee dashboard KPI tiles use responsive flex basis and noBreak labels', () => {
+  it('employee dashboard KPI tiles use responsive grid via HealthOS today view', () => {
     const dashboard = readSrc('src/screens/portal/EmployeePortalDashboardScreen.tsx');
-    expect(dashboard).toContain('flexBasis');
-    expect(dashboard).toContain('minWidth: 152');
-    expect(dashboard).toContain('noBreakTextProps');
-    expect(dashboard).toContain('usePortalProfileAvatar');
+    const todayView = readSrc('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
+    expect(dashboard).toContain('HealthOSEmployeePortalTodayView');
+    expect(dashboard).toContain('useEmployeePortalDashboard');
+    expect(todayView).toContain('AdaptiveKpiGrid');
+    expect(todayView).toContain('HealthOSMetricCard');
   });
 
   it('schedule route centers content with mobile tab header', () => {

@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { Platform, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumBadge } from '@/components/ui';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
@@ -58,6 +59,7 @@ export function EmployeePortalVisitStickyHeader({
   showProgress = true,
 }: EmployeePortalVisitStickyHeaderProps) {
   const text = useAuroraAdaptiveText();
+  const insets = useSafeAreaInsets();
 
   const styles = useMemo(
     () =>
@@ -67,7 +69,8 @@ export function EmployeePortalVisitStickyHeader({
           borderBottomWidth: 1,
           borderBottomColor: auroraGlass.innerBorder,
           paddingHorizontal: spacing.md,
-          paddingVertical: spacing.sm,
+          paddingTop: Platform.OS === 'web' ? spacing.sm : Math.max(insets.top, spacing.sm),
+          paddingBottom: spacing.sm,
           gap: spacing.xs,
           ...(Platform.OS === 'web'
             ? ({ position: 'sticky', top: 0, zIndex: 20 } as ViewStyle)
@@ -89,7 +92,7 @@ export function EmployeePortalVisitStickyHeader({
         },
         liveTimer: { ...typography.caption, color: text.secondary },
       }),
-    [text],
+    [insets.top, text],
   );
 
   const activeSeconds =

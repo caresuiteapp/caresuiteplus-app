@@ -750,7 +750,7 @@ export function EmployeePortalVisitExecutionScreen() {
   };
 
   return (
-    <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
+    <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`} scroll={false}>
       <EmployeePortalVisitStickyHeader
         clientName={visit.clientName}
         plannedStartAt={visit.plannedStartAt}

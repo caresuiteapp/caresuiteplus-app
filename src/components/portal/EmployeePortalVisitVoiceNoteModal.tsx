@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
-import { PremiumButton } from '@/components/ui';
+import { InfoBanner, PremiumButton } from '@/components/ui';
 import { OfficeVoiceRecordingBar } from '@/components/office/officevoicerecordingbar';
 import { useVoiceMessage } from '@/hooks/communication/useVoiceMessage';
 import {
@@ -39,6 +39,8 @@ export function EmployeePortalVisitVoiceNoteModal({
   const [dictating, setDictating] = useState(false);
   const [localError, setLocalError] = useState<string | null>(null);
   const [uploading, setUploading] = useState(false);
+  const dictationSupported = isSpeechDictationSupported();
+  const isNative = Platform.OS !== 'web';
 
   const styles = useMemo(
     () =>
@@ -122,14 +124,23 @@ export function EmployeePortalVisitVoiceNoteModal({
       maxWidth={480}
     >
       <View style={styles.body}>
-        <Text style={styles.hint}>
-          Nutzen Sie Diktat für Text in der Dokumentation oder nehmen Sie eine Sprachnotiz als Anhang auf.
-        </Text>
-        <PremiumButton
-          title={dictating ? 'Sprache wird erkannt…' : 'Diktat starten'}
-          loading={dictating}
-          onPress={() => void handleDictation()}
-        />
+        {isNative ? (
+          <InfoBanner
+            variant="info"
+            message="In der App wird Sprache als Audio-Anhang gespeichert. Live-Diktat steht im Browser zur Verfügung."
+          />
+        ) : (
+          <Text style={styles.hint}>
+            Nutzen Sie Diktat für Text in der Dokumentation oder nehmen Sie eine Sprachnotiz als Anhang auf.
+          </Text>
+        )}
+        {dictationSupported ? (
+          <PremiumButton
+            title={dictating ? 'Sprache wird erkannt…' : 'Diktat starten'}
+            loading={dictating}
+            onPress={() => void handleDictation()}
+          />
+        ) : null}
         {voice.isSupported ? (
           <>
             {!voice.isRecording ? (
@@ -148,7 +159,11 @@ export function EmployeePortalVisitVoiceNoteModal({
             )}
           </>
         ) : (
-          <Text style={styles.hint}>{voice.unsupportedMessage}</Text>
+          <Text style={styles.hint}>
+            {isNative
+              ? 'Audio-Aufnahme ist auf diesem Gerät nicht verfügbar.'
+              : voice.unsupportedMessage}
+          </Text>
         )}
         {localError ? <Text style={styles.error}>{localError}</Text> : null}
         {voice.error ? <Text style={styles.error}>{voice.error}</Text> : null}

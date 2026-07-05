@@ -43,4 +43,25 @@ describe('employee portal visit execution UX completion', () => {
     expect(dashboard).toContain('Fotos / Anhänge');
     expect(dashboard).toContain('attachmentCount');
   });
+
+  it('execution screen uses non-scrolling shell and safe-area aware chrome', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    const header = readSrc('src/components/portal/EmployeePortalVisitStickyHeader.tsx');
+    const fab = readSrc('src/components/portal/EmployeePortalVisitFabMenu.tsx');
+    expect(screen).toContain('scroll={false}');
+    expect(header).toContain('useSafeAreaInsets');
+    expect(fab).toContain('useSafeAreaInsets');
+  });
+
+  it('documentation AI modal supports local fallback when cloud AI is unavailable', () => {
+    const modal = readSrc('src/components/portal/EmployeePortalVisitDocumentationAiModal.tsx');
+    expect(modal).toContain('resolveDocumentationAiAvailability');
+    expect(modal).toContain('applyDocumentationAiFallback');
+    expect(modal).toContain('Lokale Vorlage');
+  });
+
+  it('live execution service enriches task categories for grouping', () => {
+    const live = readSrc('src/lib/portal/employeePortalExecutionLiveService.ts');
+    expect(live).toContain('enrichPortalTaskCategory');
+  });
 });

@@ -52,9 +52,10 @@ import {
   hasPortalPersistedClientSignature,
   resolveEmployeePortalDocumentationFlags,
 } from './resolveEmployeePortalSignatureRequirement';
+import { enrichPortalTaskCategory } from './enrichPortalTaskCategory';
 
 function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
-  return {
+  return enrichPortalTaskCategory({
     id: task.id,
     title: task.title,
     description: null,
@@ -64,7 +65,7 @@ function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
     requiresNote: task.requiresNoteIfNotDone,
     categoryKey: task.categoryKey ?? null,
     categoryLabel: task.categoryLabel ?? null,
-  };
+  });
 }
 
 function mapDetailToPortal(
