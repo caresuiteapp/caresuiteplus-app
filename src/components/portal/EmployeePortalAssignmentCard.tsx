@@ -1,7 +1,8 @@
 import { Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { lightLiquidGlass, lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
@@ -71,7 +72,7 @@ export function EmployeePortalAssignmentCard({
   const accent = moduleColor('assist');
   const status = resolveStatus(appointment);
   const statusLabel = ASSIGNMENT_STATUS_LABELS[status] ?? WORKFLOW_STATUS_LABELS[appointment.status] ?? status;
-  const cardTint = lightLiquidGlass.card;
+  const cardTint = careLightColors.surface;
 
   const openMaps = () => {
     if (onNavigate) {

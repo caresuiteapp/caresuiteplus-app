@@ -67,9 +67,11 @@ describe('employee portal M.1 refactor', () => {
     expect(tab).toContain('EmployeePortalAssignmentPreviewSheet');
   });
 
-  it('employee messages use glass messenger variant', () => {
+  it('employee messages use default messenger variant for readable composer', () => {
     const screen = readSrc('src/screens/portal/portalofficemessagesscreens.tsx');
-    expect(screen).toContain('variant="glass"');
+    expect(screen).toMatch(
+      /EmployeePortalOfficeMessagesScreen[\s\S]*PortalOfficeMessenger audience="employee" variant="default"/,
+    );
   });
 
   it('client records are read-only in UI', () => {
@@ -88,10 +90,21 @@ describe('employee portal M.1 refactor', () => {
     expect(service).toContain('upload_context');
   });
 
-  it('calendar service supports employee portal events', () => {
+  it('calendar service supports employee portal team events', () => {
     const service = readSrc('src/lib/calendar/calendarEventService.ts');
     expect(service).toContain('buildEmployeePortalCalendarConfig');
     expect(service).toContain('getEmployeePortalCalendarEvents');
+    expect(service).toContain('getEmployeePortalTeamCalendarEvents');
+    expect(service).toContain("defaultView: 'agenda'");
+  });
+
+  it('client records service uses valid clients columns', () => {
+    const service = readSrc('src/lib/portal/employeePortalClientRecordsService.ts');
+    expect(service).toContain('care_level');
+    expect(service).not.toContain('care_grade');
+    expect(service).not.toContain('notes_for_employee');
+    expect(service).not.toContain('access_hint');
+    expect(service).toContain('client_addresses');
   });
 
   it('migration 0226 extends portal_uploads for employees', () => {

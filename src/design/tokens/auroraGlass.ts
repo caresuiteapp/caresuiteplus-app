@@ -250,10 +250,12 @@ export type MessagingGlassSurface = {
 /** Portal messaging "glass" variant — light surfaces on light theme for readable mobile layout. */
 export function useMessagingGlassSurface(isGlassVariant: boolean): MessagingGlassSurface {
   const useLightGlass = useLightLiquidGlassShell();
-  const surfaces = useLightGlass ? lightLiquidGlass : auroraGlass;
-  const onDarkSurface = isGlassVariant && !useLightGlass;
+  const { isLight } = useLegacyTheme();
+  const useLightSurfaces = useLightGlass || isLight;
+  const surfaces = useLightSurfaces ? lightLiquidGlass : auroraGlass;
+  const onDarkSurface = isGlassVariant && !useLightSurfaces;
   const ink = isGlassVariant ? surfaceContrastText(onDarkSurface) : null;
-  return { useLightGlass, surfaces, onDarkSurface, ink };
+  return { useLightGlass: useLightSurfaces, surfaces, onDarkSurface, ink };
 }
 
 /** Adaptive text colors — glass text when shell active, theme palette otherwise. */

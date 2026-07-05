@@ -93,7 +93,7 @@ export async function fetchEmployeePortalClientRecords(
     if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
     const { data, error } = await fromUnknownTable(supabase, 'clients')
-      .select('id, first_name, last_name, street, zip, city, care_grade, notes_for_employee')
+      .select('id, first_name, last_name, street, zip, city, care_level, notes')
       .eq('tenant_id', tenantId)
       .in('id', clientIds);
 
@@ -121,8 +121,8 @@ export async function fetchEmployeePortalClientRecords(
         city: row?.city ? String(row.city) : null,
         street: row?.street ? String(row.street) : null,
         zip: row?.zip ? String(row.zip) : null,
-        careGrade: row?.care_grade ? String(row.care_grade) : null,
-        hints: row?.notes_for_employee ? String(row.notes_for_employee) : null,
+        careGrade: row?.care_level ? String(row.care_level) : null,
+        hints: row?.notes ? String(row.notes) : null,
         activeAssignmentCount: meta.activeCount,
         lastAssignmentAt: meta.lastAt,
         nextAssignmentAt: meta.nextAt,
@@ -163,10 +163,22 @@ export async function fetchEmployeePortalClientRecordDetail(
     if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
     const { data: clientRow } = await fromUnknownTable(supabase, 'clients')
-      .select('phone, access_hint')
+      .select('phone, notes')
       .eq('tenant_id', tenantId)
       .eq('id', clientId)
       .maybeSingle();
+
+    let accessHint: string | null = null;
+    const { data: addressRows } = await fromUnknownTable(supabase, 'client_addresses')
+      .select('access_notes')
+      .eq('tenant_id', tenantId)
+      .eq('client_id', clientId)
+      .not('access_notes', 'is', null)
+      .limit(1);
+    if (addressRows?.length) {
+      const notes = (addressRows[0] as { access_notes?: string | null }).access_notes;
+      accessHint = notes?.trim() ? notes.trim() : null;
+    }
 
     let emergencyContact: string | null = null;
     const { data: contacts } = await fromUnknownTable(supabase, 'client_contacts')
@@ -207,7 +219,7 @@ export async function fetchEmployeePortalClientRecordDetail(
       data: sanitizeEmployeePortalPayload({
         ...base,
         phone: row?.phone ? String(row.phone) : null,
-        accessHint: row?.access_hint ? String(row.access_hint) : null,
+        accessHint,
         emergencyContact,
         assignmentHistory: history,
         portalDocuments,

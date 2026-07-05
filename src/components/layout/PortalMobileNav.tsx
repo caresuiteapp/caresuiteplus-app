@@ -1,17 +1,11 @@
 import { useMemo } from 'react';
-import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { usePathname, useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { SpaceKpiIcon } from '@/components/icons/space';
-import {
-  auroraGlass,
-  lightLiquidGlass,
-  lightLiquidGlassWebFx,
-  useAuroraAdaptiveText,
-  useAuroraGlassActive,
-} from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { useInteractiveTextColor } from '@/design/tokens/carelightadaptive';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { resolveCompactShellMobileTabs } from '@/lib/navigation/shellMobileTabs';
@@ -27,27 +21,16 @@ type PortalMobileNavProps = {
   area?: AppShellArea;
 };
 
-/** Light frosted-glass bottom nav — five fixed tabs on phone (no horizontal scroll). */
+/** Opaque bottom nav — five fixed tabs on phone (no horizontal scroll). */
 export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalMobileNavProps) {
   const router = useRouter();
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const text = useAuroraAdaptiveText();
-  const auroraActive = useAuroraGlassActive();
-  const { isLight } = useLegacyTheme();
-  const useLightNav = auroraActive && isLight;
-  const navSurface = useLightNav ? lightLiquidGlass.panel : auroraGlass.panel;
-  const navBorder = useLightNav ? lightLiquidGlass.borderAccent : auroraGlass.border;
-  const navGlassFx = useLightNav
-    ? lightLiquidGlassWebFx(lightLiquidGlass.blur.light)
-    : Platform.OS === 'web'
-      ? ({
-          backdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-          WebkitBackdropFilter: `blur(${auroraGlass.blur.medium}px)`,
-        } as unknown as ViewStyle)
-      : null;
-  const activeChip = useLightNav ? lightLiquidGlass.chipActive : auroraGlass.chipActive;
-  const labelDefault = useLightNav ? text.primary : text.secondary;
+  const navSurface = careLightColors.surface;
+  const navBorder = careLightColors.borderStrong;
+  const activeChip = 'rgba(14, 165, 233, 0.14)';
+  const labelDefault = text.primary;
   const activeLabelColor = useInteractiveTextColor(accentColor);
   const mobileTabs = useMemo(() => resolveCompactShellMobileTabs(tabs, area), [tabs, area]);
   const activeKey = resolveActiveTabKey(pathname, mobileTabs);
@@ -64,7 +47,6 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
           backgroundColor: navSurface,
           borderTopColor: navBorder,
         } as ViewStyle,
-        navGlassFx,
       ]}
       testID="compact-mobile-nav"
     >

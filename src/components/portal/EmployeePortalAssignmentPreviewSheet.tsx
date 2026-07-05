@@ -14,7 +14,8 @@ import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { PremiumButton, LoadingState, ErrorState } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
-import { lightLiquidGlass, lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { usePortalAppointmentDetail } from '@/hooks/usePortalAppointmentDetail';
@@ -81,7 +82,7 @@ export function EmployeePortalAssignmentPreviewSheet({
           style={[
             styles.sheet,
             panelStyle,
-            { backgroundColor: lightLiquidGlass.elevated, borderColor: lightLiquidGlass.borderAccent },
+            { backgroundColor: careLightColors.surface, borderColor: careLightColors.borderStrong },
           ]}
         >
           <View style={styles.handleRow}>

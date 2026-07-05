@@ -11,13 +11,8 @@ import {
 } from 'react-native';
 import { useRouter, usePathname } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import {
-  auroraGlass,
-  darkGlassSurfaceText,
-  lightLiquidGlass,
-  lightSurfaceText,
-  useAuroraGlassActive,
-} from '@/design/tokens/auroraGlass';
+import { darkGlassSurfaceText, lightSurfaceText } from '@/design/tokens/auroraGlass';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
@@ -53,24 +48,22 @@ export function PortalNavigationDrawer({
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
   const { signOut } = useAuth();
-  const auroraActive = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
-  const useLightDrawer = auroraActive && isLight;
-  const drawerText = useLightDrawer ? lightSurfaceText : darkGlassSurfaceText;
+  const drawerText = isLight ? lightSurfaceText : darkGlassSurfaceText;
   const activeKey = resolveActiveTabKey(pathname, tabs);
 
   const drawerSurface = useMemo(() => {
-    if (useLightDrawer) {
+    if (isLight) {
       return {
-        backgroundColor: lightLiquidGlass.elevated,
-        borderColor: lightLiquidGlass.borderAccent,
+        backgroundColor: careLightColors.surface,
+        borderColor: careLightColors.borderStrong,
       } as ViewStyle;
     }
     return {
       backgroundColor: '#0F172A',
-      borderColor: auroraGlass.borderStrong,
+      borderColor: 'rgba(148, 163, 184, 0.35)',
     } as ViewStyle;
-  }, [useLightDrawer]);
+  }, [isLight]);
 
   return (
     <Modal
@@ -148,7 +141,7 @@ export function PortalNavigationDrawer({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)' },
+  backdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.62)' },
   panel: { width: '86%', maxWidth: 340, borderLeftWidth: 1, elevation: 12 },
   header: {
     flexDirection: 'row',

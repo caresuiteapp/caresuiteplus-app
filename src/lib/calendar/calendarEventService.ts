@@ -564,8 +564,8 @@ export function buildEmployeePortalCalendarConfig(employeeId: string): CalendarV
   return {
     calendarScope: 'portal',
     moduleKey: 'portal',
-    defaultView: 'week',
-    subtitle: 'Einsätze, Termine und Abwesenheiten',
+    defaultView: 'agenda',
+    subtitle: 'Alle Einsätze im Team — Termine und Abwesenheiten',
     emptyStateMessage:
       'Im gewählten Zeitraum sind keine Einträge sichtbar. Wechseln Sie die Ansicht oder den Zeitraum.',
     moduleColor: '#FFB020',
@@ -575,34 +575,45 @@ export function buildEmployeePortalCalendarConfig(employeeId: string): CalendarV
   };
 }
 
-/** Employee portal calendar — assignments, planned events, absences (read-only). */
+/** Employee portal calendar — team-wide assignments, planned events, absences (read-only). */
 export async function getEmployeePortalCalendarEvents(
   tenantId: string,
-  employeeId: string,
+  _employeeId: string,
+  options?: FetchCalendarEventsOptions,
+): Promise<ServiceResult<CalendarEvent[]>> {
+  return getEmployeePortalTeamCalendarEvents(tenantId, options);
+}
+
+/** Team-wide employee portal calendar — all visible colleague assignments. */
+export async function getEmployeePortalTeamCalendarEvents(
+  tenantId: string,
   options?: FetchCalendarEventsOptions,
 ): Promise<ServiceResult<CalendarEvent[]>> {
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  const portalResult = await getPortalCalendarEvents(
+  const result = await calendarEventRepository.listForEmployeePortalTeam(
     tenantId,
-    { portalType: 'employee', employeeId },
-    options,
+    options?.rangeStart,
+    options?.rangeEnd,
   );
-  if (portalResult.ok && portalResult.data.length > 0) {
-    return portalResult;
-  }
-
-  const employeeResult = await getEmployeeCalendarEvents(tenantId, employeeId, options);
-  if (employeeResult.ok && employeeResult.data.length > 0) {
-    return employeeResult;
+  if (result.ok && result.data.length > 0) {
+    const events = recordsToUiEvents(result.data);
+    const merged = await mergePortalAssistRecurrenceEvents(
+      tenantId,
+      events,
+      {},
+      options?.rangeStart,
+      options?.rangeEnd,
+    );
+    return { ok: true, data: merged };
   }
 
   if (getServiceMode() === 'supabase') {
-    const { fetchLivePortalAppointmentsForEmployee } = await import(
+    const { fetchLivePortalAppointmentsForEmployeeTeam } = await import(
       '@/lib/portal/portalAppointmentsLiveService'
     );
-    const live = await fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
+    const live = await fetchLivePortalAppointmentsForEmployeeTeam(tenantId);
     if (!live.ok) return live;
 
     const rangeStartMs = options?.rangeStart ? new Date(options.rangeStart).getTime() : null;
@@ -616,24 +627,27 @@ export async function getEmployeePortalCalendarEvents(
         if (rangeEndMs != null && t > rangeEndMs) return false;
         return true;
       })
-      .map((item) => ({
-        id: item.id,
-        title: item.title,
-        start: item.startsAt,
-        end: item.endsAt,
-        type: 'einsatz' as const,
-        color: '#FFB020',
-        sourceId: item.id,
-        sourceType: 'assist_visit' as const,
-        moduleKey: 'assist' as const,
-        href: `${hrefBase}/${item.id}`,
-        clientName: item.clientName ?? undefined,
-      }));
+      .map((item) => {
+        const employeeSuffix = item.employeeName ? ` · ${item.employeeName}` : '';
+        return {
+          id: item.id,
+          title: `${item.title}${employeeSuffix}`,
+          start: item.startsAt,
+          end: item.endsAt,
+          type: 'einsatz' as const,
+          color: '#FFB020',
+          sourceId: item.id,
+          sourceType: 'assist_visit' as const,
+          moduleKey: 'assist' as const,
+          href: `${hrefBase}/${item.id}`,
+          clientName: item.clientName ?? undefined,
+        };
+      });
 
     return { ok: true, data: events };
   }
 
-  return portalResult.ok ? portalResult : employeeResult;
+  return result;
 }
 
 /** @deprecated Use getModuleCalendarEvents('assist', ...) */

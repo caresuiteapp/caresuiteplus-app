@@ -72,7 +72,7 @@ export function EmployeePortalOfficeMessagesScreen() {
       scroll={false}
     >
       <View style={styles.employeeMessages}>
-        <PortalOfficeMessenger audience="employee" variant="glass" />
+        <PortalOfficeMessenger audience="employee" variant="default" />
       </View>
     </PortalTabScreen>
   );

@@ -6,7 +6,6 @@ import {
   EmptyState,
   ErrorState,
   LoadingState,
-  PremiumBadge,
   PremiumButton,
   SectionPanel,
 } from '@/components/ui';
@@ -22,8 +21,10 @@ import { typography } from '@/theme';
 
 function formatDateTime(iso: string): string {
   return new Date(iso).toLocaleString('de-DE', {
+    weekday: 'short',
     day: '2-digit',
     month: '2-digit',
+    year: 'numeric',
     hour: '2-digit',
     minute: '2-digit',
   });
@@ -51,7 +52,10 @@ export function EmployeePortalTimesScreen() {
   const query = useAsyncQuery(
     useCallback(async () => {
       if (!tenantId || !canView || !userId) {
-        return { ok: true as const, data: { visitTimes: [], drivingLogs: [] } };
+        return {
+          ok: true as const,
+          data: { visitTimes: [], visitSummaries: [], drivingLogs: [] },
+        };
       }
       return listEmployeeVisitTimes(tenantId, userId, roleKey, { employeeId, days: 14 });
     }, [tenantId, userId, roleKey, canView, employeeId]),
@@ -89,28 +93,33 @@ export function EmployeePortalTimesScreen() {
     );
   }
 
-  const visitTimes = query.data?.visitTimes ?? [];
+  const visitSummaries = query.data?.visitSummaries ?? [];
   const drivingLogs = query.data?.drivingLogs ?? [];
 
   return (
     <ScreenShell title="Fahrten & Zeiten" subtitle="Einsatzzeiten der letzten 14 Tage" scroll>
-      <SectionPanel title="Einsatz-Zeitstempel" subtitle="Aus der Einsatz-Durchführung synchronisiert">
-        {visitTimes.length === 0 ? (
+      <SectionPanel
+        title="Einsatz-Zeitstempel"
+        subtitle="Ihre Einsätze — zusammengefasst und chronologisch"
+      >
+        {visitSummaries.length === 0 ? (
           <EmptyState
             title="Keine Einsatzzeiten"
             message="Für den ausgewählten Zeitraum sind noch keine Zeiten erfasst."
           />
         ) : (
-          visitTimes.map((row) => (
-            <View key={row.id} style={styles.row}>
-              <View style={styles.rowHeader}>
-                <Text style={[styles.rowTitle, { color: text.primary }]}>{row.assignmentLabel}</Text>
-                <PremiumBadge label={row.eventLabel} variant="cyan" />
-              </View>
-              <Text style={[styles.rowMeta, { color: text.secondary }]}>
-                {formatDateTime(row.occurredAt)}
-                {row.durationSeconds != null ? ` · Dauer ${formatDuration(row.durationSeconds)}` : ''}
+          visitSummaries.map((row) => (
+            <View key={row.visitId} style={styles.row}>
+              <Text style={[styles.rowTitle, { color: text.primary }]}>
+                {row.clientName ? `${row.title} · ${row.clientName}` : row.title}
               </Text>
+              <Text style={[styles.rowMeta, { color: text.secondary }]}>{row.dateLabel}</Text>
+              {row.plannedRange ? (
+                <Text style={[styles.rowMeta, { color: text.muted }]}>
+                  Geplant: {row.plannedRange}
+                </Text>
+              ) : null}
+              <Text style={[styles.timeline, { color: text.secondary }]}>{row.timelineText}</Text>
             </View>
           ))
         )}
@@ -143,8 +152,13 @@ export function EmployeePortalTimesScreen() {
 }
 
 const styles = StyleSheet.create({
-  row: { paddingVertical: careSpacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(0,0,0,0.08)' },
-  rowHeader: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', gap: careSpacing.sm },
-  rowTitle: { ...typography.body, fontWeight: '600', flex: 1 },
-  rowMeta: { ...typography.caption, marginTop: 2 },
+  row: {
+    paddingVertical: careSpacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+    gap: 2,
+  },
+  rowTitle: { ...typography.body, fontWeight: '600' },
+  rowMeta: { ...typography.caption },
+  timeline: { ...typography.body, marginTop: careSpacing.xs, lineHeight: 20 },
 });

@@ -12,7 +12,9 @@ describe('Portal Employee Assignment Detail Hero (Sprint 81)', () => {
     expect(hero).toContain('PremiumListHeroFrame');
     expect(hero).toContain('PORTAL_EMPLOYEE_LABEL');
     expect(hero).toContain('PremiumKpiCard');
-    expect(hero).toContain('Aufgaben');
+    expect(hero).toContain('AdaptiveKpiGrid');
+    expect(hero).toContain('usePremiumHeroTextStyles');
+    expect(hero).not.toContain('rgba(255,255,255');
   });
 
   it('PortalAssignmentDetailScreen ersetzt flache PremiumCard', () => {

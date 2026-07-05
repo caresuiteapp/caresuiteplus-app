@@ -37,6 +37,7 @@ function visitListItemToPortalAppointment(item: VisitDispositionListItem): Porta
     clientId: item.clientId ?? '',
     employeeId: item.employeeId,
     clientName: item.clientName,
+    employeeName: item.employeeName || undefined,
   };
 }
 
@@ -79,12 +80,12 @@ async function enrichPortalAppointmentsWithAssignmentStatus(
 
 async function fetchLivePortalAppointments(
   tenantId: string,
-  filter: { clientId?: string; employeeId?: string },
+  filter: { clientId?: string; employeeId?: string; teamCalendar?: boolean },
 ): Promise<ServiceResult<PortalAppointmentItem[]>> {
   return runService(async () => {
     const visitResult = await visitSupabaseRepository.list(tenantId, {
       clientId: filter.clientId,
-      employeeId: filter.employeeId,
+      employeeId: filter.teamCalendar ? undefined : filter.employeeId,
       portalAudience: filter.clientId ? 'client' : 'employee',
     });
     if (!visitResult.ok) {
@@ -204,6 +205,16 @@ export async function fetchLivePortalAppointmentsForEmployee(
     return { ok: true, data: [] };
   }
   return fetchLivePortalAppointments(tenantId, { employeeId });
+}
+
+/** All employee-portal-visible team assignments in the tenant (team calendar). */
+export async function fetchLivePortalAppointmentsForEmployeeTeam(
+  tenantId: string,
+): Promise<ServiceResult<PortalAppointmentItem[]>> {
+  if (!tenantId.trim()) {
+    return { ok: true, data: [] };
+  }
+  return fetchLivePortalAppointments(tenantId, { teamCalendar: true });
 }
 
 export async function fetchLivePortalClientAppointmentDetail(

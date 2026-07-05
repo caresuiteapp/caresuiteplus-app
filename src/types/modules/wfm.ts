@@ -262,6 +262,17 @@ export interface WfmVisitTimeRow {
   durationSeconds: number | null;
 }
 
+/** Grouped, employee-readable visit timeline for portal "Meine Zeiten". */
+export interface WfmEmployeeVisitTimeSummary {
+  visitId: string;
+  title: string;
+  clientName: string | null;
+  dateLabel: string;
+  plannedRange: string | null;
+  timelineText: string;
+  occurredAt: string;
+}
+
 export interface WfmDrivingLogRow {
   id: string;
   visitId: string | null;

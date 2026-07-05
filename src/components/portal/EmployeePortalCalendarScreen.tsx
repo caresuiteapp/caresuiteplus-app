@@ -23,7 +23,7 @@ type EmployeePortalCalendarScreenProps = {
 
 export function EmployeePortalCalendarScreen({ onEventPress }: EmployeePortalCalendarScreenProps) {
   const router = useRouter();
-  const [viewMode, setViewMode] = useState<CalendarViewMode>('week');
+  const [viewMode, setViewMode] = useState<CalendarViewMode>('agenda');
   const [anchor, setAnchor] = useState(() => new Date());
 
   const range = useMemo(() => {

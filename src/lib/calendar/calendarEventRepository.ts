@@ -253,6 +253,34 @@ export const calendarEventRepository = {
     return { ok: true, data: (data ?? []).map((row) => mapCalendarEventRow(row as never)) };
   },
 
+  async listForEmployeePortalTeam(
+    tenantId: string,
+    rangeStart?: string,
+    rangeEnd?: string,
+  ): Promise<ServiceResult<CalendarEventRecord[]>> {
+    const supabase = getSupabaseClient();
+    if (!supabase) return unavailable();
+
+    let query = fromUnknownTable(supabase, 'calendar_events')
+      .select(CALENDAR_EVENT_SELECT_COLUMNS)
+      .eq('tenant_id', tenantId)
+      .eq('is_employee_portal_visible', true)
+      .is('archived_at', null)
+      .neq('status', 'cancelled')
+      .order('start_at', { ascending: true });
+
+    if (rangeStart) query = query.gte('end_at', rangeStart);
+    if (rangeEnd) query = query.lte('start_at', rangeEnd);
+
+    const { data, error } = await query;
+    if (error) {
+      if (isMissingTableError(error)) return { ok: true, data: [] };
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
+
+    return { ok: true, data: (data ?? []).map((row) => mapCalendarEventRow(row as never)) };
+  },
+
   async listForClient(
     tenantId: string,
     clientId: string,
