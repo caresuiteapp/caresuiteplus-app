@@ -136,7 +136,7 @@ Anzeige über `CalendarToolbar` + `CalendarEventGrid` mit Ansichten **Tag, Woche
 1. Mitarbeitende wählen Kontext: **Für mich selbst** oder **Für Klient:in**
 2. Datei → Supabase Storage (`office-documents`)
 3. Zeile in **`portal_uploads`** (`upload_context`, `employee_id`, optional `client_id`)
-4. **`createPortalRequest`** — Office-Prüffall / Eingang
+4. **`createPortalRequest`** (nur bei Klienten-Upload) — Office-Prüffall / Eingang; Self-Upload nur `portal_uploads`
 5. Status im Portal: Eingereicht → In Prüfung → Zugeordnet / Abgelehnt
 
 Office kann über bestehende `approvePortalUpload` / `rejectPortalUpload` weiterverarbeiten.
@@ -184,7 +184,24 @@ Office kann über bestehende `approvePortalUpload` / `rejectPortalUpload` weiter
 
 ## 9. Deploy
 
-**Nicht ausgelöst.** Commit ohne `[deploy]` gemäß Workspace-Regel.
+**Ausgelöst** — Push auf `main` mit `[deploy]` in der Commit-Message (Netlify Production-Build).
+
+### Nachreview-Fixes
+
+| Fix | Datei |
+|-----|-------|
+| Wochenplan-Sonntag-Bug (`isSameWeek`) | `employeePortalLiveOverviewService.ts` |
+| Self-Upload ohne falsche `client_id` in `portal_requests` | `employeePortalUploadService.ts` |
+| Storage-RLS für Klienten-Uploads durch Mitarbeitende | `0226_employee_portal_uploads.sql` |
+
+### Migration 0226
+
+Remote-Push in Cloud-Umgebung ohne Supabase-Login nicht möglich. Manuell:
+
+```bash
+supabase link --project-ref euagyyztvmemuaiumvxm
+supabase db push
+```
 
 ---
 

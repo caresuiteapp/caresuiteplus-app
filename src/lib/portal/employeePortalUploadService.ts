@@ -133,27 +133,28 @@ export async function uploadEmployeePortalDocument(
       return { ok: false, error: toStorageUploadError(uploadError.message) };
     }
 
-    const requestResult = await createPortalRequest({
-      tenantId: input.tenantId,
-      clientId: input.clientId ?? input.employeeId,
-      moduleKey: 'assist',
-      requestType: 'upload',
-      title:
-        input.uploadContext === 'mitarbeiter'
-          ? `Mitarbeiter-Dokument: ${input.fileName}`
-          : `Klient-Dokument: ${input.fileName}`,
-      description: input.message?.trim() || null,
-      payload: {
-        uploadId,
-        uploadContext: input.uploadContext,
-        employeeId: input.employeeId,
-        fileName: input.fileName,
-        mimeType: input.mimeType,
-        sizeBytes: input.sizeBytes ?? payload.length,
-        category: input.category ?? null,
-      },
-    });
-    if (!requestResult.ok) return requestResult;
+    let portalRequestId: string | null = null;
+    if (input.uploadContext === 'klient' && input.clientId?.trim()) {
+      const requestResult = await createPortalRequest({
+        tenantId: input.tenantId,
+        clientId: input.clientId,
+        moduleKey: 'assist',
+        requestType: 'upload',
+        title: `Klient-Dokument: ${input.fileName}`,
+        description: input.message?.trim() || null,
+        payload: {
+          uploadId,
+          uploadContext: input.uploadContext,
+          employeeId: input.employeeId,
+          fileName: input.fileName,
+          mimeType: input.mimeType,
+          sizeBytes: input.sizeBytes ?? payload.length,
+          category: input.category ?? null,
+        },
+      });
+      if (!requestResult.ok) return requestResult;
+      portalRequestId = requestResult.data.id;
+    }
 
     const { data, error } = await fromUnknownTable(supabase, 'portal_uploads')
       .insert({
@@ -162,7 +163,7 @@ export async function uploadEmployeePortalDocument(
         client_id: input.uploadContext === 'klient' ? input.clientId : null,
         employee_id: input.employeeId,
         upload_context: input.uploadContext,
-        portal_request_id: requestResult.data.id,
+        portal_request_id: portalRequestId,
         storage_path: storagePath,
         file_name: input.fileName,
         mime_type: input.mimeType,

@@ -1,4 +1,3 @@
-import { useMemo } from 'react';
 import { Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { HealthOSStatusBadge } from '@/components/healthos';
@@ -8,7 +7,6 @@ import { careTypography } from '@/design/tokens/typography';
 import { moduleColor } from '@/design/tokens/modules';
 import { withAlpha } from '@/design/tokens/motion';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
-import { mapPortalAppointmentToListItem } from '@/lib/portal/employeePortalLiveOverviewService';
 import { ASSIGNMENT_STATUS_LABELS, type AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
@@ -72,8 +70,6 @@ export function EmployeePortalAssignmentCard({
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('assist');
   const status = resolveStatus(appointment);
-  const listItem = useMemo(() => mapPortalAppointmentToListItem(appointment), [appointment]);
-
   const statusLabel = ASSIGNMENT_STATUS_LABELS[status] ?? WORKFLOW_STATUS_LABELS[appointment.status] ?? status;
   const cardTint = withAlpha(accent, 0.08);
 
@@ -168,7 +164,6 @@ export function EmployeePortalAssignmentCard({
           {onStartAssignment && canStart ? (
             <PremiumButton title="Einsatz starten" size="sm" onPress={onStartAssignment} />
           ) : null}
-          {listItem.isLocked ? null : null}
         </View>
       </View>
     </Pressable>

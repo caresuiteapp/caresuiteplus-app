@@ -25,7 +25,7 @@ describe('employeePortalDisplayName', () => {
 
   it('useEmployeePortalDashboard returns ServiceResult to useAsyncQuery', () => {
     const hook = readSrc('src/hooks/useEmployeePortalDashboard.ts');
-    expect(hook).toContain('getEmployeePortalDashboardProjection');
+    expect(hook).toContain('loadDashboardProjectionWithCache');
     expect(hook).not.toContain('throw new Error');
     expect(hook).toContain('ok: false');
   });

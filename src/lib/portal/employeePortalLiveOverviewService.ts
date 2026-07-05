@@ -49,7 +49,9 @@ function isSameDay(iso: string, ref: Date): boolean {
 function isSameWeek(iso: string, ref: Date): boolean {
   const d = new Date(iso);
   const start = new Date(ref);
-  start.setDate(ref.getDate() - ref.getDay() + 1);
+  const weekStartDay = 1;
+  const diff = (start.getDay() - weekStartDay + 7) % 7;
+  start.setDate(start.getDate() - diff);
   start.setHours(0, 0, 0, 0);
   const end = new Date(start);
   end.setDate(start.getDate() + 7);
