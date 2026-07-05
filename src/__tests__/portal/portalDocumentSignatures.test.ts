@@ -135,6 +135,24 @@ describe('portal signature navigation', () => {
       ),
     ).toBe(true);
   });
+
+  it('module nav sidebar includes Dokumente & Unterschriften', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const nav = readFileSync(
+      join(process.cwd(), 'src/lib/navigation/modulenav/officenav.ts'),
+      'utf8',
+    );
+    expect(nav).toContain("label: 'Dokumente & Unterschriften'");
+    expect(nav).toContain("href: '/office/documents-signatures'");
+  });
+
+  it('APP_ROUTES registers documents-signatures', async () => {
+    const { APP_ROUTES } = await import('@/lib/navigation/routes');
+    expect(APP_ROUTES.some((r) => r.path === '/office/documents-signatures')).toBe(true);
+    const office = APP_ROUTES.find((r) => r.path === '/office');
+    expect(office?.children).toContain('/office/documents-signatures');
+  });
 });
 
 describe('portal signature live-only facade', () => {

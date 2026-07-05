@@ -336,12 +336,19 @@ export function buildOfficeDashboardSections(snapshot: DashboardSnapshot): Offic
     },
     {
       id: 'documents',
-      title: 'Dokumente & Vorlagen',
-      subtitle: 'Zentrale Akte und Uploads',
+      title: 'Dokumente & Unterschriften',
+      subtitle: 'Signaturaufträge, zentrale Akte und Uploads',
       links: [
         {
+          id: 'docs-signatures',
+          label: 'Dokumente & Unterschriften',
+          description: 'Signaturaufträge an Mitarbeitende und Klient:innen',
+          route: '/office/documents-signatures',
+          icon: '✍️',
+        },
+        {
           id: 'docs-list',
-          label: 'Dokumente',
+          label: 'Dokumentenablage',
           description: 'Zentrale Akte durchsuchen',
           route: '/office/documents',
           count: kpiValue('office-ws-kpi-documents'),
