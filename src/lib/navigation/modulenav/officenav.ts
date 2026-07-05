@@ -23,7 +23,13 @@ export const officeNav: ModuleNavConfig = {
       title: 'Abrechnung & Dokumente',
       items: [
         { key: 'invoices', label: 'Rechnungen', icon: '🧾', href: '/office/invoices' },
-        { key: 'documents', label: 'Dokumente', icon: '📁', href: '/office/documents' },
+        {
+          key: 'documents-signatures',
+          label: 'Dokumente & Unterschriften',
+          icon: '✍️',
+          href: '/office/documents-signatures',
+        },
+        { key: 'documents', label: 'Dokumentenablage', icon: '📁', href: '/office/documents' },
         { key: 'catalogs', label: 'Kataloge', icon: '📚', href: '/office/catalogs' },
       ],
     },
