@@ -2,7 +2,7 @@ import { useMemo } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumButton, SuccessState } from '@/components/ui';
 import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
 import { spacing, typography } from '@/theme';
 
@@ -35,7 +35,7 @@ export function EmployeePortalVisitSummaryPanel({
   visit,
   onBack,
 }: EmployeePortalVisitSummaryPanelProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const tasksDone = countDoneTasks(visit.tasks);
 
   const styles = useMemo(

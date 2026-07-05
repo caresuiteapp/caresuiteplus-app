@@ -3,7 +3,7 @@ import { Platform, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { PlatformModal } from '@/components/layout/platform/platformmodal';
 import { PremiumButton, PremiumInput } from '@/components/ui';
 import { EmployeePortalVisitDocumentationAiModal } from '@/components/portal/EmployeePortalVisitDocumentationAiModal';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import type { EmployeePortalDocumentationInput } from '@/types/modules/employeePortalExecution';
@@ -56,7 +56,7 @@ export const EmployeePortalVisitDocumentationPanel = forwardRef<
   },
   ref,
 ) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
   const [shortDescription, setShortDescription] = useState(initialShortDescription);

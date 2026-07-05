@@ -2,6 +2,7 @@ import { useCallback, useEffect, useMemo } from 'react';
 import {
   Modal,
   Platform,
+  Pressable,
   StyleSheet,
   Text,
   View,
@@ -12,14 +13,13 @@ import { CareSignatureCanvas } from '@/components/inputs/CareSignatureCanvas';
 import { OrientationGate } from '@/components/layout/OrientationGate';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { FullscreenOverlay } from '@/components/ui/FullscreenOverlay';
-import { GlassSurface } from '@/components/ui/effects';
-import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { resolveCareTypography } from '@/design/tokens/typography';
 import { legacyColorsFromPalette, useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useOrientation } from '@/hooks/useOrientation';
-import { spacing } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 const DESKTOP_MIN_WIDTH = 600;
 const DESKTOP_CANVAS_HEIGHT = 320;
@@ -35,6 +35,66 @@ type Props = {
   dismissScope?: string;
 };
 
+function PlainSignatureHeader({
+  title,
+  subtitle,
+  onClose,
+}: {
+  title: string;
+  subtitle?: string;
+  onClose: () => void;
+}) {
+  return (
+    <View style={plainHeaderStyles.root}>
+      <View style={plainHeaderStyles.leading}>
+        <Text style={plainHeaderStyles.title} numberOfLines={1}>
+          {title}
+        </Text>
+        {subtitle ? (
+          <Text style={plainHeaderStyles.subtitle} numberOfLines={2}>
+            {subtitle}
+          </Text>
+        ) : null}
+      </View>
+      <Pressable
+        onPress={onClose}
+        style={plainHeaderStyles.close}
+        accessibilityRole="button"
+        accessibilityLabel="Schließen"
+      >
+        <Text style={plainHeaderStyles.closeLabel}>×</Text>
+      </Pressable>
+    </View>
+  );
+}
+
+const plainHeaderStyles = StyleSheet.create({
+  root: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: spacing.sm,
+    paddingHorizontal: spacing.md,
+    paddingVertical: spacing.sm,
+    borderBottomWidth: 1,
+    borderBottomColor: careLightColors.border,
+    backgroundColor: careLightColors.surface,
+  },
+  leading: { flex: 1, minWidth: 0, gap: 2 },
+  title: { ...typography.h3, color: careLightColors.text },
+  subtitle: { ...typography.caption, color: careLightColors.muted },
+  close: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1,
+    borderColor: careLightColors.border,
+    backgroundColor: careLightColors.page,
+  },
+  closeLabel: { fontSize: 22, lineHeight: 24, color: careLightColors.text },
+});
+
 export function CareSignatureModal({
   visible,
   label,
@@ -43,11 +103,9 @@ export function CareSignatureModal({
   disabled,
   dismissScope = 'signature',
 }: Props) {
-  const { colors, typography, isLight } = useLegacyTheme();
-  const auroraActive = useAuroraGlassActive();
-  const lightModal = isLight && auroraActive;
+  const { colors, typography: themeTypography, isLight } = useLegacyTheme();
   const safeColors = colors ?? legacyColorsFromPalette('dark');
-  const safeTypography = typography ?? resolveCareTypography('dark');
+  const safeTypography = themeTypography ?? resolveCareTypography('dark');
   const { isPhone, isTablet } = useDeviceClass();
   const orientation = useOrientation();
   const fullscreen = isPhone || isTablet;
@@ -60,7 +118,7 @@ export function CareSignatureModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: lightModal ? 'rgba(15, 27, 51, 0.16)' : 'rgba(0,0,0,0.55)',
+          backgroundColor: 'rgba(15, 27, 51, 0.35)',
           justifyContent: 'center',
           alignItems: 'center',
           padding: spacing.lg,
@@ -89,14 +147,19 @@ export function CareSignatureModal({
         },
         sheetHost: {
           overflow: 'hidden',
+          borderRadius: careRadius.lg,
+          backgroundColor: careLightColors.surface,
+          borderWidth: 1,
+          borderColor: careLightColors.border,
         },
         body: {
           padding: spacing.lg,
           gap: spacing.sm,
+          backgroundColor: careLightColors.surface,
         },
         subtitle: {
           ...safeTypography.caption,
-          color: safeColors.textMuted,
+          color: careLightColors.muted,
           marginBottom: spacing.xs,
         },
         canvasSlot: {
@@ -106,7 +169,7 @@ export function CareSignatureModal({
           minHeight: 0,
         },
       }),
-    [lightModal, portraitMobile, safeColors, safeTypography],
+    [portraitMobile, safeTypography],
   );
 
   const sheetWidth = useMemo(
@@ -179,7 +242,7 @@ export function CareSignatureModal({
             pointerEvents="box-none"
           >
             <View style={styles.fullscreenHeader}>
-              <GradientModalHeader title="Unterschrift" subtitle={label} onClose={onClose} />
+              <PlainSignatureHeader title="Unterschrift" subtitle={label} onClose={onClose} />
             </View>
             <View style={styles.fullscreenBody} pointerEvents="box-none">
               <View style={styles.canvasSlot}>{canvas}</View>
@@ -200,13 +263,11 @@ export function CareSignatureModal({
     >
       <View style={styles.backdrop} accessibilityViewIsModal>
         <View style={[styles.sheetHost, { width: sheetWidth, maxHeight: screenHeight * 0.92 }]}>
-          <GlassSurface radius={careRadius.lg} elevated style={{ overflow: 'hidden' }}>
-            <GradientModalHeader title="Unterschrift" onClose={onClose} />
-            <View style={styles.body}>
-              <Text style={styles.subtitle}>{label}</Text>
-              <View style={styles.canvasSlot}>{canvas}</View>
-            </View>
-          </GlassSurface>
+          <GradientModalHeader title="Unterschrift" onClose={onClose} />
+          <View style={styles.body}>
+            <Text style={styles.subtitle}>{label}</Text>
+            <View style={styles.canvasSlot}>{canvas}</View>
+          </View>
         </View>
       </View>
     </Modal>

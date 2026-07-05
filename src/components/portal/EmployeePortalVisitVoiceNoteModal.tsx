@@ -10,7 +10,10 @@ import {
   runSpeechDictation,
 } from '@/lib/platform/speechDictation';
 import { uploadEmployeePortalVisitAttachment } from '@/lib/portal/employeePortalVisitAttachmentService';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { spacing, typography } from '@/theme';
@@ -32,7 +35,7 @@ export function EmployeePortalVisitVoiceNoteModal({
   onAppendText,
   onAudioUploaded,
 }: EmployeePortalVisitVoiceNoteModalProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
   const voice = useVoiceMessage();
@@ -49,10 +52,11 @@ export function EmployeePortalVisitVoiceNoteModal({
         hint: { ...typography.body, color: text.secondary },
         preview: {
           borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
+          borderColor: employeePortalExecutionSurface.border,
           borderRadius: 10,
           padding: spacing.sm,
           minHeight: 80,
+          backgroundColor: employeePortalExecutionSurface.background,
         },
         previewText: { ...typography.body, color: text.primary },
         error: { ...typography.caption, color: '#EF4444' },

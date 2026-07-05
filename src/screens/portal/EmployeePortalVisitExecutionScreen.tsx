@@ -21,7 +21,7 @@ import {
   EmployeePortalVisitSummaryPanel,
   EmployeePortalVisitTasksPanel,
 } from '@/components/portal';
-import { ScreenShell } from '@/components/layout';
+import { buildDocumentationAiSourceFromTasks, resolveDocumentationAiSourceText } from '@/lib/portal/buildDocumentationAiSourceText';
 import {
   ErrorState,
   InfoBanner,
@@ -171,6 +171,16 @@ export function EmployeePortalVisitExecutionScreen() {
   const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
 
   const assistVisitId = executionContext?.assistVisitId ?? null;
+
+  const documentationAiSourceText = useMemo(
+    () =>
+      resolveDocumentationAiSourceText(
+        documentationDraftText,
+        documentationSpecialNotes,
+        visit ? buildDocumentationAiSourceFromTasks(visit.tasks) : '',
+      ),
+    [documentationDraftText, documentationSpecialNotes, visit],
+  );
 
   const appendDocumentationNote = useCallback((text: string) => {
     const trimmed = text.trim();
@@ -1018,7 +1028,7 @@ export function EmployeePortalVisitExecutionScreen() {
       <EmployeePortalVisitDocumentationAiModal
         visible={aiHelpStandaloneOpen}
         tenantId={portalTenantId}
-        sourceText={documentationDraftText || documentationSpecialNotes}
+        sourceText={documentationAiSourceText}
         onClose={() => setAiHelpStandaloneOpen(false)}
         onAccept={(textValue) => {
           setDocumentationDraftText(textValue);
