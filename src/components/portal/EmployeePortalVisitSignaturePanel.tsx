@@ -2,7 +2,8 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { Image, Platform, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
-import { PremiumButton, PremiumInput, SectionPanel, InfoBanner } from '@/components/ui';
+import { PremiumButton, PremiumInput, InfoBanner } from '@/components/ui';
+import { EmployeePortalVisitCompactCard } from '@/components/portal/EmployeePortalVisitCompactCard';
 import { requestLandscapeLock } from '@/lib/orientation/requestLandscapeLock';
 import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employeePortalExecution';
 import { spacing, typography } from '@/theme';
@@ -12,6 +13,9 @@ type EmployeePortalVisitSignaturePanelProps = {
   disabled?: boolean;
   loading?: boolean;
   capturedPreview?: string | null;
+  compact?: boolean;
+  /** Only render capture modal — no visible card (used when dashboard opens signature). */
+  modalOnly?: boolean;
   /** Increment to open the signature capture modal (explicit user/workflow action only). */
   openCaptureRequest?: number;
   /** Visit id for landscape dismiss scope and workflow persistence. */
@@ -25,6 +29,8 @@ export function EmployeePortalVisitSignaturePanel({
   disabled = false,
   loading = false,
   capturedPreview,
+  compact = true,
+  modalOnly = false,
   openCaptureRequest = 0,
   visitId,
   onModalOpenChange,
@@ -59,10 +65,10 @@ export function EmployeePortalVisitSignaturePanel({
   }, []);
 
   useEffect(() => {
-    if (openCaptureRequest <= lastCaptureRequest.current || disabled || preview) return;
+    if (openCaptureRequest <= lastCaptureRequest.current || disabled) return;
     lastCaptureRequest.current = openCaptureRequest;
     openSignatureModal();
-  }, [openCaptureRequest, disabled, preview, openSignatureModal]);
+  }, [openCaptureRequest, disabled, openSignatureModal]);
 
   useFocusEffect(
     useCallback(() => {
@@ -83,26 +89,76 @@ export function EmployeePortalVisitSignaturePanel({
       setPreview(dataUrl);
       closeModal();
     } else {
-      setCaptureError(result.error ?? 'Unterschrift konnte nicht gespeichert werden.');
+      setCaptureError(
+        result.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.',
+      );
     }
   };
 
-  return (
-    <SectionPanel title="Unterschrift" subtitle="Klient:in / Angehörige:r">
-      <View style={styles.fields}>
-        <PremiumInput
-          label="Unterzeichner:in"
-          value={signerName}
-          onChangeText={setSignerName}
-          editable={!disabled}
+  if (modalOnly) {
+    return modalVisible ? (
+      <CareSignatureModal
+        visible
+        label="Klient:innen-Unterschrift"
+        dismissScope={visitId ?? 'signature'}
+        onClose={closeModal}
+        onConfirm={(dataUrl) => {
+          void handleConfirm(dataUrl);
+        }}
+      />
+    ) : null;
+  }
+
+  if (compact) {
+    return (
+      <>
+        <EmployeePortalVisitCompactCard
+          title="Unterschrift"
+          status={preview ? 'Gespeichert' : 'Noch offen'}
+          subtitle={preview ? 'Unterschrift erfasst' : 'Nach Dokumentation erfassen'}
+          onPress={!disabled ? openSignatureModal : undefined}
         />
-      </View>
+        {captureError ? <InfoBanner variant="danger" message={captureError} /> : null}
+        {preview ? (
+          <>
+            <Image source={{ uri: preview }} style={styles.preview} resizeMode="contain" />
+            {!disabled ? (
+              <PremiumButton
+                title="Neu erfassen"
+                variant="secondary"
+                loading={loading}
+                onPress={openSignatureModal}
+              />
+            ) : null}
+          </>
+        ) : null}
+        {modalVisible ? (
+          <CareSignatureModal
+            visible
+            label="Klient:innen-Unterschrift"
+            dismissScope={visitId ?? 'signature'}
+            onClose={closeModal}
+            onConfirm={(dataUrl) => {
+              void handleConfirm(dataUrl);
+            }}
+          />
+        ) : null}
+      </>
+    );
+  }
+
+  return (
+    <View style={styles.wrap}>
+      <PremiumInput
+        label="Unterzeichner:in"
+        value={signerName}
+        onChangeText={setSignerName}
+        editable={!disabled}
+      />
       {preview ? (
         <Image source={{ uri: preview }} style={styles.preview} resizeMode="contain" />
       ) : null}
-      {captureError ? (
-        <InfoBanner variant="error" message={captureError} />
-      ) : null}
+      {captureError ? <InfoBanner variant="error" message={captureError} /> : null}
       {!disabled ? (
         <PremiumButton
           title={preview ? 'Unterschrift erneut erfassen' : 'Unterschrift erfassen'}
@@ -124,12 +180,12 @@ export function EmployeePortalVisitSignaturePanel({
           }}
         />
       ) : null}
-    </SectionPanel>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  fields: { gap: spacing.sm, marginBottom: spacing.sm },
-  preview: { width: '100%', height: 120, borderRadius: 8, marginBottom: spacing.sm },
+  wrap: { gap: spacing.sm },
+  preview: { width: '100%', height: 120, borderRadius: 8 },
   saved: { ...typography.caption, marginTop: spacing.xs },
 });

@@ -93,6 +93,9 @@ export type EmployeePortalTaskItem = {
   status: ExtendedAssignmentTaskStatus;
   completionNote: string | null;
   requiresNote: boolean;
+  /** Optional category from workflow/catalog — UI grouping only. */
+  categoryKey?: string | null;
+  categoryLabel?: string | null;
 };
 
 export type EmployeePortalDocumentationInput = {

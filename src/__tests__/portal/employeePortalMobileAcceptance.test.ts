@@ -26,7 +26,9 @@ describe('employee portal mobile acceptance fixes', () => {
     const dashboard = readSrc('src/screens/portal/EmployeePortalDashboardScreen.tsx');
     const todayView = readSrc('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
     expect(dashboard).toContain('HealthOSEmployeePortalTodayView');
+    expect(dashboard).toContain('useEmployeePortalDashboard');
     expect(todayView).toContain('AdaptiveKpiGrid');
+    expect(todayView).toContain('HealthOSMetricCard');
     expect(todayView).toContain('buildEmployeePortalTodayModel');
   });
 

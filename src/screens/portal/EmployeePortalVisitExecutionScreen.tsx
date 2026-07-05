@@ -5,20 +5,27 @@ import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
 import { LockedActionBanner } from '@/components/permissions';
 import {
-  EmployeePortalLiveTimersPanel,
   EmployeePortalLocationConsentBanner,
+  EmployeePortalVisitBottomBar,
+  EmployeePortalVisitCompletionPanel,
   EmployeePortalVisitDocumentationPanel,
   type EmployeePortalVisitDocumentationPanelHandle,
+  EmployeePortalVisitDocumentationAiModal,
+  EmployeePortalVisitFabMenu,
+  EmployeePortalVisitLiveDashboard,
+  EmployeePortalVisitMoreMenu,
+  EmployeePortalVisitPhotoModal,
+  EmployeePortalVisitVoiceNoteModal,
   EmployeePortalVisitSignaturePanel,
+  EmployeePortalVisitStickyHeader,
+  EmployeePortalVisitSummaryPanel,
   EmployeePortalVisitTasksPanel,
-  EmployeePortalVisitWorkflowTimeline,
 } from '@/components/portal';
 import { ScreenShell } from '@/components/layout';
 import {
   ErrorState,
   InfoBanner,
   LoadingState,
-  PremiumBadge,
   PremiumButton,
   PremiumCard,
   PremiumInput,
@@ -26,7 +33,6 @@ import {
   SuccessState,
   CachedDataBanner,
 } from '@/components/ui';
-import { isEmployeePortalVisitLiveTrackingActive } from '@/lib/portal/employeePortalLiveOverviewService';
 import { useEmployeePortalVisitExecution } from '@/hooks/useEmployeePortalVisitExecution';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { useAuth } from '@/lib/auth/context';
@@ -41,6 +47,11 @@ import { usePermissions } from '@/hooks/usePermissions';
 import { useWorkflowPersistence } from '@/hooks/useWorkflowPersistence';
 import { isVisitExecutionRoute, visitExecutionRouteMatchesSnapshot } from '@/lib/portal/visitExecutionRoute';
 import { resolveVisitExecutionUiState } from '@/lib/portal/resolveVisitExecutionUiState';
+import {
+  resolveVisitExecutionPhase,
+  showCompactProgress,
+  showLiveBottomBar,
+} from '@/lib/portal/resolveVisitExecutionPhase';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
 import {
   ASSIST_WORKFLOW_ACTION_LABELS,
@@ -51,25 +62,16 @@ import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { colors, spacing, typography } from '@/theme';
 
-function formatDateTime(iso: string | null | undefined): string {
-  if (!iso) return '—';
-  return new Date(iso).toLocaleString('de-DE', {
-    day: '2-digit',
-    month: '2-digit',
-    hour: '2-digit',
-    minute: '2-digit',
-  });
+function formatTime(iso: string): string {
+  return new Date(iso).toLocaleTimeString('de-DE', { hour: '2-digit', minute: '2-digit' });
 }
 
-function trackingStatusLabel(
-  trackingActive: boolean,
-  gpsPermission: string,
-  errorCode: string | null,
-): string {
-  if (errorCode) return 'Fehler';
-  if (trackingActive) return 'Aktiv';
-  if (gpsPermission === 'granted') return 'Bereit';
-  return 'Inaktiv';
+function formatDurationMinutes(startIso: string, endIso: string): string {
+  const mins = Math.max(0, Math.round((new Date(endIso).getTime() - new Date(startIso).getTime()) / 60_000));
+  const h = Math.floor(mins / 60);
+  const m = mins % 60;
+  if (h > 0) return `${h} Std. ${m} Min.`;
+  return `${m} Min.`;
 }
 
 export function EmployeePortalVisitExecutionScreen() {
@@ -84,7 +86,6 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const {
     data: visit,
-    workflowStep,
     allowedActions,
     liveContext,
     tracking,
@@ -93,7 +94,6 @@ export function EmployeePortalVisitExecutionScreen() {
     gpsPermission,
     loading,
     error,
-    errorCode,
     liveContextError,
     queryError,
     hasAssignment,
@@ -155,10 +155,29 @@ export function EmployeePortalVisitExecutionScreen() {
   const [deviationError, setDeviationError] = useState<string | null>(null);
   const scrollRef = useRef<ScrollView>(null);
   const docPanelRef = useRef<EmployeePortalVisitDocumentationPanelHandle>(null);
-  const actionsSectionY = useRef(0);
   const signatureSectionY = useRef(0);
   const [signatureCaptureRequest, setSignatureCaptureRequest] = useState(0);
   const restoredRef = useRef(false);
+  const [tasksOpen, setTasksOpen] = useState(false);
+  const [documentationOpen, setDocumentationOpen] = useState(false);
+  const [moreOpen, setMoreOpen] = useState(false);
+  const [docLastSavedAt, setDocLastSavedAt] = useState<string | null>(null);
+  const [photoModalOpen, setPhotoModalOpen] = useState(false);
+  const [voiceModalOpen, setVoiceModalOpen] = useState(false);
+  const [photoReferences, setPhotoReferences] = useState<string[]>([]);
+  const [documentationDraftText, setDocumentationDraftText] = useState('');
+  const [documentationSpecialNotes, setDocumentationSpecialNotes] = useState('');
+  const [aiHelpRequest, setAiHelpRequest] = useState(0);
+  const [aiHelpStandaloneOpen, setAiHelpStandaloneOpen] = useState(false);
+
+  const assistVisitId = executionContext?.assistVisitId ?? null;
+
+  const appendDocumentationNote = useCallback((text: string) => {
+    const trimmed = text.trim();
+    if (!trimmed) return;
+    setDocumentationSpecialNotes((prev) => (prev.trim() ? `${prev.trim()}\n${trimmed}` : trimmed));
+    setDocumentationOpen(true);
+  }, []);
 
   useEffect(() => {
     if (!id || !visit || restoredRef.current || !isVisitExecutionRoute(pathname)) return;
@@ -174,9 +193,7 @@ export function EmployeePortalVisitExecutionScreen() {
     const step = urlStep ?? (snapshotMatchesRoute ? snapshot?.step : null);
     if (step === 'signature') {
       setAwaitingSignature(true);
-      setTimeout(() => {
-        scrollRef.current?.scrollTo({ y: Math.max(signatureSectionY.current - 16, 0), animated: false });
-      }, 100);
+      setSignatureCaptureRequest((n) => n + 1);
     } else if (step) {
       workflowPersistence.setStep(step);
     }
@@ -203,26 +220,7 @@ export function EmployeePortalVisitExecutionScreen() {
     ? ASSIST_WORKFLOW_ACTION_LABELS[primaryActionResolved]
     : undefined;
 
-  useEffect(() => {
-    if (!primaryActionResolved) return;
-    const timer = setTimeout(() => {
-      scrollRef.current?.scrollTo({
-        y: Math.max(actionsSectionY.current - 16, 0),
-        animated: false,
-      });
-    }, 150);
-    return () => clearTimeout(timer);
-  }, [primaryActionResolved, effectiveStatus]);
   const insets = useSafeAreaInsets();
-
-  const showLiveTracking = useMemo(
-    () => !isLocked && isEmployeePortalVisitLiveTrackingActive(effectiveStatus),
-    [isLocked, effectiveStatus],
-  );
-
-  const trackingActive =
-    effectiveStatus === 'unterwegs' &&
-    Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
 
   const uiState = useMemo(() => {
     if (!visit) return null;
@@ -242,6 +240,15 @@ export function EmployeePortalVisitExecutionScreen() {
     awaitingSignature,
     isServiceEnded,
   ]);
+
+  const phase = useMemo(() => {
+    if (!visit) return 'preview' as const;
+    return resolveVisitExecutionPhase({
+      effectiveStatus,
+      uiState,
+      isLocked: Boolean(isLocked),
+    });
+  }, [visit, effectiveStatus, uiState, isLocked]);
 
   const statusBlocksDoc = uiState?.statusBlocksDoc ?? false;
   const showTasks = uiState?.showTasks ?? false;
@@ -355,20 +362,20 @@ export function EmployeePortalVisitExecutionScreen() {
   }, [markArrived, tracking, geofenceOverride, setGeofenceOverride]);
 
   const resolveDeviationCheck = useCallback(
-    (phase: WfmDeviationPhase) => {
+    (phaseKey: WfmDeviationPhase) => {
       const ctx = executionContext;
       if (!ctx) return null;
-      const planned = phase === 'start' ? ctx.detail.plannedStartAt : ctx.detail.plannedEndAt;
+      const planned = phaseKey === 'start' ? ctx.detail.plannedStartAt : ctx.detail.plannedEndAt;
       const actual = new Date().toISOString();
       const gate = checkVisitDeviationGate(
         ctx.tenantId,
         ctx.employeeId,
         ctx.assistVisitId,
-        phase,
+        phaseKey,
         planned,
         actual,
       );
-      const evaluation = evaluateVisitTimeDeviation(planned, actual, phase);
+      const evaluation = evaluateVisitTimeDeviation(planned, actual, phaseKey);
       return { gate, evaluation, planned, actual };
     },
     [executionContext],
@@ -435,6 +442,7 @@ export function EmployeePortalVisitExecutionScreen() {
         return;
       }
       if (action === 'save_documentation') {
+        setDocumentationOpen(true);
         await docPanelRef.current?.submit();
         return;
       }
@@ -448,7 +456,15 @@ export function EmployeePortalVisitExecutionScreen() {
         else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
       }
     },
-    [handleStartDrive, handleArrived, proceedAfterDeviation, resolveDeviationCheck, endPause, openSignatureCapture, finalizeVisit],
+    [
+      handleStartDrive,
+      handleArrived,
+      proceedAfterDeviation,
+      resolveDeviationCheck,
+      endPause,
+      openSignatureCapture,
+      finalizeVisit,
+    ],
   );
 
   const handlePrimary = useCallback(async () => {
@@ -464,6 +480,8 @@ export function EmployeePortalVisitExecutionScreen() {
     const r = await reportNoShow(noShowNote.trim());
     if (!r.ok) setLocalError(r.error ?? 'Status konnte nicht gespeichert werden.');
     else setLocalSuccess('Als nicht angetroffen gemeldet.');
+    setShowNoShowForm(false);
+    setMoreOpen(false);
   }, [noShowNote, reportNoShow]);
 
   const handleOpenMap = useCallback(async () => {
@@ -477,7 +495,52 @@ export function EmployeePortalVisitExecutionScreen() {
     }
   }, [openRoute]);
 
+  const handleCall = useCallback(() => {
+    const phone = visit?.emergencyContact?.trim();
+    if (!phone) {
+      setLocalError('Keine Telefonnummer hinterlegt.');
+      return;
+    }
+    void Linking.openURL(`tel:${phone.replace(/\s/g, '')}`);
+  }, [visit?.emergencyContact]);
+
   const shellTitle = visit?.title ?? (loading ? 'Einsatz wird geladen…' : 'Einsatz durchführen');
+
+  const trackingActive =
+    effectiveStatus === 'unterwegs' &&
+    Boolean(tracking?.trackingActive || liveContext?.trackingSessionActive);
+
+  const primaryButtonLabel =
+    trackingActive &&
+    effectiveStatus === 'unterwegs' &&
+    primaryActionResolved === 'mark_arrived' &&
+    !allowedActions.includes('start_service')
+      ? 'Anfahrt läuft — Angekommen'
+      : primaryLabel;
+  const primaryButtonLoading =
+    primaryActionResolved === 'start_service'
+      ? startServiceLoading
+      : actionLoading || driveLoading;
+  const primaryButtonDisabled =
+    readOnlyExecution ||
+    (primaryActionResolved === 'start_service'
+      ? startServiceLoading || driveLoading
+      : actionLoading || driveLoading);
+
+  const serviceDurationLabel =
+    visit?.actualStartAt && visit?.actualEndAt
+      ? formatDurationMinutes(visit.actualStartAt, visit.actualEndAt)
+      : timers?.serviceSeconds
+        ? formatDurationMinutes(
+            visit?.actualStartAt ?? visit.plannedStartAt,
+            new Date(
+              new Date(visit?.actualStartAt ?? visit?.plannedStartAt).getTime() +
+                (timers.serviceSeconds ?? 0) * 1000,
+            ).toISOString(),
+          )
+        : undefined;
+
+  const bottomBarVisible = showLiveBottomBar(phase) && !isLocked && canExecute;
 
   if (!can('portal.employee.appointments.view')) {
     return (
@@ -517,33 +580,188 @@ export function EmployeePortalVisitExecutionScreen() {
   }
 
   const showSuccess = localSuccess && !localError;
-  const arrivalProofLabel =
-    tracking?.arrivalProof === 'without_gps'
-      ? 'Ohne GPS'
-      : tracking?.arrivalProof === 'manual'
-        ? 'Manuell'
-        : tracking?.arrivalProof === 'gps'
-          ? 'Mit GPS'
-          : '—';
-  const primaryButtonLabel =
-    trackingActive &&
-    effectiveStatus === 'unterwegs' &&
-    primaryActionResolved === 'mark_arrived' &&
-    !allowedActions.includes('start_service')
-      ? 'Anfahrt läuft — Angekommen'
-      : primaryLabel;
-  const primaryButtonLoading =
-    primaryActionResolved === 'start_service'
-      ? startServiceLoading
-      : actionLoading || driveLoading;
-  const primaryButtonDisabled =
-    readOnlyExecution ||
-    (primaryActionResolved === 'start_service'
-      ? startServiceLoading || driveLoading
-      : actionLoading || driveLoading);
+  const bottomPadding = bottomBarVisible ? spacing.xxl + 96 + insets.bottom : spacing.xxl + 32 + insets.bottom;
+
+  const renderPhaseContent = () => {
+    if (phase === 'completed') {
+      return <EmployeePortalVisitSummaryPanel visit={visit} onBack={() => router.back()} />;
+    }
+
+    if (phase === 'preview') {
+      return (
+        <PremiumCard style={styles.phaseCard}>
+          <Text style={styles.phaseTitle}>Einsatzvorschau</Text>
+          <DetailInfoRow label="Klient:in" value={visit.clientName} />
+          <DetailInfoRow label="Adresse" value={visit.locationAddress} />
+          <DetailInfoRow
+            label="Einsatzzeit"
+            value={`${formatTime(visit.plannedStartAt)} – ${formatTime(visit.plannedEndAt)}`}
+          />
+          <DetailInfoRow
+            label="Geplante Dauer"
+            value={formatDurationMinutes(visit.plannedStartAt, visit.plannedEndAt)}
+          />
+          {visit.emergencyContact ? (
+            <DetailInfoRow label="Telefon" value={visit.emergencyContact} />
+          ) : null}
+          {visit.notesForEmployee ? (
+            <DetailInfoRow label="Hinweise" value={visit.notesForEmployee} />
+          ) : null}
+          <View style={styles.phaseActions}>
+            <PremiumButton title="Navigation starten" variant="secondary" fullWidth onPress={handleOpenMap} />
+            {visit.emergencyContact ? (
+              <PremiumButton title="Anrufen" variant="ghost" fullWidth onPress={handleCall} />
+            ) : null}
+            {primaryButtonLabel && !isLocked ? (
+              <PremiumButton
+                title={primaryButtonLabel}
+                fullWidth
+                loading={primaryButtonLoading}
+                disabled={primaryButtonDisabled}
+                onPress={handlePrimary}
+              />
+            ) : null}
+          </View>
+        </PremiumCard>
+      );
+    }
+
+    if (phase === 'en_route') {
+      return (
+        <PremiumCard style={styles.phaseCard}>
+          <Text style={styles.phaseTitle}>Unterwegs</Text>
+          <DetailInfoRow label="Ziel" value={visit.locationAddress} />
+          <DetailInfoRow label="Einsatzbeginn geplant" value={formatTime(visit.plannedStartAt)} />
+          {visit.emergencyContact ? (
+            <DetailInfoRow label="Telefon" value={visit.emergencyContact} />
+          ) : null}
+          <View style={styles.phaseActions}>
+            <PremiumButton title="Navigation" variant="secondary" fullWidth onPress={handleOpenMap} />
+            {primaryButtonLabel && !isLocked ? (
+              <PremiumButton
+                title={primaryButtonLabel}
+                fullWidth
+                loading={primaryButtonLoading}
+                disabled={primaryButtonDisabled}
+                onPress={handlePrimary}
+              />
+            ) : null}
+          </View>
+        </PremiumCard>
+      );
+    }
+
+    if (phase === 'arrived') {
+      return (
+        <PremiumCard style={styles.phaseCard}>
+          <Text style={styles.phaseTitle}>Angekommen</Text>
+          <Text style={styles.phaseHint}>
+            Die Leistungszeit beginnt erst mit dem Einsatzstart.
+          </Text>
+          <DetailInfoRow label="Klient:in" value={visit.clientName} />
+          <DetailInfoRow label="Adresse" value={visit.locationAddress} />
+          {primaryButtonLabel && !isLocked ? (
+            <PremiumButton
+              title={primaryButtonLabel}
+              fullWidth
+              loading={primaryButtonLoading}
+              disabled={primaryButtonDisabled}
+              onPress={handlePrimary}
+            />
+          ) : null}
+        </PremiumCard>
+      );
+    }
+
+    if (phase === 'live' || phase === 'post_service') {
+      return (
+        <View style={styles.liveWrap}>
+          <EmployeePortalVisitLiveDashboard
+            tasks={visit.tasks}
+            documentationStatus={visit.documentationStatus}
+            documentationLastSavedAt={docLastSavedAt}
+            signatureCaptured={signatureCaptured}
+            requiresSignature={visit.requiresSignature}
+            serviceSeconds={timers?.serviceSeconds ?? null}
+            attachmentCount={photoReferences.length}
+            onOpenTasks={() => setTasksOpen(true)}
+            onOpenDocumentation={() => setDocumentationOpen(true)}
+            onOpenSignature={openSignatureCapture}
+            onOpenAttachments={() => setPhotoModalOpen(true)}
+          />
+
+          {phase === 'live' && primaryButtonLabel && !isLocked && !statusBlocksDoc ? (
+            <PremiumButton
+              title={primaryButtonLabel}
+              fullWidth
+              loading={primaryButtonLoading}
+              disabled={primaryButtonDisabled}
+              onPress={handlePrimary}
+            />
+          ) : null}
+
+          {phase === 'live' && allowedActions.includes('start_pause') && !isLocked ? (
+            <PremiumButton
+              title="Pause"
+              variant="ghost"
+              fullWidth
+              loading={actionLoading}
+              onPress={async () => {
+                const r = await startPause();
+                if (r.ok) setLocalSuccess('Pause gestartet.');
+                else setLocalError(r.error ?? 'Pause fehlgeschlagen.');
+              }}
+            />
+          ) : null}
+
+          {showFinalize && !isLocked ? (
+            <EmployeePortalVisitCompletionPanel
+              tasks={visit.tasks}
+              documentationSubmitted={documentationSubmitted}
+              signatureCaptured={signatureCaptured}
+              requiresSignature={visit.requiresSignature}
+              serviceDurationLabel={serviceDurationLabel}
+              loading={actionLoading}
+              onFinalize={async () => {
+                const r = await finalizeVisit();
+                if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
+                else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
+              }}
+            />
+          ) : null}
+        </View>
+      );
+    }
+
+    return (
+      <PremiumCard style={styles.phaseCard}>
+        <Text style={styles.phaseTitle}>{ASSIGNMENT_STATUS_LABELS[effectiveStatus]}</Text>
+        {primaryButtonLabel && !isLocked ? (
+          <PremiumButton
+            title={primaryButtonLabel}
+            fullWidth
+            loading={primaryButtonLoading}
+            disabled={primaryButtonDisabled}
+            onPress={handlePrimary}
+          />
+        ) : null}
+      </PremiumCard>
+    );
+  };
 
   return (
-    <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`}>
+    <ScreenShell title={visit.title} subtitle={`${visit.clientName} · Mitarbeiterportal`} scroll={false}>
+      <EmployeePortalVisitStickyHeader
+        clientName={visit.clientName}
+        plannedStartAt={visit.plannedStartAt}
+        plannedEndAt={visit.plannedEndAt}
+        effectiveStatus={effectiveStatus}
+        timers={timers}
+        requiresSignature={visit.requiresSignature}
+        signatureCaptured={signatureCaptured}
+        showProgress={showCompactProgress(phase)}
+      />
+
       {showSuccess ? <SuccessState message={localSuccess!} /> : null}
       {localError ? (
         <View style={styles.dismissibleError}>
@@ -562,7 +780,6 @@ export function EmployeePortalVisitExecutionScreen() {
       {liveContextError && !queryError ? (
         <InfoBanner variant="warning" message={`Live-Kontext: ${liveContextError}`} />
       ) : null}
-
       {consistencyStatus === 'repairable' && nextActionHint ? (
         <InfoBanner variant="info" message={nextActionHint} />
       ) : null}
@@ -583,7 +800,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
       <ScrollView
         ref={scrollRef}
-        contentContainerStyle={[styles.scroll, { paddingBottom: spacing.xxl + 32 + insets.bottom }]}
+        contentContainerStyle={[styles.scroll, { paddingBottom: bottomPadding }]}
         showsVerticalScrollIndicator={false}
       >
         <EmployeePortalLocationConsentBanner
@@ -592,40 +809,25 @@ export function EmployeePortalVisitExecutionScreen() {
           loading={consentLoading}
         />
 
-        <PremiumCard accentColor={colors.amber}>
-          <Text style={styles.phase}>{ASSIGNMENT_STATUS_LABELS[effectiveStatus]}</Text>
-          <PremiumBadge label={ASSIGNMENT_STATUS_LABELS[effectiveStatus]} variant="orange" dot />
-          {workflowStep ? (
-            <EmployeePortalVisitWorkflowTimeline
-              status={effectiveStatus}
-              requiresSignature={visit.requiresSignature}
-              signatureCaptured={signatureCaptured}
-            />
-          ) : null}
-        </PremiumCard>
-
-        {showLiveTracking ? (
-          <SectionPanel title="Live-Status" subtitle="Einsatz · GPS · Tracking">
-            <DetailInfoRow label="Klient:in" value={visit.clientName} />
-            <DetailInfoRow label="Adresse" value={visit.locationAddress} />
-            <DetailInfoRow label="Geplant" value={formatDateTime(visit.plannedStartAt)} />
-            <DetailInfoRow label="GPS-Berechtigung" value={gpsPermission} />
-            <DetailInfoRow label="Ankunftsnachweis" value={arrivalProofLabel} />
-            <DetailInfoRow
-              label="Tracking"
-              value={trackingStatusLabel(trackingActive, gpsPermission, errorCode)}
-            />
-            {errorCode ? <Text style={styles.errorCode}>Support-Code: {errorCode}</Text> : null}
-          </SectionPanel>
+        {!canExecute ? (
+          <LockedActionBanner
+            message={check('assist.execution.manage').reason ?? 'Statusänderungen gesperrt.'}
+            roleLabel={roleLabel}
+          />
         ) : null}
 
-        {showLiveTracking ? (
-          <EmployeePortalLiveTimersPanel timers={timers} assignmentStatus={effectiveStatus} />
+        {!consent?.granted || gpsPermission !== 'granted' ? (
+          <View style={styles.hiddenSetup}>
+            {consent?.granted && gpsPermission !== 'granted' ? (
+              <PremiumButton
+                title="Standortberechtigung anfragen"
+                variant="secondary"
+                fullWidth
+                onPress={handleRequestPermission}
+              />
+            ) : null}
+          </View>
         ) : null}
-
-        {tracking?.warnings.map((w) => (
-          <InfoBanner key={w} variant="warning" message={w} />
-        ))}
 
         {showGeofenceOverride ? (
           <SectionPanel title="Geofence-Hinweis">
@@ -637,119 +839,11 @@ export function EmployeePortalVisitExecutionScreen() {
           </SectionPanel>
         ) : null}
 
-        {!canExecute ? (
-          <LockedActionBanner
-            message={check('assist.execution.manage').reason ?? 'Statusänderungen gesperrt.'}
-            roleLabel={roleLabel}
-          />
-        ) : (
-          <View
-            style={styles.actions}
-            onLayout={(event) => {
-              actionsSectionY.current = event.nativeEvent.layout.y;
-            }}
-          >
-            {!consent?.granted ? null : gpsPermission !== 'granted' ? (
-              <PremiumButton
-                title="Standortberechtigung anfragen"
-                variant="secondary"
-                fullWidth
-                onPress={handleRequestPermission}
-              />
-            ) : null}
+        {tracking?.warnings.map((w) => (
+          <InfoBanner key={w} variant="warning" message={w} />
+        ))}
 
-            <PremiumButton title="Karte / Route" variant="secondary" fullWidth onPress={handleOpenMap} />
-
-            {primaryButtonLabel && !isLocked && !statusBlocksDoc ? (
-              <PremiumButton
-                title={primaryButtonLabel}
-                fullWidth
-                loading={primaryButtonLoading}
-                disabled={primaryButtonDisabled}
-                onPress={handlePrimary}
-              />
-            ) : null}
-
-            {allowedActions.includes('start_pause') && !isLocked && !statusBlocksDoc ? (
-              <PremiumButton
-                title="Pause"
-                variant="ghost"
-                fullWidth
-                loading={actionLoading}
-                onPress={async () => {
-                  const r = await startPause();
-                  if (r.ok) setLocalSuccess('Pause gestartet.');
-                  else setLocalError(r.error ?? 'Pause fehlgeschlagen.');
-                }}
-              />
-            ) : null}
-
-            {allowedActions.includes('report_no_show') && !isLocked ? (
-              <>
-                {!showNoShowForm ? (
-                  <PremiumButton
-                    title="Nicht angetroffen"
-                    variant="ghost"
-                    fullWidth
-                    onPress={() => setShowNoShowForm(true)}
-                  />
-                ) : (
-                  <SectionPanel title="Nicht angetroffen">
-                    <PremiumInput
-                      label="Begründung *"
-                      value={noShowNote}
-                      onChangeText={setNoShowNote}
-                      multiline
-                    />
-                    <PremiumButton
-                      title="Melden"
-                      fullWidth
-                      loading={actionLoading}
-                      onPress={handleNoShow}
-                    />
-                  </SectionPanel>
-                )}
-              </>
-            ) : null}
-          </View>
-        )}
-
-        {showTasks && visit.tasks.length > 0 ? (
-          <EmployeePortalVisitTasksPanel
-            tasks={visit.tasks}
-            disabled={isLocked}
-            loading={taskSaving}
-            onUpdateTask={saveTask}
-          />
-        ) : null}
-
-        {showDocumentationForm && !isLocked ? (
-          <EmployeePortalVisitDocumentationPanel
-            ref={docPanelRef}
-            loading={actionLoading}
-            onSubmit={async (doc) => {
-              setLocalError(null);
-              const r = await saveDocumentation(doc);
-              if (r.ok) {
-                const needsSignature =
-                  visit.requiresSignature ||
-                  (r.data && 'nextStep' in r.data && r.data.nextStep === 'signature');
-                setLocalSuccess(
-                  needsSignature
-                    ? 'Dokumentation gespeichert — Unterschrift erforderlich.'
-                    : 'Dokumentation gespeichert — Einsatz kann abgeschlossen werden.',
-                );
-                if (needsSignature) {
-                  setAwaitingSignature(true);
-                  setTimeout(() => scrollToSignatureSection(), 150);
-                }
-              } else {
-                setLocalError(r.error ?? 'Dokumentation fehlgeschlagen.');
-              }
-              return r;
-            }}
-          />
-        ) : null}
+        {renderPhaseContent()}
 
         {documentationSubmitted && visit.requiresSignature && !signatureCaptured ? (
           <InfoBanner variant="info" message="Dokumentation gespeichert — bitte Unterschrift erfassen." />
@@ -764,6 +858,8 @@ export function EmployeePortalVisitExecutionScreen() {
             <EmployeePortalVisitSignaturePanel
               clientName={visit.clientName}
               loading={actionLoading}
+              modalOnly={phase === 'live' || phase === 'post_service'}
+              compact={phase !== 'live' && phase !== 'post_service'}
               openCaptureRequest={signatureCaptureRequest}
               visitId={id}
               onModalOpenChange={handleSignatureModalOpenChange}
@@ -779,7 +875,7 @@ export function EmployeePortalVisitExecutionScreen() {
                       : 'Unterschrift gespeichert — Einsatz kann abgeschlossen werden.',
                   );
                 } else {
-                  setLocalError(r.error ?? 'Signatur fehlgeschlagen.');
+                  setLocalError(r.error ?? 'Die Unterschrift konnte nicht gespeichert werden. Bitte versuchen Sie es erneut.');
                 }
                 return r;
               }}
@@ -787,22 +883,168 @@ export function EmployeePortalVisitExecutionScreen() {
           </View>
         ) : null}
 
-        {showFinalize && !isLocked ? (
-          <PremiumButton
-            title="Einsatz abschließen"
-            testID="portal-finalize-button"
-            fullWidth
-            loading={actionLoading}
-            onPress={async () => {
-              const r = await finalizeVisit();
-              if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
-              else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
-            }}
-          />
-        ) : null}
-
         <PremiumButton title="Zurück zur Übersicht" variant="ghost" fullWidth onPress={() => router.back()} />
       </ScrollView>
+
+      {showTasks && visit.tasks.length > 0 ? (
+        <EmployeePortalVisitTasksPanel
+          tasks={visit.tasks}
+          disabled={isLocked}
+          loading={taskSaving}
+          visible={tasksOpen}
+          onClose={() => setTasksOpen(false)}
+          onUpdateTask={saveTask}
+        />
+      ) : null}
+
+      {showDocumentationForm && !isLocked ? (
+        <EmployeePortalVisitDocumentationPanel
+          ref={docPanelRef}
+          loading={actionLoading}
+          tenantId={portalTenantId}
+          visible={documentationOpen}
+          onClose={() => setDocumentationOpen(false)}
+          lastSavedAt={docLastSavedAt}
+          initialShortDescription={documentationDraftText}
+          initialSpecialNotes={documentationSpecialNotes}
+          photoReferences={photoReferences}
+          openAiRequest={aiHelpRequest}
+          onSubmit={async (doc) => {
+            setLocalError(null);
+            const r = await saveDocumentation(doc);
+            if (r.ok) {
+              setDocLastSavedAt(new Date().toISOString());
+              const needsSignature =
+                visit.requiresSignature ||
+                (r.data && 'nextStep' in r.data && r.data.nextStep === 'signature');
+              setLocalSuccess(
+                needsSignature
+                  ? 'Dokumentation gespeichert — Unterschrift erforderlich.'
+                  : 'Dokumentation gespeichert — Einsatz kann abgeschlossen werden.',
+              );
+              if (needsSignature) {
+                setAwaitingSignature(true);
+                setTimeout(() => openSignatureCapture(), 150);
+              }
+              setDocumentationOpen(false);
+            } else {
+              setLocalError(r.error ?? 'Dokumentation fehlgeschlagen.');
+            }
+            return r;
+          }}
+        />
+      ) : null}
+
+      {bottomBarVisible ? (
+        <EmployeePortalVisitBottomBar
+          actions={[
+            {
+              key: 'tasks',
+              label: 'Aufgaben',
+              icon: '☑',
+              active: tasksOpen,
+              onPress: () => setTasksOpen(true),
+            },
+            {
+              key: 'documentation',
+              label: 'Doku',
+              icon: '📝',
+              active: documentationOpen,
+              onPress: () => setDocumentationOpen(true),
+            },
+            {
+              key: 'photo',
+              label: 'Foto',
+              icon: '📷',
+              onPress: () => setPhotoModalOpen(true),
+            },
+            {
+              key: 'more',
+              label: 'Mehr',
+              icon: '⋯',
+              active: moreOpen,
+              onPress: () => setMoreOpen(true),
+            },
+          ]}
+        />
+      ) : null}
+
+      {bottomBarVisible ? (
+        <EmployeePortalVisitFabMenu
+          actions={[
+            { key: 'note', label: 'Kurze Notiz', onPress: () => setDocumentationOpen(true) },
+            { key: 'photo', label: 'Foto aufnehmen', onPress: () => setPhotoModalOpen(true) },
+            { key: 'voice', label: 'Sprachnotiz', onPress: () => setVoiceModalOpen(true) },
+            { key: 'doc', label: 'Dokument hinzufügen', onPress: () => setPhotoModalOpen(true) },
+            {
+              key: 'ai',
+              label: 'KI-Hilfe',
+              onPress: () => {
+                if (showDocumentationForm) {
+                  setDocumentationOpen(true);
+                  setAiHelpRequest((n) => n + 1);
+                } else {
+                  setAiHelpStandaloneOpen(true);
+                }
+              },
+            },
+          ]}
+        />
+      ) : null}
+
+      <EmployeePortalVisitPhotoModal
+        visible={photoModalOpen}
+        tenantId={portalTenantId}
+        visitId={assistVisitId}
+        existingReferences={photoReferences}
+        onClose={() => setPhotoModalOpen(false)}
+        onUploaded={(paths) => {
+          setPhotoReferences(paths);
+          setLocalSuccess('Foto gespeichert — wird mit der Dokumentation übernommen.');
+        }}
+      />
+
+      <EmployeePortalVisitVoiceNoteModal
+        visible={voiceModalOpen}
+        tenantId={portalTenantId}
+        visitId={assistVisitId}
+        onClose={() => setVoiceModalOpen(false)}
+        onAppendText={appendDocumentationNote}
+        onAudioUploaded={(storagePath) => {
+          setPhotoReferences((prev) => [...prev, storagePath]);
+        }}
+      />
+
+      <EmployeePortalVisitDocumentationAiModal
+        visible={aiHelpStandaloneOpen}
+        tenantId={portalTenantId}
+        sourceText={documentationDraftText || documentationSpecialNotes}
+        onClose={() => setAiHelpStandaloneOpen(false)}
+        onAccept={(textValue) => {
+          setDocumentationDraftText(textValue);
+          setAiHelpStandaloneOpen(false);
+          setDocumentationOpen(true);
+        }}
+      />
+
+      {moreOpen ? (
+        <EmployeePortalVisitMoreMenu
+          visible={moreOpen}
+          onClose={() => setMoreOpen(false)}
+          onOpenMap={() => {
+            setMoreOpen(false);
+            void handleOpenMap();
+          }}
+          onCall={visit.emergencyContact ? handleCall : undefined}
+          canReportNoShow={allowedActions.includes('report_no_show') && !isLocked}
+          showNoShowForm={showNoShowForm}
+          noShowNote={noShowNote}
+          onNoShowNoteChange={setNoShowNote}
+          onOpenNoShowForm={() => setShowNoShowForm(true)}
+          onSubmitNoShow={() => void handleNoShow()}
+          noShowLoading={actionLoading}
+        />
+      ) : null}
 
       {deviationModal && executionContext ? (
         <WfmVisitDeviationJustificationModal
@@ -861,11 +1103,14 @@ export function EmployeePortalVisitExecutionScreen() {
 }
 
 const styles = StyleSheet.create({
-  scroll: { paddingBottom: spacing.xxl + 32, gap: spacing.md },
-  phase: { ...typography.body, marginBottom: spacing.sm },
-  actions: { gap: spacing.sm },
-  errorCode: { ...typography.caption, color: colors.textMuted, marginTop: spacing.xs },
-  dismissibleError: { gap: spacing.xs },
+  scroll: { gap: spacing.md, paddingHorizontal: spacing.md, paddingTop: spacing.sm },
+  phaseCard: { padding: spacing.md, gap: spacing.sm },
+  phaseTitle: { ...typography.h3, color: colors.textPrimary },
+  phaseHint: { ...typography.body, color: colors.textSecondary },
+  phaseActions: { gap: spacing.sm, marginTop: spacing.sm },
+  liveWrap: { gap: spacing.md },
+  hiddenSetup: { gap: spacing.sm },
+  dismissibleError: { gap: spacing.xs, paddingHorizontal: spacing.md },
   dismissText: {
     ...typography.caption,
     color: colors.textMuted,
