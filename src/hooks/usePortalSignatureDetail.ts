@@ -50,6 +50,7 @@ export function usePortalSignatureDetail(documentId: string) {
           browser: typeof navigator !== 'undefined' ? navigator.userAgent.split(' ').pop() ?? null : null,
         },
         profile?.roleKey ?? null,
+        profile?.id ?? null,
       );
       if (result.ok) await query.refresh();
       return result;

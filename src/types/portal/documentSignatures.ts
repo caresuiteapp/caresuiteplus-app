@@ -158,6 +158,7 @@ export type OfficeCreateSignatureDocumentInput = {
   assignmentId?: string | null;
   allowDownload?: boolean;
   previewHtml?: string | null;
+  storagePath?: string | null;
   creatorName: string;
   creatorProfileId?: string | null;
 };

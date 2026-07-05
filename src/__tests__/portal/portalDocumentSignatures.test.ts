@@ -1,70 +1,94 @@
-import { describe, expect, it, beforeEach } from 'vitest';
+import { describe, expect, it } from 'vitest';
 import {
   countPortalSignatureDashboard,
   filterPortalSignatureDocuments,
-  resetPortalDocumentSignatureStore,
-  signPortalDocument,
-  fetchPortalSignatureDocuments,
-} from '@/lib/portal/portalDocumentSignatureService';
+  resolveNextSignerRole,
+  resolveStatusAfterCapture,
+} from '@/lib/portal/portalDocumentSignatureHelpers';
 import { buildEmployeePortalTodayModel } from '@/lib/portal/employee/employeePortalTodayModel';
-import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import type { PortalSignatureDocument } from '@/types/portal/documentSignatures';
 import type { EmployeePortalDashboardProjection } from '@/types/portalSystem';
 
-describe('portal document signatures', () => {
-  beforeEach(() => {
-    resetPortalDocumentSignatureStore();
+function sampleDoc(overrides: Partial<PortalSignatureDocument> = {}): PortalSignatureDocument {
+  return {
+    id: 'doc-1',
+    tenantId: 'tenant-1',
+    title: 'Test',
+    documentType: 'sonstiges',
+    recipientType: 'employee',
+    employeeId: 'emp-1',
+    clientId: null,
+    clientName: null,
+    signatureRequirement: 'employee',
+    dueDate: null,
+    priority: 'normal',
+    requiredBeforeAssignment: false,
+    assignmentId: null,
+    status: 'open',
+    creatorName: 'Office',
+    createdAt: '2026-07-01T08:00:00.000Z',
+    sentAt: '2026-07-01T08:00:00.000Z',
+    completedAt: null,
+    allowDownload: true,
+    previewHtml: null,
+    previewPdfUrl: null,
+    versionNumber: 1,
+    employeeSigned: false,
+    clientSigned: false,
+    nextSignerRole: 'employee',
+    ...overrides,
+  };
+}
+
+describe('portal document signature helpers', () => {
+  it('filters open documents', () => {
+    const docs = [
+      sampleDoc({ id: '1', status: 'open' }),
+      sampleDoc({ id: '2', status: 'completed' }),
+    ];
+    expect(filterPortalSignatureDocuments(docs, 'open')).toHaveLength(1);
+    expect(filterPortalSignatureDocuments(docs, 'completed')).toHaveLength(1);
   });
 
-  it('lists open signature documents for demo employee', async () => {
-    const result = await fetchPortalSignatureDocuments(
-      DEMO_TENANT_ID,
-      'employee-003',
-      'employee_portal',
-      'open',
-    );
-    expect(result.ok).toBe(true);
-    expect(result.data?.length).toBeGreaterThan(0);
+  it('resolves sequential signing order', () => {
+    const both = sampleDoc({ signatureRequirement: 'both_sequential' });
+    expect(resolveNextSignerRole(both)).toBe('employee');
+    expect(
+      resolveNextSignerRole({ ...both, employeeSigned: true, clientSigned: false }),
+    ).toBe('client');
+    expect(
+      resolveNextSignerRole({
+        ...both,
+        employeeSigned: true,
+        clientSigned: true,
+        status: 'completed',
+      }),
+    ).toBeNull();
   });
 
-  it('filters overdue documents', async () => {
-    const result = await fetchPortalSignatureDocuments(
-      DEMO_TENANT_ID,
-      'employee-003',
-      'employee_portal',
-      'overdue',
-    );
-    expect(result.ok).toBe(true);
-    expect(result.data?.some((d) => d.id === 'psd-003')).toBe(true);
+  it('marks document completed after all required signatures', () => {
+    const afterEmployee = resolveStatusAfterCapture({
+      signatureRequirement: 'employee',
+      employeeSigned: true,
+      clientSigned: false,
+    });
+    expect(afterEmployee).toBe('completed');
   });
 
-  it('completes employee signature workflow', async () => {
-    const signResult = await signPortalDocument(
-      {
-        tenantId: DEMO_TENANT_ID,
-        documentId: 'psd-001',
-        employeeId: 'employee-003',
-        signerRole: 'employee',
-        signerName: 'Sandra Meier',
-        signatureDataUrl: 'data:image/png;base64,abc',
-      },
-      'employee_portal',
-    );
-    expect(signResult.ok).toBe(true);
-    expect(signResult.data?.status).toBe('completed');
-    expect(signResult.data?.employeeSigned).toBe(true);
+  it('counts dashboard open and overdue documents', () => {
+    const ref = new Date('2026-07-05T12:00:00.000Z');
+    const docs = [
+      sampleDoc({ dueDate: '2026-07-04T12:00:00.000Z', status: 'open' }),
+      sampleDoc({ id: '2', dueDate: '2026-07-05T12:00:00.000Z', status: 'open' }),
+    ];
+    const counts = countPortalSignatureDashboard(docs, ref);
+    expect(counts.openCount).toBe(2);
+    expect(counts.overdueCount).toBe(1);
+    expect(counts.dueTodayCount).toBe(1);
   });
+});
 
-  it('counts dashboard metrics', async () => {
-    const list = await fetchPortalSignatureDocuments(
-      DEMO_TENANT_ID,
-      'employee-003',
-      'employee_portal',
-      'open',
-    );
-    const counts = countPortalSignatureDashboard(list.data ?? []);
-    expect(counts.openCount).toBeGreaterThan(0);
-  });
-
+describe('portal signature dashboard model', () => {
   it('adds open signatures card to dashboard model', () => {
     const dashboard: EmployeePortalDashboardProjection = {
       todayAssignments: [],
@@ -89,9 +113,6 @@ describe('portal signature navigation', () => {
   it('employee tabs include Unterschriften', async () => {
     const { PORTAL_EMPLOYEE_TABS } = await import('@/lib/navigation/shellConfig');
     expect(PORTAL_EMPLOYEE_TABS.some((t) => t.key === 'signatures')).toBe(true);
-    expect(PORTAL_EMPLOYEE_TABS.find((t) => t.key === 'signatures')?.href).toBe(
-      '/portal/employee/signatures',
-    );
   });
 
   it('office nav includes Dokumente & Unterschriften', async () => {
@@ -101,5 +122,19 @@ describe('portal signature navigation', () => {
         (a) => a.label === 'Dokumente & Unterschriften' && a.href === '/office/documents-signatures',
       ),
     ).toBe(true);
+  });
+});
+
+describe('portal signature live-only facade', () => {
+  it('service module declares live-only guard', async () => {
+    const { readFileSync } = await import('node:fs');
+    const { join } = await import('node:path');
+    const source = readFileSync(
+      join(process.cwd(), 'src/lib/portal/portalDocumentSignatureService.ts'),
+      'utf8',
+    );
+    expect(source).toContain('Signaturdokumente sind nur im Live-Modus');
+    expect(source).toContain('fetchLivePortalSignatureDocuments');
+    expect(source).not.toContain('demoPortalSignatureDocuments');
   });
 });

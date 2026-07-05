@@ -1,7 +1,8 @@
 import { useMemo, useState } from 'react';
-import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { ScrollView, StyleSheet, View } from 'react-native';
 import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { AuroraSegmentedControl } from '@/components/aurora';
+import { OfficeSignatureDocumentCreatePanel } from '@/components/office/OfficeSignatureDocumentCreatePanel';
 import {
   EmptyState,
   ErrorState,
@@ -9,7 +10,6 @@ import {
   PremiumBadge,
   PremiumButton,
   PremiumCard,
-  PremiumInput,
 } from '@/components/ui';
 import { useOfficeDocumentSignatures } from '@/hooks/useOfficeDocumentSignatures';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -20,8 +20,8 @@ import {
   PORTAL_SIGNATURE_STATUS_LABELS,
   PORTAL_SIGNATURE_DOCUMENT_TYPE_LABELS,
 } from '@/types/portal/documentSignatures';
-import type { PortalSignatureDocumentType } from '@/types/portal/documentSignatures';
 import { spacing, typography } from '@/theme';
+import { Text } from 'react-native';
 
 type OfficeFilter = 'all' | 'open' | 'completed';
 
@@ -36,9 +36,6 @@ export function OfficeDocumentSignaturesScreen() {
   const { items, loading, error, refresh, create, withdraw } = useOfficeDocumentSignatures();
   const [filter, setFilter] = useState<OfficeFilter>('open');
   const [showCreate, setShowCreate] = useState(false);
-  const [title, setTitle] = useState('');
-  const [creating, setCreating] = useState(false);
-  const [createError, setCreateError] = useState<string | null>(null);
 
   const canManage = can('office.documents.signatures.manage' as never);
 
@@ -51,27 +48,6 @@ export function OfficeDocumentSignaturesScreen() {
     if (filter === 'completed') return items.filter((d) => d.status === 'completed');
     return items;
   }, [items, filter]);
-
-  const handleCreate = async () => {
-    setCreateError(null);
-    setCreating(true);
-    const result = await create({
-      title: title.trim() || 'Neues Dokument',
-      documentType: 'sonstiges' as PortalSignatureDocumentType,
-      recipientType: 'employee',
-      employeeId: 'employee-003',
-      signatureRequirement: 'employee',
-      priority: 'normal',
-      previewHtml: '<h1>Dokument zur Unterschrift</h1><p>Bitte unterschreiben Sie dieses Dokument im Mitarbeiterportal.</p>',
-    });
-    setCreating(false);
-    if (result.ok) {
-      setShowCreate(false);
-      setTitle('');
-    } else {
-      setCreateError(result.error ?? 'Senden fehlgeschlagen.');
-    }
-  };
 
   if (loading && items.length === 0) {
     return (
@@ -116,13 +92,15 @@ export function OfficeDocumentSignaturesScreen() {
 
         {showCreate ? (
           <PremiumCard accentColor={officeAccent} style={styles.createCard}>
-            <Text style={styles.createTitle}>Dokument zur Unterschrift senden</Text>
-            <PremiumInput label="Dokumenttitel" value={title} onChangeText={setTitle} />
-            {createError ? <Text style={styles.errorText}>{createError}</Text> : null}
-            <View style={styles.createActions}>
-              <PremiumButton title="Abbrechen" variant="ghost" onPress={() => setShowCreate(false)} />
-              <PremiumButton title="An Portal senden" loading={creating} onPress={() => void handleCreate()} />
-            </View>
+            <OfficeSignatureDocumentCreatePanel
+              accentColor={officeAccent}
+              onCancel={() => setShowCreate(false)}
+              onSubmit={async (input) => {
+                const result = await create(input);
+                if (result.ok) setShowCreate(false);
+                return result;
+              }}
+            />
           </PremiumCard>
         ) : null}
 
@@ -186,7 +164,4 @@ const styles = StyleSheet.create({
   cardTitle: { ...typography.body, fontWeight: '700', flex: 1 },
   meta: { ...typography.caption, marginTop: spacing.xs },
   createCard: { gap: spacing.sm },
-  createTitle: { ...typography.body, fontWeight: '700' },
-  createActions: { flexDirection: 'row', gap: spacing.sm, justifyContent: 'flex-end' },
-  errorText: { ...typography.caption, color: '#ef4444' },
 });
