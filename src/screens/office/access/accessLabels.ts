@@ -1,17 +1,5 @@
-import type { AuthLoginType, InternalRoleKey, PortalCodeStatus, UserAccessStatus } from '@/lib/auth/auth.types';
-
-export const INTERNAL_ROLE_LABELS: Record<InternalRoleKey, string> = {
-  owner: 'Inhaber:in',
-  management: 'Geschäftsführung',
-  pdl: 'PDL',
-  administration: 'Verwaltung',
-  billing: 'Abrechnung',
-  quality_management: 'Qualitätsmanagement',
-  team_lead: 'Teamleitung',
-  dispatcher: 'Disponent:in',
-  employee: 'Mitarbeiter:in',
-  readonly: 'Nur Lesen',
-};
+import type { AuthLoginType, PortalCodeStatus, UserAccessStatus } from '@/lib/auth/auth.types';
+export { getInternalRoleLabel, INTERNAL_ROLE_LABELS } from '@/lib/auth/internalRoleLabels';
 
 export const ACCESS_STATUS_LABELS: Record<UserAccessStatus, string> = {
   active: 'Aktiv',

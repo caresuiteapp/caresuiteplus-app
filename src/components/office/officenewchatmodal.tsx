@@ -4,6 +4,7 @@ import { PlatformModal } from '@/components/layout/platform';
 import { PremiumInput } from '@/components/ui';
 import { fetchClientList, fetchEmployeeList } from '@/lib/office';
 import { listInternalUsers } from '@/lib/auth/accessManagementService';
+import { getInternalRoleLabel } from '@/lib/auth/internalRoleLabels';
 import { createOfficeMessageThread } from '@/lib/office/messageservice';
 import { resolveEmployeeRoleLabel } from '@/lib/office/employeeCatalogLabels';
 import { fetchOfficeMessageCategories } from '@/lib/office/messagethreadservice';
@@ -154,7 +155,7 @@ export function OfficeNewChatModal({
           users.map((user) => ({
             id: user.id,
             label: user.displayName,
-            subtitle: user.roleKey,
+            subtitle: getInternalRoleLabel(user.roleKey),
           })),
         );
       }

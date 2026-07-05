@@ -6,7 +6,9 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { fetchInternalUserById } from '@/lib/auth/accessManagementService';
 import { useAuth } from '@/lib/auth/context';
+import { getInternalRoleLabel } from '@/lib/auth/internalRoleLabels';
 import { colors, typography } from '@/theme';
+import { ACCESS_STATUS_LABELS } from './accessLabels';
 
 export function InternalUserDetailScreen() {
   const router = useRouter();
@@ -55,8 +57,8 @@ export function InternalUserDetailScreen() {
       <PremiumCard accentColor={colors.orange}>
         <Text style={styles.row}>Benutzername: {user.username}</Text>
         <Text style={styles.row}>E-Mail: {user.email}</Text>
-        <Text style={styles.row}>Rolle: {user.roleKey}</Text>
-        <Text style={styles.row}>Status: {user.status}</Text>
+        <Text style={styles.row}>Rolle: {getInternalRoleLabel(user.roleKey)}</Text>
+        <Text style={styles.row}>Status: {ACCESS_STATUS_LABELS[user.status]}</Text>
         <Text style={styles.row}>
           Erstlogin: {user.firstLoginCompleted ? 'abgeschlossen' : 'ausstehend'}
         </Text>
