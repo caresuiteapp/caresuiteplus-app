@@ -45,9 +45,10 @@ describe('employee portal M.1 refactor', () => {
     expect(shell).toContain('drawerTabs');
   });
 
-  it('employee assignment cards use adaptive text (no white-on-light)', () => {
+  it('employee assignment cards use light surface text on opaque cards', () => {
     const card = readSrc('src/components/portal/EmployeePortalAssignmentCard.tsx');
-    expect(card).toContain('useAuroraAdaptiveText');
+    expect(card).toContain('lightSurfaceText');
+    expect(card).not.toContain('useAuroraAdaptiveText');
     expect(card).not.toContain('color: \'#fff\'');
     expect(card).not.toContain('color: "#fff"');
   });

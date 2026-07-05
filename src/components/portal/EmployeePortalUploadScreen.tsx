@@ -136,6 +136,7 @@ export function EmployeePortalUploadScreen() {
                 <PremiumListRow
                   key={client.clientId}
                   title={client.displayName}
+                  multiline
                   showChevron={false}
                   trailing={clientId === client.clientId ? <Text>✓</Text> : undefined}
                   onPress={() => setClientId(client.clientId)}
@@ -189,6 +190,7 @@ export function EmployeePortalUploadScreen() {
             key={upload.id}
             title={upload.fileName}
             subtitle={`${EMPLOYEE_PORTAL_UPLOAD_STATUS_LABELS[upload.status]} · ${new Date(upload.createdAt).toLocaleDateString('de-DE')}`}
+            multiline
             showDivider={index < uploads.length - 1}
           />
         ))

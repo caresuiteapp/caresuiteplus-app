@@ -61,6 +61,7 @@ export function EmployeePortalClientRecordsScreen() {
             key={record.clientId}
             title={record.displayName}
             subtitle={subtitle}
+            multiline
             trailing={
               record.activeAssignmentCount > 0 ? (
                 <Text style={[styles.activeBadge, { color: text.secondary }]}>

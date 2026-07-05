@@ -25,6 +25,8 @@ type Props = {
   showDivider?: boolean;
   onPress?: () => void;
   style?: StyleProp<ViewStyle>;
+  /** Allow title/subtitle to wrap instead of truncating (portal lists, long names). */
+  multiline?: boolean;
 };
 
 export function PremiumListRow({
@@ -36,6 +38,7 @@ export function PremiumListRow({
   showDivider = false,
   onPress,
   style,
+  multiline = false,
 }: Props) {
   const text = useAuroraAdaptiveText();
   const scale = useSharedValue(1);
@@ -65,14 +68,17 @@ export function PremiumListRow({
         textBlock: {
           flex: 1,
           gap: 2,
+          minWidth: 0,
         },
         title: {
           ...typography.bodyStrong,
           color: text.primary,
+          flexShrink: 1,
         },
         subtitle: {
           ...typography.caption,
           color: text.secondary,
+          flexShrink: 1,
         },
         trailing: {
           flexDirection: 'row',
@@ -98,11 +104,11 @@ export function PremiumListRow({
       <View style={styles.row}>
         {leading ? <View style={styles.leading}>{leading}</View> : null}
         <View style={styles.textBlock}>
-          <Text style={styles.title} numberOfLines={1}>
+          <Text style={styles.title} {...(multiline ? {} : { numberOfLines: 1 })}>
             {title}
           </Text>
           {subtitle ? (
-            <Text style={styles.subtitle} numberOfLines={2}>
+            <Text style={styles.subtitle} {...(multiline ? {} : { numberOfLines: 2 })}>
               {subtitle}
             </Text>
           ) : null}

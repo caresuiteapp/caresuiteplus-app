@@ -96,6 +96,7 @@ function AssignmentList({
           key={item.assignmentId}
           title={item.title}
           subtitle={`${item.clientName} · ${item.timeRange}`}
+          multiline
           leading={
             <HealthOSStatusBadge
               domain="assignment"

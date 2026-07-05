@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
 import type { CalendarViewMode } from '@/types/modules/calendarEvent';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useActiveGlassTokens, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careRadius } from '@/design/tokens/radius';
 import { careSpacing } from '@/design/tokens/spacing';
 import { PremiumButton } from '@/components/ui';
@@ -30,20 +30,31 @@ export function CalendarToolbar({
   includeYear = true,
 }: CalendarToolbarProps) {
   const text = useAuroraAdaptiveText();
+  const glass = useActiveGlassTokens();
 
   return (
     <View style={styles.wrap}>
       <View style={styles.row}>
         <View style={styles.nav}>
-          <Pressable onPress={onPrev} style={styles.navBtn} accessibilityLabel="Zurück">
+          <Pressable
+            onPress={onPrev}
+            style={[styles.navBtn, { borderColor: glass.border, backgroundColor: glass.chip }]}
+            accessibilityLabel="Zurück"
+          >
             <Text style={[styles.navLabel, { color: text.primary }]}>‹</Text>
           </Pressable>
-          <Pressable onPress={onNext} style={styles.navBtn} accessibilityLabel="Weiter">
+          <Pressable
+            onPress={onNext}
+            style={[styles.navBtn, { borderColor: glass.border, backgroundColor: glass.chip }]}
+            accessibilityLabel="Weiter"
+          >
             <Text style={[styles.navLabel, { color: text.primary }]}>›</Text>
           </Pressable>
           <PremiumButton title="Heute" variant="secondary" onPress={onToday} />
         </View>
-        <Text style={[styles.title, { color: text.primary }]}>{title}</Text>
+        <Text style={[styles.title, { color: text.primary }]} numberOfLines={2}>
+          {title}
+        </Text>
         {onOpenSettings ? (
           <PremiumButton title="Einstellungen" variant="ghost" onPress={onOpenSettings} />
         ) : (
@@ -83,8 +94,6 @@ const styles = StyleSheet.create({
     height: 36,
     borderRadius: careRadius.md,
     borderWidth: 1,
-    borderColor: auroraGlass.border,
-    backgroundColor: auroraGlass.chip,
     alignItems: 'center',
     justifyContent: 'center',
   },
@@ -98,6 +107,8 @@ const styles = StyleSheet.create({
     fontSize: 18,
     fontWeight: '700',
     flex: 1,
+    flexShrink: 1,
+    minWidth: 0,
     textAlign: 'center',
   },
 });
