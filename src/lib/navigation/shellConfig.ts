@@ -14,6 +14,7 @@ import {
 } from '@/lib/tenant/tenantModuleSettingsCache';
 import type { ProductKey } from '@/types';
 import { buildOfficeTabs } from './officeNavigation';
+import { buildEmployeePortalPrimaryTabs } from './employeePortalNavigation';
 
 export const OFFICE_TABS: ShellTabConfig[] = buildOfficeTabs();
 
@@ -91,13 +92,7 @@ export const BUSINESS_TABS: ShellTabConfig[] = [
   },
 ];
 
-export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = [
-  { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/employee' },
-  { key: 'assignments', label: 'Einsätze', icon: '📋', href: '/portal/employee/assignments' },
-  { key: 'calendar', label: 'Kalender', icon: '📅', href: '/portal/employee/calendar' },
-  { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
-  { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
-];
+export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = buildEmployeePortalPrimaryTabs();
 
 export const PORTAL_CLIENT_TABS: ShellTabConfig[] = [
   { key: 'appointments', label: 'Termine', icon: '📅', href: '/portal/client/appointments' },

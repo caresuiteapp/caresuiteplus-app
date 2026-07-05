@@ -2,7 +2,8 @@ import { describe, expect, it } from 'vitest';
 import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
-  EMPLOYEE_PORTAL_DRAWER_TAB_KEYS,
+  EMPLOYEE_PORTAL_NAV_LABELS,
+  EMPLOYEE_PORTAL_NAV_TABS,
   EMPLOYEE_PORTAL_PRIMARY_TAB_KEYS,
   PORTAL_EMPLOYEE_DRAWER_TABS,
   resolveEmployeePortalNavigationTabs,
@@ -16,35 +17,52 @@ function readSrc(relativePath: string): string {
 }
 
 describe('employee portal M.1 refactor', () => {
-  it('primary bottom nav has five tabs including Kalender', () => {
+  it('primary bottom nav has five tabs including Uploads and Kalender', () => {
     expect(EMPLOYEE_PORTAL_PRIMARY_TAB_KEYS).toEqual([
       'overview',
       'assignments',
+      'uploads',
       'calendar',
       'messages',
-      'profile',
+    ]);
+    expect(PORTAL_EMPLOYEE_TABS.map((tab) => tab.label)).toEqual([
+      'Übersicht',
+      'Einsätze',
+      'Uploads / Dokumente',
+      'Kalender',
+      'Nachrichten',
     ]);
     expect(PORTAL_EMPLOYEE_TABS.find((tab) => tab.key === 'calendar')?.label).toBe('Kalender');
     expect(PORTAL_EMPLOYEE_TABS.find((tab) => tab.key === 'schedule')).toBeUndefined();
   });
 
-  it('drawer exposes Klientenakten, Uploads, Dokumente, Unterschriften and Meine Zeiten', () => {
-    expect(EMPLOYEE_PORTAL_DRAWER_TAB_KEYS).toEqual([
-      'clients',
-      'uploads',
-      'documents',
-      'signatures',
-      'times',
+  it('drawer navigation matches canonical order with Zeiterfassung and Offene Aufgaben', () => {
+    expect(EMPLOYEE_PORTAL_NAV_LABELS).toEqual([
+      'Übersicht',
+      'Einsätze',
+      'Uploads / Dokumente',
+      'Kalender',
+      'Nachrichten',
+      'Klientenakten',
+      'Unterschriften',
+      'Profil',
+      'Zur Zeiterfassung',
+      'Meine Zeiten',
+      'Dokumente',
+      'Offene Aufgaben',
     ]);
     expect(PORTAL_EMPLOYEE_DRAWER_TABS.map((tab) => tab.label)).toEqual([
       'Klientenakten',
-      'Uploads / Dokumente',
-      'Dokumente',
       'Unterschriften',
+      'Profil',
+      'Zur Zeiterfassung',
       'Meine Zeiten',
+      'Dokumente',
+      'Offene Aufgaben',
     ]);
     const all = resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS);
-    expect(all.length).toBe(10);
+    expect(all).toHaveLength(12);
+    expect(all.map((tab) => tab.key)).toEqual(EMPLOYEE_PORTAL_NAV_TABS.map((tab) => tab.key));
   });
 
   it('PortalShellLayout uses drawer tabs with extended navigation', () => {
