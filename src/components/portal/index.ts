@@ -23,6 +23,16 @@ export {
 } from './EmployeePermissionOnboarding';
 export { EmployeePortalLiveTimersPanel } from './EmployeePortalLiveTimersPanel';
 export { EmployeePortalVisitWorkflowTimeline } from './EmployeePortalVisitWorkflowTimeline';
+export { EmployeePortalVisitStickyHeader } from './EmployeePortalVisitStickyHeader';
+export { EmployeePortalVisitProgressSteps } from './EmployeePortalVisitProgressSteps';
+export { EmployeePortalVisitCompactCard } from './EmployeePortalVisitCompactCard';
+export { EmployeePortalVisitLiveDashboard } from './EmployeePortalVisitLiveDashboard';
+export { EmployeePortalVisitBottomBar } from './EmployeePortalVisitBottomBar';
+export { EmployeePortalVisitFabMenu } from './EmployeePortalVisitFabMenu';
+export { EmployeePortalVisitCompletionPanel } from './EmployeePortalVisitCompletionPanel';
+export { EmployeePortalVisitSummaryPanel } from './EmployeePortalVisitSummaryPanel';
+export { EmployeePortalVisitDocumentationAiModal } from './EmployeePortalVisitDocumentationAiModal';
+export { EmployeePortalVisitMoreMenu } from './EmployeePortalVisitMoreMenu';
 export { EmployeePortalVisitTasksPanel } from './EmployeePortalVisitTasksPanel';
 export {
   EmployeePortalVisitDocumentationPanel,

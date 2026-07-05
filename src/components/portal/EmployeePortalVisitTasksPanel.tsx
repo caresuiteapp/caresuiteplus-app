@@ -1,15 +1,31 @@
-import { useMemo, useState } from 'react';
-import { StyleSheet, Text, View } from 'react-native';
-import { PremiumButton, PremiumInput, SectionPanel } from '@/components/ui';
+import { useCallback, useEffect, useMemo, useState } from 'react';
+import { Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { PlatformModal } from '@/components/layout/platform/platformmodal';
+import { PremiumButton, PremiumInput } from '@/components/ui';
+import {
+  countDoneTasks,
+  groupEmployeePortalTasks,
+  type VisitTaskCategoryGroup,
+} from '@/lib/portal/groupEmployeePortalTasks';
+import {
+  visitTaskStatusLabel,
+  visitTaskStatusRequiresNote,
+  VISIT_TASK_STATUS_OPTIONS,
+} from '@/lib/portal/visitTaskStatusLabels';
 import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
+import { isDesktopClass } from '@/lib/platform/breakpoints';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
 import type { ExtendedAssignmentTaskStatus } from '@/types/modules/assignmentWorkflow';
-import { spacing, typography } from '@/theme';
+import { colors, spacing, typography } from '@/theme';
 
 type EmployeePortalVisitTasksPanelProps = {
   tasks: EmployeePortalTaskItem[];
   disabled?: boolean;
   loading?: boolean;
+  visible?: boolean;
+  onClose?: () => void;
+  embedded?: boolean;
   onUpdateTask: (
     taskId: string,
     status: ExtendedAssignmentTaskStatus,
@@ -17,89 +33,247 @@ type EmployeePortalVisitTasksPanelProps = {
   ) => Promise<{ ok: boolean; error?: string }>;
 };
 
-const QUICK_STATUSES: ExtendedAssignmentTaskStatus[] = ['done', 'not_done', 'open'];
+type StatusPickerState = {
+  taskId: string;
+  status: ExtendedAssignmentTaskStatus;
+} | null;
 
 export function EmployeePortalVisitTasksPanel({
   tasks,
   disabled = false,
   loading = false,
+  visible = true,
+  onClose,
+  embedded = false,
   onUpdateTask,
 }: EmployeePortalVisitTasksPanelProps) {
   const text = useAuroraAdaptiveText();
-  const [pendingId, setPendingId] = useState<string | null>(null);
+  const deviceClass = useDeviceClass();
+  const isMobile = !isDesktopClass(deviceClass);
+  const groups = useMemo(() => groupEmployeePortalTasks(tasks), [tasks]);
+  const [expanded, setExpanded] = useState<Record<string, boolean>>({});
+  const [statusPicker, setStatusPicker] = useState<StatusPickerState>(null);
   const [note, setNote] = useState('');
+  const [pendingId, setPendingId] = useState<string | null>(null);
+
+  useEffect(() => {
+    const next: Record<string, boolean> = {};
+    for (const group of groups) {
+      next[group.key] = !group.isComplete;
+    }
+    setExpanded((prev) => ({ ...next, ...prev }));
+  }, [groups]);
 
   const styles = useMemo(
     () =>
       StyleSheet.create({
+        summary: {
+          flexDirection: 'row',
+          justifyContent: 'space-between',
+          alignItems: 'center',
+          marginBottom: spacing.sm,
+        },
+        summaryText: { ...typography.bodyStrong, color: text.primary },
+        summaryMeta: { ...typography.caption, color: text.muted },
+        group: {
+          borderWidth: 1,
+          borderColor: auroraGlass.innerBorder,
+          borderRadius: 12,
+          marginBottom: spacing.sm,
+          overflow: 'hidden',
+        },
+        groupHeader: {
+          flexDirection: 'row',
+          alignItems: 'center',
+          justifyContent: 'space-between',
+          paddingHorizontal: spacing.md,
+          paddingVertical: spacing.sm,
+          backgroundColor: auroraGlass.elevated,
+        },
+        groupTitle: { ...typography.bodyStrong, color: text.primary },
+        groupMeta: { ...typography.caption, color: text.secondary },
+        groupBody: { paddingHorizontal: spacing.md, paddingBottom: spacing.sm, gap: spacing.xs },
         taskRow: {
           paddingVertical: spacing.sm,
-          borderBottomWidth: 1,
-          borderBottomColor: auroraGlass.innerBorder,
+          borderTopWidth: 1,
+          borderTopColor: auroraGlass.innerBorder,
           gap: spacing.xs,
         },
-        taskTitle: { ...typography.bodyStrong, color: text.primary },
+        taskTitle: { ...typography.body, color: text.primary },
         taskStatus: { ...typography.caption, color: text.muted },
         taskNote: { ...typography.caption, color: text.secondary },
-        actions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.xs, marginTop: spacing.xs },
+        statusSheet: { gap: spacing.xs },
+        statusOption: {
+          borderWidth: 1,
+          borderColor: auroraGlass.innerBorder,
+          borderRadius: 10,
+          padding: spacing.sm,
+        },
+        statusOptionActive: { borderColor: colors.amber, backgroundColor: 'rgba(255,149,0,0.08)' },
+        statusOptionLabel: { ...typography.body, color: text.primary },
         noteBox: { gap: spacing.sm, marginTop: spacing.sm },
       }),
     [text],
   );
 
-  const handleStatus = (taskId: string, status: ExtendedAssignmentTaskStatus) => {
-    if (status === 'not_done' && !note.trim()) {
-      setPendingId(taskId);
-      return;
-    }
-    setPendingId(taskId);
-    void onUpdateTask(taskId, status, note.trim() || undefined);
-    setPendingId(null);
-    setNote('');
+  const totalDone = countDoneTasks(tasks);
+
+  const toggleGroup = (key: string) => {
+    setExpanded((prev) => ({ ...prev, [key]: !prev[key] }));
   };
 
-  return (
-    <SectionPanel title="Aufgaben" subtitle="Pflichtaufgaben vor Abschluss erledigen">
-      {tasks.map((task) => (
-        <View key={task.id} style={styles.taskRow}>
-          <Text style={styles.taskTitle}>
-            {task.required ? '★ ' : ''}
-            {task.title}
-          </Text>
-          <Text style={styles.taskStatus}>Status: {task.status}</Text>
-          {task.completionNote ? (
-            <Text style={styles.taskNote}>{task.completionNote}</Text>
-          ) : null}
-          {!disabled ? (
-            <View style={styles.actions}>
-              {QUICK_STATUSES.map((s) => (
-                <PremiumButton
-                  key={s}
-                  title={s === 'done' ? 'Erledigt' : s === 'not_done' ? 'Nicht erledigt' : 'Offen'}
-                  variant={task.status === s ? 'primary' : 'ghost'}
-                  loading={loading && pendingId === task.id}
-                  onPress={() => handleStatus(task.id, s)}
-                />
-              ))}
-            </View>
-          ) : null}
-          {pendingId === task.id ? (
-            <View style={styles.noteBox}>
-              <PremiumInput
-                label="Begründung (Pflicht)"
-                value={note}
-                onChangeText={setNote}
-                placeholder="Warum nicht erledigt?"
-              />
+  const applyStatus = useCallback(
+    async (taskId: string, status: ExtendedAssignmentTaskStatus, noteValue?: string) => {
+      if (visitTaskStatusRequiresNote(status) && !noteValue?.trim()) {
+        setStatusPicker({ taskId, status });
+        setNote('');
+        return;
+      }
+      setPendingId(taskId);
+      await onUpdateTask(taskId, status, noteValue?.trim() || undefined);
+      setPendingId(null);
+      setStatusPicker(null);
+      setNote('');
+    },
+    [onUpdateTask],
+  );
+
+  const completeCategory = async (group: VisitTaskCategoryGroup) => {
+    for (const task of group.tasks) {
+      if (task.status !== 'done') {
+        await onUpdateTask(task.id, 'done');
+      }
+    }
+  };
+
+  const renderTask = (task: EmployeePortalTaskItem) => (
+    <Pressable
+      key={task.id}
+      style={styles.taskRow}
+      onPress={() => !disabled && setStatusPicker({ taskId: task.id, status: task.status })}
+      accessibilityRole="button"
+    >
+      <Text style={styles.taskTitle}>
+        {task.required ? '★ ' : ''}
+        {task.title}
+      </Text>
+      <Text style={styles.taskStatus}>{visitTaskStatusLabel(task.status)}</Text>
+      {task.completionNote ? <Text style={styles.taskNote}>{task.completionNote}</Text> : null}
+    </Pressable>
+  );
+
+  const renderGroup = (group: VisitTaskCategoryGroup) => {
+    const isOpen = expanded[group.key] ?? false;
+    return (
+      <View key={group.key} style={styles.group}>
+        <Pressable style={styles.groupHeader} onPress={() => toggleGroup(group.key)}>
+          <View>
+            <Text style={styles.groupTitle}>{group.label}</Text>
+            <Text style={styles.groupMeta}>
+              {group.doneCount} / {group.totalCount} erledigt
+            </Text>
+          </View>
+          <Text style={styles.groupMeta}>{isOpen ? '▼' : '▶'}</Text>
+        </Pressable>
+        {isOpen ? (
+          <View style={styles.groupBody}>
+            {group.tasks.map(renderTask)}
+            {!disabled ? (
               <PremiumButton
-                title="Speichern"
+                title="Alle in dieser Kategorie erledigt"
+                variant="secondary"
+                size="sm"
                 loading={loading}
-                onPress={() => handleStatus(task.id, 'not_done')}
+                onPress={() => void completeCategory(group)}
               />
-            </View>
-          ) : null}
-        </View>
-      ))}
-    </SectionPanel>
+            ) : null}
+          </View>
+        ) : null}
+      </View>
+    );
+  };
+
+  const body = (
+    <ScrollView showsVerticalScrollIndicator={false}>
+      <View style={styles.summary}>
+        <Text style={styles.summaryText}>Aufgaben</Text>
+        <Text style={styles.summaryMeta}>
+          {totalDone} / {tasks.length} erledigt
+        </Text>
+      </View>
+      {groups.map(renderGroup)}
+    </ScrollView>
+  );
+
+  const statusModal = statusPicker ? (
+    <PlatformModal
+      visible
+      title="Aufgabenstatus"
+      subtitle="Status für diese Aufgabe wählen"
+      onClose={() => {
+        setStatusPicker(null);
+        setNote('');
+      }}
+      variant={isMobile ? 'bottomSheet' : 'center'}
+      animationType={isMobile ? 'slide' : 'fade'}
+      maxWidth={480}
+    >
+      <View style={styles.statusSheet}>
+        {VISIT_TASK_STATUS_OPTIONS.map((option) => (
+          <Pressable
+            key={option.value}
+            style={[
+              styles.statusOption,
+              statusPicker.status === option.value ? styles.statusOptionActive : null,
+            ]}
+            onPress={() => void applyStatus(statusPicker.taskId, option.value)}
+          >
+            <Text style={styles.statusOptionLabel}>{option.label}</Text>
+          </Pressable>
+        ))}
+        {visitTaskStatusRequiresNote(statusPicker.status) ? (
+          <View style={styles.noteBox}>
+            <PremiumInput
+              label="Notiz *"
+              value={note}
+              onChangeText={setNote}
+              placeholder="Bitte kurz begründen"
+              multiline
+            />
+            <PremiumButton
+              title="Speichern"
+              loading={loading && pendingId === statusPicker.taskId}
+              onPress={() => void applyStatus(statusPicker.taskId, statusPicker.status, note)}
+            />
+          </View>
+        ) : null}
+      </View>
+    </PlatformModal>
+  ) : null;
+
+  if (embedded) {
+    return (
+      <>
+        {body}
+        {statusModal}
+      </>
+    );
+  }
+
+  return (
+    <>
+      <PlatformModal
+        visible={visible}
+        title="Aufgaben"
+        subtitle={`${totalDone} / ${tasks.length} erledigt`}
+        onClose={onClose ?? (() => {})}
+        variant={isMobile ? 'bottomSheet' : 'center'}
+        animationType={isMobile ? 'slide' : 'fade'}
+        maxWidth={560}
+      >
+        {body}
+      </PlatformModal>
+      {statusModal}
+    </>
   );
 }
