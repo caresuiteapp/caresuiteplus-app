@@ -201,6 +201,47 @@ function mapDetail(item: PortalDocumentListItem, row: Record<string, unknown>): 
   };
 }
 
+async function loadPortalVisibleClientDocuments(
+  tenantId: string,
+  clientId: string,
+): Promise<ServiceResult<PortalDocumentListItem[]>> {
+  await syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return unavailable();
+
+  const { data, error } = await fromUnknownTable(supabase, 'client_documents')
+    .select(LIST_SELECT)
+    .eq('tenant_id', tenantId)
+    .eq('client_id', clientId)
+    .eq('portal_visible', true)
+    .in('status', [...PORTAL_CLIENT_DOCUMENT_STATUSES])
+    .not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`)
+    .neq('category', PORTAL_PROOFS_CATEGORY)
+    .order('updated_at', { ascending: false });
+
+  if (error) {
+    if (isMissingTableError(error)) return { ok: true, data: [] };
+    return { ok: false, error: error.message };
+  }
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  const baseDocs = rows.map((row) => mapStoredRowToClientDocument(row));
+  const intakeRows = await fetchIntakeRowsForPortalDocuments(
+    tenantId,
+    clientId,
+    collectIntakeLookupKeys(baseDocs),
+  );
+
+  const items = rows.map((row) => {
+    const baseDoc = mapStoredRowToClientDocument(row);
+    const enrichedDoc = enrichPortalClientDocument(baseDoc, intakeRows);
+    return mapClientDocumentToPortalItem(enrichedDoc, row);
+  });
+
+  return { ok: true, data: items };
+}
+
 export async function fetchLivePortalDocumentsForClient(
   tenantId: string,
   clientId: string,
@@ -212,42 +253,64 @@ export async function fetchLivePortalDocumentsForClient(
       return { ok: true, data: [] };
     }
 
-    await syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
-
-    const supabase = getSupabaseClient();
-    if (!supabase) return unavailable();
-
-    const { data, error } = await fromUnknownTable(supabase, 'client_documents')
-      .select(LIST_SELECT)
-      .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
-      .eq('portal_visible', true)
-      .in('status', [...PORTAL_CLIENT_DOCUMENT_STATUSES])
-      .not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`)
-      .neq('category', PORTAL_PROOFS_CATEGORY)
-      .order('updated_at', { ascending: false });
-
-    if (error) {
-      if (isMissingTableError(error)) return { ok: true, data: [] };
-      return { ok: false, error: error.message };
-    }
-
-    const rows = (data ?? []) as Record<string, unknown>[];
-    const baseDocs = rows.map((row) => mapStoredRowToClientDocument(row));
-    const intakeRows = await fetchIntakeRowsForPortalDocuments(
-      tenantId,
-      clientId,
-      collectIntakeLookupKeys(baseDocs),
-    );
-
-    const items = rows.map((row) => {
-      const baseDoc = mapStoredRowToClientDocument(row);
-      const enrichedDoc = enrichPortalClientDocument(baseDoc, intakeRows);
-      return mapClientDocumentToPortalItem(enrichedDoc, row);
-    });
-
-    return { ok: true, data: items };
+    return loadPortalVisibleClientDocuments(tenantId, clientId);
   });
+}
+
+/** Employee Klientenakten — office-released documents without client-portal feature gate. */
+export async function fetchEmployeePortalClientDocuments(
+  tenantId: string,
+  clientId: string,
+): Promise<ServiceResult<PortalDocumentListItem[]>> {
+  return runService(async () => {
+    if (!tenantId.trim() || !clientId.trim()) return { ok: true, data: [] };
+    return loadPortalVisibleClientDocuments(tenantId, clientId);
+  });
+}
+
+async function loadPortalVisibleClientDocumentDetail(
+  tenantId: string,
+  clientId: string,
+  documentId: string,
+): Promise<ServiceResult<PortalDocumentDetail>> {
+  await syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return unavailable();
+
+  const { data, error } = await fromUnknownTable(supabase, 'client_documents')
+    .select(LIST_SELECT)
+    .eq('tenant_id', tenantId)
+    .eq('client_id', clientId)
+    .eq('id', documentId)
+    .eq('portal_visible', true)
+    .in('status', [...PORTAL_CLIENT_DOCUMENT_STATUSES])
+    .not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`)
+    .maybeSingle();
+
+  if (error) {
+    if (isMissingTableError(error)) {
+      return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
+    }
+    return { ok: false, error: error.message };
+  }
+  if (!data) {
+    const assistProof = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
+    if (assistProof.ok) return assistProof;
+    return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
+  }
+
+  const row = data as Record<string, unknown>;
+  const baseDoc = mapStoredRowToClientDocument(row);
+  const intakeRows = await fetchIntakeRowsForPortalDocuments(
+    tenantId,
+    clientId,
+    collectIntakeLookupKeys([baseDoc]),
+  );
+  const enrichedDoc = enrichPortalClientDocument(baseDoc, intakeRows);
+  const item = mapClientDocumentToPortalItem(enrichedDoc, row);
+
+  return { ok: true, data: mapDetail(item, row) };
 }
 
 export async function fetchLivePortalDocumentDetail(
@@ -262,44 +325,21 @@ export async function fetchLivePortalDocumentDetail(
       return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
     }
 
-    await syncClientDocumentPortalReleaseIfEnabled(tenantId, clientId);
+    return loadPortalVisibleClientDocumentDetail(tenantId, clientId, documentId);
+  });
+}
 
-    const supabase = getSupabaseClient();
-    if (!supabase) return unavailable();
-
-    const { data, error } = await fromUnknownTable(supabase, 'client_documents')
-      .select(LIST_SELECT)
-      .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
-      .eq('id', documentId)
-      .eq('portal_visible', true)
-      .in('status', [...PORTAL_CLIENT_DOCUMENT_STATUSES])
-      .not('sensitivity', 'in', `(${PORTAL_INTERNAL_SENSITIVITIES.join(',')})`)
-      .maybeSingle();
-
-    if (error) {
-      if (isMissingTableError(error)) {
-        return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
-      }
-      return { ok: false, error: error.message };
-    }
-    if (!data) {
-      const assistProof = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
-      if (assistProof.ok) return assistProof;
+/** Employee Klientenakten — document detail + HTML preview without client-portal feature gate. */
+export async function fetchEmployeePortalClientDocumentDetail(
+  tenantId: string,
+  clientId: string,
+  documentId: string,
+): Promise<ServiceResult<PortalDocumentDetail>> {
+  return runService(async () => {
+    if (!tenantId.trim() || !clientId.trim() || !documentId.trim()) {
       return { ok: false, error: 'Dokument nicht gefunden oder nicht freigegeben.' };
     }
-
-    const row = data as Record<string, unknown>;
-    const baseDoc = mapStoredRowToClientDocument(row);
-    const intakeRows = await fetchIntakeRowsForPortalDocuments(
-      tenantId,
-      clientId,
-      collectIntakeLookupKeys([baseDoc]),
-    );
-    const enrichedDoc = enrichPortalClientDocument(baseDoc, intakeRows);
-    const item = mapClientDocumentToPortalItem(enrichedDoc, row);
-
-    return { ok: true, data: mapDetail(item, row) };
+    return loadPortalVisibleClientDocumentDetail(tenantId, clientId, documentId);
   });
 }
 

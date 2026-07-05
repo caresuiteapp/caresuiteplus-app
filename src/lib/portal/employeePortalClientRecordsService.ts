@@ -1,5 +1,8 @@
 import type { ServiceResult } from '@/types';
+import type { PortalDocumentListItem } from '@/types/portal/documents';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
+import { formatCareLevel } from '@/lib/formatters/unitFormatters';
+import { formatDate } from '@/lib/formatters/dateTimeFormatters';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
@@ -8,6 +11,8 @@ import { runService } from '@/lib/services/serviceRunner';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { sanitizeEmployeePortalPayload } from '@/lib/portal/portalVisibilityService';
 import { fetchLivePortalAppointmentsForEmployee } from '@/lib/portal/portalAppointmentsLiveService';
+import { fetchEmployeePortalClientDocuments } from '@/lib/portal/portalDocumentsLiveService';
+import { PORTAL_DOCUMENT_CATEGORY_LABELS } from '@/types/portal/documents';
 
 export type EmployeePortalClientRecordListItem = {
   clientId: string;
@@ -16,44 +21,82 @@ export type EmployeePortalClientRecordListItem = {
   street: string | null;
   zip: string | null;
   careGrade: string | null;
+  careGradeLabel: string | null;
+  phone: string | null;
+  mobile: string | null;
   hints: string | null;
+  documentCount: number;
   activeAssignmentCount: number;
   lastAssignmentAt: string | null;
   nextAssignmentAt: string | null;
 };
 
-export type EmployeePortalClientRecordDetail = EmployeePortalClientRecordListItem & {
+export type EmployeePortalClientContact = {
+  id: string;
+  displayName: string;
+  relationship: string | null;
   phone: string | null;
+  mobile: string | null;
+  isEmergencyContact: boolean;
+  isPrimaryContact: boolean;
+};
+
+export type EmployeePortalClientRecordDocument = PortalDocumentListItem & {
+  createdAt: string;
+  categoryLabel: string;
+};
+
+export type EmployeePortalClientRecordDetail = EmployeePortalClientRecordListItem & {
+  dateOfBirth: string | null;
+  gender: string | null;
+  houseNumber: string | null;
+  floor: string | null;
+  apartmentNumber: string | null;
+  doorbellName: string | null;
+  employeeNotes: string | null;
+  emergencyNotes: string | null;
+  allergies: string | null;
+  mobilityNotes: string | null;
+  pets: string | null;
+  keyManagementNotes: string | null;
   accessHint: string | null;
-  emergencyContact: string | null;
+  contacts: EmployeePortalClientContact[];
   assignmentHistory: Array<{
     assignmentId: string;
     title: string;
     plannedStartAt: string;
     status: string;
   }>;
-  portalDocuments: Array<{
-    id: string;
-    title: string;
-    category: string | null;
-    createdAt: string;
-  }>;
+  portalDocuments: EmployeePortalClientRecordDocument[];
 };
 
-/** Safe clients columns for portal reads (production schema — postal_code, no zip). */
-const CLIENT_PORTAL_SELECT =
-  'id, first_name, last_name, street, postal_code, city, care_level, phone';
+const CLIENT_LIST_SELECT =
+  'id, first_name, last_name, street, postal_code, city, care_level, phone, mobile';
+
+const CLIENT_DETAIL_SELECT = `${CLIENT_LIST_SELECT}, date_of_birth, gender, house_number, floor, apartment_number, doorbell_name, visible_notes_for_employee, emergency_notes, allergies, mobility_notes, pets, key_management_notes`;
 
 type ClientRow = {
   id: string;
   first_name: string | null;
   last_name: string | null;
   street: string | null;
-  zip: string | null;
   postal_code: string | null;
   city: string | null;
   care_level: string | null;
   phone: string | null;
+  mobile: string | null;
+  date_of_birth?: string | null;
+  gender?: string | null;
+  house_number?: string | null;
+  floor?: string | null;
+  apartment_number?: string | null;
+  doorbell_name?: string | null;
+  visible_notes_for_employee?: string | null;
+  emergency_notes?: string | null;
+  allergies?: string | null;
+  mobility_notes?: string | null;
+  pets?: string | null;
+  key_management_notes?: string | null;
 };
 
 type VisitClientRow = {
@@ -63,7 +106,6 @@ type VisitClientRow = {
   canonical_status: string | null;
   client_visible_notes: string | null;
   title: string | null;
-  clients: ClientRow | ClientRow[] | null;
 };
 
 function personName(row?: { first_name: string | null; last_name: string | null } | null): string {
@@ -72,9 +114,46 @@ function personName(row?: { first_name: string | null; last_name: string | null 
   return name || 'Klient:in';
 }
 
-function unwrapClient(clients: VisitClientRow['clients']): ClientRow | null {
-  if (!clients) return null;
-  return Array.isArray(clients) ? (clients[0] ?? null) : clients;
+function resolvePostalCode(row: ClientRow | null): string | null {
+  if (!row?.postal_code) return null;
+  return String(row.postal_code);
+}
+
+function resolveCareGrade(row: ClientRow | null): { raw: string | null; label: string | null } {
+  if (!row?.care_level) return { raw: null, label: null };
+  const raw = String(row.care_level);
+  const label = formatCareLevel(raw) || raw;
+  return { raw, label };
+}
+
+function mapListItemFromClient(
+  clientId: string,
+  row: ClientRow | null,
+  meta: {
+    hints: string | null;
+    activeCount: number;
+    lastAt: string | null;
+    nextAt: string | null;
+    documentCount?: number;
+  },
+): EmployeePortalClientRecordListItem {
+  const care = resolveCareGrade(row);
+  return sanitizeEmployeePortalPayload({
+    clientId,
+    displayName: personName(row),
+    city: row?.city ? String(row.city) : null,
+    street: row?.street ? String(row.street) : null,
+    zip: resolvePostalCode(row),
+    careGrade: care.raw,
+    careGradeLabel: care.label,
+    phone: row?.phone ? String(row.phone) : null,
+    mobile: row?.mobile ? String(row.mobile) : null,
+    hints: meta.hints,
+    documentCount: meta.documentCount ?? 0,
+    activeAssignmentCount: meta.activeCount,
+    lastAssignmentAt: meta.lastAt,
+    nextAssignmentAt: meta.nextAt,
+  }) as EmployeePortalClientRecordListItem;
 }
 
 function isActiveAssignmentStatus(status: string | null | undefined): boolean {
@@ -109,13 +188,14 @@ async function loadEmployeeClientVisits(
 async function loadClientsByIds(
   tenantId: string,
   clientIds: string[],
+  detail = false,
 ): Promise<ServiceResult<Map<string, ClientRow>>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
   if (clientIds.length === 0) return { ok: true, data: new Map() };
 
   const { data, error } = await fromUnknownTable(supabase, 'clients')
-    .select(CLIENT_PORTAL_SELECT)
+    .select(detail ? CLIENT_DETAIL_SELECT : CLIENT_LIST_SELECT)
     .eq('tenant_id', tenantId)
     .in('id', clientIds);
 
@@ -143,23 +223,19 @@ function aggregateClientRecords(
       lastAt: string | null;
       nextAt: string | null;
       hints: string | null;
-      embedded: ClientRow | null;
     }
   >();
 
   const now = Date.now();
   for (const visit of visits) {
     if (!visit.client_id) continue;
-    const embedded = unwrapClient(visit.clients);
     const entry = byClient.get(visit.client_id) ?? {
       clientId: visit.client_id,
       activeCount: 0,
       lastAt: null,
       nextAt: null,
       hints: null,
-      embedded,
     };
-    if (embedded && !entry.embedded) entry.embedded = embedded;
     if (visit.client_visible_notes?.trim() && !entry.hints) {
       entry.hints = visit.client_visible_notes.trim();
     }
@@ -181,21 +257,9 @@ function aggregateClientRecords(
     byClient.set(visit.client_id, entry);
   }
 
-  const records: EmployeePortalClientRecordListItem[] = [...byClient.values()].map((meta) => {
-    const row = meta.embedded ?? clientRows.get(meta.clientId) ?? null;
-    return sanitizeEmployeePortalPayload({
-      clientId: meta.clientId,
-      displayName: personName(row),
-      city: row?.city ? String(row.city) : null,
-      street: row?.street ? String(row.street) : null,
-      zip: row?.zip ? String(row.zip) : row?.postal_code ? String(row.postal_code) : null,
-      careGrade: row?.care_level ? String(row.care_level) : null,
-      hints: meta.hints,
-      activeAssignmentCount: meta.activeCount,
-      lastAssignmentAt: meta.lastAt,
-      nextAssignmentAt: meta.nextAt,
-    }) as EmployeePortalClientRecordListItem;
-  });
+  const records = [...byClient.values()].map((meta) =>
+    mapListItemFromClient(meta.clientId, clientRows.get(meta.clientId) ?? null, meta),
+  );
 
   records.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'));
   return records;
@@ -242,21 +306,12 @@ export async function fetchEmployeePortalClientRecords(
         byClient.set(item.clientId, entry);
       }
 
-      const records = [...byClient.entries()].map(([clientId, meta]) => {
-        const row = clientsResult.data.get(clientId) ?? null;
-        return sanitizeEmployeePortalPayload({
-          clientId,
-          displayName: personName(row),
-          city: row?.city ? String(row.city) : null,
-          street: row?.street ? String(row.street) : null,
-          zip: row?.zip ? String(row.zip) : row?.postal_code ? String(row.postal_code) : null,
-          careGrade: row?.care_level ? String(row.care_level) : null,
+      const records = [...byClient.entries()].map(([clientId, meta]) =>
+        mapListItemFromClient(clientId, clientsResult.data.get(clientId) ?? null, {
+          ...meta,
           hints: null,
-          activeAssignmentCount: meta.activeCount,
-          lastAssignmentAt: meta.lastAt,
-          nextAssignmentAt: meta.nextAt,
-        }) as EmployeePortalClientRecordListItem;
-      });
+        }),
+      );
       records.sort((a, b) => a.displayName.localeCompare(b.displayName, 'de'));
       return { ok: true, data: records };
     }
@@ -270,6 +325,50 @@ export async function fetchEmployeePortalClientRecords(
     return {
       ok: true,
       data: aggregateClientRecords(visitsResult.data, clientsResult.data),
+    };
+  });
+}
+
+function mapPortalDocuments(items: PortalDocumentListItem[]): EmployeePortalClientRecordDocument[] {
+  return items.map((item) => ({
+    ...item,
+    createdAt: item.updatedAt,
+    categoryLabel: PORTAL_DOCUMENT_CATEGORY_LABELS[item.category] ?? item.category,
+  }));
+}
+
+async function loadClientContacts(
+  tenantId: string,
+  clientId: string,
+): Promise<EmployeePortalClientContact[]> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return [];
+
+  const { data, error } = await fromUnknownTable(supabase, 'client_contacts')
+    .select(
+      'id, full_name, first_name, last_name, phone, mobile, relationship, is_emergency_contact, is_primary_contact',
+    )
+    .eq('tenant_id', tenantId)
+    .eq('client_id', clientId)
+    .order('is_primary_contact', { ascending: false })
+    .order('is_emergency_contact', { ascending: false })
+    .limit(12);
+
+  if (error || !data) return [];
+
+  return (data as Array<Record<string, unknown>>).map((row) => {
+    const displayName =
+      String(row.full_name ?? '').trim() ||
+      `${row.first_name ?? ''} ${row.last_name ?? ''}`.trim() ||
+      'Kontakt';
+    return {
+      id: String(row.id),
+      displayName,
+      relationship: row.relationship ? String(row.relationship) : null,
+      phone: row.phone ? String(row.phone) : null,
+      mobile: row.mobile ? String(row.mobile) : null,
+      isEmergencyContact: row.is_emergency_contact === true,
+      isPrimaryContact: row.is_primary_contact === true,
     };
   });
 }
@@ -291,7 +390,7 @@ export async function fetchEmployeePortalClientRecordDetail(
     const history = appts.data
       .filter((item) => item.clientId === clientId)
       .sort((a, b) => new Date(b.startsAt).getTime() - new Date(a.startsAt).getTime())
-      .slice(0, 20)
+      .slice(0, 25)
       .map((item) => ({
         assignmentId: item.id,
         title: item.title,
@@ -299,85 +398,65 @@ export async function fetchEmployeePortalClientRecordDetail(
         status: String(item.assignmentStatus ?? item.status),
       }));
 
+    const clientsResult = await loadClientsByIds(tenantId, [clientId], true);
+    if (!clientsResult.ok) return clientsResult;
+    const row = clientsResult.data.get(clientId) ?? null;
+
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-    const { data: clientRow, error: clientError } = await fromUnknownTable(supabase, 'clients')
-      .select(CLIENT_PORTAL_SELECT)
-      .eq('tenant_id', tenantId)
-      .eq('id', clientId)
-      .maybeSingle();
-
-    if (clientError && !isMissingTableError(clientError)) {
-      return { ok: false, error: toGermanSupabaseError(clientError) };
-    }
-
     let accessHint: string | null = null;
-    const { data: addressRows, error: addressError } = await fromUnknownTable(
-      supabase,
-      'client_addresses',
-    )
-      .select('access_notes')
+    const { data: addressRows } = await fromUnknownTable(supabase, 'client_addresses')
+      .select('access_notes, street, house_number, postal_code, city, floor, apartment_number, doorbell_name')
       .eq('tenant_id', tenantId)
       .eq('client_id', clientId)
-      .not('access_notes', 'is', null)
+      .order('is_primary', { ascending: false })
       .limit(1);
 
-    if (!addressError && addressRows?.length) {
-      const notes = (addressRows[0] as { access_notes?: string | null }).access_notes;
-      accessHint = notes?.trim() ? notes.trim() : null;
+    if (addressRows?.length) {
+      const address = addressRows[0] as Record<string, unknown>;
+      accessHint = address.access_notes ? String(address.access_notes).trim() : null;
     }
 
-    let emergencyContact: string | null = null;
-    const { data: contacts, error: contactsError } = await fromUnknownTable(
-      supabase,
-      'client_contacts',
-    )
-      .select('full_name, first_name, last_name, phone, relationship, is_emergency_contact')
-      .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
-      .eq('is_emergency_contact', true)
-      .limit(3);
+    const contacts = await loadClientContacts(tenantId, clientId);
+    const documentsResult = await fetchEmployeePortalClientDocuments(tenantId, clientId);
+    const portalDocuments = documentsResult.ok ? mapPortalDocuments(documentsResult.data) : [];
 
-    if (!contactsError && contacts?.length) {
-      emergencyContact = (contacts as Array<Record<string, unknown>>)
-        .map((c) => {
-          const label =
-            String(c.full_name ?? c.name ?? '').trim() ||
-            `${c.first_name ?? ''} ${c.last_name ?? ''}`.trim();
-          return `${label}${c.phone ? ` (${c.phone})` : ''}`.trim();
-        })
-        .filter(Boolean)
-        .join(' · ');
-    }
+    const care = resolveCareGrade(row);
+    const listMapped = mapListItemFromClient(clientId, row, {
+      hints: base.hints,
+      activeCount: base.activeAssignmentCount,
+      lastAt: base.lastAssignmentAt,
+      nextAt: base.nextAssignmentAt,
+      documentCount: portalDocuments.length,
+    });
 
-    let portalDocuments: EmployeePortalClientRecordDetail['portalDocuments'] = [];
-    const { data: docs, error: docsError } = await fromUnknownTable(supabase, 'client_documents')
-      .select('id, title, category, created_at')
-      .eq('tenant_id', tenantId)
-      .eq('client_id', clientId)
-      .eq('portal_visible', true)
-      .order('created_at', { ascending: false })
-      .limit(20);
-
-    if (!docsError && docs) {
-      portalDocuments = (docs as Array<Record<string, unknown>>).map((doc) => ({
-        id: String(doc.id),
-        title: String(doc.title ?? 'Dokument'),
-        category: doc.category ? String(doc.category) : null,
-        createdAt: String(doc.created_at ?? ''),
-      }));
-    }
-
-    const row = clientRow as ClientRow | null;
+    const accessParts = [
+      accessHint,
+      row?.key_management_notes?.trim() ?? null,
+      row?.doorbell_name?.trim() ? `Klingel: ${row.doorbell_name.trim()}` : null,
+    ].filter(Boolean);
 
     return {
       ok: true,
       data: sanitizeEmployeePortalPayload({
-        ...base,
-        phone: row?.phone ? String(row.phone) : null,
-        accessHint,
-        emergencyContact,
+        ...listMapped,
+        careGrade: care.raw,
+        careGradeLabel: care.label,
+        dateOfBirth: row?.date_of_birth ? formatDate(row.date_of_birth) : null,
+        gender: row?.gender ? String(row.gender) : null,
+        houseNumber: row?.house_number ? String(row.house_number) : null,
+        floor: row?.floor ? String(row.floor) : null,
+        apartmentNumber: row?.apartment_number ? String(row.apartment_number) : null,
+        doorbellName: row?.doorbell_name ? String(row.doorbell_name) : null,
+        employeeNotes: row?.visible_notes_for_employee?.trim() ?? null,
+        emergencyNotes: row?.emergency_notes?.trim() ?? null,
+        allergies: row?.allergies?.trim() ?? null,
+        mobilityNotes: row?.mobility_notes?.trim() ?? null,
+        pets: row?.pets?.trim() ?? null,
+        keyManagementNotes: row?.key_management_notes?.trim() ?? null,
+        accessHint: accessParts.length > 0 ? accessParts.join('\n') : null,
+        contacts,
         assignmentHistory: history,
         portalDocuments,
       }) as EmployeePortalClientRecordDetail,

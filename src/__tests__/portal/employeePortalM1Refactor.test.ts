@@ -74,13 +74,20 @@ describe('employee portal M.1 refactor', () => {
     );
   });
 
-  it('client records are read-only in UI', () => {
-    expect(readSrc('src/components/portal/EmployeePortalClientRecordsScreen.tsx')).toContain(
-      'Nur-Lese-Ansicht',
-    );
-    expect(readSrc('src/components/portal/EmployeePortalClientRecordDetailScreen.tsx')).toContain(
-      'keine Bearbeitung',
-    );
+  it('client records detail supports phone actions and document preview', () => {
+    const detail = readSrc('src/components/portal/EmployeePortalClientRecordDetailScreen.tsx');
+    expect(detail).toContain('PhoneActionRow');
+    expect(detail).toContain('EmployeePortalClientDocumentPreviewSheet');
+    expect(detail).toContain('dialPhoneNumber');
+    expect(detail).toContain('Nur-Lese-Ansicht');
+  });
+
+  it('client records service loads extended client fields and portal documents', () => {
+    const service = readSrc('src/lib/portal/employeePortalClientRecordsService.ts');
+    expect(service).toContain('CLIENT_DETAIL_SELECT');
+    expect(service).toContain('visible_notes_for_employee');
+    expect(service).toContain('fetchEmployeePortalClientDocuments');
+    expect(service).toContain('mobile');
   });
 
   it('upload service creates office intake via portal_uploads', () => {
@@ -100,18 +107,12 @@ describe('employee portal M.1 refactor', () => {
 
   it('client records service uses valid clients columns and direct assist_visits load', () => {
     const service = readSrc('src/lib/portal/employeePortalClientRecordsService.ts');
-    expect(service).toContain('CLIENT_PORTAL_SELECT');
+    expect(service).toContain('CLIENT_LIST_SELECT');
+    expect(service).toContain('CLIENT_DETAIL_SELECT');
     expect(service).toContain('care_level');
     expect(service).toContain('postal_code');
     expect(service).not.toContain('care_grade');
-    expect(service).not.toContain('notes_for_employee');
-    expect(service).not.toContain('access_hint');
-    expect(service).toMatch(
-      /CLIENT_PORTAL_SELECT\s*=\s*'[^']*postal_code[^']*'/,
-    );
-    expect(service).not.toMatch(
-      /CLIENT_PORTAL_SELECT\s*=\s*'[^']*\bzip\b/,
-    );
+    expect(service).not.toMatch(/CLIENT_LIST_SELECT\s*=\s*'[^']*\bzip\b/);
     expect(service).toContain('loadEmployeeClientVisits');
     expect(service).toContain('assist_visits');
     expect(service).not.toMatch(/assist_visits[\s\S]*clients\(/);
