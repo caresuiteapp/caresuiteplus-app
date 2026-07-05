@@ -12,7 +12,10 @@ import {
   visitTaskStatusRequiresNote,
   VISIT_TASK_STATUS_OPTIONS,
 } from '@/lib/portal/visitTaskStatusLabels';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
@@ -47,7 +50,7 @@ export function EmployeePortalVisitTasksPanel({
   embedded = false,
   onUpdateTask,
 }: EmployeePortalVisitTasksPanelProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const deviceClass = useDeviceClass();
   const isMobile = !isDesktopClass(deviceClass);
   const groups = useMemo(() => groupEmployeePortalTasks(tasks), [tasks]);
@@ -77,10 +80,11 @@ export function EmployeePortalVisitTasksPanel({
         summaryMeta: { ...typography.caption, color: text.muted },
         group: {
           borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
+          borderColor: employeePortalExecutionSurface.border,
           borderRadius: 12,
           marginBottom: spacing.sm,
           overflow: 'hidden',
+          backgroundColor: employeePortalExecutionSurface.background,
         },
         groupHeader: {
           flexDirection: 'row',
@@ -88,7 +92,7 @@ export function EmployeePortalVisitTasksPanel({
           justifyContent: 'space-between',
           paddingHorizontal: spacing.md,
           paddingVertical: spacing.sm,
-          backgroundColor: auroraGlass.elevated,
+          backgroundColor: employeePortalExecutionSurface.subtleBackground,
         },
         groupTitle: { ...typography.bodyStrong, color: text.primary },
         groupMeta: { ...typography.caption, color: text.secondary },
@@ -96,7 +100,7 @@ export function EmployeePortalVisitTasksPanel({
         taskRow: {
           paddingVertical: spacing.sm,
           borderTopWidth: 1,
-          borderTopColor: auroraGlass.innerBorder,
+          borderTopColor: employeePortalExecutionSurface.border,
           gap: spacing.xs,
         },
         taskTitle: { ...typography.body, color: text.primary },
@@ -105,7 +109,7 @@ export function EmployeePortalVisitTasksPanel({
         statusSheet: { gap: spacing.xs },
         statusOption: {
           borderWidth: 1,
-          borderColor: auroraGlass.innerBorder,
+          borderColor: employeePortalExecutionSurface.border,
           borderRadius: 10,
           padding: spacing.sm,
         },

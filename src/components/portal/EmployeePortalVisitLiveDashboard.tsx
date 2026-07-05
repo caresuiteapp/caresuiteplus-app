@@ -1,8 +1,9 @@
 import { StyleSheet, Text, View } from 'react-native';
 import { EmployeePortalVisitCompactCard } from '@/components/portal/EmployeePortalVisitCompactCard';
 import { countDoneTasks } from '@/lib/portal/groupEmployeePortalTasks';
+import { employeePortalExecutionText } from '@/lib/portal/employeePortalExecutionSurface';
 import type { EmployeePortalTaskItem } from '@/types/modules/employeePortalExecution';
-import { colors, spacing, typography } from '@/theme';
+import { spacing, typography } from '@/theme';
 
 type EmployeePortalVisitLiveDashboardProps = {
   tasks: EmployeePortalTaskItem[];
@@ -55,13 +56,14 @@ export function EmployeePortalVisitLiveDashboard({
   onOpenSignature,
   onOpenAttachments,
 }: EmployeePortalVisitLiveDashboardProps) {
+  const text = employeePortalExecutionText;
   const done = countDoneTasks(tasks);
 
   return (
     <View style={styles.wrap}>
       <View style={styles.timerBlock}>
-        <Text style={styles.timerLabel}>Einsatzzeit</Text>
-        <Text style={styles.timerValue}>{formatTimer(serviceSeconds)}</Text>
+        <Text style={[styles.timerLabel, { color: text.muted }]}>Einsatzzeit</Text>
+        <Text style={[styles.timerValue, { color: text.primary }]}>{formatTimer(serviceSeconds)}</Text>
       </View>
       <EmployeePortalVisitCompactCard
         title="Aufgaben"
@@ -102,6 +104,6 @@ const styles = StyleSheet.create({
     paddingVertical: spacing.lg,
     gap: spacing.xs,
   },
-  timerLabel: { ...typography.caption, color: colors.textMuted },
-  timerValue: { fontSize: 42, fontWeight: '700', color: colors.textPrimary, letterSpacing: 1 },
+  timerLabel: { ...typography.caption },
+  timerValue: { fontSize: 42, fontWeight: '700', letterSpacing: 1 },
 });

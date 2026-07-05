@@ -1,7 +1,11 @@
 import { useMemo } from 'react';
 import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { auroraGlass, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionShadow,
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import { spacing, typography } from '@/theme';
 
 export type VisitBottomBarAction = {
@@ -17,7 +21,7 @@ type EmployeePortalVisitBottomBarProps = {
 };
 
 export function EmployeePortalVisitBottomBar({ actions }: EmployeePortalVisitBottomBarProps) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const insets = useSafeAreaInsets();
   const visibleActions = actions.slice(0, 4);
 
@@ -35,9 +39,10 @@ export function EmployeePortalVisitBottomBar({ actions }: EmployeePortalVisitBot
           paddingHorizontal: spacing.sm,
           paddingTop: spacing.sm,
           paddingBottom: Math.max(insets.bottom, spacing.sm),
-          backgroundColor: auroraGlass.elevated,
+          backgroundColor: employeePortalExecutionSurface.background,
           borderTopWidth: 1,
-          borderTopColor: auroraGlass.innerBorder,
+          borderTopColor: employeePortalExecutionSurface.border,
+          ...employeePortalExecutionShadow,
           ...Platform.select({
             web: { zIndex: 30 },
             default: {},

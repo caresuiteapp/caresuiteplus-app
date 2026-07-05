@@ -1,7 +1,10 @@
 import { useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import {
+  employeePortalExecutionSurface,
+  employeePortalExecutionText,
+} from '@/lib/portal/employeePortalExecutionSurface';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
   formatDeviationDirectionLabel,
@@ -31,7 +34,7 @@ export function WfmVisitDeviationJustificationModal({
   onSubmit,
   onCancel,
 }: Props) {
-  const text = useAuroraAdaptiveText();
+  const text = employeePortalExecutionText;
   const [justification, setJustification] = useState('');
 
   const title =
@@ -80,7 +83,7 @@ export function WfmVisitDeviationJustificationModal({
             value={justification}
             onChangeText={setJustification}
             multiline
-            style={[styles.input, { color: text.primary, borderColor: text.border }]}
+            style={[styles.input, { color: text.primary, borderColor: employeePortalExecutionSurface.borderStrong }]}
             placeholder="Bitte erklären Sie die Abweichung…"
             placeholderTextColor={text.muted}
           />
@@ -104,7 +107,7 @@ export function WfmVisitDeviationJustificationModal({
 const styles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: 'rgba(15, 27, 51, 0.45)',
     justifyContent: 'center',
     padding: careSpacing.lg,
   },
@@ -114,6 +117,9 @@ const styles = StyleSheet.create({
     maxWidth: 520,
     alignSelf: 'center',
     width: '100%',
+    backgroundColor: employeePortalExecutionSurface.background,
+    borderWidth: 1,
+    borderColor: employeePortalExecutionSurface.border,
   },
   title: {
     ...typography.h3,
@@ -125,12 +131,11 @@ const styles = StyleSheet.create({
     minHeight: 96,
     padding: careSpacing.sm,
     textAlignVertical: 'top',
+    backgroundColor: employeePortalExecutionSurface.inputBackground,
   },
   actions: {
-    flexDirection: 'row',
-    justifyContent: 'flex-end',
+    flexDirection: 'column',
     gap: careSpacing.sm,
     marginTop: careSpacing.md,
-    flexWrap: 'wrap',
   },
 });
