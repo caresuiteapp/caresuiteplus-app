@@ -7,7 +7,7 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
 
-export type PortalTabKind = 'messages' | 'documents' | 'appointments';
+export type PortalTabKind = 'messages' | 'documents' | 'appointments' | 'signatures';
 
 type TabConfig = {
   title: string;
@@ -40,6 +40,11 @@ const SCOPE_CONFIG = (colors: LegacyColors): Record<'portal_employee' | 'portal_
         title: 'Einsätze',
         icon: '📅',
         subtitle: 'Geplante Einsätze und Termine in Ihrer Sicht.',
+      },
+      signatures: {
+        title: 'Unterschriften',
+        icon: '✍️',
+        subtitle: 'Dokumente zur digitalen Unterschrift vom Office.',
       },
     },
   },
@@ -174,7 +179,18 @@ export function PortalTabHero({
           { id: 'unread', label: 'Ungelesen', value: String(unreadCount), icon: '📬', accent: scopeConfig.accent },
           { id: 'total', label: 'Gesamt', value: String(totalCount), icon: '✉️', accent: colors.textMuted },
         ]
-      : tab === 'documents'
+      : tab === 'signatures'
+        ? [
+            { id: 'open', label: 'Offen', value: String(totalCount), icon: '✍️', accent: scopeConfig.accent },
+            {
+              id: 'restricted',
+              label: 'Dringend',
+              value: String(restrictedCount),
+              icon: '⚠️',
+              accent: colors.warning,
+            },
+          ]
+        : tab === 'documents'
         ? [
             { id: 'total', label: 'Dokumente', value: String(totalCount), icon: '📄', accent: scopeConfig.accent },
             {

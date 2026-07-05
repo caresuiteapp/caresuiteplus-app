@@ -53,8 +53,17 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
   {
     id: 'documents',
     key: 'documents',
-    label: 'Dokumente',
+    label: 'Dokumente & Unterschriften',
     icon: '📁',
+    href: '/office/documents-signatures',
+    description: 'Signaturaufträge und Dokumentenverwaltung',
+    accentColor: '#7C5CFF',
+  },
+  {
+    id: 'documents-archive',
+    key: 'documents-archive',
+    label: 'Dokumentenablage',
+    icon: '🗂️',
     href: '/office/documents',
     description: 'Zentrale Akte und Uploads',
     accentColor: '#7C5CFF',

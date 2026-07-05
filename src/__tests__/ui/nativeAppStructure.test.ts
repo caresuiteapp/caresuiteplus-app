@@ -172,7 +172,10 @@ describe('Native app structure (Prompt 110)', () => {
       'Übersicht',
       'Einsätze',
       'Dienstplan',
+      'Dokumente',
+      'Unterschriften',
       'Nachrichten',
+      'Meine Zeiten',
       'Profil',
     ]);
   });

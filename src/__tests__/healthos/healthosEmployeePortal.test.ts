@@ -75,6 +75,8 @@ function makeSampleDashboard(
     openTasks: [],
     openDocumentationCount: 2,
     missingSignatureCount: 1,
+    openSignatureDocumentCount: 0,
+    overdueSignatureDocumentCount: 0,
     messageCount: 3,
     ...overrides,
   };

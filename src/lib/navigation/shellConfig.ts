@@ -95,7 +95,10 @@ export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = [
   { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/employee' },
   { key: 'assignments', label: 'Einsätze', icon: '📅', href: '/portal/employee/assignments' },
   { key: 'schedule', label: 'Dienstplan', icon: '🗓️', href: '/portal/employee/schedule' },
+  { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/employee/documents' },
+  { key: 'signatures', label: 'Unterschriften', icon: '✍️', href: '/portal/employee/signatures' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
+  { key: 'times', label: 'Meine Zeiten', icon: '⏱️', href: '/portal/employee/arbeitszeit' },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
 ];
 

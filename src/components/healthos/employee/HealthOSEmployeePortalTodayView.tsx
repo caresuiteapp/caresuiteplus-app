@@ -255,6 +255,36 @@ export function HealthOSEmployeePortalTodayView({
         />
       </HealthOSSection>
 
+      {model.openSignatures ? (
+        <HealthOSSection
+          title="Offene Unterschriften"
+          subtitle="Dokumente vom Office — bitte zeitnah unterschreiben"
+          accentColor={moduleAccent}
+        >
+          {model.openSignatures.subValue?.includes('überfällig') ? (
+            <HealthOSAlert
+              variant="warning"
+              title="Überfällige Unterschriften"
+              message="Es liegen überfällige Dokumente zur Unterschrift vor."
+            />
+          ) : null}
+          <Pressable
+            onPress={() => navigate(model.openSignatures?.route)}
+            accessibilityRole="button"
+            testID="healthos-employee-open-signatures"
+          >
+            <HealthOSMetricCard
+              label={model.openSignatures.label}
+              value={model.openSignatures.value}
+              subValue={model.openSignatures.subValue}
+              icon={model.openSignatures.icon}
+              accentColor={moduleAccent}
+              variant={cardVariant}
+            />
+          </Pressable>
+        </HealthOSSection>
+      ) : null}
+
       {/* B: Meine Einsätze */}
       <HealthOSSection
         title="Meine Einsätze"

@@ -106,6 +106,8 @@ export function buildEmployeePortalDashboardFromOverview(
     openTasks: [],
     openDocumentationCount: overview.openDocumentations,
     missingSignatureCount: overview.missingSignatures,
+    openSignatureDocumentCount: 0,
+    overdueSignatureDocumentCount: 0,
     messageCount: overview.adminMessageCount,
   };
 }

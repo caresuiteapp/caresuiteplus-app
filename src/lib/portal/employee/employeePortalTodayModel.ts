@@ -47,6 +47,7 @@ export type EmployeePortalTodayLink = {
 export type EmployeePortalTodayModel = {
   greetingLine: string;
   tagesübersicht: EmployeePortalTodayMetric[];
+  openSignatures: EmployeePortalTodayMetric | null;
   currentAssignment: EmployeePortalTodayAssignment | null;
   meineEinsaetze: EmployeePortalTodayAssignment[];
   offeneAufgaben: EmployeePortalTodayTask[];
@@ -65,6 +66,8 @@ export type EmployeePortalTodayReadMetrics = {
   hoursWorked: string;
   openDocumentationCount: number;
   missingSignatureCount: number;
+  openSignatureDocumentCount: number;
+  overdueSignatureDocumentCount: number;
   messageCount: number;
 };
 
@@ -89,6 +92,8 @@ export function pickEmployeePortalTodayReadMetrics(
     hoursWorked,
     openDocumentationCount: dashboard.openDocumentationCount,
     missingSignatureCount: dashboard.missingSignatureCount,
+    openSignatureDocumentCount: dashboard.openSignatureDocumentCount,
+    overdueSignatureDocumentCount: dashboard.overdueSignatureDocumentCount,
     messageCount: dashboard.messageCount,
   };
 }
@@ -124,7 +129,22 @@ function toTodayAssignment(
   };
 }
 
-// ─── Section A: Tagesübersicht ────────────────────────────────────────────────
+function buildOpenSignaturesCard(
+  dashboard: EmployeePortalDashboardProjection,
+): EmployeePortalTodayMetric | null {
+  if (dashboard.openSignatureDocumentCount <= 0) return null;
+  return {
+    id: 'open-signatures',
+    label: 'Offene Unterschriften',
+    value: dashboard.openSignatureDocumentCount,
+    subValue:
+      dashboard.overdueSignatureDocumentCount > 0
+        ? `${dashboard.overdueSignatureDocumentCount} überfällig`
+        : 'Zum Unterschreiben',
+    icon: '✍️',
+    route: '/portal/employee/signatures',
+  };
+}
 
 function buildTagesübersicht(
   dashboard: EmployeePortalDashboardProjection,
@@ -203,9 +223,17 @@ function buildOffeneAufgaben(
   if (dashboard.missingSignatureCount > 0) {
     tasks.push({
       id: 'task-signature',
-      label: 'Unterschrift fehlend',
+      label: 'Unterschrift fehlend (Einsatz)',
       count: dashboard.missingSignatureCount,
       route: '/portal/employee/assignments',
+    });
+  }
+  if (dashboard.openSignatureDocumentCount > 0) {
+    tasks.push({
+      id: 'task-document-signatures',
+      label: 'Dokumente zur Unterschrift',
+      count: dashboard.openSignatureDocumentCount,
+      route: '/portal/employee/signatures',
     });
   }
   return tasks;
@@ -235,6 +263,7 @@ export function buildEmployeePortalTodayModel(
   return {
     greetingLine: `Mitarbeiterportal · ${displayName}`,
     tagesübersicht: buildTagesübersicht(dashboard),
+    openSignatures: buildOpenSignaturesCard(dashboard),
     currentAssignment: currentItem ? toTodayAssignment(currentItem) : null,
     meineEinsaetze: buildMeineEinsaetze(dashboard),
     offeneAufgaben: buildOffeneAufgaben(dashboard),

@@ -33,7 +33,7 @@ export const HEALTHOS_OFFICE_NAV: HealthOSNavConfig = {
     {
       title: 'Dokumente & Finanzen',
       items: [
-        { key: 'documents', label: 'Dokumente', icon: '📁', href: '/office/documents' },
+        { key: 'documents', label: 'Dokumente & Unterschriften', icon: '📁', href: '/office/documents-signatures' },
         {
           key: 'budgets',
           label: 'Budgets',
@@ -200,11 +200,16 @@ export const HEALTHOS_EMPLOYEE_PORTAL_NAV: HealthOSNavConfig = {
       title: 'Profil',
       items: [
         {
-          key: 'documents-training',
-          label: 'Dokumente / Schulungen',
+          key: 'signatures',
+          label: 'Unterschriften',
+          icon: '✍️',
+          href: '/portal/employee/signatures',
+        },
+        {
+          key: 'documents',
+          label: 'Dokumente',
           icon: '📄',
-          visibility: 'disabled',
-          planningNote: 'H5 — Dokumenten-Hub im Portal.',
+          href: '/portal/employee/documents',
         },
         { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
       ],

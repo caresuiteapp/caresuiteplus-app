@@ -1,0 +1,161 @@
+import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
+import type { PortalSignatureDocument } from '@/types/portal/documentSignatures';
+
+const now = new Date();
+const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+const yesterday = new Date(today);
+yesterday.setDate(yesterday.getDate() - 1);
+const tomorrow = new Date(today);
+tomorrow.setDate(tomorrow.getDate() + 1);
+const lastWeek = new Date(today);
+lastWeek.setDate(lastWeek.getDate() - 7);
+
+function iso(d: Date, hours = 12): string {
+  const copy = new Date(d);
+  copy.setHours(hours, 0, 0, 0);
+  return copy.toISOString();
+}
+
+const DEMO_PREVIEW_HTML = `
+<h1>CareSuite+ Dokument</h1>
+<p>Bitte lesen Sie das Dokument vollständig durch und unterschreiben Sie unten.</p>
+<p>Mit Ihrer Unterschrift bestätigen Sie, dass Sie den Inhalt zur Kenntnis genommen haben.</p>
+`;
+
+export const demoPortalSignatureDocuments: PortalSignatureDocument[] = [
+  {
+    id: 'psd-001',
+    tenantId: DEMO_TENANT_ID,
+    title: 'Arbeitsvertrag 2026',
+    documentType: 'arbeitsvertrag',
+    recipientType: 'employee',
+    employeeId: 'employee-003',
+    clientId: null,
+    clientName: null,
+    signatureRequirement: 'employee',
+    dueDate: iso(tomorrow),
+    priority: 'high',
+    requiredBeforeAssignment: false,
+    assignmentId: null,
+    status: 'open',
+    creatorName: 'Office Personal',
+    createdAt: iso(yesterday, 9),
+    sentAt: iso(yesterday, 10),
+    completedAt: null,
+    allowDownload: true,
+    previewHtml: DEMO_PREVIEW_HTML,
+    previewPdfUrl: null,
+    versionNumber: 1,
+    employeeSigned: false,
+    clientSigned: false,
+    nextSignerRole: 'employee',
+  },
+  {
+    id: 'psd-002',
+    tenantId: DEMO_TENANT_ID,
+    title: 'Datenschutz-Einwilligung Müller',
+    documentType: 'datenschutz',
+    recipientType: 'client',
+    employeeId: 'employee-003',
+    clientId: 'client-001',
+    clientName: 'Maria Müller',
+    signatureRequirement: 'client',
+    dueDate: iso(today, 18),
+    priority: 'urgent',
+    requiredBeforeAssignment: true,
+    assignmentId: 'assignment-demo-001',
+    status: 'open',
+    creatorName: 'Office Verwaltung',
+    createdAt: iso(yesterday, 14),
+    sentAt: iso(yesterday, 14),
+    completedAt: null,
+    allowDownload: false,
+    previewHtml: DEMO_PREVIEW_HTML,
+    previewPdfUrl: null,
+    versionNumber: 1,
+    employeeSigned: false,
+    clientSigned: false,
+    nextSignerRole: 'client',
+  },
+  {
+    id: 'psd-003',
+    tenantId: DEMO_TENANT_ID,
+    title: 'Schweigepflicht — Belehrung',
+    documentType: 'schweigepflicht',
+    recipientType: 'employee',
+    employeeId: 'employee-003',
+    clientId: null,
+    clientName: null,
+    signatureRequirement: 'employee',
+    dueDate: iso(yesterday, 17),
+    priority: 'normal',
+    requiredBeforeAssignment: false,
+    assignmentId: null,
+    status: 'open',
+    creatorName: 'Office QM',
+    createdAt: iso(lastWeek, 8),
+    sentAt: iso(lastWeek, 8),
+    completedAt: null,
+    allowDownload: true,
+    previewHtml: DEMO_PREVIEW_HTML,
+    previewPdfUrl: null,
+    versionNumber: 1,
+    employeeSigned: false,
+    clientSigned: false,
+    nextSignerRole: 'employee',
+  },
+  {
+    id: 'psd-004',
+    tenantId: DEMO_TENANT_ID,
+    title: 'Pflegeplan — Einwilligung',
+    documentType: 'einwilligung',
+    recipientType: 'client',
+    employeeId: 'employee-003',
+    clientId: 'client-002',
+    clientName: 'Hans Schmidt',
+    signatureRequirement: 'both_sequential',
+    dueDate: iso(tomorrow),
+    priority: 'normal',
+    requiredBeforeAssignment: false,
+    assignmentId: null,
+    status: 'partially_signed',
+    creatorName: 'Office Pflege',
+    createdAt: iso(lastWeek, 11),
+    sentAt: iso(lastWeek, 11),
+    completedAt: null,
+    allowDownload: true,
+    previewHtml: DEMO_PREVIEW_HTML,
+    previewPdfUrl: null,
+    versionNumber: 1,
+    employeeSigned: true,
+    clientSigned: false,
+    nextSignerRole: 'client',
+  },
+  {
+    id: 'psd-005',
+    tenantId: DEMO_TENANT_ID,
+    title: 'Schulungsnachweis Hygiene',
+    documentType: 'schulungsnachweis',
+    recipientType: 'employee',
+    employeeId: 'employee-003',
+    clientId: null,
+    clientName: null,
+    signatureRequirement: 'employee',
+    dueDate: iso(lastWeek),
+    priority: 'low',
+    requiredBeforeAssignment: false,
+    assignmentId: null,
+    status: 'completed',
+    creatorName: 'Office Akademie',
+    createdAt: iso(lastWeek, 7),
+    sentAt: iso(lastWeek, 7),
+    completedAt: iso(lastWeek, 16),
+    allowDownload: true,
+    previewHtml: DEMO_PREVIEW_HTML,
+    previewPdfUrl: null,
+    versionNumber: 1,
+    employeeSigned: true,
+    clientSigned: false,
+    nextSignerRole: null,
+  },
+];

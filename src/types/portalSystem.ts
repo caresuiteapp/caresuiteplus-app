@@ -94,6 +94,8 @@ export type EmployeePortalDashboardProjection = {
   openTasks: EmployeePortalTaskItem[];
   openDocumentationCount: number;
   missingSignatureCount: number;
+  openSignatureDocumentCount: number;
+  overdueSignatureDocumentCount: number;
   messageCount: number;
 };
 

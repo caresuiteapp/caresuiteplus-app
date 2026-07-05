@@ -21,6 +21,7 @@ import {
   buildEmployeePortalDashboardFromOverview,
 } from './employeePortalLiveOverviewService';
 import { fetchLiveEmployeePortalOverviewWrapped } from './employeePortalExecutionLiveService';
+import { fetchPortalSignatureDashboardCounts } from './portalDocumentSignatureService';
 import { listAssignmentWorkflows } from '@/lib/assist/assignmentWorkflowService';
 import { canViewAccessHints, canViewEmergencyContact } from './employeePortalModuleAccess';
 import { getServiceMode } from '@/lib/services/mode';
@@ -160,13 +161,34 @@ export async function getEmployeePortalDashboardProjection(
     if (getServiceMode() === 'supabase') {
       const liveOverview = await fetchLiveEmployeePortalOverviewWrapped(tenantId, employeeId, roleKey);
       if (!liveOverview.ok) return liveOverview;
-      return { ok: true, data: buildEmployeePortalDashboardFromOverview(liveOverview.data) };
+      const dashboard = buildEmployeePortalDashboardFromOverview(liveOverview.data);
+      const sigCounts = await fetchPortalSignatureDashboardCounts(
+        tenantId,
+        employeeId,
+        roleKey,
+      );
+      if (sigCounts.ok && sigCounts.data) {
+        dashboard.openSignatureDocumentCount = sigCounts.data.openCount;
+        dashboard.overdueSignatureDocumentCount = sigCounts.data.overdueCount;
+      }
+      return { ok: true, data: dashboard };
     }
 
     const overview = await fetchEmployeePortalOverview(tenantId, employeeId, roleKey);
     if (!overview.ok) return overview;
 
-    return { ok: true, data: buildEmployeePortalDashboardFromOverview(overview.data) };
+    const dashboard = buildEmployeePortalDashboardFromOverview(overview.data);
+    const sigCounts = await fetchPortalSignatureDashboardCounts(
+      tenantId,
+      employeeId,
+      roleKey,
+    );
+    if (sigCounts.ok && sigCounts.data) {
+      dashboard.openSignatureDocumentCount = sigCounts.data.openCount;
+      dashboard.overdueSignatureDocumentCount = sigCounts.data.overdueCount;
+    }
+
+    return { ok: true, data: dashboard };
   });
 }
 
