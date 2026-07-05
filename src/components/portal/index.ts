@@ -1,3 +1,9 @@
+export { EmployeePortalCalendarScreen } from './EmployeePortalCalendarScreen';
+export { EmployeePortalAssignmentCard } from './EmployeePortalAssignmentCard';
+export { EmployeePortalAssignmentPreviewSheet } from './EmployeePortalAssignmentPreviewSheet';
+export { EmployeePortalClientRecordsScreen } from './EmployeePortalClientRecordsScreen';
+export { EmployeePortalClientRecordDetailScreen } from './EmployeePortalClientRecordDetailScreen';
+export { EmployeePortalUploadScreen } from './EmployeePortalUploadScreen';
 export { PortalClientProfileHero } from './PortalClientProfileHero';
 export { PortalEmployeeProfileHero } from './PortalEmployeeProfileHero';
 export { PortalReadOnlyAvatar } from './PortalReadOnlyAvatar';

@@ -93,8 +93,8 @@ export const BUSINESS_TABS: ShellTabConfig[] = [
 
 export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = [
   { key: 'overview', label: 'Übersicht', icon: '🏠', href: '/portal/employee' },
-  { key: 'assignments', label: 'Einsätze', icon: '📅', href: '/portal/employee/assignments' },
-  { key: 'schedule', label: 'Dienstplan', icon: '🗓️', href: '/portal/employee/schedule' },
+  { key: 'assignments', label: 'Einsätze', icon: '📋', href: '/portal/employee/assignments' },
+  { key: 'calendar', label: 'Kalender', icon: '📅', href: '/portal/employee/calendar' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
 ];

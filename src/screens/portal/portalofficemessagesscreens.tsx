@@ -72,7 +72,7 @@ export function EmployeePortalOfficeMessagesScreen() {
       scroll={false}
     >
       <View style={styles.employeeMessages}>
-        <PortalOfficeMessenger audience="employee" />
+        <PortalOfficeMessenger audience="employee" variant="glass" />
       </View>
     </PortalTabScreen>
   );
@@ -134,10 +134,12 @@ const styles = StyleSheet.create({
     paddingBottom: careSpacing.md,
   },
   employeeMessages: {
+    flex: 1,
     width: '100%',
     maxWidth: 720,
     alignSelf: 'center',
     gap: careSpacing.md,
+    minHeight: 360,
   },
   thread: { flex: 1, minHeight: 400, paddingHorizontal: careSpacing.md },
 });

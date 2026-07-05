@@ -29,7 +29,7 @@ describe('portal M.3 mobile layout', () => {
     expect(PORTAL_EMPLOYEE_TABS.map((tab) => tab.label)).toEqual([
       'Übersicht',
       'Einsätze',
-      'Dienstplan',
+      'Kalender',
       'Nachrichten',
       'Profil',
     ]);
@@ -82,10 +82,15 @@ describe('portal M.3 mobile layout', () => {
     expect(route).toContain('hideHeaderOnPhone');
   });
 
-  it('employee schedule route uses live portal appointments hook', () => {
+  it('employee schedule route redirects to calendar', () => {
     const route = readSrc('app/portal/employee/(tabs)/schedule.tsx');
-    expect(route).toContain('usePortalAppointments');
-    expect(route).not.toContain('fetchEmployeePortalOverview');
+    expect(route).toContain('Redirect');
+    expect(route).toContain('/portal/employee/calendar');
+  });
+
+  it('employee calendar route uses EmployeePortalCalendarScreen', () => {
+    const route = readSrc('app/portal/employee/(tabs)/calendar.tsx');
+    expect(route).toContain('EmployeePortalCalendarScreen');
   });
 
   it('portal welcome gate is mounted at app root', () => {

@@ -62,13 +62,12 @@ export function PortalNavigationDrawer({
   const drawerSurface = useMemo(() => {
     if (useLightDrawer) {
       return {
-        backgroundColor: lightLiquidGlass.modal,
+        backgroundColor: '#F8FAFC',
         borderColor: lightLiquidGlass.borderAccent,
-        ...lightLiquidGlassWebFx(lightLiquidGlass.blur.medium),
       } as ViewStyle;
     }
     return {
-      backgroundColor: auroraGlass.modal,
+      backgroundColor: '#0F172A',
       borderColor: auroraGlass.borderStrong,
     } as ViewStyle;
   }, [useLightDrawer]);
@@ -149,8 +148,8 @@ export function PortalNavigationDrawer({
 
 const styles = StyleSheet.create({
   overlay: { flex: 1, flexDirection: 'row' },
-  backdrop: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)' },
-  panel: { width: '82%', maxWidth: 320, borderLeftWidth: 1, elevation: 8 },
+  backdrop: { flex: 1, backgroundColor: 'rgba(15, 23, 42, 0.55)' },
+  panel: { width: '86%', maxWidth: 340, borderLeftWidth: 1, elevation: 12 },
   header: {
     flexDirection: 'row',
     alignItems: 'center',

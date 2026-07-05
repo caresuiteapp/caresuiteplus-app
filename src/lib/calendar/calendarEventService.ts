@@ -560,6 +560,82 @@ export {
 /** @deprecated Use getOfficeCalendarEvents */
 export const fetchCalendarEvents = getOfficeCalendarEvents;
 
+export function buildEmployeePortalCalendarConfig(employeeId: string): CalendarViewConfig {
+  return {
+    calendarScope: 'portal',
+    moduleKey: 'portal',
+    defaultView: 'week',
+    subtitle: 'Einsätze, Termine und Abwesenheiten',
+    emptyStateMessage:
+      'Im gewählten Zeitraum sind keine Einträge sichtbar. Wechseln Sie die Ansicht oder den Zeitraum.',
+    moduleColor: '#FFB020',
+    breadcrumbs: [{ label: 'Kalender' }],
+    allowedEventTypes: ['einsatz', 'termin', 'abwesenheit', 'urlaub', 'krankheit', 'krank'],
+    entityContext: { employeeId },
+  };
+}
+
+/** Employee portal calendar — assignments, planned events, absences (read-only). */
+export async function getEmployeePortalCalendarEvents(
+  tenantId: string,
+  employeeId: string,
+  options?: FetchCalendarEventsOptions,
+): Promise<ServiceResult<CalendarEvent[]>> {
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const portalResult = await getPortalCalendarEvents(
+    tenantId,
+    { portalType: 'employee', employeeId },
+    options,
+  );
+  if (portalResult.ok && portalResult.data.length > 0) {
+    return portalResult;
+  }
+
+  const employeeResult = await getEmployeeCalendarEvents(tenantId, employeeId, options);
+  if (employeeResult.ok && employeeResult.data.length > 0) {
+    return employeeResult;
+  }
+
+  if (getServiceMode() === 'supabase') {
+    const { fetchLivePortalAppointmentsForEmployee } = await import(
+      '@/lib/portal/portalAppointmentsLiveService'
+    );
+    const live = await fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
+    if (!live.ok) return live;
+
+    const rangeStartMs = options?.rangeStart ? new Date(options.rangeStart).getTime() : null;
+    const rangeEndMs = options?.rangeEnd ? new Date(options.rangeEnd).getTime() : null;
+    const hrefBase = '/portal/employee/assignments';
+
+    const events: CalendarEvent[] = live.data
+      .filter((item) => {
+        const t = new Date(item.startsAt).getTime();
+        if (rangeStartMs != null && t < rangeStartMs) return false;
+        if (rangeEndMs != null && t > rangeEndMs) return false;
+        return true;
+      })
+      .map((item) => ({
+        id: item.id,
+        title: item.title,
+        start: item.startsAt,
+        end: item.endsAt,
+        type: 'einsatz' as const,
+        color: '#FFB020',
+        sourceId: item.id,
+        sourceType: 'assist_visit' as const,
+        moduleKey: 'assist' as const,
+        href: `${hrefBase}/${item.id}`,
+        clientName: item.clientName ?? undefined,
+      }));
+
+    return { ok: true, data: events };
+  }
+
+  return portalResult.ok ? portalResult : employeeResult;
+}
+
 /** @deprecated Use getModuleCalendarEvents('assist', ...) */
 export async function fetchAssistCalendarEvents(
   tenantId: string,

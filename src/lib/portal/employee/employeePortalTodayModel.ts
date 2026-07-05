@@ -145,7 +145,7 @@ function buildTagesübersicht(
       value: m.hoursWorked,
       subValue: m.todayCount === 0 ? 'Kein Dienst heute' : 'Summe heute',
       icon: '⏱️',
-      route: '/portal/employee/arbeitszeit',
+      route: '/portal/employee/times',
     },
     {
       id: 'today-open-docs',
@@ -214,7 +214,7 @@ function buildOffeneAufgaben(
 // ─── Section D: Schnellzugriffe ───────────────────────────────────────────────
 
 function buildSchnellzugriffe(): EmployeePortalTodayLink[] {
-  return getVisibleNavItemsForRole('employee_portal')
+  const navLinks = getVisibleNavItemsForRole('employee_portal')
     .filter((item) => item.href)
     .map((item) => ({
       id: item.key,
@@ -222,6 +222,19 @@ function buildSchnellzugriffe(): EmployeePortalTodayLink[] {
       route: item.href!,
       icon: item.icon,
     }));
+
+  const m1Links: EmployeePortalTodayLink[] = [
+    { id: 'calendar', label: 'Kalender', route: '/portal/employee/calendar', icon: '📅' },
+    { id: 'clients', label: 'Klientenakten', route: '/portal/employee/clients', icon: '👥' },
+    { id: 'uploads', label: 'Uploads / Dokumente', route: '/portal/employee/uploads', icon: '📤' },
+    { id: 'times', label: 'Meine Zeiten', route: '/portal/employee/times', icon: '⏱️' },
+  ];
+
+  const merged = [...m1Links];
+  for (const link of navLinks) {
+    if (!merged.some((entry) => entry.route === link.route)) merged.push(link);
+  }
+  return merged;
 }
 
 // ─── Main builder ─────────────────────────────────────────────────────────────
