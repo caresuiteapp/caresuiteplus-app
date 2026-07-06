@@ -9,7 +9,7 @@
 
 ## Ergebnis
 
-**PRODUCTION VERIFIED** — **Smoke-B-Testdaten bereinigt**
+**PRODUCTION VERIFIED + CLEAN**
 
 Leistungsnachweis v2 ist in Production live. **Smoke B (Abweichung) bestanden.** Bundle-, Runtime- und Abweichungs-Checks auf Audit-Mandant „Test Pflege GmbH“ bestätigt. Die temporären Smoke-B-Testtasks auf Entwurf `5a7a0a56…` wurden am 2026-07-06 wieder entfernt (`payload_snapshot.tasks = []`); Signatur, Zeiten und PDF-Artefakte unverändert.
 
@@ -279,3 +279,16 @@ Skripte: `scripts/audit/leistungsnachweis-v2-smoke-b.mjs`, `scripts/audit/leistu
 | Tests nach Cleanup | `visitProofLayoutV2.test.ts` + `serviceProofLayoutV2.test.ts` — **25/25 grün**, kein Code-Diff |
 
 **Empfehlung:** v2 in Production freigegeben. Smoke C (Office-Dokumentenmodul-UI) optional manuell nachholen.
+
+---
+
+## 12. Audit-Finalisierung
+
+| Feld | Wert |
+|------|------|
+| Branch (Push) | `main` (Fast-Forward aus `safety/main-uncommitted-review`) |
+| Audit-Commits | `53bb9ec9` (Hygiene), `61313f7b` (Production-Smoke + Smoke B/Cleanup-Artefakte) |
+| Commit-Message `[deploy]` | **Nein** |
+| `dokumentenmodul-*.html` | Bereits in `826dec8f`; lokale Timestamp-Drift **verworfen** (kein Commit) |
+| Referenzierte Artefakte | Alle in Git committed (siehe Abschnitt 10) |
+| Push / Deploy | Push `origin/main` ohne `[deploy]` — **kein** Netlify-Deploy durch diese Commits |

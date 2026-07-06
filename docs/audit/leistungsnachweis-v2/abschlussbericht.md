@@ -118,4 +118,4 @@ Gesamt: 79/79 grün
 
 ## 12. Entscheidung
 
-**RELEASE READY**
+**RELEASE READY** — Production: **PRODUCTION VERIFIED + CLEAN** (siehe `production-smoke.md`, Smoke B + Cleanup dokumentiert).
