@@ -65,6 +65,60 @@ function buildMinimalAuthState(supabaseSession: Session): {
   return { user, session };
 }
 
+function applyPortalAuthFallback(
+  supabaseSession: Session,
+  record: PortalSessionRecord,
+  setUser: (user: AuthUser | null) => void,
+  setProfile: (profile: Profile | null) => void,
+  setSession: (session: AuthSession | null) => void,
+): void {
+  const minimal = buildMinimalAuthState(supabaseSession);
+  const displayName = record.displayName?.trim() || null;
+  const now = new Date().toISOString();
+
+  setUser({
+    ...minimal.user,
+    displayName,
+    roleKey: record.roleKey,
+  });
+  setProfile({
+    id: minimal.user.id,
+    tenantId: record.tenantId,
+    roleId: null,
+    roleKey: record.roleKey,
+    firstName: null,
+    lastName: null,
+    displayName,
+    email: minimal.user.email || null,
+    phone: null,
+    avatarUrl: null,
+    employeeId: record.employeeId ?? null,
+    createdAt: now,
+    updatedAt: now,
+  });
+  setSession(minimal.session);
+}
+
+function alignBootstrapWithPortalSession(
+  bootstrap: Extract<Awaited<ReturnType<typeof bootstrapTenantContext>>, { ok: true }>,
+  record: PortalSessionRecord,
+) {
+  if (bootstrap.profile.roleKey === record.roleKey) {
+    return bootstrap;
+  }
+
+  return {
+    ...bootstrap,
+    user: { ...bootstrap.user, roleKey: record.roleKey },
+    profile: {
+      ...bootstrap.profile,
+      roleKey: record.roleKey,
+      tenantId: record.tenantId || bootstrap.profile.tenantId,
+      displayName: record.displayName ?? bootstrap.profile.displayName,
+    },
+  };
+}
+
 type HydrateSupabaseSessionResult =
   | { ok: true }
   | { ok: false; error: string };
@@ -321,16 +375,27 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
     const bootstrap = await bootstrapTenantContext(sessionResult.data);
     if (!bootstrap.ok) {
-      setProfileBootstrapError(bootstrap.error);
+      applyPortalAuthFallback(
+        sessionResult.data,
+        record,
+        setUser,
+        setProfile,
+        setSession,
+      );
+      setProfileBootstrapError(null);
+      void fetchRuntimePermissions(record.roleKey, record.tenantId);
+      void hydrateTenantModulesFromSupabase(record.tenantId);
+      void hydrateTenantModuleSettings(record.tenantId);
       return;
     }
 
     setProfileBootstrapError(null);
-    applyBootstrap(bootstrap, setUser, setProfile, setSession);
-    if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
-      void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
-      void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
-      void hydrateTenantModuleSettings(bootstrap.profile.tenantId);
+    const aligned = alignBootstrapWithPortalSession(bootstrap, record);
+    applyBootstrap(aligned, setUser, setProfile, setSession);
+    if (aligned.profile.roleKey && aligned.profile.tenantId) {
+      void fetchRuntimePermissions(aligned.profile.roleKey, aligned.profile.tenantId);
+      void hydrateTenantModulesFromSupabase(aligned.profile.tenantId);
+      void hydrateTenantModuleSettings(aligned.profile.tenantId);
     }
   }, []);
 

@@ -9,6 +9,7 @@ import { LockedActionBanner } from '@/components/permissions';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { usePermissions } from '@/hooks/usePermissions';
+import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { careSpacing } from '@/design/tokens/spacing';
 
 function ClientPortalVerwaltungMessages() {
@@ -16,17 +17,20 @@ function ClientPortalVerwaltungMessages() {
   const initialComposeOpen = compose === '1' || compose === 'true';
   const { threads } = usePortalOfficeMessages('open');
   const unreadCount = threads.reduce((sum, thread) => sum + (thread.unreadCount ?? 0), 0);
+  const { active: messengerFocusActive } = usePortalMessengerFocus();
 
   return (
     <AssistPortalShell>
-      <View style={styles.glassWrap}>
-        <PortalGlassHero
-          eyebrow="VERWALTUNG"
-          title="Nachrichten"
-          subtitle="Schreiben Sie direkt an Ihr Pflegebüro — Antworten erscheinen hier im Chat."
-          meta={`${threads.length} ${threads.length === 1 ? 'Chat' : 'Chats'}${unreadCount > 0 ? ` · ${unreadCount} ungelesen` : ''}`}
-          badge="Live"
-        />
+      <View style={[styles.glassWrap, messengerFocusActive ? styles.glassWrapFocus : null]}>
+        {!messengerFocusActive ? (
+          <PortalGlassHero
+            eyebrow="VERWALTUNG"
+            title="Nachrichten"
+            subtitle="Schreiben Sie direkt an Ihr Pflegebüro — Antworten erscheinen hier im Chat."
+            meta={`${threads.length} ${threads.length === 1 ? 'Chat' : 'Chats'}${unreadCount > 0 ? ` · ${unreadCount} ungelesen` : ''}`}
+            badge="Live"
+          />
+        ) : null}
         <PortalOfficeMessenger
           audience="client"
           variant="glass"
@@ -133,6 +137,11 @@ const styles = StyleSheet.create({
     gap: careSpacing.md,
     paddingHorizontal: careSpacing.md,
     paddingBottom: careSpacing.md,
+  },
+  glassWrapFocus: {
+    gap: 0,
+    paddingHorizontal: 0,
+    paddingBottom: 0,
   },
   employeeMessages: {
     flex: 1,

@@ -110,3 +110,27 @@ select public.cs_render_template_html('<p>{{tenant.legal_name}}</p>', '{"tenant"
 - Keine Einsatzstart-Blockade aktiviert
 - Keine Fake-Dateien in `cs_document_request_files`
 - Keine produktiven Tabellen gelöscht
+
+## Phase 2.2 — Migration 0234 (Portal-Dokumentrechte)
+
+| Feld | Wert |
+|------|------|
+| Datei | `supabase/migrations/0234_cs_document_portal_permissions.sql` |
+| Scope | `portal.employee.documents.view/download`, `portal.client.documents.view/download` |
+| Rollen | `employee_portal`, `client_portal`, `family_portal` (+ Bootstrap falls fehlend) |
+| Remote angewendet | **Ja** (2026-07-06, Supabase MCP) |
+| Verify | `node scripts/audit/verify-cs-document-portal-permissions.mjs` → **Exit 0** |
+
+### Verify 0234 (2026-07-06)
+
+```bash
+node scripts/audit/verify-cs-document-portal-permissions.mjs
+node scripts/audit/verify-cs-vorlagen-db.mjs
+npm test -- src/__tests__/documents/csTemplateDatabase.test.ts
+```
+
+Alle drei: **Exit 0** / **19/19 grün**.
+
+### Code-Ergänzung
+
+`src/hooks/usePermissions.ts` nutzt `resolveEffectiveRoleKey(profile, user, portalSession)` — Portal-Session-Rolle gewinnt gegen stale Business-Profil (Dual-Role Audit-MA).

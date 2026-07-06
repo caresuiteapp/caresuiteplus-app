@@ -95,6 +95,7 @@ export function ChatComposer({
         ))}
       </View>
       <PremiumInput
+        testID="chat-composer-input"
         value={text}
         onChangeText={onChangeText}
         placeholder={isInternalNote ? 'Interne Notiz…' : 'Nachricht schreiben…'}
@@ -126,6 +127,7 @@ export function ChatComposer({
         <PremiumButton
           title="Senden"
           size="sm"
+          testID="chat-composer-send"
           onPress={onSend}
           loading={sending}
           disabled={disabled || !canSend}

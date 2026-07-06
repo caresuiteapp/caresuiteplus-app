@@ -5,6 +5,7 @@ import { PortalMobileTabHeader } from '@/components/portal/PortalMobileTabHeader
 import { ScreenShell } from '@/components/layout';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
+import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import {
   resolvePortalMobileContentPaddingBottom,
@@ -33,13 +34,17 @@ export function PortalTabScreen({
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
+  const { active: messengerFocusActive } = usePortalMessengerFocus();
 
   const bareBottomPadding = useMemo(() => {
-    if (!showBottomTabs) return spacing.md;
+    if (messengerFocusActive || !showBottomTabs) return spacing.md;
     return resolvePortalMobileContentPaddingBottom(insets.bottom);
-  }, [insets.bottom, showBottomTabs]);
+  }, [insets.bottom, messengerFocusActive, showBottomTabs]);
 
   const barePaddingStyle = useMemo((): ViewStyle => {
+    if (messengerFocusActive) {
+      return { flex: 1, minHeight: 0, paddingBottom: 0, gap: 0 };
+    }
     if (!showBottomTabs) return {};
     if (Platform.OS === 'web') {
       return {
@@ -50,13 +55,13 @@ export function PortalTabScreen({
       };
     }
     return { paddingBottom: bareBottomPadding };
-  }, [bareBottomPadding, showBottomTabs]);
+  }, [bareBottomPadding, messengerFocusActive, showBottomTabs]);
 
   if (isPhone && hideHeaderOnPhone) {
     return (
-      <View style={styles.bare} testID="portal-tab-bare">
+      <View style={[styles.bare, messengerFocusActive ? styles.bareFocus : null]} testID="portal-tab-bare">
         <View style={[styles.bareContent, barePaddingStyle]}>
-          {subtitle || eyebrow ? (
+          {!messengerFocusActive && (subtitle || eyebrow) ? (
             <PortalMobileTabHeader title={title} subtitle={subtitle} eyebrow={eyebrow} />
           ) : null}
           {children}
@@ -86,6 +91,10 @@ const styles = StyleSheet.create({
   bare: {
     width: '100%',
     backgroundColor: 'transparent',
+  },
+  bareFocus: {
+    flex: 1,
+    minHeight: 0,
   },
   bareContent: {
     width: '100%',

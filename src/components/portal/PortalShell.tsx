@@ -2,6 +2,7 @@ import { ReactNode } from 'react';
 import type { PortalKind } from '@/types/portalSystem';
 import { PortalShellLayout, type PortalShellKind } from '@/components/layout/portal';
 import { moduleColor } from '@/design/tokens/modules';
+import { PortalMessengerFocusProvider } from '@/lib/portal/portalMessengerFocusContext';
 
 type PortalShellProps = {
   kind: PortalKind;
@@ -19,8 +20,10 @@ export function PortalShell({ kind, children, accentColor }: PortalShellProps) {
     kind === 'employee' ? 'employee' : kind === 'relative' ? 'relative' : 'client';
 
   return (
-    <PortalShellLayout accentColor={resolvedAccent} kind={shellKind}>
-      {children}
-    </PortalShellLayout>
+    <PortalMessengerFocusProvider>
+      <PortalShellLayout accentColor={resolvedAccent} kind={shellKind}>
+        {children}
+      </PortalShellLayout>
+    </PortalMessengerFocusProvider>
   );
 }

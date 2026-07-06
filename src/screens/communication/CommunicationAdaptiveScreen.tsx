@@ -6,13 +6,16 @@ import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
 import { ErrorState, LoadingState } from '@/components/ui';
 import { useCommunicationCenter, useCommunicationPermissions } from '@/hooks/communication';
+import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { ConversationScreen } from './ConversationScreen';
 
 export function CommunicationAdaptiveScreen() {
   const { height } = useWindowDimensions();
+  const { useMasterDetail } = usePlatformLayout();
   const perms = useCommunicationPermissions();
   const [selectedId, setSelectedId] = useState<string | null>(null);
   const [selectedTitle, setSelectedTitle] = useState('Konversation');
+  const mobileChatActive = !useMasterDetail && !!selectedId;
 
   const { threads, loading, error, refresh } = useCommunicationCenter();
 
@@ -46,22 +49,34 @@ export function CommunicationAdaptiveScreen() {
     );
   }
 
+  const chatThread = selectedId ? <ConversationScreen threadId={selectedId} embedded /> : null;
+
   return (
-    <ScreenShell title="Nachrichten" subtitle="Kommunikationszentrum" showBack={false} scroll={false}>
+    <ScreenShell
+      title={mobileChatActive ? selectedTitle : 'Nachrichten'}
+      subtitle={mobileChatActive ? undefined : 'Kommunikationszentrum'}
+      showBack={mobileChatActive}
+      onBack={mobileChatActive ? () => setSelectedId(null) : undefined}
+      scroll={false}
+    >
       <View style={[styles.root, messengerScreenRootStyle(height)]}>
-        <MessengerShell
-          inbox={
-            <CommunicationCenterListView
-              embedded
-              selectedId={selectedId}
-              onThreadPress={handleThreadPress}
-            />
-          }
-          thread={selectedId ? <ConversationScreen threadId={selectedId} embedded /> : null}
-          selectedThreadId={selectedId}
-          onCloseThread={() => setSelectedId(null)}
-          threadTitle={selectedTitle}
-        />
+        {mobileChatActive ? (
+          chatThread
+        ) : (
+          <MessengerShell
+            inbox={
+              <CommunicationCenterListView
+                embedded
+                selectedId={selectedId}
+                onThreadPress={handleThreadPress}
+              />
+            }
+            thread={chatThread}
+            selectedThreadId={selectedId}
+            onCloseThread={() => setSelectedId(null)}
+            threadTitle={selectedTitle}
+          />
+        )}
       </View>
     </ScreenShell>
   );

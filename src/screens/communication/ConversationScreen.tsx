@@ -128,7 +128,7 @@ export function ConversationScreen({
         ) : null
       }
     >
-      <View style={styles.container}>
+      <View style={styles.container} testID="messenger-conversation-screen">
         <FlatList
           data={messages}
           keyExtractor={(m) => m.id}

@@ -2,7 +2,7 @@ import type { PostgrestError, Session } from '@supabase/supabase-js';
 import type { AuthSession, AuthUser, Profile, RoleKey } from '@/types/core/auth';
 import type { AuthBootstrapResult, TenantSummary } from '@/types/supabase/session';
 import { isPortalUsernameLabel } from '@/lib/portal/clientPortalDisplayName';
-import { mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
+import { isPortalOnlyRole, mapCanonicalRoleToRoleKey } from '@/lib/permissions/workspaceRoles';
 import type { CanonicalWorkspaceRoleKey } from '@/types/permissions/workspace';
 import { getSupabaseClient } from './client';
 import { isDemoMode } from './config';
@@ -112,13 +112,20 @@ export async function resolveProfileRoleKey(
   row: ProfileQueryRow,
   session: Session,
 ): Promise<RoleKey | null> {
+  const sessionHint = parseRoleKey(readSessionRoleHint(session));
+
+  // Portal JWT must win over stale owner profile rows from upsertPortalProfile.
+  if (sessionHint && isPortalOnlyRole(sessionHint)) {
+    return sessionHint;
+  }
+
   const fromJoin = parseRoleKey(row.roles?.key ?? null);
   if (fromJoin) return fromJoin;
 
   const fromRoleId = parseRoleKey(await fetchRoleKeyById(client, row.role_id));
   if (fromRoleId) return fromRoleId;
 
-  return parseRoleKey(readSessionRoleHint(session));
+  return sessionHint;
 }
 
 function mapProfileQueryRow(
