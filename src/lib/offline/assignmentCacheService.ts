@@ -385,6 +385,7 @@ export async function loadPortalAppointmentsWithCache(
   roleKey: RoleKey | null,
   tenantId: string | null | undefined,
   employeeId: string | null | undefined,
+  clientId?: string | null | undefined,
   options?: AssignmentCacheLoadOptions,
 ): Promise<ServiceResult<CachedPortalAppointmentItem[]> & AssignmentCacheMeta> {
   await openOfflineDb();
@@ -401,7 +402,11 @@ export async function loadPortalAppointmentsWithCache(
     return withCacheMeta({ ok: false, error: OFFLINE_LIST_ERROR }, emptyCacheMeta());
   }
 
-  const online = await fetchPortalAppointments(profileId, roleKey, { tenantId, employeeId });
+  const online = await fetchPortalAppointments(profileId, roleKey, {
+    tenantId,
+    employeeId,
+    clientId,
+  });
   if (online.ok && scoped) {
     const merged = await mergeAssignmentListCache(tenantId, employeeId, online.data);
     void import('./assignmentDetailPrefetch').then((mod) =>

@@ -1,0 +1,141 @@
+{
+  "migrationApplied": true,
+  "migrationVersion": "20260706034328",
+  "migrationName": "client_portal_settings_rls",
+  "login": {
+    "username": "audit-client@caresuiteplus.test",
+    "tenantName": "Test Pflege GmbH",
+    "displayName": "Erika Mustermann",
+    "clientId": "ec4f159f-e794-4326-8b0e-15c0166df1ea",
+    "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315"
+  },
+  "defaultsCheck": {
+    "ok": true,
+    "defaults": {
+      "portal_enabled": false,
+      "show_appointments": false,
+      "show_messages": true,
+      "show_documents": false,
+      "show_proofs": false
+    }
+  },
+  "checks": [
+    {
+      "id": "api_client_portal_login",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "id": "api_portal_defaults_readable",
+      "pass": true,
+      "detail": "tenant_defaults_select_ok"
+    },
+    {
+      "id": "profile_no_defaults_error",
+      "pass": true,
+      "detail": "no_error_on_overview"
+    },
+    {
+      "id": "greeting_client_name",
+      "pass": true,
+      "detail": "display=Erika Mustermann"
+    },
+    {
+      "id": "greeting_tenant_module",
+      "pass": true,
+      "detail": "Test Pflege GmbH · Assist visible"
+    },
+    {
+      "id": "begleitungen_kpi",
+      "pass": true,
+      "detail": "card_absent"
+    },
+    {
+      "id": "profile_loads",
+      "pass": true,
+      "detail": "profile_content_visible"
+    },
+    {
+      "id": "profile_fields_present",
+      "pass": true,
+      "detail": "field_scan"
+    },
+    {
+      "id": "appointments_list",
+      "pass": true,
+      "detail": "appointments_visible"
+    },
+    {
+      "id": "appointments_not_false_empty",
+      "pass": false,
+      "detail": "consistency"
+    },
+    {
+      "id": "documents_open",
+      "pass": true,
+      "detail": "documents_route_loaded"
+    },
+    {
+      "id": "messages_open",
+      "pass": true,
+      "detail": "messages_route_loaded"
+    },
+    {
+      "id": "messages_not_black_box",
+      "pass": true,
+      "detail": "light_messenger"
+    },
+    {
+      "id": "nachweise_open",
+      "pass": false,
+      "detail": "nachweise_section_route"
+    },
+    {
+      "id": "bottom_navigation",
+      "pass": false,
+      "detail": ""
+    },
+    {
+      "id": "drawer_navigation",
+      "pass": false,
+      "detail": "drawer_items_visible"
+    },
+    {
+      "id": "iphone_safe_area_padding",
+      "pass": false,
+      "detail": "paddingBottom=0px"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "01-overview-iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/client-portal-k1-smoke-screenshots/01-overview-iphone.png"
+    },
+    {
+      "name": "02-profile-iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/client-portal-k1-smoke-screenshots/02-profile-iphone.png"
+    },
+    {
+      "name": "03-appointments-iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/client-portal-k1-smoke-screenshots/03-appointments-iphone.png"
+    },
+    {
+      "name": "04-documents-iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/client-portal-k1-smoke-screenshots/04-documents-iphone.png"
+    },
+    {
+      "name": "05-messages-iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/client-portal-k1-smoke-screenshots/05-messages-iphone.png"
+    },
+    {
+      "name": "06-nachweise-section-iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/client-portal-k1-smoke-screenshots/06-nachweise-section-iphone.png"
+    },
+    {
+      "name": "07-drawer-iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/client-portal-k1-smoke-screenshots/07-drawer-iphone.png"
+    }
+  ],
+  "deployTriggered": false,
+  "generatedAt": "2026-07-06T03:46:15.360Z"
+}

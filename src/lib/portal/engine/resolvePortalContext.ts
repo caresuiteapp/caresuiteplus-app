@@ -11,6 +11,7 @@ import type {
 } from '@/lib/portal/types';
 import { fetchClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboardLive';
 import { fetchClientModuleAssignments } from '@/lib/portal/clientModuleAssignmentService';
+import { fetchClientPortalDisplayName } from '@/lib/portal/clientPortalDisplayName';
 import { fetchPortalClientCareProfile } from '@/lib/portal/portalClientCareService';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 import { fetchPortalWidgetData } from './fetchPortalWidgetData';
@@ -166,13 +167,42 @@ async function fetchWidgetRegistryFromDb(): Promise<PortalWidget[] | null> {
     }));
 }
 
+function normalizePortalLabel(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase();
+}
+
+/** Prefer live client name; never use tenant/service provider name as greeting. */
+function resolvePortalContextDisplayName(input: {
+  clientDisplayName: string | null;
+  inputDisplayName: string;
+  tenantName: string;
+  roleKey: RoleKey;
+}): string {
+  if (input.clientDisplayName?.trim()) {
+    return input.clientDisplayName.trim();
+  }
+
+  const tenantNorm = normalizePortalLabel(input.tenantName);
+  const sessionNorm = normalizePortalLabel(input.inputDisplayName);
+
+  if (sessionNorm && sessionNorm !== tenantNorm) {
+    return input.inputDisplayName.trim();
+  }
+
+  if (input.roleKey === 'family_portal') {
+    return 'Angehörigenzugang';
+  }
+
+  return 'Klient:in';
+}
+
 /** Loads modules, role, permissions, and live metrics for the portal session. */
 export async function resolvePortalContext(
   input: ResolvePortalContextInput,
 ): Promise<PortalContext> {
   const portalRole = resolvePortalActorRole(input.roleKey);
 
-  const [assignmentsResult, metrics, tenantName, visibilityRules, careProfile, dbFeatures, dbWidgets] =
+  const [assignmentsResult, metrics, tenantName, visibilityRules, careProfile, dbFeatures, dbWidgets, clientDisplayName] =
     await Promise.all([
       fetchClientModuleAssignments(input.tenantId, input.clientId),
       fetchClientPortalLiveMetrics(input.tenantId, input.clientId).catch(() => EMPTY_METRICS),
@@ -183,6 +213,7 @@ export async function resolvePortalContext(
       fetchPortalClientCareProfile(input.tenantId, input.clientId),
       fetchFeatureMatrixFromDb(),
       fetchWidgetRegistryFromDb(),
+      fetchClientPortalDisplayName(input.tenantId, input.clientId),
     ]);
 
   const assignments = assignmentsResult.ok ? assignmentsResult.data : [];
@@ -221,12 +252,19 @@ export async function resolvePortalContext(
       })
     : [];
 
+  const resolvedDisplayName = resolvePortalContextDisplayName({
+    clientDisplayName,
+    inputDisplayName: input.displayName,
+    tenantName,
+    roleKey: input.roleKey,
+  });
+
   return {
     tenantId: input.tenantId,
     clientId: input.clientId,
     roleKey: input.roleKey,
     portalRole,
-    displayName: input.displayName,
+    displayName: resolvedDisplayName,
     tenantName,
     modules: assignments,
     primaryModule,

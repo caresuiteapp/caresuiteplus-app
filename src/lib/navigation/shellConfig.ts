@@ -95,7 +95,7 @@ export const BUSINESS_TABS: ShellTabConfig[] = [
 export const PORTAL_EMPLOYEE_TABS: ShellTabConfig[] = buildEmployeePortalPrimaryTabs();
 
 export const PORTAL_CLIENT_TABS: ShellTabConfig[] = [
-  { key: 'appointments', label: 'Termine', icon: '📅', href: '/portal/client/appointments' },
+  { key: 'appointments', label: 'Einsätze', icon: '📅', href: '/portal/client/appointments' },
   { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile' },

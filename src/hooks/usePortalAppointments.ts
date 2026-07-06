@@ -43,6 +43,7 @@ export function usePortalAppointments() {
         roleKey,
         tenantId,
         employeeId,
+        clientId,
         { preferCache: isOffline },
       );
       setCacheMeta({ fromCache: result.fromCache, cachedAt: result.cachedAt });

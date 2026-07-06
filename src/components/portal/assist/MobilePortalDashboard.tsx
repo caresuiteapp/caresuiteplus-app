@@ -211,8 +211,12 @@ export function MobilePortalDashboard({
         <PortalGlassHero
           title={`${greeting},`}
           titleSecondary={context.displayName}
-          subtitle={context.tenantName}
-          meta={`${terminology.moduleLabel} · ${terminology.personLabel}`}
+          subtitle={`${context.tenantName} · ${terminology.moduleLabel}`}
+          meta={
+            context.portalRole === 'family_contact'
+              ? `Angehörigenzugang · Portal für ${context.displayName}`
+              : terminology.personLabel
+          }
           badge={terminology.moduleLabel}
           showStatusDot
         />
@@ -312,7 +316,7 @@ export function MobilePortalDashboard({
             emptyMessage="Keine Begleitungen geplant."
             ctaLabel="Mehr erfahren →"
             accentColor="#34D399"
-            hidden={!tripsReleased}
+            hidden={!tripsReleased || !data.kpis.begleitungen}
             onCta={() => router.push('/portal/client?module=assist&section=begleitungen' as never)}
             onPress={() => router.push('/portal/client?module=assist&section=begleitungen' as never)}
           />

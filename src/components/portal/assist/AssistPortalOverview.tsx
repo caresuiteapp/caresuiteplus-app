@@ -386,7 +386,7 @@ function AssistPortalOverviewDesktop({
             description="Geplant"
             value={data.kpis.begleitungen}
             emptyMessage="Keine Begleitungen geplant."
-            hidden={!tripsReleased}
+            hidden={!tripsReleased || !data.kpis.begleitungen}
             onPress={() => router.push('/portal/client?module=assist&section=begleitungen' as never)}
           />
         </View>

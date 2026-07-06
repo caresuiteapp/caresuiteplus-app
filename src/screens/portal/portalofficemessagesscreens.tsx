@@ -1,43 +1,31 @@
 import { StyleSheet, View } from 'react-native';
 import { useLocalSearchParams } from 'expo-router';
-import { AssistPortalShell } from '@/components/portal/assist/AssistPortalShell';
-import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalOfficeMessenger } from '@/components/portal/portalofficemessenger';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
-import { usePortalOfficeMessages } from '@/hooks/useportalofficemessages';
 import { usePermissions } from '@/hooks/usePermissions';
-import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { careSpacing } from '@/design/tokens/spacing';
-
 function ClientPortalVerwaltungMessages() {
   const { compose } = useLocalSearchParams<{ compose?: string }>();
   const initialComposeOpen = compose === '1' || compose === 'true';
-  const { threads } = usePortalOfficeMessages('open');
-  const unreadCount = threads.reduce((sum, thread) => sum + (thread.unreadCount ?? 0), 0);
-  const { active: messengerFocusActive } = usePortalMessengerFocus();
 
   return (
-    <AssistPortalShell>
-      <View style={[styles.glassWrap, messengerFocusActive ? styles.glassWrapFocus : null]}>
-        {!messengerFocusActive ? (
-          <PortalGlassHero
-            eyebrow="VERWALTUNG"
-            title="Nachrichten"
-            subtitle="Schreiben Sie direkt an Ihr Pflegebüro — Antworten erscheinen hier im Chat."
-            meta={`${threads.length} ${threads.length === 1 ? 'Chat' : 'Chats'}${unreadCount > 0 ? ` · ${unreadCount} ungelesen` : ''}`}
-            badge="Live"
-          />
-        ) : null}
+    <PortalTabScreen
+      title="Nachrichten"
+      subtitle="Schreiben Sie direkt an Ihr Pflegebüro — Antworten erscheinen hier im Chat."
+      hideHeaderOnPhone
+      scroll={false}
+    >
+      <View style={styles.clientMessages}>
         <PortalOfficeMessenger
           audience="client"
-          variant="glass"
+          variant="default"
           initialComposeOpen={initialComposeOpen}
         />
       </View>
-    </AssistPortalShell>
+    </PortalTabScreen>
   );
 }
 
@@ -98,14 +86,13 @@ export function ClientPortalOfficeConversationScreen() {
   }
 
   return (
-    <AssistPortalShell>
+    <PortalTabScreen title="Chat" hideHeaderOnPhone scroll={false}>
       <View style={styles.thread}>
-        <PortalOfficeThread threadId={resolvedId} variant="glass" />
+        <PortalOfficeThread threadId={resolvedId} variant="default" />
       </View>
-    </AssistPortalShell>
+    </PortalTabScreen>
   );
 }
-
 export function EmployeePortalOfficeConversationScreen() {
   const { threadId, id } = useLocalSearchParams<{ threadId?: string; id?: string }>();
   const resolvedId = threadId ?? id ?? null;
@@ -131,20 +118,14 @@ export function EmployeePortalOfficeConversationScreen() {
 }
 
 const styles = StyleSheet.create({
-  glassWrap: {
+  clientMessages: {
     flex: 1,
     minHeight: 0,
+    width: '100%',
+    alignSelf: 'stretch',
     gap: careSpacing.md,
-    paddingHorizontal: careSpacing.md,
-    paddingBottom: careSpacing.md,
   },
-  glassWrapFocus: {
-    gap: 0,
-    paddingHorizontal: 0,
-    paddingBottom: 0,
-  },
-  employeeMessages: {
-    flex: 1,
+  employeeMessages: {    flex: 1,
     minHeight: 0,
     width: '100%',
     alignSelf: 'stretch',

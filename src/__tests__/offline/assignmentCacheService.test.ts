@@ -611,6 +611,7 @@ describe('assignmentCacheService', () => {
       'employee_portal',
       'tenant-1',
       'emp-1',
+      null,
       { preferCache: true },
     );
 
@@ -626,6 +627,7 @@ describe('assignmentCacheService', () => {
       'employee_portal',
       'tenant-1',
       'emp-1',
+      null,
       { preferCache: true },
     );
 

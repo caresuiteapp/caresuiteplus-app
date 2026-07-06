@@ -17,9 +17,9 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { runService } from '@/lib/services/serviceRunner';
 
 import {
-  PORTAL_PLANNED_ASSIGNMENT_STATUSES,
   PORTAL_UPCOMING_ASSIGNMENT_STATUSES,
 } from '@/lib/portal/portalAssignmentStatusFilters';
+import { isPortalBegleitungService } from '@/lib/portal/portalBegleitungenFilter';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -98,12 +98,13 @@ async function countBegleitungen(
   if (!supabase) return null;
 
   const now = new Date().toISOString();
-  const { count, error } = await fromUnknownTable(supabase, 'assignments')
-    .select('*', { count: 'exact', head: true })
+  const { data, error } = await fromUnknownTable(supabase, 'assist_visits')
+    .select('service_key, service_name, title')
     .eq('tenant_id', tenantId)
     .eq('client_id', clientId)
     .gte('planned_start_at', now)
-    .in('status', [...PORTAL_PLANNED_ASSIGNMENT_STATUSES]);
+    .in('planning_status', ['scheduled', 'confirmed', 'at_risk'])
+    .not('execution_status', 'in', '("cancelled","completed","no_show")');
 
   if (error) {
     if (!isMissingTableError(error)) {
@@ -111,7 +112,15 @@ async function countBegleitungen(
     }
     return 0;
   }
-  return count ?? 0;
+
+  const rows = (data ?? []) as Record<string, unknown>[];
+  return rows.filter((row) =>
+    isPortalBegleitungService({
+      serviceKey: row.service_key as string | null,
+      serviceName: row.service_name as string | null,
+      title: row.title as string | null,
+    }),
+  ).length;
 }
 
 async function countOpenRequests(tenantId: string, clientId: string): Promise<number> {
