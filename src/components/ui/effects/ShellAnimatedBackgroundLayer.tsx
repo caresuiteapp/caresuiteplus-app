@@ -1,5 +1,7 @@
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { useThemeMode } from '@/design/ThemeModeProvider';
+import { useHydrated } from '@/hooks/useHydrated';
+import { shouldUseHeavyEffects, useDevicePerformance } from '@/lib/performance';
 import { webFixedViewportCoverStyle } from '@/lib/platform/webSafeArea';
 import { GlobalAnimatedBackground } from './globalanimatedbackground';
 
@@ -18,10 +20,14 @@ export function ShellAnimatedBackgroundLayer({
   testID = 'shell-animated-background-layer',
 }: ShellAnimatedBackgroundLayerProps) {
   const { mode } = useThemeMode();
+  const hydrated = useHydrated();
+  const perf = useDevicePerformance();
+  const motionAllowed =
+    animated && hydrated && shouldUseHeavyEffects(perf) && !perf.isMobile;
 
   return (
     <View style={styles.layer} pointerEvents="none" testID={testID}>
-      <GlobalAnimatedBackground mode={mode} animated={animated} />
+      <GlobalAnimatedBackground mode={mode} animated={motionAllowed} />
     </View>
   );
 }

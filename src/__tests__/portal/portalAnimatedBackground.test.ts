@@ -31,6 +31,13 @@ describe('Portal animated background wiring', () => {
     expect(layout).toContain("backgroundColor: 'transparent'");
   });
 
+  it('ShellAnimatedBackgroundLayer gates motion on mobile like app root', () => {
+    const shell = readSrc('src/components/ui/effects/ShellAnimatedBackgroundLayer.tsx');
+    expect(shell).toContain('shouldUseHeavyEffects');
+    expect(shell).toContain('!perf.isMobile');
+    expect(shell).toContain('useHydrated');
+  });
+
   it('app root skips global background on portal routes', () => {
     const layout = readSrc('app/_layout.tsx');
     expect(layout).toContain('isPortalRoutePath');

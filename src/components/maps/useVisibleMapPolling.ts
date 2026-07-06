@@ -17,8 +17,24 @@ export function useVisibleMapPolling(options: VisibleMapPollingOptions): {
   const { enabled = true, intervalMs, onPoll } = options;
   const containerRef = useRef<HTMLDivElement | null>(null);
   const [isVisible, setIsVisible] = useState(true);
+  const [appActive, setAppActive] = useState(
+    () => Platform.OS !== 'web' || typeof document === 'undefined' || document.visibilityState === 'visible',
+  );
   const onPollRef = useRef(onPoll);
   onPollRef.current = onPoll;
+
+  useEffect(() => {
+    if (Platform.OS === 'web' && typeof document !== 'undefined') {
+      const onVisibility = () => setAppActive(document.visibilityState === 'visible');
+      document.addEventListener('visibilitychange', onVisibility);
+      return () => document.removeEventListener('visibilitychange', onVisibility);
+    }
+
+    const sub = AppState.addEventListener('change', (state) => {
+      setAppActive(state === 'active');
+    });
+    return () => sub.remove();
+  }, []);
 
   useEffect(() => {
     if (Platform.OS !== 'web' || typeof IntersectionObserver === 'undefined') return;
@@ -39,20 +55,16 @@ export function useVisibleMapPolling(options: VisibleMapPollingOptions): {
 
     let timer: ReturnType<typeof setInterval> | null = null;
 
-    const docVisible =
-      Platform.OS !== 'web' ||
-      typeof document === 'undefined' ||
-      document.visibilityState === 'visible';
-    const appActive = AppState.currentState === 'active';
+    const nativeActive = Platform.OS !== 'web' ? AppState.currentState === 'active' : true;
 
-    if (isVisible && docVisible && appActive) {
+    if (isVisible && appActive && nativeActive) {
       timer = setInterval(() => onPollRef.current(), intervalMs);
     }
 
     return () => {
       if (timer) clearInterval(timer);
     };
-  }, [enabled, intervalMs, isVisible]);
+  }, [enabled, intervalMs, isVisible, appActive]);
 
   return { containerRef, isVisible };
 }
