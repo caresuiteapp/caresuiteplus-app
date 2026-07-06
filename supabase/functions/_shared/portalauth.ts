@@ -147,6 +147,17 @@ async function resolveAuthUserId(
   return { authUserId: updated.user.id, error: null };
 }
 
+async function resolveRoleId(
+  supabase: SupabaseClient,
+  roleKey: string,
+): Promise<string | null> {
+  const { data, error } = await supabase.from('roles').select('id').eq('key', roleKey).maybeSingle();
+  if (error || !data?.id) {
+    return null;
+  }
+  return data.id as string;
+}
+
 async function upsertPortalProfile(
   supabase: SupabaseClient,
   input: EnsurePortalAuthInput,
@@ -156,6 +167,7 @@ async function upsertPortalProfile(
   const now = new Date().toISOString();
   const firstName = input.clientFirstName?.trim() || null;
   const lastName = input.clientLastName?.trim() || null;
+  const roleId = await resolveRoleId(supabase, input.roleKey);
 
   const { data: existing, error: lookupError } = await supabase
     .from('profiles')
@@ -174,6 +186,7 @@ async function upsertPortalProfile(
     last_name: lastName,
     email,
     updated_at: now,
+    ...(roleId ? { role_id: roleId } : {}),
   };
 
   if (existing?.id) {

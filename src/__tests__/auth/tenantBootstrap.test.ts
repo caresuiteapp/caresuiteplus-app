@@ -103,6 +103,44 @@ describe('tenant bootstrap role resolution', () => {
     expect(roleKey).toBe('business_admin');
   });
 
+  it('resolveProfileRoleKey prefers portal JWT over stale owner profile', async () => {
+    const client = {
+      from: () => ({
+        select: () => ({
+          eq: () => ({
+            maybeSingle: async () => ({ data: null, error: null }),
+          }),
+        }),
+      }),
+    };
+
+    const roleKey = await resolveProfileRoleKey(
+      client as never,
+      {
+        id: 'p1',
+        tenant_id: 't1',
+        role_id: 'role-1',
+        first_name: 'Klient',
+        last_name: 'Portal',
+        full_name: 'Klient Portal',
+        email: 'portal.client.test@caresuite-portal.local',
+        phone: null,
+        avatar_url: null,
+        created_at: '2026-01-01T00:00:00.000Z',
+        updated_at: '2026-01-01T00:00:00.000Z',
+        roles: { key: 'owner' },
+      },
+      {
+        user: {
+          app_metadata: { role_key: 'client_portal' },
+          user_metadata: {},
+        },
+      } as never,
+    );
+
+    expect(roleKey).toBe('client_portal');
+  });
+
   it('RedirectIfAuthenticated waits for session target before redirect', () => {
     const guard = readSrc('src/lib/auth/RedirectIfAuthenticated.tsx');
     expect(guard).toContain('canRedirectHome');
