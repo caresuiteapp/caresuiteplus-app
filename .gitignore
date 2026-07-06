@@ -26,3 +26,10 @@ wp002-extract.txt
 
 # Optional local tooling (portable MinGit fallback only if Git for Windows is not on PATH)
 .tools/
+
+# Local audit runs (scripts, logs, screenshots, MCP migration chunks)
+.audit-*
+.audit-screenshots-*/
+.git-commit-msg.txt
+scripts/audit/.migration-parts/
+supabase/.temp/

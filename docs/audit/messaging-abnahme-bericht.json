@@ -1,0 +1,562 @@
+{
+  "timestamp": "2026-07-06T02:04:04.587Z",
+  "baseUrl": "http://localhost:8091",
+  "branch": "cursor/cs-vorlagen-documents-signatures-phase2",
+  "commit": "f605232d",
+  "auth": {
+    "office": {
+      "ok": true
+    },
+    "business": {
+      "ok": true
+    },
+    "client_portal": {
+      "ok": true,
+      "clientId": "ec4f159f-e794-4326-8b0e-15c0166df1ea",
+      "accountId": "4a0fbb8c-944c-4066-b5c5-67df0b963374"
+    },
+    "employee_portal": {
+      "ok": true
+    }
+  },
+  "seedSummary": "Seed übersprungen (SKIP_MESSAGING_SEED=1); 2 communication_threads via SQL im Audit-Mandanten",
+  "results": [
+    {
+      "route": "office",
+      "viewport": "desktop",
+      "grade": "gruen",
+      "checks": [
+        {
+          "name": "loads",
+          "ok": true,
+          "detail": "len=1326",
+          "sev": "ok"
+        },
+        {
+          "name": "not_locked",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "list_visible",
+          "ok": true,
+          "detail": "no list",
+          "sev": "ok"
+        },
+        {
+          "name": "no_hscroll",
+          "ok": true,
+          "detail": "horizontal scroll",
+          "sev": "ok"
+        },
+        {
+          "name": "shell_dark_ignored",
+          "ok": true,
+          "detail": "0 shell dark regions (ignored)",
+          "sev": "ok"
+        },
+        {
+          "name": "split_view",
+          "ok": true,
+          "detail": "no split/empty pane",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_visible",
+          "ok": true,
+          "detail": "Senden/Composer fehlt",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_send",
+          "ok": true,
+          "detail": "Senden fehlt",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_not_dark",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "console_clean",
+          "ok": true,
+          "detail": "",
+          "sev": "ok"
+        }
+      ]
+    },
+    {
+      "route": "office",
+      "viewport": "mobile",
+      "grade": "gruen",
+      "checks": [
+        {
+          "name": "loads",
+          "ok": true,
+          "detail": "len=458",
+          "sev": "ok"
+        },
+        {
+          "name": "not_locked",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "list_visible",
+          "ok": true,
+          "detail": "no list",
+          "sev": "ok"
+        },
+        {
+          "name": "no_hscroll",
+          "ok": true,
+          "detail": "horizontal scroll",
+          "sev": "ok"
+        },
+        {
+          "name": "shell_dark_ignored",
+          "ok": true,
+          "detail": "0 shell dark regions (ignored)",
+          "sev": "ok"
+        },
+        {
+          "name": "mobile_chat",
+          "ok": true,
+          "detail": "no mobile chat",
+          "sev": "ok"
+        },
+        {
+          "name": "mobile_back",
+          "ok": true,
+          "detail": "← Liste fehlt",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_not_dark",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "console_clean",
+          "ok": true,
+          "detail": "",
+          "sev": "ok"
+        }
+      ]
+    },
+    {
+      "route": "business",
+      "viewport": "desktop",
+      "grade": "gruen",
+      "checks": [
+        {
+          "name": "loads",
+          "ok": true,
+          "detail": "len=824",
+          "sev": "ok"
+        },
+        {
+          "name": "not_locked",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "list_visible",
+          "ok": true,
+          "detail": "no list",
+          "sev": "ok"
+        },
+        {
+          "name": "no_hscroll",
+          "ok": true,
+          "detail": "horizontal scroll",
+          "sev": "ok"
+        },
+        {
+          "name": "shell_dark_ignored",
+          "ok": true,
+          "detail": "0 shell dark regions (ignored)",
+          "sev": "ok"
+        },
+        {
+          "name": "split_view",
+          "ok": true,
+          "detail": "no split/empty pane",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_visible",
+          "ok": true,
+          "detail": "Senden/Composer fehlt",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_send",
+          "ok": true,
+          "detail": "Senden fehlt",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_not_dark",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "console_clean",
+          "ok": true,
+          "detail": "",
+          "sev": "ok"
+        }
+      ]
+    },
+    {
+      "route": "business",
+      "viewport": "mobile",
+      "grade": "rot",
+      "checks": [
+        {
+          "name": "loads",
+          "ok": true,
+          "detail": "len=398",
+          "sev": "ok"
+        },
+        {
+          "name": "not_locked",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "list_visible",
+          "ok": true,
+          "detail": "no list",
+          "sev": "ok"
+        },
+        {
+          "name": "no_hscroll",
+          "ok": true,
+          "detail": "horizontal scroll",
+          "sev": "ok"
+        },
+        {
+          "name": "shell_dark_ignored",
+          "ok": true,
+          "detail": "0 shell dark regions (ignored)",
+          "sev": "ok"
+        },
+        {
+          "name": "mobile_chat",
+          "ok": false,
+          "detail": "no mobile chat",
+          "sev": "red"
+        },
+        {
+          "name": "mobile_back",
+          "ok": false,
+          "detail": "← Liste fehlt",
+          "sev": "yellow"
+        },
+        {
+          "name": "composer_not_dark",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "console_clean",
+          "ok": true,
+          "detail": "",
+          "sev": "ok"
+        }
+      ]
+    },
+    {
+      "route": "client_portal",
+      "viewport": "desktop",
+      "grade": "rot",
+      "checks": [
+        {
+          "name": "loads",
+          "ok": true,
+          "detail": "len=899",
+          "sev": "ok"
+        },
+        {
+          "name": "not_locked",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "list_visible",
+          "ok": true,
+          "detail": "no list",
+          "sev": "ok"
+        },
+        {
+          "name": "no_hscroll",
+          "ok": true,
+          "detail": "horizontal scroll",
+          "sev": "ok"
+        },
+        {
+          "name": "shell_dark_ignored",
+          "ok": true,
+          "detail": "0 shell dark regions (ignored)",
+          "sev": "ok"
+        },
+        {
+          "name": "split_view",
+          "ok": true,
+          "detail": "no split/empty pane",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_visible",
+          "ok": false,
+          "detail": "Senden/Composer fehlt",
+          "sev": "red"
+        },
+        {
+          "name": "composer_send",
+          "ok": false,
+          "detail": "Senden fehlt",
+          "sev": "yellow"
+        },
+        {
+          "name": "composer_not_dark",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "console_clean",
+          "ok": true,
+          "detail": "",
+          "sev": "ok"
+        }
+      ]
+    },
+    {
+      "route": "client_portal",
+      "viewport": "mobile",
+      "grade": "gelb",
+      "checks": [
+        {
+          "name": "loads",
+          "ok": true,
+          "detail": "len=270",
+          "sev": "ok"
+        },
+        {
+          "name": "not_locked",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "list_visible",
+          "ok": true,
+          "detail": "no list",
+          "sev": "ok"
+        },
+        {
+          "name": "no_hscroll",
+          "ok": true,
+          "detail": "horizontal scroll",
+          "sev": "ok"
+        },
+        {
+          "name": "shell_dark_ignored",
+          "ok": true,
+          "detail": "0 shell dark regions (ignored)",
+          "sev": "ok"
+        },
+        {
+          "name": "mobile_chat",
+          "ok": true,
+          "detail": "no mobile chat",
+          "sev": "ok"
+        },
+        {
+          "name": "mobile_back",
+          "ok": false,
+          "detail": "← Liste fehlt",
+          "sev": "yellow"
+        },
+        {
+          "name": "composer_not_dark",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "console_clean",
+          "ok": true,
+          "detail": "",
+          "sev": "ok"
+        }
+      ]
+    },
+    {
+      "route": "employee_portal",
+      "viewport": "desktop",
+      "grade": "rot",
+      "checks": [
+        {
+          "name": "loads",
+          "ok": true,
+          "detail": "len=694",
+          "sev": "ok"
+        },
+        {
+          "name": "not_locked",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "list_visible",
+          "ok": true,
+          "detail": "no list",
+          "sev": "ok"
+        },
+        {
+          "name": "no_hscroll",
+          "ok": true,
+          "detail": "horizontal scroll",
+          "sev": "ok"
+        },
+        {
+          "name": "shell_dark_ignored",
+          "ok": true,
+          "detail": "0 shell dark regions (ignored)",
+          "sev": "ok"
+        },
+        {
+          "name": "split_view",
+          "ok": true,
+          "detail": "no split/empty pane",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_visible",
+          "ok": true,
+          "detail": "Senden/Composer fehlt",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_send",
+          "ok": true,
+          "detail": "Senden fehlt",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_not_dark",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "console_clean",
+          "ok": false,
+          "detail": "undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize | undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize",
+          "sev": "red"
+        }
+      ]
+    },
+    {
+      "route": "employee_portal",
+      "viewport": "mobile",
+      "grade": "rot",
+      "checks": [
+        {
+          "name": "loads",
+          "ok": true,
+          "detail": "len=286",
+          "sev": "ok"
+        },
+        {
+          "name": "not_locked",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "list_visible",
+          "ok": true,
+          "detail": "no list",
+          "sev": "ok"
+        },
+        {
+          "name": "no_hscroll",
+          "ok": true,
+          "detail": "horizontal scroll",
+          "sev": "ok"
+        },
+        {
+          "name": "shell_dark_ignored",
+          "ok": true,
+          "detail": "0 shell dark regions (ignored)",
+          "sev": "ok"
+        },
+        {
+          "name": "mobile_chat",
+          "ok": true,
+          "detail": "no mobile chat",
+          "sev": "ok"
+        },
+        {
+          "name": "mobile_back",
+          "ok": true,
+          "detail": "← Liste fehlt",
+          "sev": "ok"
+        },
+        {
+          "name": "mobile_back_works",
+          "ok": true,
+          "detail": "back failed",
+          "sev": "ok"
+        },
+        {
+          "name": "composer_not_dark",
+          "ok": true,
+          "detail": "ok",
+          "sev": "ok"
+        },
+        {
+          "name": "console_clean",
+          "ok": false,
+          "detail": "undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize | undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize",
+          "sev": "red"
+        }
+      ]
+    }
+  ],
+  "hardConsole": [
+    "undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize"
+  ],
+  "tests": [],
+  "fixes": [
+    "communication_threads Seed für Business-Abnahme",
+    "Client-Portal E2E: Supabase-Token + Welcome-Gate + Prime /portal/client",
+    "Dark-Bar-Erkennung auf messaging-composer testID begrenzt",
+    "useCommunicationPermissions: portalSession.roleKey",
+    "testID communication-thread-row + messaging-composer"
+  ],
+  "openItems": [
+    "business/mobile: mobile_chat:no mobile chat; mobile_back:← Liste fehlt",
+    "client_portal/desktop: composer_visible:Senden/Composer fehlt; composer_send:Senden fehlt",
+    "client_portal/mobile: mobile_back:← Liste fehlt",
+    "employee_portal/desktop: console_clean:undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize | undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize",
+    "employee_portal/mobile: console_clean:undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize | undefined Unable to resolve module ./csDocumentContextNormalize from C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\src\\lib\\documents\\csTemplates\\csDocumentContextResolver.ts: \n\nNone of these files exist:\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize(.web.ts|.ts|.web.tsx|.tsx|.web.mjs|.mjs|.web.js|.js|.web.jsx|.jsx|.web.json|.json|.web.cjs|.cjs|.web.scss|.scss|.web.sass|.sass|.web.css|.css)\n  * src\\lib\\documents\\csTemplates\\csDocumentContextNormalize"
+  ],
+  "finalGrade": "rot"
+}

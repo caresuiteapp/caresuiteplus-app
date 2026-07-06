@@ -1,6 +1,0 @@
-﻿CareSuite+ Client Core K.0-K.3 Migration Post-Apply
-Date: 2026-06-20
-Project: euagyyztvmemuaiumvxm
-Applied: 0159_client_core_service_budget_portal_settings ONLY
-Remote migration count: includes 0159
-Tables verified: tenant_client_service_types, client_service_profiles, tenant_budget_*, client_budget_*, tenant_client_portal_defaults, client_portal_settings, client_portal_access_requests
