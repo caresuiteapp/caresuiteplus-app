@@ -25,6 +25,7 @@ import {
   webSafeAreaPadding,
   webShellViewportLockStyle,
 } from '@/lib/platform/webSafeArea';
+import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 
 export type PortalShellKind = 'client' | 'employee' | 'relative';
 
@@ -54,8 +55,10 @@ export function PortalShellLayout({
     kind === 'employee' ? resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS) : portalTabs;
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
+  const { active: messengerFocusActive } = usePortalMessengerFocus();
 
   const isCompactShell = !isDesktopOrWide;
+  const showMobileBottomNav = showBottomTabs && !messengerFocusActive;
   const showRightSidebar = width >= BREAKPOINT_MIN.desktop && kind === 'client';
   const showLeftNav = isDesktopOrWide;
   const portalLabel =
@@ -76,6 +79,27 @@ export function PortalShellLayout({
 
   const mobileNavArea: import('@/types/navigation/shell').AppShellArea =
     kind === 'employee' ? 'portal_employee' : 'portal_client';
+
+  const scrollContentStyle = [
+    styles.mainContent,
+    messengerFocusActive ? styles.mainContentMessengerFocus : null,
+    showMobileBottomNav ? { paddingBottom: mobileContentPaddingBottom } : null,
+  ];
+
+  const mainContent = messengerFocusActive ? (
+    <View style={[styles.mainScroll, scrollContentStyle]} testID="portal-shell-scroll">
+      {children}
+    </View>
+  ) : (
+    <AutoScrollView
+      style={styles.mainScroll}
+      contentContainerStyle={scrollContentStyle}
+      fillViewport
+      testID="portal-shell-scroll"
+    >
+      {children}
+    </AutoScrollView>
+  );
 
   return (
     <View
@@ -98,19 +122,7 @@ export function PortalShellLayout({
       </View>
 
       {isCompactShell ? (
-        <View style={styles.content}>
-          <AutoScrollView
-            style={styles.mainScroll}
-            contentContainerStyle={[
-              styles.mainContent,
-              showBottomTabs ? { paddingBottom: mobileContentPaddingBottom } : null,
-            ]}
-            fillViewport
-            testID="portal-shell-scroll"
-          >
-            {children}
-          </AutoScrollView>
-        </View>
+        <View style={styles.content}>{mainContent}</View>
       ) : (
         <View style={styles.body}>
           {showLeftNav ? (
@@ -129,25 +141,13 @@ export function PortalShellLayout({
             )
           ) : null}
 
-          <View style={styles.main}>
-            <AutoScrollView
-              style={styles.mainScroll}
-              contentContainerStyle={[
-                styles.mainContent,
-                showBottomTabs ? { paddingBottom: mobileContentPaddingBottom } : null,
-              ]}
-              fillViewport
-              testID="portal-shell-scroll"
-            >
-              {children}
-            </AutoScrollView>
-          </View>
+          <View style={styles.main}>{mainContent}</View>
 
           {showRightSidebar ? <PortalRightSidebar accentColor={accentColor} /> : null}
         </View>
       )}
 
-      {showBottomTabs ? (
+      {showMobileBottomNav ? (
         <View style={styles.bottomNavHost}>
           <PortalMobileNav tabs={portalTabs} accentColor={accentColor} area={mobileNavArea} />
         </View>
@@ -159,9 +159,9 @@ export function PortalShellLayout({
         accentColor={accentColor}
         portalLabel={portalLabel}
       />
-      <NotificationBellFab
-        bottomOffset={showBottomTabs ? bottomNavOffset : 0}
-      />
+      {!messengerFocusActive ? (
+        <NotificationBellFab bottomOffset={showMobileBottomNav ? bottomNavOffset : 0} />
+      ) : null}
     </View>
   );
 }
@@ -205,6 +205,12 @@ const styles = StyleSheet.create({
     padding: careSpacing.md,
     paddingBottom: careSpacing.xl,
     backgroundColor: 'transparent',
+  },
+  mainContentMessengerFocus: {
+    flex: 1,
+    minHeight: 0,
+    padding: 0,
+    paddingBottom: 0,
   },
   bottomNavHost: {
     position: 'absolute',

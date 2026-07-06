@@ -151,7 +151,7 @@ export function MessengerShell({
 
   if (showSplit) {
     return (
-      <View style={styles.root}>
+      <View style={styles.root} testID="messenger-shell">
         <View style={styles.splitRow}>
           <View style={[styles.inboxPane, { width: masterPaneWidth, maxWidth: masterPaneWidth }]}>
             {inbox}
@@ -166,7 +166,7 @@ export function MessengerShell({
 
   if (showMobileThread) {
     return (
-      <View style={styles.root}>
+      <View style={styles.root} testID="messenger-shell">
         <View style={styles.mobileThread}>
           <View style={styles.mobileChrome}>
             <Pressable
@@ -189,8 +189,10 @@ export function MessengerShell({
   }
 
   return (
-    <View style={styles.root}>
-      <View style={styles.mobileList}>{inbox}</View>
+    <View style={styles.root} testID="messenger-shell">
+      <View style={styles.mobileList} testID="messenger-conversation-list">
+        {inbox}
+      </View>
     </View>
   );
 }

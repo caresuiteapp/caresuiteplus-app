@@ -6,6 +6,7 @@ import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { MessengerShell } from '@/components/messaging';
 import { PremiumButton } from '@/components/ui';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
+import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { careSpacing } from '@/design/tokens/spacing';
 import { spacing } from '@/theme';
 import type { PortalOfficeAudience, PortalOfficeInboxFilter } from '@/lib/office/portalofficemessageservice';
@@ -26,6 +27,7 @@ export function PortalOfficeMessenger({
   initialComposeOpen = false,
 }: PortalOfficeMessengerProps) {
   const { useMasterDetail } = usePlatformLayout();
+  const { setActive: setMessengerFocusActive } = usePortalMessengerFocus();
   const [filter, setFilter] = useState<PortalOfficeInboxFilter>('open');
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
   const [selectedThreadTitle, setSelectedThreadTitle] = useState('Chat');
@@ -35,6 +37,13 @@ export function PortalOfficeMessenger({
   useEffect(() => {
     if (initialComposeOpen) setShowNewChat(true);
   }, [initialComposeOpen]);
+
+  const mobileChatActive = !useMasterDetail && !!selectedThreadId;
+
+  useEffect(() => {
+    setMessengerFocusActive(mobileChatActive);
+    return () => setMessengerFocusActive(false);
+  }, [mobileChatActive, setMessengerFocusActive]);
 
   const styles = useMemo(
     () =>
@@ -77,9 +86,11 @@ export function PortalOfficeMessenger({
 
   return (
     <View style={styles.root}>
-      <View style={styles.header}>
-        <PremiumButton title={composeLabel} onPress={() => setShowNewChat(true)} />
-      </View>
+      {!mobileChatActive ? (
+        <View style={styles.header}>
+          <PremiumButton title={composeLabel} onPress={() => setShowNewChat(true)} />
+        </View>
+      ) : null}
 
       <View style={styles.body}>
         <MessengerShell
