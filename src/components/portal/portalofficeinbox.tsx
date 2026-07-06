@@ -1,9 +1,9 @@
 import { useMemo } from 'react';
-import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
+import { FlatList, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumInput, EmptyState, LoadingState, ErrorState } from '@/components/ui';
 import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
-import { useMessagingGlassSurface } from '@/design/tokens/auroraGlass';
+import { PORTAL_LIGHT_LINK_ORANGE, useMessagingGlassSurface } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import { isEmployeeGroupChatThread } from '@/lib/office/employeeGroupChatService';
@@ -16,6 +16,8 @@ const FILTERS: { key: PortalOfficeInboxFilter; label: string }[] = [
   { key: 'open', label: 'Offen' },
   { key: 'closed', label: 'Abgeschlossen' },
 ];
+
+const webRowCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as ViewStyle) : null;
 
 type PortalOfficeInboxProps = {
   filter: PortalOfficeInboxFilter;
@@ -92,14 +94,8 @@ function ThreadRow({
     ? (thread.participantName ?? `${memberCount} Mitglieder`)
     : null;
 
-  return (
-    <Pressable
-      onPress={onPress}
-      style={styles.row}
-      accessibilityRole="button"
-      testID={`portal-thread-row-${thread.id}`}
-      accessibilityLabel={`Chat ${thread.subject}`}
-    >
+  const rowContent = (
+    <>
       <Text style={styles.subject} numberOfLines={1}>
         {thread.subject}
       </Text>
@@ -122,8 +118,19 @@ function ThreadRow({
           </View>
         ) : null}
       </View>
-    </Pressable>
+    </>
   );
+
+  const RowComponent = Pressable;
+  const rowProps = {
+    onPress,
+    style: [styles.row, webRowCursor],
+    accessibilityRole: 'button' as const,
+    testID: `portal-thread-open-${thread.id}`,
+    accessibilityLabel: `Chat ${thread.subject}`,
+  };
+
+  return <RowComponent {...rowProps}>{rowContent}</RowComponent>;
 }
 
 export function PortalOfficeInbox({
@@ -157,10 +164,10 @@ export function PortalOfficeInbox({
         },
         filterChipActive: {
           backgroundColor: isGlass ? surfaces.chipActive : `${c.violet}22`,
-          borderColor: isGlass ? '#FF9500' : c.violet,
+          borderColor: isGlass ? PORTAL_LIGHT_LINK_ORANGE : c.violet,
         },
         filterText: { ...typography.caption, color: ink?.muted ?? c.muted },
-        filterTextActive: { color: isGlass ? '#FF9500' : c.violet, fontWeight: '700' },
+        filterTextActive: { color: isGlass ? PORTAL_LIGHT_LINK_ORANGE : c.violet, fontWeight: '700' },
         search: { paddingHorizontal: spacing.sm, paddingBottom: spacing.sm },
         list: { flex: 1 },
         emptyWrap: { padding: spacing.md },

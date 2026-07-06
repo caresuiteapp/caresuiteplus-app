@@ -1,6 +1,7 @@
 import React from 'react';
 import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { resolveAccentTextChipStyle } from '@/design/tokens/accentContrast';
+import { useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { colors } from '@/theme';
@@ -34,8 +35,9 @@ const CONFIG: Record<Variant, { text: string; bg: string; border: string }> = {
 
 export function PremiumBadge({ label, variant = 'orange', style, dot = false }: Props) {
   const { isLight } = useLegacyTheme();
+  const useLightShell = useLightLiquidGlassShell() || isLight;
   const base = CONFIG[variant] ?? CONFIG.muted;
-  const chip = isLight ? resolveAccentTextChipStyle(base.text) : null;
+  const chip = useLightShell ? null : isLight ? resolveAccentTextChipStyle(base.text) : null;
 
   return (
     <View

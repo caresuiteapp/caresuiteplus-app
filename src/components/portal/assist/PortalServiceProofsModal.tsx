@@ -4,7 +4,7 @@ import { useRouter } from 'expo-router';
 import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
 import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { PORTAL_LIGHT_LINK_ORANGE, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -27,7 +27,7 @@ type PortalServiceProofsModalProps = {
 };
 
 const STATUS_COLORS: Record<string, string> = {
-  offen: '#FF9500',
+  offen: PORTAL_LIGHT_LINK_ORANGE,
   unterschrieben: '#34C759',
   abgerechnet: '#62F3FF',
 };
@@ -165,7 +165,7 @@ export function PortalServiceProofsModal({
       ) : null}
 
       <Pressable onPress={() => void handleInquiry()} style={styles.inquiryLink}>
-        <Text style={[type.caption, { color: '#FF9500', fontWeight: '600' }]}>
+        <Text style={[type.caption, { color: PORTAL_LIGHT_LINK_ORANGE, fontWeight: '600' }]}>
           {actionProofId === 'inquiry' ? 'Wird gesendet…' : 'Rückfrage senden'}
         </Text>
       </Pressable>

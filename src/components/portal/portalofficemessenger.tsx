@@ -1,10 +1,13 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
+import { useRouter } from 'expo-router';
 import { PortalNewChatModal } from '@/components/portal/portalnewchatmodal';
 import { PortalOfficeInbox } from '@/components/portal/portalofficeinbox';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
 import { MessengerShell } from '@/components/messaging';
-import { PremiumButton } from '@/components/ui';
+import { PremiumButton, CareLightButton } from '@/components/ui';
+import { useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { usePortalMessengerFocus } from '@/lib/portal/portalMessengerFocusContext';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -27,6 +30,10 @@ export function PortalOfficeMessenger({
   initialComposeOpen = false,
 }: PortalOfficeMessengerProps) {
   const { useMasterDetail } = usePlatformLayout();
+  const router = useRouter();
+  const { isLight } = useLegacyTheme();
+  const useLightGlass = useLightLiquidGlassShell();
+  const useLightUi = useLightGlass || isLight;
   const { setActive: setMessengerFocusActive } = usePortalMessengerFocus();
   const [filter, setFilter] = useState<PortalOfficeInboxFilter>('open');
   const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
@@ -66,6 +73,10 @@ export function PortalOfficeMessenger({
   );
 
   const openThread = (threadId: string, subject?: string) => {
+    if (audience === 'client' && !useMasterDetail) {
+      router.push(`/portal/client/messages/${threadId}` as never);
+      return;
+    }
     setSelectedThreadId(threadId);
     if (subject) setSelectedThreadTitle(subject);
   };
@@ -77,6 +88,7 @@ export function PortalOfficeMessenger({
       threadId={selectedThreadId}
       variant={variant}
       hideHeader={!useMasterDetail}
+      onThreadTitleResolved={setSelectedThreadTitle}
       onNewThreadStarted={(newThreadId) => {
         openThread(newThreadId);
         setFilter('open');
@@ -88,7 +100,11 @@ export function PortalOfficeMessenger({
     <View style={styles.root}>
       {!mobileChatActive ? (
         <View style={styles.header}>
-          <PremiumButton title={composeLabel} onPress={() => setShowNewChat(true)} />
+          {useLightUi ? (
+            <CareLightButton title={composeLabel} onPress={() => setShowNewChat(true)} />
+          ) : (
+            <PremiumButton title={composeLabel} onPress={() => setShowNewChat(true)} />
+          )}
         </View>
       ) : null}
 

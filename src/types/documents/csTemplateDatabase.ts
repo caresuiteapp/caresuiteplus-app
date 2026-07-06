@@ -157,6 +157,24 @@ export const CS_DOCUMENT_PRIORITY_LABELS: Record<CsDocumentPriority, string> = {
   urgent: 'Dringend',
 };
 
+export const PORTAL_CS_DOCUMENT_REQUEST_STATUS_LABELS: Record<CsDocumentRequestStatus, string> = {
+  draft: 'Entwurf',
+  sent: 'Neu',
+  opened: 'Offen',
+  partially_signed: 'Teilweise unterschrieben',
+  completed: 'Unterschrieben',
+  rejected: 'Abgelehnt',
+  expired: 'Abgelaufen',
+  archived: 'Archiviert',
+};
+
+export function resolveCsDocumentRequestStatusLabel(
+  status: CsDocumentRequestStatus,
+  portal = false,
+): string {
+  return portal ? PORTAL_CS_DOCUMENT_REQUEST_STATUS_LABELS[status] : CS_DOCUMENT_REQUEST_STATUS_LABELS[status];
+}
+
 export const CS_DOCUMENT_REQUEST_STATUS_LABELS: Record<CsDocumentRequestStatus, string> = {
   draft: 'Entwurf',
   sent: 'Gesendet',

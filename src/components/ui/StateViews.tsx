@@ -4,12 +4,14 @@ import {
   useActiveGlassTokens,
   useAuroraAdaptiveText,
   useAuroraGlassActive,
+  useLightLiquidGlassShell,
   lightLiquidGlassWebFx,
 } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careRadius } from '@/design/tokens/radius';
 import { spacing } from '@/theme';
 import { PremiumButton } from './PremiumButton';
+import { CareLightButton } from './CareLightButton';
 
 function useStateTextColors() {
   const auroraActive = useAuroraGlassActive();
@@ -89,9 +91,11 @@ type EmptyStateProps = {
 };
 
 export function EmptyState({ title, message, actionLabel, onAction }: EmptyStateProps) {
-  const { typography } = useLegacyTheme();
+  const { typography, isLight } = useLegacyTheme();
   const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
+  const useLightGlass = useLightLiquidGlassShell();
+  const useLightUi = useLightGlass || isLight;
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -121,7 +125,11 @@ export function EmptyState({ title, message, actionLabel, onAction }: EmptyState
       <Text style={styles.title}>{title}</Text>
       {message ? <Text style={styles.message}>{message}</Text> : null}
       {actionLabel && onAction ? (
-        <PremiumButton title={actionLabel} onPress={onAction} size="sm" />
+        useLightUi ? (
+          <CareLightButton title={actionLabel} onPress={onAction} />
+        ) : (
+          <PremiumButton title={actionLabel} onPress={onAction} size="sm" />
+        )
       ) : null}
     </View>
   );
@@ -141,6 +149,9 @@ export function ErrorState({
   const { colors, typography } = useLegacyTheme();
   const textColors = useStateTextColors();
   const containerSurface = useStateContainerStyle();
+  const useLightGlass = useLightLiquidGlassShell();
+  const { isLight } = useLegacyTheme();
+  const useLightUi = useLightGlass || isLight;
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -170,7 +181,11 @@ export function ErrorState({
       <Text style={styles.title}>{title}</Text>
       <Text style={styles.message}>{message}</Text>
       {onRetry ? (
-        <PremiumButton title="Erneut versuchen" onPress={onRetry} variant="secondary" size="sm" />
+        useLightUi ? (
+          <CareLightButton title="Erneut versuchen" onPress={onRetry} variant="secondary" />
+        ) : (
+          <PremiumButton title="Erneut versuchen" onPress={onRetry} variant="secondary" size="sm" />
+        )
       ) : null}
     </View>
   );

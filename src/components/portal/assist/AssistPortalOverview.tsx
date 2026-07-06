@@ -180,12 +180,12 @@ function AssistPortalOverviewDesktop({
 
     if (action === 'upload') {
       setUploadModalOpen(true);
-    } else if (action === 'nachweise' && proofsReleased) {
-      setProofsModalOpen(true);
+    } else if (action === 'nachweise') {
+      router.push('/portal/client/proofs' as never);
     } else if (action === 'termin_aendern' || action === 'zusatztermin' || action === 'rueckruf') {
       setRequestModal(action as PortalRequestType);
     }
-  }, [params.action, proofsReleased]);
+  }, [params.action, router]);
 
   const loadDashboard = useCallback(async (silent = false) => {
     if (!silent) {
@@ -344,16 +344,15 @@ function AssistPortalOverviewDesktop({
             value={data.kpis.proofs}
             emptyMessage="Keine Nachweise offen."
             ctaLabel="Nachweise anzeigen"
-            onCta={() => setProofsModalOpen(true)}
-            onPress={() => setProofsModalOpen(true)}
-            hidden={!proofsReleased}
+            onCta={() => router.push('/portal/client/proofs' as never)}
+            onPress={() => router.push('/portal/client/proofs' as never)}
           />
           <PortalKpiCard
             label="Unterschriften"
             description="Ausstehend"
             value={data.kpis.signatures}
             emptyMessage="Keine Unterschriften ausstehend."
-            onPress={() => router.push('/portal/client/documents' as never)}
+            onPress={() => router.push('/portal/client/documents/signatures' as never)}
           />
           {budgetReleased ? (
             <PortalKpiCard

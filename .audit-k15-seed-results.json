@@ -1,0 +1,57 @@
+{
+  "ok": true,
+  "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
+  "clientId": "ec4f159f-e794-4326-8b0e-15c0166df1ea",
+  "steps": [
+    {
+      "step": "content_portal_e2e_seed",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "step": "tenant_portal_defaults_proofs",
+      "ok": false,
+      "optional": true,
+      "detail": "skipped_permission_denied"
+    },
+    {
+      "step": "portal_settings_proofs",
+      "ok": true,
+      "detail": "show_proofs=true"
+    },
+    {
+      "step": "cs_document_request",
+      "ok": true,
+      "id": "c0e5e001-e001-4000-8000-000000000001",
+      "detail": "sent"
+    },
+    {
+      "step": "cs_document_signature_pending",
+      "ok": true,
+      "detail": "client_pending"
+    },
+    {
+      "step": "assist_visit_proof_portal",
+      "ok": true,
+      "id": "c0e50003-0003-4000-8000-000000000003",
+      "detail": "portal_visible_released"
+    },
+    {
+      "step": "business_login_for_proof_mirror",
+      "ok": true,
+      "detail": "ok"
+    },
+    {
+      "step": "client_documents_proof_mirror",
+      "ok": true,
+      "id": "c0e50003-0003-4000-8000-000000000003",
+      "detail": "portal_visible_leistungsnachweis"
+    }
+  ],
+  "ids": {
+    "csRequest": "c0e5e001-e001-4000-8000-000000000001",
+    "csSignature": "c0e5e002-e002-4000-8000-000000000001",
+    "assistProof": "c0e50003-0003-4000-8000-000000000003",
+    "proofDocument": "c0e50003-0003-4000-8000-000000000003"
+  }
+}

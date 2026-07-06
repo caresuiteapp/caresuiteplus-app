@@ -1,0 +1,417 @@
+{
+  "generatedAt": "2026-07-06T06:55:02.405Z",
+  "baseUrl": "http://localhost:8091",
+  "k13Baseline": {
+    "passed": 42,
+    "failed": 6,
+    "total": 48
+  },
+  "summary": {
+    "passed": 44,
+    "failed": 10,
+    "total": 54
+  },
+  "checks": [
+    {
+      "id": "login",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "id": "overview_iphone_loads",
+      "pass": true,
+      "detail": "Übersicht"
+    },
+    {
+      "id": "profile_iphone_loads",
+      "pass": true,
+      "detail": "Profil"
+    },
+    {
+      "id": "appointments_iphone_loads",
+      "pass": true,
+      "detail": "Einsätze"
+    },
+    {
+      "id": "documents_iphone_loads",
+      "pass": true,
+      "detail": "Dokumente"
+    },
+    {
+      "id": "documents_iphone_signatures_link",
+      "pass": true,
+      "detail": "cross_link"
+    },
+    {
+      "id": "signatures_iphone_loads",
+      "pass": true,
+      "detail": "Unterschriften"
+    },
+    {
+      "id": "signatures_iphone_list",
+      "pass": true,
+      "detail": "signatures_screen"
+    },
+    {
+      "id": "proofs_iphone_loads",
+      "pass": true,
+      "detail": "Nachweise"
+    },
+    {
+      "id": "messages_iphone_loads",
+      "pass": true,
+      "detail": "Nachrichten"
+    },
+    {
+      "id": "drawer_items",
+      "pass": true,
+      "detail": "drawer_ok"
+    },
+    {
+      "id": "bottom_nav",
+      "pass": true,
+      "detail": "portal-mobile-nav"
+    },
+    {
+      "id": "signature_cross_link",
+      "pass": true,
+      "detail": "cross_link_visible"
+    },
+    {
+      "id": "signature_list_ui",
+      "pass": true,
+      "detail": "signatures_screen"
+    },
+    {
+      "id": "signature_open_requests_db",
+      "pass": false,
+      "detail": "0 offene Anfrage(n) in DB",
+      "count": 0
+    },
+    {
+      "id": "signature_detail_ui",
+      "pass": false,
+      "detail": "no_open_request_for_detail",
+      "skipped": true
+    },
+    {
+      "id": "signature_sign_action_ui",
+      "pass": false,
+      "detail": "no_open_request",
+      "skipped": true
+    },
+    {
+      "id": "signature_no_misleading_pdf",
+      "pass": true,
+      "detail": "no_detail_without_data"
+    },
+    {
+      "id": "proofs_ui_loads",
+      "pass": true,
+      "detail": "proofs_screen"
+    },
+    {
+      "id": "proofs_data_db",
+      "pass": false,
+      "detail": "0 Nachweis(e) in DB",
+      "count": 0
+    },
+    {
+      "id": "proofs_card_ui",
+      "pass": false,
+      "detail": "empty_state_ok",
+      "skipped": true
+    },
+    {
+      "id": "proofs_action_ui",
+      "pass": false,
+      "detail": "no_proof_data_e2e",
+      "skipped": true
+    },
+    {
+      "id": "iphone_composer_in_thread",
+      "pass": false,
+      "detail": "thread_not_opened"
+    },
+    {
+      "id": "iphone_composer_input",
+      "pass": false,
+      "detail": "follow_on"
+    },
+    {
+      "id": "iphone_messenger_back",
+      "pass": false,
+      "detail": "follow_on"
+    },
+    {
+      "id": "iphone_thread_hides_bottom_nav",
+      "pass": false,
+      "detail": "no_thread"
+    },
+    {
+      "id": "overview_ipad_loads",
+      "pass": true,
+      "detail": "Übersicht"
+    },
+    {
+      "id": "profile_ipad_loads",
+      "pass": true,
+      "detail": "Profil"
+    },
+    {
+      "id": "appointments_ipad_loads",
+      "pass": true,
+      "detail": "Einsätze"
+    },
+    {
+      "id": "documents_ipad_loads",
+      "pass": true,
+      "detail": "Dokumente"
+    },
+    {
+      "id": "documents_ipad_signatures_link",
+      "pass": true,
+      "detail": "cross_link"
+    },
+    {
+      "id": "signatures_ipad_loads",
+      "pass": true,
+      "detail": "Unterschriften"
+    },
+    {
+      "id": "signatures_ipad_list",
+      "pass": true,
+      "detail": "signatures_screen"
+    },
+    {
+      "id": "proofs_ipad_loads",
+      "pass": true,
+      "detail": "Nachweise"
+    },
+    {
+      "id": "messages_ipad_loads",
+      "pass": true,
+      "detail": "Nachrichten"
+    },
+    {
+      "id": "ipad_composer_in_thread",
+      "pass": true,
+      "detail": "messaging-composer"
+    },
+    {
+      "id": "ipad_composer_input",
+      "pass": true,
+      "detail": "chat-composer-input"
+    },
+    {
+      "id": "ipad_composer_send",
+      "pass": true,
+      "detail": "chat-composer-send"
+    },
+    {
+      "id": "ipad_messenger_back",
+      "pass": true,
+      "detail": "split_view_no_back_required",
+      "skipped": true
+    },
+    {
+      "id": "ipad_thread_hides_bottom_nav",
+      "pass": true,
+      "detail": "still_visible"
+    },
+    {
+      "id": "overview_desktop_loads",
+      "pass": true,
+      "detail": "Übersicht"
+    },
+    {
+      "id": "profile_desktop_loads",
+      "pass": true,
+      "detail": "Profil"
+    },
+    {
+      "id": "appointments_desktop_loads",
+      "pass": true,
+      "detail": "Einsätze"
+    },
+    {
+      "id": "documents_desktop_loads",
+      "pass": true,
+      "detail": "Dokumente"
+    },
+    {
+      "id": "documents_desktop_signatures_link",
+      "pass": true,
+      "detail": "cross_link"
+    },
+    {
+      "id": "signatures_desktop_loads",
+      "pass": true,
+      "detail": "Unterschriften"
+    },
+    {
+      "id": "signatures_desktop_list",
+      "pass": true,
+      "detail": "signatures_screen"
+    },
+    {
+      "id": "proofs_desktop_loads",
+      "pass": true,
+      "detail": "Nachweise"
+    },
+    {
+      "id": "messages_desktop_loads",
+      "pass": true,
+      "detail": "Nachrichten"
+    },
+    {
+      "id": "desktop_composer_in_thread",
+      "pass": true,
+      "detail": "messaging-composer"
+    },
+    {
+      "id": "desktop_composer_input",
+      "pass": true,
+      "detail": "chat-composer-input"
+    },
+    {
+      "id": "desktop_composer_send",
+      "pass": true,
+      "detail": "chat-composer-send"
+    },
+    {
+      "id": "desktop_messenger_back",
+      "pass": true,
+      "detail": "split_view_no_back_required",
+      "skipped": true
+    },
+    {
+      "id": "desktop_thread_hides_bottom_nav",
+      "pass": true,
+      "detail": "hidden"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "overview__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/overview__iphone.png"
+    },
+    {
+      "name": "profile__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/profile__iphone.png"
+    },
+    {
+      "name": "appointments__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/appointments__iphone.png"
+    },
+    {
+      "name": "documents__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/documents__iphone.png"
+    },
+    {
+      "name": "signatures__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/signatures__iphone.png"
+    },
+    {
+      "name": "proofs__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/proofs__iphone.png"
+    },
+    {
+      "name": "messages__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/messages__iphone.png"
+    },
+    {
+      "name": "drawer__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/drawer__iphone.png"
+    },
+    {
+      "name": "signatures_list__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/signatures_list__iphone.png"
+    },
+    {
+      "name": "proofs__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/proofs__iphone.png"
+    },
+    {
+      "name": "messages_thread__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/messages_thread__iphone.png"
+    },
+    {
+      "name": "overview__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/overview__ipad.png"
+    },
+    {
+      "name": "profile__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/profile__ipad.png"
+    },
+    {
+      "name": "appointments__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/appointments__ipad.png"
+    },
+    {
+      "name": "documents__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/documents__ipad.png"
+    },
+    {
+      "name": "signatures__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/signatures__ipad.png"
+    },
+    {
+      "name": "proofs__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/proofs__ipad.png"
+    },
+    {
+      "name": "messages__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/messages__ipad.png"
+    },
+    {
+      "name": "messages_thread__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/messages_thread__ipad.png"
+    },
+    {
+      "name": "overview__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/overview__desktop.png"
+    },
+    {
+      "name": "profile__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/profile__desktop.png"
+    },
+    {
+      "name": "appointments__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/appointments__desktop.png"
+    },
+    {
+      "name": "documents__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/documents__desktop.png"
+    },
+    {
+      "name": "signatures__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/signatures__desktop.png"
+    },
+    {
+      "name": "proofs__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/proofs__desktop.png"
+    },
+    {
+      "name": "messages__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/messages__desktop.png"
+    },
+    {
+      "name": "messages_thread__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k14-release-gate-screenshots/messages_thread__desktop.png"
+    }
+  ],
+  "dataAudit": {
+    "clientId": "ec4f159f-e794-4326-8b0e-15c0166df1ea",
+    "tenantId": "a4ba83bd-65db-46cf-8cf7-61492cc78315",
+    "openSignatureRequests": [],
+    "openSignatureQueryOk": true,
+    "allSignatureRequests": [],
+    "portalProofs": [],
+    "proofsQueryOk": true
+  },
+  "deployApproved": false,
+  "login": {
+    "displayName": "Erika Mustermann"
+  }
+}

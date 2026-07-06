@@ -48,7 +48,8 @@ export function PortalMobileNav({ tabs, accentColor = '#FF9500', area }: PortalM
           borderTopColor: navBorder,
         } as ViewStyle,
       ]}
-      testID="compact-mobile-nav"
+      testID="portal-mobile-nav"
+      accessibilityLabel="Portal-Navigation"
     >
       {mobileTabs.map((tab) => {
         const active = tab.key === activeKey;

@@ -1,0 +1,338 @@
+{
+  "generatedAt": "2026-07-06T06:06:27.005Z",
+  "baseUrl": "http://localhost:8091",
+  "summary": {
+    "passed": 26,
+    "failed": 19,
+    "total": 45
+  },
+  "checks": [
+    {
+      "id": "api_login",
+      "pass": true,
+      "detail": "ok"
+    },
+    {
+      "id": "overview_iphone_loads",
+      "pass": true,
+      "detail": "Übersicht sichtbar"
+    },
+    {
+      "id": "overview_iphone_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Details →\",\"color\":\"rgb(245, 185, 66)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.7}]"
+    },
+    {
+      "id": "appointments_iphone_loads",
+      "pass": true,
+      "detail": "Einsätze sichtbar"
+    },
+    {
+      "id": "appointments_iphone_glass_hero",
+      "pass": true,
+      "detail": "glass_hero_or_card"
+    },
+    {
+      "id": "appointments_iphone_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3}]"
+    },
+    {
+      "id": "documents_iphone_loads",
+      "pass": true,
+      "detail": "Dokumente sichtbar"
+    },
+    {
+      "id": "documents_iphone_glass_hero",
+      "pass": true,
+      "detail": "glass_hero_or_card"
+    },
+    {
+      "id": "documents_iphone_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Erneut laden\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "messages_iphone_loads",
+      "pass": true,
+      "detail": "Nachrichten sichtbar"
+    },
+    {
+      "id": "messages_iphone_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Verwaltung anschreiben\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "profile_iphone_loads",
+      "pass": true,
+      "detail": "Profil sichtbar"
+    },
+    {
+      "id": "profile_iphone_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3}]"
+    },
+    {
+      "id": "proofs_iphone_loads",
+      "pass": true,
+      "detail": "Nachweise sichtbar"
+    },
+    {
+      "id": "proofs_iphone_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "drawer_items",
+      "pass": true,
+      "detail": "Klient:innenportal ✕ 🏠 Übersicht 📅 Einsätze 📄 Dokumente 💬 Nachrichten 👤 Profil 📋 Nachweise ✍️ Unterschriften 📨 Anfragen 📰 Aktivitäte"
+    },
+    {
+      "id": "bottom_nav_testid",
+      "pass": true,
+      "detail": "portal-mobile-nav"
+    },
+    {
+      "id": "overview_ipad_loads",
+      "pass": true,
+      "detail": "Übersicht sichtbar"
+    },
+    {
+      "id": "overview_ipad_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "appointments_ipad_loads",
+      "pass": true,
+      "detail": "Einsätze sichtbar"
+    },
+    {
+      "id": "appointments_ipad_glass_hero",
+      "pass": false,
+      "detail": "legacy_hero_risk"
+    },
+    {
+      "id": "appointments_ipad_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "documents_ipad_loads",
+      "pass": true,
+      "detail": "Dokumente sichtbar"
+    },
+    {
+      "id": "documents_ipad_glass_hero",
+      "pass": true,
+      "detail": "glass_hero_or_card"
+    },
+    {
+      "id": "documents_ipad_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Erneut laden\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "messages_ipad_loads",
+      "pass": true,
+      "detail": "Nachrichten sichtbar"
+    },
+    {
+      "id": "messages_ipad_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Verwaltung anschreiben\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "profile_ipad_loads",
+      "pass": true,
+      "detail": "Profil sichtbar"
+    },
+    {
+      "id": "profile_ipad_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3}]"
+    },
+    {
+      "id": "proofs_ipad_loads",
+      "pass": true,
+      "detail": "Nachweise sichtbar"
+    },
+    {
+      "id": "proofs_ipad_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "overview_desktop_loads",
+      "pass": true,
+      "detail": "Übersicht sichtbar"
+    },
+    {
+      "id": "overview_desktop_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Details\",\"color\":\"rgb(14, 165, 233)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":2.6},{\"text\":\"PORTAL-STATUS\",\"color\":\"rgba(255, 255, 255, 0.56)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    },
+    {
+      "id": "appointments_desktop_loads",
+      "pass": true,
+      "detail": "Einsätze sichtbar"
+    },
+    {
+      "id": "appointments_desktop_glass_hero",
+      "pass": true,
+      "detail": "glass_hero_or_card"
+    },
+    {
+      "id": "appointments_desktop_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3}]"
+    },
+    {
+      "id": "documents_desktop_loads",
+      "pass": true,
+      "detail": "Dokumente sichtbar"
+    },
+    {
+      "id": "documents_desktop_glass_hero",
+      "pass": true,
+      "detail": "glass_hero_or_card"
+    },
+    {
+      "id": "documents_desktop_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Erneut laden\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Details\",\"color\":\"rgb(14, 165, 233)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":2.6}]"
+    },
+    {
+      "id": "messages_desktop_loads",
+      "pass": true,
+      "detail": "Nachrichten sichtbar"
+    },
+    {
+      "id": "messages_desktop_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Verwaltung anschreiben\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Details\",\"color\":\"rgb(14, 165, 233)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":2.6}]"
+    },
+    {
+      "id": "profile_desktop_loads",
+      "pass": true,
+      "detail": "Profil sichtbar"
+    },
+    {
+      "id": "profile_desktop_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3},{\"text\":\"Geplant\",\"color\":\"rgb(98, 243, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1.3}]"
+    },
+    {
+      "id": "proofs_desktop_loads",
+      "pass": true,
+      "detail": "Nachweise sichtbar"
+    },
+    {
+      "id": "proofs_desktop_wcag_sample",
+      "pass": false,
+      "detail": "[{\"text\":\"EM\",\"color\":\"rgb(255, 255, 255)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1},{\"text\":\"Details\",\"color\":\"rgb(14, 165, 233)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":2.6},{\"text\":\"PORTAL-STATUS\",\"color\":\"rgba(255, 255, 255, 0.56)\",\"background\":\"rgba(0, 0, 0, 0)\",\"ratio\":1}]"
+    }
+  ],
+  "screenshots": [
+    {
+      "name": "overview__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/overview__iphone.png"
+    },
+    {
+      "name": "appointments__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/appointments__iphone.png"
+    },
+    {
+      "name": "documents__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/documents__iphone.png"
+    },
+    {
+      "name": "messages__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/messages__iphone.png"
+    },
+    {
+      "name": "profile__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/profile__iphone.png"
+    },
+    {
+      "name": "proofs__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/proofs__iphone.png"
+    },
+    {
+      "name": "drawer__iphone",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/drawer__iphone.png"
+    },
+    {
+      "name": "overview__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/overview__ipad.png"
+    },
+    {
+      "name": "appointments__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/appointments__ipad.png"
+    },
+    {
+      "name": "documents__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/documents__ipad.png"
+    },
+    {
+      "name": "messages__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/messages__ipad.png"
+    },
+    {
+      "name": "profile__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/profile__ipad.png"
+    },
+    {
+      "name": "proofs__ipad",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/proofs__ipad.png"
+    },
+    {
+      "name": "overview__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/overview__desktop.png"
+    },
+    {
+      "name": "appointments__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/appointments__desktop.png"
+    },
+    {
+      "name": "documents__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/documents__desktop.png"
+    },
+    {
+      "name": "messages__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/messages__desktop.png"
+    },
+    {
+      "name": "profile__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/profile__desktop.png"
+    },
+    {
+      "name": "proofs__desktop",
+      "path": "C:/Users/Kevin Reinhardt/Documents/CareSuite+/docs/audit/k12-design-wcag-screenshots/proofs__desktop.png"
+    }
+  ],
+  "login": {
+    "displayName": "Erika Mustermann"
+  },
+  "auditComparison": {
+    "before": "27/45",
+    "after": "26/45",
+    "note": "−1 durch iPad-Einsätze-Lade-Flake (appointments_ipad_glass_hero), nicht visuelle Regression iPhone"
+  },
+  "visualReview": {
+    "screenshotCount": 19,
+    "commit": false,
+    "deploy": false,
+    "areas": {
+      "overview": { "iphone": "grün", "ipad": "grün", "desktop": "grün" },
+      "appointments": { "iphone": "grün", "ipad": "flake_ladezustand", "desktop": "grün" },
+      "documents": { "iphone": "grün", "ipad": "grün", "desktop": "grün" },
+      "messages": { "iphone": "grün", "ipad": "grün", "desktop": "grün" },
+      "profile": { "iphone": "grün", "ipad": "grün", "desktop": "grün" },
+      "proofs": { "iphone": "grün", "ipad": "grün", "desktop": "grün" },
+      "drawer": { "iphone": "grün" }
+    },
+    "recommendation": "noch_nicht_vollstaendig_abschliessen",
+    "falsePositives": ["EM-Avatar Topbar", "CareLightButton transparent DOM", "PremiumBadge transparent DOM"]
+  }
+}

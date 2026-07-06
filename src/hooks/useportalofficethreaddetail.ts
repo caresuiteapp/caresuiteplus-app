@@ -22,36 +22,28 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
-  const resolveActor = useCallback(() => {
-    return resolvePortalActor(
-      profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null,
-      portalSession,
-      profile?.id ?? actorId ?? portalSession?.accountId,
-      profile?.displayName ?? displayName,
-      { clientId, employeeId },
-    );
-  }, [
-    profile?.roleKey,
-    profile?.id,
-    profile?.displayName,
-    roleKey,
-    portalSession,
-    actorId,
-    displayName,
-    clientId,
-    employeeId,
-  ]);
+  const actorRoleKey = profile?.roleKey ?? roleKey ?? portalSession?.roleKey ?? null;
+  const actorProfileId = profile?.id ?? actorId ?? portalSession?.accountId ?? null;
+  const actorDisplayName = profile?.displayName ?? displayName ?? null;
+  const actorClientId = clientId ?? portalSession?.clientId ?? null;
+  const actorEmployeeId = employeeId ?? portalSession?.employeeId ?? null;
 
   const query = useAsyncQuery(
     () => {
       if (!tenantId || !threadId) {
         return Promise.resolve({ ok: false as const, error: 'Kein Chat ausgewählt.' });
       }
-      const actorResult = resolveActor();
+      const actorResult = resolvePortalActor(
+        actorRoleKey,
+        portalSession,
+        actorProfileId,
+        actorDisplayName,
+        { clientId: actorClientId, employeeId: actorEmployeeId },
+      );
       if (!actorResult.ok) return Promise.resolve(actorResult);
       return fetchPortalOfficeThreadDetail(tenantId, threadId, actorResult.data);
     },
-    [tenantId, threadId, resolveActor],
+    [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId],
     { enabled: !!tenantId && !!threadId && isLinkedReady },
   );
 
@@ -69,16 +61,38 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
 
   const markAsRead = useCallback(async () => {
     if (!tenantId || !threadId) return;
-    const actorResult = resolveActor();
+    const actorResult = resolvePortalActor(
+      actorRoleKey,
+      portalSession,
+      actorProfileId,
+      actorDisplayName,
+      { clientId: actorClientId, employeeId: actorEmployeeId },
+    );
     if (!actorResult.ok) return;
     await markPortalThreadMessagesRead(tenantId, threadId, actorResult.data);
     await refresh();
-  }, [tenantId, threadId, resolveActor, refresh]);
+  }, [
+    tenantId,
+    threadId,
+    actorRoleKey,
+    portalSession,
+    actorProfileId,
+    actorDisplayName,
+    actorClientId,
+    actorEmployeeId,
+    refresh,
+  ]);
 
   const sendMessage = useCallback(
     async (body: string, attachments: PendingMessageAttachment[] = []) => {
       if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
-      const actorResult = resolveActor();
+      const actorResult = resolvePortalActor(
+        actorRoleKey,
+        portalSession,
+        actorProfileId,
+        actorDisplayName,
+        { clientId: actorClientId, employeeId: actorEmployeeId },
+      );
       if (!actorResult.ok) return actorResult;
 
       setSending(true);
@@ -104,18 +118,34 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       }
       return result;
     },
-    [tenantId, threadId, resolveActor, refresh],
+    [tenantId, threadId, actorRoleKey, portalSession, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, refresh],
   );
 
   const startNewChat = useCallback(async () => {
     if (!tenantId || !threadId) return { ok: false as const, error: 'Kein Chat ausgewählt.' };
-    const actorResult = resolveActor();
+    const actorResult = resolvePortalActor(
+      actorRoleKey,
+      portalSession,
+      actorProfileId,
+      actorDisplayName,
+      { clientId: actorClientId, employeeId: actorEmployeeId },
+    );
     if (!actorResult.ok) return actorResult;
 
     const result = await startNewPortalThreadFromClosed(tenantId, threadId, actorResult.data);
     if (result.ok) await refresh();
     return result;
-  }, [tenantId, threadId, resolveActor, refresh]);
+  }, [
+    tenantId,
+    threadId,
+    actorRoleKey,
+    portalSession,
+    actorProfileId,
+    actorDisplayName,
+    actorClientId,
+    actorEmployeeId,
+    refresh,
+  ]);
 
   return {
     detail: query.data as OfficeMessageThreadDetail | undefined,

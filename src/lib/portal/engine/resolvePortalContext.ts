@@ -40,10 +40,11 @@ const EMPTY_METRICS: PortalLiveMetrics = {
 };
 
 function metricsToWidgetMetrics(metrics: PortalLiveMetrics): PortalWidgetMetrics {
+  const appointmentCount = metrics.upcomingAppointments || metrics.totalVisits || 0;
   return {
     messages_kpi: metrics.openMessages,
     documents_kpi: metrics.documents,
-    appointments_kpi: metrics.upcomingAppointments,
+    appointments_kpi: appointmentCount,
   };
 }
 

@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import type { CsDocumentRequestListItem } from '@/types/documents/csTemplateDatabase';
 import {
   CS_DOCUMENT_PRIORITY_LABELS,
-  CS_DOCUMENT_REQUEST_STATUS_LABELS,
+  resolveCsDocumentRequestStatusLabel,
 } from '@/types/documents/csTemplateDatabase';
 import { PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -13,9 +13,16 @@ type Props = {
   onOpen?: () => void;
   openLabel?: string;
   compact?: boolean;
+  portalLabels?: boolean;
 };
 
-export function CsDocumentRequestCard({ item, onOpen, openLabel = 'Öffnen', compact = false }: Props) {
+export function CsDocumentRequestCard({
+  item,
+  onOpen,
+  openLabel = 'Öffnen',
+  compact = false,
+  portalLabels = false,
+}: Props) {
   const text = useAuroraAdaptiveText();
   const styles = StyleSheet.create({
     title: { ...typography.body, fontWeight: '600', color: text.primary },
@@ -40,7 +47,10 @@ export function CsDocumentRequestCard({ item, onOpen, openLabel = 'Öffnen', com
         </Text>
       ) : null}
       <View style={styles.row}>
-        <PremiumBadge label={CS_DOCUMENT_REQUEST_STATUS_LABELS[item.status]} variant="muted" />
+        <PremiumBadge
+          label={resolveCsDocumentRequestStatusLabel(item.status, portalLabels)}
+          variant="muted"
+        />
         <PremiumBadge label={CS_DOCUMENT_PRIORITY_LABELS[item.priority]} variant={priorityVariant} />
         {item.requiredBeforeService ? (
           <PremiumBadge label="Pflicht vor Einsatz" variant="red" />
