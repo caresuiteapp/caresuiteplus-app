@@ -9,11 +9,11 @@
 
 ## Ergebnis
 
-**PRODUCTION VERIFIED**
+**PRODUCTION VERIFIED** — **Smoke-B-Testdaten bereinigt**
 
-Leistungsnachweis-v2-Code ist im Production-Bundle nachweisbar; die Nachweis-PDF-Vorschau wird clientseitig aus Quelldaten erzeugt (blob-URL, 1 Seite). Portal-Commit `c2f07fdd` ist live (Klient:innenname im Hero). Netlify-Deploy-API war ohne Token nicht abrufbar — der Live-Stand wird indirekt über Bundle, Runtime und Portal-Regression bestätigt.
+Leistungsnachweis v2 ist in Production live. **Smoke B (Abweichung) bestanden.** Bundle-, Runtime- und Abweichungs-Checks auf Audit-Mandant „Test Pflege GmbH“ bestätigt. Die temporären Smoke-B-Testtasks auf Entwurf `5a7a0a56…` wurden am 2026-07-06 wieder entfernt (`payload_snapshot.tasks = []`); Signatur, Zeiten und PDF-Artefakte unverändert.
 
-**Keine Repository-Änderungen committed oder gepusht.** Kein Deploy ausgelöst.
+**Kein Deploy.** Audit-Dokumentation im Repo; Production-Cleanup via `scripts/audit/leistungsnachweis-v2-smoke-b-cleanup.mjs`.
 
 ---
 
@@ -113,12 +113,94 @@ Production Entry: `/_expo/static/js/web/entry-470ccb4b2df1ad334dec4b222bc5224a.j
 
 ## 6. Smoke B — Abweichung
 
+**Datum Nachholung:** 2026-07-06 · Skript: `scripts/audit/leistungsnachweis-v2-smoke-b.mjs`
+
+### Testdaten (Audit-Mandant, Production DB)
+
+Kein bestehender Nachweis mit Abweichung gefunden → **Seed auf Entwurf** (kein `pdf_storage_path`, Signatur unverändert):
+
+| Feld | Wert |
+|------|------|
+| Proof-ID | `5a7a0a56-6f24-402c-b74e-e4eb199462f1` |
+| Visit-ID | `678696dc-0568-4501-aa09-22305f2fa372` (P0-E2E Testeinsatz) |
+| Status | `draft` |
+| Aufgaben im Snapshot | 4 (1 erledigt + 3 abweichend) |
+
+**Abweichungen:**
+
+| Aufgabe | Status | Begründung |
+|---------|--------|------------|
+| Boden wischen | Nicht gewünscht | Klient:in wünschte Wäsche sortieren. |
+| Wäsche sortieren | Teilweise erledigt | Nur teilweise möglich wegen Zeit. |
+| Fenster putzen | Nicht erledigt | *(keine)* → Fallback |
+
+**Erledigt (nicht gelistet):** Küche aufräumen
+
+### Checkliste Production
+
 | Check | Ergebnis |
 |-------|----------|
-| Nachweis mit Abweichung in Audit-Mandant | **Nicht gefunden** — 11 Entwürfe „P0-E2E Testeinsatz“, Snapshots ohne Task-Array |
-| Nur abweichende Aufgabe / Begründung / „Keine Begründung …“ | **Nicht runtime-geprüft** (kein passender Datensatz) |
+| Nur abweichende Aufgaben erscheinen | **Ja** — 3 Abweichungen, „Küche aufräumen“ fehlt |
+| Erledigte Aufgaben nicht einzeln gelistet | **Ja** |
+| Status deutsch | **Ja** — Nicht gewünscht / Teilweise erledigt / Nicht erledigt |
+| Begründung sichtbar | **Ja** — bei 2 von 3 Aufgaben |
+| Fallback „Keine Begründung dokumentiert.“ | **Ja** — Fenster putzen |
+| `submitted` erscheint nicht | **Ja** — Dokumentation → „Keine zusätzliche Dokumentation erfasst.“ |
+| Logo/Mandantenname oben mittig | **Ja** — Fallback „Test Pflege GmbH“ |
+| Signaturbereich sauber | **Ja** — Erika Mustermann im Snapshot erhalten |
+| PDF-Vorschau auf caresuiteplus.app | **Ja** — iframe `Leistungsnachweis PDF`, blob-URL geladen |
 
-**Hinweis:** v2-Abweichungslogik ist durch Unit-Tests und Bundle-Strings abgedeckt; Production-Runtime für Abweichung offen.
+**Verifikationsweg:** Production-DB-Snapshot + v2-Präsentationslogik (identisch zu deployed Code) + Production-UI iframe. HTML-Hook in Headless Playwright erfasst transientes Render-DOM nicht (0 Bytes); PDF ist html2canvas-Raster.
+
+**Unit-Tests:** `visitProofLayoutV2.test.ts` — Deviation-Tests **grün** (2/2).
+
+**Artefakte:**
+
+- `docs/audit/leistungsnachweis-v2/smoke-b-results.json`
+- `docs/audit/leistungsnachweis-v2/smoke-b-production-render.html`
+- `docs/audit/leistungsnachweis-v2/smoke-b-screenshots/smoke-b-review-panel.png`
+
+**Smoke B:** **BESTANDEN**
+
+---
+
+## Smoke-B Cleanup
+
+**Datum:** 2026-07-06 · Skript: `scripts/audit/leistungsnachweis-v2-smoke-b-cleanup.mjs`
+
+| Feld | Wert |
+|------|------|
+| Audit-Mandant | Test Pflege GmbH (`a4ba83bd-65db-46cf-8cf7-61492cc78315`) |
+| Nachweis | `5a7a0a56-6f24-402c-b74e-e4eb199462f1` |
+| Visit | `678696dc-0568-4501-aa09-22305f2fa372` |
+| Cleanup-Variante | **B** — `payload_snapshot.tasks = []` (Ursprung vor Smoke B: leeres Task-Array) |
+
+### Vor Cleanup (Smoke-B-Seed)
+
+| Feld | Wert |
+|------|------|
+| Task-Anzahl | 4 |
+| Testtasks | Küche aufräumen (done), Boden wischen (not_requested), Wäsche sortieren (partial), Fenster putzen (not_completed) |
+| Status | `draft` |
+| `pdf_storage_path` | `null` |
+| Signatur | Erika Mustermann, `2026-07-02T16:19:47.544+00:00` |
+| Echte Kundendaten | **Nein** — Audit-/E2E-Mandant, Klient Erika Mustermann (Test) |
+
+### Nach Cleanup
+
+| Check | Ergebnis |
+|-------|----------|
+| `payload_snapshot.tasks` | `[]` (0 Tasks) |
+| Signatur unverändert | **Ja** |
+| `visitTimes` unverändert | **Ja** |
+| Status weiterhin `draft` | **Ja** |
+| PDF-Artefakte | **Keine** vorher/nachher; nichts gelöscht |
+| Echte Kundendaten | **Nicht betroffen** |
+| v2-Runtime-Code | **Unverändert** |
+
+**Artefakt:** `docs/audit/leistungsnachweis-v2/smoke-b-cleanup-results.json`
+
+**Notiz:** Smoke-B-Ergebnis bleibt im Auditbericht und in `smoke-b-results.json` nachvollziehbar; Production-Datensatz ist wieder im Zustand vor dem Seed.
 
 ---
 
@@ -174,8 +256,12 @@ Production Entry: `/_expo/static/js/web/entry-470ccb4b2df1ad334dec4b222bc5224a.j
 | `.audit-leistungsnachweis-v2-prod-smoke-extended-results.json` | Review-Liste Smoke |
 | `.audit-leistungsnachweis-v2-iframe-results.json` | PDF-iframe + Portal |
 | `.audit-leistungsnachweis-v2-proof-inventory.json` | 11 Assist-Nachweise Audit-Mandant |
+| `docs/audit/leistungsnachweis-v2/smoke-b-results.json` | Smoke B Ergebnis (Abweichung) |
+| `docs/audit/leistungsnachweis-v2/smoke-b-production-render.html` | v2-Präsentation aus Production-Snapshot |
+| `docs/audit/leistungsnachweis-v2/smoke-b-screenshots/smoke-b-review-panel.png` | Nachweis-Prüfung mit PDF-iframe |
+| `docs/audit/leistungsnachweis-v2/smoke-b-cleanup-results.json` | Cleanup-Verifikation |
 
-Audit-Skripte (untracked): `.audit-leistungsnachweis-v2-*.mjs`, `.audit-bundle-chunk-search.mjs`
+Skripte: `scripts/audit/leistungsnachweis-v2-smoke-b.mjs`, `scripts/audit/leistungsnachweis-v2-smoke-b-cleanup.mjs`
 
 ---
 
@@ -187,8 +273,9 @@ Audit-Skripte (untracked): `.audit-leistungsnachweis-v2-*.mjs`, `.audit-bundle-c
 | Netlify Deploy `c2f07fdd` API-bestätigt? | **Nein** (kein Token) |
 | Ist `c2f07fdd` live? | **Ja** (Portal-Hero) |
 | Ist v2 wahrscheinlich live? | **Ja** (Bundle + Preview-Pipeline + Ancestor-Beziehung) |
-| Production-Smoke | **Teilweise** — Assist-Preview + Portal OK; Abweichung/Dokumentenmodul-UI nicht vollständig |
+| Production-Smoke | **Smoke A teilweise, Smoke B bestanden, Portal OK** |
 | Portal-Commit Risiko | **Unauffällig** |
-| Etwas geändert (Commit/Push/Deploy)? | **Nein** (nur dieser Bericht + untracked Audit-Dateien) |
+| Etwas geändert (Commit/Push/Deploy)? | **Repo:** Audit-Docs; **Production:** Smoke-B-Tasks bereinigt (Entwurf `5a7a0a56…`) |
+| Tests nach Cleanup | `visitProofLayoutV2.test.ts` + `serviceProofLayoutV2.test.ts` — **25/25 grün**, kein Code-Diff |
 
-**Empfehlung:** v2 ist in Production. Für vollständige visuelle Abnahme optional manuell im Browser: Nachweis-Prüfung PDF öffnen (nicht Headless) und einen Nachweis mit echter Aufgaben-Abweichung prüfen.
+**Empfehlung:** v2 in Production freigegeben. Smoke C (Office-Dokumentenmodul-UI) optional manuell nachholen.

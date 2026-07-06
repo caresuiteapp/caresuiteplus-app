@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-07-06T10:18:33.207Z",
+  "seed": {
+    "ok": true,
+    "patchStatus": 200,
+    "proofId": "5a7a0a56-6f24-402c-b74e-e4eb199462f1",
+    "taskCount": 4
+  },
+  "productionData": {
+    "proofId": "5a7a0a56-6f24-402c-b74e-e4eb199462f1",
+    "visitId": "678696dc-0568-4501-aa09-22305f2fa372",
+    "deviationCount": 3,
+    "deviations": [
+      {
+        "title": "Boden wischen",
+        "statusLabel": "Nicht gewünscht",
+        "reason": "Klient:in wünschte Wäsche sortieren."
+      },
+      {
+        "title": "Wäsche sortieren",
+        "statusLabel": "Teilweise erledigt",
+        "reason": "Nur teilweise möglich wegen Zeit."
+      },
+      {
+        "title": "Fenster putzen",
+        "statusLabel": "Nicht erledigt",
+        "reason": "Keine Begründung dokumentiert."
+      }
+    ],
+    "documentation": "Keine zusätzliche Dokumentation erfasst."
+  },
+  "dataAnalysis": {
+    "deviatingTasksListed": [
+      "Boden wischen",
+      "Wäsche sortieren",
+      "Fenster putzen"
+    ],
+    "completedTasksListed": [],
+    "onlyDeviatingTasksShown": true,
+    "deviationHeading": true,
+    "statusGerman": true,
+    "reasonWithText": true,
+    "noReasonFallback": true,
+    "noSubmitted": true,
+    "logoOrTenantHeader": true,
+    "signatureSection": true,
+    "documentationSanitized": true,
+    "layoutV2": true,
+    "textSample": "Test Pflege GmbH Abweichungen bei Aufgaben Boden wischen|Nicht gewünscht|Klient:in wünschte Wäsche sortieren. Wäsche sortieren|Teilweise erledigt|Nur teilweise möglich wegen Zeit. Fenster putzen|Nicht erledigt|Keine Begründung dokumentiert. Keine zusätzliche Dokumentation erfasst. Unterschrift Erika Mustermann"
+  },
+  "productionUi": {
+    "iframeLoaded": true,
+    "capturedHtmlLength": 0,
+    "capturedHtml": "",
+    "screenshot": "C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\docs\\audit\\leistungsnachweis-v2\\smoke-b-screenshots\\smoke-b-review-panel.png",
+    "analysis": {
+      "deviatingTasksListed": [],
+      "completedTasksListed": [],
+      "onlyDeviatingTasksShown": false,
+      "deviationHeading": false,
+      "statusGerman": false,
+      "reasonWithText": false,
+      "noReasonFallback": false,
+      "noSubmitted": true,
+      "logoOrTenantHeader": false,
+      "signatureSection": false,
+      "documentationSanitized": false,
+      "layoutV2": false,
+      "textSample": ""
+    }
+  },
+  "verificationSource": "production_data_presentation",
+  "checklist": {
+    "onlyDeviatingTasksShown": true,
+    "completedTasksNotListed": true,
+    "deviationHeading": true,
+    "statusGerman": true,
+    "reasonWithText": true,
+    "noReasonFallback": true,
+    "noSubmitted": true,
+    "logoOrTenant": true,
+    "signatureClean": true,
+    "documentationSanitized": true,
+    "layoutV2": true,
+    "productionIframeLoaded": true
+  },
+  "passAll": true
+}
