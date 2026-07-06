@@ -55,7 +55,7 @@ export function AssistPortalOverview({
   onRefresh,
   initialModal = null,
 }: AssistPortalOverviewProps) {
-  const { width, isPhone } = useDeviceClass();
+  const { isPhone } = useDeviceClass();
 
   if (isPhone) {
     return (
@@ -68,6 +68,23 @@ export function AssistPortalOverview({
     );
   }
 
+  return (
+    <AssistPortalOverviewDesktop
+      context={context}
+      showSuccess={showSuccess}
+      onRefresh={onRefresh}
+      initialModal={initialModal}
+    />
+  );
+}
+
+function AssistPortalOverviewDesktop({
+  context,
+  showSuccess,
+  onRefresh,
+  initialModal = null,
+}: AssistPortalOverviewProps) {
+  const { width } = useDeviceClass();
   const text = useAuroraAdaptiveText();
   const type = resolveGalaxyTypography(width);
   const insets = useSafeAreaInsets();
