@@ -170,8 +170,7 @@ export function usePortalActor(): PortalActor {
     (portalSession?.displayName && !isPortalUsernameLabel(portalSession.displayName)
       ? portalSession.displayName.trim()
       : null) ??
-    fallbackDisplayName ||
-    'Klient:in';
+    (fallbackDisplayName || 'Klient:in');
 
   return useMemo(() => {
     const isReady = Boolean(tenantId && roleKey && actorId);
