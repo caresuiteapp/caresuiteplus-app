@@ -3,6 +3,7 @@ import { Linking, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useLocalSearchParams, usePathname, useRouter } from 'expo-router';
 import { DetailInfoRow } from '@/components/detail';
+import { ScreenShell } from '@/components/layout';
 import { LockedActionBanner } from '@/components/permissions';
 import {
   EmployeePortalLocationConsentBanner,
