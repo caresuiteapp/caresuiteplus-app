@@ -19,6 +19,7 @@ export type PortalActor = {
   displayName: string;
   isReady: boolean;
   isResolvingClientLink: boolean;
+  isResolvingDisplayName: boolean;
   /** True when portal actor has tenant, role, profile and linked client/employee id. */
   isLinkedReady: boolean;
 };
@@ -29,6 +30,7 @@ export function usePortalActor(): PortalActor {
   const [employeeDisplayName, setEmployeeDisplayName] = useState<string | null>(null);
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [isResolvingClientLink, setIsResolvingClientLink] = useState(false);
+  const [isResolvingDisplayName, setIsResolvingDisplayName] = useState(false);
 
   const isActivePortalSession = Boolean(
     portalSession &&
@@ -45,8 +47,10 @@ export function usePortalActor(): PortalActor {
   const clientId = sessionClientId ?? resolvedClientId ?? null;
   const employeeId = portalSession?.employeeId ?? null;
 
+  const isClientPortalActor = roleKey === 'client_portal' || roleKey === 'family_portal';
+
   useEffect(() => {
-    if (roleKey !== 'client_portal' || sessionClientId || !tenantId) {
+    if (!isClientPortalActor || sessionClientId || !tenantId) {
       setIsResolvingClientLink(false);
       return;
     }
@@ -105,29 +109,39 @@ export function usePortalActor(): PortalActor {
       cancelled = true;
       setIsResolvingClientLink(false);
     };
-  }, [roleKey, sessionClientId, tenantId, portalSession, updatePortalSession]);
+  }, [isClientPortalActor, sessionClientId, tenantId, portalSession, updatePortalSession]);
 
-  const fallbackDisplayName = useMemo(
-    () => getPortalDisplayName(profile, user, portalSession, 'Willkommen'),
-    [profile, portalSession, user],
-  );
+  const fallbackDisplayName = useMemo(() => {
+    const isClientPortal = roleKey === 'client_portal' || roleKey === 'family_portal';
+    return getPortalDisplayName(profile, user, portalSession, isClientPortal ? '' : 'Willkommen');
+  }, [profile, portalSession, roleKey, user]);
 
   useEffect(() => {
-    if (roleKey !== 'client_portal' || !clientId || !tenantId) {
+    if (roleKey !== 'client_portal' && roleKey !== 'family_portal') {
       setClientDisplayName(null);
+      setIsResolvingDisplayName(false);
+      return;
+    }
+    if (!clientId || !tenantId) {
+      setClientDisplayName(null);
+      setIsResolvingDisplayName(false);
       return;
     }
 
     let cancelled = false;
+    setIsResolvingDisplayName(true);
 
     void fetchClientPortalDisplayName(tenantId, clientId).then((name) => {
-      if (!cancelled && name) {
+      if (cancelled) return;
+      if (name) {
         setClientDisplayName(name);
       }
+      setIsResolvingDisplayName(false);
     });
 
     return () => {
       cancelled = true;
+      setIsResolvingDisplayName(false);
     };
   }, [roleKey, clientId, tenantId]);
 
@@ -156,7 +170,8 @@ export function usePortalActor(): PortalActor {
     (portalSession?.displayName && !isPortalUsernameLabel(portalSession.displayName)
       ? portalSession.displayName.trim()
       : null) ??
-    fallbackDisplayName;
+    fallbackDisplayName ||
+    'Klient:in';
 
   return useMemo(() => {
     const isReady = Boolean(tenantId && roleKey && actorId);
@@ -178,8 +193,18 @@ export function usePortalActor(): PortalActor {
       displayName,
       isReady,
       isResolvingClientLink,
+      isResolvingDisplayName,
       isLinkedReady,
     };
-  }, [tenantId, roleKey, actorId, clientId, employeeId, displayName, isResolvingClientLink]);
+  }, [
+    tenantId,
+    roleKey,
+    actorId,
+    clientId,
+    employeeId,
+    displayName,
+    isResolvingClientLink,
+    isResolvingDisplayName,
+  ]);
 }
 

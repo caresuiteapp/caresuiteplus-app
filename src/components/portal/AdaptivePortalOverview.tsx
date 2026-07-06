@@ -24,8 +24,8 @@ import {
   canAccessPortalFeature,
   resolveCombinedModuleLabel,
   resolvePortalTerminology,
-  resolveTimeBasedGermanGreeting,
 } from '@/lib/portal/engine';
+import { resolveClientPortalHeroLines } from '@/lib/portal/clientPortalGreeting';
 import {
   PORTAL_MODULE_ICONS,
   PORTAL_MODULE_LABELS,
@@ -143,17 +143,25 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
   }
 
   const moduleTabs = context.activeModuleKeys;
-  const greeting = resolveTimeBasedGermanGreeting();
+  const heroLines = resolveClientPortalHeroLines({
+    displayName: context.displayName,
+    tenantName: context.tenantName,
+    moduleLabel: terminology.moduleLabel,
+  });
   const overviewBody = (
     <>
       {showSuccess ? <SuccessState message="Daten erfolgreich aktualisiert." /> : null}
 
       {isPhone ? (
         <PortalGlassHero
-          title={`${greeting},`}
-          titleSecondary={context.displayName}
-          subtitle={context.tenantName}
-          meta={`${resolveCombinedModuleLabel(context.activeModuleKeys)} · ${terminology.appointmentLabelPlural}`}
+          title={`${heroLines.greetingLine},`}
+          titleSecondary={heroLines.nameLine}
+          subtitle={heroLines.providerLine}
+          meta={
+            context.portalRole === 'family_contact'
+              ? `Angehörigenzugang · Portal für ${heroLines.nameLine}`
+              : terminology.personLabel
+          }
           badge={PORTAL_MODULE_LABELS[context.primaryModule ?? 'assist']}
           showStatusDot
         />
@@ -166,7 +174,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
         >
           <Text style={[type.caption, { color: text.muted }]}>KLIENT:INNENPORTAL</Text>
           <Text style={[type.cardTitle, { color: text.primary }]}>
-            {terminology.greetingLabel}, {context.displayName}
+            {terminology.greetingLabel}, {heroLines.nameLine}
           </Text>
           <Text style={[type.body, { color: text.secondary, fontWeight: '600' }]}>
             {context.tenantName}

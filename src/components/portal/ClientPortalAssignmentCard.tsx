@@ -1,4 +1,4 @@
-import { Linking, Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
+import { Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { lightSurfaceText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
@@ -18,7 +18,6 @@ type ClientPortalAssignmentCardProps = {
   notes?: string | null;
   cacheStale?: boolean;
   onPreview?: () => void;
-  onNavigate?: () => void;
 };
 
 function resolveStatus(appt: PortalAppointmentItem): AssignmentStatus {
@@ -58,7 +57,6 @@ export function ClientPortalAssignmentCard({
   notes,
   cacheStale = false,
   onPreview,
-  onNavigate,
 }: ClientPortalAssignmentCardProps) {
   const text = lightSurfaceText;
   const accent = moduleColor('assist');
@@ -67,16 +65,6 @@ export function ClientPortalAssignmentCard({
     ASSIGNMENT_STATUS_LABELS[status] ?? WORKFLOW_STATUS_LABELS[appointment.status] ?? status;
   const cardTint = careLightColors.surface;
   const serviceLabel = serviceCategory ?? appointment.title;
-
-  const openMaps = () => {
-    if (onNavigate) {
-      onNavigate();
-      return;
-    }
-    if (!appointment.location?.trim()) return;
-    const encoded = encodeURIComponent(appointment.location);
-    void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`);
-  };
 
   return (
     <Pressable
@@ -144,9 +132,6 @@ export function ClientPortalAssignmentCard({
         <View style={styles.actions}>
           {onPreview ? (
             <PremiumButton title="Vorschau" size="sm" variant="secondary" onPress={onPreview} />
-          ) : null}
-          {appointment.location ? (
-            <PremiumButton title="Navigation" size="sm" variant="secondary" onPress={openMaps} />
           ) : null}
         </View>
       </View>

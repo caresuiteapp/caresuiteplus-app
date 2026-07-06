@@ -72,7 +72,7 @@ export function usePortalContext(): PortalContextState {
     } finally {
       setLoading(false);
     }
-  }, [tenantId, clientId, roleKey, portalSession?.tenantName, isResolvingClientLink, displayName]);
+  }, [tenantId, clientId, roleKey, portalSession?.tenantName, isResolvingClientLink]);
 
   useEffect(() => {
     if (!actorReady) {

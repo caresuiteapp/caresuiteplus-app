@@ -82,39 +82,55 @@ export async function fetchClientPortalDisplayName(
   tenantId: string,
   clientId: string,
 ): Promise<string | null> {
-  if (!tenantId.trim() || !clientId.trim()) return null;
+  if (!tenantId.trim()) return null;
 
   if (getServiceMode() !== 'supabase') {
+    if (!clientId.trim()) return null;
     return resolveDemoClientDisplayName(clientId);
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) return null;
 
-  const { data, error } = await fromUnknownTable(supabase, 'clients')
+  const selectNameFields = (row: {
+    first_name?: string | null;
+    last_name?: string | null;
+    gender?: string | null;
+  } | null) =>
+    formatClientPortalDisplayName({
+      firstName: row?.first_name ?? null,
+      lastName: row?.last_name ?? null,
+      gender: row?.gender ?? null,
+    });
+
+  if (clientId.trim()) {
+    const { data, error } = await fromUnknownTable(supabase, 'clients')
+      .select('first_name, last_name, gender')
+      .eq('tenant_id', tenantId)
+      .eq('id', clientId)
+      .maybeSingle();
+
+    if (!error && data) {
+      const name = selectNameFields(data as { first_name?: string | null; last_name?: string | null; gender?: string | null });
+      if (name) return name;
+    } else if (error && !isMissingTableError(error)) {
+      console.warn('[clientPortalDisplayName] clients by id:', error.message);
+    }
+  }
+
+  const { data: scoped, error: scopedError } = await fromUnknownTable(supabase, 'clients')
     .select('first_name, last_name, gender')
     .eq('tenant_id', tenantId)
-    .eq('id', clientId)
     .maybeSingle();
 
-  if (error) {
-    if (!isMissingTableError(error)) {
-      console.warn('[clientPortalDisplayName] clients:', error.message);
+  if (scopedError) {
+    if (!isMissingTableError(scopedError)) {
+      console.warn('[clientPortalDisplayName] clients scoped:', scopedError.message);
     }
     return null;
   }
 
-  if (!data) return null;
-
-  const row = data as {
-    first_name?: string | null;
-    last_name?: string | null;
-    gender?: string | null;
-  };
-
-  return formatClientPortalDisplayName({
-    firstName: row.first_name ?? null,
-    lastName: row.last_name ?? null,
-    gender: row.gender ?? null,
-  });
+  return selectNameFields(
+    scoped as { first_name?: string | null; last_name?: string | null; gender?: string | null } | null,
+  );
 }

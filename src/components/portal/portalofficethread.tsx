@@ -66,10 +66,16 @@ export function PortalOfficeThread({
   const { detail, loading, error, sending, sendMessage, startNewChat, refresh, markAsRead } =
     usePortalOfficeThreadDetail(threadId);
 
+  const markedThreadRef = useRef<string | null>(null);
+
   useEffect(() => {
-    if (threadId && detail) {
-      void markAsRead();
-    }
+    markedThreadRef.current = null;
+  }, [threadId]);
+
+  useEffect(() => {
+    if (!threadId || !detail || markedThreadRef.current === threadId) return;
+    markedThreadRef.current = threadId;
+    void markAsRead();
   }, [threadId, detail?.id, markAsRead]);
 
   useEffect(() => {

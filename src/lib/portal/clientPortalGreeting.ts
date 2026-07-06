@@ -1,5 +1,9 @@
-/** Canonical Klient:innenportal greeting — always "Hallo", never tenant-as-name. */
-export const CLIENT_PORTAL_GREETING = 'Hallo';
+import { resolveTimeBasedGermanGreeting } from '@/lib/portal/engine/portalHeroCopy';
+
+/** Time-of-day greeting for Klient:innenportal hero — never tenant-as-name. */
+export function resolveClientPortalGreetingLine(date = new Date()): string {
+  return resolveTimeBasedGermanGreeting(date);
+}
 
 export type ClientPortalHeroLines = {
   greetingLine: string;
@@ -27,7 +31,7 @@ export function resolveClientPortalHeroLines(input: {
   const providerLine = tenantName ? `${tenantName} · ${moduleLabel}` : moduleLabel;
 
   return {
-    greetingLine: CLIENT_PORTAL_GREETING,
+    greetingLine: resolveClientPortalGreetingLine(),
     nameLine,
     providerLine,
   };

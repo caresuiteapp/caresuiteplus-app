@@ -33,7 +33,26 @@ export async function fetchPortalClientIdForAuthUser(
     return null;
   }
 
-  return readClientId(data as { client_id?: string | null } | null);
+  const clientId = readClientId(data as { client_id?: string | null } | null);
+  if (clientId) return clientId;
+
+  const { data: relativeData, error: relativeError } = await fromUnknownTable(
+    supabase,
+    'relative_portal_codes',
+  )
+    .select('client_id')
+    .eq('tenant_id', tenantId)
+    .eq('auth_user_id', authData.user.id)
+    .maybeSingle();
+
+  if (relativeError) {
+    if (!isMissingTableError(relativeError)) {
+      console.warn('[resolvePortalClientLink] relative_portal_codes:', relativeError.message);
+    }
+    return null;
+  }
+
+  return readClientId(relativeData as { client_id?: string | null } | null);
 }
 
 /** Reads client_id for a portal access row — RLS scopes to the signed-in portal actor. */

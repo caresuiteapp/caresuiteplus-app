@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState } from 'react';
 import { StyleSheet, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { PortalNewChatModal } from '@/components/portal/portalnewchatmodal';
 import { PortalOfficeInbox } from '@/components/portal/portalofficeinbox';
 import { PortalOfficeThread } from '@/components/portal/portalofficethread';
@@ -30,7 +29,6 @@ export function PortalOfficeMessenger({
   initialComposeOpen = false,
 }: PortalOfficeMessengerProps) {
   const { useMasterDetail } = usePlatformLayout();
-  const router = useRouter();
   const { isLight } = useLegacyTheme();
   const useLightGlass = useLightLiquidGlassShell();
   const useLightUi = useLightGlass || isLight;
@@ -73,10 +71,6 @@ export function PortalOfficeMessenger({
   );
 
   const openThread = (threadId: string, subject?: string) => {
-    if (audience === 'client' && !useMasterDetail) {
-      router.push(`/portal/client/messages/${threadId}` as never);
-      return;
-    }
     setSelectedThreadId(threadId);
     if (subject) setSelectedThreadTitle(subject);
   };

@@ -1,6 +1,5 @@
 import { useMemo } from 'react';
 import {
-  Linking,
   Modal,
   Platform,
   Pressable,
@@ -12,13 +11,14 @@ import {
 } from 'react-native';
 import { useRouter } from 'expo-router';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { PremiumButton, LoadingState, ErrorState } from '@/components/ui';
-import { HealthOSStatusBadge } from '@/components/healthos';
+import { AssistLiveMap } from '@/components/maps/AssistLiveMap';
+import { PremiumButton, LoadingState, ErrorState, SectionPanel } from '@/components/ui';
 import { lightSurfaceText } from '@/design/tokens/auroraGlass';
 import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { usePortalClientAppointmentDetail } from '@/hooks/usePortalClientAppointmentDetail';
+import { useServiceTenantId } from '@/hooks/useTenantId';
 import { webSafeAreaPadding } from '@/lib/platform/webSafeArea';
 
 type ClientPortalAssignmentPreviewSheetProps = {
@@ -48,16 +48,11 @@ export function ClientPortalAssignmentPreviewSheet({
 }: ClientPortalAssignmentPreviewSheetProps) {
   const router = useRouter();
   const insets = useSafeAreaInsets();
+  const tenantId = useServiceTenantId();
   const text = lightSurfaceText;
   const { data, loading, error, refresh } = usePortalClientAppointmentDetail(
     visible ? (assignmentId ?? undefined) : undefined,
   );
-
-  const openRoute = () => {
-    if (!data?.location?.trim()) return;
-    const encoded = encodeURIComponent(data.location);
-    void Linking.openURL(`https://www.google.com/maps/dir/?api=1&destination=${encoded}`);
-  };
 
   const panelStyle = useMemo(
     () => ({
@@ -98,7 +93,6 @@ export function ClientPortalAssignmentPreviewSheet({
           ) : data ? (
             <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
               <View style={styles.header}>
-                <HealthOSStatusBadge domain="assignment" technicalValue={String(data.status)} />
                 <Text style={[styles.title, { color: text.primary }]}>{data.title}</Text>
                 {data.caregiverName ? (
                   <Text style={[styles.meta, { color: text.secondary }]}>
@@ -142,10 +136,28 @@ export function ClientPortalAssignmentPreviewSheet({
                 </View>
               ) : null}
 
+              {data.liveVisit ? (
+                <SectionPanel
+                  title="Live-Standort"
+                  subtitle={data.liveVisit.statusLabel ?? 'Aktueller Einsatzstatus'}
+                >
+                  {data.liveVisit.mapVisible && data.liveVisit.lastPosition ? (
+                    <AssistLiveMap
+                      position={data.liveVisit.lastPosition}
+                      markerLabel={data.caregiverName ?? 'Mitarbeitende:r'}
+                      height={200}
+                      tenantId={tenantId}
+                    />
+                  ) : (
+                    <Text style={[styles.value, { color: text.secondary }]}>
+                      {data.liveVisit.fallbackMessage ??
+                        'Live-Karte ist derzeit nicht verfügbar.'}
+                    </Text>
+                  )}
+                </SectionPanel>
+              ) : null}
+
               <View style={styles.actions}>
-                {data.location ? (
-                  <PremiumButton title="Route öffnen" variant="secondary" onPress={openRoute} />
-                ) : null}
                 <PremiumButton
                   title="Details öffnen"
                   variant="secondary"

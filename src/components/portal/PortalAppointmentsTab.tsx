@@ -4,6 +4,7 @@ import { useRouter } from 'expo-router';
 import { PortalTabHero } from '@/components/portal/PortalTabHero';
 import { ClientPortalAssignmentCard } from '@/components/portal/ClientPortalAssignmentCard';
 import { ClientPortalAssignmentPreviewSheet } from '@/components/portal/ClientPortalAssignmentPreviewSheet';
+import { ClientPortalLiveTrackingSection } from '@/components/portal/ClientPortalLiveTrackingSection';
 import { EmployeePortalAssignmentCard } from '@/components/portal/EmployeePortalAssignmentCard';
 import { EmployeePortalAssignmentPreviewSheet } from '@/components/portal/EmployeePortalAssignmentPreviewSheet';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
@@ -108,6 +109,8 @@ export function PortalAppointmentsTab({
       ) : null}
 
       <CachedDataBanner visible={fromCache} cachedAt={cachedAt} />
+
+      {!isEmployeePortal ? <ClientPortalLiveTrackingSection /> : null}
 
       {isEmpty ? (
         <EmptyState
