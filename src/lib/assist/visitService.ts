@@ -193,11 +193,15 @@ export async function fetchVisitDispositionDetail(
   tenantId: string,
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<VisitDispositionDetail>> {
-  const denied = enforcePermission<VisitDispositionDetail>(
+  const assistDenied = enforcePermission<VisitDispositionDetail>(
     actorRoleKey,
     'assist.assignments.view',
   );
-  if (denied) return denied;
+  const portalDenied = enforcePermission<VisitDispositionDetail>(
+    actorRoleKey,
+    'portal.client.appointments.view',
+  );
+  if (assistDenied && portalDenied) return assistDenied;
 
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;

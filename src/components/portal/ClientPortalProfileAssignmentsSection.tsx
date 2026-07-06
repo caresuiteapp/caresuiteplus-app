@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ClientPortalAssignmentCard } from '@/components/portal/ClientPortalAssignmentCard';
+import { ClientPortalAssignmentPreviewSheet } from '@/components/portal/ClientPortalAssignmentPreviewSheet';
 import { GlassCard } from '@/design/components/GlassCard';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -18,6 +19,7 @@ export function ClientPortalProfileAssignmentsSection() {
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
   const { items, loading, isEmpty } = usePortalAppointments();
+  const [previewId, setPreviewId] = useState<string | null>(null);
 
   const groups = useMemo(() => groupPortalAppointmentsByTime(items), [items]);
   const upcoming = groups.find((g) => g.key === 'upcoming');
@@ -57,7 +59,7 @@ export function ClientPortalProfileAssignmentsSection() {
             <ClientPortalAssignmentCard
               key={appt.id}
               appointment={appt}
-              onPreview={() => router.push(`/portal/client/appointments/${appt.id}` as never)}
+              onPreview={() => setPreviewId(appt.id)}
             />
           ))}
           {upcoming.items.length > 3 ? (
@@ -77,7 +79,7 @@ export function ClientPortalProfileAssignmentsSection() {
             <ClientPortalAssignmentCard
               key={appt.id}
               appointment={appt}
-              onPreview={() => router.push(`/portal/client/appointments/${appt.id}` as never)}
+              onPreview={() => setPreviewId(appt.id)}
             />
           ))}
           {past.items.length > 3 ? (
@@ -93,6 +95,12 @@ export function ClientPortalProfileAssignmentsSection() {
         variant="secondary"
         onPress={() => router.push('/portal/client/appointments' as never)}
         fullWidth
+      />
+
+      <ClientPortalAssignmentPreviewSheet
+        assignmentId={previewId}
+        visible={previewId != null}
+        onClose={() => setPreviewId(null)}
       />
     </>
   );

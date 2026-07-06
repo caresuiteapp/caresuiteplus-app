@@ -127,10 +127,38 @@ export async function fetchClientPortalDisplayName(
     if (!isMissingTableError(scopedError)) {
       console.warn('[clientPortalDisplayName] clients scoped:', scopedError.message);
     }
+    return fetchPortalProfileClientName();
+  }
+
+  const scopedName = selectNameFields(
+    scoped as { first_name?: string | null; last_name?: string | null; gender?: string | null } | null,
+  );
+  if (scopedName) return scopedName;
+
+  return fetchPortalProfileClientName();
+}
+
+async function fetchPortalProfileClientName(): Promise<string | null> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return null;
+
+  const { data: authData, error: authError } = await supabase.auth.getUser();
+  if (authError || !authData.user?.id) return null;
+
+  const { data, error } = await fromUnknownTable(supabase, 'profiles')
+    .select('first_name, last_name')
+    .eq('auth_user_id', authData.user.id)
+    .maybeSingle();
+
+  if (error) {
+    if (!isMissingTableError(error)) {
+      console.warn('[clientPortalDisplayName] profiles:', error.message);
+    }
     return null;
   }
 
-  return selectNameFields(
-    scoped as { first_name?: string | null; last_name?: string | null; gender?: string | null } | null,
-  );
+  return formatClientPortalDisplayName({
+    firstName: (data as { first_name?: string | null } | null)?.first_name ?? null,
+    lastName: (data as { last_name?: string | null } | null)?.last_name ?? null,
+  });
 }

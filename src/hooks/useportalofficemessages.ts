@@ -7,13 +7,23 @@ import {
 import { subscribeToOfficeMessageInbox } from '@/lib/office/officemessagerealtime';
 import { useAuth } from '@/lib/auth/context';
 import { usePortalActor } from '@/hooks/usePortalActor';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
 
 export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open') {
   const { profile, portalSession } = useAuth();
-  const tenantId = useServiceTenantId();
-  const { clientId, employeeId, actorId, roleKey, displayName, isLinkedReady } = usePortalActor();
+  const {
+    tenantId,
+    clientId,
+    employeeId,
+    actorId,
+    roleKey,
+    displayName,
+    isLinkedReady,
+  } = usePortalActor();
+  const portalAccountId = portalSession?.accountId ?? null;
+  const portalClientId = portalSession?.clientId ?? null;
+  const portalEmployeeId = portalSession?.employeeId ?? null;
+  const portalRoleKey = portalSession?.roleKey ?? null;
 
   const query = useAsyncQuery(
     () => {
@@ -33,7 +43,10 @@ export function usePortalOfficeMessages(filter: PortalOfficeInboxFilter = 'open'
       profile?.roleKey,
       profile?.id,
       profile?.displayName,
-      portalSession,
+      portalAccountId,
+      portalClientId,
+      portalEmployeeId,
+      portalRoleKey,
       filter,
       roleKey,
       actorId,

@@ -19,13 +19,23 @@ function normalizeContext(
   return { profile: (input as Profile | null | undefined) ?? null, portalSession: null };
 }
 
+function isActivePortalSession(portalSession?: PortalSessionRecord | null): boolean {
+  return (
+    portalSession?.roleKey === 'client_portal' ||
+    portalSession?.roleKey === 'family_portal' ||
+    portalSession?.roleKey === 'employee_portal'
+  );
+}
+
 /** Resolve tenant from authenticated profile or portal session — live-only, no demo fallback. */
 export function resolveTenantIdForService(
   input: Profile | null | undefined | TenantResolveContext,
 ): TenantResolveResult {
   const { profile, portalSession } = normalizeContext(input);
 
-  const tenantId = profile?.tenantId?.trim() || portalSession?.tenantId?.trim();
+  const tenantId = isActivePortalSession(portalSession)
+    ? portalSession?.tenantId?.trim() || profile?.tenantId?.trim()
+    : profile?.tenantId?.trim() || portalSession?.tenantId?.trim();
   if (!tenantId) {
     return {
       ok: false,

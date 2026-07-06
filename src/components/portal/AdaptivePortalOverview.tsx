@@ -17,6 +17,7 @@ import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePortalContext } from '@/hooks/usePortalContext';
+import { usePortalActor } from '@/hooks/usePortalActor';
 import {
   ASSIST_PORTAL_MODAL_SECTIONS,
   ASSIST_PORTAL_SECTIONS,
@@ -41,6 +42,7 @@ type AdaptivePortalOverviewProps = {
 export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePortalOverviewProps) {
   const router = useRouter();
   const { context, loading, error, refresh } = usePortalContext();
+  const { displayName: actorDisplayName } = usePortalActor();
   const params = useLocalSearchParams<{ module?: string; section?: string }>();
   const routeModule = typeof params.module === 'string' && isPortalModuleKey(params.module)
     ? params.module
@@ -144,7 +146,7 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
 
   const moduleTabs = context.activeModuleKeys;
   const heroLines = resolveClientPortalHeroLines({
-    displayName: context.displayName,
+    displayName: actorDisplayName,
     tenantName: context.tenantName,
     moduleLabel: terminology.moduleLabel,
   });

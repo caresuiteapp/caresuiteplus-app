@@ -12,13 +12,12 @@ import { subscribeToOfficeMessageThread } from '@/lib/office/officemessagerealti
 import { toUserFacingSendError, VOICE_SEND_TIMEOUT_MS, withMessagingTimeout } from '@/lib/office/voicemessageutils';
 import { useAuth } from '@/lib/auth/context';
 import { usePortalActor } from '@/hooks/usePortalActor';
-import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
 
 export function usePortalOfficeThreadDetail(threadId: string | null) {
   const { profile, portalSession } = useAuth();
-  const tenantId = useServiceTenantId();
-  const { clientId, employeeId, actorId, roleKey, displayName, isLinkedReady } = usePortalActor();
+  const { tenantId, clientId, employeeId, actorId, roleKey, displayName, isLinkedReady } =
+    usePortalActor();
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
 
@@ -51,6 +50,8 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     await query.refresh();
   }, [query]);
 
+  const silentRefresh = query.silentRefresh;
+
   useEffect(() => {
     if (!tenantId || !threadId) return;
     const unsubscribe = subscribeToOfficeMessageThread(tenantId, threadId, () => {
@@ -70,17 +71,16 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     );
     if (!actorResult.ok) return;
     await markPortalThreadMessagesRead(tenantId, threadId, actorResult.data);
-    await refresh();
+    await silentRefresh();
   }, [
     tenantId,
     threadId,
     actorRoleKey,
-    portalSession,
     actorProfileId,
     actorDisplayName,
     actorClientId,
     actorEmployeeId,
-    refresh,
+    silentRefresh,
   ]);
 
   const sendMessage = useCallback(
@@ -118,7 +118,7 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
       }
       return result;
     },
-    [tenantId, threadId, actorRoleKey, portalSession, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, refresh],
+    [tenantId, threadId, actorRoleKey, actorProfileId, actorDisplayName, actorClientId, actorEmployeeId, refresh],
   );
 
   const startNewChat = useCallback(async () => {
@@ -139,7 +139,6 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     tenantId,
     threadId,
     actorRoleKey,
-    portalSession,
     actorProfileId,
     actorDisplayName,
     actorClientId,
