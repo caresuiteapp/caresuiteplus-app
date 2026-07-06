@@ -152,4 +152,9 @@ describe('EmployeePortalVisitExecutionScreen isServiceEnded wiring', () => {
       /const effectiveStatus: AssignmentStatus = derivedStatus \?\? visit\?\.status/,
     );
   });
+
+  it('imports ScreenShell (missing import caused immediate ReferenceError white screen)', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    expect(screen).toContain("import { ScreenShell } from '@/components/layout';");
+  });
 });
