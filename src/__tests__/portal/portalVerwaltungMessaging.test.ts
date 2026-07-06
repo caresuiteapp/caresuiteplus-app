@@ -23,7 +23,7 @@ describe('Portal Verwaltung messaging', () => {
     vi.unstubAllEnvs();
   });
 
-  it('client messages tab uses glass Verwaltung messenger', () => {
+  it('client messages tab uses glass Verwaltung messenger with MessengerShell', () => {
     const route = readSrc('app/portal/client/(tabs)/messages.tsx');
     const screen = readSrc('src/screens/portal/portalofficemessagesscreens.tsx');
     const messenger = readSrc('src/components/portal/portalofficemessenger.tsx');
@@ -31,6 +31,7 @@ describe('Portal Verwaltung messaging', () => {
     expect(route).toContain('PortalTabScreen');
     expect(screen).toContain('variant="glass"');
     expect(screen).toContain('Verwaltung');
+    expect(messenger).toContain('MessengerShell');
     expect(messenger).toContain('Verwaltung anschreiben');
   });
 

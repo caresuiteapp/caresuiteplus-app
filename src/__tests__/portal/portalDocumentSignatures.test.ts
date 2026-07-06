@@ -131,7 +131,9 @@ describe('portal signature navigation', () => {
     const { OFFICE_NAV_AREAS } = await import('@/lib/navigation/officeNavigation');
     expect(
       OFFICE_NAV_AREAS.some(
-        (a) => a.label === 'Dokumente & Unterschriften' && a.href === '/office/documents-signatures',
+        (a) =>
+          a.label === 'Dokumente & Unterschriften' &&
+          a.href === '/business/office/documents/signatures',
       ),
     ).toBe(true);
   });
@@ -144,14 +146,21 @@ describe('portal signature navigation', () => {
       'utf8',
     );
     expect(nav).toContain("label: 'Dokumente & Unterschriften'");
-    expect(nav).toContain("href: '/office/documents-signatures'");
+    expect(nav).toContain("href: '/business/office/documents/signatures'");
   });
 
-  it('APP_ROUTES registers documents-signatures', async () => {
+  it('APP_ROUTES registers phase-2 documents signatures', async () => {
     const { APP_ROUTES } = await import('@/lib/navigation/routes');
+    expect(APP_ROUTES.some((r) => r.path === '/business/office/documents/signatures')).toBe(true);
     expect(APP_ROUTES.some((r) => r.path === '/office/documents-signatures')).toBe(true);
     const office = APP_ROUTES.find((r) => r.path === '/office');
-    expect(office?.children).toContain('/office/documents-signatures');
+    expect(office?.children).toContain('/business/office/documents/signatures');
+  });
+
+  it('employee portal nav links cs signatures route', async () => {
+    const { EMPLOYEE_PORTAL_NAV_TABS } = await import('@/lib/navigation/employeePortalNavigation');
+    const signatures = EMPLOYEE_PORTAL_NAV_TABS.find((t) => t.key === 'signatures');
+    expect(signatures?.href).toBe('/portal/employee/documents/signatures');
   });
 });
 

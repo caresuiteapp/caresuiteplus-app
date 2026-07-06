@@ -1,2 +1,2 @@
-import { CommunicationCenterScreen } from '@/screens/communication/CommunicationCenterScreen';
-export default CommunicationCenterScreen;
+import { CommunicationAdaptiveScreen } from '@/screens/communication/CommunicationAdaptiveScreen';
+export default CommunicationAdaptiveScreen;

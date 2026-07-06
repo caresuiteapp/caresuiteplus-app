@@ -1,10 +1,6 @@
-import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
-import { PortalSignaturesTab } from '@/components/portal/PortalSignaturesTab';
+import { Redirect } from 'expo-router';
 
-export default function EmployeePortalSignaturesRoute() {
-  return (
-    <PortalTabScreen title="Unterschriften" hideHeaderOnPhone>
-      <PortalSignaturesTab detailBasePath="/portal/employee/signatures" />
-    </PortalTabScreen>
-  );
+/** Legacy MA-Portal route — canonical cs_* signatures hub under documents/signatures. */
+export default function EmployeePortalSignaturesRedirect() {
+  return <Redirect href="/portal/employee/documents/signatures" />;
 }

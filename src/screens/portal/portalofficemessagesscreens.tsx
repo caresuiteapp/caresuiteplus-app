@@ -129,17 +129,17 @@ export function EmployeePortalOfficeConversationScreen() {
 const styles = StyleSheet.create({
   glassWrap: {
     flex: 1,
+    minHeight: 0,
     gap: careSpacing.md,
     paddingHorizontal: careSpacing.md,
     paddingBottom: careSpacing.md,
   },
   employeeMessages: {
     flex: 1,
+    minHeight: 0,
     width: '100%',
-    maxWidth: 720,
-    alignSelf: 'center',
+    alignSelf: 'stretch',
     gap: careSpacing.md,
-    minHeight: 360,
   },
-  thread: { flex: 1, minHeight: 400, paddingHorizontal: careSpacing.md },
+  thread: { flex: 1, minHeight: 0, paddingHorizontal: careSpacing.md },
 });

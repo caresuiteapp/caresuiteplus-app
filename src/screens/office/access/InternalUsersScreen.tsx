@@ -7,7 +7,9 @@ import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchInternalUsersList } from '@/lib/auth/accessManagementService';
+import { getInternalRoleLabel } from '@/lib/auth/internalRoleLabels';
 import { colors, spacing, typography } from '@/theme';
+import { ACCESS_STATUS_LABELS } from './accessLabels';
 
 export function InternalUsersScreen() {
   const router = useRouter();
@@ -66,8 +68,10 @@ export function InternalUsersScreen() {
           <Pressable onPress={() => router.push(`/business/office/access/internal-users/${item.id}` as never)}>
             <PremiumCard accentColor={colors.orange}>
               <Text style={styles.title}>{item.displayName}</Text>
-              <Text style={styles.meta}>{item.username} · {item.roleKey}</Text>
-              <Text style={styles.status}>Status: {item.status}</Text>
+              <Text style={styles.meta}>
+                {item.username} · {getInternalRoleLabel(item.roleKey)}
+              </Text>
+              <Text style={styles.status}>Status: {ACCESS_STATUS_LABELS[item.status]}</Text>
             </PremiumCard>
           </Pressable>
         )}

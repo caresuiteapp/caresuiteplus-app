@@ -40,9 +40,9 @@ export function OfficeMessageThread({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: { flex: 1, minWidth: 0 },
-        messages: { flex: 1 },
-        messagesContent: { paddingVertical: spacing.md },
+        root: { flex: 1, minWidth: 0, minHeight: 0 },
+        messages: { flex: 1, minHeight: 0 },
+        messagesContent: { paddingVertical: spacing.md, flexGrow: 1 },
         closedBanner: {
           margin: spacing.md,
           padding: spacing.md,

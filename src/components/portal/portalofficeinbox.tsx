@@ -21,7 +21,7 @@ type PortalOfficeInboxProps = {
   filter: PortalOfficeInboxFilter;
   onFilterChange: (filter: PortalOfficeInboxFilter) => void;
   selectedThreadId: string | null;
-  onThreadSelect: (threadId: string) => void;
+  onThreadSelect: (threadId: string, subject?: string) => void;
   search: string;
   onSearchChange: (value: string) => void;
   variant?: 'default' | 'glass';
@@ -93,7 +93,13 @@ function ThreadRow({
     : null;
 
   return (
-    <Pressable onPress={onPress} style={styles.row}>
+    <Pressable
+      onPress={onPress}
+      style={styles.row}
+      accessibilityRole="button"
+      testID={`portal-thread-row-${thread.id}`}
+      accessibilityLabel={`Chat ${thread.subject}`}
+    >
       <Text style={styles.subject} numberOfLines={1}>
         {thread.subject}
       </Text>
@@ -245,7 +251,7 @@ export function PortalOfficeInbox({
             <ThreadRow
               thread={item}
               selected={item.id === selectedThreadId}
-              onPress={() => onThreadSelect(item.id)}
+              onPress={() => onThreadSelect(item.id, item.subject)}
               variant={variant}
             />
           )}

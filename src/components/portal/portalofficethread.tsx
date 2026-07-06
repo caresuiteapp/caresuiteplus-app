@@ -24,12 +24,14 @@ type PortalOfficeThreadProps = {
   threadId: string | null;
   onNewThreadStarted?: (newThreadId: string) => void;
   variant?: 'default' | 'glass';
+  hideHeader?: boolean;
 };
 
 export function PortalOfficeThread({
   threadId,
   onNewThreadStarted,
   variant = 'default',
+  hideHeader = false,
 }: PortalOfficeThreadProps) {
   const { c } = useCareLightPalette();
   const { typography } = useLegacyTheme();
@@ -50,7 +52,7 @@ export function PortalOfficeThread({
   const styles = useMemo(
     () =>
       StyleSheet.create({
-        root: { flex: 1, minWidth: 0 },
+        root: { flex: 1, minWidth: 0, minHeight: 0 },
         header: {
           padding: spacing.md,
           borderBottomWidth: 1,
@@ -59,8 +61,8 @@ export function PortalOfficeThread({
         },
         title: { ...typography.h3, color: ink?.primary ?? c.text },
         meta: { ...typography.caption, color: ink?.secondary ?? c.muted },
-        messages: { flex: 1 },
-        messagesContent: { paddingVertical: spacing.md },
+        messages: { flex: 1, minHeight: 0 },
+        messagesContent: { paddingVertical: spacing.md, flexGrow: 1 },
         closedBanner: {
           margin: spacing.md,
           padding: spacing.md,
@@ -160,10 +162,12 @@ export function PortalOfficeThread({
 
   return (
     <View style={styles.root}>
-      <View style={styles.header}>
-        <Text style={styles.title}>{headerTitle}</Text>
-        <Text style={styles.meta}>{headerSubtitle}</Text>
-      </View>
+      {!hideHeader ? (
+        <View style={styles.header}>
+          <Text style={styles.title}>{headerTitle}</Text>
+          <Text style={styles.meta}>{headerSubtitle}</Text>
+        </View>
+      ) : null}
 
       <PortalOfficeStatusCard thread={detail} variant={variant} />
 

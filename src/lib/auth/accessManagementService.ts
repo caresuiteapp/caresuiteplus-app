@@ -39,6 +39,7 @@ import {
   getDefaultModulePermissionsForRole,
   type AccessDashboardStats,
 } from './permissionService';
+import { INTERNAL_ROLE_LABELS } from '@/lib/auth/internalRoleLabels';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 
@@ -213,7 +214,7 @@ export async function fetchRolePermissionProfiles(
     ok: true,
     data: INTERNAL_ROLES.map((role) => ({
       role,
-      label: role.replace(/_/g, ' '),
+      label: INTERNAL_ROLE_LABELS[role],
       permissions: getDefaultModulePermissionsForRole(role),
     })),
   };

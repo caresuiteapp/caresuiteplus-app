@@ -7,6 +7,7 @@ import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { fetchAccessAuditEventsList } from '@/lib/auth/accessManagementService';
 import { colors, spacing, typography } from '@/theme';
+import { LOGIN_TYPE_LABELS } from './accessLabels';
 
 export function LoginAuditScreen() {
   const { profile } = useAuth();
@@ -58,7 +59,7 @@ export function LoginAuditScreen() {
         renderItem={({ item }) => (
           <PremiumCard accentColor={item.success ? colors.success : colors.orange}>
             <Text style={styles.title}>
-              {item.loginType} · {item.success ? 'Erfolg' : 'Fehler'}
+              {LOGIN_TYPE_LABELS[item.loginType] ?? item.loginType} · {item.success ? 'Erfolg' : 'Fehler'}
             </Text>
             <Text style={styles.meta}>{item.usernameOrCodeHint}</Text>
             {item.failureReason ? <Text style={styles.meta}>{item.failureReason}</Text> : null}

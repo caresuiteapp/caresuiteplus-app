@@ -22,7 +22,7 @@ export function CommunicationThreadListCard({
   }
 
   return (
-    <Pressable onPress={onPress}>
+    <Pressable onPress={onPress} testID={`communication-thread-row-${thread.id}`}>
       <PremiumCard
         accentColor={thread.unreadCountBusiness > 0 ? colors.cyan : undefined}
         style={[styles.card, selected ? styles.cardSelected : null]}

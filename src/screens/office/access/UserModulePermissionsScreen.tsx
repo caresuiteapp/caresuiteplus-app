@@ -7,6 +7,7 @@ import {
   MODULE_ASSIGNMENT_PREPARED_MESSAGE,
 } from '@/lib/modules/modulesModuleConfig';
 import { colors, typography } from '@/theme';
+import { MODULE_LABELS } from './accessLabels';
 
 const MODULES = [
   'office',
@@ -46,7 +47,7 @@ export function UserModulePermissionsScreen() {
       <SectionPanel title="Module" subtitle="Vorschau — echte Benutzer-Zuordnung folgt mit Live-Billing">
         {MODULES.map((moduleKey) => (
           <PremiumCard key={moduleKey} accentColor={colors.cyan}>
-            <Text style={styles.module}>{moduleKey}</Text>
+            <Text style={styles.module}>{MODULE_LABELS[moduleKey] ?? moduleKey}</Text>
             <Text style={styles.meta}>{ACTIONS.join(' · ')}</Text>
             <PremiumBadge label="Demo-Vorschau" variant="muted" />
           </PremiumCard>

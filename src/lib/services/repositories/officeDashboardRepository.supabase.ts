@@ -98,7 +98,7 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
     countByFilter('portal_requests', tenantId, (query) =>
       query.in('status', ['offen', 'in_bearbeitung']),
     ),
-    countByFilter('service_records', tenantId, (query) => query.eq('status', 'review_pending')),
+    countByFilter('service_records', tenantId, (query) => query.eq('status', 'review_required')),
     countByFilter('appointments', tenantId, (query) =>
       query.gte('starts_at', weekBounds.start).lt('starts_at', weekBounds.end),
     ),
@@ -198,29 +198,30 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
   }
 
   const { data: messageThreads, error: messageError } = await fromUnknownTable(supabase, 'message_threads')
-    .select('unread_count_business')
+    .select('office_unread_count')
     .eq('tenant_id', tenantId);
 
   if (!messageError) {
     metrics.tableAvailability.messages = true;
-    metrics.unreadMessages = ((messageThreads ?? []) as { unread_count_business: number | null }[]).reduce(
-      (sum, row) => sum + Number(row.unread_count_business ?? 0),
+    metrics.unreadMessages = ((messageThreads ?? []) as { office_unread_count: number | null }[]).reduce(
+      (sum, row) => sum + Number(row.office_unread_count ?? 0),
       0,
     );
   }
 
   const { data: budgets, error: budgetError } = await fromUnknownTable(supabase, 'client_budgets')
-    .select('total_amount_cents, used_amount_cents')
+    .select('yearly_amount, monthly_amount, used_amount')
     .eq('tenant_id', tenantId);
 
   if (!budgetError) {
     metrics.tableAvailability.budgets = true;
     metrics.budgetWarnings = ((budgets ?? []) as {
-      total_amount_cents: number | null;
-      used_amount_cents: number | null;
+      yearly_amount: number | null;
+      monthly_amount: number | null;
+      used_amount: number | null;
     }[]).filter((row) => {
-      const total = Number(row.total_amount_cents ?? 0);
-      const used = Number(row.used_amount_cents ?? 0);
+      const total = Number(row.yearly_amount ?? row.monthly_amount ?? 0);
+      const used = Number(row.used_amount ?? 0);
       return total > 0 && used / total >= 0.8;
     }).length;
   }

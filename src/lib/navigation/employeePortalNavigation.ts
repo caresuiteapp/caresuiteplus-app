@@ -11,7 +11,12 @@ export const EMPLOYEE_PORTAL_NAV_TABS: ShellTabConfig[] = [
   { key: 'calendar', label: 'Kalender', icon: '📅', href: '/portal/employee/calendar' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/employee/messages' },
   { key: 'clients', label: 'Klientenakten', icon: '👥', href: '/portal/employee/clients' },
-  { key: 'signatures', label: 'Unterschriften', icon: '✍️', href: '/portal/employee/signatures' },
+  {
+    key: 'signatures',
+    label: 'Dokumente & Unterschriften',
+    icon: '✍️',
+    href: '/portal/employee/documents/signatures',
+  },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/employee/profile' },
   {
     key: 'time-tracking',

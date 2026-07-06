@@ -42,7 +42,7 @@ export const officeAuditLogSupabaseRepository = {
         .order('created_at', { ascending: false })
         .limit(LIST_LIMIT),
       fromUnknownTable(supabase, 'client_document_events')
-        .select('id, event_type, summary, created_at, client_id, profiles(display_name)')
+        .select('id, event_type, summary, created_at, client_id, profiles(full_name, first_name, last_name)')
         .eq('tenant_id', tenantId)
         .order('created_at', { ascending: false })
         .limit(LIST_LIMIT),

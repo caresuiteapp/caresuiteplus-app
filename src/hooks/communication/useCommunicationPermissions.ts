@@ -1,13 +1,14 @@
 import { useMemo } from 'react';
 import { useAuth } from '@/lib/auth/context';
+import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import {
   canAccessCommunicationCenter,
   canSendPortalMessage,
   canViewPortalThreads,
   hasCommunicationPermission,
 } from '@/features/communication/communication.permissions';
-import type { RoleKey } from '@/types/core/auth';
 import type { CommunicationAudience } from '@/features/communication/communication.types';
+import type { RoleKey } from '@/types/core/auth';
 
 function audienceFromRole(roleKey: RoleKey | null | undefined): CommunicationAudience {
   switch (roleKey) {
@@ -25,8 +26,8 @@ function audienceFromRole(roleKey: RoleKey | null | undefined): CommunicationAud
 }
 
 export function useCommunicationPermissions() {
-  const { profile } = useAuth();
-  const roleKey = profile?.roleKey ?? null;
+  const { profile, portalSession, user } = useAuth();
+  const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
   const audience = audienceFromRole(roleKey);
 
   return useMemo(

@@ -8,6 +8,7 @@ import type { AccessCredentialsReveal, InternalRoleKey } from '@/lib/auth/auth.t
 import { createInternalUser } from '@/lib/auth/accessManagementService';
 import { useTenantDisplayName } from '@/hooks/useTenantDisplayName';
 import { useServiceTenantId } from '@/hooks/useTenantId';
+import { getInternalRoleLabel } from '@/lib/auth/internalRoleLabels';
 import { spacing, typography } from '@/theme';
 
 const ROLE_OPTIONS: InternalRoleKey[] = [
@@ -77,11 +78,11 @@ export function CreateInternalUserScreen() {
       <PremiumInput label="Nachname" value={lastName} onChangeText={setLastName} />
       <PremiumInput label="E-Mail" value={email} onChangeText={setEmail} autoCapitalize="none" />
       <SectionPanel title="Rolle">
-        <Text style={styles.hint}>Aktuelle Rolle: {roleKey}</Text>
+        <Text style={styles.hint}>Aktuelle Rolle: {getInternalRoleLabel(roleKey)}</Text>
         {ROLE_OPTIONS.map((role) => (
           <PremiumButton
             key={role}
-            title={role}
+            title={getInternalRoleLabel(role)}
             variant={roleKey === role ? 'primary' : 'secondary'}
             onPress={() => setRoleKey(role)}
             fullWidth
