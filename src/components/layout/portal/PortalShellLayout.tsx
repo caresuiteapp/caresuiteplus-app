@@ -15,7 +15,7 @@ import { PORTAL_EMPLOYEE_TABS } from '@/lib/navigation/shellConfig';
 import { resolveEmployeePortalNavigationTabs } from '@/lib/navigation/employeePortalNavigation';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { usePlatformLayout } from '@/hooks/usePlatformLayout';
-import { usePortalClientTabs } from '@/hooks/usePortalClientTabs';
+import { usePortalClientPrimaryTabs, usePortalClientTabs } from '@/hooks/usePortalClientTabs';
 import { useHydrationSafeWindowDimensions } from '@/hooks/useHydrationSafeWindowDimensions';
 import { moduleColor } from '@/design/tokens/modules';
 import { BREAKPOINT_MIN } from '@/lib/platform/breakpoints';
@@ -49,10 +49,14 @@ export function PortalShellLayout({
   const { width } = useHydrationSafeWindowDimensions();
   const { isDesktopOrWide } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
-  const clientTabs = usePortalClientTabs();
-  const portalTabs = kind === 'employee' ? PORTAL_EMPLOYEE_TABS : clientTabs;
+  const clientDrawerTabs = usePortalClientTabs();
+  const clientPrimaryTabs = usePortalClientPrimaryTabs();
+  const portalTabs =
+    kind === 'employee' ? PORTAL_EMPLOYEE_TABS : clientPrimaryTabs;
   const drawerTabs =
-    kind === 'employee' ? resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS) : portalTabs;
+    kind === 'employee'
+      ? resolveEmployeePortalNavigationTabs(PORTAL_EMPLOYEE_TABS)
+      : clientDrawerTabs;
   const [navCollapsed, setNavCollapsed] = useState(false);
   const [drawerOpen, setDrawerOpen] = useState(false);
   const { active: messengerFocusActive } = usePortalMessengerFocus();

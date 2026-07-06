@@ -1,15 +1,14 @@
-import { RefreshControl, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { RefreshControl, ScrollView, StyleSheet, Pressable, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useRouter } from 'expo-router';
-import { useAdaptiveContentStyles } from '@/design/tokens/carelightadaptive';
 import { careSpacing } from '@/design/tokens/spacing';
+import { PORTAL_LIGHT_LINK_ORANGE } from '@/design/tokens/auroraGlass';
 import { PortalTabHero } from '@/components/portal/PortalTabHero';
+import { PortalDocumentListCard } from '@/components/portal/PortalDocumentListCard';
 import {
   EmptyState,
   ErrorState,
   LoadingState,
-  PremiumBadge,
-  PremiumCard,
   SuccessState,
 } from '@/components/ui';
 import { usePortalDocuments } from '@/hooks/usePortalDocuments';
@@ -20,11 +19,8 @@ import { resolvePortalScope } from '@/lib/portal/portalVisibility';
 import { formatOfficeDocumentSizeDisplay } from '@/lib/office/officeDocumentDisplay';
 import { PORTAL_MOBILE_NAV_HEIGHT } from '@/lib/navigation/portalMobileTabs';
 import type { PortalDocumentListItem } from '@/types/portal/documents';
-import {
-  PORTAL_DOCUMENT_CATEGORY_LABELS,
-} from '@/types/portal/documents';
-import { SENSITIVITY_LABELS, VISIBILITY_LABELS } from '@/types/portal/visibility';
-import { colors, spacing } from '@/theme';
+import { moduleColor } from '@/design/tokens/modules';
+import { spacing } from '@/theme';
 
 function formatDate(iso: string): string {
   return new Date(iso).toLocaleDateString('de-DE', {
@@ -47,52 +43,18 @@ type PortalDocumentsTabProps = {
 export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps = {}) {
   const router = useRouter();
   const { profile } = useAuth();
-  const content = useAdaptiveContentStyles();
   const insets = useSafeAreaInsets();
   const { isPhone } = useDeviceClass();
   const { showBottomTabs } = usePlatformLayout();
   const scope = resolvePortalScope(profile?.roleKey ?? null);
+  const accent = moduleColor('assist');
   const contentPadding = {
     paddingHorizontal: isPhone ? careSpacing.sm : 0,
     paddingBottom: showBottomTabs
       ? PORTAL_MOBILE_NAV_HEIGHT + Math.max(insets.bottom, careSpacing.sm)
       : spacing.xxl,
   };
-  const styles = StyleSheet.create({
-    scroll: {
-      gap: spacing.md,
-      width: '100%',
-      maxWidth: '100%',
-      alignSelf: 'stretch',
-    },
-    cardHeader: {
-      flexDirection: 'row',
-      justifyContent: 'space-between',
-      alignItems: 'flex-start',
-      gap: spacing.sm,
-      marginBottom: spacing.xs,
-    },
-    title: {
-      ...content.title,
-      flex: 1,
-      minWidth: 0,
-    },
-    fileName: content.secondary,
-    meta: {
-      ...content.caption,
-      marginTop: spacing.xs,
-    },
-    badges: {
-      flexDirection: 'row',
-      flexWrap: 'wrap',
-      gap: spacing.xs,
-      marginTop: spacing.sm,
-    },
-    card: {
-      width: '100%',
-      alignSelf: 'stretch',
-    },
-  });
+
   const {
     items,
     loading,
@@ -128,6 +90,16 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
 
       {showSuccess ? <SuccessState message="Dokumente aktualisiert." /> : null}
 
+      {scope === 'portal_client' || scope === 'portal_family' ? (
+        <Pressable
+          onPress={() => router.push('/portal/client/documents/signatures' as never)}
+          style={styles.signaturesLink}
+          accessibilityRole="button"
+        >
+          <Text style={styles.signaturesLinkText}>Offene Unterschriften anzeigen →</Text>
+        </Pressable>
+      ) : null}
+
       {isEmpty ? (
         <EmptyState
           title="Keine Dokumente"
@@ -137,35 +109,16 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
         />
       ) : (
         items.map((doc) => (
-          <PremiumCard
+          <PortalDocumentListCard
             key={doc.id}
-            accentColor={colors.primary}
-            style={styles.card}
+            document={doc}
+            metaLine={formatPortalDocumentMeta(doc)}
             onPress={
               detailBasePath
                 ? () => router.push(`${detailBasePath}/${doc.id}` as never)
                 : undefined
             }
-          >
-            <View style={styles.cardHeader}>
-              <Text style={styles.title}>{doc.title}</Text>
-              <PremiumBadge
-                label={PORTAL_DOCUMENT_CATEGORY_LABELS[doc.category]}
-                variant="muted"
-              />
-            </View>
-            {doc.displayFileName ? (
-              <Text style={styles.fileName}>{doc.displayFileName}</Text>
-            ) : null}
-            <Text style={styles.meta}>{formatPortalDocumentMeta(doc)}</Text>
-            <View style={styles.badges}>
-              <PremiumBadge label={VISIBILITY_LABELS[doc.visibility]} variant="cyan" />
-              <PremiumBadge
-                label={SENSITIVITY_LABELS[doc.sensitivity]}
-                variant={doc.sensitivity === 'restricted' ? 'red' : 'muted'}
-              />
-            </View>
-          </PremiumCard>
+          />
         ))
       )}
     </>
@@ -179,7 +132,7 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
     <ScrollView
       showsVerticalScrollIndicator={false}
       refreshControl={
-        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={colors.primary} />
+        <RefreshControl refreshing={refreshing} onRefresh={refresh} tintColor={accent} />
       }
       contentContainerStyle={[styles.scroll, contentPadding]}
     >
@@ -187,3 +140,23 @@ export function PortalDocumentsTab({ detailBasePath }: PortalDocumentsTabProps =
     </ScrollView>
   );
 }
+
+const styles = StyleSheet.create({
+  scroll: {
+    gap: spacing.md,
+    width: '100%',
+    maxWidth: '100%',
+    alignSelf: 'stretch',
+  },
+  signaturesLink: {
+    alignSelf: 'flex-start',
+    minHeight: 44,
+    justifyContent: 'center',
+    paddingVertical: careSpacing.xs,
+  },
+  signaturesLinkText: {
+    color: PORTAL_LIGHT_LINK_ORANGE,
+    fontWeight: '700',
+    fontSize: 14,
+  },
+});

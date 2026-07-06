@@ -69,6 +69,9 @@ export const lightSurfaceText: SurfaceContrastText = {
   muted: llgsTypography.muted,
 };
 
+/** WCAG-kontrastfähiger Orange-/Amber-Ton für Links/CTAs auf hellen Portal-Flächen (≥4.5:1). */
+export const PORTAL_LIGHT_LINK_ORANGE = '#B45309';
+
 export function surfaceContrastText(isDarkBackground: boolean): SurfaceContrastText {
   return isDarkBackground ? darkGlassSurfaceText : lightSurfaceText;
 }

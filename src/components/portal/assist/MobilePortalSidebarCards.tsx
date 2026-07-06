@@ -15,6 +15,7 @@ import { GlassCard } from '@/design/components/GlassCard';
 import {
   auroraGlass,
   lightLiquidGlass,
+  PORTAL_LIGHT_LINK_ORANGE,
   useAuroraAdaptiveText,
   useLightLiquidGlassShell,
 } from '@/design/tokens/auroraGlass';
@@ -95,7 +96,7 @@ export function MobilePortalSidebarCards({ accentColor = PORTAL_MOBILE_CTA_GOLD 
           style={[styles.detailsBtn, webCursor]}
           accessibilityRole="button"
         >
-          <Text style={[type.caption, { color: accentColor, fontWeight: '700' }]}>Details →</Text>
+          <Text style={[type.caption, { color: useLightGlass ? PORTAL_LIGHT_LINK_ORANGE : accentColor, fontWeight: '700' }]}>Details →</Text>
         </Pressable>
       </GlassCard>
 

@@ -119,7 +119,8 @@ export function MessengerShell({
           alignItems: 'center',
           gap: spacing.sm,
           paddingHorizontal: spacing.sm,
-          paddingVertical: spacing.sm,
+          paddingTop: spacing.sm,
+          paddingBottom: spacing.sm,
           borderBottomWidth: 1,
           borderBottomColor: isGlass ? surfaces.border : c.border,
           backgroundColor: isGlass ? surfaces.panel : colors.bgSurface,
@@ -167,7 +168,7 @@ export function MessengerShell({
   if (showMobileThread) {
     return (
       <View style={styles.root} testID="messenger-shell">
-        <View style={styles.mobileThread}>
+        <View style={styles.mobileThread} testID="messenger-mobile-thread">
           <View style={styles.mobileChrome}>
             <Pressable
               onPress={onCloseThread}

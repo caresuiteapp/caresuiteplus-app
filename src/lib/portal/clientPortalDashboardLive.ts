@@ -10,12 +10,15 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
 export type ClientPortalLiveMetrics = {
   upcomingAppointments: number;
+  /** Non-draft assist_visits visible to portal (all dates). */
+  totalVisits: number;
   documents: number;
   openMessages: number;
 };
 
 const EMPTY_METRICS: ClientPortalLiveMetrics = {
   upcomingAppointments: 0,
+  totalVisits: 0,
   documents: 0,
   openMessages: 0,
 };
@@ -61,10 +64,19 @@ export async function fetchClientPortalLiveMetrics(
         .neq('category', PORTAL_PROOFS_CATEGORY)
     : null;
 
-  const [threadsResult, assignmentsResult, documentsResult] = await Promise.all([
+  let visitsQuery = clientId?.trim()
+    ? fromUnknownTable(client, 'assist_visits')
+        .select('*', { count: 'exact', head: true })
+        .eq('tenant_id', tenantId)
+        .eq('client_id', clientId)
+        .neq('planning_status', 'draft')
+    : null;
+
+  const [threadsResult, assignmentsResult, documentsResult, visitsResult] = await Promise.all([
     threadsQuery,
     assignmentsQuery,
     documentsQuery ?? Promise.resolve({ count: 0, error: null }),
+    visitsQuery ?? Promise.resolve({ count: 0, error: null }),
   ]);
 
   if (threadsResult.error && !isMissingTableError(threadsResult.error)) {
@@ -76,6 +88,9 @@ export async function fetchClientPortalLiveMetrics(
   if (documentsResult.error && !isMissingTableError(documentsResult.error)) {
     console.warn('[clientPortalDashboardLive] client_documents:', documentsResult.error.message);
   }
+  if (visitsResult.error && !isMissingTableError(visitsResult.error)) {
+    console.warn('[clientPortalDashboardLive] assist_visits:', visitsResult.error.message);
+  }
 
   const openMessages = threadsResult.error
     ? 0
@@ -86,6 +101,7 @@ export async function fetchClientPortalLiveMetrics(
 
   return {
     upcomingAppointments: assignmentsResult.error ? 0 : (assignmentsResult.count ?? 0),
+    totalVisits: visitsResult.error ? 0 : (visitsResult.count ?? 0),
     documents: documentsResult.error ? 0 : (documentsResult.count ?? 0),
     openMessages,
   };

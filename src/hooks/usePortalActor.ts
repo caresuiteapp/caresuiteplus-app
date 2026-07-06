@@ -30,7 +30,15 @@ export function usePortalActor(): PortalActor {
   const [resolvedClientId, setResolvedClientId] = useState<string | null>(null);
   const [isResolvingClientLink, setIsResolvingClientLink] = useState(false);
 
-  const tenantId = profile?.tenantId ?? portalSession?.tenantId ?? null;
+  const isActivePortalSession = Boolean(
+    portalSession &&
+      (portalSession.roleKey === 'client_portal' ||
+        portalSession.roleKey === 'family_portal' ||
+        portalSession.roleKey === 'employee_portal'),
+  );
+  const tenantId = isActivePortalSession
+    ? (portalSession?.tenantId ?? profile?.tenantId ?? null)
+    : (profile?.tenantId ?? portalSession?.tenantId ?? null);
   const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
   const actorId = profile?.id ?? portalSession?.accountId ?? null;
   const sessionClientId = portalSession?.clientId ?? null;

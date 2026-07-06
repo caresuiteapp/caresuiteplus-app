@@ -10,7 +10,7 @@ export const CLIENT_PORTAL_NAV_TABS: ShellTabConfig[] = [
   { key: 'documents', label: 'Dokumente', icon: '📄', href: '/portal/client/documents' },
   { key: 'messages', label: 'Nachrichten', icon: '💬', href: '/portal/client/messages' },
   { key: 'profile', label: 'Profil', icon: '👤', href: '/portal/client/profile' },
-  { key: 'proofs', label: 'Nachweise', icon: '📋', href: '/portal/client?module=assist&section=nachweise' },
+  { key: 'proofs', label: 'Nachweise', icon: '📋', href: '/portal/client/proofs' },
   {
     key: 'signatures',
     label: 'Unterschriften',
@@ -19,6 +19,7 @@ export const CLIENT_PORTAL_NAV_TABS: ShellTabConfig[] = [
   },
   { key: 'requests', label: 'Anfragen', icon: '📨', href: '/portal/client?modal=anfragen' },
   { key: 'activities', label: 'Aktivitäten', icon: '📰', href: '/portal/client?modal=aktivitaeten' },
+  { key: 'settings', label: 'Einstellungen', icon: '⚙️', href: '/portal/client/profile' },
 ];
 
 /** Primary bottom-nav tabs on phone — Übersicht … Profil. */
@@ -38,6 +39,7 @@ export const CLIENT_PORTAL_DRAWER_TAB_KEYS = [
   'signatures',
   'requests',
   'activities',
+  'settings',
 ] as const;
 
 export function buildClientPortalPrimaryTabs(): ShellTabConfig[] {

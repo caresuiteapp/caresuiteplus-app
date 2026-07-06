@@ -1,5 +1,5 @@
 import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { surfaceContrastText } from '@/design/tokens/auroraGlass';
+import { PORTAL_LIGHT_LINK_ORANGE, surfaceContrastText, useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -24,14 +24,20 @@ export function PortalEmptyState({
   actionLabel,
   onAction,
   compact = false,
-  ctaColor = '#FF9500',
+  ctaColor = PORTAL_LIGHT_LINK_ORANGE,
   ctaSuffix = '',
   onDarkSurface = false,
 }: PortalEmptyStateProps) {
   const text = surfaceContrastText(onDarkSurface);
+  const useLightGlass = useLightLiquidGlassShell();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
-  const resolvedCtaColor = ctaColor === 'gold' ? PORTAL_MOBILE_CTA_GOLD : ctaColor;
+  const resolvedCtaColor =
+    ctaColor === 'gold'
+      ? useLightGlass || !onDarkSurface
+        ? PORTAL_LIGHT_LINK_ORANGE
+        : PORTAL_MOBILE_CTA_GOLD
+      : ctaColor;
 
   return (
     <View style={[styles.container, compact && styles.compact]}>

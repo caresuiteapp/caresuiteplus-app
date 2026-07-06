@@ -11,7 +11,8 @@ import { MobilePortalKpiCard } from '@/components/portal/assist/MobilePortalKpiC
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { EmptyState, ErrorState, LoadingState, PremiumButton, SuccessState } from '@/components/ui';
 import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText, useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -47,7 +48,6 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
   const routeSection = typeof params.section === 'string' ? params.section : null;
   const [activeModule, setActiveModule] = useState<PortalModuleKey | 'all'>(routeModule ?? 'all');
   const text = useAuroraAdaptiveText();
-  const heroStyle = useAuroraGlassCardStyle();
   const { width, isPhone } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
 
@@ -117,6 +117,9 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
       if (routeSection === 'hilfe') {
         return <Redirect href="/portal/client/help" />;
       }
+      if (routeSection === 'nachweise') {
+        return <Redirect href="/portal/client/proofs" />;
+      }
       return <AssistPortalSectionView context={context} section={routeSection} />;
     }
 
@@ -131,24 +134,11 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
 
   if (!context.hasModuleAssignments) {
     return (
-      <View style={styles.container}>
-        {showSuccess ? <SuccessState message="Daten erfolgreich aktualisiert." /> : null}
-        <GlassCard style={heroStyle}>
-          <Text style={[type.caption, { color: text.muted }]}>KLIENT:INNENPORTAL</Text>
-          <Text style={[type.cardTitle, { color: text.primary }]}>
-            Hallo, {context.displayName}
-          </Text>
-          <Text style={[type.body, { color: text.secondary }]}>
-            {context.tenantName}
-          </Text>
-        </GlassCard>
-        <EmptyState
-          title="Portal noch nicht eingerichtet"
-          message="Für Ihr Profil wurden noch keine Module zugewiesen. Bitte wenden Sie sich an Ihr Pflegebüro — dort können Assist, Pflege, Stationär oder Beratung freigeschaltet werden."
-          actionLabel="Erneut prüfen"
-          onAction={handleRefresh}
-        />
-      </View>
+      <AssistPortalOverview
+        context={context}
+        showSuccess={showSuccess}
+        onRefresh={handleRefresh}
+      />
     );
   }
 
@@ -168,7 +158,12 @@ export function AdaptivePortalOverview({ showSuccess, onRefresh }: AdaptivePorta
           showStatusDot
         />
       ) : (
-        <GlassCard style={heroStyle}>
+        <GlassCard
+          style={{
+            backgroundColor: careLightColors.surface,
+            borderColor: careLightColors.borderStrong,
+          }}
+        >
           <Text style={[type.caption, { color: text.muted }]}>KLIENT:INNENPORTAL</Text>
           <Text style={[type.cardTitle, { color: text.primary }]}>
             {terminology.greetingLabel}, {context.displayName}
@@ -282,8 +277,8 @@ const styles = StyleSheet.create({
     paddingVertical: careSpacing.xs,
     borderRadius: 999,
     borderWidth: 1,
-    borderColor: 'rgba(255,255,255,0.12)',
-    backgroundColor: 'rgba(255,255,255,0.04)',
+    borderColor: careLightColors.borderStrong,
+    backgroundColor: careLightColors.surface,
   },
   moduleChipActive: {
     borderColor: 'rgba(255,149,0,0.45)',

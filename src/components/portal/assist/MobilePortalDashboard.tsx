@@ -12,6 +12,7 @@ import { PortalOpenRequestsModal } from '@/components/portal/assist/PortalOpenRe
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
 import { PortalServiceProofsModal } from '@/components/portal/assist/PortalServiceProofsModal';
 import { careSpacing } from '@/design/tokens/spacing';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { usePortalAssistRealtime } from '@/hooks/usePortalAssistRealtime';
 import {
@@ -22,10 +23,10 @@ import {
   resolvePortalRequestTypeLabel,
   serializePortalRequestPayload,
 } from '@/lib/portal/assist';
+import { resolveClientPortalHeroLines } from '@/lib/portal/clientPortalGreeting';
 import {
   canAccessPortalFeature,
   resolvePortalTerminology,
-  resolveTimeBasedGermanGreeting,
 } from '@/lib/portal/engine';
 import type { PortalContext } from '@/lib/portal/types';
 import type { AssistDashboardData, PortalRequestType } from '@/types/portal/assist';
@@ -65,7 +66,12 @@ export function MobilePortalDashboard({
   const [uploadSuccess, setUploadSuccess] = useState(false);
 
   const terminology = resolvePortalTerminology('assist');
-  const greeting = resolveTimeBasedGermanGreeting();
+  const text = useAuroraAdaptiveText();
+  const heroLines = resolveClientPortalHeroLines({
+    displayName: context.displayName,
+    tenantName: context.tenantName,
+    moduleLabel: terminology.moduleLabel,
+  });
   const tripsReleased = canAccessPortalFeature(context, 'assist', 'trips');
   const proofsReleased = canAccessPortalFeature(context, 'assist', 'nachweise');
   const requestsReleased = canAccessPortalFeature(context, 'assist', 'anfragen');
@@ -110,12 +116,12 @@ export function MobilePortalDashboard({
 
     if (action === 'upload') {
       setUploadModalOpen(true);
-    } else if (action === 'nachweise' && proofsReleased) {
-      setProofsModalOpen(true);
+    } else if (action === 'nachweise') {
+      router.push('/portal/client/proofs' as never);
     } else if (action === 'termin_aendern' || action === 'zusatztermin' || action === 'rueckruf') {
       setRequestModal(action as PortalRequestType);
     }
-  }, [params.action, proofsReleased]);
+  }, [params.action, router]);
 
   const loadDashboard = useCallback(async (silent = false) => {
     if (!silent) {
@@ -209,9 +215,9 @@ export function MobilePortalDashboard({
         ) : null}
 
         <PortalGlassHero
-          title={`${greeting},`}
-          titleSecondary={context.displayName}
-          subtitle={`${context.tenantName} · ${terminology.moduleLabel}`}
+          title={`${heroLines.greetingLine},`}
+          titleSecondary={heroLines.nameLine}
+          subtitle={heroLines.providerLine}
           meta={
             context.portalRole === 'family_contact'
               ? `Angehörigenzugang · Portal für ${context.displayName}`
@@ -228,7 +234,7 @@ export function MobilePortalDashboard({
           emptyActionLabel="Einsatz anfragen"
         />
 
-        <Text style={styles.sectionLabel}>Wichtig für Sie</Text>
+        <Text style={[styles.sectionLabel, { color: text.primary }]}>Wichtig für Sie</Text>
         <View style={styles.priorityGrid}>
           <MobilePortalKpiCard
             icon="💬"
@@ -247,8 +253,8 @@ export function MobilePortalDashboard({
             emptyMessage="Keine neuen Dokumente."
             ctaLabel="Dokumente öffnen →"
             accentColor="#FF9500"
-            onCta={() => router.push('/portal/client/documents' as never)}
-            onPress={() => router.push('/portal/client/documents' as never)}
+            onCta={() => router.push('/portal/client/documents/signatures' as never)}
+            onPress={() => router.push('/portal/client/documents/signatures' as never)}
           />
           <MobilePortalKpiCard
             icon="📋"
@@ -257,13 +263,12 @@ export function MobilePortalDashboard({
             emptyMessage="Keine Nachweise offen."
             ctaLabel="Nachweise anzeigen →"
             accentColor="#2DD4BF"
-            onCta={() => setProofsModalOpen(true)}
-            onPress={() => setProofsModalOpen(true)}
-            hidden={!proofsReleased}
+            onCta={() => router.push('/portal/client/proofs' as never)}
+            onPress={() => router.push('/portal/client/proofs' as never)}
           />
         </View>
 
-        <Text style={styles.sectionLabel}>Weitere Bereiche</Text>
+        <Text style={[styles.sectionLabel, { color: text.primary }]}>Weitere Bereiche</Text>
         <View style={styles.kpiGrid}>
           <MobilePortalKpiCard
             icon="📅"
@@ -282,8 +287,8 @@ export function MobilePortalDashboard({
             emptyMessage="Keine Unterschriften ausstehend."
             ctaLabel="Anzeigen →"
             accentColor="#F472B6"
-            onCta={() => router.push('/portal/client/documents' as never)}
-            onPress={() => router.push('/portal/client/documents' as never)}
+            onCta={() => router.push('/portal/client/documents/signatures' as never)}
+            onPress={() => router.push('/portal/client/documents/signatures' as never)}
           />
           <MobilePortalKpiCard
             icon="📨"

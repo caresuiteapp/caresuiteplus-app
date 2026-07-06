@@ -4,7 +4,7 @@ import { PortalGlassModal } from '@/components/portal/assist/PortalGlassModal';
 import { PortalEmptyState } from '@/components/portal/assist/PortalEmptyState';
 import { PortalRequestDetail } from '@/components/portal/assist/PortalRequestDrawer';
 import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { PORTAL_LIGHT_LINK_ORANGE, useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -46,7 +46,7 @@ export function PortalOpenRequestsModal({
       <PortalGlassModal visible={visible} title="Anfrage" onClose={handleBack}>
         <PortalRequestDetail request={selectedRequest} />
         <Pressable onPress={handleBack} style={styles.backLink}>
-          <Text style={[type.caption, { color: '#FF9500', fontWeight: '600' }]}>Zurück zur Liste</Text>
+          <Text style={[type.caption, { color: PORTAL_LIGHT_LINK_ORANGE, fontWeight: '600' }]}>Zurück zur Liste</Text>
         </Pressable>
       </PortalGlassModal>
     );

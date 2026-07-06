@@ -2,9 +2,14 @@ import { FlatList, RefreshControl, StyleSheet, View } from 'react-native';
 import { useRouter } from 'expo-router';
 import { ConversationListItem } from '@/components/communication';
 import { PortalTabHero } from '@/components/portal/PortalTabHero';
+import { GlassCard } from '@/design/components/GlassCard';
+import { careLightColors } from '@/design/tokens/lightTheme';
+import { careSpacing } from '@/design/tokens/spacing';
+import { moduleColor } from '@/design/tokens/modules';
+import { withAlpha } from '@/design/tokens/motion';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
-import { EmptyState, LoadingState, PremiumButton, PremiumCard } from '@/components/ui';
+import { EmptyState, LoadingState, PremiumButton } from '@/components/ui';
 import { useCommunicationPermissions, usePortalMessages } from '@/hooks/communication';
 import { useAuth } from '@/lib/auth/context';
 import { resolvePortalScope } from '@/lib/portal/portalVisibility';
@@ -63,12 +68,16 @@ export function PortalMessagesListShell({
           <EmptyState title="Keine Nachrichten" message="Ihr Posteingang ist leer." onAction={refresh} />
         }
         renderItem={({ item }) => (
-          <PremiumCard
-            accentColor={item.unreadCountBusiness > 0 ? colors.cyan : undefined}
+          <GlassCard
+            style={{
+              backgroundColor: careLightColors.surface,
+              borderColor: withAlpha(moduleColor('assist'), 0.22),
+              padding: careSpacing.sm,
+            }}
             onPress={() => router.push(`${detailBasePath}/${item.id}` as never)}
           >
             <ConversationListItem item={item} />
-          </PremiumCard>
+          </GlassCard>
         )}
       />
     </View>

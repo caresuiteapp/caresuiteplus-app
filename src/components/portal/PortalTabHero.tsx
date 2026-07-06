@@ -1,96 +1,16 @@
 import { useMemo } from 'react';
-import { useLegacyTheme, type LegacyColors } from '@/design/tokens/themeBridge';
-import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
+import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components/ui';
+import { usePremiumHeroTextStyles } from '@/design/tokens/carelightadaptive';
+import { PortalTabGlassHero } from '@/components/portal/PortalTabGlassHero';
+import { resolvePortalTabHeroContent } from '@/components/portal/portalTabHeroContent';
 
 import type { PortalScope } from '@/types/portal';
 import { designTokens, spacing } from '@/theme';
 
 export type PortalTabKind = 'messages' | 'documents' | 'appointments' | 'signatures';
-
-type TabConfig = {
-  title: string;
-  icon: string;
-  subtitle: string;
-};
-
-type ScopeConfig = {
-  eyebrow: string;
-  accent: string;
-  tabs: Record<PortalTabKind, TabConfig>;
-};
-
-const SCOPE_CONFIG = (colors: LegacyColors): Record<'portal_employee' | 'portal_client' | 'portal_family', ScopeConfig> => ({
-  portal_employee: {
-    eyebrow: 'MITARBEITERPORTAL',
-    accent: colors.orange,
-    tabs: {
-      messages: {
-        title: 'Nachrichten',
-        icon: '✉️',
-        subtitle: 'Mitteilungen vom Büro und Team — nach Portal-Freigabe.',
-      },
-      documents: {
-        title: 'Dokumente',
-        icon: '📄',
-        subtitle: 'Freigegebene Unterlagen und Formulare für Ihre Einsätze.',
-      },
-      appointments: {
-        title: 'Einsätze',
-        icon: '📅',
-        subtitle: 'Geplante Einsätze und Termine in Ihrer Sicht.',
-      },
-      signatures: {
-        title: 'Unterschriften',
-        icon: '✍️',
-        subtitle: 'Dokumente zur digitalen Unterschrift vom Office.',
-      },
-    },
-  },
-  portal_client: {
-    eyebrow: 'KLIENT:INNENPORTAL',
-    accent: colors.cyan,
-    tabs: {
-      messages: {
-        title: 'Nachrichten',
-        icon: '✉️',
-        subtitle: 'Chat mit der Verwaltung — Antworten nach Freigabe sichtbar.',
-      },
-      documents: {
-        title: 'Dokumente',
-        icon: '📄',
-        subtitle: 'Freigegebene Dokumente und Nachweise für Sie.',
-      },
-      appointments: {
-        title: 'Einsätze',
-        icon: '📅',
-        subtitle: 'Anstehende Einsätze und Besuche in Ihrer Übersicht.',
-      },
-    },
-  },
-  portal_family: {
-    eyebrow: 'ANGEHÖRIGENPORTAL',
-    accent: colors.violet,
-    tabs: {
-      messages: {
-        title: 'Nachrichten',
-        icon: '✉️',
-        subtitle: 'Mitteilungen zum Pflegefall — nur freigegebene Inhalte sichtbar.',
-      },
-      documents: {
-        title: 'Dokumente',
-        icon: '📄',
-        subtitle: 'Freigegebene Unterlagen für Angehörige — nach Sichtbarkeitsregeln.',
-      },
-      appointments: {
-        title: 'Termine',
-        icon: '📅',
-        subtitle: 'Termine und Besuche im Pflegefall — geteilte Sicht.',
-      },
-    },
-  },
-});
 
 export type PortalTabHeroProps = {
   tab: PortalTabKind;
@@ -108,103 +28,69 @@ function resolveScope(scope: PortalScope): 'portal_employee' | 'portal_client' |
   return scope === 'portal_client' ? 'portal_client' : 'portal_employee';
 }
 
-export function PortalTabHero({
-  tab,
-  scope,
-  totalCount,
-  unreadCount = 0,
-  activeCount = 0,
-  restrictedCount = 0,
-  titleOverride,
-}: PortalTabHeroProps) {
-  const { colors, typography, gradients, mode } = useLegacyTheme();
+function PortalTabHeroLegacy(props: PortalTabHeroProps) {
+  const { colors } = useLegacyTheme();
   const heroText = usePremiumHeroTextStyles();
+  const { tab, scope, totalCount } = props;
+  const { title, subtitle, kpis } = resolvePortalTabHeroContent(props, colors);
+  const scopeKey = resolveScope(scope);
+  const tabIcons: Record<PortalTabKind, string> = {
+    messages: '✉️',
+    documents: '📄',
+    appointments: '📅',
+    signatures: '✍️',
+  };
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
-  topRow: {
-    flexDirection: 'row',
-    gap: spacing.md,
-  },
-  textCol: {
-    flex: 1,
-    gap: 2,
-  },
-  eyebrow: {
-    ...typography.caption,
-    letterSpacing: designTokens.hero.eyebrowLetterSpacing,
-  },
-  title: heroText.title,
-  meta: heroText.meta,
-  subtitle: heroText.subtitle,
-  iconBadge: {
-    width: iconSize,
-    height: iconSize,
-    borderRadius: iconSize / 2,
-    backgroundColor: colors.bgElevated,
-    alignItems: 'center',
-    justifyContent: 'center',
-    borderWidth: 2,
-  },
-  iconText: {
-    fontSize: 22,
-  },
-  badges: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  kpiRow: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: spacing.sm,
-  },
-  kpiItem: {
-    flex: 1,
-    minWidth: 100,
-  },
-}),
-    [colors, typography, gradients],
+        topRow: {
+          flexDirection: 'row',
+          gap: spacing.md,
+        },
+        textCol: {
+          flex: 1,
+          gap: 2,
+        },
+        title: heroText.title,
+        meta: heroText.meta,
+        subtitle: heroText.subtitle,
+        iconBadge: {
+          width: iconSize,
+          height: iconSize,
+          borderRadius: iconSize / 2,
+          backgroundColor: colors.bgElevated,
+          alignItems: 'center',
+          justifyContent: 'center',
+          borderWidth: 2,
+        },
+        iconText: {
+          fontSize: 22,
+        },
+        badges: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+        },
+        kpiRow: {
+          flexDirection: 'row',
+          flexWrap: 'wrap',
+          gap: spacing.sm,
+        },
+        kpiItem: {
+          flex: 1,
+          minWidth: 100,
+        },
+      }),
+    [colors, heroText],
   );
 
-
-  const scopeKey = resolveScope(scope);
-  const scopeConfig = SCOPE_CONFIG(colors)[scopeKey];
-  const tabConfig = scopeConfig.tabs[tab];
-  const title = titleOverride ?? tabConfig.title;
-
-  const kpis =
-    tab === 'messages'
-      ? [
-          { id: 'unread', label: 'Ungelesen', value: String(unreadCount), icon: '📬', accent: scopeConfig.accent },
-          { id: 'total', label: 'Gesamt', value: String(totalCount), icon: '✉️', accent: colors.textMuted },
-        ]
-      : tab === 'signatures'
-        ? [
-            { id: 'open', label: 'Offen', value: String(totalCount), icon: '✍️', accent: scopeConfig.accent },
-            {
-              id: 'restricted',
-              label: 'Dringend',
-              value: String(restrictedCount),
-              icon: '⚠️',
-              accent: colors.warning,
-            },
-          ]
-        : tab === 'documents'
-        ? [
-            { id: 'total', label: 'Dokumente', value: String(totalCount), icon: '📄', accent: scopeConfig.accent },
-            {
-              id: 'restricted',
-              label: 'Eingeschränkt',
-              value: String(restrictedCount),
-              icon: '🔒',
-              accent: colors.warning,
-            },
-          ]
-        : [
-            { id: 'active', label: 'Aktiv', value: String(activeCount), icon: '✅', accent: colors.success },
-            { id: 'total', label: 'Gesamt', value: String(totalCount), icon: '📅', accent: scopeConfig.accent },
-          ];
+  const accent =
+    scopeKey === 'portal_client'
+      ? colors.cyan
+      : scopeKey === 'portal_family'
+        ? colors.violet
+        : colors.orange;
 
   return (
     <PremiumListHeroFrame>
@@ -214,25 +100,23 @@ export function PortalTabHero({
           <Text style={styles.meta}>
             {totalCount} {totalCount === 1 ? 'Eintrag' : 'Einträge'}
           </Text>
-          <Text style={styles.subtitle}>{tabConfig.subtitle}</Text>
+          <Text style={styles.subtitle}>{subtitle}</Text>
         </View>
-        <View style={[styles.iconBadge, { borderColor: `${scopeConfig.accent}55` }]}>
-          <Text style={styles.iconText}>{tabConfig.icon}</Text>
+        <View style={[styles.iconBadge, { borderColor: `${accent}55` }]}>
+          <Text style={styles.iconText}>{tabIcons[tab]}</Text>
         </View>
       </View>
       <View style={styles.badges}>
-        {scopeKey === 'portal_family' ? (
-          <PremiumBadge label="Geteilte Sicht" variant="muted" />
-        ) : null}
+        {scopeKey === 'portal_family' ? <PremiumBadge label="Geteilte Sicht" variant="muted" /> : null}
       </View>
       <View style={styles.kpiRow}>
         {kpis.map((kpi) => (
           <PremiumKpiCard
             key={kpi.id}
             label={kpi.label}
-            value={kpi.value}
+            value={String(kpi.numericValue ?? 0)}
             icon={kpi.icon}
-            accentColor={kpi.accent}
+            accentColor={kpi.accentColor ?? accent}
             style={styles.kpiItem}
           />
         ))}
@@ -241,5 +125,14 @@ export function PortalTabHero({
   );
 }
 
-const iconSize = designTokens.hero.iconBadgeSize;
+export function PortalTabHero(props: PortalTabHeroProps) {
+  const useLightGlass = useLightLiquidGlassShell();
+  const useGlassHero =
+    useLightGlass || props.scope === 'portal_client' || props.scope === 'portal_family';
+  if (useGlassHero) {
+    return <PortalTabGlassHero {...props} />;
+  }
+  return <PortalTabHeroLegacy {...props} />;
+}
 
+const iconSize = designTokens.hero.iconBadgeSize;

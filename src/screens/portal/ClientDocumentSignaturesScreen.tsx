@@ -57,7 +57,7 @@ export function ClientDocumentSignaturesScreen() {
 
   return (
     <C14vSubpageShell
-      title="Meine Dokumente"
+      title="Unterschriften"
       subtitle="Bitte lesen und unterschreiben Sie offene Dokumente"
       showBack
       accentColor={moduleColor('assist')}
@@ -82,6 +82,7 @@ export function ClientDocumentSignaturesScreen() {
               key={item.id}
               item={item}
               compact
+              portalLabels
               openLabel="Öffnen und unterschreiben"
               onOpen={() => router.push(`/portal/client/documents/signatures/${item.id}` as never)}
             />

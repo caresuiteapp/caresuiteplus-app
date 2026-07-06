@@ -14,13 +14,16 @@ describe('Klient:innenportal K.1 refactor', () => {
     ]);
   });
 
-  it('exposes drawer overflow tabs for Nachweise, Unterschriften, Anfragen, Aktivitäten', () => {
+  it('exposes drawer overflow tabs for Nachweise, Unterschriften, Anfragen, Aktivitäten, Einstellungen', () => {
     const drawer = resolveClientPortalNavigationTabs();
     const labels = drawer.map((tab) => tab.label);
     expect(labels).toContain('Nachweise');
     expect(labels).toContain('Unterschriften');
     expect(labels).toContain('Anfragen');
     expect(labels).toContain('Aktivitäten');
+    expect(labels).toContain('Einstellungen');
+    const proofs = drawer.find((tab) => tab.key === 'proofs');
+    expect(proofs?.href).toBe('/portal/client/proofs');
   });
 
   it('counts only Begleitungsleistungen, not generic Haushalt/Betreuung', () => {

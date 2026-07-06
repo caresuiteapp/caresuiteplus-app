@@ -50,6 +50,8 @@ export type PortalVisibilityRule = {
 
 export type PortalLiveMetrics = {
   upcomingAppointments: number;
+  /** All non-draft assist_visits for client portal list parity. */
+  totalVisits?: number;
   documents: number;
   openMessages: number;
 };

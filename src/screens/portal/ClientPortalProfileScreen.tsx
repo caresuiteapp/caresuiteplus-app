@@ -6,6 +6,7 @@ import { TopbarProfileAvatar } from '@/components/layout/TopbarProfileAvatar';
 import { LockedActionBanner } from '@/components/permissions';
 import { MobilePortalKpiCard } from '@/components/portal/assist/MobilePortalKpiCard';
 import { PortalRequestFormModal } from '@/components/portal/assist/PortalRequestFormModal';
+import { ClientPortalProfileAssignmentsSection } from '@/components/portal/ClientPortalProfileAssignmentsSection';
 import { PortalGlassHero } from '@/components/portal/assist/PortalGlassHero';
 import { PortalTabScreen } from '@/screens/portal/PortalTabScreen';
 import { GlassCard } from '@/design/components/GlassCard';
@@ -437,6 +438,8 @@ export function ClientPortalProfileScreen() {
         </GlassCard>
 
         {renderProfileSections(profile, isWide, text.muted, text.primary)}
+
+        <ClientPortalProfileAssignmentsSection />
 
         <GlassCard>
           <PremiumButton

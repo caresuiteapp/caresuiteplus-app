@@ -1,6 +1,6 @@
 import { Pressable, StyleSheet, Text, View, type DimensionValue, type ViewStyle } from 'react-native';
 import { GlassCard } from '@/design/components/GlassCard';
-import { useAuroraAdaptiveText, useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
+import { PORTAL_LIGHT_LINK_ORANGE, useAuroraAdaptiveText, useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import { resolveGalaxyTypography, noBreakTextProps } from '@/design/tokens/responsiveTypography';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
@@ -85,7 +85,14 @@ export function MobilePortalKpiCard({
           accessibilityRole="button"
           hitSlop={6}
         >
-          <Text style={[type.caption, styles.ctaText]} {...noBreakTextProps}>
+          <Text
+            style={[
+              type.caption,
+              styles.ctaText,
+              useLightGlass ? { color: PORTAL_LIGHT_LINK_ORANGE } : null,
+            ]}
+            {...noBreakTextProps}
+          >
             {ctaLabel}
           </Text>
         </Pressable>

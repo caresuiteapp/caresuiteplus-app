@@ -125,7 +125,21 @@ export async function fetchPortalAppointments(
   const employeeId = portalContext?.employeeId ?? null;
 
   if (getServiceMode() === 'supabase') {
-    if ((scope === 'portal_client' || scope === 'portal_family') && tenantId?.trim() && clientId?.trim()) {
+    if (scope === 'portal_client' || scope === 'portal_family') {
+      if (!tenantId?.trim()) {
+        return {
+          ok: false,
+          error: 'Mandant konnte nicht ermittelt werden. Bitte melden Sie sich erneut an.',
+        };
+      }
+      if (!clientId?.trim()) {
+        return {
+          ok: false,
+          error:
+            'Klient:innenprofil konnte nicht verknüpft werden. Bitte melden Sie sich erneut an oder wenden Sie sich an Ihr Pflegebüro.',
+        };
+      }
+
       const [calendar, live] = await Promise.all([
         getPortalCalendarEvents(tenantId, {
           portalType: 'client',

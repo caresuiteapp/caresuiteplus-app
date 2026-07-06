@@ -134,12 +134,12 @@ async function countSignatures(tenantId: string, clientId: string): Promise<numb
   const supabase = getSupabaseClient();
   if (!supabase) return 0;
 
-  const { count, error } = await fromUnknownTable(supabase, 'client_documents')
+  const { count, error } = await fromUnknownTable(supabase, 'cs_document_requests')
     .select('*', { count: 'exact', head: true })
-    .eq('tenant_id', tenantId)
+    .eq('owner_tenant_id', tenantId)
     .eq('client_id', clientId)
     .eq('portal_visible', true)
-    .is('signed_at', null);
+    .in('status', ['sent', 'opened', 'partially_signed']);
 
   if (error) {
     if (!isMissingTableError(error)) {
