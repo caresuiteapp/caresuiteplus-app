@@ -82,3 +82,7 @@ CROSS JOIN (
 ) AS p(key)
 WHERE r.key = 'family_portal'
 ON CONFLICT (role_id, permission_key) DO NOTHING;
+
+-- Audit scripts (verify-cs-document-portal-permissions.mjs) read via service_role REST
+GRANT SELECT ON public.permission_catalog TO service_role;
+GRANT SELECT ON public.role_permissions TO service_role;
