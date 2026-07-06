@@ -43,6 +43,12 @@ describe('PortalShellLayout', () => {
     expect(topbar).not.toContain('Mandant wechseln');
   });
 
+  it('PortalShellLayout keeps messenger scroll stable without remounting children', () => {
+    const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
+    expect(shell).toContain('scrollEnabled={!messengerFocusActive}');
+    expect(shell).not.toMatch(/messengerFocusActive\s*\?\s*\(\s*\n?\s*<View style=\{\[styles\.mainScroll/);
+  });
+
   it('PortalTopBar profile dropdown stays above scroll body for clicks', () => {
     const shell = readSrc('src/components/layout/portal/PortalShellLayout.tsx');
     const topbar = readSrc('src/components/layout/portal/PortalTopBar.tsx');

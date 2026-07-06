@@ -32,10 +32,9 @@ export function PortalOfficeMessenger({
   const { isLight } = useLegacyTheme();
   const useLightGlass = useLightLiquidGlassShell();
   const useLightUi = useLightGlass || isLight;
-  const { setActive: setMessengerFocusActive } = usePortalMessengerFocus();
+  const { setActive: setMessengerFocusActive, selectedThreadId, threadTitle: selectedThreadTitle, openThread, closeThread, setThreadTitle } =
+    usePortalMessengerFocus();
   const [filter, setFilter] = useState<PortalOfficeInboxFilter>('open');
-  const [selectedThreadId, setSelectedThreadId] = useState<string | null>(null);
-  const [selectedThreadTitle, setSelectedThreadTitle] = useState('Chat');
   const [search, setSearch] = useState('');
   const [showNewChat, setShowNewChat] = useState(initialComposeOpen);
 
@@ -70,19 +69,20 @@ export function PortalOfficeMessenger({
     [variant],
   );
 
-  const openThread = (threadId: string, subject?: string) => {
-    setSelectedThreadId(threadId);
-    if (subject) setSelectedThreadTitle(subject);
+  const openThreadFromInbox = (threadId: string, subject?: string) => {
+    openThread(threadId, subject);
   };
 
-  const closeThread = () => setSelectedThreadId(null);
+  const closeThreadView = () => {
+    closeThread();
+  };
 
   const threadPane = selectedThreadId ? (
     <PortalOfficeThread
       threadId={selectedThreadId}
       variant={variant}
       hideHeader={!useMasterDetail}
-      onThreadTitleResolved={setSelectedThreadTitle}
+      onThreadTitleResolved={setThreadTitle}
       onNewThreadStarted={(newThreadId) => {
         openThread(newThreadId);
         setFilter('open');
@@ -110,7 +110,7 @@ export function PortalOfficeMessenger({
               filter={filter}
               onFilterChange={setFilter}
               selectedThreadId={selectedThreadId}
-              onThreadSelect={openThread}
+              onThreadSelect={openThreadFromInbox}
               search={search}
               onSearchChange={setSearch}
               variant={variant}
@@ -120,7 +120,7 @@ export function PortalOfficeMessenger({
           }
           thread={threadPane}
           selectedThreadId={selectedThreadId}
-          onCloseThread={closeThread}
+          onCloseThread={closeThreadView}
           threadTitle={selectedThreadTitle}
         />
       </View>

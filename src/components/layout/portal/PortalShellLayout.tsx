@@ -90,15 +90,12 @@ export function PortalShellLayout({
     showMobileBottomNav ? { paddingBottom: mobileContentPaddingBottom } : null,
   ];
 
-  const mainContent = messengerFocusActive ? (
-    <View style={[styles.mainScroll, scrollContentStyle]} testID="portal-shell-scroll">
-      {children}
-    </View>
-  ) : (
+  const mainContent = (
     <AutoScrollView
       style={styles.mainScroll}
       contentContainerStyle={scrollContentStyle}
       fillViewport
+      scrollEnabled={!messengerFocusActive}
       testID="portal-shell-scroll"
     >
       {children}

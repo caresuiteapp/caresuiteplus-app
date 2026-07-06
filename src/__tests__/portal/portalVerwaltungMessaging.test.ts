@@ -35,6 +35,15 @@ describe('Portal Verwaltung messaging', () => {
     expect(messenger).toContain('Verwaltung anschreiben');
   });
 
+  it('portal messenger keeps thread selection in focus context', () => {
+    const messenger = readSrc('src/components/portal/portalofficemessenger.tsx');
+    const context = readSrc('src/lib/portal/portalMessengerFocusContext.tsx');
+    expect(context).toContain('selectedThreadId');
+    expect(context).toContain('openThread');
+    expect(messenger).toContain('usePortalMessengerFocus');
+    expect(messenger).not.toMatch(/useState<string \| null>\(null\)/);
+  });
+
   it('empty inbox offers Verwaltung compose CTA', () => {
     const inbox = readSrc('src/components/portal/portalofficeinbox.tsx');
     expect(inbox).toContain('Verwaltung anschreiben');

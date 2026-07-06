@@ -20,6 +20,8 @@ type AutoScrollViewProps = {
   fillViewport?: boolean;
   /** Allow horizontal overflow on web (e.g. wide module KPI grid). */
   allowHorizontalOverflow?: boolean;
+  /** When false, use a fixed flex viewport (no outer scroll) — e.g. full-screen messenger. */
+  scrollEnabled?: boolean;
 };
 
 export function AutoScrollView({
@@ -29,6 +31,7 @@ export function AutoScrollView({
   testID,
   fillViewport = true,
   allowHorizontalOverflow = false,
+  scrollEnabled = true,
 }: AutoScrollViewProps) {
   const [viewportHeight, setViewportHeight] = useState(0);
   const [contentHeight, setContentHeight] = useState(0);
@@ -42,6 +45,23 @@ export function AutoScrollView({
     const next = Math.round(event.nativeEvent.layout.height);
     setContentHeight((prev) => (prev === next ? prev : next));
   }, []);
+
+  if (!scrollEnabled) {
+    return (
+      <View testID={testID} style={[styles.viewport, styles.viewportLocked, style]}>
+        <View
+          style={[
+            styles.contentWidth,
+            styles.contentFill,
+            { flex: 1, minHeight: 0 },
+            contentContainerStyle,
+          ]}
+        >
+          {children}
+        </View>
+      </View>
+    );
+  }
 
   const needsScroll = viewportHeight > 0 && contentHeight > viewportHeight + OVERFLOW_EPSILON;
 
@@ -131,5 +151,8 @@ const styles = StyleSheet.create({
   },
   contentFill: {
     flexGrow: 1,
+  },
+  viewportLocked: {
+    overflow: 'hidden',
   },
 });

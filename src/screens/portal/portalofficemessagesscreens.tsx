@@ -21,7 +21,9 @@ function resolveRouteParam(value: string | string[] | undefined): string | null 
 function ClientPortalVerwaltungMessages() {
   const { compose } = useLocalSearchParams<{ compose?: string }>();
   const initialComposeOpen = compose === '1' || compose === 'true';
-  const { active: messengerFocusActive } = usePortalMessengerFocus();
+  const { active: messengerFocusActive, closeThread } = usePortalMessengerFocus();
+
+  useEffect(() => () => closeThread(), [closeThread]);
 
   return (
     <PortalTabScreen title="Nachrichten" hideHeaderOnPhone scroll={false}>
