@@ -30,9 +30,9 @@ describe('realtime wiring', () => {
     expect(source).toContain('if (!silent && isInitialLoad)');
   });
 
-  it('usePortalSidebarData nutzt usePortalAssistRealtime', () => {
+  it('usePortalSidebarData lädt KPIs ohne dupliziertes Assist-Realtime', () => {
     const source = readSrc('src/hooks/usePortalSidebarData.ts');
-    expect(source).toContain('usePortalAssistRealtime');
+    expect(source).not.toContain('usePortalAssistRealtime');
     expect(source).toContain('loadDashboardKpis');
   });
 

@@ -107,12 +107,12 @@ export function syncPerformanceBodyClasses(snapshot: {
   root.classList.toggle(cls.reducedMotion, snapshot.prefersReducedMotion);
   root.classList.toggle(
     cls.heavyEffectsOff,
-    snapshot.prefersReducedMotion ||
+    snapshot.isMobile ||
+      snapshot.prefersReducedMotion ||
       snapshot.batterySaver ||
       snapshot.activeTracking ||
       snapshot.profile === 'mobileBatterySaver' ||
-      snapshot.profile === 'activeTrackingSaver' ||
-      (snapshot.isMobile && snapshot.isSafari),
+      snapshot.profile === 'activeTrackingSaver',
   );
   root.classList.toggle(cls.iosSafari, snapshot.isMobile && snapshot.isIOS && snapshot.isSafari);
 }

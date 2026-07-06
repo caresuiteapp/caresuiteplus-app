@@ -1,5 +1,6 @@
 import { useMemo } from 'react';
 import { DEFAULT_LIVE_POLL_MS, useLiveRefresh } from '@/hooks/core';
+import { livePollIntervalMs, useDevicePerformance } from '@/lib/performance';
 import { subscribeToPortalAssistChanges } from '@/lib/realtime';
 
 type PortalAssistRealtimeOptions = {
@@ -15,6 +16,9 @@ export function usePortalAssistRealtime(
   options?: PortalAssistRealtimeOptions,
 ): { isConnected: boolean } {
   const enabled = Boolean(tenantId && clientId);
+  const perf = useDevicePerformance();
+  const pollMs =
+    options?.pollMs ?? livePollIntervalMs(perf.profile, DEFAULT_LIVE_POLL_MS);
 
   const subscribeFactory = useMemo(() => {
     if (!enabled || !tenantId || !clientId) return undefined;
@@ -25,7 +29,7 @@ export function usePortalAssistRealtime(
     enabled,
     onRefresh,
     subscribe: subscribeFactory,
-    pollMs: options?.pollMs ?? DEFAULT_LIVE_POLL_MS,
+    pollMs,
     refreshOnFocus: options?.refreshOnFocus ?? true,
   });
 }

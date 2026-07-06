@@ -122,6 +122,18 @@ export function lightLiquidGlassWebFx(
   saturate = llganDefaultSurface.saturate,
 ): ViewStyle {
   if (Platform.OS !== 'web') return {};
+
+  const viewportWidth = typeof window !== 'undefined' ? window.innerWidth : 1280;
+  const mobileWeb =
+    viewportWidth < 768 ||
+    (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
+
+  if (mobileWeb) {
+    return {
+      boxShadow: `${llganDefaultSurface.shadow}, ${llganDefaultSurface.shadowInset}`,
+    } as ViewStyle;
+  }
+
   return {
     backdropFilter: `blur(${blurPx}px) saturate(${saturate})`,
     WebkitBackdropFilter: `blur(${blurPx}px) saturate(${saturate})`,

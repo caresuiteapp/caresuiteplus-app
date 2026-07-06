@@ -103,4 +103,43 @@ describe('performanceCss', () => {
     expect(PERFORMANCE_BODY_CLASSES.mobile).toBe('performance-mobile');
     expect(PERFORMANCE_BODY_CLASSES.heavyEffectsOff).toBe('disable-heavy-effects');
   });
+
+  it('disables heavy effects on all mobile profiles', async () => {
+    const toggle = vi.fn();
+    vi.stubGlobal('document', {
+      documentElement: { classList: { toggle } },
+      getElementById: vi.fn(() => ({ id: 'caresuite-perf-1-css' })),
+      createElement: vi.fn(() => ({ id: '', textContent: '' })),
+      head: { appendChild: vi.fn() },
+    });
+    const { syncPerformanceBodyClasses, PERFORMANCE_BODY_CLASSES } = await import(
+      '@/lib/performance/performanceCss'
+    );
+    syncPerformanceBodyClasses({
+      isMobile: true,
+      isIOS: false,
+      isSafari: false,
+      prefersReducedMotion: false,
+      batterySaver: false,
+      activeTracking: false,
+      profile: 'mobileBalanced',
+    });
+    expect(toggle).toHaveBeenCalledWith(PERFORMANCE_BODY_CLASSES.heavyEffectsOff, true);
+    vi.unstubAllGlobals();
+  });
+});
+
+describe('lightLiquidGlassWebFx mobile thermal guard', () => {
+  it('skips backdrop-filter on narrow/coarse viewports', async () => {
+    vi.stubGlobal('window', {
+      innerWidth: 390,
+      matchMedia: () => ({ matches: true }),
+    });
+    const { lightLiquidGlassWebFx } = await import('@/design/tokens/auroraGlass');
+    const fx = lightLiquidGlassWebFx(24, 1.4) as Record<string, unknown>;
+    expect(fx.backdropFilter).toBeUndefined();
+    expect(fx.WebkitBackdropFilter).toBeUndefined();
+    expect(fx.boxShadow).toBeDefined();
+    vi.unstubAllGlobals();
+  });
 });
