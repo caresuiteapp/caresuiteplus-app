@@ -100,7 +100,7 @@ function AssistPortalOverviewDesktop({
     }),
     [insets.bottom, showBottomTabs],
   );
-  const { actorId, displayName: actorDisplayName } = usePortalActor();
+  const { actorId } = usePortalActor();
 
   const [dashboard, setDashboard] = useState<AssistDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -116,7 +116,7 @@ function AssistPortalOverviewDesktop({
 
   const terminology = resolvePortalTerminology('assist');
   const heroCopy = resolvePortalHeroCopy({
-    displayName: actorDisplayName,
+    displayName: context.displayName,
     tenantName: context.tenantName,
     terminology,
     isPhone: false,

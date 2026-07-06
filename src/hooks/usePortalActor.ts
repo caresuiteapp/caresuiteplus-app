@@ -10,6 +10,11 @@ import {
 } from '@/lib/portal/resolvePortalClientLink';
 import { getSession } from '@/lib/supabase';
 import type { RoleKey } from '@/types';
+
+function normalizePortalActorLabel(value: string | null | undefined): string {
+  return (value ?? '').trim().toLowerCase();
+}
+
 export type PortalActor = {
   tenantId: string | null;
   roleKey: RoleKey | null;
@@ -167,10 +172,18 @@ export function usePortalActor(): PortalActor {
   const displayName =
     clientDisplayName ??
     employeeDisplayName ??
-    (portalSession?.displayName && !isPortalUsernameLabel(portalSession.displayName)
+    (portalSession?.displayName &&
+    !isPortalUsernameLabel(portalSession.displayName) &&
+    normalizePortalActorLabel(portalSession.displayName) !==
+      normalizePortalActorLabel(portalSession.tenantName)
       ? portalSession.displayName.trim()
       : null) ??
-    (fallbackDisplayName || 'Klient:in');
+    (fallbackDisplayName &&
+    normalizePortalActorLabel(fallbackDisplayName) !==
+      normalizePortalActorLabel(portalSession?.tenantName)
+      ? fallbackDisplayName
+      : null) ??
+    'Klient:in';
 
   return useMemo(() => {
     const isReady = Boolean(tenantId && roleKey && actorId);

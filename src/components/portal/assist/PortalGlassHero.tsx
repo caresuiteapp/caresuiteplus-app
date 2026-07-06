@@ -57,6 +57,44 @@ export function PortalGlassHero({
     </View>
   ) : null;
 
+  const heroTextContent = (
+    <>
+      {badge ? (
+        <View style={isPhone ? styles.badgeRow : styles.eyebrowRow}>
+          <View style={isPhone ? styles.badgeSpacer : styles.eyebrowSpacer} />
+          <View style={styles.badge}>
+            <Text
+              style={[type.caption, isPhone ? styles.badgeText : undefined, { color: text.primary }]}
+            >
+              {badge}
+            </Text>
+          </View>
+        </View>
+      ) : null}
+      <Text style={[titleStyle, { flexShrink: 1 }]} {...noBreakTextProps} numberOfLines={2}>
+        {title}
+      </Text>
+      {titleSecondary ? (
+        <Text style={[titleStyle, { flexShrink: 1 }]} {...noBreakTextProps} numberOfLines={2}>
+          {titleSecondary}
+        </Text>
+      ) : null}
+      {subtitle ? (
+        <Text
+          style={[
+            isPhone ? type.caption : type.body,
+            { color: text.secondary, fontWeight: '600' },
+          ]}
+          {...noBreakTextProps}
+          numberOfLines={2}
+        >
+          {subtitle}
+        </Text>
+      ) : null}
+      {metaContent}
+    </>
+  );
+
   return (
     <GlassCard
       style={[
@@ -68,63 +106,10 @@ export function PortalGlassHero({
       {isPhone && leadingIcon ? (
         <View style={styles.phoneRow}>
           <View style={styles.leadingIconWrap}>{leadingIcon}</View>
-          <View style={styles.phoneContent}>
-            {badge ? (
-              <View style={styles.badgeRow}>
-                <View style={styles.badgeSpacer} />
-                <View style={styles.badge}>
-                  <Text style={[type.caption, styles.badgeText, { color: text.primary }]}>{badge}</Text>
-                </View>
-              </View>
-            ) : null}
-            <Text style={[titleStyle, { flexShrink: 1 }]} {...noBreakTextProps} numberOfLines={2}>
-              {title}
-            </Text>
-            {titleSecondary ? (
-              <Text style={[titleStyle, { flexShrink: 1 }]} {...noBreakTextProps} numberOfLines={2}>
-                {titleSecondary}
-              </Text>
-            ) : null}
-            {subtitle ? (
-              <Text
-                style={[type.caption, { color: text.secondary, fontWeight: '600' }]}
-                {...noBreakTextProps}
-                numberOfLines={2}
-              >
-                {subtitle}
-              </Text>
-            ) : null}
-            {metaContent}
-          </View>
+          <View style={styles.phoneContent}>{heroTextContent}</View>
         </View>
       ) : (
-        <>
-          {badge ? (
-            <View style={styles.eyebrowRow}>
-              <View style={styles.eyebrowSpacer} />
-              <View style={styles.badge}>
-                <Text style={[type.caption, { color: text.primary }]}>{badge}</Text>
-              </View>
-            </View>
-          ) : null}
-          <Text
-            style={[titleStyle, { flexShrink: 1 }]}
-            {...noBreakTextProps}
-            numberOfLines={isPhone ? 2 : 2}
-          >
-            {title}
-          </Text>
-          {subtitle ? (
-            <Text
-              style={[type.body, { color: text.secondary, fontWeight: '600' }]}
-              {...noBreakTextProps}
-              numberOfLines={2}
-            >
-              {subtitle}
-            </Text>
-          ) : null}
-          {metaContent}
-        </>
+        heroTextContent
       )}
       {children}
     </GlassCard>

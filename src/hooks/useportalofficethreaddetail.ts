@@ -16,7 +16,7 @@ import { useAsyncQuery } from './core';
 
 export function usePortalOfficeThreadDetail(threadId: string | null) {
   const { profile, portalSession } = useAuth();
-  const { tenantId, clientId, employeeId, actorId, roleKey, displayName, isLinkedReady } =
+  const { tenantId, clientId, employeeId, actorId, roleKey, displayName, isLinkedReady, isResolvingClientLink } =
     usePortalActor();
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -46,11 +46,12 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     { enabled: !!tenantId && !!threadId && isLinkedReady },
   );
 
-  const refresh = useCallback(async () => {
-    await query.refresh();
-  }, [query]);
-
+  const queryRefresh = query.refresh;
   const silentRefresh = query.silentRefresh;
+
+  const refresh = useCallback(async () => {
+    await queryRefresh();
+  }, [queryRefresh]);
 
   useEffect(() => {
     if (!tenantId || !threadId) return;
@@ -148,7 +149,7 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
 
   return {
     detail: query.data as OfficeMessageThreadDetail | undefined,
-    loading: query.loading,
+    loading: query.loading || (!!threadId && !isLinkedReady),
     error: query.error ?? sendError,
     refreshing: query.refreshing,
     sending,
@@ -156,5 +157,6 @@ export function usePortalOfficeThreadDetail(threadId: string | null) {
     sendMessage,
     startNewChat,
     markAsRead,
+    isResolvingClientLink,
   };
 }

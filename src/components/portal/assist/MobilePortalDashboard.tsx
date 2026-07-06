@@ -51,7 +51,7 @@ export function MobilePortalDashboard({
 }: MobilePortalDashboardProps) {
   const router = useRouter();
   const params = useLocalSearchParams<{ modal?: string; action?: string }>();
-  const { actorId, displayName: actorDisplayName } = usePortalActor();
+  const { actorId } = usePortalActor();
 
   const [dashboard, setDashboard] = useState<AssistDashboardData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -68,7 +68,7 @@ export function MobilePortalDashboard({
   const terminology = resolvePortalTerminology('assist');
   const text = useAuroraAdaptiveText();
   const heroLines = resolveClientPortalHeroLines({
-    displayName: actorDisplayName,
+    displayName: context.displayName,
     tenantName: context.tenantName,
     moduleLabel: terminology.moduleLabel,
   });

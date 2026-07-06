@@ -21,15 +21,18 @@ function resolveRouteParam(value: string | string[] | undefined): string | null 
 function ClientPortalVerwaltungMessages() {
   const { compose } = useLocalSearchParams<{ compose?: string }>();
   const initialComposeOpen = compose === '1' || compose === 'true';
+  const { active: messengerFocusActive } = usePortalMessengerFocus();
 
   return (
     <PortalTabScreen title="Nachrichten" hideHeaderOnPhone scroll={false}>
-      <View style={styles.clientMessages}>
-        <PortalGlassHero
-          title="Nachrichten"
-          subtitle="Schreiben Sie direkt an Ihr Pflegebüro — Antworten erscheinen hier im Chat."
-          showStatusDot
-        />
+      <View style={[styles.clientMessages, messengerFocusActive ? styles.clientMessagesFocus : null]}>
+        {!messengerFocusActive ? (
+          <PortalGlassHero
+            title="Nachrichten"
+            subtitle="Schreiben Sie direkt an Ihr Pflegebüro — Antworten erscheinen hier im Chat."
+            showStatusDot
+          />
+        ) : null}
         <PortalOfficeMessenger
           audience="client"
           variant="glass"
@@ -159,6 +162,9 @@ const styles = StyleSheet.create({
     width: '100%',
     alignSelf: 'stretch',
     gap: careSpacing.md,
+  },
+  clientMessagesFocus: {
+    gap: 0,
   },
   employeeMessages: {
     flex: 1,
