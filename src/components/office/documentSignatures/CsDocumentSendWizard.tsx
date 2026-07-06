@@ -1,7 +1,7 @@
 import { useMemo, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
 import { AuroraSegmentedControl } from '@/components/aurora';
-import { CsDocumentPreviewPanel } from '@/components/office/documentSignatures/CsDocumentPreviewPanel';
+import { CsDocumentPreviewPanel } from './CsDocumentPreviewPanel';
 import {
   CsDocumentClientRecipientPicker,
   CsDocumentEmployeeRecipientPicker,
@@ -260,6 +260,7 @@ export function CsDocumentSendWizard({
                 title="Senden"
                 loading={working}
                 disabled={issues.length > 0 || recipientIssues.length > 0}
+                testID="cs-document-send-confirm"
                 onPress={() => void handleSend()}
               />
             </View>

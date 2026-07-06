@@ -231,10 +231,15 @@ type BudgetRow = {
   tenant_id: string;
   client_id: string;
   budget_type: ClientBudget['budgetType'];
-  year: number;
-  total_amount_cents: number;
-  used_amount_cents: number;
-  reserved_amount_cents: number;
+  year?: number;
+  budget_year?: number;
+  total_amount_cents?: number;
+  used_amount_cents?: number;
+  reserved_amount_cents?: number;
+  yearly_amount?: number | null;
+  monthly_amount?: number | null;
+  used_amount?: number | null;
+  reserved_amount?: number | null;
   valid_from: string;
   valid_until: string;
   notes: string | null;
@@ -242,16 +247,32 @@ type BudgetRow = {
   updated_at: string;
 };
 
+function budgetAmountToCents(value: number | null | undefined): number {
+  if (value == null || Number.isNaN(Number(value))) return 0;
+  const numeric = Number(value);
+  return Number.isInteger(numeric) && Math.abs(numeric) >= 1000
+    ? numeric
+    : Math.round(numeric * 100);
+}
+
 export function mapClientBudget(row: BudgetRow): ClientBudget {
+  const totalAmountCents =
+    row.total_amount_cents ??
+    budgetAmountToCents(row.yearly_amount ?? row.monthly_amount);
+  const usedAmountCents =
+    row.used_amount_cents ?? budgetAmountToCents(row.used_amount);
+  const reservedAmountCents =
+    row.reserved_amount_cents ?? budgetAmountToCents(row.reserved_amount);
+
   return {
     id: row.id,
     tenantId: row.tenant_id,
     clientId: row.client_id,
     budgetType: row.budget_type,
-    year: row.year,
-    totalAmountCents: row.total_amount_cents,
-    usedAmountCents: row.used_amount_cents,
-    reservedAmountCents: row.reserved_amount_cents,
+    year: row.year ?? row.budget_year ?? new Date().getFullYear(),
+    totalAmountCents,
+    usedAmountCents,
+    reservedAmountCents,
     validFrom: row.valid_from,
     validUntil: row.valid_until,
     notes: row.notes,

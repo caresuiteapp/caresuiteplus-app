@@ -189,6 +189,6 @@ export function ConversationScreen({
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1 },
-  messages: { gap: spacing.sm, paddingBottom: spacing.md },
+  container: { flex: 1, minHeight: 0 },
+  messages: { gap: spacing.sm, paddingBottom: spacing.md, flexGrow: 1 },
 });

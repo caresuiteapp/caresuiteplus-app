@@ -117,6 +117,9 @@ export function CsDocumentEmployeeRecipientPicker({
             <Pressable
               style={[styles.row, active ? styles.rowActive : null]}
               onPress={() => onSelect(active ? null : item)}
+              testID={`cs-employee-recipient-${item.id}`}
+              accessibilityRole="button"
+              accessibilityLabel={`Mitarbeitende auswählen: ${item.fullName}`}
             >
               <Text style={styles.title}>{item.fullName}</Text>
               <Text style={styles.meta}>

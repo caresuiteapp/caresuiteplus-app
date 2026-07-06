@@ -8,11 +8,12 @@ import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isDemoMode } from '@/lib/supabase/config';
 import { fetchRuntimePermissions } from '@/lib/supabase/permissionRepository';
 import { useAuth } from '@/lib/auth/context';
+import { resolveEffectiveRoleKey } from '@/lib/auth/sessionTarget';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 
 export function usePermissions() {
-  const { profile } = useAuth();
-  const roleKey = profile?.roleKey ?? null;
+  const { profile, user, portalSession } = useAuth();
+  const roleKey = resolveEffectiveRoleKey(profile, user, portalSession);
   const serviceTenantId = useServiceTenantId();
   const tenantId = serviceTenantId ?? (isDemoMode() ? DEMO_TENANT_ID : '');
 

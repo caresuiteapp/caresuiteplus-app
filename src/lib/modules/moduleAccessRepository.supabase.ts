@@ -12,23 +12,30 @@ import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 
-export const TENANT_PRODUCT_SELECT =
+export const TENANT_PRODUCT_SELECT_LEGACY =
   'id, tenant_id, product_id, is_active, activated_at, access_source, included_by_module_key, is_base_included, billing_status, access_type, price_cents, premium_ready, products(product_key)';
+
+/** Production schema uses status + product_key instead of is_active module-access columns. */
+export const TENANT_PRODUCT_SELECT_STATUS =
+  'id, tenant_id, product_id, product_key, status, created_at, updated_at, products(product_key)';
 
 export type TenantProductLiveRow = {
   id: string;
   tenant_id: string;
   product_id: string;
-  is_active: boolean;
-  activated_at: string;
-  access_source: ModuleAccessSource | null;
-  included_by_module_key: ProductKey | null;
-  is_base_included: boolean;
-  billing_status: ModuleBillingStatus | null;
-  access_type: TenantProduct['accessType'] | null;
-  price_cents: number | null;
-  premium_ready: boolean | null;
-  products: { product_key: ProductKey; key?: ProductKey } | null;
+  is_active?: boolean | null;
+  activated_at?: string | null;
+  access_source?: ModuleAccessSource | null;
+  included_by_module_key?: ProductKey | null;
+  is_base_included?: boolean | null;
+  billing_status?: ModuleBillingStatus | null;
+  access_type?: TenantProduct['accessType'] | null;
+  price_cents?: number | null;
+  premium_ready?: boolean | null;
+  product_key?: ProductKey | string | null;
+  status?: string | null;
+  created_at?: string | null;
+  products?: { product_key: ProductKey; key?: ProductKey } | null;
 };
 
 function unavailable<T>(): ServiceResult<T> {
@@ -58,23 +65,43 @@ function buildInactiveModule(tenantId: string, productKey: ProductKey): TenantPr
   };
 }
 
+function resolveProductKey(row: TenantProductLiveRow): ProductKey | null {
+  const candidates = [row.products?.product_key, row.products?.key, row.product_key];
+  for (const candidate of candidates) {
+    if (isProductKey(candidate)) {
+      return candidate;
+    }
+  }
+  return null;
+}
+
+function resolveIsActive(row: TenantProductLiveRow): boolean {
+  if (typeof row.is_active === 'boolean') {
+    return row.is_active;
+  }
+  const status = row.status?.trim().toLowerCase();
+  return status === 'active' || status === 'trial';
+}
+
 export function mapTenantProductRow(row: TenantProductLiveRow): TenantProduct | null {
-  const productKey = row.products?.product_key ?? row.products?.key;
-  if (!isProductKey(productKey)) {
+  const productKey = resolveProductKey(row);
+  if (!productKey) {
     return null;
   }
+
+  const isActive = resolveIsActive(row);
 
   return {
     id: row.id,
     tenantId: row.tenant_id,
     productId: row.product_id,
     productKey,
-    isActive: row.is_active,
-    activatedAt: row.activated_at,
-    accessSource: row.access_source ?? (row.is_active ? 'free_active' : 'disabled'),
-    includedByModuleKey: row.included_by_module_key,
-    isBaseIncluded: row.is_base_included,
-    billingStatus: row.billing_status ?? (row.is_active ? 'free_active' : 'not_billed'),
+    isActive,
+    activatedAt: row.activated_at ?? row.created_at ?? new Date().toISOString(),
+    accessSource: row.access_source ?? (isActive ? 'free_active' : 'free_available'),
+    includedByModuleKey: row.included_by_module_key ?? null,
+    isBaseIncluded: row.is_base_included ?? false,
+    billingStatus: row.billing_status ?? (isActive ? 'free_active' : 'free_available'),
     accessType: row.access_type ?? 'free',
     priceCents: row.price_cents ?? 0,
     premiumReady: row.premium_ready ?? false,
@@ -108,16 +135,35 @@ export async function fetchTenantModulesFromSupabase(
   const supabase = getSupabaseClient();
   if (!supabase) return unavailable();
 
-  const { data, error } = await fromUnknownTable(supabase, 'tenant_products')
-    .select(TENANT_PRODUCT_SELECT)
+  const legacy = await fromUnknownTable(supabase, 'tenant_products')
+    .select(TENANT_PRODUCT_SELECT_LEGACY)
     .eq('tenant_id', tenantId);
 
-  if (error) {
-    return { ok: false, error: toGermanSupabaseError(error) };
+  if (!legacy.error) {
+    return {
+      ok: true,
+      data: mapTenantProductRows(tenantId, (legacy.data ?? []) as unknown as TenantProductLiveRow[]),
+    };
+  }
+
+  const isMissingLegacyColumn =
+    legacy.error.code === '42703' ||
+    /is_active|access_source|billing_status|price_cents/.test(legacy.error.message ?? '');
+
+  if (!isMissingLegacyColumn) {
+    return { ok: false, error: toGermanSupabaseError(legacy.error) };
+  }
+
+  const statusRows = await fromUnknownTable(supabase, 'tenant_products')
+    .select(TENANT_PRODUCT_SELECT_STATUS)
+    .eq('tenant_id', tenantId);
+
+  if (statusRows.error) {
+    return { ok: false, error: toGermanSupabaseError(statusRows.error) };
   }
 
   return {
     ok: true,
-    data: mapTenantProductRows(tenantId, (data ?? []) as unknown as TenantProductLiveRow[]),
+    data: mapTenantProductRows(tenantId, (statusRows.data ?? []) as unknown as TenantProductLiveRow[]),
   };
 }

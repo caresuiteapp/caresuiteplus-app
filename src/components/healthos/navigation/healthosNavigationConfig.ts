@@ -33,7 +33,6 @@ export const HEALTHOS_OFFICE_NAV: HealthOSNavConfig = {
     {
       title: 'Dokumente & Finanzen',
       items: [
-        { key: 'documents', label: 'Dokumente & Unterschriften', icon: '📁', href: '/office/documents-signatures' },
         {
           key: 'documents-signatures',
           label: 'Dokumente & Unterschriften',
@@ -217,9 +216,9 @@ export const HEALTHOS_EMPLOYEE_PORTAL_NAV: HealthOSNavConfig = {
       items: [
         {
           key: 'signatures',
-          label: 'Unterschriften',
+          label: 'Dokumente & Unterschriften',
           icon: '✍️',
-          href: '/portal/employee/signatures',
+          href: '/portal/employee/documents/signatures',
         },
         {
           key: 'documents',

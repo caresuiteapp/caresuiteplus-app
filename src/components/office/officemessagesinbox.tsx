@@ -36,7 +36,7 @@ type OfficeMessagesInboxProps = {
   chatAge: OfficeChatAgeFilter;
   onChatAgeChange: (chatAge: OfficeChatAgeFilter) => void;
   selectedThreadId: string | null;
-  onThreadSelect: (threadId: string) => void;
+  onThreadSelect: (threadId: string, subject?: string) => void;
   search: string;
   onSearchChange: (value: string) => void;
 };
@@ -108,7 +108,13 @@ function ThreadRow({
     : '—';
 
   return (
-    <Pressable onPress={onPress} style={styles.row} accessibilityRole="button">
+    <Pressable
+      onPress={onPress}
+      style={styles.row}
+      accessibilityRole="button"
+      testID={`office-thread-row-${thread.id}`}
+      accessibilityLabel={`Chat ${thread.subject}`}
+    >
       <View style={styles.header}>
         <Text style={styles.subject} numberOfLines={1}>
           {thread.subject}
@@ -263,7 +269,7 @@ export function OfficeMessagesInbox({
             <ThreadRow
               thread={item}
               selected={item.id === selectedThreadId}
-              onPress={() => onThreadSelect(item.id)}
+              onPress={() => onThreadSelect(item.id, item.subject)}
             />
           )}
           onRefresh={refresh}

@@ -29,6 +29,19 @@ describe('moduleAccessRepository.supabase', () => {
     expect(mapped?.accessSource).toBe('free_active');
   });
 
+  it('mapTenantProductRow leitet is_active aus status ab', () => {
+    const mapped = mapTenantProductRow({
+      id: 'tp-2',
+      tenant_id: 'tenant-1',
+      product_id: 'prod-pflege',
+      product_key: 'pflege',
+      status: 'trial',
+      created_at: '2026-06-15T10:00:00.000Z',
+    });
+    expect(mapped?.productKey).toBe('pflege');
+    expect(mapped?.isActive).toBe(true);
+  });
+
   it('mapTenantProductRows ergänzt fehlende Module als inaktiv', () => {
     const modules = mapTenantProductRows('tenant-1', [sampleRow]);
     expect(modules).toHaveLength(6);

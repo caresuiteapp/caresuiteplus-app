@@ -33,7 +33,7 @@ export function mapCommunicationThreadRow(row: Record<string, unknown>): Communi
     lastMessageId: (row.last_message_id as string | null) ?? null,
     lastMessageAt: toIso(row.last_message_at as string | null),
     lastMessageByDisplayName: (row.last_message_by_display_name as string | null) ?? null,
-    unreadCountBusiness: Number(row.unread_count_business ?? 0),
+    unreadCountBusiness: Number(row.unread_count_business ?? row.office_unread_count ?? 0),
     unreadCountEmployee: Number(row.unread_count_employee ?? 0),
     unreadCountClient: Number(row.unread_count_client ?? 0),
     unreadCountRelative: Number(row.unread_count_relative ?? 0),

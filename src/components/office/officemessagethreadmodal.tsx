@@ -53,6 +53,7 @@ export function OfficeMessageThreadModal({
   const composerOnDarkSurface = useComposerDarkSurface();
   const officeAccent = moduleColor('office');
   const [tab, setTab] = useState<ModalTab>('chat');
+  const isPhone = screenWidth < 768;
   const showSideBySide = screenWidth >= SIDE_BY_SIDE_BREAKPOINT;
 
   const { detail, markAsRead, updateStatus, assignSelf, updatePriority, updateCategory, refresh } =
@@ -80,17 +81,16 @@ export function OfficeMessageThreadModal({
   }, [visible, threadId, markAsRead]);
 
   const sheetWidth = useMemo(
-    () =>
-      Math.min(
+    () => (isPhone ? screenWidth : Math.min(
         screenWidth - spacing.md * 2,
         Math.max(MODAL_MIN_WIDTH, Math.min(MODAL_MAX_WIDTH, screenWidth * 0.96)),
-      ),
-    [screenWidth],
+      )),
+    [isPhone, screenWidth],
   );
 
   const sheetMaxHeight = useMemo(
-    () => Math.min(screenHeight * 0.94, screenHeight - spacing.md * 2),
-    [screenHeight],
+    () => (isPhone ? screenHeight : Math.min(screenHeight * 0.94, screenHeight - spacing.md * 2)),
+    [isPhone, screenHeight],
   );
 
   const handleThreadUpdated = () => {
@@ -103,15 +103,20 @@ export function OfficeMessageThreadModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: isDark ? 'rgba(4,8,24,0.72)' : 'rgba(7,18,42,0.45)',
-          justifyContent: 'center',
-          alignItems: 'center',
-          padding: spacing.md,
+          backgroundColor: isPhone
+            ? c.surface
+            : isDark
+              ? 'rgba(4,8,24,0.72)'
+              : 'rgba(7,18,42,0.45)',
+          justifyContent: isPhone ? 'flex-start' : 'center',
+          alignItems: isPhone ? 'stretch' : 'center',
+          padding: isPhone ? 0 : spacing.md,
         },
         sheetHost: {
           width: sheetWidth,
           maxHeight: sheetMaxHeight,
           flex: 1,
+          ...(isPhone ? { borderRadius: 0 } : null),
           ...Platform.select({
             web: { boxShadow: '0 24px 64px rgba(0,0,0,0.35)' as unknown as undefined },
             default: {},
@@ -164,7 +169,7 @@ export function OfficeMessageThreadModal({
           borderLeftColor: `${c.border}CC`,
         },
       }),
-    [c.border, isDark, showSideBySide],
+    [c.border, c.surface, isDark, isPhone, showSideBySide, sheetMaxHeight, sheetWidth],
   );
 
   if (!threadId) return null;
@@ -204,7 +209,7 @@ export function OfficeMessageThreadModal({
         <Pressable style={StyleSheet.absoluteFill} onPress={onClose} accessibilityLabel="Schließen" />
         <View style={styles.sheetHost} pointerEvents="box-none">
           <GlassSurface
-            radius={careRadius.lg}
+            radius={isPhone ? 0 : careRadius.lg}
             glowColor={officeAccent}
             glowOpacity={isDark ? 0.22 : 0.12}
             elevated

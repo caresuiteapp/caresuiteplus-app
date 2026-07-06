@@ -55,7 +55,7 @@ export const OFFICE_NAV_AREAS: readonly OfficeNavArea[] = [
     key: 'documents',
     label: 'Dokumente & Unterschriften',
     icon: '📁',
-    href: '/office/documents-signatures',
+    href: '/business/office/documents/signatures',
     description: 'Signaturaufträge und Dokumentenverwaltung',
     accentColor: '#7C5CFF',
   },

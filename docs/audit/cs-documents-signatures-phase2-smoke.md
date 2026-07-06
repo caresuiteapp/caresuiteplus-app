@@ -16,7 +16,7 @@ End-to-End-Flow: Office → Send-Wizard → Portal → Signatur → Erledigt
 | Migration remote | `0233_cs_vorlagen_datenbank.sql` (Teilschritte) | **Angewendet** |
 | Verify | `node scripts/audit/verify-cs-vorlagen-db.mjs` | **Exit 0** |
 | Unit-Tests | `npm test -- src/__tests__/documents/csTemplateDatabase.test.ts` | **19/19 grün** |
-| E2E Browser-Smoke | Manuell (unten) | **Noch offen** |
+| E2E Browser-Smoke | `node .audit-cs-documents-phase2-smoke.mjs` | **Exit 0** (2026-07-05, localhost:8091) |
 | Push / Deploy | — | **Nein** |
 
 ## Automatisierte Checks
@@ -26,7 +26,27 @@ End-to-End-Flow: Office → Send-Wizard → Portal → Signatur → Erledigt
 | Unit/Service-Tests | `npm test -- src/__tests__/documents/csTemplateDatabase.test.ts` |
 | Migration + Seed | `node scripts/audit/verify-cs-vorlagen-db.mjs` |
 
-## Manuelle E2E-Smoke-Checkliste (noch ausstehend)
+## E2E-Smoke Ergebnis (2026-07-05)
+
+**Umgebung:** lokal `http://localhost:8091`, Branch `cursor/cs-vorlagen-documents-signatures-phase2`, Remote-DB mit 66 Vorlagen.
+
+| Schritt | Ergebnis |
+|---------|----------|
+| Office-Seite lädt | Pass |
+| Tabs Offen / In Bearbeitung / Erledigt / Alle / Vorlagen | Pass |
+| Vorlagen aus Remote (66) | Pass |
+| Send-Wizard öffnet | Pass |
+| Keine sichtbaren UUID-Felder | Pass |
+| Empfänger Mitarbeiter/Klient/Beide | Pass |
+| Mitarbeiterportal lädt | Pass |
+| Klient:innenportal lädt | Pass |
+| MA-Portal Dokumentberechtigung | **Warnung** — `portal.employee.documents.view` fehlt für Audit-MA → „Kein Zugriff“ |
+| Vollständiger Send→Sign→Erledigt-Flow | **Noch manuell** (kein Test-Dokument gesendet) |
+
+Screenshots: `.audit-screenshots-cs-phase2/` (nicht committen)  
+Report: `.audit-cs-documents-phase2-smoke-results.json`
+
+## Manuelle E2E-Smoke-Checkliste (Restpunkte)
 
 ### Office (`/business/office/documents/signatures`)
 
@@ -71,7 +91,9 @@ End-to-End-Flow: Office → Send-Wizard → Portal → Signatur → Erledigt
 | `hasBlockingCsDocumentForAssignment` | Vorbereitet, **nicht** am Einsatzstart |
 | Audit-Log | Best-effort über `audit_logs` wenn Tabelle existiert |
 | Juristische Vorlagen | Technische Muster — nicht rechtsverbindlich |
-| E2E Browser-Smoke | **Nächster Schritt** |
+| E2E Browser-Smoke (automatisiert) | **Erledigt** — siehe oben |
+| E2E Send→Sign→Erledigt (manuell) | **Offen** |
+| MA-Portal Permission `portal.employee.documents.view` | **Offen** — Audit-MA braucht Freigabe |
 
 ## Ergebnis dokumentieren
 
@@ -81,6 +103,7 @@ Nach jedem E2E-Lauf: Datum, Umgebung (lokal/staging/prod), Pass/Fail pro Schritt
 
 | Kriterium | Bereit? |
 |-----------|---------|
-| E2E-Smoke (manuell) | **Ja** — Remote-DB + Code committed, Verify grün |
-| Phase 3 (Einsatz-Blockade) | **Nein** — erst nach E2E-Smoke |
+| E2E-Smoke (automatisiert) | **Ja** — Office + Vorlagen + Wizard OK |
+| E2E Send→Sign (manuell) | **Nein** — noch durchführen |
+| Phase 3 (Einsatz-Blockade) | **Nein** |
 | Deploy | **Nein** — explizit nicht Teil Phase 2.1 |

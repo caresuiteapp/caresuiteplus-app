@@ -19,8 +19,18 @@ export type ClientDocumentEventRow = {
   created_at: string;
   client_id: string;
   profiles?:
-    | { display_name: string | null }
-    | { display_name: string | null }[]
+    | {
+        display_name?: string | null;
+        full_name?: string | null;
+        first_name?: string | null;
+        last_name?: string | null;
+      }
+    | {
+        display_name?: string | null;
+        full_name?: string | null;
+        first_name?: string | null;
+        last_name?: string | null;
+      }[]
     | null;
 };
 
@@ -28,10 +38,17 @@ function resolveProfileDisplayName(
   profiles: ClientDocumentEventRow['profiles'],
 ): string | undefined {
   if (!profiles) return undefined;
-  if (Array.isArray(profiles)) {
-    return profiles[0]?.display_name ?? undefined;
-  }
-  return profiles.display_name ?? undefined;
+  const profile = Array.isArray(profiles) ? profiles[0] : profiles;
+  if (!profile) return undefined;
+
+  const fullName = profile.full_name?.trim();
+  if (fullName) return fullName;
+
+  const displayName = profile.display_name?.trim();
+  if (displayName) return displayName;
+
+  const combined = `${profile.first_name?.trim() ?? ''} ${profile.last_name?.trim() ?? ''}`.trim();
+  return combined || undefined;
 }
 
 function formatEventType(eventType: string): string {

@@ -343,7 +343,7 @@ export function buildOfficeDashboardSections(snapshot: DashboardSnapshot): Offic
           id: 'docs-signatures',
           label: 'Dokumente & Unterschriften',
           description: 'Signaturaufträge an Mitarbeitende und Klient:innen',
-          route: '/office/documents-signatures',
+          route: '/business/office/documents/signatures',
           icon: '✍️',
         },
         {

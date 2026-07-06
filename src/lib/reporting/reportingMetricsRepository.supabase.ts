@@ -160,11 +160,13 @@ export const reportingMetricsSupabaseRepository = {
         .eq('tenant_id', tenantId);
       if (srRows) {
         const rows = srRows as { status: string; total_amount: number | null }[];
-        bundle.serviceRecords.billingReady = rows.filter((r) => r.status === 'billing_ready').length;
-        bundle.serviceRecords.reviewPending = rows.filter((r) => r.status === 'review_pending').length;
+        bundle.serviceRecords.billingReady = rows.filter((r) =>
+          r.status === 'billable' || r.status === 'approved',
+        ).length;
+        bundle.serviceRecords.reviewPending = rows.filter((r) => r.status === 'review_required').length;
         bundle.billing.billingReadyCents = Math.round(
           rows
-            .filter((r) => r.status === 'billing_ready')
+            .filter((r) => r.status === 'billable' || r.status === 'approved')
             .reduce((s, r) => s + (r.total_amount ?? 0) * 100, 0),
         );
         bundle.growth.revenuePreparedCents = bundle.billing.billingReadyCents;

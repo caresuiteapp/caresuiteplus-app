@@ -62,10 +62,10 @@ describe('Kommunikationszentrum list', () => {
     expect(source).toContain('PremiumListHeroFrame');
   });
 
-  it('CommunicationAdaptiveScreen nutzt MasterDetailLayout mit Summary-Panel', () => {
+  it('CommunicationAdaptiveScreen nutzt MessengerShell mit ConversationScreen', () => {
     const source = readSrc('src/screens/communication/CommunicationAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
-    expect(source).toContain('ThreadDetailSummaryPanel');
+    expect(source).toContain('MessengerShell');
+    expect(source).toContain('ConversationScreen');
   });
 
   it('CommunicationThreadListCard unterstützt Auswahlzustand für Master-Detail', () => {
@@ -74,10 +74,11 @@ describe('Kommunikationszentrum list', () => {
     expect(source).toContain('cardSelected');
   });
 
-  it('OfficeMessagesAdaptiveScreen bleibt auf Sprint-08 Summary-Pattern', () => {
-    const source = readSrc('src/screens/office/OfficeMessagesAdaptiveScreen.tsx');
-    expect(source).toContain('MasterDetailLayout');
-    expect(source).toContain('OfficeMessageDetailSummaryPanel');
+  it('OfficeMessagesAdaptiveScreen delegiert an OfficeMessengerScreen mit MessengerShell', () => {
+    const adaptive = readSrc('src/screens/office/OfficeMessagesAdaptiveScreen.tsx');
+    const messenger = readSrc('src/screens/office/OfficeMessengerScreen.tsx');
+    expect(adaptive).toContain('OfficeMessengerScreen');
+    expect(messenger).toContain('MessengerShell');
   });
 });
 
