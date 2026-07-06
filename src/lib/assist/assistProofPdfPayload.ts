@@ -10,6 +10,14 @@ import {
   resolveSignatureImageDimensions,
   signatureProofImageStyleToCss,
 } from '@/lib/signatures/signatureOrientation';
+import { resolveVisitProofBranding } from '@/lib/assist/visitProofBranding';
+import { buildVisitProofLayoutHtml } from '@/lib/assist/visitProofPdfLayout';
+import {
+  buildVisitProofTasksPresentation,
+  parseVisitProofTasksFromSnapshot,
+  resolveVisitProofDocumentationText,
+  type VisitProofTaskInput,
+} from '@/lib/assist/visitProofTaskPresentation';
 
 export type AssistProofPdfPayload = {
   proofId: string;
@@ -17,6 +25,7 @@ export type AssistProofPdfPayload = {
   title: string;
   html: string;
   fileName: string;
+  layoutVersion: string;
 };
 
 const GPS_SNAPSHOT_KEYS = new Set([
@@ -41,14 +50,6 @@ export const PORTAL_BLOCKED_SNAPSHOT_KEYS = new Set([
   'tripLog',
   'notesForEmployee',
 ]);
-
-function escapeHtml(value: string): string {
-  return value
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
-}
 
 function formatDateTime(iso: string | null | undefined): string {
   if (!iso) return '—';
@@ -92,68 +93,80 @@ function parseVisitTimes(value: unknown): VisitTimesSummary | null {
     arrivedAt: readSnapshotString(row, 'arrivedAt'),
     serviceStartedAt: readSnapshotString(row, 'serviceStartedAt'),
     serviceEndedAt: readSnapshotString(row, 'serviceEndedAt'),
+    pauseStartedAt: readSnapshotString(row, 'pauseStartedAt'),
+    activeTimer:
+      row.activeTimer === 'drive' ||
+      row.activeTimer === 'service' ||
+      row.activeTimer === 'pause'
+        ? row.activeTimer
+        : null,
   };
 }
 
 function parseSignatureFromSnapshot(snapshot: Record<string, unknown>): {
   signerName: string;
   signedAt: string;
+  signerRole: string | null;
 } | null {
   const directName = readSnapshotString(snapshot, 'signerName');
   const directAt = readSnapshotString(snapshot, 'signedAt');
-  if (directName && directAt) return { signerName: directName, signedAt: directAt };
+  if (directName && directAt) {
+    return {
+      signerName: directName,
+      signedAt: directAt,
+      signerRole: readSnapshotString(snapshot, 'signerRole'),
+    };
+  }
 
   const nested = snapshot.signature;
   if (nested && typeof nested === 'object') {
     const row = nested as Record<string, unknown>;
     const signerName = readSnapshotString(row, 'signerName');
     const signedAt = readSnapshotString(row, 'signedAt');
-    if (signerName && signedAt) return { signerName, signedAt };
+    if (signerName && signedAt) {
+      return {
+        signerName,
+        signedAt,
+        signerRole: readSnapshotString(row, 'signerRole'),
+      };
+    }
   }
 
   return null;
 }
 
-function parseTasksFromSnapshot(snapshot: Record<string, unknown>): Array<{ title: string; statusLabel: string }> {
-  const raw = snapshot.tasks;
-  if (!Array.isArray(raw)) return [];
-  return raw
-    .map((entry) => {
-      if (!entry || typeof entry !== 'object') return null;
-      const row = entry as Record<string, unknown>;
-      const title = readSnapshotString(row, 'title');
-      if (!title) return null;
-      const status = readSnapshotString(row, 'status') ?? '—';
-      return { title, statusLabel: status };
-    })
-    .filter((item): item is { title: string; statusLabel: string } => item != null);
+function mapEnrichmentTasks(
+  tasks: VisitProofSnapshotEnrichment['tasks'],
+): VisitProofTaskInput[] {
+  if (!tasks?.length) return [];
+  return tasks.map((task) => ({
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    statusLabel: task.statusLabel,
+    note: task.note ?? null,
+    reason: task.reason ?? null,
+    completionNote: task.completionNote ?? null,
+    notDoneReason: task.notDoneReason ?? null,
+    isInternal: task.isInternal ?? null,
+    isWorkflow: task.isWorkflow ?? null,
+    category: task.category ?? null,
+    type: task.type ?? null,
+    moduleArea: task.moduleArea ?? null,
+  }));
 }
 
-function buildTasksHtml(
-  tasks: Array<{ title: string; statusLabel: string }>,
-  tasksSummary: string | null,
-): string {
-  if (tasks.length > 0) {
-    const rows = tasks
-      .map(
-        (task) =>
-          `<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">${escapeHtml(task.title)}</td><td style="padding:6px 8px;border-bottom:1px solid #eee;">${escapeHtml(task.statusLabel)}</td></tr>`,
-      )
-      .join('');
-    return `<table style="width:100%;border-collapse:collapse;font-size:13px;margin-top:8px;">
-      <thead><tr><th style="text-align:left;padding:6px 8px;border-bottom:1px solid #ccc;">Aufgabe</th><th style="text-align:left;padding:6px 8px;border-bottom:1px solid #ccc;">Status</th></tr></thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+function resolveProofTasks(
+  snapshot: Record<string, unknown>,
+  enrichment: VisitProofSnapshotEnrichment,
+): VisitProofTaskInput[] {
+  if (enrichment.tasks?.length) {
+    return mapEnrichmentTasks(enrichment.tasks);
   }
-
-  if (tasksSummary) {
-    return `<p style="margin:8px 0 0;font-size:13px;">${escapeHtml(tasksSummary)}</p>`;
-  }
-
-  return '<p style="margin:8px 0 0;font-size:13px;color:#666;">Keine Aufgaben hinterlegt</p>';
+  return parseVisitProofTasksFromSnapshot(snapshot);
 }
 
-/** Build HTML payload for PDF — strips GPS-related snapshot keys. */
+/** Build HTML payload for PDF — strips GPS-related snapshot keys. Layout v2. */
 export function buildAssistProofPdfPayload(
   proof: AssistVisitProofRow,
   enrichment: VisitProofSnapshotEnrichment = {},
@@ -176,12 +189,7 @@ export function buildAssistProofPdfPayload(
     readSnapshotString(snapshot, 'location') ??
     readSnapshotString(snapshot, 'locationAddress') ??
     '—';
-  const documentation =
-    enrichment.documentationNote ??
-    readSnapshotString(snapshot, 'documentationNote') ??
-    readSnapshotString(snapshot, 'documentation') ??
-    '—';
-  const tasksSummary = readSnapshotString(snapshot, 'tasksSummary');
+  const documentation = resolveVisitProofDocumentationText(snapshot, enrichment.documentationNote);
   const signature = parseSignatureFromSnapshot(snapshot);
   const signerName = signature?.signerName ?? null;
   const signedAt = signature?.signedAt ?? null;
@@ -198,24 +206,30 @@ export function buildAssistProofPdfPayload(
     enrichment.signature?.dataUrl,
   );
 
-  const tasks = enrichment.tasks?.length
-    ? enrichment.tasks.map((task) => ({
-        title: task.title,
-        statusLabel: task.statusLabel ?? task.status ?? '—',
-      }))
-    : parseTasksFromSnapshot(snapshot);
+  const tasks = resolveProofTasks(snapshot, enrichment);
+  const tasksPresentation = buildVisitProofTasksPresentation(tasks);
 
   const proofNumber = proof.proofNumber?.trim() || proof.id.slice(0, 8).toUpperCase();
   const fileName = `Leistungsnachweis-${proofNumber}.pdf`;
 
+  const branding = resolveVisitProofBranding(snapshot, {
+    logoUrl: enrichment.tenantLogoUrl,
+    tenantName: enrichment.tenantName,
+    legalName: enrichment.tenantLegalName,
+    addressLine: enrichment.tenantAddressLine,
+    ikNumber: enrichment.tenantIkNumber,
+    taxId: enrichment.tenantTaxId,
+  });
+
   const signatureMetaLine = formatSignatureMetadataLine({
     signerName,
     signedAt,
-    signatureType: readSnapshotString(snapshot, 'signerRole') ?? enrichment.signature?.signerRole ?? null,
+    signatureType:
+      signature?.signerRole ?? enrichment.signature?.signerRole ?? readSnapshotString(snapshot, 'signerRole'),
   });
 
   const signatureMetaHtml = signatureMetaLine
-    ? `<p style="margin:4px 0 0;font-size:13px;color:#555;">${escapeHtml(signatureMetaLine)}</p>`
+    ? `<p class="proof-signature-meta">${signatureMetaLine.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
     : '';
 
   const signatureDimensions = resolveSignatureImageDimensions(
@@ -230,62 +244,56 @@ export function buildAssistProofPdfPayload(
     ),
   );
 
-  const signatureBlock = signatureImageUrl
-    ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="${signatureImageStyle}" />${signatureMetaHtml}`
+  const signatureImageHtml = signatureImageUrl
+    ? `<img src="${signatureImageUrl.replace(/"/g, '&quot;')}" alt="Unterschrift" style="${signatureImageStyle}" />`
     : signerName || signedAt
-      ? `<p style="margin:8px 0 0;color:#666;font-style:italic;">Keine gezeichnete Unterschrift gespeichert.</p>${signatureMetaHtml}`
-      : '<p style="margin:8px 0 0;color:#666;">—</p>';
+      ? `<p style="margin:0;color:#6b7280;font-style:italic;font-size:12px;">Keine gezeichnete Unterschrift gespeichert.</p>`
+      : '';
 
-  const html = `<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8"/>
-  <title>Leistungsnachweis — ${escapeHtml(serviceName)}</title>
-  <style>
-    body { font-family: system-ui, sans-serif; color: #1a1a1a; margin: 0; }
-    h1 { font-size: 22px; margin: 0 0 8px; }
-    h2 { font-size: 15px; margin: 20px 0 8px; border-bottom: 1px solid #ddd; padding-bottom: 4px; }
-    .meta { color: #555; font-size: 13px; margin-bottom: 16px; }
-    .grid { display: grid; grid-template-columns: 160px 1fr; gap: 6px 12px; font-size: 14px; }
-    .label { font-weight: 600; }
-    .doc { white-space: pre-wrap; background: #f9f9f9; padding: 10px; border-radius: 4px; font-size: 13px; }
-    .footer { margin-top: 24px; font-size: 11px; color: #777; }
-  </style>
-</head>
-<body>
-  <h1>Leistungsnachweis</h1>
-  <p class="meta">Nachweis-Nr. ${escapeHtml(proofNumber)} · erstellt ${escapeHtml(formatDateTime(proof.generatedAt))}</p>
+  const signatureEmptyMessage =
+    !signatureImageUrl && !signerName && !signedAt ? 'Keine Signatur hinterlegt' : null;
 
-  <h2>Stammdaten</h2>
-  <div class="grid">
-    <span class="label">Klient:in</span><span>${escapeHtml(clientName)}</span>
-    <span class="label">Mitarbeitende:r</span><span>${escapeHtml(employeeName)}</span>
-    <span class="label">Leistung</span><span>${escapeHtml(serviceName)}</span>
-    <span class="label">Termin</span><span>${escapeHtml(formatDateTime(scheduledStart))} – ${escapeHtml(formatDateTime(scheduledEnd))}</span>
-    <span class="label">Ort</span><span>${escapeHtml(location)}</span>
-  </div>
+  const plannedRange =
+    scheduledStart && scheduledEnd
+      ? `${formatDateTime(scheduledStart)} – ${formatDateTime(scheduledEnd)}`
+      : scheduledStart
+        ? formatDateTime(scheduledStart)
+        : '—';
 
-  <h2>Zeiten</h2>
-  <div class="grid">
-    <span class="label">Anfahrt</span><span>${escapeHtml(formatDuration(visitTimes?.driveSeconds))}</span>
-    <span class="label">Einsatz</span><span>${escapeHtml(formatDuration(visitTimes?.serviceSeconds))}</span>
-    <span class="label">Angekommen</span><span>${escapeHtml(formatDateTime(visitTimes?.arrivedAt))}</span>
-    <span class="label">Einsatz gestartet</span><span>${escapeHtml(formatDateTime(visitTimes?.serviceStartedAt))}</span>
-    <span class="label">Einsatz beendet</span><span>${escapeHtml(formatDateTime(visitTimes?.serviceEndedAt))}</span>
-  </div>
-
-  <h2>Aufgaben</h2>
-  ${buildTasksHtml(tasks, tasksSummary)}
-
-  <h2>Dokumentation</h2>
-  <div class="doc">${escapeHtml(documentation)}</div>
-
-  <h2>Unterschrift Klient:in</h2>
-  ${signatureBlock}
-
-  <p class="footer">CareSuite+ Assist · ohne GPS-Trackingdaten</p>
-</body>
-</html>`;
+  const html = buildVisitProofLayoutHtml({
+    title: `Leistungsnachweis — ${serviceName}`,
+    branding,
+    meta: {
+      proofNumber,
+      generatedAt: formatDateTime(proof.generatedAt),
+      serviceDate: formatDateTime(scheduledStart),
+      providerName: branding.legalName ?? branding.tenantName,
+    },
+    stammdaten: {
+      clientName,
+      employeeName,
+      serviceName,
+      location,
+      costCarrier:
+        enrichment.costCarrier ??
+        readSnapshotString(snapshot, 'costCarrier') ??
+        readSnapshotString(snapshot, 'payerName'),
+    },
+    times: {
+      plannedRange,
+      actualStart: formatDateTime(visitTimes?.serviceStartedAt ?? visitTimes?.arrivedAt),
+      actualEnd: formatDateTime(visitTimes?.serviceEndedAt),
+      serviceDuration: formatDuration(visitTimes?.serviceSeconds),
+      driveDuration: formatDuration(visitTimes?.driveSeconds),
+    },
+    tasksPresentation,
+    documentation,
+    signature: {
+      imageHtml: signatureImageHtml,
+      metaHtml: signatureMetaHtml,
+      emptyMessage: signatureEmptyMessage,
+    },
+  });
 
   return {
     proofId: proof.id,
@@ -293,6 +301,7 @@ export function buildAssistProofPdfPayload(
     title: serviceName,
     html,
     fileName,
+    layoutVersion: 'v2',
   };
 }
 

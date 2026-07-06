@@ -113,6 +113,8 @@ export type FinalizeDocumentInput = {
   sampleEntityId: string;
   /** Demo/Test: PDF-Job absichtlich fehlschlagen lassen */
   simulatePdfFailure?: boolean;
+  /** Fertiges HTML — umgeht Platzhalter-Template (z. B. Leistungsnachweis v2). */
+  prebuiltHtml?: string | null;
 };
 
 export type PdfEngineInfo = {

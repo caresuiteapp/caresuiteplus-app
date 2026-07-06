@@ -1,4 +1,7 @@
 /** Leistungsnachweise — Typen für Validierung und Lebenszyklus */
+import type { VisitProofTaskInput } from '@/lib/assist/visitProofTaskPresentation';
+
+export type ServiceProofTaskItem = VisitProofTaskInput;
 
 export type ServiceProofTypeKey = 'einzel_einsatznachweis' | 'monatsnachweis';
 
@@ -19,6 +22,8 @@ export type ServiceProofDeployment = {
   tasks: string;
   shortDescription: string;
   documentation: string;
+  /** Strukturierte Aufgaben für Layout v2 (optional). */
+  taskItems?: ServiceProofTaskItem[];
 };
 
 export type ServiceProofSignatureFields = {
@@ -48,6 +53,8 @@ export type ServiceProofRecord = {
   durationMinutes: number;
   serviceType: string;
   tasks: string;
+  /** Strukturierte Aufgaben für Layout v2 (optional). */
+  taskItems?: ServiceProofTaskItem[];
   shortDescription: string;
   documentation: string;
   deployments: ServiceProofDeployment[];
@@ -56,6 +63,8 @@ export type ServiceProofRecord = {
   budgetAllocation: string;
   footerText: string;
   signatures: ServiceProofSignatureFields;
+  /** Optionale Signaturgrafik — nur Anzeige, keine Mutation der Signaturmetadaten. */
+  clientSignatureImageUrl?: string | null;
   lockedAt: string | null;
   contentHash: string | null;
   pdfPath: string | null;

@@ -95,10 +95,10 @@ describe('buildAssistProofPdfPayload enriched HTML', () => {
     expect(payload.fileName).toContain('LN-27be');
     expect(payload.html).toContain('Heinz-Peter Reinhardt');
     expect(payload.html).toContain('Kevin Reinhardt');
-    expect(payload.html).toContain('Küche aufräumen');
-    expect(payload.html).toContain('Erledigt');
+    expect(payload.html).toContain('Alle geplanten Aufgaben wurden vollständig erledigt.');
+    expect(payload.html).not.toContain('Küche aufräumen');
     expect(payload.html).toContain('Anfahrt');
-    expect(payload.html).toContain('Einsatz beendet');
+    expect(payload.html).toContain('Tatsächliches Ende');
     expect(payload.html).not.toContain('52.5');
     expect(payload.html).not.toContain('Intern');
   });
@@ -117,21 +117,15 @@ describe('resolveAssistProofPdfPreviewUrl', () => {
     vi.clearAllMocks();
   });
 
-  it('returns signed storage URL when pdf already exists', async () => {
-    mockCreateSignedUrl.mockResolvedValue({
-      data: { signedUrl: 'https://storage.example/proof.pdf' },
-      error: null,
-    });
-
+  it('renders dynamic blob preview from source data (layout v2)', async () => {
     const result = await resolveAssistProofPdfPreviewUrl(
       'tenant-1',
       sampleProof({ pdfStoragePath: 'tenant/t1/proof.pdf' }),
     );
 
-    expect(result.ok).toBe(true);
-    if (result.ok) {
-      expect(result.data.kind).toBe('storage');
-      expect(result.data.url).toContain('storage.example');
+    expect(result.ok).toBe(false);
+    if (!result.ok) {
+      expect(result.error).toContain('Web-Browser');
     }
   });
 });

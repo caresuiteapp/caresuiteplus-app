@@ -18,6 +18,15 @@ export type VisitProofPreviewTaskItem = {
   title: string;
   status: VisitTaskStatus;
   statusLabel: string;
+  note?: string | null;
+  reason?: string | null;
+  completionNote?: string | null;
+  notDoneReason?: string | null;
+  isInternal?: boolean | null;
+  isWorkflow?: boolean | null;
+  category?: string | null;
+  type?: string | null;
+  moduleArea?: string | null;
 };
 
 export type VisitProofPreview = {

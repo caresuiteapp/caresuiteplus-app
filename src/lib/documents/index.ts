@@ -190,6 +190,8 @@ export {
   getServiceProof,
   getServiceProofAuditTrail,
   getServiceProofPdfState,
+  renderServiceProofDocumentHtml,
+  buildServiceProofDocumentHtml,
   patchServiceProofForTest,
   resetServiceProofDocumentStore,
   SERVICE_PROOF_TYPE_LABELS,

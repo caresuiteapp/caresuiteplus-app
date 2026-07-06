@@ -173,6 +173,7 @@ export async function validateLifecycleDocument(
     documentType: LifecycleDocument['documentType'];
     sampleEntityType: FinalizeDocumentInput['sampleEntityType'];
     sampleEntityId: string;
+    prebuiltHtml?: string | null;
   },
   actorRoleKey?: RoleKey | null,
 ): Promise<ServiceResult<{ document: LifecycleDocument; html: string; passed: boolean }>> {
@@ -204,32 +205,40 @@ export async function validateLifecycleDocument(
     ? mergeTenantSettingsIntoContext(contextResult.context, settings)
     : contextResult.context;
 
-  const preview = buildDocumentPreview({
-    templateVersion: {
-      htmlTemplate: input.htmlTemplate,
-      cssTemplate: input.cssTemplate,
-      requiredFields: [],
-    },
-    context,
-    documentType: input.documentType,
-    tenantDocumentSettings: settings,
-    showDraftWatermark: true,
-  });
+  let html: string;
+  if (input.prebuiltHtml?.trim()) {
+    html = input.prebuiltHtml.trim();
+  } else {
+    const preview = buildDocumentPreview({
+      templateVersion: {
+        htmlTemplate: input.htmlTemplate,
+        cssTemplate: input.cssTemplate,
+        requiredFields: [],
+      },
+      context,
+      documentType: input.documentType,
+      tenantDocumentSettings: settings,
+      showDraftWatermark: true,
+    });
+    html = preview.html;
+  }
 
-  const activation = assertCanActivateTemplateVersion({
-    documentType: input.documentType,
-    context,
-    templateVersion: { htmlTemplate: input.htmlTemplate, cssTemplate: input.cssTemplate },
-    tenantDocumentSettings: settings,
-    hasLivePreview: doc.previewConfirmed,
-    versionStatus: 'draft',
-  });
+  const activation = input.prebuiltHtml?.trim()
+    ? { validation: { status: 'valid' as const, issues: [] } }
+    : assertCanActivateTemplateVersion({
+        documentType: input.documentType,
+        context,
+        templateVersion: { htmlTemplate: input.htmlTemplate, cssTemplate: input.cssTemplate },
+        tenantDocumentSettings: settings,
+        hasLivePreview: doc.previewConfirmed,
+        versionStatus: 'draft',
+      });
 
   const passed = activation.validation.status !== 'error';
   const old = doc.status;
   const updated = updateDocument({
     ...doc,
-    htmlOutput: preview.html,
+    htmlOutput: html,
     status: passed ? 'ready_to_finalize' : 'validation_failed',
   });
 
@@ -243,7 +252,7 @@ export async function validateLifecycleDocument(
     metadata: passed ? undefined : { errors: String(activation.validation.issues.length) },
   });
 
-  return { ok: true, data: { document: updated, html: preview.html, passed } };
+  return { ok: true, data: { document: updated, html, passed } };
 }
 
 export async function finalizeLifecycleDocument(
@@ -303,6 +312,7 @@ export async function finalizeLifecycleDocument(
       documentType: input.documentType,
       sampleEntityType: input.sampleEntityType,
       sampleEntityId: input.sampleEntityId,
+      prebuiltHtml: input.prebuiltHtml,
     },
     actorRoleKey,
   );

@@ -21,6 +21,8 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { VISIT_TASK_STATUS_LABELS, type VisitTaskStatus } from '@/lib/assist/visitTypes';
 import type { VisitProofPreview, VisitProofPreviewTaskItem } from '@/lib/assist/visitProofPreviewService';
 import type { VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
+import { loadVisitProofBrandingForTenant } from '@/lib/assist/visitProofBranding';
+import { resolveVisitProofDocumentationText } from '@/lib/assist/visitProofTaskPresentation';
 
 export type VisitProofSnapshotEnrichment = {
   employeeName?: string | null;
@@ -35,6 +37,13 @@ export type VisitProofSnapshotEnrichment = {
   signatureImageHeight?: number | null;
   tasks?: VisitProofPreviewTaskItem[];
   documentationNote?: string | null;
+  tenantLogoUrl?: string | null;
+  tenantName?: string | null;
+  tenantLegalName?: string | null;
+  tenantAddressLine?: string | null;
+  tenantIkNumber?: string | null;
+  tenantTaxId?: string | null;
+  costCarrier?: string | null;
 };
 
 const EMPLOYEE_TASK_STATUS_LABELS: Record<string, string> = {
@@ -116,7 +125,7 @@ function snapshotTasksLookStale(snapshot: Record<string, unknown>): boolean {
 }
 
 function mapDbTasks(
-  rows: Array<{ id: string; title: string; status: string }> | undefined,
+  rows: Array<{ id: string; title: string; status: string; note?: string | null }> | undefined,
 ): VisitProofPreviewTaskItem[] {
   if (!rows?.length) return [];
   return rows.map((task) => ({
@@ -124,6 +133,9 @@ function mapDbTasks(
     title: task.title,
     status: task.status as VisitTaskStatus,
     statusLabel: resolveTaskStatusLabel(task.status),
+    note: task.note ?? null,
+    completionNote: task.note ?? null,
+    notDoneReason: task.note ?? null,
   }));
 }
 
@@ -161,7 +173,7 @@ function parseTasksFromSnapshot(snapshot: Record<string, unknown>): VisitProofPr
   if (!Array.isArray(raw)) return [];
 
   return raw
-    .map((entry, index) => {
+    .map((entry, index): VisitProofPreviewTaskItem | null => {
       if (!entry || typeof entry !== 'object') return null;
       const obj = entry as Record<string, unknown>;
       const title = String(obj.title ?? obj.taskTitle ?? obj.label ?? '').trim();
@@ -172,6 +184,17 @@ function parseTasksFromSnapshot(snapshot: Record<string, unknown>): VisitProofPr
         title,
         status: status as VisitTaskStatus,
         statusLabel: resolveTaskStatusLabel(status),
+        note: obj.note != null ? String(obj.note) : null,
+        completionNote: obj.completionNote != null ? String(obj.completionNote) : null,
+        notDoneReason: obj.notDoneReason != null ? String(obj.notDoneReason) : null,
+        isInternal: obj.isInternal === true || obj.is_internal === true,
+        isWorkflow: obj.isWorkflow === true || obj.is_workflow === true,
+        category:
+          obj.category != null
+            ? String(obj.category)
+            : obj.categoryKey != null
+              ? String(obj.categoryKey)
+              : null,
       };
     })
     .filter((item): item is VisitProofPreviewTaskItem => item != null);
@@ -248,11 +271,12 @@ export function buildVisitProofPreviewFromProof(
     readString(snapshot, 'locationAddress') ??
     (typeof snapshot.address_snapshot === 'string' ? snapshot.address_snapshot : null) ??
     '—';
-  const documentationNote =
+  const documentationNote = resolveVisitProofDocumentationText(
+    snapshot,
     enrichment.documentationNote ??
-    readString(snapshot, 'documentationNote') ??
-    readString(snapshot, 'documentation') ??
-    null;
+      readString(snapshot, 'documentationNote') ??
+      readString(snapshot, 'documentation'),
+  );
 
   const signature = enrichment.signature ?? parseSignatureFromSnapshot(snapshot);
   const signatureImageUrl =
@@ -561,9 +585,16 @@ export async function enrichVisitProofForPreview(
   }
 
   if (!enrichment.documentationNote) {
-    enrichment.documentationNote =
-      readString(snapshot, 'documentationNote') ?? readString(snapshot, 'documentation');
+    enrichment.documentationNote = resolveVisitProofDocumentationText(snapshot);
   }
+
+  const branding = await loadVisitProofBrandingForTenant(tenantId);
+  enrichment.tenantLogoUrl = branding.logoUrl ?? null;
+  enrichment.tenantName = branding.tenantName ?? null;
+  enrichment.tenantLegalName = branding.legalName ?? null;
+  enrichment.tenantAddressLine = branding.addressLine ?? null;
+  enrichment.tenantIkNumber = branding.ikNumber ?? null;
+  enrichment.tenantTaxId = branding.taxId ?? null;
 
   if (enrichment.signatureImageUrl?.trim()) {
     const dimensions = await probeSignatureImageDimensions(enrichment.signatureImageUrl);

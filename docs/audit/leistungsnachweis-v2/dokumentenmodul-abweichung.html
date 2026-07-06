@@ -1,0 +1,180 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8"/>
+  <meta name="viewport" content="width=device-width, initial-scale=1"/>
+  <title>Leistungsnachweis — Hauswirtschaft</title>
+  <style>
+    @page { size: A4; margin: 14mm; }
+    * { box-sizing: border-box; }
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      color: #1f2937;
+      margin: 0;
+      padding: 0;
+      font-size: 13px;
+      line-height: 1.45;
+      -webkit-print-color-adjust: exact;
+      print-color-adjust: exact;
+    }
+    .proof-page { max-width: 720px; margin: 0 auto; padding: 8px 4px 32px; }
+    .proof-header { text-align: center; margin-bottom: 18px; page-break-inside: avoid; }
+    .proof-logo { max-width: 168px; max-height: 72px; object-fit: contain; display: inline-block; }
+    .proof-logo-fallback { font-size: 18px; font-weight: 700; color: #111827; letter-spacing: -0.02em; }
+    .proof-title { font-size: 22px; font-weight: 700; margin: 12px 0 6px; color: #111827; }
+    .proof-meta { color: #6b7280; font-size: 12px; margin: 0; }
+    .proof-cards { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin: 16px 0; }
+    @media (max-width: 560px) { .proof-cards { grid-template-columns: 1fr; } }
+    .proof-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px 14px;
+      background: #fafafa;
+      page-break-inside: avoid;
+    }
+    .proof-card h3 {
+      margin: 0 0 8px;
+      font-size: 12px;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 0.04em;
+      color: #374151;
+    }
+    .proof-grid { display: grid; grid-template-columns: 118px 1fr; gap: 4px 10px; font-size: 12.5px; }
+    .proof-label { font-weight: 600; color: #374151; }
+    .proof-section { margin: 18px 0; page-break-inside: avoid; }
+    .proof-section h2 {
+      font-size: 14px;
+      font-weight: 700;
+      margin: 0 0 8px;
+      padding-bottom: 4px;
+      border-bottom: 1px solid #e5e7eb;
+      color: #111827;
+      page-break-after: avoid;
+    }
+    .proof-box-ok {
+      background: #ecfdf5;
+      border: 1px solid #a7f3d0;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #065f46;
+    }
+    .proof-box-warn {
+      background: #fffbeb;
+      border: 1px solid #fde68a;
+      border-radius: 8px;
+      padding: 12px 14px;
+      color: #92400e;
+    }
+    .proof-box-sub { margin: 6px 0 0; font-size: 11.5px; opacity: 0.85; }
+    .proof-deviations { width: 100%; border-collapse: collapse; font-size: 12.5px; margin-top: 8px; }
+    .proof-deviations th {
+      text-align: left;
+      padding: 7px 8px;
+      border-bottom: 2px solid #d1d5db;
+      font-size: 11px;
+      text-transform: uppercase;
+      letter-spacing: 0.03em;
+      color: #4b5563;
+    }
+    .proof-deviations td { padding: 8px; border-bottom: 1px solid #e5e7eb; vertical-align: top; }
+    .proof-doc {
+      white-space: pre-wrap;
+      background: #f9fafb;
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 12px 14px;
+      font-size: 12.5px;
+    }
+    .proof-signature-box {
+      border: 1px solid #e5e7eb;
+      border-radius: 8px;
+      padding: 14px;
+      min-height: 88px;
+      page-break-inside: avoid;
+    }
+    .proof-signature-meta { margin: 8px 0 0; font-size: 12px; color: #4b5563; }
+    .proof-footer {
+      margin-top: 28px;
+      padding-top: 10px;
+      border-top: 1px solid #e5e7eb;
+      font-size: 10.5px;
+      color: #6b7280;
+      text-align: center;
+      page-break-inside: avoid;
+    }
+    .proof-footer-line { margin: 2px 0; }
+  </style>
+</head>
+<body data-layout-version="v2">
+  <div class="proof-page">
+    <div class="proof-header">
+      <img class="proof-logo" src="https://placehold.co/160x56/png?text=Mandant" alt="CareSuite Demo Pflegedienst GmbH" />
+    </div>
+
+    <h1 class="proof-title">Leistungsnachweis</h1>
+    <p class="proof-meta">
+      Nachweis-Nr. LN-DM-001
+      · Erstellt 06.07.2026, 11:41
+      · Leistungsdatum 15.06.2026 · CareSuite Demo Pflegedienst GmbH
+    </p>
+
+    <div class="proof-cards">
+      <div class="proof-card">
+        <h3>Stammdaten</h3>
+        <div class="proof-grid">
+          <span class="proof-label">Klient:in</span><span>Erika Mustermann</span>
+          <span class="proof-label">Mitarbeitende:r</span><span>Anna Pflege</span>
+          <span class="proof-label">Leistungsart</span><span>Hauswirtschaft</span>
+          <span class="proof-label">Adresse / Ort</span><span>Einsatz durchgeführt</span>
+          <span class="proof-label">Kostenträger</span><span>AOK Nordost</span>
+        </div>
+      </div>
+      <div class="proof-card">
+        <h3>Einsatzzeiten</h3>
+        <div class="proof-grid">
+          <span class="proof-label">Geplanter Zeitraum</span><span>15.06.2026 · 09:00 – 10:30</span>
+          <span class="proof-label">Tatsächlicher Beginn</span><span>09:00</span>
+          <span class="proof-label">Tatsächliches Ende</span><span>10:30</span>
+          <span class="proof-label">Leistungsdauer</span><span>1h 30min</span>
+          <span class="proof-label">Anfahrt</span><span>—</span>
+          
+        </div>
+      </div>
+    </div>
+
+    <section class="proof-section">
+    <h2>Aufgaben</h2>
+    <div class="proof-box-warn"><strong>Es wurden Abweichungen dokumentiert.</strong></div>
+    <h2 style="margin-top:14px;font-size:13px;border:none;padding:0;">Abweichungen bei Aufgaben</h2>
+    <table class="proof-deviations">
+      <thead><tr><th>Aufgabe</th><th>Status</th><th>Begründung / Notiz</th></tr></thead>
+      <tbody><tr>
+          <td>Boden wischen</td>
+          <td>Nicht gewünscht</td>
+          <td>Klient:in wünschte Wäsche sortieren.</td>
+        </tr></tbody>
+    </table>
+  </section>
+
+    <section class="proof-section">
+      <h2>Dokumentation</h2>
+      <div class="proof-doc">Abweichung dokumentiert.</div>
+    </section>
+
+    <section class="proof-section">
+      <h2>Unterschrift Klient:in</h2>
+      <div class="proof-signature-box">
+        <p style="margin:0;color:#6b7280;font-style:italic;font-size:12px;">Keine gezeichnete Unterschrift gespeichert.</p>
+        <p class="proof-signature-meta">Erika Mustermann · 15.06.2026, 12:35 · Klient:in</p>
+        
+      </div>
+    </section>
+
+    <footer class="proof-footer">
+    <div class="proof-footer-line">CareSuite Demo Pflegedienst GmbH</div><div class="proof-footer-line">Leistungsnachweis — strukturell vorbereitet, kein produktiver PDF-Dienst.</div>
+    <div class="proof-footer-line">Seite 1 von 1 · Erstellt mit CareSuite+</div>
+  </footer>
+  </div>
+</body>
+</html>

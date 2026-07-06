@@ -42,7 +42,8 @@ describe('assistWorkflow services', () => {
       documentationText: 'Alles erledigt',
     });
     expect(html).toContain('Heinz-Peter Reinhardt');
-    expect(html).toContain('Küche');
+    expect(html).toContain('Alle geplanten Aufgaben wurden vollständig erledigt.');
+    expect(html).not.toContain('>Küche<');
     expect(html).toContain('Alles erledigt');
   });
 });

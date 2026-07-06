@@ -112,31 +112,13 @@ export async function renderAssistProofPdfBytes(
   return renderHtmlToPdfBytes(payload.html);
 }
 
-/** Signed storage URL or in-browser blob URL for PDF preview in Nachweis-Prüfung. */
+/** Signed storage URL or in-browser blob URL for PDF preview in Nachweis-Prüfung. Always renders layout v2 from source data. */
 export async function resolveAssistProofPdfPreviewUrl(
   tenantId: string,
   proof: AssistVisitProofRow,
   enrichment?: VisitProofSnapshotEnrichment,
 ): Promise<ServiceResult<AssistProofPdfPreviewResult>> {
   const payload = buildAssistProofPdfPayload(proof, enrichment);
-
-  if (proof.pdfStoragePath?.trim()) {
-    const supabase = getSupabaseClient();
-    if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
-
-    const { data, error } = await supabase.storage
-      .from(ASSIST_EXECUTION_STORAGE_BUCKET)
-      .createSignedUrl(proof.pdfStoragePath, 3600);
-
-    if (error || !data?.signedUrl) {
-      return { ok: false, error: error?.message ?? 'PDF-Vorschau konnte nicht geladen werden.' };
-    }
-
-    return {
-      ok: true,
-      data: { url: data.signedUrl, fileName: payload.fileName, kind: 'storage' },
-    };
-  }
 
   if (Platform.OS !== 'web' || typeof URL === 'undefined') {
     return { ok: false, error: 'PDF-Vorschau ist nur im Web-Browser verfügbar.' };
@@ -215,29 +197,64 @@ export async function generateAssistProofPdf(
 export async function downloadAssistProofPdfInBrowser(
   tenantId: string,
   proofId: string,
+  enrichment?: VisitProofSnapshotEnrichment,
 ): Promise<ServiceResult<{ fileName: string }>> {
   const loaded = await fetchVisitProofById(tenantId, proofId);
   if (!loaded.ok) return loaded;
   if (!loaded.data) return { ok: false, error: 'Leistungsnachweis nicht gefunden.' };
 
   const proof = loaded.data;
-  if (proof.pdfStoragePath) {
-    const supabase = getSupabaseClient();
-    if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-    const { data, error } = await supabase.storage
-      .from(ASSIST_EXECUTION_STORAGE_BUCKET)
-      .download(proof.pdfStoragePath);
+  if (Platform.OS !== 'web' || typeof document === 'undefined') {
+    if (proof.pdfStoragePath) {
+      const supabase = getSupabaseClient();
+      if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
-    if (error || !data) {
-      return { ok: false, error: error?.message ?? 'PDF konnte nicht geladen werden.' };
+      const { data, error } = await supabase.storage
+        .from(ASSIST_EXECUTION_STORAGE_BUCKET)
+        .download(proof.pdfStoragePath);
+
+      if (error || !data) {
+        return { ok: false, error: error?.message ?? 'PDF konnte nicht geladen werden.' };
+      }
+
+      return { ok: true, data: { fileName: buildAssistProofPdfPayload(proof, enrichment).fileName } };
     }
+    return { ok: false, error: 'PDF-Download ist nur im Web-Browser verfügbar.' };
+  }
 
-    const buffer = await data.arrayBuffer();
-    const bytes = new Uint8Array(buffer);
-    const fileName = buildAssistProofPdfPayload(proof).fileName;
+  try {
+    const pdfBytes = await renderAssistProofPdfBytes(proof, enrichment);
+    const fileName = buildAssistProofPdfPayload(proof, enrichment).fileName;
+    const blob = new Blob([pdfBytes], { type: 'application/pdf' });
+    const url = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = url;
+    anchor.download = fileName;
+    anchor.click();
+    URL.revokeObjectURL(url);
+    return { ok: true, data: { fileName } };
+  } catch (error) {
+    if (proof.pdfStoragePath) {
+      const supabase = getSupabaseClient();
+      if (!supabase) {
+        return {
+          ok: false,
+          error: error instanceof Error ? error.message : 'PDF-Erzeugung fehlgeschlagen.',
+        };
+      }
 
-    if (typeof document !== 'undefined') {
+      const { data, error: downloadError } = await supabase.storage
+        .from(ASSIST_EXECUTION_STORAGE_BUCKET)
+        .download(proof.pdfStoragePath);
+
+      if (downloadError || !data) {
+        return { ok: false, error: downloadError?.message ?? 'PDF konnte nicht geladen werden.' };
+      }
+
+      const buffer = await data.arrayBuffer();
+      const bytes = new Uint8Array(buffer);
+      const fileName = buildAssistProofPdfPayload(proof, enrichment).fileName;
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
@@ -245,13 +262,12 @@ export async function downloadAssistProofPdfInBrowser(
       anchor.download = fileName;
       anchor.click();
       URL.revokeObjectURL(url);
+      return { ok: true, data: { fileName } };
     }
 
-    return { ok: true, data: { fileName } };
+    return {
+      ok: false,
+      error: error instanceof Error ? error.message : 'PDF-Erzeugung fehlgeschlagen.',
+    };
   }
-
-  const generated = await generateAssistProofPdf(tenantId, proofId);
-  if (!generated.ok) return generated;
-
-  return downloadAssistProofPdfInBrowser(tenantId, proofId);
 }

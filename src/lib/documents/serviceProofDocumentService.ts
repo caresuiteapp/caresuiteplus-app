@@ -17,15 +17,15 @@ import {
   createLifecycleDocument,
   finalizeLifecycleDocument,
 } from './documentLifecycleService';
-import { getPdfEngineInfo } from './pdfRenderJobService';
+import { getPdfEngineInfo, isPdfProductionAvailable } from './pdfRenderJobService';
 import {
   computeDurationMinutes,
   getServiceProofTemplateVersionId,
   sumDeploymentHours,
   validateServiceProofForSignature,
   validateServiceProofRecord,
-  FINALIZE_SERVICE_PROOF_HTML_TEMPLATE,
 } from './serviceProofValidation';
+import { buildServiceProofDocumentHtml } from './serviceProofLayoutAdapter';
 
 type Store = {
   proofs: Map<string, ServiceProofRecord>;
@@ -316,12 +316,18 @@ export async function signAndFinalizeServiceProof(
 
   await confirmDocumentPreview(tenantId, lifecycleId, actorRoleKey);
 
+  const prebuiltHtml = buildServiceProofDocumentHtml(withSignatures, {
+    signatureImageUrl: withSignatures.clientSignatureImageUrl,
+    signerRole: 'Klient:in',
+  });
+
   const finalized = await finalizeLifecycleDocument(
     {
       tenantId,
       documentId: lifecycleId,
       templateVersionId: getServiceProofTemplateVersionId(withSignatures.proofType),
-      htmlTemplate: FINALIZE_SERVICE_PROOF_HTML_TEMPLATE,
+      htmlTemplate: '',
+      prebuiltHtml,
       documentType: 'service_record',
       sampleEntityType: 'service_record',
       sampleEntityId: 'service-record-demo-1',
@@ -434,10 +440,28 @@ export function getServiceProofPdfState() {
   const info = getPdfEngineInfo();
   return {
     engineInfo: info,
-    isPdfProductionAvailable: info.productionAvailable,
+    isPdfProductionAvailable: isPdfProductionAvailable(),
     disclaimer: 'PDF-Erzeugung vorbereitet — kein produktiver Render-Dienst.',
   };
 }
+
+/** Layout-v2 HTML für Vorschau/Download aus Quelldaten (ohne gespeichertes PDF zu überschreiben). */
+export function renderServiceProofDocumentHtml(
+  tenantId: string,
+  proofId: string,
+): ServiceResult<{ html: string; layoutVersion: string }> {
+  const proof = getServiceProof(tenantId, proofId);
+  if (!proof) return { ok: false, error: 'Leistungsnachweis nicht gefunden.' };
+
+  const html = buildServiceProofDocumentHtml(proof, {
+    signatureImageUrl: proof.clientSignatureImageUrl,
+    signerRole: 'Klient:in',
+  });
+
+  return { ok: true, data: { html, layoutVersion: 'v2' } };
+}
+
+export { buildServiceProofDocumentHtml } from './serviceProofLayoutAdapter';
 
 /** Nur für Tests — Leistungsnachweis mutieren. */
 export function patchServiceProofForTest(proof: ServiceProofRecord): ServiceProofRecord {

@@ -58,7 +58,7 @@ describe('buildAssistProofPdfPayload', () => {
     expect(payload.html).toContain('Grundpflege');
     expect(payload.html).not.toContain('52.5');
     expect(payload.html).not.toContain('locationPoints');
-    expect(payload.html).toContain('ohne GPS-Trackingdaten');
+    expect(payload.html).toContain('data-layout-version="v2"');
   });
 
   it('uses proof id prefix when proof number missing', () => {

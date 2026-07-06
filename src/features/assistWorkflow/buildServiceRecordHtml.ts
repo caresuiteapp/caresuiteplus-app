@@ -1,5 +1,5 @@
 /**
- * ASSIST.WORKFLOW.1 — HTML/print view for Leistungsnachweis.
+ * ASSIST.WORKFLOW.1 — HTML/print view for Leistungsnachweis (layout v2).
  */
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
 import type { VisitTimesSummary } from './calculateVisitTimes';
@@ -9,6 +9,13 @@ import {
   resolveSignatureImageDimensions,
   signatureProofImageStyleToCss,
 } from '@/lib/signatures/signatureOrientation';
+import { resolveVisitProofBranding, type VisitProofBrandingInput } from '@/lib/assist/visitProofBranding';
+import { buildVisitProofLayoutHtml } from '@/lib/assist/visitProofPdfLayout';
+import {
+  buildVisitProofTasksPresentation,
+  resolveVisitProofDocumentationText,
+  type VisitProofTaskInput,
+} from '@/lib/assist/visitProofTaskPresentation';
 
 export type ServiceRecordContentInput = {
   detail: EmployeePortalAssignmentDetail;
@@ -22,6 +29,9 @@ export type ServiceRecordContentInput = {
   employeeId?: string | null;
   employeeName?: string | null;
   serviceName?: string | null;
+  proofNumber?: string | null;
+  generatedAt?: string | null;
+  branding?: VisitProofBrandingInput;
 };
 
 function formatDuration(seconds: number | null): string {
@@ -43,6 +53,17 @@ function formatDateTime(iso: string | null | undefined): string {
   });
 }
 
+function mapPortalTasks(detail: EmployeePortalAssignmentDetail): VisitProofTaskInput[] {
+  return detail.tasks.map((task) => ({
+    id: task.id,
+    title: task.title,
+    status: task.status,
+    completionNote: task.completionNote,
+    notDoneReason: task.completionNote,
+    category: task.categoryKey ?? null,
+  }));
+}
+
 export function buildServiceRecordHtml(input: ServiceRecordContentInput): string {
   const {
     detail,
@@ -52,108 +73,85 @@ export function buildServiceRecordHtml(input: ServiceRecordContentInput): string
     signatureImageUrl,
     signatureImageWidth,
     signatureImageHeight,
+    employeeName,
+    serviceName,
+    proofNumber,
+    generatedAt,
+    branding: brandingInput,
   } = input;
-  const tasksHtml = detail.tasks
-    .map(
-      (t) =>
-        `<tr><td>${escapeHtml(t.title)}</td><td>${escapeHtml(t.status)}</td><td>${escapeHtml(t.completionNote ?? '')}</td></tr>`,
-    )
-    .join('');
 
-  const signatureSection = signatureSummary
-    ? (() => {
-        const metaLine = formatSignatureMetadataLine({
-          signerName: signatureSummary.signerName,
-          signedAt: signatureSummary.signedAt,
-          signatureType: signatureSummary.signerRole ?? null,
-        });
-        const metaHtml = metaLine
-          ? `<p style="margin:4px 0 0;font-size:0.875rem;color:#555;">${escapeHtml(metaLine)}</p>`
-          : '';
-        const signatureDimensions = resolveSignatureImageDimensions(
-          signatureImageUrl,
-          signatureImageWidth,
-          signatureImageHeight,
-        );
-        const signatureImageStyle = signatureProofImageStyleToCss(
-          buildSignatureProofImageStyle(
-            signatureDimensions?.width,
-            signatureDimensions?.height,
-          ),
-        );
-        const imageHtml = signatureImageUrl?.trim()
-          ? `<img src="${escapeHtml(signatureImageUrl)}" alt="Unterschrift" style="${signatureImageStyle}" />`
-          : `<p style="margin:8px 0 0;color:#666;font-style:italic;">Keine gezeichnete Unterschrift gespeichert.</p>`;
-        return `<section><h2>Unterschrift Klient:in</h2>${imageHtml}${metaHtml}</section>`;
-      })()
+  const snapshot: Record<string, unknown> = {
+    documentation: documentationText,
+    documentationNote: documentationText,
+  };
+
+  const branding = resolveVisitProofBranding(snapshot, {
+    ...brandingInput,
+    tenantName: brandingInput?.tenantName ?? detail.tenantId,
+  });
+
+  const tasksPresentation = buildVisitProofTasksPresentation(mapPortalTasks(detail));
+  const documentation = resolveVisitProofDocumentationText(snapshot, documentationText);
+
+  const signatureMetaLine = signatureSummary
+    ? formatSignatureMetadataLine({
+        signerName: signatureSummary.signerName,
+        signedAt: signatureSummary.signedAt,
+        signatureType: signatureSummary.signerRole ?? null,
+      })
     : '';
 
-  return `<!DOCTYPE html>
-<html lang="de">
-<head>
-  <meta charset="utf-8"/>
-  <title>Leistungsnachweis — ${escapeHtml(detail.title)}</title>
-  <style>
-    body { font-family: system-ui, sans-serif; max-width: 720px; margin: 2rem auto; color: #1a1a1a; }
-    h1 { font-size: 1.25rem; margin-bottom: 0.25rem; }
-    .meta { color: #666; font-size: 0.875rem; margin-bottom: 1.5rem; }
-    section { margin-bottom: 1.25rem; }
-    h2 { font-size: 1rem; border-bottom: 1px solid #ddd; padding-bottom: 0.25rem; }
-    table { width: 100%; border-collapse: collapse; font-size: 0.875rem; }
-    th, td { text-align: left; padding: 0.35rem 0.5rem; border-bottom: 1px solid #eee; }
-    .times { display: grid; grid-template-columns: 1fr 1fr; gap: 0.5rem; }
-    .times dt { font-weight: 600; }
-    .doc { white-space: pre-wrap; background: #f9f9f9; padding: 0.75rem; border-radius: 4px; }
-  </style>
-</head>
-<body>
-  <h1>Leistungsnachweis</h1>
-  <p class="meta">${escapeHtml(detail.clientName)} · ${formatDateTime(detail.plannedStartAt)}</p>
+  const signatureMetaHtml = signatureMetaLine
+    ? `<p class="proof-signature-meta">${signatureMetaLine.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')}</p>`
+    : '';
 
-  <section>
-    <h2>Einsatz</h2>
-    <p><strong>${escapeHtml(detail.title)}</strong></p>
-    <p>${escapeHtml(detail.locationAddress)}</p>
-  </section>
+  const signatureDimensions = resolveSignatureImageDimensions(
+    signatureImageUrl,
+    signatureImageWidth,
+    signatureImageHeight,
+  );
+  const signatureImageStyle = signatureProofImageStyleToCss(
+    buildSignatureProofImageStyle(signatureDimensions?.width, signatureDimensions?.height),
+  );
 
-  <section>
-    <h2>Zeiten</h2>
-    <dl class="times">
-      <dt>Anfahrt</dt><dd>${formatDuration(visitTimes?.driveSeconds ?? null)}</dd>
-      <dt>Einsatz</dt><dd>${formatDuration(visitTimes?.serviceSeconds ?? null)}</dd>
-      <dt>Pause</dt><dd>${formatDuration(visitTimes?.pauseSeconds ?? null)}</dd>
-      <dt>Angekommen</dt><dd>${formatDateTime(visitTimes?.arrivedAt)}</dd>
-      <dt>Einsatz gestartet</dt><dd>${formatDateTime(visitTimes?.serviceStartedAt)}</dd>
-      <dt>Einsatz beendet</dt><dd>${formatDateTime(visitTimes?.serviceEndedAt)}</dd>
-    </dl>
-  </section>
+  const signatureImageHtml = signatureImageUrl?.trim()
+    ? `<img src="${signatureImageUrl.replace(/"/g, '&quot;')}" alt="Unterschrift" style="${signatureImageStyle}" />`
+    : signatureSummary
+      ? `<p style="margin:0;color:#6b7280;font-style:italic;font-size:12px;">Keine gezeichnete Unterschrift gespeichert.</p>`
+      : '';
 
-  <section>
-    <h2>Aufgaben</h2>
-    <table>
-      <thead><tr><th>Aufgabe</th><th>Status</th><th>Hinweis</th></tr></thead>
-      <tbody>${tasksHtml || '<tr><td colspan="3">Keine Aufgaben</td></tr>'}</tbody>
-    </table>
-  </section>
+  const plannedRange = `${formatDateTime(detail.plannedStartAt)} – ${formatDateTime(detail.plannedEndAt)}`;
 
-  <section>
-    <h2>Dokumentation</h2>
-    <div class="doc">${escapeHtml(documentationText?.trim() || '—')}</div>
-  </section>
-
-  ${signatureSection}
-
-  <p class="meta">Erstellt ${formatDateTime(new Date().toISOString())} · CareSuite+ Assist</p>
-</body>
-</html>`;
-}
-
-function escapeHtml(text: string): string {
-  return text
-    .replace(/&/g, '&amp;')
-    .replace(/</g, '&lt;')
-    .replace(/>/g, '&gt;')
-    .replace(/"/g, '&quot;');
+  return buildVisitProofLayoutHtml({
+    title: `Leistungsnachweis — ${serviceName ?? detail.title}`,
+    branding,
+    meta: {
+      proofNumber: proofNumber ?? detail.assignmentId.slice(0, 8).toUpperCase(),
+      generatedAt: formatDateTime(generatedAt ?? new Date().toISOString()),
+      serviceDate: formatDateTime(detail.plannedStartAt),
+      providerName: branding.legalName ?? branding.tenantName,
+    },
+    stammdaten: {
+      clientName: detail.clientName,
+      employeeName: employeeName ?? '—',
+      serviceName: serviceName ?? detail.title,
+      location: detail.locationAddress,
+    },
+    times: {
+      plannedRange,
+      actualStart: formatDateTime(visitTimes?.serviceStartedAt ?? visitTimes?.arrivedAt),
+      actualEnd: formatDateTime(visitTimes?.serviceEndedAt),
+      serviceDuration: formatDuration(visitTimes?.serviceSeconds ?? null),
+      driveDuration: formatDuration(visitTimes?.driveSeconds ?? null),
+    },
+    tasksPresentation,
+    documentation,
+    signature: {
+      imageHtml: signatureImageHtml,
+      metaHtml: signatureMetaHtml,
+      emptyMessage: !signatureSummary ? 'Keine Signatur hinterlegt' : null,
+    },
+  });
 }
 
 export function buildServiceRecordSnapshot(input: ServiceRecordContentInput): Record<string, unknown> {
@@ -162,6 +160,8 @@ export function buildServiceRecordSnapshot(input: ServiceRecordContentInput): Re
     title: t.title,
     status: t.status,
     note: t.completionNote,
+    completionNote: t.completionNote,
+    category: t.categoryKey ?? null,
   }));
   const tasksSummary = tasks.map((t) => `${t.title} (${t.status})`).join('; ') || null;
 
@@ -188,6 +188,7 @@ export function buildServiceRecordSnapshot(input: ServiceRecordContentInput): Re
     signature: input.signatureSummary ?? null,
     signerName: input.signatureSummary?.signerName ?? null,
     signedAt: input.signatureSummary?.signedAt ?? null,
+    layoutVersion: 'v2',
     generatedAt: new Date().toISOString(),
   };
 }

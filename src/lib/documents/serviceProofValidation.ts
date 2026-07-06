@@ -185,14 +185,8 @@ export function getServiceProofTemplateVersionId(proofType: ServiceProofRecord['
   return `dtplv-service-proof-${proofType}`;
 }
 
-/** Nur registrierte Platzhalter — für Lifecycle-Finalisierung */
-export const FINALIZE_SERVICE_PROOF_HTML_TEMPLATE = `<h1>Leistungsnachweis</h1>
-<p>{{client.full_name}} · {{visit.date}}</p>
-<p>{{visit.start_time}} – {{visit.end_time}} · {{visit.duration}}</p>
-<p>{{visit.service_type}} · {{visit.employee_name}}</p>
-<p>{{visit.documentation}}</p>
-<p>{{visit.budget_reference}}</p>
-<p>{{signature.name}} · {{signature.date}}</p>`;
+/** @deprecated Layout v2 — nutze buildServiceProofDocumentHtml() aus serviceProofLayoutAdapter. */
+export const FINALIZE_SERVICE_PROOF_HTML_TEMPLATE = '';
 
 export function renderDeploymentsTableHtml(deployments: ServiceProofRecord['deployments']): string {
   return deployments
