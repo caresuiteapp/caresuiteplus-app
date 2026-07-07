@@ -26,9 +26,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { VisitDispositionDetail, VisitTaskItem, VisitTaskStatus } from '@/lib/assist/visitTypes';
 import type { VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
 import type { WorkflowStatus } from '@/types/core/base';
-import {
-  resolveVisitMasterId,
-} from '@/lib/assist/visitRecurrenceExpansion';
+import { resolveVisitAndAssignmentIds } from '@/lib/assist/assistExecutionVisitResolver';
 import { shouldIsolateOccurrenceExecution } from '@/lib/assist/visitRecurrenceExecution';
 
 function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
@@ -298,8 +296,7 @@ export async function enrichVisitDispositionDetail(
   const supabase = getSupabaseClient();
   if (!supabase) return detail;
 
-  const visitId = resolveVisitMasterId(detail.id);
-  const assignmentId = visitId;
+  const { visitId, assignmentId } = await resolveVisitAndAssignmentIds(tenantId, detail.id);
 
   const [
     assignmentResult,
@@ -415,18 +412,25 @@ export async function enrichVisitDispositionDetail(
       ? calculateVisitTimes([], assignmentStatus, new Date())
       : null);
 
-  if (executionState && visitTimes) {
-    if (!visitTimes.driveStartedAt && executionState.travel_started_at) {
-      visitTimes.driveStartedAt = executionState.travel_started_at;
+  if (visitTimes) {
+    if (!visitTimes.driveStartedAt) {
+      visitTimes.driveStartedAt =
+        assignmentRow.on_the_way_at ?? executionState?.travel_started_at ?? null;
     }
-    if (!visitTimes.arrivedAt && executionState.travel_ended_at) {
-      visitTimes.arrivedAt = executionState.travel_ended_at;
+    if (!visitTimes.arrivedAt) {
+      visitTimes.arrivedAt =
+        assignmentRow.arrived_at ?? executionState?.travel_ended_at ?? null;
     }
-    if (!visitTimes.serviceStartedAt && executionState.service_started_at) {
-      visitTimes.serviceStartedAt = executionState.service_started_at;
+    if (!visitTimes.serviceStartedAt) {
+      visitTimes.serviceStartedAt =
+        assignmentRow.actual_start_at ?? executionState?.service_started_at ?? null;
     }
-    if (!visitTimes.serviceEndedAt && executionState.service_ended_at) {
-      visitTimes.serviceEndedAt = executionState.service_ended_at;
+    if (!visitTimes.serviceEndedAt) {
+      visitTimes.serviceEndedAt =
+        assignmentRow.actual_end_at ??
+        assignmentRow.finished_at ??
+        executionState?.service_ended_at ??
+        null;
     }
   }
 

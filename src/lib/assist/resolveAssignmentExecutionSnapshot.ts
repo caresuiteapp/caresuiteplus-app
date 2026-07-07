@@ -55,6 +55,11 @@ type AssignmentRow = {
   id: string;
   status: string;
   documentation_notes?: string | null;
+  on_the_way_at?: string | null;
+  arrived_at?: string | null;
+  finished_at?: string | null;
+  actual_start_at?: string | null;
+  actual_end_at?: string | null;
 };
 
 type AssignmentTaskRow = {
@@ -79,6 +84,9 @@ type ExecutionStateRow = {
   documentation_complete?: boolean | null;
   signature_complete?: boolean | null;
   service_ended_at?: string | null;
+  travel_started_at?: string | null;
+  travel_ended_at?: string | null;
+  service_started_at?: string | null;
 };
 
 function assignmentTaskStatusToVisit(status: string): VisitTaskStatus {
@@ -115,6 +123,45 @@ function countOpenRequiredTasks(tasks: VisitTaskItem[]): number {
       task.status !== 'deferred' &&
       task.status !== 'not_requested',
   ).length;
+}
+
+function mergeExecutionTimestampFallbacks(
+  visitTimes: ReturnType<typeof calculateVisitTimes> | null,
+  assignmentRow: AssignmentRow | null,
+  executionState: ExecutionStateRow | null,
+  assignmentStatus: AssignmentStatus,
+): ReturnType<typeof calculateVisitTimes> | null {
+  const base =
+    visitTimes ??
+    (executionState || assignmentRow
+      ? calculateVisitTimes([], assignmentStatus, new Date())
+      : null);
+
+  if (!base) return null;
+
+  if (!base.driveStartedAt) {
+    base.driveStartedAt =
+      executionState?.travel_started_at ?? assignmentRow?.on_the_way_at ?? null;
+  }
+  if (!base.arrivedAt) {
+    base.arrivedAt =
+      assignmentRow?.arrived_at ??
+      executionState?.travel_ended_at ??
+      null;
+  }
+  if (!base.serviceStartedAt) {
+    base.serviceStartedAt =
+      executionState?.service_started_at ?? assignmentRow?.actual_start_at ?? null;
+  }
+  if (!base.serviceEndedAt) {
+    base.serviceEndedAt =
+      executionState?.service_ended_at ??
+      assignmentRow?.actual_end_at ??
+      assignmentRow?.finished_at ??
+      null;
+  }
+
+  return base;
 }
 
 function resolveDocumentationMissing(
@@ -187,7 +234,9 @@ async function fetchSnapshotBatchRows(
 
   const [assignmentResult, taskResult, docResult, executionStateResult] = await Promise.all([
     fromUnknownTable(supabase, 'assignments')
-      .select('id, status, documentation_notes')
+      .select(
+        'id, status, documentation_notes, on_the_way_at, arrived_at, finished_at, actual_start_at, actual_end_at',
+      )
       .eq('tenant_id', tenantId)
       .in('id', uniqueIds),
     fromUnknownTable(supabase, 'assignment_tasks')
@@ -201,7 +250,7 @@ async function fetchSnapshotBatchRows(
       .in('visit_id', uniqueIds),
     fromUnknownTable(supabase, 'assist_visit_execution_state')
       .select(
-        'visit_id, assignment_status, documentation_complete, signature_complete, service_ended_at',
+        'visit_id, assignment_status, documentation_complete, signature_complete, service_ended_at, travel_started_at, travel_ended_at, service_started_at',
       )
       .eq('tenant_id', tenantId)
       .in('visit_id', uniqueIds),
@@ -449,6 +498,13 @@ export async function fetchAssignmentExecutionSnapshotBatch(
       proofStatus = (artifacts.proofStatus as VisitProofStatus | null) ?? proofStatus;
       visitTimes = artifacts.visitTimes;
     }
+
+    visitTimes = mergeExecutionTimestampFallbacks(
+      visitTimes,
+      assignmentRow,
+      executionState,
+      assignmentStatus,
+    );
 
     result.set(
       input.assignmentId,

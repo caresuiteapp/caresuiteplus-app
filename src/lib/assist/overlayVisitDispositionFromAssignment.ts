@@ -3,7 +3,6 @@
  * Prevents office/client lists and detail from showing stale canonical_status / visit tasks.
  */
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
-import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import {
   assignmentStatusToDimensions,
   isVisitIncomplete,
@@ -15,7 +14,7 @@ import type {
   VisitProofStatus,
   VisitTaskItem,
 } from '@/lib/assist/visitTypes';
-import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import { resolveVisitAndAssignmentIds } from '@/lib/assist/assistExecutionVisitResolver';
 import {
   neutralizeFutureOccurrenceListItem,
   resetVirtualOccurrenceExecutionState,
@@ -112,15 +111,29 @@ export function applySnapshotToVisitListItem(
   };
 }
 
-function applySnapshotToDetail(
+export function applySnapshotToDetail(
   detail: VisitDispositionDetail,
   snapshot: AssignmentExecutionSnapshot,
 ): VisitDispositionDetail {
-  const assignmentStatus = snapshot.assignmentStatus;
+  const assignmentStatus = resolveAssignmentStatusFromExecutionContext({
+    assignmentStatus: detail.assignmentStatus,
+    executionStateStatus: snapshot.executionStateStatus ?? snapshot.assignmentStatus,
+    executionStatus: snapshot.executionStatus ?? detail.executionStatus,
+    documentationStatus: snapshot.documentationStatus ?? detail.documentationStatus,
+    proofStatus: detail.proofStatus,
+    hasDocumentation: snapshot.hasDocumentation,
+    hasSignature: snapshot.hasSignature,
+    serviceEnded: snapshot.serviceEnded,
+  });
   const dims = assignmentStatusToDimensions(assignmentStatus);
   const documentationStatus = resolveDocumentationStatus(snapshot, detail.documentationStatus);
   const proofStatus = resolveProofStatus(snapshot, detail.proofStatus);
   const tasks = preferTasks(snapshot.tasks, detail.tasks);
+  const onTheWayAt = snapshot.visitTimes?.driveStartedAt ?? detail.onTheWayAt;
+  const arrivedAt = snapshot.visitTimes?.arrivedAt ?? detail.arrivedAt;
+  const actualStartAt = snapshot.visitTimes?.serviceStartedAt ?? detail.actualStartAt;
+  const actualEndAt = snapshot.visitTimes?.serviceEndedAt ?? detail.actualEndAt;
+  const finishedAt = detail.finishedAt ?? actualEndAt;
 
   return {
     ...detail,
@@ -135,6 +148,11 @@ function applySnapshotToDetail(
     allowedStatusTransitions: snapshotAllowedTransitions(assignmentStatus),
     tasks,
     employeeNotes: snapshot.documentationNotes ?? detail.employeeNotes,
+    onTheWayAt,
+    arrivedAt,
+    actualStartAt,
+    actualEndAt,
+    finishedAt,
     isIncomplete:
       snapshot.isIncomplete ||
       isVisitIncomplete({
@@ -151,11 +169,18 @@ export async function overlayVisitDispositionListFromAssignments(
 ): Promise<VisitDispositionListItem[]> {
   if (items.length === 0) return items;
 
+  const idPairs = await Promise.all(
+    items.map(async (item) => ({
+      item,
+      ids: await resolveVisitAndAssignmentIds(tenantId, item.id),
+    })),
+  );
+
   const snapshots = await fetchAssignmentExecutionSnapshotBatch(
     tenantId,
-    items.map((item) => ({
-      assignmentId: resolveVisitMasterId(item.id),
-      visitId: resolveVisitMasterId(item.id),
+    idPairs.map(({ item, ids }) => ({
+      assignmentId: ids.assignmentId,
+      visitId: ids.visitId,
       fallbackStatus: item.assignmentStatus,
       executionStatus: item.executionStatus,
       documentationStatus: item.documentationStatus,
@@ -163,13 +188,12 @@ export async function overlayVisitDispositionListFromAssignments(
     })),
   );
 
-  return items.map((item) => {
+  return idPairs.map(({ item, ids }) => {
     if (shouldIsolateOccurrenceExecution({ itemId: item.id })) {
       return resetVirtualOccurrenceListItem(item, item.planningStatus);
     }
 
-    const masterId = resolveVisitMasterId(item.id);
-    const snapshot = snapshots.get(masterId);
+    const snapshot = snapshots.get(ids.assignmentId) ?? snapshots.get(ids.visitId);
     const overlaid = snapshot ? applySnapshotToVisitListItem(item, snapshot) : item;
     return neutralizeFutureOccurrenceListItem(overlaid);
   });
@@ -179,23 +203,27 @@ export async function overlayVisitDispositionDetailFromAssignment(
   tenantId: string,
   detail: VisitDispositionDetail,
 ): Promise<VisitDispositionDetail> {
-  const masterId = resolveVisitMasterId(detail.id);
   if (shouldIsolateOccurrenceExecution({ itemId: detail.id })) {
     return resetVirtualOccurrenceExecutionState(detail);
   }
+
+  const { visitId, assignmentId } = await resolveVisitAndAssignmentIds(tenantId, detail.id);
 
   const snapshot = await fetchAssignmentExecutionSnapshotBatch(
     tenantId,
     [
       {
-        assignmentId: masterId,
-        visitId: masterId,
+        assignmentId,
+        visitId,
         fallbackStatus: detail.assignmentStatus,
         fallbackTasks: detail.tasks,
+        executionStatus: detail.executionStatus,
+        documentationStatus: detail.documentationStatus,
+        proofStatus: detail.proofStatus,
       },
     ],
     { includePersistedArtifacts: true },
-  ).then((map) => map.get(masterId));
+  ).then((map) => map.get(assignmentId));
 
   if (!snapshot) {
     return shouldNeutralizeFutureListItem(detail)
