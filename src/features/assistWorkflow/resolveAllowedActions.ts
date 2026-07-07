@@ -3,7 +3,7 @@
  */
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { EmployeePortalAssignmentDetail } from '@/types/modules/employeePortalExecution';
-import { isAssignmentLocked } from './assistVisitStateMachine';
+import { isEmployeePortalAssignmentEditable } from '@/lib/portal/employeePortalAssignmentCompletion';
 import type { VisitTimesSummary } from './calculateVisitTimes';
 import { deriveWorkflowStatus } from './deriveWorkflowStatus';
 import type { DerivedWorkflowStatus } from './deriveWorkflowStatus';
@@ -60,7 +60,15 @@ export function resolveAllowedActions(input: {
 }): AssistWorkflowAllowedAction[] {
   const { assignmentStatus, visitTimes, detail } = input;
 
-  if (isAssignmentLocked(assignmentStatus) || detail.isLocked) {
+  if (
+    !isEmployeePortalAssignmentEditable({
+      status: assignmentStatus,
+      requiresDocumentation: detail.requiresDocumentation,
+      requiresSignature: detail.requiresSignature,
+      documentationStatus: detail.documentationStatus,
+      signatureStatus: detail.signatureStatus,
+    })
+  ) {
     return ['open_route'];
   }
 
@@ -95,16 +103,17 @@ export function resolveAllowedActions(input: {
   const signatureDeferred = detail.signatureStatus === 'deferred_to_client_portal';
 
   if (
-    ['beendet', 'dokumentation_offen'].includes(status) &&
     detail.requiresDocumentation &&
-    !docSubmitted
+    !docSubmitted &&
+    (['beendet', 'dokumentation_offen', 'abgeschlossen'].includes(status) ||
+      detail.documentationStatus === 'draft')
   ) {
     actions.push('save_documentation');
   }
 
   if (
     detail.requiresSignature &&
-    docSubmitted &&
+    (docSubmitted || !detail.requiresDocumentation) &&
     !signatureCaptured &&
     !signatureDeferred
   ) {
@@ -125,8 +134,9 @@ export function resolveAllowedActions(input: {
 
   const readyToFinalize =
     docSubmitted &&
-    (status === 'unterschrift_offen' || status === 'dokumentation_offen') &&
-    (!detail.requiresSignature || signatureCaptured);
+    (status === 'unterschrift_offen' ||
+      status === 'dokumentation_offen' ||
+      (status === 'abgeschlossen' && (!detail.requiresSignature || signatureCaptured)));
 
   if (readyToFinalize) {
     actions.push('finalize_visit');

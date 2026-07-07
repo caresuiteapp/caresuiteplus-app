@@ -7,6 +7,8 @@ import { useConnectivity } from '@/hooks/useConnectivity';
 import { usePortalActor } from '@/hooks/usePortalActor';
 import { subscribeToEmployeePortalChanges, subscribeToPortalAssistChanges } from '@/lib/realtime';
 import { useAsyncQuery } from './core';
+import { resolvePortalScope } from '@/lib/portal/portalVisibility';
+import { filterEmployeePortalAppointments } from '@/lib/portal/employeePortalLiveOverviewService';
 
 export function usePortalAppointments() {
   const { authReady, user } = useAuth();
@@ -51,6 +53,9 @@ export function usePortalAppointments() {
     return undefined;
   }, [tenantId, employeeId, clientId]);
 
+  const scope = resolvePortalScope(roleKey ?? null);
+  const isEmployeePortal = scope === 'portal_employee';
+
   const query = useAsyncQuery(
     async () => {
       const result = await loadPortalAppointmentsWithCache(
@@ -68,7 +73,10 @@ export function usePortalAppointments() {
     { enabled: queryEnabled, live: liveConfig },
   );
 
-  const items = query.data ?? [];
+  const items = useMemo(() => {
+    const raw = query.data ?? [];
+    return isEmployeePortal ? filterEmployeePortalAppointments(raw) : raw;
+  }, [query.data, isEmployeePortal]);
 
   const refresh = useCallback(async () => {
     await query.refresh();

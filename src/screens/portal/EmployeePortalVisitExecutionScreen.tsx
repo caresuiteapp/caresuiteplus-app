@@ -217,10 +217,9 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const isLocked = useMemo(
     () =>
-      visit?.status === 'abgeschlossen' ||
       visit?.status === 'storniert' ||
       visit?.status === 'nicht_erschienen' ||
-      visit?.isLocked,
+      Boolean(visit?.isLocked),
     [visit],
   );
 

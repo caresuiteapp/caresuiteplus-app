@@ -9,6 +9,11 @@ import type { WorkflowStatus } from '@/types/workflow/status';
 import { remoteStatusToAssignment, assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import { fetchLivePortalAppointmentsForEmployee } from './portalAppointmentsLiveService';
 import type { PortalAppointmentItem } from './appointmentService';
+import {
+  isEmployeePortalAssignmentLocked,
+  resolveEmployeePortalAssignmentPendingFlags,
+  shouldShowAssignmentInEmployeePortalList,
+} from './employeePortalAssignmentCompletion';
 
 const ACTIVE_ASSIGNMENT_STATUSES = new Set<AssignmentStatus>([
   'bestaetigt',
@@ -62,6 +67,10 @@ export function mapPortalAppointmentToListItem(
   item: PortalAppointmentItem,
 ): EmployeePortalAssignmentListItem {
   const status = item.assignmentStatus ?? workflowStatusToAssignment(item.status);
+  const pending = resolveEmployeePortalAssignmentPendingFlags({
+    status,
+    assignmentIncomplete: item.assignmentIncomplete,
+  });
   return {
     assignmentId: item.id,
     title: item.title,
@@ -72,16 +81,32 @@ export function mapPortalAppointmentToListItem(
     locationAddress: item.location ?? '',
     status,
     canonicalStatus: assignmentStatusToRemote(status),
-    documentationPending: status === 'dokumentation_offen' || status === 'beendet',
-    signaturePending: status === 'unterschrift_offen',
-    isLocked: status === 'abgeschlossen' || status === 'storniert',
+    documentationPending: pending.documentationPending,
+    signaturePending: pending.signaturePending,
+    isLocked: isEmployeePortalAssignmentLocked({
+      status,
+      assignmentIncomplete: item.assignmentIncomplete,
+    }),
   };
+}
+
+export function filterEmployeePortalAppointments(
+  items: PortalAppointmentItem[],
+): PortalAppointmentItem[] {
+  return items.filter((item) => {
+    const status = item.assignmentStatus ?? workflowStatusToAssignment(item.status);
+    return shouldShowAssignmentInEmployeePortalList({
+      status,
+      plannedStartAt: item.startsAt,
+      assignmentIncomplete: item.assignmentIncomplete,
+    });
+  });
 }
 
 export function buildEmployeePortalOverviewFromAppointments(
   items: PortalAppointmentItem[],
 ): EmployeePortalOverview {
-  const assignments = items
+  const assignments = filterEmployeePortalAppointments(items)
     .map(mapPortalAppointmentToListItem)
     .sort((a, b) => a.plannedStartAt.localeCompare(b.plannedStartAt));
   const now = new Date();

@@ -54,6 +54,7 @@ import {
   resolveEmployeePortalDocumentationFlags,
 } from './resolveEmployeePortalSignatureRequirement';
 import { enrichPortalTaskCategory } from './enrichPortalTaskCategory';
+import { isEmployeePortalAssignmentLocked } from './employeePortalAssignmentCompletion';
 
 function mapTask(task: AssignmentTaskItem): EmployeePortalTaskItem {
   return enrichPortalTaskCategory({
@@ -140,7 +141,13 @@ function mapDetailToPortal(
     canOpenRoute: Boolean(detail.location?.trim()),
     canCaptureGps: canCaptureGps(roleKey),
     allowedTransitions: getAllowedAssignmentTransitions(status),
-    isLocked: isAssignmentLocked(status),
+    isLocked: isEmployeePortalAssignmentLocked({
+      status,
+      requiresDocumentation,
+      requiresSignature,
+      documentationStatus,
+      signatureStatus,
+    }),
     enabledModules: resolveEnabledExecutionModules(roleKey, tenantModules),
   };
 }

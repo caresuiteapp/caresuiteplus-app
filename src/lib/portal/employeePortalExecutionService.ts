@@ -158,6 +158,27 @@ function pushStatusHistory(
 
 function toListItem(record: NonNullable<ReturnType<typeof getAssignmentWorkflow>>): EmployeePortalAssignmentListItem {
   const doc = STORE.documentations.get(storeKey(record.tenantId, record.id));
+  const hasDoc = Boolean(doc?.shortDescription?.trim());
+  const hasSig =
+    hasRequiredSignature(record.tenantId, record.id) ||
+    Boolean(STORE.signatureImpossible.get(storeKey(record.tenantId, record.id)));
+  const pending = resolveEmployeePortalAssignmentPendingFlags({
+    status: record.status,
+    requiresDocumentation: record.requiresDocumentation,
+    requiresSignature: record.requiresSignature,
+    documentationStatus: hasDoc ? 'submitted' : record.status === 'beendet' || record.status === 'dokumentation_offen' ? 'draft' : 'none',
+    signatureStatus: record.requiresSignature
+      ? hasSig
+        ? 'captured'
+        : record.status === 'unterschrift_offen' || record.status === 'dokumentation_offen'
+          ? 'pending'
+          : 'none'
+      : 'none',
+    assignmentIncomplete:
+      record.status === 'abgeschlossen' &&
+      ((record.requiresDocumentation && !hasDoc) ||
+        (record.requiresSignature && !hasSig)),
+  });
   return {
     assignmentId: record.id,
     title: record.title,
@@ -168,16 +189,21 @@ function toListItem(record: NonNullable<ReturnType<typeof getAssignmentWorkflow>
     locationAddress: record.locationAddress,
     status: record.status,
     canonicalStatus: record.canonicalStatus,
-    documentationPending:
-      record.requiresDocumentation &&
-      (record.status === 'beendet' || record.status === 'dokumentation_offen') &&
-      !doc,
-    signaturePending:
-      record.requiresSignature &&
-      (record.status === 'dokumentation_offen' || record.status === 'unterschrift_offen') &&
-      !hasRequiredSignature(record.tenantId, record.id) &&
-      !STORE.signatureImpossible.has(storeKey(record.tenantId, record.id)),
-    isLocked: Boolean(record.lockedAt) || STORE.lockedAssignments.has(storeKey(record.tenantId, record.id)),
+    documentationPending: pending.documentationPending,
+    signaturePending: pending.signaturePending,
+    isLocked:
+      isEmployeePortalAssignmentLocked({
+        status: record.status,
+        requiresDocumentation: record.requiresDocumentation,
+        requiresSignature: record.requiresSignature,
+        documentationStatus: hasDoc ? 'submitted' : 'none',
+        signatureStatus: record.requiresSignature
+          ? hasSig
+            ? 'captured'
+            : 'pending'
+          : 'none',
+        assignmentIncomplete: pending.documentationPending || pending.signaturePending,
+      }) || STORE.lockedAssignments.has(storeKey(record.tenantId, record.id)),
   };
 }
 
@@ -270,6 +296,10 @@ function updateWorkflowStatus(
 }
 
 import { enrichPortalTaskCategory } from './enrichPortalTaskCategory';
+import {
+  isEmployeePortalAssignmentLocked,
+  resolveEmployeePortalAssignmentPendingFlags,
+} from './employeePortalAssignmentCompletion';
 
 function mapTasks(record: NonNullable<ReturnType<typeof getAssignmentWorkflow>>): EmployeePortalTaskItem[] {
   return record.tasks.map((task) =>
@@ -439,7 +469,18 @@ export async function fetchEmployeePortalAssignmentDetail(
       canOpenRoute: record.requiresRoute || Boolean(record.locationAddress),
       canCaptureGps: canCaptureGps(roleKey),
       allowedTransitions: getAllowedAssignmentTransitions(record.status),
-      isLocked: Boolean(record.lockedAt) || STORE.lockedAssignments.has(key),
+      isLocked:
+        isEmployeePortalAssignmentLocked({
+          status: record.status,
+          requiresDocumentation: record.requiresDocumentation,
+          requiresSignature: record.requiresSignature,
+          documentationStatus: documentationStatus(record),
+          signatureStatus: signatureStatus(record),
+          assignmentIncomplete:
+            record.status === 'abgeschlossen' &&
+            ((record.requiresDocumentation && documentationStatus(record) !== 'submitted') ||
+              (record.requiresSignature && signatureStatus(record) === 'pending')),
+        }) || STORE.lockedAssignments.has(key),
       enabledModules,
     },
   };

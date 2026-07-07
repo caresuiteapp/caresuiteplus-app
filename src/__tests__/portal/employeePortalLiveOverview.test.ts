@@ -57,6 +57,18 @@ describe('employeePortalLiveOverviewService', () => {
     expect(item.isLocked).toBe(true);
   });
 
+  it('keeps abgeschlossen editable in portal when visit overlay marks incomplete', () => {
+    const item = mapPortalAppointmentToListItem({
+      ...BASE,
+      status: 'in_bearbeitung',
+      assignmentStatus: 'abgeschlossen',
+      assignmentIncomplete: true,
+    });
+    expect(item.status).toBe('abgeschlossen');
+    expect(item.isLocked).toBe(false);
+    expect(item.documentationPending || item.signaturePending).toBe(true);
+  });
+
   it('maps finished/beendet workflow slice back to gestartet without assignmentStatus (legacy)', () => {
     const item = mapPortalAppointmentToListItem({
       ...BASE,

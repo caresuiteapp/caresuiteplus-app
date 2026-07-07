@@ -21,9 +21,11 @@ export function resolveVisitExecutionPhase(input: VisitExecutionPhaseInput): Vis
   const { effectiveStatus, uiState, isLocked } = input;
 
   if (effectiveStatus === 'nicht_erschienen') return 'no_show';
-  if (isLocked || effectiveStatus === 'storniert' || effectiveStatus === 'abgeschlossen') {
-    return effectiveStatus === 'abgeschlossen' ? 'completed' : 'locked';
+  if (effectiveStatus === 'storniert') return 'locked';
+  if (effectiveStatus === 'abgeschlossen') {
+    return isLocked ? 'completed' : 'post_service';
   }
+  if (isLocked) return 'locked';
 
   if (effectiveStatus === 'unterwegs') return 'en_route';
   if (effectiveStatus === 'angekommen') return 'arrived';

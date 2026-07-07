@@ -45,6 +45,8 @@ export type PortalAppointmentItem = Pick<
   employeeName?: string;
   /** When set (live assist_visits), preferred over workflow status mapping. */
   assignmentStatus?: AssignmentStatus;
+  /** Visit overlay: open documentation/signature/tasks despite terminal-looking status. */
+  assignmentIncomplete?: boolean;
 };
 
 const SIMULATED_DELAY_MS = 350;
@@ -167,11 +169,15 @@ export async function fetchPortalAppointments(
       };
     }
     if (scope === 'portal_employee' && tenantId?.trim() && employeeId?.trim()) {
+      const live = await fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
+      if (live.ok && live.data.length > 0) {
+        return live;
+      }
       const calendar = await getEmployeeCalendarEvents(tenantId, employeeId);
       if (calendar.ok && calendar.data.length > 0) {
         return { ok: true, data: mapCalendarToPortalItems(calendar.data) };
       }
-      return fetchLivePortalAppointmentsForEmployee(tenantId, employeeId);
+      return live;
     }
     return { ok: true, data: [] };
   }
