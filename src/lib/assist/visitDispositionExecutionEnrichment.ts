@@ -27,6 +27,7 @@ import type { VisitDispositionDetail, VisitTaskItem, VisitTaskStatus } from '@/l
 import type { VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
 import type { WorkflowStatus } from '@/types/core/base';
 import { resolveVisitAndAssignmentIds } from '@/lib/assist/assistExecutionVisitResolver';
+import { resolveServiceEndedAt } from '@/lib/assist/assignmentLifecycleTimestamps';
 import { shouldIsolateOccurrenceExecution } from '@/lib/assist/visitRecurrenceExecution';
 
 function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
@@ -181,6 +182,7 @@ export function mergeVisitDispositionWithExecution(input: {
   assignmentActualStartAt: string | null;
   assignmentActualEndAt: string | null;
   assignmentFinishedAt: string | null;
+  executionStateServiceEndedAt?: string | null;
   photoReferences?: string[];
 }): VisitDispositionDetail {
   const {
@@ -195,6 +197,12 @@ export function mergeVisitDispositionWithExecution(input: {
 
   const hasDocumentation = Boolean(documentationText?.trim());
 
+  const actualEndAt = resolveServiceEndedAt({
+    fromEvents: visitTimes?.serviceEndedAt,
+    fromExecutionState: input.executionStateServiceEndedAt,
+    fromAssignment: input.assignmentActualEndAt ?? detail.actualEndAt,
+  });
+
   const assignmentStatus = resolveAssignmentStatusFromExecutionContext({
     assignmentStatus: detail.assignmentStatus,
     executionStateStatus: input.executionStateStatus ?? input.assignmentStatus,
@@ -203,14 +211,14 @@ export function mergeVisitDispositionWithExecution(input: {
     proofStatus: detail.proofStatus,
     hasDocumentation,
     hasSignature,
-    serviceEnded: Boolean(visitTimes?.serviceEndedAt),
+    serviceEnded: Boolean(actualEndAt),
   });
 
   const workflowCtx: WorkflowTaskContext = {
     hasDriveStart: Boolean(visitTimes?.driveStartedAt),
     hasArrived: Boolean(visitTimes?.arrivedAt),
     hasServiceStart: Boolean(visitTimes?.serviceStartedAt),
-    hasServiceEnd: Boolean(visitTimes?.serviceEndedAt),
+    hasServiceEnd: Boolean(actualEndAt),
     hasDocumentation,
     hasSignature,
     hasProof,
@@ -244,10 +252,6 @@ export function mergeVisitDispositionWithExecution(input: {
     visitTimes?.serviceStartedAt ??
     input.assignmentActualStartAt ??
     detail.actualStartAt;
-  const actualEndAt =
-    visitTimes?.serviceEndedAt ??
-    input.assignmentActualEndAt ??
-    detail.actualEndAt;
   const finishedAt = input.assignmentFinishedAt ?? actualEndAt ?? detail.finishedAt;
 
   const incomplete = isVisitIncomplete({
@@ -426,11 +430,11 @@ export async function enrichVisitDispositionDetail(
         assignmentRow.actual_start_at ?? executionState?.service_started_at ?? null;
     }
     if (!visitTimes.serviceEndedAt) {
-      visitTimes.serviceEndedAt =
-        assignmentRow.actual_end_at ??
-        assignmentRow.finished_at ??
-        executionState?.service_ended_at ??
-        null;
+      visitTimes.serviceEndedAt = resolveServiceEndedAt({
+        fromEvents: null,
+        fromExecutionState: executionState?.service_ended_at ?? null,
+        fromAssignment: assignmentRow.actual_end_at ?? assignmentRow.finished_at ?? null,
+      });
     }
   }
 
@@ -462,6 +466,7 @@ export async function enrichVisitDispositionDetail(
     assignmentActualStartAt: assignmentRow.actual_start_at ?? null,
     assignmentActualEndAt: assignmentRow.actual_end_at ?? null,
     assignmentFinishedAt: assignmentRow.finished_at ?? null,
+    executionStateServiceEndedAt: executionState?.service_ended_at ?? null,
     photoReferences,
   });
 }

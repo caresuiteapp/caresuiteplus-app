@@ -25,6 +25,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
+import { resolveServiceEndedAt } from '@/lib/assist/assignmentLifecycleTimestamps';
 import { normalizePhotoReferenceList } from '@/lib/assist/visitInternalAttachmentService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 
@@ -154,11 +155,12 @@ function mergeExecutionTimestampFallbacks(
       executionState?.service_started_at ?? assignmentRow?.actual_start_at ?? null;
   }
   if (!base.serviceEndedAt) {
-    base.serviceEndedAt =
-      executionState?.service_ended_at ??
-      assignmentRow?.actual_end_at ??
-      assignmentRow?.finished_at ??
-      null;
+    base.serviceEndedAt = resolveServiceEndedAt({
+      fromEvents: null,
+      fromExecutionState: executionState?.service_ended_at ?? null,
+      fromAssignment:
+        assignmentRow?.actual_end_at ?? assignmentRow?.finished_at ?? null,
+    });
   }
 
   return base;

@@ -146,6 +146,28 @@ describe('visitDispositionExecutionEnrichment', () => {
     expect(preview.readyForExport).toBe(true);
   });
 
+  it('uses execution_state service end when assignment actual_end_at was overwritten by finalize', () => {
+    const merged = mergeVisitDispositionWithExecution({
+      detail: baseDetail(),
+      assignmentStatus: 'completed',
+      assignmentTasks: [],
+      documentationText: 'submitted',
+      visitTimes: null,
+      executionStateStatus: 'abgeschlossen',
+      hasSignature: false,
+      hasProof: true,
+      persistedSignature: null,
+      assignmentOnTheWayAt: '2026-07-07T07:39:28.254Z',
+      assignmentArrivedAt: null,
+      assignmentActualStartAt: '2026-07-07T07:53:48.536Z',
+      assignmentActualEndAt: '2026-07-07T16:40:51.851Z',
+      assignmentFinishedAt: '2026-07-07T16:40:51.851Z',
+      executionStateServiceEndedAt: '2026-07-07T09:50:39.114Z',
+    });
+
+    expect(merged.actualEndAt).toBe('2026-07-07T09:50:39.114Z');
+  });
+
   it('shows drawn signature in preview when persistedSignature includes image URL', () => {
     const merged = mergeVisitDispositionWithExecution({
       detail: baseDetail(),

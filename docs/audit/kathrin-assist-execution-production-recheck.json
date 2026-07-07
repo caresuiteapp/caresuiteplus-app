@@ -51,7 +51,7 @@
     "unterwegsAb": "07.07.2026 ca. 09:39 MESZ",
     "angekommen": "— (arrived_at null; Ankunft nicht separat markiert)",
     "gestartet": "07.07.2026 ca. 09:53 MESZ",
-    "beendet": "07.07.2026 ca. 18:40 MESZ"
+    "beendet": "07.07.2026 ca. 11:50 MESZ (service_ended_at — nicht Dokumentations-/Portal-Zeitpunkt 18:40)"
   },
   "notes": [
     "Production DB contains full execution data after deferred finalize (16:40 UTC).",

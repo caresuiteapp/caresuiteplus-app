@@ -15,6 +15,7 @@ import type {
   VisitTaskItem,
 } from '@/lib/assist/visitTypes';
 import { resolveVisitAndAssignmentIds } from '@/lib/assist/assistExecutionVisitResolver';
+import { resolveServiceEndedAt } from '@/lib/assist/assignmentLifecycleTimestamps';
 import {
   neutralizeFutureOccurrenceListItem,
   resetVirtualOccurrenceExecutionState,
@@ -132,7 +133,12 @@ export function applySnapshotToDetail(
   const onTheWayAt = snapshot.visitTimes?.driveStartedAt ?? detail.onTheWayAt;
   const arrivedAt = snapshot.visitTimes?.arrivedAt ?? detail.arrivedAt;
   const actualStartAt = snapshot.visitTimes?.serviceStartedAt ?? detail.actualStartAt;
-  const actualEndAt = snapshot.visitTimes?.serviceEndedAt ?? detail.actualEndAt;
+  const actualEndAt =
+    resolveServiceEndedAt({
+      fromEvents: snapshot.visitTimes?.serviceEndedAt,
+      fromExecutionState: snapshot.visitTimes?.serviceEndedAt,
+      fromAssignment: detail.actualEndAt,
+    }) ?? snapshot.visitTimes?.serviceEndedAt ?? detail.actualEndAt;
   const finishedAt = detail.finishedAt ?? actualEndAt;
 
   return {
