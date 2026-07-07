@@ -10,6 +10,7 @@ import {
 } from '@/types/tenant/tenantCenter';
 import {
   getTenantModuleSettingsCache,
+  hasTenantModuleSettingsCache,
   setTenantModuleSettingsCache,
 } from '@/lib/tenant/tenantModuleSettingsCache';
 import { syncModuleAccessFromTenantSettings } from '@/lib/tenant/syncTenantModuleAccess';
@@ -63,6 +64,10 @@ export async function hydrateTenantModuleSettings(
 }
 
 export async function ensureTenantModuleSettingsLoaded(tenantId: string): Promise<TenantModuleSettings> {
+  if (hasTenantModuleSettingsCache(tenantId)) {
+    return getTenantModuleSettingsCache(tenantId);
+  }
+
   await Promise.all([
     hydrateTenantModuleSettings(tenantId),
     hydrateTenantEnvironmentSettings(tenantId),

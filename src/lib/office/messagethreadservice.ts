@@ -107,6 +107,31 @@ function mapThreadRow(row: Record<string, unknown>): OfficeMessageThread | null 
   };
 }
 
+async function fetchNavBadgeThreadsLive(
+  tenantId: string,
+): Promise<ServiceResult<OfficeMessageThread[]>> {
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
+
+  const { data, error } = await supabase
+    .from('message_threads')
+    .select(
+      'id, tenant_id, thread_type, status, office_unread_count, last_message_at, created_at, updated_at',
+    )
+    .eq('tenant_id', tenantId)
+    .in('thread_type', ['client', 'employee', 'employee_group', 'internal'])
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .limit(120);
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+  const threads = (data ?? [])
+    .map((row) => mapThreadRow(row as Record<string, unknown>))
+    .filter((thread): thread is OfficeMessageThread => thread !== null);
+
+  return { ok: true, data: threads };
+}
+
 async function fetchThreadsLive(tenantId: string): Promise<ServiceResult<OfficeMessageThread[]>> {
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase nicht verfügbar.' };
@@ -116,7 +141,8 @@ async function fetchThreadsLive(tenantId: string): Promise<ServiceResult<OfficeM
     .select('*')
     .eq('tenant_id', tenantId)
     .in('thread_type', ['client', 'employee', 'employee_group', 'internal'])
-    .order('last_message_at', { ascending: false, nullsFirst: false });
+    .order('last_message_at', { ascending: false, nullsFirst: false })
+    .limit(200);
 
   if (error) return { ok: false, error: toGermanSupabaseError(error) };
 
@@ -181,7 +207,7 @@ export async function fetchOfficeMessageNavBadgeData(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  const result = await fetchThreadsLive(tenantId);
+  const result = await fetchNavBadgeThreadsLive(tenantId);
   if (!result.ok && isMissingTableServiceError(result.error)) {
     return { ok: false, error: OFFICE_MESSAGING_SCHEMA_ERROR };
   }

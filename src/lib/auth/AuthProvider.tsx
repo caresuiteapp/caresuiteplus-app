@@ -202,6 +202,7 @@ export function AuthProvider({ children }: AuthProviderProps) {
 
         const handle = onAuthStateChange((event: AuthChangeEvent, supabaseSession) => {
           if (cancelled) return;
+          if (event === 'TOKEN_REFRESHED') return;
 
           void (async () => {
             if (supabaseSession) {

@@ -5,7 +5,8 @@ import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
 
-export function useStationaerDashboard() {
+export function useStationaerDashboard(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled !== false;
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [showSuccess, setShowSuccess] = useState(false);
@@ -16,7 +17,7 @@ export function useStationaerDashboard() {
       return fetchStationaerDashboardStats(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+  { enabled: enabled && !!tenantId },
   );
 
   const activeQuery = useAsyncQuery(
@@ -25,7 +26,7 @@ export function useStationaerDashboard() {
       return fetchActiveResidents(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+  { enabled: enabled && !!tenantId },
   );
 
   const refresh = useCallback(async () => {

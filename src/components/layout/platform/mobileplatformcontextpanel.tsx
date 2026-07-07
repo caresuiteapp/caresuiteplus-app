@@ -70,11 +70,11 @@ export function MobilePlatformContextPanel({
   const { isLight } = useLegacyTheme();
   const { width } = useDeviceClass();
   const type = resolveGalaxyTypography(width);
-  const { data: officeData } = useOfficeDashboard();
-  const { stats: stationaerStats } = useStationaerDashboard();
-  const { stats: beratungStats } = useBeratungDashboard();
-  const { stats: akademieStats } = useAkademieDashboard();
-  const { stats: assistStats } = useAssistDashboard();
+  const { data: officeData } = useOfficeDashboard({ enabled: mainModule === 'office' });
+  const { stats: stationaerStats } = useStationaerDashboard({ enabled: mainModule === 'stationaer' });
+  const { stats: beratungStats } = useBeratungDashboard({ enabled: mainModule === 'beratung' });
+  const { stats: akademieStats } = useAkademieDashboard({ enabled: mainModule === 'akademie' });
+  const { stats: assistStats } = useAssistDashboard({ enabled: mainModule === 'assist' });
   const { counters: assistLiveCounters } = useAssistLiveMonitoring({
     enabled: mainModule === 'assist',
   });

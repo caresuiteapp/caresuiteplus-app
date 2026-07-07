@@ -81,11 +81,11 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
   const text = useAuroraAdaptiveText();
   const tenantGlass = useShellGlassSurfaceStyle('card', { intensity: 'strong' });
   const accent = accentColor ?? colors.violet;
-  const { data: officeData } = useOfficeDashboard();
-  const { stats: stationaerStats } = useStationaerDashboard();
-  const { stats: beratungStats } = useBeratungDashboard();
-  const { stats: akademieStats } = useAkademieDashboard();
-  const { stats: assistStats } = useAssistDashboard();
+  const { data: officeData } = useOfficeDashboard({ enabled: mainModule === 'office' });
+  const { stats: stationaerStats } = useStationaerDashboard({ enabled: mainModule === 'stationaer' });
+  const { stats: beratungStats } = useBeratungDashboard({ enabled: mainModule === 'beratung' });
+  const { stats: akademieStats } = useAkademieDashboard({ enabled: mainModule === 'akademie' });
+  const { stats: assistStats } = useAssistDashboard({ enabled: mainModule === 'assist' });
   const { counters: assistLiveCounters } = useAssistLiveMonitoring({
     enabled: mainModule === 'assist',
   });

@@ -47,7 +47,6 @@ import { getClientAssistBillingProfile } from '@/lib/assist/clientAssistBillingP
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { enrichVisitDispositionDetail } from '@/lib/assist/visitDispositionExecutionEnrichment';
 import { overlayVisitDispositionDetailFromAssignment } from '@/lib/assist/overlayVisitDispositionFromAssignment';
 import {
   applyOccurrenceDateToVisitDetail,
@@ -292,8 +291,7 @@ export async function fetchVisitDispositionDetail(
         baseDetail = resetVirtualOccurrenceExecutionState(baseDetail);
       }
 
-      const enriched = await enrichVisitDispositionDetail(tenantId, baseDetail);
-      const overlaid = await overlayVisitDispositionDetailFromAssignment(tenantId, enriched);
+      const overlaid = await overlayVisitDispositionDetailFromAssignment(tenantId, baseDetail);
       const detail =
         occurrenceDate != null && isVirtualRecurringOccurrenceId(visitId)
           ? applyOccurrenceDateToVisitDetail(overlaid, occurrenceDate, visitId)

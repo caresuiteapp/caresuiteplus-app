@@ -5,7 +5,8 @@ import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAsyncQuery } from './core';
 
-export function useAkademieDashboard() {
+export function useAkademieDashboard(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled !== false;
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [showSuccess, setShowSuccess] = useState(false);
@@ -16,7 +17,7 @@ export function useAkademieDashboard() {
       return fetchAkademieDashboardStats(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+  { enabled: enabled && !!tenantId },
   );
 
   const upcomingQuery = useAsyncQuery(
@@ -25,7 +26,7 @@ export function useAkademieDashboard() {
       return fetchUpcomingCourses(tenantId, profile?.roleKey);
     },
     [tenantId, profile?.roleKey],
-  { enabled: !!tenantId },
+  { enabled: enabled && !!tenantId },
   );
 
   const refresh = useCallback(async () => {

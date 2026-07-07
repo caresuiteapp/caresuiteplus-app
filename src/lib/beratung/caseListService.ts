@@ -18,6 +18,7 @@ import {
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
+import { demoOnlyDelay } from '@/lib/services/demoDelay';
 import { beratungSupabaseRepository } from '@/lib/services/repositories/beratungRepository.supabase';
 import { emptyBeratungDashboardStats } from '@/types/modules/beratung';
 
@@ -147,7 +148,7 @@ export async function fetchCounselingCaseList(
     return { ok: true, data: result.data.map(mapLiveCaseRow) };
   }
 
-  await new Promise((r) => setTimeout(r, 260));
+  await demoOnlyDelay(260);
   return { ok: true, data: getDemoCounselingCaseListItems() };
 }
 
@@ -161,7 +162,7 @@ export async function fetchBeratungDashboardStats(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  await new Promise((r) => setTimeout(r, 220));
+  await demoOnlyDelay(220);
   const listResult = await fetchCounselingCaseList(tenantId, actorRoleKey);
   if (!listResult.ok) return listResult;
 
@@ -215,7 +216,7 @@ export async function createCounselingCase(
     return { ok: false, error: 'Live-Anlage: Repository erweitern.' };
   }
 
-  await new Promise((r) => setTimeout(r, 300));
+  await demoOnlyDelay(300);
   const created = createDemoCounselingCase({
     subject: input.subject.trim(),
     category: input.category,

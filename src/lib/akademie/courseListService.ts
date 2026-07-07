@@ -13,6 +13,7 @@ import { getDemoExams, getDemoMediaItems } from '@/data/demo/akademieLessons';
 import { isCourseUpcoming } from './courseUtils';
 import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
+import { demoOnlyDelay } from '@/lib/services/demoDelay';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { akademieSupabaseRepository } from '@/lib/services/repositories/akademieRepository.supabase';
 import { isMissingTableServiceError } from '@/lib/supabase/errors';
@@ -116,7 +117,7 @@ async function loadCourseList(
     return { ok: true, data: result.data, usedDemoFallback: false };
   }
 
-  await new Promise((r) => setTimeout(r, 260));
+  await demoOnlyDelay(260);
   return { ok: true, data: getDemoCourseListItems(), usedDemoFallback: true };
 }
 
@@ -145,7 +146,7 @@ export async function fetchAkademieDashboardStats(
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  await new Promise((r) => setTimeout(r, 220));
+  await demoOnlyDelay(220);
   const listResult = await loadCourseList(tenantId, actorRoleKey);
   if (!listResult.ok) return listResult;
 

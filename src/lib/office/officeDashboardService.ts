@@ -6,16 +6,13 @@ import { mergeDashboardActivities } from '@/lib/office/officeDashboardMetrics';
 import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
-import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
+import { officeAuditLogSupabaseRepository, DASHBOARD_AUDIT_LIMIT } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
 import { officeDashboardSupabaseRepository } from '@/lib/services/repositories/officeDashboardRepository.supabase';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 import { ensureTenantModuleSettingsLoaded } from '@/lib/tenant/tenantModuleSettingsHydration';
+import { demoOnlyDelay } from '@/lib/services/demoDelay';
 
 const LOAD_DELAY_MS = 280;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function resolveTenantDisplayName(tenantId: string): Promise<string> {
   return fetchTenantDisplayName(tenantId);
@@ -33,7 +30,7 @@ export async function fetchOfficeDashboard(
     const tenantBlock = guardServiceTenant(tenantId);
     if (tenantBlock) return tenantBlock;
 
-    await delay(LOAD_DELAY_MS);
+    await demoOnlyDelay(LOAD_DELAY_MS);
 
     if (!actorRoleKey) {
       return {
@@ -47,8 +44,8 @@ export async function fetchOfficeDashboard(
       await ensureTenantModuleSettingsLoaded(tenantId);
       const [metricsResult, auditResult, timelineResult] = await Promise.all([
         officeDashboardSupabaseRepository.fetchMetrics(tenantId),
-        officeAuditLogSupabaseRepository.list(tenantId),
-        officeDashboardSupabaseRepository.fetchRecentTimelineEvents(tenantId),
+        officeAuditLogSupabaseRepository.list(tenantId, DASHBOARD_AUDIT_LIMIT),
+        officeDashboardSupabaseRepository.fetchRecentTimelineEvents(tenantId, 12),
       ]);
 
       const metrics = metricsResult.ok ? metricsResult.data : undefined;

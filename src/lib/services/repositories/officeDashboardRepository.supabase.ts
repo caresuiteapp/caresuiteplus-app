@@ -10,12 +10,12 @@ import {
   getLocalDayBounds,
   getLocalWeekBounds,
   getThirtyDaysAgoIso,
-  isOpenInvoiceStatus,
 } from '@/lib/office/officeDashboardMetrics';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '../errors';
+import { resolveExecutionBlockersCount } from '@/lib/office/executionBlockersCountCache';
 
 function unavailable<T>(): ServiceResult<T> {
   return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
@@ -73,6 +73,9 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
     openServiceRecords,
     appointmentsThisWeek,
     appointmentsToday,
+    openInvoices,
+    draftInvoices,
+    unreadMessages,
   ] = await Promise.all([
     countByFilter('clients', tenantId),
     countByFilter('clients', tenantId, (query) => query.eq('status', 'active')),
@@ -105,6 +108,11 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
     countByFilter('appointments', tenantId, (query) =>
       query.gte('starts_at', dayBounds.start).lt('starts_at', dayBounds.end),
     ),
+    countByFilter('invoices', tenantId, (query) =>
+      query.not('status', 'in', '(paid,cancelled,written_off)'),
+    ),
+    countByFilter('invoices', tenantId, (query) => query.eq('status', 'draft')),
+    countByFilter('message_threads', tenantId, (query) => query.gt('office_unread_count', 0)),
   ]);
 
   metrics.tableAvailability.clients = totalClients.available;
@@ -189,51 +197,35 @@ async function fetchZentraleMetrics(tenantId: string): Promise<BusinessDashboard
     metrics.appointmentsToday = appointmentsToday.count;
   }
 
-  const invoiceResult = await supabase.from('invoices').select('status').eq('tenant_id', tenantId);
-  if (!invoiceResult.error) {
+  if (openInvoices.available) {
     metrics.tableAvailability.invoices = true;
-    const rows = (invoiceResult.data ?? []) as { status: string }[];
-    metrics.openInvoices = rows.filter((row) => isOpenInvoiceStatus(row.status)).length;
-    metrics.draftInvoices = rows.filter((row) => row.status === 'draft').length;
+    metrics.openInvoices = openInvoices.count;
   }
 
-  const { data: messageThreads, error: messageError } = await fromUnknownTable(supabase, 'message_threads')
-    .select('office_unread_count')
-    .eq('tenant_id', tenantId);
+  if (draftInvoices.available) {
+    metrics.tableAvailability.invoices = true;
+    metrics.draftInvoices = draftInvoices.count;
+  }
 
-  if (!messageError) {
+  if (unreadMessages.available) {
     metrics.tableAvailability.messages = true;
-    metrics.unreadMessages = ((messageThreads ?? []) as { office_unread_count: number | null }[]).reduce(
-      (sum, row) => sum + Number(row.office_unread_count ?? 0),
-      0,
-    );
+    const { data: unreadRows, error: unreadError } = await fromUnknownTable(supabase, 'message_threads')
+      .select('office_unread_count')
+      .eq('tenant_id', tenantId)
+      .gt('office_unread_count', 0)
+      .limit(300);
+
+    if (!unreadError) {
+      metrics.unreadMessages = ((unreadRows ?? []) as { office_unread_count: number | null }[]).reduce(
+        (sum, row) => sum + Number(row.office_unread_count ?? 0),
+        0,
+      );
+    } else {
+      metrics.unreadMessages = unreadMessages.count;
+    }
   }
 
-  const { data: budgets, error: budgetError } = await fromUnknownTable(supabase, 'client_budgets')
-    .select('yearly_amount, monthly_amount, used_amount')
-    .eq('tenant_id', tenantId);
-
-  if (!budgetError) {
-    metrics.tableAvailability.budgets = true;
-    metrics.budgetWarnings = ((budgets ?? []) as {
-      yearly_amount: number | null;
-      monthly_amount: number | null;
-      used_amount: number | null;
-    }[]).filter((row) => {
-      const total = Number(row.yearly_amount ?? row.monthly_amount ?? 0);
-      const used = Number(row.used_amount ?? 0);
-      return total > 0 && used / total >= 0.8;
-    }).length;
-  }
-
-  try {
-    const { countAssistExecutionProblems } = await import(
-      '@/lib/assist/assistExecutionProblemInboxService'
-    );
-    metrics.executionBlockers = await countAssistExecutionProblems(tenantId);
-  } catch {
-    metrics.executionBlockers = 0;
-  }
+  metrics.executionBlockers = resolveExecutionBlockersCount(tenantId);
 
   return metrics;
 }

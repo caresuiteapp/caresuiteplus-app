@@ -8,12 +8,9 @@ import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { appointmentSupabaseRepository } from '@/lib/services/repositories/appointmentRepository.supabase';
 import { runService } from '@/lib/services/serviceRunner';
+import { demoOnlyDelay } from '@/lib/services/demoDelay';
 
 const SIMULATED_DELAY_MS = 350;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 function resolveClientName(clientId: string): string {
   const client = demoClients.find((c) => c.id === clientId);
@@ -38,7 +35,7 @@ export async function fetchAppointmentList(
   if (denied) return denied;
 
   return runService(async () => {
-    await delay(SIMULATED_DELAY_MS);
+    await demoOnlyDelay(SIMULATED_DELAY_MS);
 
     if (options?.simulateError) {
       return {

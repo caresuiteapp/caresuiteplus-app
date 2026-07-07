@@ -6,17 +6,14 @@ import { buildLiveDashboardSnapshot } from '@/lib/dashboard/liveDashboardSnapsho
 import { mergeDashboardActivities } from '@/lib/office/officeDashboardMetrics';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
-import { officeAuditLogSupabaseRepository } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
+import { officeAuditLogSupabaseRepository, DASHBOARD_AUDIT_LIMIT } from '@/lib/services/repositories/officeAuditLogRepository.supabase';
 import { officeDashboardSupabaseRepository } from '@/lib/services/repositories/officeDashboardRepository.supabase';
 import { fetchClientPortalLiveMetrics } from '@/lib/portal/clientPortalDashboardLive';
 import { fetchTenantDisplayName } from '@/lib/tenant/tenantDisplayName';
 import { ensureTenantModuleSettingsLoaded } from '@/lib/tenant/tenantModuleSettingsHydration';
+import { demoOnlyDelay } from '@/lib/services/demoDelay';
 
 const SIMULATED_DELAY_MS = 400;
-
-function delay(ms: number): Promise<void> {
-  return new Promise((resolve) => setTimeout(resolve, ms));
-}
 
 async function resolveTenantDisplayName(
   tenantId: string,
@@ -34,7 +31,7 @@ export async function fetchDashboardSnapshot(
   options?: { simulateError?: boolean; tenantNameHint?: string | null },
 ): Promise<ServiceResult<DashboardSnapshot>> {
   try {
-    await delay(SIMULATED_DELAY_MS);
+    await demoOnlyDelay(SIMULATED_DELAY_MS);
 
     if (options?.simulateError) {
       return {
@@ -60,8 +57,8 @@ export async function fetchDashboardSnapshot(
         await ensureTenantModuleSettingsLoaded(tenantId);
         const [metricsResult, auditResult, timelineResult] = await Promise.all([
           officeDashboardSupabaseRepository.fetchBusinessMetrics(tenantId),
-          officeAuditLogSupabaseRepository.list(tenantId),
-          officeDashboardSupabaseRepository.fetchRecentTimelineEvents(tenantId),
+          officeAuditLogSupabaseRepository.list(tenantId, DASHBOARD_AUDIT_LIMIT),
+          officeDashboardSupabaseRepository.fetchRecentTimelineEvents(tenantId, 12),
         ]);
 
         const metrics = metricsResult.ok ? metricsResult.data : undefined;

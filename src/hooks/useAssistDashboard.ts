@@ -18,11 +18,12 @@ const assistOpsLive = (tenantId: string | null | undefined) =>
       }
     : undefined;
 
-export function useAssistDashboard() {
+export function useAssistDashboard(options?: { enabled?: boolean }) {
+  const enabled = options?.enabled !== false;
   const { profile, authReady } = useAuth();
   const tenantId = useServiceTenantId();
   const [showSuccess, setShowSuccess] = useState(false);
-  const queryEnabled = authReady && !!tenantId;
+  const queryEnabled = enabled && authReady && !!tenantId;
 
   const bundleQuery = useAsyncQuery(
     () => {

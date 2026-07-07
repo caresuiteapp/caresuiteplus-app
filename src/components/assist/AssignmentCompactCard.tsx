@@ -49,8 +49,10 @@ export function AssignmentCompactCard({
   const statusBadge = resolveAssignmentCardBadge(assignment);
   const footerChips = buildAssignmentFooterChips(assignment);
   const sgbRef = resolveSgbReference(assignment);
-  const travelTime = useAssignmentTravelTime(assignment);
   const [hovered, setHovered] = useState(false);
+  const travelTime = useAssignmentTravelTime(assignment, {
+    enabled: showHoverDetails && hovered,
+  });
 
   const styles = useMemo(
     () =>

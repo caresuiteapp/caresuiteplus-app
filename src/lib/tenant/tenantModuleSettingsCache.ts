@@ -8,6 +8,10 @@ import {
 const settingsCache = new Map<string, TenantModuleSettings>();
 const listeners = new Set<() => void>();
 
+export function hasTenantModuleSettingsCache(tenantId: string): boolean {
+  return settingsCache.has(tenantId);
+}
+
 export function getTenantModuleSettingsCache(tenantId: string): TenantModuleSettings {
   return settingsCache.get(tenantId) ?? { ...DEFAULT_TENANT_MODULES };
 }

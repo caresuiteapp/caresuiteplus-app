@@ -1,7 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import type { DashboardSnapshot } from '@/types/dashboard';
 import { useAuth } from '@/lib/auth/context';
-import { fetchOfficeDashboard } from '@/lib/office/officeDashboardService';
+import {
+  fetchOfficeDashboardCached,
+  invalidateOfficeDashboardCache,
+} from '@/lib/office/officeDashboardRequestCache';
 import { subscribeToOfficeDashboardChanges } from '@/lib/realtime';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 
@@ -9,7 +12,12 @@ type RefreshOptions = {
   silent?: boolean;
 };
 
-export function useOfficeDashboard() {
+type UseOfficeDashboardOptions = {
+  enabled?: boolean;
+};
+
+export function useOfficeDashboard(options?: UseOfficeDashboardOptions) {
+  const enabled = options?.enabled !== false;
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const [data, setData] = useState<DashboardSnapshot | null>(null);
@@ -21,6 +29,7 @@ export function useOfficeDashboard() {
   dataRef.current = data;
 
   const refresh = useCallback(async (options?: RefreshOptions) => {
+    if (!enabled) return;
     const silent = options?.silent ?? false;
     const hasData = dataRef.current !== null;
 
@@ -40,7 +49,9 @@ export function useOfficeDashboard() {
       setError(null);
     }
 
-    const result = await fetchOfficeDashboard(tenantId, profile?.roleKey ?? null);
+    const result = await fetchOfficeDashboardCached(tenantId, profile?.roleKey ?? null, {
+      force: silent || hasData,
+    });
 
     if (result.ok) {
       setData(result.data);
@@ -53,25 +64,31 @@ export function useOfficeDashboard() {
     if (!silent && !hasData) {
       setLoading(false);
     }
-  }, [tenantId, profile?.roleKey]);
+  }, [tenantId, profile?.roleKey, enabled]);
 
   const silentRefresh = useCallback(async () => {
+    if (!enabled) return;
     setRefreshing(true);
     await refresh({ silent: true });
     setRefreshing(false);
   }, [refresh]);
 
   useEffect(() => {
+    if (!enabled) {
+      setLoading(false);
+      return;
+    }
     void refresh();
-  }, [refresh]);
+  }, [enabled, refresh]);
 
   useEffect(() => {
-    if (!tenantId) {
+    if (!enabled || !tenantId) {
       setIsLiveConnected(false);
       return;
     }
 
     const unsubscribe = subscribeToOfficeDashboardChanges(tenantId, () => {
+      invalidateOfficeDashboardCache(tenantId);
       void silentRefresh();
     });
     setIsLiveConnected(true);
@@ -79,7 +96,7 @@ export function useOfficeDashboard() {
       unsubscribe();
       setIsLiveConnected(false);
     };
-  }, [tenantId, silentRefresh]);
+  }, [enabled, tenantId, silentRefresh]);
 
   return {
     data,

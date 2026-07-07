@@ -247,6 +247,50 @@ async function hydrateVisitRowRelations(
   return enriched;
 }
 
+async function hydrateVisitRowRelationsBatch(
+  tenantId: string,
+  rows: VisitRow[],
+): Promise<VisitRow[]> {
+  if (rows.length === 0) return rows;
+
+  const supabase = getClient();
+  if (!supabase) return rows;
+
+  const clientIds = [...new Set(rows.map((row) => row.client_id).filter(Boolean))] as string[];
+  const employeeIds = [...new Set(rows.map((row) => row.employee_id).filter(Boolean))] as string[];
+
+  const [clientResult, employeeResult] = await Promise.all([
+    clientIds.length
+      ? fromUnknownTable(supabase, 'clients')
+          .select(`id, ${CLIENT_LOCATION_SELECT}`)
+          .eq('tenant_id', tenantId)
+          .in('id', clientIds)
+      : Promise.resolve({ data: [], error: null }),
+    employeeIds.length
+      ? fromUnknownTable(supabase, 'employees')
+          .select('id, first_name, last_name')
+          .eq('tenant_id', tenantId)
+          .in('id', employeeIds)
+      : Promise.resolve({ data: [], error: null }),
+  ]);
+
+  const clientsById = new Map<string, VisitRow['clients']>();
+  for (const row of (clientResult.data ?? []) as Array<{ id: string } & VisitRow['clients']>) {
+    clientsById.set(row.id, row);
+  }
+
+  const employeesById = new Map<string, VisitRow['employees']>();
+  for (const row of (employeeResult.data ?? []) as Array<{ id: string } & VisitRow['employees']>) {
+    employeesById.set(row.id, row);
+  }
+
+  return rows.map((row) => ({
+    ...row,
+    clients: row.client_id ? clientsById.get(row.client_id) ?? row.clients : row.clients,
+    employees: row.employee_id ? employeesById.get(row.employee_id) ?? row.employees : row.employees,
+  }));
+}
+
 function getClient() {
   return getSupabaseClient();
 }
@@ -629,9 +673,7 @@ export const visitSupabaseRepository = {
           return { ok: false, error: toGermanSupabaseError(flatResult.error) };
         }
         const flatRows = (flatResult.data ?? []) as unknown as VisitRow[];
-        rows = await Promise.all(
-          flatRows.map((row) => hydrateVisitRowRelations(tenantId, row)),
-        );
+        rows = await hydrateVisitRowRelationsBatch(tenantId, flatRows);
       } else if (error) {
         return { ok: false, error: toGermanSupabaseError(error) };
       } else {
