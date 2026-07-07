@@ -9,7 +9,11 @@ import {
   resolveSignatureImageDimensions,
   signatureProofImageStyleToCss,
 } from '@/lib/signatures/signatureOrientation';
-import { resolveVisitProofBranding, type VisitProofBrandingInput } from '@/lib/assist/visitProofBranding';
+import {
+  resolveVisitProofBranding,
+  resolveVisitProofEmployeeName,
+  type VisitProofBrandingInput,
+} from '@/lib/assist/visitProofBranding';
 import { buildVisitProofLayoutHtml } from '@/lib/assist/visitProofPdfLayout';
 import {
   buildVisitProofTasksPresentation,
@@ -83,6 +87,7 @@ export function buildServiceRecordHtml(input: ServiceRecordContentInput): string
   const snapshot: Record<string, unknown> = {
     documentation: documentationText,
     documentationNote: documentationText,
+    employeeName: employeeName ?? null,
   };
 
   const branding = resolveVisitProofBranding(snapshot, {
@@ -133,7 +138,7 @@ export function buildServiceRecordHtml(input: ServiceRecordContentInput): string
     },
     stammdaten: {
       clientName: detail.clientName,
-      employeeName: employeeName ?? '—',
+      employeeName: resolveVisitProofEmployeeName(snapshot, { employeeName }),
       serviceName: serviceName ?? detail.title,
       location: detail.locationAddress,
     },
@@ -172,7 +177,10 @@ export function buildServiceRecordSnapshot(input: ServiceRecordContentInput): Re
     employeeId: input.employeeId ?? null,
     title: input.detail.title,
     clientName: input.detail.clientName,
-    employeeName: input.employeeName ?? '—',
+    employeeName: resolveVisitProofEmployeeName(
+      { employeeName: input.employeeName ?? null },
+      { employeeName: input.employeeName },
+    ),
     serviceName: input.serviceName ?? input.detail.title,
     location: input.detail.locationAddress,
     locationAddress: input.detail.locationAddress,

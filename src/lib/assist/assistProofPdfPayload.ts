@@ -10,7 +10,10 @@ import {
   resolveSignatureImageDimensions,
   signatureProofImageStyleToCss,
 } from '@/lib/signatures/signatureOrientation';
-import { resolveVisitProofBranding } from '@/lib/assist/visitProofBranding';
+import {
+  resolveVisitProofBranding,
+  resolveVisitProofEmployeeName,
+} from '@/lib/assist/visitProofBranding';
 import { buildVisitProofLayoutHtml } from '@/lib/assist/visitProofPdfLayout';
 import {
   buildVisitProofTasksPresentation,
@@ -178,7 +181,9 @@ export function buildAssistProofPdfPayload(
 
   const visitTimes = enrichment.visitTimes ?? parseVisitTimes(snapshot.visitTimes);
   const clientName = readSnapshotString(snapshot, 'clientName') ?? '—';
-  const employeeName = enrichment.employeeName ?? readSnapshotString(snapshot, 'employeeName') ?? '—';
+  const employeeName = resolveVisitProofEmployeeName(snapshot, {
+    employeeName: enrichment.employeeName,
+  });
   const serviceName =
     enrichment.serviceName ??
     readSnapshotString(snapshot, 'serviceName') ??

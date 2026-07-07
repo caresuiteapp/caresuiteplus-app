@@ -3,7 +3,11 @@
  * Read-only: verändert keine Quelldaten.
  */
 import type { ServiceProofRecord } from '@/types/documents/serviceProof';
-import { resolveVisitProofBranding, type VisitProofBrandingInput } from '@/lib/assist/visitProofBranding';
+import {
+  resolveVisitProofBranding,
+  resolveVisitProofEmployeeName,
+  type VisitProofBrandingInput,
+} from '@/lib/assist/visitProofBranding';
 import {
   buildVisitProofLayoutHtml,
   type VisitProofSignatureBlock,
@@ -148,12 +152,15 @@ export function mapServiceProofDocumentToVisitProofLayoutInput(
 
   const documentation = resolveVisitProofDocumentationText(snapshot, proof.documentation);
 
+  const brandingSnapshot: Record<string, unknown> = {
+    logo_url: proof.logoUrl,
+    tenantName: proof.companyName,
+    companyName: proof.companyName,
+    employeeName: proof.employeeName,
+  };
+
   const branding = resolveVisitProofBranding(
-    {
-      logo_url: proof.logoUrl,
-      tenantName: proof.companyName,
-      companyName: proof.companyName,
-    },
+    brandingSnapshot,
     input.branding ?? {
       logoUrl: proof.logoUrl,
       tenantName: proof.companyName,
@@ -205,7 +212,9 @@ export function mapServiceProofDocumentToVisitProofLayoutInput(
     },
     stammdaten: {
       clientName: proof.clientName,
-      employeeName: proof.employeeName,
+      employeeName: resolveVisitProofEmployeeName(brandingSnapshot, {
+        employeeName: proof.employeeName,
+      }),
       serviceName: proof.serviceType,
       location: proof.shortDescription?.trim() || '—',
       costCarrier: proof.costBearer?.trim() || null,

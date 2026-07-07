@@ -119,3 +119,98 @@ Gesamt: 79/79 grün
 ## 12. Entscheidung
 
 **RELEASE READY** — Production: **PRODUCTION VERIFIED + CLEAN** (siehe `production-smoke.md`, Smoke B + Cleanup dokumentiert).
+
+---
+
+## Restkorrekturen Logo / Mitarbeitende:r / Footer
+
+**Datum:** 2026-07-07  
+**Ergebnis:** **READY FOR COMMIT**
+
+### 1. Ausgangsfehler
+
+| # | Fehler | Soll |
+|---|--------|------|
+| 1 | Header zeigte pauschal „CareSuite+ Mandant“ statt Mandantenlogo | Logo oben mittig, sonst echter Mandantenname |
+| 2 | Stammdaten „Mitarbeitende:r —“ | Name der durchführenden Person |
+| 3 | Footer „Erstellt mit CareSuite+“ | „Erstellt mit CareSuite+ Software Technologie“ |
+
+### 2. Geänderte Dateien
+
+- `src/lib/assist/visitProofBranding.ts` — Logo-Kette erweitert, `resolveVisitProofEmployeeName`, Footer-Konstante
+- `src/lib/assist/visitProofPdfLayout.ts` — Header onerror-Fallback, Footer-Text, Logo max-width 180px
+- `src/lib/assist/assistProofPdfPayload.ts` — Mitarbeitername zentral aufgelöst
+- `src/lib/assist/visitProofSnapshotPreviewService.ts` — Preview/Enrichment nutzt gleiche Mitarbeiter-Logik
+- `src/lib/documents/serviceProofLayoutAdapter.ts` — Dokumentenmodul: Logo + Mitarbeiter konsistent
+- `src/features/assistWorkflow/buildServiceRecordHtml.ts` — Mitarbeiter-Workflow konsistent
+- `src/__tests__/assist/visitProofLayoutV2.test.ts` — Logo/Mitarbeiter/Footer-Tests
+- `src/__tests__/documents/serviceProofLayoutV2.test.ts` — Dokumentenmodul-Parität
+- `docs/audit/leistungsnachweis-v2/*.html` — Audit-Artefakte neu erzeugt
+
+### 3. Logo-Quelle und Fallback
+
+Priorität in `resolveVisitProofBranding` / `resolveLogoUrl`:
+
+1. Enrichment `tenantLogoUrl` / Input `logoUrl`
+2. `tenant_branding.logo_url` (Snapshot oder via `loadVisitProofBrandingForTenant`)
+3. `tenant_document_settings.logo_url` (via `loadVisitProofBrandingForTenant`)
+4. Snapshot: `logo_url`, `logoUrl`, `tenantLogoUrl`, `companyLogoUrl`, …
+5. Text-Fallback: `legalName` → `tenantName` (aus Tenant/Company, nicht pauschal Dummy)
+6. Letzter Name-Fallback: `CareSuite+ Mandant` nur wenn kein Mandantenname vorhanden
+
+Bei nicht ladbarer Logo-URL: `onerror` blendet `<img>` aus und zeigt versteckten Namens-Fallback.
+
+### 4. Mitarbeiterdaten-Quelle und Fallback
+
+Zentral: `resolveVisitProofEmployeeName(snapshot, { employeeName })`
+
+Priorität:
+
+1. Enrichment / Input `employeeName`
+2. Snapshot: `employeeName`, `caregiverName`, `staffName`, `performedByName`
+3. Nested: `assigned_employee`, `assignedEmployee`, `staff`, `employee`, `performedBy` (`display_name`, `full_name`, `first_name` + `last_name`)
+4. DB-Backfill via `enrichVisitProofForPreview` (Visit → Assignment → Employee)
+5. Fallback: **„Nicht dokumentiert“** (kein „—“ mehr)
+
+### 5. Footer-Korrektur
+
+Zentral in `buildVisitProofFooterHtml` (`visitProofPdfLayout.ts`):
+
+`Seite 1 von 1 · Erstellt mit CareSuite+ Software Technologie`
+
+Konstante: `VISIT_PROOF_FOOTER_CREDIT` in `visitProofBranding.ts`.
+
+### 6. Tests
+
+```text
+✓ visitProofLayoutV2.test.ts            22/22
+✓ serviceProofLayoutV2.test.ts           13/13
+✓ assistProofPdfPreview.test.ts           5/5
+✓ assistProofPhase45.test.ts              4/4
+✓ signatureDisplay.test.ts               13/13
+────────────────────────────────────────
+Gesamt (Restkorrektur-Lauf): 57/57 grün
+```
+
+Neue Assertions: Logo-`<img>` bei URL, Mandantenname-Fallback ohne Logo, Mitarbeitername befüllt, „Nicht dokumentiert“ bei fehlenden Daten, Footer mit „Software Technologie“.
+
+### 7. Audit-Artefakte
+
+Unter `docs/audit/leistungsnachweis-v2/` aktualisiert:
+
+- `beispiel-alle-aufgaben-erledigt.html` — Logo (placehold.co), Anna Pflege, neuer Footer
+- `beispiel-abweichung.html` — gleich
+- `dokumentenmodul-alle-aufgaben-erledigt.html` — gleich
+- `dokumentenmodul-abweichung.html` — gleich
+
+Checkliste: Logo mittig ✅ · Mitarbeitende:r befüllt ✅ · Footer korrekt ✅ · Aufgabenlogik v2 unverändert ✅ · Signatur unverändert ✅ · kein `submitted` ✅
+
+### 8. Offene Risiken
+
+1. PDF-Render ohne `enrichVisitProofForPreview` (z. B. Portal-Preview) — Logo/Mitarbeiter nur aus Snapshot/Enrichment, nicht automatisch aus DB
+2. Remote-Logos — CORS/Storage bei html2canvas-PDF
+3. Kein Live-Browser-Smoke — Ersatz: Unit-Tests + HTML-Artefakte
+
+### 9. Ergebnis
+
+**READY FOR COMMIT** — kein Push, kein Deploy, kein `[deploy]`.

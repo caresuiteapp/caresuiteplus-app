@@ -21,7 +21,11 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { VISIT_TASK_STATUS_LABELS, type VisitTaskStatus } from '@/lib/assist/visitTypes';
 import type { VisitProofPreview, VisitProofPreviewTaskItem } from '@/lib/assist/visitProofPreviewService';
 import type { VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
-import { loadVisitProofBrandingForTenant } from '@/lib/assist/visitProofBranding';
+import {
+  loadVisitProofBrandingForTenant,
+  resolveVisitProofEmployeeName,
+  VISIT_PROOF_EMPLOYEE_UNKNOWN,
+} from '@/lib/assist/visitProofBranding';
 import { resolveVisitProofDocumentationText } from '@/lib/assist/visitProofTaskPresentation';
 
 export type VisitProofSnapshotEnrichment = {
@@ -249,7 +253,9 @@ export function buildVisitProofPreviewFromProof(
   const visitTimes = enrichment.visitTimes ?? parseVisitTimes(snapshot.visitTimes);
 
   const clientName = readString(snapshot, 'clientName') ?? '—';
-  const employeeName = enrichment.employeeName ?? readString(snapshot, 'employeeName') ?? '—';
+  const employeeName = resolveVisitProofEmployeeName(snapshot, {
+    employeeName: enrichment.employeeName,
+  });
   const serviceName =
     enrichment.serviceName ??
     readString(snapshot, 'serviceName') ??
@@ -289,7 +295,12 @@ export function buildVisitProofPreviewFromProof(
 
   const fields = [
     { label: 'Klient:in', value: clientName, required: true, missing: clientName === '—' },
-    { label: 'Mitarbeitende:r', value: employeeName, required: false, missing: employeeName === '—' },
+    {
+      label: 'Mitarbeitende:r',
+      value: employeeName,
+      required: false,
+      missing: employeeName === VISIT_PROOF_EMPLOYEE_UNKNOWN,
+    },
     { label: 'Leistung', value: serviceName, required: true, missing: !serviceName.trim() },
     {
       label: 'Termin',
@@ -435,7 +446,7 @@ export async function enrichVisitProofForPreview(
   const snapshot = proof.payloadSnapshot ?? {};
   const enrichment: VisitProofSnapshotEnrichment = {};
 
-  const needsEmployee = !readString(snapshot, 'employeeName');
+  const needsEmployee = resolveVisitProofEmployeeName(snapshot) === VISIT_PROOF_EMPLOYEE_UNKNOWN;
   const staleSnapshotTasks = snapshotTasksLookStale(snapshot);
   const needsTasks =
     !Array.isArray(snapshot.tasks) ||

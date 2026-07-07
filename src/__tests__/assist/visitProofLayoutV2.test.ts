@@ -12,7 +12,7 @@ import {
   resolveVisitProofDocumentationText,
   resolveVisitProofTaskStatusLabel,
 } from '@/lib/assist/visitProofTaskPresentation';
-import { resolveVisitProofBranding } from '@/lib/assist/visitProofBranding';
+import { resolveVisitProofBranding, resolveVisitProofEmployeeName } from '@/lib/assist/visitProofBranding';
 import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
 
 function sampleProof(overrides: Partial<AssistVisitProofRow> = {}): AssistVisitProofRow {
@@ -179,6 +179,45 @@ describe('buildAssistProofPdfPayload layout v2', () => {
     expect(payload.html).not.toContain('Küche aufräumen');
   });
 
+  it('renders footer credit with Software Technologie', () => {
+    const payload = buildAssistProofPdfPayload(sampleProof(), {
+      tenantName: 'Pflege Plus GmbH',
+    });
+    expect(payload.html).toContain('Erstellt mit CareSuite+ Software Technologie');
+    expect(payload.html).not.toContain('Seite 1 von 1 · Erstellt mit CareSuite+</div>');
+  });
+
+  it('renders employee name in Stammdaten and not em dash placeholder', () => {
+    const payload = buildAssistProofPdfPayload(sampleProof(), {
+      employeeName: 'Max Mustermann',
+    });
+    expect(payload.html).toContain('Mitarbeitende:r</span><span>Max Mustermann</span>');
+    expect(payload.html).not.toMatch(/Mitarbeitende:r<\/span><span>—<\/span>/);
+  });
+
+  it('uses Nicht dokumentiert when employee name is truly unknown', () => {
+    const payload = buildAssistProofPdfPayload(
+      sampleProof({
+        payloadSnapshot: {
+          ...sampleProof().payloadSnapshot,
+          employeeName: undefined,
+        },
+      }),
+    );
+    expect(payload.html).toContain('Mitarbeitende:r</span><span>Nicht dokumentiert</span>');
+  });
+
+  it('shows logo img and hides tenant name header when logo present', () => {
+    const payload = buildAssistProofPdfPayload(sampleProof(), {
+      tenantLogoUrl: 'https://example.com/logo.png',
+      tenantName: 'Pflege Plus GmbH',
+      tenantLegalName: 'Pflege Plus GmbH',
+    });
+    expect(payload.html).toContain('<img class="proof-logo"');
+    expect(payload.html).toContain('https://example.com/logo.png');
+    expect(payload.html).not.toContain('proof-logo-fallback">Pflege Plus GmbH');
+  });
+
   it('uses tenant name fallback when logo missing', () => {
     const payload = buildAssistProofPdfPayload(sampleProof(), {
       tenantName: 'Helferhasen+ UG',
@@ -229,6 +268,28 @@ describe('resolveVisitProofBranding', () => {
     );
     expect(branding.logoUrl).toBe('https://cdn/logo.png');
     expect(branding.tenantName).toBe('Demo');
+  });
+
+  it('reads nested tenant_branding.logo_url', () => {
+    const branding = resolveVisitProofBranding(
+      { tenant_branding: { logo_url: 'https://cdn/nested.png' }, tenantName: 'Demo' },
+      {},
+    );
+    expect(branding.logoUrl).toBe('https://cdn/nested.png');
+  });
+});
+
+describe('resolveVisitProofEmployeeName', () => {
+  it('prefers enrichment then snapshot then nested employee object', () => {
+    expect(resolveVisitProofEmployeeName({ employeeName: 'Snapshot Name' }, { employeeName: 'Enriched' })).toBe(
+      'Enriched',
+    );
+    expect(
+      resolveVisitProofEmployeeName({
+        employee: { first_name: 'Max', last_name: 'Mustermann' },
+      }),
+    ).toBe('Max Mustermann');
+    expect(resolveVisitProofEmployeeName({})).toBe('Nicht dokumentiert');
   });
 });
 

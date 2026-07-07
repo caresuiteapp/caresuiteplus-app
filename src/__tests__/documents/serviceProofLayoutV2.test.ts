@@ -107,6 +107,34 @@ describe('serviceProofDocumentService layout v2', () => {
     expect(html).toContain('Keine zusätzliche Dokumentation erfasst.');
   });
 
+  it('renders footer credit with Software Technologie', () => {
+    const html = buildServiceProofDocumentHtml(baseProof());
+    expect(html).toContain('Erstellt mit CareSuite+ Software Technologie');
+    expect(html).not.toContain('Seite 1 von 1 · Erstellt mit CareSuite+</div>');
+  });
+
+  it('renders employee name and avoids em dash placeholder', () => {
+    const html = buildServiceProofDocumentHtml(baseProof({ employeeName: 'Anna Pflege' }));
+    expect(html).toContain('Mitarbeitende:r</span><span>Anna Pflege</span>');
+    expect(html).not.toMatch(/Mitarbeitende:r<\/span><span>—<\/span>/);
+  });
+
+  it('uses Nicht dokumentiert when employee name missing', () => {
+    const html = buildServiceProofDocumentHtml(baseProof({ employeeName: '' }));
+    expect(html).toContain('Mitarbeitende:r</span><span>Nicht dokumentiert</span>');
+  });
+
+  it('shows logo img when logoUrl present', () => {
+    const html = buildServiceProofDocumentHtml(
+      baseProof({
+        logoUrl: 'https://example.com/logo.png',
+        companyName: 'Pflege Plus GmbH',
+      }),
+    );
+    expect(html).toContain('<img class="proof-logo"');
+    expect(html).toContain('https://example.com/logo.png');
+  });
+
   it('renders tenant name fallback when logo missing', () => {
     const html = buildServiceProofDocumentHtml(
       baseProof({ logoUrl: null, companyName: 'Helferhasen+ UG' }),

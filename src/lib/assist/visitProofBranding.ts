@@ -5,6 +5,10 @@ import { fetchTenantBrandingLogoUrl } from '@/lib/tenant/tenantBrandingService';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 
+export const VISIT_PROOF_FOOTER_CREDIT = 'Erstellt mit CareSuite+ Software Technologie';
+export const VISIT_PROOF_EMPLOYEE_UNKNOWN = 'Nicht dokumentiert';
+export const VISIT_PROOF_TENANT_NAME_FALLBACK = 'CareSuite+ Mandant';
+
 export type VisitProofBranding = {
   logoUrl: string | null;
   tenantName: string;
@@ -35,24 +39,78 @@ function formatAddressLine(
   return line || null;
 }
 
+function readNestedLogoUrl(value: unknown): string | null {
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const url = String(row.logo_url ?? row.logoUrl ?? '').trim();
+  return url || null;
+}
+
 function resolveLogoUrl(
   input: VisitProofBrandingInput,
   snapshot: Record<string, unknown>,
 ): string | null {
   const candidates = [
     input.logoUrl,
+    readNestedLogoUrl(snapshot.tenant_branding),
+    readNestedLogoUrl(snapshot.tenantBranding),
+    readNestedLogoUrl(snapshot.tenant_document_settings),
+    readNestedLogoUrl(snapshot.tenantDocumentSettings),
     snapshot.tenantLogoUrl,
     snapshot.logoUrl,
     snapshot.logo_url,
     snapshot.companyLogoUrl,
     snapshot.businessLogoUrl,
     snapshot.organizationLogoUrl,
+    snapshot.providerLogoUrl,
   ];
   for (const value of candidates) {
     const url = String(value ?? '').trim();
     if (url) return url;
   }
   return null;
+}
+
+function readNestedPersonName(value: unknown): string | null {
+  if (typeof value === 'string') {
+    const text = value.trim();
+    return text && text !== '—' ? text : null;
+  }
+  if (!value || typeof value !== 'object') return null;
+  const row = value as Record<string, unknown>;
+  const displayName = String(row.display_name ?? row.displayName ?? '').trim();
+  if (displayName && displayName !== '—') return displayName;
+  const fullName = String(row.full_name ?? row.fullName ?? row.name ?? '').trim();
+  if (fullName && fullName !== '—') return fullName;
+  const first = String(row.first_name ?? row.firstName ?? '').trim();
+  const last = String(row.last_name ?? row.lastName ?? '').trim();
+  const combined = [first, last].filter(Boolean).join(' ').trim();
+  return combined || null;
+}
+
+/** Resolve performing employee name for Stammdaten block (Assist, Dokumentenmodul, Preview). */
+export function resolveVisitProofEmployeeName(
+  snapshot: Record<string, unknown>,
+  input: { employeeName?: string | null } = {},
+): string {
+  const candidates: unknown[] = [
+    input.employeeName,
+    snapshot.employeeName,
+    snapshot.caregiverName,
+    snapshot.staffName,
+    snapshot.performedByName,
+    snapshot.assigned_employee,
+    snapshot.assignedEmployee,
+    snapshot.staff,
+    snapshot.employee,
+    snapshot.performedBy,
+  ];
+  for (const candidate of candidates) {
+    const name =
+      typeof candidate === 'string' ? readNestedPersonName(candidate) : readNestedPersonName(candidate);
+    if (name) return name;
+  }
+  return VISIT_PROOF_EMPLOYEE_UNKNOWN;
 }
 
 export function resolveVisitProofBranding(
@@ -67,7 +125,7 @@ export function resolveVisitProofBranding(
         snapshot.companyName ??
         snapshot.businessName ??
         '',
-    ).trim() || 'CareSuite+ Mandant';
+    ).trim() || VISIT_PROOF_TENANT_NAME_FALLBACK;
 
   const legalName =
     String(input.legalName ?? snapshot.legalName ?? snapshot.tenantLegalName ?? '').trim() || null;

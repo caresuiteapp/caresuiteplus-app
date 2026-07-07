@@ -1,7 +1,10 @@
 /**
  * Shared Leistungsnachweis HTML layout (v2) — A4-oriented, print-friendly.
  */
-import type { VisitProofBranding } from '@/lib/assist/visitProofBranding';
+import {
+  type VisitProofBranding,
+  VISIT_PROOF_FOOTER_CREDIT,
+} from '@/lib/assist/visitProofBranding';
 import type {
   VisitProofTaskDeviation,
   VisitProofTasksPresentation,
@@ -62,7 +65,7 @@ export function visitProofPdfStyles(): string {
     }
     .proof-page { max-width: 720px; margin: 0 auto; padding: 8px 4px 32px; }
     .proof-header { text-align: center; margin-bottom: 18px; page-break-inside: avoid; }
-    .proof-logo { max-width: 168px; max-height: 72px; object-fit: contain; display: inline-block; }
+    .proof-logo { max-width: 180px; max-height: 72px; object-fit: contain; display: inline-block; }
     .proof-logo-fallback { font-size: 18px; font-weight: 700; color: #111827; letter-spacing: -0.02em; }
     .proof-title { font-size: 22px; font-weight: 700; margin: 12px 0 6px; color: #111827; }
     .proof-meta { color: #6b7280; font-size: 12px; margin: 0; }
@@ -153,8 +156,10 @@ export function visitProofPdfStyles(): string {
 export function buildVisitProofHeaderHtml(branding: VisitProofBranding): string {
   const displayName = branding.legalName ?? branding.tenantName;
   if (branding.logoUrl?.trim()) {
+    const escapedName = escapeHtml(displayName);
     return `<div class="proof-header">
-      <img class="proof-logo" src="${escapeHtml(branding.logoUrl)}" alt="${escapeHtml(displayName)}" />
+      <img class="proof-logo" src="${escapeHtml(branding.logoUrl)}" alt="${escapedName}" onerror="this.style.display='none';this.nextElementSibling.style.display='block';" />
+      <div class="proof-logo-fallback" style="display:none;">${escapedName}</div>
     </div>`;
   }
   return `<div class="proof-header"><div class="proof-logo-fallback">${escapeHtml(displayName)}</div></div>`;
@@ -205,7 +210,7 @@ export function buildVisitProofFooterHtml(branding: VisitProofBranding): string 
   const body = lines.map((line) => `<div class="proof-footer-line">${escapeHtml(line)}</div>`).join('');
   return `<footer class="proof-footer">
     ${body}
-    <div class="proof-footer-line">Seite 1 von 1 · Erstellt mit CareSuite+</div>
+    <div class="proof-footer-line">Seite 1 von 1 · ${escapeHtml(VISIT_PROOF_FOOTER_CREDIT)}</div>
   </footer>`;
 }
 
