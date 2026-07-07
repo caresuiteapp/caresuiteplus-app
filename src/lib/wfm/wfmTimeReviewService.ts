@@ -1,5 +1,6 @@
 import type { ServiceResult } from '@/types';
 import type { WfmOfficeTimeEntry, WfmOfficeTimeEntryStatus } from '@/types/modules/wfmOfficeTimekeeping';
+import { shouldAutoPendingReview } from './wfmVisitDeviationAmpelService';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -87,6 +88,10 @@ const demoReviews = new Map<string, WfmTimeEntryReview>();
 const demoActions: WfmTimeReviewAction[] = [];
 
 const TERMINAL_REVIEW_STATUSES = new Set<WfmTimeReviewStatus>(['locked', 'superseded']);
+
+export const OPEN_REVIEW_STATUSES: WfmTimeReviewStatus[] = ['pending_review', 'needs_clarification'];
+
+export const WFM_REVIEW_SYSTEM_ACTOR = '00000000-0000-4000-8000-000000000099';
 
 export function resetWfmTimeReviewDemoStore(): void {
   demoReviews.clear();
@@ -179,7 +184,6 @@ export function buildReferenceKeyFromEntry(tenantId: string, entry: WfmOfficeTim
 }
 
 export function mapDbReviewStatusToUi(status: WfmTimeReviewStatus): WfmOfficeTimeEntryStatus {
-  if (status === 'needs_clarification') return 'pending_review';
   if (status === 'superseded') return 'locked';
   return status as WfmOfficeTimeEntryStatus;
 }
@@ -191,8 +195,45 @@ export function mapUiReviewDecisionToDb(
   return decision;
 }
 
-export function deriveExportBlocking(status: WfmTimeReviewStatus): boolean {
-  return !['approved', 'locked', 'superseded'].includes(status);
+export function isOpenReviewStatus(status: WfmTimeReviewStatus | WfmOfficeTimeEntryStatus): boolean {
+  return status === 'pending_review' || status === 'needs_clarification';
+}
+
+export function resolveEntryKindFromOfficeEntry(entry: WfmOfficeTimeEntry): WfmTimeReviewEntryKind {
+  const parsed = parseOfficeEntryId(entry.id);
+  if (parsed?.entryKind === 'visit' || parsed?.entryKind === 'session') return parsed.entryKind;
+  if (entry.id.startsWith('planned:') || entry.rowKind === 'planned_missing_actual') return 'visit';
+  if (entry.sessionId || entry.id.startsWith('session:')) return 'session';
+  return 'manual';
+}
+
+export function resolveReferenceRawId(entry: WfmOfficeTimeEntry): string | null {
+  const parsed = parseOfficeEntryId(entry.id);
+  if (parsed?.rawReferenceId) return parsed.rawReferenceId;
+  if (entry.id.startsWith('planned:')) {
+    const parts = entry.id.split(':');
+    return entry.visitId ?? entry.assignmentId ?? parts[1] ?? null;
+  }
+  if (entry.sessionId) return entry.sessionId;
+  if (entry.visitId) return entry.visitId;
+  return entry.id || null;
+}
+
+export function entryRequiresReviewMaterialization(entry: WfmOfficeTimeEntry): boolean {
+  if (
+    entry.reviewStatus === 'approved' ||
+    entry.reviewStatus === 'rejected' ||
+    entry.reviewStatus === 'corrected' ||
+    entry.reviewStatus === 'locked' ||
+    entry.reviewStatus === 'exported'
+  ) {
+    return false;
+  }
+  if (isOpenReviewStatus(entry.reviewStatus)) return true;
+  if (entry.rowKind === 'planned_missing_actual' || entry.rowKind === 'unplanned_actual') return true;
+  if (shouldAutoPendingReview(entry.startAmpel, entry.endAmpel)) return true;
+  if (entry.flags.includes('missing_booking') || entry.flags.includes('unplanned')) return true;
+  return false;
 }
 
 export function deriveExportStatusFromReview(
@@ -494,9 +535,122 @@ export async function appendReviewAction(
   };
 }
 
+export function deriveExportBlocking(status: WfmTimeReviewStatus): boolean {
+  return !['approved', 'locked', 'superseded'].includes(status);
+}
+
+export async function ensurePendingReviewForEntry(
+  tenantId: string,
+  actorId: string,
+  entry: WfmOfficeTimeEntry,
+): Promise<ServiceResult<WfmTimeEntryReview | null>> {
+  if (!entryRequiresReviewMaterialization(entry)) {
+    return { ok: true, data: null };
+  }
+
+  const rawRef = resolveReferenceRawId(entry);
+  if (!rawRef || !entry.employeeId || !entry.workDate) {
+    return { ok: true, data: null };
+  }
+
+  const entryKind = resolveEntryKindFromOfficeEntry(entry);
+  const referenceKey = buildReferenceKey(
+    tenantId,
+    entry.employeeId,
+    entry.workDate,
+    entryKind,
+    coerceReferenceUuid(rawRef),
+  );
+  const existing = await getReviewByReferenceKey(tenantId, referenceKey);
+  if (!existing.ok) return existing;
+  if (existing.data) return { ok: true, data: existing.data };
+
+  return upsertReview(tenantId, actorId, {
+    entryId: entry.id,
+    employeeId: entry.employeeId,
+    workDate: entry.workDate,
+    entryKind,
+    nextStatus: 'pending_review',
+    actorId,
+    actionComment: 'Auto-materialized pending review',
+  });
+}
+
+export async function countOpenReviewsForPeriod(
+  tenantId: string,
+  fromDate: string,
+  toDate: string,
+): Promise<ServiceResult<number>> {
+  const listed = await listReviewsForPeriod(tenantId, fromDate, toDate);
+  if (!listed.ok) return listed;
+  return {
+    ok: true,
+    data: listed.data.filter((review) => isOpenReviewStatus(review.reviewStatus)).length,
+  };
+}
+
+export async function listReviewActionsForReviews(
+  tenantId: string,
+  reviewIds: string[],
+): Promise<ServiceResult<WfmTimeReviewAction[]>> {
+  if (reviewIds.length === 0) return { ok: true, data: [] };
+
+  if (useDemoStore()) {
+    return {
+      ok: true,
+      data: demoActions.filter((action) => reviewIds.includes(action.entryReviewId)),
+    };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: true, data: [] };
+
+  const { data, error } = await fromUnknownTable(supabase, ACTIONS_TABLE)
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .in('entry_review_id', reviewIds)
+    .order('created_at', { ascending: false });
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: [] };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return {
+    ok: true,
+    data: (data ?? []).map((row) => {
+      const r = row as Record<string, unknown>;
+      return {
+        id: String(r.id),
+        tenantId,
+        entryReviewId: String(r.entry_review_id),
+        action: r.action as WfmTimeReviewActionType,
+        prevStatus: (r.prev_status as WfmTimeReviewStatus | null) ?? null,
+        newStatus: (r.new_status as WfmTimeReviewStatus | null) ?? null,
+        comment: (r.comment as string | null) ?? null,
+        actorId: (r.actor_id as string | null) ?? null,
+        createdAt: String(r.created_at),
+      };
+    }),
+  };
+}
+
+export function pickLatestReviewActions(
+  actions: WfmTimeReviewAction[],
+): Map<string, WfmTimeReviewAction> {
+  const map = new Map<string, WfmTimeReviewAction>();
+  for (const action of actions) {
+    if (!map.has(action.entryReviewId)) {
+      map.set(action.entryReviewId, action);
+    }
+  }
+  return map;
+}
+
 export function applyReviewToEntry(
   entry: WfmOfficeTimeEntry,
   review: WfmTimeEntryReview | null | undefined,
+  latestAction?: WfmTimeReviewAction | null,
 ): WfmOfficeTimeEntry {
   if (!review) return entry;
   const uiStatus = mapDbReviewStatusToUi(review.reviewStatus);
@@ -505,6 +659,11 @@ export function applyReviewToEntry(
     reviewStatus: uiStatus,
     status: uiStatus,
     officeComment: review.officeComment ?? review.reviewNote ?? entry.officeComment,
+    reviewNote: review.reviewNote ?? entry.reviewNote ?? null,
+    reviewedAt: review.reviewedAt ?? entry.reviewedAt ?? null,
+    reviewedBy: review.reviewedBy ?? entry.reviewedBy ?? null,
+    lastReviewAction: latestAction?.action ?? entry.lastReviewAction ?? null,
+    lastReviewComment: latestAction?.comment ?? entry.lastReviewComment ?? null,
     exportStatus: deriveExportStatusFromReview(review.reviewStatus, entry.exportStatus),
   };
 }

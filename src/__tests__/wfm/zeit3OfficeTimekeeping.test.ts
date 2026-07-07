@@ -217,6 +217,18 @@ describe('ZEIT.3 deviation gate + office workflow', () => {
     const approve = await reviewWfmOfficeTimeEntry(TENANT, ACTOR, ROLE, 'entry-approve', 'approved', 'OK');
     expect(approve.ok).toBe(true);
     expect(approve.data.reviewStatus).toBe('approved');
+
+    setEntryOverlay('entry-clarify', { reviewStatus: 'pending_review', employeeId: EMP, workDate: '2026-07-04' });
+    const clarify = await reviewWfmOfficeTimeEntry(
+      TENANT,
+      ACTOR,
+      ROLE,
+      'entry-clarify',
+      'needs_clarification',
+      'Bitte Unterlagen nachreichen',
+    );
+    expect(clarify.ok).toBe(true);
+    expect(clarify.data.reviewStatus).toBe('needs_clarification');
   });
 
   it('exported entry correction shows warning path', async () => {

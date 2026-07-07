@@ -224,6 +224,8 @@ export interface WfmTeamTodayKpis {
   inOfficeCount: number;
   homeofficeCount: number;
   pendingReviewCount: number;
+  /** Separate KPI — Mitarbeiter-Korrekturanträge (nicht Prüfqueue) */
+  pendingCorrectionCount: number;
   openRequestsCount: number;
 }
 

@@ -3,7 +3,11 @@ import {
   buildReferenceKey,
   buildReferenceKeyFromEntry,
   coerceReferenceUuid,
+  countOpenReviewsForPeriod,
   deriveExportBlocking,
+  ensurePendingReviewForEntry,
+  entryRequiresReviewMaterialization,
+  isOpenReviewStatus,
   listDemoReviewActions,
   listReviewsForPeriod,
   mapDbReviewStatusToUi,
@@ -129,7 +133,74 @@ describe('wfmTimeReviewService', () => {
     });
     expect(clarified.ok).toBe(true);
     expect(clarified.data?.reviewStatus).toBe('needs_clarification');
-    expect(mapDbReviewStatusToUi('needs_clarification')).toBe('pending_review');
+    expect(mapDbReviewStatusToUi('needs_clarification')).toBe('needs_clarification');
+    expect(listDemoReviewActions().some((a) => a.action === 'clarification_requested')).toBe(true);
+  });
+
+  it('materializes pending review once for review-required entry', async () => {
+    const entry = {
+      id: `session:${SESSION}`,
+      tenantId: TENANT,
+      employeeId: EMP,
+      employeeName: 'Staging Employee',
+      workDate: WORK_DATE,
+      rowKind: 'planned_missing_actual',
+      reviewStatus: 'pending_review',
+      flags: ['missing_booking'],
+    } as import('@/types/modules/wfmOfficeTimekeeping').WfmOfficeTimeEntry;
+
+    expect(entryRequiresReviewMaterialization(entry)).toBe(true);
+    const first = await ensurePendingReviewForEntry(TENANT, ACTOR, entry);
+    const second = await ensurePendingReviewForEntry(TENANT, ACTOR, entry);
+    expect(first.ok).toBe(true);
+    expect(second.ok).toBe(true);
+    expect(first.data?.id).toBe(second.data?.id);
+
+    const listed = await listReviewsForPeriod(TENANT, WORK_DATE, WORK_DATE);
+    expect(listed.ok).toBe(true);
+    expect(listed.data.length).toBe(1);
+  });
+
+  it('counts open reviews without approved/corrected', async () => {
+    await upsertReview(TENANT, ACTOR, {
+      entryId: 'entry-open-1',
+      employeeId: EMP,
+      workDate: WORK_DATE,
+      entryKind: 'manual',
+      nextStatus: 'pending_review',
+      actorId: ACTOR,
+    });
+    await upsertReview(TENANT, ACTOR, {
+      entryId: 'entry-open-2',
+      employeeId: EMP,
+      workDate: WORK_DATE,
+      entryKind: 'manual',
+      nextStatus: 'needs_clarification',
+      actorId: ACTOR,
+    });
+    await upsertReview(TENANT, ACTOR, {
+      entryId: 'entry-approved',
+      employeeId: EMP,
+      workDate: WORK_DATE,
+      entryKind: 'manual',
+      nextStatus: 'approved',
+      actorId: ACTOR,
+    });
+    await upsertReview(TENANT, ACTOR, {
+      entryId: 'entry-corrected',
+      employeeId: EMP,
+      workDate: WORK_DATE,
+      entryKind: 'manual',
+      nextStatus: 'corrected',
+      actorId: ACTOR,
+    });
+
+    const openCount = await countOpenReviewsForPeriod(TENANT, WORK_DATE, WORK_DATE);
+    expect(openCount.ok).toBe(true);
+    expect(openCount.data).toBe(2);
+    expect(isOpenReviewStatus('approved')).toBe(false);
+    expect(isOpenReviewStatus('corrected')).toBe(false);
+    expect(isOpenReviewStatus('needs_clarification')).toBe(true);
   });
 
   it('lists reviews for period', async () => {

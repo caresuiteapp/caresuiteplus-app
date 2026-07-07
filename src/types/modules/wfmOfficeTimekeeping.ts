@@ -11,6 +11,7 @@ export type WfmDeviationDirection =
 export type WfmOfficeTimeEntryStatus =
   | 'open'
   | 'pending_review'
+  | 'needs_clarification'
   | 'approved'
   | 'rejected'
   | 'corrected'
@@ -123,6 +124,12 @@ export interface WfmOfficeTimeEntry {
   officeComment: string | null;
   hasOpenOfficeMessage: boolean;
   flags: string[];
+  /** Persistente Review-Metadaten (P2.1) */
+  reviewNote?: string | null;
+  reviewedAt?: string | null;
+  reviewedBy?: string | null;
+  lastReviewAction?: string | null;
+  lastReviewComment?: string | null;
 }
 
 export interface WfmOfficeTimeKpis {
@@ -261,6 +268,7 @@ export interface WfmOfficeManualEntryInput {
 export const WFM_OFFICE_TIME_STATUS_LABELS: Record<WfmOfficeTimeEntryStatus, string> = {
   open: 'Offen',
   pending_review: 'Offen zur Prüfung',
+  needs_clarification: 'Rückfrage offen',
   approved: 'Genehmigt',
   rejected: 'Abgelehnt',
   corrected: 'Korrigiert',

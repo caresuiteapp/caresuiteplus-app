@@ -53,11 +53,16 @@ import { listWfmAbsencesForTeam } from './wfmAbsenceService';
 import {
   applyReviewToEntry,
   buildReferenceKeyFromEntry,
+  ensurePendingReviewForEntry,
+  isOpenReviewStatus,
+  listReviewActionsForReviews,
   listReviewsForPeriod,
   mapDbReviewStatusToUi,
   mapUiReviewDecisionToDb,
+  pickLatestReviewActions,
   transitionReviewStatus,
   upsertReview,
+  WFM_REVIEW_SYSTEM_ACTOR,
   type WfmTimeEntryReview,
   type WfmTimeReviewStatus,
 } from './wfmTimeReviewService';
@@ -65,11 +70,13 @@ import {
 function mergeEntryReviewOverlay(
   entry: WfmOfficeTimeEntry,
   reviewMap: Map<string, WfmTimeEntryReview>,
+  latestActionMap: Map<string, import('./wfmTimeReviewService').WfmTimeReviewAction>,
 ): WfmOfficeTimeEntry {
   const overlay = getEntryOverlay(entry.id) ?? {};
   const referenceKey = buildReferenceKeyFromEntry(entry.tenantId, entry);
   const review = reviewMap.get(referenceKey);
-  const withReview = applyReviewToEntry(entry, review);
+  const latestAction = review ? latestActionMap.get(review.id) ?? null : null;
+  const withReview = applyReviewToEntry(entry, review, latestAction);
   if (!review && overlay.reviewStatus) {
     return {
       ...withReview,
@@ -86,6 +93,11 @@ function mergeEntryReviewOverlay(
     reviewStatus: withReview.reviewStatus,
     status: withReview.status,
     exportStatus: withReview.exportStatus,
+    reviewNote: withReview.reviewNote,
+    reviewedAt: withReview.reviewedAt,
+    reviewedBy: withReview.reviewedBy,
+    lastReviewAction: withReview.lastReviewAction,
+    lastReviewComment: withReview.lastReviewComment,
   };
 }
 
@@ -388,7 +400,7 @@ function computeKpis(
     officeMinutes: sumNet((e) => e.workKind === 'buero'),
     homeofficeMinutes: sumNet((e) => e.workKind === 'homeoffice'),
     activeEmployees,
-    pendingReviewCount: entries.filter((e) => e.reviewStatus === 'pending_review').length,
+    pendingReviewCount: entries.filter((e) => isOpenReviewStatus(e.reviewStatus)).length,
     openOfficeMessages: entries.filter((e) => e.hasOpenOfficeMessage).length,
     correctionCount: entries.filter((e) => e.source === 'correction' || e.workKind === 'korrektur').length,
     missingBookings,
@@ -442,7 +454,7 @@ function applyFilters(entries: WfmOfficeTimeEntry[], filters?: Partial<WfmOffice
     result = result.filter((e) => e.overallAmpel && e.overallAmpel !== 'green');
   }
   if (filters.onlyPendingReview) {
-    result = result.filter((e) => e.reviewStatus === 'pending_review');
+    result = result.filter((e) => isOpenReviewStatus(e.reviewStatus));
   }
   if (filters.onlyOfficeMessages) {
     result = result.filter((e) => e.hasOpenOfficeMessage);
@@ -517,6 +529,10 @@ export async function getWfmOfficeTimeOverview(
 
   const joined = joinOfficeTimekeepingData(plannedVisits, enrichedActual, employeeNames);
 
+  for (const entry of joined) {
+    await ensurePendingReviewForEntry(tenantId, WFM_REVIEW_SYSTEM_ACTOR, entry);
+  }
+
   const reviewsResult = await listReviewsForPeriod(tenantId, period.fromDate, period.toDate);
   const reviewMap = new Map<string, WfmTimeEntryReview>();
   if (reviewsResult.ok) {
@@ -524,7 +540,18 @@ export async function getWfmOfficeTimeOverview(
       reviewMap.set(review.referenceKey, review);
     }
   }
-  const joinedWithReviews = joined.map((entry) => mergeEntryReviewOverlay(entry, reviewMap));
+
+  const actionsResult = await listReviewActionsForReviews(
+    tenantId,
+    [...reviewMap.values()].map((review) => review.id),
+  );
+  const latestActionMap = actionsResult.ok
+    ? pickLatestReviewActions(actionsResult.data)
+    : new Map();
+
+  const joinedWithReviews = joined.map((entry) =>
+    mergeEntryReviewOverlay(entry, reviewMap, latestActionMap),
+  );
 
   const absencesResult = await listWfmAbsencesForTeam(tenantId, actorRoleKey);
   const absentEmployeeIds = new Set<string>();
@@ -1045,12 +1072,7 @@ export async function getWfmOfficeExportWarnings(
   const overview = await getWfmOfficeTimeOverview(tenantId, actorRoleKey, { preset, fromDate, toDate });
   if (!overview.ok) return overview;
 
-  const pending = overview.data.entries.filter(
-    (e) =>
-      e.reviewStatus === 'pending_review' ||
-      e.reviewStatus === 'open' ||
-      e.status === 'open',
-  );
+  const pending = overview.data.entries.filter((e) => isOpenReviewStatus(e.reviewStatus));
   const rotBlau = overview.data.entries.filter(
     (e) => (e.overallAmpel === 'red' || e.overallAmpel === 'blue') && e.reviewStatus !== 'approved',
   );

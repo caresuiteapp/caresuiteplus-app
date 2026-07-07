@@ -27,6 +27,7 @@ import {
   listSessionsForDate,
   todayWorkDate,
 } from './wfmWorkSessionRepository';
+import { countOpenReviewsForPeriod } from './wfmTimeReviewService';
 
 type EmployeeProfileRow = {
   id: string;
@@ -78,6 +79,7 @@ async function fetchEmployeeProfiles(
 function computeKpis(
   rows: WfmTeamTodayRow[],
   pendingReviewCount: number,
+  pendingCorrectionCount: number,
   openRequestsCount: number,
 ): WfmTeamTodayKpis {
   const withSession = rows.filter((r) => r.session?.startedAt);
@@ -95,6 +97,7 @@ function computeKpis(
     ).length,
     homeofficeCount: activeRows.filter((r) => r.session?.status === 'homeoffice').length,
     pendingReviewCount,
+    pendingCorrectionCount,
     openRequestsCount,
   };
 }
@@ -205,16 +208,18 @@ export async function getWfmTeamTodayOverview(
     return (b.lastEventAt ?? '').localeCompare(a.lastEventAt ?? '');
   });
 
-  const pendingReviewCount = approvals.filter((a) => a.approvalType === 'time_correction').length;
+  const pendingCorrectionCount = approvals.filter((a) => a.approvalType === 'time_correction').length;
   const openRequestsCount = approvals.filter(
     (a) => a.approvalType === 'vacation' || a.approvalType === 'absence',
   ).length;
+  const openReviewsResult = await countOpenReviewsForPeriod(tenantId, workDate, workDate);
+  const pendingReviewCount = openReviewsResult.ok ? openReviewsResult.data : 0;
 
   return {
     ok: true,
     data: {
       workDate,
-      kpis: computeKpis(rows, pendingReviewCount, openRequestsCount),
+      kpis: computeKpis(rows, pendingReviewCount, pendingCorrectionCount, openRequestsCount),
       rows,
     },
   };

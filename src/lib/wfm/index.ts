@@ -183,11 +183,17 @@ export { resetWfmOfficeTimekeepingStore } from './wfmOfficeTimekeepingStore';
 export {
   buildReferenceKey,
   buildReferenceKeyFromEntry,
+  countOpenReviewsForPeriod,
+  ensurePendingReviewForEntry,
+  entryRequiresReviewMaterialization,
+  isOpenReviewStatus,
   listReviewsForPeriod,
+  listReviewActionsForReviews,
   transitionReviewStatus,
   upsertReview,
   appendReviewAction,
   resetWfmTimeReviewDemoStore,
+  OPEN_REVIEW_STATUSES,
   type WfmTimeEntryReview,
   type WfmTimeReviewStatus,
 } from './wfmTimeReviewService';

@@ -49,6 +49,7 @@ export function WfmZeitkontenScreen() {
               inOfficeCount: 0,
               homeofficeCount: 0,
               pendingReviewCount: 0,
+              pendingCorrectionCount: 0,
               openRequestsCount: 0,
             },
             rows: [],
@@ -90,7 +91,8 @@ export function WfmZeitkontenScreen() {
         Heute erfasst: {kpis?.capturedToday ?? 0} · Aktive MA: {kpis?.activeCount ?? 0} · In Pause:{' '}
         {kpis?.onPauseCount ?? 0} · Im Einsatz: {kpis?.onVisitCount ?? 0} · Im Büro:{' '}
         {kpis?.inOfficeCount ?? 0} · Homeoffice: {kpis?.homeofficeCount ?? 0} · Offen zur Prüfung:{' '}
-        {kpis?.pendingReviewCount ?? 0} · Offene Anträge: {kpis?.openRequestsCount ?? 0}
+        {kpis?.pendingReviewCount ?? 0} · Korrekturanträge: {kpis?.pendingCorrectionCount ?? 0} · Offene Anträge:{' '}
+        {kpis?.openRequestsCount ?? 0}
       </Text>
 
       {(kpis?.openRequestsCount ?? 0) > 0 && canApprove ? (

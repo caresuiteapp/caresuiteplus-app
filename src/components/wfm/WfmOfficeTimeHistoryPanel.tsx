@@ -99,7 +99,9 @@ export function WfmOfficeTimeHistoryPanel({
     overview?.entries.find((e) => e.id === selectedId) ?? null;
   const kpis = overview?.kpis;
 
-  const runReview = async (decision: 'approved' | 'rejected' | 'exported' | 'locked') => {
+  const runReview = async (
+    decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'needs_clarification',
+  ) => {
     if (!selectedId) return;
     setActionMessage(null);
     const result = await reviewWfmOfficeTimeEntry(
@@ -244,6 +246,22 @@ export function WfmOfficeTimeHistoryPanel({
             {WFM_OFFICE_TIME_STATUS_LABELS[selected.reviewStatus]}
             {selected.rowKind ? ` · ${selected.rowKind}` : ''}
           </Text>
+          {selected.reviewNote || selected.officeComment ? (
+            <Text style={{ color: text.secondary, ...typography.caption }}>
+              Review-Kommentar: {selected.reviewNote ?? selected.officeComment}
+            </Text>
+          ) : null}
+          {selected.lastReviewAction ? (
+            <Text style={{ color: text.secondary, ...typography.caption }}>
+              Letzte Review-Aktion: {selected.lastReviewAction}
+              {selected.lastReviewComment ? ` — ${selected.lastReviewComment}` : ''}
+            </Text>
+          ) : null}
+          {selected.reviewedAt ? (
+            <Text style={{ color: text.secondary, ...typography.caption }}>
+              Zuletzt geprüft: {selected.reviewedAt.slice(0, 16)}
+            </Text>
+          ) : null}
           <Text style={{ color: text.secondary, ...typography.caption }}>
             Plan: {formatWfmPlanTimeRange(selected.plannedStartAt, selected.plannedEndAt, selected.planDisplayStatus)}
           </Text>
@@ -292,6 +310,7 @@ export function WfmOfficeTimeHistoryPanel({
               />
               <View style={styles.actionRow}>
                 <PremiumButton title="Freigeben" variant="secondary" onPress={() => void runReview('approved')} />
+                <PremiumButton title="Rückfrage stellen" variant="ghost" onPress={() => void runReview('needs_clarification')} />
                 <PremiumButton title="Ablehnen" variant="ghost" onPress={() => void runReview('rejected')} />
                 <PremiumButton title="Exportieren" variant="ghost" onPress={() => void runReview('exported')} />
                 <PremiumButton title="Sperren" variant="ghost" onPress={() => void runReview('locked')} />
