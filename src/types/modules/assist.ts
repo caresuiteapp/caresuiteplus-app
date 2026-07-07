@@ -46,6 +46,8 @@ export type AssignmentListItem = Pick<
 > & {
   serviceName?: string | null;
   durationMinutes?: number | null;
+  /** Canonical assignment workflow status (distinct from legacy workflow filter). */
+  assignmentStatus?: import('./assignmentStatus').AssignmentStatus;
   planningStatus?: string;
   proofStatus?: string;
   billingStatus?: string;

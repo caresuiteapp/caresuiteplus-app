@@ -26,6 +26,10 @@ import {
 } from './portalAppointmentsLiveService';
 import { fetchLiveEmployeePortalAssignmentDetail } from './employeePortalExecutionLiveService';
 import {
+  resolveEmployeePortalAssignmentPendingFlags,
+  shouldNavigateEmployeePortalAssignmentToExecution,
+} from './employeePortalAssignmentCompletion';
+import {
   projectClientPortalAssistLiveVisit,
   sanitizeClientPortalLiveVisitPayload,
 } from './clientPortalAssistLiveVisitService';
@@ -262,6 +266,13 @@ export async function fetchPortalAppointmentDetail(
     );
     if (!live.ok) return live;
     const detail = live.data;
+    const pending = resolveEmployeePortalAssignmentPendingFlags({
+      status: detail.status,
+      requiresDocumentation: detail.requiresDocumentation,
+      requiresSignature: detail.requiresSignature,
+      documentationStatus: detail.documentationStatus,
+      signatureStatus: detail.signatureStatus,
+    });
     const canStart =
       detail.canStartExecution &&
       (detail.status === 'bestaetigt' ||
@@ -269,6 +280,11 @@ export async function fetchPortalAppointmentDetail(
         detail.status === 'unterwegs' ||
         detail.status === 'angekommen' ||
         detail.status === 'gestartet');
+    const canOpenExecution = shouldNavigateEmployeePortalAssignmentToExecution({
+      status: detail.status,
+      documentationPending: pending.documentationPending,
+      signaturePending: pending.signaturePending,
+    });
     return {
       ok: true,
       data: {
@@ -278,6 +294,7 @@ export async function fetchPortalAppointmentDetail(
         startsAt: detail.plannedStartAt,
         endsAt: detail.plannedEndAt,
         status: assignmentStatusToWorkflowFilter(detail.status),
+        assignmentStatus: detail.status,
         location: detail.locationAddress || null,
         clientId: detail.clientId,
         clientName: detail.clientName,
@@ -285,6 +302,7 @@ export async function fetchPortalAppointmentDetail(
         notes: detail.notesForEmployee || null,
         tasks: detail.tasks.map((task) => task.title),
         canStartExecution: canStart,
+        canOpenExecution,
         executionRoute: `/portal/employee/assignments/${detail.assignmentId}/execute`,
       },
     };
@@ -322,6 +340,7 @@ export async function fetchPortalAppointmentDetail(
     const canStart =
       assignment != null &&
       (assignment.status === 'aktiv' || assignment.status === 'in_bearbeitung');
+    const canOpenExecution = canStart;
 
     return {
       ok: true,
@@ -339,6 +358,7 @@ export async function fetchPortalAppointmentDetail(
         notes: assignment?.notes ?? null,
         tasks: assignment ? (ASSIGNMENT_TASKS[assignment.id] ?? []) : [],
         canStartExecution: canStart,
+        canOpenExecution,
         executionRoute: assignment ? `/portal/employee/assignments/${assignment.id}/execute` : null,
       },
     };

@@ -12,6 +12,10 @@ import {
   buildEmployeePortalOverviewFromAppointments,
 } from '@/lib/portal/employeePortalLiveOverviewService';
 import { fetchEmployeePortalAssignmentDetail } from '@/lib/portal/employeePortalExecutionService';
+import {
+  resolveEmployeePortalAssignmentPendingFlags,
+  shouldNavigateEmployeePortalAssignmentToExecution,
+} from '@/lib/portal/employeePortalAssignmentCompletion';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { isBrowserOffline } from './connectivity';
 import { getStoreRecord, openOfflineDb, putStoreRecord, putSyncMeta } from './idb';
@@ -113,10 +117,24 @@ export function buildPortalDetailFromListItem(
   item: CachedPortalAppointmentItem,
 ): PortalAppointmentDetail {
   const assignmentId = item.id;
+  const assignmentStatus = item.assignmentStatus;
+  const pending = assignmentStatus
+    ? resolveEmployeePortalAssignmentPendingFlags({
+        status: assignmentStatus,
+        assignmentIncomplete: item.assignmentIncomplete,
+      })
+    : { documentationPending: false, signaturePending: false };
   const canStart =
     item.status === 'aktiv' ||
     item.status === 'entwurf' ||
     item.status === 'in_bearbeitung';
+  const canOpenExecution = assignmentStatus
+    ? shouldNavigateEmployeePortalAssignmentToExecution({
+        status: assignmentStatus,
+        documentationPending: pending.documentationPending,
+        signaturePending: pending.signaturePending,
+      })
+    : canStart;
   return {
     id: assignmentId,
     assignmentId,
@@ -124,6 +142,7 @@ export function buildPortalDetailFromListItem(
     startsAt: item.startsAt,
     endsAt: item.endsAt,
     status: item.status,
+    assignmentStatus,
     location: item.location ?? null,
     clientId: item.clientId,
     clientName: item.clientName,
@@ -131,6 +150,7 @@ export function buildPortalDetailFromListItem(
     notes: null,
     tasks: [],
     canStartExecution: canStart,
+    canOpenExecution,
     executionRoute: `/portal/employee/assignments/${assignmentId}/execute`,
   };
 }

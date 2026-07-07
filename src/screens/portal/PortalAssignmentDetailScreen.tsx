@@ -130,9 +130,9 @@ export function PortalAssignmentDetailScreen() {
           {data.clientPhone ? (
             <PremiumButton title="Anrufen" variant="secondary" onPress={handleCall} />
           ) : null}
-          {data.canStartExecution && data.executionRoute && !fromCache ? (
+          {data.canOpenExecution && data.executionRoute && !fromCache ? (
             <PremiumButton
-              title="Einsatz starten"
+              title={data.canStartExecution ? 'Einsatz starten' : 'Zur Durchführung'}
               onPress={() => router.push(data.executionRoute as never)}
             />
           ) : null}

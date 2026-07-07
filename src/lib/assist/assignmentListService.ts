@@ -8,6 +8,7 @@ import {
 } from '@/data/demo/assistAssignments';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
 import { fetchVisitDispositionList } from '@/lib/assist/visitService';
+import { enrichAssignmentListItem } from '@/lib/assist/assignmentCardPresentation';
 import { fetchTripLogList } from '@/lib/assist/tripLogService';
 import type { VisitDispositionListItem } from '@/lib/assist/visitTypes';
 import { enforcePermission } from '@/lib/permissions';
@@ -86,31 +87,34 @@ export async function fetchAssignmentList(
     if (!visitResult.ok) return visitResult;
     return {
       ok: true,
-      data: visitResult.data.map((item) => ({
-        id: item.id,
-        tenantId: item.tenantId,
-        employeeId: item.employeeId,
-        title: item.title,
-        scheduledStart: item.scheduledStart,
-        scheduledEnd: item.scheduledEnd,
-        status: item.status,
-        location: item.location,
-        clientName: item.clientName,
-        employeeName: item.employeeName,
-        updatedAt: item.updatedAt,
-        serviceName: item.serviceName,
-        durationMinutes: item.durationMinutes,
-        planningStatus: item.planningStatus,
-        proofStatus: item.proofStatus,
-        billingStatus: item.billingStatus,
-        isAtRisk: item.isAtRisk,
-        isIncomplete: item.isIncomplete,
-      })),
+      data: visitResult.data.map((item) =>
+        enrichAssignmentListItem({
+          id: item.id,
+          tenantId: item.tenantId,
+          employeeId: item.employeeId,
+          title: item.title,
+          scheduledStart: item.scheduledStart,
+          scheduledEnd: item.scheduledEnd,
+          status: item.status,
+          location: item.location,
+          clientName: item.clientName,
+          employeeName: item.employeeName,
+          updatedAt: item.updatedAt,
+          serviceName: item.serviceName,
+          durationMinutes: item.durationMinutes,
+          assignmentStatus: item.assignmentStatus,
+          planningStatus: item.planningStatus,
+          proofStatus: item.proofStatus,
+          billingStatus: item.billingStatus,
+          isAtRisk: item.isAtRisk,
+          isIncomplete: item.isIncomplete,
+        }),
+      ),
     };
   }
 
   await new Promise((r) => setTimeout(r, 260));
-  return { ok: true, data: getDemoAssignmentListItems() };
+  return { ok: true, data: getDemoAssignmentListItems().map(enrichAssignmentListItem) };
 }
 
 export async function fetchAssistDashboardStats(

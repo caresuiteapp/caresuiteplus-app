@@ -120,8 +120,8 @@ describe('HealthOS H5 Employee Portal Dashboard', () => {
 
   it('view links to execute route for assignments without modifying execute screen', () => {
     const source = readSrc('src/components/healthos/employee/HealthOSEmployeePortalTodayView.tsx');
-    expect(source).toContain('executeRoute');
-    expect(source).toContain('detailRoute');
+    expect(source).toContain('navigationRoute');
+    expect(source).not.toContain('item.isActive ? item.executeRoute');
   });
 
   it('buildEmployeePortalTodayModel exposes all sections from sample data', () => {
@@ -233,6 +233,34 @@ describe('HealthOS H5 Employee Portal Dashboard', () => {
       expect(item.executeRoute).toContain('/portal/employee/assignments/');
       expect(item.executeRoute).toContain('/execute');
       expect(item.detailRoute).toContain('/portal/employee/assignments/');
+      expect(item.navigationRoute).toMatch(/^\/portal\/employee\/assignments\//);
     }
+  });
+
+  it('meineEinsaetze routes documentation-open assignments to execution', () => {
+    const model = buildEmployeePortalTodayModel({
+      dashboard: makeSampleDashboard({
+        todayAssignments: [
+          {
+            assignmentId: 'doc-open',
+            title: 'Haushalt',
+            clientName: 'Max Mustermann',
+            clientId: 'c1',
+            plannedStartAt: '2026-07-07T10:00:00.000Z',
+            plannedEndAt: '2026-07-07T12:00:00.000Z',
+            locationAddress: 'Musterstraße 1',
+            status: 'beendet',
+            canonicalStatus: 'finished',
+            documentationPending: true,
+            signaturePending: false,
+            isLocked: false,
+          },
+        ],
+      }),
+      displayName: 'Test',
+    });
+    expect(model.meineEinsaetze[0]?.navigationRoute).toBe(
+      '/portal/employee/assignments/doc-open/execute',
+    );
   });
 });

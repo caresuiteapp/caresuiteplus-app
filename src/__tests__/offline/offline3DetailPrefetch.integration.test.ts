@@ -232,6 +232,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
         notes: `Notiz ${id}`,
         tasks: [`Task ${id}`],
         canStartExecution: true,
+        canOpenExecution: true,
         executionRoute: `/portal/employee/assignments/${id}/execute`,
       },
     }));
@@ -308,6 +309,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
           notes: null,
           tasks: [],
           canStartExecution: false,
+          canOpenExecution: false,
           executionRoute: null,
         },
       };
@@ -352,6 +354,7 @@ describe('OFFLINE.3 detail prefetch integration', () => {
         notes: null,
         tasks: [],
         canStartExecution: true,
+        canOpenExecution: true,
         executionRoute: '/portal/employee/assignments/asg-1/execute',
       },
     });

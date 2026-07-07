@@ -11,7 +11,9 @@ import {
 import { PremiumBadge } from '@/components/ui';
 import { VisitDispositionBadge } from '@/components/assist/VisitDispositionBadge';
 import type { AssignmentListItem } from '@/types/modules/assist';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import {
+  resolveAssignmentCardBadge,
+} from '@/lib/assist/assignmentCardPresentation';
 import {
   VISIT_BILLING_STATUS_LABELS,
   VISIT_PLANNING_STATUS_LABELS,
@@ -158,31 +160,17 @@ export function StatusBadgesDropdown({ badges }: StatusBadgesDropdownProps) {
   );
 }
 
-function workflowVariant(status: AssignmentListItem['status']): BadgeVariant {
-  switch (status) {
-    case 'aktiv':
-      return 'green';
-    case 'fehlerhaft':
-    case 'gesperrt':
-      return 'red';
-    case 'in_bearbeitung':
-    case 'entwurf':
-      return 'orange';
-    default:
-      return 'muted';
-  }
-}
-
 export function buildAssignmentStatusBadges(assignment: AssignmentListItem): StatusBadgeItem[] {
   const planning = (assignment.planningStatus as VisitPlanningStatus) ?? 'scheduled';
   const proof = (assignment.proofStatus as VisitProofStatus) ?? 'none';
   const billing = (assignment.billingStatus as VisitBillingStatus) ?? 'none';
+  const primaryBadge = resolveAssignmentCardBadge(assignment);
 
   const badges: StatusBadgeItem[] = [
     {
-      id: 'workflow',
-      label: WORKFLOW_STATUS_LABELS[assignment.status],
-      variant: workflowVariant(assignment.status),
+      id: 'assignment',
+      label: primaryBadge.label,
+      variant: primaryBadge.variant,
       kind: 'workflow',
     },
     {

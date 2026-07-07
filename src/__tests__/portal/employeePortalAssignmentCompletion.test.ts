@@ -6,7 +6,9 @@ import {
 import {
   isEmployeePortalAssignmentEditable,
   isEmployeePortalAssignmentLocked,
+  resolveEmployeePortalAssignmentNavigationRoute,
   resolveEmployeePortalAssignmentPendingFlags,
+  shouldNavigateEmployeePortalAssignmentToExecution,
   shouldShowAssignmentInEmployeePortalList,
 } from '@/lib/portal/employeePortalAssignmentCompletion';
 import type { PortalAppointmentItem } from '@/lib/portal/appointmentService';
@@ -117,5 +119,49 @@ describe('employeePortalAssignmentCompletion', () => {
       },
     ]);
     expect(filtered.map((item) => item.id)).toEqual(['done-open-signature']);
+  });
+
+  it('routes open documentation assignments to execution, not detail', () => {
+    expect(
+      shouldNavigateEmployeePortalAssignmentToExecution({
+        status: 'beendet',
+        documentationPending: true,
+      }),
+    ).toBe(true);
+    expect(
+      resolveEmployeePortalAssignmentNavigationRoute({
+        assignmentId: 'assign-doc-open',
+        status: 'dokumentation_offen',
+        documentationPending: true,
+      }),
+    ).toBe('/portal/employee/assignments/assign-doc-open/execute');
+  });
+
+  it('routes open signature assignments to execution', () => {
+    expect(
+      resolveEmployeePortalAssignmentNavigationRoute({
+        assignmentId: 'assign-sig-open',
+        status: 'unterschrift_offen',
+        signaturePending: true,
+      }),
+    ).toBe('/portal/employee/assignments/assign-sig-open/execute');
+  });
+
+  it('routes future planned assignments to detail', () => {
+    expect(
+      resolveEmployeePortalAssignmentNavigationRoute({
+        assignmentId: 'assign-future',
+        status: 'geplant',
+      }),
+    ).toBe('/portal/employee/assignments/assign-future');
+  });
+
+  it('routes active assignments to execution', () => {
+    expect(
+      resolveEmployeePortalAssignmentNavigationRoute({
+        assignmentId: 'assign-active',
+        status: 'gestartet',
+      }),
+    ).toBe('/portal/employee/assignments/assign-active/execute');
   });
 });

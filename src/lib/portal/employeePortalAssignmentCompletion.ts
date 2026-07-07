@@ -18,6 +18,46 @@ export type EmployeePortalAssignmentPendingFlags = {
 
 const TERMINAL_STATUSES = new Set<AssignmentStatus>(['storniert', 'nicht_erschienen']);
 
+const ACTIVE_EMPLOYEE_ASSIGNMENT_STATUSES = new Set<AssignmentStatus>([
+  'bestaetigt',
+  'unterwegs',
+  'angekommen',
+  'gestartet',
+  'pausiert',
+]);
+
+export type EmployeePortalAssignmentNavigationInput = {
+  assignmentId: string;
+  status: AssignmentStatus;
+  documentationPending?: boolean;
+  signaturePending?: boolean;
+};
+
+/** Route to execution when the employee can still document, sign, or continue an active visit. */
+export function shouldNavigateEmployeePortalAssignmentToExecution(
+  input: Omit<EmployeePortalAssignmentNavigationInput, 'assignmentId'>,
+): boolean {
+  if (ACTIVE_EMPLOYEE_ASSIGNMENT_STATUSES.has(input.status)) return true;
+  if (input.documentationPending || input.signaturePending) return true;
+  if (
+    input.status === 'beendet' ||
+    input.status === 'dokumentation_offen' ||
+    input.status === 'unterschrift_offen'
+  ) {
+    return true;
+  }
+  return false;
+}
+
+export function resolveEmployeePortalAssignmentNavigationRoute(
+  input: EmployeePortalAssignmentNavigationInput,
+): string {
+  const base = `/portal/employee/assignments/${input.assignmentId}`;
+  return shouldNavigateEmployeePortalAssignmentToExecution(input)
+    ? `${base}/execute`
+    : base;
+}
+
 function isDocumentationSatisfied(
   input: Pick<
     EmployeePortalAssignmentPendingInput,

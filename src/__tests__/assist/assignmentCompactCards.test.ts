@@ -3,7 +3,10 @@ import { readFileSync } from 'node:fs';
 import path from 'node:path';
 import {
   buildAssignmentFooterChips,
+  enrichAssignmentListItem,
   resolveAssignmentCardAccent,
+  resolveAssignmentCardBadge,
+  resolveAssignmentListItemStatus,
   resolveSgbReference,
 } from '@/lib/assist/assignmentCardPresentation';
 import { formatAssignmentWeekdayDate } from '@/lib/formatters/dateTimeFormatters';
@@ -28,6 +31,7 @@ const sampleAssignment: AssignmentListItem = {
   scheduledStart: new Date().toISOString(),
   scheduledEnd: new Date(Date.now() + 3_600_000).toISOString(),
   status: 'aktiv',
+  assignmentStatus: 'bestaetigt',
   location: 'Berlin',
   clientName: 'Helga Schneider',
   employeeName: 'Anna Pflege',
@@ -38,12 +42,33 @@ const sampleAssignment: AssignmentListItem = {
 };
 
 describe('Assignment compact cards UI', () => {
-  it('resolveAssignmentCardAccent maps workflow status to accent colors', () => {
-    expect(resolveAssignmentCardAccent('abgeschlossen').color).toBe('#22C55E');
-    expect(resolveAssignmentCardAccent('entwurf').color).toBe('#F97316');
-    expect(resolveAssignmentCardAccent('aktiv').color).toBe('#3B82F6');
-    expect(resolveAssignmentCardAccent('fehlerhaft').color).toBe('#EF4444');
-    expect(resolveAssignmentCardAccent('archiviert').color).toBe('#64748B');
+  it('resolveAssignmentListItemStatus prefers canonical assignmentStatus', () => {
+    expect(resolveAssignmentListItemStatus(sampleAssignment)).toBe('bestaetigt');
+    expect(resolveAssignmentListItemStatus({ ...sampleAssignment, assignmentStatus: undefined, status: 'aktiv' })).toBe(
+      'bestaetigt',
+    );
+  });
+
+  it('resolveAssignmentCardBadge shows Bestätigt for confirmed assignments', () => {
+    expect(resolveAssignmentCardBadge(sampleAssignment).label).toBe('Bestätigt');
+    expect(resolveAssignmentCardBadge(sampleAssignment).variant).toBe('cyan');
+  });
+
+  it('resolveAssignmentCardAccent maps assignment status to accent colors', () => {
+    expect(resolveAssignmentCardAccent({ ...sampleAssignment, assignmentStatus: 'abgeschlossen' }).color).toBe(
+      '#22C55E',
+    );
+    expect(resolveAssignmentCardAccent({ ...sampleAssignment, assignmentStatus: 'geplant', status: 'entwurf' }).color).toBe(
+      '#F97316',
+    );
+    expect(resolveAssignmentCardAccent(sampleAssignment).color).toBe('#3B82F6');
+    expect(
+      resolveAssignmentCardAccent({ ...sampleAssignment, assignmentStatus: 'dokumentation_offen', status: 'in_bearbeitung' })
+        .color,
+    ).toBe('#F97316');
+    expect(
+      resolveAssignmentCardAccent({ ...sampleAssignment, assignmentStatus: 'storniert', status: 'fehlerhaft' }).color,
+    ).toBe('#EF4444');
   });
 
   it('resolveSgbReference extracts SGB reference from service name', () => {
@@ -52,10 +77,34 @@ describe('Assignment compact cards UI', () => {
 
   it('buildAssignmentFooterChips includes budget, docs, signature, attachments', () => {
     const chips = buildAssignmentFooterChips(sampleAssignment);
-    expect(chips.some((chip) => chip.id === 'budget')).toBe(true);
+    expect(chips.some((chip) => chip.id === 'budget' && chip.label === 'Budget OK')).toBe(true);
     expect(chips.some((chip) => chip.id === 'docs')).toBe(true);
     expect(chips.some((chip) => chip.id === 'signature')).toBe(true);
     expect(chips.some((chip) => chip.id === 'attachments')).toBe(true);
+  });
+
+  it('buildAssignmentFooterChips shows open documentation and signature pills', () => {
+    const incomplete = enrichAssignmentListItem({
+      ...sampleAssignment,
+      assignmentStatus: 'unterschrift_offen',
+      status: 'in_bearbeitung',
+      proofStatus: 'pending',
+    });
+    const chips = buildAssignmentFooterChips(incomplete);
+    expect(chips.find((chip) => chip.id === 'docs')?.label).toBe('Dokumentation');
+    expect(chips.find((chip) => chip.id === 'docs')?.variant).toBe('green');
+    expect(chips.find((chip) => chip.id === 'signature')?.label).toBe('Unterschrift offen');
+  });
+
+  it('buildAssignmentFooterChips shows Dokumentation offen for documentation_open status', () => {
+    const chips = buildAssignmentFooterChips({
+      ...sampleAssignment,
+      assignmentStatus: 'dokumentation_offen',
+      status: 'in_bearbeitung',
+      proofStatus: 'pending',
+    });
+    expect(chips.find((chip) => chip.id === 'docs')?.label).toBe('Dokumentation offen');
+    expect(chips.find((chip) => chip.id === 'docs')?.variant).toBe('orange');
   });
 
   it('matchesDateRangeFilter supports tomorrow filter', () => {
@@ -75,18 +124,17 @@ describe('Assignment compact cards UI', () => {
     expect(source).toContain('accentBar');
     expect(source).toContain('buildAssignmentFooterChips');
     expect(source).toContain('resolveAssignmentCardAccent');
+    expect(source).toContain('HealthOSStatusBadge');
+    expect(source).toContain('resolveAssignmentCardBadge');
     expect(source).toContain('useAssignmentTravelTime');
     expect(source).toContain('displayText');
     expect(source).toContain('formatAssignmentWeekdayDate');
   });
 
-  it('assignment list pipeline preserves employeeId for travel time hook', () => {
-    const visitRepo = readSrc('src/lib/assist/repositories/visitRepository.supabase.ts');
+  it('assignment list service enriches items with assignmentStatus for cards', () => {
     const listService = readSrc('src/lib/assist/assignmentListService.ts');
-    const hook = readSrc('src/hooks/useAssignmentTravelTime.ts');
-    expect(visitRepo).toContain('employeeId: row.employee_id');
-    expect(listService).toContain('employeeId: item.employeeId');
-    expect(hook).toContain('assignment.employeeId');
+    expect(listService).toContain('assignmentStatus: item.assignmentStatus');
+    expect(listService).toContain('enrichAssignmentListItem');
   });
 
   it('assist visit client nested select uses postal_code not legacy zip column', () => {

@@ -1,5 +1,6 @@
 import type { AssignmentListItem, AssignmentPlan } from '@/types/modules/assist';
 import type { WorkflowStatus } from '@/types';
+import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { demoClients } from './clients';
 import { demoEmployees } from './employees';
 import { DEMO_TENANT_ID } from './tenant';
@@ -33,7 +34,9 @@ function employeeName(employeeId: string): string {
 type AssignmentSeed = Omit<
   AssignmentPlan,
   'clientName' | 'employeeName' | 'nextActionHint' | 'allowedStatusActions'
->;
+> & {
+  assignmentStatus?: AssignmentStatus;
+};
 
 const ASSIGNMENT_SEEDS: AssignmentSeed[] = [
   {
@@ -80,6 +83,7 @@ const ASSIGNMENT_SEEDS: AssignmentSeed[] = [
     scheduledStart: hoursFromNow(-2),
     scheduledEnd: hoursFromNow(0),
     status: 'abgeschlossen',
+    assignmentStatus: 'abgeschlossen',
     location: 'Wedding, Berlin',
     notes: 'Wäsche und Küche erledigt.',
     createdAt: '2026-05-30T08:00:00.000Z',
@@ -97,6 +101,7 @@ const ASSIGNMENT_SEEDS: AssignmentSeed[] = [
     scheduledStart: hoursFromNow(48),
     scheduledEnd: hoursFromNow(50),
     status: 'in_bearbeitung',
+    assignmentStatus: 'dokumentation_offen',
     location: 'Königs Wusterhausen',
     notes: 'Begleitung zum Hausarzt, Rückfahrt inklusive.',
     createdAt: '2026-06-01T08:00:00.000Z',
@@ -147,7 +152,8 @@ const ASSIGNMENT_SEEDS: AssignmentSeed[] = [
     title: 'Abschlussbesuch',
     scheduledStart: hoursFromNow(-5),
     scheduledEnd: hoursFromNow(-3),
-    status: 'abgeschlossen',
+    status: 'in_bearbeitung',
+    assignmentStatus: 'unterschrift_offen',
     location: 'Oranienburg',
     notes: 'Betreuung beendet, Übergabe an Angehörige.',
     createdAt: '2026-05-28T08:00:00.000Z',
@@ -254,6 +260,7 @@ export function getDemoAssignmentListItems(): AssignmentListItem[] {
     scheduledStart: plan.scheduledStart,
     scheduledEnd: plan.scheduledEnd,
     status: plan.status,
+    assignmentStatus: plan.assignmentStatus,
     location: plan.location,
     clientName: clientName(plan.clientId),
     employeeName: employeeName(plan.employeeId),

@@ -1,4 +1,5 @@
 import type { WorkflowStatus } from '../core/base';
+import type { AssignmentStatus } from '../modules/assignmentStatus';
 
 export type PortalEmployeeProfile = {
   employeeId: string;
@@ -41,12 +42,17 @@ export type PortalAppointmentDetail = {
   startsAt: string;
   endsAt: string;
   status: WorkflowStatus;
+  /** Canonical assignment status when available (preferred for employee portal labels). */
+  assignmentStatus?: AssignmentStatus;
   location: string | null;
   clientId: string;
   clientName: string;
   clientPhone: string | null;
   notes: string | null;
   tasks: string[];
+  /** True when the employee may start a new execution flow (pre-visit / active visit). */
   canStartExecution: boolean;
+  /** True when the execution screen should be opened (includes open documentation/signature). */
+  canOpenExecution: boolean;
   executionRoute: string | null;
 };

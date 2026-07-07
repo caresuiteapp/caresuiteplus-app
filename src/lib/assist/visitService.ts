@@ -25,13 +25,14 @@ import type {
   VisitCreateWizardData,
   VisitDispositionDetail,
   VisitDispositionListItem,
+  VisitProofStatus,
 } from '@/lib/assist/visitTypes';
 import { buildVisitRecurrenceJson } from '@/lib/assist/visitTypes';
 import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
 import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import { getAllowedAssignmentTransitions } from '@/lib/assist/assignmentStatusMachine';
 import { dedupeStatusTransitionButtons } from '@/lib/assist/visitWorkflow';
-import { assignmentStatusToDimensions } from '@/lib/assist/visitWorkflow';
+import { assignmentStatusToDimensions, isVisitIncomplete } from '@/lib/assist/visitWorkflow';
 import { buildPlannedTimestamps } from '@/lib/assist/assignmentProductionValidation';
 import { detectAssignmentConflicts } from '@/lib/assist/assignmentConflictService';
 import {
@@ -130,10 +131,18 @@ function demoEmployeeName(employeeId: string): string {
 }
 
 function assignmentListItemToDisposition(item: AssignmentListItem): VisitDispositionListItem {
-  const assignmentStatus = remoteStatusToAssignment(
-    item.status === 'entwurf' ? 'planned' : item.status,
-  );
+  const assignmentStatus =
+    item.assignmentStatus ?? remoteStatusToAssignment(item.status === 'entwurf' ? 'planned' : item.status);
   const dims = assignmentStatusToDimensions(assignmentStatus);
+  const proofStatus = (item.proofStatus as VisitProofStatus | undefined) ?? dims.proof;
+  const isIncomplete =
+    item.isIncomplete ??
+    isVisitIncomplete({
+      documentationStatus: dims.documentation,
+      proofStatus,
+      executionStatus: dims.execution,
+    });
+
   return {
     id: item.id,
     tenantId: item.tenantId,
@@ -146,15 +155,15 @@ function assignmentListItemToDisposition(item: AssignmentListItem): VisitDisposi
     ),
     status: item.status,
     assignmentStatus,
-    planningStatus: dims.planning,
-    proofStatus: dims.proof,
-    billingStatus: dims.billing,
+    planningStatus: (item.planningStatus as VisitDispositionListItem['planningStatus']) ?? dims.planning,
+    proofStatus,
+    billingStatus: (item.billingStatus as VisitDispositionListItem['billingStatus']) ?? dims.billing,
     location: item.location,
     clientName: item.clientName,
     employeeId: item.employeeId ?? null,
     employeeName: item.employeeName,
-    isAtRisk: item.status === 'fehlerhaft',
-    isIncomplete: item.status === 'in_bearbeitung',
+    isAtRisk: item.isAtRisk ?? item.status === 'fehlerhaft',
+    isIncomplete,
     updatedAt: item.updatedAt,
   };
 }

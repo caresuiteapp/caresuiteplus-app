@@ -7,6 +7,7 @@ import { PremiumBadge, PremiumKpiCard, PremiumListHeroFrame } from '@/components
 import { PORTAL_EMPLOYEE_LABEL } from '@/lib/portal/portalDisplayLabels';
 
 import type { PortalAppointmentDetail } from '@/types/portal/employee';
+import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
 import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import { designTokens, spacing } from '@/theme';
 
@@ -39,8 +40,34 @@ function durationMinutes(startsAt: string, endsAt: string): number {
   return Math.max(0, Math.round(ms / 60_000));
 }
 
-function statusVariant(status: string) {
-  switch (status) {
+function resolveStatusLabel(assignment: PortalAppointmentDetail): string {
+  if (assignment.assignmentStatus) {
+    return ASSIGNMENT_STATUS_LABELS[assignment.assignmentStatus] ?? assignment.assignmentStatus;
+  }
+  return WORKFLOW_STATUS_LABELS[assignment.status] ?? assignment.status;
+}
+
+function statusVariant(assignment: PortalAppointmentDetail) {
+  if (assignment.assignmentStatus) {
+    switch (assignment.assignmentStatus) {
+      case 'gestartet':
+      case 'abgeschlossen':
+        return 'green' as const;
+      case 'storniert':
+      case 'nicht_erschienen':
+        return 'red' as const;
+      case 'dokumentation_offen':
+      case 'unterschrift_offen':
+      case 'beendet':
+      case 'pausiert':
+      case 'unterwegs':
+      case 'angekommen':
+        return 'orange' as const;
+      default:
+        return 'muted' as const;
+    }
+  }
+  switch (assignment.status) {
     case 'aktiv':
       return 'green' as const;
     case 'fehlerhaft':
@@ -164,13 +191,16 @@ export function PortalEmployeeAssignmentDetailHero({
       </View>
       <View style={styles.badges}>
         <PremiumBadge
-          label={WORKFLOW_STATUS_LABELS[assignment.status]}
-          variant={statusVariant(assignment.status)}
+          label={resolveStatusLabel(assignment)}
+          variant={statusVariant(assignment)}
           dot
         />
         <PremiumBadge label={PORTAL_EMPLOYEE_LABEL} variant="cyan" />
-        {assignment.canStartExecution ? (
-          <PremiumBadge label="Durchführung möglich" variant="green" />
+        {assignment.canOpenExecution ? (
+          <PremiumBadge
+            label={assignment.canStartExecution ? 'Durchführung möglich' : 'Dokumentation offen'}
+            variant="green"
+          />
         ) : null}
       </View>
       <AdaptiveKpiGrid columns={{ phone: 2, tablet: 2, desktop: 4, wide: 4 }} items={kpiItems} />

@@ -52,6 +52,7 @@ export function EmployeePortalAssignmentPreviewSheet({
   );
 
   const canStartExecution = data?.canStartExecution ?? false;
+  const canOpenExecution = data?.canOpenExecution ?? canStartExecution;
   const executionRoute = data?.executionRoute;
 
   const openRoute = () => {
@@ -153,9 +154,9 @@ export function EmployeePortalAssignmentPreviewSheet({
                 {data.location ? (
                   <PremiumButton title="Route öffnen" variant="secondary" onPress={openRoute} />
                 ) : null}
-                {canStartExecution && executionRoute ? (
+                {canOpenExecution && executionRoute ? (
                   <PremiumButton
-                    title="Zur Durchführung"
+                    title={canStartExecution ? 'Zur Durchführung' : 'Dokumentation fortsetzen'}
                     onPress={() => {
                       onClose();
                       router.push(executionRoute as never);

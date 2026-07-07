@@ -23,6 +23,11 @@ import { usePortalAppointments } from '@/hooks/usePortalAppointments';
 import type { CachedPortalAppointmentItem } from '@/lib/offline/types';
 import { useAuth } from '@/lib/auth/context';
 import { resolvePortalScope } from '@/lib/portal/portalVisibility';
+import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
+import {
+  resolveEmployeePortalAssignmentPendingFlags,
+  shouldNavigateEmployeePortalAssignmentToExecution,
+} from '@/lib/portal/employeePortalAssignmentCompletion';
 import { spacing } from '@/theme';
 
 type PortalAppointmentsTabProps = {
@@ -94,6 +99,26 @@ export function PortalAppointmentsTab({
     );
   }
 
+  const openEmployeeAssignment = (appt: (typeof items)[number]) => {
+    const status = appt.assignmentStatus ?? remoteStatusToAssignment(appt.status);
+    const pending = resolveEmployeePortalAssignmentPendingFlags({
+      status,
+      assignmentIncomplete: appt.assignmentIncomplete,
+    });
+    if (
+      detailBasePath &&
+      shouldNavigateEmployeePortalAssignmentToExecution({
+        status,
+        documentationPending: pending.documentationPending,
+        signaturePending: pending.signaturePending,
+      })
+    ) {
+      router.push(`${detailBasePath}/${appt.id}/execute` as never);
+      return;
+    }
+    setPreviewId(appt.id);
+  };
+
   const listBody = (
     <>
       <PortalTabHero
@@ -136,7 +161,7 @@ export function PortalAppointmentsTab({
                   key={appt.id}
                   appointment={appt}
                   cacheStale={cachedItem.cacheStale}
-                  onPreview={() => setPreviewId(appt.id)}
+                  onPreview={() => openEmployeeAssignment(appt)}
                   onStartTrip={
                     detailBasePath
                       ? () => router.push(`${detailBasePath}/${appt.id}/execute` as never)

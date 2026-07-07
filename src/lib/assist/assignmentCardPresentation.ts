@@ -1,9 +1,14 @@
 import type { AssignmentListItem } from '@/types/modules/assist';
-import type { WorkflowStatus } from '@/types';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
+import {
+  ASSIGNMENT_STATUS_LABELS,
+  type AssignmentStatus,
+} from '@/types/modules/assignmentStatus';
+import { remoteStatusToAssignment } from '@/lib/assist/assignmentStatusBridge';
+import { assignmentStatusToDimensions, isVisitIncomplete } from '@/lib/assist/visitWorkflow';
 import {
   VISIT_BILLING_STATUS_LABELS,
   type VisitBillingStatus,
+  type VisitDocumentationStatus,
   type VisitProofStatus,
 } from '@/lib/assist/visitTypes';
 import { getDemoAssignmentSeedById } from '@/data/demo/assistAssignments';
@@ -15,14 +20,45 @@ export type AssignmentCardAccent = {
   label: string;
 };
 
-const ACCENT_BY_STATUS: Partial<Record<WorkflowStatus, AssignmentCardAccent>> = {
+const BADGE_VARIANT_BY_ASSIGNMENT_STATUS: Record<
+  AssignmentStatus,
+  AssignmentCardBadge['variant']
+> = {
+  geplant: 'muted',
+  bestaetigt: 'cyan',
+  unterwegs: 'orange',
+  angekommen: 'orange',
+  gestartet: 'green',
+  pausiert: 'orange',
+  beendet: 'muted',
+  dokumentation_offen: 'orange',
+  unterschrift_offen: 'orange',
+  abgeschlossen: 'green',
+  storniert: 'red',
+  nicht_erschienen: 'red',
+};
+
+const ACCENT_BY_ASSIGNMENT_STATUS: Partial<Record<AssignmentStatus, AssignmentCardAccent>> = {
+  geplant: { color: '#F97316', tint: 'rgba(249, 115, 22, 0.08)', label: 'Geplant' },
+  bestaetigt: { color: '#3B82F6', tint: 'rgba(59, 130, 246, 0.08)', label: 'Bestätigt' },
+  unterwegs: { color: '#3B82F6', tint: 'rgba(59, 130, 246, 0.08)', label: 'Unterwegs' },
+  angekommen: { color: '#3B82F6', tint: 'rgba(59, 130, 246, 0.08)', label: 'Angekommen' },
+  gestartet: { color: '#3B82F6', tint: 'rgba(59, 130, 246, 0.08)', label: 'Gestartet' },
+  pausiert: { color: '#F97316', tint: 'rgba(249, 115, 22, 0.08)', label: 'Pausiert' },
+  beendet: { color: '#F97316', tint: 'rgba(249, 115, 22, 0.08)', label: 'Beendet' },
+  dokumentation_offen: {
+    color: '#F97316',
+    tint: 'rgba(249, 115, 22, 0.08)',
+    label: 'Dokumentation offen',
+  },
+  unterschrift_offen: {
+    color: '#F97316',
+    tint: 'rgba(249, 115, 22, 0.08)',
+    label: 'Unterschrift offen',
+  },
   abgeschlossen: { color: '#22C55E', tint: 'rgba(34, 197, 94, 0.08)', label: 'Abgeschlossen' },
-  entwurf: { color: '#F97316', tint: 'rgba(249, 115, 22, 0.08)', label: 'Entwurf' },
-  aktiv: { color: '#3B82F6', tint: 'rgba(59, 130, 246, 0.08)', label: 'Aktiv' },
-  in_bearbeitung: { color: '#3B82F6', tint: 'rgba(59, 130, 246, 0.08)', label: 'Aktiv' },
-  fehlerhaft: { color: '#EF4444', tint: 'rgba(239, 68, 68, 0.08)', label: 'Problem' },
-  gesperrt: { color: '#EF4444', tint: 'rgba(239, 68, 68, 0.08)', label: 'Problem' },
-  archiviert: { color: '#64748B', tint: 'rgba(100, 116, 139, 0.08)', label: 'Archiviert' },
+  storniert: { color: '#EF4444', tint: 'rgba(239, 68, 68, 0.08)', label: 'Storniert' },
+  nicht_erschienen: { color: '#EF4444', tint: 'rgba(239, 68, 68, 0.08)', label: 'Nicht erschienen' },
 };
 
 const DEFAULT_ACCENT: AssignmentCardAccent = {
@@ -31,10 +67,58 @@ const DEFAULT_ACCENT: AssignmentCardAccent = {
   label: 'Unbekannt',
 };
 
-export function resolveAssignmentCardAccent(status: WorkflowStatus): AssignmentCardAccent {
-  return ACCENT_BY_STATUS[status] ?? {
-    ...DEFAULT_ACCENT,
-    label: WORKFLOW_STATUS_LABELS[status] ?? status,
+export function resolveAssignmentListItemStatus(assignment: AssignmentListItem): AssignmentStatus {
+  if (assignment.assignmentStatus) return assignment.assignmentStatus;
+  return remoteStatusToAssignment(assignment.status);
+}
+
+export type AssignmentCardBadge = {
+  assignmentStatus: AssignmentStatus;
+  label: string;
+  variant: 'green' | 'orange' | 'red' | 'cyan' | 'muted' | 'purple';
+};
+
+export function resolveAssignmentCardBadge(assignment: AssignmentListItem): AssignmentCardBadge {
+  const assignmentStatus = resolveAssignmentListItemStatus(assignment);
+  return {
+    assignmentStatus,
+    label: ASSIGNMENT_STATUS_LABELS[assignmentStatus],
+    variant: BADGE_VARIANT_BY_ASSIGNMENT_STATUS[assignmentStatus],
+  };
+}
+
+export function resolveAssignmentCardAccent(assignment: AssignmentListItem): AssignmentCardAccent {
+  const assignmentStatus = resolveAssignmentListItemStatus(assignment);
+  return (
+    ACCENT_BY_ASSIGNMENT_STATUS[assignmentStatus] ?? {
+      ...DEFAULT_ACCENT,
+      label: ASSIGNMENT_STATUS_LABELS[assignmentStatus] ?? assignmentStatus,
+    }
+  );
+}
+
+/** Enrich list items with canonical status and disposition dimensions for card rendering. */
+export function enrichAssignmentListItem(item: AssignmentListItem): AssignmentListItem {
+  const assignmentStatus = item.assignmentStatus ?? remoteStatusToAssignment(item.status);
+  const dims = assignmentStatusToDimensions(assignmentStatus);
+  const proofStatus = (item.proofStatus as VisitProofStatus | undefined) ?? dims.proof;
+  const billingStatus = (item.billingStatus as VisitBillingStatus | undefined) ?? dims.billing;
+  const documentationStatus = dims.documentation;
+  const isIncomplete =
+    item.isIncomplete ??
+    isVisitIncomplete({
+      documentationStatus,
+      proofStatus,
+      executionStatus: dims.execution,
+    });
+
+  return {
+    ...item,
+    assignmentStatus,
+    planningStatus: item.planningStatus ?? dims.planning,
+    proofStatus,
+    billingStatus,
+    isIncomplete,
   };
 }
 
@@ -60,13 +144,47 @@ export function resolveAttachmentCount(assignment: AssignmentListItem): number {
   return hash % 4;
 }
 
+function resolveDocumentationState(assignment: AssignmentListItem): {
+  status: VisitDocumentationStatus;
+  complete: boolean;
+  open: boolean;
+} {
+  const assignmentStatus = resolveAssignmentListItemStatus(assignment);
+  const dims = assignmentStatusToDimensions(assignmentStatus);
+  const status = dims.documentation;
+  const complete = status === 'complete';
+  const open =
+    assignmentStatus === 'dokumentation_offen' ||
+    assignmentStatus === 'beendet' ||
+    status === 'open' ||
+    (assignment.isIncomplete === true && !complete);
+  return { status, complete, open };
+}
+
+function resolveSignatureState(assignment: AssignmentListItem): {
+  proof: VisitProofStatus;
+  satisfied: boolean;
+  open: boolean;
+} {
+  const assignmentStatus = resolveAssignmentListItemStatus(assignment);
+  const dims = assignmentStatusToDimensions(assignmentStatus);
+  const proof = (assignment.proofStatus as VisitProofStatus | undefined) ?? dims.proof;
+  const satisfied = proof === 'signed' || proof === 'verified';
+  const open =
+    assignmentStatus === 'unterschrift_offen' ||
+    proof === 'pending' ||
+    proof === 'none' ||
+    (assignment.isIncomplete === true && !satisfied);
+  return { proof, satisfied, open };
+}
+
 export function buildAssignmentFooterChips(assignment: AssignmentListItem): AssignmentFooterChip[] {
-  const proof = (assignment.proofStatus as VisitProofStatus) ?? 'none';
-  const billing = (assignment.billingStatus as VisitBillingStatus) ?? 'none';
+  const enriched = enrichAssignmentListItem(assignment);
+  const billing = (enriched.billingStatus as VisitBillingStatus) ?? 'none';
   const budgetOk =
     billing === 'ready' || billing === 'paid' || billing === 'invoiced' || billing === 'preview';
-  const docComplete = proof === 'verified' || proof === 'signed';
-  const hasSignature = proof === 'signed' || proof === 'verified';
+  const documentation = resolveDocumentationState(enriched);
+  const signature = resolveSignatureState(enriched);
 
   return [
     {
@@ -76,17 +194,21 @@ export function buildAssignmentFooterChips(assignment: AssignmentListItem): Assi
     },
     {
       id: 'docs',
-      label: docComplete ? 'Dokumentation' : assignment.isIncomplete ? 'Doku offen' : 'Dokumentation',
-      variant: docComplete ? 'green' : assignment.isIncomplete ? 'orange' : 'muted',
+      label: documentation.complete
+        ? 'Dokumentation'
+        : documentation.open
+          ? 'Dokumentation offen'
+          : 'Dokumentation',
+      variant: documentation.complete ? 'green' : documentation.open ? 'orange' : 'muted',
     },
     {
       id: 'signature',
-      label: hasSignature ? 'Unterschrift' : 'Unterschrift offen',
-      variant: hasSignature ? 'green' : 'muted',
+      label: signature.satisfied ? 'Unterschrift' : 'Unterschrift offen',
+      variant: signature.satisfied ? 'green' : signature.open ? 'muted' : 'muted',
     },
     {
       id: 'attachments',
-      label: `Anhänge ${resolveAttachmentCount(assignment)}`,
+      label: `Anhänge ${resolveAttachmentCount(enriched)}`,
       variant: 'cyan',
     },
   ];

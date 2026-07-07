@@ -1,15 +1,16 @@
 import { Platform, Pressable, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { useMemo, useState } from 'react';
 import { PremiumBadge, PremiumButton, PremiumCard } from '@/components/ui';
+import { HealthOSStatusBadge } from '@/components/healthos';
 import { AssignmentCardHoverDetails } from '@/components/assist/AssignmentCardHoverDetails';
 import {
   buildAssignmentFooterChips,
   resolveAssignmentCardAccent,
+  resolveAssignmentCardBadge,
   resolveSgbReference,
 } from '@/lib/assist/assignmentCardPresentation';
 import { useAssignmentTravelTime } from '@/hooks/useAssignmentTravelTime';
 import type { AssignmentListItem } from '@/types/modules/assist';
-import { WORKFLOW_STATUS_LABELS } from '@/types/workflow/status';
 import {
   formatAssignmentTimeRange,
   formatAssignmentWeekdayDate,
@@ -44,7 +45,8 @@ export function AssignmentCompactCard({
 }: AssignmentCompactCardProps) {
   const text = useAuroraAdaptiveText();
   const accentModule = moduleColor('assist');
-  const statusAccent = resolveAssignmentCardAccent(assignment.status);
+  const statusAccent = resolveAssignmentCardAccent(assignment);
+  const statusBadge = resolveAssignmentCardBadge(assignment);
   const footerChips = buildAssignmentFooterChips(assignment);
   const sgbRef = resolveSgbReference(assignment);
   const travelTime = useAssignmentTravelTime(assignment);
@@ -147,19 +149,9 @@ export function AssignmentCompactCard({
       <View style={styles.inner}>
         <View style={styles.headerRow}>
           <Text style={styles.clientName}>{assignment.clientName}</Text>
-          <PremiumBadge
-            label={WORKFLOW_STATUS_LABELS[assignment.status]}
-            variant={
-              assignment.status === 'abgeschlossen'
-                ? 'green'
-                : assignment.status === 'entwurf' || assignment.status === 'in_bearbeitung'
-                  ? 'orange'
-                  : assignment.status === 'aktiv'
-                    ? 'cyan'
-                    : assignment.status === 'fehlerhaft' || assignment.status === 'gesperrt'
-                      ? 'red'
-                      : 'muted'
-            }
+          <HealthOSStatusBadge
+            domain="assignment"
+            technicalValue={statusBadge.assignmentStatus}
             dot
           />
         </View>

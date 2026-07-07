@@ -269,6 +269,7 @@ function makePortalDetail(id: string, title: string): PortalAppointmentDetail {
     notes: `Notiz ${id}`,
     tasks: [`Task ${id}`],
     canStartExecution: true,
+    canOpenExecution: true,
     executionRoute: `/portal/employee/execute/${id}`,
   };
 }

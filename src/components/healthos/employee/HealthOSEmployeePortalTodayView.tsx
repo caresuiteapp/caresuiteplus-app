@@ -109,11 +109,13 @@ function AssignmentList({
               <Text style={[styles.actionLabel, { color: accentColor }]}>Aktiv</Text>
             ) : item.hasOpenDocumentation ? (
               <Text style={[styles.actionLabel, { color: accentColor }]}>Dok. offen</Text>
+            ) : item.signaturePending ? (
+              <Text style={[styles.actionLabel, { color: accentColor }]}>Unterschr. offen</Text>
             ) : undefined
           }
           showChevron
           showDivider={index < assignments.length - 1}
-          onPress={() => onNavigate(item.isActive ? item.executeRoute : item.detailRoute)}
+          onPress={() => onNavigate(item.navigationRoute)}
         />
       ))}
     </View>

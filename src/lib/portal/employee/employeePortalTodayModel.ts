@@ -6,6 +6,7 @@ import {
   isDocumentationPendingEmployeeAssignment,
   resolveDashboardCurrentAssignment,
 } from '@/lib/portal/employeePortalLiveOverviewService';
+import { resolveEmployeePortalAssignmentNavigationRoute } from '@/lib/portal/employeePortalAssignmentCompletion';
 
 // ─── Exported types ───────────────────────────────────────────────────────────
 
@@ -26,8 +27,10 @@ export type EmployeePortalTodayAssignment = {
   statusTechnical: string;
   isActive: boolean;
   hasOpenDocumentation: boolean;
+  signaturePending: boolean;
   executeRoute: string;
   detailRoute: string;
+  navigationRoute: string;
 };
 
 export type EmployeePortalTodayTask = {
@@ -115,6 +118,10 @@ function formatTimeRange(start: string, end: string): string {
 function toTodayAssignment(
   item: EmployeePortalAssignmentListItem,
 ): EmployeePortalTodayAssignment {
+  const hasOpenDocumentation =
+    item.documentationPending || isDocumentationPendingEmployeeAssignment(item.status);
+  const executeRoute = `/portal/employee/assignments/${item.assignmentId}/execute`;
+  const detailRoute = `/portal/employee/assignments/${item.assignmentId}`;
   return {
     assignmentId: item.assignmentId,
     title: item.title,
@@ -122,10 +129,16 @@ function toTodayAssignment(
     timeRange: formatTimeRange(item.plannedStartAt, item.plannedEndAt),
     statusTechnical: String(item.status),
     isActive: isActiveEmployeeAssignment(item.status),
-    hasOpenDocumentation:
-      item.documentationPending || isDocumentationPendingEmployeeAssignment(item.status),
-    executeRoute: `/portal/employee/assignments/${item.assignmentId}/execute`,
-    detailRoute: `/portal/employee/assignments/${item.assignmentId}`,
+    hasOpenDocumentation,
+    signaturePending: item.signaturePending,
+    executeRoute,
+    detailRoute,
+    navigationRoute: resolveEmployeePortalAssignmentNavigationRoute({
+      assignmentId: item.assignmentId,
+      status: item.status,
+      documentationPending: hasOpenDocumentation,
+      signaturePending: item.signaturePending,
+    }),
   };
 }
 
