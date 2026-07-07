@@ -40,6 +40,24 @@ export function insertSignatureFieldIntoHtml(
   return `${html.trim()}\n${block}`;
 }
 
+/** Wrap fragment HTML for iframe preview (Schreiben / Vorlage). */
+export function wrapSignatureDocumentPreviewHtml(bodyHtml: string): string {
+  const body = bodyHtml.trim() || '<p>Keine Vorschau.</p>';
+  return `<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <style>
+    body { font-family: Arial, sans-serif; color: #111; padding: 16px; max-width: 800px; margin: 0 auto; line-height: 1.5; }
+    .portal-signature-field, .cs-block-signature {
+      border: 1px dashed #64748b; padding: 12px; margin-top: 16px; background: #f8fafc; border-radius: 8px;
+    }
+  </style>
+</head>
+<body>${body}</body>
+</html>`;
+}
+
 export function parseSignatureFieldsFromHtml(html: string): PortalSignatureFieldMarker[] {
   if (!html.trim()) return [];
 

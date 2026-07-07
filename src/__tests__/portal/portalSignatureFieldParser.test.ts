@@ -5,6 +5,7 @@ import {
   inferSignatureRequirementFromFields,
   insertSignatureFieldIntoHtml,
   parseSignatureFieldsFromHtml,
+  wrapSignatureDocumentPreviewHtml,
 } from '@/lib/portal/portalSignatureFieldParser';
 
 describe('portalSignatureFieldParser', () => {
@@ -32,5 +33,11 @@ describe('portalSignatureFieldParser', () => {
   it('defaults to employee requirement for employee-only fields', () => {
     const fields = parseSignatureFieldsFromHtml(buildEmployeeSignatureFieldBlock());
     expect(inferSignatureRequirementFromFields(fields)).toBe('employee');
+  });
+
+  it('wraps fragment html for iframe preview', () => {
+    const wrapped = wrapSignatureDocumentPreviewHtml('<p>Test</p>');
+    expect(wrapped).toContain('<!DOCTYPE html>');
+    expect(wrapped).toContain('<p>Test</p>');
   });
 });

@@ -5,6 +5,7 @@ import { C14vSubpageShell } from '@/components/layout/C14vSubpageShell';
 import { AuroraSegmentedControl } from '@/components/aurora';
 import { CsDocumentRequestCard } from '@/components/office/documentSignatures/CsDocumentRequestCard';
 import { CsDocumentSendWizard } from '@/components/office/documentSignatures/CsDocumentSendWizard';
+import { OfficeSignatureDocumentComposer } from '@/components/office/OfficeSignatureDocumentComposer';
 import {
   EmptyState,
   ErrorState,
@@ -15,6 +16,7 @@ import {
 } from '@/components/ui';
 import { moduleColor } from '@/design/tokens/modules';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
+import { useOfficeDocumentSignatures } from '@/hooks/useOfficeDocumentSignatures';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
@@ -25,6 +27,11 @@ import {
   type CsDocumentRequestTab,
 } from '@/lib/documents/csTemplates';
 import type { CsRecipientScope } from '@/types/documents/csTemplateDatabase';
+import {
+  PORTAL_SIGNATURE_PRIORITY_LABELS,
+  PORTAL_SIGNATURE_STATUS_LABELS,
+  PORTAL_SIGNATURE_DOCUMENT_TYPE_LABELS,
+} from '@/types/portal/documentSignatures';
 import { typography } from '@/theme';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { spacing } from '@/theme';
@@ -36,6 +43,8 @@ const TAB_OPTIONS: { key: CsDocumentRequestTab; label: string }[] = [
   { key: 'all', label: 'Alle' },
   { key: 'templates', label: 'Vorlagen' },
 ];
+
+type SendMode = 'template' | 'compose';
 
 export function CsOfficeDocumentSignaturesScreen() {
   const router = useRouter();
@@ -50,6 +59,11 @@ export function CsOfficeDocumentSignaturesScreen() {
 
   const canView = can('office.documents.view' as never);
   const canSend = can('documents.create' as never);
+  const canCompose = can('office.documents.signatures.manage' as never);
+
+  const [sendMode, setSendMode] = useState<SendMode>('template');
+  const { items: portalSignatureDocs, compose, refresh: refreshPortalSignatures } =
+    useOfficeDocumentSignatures();
 
   const requestsQuery = useAsyncQuery(
     useCallback(async () => {
@@ -69,12 +83,22 @@ export function CsOfficeDocumentSignaturesScreen() {
     { enabled: !!tenantId },
   );
 
+  const openPortalDocs = useMemo(
+    () =>
+      portalSignatureDocs.filter((doc) =>
+        ['new', 'open', 'in_progress', 'partially_signed'].includes(doc.status),
+      ),
+    [portalSignatureDocs],
+  );
+
   const styles = useMemo(
     () =>
       StyleSheet.create({
         list: { gap: spacing.sm },
         templateTitle: { ...typography.body, fontWeight: '600', color: text.primary },
         templateMeta: { ...typography.caption, color: text.muted, marginTop: spacing.xs },
+        cardHeader: { flexDirection: 'row', justifyContent: 'space-between', gap: spacing.sm },
+        cardTitle: { ...typography.body, fontWeight: '700', flex: 1, color: text.primary },
       }),
     [text],
   );
@@ -146,6 +170,7 @@ export function CsOfficeDocumentSignaturesScreen() {
             onPress: () => {
               void requestsQuery.refresh();
               void templatesQuery.refresh();
+              void refreshPortalSignatures();
             },
             variant: 'ghost' as const,
           },
@@ -180,15 +205,40 @@ export function CsOfficeDocumentSignaturesScreen() {
               </View>
             )}
           </SectionPanel>
-        ) : (requestsQuery.data ?? []).length === 0 ? (
+        ) : (requestsQuery.data ?? []).length === 0 && openPortalDocs.length === 0 ? (
           <EmptyState
             title="Keine Dokumentanforderungen"
-            message="Senden Sie eine Vorlage an Mitarbeiterportal oder Klient:innenportal."
+            message="Senden Sie eine Vorlage oder ein freies Dokument (Schreiben/PDF) an das Mitarbeiterportal."
             actionLabel={canSend && !isReadOnly ? 'Neues Dokument senden' : undefined}
             onAction={canSend && !isReadOnly ? () => setSendVisible(true) : undefined}
           />
         ) : (
           <View style={styles.list}>
+            {openPortalDocs.length > 0 ? (
+              <SectionPanel title="Freie Portal-Dokumente" subtitle="Schreiben, PDF oder Office-Vorlage">
+                {openPortalDocs.map((doc) => (
+                  <PremiumCard key={doc.id} accentColor={officeAccent}>
+                    <View style={styles.cardHeader}>
+                      <Text style={styles.cardTitle}>{doc.title}</Text>
+                      <PremiumBadge
+                        label={PORTAL_SIGNATURE_STATUS_LABELS[doc.status]}
+                        variant="cyan"
+                      />
+                    </View>
+                    <Text style={styles.templateMeta}>
+                      {PORTAL_SIGNATURE_DOCUMENT_TYPE_LABELS[doc.documentType]}
+                      {doc.documentSourceType === 'office_write' ? ' · Schreiben' : ''}
+                      {doc.documentSourceType === 'pdf_upload' ? ' · PDF' : ''}
+                      {' · '}
+                      {doc.signatureFields.length} Signaturfeld(er)
+                    </Text>
+                    <Text style={styles.templateMeta}>
+                      Priorität: {PORTAL_SIGNATURE_PRIORITY_LABELS[doc.priority]}
+                    </Text>
+                  </PremiumCard>
+                ))}
+              </SectionPanel>
+            ) : null}
             {(requestsQuery.data ?? []).map((item) => (
               <CsDocumentRequestCard
                 key={item.id}
@@ -201,14 +251,45 @@ export function CsOfficeDocumentSignaturesScreen() {
       </C14vSubpageShell>
 
       <Modal visible={sendVisible} animationType="slide" onRequestClose={() => setSendVisible(false)}>
-        <ScrollView style={{ flex: 1, backgroundColor: '#0f172a' }}>
-          <CsDocumentSendWizard
-            tenantId={tenantId ?? ''}
-            templates={templatesQuery.data ?? []}
-            officeUserName={profile?.displayName}
-            onSend={handleSend}
-            onClose={() => setSendVisible(false)}
-          />
+        <ScrollView style={{ flex: 1, backgroundColor: '#0f172a', padding: spacing.md }}>
+          {canCompose ? (
+            <>
+              <Text style={{ ...typography.caption, color: '#94a3b8', marginBottom: spacing.sm }}>
+                Sendemodus
+              </Text>
+              <AuroraSegmentedControl
+                options={[
+                  { key: 'template', label: 'Systemvorlage' },
+                  { key: 'compose', label: 'Schreiben / PDF' },
+                ]}
+                value={sendMode}
+                onChange={(key) => setSendMode(key as SendMode)}
+              />
+            </>
+          ) : null}
+          {sendMode === 'compose' && canCompose ? (
+            <OfficeSignatureDocumentComposer
+              accentColor={officeAccent}
+              onCancel={() => setSendVisible(false)}
+              onSubmit={async (input) => {
+                const result = await compose(input);
+                if (result.ok) {
+                  setSendVisible(false);
+                  setTab('open');
+                  await refreshPortalSignatures();
+                }
+                return result.ok ? { ok: true } : { ok: false, error: result.error };
+              }}
+            />
+          ) : (
+            <CsDocumentSendWizard
+              tenantId={tenantId ?? ''}
+              templates={templatesQuery.data ?? []}
+              officeUserName={profile?.displayName}
+              onSend={handleSend}
+              onClose={() => setSendVisible(false)}
+            />
+          )}
         </ScrollView>
       </Modal>
     </>

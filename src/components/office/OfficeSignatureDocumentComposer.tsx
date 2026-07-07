@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import * as DocumentPicker from 'expo-document-picker';
 import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AuroraSegmentedControl } from '@/components/aurora';
@@ -14,6 +14,7 @@ import {
   inferSignatureRequirementFromFields,
   insertSignatureFieldIntoHtml,
   parseSignatureFieldsFromHtml,
+  wrapSignatureDocumentPreviewHtml,
 } from '@/lib/portal/portalSignatureFieldParser';
 import type { ComposeOfficeSignatureDocumentInput } from '@/lib/portal/officeSignatureDocumentComposerService';
 import type { DocumentEngineTemplateListItem } from '@/types/documents/documentEngine';
@@ -120,6 +121,8 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
   const [pdfBase64, setPdfBase64] = useState<string | null>(null);
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const sourceTabRef = useRef(sourceTab);
+  sourceTabRef.current = sourceTab;
 
   const { templates, loading: templatesLoading } = useDocumentModuleTemplates({
     tenantId,
@@ -169,7 +172,7 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
   }, [signatureFields]);
 
   const loadTemplatePreview = useCallback(async () => {
-    if (!tenantId || !selectedTemplate) return;
+    if (!tenantId || !selectedTemplate || sourceTabRef.current !== 'template') return;
     setTemplateLoading(true);
     setError(null);
     const entityType: DocumentEntityType = recipientType === 'client' && clientId ? 'client' : 'client';
@@ -182,12 +185,22 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
       entityId,
     );
     setTemplateLoading(false);
+    if (sourceTabRef.current !== 'template') return;
     if (!built.ok) {
       setError(built.error);
       return;
     }
-    setHtmlContent(built.data);
+    setHtmlContent(built.html);
   }, [tenantId, selectedTemplate, recipientType, clientId, profile?.roleKey]);
+
+  const handleSourceTabChange = useCallback((key: string) => {
+    const next = key as SourceTab;
+    if (next === 'office_write') {
+      setHtmlContent(DEFAULT_WRITE_HTML);
+      setError(null);
+    }
+    setSourceTab(next);
+  }, []);
 
   useEffect(() => {
     if (sourceTab === 'template' && selectedTemplate && tenantId) {
@@ -227,9 +240,17 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
     }
   };
 
-  const insertSignatureField = (role: 'employee' | 'client') => {
-    setHtmlContent((current) => insertSignatureFieldIntoHtml(current, role));
-  };
+  const insertSignatureField = useCallback((role: 'employee' | 'client') => {
+    setHtmlContent((current) => {
+      const base = current?.trim() ? current : DEFAULT_WRITE_HTML;
+      return insertSignatureFieldIntoHtml(base, role);
+    });
+  }, []);
+
+  const previewHtml = useMemo(
+    () => wrapSignatureDocumentPreviewHtml(htmlContent),
+    [htmlContent],
+  );
 
   const handleSubmit = async () => {
     setError(null);
@@ -251,6 +272,10 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
     }
     if (sourceTab !== 'pdf_upload' && !htmlContent.trim()) {
       setError('Bitte Dokumentinhalt erstellen oder Vorlage laden.');
+      return;
+    }
+    if (sourceTab === 'office_write' && signatureFields.length === 0) {
+      setError('Bitte mindestens ein Signaturfeld einfügen.');
       return;
     }
 
@@ -296,7 +321,7 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
           { key: 'office_write', label: 'Schreiben' },
         ]}
         value={sourceTab}
-        onChange={(key) => setSourceTab(key as SourceTab)}
+        onChange={handleSourceTabChange}
       />
 
       <PremiumInput label="Dokumenttitel" value={title} onChangeText={setTitle} />
@@ -374,7 +399,10 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
 
       {sourceTab === 'office_write' ? (
         <View style={styles.section}>
-          <Text style={styles.label}>Dokumentinhalt (HTML)</Text>
+          <Text style={styles.label}>Dokumentinhalt</Text>
+          <Text style={styles.hint}>
+            Text bearbeiten und anschließend die Signaturfelder einfügen — die markierten Stellen erscheinen in der Vorschau.
+          </Text>
           <TextInput
             style={styles.editor}
             multiline
@@ -414,10 +442,7 @@ export function OfficeSignatureDocumentComposer({ accentColor, onCancel, onSubmi
       {sourceTab !== 'pdf_upload' || signatureFields.length > 0 ? (
         <View style={styles.section}>
           <Text style={styles.label}>Vorschau</Text>
-          <DocumentHtmlPreview
-            title={title || 'Dokument'}
-            previewHtml={htmlContent || '<p>Keine Vorschau.</p>'}
-          />
+          <DocumentHtmlPreview title={title || 'Dokument'} previewHtml={previewHtml} />
         </View>
       ) : null}
 
