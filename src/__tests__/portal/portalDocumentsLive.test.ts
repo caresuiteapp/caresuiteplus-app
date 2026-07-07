@@ -35,6 +35,10 @@ describe('Portal documents live wiring', () => {
     expect(live).toContain('enrichClientDocumentWithIntakeRows');
     expect(live).toContain('viewReady');
     expect(live).not.toContain('demoPortalDocuments');
+    expect(live).toContain('signature_required');
+    expect(live).toContain('signed_at');
+    expect(live).toContain("String(row.source ?? '') === 'assist_visit_proof'");
+    expect(live).toContain('fetchAssistProofPortalDocumentDetail');
   });
 
   it('portal list uses resolved German titles and intake HTML enrichment', () => {
