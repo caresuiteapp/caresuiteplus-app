@@ -281,3 +281,24 @@ Neue Gate-Tests: Employee-Backfill ohne Snapshot, Logo-Backfill ohne Snapshot, e
 ### 7. Ergebnis
 
 **Restrisiko Enrichment-Lücke geschlossen** — kein aktiver Runtime-Pfad rendert mehr ohne DB-Backfill, wenn Logo/Mitarbeiter verfügbar sind.
+
+---
+
+## Restkorrektur Zeitraum-Format
+
+**Datum:** 2026-07-07  
+**Problem:** „Geplanter Zeitraum“ zeigte am gleichen Tag doppeltes Datum (`06.07.2026, 14:00 – 06.07.2026, 17:00`).
+
+**Lösung:** Zentraler Display-Helper `formatVisitProofDateTimeRange` in `visitProofDateTimeFormat.ts`.
+
+| Fall | Format |
+|------|--------|
+| Gleicher Tag | `06.07.2026, 14:00–17:00` |
+| Unterschiedliche Tage | `06.07.2026, 22:00 – 07.07.2026, 02:00` |
+| Nur Start | `06.07.2026, 14:00` |
+| Nur Ende | `bis 06.07.2026, 17:00` |
+| Keine Angabe | `Nicht dokumentiert` |
+
+**Angebunden in:** `assistProofPdfPayload.ts`, `buildServiceRecordHtml.ts`, `serviceProofLayoutAdapter.ts`, `visitProofSnapshotPreviewService.ts` (Termin-Feld).
+
+**Keine Änderung** an Signaturen, Ist-Zeiten, Aufgabenlogik oder Produktionsdaten — nur Anzeigeformat.

@@ -7,6 +7,7 @@ import {
   buildServiceProofDocumentHtml,
   mapServiceProofTasks,
 } from '@/lib/documents/serviceProofLayoutAdapter';
+import { formatVisitProofDateTimeRange } from '@/lib/assist/visitProofDateTimeFormat';
 import {
   createServiceProofDraft,
   patchServiceProofForTest,
@@ -40,6 +41,14 @@ function baseProof(overrides: Partial<ServiceProofRecord> = {}): ServiceProofRec
   });
 }
 
+describe('formatVisitProofDateTimeRange service proof parity', () => {
+  it('matches assist layout for same-day deployment times', () => {
+    expect(formatVisitProofDateTimeRange('2026-06-15T09:00:00', '2026-06-15T10:30:00')).toBe(
+      '15.06.2026, 09:00–10:30',
+    );
+  });
+});
+
 describe('serviceProofDocumentService layout v2', () => {
   beforeEach(() => {
     resetServiceProofDocumentStore();
@@ -47,6 +56,18 @@ describe('serviceProofDocumentService layout v2', () => {
 
   afterEach(() => {
     resetServiceProofDocumentStore();
+  });
+
+  it('renders same-day planned range without duplicate date in Geplanter Zeitraum', () => {
+    const html = buildServiceProofDocumentHtml(
+      baseProof({
+        deploymentDate: '2026-07-06',
+        startTime: '14:00',
+        endTime: '17:00',
+      }),
+    );
+    expect(html).toContain('Geplanter Zeitraum</span><span>06.07.2026, 14:00–17:00</span>');
+    expect(html).not.toContain('06.07.2026, 14:00 – 06.07.2026, 17:00');
   });
 
   it('all tasks completed — compact box, no task table, no workflow steps', () => {

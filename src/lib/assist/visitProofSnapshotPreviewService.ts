@@ -21,6 +21,7 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { VISIT_TASK_STATUS_LABELS, type VisitTaskStatus } from '@/lib/assist/visitTypes';
 import type { VisitProofPreview, VisitProofPreviewTaskItem } from '@/lib/assist/visitProofPreviewService';
 import type { VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
+import { formatVisitProofDateTimeRange } from '@/lib/assist/visitProofDateTimeFormat';
 import {
   loadVisitProofBrandingForTenant,
   resolveVisitProofEmployeeName,
@@ -341,12 +342,7 @@ export function buildVisitProofPreviewFromProof(
     { label: 'Leistung', value: serviceName, required: true, missing: !serviceName.trim() },
     {
       label: 'Termin',
-      value:
-        scheduledStart && scheduledEnd
-          ? `${formatDateTime(scheduledStart)} – ${formatDateTime(scheduledEnd)}`
-          : scheduledStart
-            ? formatDateTime(scheduledStart)
-            : '—',
+      value: formatVisitProofDateTimeRange(scheduledStart, scheduledEnd),
       required: true,
       missing: !scheduledStart,
     },

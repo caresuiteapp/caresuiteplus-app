@@ -14,6 +14,7 @@ import {
   resolveVisitProofEmployeeName,
   type VisitProofBrandingInput,
 } from '@/lib/assist/visitProofBranding';
+import { formatVisitProofDateTimeRange } from '@/lib/assist/visitProofDateTimeFormat';
 import { buildVisitProofLayoutHtml } from '@/lib/assist/visitProofPdfLayout';
 import {
   buildVisitProofTasksPresentation,
@@ -125,7 +126,7 @@ export function buildServiceRecordHtml(input: ServiceRecordContentInput): string
       ? `<p style="margin:0;color:#6b7280;font-style:italic;font-size:12px;">Keine gezeichnete Unterschrift gespeichert.</p>`
       : '';
 
-  const plannedRange = `${formatDateTime(detail.plannedStartAt)} – ${formatDateTime(detail.plannedEndAt)}`;
+  const plannedRange = formatVisitProofDateTimeRange(detail.plannedStartAt, detail.plannedEndAt);
 
   return buildVisitProofLayoutHtml({
     title: `Leistungsnachweis — ${serviceName ?? detail.title}`,

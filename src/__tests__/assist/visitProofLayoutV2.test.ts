@@ -13,6 +13,7 @@ import {
   resolveVisitProofTaskStatusLabel,
 } from '@/lib/assist/visitProofTaskPresentation';
 import { resolveVisitProofBranding, resolveVisitProofEmployeeName } from '@/lib/assist/visitProofBranding';
+import { formatVisitProofDateTimeRange } from '@/lib/assist/visitProofDateTimeFormat';
 import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
 
 function sampleProof(overrides: Partial<AssistVisitProofRow> = {}): AssistVisitProofRow {
@@ -138,7 +139,41 @@ describe('visitProofTaskPresentation', () => {
   });
 });
 
+describe('formatVisitProofDateTimeRange', () => {
+  it('collapses same-day range to single date with time span', () => {
+    expect(formatVisitProofDateTimeRange('2026-07-06T14:00:00', '2026-07-06T17:00:00')).toBe(
+      '06.07.2026, 14:00–17:00',
+    );
+  });
+
+  it('keeps full datetimes for cross-day range', () => {
+    expect(formatVisitProofDateTimeRange('2026-07-06T22:00:00', '2026-07-07T02:00:00')).toBe(
+      '06.07.2026, 22:00 – 07.07.2026, 02:00',
+    );
+  });
+
+  it('formats start-only, end-only, and missing ranges', () => {
+    expect(formatVisitProofDateTimeRange('2026-07-06T14:00:00', null)).toBe('06.07.2026, 14:00');
+    expect(formatVisitProofDateTimeRange(null, '2026-07-06T17:00:00')).toBe('bis 06.07.2026, 17:00');
+    expect(formatVisitProofDateTimeRange(null, null)).toBe('Nicht dokumentiert');
+  });
+});
+
 describe('buildAssistProofPdfPayload layout v2', () => {
+  it('renders same-day planned range without duplicate date in Geplanter Zeitraum', () => {
+    const payload = buildAssistProofPdfPayload(
+      sampleProof({
+        payloadSnapshot: {
+          ...sampleProof().payloadSnapshot,
+          scheduledStart: '2026-07-06T14:00:00',
+          scheduledEnd: '2026-07-06T17:00:00',
+        },
+      }),
+    );
+    expect(payload.html).toContain('Geplanter Zeitraum</span><span>06.07.2026, 14:00–17:00</span>');
+    expect(payload.html).not.toContain('06.07.2026, 14:00 – 06.07.2026, 17:00');
+  });
+
   it('renders all-completed compact tasks section without task table rows', () => {
     const payload = buildAssistProofPdfPayload(sampleProof(), {
       tasks: [

@@ -14,6 +14,7 @@ import {
   resolveVisitProofBranding,
   resolveVisitProofEmployeeName,
 } from '@/lib/assist/visitProofBranding';
+import { formatVisitProofDateTimeRange } from '@/lib/assist/visitProofDateTimeFormat';
 import { buildVisitProofLayoutHtml } from '@/lib/assist/visitProofPdfLayout';
 import {
   buildVisitProofTasksPresentation,
@@ -258,12 +259,7 @@ export function buildAssistProofPdfPayload(
   const signatureEmptyMessage =
     !signatureImageUrl && !signerName && !signedAt ? 'Keine Signatur hinterlegt' : null;
 
-  const plannedRange =
-    scheduledStart && scheduledEnd
-      ? `${formatDateTime(scheduledStart)} – ${formatDateTime(scheduledEnd)}`
-      : scheduledStart
-        ? formatDateTime(scheduledStart)
-        : '—';
+  const plannedRange = formatVisitProofDateTimeRange(scheduledStart, scheduledEnd);
 
   const html = buildVisitProofLayoutHtml({
     title: `Leistungsnachweis — ${serviceName}`,

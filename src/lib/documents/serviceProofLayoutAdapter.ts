@@ -9,6 +9,10 @@ import {
   type VisitProofBrandingInput,
 } from '@/lib/assist/visitProofBranding';
 import {
+  formatVisitProofDateTimeRange,
+  toVisitProofLocalDateTimeIso,
+} from '@/lib/assist/visitProofDateTimeFormat';
+import {
   buildVisitProofLayoutHtml,
   type VisitProofSignatureBlock,
 } from '@/lib/assist/visitProofPdfLayout';
@@ -171,7 +175,10 @@ export function mapServiceProofDocumentToVisitProofLayoutInput(
     },
   );
 
-  const plannedRange = `${formatGermanDate(proof.deploymentDate)} · ${proof.startTime} – ${proof.endTime}`;
+  const plannedRange = formatVisitProofDateTimeRange(
+    toVisitProofLocalDateTimeIso(proof.deploymentDate, proof.startTime),
+    toVisitProofLocalDateTimeIso(proof.deploymentDate, proof.endTime),
+  );
   const serviceDate = formatGermanDate(proof.deploymentDate);
 
   const signatureMetaParts: string[] = [];
