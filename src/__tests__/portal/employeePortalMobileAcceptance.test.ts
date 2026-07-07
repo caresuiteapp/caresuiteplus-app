@@ -144,8 +144,7 @@ describe('employee portal mobile acceptance fixes', () => {
     expect(panel).toContain('modalVisible ?');
     expect(panel).toContain('openSignatureModal');
     expect(panel).toContain('onModalOpenChangeRef');
-    expect(panel).toContain('requestLandscapeLock');
-    expect(panel).toContain('tryFullscreen: true');
+    expect(panel).not.toContain('tryFullscreen: true');
     expect(panel).not.toMatch(
       /useEffect\(\(\) => \{\s*return \(\) => \{\s*closeModal\(\);\s*\};\s*\}, \[closeModal\]\);/,
     );

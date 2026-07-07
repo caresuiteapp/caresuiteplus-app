@@ -92,9 +92,12 @@ describe('signature capture modal open stability', () => {
     expect(panel).toMatch(/const closeModal = useCallback\([\s\S]*\[\s*\]/);
   });
 
-  it('attempts landscape lock on user gesture when opening signature modal', () => {
+  it('opens modal from button without browser requestFullscreen (avoids Android white screen)', () => {
     const panel = readSrc('src/components/portal/EmployeePortalVisitSignaturePanel.tsx');
-    expect(panel).toContain('requestLandscapeLock({ tryFullscreen: true })');
+    expect(panel).toContain('onModalOpenChangeRef');
+    expect(panel).toContain('openSignatureModal');
+    expect(panel).toContain('onPress={openSignatureModal}');
+    expect(panel).not.toContain('tryFullscreen: true');
   });
 });
 

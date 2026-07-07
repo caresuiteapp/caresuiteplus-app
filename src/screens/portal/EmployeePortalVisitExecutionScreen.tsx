@@ -299,6 +299,25 @@ export function EmployeePortalVisitExecutionScreen() {
     workflowPersistence.setStep(null);
   }, [workflowPersistence]);
 
+  const handleFinalizeDeferredSignature = useCallback(async () => {
+    releaseSignatureUi();
+    const r = await finalizeVisitDeferred();
+    if (r.ok) {
+      releaseSignatureUi();
+      setLocalSuccess(
+        'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
+      );
+      if (Platform.OS === 'web' && typeof window !== 'undefined') {
+        window.setTimeout(() => {
+          releaseSignatureCaptureEnvironment();
+          router.back();
+        }, 700);
+      }
+    } else {
+      setLocalError(r.error ?? 'Abschluss ohne Unterschrift fehlgeschlagen.');
+    }
+  }, [releaseSignatureUi, finalizeVisitDeferred, router]);
+
   useEffect(() => {
     if (signatureDeferred) {
       releaseSignatureUi();
@@ -483,16 +502,7 @@ export function EmployeePortalVisitExecutionScreen() {
         return;
       }
       if (action === 'finalize_visit_deferred_signature') {
-        releaseSignatureUi();
-        const r = await finalizeVisitDeferred();
-        if (r.ok) {
-          releaseSignatureUi();
-          setLocalSuccess(
-            'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
-          );
-        } else {
-          setLocalError(r.error ?? 'Abschluss ohne Unterschrift fehlgeschlagen.');
-        }
+        await handleFinalizeDeferredSignature();
       }
     },
     [
@@ -504,6 +514,7 @@ export function EmployeePortalVisitExecutionScreen() {
       openSignatureCapture,
       finalizeVisit,
       finalizeVisitDeferred,
+      handleFinalizeDeferredSignature,
       releaseSignatureUi,
     ],
   );
@@ -771,17 +782,8 @@ export function EmployeePortalVisitExecutionScreen() {
                 if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
                 else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
               }}
-              onFinalizeDeferred={async () => {
-                releaseSignatureUi();
-                const r = await finalizeVisitDeferred();
-                if (r.ok) {
-                  releaseSignatureUi();
-                  setLocalSuccess(
-                    'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
-                  );
-                } else {
-                  setLocalError(r.error ?? 'Abschluss ohne Unterschrift fehlgeschlagen.');
-                }
+              onFinalizeDeferred={() => {
+                void handleFinalizeDeferredSignature();
               }}
             />
           ) : null}
@@ -980,7 +982,9 @@ export function EmployeePortalVisitExecutionScreen() {
               );
               if (needsSignature) {
                 setAwaitingSignature(true);
-                setTimeout(() => openSignatureCapture(), 150);
+                if (!allowedActions.includes('finalize_visit_deferred_signature')) {
+                  setTimeout(() => openSignatureCapture(), 150);
+                }
               }
               setDocumentationOpen(false);
             } else {

@@ -10,8 +10,9 @@ describe('deferred signature white screen fix', () => {
   it('releaseSignatureCaptureEnvironment helper exits fullscreen on web', () => {
     const helper = readSrc('src/lib/dom/releaseSignatureCaptureEnvironment.ts');
     expect(helper).toContain('cleanupOrphanedFullscreenOverlays');
-    expect(helper).toContain('document.fullscreenElement');
-    expect(helper).toContain('exitFullscreen');
+    expect(helper).toContain('resolveActiveFullscreenElement');
+    expect(helper).toContain('exitBrowserFullscreen');
+    expect(helper).toContain('unlockOrientationIfPossible');
   });
 
   it('syncAfterWorkflow preserves abgeschlossen terminal status', () => {
@@ -23,12 +24,22 @@ describe('deferred signature white screen fix', () => {
     );
   });
 
-  it('deferred finalize releases signature UI before and after workflow', () => {
+  it('deferred finalize releases signature UI and navigates back on web', () => {
     const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
     expect(screen).toContain('releaseSignatureCaptureEnvironment');
-    expect(screen).toContain('releaseSignatureUi();');
-    expect(screen).toContain('const r = await finalizeVisitDeferred();');
-    expect(screen).toMatch(/onFinalizeDeferred=\{async \(\) => \{[\s\S]*releaseSignatureUi\(\)/);
+    expect(screen).toContain('handleFinalizeDeferredSignature');
+    expect(screen).toContain('router.back()');
+    expect(screen).toMatch(/onFinalizeDeferred=\{\(\) => \{[\s\S]*handleFinalizeDeferredSignature/);
+  });
+
+  it('does not auto-open signature modal when deferred finalize is available', () => {
+    const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
+    expect(screen).toContain("!allowedActions.includes('finalize_visit_deferred_signature')");
+  });
+
+  it('signature modal disables browser requestFullscreen via OrientationGate', () => {
+    const modal = readSrc('src/components/inputs/CareSignatureModal.tsx');
+    expect(modal).toContain('tryFullscreenOnRequest: false');
   });
 
   it('signature panel releases capture environment on modal close', () => {
