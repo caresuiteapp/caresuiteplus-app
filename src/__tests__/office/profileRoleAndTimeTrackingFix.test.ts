@@ -40,7 +40,7 @@ describe('TimeTrackingEmployeeScreen admin without employee profile', () => {
     expect(source).toContain('isAdminWithoutEmployee');
     expect(source).toContain('time.tracking.team.view');
     expect(source).toContain('Team-Übersicht nutzen');
-    expect(source).toContain('/business/office/time-tracking/team');
+    expect(source).toContain('/business/office/time-tracking/zeitkonten');
     expect(source).toContain('Kein Mitarbeiterprofil');
   });
 });

@@ -228,7 +228,7 @@ export function TimeTrackingEmployeeScreen() {
             <PremiumButton
               title="Zur Team-Übersicht"
               variant="primary"
-              onPress={() => router.push('/business/office/time-tracking/team' as never)}
+              onPress={() => router.push('/business/office/time-tracking/zeitkonten' as never)}
             />
             <PremiumButton
               title="Live-Mitarbeiter"
@@ -259,7 +259,7 @@ export function TimeTrackingEmployeeScreen() {
           <PremiumButton
             title="Zur Team-Übersicht"
             variant="primary"
-            onPress={() => router.push('/business/office/time-tracking/team' as never)}
+            onPress={() => router.push('/business/office/time-tracking/zeitkonten' as never)}
           />
           <PremiumButton
             title="Live-Mitarbeiter"
@@ -270,7 +270,7 @@ export function TimeTrackingEmployeeScreen() {
             <PremiumButton
               title="Einstellungen"
               variant="ghost"
-              onPress={() => router.push('/business/office/settings/time-tracking' as never)}
+              onPress={() => router.push('/business/office/time-tracking/einstellungen' as never)}
             />
           ) : null}
         </SectionPanel>
@@ -358,7 +358,7 @@ export function TimeTrackingEmployeeScreen() {
           <PremiumButton
             title="Team-Übersicht"
             variant="secondary"
-            onPress={() => router.push('/business/office/time-tracking/team' as never)}
+            onPress={() => router.push('/business/office/time-tracking/zeitkonten' as never)}
           />
           <PremiumButton
             title="Live-Mitarbeiter"
@@ -403,7 +403,7 @@ export function TimeTrackingEmployeeScreen() {
           <PremiumButton
             title="Einstellungen"
             variant="ghost"
-            onPress={() => router.push('/business/office/settings/time-tracking' as never)}
+            onPress={() => router.push('/business/office/time-tracking/einstellungen' as never)}
           />
         ) : null}
       </SectionPanel>

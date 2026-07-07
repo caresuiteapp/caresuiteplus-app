@@ -1,3 +1,5 @@
-import { TimeTrackingAuditScreen } from '@/components/timeTracking/TimeTrackingAuditScreen';
+import { Redirect } from 'expo-router';
 
-export default TimeTrackingAuditScreen;
+export default function OfficeTimeTrackingAuditRedirect() {
+  return <Redirect href="/business/office/time-tracking/historie" />;
+}

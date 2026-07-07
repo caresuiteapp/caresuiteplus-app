@@ -94,24 +94,26 @@ describe('ZEIT.2 wfmDisplayHelpers', () => {
 });
 
 describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
-  it('shows eight KPI cards and enriched team rows', () => {
+  it('shows compact team summary and enriched team rows', () => {
     const source = readSrc('src/components/wfm/TimeTrackingTeamScreen.tsx');
     expect(source).toContain('getWfmTeamTodayOverview');
-    expect(source).toContain('Heute erfasst');
-    expect(source).toContain('Aktive MA');
-    expect(source).toContain('In Pause');
-    expect(source).toContain('Im Einsatz');
-    expect(source).toContain('Im Büro');
-    expect(source).toContain('Homeoffice');
-    expect(source).toContain('Offen zur Prüfung');
-    expect(source).toContain('Offene Anträge');
+    expect(source).toContain('Heute erfasst:');
+    expect(source).toContain('Aktive MA:');
+    expect(source).toContain('In Pause:');
+    expect(source).toContain('Im Einsatz:');
+    expect(source).toContain('Im Büro:');
+    expect(source).toContain('Homeoffice:');
+    expect(source).toContain('Offen zur Prüfung:');
+    expect(source).toContain('Offene Anträge:');
     expect(source).toContain('WfmTeamTodayEmployeeCard');
     expect(source).toContain('WfmTeamTodayDetailPanel');
   });
 
-  it('links to ABSENCE.1 requests screen instead of quick approve', () => {
+  it('routes absence approvals via abwesenheiten tab instead of quick approve', () => {
+    const nav = readSrc('src/lib/navigation/officeTimeTrackingNav.ts');
     const source = readSrc('src/components/wfm/TimeTrackingTeamScreen.tsx');
-    expect(source).toContain('/business/office/time-tracking/requests');
+    expect(nav).toContain('abwesenheiten');
+    expect(source).toContain('Abwesenheiten');
     expect(source).not.toContain('reviewWfmAbsenceRequest');
     expect(source).not.toContain('Schnellentscheidung');
   });
@@ -126,7 +128,7 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
   });
 
   it('requests tab aligns with WfmEmployeeRequestsOfficeScreen', () => {
-    const route = readSrc('app/business/office/time-tracking/requests.tsx');
+    const route = readSrc('app/business/office/time-tracking/abwesenheiten.tsx');
     expect(route).toContain('WfmEmployeeRequestsOfficeScreen');
     const screen = readSrc('src/components/wfm/WfmEmployeeRequestsOfficeScreen.tsx');
     expect(screen).toContain('Ablehnungsgrund');
@@ -134,8 +136,8 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
   });
 
   it('export screen exists without fake placeholder button on team screen', () => {
-    const team = readSrc('src/components/wfm/TimeTrackingTeamScreen.tsx');
-    expect(team).toContain('/business/office/time-tracking/export');
+    const nav = readSrc('src/lib/navigation/officeTimeTrackingNav.ts');
+    expect(nav).toContain("key: 'export'");
     const exportScreen = readSrc('src/components/wfm/WfmExportScreen.tsx');
     expect(exportScreen).toContain('createWfmExportJob');
     expect(exportScreen).toContain('testID="wfm-export-screen"');
@@ -167,11 +169,28 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
     expect(result.data.rowCount).toBeGreaterThanOrEqual(0);
   });
 
-  it('own time entry uses existing TimeTrackingEmployeeScreen', () => {
-    const team = readSrc('src/components/wfm/TimeTrackingTeamScreen.tsx');
-    expect(team).toContain('/business/office/time-tracking');
+  it('own time entry uses dedicated eigene-erfassung route', () => {
+    const nav = readSrc('src/lib/navigation/officeTimeTrackingNav.ts');
+    expect(nav).toContain('eigene-erfassung');
     const own = readSrc('src/components/timeTracking/TimeTrackingEmployeeScreen.tsx');
     expect(own).toContain('wfmClockIn');
+  });
+
+  it('office time tracking shell defines ten primary tabs', () => {
+    const shell = readSrc('src/components/wfm/OfficeTimeTrackingShell.tsx');
+    const nav = readSrc('src/lib/navigation/officeTimeTrackingNav.ts');
+    expect(shell).toContain('FilterChipGroup');
+    expect(shell).toContain('Eigene Erfassung');
+    expect(nav).toContain("key: 'live'");
+    expect(nav).toContain("key: 'zeitkonten'");
+    expect(nav).toContain("key: 'pruefqueue'");
+    expect(nav).toContain("key: 'abwesenheiten'");
+    expect(nav).toContain("key: 'nachtraege'");
+    expect(nav).toContain("key: 'fahrzeitregeln'");
+    expect(nav).toContain("key: 'team-meetings'");
+    expect(nav).toContain("key: 'historie'");
+    expect(nav).toContain("key: 'export'");
+    expect(nav).toContain("key: 'einstellungen'");
   });
 });
 

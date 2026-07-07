@@ -1,6 +1,5 @@
 import { useCallback, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { AuroraSegmentedControl } from '@/components/aurora';
@@ -46,7 +45,6 @@ function formatRange(startsAt: string, endsAt: string): string {
 }
 
 export function WfmEmployeeRequestsOfficeScreen() {
-  const router = useRouter();
   const tenantId = useServiceTenantId();
   const { user, profile } = useAuth();
   const reviewerId = user?.id ?? profile?.id ?? '';
@@ -120,13 +118,7 @@ export function WfmEmployeeRequestsOfficeScreen() {
   }
 
   return (
-    <ScreenShell title="Mitarbeitenden Anträge" subtitle="Urlaub und Abwesenheiten" scroll>
-      <PremiumButton
-        title="← Zurück zur Team-Arbeitszeit"
-        variant="ghost"
-        onPress={() => router.push('/business/office/time-tracking/team' as never)}
-      />
-
+    <ScreenShell title="Abwesenheiten" subtitle="Urlaub und Abwesenheiten" showBack={false} scroll>
       <AuroraSegmentedControl
         options={FILTER_OPTIONS}
         value={filter}

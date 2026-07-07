@@ -1,3 +1,10 @@
+import { afterEach, beforeEach, vi } from 'vitest';
+
+vi.hoisted(() => {
+  process.env.EXPO_PUBLIC_WFM_LEGACY_STORE = 'true';
+  process.env.EXPO_PUBLIC_DEMO_MODE = 'true';
+});
+
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import {
   closeWorkday,
@@ -39,10 +46,16 @@ const USER = 'user-1';
 const ADMIN = 'business_admin' as const;
 
 beforeEach(() => {
+  vi.stubEnv('EXPO_PUBLIC_WFM_LEGACY_STORE', 'true');
+  vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'true');
   resetTimeTrackingStore();
   resetDemoTimeTrackingSeedFlag();
   resetActivityBridgeState();
   seedDemoTimeTrackingCatalog(TENANT_A);
+});
+
+afterEach(() => {
+  vi.unstubAllEnvs();
 });
 
 function activityId(): string {
@@ -245,6 +258,11 @@ describe('timeTracking corrections and audit', () => {
 });
 
 describe('timeTracking tenant isolation', () => {
+  beforeEach(() => {
+    vi.stubEnv('EXPO_PUBLIC_ENVIRONMENT_MODE', 'internal_test');
+    vi.stubEnv('EXPO_PUBLIC_DEMO_MODE', 'false');
+  });
+
   it('isolert Mandanten-Daten', () => {
     seedDemoTimeTrackingCatalog(TENANT_B);
     startWorkday(TENANT_A, USER, ADMIN, { activityTypeId: activityId(), privacyConsentAccepted: true });

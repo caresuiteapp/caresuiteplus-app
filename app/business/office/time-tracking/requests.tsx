@@ -1,3 +1,5 @@
-import { WfmEmployeeRequestsOfficeScreen } from '@/components/wfm/WfmEmployeeRequestsOfficeScreen';
+import { Redirect } from 'expo-router';
 
-export default WfmEmployeeRequestsOfficeScreen;
+export default function OfficeTimeTrackingRequestsRedirect() {
+  return <Redirect href="/business/office/time-tracking/abwesenheiten" />;
+}

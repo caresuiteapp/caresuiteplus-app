@@ -30,6 +30,8 @@ type Props = {
   reviewerId: string;
   roleKey: import('@/types').RoleKey | null;
   canCorrect: boolean;
+  initialFilterAmpel?: string | null;
+  reviewQueueMode?: boolean;
 };
 
 const PRESETS: WfmOfficePeriodPreset[] = [
@@ -43,14 +45,21 @@ const PRESETS: WfmOfficePeriodPreset[] = [
   'last_30_days',
 ];
 
-export function WfmOfficeTimeHistoryPanel({ tenantId, reviewerId, roleKey, canCorrect }: Props) {
+export function WfmOfficeTimeHistoryPanel({
+  tenantId,
+  reviewerId,
+  roleKey,
+  canCorrect,
+  initialFilterAmpel = null,
+  reviewQueueMode = false,
+}: Props) {
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
-  const [preset, setPreset] = useState<WfmOfficePeriodPreset>('today');
+  const [preset, setPreset] = useState<WfmOfficePeriodPreset>(reviewQueueMode ? 'today' : 'today');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
-  const [filterAmpel, setFilterAmpel] = useState<string | null>(null);
+  const [filterAmpel, setFilterAmpel] = useState<string | null>(initialFilterAmpel);
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
   const [correctionReason, setCorrectionReason] = useState('');
   const [reviewNote, setReviewNote] = useState('');
@@ -130,7 +139,10 @@ export function WfmOfficeTimeHistoryPanel({ tenantId, reviewerId, roleKey, canCo
   };
 
   return (
-    <SectionPanel title="Arbeitszeit-Historie" subtitle={overview ? `${overview.period.fromDate} – ${overview.period.toDate}` : undefined}>
+    <SectionPanel
+      title={reviewQueueMode ? 'Offene Prüfungen' : 'Arbeitszeit-Historie'}
+      subtitle={overview ? `${overview.period.fromDate} – ${overview.period.toDate}` : undefined}
+    >
       <View style={styles.presetRow}>
         {PRESETS.map((p) => (
           <PremiumButton

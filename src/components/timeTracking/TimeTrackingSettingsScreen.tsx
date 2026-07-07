@@ -1,5 +1,6 @@
 import { useCallback, useState } from 'react';
 import { ScrollView, StyleSheet, Text, View } from 'react-native';
+import { usePathname } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { AuroraSegmentedControl } from '@/components/aurora';
@@ -38,6 +39,8 @@ const TABS: Array<{ key: SettingsTab; label: string }> = [
 ];
 
 export function TimeTrackingSettingsScreen() {
+  const pathname = usePathname();
+  const inWfmTabShell = pathname.includes('/business/office/time-tracking/einstellungen');
   const { profile, user } = useAuth();
   const tenantId = useServiceTenantId();
   const userId = user?.id ?? profile?.id ?? '';
@@ -67,7 +70,7 @@ export function TimeTrackingSettingsScreen() {
 
   if (!canManage) {
     return (
-      <ScreenShell title="Homeoffice & Arbeitszeit" subtitle="Einstellungen → Personal">
+      <ScreenShell title="Arbeitszeit-Einstellungen" subtitle="Modul, Kataloge und Integrationen" showBack={!inWfmTabShell}>
         <LockedActionBanner
           message={check('time.settings.manage').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
@@ -78,7 +81,7 @@ export function TimeTrackingSettingsScreen() {
 
   if (settingsQuery.loading && !settingsQuery.data) {
     return (
-      <ScreenShell title="Homeoffice & Arbeitszeit" subtitle="Wird geladen…">
+      <ScreenShell title="Arbeitszeit-Einstellungen" subtitle="Wird geladen…" showBack={!inWfmTabShell}>
         <LoadingState message="Einstellungen werden geladen…" />
       </ScreenShell>
     );
@@ -86,7 +89,7 @@ export function TimeTrackingSettingsScreen() {
 
   if (settingsQuery.error && !settingsQuery.data) {
     return (
-      <ScreenShell title="Homeoffice & Arbeitszeit" subtitle="Fehler">
+      <ScreenShell title="Arbeitszeit-Einstellungen" subtitle="Fehler" showBack={!inWfmTabShell}>
         <ErrorState message={settingsQuery.error} onRetry={settingsQuery.refresh} />
       </ScreenShell>
     );
@@ -96,7 +99,7 @@ export function TimeTrackingSettingsScreen() {
   const catalogs = catalogQuery.data;
 
   return (
-    <ScreenShell title="Homeoffice & Arbeitszeit" subtitle="Einstellungen → Personal" scroll>
+    <ScreenShell title="Arbeitszeit-Einstellungen" subtitle="Modul, Kataloge und Integrationen" showBack={!inWfmTabShell} scroll>
       <SectionPanel title="Hinweis">
         <Text style={{ color: text.secondary, ...typography.caption }}>
           Es werden ausschließlich Metadaten-Aktivitätssignale erfasst. Keine Keylogger, Screenshots oder private

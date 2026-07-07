@@ -9,11 +9,9 @@ import {
   LoadingState,
   PremiumBadge,
   PremiumButton,
-  PremiumKpiCard,
   SectionPanel,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
-import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -32,7 +30,6 @@ export function OfficeLiveEmployeesScreen() {
   const tenantId = useServiceTenantId();
   const { can, check, roleLabel, roleKey } = usePermissions();
   const text = useAuroraAdaptiveText();
-  const accent = moduleColor('office');
 
   const canView = can('time.tracking.team.view');
 
@@ -69,22 +66,16 @@ export function OfficeLiveEmployeesScreen() {
   const rows = overview?.rows ?? [];
 
   return (
-    <ScreenShell title="Live-Mitarbeiter" subtitle="Anwesenheit in Echtzeit" scroll>
-      <View style={styles.kpiRow}>
-        <PremiumKpiCard label="Online" value={String(overview?.onlineCount ?? 0)} accentColor={accent} />
-        <PremiumKpiCard label="Erfasst heute" value={String(overview?.totalCount ?? 0)} accentColor={accent} />
-      </View>
+    <ScreenShell title="Live-Mitarbeiter" subtitle="Anwesenheit in Echtzeit" showBack={false} scroll>
+      <Text style={[styles.summary, { color: text.secondary }]}>
+        Online: {overview?.onlineCount ?? 0} · Erfasst heute: {overview?.totalCount ?? 0}
+      </Text>
 
       <View style={styles.actions}>
         <PremiumButton
           title="Live-Karte"
           variant="secondary"
           onPress={() => router.push('/business/office/time-tracking/live-map' as never)}
-        />
-        <PremiumButton
-          title="Team-Übersicht"
-          variant="ghost"
-          onPress={() => router.push('/business/office/time-tracking/team' as never)}
         />
       </View>
 
@@ -125,7 +116,7 @@ export function OfficeLiveEmployeesScreen() {
 }
 
 const styles = StyleSheet.create({
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.md },
+  summary: { ...typography.caption, marginBottom: careSpacing.md },
   actions: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.md },
   row: { paddingVertical: careSpacing.sm, borderBottomWidth: StyleSheet.hairlineWidth, borderBottomColor: 'rgba(0,0,0,0.08)' },
   rowHeader: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', gap: careSpacing.sm },

@@ -1,6 +1,5 @@
 import { useState } from 'react';
 import { Platform, StyleSheet, Text, View } from 'react-native';
-import { useRouter } from 'expo-router';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -8,11 +7,9 @@ import {
   InfoBanner,
   LoadingState,
   PremiumButton,
-  PremiumKpiCard,
   SectionPanel,
   SuccessState,
 } from '@/components/ui';
-import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { triggerCsvDownload } from '@/lib/csv/csvDownload';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -53,12 +50,10 @@ function triggerWebFileDownload(content: string, mimeType: string, fileName: str
 }
 
 export function WfmExportScreen() {
-  const router = useRouter();
   const tenantId = useServiceTenantId();
   const { user, profile } = useAuth();
   const userId = user?.id ?? profile?.id ?? '';
   const { can, check, roleLabel, roleKey } = usePermissions();
-  const accent = moduleColor('office');
 
   const now = new Date();
   const [year, setYear] = useState(now.getFullYear());
@@ -121,13 +116,9 @@ export function WfmExportScreen() {
   }
 
   return (
-    <ScreenShell title="Arbeitszeit-Export" subtitle="CSV, PDF und DATEV für Lohnbuchhaltung" scroll>
+    <ScreenShell title="Arbeitszeit-Export" subtitle="CSV, PDF und DATEV für Lohnbuchhaltung" showBack={false} scroll>
       <View testID="wfm-export-screen" accessibilityLabel="Arbeitszeit-Export">
-      <PremiumButton title="← Team-Übersicht" variant="ghost" onPress={() => router.push('/business/office/time-tracking/team' as never)} />
-
-      <View style={styles.kpiRow}>
-        <PremiumKpiCard label="Monat" value={`${String(month).padStart(2, '0')}/${year}`} accentColor={accent} />
-      </View>
+      <Text style={styles.periodLabel}>Zeitraum: {String(month).padStart(2, '0')}/{year}</Text>
 
       <SectionPanel title="Zeitraum">
         <View style={styles.periodRow}>
@@ -186,7 +177,7 @@ export function WfmExportScreen() {
 }
 
 const styles = StyleSheet.create({
-  kpiRow: { flexDirection: 'row', gap: careSpacing.sm, marginBottom: careSpacing.md },
+  periodLabel: { marginBottom: careSpacing.md, fontWeight: '600' },
   periodRow: { flexDirection: 'row', gap: careSpacing.sm },
   preview: { fontFamily: 'monospace', fontSize: 12, lineHeight: 18 },
 });

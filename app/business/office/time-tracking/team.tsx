@@ -1,3 +1,5 @@
-import { TimeTrackingTeamScreen } from '@/components/wfm/TimeTrackingTeamScreen';
+import { Redirect } from 'expo-router';
 
-export default TimeTrackingTeamScreen;
+export default function OfficeTimeTrackingTeamRedirect() {
+  return <Redirect href="/business/office/time-tracking/zeitkonten" />;
+}
