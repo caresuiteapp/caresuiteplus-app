@@ -202,12 +202,21 @@ ON CONFLICT (id) DO UPDATE SET
 
 INSERT INTO public.roles (id, key, name, description, is_admin_role)
 VALUES
-  ('${IDS.roleOffice}', 'staging_office_admin', 'Staging Office Admin', 'Synthetic staging office role', TRUE),
-  ('${IDS.roleEmployee}', 'staging_employee', 'Staging Employee', 'Synthetic staging employee role', FALSE)
+  ('${IDS.roleOffice}', 'admin', 'Staging Office Admin', 'Synthetic staging office role (maps to business_admin)', TRUE),
+  ('${IDS.roleEmployee}', 'employee', 'Staging Employee', 'Synthetic staging employee role (maps to employee_portal)', FALSE)
 ON CONFLICT (id) DO UPDATE SET
+  key = EXCLUDED.key,
   name = EXCLUDED.name,
   description = EXCLUDED.description,
   is_admin_role = EXCLUDED.is_admin_role;
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS full_name TEXT;
+
+UPDATE public.profiles
+SET full_name = NULLIF(trim(coalesce(first_name, '') || ' ' || coalesce(last_name, '')), '')
+WHERE tenant_id = '${IDS.tenant}'
+  AND (full_name IS NULL OR trim(full_name) = '');
 
 INSERT INTO public.role_permissions (id, role_id, permission_key, can_view, can_create, can_update, can_delete)
 VALUES
@@ -223,23 +232,23 @@ ON CONFLICT (role_id, permission_key) DO UPDATE SET
 
 INSERT INTO public.profiles (
   id, tenant_id, role_id, role_key, display_name, email, auth_user_id, is_active, status,
-  first_name, last_name
+  first_name, last_name, full_name
 )
 VALUES
   (
-    '${IDS.officeAuth}', '${IDS.tenant}', '${IDS.roleOffice}', 'staging_office_admin',
+    '${IDS.officeAuth}', '${IDS.tenant}', '${IDS.roleOffice}', 'admin',
     'Staging Office Admin', '${EMAILS.office}', '${IDS.officeAuth}', TRUE, 'active',
-    'Staging', 'Office'
+    'Staging', 'Office', 'Staging Office'
   ),
   (
-    '${IDS.employeeAuth}', '${IDS.tenant}', '${IDS.roleEmployee}', 'staging_employee',
+    '${IDS.employeeAuth}', '${IDS.tenant}', '${IDS.roleEmployee}', 'employee',
     'Staging Employee One', '${EMAILS.employee}', '${IDS.employeeAuth}', TRUE, 'active',
-    'Staging', 'Employee'
+    'Staging', 'Employee', 'Staging Employee'
   ),
   (
-    '${IDS.employee2Auth}', '${IDS.tenant}', '${IDS.roleEmployee}', 'staging_employee',
+    '${IDS.employee2Auth}', '${IDS.tenant}', '${IDS.roleEmployee}', 'employee',
     'Staging Employee Two', '${EMAILS.employee2}', '${IDS.employee2Auth}', TRUE, 'active',
-    'Staging', 'EmployeeTwo'
+    'Staging', 'EmployeeTwo', 'Staging EmployeeTwo'
   )
 ON CONFLICT (id) DO UPDATE SET
   tenant_id = EXCLUDED.tenant_id,
@@ -251,6 +260,7 @@ ON CONFLICT (id) DO UPDATE SET
   status = EXCLUDED.status,
   first_name = EXCLUDED.first_name,
   last_name = EXCLUDED.last_name,
+  full_name = EXCLUDED.full_name,
   updated_at = NOW();
 
 INSERT INTO public.employees (
