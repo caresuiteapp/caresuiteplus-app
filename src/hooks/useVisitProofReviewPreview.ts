@@ -20,17 +20,22 @@ export function useVisitProofReviewPreview(
   const [preview, setPreview] = useState<VisitProofReviewPreview | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  // Becomes true once the first enrichment attempt completes (success or error).
+  // Used to gate PDF generation so it fires exactly once with final enrichment data.
+  const [enrichmentReady, setEnrichmentReady] = useState(false);
 
   const load = useCallback(async () => {
     if (!tenantId || !proof) {
       setPreview(null);
       setLoading(false);
       setError(null);
+      setEnrichmentReady(false);
       return;
     }
 
     setLoading(true);
     setError(null);
+    setEnrichmentReady(false);
     setPreview(buildVisitProofPreviewFromProof(proof));
 
     try {
@@ -52,6 +57,7 @@ export function useVisitProofReviewPreview(
       setPreview(buildVisitProofPreviewFromProof(proof));
     } finally {
       setLoading(false);
+      setEnrichmentReady(true);
     }
   }, [tenantId, proof]);
 
@@ -59,5 +65,5 @@ export function useVisitProofReviewPreview(
     void load();
   }, [load]);
 
-  return { preview, loading, error, refresh: load };
+  return { preview, loading, error, enrichmentReady, refresh: load };
 }

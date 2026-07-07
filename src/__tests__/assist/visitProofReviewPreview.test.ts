@@ -469,6 +469,20 @@ describe('VisitProofReviewPanel wiring', () => {
     expect(panel).toContain('previewError');
   });
 
+  it('gates PDF generation on enrichmentReady to prevent multi-load flicker', () => {
+    const panel = readSrc('src/components/assist/VisitProofReviewPanel.tsx');
+    // PDF hook must be disabled until enrichment has fully completed (not just while loading)
+    expect(panel).toContain('enrichmentReady');
+    expect(panel).toContain('!enrichmentReady');
+    // Must NOT use the old broken guard that allowed premature PDF loads
+    expect(panel).not.toContain('previewLoading && !enrichedPreview');
+
+    const hook = readSrc('src/hooks/useVisitProofReviewPreview.ts');
+    expect(hook).toContain('enrichmentReady');
+    expect(hook).toContain('setEnrichmentReady(true)');
+    expect(hook).toContain('setEnrichmentReady(false)');
+  });
+
   it('labels pending_client_signature portal release', () => {
     const labels = readSrc('src/lib/assist/assistProofLabels.ts');
     expect(labels).toContain('pending_client_signature');

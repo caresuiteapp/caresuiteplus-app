@@ -69,6 +69,7 @@ export function VisitProofReviewPanel({
     preview: enrichedPreview,
     loading: previewLoading,
     error: previewError,
+    enrichmentReady,
   } = useVisitProofReviewPreview(tenantId, proof);
   const preview = enrichedPreview ?? snapshotPreview;
   const pdfEnrichment = useMemo(
@@ -172,7 +173,7 @@ export function VisitProofReviewPanel({
         proof={proof}
         enrichment={pdfEnrichment}
         htmlPreview={preview}
-        htmlPreviewLoading={previewLoading && !enrichedPreview}
+        htmlPreviewLoading={!enrichmentReady}
       />
 
       {(proof.status === 'pending_review' || proof.status === 'rejected') && (

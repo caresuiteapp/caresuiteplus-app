@@ -160,4 +160,11 @@ describe('VisitProofReviewPanel PDF preview wiring', () => {
     expect(panel).toContain('VisitProofPreviewPanel');
     expect(panel).toContain('enabled: !htmlPreviewLoading');
   });
+
+  it('useVisitProofReviewPreview exposes enrichmentReady for single-load gating', () => {
+    const hook = readSrc('src/hooks/useVisitProofReviewPreview.ts');
+    expect(hook).toContain('enrichmentReady');
+    // Must be set to true only in finally (after enrichment attempt finishes)
+    expect(hook).toContain('setEnrichmentReady(true)');
+  });
 });
