@@ -190,3 +190,6 @@ CREATE POLICY wfm_absences_insert ON public.workforce_absences
 
 COMMENT ON POLICY wfm_events_insert ON public.workforce_time_events IS
   'P0.1 — portal assist mirror may insert own events without time.tracking.own.start.';
+
+-- Prep for 0224 employee_group chats (enum value must commit before CHECK/policies use it)
+ALTER TYPE public.message_thread_type ADD VALUE IF NOT EXISTS 'employee_group';

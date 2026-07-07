@@ -5,6 +5,10 @@
 -- Portal profile tenant backfill (client + employee portal users)
 -- Root cause: profiles.tenant_id NULL → is_tenant_member() false → assist_location_points blocked.
 -- --------------------------------------------------------------------------
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS first_name TEXT,
+  ADD COLUMN IF NOT EXISTS last_name TEXT;
+
 UPDATE public.profiles p
 SET
   tenant_id = cpa.tenant_id,

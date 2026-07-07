@@ -22,72 +22,79 @@ CREATE INDEX IF NOT EXISTS idx_portal_uploads_employee
   WHERE employee_id IS NOT NULL;
 
 -- Storage: employee self-uploads under tenant/{tenantId}/employees/{employeeId}/portal-uploads/…
-DROP POLICY IF EXISTS "portal_uploads_employee_insert" ON storage.objects;
-CREATE POLICY "portal_uploads_employee_insert"
-  ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (
-    bucket_id = 'office-documents'
-    AND (storage.foldername(name))[1] = 'tenant'
-    AND (storage.foldername(name))[2] = public.current_tenant_id()::text
-    AND (storage.foldername(name))[3] = 'employees'
-    AND (storage.foldername(name))[4] = public.resolve_current_employee_id()::text
-    AND (storage.foldername(name))[5] = 'portal-uploads'
-    AND public.current_role_key() = 'employee_portal'
-    AND public.resolve_current_employee_id() IS NOT NULL
-  );
+-- Fresh-DB: storage.objects gehört supabase_storage_admin — Policies ggf. übersprungen
+DO $portal_uploads_storage$
+BEGIN
+  DROP POLICY IF EXISTS "portal_uploads_employee_insert" ON storage.objects;
+  CREATE POLICY "portal_uploads_employee_insert"
+    ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (
+      bucket_id = 'office-documents'
+      AND (storage.foldername(name))[1] = 'tenant'
+      AND (storage.foldername(name))[2] = public.current_tenant_id()::text
+      AND (storage.foldername(name))[3] = 'employees'
+      AND (storage.foldername(name))[4] = public.resolve_current_employee_id()::text
+      AND (storage.foldername(name))[5] = 'portal-uploads'
+      AND public.current_role_key() = 'employee_portal'
+      AND public.resolve_current_employee_id() IS NOT NULL
+    );
 
-DROP POLICY IF EXISTS "portal_uploads_employee_select" ON storage.objects;
-CREATE POLICY "portal_uploads_employee_select"
-  ON storage.objects FOR SELECT TO authenticated
-  USING (
-    bucket_id = 'office-documents'
-    AND (storage.foldername(name))[1] = 'tenant'
-    AND (storage.foldername(name))[2] = public.current_tenant_id()::text
-    AND (storage.foldername(name))[3] = 'employees'
-    AND (storage.foldername(name))[4] = public.resolve_current_employee_id()::text
-    AND (storage.foldername(name))[5] = 'portal-uploads'
-    AND public.current_role_key() = 'employee_portal'
-    AND public.resolve_current_employee_id() IS NOT NULL
-  );
+  DROP POLICY IF EXISTS "portal_uploads_employee_select" ON storage.objects;
+  CREATE POLICY "portal_uploads_employee_select"
+    ON storage.objects FOR SELECT TO authenticated
+    USING (
+      bucket_id = 'office-documents'
+      AND (storage.foldername(name))[1] = 'tenant'
+      AND (storage.foldername(name))[2] = public.current_tenant_id()::text
+      AND (storage.foldername(name))[3] = 'employees'
+      AND (storage.foldername(name))[4] = public.resolve_current_employee_id()::text
+      AND (storage.foldername(name))[5] = 'portal-uploads'
+      AND public.current_role_key() = 'employee_portal'
+      AND public.resolve_current_employee_id() IS NOT NULL
+    );
 
--- Employee portal: upload on behalf of assigned client → clients/.../portal-uploads
-DROP POLICY IF EXISTS "portal_uploads_employee_client_insert" ON storage.objects;
-CREATE POLICY "portal_uploads_employee_client_insert"
-  ON storage.objects FOR INSERT TO authenticated
-  WITH CHECK (
-    bucket_id = 'office-documents'
-    AND (storage.foldername(name))[1] = 'tenant'
-    AND (storage.foldername(name))[2] = public.current_tenant_id()::text
-    AND (storage.foldername(name))[3] = 'clients'
-    AND (storage.foldername(name))[5] = 'portal-uploads'
-    AND public.current_role_key() = 'employee_portal'
-    AND public.resolve_current_employee_id() IS NOT NULL
-    AND (storage.foldername(name))[4]::uuid IN (
-      SELECT a.client_id
-      FROM public.assignments a
-      WHERE a.tenant_id = public.current_tenant_id()
-        AND a.employee_id = public.resolve_current_employee_id()
-    )
-  );
+  DROP POLICY IF EXISTS "portal_uploads_employee_client_insert" ON storage.objects;
+  CREATE POLICY "portal_uploads_employee_client_insert"
+    ON storage.objects FOR INSERT TO authenticated
+    WITH CHECK (
+      bucket_id = 'office-documents'
+      AND (storage.foldername(name))[1] = 'tenant'
+      AND (storage.foldername(name))[2] = public.current_tenant_id()::text
+      AND (storage.foldername(name))[3] = 'clients'
+      AND (storage.foldername(name))[5] = 'portal-uploads'
+      AND public.current_role_key() = 'employee_portal'
+      AND public.resolve_current_employee_id() IS NOT NULL
+      AND (storage.foldername(name))[4]::uuid IN (
+        SELECT a.client_id
+        FROM public.assignments a
+        WHERE a.tenant_id = public.current_tenant_id()
+          AND a.employee_id = public.resolve_current_employee_id()
+      )
+    );
 
-DROP POLICY IF EXISTS "portal_uploads_employee_client_select" ON storage.objects;
-CREATE POLICY "portal_uploads_employee_client_select"
-  ON storage.objects FOR SELECT TO authenticated
-  USING (
-    bucket_id = 'office-documents'
-    AND (storage.foldername(name))[1] = 'tenant'
-    AND (storage.foldername(name))[2] = public.current_tenant_id()::text
-    AND (storage.foldername(name))[3] = 'clients'
-    AND (storage.foldername(name))[5] = 'portal-uploads'
-    AND public.current_role_key() = 'employee_portal'
-    AND public.resolve_current_employee_id() IS NOT NULL
-    AND (storage.foldername(name))[4]::uuid IN (
-      SELECT a.client_id
-      FROM public.assignments a
-      WHERE a.tenant_id = public.current_tenant_id()
-        AND a.employee_id = public.resolve_current_employee_id()
-    )
-  );
+  DROP POLICY IF EXISTS "portal_uploads_employee_client_select" ON storage.objects;
+  CREATE POLICY "portal_uploads_employee_client_select"
+    ON storage.objects FOR SELECT TO authenticated
+    USING (
+      bucket_id = 'office-documents'
+      AND (storage.foldername(name))[1] = 'tenant'
+      AND (storage.foldername(name))[2] = public.current_tenant_id()::text
+      AND (storage.foldername(name))[3] = 'clients'
+      AND (storage.foldername(name))[5] = 'portal-uploads'
+      AND public.current_role_key() = 'employee_portal'
+      AND public.resolve_current_employee_id() IS NOT NULL
+      AND (storage.foldername(name))[4]::uuid IN (
+        SELECT a.client_id
+        FROM public.assignments a
+        WHERE a.tenant_id = public.current_tenant_id()
+          AND a.employee_id = public.resolve_current_employee_id()
+      )
+    );
+EXCEPTION
+  WHEN insufficient_privilege THEN
+    RAISE NOTICE '0226: portal upload storage policies skipped (not owner of storage.objects)';
+END
+$portal_uploads_storage$;
 
 -- RLS: employee portal uploads
 DROP POLICY IF EXISTS portal_uploads_employee_portal_select ON public.portal_uploads;

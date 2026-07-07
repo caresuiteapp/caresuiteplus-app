@@ -16,36 +16,59 @@ ALTER TABLE public.tenant_products
   ADD COLUMN IF NOT EXISTS price_cents INTEGER NOT NULL DEFAULT 0,
   ADD COLUMN IF NOT EXISTS premium_ready BOOLEAN NOT NULL DEFAULT FALSE;
 
-UPDATE public.tenant_products tp
-SET
-  is_active = COALESCE(
-    tp.is_active,
-    tp.status IN ('active', 'trial')
-  ),
-  activated_at = COALESCE(tp.activated_at, tp.created_at, NOW()),
-  access_source = COALESCE(
-    tp.access_source,
-    CASE WHEN tp.status IN ('active', 'trial') THEN 'free_active' ELSE 'free_available' END
-  ),
-  billing_status = COALESCE(
-    tp.billing_status,
-    CASE WHEN tp.status IN ('active', 'trial') THEN 'free_active' ELSE 'free_available' END
-  ),
-  access_type = COALESCE(tp.access_type, 'free'),
-  price_cents = COALESCE(tp.price_cents, 0)
-WHERE tp.is_active IS NULL
-   OR tp.activated_at IS NULL
-   OR tp.access_source IS NULL
-   OR tp.billing_status IS NULL
-   OR tp.access_type IS NULL;
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'tenant_products' AND column_name = 'status'
+  ) THEN
+    UPDATE public.tenant_products tp
+    SET
+      is_active = COALESCE(tp.is_active, tp.status IN ('active', 'trial')),
+      activated_at = COALESCE(tp.activated_at, NOW()),
+      access_source = COALESCE(
+        tp.access_source,
+        CASE WHEN tp.status IN ('active', 'trial') THEN 'free_active' ELSE 'free_available' END
+      ),
+      billing_status = COALESCE(
+        tp.billing_status,
+        CASE WHEN tp.status IN ('active', 'trial') THEN 'free_active' ELSE 'free_available' END
+      ),
+      access_type = COALESCE(tp.access_type, 'free'),
+      price_cents = COALESCE(tp.price_cents, 0)
+    WHERE tp.is_active IS NULL
+       OR tp.activated_at IS NULL
+       OR tp.access_source IS NULL
+       OR tp.billing_status IS NULL
+       OR tp.access_type IS NULL;
+
+    UPDATE public.tenant_products
+    SET is_active = COALESCE(is_active, status IN ('active', 'trial'))
+    WHERE is_active IS NULL;
+  ELSE
+    UPDATE public.tenant_products tp
+    SET
+      is_active = COALESCE(tp.is_active, TRUE),
+      activated_at = COALESCE(tp.activated_at, NOW()),
+      access_source = COALESCE(tp.access_source, 'free_active'),
+      billing_status = COALESCE(tp.billing_status, 'free_active'),
+      access_type = COALESCE(tp.access_type, 'free'),
+      price_cents = COALESCE(tp.price_cents, 0)
+    WHERE tp.is_active IS NULL
+       OR tp.activated_at IS NULL
+       OR tp.access_source IS NULL
+       OR tp.billing_status IS NULL
+       OR tp.access_type IS NULL;
+
+    UPDATE public.tenant_products
+    SET is_active = COALESCE(is_active, TRUE)
+    WHERE is_active IS NULL;
+  END IF;
+END $$;
 
 ALTER TABLE public.tenant_products
   ALTER COLUMN is_active SET DEFAULT TRUE,
   ALTER COLUMN activated_at SET DEFAULT NOW();
-
-UPDATE public.tenant_products
-SET is_active = COALESCE(is_active, status IN ('active', 'trial'))
-WHERE is_active IS NULL;
 
 ALTER TABLE public.tenant_products
   ALTER COLUMN is_active SET NOT NULL;
