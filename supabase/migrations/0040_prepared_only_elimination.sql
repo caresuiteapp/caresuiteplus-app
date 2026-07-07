@@ -38,7 +38,7 @@ END $$;
 COMMENT ON TABLE public.care_shift_plans IS 'Dienstpläne — demo-funktional, Live-Repo folgt';
 
 CREATE INDEX IF NOT EXISTS idx_client_vital_signs_tenant_measured
-  ON public.client_vital_signs (tenant_id, measured_at DESC);
+  ON public.client_vital_signs (tenant_id, recorded_at DESC);
 
 CREATE INDEX IF NOT EXISTS idx_client_medications_tenant_updated
   ON public.client_medications (tenant_id, updated_at DESC);

@@ -84,6 +84,21 @@ CREATE INDEX IF NOT EXISTS idx_client_budget_periods_tenant
 -- --------------------------------------------------------------------------
 -- 4. budget_transactions — Auditierbare Budgetbewegungen
 -- --------------------------------------------------------------------------
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.tables
+    WHERE table_schema = 'public' AND table_name = 'budget_transactions'
+  ) AND NOT EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'budget_transactions'
+      AND column_name = 'budget_period_id'
+  ) THEN
+    ALTER TABLE public.budget_transactions RENAME TO budget_transactions_legacy_0010;
+  END IF;
+END $$;
+
 CREATE TABLE IF NOT EXISTS public.budget_transactions (
   id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id           UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,

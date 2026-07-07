@@ -25,6 +25,27 @@
 -- ==========================================================================
 
 -- --------------------------------------------------------------------------
+-- is_tenant_admin: benötigt für Storage-Policies (vollständige Version in 0076/0096)
+-- --------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.is_tenant_admin()
+RETURNS BOOLEAN
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public, pg_temp
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM public.profiles p
+    JOIN public.roles r ON r.id = p.role_id
+    WHERE p.id = auth.uid()
+      AND r.key IN ('business_admin', 'business_manager')
+  )
+$$;
+
+GRANT EXECUTE ON FUNCTION public.is_tenant_admin() TO authenticated;
+
+-- --------------------------------------------------------------------------
 -- caresuite-* private Buckets: SELECT — nur eigener Mandanten-Pfad
 -- --------------------------------------------------------------------------
 DROP POLICY IF EXISTS "caresuite_authenticated_read_private_buckets" ON storage.objects;

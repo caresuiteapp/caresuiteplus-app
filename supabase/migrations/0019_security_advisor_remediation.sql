@@ -270,6 +270,16 @@ END $$;
 -- --------------------------------------------------------------------------
 -- P1: search_path fix (2 Advisor WARN)
 -- --------------------------------------------------------------------------
+CREATE OR REPLACE FUNCTION public.generate_six_digit_code()
+ RETURNS text
+ LANGUAGE plpgsql
+ SET search_path = public, pg_temp
+AS $function$
+begin
+  return lpad(floor(random() * 1000000)::text, 6, '0');
+end;
+$function$;
+
 ALTER FUNCTION public.generate_six_digit_code() SET search_path = public, pg_temp;
 ALTER FUNCTION public.set_updated_at() SET search_path = public, pg_temp;
 
