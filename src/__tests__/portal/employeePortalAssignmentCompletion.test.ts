@@ -94,6 +94,19 @@ describe('employeePortalAssignmentCompletion', () => {
     expect(
       shouldShowAssignmentInEmployeePortalList({
         status: 'abgeschlossen',
+        plannedStartAt: '2026-07-07T08:00:00.000Z',
+        requiresDocumentation: true,
+        requiresSignature: true,
+        documentationStatus: 'submitted',
+        signatureStatus: 'deferred_to_client_portal',
+        assignmentIncomplete: false,
+        now,
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldShowAssignmentInEmployeePortalList({
+        status: 'abgeschlossen',
         plannedStartAt: '2026-07-06T10:00:00.000Z',
         assignmentIncomplete: true,
         now,

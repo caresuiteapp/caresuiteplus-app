@@ -154,5 +154,12 @@ export function shouldShowAssignmentInEmployeePortalList(input: {
   if (input.status !== 'abgeschlossen') return true;
 
   const now = input.now ?? new Date();
-  return new Date(input.plannedStartAt).getTime() >= now.getTime();
+  const planned = new Date(input.plannedStartAt);
+  const sameCalendarDay =
+    planned.getFullYear() === now.getFullYear() &&
+    planned.getMonth() === now.getMonth() &&
+    planned.getDate() === now.getDate();
+  if (sameCalendarDay) return true;
+
+  return planned.getTime() >= now.getTime();
 }
