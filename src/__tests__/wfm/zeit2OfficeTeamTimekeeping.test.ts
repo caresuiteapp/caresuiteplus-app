@@ -179,7 +179,8 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
   it('office time tracking shell defines ten primary tabs', () => {
     const shell = readSrc('src/components/wfm/OfficeTimeTrackingShell.tsx');
     const nav = readSrc('src/lib/navigation/officeTimeTrackingNav.ts');
-    expect(shell).toContain('FilterChipGroup');
+    expect(shell).toContain('OFFICE_TIME_TRACKING_TABS.map');
+    expect(shell).toContain('accessibilityRole="tab"');
     expect(shell).toContain('Eigene Erfassung');
     expect(nav).toContain("key: 'live'");
     expect(nav).toContain("key: 'zeitkonten'");

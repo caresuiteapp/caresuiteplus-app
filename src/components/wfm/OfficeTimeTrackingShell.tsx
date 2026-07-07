@@ -1,7 +1,6 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
-import { Pressable, StyleSheet, Text, View } from 'react-native';
-import { FilterChipGroup } from '@/components/ui';
-import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { useAuroraAdaptiveText, useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
@@ -16,14 +15,10 @@ export function OfficeTimeTrackingShell() {
   const router = useRouter();
   const pathname = usePathname();
   const text = useAuroraAdaptiveText();
+  const chipStyles = useAuroraGlassChipStyles();
   const accent = moduleColor('office');
   const activeTab = resolveOfficeTimeTrackingTabKey(pathname);
   const ownCaptureActive = isOfficeTimeTrackingOwnCaptureRoute(pathname);
-
-  const tabOptions = OFFICE_TIME_TRACKING_TABS.map((tab) => ({
-    key: tab.key,
-    label: tab.label,
-  }));
 
   return (
     <View style={styles.root}>
@@ -50,15 +45,34 @@ export function OfficeTimeTrackingShell() {
         </Pressable>
       </View>
 
-      <FilterChipGroup
-        options={tabOptions}
-        value={activeTab}
-        onSelect={(key) => {
-          const tab = OFFICE_TIME_TRACKING_TABS.find((item) => item.key === key);
-          if (tab) router.push(tab.href as never);
-        }}
-        style={styles.tabs}
-      />
+      <ScrollView
+        horizontal
+        showsHorizontalScrollIndicator={false}
+        style={styles.tabScroll}
+        contentContainerStyle={styles.tabRow}
+      >
+        {OFFICE_TIME_TRACKING_TABS.map((tab) => {
+          const selected = activeTab === tab.key;
+          return (
+            <Pressable
+              key={tab.key}
+              onPress={() => router.push(tab.href as never)}
+              style={({ pressed }) => [
+                chipStyles.chip,
+                selected && chipStyles.chipSelected,
+                pressed && chipStyles.chipPressed,
+                styles.tabChip,
+              ]}
+              accessibilityRole="tab"
+              accessibilityState={{ selected }}
+            >
+              <Text style={[chipStyles.label, selected && chipStyles.labelSelected]} numberOfLines={1}>
+                {tab.label}
+              </Text>
+            </Pressable>
+          );
+        })}
+      </ScrollView>
 
       <View style={styles.content}>
         <Slot />
@@ -106,9 +120,27 @@ const styles = StyleSheet.create({
     ...typography.caption,
     fontWeight: '600',
   },
-  tabs: {
+  tabScroll: {
+    flexGrow: 0,
+    flexShrink: 0,
+    ...(Platform.OS === 'web'
+      ? {
+          maxHeight: 44,
+          overflowX: 'auto' as const,
+          overflowY: 'hidden' as const,
+        }
+      : null),
+  },
+  tabRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: careSpacing.sm,
     paddingHorizontal: careSpacing.md,
     paddingBottom: careSpacing.sm,
+  },
+  tabChip: {
+    flexShrink: 0,
+    alignSelf: 'center',
   },
   content: {
     flex: 1,
