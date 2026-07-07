@@ -9,7 +9,8 @@ import type {
   AssistVisitProofRow,
 } from '@/types/assistExecutionPersistence';
 import type { PortalDocumentDetail } from '@/types/portal/documents';
-import { buildAssistProofPdfPayload, stripPortalBlockedKeysFromSnapshot } from '@/lib/assist/assistProofPdfPayload';
+import { stripPortalBlockedKeysFromSnapshot } from '@/lib/assist/assistProofPdfPayload';
+import { buildEnrichedAssistProofPdfPayload } from '@/lib/assist/assistProofPdfService';
 import { fetchVisitProofById } from '@/lib/assist/assistVisitProofPersistenceService';
 import { ASSIST_EXECUTION_STORAGE_BUCKET } from '@/lib/assist/assistStoragePaths';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -177,11 +178,14 @@ export async function getProofPdfForClientPortal(
   return { ok: true, data: data.signedUrl };
 }
 
-function mapAssistProofToPortalDocumentDetail(
+async function mapAssistProofToPortalDocumentDetail(
+  tenantId: string,
   proof: ClientPortalAssistVisitProof,
   fullProof: AssistVisitProofRow | null,
-): PortalDocumentDetail {
-  const previewHtml = fullProof ? buildAssistProofPdfPayload(fullProof).html : null;
+): Promise<PortalDocumentDetail> {
+  const previewHtml = fullProof
+    ? (await buildEnrichedAssistProofPdfPayload(tenantId, fullProof)).html
+    : null;
   const fileName = proof.proofNumber
     ? `Leistungsnachweis-${proof.proofNumber}.pdf`
     : 'Leistungsnachweis.pdf';
@@ -227,6 +231,6 @@ export async function fetchAssistProofPortalDocumentDetail(
 
   return {
     ok: true,
-    data: mapAssistProofToPortalDocumentDetail(released.data, fullProof),
+    data: await mapAssistProofToPortalDocumentDetail(tenantId, released.data, fullProof),
   };
 }

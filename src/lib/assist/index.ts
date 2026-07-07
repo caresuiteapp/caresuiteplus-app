@@ -102,12 +102,14 @@ export {
   stripGpsKeysFromSnapshot,
 } from './assistProofPdfPayload';
 export {
+  buildEnrichedAssistProofPdfPayload,
   generateAssistProofPdf,
   downloadAssistProofPdfInBrowser,
   resolveAssistProofPdfPreviewUrl,
   renderAssistProofPdfBytes,
   renderHtmlToPdfBytes,
 } from './assistProofPdfService';
+export { mergeVisitProofEnrichment } from './visitProofSnapshotPreviewService';
 export {
   upsertAssistProofClientPortalDocument,
   revokeAssistProofClientPortalDocument,

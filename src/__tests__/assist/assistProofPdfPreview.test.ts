@@ -77,6 +77,21 @@ vi.mock('@/lib/supabase/client', () => ({
   }),
 }));
 
+vi.mock('@/lib/assist/visitProofSnapshotPreviewService', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/assist/visitProofSnapshotPreviewService')>();
+  return {
+    ...actual,
+    enrichVisitProofForPreview: vi.fn(async (_tenantId: string, proof: AssistVisitProofRow) => ({
+      ok: true,
+      data: {
+        employeeName: 'Kevin Reinhardt',
+        tenantLogoUrl: 'https://cdn.example/logo.png',
+        tenantName: 'Pflege Plus GmbH',
+      },
+    })),
+  };
+});
+
 import { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
 import { resolveAssistProofPdfPreviewUrl } from '@/lib/assist/assistProofPdfService';
 

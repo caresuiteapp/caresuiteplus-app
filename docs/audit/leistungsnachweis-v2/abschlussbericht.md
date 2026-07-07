@@ -205,12 +205,79 @@ Unter `docs/audit/leistungsnachweis-v2/` aktualisiert:
 
 Checkliste: Logo mittig ✅ · Mitarbeitende:r befüllt ✅ · Footer korrekt ✅ · Aufgabenlogik v2 unverändert ✅ · Signatur unverändert ✅ · kein `submitted` ✅
 
-### 8. Offene Risiken
+### 8. Offene Risiken (Stand Restkorrektur — durch Enrichment-Gate geschlossen)
 
-1. PDF-Render ohne `enrichVisitProofForPreview` (z. B. Portal-Preview) — Logo/Mitarbeiter nur aus Snapshot/Enrichment, nicht automatisch aus DB
+1. ~~PDF-Render ohne `enrichVisitProofForPreview` (z. B. Portal-Preview)~~ → **geschlossen** via `buildEnrichedAssistProofPdfPayload`
 2. Remote-Logos — CORS/Storage bei html2canvas-PDF
 3. Kein Live-Browser-Smoke — Ersatz: Unit-Tests + HTML-Artefakte
 
 ### 9. Ergebnis
 
 **READY FOR COMMIT** — kein Push, kein Deploy, kein `[deploy]`.
+
+---
+
+## Enrichment-Gate Logo / Mitarbeitende:r
+
+**Datum:** 2026-07-07  
+**Ergebnis:** **READY FOR DEPLOY**
+
+### 1. Geprüfte Runtime-Pfade
+
+| Pfad | Nutzung | Enrichment vor Render |
+|------|---------|----------------------|
+| `buildEnrichedAssistProofPdfPayload` | Zentraler Runtime-Adapter | Ja — DB-Backfill bei Lücken |
+| `resolveAssistProofPdfPreviewUrl` | Office PDF-Vorschau | Ja (via Adapter) |
+| `renderAssistProofPdfBytes` / `generateAssistProofPdf` / `downloadAssistProofPdfInBrowser` | Office PDF erzeugen/herunterladen | Ja (via Adapter) |
+| `fetchAssistProofPortalDocumentDetail` | Klientenportal HTML-Preview | Ja (via Adapter) |
+| `releaseApprovedProofToPortal` | Portal-Freigabe + PDF | Ja (`enrichVisitProofForPreview`) |
+| `useVisitProofReviewPreview` | Office Review Feldliste | Ja (`enrichVisitProofForPreview`) |
+| `buildAssistProofPdfPayload` | Pure Builder / Unit-Tests | Nein — nur mit vorbereitetem Enrichment |
+| `buildServiceRecordHtml` | Mitarbeiter-Workflow | Branding via Caller-Input |
+| `buildServiceProofDocumentHtml` | Dokumentenmodul | `proof.logoUrl` / `proof.employeeName` + Branding-Resolver |
+
+### 2. Geschlossene Lücke
+
+**Vorher:** `portalAssistVisitProofService` und Office-PDF-Funktionen riefen `buildAssistProofPdfPayload(proof)` ohne DB-Enrichment auf → alte Snapshots ohne `employeeName` / Logo zeigten „Nicht dokumentiert“ bzw. „CareSuite+ Mandant“.
+
+**Nachher:** `buildEnrichedAssistProofPdfPayload(tenantId, proof, enrichment?)` prüft Snapshot + partielles Enrichment und lädt bei Bedarf:
+- **Mitarbeiter fehlt** → `enrichVisitProofForPreview` (Visit → Assignment → Employee)
+- **Logo/Mandantenname fehlt** → `loadVisitProofBrandingForTenant` (`tenant_branding` + `tenant_document_settings` + `tenants`)
+
+`mergeVisitProofEnrichment` verbindet DB-Daten mit Caller-Overrides (Caller gewinnt bei gesetzten Werten).
+
+### 3. Logo-Enrichment
+
+Auslöser: kein `logoUrl` im Snapshot/Enrichment **oder** Mandantenname = Fallback „CareSuite+ Mandant“.
+
+Quellen: `loadVisitProofBrandingForTenant` → `fetchTenantBrandingLogoUrl` + `tenant_document_settings.logo_url` + `tenants.name`.
+
+### 4. Mitarbeiter-Enrichment
+
+Auslöser: `resolveVisitProofEmployeeName` = „Nicht dokumentiert“.
+
+Quellen: `enrichVisitProofForPreview` — zuerst `assist_visits.employees`, dann `assignments.employees`, dann direkter `employees`-Lookup via `employee_id` / `employeeId` im Snapshot.
+
+### 5. Tests
+
+```text
+✓ visitProofLayoutV2.test.ts            22/22
+✓ serviceProofLayoutV2.test.ts           13/13
+✓ assistProofPdfPreview.test.ts           5/5
+✓ assistProofEnrichmentGate.test.ts       7/7
+✓ visitProofReviewPreview.test.ts        11/11
+────────────────────────────────────────
+Gesamt (Enrichment-Gate-Lauf): 58/58 grün
+```
+
+Neue Gate-Tests: Employee-Backfill ohne Snapshot, Logo-Backfill ohne Snapshot, echter Mandantenname statt Dummy, Portal-/PDF-Service-Wiring, Footer unverändert.
+
+### 6. Restrisiko
+
+1. **Remote-Logos / CORS** bei html2canvas-PDF — unverändert technisches Risiko
+2. **Gespeicherte PDFs in Storage** — werden nicht automatisch neu gerendert; neue Previews/Downloads nutzen Enrichment
+3. **Kein Live-Browser-Smoke** — Ersatz: 58 Unit-Tests
+
+### 7. Ergebnis
+
+**Restrisiko Enrichment-Lücke geschlossen** — kein aktiver Runtime-Pfad rendert mehr ohne DB-Backfill, wenn Logo/Mitarbeiter verfügbar sind.

@@ -50,6 +50,43 @@ export type VisitProofSnapshotEnrichment = {
   costCarrier?: string | null;
 };
 
+function pickEnrichmentString(
+  override: string | null | undefined,
+  fallback: string | null | undefined,
+): string | null | undefined {
+  if (typeof override === 'string' && override.trim()) return override.trim();
+  if (typeof fallback === 'string' && fallback.trim()) return fallback.trim();
+  return override ?? fallback;
+}
+
+/** Merge DB enrichment with caller overrides — meaningful override values win. */
+export function mergeVisitProofEnrichment(
+  base: VisitProofSnapshotEnrichment,
+  override: VisitProofSnapshotEnrichment = {},
+): VisitProofSnapshotEnrichment {
+  return {
+    employeeName: pickEnrichmentString(override.employeeName, base.employeeName),
+    serviceName: pickEnrichmentString(override.serviceName, base.serviceName),
+    location: pickEnrichmentString(override.location, base.location),
+    scheduledStart: pickEnrichmentString(override.scheduledStart, base.scheduledStart),
+    scheduledEnd: pickEnrichmentString(override.scheduledEnd, base.scheduledEnd),
+    visitTimes: override.visitTimes ?? base.visitTimes ?? null,
+    signature: override.signature ?? base.signature ?? null,
+    signatureImageUrl: pickEnrichmentString(override.signatureImageUrl, base.signatureImageUrl),
+    signatureImageWidth: override.signatureImageWidth ?? base.signatureImageWidth ?? null,
+    signatureImageHeight: override.signatureImageHeight ?? base.signatureImageHeight ?? null,
+    tasks: override.tasks?.length ? override.tasks : base.tasks,
+    documentationNote: pickEnrichmentString(override.documentationNote, base.documentationNote),
+    tenantLogoUrl: pickEnrichmentString(override.tenantLogoUrl, base.tenantLogoUrl),
+    tenantName: pickEnrichmentString(override.tenantName, base.tenantName),
+    tenantLegalName: pickEnrichmentString(override.tenantLegalName, base.tenantLegalName),
+    tenantAddressLine: pickEnrichmentString(override.tenantAddressLine, base.tenantAddressLine),
+    tenantIkNumber: pickEnrichmentString(override.tenantIkNumber, base.tenantIkNumber),
+    tenantTaxId: pickEnrichmentString(override.tenantTaxId, base.tenantTaxId),
+    costCarrier: pickEnrichmentString(override.costCarrier, base.costCarrier),
+  };
+}
+
 const EMPLOYEE_TASK_STATUS_LABELS: Record<string, string> = {
   done: 'Erledigt',
   not_done: 'Nicht erledigt',

@@ -193,6 +193,21 @@ vi.mock('@/lib/assist/assistVisitSignaturePersistenceService', () => ({
   fetchValidVisitSignature: (...args: unknown[]) => mockFetchValidVisitSignature(...args),
 }));
 
+vi.mock('@/lib/assist/visitProofBranding', async (importOriginal) => {
+  const actual = await importOriginal<typeof import('@/lib/assist/visitProofBranding')>();
+  return {
+    ...actual,
+    loadVisitProofBrandingForTenant: vi.fn(async () => ({
+      logoUrl: null,
+      tenantName: 'Test Pflegedienst GmbH',
+      legalName: 'Test Pflegedienst GmbH',
+      addressLine: null,
+      ikNumber: null,
+      taxId: null,
+    })),
+  };
+});
+
 function mockQueryResult(data: unknown, error: unknown = null) {
   return {
     select: vi.fn().mockReturnThis(),

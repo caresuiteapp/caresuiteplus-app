@@ -11,7 +11,18 @@ import {
   buildAssistProofPdfPayload,
   type AssistProofPdfPayload,
 } from '@/lib/assist/assistProofPdfPayload';
-import type { VisitProofSnapshotEnrichment } from '@/lib/assist/visitProofSnapshotPreviewService';
+import {
+  loadVisitProofBrandingForTenant,
+  resolveVisitProofBranding,
+  resolveVisitProofEmployeeName,
+  VISIT_PROOF_EMPLOYEE_UNKNOWN,
+  VISIT_PROOF_TENANT_NAME_FALLBACK,
+} from '@/lib/assist/visitProofBranding';
+import {
+  enrichVisitProofForPreview,
+  mergeVisitProofEnrichment,
+  type VisitProofSnapshotEnrichment,
+} from '@/lib/assist/visitProofSnapshotPreviewService';
 import {
   fetchVisitProofById,
   updateVisitProofRow,
@@ -26,6 +37,57 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 
 export type { AssistProofPdfPayload };
 export { buildAssistProofPdfPayload } from '@/lib/assist/assistProofPdfPayload';
+
+function brandingInputFromEnrichment(
+  enrichment: VisitProofSnapshotEnrichment,
+): Parameters<typeof resolveVisitProofBranding>[1] {
+  return {
+    logoUrl: enrichment.tenantLogoUrl,
+    tenantName: enrichment.tenantName,
+    legalName: enrichment.tenantLegalName,
+    addressLine: enrichment.tenantAddressLine,
+    ikNumber: enrichment.tenantIkNumber,
+    taxId: enrichment.tenantTaxId,
+  };
+}
+
+/** Runtime PDF/HTML builder — backfills logo, tenant name and employee from DB when snapshot is incomplete. */
+export async function buildEnrichedAssistProofPdfPayload(
+  tenantId: string,
+  proof: AssistVisitProofRow,
+  enrichment: VisitProofSnapshotEnrichment = {},
+): Promise<AssistProofPdfPayload> {
+  const snapshot = proof.payloadSnapshot ?? {};
+  let merged = { ...enrichment };
+
+  const employeeName = resolveVisitProofEmployeeName(snapshot, { employeeName: merged.employeeName });
+  const branding = resolveVisitProofBranding(snapshot, brandingInputFromEnrichment(merged));
+
+  const needsEmployee = employeeName === VISIT_PROOF_EMPLOYEE_UNKNOWN;
+  const needsBranding = !branding.logoUrl || branding.tenantName === VISIT_PROOF_TENANT_NAME_FALLBACK;
+
+  if (needsEmployee) {
+    const enriched = await enrichVisitProofForPreview(tenantId, proof);
+    if (enriched.ok) {
+      merged = mergeVisitProofEnrichment(enriched.data, merged);
+    }
+  } else if (needsBranding) {
+    const tenantBranding = await loadVisitProofBrandingForTenant(tenantId);
+    merged = mergeVisitProofEnrichment(
+      {
+        tenantLogoUrl: tenantBranding.logoUrl,
+        tenantName: tenantBranding.tenantName,
+        tenantLegalName: tenantBranding.legalName,
+        tenantAddressLine: tenantBranding.addressLine,
+        tenantIkNumber: tenantBranding.ikNumber,
+        tenantTaxId: tenantBranding.taxId,
+      },
+      merged,
+    );
+  }
+
+  return buildAssistProofPdfPayload(proof, merged);
+}
 
 export type AssistProofPdfPreviewResult = {
   url: string;
@@ -108,7 +170,7 @@ export async function renderAssistProofPdfBytes(
   proof: AssistVisitProofRow,
   enrichment?: VisitProofSnapshotEnrichment,
 ): Promise<Uint8Array> {
-  const payload = buildAssistProofPdfPayload(proof, enrichment);
+  const payload = await buildEnrichedAssistProofPdfPayload(proof.tenantId, proof, enrichment);
   return renderHtmlToPdfBytes(payload.html);
 }
 
@@ -118,7 +180,7 @@ export async function resolveAssistProofPdfPreviewUrl(
   proof: AssistVisitProofRow,
   enrichment?: VisitProofSnapshotEnrichment,
 ): Promise<ServiceResult<AssistProofPdfPreviewResult>> {
-  const payload = buildAssistProofPdfPayload(proof, enrichment);
+  const payload = await buildEnrichedAssistProofPdfPayload(tenantId, proof, enrichment);
 
   if (Platform.OS !== 'web' || typeof URL === 'undefined') {
     return { ok: false, error: 'PDF-Vorschau ist nur im Web-Browser verfügbar.' };
@@ -218,22 +280,23 @@ export async function downloadAssistProofPdfInBrowser(
         return { ok: false, error: error?.message ?? 'PDF konnte nicht geladen werden.' };
       }
 
-      return { ok: true, data: { fileName: buildAssistProofPdfPayload(proof, enrichment).fileName } };
+      const fileName = (await buildEnrichedAssistProofPdfPayload(tenantId, proof, enrichment)).fileName;
+      return { ok: true, data: { fileName } };
     }
     return { ok: false, error: 'PDF-Download ist nur im Web-Browser verfügbar.' };
   }
 
   try {
-    const pdfBytes = await renderAssistProofPdfBytes(proof, enrichment);
-    const fileName = buildAssistProofPdfPayload(proof, enrichment).fileName;
+    const payload = await buildEnrichedAssistProofPdfPayload(tenantId, proof, enrichment);
+    const pdfBytes = await renderHtmlToPdfBytes(payload.html);
     const blob = new Blob([pdfBytes], { type: 'application/pdf' });
     const url = URL.createObjectURL(blob);
     const anchor = document.createElement('a');
     anchor.href = url;
-    anchor.download = fileName;
+    anchor.download = payload.fileName;
     anchor.click();
     URL.revokeObjectURL(url);
-    return { ok: true, data: { fileName } };
+    return { ok: true, data: { fileName: payload.fileName } };
   } catch (error) {
     if (proof.pdfStoragePath) {
       const supabase = getSupabaseClient();
@@ -254,7 +317,7 @@ export async function downloadAssistProofPdfInBrowser(
 
       const buffer = await data.arrayBuffer();
       const bytes = new Uint8Array(buffer);
-      const fileName = buildAssistProofPdfPayload(proof, enrichment).fileName;
+      const fileName = (await buildEnrichedAssistProofPdfPayload(tenantId, proof, enrichment)).fileName;
       const blob = new Blob([bytes], { type: 'application/pdf' });
       const url = URL.createObjectURL(blob);
       const anchor = document.createElement('a');
