@@ -20,6 +20,7 @@ import {
   resetWfmOfficeTimekeepingStore,
   setEntryOverlay,
 } from '@/lib/wfm/wfmOfficeTimekeepingStore';
+import { resetWfmTimeReviewDemoStore } from '@/lib/wfm/wfmTimeReviewService';
 
 const TENANT = 'tenant-zeit3';
 const ACTOR = 'actor-office';
@@ -121,6 +122,7 @@ describe('ZEIT.3 overall ampel', () => {
 describe('ZEIT.3 deviation gate + office workflow', () => {
   beforeEach(() => {
     resetWfmOfficeTimekeepingStore();
+    resetWfmTimeReviewDemoStore();
   });
 
   it('blocks rot start without justification then allows after submit', async () => {

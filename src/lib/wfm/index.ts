@@ -179,3 +179,15 @@ export {
 export { writeWfmOfficeAudit, listWfmOfficeAuditForEntry } from './wfmOfficeAuditService';
 
 export { resetWfmOfficeTimekeepingStore } from './wfmOfficeTimekeepingStore';
+
+export {
+  buildReferenceKey,
+  buildReferenceKeyFromEntry,
+  listReviewsForPeriod,
+  transitionReviewStatus,
+  upsertReview,
+  appendReviewAction,
+  resetWfmTimeReviewDemoStore,
+  type WfmTimeEntryReview,
+  type WfmTimeReviewStatus,
+} from './wfmTimeReviewService';

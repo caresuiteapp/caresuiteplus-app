@@ -50,7 +50,65 @@ import {
   listPlannedVisitsForPeriod,
 } from './wfmOfficePlannedVisitRepository';
 import { listWfmAbsencesForTeam } from './wfmAbsenceService';
-import { isWfmAbsenceCoveringDate } from './wfmDisplayHelpers';
+import {
+  applyReviewToEntry,
+  buildReferenceKeyFromEntry,
+  listReviewsForPeriod,
+  mapDbReviewStatusToUi,
+  mapUiReviewDecisionToDb,
+  transitionReviewStatus,
+  upsertReview,
+  type WfmTimeEntryReview,
+  type WfmTimeReviewStatus,
+} from './wfmTimeReviewService';
+
+function mergeEntryReviewOverlay(
+  entry: WfmOfficeTimeEntry,
+  reviewMap: Map<string, WfmTimeEntryReview>,
+): WfmOfficeTimeEntry {
+  const overlay = getEntryOverlay(entry.id) ?? {};
+  const referenceKey = buildReferenceKeyFromEntry(entry.tenantId, entry);
+  const review = reviewMap.get(referenceKey);
+  const withReview = applyReviewToEntry(entry, review);
+  if (!review && overlay.reviewStatus) {
+    return {
+      ...withReview,
+      ...overlay,
+      id: entry.id,
+      reviewStatus: overlay.reviewStatus ?? withReview.reviewStatus,
+      status: overlay.status ?? overlay.reviewStatus ?? withReview.status,
+    };
+  }
+  return {
+    ...withReview,
+    ...overlay,
+    id: entry.id,
+    reviewStatus: withReview.reviewStatus,
+    status: withReview.status,
+    exportStatus: withReview.exportStatus,
+  };
+}
+
+async function resolveReviewContextForEntry(
+  tenantId: string,
+  entryId: string,
+): Promise<{ employeeId: string; workDate: string; entryKind?: 'session' | 'visit' | 'manual' | 'meeting' }> {
+  const manual = getManualEntry(entryId);
+  if (manual) {
+    return { employeeId: manual.employeeId, workDate: manual.workDate, entryKind: 'manual' };
+  }
+  const overlay = getEntryOverlay(entryId);
+  const parsed = entryId.startsWith('visit:')
+    ? ({ entryKind: 'visit' as const, workDate: entryId.split(':')[2] ?? overlay?.workDate ?? todayWorkDate() })
+    : entryId.startsWith('session:')
+      ? ({ entryKind: 'session' as const, workDate: overlay?.workDate ?? todayWorkDate() })
+      : ({ entryKind: 'manual' as const, workDate: overlay?.workDate ?? todayWorkDate() });
+  return {
+    employeeId: overlay?.employeeId ?? '00000000-0000-4000-8000-000000000001',
+    workDate: parsed.workDate,
+    entryKind: parsed.entryKind,
+  };
+}
 
 const TERMINAL_STATUSES = new Set<WfmOfficeTimeEntryStatus>(['exported', 'locked']);
 
@@ -459,6 +517,15 @@ export async function getWfmOfficeTimeOverview(
 
   const joined = joinOfficeTimekeepingData(plannedVisits, enrichedActual, employeeNames);
 
+  const reviewsResult = await listReviewsForPeriod(tenantId, period.fromDate, period.toDate);
+  const reviewMap = new Map<string, WfmTimeEntryReview>();
+  if (reviewsResult.ok) {
+    for (const review of reviewsResult.data) {
+      reviewMap.set(review.referenceKey, review);
+    }
+  }
+  const joinedWithReviews = joined.map((entry) => mergeEntryReviewOverlay(entry, reviewMap));
+
   const absencesResult = await listWfmAbsencesForTeam(tenantId, actorRoleKey);
   const absentEmployeeIds = new Set<string>();
   if (absencesResult.ok) {
@@ -483,7 +550,7 @@ export async function getWfmOfficeTimeOverview(
     ? approvals.data.filter((a) => a.approvalType === 'vacation' || a.approvalType === 'absence').length
     : 0;
 
-  const filtered = applyFilters(joined, options?.filters);
+  const filtered = applyFilters(joinedWithReviews, options?.filters);
   filtered.sort((a, b) => {
     const dateCmp = b.workDate.localeCompare(a.workDate);
     if (dateCmp !== 0) return dateCmp;
@@ -496,7 +563,7 @@ export async function getWfmOfficeTimeOverview(
     ok: true,
     data: {
       period,
-      kpis: computeKpis(joined, openRequestsCount, plannedVisits.length, absentEmployeeIds),
+      kpis: computeKpis(joinedWithReviews, openRequestsCount, plannedVisits.length, absentEmployeeIds),
       entries: filtered,
       employees: [...profiles.values()],
     },
@@ -535,17 +602,30 @@ export async function applyWfmOfficeTimeCorrection(
 
   const patch: Partial<WfmOfficeTimeEntry> = {
     ...overlay,
-    status: 'corrected',
-    reviewStatus: 'corrected',
     source: 'correction',
     workKind: input.workKind ?? overlay.workKind,
   };
   if (input.actualStartAt !== undefined) patch.actualStartAt = input.actualStartAt;
   if (input.actualEndAt !== undefined) patch.actualEndAt = input.actualEndAt;
   if (input.pauseMinutes !== undefined) patch.pauseMinutes = input.pauseMinutes ?? 0;
-  if (input.status) patch.reviewStatus = input.status;
-
   setEntryOverlay(input.entryId, patch);
+
+  const reviewCtx = await resolveReviewContextForEntry(tenantId, input.entryId);
+  const nextReviewStatus: WfmTimeReviewStatus = input.status
+    ? (input.status as WfmTimeReviewStatus)
+    : 'corrected';
+  const reviewResult = await transitionReviewStatus(tenantId, actorId, {
+    entryId: input.entryId,
+    employeeId: existing?.employeeId ?? reviewCtx.employeeId,
+    workDate: existing?.workDate ?? reviewCtx.workDate,
+    entryKind: reviewCtx.entryKind,
+    nextStatus: nextReviewStatus,
+    reviewNote: input.reason,
+    officeComment: input.reason,
+    actorId,
+    actionComment: input.reason,
+  });
+  if (!reviewResult.ok) return reviewResult;
 
   await writeWfmOfficeAudit(tenantId, actorRoleKey, {
     entityType: 'wfm_office_time_entry',
@@ -665,6 +745,19 @@ export async function createWfmOfficeManualEntry(
 
   saveManualEntry(entry);
 
+  const reviewResult = await upsertReview(tenantId, actorId, {
+    entryId: id,
+    employeeId: input.employeeId,
+    workDate: input.workDate,
+    entryKind: 'manual',
+    nextStatus: 'pending_review',
+    reviewNote: input.reason,
+    officeComment: input.reason,
+    actorId,
+    actionComment: 'Synthetic manual entry pending review',
+  });
+  if (!reviewResult.ok) return reviewResult;
+
   await writeWfmOfficeAudit(tenantId, actorRoleKey, {
     entityType: 'wfm_office_time_entry',
     entityId: id,
@@ -683,7 +776,7 @@ export async function reviewWfmOfficeTimeEntry(
   actorId: string,
   actorRoleKey: RoleKey | null,
   entryId: string,
-  decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'open',
+  decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'open' | 'needs_clarification',
   reviewNote?: string,
 ): Promise<ServiceResult<WfmOfficeTimeEntry>> {
   const denied = enforcePermission(actorRoleKey, 'time.tracking.admin.correct');
@@ -695,20 +788,29 @@ export async function reviewWfmOfficeTimeEntry(
 
   const overlay = getEntryOverlay(entryId) ?? {};
   const existing = getManualEntry(entryId);
-  const currentStatus = overlay.reviewStatus ?? existing?.reviewStatus ?? 'open';
+  const reviewCtx = await resolveReviewContextForEntry(tenantId, entryId);
+  const currentStatus =
+    overlay.reviewStatus ?? existing?.reviewStatus ?? ('open' as WfmOfficeTimeEntryStatus);
 
   if (TERMINAL_STATUSES.has(currentStatus) && decision !== 'open') {
     return { ok: false, error: 'Exportierter oder gesperrter Eintrag — Warnung: besondere Korrektur nötig.' };
   }
 
-  const statusMap: Record<string, WfmOfficeTimeEntryStatus> = {
-    approved: 'approved',
-    rejected: 'rejected',
-    exported: 'exported',
-    locked: 'locked',
-    open: 'open',
-  };
-  const nextStatus = statusMap[decision];
+  const nextStatus = mapUiReviewDecisionToDb(decision);
+  const reviewResult = await transitionReviewStatus(tenantId, actorId, {
+    entryId,
+    employeeId: existing?.employeeId ?? reviewCtx.employeeId,
+    workDate: existing?.workDate ?? reviewCtx.workDate,
+    entryKind: reviewCtx.entryKind,
+    nextStatus,
+    reviewNote: reviewNote ?? null,
+    officeComment: reviewNote ?? null,
+    actorId,
+    actionComment: reviewNote ?? null,
+  });
+  if (!reviewResult.ok) return reviewResult;
+
+  const uiStatus = mapDbReviewStatusToUi(reviewResult.data.reviewStatus);
   const exportStatus =
     decision === 'exported'
       ? 'exported'
@@ -718,12 +820,14 @@ export async function reviewWfmOfficeTimeEntry(
 
   const patch: Partial<WfmOfficeTimeEntry> = {
     ...overlay,
-    reviewStatus: nextStatus,
-    status: nextStatus,
+    reviewStatus: uiStatus,
+    status: uiStatus,
     exportStatus,
     officeComment: reviewNote ?? overlay.officeComment ?? null,
   };
-  setEntryOverlay(entryId, patch);
+  if (decision === 'exported') {
+    setEntryOverlay(entryId, { exportStatus: 'exported' });
+  }
   if (existing) saveManualEntry({ ...existing, ...patch, id: entryId });
 
   await writeWfmOfficeAudit(tenantId, actorRoleKey, {
@@ -731,7 +835,7 @@ export async function reviewWfmOfficeTimeEntry(
     entityId: entryId,
     action: `review_${decision}`,
     actorId,
-    summary: `Prüfstatus ${nextStatus} für Eintrag ${entryId}`,
+    summary: `Prüfstatus ${uiStatus} für Eintrag ${entryId}`,
     reason: reviewNote ?? null,
     source: 'office',
   });
@@ -740,9 +844,9 @@ export async function reviewWfmOfficeTimeEntry(
     ...(existing ?? {
       id: entryId,
       tenantId,
-      employeeId: 'unknown',
+      employeeId: reviewCtx.employeeId,
       employeeName: '—',
-      workDate: todayWorkDate(),
+      workDate: reviewCtx.workDate,
       assignmentId: null,
       visitId: null,
       clientLabel: null,
@@ -764,9 +868,9 @@ export async function reviewWfmOfficeTimeEntry(
       netMinutes: 0,
       travelMinutes: null,
       workKind: 'sonstige',
-      status: nextStatus,
+      status: uiStatus,
       source: 'office',
-      reviewStatus: nextStatus,
+      reviewStatus: uiStatus,
       exportStatus: 'not_exported',
       sessionId: null,
       officeComment: null,
@@ -775,8 +879,8 @@ export async function reviewWfmOfficeTimeEntry(
     }),
     ...patch,
     id: entryId,
-    reviewStatus: nextStatus,
-    status: nextStatus,
+    reviewStatus: uiStatus,
+    status: uiStatus,
     exportStatus,
   };
 
@@ -831,6 +935,20 @@ export async function submitVisitDeviationJustification(
     patch.actualEndAt = input.actualAt;
   }
   setEntryOverlay(entryId, patch);
+
+  if (evaluation.ampel === 'red' || evaluation.ampel === 'blue') {
+    const workDate = workDateFromIso(input.actualAt);
+    await upsertReview(tenantId, actorId, {
+      entryId,
+      employeeId,
+      workDate,
+      entryKind: 'visit',
+      nextStatus: 'pending_review',
+      reviewNote: input.justification.trim(),
+      actorId,
+      actionComment: 'Deviation justification submitted',
+    });
+  }
 
   let message: WfmOfficeMessage | undefined;
   if (evaluation.ampel === 'red' || evaluation.ampel === 'blue') {
