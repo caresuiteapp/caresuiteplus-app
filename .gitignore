@@ -33,3 +33,4 @@ wp002-extract.txt
 .git-commit-msg.txt
 scripts/audit/.migration-parts/
 supabase/.temp/
+supabase/.branches/
