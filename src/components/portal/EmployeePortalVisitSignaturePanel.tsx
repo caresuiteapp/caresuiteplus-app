@@ -1,11 +1,10 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
-import { Image, Platform, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
 import { useFocusEffect } from 'expo-router';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { PremiumButton, PremiumInput, InfoBanner } from '@/components/ui';
 import { EmployeePortalVisitCompactCard } from '@/components/portal/EmployeePortalVisitCompactCard';
 import { releaseSignatureCaptureEnvironment } from '@/lib/dom/releaseSignatureCaptureEnvironment';
-import { requestLandscapeLock } from '@/lib/orientation/requestLandscapeLock';
 import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employeePortalExecution';
 import { spacing, typography } from '@/theme';
 
@@ -53,9 +52,6 @@ export function EmployeePortalVisitSignaturePanel({
   }, [capturedPreview]);
 
   const openSignatureModal = useCallback(() => {
-    if (Platform.OS === 'web') {
-      void requestLandscapeLock({ tryFullscreen: true });
-    }
     setModalVisible(true);
     onModalOpenChangeRef.current?.(true);
   }, []);

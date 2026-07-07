@@ -231,7 +231,7 @@ export function CareSignatureModal({
         <OrientationGate
           screenKey="signature"
           active={visible}
-          options={{ autoLock: true, dismissScope }}
+          options={{ autoLock: true, dismissScope, tryFullscreenOnRequest: false }}
         >
           <View
             style={[
