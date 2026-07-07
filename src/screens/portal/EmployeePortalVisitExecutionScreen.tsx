@@ -54,6 +54,7 @@ import {
   showLiveBottomBar,
 } from '@/lib/portal/resolveVisitExecutionPhase';
 import { resolvePortalScreenSubtitle } from '@/lib/portal/portalDisplayLabels';
+import { releaseSignatureCaptureEnvironment } from '@/lib/dom/releaseSignatureCaptureEnvironment';
 import {
   ASSIST_WORKFLOW_ACTION_LABELS,
   primaryAllowedAction,
@@ -292,6 +293,18 @@ export function EmployeePortalVisitExecutionScreen() {
     setSignatureCaptureRequest((n) => n + 1);
   }, [scrollToSignatureSection]);
 
+  const releaseSignatureUi = useCallback(() => {
+    releaseSignatureCaptureEnvironment();
+    setAwaitingSignature(false);
+    workflowPersistence.setStep(null);
+  }, [workflowPersistence]);
+
+  useEffect(() => {
+    if (signatureDeferred) {
+      releaseSignatureUi();
+    }
+  }, [signatureDeferred, releaseSignatureUi]);
+
   const handleSignatureModalOpenChange = useCallback(
     (open: boolean) => {
       if (open) workflowPersistence.setStep('signature');
@@ -470,8 +483,10 @@ export function EmployeePortalVisitExecutionScreen() {
         return;
       }
       if (action === 'finalize_visit_deferred_signature') {
+        releaseSignatureUi();
         const r = await finalizeVisitDeferred();
         if (r.ok) {
+          releaseSignatureUi();
           setLocalSuccess(
             'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
           );
@@ -489,6 +504,7 @@ export function EmployeePortalVisitExecutionScreen() {
       openSignatureCapture,
       finalizeVisit,
       finalizeVisitDeferred,
+      releaseSignatureUi,
     ],
   );
 
@@ -705,7 +721,7 @@ export function EmployeePortalVisitExecutionScreen() {
             tasks={visit.tasks}
             documentationStatus={visit.documentationStatus}
             documentationLastSavedAt={docLastSavedAt}
-            signatureCaptured={signatureCaptured}
+            signatureCaptured={signatureCaptured || signatureDeferred}
             requiresSignature={visit.requiresSignature}
             serviceSeconds={timers?.serviceSeconds ?? null}
             attachmentCount={photoReferences.length}
@@ -756,8 +772,10 @@ export function EmployeePortalVisitExecutionScreen() {
                 else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
               }}
               onFinalizeDeferred={async () => {
+                releaseSignatureUi();
                 const r = await finalizeVisitDeferred();
                 if (r.ok) {
+                  releaseSignatureUi();
                   setLocalSuccess(
                     'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
                   );
@@ -796,7 +814,7 @@ export function EmployeePortalVisitExecutionScreen() {
         effectiveStatus={effectiveStatus}
         timers={timers}
         requiresSignature={visit.requiresSignature}
-        signatureCaptured={signatureCaptured}
+        signatureCaptured={signatureCaptured || signatureDeferred}
         showProgress={showCompactProgress(phase)}
       />
 
@@ -883,7 +901,7 @@ export function EmployeePortalVisitExecutionScreen() {
 
         {renderPhaseContent()}
 
-        {documentationSubmitted && visit.requiresSignature && !signatureCaptured ? (
+        {documentationSubmitted && visit.requiresSignature && !signatureCaptured && !signatureDeferred ? (
           <InfoBanner variant="info" message="Dokumentation gespeichert — bitte Unterschrift erfassen." />
         ) : null}
 
