@@ -280,7 +280,14 @@ async function runBrowserFlow(login, publicClient) {
       timeout: 120000,
     });
     await waitForLoadedShell(page, 60000);
-    await page.waitForTimeout(2500);
+    await page.waitForFunction(
+      () => {
+        const text = document.body?.innerText ?? '';
+        return text.includes('Unterschreiben') && !text.includes('Wird geladen…');
+      },
+      { timeout: 60000 },
+    );
+    await page.waitForTimeout(1000);
 
     const bodyDetail = await page.locator('body').innerText({ timeout: 30000 }).catch(() => '');
     await page.screenshot({ path: join(outDir, '02-document-detail-before-sign.png'), fullPage: true });
@@ -300,6 +307,8 @@ async function runBrowserFlow(login, publicClient) {
     }
 
     await signDetailButton.first().click();
+    await page.waitForTimeout(2000);
+    await page.setViewportSize({ width: 844, height: 390 });
     await page.waitForTimeout(1500);
 
     const drawn = await drawSignature(page);

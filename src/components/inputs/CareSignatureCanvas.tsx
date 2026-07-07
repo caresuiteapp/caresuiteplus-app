@@ -341,46 +341,6 @@ function WebSignatureCanvas({
     syncCanvasToDisplay();
   }, [orientation.isLandscape, orientation.width, orientation.height, syncCanvasToDisplay]);
 
-  useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas || typeof window === 'undefined') return;
-
-    const handleTouchStart = (event: TouchEvent) => {
-      if (disabled || event.touches.length !== 1) return;
-      event.preventDefault();
-      const touch = event.touches[0];
-      if (!touch) return;
-      beginStroke(touch.clientX, touch.clientY, touch.identifier);
-    };
-
-    const handleTouchMove = (event: TouchEvent) => {
-      if (!drawing.current || disabled || event.touches.length !== 1) return;
-      const touch = event.touches[0];
-      if (!touch || activePointerId.current !== touch.identifier) return;
-      event.preventDefault();
-      continueStroke(touch.clientX, touch.clientY);
-    };
-
-    const handleTouchEnd = (event: TouchEvent) => {
-      const touch = event.changedTouches[0];
-      if (!touch || activePointerId.current !== touch.identifier) return;
-      event.preventDefault();
-      finishStroke(touch.identifier);
-    };
-
-    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
-    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
-    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
-    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
-
-    return () => {
-      canvas.removeEventListener('touchstart', handleTouchStart);
-      canvas.removeEventListener('touchmove', handleTouchMove);
-      canvas.removeEventListener('touchend', handleTouchEnd);
-      canvas.removeEventListener('touchcancel', handleTouchEnd);
-    };
-  }, [beginStroke, continueStroke, disabled, finishStroke]);
-
   const handleClear = useCallback(() => {
     strokesRef.current = [];
     currentStrokeRef.current = [];
@@ -471,6 +431,46 @@ function WebSignatureCanvas({
     },
     [endStroke],
   );
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof window === 'undefined') return;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (disabled || event.touches.length !== 1) return;
+      event.preventDefault();
+      const touch = event.touches[0];
+      if (!touch) return;
+      beginStroke(touch.clientX, touch.clientY, touch.identifier);
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!drawing.current || disabled || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      if (!touch || activePointerId.current !== touch.identifier) return;
+      event.preventDefault();
+      continueStroke(touch.clientX, touch.clientY);
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const touch = event.changedTouches[0];
+      if (!touch || activePointerId.current !== touch.identifier) return;
+      event.preventDefault();
+      finishStroke(touch.identifier);
+    };
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [beginStroke, continueStroke, disabled, finishStroke]);
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
