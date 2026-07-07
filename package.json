@@ -85,6 +85,7 @@
     "@types/react": "~18.3.12",
     "eslint": "^8.57.0",
     "eslint-config-expo": "~8.0.1",
+    "playwright": "^1.49.1",
     "typescript": "~5.3.3",
     "vitest": "^3.2.6"
   },

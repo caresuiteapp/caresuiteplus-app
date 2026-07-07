@@ -1,0 +1,18 @@
+{
+  "baseUrl": "http://localhost:8093",
+  "screenshots": [
+    "office-list-ellen-03-10-17.png",
+    "office-list-ellen-24-31.png",
+    "office-list-dagmar-13-20-27.png",
+    "office-preview-ellen-2026-07-10.png",
+    "office-preview-dagmar-2026-07-13.png",
+    "employee-portal-ellen-2026-07-10.png"
+  ],
+  "checks": [],
+  "platformError": null,
+  "metroOnlyNote": "Platform is not defined tritt in Metro (localhost:8091) auf, nicht im exportierten Web-Build.",
+  "verdict": "BLOCKED",
+  "error": "locator.click: Timeout 30000ms exceeded.\nCall log:\n  - waiting for getByText(/10\\.07\\.2026/).first()\n",
+  "failureUrl": "http://localhost:8093/assist/assignments",
+  "failureBody": "A+\n100%\nA−\nAssist\nNavigation\nÜBERSICHT\nDashboard\nEINSÄTZE & DURCHFÜHRUNG\nEinsätze\nDurchführung\nNachweise\nAufgaben\nMOBILITÄT & PLANUNG\nFahrten\nTouren\nKalender\nLive-Status\nQUALITÄT & EINSTELLUNGEN\nQualität\nZugeordnete Klient:innen\nEinstellungen\nMANDANT\nTest Pflege GmbH\n▾\nStart\n › \nAssist\n › \nEinsätze\nEinsatzplanung\nEinsatzplanung & Zuordnung · Geschäftsführung / Admin\nNeuer Einsatz\nAktualisieren\nKartenansicht\nTabellenansicht\nEinsatzplanung\n0 von 63 Einsätzen · Live-Mandant · Live\nGeschäftsführung / Admin\nKalender →\nNeuer Einsatz\nSuche\n0 von 63 Einsätzen\nZeitraum\nAlle\nHeute\nMorgen\nWoche\nStatus\nAlle\nAktiv\nIn Bearbeitung\nEntwurf\nAbgeschlossen\nFehlerhaft\nGesperrt\nMitarbeiter:in\nAlle\nP0 Test Admin\nP0 Test Mhi Persona\nLeistung\nAlle\nAlltagsbegleitung\nSortierung\nZeit aufsteigend\nZeit absteigend\nKlient A–Z\nKeine Treffer\nFür Ihre Suche oder Filter wurden keine Einsätze gefunden.\nFilter zurücksetzen\nAA\nAudit Test Admin\n▾\nMANDANT\n● Live\n⌕\n⌘K\nHEUTE\nHeutige Einsätze\n1\nLaufende Einsätze\n0\nDokumentation offen\n20\nSignatur offen\n38\nNachweise zu prüfen\n11\nSCHNELLAKTIONEN\nEinsatz planen\nLive-Status\nMehr\n▾\nÜBERSICHT\nDashboard\nEINSÄTZE & DURCHFÜHRUNG\nEinsätze\nDurchführung\nMehr\n▾\nMOBILITÄT & PLANUNG\nFahrten\nTouren\nMehr\n▾\nQUALITÄT & EINSTELLUNGEN\nQualität\nZugeordnete Klient:innen\nMehr\n▾\nSUPPORT\n?\nHilfe & Dokumentation\nDatenschutz\nBetroffenenrechte\ni\nImpressum"
+}
