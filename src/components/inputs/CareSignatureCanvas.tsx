@@ -55,7 +55,7 @@ function useSignatureCanvasStyles(fillAvailable: boolean, actionLayout: 'default
             ? {
                 flex: 1,
                 height: undefined,
-                minHeight: 0,
+                minHeight: 120,
                 alignSelf: 'stretch',
               }
             : null),
@@ -341,6 +341,46 @@ function WebSignatureCanvas({
     syncCanvasToDisplay();
   }, [orientation.isLandscape, orientation.width, orientation.height, syncCanvasToDisplay]);
 
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas || typeof window === 'undefined') return;
+
+    const handleTouchStart = (event: TouchEvent) => {
+      if (disabled || event.touches.length !== 1) return;
+      event.preventDefault();
+      const touch = event.touches[0];
+      if (!touch) return;
+      beginStroke(touch.clientX, touch.clientY, touch.identifier);
+    };
+
+    const handleTouchMove = (event: TouchEvent) => {
+      if (!drawing.current || disabled || event.touches.length !== 1) return;
+      const touch = event.touches[0];
+      if (!touch || activePointerId.current !== touch.identifier) return;
+      event.preventDefault();
+      continueStroke(touch.clientX, touch.clientY);
+    };
+
+    const handleTouchEnd = (event: TouchEvent) => {
+      const touch = event.changedTouches[0];
+      if (!touch || activePointerId.current !== touch.identifier) return;
+      event.preventDefault();
+      finishStroke(touch.identifier);
+    };
+
+    canvas.addEventListener('touchstart', handleTouchStart, { passive: false });
+    canvas.addEventListener('touchmove', handleTouchMove, { passive: false });
+    canvas.addEventListener('touchend', handleTouchEnd, { passive: false });
+    canvas.addEventListener('touchcancel', handleTouchEnd, { passive: false });
+
+    return () => {
+      canvas.removeEventListener('touchstart', handleTouchStart);
+      canvas.removeEventListener('touchmove', handleTouchMove);
+      canvas.removeEventListener('touchend', handleTouchEnd);
+      canvas.removeEventListener('touchcancel', handleTouchEnd);
+    };
+  }, [beginStroke, continueStroke, disabled, finishStroke]);
+
   const handleClear = useCallback(() => {
     strokesRef.current = [];
     currentStrokeRef.current = [];
@@ -434,7 +474,7 @@ function WebSignatureCanvas({
 
   const handlePointerDown = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
-      if (disabled) return;
+      if (disabled || event.pointerType === 'touch') return;
       event.preventDefault();
       beginStroke(event.clientX, event.clientY, event.pointerId);
     },
@@ -443,6 +483,7 @@ function WebSignatureCanvas({
 
   const handlePointerMove = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (event.pointerType === 'touch') return;
       if (!drawing.current || disabled || activePointerId.current !== event.pointerId) return;
       event.preventDefault();
       continueStroke(event.clientX, event.clientY);
@@ -452,6 +493,7 @@ function WebSignatureCanvas({
 
   const handlePointerEnd = useCallback(
     (event: ReactPointerEvent<HTMLCanvasElement>) => {
+      if (event.pointerType === 'touch') return;
       if (activePointerId.current !== event.pointerId) return;
       event.preventDefault();
       finishStroke(event.pointerId);
@@ -493,10 +535,12 @@ function WebSignatureCanvas({
       <View style={styles.canvasWrap} onLayout={handleCanvasLayout}>
         <canvas
           ref={canvasRef}
+          data-signature-capture="true"
           data-testid="portal-signature-canvas"
           style={{
             width: '100%',
             height: fillAvailable ? '100%' : dims.height,
+            minHeight: fillAvailable ? 120 : undefined,
             touchAction: 'none',
             background: '#fff',
             borderRadius: fillAvailable ? 0 : 8,

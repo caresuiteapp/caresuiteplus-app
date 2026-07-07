@@ -2,6 +2,7 @@ import { useEffect, useLayoutEffect, useState, type ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { Modal, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
 import { cleanupOrphanedFullscreenOverlays } from '@/lib/dom/cleanupOrphanedFullscreenOverlays';
+import { blockDocumentTouchScrollOutsideSignatureCapture } from '@/lib/dom/signatureCaptureScrollLock';
 
 export const FULLSCREEN_OVERLAY_Z_INDEX = 9999;
 export { cleanupOrphanedFullscreenOverlays };
@@ -42,9 +43,7 @@ function useWebBodyScrollLock(active: boolean) {
     document.body.style.overflow = 'hidden';
     document.body.style.overscrollBehavior = 'contain';
 
-    const blockTouchMove = (event: TouchEvent) => {
-      event.preventDefault();
-    };
+    const blockTouchMove = blockDocumentTouchScrollOutsideSignatureCapture;
     document.addEventListener('touchmove', blockTouchMove, { passive: false });
 
     return () => {

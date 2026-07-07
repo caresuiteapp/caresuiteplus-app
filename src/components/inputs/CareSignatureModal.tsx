@@ -19,6 +19,7 @@ import { resolveCareTypography } from '@/design/tokens/typography';
 import { legacyColorsFromPalette, useLegacyTheme } from '@/design/tokens/themeBridge';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useOrientation } from '@/hooks/useOrientation';
+import { blockDocumentTouchScrollOutsideSignatureCapture } from '@/lib/dom/signatureCaptureScrollLock';
 import { spacing, typography } from '@/theme';
 
 const DESKTOP_MIN_WIDTH = 600;
@@ -191,9 +192,7 @@ export function CareSignatureModal({
     document.body.style.overflow = 'hidden';
     document.body.style.overscrollBehavior = 'contain';
 
-    const blockTouchMove = (event: TouchEvent) => {
-      event.preventDefault();
-    };
+    const blockTouchMove = blockDocumentTouchScrollOutsideSignatureCapture;
     document.addEventListener('touchmove', blockTouchMove, { passive: false });
 
     return () => {
