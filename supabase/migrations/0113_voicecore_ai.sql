@@ -169,8 +169,19 @@ ALTER TABLE public.ai_action_logs ENABLE ROW LEVEL SECURITY;
 -- --------------------------------------------------------------------------
 -- document_chunks (embedding optional for v1 — ohne vector lokal ohne embedding-Spalte)
 DO $document_chunks$
+DECLARE
+  v_ext_schema TEXT;
 BEGIN
   IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+    SELECT n.nspname
+      INTO v_ext_schema
+      FROM pg_extension e
+      JOIN pg_namespace n ON n.oid = e.extnamespace
+     WHERE e.extname = 'vector';
+    IF v_ext_schema IS NULL THEN
+      v_ext_schema := 'extensions';
+    END IF;
+
     EXECUTE $sql$
       CREATE TABLE IF NOT EXISTS public.document_chunks (
         id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
@@ -187,12 +198,13 @@ BEGIN
         created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
       )
     $sql$;
-    EXECUTE $sql$
-      CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
-        ON public.document_chunks
-        USING hnsw (embedding vector_cosine_ops)
-        WHERE embedding IS NOT NULL
-    $sql$;
+    EXECUTE format(
+      'CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
+         ON public.document_chunks
+         USING hnsw (embedding %I.vector_cosine_ops)
+         WHERE embedding IS NOT NULL',
+      v_ext_schema
+    );
   ELSE
     CREATE TABLE IF NOT EXISTS public.document_chunks (
       id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
