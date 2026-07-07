@@ -164,6 +164,43 @@ describe('resolveVisitExecutionUiState', () => {
     });
 
     expect(state.showFinalize).toBe(false);
+    expect(state.canFinalizeDeferred).toBe(false);
     expect(state.showSignature).toBe(true);
+  });
+
+  it('shows deferred finalize when finalize_visit_deferred_signature is allowed', () => {
+    const state = resolveVisitExecutionUiState({
+      visit: baseVisit({
+        status: 'unterschrift_offen',
+        signatureStatus: 'pending',
+      }),
+      effectiveStatus: 'unterschrift_offen',
+      consistencyStatus: 'consistent',
+      allowedActions: ['finalize_visit_deferred_signature', 'capture_signature', 'open_route'],
+      awaitingSignature: false,
+      hasServiceEnded: true,
+    });
+
+    expect(state.canFinalizeDeferred).toBe(true);
+    expect(state.showFinalize).toBe(false);
+    expect(state.showSignature).toBe(true);
+  });
+
+  it('hides signature panel when deferred to client portal', () => {
+    const state = resolveVisitExecutionUiState({
+      visit: baseVisit({
+        status: 'abgeschlossen',
+        signatureStatus: 'deferred_to_client_portal',
+        isLocked: true,
+      }),
+      effectiveStatus: 'abgeschlossen',
+      consistencyStatus: 'consistent',
+      allowedActions: ['open_route'],
+      awaitingSignature: false,
+      hasServiceEnded: true,
+    });
+
+    expect(state.signatureDeferred).toBe(true);
+    expect(state.showSignature).toBe(false);
   });
 });

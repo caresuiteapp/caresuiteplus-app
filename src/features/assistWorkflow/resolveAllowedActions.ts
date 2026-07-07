@@ -19,7 +19,8 @@ export type AssistWorkflowAllowedAction =
   | 'open_route'
   | 'save_documentation'
   | 'capture_signature'
-  | 'finalize_visit';
+  | 'finalize_visit'
+  | 'finalize_visit_deferred_signature';
 
 export type AssistExecutionDiagnostics = {
   isServiceStarted: boolean;
@@ -91,6 +92,7 @@ export function resolveAllowedActions(input: {
 
   const docSubmitted = detail.documentationStatus === 'submitted';
   const signatureCaptured = detail.signatureStatus === 'captured';
+  const signatureDeferred = detail.signatureStatus === 'deferred_to_client_portal';
 
   if (
     ['beendet', 'dokumentation_offen'].includes(status) &&
@@ -103,15 +105,28 @@ export function resolveAllowedActions(input: {
   if (
     detail.requiresSignature &&
     docSubmitted &&
-    !signatureCaptured
+    !signatureCaptured &&
+    !signatureDeferred
   ) {
     actions.push('capture_signature');
   }
 
+  if (
+    detail.requiresSignature &&
+    docSubmitted &&
+    !signatureCaptured &&
+    !signatureDeferred &&
+    (status === 'unterschrift_offen' ||
+      status === 'dokumentation_offen' ||
+      status === 'beendet')
+  ) {
+    actions.push('finalize_visit_deferred_signature');
+  }
+
   const readyToFinalize =
     docSubmitted &&
-    (status === 'unterschrift_offen' ||
-      (status === 'dokumentation_offen' && (!detail.requiresSignature || signatureCaptured)));
+    (status === 'unterschrift_offen' || status === 'dokumentation_offen') &&
+    (!detail.requiresSignature || signatureCaptured);
 
   if (readyToFinalize) {
     actions.push('finalize_visit');
@@ -147,4 +162,5 @@ export const ASSIST_WORKFLOW_ACTION_LABELS: Record<AssistWorkflowAllowedAction, 
   save_documentation: 'Dokumentation speichern',
   capture_signature: 'Unterschrift erfassen',
   finalize_visit: 'Einsatz abschließen',
+  finalize_visit_deferred_signature: 'Ohne Unterschrift abschließen',
 };

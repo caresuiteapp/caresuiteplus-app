@@ -14,10 +14,14 @@ type EmployeePortalVisitCompletionPanelProps = {
   tasks: EmployeePortalTaskItem[];
   documentationSubmitted: boolean;
   signatureCaptured: boolean;
+  signatureDeferred?: boolean;
   requiresSignature: boolean;
   serviceDurationLabel?: string;
   loading?: boolean;
+  deferredLoading?: boolean;
+  canFinalizeDeferred?: boolean;
   onFinalize: () => void;
+  onFinalizeDeferred?: () => void;
 };
 
 type CheckItem = { label: string; done: boolean };
@@ -26,10 +30,14 @@ export function EmployeePortalVisitCompletionPanel({
   tasks,
   documentationSubmitted,
   signatureCaptured,
+  signatureDeferred = false,
   requiresSignature,
   serviceDurationLabel,
   loading = false,
+  deferredLoading = false,
+  canFinalizeDeferred = false,
   onFinalize,
+  onFinalizeDeferred,
 }: EmployeePortalVisitCompletionPanelProps) {
   const text = employeePortalExecutionText;
   const tasksDone = tasks.length === 0 || countDoneTasks(tasks) === tasks.length;
@@ -38,17 +46,26 @@ export function EmployeePortalVisitCompletionPanel({
     { label: 'Aufgaben geprüft', done: tasksDone },
     { label: 'Dokumentation gespeichert', done: documentationSubmitted },
     {
-      label: requiresSignature ? 'Unterschrift erfasst' : 'Unterschrift nicht erforderlich',
-      done: !requiresSignature || signatureCaptured,
+      label: requiresSignature
+        ? signatureDeferred
+          ? 'Unterschrift ans Klient:innenportal gesendet'
+          : 'Unterschrift erfasst'
+        : 'Unterschrift nicht erforderlich',
+      done: !requiresSignature || signatureCaptured || signatureDeferred,
     },
     { label: 'Einsatzzeit vollständig', done: Boolean(serviceDurationLabel) },
     {
-      label: 'Leistungsnachweis bereit',
-      done: documentationSubmitted && (!requiresSignature || signatureCaptured),
+      label: signatureDeferred
+        ? 'Klient:in unterschreibt im Portal'
+        : 'Leistungsnachweis bereit',
+      done:
+        signatureDeferred ||
+        (documentationSubmitted && (!requiresSignature || signatureCaptured)),
     },
   ];
 
   const allReady = items.every((item) => item.done);
+  const canFinalizeWithSignature = allReady && !signatureDeferred;
 
   const styles = useMemo(
     () =>
@@ -93,9 +110,20 @@ export function EmployeePortalVisitCompletionPanel({
         testID="portal-finalize-button"
         fullWidth
         loading={loading}
-        disabled={!allReady}
+        disabled={!canFinalizeWithSignature}
         onPress={onFinalize}
       />
+      {canFinalizeDeferred && onFinalizeDeferred ? (
+        <PremiumButton
+          title="Ohne Unterschrift abschließen — ans Klient:innenportal senden"
+          testID="portal-finalize-deferred-button"
+          variant="secondary"
+          fullWidth
+          loading={deferredLoading}
+          disabled={!documentationSubmitted || !tasksDone || deferredLoading || loading}
+          onPress={onFinalizeDeferred}
+        />
+      ) : null}
     </CareLightCard>
   );
 }

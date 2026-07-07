@@ -73,7 +73,13 @@ export type EmployeePortalAssignmentDetail = {
   statusHistory: EmployeePortalStatusHistoryEntry[];
   pauseEvents: EmployeePortalPauseEvent[];
   documentationStatus: 'none' | 'draft' | 'submitted' | 'locked';
-  signatureStatus: 'none' | 'pending' | 'captured' | 'impossible_justified' | 'locked';
+  signatureStatus:
+    | 'none'
+    | 'pending'
+    | 'captured'
+    | 'deferred_to_client_portal'
+    | 'impossible_justified'
+    | 'locked';
   requiresSignature: boolean;
   requiresDocumentation: boolean;
   requiresRoute: boolean;

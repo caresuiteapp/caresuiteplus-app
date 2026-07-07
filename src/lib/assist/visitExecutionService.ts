@@ -171,6 +171,8 @@ export function validateVisitCloseReadiness(input: {
   tasks: VisitDispositionDetail['tasks'];
   documentationNote: string | null;
   hasSignature: boolean;
+  /** When true, signature may be deferred to Klient:innenportal. */
+  allowDeferredSignature?: boolean;
 }): { valid: true } | { valid: false; error: string } {
   const openRequired = input.tasks.filter((t) => t.isRequired && t.status === 'open');
   if (openRequired.length > 0) {
@@ -184,7 +186,7 @@ export function validateVisitCloseReadiness(input: {
     return { valid: false, error: 'Dokumentation ist vor Abschluss erforderlich.' };
   }
 
-  if (!input.hasSignature) {
+  if (!input.hasSignature && !input.allowDeferredSignature) {
     return { valid: false, error: 'Klient:innen-Unterschrift fehlt — bitte erfassen.' };
   }
 

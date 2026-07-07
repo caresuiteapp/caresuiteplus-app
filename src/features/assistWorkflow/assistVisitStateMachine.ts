@@ -127,6 +127,7 @@ export function validateWorkflowTransition(
     hasDocumentation?: boolean;
     hasRequiredSignature?: boolean;
     signatureImpossibleJustified?: boolean;
+    signatureDeferredToClientPortal?: boolean;
     noShowNote?: string | null;
   },
 ): { valid: true } | { valid: false; error: string } {
@@ -141,6 +142,7 @@ export function validateWorkflowTransition(
     hasDocumentation: options?.hasDocumentation,
     hasRequiredSignature: options?.hasRequiredSignature,
     signatureImpossibleJustified: options?.signatureImpossibleJustified,
+    signatureDeferredToClientPortal: options?.signatureDeferredToClientPortal,
   });
 }
 

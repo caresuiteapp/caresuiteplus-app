@@ -22,6 +22,7 @@ export type TransitionOptions = {
   hasDocumentation?: boolean;
   hasRequiredSignature?: boolean;
   signatureImpossibleJustified?: boolean;
+  signatureDeferredToClientPortal?: boolean;
   /** When true, caller persists status side-effects (markArrived). */
   skipStatusPersistence?: boolean;
   arrivalOptions?: {
@@ -60,6 +61,7 @@ export async function transitionAssistExecutionStatus(
     hasDocumentation: options?.hasDocumentation,
     hasRequiredSignature: options?.hasRequiredSignature,
     signatureImpossibleJustified: options?.signatureImpossibleJustified,
+    signatureDeferredToClientPortal: options?.signatureDeferredToClientPortal,
     noShowNote: options?.noShowNote,
   });
 
@@ -91,8 +93,20 @@ export async function transitionAssistExecutionStatus(
           profileId: ctx.profileId,
           skipStatusPersistence: true,
           arrivalOptions: options.arrivalOptions,
+          executionTransition: {
+            hasDocumentation: options.hasDocumentation,
+            hasRequiredSignature: options.hasRequiredSignature,
+            signatureDeferredToClientPortal: options.signatureDeferredToClientPortal,
+          },
         }
-      : { profileId: ctx.profileId },
+      : {
+          profileId: ctx.profileId,
+          executionTransition: {
+            hasDocumentation: options?.hasDocumentation,
+            hasRequiredSignature: options?.hasRequiredSignature,
+            signatureDeferredToClientPortal: options?.signatureDeferredToClientPortal,
+          },
+        },
   );
 
   if (!result.ok) {

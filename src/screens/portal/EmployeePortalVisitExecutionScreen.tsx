@@ -115,6 +115,7 @@ export function EmployeePortalVisitExecutionScreen() {
     saveDocumentation,
     saveSignature,
     finalizeVisit,
+    finalizeVisitDeferred,
     reportNoShow,
     requestLocationPermission,
     setGeofenceOverride,
@@ -265,9 +266,11 @@ export function EmployeePortalVisitExecutionScreen() {
   const showTasks = uiState?.showTasks ?? false;
   const documentationSubmitted = uiState?.documentationSubmitted ?? false;
   const signatureCaptured = uiState?.signatureCaptured ?? false;
+  const signatureDeferred = uiState?.signatureDeferred ?? false;
   const showDocumentationForm = uiState?.showDocumentationForm ?? false;
   const showSignature = uiState?.showSignature ?? false;
   const showFinalize = uiState?.showFinalize ?? false;
+  const canFinalizeDeferred = uiState?.canFinalizeDeferred ?? false;
 
   useEffect(() => {
     if (
@@ -465,6 +468,17 @@ export function EmployeePortalVisitExecutionScreen() {
         const r = await finalizeVisit();
         if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
         else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
+        return;
+      }
+      if (action === 'finalize_visit_deferred_signature') {
+        const r = await finalizeVisitDeferred();
+        if (r.ok) {
+          setLocalSuccess(
+            'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
+          );
+        } else {
+          setLocalError(r.error ?? 'Abschluss ohne Unterschrift fehlgeschlagen.');
+        }
       }
     },
     [
@@ -475,6 +489,7 @@ export function EmployeePortalVisitExecutionScreen() {
       endPause,
       openSignatureCapture,
       finalizeVisit,
+      finalizeVisitDeferred,
     ],
   );
 
@@ -725,18 +740,31 @@ export function EmployeePortalVisitExecutionScreen() {
             />
           ) : null}
 
-          {showFinalize && !isLocked ? (
+          {(showFinalize || canFinalizeDeferred) && !isLocked ? (
             <EmployeePortalVisitCompletionPanel
               tasks={visit.tasks}
               documentationSubmitted={documentationSubmitted}
               signatureCaptured={signatureCaptured}
+              signatureDeferred={signatureDeferred}
               requiresSignature={visit.requiresSignature}
               serviceDurationLabel={serviceDurationLabel}
               loading={actionLoading}
+              deferredLoading={actionLoading}
+              canFinalizeDeferred={canFinalizeDeferred}
               onFinalize={async () => {
                 const r = await finalizeVisit();
                 if (r.ok) setLocalSuccess('Einsatz abgeschlossen — Leistungsnachweis erstellt.');
                 else setLocalError(r.error ?? 'Abschluss fehlgeschlagen.');
+              }}
+              onFinalizeDeferred={async () => {
+                const r = await finalizeVisitDeferred();
+                if (r.ok) {
+                  setLocalSuccess(
+                    'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
+                  );
+                } else {
+                  setLocalError(r.error ?? 'Abschluss ohne Unterschrift fehlgeschlagen.');
+                }
               }}
             />
           ) : null}

@@ -42,6 +42,7 @@ import {
   endPause,
   endService,
   finalizeVisit,
+  finalizeVisitWithDeferredClientSignature,
   markArrived,
   reportNoShow,
   resolveAssistExecutionContext,
@@ -887,6 +888,11 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     [runWorkflow],
   );
 
+  const handleFinalizeDeferred = useCallback(
+    () => runWorkflow((ctx) => finalizeVisitWithDeferredClientSignature(ctx)),
+    [runWorkflow],
+  );
+
   const handleNoShow = useCallback(
     (note: string) => runWorkflow((ctx) => reportNoShow(ctx, note)),
     [runWorkflow],
@@ -1071,6 +1077,7 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
     saveDocumentation: handleSaveDocumentation,
     saveSignature: handleSaveSignature,
     finalizeVisit: handleFinalize,
+    finalizeVisitDeferred: handleFinalizeDeferred,
     reportNoShow: handleNoShow,
     requestLocationPermission,
     capturePosition,

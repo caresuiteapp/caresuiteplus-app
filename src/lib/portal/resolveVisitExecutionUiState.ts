@@ -32,9 +32,11 @@ export type VisitExecutionUiState = {
   showTasks: boolean;
   documentationSubmitted: boolean;
   signatureCaptured: boolean;
+  signatureDeferred: boolean;
   showDocumentationForm: boolean;
   showSignature: boolean;
   showFinalize: boolean;
+  canFinalizeDeferred: boolean;
 };
 
 export function resolveVisitExecutionUiState(
@@ -51,6 +53,7 @@ export function resolveVisitExecutionUiState(
 
   const documentationSubmitted = visit.documentationStatus === 'submitted';
   const signatureCaptured = visit.signatureStatus === 'captured';
+  const signatureDeferred = visit.signatureStatus === 'deferred_to_client_portal';
 
   const statusBlocksDoc =
     consistencyStatus === 'repairable' &&
@@ -75,19 +78,26 @@ export function resolveVisitExecutionUiState(
     visit.requiresSignature &&
     !statusBlocksDoc &&
     documentationSubmitted &&
-    !signatureCaptured;
+    !signatureCaptured &&
+    !signatureDeferred;
 
   const showFinalize =
     !statusBlocksDoc &&
     allowedActions.includes('finalize_visit');
+
+  const canFinalizeDeferred =
+    !statusBlocksDoc &&
+    allowedActions.includes('finalize_visit_deferred_signature');
 
   return {
     statusBlocksDoc,
     showTasks,
     documentationSubmitted,
     signatureCaptured,
+    signatureDeferred,
     showDocumentationForm,
     showSignature,
     showFinalize,
+    canFinalizeDeferred,
   };
 }

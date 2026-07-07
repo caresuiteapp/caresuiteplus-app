@@ -58,6 +58,8 @@ type ExecutionTransitionOptions = {
   hasDocumentation?: boolean;
   hasRequiredSignature?: boolean;
   signatureImpossibleJustified?: boolean;
+  /** Employee finalized without on-device signature; client signs later in portal. */
+  signatureDeferredToClientPortal?: boolean;
 };
 
 export function validateExecutionTransition(
@@ -106,7 +108,11 @@ export function validateExecutionTransition(
     return { valid: false, error: 'Dokumentation muss vor Abschluss vorliegen.' };
   }
 
-  if (to === 'abgeschlossen' && options?.hasRequiredSignature === false) {
+  if (
+    to === 'abgeschlossen' &&
+    options?.hasRequiredSignature === false &&
+    !options?.signatureDeferredToClientPortal
+  ) {
     return { valid: false, error: 'Klient:innen-Unterschrift fehlt.' };
   }
 

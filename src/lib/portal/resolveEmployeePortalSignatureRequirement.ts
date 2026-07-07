@@ -5,6 +5,7 @@
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import { resolveLiveAssignment, resolveLiveVisitId } from '@/features/liveTracking/resolveLiveAssignment';
 import { fetchValidVisitSignature } from '@/lib/assist/assistVisitSignaturePersistenceService';
+import { fetchLatestVisitProof } from '@/lib/assist/assistVisitProofPersistenceService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
@@ -28,10 +29,12 @@ function signatureStatusFromState(input: {
   requiresSignature: boolean;
   status: AssignmentStatus;
   hasPersistedSignature: boolean;
+  hasDeferredPortalSignature?: boolean;
   hasSubmittedDocumentation?: boolean;
 }): EmployeePortalAssignmentDetail['signatureStatus'] {
   if (!input.requiresSignature) return 'none';
   if (input.hasPersistedSignature) return 'captured';
+  if (input.hasDeferredPortalSignature) return 'deferred_to_client_portal';
   if (SIGNATURE_WORKFLOW_STATUSES.includes(input.status)) return 'pending';
   if (input.hasSubmittedDocumentation) return 'pending';
   return 'none';
@@ -143,9 +146,20 @@ export async function resolveEmployeePortalDocumentationFlags(
   }
 
   let hasPersistedSignature = false;
+  let hasDeferredPortalSignature = false;
   if (visitId) {
     const sig = await fetchValidVisitSignature(tenantId, visitId);
     hasPersistedSignature = sig.ok && Boolean(sig.data);
+
+    if (!hasPersistedSignature) {
+      const proof = await fetchLatestVisitProof(tenantId, visitId);
+      hasDeferredPortalSignature =
+        proof.ok &&
+        Boolean(proof.data) &&
+        proof.data!.portalVisible === true &&
+        proof.data!.portalReleaseStatus === 'pending_client_signature' &&
+        !proof.data!.signatureId;
+    }
   }
 
   return {
@@ -155,6 +169,7 @@ export async function resolveEmployeePortalDocumentationFlags(
       requiresSignature,
       status,
       hasPersistedSignature,
+      hasDeferredPortalSignature,
       hasSubmittedDocumentation,
     }),
   };

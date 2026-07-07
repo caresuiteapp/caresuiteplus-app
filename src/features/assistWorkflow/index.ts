@@ -66,6 +66,7 @@ export { saveVisitDocumentation } from './saveVisitDocumentation';
 export { saveClientSignature, hasPersistedClientSignature } from './saveClientSignature';
 export { generateServiceRecord } from './generateServiceRecord';
 export { finalizeVisit } from './finalizeVisit';
+export { finalizeVisitWithDeferredClientSignature } from './finalizeVisitWithDeferredClientSignature';
 export { reportNoShow } from './reportNoShow';
 export { buildServiceRecordHtml, buildServiceRecordSnapshot } from './buildServiceRecordHtml';
 export { readExecutionStatusForPortals } from './readExecutionStatusForPortals';

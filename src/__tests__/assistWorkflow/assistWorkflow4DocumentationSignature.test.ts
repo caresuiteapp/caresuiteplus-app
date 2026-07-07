@@ -82,6 +82,21 @@ describe('resolveAllowedActions — documentation → signature → finalize', (
     });
     expect(actions).toContain('save_documentation');
   });
+
+  it('offers finalize_visit_deferred_signature on unterschrift_offen after documentation', () => {
+    const actions = resolveAllowedActions({
+      assignmentStatus: 'unterschrift_offen',
+      visitTimes: null,
+      detail: baseDetail({
+        status: 'unterschrift_offen',
+        signatureStatus: 'pending',
+      }),
+      derivedStatus: 'unterschrift_offen',
+    });
+    expect(actions).toContain('finalize_visit_deferred_signature');
+    expect(actions).toContain('capture_signature');
+    expect(actions).not.toContain('finalize_visit');
+  });
 });
 
 describe('employee portal execution screen wiring', () => {

@@ -416,6 +416,11 @@ export async function transitionLiveEmployeePortalAssignment(
       arrivalMode?: 'gps' | 'without_gps' | 'manual';
       manualReason?: string | null;
     };
+    executionTransition?: {
+      hasDocumentation?: boolean;
+      hasRequiredSignature?: boolean;
+      signatureDeferredToClientPortal?: boolean;
+    };
   },
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
@@ -472,9 +477,16 @@ export async function transitionLiveEmployeePortalAssignment(
 
   const validation = validateExecutionTransition(existing.data.assignmentStatus, toStatus, {
     requireArrivedBeforeStart: true,
-    hasDocumentation: Boolean(existing.data.documentationNotes?.trim()),
+    hasDocumentation:
+      options?.executionTransition?.hasDocumentation ??
+      Boolean(existing.data.documentationNotes?.trim()),
     hasRequiredSignature:
-      !docFlagsForValidation.requiresSignature || hasPersistedSignature,
+      options?.executionTransition?.signatureDeferredToClientPortal === true
+        ? true
+        : options?.executionTransition?.hasRequiredSignature ??
+          (!docFlagsForValidation.requiresSignature || hasPersistedSignature),
+    signatureDeferredToClientPortal:
+      options?.executionTransition?.signatureDeferredToClientPortal,
     signatureImpossibleJustified: false,
   });
   if (!validation.valid) return { ok: false, error: validation.error };

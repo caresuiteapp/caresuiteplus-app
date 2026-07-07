@@ -75,6 +75,7 @@ type ExecutionStore = {
   pauseEvents: Map<string, EmployeePortalPauseEvent[]>;
   documentations: Map<string, EmployeePortalDocumentationRecord>;
   signatureImpossible: Map<string, string>;
+  deferredSignatures: Set<string>;
   lockedAssignments: Set<string>;
 };
 
@@ -83,6 +84,7 @@ const STORE: ExecutionStore = {
   pauseEvents: new Map(),
   documentations: new Map(),
   signatureImpossible: new Map(),
+  deferredSignatures: new Set(),
   lockedAssignments: new Set(),
 };
 
@@ -204,6 +206,9 @@ function updateWorkflowStatus(
   toStatus: AssignmentStatus,
   actorId: string,
   patch?: Partial<{ actualStartAt: string; actualEndAt: string; lockedAt: string; completedAt: string }>,
+  transitionOptions?: {
+    signatureDeferredToClientPortal?: boolean;
+  },
 ): ServiceResult<NonNullable<ReturnType<typeof getAssignmentWorkflow>>> {
   const record = getAssignmentWorkflow(tenantId, assignmentId);
   if (!record) return { ok: false, error: 'Einsatz nicht gefunden.' };
@@ -217,15 +222,24 @@ function updateWorkflowStatus(
   }
 
   const doc = STORE.documentations.get(storeKey(tenantId, assignmentId));
+  const key = storeKey(tenantId, assignmentId);
   const validation = validateExecutionTransition(record.status, toStatus, {
     requireArrivedBeforeStart: true,
     hasDocumentation: Boolean(doc?.shortDescription?.trim()),
-    hasRequiredSignature: record.requiresSignature
-      ? hasRequiredSignature(tenantId, assignmentId)
-      : true,
-    signatureImpossibleJustified: Boolean(STORE.signatureImpossible.get(storeKey(tenantId, assignmentId))),
+    hasRequiredSignature:
+      transitionOptions?.signatureDeferredToClientPortal === true
+        ? true
+        : record.requiresSignature
+          ? hasRequiredSignature(tenantId, assignmentId)
+          : true,
+    signatureDeferredToClientPortal: transitionOptions?.signatureDeferredToClientPortal,
+    signatureImpossibleJustified: Boolean(STORE.signatureImpossible.get(key)),
   });
   if (!validation.valid) return { ok: false, error: validation.error };
+
+  if (transitionOptions?.signatureDeferredToClientPortal) {
+    STORE.deferredSignatures.add(key);
+  }
 
   const fromStatus = record.status;
   const now = new Date().toISOString();
@@ -290,6 +304,7 @@ function signatureStatus(
   const sigs = listEmployeePortalSignatures(record.tenantId, record.id);
   if (sigs.some((s) => s.locked)) return 'locked';
   if (hasRequiredSignature(record.tenantId, record.id)) return 'captured';
+  if (STORE.deferredSignatures.has(key)) return 'deferred_to_client_portal';
   if (record.status === 'dokumentation_offen' || record.status === 'unterschrift_offen') return 'pending';
   return 'none';
 }
@@ -443,6 +458,11 @@ export async function transitionEmployeePortalAssignment(
       arrivalMode?: 'gps' | 'without_gps' | 'manual';
       manualReason?: string | null;
     };
+    executionTransition?: {
+      hasDocumentation?: boolean;
+      hasRequiredSignature?: boolean;
+      signatureDeferredToClientPortal?: boolean;
+    };
   },
 ): Promise<ServiceResult<EmployeePortalAssignmentDetail>> {
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
@@ -502,7 +522,14 @@ export async function transitionEmployeePortalAssignment(
   }
 
   const fromStatus = record.status;
-  const updated = updateWorkflowStatus(tenantId, assignmentId, toStatus, employeeId);
+  const updated = updateWorkflowStatus(
+    tenantId,
+    assignmentId,
+    toStatus,
+    employeeId,
+    undefined,
+    options?.executionTransition,
+  );
   if (!updated.ok) return updated;
 
   applyEmployeePortalTrackingForStatus(tenantId, assignmentId, fromStatus, toStatus);
@@ -921,6 +948,7 @@ export function resetEmployeePortalExecutionStore(): void {
   STORE.pauseEvents.clear();
   STORE.documentations.clear();
   STORE.signatureImpossible.clear();
+  STORE.deferredSignatures.clear();
   STORE.lockedAssignments.clear();
   historyCounter = 0;
   pauseCounter = 0;
