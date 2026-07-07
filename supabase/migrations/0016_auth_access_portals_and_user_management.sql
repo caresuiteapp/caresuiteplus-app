@@ -87,6 +87,66 @@ CREATE TABLE IF NOT EXISTS public.relative_portal_codes (
   regenerated_at TIMESTAMPTZ
 );
 
+DO $$ BEGIN
+  CREATE TYPE public.portal_type AS ENUM (
+    'employee',
+    'client',
+    'relative',
+    'business',
+    'demo'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+DO $$ BEGIN
+  CREATE TYPE public.portal_session_status AS ENUM (
+    'active',
+    'expired',
+    'revoked',
+    'logged_out'
+  );
+EXCEPTION
+  WHEN duplicate_object THEN NULL;
+END $$;
+
+-- access_code_id ohne FK: access_codes existiert nicht in frühen Migrationen (nur Live-Drift).
+CREATE TABLE IF NOT EXISTS public.portal_sessions (
+  id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  portal_type public.portal_type NOT NULL,
+  access_code_id UUID,
+  profile_id UUID REFERENCES public.profiles(id) ON DELETE SET NULL,
+  employee_id UUID REFERENCES public.employees(id) ON DELETE SET NULL,
+  client_id UUID REFERENCES public.clients(id) ON DELETE SET NULL,
+  relative_contact_id UUID REFERENCES public.client_contacts(id) ON DELETE SET NULL,
+  status public.portal_session_status NOT NULL DEFAULT 'active'::public.portal_session_status,
+  session_token TEXT UNIQUE,
+  started_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  last_seen_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  expires_at TIMESTAMPTZ,
+  logged_out_at TIMESTAMPTZ,
+  revoked_at TIMESTAMPTZ,
+  revoked_reason TEXT,
+  ip_address TEXT,
+  user_agent TEXT,
+  device_fingerprint TEXT,
+  metadata JSONB DEFAULT '{}'::jsonb,
+  created_at TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+CREATE INDEX IF NOT EXISTS idx_portal_sessions_client
+  ON public.portal_sessions (client_id);
+CREATE INDEX IF NOT EXISTS idx_portal_sessions_employee
+  ON public.portal_sessions (employee_id);
+CREATE INDEX IF NOT EXISTS idx_portal_sessions_expires
+  ON public.portal_sessions (expires_at);
+CREATE INDEX IF NOT EXISTS idx_portal_sessions_tenant_status
+  ON public.portal_sessions (tenant_id, status);
+CREATE INDEX IF NOT EXISTS idx_portal_sessions_token
+  ON public.portal_sessions (session_token);
+
 CREATE TABLE IF NOT EXISTS public.portal_access_permissions (
   id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
   tenant_id UUID NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
@@ -167,6 +227,7 @@ ALTER TABLE public.tenant_users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.employee_portal_accounts ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.client_portal_codes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.relative_portal_codes ENABLE ROW LEVEL SECURITY;
+ALTER TABLE public.portal_sessions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.portal_access_permissions ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.role_permission_sets ENABLE ROW LEVEL SECURITY;
 ALTER TABLE public.user_module_permissions ENABLE ROW LEVEL SECURITY;
@@ -189,6 +250,10 @@ CREATE POLICY client_portal_codes_tenant_isolation ON public.client_portal_codes
 CREATE POLICY relative_portal_codes_tenant_isolation ON public.relative_portal_codes
   FOR ALL USING (tenant_id = public.current_tenant_id())
   WITH CHECK (tenant_id = public.current_tenant_id());
+
+DROP POLICY IF EXISTS portal_sessions_select_own_tenant ON public.portal_sessions;
+CREATE POLICY portal_sessions_select_own_tenant ON public.portal_sessions
+  FOR SELECT USING (tenant_id = public.current_tenant_id());
 
 CREATE POLICY portal_access_permissions_tenant_isolation ON public.portal_access_permissions
   FOR ALL USING (tenant_id = public.current_tenant_id())
@@ -220,6 +285,7 @@ GRANT SELECT, INSERT, UPDATE ON public.tenant_users TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.employee_portal_accounts TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.client_portal_codes TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.relative_portal_codes TO authenticated;
+GRANT SELECT, INSERT, UPDATE, DELETE ON public.portal_sessions TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.portal_access_permissions TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.role_permission_sets TO authenticated;
 GRANT SELECT, INSERT, UPDATE ON public.user_module_permissions TO authenticated;
