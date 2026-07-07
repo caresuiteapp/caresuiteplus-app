@@ -34,7 +34,7 @@ import {
 const STORAGE_BUCKET = 'office-documents';
 
 const LIST_SELECT =
-  'id, tenant_id, client_id, title, file_name, mime_type, category, storage_path, status, sensitivity, portal_visible, size_bytes, created_at, updated_at, source, intake_document_id';
+  'id, tenant_id, client_id, title, file_name, mime_type, category, storage_path, status, sensitivity, portal_visible, size_bytes, created_at, updated_at, source, intake_document_id, signature_required, signed_at';
 
 const INTAKE_HTML_SELECT =
   'id, template_key, document_type, title, status, finalized_html, preview_html';
@@ -313,6 +313,11 @@ async function loadPortalVisibleClientDocumentDetail(
   }
 
   const row = data as Record<string, unknown>;
+  if (String(row.source ?? '') === 'assist_visit_proof') {
+    const assistProof = await fetchAssistProofPortalDocumentDetail(tenantId, clientId, documentId);
+    if (assistProof.ok) return assistProof;
+  }
+
   const baseDoc = mapStoredRowToClientDocument(row);
   const intakeRows = await fetchIntakeRowsForPortalDocuments(
     tenantId,

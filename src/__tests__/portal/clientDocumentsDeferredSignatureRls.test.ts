@@ -19,4 +19,12 @@ describe('client_documents employee deferred signature RLS migration', () => {
     expect(sql).toContain('is_employee_portal_rls_context');
     expect(sql).toContain('portal_employee_assigned_visit_ids');
   });
+
+  it('0244 adds client portal SELECT on released assist visit proofs', () => {
+    const sql = readMigration('0244_assist_visit_proofs_portal_client_select.sql');
+    expect(sql).toContain('assist_visit_proofs_portal_client_select');
+    expect(sql).toContain('is_client_portal_rls_context');
+    expect(sql).toContain('pending_client_signature');
+    expect(sql).toContain('portal_visible = TRUE');
+  });
 });

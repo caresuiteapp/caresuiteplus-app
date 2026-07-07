@@ -132,6 +132,11 @@ export async function listPortalServiceProofs(
       if (isMissingTableError(serviceRecordResult.error)) {
         return { ok: true, data: [] };
       }
+      const message = serviceRecordResult.error.message ?? '';
+      if (/permission denied/i.test(message)) {
+        console.warn('[portalServiceProofs] service_records skipped (portal RLS):', message);
+        return { ok: true, data: [] };
+      }
       return { ok: false, error: serviceRecordResult.error.message };
     }
 
