@@ -136,6 +136,26 @@ describe('buildEnrichedAssistProofPdfPayload', () => {
     const payload = await buildEnrichedAssistProofPdfPayload('tenant-1', sampleProof());
     expect(payload.html).toContain('Erstellt mit CareSuite+ Software Technologie');
   });
+
+  it('uses caller enrichment employeeName when snapshot has no employeeName', async () => {
+    const payload = await buildEnrichedAssistProofPdfPayload('tenant-1', sampleProof(), {
+      employeeName: 'Mhi Aldeen Al Jlelati',
+    });
+
+    expect(mockEnrichVisitProofForPreview).not.toHaveBeenCalled();
+    expect(payload.html).toContain('Mhi Aldeen Al Jlelati');
+    expect(payload.html).not.toContain('Nicht dokumentiert');
+  });
+
+  it('backfills employee when caller enrichment passes Nicht dokumentiert sentinel', async () => {
+    const payload = await buildEnrichedAssistProofPdfPayload('tenant-1', sampleProof(), {
+      employeeName: 'Nicht dokumentiert',
+    });
+
+    expect(mockEnrichVisitProofForPreview).toHaveBeenCalled();
+    expect(payload.html).toContain('Kevin Reinhardt');
+    expect(payload.html).not.toContain('Nicht dokumentiert');
+  });
 });
 
 describe('buildAssistProofPdfPayload pure snapshot path', () => {

@@ -158,5 +158,6 @@ describe('VisitProofReviewPanel PDF preview wiring', () => {
     expect(panel).toContain('<iframe');
     expect(panel).toContain('useVisitProofPdfPreview');
     expect(panel).toContain('VisitProofPreviewPanel');
+    expect(panel).toContain('enabled: !htmlPreviewLoading');
   });
 });

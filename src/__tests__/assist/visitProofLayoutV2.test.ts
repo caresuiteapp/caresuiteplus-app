@@ -326,6 +326,15 @@ describe('resolveVisitProofEmployeeName', () => {
     ).toBe('Max Mustermann');
     expect(resolveVisitProofEmployeeName({})).toBe('Nicht dokumentiert');
   });
+
+  it('ignores Nicht dokumentiert sentinel in enrichment input', () => {
+    expect(
+      resolveVisitProofEmployeeName(
+        { employeeName: 'Snapshot Name' },
+        { employeeName: 'Nicht dokumentiert' },
+      ),
+    ).toBe('Snapshot Name');
+  });
 });
 
 describe('audit artifacts', () => {

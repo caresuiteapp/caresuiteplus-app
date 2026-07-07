@@ -55,8 +55,10 @@ function pickEnrichmentString(
   override: string | null | undefined,
   fallback: string | null | undefined,
 ): string | null | undefined {
-  if (typeof override === 'string' && override.trim()) return override.trim();
-  if (typeof fallback === 'string' && fallback.trim()) return fallback.trim();
+  const overrideText = typeof override === 'string' ? override.trim() : '';
+  if (overrideText && overrideText !== VISIT_PROOF_EMPLOYEE_UNKNOWN) return overrideText;
+  const fallbackText = typeof fallback === 'string' ? fallback.trim() : '';
+  if (fallbackText && fallbackText !== VISIT_PROOF_EMPLOYEE_UNKNOWN) return fallbackText;
   return override ?? fallback;
 }
 

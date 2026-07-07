@@ -71,6 +71,21 @@ export function VisitProofReviewPanel({
     error: previewError,
   } = useVisitProofReviewPreview(tenantId, proof);
   const preview = enrichedPreview ?? snapshotPreview;
+  const pdfEnrichment = useMemo(
+    () => ({
+      employeeName: preview?.employeeName,
+      serviceName: preview?.serviceName,
+      location: preview?.location,
+      scheduledStart: preview?.scheduledStart,
+      scheduledEnd: preview?.scheduledEnd,
+      documentationNote: preview?.documentationNote,
+      visitTimes: preview?.visitTimes ?? null,
+      signatureImageUrl: preview?.signatureImageUrl ?? null,
+      signature: preview?.signature ?? null,
+      tasks: preview?.tasks,
+    }),
+    [preview],
+  );
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [approvalNote, setApprovalNote] = useState('');
@@ -155,18 +170,7 @@ export function VisitProofReviewPanel({
       <VisitProofPdfPreviewPanel
         tenantId={tenantId}
         proof={proof}
-        enrichment={{
-          employeeName: preview?.employeeName,
-          serviceName: preview?.serviceName,
-          location: preview?.location,
-          scheduledStart: preview?.scheduledStart,
-          scheduledEnd: preview?.scheduledEnd,
-          documentationNote: preview?.documentationNote,
-          visitTimes: preview?.visitTimes ?? null,
-          signatureImageUrl: preview?.signatureImageUrl ?? null,
-          signature: preview?.signature ?? null,
-          tasks: preview?.tasks,
-        }}
+        enrichment={pdfEnrichment}
         htmlPreview={preview}
         htmlPreviewLoading={previewLoading && !enrichedPreview}
       />
@@ -276,13 +280,13 @@ export function VisitProofReviewPanel({
             <PremiumButton
               title={proof.pdfStoragePath ? 'PDF erneut erzeugen' : 'PDF erzeugen'}
               disabled={busy}
-              onPress={() => runAction(() => generateAssistProofPdf(tenantId, proof.id))}
+              onPress={() => runAction(() => generateAssistProofPdf(tenantId, proof.id, pdfEnrichment))}
             />
             <PremiumButton
               title="PDF herunterladen"
               variant="secondary"
               disabled={busy}
-              onPress={() => runAction(() => downloadAssistProofPdfInBrowser(tenantId, proof.id))}
+              onPress={() => runAction(() => downloadAssistProofPdfInBrowser(tenantId, proof.id, pdfEnrichment))}
             />
           </>
         )}

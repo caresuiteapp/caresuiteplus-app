@@ -88,13 +88,18 @@ function readNestedPersonName(value: unknown): string | null {
   return combined || null;
 }
 
+function isDocumentedEmployeeName(value: string | null | undefined): value is string {
+  const text = String(value ?? '').trim();
+  return Boolean(text) && text !== '—' && text !== VISIT_PROOF_EMPLOYEE_UNKNOWN;
+}
+
 /** Resolve performing employee name for Stammdaten block (Assist, Dokumentenmodul, Preview). */
 export function resolveVisitProofEmployeeName(
   snapshot: Record<string, unknown>,
   input: { employeeName?: string | null } = {},
 ): string {
   const candidates: unknown[] = [
-    input.employeeName,
+    isDocumentedEmployeeName(input.employeeName) ? input.employeeName : null,
     snapshot.employeeName,
     snapshot.caregiverName,
     snapshot.staffName,

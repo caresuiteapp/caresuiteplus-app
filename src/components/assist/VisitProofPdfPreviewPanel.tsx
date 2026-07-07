@@ -29,7 +29,9 @@ export function VisitProofPdfPreviewPanel({
   htmlPreviewLoading,
 }: VisitProofPdfPreviewPanelProps) {
   const text = useAuroraAdaptiveText();
-  const { preview, loading, error } = useVisitProofPdfPreview(tenantId, proof, enrichment);
+  const { preview, loading, error } = useVisitProofPdfPreview(tenantId, proof, enrichment, {
+    enabled: !htmlPreviewLoading,
+  });
 
   const styles = useMemo(
     () =>

@@ -10,7 +10,9 @@ export function useVisitProofPdfPreview(
   tenantId: string | null,
   proof: AssistVisitProofRow | null,
   enrichment?: VisitProofSnapshotEnrichment,
+  options?: { enabled?: boolean },
 ) {
+  const enabled = options?.enabled !== false;
   const [preview, setPreview] = useState<AssistProofPdfPreviewResult | null>(null);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -27,7 +29,7 @@ export function useVisitProofPdfPreview(
     revokeBlobUrl();
     setPreview(null);
 
-    if (!tenantId || !proof) {
+    if (!tenantId || !proof || !enabled) {
       setLoading(false);
       setError(null);
       return;
@@ -49,7 +51,7 @@ export function useVisitProofPdfPreview(
     }
 
     setPreview(result.data);
-  }, [tenantId, proof, enrichment, revokeBlobUrl]);
+  }, [tenantId, proof, enrichment, enabled, revokeBlobUrl]);
 
   useEffect(() => {
     void load();
