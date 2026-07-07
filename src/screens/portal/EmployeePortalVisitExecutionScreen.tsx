@@ -277,11 +277,19 @@ export function EmployeePortalVisitExecutionScreen() {
       visit?.requiresSignature &&
       documentationSubmitted &&
       !signatureCaptured &&
-      allowedActions.includes('capture_signature')
+      !signatureDeferred &&
+      allowedActions.includes('capture_signature') &&
+      !allowedActions.includes('finalize_visit_deferred_signature')
     ) {
       setAwaitingSignature(true);
     }
-  }, [visit?.requiresSignature, documentationSubmitted, signatureCaptured, allowedActions]);
+  }, [
+    visit?.requiresSignature,
+    documentationSubmitted,
+    signatureCaptured,
+    signatureDeferred,
+    allowedActions,
+  ]);
 
   const scrollToSignatureSection = useCallback(() => {
     scrollRef.current?.scrollTo({ y: Math.max(signatureSectionY.current - 16, 0), animated: true });
@@ -300,23 +308,28 @@ export function EmployeePortalVisitExecutionScreen() {
   }, [workflowPersistence]);
 
   const handleFinalizeDeferredSignature = useCallback(async () => {
-    releaseSignatureUi();
-    const r = await finalizeVisitDeferred();
-    if (r.ok) {
-      releaseSignatureUi();
-      setLocalSuccess(
-        'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
-      );
-      if (Platform.OS === 'web' && typeof window !== 'undefined') {
-        window.setTimeout(() => {
-          releaseSignatureCaptureEnvironment();
-          router.back();
-        }, 700);
+    try {
+      releaseSignatureCaptureEnvironment();
+      setAwaitingSignature(false);
+      workflowPersistence.setStep(null);
+      const r = await finalizeVisitDeferred();
+      if (r.ok) {
+        releaseSignatureCaptureEnvironment();
+        setLocalSuccess(
+          'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
+        );
+      } else {
+        setLocalError(r.error ?? 'Abschluss ohne Unterschrift fehlgeschlagen.');
       }
-    } else {
-      setLocalError(r.error ?? 'Abschluss ohne Unterschrift fehlgeschlagen.');
+    } catch (error) {
+      releaseSignatureCaptureEnvironment();
+      setLocalError(
+        error instanceof Error
+          ? error.message
+          : 'Abschluss ohne Unterschrift fehlgeschlagen — bitte erneut versuchen.',
+      );
     }
-  }, [releaseSignatureUi, finalizeVisitDeferred, router]);
+  }, [finalizeVisitDeferred, workflowPersistence]);
 
   useEffect(() => {
     if (signatureDeferred) {

@@ -24,12 +24,15 @@ describe('deferred signature white screen fix', () => {
     );
   });
 
-  it('deferred finalize releases signature UI and navigates back on web', () => {
+  it('deferred finalize catches errors and stays on execution screen', () => {
     const screen = readSrc('src/screens/portal/EmployeePortalVisitExecutionScreen.tsx');
-    expect(screen).toContain('releaseSignatureCaptureEnvironment');
-    expect(screen).toContain('handleFinalizeDeferredSignature');
-    expect(screen).toContain('router.back()');
-    expect(screen).toMatch(/onFinalizeDeferred=\{\(\) => \{[\s\S]*handleFinalizeDeferredSignature/);
+    const match = screen.match(
+      /const handleFinalizeDeferredSignature = useCallback\(async \(\) => \{([\s\S]*?)\n  \}, \[finalizeVisitDeferred/,
+    );
+    expect(match).not.toBeNull();
+    const handler = match![1];
+    expect(handler).toContain('catch (error)');
+    expect(handler).not.toContain('router.back()');
   });
 
   it('does not auto-open signature modal when deferred finalize is available', () => {
