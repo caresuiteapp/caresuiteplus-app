@@ -68,16 +68,20 @@ VALUES
   ('production', 'Produktion', true, false, false, false)
 ON CONFLICT (mode_key) DO NOTHING;
 
--- LIVE whitelist (confirmed) + E2E / pilot / internal_test tenants
+-- LIVE whitelist (confirmed) + E2E / pilot / internal_test tenants (skip missing on Fresh-DB)
 INSERT INTO public.tenant_environment_settings (tenant_id, mode, is_pilot_tenant, notes)
-VALUES
-  ('56180c22-b894-4fab-b55e-a563c94dd6e7', 'production', false, 'LIVE whitelist — Helferhasen+ UG'),
-  ('a4ba83bd-65db-46cf-8cf7-61492cc78315', 'internal_test', false, 'E2E Test Pflege GmbH'),
-  ('6e8a5c3b-03fd-423d-acd9-00edf9b24f99', 'internal_test', false, 'E2E Test Pflege Live GmbH'),
-  ('3d6220dd-7e10-478a-97c7-f8d5c0a99c32', 'internal_test', false, 'Pilot verify sandbox'),
-  ('11111111-1111-1111-1111-111111111101', 'pilot', true, 'Pilot tenant Köln'),
-  ('11111111-1111-1111-1111-111111111102', 'pilot', true, 'Pilot tenant Düsseldorf'),
-  ('11111111-1111-1111-1111-111111111103', 'pilot', true, 'Pilot tenant Bonn')
+SELECT v.tenant_id, v.mode, v.is_pilot_tenant, v.notes
+FROM (
+  VALUES
+    ('56180c22-b894-4fab-b55e-a563c94dd6e7'::uuid, 'production'::text, false, 'LIVE whitelist — Helferhasen+ UG'),
+    ('a4ba83bd-65db-46cf-8cf7-61492cc78315'::uuid, 'internal_test'::text, false, 'E2E Test Pflege GmbH'),
+    ('6e8a5c3b-03fd-423d-acd9-00edf9b24f99'::uuid, 'internal_test'::text, false, 'E2E Test Pflege Live GmbH'),
+    ('3d6220dd-7e10-478a-97c7-f8d5c0a99c32'::uuid, 'internal_test'::text, false, 'Pilot verify sandbox'),
+    ('11111111-1111-1111-1111-111111111101'::uuid, 'pilot'::text, true, 'Pilot tenant Köln'),
+    ('11111111-1111-1111-1111-111111111102'::uuid, 'pilot'::text, true, 'Pilot tenant Düsseldorf'),
+    ('11111111-1111-1111-1111-111111111103'::uuid, 'pilot'::text, true, 'Pilot tenant Bonn')
+) AS v(tenant_id, mode, is_pilot_tenant, notes)
+WHERE EXISTS (SELECT 1 FROM public.tenants t WHERE t.id = v.tenant_id)
 ON CONFLICT (tenant_id) DO UPDATE
   SET mode = EXCLUDED.mode,
       is_pilot_tenant = EXCLUDED.is_pilot_tenant,

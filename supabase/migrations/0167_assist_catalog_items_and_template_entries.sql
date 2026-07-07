@@ -702,4 +702,4 @@ INSERT INTO public.catalog_entries (
 ('ac723c79-093f-4b80-a5ed-c9c8fa165ae5', NULL, 'message_category', 'intern', 'Intern', NULL, 'communication', true, true, 1),
 ('4e417d61-f8b5-45cf-9e82-bb7eaec1037b', NULL, 'message_category', 'portal', 'Portal', NULL, 'communication', true, true, 2),
 ('6e59ce2e-de1a-4ca5-a3c7-c68241b37309', NULL, 'message_category', 'angehoerige', 'Angehörige', NULL, 'communication', true, true, 3)
-ON CONFLICT (id) DO NOTHING;
+ON CONFLICT (catalog_type, value_key) WHERE (tenant_id IS NULL) DO NOTHING;

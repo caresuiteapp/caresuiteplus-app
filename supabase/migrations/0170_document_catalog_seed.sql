@@ -3,6 +3,22 @@
 -- Idempotent: überspringt bereits vorhandene template_key.
 -- ==========================================================================
 
+ALTER TABLE public.document_templates
+  DROP CONSTRAINT IF EXISTS document_templates_template_type_check;
+
+ALTER TABLE public.document_templates
+  ADD CONSTRAINT document_templates_template_type_check
+  CHECK (template_type IN (
+    'contract', 'invoice', 'leistungsnachweis', 'generic',
+    'business_letter', 'credit_note', 'cancellation_invoice', 'offer',
+    'service_record', 'care_documentation', 'consultation_record',
+    'employee_contract', 'termination_letter', 'warning_letter',
+    'client_admission', 'power_of_attorney', 'data_protection_consent',
+    'confidentiality_agreement', 'dunning_letter', 'payment_reminder',
+    'internal_instruction', 'protocol', 'checklist', 'report',
+    'employee_record', 'shift_plan', 'tour_plan', 'vehicle_log'
+  ));
+
 DO $$
 DECLARE
   tpl RECORD;
