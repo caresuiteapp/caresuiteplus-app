@@ -7,7 +7,7 @@ import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import {
   assignmentStatusToDimensions,
   isVisitIncomplete,
-  pickAdvancedAssignmentStatus,
+  resolveAssignmentStatusFromExecutionContext,
 } from '@/lib/assist/visitWorkflow';
 import type {
   VisitDispositionDetail,
@@ -80,20 +80,29 @@ export function applySnapshotToVisitListItem(
   item: VisitDispositionListItem,
   snapshot: AssignmentExecutionSnapshot,
 ): VisitDispositionListItem {
-  const assignmentStatus = pickAdvancedAssignmentStatus(
-    snapshot.assignmentStatus,
-    item.assignmentStatus,
-  );
+  const assignmentStatus = resolveAssignmentStatusFromExecutionContext({
+    assignmentStatus: item.assignmentStatus,
+    executionStateStatus: snapshot.executionStateStatus ?? snapshot.assignmentStatus,
+    executionStatus: snapshot.executionStatus ?? item.executionStatus,
+    documentationStatus: snapshot.documentationStatus ?? item.documentationStatus,
+    proofStatus: item.proofStatus,
+    hasDocumentation: snapshot.hasDocumentation,
+    hasSignature: snapshot.hasSignature,
+    serviceEnded: snapshot.serviceEnded,
+  });
   const dims = assignmentStatusToDimensions(assignmentStatus);
+  const documentationStatus = snapshot.hasDocumentation ? 'complete' : dims.documentation;
+  const proofStatus = snapshot.hasSignature ? 'signed' : item.proofStatus ?? dims.proof;
   return {
     ...item,
     assignmentStatus,
+    proofStatus,
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
     isIncomplete:
       snapshot.isIncomplete ||
       isVisitIncomplete({
-        documentationStatus: snapshot.hasDocumentation ? 'complete' : dims.documentation,
-        proofStatus: snapshot.hasSignature ? 'signed' : dims.proof,
+        documentationStatus,
+        proofStatus,
         executionStatus: dims.execution,
       }),
   };
@@ -144,6 +153,9 @@ export async function overlayVisitDispositionListFromAssignments(
       assignmentId: resolveVisitMasterId(item.id),
       visitId: resolveVisitMasterId(item.id),
       fallbackStatus: item.assignmentStatus,
+      executionStatus: item.executionStatus,
+      documentationStatus: item.documentationStatus,
+      proofStatus: item.proofStatus,
     })),
   );
 

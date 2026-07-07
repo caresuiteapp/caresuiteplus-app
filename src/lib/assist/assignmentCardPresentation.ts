@@ -9,6 +9,7 @@ import {
   VISIT_BILLING_STATUS_LABELS,
   type VisitBillingStatus,
   type VisitDocumentationStatus,
+  type VisitExecutionStatus,
   type VisitProofStatus,
 } from '@/lib/assist/visitTypes';
 import { getDemoAssignmentSeedById } from '@/data/demo/assistAssignments';
@@ -101,20 +102,25 @@ export function resolveAssignmentCardAccent(assignment: AssignmentListItem): Ass
 export function enrichAssignmentListItem(item: AssignmentListItem): AssignmentListItem {
   const assignmentStatus = item.assignmentStatus ?? remoteStatusToAssignment(item.status);
   const dims = assignmentStatusToDimensions(assignmentStatus);
+  const executionStatus =
+    (item.executionStatus as VisitExecutionStatus | undefined) ?? dims.execution;
+  const documentationStatus =
+    (item.documentationStatus as VisitDocumentationStatus | undefined) ?? dims.documentation;
   const proofStatus = (item.proofStatus as VisitProofStatus | undefined) ?? dims.proof;
   const billingStatus = (item.billingStatus as VisitBillingStatus | undefined) ?? dims.billing;
-  const documentationStatus = dims.documentation;
   const isIncomplete =
     item.isIncomplete ??
     isVisitIncomplete({
       documentationStatus,
       proofStatus,
-      executionStatus: dims.execution,
+      executionStatus,
     });
 
   return {
     ...item,
     assignmentStatus,
+    executionStatus,
+    documentationStatus,
     planningStatus: item.planningStatus ?? dims.planning,
     proofStatus,
     billingStatus,
@@ -150,8 +156,10 @@ function resolveDocumentationState(assignment: AssignmentListItem): {
   open: boolean;
 } {
   const assignmentStatus = resolveAssignmentListItemStatus(assignment);
-  const dims = assignmentStatusToDimensions(assignmentStatus);
-  const status = dims.documentation;
+  const enriched = enrichAssignmentListItem(assignment);
+  const status =
+    (enriched.documentationStatus as VisitDocumentationStatus | undefined) ??
+    assignmentStatusToDimensions(assignmentStatus).documentation;
   const complete = status === 'complete';
   const open =
     assignmentStatus === 'dokumentation_offen' ||
@@ -167,8 +175,10 @@ function resolveSignatureState(assignment: AssignmentListItem): {
   open: boolean;
 } {
   const assignmentStatus = resolveAssignmentListItemStatus(assignment);
-  const dims = assignmentStatusToDimensions(assignmentStatus);
-  const proof = (assignment.proofStatus as VisitProofStatus | undefined) ?? dims.proof;
+  const enriched = enrichAssignmentListItem(assignment);
+  const proof =
+    (enriched.proofStatus as VisitProofStatus | undefined) ??
+    assignmentStatusToDimensions(assignmentStatus).proof;
   const satisfied = proof === 'signed' || proof === 'verified';
   const open =
     assignmentStatus === 'unterschrift_offen' ||

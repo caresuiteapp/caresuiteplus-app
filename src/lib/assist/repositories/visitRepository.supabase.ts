@@ -395,6 +395,8 @@ function mapListItem(row: VisitRow): VisitDispositionListItem {
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
     assignmentStatus,
     planningStatus: row.planning_status,
+    executionStatus: row.execution_status,
+    documentationStatus: row.documentation_status,
     proofStatus: row.proof_status,
     billingStatus: row.billing_status,
     location: visitLocationFromRow(row),
@@ -410,7 +412,13 @@ function mapListItem(row: VisitRow): VisitDispositionListItem {
 function mapDetail(
   row: VisitRow & { assist_visit_tasks?: VisitTaskRow[] },
 ): VisitDispositionDetail {
-  const assignmentStatus = remoteStatusToAssignment(row.canonical_status);
+  const canonicalStatus = remoteStatusToAssignment(row.canonical_status);
+  const assignmentStatus = deriveAssignmentStatusFromVisitDimensions({
+    canonicalStatus,
+    executionStatus: row.execution_status,
+    documentationStatus: row.documentation_status,
+    proofStatus: row.proof_status,
+  });
   const allowed = dedupeStatusTransitionButtons(getVisitAllowedTransitions(assignmentStatus));
   const atRisk = isVisitAtRisk({
     planningStatus: row.planning_status,

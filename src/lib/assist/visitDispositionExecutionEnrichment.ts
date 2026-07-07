@@ -17,7 +17,7 @@ import {
   dedupeStatusTransitionButtons,
   getVisitAllowedTransitions,
   isVisitIncomplete,
-  pickAdvancedAssignmentStatus,
+  resolveAssignmentStatusFromExecutionContext,
 } from '@/lib/assist/visitWorkflow';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -193,13 +193,19 @@ export function mergeVisitDispositionWithExecution(input: {
     persistedSignature,
   } = input;
 
-  let assignmentStatus = input.assignmentStatus;
-  if (input.executionStateStatus) {
-    assignmentStatus = pickAdvancedAssignmentStatus(assignmentStatus, input.executionStateStatus);
-  }
-  assignmentStatus = pickAdvancedAssignmentStatus(assignmentStatus, detail.assignmentStatus);
-
   const hasDocumentation = Boolean(documentationText?.trim());
+
+  const assignmentStatus = resolveAssignmentStatusFromExecutionContext({
+    assignmentStatus: detail.assignmentStatus,
+    executionStateStatus: input.executionStateStatus ?? input.assignmentStatus,
+    executionStatus: detail.executionStatus,
+    documentationStatus: detail.documentationStatus,
+    proofStatus: detail.proofStatus,
+    hasDocumentation,
+    hasSignature,
+    serviceEnded: Boolean(visitTimes?.serviceEndedAt),
+  });
+
   const workflowCtx: WorkflowTaskContext = {
     hasDriveStart: Boolean(visitTimes?.driveStartedAt),
     hasArrived: Boolean(visitTimes?.arrivedAt),

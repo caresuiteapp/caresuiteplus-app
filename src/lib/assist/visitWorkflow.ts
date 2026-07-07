@@ -301,6 +301,22 @@ export function pickAdvancedAssignmentStatus(
   return candidateRank > currentRank ? candidate : current;
 }
 
+function deriveCompletedExecutionStatus(
+  documentationStatus: VisitDocumentationStatus,
+  proofStatus: VisitProofStatus,
+): AssignmentStatus {
+  if (documentationStatus !== 'complete') {
+    return 'dokumentation_offen';
+  }
+  if (proofStatus === 'verified') {
+    return 'abgeschlossen';
+  }
+  if (proofStatus === 'signed' || proofStatus === 'pending' || proofStatus === 'none') {
+    return 'unterschrift_offen';
+  }
+  return 'beendet';
+}
+
 /** Derive display status from assist_visits dimension columns when canonical_status lags. */
 export function deriveAssignmentStatusFromVisitDimensions(input: {
   canonicalStatus: AssignmentStatus;
@@ -309,34 +325,90 @@ export function deriveAssignmentStatusFromVisitDimensions(input: {
   proofStatus: VisitProofStatus;
 }): AssignmentStatus {
   const { canonicalStatus, executionStatus, documentationStatus, proofStatus } = input;
-  let derived = canonicalStatus;
 
   if (executionStatus === 'completed') {
-    if (documentationStatus !== 'complete') {
-      derived = 'dokumentation_offen';
-    } else if (proofStatus === 'verified') {
-      derived = 'abgeschlossen';
-    } else if (
-      proofStatus === 'signed' ||
-      proofStatus === 'pending' ||
-      proofStatus === 'none'
-    ) {
-      derived = 'unterschrift_offen';
-    } else {
-      derived = 'beendet';
-    }
-  } else {
-    const executionMap: Partial<Record<VisitExecutionStatus, AssignmentStatus>> = {
-      on_way: 'unterwegs',
-      arrived: 'angekommen',
-      in_progress: 'gestartet',
-      paused: 'pausiert',
-      no_show: 'nicht_erschienen',
-      cancelled: 'storniert',
-    };
-    const mapped = executionMap[executionStatus];
-    if (mapped) derived = mapped;
+    // Visit dimensions win over stale canonical_status (e.g. confirmed/completed in DB).
+    return deriveCompletedExecutionStatus(documentationStatus, proofStatus);
   }
 
-  return pickAdvancedAssignmentStatus(canonicalStatus, derived);
+  const executionMap: Partial<Record<VisitExecutionStatus, AssignmentStatus>> = {
+    on_way: 'unterwegs',
+    arrived: 'angekommen',
+    in_progress: 'gestartet',
+    paused: 'pausiert',
+    no_show: 'nicht_erschienen',
+    cancelled: 'storniert',
+  };
+  const mapped = executionMap[executionStatus];
+  if (mapped) {
+    return pickAdvancedAssignmentStatus(canonicalStatus, mapped);
+  }
+
+  return canonicalStatus;
+}
+
+export type AssignmentExecutionContext = {
+  assignmentStatus: AssignmentStatus;
+  executionStatus?: VisitExecutionStatus;
+  documentationStatus?: VisitDocumentationStatus;
+  proofStatus?: VisitProofStatus;
+  hasDocumentation?: boolean;
+  hasSignature?: boolean;
+  serviceEnded?: boolean;
+  executionStateStatus?: AssignmentStatus | null;
+};
+
+/** Merge assignment row, visit dimensions, and portal execution artifacts into one display status. */
+export function resolveAssignmentStatusFromExecutionContext(
+  input: AssignmentExecutionContext,
+): AssignmentStatus {
+  const documentationStatus: VisitDocumentationStatus = input.hasDocumentation
+    ? 'complete'
+    : (input.documentationStatus ?? 'none');
+  const proofStatus: VisitProofStatus = input.hasSignature
+    ? 'verified'
+    : (input.proofStatus ?? 'none');
+
+  const executionStatus: VisitExecutionStatus =
+    input.executionStatus ??
+    (input.serviceEnded ? 'completed' : 'pending');
+
+  const postCompletionSignals =
+    executionStatus === 'completed' ||
+    input.serviceEnded === true ||
+    input.hasDocumentation === true ||
+    input.hasSignature === true;
+
+  if (postCompletionSignals) {
+    const effectiveExecution: VisitExecutionStatus =
+      executionStatus === 'completed' ||
+      input.serviceEnded ||
+      input.hasDocumentation ||
+      input.hasSignature
+        ? 'completed'
+        : executionStatus;
+
+    return deriveAssignmentStatusFromVisitDimensions({
+      canonicalStatus: input.assignmentStatus,
+      executionStatus: effectiveExecution,
+      documentationStatus,
+      proofStatus,
+    });
+  }
+
+  let status = input.assignmentStatus;
+  if (input.executionStateStatus) {
+    status = pickAdvancedAssignmentStatus(status, input.executionStateStatus);
+  }
+
+  if (input.executionStatus && input.executionStatus !== 'pending') {
+    return deriveAssignmentStatusFromVisitDimensions({
+      canonicalStatus: status,
+      executionStatus: input.executionStatus,
+      documentationStatus,
+      proofStatus,
+    });
+  }
+
+  return status;
 }

@@ -18,7 +18,7 @@ import { fetchDayMonitor } from '@/lib/assist/liveMonitorService';
 import { listAssignmentWorkflows } from '@/lib/assist/assignmentWorkflowService';
 import { buildWorkspaceAccessContext, canViewAssignment } from '@/lib/permissions/workspaceAccess';
 import { fetchVisitDispositionList } from '@/lib/assist/visitService';
-import { pickAdvancedAssignmentStatus } from '@/lib/assist/visitWorkflow';
+import { resolveAssignmentStatusFromExecutionContext } from '@/lib/assist/visitWorkflow';
 import { DAY_MONITOR_STATUS_COLORS } from '@/types/modules/liveMonitor';
 import {
   buildEmployeePortalTrackingSnapshot,
@@ -373,7 +373,7 @@ async function enrichLiveMonitorRowsFromExecutionSnapshots(
     rows.map((row) => ({
       assignmentId: row.assignmentId,
       visitId: row.visitId ?? row.assignmentId,
-      fallbackStatus: row.status,
+      fallbackStatus: row.status as AssignmentStatus,
     })),
   );
 
@@ -381,10 +381,16 @@ async function enrichLiveMonitorRowsFromExecutionSnapshots(
     const snapshot = snapshots.get(row.assignmentId);
     if (!snapshot) return row;
 
-    const status = pickAdvancedAssignmentStatus(
-      row.status as AssignmentStatus,
-      snapshot.assignmentStatus,
-    );
+    const status = resolveAssignmentStatusFromExecutionContext({
+      assignmentStatus: row.status as AssignmentStatus,
+      executionStatus: snapshot.executionStatus,
+      documentationStatus: snapshot.documentationStatus,
+      proofStatus: snapshot.proofStatus ?? undefined,
+      hasDocumentation: snapshot.hasDocumentation,
+      hasSignature: snapshot.hasSignature,
+      serviceEnded: snapshot.serviceEnded,
+      executionStateStatus: snapshot.executionStateStatus,
+    });
     let docStatus = row.docStatus;
     let signatureStatus = row.signatureStatus;
 
@@ -466,8 +472,18 @@ export async function getAssistLiveMonitoring(
           actualEndAt: null,
           delayMinutes: null,
           overrunMinutes: null,
-          docStatus: item.isIncomplete ? 'missing' : 'na',
-          signatureStatus: 'na',
+          docStatus:
+            assignmentStatus === 'dokumentation_offen' || assignmentStatus === 'beendet'
+              ? 'missing'
+              : assignmentStatus === 'abgeschlossen' || assignmentStatus === 'unterschrift_offen'
+                ? 'ok'
+                : 'na',
+          signatureStatus:
+            assignmentStatus === 'unterschrift_offen'
+              ? 'missing'
+              : assignmentStatus === 'abgeschlossen'
+                ? 'ok'
+                : 'na',
           problemStatus: item.isAtRisk ? 'reported' : 'none',
           cancelRequest: false,
           rescheduleRequest: false,

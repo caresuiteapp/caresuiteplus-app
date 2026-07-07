@@ -156,6 +156,8 @@ export type VisitDispositionListItem = {
   /** Canonical assignment status — avoids workflow filter round-trip in portal lists. */
   assignmentStatus: AssignmentStatus;
   planningStatus: VisitPlanningStatus;
+  executionStatus?: VisitExecutionStatus;
+  documentationStatus?: VisitDocumentationStatus;
   proofStatus: VisitProofStatus;
   billingStatus: VisitBillingStatus;
   location: string;

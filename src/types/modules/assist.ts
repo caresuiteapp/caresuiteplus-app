@@ -49,6 +49,8 @@ export type AssignmentListItem = Pick<
   /** Canonical assignment workflow status (distinct from legacy workflow filter). */
   assignmentStatus?: import('./assignmentStatus').AssignmentStatus;
   planningStatus?: string;
+  executionStatus?: string;
+  documentationStatus?: string;
   proofStatus?: string;
   billingStatus?: string;
   isAtRisk?: boolean;

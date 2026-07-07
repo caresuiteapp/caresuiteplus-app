@@ -92,7 +92,7 @@ describe('visitDispositionExecutionEnrichment', () => {
       assignmentFinishedAt: null,
     });
 
-    expect(merged.assignmentStatus).toBe('beendet');
+    expect(merged.assignmentStatus).toBe('unterschrift_offen');
     expect(merged.executionStatus).toBe('completed');
     expect(merged.actualStartAt).toBe('2026-07-01T15:31:55.931Z');
     expect(merged.actualEndAt).toBe('2026-07-01T18:32:36.617Z');

@@ -130,8 +130,8 @@ describe('portal execution sync consistency', () => {
       assignmentFinishedAt: null,
     });
 
-    expect(listItem.assignmentStatus).toBe('beendet');
-    expect(officeDetail.assignmentStatus).toBe('beendet');
+    expect(listItem.assignmentStatus).toBe('unterschrift_offen');
+    expect(officeDetail.assignmentStatus).toBe('unterschrift_offen');
     expect(listItem.assignmentStatus).toBe(officeDetail.assignmentStatus);
     expect(officeDetail.tasks.find((t) => t.title === 'Küche reinigen')?.status).toBe('done');
     expect(officeDetail.documentationStatus).toBe('complete');
