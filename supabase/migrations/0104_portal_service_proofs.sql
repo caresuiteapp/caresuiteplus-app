@@ -19,15 +19,34 @@ CREATE INDEX IF NOT EXISTS idx_client_documents_portal_proofs
   WHERE portal_visible = TRUE AND category = 'leistungsnachweis';
 
 -- Portal users: read own service records when office has not yet mirrored to client_documents
-DROP POLICY IF EXISTS service_records_portal_select ON public.service_records;
-CREATE POLICY service_records_portal_select ON public.service_records
-  FOR SELECT TO authenticated
-  USING (
-    tenant_id = public.current_tenant_id()
-    AND client_id = public.current_client_id()
-    AND public.current_client_id() IS NOT NULL
-    AND status IN ('signature_required', 'signed', 'approved', 'billable', 'billed')
-  );
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'service_records'
+      AND column_name = 'status'
+  ) THEN
+    DROP POLICY IF EXISTS service_records_portal_select ON public.service_records;
+    CREATE POLICY service_records_portal_select ON public.service_records
+      FOR SELECT TO authenticated
+      USING (
+        tenant_id = public.current_tenant_id()
+        AND client_id = public.current_client_id()
+        AND public.current_client_id() IS NOT NULL
+        AND status IN ('signature_required', 'signed', 'approved', 'billable', 'billed')
+      );
+  ELSE
+    DROP POLICY IF EXISTS service_records_portal_select ON public.service_records;
+    CREATE POLICY service_records_portal_select ON public.service_records
+      FOR SELECT TO authenticated
+      USING (
+        tenant_id = public.current_tenant_id()
+        AND client_id = public.current_client_id()
+        AND public.current_client_id() IS NOT NULL
+      );
+  END IF;
+END $$;
 
 COMMENT ON POLICY client_documents_portal_select ON public.client_documents IS
   'Portal users read office-released documents (Leistungsnachweise, contracts, etc.).';

@@ -71,7 +71,7 @@ CREATE POLICY "clients_soft_delete_tenant"
   )
   WITH CHECK (
     tenant_id = public.current_tenant_id()
-    AND status = 'deleted'::public.client_status
+    AND status = 'deleted'
     AND (
       public.has_permission('office.clients.delete')
       OR public.is_tenant_admin()
@@ -90,7 +90,7 @@ CREATE POLICY "employees_soft_delete_tenant"
   )
   WITH CHECK (
     tenant_id = public.current_tenant_id()
-    AND status = 'deleted'::public.employee_status
+    AND status = 'deleted'
     AND (
       public.has_permission('office.employees.delete')
       OR public.is_tenant_admin()

@@ -4,27 +4,56 @@
 -- ==========================================================================
 
 -- --------------------------------------------------------------------------
--- Enum-Werte ergänzen (idempotent via DO block)
+-- Enum-Werte ergänzen (Live) bzw. TEXT-CHECK erweitern (Fresh-DB)
 -- --------------------------------------------------------------------------
+ALTER TABLE public.role_permissions
+  ADD COLUMN IF NOT EXISTS can_delete BOOLEAN NOT NULL DEFAULT FALSE;
+
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_enum e
-    JOIN pg_type t ON t.oid = e.enumtypid
-    WHERE t.typname = 'client_status' AND e.enumlabel = 'deleted'
+  IF EXISTS (
+    SELECT 1 FROM pg_type
+    WHERE typname = 'client_status' AND typnamespace = 'public'::regnamespace
   ) THEN
-    ALTER TYPE public.client_status ADD VALUE 'deleted';
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'client_status' AND e.enumlabel = 'deleted'
+    ) THEN
+      ALTER TYPE public.client_status ADD VALUE 'deleted';
+    END IF;
+  ELSE
+    ALTER TABLE public.clients DROP CONSTRAINT IF EXISTS clients_status_check;
+    ALTER TABLE public.clients
+      ADD CONSTRAINT clients_status_check
+      CHECK (status IN (
+        'entwurf', 'aktiv', 'in_bearbeitung', 'abgeschlossen',
+        'archiviert', 'fehlerhaft', 'gesperrt', 'deleted'
+      ));
   END IF;
 END $$;
 
 DO $$
 BEGIN
-  IF NOT EXISTS (
-    SELECT 1 FROM pg_enum e
-    JOIN pg_type t ON t.oid = e.enumtypid
-    WHERE t.typname = 'employee_status' AND e.enumlabel = 'deleted'
+  IF EXISTS (
+    SELECT 1 FROM pg_type
+    WHERE typname = 'employee_status' AND typnamespace = 'public'::regnamespace
   ) THEN
-    ALTER TYPE public.employee_status ADD VALUE 'deleted';
+    IF NOT EXISTS (
+      SELECT 1 FROM pg_enum e
+      JOIN pg_type t ON t.oid = e.enumtypid
+      WHERE t.typname = 'employee_status' AND e.enumlabel = 'deleted'
+    ) THEN
+      ALTER TYPE public.employee_status ADD VALUE 'deleted';
+    END IF;
+  ELSE
+    ALTER TABLE public.employees DROP CONSTRAINT IF EXISTS employees_status_check;
+    ALTER TABLE public.employees
+      ADD CONSTRAINT employees_status_check
+      CHECK (status IN (
+        'entwurf', 'aktiv', 'in_bearbeitung', 'abgeschlossen',
+        'archiviert', 'fehlerhaft', 'gesperrt', 'deleted'
+      ));
   END IF;
 END $$;
 
@@ -109,7 +138,7 @@ CREATE POLICY "clients_soft_delete_tenant"
   )
   WITH CHECK (
     tenant_id = public.current_tenant_id()
-    AND status = 'deleted'::public.client_status
+    AND status = 'deleted'
     AND (
       public.has_permission('office.clients.delete')
       OR public.is_tenant_admin()
@@ -131,7 +160,7 @@ CREATE POLICY "employees_soft_delete_tenant"
   )
   WITH CHECK (
     tenant_id = public.current_tenant_id()
-    AND status = 'deleted'::public.employee_status
+    AND status = 'deleted'
     AND (
       public.has_permission('office.employees.delete')
       OR public.is_tenant_admin()

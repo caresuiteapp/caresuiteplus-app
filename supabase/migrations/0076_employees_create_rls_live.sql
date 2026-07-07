@@ -6,6 +6,23 @@
 -- ==========================================================================
 
 -- --------------------------------------------------------------------------
+-- Fresh-DB: Spalten fehlen (Live-Schema-Drift, hier minimal nachgezogen)
+-- --------------------------------------------------------------------------
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS auth_user_id UUID REFERENCES auth.users(id) ON DELETE SET NULL;
+
+ALTER TABLE public.profiles
+  ADD COLUMN IF NOT EXISTS status TEXT NOT NULL DEFAULT 'active';
+
+ALTER TABLE public.roles
+  ADD COLUMN IF NOT EXISTS is_admin_role BOOLEAN NOT NULL DEFAULT FALSE;
+
+ALTER TABLE public.role_permissions
+  ADD COLUMN IF NOT EXISTS can_view BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS can_create BOOLEAN NOT NULL DEFAULT FALSE,
+  ADD COLUMN IF NOT EXISTS can_update BOOLEAN NOT NULL DEFAULT FALSE;
+
+-- --------------------------------------------------------------------------
 -- has_permission: CareSuite+-Keys + Live-Matrix (permission_key + can_*)
 -- office.employees.create → employees.can_create
 -- --------------------------------------------------------------------------

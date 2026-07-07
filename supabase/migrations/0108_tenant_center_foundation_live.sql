@@ -364,17 +364,22 @@ CREATE POLICY "tenant_contacts_delete_manage"
 
 GRANT SELECT, INSERT, UPDATE, DELETE ON public.tenant_contacts TO authenticated;
 
--- audit_logs: Lesen für Mandanten-Admins
-ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
+-- audit_logs: Lesen für Mandanten-Admins (Live-Tabelle; Fresh überspringen)
+DO $$
+BEGIN
+  IF to_regclass('public.audit_logs') IS NOT NULL THEN
+    ALTER TABLE public.audit_logs ENABLE ROW LEVEL SECURITY;
 
-DROP POLICY IF EXISTS "audit_logs_select_tenant_manage" ON public.audit_logs;
-CREATE POLICY "audit_logs_select_tenant_manage"
-  ON public.audit_logs FOR SELECT TO authenticated
-  USING (
-    tenant_id = public.current_tenant_id()
-    AND public.has_permission('business.tenant.manage')
-  );
+    DROP POLICY IF EXISTS "audit_logs_select_tenant_manage" ON public.audit_logs;
+    CREATE POLICY "audit_logs_select_tenant_manage"
+      ON public.audit_logs FOR SELECT TO authenticated
+      USING (
+        tenant_id = public.current_tenant_id()
+        AND public.has_permission('business.tenant.manage')
+      );
 
-GRANT SELECT ON public.audit_logs TO authenticated;
+    GRANT SELECT ON public.audit_logs TO authenticated;
+  END IF;
+END $$;
 
 GRANT EXECUTE ON FUNCTION public.seed_tenant_assist_service_catalog(UUID) TO authenticated;

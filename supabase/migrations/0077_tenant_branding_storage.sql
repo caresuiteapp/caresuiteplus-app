@@ -5,6 +5,23 @@
 -- ==========================================================================
 
 -- --------------------------------------------------------------------------
+-- tenant_branding — fehlte auf Fresh-DB (0078 RLS setzt voraus)
+-- --------------------------------------------------------------------------
+CREATE TABLE IF NOT EXISTS public.tenant_branding (
+  id                  UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+  tenant_id           UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+  logo_url            TEXT,
+  app_name            TEXT,
+  light_primary_color TEXT,
+  light_accent_color  TEXT,
+  created_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  updated_at          TIMESTAMPTZ NOT NULL DEFAULT NOW(),
+  UNIQUE (tenant_id)
+);
+
+ALTER TABLE public.tenant_branding ENABLE ROW LEVEL SECURITY;
+
+-- --------------------------------------------------------------------------
 -- Storage-Bucket
 -- --------------------------------------------------------------------------
 INSERT INTO storage.buckets (id, name, public, file_size_limit, allowed_mime_types)

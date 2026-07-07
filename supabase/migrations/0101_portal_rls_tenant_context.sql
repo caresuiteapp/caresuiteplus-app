@@ -53,19 +53,29 @@ AS $$
 $$;
 
 -- Backfill portal profiles from linked client records (fixes greeting + tenant context).
-UPDATE public.profiles p
-SET
-  tenant_id = cpa.tenant_id,
-  first_name = c.first_name,
-  last_name = c.last_name,
-  updated_at = NOW()
-FROM public.client_portal_access cpa
-JOIN public.clients c ON c.id = cpa.client_id AND c.tenant_id = cpa.tenant_id
-WHERE p.auth_user_id = cpa.auth_user_id
-  AND cpa.auth_user_id IS NOT NULL
-  AND cpa.portal_enabled = TRUE
-  AND (
-    p.tenant_id IS NULL
-    OR lower(trim(coalesce(p.first_name, ''))) = lower(cpa.portal_username)
-    OR lower(trim(coalesce(p.last_name, ''))) = lower(cpa.portal_username)
-  );
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public'
+      AND table_name = 'profiles'
+      AND column_name = 'first_name'
+  ) THEN
+    UPDATE public.profiles p
+    SET
+      tenant_id = cpa.tenant_id,
+      first_name = c.first_name,
+      last_name = c.last_name,
+      updated_at = NOW()
+    FROM public.client_portal_access cpa
+    JOIN public.clients c ON c.id = cpa.client_id AND c.tenant_id = cpa.tenant_id
+    WHERE p.auth_user_id = cpa.auth_user_id
+      AND cpa.auth_user_id IS NOT NULL
+      AND cpa.portal_enabled = TRUE
+      AND (
+        p.tenant_id IS NULL
+        OR lower(trim(coalesce(p.first_name, ''))) = lower(cpa.portal_username)
+        OR lower(trim(coalesce(p.last_name, ''))) = lower(cpa.portal_username)
+      );
+  END IF;
+END $$;

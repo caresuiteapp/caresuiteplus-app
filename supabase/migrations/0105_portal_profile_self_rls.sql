@@ -19,12 +19,30 @@ CREATE POLICY client_contacts_portal_self_select ON public.client_contacts
     AND public.current_client_id() IS NOT NULL
   );
 
-DROP POLICY IF EXISTS care_plans_portal_self_select ON public.care_plans;
-CREATE POLICY care_plans_portal_self_select ON public.care_plans
-  FOR SELECT TO authenticated
-  USING (
-    tenant_id = public.current_tenant_id()
-    AND client_id = public.current_client_id()
-    AND public.current_client_id() IS NOT NULL
-    AND status = 'active'::public.care_plan_status
-  );
+DO $$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM pg_type
+    WHERE typname = 'care_plan_status' AND typnamespace = 'public'::regnamespace
+  ) THEN
+    DROP POLICY IF EXISTS care_plans_portal_self_select ON public.care_plans;
+    CREATE POLICY care_plans_portal_self_select ON public.care_plans
+      FOR SELECT TO authenticated
+      USING (
+        tenant_id = public.current_tenant_id()
+        AND client_id = public.current_client_id()
+        AND public.current_client_id() IS NOT NULL
+        AND status = 'active'::public.care_plan_status
+      );
+  ELSE
+    DROP POLICY IF EXISTS care_plans_portal_self_select ON public.care_plans;
+    CREATE POLICY care_plans_portal_self_select ON public.care_plans
+      FOR SELECT TO authenticated
+      USING (
+        tenant_id = public.current_tenant_id()
+        AND client_id = public.current_client_id()
+        AND public.current_client_id() IS NOT NULL
+        AND status = 'aktiv'
+      );
+  END IF;
+END $$;
