@@ -7,6 +7,7 @@ import {
   resolveAssignmentCardAccent,
   resolveAssignmentCardBadge,
   resolveAssignmentListItemStatus,
+  resolveAttachmentCount,
   resolveSgbReference,
 } from '@/lib/assist/assignmentCardPresentation';
 import { formatAssignmentWeekdayDate } from '@/lib/formatters/dateTimeFormatters';
@@ -83,6 +84,24 @@ describe('Assignment compact cards UI', () => {
     expect(chips.some((chip) => chip.id === 'attachments')).toBe(true);
   });
 
+  it('resolveAttachmentCount uses internalPhotoReferences from visit documentation', () => {
+    expect(resolveAttachmentCount(sampleAssignment)).toBe(0);
+    expect(
+      resolveAttachmentCount({
+        ...sampleAssignment,
+        internalPhotoReferences: [
+          'tenant/t1/assist/visits/v1/attachments/a.jpg',
+          'tenant/t1/assist/visits/v1/attachments/b.pdf',
+        ],
+      }),
+    ).toBe(2);
+    const chips = buildAssignmentFooterChips({
+      ...sampleAssignment,
+      internalPhotoReferences: ['tenant/t1/assist/visits/v1/attachments/a.jpg'],
+    });
+    expect(chips.find((chip) => chip.id === 'attachments')?.label).toBe('Anhänge 1');
+  });
+
   it('buildAssignmentFooterChips shows open documentation and signature pills', () => {
     const incomplete = enrichAssignmentListItem({
       ...sampleAssignment,
@@ -135,6 +154,7 @@ describe('Assignment compact cards UI', () => {
   it('assignment list service enriches items with assignmentStatus for cards', () => {
     const listService = readSrc('src/lib/assist/assignmentListService.ts');
     expect(listService).toContain('assignmentStatus: item.assignmentStatus');
+    expect(listService).toContain('internalPhotoReferences: item.internalPhotoReferences');
     expect(listService).toContain('enrichAssignmentListItem');
   });
 

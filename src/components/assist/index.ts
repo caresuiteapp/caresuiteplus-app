@@ -34,4 +34,5 @@ export { TrackingPositionCard } from './TrackingPositionCard';
 export { VisitTasksPanel } from './VisitTasksPanel';
 export { VisitSignatureSection } from './VisitSignatureSection';
 export { VisitProofPreviewPanel } from './VisitProofPreviewPanel';
+export { VisitInternalAttachmentsPanel } from './VisitInternalAttachmentsPanel';
 export { VisitProofPdfPreviewPanel } from './VisitProofPdfPreviewPanel';

@@ -16,6 +16,7 @@ import {
   type TabOption,
 } from '@/components/ui';
 import { VisitProofPreviewPanel } from '@/components/assist/VisitProofPreviewPanel';
+import { VisitInternalAttachmentsPanel } from '@/components/assist/VisitInternalAttachmentsPanel';
 import { VisitTasksPanel } from '@/components/assist/VisitTasksPanel';
 import { useVisitDispositionDetail } from '@/hooks/useVisitDispositionDetail';
 import { useAsyncQuery } from '@/hooks/core';
@@ -514,6 +515,12 @@ export function AssignmentDetailTabsPanel({
                 <SectionPanel {...FORM_CTX} title="Notizen">
                   <Text style={styles.noteText}>{visit.notes}</Text>
                 </SectionPanel>
+              </View>
+            ) : null}
+
+            {(visit.internalPhotoReferences?.length ?? 0) > 0 ? (
+              <View style={styles.overviewCellFull}>
+                <VisitInternalAttachmentsPanel storagePaths={visit.internalPhotoReferences ?? []} />
               </View>
             ) : null}
           </View>

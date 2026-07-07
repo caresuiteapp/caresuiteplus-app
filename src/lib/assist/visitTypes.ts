@@ -167,6 +167,8 @@ export type VisitDispositionListItem = {
   isAtRisk: boolean;
   isIncomplete: boolean;
   updatedAt: string;
+  /** Storage paths from assist_visit_documentation.photo_references (internal only). */
+  internalPhotoReferences?: string[];
 };
 
 export type VisitDispositionDetail = VisitDispositionListItem & {
@@ -209,6 +211,8 @@ export type VisitDispositionDetail = VisitDispositionListItem & {
   createdAt: string;
   /** Persisted client signature from assist_visit_signatures (office enrichment). */
   persistedSignature?: import('@/lib/assist/visitSignatureSessionStore').VisitSignatureCapture | null;
+  /** Storage paths from assist_visit_documentation.photo_references (internal only). */
+  internalPhotoReferences?: string[];
 };
 
 /** Wiederholungsmuster für Einsatzplanung */

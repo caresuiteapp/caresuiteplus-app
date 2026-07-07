@@ -119,6 +119,7 @@ describe('assignment status derivation', () => {
       signatureMissing: true,
       isIncomplete: true,
       visitTimes: null,
+      photoReferences: [],
     };
 
     const overlaid = applySnapshotToVisitListItem(item, snapshot);
@@ -208,6 +209,7 @@ describe('assignment status derivation', () => {
       signatureMissing: true,
       isIncomplete: true,
       visitTimes: null,
+      photoReferences: [],
     };
 
     const overlaid = applySnapshotToVisitListItem(item, snapshot);

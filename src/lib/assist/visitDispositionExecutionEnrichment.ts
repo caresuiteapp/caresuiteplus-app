@@ -11,6 +11,7 @@ import {
   mapSignatureRowToCapture,
   resolveVisitSignatureImageUrl,
 } from '@/lib/assist/visitSignatureImageService';
+import { normalizePhotoReferenceList } from '@/lib/assist/visitInternalAttachmentService';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
 import {
   assignmentStatusToDimensions,
@@ -182,6 +183,7 @@ export function mergeVisitDispositionWithExecution(input: {
   assignmentActualStartAt: string | null;
   assignmentActualEndAt: string | null;
   assignmentFinishedAt: string | null;
+  photoReferences?: string[];
 }): VisitDispositionDetail {
   const {
     detail,
@@ -280,6 +282,7 @@ export function mergeVisitDispositionWithExecution(input: {
     finishedAt,
     isIncomplete: incomplete,
     persistedSignature,
+    internalPhotoReferences: input.photoReferences ?? detail.internalPhotoReferences ?? [],
   };
 }
 
@@ -321,7 +324,7 @@ export async function enrichVisitDispositionDetail(
       .maybeSingle(),
     fromUnknownTable(supabase, 'assist_visit_documentation')
       .select(
-        'short_description, special_notes, deviations, deviation_justification, referral_required, emergency_or_problem',
+        'short_description, special_notes, deviations, deviation_justification, referral_required, emergency_or_problem, photo_references',
       )
       .eq('tenant_id', tenantId)
       .eq('visit_id', visitId)
@@ -378,7 +381,10 @@ export async function enrichVisitDispositionDetail(
     deviation_justification?: string | null;
     referral_required?: boolean | null;
     emergency_or_problem?: boolean | null;
+    photo_references?: unknown;
   } | null;
+
+  const photoReferences = normalizePhotoReferenceList(documentationRow?.photo_references);
 
   const documentationText =
     buildDocumentationText(documentationRow ?? {}) ??
@@ -452,5 +458,6 @@ export async function enrichVisitDispositionDetail(
     assignmentActualStartAt: assignmentRow.actual_start_at ?? null,
     assignmentActualEndAt: assignmentRow.actual_end_at ?? null,
     assignmentFinishedAt: assignmentRow.finished_at ?? null,
+    photoReferences,
   });
 }

@@ -55,6 +55,7 @@ const completedMasterSnapshot: AssignmentExecutionSnapshot = {
   signatureMissing: false,
   isIncomplete: false,
   visitTimes: null,
+  photoReferences: [],
 };
 
 describe('series occurrence list pipeline', () => {

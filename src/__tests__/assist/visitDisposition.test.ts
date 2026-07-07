@@ -122,6 +122,12 @@ describe('Assist disposition list UI contracts', () => {
     expect(panel).not.toContain("position: 'sticky'");
   });
 
+  it('AssignmentDetailTabsPanel shows internal attachments in Einsatzvorschau overview', () => {
+    const panel = readSrc('src/components/assist/AssignmentDetailTabsPanel.tsx');
+    expect(panel).toContain('VisitInternalAttachmentsPanel');
+    expect(panel).toContain('internalPhotoReferences');
+  });
+
   it('Status-Buttons nutzen AssignmentStatus Labels (kein Aktiv/Aktiv)', () => {
     const repo = readSrc('src/lib/assist/repositories/assignmentRepository.supabase.ts');
     expect(repo).toContain('dedupeStatusTransitionButtons');

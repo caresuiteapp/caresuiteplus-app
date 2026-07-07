@@ -25,6 +25,7 @@ import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { calculateVisitTimes } from '@/features/assistWorkflow/calculateVisitTimes';
+import { normalizePhotoReferenceList } from '@/lib/assist/visitInternalAttachmentService';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 
 export type AssignmentExecutionSnapshot = {
@@ -46,6 +47,8 @@ export type AssignmentExecutionSnapshot = {
   signatureMissing: boolean;
   isIncomplete: boolean;
   visitTimes: ReturnType<typeof calculateVisitTimes> | null;
+  /** Normalized storage paths from assist_visit_documentation.photo_references. */
+  photoReferences: string[];
 };
 
 type AssignmentRow = {
@@ -67,6 +70,7 @@ type AssignmentTaskRow = {
 type VisitDocRow = {
   visit_id: string;
   short_description?: string | null;
+  photo_references?: unknown;
 };
 
 type ExecutionStateRow = {
@@ -149,20 +153,34 @@ async function fetchSnapshotBatchRows(
   assignments: Map<string, AssignmentRow>;
   tasksByAssignment: Map<string, VisitTaskItem[]>;
   documentationByVisit: Map<string, string>;
+  photoReferencesByVisit: Map<string, string[]>;
   executionStateByVisit: Map<string, ExecutionStateRow>;
 }> {
   const assignments = new Map<string, AssignmentRow>();
   const tasksByAssignment = new Map<string, VisitTaskItem[]>();
   const documentationByVisit = new Map<string, string>();
+  const photoReferencesByVisit = new Map<string, string[]>();
   const executionStateByVisit = new Map<string, ExecutionStateRow>();
 
   if (visitIds.length === 0) {
-    return { assignments, tasksByAssignment, documentationByVisit, executionStateByVisit };
+    return {
+      assignments,
+      tasksByAssignment,
+      documentationByVisit,
+      photoReferencesByVisit,
+      executionStateByVisit,
+    };
   }
 
   const supabase = getSupabaseClient();
   if (!supabase) {
-    return { assignments, tasksByAssignment, documentationByVisit, executionStateByVisit };
+    return {
+      assignments,
+      tasksByAssignment,
+      documentationByVisit,
+      photoReferencesByVisit,
+      executionStateByVisit,
+    };
   }
 
   const uniqueIds = [...new Set(visitIds.map((id) => resolveVisitMasterId(id)).filter(Boolean))];
@@ -178,7 +196,7 @@ async function fetchSnapshotBatchRows(
       .in('assignment_id', uniqueIds)
       .order('sort_order', { ascending: true }),
     fromUnknownTable(supabase, 'assist_visit_documentation')
-      .select('visit_id, short_description')
+      .select('visit_id, short_description, photo_references')
       .eq('tenant_id', tenantId)
       .in('visit_id', uniqueIds),
     fromUnknownTable(supabase, 'assist_visit_execution_state')
@@ -208,6 +226,10 @@ async function fetchSnapshotBatchRows(
     for (const row of (docResult.data ?? []) as VisitDocRow[]) {
       const text = row.short_description?.trim();
       if (text) documentationByVisit.set(row.visit_id, text);
+      const photoReferences = normalizePhotoReferenceList(row.photo_references);
+      if (photoReferences.length > 0) {
+        photoReferencesByVisit.set(row.visit_id, photoReferences);
+      }
     }
   }
 
@@ -217,7 +239,7 @@ async function fetchSnapshotBatchRows(
     }
   }
 
-  return { assignments, tasksByAssignment, documentationByVisit, executionStateByVisit };
+  return { assignments, tasksByAssignment, documentationByVisit, photoReferencesByVisit, executionStateByVisit };
 }
 
 function buildSnapshotFromRows(input: {
@@ -235,6 +257,7 @@ function buildSnapshotFromRows(input: {
   executionStatus?: VisitExecutionStatus;
   documentationStatus?: VisitDocumentationStatus;
   visitProofStatus?: VisitProofStatus;
+  photoReferences?: string[];
 }): AssignmentExecutionSnapshot {
   const rowStatus = input.assignmentRow
     ? remoteStatusToAssignment(input.assignmentRow.status)
@@ -302,6 +325,7 @@ function buildSnapshotFromRows(input: {
     signatureMissing,
     isIncomplete,
     visitTimes: input.visitTimes,
+    photoReferences: input.photoReferences ?? [],
   };
 }
 
@@ -394,8 +418,13 @@ export async function fetchAssignmentExecutionSnapshotBatch(
   if (inputs.length === 0) return result;
 
   const visitIds = inputs.map((input) => input.visitId);
-  const { assignments, tasksByAssignment, documentationByVisit, executionStateByVisit } =
-    await fetchSnapshotBatchRows(tenantId, visitIds);
+  const {
+    assignments,
+    tasksByAssignment,
+    documentationByVisit,
+    photoReferencesByVisit,
+    executionStateByVisit,
+  } = await fetchSnapshotBatchRows(tenantId, visitIds);
 
   for (const input of inputs) {
     const assignmentRow = assignments.get(input.assignmentId) ?? null;
@@ -438,6 +467,7 @@ export async function fetchAssignmentExecutionSnapshotBatch(
         executionStatus: input.executionStatus,
         documentationStatus: input.documentationStatus,
         visitProofStatus: input.proofStatus,
+        photoReferences: photoReferencesByVisit.get(input.visitId) ?? [],
       }),
     );
   }

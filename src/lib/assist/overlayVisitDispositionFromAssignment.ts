@@ -105,6 +105,10 @@ export function applySnapshotToVisitListItem(
         proofStatus,
         executionStatus: dims.execution,
       }),
+    internalPhotoReferences:
+      snapshot.photoReferences.length > 0
+        ? snapshot.photoReferences
+        : item.internalPhotoReferences,
   };
 }
 

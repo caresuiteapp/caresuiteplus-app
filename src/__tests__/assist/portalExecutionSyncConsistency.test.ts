@@ -102,6 +102,7 @@ function portalSnapshot(status: AssignmentExecutionSnapshot['assignmentStatus'])
     signatureMissing: status === 'beendet' || status === 'dokumentation_offen',
     isIncomplete: status !== 'abgeschlossen' && status !== 'unterschrift_offen',
     visitTimes: null,
+    photoReferences: [],
   };
 }
 

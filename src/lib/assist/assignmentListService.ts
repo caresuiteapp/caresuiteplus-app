@@ -110,6 +110,7 @@ export async function fetchAssignmentList(
           billingStatus: item.billingStatus,
           isAtRisk: item.isAtRisk,
           isIncomplete: item.isIncomplete,
+          internalPhotoReferences: item.internalPhotoReferences,
         }),
       ),
     };
@@ -187,6 +188,7 @@ function dispositionToAssignmentListItem(item: VisitDispositionListItem): Assign
     billingStatus: item.billingStatus,
     isAtRisk: item.isAtRisk,
     isIncomplete: item.isIncomplete,
+    internalPhotoReferences: item.internalPhotoReferences,
   };
 }
 

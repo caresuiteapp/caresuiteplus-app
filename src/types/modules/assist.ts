@@ -55,6 +55,8 @@ export type AssignmentListItem = Pick<
   billingStatus?: string;
   isAtRisk?: boolean;
   isIncomplete?: boolean;
+  /** Storage paths from assist_visit_documentation.photo_references (internal only). */
+  internalPhotoReferences?: string[];
 };
 
 export type AssistDashboardStats = {

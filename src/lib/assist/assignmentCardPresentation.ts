@@ -146,8 +146,7 @@ export type AssignmentFooterChip = {
 };
 
 export function resolveAttachmentCount(assignment: AssignmentListItem): number {
-  const hash = assignment.id.split('').reduce((sum, char) => sum + char.charCodeAt(0), 0);
-  return hash % 4;
+  return assignment.internalPhotoReferences?.length ?? 0;
 }
 
 function resolveDocumentationState(assignment: AssignmentListItem): {
