@@ -160,6 +160,7 @@ export function EmployeePortalVisitExecutionScreen() {
   const docPanelRef = useRef<EmployeePortalVisitDocumentationPanelHandle>(null);
   const signatureSectionY = useRef(0);
   const [signatureCaptureRequest, setSignatureCaptureRequest] = useState(0);
+  const [closeSignatureCaptureRequest, setCloseSignatureCaptureRequest] = useState(0);
   const restoredRef = useRef(false);
   const [tasksOpen, setTasksOpen] = useState(false);
   const [documentationOpen, setDocumentationOpen] = useState(false);
@@ -309,12 +310,12 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const handleFinalizeDeferredSignature = useCallback(async () => {
     try {
-      releaseSignatureCaptureEnvironment();
-      setAwaitingSignature(false);
-      workflowPersistence.setStep(null);
+      releaseSignatureUi();
+      setCloseSignatureCaptureRequest((n) => n + 1);
       const r = await finalizeVisitDeferred();
       if (r.ok) {
         releaseSignatureCaptureEnvironment();
+        setCloseSignatureCaptureRequest((n) => n + 1);
         setLocalSuccess(
           'Einsatz abgeschlossen — Unterschrift wurde ans Klient:innenportal gesendet.',
         );
@@ -323,13 +324,14 @@ export function EmployeePortalVisitExecutionScreen() {
       }
     } catch (error) {
       releaseSignatureCaptureEnvironment();
+      setCloseSignatureCaptureRequest((n) => n + 1);
       setLocalError(
         error instanceof Error
           ? error.message
           : 'Abschluss ohne Unterschrift fehlgeschlagen — bitte erneut versuchen.',
       );
     }
-  }, [finalizeVisitDeferred, workflowPersistence]);
+  }, [finalizeVisitDeferred, releaseSignatureUi]);
 
   useEffect(() => {
     if (signatureDeferred) {
@@ -339,10 +341,21 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const handleSignatureModalOpenChange = useCallback(
     (open: boolean) => {
-      if (open) workflowPersistence.setStep('signature');
+      if (open) {
+        workflowPersistence.setStep('signature');
+        return;
+      }
+      releaseSignatureCaptureEnvironment();
+      workflowPersistence.setStep(null);
     },
     [workflowPersistence],
   );
+
+  useEffect(() => {
+    if (phase !== 'completed') return;
+    releaseSignatureCaptureEnvironment();
+    setCloseSignatureCaptureRequest((n) => n + 1);
+  }, [phase]);
 
   useEffect(() => {
     if (!id || !visit) return;
@@ -649,7 +662,12 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const renderPhaseContent = () => {
     if (phase === 'completed') {
-      return <EmployeePortalVisitSummaryPanel visit={visit} onBack={() => router.back()} />;
+      return (
+        <EmployeePortalVisitSummaryPanel
+          visit={visit}
+          onBack={() => router.replace('/portal/employee/assignments' as never)}
+        />
+      );
     }
 
     if (phase === 'preview') {
@@ -932,6 +950,7 @@ export function EmployeePortalVisitExecutionScreen() {
               modalOnly={phase === 'live' || phase === 'post_service'}
               compact={phase !== 'live' && phase !== 'post_service'}
               openCaptureRequest={signatureCaptureRequest}
+              closeCaptureRequest={closeSignatureCaptureRequest}
               visitId={id}
               onModalOpenChange={handleSignatureModalOpenChange}
               onCapture={async (sig) => {

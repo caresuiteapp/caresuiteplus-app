@@ -18,6 +18,8 @@ type EmployeePortalVisitSignaturePanelProps = {
   modalOnly?: boolean;
   /** Increment to open the signature capture modal (explicit user/workflow action only). */
   openCaptureRequest?: number;
+  /** Increment to force-close an open capture modal (e.g. deferred finalize on tablet). */
+  closeCaptureRequest?: number;
   /** Visit id for landscape dismiss scope and workflow persistence. */
   visitId?: string;
   onModalOpenChange?: (open: boolean) => void;
@@ -32,6 +34,7 @@ export function EmployeePortalVisitSignaturePanel({
   compact = true,
   modalOnly = false,
   openCaptureRequest = 0,
+  closeCaptureRequest = 0,
   visitId,
   onModalOpenChange,
   onCapture,
@@ -41,6 +44,7 @@ export function EmployeePortalVisitSignaturePanel({
   const [preview, setPreview] = useState<string | null>(capturedPreview ?? null);
   const [captureError, setCaptureError] = useState<string | null>(null);
   const lastCaptureRequest = useRef(0);
+  const lastCloseCaptureRequest = useRef(0);
   const onModalOpenChangeRef = useRef(onModalOpenChange);
 
   useEffect(() => {
@@ -67,6 +71,12 @@ export function EmployeePortalVisitSignaturePanel({
     lastCaptureRequest.current = openCaptureRequest;
     openSignatureModal();
   }, [openCaptureRequest, disabled, openSignatureModal]);
+
+  useEffect(() => {
+    if (closeCaptureRequest <= lastCloseCaptureRequest.current) return;
+    lastCloseCaptureRequest.current = closeCaptureRequest;
+    closeModal();
+  }, [closeCaptureRequest, closeModal]);
 
   useFocusEffect(
     useCallback(() => {
