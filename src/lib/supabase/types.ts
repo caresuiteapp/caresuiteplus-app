@@ -15471,6 +15471,10 @@ export type Database = {
           module_visibility: string[]
           portal_visible: boolean
           sensitivity: string
+          service_month: string | null
+          service_record_id: string | null
+          signature_required: boolean
+          signed_at: string | null
           size_bytes: number | null
           source: string | null
           status: string
@@ -15492,6 +15496,10 @@ export type Database = {
           module_visibility?: string[]
           portal_visible?: boolean
           sensitivity?: string
+          service_month?: string | null
+          service_record_id?: string | null
+          signature_required?: boolean
+          signed_at?: string | null
           size_bytes?: number | null
           source?: string | null
           status?: string
@@ -15513,6 +15521,10 @@ export type Database = {
           module_visibility?: string[]
           portal_visible?: boolean
           sensitivity?: string
+          service_month?: string | null
+          service_record_id?: string | null
+          signature_required?: boolean
+          signed_at?: string | null
           size_bytes?: number | null
           source?: string | null
           status?: string

@@ -54,6 +54,7 @@ export async function upsertAssistProofClientPortalDocument(
 
   const payload = buildAssistProofPdfPayload(proof);
   const signedAt = readSnapshotString(proof.payloadSnapshot ?? {}, 'signedAt');
+  const signatureRequired = options?.signatureRequired === true;
   const now = new Date().toISOString();
 
   const { data: existing, error: lookupError } = await fromUnknownTable(supabase, 'client_documents')
@@ -76,6 +77,7 @@ export async function upsertAssistProofClientPortalDocument(
         status: 'aktiv',
         category: PROOF_CATEGORY,
         signed_at: signedAt,
+        signature_required: signatureRequired,
         updated_at: now,
       })
       .eq('tenant_id', tenantId)
@@ -99,6 +101,7 @@ export async function upsertAssistProofClientPortalDocument(
     portal_visible: true,
     source: 'assist_visit_proof',
     signed_at: signedAt,
+    signature_required: signatureRequired,
     uploaded_by: options?.actorProfileId ?? null,
   });
 
