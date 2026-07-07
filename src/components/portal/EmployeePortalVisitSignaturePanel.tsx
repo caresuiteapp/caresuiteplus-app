@@ -4,6 +4,7 @@ import { useFocusEffect } from 'expo-router';
 import { CareSignatureModal } from '@/components/inputs/CareSignatureModal';
 import { PremiumButton, PremiumInput, InfoBanner } from '@/components/ui';
 import { EmployeePortalVisitCompactCard } from '@/components/portal/EmployeePortalVisitCompactCard';
+import { releaseSignatureCaptureEnvironment } from '@/lib/dom/releaseSignatureCaptureEnvironment';
 import { requestLandscapeLock } from '@/lib/orientation/requestLandscapeLock';
 import type { EmployeePortalSignatureCaptureInput } from '@/types/modules/employeePortalExecution';
 import { spacing, typography } from '@/theme';
@@ -62,6 +63,7 @@ export function EmployeePortalVisitSignaturePanel({
   const closeModal = useCallback(() => {
     setModalVisible(false);
     onModalOpenChangeRef.current?.(false);
+    releaseSignatureCaptureEnvironment();
   }, []);
 
   useEffect(() => {

@@ -490,6 +490,16 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
 
   const syncAfterWorkflow = useCallback(
     async (ctx: AssistExecutionContext) => {
+      const terminalStatuses: AssignmentStatus[] = ['abgeschlossen', 'storniert', 'nicht_erschienen'];
+      const isTerminalStatus =
+        terminalStatuses.includes(ctx.assignmentStatus) ||
+        terminalStatuses.includes(ctx.derivedStatus);
+      const terminalStatus: AssignmentStatus | null = isTerminalStatus
+        ? terminalStatuses.includes(ctx.assignmentStatus)
+          ? ctx.assignmentStatus
+          : ctx.derivedStatus
+        : null;
+
       const arrived =
         ctx.derivedStatus === 'angekommen' || ctx.assignmentStatus === 'angekommen';
       const inService =
@@ -499,29 +509,35 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
         ctx.assignmentStatus === 'pausiert';
       const hasServiceEnded = Boolean(ctx.visitTimes?.serviceEndedAt || ctx.detail.actualEndAt);
       const postServicePhase =
-        ctx.assignmentStatus === 'dokumentation_offen' ||
-        ctx.assignmentStatus === 'unterschrift_offen' ||
-        ctx.derivedStatus === 'dokumentation_offen' ||
-        ctx.derivedStatus === 'unterschrift_offen';
+        !isTerminalStatus &&
+        (ctx.assignmentStatus === 'dokumentation_offen' ||
+          ctx.assignmentStatus === 'unterschrift_offen' ||
+          ctx.derivedStatus === 'dokumentation_offen' ||
+          ctx.derivedStatus === 'unterschrift_offen');
       const ended =
+        isTerminalStatus ||
         hasServiceEnded ||
         ctx.derivedStatus === 'beendet' ||
         ctx.assignmentStatus === 'beendet' ||
         postServicePhase;
-      const syncedAssignmentStatus: AssignmentStatus = postServicePhase
-        ? ctx.assignmentStatus === 'unterschrift_offen' || ctx.derivedStatus === 'unterschrift_offen'
-          ? 'unterschrift_offen'
-          : 'dokumentation_offen'
-        : ended
-          ? 'beendet'
-          : ctx.assignmentStatus;
-      const syncedDerivedStatus: AssignmentStatus = postServicePhase
-        ? ctx.derivedStatus === 'unterschrift_offen' || ctx.assignmentStatus === 'unterschrift_offen'
-          ? 'unterschrift_offen'
-          : 'dokumentation_offen'
-        : ended
-          ? 'beendet'
-          : ctx.derivedStatus;
+      const syncedAssignmentStatus: AssignmentStatus = terminalStatus
+        ? terminalStatus
+        : postServicePhase
+          ? ctx.assignmentStatus === 'unterschrift_offen' || ctx.derivedStatus === 'unterschrift_offen'
+            ? 'unterschrift_offen'
+            : 'dokumentation_offen'
+          : ended
+            ? 'beendet'
+            : ctx.assignmentStatus;
+      const syncedDerivedStatus: AssignmentStatus = terminalStatus
+        ? terminalStatus
+        : postServicePhase
+          ? ctx.derivedStatus === 'unterschrift_offen' || ctx.assignmentStatus === 'unterschrift_offen'
+            ? 'unterschrift_offen'
+            : 'dokumentation_offen'
+          : ended
+            ? 'beendet'
+            : ctx.derivedStatus;
 
       let visitTimes = ctx.visitTimes;
       if (ended) {
