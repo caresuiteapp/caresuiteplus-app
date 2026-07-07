@@ -17,6 +17,7 @@ import {
   dedupeStatusTransitionButtons,
   getVisitAllowedTransitions,
   isVisitIncomplete,
+  pickAdvancedAssignmentStatus,
 } from '@/lib/assist/visitWorkflow';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
@@ -47,21 +48,6 @@ function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowSta
   return map[status] ?? 'aktiv';
 }
 
-const STATUS_PROGRESS: Record<AssignmentStatus, number> = {
-  geplant: 0,
-  bestaetigt: 1,
-  unterwegs: 2,
-  angekommen: 3,
-  gestartet: 4,
-  pausiert: 4,
-  beendet: 5,
-  dokumentation_offen: 6,
-  unterschrift_offen: 7,
-  abgeschlossen: 8,
-  storniert: -1,
-  nicht_erschienen: -1,
-};
-
 const WORKFLOW_TASK_TITLES = {
   startVisit: 'einsatz antreten',
   markOnWay: 'unterwegs markieren',
@@ -87,15 +73,6 @@ function assignmentTaskStatusToVisit(status: string): VisitTaskStatus {
 function visitTasksLookStale(tasks: VisitTaskItem[]): boolean {
   if (tasks.length === 0) return false;
   return tasks.every((task) => task.status === 'open');
-}
-
-function pickAdvancedStatus(
-  current: AssignmentStatus,
-  candidate: AssignmentStatus,
-): AssignmentStatus {
-  const currentRank = STATUS_PROGRESS[current] ?? 0;
-  const candidateRank = STATUS_PROGRESS[candidate] ?? 0;
-  return candidateRank > currentRank ? candidate : current;
 }
 
 function buildDocumentationText(row: {
@@ -218,9 +195,9 @@ export function mergeVisitDispositionWithExecution(input: {
 
   let assignmentStatus = input.assignmentStatus;
   if (input.executionStateStatus) {
-    assignmentStatus = pickAdvancedStatus(assignmentStatus, input.executionStateStatus);
+    assignmentStatus = pickAdvancedAssignmentStatus(assignmentStatus, input.executionStateStatus);
   }
-  assignmentStatus = pickAdvancedStatus(assignmentStatus, detail.assignmentStatus);
+  assignmentStatus = pickAdvancedAssignmentStatus(assignmentStatus, detail.assignmentStatus);
 
   const hasDocumentation = Boolean(documentationText?.trim());
   const workflowCtx: WorkflowTaskContext = {

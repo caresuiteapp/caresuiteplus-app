@@ -36,6 +36,8 @@ describe('assist navigation cleanup', () => {
     expect(live).toContain('Kartenansicht');
     expect(live).not.toContain('assist_location_points');
     expect(live).not.toContain('assist_tracking_points');
+    expect(live).toContain('HealthOSStatusBadge');
+    expect(live).not.toMatch(/PremiumBadge[^]*variant="orange"[^]*dot/);
   });
 
   it('einstellungen route uses AssistSettingsScreen', () => {

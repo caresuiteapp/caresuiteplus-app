@@ -189,6 +189,7 @@ function mapListItem(row: AssignmentLiveRow): AssignmentListItem {
     scheduledStart: row.planned_start_at,
     scheduledEnd: row.planned_end_at,
     status: assignmentStatusToWorkflowFilter(assignmentStatus),
+    assignmentStatus,
     location: assignmentLocationFromRow(row),
     clientName: personName(row.clients),
     employeeId: row.employee_id ?? null,

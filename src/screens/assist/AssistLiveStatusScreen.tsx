@@ -37,7 +37,7 @@ import {
 } from '@/lib/assist/gpsTrackingConfig';
 import { getServiceMode } from '@/lib/services/mode';
 import { isDemoMode } from '@/lib/supabase/config';
-import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
+import { HealthOSStatusBadge } from '@/components/healthos';
 import { colors, spacing, typography } from '@/theme';
 
 function formatTime(iso: string): string {
@@ -145,7 +145,7 @@ export function AssistLiveStatusScreen() {
               <PremiumCard accentColor={row.statusColor} style={isSelected ? styles.selectedCard : undefined}>
                 <View style={styles.cardHeader}>
                   <Text style={styles.title}>{row.title}</Text>
-                  <PremiumBadge label={ASSIGNMENT_STATUS_LABELS[row.status]} variant="orange" dot />
+                  <HealthOSStatusBadge domain="assignment" technicalValue={row.status} dot />
                 </View>
                 {row.employeeName ? (
                   <Text style={styles.meta}>{row.employeeName}</Text>

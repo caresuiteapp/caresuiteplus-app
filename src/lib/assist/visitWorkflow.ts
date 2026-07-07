@@ -275,3 +275,68 @@ export function isVisitIncomplete(input: {
   }
   return false;
 }
+
+const ASSIGNMENT_STATUS_PROGRESS: Record<AssignmentStatus, number> = {
+  geplant: 0,
+  bestaetigt: 1,
+  unterwegs: 2,
+  angekommen: 3,
+  gestartet: 4,
+  pausiert: 4,
+  beendet: 5,
+  dokumentation_offen: 6,
+  unterschrift_offen: 7,
+  abgeschlossen: 8,
+  storniert: -1,
+  nicht_erschienen: -1,
+};
+
+/** Prefer the more advanced assignment status when visit and assignment rows disagree. */
+export function pickAdvancedAssignmentStatus(
+  current: AssignmentStatus,
+  candidate: AssignmentStatus,
+): AssignmentStatus {
+  const currentRank = ASSIGNMENT_STATUS_PROGRESS[current] ?? 0;
+  const candidateRank = ASSIGNMENT_STATUS_PROGRESS[candidate] ?? 0;
+  return candidateRank > currentRank ? candidate : current;
+}
+
+/** Derive display status from assist_visits dimension columns when canonical_status lags. */
+export function deriveAssignmentStatusFromVisitDimensions(input: {
+  canonicalStatus: AssignmentStatus;
+  executionStatus: VisitExecutionStatus;
+  documentationStatus: VisitDocumentationStatus;
+  proofStatus: VisitProofStatus;
+}): AssignmentStatus {
+  const { canonicalStatus, executionStatus, documentationStatus, proofStatus } = input;
+  let derived = canonicalStatus;
+
+  if (executionStatus === 'completed') {
+    if (documentationStatus !== 'complete') {
+      derived = 'dokumentation_offen';
+    } else if (proofStatus === 'verified') {
+      derived = 'abgeschlossen';
+    } else if (
+      proofStatus === 'signed' ||
+      proofStatus === 'pending' ||
+      proofStatus === 'none'
+    ) {
+      derived = 'unterschrift_offen';
+    } else {
+      derived = 'beendet';
+    }
+  } else {
+    const executionMap: Partial<Record<VisitExecutionStatus, AssignmentStatus>> = {
+      on_way: 'unterwegs',
+      arrived: 'angekommen',
+      in_progress: 'gestartet',
+      paused: 'pausiert',
+      no_show: 'nicht_erschienen',
+      cancelled: 'storniert',
+    };
+    const mapped = executionMap[executionStatus];
+    if (mapped) derived = mapped;
+  }
+
+  return pickAdvancedAssignmentStatus(canonicalStatus, derived);
+}

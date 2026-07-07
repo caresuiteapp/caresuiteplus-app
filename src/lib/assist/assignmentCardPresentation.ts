@@ -204,7 +204,7 @@ export function buildAssignmentFooterChips(assignment: AssignmentListItem): Assi
     {
       id: 'signature',
       label: signature.satisfied ? 'Unterschrift' : 'Unterschrift offen',
-      variant: signature.satisfied ? 'green' : signature.open ? 'muted' : 'muted',
+      variant: signature.satisfied ? 'green' : signature.open ? 'orange' : 'muted',
     },
     {
       id: 'attachments',

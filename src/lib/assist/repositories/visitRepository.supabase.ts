@@ -8,6 +8,7 @@ import {
 } from '@/lib/assist/assignmentStatusBridge';
 import {
   dedupeStatusTransitionButtons,
+  deriveAssignmentStatusFromVisitDimensions,
   getVisitAllowedTransitions,
   isVisitAtRisk,
   isVisitIncomplete,
@@ -362,7 +363,13 @@ function visitLocationFromRow(row: VisitRow): string {
 }
 
 function mapListItem(row: VisitRow): VisitDispositionListItem {
-  const assignmentStatus = remoteStatusToAssignment(row.canonical_status);
+  const canonicalStatus = remoteStatusToAssignment(row.canonical_status);
+  const assignmentStatus = deriveAssignmentStatusFromVisitDimensions({
+    canonicalStatus,
+    executionStatus: row.execution_status,
+    documentationStatus: row.documentation_status,
+    proofStatus: row.proof_status,
+  });
   const atRisk = isVisitAtRisk({
     planningStatus: row.planning_status,
     executionStatus: row.execution_status,

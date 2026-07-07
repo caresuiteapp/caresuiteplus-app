@@ -7,6 +7,7 @@ import { assignmentStatusToRemote } from '@/lib/assist/assignmentStatusBridge';
 import {
   assignmentStatusToDimensions,
   isVisitIncomplete,
+  pickAdvancedAssignmentStatus,
 } from '@/lib/assist/visitWorkflow';
 import type {
   VisitDispositionDetail,
@@ -79,7 +80,10 @@ export function applySnapshotToVisitListItem(
   item: VisitDispositionListItem,
   snapshot: AssignmentExecutionSnapshot,
 ): VisitDispositionListItem {
-  const assignmentStatus = snapshot.assignmentStatus;
+  const assignmentStatus = pickAdvancedAssignmentStatus(
+    snapshot.assignmentStatus,
+    item.assignmentStatus,
+  );
   const dims = assignmentStatusToDimensions(assignmentStatus);
   return {
     ...item,

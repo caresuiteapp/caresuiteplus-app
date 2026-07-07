@@ -177,6 +177,7 @@ function dispositionToAssignmentListItem(item: VisitDispositionListItem): Assign
     updatedAt: item.updatedAt,
     serviceName: item.serviceName,
     durationMinutes: item.durationMinutes,
+    assignmentStatus: item.assignmentStatus,
     planningStatus: item.planningStatus,
     proofStatus: item.proofStatus,
     billingStatus: item.billingStatus,

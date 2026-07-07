@@ -18,6 +18,7 @@ import { fetchDayMonitor } from '@/lib/assist/liveMonitorService';
 import { listAssignmentWorkflows } from '@/lib/assist/assignmentWorkflowService';
 import { buildWorkspaceAccessContext, canViewAssignment } from '@/lib/permissions/workspaceAccess';
 import { fetchVisitDispositionList } from '@/lib/assist/visitService';
+import { pickAdvancedAssignmentStatus } from '@/lib/assist/visitWorkflow';
 import { DAY_MONITOR_STATUS_COLORS } from '@/types/modules/liveMonitor';
 import {
   buildEmployeePortalTrackingSnapshot,
@@ -380,7 +381,10 @@ async function enrichLiveMonitorRowsFromExecutionSnapshots(
     const snapshot = snapshots.get(row.assignmentId);
     if (!snapshot) return row;
 
-    const status = snapshot.assignmentStatus;
+    const status = pickAdvancedAssignmentStatus(
+      row.status as AssignmentStatus,
+      snapshot.assignmentStatus,
+    );
     let docStatus = row.docStatus;
     let signatureStatus = row.signatureStatus;
 
@@ -443,7 +447,7 @@ export async function getAssistLiveMonitoring(
     const gpsPermission = await getEmployeePortalGpsPermissionStatus();
     const rows = await Promise.all(
       todayVisits.map(async (item) => {
-        const assignmentStatus = workflowToAssignmentStatus(item.status);
+        const assignmentStatus = item.assignmentStatus;
         const displayStatus = fallbackDisplayStatus(assignmentStatus);
 
         const baseRow: DayMonitorAssignmentRow = {

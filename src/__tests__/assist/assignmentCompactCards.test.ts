@@ -94,6 +94,7 @@ describe('Assignment compact cards UI', () => {
     expect(chips.find((chip) => chip.id === 'docs')?.label).toBe('Dokumentation');
     expect(chips.find((chip) => chip.id === 'docs')?.variant).toBe('green');
     expect(chips.find((chip) => chip.id === 'signature')?.label).toBe('Unterschrift offen');
+    expect(chips.find((chip) => chip.id === 'signature')?.variant).toBe('orange');
   });
 
   it('buildAssignmentFooterChips shows Dokumentation offen for documentation_open status', () => {
