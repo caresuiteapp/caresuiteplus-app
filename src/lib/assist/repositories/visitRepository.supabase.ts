@@ -58,7 +58,12 @@ import {
 import {
   expandVisitDispositionListItems,
   parseVisitRecurrenceJson,
+  shiftVisitScheduleToDate,
 } from '@/lib/assist/visitRecurrenceExpansion';
+import {
+  buildRecurrenceJsonWithMaterializedOccurrence,
+  getMaterializedOccurrenceId,
+} from '@/lib/assist/visitRecurrenceExecution';
 import { resolveVisitLocation } from '@/lib/assist/resolveVisitLocation';
 import {
   isSupabaseMissingTableError,
@@ -1280,6 +1285,105 @@ export const visitSupabaseRepository = {
     }>;
 
     return { ok: true, data: rows.map(mapStatusHistoryRow) };
+  },
+
+  /**
+   * Split one recurring occurrence into a standalone visit before execution.
+   * Idempotent — returns existing materialized visit when already created.
+   */
+  async materializeOccurrence(
+    tenantId: string,
+    masterVisitId: string,
+    occurrenceDate: string,
+    actorProfileId?: string | null,
+  ): Promise<ServiceResult<{ id: string; materialized: boolean }>> {
+    const supabase = getClient();
+    if (!supabase) return unavailable();
+
+    const master = await this.getById(tenantId, masterVisitId);
+    if (!master.ok) return master;
+    if (!master.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+    const recurrence = parseVisitRecurrenceJson(master.data.recurrenceJson ?? { pattern: 'none' });
+    if (recurrence.pattern === 'none') {
+      return { ok: true, data: { id: masterVisitId, materialized: false } };
+    }
+
+    const existingMaterializedId = getMaterializedOccurrenceId(recurrence, occurrenceDate);
+    if (existingMaterializedId) {
+      return { ok: true, data: { id: existingMaterializedId, materialized: false } };
+    }
+
+    const masterDateKey = master.data.assignmentDate?.slice(0, 10) ?? master.data.scheduledStart.slice(0, 10);
+    if (occurrenceDate === masterDateKey) {
+      return { ok: true, data: { id: masterVisitId, materialized: false } };
+    }
+
+    const shifted = shiftVisitScheduleToDate(
+      master.data.scheduledStart,
+      master.data.scheduledEnd,
+      occurrenceDate,
+    );
+
+    const taskTitles = master.data.tasks.map((task) => task.title.trim()).filter(Boolean);
+    const input: VisitCreateInput = {
+      clientId: master.data.clientId,
+      employeeId: master.data.employeeId,
+      serviceKey: master.data.serviceKey ?? 'general',
+      serviceName: master.data.serviceName ?? master.data.title,
+      title: master.data.title,
+      description: master.data.description,
+      assignmentDate: occurrenceDate,
+      plannedStartAt: shifted.scheduledStart,
+      plannedEndAt: shifted.scheduledEnd,
+      addressSnapshot: master.data.addressSnapshot ?? master.data.location,
+      tasks: taskTitles,
+      budgetAmountCents: master.data.budget?.budgetAmountCents ?? null,
+      internalNotes: master.data.notes,
+      notifyEmployee: false,
+      notifyClient: false,
+      portalReleaseEnabled: master.data.portalReleaseEnabled,
+      saveAsDraft: master.data.planningStatus === 'draft',
+      subjectKey: master.data.subjectKey ?? null,
+      assignmentTypeKey: master.data.assignmentTypeKey ?? null,
+      serviceCategoryKey: master.data.serviceCategoryKey ?? null,
+      taskPackageId: master.data.taskPackageId ?? null,
+      billingBudgetSourceKey: master.data.billingBudgetSourceKey ?? null,
+      proofTemplateKey: master.data.proofTemplateKey ?? null,
+      riskFlagKeys: master.data.riskFlagKeys ?? [],
+      recurrenceJson: {
+        pattern: 'none',
+        parentSeriesId: masterVisitId,
+        sourceOccurrenceDate: occurrenceDate,
+      },
+      catalogSnapshotJson: {
+        ...(master.data.catalogSnapshotJson ?? {}),
+        materializedFromSeriesId: masterVisitId,
+        sourceOccurrenceDate: occurrenceDate,
+      },
+      budgetAllocation: null,
+      budgetManualOverride: null,
+    };
+
+    const created = await this.create(tenantId, input, actorProfileId);
+    if (!created.ok) return created;
+
+    const updatedRecurrence = buildRecurrenceJsonWithMaterializedOccurrence(
+      recurrence,
+      occurrenceDate,
+      created.data.id,
+    );
+
+    const { error: updateError } = await fromUnknownTable(supabase, 'assist_visits')
+      .update({ recurrence_json: updatedRecurrence, updated_by: actorProfileId ?? null })
+      .eq('tenant_id', tenantId)
+      .eq('id', masterVisitId);
+
+    if (updateError) {
+      return { ok: false, error: toGermanSupabaseError(updateError) };
+    }
+
+    return { ok: true, data: { id: created.data.id, materialized: true } };
   },
 };
 

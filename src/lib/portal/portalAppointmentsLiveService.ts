@@ -15,6 +15,8 @@ import {
 } from '@/lib/portal/clientPortalAssistLiveVisitService';
 import type { PortalAppointmentItem } from './appointmentService';
 import { PORTAL_ACTIVE_LIVE_ASSIGNMENT_STATUSES } from '@/lib/portal/portalAssignmentStatusFilters';
+import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
+import { isVirtualRecurringOccurrenceId } from '@/lib/assist/visitRecurrenceExecution';
 
 const ACTIVE_ASSIGNMENT_SELECT = `
   id, tenant_id, client_id, employee_id,
@@ -51,7 +53,15 @@ async function enrichPortalAppointmentsWithAssignmentStatus(
   const supabase = getSupabaseClient();
   if (!supabase) return items;
 
-  const ids = items.map((item) => item.id);
+  const ids = [
+    ...new Set(
+      items
+        .filter((item) => !isVirtualRecurringOccurrenceId(item.id))
+        .map((item) => resolveVisitMasterId(item.id)),
+    ),
+  ];
+  if (ids.length === 0) return items;
+
   const { data, error } = await fromUnknownTable(supabase, 'assignments')
     .select('id, status')
     .eq('tenant_id', tenantId)
@@ -72,7 +82,8 @@ async function enrichPortalAppointmentsWithAssignmentStatus(
   );
 
   return items.map((item) => {
-    const assignmentStatus = statusById.get(item.id);
+    if (isVirtualRecurringOccurrenceId(item.id)) return item;
+    const assignmentStatus = statusById.get(resolveVisitMasterId(item.id));
     if (!assignmentStatus) return item;
     return { ...item, assignmentStatus };
   });

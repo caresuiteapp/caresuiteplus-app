@@ -7,6 +7,7 @@ import type {
   VisitWeekdayKey,
 } from '@/lib/assist/visitTypes';
 import { isUuid } from '@/lib/validation/uuid';
+import { resetVirtualOccurrenceListItem } from '@/lib/assist/visitRecurrenceExecution';
 
 export const VISIT_OCCURRENCE_SEPARATOR = '::';
 
@@ -44,13 +45,45 @@ export function parseVisitRecurrenceJson(raw: unknown): VisitRecurrenceJson {
 
   const obj = raw as Record<string, unknown>;
   const pattern = (obj.pattern as VisitRecurrencePattern) ?? 'none';
-  if (pattern === 'none') return { pattern: 'none' };
+
+  const detachedOccurrenceDates = Array.isArray(obj.detachedOccurrenceDates)
+    ? obj.detachedOccurrenceDates.filter((value): value is string => typeof value === 'string')
+    : undefined;
+
+  const materializedOccurrences =
+    obj.materializedOccurrences && typeof obj.materializedOccurrences === 'object'
+      ? Object.fromEntries(
+          Object.entries(obj.materializedOccurrences as Record<string, unknown>).filter(
+            (entry): entry is [string, string] =>
+              typeof entry[0] === 'string' && typeof entry[1] === 'string',
+          ),
+        )
+      : undefined;
+
+  const parentSeriesId =
+    typeof obj.parentSeriesId === 'string' ? obj.parentSeriesId : obj.parentSeriesId === null ? null : undefined;
+  const sourceOccurrenceDate =
+    typeof obj.sourceOccurrenceDate === 'string' ? obj.sourceOccurrenceDate : undefined;
+
+  if (pattern === 'none') {
+    return {
+      pattern: 'none',
+      detachedOccurrenceDates,
+      materializedOccurrences,
+      parentSeriesId,
+      sourceOccurrenceDate,
+    };
+  }
 
   return {
     pattern,
     weekdays: Array.isArray(obj.weekdays) ? (obj.weekdays as VisitWeekdayKey[]) : undefined,
     endDate: typeof obj.endDate === 'string' ? obj.endDate : null,
     occurrenceCount: typeof obj.occurrenceCount === 'number' ? obj.occurrenceCount : null,
+    detachedOccurrenceDates,
+    materializedOccurrences,
+    parentSeriesId,
+    sourceOccurrenceDate,
   };
 }
 
@@ -139,7 +172,7 @@ export function expandVisitRowToListItems(
     recurrenceEndDate: recurrence.endDate ?? null,
     recurrenceOccurrenceCount: recurrence.occurrenceCount ?? null,
     maxOccurrences: recurrence.occurrenceCount ?? 52,
-  });
+  }).filter((dateKey) => !(recurrence.detachedOccurrenceDates ?? []).includes(dateKey));
 
   if (dates.length <= 1) {
     return filterVisitListItemsByDateRange([item], options?.dateFrom, options?.dateTo);
@@ -147,7 +180,7 @@ export function expandVisitRowToListItems(
 
   const expanded = dates.map((dateKey, index) => {
     const shifted = shiftVisitScheduleToDate(row.planned_start_at, row.planned_end_at, dateKey);
-    return {
+    const expandedItem: VisitDispositionListItem = {
       ...item,
       id: index === 0 ? item.id : buildVisitOccurrenceId(item.id, dateKey),
       scheduledStart: shifted.scheduledStart,
@@ -158,6 +191,7 @@ export function expandVisitRowToListItems(
         item.durationMinutes,
       ),
     };
+    return index === 0 ? expandedItem : resetVirtualOccurrenceListItem(expandedItem, item.planningStatus);
   });
 
   return filterVisitListItemsByDateRange(expanded, options?.dateFrom, options?.dateTo);

@@ -12,6 +12,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { executionSupabaseRepository } from '@/lib/services/repositories/executionRepository.supabase';
+import { resolveExecutableVisitId } from '@/lib/assist/visitService';
 
 function tenantDenied<T>(tenantId: string): ServiceResult<T> | null {
   const block = guardServiceTenant(tenantId);
@@ -114,18 +115,22 @@ export async function checkInAssignment(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    const existing = await executionSupabaseRepository.getById(tenantId, assignmentId);
+    const executable = await resolveExecutableVisitId(tenantId, assignmentId, actorRoleKey);
+    if (!executable.ok) return executable;
+    const executableAssignmentId = executable.data.visitId;
+
+    const existing = await executionSupabaseRepository.getById(tenantId, executableAssignmentId);
     if (!existing.ok) return existing;
     if (!existing.data) {
       return { ok: false, error: 'Einsatz nicht gefunden.' };
     }
     const updated = await executionSupabaseRepository.updateStatus(
       tenantId,
-      assignmentId,
+      executableAssignmentId,
       'aktiv',
     );
     if (!updated.ok) return updated;
-    return fetchAssignmentExecution(assignmentId, tenantId, actorRoleKey);
+    return fetchAssignmentExecution(executableAssignmentId, tenantId, actorRoleKey);
   }
 
   await new Promise((r) => setTimeout(r, 350));
@@ -154,18 +159,22 @@ export async function startAssignmentWork(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
-    const existing = await executionSupabaseRepository.getById(tenantId, assignmentId);
+    const executable = await resolveExecutableVisitId(tenantId, assignmentId, actorRoleKey);
+    if (!executable.ok) return executable;
+    const executableAssignmentId = executable.data.visitId;
+
+    const existing = await executionSupabaseRepository.getById(tenantId, executableAssignmentId);
     if (!existing.ok) return existing;
     if (!existing.data || existing.data.status === 'entwurf') {
       return { ok: false, error: 'Einsatz kann nur nach Check-in gestartet werden.' };
     }
     const updated = await executionSupabaseRepository.updateStatus(
       tenantId,
-      assignmentId,
+      executableAssignmentId,
       'in_bearbeitung',
     );
     if (!updated.ok) return updated;
-    return fetchAssignmentExecution(assignmentId, tenantId, actorRoleKey);
+    return fetchAssignmentExecution(executableAssignmentId, tenantId, actorRoleKey);
   }
 
   await new Promise((r) => setTimeout(r, 280));
@@ -194,13 +203,17 @@ export async function checkOutAssignment(
   if (deniedTenant) return deniedTenant;
 
   if (getServiceMode() === 'supabase') {
+    const executable = await resolveExecutableVisitId(tenantId, assignmentId, actorRoleKey);
+    if (!executable.ok) return executable;
+    const executableAssignmentId = executable.data.visitId;
+
     const updated = await executionSupabaseRepository.updateStatus(
       tenantId,
-      assignmentId,
+      executableAssignmentId,
       'abgeschlossen',
     );
     if (!updated.ok) return updated;
-    return fetchAssignmentExecution(assignmentId, tenantId, actorRoleKey);
+    return fetchAssignmentExecution(executableAssignmentId, tenantId, actorRoleKey);
   }
 
   await new Promise((r) => setTimeout(r, 400));

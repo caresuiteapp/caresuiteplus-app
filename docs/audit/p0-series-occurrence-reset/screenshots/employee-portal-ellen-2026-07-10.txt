@@ -1,0 +1,12 @@
+# employee-portal-ellen-2026-07-10
+Mandant: 56180c22-b894-4fab-b55e-a563c94dd6e7
+Klient:in: Ellen Zacharias
+Termin: 2026-07-10
+Rendered ID: c8969244-db7e-4f72-9570-3467e2960502::2026-07-10
+Status (UI): bestaetigt
+Proof: none
+Dokumentation: none
+Aufgaben offen: true
+Check-in/out: null / 2026-07-03T09:29:37.553+00:00
+Start/Einsatz antreten möglich: true
+Ergebnis: PASS

@@ -8,7 +8,7 @@ import { enforcePermission } from '@/lib/permissions';
 import { getServiceMode } from '@/lib/services/mode';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { isResolvableVisitId, resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
-import { fetchVisitDispositionDetail } from '@/lib/assist/visitService';
+import { fetchVisitDispositionDetail, resolveExecutableVisitId } from '@/lib/assist/visitService';
 
 const VISIT_TASK_REASON_STATUSES: VisitTaskStatus[] = [
   'partial',
@@ -55,8 +55,12 @@ export async function updateVisitTaskStatus(
   if (tenantBlock) return tenantBlock;
 
   if (getServiceMode() === 'supabase' && isResolvableVisitId(visitId)) {
-    const masterAssignmentId = resolveVisitMasterId(visitId);
-    const resolvedVisitId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
+    const executable = await resolveExecutableVisitId(tenantId, visitId, actorRoleKey);
+    if (!executable.ok) return executable;
+    const executableVisitId = executable.data.visitId;
+
+    const masterAssignmentId = resolveVisitMasterId(executableVisitId);
+    const resolvedVisitId = await visitSupabaseRepository.resolveVisitId(tenantId, executableVisitId);
 
     if (resolvedVisitId) {
       const visitUpdate = await visitSupabaseRepository.updateTask(
@@ -67,7 +71,7 @@ export async function updateVisitTaskStatus(
         notDoneReason,
       );
       if (visitUpdate.ok) {
-        return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+        return fetchVisitDispositionDetail(executableVisitId, tenantId, actorRoleKey);
       }
       if (visitUpdate.error !== 'Aufgabe nicht gefunden.') {
         return visitUpdate;
@@ -85,7 +89,7 @@ export async function updateVisitTaskStatus(
         : undefined,
     );
     if (!legacy.ok) return legacy;
-    return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+    return fetchVisitDispositionDetail(executableVisitId, tenantId, actorRoleKey);
   }
 
   await new Promise((r) => setTimeout(r, 200));
@@ -135,7 +139,11 @@ export async function updateVisitDocumentation(
   }
 
   if (getServiceMode() === 'supabase' && isResolvableVisitId(visitId)) {
-    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
+    const executable = await resolveExecutableVisitId(tenantId, visitId, actorRoleKey);
+    if (!executable.ok) return executable;
+    const executableVisitId = executable.data.visitId;
+
+    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, executableVisitId);
     if (resolvedId) {
       return visitSupabaseRepository.updateDocumentation(tenantId, resolvedId, employeeNotes);
     }

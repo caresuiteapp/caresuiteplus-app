@@ -42,7 +42,10 @@
     "navigation:audit": "node scripts/navigation-duplicate-audit.mjs",
     "functional:audit": "node scripts/functional-reality-audit.mjs",
     "einzelseiten:generate": "node scripts/extract-einzelseiten-routes.mjs && node scripts/generate-einzelseiten-bridges.mjs",
-    "postinstall": "node scripts/patch-supabase-metro.cjs"
+    "audit:p0-series-reset": "node scripts/audit/p0SeriesOccurrenceExecutionReset.mjs",
+    "audit:p0-series-reset:write": "node scripts/audit/p0SeriesOccurrenceExecutionReset.mjs --write",
+    "audit:p0-series-debug": "node scripts/audit/debugSeriesOccurrenceStatusSource.mjs",
+    "audit:p0-series-local-acceptance": "node scripts/audit/p0SeriesOccurrenceLocalAcceptance.mjs"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",

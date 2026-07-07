@@ -48,6 +48,7 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
 import { resolveLiveAssignment } from '@/features/liveTracking/resolveLiveAssignment';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
+import { resolveExecutableVisitId } from '@/lib/assist/visitService';
 import {
   hasPortalPersistedClientSignature,
   resolveEmployeePortalDocumentationFlags,
@@ -420,7 +421,15 @@ export async function transitionLiveEmployeePortalAssignment(
   const denied = enforcePermission<EmployeePortalAssignmentDetail>(roleKey, 'assist.execution.manage');
   if (denied) return denied;
 
-  const existing = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
+  const executable = await resolveExecutableVisitId(tenantId, assignmentId, roleKey);
+  if (!executable.ok) return executable;
+  const executableAssignmentId = executable.data.visitId;
+
+  const existing = await loadEmployeePortalAssignmentDetail(
+    tenantId,
+    executableAssignmentId,
+    employeeId,
+  );
   if (!existing.ok) return existing;
   if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -429,10 +438,10 @@ export async function transitionLiveEmployeePortalAssignment(
 
   const fromStatus = existing.data.assignmentStatus;
   if (fromStatus === toStatus) {
-    const extras = await fetchAssignmentExtras(tenantId, assignmentId, existing.data.clientId);
+    const extras = await fetchAssignmentExtras(tenantId, executableAssignmentId, existing.data.clientId);
     const docFlags = await resolveEmployeePortalDocumentationFlags(
       tenantId,
-      assignmentId,
+      executableAssignmentId,
       fromStatus,
       existing.data.documentationNotes,
       employeeId,
@@ -450,14 +459,14 @@ export async function transitionLiveEmployeePortalAssignment(
 
   const docFlagsForValidation = await resolveEmployeePortalDocumentationFlags(
     tenantId,
-    assignmentId,
+    executableAssignmentId,
     existing.data.assignmentStatus,
     existing.data.documentationNotes,
     employeeId,
   );
   const hasPersistedSignature = await hasPortalPersistedClientSignature(
     tenantId,
-    assignmentId,
+    executableAssignmentId,
     employeeId,
   );
 
@@ -473,7 +482,7 @@ export async function transitionLiveEmployeePortalAssignment(
   // Assignments table is source of truth for portal execution (RLS + set_assignment_status RPC).
   const updated = await assignmentSupabaseRepository.updateStatus(
     tenantId,
-    assignmentId,
+    executableAssignmentId,
     toStatus,
     {
       actorProfileId: options?.profileId ?? null,
@@ -483,13 +492,13 @@ export async function transitionLiveEmployeePortalAssignment(
   if (!updated.ok) return updated;
   let detailAfterUpdate: AssignmentDetail = updated.data;
 
-  applyEmployeePortalTrackingForStatus(tenantId, assignmentId, fromStatus, toStatus);
+  applyEmployeePortalTrackingForStatus(tenantId, executableAssignmentId, fromStatus, toStatus);
   if (!options?.skipStatusPersistence) {
-    const entry = peekEmployeePortalTrackingEntry(tenantId, assignmentId);
+    const entry = peekEmployeePortalTrackingEntry(tenantId, executableAssignmentId);
     await persistEmployeePortalStatusTransition(
       {
         tenantId,
-        assignmentId,
+        assignmentId: executableAssignmentId,
         employeeId,
         profileId: options?.profileId ?? null,
         locationAddress: detailAfterUpdate.location,
@@ -503,18 +512,26 @@ export async function transitionLiveEmployeePortalAssignment(
 
   await mirrorAssistVisitStatusFromAssignment(
     tenantId,
-    assignmentId,
+    executableAssignmentId,
     toStatus,
     options?.profileId ?? null,
   );
 
-  const visitRow = await visitSupabaseRepository.getById(tenantId, assignmentId);
+  const visitRow = await visitSupabaseRepository.getById(tenantId, executableAssignmentId);
   if (visitRow.ok && visitRow.data) {
-    const reloaded = await loadEmployeePortalAssignmentDetail(tenantId, assignmentId, employeeId);
+    const reloaded = await loadEmployeePortalAssignmentDetail(
+      tenantId,
+      executableAssignmentId,
+      employeeId,
+    );
     if (reloaded.ok && reloaded.data) detailAfterUpdate = reloaded.data;
   }
 
-  const extras = await fetchAssignmentExtras(tenantId, assignmentId, detailAfterUpdate.clientId);
+  const extras = await fetchAssignmentExtras(
+    tenantId,
+    executableAssignmentId,
+    detailAfterUpdate.clientId,
+  );
   const docFlags = await resolveEmployeePortalDocumentationFlags(
     tenantId,
     assignmentId,

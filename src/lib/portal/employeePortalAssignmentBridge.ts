@@ -8,6 +8,10 @@ import type { VisitDispositionDetail } from '@/lib/assist/visitTypes';
 import type { AssignmentStatus } from '@/types/modules/assignmentStatus';
 import type { WorkflowStatus } from '@/types/core/base';
 import { ASSIGNMENT_STATUS_LABELS } from '@/types/modules/assignmentStatus';
+import {
+  confirmedOccurrenceWorkflowStatus,
+  isVirtualRecurringOccurrenceId,
+} from '@/lib/assist/visitRecurrenceExecution';
 
 function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
   const map: Partial<Record<AssignmentStatus, WorkflowStatus>> = {
@@ -74,6 +78,43 @@ export function mapVisitDetailToAssignmentDetail(visit: VisitDispositionDetail):
     plannedEndAt: visit.scheduledEnd,
     actualStartAt: visit.actualStartAt,
     actualEndAt: visit.actualEndAt,
+  };
+}
+
+/** Strip master execution state from a virtual recurring occurrence for portal execution. */
+export function resetVirtualOccurrenceAssignmentDetail(
+  detail: AssignmentDetail,
+  occurrenceId: string,
+): AssignmentDetail {
+  if (!isVirtualRecurringOccurrenceId(occurrenceId)) return detail;
+
+  const assignmentStatus: AssignmentStatus =
+    detail.assignmentStatus === 'geplant' ? 'geplant' : 'bestaetigt';
+  const allowed = dedupeStatusTransitionButtons(getAllowedAssignmentTransitions(assignmentStatus));
+
+  return {
+    ...detail,
+    id: occurrenceId,
+    assignmentStatus,
+    status: confirmedOccurrenceWorkflowStatus(),
+    allowedStatusActions: allowed.map(assignmentStatusToWorkflowFilter),
+    allowedStatusTransitions: allowed,
+    nextActionHint: ASSIGNMENT_STATUS_LABELS[assignmentStatus],
+    tasks: detail.tasks.map((task) =>
+      task.status === 'open'
+        ? task
+        : {
+            ...task,
+            status: 'open',
+            notDoneReason: null,
+          },
+    ),
+    onTheWayAt: null,
+    arrivedAt: null,
+    finishedAt: null,
+    actualStartAt: null,
+    actualEndAt: null,
+    documentationNotes: null,
   };
 }
 

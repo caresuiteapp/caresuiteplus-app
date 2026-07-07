@@ -8,7 +8,7 @@ import {
   type AssignmentDetail,
 } from '@/lib/assist/repositories/assignmentRepository.supabase';
 import { visitSupabaseRepository } from '@/lib/assist/repositories/visitRepository.supabase';
-import { mapVisitDetailToAssignmentDetail } from '@/lib/portal/employeePortalAssignmentBridge';
+import { mapVisitDetailToAssignmentDetail, resetVirtualOccurrenceAssignmentDetail } from '@/lib/portal/employeePortalAssignmentBridge';
 import {
   parseVisitOccurrenceId,
   resolveVisitMasterId,
@@ -89,12 +89,13 @@ export async function resolveLiveAssignment(
       detail.plannedEndAt,
       occurrenceDate,
     );
-    return {
+    const shiftedDetail: AssignmentDetail = {
       ...detail,
       id: rawId,
       plannedStartAt: shifted.scheduledStart,
       plannedEndAt: shifted.scheduledEnd,
     };
+    return resetVirtualOccurrenceAssignmentDetail(shiftedDetail, rawId);
   }
 
   if (getServiceMode() !== 'supabase') {

@@ -245,6 +245,13 @@ export type VisitRecurrenceJson = {
   weekdays?: VisitWeekdayKey[];
   endDate?: string | null;
   occurrenceCount?: number | null;
+  /** Occurrence dates removed from virtual expansion (materialized or skipped). */
+  detachedOccurrenceDates?: string[];
+  /** Maps YYYY-MM-DD occurrence key → standalone assist_visits.id after materialization. */
+  materializedOccurrences?: Record<string, string>;
+  /** Set on visits materialized from a recurring series for execution. */
+  parentSeriesId?: string | null;
+  sourceOccurrenceDate?: string | null;
 };
 
 export type VisitCreateInput = {

@@ -1,0 +1,4 @@
+# Office-Liste — Dagmar Ritzenhoff (13./20./27.07.2026)
+2026-07-13 | rendered=78ea2672-73cc-439b-99ae-1b53fb8bf966::2026-07-13 | UI=bestaetigt | virtual=true | PASS
+2026-07-20 | rendered=78ea2672-73cc-439b-99ae-1b53fb8bf966::2026-07-20 | UI=bestaetigt | virtual=true | PASS
+2026-07-27 | rendered=78ea2672-73cc-439b-99ae-1b53fb8bf966::2026-07-27 | UI=bestaetigt | virtual=true | PASS

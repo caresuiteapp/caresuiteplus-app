@@ -55,9 +55,60 @@ import {
   resolveVisitMasterId,
 } from '@/lib/assist/visitRecurrenceExpansion';
 import {
+  getMaterializedOccurrenceId,
+  isVirtualRecurringOccurrenceId,
+  resetVirtualOccurrenceExecutionState,
+} from '@/lib/assist/visitRecurrenceExecution';
+import {
   buildVisitUpdateInputFromEditForm,
   type VisitEditFormData,
 } from '@/lib/assist/visitEditMappers';
+
+/**
+ * Ensure a recurring-series occurrence has its own visit row before execution mutations.
+ * Virtual occurrence ids (uuid::YYYY-MM-DD) are materialized; master ids pass through.
+ */
+export async function resolveExecutableVisitId(
+  tenantId: string,
+  rawVisitId: string,
+  actorRoleKey?: RoleKey | null,
+): Promise<ServiceResult<{ visitId: string; materialized: boolean }>> {
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  if (!isResolvableVisitId(rawVisitId)) {
+    return { ok: false, error: 'Einsatz nicht gefunden.' };
+  }
+
+  const { visitId: masterVisitId, occurrenceDate } = parseVisitOccurrenceId(rawVisitId);
+  if (!occurrenceDate) {
+    return { ok: true, data: { visitId: masterVisitId, materialized: false } };
+  }
+
+  if (getServiceMode() !== 'supabase') {
+    return { ok: true, data: { visitId: rawVisitId, materialized: false } };
+  }
+
+  const master = await visitSupabaseRepository.getById(tenantId, masterVisitId);
+  if (!master.ok) return master;
+  if (!master.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
+
+  const materializedId = getMaterializedOccurrenceId(master.data.recurrenceJson, occurrenceDate);
+  if (materializedId) {
+    return { ok: true, data: { visitId: materializedId, materialized: false } };
+  }
+
+  const materialized = await visitSupabaseRepository.materializeOccurrence(
+    tenantId,
+    masterVisitId,
+    occurrenceDate,
+  );
+  if (!materialized.ok) return materialized;
+  return {
+    ok: true,
+    data: { visitId: materialized.data.id, materialized: materialized.data.materialized },
+  };
+}
 
 export type VisitDispositionKpi = {
   id: string;
@@ -213,14 +264,29 @@ export async function fetchVisitDispositionDetail(
 
     const visitResult = await visitSupabaseRepository.getById(tenantId, masterVisitId);
     if (visitResult.ok && visitResult.data) {
-      const baseDetail =
+      if (occurrenceDate) {
+        const materializedId = getMaterializedOccurrenceId(
+          visitResult.data.recurrenceJson,
+          occurrenceDate,
+        );
+        if (materializedId && materializedId !== visitId) {
+          return fetchVisitDispositionDetail(materializedId, tenantId, actorRoleKey);
+        }
+      }
+
+      let baseDetail =
         occurrenceDate != null
           ? applyOccurrenceDateToVisitDetail(visitResult.data, occurrenceDate, visitId)
           : visitResult.data;
+
+      if (isVirtualRecurringOccurrenceId(visitId)) {
+        baseDetail = resetVirtualOccurrenceExecutionState(baseDetail);
+      }
+
       const enriched = await enrichVisitDispositionDetail(tenantId, baseDetail);
       const overlaid = await overlayVisitDispositionDetailFromAssignment(tenantId, enriched);
       const detail =
-        occurrenceDate != null
+        occurrenceDate != null && isVirtualRecurringOccurrenceId(visitId)
           ? applyOccurrenceDateToVisitDetail(overlaid, occurrenceDate, visitId)
           : overlaid;
       return { ok: true, data: detail };
@@ -236,7 +302,7 @@ export async function fetchVisitDispositionDetail(
       getAllowedAssignmentTransitions(detail.assignmentStatus),
     );
 
-    const legacyDetail: VisitDispositionDetail = {
+    let legacyDetail: VisitDispositionDetail = {
       id: occurrenceDate != null ? visitId : detail.id,
       tenantId: detail.tenantId,
       title: detail.title,
@@ -288,6 +354,13 @@ export async function fetchVisitDispositionDetail(
       createdAt: detail.createdAt,
     };
 
+    if (occurrenceDate != null) {
+      legacyDetail = applyOccurrenceDateToVisitDetail(legacyDetail, occurrenceDate, visitId);
+      if (isVirtualRecurringOccurrenceId(visitId)) {
+        legacyDetail = resetVirtualOccurrenceExecutionState(legacyDetail);
+      }
+    }
+
     const overlaidLegacy = await overlayVisitDispositionDetailFromAssignment(
       tenantId,
       legacyDetail,
@@ -295,10 +368,7 @@ export async function fetchVisitDispositionDetail(
 
     return {
       ok: true,
-      data:
-        occurrenceDate != null
-          ? applyOccurrenceDateToVisitDetail(overlaidLegacy, occurrenceDate, visitId)
-          : overlaidLegacy,
+      data: overlaidLegacy,
     };
   }
 
@@ -375,7 +445,11 @@ export async function updateVisitDispositionStatus(
   if (getServiceMode() === 'supabase') {
     if (!isResolvableVisitId(visitId)) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
-    const existing = await fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+    const executable = await resolveExecutableVisitId(tenantId, visitId, actorRoleKey);
+    if (!executable.ok) return executable;
+    const executableVisitId = executable.data.visitId;
+
+    const existing = await fetchVisitDispositionDetail(executableVisitId, tenantId, actorRoleKey);
     if (!existing.ok) return existing;
     if (!existing.data) return { ok: false, error: 'Einsatz nicht gefunden.' };
 
@@ -387,7 +461,7 @@ export async function updateVisitDispositionStatus(
       return { ok: false, error: validation.error ?? 'Statuswechsel nicht erlaubt.' };
     }
 
-    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, visitId);
+    const resolvedId = await visitSupabaseRepository.resolveVisitId(tenantId, executableVisitId);
     if (resolvedId) {
       const updated = await visitSupabaseRepository.updateAssignmentStatus(
         tenantId,
@@ -395,13 +469,13 @@ export async function updateVisitDispositionStatus(
         toStatus,
       );
       if (!updated.ok) return updated;
-      return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+      return fetchVisitDispositionDetail(executableVisitId, tenantId, actorRoleKey);
     }
 
-    const masterVisitId = resolveVisitMasterId(visitId);
+    const masterVisitId = resolveVisitMasterId(executableVisitId);
     const updated = await assignmentSupabaseRepository.updateStatus(tenantId, masterVisitId, toStatus);
     if (!updated.ok) return updated;
-    return fetchVisitDispositionDetail(visitId, tenantId, actorRoleKey);
+    return fetchVisitDispositionDetail(executableVisitId, tenantId, actorRoleKey);
   }
 
   const current = getDemoAssignmentSeedById(visitId);

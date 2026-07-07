@@ -1,0 +1,159 @@
+{
+  "generatedAt": "2026-07-07T03:09:08.227Z",
+  "tenantId": "56180c22-b894-4fab-b55e-a563c94dd6e7",
+  "verdict": "PASS",
+  "listResults": [
+    {
+      "client": "Ellen Zacharias",
+      "masterId": "c8969244-db7e-4f72-9570-3467e2960502",
+      "date": "2026-07-03",
+      "expect": "abgeschlossen",
+      "renderedId": "c8969244-db7e-4f72-9570-3467e2960502",
+      "isVirtual": false,
+      "dbCanonical": "completed",
+      "uiStatus": "abgeschlossen",
+      "pass": true,
+      "reason": "ok"
+    },
+    {
+      "client": "Ellen Zacharias",
+      "masterId": "c8969244-db7e-4f72-9570-3467e2960502",
+      "date": "2026-07-10",
+      "expect": "bestaetigt",
+      "renderedId": "c8969244-db7e-4f72-9570-3467e2960502::2026-07-10",
+      "isVirtual": true,
+      "dbCanonical": "completed",
+      "uiStatus": "bestaetigt",
+      "pass": true,
+      "reason": "ok"
+    },
+    {
+      "client": "Ellen Zacharias",
+      "masterId": "c8969244-db7e-4f72-9570-3467e2960502",
+      "date": "2026-07-17",
+      "expect": "bestaetigt",
+      "renderedId": "c8969244-db7e-4f72-9570-3467e2960502::2026-07-17",
+      "isVirtual": true,
+      "dbCanonical": "completed",
+      "uiStatus": "bestaetigt",
+      "pass": true,
+      "reason": "ok"
+    },
+    {
+      "client": "Ellen Zacharias",
+      "masterId": "c8969244-db7e-4f72-9570-3467e2960502",
+      "date": "2026-07-24",
+      "expect": "bestaetigt",
+      "renderedId": "c8969244-db7e-4f72-9570-3467e2960502::2026-07-24",
+      "isVirtual": true,
+      "dbCanonical": "completed",
+      "uiStatus": "bestaetigt",
+      "pass": true,
+      "reason": "ok"
+    },
+    {
+      "client": "Ellen Zacharias",
+      "masterId": "c8969244-db7e-4f72-9570-3467e2960502",
+      "date": "2026-07-31",
+      "expect": "bestaetigt",
+      "renderedId": "c8969244-db7e-4f72-9570-3467e2960502::2026-07-31",
+      "isVirtual": true,
+      "dbCanonical": "completed",
+      "uiStatus": "bestaetigt",
+      "pass": true,
+      "reason": "ok"
+    },
+    {
+      "client": "Dagmar Ritzenhoff",
+      "masterId": "78ea2672-73cc-439b-99ae-1b53fb8bf966",
+      "date": "2026-07-13",
+      "expect": "bestaetigt",
+      "renderedId": "78ea2672-73cc-439b-99ae-1b53fb8bf966::2026-07-13",
+      "isVirtual": true,
+      "dbCanonical": "completed",
+      "uiStatus": "bestaetigt",
+      "pass": true,
+      "reason": "ok"
+    },
+    {
+      "client": "Dagmar Ritzenhoff",
+      "masterId": "78ea2672-73cc-439b-99ae-1b53fb8bf966",
+      "date": "2026-07-20",
+      "expect": "bestaetigt",
+      "renderedId": "78ea2672-73cc-439b-99ae-1b53fb8bf966::2026-07-20",
+      "isVirtual": true,
+      "dbCanonical": "completed",
+      "uiStatus": "bestaetigt",
+      "pass": true,
+      "reason": "ok"
+    },
+    {
+      "client": "Dagmar Ritzenhoff",
+      "masterId": "78ea2672-73cc-439b-99ae-1b53fb8bf966",
+      "date": "2026-07-27",
+      "expect": "bestaetigt",
+      "renderedId": "78ea2672-73cc-439b-99ae-1b53fb8bf966::2026-07-27",
+      "isVirtual": true,
+      "dbCanonical": "completed",
+      "uiStatus": "bestaetigt",
+      "pass": true,
+      "reason": "ok"
+    }
+  ],
+  "detailResults": [
+    {
+      "label": "office-preview-ellen-2026-07-10",
+      "client": "Ellen Zacharias",
+      "masterId": "c8969244-db7e-4f72-9570-3467e2960502",
+      "date": "2026-07-10",
+      "pass": true,
+      "detail": {
+        "status": "bestaetigt",
+        "proofStatus": "none",
+        "documentationStatus": "none",
+        "actualStartAt": null,
+        "actualEndAt": null,
+        "onTheWayAt": null,
+        "tasksOpen": true,
+        "startAllowed": true
+      }
+    },
+    {
+      "label": "office-preview-dagmar-2026-07-13",
+      "client": "Dagmar Ritzenhoff",
+      "masterId": "78ea2672-73cc-439b-99ae-1b53fb8bf966",
+      "date": "2026-07-13",
+      "pass": true,
+      "detail": {
+        "status": "bestaetigt",
+        "proofStatus": "none",
+        "documentationStatus": "none",
+        "actualStartAt": null,
+        "actualEndAt": null,
+        "onTheWayAt": null,
+        "tasksOpen": true,
+        "startAllowed": true
+      }
+    },
+    {
+      "label": "employee-portal-ellen-2026-07-10",
+      "client": "Ellen Zacharias",
+      "masterId": "c8969244-db7e-4f72-9570-3467e2960502",
+      "date": "2026-07-10",
+      "portal": true,
+      "pass": true,
+      "detail": {
+        "status": "bestaetigt",
+        "proofStatus": "none",
+        "documentationStatus": "none",
+        "actualStartAt": null,
+        "actualEndAt": null,
+        "onTheWayAt": null,
+        "tasksOpen": true,
+        "startAllowed": true
+      }
+    }
+  ],
+  "screenshotDir": "C:\\Users\\Kevin Reinhardt\\Documents\\CareSuite+\\docs\\audit\\p0-series-occurrence-reset\\screenshots",
+  "uiNote": "Browser-Screenshots (PNG) nicht möglich: Metro-Fehler \"Platform is not defined\" auf localhost:8091. Pipeline-Artefakte als .txt in screenshots/."
+}

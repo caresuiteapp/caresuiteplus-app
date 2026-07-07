@@ -16,6 +16,13 @@ import type {
 } from '@/lib/assist/visitTypes';
 import { resolveVisitMasterId } from '@/lib/assist/visitRecurrenceExpansion';
 import {
+  neutralizeFutureOccurrenceListItem,
+  resetVirtualOccurrenceExecutionState,
+  resetVirtualOccurrenceListItem,
+  shouldIsolateOccurrenceExecution,
+  shouldNeutralizeFutureListItem,
+} from '@/lib/assist/visitRecurrenceExecution';
+import {
   fetchAssignmentExecutionSnapshotBatch,
   snapshotAllowedTransitions,
   type AssignmentExecutionSnapshot,
@@ -137,9 +144,14 @@ export async function overlayVisitDispositionListFromAssignments(
   );
 
   return items.map((item) => {
-    const snapshot = snapshots.get(resolveVisitMasterId(item.id));
-    if (!snapshot) return item;
-    return applySnapshotToVisitListItem(item, snapshot);
+    if (shouldIsolateOccurrenceExecution({ itemId: item.id })) {
+      return resetVirtualOccurrenceListItem(item, item.planningStatus);
+    }
+
+    const masterId = resolveVisitMasterId(item.id);
+    const snapshot = snapshots.get(masterId);
+    const overlaid = snapshot ? applySnapshotToVisitListItem(item, snapshot) : item;
+    return neutralizeFutureOccurrenceListItem(overlaid);
   });
 }
 
@@ -148,6 +160,10 @@ export async function overlayVisitDispositionDetailFromAssignment(
   detail: VisitDispositionDetail,
 ): Promise<VisitDispositionDetail> {
   const masterId = resolveVisitMasterId(detail.id);
+  if (shouldIsolateOccurrenceExecution({ itemId: detail.id })) {
+    return resetVirtualOccurrenceExecutionState(detail);
+  }
+
   const snapshot = await fetchAssignmentExecutionSnapshotBatch(
     tenantId,
     [
@@ -161,6 +177,13 @@ export async function overlayVisitDispositionDetailFromAssignment(
     { includePersistedArtifacts: true },
   ).then((map) => map.get(masterId));
 
-  if (!snapshot) return detail;
-  return applySnapshotToDetail(detail, snapshot);
+  if (!snapshot) {
+    return shouldNeutralizeFutureListItem(detail)
+      ? resetVirtualOccurrenceExecutionState(detail)
+      : detail;
+  }
+  const overlaid = applySnapshotToDetail(detail, snapshot);
+  return shouldNeutralizeFutureListItem(overlaid)
+    ? resetVirtualOccurrenceExecutionState(overlaid)
+    : overlaid;
 }

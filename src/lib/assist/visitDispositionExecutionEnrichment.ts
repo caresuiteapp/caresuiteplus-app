@@ -24,6 +24,10 @@ import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import type { VisitDispositionDetail, VisitTaskItem, VisitTaskStatus } from '@/lib/assist/visitTypes';
 import type { VisitSignatureCapture } from '@/lib/assist/visitSignatureSessionStore';
 import type { WorkflowStatus } from '@/types/core/base';
+import {
+  resolveVisitMasterId,
+} from '@/lib/assist/visitRecurrenceExpansion';
+import { shouldIsolateOccurrenceExecution } from '@/lib/assist/visitRecurrenceExecution';
 
 function assignmentStatusToWorkflowFilter(status: AssignmentStatus): WorkflowStatus {
   const map: Partial<Record<AssignmentStatus, WorkflowStatus>> = {
@@ -301,10 +305,14 @@ export async function enrichVisitDispositionDetail(
   tenantId: string,
   detail: VisitDispositionDetail,
 ): Promise<VisitDispositionDetail> {
+  if (shouldIsolateOccurrenceExecution({ itemId: detail.id })) {
+    return detail;
+  }
+
   const supabase = getSupabaseClient();
   if (!supabase) return detail;
 
-  const visitId = detail.id;
+  const visitId = resolveVisitMasterId(detail.id);
   const assignmentId = visitId;
 
   const [
