@@ -302,3 +302,36 @@ Neue Gate-Tests: Employee-Backfill ohne Snapshot, Logo-Backfill ohne Snapshot, e
 **Angebunden in:** `assistProofPdfPayload.ts`, `buildServiceRecordHtml.ts`, `serviceProofLayoutAdapter.ts`, `visitProofSnapshotPreviewService.ts` (Termin-Feld).
 
 **Keine Änderung** an Signaturen, Ist-Zeiten, Aufgabenlogik oder Produktionsdaten — nur Anzeigeformat.
+
+---
+
+## Production Deploy Zeitraum-Format
+
+**Datum:** 2026-07-07  
+**Ergebnis:** **PRODUCTION VERIFIED**
+
+| Schritt | Wert |
+|---------|------|
+| Fix-Commit | `9db9cba9` — fix(proofs): format planned proof time range without duplicate date |
+| Deploy-Commit | `cb2a0c5a` — chore(deploy): release service proof planned time range format [deploy] |
+| Vorheriger Production-HEAD | `48cc907a` (Branding/Enrichment-Deploy) |
+
+### Pre-Push Tests (64/64 grün)
+
+```text
+✓ visitProofLayoutV2.test.ts            26/26
+✓ serviceProofLayoutV2.test.ts           15/15
+✓ assistProofPdfPreview.test.ts           5/5
+✓ assistProofEnrichmentGate.test.ts       7/7
+✓ visitProofReviewPreview.test.ts        11/11
+```
+
+### Bundle-Check (caresuiteplus.app, ~90 s nach Deploy-Push)
+
+| Prüfung | Ergebnis |
+|---------|----------|
+| Entry-Bundle | `/_expo/static/js/web/entry-6740289ac0dc8df9b323c4f671779a16.js` |
+| `formatVisitProofDateTimeRange` im Bundle | ✅ gefunden |
+| Runtime-Wiring (`assistProofPdfPayload` → Layout) | ✅ `(0,s.formatVisitProofDateTimeRange)(_,O)` in Bundle |
+
+**Push:** ja · **Deploy:** ja · **Production:** VERIFIED
