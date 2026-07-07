@@ -83,6 +83,8 @@ export type EmployeePortalAssignmentDetail = {
   requiresSignature: boolean;
   requiresDocumentation: boolean;
   requiresRoute: boolean;
+  /** Klient:in hat im Portal unterschrieben (nach deferred release). */
+  clientPortalSignatureCompleted?: boolean;
   canStartExecution: boolean;
   canOpenRoute: boolean;
   canCaptureGps: boolean;

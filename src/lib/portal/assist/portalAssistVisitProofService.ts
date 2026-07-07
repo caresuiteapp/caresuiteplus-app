@@ -189,6 +189,11 @@ async function mapAssistProofToPortalDocumentDetail(
   const fileName = proof.proofNumber
     ? `Leistungsnachweis-${proof.proofNumber}.pdf`
     : 'Leistungsnachweis.pdf';
+  const signaturePending =
+    proof.signatureRequired === true && proof.portalReleaseStatus === 'pending_client_signature';
+  const signedViaClientPortal = Boolean(
+    proof.signedAt && fullProof?.payloadSnapshot?.signedViaClientPortal === true,
+  );
 
   return {
     id: proof.id,
@@ -206,11 +211,17 @@ async function mapAssistProofToPortalDocumentDetail(
     documentSource: 'assist_visit_proof',
     previewHtml,
     createdAt: proof.releasedAt ?? proof.scheduledStart ?? new Date().toISOString(),
-    description: proof.signatureRequired
-      ? 'Dieser Leistungsnachweis wartet auf Ihre Unterschrift im Klientenportal.'
-      : null,
+    description: signaturePending
+      ? 'Bitte bestätigen Sie den Einsatz mit Ihrer Unterschrift. Der Leistungsnachweis wird danach erstellt.'
+      : signedViaClientPortal
+        ? 'Klient:in hat unterschrieben — Leistungsnachweis wird geprüft.'
+        : null,
     downloadReady: Boolean(proof.pdfStoragePath),
-    viewReady: Boolean(previewHtml || proof.pdfStoragePath),
+    viewReady: Boolean(previewHtml || proof.pdfStoragePath || signaturePending),
+    signatureRequired: proof.signatureRequired === true,
+    signaturePending,
+    canSign: signaturePending,
+    signedViaClientPortal,
   };
 }
 

@@ -81,6 +81,7 @@ function mapDetailToPortal(
     requiresSignature?: boolean;
     requiresDocumentation?: boolean;
     signatureStatus?: EmployeePortalAssignmentDetail['signatureStatus'];
+    clientPortalSignatureCompleted?: boolean;
   },
 ): EmployeePortalAssignmentDetail {
   const status = detail.assignmentStatus;
@@ -133,6 +134,7 @@ function mapDetailToPortal(
     signatureStatus,
     requiresSignature,
     requiresDocumentation,
+    clientPortalSignatureCompleted: extras?.clientPortalSignatureCompleted ?? false,
     requiresRoute: Boolean(detail.location?.trim()),
     canStartExecution: canStart.allowed && !isAssignmentLocked(status),
     canOpenRoute: Boolean(detail.location?.trim()),
@@ -398,6 +400,8 @@ export async function fetchLiveEmployeePortalAssignmentDetail(
         requiresSignature: docFlags.requiresSignature,
         requiresDocumentation: docFlags.requiresDocumentation,
         signatureStatus: docFlags.signatureStatus,
+      clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
+        clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
       }),
     };
   });
@@ -458,6 +462,8 @@ export async function transitionLiveEmployeePortalAssignment(
         requiresSignature: docFlags.requiresSignature,
         requiresDocumentation: docFlags.requiresDocumentation,
         signatureStatus: docFlags.signatureStatus,
+      clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
+        clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
       }),
     };
   }
@@ -558,6 +564,7 @@ export async function transitionLiveEmployeePortalAssignment(
       requiresSignature: docFlags.requiresSignature,
       requiresDocumentation: docFlags.requiresDocumentation,
       signatureStatus: docFlags.signatureStatus,
+      clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
     }),
   };
 }
@@ -612,6 +619,7 @@ export async function updateLiveEmployeePortalTask(
       requiresSignature: docFlags.requiresSignature,
       requiresDocumentation: docFlags.requiresDocumentation,
       signatureStatus: docFlags.signatureStatus,
+      clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
     }),
   };
 }
@@ -680,6 +688,7 @@ export async function updateLiveEmployeePortalTasksBatch(
       requiresSignature: docFlags.requiresSignature,
       requiresDocumentation: docFlags.requiresDocumentation,
       signatureStatus: docFlags.signatureStatus,
+      clientPortalSignatureCompleted: docFlags.signatureCapturedViaClientPortal === true,
     }),
   };
 }

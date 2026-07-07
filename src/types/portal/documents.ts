@@ -49,6 +49,11 @@ export type PortalDocumentDetail = PortalDocumentListItem & {
   description: string | null;
   downloadReady: boolean;
   viewReady: boolean;
+  /** Assist visit proof awaiting client signature in Klientenportal. */
+  signatureRequired?: boolean;
+  signaturePending?: boolean;
+  canSign?: boolean;
+  signedViaClientPortal?: boolean;
 };
 
 export const PORTAL_DOCUMENT_CATEGORY_LABELS: Record<PortalDocumentCategory, string> = {

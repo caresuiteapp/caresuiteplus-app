@@ -74,13 +74,24 @@ export function EmployeePortalVisitSummaryPanel({
       </Text>
       <Text style={styles.label}>Unterschrift</Text>
       <Text style={styles.row}>
-        {visit.signatureStatus === 'captured' || visit.signatureStatus === 'locked'
-          ? 'Gespeichert'
-          : visit.requiresSignature
-            ? 'Nicht erfasst'
-            : 'Nicht erforderlich'}
+        {visit.clientPortalSignatureCompleted
+          ? 'Klient:in hat unterschrieben'
+          : visit.signatureStatus === 'deferred_to_client_portal'
+            ? 'Ans Klient:innenportal gesendet'
+            : visit.signatureStatus === 'captured' || visit.signatureStatus === 'locked'
+              ? 'Gespeichert'
+              : visit.requiresSignature
+                ? 'Nicht erfasst'
+                : 'Nicht erforderlich'}
       </Text>
-      <Text style={styles.row}>Leistungsnachweis erstellt</Text>
+      <Text style={styles.label}>Leistungsnachweis</Text>
+      <Text style={styles.row}>
+        {visit.clientPortalSignatureCompleted || visit.signatureStatus === 'captured'
+          ? 'Wird erstellt bzw. geprüft'
+          : visit.signatureStatus === 'deferred_to_client_portal'
+            ? 'Nach Klient:innen-Unterschrift'
+            : 'Erstellt'}
+      </Text>
       <PremiumButton title="Zurück zur Übersicht" fullWidth onPress={onBack} />
     </View>
   );

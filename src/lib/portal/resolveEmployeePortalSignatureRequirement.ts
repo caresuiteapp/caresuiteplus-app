@@ -17,6 +17,8 @@ export type EmployeePortalDocumentationFlags = {
   requiresSignature: boolean;
   requiresDocumentation: boolean;
   signatureStatus: EmployeePortalAssignmentDetail['signatureStatus'];
+  /** True when client signed via Klient:innenportal after deferred release. */
+  signatureCapturedViaClientPortal?: boolean;
 };
 
 const SIGNATURE_WORKFLOW_STATUSES: AssignmentStatus[] = [
@@ -147,18 +149,26 @@ export async function resolveEmployeePortalDocumentationFlags(
 
   let hasPersistedSignature = false;
   let hasDeferredPortalSignature = false;
+  let signatureCapturedViaClientPortal = false;
   if (visitId) {
     const sig = await fetchValidVisitSignature(tenantId, visitId);
     hasPersistedSignature = sig.ok && Boolean(sig.data);
 
-    if (!hasPersistedSignature) {
-      const proof = await fetchLatestVisitProof(tenantId, visitId);
-      hasDeferredPortalSignature =
-        proof.ok &&
-        Boolean(proof.data) &&
-        proof.data!.portalVisible === true &&
-        proof.data!.portalReleaseStatus === 'pending_client_signature' &&
-        !proof.data!.signatureId;
+    const proof = await fetchLatestVisitProof(tenantId, visitId);
+    if (proof.ok && proof.data) {
+      if (
+        !hasPersistedSignature &&
+        proof.data.portalVisible === true &&
+        proof.data.portalReleaseStatus === 'pending_client_signature' &&
+        !proof.data.signatureId
+      ) {
+        hasDeferredPortalSignature = true;
+      }
+      signatureCapturedViaClientPortal =
+        hasPersistedSignature &&
+        Boolean(proof.ok && proof.data) &&
+        (proof.data!.payloadSnapshot?.signedViaClientPortal === true ||
+          sig.data?.metadata?.signedVia === 'client_portal');
     }
   }
 
@@ -172,5 +182,6 @@ export async function resolveEmployeePortalDocumentationFlags(
       hasDeferredPortalSignature,
       hasSubmittedDocumentation,
     }),
+    signatureCapturedViaClientPortal,
   };
 }

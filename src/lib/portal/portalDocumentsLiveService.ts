@@ -191,13 +191,25 @@ function mapClientDocumentToPortalItem(
 function mapDetail(item: PortalDocumentListItem, row: Record<string, unknown>): PortalDocumentDetail {
   const hasStorage = Boolean(row.storage_path);
   const hasHtmlContent = Boolean(item.previewHtml?.trim());
+  const signatureRequired = row.signature_required === true;
+  const signedAt = row.signed_at ? String(row.signed_at) : null;
+  const signaturePending = signatureRequired && !signedAt;
+  const isAssistProof = String(row.source ?? '') === 'assist_visit_proof';
 
   return {
     ...item,
     createdAt: String(row.created_at ?? item.updatedAt),
-    description: null,
+    description: signaturePending
+      ? 'Bitte bestätigen Sie den Einsatz mit Ihrer Unterschrift. Der Leistungsnachweis wird danach erstellt.'
+      : signedAt && isAssistProof
+        ? 'Klient:in hat unterschrieben — Leistungsnachweis wird geprüft.'
+        : null,
     downloadReady: item.status !== 'gesperrt' && hasStorage,
-    viewReady: item.status !== 'gesperrt' && (hasStorage || hasHtmlContent),
+    viewReady: item.status !== 'gesperrt' && (hasStorage || hasHtmlContent || signaturePending),
+    signatureRequired,
+    signaturePending,
+    canSign: signaturePending && isAssistProof,
+    signedViaClientPortal: Boolean(signedAt && isAssistProof),
   };
 }
 
