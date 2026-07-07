@@ -15,12 +15,8 @@ import {
 import { invalidatePortalProofCache } from '@/lib/portal/portalProofCacheSignal';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
-import { isMissingTableError } from '@/lib/supabase/missingtablefallback';
-import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { resolvePortalSignatureVisitId } from './resolveEmployeePortalSignatureRequirement';
-
-const PROOF_CATEGORY = 'leistungsnachweis';
 
 export type DeferredClientSignatureReleaseResult = {
   proofId: string;
@@ -61,53 +57,24 @@ async function upsertDeferredSignatureClientPortalDocument(
   const title =
     String(snapshot.title ?? snapshot.serviceName ?? 'Leistungsnachweis').trim() ||
     'Leistungsnachweis';
-  const now = new Date().toISOString();
 
-  const { data: existing, error: lookupError } = await fromUnknownTable(supabase, 'client_documents')
-    .select('id')
-    .eq('tenant_id', tenantId)
-    .eq('id', proof.id)
-    .maybeSingle();
+  const { data, error } = await supabase.rpc(
+    'employee_portal_upsert_deferred_signature_client_document',
+    {
+      p_tenant_id: tenantId,
+      p_proof_id: proof.id,
+      p_client_id: clientId,
+      p_title: title,
+      p_actor_profile_id: options?.actorProfileId ?? null,
+    },
+  );
 
-  if (lookupError && !isMissingTableError(lookupError)) {
-    return { ok: false, error: lookupError.message };
+  if (error) {
+    return { ok: false, error: error.message };
   }
 
-  const row = {
-    title: `${title} — Unterschrift ausstehend`,
-    file_name: `unterschrift-${proof.id}.pending`,
-    storage_path: null,
-    portal_visible: true,
-    status: 'aktiv',
-    category: PROOF_CATEGORY,
-    signed_at: null,
-    signature_required: true,
-    updated_at: now,
-  };
-
-  if (existing) {
-    const { error } = await fromUnknownTable(supabase, 'client_documents')
-      .update(row)
-      .eq('tenant_id', tenantId)
-      .eq('id', proof.id);
-
-    if (error) return { ok: false, error: error.message };
-    return { ok: true, data: { clientDocumentId: proof.id } };
-  }
-
-  const { error: insertError } = await fromUnknownTable(supabase, 'client_documents').insert({
-    id: proof.id,
-    tenant_id: tenantId,
-    client_id: clientId,
-    mime_type: 'application/pdf',
-    sensitivity: 'care',
-    source: 'assist_visit_proof',
-    uploaded_by: options?.actorProfileId ?? null,
-    ...row,
-  });
-
-  if (insertError) return { ok: false, error: insertError.message };
-  return { ok: true, data: { clientDocumentId: proof.id } };
+  const clientDocumentId = typeof data === 'string' ? data : proof.id;
+  return { ok: true, data: { clientDocumentId } };
 }
 
 /**

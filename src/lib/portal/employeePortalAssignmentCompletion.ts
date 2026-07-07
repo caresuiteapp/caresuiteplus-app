@@ -75,7 +75,8 @@ function isSignatureSatisfied(
   return (
     input.signatureStatus === 'captured' ||
     input.signatureStatus === 'locked' ||
-    input.signatureStatus === 'impossible_justified'
+    input.signatureStatus === 'impossible_justified' ||
+    input.signatureStatus === 'deferred_to_client_portal'
   );
 }
 

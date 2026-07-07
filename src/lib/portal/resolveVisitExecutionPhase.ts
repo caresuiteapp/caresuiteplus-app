@@ -22,9 +22,7 @@ export function resolveVisitExecutionPhase(input: VisitExecutionPhaseInput): Vis
 
   if (effectiveStatus === 'nicht_erschienen') return 'no_show';
   if (effectiveStatus === 'storniert') return 'locked';
-  if (effectiveStatus === 'abgeschlossen') {
-    return isLocked ? 'completed' : 'post_service';
-  }
+  if (effectiveStatus === 'abgeschlossen') return 'completed';
   if (isLocked) return 'locked';
 
   if (effectiveStatus === 'unterwegs') return 'en_route';

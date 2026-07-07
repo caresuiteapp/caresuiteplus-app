@@ -661,7 +661,14 @@ export function useEmployeePortalVisitExecution(assignmentId: string | undefined
             errorCode: 'START_SERVICE_TIMEOUT',
           };
         }
-        throw error;
+        return {
+          ok: false,
+          error:
+            error instanceof Error
+              ? error.message
+              : 'Aktion fehlgeschlagen — bitte erneut versuchen.',
+          errorCode: 'WORKFLOW_UNEXPECTED_ERROR',
+        };
       } finally {
         if (loadingMode === 'start_service') setStartServiceLoading(false);
         else setWorkflowLoading(false);
