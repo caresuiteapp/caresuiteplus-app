@@ -85,6 +85,36 @@ function seedPassword() {
   return process.env.STAGING_SEED_PASSWORD ?? 'StagingWfmP21-Example-Only';
 }
 
+function loadStagingEnvFile() {
+  const envPath = path.join(root, 'supabase', '.temp', 'staging-env.json');
+  if (!existsSync(envPath)) return null;
+  try {
+    const parsed = JSON.parse(readFileSync(envPath, 'utf8'));
+    if (parsed.projectRef === PRODUCTION_REF) {
+      throw new Error('ABBRUCH: staging-env.json zeigt auf Production');
+    }
+    if (parsed.projectRef && parsed.projectRef !== STAGING_REF) {
+      throw new Error('ABBRUCH: staging-env.json passt nicht zu Staging-Ref');
+    }
+    return parsed;
+  } catch (err) {
+    throw new Error(`staging-env.json ungültig: ${err.message ?? err}`);
+  }
+}
+
+function resolveStagingCredentials() {
+  const file = loadStagingEnvFile();
+  const url = process.env.STAGING_SUPABASE_URL ?? file?.url ?? `https://${STAGING_REF}.supabase.co`;
+  const anon = process.env.STAGING_SUPABASE_ANON_KEY ?? file?.anonKey ?? '';
+  if (url.includes(PRODUCTION_REF)) {
+    throw new Error('ABBRUCH: Staging-URL ist Production');
+  }
+  if (!url.includes(STAGING_REF)) {
+    throw new Error('ABBRUCH: Staging-URL passt nicht zu Staging-Ref');
+  }
+  return { url, anon };
+}
+
 function sqlEscape(value) {
   return value.replace(/'/g, "''");
 }
@@ -421,14 +451,10 @@ async function restInsertAction(url, anonKey, token, row) {
 }
 
 async function verifyRls(password) {
-  const url = process.env.STAGING_SUPABASE_URL ?? `https://${STAGING_REF}.supabase.co`;
-  const anon = process.env.STAGING_SUPABASE_ANON_KEY;
+  const { url, anon } = resolveStagingCredentials();
   if (!anon) {
-    console.warn('\n⚠ STAGING_SUPABASE_ANON_KEY fehlt — RLS-Praxisprüfung übersprungen.');
+    console.warn('\n⚠ Staging-Anon-Key fehlt (Env oder supabase/.temp/staging-env.json) — RLS-Praxisprüfung übersprungen.');
     return { skipped: true };
-  }
-  if (url.includes(PRODUCTION_REF)) {
-    throw new Error('ABBRUCH: STAGING_SUPABASE_URL ist Production');
   }
 
   const results = [];
