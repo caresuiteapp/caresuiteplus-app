@@ -15,6 +15,7 @@ import {
   assignmentStatusToRemote,
   remoteStatusToAssignment,
 } from '@/lib/assist/assignmentStatusBridge';
+import { timestampPatchForStatusTransition } from '@/lib/assist/assignmentLifecycleTimestamps';
 import type { AssignmentMutationContext } from '@/lib/assist/assignmentAuditHelper';
 import { writeAssignmentAudit } from '@/lib/assist/assignmentAuditHelper';
 import { getSupabaseClient } from '@/lib/supabase/client';
@@ -238,22 +239,18 @@ function mapDetail(row: AssignmentLiveRow & { assignment_tasks?: AssignmentTaskR
 function timestampPatchForStatus(
   to: AssignmentStatus,
   now: string,
+  existing: AssignmentLifecycleTimestamps = {},
 ): Record<string, string | null> {
-  switch (to) {
-    case 'unterwegs':
-      return { on_the_way_at: now };
-    case 'angekommen':
-      return { arrived_at: now };
-    case 'gestartet':
-      return { actual_start_at: now };
-    case 'beendet':
-      return { actual_end_at: now, finished_at: now };
-    case 'abgeschlossen':
-      return { actual_end_at: now };
-    default:
-      return {};
-  }
+  return timestampPatchForStatusTransition(to, now, existing);
 }
+
+type AssignmentLifecycleTimestamps = {
+  on_the_way_at?: string | null;
+  arrived_at?: string | null;
+  actual_start_at?: string | null;
+  actual_end_at?: string | null;
+  finished_at?: string | null;
+};
 
 function remoteStatusFilter(status: AssignmentStatus): string {
   return assignmentStatusToRemote(status);
@@ -437,7 +434,13 @@ export const assignmentSupabaseRepository = {
 
     const now = new Date().toISOString();
     const remoteStatus = assignmentStatusToRemote(toStatus);
-    const timestampPatch = timestampPatchForStatus(toStatus, now);
+    const timestampPatch = timestampPatchForStatus(toStatus, now, {
+      on_the_way_at: existing.data.onTheWayAt,
+      arrived_at: existing.data.arrivedAt,
+      actual_start_at: existing.data.actualStartAt,
+      actual_end_at: existing.data.actualEndAt,
+      finished_at: existing.data.finishedAt,
+    });
 
     const { error: rpcError } = await supabase.rpc('set_assignment_status', {
       input_assignment_id: masterAssignmentId,

@@ -889,16 +889,14 @@ export const visitSupabaseRepository = {
       updated_by: actorProfileId ?? null,
     };
 
-    if (toStatus === 'unterwegs') patch.on_the_way_at = now;
-    if (toStatus === 'angekommen') patch.arrived_at = now;
-    if (toStatus === 'gestartet') patch.actual_start_at = now;
-    if (toStatus === 'beendet') {
+    if (toStatus === 'unterwegs' && !existing.data.onTheWayAt) patch.on_the_way_at = now;
+    if (toStatus === 'angekommen' && !existing.data.arrivedAt) patch.arrived_at = now;
+    if (toStatus === 'gestartet' && !existing.data.actualStartAt) patch.actual_start_at = now;
+    if (toStatus === 'beendet' && !existing.data.actualEndAt) {
       patch.actual_end_at = now;
       patch.execution_status = 'completed';
     }
     if (toStatus === 'abgeschlossen') {
-      patch.actual_end_at = now;
-      patch.finished_at = now;
       patch.execution_status = 'completed';
       patch.documentation_status = 'complete';
     }
