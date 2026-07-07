@@ -170,8 +170,31 @@ CREATE TABLE IF NOT EXISTS public.mileage_log_entries (
   updated_at            TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );
 
-CREATE INDEX IF NOT EXISTS idx_mileage_log_entries_tenant
-  ON public.mileage_log_entries (tenant_id, employee_id, trip_date DESC);
+-- Legacy-Tabelle aus 0125_geo_routes_prepared: Spalten nachziehen statt CREATE TABLE zu überspringen
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS employee_id UUID REFERENCES public.employees(id) ON DELETE CASCADE;
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS travel_time_entry_id UUID REFERENCES public.travel_time_entries(id) ON DELETE SET NULL;
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS trip_date DATE;
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS purpose_category TEXT;
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS service_type TEXT;
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS km_billable BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS gps_captured BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS route_provider_used BOOLEAN NOT NULL DEFAULT FALSE;
+ALTER TABLE public.mileage_log_entries ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ NOT NULL DEFAULT NOW();
+
+DO $mileage_idx$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'mileage_log_entries' AND column_name = 'employee_id'
+  ) AND EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'mileage_log_entries' AND column_name = 'trip_date'
+  ) THEN
+    CREATE INDEX IF NOT EXISTS idx_mileage_log_entries_tenant
+      ON public.mileage_log_entries (tenant_id, employee_id, trip_date DESC);
+  END IF;
+END
+$mileage_idx$;
 
 -- --------------------------------------------------------------------------
 -- 7. payroll_export_batches — Lohnexport-Läufe (kein Transfer ohne Connect)

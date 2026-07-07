@@ -238,108 +238,129 @@ GRANT SELECT, INSERT ON public.assist_visit_billing_snapshots TO authenticated;
 GRANT SELECT, INSERT ON public.assist_visit_audit_logs TO authenticated;
 
 -- --------------------------------------------------------------------------
--- Backfill from public.assignments (idempotent)
--- --------------------------------------------------------------------------
-INSERT INTO public.assist_visits (
-  tenant_id,
-  legacy_assignment_id,
-  client_id,
-  employee_id,
-  title,
-  description,
-  assignment_date,
-  planned_start_at,
-  planned_end_at,
-  duration_minutes,
-  actual_start_at,
-  actual_end_at,
-  address_snapshot,
-  canonical_status,
-  planning_status,
-  execution_status,
-  documentation_status,
-  created_by,
-  created_at,
-  updated_at
-)
-SELECT
-  a.tenant_id,
-  a.id,
-  a.client_id,
-  a.employee_id,
-  COALESCE(NULLIF(TRIM(a.title), ''), 'Einsatz'),
-  a.description,
-  a.assignment_date,
-  a.planned_start_at,
-  a.planned_end_at,
-  GREATEST(1, EXTRACT(EPOCH FROM (a.planned_end_at - a.planned_start_at))::INTEGER / 60),
-  a.actual_start_at,
-  a.actual_end_at,
-  a.address_snapshot,
-  a.status::TEXT,
-  CASE a.status::TEXT
-    WHEN 'planned' THEN 'draft'
-    WHEN 'confirmed' THEN 'confirmed'
-    WHEN 'cancelled' THEN 'cancelled'
-    WHEN 'no_show' THEN 'at_risk'
-    ELSE 'scheduled'
-  END,
-  CASE a.status::TEXT
-    WHEN 'on_the_way' THEN 'on_way'
-    WHEN 'arrived' THEN 'arrived'
-    WHEN 'started' THEN 'in_progress'
-    WHEN 'paused' THEN 'paused'
-    WHEN 'finished' THEN 'completed'
-    WHEN 'completed' THEN 'completed'
-    WHEN 'cancelled' THEN 'cancelled'
-    WHEN 'no_show' THEN 'no_show'
-    ELSE 'pending'
-  END,
-  CASE a.status::TEXT
-    WHEN 'documentation_open' THEN 'open'
-    WHEN 'signature_open' THEN 'open'
-    WHEN 'completed' THEN 'complete'
-    ELSE 'none'
-  END,
-  a.created_by,
-  a.created_at,
-  a.updated_at
-FROM public.assignments a
-WHERE a.product_key = 'assist'
-  AND NOT EXISTS (
-    SELECT 1 FROM public.assist_visits v
-    WHERE v.legacy_assignment_id = a.id
-  );
+-- Backfill from public.assignments (idempotent — nur wenn Legacy-Spalten vorhanden)
+DO $assist_visits_backfill$
+BEGIN
+  IF EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'assignments' AND column_name = 'client_id'
+  ) AND EXISTS (
+    SELECT 1 FROM information_schema.columns
+    WHERE table_schema = 'public' AND table_name = 'assignments' AND column_name = 'product_key'
+  ) THEN
+    INSERT INTO public.assist_visits (
+      tenant_id,
+      legacy_assignment_id,
+      client_id,
+      employee_id,
+      title,
+      description,
+      assignment_date,
+      planned_start_at,
+      planned_end_at,
+      duration_minutes,
+      actual_start_at,
+      actual_end_at,
+      address_snapshot,
+      canonical_status,
+      planning_status,
+      execution_status,
+      documentation_status,
+      created_by,
+      created_at,
+      updated_at
+    )
+    SELECT
+      a.tenant_id,
+      a.id,
+      a.client_id,
+      a.employee_id,
+      COALESCE(NULLIF(TRIM(a.title), ''), 'Einsatz'),
+      a.description,
+      a.assignment_date,
+      a.planned_start_at,
+      a.planned_end_at,
+      GREATEST(1, EXTRACT(EPOCH FROM (a.planned_end_at - a.planned_start_at))::INTEGER / 60),
+      a.actual_start_at,
+      a.actual_end_at,
+      a.address_snapshot,
+      a.status::TEXT,
+      CASE a.status::TEXT
+        WHEN 'planned' THEN 'draft'
+        WHEN 'confirmed' THEN 'confirmed'
+        WHEN 'cancelled' THEN 'cancelled'
+        WHEN 'no_show' THEN 'at_risk'
+        ELSE 'scheduled'
+      END,
+      CASE a.status::TEXT
+        WHEN 'on_the_way' THEN 'on_way'
+        WHEN 'arrived' THEN 'arrived'
+        WHEN 'started' THEN 'in_progress'
+        WHEN 'paused' THEN 'paused'
+        WHEN 'finished' THEN 'completed'
+        WHEN 'completed' THEN 'completed'
+        WHEN 'cancelled' THEN 'cancelled'
+        WHEN 'no_show' THEN 'no_show'
+        ELSE 'pending'
+      END,
+      CASE a.status::TEXT
+        WHEN 'documentation_open' THEN 'open'
+        WHEN 'signature_open' THEN 'open'
+        WHEN 'completed' THEN 'complete'
+        ELSE 'none'
+      END,
+      a.created_by,
+      a.created_at,
+      a.updated_at
+    FROM public.assignments a
+    WHERE a.product_key = 'assist'
+      AND NOT EXISTS (
+        SELECT 1 FROM public.assist_visits v
+        WHERE v.legacy_assignment_id = a.id
+      );
+  ELSE
+    RAISE NOTICE '0116: assignments backfill skipped (legacy columns missing on fresh DB)';
+  END IF;
+END
+$assist_visits_backfill$;
 
--- Backfill tasks from assignment_tasks
-INSERT INTO public.assist_visit_tasks (
-  tenant_id,
-  visit_id,
-  title,
-  status,
-  is_required,
-  requires_note_if_not_done,
-  not_done_reason,
-  sort_order,
-  completed_by,
-  created_at,
-  updated_at
-)
-SELECT
-  t.tenant_id,
-  v.id,
-  t.title,
-  t.status::TEXT,
-  COALESCE(t.is_required, TRUE),
-  COALESCE(t.requires_note_if_not_done, FALSE),
-  t.not_done_reason,
-  COALESCE(t.sort_order, 0),
-  t.completed_by_employee_id,
-  t.created_at,
-  t.updated_at
-FROM public.assignment_tasks t
-JOIN public.assist_visits v ON v.legacy_assignment_id = t.assignment_id
-WHERE NOT EXISTS (
-  SELECT 1 FROM public.assist_visit_tasks avt
-  WHERE avt.visit_id = v.id AND avt.title = t.title
-);
+-- Backfill tasks from assignment_tasks (nur wenn Tabelle vorhanden)
+DO $assist_visit_tasks_backfill$
+BEGIN
+  IF to_regclass('public.assignment_tasks') IS NOT NULL THEN
+    INSERT INTO public.assist_visit_tasks (
+      tenant_id,
+      visit_id,
+      title,
+      status,
+      is_required,
+      requires_note_if_not_done,
+      not_done_reason,
+      sort_order,
+      completed_by,
+      created_at,
+      updated_at
+    )
+    SELECT
+      t.tenant_id,
+      v.id,
+      t.title,
+      t.status::TEXT,
+      COALESCE(t.is_required, TRUE),
+      COALESCE(t.requires_note_if_not_done, FALSE),
+      t.not_done_reason,
+      COALESCE(t.sort_order, 0),
+      t.completed_by_employee_id,
+      t.created_at,
+      t.updated_at
+    FROM public.assignment_tasks t
+    JOIN public.assist_visits v ON v.legacy_assignment_id = t.assignment_id
+    WHERE NOT EXISTS (
+      SELECT 1 FROM public.assist_visit_tasks avt
+      WHERE avt.visit_id = v.id AND avt.title = t.title
+    );
+  ELSE
+    RAISE NOTICE '0116: assignment_tasks backfill skipped (table missing on fresh DB)';
+  END IF;
+END
+$assist_visit_tasks_backfill$;

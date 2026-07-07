@@ -4,8 +4,21 @@
 -- tenant_memberships + is_tenant_member() for tenant-scoped AI access
 -- ==========================================================================
 
-CREATE EXTENSION IF NOT EXISTS pgcrypto;
-CREATE EXTENSION IF NOT EXISTS vector WITH SCHEMA extensions;
+-- pgcrypto: bereits in 0001_core_schema.sql
+DO $voicecore_ext$
+BEGIN
+  IF NOT EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+    CREATE EXTENSION vector WITH SCHEMA extensions;
+  END IF;
+EXCEPTION
+  WHEN insufficient_privilege OR OTHERS THEN
+    IF SQLSTATE = '42501' OR SQLERRM LIKE '%pg_read_file%' THEN
+      RAISE NOTICE '0113: vector extension skipped (local migration role): %', SQLERRM;
+    ELSE
+      RAISE;
+    END IF;
+END
+$voicecore_ext$;
 
 -- --------------------------------------------------------------------------
 -- tenant_memberships (not present in prior migrations)
@@ -154,22 +167,50 @@ CREATE TABLE IF NOT EXISTS public.ai_action_logs (
 ALTER TABLE public.ai_action_logs ENABLE ROW LEVEL SECURITY;
 
 -- --------------------------------------------------------------------------
--- document_chunks (embedding optional for v1)
--- --------------------------------------------------------------------------
-CREATE TABLE IF NOT EXISTS public.document_chunks (
-  id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
-  tenant_id        UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
-  document_id      UUID        NOT NULL,
-  document_type    TEXT        NOT NULL,
-  title            TEXT,
-  source_table     TEXT,
-  source_entity_id UUID,
-  chunk_index      INT         NOT NULL DEFAULT 0,
-  content          TEXT        NOT NULL,
-  metadata         JSONB       NOT NULL DEFAULT '{}'::jsonb,
-  embedding        extensions.vector(1536),
-  created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
-);
+-- document_chunks (embedding optional for v1 — ohne vector lokal ohne embedding-Spalte)
+DO $document_chunks$
+BEGIN
+  IF EXISTS (SELECT 1 FROM pg_extension WHERE extname = 'vector') THEN
+    EXECUTE $sql$
+      CREATE TABLE IF NOT EXISTS public.document_chunks (
+        id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+        tenant_id        UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+        document_id      UUID        NOT NULL,
+        document_type    TEXT        NOT NULL,
+        title            TEXT,
+        source_table     TEXT,
+        source_entity_id UUID,
+        chunk_index      INT         NOT NULL DEFAULT 0,
+        content          TEXT        NOT NULL,
+        metadata         JSONB       NOT NULL DEFAULT '{}'::jsonb,
+        embedding        extensions.vector(1536),
+        created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+      )
+    $sql$;
+    EXECUTE $sql$
+      CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
+        ON public.document_chunks
+        USING hnsw (embedding vector_cosine_ops)
+        WHERE embedding IS NOT NULL
+    $sql$;
+  ELSE
+    CREATE TABLE IF NOT EXISTS public.document_chunks (
+      id               UUID        PRIMARY KEY DEFAULT gen_random_uuid(),
+      tenant_id        UUID        NOT NULL REFERENCES public.tenants(id) ON DELETE CASCADE,
+      document_id      UUID        NOT NULL,
+      document_type    TEXT        NOT NULL,
+      title            TEXT,
+      source_table     TEXT,
+      source_entity_id UUID,
+      chunk_index      INT         NOT NULL DEFAULT 0,
+      content          TEXT        NOT NULL,
+      metadata         JSONB       NOT NULL DEFAULT '{}'::jsonb,
+      created_at       TIMESTAMPTZ NOT NULL DEFAULT NOW()
+    );
+    RAISE NOTICE '0113: document_chunks ohne embedding (vector extension nicht verfuegbar)';
+  END IF;
+END
+$document_chunks$;
 
 ALTER TABLE public.document_chunks ENABLE ROW LEVEL SECURITY;
 
@@ -179,10 +220,7 @@ CREATE INDEX IF NOT EXISTS ai_sessions_tenant_user_idx
 CREATE INDEX IF NOT EXISTS ai_pending_actions_status_idx
   ON public.ai_pending_actions (tenant_id, user_id, status, created_at DESC);
 
-CREATE INDEX IF NOT EXISTS document_chunks_embedding_idx
-  ON public.document_chunks
-  USING hnsw (embedding vector_cosine_ops)
-  WHERE embedding IS NOT NULL;
+-- document_chunks_embedding_idx: siehe DO-Block oben (nur mit vector extension)
 
 -- --------------------------------------------------------------------------
 -- RLS policies
