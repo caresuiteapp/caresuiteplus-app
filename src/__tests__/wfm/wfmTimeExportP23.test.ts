@@ -22,6 +22,8 @@ import {
   finalizeCorrectionExport,
   finalizeExportBatch,
   listCorrectionCandidates,
+  listDemoExportItems,
+  mapCorrectionItemsToRpcPayload,
   markChangedAfterExport,
   resetWfmTimeExportDemoStore,
   setDemoReviewExportChanged,
@@ -217,6 +219,57 @@ describe('wfm P2.3 service flows', () => {
     expect(candidates.ok).toBe(true);
     if (!candidates.ok) return;
     expect(candidates.data.some((row) => row.id === reviewId)).toBe(true);
+  });
+
+  it('createCorrectionDraft does not persist active correction items before finalize', async () => {
+    const { finalized } = await seedExportedReview();
+    const reviewId = finalized.data.items[0]?.reviewId;
+    if (!reviewId) throw new Error('missing review');
+
+    setDemoReviewExportChanged(TENANT, reviewId, finalized.data.job.id);
+
+    const draft = await createCorrectionDraft(
+      TENANT,
+      ACTOR,
+      ROLE,
+      PERIOD,
+      [reviewId],
+      CORRECTION_REASON,
+    );
+    expect(draft.ok).toBe(true);
+    if (!draft.ok) return;
+
+    const itemsForJob = listDemoExportItems().filter(
+      (item) => item.exportJobId === draft.data.job.id,
+    );
+    expect(itemsForJob).toHaveLength(0);
+  });
+
+  it('mapCorrectionItemsToRpcPayload includes required rpc fields', async () => {
+    const { finalized } = await seedExportedReview();
+    const reviewId = finalized.data.items[0]?.reviewId;
+    if (!reviewId) throw new Error('missing review');
+    setDemoReviewExportChanged(TENANT, reviewId, finalized.data.job.id);
+
+    const draft = await createCorrectionDraft(
+      TENANT,
+      ACTOR,
+      ROLE,
+      PERIOD,
+      [reviewId],
+      CORRECTION_REASON,
+    );
+    if (!draft.ok) throw new Error('draft failed');
+    await validateCorrectionDraft(TENANT, ROLE, draft.data.job.id);
+    const done = await finalizeCorrectionExport(TENANT, ACTOR, ROLE, draft.data.job.id);
+    if (!done.ok) throw new Error('finalize failed');
+
+    const rpcPayload = mapCorrectionItemsToRpcPayload(done.data.items);
+    expect(rpcPayload[0]?.original_export_item_id).toBeTruthy();
+    expect(rpcPayload[0]?.logical_reference_key).toContain('review:');
+    expect(rpcPayload[0]?.new_reference_key).toContain(':correction:');
+    expect(rpcPayload[0]?.correction_payload_delta).toBeTruthy();
+    expect(rpcPayload[0]?.payload_hash).toBeTruthy();
   });
 
   it('runs correction draft validate finalize and supersedes old item', async () => {

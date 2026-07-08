@@ -362,8 +362,10 @@ export_kind;logical_reference_key;reference_key;export_sequence;original_export_
 ## 8. SQL-Entwurf (Referenz)
 
 **Datei:** `supabase/migrations/0252_wfm_time_exports_p23.sql`  
-**Status:** Entwurf — **nicht angewendet**, kein db push  
-**Inhalt:** Abschnitte A–G entsprechend §5; RPC `wfm_finalize_correction_export(UUID)`  
+**Status:** Auf Staging angewendet; RPC-Signatur `wfm_finalize_correction_export(UUID)` erfordert active Items vor RPC → Partial-Unique-Kollision.
+
+**Fix (0253):** `supabase/migrations/0253_wfm_time_exports_p23_finalize_rpc_fix.sql`  
+**Neue RPC:** `wfm_finalize_correction_export(p_export_job_id UUID, p_items JSONB)` — atomares Supersede + Insert; keine active Correction Items vor RPC.
 
 ---
 

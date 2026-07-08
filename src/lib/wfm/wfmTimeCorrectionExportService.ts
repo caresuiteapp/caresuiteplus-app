@@ -25,9 +25,11 @@ import {
 import { appendReviewAction } from './wfmTimeReviewService';
 import {
   listExportItems,
-  registerDemoExportItems,
   registerDemoExportJob,
   mapWfmTimeExportJobRow,
+  validateCorrectionDraft,
+  finalizeCorrectionExport,
+  setDemoReviewExportState,
   type WfmTimeExportItem,
   type WfmTimeExportJob,
   type WfmTimeExportReviewRow,
@@ -525,16 +527,16 @@ export async function validateCorrectionExportDraft(
   if (tenantBlock) return tenantBlock;
 
   const reasonError = reason != null ? validateCorrectionReason(reason) : null;
-  const items = await listExportItems(tenantId, actorRoleKey, jobId);
-  if (!items.ok) return items;
+  const validation = await validateCorrectionDraft(tenantId, actorRoleKey, jobId);
+  if (!validation.ok) return validation;
 
   return {
     ok: true,
     data: {
       jobId,
-      valid: !reasonError && items.data.length > 0,
+      valid: !reasonError && validation.data.valid,
       reasonError,
-      itemCount: items.data.length,
+      itemCount: validation.data.exportableCount,
     },
   };
 }
@@ -657,8 +659,8 @@ export async function draftReviewedTimeCorrectionExport(
 
   if (useDemoStore()) {
     registerDemoExportJob(job);
-    registerDemoExportItems(previewItems);
     for (const item of previewItems) {
+      setDemoReviewExportState(tenantId, item.reviewId, { pendingReexportJobId: jobId });
       await appendReviewAction(tenantId, userId, {
         entryReviewId: item.reviewId,
         action: 'reexport_drafted',
@@ -698,33 +700,6 @@ export async function draftReviewedTimeCorrectionExport(
   }
 
   for (const item of previewItems) {
-    const { error: itemError } = await fromUnknownTable(supabase, EXPORT_ITEMS_TABLE).insert({
-      id: item.id,
-      tenant_id: tenantId,
-      export_job_id: jobId,
-      review_id: item.reviewId,
-      employee_id: item.employeeId,
-      reference_id: item.referenceId,
-      reference_key: item.referenceKey,
-      entry_kind: item.entryKind,
-      period_date: item.periodDate,
-      minutes_total: item.minutesTotal,
-      review_status_at_export: 'approved',
-      exported_payload: item.exportedPayload,
-      payload_hash: item.payloadHash,
-      changed_after_export: false,
-      logical_reference_key: item.logicalReferenceKey,
-      export_sequence: item.exportSequence,
-      item_status: 'active',
-      supersedes_export_item_id: item.supersedesExportItemId,
-      correction_reason: item.correctionReason,
-      previous_payload_hash: item.previousPayloadHash,
-      correction_payload_delta: item.correctionPayloadDelta,
-    });
-    if (itemError) {
-      return { ok: false, error: toGermanSupabaseError(itemError) };
-    }
-
     await appendReviewAction(tenantId, userId, {
       entryReviewId: item.reviewId,
       action: 'reexport_drafted',
@@ -763,73 +738,21 @@ export async function finalizeReviewedTimeCorrectionExport(
     return { ok: false, error: validation.data.reasonError ?? 'Korrekturexport ungültig.' };
   }
 
-  if (useDemoStore()) {
-    const { listDemoExportItems, registerDemoExportJob } = await import('./wfmTimeExportService');
-    const job = await getDemoExportJob(jobId);
-    if (!job) {
-      return { ok: false, error: 'Korrekturexport-Entwurf nicht gefunden.' };
-    }
-    const previewItems = listDemoExportItems().filter((item) => item.exportJobId === jobId);
-    if (previewItems.length === 0) {
-      return { ok: false, error: 'Keine Korrektur-Items im Entwurf.' };
-    }
-
-    const items = listDemoExportItems();
-    const now = new Date().toISOString();
-    for (const item of previewItems) {
-      const old = items.find((i) => i.id === item.supersedesExportItemId);
-      if (old) {
-        old.itemStatus = 'superseded';
-        old.supersededAt = now;
-        old.supersededByExportItemId = item.id;
-      }
-      await appendReviewAction(tenantId, userId, {
-        entryReviewId: item.reviewId,
-        action: 'correction_export_finalized',
-        prevStatus: 'approved',
-        newStatus: 'approved',
-        reason: reason.trim(),
-        comment: `Korrekturexport ${jobId}`,
-      });
-    }
-
-    registerDemoExportJob({
-      ...job,
-      status: 'finalized',
-      finalizedAt: now,
-      finalizedBy: userId,
-      correctionReason: reason.trim(),
-      updatedAt: now,
-    });
-    return { ok: true, data: { jobId, finalized: true } };
+  if (!useDemoStore()) {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
+    await fromUnknownTable(supabase, EXPORT_JOBS_TABLE)
+      .update({
+        status: 'validated',
+        correction_reason: reason.trim(),
+        updated_at: new Date().toISOString(),
+      })
+      .eq('tenant_id', tenantId)
+      .eq('id', jobId);
   }
 
-  const supabase = getSupabaseClient();
-  if (!supabase) return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
-
-  await fromUnknownTable(supabase, EXPORT_JOBS_TABLE)
-    .update({
-      status: 'validated',
-      correction_reason: reason.trim(),
-      updated_at: new Date().toISOString(),
-    })
-    .eq('tenant_id', tenantId)
-    .eq('id', jobId);
-
-  const { data, error } = await supabase.rpc('wfm_finalize_correction_export', {
-    p_export_job_id: jobId,
-  });
-
-  if (error) {
-    const message = toGermanSupabaseError(error);
-    if (message.includes('permission denied')) {
-      return { ok: false, error: 'Keine Berechtigung für Korrekturexport-Finalisierung.' };
-    }
-    return { ok: false, error: message };
-  }
-
-  void userId;
-  void data;
+  const finalized = await finalizeCorrectionExport(tenantId, userId, actorRoleKey, jobId);
+  if (!finalized.ok) return finalized;
 
   return { ok: true, data: { jobId, finalized: true } };
 }

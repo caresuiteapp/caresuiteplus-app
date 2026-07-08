@@ -21,6 +21,7 @@ import {
   listDemoExportItems,
   resetWfmTimeExportDemoStore,
   setDemoReviewExportChanged,
+  validateCorrectionDraft,
   validateExportBatch,
 } from '@/lib/wfm/wfmTimeExportService';
 import {
@@ -136,6 +137,11 @@ describe('wfmTimeCorrectionExportService', () => {
     expect(draft.data.job.exportType).toBe('reviewed_time_correction');
     expect(draft.data.previewItems[0]?.previousPayloadHash).toBe(originalHash);
     expect(originalItem.payloadHash).toBe(originalHash);
+    expect(
+      listDemoExportItems().filter((item) => item.exportJobId === draft.data.job.id),
+    ).toHaveLength(0);
+
+    await validateCorrectionDraft(TENANT, ROLE, draft.data.job.id);
 
     const validation = await validateCorrectionExportDraft(
       TENANT,

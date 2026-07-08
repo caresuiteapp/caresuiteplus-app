@@ -162,6 +162,47 @@ export interface WfmTimeCorrectionFinalizeResult {
   exportedCount: number;
 }
 
+/** RPC payload element for wfm_finalize_correction_export(p_export_job_id, p_items). */
+export interface WfmCorrectionRpcItem {
+  review_id: string;
+  employee_id: string;
+  reference_id: string | null;
+  entry_kind: WfmTimeReviewEntryKind;
+  period_date: string;
+  minutes_total: number;
+  original_export_item_id: string;
+  logical_reference_key: string;
+  new_reference_key: string;
+  export_sequence: number;
+  exported_payload: WfmCorrectionExportPayload;
+  correction_payload_delta: WfmCorrectionPayloadDelta;
+  previous_payload_hash: string;
+  payload_hash: string;
+  correction_reason: string;
+  source_review_version_hash?: string | null;
+}
+
+export function mapCorrectionItemsToRpcPayload(items: WfmTimeExportItem[]): WfmCorrectionRpcItem[] {
+  return items.map((item) => ({
+    review_id: item.reviewId,
+    employee_id: item.employeeId,
+    reference_id: item.referenceId,
+    entry_kind: item.entryKind,
+    period_date: item.periodDate,
+    minutes_total: item.minutesTotal,
+    original_export_item_id: item.supersedesExportItemId ?? '',
+    logical_reference_key: item.logicalReferenceKey ?? buildLogicalReferenceKey(item.reviewId),
+    new_reference_key: item.referenceKey,
+    export_sequence: item.exportSequence ?? 2,
+    exported_payload: item.exportedPayload as WfmCorrectionExportPayload,
+    correction_payload_delta: item.correctionPayloadDelta as WfmCorrectionPayloadDelta,
+    previous_payload_hash: item.previousPayloadHash ?? '',
+    payload_hash: item.payloadHash,
+    correction_reason: item.correctionReason ?? '',
+    source_review_version_hash: item.sourceReviewVersionHash ?? null,
+  }));
+}
+
 export interface WfmTimeExportDraftResult {
   job: WfmTimeExportJob;
   period: WfmTimeExportPeriod;
@@ -391,7 +432,7 @@ function getDemoReviewExportState(tenantId: string, reviewId: string) {
   return demoReviewExportState.get(demoReviewKey(tenantId, reviewId));
 }
 
-function setDemoReviewExportState(
+export function setDemoReviewExportState(
   tenantId: string,
   reviewId: string,
   patch: Partial<{
@@ -1768,7 +1809,7 @@ export async function finalizeCorrectionExport(
       review,
       oldItem,
       correctionReason,
-      jobResult.data.correctionSequence ?? 2,
+      (oldItem.exportSequence ?? 1) + 1,
       now,
       newItems,
     );
@@ -1841,36 +1882,16 @@ export async function finalizeCorrectionExport(
   const supabase = getSupabaseClient();
   if (!supabase) return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
 
-  for (const item of newItems) {
-    const { error: itemError } = await fromUnknownTable(supabase, EXPORT_ITEMS_TABLE).insert({
-      id: item.id,
-      tenant_id: tenantId,
-      export_job_id: jobId,
-      review_id: item.reviewId,
-      employee_id: item.employeeId,
-      reference_id: item.referenceId,
-      reference_key: item.referenceKey,
-      logical_reference_key: item.logicalReferenceKey,
-      export_sequence: item.exportSequence,
-      item_status: 'active',
-      entry_kind: item.entryKind,
-      period_date: item.periodDate,
-      minutes_total: item.minutesTotal,
-      review_status_at_export: 'approved',
-      exported_payload: item.exportedPayload,
-      payload_hash: item.payloadHash,
-      source_review_version_hash: item.sourceReviewVersionHash,
-      previous_payload_hash: item.previousPayloadHash,
-      correction_reason: item.correctionReason,
-      correction_payload_delta: item.correctionPayloadDelta,
-      supersedes_export_item_id: item.supersedesExportItemId,
-      changed_after_export: false,
-    });
-    if (itemError) return { ok: false, error: toGermanSupabaseError(itemError) };
-  }
-
-  const { error: rpcError } = await supabase.rpc('wfm_finalize_correction_export', {
+  const rpcItems = mapCorrectionItemsToRpcPayload(newItems);
+  const client = supabase;
+  const { error: rpcError } = await (
+    client.rpc as (
+      fn: string,
+      args?: Record<string, unknown>,
+    ) => ReturnType<typeof client.rpc>
+  )('wfm_finalize_correction_export', {
     p_export_job_id: jobId,
+    p_items: rpcItems,
   });
   if (rpcError) return { ok: false, error: toGermanSupabaseError(rpcError) };
 
