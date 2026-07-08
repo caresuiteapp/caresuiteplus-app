@@ -16,3 +16,4 @@ export {
   PlatformSupportScreen,
 } from './PlatformOperatorScreens';
 export { PlatformForbiddenScreen, PlatformIndexRedirect } from './PlatformForbiddenScreen';
+export { PlatformLoginScreen } from './PlatformLoginScreen';

@@ -44,6 +44,13 @@ export function getLoginRedirectForPath(path: string): string {
   if (path.startsWith('/portal/employee')) return '/auth/employee-login';
   if (path.startsWith('/portal')) return '/auth/employee-login';
   if (
+    path.startsWith('/platform') &&
+    !path.startsWith('/platform/login') &&
+    !path.startsWith('/platform/forbidden')
+  ) {
+    return '/platform/login';
+  }
+  if (
     path.startsWith('/business') ||
     path.startsWith('/office') ||
     path.startsWith('/assist') ||
@@ -51,8 +58,7 @@ export function getLoginRedirectForPath(path: string): string {
     path.startsWith('/stationaer') ||
     path.startsWith('/beratung') ||
     path.startsWith('/akademie') ||
-    path.startsWith('/insight') ||
-    path.startsWith('/platform')
+    path.startsWith('/insight')
   ) {
     return '/auth/business-login';
   }

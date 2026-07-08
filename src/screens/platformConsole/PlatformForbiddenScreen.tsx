@@ -16,8 +16,8 @@ export function PlatformForbiddenScreen() {
           Dieser Bereich ist ausschließlich für autorisierte Plattformadministratoren vorgesehen.
         </Text>
         <PremiumButton
-          title="Zur Anmeldung"
-          onPress={() => router.replace('/auth/business-login' as never)}
+          title="Zur Platform-Anmeldung"
+          onPress={() => router.replace('/platform/login' as never)}
         />
         <PremiumButton
           title="Zum Business-Bereich"

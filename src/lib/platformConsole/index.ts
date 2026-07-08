@@ -1,4 +1,4 @@
-export { fetchPlatformCurrentUser, isPlatformUserActive, resetDemoPlatformStore, setDemoPlatformUser } from './platformAuthService';
+export { fetchPlatformCurrentUser, isPlatformUserActive, resetDemoPlatformStore, setDemoPlatformUser, signInPlatformConsole } from './platformAuthService';
 export {
   fetchPlatformDashboardSummary,
   getPlatformTenantDetail,
