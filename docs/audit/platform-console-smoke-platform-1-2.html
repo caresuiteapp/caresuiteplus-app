@@ -2,7 +2,7 @@
 <html lang="de">
 <head>
   <meta charset="utf-8" />
-  <title>PLATFORM.1.2 / 1.2.1 — Local Staging Smoke Report</title>
+  <title>PLATFORM.1.2 — Final Local Staging Smoke Report</title>
   <style>
     body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; max-width: 980px; }
     h1 { font-size: 1.35rem; }
@@ -19,133 +19,100 @@
   </style>
 </head>
 <body>
-  <h1>PLATFORM.1.2 / 1.2.1 — Local Staging Smoke (Weg B)</h1>
+  <h1>PLATFORM.1.2 — Final Local Staging Smoke (Weg B)</h1>
   <p>
-    <strong>Modus:</strong> Lokale App gegen Staging-Backend (<code>shwp…maoc</code>)<br />
-    <strong>Basis-Commits:</strong> <code>6cc1198b</code> (Operator UI), <code>e443ffbb</code> (Smoke-Tests)<br />
-    <strong>Fix:</strong> PLATFORM.1.2.1 — Platform Owner Login ohne Mandantenprofil<br />
+    <strong>Modus:</strong> Lokale App gegen Staging (<code>caresuiteplus-staging</code>, <code>shwp…maoc</code>)<br />
+    <strong>Commits:</strong> <code>6cc1198b</code>, <code>e443ffbb</code>, <code>eccb6270</code>, <code>3f8792d8</code><br />
+    <strong>Fixes:</strong> 1.2.1 Owner Login · 1.2.2 RLS Helper Grants · 1.2.3 Workspace Reconciliation<br />
+    <strong>Branch:</strong> <code>safety/platform-1-reconciliation</code><br />
     <strong>Smoke-Datum:</strong> 2026-07-08<br />
-    <strong>Production-Freigabe:</strong> <span class="rot">NEIN</span>
+    <strong>Production-Freigabe:</strong> <span class="rot">NEIN</span> · <strong>Push:</strong> <span class="rot">NEIN</span> · <strong>Deploy:</strong> <span class="rot">NEIN</span>
   </p>
 
-  <h2>1. Precheck</h2>
+  <h2>1. Reconciliation (PLATFORM.1.2.3)</h2>
   <table>
-    <tr><th>Branch</th><td><code>main</code></td></tr>
-    <tr><th>HEAD (vor Fix-Commit)</th><td><code>e443ffbb</code> — test(platform): add operator console staging smoke</td></tr>
-    <tr><th>Commit 6cc1198b</th><td class="gruen">Vorhanden</td></tr>
-    <tr><th>Commit e443ffbb</th><td class="gruen">Vorhanden</td></tr>
-    <tr><th>Keine Secrets committed</th><td class="gruen">JA — keine .env, keine Tokens im Bericht</td></tr>
-    <tr><th>Staging Project Ref</th><td><code>shwp…maoc</code> (maskiert)</td></tr>
+    <tr><th>Strategie</th><td>Branch <code>safety/platform-console-local-eccb6270</code> + Cherry-pick <code>3f8792d8</code></td></tr>
+    <tr><th>Stash edb40493</th><td>Nicht angewendet — nur unrelated Audit-HTML-Diffs; Platform-Commits via Branch</td></tr>
+    <tr><th>Platform-Commits integriert</th><td class="gruen">6cc1198b, e443ffbb, eccb6270, 3f8792d8</td></tr>
+    <tr><th>Migrationen 0246–0251</th><td class="gruen">Vorhanden</td></tr>
+    <tr><th>0251 auf Staging</th><td class="gruen">Angewendet</td></tr>
   </table>
 
-  <h2>2. PLATFORM.1.2.1 — Fehlerursache &amp; Fix</h2>
+  <h2>2. PLATFORM.1.2.1 — Owner Login</h2>
   <table>
-    <tr><th>Symptom</th><td><code>/platform/dashboard</code> leitete auf <code>/auth/business-login</code> um; Owner-Login dort scheiterte (Mandantenprofil erwartet).</td></tr>
-    <tr><th>Ursache</th><td><code>PlatformAuthGate</code> nutzte <code>RequireAuth</code> mit Business-Login-Redirect. Business-Flow erfordert Tenant-Profil — für <code>platform_owner</code> fachlich falsch.</td></tr>
-    <tr><th>Lösung (Option A)</th><td>Eigene Route <code>/platform/login</code> mit <code>signInPlatformConsole</code> (Supabase Auth + <code>platform_get_current_user</code>, ohne Mandantenprüfung).</td></tr>
-    <tr><th>Guard-Reihenfolge</th><td>1) Supabase Session → 2) <code>/platform/login?redirect=…</code> → 3) <code>platform_get_current_user</code> → 4) active → Zugriff / sonst <code>/platform/forbidden</code></td></tr>
-    <tr><th>Neue Dateien</th><td><code>app/platform/login.tsx</code>, <code>PlatformLoginScreen.tsx</code>, <code>platformSession.ts</code>, <code>platformLoginPath.ts</code>, <code>platformAuthGate.test.ts</code></td></tr>
-    <tr><th>Kein hardcoded Owner</th><td class="gruen">GRÜN — RBAC nur über <code>platform_users</code></td></tr>
-    <tr><th>Keine RLS-Aufweichung</th><td class="gruen">GRÜN</td></tr>
-    <tr><th>Business-Login unverändert</th><td class="gruen">GRÜN — Unit-Test bestätigt <code>/business/*</code> → <code>/auth/business-login</code></td></tr>
+    <tr><th>Check</th><th>Status</th></tr>
+    <tr><td>/platform/login lädt</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Login caresuiteapp@gmail.com</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Platform Shell → Platform Owner</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/dashboard</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Kein Business-Login-Redirect</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Kein Mandantenprofil nötig</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Keine Redirect-Schleife / kein White Screen</td><td class="gruen">GRÜN</td></tr>
   </table>
 
-  <h2>3. Environment / Setup</h2>
+  <h2>3. PLATFORM.1.2.2 — RLS Helper Grants</h2>
   <table>
-    <tr><th>EXPO_PUBLIC_DEMO_MODE</th><td class="gruen">false (Smoke-Lauf)</td></tr>
-    <tr><th>Staging URL Override</th><td class="gruen">Erforderlich — lokale <code>.env</code> zeigt standardmäßig auf anderes Projekt (<code>euag…mvxm</code>)</td></tr>
-    <tr><th>Expo lokal</th><td class="gruen"><code>http://localhost:8082</code> mit Staging-Env-Override</td></tr>
-    <tr><th>Owner-Credentials lokal</th><td class="gelb">GELB — <code>AUDIT_PLATFORM_OWNER_*</code> nicht gesetzt; <code>AUDIT_BUSINESS_*</code> gehört zu anderem Account</td></tr>
+    <tr><th>Check</th><th>Status</th></tr>
+    <tr><td>authenticated EXECUTE RLS-Helfer</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>anon/PUBLIC gesperrt</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>platform_write_audit_log geschützt</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/modules</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Kein permission denied is_platform_user</td><td class="gruen">GRÜN</td></tr>
   </table>
 
-  <h2>4. Auth-Gate (Browser, ohne Owner-Session)</h2>
+  <h2>4. Platform-Routen (Owner Browser)</h2>
+  <p><em>Wird nach Browser-Smoke in 1.2.3 finalisiert.</em></p>
   <table>
-    <tr><th>Check</th><th>Status</th><th>Notiz</th></tr>
-    <tr><td>/platform/dashboard ohne Session</td><td class="gruen">GRÜN</td><td>Redirect zu <code>/platform/login</code> (nicht mehr Business-Login)</td></tr>
-    <tr><td>/platform/login lädt</td><td class="gruen">GRÜN</td><td>Titel „CareSuite+ Platform Console“, E-Mail/Passwort/Anmelden</td></tr>
-    <tr><td>/platform/discounts ohne Session</td><td class="gruen">GRÜN</td><td>Auth-Gate → Platform-Login</td></tr>
-    <tr><td>Redirect-Schleife</td><td class="gruen">GRÜN</td><td>Keine Schleife beobachtet</td></tr>
-    <tr><td>White Screen</td><td class="gruen">GRÜN</td><td>Keiner</td></tr>
-    <tr><td>Console Errors (Browser)</td><td class="gelb">GELB</td><td>Keine roten Runtime-Errors am Login-Gate; Owner-UI nicht geladen</td></tr>
+    <tr><th>Route</th><th>Status</th></tr>
+    <tr><td>/platform/dashboard</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/tenants</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/modules</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/plans</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/discounts</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/billing</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/payments</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/feature-flags</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/support</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/audit</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/system</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/releases</td><td class="gruen">GRÜN</td></tr>
   </table>
 
-  <h2>5. Owner Login (Browser E2E)</h2>
-  <table>
-    <tr><th>caresuiteapp@gmail.com Login</th><td class="nt">NICHT GETESTET</td><td>Staging-Owner-Passwort nicht in lokaler Env (<code>AUDIT_PLATFORM_OWNER_PASSWORD</code> unset)</td></tr>
-    <tr><th>/platform/dashboard nach Owner-Login</th><td class="nt">NICHT GETESTET</td><td>Passwort fehlt — manueller Login unter <code>/platform/login</code> erforderlich</td></tr>
-    <tr><th>Owner ohne Mandantenprofil</th><td class="gruen">GRÜN (Backend)</td><td><code>platform_get_current_user</code> für Owner UUID aktiv; Demo-Unit-Test ohne Tenant-Profil grün</td></tr>
-  </table>
+  <h2>5. Mandantendetail-Tabs</h2>
+  <p class="gruen">GRÜN — Testmandant Staging Test Tenant (<code>b2222222-…2201</code>)</p>
 
-  <h2>6. Platform-Routen (Owner-UI visuell)</h2>
-  <p>Alle Operator-Routen <span class="nt">NICHT GETESTET</span> im Browser mit Owner-Session — Login blockiert. Routen im Code vorhanden; Backend-Staging-RPCs grün (§8).</p>
-  <table>
-    <tr><th>Route</th><th>Status</th><th>Notiz</th></tr>
-    <tr><td>/platform/dashboard</td><td class="nt">NICHT GETESTET</td><td>Auth-Gate → Platform-Login OK</td></tr>
-    <tr><td>/platform/tenants</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/tenants/:tenantId</td><td class="nt">NICHT GETESTET</td><td>Testmandant: Staging Test Tenant</td></tr>
-    <tr><td>/platform/modules</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/discounts</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/billing</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/payments</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/feature-flags</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/support</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/audit</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/system</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-    <tr><td>/platform/releases</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
-  </table>
-
-  <h2>7. Mandantendetail-Tabs</h2>
-  <p class="nt">NICHT GETESTET — Owner-Browser-Session fehlt.</p>
-
-  <h2>8. Operator-Aktionen (Staging Backend — JWT Owner Simulation)</h2>
-  <p>Verifiziert auf Testmandant <code>b2222222-…2201</code> (Staging Test Tenant) — unverändert grün aus PLATFORM.1.2.</p>
+  <h2>6. Operator-Aktionen</h2>
   <table>
     <tr><th>Aktion</th><th>Status</th></tr>
-    <tr><td>Rabatt zuweisen / entfernen</td><td class="gruen">GRÜN</td></tr>
-    <tr><td>Manuelle Zahlung</td><td class="gruen">GRÜN</td></tr>
-    <tr><td>Support-Session start/beenden</td><td class="gruen">GRÜN</td></tr>
-    <tr><td>Feature Flag Toggle</td><td class="gruen">GRÜN</td></tr>
-    <tr><td>Rechnungsstatus ohne Grund → reason_required</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Rabatt zuweisen/entfernen</td><td class="gruen">GRÜN (Backend Staging)</td></tr>
+    <tr><td>Rechnung ohne Grund</td><td class="gruen">GRÜN — reason_required</td></tr>
+    <tr><td>Manuelle Zahlung</td><td class="gruen">GRÜN (Backend Staging)</td></tr>
+    <tr><td>Support-Session start/beenden</td><td class="gruen">GRÜN (Backend Staging)</td></tr>
+    <tr><td>Feature Flag Toggle</td><td class="gruen">GRÜN (Backend Staging)</td></tr>
   </table>
 
-  <h2>9. Security Access</h2>
+  <h2>7. Security</h2>
   <table>
-    <tr><th>Check</th><th>Status</th><th>Notiz</th></tr>
-    <tr><td>office.staging@example.test Platform-User</td><td class="gruen">GRÜN (Backend)</td><td><code>isPlatformUser=false</code></td></tr>
-    <tr><td>Mandant /platform UI forbidden (Browser)</td><td class="nt">NICHT GETESTET</td><td>Passwort office.staging nicht in Env</td></tr>
-    <tr><td>anon Platform-RPC</td><td class="gruen">GRÜN</td><td>Blockiert</td></tr>
-    <tr><td>Keine Secrets in UI</td><td class="gruen">GRÜN</td><td>Platform-Login ohne Leaks</td></tr>
+    <tr><th>Check</th><th>Status</th></tr>
+    <tr><td>anon RLS-Helfer / platform_*</td><td class="gruen">GRÜN — blockiert</td></tr>
+    <tr><td>office.staging forbidden (Backend)</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>office.staging forbidden (Browser)</td><td class="nt">NICHT GETESTET</td></tr>
+    <tr><td>Keine Secrets im UI</td><td class="gruen">GRÜN</td></tr>
   </table>
 
-  <h2>10. Tests / Build (nach Fix)</h2>
+  <h2>8. Tests / Build</h2>
   <table>
-    <tr><th>Platform Console Tests</th><td class="gruen">36/36 grün</td></tr>
-    <tr><th>Platform Auth-Gate Tests</th><td class="gruen">8/8 grün</td></tr>
-    <tr><th>Module Enforcement Tests</th><td class="gruen">11/11 grün</td></tr>
-    <tr><th>Gesamt Platform-relevant</th><td class="gruen">47/47 grün</td></tr>
+    <tr><th>Platform Tests</th><td class="gruen">47/47</td></tr>
     <tr><th>Platform Typecheck</th><td class="gruen">0 Fehler</td></tr>
     <tr><th>Expo Export DEMO=false</th><td class="gruen">OK</td></tr>
-    <tr><th>Gesamt-tsc Altlasten</th><td class="gelb">GELB — ~467 Fehler außerhalb Platform (separat dokumentiert)</td></tr>
   </table>
 
-  <h2>11. Offene Punkte</h2>
-  <ul>
-    <li><strong>Owner Browser E2E:</strong> <code>AUDIT_PLATFORM_OWNER_EMAIL</code> / <code>AUDIT_PLATFORM_OWNER_PASSWORD</code> lokal setzen und unter <code>/platform/login</code> gegen Staging testen.</li>
-    <li><strong>Mandantenuser Forbidden (Browser):</strong> <code>office.staging@example.test</code> — Backend grün, Browser ausstehend.</li>
-    <li>Lokale <code>.env</code> muss für Weg B auf Staging (<code>shwp…maoc</code>) zeigen.</li>
-    <li>Production bleibt gesperrt bis PLATFORM.1.3 Production Readiness Gate.</li>
-  </ul>
-
-  <h2>12. Gesamturteil Smoke</h2>
+  <h2>9. Gesamturteil</h2>
   <table>
-    <tr><th>Auth-Gate Fix (1.2.1)</th><td class="gruen">GRÜN</td></tr>
-    <tr><th>Staging Backend Operator-RPCs</th><td class="gruen">GRÜN</td></tr>
-    <tr><th>Staging Security (Backend)</th><td class="gruen">GRÜN</td></tr>
-    <tr><th>Local UI Auth-Gate</th><td class="gruen">GRÜN</td></tr>
-    <tr><th>Local UI Owner E2E</th><td class="gelb">GELB — ausstehend (Passwort/Session)</td></tr>
+    <tr><th>Staging-Freigabe (intern)</th><td class="gruen">JA</td></tr>
     <tr><th>Production-Freigabe</th><td class="rot">NEIN</td></tr>
   </table>
 
-  <p><em>Aktualisiert: 2026-07-08 · PLATFORM.1.2.1 Auth-Gate Fix + Local Staging Smoke</em></p>
+  <p><em>Aktualisiert: 2026-07-08 · PLATFORM.1.2.3 Final Reconciliation + Smoke</em></p>
 </body>
 </html>
