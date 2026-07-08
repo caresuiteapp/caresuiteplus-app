@@ -31,6 +31,18 @@ export {
   updatePlatformInvoiceStatus,
   updatePlatformSystemSetting,
 } from './platformOpsService';
+export {
+  assignPlatformAddonToTenant,
+  assignPlatformDiscountToTenant,
+  assignPlatformPlanToTenant,
+  bookPlatformTenantCredit,
+  createPlatformAddon,
+  createPlatformPlan,
+  createPlatformPlanVersion,
+  generatePlatformInvoicePreview,
+  getPlatformEffectiveTenantEntitlements,
+  recalculatePlatformTenantEntitlements,
+} from './platformFoundationService';
 export { buildPlatformAuditPath, formatPlatformCents, formatPlatformDate, maskPlatformProviderId } from './platformFormat';
 export {
   CRITICAL_ACTIONS_REQUIRING_REASON,
@@ -40,3 +52,34 @@ export {
   validatePlatformReason,
 } from './platformCapabilities';
 export { PLATFORM_NAV_ITEMS } from './platformNavigation';
+export {
+  calculateBillingPreview,
+  calculatePlatformPricing,
+  calculateTenantEntitlements,
+  getTenantEntitlements,
+  hasTenantModuleAccess,
+  isModuleUsable,
+  nextPlanVersionNumber,
+  resolveEffectivePlanVersion,
+  resolveFeatureAvailability,
+  resolveModuleStateForTenant,
+  resolveTenantSubscriptionStatus,
+  subscriptionBlocksAccess,
+} from './foundation';
+export type {
+  PlatformBillingInterval,
+  PlatformBillingPreviewInput,
+  PlatformBillingPreviewResult,
+  PlatformEntitlementInput,
+  PlatformModuleAccessState,
+  PlatformPlanLimit,
+  PlatformPlanModule,
+  PlatformPlanVersion,
+  PlatformPricingInput,
+  PlatformPricingResult,
+  PlatformSubscriptionStatus,
+  PlatformTenantAddon,
+  PlatformTenantDiscount,
+  PlatformTenantEntitlement,
+  PlatformTenantSubscription,
+} from '@/types/platformConsole/foundation';
