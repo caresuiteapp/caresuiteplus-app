@@ -1,8 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import {
+  canMarkExportDrift,
   deriveReviewExportStatus,
+  getReviewCorrectionExportBlockReason,
   getReviewExportBlockReason,
   isFinalizedExportJobStatus,
+  isReviewCorrectionCandidate,
+  isReviewCorrectionExportable,
   isReviewExportable,
   normalizeExportPeriod,
 } from '@/lib/wfm/wfmTimeExportPolicy';
