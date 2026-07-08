@@ -5,6 +5,7 @@ import { SERVICE_ERRORS } from '@/lib/services/errors';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
+import { resolveAssignmentActualTimes } from './wfmAssignmentActualResolver';
 
 const CANCELLED_STATUSES = new Set(['cancelled', 'storniert', 'no_show', 'nicht_erschienen']);
 
@@ -18,6 +19,9 @@ type AssignmentRow = {
   planned_end_at: string | null;
   actual_start_at: string | null;
   actual_end_at: string | null;
+  on_the_way_at: string | null;
+  arrived_at: string | null;
+  finished_at: string | null;
   status: string | null;
   title: string | null;
   clients?: { first_name: string | null; last_name: string | null } | null;
@@ -55,6 +59,7 @@ function mapAssignmentRow(row: AssignmentRow): WfmOfficePlannedVisit | null {
   if (CANCELLED_STATUSES.has(status)) return null;
   const workDate = row.assignment_date?.slice(0, 10) ?? '';
   if (!workDate) return null;
+  const actualTimes = resolveAssignmentActualTimes(row);
   return {
     assignmentId: row.id,
     visitId: row.id,
@@ -63,8 +68,11 @@ function mapAssignmentRow(row: AssignmentRow): WfmOfficePlannedVisit | null {
     workDate,
     plannedStartAt: row.planned_start_at,
     plannedEndAt: row.planned_end_at,
-    assignmentActualStartAt: row.actual_start_at,
-    assignmentActualEndAt: row.actual_end_at,
+    assignmentActualStartAt: actualTimes.startAt,
+    assignmentActualEndAt: actualTimes.endAt,
+    assignmentOnTheWayAt: row.on_the_way_at,
+    assignmentArrivedAt: row.arrived_at,
+    assignmentFinishedAt: row.finished_at,
     clientLabel: clientLabelFromRow(row),
     assignmentTitle: row.title?.trim() || 'Einsatz',
     assignmentStatus: status,
@@ -93,7 +101,7 @@ export async function listPlannedVisitsForPeriod(
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const select =
-    'id, tenant_id, client_id, employee_id, assignment_date, planned_start_at, planned_end_at, actual_start_at, actual_end_at, status, title, clients(first_name, last_name)';
+    'id, tenant_id, client_id, employee_id, assignment_date, planned_start_at, planned_end_at, actual_start_at, actual_end_at, on_the_way_at, arrived_at, finished_at, status, title, clients(first_name, last_name)';
 
   const { data, error } = await fromUnknownTable(supabase, 'assignments')
     .select(select)

@@ -35,7 +35,7 @@ const SEGMENT_LABELS: Record<string, string> = {
   live: 'Live',
   'live-map': 'Live-Karte',
   zeitkonten: 'Zeitkonten',
-  pruefqueue: 'Prüfqueue',
+  pruefqueue: 'Offene Prüfungen',
   nachtraege: 'Nachträge',
   fahrzeitregeln: 'Fahrzeitregeln',
   'team-meetings': 'Team-Meetings',

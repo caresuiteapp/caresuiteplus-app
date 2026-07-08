@@ -75,28 +75,54 @@ export function formatWfmActualTimeRange(
   return `${formatWfmTime(actualStart)} – ${formatWfmTime(actualEnd)}`;
 }
 
-/** Prüfqueue — Ist-Zeile mit Fallback auf Einsatz-Ist oder Plan */
+/** Offene Prüfungen — Ist-Zeile (niemals Plan-Dauer als Ist) */
 export function formatWfmReviewQueueIstLabel(entry: WfmOfficeTimeEntry): string {
   const display = resolveWfmOfficeTimeDisplay(entry);
-  if (display.hasTimeEntry) {
-    return formatWfmActualTimeRange(display.actualStart, display.actualEnd, entry.actualDisplayStatus);
+  if (display.displaySource === 'time_entry' || display.displaySource === 'approved_time_entry') {
+    return formatWfmActualTimeRange(display.timeEntryStart, display.timeEntryEnd, entry.actualDisplayStatus);
   }
-  if (display.timeSource === 'assignment_actual') {
-    return `${formatWfmTime(display.displayStart)} – ${formatWfmTime(display.displayEnd)} (aus Einsatz)`;
+  if (display.displaySource === 'assignment_actual') {
+    return `${formatWfmTime(display.assignmentActualStart)} – ${formatWfmTime(display.assignmentActualEnd)} (Einsatz-Ist)`;
   }
-  if (display.timeSource === 'assignment_planned') {
+  if (display.displaySource === 'planned_only') {
     return 'noch nicht gebucht';
   }
   return 'Noch nicht erfasst';
 }
 
-/** Prüfqueue — Dauer mit Fallback */
+/** Offene Prüfungen — Ist-Dauer (niemals geplante Dauer auf Ist-Zeile) */
 export function formatWfmReviewQueueDuration(entry: WfmOfficeTimeEntry): string {
   const display = resolveWfmOfficeTimeDisplay(entry);
-  if (display.displayDurationMinutes > 0) {
-    return formatWfmDurationMinutes(display.displayDurationMinutes);
+  if (display.displaySource === 'time_entry' || display.displaySource === 'approved_time_entry') {
+    return display.timeEntryDurationMinutes > 0
+      ? formatWfmDurationMinutes(display.timeEntryDurationMinutes)
+      : '—';
+  }
+  if (display.displaySource === 'assignment_actual') {
+    return display.assignmentActualDurationMinutes > 0
+      ? formatWfmDurationMinutes(display.assignmentActualDurationMinutes)
+      : '—';
   }
   return '—';
+}
+
+/** Kompakte Ist-Zeile für Karten */
+export function formatWfmReviewQueueIstLine(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.displaySource === 'planned_only') {
+    return display.displayPrimaryTimeLabel;
+  }
+  const duration = formatWfmReviewQueueDuration(entry);
+  const ist = formatWfmReviewQueueIstLabel(entry);
+  if (duration === '—') return `Ist: ${ist}`;
+  return `Ist: ${ist} · ${duration}`;
+}
+
+/** Geplante Dauer separat (nie auf Ist-Zeile) */
+export function formatWfmReviewQueuePlannedDuration(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.plannedDurationMinutes <= 0) return '—';
+  return formatWfmDurationMinutes(display.plannedDurationMinutes);
 }
 
 export function formatWfmReviewQueueStartLabel(
@@ -108,14 +134,14 @@ export function formatWfmReviewQueueStartLabel(
     return `Start: ${labels[ampel]}`;
   }
   const display = resolveWfmOfficeTimeDisplay(entry);
-  if (display.hasTimeEntry && display.actualStart) {
-    return `Start: ${formatWfmTime(display.actualStart)}`;
+  if (display.hasTimeEntry && display.timeEntryStart) {
+    return `Start: ${formatWfmTime(display.timeEntryStart)}`;
   }
-  if (display.timeSource === 'assignment_actual' && display.displayStart) {
-    return `Start: ${formatWfmTime(display.displayStart)} (Einsatz)`;
+  if (display.displaySource === 'assignment_actual' && display.assignmentActualStart) {
+    return `Start: ${formatWfmTime(display.assignmentActualStart)} (Einsatz-Ist)`;
   }
-  if (display.displayStart) {
-    return `Start geplant: ${formatWfmTime(display.displayStart)}`;
+  if (display.plannedStart) {
+    return `Start geplant: ${formatWfmTime(display.plannedStart)}`;
   }
   return 'Start: nicht erfasst';
 }
@@ -129,14 +155,14 @@ export function formatWfmReviewQueueEndLabel(
     return `Ende: ${labels[ampel]}`;
   }
   const display = resolveWfmOfficeTimeDisplay(entry);
-  if (display.hasTimeEntry && display.actualEnd) {
-    return `Ende: ${formatWfmTime(display.actualEnd)}`;
+  if (display.hasTimeEntry && display.timeEntryEnd) {
+    return `Ende: ${formatWfmTime(display.timeEntryEnd)}`;
   }
-  if (display.timeSource === 'assignment_actual' && display.displayEnd) {
-    return `Ende: ${formatWfmTime(display.displayEnd)} (Einsatz)`;
+  if (display.displaySource === 'assignment_actual' && display.assignmentActualEnd) {
+    return `Ende: ${formatWfmTime(display.assignmentActualEnd)} (Einsatz-Ist)`;
   }
-  if (display.displayEnd) {
-    return `Ende geplant: ${formatWfmTime(display.displayEnd)}`;
+  if (display.plannedEnd) {
+    return `Ende geplant: ${formatWfmTime(display.plannedEnd)}`;
   }
   return 'Ende: nicht erfasst';
 }
@@ -147,10 +173,16 @@ export function formatWfmReviewQueueGesamtLabel(entry: WfmOfficeTimeEntry): stri
     const labels = { green: 'Grün', yellow: 'Gelb', red: 'Rot', blue: 'Blau' };
     return `Gesamt (${labels[entry.overallAmpel]})`;
   }
-  if (display.displayDurationMinutes > 0) {
-    const prefix =
-      display.timeSource === 'assignment_planned' ? 'Dauer geplant' : 'Gesamt';
-    return `${prefix}: ${formatWfmDurationMinutes(display.displayDurationMinutes)}`;
+  if (display.displaySource === 'time_entry' || display.displaySource === 'approved_time_entry') {
+    if (display.timeEntryDurationMinutes > 0) {
+      return `Gesamt: ${formatWfmDurationMinutes(display.timeEntryDurationMinutes)}`;
+    }
+  }
+  if (display.displaySource === 'assignment_actual' && display.assignmentActualDurationMinutes > 0) {
+    return `Dauer Einsatz-Ist: ${formatWfmDurationMinutes(display.assignmentActualDurationMinutes)}`;
+  }
+  if (display.displaySource === 'planned_only' && display.plannedDurationMinutes > 0) {
+    return `Geplante Dauer: ${formatWfmDurationMinutes(display.plannedDurationMinutes)}`;
   }
   return 'Gesamt: nicht berechnet';
 }

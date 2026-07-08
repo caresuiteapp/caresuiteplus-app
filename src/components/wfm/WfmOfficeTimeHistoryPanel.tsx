@@ -1,28 +1,25 @@
-import { useCallback, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
 import { PremiumButton, PremiumKpiCard, SectionPanel } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { formatWfmDurationMinutes, formatWfmPlanTimeRange, formatWfmReviewQueueDuration, formatWfmReviewQueueEndLabel, formatWfmReviewQueueGesamtLabel, formatWfmReviewQueueIstLabel, formatWfmReviewQueueStartLabel } from '@/lib/wfm/wfmDisplayHelpers';
-import { listWfmOfficeAuditForEntry } from '@/lib/wfm/wfmOfficeAuditService';
 import {
   applyWfmOfficeTimeCorrection,
+  adoptWfmAssignmentActualToBooking,
   getWfmOfficeTimeOverview,
   reviewWfmOfficeTimeEntry,
 } from '@/lib/wfm/wfmOfficeTimekeepingService';
+import { listWfmOfficeAuditForEntry } from '@/lib/wfm/wfmOfficeAuditService';
 import type {
   WfmOfficePeriodPreset,
   WfmOfficeTimeEntry,
   WfmOfficeTimeFilters,
 } from '@/types/modules/wfmOfficeTimekeeping';
-import {
-  WFM_DEVIATION_AMPEL_LABELS,
-  WFM_OFFICE_PERIOD_PRESET_LABELS,
-  WFM_OFFICE_TIME_STATUS_LABELS,
-} from '@/types/modules/wfmOfficeTimekeeping';
+import { WFM_OFFICE_PERIOD_PRESET_LABELS, WFM_OFFICE_TIME_STATUS_LABELS } from '@/types/modules/wfmOfficeTimekeeping';
 import { WfmOfficeTimeEntryTable } from './WfmOfficeTimeEntryTable';
+import { WfmOfficeTimeReviewDetailPanel } from './WfmOfficeTimeReviewDetailPanel';
 import { typography } from '@/theme';
 
 type Props = {
@@ -63,6 +60,9 @@ export function WfmOfficeTimeHistoryPanel({
   const [filterEmployeeId, setFilterEmployeeId] = useState<string | null>(null);
   const [correctionReason, setCorrectionReason] = useState('');
   const [reviewNote, setReviewNote] = useState('');
+  const [editStartAt, setEditStartAt] = useState('');
+  const [editEndAt, setEditEndAt] = useState('');
+  const [editPauseMinutes, setEditPauseMinutes] = useState('0');
   const [actionMessage, setActionMessage] = useState<string | null>(null);
 
   const filters: Partial<WfmOfficeTimeFilters> = {};
@@ -99,6 +99,18 @@ export function WfmOfficeTimeHistoryPanel({
     overview?.entries.find((e) => e.id === selectedId) ?? null;
   const kpis = overview?.kpis;
 
+  useEffect(() => {
+    if (!selected) {
+      setEditStartAt('');
+      setEditEndAt('');
+      setEditPauseMinutes('0');
+      return;
+    }
+    setEditStartAt(selected.actualStartAt ?? selected.assignmentActualStartAt ?? '');
+    setEditEndAt(selected.actualEndAt ?? selected.assignmentActualEndAt ?? '');
+    setEditPauseMinutes(String(selected.pauseMinutes ?? 0));
+  }, [selected?.id]);
+
   const runReview = async (
     decision: 'approved' | 'rejected' | 'exported' | 'locked' | 'needs_clarification',
   ) => {
@@ -129,6 +141,9 @@ export function WfmOfficeTimeHistoryPanel({
     const result = await applyWfmOfficeTimeCorrection(tenantId, reviewerId, roleKey, {
       entryId: selectedId,
       reason: correctionReason,
+      actualStartAt: editStartAt || null,
+      actualEndAt: editEndAt || null,
+      pauseMinutes: Number(editPauseMinutes) || 0,
     });
     if (!result.ok) {
       setActionMessage(result.error);
@@ -139,6 +154,37 @@ export function WfmOfficeTimeHistoryPanel({
     void historyQuery.refresh();
     void auditQuery.refresh();
   };
+
+  const runAdoptAssignment = async () => {
+    if (!selectedId) return;
+    const reason = correctionReason.trim() || reviewNote.trim() || 'Übernahme aus Einsatz-Ist';
+    const result = await adoptWfmAssignmentActualToBooking(tenantId, reviewerId, roleKey, selectedId, reason);
+    if (!result.ok) {
+      setActionMessage(result.error);
+      return;
+    }
+    setActionMessage('Einsatz-Ist als Buchung übernommen.');
+    void historyQuery.refresh();
+    void auditQuery.refresh();
+  };
+
+  const kpiCards = reviewQueueMode
+    ? [
+        { label: 'Offene Prüfungen', value: String(kpis?.pendingReviewCount ?? 0) },
+        { label: 'Fehlende Buchungen', value: String(kpis?.missingBookings ?? 0) },
+        { label: 'Ungeplante Buchungen', value: String(kpis?.unplannedBookings ?? 0) },
+        { label: 'Abweichungen', value: String(kpis?.planningDeviations ?? 0) },
+        { label: 'Geplante Einsätze', value: String(kpis?.plannedVisits ?? 0) },
+        { label: 'Erfasste Einsätze', value: String(kpis?.recordedVisits ?? 0) },
+      ]
+    : [
+        { label: 'Geplante Einsätze', value: String(kpis?.plannedVisits ?? 0) },
+        { label: 'Erfasste Einsätze', value: String(kpis?.recordedVisits ?? 0) },
+        { label: 'Fehlende Buchungen', value: String(kpis?.missingBookings ?? 0) },
+        { label: 'Gesamtstunden', value: String(kpis?.totalHours ?? 0) },
+        { label: 'Offene Prüfungen', value: String(kpis?.pendingReviewCount ?? 0) },
+        { label: 'Exportiert', value: String(kpis?.exportedCount ?? 0) },
+      ];
 
   return (
     <SectionPanel
@@ -183,7 +229,7 @@ export function WfmOfficeTimeHistoryPanel({
 
       <View style={styles.filterRow}>
         <PremiumButton
-          title="Alle MA"
+          title="Alle Mitarbeitende"
           variant={!filterEmployeeId ? 'secondary' : 'ghost'}
           onPress={() => setFilterEmployeeId(null)}
         />
@@ -217,16 +263,9 @@ export function WfmOfficeTimeHistoryPanel({
 
       {kpis ? (
         <View style={styles.kpiRow}>
-          <PremiumKpiCard label="Geplante Einsätze" value={String(kpis.plannedVisits ?? 0)} accentColor={accent} />
-          <PremiumKpiCard label="Erfasste Einsätze" value={String(kpis.recordedVisits ?? 0)} accentColor={accent} />
-          <PremiumKpiCard label="Fehlende Buchungen" value={String(kpis.missingBookings ?? 0)} accentColor={accent} />
-          <PremiumKpiCard label="Ungeplante Buchungen" value={String(kpis.unplannedBookings ?? 0)} accentColor={accent} />
-          <PremiumKpiCard label="Gesamtstunden" value={String(kpis.totalHours)} accentColor={accent} />
-          <PremiumKpiCard label="Offene Prüfungen" value={String(kpis.pendingReviewCount)} accentColor={accent} />
-          <PremiumKpiCard label="Abweichungen" value={String(kpis.planningDeviations)} accentColor={accent} />
-          <PremiumKpiCard label="MA mit Arbeitszeit" value={String(kpis.employeesWithTime ?? 0)} accentColor={accent} />
-          <PremiumKpiCard label="MA geplant" value={String(kpis.employeesPlanned ?? 0)} accentColor={accent} />
-          <PremiumKpiCard label="Exportiert" value={String(kpis.exportedCount)} accentColor={accent} />
+          {kpiCards.map((card) => (
+            <PremiumKpiCard key={card.label} label={card.label} value={card.value} accentColor={accent} />
+          ))}
         </View>
       ) : null}
 
@@ -234,115 +273,32 @@ export function WfmOfficeTimeHistoryPanel({
         entries={overview?.entries ?? []}
         selectedId={selectedId}
         onSelect={setSelectedId}
+        reviewQueueMode={reviewQueueMode}
       />
 
       {selected ? (
-        <View style={[styles.detail, { borderColor: text.border }]}>
-          <Text style={{ color: text.primary, ...typography.h3 }}>
-            {selected.employeeName} — {selected.workDate}
-          </Text>
-          <Text style={{ color: text.secondary, ...typography.caption }}>
-            {selected.clientLabel ?? selected.assignmentTitle ?? '—'} · Status{' '}
-            {WFM_OFFICE_TIME_STATUS_LABELS[selected.reviewStatus]}
-            {selected.rowKind ? ` · ${selected.rowKind}` : ''}
-          </Text>
-          {selected.reviewNote || selected.officeComment ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>
-              Review-Kommentar: {selected.reviewNote ?? selected.officeComment}
-            </Text>
-          ) : null}
-          {selected.lastReviewAction ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>
-              Letzte Review-Aktion: {selected.lastReviewAction}
-              {selected.lastReviewComment ? ` — ${selected.lastReviewComment}` : ''}
-            </Text>
-          ) : null}
-          {selected.reviewedAt ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>
-              Zuletzt geprüft: {selected.reviewedAt.slice(0, 16)}
-            </Text>
-          ) : null}
-          <Text style={{ color: text.secondary, ...typography.caption }}>
-            Plan: {formatWfmPlanTimeRange(selected.plannedStartAt, selected.plannedEndAt, selected.planDisplayStatus)}
-          </Text>
-          <Text style={{ color: text.secondary, ...typography.caption }}>
-            Ist: {formatWfmReviewQueueIstLabel(selected)}
-          </Text>
-          <Text style={{ color: text.secondary, ...typography.caption }}>
-            {formatWfmReviewQueueStartLabel(selected, selected.startAmpel)} ·{' '}
-            {formatWfmReviewQueueEndLabel(selected, selected.endAmpel)} ·{' '}
-            {formatWfmReviewQueueGesamtLabel(selected)}
-          </Text>
-          {selected.flags.includes('missing_booking') ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>
-              Hinweis: Fehlende Buchung — geplanter Einsatz ohne Ist-Zeit.
-            </Text>
-          ) : null}
-          {selected.flags.includes('unplanned') ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>
-              Hinweis: Ungeplante Arbeitszeit — Zuordnung prüfen.
-            </Text>
-          ) : null}
-          {selected.startJustification ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>
-              Start-Begründung: {selected.startJustification}
-            </Text>
-          ) : null}
-          {selected.endJustification ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>
-              Ende-Begründung: {selected.endJustification}
-            </Text>
-          ) : null}
-          <Text style={{ color: text.secondary, ...typography.caption }}>
-            {selected.timeSource === 'assignment_planned'
-              ? `Dauer geplant: ${formatWfmReviewQueueDuration(selected)}`
-              : `Netto ${formatWfmDurationMinutes(selected.netMinutes)}`}{' '}
-            · Pause {formatWfmDurationMinutes(selected.pauseMinutes)}
-          </Text>
-
-          {canCorrect ? (
-            <View style={styles.actions}>
-              <TextInput
-                value={reviewNote}
-                onChangeText={setReviewNote}
-                placeholder="Office-Kommentar / Ablehnungsgrund"
-                placeholderTextColor={text.muted}
-                style={[styles.input, { color: text.primary, borderColor: text.border }]}
-              />
-              <View style={styles.actionRow}>
-                <PremiumButton title="Freigeben" variant="secondary" onPress={() => void runReview('approved')} />
-                <PremiumButton title="Rückfrage stellen" variant="ghost" onPress={() => void runReview('needs_clarification')} />
-                <PremiumButton title="Ablehnen" variant="ghost" onPress={() => void runReview('rejected')} />
-                <PremiumButton title="Exportieren" variant="ghost" onPress={() => void runReview('exported')} />
-                <PremiumButton title="Sperren" variant="ghost" onPress={() => void runReview('locked')} />
-              </View>
-              <TextInput
-                value={correctionReason}
-                onChangeText={setCorrectionReason}
-                placeholder="Korrektur-Begründung (Pflicht)"
-                placeholderTextColor={text.muted}
-                style={[styles.input, { color: text.primary, borderColor: text.border }]}
-              />
-              <PremiumButton title="Korrektur erfassen" onPress={() => void runCorrection()} />
-            </View>
-          ) : null}
-
-          <Text style={{ color: text.primary, ...typography.bodyMedium, marginTop: careSpacing.sm }}>
-            Audit-Trail
-          </Text>
-          {(auditQuery.data ?? []).map((a) => (
-            <Text key={a.id} style={{ color: text.secondary, ...typography.caption }}>
-              {a.createdAt.slice(0, 16)} · {a.summary}
-              {a.reason ? ` — ${a.reason}` : ''}
-            </Text>
-          ))}
-        </View>
-      ) : null}
-
-      {actionMessage ? (
-        <Text style={{ color: text.secondary, ...typography.caption, marginTop: careSpacing.sm }}>
-          {actionMessage}
-        </Text>
+        <WfmOfficeTimeReviewDetailPanel
+          entry={selected}
+          auditEntries={auditQuery.data ?? []}
+          canCorrect={canCorrect}
+          onApprove={() => void runReview('approved')}
+          onReject={() => void runReview('rejected')}
+          onClarification={() => void runReview('needs_clarification')}
+          onAdoptAssignment={() => void runAdoptAssignment()}
+          onSaveCorrection={() => void runCorrection()}
+          reviewNote={reviewNote}
+          onReviewNoteChange={setReviewNote}
+          correctionReason={correctionReason}
+          onCorrectionReasonChange={setCorrectionReason}
+          editStartAt={editStartAt}
+          editEndAt={editEndAt}
+          editPauseMinutes={editPauseMinutes}
+          onEditStartAtChange={setEditStartAt}
+          onEditEndAtChange={setEditEndAt}
+          onEditPauseMinutesChange={setEditPauseMinutes}
+          actionMessage={actionMessage}
+          exportedWarning={selected.exportStatus === 'exported'}
+        />
       ) : null}
 
       <PremiumButton title="Historie aktualisieren" variant="ghost" onPress={() => void historyQuery.refresh()} />
@@ -355,9 +311,6 @@ const styles = StyleSheet.create({
   customRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.sm },
   filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginBottom: careSpacing.md },
   kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.md },
-  detail: { marginTop: careSpacing.md, padding: careSpacing.md, borderWidth: 1, borderRadius: 10, gap: 6 },
-  actions: { marginTop: careSpacing.sm, gap: careSpacing.sm },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
   input: {
     borderWidth: 1,
     borderRadius: 8,

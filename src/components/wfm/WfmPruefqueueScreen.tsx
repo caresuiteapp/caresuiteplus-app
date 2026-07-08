@@ -1,4 +1,3 @@
-import { useCallback } from 'react';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import { usePermissions } from '@/hooks/usePermissions';
@@ -16,7 +15,7 @@ export function WfmPruefqueueScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Prüfqueue" showBack={false}>
+      <ScreenShell title="Zeitbuchungen prüfen" showBack={false}>
         <LockedActionBanner
           message={check('time.tracking.team.view').reason ?? 'Keine Berechtigung.'}
           roleLabel={roleLabel}
@@ -26,7 +25,12 @@ export function WfmPruefqueueScreen() {
   }
 
   return (
-    <ScreenShell title="Prüfqueue" subtitle="Offene Zeitbuchungen zur Freigabe" showBack={false} scroll>
+    <ScreenShell
+      title="Zeitbuchungen prüfen"
+      subtitle="Offene Arbeitszeitfälle zur Prüfung und Freigabe"
+      showBack={false}
+      scroll
+    >
       {tenantId && reviewerId ? (
         <WfmOfficeTimeHistoryPanel
           tenantId={tenantId}

@@ -53,12 +53,17 @@ export type WfmOfficeActualDisplayStatus =
   | 'not_captured'
   | 'partial';
 
-/** Anzeige-Herkunft für Prüfqueue / Historie */
+/** Anzeige-Herkunft für Offene Prüfungen / Historie */
 export type WfmOfficeTimeSource =
+  | 'approved_time_entry'
   | 'time_entry'
   | 'assignment_actual'
-  | 'assignment_planned'
-  | 'missing';
+  | 'planned_only'
+  | 'missing'
+  /** @deprecated use planned_only */
+  | 'assignment_planned';
+
+export type WfmOfficeBookingStatus = 'booked' | 'missing_booking' | 'assignment_only' | 'not_captured';
 
 export type WfmOfficePeriodPreset =
   | 'today'
@@ -112,12 +117,22 @@ export interface WfmOfficeTimeEntry {
   assignmentActualEndAt?: string | null;
   actualStartAt: string | null;
   actualEndAt: string | null;
-  /** Abgeleitete Anzeige-Felder (Prüfqueue) */
+  /** Abgeleitete Anzeige-Felder (Offene Prüfungen) */
   timeSource?: WfmOfficeTimeSource;
   displayStartAt?: string | null;
   displayEndAt?: string | null;
   displayDurationMinutes?: number;
   plannedDurationMinutes?: number;
+  displayPrimaryTimeLabel?: string;
+  displaySecondaryTimeLabel?: string;
+  displayDurationLabel?: string;
+  displaySource?: WfmOfficeTimeSource;
+  bookingStatus?: WfmOfficeBookingStatus;
+  canOpenDetails?: boolean;
+  canEdit?: boolean;
+  canApprove?: boolean;
+  canReject?: boolean;
+  canRequestClarification?: boolean;
   startDeviationMinutes: number | null;
   endDeviationMinutes: number | null;
   startAmpel: WfmDeviationAmpel | null;
@@ -190,9 +205,24 @@ export interface WfmOfficePlannedVisit {
   plannedEndAt: string | null;
   assignmentActualStartAt?: string | null;
   assignmentActualEndAt?: string | null;
+  assignmentOnTheWayAt?: string | null;
+  assignmentArrivedAt?: string | null;
+  assignmentFinishedAt?: string | null;
   clientLabel: string | null;
   assignmentTitle: string | null;
   assignmentStatus: string | null;
+}
+
+export interface WfmOfficeEmployeeTimeAccount {
+  employeeId: string;
+  employeeName: string;
+  plannedMinutes: number;
+  actualMinutes: number;
+  approvedMinutes: number;
+  exportedMinutes: number;
+  saldoMinutes: number;
+  openReviewCount: number;
+  entries: WfmOfficeTimeEntry[];
 }
 
 export interface WfmOfficeTimeFilters {

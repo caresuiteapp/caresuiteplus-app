@@ -108,8 +108,8 @@ describe('ZEIT.3.1 data join', () => {
     expect(rows[0].reviewStatus).toBe('pending_review');
     expect(rows[0].startAmpel).toBeNull();
     expect(rows[0].overallAmpel).toBeNull();
-    expect(rows[0].timeSource).toBe('assignment_planned');
-    expect(rows[0].displayDurationMinutes).toBeGreaterThan(0);
+    expect(rows[0].timeSource).toBe('planned_only');
+    expect(rows[0].displayDurationMinutes).toBe(0);
   });
 
   it('shows actual without planned assignment as unplanned', () => {
@@ -231,7 +231,8 @@ describe('ZEIT.3.1 display helpers contract', () => {
       'utf8',
     );
     expect(table).toContain('formatWfmPlanTimeRange');
-    expect(table).toContain('formatWfmReviewQueueIstLabel');
+    expect(table).toContain('formatWfmReviewQueueIstLine');
+    expect(table).toContain('formatWfmReviewQueuePlannedDuration');
     expect(table).not.toMatch(/Plan: \{formatWfmTime\(entry\.plannedStartAt\)/);
   });
 });
