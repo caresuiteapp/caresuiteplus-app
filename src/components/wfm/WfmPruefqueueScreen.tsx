@@ -1,9 +1,9 @@
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useServiceTenantId } from '@/hooks/useTenantId';
 import { useAuth } from '@/lib/auth/context';
 import { WfmOfficeTimeHistoryPanel } from '@/components/wfm/WfmOfficeTimeHistoryPanel';
+import { WfmOfficeSectionHeading } from '@/components/wfm/WfmOfficeTimekeepingLayout';
 
 export function WfmPruefqueueScreen() {
   const tenantId = useServiceTenantId();
@@ -15,22 +15,19 @@ export function WfmPruefqueueScreen() {
 
   if (!canView) {
     return (
-      <ScreenShell title="Zeitbuchungen prüfen" showBack={false}>
-        <LockedActionBanner
-          message={check('time.tracking.team.view').reason ?? 'Keine Berechtigung.'}
-          roleLabel={roleLabel}
-        />
-      </ScreenShell>
+      <LockedActionBanner
+        message={check('time.tracking.team.view').reason ?? 'Keine Berechtigung.'}
+        roleLabel={roleLabel}
+      />
     );
   }
 
   return (
-    <ScreenShell
-      title="Zeitbuchungen prüfen"
-      subtitle="Offene Arbeitszeitfälle zur Prüfung und Freigabe"
-      showBack={false}
-      scroll
-    >
+    <>
+      <WfmOfficeSectionHeading
+        title="Zeitbuchungen prüfen"
+        subtitle="Offene Arbeitszeitfälle zur Prüfung und Freigabe"
+      />
       {tenantId && reviewerId ? (
         <WfmOfficeTimeHistoryPanel
           tenantId={tenantId}
@@ -41,6 +38,6 @@ export function WfmPruefqueueScreen() {
           reviewQueueMode
         />
       ) : null}
-    </ScreenShell>
+    </>
   );
 }

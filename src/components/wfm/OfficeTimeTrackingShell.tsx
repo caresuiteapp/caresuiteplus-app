@@ -1,6 +1,6 @@
 import { Slot, usePathname, useRouter } from 'expo-router';
-import { Platform, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
-import { useAuroraAdaptiveText, useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
+import { Platform, Pressable, StyleSheet, Text, View } from 'react-native';
+import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
@@ -15,7 +15,6 @@ export function OfficeTimeTrackingShell() {
   const router = useRouter();
   const pathname = usePathname();
   const text = useAuroraAdaptiveText();
-  const chipStyles = useAuroraGlassChipStyles();
   const accent = moduleColor('office');
   const activeTab = resolveOfficeTimeTrackingTabKey(pathname);
   const ownCaptureActive = isOfficeTimeTrackingOwnCaptureRoute(pathname);
@@ -26,14 +25,14 @@ export function OfficeTimeTrackingShell() {
         <View style={styles.headerText}>
           <Text style={[styles.title, { color: text.primary }]}>Arbeitszeit</Text>
           <Text style={[styles.subtitle, { color: text.secondary }]}>
-            Workforce Management — Teamsteuerung und Prüfung
+            Teamsteuerung · Prüfung · Export
           </Text>
         </View>
         <Pressable
           onPress={() => router.push(OFFICE_TIME_TRACKING_OWN_HREF as never)}
           style={({ pressed }) => [
             styles.ownLink,
-            ownCaptureActive && { borderColor: accent },
+            { borderColor: ownCaptureActive ? accent : text.border },
             pressed && styles.ownLinkPressed,
           ]}
           accessibilityRole="link"
@@ -45,12 +44,7 @@ export function OfficeTimeTrackingShell() {
         </Pressable>
       </View>
 
-      <ScrollView
-        horizontal
-        showsHorizontalScrollIndicator={false}
-        style={styles.tabScroll}
-        contentContainerStyle={styles.tabRow}
-      >
+      <View style={styles.tabBar}>
         {OFFICE_TIME_TRACKING_TABS.map((tab) => {
           const selected = activeTab === tab.key;
           return (
@@ -58,21 +52,28 @@ export function OfficeTimeTrackingShell() {
               key={tab.key}
               onPress={() => router.push(tab.href as never)}
               style={({ pressed }) => [
-                chipStyles.chip,
-                selected && chipStyles.chipSelected,
-                pressed && chipStyles.chipPressed,
-                styles.tabChip,
+                styles.tab,
+                { borderColor: selected ? accent : text.border },
+                selected && { backgroundColor: `${accent}18` },
+                pressed && styles.tabPressed,
               ]}
               accessibilityRole="tab"
               accessibilityState={{ selected }}
             >
-              <Text style={[chipStyles.label, selected && chipStyles.labelSelected]} numberOfLines={1}>
+              <Text
+                style={[
+                  styles.tabLabel,
+                  { color: selected ? accent : text.secondary },
+                  selected && styles.tabLabelActive,
+                ]}
+                numberOfLines={1}
+              >
                 {tab.label}
               </Text>
             </Pressable>
           );
         })}
-      </ScrollView>
+      </View>
 
       <View style={styles.content}>
         <Slot />
@@ -88,30 +89,33 @@ const styles = StyleSheet.create({
   },
   header: {
     flexDirection: 'row',
-    alignItems: 'flex-start',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    gap: careSpacing.md,
+    gap: careSpacing.sm,
     paddingHorizontal: careSpacing.md,
-    paddingTop: careSpacing.md,
-    paddingBottom: careSpacing.sm,
+    paddingTop: careSpacing.sm,
+    paddingBottom: 4,
   },
   headerText: {
     flex: 1,
-    gap: careSpacing.xs,
+    gap: 0,
   },
   title: {
-    ...typography.h3,
+    ...typography.bodyMedium,
     fontWeight: '700',
+    fontSize: 17,
+    lineHeight: 22,
   },
   subtitle: {
     ...typography.caption,
+    fontSize: 11,
+    lineHeight: 14,
   },
   ownLink: {
     borderWidth: 1,
-    borderColor: 'transparent',
-    borderRadius: 8,
+    borderRadius: 6,
     paddingHorizontal: careSpacing.sm,
-    paddingVertical: careSpacing.xs,
+    paddingVertical: 4,
   },
   ownLinkPressed: {
     opacity: 0.85,
@@ -119,30 +123,41 @@ const styles = StyleSheet.create({
   ownLinkText: {
     ...typography.caption,
     fontWeight: '600',
+    fontSize: 11,
   },
-  tabScroll: {
-    flexGrow: 0,
-    flexShrink: 0,
-    ...(Platform.OS === 'web'
-      ? {
-          maxHeight: 44,
-          overflowX: 'auto' as const,
-          overflowY: 'hidden' as const,
-        }
-      : null),
-  },
-  tabRow: {
+  tabBar: {
     flexDirection: 'row',
-    alignItems: 'center',
-    gap: careSpacing.sm,
+    flexWrap: 'wrap',
+    gap: 6,
     paddingHorizontal: careSpacing.md,
     paddingBottom: careSpacing.sm,
+    ...(Platform.OS === 'web'
+      ? ({
+          rowGap: 6,
+          columnGap: 6,
+        } as object)
+      : null),
   },
-  tabChip: {
+  tab: {
+    borderWidth: 1,
+    borderRadius: 6,
+    paddingHorizontal: 10,
+    paddingVertical: 5,
     flexShrink: 0,
-    alignSelf: 'center',
+  },
+  tabPressed: {
+    opacity: 0.88,
+  },
+  tabLabel: {
+    ...typography.caption,
+    fontSize: 11,
+    fontWeight: '500',
+  },
+  tabLabelActive: {
+    fontWeight: '700',
   },
   content: {
     flex: 1,
+    paddingHorizontal: careSpacing.md,
   },
 });

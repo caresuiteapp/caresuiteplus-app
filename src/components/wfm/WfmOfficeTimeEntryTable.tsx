@@ -1,21 +1,18 @@
 import { StyleSheet, Text, View } from 'react-native';
-import { PremiumBadge, PremiumButton } from '@/components/ui';
+import { PremiumBadge, PremiumButton, PremiumDataTable, type DataTableColumn } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
+  formatWfmDurationMinutes,
   formatWfmPlanTimeRange,
-  formatWfmReviewQueueGesamtLabel,
   formatWfmReviewQueueIstLine,
   formatWfmReviewQueuePlannedDuration,
-  formatWfmReviewQueueStartLabel,
-  formatWfmReviewQueueEndLabel,
 } from '@/lib/wfm/wfmDisplayHelpers';
 import { resolveWfmOfficeTimeDisplay } from '@/lib/wfm/wfmOfficeTimeDisplayResolver';
 import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import {
   WFM_DEVIATION_AMPEL_LABELS,
   WFM_OFFICE_TIME_STATUS_LABELS,
-  WFM_OFFICE_WORK_KIND_LABELS,
 } from '@/types/modules/wfmOfficeTimekeeping';
 import { typography } from '@/theme';
 
@@ -46,101 +43,164 @@ function rowStatusLabel(entry: WfmOfficeTimeEntry): string {
   return WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus];
 }
 
+function planCell(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  const range = formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus);
+  if (display.isPlannedOnly) {
+    return `${range} · ${formatWfmReviewQueuePlannedDuration(entry)}`;
+  }
+  return range;
+}
+
+function einsatzIstCell(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.hasAssignmentActual) {
+    return formatWfmReviewQueueIstLine(entry);
+  }
+  return '—';
+}
+
+function buchungCell(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.hasTimeEntry) {
+    return `${formatWfmDurationMinutes(entry.netMinutes)} netto`;
+  }
+  if (display.displaySource === 'assignment_actual') {
+    return display.displayDurationLabel;
+  }
+  return '—';
+}
+
 export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQueueMode = false }: Props) {
   const text = useAuroraAdaptiveText();
 
-  if (entries.length === 0) {
-    return (
-      <Text style={{ color: text.secondary, ...typography.body }}>
-        Keine Arbeitszeiteinträge im gewählten Zeitraum.
-      </Text>
-    );
-  }
+  const columns: DataTableColumn<WfmOfficeTimeEntry>[] = [
+    {
+      key: 'date',
+      label: 'Datum',
+      width: 96,
+      render: (entry) => (
+        <Text style={{ color: text.primary, ...typography.caption }}>{entry.workDate}</Text>
+      ),
+    },
+    {
+      key: 'employee',
+      label: 'Mitarbeiter',
+      flex: 1,
+      minWidth: 100,
+      render: (entry) => (
+        <Text style={{ color: text.primary, ...typography.caption }} numberOfLines={1}>
+          {entry.employeeName}
+        </Text>
+      ),
+    },
+    {
+      key: 'client',
+      label: 'Klient',
+      flex: 1,
+      minWidth: 90,
+      render: (entry) => (
+        <Text style={{ color: text.secondary, ...typography.caption }} numberOfLines={1}>
+          {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
+        </Text>
+      ),
+    },
+    {
+      key: 'plan',
+      label: 'Plan',
+      flex: 1.2,
+      minWidth: 110,
+      render: (entry) => (
+        <Text style={{ color: text.secondary, ...typography.caption }} numberOfLines={2}>
+          {planCell(entry)}
+        </Text>
+      ),
+    },
+    {
+      key: 'einsatz',
+      label: 'Einsatz-Ist',
+      flex: 1,
+      minWidth: 100,
+      render: (entry) => (
+        <Text style={{ color: text.secondary, ...typography.caption }} numberOfLines={2}>
+          {einsatzIstCell(entry)}
+        </Text>
+      ),
+    },
+    {
+      key: 'buchung',
+      label: 'Buchung',
+      width: 88,
+      render: (entry) => (
+        <Text style={{ color: text.secondary, ...typography.caption }} numberOfLines={1}>
+          {buchungCell(entry)}
+        </Text>
+      ),
+    },
+    {
+      key: 'status',
+      label: 'Status',
+      width: 120,
+      render: (entry) => (
+        <View style={styles.statusCell}>
+          <PremiumBadge
+            label={rowStatusLabel(entry)}
+            variant={
+              entry.reviewStatus === 'approved'
+                ? 'green'
+                : entry.flags.includes('missing_booking') || entry.flags.includes('unplanned')
+                  ? 'orange'
+                  : 'muted'
+            }
+          />
+          {entry.overallAmpel ? (
+            <PremiumBadge
+              label={WFM_DEVIATION_AMPEL_LABELS[entry.overallAmpel]}
+              variant={ampelVariant(entry.overallAmpel)}
+            />
+          ) : null}
+        </View>
+      ),
+    },
+    {
+      key: 'action',
+      label: 'Aktion',
+      width: 88,
+      align: 'right',
+      render: (entry) => {
+        const selected = selectedId === entry.id;
+        return (
+          <PremiumButton
+            title={selected ? 'Schließen' : reviewQueueMode ? 'Prüfen' : 'Details'}
+            variant={reviewQueueMode && !selected ? 'secondary' : 'ghost'}
+            onPress={() => onSelect(selected ? null : entry.id)}
+          />
+        );
+      },
+    },
+  ];
 
   return (
-    <View style={styles.wrap}>
-      {entries.map((entry) => {
-        const selected = selectedId === entry.id;
-        const display = resolveWfmOfficeTimeDisplay(entry);
-        return (
-          <View
-            key={entry.id}
-            style={[
-              styles.row,
-              { borderColor: selected ? text.primary : text.border },
-            ]}
-          >
-            <View style={styles.main}>
-              <Text style={{ color: text.primary, ...typography.bodyMedium }}>
-                {entry.workDate} · {entry.employeeName}
-                {entry.clientLabel || entry.assignmentTitle
-                  ? ` · ${entry.clientLabel ?? entry.assignmentTitle}`
-                  : ''}
-              </Text>
-              <Text style={{ color: text.secondary, ...typography.caption }}>
-                {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]} · {formatWfmReviewQueueIstLine(entry)}
-              </Text>
-              <Text style={{ color: text.secondary, ...typography.caption }}>
-                Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
-                {display.isPlannedOnly
-                  ? ` · Geplante Dauer: ${formatWfmReviewQueuePlannedDuration(entry)}`
-                  : ''}
-              </Text>
-              {display.displaySource === 'assignment_actual' ? (
-                <Text style={{ color: text.secondary, ...typography.caption }}>
-                  {display.displayDurationLabel}
-                </Text>
-              ) : null}
-              <Text style={{ color: text.secondary, ...typography.caption }}>
-                {formatWfmReviewQueueStartLabel(entry, entry.startAmpel)} ·{' '}
-                {formatWfmReviewQueueEndLabel(entry, entry.endAmpel)} ·{' '}
-                {formatWfmReviewQueueGesamtLabel(entry)}
-              </Text>
-            </View>
-            <View style={styles.badges}>
-              <PremiumBadge
-                label={rowStatusLabel(entry)}
-                variant={
-                  entry.reviewStatus === 'approved'
-                    ? 'green'
-                    : entry.flags.includes('missing_booking') || entry.flags.includes('unplanned')
-                      ? 'orange'
-                      : 'muted'
-                }
-              />
-              {display.displaySource === 'assignment_actual' ? (
-                <PremiumBadge label="Fehlende Buchung" variant="orange" />
-              ) : null}
-              {entry.overallAmpel ? (
-                <PremiumBadge
-                  label={`Gesamt ${WFM_DEVIATION_AMPEL_LABELS[entry.overallAmpel]}`}
-                  variant={ampelVariant(entry.overallAmpel)}
-                />
-              ) : null}
-              {entry.hasOpenOfficeMessage ? (
-                <PremiumBadge label="Office-Meldung" variant="orange" />
-              ) : null}
-            </View>
-            <PremiumButton
-              title={selected ? 'Schließen' : reviewQueueMode ? 'Prüfen' : 'Details'}
-              variant="ghost"
-              onPress={() => onSelect(selected ? null : entry.id)}
-            />
-          </View>
-        );
-      })}
+    <View style={styles.wrap} testID="wfm-office-time-entry-table">
+      <PremiumDataTable
+        columns={columns}
+        data={entries}
+        keyExtractor={(entry) => entry.id}
+        selectedId={selectedId}
+        onRowPress={(entry) => onSelect(selectedId === entry.id ? null : entry.id)}
+        emptyMessage="Keine Arbeitszeiteinträge im gewählten Zeitraum."
+      />
+      {entries.length > 0 ? (
+        <Text style={[styles.footerHint, { color: text.muted }]}>
+          {entries.length} Einträge · Plan und Einsatz-Ist getrennt dargestellt
+        </Text>
+      ) : null}
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  wrap: { gap: careSpacing.sm },
-  row: {
-    borderWidth: 1,
-    borderRadius: 10,
-    padding: careSpacing.md,
-    gap: careSpacing.sm,
-  },
-  main: { gap: 4 },
-  badges: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
+  wrap: { gap: careSpacing.xs },
+  statusCell: { flexDirection: 'row', flexWrap: 'wrap', gap: 4 },
+  footerHint: { ...typography.caption, fontSize: 10, marginTop: 4 },
 });

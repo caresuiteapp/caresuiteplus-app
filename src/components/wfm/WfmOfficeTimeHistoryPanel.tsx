@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useState } from 'react';
 import { StyleSheet, Text, TextInput, View } from 'react-native';
-import { PremiumButton, PremiumKpiCard, SectionPanel } from '@/components/ui';
+import { PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
@@ -18,6 +18,14 @@ import type {
   WfmOfficeTimeFilters,
 } from '@/types/modules/wfmOfficeTimekeeping';
 import { WFM_OFFICE_PERIOD_PRESET_LABELS, WFM_OFFICE_TIME_STATUS_LABELS } from '@/types/modules/wfmOfficeTimekeeping';
+import {
+  WfmOfficeCompactKpiStrip,
+  WfmOfficeFilterBar,
+  WfmOfficePeriodChips,
+  WfmOfficeSectionHeading,
+  WfmOfficeSplitWorkArea,
+  WfmOfficeStatusChip,
+} from './WfmOfficeTimekeepingLayout';
 import { WfmOfficeTimeEntryTable } from './WfmOfficeTimeEntryTable';
 import { WfmOfficeTimeReviewDetailPanel } from './WfmOfficeTimeReviewDetailPanel';
 import { typography } from '@/theme';
@@ -52,7 +60,7 @@ export function WfmOfficeTimeHistoryPanel({
 }: Props) {
   const text = useAuroraAdaptiveText();
   const accent = moduleColor('office');
-  const [preset, setPreset] = useState<WfmOfficePeriodPreset>(reviewQueueMode ? 'today' : 'today');
+  const [preset, setPreset] = useState<WfmOfficePeriodPreset>(reviewQueueMode ? 'last_30_days' : 'today');
   const [customFrom, setCustomFrom] = useState('');
   const [customTo, setCustomTo] = useState('');
   const [selectedId, setSelectedId] = useState<string | null>(null);
@@ -168,44 +176,81 @@ export function WfmOfficeTimeHistoryPanel({
     void auditQuery.refresh();
   };
 
-  const kpiCards = reviewQueueMode
+  const kpiItems = reviewQueueMode
     ? [
-        { label: 'Offene Prüfungen', value: String(kpis?.pendingReviewCount ?? 0) },
-        { label: 'Fehlende Buchungen', value: String(kpis?.missingBookings ?? 0) },
-        { label: 'Ungeplante Buchungen', value: String(kpis?.unplannedBookings ?? 0) },
-        { label: 'Abweichungen', value: String(kpis?.planningDeviations ?? 0) },
-        { label: 'Geplante Einsätze', value: String(kpis?.plannedVisits ?? 0) },
-        { label: 'Erfasste Einsätze', value: String(kpis?.recordedVisits ?? 0) },
+        { key: 'pending', label: 'Offen', value: String(kpis?.pendingReviewCount ?? 0), accent },
+        { key: 'missing', label: 'Fehlende Buchung', value: String(kpis?.missingBookings ?? 0) },
+        { key: 'unplanned', label: 'Ungeplant', value: String(kpis?.unplannedBookings ?? 0) },
+        { key: 'deviation', label: 'Abweichungen', value: String(kpis?.planningDeviations ?? 0) },
+        { key: 'planned', label: 'Geplant', value: String(kpis?.plannedVisits ?? 0) },
+        { key: 'recorded', label: 'Erfasst', value: String(kpis?.recordedVisits ?? 0) },
       ]
     : [
-        { label: 'Geplante Einsätze', value: String(kpis?.plannedVisits ?? 0) },
-        { label: 'Erfasste Einsätze', value: String(kpis?.recordedVisits ?? 0) },
-        { label: 'Fehlende Buchungen', value: String(kpis?.missingBookings ?? 0) },
-        { label: 'Gesamtstunden', value: String(kpis?.totalHours ?? 0) },
-        { label: 'Offene Prüfungen', value: String(kpis?.pendingReviewCount ?? 0) },
-        { label: 'Exportiert', value: String(kpis?.exportedCount ?? 0) },
+        { key: 'planned', label: 'Geplant', value: String(kpis?.plannedVisits ?? 0), accent },
+        { key: 'recorded', label: 'Erfasst', value: String(kpis?.recordedVisits ?? 0) },
+        { key: 'missing', label: 'Fehlende Buchung', value: String(kpis?.missingBookings ?? 0) },
+        { key: 'hours', label: 'Std. gesamt', value: String(kpis?.totalHours ?? 0) },
+        { key: 'pending', label: 'Offen', value: String(kpis?.pendingReviewCount ?? 0) },
+        { key: 'exported', label: 'Exportiert', value: String(kpis?.exportedCount ?? 0) },
       ];
 
-  return (
-    <SectionPanel
-      title={reviewQueueMode ? 'Offene Prüfungen' : 'Arbeitszeit-Historie'}
-      subtitle={overview ? `${overview.period.fromDate} – ${overview.period.toDate}` : undefined}
-    >
-      <View style={styles.presetRow}>
-        {PRESETS.map((p) => (
-          <PremiumButton
-            key={p}
-            title={WFM_OFFICE_PERIOD_PRESET_LABELS[p]}
-            variant={preset === p ? 'primary' : 'ghost'}
-            onPress={() => setPreset(p)}
+  const periodOptions = [
+    ...PRESETS.map((p) => ({ key: p, label: WFM_OFFICE_PERIOD_PRESET_LABELS[p] })),
+    { key: 'custom' as const, label: 'Freier Zeitraum' },
+  ];
+
+  const mainContent = (
+    <>
+      <WfmOfficeSectionHeading
+        title={reviewQueueMode ? 'Offene Prüfungen' : 'Arbeitszeit-Historie'}
+        subtitle={overview ? `${overview.period.fromDate} – ${overview.period.toDate}` : undefined}
+      />
+
+      <WfmOfficeFilterBar
+        periodSlot={
+          <WfmOfficePeriodChips
+            options={periodOptions}
+            value={preset}
+            onChange={(p) => setPreset(p)}
           />
-        ))}
-        <PremiumButton
-          title="Freier Zeitraum"
-          variant={preset === 'custom' ? 'primary' : 'ghost'}
-          onPress={() => setPreset('custom')}
-        />
-      </View>
+        }
+        secondarySlot={
+          <>
+            <WfmOfficeStatusChip
+              label="Alle MA"
+              selected={!filterEmployeeId}
+              onPress={() => setFilterEmployeeId(null)}
+            />
+            {(overview?.employees ?? []).slice(0, 6).map((emp) => (
+              <WfmOfficeStatusChip
+                key={emp.id}
+                label={emp.name.split(' ')[0] ?? emp.name}
+                selected={filterEmployeeId === emp.id}
+                onPress={() => setFilterEmployeeId(emp.id)}
+              />
+            ))}
+          </>
+        }
+        statusSlot={
+          <>
+            <WfmOfficeStatusChip
+              label="Rot/Blau"
+              selected={filterAmpel === 'rot_blau'}
+              onPress={() => setFilterAmpel((v) => (v === 'rot_blau' ? null : 'rot_blau'))}
+            />
+            <WfmOfficeStatusChip
+              label="Offen"
+              selected={filterAmpel === 'pending'}
+              onPress={() => setFilterAmpel((v) => (v === 'pending' ? null : 'pending'))}
+            />
+            <WfmOfficeStatusChip
+              label="Office-Meldungen"
+              selected={filterAmpel === 'office_msg'}
+              onPress={() => setFilterAmpel((v) => (v === 'office_msg' ? null : 'office_msg'))}
+            />
+          </>
+        }
+      />
 
       {preset === 'custom' ? (
         <View style={styles.customRow}>
@@ -227,47 +272,7 @@ export function WfmOfficeTimeHistoryPanel({
         </View>
       ) : null}
 
-      <View style={styles.filterRow}>
-        <PremiumButton
-          title="Alle Mitarbeitende"
-          variant={!filterEmployeeId ? 'secondary' : 'ghost'}
-          onPress={() => setFilterEmployeeId(null)}
-        />
-        {(overview?.employees ?? []).slice(0, 8).map((emp) => (
-          <PremiumButton
-            key={emp.id}
-            title={emp.name.split(' ')[0] ?? emp.name}
-            variant={filterEmployeeId === emp.id ? 'secondary' : 'ghost'}
-            onPress={() => setFilterEmployeeId(emp.id)}
-          />
-        ))}
-      </View>
-
-      <View style={styles.filterRow}>
-        <PremiumButton
-          title="Nur Rot/Blau"
-          variant={filterAmpel === 'rot_blau' ? 'secondary' : 'ghost'}
-          onPress={() => setFilterAmpel((v) => (v === 'rot_blau' ? null : 'rot_blau'))}
-        />
-        <PremiumButton
-          title="Offene Prüfungen"
-          variant={filterAmpel === 'pending' ? 'secondary' : 'ghost'}
-          onPress={() => setFilterAmpel((v) => (v === 'pending' ? null : 'pending'))}
-        />
-        <PremiumButton
-          title="Office-Meldungen"
-          variant={filterAmpel === 'office_msg' ? 'secondary' : 'ghost'}
-          onPress={() => setFilterAmpel((v) => (v === 'office_msg' ? null : 'office_msg'))}
-        />
-      </View>
-
-      {kpis ? (
-        <View style={styles.kpiRow}>
-          {kpiCards.map((card) => (
-            <PremiumKpiCard key={card.label} label={card.label} value={card.value} accentColor={accent} />
-          ))}
-        </View>
-      ) : null}
+      {kpis ? <WfmOfficeCompactKpiStrip items={kpiItems} maxVisible={6} /> : null}
 
       <WfmOfficeTimeEntryTable
         entries={overview?.entries ?? []}
@@ -276,46 +281,56 @@ export function WfmOfficeTimeHistoryPanel({
         reviewQueueMode={reviewQueueMode}
       />
 
-      {selected ? (
-        <WfmOfficeTimeReviewDetailPanel
-          entry={selected}
-          auditEntries={auditQuery.data ?? []}
-          canCorrect={canCorrect}
-          onApprove={() => void runReview('approved')}
-          onReject={() => void runReview('rejected')}
-          onClarification={() => void runReview('needs_clarification')}
-          onAdoptAssignment={() => void runAdoptAssignment()}
-          onSaveCorrection={() => void runCorrection()}
-          reviewNote={reviewNote}
-          onReviewNoteChange={setReviewNote}
-          correctionReason={correctionReason}
-          onCorrectionReasonChange={setCorrectionReason}
-          editStartAt={editStartAt}
-          editEndAt={editEndAt}
-          editPauseMinutes={editPauseMinutes}
-          onEditStartAtChange={setEditStartAt}
-          onEditEndAtChange={setEditEndAt}
-          onEditPauseMinutesChange={setEditPauseMinutes}
-          actionMessage={actionMessage}
-          exportedWarning={selected.exportStatus === 'exported'}
-        />
-      ) : null}
+      <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void historyQuery.refresh()} />
+    </>
+  );
 
-      <PremiumButton title="Historie aktualisieren" variant="ghost" onPress={() => void historyQuery.refresh()} />
-    </SectionPanel>
+  const detailPanel = selected ? (
+    <WfmOfficeTimeReviewDetailPanel
+      entry={selected}
+      auditEntries={auditQuery.data ?? []}
+      canCorrect={canCorrect}
+      onApprove={() => void runReview('approved')}
+      onReject={() => void runReview('rejected')}
+      onClarification={() => void runReview('needs_clarification')}
+      onAdoptAssignment={() => void runAdoptAssignment()}
+      onSaveCorrection={() => void runCorrection()}
+      onClose={() => setSelectedId(null)}
+      reviewNote={reviewNote}
+      onReviewNoteChange={setReviewNote}
+      correctionReason={correctionReason}
+      onCorrectionReasonChange={setCorrectionReason}
+      editStartAt={editStartAt}
+      editEndAt={editEndAt}
+      editPauseMinutes={editPauseMinutes}
+      onEditStartAtChange={setEditStartAt}
+      onEditEndAtChange={setEditEndAt}
+      onEditPauseMinutesChange={setEditPauseMinutes}
+      actionMessage={actionMessage}
+      exportedWarning={selected.exportStatus === 'exported'}
+    />
+  ) : null;
+
+  return (
+    <View style={styles.root} testID={reviewQueueMode ? 'wfm-offene-pruefungen' : 'wfm-arbeitszeit-historie'}>
+      <WfmOfficeSplitWorkArea
+        main={mainContent}
+        detail={detailPanel}
+        detailOpen={Boolean(selected)}
+      />
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  presetRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginBottom: careSpacing.sm },
+  root: { flex: 1, gap: careSpacing.sm },
   customRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.sm },
-  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginBottom: careSpacing.md },
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.md },
   input: {
     borderWidth: 1,
     borderRadius: 8,
     padding: careSpacing.sm,
-    minWidth: 160,
+    minWidth: 140,
     flex: 1,
+    ...typography.caption,
   },
 });

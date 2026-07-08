@@ -1,7 +1,8 @@
 import { useState } from 'react';
-import { StyleSheet, Text, TextInput, View } from 'react-native';
+import { ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import {
   formatWfmDurationMinutes,
@@ -29,6 +30,7 @@ type Props = {
   onClarification: () => void;
   onAdoptAssignment: () => void;
   onSaveCorrection: () => void;
+  onClose: () => void;
   reviewNote: string;
   onReviewNoteChange: (value: string) => void;
   correctionReason: string;
@@ -43,6 +45,22 @@ type Props = {
   exportedWarning?: boolean;
 };
 
+function SectionBlock({
+  title,
+  children,
+}: {
+  title: string;
+  children: React.ReactNode;
+}) {
+  const text = useAuroraAdaptiveText();
+  return (
+    <View style={[styles.section, { borderColor: text.border }]}>
+      <Text style={[styles.sectionTitle, { color: text.primary }]}>{title}</Text>
+      {children}
+    </View>
+  );
+}
+
 export function WfmOfficeTimeReviewDetailPanel({
   entry,
   auditEntries,
@@ -52,6 +70,7 @@ export function WfmOfficeTimeReviewDetailPanel({
   onClarification,
   onAdoptAssignment,
   onSaveCorrection,
+  onClose,
   reviewNote,
   onReviewNoteChange,
   correctionReason,
@@ -66,166 +85,206 @@ export function WfmOfficeTimeReviewDetailPanel({
   exportedWarning = false,
 }: Props) {
   const text = useAuroraAdaptiveText();
+  const accent = moduleColor('office');
   const display = resolveWfmOfficeTimeDisplay(entry);
-  const [showHistory, setShowHistory] = useState(true);
+  const [showHistory, setShowHistory] = useState(false);
 
   return (
-    <View style={[styles.detail, { borderColor: text.border }]}>
-      <Text style={{ color: text.primary, ...typography.h3 }}>
-        {entry.employeeName} — {entry.workDate}
-      </Text>
+    <View style={[styles.panel, { borderColor: accent }]} testID="wfm-office-review-detail-panel">
+      <View style={styles.panelHeader}>
+        <View style={styles.panelHeaderText}>
+          <Text style={[styles.panelTitle, { color: text.primary }]}>
+            {entry.employeeName}
+          </Text>
+          <Text style={[styles.panelSubtitle, { color: text.secondary }]}>
+            {entry.workDate} · {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]}
+          </Text>
+        </View>
+        <PremiumButton title="Schließen" variant="ghost" onPress={onClose} />
+      </View>
 
-      <Text style={{ color: text.secondary, ...typography.caption }}>Stammdaten</Text>
-      <Text style={{ color: text.secondary, ...typography.caption }}>
-        {entry.clientLabel ?? entry.assignmentTitle ?? '—'} ·{' '}
-        {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]} · Status{' '}
-        {WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus]}
-      </Text>
+      <ScrollView style={styles.panelScroll} contentContainerStyle={styles.panelBody}>
+        <SectionBlock title="Einsatz">
+          <Text style={[styles.line, { color: text.secondary }]}>
+            {entry.clientLabel ?? entry.assignmentTitle ?? '—'}
+          </Text>
+          <Text style={[styles.line, { color: text.secondary }]}>
+            Status: {WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus]}
+          </Text>
+          {entry.flags.includes('missing_booking') ? (
+            <Text style={[styles.line, { color: text.secondary }]}>
+              Fehlende Buchung — geplanter Einsatz ohne Ist-Zeit.
+            </Text>
+          ) : null}
+        </SectionBlock>
 
-      <Text style={{ color: text.secondary, ...typography.caption, marginTop: careSpacing.xs }}>
-        Zeiten
-      </Text>
-      <Text style={{ color: text.secondary, ...typography.caption }}>
-        {display.displayPrimaryTimeLabel}
-      </Text>
-      {display.displaySecondaryTimeLabel ? (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
-          {display.displaySecondaryTimeLabel}
-        </Text>
-      ) : null}
-      <Text style={{ color: text.secondary, ...typography.caption }}>
-        Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
-        {display.isPlannedOnly ? ` · Geplante Dauer: ${formatWfmReviewQueuePlannedDuration(entry)}` : ''}
-      </Text>
-      {display.hasAssignmentActual ? (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
-          Einsatz-Ist: {formatWfmReviewQueueStartLabel(entry, null).replace('Start: ', '')} –{' '}
-          {formatWfmReviewQueueEndLabel(entry, null).replace('Ende: ', '')}
-        </Text>
-      ) : null}
-      {display.hasTimeEntry ? (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
-          Buchung: Netto {formatWfmDurationMinutes(entry.netMinutes)} · Pause{' '}
-          {formatWfmDurationMinutes(entry.pauseMinutes)}
-        </Text>
-      ) : null}
-      {display.displaySource === 'approved_time_entry' ? (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
-          Freigegeben: {formatWfmDurationMinutes(display.approvedDurationMinutes)}
-        </Text>
-      ) : null}
-      <Text style={{ color: text.secondary, ...typography.caption }}>
-        {formatWfmReviewQueueGesamtLabel(entry)} · Export: {entry.exportStatus}
-      </Text>
+        <SectionBlock title="Zeiten">
+          <Text style={[styles.line, { color: text.secondary }]}>{display.displayPrimaryTimeLabel}</Text>
+          {display.displaySecondaryTimeLabel ? (
+            <Text style={[styles.line, { color: text.secondary }]}>{display.displaySecondaryTimeLabel}</Text>
+          ) : null}
+          <Text style={[styles.line, { color: text.secondary }]}>
+            Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
+            {display.isPlannedOnly ? ` · ${formatWfmReviewQueuePlannedDuration(entry)}` : ''}
+          </Text>
+          {display.hasAssignmentActual ? (
+            <Text style={[styles.line, { color: text.secondary }]}>
+              Einsatz-Ist: {formatWfmReviewQueueStartLabel(entry, null).replace('Start: ', '')} –{' '}
+              {formatWfmReviewQueueEndLabel(entry, null).replace('Ende: ', '')}
+            </Text>
+          ) : null}
+          {display.hasTimeEntry ? (
+            <Text style={[styles.line, { color: text.secondary }]}>
+              Buchung: Netto {formatWfmDurationMinutes(entry.netMinutes)} · Pause{' '}
+              {formatWfmDurationMinutes(entry.pauseMinutes)}
+            </Text>
+          ) : null}
+          <Text style={[styles.line, { color: text.secondary }]}>
+            {formatWfmReviewQueueGesamtLabel(entry)} · Export: {entry.exportStatus}
+          </Text>
+        </SectionBlock>
 
-      {entry.flags.includes('missing_booking') ? (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
-          Hinweis: Fehlende Buchung — geplanter Einsatz ohne Ist-Zeit.
-        </Text>
-      ) : null}
-      {exportedWarning ? (
-        <Text style={{ color: text.secondary, ...typography.caption }}>
-          Warnung: Eintrag wurde exportiert — Änderungen erfordern P2.3 Re-Export.
-        </Text>
-      ) : null}
-
-      {canCorrect && entry.canEdit !== false ? (
-        <View style={styles.actions}>
-          <Text style={{ color: text.primary, ...typography.bodyMedium }}>Bearbeiten</Text>
-          <TextInput
-            value={editStartAt}
-            onChangeText={onEditStartAtChange}
-            placeholder="Start (ISO)"
-            placeholderTextColor={text.muted}
-            style={[styles.input, { color: text.primary, borderColor: text.border }]}
-          />
-          <TextInput
-            value={editEndAt}
-            onChangeText={onEditEndAtChange}
-            placeholder="Ende (ISO)"
-            placeholderTextColor={text.muted}
-            style={[styles.input, { color: text.primary, borderColor: text.border }]}
-          />
-          <TextInput
-            value={editPauseMinutes}
-            onChangeText={onEditPauseMinutesChange}
-            placeholder="Pause (Min.)"
-            placeholderTextColor={text.muted}
-            keyboardType="numeric"
-            style={[styles.input, { color: text.primary, borderColor: text.border }]}
-          />
-          <TextInput
-            value={correctionReason}
-            onChangeText={onCorrectionReasonChange}
-            placeholder="Korrektur-Begründung (Pflicht)"
-            placeholderTextColor={text.muted}
-            style={[styles.input, { color: text.primary, borderColor: text.border }]}
-          />
-          <View style={styles.actionRow}>
-            {display.hasAssignmentActual ? (
-              <PremiumButton title="Aus Einsatz übernehmen" variant="secondary" onPress={onAdoptAssignment} />
-            ) : null}
-            <PremiumButton title="Speichern" variant="secondary" onPress={onSaveCorrection} />
-          </View>
-
+        <SectionBlock title="Prüfung">
+          {exportedWarning ? (
+            <Text style={[styles.line, { color: text.secondary }]}>
+              Warnung: Eintrag exportiert — Änderungen erfordern P2.3 Re-Export.
+            </Text>
+          ) : null}
           <TextInput
             value={reviewNote}
             onChangeText={onReviewNoteChange}
             placeholder="Kommentar / Ablehnungsgrund / Rückfrage"
             placeholderTextColor={text.muted}
             style={[styles.input, { color: text.primary, borderColor: text.border }]}
+            multiline
           />
-          <View style={styles.actionRow}>
-            {entry.canApprove !== false ? (
-              <PremiumButton title="Freigeben" variant="secondary" onPress={onApprove} />
-            ) : null}
-            {entry.canRequestClarification !== false ? (
-              <PremiumButton title="Rückfrage" variant="ghost" onPress={onClarification} />
-            ) : null}
-            {entry.canReject !== false ? (
-              <PremiumButton title="Ablehnen" variant="ghost" onPress={onReject} />
-            ) : null}
-          </View>
-        </View>
-      ) : null}
+        </SectionBlock>
 
-      <PremiumButton
-        title={showHistory ? 'Historie ausblenden' : 'Historie anzeigen'}
-        variant="ghost"
-        onPress={() => setShowHistory((v) => !v)}
-      />
-      {showHistory ? (
-        <View style={styles.history}>
-          {auditEntries.length === 0 ? (
-            <Text style={{ color: text.secondary, ...typography.caption }}>Keine Audit-Einträge.</Text>
-          ) : (
-            auditEntries.map((a) => (
-              <Text key={a.id} style={{ color: text.secondary, ...typography.caption }}>
-                {a.createdAt.slice(0, 16)} · {a.summary}
-                {a.reason ? ` — ${a.reason}` : ''}
-              </Text>
-            ))
-          )}
-        </View>
-      ) : null}
+        {canCorrect && entry.canEdit !== false ? (
+          <SectionBlock title="Aktionen">
+            <TextInput
+              value={editStartAt}
+              onChangeText={onEditStartAtChange}
+              placeholder="Start (ISO)"
+              placeholderTextColor={text.muted}
+              style={[styles.input, { color: text.primary, borderColor: text.border }]}
+            />
+            <TextInput
+              value={editEndAt}
+              onChangeText={onEditEndAtChange}
+              placeholder="Ende (ISO)"
+              placeholderTextColor={text.muted}
+              style={[styles.input, { color: text.primary, borderColor: text.border }]}
+            />
+            <TextInput
+              value={editPauseMinutes}
+              onChangeText={onEditPauseMinutesChange}
+              placeholder="Pause (Min.)"
+              placeholderTextColor={text.muted}
+              keyboardType="numeric"
+              style={[styles.input, { color: text.primary, borderColor: text.border }]}
+            />
+            <TextInput
+              value={correctionReason}
+              onChangeText={onCorrectionReasonChange}
+              placeholder="Korrektur-Begründung (Pflicht)"
+              placeholderTextColor={text.muted}
+              style={[styles.input, { color: text.primary, borderColor: text.border }]}
+            />
+            <View style={styles.actionRow}>
+              {display.hasAssignmentActual ? (
+                <PremiumButton title="Aus Einsatz übernehmen" variant="secondary" onPress={onAdoptAssignment} />
+              ) : null}
+              <PremiumButton title="Speichern" variant="secondary" onPress={onSaveCorrection} />
+            </View>
+            <View style={styles.actionRow}>
+              {entry.canApprove !== false ? (
+                <PremiumButton title="Freigeben" variant="secondary" onPress={onApprove} />
+              ) : null}
+              {entry.canRequestClarification !== false ? (
+                <PremiumButton title="Rückfrage" variant="ghost" onPress={onClarification} />
+              ) : null}
+              {entry.canReject !== false ? (
+                <PremiumButton title="Ablehnen" variant="ghost" onPress={onReject} />
+              ) : null}
+            </View>
+          </SectionBlock>
+        ) : null}
 
-      {actionMessage ? (
-        <Text style={{ color: text.secondary, ...typography.caption }}>{actionMessage}</Text>
-      ) : null}
+        <SectionBlock title="Historie">
+          <PremiumButton
+            title={showHistory ? 'Historie ausblenden' : 'Historie anzeigen'}
+            variant="ghost"
+            onPress={() => setShowHistory((v) => !v)}
+          />
+          {showHistory ? (
+            <View style={styles.history}>
+              {auditEntries.length === 0 ? (
+                <Text style={[styles.line, { color: text.secondary }]}>Keine Audit-Einträge.</Text>
+              ) : (
+                auditEntries.map((a) => (
+                  <Text key={a.id} style={[styles.line, { color: text.secondary }]}>
+                    {a.createdAt.slice(0, 16)} · {a.summary}
+                    {a.reason ? ` — ${a.reason}` : ''}
+                  </Text>
+                ))
+              )}
+            </View>
+          ) : null}
+        </SectionBlock>
+
+        {actionMessage ? (
+          <Text style={[styles.line, { color: text.secondary }]}>{actionMessage}</Text>
+        ) : null}
+      </ScrollView>
     </View>
   );
 }
 
 const styles = StyleSheet.create({
-  detail: { marginTop: careSpacing.md, padding: careSpacing.md, borderWidth: 1, borderRadius: 10, gap: 6 },
-  actions: { marginTop: careSpacing.sm, gap: careSpacing.sm },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
-  input: {
+  panel: {
     borderWidth: 1,
+    borderRadius: 10,
+    overflow: 'hidden',
+    maxHeight: 720,
+    backgroundColor: 'rgba(255,255,255,0.02)',
+  },
+  panelHeader: {
+    flexDirection: 'row',
+    alignItems: 'flex-start',
+    justifyContent: 'space-between',
+    gap: careSpacing.sm,
+    paddingHorizontal: careSpacing.sm,
+    paddingVertical: careSpacing.sm,
+    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomColor: 'rgba(0,0,0,0.08)',
+  },
+  panelHeaderText: { flex: 1, gap: 2 },
+  panelTitle: { ...typography.bodyMedium, fontWeight: '700' },
+  panelSubtitle: { ...typography.caption, fontSize: 11 },
+  panelScroll: { flex: 1 },
+  panelBody: { padding: careSpacing.sm, gap: careSpacing.sm },
+  section: {
+    borderWidth: StyleSheet.hairlineWidth,
     borderRadius: 8,
     padding: careSpacing.sm,
-    minWidth: 160,
-    flex: 1,
+    gap: 4,
   },
-  history: { gap: 4 },
+  sectionTitle: {
+    ...typography.caption,
+    fontWeight: '700',
+    textTransform: 'uppercase',
+    letterSpacing: 0.4,
+    marginBottom: 2,
+  },
+  line: { ...typography.caption, lineHeight: 16 },
+  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginTop: 4 },
+  input: {
+    borderWidth: 1,
+    borderRadius: 6,
+    padding: careSpacing.xs,
+    minHeight: 36,
+    ...typography.caption,
+  },
+  history: { gap: 4, marginTop: 4 },
 });

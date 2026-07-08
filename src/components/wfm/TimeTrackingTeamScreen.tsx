@@ -1,7 +1,6 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 import { StyleSheet, Text, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
-import { ScreenShell } from '@/components/layout';
 import {
   EmptyState,
   ErrorState,
@@ -9,8 +8,8 @@ import {
   LoadingState,
   PremiumBadge,
   PremiumButton,
-  PremiumKpiCard,
-  SectionPanel,
+  PremiumDataTable,
+  type DataTableColumn,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
@@ -25,12 +24,19 @@ import {
   listOpenReviewEntriesForEmployee,
   summarizeOfficeTimeAccountKpis,
 } from '@/lib/wfm/wfmOfficeZeitkontenService';
+import type { WfmOfficeEmployeeTimeAccount } from '@/types/modules/wfmOfficeTimekeeping';
 import { getWfmTeamTodayOverview } from '@/lib/wfm/wfmTeamTodayService';
 import { subscribeToWfmLiveChanges } from '@/lib/realtime/presets';
 import { WfmRuleWarningsPanel } from '@/components/wfm/WfmRuleWarningsPanel';
 import { WfmTeamTodayDetailPanel } from '@/components/wfm/WfmTeamTodayDetailPanel';
 import { WfmTeamTodayEmployeeCard } from '@/components/wfm/WfmTeamTodayEmployeeCard';
 import { formatWfmDurationMinutes } from '@/lib/wfm/wfmDisplayHelpers';
+import {
+  WfmOfficeCompactKpiStrip,
+  WfmOfficeFilterBar,
+  WfmOfficePeriodChips,
+  WfmOfficeSectionHeading,
+} from '@/components/wfm/WfmOfficeTimekeepingLayout';
 import { typography } from '@/theme';
 
 export function WfmZeitkontenScreen() {
@@ -95,14 +101,107 @@ export function WfmZeitkontenScreen() {
     });
   }, [tenantId, canView, teamQuery, accountsQuery]);
 
+  const accountColumns = useMemo((): DataTableColumn<WfmOfficeEmployeeTimeAccount>[] => [
+    {
+      key: 'employee',
+      label: 'Mitarbeitende',
+      flex: 1.2,
+      minWidth: 120,
+      render: (account) => (
+        <Text style={{ color: text.primary, ...typography.caption }}>{account.employeeName}</Text>
+      ),
+    },
+    {
+      key: 'plan',
+      label: 'Plan',
+      width: 72,
+      render: (account) => (
+        <Text style={{ color: text.secondary, ...typography.caption }}>
+          {formatWfmDurationMinutes(account.plannedMinutes)}
+        </Text>
+      ),
+    },
+    {
+      key: 'ist',
+      label: 'Ist',
+      width: 72,
+      render: (account) => (
+        <Text style={{ color: text.secondary, ...typography.caption }}>
+          {formatWfmDurationMinutes(account.actualMinutes)}
+        </Text>
+      ),
+    },
+    {
+      key: 'approved',
+      label: 'Genehmigt',
+      width: 88,
+      render: (account) => (
+        <Text style={{ color: text.secondary, ...typography.caption }}>
+          {formatWfmDurationMinutes(account.approvedMinutes)}
+        </Text>
+      ),
+    },
+    {
+      key: 'exported',
+      label: 'Exportiert',
+      width: 88,
+      render: (account) => (
+        <Text style={{ color: text.secondary, ...typography.caption }}>
+          {formatWfmDurationMinutes(account.exportedMinutes)}
+        </Text>
+      ),
+    },
+    {
+      key: 'open',
+      label: 'Offen',
+      width: 64,
+      render: (account) => (
+        account.openReviewCount > 0 ? (
+          <PremiumBadge label={String(account.openReviewCount)} variant="orange" />
+        ) : (
+          <Text style={{ color: text.muted, ...typography.caption }}>0</Text>
+        )
+      ),
+    },
+    {
+      key: 'saldo',
+      label: 'Saldo',
+      width: 72,
+      render: (account) => (
+        <Text style={{ color: text.primary, ...typography.caption, fontWeight: '600' }}>
+          {formatWfmDurationMinutes(account.saldoMinutes)}
+        </Text>
+      ),
+    },
+    {
+      key: 'action',
+      label: 'Aktion',
+      width: 96,
+      align: 'right',
+      render: (account) => (
+        <PremiumButton
+          title={account.openReviewCount > 0 ? 'Prüfen' : 'Details'}
+          variant={account.openReviewCount > 0 ? 'secondary' : 'ghost'}
+          onPress={() => {
+            if (account.openReviewCount > 0) {
+              router.push('/business/office/time-tracking/pruefqueue' as never);
+            } else {
+              setSelectedEmployeeId((current) =>
+                current === account.employeeId ? null : account.employeeId,
+              );
+            }
+          }}
+        />
+      ),
+    },
+  ], [router, text]);
+
   if (!canView) {
     return (
-      <ScreenShell title="Zeitkonten" showBack={false}>
-        <LockedActionBanner
-          message={check('time.tracking.team.view').reason ?? 'Keine Berechtigung.'}
-          roleLabel={roleLabel}
-        />
-      </ScreenShell>
+      <LockedActionBanner
+        message={check('time.tracking.team.view').reason ?? 'Keine Berechtigung.'}
+        roleLabel={roleLabel}
+      />
     );
   }
 
@@ -114,36 +213,50 @@ export function WfmZeitkontenScreen() {
   const selectedAccount = accounts.find((a) => a.employeeId === selectedEmployeeId) ?? null;
   const selectedRow = teamRows.find((r) => r.employeeId === selectedEmployeeId) ?? null;
 
+  const kpiItems = [
+    { key: 'employees', label: 'MA', value: String(accountKpis.employees), accent },
+    { key: 'plan', label: 'Plan (Std.)', value: String(accountKpis.plannedHours) },
+    { key: 'ist', label: 'Ist (Std.)', value: String(accountKpis.actualHours) },
+    { key: 'approved', label: 'Genehmigt', value: String(accountKpis.approvedHours) },
+    { key: 'exported', label: 'Exportiert', value: String(accountKpis.exportedHours) },
+    { key: 'open', label: 'Offene Prüfungen', value: String(accountKpis.openReviews) },
+  ];
+
   return (
-    <ScreenShell title="Zeitkonten" subtitle="Plan · Ist · Freigegeben · Export · Saldo" showBack={false} scroll>
-      <View style={styles.filterRow}>
-        {(['today', 'this_week', 'this_month'] as const).map((preset) => (
-          <PremiumButton
-            key={preset}
-            title={preset === 'today' ? 'Heute' : preset === 'this_week' ? 'Diese Woche' : 'Monat'}
-            variant={periodPreset === preset ? 'secondary' : 'ghost'}
-            onPress={() => setPeriodPreset(preset)}
+    <View style={styles.root} testID="wfm-zeitkonten-screen">
+      <WfmOfficeSectionHeading
+        title="Zeitkonten"
+        subtitle="Plan · Ist · Genehmigt · Export · Saldo je Mitarbeitende"
+      />
+
+      <WfmOfficeFilterBar
+        periodSlot={
+          <WfmOfficePeriodChips
+            options={[
+              { key: 'today', label: 'Heute' },
+              { key: 'this_week', label: 'Diese Woche' },
+              { key: 'this_month', label: 'Monat' },
+            ]}
+            value={periodPreset}
+            onChange={setPeriodPreset}
           />
-        ))}
-        <PremiumButton
-          title="Alle Mitarbeitende"
-          variant={!selectedEmployeeId ? 'secondary' : 'ghost'}
-          onPress={() => setSelectedEmployeeId(null)}
-        />
-      </View>
+        }
+        secondarySlot={
+          <PremiumButton
+            title="Alle Mitarbeitende"
+            variant={!selectedEmployeeId ? 'secondary' : 'ghost'}
+            onPress={() => setSelectedEmployeeId(null)}
+          />
+        }
+      />
 
-      <View style={styles.kpiRow}>
-        <PremiumKpiCard label="Mitarbeitende" value={String(accountKpis.employees)} accentColor={accent} />
-        <PremiumKpiCard label="Plan (Std.)" value={String(accountKpis.plannedHours)} accentColor={accent} />
-        <PremiumKpiCard label="Ist (Std.)" value={String(accountKpis.actualHours)} accentColor={accent} />
-        <PremiumKpiCard label="Freigegeben" value={String(accountKpis.approvedHours)} accentColor={accent} />
-        <PremiumKpiCard label="Exportiert" value={String(accountKpis.exportedHours)} accentColor={accent} />
-        <PremiumKpiCard label="Offene Prüfungen" value={String(accountKpis.openReviews)} accentColor={accent} />
-      </View>
+      <WfmOfficeCompactKpiStrip items={kpiItems} maxVisible={6} />
 
-      <Text style={[styles.summary, { color: text.secondary }]}>
-        Heute erfasst: {kpis?.capturedToday ?? 0} · Aktive Mitarbeitende: {kpis?.activeCount ?? 0} · In Pause:{' '}
-        {kpis?.onPauseCount ?? 0} · Im Einsatz: {kpis?.onVisitCount ?? 0}
+      <Text style={[styles.teamSummary, { color: text.secondary }]}>
+        Heute erfasst: {kpis?.capturedToday ?? 0} · Aktive MA: {kpis?.activeCount ?? 0} · In Pause:{' '}
+        {kpis?.onPauseCount ?? 0} · Im Einsatz: {kpis?.onVisitCount ?? 0} · Im Büro:{' '}
+        {kpis?.inOfficeCount ?? 0} · Homeoffice: {kpis?.homeofficeCount ?? 0} · Offen zur Prüfung:{' '}
+        {kpis?.pendingReviewCount ?? 0} · Offene Anträge: {kpis?.openRequestsCount ?? 0}
       </Text>
 
       {(kpis?.openRequestsCount ?? 0) > 0 && canApprove ? (
@@ -152,59 +265,40 @@ export function WfmZeitkontenScreen() {
         />
       ) : null}
 
-      <SectionPanel title="Zeitkonten je Mitarbeitende">
-        {accountsQuery.loading && !accountsQuery.data ? <LoadingState message="Zeitkonten werden geladen…" /> : null}
+      <View style={styles.workArea}>
+        <WfmOfficeSectionHeading title="Zeitkonten je Mitarbeitende" />
+        {accountsQuery.loading && !accountsQuery.data ? (
+          <LoadingState message="Zeitkonten werden geladen…" />
+        ) : null}
         {accountsQuery.error ? (
           <ErrorState title="Fehler" message={accountsQuery.error} onRetry={() => void accountsQuery.refresh()} />
         ) : null}
-        {accounts.length === 0 ? (
+        {accounts.length === 0 && !accountsQuery.loading ? (
           <EmptyState title="Keine Zeitkonten" message="Im gewählten Zeitraum liegen keine Daten vor." />
         ) : (
-          accounts.map((account) => (
-            <View
-              key={account.employeeId}
-              style={[styles.accountRow, { borderColor: text.border }]}
-            >
-              <Text style={{ color: text.primary, ...typography.bodyMedium }}>{account.employeeName}</Text>
-              <Text style={{ color: text.secondary, ...typography.caption }}>
-                Plan {formatWfmDurationMinutes(account.plannedMinutes)} · Ist{' '}
-                {formatWfmDurationMinutes(account.actualMinutes)} · Freigegeben{' '}
-                {formatWfmDurationMinutes(account.approvedMinutes)} · Export{' '}
-                {formatWfmDurationMinutes(account.exportedMinutes)} · Saldo{' '}
-                {formatWfmDurationMinutes(account.saldoMinutes)}
-              </Text>
-              {account.openReviewCount > 0 ? (
-                <PremiumBadge label={`${account.openReviewCount} offen`} variant="orange" />
-              ) : null}
-              <View style={styles.actionRow}>
-                <PremiumButton
-                  title={selectedEmployeeId === account.employeeId ? 'Schließen' : 'Details'}
-                  variant="ghost"
-                  onPress={() =>
-                    setSelectedEmployeeId((current) =>
-                      current === account.employeeId ? null : account.employeeId,
-                    )
-                  }
-                />
-                {account.openReviewCount > 0 ? (
-                  <PremiumButton
-                    title="Offene Prüfungen"
-                    variant="secondary"
-                    onPress={() => router.push('/business/office/time-tracking/pruefqueue' as never)}
-                  />
-                ) : null}
-              </View>
-            </View>
-          ))
+          <PremiumDataTable
+            columns={accountColumns}
+            data={accounts}
+            keyExtractor={(account) => account.employeeId}
+            selectedId={selectedEmployeeId}
+            onRowPress={(account) =>
+              setSelectedEmployeeId((current) =>
+                current === account.employeeId ? null : account.employeeId,
+              )
+            }
+            emptyMessage="Keine Zeitkonten im Zeitraum."
+          />
         )}
-      </SectionPanel>
+      </View>
 
       {selectedAccount ? (
-        <SectionPanel title={`Tages-/Wochenliste — ${selectedAccount.employeeName}`}>
+        <View style={[styles.detailBlock, { borderColor: text.border }]}>
+          <Text style={{ color: text.primary, ...typography.bodyMedium }}>
+            Tagesliste — {selectedAccount.employeeName}
+          </Text>
           {selectedAccount.entries.slice(0, 14).map((entry) => (
             <Text key={entry.id} style={{ color: text.secondary, ...typography.caption }}>
-              {entry.workDate} · {entry.clientLabel ?? entry.assignmentTitle ?? '—'} ·{' '}
-              {entry.reviewStatus}
+              {entry.workDate} · {entry.clientLabel ?? entry.assignmentTitle ?? '—'} · {entry.reviewStatus}
               {entry.flags.includes('missing_booking') ? ' · Fehlende Buchung' : ''}
             </Text>
           ))}
@@ -215,16 +309,18 @@ export function WfmZeitkontenScreen() {
               onPress={() => router.push('/business/office/time-tracking/pruefqueue' as never)}
             />
           ) : null}
-        </SectionPanel>
+        </View>
       ) : null}
 
-      <SectionPanel title="ArbZG-Teamwarnungen">
+      <View style={styles.collapsible}>
+        <WfmOfficeSectionHeading title="ArbZG-Teamwarnungen" />
         {tenantId && reviewerId ? (
           <WfmRuleWarningsPanel tenantId={tenantId} userId={reviewerId} roleKey={roleKey} teamView compact />
         ) : null}
-      </SectionPanel>
+      </View>
 
-      <SectionPanel title="Team heute">
+      <View style={styles.collapsible}>
+        <WfmOfficeSectionHeading title="Team heute" />
         {teamQuery.loading && !teamQuery.data ? <LoadingState message="Team wird geladen…" /> : null}
         {teamRows.length === 0 ? (
           <EmptyState
@@ -243,14 +339,14 @@ export function WfmZeitkontenScreen() {
             />
           ))
         )}
-      </SectionPanel>
+      </View>
 
       {selectedRow && overview?.workDate ? (
         <WfmTeamTodayDetailPanel row={selectedRow} workDate={overview.workDate} />
       ) : null}
 
       <PremiumButton title="Aktualisieren" variant="ghost" onPress={() => void teamQuery.refresh()} />
-    </ScreenShell>
+    </View>
   );
 }
 
@@ -260,9 +356,14 @@ export function TimeTrackingTeamScreen() {
 }
 
 const styles = StyleSheet.create({
-  summary: { ...typography.caption, marginBottom: careSpacing.md, lineHeight: 18 },
-  filterRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs, marginBottom: careSpacing.md },
-  kpiRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.sm, marginBottom: careSpacing.md },
-  accountRow: { borderWidth: 1, borderRadius: 10, padding: careSpacing.md, gap: careSpacing.xs, marginBottom: careSpacing.sm },
-  actionRow: { flexDirection: 'row', flexWrap: 'wrap', gap: careSpacing.xs },
+  root: { flex: 1, gap: careSpacing.sm, paddingBottom: careSpacing.lg },
+  teamSummary: { ...typography.caption, fontSize: 11, lineHeight: 16 },
+  workArea: { gap: careSpacing.xs },
+  detailBlock: {
+    borderWidth: 1,
+    borderRadius: 8,
+    padding: careSpacing.sm,
+    gap: careSpacing.xs,
+  },
+  collapsible: { gap: careSpacing.xs, marginTop: careSpacing.sm },
 });
