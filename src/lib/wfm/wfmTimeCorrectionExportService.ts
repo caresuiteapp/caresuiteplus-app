@@ -666,8 +666,7 @@ export async function draftReviewedTimeCorrectionExport(
         action: 'reexport_drafted',
         prevStatus: 'approved',
         newStatus: 'approved',
-        reason: params.reason.trim(),
-        comment: `Korrekturexport-Entwurf ${jobId}`,
+        comment: `${params.reason.trim()} — Korrekturexport-Entwurf ${jobId}`,
       });
     }
     return { ok: true, data: { job, previewItems } };
@@ -705,8 +704,7 @@ export async function draftReviewedTimeCorrectionExport(
       action: 'reexport_drafted',
       prevStatus: 'approved',
       newStatus: 'approved',
-      reason: params.reason.trim(),
-      comment: `Korrekturexport-Entwurf ${jobId}`,
+      comment: `${params.reason.trim()} — Korrekturexport-Entwurf ${jobId}`,
     });
 
     await fromUnknownTable(supabase, REVIEWS_TABLE)

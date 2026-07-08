@@ -12,11 +12,10 @@
 
 | Kriterium | Status |
 |-----------|--------|
-| Re-Export-Finalize-Smoke GO | **NEIN — BLOCKED** |
-| P2.3 vollständig staging-verifiziert | **NEIN** (Service/UI grün; echter Finalize fehlgeschlagen) |
-| Push-Freigabe | **NEIN** (Finalize-Smoke offen) |
-| Deploy-Freigabe | **NEIN** |
-| Production-Apply | **NEIN** |
+| Re-Export-Finalize-Smoke GO | **NEIN — BLOCKED** (Stand vor P2.3.1) |
+| P2.3 vollständig staging-verifiziert | **NEIN** (Stand vor P2.3.1) |
+
+> **Nachfolger:** P2.3.1 Atomic Finalize Fix — siehe `docs/audit/wfm-p23-atomic-finalize-fix-gate.md` (**GO** nach Migration 0253 + Re-Smoke).
 
 **Grund:** Der designed Flow (Service-INSERT aktiver Correction-Items vor RPC `wfm_finalize_correction_export`) kollidiert auf Staging mit dem Partial-Unique-Index `uq_wfm_export_items_one_active_per_logical_key`. Correction-Item-INSERT schlägt fehl → RPC antwortet mit HTTP 400 / `no active correction items on job`.
 

@@ -191,7 +191,6 @@ BEGIN
     UPDATE public.workforce_time_export_items
     SET
       item_status = 'superseded',
-      superseded_by_export_item_id = v_new_item_id,
       superseded_at = NOW(),
       superseded_by = v_actor
     WHERE id = v_old_item.id;
@@ -231,7 +230,7 @@ BEGIN
       v_new_seq,
       'active',
       v_item->>'entry_kind',
-      v_item->>'period_date',
+      (v_item->>'period_date')::date,
       (v_item->>'minutes_total')::INTEGER,
       'approved',
       v_item->'exported_payload',
@@ -243,6 +242,10 @@ BEGIN
       v_old_item.id,
       FALSE
     );
+
+    UPDATE public.workforce_time_export_items
+    SET superseded_by_export_item_id = v_new_item_id
+    WHERE id = v_old_item.id;
 
     UPDATE public.workforce_time_entry_reviews
     SET
