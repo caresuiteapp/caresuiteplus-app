@@ -1,3 +1,5 @@
+import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
+import { resolveWfmOfficeTimeDisplay } from './wfmOfficeTimeDisplayResolver';
 import type {
   WfmAbsence,
   WfmAbsenceType,
@@ -71,6 +73,86 @@ export function formatWfmActualTimeRange(
     return `${formatWfmTime(actualStart)} – (offen)`;
   }
   return `${formatWfmTime(actualStart)} – ${formatWfmTime(actualEnd)}`;
+}
+
+/** Prüfqueue — Ist-Zeile mit Fallback auf Einsatz-Ist oder Plan */
+export function formatWfmReviewQueueIstLabel(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.hasTimeEntry) {
+    return formatWfmActualTimeRange(display.actualStart, display.actualEnd, entry.actualDisplayStatus);
+  }
+  if (display.timeSource === 'assignment_actual') {
+    return `${formatWfmTime(display.displayStart)} – ${formatWfmTime(display.displayEnd)} (aus Einsatz)`;
+  }
+  if (display.timeSource === 'assignment_planned') {
+    return 'noch nicht gebucht';
+  }
+  return 'Noch nicht erfasst';
+}
+
+/** Prüfqueue — Dauer mit Fallback */
+export function formatWfmReviewQueueDuration(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.displayDurationMinutes > 0) {
+    return formatWfmDurationMinutes(display.displayDurationMinutes);
+  }
+  return '—';
+}
+
+export function formatWfmReviewQueueStartLabel(
+  entry: WfmOfficeTimeEntry,
+  ampel: import('@/types/modules/wfmOfficeTimekeeping').WfmDeviationAmpel | null | undefined,
+): string {
+  if (ampel) {
+    const labels = { green: 'Grün', yellow: 'Gelb', red: 'Rot', blue: 'Blau' };
+    return `Start: ${labels[ampel]}`;
+  }
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.hasTimeEntry && display.actualStart) {
+    return `Start: ${formatWfmTime(display.actualStart)}`;
+  }
+  if (display.timeSource === 'assignment_actual' && display.displayStart) {
+    return `Start: ${formatWfmTime(display.displayStart)} (Einsatz)`;
+  }
+  if (display.displayStart) {
+    return `Start geplant: ${formatWfmTime(display.displayStart)}`;
+  }
+  return 'Start: nicht erfasst';
+}
+
+export function formatWfmReviewQueueEndLabel(
+  entry: WfmOfficeTimeEntry,
+  ampel: import('@/types/modules/wfmOfficeTimekeeping').WfmDeviationAmpel | null | undefined,
+): string {
+  if (ampel) {
+    const labels = { green: 'Grün', yellow: 'Gelb', red: 'Rot', blue: 'Blau' };
+    return `Ende: ${labels[ampel]}`;
+  }
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (display.hasTimeEntry && display.actualEnd) {
+    return `Ende: ${formatWfmTime(display.actualEnd)}`;
+  }
+  if (display.timeSource === 'assignment_actual' && display.displayEnd) {
+    return `Ende: ${formatWfmTime(display.displayEnd)} (Einsatz)`;
+  }
+  if (display.displayEnd) {
+    return `Ende geplant: ${formatWfmTime(display.displayEnd)}`;
+  }
+  return 'Ende: nicht erfasst';
+}
+
+export function formatWfmReviewQueueGesamtLabel(entry: WfmOfficeTimeEntry): string {
+  const display = resolveWfmOfficeTimeDisplay(entry);
+  if (entry.overallAmpel) {
+    const labels = { green: 'Grün', yellow: 'Gelb', red: 'Rot', blue: 'Blau' };
+    return `Gesamt (${labels[entry.overallAmpel]})`;
+  }
+  if (display.displayDurationMinutes > 0) {
+    const prefix =
+      display.timeSource === 'assignment_planned' ? 'Dauer geplant' : 'Gesamt';
+    return `${prefix}: ${formatWfmDurationMinutes(display.displayDurationMinutes)}`;
+  }
+  return 'Gesamt: nicht berechnet';
 }
 
 export function formatWfmAmpelLabel(

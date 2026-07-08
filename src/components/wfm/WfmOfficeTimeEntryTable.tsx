@@ -2,7 +2,7 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { formatWfmDurationMinutes, formatWfmPlanTimeRange, formatWfmActualTimeRange, formatWfmAmpelLabel } from '@/lib/wfm/wfmDisplayHelpers';
+import { formatWfmDurationMinutes, formatWfmPlanTimeRange, formatWfmReviewQueueDuration, formatWfmReviewQueueEndLabel, formatWfmReviewQueueGesamtLabel, formatWfmReviewQueueIstLabel, formatWfmReviewQueueStartLabel } from '@/lib/wfm/wfmDisplayHelpers';
 import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import {
   WFM_DEVIATION_AMPEL_LABELS,
@@ -69,17 +69,15 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props
               </Text>
               <Text style={{ color: text.secondary, ...typography.caption }}>
                 {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]} · Ist:{' '}
-                {formatWfmActualTimeRange(entry.actualStartAt, entry.actualEndAt, entry.actualDisplayStatus)}{' '}
-                · {formatWfmDurationMinutes(entry.netMinutes)}
+                {formatWfmReviewQueueIstLabel(entry)} · {formatWfmReviewQueueDuration(entry)}
               </Text>
               <Text style={{ color: text.secondary, ...typography.caption }}>
                 Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
               </Text>
               <Text style={{ color: text.secondary, ...typography.caption }}>
-                {formatWfmAmpelLabel(entry.startAmpel, 'start')} · {formatWfmAmpelLabel(entry.endAmpel, 'end')} ·{' '}
-                {entry.overallAmpel
-                  ? `Gesamt ${WFM_DEVIATION_AMPEL_LABELS[entry.overallAmpel]}`
-                  : formatWfmAmpelLabel(null, 'overall')}
+                {formatWfmReviewQueueStartLabel(entry, entry.startAmpel)} ·{' '}
+                {formatWfmReviewQueueEndLabel(entry, entry.endAmpel)} ·{' '}
+                {formatWfmReviewQueueGesamtLabel(entry)}
               </Text>
             </View>
             <View style={styles.badges}>

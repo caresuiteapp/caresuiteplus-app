@@ -5,7 +5,7 @@ import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
-import { formatWfmDurationMinutes, formatWfmPlanTimeRange, formatWfmActualTimeRange, formatWfmAmpelLabel } from '@/lib/wfm/wfmDisplayHelpers';
+import { formatWfmDurationMinutes, formatWfmPlanTimeRange, formatWfmReviewQueueDuration, formatWfmReviewQueueEndLabel, formatWfmReviewQueueGesamtLabel, formatWfmReviewQueueIstLabel, formatWfmReviewQueueStartLabel } from '@/lib/wfm/wfmDisplayHelpers';
 import { listWfmOfficeAuditForEntry } from '@/lib/wfm/wfmOfficeAuditService';
 import {
   applyWfmOfficeTimeCorrection,
@@ -266,13 +266,12 @@ export function WfmOfficeTimeHistoryPanel({
             Plan: {formatWfmPlanTimeRange(selected.plannedStartAt, selected.plannedEndAt, selected.planDisplayStatus)}
           </Text>
           <Text style={{ color: text.secondary, ...typography.caption }}>
-            Ist: {formatWfmActualTimeRange(selected.actualStartAt, selected.actualEndAt, selected.actualDisplayStatus)}
+            Ist: {formatWfmReviewQueueIstLabel(selected)}
           </Text>
           <Text style={{ color: text.secondary, ...typography.caption }}>
-            {formatWfmAmpelLabel(selected.startAmpel, 'start')} · {formatWfmAmpelLabel(selected.endAmpel, 'end')} ·{' '}
-            {selected.overallAmpel
-              ? `Gesamt (${WFM_DEVIATION_AMPEL_LABELS[selected.overallAmpel]})`
-              : 'Gesamt: nicht berechnet'}
+            {formatWfmReviewQueueStartLabel(selected, selected.startAmpel)} ·{' '}
+            {formatWfmReviewQueueEndLabel(selected, selected.endAmpel)} ·{' '}
+            {formatWfmReviewQueueGesamtLabel(selected)}
           </Text>
           {selected.flags.includes('missing_booking') ? (
             <Text style={{ color: text.secondary, ...typography.caption }}>
@@ -295,8 +294,10 @@ export function WfmOfficeTimeHistoryPanel({
             </Text>
           ) : null}
           <Text style={{ color: text.secondary, ...typography.caption }}>
-            Netto {formatWfmDurationMinutes(selected.netMinutes)} · Pause{' '}
-            {formatWfmDurationMinutes(selected.pauseMinutes)}
+            {selected.timeSource === 'assignment_planned'
+              ? `Dauer geplant: ${formatWfmReviewQueueDuration(selected)}`
+              : `Netto ${formatWfmDurationMinutes(selected.netMinutes)}`}{' '}
+            · Pause {formatWfmDurationMinutes(selected.pauseMinutes)}
           </Text>
 
           {canCorrect ? (

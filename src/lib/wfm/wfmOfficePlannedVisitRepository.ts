@@ -16,6 +16,8 @@ type AssignmentRow = {
   assignment_date: string;
   planned_start_at: string | null;
   planned_end_at: string | null;
+  actual_start_at: string | null;
+  actual_end_at: string | null;
   status: string | null;
   title: string | null;
   clients?: { first_name: string | null; last_name: string | null } | null;
@@ -61,6 +63,8 @@ function mapAssignmentRow(row: AssignmentRow): WfmOfficePlannedVisit | null {
     workDate,
     plannedStartAt: row.planned_start_at,
     plannedEndAt: row.planned_end_at,
+    assignmentActualStartAt: row.actual_start_at,
+    assignmentActualEndAt: row.actual_end_at,
     clientLabel: clientLabelFromRow(row),
     assignmentTitle: row.title?.trim() || 'Einsatz',
     assignmentStatus: status,
@@ -89,7 +93,7 @@ export async function listPlannedVisitsForPeriod(
   if (!supabase) return { ok: false, error: SERVICE_ERRORS.supabaseUnavailable };
 
   const select =
-    'id, tenant_id, client_id, employee_id, assignment_date, planned_start_at, planned_end_at, status, title, clients(first_name, last_name)';
+    'id, tenant_id, client_id, employee_id, assignment_date, planned_start_at, planned_end_at, actual_start_at, actual_end_at, status, title, clients(first_name, last_name)';
 
   const { data, error } = await fromUnknownTable(supabase, 'assignments')
     .select(select)

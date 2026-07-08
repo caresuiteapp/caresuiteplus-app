@@ -10,6 +10,7 @@ import {
   evaluateVisitTimeDeviation,
   shouldAutoPendingReview,
 } from './wfmVisitDeviationAmpelService';
+import { enrichOfficeTimeEntryDisplay } from './wfmOfficeTimeDisplayResolver';
 
 export function plannedVisitJoinKey(employeeId: string, assignmentId: string, workDate: string): string {
   return `${employeeId}:${assignmentId}:${workDate}`;
@@ -104,7 +105,7 @@ function enrichEntryWithJoinMeta(
     reviewStatus = 'pending_review';
   }
 
-  return {
+  return enrichOfficeTimeEntryDisplay({
     ...entry,
     rowKind,
     planDisplayStatus,
@@ -120,7 +121,7 @@ function enrichEntryWithJoinMeta(
       reviewStatus === 'pending_review' && shouldAutoPendingReview(ampel.startAmpel, ampel.endAmpel)
         ? 'pending_review'
         : entry.status,
-  };
+  });
 }
 
 function buildPlannedMissingEntry(
@@ -140,6 +141,8 @@ function buildPlannedMissingEntry(
     assignmentStatus: planned.assignmentStatus,
     plannedStartAt: planned.plannedStartAt,
     plannedEndAt: planned.plannedEndAt,
+    assignmentActualStartAt: planned.assignmentActualStartAt ?? null,
+    assignmentActualEndAt: planned.assignmentActualEndAt ?? null,
     actualStartAt: null,
     actualEndAt: null,
     startDeviationMinutes: null,
@@ -181,6 +184,9 @@ function mergePlannedIntoActual(
     assignmentStatus: actual.assignmentStatus ?? planned.assignmentStatus,
     plannedStartAt: actual.plannedStartAt ?? planned.plannedStartAt,
     plannedEndAt: actual.plannedEndAt ?? planned.plannedEndAt,
+    assignmentActualStartAt:
+      actual.assignmentActualStartAt ?? planned.assignmentActualStartAt ?? null,
+    assignmentActualEndAt: actual.assignmentActualEndAt ?? planned.assignmentActualEndAt ?? null,
     workKind: actual.workKind === 'sonstige' ? 'einsatz' : actual.workKind,
   };
   const rowKind: WfmOfficeTimeRowKind =

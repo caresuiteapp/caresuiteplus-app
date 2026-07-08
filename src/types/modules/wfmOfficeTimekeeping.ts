@@ -53,6 +53,13 @@ export type WfmOfficeActualDisplayStatus =
   | 'not_captured'
   | 'partial';
 
+/** Anzeige-Herkunft für Prüfqueue / Historie */
+export type WfmOfficeTimeSource =
+  | 'time_entry'
+  | 'assignment_actual'
+  | 'assignment_planned'
+  | 'missing';
+
 export type WfmOfficePeriodPreset =
   | 'today'
   | 'yesterday'
@@ -100,8 +107,17 @@ export interface WfmOfficeTimeEntry {
   clientLabel: string | null;
   plannedStartAt: string | null;
   plannedEndAt: string | null;
+  /** Ist-Zeiten aus Assignment/Einsatz (ohne separate WFM-Buchung) */
+  assignmentActualStartAt?: string | null;
+  assignmentActualEndAt?: string | null;
   actualStartAt: string | null;
   actualEndAt: string | null;
+  /** Abgeleitete Anzeige-Felder (Prüfqueue) */
+  timeSource?: WfmOfficeTimeSource;
+  displayStartAt?: string | null;
+  displayEndAt?: string | null;
+  displayDurationMinutes?: number;
+  plannedDurationMinutes?: number;
   startDeviationMinutes: number | null;
   endDeviationMinutes: number | null;
   startAmpel: WfmDeviationAmpel | null;
@@ -172,6 +188,8 @@ export interface WfmOfficePlannedVisit {
   workDate: string;
   plannedStartAt: string | null;
   plannedEndAt: string | null;
+  assignmentActualStartAt?: string | null;
+  assignmentActualEndAt?: string | null;
   clientLabel: string | null;
   assignmentTitle: string | null;
   assignmentStatus: string | null;
