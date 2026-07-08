@@ -9,6 +9,7 @@ const ROLE_CAPABILITIES: Record<PlatformRoleKey, PlatformCapability[] | 'all'> =
     'modules.read',
     'modules.write',
     'plans.read',
+    'plans.write',
     'discounts.read',
     'billing.read',
     'payments.read',
@@ -106,8 +107,8 @@ export const CRITICAL_ACTIONS_REQUIRING_REASON = [
 
 export function validatePlatformReason(reason: string | null | undefined): string | null {
   const trimmed = reason?.trim() ?? '';
-  if (trimmed.length < 3) {
-    return 'Bitte geben Sie einen aussagekräftigen Grund an (mindestens 3 Zeichen).';
+  if (trimmed.length < 5) {
+    return 'Bitte geben Sie einen aussagekräftigen Grund an (mindestens 5 Zeichen).';
   }
   return null;
 }

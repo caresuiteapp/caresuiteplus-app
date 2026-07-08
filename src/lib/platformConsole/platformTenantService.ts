@@ -178,20 +178,9 @@ export async function assignPlatformPlan(
   billingInterval = 'monthly',
   customMonthlyCents?: number,
 ): Promise<ServiceResult<Record<string, unknown>>> {
-  const reasonError = validatePlatformReason(reason);
-  if (reasonError) return { ok: false, error: reasonError };
-
-  if (getServiceMode() === 'demo') {
-    return { ok: true, data: { tenant_id: tenantId, plan_key: planKey } };
-  }
-
-  const { data, error } = await platformRpc<Record<string, unknown>>('platform_assign_plan', {
-    p_tenant_id: tenantId,
-    p_plan_key: planKey,
-    p_reason: reason.trim(),
-    p_billing_interval: billingInterval,
-    p_custom_monthly_cents: customMonthlyCents ?? null,
+  const { assignPlatformPlanToTenant } = await import('./platformFoundationService');
+  return assignPlatformPlanToTenant(tenantId, planKey, reason, {
+    billingInterval: billingInterval as 'monthly' | 'yearly',
+    customMonthlyCents: customMonthlyCents ?? null,
   });
-  if (error) return { ok: false, error: error.message };
-  return { ok: true, data: data ?? {} };
 }

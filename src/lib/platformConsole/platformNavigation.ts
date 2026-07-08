@@ -5,6 +5,7 @@ export const PLATFORM_NAV_ITEMS: PlatformNavItem[] = [
   { path: '/platform/tenants', label: 'Mandanten', icon: '▣', capability: 'tenants.read' },
   { path: '/platform/modules', label: 'Module', icon: '▦', capability: 'modules.read' },
   { path: '/platform/plans', label: 'Tarife', icon: '▤', capability: 'plans.read' },
+  { path: '/platform/addons', label: 'Add-ons', icon: '⊕', capability: 'plans.read' },
   { path: '/platform/discounts', label: 'Rabatte', icon: '◷', capability: 'discounts.read' },
   { path: '/platform/billing', label: 'Billing', icon: '€', capability: 'billing.read' },
   { path: '/platform/payments', label: 'Zahlungen', icon: '↳', capability: 'payments.read' },

@@ -40,9 +40,15 @@ import {
 
   TenantAuditTab,
 
+  TenantBillingPreviewTab,
+
+  TenantCreditsTab,
+
   TenantDiagnosisTab,
 
   TenantDiscountsTab,
+
+  TenantEntitlementsTab,
 
   TenantFeatureFlagsTab,
 
@@ -51,6 +57,8 @@ import {
   TenantLimitsTab,
 
   TenantPaymentsTab,
+
+  TenantSubscriptionTab,
 
   TenantSupportTab,
 
@@ -66,9 +74,17 @@ const TABS = [
 
   { key: 'overview', label: 'Übersicht' },
 
+  { key: 'subscription', label: 'Subscription' },
+
+  { key: 'entitlements', label: 'Entitlements' },
+
   { key: 'modules', label: 'Module' },
 
   { key: 'billing', label: 'Rechnungen' },
+
+  { key: 'preview', label: 'Billing Preview' },
+
+  { key: 'credits', label: 'Credits' },
 
   { key: 'payments', label: 'Zahlungen' },
 
@@ -332,6 +348,14 @@ export function PlatformTenantDetailScreen() {
 
 
 
+        {tab === 'subscription' ? (
+          <TenantSubscriptionTab tenantId={tid} detail={detail} role={platformUser?.role} onReload={load} />
+        ) : null}
+
+        {tab === 'entitlements' ? (
+          <TenantEntitlementsTab tenantId={tid} role={platformUser?.role} />
+        ) : null}
+
         {tab === 'modules' ? (
 
           <ModulesTab
@@ -375,6 +399,14 @@ export function PlatformTenantDetailScreen() {
         ) : null}
 
 
+
+        {tab === 'preview' ? (
+          <TenantBillingPreviewTab tenantId={tid} role={platformUser?.role} />
+        ) : null}
+
+        {tab === 'credits' ? (
+          <TenantCreditsTab tenantId={tid} role={platformUser?.role} onReload={load} />
+        ) : null}
 
         {tab === 'payments' ? (
 

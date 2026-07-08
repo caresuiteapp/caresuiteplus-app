@@ -27,13 +27,17 @@ export function PlatformModulesCatalogScreen() {
   }, [load]);
 
   return (
-    <PlatformShellLayout title="Module" subtitle="Zentrales Modulverzeichnis aller CareSuite+ Module">
+    <PlatformShellLayout title="Module" subtitle="Modulverzeichnis — Plan-Zuordnung über Tarife, Mandanten-Overrides im Mandantendetail">
       {loading ? (
         <LoadingState message="Module werden geladen…" />
       ) : error ? (
         <ErrorState title="Module nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
         <ScrollView contentContainerStyle={styles.list}>
+          <Text style={styles.note}>
+            Globale Modulstatus-Änderungen (beta/coming_soon) erfordern platform_update_module_status (2.0C).
+            Plan-Module: /platform/plans · Mandanten-Overrides: Mandantendetail → Module.
+          </Text>
           {items.map((mod) => (
             <View key={String(mod.module_key)} style={styles.row}>
               <Text style={styles.title}>{String(mod.module_name ?? mod.module_key)}</Text>
@@ -117,6 +121,7 @@ const styles = StyleSheet.create({
   },
   title: { color: PLATFORM_COLORS.text, fontWeight: '600', fontSize: 15 },
   meta: { color: PLATFORM_COLORS.muted, fontSize: 12 },
+  note: { color: PLATFORM_COLORS.muted, fontSize: 12, marginBottom: spacing.sm, lineHeight: 18 },
   placeholder: {
     backgroundColor: PLATFORM_COLORS.panel,
     borderWidth: 1,

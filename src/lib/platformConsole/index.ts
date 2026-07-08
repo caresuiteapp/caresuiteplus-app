@@ -34,15 +34,36 @@ export {
 export {
   assignPlatformAddonToTenant,
   assignPlatformDiscountToTenant,
+  assignPlatformPlanModule,
   assignPlatformPlanToTenant,
   bookPlatformTenantCredit,
+  cancelPlatformTenantSubscription,
   createPlatformAddon,
+  createPlatformAddonVersion,
   createPlatformPlan,
   createPlatformPlanVersion,
   generatePlatformInvoicePreview,
   getPlatformEffectiveTenantEntitlements,
   recalculatePlatformTenantEntitlements,
+  reactivatePlatformTenantSubscription,
+  removePlatformAddonFromTenant,
+  removePlatformDiscountFromTenant,
+  removePlatformPlanModule,
+  setPlatformPlanLimit,
+  suspendPlatformTenantSubscription,
+  updatePlatformAddon,
+  updatePlatformPlan,
 } from './platformFoundationService';
+export {
+  getPlatformTenantCredits,
+  listPlatformAddonVersions,
+  listPlatformAddonsCatalog,
+  listPlatformPlanLimits,
+  listPlatformPlanModules,
+  listPlatformPlanVersions,
+  listPlatformTenantAddons,
+  listPlatformTenantSubscriptions,
+} from './platformOperatorDataService';
 export { buildPlatformAuditPath, formatPlatformCents, formatPlatformDate, maskPlatformProviderId } from './platformFormat';
 export {
   CRITICAL_ACTIONS_REQUIRING_REASON,

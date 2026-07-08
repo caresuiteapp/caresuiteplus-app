@@ -5,9 +5,10 @@ export { PlatformAuditScreen } from './PlatformAuditScreen';
 export { PlatformSystemScreen, PlatformReleasesScreen } from './PlatformSystemScreen';
 export {
   PlatformModulesCatalogScreen,
-  PlatformPlansScreen,
   PlatformPlaceholderScreen,
 } from './PlatformCatalogScreens';
+export { PlatformPlansOperatorScreen as PlatformPlansScreen } from './PlatformPlansOperatorScreen';
+export { PlatformAddonsOperatorScreen } from './PlatformAddonsOperatorScreen';
 export {
   PlatformBillingScreen,
   PlatformDiscountsScreen,

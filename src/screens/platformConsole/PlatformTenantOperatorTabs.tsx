@@ -11,18 +11,32 @@ import { LoadingState, PremiumDataTable } from '@/components/ui';
 import type { PlatformTenantDetail } from '@/lib/platformConsole';
 import {
   assignPlatformDiscount,
+  assignPlatformPlan,
+  bookPlatformTenantCredit,
+  cancelPlatformTenantSubscription,
   endPlatformSupportSession,
+  getPlatformEffectiveTenantEntitlements,
   getPlatformLimitsDeferred,
   getPlatformPlanLimits,
   listPlatformAuditLog,
   listPlatformFeatureFlags,
+  listPlatformPlans,
   listPlatformSupportSessions,
   platformRoleHasCapability,
+  recalculatePlatformTenantEntitlements,
+  reactivatePlatformTenantSubscription,
   removePlatformDiscount,
   setPlatformFeatureFlag,
   startPlatformSupportSession,
+  suspendPlatformTenantSubscription,
   updatePlatformInvoiceStatus,
 } from '@/lib/platformConsole';
+import {
+  getPlatformTenantCredits,
+  listPlatformTenantAddons,
+  listPlatformTenantSubscriptions,
+} from '@/lib/platformConsole/platformOperatorDataService';
+import { PlatformBillingPreviewPanel } from '@/components/platformConsole/PlatformBillingPreviewPanel';
 import { formatPlatformCents, formatPlatformDate } from '@/lib/platformConsole/platformFormat';
 import type { PlatformRoleKey, PlatformTenantModuleRow } from '@/types/platformConsole';
 import { spacing } from '@/theme';
@@ -36,6 +50,316 @@ type TabProps = {
 
 function mapRecordRows(items: Record<string, unknown>[]): Record<string, unknown>[] {
   return items ?? [];
+}
+
+export function TenantSubscriptionTab({ tenantId, detail, role, onReload }: TabProps) {
+  const canWrite = platformRoleHasCapability(role, 'plans.write');
+  const [subscriptions, setSubscriptions] = useState<Record<string, unknown>[]>([]);
+  const [addons, setAddons] = useState<Record<string, unknown>[]>([]);
+  const [plans, setPlans] = useState<Record<string, unknown>[]>([]);
+  const [planKey, setPlanKey] = useState('');
+  const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string; danger?: boolean } | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [auditAction, setAuditAction] = useState<string | null>(null);
+
+  const load = useCallback(async () => {
+    const [sub, ad, pl] = await Promise.all([
+      listPlatformTenantSubscriptions(tenantId),
+      listPlatformTenantAddons(tenantId),
+      listPlatformPlans(),
+    ]);
+    if (sub.ok) setSubscriptions(sub.data);
+    if (ad.ok) setAddons(ad.data);
+    if (pl.ok) setPlans(pl.data);
+  }, [tenantId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  const activeSub = subscriptions.find((s) => s.status === 'active') ?? subscriptions[0];
+  const plan = (detail.plan ?? {}) as Record<string, unknown>;
+
+  return (
+    <View style={styles.panel}>
+      <Text style={styles.section}>Subscription</Text>
+      {activeSub ? (
+        <>
+          <Info label="Status" value={String(activeSub.status ?? '—')} />
+          <Info label="Plan" value={String(activeSub.plan_key ?? plan.plan_key ?? '—')} />
+          <Info label="Intervall" value={String(activeSub.billing_interval ?? '—')} />
+          <Info label="Periode Start" value={formatPlatformDate(activeSub.current_period_start)} />
+          <Info label="Periode Ende" value={formatPlatformDate(activeSub.current_period_end)} />
+          <Info label="Trial bis" value={formatPlatformDate(activeSub.trial_ends_at)} />
+        </>
+      ) : (
+        <Text style={styles.hint}>Keine aktive Subscription — Plan zuweisen.</Text>
+      )}
+
+      <Text style={styles.section}>Aktive Add-ons</Text>
+      {addons.length === 0 ? <Text style={styles.hint}>Keine Add-ons.</Text> : null}
+      {addons.map((a) => (
+        <Text key={String(a.addon_key ?? a.id)} style={styles.meta}>
+          {String(a.addon_key)} · {String(a.status ?? 'active')}
+        </Text>
+      ))}
+
+      {canWrite ? (
+        <View style={styles.subPanel}>
+          <Text style={styles.label}>Plan zuweisen / wechseln</Text>
+          <ScrollView horizontal contentContainerStyle={{ flexDirection: 'row', gap: 8 }}>
+            {plans.map((p) => (
+              <Pressable
+                key={String(p.plan_key)}
+                style={[styles.chipBtn, planKey === String(p.plan_key) && styles.chipBtnActive]}
+                onPress={() => setPlanKey(String(p.plan_key))}
+              >
+                <Text style={styles.meta}>{String(p.plan_key)}</Text>
+              </Pressable>
+            ))}
+          </ScrollView>
+          <Pressable
+            style={styles.btn}
+            disabled={!planKey}
+            onPress={() =>
+              setConfirm({
+                title: 'Plan zuweisen',
+                desc: `Plan ${planKey} dem Mandanten zuweisen. Entitlements werden neu berechnet.`,
+                action: async (reason) => {
+                  const res = await assignPlatformPlan(tenantId, planKey, reason);
+                  if (!res.ok) throw new Error(res.error);
+                  await recalculatePlatformTenantEntitlements(tenantId, reason);
+                  setAuditAction('subscription.plan_assigned');
+                  await load();
+                  await onReload();
+                },
+              })
+            }
+          >
+            <Text style={styles.btnText}>Plan zuweisen</Text>
+          </Pressable>
+
+          <View style={styles.rowActions}>
+            <Pressable
+              style={styles.btn}
+              onPress={() =>
+                setConfirm({
+                  title: 'Subscription pausieren',
+                  desc: 'Zugriff eingeschränkt. Billing-Auswirkung prüfen.',
+                  danger: true,
+                  action: async (reason) => {
+                    const res = await suspendPlatformTenantSubscription(tenantId, reason);
+                    if (!res.ok) throw new Error(res.error);
+                    setAuditAction('subscription.suspended');
+                    await load();
+                    await onReload();
+                  },
+                })
+              }
+            >
+              <Text style={styles.btnText}>Pausieren</Text>
+            </Pressable>
+            <Pressable
+              style={styles.btn}
+              onPress={() =>
+                setConfirm({
+                  title: 'Subscription reaktivieren',
+                  desc: 'Subscription wieder aktivieren.',
+                  action: async (reason) => {
+                    const res = await reactivatePlatformTenantSubscription(tenantId, reason);
+                    if (!res.ok) throw new Error(res.error);
+                    setAuditAction('subscription.reactivated');
+                    await load();
+                    await onReload();
+                  },
+                })
+              }
+            >
+              <Text style={styles.btnText}>Reaktivieren</Text>
+            </Pressable>
+            <Pressable
+              style={[styles.btn, styles.btnDanger]}
+              onPress={() =>
+                setConfirm({
+                  title: 'Subscription kündigen',
+                  desc: 'Kündigung ohne Rückgängig — Grund Pflicht.',
+                  danger: true,
+                  action: async (reason) => {
+                    const res = await cancelPlatformTenantSubscription(tenantId, reason);
+                    if (!res.ok) throw new Error(res.error);
+                    setAuditAction('subscription.cancelled');
+                    await load();
+                    await onReload();
+                  },
+                })
+              }
+            >
+              <Text style={styles.btnText}>Kündigen</Text>
+            </Pressable>
+          </View>
+        </View>
+      ) : (
+        <Text style={styles.hint}>Lesemodus — plans.write erforderlich.</Text>
+      )}
+
+      {auditAction ? <PlatformAuditLink tenantId={tenantId} action={auditAction} /> : null}
+      <PlatformConfirmModal
+        visible={Boolean(confirm)}
+        title={confirm?.title ?? ''}
+        description={confirm?.desc ?? ''}
+        danger={confirm?.danger}
+        loading={loading}
+        onCancel={() => setConfirm(null)}
+        onConfirm={(reason) => {
+          if (!confirm) return;
+          setLoading(true);
+          void confirm.action(reason).finally(() => {
+            setLoading(false);
+            setConfirm(null);
+          });
+        }}
+      />
+    </View>
+  );
+}
+
+export function TenantEntitlementsTab({ tenantId, role }: Pick<TabProps, 'tenantId' | 'role'>) {
+  const canWrite = platformRoleHasCapability(role, 'plans.write');
+  const [items, setItems] = useState<Record<string, unknown>[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    setLoading(true);
+    const res = await getPlatformEffectiveTenantEntitlements(tenantId);
+    if (res.ok) setItems((res.data as Record<string, unknown>[]) ?? []);
+    setLoading(false);
+  }, [tenantId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  if (loading) return <LoadingState message="Entitlements laden…" />;
+
+  return (
+    <View style={styles.panel}>
+      {items.length === 0 ? <Text style={styles.hint}>Keine Entitlements berechnet.</Text> : null}
+      {items.map((e, i) => (
+        <View key={String(e.module_key ?? e.entitlement_key ?? i)} style={styles.row}>
+          <Text style={styles.primary}>{String(e.module_key ?? e.entitlement_key ?? '—')}</Text>
+          <Text style={styles.meta}>
+            {String(e.access_state ?? e.status ?? '—')} · Quelle: {String(e.source ?? '—')}
+            {e.limit_value != null ? ` · Limit ${String(e.limit_value)}` : ''}
+          </Text>
+        </View>
+      ))}
+      {canWrite ? (
+        <Pressable
+          style={styles.btn}
+          onPress={() =>
+            setConfirm({
+              title: 'Entitlements neu berechnen',
+              desc: 'Effektive Rechte aus Plan, Add-ons und Overrides neu berechnen.',
+              action: async (reason) => {
+                await recalculatePlatformTenantEntitlements(tenantId, reason);
+                await load();
+              },
+            })
+          }
+        >
+          <Text style={styles.btnText}>Neu berechnen</Text>
+        </Pressable>
+      ) : null}
+      <PlatformAuditLink tenantId={tenantId} action="entitlements.recalculated" />
+      <PlatformConfirmModal
+        visible={Boolean(confirm)}
+        title={confirm?.title ?? ''}
+        description={confirm?.desc ?? ''}
+        loading={actionLoading}
+        onCancel={() => setConfirm(null)}
+        onConfirm={(reason) => {
+          if (!confirm) return;
+          setActionLoading(true);
+          void confirm.action(reason).finally(() => {
+            setActionLoading(false);
+            setConfirm(null);
+          });
+        }}
+      />
+    </View>
+  );
+}
+
+export function TenantCreditsTab({ tenantId, role, onReload }: Pick<TabProps, 'tenantId' | 'role' | 'onReload'>) {
+  const canWrite = platformRoleHasCapability(role, 'billing.write');
+  const [balance, setBalance] = useState<number | null>(null);
+  const [amount, setAmount] = useState('');
+  const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    const res = await getPlatformTenantCredits(tenantId);
+    if (res.ok && res.data) setBalance(Number(res.data.balance_cents ?? 0));
+  }, [tenantId]);
+
+  useEffect(() => {
+    void load();
+  }, [load]);
+
+  return (
+    <View style={styles.panel}>
+      <Text style={styles.primary}>Aktuelles Guthaben: {formatPlatformCents(balance ?? 0)}</Text>
+      {canWrite ? (
+        <View style={styles.subPanel}>
+          <TextInput style={styles.input} value={amount} onChangeText={setAmount} placeholder="Betrag (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+          <Pressable
+            style={styles.btn}
+            onPress={() =>
+              setConfirm({
+                title: 'Credit buchen',
+                desc: `${amount} Cent gutschreiben. Ledger-Eintrag append-only.`,
+                action: async (reason) => {
+                  const res = await bookPlatformTenantCredit(tenantId, Number(amount) || 0, reason, 'credit');
+                  if (!res.ok) throw new Error(res.error);
+                  await load();
+                  await onReload();
+                },
+              })
+            }
+          >
+            <Text style={styles.btnText}>Credit buchen</Text>
+          </Pressable>
+          <PlatformAuditLink tenantId={tenantId} action="credit.booked" />
+        </View>
+      ) : (
+        <Text style={styles.hint}>Lesemodus — billing.write erforderlich.</Text>
+      )}
+      <PlatformConfirmModal
+        visible={Boolean(confirm)}
+        title={confirm?.title ?? ''}
+        description={confirm?.desc ?? ''}
+        loading={loading}
+        onCancel={() => setConfirm(null)}
+        onConfirm={(reason) => {
+          if (!confirm) return;
+          setLoading(true);
+          void confirm.action(reason).finally(() => {
+            setLoading(false);
+            setConfirm(null);
+          });
+        }}
+      />
+    </View>
+  );
+}
+
+export function TenantBillingPreviewTab({ tenantId, role }: Pick<TabProps, 'tenantId' | 'role'>) {
+  const canWrite = platformRoleHasCapability(role, 'billing.write');
+  return (
+    <PlatformBillingPreviewPanel tenantId={tenantId} canWrite={canWrite} compact />
+  );
 }
 
 export function TenantInvoicesTab({ tenantId, detail, role, onReload }: TabProps) {
@@ -292,12 +616,17 @@ export function TenantSupportTab({ tenantId, role, onReload }: Omit<TabProps, 'd
 export function TenantFeatureFlagsTab({ tenantId, role }: Omit<TabProps, 'detail' | 'onReload'>) {
   const canWrite = platformRoleHasCapability(role, 'flags.write');
   const [flags, setFlags] = useState<Record<string, unknown>[]>([]);
+  const [confirm, setConfirm] = useState<{ action: (reason: string) => Promise<void>; title: string; desc: string } | null>(null);
+  const [loading, setLoading] = useState(false);
+
+  const load = useCallback(async () => {
+    const res = await listPlatformFeatureFlags({ tenantId });
+    if (res.ok) setFlags(res.data as unknown as Record<string, unknown>[]);
+  }, [tenantId]);
 
   useEffect(() => {
-    void listPlatformFeatureFlags({ tenantId }).then((res) => {
-      if (res.ok) setFlags(res.data as unknown as Record<string, unknown>[]);
-    });
-  }, [tenantId]);
+    void load();
+  }, [load]);
 
   return (
     <View style={styles.panel}>
@@ -306,10 +635,44 @@ export function TenantFeatureFlagsTab({ tenantId, role }: Omit<TabProps, 'detail
         <View key={String(f.id)} style={styles.row}>
           <Text style={styles.primary}>{String(f.flag_key)}</Text>
           <Text style={styles.meta}>{f.enabled ? 'aktiv' : 'inaktiv'} · Rollout {String(f.rollout_percentage ?? '—')}%</Text>
+          {canWrite ? (
+            <Pressable
+              onPress={() =>
+                setConfirm({
+                  title: f.enabled ? 'Flag deaktivieren' : 'Flag aktivieren',
+                  desc: `${String(f.flag_key)} für Mandant ${tenantId.slice(0, 8)}…`,
+                  action: async (reason) => {
+                    await setPlatformFeatureFlag(String(f.flag_key), !f.enabled, reason, {
+                      scope: 'tenant',
+                      tenantId,
+                    });
+                    await load();
+                  },
+                })
+              }
+            >
+              <Text style={styles.link}>{f.enabled ? 'Deaktivieren' : 'Aktivieren'}</Text>
+            </Pressable>
+          ) : null}
         </View>
       ))}
       <PlatformAuditLink tenantId={tenantId} action="feature_flag" />
       {!canWrite ? <Text style={styles.hint}>Lesemodus — flags.write erforderlich zum Ändern.</Text> : null}
+      <PlatformConfirmModal
+        visible={Boolean(confirm)}
+        title={confirm?.title ?? ''}
+        description={confirm?.desc ?? ''}
+        loading={loading}
+        onCancel={() => setConfirm(null)}
+        onConfirm={(reason) => {
+          if (!confirm) return;
+          setLoading(true);
+          void confirm.action(reason).finally(() => {
+            setLoading(false);
+            setConfirm(null);
+          });
+        }}
+      />
     </View>
   );
 }
@@ -511,4 +874,14 @@ const styles = StyleSheet.create({
   },
   btnText: { color: PLATFORM_COLORS.text, fontWeight: '600', fontSize: 13 },
   link: { color: PLATFORM_COLORS.accent, fontWeight: '600', fontSize: 13 },
+  chipBtn: {
+    borderWidth: 1,
+    borderColor: PLATFORM_COLORS.border,
+    borderRadius: 8,
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+  },
+  chipBtnActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: '#132036' },
+  rowActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
+  btnDanger: { backgroundColor: '#3f1212', borderColor: PLATFORM_COLORS.danger },
 });
