@@ -30,7 +30,12 @@ export type WfmTimeReviewActionType =
   | 'review_reopened'
   | 'locked'
   | 'superseded'
-  | 'justification_updated';
+  | 'justification_updated'
+  | 'export_marked'
+  | 'export_finalized'
+  | 'export_voided'
+  | 'export_reopened'
+  | 'changed_after_export_detected';
 
 export type WfmTimeReviewEntryKind = 'session' | 'visit' | 'manual' | 'meeting';
 

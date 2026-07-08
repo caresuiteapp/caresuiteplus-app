@@ -197,3 +197,51 @@ export {
   type WfmTimeEntryReview,
   type WfmTimeReviewStatus,
 } from './wfmTimeReviewService';
+
+export {
+  canCreateReviewedTimeExport,
+  deriveReviewExportStatus,
+  exportBlockReasonLabel,
+  getReviewExportBlockReason,
+  isFinalizedExportJobStatus,
+  isReviewExportable,
+  normalizeExportPeriod,
+  type WfmTimeExportBlockReason,
+  type WfmTimeExportJobStatus,
+  type WfmTimeExportPeriod,
+  type WfmTimeExportReviewInput,
+  type WfmTimeExportStatus,
+  type WfmTimeExportType,
+} from './wfmTimeExportPolicy';
+
+export {
+  buildExportPayloadForReview,
+  calculateExportPayloadHash,
+  normalizeExportEmployeeSnapshot,
+  normalizeExportEntrySnapshot,
+  normalizeExportMinutes,
+  type WfmTimeExportPayload,
+} from './wfmTimeExportPayloadBuilder';
+
+export {
+  buildInternalCsv,
+  cancelExportBatch,
+  createExportDraft,
+  detectChangedAfterExport,
+  finalizeExportBatch,
+  listDemoExportItems,
+  listDemoExportJobs,
+  listExportableReviews,
+  listExportBatches,
+  listExportItems,
+  resetWfmTimeExportDemoStore,
+  validateExportBatch,
+  type WfmTimeExportBatchFilters,
+  type WfmTimeExportBlockedReview,
+  type WfmTimeExportDraftResult,
+  type WfmTimeExportFinalizeResult,
+  type WfmTimeExportItem,
+  type WfmTimeExportJob,
+  type WfmTimeExportReviewRow,
+  type WfmTimeExportValidationResult,
+} from './wfmTimeExportService';
