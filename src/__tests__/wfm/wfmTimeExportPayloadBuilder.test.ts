@@ -1,6 +1,10 @@
 import { describe, expect, it } from 'vitest';
 import {
+  buildCorrectionPayloadDelta,
+  buildCorrectionReferenceKey,
   buildExportPayloadForReview,
+  buildLogicalReferenceKey,
+  buildReviewVersionHash,
   calculateExportPayloadHash,
   normalizeExportMinutes,
 } from '@/lib/wfm/wfmTimeExportPayloadBuilder';
@@ -48,5 +52,37 @@ describe('wfmTimeExportPayloadBuilder', () => {
     expect(payload.periodDate).toBe('2026-07-07');
     expect(payload.minutesTotal).toBe(480);
     expect(payload.reviewStatus).toBe('approved');
+  });
+
+  it('builds correction delta between old and new payload', () => {
+    const oldPayload = buildExportPayloadForReview(INPUT);
+    const newPayload = buildExportPayloadForReview({ ...INPUT, minutesTotal: 420 });
+    const delta = buildCorrectionPayloadDelta(oldPayload, newPayload);
+    expect(delta.changedFields).toContain('minutesTotal');
+    expect(delta.deltaMinutes).toBe(-60);
+  });
+
+  it('exposes logical and correction reference keys', () => {
+    expect(buildLogicalReferenceKey('abc')).toBe('review:abc');
+    expect(buildCorrectionReferenceKey('review:abc', 2)).toBe('review:abc:correction:2');
+  });
+
+  it('changes review version hash when live minutes change', () => {
+    const base = {
+      reviewId: 'r1',
+      tenantId: 'tenant',
+      employeeId: 'emp',
+      periodDate: '2026-07-07',
+      entryKind: 'session' as const,
+      minutesTotal: 480,
+      referenceId: 'ref',
+      referenceKey: 'key',
+      logicalReferenceKey: 'review:r1',
+      reviewStatus: 'approved' as const,
+      exportBlocking: false,
+    };
+    const hashA = buildReviewVersionHash(base);
+    const hashB = buildReviewVersionHash({ ...base, minutesTotal: 120 });
+    expect(hashA).not.toBe(hashB);
   });
 });

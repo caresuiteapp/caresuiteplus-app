@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import { Platform, StyleSheet, Text, TextInput, View } from 'react-native';
 import { LockedActionBanner } from '@/components/permissions';
 import { ScreenShell } from '@/components/layout';
 import {
@@ -22,12 +22,29 @@ import {
   buildInternalCsv,
   createExportDraft,
   finalizeExportBatch,
-  listExportBatches,
   validateExportBatch,
+  type WfmTimeExportItem,
   type WfmTimeExportJob,
+  type WfmTimeExportReviewRow,
   type WfmTimeExportValidationResult,
 } from '@/lib/wfm/wfmTimeExportService';
+import {
+  draftReviewedTimeCorrectionExport,
+  exportJobTypeLabel,
+  finalizeReviewedTimeCorrectionExport,
+  getExportItemTimeline,
+  getReviewExportState,
+  listReviewedTimeCorrectionCandidates,
+  listReviewedTimeExports,
+  previewChangedAfterExport,
+  reviewExportBadgeLabel,
+  validateCorrectionExportDraft,
+  type WfmReviewDriftPreview,
+  type WfmReviewExportState,
+} from '@/lib/wfm/wfmTimeCorrectionExportService';
+import { WFM_CORRECTION_REASON_MIN_LENGTH } from '@/lib/wfm/wfmTimeExportPolicy';
 import type { WfmTimeExportPeriod } from '@/lib/wfm/wfmTimeExportPolicy';
+import { listReviewActionsForReviews, type WfmTimeReviewAction } from '@/lib/wfm/wfmTimeReviewService';
 
 function triggerWebFileDownload(content: string, mimeType: string, fileName: string): void {
   if (Platform.OS !== 'web' || typeof document === 'undefined') return;
@@ -91,6 +108,28 @@ function jobStatusLabel(status: WfmTimeExportJob['status']): string {
   return labels[status] ?? status;
 }
 
+function itemStatusLabel(status: WfmTimeExportItem['itemStatus'] | undefined): string {
+  switch (status) {
+    case 'active':
+      return 'Aktiv';
+    case 'superseded':
+      return 'Superseded';
+    case 'voided':
+      return 'Voided';
+    default:
+      return status ?? '—';
+  }
+}
+
+function formatDriftPreview(preview: WfmReviewDriftPreview | null): string {
+  if (!preview) return 'Keine Drift-Daten.';
+  if (!preview.changed) return 'Keine exportrelevante Änderung erkannt.';
+  const deltaFields = preview.delta?.changedFields?.join(', ') ?? '—';
+  const deltaMinutes =
+    preview.delta?.deltaMinutes != null ? String(preview.delta.deltaMinutes) : '—';
+  return `Geändert: ${preview.previousHash} → ${preview.currentHash} · Felder: ${deltaFields} · Δ Minuten: ${deltaMinutes}`;
+}
+
 export function WfmExportScreen() {
   const tenantId = useServiceTenantId();
   const { user, profile } = useAuth();
@@ -116,6 +155,20 @@ export function WfmExportScreen() {
   const [history, setHistory] = useState<WfmTimeExportJob[]>([]);
   const [historyLoading, setHistoryLoading] = useState(false);
 
+  const [p23Loading, setP23Loading] = useState(false);
+  const [p23Error, setP23Error] = useState<string | null>(null);
+  const [p23Message, setP23Message] = useState<string | null>(null);
+  const [candidates, setCandidates] = useState<WfmTimeExportReviewRow[]>([]);
+  const [selectedReviewId, setSelectedReviewId] = useState<string | null>(null);
+  const [correctionReason, setCorrectionReason] = useState('');
+  const [driftPreview, setDriftPreview] = useState<string | null>(null);
+  const [reviewDetail, setReviewDetail] = useState<WfmReviewExportState | null>(null);
+  const [itemTimeline, setItemTimeline] = useState<WfmTimeExportItem[]>([]);
+  const [reviewActions, setReviewActions] = useState<WfmTimeReviewAction[]>([]);
+  const [correctionDraftJob, setCorrectionDraftJob] = useState<WfmTimeExportJob | null>(null);
+  const [correctionPreviewItems, setCorrectionPreviewItems] = useState<WfmTimeExportItem[]>([]);
+  const [correctionValidated, setCorrectionValidated] = useState(false);
+
   const canExport = can('time.tracking.admin.export');
   const exportReady = Boolean(tenantId && userId);
   const period = useMemo(() => monthPeriod(year, month), [year, month]);
@@ -123,16 +176,78 @@ export function WfmExportScreen() {
   const loadHistory = useCallback(async () => {
     if (!tenantId || !canExport) return;
     setHistoryLoading(true);
-    const result = await listExportBatches(tenantId, roleKey, { limit: 20 });
+    const result = await listReviewedTimeExports(tenantId, roleKey, 20);
     setHistoryLoading(false);
     if (result.ok) {
       setHistory(result.data);
     }
   }, [tenantId, roleKey, canExport]);
 
+  const loadCorrectionCandidates = useCallback(async () => {
+    if (!tenantId || !canExport) return;
+    setP23Loading(true);
+    setP23Error(null);
+    const listed = await listReviewedTimeCorrectionCandidates(tenantId, roleKey);
+    setP23Loading(false);
+    if (!listed.ok) {
+      setP23Error(listed.error);
+      return;
+    }
+    setCandidates(listed.data);
+  }, [tenantId, roleKey, canExport]);
+
+  const loadReviewDetail = useCallback(
+    async (reviewId: string) => {
+      if (!tenantId || !canExport) return;
+      setSelectedReviewId(reviewId);
+      setCorrectionValidated(false);
+      setCorrectionDraftJob(null);
+      setCorrectionPreviewItems([]);
+      setP23Error(null);
+
+      const [state, preview, actions] = await Promise.all([
+        getReviewExportState(tenantId, roleKey, reviewId),
+        previewChangedAfterExport(tenantId, roleKey, reviewId),
+        listReviewActionsForReviews(tenantId, [reviewId]),
+      ]);
+
+      if (!state.ok) {
+        setP23Error(state.error);
+        return;
+      }
+      if (!preview.ok) {
+        setP23Error(preview.error);
+        return;
+      }
+      if (!actions.ok) {
+        setP23Error(actions.error);
+        return;
+      }
+
+      setReviewDetail(state.data);
+      setDriftPreview(formatDriftPreview(preview.data));
+      setReviewActions(actions.data);
+
+      const logicalKey =
+        state.data?.activeItem?.logicalReferenceKey ??
+        state.data?.activeItem?.referenceKey ??
+        null;
+      if (logicalKey) {
+        const timeline = await getExportItemTimeline(tenantId, roleKey, logicalKey);
+        if (timeline.ok) {
+          setItemTimeline(timeline.data);
+        }
+      } else {
+        setItemTimeline([]);
+      }
+    },
+    [tenantId, roleKey, canExport],
+  );
+
   useEffect(() => {
     void loadHistory();
-  }, [loadHistory]);
+    void loadCorrectionCandidates();
+  }, [loadHistory, loadCorrectionCandidates]);
 
   useEffect(() => {
     setDraftJob(null);
@@ -142,7 +257,7 @@ export function WfmExportScreen() {
   }, [year, month]);
 
   const runExport = async (format: WfmExportFormat) => {
-    if (!exportReady) return;
+    if (!exportReady || !tenantId) return;
     setLoading(true);
     setError(null);
     setMessage(null);
@@ -176,7 +291,7 @@ export function WfmExportScreen() {
   };
 
   const handlePrepareExport = async () => {
-    if (!exportReady) return;
+    if (!exportReady || !tenantId) return;
     setP22Loading(true);
     setP22Error(null);
     setP22Message(null);
@@ -206,7 +321,7 @@ export function WfmExportScreen() {
   };
 
   const handleFinalizeExport = async () => {
-    if (!exportReady || !draftJob) return;
+    if (!exportReady || !draftJob || !tenantId) return;
     setP22Loading(true);
     setP22Error(null);
 
@@ -227,7 +342,7 @@ export function WfmExportScreen() {
   };
 
   const handleDownloadInternalCsv = async (jobId: string, periodLabel: string) => {
-    if (!exportReady) return;
+    if (!exportReady || !tenantId) return;
     setP22Loading(true);
     setP22Error(null);
 
@@ -243,6 +358,113 @@ export function WfmExportScreen() {
     triggerWebFileDownload(result.data.csv, 'text/csv', fileName);
     setP22Message(`Interner CSV-Download: ${result.data.rowCount} Zeilen.`);
   };
+
+  const handlePreviewDrift = async (reviewId: string) => {
+    await loadReviewDetail(reviewId);
+  };
+
+  const handleDraftCorrection = async () => {
+    if (!exportReady || !tenantId || !selectedReviewId) return;
+    if (correctionReason.trim().length < WFM_CORRECTION_REASON_MIN_LENGTH) {
+      setP23Error(`Korrekturgrund erforderlich (min. ${WFM_CORRECTION_REASON_MIN_LENGTH} Zeichen).`);
+      return;
+    }
+    const review = candidates.find((c) => c.id === selectedReviewId) ?? reviewDetail;
+    if (!review?.lastExportJobId) {
+      setP23Error('Ursprungs-Export-Job fehlt.');
+      return;
+    }
+
+    setP23Loading(true);
+    setP23Error(null);
+    setCorrectionValidated(false);
+    const result = await draftReviewedTimeCorrectionExport(tenantId, userId, roleKey, {
+      reviewIds: [selectedReviewId],
+      correctionOfExportJobId: review.lastExportJobId,
+      reason: correctionReason.trim(),
+    });
+    setP23Loading(false);
+    if (!result.ok) {
+      setP23Error(result.error);
+      return;
+    }
+    setCorrectionDraftJob(result.data.job);
+    setCorrectionPreviewItems(result.data.previewItems);
+    setP23Message(
+      `Korrekturentwurf erstellt: ${result.data.previewItems.length} Item(s). Bitte Preview prüfen und validieren.`,
+    );
+  };
+
+  const handleValidateCorrection = async () => {
+    if (!exportReady || !tenantId || !correctionDraftJob) return;
+    if (correctionReason.trim().length < WFM_CORRECTION_REASON_MIN_LENGTH) {
+      setP23Error(`Korrekturgrund erforderlich (min. ${WFM_CORRECTION_REASON_MIN_LENGTH} Zeichen).`);
+      return;
+    }
+    setP23Loading(true);
+    setP23Error(null);
+    const validation = await validateCorrectionExportDraft(
+      tenantId,
+      roleKey,
+      correctionDraftJob.id,
+      correctionReason.trim(),
+    );
+    setP23Loading(false);
+    if (!validation.ok) {
+      setP23Error(validation.error);
+      return;
+    }
+    if (!validation.data.valid) {
+      setP23Error(validation.data.reasonError ?? 'Korrekturentwurf ungültig.');
+      setCorrectionValidated(false);
+      return;
+    }
+    setCorrectionValidated(true);
+    setP23Message('Korrekturentwurf validiert — Finalize freigegeben.');
+  };
+
+  const handleFinalizeCorrection = async () => {
+    if (!exportReady || !tenantId || !correctionDraftJob) return;
+    if (correctionReason.trim().length < WFM_CORRECTION_REASON_MIN_LENGTH) {
+      setP23Error(`Korrekturgrund erforderlich (min. ${WFM_CORRECTION_REASON_MIN_LENGTH} Zeichen).`);
+      return;
+    }
+    if (!correctionValidated || correctionPreviewItems.length === 0) {
+      setP23Error('Finalize nur nach Preview und Validate möglich.');
+      return;
+    }
+
+    setP23Loading(true);
+    setP23Error(null);
+    const result = await finalizeReviewedTimeCorrectionExport(
+      tenantId,
+      userId,
+      roleKey,
+      correctionDraftJob.id,
+      correctionReason.trim(),
+    );
+    setP23Loading(false);
+    if (!result.ok) {
+      setP23Error(result.error);
+      return;
+    }
+    setP23Message(
+      'Korrekturexport finalisiert. Ursprünglicher Export bleibt unverändert; altes Item wurde superseded.',
+    );
+    setCorrectionDraftJob(null);
+    setCorrectionPreviewItems([]);
+    setCorrectionValidated(false);
+    setSelectedReviewId(null);
+    setReviewDetail(null);
+    setItemTimeline([]);
+    void loadHistory();
+    void loadCorrectionCandidates();
+  };
+
+  const correctionReasonValid = useMemo(
+    () => correctionReason.trim().length >= WFM_CORRECTION_REASON_MIN_LENGTH,
+    [correctionReason],
+  );
 
   if (!canExport) {
     return (
@@ -410,7 +632,8 @@ export function WfmExportScreen() {
                     startDate: job.periodStart ?? period.startDate,
                     endDate: job.periodEnd ?? period.endDate,
                   })}{' '}
-                  · {jobStatusLabel(job.status)} · {job.rowCount} Zeilen
+                  · {exportJobTypeLabel(job.exportType)} · {jobStatusLabel(job.status)} · {job.rowCount} Zeilen
+                  {job.correctionSequence ? ` · Korrektur #${job.correctionSequence}` : ''}
                 </Text>
                 {job.status === 'finalized' ? (
                   <PremiumButton
@@ -438,6 +661,188 @@ export function WfmExportScreen() {
             <ErrorState title="Review-Export Fehler" message={p22Error} onRetry={() => setP22Error(null)} />
           ) : null}
         </SectionPanel>
+
+        <View testID="wfm-p23-section">
+        <SectionPanel
+          title="Korrektur & Re-Export (P2.3)"
+          subtitle="Geänderte Reviews nach Export korrigierend re-exportieren"
+        >
+          <InfoBanner
+            message="Dieser Vorgang erzeugt einen Korrekturexport. Der ursprüngliche Export bleibt unverändert und wird fachlich superseded."
+          />
+
+          {p23Loading ? <LoadingState message="Korrekturexport wird verarbeitet…" /> : null}
+
+          <PremiumButton
+            title="Kandidaten aktualisieren"
+            testID="wfm-p23-refresh-candidates"
+            variant="ghost"
+            onPress={() => void loadCorrectionCandidates()}
+            disabled={p23Loading || !exportReady}
+          />
+
+          <SectionPanel title="Reviews mit Korrekturbedarf" subtitle={`${candidates.length} Kandidat(en)`}>
+            {candidates.length === 0 ? (
+              <EmptyState
+                title="Keine Korrekturkandidaten"
+                message="Reviews mit changed_after_export erscheinen hier."
+              />
+            ) : (
+              candidates.map((review) => (
+                <View key={review.id} style={styles.historyRow}>
+                  <Text style={styles.entryLine}>
+                    {review.workDate} · {review.referenceKey} · {reviewExportBadgeLabel(review)} · v
+                    {review.exportVersion ?? 1}
+                    {review.pendingReexportJobId ? ` · Entwurf ${review.pendingReexportJobId.slice(0, 8)}…` : ''}
+                  </Text>
+                  <PremiumButton
+                    title={selectedReviewId === review.id ? 'Ausgewählt' : 'Auswählen'}
+                    testID={`wfm-p23-select-${review.id}`}
+                    variant="ghost"
+                    onPress={() => void loadReviewDetail(review.id)}
+                    disabled={p23Loading || !exportReady}
+                  />
+                </View>
+              ))
+            )}
+          </SectionPanel>
+
+          {reviewDetail ? (
+            <SectionPanel title="Review-Detail" subtitle={reviewDetail.referenceKey}>
+              <Text style={styles.metaLine}>export_status: {reviewDetail.exportStatus}</Text>
+              <Text style={styles.metaLine}>export_version: {reviewDetail.exportVersion ?? 1}</Text>
+              <Text style={styles.metaLine}>
+                changed_after_export: {reviewDetail.changedAfterExport ? 'ja' : 'nein'}
+              </Text>
+              {reviewDetail.changedAfterExportReason ? (
+                <Text style={styles.metaLine}>Grund: {reviewDetail.changedAfterExportReason}</Text>
+              ) : null}
+              <Text style={styles.metaLine}>
+                latest_export_item_id: {reviewDetail.latestExportItemId ?? '—'}
+              </Text>
+              <Text style={styles.metaLine}>
+                pending_reexport_job_id: {reviewDetail.pendingReexportJobId ?? '—'}
+              </Text>
+              {reviewDetail.activeItem ? (
+                <>
+                  <Text style={styles.metaLine}>
+                    logical_reference_key: {reviewDetail.activeItem.logicalReferenceKey ?? reviewDetail.activeItem.referenceKey}
+                  </Text>
+                  <Text style={styles.metaLine}>
+                    export_sequence: {reviewDetail.activeItem.exportSequence ?? 1}
+                  </Text>
+                  <Text style={styles.metaLine}>
+                    item_status: {itemStatusLabel(reviewDetail.activeItem.itemStatus)}
+                  </Text>
+                  <Text style={styles.metaLine}>payload_hash: {reviewDetail.activeItem.payloadHash}</Text>
+                  {reviewDetail.activeItem.previousPayloadHash ? (
+                    <Text style={styles.metaLine}>
+                      previous_payload_hash: {reviewDetail.activeItem.previousPayloadHash}
+                    </Text>
+                  ) : null}
+                </>
+              ) : null}
+              {driftPreview ? (
+                <Text style={styles.metaLine} testID="wfm-p23-drift-preview">
+                  {driftPreview}
+                </Text>
+              ) : null}
+            </SectionPanel>
+          ) : null}
+
+          {itemTimeline.length > 0 ? (
+            <SectionPanel title="Export-Item Timeline">
+              {itemTimeline.map((item) => (
+                <Text key={item.id} style={styles.entryLine}>
+                  seq {item.exportSequence ?? 1} · {itemStatusLabel(item.itemStatus)} · {item.referenceKey} ·{' '}
+                  {item.payloadHash}
+                </Text>
+              ))}
+            </SectionPanel>
+          ) : null}
+
+          {reviewActions.length > 0 ? (
+            <SectionPanel title="Action-Historie">
+              {reviewActions.map((action) => (
+                <Text key={action.id} style={styles.entryLine}>
+                  {action.action}
+                  {action.comment ? `: ${action.comment}` : ''}
+                </Text>
+              ))}
+            </SectionPanel>
+          ) : null}
+
+          <SectionPanel title="Korrekturgrund" subtitle={`Mindestens ${WFM_CORRECTION_REASON_MIN_LENGTH} Zeichen`}>
+            <TextInput
+              testID="wfm-p23-correction-reason"
+              value={correctionReason}
+              onChangeText={setCorrectionReason}
+              placeholder="Grund für Korrekturexport"
+              style={styles.reasonInput}
+              editable={!p23Loading && exportReady}
+            />
+          </SectionPanel>
+
+          <PremiumButton
+            title="Drift-Preview aktualisieren"
+            testID="wfm-p23-preview-drift"
+            variant="ghost"
+            onPress={() => selectedReviewId && void handlePreviewDrift(selectedReviewId)}
+            disabled={p23Loading || !exportReady || !selectedReviewId}
+          />
+
+          <PremiumButton
+            title="Korrekturentwurf erstellen"
+            testID="wfm-p23-draft-correction"
+            onPress={() => void handleDraftCorrection()}
+            disabled={p23Loading || !exportReady || !selectedReviewId || !correctionReasonValid}
+          />
+
+          {correctionPreviewItems.length > 0 ? (
+            <SectionPanel title="Korrektur-Preview vor Finalize">
+              <View testID="wfm-p23-correction-preview">
+              {correctionPreviewItems.map((item) => (
+                <Text key={item.id} style={styles.entryLine}>
+                  seq {item.exportSequence} · {itemStatusLabel(item.itemStatus)} · {item.referenceKey} · hash{' '}
+                  {item.payloadHash}
+                  {item.previousPayloadHash ? ` · prev ${item.previousPayloadHash}` : ''}
+                </Text>
+              ))}
+              </View>
+            </SectionPanel>
+          ) : null}
+
+          {correctionDraftJob ? (
+            <>
+              <PremiumButton
+                title="Korrekturentwurf validieren"
+                testID="wfm-p23-validate-correction"
+                variant="secondary"
+                onPress={() => void handleValidateCorrection()}
+                disabled={p23Loading || !exportReady || !correctionReasonValid}
+              />
+              <PremiumButton
+                title="Korrekturexport finalisieren (RPC)"
+                testID="wfm-p23-finalize-correction"
+                variant="secondary"
+                onPress={() => void handleFinalizeCorrection()}
+                disabled={
+                  p23Loading ||
+                  !exportReady ||
+                  !correctionReasonValid ||
+                  !correctionValidated ||
+                  correctionPreviewItems.length === 0
+                }
+              />
+            </>
+          ) : null}
+
+          {p23Message ? <SuccessState title="Korrekturexport" message={p23Message} /> : null}
+          {p23Error ? (
+            <ErrorState title="Korrekturexport Fehler" message={p23Error} onRetry={() => setP23Error(null)} />
+          ) : null}
+        </SectionPanel>
+        </View>
 
         <SectionPanel title="Legacy-Export" subtitle="CSV, PDF und DATEV für Lohnbuchhaltung">
           <SectionPanel title="Zeitraum">
@@ -526,5 +931,12 @@ const styles = StyleSheet.create({
     justifyContent: 'space-between',
     gap: careSpacing.sm,
     marginBottom: careSpacing.xs,
+  },
+  reasonInput: {
+    borderWidth: 1,
+    borderColor: '#ccc',
+    borderRadius: 8,
+    padding: careSpacing.sm,
+    minHeight: 44,
   },
 });

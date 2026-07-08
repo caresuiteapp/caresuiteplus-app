@@ -1,35 +1,56 @@
 import type { RoleKey, ServiceResult } from '@/types';
-import { enforcePermission } from '@/lib/permissions';
 import { guardServiceTenant } from '@/lib/services/liveServiceGuard';
 import { getServiceMode } from '@/lib/services/mode';
 import { getSupabaseClient } from '@/lib/supabase/client';
 import { isSupabaseMissingTableError, toGermanSupabaseError } from '@/lib/supabase/errors';
 import { fromUnknownTable } from '@/lib/supabase/untypedTable';
 import {
+  buildCorrectionCsv,
+  buildCorrectionExportPayload,
+  buildCorrectionPayloadDelta,
   buildExportPayloadForReview,
+  buildLogicalReferenceKey,
+  buildReviewVersionHash,
   calculateExportPayloadHash,
   normalizeExportMinutes,
+  type WfmCorrectionExportPayload,
+  type WfmCorrectionPayloadDelta,
   type WfmTimeExportPayload,
 } from './wfmTimeExportPayloadBuilder';
 import {
   canCreateReviewedTimeExport,
+  canFinalizeCorrectionExport,
+  canMarkExportDrift,
+  correctionExportBlockReasonLabel,
   exportBlockReasonLabel,
+  getReviewCorrectionExportBlockReason,
   getReviewExportBlockReason,
   isFinalizedExportJobStatus,
+  isReviewCorrectionCandidate,
+  isReviewCorrectionExportable,
   isReviewExportable,
   normalizeExportPeriod,
+  type WfmTimeCorrectionExportBlockReason,
+  type WfmTimeCorrectionExportReviewInput,
   type WfmTimeExportBlockReason,
   type WfmTimeExportJobStatus,
   type WfmTimeExportPeriod,
   type WfmTimeExportReviewInput,
   type WfmTimeExportStatus,
   type WfmTimeExportType,
+  type WfmTimeExportItemStatus,
+  type WfmTimeExportScope,
 } from './wfmTimeExportPolicy';
 import {
   appendReviewAction,
+  type WfmTimeReviewActionType,
   type WfmTimeReviewEntryKind,
   type WfmTimeReviewStatus,
 } from './wfmTimeReviewService';
+
+function p23Action(action: string): WfmTimeReviewActionType {
+  return action as WfmTimeReviewActionType;
+}
 
 const EXPORT_JOBS_TABLE = 'workforce_export_jobs';
 const EXPORT_ITEMS_TABLE = 'workforce_time_export_items';
@@ -55,6 +76,10 @@ export interface WfmTimeExportJob {
   canceledBy: string | null;
   createdAt: string;
   updatedAt: string;
+  correctionOfExportJobId?: string | null;
+  correctionReason?: string | null;
+  correctionSequence?: number | null;
+  exportScope?: WfmTimeExportScope | null;
 }
 
 export interface WfmTimeExportItem {
@@ -73,6 +98,16 @@ export interface WfmTimeExportItem {
   payloadHash: string;
   changedAfterExport: boolean;
   createdAt: string;
+  logicalReferenceKey?: string;
+  exportSequence?: number;
+  itemStatus?: WfmTimeExportItemStatus;
+  supersedesExportItemId?: string | null;
+  supersededByExportItemId?: string | null;
+  correctionReason?: string | null;
+  sourceReviewVersionHash?: string | null;
+  previousPayloadHash?: string | null;
+  correctionPayloadDelta?: WfmCorrectionPayloadDelta | Record<string, unknown> | null;
+  supersededAt?: string | null;
 }
 
 export interface WfmTimeExportReviewRow {
@@ -90,13 +125,82 @@ export interface WfmTimeExportReviewRow {
   lastExportJobId: string | null;
   lastExportedAt: string | null;
   metadata: Record<string, unknown>;
+  exportVersion?: number;
+  changedAfterExportReason?: string | null;
+  changedAfterExportDetectedAt?: string | null;
+  latestExportItemId?: string | null;
+  pendingReexportJobId?: string | null;
 }
 
 export interface WfmTimeExportBlockedReview {
   reviewId: string;
   referenceKey: string;
-  reason: WfmTimeExportBlockReason;
+  reason: WfmTimeExportBlockReason | WfmTimeCorrectionExportBlockReason;
   reasonLabel: string;
+}
+
+export interface WfmTimeCorrectionValidationResult {
+  jobId: string;
+  valid: boolean;
+  exportableReviews: WfmTimeExportReviewRow[];
+  blockedReviews: WfmTimeExportBlockedReview[];
+  exportableCount: number;
+  blockedCount: number;
+}
+
+export interface WfmTimeCorrectionDraftResult {
+  job: WfmTimeExportJob;
+  period: WfmTimeExportPeriod;
+  exportableCount: number;
+  blockedCount: number;
+}
+
+export interface WfmTimeCorrectionFinalizeResult {
+  job: WfmTimeExportJob;
+  items: WfmTimeExportItem[];
+  supersededItemIds: string[];
+  exportedCount: number;
+}
+
+/** RPC payload element for wfm_finalize_correction_export(p_export_job_id, p_items). */
+export interface WfmCorrectionRpcItem {
+  review_id: string;
+  employee_id: string;
+  reference_id: string | null;
+  entry_kind: WfmTimeReviewEntryKind;
+  period_date: string;
+  minutes_total: number;
+  original_export_item_id: string;
+  logical_reference_key: string;
+  new_reference_key: string;
+  export_sequence: number;
+  exported_payload: WfmCorrectionExportPayload;
+  correction_payload_delta: WfmCorrectionPayloadDelta;
+  previous_payload_hash: string;
+  payload_hash: string;
+  correction_reason: string;
+  source_review_version_hash?: string | null;
+}
+
+export function mapCorrectionItemsToRpcPayload(items: WfmTimeExportItem[]): WfmCorrectionRpcItem[] {
+  return items.map((item) => ({
+    review_id: item.reviewId,
+    employee_id: item.employeeId,
+    reference_id: item.referenceId,
+    entry_kind: item.entryKind,
+    period_date: item.periodDate,
+    minutes_total: item.minutesTotal,
+    original_export_item_id: item.supersedesExportItemId ?? '',
+    logical_reference_key: item.logicalReferenceKey ?? buildLogicalReferenceKey(item.reviewId),
+    new_reference_key: item.referenceKey,
+    export_sequence: item.exportSequence ?? 2,
+    exported_payload: item.exportedPayload as WfmCorrectionExportPayload,
+    correction_payload_delta: item.correctionPayloadDelta as WfmCorrectionPayloadDelta,
+    previous_payload_hash: item.previousPayloadHash ?? '',
+    payload_hash: item.payloadHash,
+    correction_reason: item.correctionReason ?? '',
+    source_review_version_hash: item.sourceReviewVersionHash ?? null,
+  }));
 }
 
 export interface WfmTimeExportDraftResult {
@@ -136,6 +240,11 @@ const demoReviewExportState = new Map<
     changedAfterExport: boolean;
     lastExportJobId: string | null;
     lastExportedAt: string | null;
+    latestExportItemId: string | null;
+    pendingReexportJobId: string | null;
+    changedAfterExportDetectedAt: string | null;
+    changedAfterExportReason: string | null;
+    exportVersion: number;
   }
 >();
 const demoFinalizedReferenceKeys = new Set<string>();
@@ -185,6 +294,10 @@ function mapJobRow(row: Record<string, unknown>): WfmTimeExportJob {
     canceledBy: (row.canceled_by as string | null) ?? null,
     createdAt: String(row.created_at),
     updatedAt: String(row.updated_at),
+    correctionOfExportJobId: (row.correction_of_export_job_id as string | null) ?? null,
+    correctionReason: (row.correction_reason as string | null) ?? null,
+    correctionSequence: row.correction_sequence != null ? Number(row.correction_sequence) : null,
+    exportScope: (row.export_scope as WfmTimeExportScope | null) ?? null,
   };
 }
 
@@ -205,6 +318,16 @@ function mapItemRow(row: Record<string, unknown>): WfmTimeExportItem {
     payloadHash: String(row.payload_hash),
     changedAfterExport: Boolean(row.changed_after_export),
     createdAt: String(row.created_at),
+    logicalReferenceKey: row.logical_reference_key != null ? String(row.logical_reference_key) : undefined,
+    exportSequence: row.export_sequence != null ? Number(row.export_sequence) : undefined,
+    itemStatus: row.item_status as WfmTimeExportItemStatus | undefined,
+    supersedesExportItemId: (row.supersedes_export_item_id as string | null) ?? null,
+    supersededByExportItemId: (row.superseded_by_export_item_id as string | null) ?? null,
+    correctionReason: (row.correction_reason as string | null) ?? null,
+    sourceReviewVersionHash: (row.source_review_version_hash as string | null) ?? null,
+    previousPayloadHash: (row.previous_payload_hash as string | null) ?? null,
+    correctionPayloadDelta: (row.correction_payload_delta as Record<string, unknown> | null) ?? null,
+    supersededAt: (row.superseded_at as string | null) ?? null,
   };
 }
 
@@ -224,6 +347,11 @@ function mapReviewRow(row: Record<string, unknown>): WfmTimeExportReviewRow {
     lastExportJobId: (row.last_export_job_id as string | null) ?? null,
     lastExportedAt: (row.last_exported_at as string | null) ?? null,
     metadata: (row.metadata as Record<string, unknown>) ?? {},
+    exportVersion: row.export_version != null ? Number(row.export_version) : undefined,
+    changedAfterExportReason: (row.changed_after_export_reason as string | null) ?? null,
+    changedAfterExportDetectedAt: (row.changed_after_export_detected_at as string | null) ?? null,
+    latestExportItemId: (row.latest_export_item_id as string | null) ?? null,
+    pendingReexportJobId: (row.pending_reexport_job_id as string | null) ?? null,
   };
 }
 
@@ -239,6 +367,185 @@ function toReviewInput(
     referenceKey: review.referenceKey,
     hasFinalizedExportItem,
   };
+}
+
+function resolveReviewPauseMinutes(review: WfmTimeExportReviewRow): number {
+  const raw = review.metadata?.pause_minutes ?? review.metadata?.pauseMinutes;
+  return normalizeExportMinutes(typeof raw === 'number' ? raw : Number(raw ?? 0));
+}
+
+function buildLiveReviewVersionHash(review: WfmTimeExportReviewRow): string {
+  return buildReviewVersionHash({
+    reviewId: review.id,
+    tenantId: review.tenantId,
+    employeeId: review.employeeId,
+    periodDate: review.workDate,
+    entryKind: review.entryKind,
+    minutesTotal: resolveReviewMinutes(review),
+    pauseMinutes: resolveReviewPauseMinutes(review),
+    referenceId: review.referenceId,
+    referenceKey: review.referenceKey,
+    logicalReferenceKey: buildLogicalReferenceKey(review.id),
+    reviewStatus: review.reviewStatus,
+    exportBlocking: review.exportBlocking,
+    approvedAt: (review.metadata?.approved_at as string | null) ?? review.lastExportedAt,
+    approvedBy: (review.metadata?.approved_by as string | null) ?? null,
+    sourceSessionId: (review.metadata?.source_session_id as string | null) ?? null,
+    sourceKind: (review.metadata?.source_kind as string | null) ?? review.entryKind,
+    employeeName: (review.metadata?.employee_name as string | null) ?? null,
+    entryLabel: (review.metadata?.entry_label as string | null) ?? null,
+  });
+}
+
+function toCorrectionReviewInput(
+  review: WfmTimeExportReviewRow,
+  options?: {
+    hasActiveExportItem?: boolean;
+    driftDetected?: boolean;
+    correctionReason?: string | null;
+    pendingReexportJobId?: string | null;
+    currentCorrectionJobId?: string | null;
+  },
+): WfmTimeCorrectionExportReviewInput {
+  return {
+    reviewId: review.id,
+    employeeId: review.employeeId,
+    reviewStatus: review.reviewStatus,
+    exportBlocking: review.exportBlocking,
+    exportStatus: review.exportStatus,
+    changedAfterExport: review.changedAfterExport,
+    referenceKey: review.referenceKey,
+    lastExportJobId: review.lastExportJobId,
+    latestExportItemId: review.latestExportItemId ?? null,
+    hasActiveExportItem: options?.hasActiveExportItem,
+    driftDetected: options?.driftDetected,
+    correctionReason: options?.correctionReason,
+    pendingReexportJobId:
+      options?.pendingReexportJobId !== undefined
+        ? options.pendingReexportJobId
+        : review.pendingReexportJobId ?? null,
+    currentCorrectionJobId: options?.currentCorrectionJobId ?? null,
+  };
+}
+
+function getDemoReviewExportState(tenantId: string, reviewId: string) {
+  return demoReviewExportState.get(demoReviewKey(tenantId, reviewId));
+}
+
+export function setDemoReviewExportState(
+  tenantId: string,
+  reviewId: string,
+  patch: Partial<{
+    exportStatus: WfmTimeExportStatus;
+    changedAfterExport: boolean;
+    lastExportJobId: string | null;
+    lastExportedAt: string | null;
+    latestExportItemId: string | null;
+    pendingReexportJobId: string | null;
+    changedAfterExportDetectedAt: string | null;
+    changedAfterExportReason: string | null;
+    exportVersion: number;
+  }>,
+): void {
+  const key = demoReviewKey(tenantId, reviewId);
+  const current = demoReviewExportState.get(key) ?? {
+    exportStatus: 'not_exported' as WfmTimeExportStatus,
+    changedAfterExport: false,
+    lastExportJobId: null,
+    lastExportedAt: null,
+    latestExportItemId: null,
+    pendingReexportJobId: null,
+    changedAfterExportDetectedAt: null,
+    changedAfterExportReason: null,
+    exportVersion: 1,
+  };
+  demoReviewExportState.set(key, { ...current, ...patch });
+}
+
+function findActiveExportItemForReview(
+  tenantId: string,
+  review: WfmTimeExportReviewRow,
+): WfmTimeExportItem | null {
+  if (review.latestExportItemId) {
+    const byId = demoItems.find(
+      (item) =>
+        item.tenantId === tenantId &&
+        item.id === review.latestExportItemId &&
+        (item.itemStatus ?? 'active') === 'active',
+    );
+    if (byId) return byId;
+  }
+  const logicalKey = buildLogicalReferenceKey(review.id);
+  return (
+    demoItems.find(
+      (item) =>
+        item.tenantId === tenantId &&
+        item.reviewId === review.id &&
+        (item.logicalReferenceKey ?? item.referenceKey) === logicalKey &&
+        (item.itemStatus ?? 'active') === 'active',
+    ) ??
+    demoItems.find(
+      (item) =>
+        item.tenantId === tenantId &&
+        item.reviewId === review.id &&
+        (item.itemStatus ?? 'active') === 'active',
+    ) ??
+    null
+  );
+}
+
+async function loadReviewById(
+  tenantId: string,
+  reviewId: string,
+): Promise<ServiceResult<WfmTimeExportReviewRow | null>> {
+  if (useDemoStore()) {
+    const { listReviewsForPeriod } = await import('./wfmTimeReviewService');
+    const listed = await listReviewsForPeriod(tenantId, '1970-01-01', '2999-12-31');
+    if (!listed.ok) return listed;
+    const review = listed.data.find((row) => row.id === reviewId);
+    if (!review) return { ok: true, data: null };
+    const state = getDemoReviewExportState(tenantId, reviewId);
+    return {
+      ok: true,
+      data: {
+        id: review.id,
+        tenantId: review.tenantId,
+        employeeId: review.employeeId,
+        workDate: review.workDate,
+        entryKind: review.entryKind,
+        referenceId: review.referenceId,
+        referenceKey: review.referenceKey,
+        reviewStatus: review.reviewStatus,
+        exportBlocking: review.exportBlocking,
+        exportStatus: state?.exportStatus ?? 'not_exported',
+        changedAfterExport: state?.changedAfterExport ?? false,
+        lastExportJobId: state?.lastExportJobId ?? null,
+        lastExportedAt: state?.lastExportedAt ?? null,
+        latestExportItemId: state?.latestExportItemId ?? null,
+        pendingReexportJobId: state?.pendingReexportJobId ?? null,
+        changedAfterExportDetectedAt: state?.changedAfterExportDetectedAt ?? null,
+        changedAfterExportReason: state?.changedAfterExportReason ?? null,
+        exportVersion: state?.exportVersion ?? 1,
+        metadata: {},
+      },
+    };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: true, data: null };
+
+  const { data, error } = await fromUnknownTable(supabase, REVIEWS_TABLE)
+    .select('*')
+    .eq('tenant_id', tenantId)
+    .eq('id', reviewId)
+    .maybeSingle();
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) return { ok: true, data: null };
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  return { ok: true, data: data ? mapReviewRow(data as Record<string, unknown>) : null };
 }
 
 function resolveReviewMinutes(review: WfmTimeExportReviewRow): number {
@@ -287,7 +594,7 @@ async function listReviewsForExportPeriod(
     return {
       ok: true,
       data: listed.data.map((review) => {
-        const state = demoReviewExportState.get(demoReviewKey(tenantId, review.id));
+        const state = getDemoReviewExportState(tenantId, review.id);
         return {
           id: review.id,
           tenantId: review.tenantId,
@@ -302,6 +609,11 @@ async function listReviewsForExportPeriod(
           changedAfterExport: state?.changedAfterExport ?? false,
           lastExportJobId: state?.lastExportJobId ?? null,
           lastExportedAt: state?.lastExportedAt ?? null,
+          latestExportItemId: state?.latestExportItemId ?? null,
+          pendingReexportJobId: state?.pendingReexportJobId ?? null,
+          changedAfterExportDetectedAt: state?.changedAfterExportDetectedAt ?? null,
+          changedAfterExportReason: state?.changedAfterExportReason ?? null,
+          exportVersion: state?.exportVersion ?? 1,
           metadata: {},
         };
       }),
@@ -599,6 +911,8 @@ export async function finalizeExportBatch(
   const items: WfmTimeExportItem[] = [];
 
   for (const review of validation.data.exportableReviews) {
+    const logicalReferenceKey = buildLogicalReferenceKey(review.id);
+    const versionHash = buildLiveReviewVersionHash(review);
     const payload = buildExportPayloadForReview({
       reviewId: review.id,
       employeeId: review.employeeId,
@@ -629,8 +943,17 @@ export async function finalizeExportBatch(
       reviewStatusAtExport: 'approved',
       exportedPayload: payload,
       payloadHash,
+      sourceReviewVersionHash: versionHash,
+      previousPayloadHash: null,
+      correctionPayloadDelta: null,
+      correctionReason: null,
+      supersedesExportItemId: null,
+      supersededByExportItemId: null,
       changedAfterExport: false,
       createdAt: now,
+      logicalReferenceKey,
+      exportSequence: 1,
+      itemStatus: 'active',
     });
   }
 
@@ -644,11 +967,15 @@ export async function finalizeExportBatch(
     demoItems.push(...items);
     for (const item of items) {
       demoFinalizedReferenceKeys.add(demoReferenceKey(tenantId, item.referenceKey));
-      demoReviewExportState.set(demoReviewKey(tenantId, item.reviewId), {
+      setDemoReviewExportState(tenantId, item.reviewId, {
         exportStatus: 'exported',
         changedAfterExport: false,
         lastExportJobId: batchId,
         lastExportedAt: now,
+        latestExportItemId: item.id,
+        changedAfterExportDetectedAt: null,
+        changedAfterExportReason: null,
+        exportVersion: 1,
       });
       await appendReviewAction(tenantId, userId, {
         entryReviewId: item.reviewId,
@@ -701,7 +1028,11 @@ export async function finalizeExportBatch(
       review_status_at_export: 'approved',
       exported_payload: item.exportedPayload,
       payload_hash: item.payloadHash,
+      source_review_version_hash: item.sourceReviewVersionHash,
       changed_after_export: false,
+      logical_reference_key: item.logicalReferenceKey,
+      export_sequence: 1,
+      item_status: 'active',
     });
     if (itemError) {
       return { ok: false, error: toGermanSupabaseError(itemError) };
@@ -712,7 +1043,10 @@ export async function finalizeExportBatch(
         export_status: 'exported',
         last_export_job_id: batchId,
         last_exported_at: now,
+        latest_export_item_id: item.id,
         changed_after_export: false,
+        changed_after_export_detected_at: null,
+        changed_after_export_reason: null,
       })
       .eq('tenant_id', tenantId)
       .eq('id', item.reviewId);
@@ -900,90 +1234,812 @@ export async function detectChangedAfterExport(
   actorRoleKey: RoleKey | null,
   filters?: { reviewId?: string; exportJobId?: string },
 ): Promise<ServiceResult<{ reviewId: string; changed: boolean; previousHash: string; currentHash: string }[]>> {
-  const denied = canCreateReviewedTimeExport(actorRoleKey);
+  const denied = canMarkExportDrift(actorRoleKey);
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
 
-  let items: WfmTimeExportItem[] = [];
-  if (filters?.exportJobId) {
+  let reviewIds: string[] = [];
+  if (filters?.reviewId) {
+    reviewIds = [filters.reviewId];
+  } else if (filters?.exportJobId) {
     const listed = await listExportItems(tenantId, actorRoleKey, filters.exportJobId);
     if (!listed.ok) return listed;
-    items = listed.data;
+    reviewIds = [...new Set(listed.data.map((item) => item.reviewId))];
   } else if (useDemoStore()) {
-    items = demoItems.filter((item) => item.tenantId === tenantId);
+    reviewIds = [...new Set(demoItems.filter((item) => item.tenantId === tenantId).map((item) => item.reviewId))];
   } else {
     const supabase = getSupabaseClient();
     if (!supabase) return { ok: true, data: [] };
     const { data, error } = await fromUnknownTable(supabase, EXPORT_ITEMS_TABLE)
-      .select('*')
+      .select('review_id')
       .eq('tenant_id', tenantId);
     if (error) {
       if (isSupabaseMissingTableError(error)) return { ok: true, data: [] };
       return { ok: false, error: toGermanSupabaseError(error) };
     }
-    items = (data ?? []).map((row) => mapItemRow(row as Record<string, unknown>));
-  }
-
-  if (filters?.reviewId) {
-    items = items.filter((item) => item.reviewId === filters.reviewId);
+    reviewIds = [...new Set((data ?? []).map((row) => String((row as Record<string, unknown>).review_id)))];
   }
 
   const results: { reviewId: string; changed: boolean; previousHash: string; currentHash: string }[] = [];
 
-  for (const item of items) {
-    const currentPayload = buildExportPayloadForReview({
-      reviewId: item.reviewId,
-      employeeId: item.employeeId,
-      referenceKey: item.referenceKey,
-      referenceId: item.referenceId,
-      entryKind: item.entryKind,
-      periodDate: item.periodDate,
-      minutesTotal: item.minutesTotal,
-      reviewStatus: 'approved',
-      employeeName: item.exportedPayload.display?.employeeName,
-      entryLabel: item.exportedPayload.display?.entryLabel,
-    });
-    const currentHash = calculateExportPayloadHash(currentPayload);
-    const changed = currentHash !== item.payloadHash;
-    results.push({
-      reviewId: item.reviewId,
-      changed,
-      previousHash: item.payloadHash,
-      currentHash,
-    });
+  for (const reviewId of reviewIds) {
+    const drift = await detectChangedAfterExportForReview(tenantId, userId, actorRoleKey, reviewId);
+    if (!drift.ok) return drift;
+    if (drift.data) results.push(drift.data);
+  }
 
-    if (changed) {
-      if (useDemoStore()) {
-        demoReviewExportState.set(demoReviewKey(tenantId, item.reviewId), {
-          exportStatus: 'changed_after_export',
-          changedAfterExport: true,
-          lastExportJobId: item.exportJobId,
-          lastExportedAt: item.createdAt,
-        });
-        await appendReviewAction(tenantId, userId, {
-          entryReviewId: item.reviewId,
-          action: 'changed_after_export_detected',
-          prevStatus: 'approved',
-          newStatus: 'approved',
-          comment: 'Drift nach Export erkannt',
-        });
-      } else {
-        const supabase = getSupabaseClient();
-        if (supabase) {
-          await fromUnknownTable(supabase, REVIEWS_TABLE)
-            .update({
-              export_status: 'changed_after_export',
-              changed_after_export: true,
-            })
-            .eq('tenant_id', tenantId)
-            .eq('id', item.reviewId);
-        }
+  return { ok: true, data: results };
+}
+
+async function detectChangedAfterExportForReview(
+  tenantId: string,
+  userId: string,
+  actorRoleKey: RoleKey | null,
+  reviewId: string,
+): Promise<ServiceResult<{ reviewId: string; changed: boolean; previousHash: string; currentHash: string } | null>> {
+  const reviewResult = await loadReviewById(tenantId, reviewId);
+  if (!reviewResult.ok) return reviewResult;
+  if (!reviewResult.data) return { ok: true, data: null };
+
+  const review = reviewResult.data;
+  if (review.exportStatus !== 'exported' && !review.lastExportJobId) {
+    return { ok: true, data: null };
+  }
+
+  const activeItem = useDemoStore()
+    ? findActiveExportItemForReview(tenantId, review)
+    : null;
+
+  let previousHash: string | null = null;
+  if (activeItem) {
+    previousHash = activeItem.sourceReviewVersionHash ?? activeItem.payloadHash;
+  } else if (!useDemoStore()) {
+    const supabase = getSupabaseClient();
+    if (supabase && review.latestExportItemId) {
+      const { data } = await fromUnknownTable(supabase, EXPORT_ITEMS_TABLE)
+        .select('source_review_version_hash,payload_hash')
+        .eq('tenant_id', tenantId)
+        .eq('id', review.latestExportItemId)
+        .maybeSingle();
+      if (data) {
+        const row = data as Record<string, unknown>;
+        previousHash =
+          (row.source_review_version_hash as string | null) ?? String(row.payload_hash ?? '');
       }
     }
   }
 
-  return { ok: true, data: results };
+  if (!previousHash) return { ok: true, data: null };
+
+  const currentHash = buildLiveReviewVersionHash(review);
+  const changed = currentHash !== previousHash;
+  const result = { reviewId, changed, previousHash, currentHash };
+
+  if (changed && review.exportStatus !== 'changed_after_export' && !review.changedAfterExport) {
+    const mark = await markChangedAfterExport(tenantId, userId, actorRoleKey, reviewId, 'export_change_detected');
+    if (!mark.ok) return mark;
+  }
+
+  return { ok: true, data: result };
+}
+
+export async function markChangedAfterExport(
+  tenantId: string,
+  userId: string,
+  actorRoleKey: RoleKey | null,
+  reviewId: string,
+  reason: string,
+): Promise<ServiceResult<WfmTimeExportReviewRow>> {
+  const denied = canMarkExportDrift(actorRoleKey);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const trimmedReason = reason?.trim();
+  if (!trimmedReason) return { ok: false, error: 'Drift-Grund ist Pflicht.' };
+
+  const reviewResult = await loadReviewById(tenantId, reviewId);
+  if (!reviewResult.ok) return reviewResult;
+  if (!reviewResult.data) return { ok: false, error: 'Review nicht gefunden.' };
+  if (!reviewResult.data.lastExportJobId) {
+    return { ok: false, error: 'Review wurde noch nicht exportiert.' };
+  }
+
+  const now = new Date().toISOString();
+  const alreadyMarked =
+    reviewResult.data.exportStatus === 'changed_after_export' || reviewResult.data.changedAfterExport;
+
+  if (useDemoStore()) {
+    setDemoReviewExportState(tenantId, reviewId, {
+      exportStatus: 'changed_after_export',
+      changedAfterExport: true,
+      changedAfterExportDetectedAt: reviewResult.data.changedAfterExportDetectedAt ?? now,
+      changedAfterExportReason: trimmedReason,
+    });
+    if (!alreadyMarked) {
+      await appendReviewAction(tenantId, userId, {
+        entryReviewId: reviewId,
+        action: p23Action('export_change_detected'),
+        prevStatus: 'approved',
+        newStatus: 'approved',
+        comment: trimmedReason,
+      });
+    }
+    const refreshed = await loadReviewById(tenantId, reviewId);
+    if (!refreshed.ok || !refreshed.data) {
+      return { ok: false, error: 'Review konnte nach Markierung nicht geladen werden.' };
+    }
+    return { ok: true, data: refreshed.data };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
+
+  const { error } = await fromUnknownTable(supabase, REVIEWS_TABLE)
+    .update({
+      export_status: 'changed_after_export',
+      changed_after_export: true,
+      changed_after_export_detected_at: now,
+      changed_after_export_reason: trimmedReason,
+    })
+    .eq('tenant_id', tenantId)
+    .eq('id', reviewId);
+
+  if (error) return { ok: false, error: toGermanSupabaseError(error) };
+
+  if (!alreadyMarked) {
+    const actionResult = await appendReviewAction(tenantId, userId, {
+      entryReviewId: reviewId,
+      action: p23Action('export_change_detected'),
+      prevStatus: 'approved',
+      newStatus: 'approved',
+      comment: trimmedReason,
+    });
+    if (!actionResult.ok) return actionResult;
+  }
+
+  const refreshed = await loadReviewById(tenantId, reviewId);
+  if (!refreshed.ok || !refreshed.data) {
+    return { ok: false, error: 'Review konnte nach Markierung nicht geladen werden.' };
+  }
+  return { ok: true, data: refreshed.data };
+}
+
+export async function listCorrectionCandidates(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+  periodInput?: WfmTimeExportPeriod,
+): Promise<ServiceResult<WfmTimeExportReviewRow[]>> {
+  const denied = canCreateReviewedTimeExport(actorRoleKey);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  let reviews: WfmTimeExportReviewRow[] = [];
+  if (periodInput) {
+    const period = normalizeExportPeriod(periodInput);
+    if (!period) return { ok: false, error: 'Ungültiger Exportzeitraum.' };
+    const listed = await listReviewsForExportPeriod(tenantId, period);
+    if (!listed.ok) return listed;
+    reviews = listed.data;
+  } else if (useDemoStore()) {
+    const { listReviewsForPeriod } = await import('./wfmTimeReviewService');
+    const listed = await listReviewsForPeriod(tenantId, '1970-01-01', '2999-12-31');
+    if (!listed.ok) return listed;
+    reviews = listed.data.map((review) => {
+      const state = getDemoReviewExportState(tenantId, review.id);
+      return {
+        id: review.id,
+        tenantId: review.tenantId,
+        employeeId: review.employeeId,
+        workDate: review.workDate,
+        entryKind: review.entryKind,
+        referenceId: review.referenceId,
+        referenceKey: review.referenceKey,
+        reviewStatus: review.reviewStatus,
+        exportBlocking: review.exportBlocking,
+        exportStatus: state?.exportStatus ?? 'not_exported',
+        changedAfterExport: state?.changedAfterExport ?? false,
+        lastExportJobId: state?.lastExportJobId ?? null,
+        lastExportedAt: state?.lastExportedAt ?? null,
+        latestExportItemId: state?.latestExportItemId ?? null,
+        pendingReexportJobId: state?.pendingReexportJobId ?? null,
+        changedAfterExportDetectedAt: state?.changedAfterExportDetectedAt ?? null,
+        changedAfterExportReason: state?.changedAfterExportReason ?? null,
+        exportVersion: state?.exportVersion ?? 1,
+        metadata: {},
+      };
+    });
+  } else {
+    const supabase = getSupabaseClient();
+    if (!supabase) return { ok: true, data: [] };
+    const { data, error } = await fromUnknownTable(supabase, REVIEWS_TABLE)
+      .select('*')
+      .eq('tenant_id', tenantId)
+      .in('export_status', ['changed_after_export', 'exported']);
+    if (error) {
+      if (isSupabaseMissingTableError(error)) return { ok: true, data: [] };
+      return { ok: false, error: toGermanSupabaseError(error) };
+    }
+    reviews = (data ?? []).map((row) => mapReviewRow(row as Record<string, unknown>));
+  }
+
+  const candidates = reviews.filter((review) => {
+    const hasActive = useDemoStore()
+      ? Boolean(findActiveExportItemForReview(tenantId, review))
+      : Boolean(review.latestExportItemId);
+    return isReviewCorrectionCandidate(
+      toCorrectionReviewInput(review, { hasActiveExportItem: hasActive }),
+    );
+  });
+
+  return { ok: true, data: candidates };
+}
+
+async function partitionReviewsForCorrection(
+  tenantId: string,
+  reviewIds: string[],
+  correctionReason: string,
+  options?: { currentCorrectionJobId?: string },
+): Promise<ServiceResult<{ exportable: WfmTimeExportReviewRow[]; blocked: WfmTimeExportBlockedReview[] }>> {
+  const exportable: WfmTimeExportReviewRow[] = [];
+  const blocked: WfmTimeExportBlockedReview[] = [];
+
+  for (const reviewId of reviewIds) {
+    const reviewResult = await loadReviewById(tenantId, reviewId);
+    if (!reviewResult.ok) return reviewResult;
+    if (!reviewResult.data) {
+      blocked.push({
+        reviewId,
+        referenceKey: '',
+        reason: 'not_exported_yet',
+        reasonLabel: correctionExportBlockReasonLabel('not_exported_yet'),
+      });
+      continue;
+    }
+
+    const review = reviewResult.data;
+    const hasActive = useDemoStore()
+      ? Boolean(findActiveExportItemForReview(tenantId, review))
+      : Boolean(review.latestExportItemId);
+    const pendingReexportJobId =
+      options?.currentCorrectionJobId &&
+      review.pendingReexportJobId === options.currentCorrectionJobId
+        ? null
+        : review.pendingReexportJobId ?? null;
+    const input = toCorrectionReviewInput(review, {
+      hasActiveExportItem: hasActive,
+      correctionReason,
+      pendingReexportJobId,
+    });
+    const reason = getReviewCorrectionExportBlockReason(input);
+    if (reason) {
+      blocked.push({
+        reviewId: review.id,
+        referenceKey: review.referenceKey,
+        reason,
+        reasonLabel: correctionExportBlockReasonLabel(reason),
+      });
+      continue;
+    }
+    if (!isReviewCorrectionExportable(input)) continue;
+    exportable.push(review);
+  }
+
+  return { ok: true, data: { exportable, blocked } };
+}
+
+export async function createCorrectionDraft(
+  tenantId: string,
+  userId: string,
+  actorRoleKey: RoleKey | null,
+  periodInput: WfmTimeExportPeriod,
+  reviewIds: string[],
+  correctionReason: string,
+): Promise<ServiceResult<WfmTimeCorrectionDraftResult>> {
+  const denied = canCreateReviewedTimeExport(actorRoleKey);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const period = normalizeExportPeriod(periodInput);
+  if (!period) return { ok: false, error: 'Ungültiger Exportzeitraum.' };
+  if (!reviewIds.length) return { ok: false, error: 'Mindestens eine Review-ID erforderlich.' };
+  if (correctionReason.trim().length < 10) {
+    return { ok: false, error: 'Korrekturgrund muss mindestens 10 Zeichen haben.' };
+  }
+
+  const partitioned = await partitionReviewsForCorrection(tenantId, reviewIds, correctionReason);
+  if (!partitioned.ok) return partitioned;
+  if (partitioned.data.exportable.length === 0) {
+    return { ok: false, error: 'Keine exportierbaren Korrektur-Reviews gefunden.' };
+  }
+
+  const parentJobId = partitioned.data.exportable[0]?.lastExportJobId;
+  if (!parentJobId) return { ok: false, error: 'Ursprungs-Export-Job fehlt.' };
+
+  const { year, month } = periodParts(period);
+  const now = new Date().toISOString();
+  const jobId =
+    typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `correction-draft-${Date.now()}`;
+
+  const maxSequence = partitioned.data.exportable.reduce((max, review) => {
+    return Math.max(max, review.exportVersion ?? 1);
+  }, 1);
+
+  const job: WfmTimeExportJob = {
+    id: jobId,
+    tenantId,
+    requestedBy: userId,
+    exportType: 'reviewed_time_correction',
+    exportFormat: 'csv',
+    periodYear: year,
+    periodMonth: month,
+    periodStart: period.startDate,
+    periodEnd: period.endDate,
+    status: 'draft',
+    rowCount: 0,
+    contentHash: null,
+    notes: null,
+    finalizedAt: null,
+    finalizedBy: null,
+    canceledAt: null,
+    canceledBy: null,
+    correctionOfExportJobId: parentJobId,
+    correctionReason: correctionReason.trim(),
+    correctionSequence: maxSequence + 1,
+    exportScope: 'delta_correction',
+    createdAt: now,
+    updatedAt: now,
+  };
+
+  if (useDemoStore()) {
+    demoJobs.set(jobId, job);
+    for (const review of partitioned.data.exportable) {
+      setDemoReviewExportState(tenantId, review.id, { pendingReexportJobId: jobId });
+      await appendReviewAction(tenantId, userId, {
+        entryReviewId: review.id,
+        action: p23Action('reexport_drafted'),
+        prevStatus: 'approved',
+        newStatus: 'approved',
+        comment: correctionReason.trim(),
+      });
+    }
+    return {
+      ok: true,
+      data: {
+        job,
+        period,
+        exportableCount: partitioned.data.exportable.length,
+        blockedCount: partitioned.data.blocked.length,
+      },
+    };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
+
+  const { data, error } = await fromUnknownTable(supabase, EXPORT_JOBS_TABLE)
+    .insert({
+      id: jobId,
+      tenant_id: tenantId,
+      requested_by: userId,
+      export_format: 'csv',
+      export_type: 'reviewed_time_correction',
+      period_year: year,
+      period_month: month,
+      period_start: period.startDate,
+      period_end: period.endDate,
+      status: 'draft',
+      row_count: 0,
+      correction_of_export_job_id: parentJobId,
+      correction_reason: correctionReason.trim(),
+      correction_sequence: maxSequence + 1,
+      export_scope: 'delta_correction',
+      metadata: { source: 'wfm_p23_service' },
+    })
+    .select('*')
+    .single();
+
+  if (error) {
+    if (isSupabaseMissingTableError(error)) {
+      return { ok: false, error: 'Korrektur-Export-Jobs nicht verfügbar (Migration 0252 fehlt).' };
+    }
+    return { ok: false, error: toGermanSupabaseError(error) };
+  }
+
+  for (const review of partitioned.data.exportable) {
+    await fromUnknownTable(supabase, REVIEWS_TABLE)
+      .update({ pending_reexport_job_id: jobId })
+      .eq('tenant_id', tenantId)
+      .eq('id', review.id);
+    await appendReviewAction(tenantId, userId, {
+      entryReviewId: review.id,
+      action: p23Action('reexport_drafted'),
+      prevStatus: 'approved',
+      newStatus: 'approved',
+      comment: correctionReason.trim(),
+    });
+  }
+
+  return {
+    ok: true,
+    data: {
+      job: mapJobRow(data as Record<string, unknown>),
+      period,
+      exportableCount: partitioned.data.exportable.length,
+      blockedCount: partitioned.data.blocked.length,
+    },
+  };
+}
+
+export async function validateCorrectionDraft(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+  jobId: string,
+): Promise<ServiceResult<WfmTimeCorrectionValidationResult>> {
+  const denied = canCreateReviewedTimeExport(actorRoleKey);
+  if (denied) return denied;
+  const tenantBlock = guardServiceTenant(tenantId);
+  if (tenantBlock) return tenantBlock;
+
+  const jobResult = await getExportJobById(tenantId, jobId);
+  if (!jobResult.ok) return jobResult;
+  if (!jobResult.data) return { ok: false, error: 'Korrektur-Export nicht gefunden.' };
+  if (jobResult.data.exportType !== 'reviewed_time_correction') {
+    return { ok: false, error: 'Job ist kein Korrektur-Export.' };
+  }
+  if (isFinalizedExportJobStatus(jobResult.data.status) || jobResult.data.status === 'canceled') {
+    return { ok: false, error: 'Korrektur-Export ist nicht mehr bearbeitbar.' };
+  }
+  if (!jobResult.data.correctionReason || jobResult.data.correctionReason.trim().length < 10) {
+    return { ok: false, error: 'Korrekturgrund fehlt oder ist zu kurz.' };
+  }
+
+  const period = jobPeriod(jobResult.data);
+  if (!period) return { ok: false, error: 'Export-Zeitraum im Job ungültig.' };
+
+  let reviewIds: string[] = [];
+  if (useDemoStore()) {
+    reviewIds = [...demoReviewExportState.entries()]
+      .filter(([, state]) => state.pendingReexportJobId === jobId)
+      .map(([key]) => key.split(':').slice(1).join(':'));
+  } else {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      const { data } = await fromUnknownTable(supabase, REVIEWS_TABLE)
+        .select('id')
+        .eq('tenant_id', tenantId)
+        .eq('pending_reexport_job_id', jobId);
+      reviewIds = (data ?? []).map((row) => String((row as Record<string, unknown>).id));
+    }
+  }
+
+  const partitioned = await partitionReviewsForCorrection(
+    tenantId,
+    reviewIds,
+    jobResult.data.correctionReason,
+    { currentCorrectionJobId: jobId },
+  );
+  if (!partitioned.ok) return partitioned;
+
+  const valid = partitioned.data.blocked.length === 0 && partitioned.data.exportable.length > 0;
+
+  if (useDemoStore()) {
+    const job = demoJobs.get(jobId);
+    if (job && valid) {
+      demoJobs.set(jobId, { ...job, status: 'validated', updatedAt: new Date().toISOString() });
+    }
+  } else if (valid) {
+    const supabase = getSupabaseClient();
+    if (supabase) {
+      await fromUnknownTable(supabase, EXPORT_JOBS_TABLE)
+        .update({ status: 'validated' })
+        .eq('tenant_id', tenantId)
+        .eq('id', jobId);
+    }
+  }
+
+  return {
+    ok: true,
+    data: {
+      jobId,
+      valid,
+      exportableReviews: partitioned.data.exportable,
+      blockedReviews: partitioned.data.blocked,
+      exportableCount: partitioned.data.exportable.length,
+      blockedCount: partitioned.data.blocked.length,
+    },
+  };
+}
+
+export async function finalizeCorrectionExport(
+  tenantId: string,
+  userId: string,
+  actorRoleKey: RoleKey | null,
+  jobId: string,
+): Promise<ServiceResult<WfmTimeCorrectionFinalizeResult>> {
+  const denied = canFinalizeCorrectionExport(actorRoleKey);
+  if (denied) return denied;
+
+  const validation = await validateCorrectionDraft(tenantId, actorRoleKey, jobId);
+  if (!validation.ok) return validation;
+  if (!validation.data.valid) {
+    return { ok: false, error: 'Korrektur-Export kann nicht finalisiert werden.' };
+  }
+
+  const jobResult = await getExportJobById(tenantId, jobId);
+  if (!jobResult.ok) return jobResult;
+  if (!jobResult.data) return { ok: false, error: 'Korrektur-Export nicht gefunden.' };
+  if (isFinalizedExportJobStatus(jobResult.data.status)) {
+    return { ok: false, error: 'Korrektur-Export ist bereits finalisiert.' };
+  }
+
+  const correctionReason = jobResult.data.correctionReason?.trim() ?? '';
+  const now = new Date().toISOString();
+  const newItems: WfmTimeExportItem[] = [];
+  const supersededItemIds: string[] = [];
+
+  for (const review of validation.data.exportableReviews) {
+    let oldItem: WfmTimeExportItem | null = null;
+    if (useDemoStore()) {
+      oldItem = findActiveExportItemForReview(tenantId, review);
+    } else {
+      const supabase = getSupabaseClient();
+      if (supabase && review.latestExportItemId) {
+        const { data } = await fromUnknownTable(supabase, EXPORT_ITEMS_TABLE)
+          .select('*')
+          .eq('tenant_id', tenantId)
+          .eq('id', review.latestExportItemId)
+          .maybeSingle();
+        if (data) oldItem = mapItemRow(data as Record<string, unknown>);
+      }
+    }
+
+    if (!oldItem) {
+      return { ok: false, error: `Ursprungs-Item für Review ${review.id} fehlt.` };
+    }
+
+    await buildCorrectionItemForReview(
+      tenantId,
+      jobId,
+      review,
+      oldItem,
+      correctionReason,
+      (oldItem.exportSequence ?? 1) + 1,
+      now,
+      newItems,
+    );
+    supersededItemIds.push(oldItem.id);
+  }
+
+  if (useDemoStore()) {
+    for (const newItem of newItems) {
+      const oldItem = demoItems.find((item) => item.id === newItem.supersedesExportItemId);
+      if (!oldItem) {
+        return { ok: false, error: 'Supersede-Ziel nicht gefunden.' };
+      }
+      if ((oldItem.itemStatus ?? 'active') !== 'active') {
+        return { ok: false, error: 'Supersede-Ziel ist nicht aktiv.' };
+      }
+      oldItem.itemStatus = 'superseded';
+      oldItem.supersededByExportItemId = newItem.id;
+      oldItem.supersededAt = now;
+      demoItems.push(newItem);
+
+      setDemoReviewExportState(tenantId, newItem.reviewId, {
+        exportStatus: 'exported',
+        changedAfterExport: false,
+        lastExportJobId: jobId,
+        lastExportedAt: now,
+        latestExportItemId: newItem.id,
+        pendingReexportJobId: null,
+        changedAfterExportDetectedAt: null,
+        changedAfterExportReason: null,
+        exportVersion: (getDemoReviewExportState(tenantId, newItem.reviewId)?.exportVersion ?? 1) + 1,
+      });
+
+      await appendReviewAction(tenantId, userId, {
+        entryReviewId: newItem.reviewId,
+        action: p23Action('export_item_superseded'),
+        prevStatus: 'approved',
+        newStatus: 'approved',
+        comment: correctionReason,
+      });
+      await appendReviewAction(tenantId, userId, {
+        entryReviewId: newItem.reviewId,
+        action: p23Action('reexport_finalized'),
+        prevStatus: 'approved',
+        newStatus: 'approved',
+        comment: correctionReason,
+      });
+    }
+
+    const finalizedJob: WfmTimeExportJob = {
+      ...jobResult.data,
+      status: 'finalized',
+      rowCount: newItems.length,
+      finalizedAt: now,
+      finalizedBy: userId,
+      updatedAt: now,
+    };
+    demoJobs.set(jobId, finalizedJob);
+
+    return {
+      ok: true,
+      data: {
+        job: finalizedJob,
+        items: newItems,
+        supersededItemIds,
+        exportedCount: newItems.length,
+      },
+    };
+  }
+
+  const supabase = getSupabaseClient();
+  if (!supabase) return { ok: false, error: 'Supabase-Client nicht verfügbar.' };
+
+  const rpcItems = mapCorrectionItemsToRpcPayload(newItems);
+  const client = supabase;
+  const { error: rpcError } = await (
+    client.rpc as (
+      fn: string,
+      args?: Record<string, unknown>,
+    ) => ReturnType<typeof client.rpc>
+  )('wfm_finalize_correction_export', {
+    p_export_job_id: jobId,
+    p_items: rpcItems,
+  });
+  if (rpcError) return { ok: false, error: toGermanSupabaseError(rpcError) };
+
+  const refreshedJob = await getExportJobById(tenantId, jobId);
+  if (!refreshedJob.ok) return refreshedJob;
+  if (!refreshedJob.data || !isFinalizedExportJobStatus(refreshedJob.data.status)) {
+    return { ok: false, error: 'Korrektur-Finalize-RPC hat den Job nicht finalisiert.' };
+  }
+
+  const listed = await listExportItems(tenantId, actorRoleKey, jobId);
+  if (!listed.ok) return listed;
+
+  return {
+    ok: true,
+    data: {
+      job: refreshedJob.data,
+      items: listed.data,
+      supersededItemIds,
+      exportedCount: listed.data.length,
+    },
+  };
+}
+
+async function buildCorrectionItemForReview(
+  tenantId: string,
+  jobId: string,
+  review: WfmTimeExportReviewRow,
+  oldItem: WfmTimeExportItem,
+  correctionReason: string,
+  exportSequence: number,
+  now: string,
+  target: WfmTimeExportItem[],
+): Promise<void> {
+  const logicalReferenceKey = buildLogicalReferenceKey(review.id);
+  const newPayload = buildCorrectionExportPayload({
+    reviewId: review.id,
+    employeeId: review.employeeId,
+    referenceKey: review.referenceKey,
+    referenceId: review.referenceId,
+    entryKind: review.entryKind,
+    periodDate: review.workDate,
+    minutesTotal: resolveReviewMinutes(review),
+    reviewStatus: 'approved',
+    logicalReferenceKey,
+    exportSequence,
+    correctionReason,
+    employeeName: oldItem.exportedPayload.display?.employeeName,
+    entryLabel: oldItem.exportedPayload.display?.entryLabel,
+  });
+  const payloadHash = calculateExportPayloadHash(newPayload);
+  const versionHash = buildLiveReviewVersionHash(review);
+  const delta = buildCorrectionPayloadDelta({
+    oldPayload: oldItem.exportedPayload,
+    newPayload,
+  });
+  const itemId =
+    typeof globalThis.crypto?.randomUUID === 'function'
+      ? globalThis.crypto.randomUUID()
+      : `correction-item-${Date.now()}-${target.length}`;
+
+  target.push({
+    id: itemId,
+    tenantId,
+    exportJobId: jobId,
+    reviewId: review.id,
+    employeeId: review.employeeId,
+    referenceId: review.referenceId,
+    referenceKey: newPayload.referenceKey,
+    entryKind: review.entryKind,
+    periodDate: review.workDate,
+    minutesTotal: newPayload.minutesTotal,
+    reviewStatusAtExport: 'approved',
+    exportedPayload: newPayload,
+    payloadHash,
+    sourceReviewVersionHash: versionHash,
+    previousPayloadHash: oldItem.payloadHash,
+    correctionPayloadDelta: delta,
+    correctionReason,
+    supersedesExportItemId: oldItem.id,
+    supersededByExportItemId: null,
+    changedAfterExport: false,
+    createdAt: now,
+    logicalReferenceKey,
+    exportSequence,
+    itemStatus: 'active',
+  });
+}
+
+export async function buildCorrectionExportCsv(
+  tenantId: string,
+  actorRoleKey: RoleKey | null,
+  exportJobId: string,
+): Promise<ServiceResult<{ csv: string; rowCount: number }>> {
+  const denied = canCreateReviewedTimeExport(actorRoleKey);
+  if (denied) return denied;
+
+  const jobResult = await getExportJobById(tenantId, exportJobId);
+  if (!jobResult.ok) return jobResult;
+  if (!jobResult.data) return { ok: false, error: 'Export-Job nicht gefunden.' };
+  if (jobResult.data.exportType !== 'reviewed_time_correction') {
+    return { ok: false, error: 'Job ist kein Korrektur-Export.' };
+  }
+
+  const listed = await listExportItems(tenantId, actorRoleKey, exportJobId);
+  if (!listed.ok) return listed;
+
+  const rows = listed.data.map((item) => {
+    const payload = item.exportedPayload as WfmCorrectionExportPayload;
+    const delta = (item.correctionPayloadDelta as WfmCorrectionPayloadDelta | null) ?? {
+      changedFields: [],
+      oldValues: {},
+      newValues: {},
+      deltaMinutes: 0,
+    };
+    const originalItemId = item.supersedesExportItemId ?? '';
+    const originalJobId = jobResult.data?.correctionOfExportJobId ?? '';
+    return {
+      exportKind: 'correction_delta' as const,
+      logicalReferenceKey: item.logicalReferenceKey ?? buildLogicalReferenceKey(item.reviewId),
+      referenceKey: item.referenceKey,
+      exportSequence: item.exportSequence ?? 2,
+      originalExportJobId: originalJobId,
+      correctionExportJobId: exportJobId,
+      originalExportItemId: originalItemId,
+      newExportItemId: item.id,
+      employeeId: item.employeeId,
+      employeeName: payload.display?.employeeName,
+      entryKind: item.entryKind,
+      periodDate: item.periodDate,
+      changedFields: delta.changedFields,
+      oldValues: delta.oldValues,
+      newValues: delta.newValues,
+      deltaMinutes: delta.deltaMinutes,
+      correctionReason: item.correctionReason ?? jobResult.data?.correctionReason ?? '',
+      finalizedAt: jobResult.data?.finalizedAt ?? '',
+      finalizedBy: jobResult.data?.finalizedBy ?? '',
+      payloadHash: item.payloadHash,
+      previousPayloadHash: item.previousPayloadHash ?? '',
+    };
+  });
+
+  return {
+    ok: true,
+    data: {
+      csv: buildCorrectionCsv(rows),
+      rowCount: rows.length,
+    },
+  };
 }
 
 export async function buildInternalCsv(
@@ -1024,4 +2080,43 @@ export function listDemoExportItems(): WfmTimeExportItem[] {
 
 export function listDemoExportJobs(): WfmTimeExportJob[] {
   return [...demoJobs.values()];
+}
+
+export function getDemoReviewExportMeta(
+  tenantId: string,
+  reviewId: string,
+): {
+  exportStatus: WfmTimeExportStatus;
+  changedAfterExport: boolean;
+  lastExportJobId: string | null;
+  lastExportedAt: string | null;
+} | null {
+  return demoReviewExportState.get(demoReviewKey(tenantId, reviewId)) ?? null;
+}
+
+export function setDemoReviewExportChanged(
+  tenantId: string,
+  reviewId: string,
+  exportJobId: string,
+): void {
+  setDemoReviewExportState(tenantId, reviewId, {
+    exportStatus: 'changed_after_export',
+    changedAfterExport: true,
+    lastExportJobId: exportJobId,
+    lastExportedAt: new Date().toISOString(),
+    changedAfterExportDetectedAt: new Date().toISOString(),
+    changedAfterExportReason: 'manual_demo_mark',
+  });
+}
+
+export function registerDemoExportJob(job: WfmTimeExportJob): void {
+  demoJobs.set(job.id, job);
+}
+
+export function registerDemoExportItems(items: WfmTimeExportItem[]): void {
+  demoItems.push(...items);
+}
+
+export function mapWfmTimeExportJobRow(row: Record<string, unknown>): WfmTimeExportJob {
+  return mapJobRow(row);
 }

@@ -35,7 +35,13 @@ export type WfmTimeReviewActionType =
   | 'export_finalized'
   | 'export_voided'
   | 'export_reopened'
-  | 'changed_after_export_detected';
+  | 'changed_after_export_detected'
+  | 'export_change_detected'
+  | 'reexport_requested'
+  | 'reexport_drafted'
+  | 'reexport_finalized'
+  | 'export_item_superseded'
+  | 'correction_export_finalized';
 
 export type WfmTimeReviewEntryKind = 'session' | 'visit' | 'manual' | 'meeting';
 
