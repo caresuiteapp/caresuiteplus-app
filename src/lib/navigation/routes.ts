@@ -1329,6 +1329,7 @@ export const APP_ROUTES: AppRoute[] = [
 
   // Platform Console — eigene Guard-Kette (PlatformRouteGuard), keine Mandantenrollen
   { path: '/platform', label: 'Platform Console', group: 'system', requiresAuth: true },
+  { path: '/platform/login', label: 'Platform Login', group: 'system', requiresAuth: false },
   { path: '/platform/dashboard', label: 'Platform Dashboard', group: 'system', requiresAuth: true },
   { path: '/platform/tenants', label: 'Platform Mandanten', group: 'system', requiresAuth: true },
   { path: '/platform/modules', label: 'Platform Module', group: 'system', requiresAuth: true },

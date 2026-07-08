@@ -12,6 +12,7 @@ export default function PlatformRootLayout() {
           animation: 'slide_from_right',
         }}
       >
+        <Stack.Screen name="login" options={{ animation: 'fade' }} />
         <Stack.Screen name="forbidden" options={{ animation: 'fade' }} />
         <Stack.Screen name="(console)" />
         <Stack.Screen name="index" />
