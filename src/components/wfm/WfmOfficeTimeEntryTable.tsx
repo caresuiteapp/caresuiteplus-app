@@ -2,7 +2,15 @@ import { StyleSheet, Text, View } from 'react-native';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
 import { careSpacing } from '@/design/tokens/spacing';
-import { formatWfmDurationMinutes, formatWfmPlanTimeRange, formatWfmReviewQueueDuration, formatWfmReviewQueueEndLabel, formatWfmReviewQueueGesamtLabel, formatWfmReviewQueueIstLabel, formatWfmReviewQueueStartLabel } from '@/lib/wfm/wfmDisplayHelpers';
+import {
+  formatWfmPlanTimeRange,
+  formatWfmReviewQueueGesamtLabel,
+  formatWfmReviewQueueIstLine,
+  formatWfmReviewQueuePlannedDuration,
+  formatWfmReviewQueueStartLabel,
+  formatWfmReviewQueueEndLabel,
+} from '@/lib/wfm/wfmDisplayHelpers';
+import { resolveWfmOfficeTimeDisplay } from '@/lib/wfm/wfmOfficeTimeDisplayResolver';
 import type { WfmOfficeTimeEntry } from '@/types/modules/wfmOfficeTimekeeping';
 import {
   WFM_DEVIATION_AMPEL_LABELS,
@@ -15,6 +23,7 @@ type Props = {
   entries: WfmOfficeTimeEntry[];
   selectedId: string | null;
   onSelect: (entryId: string | null) => void;
+  reviewQueueMode?: boolean;
 };
 
 function ampelVariant(ampel: string | null): 'green' | 'yellow' | 'red' | 'muted' {
@@ -37,7 +46,7 @@ function rowStatusLabel(entry: WfmOfficeTimeEntry): string {
   return WFM_OFFICE_TIME_STATUS_LABELS[entry.reviewStatus];
 }
 
-export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props) {
+export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect, reviewQueueMode = false }: Props) {
   const text = useAuroraAdaptiveText();
 
   if (entries.length === 0) {
@@ -52,6 +61,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props
     <View style={styles.wrap}>
       {entries.map((entry) => {
         const selected = selectedId === entry.id;
+        const display = resolveWfmOfficeTimeDisplay(entry);
         return (
           <View
             key={entry.id}
@@ -68,12 +78,19 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props
                   : ''}
               </Text>
               <Text style={{ color: text.secondary, ...typography.caption }}>
-                {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]} · Ist:{' '}
-                {formatWfmReviewQueueIstLabel(entry)} · {formatWfmReviewQueueDuration(entry)}
+                {WFM_OFFICE_WORK_KIND_LABELS[entry.workKind]} · {formatWfmReviewQueueIstLine(entry)}
               </Text>
               <Text style={{ color: text.secondary, ...typography.caption }}>
                 Plan: {formatWfmPlanTimeRange(entry.plannedStartAt, entry.plannedEndAt, entry.planDisplayStatus)}
+                {display.isPlannedOnly
+                  ? ` · Geplante Dauer: ${formatWfmReviewQueuePlannedDuration(entry)}`
+                  : ''}
               </Text>
+              {display.displaySource === 'assignment_actual' ? (
+                <Text style={{ color: text.secondary, ...typography.caption }}>
+                  {display.displayDurationLabel}
+                </Text>
+              ) : null}
               <Text style={{ color: text.secondary, ...typography.caption }}>
                 {formatWfmReviewQueueStartLabel(entry, entry.startAmpel)} ·{' '}
                 {formatWfmReviewQueueEndLabel(entry, entry.endAmpel)} ·{' '}
@@ -91,6 +108,9 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props
                       : 'muted'
                 }
               />
+              {display.displaySource === 'assignment_actual' ? (
+                <PremiumBadge label="Fehlende Buchung" variant="orange" />
+              ) : null}
               {entry.overallAmpel ? (
                 <PremiumBadge
                   label={`Gesamt ${WFM_DEVIATION_AMPEL_LABELS[entry.overallAmpel]}`}
@@ -102,7 +122,7 @@ export function WfmOfficeTimeEntryTable({ entries, selectedId, onSelect }: Props
               ) : null}
             </View>
             <PremiumButton
-              title={selected ? 'Schließen' : 'Details'}
+              title={selected ? 'Schließen' : reviewQueueMode ? 'Prüfen' : 'Details'}
               variant="ghost"
               onPress={() => onSelect(selected ? null : entry.id)}
             />

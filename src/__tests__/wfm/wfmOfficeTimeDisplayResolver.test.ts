@@ -1,4 +1,5 @@
 import { describe, expect, it } from 'vitest';
+import { resolveAssignmentActualTimes } from '@/lib/wfm/wfmAssignmentActualResolver';
 import {
   enrichOfficeTimeEntryDisplay,
   resolveWfmOfficeTimeDisplay,
@@ -8,6 +9,8 @@ import {
   formatWfmReviewQueueEndLabel,
   formatWfmReviewQueueGesamtLabel,
   formatWfmReviewQueueIstLabel,
+  formatWfmReviewQueueIstLine,
+  formatWfmReviewQueuePlannedDuration,
   formatWfmReviewQueueStartLabel,
 } from '@/lib/wfm/wfmDisplayHelpers';
 import { joinOfficeTimekeepingData } from '@/lib/wfm/wfmOfficeDataJoinService';
@@ -56,6 +59,19 @@ function baseEntry(overrides: Partial<WfmOfficeTimeEntry> = {}): WfmOfficeTimeEn
   };
 }
 
+describe('wfmAssignmentActualResolver', () => {
+  it('falls back to arrived_at and finished_at', () => {
+    const resolved = resolveAssignmentActualTimes({
+      actual_start_at: null,
+      actual_end_at: null,
+      arrived_at: '2026-07-20T07:00:00.000Z',
+      finished_at: '2026-07-20T09:30:00.000Z',
+    });
+    expect(resolved.startAt).toBe('2026-07-20T07:00:00.000Z');
+    expect(resolved.endAt).toBe('2026-07-20T09:30:00.000Z');
+  });
+});
+
 describe('wfmOfficeTimeDisplayResolver', () => {
   it('uses time entry when actual booking exists', () => {
     const display = resolveWfmOfficeTimeDisplay(
@@ -67,9 +83,9 @@ describe('wfmOfficeTimeDisplayResolver', () => {
         rowKind: 'planned_with_actual',
       }),
     );
-    expect(display.timeSource).toBe('time_entry');
-    expect(display.displayStart).toBe('2026-07-20T07:05:00.000Z');
-    expect(display.displayDurationMinutes).toBe(150);
+    expect(display.displaySource).toBe('time_entry');
+    expect(display.timeEntryStart).toBe('2026-07-20T07:05:00.000Z');
+    expect(display.timeEntryDurationMinutes).toBe(150);
     expect(display.hasTimeEntry).toBe(true);
   });
 
@@ -80,17 +96,19 @@ describe('wfmOfficeTimeDisplayResolver', () => {
         assignmentActualEndAt: '2026-07-20T09:30:00.000Z',
       }),
     );
-    expect(display.timeSource).toBe('assignment_actual');
-    expect(display.displayDurationMinutes).toBe(150);
+    expect(display.displaySource).toBe('assignment_actual');
+    expect(display.assignmentActualDurationMinutes).toBe(150);
     expect(display.hasTimeEntry).toBe(false);
+    expect(display.bookingStatus).toBe('assignment_only');
   });
 
-  it('falls back to planned times when only plan exists', () => {
+  it('marks planned-only without ist duration', () => {
     const display = resolveWfmOfficeTimeDisplay(baseEntry());
-    expect(display.timeSource).toBe('assignment_planned');
-    expect(display.displayStart).toBe('2026-07-20T07:00:00.000Z');
-    expect(display.displayEnd).toBe('2026-07-20T09:30:00.000Z');
-    expect(display.displayDurationMinutes).toBe(150);
+    expect(display.displaySource).toBe('planned_only');
+    expect(display.plannedDurationMinutes).toBe(150);
+    expect(display.displayDurationMinutes).toBe(0);
+    expect(display.isPlannedOnly).toBe(true);
+    expect(display.bookingStatus).toBe('missing_booking');
   });
 
   it('returns missing when no times at all', () => {
@@ -101,19 +119,29 @@ describe('wfmOfficeTimeDisplayResolver', () => {
         planDisplayStatus: 'plan_missing',
       }),
     );
-    expect(display.timeSource).toBe('missing');
-    expect(display.displayDurationMinutes).toBe(0);
+    expect(display.displaySource).toBe('missing');
+    expect(display.plannedDurationMinutes).toBe(0);
+  });
+
+  it('exposes review capabilities for open entries', () => {
+    const display = resolveWfmOfficeTimeDisplay(baseEntry());
+    expect(display.canOpenDetails).toBe(true);
+    expect(display.canApprove).toBe(true);
+    expect(display.canReject).toBe(true);
+    expect(display.canRequestClarification).toBe(true);
   });
 });
 
 describe('review queue display helpers', () => {
-  it('shows planned start/end labels when booking missing but plan exists', () => {
+  it('never shows planned duration on Ist line when booking missing', () => {
     const entry = enrichOfficeTimeEntryDisplay(baseEntry());
     expect(formatWfmReviewQueueIstLabel(entry)).toBe('noch nicht gebucht');
+    expect(formatWfmReviewQueueDuration(entry)).toBe('—');
+    expect(formatWfmReviewQueueIstLine(entry)).toBe('Ist: noch nicht gebucht');
+    expect(formatWfmReviewQueuePlannedDuration(entry)).toBe('2:30 h');
     expect(formatWfmReviewQueueStartLabel(entry, null)).toContain('Start geplant:');
     expect(formatWfmReviewQueueEndLabel(entry, null)).toContain('Ende geplant:');
-    expect(formatWfmReviewQueueDuration(entry)).not.toBe('—');
-    expect(formatWfmReviewQueueGesamtLabel(entry)).toContain('Dauer geplant:');
+    expect(formatWfmReviewQueueGesamtLabel(entry)).toContain('Geplante Dauer:');
   });
 
   it('shows assignment actual label when Einsatz-Ist exists', () => {
@@ -123,8 +151,10 @@ describe('review queue display helpers', () => {
         assignmentActualEndAt: '2026-07-20T09:30:00.000Z',
       }),
     );
-    expect(formatWfmReviewQueueIstLabel(entry)).toContain('aus Einsatz');
-    expect(formatWfmReviewQueueStartLabel(entry, null)).toContain('(Einsatz)');
+    expect(formatWfmReviewQueueIstLabel(entry)).toContain('Einsatz-Ist');
+    expect(formatWfmReviewQueueDuration(entry)).toBe('2:30 h');
+    expect(formatWfmReviewQueueIstLine(entry)).toContain('2:30 h');
+    expect(formatWfmReviewQueueStartLabel(entry, null)).toContain('Einsatz-Ist');
   });
 
   it('keeps missing booking badge semantics via flags', () => {
@@ -150,7 +180,9 @@ describe('review queue display helpers', () => {
     };
     const rows = joinOfficeTimekeepingData([planned], [], new Map([['emp-1', 'Ramona König']]));
     expect(rows[0].assignmentActualStartAt).toBe('2026-07-20T07:02:00.000Z');
-    expect(rows[0].timeSource).toBe('assignment_actual');
-    expect(formatWfmReviewQueueDuration(rows[0])).not.toBe('—');
+    expect(rows[0].displaySource ?? resolveWfmOfficeTimeDisplay(rows[0]).displaySource).toBe(
+      'assignment_actual',
+    );
+    expect(formatWfmReviewQueueDuration(rows[0])).toBe('2:26 h');
   });
 });

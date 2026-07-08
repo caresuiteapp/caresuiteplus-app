@@ -20,7 +20,7 @@ export const OFFICE_TIME_TRACKING_OWN_HREF = `${OFFICE_TIME_TRACKING_BASE}/eigen
 export const OFFICE_TIME_TRACKING_TABS: ShellTabConfig[] = [
   { key: 'live', label: 'Live', icon: '🟢', href: `${OFFICE_TIME_TRACKING_BASE}/live` },
   { key: 'zeitkonten', label: 'Zeitkonten', icon: '⏱️', href: `${OFFICE_TIME_TRACKING_BASE}/zeitkonten` },
-  { key: 'pruefqueue', label: 'Prüfqueue', icon: '🔍', href: `${OFFICE_TIME_TRACKING_BASE}/pruefqueue` },
+  { key: 'pruefqueue', label: 'Offene Prüfungen', icon: '🔍', href: `${OFFICE_TIME_TRACKING_BASE}/pruefqueue` },
   { key: 'abwesenheiten', label: 'Abwesenheiten', icon: '🏖️', href: `${OFFICE_TIME_TRACKING_BASE}/abwesenheiten` },
   { key: 'nachtraege', label: 'Nachträge', icon: '✏️', href: `${OFFICE_TIME_TRACKING_BASE}/nachtraege` },
   { key: 'fahrzeitregeln', label: 'Fahrzeitregeln', icon: '🚗', href: `${OFFICE_TIME_TRACKING_BASE}/fahrzeitregeln` },

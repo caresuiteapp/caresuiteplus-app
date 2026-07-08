@@ -229,6 +229,16 @@ describe('ZEIT.3 deviation gate + office workflow', () => {
     );
     expect(clarify.ok).toBe(true);
     expect(clarify.data.reviewStatus).toBe('needs_clarification');
+
+    setEntryOverlay('entry-clarify-empty', { reviewStatus: 'pending_review' });
+    const clarifyBlocked = await reviewWfmOfficeTimeEntry(
+      TENANT,
+      ACTOR,
+      ROLE,
+      'entry-clarify-empty',
+      'needs_clarification',
+    );
+    expect(clarifyBlocked.ok).toBe(false);
   });
 
   it('exported entry correction shows warning path', async () => {

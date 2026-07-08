@@ -152,7 +152,7 @@ async function fetchEmployeeProfiles(
   for (const row of data ?? []) {
     const r = row as { id: string; first_name: string | null; last_name: string | null };
     const name = [r.first_name, r.last_name].filter(Boolean).join(' ').trim();
-    map.set(r.id, { id: r.id, name: name || `MA ${r.id.slice(0, 8)}` });
+    map.set(r.id, { id: r.id, name: name || `Mitarbeitende ${r.id.slice(0, 8)}` });
   }
   return map;
 }
@@ -317,7 +317,7 @@ async function buildEntriesForDate(
   for (const session of sessionsResult.data) {
     const profile = profiles.get(session.employeeId) ?? {
       id: session.employeeId,
-      name: `MA ${session.employeeId.slice(0, 8)}`,
+      name: `Mitarbeitende ${session.employeeId.slice(0, 8)}`,
     };
     const eventsResult = await fetchSessionEvents(tenantId, session.id);
     const events = eventsResult.ok ? eventsResult.data : [];
@@ -568,7 +568,7 @@ export async function getWfmOfficeTimeOverview(
 
   for (const id of employeeIdSet) {
     if (!profiles.has(id)) {
-      profiles.set(id, { id, name: `MA ${id.slice(0, 8)}` });
+      profiles.set(id, { id, name: `Mitarbeitende ${id.slice(0, 8)}` });
     }
   }
 
@@ -595,6 +595,44 @@ export async function getWfmOfficeTimeOverview(
       employees: [...profiles.values()],
     },
   };
+}
+
+export async function adoptWfmAssignmentActualToBooking(
+  tenantId: string,
+  actorId: string,
+  actorRoleKey: RoleKey | null,
+  entryId: string,
+  reason: string,
+): Promise<ServiceResult<WfmOfficeTimeEntry>> {
+  const denied = enforcePermission(actorRoleKey, 'time.tracking.admin.correct');
+  if (denied) return denied;
+  if (!reason.trim()) {
+    return { ok: false, error: 'Übernahme aus Einsatz ohne Begründung ist nicht erlaubt.' };
+  }
+
+  const overview = await getWfmOfficeTimeOverview(tenantId, actorRoleKey, { preset: 'last_30_days' });
+  if (!overview.ok) return overview;
+  const entry = overview.data.entries.find((e) => e.id === entryId);
+  if (!entry) return { ok: false, error: 'Eintrag nicht gefunden.' };
+
+  const display = (await import('./wfmOfficeTimeDisplayResolver')).resolveWfmOfficeTimeDisplay(entry);
+  if (!display.hasAssignmentActual) {
+    return { ok: false, error: 'Kein Einsatz-Ist für diesen Eintrag vorhanden.' };
+  }
+  if (entry.exportStatus === 'exported') {
+    return {
+      ok: false,
+      error: 'Exportierter Eintrag — Übernahme nur über P2.3 Re-Export-Flow.',
+    };
+  }
+
+  return applyWfmOfficeTimeCorrection(tenantId, actorId, actorRoleKey, {
+    entryId,
+    reason,
+    actualStartAt: display.assignmentActualStart,
+    actualEndAt: display.assignmentActualEnd,
+    status: 'pending_review',
+  });
 }
 
 export async function applyWfmOfficeTimeCorrection(
@@ -737,7 +775,7 @@ export async function createWfmOfficeManualEntry(
     id,
     tenantId,
     employeeId: input.employeeId,
-    employeeName: profile?.name ?? `MA ${input.employeeId.slice(0, 8)}`,
+    employeeName: profile?.name ?? `Mitarbeitende ${input.employeeId.slice(0, 8)}`,
     workDate: input.workDate,
     assignmentId: input.assignmentId ?? null,
     visitId: null,
@@ -811,6 +849,9 @@ export async function reviewWfmOfficeTimeEntry(
 
   if (decision === 'rejected' && !reviewNote?.trim()) {
     return { ok: false, error: 'Ablehnung ohne Grund ist nicht erlaubt.' };
+  }
+  if (decision === 'needs_clarification' && !reviewNote?.trim()) {
+    return { ok: false, error: 'Rückfrage ohne Nachricht ist nicht erlaubt.' };
   }
 
   const overlay = getEntryOverlay(entryId) ?? {};

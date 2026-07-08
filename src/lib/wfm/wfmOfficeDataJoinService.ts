@@ -243,7 +243,7 @@ export function joinOfficeTimekeepingData(
 
   for (const [key, planned] of plannedByKey.entries()) {
     if (handledPlannedKeys.has(key)) continue;
-    const name = employeeNames.get(planned.employeeId) ?? `MA ${planned.employeeId.slice(0, 8)}`;
+    const name = employeeNames.get(planned.employeeId) ?? `Mitarbeitende ${planned.employeeId.slice(0, 8)}`;
     merged.push(buildPlannedMissingEntry(planned, name));
   }
 
