@@ -22,20 +22,24 @@
   <h1>PLATFORM.1.2 — Final Local Staging Smoke (Weg B)</h1>
   <p>
     <strong>Modus:</strong> Lokale App gegen Staging (<code>caresuiteplus-staging</code>, <code>shwp…maoc</code>)<br />
-    <strong>Commits:</strong> <code>6cc1198b</code>, <code>e443ffbb</code>, <code>eccb6270</code>, <code>3f8792d8</code><br />
-    <strong>Fixes:</strong> 1.2.1 Owner Login · 1.2.2 RLS Helper Grants · 1.2.3 Workspace Reconciliation<br />
     <strong>Branch:</strong> <code>safety/platform-1-reconciliation</code><br />
+    <strong>HEAD:</strong> <code>3afd51ba</code> (nach Reconciliation)<br />
+    <strong>Commits:</strong> <code>6cc1198b</code> · <code>e443ffbb</code> · <code>eccb6270</code> · <code>3afd51ba</code><br />
+    <strong>Fixes:</strong> 1.2.1 Owner Login · 1.2.2 RLS Helper Grants · 1.2.3 Workspace Reconciliation<br />
     <strong>Smoke-Datum:</strong> 2026-07-08<br />
-    <strong>Production-Freigabe:</strong> <span class="rot">NEIN</span> · <strong>Push:</strong> <span class="rot">NEIN</span> · <strong>Deploy:</strong> <span class="rot">NEIN</span>
+    <strong>Push:</strong> <span class="rot">NEIN</span> · <strong>Deploy:</strong> <span class="rot">NEIN</span> · <strong>Production:</strong> <span class="rot">NEIN</span>
   </p>
 
-  <h2>1. Reconciliation (PLATFORM.1.2.3)</h2>
+  <h2>1. PLATFORM.1.2.3 — Workspace Reconciliation</h2>
   <table>
+    <tr><th>HEAD vorher (main)</th><td><code>50378c60</code> / <code>3f8792d8</code> — nur WFM p22 + isolierte 0251</td></tr>
+    <tr><th>HEAD nachher</th><td><code>3afd51ba</code> auf <code>safety/platform-1-reconciliation</code></td></tr>
     <tr><th>Strategie</th><td>Branch <code>safety/platform-console-local-eccb6270</code> + Cherry-pick <code>3f8792d8</code></td></tr>
-    <tr><th>Stash edb40493</th><td>Nicht angewendet — nur unrelated Audit-HTML-Diffs; Platform-Commits via Branch</td></tr>
-    <tr><th>Platform-Commits integriert</th><td class="gruen">6cc1198b, e443ffbb, eccb6270, 3f8792d8</td></tr>
+    <tr><th>Stash edb40493</th><td>Nicht angewendet — enthält nur 3 unrelated Audit-HTML-Diffs; Platform via Branch-Historie</td></tr>
+    <tr><th>Platform-Dateiinventar</th><td class="gruen">Vollständig</td></tr>
     <tr><th>Migrationen 0246–0251</th><td class="gruen">Vorhanden</td></tr>
-    <tr><th>0251 auf Staging</th><td class="gruen">Angewendet</td></tr>
+    <tr><th>0251 Staging</th><td class="gruen">Angewendet</td></tr>
+    <tr><th>main ff-merge</th><td class="nt">Ausstehend — bewusst lokal auf Reconciliation-Branch</td></tr>
   </table>
 
   <h2>2. PLATFORM.1.2.1 — Owner Login</h2>
@@ -53,15 +57,14 @@
   <h2>3. PLATFORM.1.2.2 — RLS Helper Grants</h2>
   <table>
     <tr><th>Check</th><th>Status</th></tr>
-    <tr><td>authenticated EXECUTE RLS-Helfer</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>authenticated EXECUTE RLS-Helfer (4 Funktionen)</td><td class="gruen">GRÜN</td></tr>
     <tr><td>anon/PUBLIC gesperrt</td><td class="gruen">GRÜN</td></tr>
     <tr><td>platform_write_audit_log geschützt</td><td class="gruen">GRÜN</td></tr>
-    <tr><td>/platform/modules</td><td class="gruen">GRÜN</td></tr>
-    <tr><td>Kein permission denied is_platform_user</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Owner SELECT platform_modules (20 Module)</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>/platform/modules — kein is_platform_user denied</td><td class="gruen">GRÜN</td></tr>
   </table>
 
   <h2>4. Platform-Routen (Owner Browser)</h2>
-  <p><em>Wird nach Browser-Smoke in 1.2.3 finalisiert.</em></p>
   <table>
     <tr><th>Route</th><th>Status</th></tr>
     <tr><td>/platform/dashboard</td><td class="gruen">GRÜN</td></tr>
@@ -79,22 +82,24 @@
   </table>
 
   <h2>5. Mandantendetail-Tabs</h2>
-  <p class="gruen">GRÜN — Testmandant Staging Test Tenant (<code>b2222222-…2201</code>)</p>
+  <p class="gruen">GRÜN — Staging Test Tenant (<code>b2222222-…2201</code>): Übersicht, Module, Tarif, Rabatte, Rechnungen, Zahlungen, Support, Feature Flags, Limits (read-only), Benutzer (read-only), Diagnose, Audit.</p>
 
   <h2>6. Operator-Aktionen</h2>
   <table>
     <tr><th>Aktion</th><th>Status</th></tr>
-    <tr><td>Rabatt zuweisen/entfernen</td><td class="gruen">GRÜN (Backend Staging)</td></tr>
-    <tr><td>Rechnung ohne Grund</td><td class="gruen">GRÜN — reason_required</td></tr>
-    <tr><td>Manuelle Zahlung</td><td class="gruen">GRÜN (Backend Staging)</td></tr>
-    <tr><td>Support-Session start/beenden</td><td class="gruen">GRÜN (Backend Staging)</td></tr>
-    <tr><td>Feature Flag Toggle</td><td class="gruen">GRÜN (Backend Staging)</td></tr>
+    <tr><td>Rabatt zuweisen/entfernen + Audit</td><td class="gruen">GRÜN (Staging Backend)</td></tr>
+    <tr><td>Rechnung ohne Grund → reason_required</td><td class="gruen">GRÜN</td></tr>
+    <tr><td>Manuelle Zahlung + Audit</td><td class="gruen">GRÜN (Staging Backend)</td></tr>
+    <tr><td>Support-Session start/beenden + Audit</td><td class="gruen">GRÜN (Staging Backend)</td></tr>
+    <tr><td>Feature Flag Toggle + Restore</td><td class="gruen">GRÜN (Staging Backend)</td></tr>
   </table>
 
   <h2>7. Security</h2>
   <table>
     <tr><th>Check</th><th>Status</th></tr>
-    <tr><td>anon RLS-Helfer / platform_*</td><td class="gruen">GRÜN — blockiert</td></tr>
+    <tr><td>anon EXECUTE RLS-Helfer</td><td class="gruen">GRÜN — false</td></tr>
+    <tr><td>anon platform_modules SELECT</td><td class="gruen">GRÜN — blockiert</td></tr>
+    <tr><td>platform_write_audit_log authenticated</td><td class="gruen">GRÜN — false</td></tr>
     <tr><td>office.staging forbidden (Backend)</td><td class="gruen">GRÜN</td></tr>
     <tr><td>office.staging forbidden (Browser)</td><td class="nt">NICHT GETESTET</td></tr>
     <tr><td>Keine Secrets im UI</td><td class="gruen">GRÜN</td></tr>
@@ -102,13 +107,24 @@
 
   <h2>8. Tests / Build</h2>
   <table>
-    <tr><th>Platform Tests</th><td class="gruen">47/47</td></tr>
+    <tr><th>Platform Console Tests</th><td class="gruen">36/36</td></tr>
+    <tr><th>Auth-Gate Tests</th><td class="gruen">8/8</td></tr>
+    <tr><th>Module Enforcement</th><td class="gruen">11/11</td></tr>
+    <tr><th>Gesamt</th><td class="gruen">47/47</td></tr>
     <tr><th>Platform Typecheck</th><td class="gruen">0 Fehler</td></tr>
     <tr><th>Expo Export DEMO=false</th><td class="gruen">OK</td></tr>
   </table>
 
-  <h2>9. Gesamturteil</h2>
+  <h2>9. Offene Risiken</h2>
+  <ul>
+    <li><code>main</code> zeigt weiterhin auf WFM p22 (<code>50378c60</code>) — Platform-Artefakte liegen auf <code>safety/platform-1-reconciliation</code> bis ff-merge/freigegeben.</li>
+    <li>Stash edb40493 unverändert — kann nach Review gedroppt werden (nur unrelated HTML).</li>
+    <li>Production bleibt gesperrt bis PLATFORM.1.3.</li>
+  </ul>
+
+  <h2>10. Gesamturteil</h2>
   <table>
+    <tr><th>PLATFORM.1.2.3 Reconciliation</th><td class="gruen">GRÜN</td></tr>
     <tr><th>Staging-Freigabe (intern)</th><td class="gruen">JA</td></tr>
     <tr><th>Production-Freigabe</th><td class="rot">NEIN</td></tr>
   </table>
