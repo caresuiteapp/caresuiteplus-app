@@ -3,7 +3,7 @@ import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-
 import { useRouter } from 'expo-router';
 import { PlatformShellLayout, PLATFORM_COLORS } from '@/components/platformConsole';
 import { ErrorState, LoadingState, PremiumDataTable } from '@/components/ui';
-import { listPlatformTenants } from '@/lib/platformConsole';
+import { listPlatformTenants, resolvePlatformTenantDetailId } from '@/lib/platformConsole';
 import type { PlatformTenantListItem } from '@/types/platformConsole';
 import { spacing } from '@/theme';
 
@@ -13,6 +13,15 @@ export function PlatformTenantsScreen() {
   const [search, setSearch] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+
+  const openTenantDetail = useCallback(
+    (row: PlatformTenantListItem) => {
+      const detailId = resolvePlatformTenantDetailId(row);
+      if (!detailId) return;
+      router.push(`/platform/tenants/${detailId}` as never);
+    },
+    [router],
+  );
 
   const load = useCallback(async () => {
     setLoading(true);
@@ -55,14 +64,24 @@ export function PlatformTenantsScreen() {
       {
         key: 'actions',
         label: '',
-        render: (row: PlatformTenantListItem) => (
-          <Pressable onPress={() => router.push(`/platform/tenants/${row.tenantId}` as never)}>
-            <Text style={styles.link}>Öffnen</Text>
-          </Pressable>
-        ),
+        render: (row: PlatformTenantListItem) => {
+          const detailId = resolvePlatformTenantDetailId(row);
+          if (!detailId) {
+            return (
+              <Text style={styles.muted} accessibilityLabel="Mandanten-ID fehlt">
+                Mandanten-ID fehlt
+              </Text>
+            );
+          }
+          return (
+            <Pressable onPress={() => openTenantDetail(row)} accessibilityLabel="Mandant öffnen">
+              <Text style={styles.link}>Öffnen</Text>
+            </Pressable>
+          );
+        },
       },
     ],
-    [router],
+    [openTenantDetail],
   );
 
   return (
@@ -86,7 +105,11 @@ export function PlatformTenantsScreen() {
         <ErrorState title="Liste nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
         <ScrollView horizontal>
-          <PremiumDataTable columns={columns} data={items} keyExtractor={(row) => row.tenantId} />
+          <PremiumDataTable
+            columns={columns}
+            data={items}
+            keyExtractor={(row) => resolvePlatformTenantDetailId(row) ?? row.id}
+          />
         </ScrollView>
       )}
     </PlatformShellLayout>
@@ -116,4 +139,5 @@ const styles = StyleSheet.create({
   searchBtnText: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
   cellPrimary: { color: PLATFORM_COLORS.text, fontWeight: '600' },
   link: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
+  muted: { color: PLATFORM_COLORS.muted, fontSize: 12 },
 });

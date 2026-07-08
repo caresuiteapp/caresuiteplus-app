@@ -1,7 +1,11 @@
 import type { ServiceResult } from '@/types/core/base';
 import { getServiceMode } from '@/lib/services/mode';
 import { platformRpc } from './platformSupabaseClient';
-import { validatePlatformReason } from './platformCapabilities';
+import {
+  validatePlatformAddonKey,
+  validatePlatformPlanKey,
+  validatePlatformReason,
+} from './platformCapabilities';
 
 function reasonGuard(reason: string): ServiceResult<never> | null {
   const err = validatePlatformReason(reason);
@@ -22,12 +26,16 @@ export async function createPlatformPlan(
 ): Promise<ServiceResult<Record<string, unknown>>> {
   const guard = reasonGuard(reason);
   if (guard) return guard;
+  const keyError = validatePlatformPlanKey(planKey);
+  if (keyError) return { ok: false, error: keyError };
+  const trimmedName = planName.trim();
+  if (!trimmedName) return { ok: false, error: 'Plan-Name ist Pflicht.' };
   if (getServiceMode() === 'demo') {
-    return { ok: true, data: { plan: { plan_key: planKey, plan_name: planName } } };
+    return { ok: true, data: { plan: { plan_key: planKey.trim(), plan_name: trimmedName } } };
   }
   const { data, error } = await platformRpc<Record<string, unknown>>('platform_create_plan', {
-    p_plan_key: planKey,
-    p_plan_name: planName,
+    p_plan_key: planKey.trim(),
+    p_plan_name: trimmedName,
     p_reason: reason.trim(),
     p_description: options?.description ?? null,
     p_monthly_price_cents: options?.monthlyPriceCents ?? 0,
@@ -97,12 +105,16 @@ export async function createPlatformAddon(
 ): Promise<ServiceResult<Record<string, unknown>>> {
   const guard = reasonGuard(reason);
   if (guard) return guard;
+  const keyError = validatePlatformAddonKey(addonKey);
+  if (keyError) return { ok: false, error: keyError };
+  const trimmedName = addonName.trim();
+  if (!trimmedName) return { ok: false, error: 'Add-on-Name ist Pflicht.' };
   if (getServiceMode() === 'demo') {
-    return { ok: true, data: { addon: { addon_key: addonKey } } };
+    return { ok: true, data: { addon: { addon_key: addonKey.trim() } } };
   }
   const { data, error } = await platformRpc<Record<string, unknown>>('platform_create_addon', {
-    p_addon_key: addonKey,
-    p_addon_name: addonName,
+    p_addon_key: addonKey.trim(),
+    p_addon_name: trimmedName,
     p_reason: reason.trim(),
     p_description: options?.description ?? null,
     p_monthly_price_cents: options?.monthlyPriceCents ?? 0,

@@ -277,3 +277,91 @@ EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web
 | 27 | Expo Export | ✅ |
 | 28–30 | Production / Deploy / main Push | ✅ eingehalten |
 | 14 | Feature-Branch gepusht | ✅ |
+
+---
+
+## 23. PLATFORM.2.0B.1 Hardening (PR-Ready Gate)
+
+**Datum:** 2026-07-08  
+**Branch:** `cursor/platform-2-0b-operator-ui`  
+**HEAD vorher:** `98eec192`  
+**Merge main:** `76b7852f` (origin/main @ `77afc5a0` eingebunden)  
+**Staging:** `shwpweerzsfkqaivmaoc`  
+**Production:** gesperrt — kein Apply
+
+### Fix 1 — Mandantenliste Detail-Link
+
+| Prüfung | Ergebnis |
+|---------|----------|
+| `resolvePlatformTenantDetailId` / `normalizePlatformTenantListItem` | **GO** — bevorzugt `tenant_id`, nie `platform_tenants.id` als Route |
+| UI „Öffnen“ disabled ohne ID | **GO** — Hinweis „Mandanten-ID fehlt“ |
+| Regressionstest | **GO** — `platformTenantList.test.ts` (3 Tests) |
+| Staging RPC liefert korrektes `tenantId` | **GO** — verifiziert via SQL |
+
+### Fix 2 — Add-on Create `addon_key`
+
+| Prüfung | Ergebnis |
+|---------|----------|
+| Form-Payload vor Confirm captured | **GO** — kein stale closure |
+| Client-Validierung `validatePlatformAddonKey` | **GO** — min 3 Zeichen, `[a-z0-9_-]` |
+| Service-Guard `createPlatformAddon` | **GO** — leerer Key blockiert |
+| Regressionstest | **GO** — Demo + Validierungstests |
+
+### Fix 3 — Browser-Smoke Subflows (Staging, localhost:8084)
+
+| Bereich | Ergebnis | Notiz |
+|---------|----------|-------|
+| Login-Seite lädt | **GO** | Formular sichtbar, kein White Screen |
+| Login/Shell (authentifiziert) | **GELB** | Automatisierter Lauf ohne lokale Owner-Credentials — manueller Login erforderlich |
+| Mandantenliste → Detail | **GELB** | Fix per Unit-Test + RPC verifiziert; End-to-End nach Login manuell |
+| Plans (Create/Edit/Version/Modul/Limit) | **GELB** | UI auf Branch vorhanden; vollständiger Durchlauf nach Login ausstehend |
+| Add-ons (Create/Edit/Version/Zuweisung) | **GELB** | Validierung/Guard implementiert; Staging-Create nach Login ausstehend |
+| Tenant Plan / Credit / Billing Preview | **GELB** | Tabs vorhanden; Mutationen in diesem Gate nicht automatisiert |
+
+### Data Safety (Staging, read-only)
+
+| Metrik | Wert |
+|--------|------|
+| Plans | 8 |
+| Plan Versions | 3 |
+| Add-ons | 2 |
+| **Leere `addon_key`** | **1** (Legacy aus 2.0B-Smoke — nicht neu erzeugt) |
+| Tenant Subscriptions | 1 |
+| Tenant Add-ons | 1 |
+| Entitlements | 1 |
+| Credit Ledger | 1 |
+| Billing Previews | 2 |
+| Audit | 26 |
+
+### Tests & Export
+
+| Prüfung | Ergebnis |
+|---------|----------|
+| Platform Tests | **GO** — **74/74** |
+| Expo Export (`EXPO_PUBLIC_DEMO_MODE=false`) | **GO** |
+
+### Offene 2.0C Punkte (unverändert)
+
+- `platform_update_module_status`
+- Product Enforcement Vollausbau
+- Navigation/Route/Backend Guards
+- Invoice Finalize / Payments / Dunning
+- Production Apply Migration 0254
+
+### Absolutregeln 2.0B.1
+
+| Regel | Status |
+|-------|--------|
+| Production Apply | NEIN |
+| Deploy / `[deploy]` | NEIN |
+| Push auf `main` | NEIN |
+| db push / reset | NEIN |
+
+### PR/Merge-Readiness 2.0B.1
+
+| Kriterium | Status |
+|-----------|--------|
+| Code-Fixes Mandanten-ID + addon_key | **GO** |
+| Tests + Export | **GO** |
+| Vollständiger authentifizierter Browser-Smoke | **GELB** — ein manueller Staging-Durchlauf mit Platform-Owner-Login empfohlen vor Merge |
+| **Gesamt** | **BLOCKED** bis manueller Browser-Smoke (§23 Fix 3) grün dokumentiert |

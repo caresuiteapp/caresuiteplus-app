@@ -3,12 +3,15 @@ import {
   assignPlatformPlan,
   assignPlatformPlanModule,
   cancelPlatformTenantSubscription,
+  createPlatformAddon,
+  createPlatformAddonVersion,
   createPlatformPlan,
   createPlatformPlanVersion,
   recalculatePlatformTenantEntitlements,
   suspendPlatformTenantSubscription,
   updatePlatformPlan,
   updatePlatformSystemSetting,
+  validatePlatformAddonKey,
   validatePlatformReason,
 } from '@/lib/platformConsole';
 
@@ -79,5 +82,24 @@ describe('Platform 2.0B Operator Services (Demo)', () => {
   it('updatePlatformSystemSetting mit Grund OK', async () => {
     const res = await updatePlatformSystemSetting('maintenance_mode', false, 'Wartungsfenster beendet');
     expect(res.ok).toBe(true);
+  });
+
+  it('createPlatformAddon ohne Schlüssel abgelehnt', async () => {
+    const res = await createPlatformAddon('', 'Test Add-on', 'Smoke Test Anlage');
+    expect(res.ok).toBe(false);
+    if (!res.ok) expect(res.error).toMatch(/Add-on-Schlüssel/);
+  });
+
+  it('createPlatformAddon mit gültigem Schlüssel OK', async () => {
+    const res = await createPlatformAddon('smoke_addon_key', 'Smoke Add-on', 'Smoke Test Anlage');
+    expect(res.ok).toBe(true);
+    if (res.ok) expect(res.data.addon).toMatchObject({ addon_key: 'smoke_addon_key' });
+  });
+
+  it('validatePlatformAddonKey lehnt leere und ungültige Keys ab', () => {
+    expect(validatePlatformAddonKey('')).toMatch(/Add-on-Schlüssel/);
+    expect(validatePlatformAddonKey('ab')).toMatch(/Add-on-Schlüssel/);
+    expect(validatePlatformAddonKey('Invalid Key')).toMatch(/Kleinbuchstaben/);
+    expect(validatePlatformAddonKey('smoke_addon_fix')).toBeNull();
   });
 });

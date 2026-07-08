@@ -3,6 +3,8 @@ export {
   fetchPlatformDashboardSummary,
   getPlatformTenantDetail,
   listPlatformTenants,
+  normalizePlatformTenantListItem,
+  resolvePlatformTenantDetailId,
   setPlatformTenantModule,
   updatePlatformTenantStatus,
   assignPlatformPlan,
@@ -70,6 +72,8 @@ export {
   PLATFORM_ROLE_LABELS,
   platformRoleCanWrite,
   platformRoleHasCapability,
+  validatePlatformAddonKey,
+  validatePlatformPlanKey,
   validatePlatformReason,
 } from './platformCapabilities';
 export { PLATFORM_NAV_ITEMS } from './platformNavigation';

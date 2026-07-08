@@ -17,6 +17,7 @@ import {
   recalculatePlatformTenantEntitlements,
   removePlatformAddonFromTenant,
   updatePlatformAddon,
+  validatePlatformAddonKey,
 } from '@/lib/platformConsole';
 import {
   listPlatformAddonVersions,
@@ -45,6 +46,7 @@ export function PlatformAddonsOperatorScreen() {
   const [confirm, setConfirm] = useState<ConfirmState | null>(null);
   const [confirmLoading, setConfirmLoading] = useState(false);
   const [lastAuditAction, setLastAuditAction] = useState<string | null>(null);
+  const [formError, setFormError] = useState<string | null>(null);
 
   const [newKey, setNewKey] = useState('');
   const [newName, setNewName] = useState('');
@@ -157,23 +159,42 @@ export function PlatformAddonsOperatorScreen() {
               <TextInput style={styles.input} value={newName} onChangeText={setNewName} placeholder="Name" placeholderTextColor={PLATFORM_COLORS.muted} />
               <TextInput style={styles.input} value={newDesc} onChangeText={setNewDesc} placeholder="Beschreibung" placeholderTextColor={PLATFORM_COLORS.muted} />
               <TextInput style={styles.input} value={newMonthly} onChangeText={setNewMonthly} placeholder="Monatspreis (Cent)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
+              {formError ? <Text style={styles.formError}>{formError}</Text> : null}
               <Pressable
                 style={styles.primaryBtn}
-                onPress={() =>
+                onPress={() => {
+                  const addonKey = newKey.trim();
+                  const addonName = newName.trim();
+                  const addonDesc = newDesc.trim();
+                  const monthlyCents = Number(newMonthly) || 0;
+                  const keyError = validatePlatformAddonKey(addonKey);
+                  if (keyError) {
+                    setFormError(keyError);
+                    return;
+                  }
+                  if (!addonName) {
+                    setFormError('Add-on-Name ist Pflicht.');
+                    return;
+                  }
+                  setFormError(null);
                   setConfirm({
                     title: 'Add-on erstellen',
-                    description: `Neues Add-on „${newName || newKey}".`,
+                    description: `Neues Add-on „${addonName}" (${addonKey}).`,
                     action: async (reason) => {
-                      const res = await createPlatformAddon(newKey.trim(), newName.trim(), reason, {
-                        description: newDesc.trim() || undefined,
-                        monthlyPriceCents: Number(newMonthly) || 0,
+                      const res = await createPlatformAddon(addonKey, addonName, reason, {
+                        description: addonDesc || undefined,
+                        monthlyPriceCents: monthlyCents,
                       });
                       if (!res.ok) throw new Error(res.error);
                       setLastAuditAction('addon.created');
-                      setSelectedKey(newKey.trim());
+                      setSelectedKey(addonKey);
+                      setNewKey('');
+                      setNewName('');
+                      setNewDesc('');
+                      setNewMonthly('1500');
                     },
-                  })
-                }
+                  });
+                }}
               >
                 <Text style={styles.primaryBtnText}>Add-on anlegen</Text>
               </Pressable>
@@ -241,20 +262,27 @@ export function PlatformAddonsOperatorScreen() {
                   <TextInput style={styles.input} value={assignOverride} onChangeText={setAssignOverride} placeholder="Preis-Override (Cent, optional)" placeholderTextColor={PLATFORM_COLORS.muted} keyboardType="numeric" />
                   <Pressable
                     style={styles.primaryBtn}
-                    onPress={() =>
+                    onPress={() => {
+                      const tenantId = assignTenantId.trim();
+                      const overrideCents = assignOverride ? Number(assignOverride) : null;
+                      if (!tenantId) {
+                        setFormError('Mandanten-ID ist Pflicht.');
+                        return;
+                      }
+                      setFormError(null);
                       setConfirm({
                         title: 'Add-on Mandant zuweisen',
-                        description: `${selectedKey} → Mandant ${assignTenantId.slice(0, 8)}… Entitlements werden neu berechnet.`,
+                        description: `${selectedKey} → Mandant ${tenantId.slice(0, 8)}… Entitlements werden neu berechnet.`,
                         action: async (reason) => {
-                          const res = await assignPlatformAddonToTenant(assignTenantId.trim(), selectedKey, reason, {
-                            priceOverrideCents: assignOverride ? Number(assignOverride) : null,
+                          const res = await assignPlatformAddonToTenant(tenantId, selectedKey, reason, {
+                            priceOverrideCents: overrideCents,
                           });
                           if (!res.ok) throw new Error(res.error);
-                          await recalculatePlatformTenantEntitlements(assignTenantId.trim(), reason);
+                          await recalculatePlatformTenantEntitlements(tenantId, reason);
                           setLastAuditAction('addon.assigned');
                         },
-                      })
-                    }
+                      });
+                    }}
                   >
                     <Text style={styles.primaryBtnText}>Zuweisen + Entitlements</Text>
                   </Pressable>
@@ -262,19 +290,25 @@ export function PlatformAddonsOperatorScreen() {
                   <Text style={styles.sectionTitle}>Mandant entfernen</Text>
                   <Pressable
                     style={[styles.primaryBtn, styles.dangerBtn]}
-                    onPress={() =>
+                    onPress={() => {
+                      const tenantId = assignTenantId.trim();
+                      if (!tenantId) {
+                        setFormError('Mandanten-ID ist Pflicht.');
+                        return;
+                      }
+                      setFormError(null);
                       setConfirm({
                         title: 'Add-on von Mandant entfernen',
-                        description: `${selectedKey} vom Mandanten ${assignTenantId.slice(0, 8)}… entfernen.`,
+                        description: `${selectedKey} vom Mandanten ${tenantId.slice(0, 8)}… entfernen.`,
                         danger: true,
                         action: async (reason) => {
-                          const res = await removePlatformAddonFromTenant(assignTenantId.trim(), selectedKey, reason);
+                          const res = await removePlatformAddonFromTenant(tenantId, selectedKey, reason);
                           if (!res.ok) throw new Error(res.error);
-                          await recalculatePlatformTenantEntitlements(assignTenantId.trim(), reason);
+                          await recalculatePlatformTenantEntitlements(tenantId, reason);
                           setLastAuditAction('addon.removed');
                         },
-                      })
-                    }
+                      });
+                    }}
                   >
                     <Text style={styles.primaryBtnText}>Entfernen</Text>
                   </Pressable>
@@ -342,4 +376,5 @@ const styles = StyleSheet.create({
   primaryBtnText: { color: PLATFORM_COLORS.accent, fontWeight: '700' },
   link: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
   hint: { color: PLATFORM_COLORS.muted, fontSize: 12 },
+  formError: { color: PLATFORM_COLORS.danger, fontSize: 13 },
 });

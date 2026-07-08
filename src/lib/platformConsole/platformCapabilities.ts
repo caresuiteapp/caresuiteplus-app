@@ -112,3 +112,27 @@ export function validatePlatformReason(reason: string | null | undefined): strin
   }
   return null;
 }
+
+const PLATFORM_CATALOG_KEY_PATTERN = /^[a-z0-9_-]+$/;
+
+export function validatePlatformCatalogKey(
+  key: string | null | undefined,
+  label = 'Schlüssel',
+): string | null {
+  const trimmed = key?.trim() ?? '';
+  if (trimmed.length < 3) {
+    return `${label} ist Pflicht (mindestens 3 Zeichen, Kleinbuchstaben, Zahlen, _ oder -).`;
+  }
+  if (!PLATFORM_CATALOG_KEY_PATTERN.test(trimmed)) {
+    return `${label} darf nur Kleinbuchstaben, Zahlen, Unterstrich und Bindestrich enthalten.`;
+  }
+  return null;
+}
+
+export function validatePlatformAddonKey(addonKey: string | null | undefined): string | null {
+  return validatePlatformCatalogKey(addonKey, 'Add-on-Schlüssel');
+}
+
+export function validatePlatformPlanKey(planKey: string | null | undefined): string | null {
+  return validatePlatformCatalogKey(planKey, 'Plan-Schlüssel');
+}
