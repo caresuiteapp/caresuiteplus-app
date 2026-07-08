@@ -13,6 +13,7 @@ import {
   MODULE_VISIBILITY_STATUS_LABELS,
 } from './moduleVisibilityConfig';
 import { getTenantModules, hasEffectiveModuleGateAccess } from './moduleAccessService';
+import { resolveScopeModuleAccessDecision } from './platformTenantModuleAccess';
 
 function badgeForStatus(status: ModuleVisibilityStatus): string | undefined {
   if (status === 'live') return undefined;
@@ -89,9 +90,20 @@ export function resolveModuleNavState(
     }
   }
 
+  const platformScopeDecision =
+    isProductScopeKey(scopeKey) && tenantId?.trim()
+      ? resolveScopeModuleAccessDecision(tenantId, scopeKey, false)
+      : null;
+  const platformHardDeny =
+    platformScopeDecision !== null &&
+    platformScopeDecision.source === 'platform' &&
+    !platformScopeDecision.allowed;
+
   const isTenantActive =
     isProductScopeKey(scopeKey) && tenantId?.trim()
-      ? hasEffectiveModuleGateAccess(scopeKey as ProductKey, tenantId)
+      ? platformHardDeny
+        ? false
+        : hasEffectiveModuleGateAccess(scopeKey as ProductKey, tenantId)
       : isProductScopeKey(scopeKey)
         ? false
         : true;
@@ -111,7 +123,7 @@ export function resolveModuleNavState(
       isNavigable = canInternal;
     } else if (effectiveStatus === 'live' || effectiveStatus === 'beta') {
       if (isProductScopeKey(scopeKey)) {
-        isNavigable = isTenantActive || isAdminRole;
+        isNavigable = platformHardDeny ? false : isTenantActive || isAdminRole;
       } else {
         isNavigable = true;
       }

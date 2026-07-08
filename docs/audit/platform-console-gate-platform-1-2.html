@@ -1,0 +1,145 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>CareSuite+ PLATFORM.1.2 — Gate-Bericht (Operator UI)</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; max-width: 980px; }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.4rem; border-bottom: 1px solid #ccc; }
+    table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .blocked { color: #b00020; font-weight: 700; }
+    .partial { color: #b45309; font-weight: 700; }
+    .ok { color: #0d7a3e; font-weight: 700; }
+    code { font-size: 0.9em; }
+    ul { margin: 0.3rem 0; padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>PLATFORM.1.2 — Operator UI Completion Gate</h1>
+  <p>
+    <strong>Entscheidung:</strong>
+    <span class="ok">Staging-Freigabe JA</span> (interne Operator-UI auf Staging nutzbar nach Deploy dieser Änderungen) ·
+    <span class="blocked">Production NEIN</span>
+  </p>
+
+  <h2>1. Git / Precheck</h2>
+  <table>
+    <tr><th>Branch</th><td><code>main</code></td></tr>
+    <tr><th>HEAD (Basis 1.1c)</th><td><code>50378c6078143ada02ec9d31a42b1ab861a3b0b7</code></td></tr>
+    <tr><th>HEAD nach 1.2</th><td class="partial">Lokal uncommitted (gleicher Basis-Commit + Operator-UI-Artefakte)</td></tr>
+    <tr><th>Staging</th><td><code>https://shwpweerzsfkqaivmaoc.supabase.co</code></td></tr>
+    <tr><th>Migrationen 0246–0250</th><td class="ok">Unverändert gegenüber 1.1c — keine neue Migration in 1.2</td></tr>
+  </table>
+
+  <h2>2. Geänderte / neue Dateien (Kern)</h2>
+  <ul>
+    <li><code>src/screens/platformConsole/PlatformOperatorScreens.tsx</code> — Rabatte, Rechnungen, Zahlungen, Support, Feature Flags</li>
+    <li><code>src/screens/platformConsole/PlatformTenantOperatorTabs.tsx</code> — Mandantendetail-Tabs</li>
+    <li><code>src/screens/platformConsole/PlatformTenantDetailScreen.tsx</code> — 11 Tabs + Audit-Links</li>
+    <li><code>src/lib/platformConsole/platformOpsService.ts</code> — List-Services, Plan-Limits, erweiterte Discount-RPC</li>
+    <li><code>src/lib/platformConsole/platformSupabaseClient.ts</code> — gefilterte SELECTs</li>
+    <li><code>src/components/platformConsole/PlatformAuditLink.tsx</code>, <code>PlatformOperatorUi.tsx</code></li>
+    <li><code>app/platform/(console)/{discounts,billing,payments,support,feature-flags}/index.tsx</code></li>
+    <li><code>src/__tests__/platformConsole/platformOperatorUi.test.ts</code></li>
+  </ul>
+
+  <h2>3. Routen</h2>
+  <table>
+    <tr><th>/platform/discounts</th><td class="ok">Vollständige Operator-UI (ersetzt Placeholder)</td></tr>
+    <tr><th>/platform/billing</th><td class="ok">Rechnungsliste + Statusänderung mit Grund</td></tr>
+    <tr><th>/platform/payments</th><td class="ok">Zahlungsliste + manuelle Erfassung</td></tr>
+    <tr><th>/platform/support</th><td class="ok">Sessions starten/beenden, readonly default</td></tr>
+    <tr><th>/platform/feature-flags</th><td class="ok">Globale/tenant Flags, Rollout, Grund</td></tr>
+    <tr><th>/platform/tenants/:id</th><td class="ok">Tabs: Übersicht, Module, Rechnungen, Zahlungen, Rabatte, Support, Flags, Limits, Benutzer, Diagnose, Audit</td></tr>
+    <tr><th>/platform/audit</th><td class="ok">Tenant-/Action-Filter via Query-Params</td></tr>
+  </table>
+
+  <h2>4. Services / RPCs</h2>
+  <table>
+    <tr><th>Neue List-Funktionen</th><td><code>listPlatformDiscountCatalog</code>, <code>listPlatformTenantDiscounts</code>, <code>listPlatformInvoices</code>, <code>listPlatformPayments</code>, <code>listPlatformFeatureFlags</code>, <code>listPlatformSupportSessions</code></td></tr>
+    <tr><th>Mutationen (bestehend)</th><td class="ok">assign/remove discount, invoice status, manual payment, feature flag, support session — alle mit <code>validatePlatformReason</code></td></tr>
+    <tr><th>Neue Migrationen</th><td class="partial">Keine — Reads über RLS-SELECT auf <code>platform_*</code></td></tr>
+  </table>
+
+  <h2>5. Fertige Operator-UIs</h2>
+  <table>
+    <tr><th>Rabatte</th><td class="ok">Liste, Suche, Filter Status/Typ, Zuweisen/Entfernen mit Grund, Audit-Link</td></tr>
+    <tr><th>Rechnungen</th><td class="ok">Liste, Suche, Statusfilter, Brutto/Netto/Steuer, Statusänderung mit Grund</td></tr>
+    <tr><th>Zahlungen</th><td class="ok">Filter Status/Provider, Provider-ID maskiert, manuelle Erfassung mit Grund</td></tr>
+    <tr><th>Support</th><td class="ok">Aktiv/Historie, Start mit Dauer+Grund, readonly default, Schreibmodus markiert</td></tr>
+    <tr><th>Feature Flags</th><td class="ok">Scopes, Rollout, aktivieren/deaktivieren mit Grund</td></tr>
+    <tr><th>Limits</th><td class="partial">Read-only aus Plan (max_users, max_clients, max_employees, max_storage_mb)</td></tr>
+    <tr><th>Benutzer</th><td class="partial">Read-only Platzhalter — sichere Mandanten-User-RPC fehlt (PLATFORM.1.3)</td></tr>
+    <tr><th>Diagnose</th><td class="ok">Tenant-Status, Module, Billing, offene Rechnungen, Audit-Snapshot, Gating-Hinweise</td></tr>
+  </table>
+
+  <h2>6. Read-only / PLATFORM.1.3</h2>
+  <ul>
+    <li>Limit-Overrides und Nutzungsmetriken (6 erweiterte Limit-Keys ohne Schema-RPC)</li>
+    <li>Mandantenbenutzer-Administration (deaktivieren/reaktivieren)</li>
+    <li>Rabattkatalog erstellen/aktivieren (nur assign/remove RPC vorhanden)</li>
+    <li>Manuelle Rechnungserfassung (kein RPC)</li>
+    <li>Bestehende Zahlungen nachträglich markieren (kein update-payment RPC)</li>
+  </ul>
+
+  <h2>7. Rollenmatrix UI (Frontend blendet aus — Backend maßgeblich)</h2>
+  <table>
+    <tr><th>platform_owner</th><td class="ok">Alles sichtbar/schreibbar</td></tr>
+    <tr><th>platform_admin</th><td class="ok">Mandanten, Module, Support — keine Billing-Schreibbuttons ohne Capability</td></tr>
+    <tr><th>platform_billing</th><td class="ok">Billing, Rechnungen, Zahlungen, Rabatte</td></tr>
+    <tr><th>platform_support</th><td class="ok">Support + Mandantenstatus lesend, keine Zahlungen</td></tr>
+    <tr><th>platform_developer</th><td class="ok">Feature Flags, Diagnose, Releases</td></tr>
+    <tr><th>platform_readonly</th><td class="ok">Nur Lesemodus-Banner, keine Mutations-Buttons</td></tr>
+  </table>
+
+  <h2>8. Audit-Abdeckung</h2>
+  <table>
+    <tr><th>Modul / Tarif / Rabatt / Rechnung / Zahlung / Support / Flag</th><td class="ok">Backend schreibt Audit; UI verlinkt <code>/platform/audit?tenantId=&amp;action=</code></td></tr>
+    <tr><th>Audit editierbar</th><td class="ok">NEIN — read-only Anzeige</td></tr>
+    <tr><th>Sensitive Settings</th><td class="ok">Maskiert als <code>[maskiert]</code></td></tr>
+  </table>
+
+  <h2>9. Staging-Smoke</h2>
+  <table>
+    <tr><th>RPC-Security (1.1c Basis)</th><td class="ok">anon blockiert, Mandantenuser forbidden, Owner capabilities grün</td></tr>
+    <tr><th>UI E2E Owner Login</th><td class="partial">Manuell mit <code>caresuiteapp@gmail.com</code> nach Deploy empfohlen</td></tr>
+    <tr><th>Demo-Modus Tests</th><td class="ok">28/28 Unit-Tests grün inkl. Reason-Rejection + Rollenmatrix</td></tr>
+    <tr><th>Billing ohne Grund</th><td class="ok">Frontend + RPC lehnen ab (22023 / validatePlatformReason)</td></tr>
+  </table>
+
+  <h2>10. Tests</h2>
+  <table>
+    <tr><th>platformConsole.test.ts</th><td class="ok">14/14</td></tr>
+    <tr><th>platformOperatorUi.test.ts</th><td class="ok">14/14 (neu)</td></tr>
+    <tr><th>platformTenantModuleEnforcement.test.ts</th><td class="ok">11/11 (bestehend)</td></tr>
+    <tr><th>Gesamt Platform Console Tests</th><td class="ok">28/28 (Vitest)</td></tr>
+  </table>
+
+  <h2>11. Typecheck / Build</h2>
+  <table>
+    <tr><th>Platform Typecheck</th><td class="ok">0 Fehler in <code>platformConsole</code> / <code>platform/</code></td></tr>
+    <tr><th>Gesamt <code>tsc --noEmit</code></th><td class="partial">~467 Altlasten außerhalb Platform (unverändert)</td></tr>
+    <tr><th>Expo Export DEMO=false</th><td class="ok">OK (<code>dist</code>)</td></tr>
+  </table>
+
+  <h2>12. Offene Risiken</h2>
+  <ul>
+    <li>Operator-UI-Artefakte noch nicht auf Staging deployed — Gate gilt nach Merge/Deploy auf Staging</li>
+    <li>UI-E2E mit echtem Owner-Login nicht automatisiert</li>
+    <li>Limit-/User-Mutationen bewusst deferred (PLATFORM.1.3)</li>
+    <li>Globale List-Reads via <code>platformSelectWhere</code> — abhängig von RLS SELECT-Policies für Platform-Rollen</li>
+  </ul>
+
+  <h2>13. Freigabe</h2>
+  <table>
+    <tr><th>Staging-Freigabe (intern)</th><td class="ok">JA — nach Deploy der 1.2-UI auf Staging</td></tr>
+    <tr><th>Production-Freigabe</th><td class="blocked">NEIN — erst PLATFORM.1.3 Production Readiness Gate</td></tr>
+    <tr><th>Deploy / Push</th><td class="blocked">In dieser Runde nicht ausgeführt (kein [deploy])</td></tr>
+  </table>
+
+  <p><em>Erstellt: 2026-07-08 · CareSuite+ Platform Console GATE PLATFORM.1.2</em></p>
+</body>
+</html>

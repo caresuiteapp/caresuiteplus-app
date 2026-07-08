@@ -1,0 +1,117 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>CareSuite+ PLATFORM.1.1 — Gate-Bericht</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; max-width: 960px; }
+    h1 { font-size: 1.4rem; }
+    h2 { font-size: 1.1rem; margin-top: 1.5rem; border-bottom: 1px solid #ccc; }
+    table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .blocked { color: #b00020; font-weight: 700; }
+    .partial { color: #b45309; font-weight: 700; }
+    .ok { color: #0d7a3e; font-weight: 700; }
+    .meta { color: #555; font-size: 0.9rem; }
+  </style>
+</head>
+<body>
+  <h1>CareSuite+ Platform Console — Gate PLATFORM.1.1</h1>
+  <p class="meta">Erstellt: 2026-07-08 · Priorität P0 · Entscheidung: <span class="blocked">BLOCKED</span> (Staging teilweise, Deploy NEIN)</p>
+
+  <h2>1. Git / Branch</h2>
+  <table>
+    <tr><th>Branch</th><td>main</td></tr>
+    <tr><th>HEAD (nachher)</th><td><code>66412139a7ae6259f22887aec995e5cecead01ad</code></td></tr>
+    <tr><th>Platform-Arbeit</th><td>Uncommitted (Migrationen, /platform, Module-Enforcement, Audit-Skripte)</td></tr>
+  </table>
+
+  <h2>2. Remote-Ziel</h2>
+  <table>
+    <tr><th>Projekt</th><td>caresuiteplus-staging</td></tr>
+    <tr><th>Project Ref (maskiert)</th><td><code>shwpweer…maoc</code></td></tr>
+    <tr><th>URL (maskiert)</th><td><code>https://shwpweerzsfkqaivmaoc.supabase.co</code></td></tr>
+    <tr><th>Environment</th><td>Staging</td></tr>
+    <tr><th>Demo Mode (Build-Test)</th><td>false</td></tr>
+  </table>
+
+  <h2>3. Migration</h2>
+  <table>
+    <tr><th>0246 angewendet (DDL)</th><td class="ok">JA</td></tr>
+    <tr><th>0247 angewendet</th><td class="ok">JA (<code>platform_tenant_module_access_live_repair</code>)</td></tr>
+    <tr><th>Hinweis Historie</th><td>Leerer Eintrag <code>platform_console_foundation_live</code> (20260708042116) vorhanden; DDL via Repair-Batches nachgezogen</td></tr>
+    <tr><th>Batch-01 Workaround</th><td>Tabellen mussten vor Funktionen pre-created werden (Reihenfolge in 0246: Funktionen vor <code>platform_users</code>)</td></tr>
+    <tr><th>Migration count (platform-bezogen)</th><td>4 Einträge in schema_migrations (inkl. ältere assist_platform)</td></tr>
+  </table>
+
+  <h2>4. Tabellen / RLS / RPC (Remote)</h2>
+  <table>
+    <tr><th>14 platform_* Tabellen</th><td class="ok">Alle vorhanden</td></tr>
+    <tr><th>RLS enabled</th><td class="ok">14/14</td></tr>
+    <tr><th>Seeds</th><td class="ok">20 Module, 6 Tarife, 10 Systemsettings</td></tr>
+    <tr><th>platform_tenants Sync</th><td class="ok">2 Mandanten synchronisiert</td></tr>
+    <tr><th>platform_owner Seed</th><td class="ok">Kein Demo-Owner, 0× @example.test</td></tr>
+    <tr><th>RPCs</th><td class="ok">22 platform/tenant-Funktionen inkl. tenant_list_platform_modules</td></tr>
+    <tr><th>anon SELECT platform_*</th><td class="ok">false (Beispiel platform_tenants)</td></tr>
+  </table>
+
+  <h2>5. platform_owner Bootstrap</h2>
+  <p class="blocked">NEIN — Blockiert</p>
+  <p>Keine echte <code>auth.users</code>-UUID verfügbar (MCP blockiert auth.users-Listing). Kein Dummy angelegt.</p>
+  <p><strong>Erforderlich:</strong> Manuelles INSERT in Staging mit echter UUID, E-Mail und Name.</p>
+
+  <h2>6. Live-Zugriffstests</h2>
+  <table>
+    <tr><th>Nicht eingeloggt /platform</th><td class="partial">Nicht E2E gegen laufende App getestet; DB: anon hat kein SELECT auf platform_*</td></tr>
+    <tr><th>Mandantenuser /platform</th><td class="partial">Nicht E2E; erwartet /platform/forbidden (RouteGuard lokal implementiert)</td></tr>
+    <tr><th>Platform Owner /platform</th><td class="blocked">Nicht testbar ohne Owner-Bootstrap</td></tr>
+    <tr><th>Mutationen + Audit</th><td class="partial">RPC-Logik migriert; Live-Mutation ohne Owner nicht verifiziert</td></tr>
+  </table>
+
+  <h2>7. Security Advisor</h2>
+  <p><strong>49 WARN</strong> zu platform_* SECURITY DEFINER RPCs: ausführbar über <code>anon</code> via PostgREST (Supabase-Linter).</p>
+  <p>Mutations-RPCs prüfen intern <code>platform_has_capability</code> / <code>auth.uid()</code> — effektives Risiko reduziert, aber Härtung empfohlen: <code>REVOKE EXECUTE FROM anon, PUBLIC</code> auf alle platform_* Funktionen.</p>
+  <p>Keine kritischen ERROR-Level Findings speziell für platform_* Tabellen-RLS.</p>
+
+  <h2>8. Module Enforcement (App)</h2>
+  <table>
+    <tr><th>platform_tenant_modules in Gating</th><td class="ok">JA</td></tr>
+    <tr><th>Priorität disabled/locked/expired</th><td class="ok">Überschreibt tenant_products</td></tr>
+    <tr><th>Fallback tenant_products</th><td class="ok">Deprecated markiert, nur ohne Hydration/Eintrag</td></tr>
+    <tr><th>Routen / Navigation</th><td class="ok">redirects + moduleVisibilityService</td></tr>
+    <tr><th>Remote RPC Hydration</th><td class="ok">tenant_list_platform_modules live auf Staging</td></tr>
+    <tr><th>Live Toggle → App-Reaktion</th><td class="partial">Nicht E2E ohne Owner-Session</td></tr>
+  </table>
+
+  <h2>9. Tests</h2>
+  <table>
+    <tr><th>platformConsole.test.ts</th><td class="ok">14/14</td></tr>
+    <tr><th>platformTenantModuleEnforcement.test.ts</th><td class="ok">11/11</td></tr>
+  </table>
+
+  <h2>10. Typecheck / Build</h2>
+  <table>
+    <tr><th>Gesamt-Typecheck</th><td class="blocked">467 Fehler (Altlasten, nicht PLATFORM.1.1-kritisch)</td></tr>
+    <tr><th>Platform-spezifisch</th><td class="ok">0 nach Fix PlatformModuleAccessDecision</td></tr>
+    <tr><th>Expo export web (DEMO=false)</th><td class="ok">Erfolgreich → dist/</td></tr>
+  </table>
+
+  <h2>11. Entscheidung</h2>
+  <table>
+    <tr><th>Deploy-Freigabe</th><td class="blocked">NEIN</td></tr>
+    <tr><th>Staging-Freigabe (interne Abnahme)</th><td class="partial">BEDINGT — nach platform_owner Bootstrap + E2E-Smoke + anon-REVOKE</td></tr>
+    <tr><th>Production</th><td class="blocked">NEIN — erst nach PLATFORM.1.2</td></tr>
+  </table>
+
+  <h2>12. Offene Risiken / Nächste Schritte</h2>
+  <ol>
+    <li>Echten platform_owner in Staging bootstrapen (User liefert auth.users UUID)</li>
+    <li>E2E-Smoke /platform gegen Staging (Owner vs Mandant)</li>
+    <li>Migration 0246: Tabellen vor RBAC-Funktionen reordern (frische Instanzen)</li>
+    <li>Migration 0249: REVOKE EXECUTE platform_* FROM anon/PUBLIC</li>
+    <li>Leeren schema_migrations-Eintrag dokumentieren oder bereinigen (nur mit Freigabe)</li>
+    <li>Billing/Support Operator-UI weiterhin Placeholder (kein Production-Blocker für Staging-Technik)</li>
+  </ol>
+</body>
+</html>

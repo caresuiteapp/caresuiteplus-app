@@ -1326,6 +1326,22 @@ export const APP_ROUTES: AppRoute[] = [
     requiresAuth: true,
     allowedRoles: ['client_portal', 'family_portal'],
   },
+
+  // Platform Console — eigene Guard-Kette (PlatformRouteGuard), keine Mandantenrollen
+  { path: '/platform', label: 'Platform Console', group: 'system', requiresAuth: true },
+  { path: '/platform/dashboard', label: 'Platform Dashboard', group: 'system', requiresAuth: true },
+  { path: '/platform/tenants', label: 'Platform Mandanten', group: 'system', requiresAuth: true },
+  { path: '/platform/modules', label: 'Platform Module', group: 'system', requiresAuth: true },
+  { path: '/platform/plans', label: 'Platform Tarife', group: 'system', requiresAuth: true },
+  { path: '/platform/discounts', label: 'Platform Rabatte', group: 'system', requiresAuth: true },
+  { path: '/platform/billing', label: 'Platform Billing', group: 'system', requiresAuth: true },
+  { path: '/platform/payments', label: 'Platform Zahlungen', group: 'system', requiresAuth: true },
+  { path: '/platform/feature-flags', label: 'Platform Feature Flags', group: 'system', requiresAuth: true },
+  { path: '/platform/support', label: 'Platform Support', group: 'system', requiresAuth: true },
+  { path: '/platform/audit', label: 'Platform Audit', group: 'system', requiresAuth: true },
+  { path: '/platform/system', label: 'Platform System', group: 'system', requiresAuth: true },
+  { path: '/platform/releases', label: 'Platform Releases', group: 'system', requiresAuth: true },
+  { path: '/platform/forbidden', label: 'Platform 403', group: 'system', requiresAuth: false },
 ];
 
 export function getRouteByPath(path: string): AppRoute | undefined {
