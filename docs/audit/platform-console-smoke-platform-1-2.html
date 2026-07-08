@@ -22,24 +22,26 @@
   <h1>PLATFORM.1.2 — Final Local Staging Smoke (Weg B)</h1>
   <p>
     <strong>Modus:</strong> Lokale App gegen Staging (<code>caresuiteplus-staging</code>, <code>shwp…maoc</code>)<br />
-    <strong>Branch:</strong> <code>safety/platform-1-reconciliation</code><br />
-    <strong>HEAD:</strong> <code>3afd51ba</code> (nach Reconciliation)<br />
-    <strong>Commits:</strong> <code>6cc1198b</code> · <code>e443ffbb</code> · <code>eccb6270</code> · <code>3afd51ba</code><br />
-    <strong>Fixes:</strong> 1.2.1 Owner Login · 1.2.2 RLS Helper Grants · 1.2.3 Workspace Reconciliation<br />
+    <strong>Branch:</strong> <code>main</code> (nach ff-only Merge 1.2.4)<br />
+    <strong>HEAD:</strong> <code>5da82f76</code><br />
+    <strong>Commits:</strong> <code>6cc1198b</code> · <code>e443ffbb</code> · <code>eccb6270</code> · <code>3afd51ba</code> · <code>5da82f76</code><br />
+    <strong>Fixes:</strong> 1.2.1 Owner Login · 1.2.2 RLS Helper Grants · 1.2.3 Reconciliation · 1.2.4 Main-Konsolidierung<br />
     <strong>Smoke-Datum:</strong> 2026-07-08<br />
     <strong>Push:</strong> <span class="rot">NEIN</span> · <strong>Deploy:</strong> <span class="rot">NEIN</span> · <strong>Production:</strong> <span class="rot">NEIN</span>
   </p>
 
-  <h2>1. PLATFORM.1.2.3 — Workspace Reconciliation</h2>
+  <h2>1. PLATFORM.1.2.3 / 1.2.4 — Reconciliation &amp; Main-Konsolidierung</h2>
   <table>
-    <tr><th>HEAD vorher (main)</th><td><code>50378c60</code> / <code>3f8792d8</code> — nur WFM p22 + isolierte 0251</td></tr>
-    <tr><th>HEAD nachher</th><td><code>3afd51ba</code> auf <code>safety/platform-1-reconciliation</code></td></tr>
-    <tr><th>Strategie</th><td>Branch <code>safety/platform-console-local-eccb6270</code> + Cherry-pick <code>3f8792d8</code></td></tr>
-    <tr><th>Stash edb40493</th><td>Nicht angewendet — enthält nur 3 unrelated Audit-HTML-Diffs; Platform via Branch-Historie</td></tr>
-    <tr><th>Platform-Dateiinventar</th><td class="gruen">Vollständig</td></tr>
-    <tr><th>Migrationen 0246–0251</th><td class="gruen">Vorhanden</td></tr>
+    <tr><th>HEAD main vorher</th><td><code>50378c60</code> — WFM p22 ohne Platform UI</td></tr>
+    <tr><th>HEAD main nachher</th><td><code>5da82f76</code></td></tr>
+    <tr><th>Strategie 1.2.3</th><td>Branch <code>safety/platform-console-local-eccb6270</code> + Cherry-pick <code>3f8792d8</code></td></tr>
+    <tr><th>Strategie 1.2.4</th><td><code>git merge --ff-only safety/platform-1-reconciliation</code> auf <code>main</code></td></tr>
+    <tr><th>main ff-only Merge</th><td class="gruen">GRÜN — ohne Konflikte</td></tr>
+    <tr><th>Stash edb40493</th><td>Unverändert — nur unrelated Audit-HTML; nicht angewendet, nicht gelöscht</td></tr>
+    <tr><th>Platform-Dateiinventar auf main</th><td class="gruen">Vollständig</td></tr>
+    <tr><th>Migrationen 0246–0251 auf main</th><td class="gruen">Vorhanden</td></tr>
     <tr><th>0251 Staging</th><td class="gruen">Angewendet</td></tr>
-    <tr><th>main ff-merge</th><td class="nt">Ausstehend — bewusst lokal auf Reconciliation-Branch</td></tr>
+    <tr><th>Post-Merge Tests</th><td class="gruen">47/47 grün</td></tr>
   </table>
 
   <h2>2. PLATFORM.1.2.1 — Owner Login</h2>
@@ -117,18 +119,18 @@
 
   <h2>9. Offene Risiken</h2>
   <ul>
-    <li><code>main</code> zeigt weiterhin auf WFM p22 (<code>50378c60</code>) — Platform-Artefakte liegen auf <code>safety/platform-1-reconciliation</code> bis ff-merge/freigegeben.</li>
     <li>Stash edb40493 unverändert — kann nach Review gedroppt werden (nur unrelated HTML).</li>
+    <li><code>main</code> ist lokal ahead of origin — kein Push ohne Freigabe.</li>
     <li>Production bleibt gesperrt bis PLATFORM.1.3.</li>
   </ul>
 
   <h2>10. Gesamturteil</h2>
   <table>
-    <tr><th>PLATFORM.1.2.3 Reconciliation</th><td class="gruen">GRÜN</td></tr>
+    <tr><th>PLATFORM.1.2.4 Main-Konsolidierung</th><td class="gruen">GRÜN</td></tr>
     <tr><th>Staging-Freigabe (intern)</th><td class="gruen">JA</td></tr>
     <tr><th>Production-Freigabe</th><td class="rot">NEIN</td></tr>
   </table>
 
-  <p><em>Aktualisiert: 2026-07-08 · PLATFORM.1.2.3 Final Reconciliation + Smoke</em></p>
+  <p><em>Aktualisiert: 2026-07-08 · PLATFORM.1.2.4 Main ff-only + Post-Merge Smoke</em></p>
 </body>
 </html>
