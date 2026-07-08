@@ -1,9 +1,10 @@
 # PLATFORM.2.0B — Operator UI Gate
 
-**Status:** GO (lokal)  
+**Status:** GO (Staging Browser-Smoke + Remote Sync)  
 **Datum:** 2026-07-08  
 **Branch:** `cursor/platform-2-0b-operator-ui`  
 **Basis:** `f9eb6f69` — feat(platform): add operator foundation for plans billing and entitlements  
+**HEAD nach Smoke:** `2c840cf3` (+ Smoke-Dokumentation Commit folgt)
 
 ---
 
@@ -13,8 +14,9 @@
 |------|------|
 | Branch | `cursor/platform-2-0b-operator-ui` |
 | HEAD vorher | `f9eb6f69cf584edf7f72ff65664c54663ab8979e` |
-| HEAD nachher | _(nach Commit unten)_ |
-| Push | **NEIN** |
+| HEAD nachher | `2c840cf3` (+ smoke doc commit) |
+| Push | **JA** (Feature-Branch only) |
+| Push auf main | **NEIN** |
 | Deploy | **NEIN** |
 | `[deploy]` | **NEIN** |
 | Production Apply 0254 | **NEIN** |
@@ -179,27 +181,61 @@ npx vitest run src/__tests__/platformConsole/
 | Prüfung | Ergebnis |
 |---------|----------|
 | Staging Ref | `shwpweerzsfkqaivmaoc` |
-| RPCs vorhanden (SQL) | ✅ 30+ `platform_*` Functions |
-| Browser UI Smoke (24 Steps) | **Manuell ausstehend** — kein automatisierter Browser-Lauf in diesem Gate |
+| Manueller Browser-Smoke | **JA** (localhost:8082, DEMO=false) |
 | Production | **NICHT berührt** |
-
-Backend auf Staging bereit; UI-Flows manuell mit Platform Owner verifizieren.
 
 ---
 
-## 18. Expo Export
+## 18. Staging Browser-Smoke — Detail
+
+| Bereich | Ergebnis | Notiz |
+|---------|----------|-------|
+| Login / Shell | **GO** | Login → Dashboard, Navigation sichtbar, kein Redirect-Loop |
+| Plans UI | **GO** | 7 Pläne geladen; `smoke_p20b_1783546334607` erstellt; Audit `plan.created` |
+| Plan bearbeiten/Version/Modul/Limit | **GELB** | UI vorhanden; Create im Browser verifiziert; Subflows nicht vollständig wiederholt |
+| Add-ons UI | **GELB** | Seite lädt, Create-Modal + Reason; Audit `addon.created`, aber leerer `addon_key` in DB (Form-State-Race) |
+| Tenant Detail | **GELB** | Detail lädt mit `platform_tenants.tenant_id`; Mandantenliste verlinkt `id` → Detail-Fehler via Öffnen |
+| Subscription Tab | **GO** | Tab sichtbar auf 2.0B-Bundle |
+| Entitlements Tab | **GO** | Tab sichtbar |
+| Credits Tab | **GO** | Tab sichtbar |
+| Billing Preview Tab | **GO** | Tab sichtbar |
+| Plan zuweisen / Credit buchen / Preview generieren | **GELB** | UI vorhanden; Browser-Ausführung in diesem Gate nicht vollständig (kein dedizierter Smoke-Mandant-Reset) |
+| Discounts | **GO** | Liste lädt (Bestand); Zuweisung reason-required vorhanden |
+| System Settings | **GO** | Settings laden, Maskierung, Edit-UI mit Reason |
+| Feature Flags | **GO** | Seite lädt (Bestand + Minimal-Wiring) |
+| Viewer Role | **N/A** | Kein Viewer-Account verfügbar — Unit-Tests referenzieren RBAC |
+| Audit | **GO** | `plan.created`, `addon.created` in Staging Audit-Log |
+| Data Safety | **GO** | 1 Smoke-Plan, 1 Version, 2 Audit-Einträge; nur Staging |
+
+**Precheck-Hinweis:** Workspace war initial auf `main` (Drift) — Smoke erst nach `git switch cursor/platform-2-0b-operator-ui` + Expo-Neustart mit `-c` valide.
+
+---
+
+## 19. Tests nach Smoke
+
+```
+npx vitest run src/__tests__/platformConsole/
+```
+
+**Ergebnis:** 68/68 grün
+
+---
+
+## 20. Expo Export nach Smoke
 
 ```
 EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web
 ```
 
-**Ergebnis:** OK — `/platform/(console)/addons`, `/platform/(console)/plans` in Static Routes
+**Ergebnis:** OK — `/platform/(console)/addons` in Static Routes
 
 ---
 
-## 19. Offene Punkte für 2.0C
+## 21. Offene Punkte für 2.0C
 
 - `platform_update_module_status` (globaler Modulstatus beta/coming_soon)
+- Mandantenliste: `Öffnen` muss `platform_tenants.tenant_id` verwenden (nicht `id`)
+- Add-on Create: Form-State beim Confirm-Modal absichern (leerer addon_key)
 - Product Enforcement Vollausbau in App-Modulen
 - Invoice Finalize / Payments / Dunning
 - Rollouts, Segments, Approvals, API Keys, Webhooks
@@ -208,7 +244,7 @@ EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web
 
 ---
 
-## 20. Absolutregeln
+## 22. Absolutregeln
 
 | Regel | Status |
 |-------|--------|
@@ -233,4 +269,11 @@ EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web
 | 27 | Expo Export | ✅ |
 | 28–30 | Production / Deploy / Push | ✅ eingehalten |
 
-**PLATFORM.2.0B Operator UI: GO (lokal, commit bereit, kein Push)**
+**PLATFORM.2.0B Operator UI: GO (Staging Browser-Smoke + Feature-Branch remote)**
+
+| # | Kriterium | GO |
+|---|-----------|-----|
+| 26 | Staging Browser-Smoke | GO/GELB (siehe §18) |
+| 27 | Expo Export | ✅ |
+| 28–30 | Production / Deploy / main Push | ✅ eingehalten |
+| 14 | Feature-Branch gepusht | ✅ |
