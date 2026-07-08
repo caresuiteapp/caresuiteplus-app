@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>CareSuite+ PLATFORM.1.1b — Gate-Bericht</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; max-width: 960px; }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.4rem; border-bottom: 1px solid #ccc; }
+    table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .blocked { color: #b00020; font-weight: 700; }
+    .partial { color: #b45309; font-weight: 700; }
+    .ok { color: #0d7a3e; font-weight: 700; }
+    code { font-size: 0.9em; }
+  </style>
+</head>
+<body>
+  <h1>PLATFORM.1.1b — Owner Bootstrap, Security Revoke &amp; Staging Smoke</h1>
+  <p><strong>Entscheidung:</strong> <span class="blocked">BLOCKED</span> · Staging-Freigabe: <span class="blocked">NEIN</span> · Production: <span class="blocked">NEIN</span></p>
+
+  <h2>1. Git</h2>
+  <table>
+    <tr><th>Branch</th><td>main</td></tr>
+    <tr><th>HEAD</th><td><code>50378c6078143ada02ec9d31a42b1ab861a3b0b7</code></td></tr>
+  </table>
+
+  <h2>2. Migrationen</h2>
+  <table>
+    <tr><th>0246 lokal reordered</th><td class="ok">JA — Tabellen vor RBAC-Hilfsfunktionen; Split-Test 113 Statements / 2 Batches ohne Workaround</td></tr>
+    <tr><th>0247 remote</th><td class="ok">JA (bereits PLATFORM.1.1)</td></tr>
+    <tr><th>0249 remote</th><td class="ok">JA (<code>platform_rpc_execute_revoke</code> + <code>platform_rpc_execute_revoke_helpers</code>)</td></tr>
+  </table>
+
+  <h2>3. Owner Bootstrap</h2>
+  <p class="blocked">NEIN</p>
+  <ul>
+    <li><code>helferhasen@gmail.com</code> existiert <strong>nicht</strong> in Staging <code>auth.users</code> (gezielte Lookup-Query: 0 Treffer).</li>
+    <li>Staging hat nur <strong>3</strong> Auth-User; zugehörige Profile nutzen <code>@example.test</code> (Staging-WFM-Testaccounts).</li>
+    <li>Kein Dummy-Owner angelegt (Vorgabe eingehalten).</li>
+  </ul>
+  <p><strong>Nächster Schritt:</strong> In Staging einloggen/registrieren mit echtem Account → UID aus Dashboard → INSERT in <code>platform_users</code>.</p>
+
+  <h2>4. anon / PUBLIC EXECUTE (0249)</h2>
+  <table>
+    <tr><th>platform_get_dashboard_summary</th><td class="ok">anon: false, authenticated: true</td></tr>
+    <tr><th>platform_write_audit_log</th><td class="ok">anon: false, authenticated: false</td></tr>
+    <tr><th>platform_has_capability</th><td class="ok">anon: false, authenticated: false</td></tr>
+    <tr><th>is_platform_user</th><td class="ok">anon: false, authenticated: false</td></tr>
+    <tr><th>tenant_list_platform_modules</th><td class="ok">anon: false, authenticated: true</td></tr>
+  </table>
+  <p>Security Advisor platform-RPC EXECUTE-WARNs: <strong>49 → 7</strong> (Rest: authenticated auf bewusst externe SECURITY DEFINER-RPCs).</p>
+
+  <h2>5. Live-Smoke (ohne Owner)</h2>
+  <table>
+    <tr><th>/platform Owner E2E</th><td class="blocked">Nicht testbar</td></tr>
+    <tr><th>Mandant Forbidden E2E</th><td class="partial">Code vorhanden, nicht E2E gegen Staging</td></tr>
+    <tr><th>Module-Toggle + Audit live</th><td class="blocked">Benötigt platform_owner Session</td></tr>
+    <tr><th>RLS anon SELECT platform_*</th><td class="ok">Verweigert</td></tr>
+  </table>
+
+  <h2>6. Tests / Build</h2>
+  <table>
+    <tr><th>Platform + Module Tests</th><td class="ok">25/25</td></tr>
+    <tr><th>Platform Typecheck</th><td class="ok">0 Fehler</td></tr>
+    <tr><th>Gesamt-Typecheck</th><td class="partial">~467 Altlasten</td></tr>
+    <tr><th>Expo export web</th><td class="ok">OK</td></tr>
+  </table>
+
+  <h2>7. Freigaben</h2>
+  <table>
+    <tr><th>Staging-Freigabe</th><td class="blocked">NEIN</td></tr>
+    <tr><th>Production-Freigabe</th><td class="blocked">NEIN</td></tr>
+  </table>
+
+  <h2>8. Geänderte Dateien (1.1b)</h2>
+  <ul>
+    <li><code>supabase/migrations/0246_platform_console_foundation_live.sql</code> — reordered</li>
+    <li><code>supabase/migrations/0249_platform_rpc_execute_revoke.sql</code> — neu</li>
+    <li><code>scripts/audit/reorder-0246-platform.mjs</code> — Helfer</li>
+    <li><code>docs/audit/platform-console-gate-platform-1-1b.html</code></li>
+  </ul>
+</body>
+</html>

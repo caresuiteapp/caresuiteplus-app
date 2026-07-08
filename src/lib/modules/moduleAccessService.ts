@@ -10,12 +10,22 @@ import { demoProducts } from '@/data/demo/products';
 import { DEMO_TENANT_ID } from '@/data/constants/testTenant';
 import { isFreePlatformEnabled } from '@/lib/billing/freePlatformService';
 import {
+  hasPlatformModuleHydration,
+  isProductAllowedByPlatform,
+  resolveProductModuleAccessDecision,
+} from './platformTenantModuleAccess';
+import {
   ALL_PRODUCT_KEYS,
   isPurchasedAccessSource,
   isSpecialtyModuleKey,
   OFFICE_MODULE_KEY,
   SPECIALTY_MODULE_KEYS,
 } from './constants';
+
+export {
+  isPlatformExplicitDeny,
+  resolveProductModuleAccessDecision,
+} from './platformTenantModuleAccess';
 
 const ACCESS_SOURCE_LABELS: Record<ModuleAccessSource, string> = {
   purchased: 'Gebucht',
@@ -219,6 +229,13 @@ export function hasModuleAccess(
 ): boolean {
   const modules = getTenantModules(tenantId);
   const module = modules.find((entry) => entry.productKey === moduleKey);
+  const fallbackAllowed =
+    module?.billingStatus !== 'admin_disabled' && (module?.isActive ?? false);
+
+  if (hasPlatformModuleHydration(tenantId)) {
+    return isProductAllowedByPlatform(tenantId, moduleKey, fallbackAllowed);
+  }
+
   if (module?.billingStatus === 'admin_disabled') {
     return false;
   }
@@ -334,18 +351,45 @@ export function deactivateModule(
   return { ok: true, data: cloneModules(modules) };
 }
 
-/** Modul-Gate: Fachmodul impliziert Office-Zugriff, Rollen bleiben getrennt. */
+/** Legacy tenant_products Gate ohne platform_tenant_modules (Fallback). */
+export function hasLegacyTenantModuleGateAccess(
+  moduleKey: ProductKey,
+  tenantId: string = DEMO_TENANT_ID,
+): boolean {
+  const modules = getTenantModules(tenantId);
+  const direct = modules.find((entry) => entry.productKey === moduleKey);
+  if (direct?.billingStatus === 'admin_disabled') {
+    return false;
+  }
+  if (direct?.isActive) {
+    return true;
+  }
+  if (moduleKey === OFFICE_MODULE_KEY) {
+    return SPECIALTY_MODULE_KEYS.some((key) => {
+      const mod = modules.find((entry) => entry.productKey === key);
+      return mod?.billingStatus !== 'admin_disabled' && (mod?.isActive ?? false);
+    });
+  }
+  return false;
+}
+
+/** Modul-Gate: Fachmodul impliziert Office-Zugriff, Rollen bleiben getrennt. Platform override zuerst. */
 export function hasEffectiveModuleGateAccess(
   moduleKey: ProductKey,
   tenantId: string = DEMO_TENANT_ID,
 ): boolean {
-  if (hasModuleAccess(moduleKey, tenantId)) {
-    return true;
+  const fallbackAllowed = hasLegacyTenantModuleGateAccess(moduleKey, tenantId);
+
+  if (hasPlatformModuleHydration(tenantId)) {
+    const platformDecision = resolveProductModuleAccessDecision(
+      tenantId,
+      moduleKey,
+      fallbackAllowed,
+    );
+    return platformDecision.allowed;
   }
-  if (moduleKey === OFFICE_MODULE_KEY) {
-    return SPECIALTY_MODULE_KEYS.some((key) => hasModuleAccess(key, tenantId));
-  }
-  return false;
+
+  return fallbackAllowed;
 }
 
 export { ACCESS_SOURCE_LABELS, SPECIALTY_MODULE_KEYS, OFFICE_MODULE_KEY };

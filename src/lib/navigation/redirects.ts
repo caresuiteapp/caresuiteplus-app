@@ -1,6 +1,6 @@
 import type { Href } from 'expo-router';
 import type { ProductKey, RoleKey } from '@/types';
-import { hasEffectiveModuleGateAccess } from '@/lib/modules/moduleAccessService';
+import { hasEffectiveModuleGateAccess, hasLegacyTenantModuleGateAccess, isPlatformExplicitDeny, resolveProductModuleAccessDecision } from '@/lib/modules/moduleAccessService';
 import { isProductScopeKey } from '@/lib/modules/moduleVisibilityConfig';
 import {
   resolveModuleNavState,
@@ -51,7 +51,8 @@ export function getLoginRedirectForPath(path: string): string {
     path.startsWith('/stationaer') ||
     path.startsWith('/beratung') ||
     path.startsWith('/akademie') ||
-    path.startsWith('/insight')
+    path.startsWith('/insight') ||
+    path.startsWith('/platform')
   ) {
     return '/auth/business-login';
   }
@@ -150,7 +151,32 @@ export function checkProductAccess(
   if (!route?.productKey) {
     return { shouldRedirect: false, target: path as Href };
   }
-  if (!isProductActive(route.productKey, tenantId)) {
+
+  const productKey = route.productKey;
+  const legacyFallback = tenantId?.trim()
+    ? hasLegacyTenantModuleGateAccess(productKey, tenantId)
+    : false;
+
+  if (tenantId?.trim()) {
+    const platformDecision = resolveProductModuleAccessDecision(
+      tenantId,
+      productKey,
+      legacyFallback,
+    );
+    if (isPlatformExplicitDeny(platformDecision)) {
+      return {
+        shouldRedirect: true,
+        target: '/business/modules' as Href,
+        reason: 'module_inactive',
+        message: 'Dieses Modul ist für Ihren Mandanten nicht freigeschaltet.',
+      };
+    }
+    if (platformDecision.source === 'platform' && platformDecision.allowed) {
+      return { shouldRedirect: false, target: path as Href };
+    }
+  }
+
+  if (!hasEffectiveModuleGateAccess(productKey, tenantId ?? undefined)) {
     const canBypassInactive =
       roleKey === 'business_admin' || roleKey === 'business_manager';
     if (canBypassInactive) {
