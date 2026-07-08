@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+  <meta charset="utf-8" />
+  <title>PLATFORM.1.2 — Local Staging Smoke Report</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 2rem; line-height: 1.5; max-width: 980px; }
+    h1 { font-size: 1.35rem; }
+    h2 { font-size: 1.05rem; margin-top: 1.4rem; border-bottom: 1px solid #ccc; }
+    table { border-collapse: collapse; width: 100%; margin: 0.5rem 0 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.4rem 0.6rem; text-align: left; vertical-align: top; }
+    th { background: #f5f5f5; }
+    .gruen { color: #0d7a3e; font-weight: 700; }
+    .gelb { color: #b45309; font-weight: 700; }
+    .rot { color: #b00020; font-weight: 700; }
+    .nt { color: #555; font-weight: 700; }
+    code { font-size: 0.9em; }
+    ul { margin: 0.3rem 0; padding-left: 1.2rem; }
+  </style>
+</head>
+<body>
+  <h1>PLATFORM.1.2 — Local Staging Smoke (Weg B)</h1>
+  <p>
+    <strong>Modus:</strong> Lokale App gegen Staging-Backend (<code>shwp…maoc</code>)<br />
+    <strong>Commit:</strong> <code>6cc1198b</code> — feat(platform): complete operator console UI<br />
+    <strong>Smoke-Datum:</strong> 2026-07-08<br />
+    <strong>Production-Freigabe:</strong> <span class="rot">NEIN</span>
+  </p>
+
+  <h2>1. Precheck</h2>
+  <table>
+    <tr><th>Branch</th><td><code>main</code></td></tr>
+    <tr><th>HEAD</th><td><code>6cc1198b76ff0f3e1c61e3969416ea206c4a4938</code></td></tr>
+    <tr><th>Commit 6cc1198b</th><td class="gruen">Vorhanden</td></tr>
+    <tr><th>Smoke-HTML vor Commit</th><td class="gruen">Diese Datei (wird committed)</td></tr>
+    <tr><th>Keine Secrets committed</th><td class="gruen">JA — keine .env, keine Tokens im Bericht</td></tr>
+    <tr><th>Staging Project Ref</th><td><code>shwp…maoc</code> (maskiert)</td></tr>
+  </table>
+
+  <h2>2. Environment / Setup</h2>
+  <table>
+    <tr><th>EXPO_PUBLIC_DEMO_MODE</th><td class="gruen">false (Smoke-Lauf)</td></tr>
+    <tr><th>Staging URL Override</th><td class="gruen">Erforderlich — lokale <code>.env</code> zeigt standardmäßig auf anderes Projekt (<code>euag…mvxm</code>)</td></tr>
+    <tr><th>Expo lokal</th><td class="gruen"><code>http://localhost:8082</code> mit Staging-Env-Override gestartet</td></tr>
+    <tr><th>Smoke-Skript</th><td><code>scripts/audit/platform-local-staging-smoke.mjs</code> (lokal, nicht committed)</td></tr>
+  </table>
+
+  <h2>3. Owner Login (Browser)</h2>
+  <table>
+    <tr><th>caresuiteapp@gmail.com Login</th><td class="nt">NICHT GETESTET</td><td>Staging-Owner-Passwort nicht in lokaler Env (<code>AUDIT_BUSINESS_*</code> gehört zu anderem Test-Account/Projekt)</td></tr>
+    <tr><th>/platform/dashboard ohne Session</th><td class="gruen">GRÜN</td><td>Redirect zu <code>/auth/business-login</code>, kein White Screen</td></tr>
+    <tr><th>/platform/discounts ohne Session</th><td class="gruen">GRÜN</td><td>Auth-Gate → Login, keine Placeholder-Seite sichtbar</td></tr>
+    <tr><th>Redirect-Schleife</th><td class="gruen">GRÜN</td><td>Keine Schleife beobachtet</td></tr>
+    <tr><th>Console Errors (Browser)</th><td class="gelb">GELB</td><td>Keine roten Runtime-Errors beim Login-Gate; vollständige Owner-UI nicht geladen</td></tr>
+  </table>
+
+  <h2>4. Platform-Routen (Owner-UI visuell)</h2>
+  <p>Alle Routen <span class="nt">NICHT GETESTET</span> im Browser mit Owner-Session — Login blockiert. Code-Routen in Commit <code>6cc1198b</code> vorhanden; Backend-Staging-RPCs grün (siehe §6).</p>
+  <table>
+    <tr><th>Route</th><th>Status</th><th>Notiz</th></tr>
+    <tr><td>/platform/dashboard</td><td class="nt">NICHT GETESTET</td><td>Auth-Gate OK</td></tr>
+    <tr><td>/platform/tenants</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+    <tr><td>/platform/tenants/:tenantId</td><td class="nt">NICHT GETESTET</td><td>Testmandant: Staging Test Tenant</td></tr>
+    <tr><td>/platform/modules</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+    <tr><td>/platform/discounts</td><td class="nt">NICHT GETESTET</td><td>Kein Placeholder (Auth-Gate)</td></tr>
+    <tr><td>/platform/billing</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+    <tr><td>/platform/payments</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+    <tr><td>/platform/feature-flags</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+    <tr><td>/platform/support</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+    <tr><td>/platform/audit</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+    <tr><td>/platform/system</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+    <tr><td>/platform/releases</td><td class="nt">NICHT GETESTET</td><td>—</td></tr>
+  </table>
+
+  <h2>5. Mandantendetail-Tabs</h2>
+  <p class="nt">NICHT GETESTET — Owner-Browser-Session fehlt. Implementierung in Commit: Übersicht, Module, Rechnungen, Zahlungen, Rabatte, Support, Feature Flags, Limits (read-only), Benutzer (read-only Platzhalter), Diagnose, Audit.</p>
+
+  <h2>6. Operator-Aktionen (Staging Backend — JWT Owner Simulation)</h2>
+  <p>Verifiziert auf Testmandant <code>b2222222-…2201</code> (Staging Test Tenant) via Staging-SQL/RPC — entspricht akzeptiertem Smoke auf Staging-Daten.</p>
+  <table>
+    <tr><th>Aktion</th><th>Status</th><th>Notiz</th></tr>
+    <tr><td>Rabatt zuweisen mit Grund</td><td class="gruen">GRÜN</td><td><code>discount.assigned</code> in Audit</td></tr>
+    <tr><td>Rabatt entfernen mit Grund</td><td class="gruen">GRÜN</td><td><code>discount.removed</code> / status revoked</td></tr>
+    <tr><td>Rechnungsstatus ohne Grund</td><td class="gruen">GRÜN</td><td><code>22023 reason_required</code></td></tr>
+    <tr><td>Rechnungsstatus mit Grund</td><td class="nt">NICHT GETESTET</td><td>Keine Testrechnung auf Staging</td></tr>
+    <tr><td>Manuelle Zahlung mit Grund</td><td class="gruen">GRÜN</td><td><code>payment.recorded</code> in Audit</td></tr>
+    <tr><td>Support-Session starten</td><td class="gruen">GRÜN</td><td><code>readonly=true</code>, Audit <code>support_session.started</code></td></tr>
+    <tr><td>Support-Session beenden</td><td class="gruen">GRÜN</td><td>status closed, Audit <code>support_session.ended</code></td></tr>
+    <tr><td>Feature Flag Toggle + Restore</td><td class="gruen">GRÜN</td><td><code>smoke_p12_flag</code> on/off</td></tr>
+    <tr><td>Sensitive Settings maskiert (UI-Code)</td><td class="gruen">GRÜN</td><td>Client maskiert <code>is_sensitive</code></td></tr>
+    <tr><td>Provider-ID maskiert (UI-Code)</td><td class="gruen">GRÜN</td><td><code>maskPlatformProviderId</code> in 1.2</td></tr>
+    <tr><td>Audit immutable-Hinweis</td><td class="nt">NICHT GETESTET</td><td>UI nicht mit Owner geladen; Audit-Rows read-only per Schema</td></tr>
+  </table>
+
+  <h2>7. Security Access</h2>
+  <table>
+    <tr><th>Check</th><th>Status</th><th>Notiz</th></tr>
+    <tr><td>office.staging@example.test Platform-User</td><td class="gruen">GRÜN</td><td><code>platform_get_current_user.isPlatformUser=false</code></td></tr>
+    <tr><td>Mandant /platform UI forbidden</td><td class="nt">NICHT GETESTET</td><td>Browser-Login office.staging Passwort nicht in Env</td></tr>
+    <tr><td>anon Platform-RPC</td><td class="gruen">GRÜN</td><td>Kein Zugriff (REST/JWT)</td></tr>
+    <tr><td>Keine Secrets in UI</td><td class="gruen">GRÜN</td><td>Login-Screen ohne Leaks; Operator-UI maskiert Provider/Settings</td></tr>
+  </table>
+
+  <h2>8. Tests / Build (nach Smoke, Code unverändert)</h2>
+  <table>
+    <tr><th>Platform Tests</th><td class="gruen">39/39 grün</td></tr>
+    <tr><th>Platform Typecheck</th><td class="gruen">0 Fehler</td></tr>
+    <tr><th>Commit unverändert</th><td class="gruen">6cc1198b (nur Smoke-Artefakte lokal)</td></tr>
+    <tr><th>Expo Export DEMO=false</th><td class="gruen">OK</td></tr>
+  </table>
+
+  <h2>9. Bekannte Einschränkungen</h2>
+  <ul>
+    <li>Owner-Browser-Smoke erfordert <code>caresuiteapp@gmail.com</code> Staging-Passwort lokal (<code>AUDIT_PLATFORM_OWNER_PASSWORD</code> oder manueller Login).</li>
+    <li>Lokale <code>.env</code> muss für Weg B auf Staging (<code>shwp…maoc</code>) zeigen — nicht auf Default-Dev-Projekt.</li>
+    <li>UI-Routen/Tabs visuell erst nach Owner-Login vollständig abnahmefähig.</li>
+    <li>Keine Testrechnung auf Staging → Rechnungsstatus mit Grund nicht live getestet.</li>
+    <li>Production bleibt gesperrt bis PLATFORM.1.3 Production Readiness Gate.</li>
+  </ul>
+
+  <h2>10. Gesamturteil Smoke</h2>
+  <table>
+    <tr><th>Staging Backend Operator-RPCs</th><td class="gruen">GRÜN</td></tr>
+    <tr><th>Staging Security (Backend)</th><td class="gruen">GRÜN</td></tr>
+    <tr><th>Local UI Auth-Gate</th><td class="gruen">GRÜN</td></tr>
+    <tr><th>Local UI Owner E2E</th><td class="gelb">GELB — ausstehend (Passwort/Session)</td></tr>
+    <tr><th>Production-Freigabe</th><td class="rot">NEIN</td></tr>
+  </table>
+
+  <p><em>Erstellt: 2026-07-08 · PLATFORM.1.2 Local Staging Smoke (Weg B)</em></p>
+</body>
+</html>
