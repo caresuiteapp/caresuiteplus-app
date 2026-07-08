@@ -160,6 +160,25 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
     expect(exportScreen).toContain('triggerCsvDownload');
   });
 
+  it('export tab binds P2.2 reviewed time export workflow', () => {
+    const exportScreen = readSrc('src/components/wfm/WfmExportScreen.tsx');
+    expect(exportScreen).toContain('createExportDraft');
+    expect(exportScreen).toContain('validateExportBatch');
+    expect(exportScreen).toContain('finalizeExportBatch');
+    expect(exportScreen).toContain('listExportBatches');
+    expect(exportScreen).toContain('buildInternalCsv');
+    expect(exportScreen).toContain('testID="wfm-p22-prepare-export"');
+    expect(exportScreen).toContain('testID="wfm-p22-finalize-export"');
+    expect(exportScreen).toContain('testID="wfm-p22-download-csv"');
+    expect(exportScreen).toContain('Export vorbereiten');
+    expect(exportScreen).toContain('Export finalisieren');
+    expect(exportScreen).toContain('Blockierte Einträge');
+    expect(exportScreen).toContain('Export-Historie');
+    expect(exportScreen).toContain('Kein Export-Entwurf');
+    expect(exportScreen).toContain('Legacy-Export');
+    expect(exportScreen).toContain('createWfmExportJob');
+  });
+
   it('export service produces CSV without crashing on empty month', async () => {
     const { exportWfmSessionsCsv } = await import('@/lib/wfm/wfmExportService');
     const result = await exportWfmSessionsCsv('tenant-empty-export', 'business_admin', 2099, 1);
