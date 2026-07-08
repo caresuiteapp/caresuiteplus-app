@@ -165,7 +165,7 @@ describe('ZEIT.2 TimeTrackingTeamScreen UI contract', () => {
     expect(exportScreen).toContain('createExportDraft');
     expect(exportScreen).toContain('validateExportBatch');
     expect(exportScreen).toContain('finalizeExportBatch');
-    expect(exportScreen).toContain('listExportBatches');
+    expect(exportScreen).toContain('listReviewedTimeExports');
     expect(exportScreen).toContain('buildInternalCsv');
     expect(exportScreen).toContain('testID="wfm-p22-prepare-export"');
     expect(exportScreen).toContain('testID="wfm-p22-finalize-export"');

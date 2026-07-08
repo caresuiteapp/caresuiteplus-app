@@ -46,7 +46,7 @@ describe('WfmExportScreen P2.2 UI contract', () => {
   });
 
   it('loads history and supports internal csv download', () => {
-    expect(exportScreen).toContain('listExportBatches');
+    expect(exportScreen).toContain('listReviewedTimeExports');
     expect(exportScreen).toContain('Export-Historie');
     expect(exportScreen).toContain('buildInternalCsv');
     expect(exportScreen).toContain('testID="wfm-p22-download-csv"');
@@ -67,5 +67,76 @@ describe('WfmExportScreen P2.2 UI contract', () => {
     expect(exportScreen).toContain('LockedActionBanner');
     expect(exportScreen).toContain('p22Error');
     expect(exportScreen).toContain('!canExport');
+  });
+});
+
+describe('WfmExportScreen P2.3 UI contract', () => {
+  const exportScreen = readSrc('src/components/wfm/WfmExportScreen.tsx');
+
+  it('renders P2.3 correction section', () => {
+    expect(exportScreen).toContain('testID="wfm-p23-section"');
+    expect(exportScreen).toContain('Korrektur & Re-Export (P2.3)');
+    expect(exportScreen).toContain('wfmTimeCorrectionExportService');
+  });
+
+  it('imports WfmTimeExportItem from export service', () => {
+    expect(exportScreen).toContain('type WfmTimeExportItem');
+    expect(exportScreen).toMatch(
+      /type WfmTimeExportItem[\s\S]*from '@\/lib\/wfm\/wfmTimeExportService'/,
+    );
+  });
+
+  it('lists correction candidates and shows export metadata', () => {
+    expect(exportScreen).toContain('listReviewedTimeCorrectionCandidates');
+    expect(exportScreen).toContain('reviewExportBadgeLabel');
+    expect(exportScreen).toContain('export_version');
+    expect(exportScreen).toContain('changed_after_export');
+    expect(exportScreen).toContain('logical_reference_key');
+    expect(exportScreen).toContain('item_status');
+  });
+
+  it('requires correction reason before draft and finalize', () => {
+    expect(exportScreen).toContain('WFM_CORRECTION_REASON_MIN_LENGTH');
+    expect(exportScreen).toContain('testID="wfm-p23-correction-reason"');
+    expect(exportScreen).toContain('correctionReasonValid');
+    expect(exportScreen).toContain('!correctionReasonValid');
+    expect(exportScreen).toContain('Korrekturgrund erforderlich');
+  });
+
+  it('runs draft preview validate finalize via correction facade', () => {
+    expect(exportScreen).toContain('draftReviewedTimeCorrectionExport');
+    expect(exportScreen).toContain('validateCorrectionExportDraft');
+    expect(exportScreen).toContain('finalizeReviewedTimeCorrectionExport');
+    expect(exportScreen).toContain('testID="wfm-p23-draft-correction"');
+    expect(exportScreen).toContain('testID="wfm-p23-validate-correction"');
+    expect(exportScreen).toContain('testID="wfm-p23-finalize-correction"');
+    expect(exportScreen).toContain('wfm-p23-correction-preview');
+  });
+
+  it('blocks finalize without validate and preview', () => {
+    expect(exportScreen).toContain('correctionValidated');
+    expect(exportScreen).toContain('correctionPreviewItems.length === 0');
+    expect(exportScreen).toContain('Finalize nur nach Preview und Validate');
+  });
+
+  it('gates entire screen for users without export permission', () => {
+    expect(exportScreen).toContain("can('time.tracking.admin.export')");
+    expect(exportScreen).toContain('LockedActionBanner');
+  });
+
+  it('does not auto-finalize on mount', () => {
+    const mountEffect =
+      exportScreen.match(
+        /useEffect\(\(\) => \{\s*void loadHistory\(\);\s*void loadCorrectionCandidates\(\);[\s\S]*?\}, \[loadHistory, loadCorrectionCandidates\]\)/,
+      )?.[0] ?? '';
+    expect(mountEffect).toContain('loadCorrectionCandidates');
+    expect(mountEffect).not.toContain('handleFinalizeCorrection');
+  });
+
+  it('shows item timeline and action history when data available', () => {
+    expect(exportScreen).toContain('getExportItemTimeline');
+    expect(exportScreen).toContain('listReviewActionsForReviews');
+    expect(exportScreen).toContain('Export-Item Timeline');
+    expect(exportScreen).toContain('Action-Historie');
   });
 });

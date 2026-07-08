@@ -93,12 +93,21 @@ async function getDemoExportJob(jobId: string): Promise<WfmTimeExportJob | null>
   return listDemoExportJobs().find((job) => job.id === jobId) ?? null;
 }
 
+function permissionDenied<T>(
+  denied: ReturnType<typeof canCreateReviewedTimeCorrectionExport>,
+): ServiceResult<T> | null {
+  if (!denied || denied.ok !== false) return null;
+  return { ok: false, error: denied.error };
+}
+
 async function listAllReviewExportJobs(
   tenantId: string,
   actorRoleKey: RoleKey | null,
   limit = 50,
 ): Promise<ServiceResult<WfmTimeExportJob[]>> {
-  const denied = canCreateReviewedTimeCorrectionExport(actorRoleKey);
+  const denied = permissionDenied<WfmTimeExportJob[]>(
+    canCreateReviewedTimeCorrectionExport(actorRoleKey),
+  );
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -299,7 +308,9 @@ export async function listChangedAfterExportReviews(
   tenantId: string,
   actorRoleKey: RoleKey | null,
 ): Promise<ServiceResult<WfmTimeExportReviewRow[]>> {
-  const denied = canCreateReviewedTimeCorrectionExport(actorRoleKey);
+  const denied = permissionDenied<WfmTimeExportReviewRow[]>(
+    canCreateReviewedTimeCorrectionExport(actorRoleKey),
+  );
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -383,7 +394,9 @@ export async function getReviewExportState(
   actorRoleKey: RoleKey | null,
   reviewId: string,
 ): Promise<ServiceResult<WfmReviewExportState | null>> {
-  const denied = canCreateReviewedTimeCorrectionExport(actorRoleKey);
+  const denied = permissionDenied<WfmReviewExportState | null>(
+    canCreateReviewedTimeCorrectionExport(actorRoleKey),
+  );
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -411,7 +424,9 @@ export async function getExportItemTimeline(
   actorRoleKey: RoleKey | null,
   logicalReferenceKey: string,
 ): Promise<ServiceResult<WfmTimeExportItem[]>> {
-  const denied = canCreateReviewedTimeCorrectionExport(actorRoleKey);
+  const denied = permissionDenied<WfmTimeExportItem[]>(
+    canCreateReviewedTimeCorrectionExport(actorRoleKey),
+  );
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -494,7 +509,9 @@ export async function requestReexportForReview(
   reviewId: string,
   reason: string,
 ): Promise<ServiceResult<{ reviewId: string }>> {
-  const denied = canCreateReviewedTimeCorrectionExport(actorRoleKey);
+  const denied = permissionDenied<{ reviewId: string }>(
+    canCreateReviewedTimeCorrectionExport(actorRoleKey),
+  );
   if (denied) return denied;
   const reasonError = validateCorrectionReason(reason);
   if (reasonError) return { ok: false, error: reasonError };
@@ -507,8 +524,7 @@ export async function requestReexportForReview(
     action: 'reexport_requested',
     prevStatus: 'approved',
     newStatus: 'approved',
-    reason,
-    comment: 'Korrekturexport angefordert',
+    comment: reason.trim() || 'Korrekturexport angefordert',
   });
   if (!action.ok) return action;
 
@@ -521,7 +537,9 @@ export async function validateCorrectionExportDraft(
   jobId: string,
   reason?: string,
 ): Promise<ServiceResult<WfmCorrectionExportValidationResult>> {
-  const denied = canCreateReviewedTimeCorrectionExport(actorRoleKey);
+  const denied = permissionDenied<WfmCorrectionExportValidationResult>(
+    canCreateReviewedTimeCorrectionExport(actorRoleKey),
+  );
   if (denied) return denied;
   const tenantBlock = guardServiceTenant(tenantId);
   if (tenantBlock) return tenantBlock;
@@ -547,7 +565,9 @@ export async function draftReviewedTimeCorrectionExport(
   actorRoleKey: RoleKey | null,
   params: WfmCorrectionExportDraftParams,
 ): Promise<ServiceResult<WfmCorrectionExportDraftResult>> {
-  const denied = canCreateReviewedTimeCorrectionExport(actorRoleKey);
+  const denied = permissionDenied<WfmCorrectionExportDraftResult>(
+    canCreateReviewedTimeCorrectionExport(actorRoleKey),
+  );
   if (denied) return denied;
   const reasonError = validateCorrectionReason(params.reason);
   if (reasonError) return { ok: false, error: reasonError };
@@ -723,7 +743,9 @@ export async function finalizeReviewedTimeCorrectionExport(
   jobId: string,
   reason: string,
 ): Promise<ServiceResult<WfmCorrectionExportFinalizeResult>> {
-  const denied = canCreateReviewedTimeCorrectionExport(actorRoleKey);
+  const denied = permissionDenied<WfmCorrectionExportFinalizeResult>(
+    canCreateReviewedTimeCorrectionExport(actorRoleKey),
+  );
   if (denied) return denied;
   const reasonError = validateCorrectionReason(reason);
   if (reasonError) return { ok: false, error: reasonError };
