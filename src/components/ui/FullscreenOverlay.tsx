@@ -21,7 +21,7 @@ export function applyWebPortalHostStyles(host: HTMLElement, zIndex: number): voi
   host.style.zIndex = String(zIndex);
   host.style.display = 'flex';
   host.style.flexDirection = 'column';
-  host.style.backgroundColor = '#fff';
+  host.style.backgroundColor = 'transparent';
   host.style.overscrollBehavior = 'contain';
   host.style.isolation = 'isolate';
 }

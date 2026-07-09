@@ -235,6 +235,10 @@ export function EmployeePortalVisitExecutionScreen() {
 
   const insets = useSafeAreaInsets();
 
+  useEffect(() => {
+    releaseSignatureCaptureEnvironment();
+  }, []);
+
   const uiState = useMemo(() => {
     if (!visit) return null;
     return resolveVisitExecutionUiState({
