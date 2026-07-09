@@ -45,7 +45,8 @@
     "audit:p0-series-reset": "node scripts/audit/p0SeriesOccurrenceExecutionReset.mjs",
     "audit:p0-series-reset:write": "node scripts/audit/p0SeriesOccurrenceExecutionReset.mjs --write",
     "audit:p0-series-debug": "node scripts/audit/debugSeriesOccurrenceStatusSource.mjs",
-    "audit:p0-series-local-acceptance": "node scripts/audit/p0SeriesOccurrenceLocalAcceptance.mjs"
+    "audit:p0-series-local-acceptance": "node scripts/audit/p0SeriesOccurrenceLocalAcceptance.mjs",
+    "audit:assignment-workflow-gate": "vitest run src/__tests__/portal/assignmentWorkflowRegressionGate.test.ts src/__tests__/portal/employeePortalTabletTouchFix.test.ts src/__tests__/portal/visitExecutionWhiteScreenFix.test.ts src/__tests__/portal/deferredSignatureWhiteScreenFix.test.ts src/__tests__/portal/employeePortalMobileAcceptance.test.ts"
   },
   "dependencies": {
     "@expo/metro-runtime": "~4.0.1",
