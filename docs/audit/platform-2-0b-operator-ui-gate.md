@@ -365,3 +365,80 @@ EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web
 | Tests + Export | **GO** |
 | Vollständiger authentifizierter Browser-Smoke | **GELB** — ein manueller Staging-Durchlauf mit Platform-Owner-Login empfohlen vor Merge |
 | **Gesamt** | **BLOCKED** bis manueller Browser-Smoke (§23 Fix 3) grün dokumentiert |
+
+---
+
+## 24. Final Authenticated Staging Smoke (ohne Browser-Durchlauf)
+
+**Datum:** 2026-07-09  
+**Branch:** `cursor/platform-2-0b-operator-ui`  
+**HEAD:** `00b1589f`  
+**Staging:** `shwpweerzsfkqaivmaoc`  
+**Production:** gesperrt — kein Apply  
+**Smoke ausgeführt:** **NEIN** (bewusst abgebrochen / ohne Browser-Durchlauf fortgesetzt)
+
+### Voraussetzung für gültigen Smoke (manuell)
+
+| Punkt | Anforderung |
+|-------|-------------|
+| URL | **`http://localhost:8082/platform/login`** — **nicht** `/business`, **nicht** `/auth/business-login` |
+| App | Platform Console (CareSuite+ Platform Console), nicht Zentrale/Verwaltung |
+| Nach Login | Redirect **`/platform/dashboard`**, Shell + Navigation sichtbar |
+| Credentials | Staging Platform Owner (lokal, nicht im Bericht) |
+
+### Ergebnisse (Browser-Subflows)
+
+| # | Bereich | Ergebnis | Notiz |
+|---|---------|----------|-------|
+| 1 | Login/Shell | **NO-GO** | Authentifizierter Browser-Smoke nicht abgeschlossen |
+| 2 | Mandantenliste → Detail | **NO-GO** | Nicht verifiziert (Smoke ausstehend) |
+| 3 | Plans Subflow 4.1–4.5 | **NO-GO** | Nicht verifiziert |
+| 4 | Add-ons Subflow 5.1–5.5 | **NO-GO** | Nicht verifiziert |
+| 5 | Neuer `addon_key` korrekt | **N/A** | Kein Create in diesem Lauf |
+| 6 | Leere `addon_key` Count | **1** | Legacy-Datensatz; kein neuer leerer Key in diesem Lauf |
+| 7 | Tenant Subscription | **NO-GO** | Nicht verifiziert |
+| 8 | Entitlements | **NO-GO** | Nicht verifiziert |
+| 9 | Credit | **NO-GO** | Nicht verifiziert |
+| 10 | Billing Preview | **NO-GO** | Nicht verifiziert |
+| 11 | System Settings | **N/A** | Nicht verifiziert |
+| 12 | Feature Flags | **N/A** | Nicht verifiziert |
+
+### Data Safety (Staging, read-only, 2026-07-09)
+
+| Metrik | Wert |
+|--------|------|
+| Plans | 11 |
+| Plan Versions | 7 |
+| Add-ons | 4 |
+| **Leere `addon_key`** | **1** (Legacy — unverändert) |
+| Tenant Subscriptions | 1 |
+| Tenant Add-ons | 1 |
+| Entitlements | 1 |
+| Credit Ledger | 1 |
+| Audit | 34 |
+
+### Tests & Export (erneut, ohne Smoke)
+
+| Prüfung | Ergebnis |
+|---------|----------|
+| Platform Tests | **GO** — **74/74** |
+| Expo Export (`EXPO_PUBLIC_DEMO_MODE=false`) | **GO** |
+
+### Absolutregeln
+
+| Regel | Status |
+|-------|--------|
+| Production Apply | **NEIN** |
+| Deploy / `[deploy]` | **NEIN** |
+| Push auf `main` | **NEIN** |
+
+### PR/Merge-Readiness §24
+
+| Kriterium | Status |
+|-----------|--------|
+| Code-Fixes 2.0B.1 (Mandanten-ID, addon_key Guard) | **GO** |
+| Tests + Export | **GO** |
+| Final authentifizierter Browser-Smoke | **BLOCKED** |
+| **Gesamt PR/Merge-Readiness** | **BLOCKED** |
+
+**Blocker:** Vollständiger authentifizierter Browser-Smoke über **`/platform/login`** mit Platform Owner und allen Subflows (Plans, Add-ons, Tenant, Credit, Billing Preview) muss manuell grün dokumentiert werden, bevor Merge.
