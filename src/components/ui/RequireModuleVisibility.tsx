@@ -1,6 +1,7 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, startTransition, useEffect } from 'react';
 import { usePathname, useRouter } from 'expo-router';
-import { ErrorState } from '@/components/ui/StateViews';
+import { ErrorState, LoadingState } from '@/components/ui/StateViews';
+import { useHydrated } from '@/hooks/useHydrated';
 import { checkModuleAccess } from '@/lib/navigation';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -27,14 +28,21 @@ function titleForReason(reason?: string): string {
 export function RequireModuleVisibility({ children }: RequireModuleVisibilityProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const hydrated = useHydrated();
   const { profile } = useAuth();
   const tenantId = useServiceTenantId();
   const decision = checkModuleAccess(pathname, profile?.roleKey, tenantId);
 
   useEffect(() => {
-    if (!decision.shouldRedirect) return;
-    router.replace(decision.target);
-  }, [decision, router]);
+    if (!hydrated || !decision.shouldRedirect) return;
+    startTransition(() => {
+      router.replace(decision.target);
+    });
+  }, [decision, hydrated, router]);
+
+  if (!hydrated) {
+    return <LoadingState message="Modulzugriff wird geprüft…" />;
+  }
 
   if (decision.shouldRedirect) {
     return (

@@ -1,6 +1,7 @@
-import { ReactNode, useEffect, useState } from 'react';
+import { ReactNode, startTransition, useEffect, useState } from 'react';
 import { usePathname, useRouter } from 'expo-router';
 import { ErrorState, LoadingState } from '@/components/ui';
+import { useHydrated } from '@/hooks/useHydrated';
 import { checkRoleAccess, getLoginRedirectForPath } from '@/lib/navigation';
 import { resolveEffectiveRoleKey } from './sessionTarget';
 import { useAuth } from './context';
@@ -23,6 +24,7 @@ type RequireRoleProps = {
 export function RequireRole({ children }: RequireRoleProps) {
   const pathname = usePathname();
   const router = useRouter();
+  const hydrated = useHydrated();
   const {
     profile,
     portalSession,
@@ -39,12 +41,15 @@ export function RequireRole({ children }: RequireRoleProps) {
   const redirectTarget = String(decision.target);
 
   useEffect(() => {
-    if (!authReady || !isAuthenticated || !roleKey || !decision.shouldRedirect) return;
+    if (!hydrated || !authReady || !isAuthenticated || !roleKey || !decision.shouldRedirect) return;
     if (matchesNavigationTarget(pathname, redirectTarget)) return;
-    router.replace(decision.target);
+    startTransition(() => {
+      router.replace(decision.target);
+    });
   }, [
     decision.shouldRedirect,
     decision.target,
+    hydrated,
     redirectTarget,
     isAuthenticated,
     authReady,
@@ -63,7 +68,7 @@ export function RequireRole({ children }: RequireRoleProps) {
     return () => clearTimeout(timer);
   }, [authReady, isAuthenticated, roleKey]);
 
-  if (!authReady) {
+  if (!hydrated || !authReady) {
     return <LoadingState message="Sitzung wird geprüft…" />;
   }
 

@@ -1,7 +1,8 @@
-import { ReactNode, useEffect } from 'react';
+import { ReactNode, startTransition, useEffect } from 'react';
 import type { Href } from 'expo-router';
 import { usePathname, useRouter } from 'expo-router';
 import { LoadingState } from '@/components/ui';
+import { useHydrated } from '@/hooks/useHydrated';
 import { getLoginRedirectForPath } from '@/lib/navigation';
 import { getSession } from '@/lib/supabase';
 import { useAuth } from './context';
@@ -20,11 +21,12 @@ export function RequireAuth({
 }: RequireAuthProps) {
   const router = useRouter();
   const pathname = usePathname();
+  const hydrated = useHydrated();
   const { authReady, isAuthenticated, authMode } = useAuth();
   const sessionPending = useSupabaseSessionProbe(authMode, authReady, isAuthenticated);
 
   useEffect(() => {
-    if (!authReady || isAuthenticated) return;
+    if (!hydrated || !authReady || isAuthenticated) return;
 
     let cancelled = false;
 
@@ -38,7 +40,9 @@ export function RequireAuth({
       }
 
       const target = redirectTo ? String(redirectTo) : getLoginRedirectForPath(pathname);
-      router.replace(target as never);
+      startTransition(() => {
+        router.replace(target as never);
+      });
     }
 
     void redirectIfStillAnonymous();
@@ -46,9 +50,9 @@ export function RequireAuth({
     return () => {
       cancelled = true;
     };
-  }, [authMode, authReady, isAuthenticated, pathname, redirectTo, router]);
+  }, [authMode, authReady, hydrated, isAuthenticated, pathname, redirectTo, router]);
 
-  if (!authReady || sessionPending) {
+  if (!hydrated || !authReady || sessionPending) {
     return <LoadingState message={loadingMessage} />;
   }
 
