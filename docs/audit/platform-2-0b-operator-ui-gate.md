@@ -442,3 +442,56 @@ EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web
 | **Gesamt PR/Merge-Readiness** | **BLOCKED** |
 
 **Blocker:** Vollständiger authentifizierter Browser-Smoke über **`/platform/login`** mit Platform Owner und allen Subflows (Plans, Add-ons, Tenant, Credit, Billing Preview) muss manuell grün dokumentiert werden, bevor Merge.
+
+---
+
+## 25. PLATFORM.2.0B.2 — Operator UI Hotfix (2026-07-09)
+
+**Status:** PARTIAL — Code-Fixes + Tests + Export **GO**; authentifizierte Route-Screenshots **BLOCKED**
+
+### Root Cause `/platform/addons`
+
+| Issue | Fix |
+|-------|-----|
+| `PlatformAuditLink` fehlte im Barrel-Export (`index.ts`) → Runtime-Crash nach Writes / invalid element | Export ergänzt |
+| Legacy-Zeilen mit leerem `addon_key` → doppelte React-Keys | `resolvePlatformAddonRowKey()` mit Fallback |
+
+### Shared Platform UI (dark theme)
+
+| Komponente | Zweck |
+|------------|--------|
+| `PlatformFilterChip` + `PlatformFilterChipRow` | Wrap statt horizontal ScrollView; `minHeight` 32, `alignSelf: flex-start` |
+| `PlatformDataTable` | Dark panel/header, helle Zellen, horizontal scroll |
+| `PlatformEmptyState` | Kompakte leere Zustände statt riesiger Fläche |
+
+### Screens angepasst
+
+Mandanten, Tarife, Add-ons, Rabatte, Billing, Zahlungen, Feature Flags, Support, Module-Katalog, Mandanten-Tabs (Plan-Chips).
+
+### Tests & Export
+
+| Prüfung | Ergebnis |
+|---------|----------|
+| Platform Tests | **GO** — **77/77** (inkl. `platformOperatorUiComponents.test.ts`) |
+| Expo Export (`EXPO_PUBLIC_DEMO_MODE=false`) | **GO** — `dist/` |
+
+### Route-Screenshots (12 Routen)
+
+| Route | Status |
+|-------|--------|
+| `/platform/tenants` … `/platform/releases` | **BLOCKED** — Playwright-Browser lokal nicht installiert; authentifizierter Lauf erfordert Owner-Session via `/platform/login` |
+
+Skript (temp, nicht committen): `scripts/audit/_platform-2-0b2-screenshots-temp.mjs`  
+Zielordner: `docs/audit/platform-2-0b2-operator-ui-screenshots/`
+
+Lokal ausführen nach `npx playwright install chromium` und laufendem `expo start --web --port 8082`.
+
+### PR/Merge-Readiness §24 (2.0B.2)
+
+| Kriterium | Status |
+|-----------|--------|
+| Add-ons sichtbar (Code-Fix) | **GO** |
+| Filter-Chips + Dark Tables | **GO** |
+| Tests + Export | **GO** |
+| 12 Route-Screenshots (auth) | **BLOCKED** |
+| **Gesamt PR/Merge-Readiness** | **BLOCKED** |

@@ -1,5 +1,10 @@
+export { PlatformAuditLink } from './PlatformAuditLink';
 export { PlatformBillingPreviewPanel } from './PlatformBillingPreviewPanel';
 export { PlatformConfirmModal } from './PlatformConfirmModal';
+export { PlatformDataTable } from './PlatformDataTable';
+export type { PlatformDataTableColumn } from './PlatformDataTable';
+export { PlatformEmptyState } from './PlatformEmptyState';
+export { PlatformFilterChip, PlatformFilterChipRow } from './PlatformFilterChip';
 export { PlatformDeferredNote, PlatformReadOnlyBanner, PlatformStatusBadge } from './PlatformOperatorUi';
 export { PlatformKpiGrid } from './PlatformKpiGrid';
 export { PlatformRouteGuard, PlatformAuthGate } from './PlatformRouteGuard';

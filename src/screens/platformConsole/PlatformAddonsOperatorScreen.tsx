@@ -1,14 +1,15 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   PlatformAuditLink,
   PlatformConfirmModal,
+  PlatformDataTable,
   PlatformReadOnlyBanner,
   PlatformShellLayout,
   PlatformStatusBadge,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
-import { ErrorState, LoadingState, PremiumDataTable } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import {
   assignPlatformAddonToTenant,
   createPlatformAddon,
@@ -25,6 +26,7 @@ import {
 } from '@/lib/platformConsole/platformOperatorDataService';
 import { formatPlatformCents, formatPlatformDate } from '@/lib/platformConsole/platformFormat';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
+import { resolvePlatformAddonRowKey } from '@/lib/platformConsole/platformRowKeys';
 import { spacing } from '@/theme';
 
 type ConfirmState = {
@@ -122,35 +124,41 @@ export function PlatformAddonsOperatorScreen() {
         <ErrorState title="Add-ons nicht verfügbar" message={error} onRetry={() => void load()} />
       ) : (
         <>
-          <ScrollView horizontal>
-            <PremiumDataTable
+          <PlatformDataTable
               columns={[
-                { key: 'key', label: 'Code', render: (r) => String(r.addon_key) },
-                { key: 'name', label: 'Name', render: (r) => String(r.addon_name ?? '—') },
+                { key: 'key', label: 'Code', minWidth: 120, render: (r) => String(r.addon_key || '—') },
+                { key: 'name', label: 'Name', minWidth: 160, render: (r) => String(r.addon_name ?? '—') },
                 {
                   key: 'status',
                   label: 'Status',
+                  minWidth: 100,
                   render: (r) => <PlatformStatusBadge status={String(r.status ?? 'active')} />,
                 },
                 {
                   key: 'price',
                   label: 'Preis/Monat',
+                  minWidth: 120,
                   render: (r) => formatPlatformCents(r.monthly_price_cents),
                 },
                 {
                   key: 'open',
                   label: '',
-                  render: (r) => (
-                    <Pressable onPress={() => setSelectedKey(String(r.addon_key))}>
-                      <Text style={styles.link}>Details</Text>
-                    </Pressable>
-                  ),
+                  minWidth: 80,
+                  render: (r) => {
+                    const rowKey = resolvePlatformAddonRowKey(r, 0);
+                    return (
+                      <Pressable onPress={() => setSelectedKey(String(r.addon_key ?? rowKey))}>
+                        <Text style={styles.link}>Details</Text>
+                      </Pressable>
+                    );
+                  },
                 },
               ]}
               data={addons}
-              keyExtractor={(r) => String(r.addon_key)}
+              keyExtractor={resolvePlatformAddonRowKey}
+              emptyTitle="Keine Add-ons"
+              emptyMessage="Der Katalog ist leer oder noch nicht synchronisiert."
             />
-          </ScrollView>
 
           {canWrite ? (
             <View style={styles.formPanel}>
