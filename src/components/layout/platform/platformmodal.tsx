@@ -16,7 +16,7 @@ import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
 import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { careEffects } from '@/design/tokens/effects';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import {
   popupShellLayout,
   resolvePopupShellColors,
@@ -123,22 +123,14 @@ export function PlatformModal({
       StyleSheet.create({
         backdropCenter: {
           flex: 1,
-          backgroundColor: lightModal
-            ? shellColors.backdrop
-            : isDark
-              ? careEffects.glass.overlayDark
-              : careEffects.glass.overlayLight,
+          backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
           justifyContent: 'center',
           alignItems: 'center',
           padding: spacing.lg,
         },
         backdropBottom: {
           flex: 1,
-          backgroundColor: lightModal
-            ? shellColors.backdrop
-            : isDark
-              ? careEffects.glass.overlayDark
-              : careEffects.glass.overlayLight,
+          backgroundColor: lightModal ? shellColors.backdrop : careSuiteModalScrim,
           justifyContent: 'flex-end',
         },
         sheetHost: {

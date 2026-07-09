@@ -11,6 +11,7 @@ import { EmployeeCreateForm } from './employeecreateform';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { moduleColor } from '@/design/tokens/modules';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
@@ -67,7 +68,7 @@ export function EmployeeCreateModal({ visible, onClose, onCreated }: EmployeeCre
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: isDark ? 'rgba(4,8,24,0.72)' : 'rgba(7,18,42,0.45)',
+          backgroundColor: careSuiteModalScrimStrong,
           justifyContent: isBottomSheet ? 'flex-end' : 'center',
           alignItems: 'center',
           padding: isBottomSheet ? 0 : spacing.lg,

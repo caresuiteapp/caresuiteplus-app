@@ -13,6 +13,7 @@ import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
 import { useAuroraGlassActive } from '@/design/tokens/auroraGlass';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careSuiteModalScrim, careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { careRadius } from '@/design/tokens/radius';
 import { moduleColor } from '@/design/tokens/modules';
@@ -83,11 +84,7 @@ export function ClientIntakeModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: lightModal
-            ? 'rgba(15, 27, 51, 0.16)'
-            : isDark
-              ? 'rgba(4,8,24,0.72)'
-              : 'rgba(7,18,42,0.45)',
+          backgroundColor: lightModal ? careSuiteModalScrim : careSuiteModalScrimStrong,
           justifyContent: isBottomSheet ? 'flex-end' : 'center',
           alignItems: 'center',
           padding: isBottomSheet ? 0 : spacing.lg,

@@ -1,3 +1,5 @@
+import { shouldUseHeavyEffects } from './devicePerformance';
+
 /**
  * Web-only CSS overrides for thermal / battery performance.
  * Applied via PerformanceProvider on document.documentElement.
@@ -10,12 +12,6 @@ export const PERFORMANCE_CSS = `
   .performance-mobile .cs-glass-scroll::-webkit-scrollbar-thumb,
   .performance-mobile [data-cs-glass-scroll="true"]::-webkit-scrollbar-track,
   .performance-mobile [data-cs-glass-scroll="true"]::-webkit-scrollbar-thumb {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-  }
-
-  .performance-mobile [style*="backdrop-filter"],
-  .performance-mobile [style*="backdropFilter"] {
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
@@ -34,17 +30,14 @@ export const PERFORMANCE_CSS = `
     animation: none !important;
   }
 
-  .reduce-motion *,
-  .disable-heavy-effects * {
+  .reduce-motion * {
     animation: none !important;
     transition: none !important;
   }
 
-  .disable-heavy-effects,
   .disable-heavy-effects * {
-    backdrop-filter: none !important;
-    -webkit-backdrop-filter: none !important;
-    filter: none !important;
+    animation: none !important;
+    transition: none !important;
   }
 
   /* Phase 11 — iOS Safari compositor relief */
@@ -105,14 +98,6 @@ export function syncPerformanceBodyClasses(snapshot: {
   root.classList.toggle(cls.tracking, snapshot.activeTracking);
   root.classList.toggle(cls.batterySaver, snapshot.batterySaver || snapshot.profile === 'mobileBatterySaver');
   root.classList.toggle(cls.reducedMotion, snapshot.prefersReducedMotion);
-  root.classList.toggle(
-    cls.heavyEffectsOff,
-    snapshot.isMobile ||
-      snapshot.prefersReducedMotion ||
-      snapshot.batterySaver ||
-      snapshot.activeTracking ||
-      snapshot.profile === 'mobileBatterySaver' ||
-      snapshot.profile === 'activeTrackingSaver',
-  );
+  root.classList.toggle(cls.heavyEffectsOff, !shouldUseHeavyEffects(snapshot));
   root.classList.toggle(cls.iosSafari, snapshot.isMobile && snapshot.isIOS && snapshot.isSafari);
 }

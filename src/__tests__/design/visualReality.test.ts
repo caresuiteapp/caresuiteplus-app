@@ -230,9 +230,9 @@ describe('Visual Reality — Verification Round 2 design wiring', () => {
     expect(screen).not.toContain('Schnellzugriff');
   });
 
-  it('@/theme default uses dark aurora palette', () => {
-    expect(readSrc('src/theme/colors.ts')).toContain("legacyColorsFromPalette('dark')");
-    expect(readSrc('src/theme/typography.ts')).toContain("resolveCareTypography('dark')");
+  it('@/theme default uses light palette with black ink', () => {
+    expect(readSrc('src/theme/colors.ts')).toContain("legacyColorsFromPalette('light')");
+    expect(readSrc('src/theme/typography.ts')).toContain("resolveCareTypography('light')");
   });
 
   it('officeDashboard Quick-Action nutzt CLIENT_INTAKE_NEW_ROUTE', () => {

@@ -2,31 +2,32 @@
  * CareSuite+ — Aurora gradient definitions (WP 021).
  * Zentrale Verläufe für Karten, Buttons, Sheen und Hintergründe.
  */
-import { AURORA_BUTTON_PRIMARY, AURORA_HERO_GRADIENT, careSuiteAuroraTheme } from './careSuiteAurora';
+import { AURORA_BUTTON_PRIMARY, AURORA_HERO_GRADIENT } from './careSuiteAurora';
+import { careLightColors } from '@/design/tokens/lightTheme';
 
 export const gradients = {
   card: {
-    default: ['rgba(15,23,42,0.72)', 'rgba(7,10,31,0.85)'] as const,
-    elevated: ['rgba(30,35,48,0.82)', 'rgba(15,23,42,0.72)'] as const,
+    default: [careLightColors.surface, careLightColors.page] as const,
+    elevated: [careLightColors.page, careLightColors.surface] as const,
   },
   primary: AURORA_BUTTON_PRIMARY,
   sheen: {
-    subtle: ['rgba(255,255,255,0.14)', 'rgba(255,255,255,0.04)', 'transparent'] as const,
-    strong: ['rgba(255,255,255,0.22)', 'rgba(255,255,255,0.06)', 'transparent'] as const,
+    subtle: ['rgba(255,255,255,0.55)', 'rgba(255,255,255,0.18)', 'transparent'] as const,
+    strong: ['rgba(255,255,255,0.72)', 'rgba(255,255,255,0.28)', 'transparent'] as const,
   },
   glass: {
-    panel: [careSuiteAuroraTheme.glass.backgroundStrong, careSuiteAuroraTheme.glass.background] as const,
-    overlay: ['rgba(8,13,26,0.55)', 'rgba(5,7,17,0.82)'] as const,
+    panel: ['rgba(255,255,255,0.82)', 'rgba(248,250,252,0.72)'] as const,
+    overlay: ['rgba(7,18,42,0.16)', 'rgba(7,18,42,0.28)'] as const,
   },
   ambient: {
-    violet: [careSuiteAuroraTheme.glow.violet, 'transparent'] as const,
-    pink: [careSuiteAuroraTheme.glow.pink, 'transparent'] as const,
-    cyan: [careSuiteAuroraTheme.glow.cyan, 'transparent'] as const,
+    violet: ['rgba(139,92,246,0.18)', 'transparent'] as const,
+    pink: ['rgba(236,72,153,0.16)', 'transparent'] as const,
+    cyan: ['rgba(6,182,212,0.14)', 'transparent'] as const,
     orange: ['rgba(249,115,22,0.18)', 'transparent'] as const,
   },
   /** Aurora list/detail hero — vivid violet→pink→cyan */
   hero: {
     list: AURORA_HERO_GRADIENT,
-    aurora: careSuiteAuroraTheme.gradients.heroAurora,
+    aurora: AURORA_HERO_GRADIENT,
   },
 } as const;

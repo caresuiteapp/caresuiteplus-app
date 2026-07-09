@@ -12,7 +12,7 @@ function readSrc(relativePath: string): string {
 
 describe('Design Reset (Prompt 101)', () => {
   it('galaxy palette defines core space colors', () => {
-    expect(galaxyPalette.deepSpace).toBe('#050816');
+    expect(galaxyPalette.deepSpace).toBe('#F8FAFC');
     expect(galaxyPalette.careOrange).toBe('#FF6B1A');
     expect(galaxyPalette.galaxyCyan).toBe('#22D3EE');
   });

@@ -31,7 +31,7 @@ export function PlaceholderManagementScreen() {
       <ScrollView contentContainerStyle={styles.content}>
         <InfoBanner
           variant="info"
-          message="Systemplatzhalter sind mandantenübergreifend definiert. Mandantenplatzhalter ergänzen die Registry pro Mandant (template_placeholders)."
+          message="Systemplatzhalter sind mandantenübergreifend definiert. Mandantenplatzhalter ergänzen die zentrale Registry pro Mandant."
         />
 
         <PremiumCard style={styles.stats}>

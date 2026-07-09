@@ -14,6 +14,7 @@ import {
   InfoBanner,
 } from '@/components/ui';
 import { useAuroraAdaptiveText } from '@/design/tokens/auroraGlass';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useAsyncQuery } from '@/hooks/core/useAsyncQuery';
@@ -469,7 +470,7 @@ const styles = StyleSheet.create({
   blockRow: { paddingVertical: careSpacing.xs },
   modalBackdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: careSuiteModalScrim,
     justifyContent: 'center',
     padding: careSpacing.lg,
   },

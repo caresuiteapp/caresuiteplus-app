@@ -12,6 +12,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { PremiumBadge, PremiumButton } from '@/components/ui';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { fxMotion, neonGlow, withAlpha } from '@/design/tokens/motion';
+import { AURORA_SURFACE_TEXT } from '@/design/tokens/accentContrast';
 import type { DashboardQuickAction, DashboardSnapshot } from '@/types/dashboard';
 import { ROLE_LABELS } from '@/data/constants';
 import { radius, spacing } from '@/theme';
@@ -101,21 +102,21 @@ export function DashboardHero({
         textCol: { flex: 1, gap: 2 },
         eyebrow: {
           ...typography.caption,
-          color: isDark ? withAlpha('#FFFFFF', 0.85) : colors.cyan,
+          color: withAlpha(AURORA_SURFACE_TEXT, 0.85),
           letterSpacing: 1.4,
           fontWeight: '700',
         },
         greeting: {
           ...typography.h2,
-          color: isDark ? '#FFFFFF' : colors.textPrimary,
+          color: AURORA_SURFACE_TEXT,
         },
         tenant: {
           ...typography.bodyStrong,
-          color: isDark ? withAlpha('#FFFFFF', 0.92) : colors.orange,
+          color: AURORA_SURFACE_TEXT,
         },
         meta: {
           ...typography.caption,
-          color: isDark ? withAlpha('#FFFFFF', 0.75) : colors.textMuted,
+          color: AURORA_SURFACE_TEXT,
         },
         avatar: {
           width: 56,
@@ -127,7 +128,7 @@ export function DashboardHero({
           borderWidth: 2,
           borderColor: withAlpha('#FFFFFF', 0.4),
         },
-        avatarText: { fontSize: 24, fontWeight: '800', color: '#FFFFFF' },
+        avatarText: { fontSize: 24, fontWeight: '800', color: AURORA_SURFACE_TEXT },
         badges: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
       }),
     [colors, typography, gradients, isDark],
@@ -141,19 +142,7 @@ export function DashboardHero({
         end={{ x: 1, y: 1 }}
         style={styles.gradient}
       />
-      {isDark ? (
-        <>
-          <View style={styles.orbA} pointerEvents="none" />
-          <View style={styles.orbB} pointerEvents="none" />
-          <LinearGradient
-            colors={['rgba(11,16,32,0.10)', 'rgba(11,16,32,0.45)']}
-            start={{ x: 0, y: 0 }}
-            end={{ x: 0, y: 1 }}
-            style={styles.overlay}
-            pointerEvents="none"
-          />
-        </>
-      ) : null}
+      {null}
       <LinearGradient
         colors={[withAlpha('#FFFFFF', isDark ? 0.22 : 0.12), 'transparent']}
         start={{ x: 0, y: 0 }}

@@ -10,6 +10,7 @@ import {
 } from 'react-native';
 import { SuccessState } from '@/components/ui';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { spacing, radius } from '@/theme';
 import type { OfficeMessage } from '@/types/office/messaging';
@@ -56,7 +57,7 @@ export function OfficeMessageActionsMenu({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.35)',
+          backgroundColor: careSuiteModalScrim,
           justifyContent: Platform.OS === 'web' ? 'center' : 'flex-end',
           alignItems: Platform.OS === 'web' ? 'center' : 'stretch',
           padding: spacing.lg,

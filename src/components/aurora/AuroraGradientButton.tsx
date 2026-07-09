@@ -70,7 +70,7 @@ export function AuroraGradientButton({
         >
           <LinearGradient colors={[...colors]} start={{ x: 0, y: 0 }} end={{ x: 1, y: 1 }} style={StyleSheet.absoluteFill} />
           {loading ? (
-            <ActivityIndicator color="#FFFFFF" />
+            <ActivityIndicator color="#000000" />
           ) : (
             <Text allowFontScaling style={[typography.button, labelStyle, styles.label]}>
               {label}
@@ -95,5 +95,5 @@ const styles = StyleSheet.create({
   },
   fullWidth: { width: '100%' },
   disabled: { opacity: 0.5 },
-  label: { color: '#FFFFFF', fontWeight: '700' },
+  label: { color: '#000000', fontWeight: '700' },
 });

@@ -4,7 +4,7 @@
  */
 import { popupShellHeaderGradientDark } from './popupShellTokens';
 export const galaxyPalette = {
-  deepSpace: '#050816',
+  deepSpace: '#F8FAFC',
   spaceNavy: '#08111F',
   midnightBlue: '#0B1026',
   galaxyPurple: '#271A5D',
@@ -15,9 +15,9 @@ export const galaxyPalette = {
   success: '#22C55E',
   warning: '#F59E0B',
   danger: '#EF4444',
-  textPrimary: '#F8FAFC',
-  textSecondary: '#CBD5E1',
-  textMuted: '#94A3B8',
+  textPrimary: '#000000',
+  textSecondary: '#000000',
+  textMuted: '#000000',
   borderGlass: 'rgba(255,255,255,0.12)',
   cardGlass: 'rgba(255,255,255,0.08)',
 } as const;

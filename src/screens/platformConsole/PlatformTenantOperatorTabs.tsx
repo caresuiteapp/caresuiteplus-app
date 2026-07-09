@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
   },
   btn: {
     alignSelf: 'flex-start',
-    backgroundColor: '#132036',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: PLATFORM_COLORS.border,
     borderRadius: 8,
@@ -882,7 +882,7 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 6,
   },
-  chipBtnActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: '#132036' },
+  chipBtnActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: '#F1F5F9' },
   rowActions: { flexDirection: 'row', flexWrap: 'wrap', gap: spacing.sm },
   btnDanger: { backgroundColor: '#3f1212', borderColor: PLATFORM_COLORS.danger },
 });

@@ -4,7 +4,7 @@ import { BreadcrumbBar, PageHeader } from '@/components/layout/platform';
 import { CareLightScreen } from '@/components/layout';
 import type { BreadcrumbSegment } from '@/components/layout/platform/breadcrumbbar';
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 
@@ -30,9 +30,9 @@ export function ModuleDashboardShell({
   const pageStyle = useMemo(
     () => ({
       gap: careSpacing.md,
-      backgroundColor: shellHostsAurora ? 'transparent' : colors.bgBase,
+      backgroundColor: shellHostsAurora ? 'transparent' : careLightColors.page,
     }),
-    [colors.bgBase, shellHostsAurora],
+    [shellHostsAurora],
   );
   const header = (
     <>

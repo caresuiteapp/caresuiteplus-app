@@ -18,6 +18,7 @@ import { careTypography } from '@/design/tokens/typography';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { designTokens } from '@/theme';
 import {
+  AURORA_SURFACE_TEXT,
   LIGHT_SURFACE_INTERACTIVE_TEXT,
   resolveInteractiveTextColor,
 } from '@/design/tokens/accentContrast';
@@ -64,7 +65,7 @@ export function resolveCareLightPalette(isDark: boolean): CareLightResolved {
     };
   }
 
-  const dark = careSuiteColors.dark;
+  const dark = careSuiteColors.light;
   return {
     isDark: true,
     page: dark.background.app,
@@ -242,18 +243,18 @@ export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
     return {
       eyebrow: {
         ...careTypography.caption,
-        color: 'rgba(255,255,255,0.85)',
+        color: AURORA_SURFACE_TEXT,
         letterSpacing: designTokens.hero.eyebrowLetterSpacing,
         fontWeight: '700' as TextStyle['fontWeight'],
       },
       title: {
         ...careTypography.h2,
-        color: '#FFFFFF',
+        color: AURORA_SURFACE_TEXT,
         fontWeight: '800' as TextStyle['fontWeight'],
       },
       meta: {
         ...careTypography.caption,
-        color: 'rgba(255,255,255,0.75)',
+        color: AURORA_SURFACE_TEXT,
       },
       iconBorder: {
         borderColor: 'rgba(255,255,255,0.4)',
@@ -266,9 +267,9 @@ export function useListHeroTextStyles(options?: ListHeroTextStyleOptions) {
 export function usePremiumHeroTextStyles() {
   const hero = useListHeroTextStyles();
   const { typography, colors } = useLegacyTheme();
-  const { c, isDark } = useCareLightPalette();
+  const { c } = useCareLightPalette();
   const surface = useListHeroSurface();
-  const isOnGradient = surface === 'gradient' && isDark;
+  const isOnGradient = surface === 'gradient';
 
   return useMemo(
     () => ({

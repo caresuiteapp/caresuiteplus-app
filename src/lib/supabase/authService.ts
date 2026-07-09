@@ -64,7 +64,13 @@ export async function signInWithPassword(
     return notConfiguredError();
   }
 
-  const { data, error } = await client.auth.signInWithPassword({ email, password });
+  const normalizedEmail = email.trim().toLowerCase();
+  const normalizedPassword = password.trim();
+
+  const { data, error } = await client.auth.signInWithPassword({
+    email: normalizedEmail,
+    password: normalizedPassword,
+  });
   if (error || !data.session) {
     return { ok: false, error: toGermanAuthError(error) };
   }

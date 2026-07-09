@@ -14,13 +14,7 @@ import { useAuth } from '@/lib/auth/context';
 import { USER_PROFILE_ROUTE } from '@/lib/auth/userprofileroute';
 import { APPEARANCE_SETTINGS_ROUTE } from '@/lib/screensaver/appearanceSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import {
-  surfaceContrastText,
-  useAuroraAdaptiveText,
-  useAuroraGlassActive,
-  useShellGlassSurfaceStyle,
-} from '@/design/tokens/auroraGlass';
-import { llgsTypography } from '@/design/tokens/lightLiquidGlassSpace';
+import { useShellGlassSurfaceStyle } from '@/design/tokens/auroraGlass';
 import { radius, spacing, typography } from '@/theme';
 
 type PlatformProfileMenuProps = {
@@ -39,16 +33,13 @@ const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as V
 export function PlatformProfileMenu({ accentColor, fullWidth = false }: PlatformProfileMenuProps) {
   const router = useRouter();
   const { profile, signOut } = useAuth();
-  const { colors, isDark, isLight } = useLegacyTheme();
-  const text = useAuroraAdaptiveText();
-  const auroraActive = useAuroraGlassActive();
-  const dropdownInk = surfaceContrastText(!(auroraActive && isLight));
+  const { colors } = useLegacyTheme();
   const chipGlass = useShellGlassSurfaceStyle('chip');
   const modalGlass = useShellGlassSurfaceStyle('modal');
   const accent = accentColor ?? colors.violet;
   const [profileOpen, setProfileOpen] = useState(false);
 
-  const displayName = profile?.displayName ?? 'CareSuite+';
+  const displayName = profile?.displayName?.trim() || 'CareSuite+';
   const avatarUrl = profile?.avatarUrl?.trim() || undefined;
 
   const profileMenuItems: { label: string; href?: string; action?: () => void }[] = [
@@ -58,10 +49,7 @@ export function PlatformProfileMenu({ accentColor, fullWidth = false }: Platform
     { label: 'Abmelden', action: () => void signOut().then(() => router.replace('/' as never)) },
   ];
 
-  const styles = useMemo(
-    () => createStyles(isDark, colors, text, dropdownInk, fullWidth),
-    [colors, dropdownInk, fullWidth, isDark, text],
-  );
+  const styles = useMemo(() => createStyles(fullWidth), [fullWidth]);
 
   return (
     <View style={styles.profileWrap}>
@@ -113,16 +101,10 @@ export function PlatformProfileMenu({ accentColor, fullWidth = false }: Platform
   );
 }
 
-function createStyles(
-  isDark: boolean,
-  colors: ReturnType<typeof useLegacyTheme>['colors'],
-  text: ReturnType<typeof useAuroraAdaptiveText>,
-  dropdownInk: ReturnType<typeof surfaceContrastText>,
-  fullWidth: boolean,
-) {
+function createStyles(fullWidth: boolean) {
   const topbarPrimaryNameText: TextStyle = {
     ...typography.bodyStrong,
-    color: isDark ? '#FFFFFF' : llgsTypography.primary,
+    color: '#000000',
     fontWeight: '700',
     lineHeight: 20,
     textAlign: 'center',
@@ -176,7 +158,7 @@ function createStyles(
       alignItems: 'center',
       justifyContent: 'center',
     },
-    chevron: { fontSize: 10, color: text.muted },
+    chevron: { fontSize: 10, color: '#000000' },
     dropdown: {
       position: 'absolute',
       top: '100%',
@@ -195,18 +177,18 @@ function createStyles(
     },
     dropdownText: {
       ...typography.body,
-      color: dropdownInk.primary,
+      color: '#000000',
       fontWeight: '600',
       textAlign: 'center',
       width: '100%',
     },
     dropdownMeta: {
       ...typography.caption,
-      color: dropdownInk.muted,
+      color: '#000000',
       paddingHorizontal: spacing.md,
       paddingBottom: spacing.xs,
       borderBottomWidth: 1,
-      borderBottomColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(120,160,255,0.18)',
+      borderBottomColor: 'rgba(120,160,255,0.18)',
       marginBottom: spacing.xs,
       textAlign: 'center',
       width: '100%',

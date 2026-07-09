@@ -176,7 +176,7 @@ const styles = StyleSheet.create({
     backgroundColor: '#0D1524',
   },
   dataRowSelected: {
-    backgroundColor: '#132036',
+    backgroundColor: '#F1F5F9',
   },
   dataCell: {
     paddingHorizontal: spacing.sm,

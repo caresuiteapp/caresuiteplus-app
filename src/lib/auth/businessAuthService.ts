@@ -153,7 +153,7 @@ export async function loginBusinessUser(
   const normalized = identifier.trim().toLowerCase();
 
   if (getServiceMode() === 'supabase') {
-    const sessionResult = await signInWithPassword(identifier.trim(), password);
+    const sessionResult = await signInWithPassword(normalized, password.trim());
     if (!sessionResult.ok) {
       await recordLoginAuditEvent({
         tenantId: null,

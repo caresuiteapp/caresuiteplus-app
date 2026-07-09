@@ -32,6 +32,7 @@ import {
   useAuroraGlassActive,
 } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { careTypography } from '@/design/tokens/typography';
 import { withAlpha } from '@/design/tokens/motion';
@@ -239,7 +240,7 @@ const styles = StyleSheet.create({
   },
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(0,0,0,0.45)',
+    backgroundColor: careSuiteModalScrim,
   },
   panel: {
     width: '82%',

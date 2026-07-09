@@ -1,6 +1,8 @@
 import { Pressable, ScrollView, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { AURORA_SURFACE_TEXT, APP_SURFACE_TEXT } from '@/design/tokens/accentContrast';
 import { useAuroraGlassChipStyles } from '@/design/tokens/auroraGlass';
+import { useListHeroSurface } from '@/design/tokens/listHeroSurfaceContext';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { spacing } from '@/theme';
 
@@ -39,6 +41,8 @@ export function SegmentedTabs({
   rows,
 }: SegmentedTabsProps) {
   const styles = useAuroraGlassChipStyles();
+  const heroSurface = useListHeroSurface();
+  const inactiveLabelColor = heroSurface === 'gradient' ? AURORA_SURFACE_TEXT : APP_SURFACE_TEXT;
 
   const renderTab = (tab: TabOption) => {
     const active = tab.key === activeKey;
@@ -56,7 +60,15 @@ export function SegmentedTabs({
             style={StyleSheet.absoluteFill}
           />
         ) : null}
-        <Text style={[styles.label, active && localStyles.activeLabel]}>{tab.label}</Text>
+        <Text
+          style={[
+            styles.label,
+            !active && { color: inactiveLabelColor },
+            active && localStyles.activeLabel,
+          ]}
+        >
+          {tab.label}
+        </Text>
       </Pressable>
     );
   };
@@ -87,7 +99,7 @@ export function SegmentedTabs({
 
 const localStyles = StyleSheet.create({
   tabOverflow: { overflow: 'hidden' },
-  activeLabel: { color: '#FFFFFF', fontWeight: '700' },
+  activeLabel: { color: APP_SURFACE_TEXT, fontWeight: '700' },
   wrapContainer: { gap: spacing.xs },
   wrapRow: { flexWrap: 'wrap' },
 });

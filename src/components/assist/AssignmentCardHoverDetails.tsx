@@ -3,6 +3,7 @@ import { useMemo } from 'react';
 import { resolveAssignmentCardHoverDetails } from '@/lib/assist/assignmentCardPresentation';
 import type { AssignmentListItem } from '@/types/modules/assist';
 import { useAuroraAdaptiveText, useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
+import { LlganGlassShell } from '@/design/web/applyLlganGlassDom';
 import { spacing, typography } from '@/theme';
 
 type AssignmentCardHoverDetailsProps = {
@@ -19,12 +20,7 @@ export function AssignmentCardHoverDetails({ assignment }: AssignmentCardHoverDe
     () =>
       StyleSheet.create({
         panel: {
-          position: 'absolute',
-          top: '100%',
-          left: 0,
-          right: 0,
           marginTop: spacing.xs,
-          zIndex: 20,
           padding: spacing.sm,
           gap: 4,
           borderRadius: 12,
@@ -52,7 +48,7 @@ export function AssignmentCardHoverDetails({ assignment }: AssignmentCardHoverDe
   ].filter(Boolean) as { label: string; value: string }[];
 
   return (
-    <View style={[styles.panel, glassStyle]}>
+    <LlganGlassShell kind="card" style={[styles.panel, glassStyle]}>
       {rows.map((row) => (
         <View key={row.label}>
           <Text style={styles.title}>{row.label}</Text>
@@ -61,6 +57,6 @@ export function AssignmentCardHoverDetails({ assignment }: AssignmentCardHoverDe
           </Text>
         </View>
       ))}
-    </View>
+    </LlganGlassShell>
   );
 }

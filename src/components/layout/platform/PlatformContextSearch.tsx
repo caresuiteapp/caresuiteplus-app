@@ -213,7 +213,7 @@ export function PlatformContextSearch({
             value={query}
             onChangeText={setQuery}
             placeholder={PLATFORM_SEARCH_PLACEHOLDERS[mainModule]}
-            placeholderTextColor={isDark ? 'rgba(203,213,225,0.45)' : '#94A3B8'}
+            placeholderTextColor="#000000"
             style={[styles.searchInput, webNoOutline]}
             returnKeyType="search"
             onSubmitEditing={handleSubmit}
@@ -287,7 +287,7 @@ function createStyles(
       width: '100%',
       gap: spacing.sm,
       borderRadius: radius.capsule,
-      borderColor: withAlpha(accent, isDark ? 0.45 : 0.32),
+      borderColor: withAlpha(accent, 0.32),
     },
     searchIcon: {
       fontSize: 26,
@@ -300,7 +300,7 @@ function createStyles(
       flex: 1,
       minWidth: 0,
       ...typography.body,
-      color: text.primary,
+      color: '#000000',
       paddingVertical: 0,
       height: TOPBAR_ICON_SIZE,
     },
@@ -309,9 +309,9 @@ function createStyles(
       paddingVertical: 2,
       borderRadius: 6,
       borderWidth: 1,
-      borderColor: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(120,160,255,0.22)',
-      backgroundColor: isDark ? 'rgba(255,255,255,0.04)' : 'rgba(255,255,255,0.35)',
+      borderColor: 'rgba(120,160,255,0.22)',
+      backgroundColor: 'rgba(255,255,255,0.35)',
     },
-    searchKbdText: { fontSize: 11, color: text.muted, fontWeight: '600' },
+    searchKbdText: { fontSize: 11, color: '#000000', fontWeight: '600' },
   });
 }

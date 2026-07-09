@@ -7,6 +7,7 @@ import {
   defaultRegisteringVisibility,
   FORBIDDEN_UI_TERMS,
   getUiVisibilityForRole,
+  resolveUserFacingSubtitle,
   resolveVisibleLabel,
   sanitizeUiText,
   simplifyBreadcrumbTrailForMobile,
@@ -103,6 +104,9 @@ function hasForbiddenLiteral(literals: string[]): string | null {
   for (const literal of literals) {
     const sanitized = sanitizeUiText(literal);
     const lower = sanitized.toLowerCase();
+    if (/\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/i.test(sanitized)) {
+      return `${literal} → ${sanitized} (contains snake_case identifier)`;
+    }
     for (const term of FORBIDDEN_IN_NORMAL_UI) {
       if (lower.includes(term.toLowerCase())) {
         return `${literal} → ${sanitized} (contains ${term})`;
@@ -130,6 +134,13 @@ describe('Visibility audit — uiVisibility utility', () => {
     expect(sanitizeUiText('Supabase Auth')).toBe('Sicherer Zugang');
     expect(sanitizeUiText('Demo-Prototyp')).toBe('Demo');
     expect(sanitizeUiText('Kein Store-Release')).toBe('In Entwicklung');
+  });
+
+  it('strips snake_case table identifiers from subtitles', () => {
+    expect(sanitizeUiText('assist_routes / assist_route_items')).toBe('');
+    expect(resolveUserFacingSubtitle('assist_routes / assist_route_items')).toBeUndefined();
+    expect(sanitizeUiText('tenant_service_catalog')).toBe('');
+    expect(userFriendlyLabel('preparedOnly')).toBe('Vorbereitet');
   });
 
   it('hides debug badges in production for normal roles', () => {

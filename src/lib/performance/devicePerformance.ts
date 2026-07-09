@@ -178,5 +178,9 @@ export function shouldUseHeavyEffects(snapshot: DevicePerformanceSnapshot): bool
     return false;
   }
   if (snapshot.isMobile && snapshot.isSafari) return false;
-  return snapshot.profile === 'desktopHigh' || snapshot.profile === 'desktopBalanced';
+  return (
+    snapshot.profile === 'desktopHigh' ||
+    snapshot.profile === 'desktopBalanced' ||
+    snapshot.profile === 'mobileBalanced'
+  );
 }

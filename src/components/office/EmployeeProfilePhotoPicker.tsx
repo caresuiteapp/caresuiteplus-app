@@ -11,6 +11,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { LinearGradient } from 'expo-linear-gradient';
 import { PremiumButton } from '@/components/ui';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careLightColors, careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import {
   EMPLOYEE_AVATAR_ALLOWED_MIME_TYPES,
   type EmployeeAvatarPending,
@@ -137,7 +138,7 @@ export function EmployeeProfilePhotoPicker({
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: 'rgba(0,0,0,0.45)',
+          backgroundColor: careSuiteModalScrim,
           paddingVertical: spacing.xs,
           alignItems: 'center',
         },
@@ -205,7 +206,7 @@ export function EmployeeProfilePhotoPicker({
           {imageUri ? (
             <Image source={{ uri: imageUri }} style={styles.image} accessibilityLabel="Profilbild" />
           ) : (
-            <LinearGradient colors={['#252A35', '#1E2330']} style={styles.fallback}>
+            <LinearGradient colors={[careLightColors.surface, careLightColors.page]} style={styles.fallback}>
               <Text style={styles.initials}>{initials}</Text>
             </LinearGradient>
           )}

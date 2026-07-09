@@ -18,6 +18,7 @@ import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import type { ClientRecordTabKey } from '@/lib/clients/clientIntakeFieldRules';
 import { ClientRecordScreen } from '@/screens/business/office/ClientRecordScreen';
+import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { spacing } from '@/theme';
 
 type ClientDetailModalProps = {
@@ -124,7 +125,7 @@ export function ClientDetailModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: isDark ? 'rgba(4,8,24,0.72)' : 'rgba(7,18,42,0.45)',
+          backgroundColor: careSuiteModalScrimStrong,
           justifyContent: isBottomSheet ? 'flex-end' : 'center',
           alignItems: 'center',
           padding: isBottomSheet ? 0 : isFull ? spacing.md : spacing.lg,

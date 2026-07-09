@@ -13,7 +13,7 @@ type CareSuiteBackgroundProps = {
 
 /** @deprecated Prefer GlobalAnimatedBackground at shell root. Kept for auth/landing screens. */
 export function CareSuiteBackground({
-  mode = 'dark',
+  mode: _mode = 'light',
   children,
   style,
   animated = true,
@@ -28,18 +28,9 @@ export function CareSuiteBackground({
     );
   }
 
-  if (mode === 'light') {
-    return (
-      <View style={[styles.root, style]}>
-        <GlobalAnimatedBackground mode="light" animated={false} />
-        {children}
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.root, style]}>
-      <GlobalAnimatedBackground mode="dark" animated={animated} />
+      <GlobalAnimatedBackground animated={animated} />
       {children}
     </View>
   );

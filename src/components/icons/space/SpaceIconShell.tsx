@@ -5,7 +5,6 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import {
   ACCENT_ICON_FRAME_GRADIENT,
-  RAIL_ICON_GLASS_DARK,
   RAIL_ICON_GLASS_LIGHT,
   accentDarkSoftBorder,
 } from '@/design/tokens/accentContrast';
@@ -40,25 +39,20 @@ const webGlow = (
   active: boolean,
   size: number,
   rail: boolean,
-  darkSoftBacking: boolean,
 ): ViewStyle | null =>
   Platform.OS === 'web'
     ? ({
-        boxShadow: darkSoftBacking
+        boxShadow: rail
           ? active
-            ? `0 0 ${Math.round(size * 0.45)}px ${withAlpha(color, 0.55)}, 0 4px 12px rgba(15,23,42,0.35)`
-            : `0 0 ${Math.round(size * 0.32)}px ${withAlpha(color, 0.38)}, 0 2px 8px rgba(15,23,42,0.28)`
-          : rail
-            ? active
-              ? `0 0 ${Math.round(size * 0.55)}px ${withAlpha(color, 0.7)}`
-              : `0 0 ${Math.round(size * 0.4)}px ${withAlpha(color, 0.4)}`
-            : active
-              ? `0 0 ${Math.round(size * 0.5)}px ${withAlpha(color, 0.65)}, 0 6px 18px rgba(0,0,0,0.45)`
-              : `0 0 ${Math.round(size * 0.35)}px ${withAlpha(color, 0.45)}, 0 3px 10px rgba(0,0,0,0.35)`,
+            ? `0 0 ${Math.round(size * 0.55)}px ${withAlpha(color, 0.7)}`
+            : `0 0 ${Math.round(size * 0.4)}px ${withAlpha(color, 0.4)}`
+          : active
+            ? `0 0 ${Math.round(size * 0.45)}px ${withAlpha(color, 0.55)}, 0 4px 12px rgba(15,23,42,0.08)`
+            : `0 0 ${Math.round(size * 0.32)}px ${withAlpha(color, 0.38)}, 0 2px 8px rgba(15,23,42,0.06)`,
       } as ViewStyle)
     : null;
 
-/** Shared deep-space frame for all Space-3D icons. */
+/** Shared light-glass frame for all Space-3D icons. */
 export function SpaceIconShell({
   accentColor,
   size,
@@ -69,9 +63,8 @@ export function SpaceIconShell({
 }: SpaceIconShellProps) {
   const rail = frame === 'rail';
   const { isLight } = useLegacyTheme();
-  const darkSoftBacking = isLight && !rail;
-  const railGlass = rail;
-  const railGlassTokens = isLight ? RAIL_ICON_GLASS_LIGHT : RAIL_ICON_GLASS_DARK;
+  const glassTokens = RAIL_ICON_GLASS_LIGHT;
+  const useGlassFrame = isLight || rail;
 
   const styles = useMemo(
     () =>
@@ -83,26 +76,22 @@ export function SpaceIconShell({
           overflow: 'hidden',
           alignItems: 'center',
           justifyContent: 'center',
-          borderWidth: railGlass || darkSoftBacking ? 1 : rail ? 0 : 1,
-          borderColor: railGlass
+          borderWidth: useGlassFrame ? 1 : rail ? 0 : 1,
+          borderColor: useGlassFrame
             ? active
-              ? isLight
-                ? RAIL_ICON_GLASS_LIGHT.borderActive
-                : railGlassTokens.border
-              : railGlassTokens.border
-            : darkSoftBacking
-              ? accentDarkSoftBorder(accentColor, active)
-              : rail
-                ? 'transparent'
-                : withAlpha(accentColor, active ? 0.95 : 0.42),
-          backgroundColor: railGlass
+              ? glassTokens.borderActive ?? accentDarkSoftBorder(accentColor, active)
+              : glassTokens.border
+            : rail
+              ? 'transparent'
+              : withAlpha(accentColor, active ? 0.95 : 0.42),
+          backgroundColor: useGlassFrame
             ? active
-              ? railGlassTokens.surfaceActive
-              : railGlassTokens.surface
+              ? glassTokens.surfaceActive
+              : glassTokens.surface
             : 'transparent',
-          ...(railGlass
-            ? (railGlassWebFx(active, railGlassTokens.blurPx, accentColor, size) ?? {})
-            : (webGlow(accentColor, active, size, rail, darkSoftBacking) ?? {})),
+          ...(useGlassFrame
+            ? (railGlassWebFx(active, glassTokens.blurPx, accentColor, size) ?? {})
+            : (webGlow(accentColor, active, size, rail) ?? {})),
           transform: active ? [{ scale: rail ? 1.08 : 1.04 }] : [{ scale: 1 }],
         },
         nebula: {
@@ -112,7 +101,7 @@ export function SpaceIconShell({
           width: size * 0.72,
           height: size * 0.72,
           borderRadius: size,
-          backgroundColor: withAlpha(accentColor, active ? 0.32 : 0.2),
+          backgroundColor: withAlpha(accentColor, active ? 0.22 : 0.14),
         },
         stage: {
           width: size * 0.86,
@@ -130,11 +119,11 @@ export function SpaceIconShell({
           backgroundColor: 'rgba(255,255,255,0.75)',
         },
       }),
-    [accentColor, active, borderRadius, darkSoftBacking, isLight, rail, railGlass, railGlassTokens, size],
+    [accentColor, active, borderRadius, glassTokens, rail, size, useGlassFrame],
   );
 
-  const frameGradient = !rail ? ACCENT_ICON_FRAME_GRADIENT : null;
-  const showDecor = !rail && (darkSoftBacking || !isLight);
+  const frameGradient = !useGlassFrame && !rail ? ACCENT_ICON_FRAME_GRADIENT : null;
+  const showDecor = useGlassFrame && !rail;
 
   return (
     <View style={styles.root}>
@@ -152,4 +141,3 @@ export function SpaceIconShell({
     </View>
   );
 }
-

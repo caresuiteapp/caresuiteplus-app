@@ -8,13 +8,13 @@ import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
 import { spacing } from '@/theme';
 
 const PLATFORM_COLORS = {
-  bg: '#050816',
-  sidebar: '#0B1024',
-  panel: '#101827',
-  border: '#1E293B',
-  text: '#E2E8F0',
-  muted: '#94A3B8',
-  accent: '#62F3FF',
+  bg: '#F8FAFC',
+  sidebar: '#FFFFFF',
+  panel: '#FFFFFF',
+  border: 'rgba(7,18,42,0.10)',
+  text: '#000000',
+  muted: '#000000',
+  accent: '#0EA5E9',
   warning: '#F59E0B',
   danger: '#EF4444',
 };
@@ -67,10 +67,10 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
           alignItems: 'center',
           gap: 10,
         },
-        navItemActive: { backgroundColor: '#132036' },
+        navItemActive: { backgroundColor: '#F1F5F9' },
         navIcon: { color: PLATFORM_COLORS.accent, width: 18, textAlign: 'center' },
         navLabel: { color: PLATFORM_COLORS.text, fontSize: 14 },
-        navLabelActive: { color: '#FFFFFF', fontWeight: '600' },
+        navLabelActive: { color: PLATFORM_COLORS.text, fontWeight: '600' },
         userBox: {
           marginTop: spacing.sm,
           marginHorizontal: spacing.md,
@@ -97,7 +97,7 @@ export function PlatformShellLayout({ children, title, subtitle }: PlatformShell
           paddingHorizontal: spacing.sm,
           paddingVertical: 6,
           borderRadius: 6,
-          backgroundColor: '#1a1f2e',
+          backgroundColor: '#F1F5F9',
           borderWidth: 1,
           borderColor: PLATFORM_COLORS.border,
         },

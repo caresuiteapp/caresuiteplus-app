@@ -24,6 +24,7 @@ import { GradientModalHeader } from '@/components/layout/platform';
 import { PremiumButton } from '@/components/ui';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { spacing } from '@/theme';
 import { useAuth } from '@/lib/auth/context';
@@ -134,7 +135,7 @@ export function CalendarEventCreateModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: isDark ? 'rgba(4,8,24,0.72)' : 'rgba(7,18,42,0.45)',
+          backgroundColor: careSuiteModalScrimStrong,
           justifyContent: 'flex-end',
           alignItems: 'center',
         },

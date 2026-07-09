@@ -99,15 +99,15 @@ describe('lightLiquidGlassAuroraNebula tokens', () => {
 
   it('liefert Intensity-Presets subtle, default und strong', () => {
 
-    expect(llganIntensityPresets.subtle.panelAlpha).toBe(0.38);
+    expect(llganIntensityPresets.subtle.panelAlpha).toBe(0.22);
 
-    expect(llganIntensityPresets.default.panelAlpha).toBe(0.44);
+    expect(llganIntensityPresets.default.panelAlpha).toBe(0.16);
 
-    expect(llganIntensityPresets.strong.cardAlpha).toBe(0.58);
+    expect(llganIntensityPresets.strong.cardAlpha).toBe(0.20);
 
-    expect(llganIntensityPresets.default.glassBlur).toBe(30);
+    expect(llganIntensityPresets.default.glassBlur).toBe(52);
 
-    expect(llganIntensityPresets.strong.glassSaturate).toBe(1.5);
+    expect(llganIntensityPresets.strong.glassSaturate).toBe(1.8);
 
   });
 
@@ -115,21 +115,21 @@ describe('lightLiquidGlassAuroraNebula tokens', () => {
 
   it('spiegelt Milchglas-Werte für Panel, Card, Sidebar, Modal, Blur und Sättigung (default)', () => {
 
-    expect(llganGlassSurface.panel).toBe('rgba(255,255,255,0.44)');
+    expect(llganGlassSurface.panel).toBe('rgba(255,255,255,0.16)');
 
-    expect(llganGlassSurface.card).toBe('rgba(255,255,255,0.52)');
+    expect(llganGlassSurface.card).toBe('rgba(255,255,255,0.18)');
 
-    expect(llganGlassSurface.sidebar).toBe('rgba(255,255,255,0.57)');
+    expect(llganGlassSurface.sidebar).toBe('rgba(255,255,255,0.20)');
 
-    expect(llganGlassSurface.modal).toBe('rgba(255,255,255,0.76)');
+    expect(llganGlassSurface.modal).toBe('rgba(255,255,255,0.48)');
 
-    expect(llganGlassSurface.blurDesktop).toBe(30);
+    expect(llganGlassSurface.blurDesktop).toBe(52);
 
-    expect(llganGlassSurface.saturate).toBe(1.42);
+    expect(llganGlassSurface.saturate).toBe(1.72);
 
-    expect(llganGlassSurface.borderWhite).toBe('rgba(255,255,255,0.58)');
+    expect(llganGlassSurface.borderWhite).toBe('rgba(255,255,255,0.68)');
 
-    expect(llganGlassSurface.borderAccent).toBe('rgba(130,170,255,0.18)');
+    expect(llganGlassSurface.borderAccent).toBe('rgba(130,170,255,0.32)');
 
   });
 
@@ -139,11 +139,11 @@ describe('lightLiquidGlassAuroraNebula tokens', () => {
 
     const vars = getLlganCssVars('default');
 
-    expect(vars[llganCssVars.panelAlpha]).toBe('0.44');
+    expect(vars[llganCssVars.panelAlpha]).toBe('0.16');
 
-    expect(vars[llganCssVars.glassBlur]).toBe('30px');
+    expect(vars[llganCssVars.glassBlur]).toBe('52px');
 
-    expect(vars[llganCssVars.centerVeilAlpha]).toBe('0.06');
+    expect(vars[llganCssVars.centerVeilAlpha]).toBe('0.03');
 
   });
 
@@ -153,11 +153,11 @@ describe('lightLiquidGlassAuroraNebula tokens', () => {
     const dashboard = resolveLlganViewGlass('dashboard', 'default');
     const settings = resolveLlganViewGlass('settings', 'default');
     const form = resolveLlganViewGlass('form', 'default');
-    expect(dashboard.card).toBe('rgba(255,255,255,0.52)');
-    expect(settings.card).toBe('rgba(255,255,255,0.62)');
-    expect(settings.button).toBe('rgba(255,255,255,0.64)');
-    expect(settings.borderAccent).toBe('rgba(110,160,255,0.18)');
-    expect(form.panel).toBe('rgba(255,255,255,0.78)');
+    expect(dashboard.card).toBe('rgba(255,255,255,0.18)');
+    expect(settings.card).toBe('rgba(255,255,255,0.32)');
+    expect(settings.button).toBe('rgba(255,255,255,0.34)');
+    expect(settings.borderAccent).toBe('rgba(110,160,255,0.32)');
+    expect(form.panel).toBe('rgba(255,255,255,0.48)');
   });
 
   it('definiert bunte Light-Modal-Header-Gradient-Stops', () => {

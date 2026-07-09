@@ -16,6 +16,8 @@ export {
   shouldShowDebugBadges,
   shouldShowDemoHints,
   containsForbiddenUiTerm,
+  containsSnakeCaseIdentifier,
+  resolveUserFacingSubtitle,
   simplifyBreadcrumbTrailForMobile,
   userFriendlyLabel,
   PREPARED_UI_LABEL,

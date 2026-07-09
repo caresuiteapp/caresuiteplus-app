@@ -81,9 +81,9 @@ function NavItem({
         <Text
           style={[
             navStyles.navLabel,
-            { color: isDark ? '#A9B2C7' : '#475569' },
+            { color: '#000000' },
             active && {
-              color: isDark ? '#FFFFFF' : resolveLightColoredTextColor(accent, accent),
+              color: resolveLightColoredTextColor(accent, accent),
               fontWeight: '700',
             },
           ]}
@@ -181,8 +181,8 @@ function createStyles(
       flexShrink: 0,
       alignSelf: 'stretch',
       minHeight: 0,
-      backgroundColor: isDark ? 'rgba(18,22,43,0.32)' : lightLiquidGlass.sidebar,
-      ...(isDark ? null : lightLiquidGlassWebFx(lightLiquidGlass.blur.medium)),
+      backgroundColor: lightLiquidGlass.sidebar,
+      ...lightLiquidGlassWebFx(lightLiquidGlass.blur.medium),
       borderRightWidth: 1,
       borderRightColor: withAlpha(accent, isDark ? 0.42 : 0.28),
       paddingHorizontal: spacing.md,

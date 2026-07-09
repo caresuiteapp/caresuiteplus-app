@@ -2,11 +2,10 @@ import { ScrollViewStyleReset } from 'expo-router/html';
 import { type PropsWithChildren } from 'react';
 import { DISABLE_HOVER_EFFECTS_CSS } from '@/design/web/disableHoverEffectsCss';
 import { GLASS_SCROLLBARS_CSS } from '@/design/web/glassScrollbarsCss';
+import { LLGAN_GLASS_SURFACE_CSS } from '@/design/web/lightLiquidGlassSurfaceCss';
 import { INVISIBLE_SCROLLBARS_CSS } from '@/design/web/invisibleScrollbarsCss';
 import { WEB_FONT_SCALE_CSS } from '@/design/web/webFontScaleCss';
 import { WEB_SAFE_AREA_GLOBAL_CSS } from '@/lib/platform/webSafeArea';
-
-const ROOT_BG = '#050816';
 
 export default function Root({ children }: PropsWithChildren) {
   return (
@@ -22,9 +21,7 @@ export default function Root({ children }: PropsWithChildren) {
         <style
           dangerouslySetInnerHTML={{
             __html: `
-              html, body, #root, #expo-root {
-                background-color: ${ROOT_BG} !important;
-              }
+              ${LLGAN_GLASS_SURFACE_CSS}
               ${WEB_FONT_SCALE_CSS}
               ${WEB_SAFE_AREA_GLOBAL_CSS}
               ${DISABLE_HOVER_EFFECTS_CSS}

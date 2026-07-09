@@ -3,7 +3,7 @@ import { Platform, ScrollView, StyleSheet, View, type ViewStyle } from 'react-na
 import { usePathname } from 'expo-router';
 import { SafeAreaView, useSafeAreaInsets } from 'react-native-safe-area-context';
 import { useThemeMode } from '@/design/ThemeModeProvider';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { getBreadcrumbs } from '@/lib/navigation';
 import { isAuthRoutePath, isPortalRoutePath } from '@/lib/navigation/isPortalRoute';
 import type { DomainA11yMeta } from '@/lib/a11y/domainScreenMeta';
@@ -73,7 +73,6 @@ export function ScreenShell({
 
   const pathname = usePathname();
   const insets = useSafeAreaInsets();
-  const { colors } = useLegacyTheme();
   const breadcrumbTrail =
     showBreadcrumbs && pathname !== '/' ? getBreadcrumbs(pathname) : undefined;
   const isPortalShell = isPortalRoutePath(pathname);
@@ -101,7 +100,7 @@ export function ScreenShell({
         },
         safe: {
           flex: 1,
-          backgroundColor: shellHostsAurora ? 'transparent' : colors.bgBase,
+          backgroundColor: shellHostsAurora ? 'transparent' : careLightColors.page,
         },
         scrollView: {
           flex: 1,
@@ -143,7 +142,7 @@ export function ScreenShell({
           backgroundColor: shellHostsAurora ? 'transparent' : undefined,
         },
       }),
-    [authMobileBottomPad, colors.bgBase, isAuthRoute, isPhone, shellHostsAurora],
+    [authMobileBottomPad, isAuthRoute, isPhone, shellHostsAurora],
   );
 
   const header = (

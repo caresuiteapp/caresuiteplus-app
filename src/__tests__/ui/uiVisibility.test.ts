@@ -33,6 +33,12 @@ describe('UI visibility (Prompt 103)', () => {
     expect(userFriendlyLabel('preparedOnly Auth')).toBe('Auth vorbereitet');
   });
 
+  it('strips snake_case identifiers from user-facing copy', () => {
+    expect(sanitizeUiText('assist_routes / assist_route_items')).toBe('');
+    expect(sanitizeUiText('changed_after_export')).toBe('nach Export geändert');
+    expect(userFriendlyLabel('Demo / preparedOnly')).toBe('Demo');
+  });
+
   it('hides raw technical terms from public visibility', () => {
     const visibility = defaultPublicVisibility();
     expect(visibility.showDeveloperDiagnostics).toBe(false);

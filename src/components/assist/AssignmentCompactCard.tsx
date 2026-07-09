@@ -63,7 +63,6 @@ export function AssignmentCompactCard({
         },
         card: {
           overflow: 'hidden',
-          backgroundColor: statusAccent.tint,
         },
         cardSelected: {
           borderColor: accentModule,
@@ -84,6 +83,8 @@ export function AssignmentCompactCard({
           paddingRight: spacing.md,
           paddingVertical: spacing.sm,
           gap: spacing.xs,
+          position: 'relative',
+          zIndex: 1,
         },
         headerRow: {
           flexDirection: 'row',
@@ -245,29 +246,18 @@ export function AssignmentCompactCard({
     </>
   );
 
-  const card = onPress ? (
-    <Pressable onPress={onPress} {...webHoverProps}>
-      <PremiumCard
-        style={[styles.cardWrap, styles.card, selected ? styles.cardSelected : null]}
-        accentColor={statusAccent.color}
-      >
-        {cardBody}
-      </PremiumCard>
-    </Pressable>
-  ) : (
-    <View style={styles.hoverHost} {...webHoverProps}>
-      <PremiumCard
-        style={[styles.cardWrap, styles.card, selected ? styles.cardSelected : null]}
-        accentColor={statusAccent.color}
-      >
-        {cardBody}
-      </PremiumCard>
-    </View>
+  const card = (
+    <PremiumCard
+      style={[styles.cardWrap, styles.card, selected ? styles.cardSelected : null]}
+      accentColor={statusAccent.color}
+    >
+      {cardBody}
+    </PremiumCard>
   );
 
   return (
-    <View style={styles.hoverHost}>
-      {card}
+    <View style={styles.hoverHost} {...webHoverProps}>
+      {onPress ? <Pressable onPress={onPress}>{card}</Pressable> : card}
       {showHoverDetails && hovered ? (
         <AssignmentCardHoverDetails assignment={assignment} />
       ) : null}

@@ -685,7 +685,7 @@ export function WfmExportScreen() {
             {candidates.length === 0 ? (
               <EmptyState
                 title="Keine Korrekturkandidaten"
-                message="Reviews mit changed_after_export erscheinen hier."
+                message="Nach Export geänderte Reviews erscheinen hier."
               />
             ) : (
               candidates.map((review) => (
@@ -709,10 +709,10 @@ export function WfmExportScreen() {
 
           {reviewDetail ? (
             <SectionPanel title="Review-Detail" subtitle={reviewDetail.referenceKey}>
-              <Text style={styles.metaLine}>export_status: {reviewDetail.exportStatus}</Text>
-              <Text style={styles.metaLine}>export_version: {reviewDetail.exportVersion ?? 1}</Text>
+              <Text style={styles.metaLine}>Exportstatus: {reviewDetail.exportStatus}</Text>
+              <Text style={styles.metaLine}>Exportversion: {reviewDetail.exportVersion ?? 1}</Text>
               <Text style={styles.metaLine}>
-                changed_after_export: {reviewDetail.changedAfterExport ? 'ja' : 'nein'}
+                Nach Export geändert: {reviewDetail.changedAfterExport ? 'ja' : 'nein'}
               </Text>
               {reviewDetail.changedAfterExportReason ? (
                 <Text style={styles.metaLine}>Grund: {reviewDetail.changedAfterExportReason}</Text>

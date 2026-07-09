@@ -22,10 +22,10 @@ export function AssistTourenScreen() {
         { key: 'vertretung', label: 'Touren-Vertretung', onPress: () => router.push('/assist/touren-vertretung' as never), variant: 'ghost' as const },
       ]}
     >
-      <SectionPanel title="Tourenplanung" subtitle="assist_routes / assist_route_items">
+      <SectionPanel title="Tourenplanung" subtitle="Routen und Vertretungen planen">
         <EmptyState
           title="Noch keine Touren"
-          message="Tourenplanung ist von Fahrten getrennt. Routen und Tour-Items werden perspektivisch in assist_routes gespeichert — derzeit Planung ohne Persistenz."
+          message="Tourenplanung ist von einzelnen Fahrten getrennt. Routen können hier perspektivisch zusammengestellt werden — derzeit noch ohne Speicherung."
           actionLabel="Zum Fahrtenbuch"
           onAction={() => router.push('/assist/fahrten' as never)}
         />

@@ -43,8 +43,9 @@ function RootShell() {
   useEffect(() => {
     cleanupOrphanedFullscreenOverlays();
   }, [pathname]);
+
   const backgroundAnimated =
-    hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf) && !perf.isMobile;
+    hydrated && hostsGlobalBackground && shouldUseHeavyEffects(perf);
   const isDark = mode === 'dark';
   const navigationTheme = isDark
     ? {
@@ -62,21 +63,23 @@ function RootShell() {
 
   return (
     <ThemeProvider value={navigationTheme}>
-      <View style={[styles.root, isDark ? styles.rootDark : styles.rootLight]}>
-        {hostsGlobalBackground ? (
-          <View style={styles.backgroundLayer} pointerEvents="none">
-            <GlobalAnimatedBackground mode={mode} animated={backgroundAnimated} />
-          </View>
-        ) : null}
+      <View style={styles.root}>
         <View style={styles.contentLayer} pointerEvents="box-none">
-          <StatusBar style={isDark ? 'light' : 'dark'} />
-          <Stack
-            screenOptions={{
-              headerShown: false,
-              contentStyle: { backgroundColor: SURFACE_COLOR },
-              animation: 'slide_from_right',
-            }}
-          />
+          {hostsGlobalBackground ? (
+            <View style={styles.backgroundLayer} pointerEvents="none">
+              <GlobalAnimatedBackground mode={mode} animated={backgroundAnimated} />
+            </View>
+          ) : null}
+          <View style={styles.foregroundLayer} pointerEvents="box-none">
+            <StatusBar style={isDark ? 'light' : 'dark'} />
+            <Stack
+              screenOptions={{
+                headerShown: false,
+                contentStyle: { backgroundColor: SURFACE_COLOR },
+                animation: 'slide_from_right',
+              }}
+            />
+          </View>
         </View>
       </View>
     </ThemeProvider>
@@ -109,32 +112,31 @@ export default function RootLayout() {
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-  },
-  rootDark: {
-    backgroundColor: '#050816',
-  },
-  rootLight: {
     backgroundColor: 'transparent',
   },
-  backgroundLayer: {
-    ...StyleSheet.absoluteFillObject,
-    zIndex: 0,
-    ...(Platform.OS === 'web'
-      ? ({
-          position: 'fixed',
-          top: 0,
-          left: 0,
-          right: 0,
-          bottom: 0,
-          width: '100vw',
-          height: '100vh',
-        } as unknown as ViewStyle)
-      : undefined),
-  } as ViewStyle,
   contentLayer: {
     flex: 1,
-    zIndex: 1,
     position: 'relative',
+    backgroundColor: 'transparent',
+  },
+  backgroundLayer: Platform.OS === 'web'
+    ? ({
+        position: 'fixed',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        width: '100vw',
+        height: '100vh',
+        zIndex: 0,
+      } as ViewStyle)
+    : ({
+        ...StyleSheet.absoluteFillObject,
+        zIndex: 0,
+      } as ViewStyle),
+  foregroundLayer: {
+    flex: 1,
+    zIndex: 1,
     backgroundColor: 'transparent',
   },
 });

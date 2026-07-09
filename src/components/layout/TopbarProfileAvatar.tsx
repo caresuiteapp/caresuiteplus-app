@@ -9,6 +9,7 @@ import {
   type ViewStyle,
 } from 'react-native';
 import { PremiumAvatar } from '@/components/ui/PremiumAvatar';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { useAuth } from '@/lib/auth/context';
 import { pickUserAvatarFile } from '@/lib/auth/pickUserAvatarFile';
 import { resolveProfileAvatarDisplayUrl } from '@/lib/auth/profileAvatarUrl';
@@ -86,7 +87,7 @@ export function TopbarProfileAvatar({
           alignItems: 'center',
           justifyContent: 'center',
           borderRadius: 999,
-          backgroundColor: 'rgba(0,0,0,0.42)',
+          backgroundColor: careSuiteModalScrim,
         },
         overlayText: {
           fontSize: 12,

@@ -23,7 +23,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
   splash: {
     image: './assets/splash-icon.png',
     resizeMode: 'contain',
-    backgroundColor: '#070B12',
+    backgroundColor: '#F8FAFC',
   },
   ios: {
     supportsTablet: true,
@@ -50,7 +50,7 @@ export default ({ config }: ConfigContext): ExpoConfig => {
       foregroundImage: './assets/android-icon-foreground.png',
       backgroundImage: './assets/android-icon-background.png',
       monochromeImage: './assets/android-icon-monochrome.png',
-      backgroundColor: '#070B12',
+      backgroundColor: '#F8FAFC',
     },
     package: 'app.caresuiteplus',
     versionCode: 9,

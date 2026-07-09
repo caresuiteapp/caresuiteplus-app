@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { PremiumButton } from '@/components/ui';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { PLATFORM_COLORS } from './PlatformShellLayout';
 import { spacing } from '@/theme';
 
@@ -43,7 +44,7 @@ export function PlatformConfirmModal({
       StyleSheet.create({
         overlay: {
           flex: 1,
-          backgroundColor: 'rgba(0,0,0,0.65)',
+          backgroundColor: careSuiteModalScrim,
           alignItems: 'center',
           justifyContent: 'center',
           padding: spacing.lg,

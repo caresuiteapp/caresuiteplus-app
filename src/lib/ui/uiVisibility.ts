@@ -120,6 +120,9 @@ const LABEL_REPLACEMENTS: [RegExp, string][] = [
   [/\brls\b/gi, 'Mandantentrennung'],
   [/preparedonly/gi, UI_PREPARED_LABEL],
   [/intake_new_route[^\s]*/gi, ''],
+  [/\bexport_status\s*:/gi, 'Exportstatus:'],
+  [/\bexport_version\s*:/gi, 'Exportversion:'],
+  [/\bchanged_after_export\s*:/gi, 'Nach Export geändert:'],
   [/\b[a-z_]+_route\b is not (defined|a valid|supported)[^\n.]*/gi, 'Die Aktion konnte nicht ausgeführt werden.'],
   [/prototyp/gi, 'Vorschau'],
   [/__dev__/gi, 'Entwicklung'],
@@ -271,6 +274,21 @@ type SanitizeOptions = {
   allowTechnical?: boolean;
 };
 
+/** Snake_case identifiers (table/column keys) must not appear in user-facing UI. */
+const SNAKE_CASE_IDENTIFIER = /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/gi;
+
+export function containsSnakeCaseIdentifier(text: string): boolean {
+  return /\b[a-z][a-z0-9]*(?:_[a-z0-9]+)+\b/i.test(text);
+}
+
+/** Returns sanitized subtitle or undefined when nothing user-facing remains. */
+export function resolveUserFacingSubtitle(subtitle?: string | null): string | undefined {
+  if (!subtitle?.trim()) return undefined;
+  const sanitized = sanitizeUiText(subtitle).trim();
+  if (!sanitized || containsSnakeCaseIdentifier(sanitized)) return undefined;
+  return sanitized;
+}
+
 /** Maps internal/dev strings to German user-facing labels. */
 export function sanitizeUiText(text: string, options?: SanitizeOptions): string {
   if (!text) return text;
@@ -280,6 +298,14 @@ export function sanitizeUiText(text: string, options?: SanitizeOptions): string 
   for (const [pattern, replacement] of LABEL_REPLACEMENTS) {
     result = result.replace(pattern, replacement);
   }
+  result = result.replace(SNAKE_CASE_IDENTIFIER, '');
+  result = result.replace(/\bWP\s*\d+\b/gi, '');
+  result = result.replace(/\b[a-z]+_admin\b/gi, 'Geschäftsführung');
+  result = result.replace(/\bchanged_after_export\b/gi, 'nach Export geändert');
+  result = result.replace(/\bexternal_transfer\s*=\s*true\b/gi, 'ohne externe Übertragung');
+  result = result.replace(/\s*\/\s*/g, ' ');
+  result = result.replace(/\s{2,}/g, ' ').trim();
+  result = result.replace(/^[\s·—-]+|[\s·—-]+$/g, '').trim();
   return result;
 }
 

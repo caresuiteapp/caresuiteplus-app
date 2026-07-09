@@ -9,7 +9,7 @@ import {
 } from 'react-native';
 import { pickUserAvatarFile } from '@/lib/auth/pickUserAvatarFile';
 import type { UserAvatarPending } from '@/lib/auth/useravatarservice';
-import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { withAlpha } from '@/design/tokens/motion';
 
 type Size = 'sm' | 'md';
@@ -85,7 +85,7 @@ export function UserProfilePhotoPicker({
           bottom: 0,
           left: 0,
           right: 0,
-          backgroundColor: 'rgba(0,0,0,0.45)',
+          backgroundColor: careSuiteModalScrim,
           paddingVertical: 2,
           alignItems: 'center',
         },

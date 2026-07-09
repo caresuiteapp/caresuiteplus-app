@@ -21,11 +21,11 @@ export const llgsAuroraColors = {
   roseLavender: '#F3DDFB',
 } as const;
 
-/** Near-black ink on milchglas — readable on rgba(255,255,255,0.44–0.58) panels. */
+/** Black ink on milchglas panels. */
 export const llgsTypography = {
-  primary: '#0F1B33',
-  secondary: '#0F1B33',
-  muted: '#1E293B',
+  primary: '#000000',
+  secondary: '#000000',
+  muted: '#000000',
 } as const;
 
 /** Milchglas — synchron mit Aurora-Nebula-Glas-Tokens (llganGlassSurface). */

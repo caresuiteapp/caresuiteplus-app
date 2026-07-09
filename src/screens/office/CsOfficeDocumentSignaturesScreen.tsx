@@ -251,7 +251,7 @@ export function CsOfficeDocumentSignaturesScreen() {
       </C14vSubpageShell>
 
       <Modal visible={sendVisible} animationType="slide" onRequestClose={() => setSendVisible(false)}>
-        <ScrollView style={{ flex: 1, backgroundColor: '#0f172a', padding: spacing.md }}>
+        <ScrollView style={{ flex: 1, backgroundColor: '#F8FAFC', padding: spacing.md }}>
           {canCompose ? (
             <>
               <Text style={{ ...typography.caption, color: '#94a3b8', marginBottom: spacing.sm }}>

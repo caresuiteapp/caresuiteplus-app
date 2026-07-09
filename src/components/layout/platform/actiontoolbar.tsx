@@ -156,7 +156,7 @@ function createStyles(
       fontWeight: '700',
       flexShrink: 1,
     },
-    btnLabelPrimary: { color: isDark ? '#FFFFFF' : primaryBtnStyle.color },
+    btnLabelPrimary: { color: primaryBtnStyle.color },
     btnLabelGhost: { color: colors.textMuted },
   });
 }

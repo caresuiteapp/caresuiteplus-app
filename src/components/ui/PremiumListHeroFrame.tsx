@@ -5,6 +5,7 @@ import { LinearGradient } from 'expo-linear-gradient';
 import { withAlpha } from '@/design/tokens/motion';
 import { auroraHeroWrapperStyle, auroraSharedStyles, AURORA_HERO_COLORS } from '@/components/aurora/auroraShared';
 import { CareLightListHeroFrame } from './CareLightListHeroFrame';
+import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { designTokens, spacing } from '@/theme';
 
 type PremiumListHeroFrameProps = {
@@ -13,11 +14,12 @@ type PremiumListHeroFrameProps = {
   accentColor?: string;
 };
 
-/** Shared hero shell — light surface in light mode, aurora gradient in dark mode. */
+/** Shared hero shell — aurora gradient on animated shells, plain light card elsewhere. */
 export function PremiumListHeroFrame({ children, style, accentColor }: PremiumListHeroFrameProps) {
   const { mode } = useThemeMode();
+  const shellHostsAurora = useShellHostsAurora();
 
-  if (mode === 'light') {
+  if (mode === 'light' && !shellHostsAurora) {
     return (
       <ListHeroSurfaceContext.Provider value="light">
         <CareLightListHeroFrame style={style} accentColor={accentColor}>

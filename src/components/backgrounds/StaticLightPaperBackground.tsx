@@ -1,9 +1,7 @@
 import { useEffect } from 'react';
 import { Image, Platform, StyleSheet, View, type ViewStyle } from 'react-native';
-import { webFixedViewportCoverStyle } from '@/lib/platform/webSafeArea';
 
-const LIGHT_PAPER_BACKGROUND_PNG = require('../../../assets/images/backgrounds/light-abstract-paper-background.png');
-const LIGHT_PAPER_BACKGROUND_SVG = require('../../../assets/images/backgrounds/light-abstract-paper-background.svg');
+const LIGHT_PAPER_BACKGROUND_PNG = require('../../../assets/images/backgrounds/light-abstract-paper-background.png');const LIGHT_PAPER_BACKGROUND_SVG = require('../../../assets/images/backgrounds/light-abstract-paper-background.svg');
 
 export type StaticLightPaperBackgroundProps = {
   dimmed?: boolean;
@@ -90,28 +88,24 @@ export function StaticLightPaperBackground({
   );
 }
 
-const webFixedFull: ViewStyle = (Platform.OS === 'web' ? webFixedViewportCoverStyle() : {}) as ViewStyle;
-
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
     zIndex: 0,
-    ...webFixedFull,
-  },
-  image: {
+  },  image: {
     ...StyleSheet.absoluteFillObject,
     width: '100%' as ViewStyle['width'],
     height: '100%' as ViewStyle['height'],
     ...(Platform.OS === 'web'
       ? {
-          position: 'fixed' as never,
+          position: 'absolute' as never,
           top: 0,
           left: 0,
           right: 0,
           bottom: 0,
-          width: '100vw' as never,
-          height: '100dvh' as never,
+          width: '100%' as never,
+          height: '100%' as never,
           objectFit: 'cover' as never,
           backgroundSize: 'cover' as never,
           backgroundPosition: 'center' as never,

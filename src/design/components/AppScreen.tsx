@@ -32,7 +32,7 @@ type AppScreenProps = {
 
 const DEFAULT_MAX_WIDTH = 720;
 
-/** Premium screen shell — aurora dark backdrop, safe area, responsive padding, centered max width. */
+/** Premium screen shell — light backdrop, safe area, responsive padding, centered max width. */
 export function AppScreen({
   children,
   scroll = true,
@@ -133,8 +133,8 @@ export function AppScreen({
 
   return (
     <View style={styles.auroraRoot} pointerEvents="box-none">
-      <StatusBar style="light" />
-      <GlobalAnimatedBackground mode="dark" animated />
+      <StatusBar style="dark" />
+      <GlobalAnimatedBackground animated />
       {screenBody}
     </View>
   );

@@ -1,11 +1,9 @@
 import { ReactNode } from 'react';
 import { StyleSheet, View, type ViewStyle } from 'react-native';
-import { useThemeMode } from '@/design/ThemeModeProvider';
 import {
   GlobalPersistentSpaceMotionBackground,
   StaticLightPaperBackground,
 } from '@/components/backgrounds';
-import { AuroraBackground } from './aurorabackground';
 
 type GlobalAnimatedBackgroundProps = {
   /** Override ThemeModeProvider (e.g. CareSuiteBackground legacy `mode` prop). */
@@ -20,28 +18,16 @@ type GlobalAnimatedBackgroundProps = {
 
 /**
  * Single shell-root background for CareSuite+.
- * Dark: animated aurora gradient. Light: persistent 240s canvas space motion (G.1).
+ * Always uses the light space/paper backdrop — no dark or black surfaces.
  * Mount once at app/_layout root — never inside columns or per-screen.
  */
 export function GlobalAnimatedBackground({
-  mode: modeOverride,
+  mode: _modeOverride,
   animated = true,
   style,
   children,
   dimmed = false,
 }: GlobalAnimatedBackgroundProps) {
-  const { mode: themeMode } = useThemeMode();
-  const mode = modeOverride ?? themeMode;
-
-  if (mode === 'dark') {
-    return (
-      <View style={[styles.root, style]} pointerEvents="box-none">
-        <AuroraBackground animated={animated} />
-        {children}
-      </View>
-    );
-  }
-
   return (
     <View style={[styles.root, styles.lightRoot, style]} pointerEvents="none">
       {animated ? (

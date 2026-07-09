@@ -22,6 +22,14 @@ describe('devicePerformance (pure)', () => {
     expect(livePollIntervalMs('desktopHigh', 15_000)).toBe(15_000);
   });
 
+  it('enables heavy effects on mobileBalanced (non-Safari)', async () => {
+    const { getDevicePerformanceProfile, shouldUseHeavyEffects } = await import(
+      '@/lib/performance/devicePerformance'
+    );
+    const snap = getDevicePerformanceProfile({ viewportWidth: 390 });
+    expect(shouldUseHeavyEffects(snap)).toBe(true);
+  });
+
   it('disables heavy effects on mobile safari snapshot', async () => {
     const { getDevicePerformanceProfile, shouldUseHeavyEffects } = await import(
       '@/lib/performance/devicePerformance'
@@ -104,7 +112,7 @@ describe('performanceCss', () => {
     expect(PERFORMANCE_BODY_CLASSES.heavyEffectsOff).toBe('disable-heavy-effects');
   });
 
-  it('disables heavy effects on all mobile profiles', async () => {
+  it('disables heavy effects only when shouldUseHeavyEffects is false', async () => {
     const toggle = vi.fn();
     vi.stubGlobal('document', {
       documentElement: { classList: { toggle } },
@@ -123,22 +131,23 @@ describe('performanceCss', () => {
       batterySaver: false,
       activeTracking: false,
       profile: 'mobileBalanced',
+      lowMemory: false,
     });
-    expect(toggle).toHaveBeenCalledWith(PERFORMANCE_BODY_CLASSES.heavyEffectsOff, true);
+    expect(toggle).toHaveBeenCalledWith(PERFORMANCE_BODY_CLASSES.heavyEffectsOff, false);
     vi.unstubAllGlobals();
   });
 });
 
 describe('lightLiquidGlassWebFx mobile thermal guard', () => {
-  it('skips backdrop-filter on narrow/coarse viewports', async () => {
+  it('keeps backdrop-filter on narrow/coarse viewports', async () => {
     vi.stubGlobal('window', {
       innerWidth: 390,
       matchMedia: () => ({ matches: true }),
     });
     const { lightLiquidGlassWebFx } = await import('@/design/tokens/auroraGlass');
     const fx = lightLiquidGlassWebFx(24, 1.4) as Record<string, unknown>;
-    expect(fx.backdropFilter).toBeUndefined();
-    expect(fx.WebkitBackdropFilter).toBeUndefined();
+    expect(fx.backdropFilter).toContain('blur');
+    expect(fx.WebkitBackdropFilter).toContain('blur');
     expect(fx.boxShadow).toBeDefined();
     vi.unstubAllGlobals();
   });

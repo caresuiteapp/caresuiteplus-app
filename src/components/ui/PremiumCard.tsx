@@ -15,6 +15,7 @@ import Animated, {
 import { LinearGradient } from 'expo-linear-gradient';
 import { useThemeMode } from '@/design/ThemeModeProvider';
 import { useAuroraGlassCardStyle } from '@/design/tokens/auroraGlass';
+import { LlganGlassShell } from '@/design/web/applyLlganGlassDom';
 import { glassFx, withAlpha } from '@/design/tokens/motion';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import { CareLightCard } from './CareLightCard';
@@ -32,6 +33,19 @@ type Props = {
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
+function splitCardSurfaceStyle(style?: StyleProp<ViewStyle>): {
+  hostStyle?: ViewStyle;
+  tintOverlay?: string;
+} {
+  const flat = StyleSheet.flatten(style);
+  if (!flat) return {};
+  const { backgroundColor, ...hostStyle } = flat;
+  return {
+    hostStyle: Object.keys(hostStyle).length > 0 ? hostStyle : undefined,
+    tintOverlay: typeof backgroundColor === 'string' ? backgroundColor : undefined,
+  };
+}
+
 /** Milchglas card body for light LLGAN — dark readable text on frosted white glass. */
 function LightLganPremiumCard({
   children,
@@ -44,7 +58,8 @@ function LightLganPremiumCard({
   onPress?: () => void;
   accentColor?: string;
 }) {
-  const glassCardStyle = useAuroraGlassCardStyle({ viewContext: 'dashboard', intensity: 'default' });
+  const glassCardStyle = useAuroraGlassCardStyle({ viewContext: 'dashboard', intensity: 'strong' });
+  const { hostStyle, tintOverlay } = splitCardSurfaceStyle(style);
   const scale = useSharedValue(1);
   const animStyle = useAnimatedStyle(() => ({
     transform: [{ scale: scale.value }],
@@ -55,22 +70,42 @@ function LightLganPremiumCard({
       StyleSheet.create({
         shadowHost: {
           borderRadius: radius.card,
-          shadowColor: 'rgba(70,110,170,0.16)',
-          shadowOffset: { width: 0, height: 12 },
-          shadowOpacity: 0.2,
-          shadowRadius: 16,
-          elevation: 8,
+          ...(Platform.OS === 'web'
+            ? ({
+                boxShadow: '0 12px 16px rgba(70, 110, 170, 0.2)',
+              } as ViewStyle)
+            : {
+                shadowColor: 'rgba(70,110,170,0.16)',
+                shadowOffset: { width: 0, height: 12 },
+                shadowOpacity: 0.2,
+                shadowRadius: 16,
+                elevation: 8,
+              }),
         },
         wrapper: {
           borderRadius: radius.card,
-          overflow: 'hidden',
+          overflow: Platform.OS === 'web' ? 'visible' : 'hidden',
           position: 'relative',
+        },
+        contentClip: {
+          borderRadius: radius.card,
+          overflow: 'hidden',
+        },
+        frostSheen: {
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          right: 0,
+          height: '38%',
+          borderTopLeftRadius: radius.card,
+          borderTopRightRadius: radius.card,
+          opacity: Platform.OS === 'web' ? 0.35 : 1,
         },
         innerBorder: {
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.card,
           borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.58)',
+          borderColor: 'rgba(255,255,255,0.72)',
         },
         accentRim: {
           position: 'absolute',
@@ -87,22 +122,59 @@ function LightLganPremiumCard({
     [],
   );
 
-  const inner = (
-    <View style={[styles.wrapper, glassCardStyle]}>
-      <View style={styles.innerBorder} pointerEvents="none" />
+  const cardBody = (
+    <>
+      {Platform.OS !== 'web' ? (
+        <LinearGradient
+          colors={['rgba(255,255,255,0.52)', 'rgba(255,255,255,0.12)', 'transparent']}
+          start={{ x: 0.5, y: 0 }}
+          end={{ x: 0.5, y: 1 }}
+          style={styles.frostSheen}
+          pointerEvents="none"
+        />
+      ) : null}
+      {tintOverlay ? (
+        <View
+          style={[StyleSheet.absoluteFillObject, { backgroundColor: tintOverlay }]}
+          pointerEvents="none"
+        />
+      ) : null}
+      {Platform.OS !== 'web' ? (
+        <View style={styles.innerBorder} pointerEvents="none" />
+      ) : null}
       {accentColor ? (
         <View style={[styles.accentRim, { backgroundColor: accentColor }]} pointerEvents="none" />
       ) : null}
-      <View style={styles.content}>{children}</View>
-    </View>
+      <View style={[styles.content, styles.contentClip, { zIndex: 1 }]}>{children}</View>
+    </>
+  );
+
+  if (Platform.OS === 'web') {
+    const shell = (
+      <LlganGlassShell kind="card" style={[styles.shadowHost, styles.wrapper, glassCardStyle, hostStyle]}>
+        {cardBody}
+      </LlganGlassShell>
+    );
+    if (!onPress) return shell;
+    return (
+      <Pressable onPress={onPress} style={webCursor}>
+        {shell}
+      </Pressable>
+    );
+  }
+
+  const inner = (
+    <LlganGlassShell kind="card" style={[styles.wrapper, glassCardStyle]}>
+      {cardBody}
+    </LlganGlassShell>
   );
 
   if (!onPress) {
-    return <Animated.View style={[styles.shadowHost, animStyle, style]}>{inner}</Animated.View>;
+    return <Animated.View style={[styles.shadowHost, animStyle, hostStyle]}>{inner}</Animated.View>;
   }
 
   return (
-    <Animated.View style={[styles.shadowHost, animStyle, style]}>
+    <Animated.View style={[styles.shadowHost, animStyle, hostStyle]}>
       <Pressable
         onPress={onPress}
         onPressIn={() => {

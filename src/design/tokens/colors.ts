@@ -7,8 +7,8 @@ export const careSuiteColors = {
       app: '#F8FAFC',
       soft: '#FFFFFF',
       elevated: '#FFFFFF',
-      dark: '#050816',
-      darkElevated: '#0B1024',
+      dark: '#F1F5F9',
+      darkElevated: '#E2E8F0',
     },
     brand: {
       navy: '#07122A',
@@ -18,9 +18,9 @@ export const careSuiteColors = {
       violet: '#8B7CFF',
     },
     text: {
-      primary: '#0F1B33',
-      secondary: '#334155',
-      muted: '#475569',
+      primary: '#000000',
+      secondary: '#000000',
+      muted: '#000000',
       inverse: '#F8FAFC',
     },
     status: {
@@ -42,11 +42,11 @@ export const careSuiteColors = {
   },
   dark: {
     background: {
-      app: '#080D1A',
-      soft: '#101827',
-      elevated: '#171B22',
-      dark: '#050816',
-      darkElevated: '#0B1024',
+      app: '#F8FAFC',
+      soft: '#FFFFFF',
+      elevated: '#FFFFFF',
+      dark: '#F1F5F9',
+      darkElevated: '#E2E8F0',
     },
     brand: {
       navy: '#07122A',
@@ -56,9 +56,9 @@ export const careSuiteColors = {
       violet: '#7C5CFF',
     },
     text: {
-      primary: '#FFFFFF',
-      secondary: '#C6CEDB',
-      muted: '#8B95A7',
+      primary: '#000000',
+      secondary: '#000000',
+      muted: '#000000',
       inverse: '#07122A',
     },
     status: {

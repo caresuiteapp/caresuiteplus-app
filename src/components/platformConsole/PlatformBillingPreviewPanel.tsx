@@ -165,7 +165,7 @@ const styles = StyleSheet.create({
   },
   btn: {
     alignSelf: 'flex-start',
-    backgroundColor: '#132036',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: PLATFORM_COLORS.accent,
     borderRadius: 8,

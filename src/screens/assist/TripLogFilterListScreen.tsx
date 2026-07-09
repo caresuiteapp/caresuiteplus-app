@@ -6,7 +6,7 @@ import { useState } from 'react';
 export function TripLogFilterListScreen() {
   const [filter, setFilter] = useState('alle');
   return (
-    <ScreenShell title="Fahrtenbuch Filter" subtitle="WP 304">
+    <ScreenShell title="Fahrtenbuch Filter" subtitle="Zeitraum und Status filtern">
       <PremiumCard>
         <FilterChipGroup options={[{ key: 'alle', label: 'Alle' }, { key: 'heute', label: 'Heute' }]} value={filter} onChange={setFilter} />
       </PremiumCard>

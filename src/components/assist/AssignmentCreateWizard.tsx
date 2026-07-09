@@ -223,7 +223,7 @@ export function AssignmentCreateWizard({ visible, onClose, onCreated }: Assignme
         );
       case 'leistung':
         return (
-          <SectionPanel title="Leistung & Aufgaben" subtitle="tenant_service_catalog">
+          <SectionPanel title="Leistung & Aufgaben" subtitle="Aus Mandanten-Leistungskatalog">
             <PremiumInput
               label="Leistung"
               value={form.serviceKey}

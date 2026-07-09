@@ -20,6 +20,7 @@ import {
 } from '@/design/tokens/auroraGlass';
 import { resolveLlganViewGlass } from '@/design/tokens/lightLiquidGlassAuroraNebula';
 import { careRadius } from '@/design/tokens/radius';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
 import { careSpacing } from '@/design/tokens/spacing';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
@@ -160,7 +161,7 @@ export function CollapsibleSidebarSection<T>({
         },
         modalBackdrop: {
           flex: 1,
-          backgroundColor: lightFormModal ? 'rgba(15, 27, 51, 0.16)' : 'rgba(0,0,0,0.55)',
+          backgroundColor: careSuiteModalScrim,
           justifyContent: 'center',
           alignItems: 'center',
           padding: careSpacing.lg,

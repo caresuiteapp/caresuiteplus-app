@@ -26,14 +26,14 @@ export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
     bgBase: p.background.app,
     bgPremium: p.background.soft,
     bgSurface: p.background.elevated,
-    bgElevated: isDark ? '#20242D' : p.background.elevated,
-    bgPanel: isDark ? '#252A33' : p.background.soft,
-    bgInput: isDark ? '#1A202A' : p.background.app,
+    bgElevated: p.background.elevated,
+    bgPanel: p.background.soft,
+    bgInput: p.background.app,
 
     textPrimary: p.text.primary,
     textSecondary: p.text.secondary,
     textMuted: p.text.muted,
-    textDisabled: isDark ? '#5E6675' : '#94A3B8',
+    textDisabled: '#000000',
 
     orange: p.brand.orange,
     amber: isDark ? '#FFB020' : p.brand.gold,
@@ -58,7 +58,7 @@ export function legacyColorsFromPalette(mode: ColorMode = 'dark') {
     glowOrange: isDark ? 'rgba(255,149,0,0.38)' : 'rgba(255,122,26,0.28)',
     glowAmber: isDark ? 'rgba(255,176,32,0.30)' : 'rgba(255,179,71,0.24)',
     glowCyan: isDark ? 'rgba(98,243,255,0.24)' : 'rgba(53,215,255,0.20)',
-    glowDark: 'rgba(0,0,0,0.45)',
+    glowDark: 'rgba(15,27,51,0.18)',
 
     primary: p.brand.orange,
     error: p.status.danger,
@@ -72,14 +72,8 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
 
   return {
     card: {
-      default: (isDark ? ['#1E2330', '#171B22'] : [p.background.elevated, p.background.soft]) as [
-        string,
-        string,
-      ],
-      elevated: (isDark ? ['#252A35', '#1E2330'] : [p.background.soft, p.background.elevated]) as [
-        string,
-        string,
-      ],
+      default: [p.background.elevated, p.background.soft] as [string, string],
+      elevated: [p.background.soft, p.background.elevated] as [string, string],
     },
     primary: (isDark ? [...AURORA_BUTTON_PRIMARY] : [p.brand.orange, p.brand.gold]) as [
       string,
@@ -103,12 +97,8 @@ export function resolveLegacyGradients(mode: ColorMode = 'dark') {
       ],
     },
     glass: {
-      panel: (isDark
-        ? ['rgba(23,27,34,0.72)', 'rgba(16,24,39,0.58)']
-        : ['rgba(255,255,255,0.82)', 'rgba(248,250,252,0.72)']) as [string, string],
-      overlay: (isDark
-        ? ['rgba(8,13,26,0.55)', 'rgba(5,7,17,0.82)']
-        : ['rgba(7,18,42,0.28)', 'rgba(7,18,42,0.48)']) as [string, string],
+      panel: ['rgba(255,255,255,0.82)', 'rgba(248,250,252,0.72)'] as [string, string],
+      overlay: ['rgba(7,18,42,0.28)', 'rgba(7,18,42,0.48)'] as [string, string],
     },
     ambient: {
       orange: [`${p.brand.orange}2E`, 'transparent'] as [string, string],

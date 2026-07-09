@@ -32,7 +32,7 @@ export function MarketplaceAdminScreen() {
     return (
       <ScreenShell title="Marktplatz-Admin" subtitle="Nur Administratoren">
         <LockedActionBanner
-          message="Partner-Freigabe nur für business_admin."
+          message="Partner-Freigabe nur für Geschäftsführung und Administratoren."
           roleLabel={roleLabel}
         />
       </ScreenShell>

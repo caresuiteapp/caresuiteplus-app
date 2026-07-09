@@ -8,6 +8,7 @@ import {
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { withAlpha } from '@/design/tokens/motion';
 import type { LlganViewContext } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { resolveUserFacingSubtitle } from '@/lib/ui/uiVisibility';
 import { radius, spacing } from '@/theme';
 
 type SectionPanelProps = {
@@ -50,6 +51,7 @@ export function SectionPanel({
   const glassSurface = !openSurface && (isDark || auroraActive);
   const moduleAccent = accentColor ?? colors.cyan;
   const lightGlassShell = !openSurface && isLight && auroraActive;
+  const userSubtitle = resolveUserFacingSubtitle(subtitle);
 
   const styles = useMemo(
     () =>
@@ -74,7 +76,7 @@ export function SectionPanel({
           ...StyleSheet.absoluteFillObject,
           borderRadius: radius.lg,
           borderWidth: 1,
-          borderColor: 'rgba(255,255,255,0.58)',
+          borderColor: 'rgba(255,255,255,0.72)',
         },
         header: {
           paddingHorizontal: spacing.md,
@@ -136,7 +138,7 @@ export function SectionPanel({
       {lightGlassShell ? <View style={styles.innerBorder} pointerEvents="none" /> : null}
       <View style={styles.header}>
         <Text style={styles.title}>{title}</Text>
-        {subtitle ? <Text style={styles.subtitle}>{subtitle}</Text> : null}
+        {userSubtitle ? <Text style={styles.subtitle}>{userSubtitle}</Text> : null}
       </View>
       <View style={styles.body}>{children}</View>
     </View>

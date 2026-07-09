@@ -8,7 +8,7 @@ export default function PlatformRootLayout() {
       <Stack
         screenOptions={{
           headerShown: false,
-          contentStyle: { ...routeLayoutContentStyle, backgroundColor: '#050816' },
+          contentStyle: routeLayoutContentStyle,
           animation: 'slide_from_right',
         }}
       >

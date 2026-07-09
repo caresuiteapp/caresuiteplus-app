@@ -52,7 +52,7 @@ const styles = StyleSheet.create({
   },
   chipActive: {
     borderColor: PLATFORM_COLORS.accent,
-    backgroundColor: '#132036',
+    backgroundColor: '#F1F5F9',
   },
   chipText: {
     color: PLATFORM_COLORS.muted,

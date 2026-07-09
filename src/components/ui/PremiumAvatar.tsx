@@ -1,6 +1,7 @@
 import React from 'react';
 import { Image, StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { LinearGradient } from 'expo-linear-gradient';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { colors, typography } from '@/theme';
 
 type Size = 'sm' | 'md' | 'lg' | 'xl';
@@ -67,7 +68,7 @@ export function PremiumAvatar({
           />
         ) : (
           <LinearGradient
-            colors={['#252A35', '#1E2330']}
+            colors={[careLightColors.surface, careLightColors.page]}
             style={[
               styles.fallback,
               {

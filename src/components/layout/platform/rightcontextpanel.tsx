@@ -135,7 +135,7 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
         <PlatformProfileMenu accentColor={accent} fullWidth />
 
         <View style={[styles.tenantCard, tenantGlass]}>
-          {!isDark ? <View style={styles.tenantCardTint} pointerEvents="none" /> : null}
+          <View style={styles.tenantCardTint} pointerEvents="none" />
           <TenantMandantCardContent
             logoUrl={tenantLogoUrl}
             logoLoading={tenantLogoLoading}
@@ -209,10 +209,8 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
                       style={[
                         styles.navItem,
                         active && {
-                          backgroundColor: isDark
-                            ? withAlpha(accent, 0.2)
-                            : 'rgba(130,170,255,0.16)',
-                          borderColor: isDark ? withAlpha(accent, 0.65) : 'rgba(130,170,255,0.32)',
+                          backgroundColor: 'rgba(130,170,255,0.16)',
+                          borderColor: 'rgba(130,170,255,0.32)',
                         },
                       ]}
                     >
@@ -224,7 +222,7 @@ export function RightContextPanel({ mainModule, accentColor }: RightContextPanel
                         style={[
                           styles.navLabel,
                           active && {
-                            color: isDark ? '#FFFFFF' : resolveLightColoredTextColor(accent, accent),
+                            color: resolveLightColoredTextColor(accent, accent),
                             fontWeight: '700',
                           },
                         ]}
@@ -273,13 +271,11 @@ function createStyles(
   const sidebarSurface = resolveLlganGlassSurface('default');
   const chipSurface = resolveLlganGlassSurface('subtle');
   const glassBorder = isDark ? glassFx.border : sidebarSurface.borderAccent;
-  const chipBg = isDark ? 'rgba(255,255,255,0.04)' : chipSurface.chip;
-  const sidebarGlass = isDark
-    ? { backgroundColor: 'rgba(18,22,43,0.28)' }
-    : {
-        backgroundColor: sidebarSurface.sidebar,
-        ...lightLiquidGlassWebFx(sidebarSurface.blurDesktop, sidebarSurface.saturate),
-      };
+  const chipBg = chipSurface.chip;
+  const sidebarGlass = {
+    backgroundColor: sidebarSurface.sidebar,
+    ...lightLiquidGlassWebFx(sidebarSurface.blurDesktop, sidebarSurface.saturate),
+  };
 
   return StyleSheet.create({
     root: {
@@ -362,9 +358,9 @@ function createStyles(
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
       borderWidth: 1,
-      borderColor: withAlpha(accent, isDark ? 0.35 : 0.24),
+      borderColor: withAlpha(accent, 0.24),
       backgroundColor: chipBg,
-      ...(isDark ? null : lightLiquidGlassWebFx(chipSurface.blurMobile, chipSurface.saturate)),
+      ...lightLiquidGlassWebFx(chipSurface.blurMobile, chipSurface.saturate),
     },
     actionIcon: { fontSize: 14 },
     actionLabel: { ...typography.caption, color: colors.textPrimary, fontWeight: '600', flex: 1 },
@@ -385,9 +381,9 @@ function createStyles(
       paddingHorizontal: spacing.sm,
       borderRadius: radius.md,
       borderWidth: 1,
-      borderColor: withAlpha(accent, isDark ? 0.22 : 0.18),
+      borderColor: withAlpha(accent, 0.18),
       backgroundColor: chipBg,
-      ...(isDark ? null : lightLiquidGlassWebFx(chipSurface.blurMobile, chipSurface.saturate)),
+      ...lightLiquidGlassWebFx(chipSurface.blurMobile, chipSurface.saturate),
       position: 'relative',
     },
     navActiveBar: {

@@ -660,7 +660,7 @@ const styles = StyleSheet.create({
 
   btn: {
 
-    backgroundColor: '#132036',
+    backgroundColor: '#F1F5F9',
 
     paddingHorizontal: spacing.md,
 

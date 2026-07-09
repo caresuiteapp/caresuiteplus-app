@@ -14,7 +14,7 @@ export function AccountingExportHistoryPanel({ batches }: Props) {
       <Text style={styles.title}>Export-Historie</Text>
       <InfoBanner
         title="Nur Vorbereitung"
-        message="Exports ohne external_transfer=true — kein produktiver DATEV/Lexware/sevDesk-Transfer."
+        message="Exports ohne externe Übertragung — kein produktiver DATEV/Lexware/sevDesk-Transfer."
       />
       {batches.length === 0 ? (
         <Text style={styles.hint}>Noch keine Export-Batches.</Text>

@@ -41,11 +41,11 @@ export function GradientModalActionButton({
 
   const labelColor = lightModal
     ? isPrimary
-      ? '#FFFFFF'
+      ? '#000000'
       : isDanger
         ? '#B91C1C'
         : text.primary
-    : '#FFFFFF';
+    : '#000000';
 
   return (
     <Pressable

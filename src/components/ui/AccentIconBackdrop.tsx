@@ -16,7 +16,7 @@ type AccentIconBackdropProps = {
   style?: ViewStyle;
 };
 
-/** Dark soft rounded backing for colored icons on light orbital surfaces. */
+/** Light glass rounded backing for colored icons on orbital surfaces. */
 export function AccentIconBackdrop({
   accentColor,
   size = 32,

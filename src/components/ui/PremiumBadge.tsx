@@ -3,6 +3,7 @@ import { StyleSheet, Text, View, type ViewStyle } from 'react-native';
 import { resolveAccentTextChipStyle } from '@/design/tokens/accentContrast';
 import { useLightLiquidGlassShell } from '@/design/tokens/auroraGlass';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
+import { userFriendlyLabel } from '@/lib/ui/uiVisibility';
 import { careSuiteAuroraTheme } from '@/theme/careSuiteAurora';
 import { colors } from '@/theme';
 
@@ -42,6 +43,7 @@ export function PremiumBadge({ label, variant = 'orange', style, dot = false, si
   const base = CONFIG[variant] ?? CONFIG.muted;
   const chip = useLightShell ? null : isLight ? resolveAccentTextChipStyle(base.text) : null;
   const compact = size === 'compact';
+  const displayLabel = userFriendlyLabel(label);
 
   return (
     <View
@@ -61,7 +63,7 @@ export function PremiumBadge({ label, variant = 'orange', style, dot = false, si
         numberOfLines={1}
         ellipsizeMode="tail"
       >
-        {label}
+        {displayLabel}
       </Text>
     </View>
   );

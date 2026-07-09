@@ -13,6 +13,7 @@ import { OfficeMessageContextPanel } from '@/components/office/officemessagecont
 import { OfficeMessageThread } from '@/components/office/officemessagethread';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { moduleColor } from '@/design/tokens/modules';
 import { useOfficeMessageThreadDetail } from '@/hooks/useofficemessagethreaddetail';
@@ -103,11 +104,7 @@ export function OfficeMessageThreadModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: isPhone
-            ? c.surface
-            : isDark
-              ? 'rgba(4,8,24,0.72)'
-              : 'rgba(7,18,42,0.45)',
+          backgroundColor: isPhone ? c.surface : careSuiteModalScrimStrong,
           justifyContent: isPhone ? 'flex-start' : 'center',
           alignItems: isPhone ? 'stretch' : 'center',
           padding: isPhone ? 0 : spacing.md,

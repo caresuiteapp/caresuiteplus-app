@@ -5,6 +5,7 @@ import Animated, {
   withSpring,
 } from 'react-native-reanimated';
 import { LinearGradient } from 'expo-linear-gradient';
+import { careLightColors } from '@/design/tokens/lightTheme';
 import { colors, motion, radius, typography } from '@/theme';
 import { PremiumBadge } from './PremiumBadge';
 
@@ -47,7 +48,7 @@ export function ModuleTile({
         style={styles.pressable}
       >
         <LinearGradient
-          colors={['#1E2330', '#171B22']}
+          colors={[careLightColors.surface, careLightColors.page]}
           start={{ x: 0, y: 0 }}
           end={{ x: 0, y: 1 }}
           style={StyleSheet.absoluteFill}

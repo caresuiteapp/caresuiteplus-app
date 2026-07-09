@@ -15,8 +15,7 @@ import { useAuth } from '@/lib/auth/context';
 import { usePermissions } from '@/hooks/usePermissions';
 import { TENANT_SETTINGS_PERMISSION, TENANT_SETTINGS_ROUTE } from '@/lib/tenant/tenantSettingsRoute';
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
-import { darkGlassSurfaceText, lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
-import { glass as glassTokens } from '@/design/tokens/glass';
+import { lightLiquidGlass, lightLiquidGlassWebFx } from '@/design/tokens/auroraGlass';
 import { withAlpha } from '@/design/tokens/motion';
 import {
   PLATFORM_CONTEXT_PANEL_BREAKPOINT,
@@ -44,28 +43,12 @@ const TOPBAR_ICON_SIZE = 32;
 
 const webCursor = Platform.OS === 'web' ? ({ cursor: 'pointer' } as unknown as ViewStyle) : null;
 
-const webGlassBlur =
-  Platform.OS === 'web'
-    ? ({
-        backdropFilter: `blur(${glassTokens.blur.medium}px)`,
-        WebkitBackdropFilter: `blur(${glassTokens.blur.medium}px)`,
-      } as unknown as ViewStyle)
-    : null;
-
-function glassSurface(isDark: boolean): ViewStyle {
-  if (!isDark) {
-    return {
-      borderWidth: 1,
-      borderColor: lightLiquidGlass.borderAccent,
-      backgroundColor: lightLiquidGlass.chip,
-      ...lightLiquidGlassWebFx(lightLiquidGlass.blur.light),
-    };
-  }
+function glassSurface(): ViewStyle {
   return {
     borderWidth: 1,
-    borderColor: glassTokens.border,
-    backgroundColor: glassTokens.panel,
-    ...webGlassBlur,
+    borderColor: lightLiquidGlass.borderAccent,
+    backgroundColor: lightLiquidGlass.chip,
+    ...lightLiquidGlassWebFx(lightLiquidGlass.blur.light),
   };
 }
 
@@ -75,7 +58,7 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
   const { signOut } = useAuth();
   const { can } = usePermissions();
   const tenantName = useTenantDisplayName();
-  const { colors, isDark } = useLegacyTheme();
+  const { colors } = useLegacyTheme();
   const accent = accentColor ?? colors.violet;
   const [tenantOpen, setTenantOpen] = useState(false);
   const showCompactTopbarControls = width < PLATFORM_CONTEXT_PANEL_BREAKPOINT;
@@ -89,7 +72,7 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
     () => resolveTopbarEndZoneInsets(width, mainModule, spacing.lg),
     [mainModule, width],
   );
-  const styles = useMemo(() => createStyles(isDark, colors), [isDark, colors]);
+  const styles = useMemo(() => createStyles(colors), [colors]);
   const canManageTenant = can(TENANT_SETTINGS_PERMISSION);
 
   const tenantMenuItems: { label: string; href?: string; action?: () => void }[] = [
@@ -179,13 +162,13 @@ export function PlatformTopbar({ mainModule, accentColor }: PlatformTopbarProps)
   );
 }
 
-function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>['colors']) {
-  const glassBorder = isDark ? glassTokens.border : colors.borderSoft;
-  const glass = glassSurface(isDark);
+function createStyles(colors: ReturnType<typeof useLegacyTheme>['colors']) {
+  const glassBorder = colors.borderSoft;
+  const glass = glassSurface();
 
   const topbarPrimaryNameText: TextStyle = {
     ...typography.bodyStrong,
-    color: isDark ? '#FFFFFF' : colors.textPrimary,
+    color: '#000000',
     fontWeight: '700',
     lineHeight: 20,
     textAlign: 'center',
@@ -211,7 +194,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       paddingHorizontal: spacing.lg,
       paddingTop: PLATFORM_SHELL_HEADER_TOP_INSET,
       paddingBottom: PLATFORM_SHELL_HEADER_TOP_INSET,
-      borderBottomWidth: isDark ? 0 : 0,
+      borderBottomWidth: 0,
       borderBottomColor: glassBorder,
       backgroundColor: 'transparent',
       zIndex: 20,
@@ -275,7 +258,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     },
     tenantLabel: {
       ...typography.caption,
-      color: colors.textMuted,
+      color: '#000000',
       fontSize: 10,
       lineHeight: 12,
       textTransform: 'uppercase',
@@ -291,7 +274,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       alignItems: 'center',
       justifyContent: 'center',
     },
-    chevron: { fontSize: 10, color: colors.textMuted },
+    chevron: { fontSize: 10, color: '#000000' },
     dropdown: {
       position: 'absolute',
       top: '100%',
@@ -300,12 +283,15 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
       minWidth: 240,
       borderRadius: radius.lg,
       borderWidth: 1,
-      borderColor: glassBorder,
-      backgroundColor: glassTokens.modal,
+      borderColor: lightLiquidGlass.borderAccent,
+      backgroundColor: lightLiquidGlass.modal,
       paddingVertical: spacing.xs,
       zIndex: 30,
       ...(Platform.OS === 'web'
-        ? ({ boxShadow: '0 12px 40px rgba(0,0,0,0.35)', ...webGlassBlur } as unknown as ViewStyle)
+        ? ({
+            boxShadow: '0 12px 40px rgba(15,23,42,0.12)',
+            ...lightLiquidGlassWebFx(lightLiquidGlass.blur.medium),
+          } as unknown as ViewStyle)
         : null),
     },
     dropdownItem: {
@@ -316,7 +302,7 @@ function createStyles(isDark: boolean, colors: ReturnType<typeof useLegacyTheme>
     },
     dropdownText: {
       ...typography.body,
-      color: darkGlassSurfaceText.primary,
+      color: '#000000',
       fontWeight: '600',
       textAlign: 'center',
       width: '100%',

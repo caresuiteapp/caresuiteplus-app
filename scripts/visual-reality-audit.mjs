@@ -2,7 +2,7 @@
 /**
  * Visual Reality audit — verifies light premium UI on main + list/detail screens.
  */
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readFileSync, readdirSync, statSync } from 'node:fs';
 import { dirname, join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 
@@ -189,6 +189,15 @@ const FORBIDDEN_DARK_BG_PATTERNS = [
   '#070B12',
   '#050816',
   '#080D1A',
+  '#0f172a',
+  '#132036',
+  '#1E2330',
+  '#171B22',
+  'rgba(4,8,24',
+  'rgba(0,0,0,0.55)',
+  'rgba(0,0,0,0.65)',
+  "backgroundColor: 'rgba(0,0,0",
+  "backgroundColor: \"rgba(0,0,0",
 ];
 
 const ROUTE_LAYOUT_FILES = [
@@ -229,10 +238,13 @@ const LIGHT_COLORS = [
   "page: '#F8FAFC'",
   "surface: '#FFFFFF'",
   "navy: '#07122A'",
-  "text: '#0F172A'",
-  "muted: '#64748B'",
+  "text: '#000000'",
+  "muted: '#000000'",
   "orange: '#FF7A1A'",
   "green: '#22C55E'",
+  'careSuiteModalScrim',
+  'CARESUITE_INK',
+  'careSuiteDocumentRootBg',
 ];
 
 function assertNoDarkBackground(rel) {
@@ -247,6 +259,42 @@ function assertNoDarkBackground(rel) {
     }
   }
 }
+
+function walkTsFiles(dir, acc = []) {
+  for (const entry of readdirSync(dir)) {
+    const full = join(dir, entry);
+    const st = statSync(full);
+    if (st.isDirectory()) {
+      if (entry === 'node_modules' || entry === '__tests__') continue;
+      walkTsFiles(full, acc);
+      continue;
+    }
+    if (/\.(tsx?|jsx?)$/.test(entry)) acc.push(full);
+  }
+  return acc;
+}
+
+function relFromRoot(absPath) {
+  return absPath.replace(/\\/g, '/').replace(`${root.replace(/\\/g, '/')}/`, '');
+}
+
+const POPUP_SURFACE_FILES = walkTsFiles(join(root, 'src'))
+  .map(relFromRoot)
+  .filter(
+    (rel) =>
+      /Modal|Popup|Drawer|Overlay|platformmodal/i.test(rel) &&
+      !rel.includes('__tests__') &&
+      !rel.includes('modalscreens.ts') &&
+      !rel.includes('ModalStack'),
+  );
+
+const CORE_SURFACE_TOKEN_FILES = [
+  'src/design/tokens/effects.ts',
+  'src/design/tokens/popupShellTokens.ts',
+  'src/design/tokens/auroraGlass.ts',
+  'src/components/ui/effects/globalanimatedbackground.tsx',
+  'app/+html.tsx',
+];
 
 function fail(message) {
   console.error(`\n✗ visual:audit fehlgeschlagen: ${message}\n`);
@@ -375,17 +423,24 @@ for (const color of LIGHT_COLORS) {
 }
 
 const themeProvider = readFileSync(join(root, 'src/design/ThemeModeProvider.tsx'), 'utf8');
-if (!themeProvider.includes("useState<ColorMode>('light')")) {
+if (
+  !themeProvider.includes("useState<ColorMode>('light')") &&
+  !themeProvider.includes('resolveInitialMode')
+) {
   fail('ThemeModeProvider: Default muss light sein');
 }
 
-for (const rel of ROUTE_LAYOUT_FILES) {
+for (const rel of ['app/+html.tsx', 'app/_layout.tsx', ...ROUTE_LAYOUT_FILES]) {
   const layoutPath = join(root, rel);
   if (!existsSync(layoutPath)) {
     fail(`Route-Layout fehlt: ${rel}`);
   }
   const src = readFileSync(layoutPath, 'utf8');
-  if (!src.includes('routeLayoutContentStyle') && !src.includes('careLightColors.page')) {
+  if (
+    !src.includes('routeLayoutContentStyle') &&
+    !src.includes('careLightColors.page') &&
+    !src.includes('careSuiteDocumentRootBg')
+  ) {
     fail(`${rel}: muss routeLayoutContentStyle oder careLightColors.page nutzen`);
   }
   for (const pattern of FORBIDDEN_DARK_BG_PATTERNS) {
@@ -472,6 +527,14 @@ if (!adaptiveShell.includes('CareLightMobileShell')) {
 
 assertDemoNavigationWiring();
 
+for (const rel of CORE_SURFACE_TOKEN_FILES) {
+  assertNoDarkBackground(rel);
+}
+
+for (const rel of POPUP_SURFACE_FILES) {
+  assertNoDarkBackground(rel);
+}
+
 const bottomNav = readFileSync(join(root, 'src/components/ui/CareLightBottomNav.tsx'), 'utf8');
 if (!bottomNav.includes('careLightColors.surface') || !bottomNav.includes('careLightColors.navy')) {
   fail('CareLightBottomNav: light premium Farben fehlen');
@@ -491,4 +554,6 @@ console.log('✓ ScreenShell + PremiumListHeroFrame → CareLight-Bridge (light 
 console.log('✓ Pflege-Dashboard: KPI-Grid + CareLightCarePlanCard');
 console.log('✓ Startseite + Auth: light premium');
 console.log('✓ CareAdaptiveShell → CareLight-Shells\n');
+console.log(`✓ ${POPUP_SURFACE_FILES.length} Modal/Popup/Drawer/Overlay-Dateien ohne Dark-Hintergrund`);
+console.log(`✓ ${CORE_SURFACE_TOKEN_FILES.length} Kern-Token-Dateien ohne Dark-Hintergrund`);
 console.log('✓ Demo-Navigation: keine Legacy-Create-Routen, Entry /office, light @/theme default\n');

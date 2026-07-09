@@ -10,6 +10,8 @@ import {
   type LightSpaceIntensity,
   type LlganViewContext,
 } from '@/design/tokens/lightLiquidGlassAuroraNebula';
+import { careSuiteModalScrim } from '@/design/tokens/lightTheme';
+import { ensureLightLiquidGlassSurfaceCss } from '@/design/web/ensureLightLiquidGlassSurfaceCss';
 import { useShellHostsAurora } from '@/hooks/useshellhostsaurora';
 import {
   AURORA_CHIP_ACTIVE,
@@ -18,49 +20,13 @@ import {
 } from '@/theme/careSuiteAurora';
 
 /**
- * Aurora dark-glass surface tokens for the system-wide animated backdrop.
- * Page roots stay transparent; panels/cards/inputs use these rgba values.
+ * Shell glass surface tokens — always light milchglas over the space backdrop.
  */
-export const auroraGlass = {
-  page: 'transparent',
-  panel: careSuiteAuroraTheme.glass.background,
-  card: careSuiteAuroraTheme.glass.backgroundStrong,
-  elevated: 'rgba(30,35,48,0.82)',
-  modal: 'rgba(11, 14, 22, 0.92)',
-  input: 'rgba(26,32,42,0.75)',
-  chip: 'rgba(255,255,255,0.06)',
-  chipActive: AURORA_CHIP_ACTIVE,
-  table: careSuiteAuroraTheme.glass.background,
-  row: 'transparent',
-  rowHover: 'rgba(255,255,255,0.04)',
-  rowAlt: 'rgba(255,255,255,0.02)',
-  rowSelected: AURORA_ROW_SELECTED,
-  header: 'rgba(255,255,255,0.04)',
-  listItem: 'rgba(255,255,255,0.04)',
-  border: careSuiteAuroraTheme.glass.border,
-  borderStrong: careSuiteAuroraTheme.glass.borderStrong,
-  innerBorder: 'rgba(255,255,255,0.06)',
-  blur: {
-    light: 8,
-    medium: 16,
-    heavy: 24,
-  },
-  /** Readable light text on dark glass panels (desktop aurora). */
-  text: {
-    primary: careSuiteAuroraTheme.text.primary,
-    secondary: careSuiteAuroraTheme.text.secondary,
-    muted: careSuiteAuroraTheme.text.muted,
-  },
-} as const;
-
 export type SurfaceContrastText = {
   primary: string;
   secondary: string;
   muted: string;
 };
-
-/** Weiße/helle Schrift auf dunklen Glasflächen (auroraGlass-Hintergründe). */
-export const darkGlassSurfaceText: SurfaceContrastText = auroraGlass.text;
 
 /** Dunkle Schrift auf hellen/weißen Flächen. */
 export const lightSurfaceText: SurfaceContrastText = {
@@ -68,6 +34,9 @@ export const lightSurfaceText: SurfaceContrastText = {
   secondary: llgsTypography.secondary,
   muted: llgsTypography.muted,
 };
+
+/** @deprecated Dark glass removed — use lightSurfaceText. */
+export const darkGlassSurfaceText: SurfaceContrastText = lightSurfaceText;
 
 /** WCAG-kontrastfähiger Orange-/Amber-Ton für Links/CTAs auf hellen Portal-Flächen (≥4.5:1). */
 export const PORTAL_LIGHT_LINK_ORANGE = '#B45309';
@@ -85,7 +54,7 @@ export const lightLiquidGlass = {
   panel: llganDefaultSurface.panel,
   card: llganDefaultSurface.card,
   sidebar: llganDefaultSurface.sidebar,
-  elevated: 'rgba(255,255,255,0.78)',
+  elevated: 'rgba(255,255,255,0.30)',
   modal: llganDefaultSurface.modal,
   input: llganSubtleSurface.input,
   chip: llganSubtleSurface.chip,
@@ -100,11 +69,11 @@ export const lightLiquidGlass = {
   border: llganDefaultSurface.borderWhite,
   borderAccent: llganDefaultSurface.borderAccent,
   borderStrong: 'rgba(130,170,255,0.28)',
-  innerBorder: 'rgba(255,255,255,0.45)',
+  innerBorder: 'rgba(255,255,255,0.68)',
   blur: {
     light: llganSubtleSurface.blurMobile,
     medium: llganDefaultSurface.blurDesktop,
-    heavy: llganDefaultSurface.blurDesktop + 2,
+    heavy: llganDefaultSurface.blurDesktop + 4,
   },
   text: {
     primary: llgsTypography.primary,
@@ -115,6 +84,18 @@ export const lightLiquidGlass = {
   shadowInset: llganDefaultSurface.shadowInset,
   saturate: llganDefaultSurface.saturate,
 } as const;
+
+/** Legacy alias — same light tokens everywhere (no dark glass surfaces). */
+export const auroraGlass = lightLiquidGlass;
+
+/** RN Web data attribute for global milchglas CSS (see lightLiquidGlassSurfaceCss). */
+export type LlganGlassSurfaceKind = 'panel' | 'card' | 'chip' | 'input' | 'button' | 'modal';
+
+export function llganGlassDataSet(kind: LlganGlassSurfaceKind): { dataSet?: { csLlganGlass: string } } {
+  if (Platform.OS !== 'web') return {};
+  ensureLightLiquidGlassSurfaceCss('strong');
+  return { dataSet: { csLlganGlass: kind } };
+}
 
 /** Web backdrop-blur + Schatten für Milchglas-Oberflächen. */
 export function lightLiquidGlassWebFx(
@@ -129,7 +110,10 @@ export function lightLiquidGlassWebFx(
     (typeof window !== 'undefined' && window.matchMedia('(pointer: coarse)').matches);
 
   if (mobileWeb) {
+    const mobileBlur = Math.max(18, blurPx - 12);
     return {
+      backdropFilter: `blur(${mobileBlur}px) saturate(${saturate})`,
+      WebkitBackdropFilter: `blur(${mobileBlur}px) saturate(${saturate})`,
       boxShadow: `${llganDefaultSurface.shadow}, ${llganDefaultSurface.shadowInset}`,
     } as ViewStyle;
   }
@@ -175,7 +159,7 @@ export function useShellGlassSurfaceStyle(
     : resolveLlganGlassSurface(intensity);
 
   return useMemo(() => {
-    const light = isLight && active;
+    const light = active;
     const tokens = light ? lightLiquidGlass : auroraGlass;
     const backgroundColor =
       variant === 'chip'
@@ -208,15 +192,15 @@ export function useShellGlassSurfaceStyle(
       borderWidth: 1,
       borderColor,
       backgroundColor,
-      overflow: 'hidden',
-      ...(Platform.OS === 'web'
-        ? light
-          ? lightLiquidGlassWebFx(blurPx, saturate)
-          : ({
+      overflow: Platform.OS === 'web' ? 'visible' : 'hidden',
+      ...(light && isLight
+        ? lightLiquidGlassWebFx(blurPx, saturate)
+        : Platform.OS === 'web'
+          ? ({
               backdropFilter: `blur(${blurPx}px)`,
               WebkitBackdropFilter: `blur(${blurPx}px)`,
             } as ViewStyle)
-        : null),
+          : null),
     };
   }, [active, intensity, isLight, llganSurface, variant]);
 }
@@ -225,8 +209,8 @@ export type AuroraGlassTokens = typeof auroraGlass;
 export type LightLiquidGlassTokens = typeof lightLiquidGlass;
 export type GlassSurfaceTokens = AuroraGlassTokens | LightLiquidGlassTokens;
 
-function resolveActiveGlassTokens(isLight: boolean): GlassSurfaceTokens {
-  return isLight ? lightLiquidGlass : auroraGlass;
+function resolveActiveGlassTokens(_isLight: boolean): GlassSurfaceTokens {
+  return lightLiquidGlass;
 }
 
 /** True when root shell hosts animated background (light or dark glass). */
@@ -238,21 +222,17 @@ export function useAuroraGlassActive(): boolean {
 export function useActiveGlassTokens(): GlassSurfaceTokens {
   const active = useAuroraGlassActive();
   const { isLight } = useLegacyTheme();
-  return active ? resolveActiveGlassTokens(isLight) : auroraGlass;
+  return active ? resolveActiveGlassTokens(isLight) : lightLiquidGlass;
 }
 
 /** Light frosted shell (LLGAN) — dark text on milchglas, matches desktop portal/office. */
 export function useLightLiquidGlassShell(): boolean {
-  const active = useAuroraGlassActive();
-  const { isLight } = useLegacyTheme();
-  return active && isLight;
+  return useAuroraGlassActive();
 }
 
 /** Composer/input strip on dark glass — false on light LLGAN shell (mobile + desktop). */
 export function useComposerDarkSurface(): boolean {
-  const active = useAuroraGlassActive();
-  const { isLight } = useLegacyTheme();
-  return active && !isLight;
+  return false;
 }
 
 export type MessagingGlassSurface = {
@@ -266,9 +246,9 @@ export type MessagingGlassSurface = {
 export function useMessagingGlassSurface(isGlassVariant: boolean): MessagingGlassSurface {
   const useLightGlass = useLightLiquidGlassShell();
   const { isLight } = useLegacyTheme();
-  const useLightSurfaces = useLightGlass || isLight;
-  const surfaces = useLightSurfaces ? lightLiquidGlass : auroraGlass;
-  const onDarkSurface = isGlassVariant && !useLightSurfaces;
+  const useLightSurfaces = true;
+  const surfaces = lightLiquidGlass;
+  const onDarkSurface = false;
   const ink = isGlassVariant ? surfaceContrastText(onDarkSurface) : null;
   return { useLightGlass: useLightSurfaces, surfaces, onDarkSurface, ink };
 }
@@ -351,7 +331,9 @@ export function useAuroraGlassPanelStyle(options: ShellGlassIntensityOptions = {
             backgroundColor: isLight ? llganSurface.panel : glass.panel,
             borderColor: isLight ? llganSurface.borderAccent : glass.border,
             borderWidth: 1,
-            ...(isLight ? lightLiquidGlassWebFx(llganSurface.blurDesktop, llganSurface.saturate) : {}),
+            ...(isLight
+              ? lightLiquidGlassWebFx(llganSurface.blurDesktop, llganSurface.saturate)
+              : {}),
           }
         : {},
     [active, glass.border, glass.panel, isLight, llganSurface],
@@ -377,11 +359,12 @@ export function useAuroraGlassCardStyle(options: ShellGlassIntensityOptions = {}
             borderColor: isLight ? llganSurface.borderWhite : glass.border,
             borderWidth: 1,
             borderRadius: careRadius.lg,
-            overflow: 'hidden',
             ...(isLight
               ? {
                   ...lightLiquidGlassWebFx(llganSurface.blurDesktop, llganSurface.saturate),
-                  boxShadow: `${llganSurface.shadow}, ${llganSurface.shadowInset}`,
+                  ...(Platform.OS !== 'web'
+                    ? { boxShadow: `${llganSurface.shadow}, ${llganSurface.shadowInset}` }
+                    : {}),
                 }
               : {}),
           }
@@ -508,7 +491,7 @@ export function useAuroraGlassChipStyles(options: ShellGlassIntensityOptions = {
           color: active && isLight ? text.primary : text.secondary,
         },
         labelSelected: {
-          color: active && isLight ? '#0F1B33' : careSuiteAuroraTheme.accent.pink,
+          color: active && isLight ? '#000000' : careSuiteAuroraTheme.accent.pink,
           fontWeight: '700' as TextStyle['fontWeight'],
         },
         row: {
@@ -586,7 +569,7 @@ export function useAuroraGlassTableStyles(options: AuroraGlassTableOptions = {})
           fontWeight: '700',
         },
         headerTextActive: {
-          color: isLight && active ? '#0F1B33' : careSuiteAuroraTheme.accent.violet,
+          color: isLight && active ? '#000000' : careSuiteAuroraTheme.accent.violet,
         },
         cellText: {
           color: text.primary,
@@ -733,12 +716,12 @@ export function useAuroraGlassSelectStyles(options: ShellGlassIntensityOptions =
           color: text.primary,
         },
         optionLabelSelected: {
-          color: active && isLight ? '#0F1B33' : careSuiteAuroraTheme.accent.pink,
+          color: active && isLight ? '#000000' : careSuiteAuroraTheme.accent.pink,
           fontWeight: '600',
         },
         modalBackdrop: {
           flex: 1,
-          backgroundColor: isLight ? 'rgba(15, 27, 51, 0.16)' : 'rgba(0,0,0,0.55)',
+          backgroundColor: careSuiteModalScrim,
           justifyContent: 'center',
           alignItems: 'center',
           padding: careSpacing.lg,

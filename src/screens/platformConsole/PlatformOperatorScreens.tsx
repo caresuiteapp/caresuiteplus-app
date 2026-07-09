@@ -897,7 +897,7 @@ const styles = StyleSheet.create({
     backgroundColor: PLATFORM_COLORS.bg,
   },
   primaryBtn: {
-    backgroundColor: '#132036',
+    backgroundColor: '#F1F5F9',
     borderWidth: 1,
     borderColor: PLATFORM_COLORS.accent,
     borderRadius: 8,

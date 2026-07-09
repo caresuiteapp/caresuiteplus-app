@@ -36,6 +36,7 @@ import { useAssignmentList } from '@/hooks/useAssignmentList';
 import { useDesktopListViewPreference } from '@/hooks/useDesktopListViewPreference';
 import { usePermissions } from '@/hooks/usePermissions';
 import { useDeviceClass } from '@/hooks/platform/useDeviceClass';
+import { useFinePointerHover } from '@/hooks/useFinePointerHover';
 import { usePlatformLayout } from '@/hooks/platform/usePlatformLayout';
 import { isDesktopClass } from '@/lib/platform/breakpoints';
 import { useTableColumnSort } from '@/lib/table/tableColumnSort';
@@ -78,6 +79,7 @@ export function AssignmentsListView({
   const { shellVariant } = usePlatformLayout();
   const deviceClass = useDeviceClass();
   const isDesktop = isDesktopClass(deviceClass);
+  const canFinePointerHover = useFinePointerHover();
   const isMobile = !isDesktop;
   const { viewMode, setViewMode } = useDesktopListViewPreference('assist.assignments.v2', 'cards');
   const useTableLayout = isDesktop && viewMode === 'table';
@@ -187,7 +189,6 @@ export function AssignmentsListView({
         listPanel: {
           flex: 1,
           borderRadius: 12,
-          overflow: 'hidden',
           minWidth: 0,
           ...webGlassBlur,
         },
@@ -450,7 +451,7 @@ export function AssignmentsListView({
     <AssignmentsCardGrid
       assignments={items}
       selectedId={selectedId}
-      showHoverDetails={isDesktop}
+      showHoverDetails={isDesktop && canFinePointerHover}
       showInlineActions={isDesktop}
       onOpen={navigateToAssignment}
       onStart={(id) => router.push(`/assist/assignments/${id}/execute` as never)}

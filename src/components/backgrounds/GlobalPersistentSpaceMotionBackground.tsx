@@ -1,6 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Platform, StyleSheet, View, type ViewStyle } from 'react-native';
-import { webFixedViewportCoverStyle } from '@/lib/platform/webSafeArea';
 import {
   PSM_LOOP_MS,
   PSM_SCENE,
@@ -454,14 +453,11 @@ export function GlobalPersistentSpaceMotionBackground({
   );
 }
 
-const webFixedFull: ViewStyle = (Platform.OS === 'web' ? webFixedViewportCoverStyle() : {}) as ViewStyle;
-
 const styles = StyleSheet.create({
   root: {
     ...StyleSheet.absoluteFillObject,
     overflow: 'hidden',
     backgroundColor: 'transparent',
-    ...webFixedFull,
   },
   dimmed: {
     opacity: 0.88,

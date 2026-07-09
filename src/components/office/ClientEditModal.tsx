@@ -38,6 +38,7 @@ import type { ClientIntakeFormData } from '@/types/forms/clientIntakeForm';
 import type { ClientServiceTypeKey } from '@/types/clientCore';
 import { CLIENT_SERVICE_TYPE_LABELS } from '@/types/clientCore';
 import { careRadius } from '@/design/tokens/radius';
+import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { moduleColor } from '@/design/tokens/modules';
 import { careSpacing } from '@/design/tokens/spacing';
 import { colors, spacing, typography } from '@/theme';
@@ -279,7 +280,7 @@ export function ClientEditModal({
 const modalStyles = StyleSheet.create({
   backdrop: {
     flex: 1,
-    backgroundColor: 'rgba(4,8,24,0.72)',
+    backgroundColor: careSuiteModalScrimStrong,
     justifyContent: 'center',
     alignItems: 'center',
     padding: spacing.lg,

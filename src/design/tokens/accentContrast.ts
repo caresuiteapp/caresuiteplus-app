@@ -1,28 +1,32 @@
 import { withAlpha } from './motion';
 
-/** Dark soft pill backing for colored icons/labels on light orbital surfaces. */
-export const ACCENT_DARK_SOFT_BASE = 'rgba(15, 23, 42, 0.72)';
-export const ACCENT_DARK_SOFT_ACTIVE = 'rgba(15, 23, 42, 0.82)';
-export const ACCENT_DARK_SOLID = '#0F172A';
+/** Light glass pill backing for colored icons/labels on orbital surfaces. */
+export const ACCENT_DARK_SOFT_BASE = 'rgba(255, 255, 255, 0.42)';
+export const ACCENT_DARK_SOFT_ACTIVE = 'rgba(255, 255, 255, 0.52)';
+export const ACCENT_DARK_SOLID = '#000000';
 
-export const ACCENT_ICON_FRAME_GRADIENT = ['#030711', '#101833', '#07101F'] as const;
+export const ACCENT_ICON_FRAME_GRADIENT = [
+  'rgba(255,255,255,0.58)',
+  'rgba(248,250,252,0.48)',
+  'rgba(255,255,255,0.40)',
+] as const;
 
 /** Frosted glass circle for module rail icons — pure white glass, no dark backing. */
 export const RAIL_ICON_GLASS_LIGHT = {
-  surface: 'rgba(255,255,255,0.38)',
-  surfaceActive: 'rgba(255,255,255,0.45)',
-  border: 'rgba(255,255,255,0.58)',
-  borderActive: 'rgba(255,255,255,0.68)',
-  blurPx: 14,
+  surface: 'rgba(255,255,255,0.30)',
+  surfaceActive: 'rgba(255,255,255,0.38)',
+  border: 'rgba(255,255,255,0.68)',
+  borderActive: 'rgba(255,255,255,0.78)',
+  blurPx: 20,
 } as const;
 
 export const RAIL_ICON_GLASS_DARK = {
-  surface: 'rgba(15,23,42,0.28)',
-  surfaceActive: 'rgba(15,23,42,0.38)',
-  sheen: 'rgba(255,255,255,0.08)',
-  sheenActive: 'rgba(255,255,255,0.12)',
-  border: 'rgba(255,255,255,0.2)',
-  blurPx: 12,
+  surface: 'rgba(255,255,255,0.38)',
+  surfaceActive: 'rgba(255,255,255,0.45)',
+  sheen: 'rgba(255,255,255,0.35)',
+  sheenActive: 'rgba(255,255,255,0.42)',
+  border: 'rgba(255,255,255,0.58)',
+  blurPx: 14,
 } as const;
 
 export type AccentChipStyle = {
@@ -89,34 +93,41 @@ export function resolveLightPrimaryButtonStyle(accent: string): AccentChipStyle 
   }
   return {
     backgroundColor: accent,
-    color: '#FFFFFF',
+    color: APP_SURFACE_TEXT,
     borderColor: withAlpha(accent, 0.9),
   };
 }
 
 /** Colored text directly on light bg — fall back to dark text for low-contrast accents. */
-export function resolveLightColoredTextColor(accent: string, fallback = '#475569'): string {
+export function resolveLightColoredTextColor(accent: string, fallback = '#000000'): string {
   return isLightAccentColor(accent) ? ACCENT_DARK_SOLID : accent;
 }
 
 /** Primary dark text for interactive controls (links, tabs, outline buttons) on light surfaces. */
-export const LIGHT_SURFACE_INTERACTIVE_TEXT = '#0F1B33';
+export const LIGHT_SURFACE_INTERACTIVE_TEXT = '#000000';
+export const APP_SURFACE_TEXT = '#000000';
+/** White ink reserved for copy directly on aurora / gradient hero backgrounds. */
+export const AURORA_SURFACE_TEXT = '#FFFFFF';
+
+export function isOnAuroraSurface(options: {
+  onGradientHero?: boolean;
+  onAuroraBackground?: boolean;
+}): boolean {
+  return Boolean(options.onGradientHero || options.onAuroraBackground);
+}
 
 /**
- * Text color for interactive controls on light vs dark/gradient surfaces.
- * Light surfaces always use dark text; gradient heroes keep accent/white.
+ * Text color for interactive controls — black on app surfaces, white on aurora backgrounds.
  */
 export function resolveInteractiveTextColor(options: {
   isLight: boolean;
   onGradientHero?: boolean;
+  onAuroraBackground?: boolean;
   accentOnDark?: string;
   lightText?: string;
 }): string {
-  if (options.onGradientHero && !options.isLight) {
-    return options.accentOnDark ?? '#FFFFFF';
+  if (isOnAuroraSurface(options)) {
+    return options.accentOnDark ?? AURORA_SURFACE_TEXT;
   }
-  if (options.isLight) {
-    return options.lightText ?? LIGHT_SURFACE_INTERACTIVE_TEXT;
-  }
-  return options.accentOnDark ?? '#62F3FF';
+  return options.lightText ?? APP_SURFACE_TEXT;
 }

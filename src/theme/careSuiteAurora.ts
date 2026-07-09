@@ -20,10 +20,10 @@ export const careSuiteAuroraTheme = {
     borderStrong: 'rgba(255, 255, 255, 0.24)',
   },
   text: {
-    primary: '#FFFFFF',
-    secondary: 'rgba(255, 255, 255, 0.78)',
-    muted: 'rgba(255, 255, 255, 0.56)',
-    darkOnLightGradient: '#070A1F',
+    primary: '#000000',
+    secondary: '#000000',
+    muted: '#000000',
+    darkOnLightGradient: '#000000',
   },
   glow: {
     pink: 'rgba(236, 72, 153, 0.45)',

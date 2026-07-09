@@ -106,7 +106,7 @@ function createStyles(
       justifyContent: 'center',
     },
     actionHover: {
-      backgroundColor: isDark ? 'rgba(255,255,255,0.1)' : 'rgba(15,23,42,0.08)',
+      backgroundColor: 'rgba(255,255,255,0.42)',
     },
     actionPressed: {
       opacity: 0.88,
@@ -119,7 +119,7 @@ function createStyles(
       fontSize: 15,
       lineHeight: 18,
       fontWeight: '700',
-      color: isDark ? '#F8FAFC' : colors.textPrimary,
+      color: colors.textPrimary,
       userSelect: 'none',
     } as TextStyle,
     actionSmall: {
@@ -127,7 +127,7 @@ function createStyles(
       fontSize: 13,
       lineHeight: 16,
       fontWeight: '700',
-      color: isDark ? '#E2E8F0' : colors.textPrimary,
+      color: colors.textPrimary,
       userSelect: 'none',
     } as TextStyle,
     label: {

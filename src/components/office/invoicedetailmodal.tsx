@@ -12,6 +12,7 @@ import { InvoiceDetailSummaryPanel } from './InvoiceDetailSummaryPanel';
 import { GradientModalHeader } from '@/components/layout/platform';
 import { GlassSurface } from '@/components/ui/effects';
 import { useCareLightPalette } from '@/design/tokens/carelightadaptive';
+import { careSuiteModalScrimStrong } from '@/design/tokens/lightTheme';
 import { careRadius } from '@/design/tokens/radius';
 import { moduleColor } from '@/design/tokens/modules';
 import { InvoiceDetailScreen } from '@/screens/office/InvoiceDetailScreen';
@@ -94,7 +95,7 @@ export function InvoiceDetailModal({
       StyleSheet.create({
         backdrop: {
           flex: 1,
-          backgroundColor: isDark ? 'rgba(4,8,24,0.72)' : 'rgba(7,18,42,0.45)',
+          backgroundColor: careSuiteModalScrimStrong,
           justifyContent: 'center',
           alignItems: 'center',
           padding: isFull ? spacing.md : spacing.lg,
