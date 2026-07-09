@@ -1,5 +1,6 @@
 import React, { useMemo } from 'react';
-import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
+import { Image, StyleSheet, Text, View } from 'react-native';
+import { CARESUITE_LOADING_GIF } from '@/components/brand/brandassets';
 import {
   useActiveGlassTokens,
   useAuroraAdaptiveText,
@@ -10,8 +11,11 @@ import {
 import { useLegacyTheme } from '@/design/tokens/themeBridge';
 import { careRadius } from '@/design/tokens/radius';
 import { spacing } from '@/theme';
+import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { PremiumButton } from './PremiumButton';
 import { CareLightButton } from './CareLightButton';
+
+const LOADER_ASPECT_RATIO = 3;
 
 function useStateTextColors() {
   const auroraActive = useAuroraGlassActive();
@@ -51,10 +55,11 @@ type LoadingStateProps = {
   message?: string;
 };
 
-export function LoadingState({ message = 'Wird geladen…' }: LoadingStateProps) {
-  const { colors, typography } = useLegacyTheme();
+export function LoadingState({ message }: LoadingStateProps) {
+  const { typography } = useLegacyTheme();
   const textColors = useStateTextColors();
-  const containerSurface = useStateContainerStyle();
+  const { isPhone } = useDeviceClass();
+  const loaderWidth = isPhone ? 280 : 420;
   const styles = useMemo(
     () =>
       StyleSheet.create({
@@ -62,22 +67,33 @@ export function LoadingState({ message = 'Wird geladen…' }: LoadingStateProps)
           alignItems: 'center',
           justifyContent: 'center',
           padding: spacing.lg,
-          gap: spacing.sm,
-          ...containerSurface,
+          gap: spacing.md,
+          backgroundColor: 'transparent',
+        },
+        loader: {
+          width: loaderWidth,
+          height: loaderWidth / LOADER_ASPECT_RATIO,
+          backgroundColor: 'transparent',
         },
         message: {
           ...typography.body,
           textAlign: 'center',
           color: textColors.secondary,
+          maxWidth: loaderWidth + 80,
         },
       }),
-    [containerSurface, textColors.secondary, typography.body],
+    [loaderWidth, textColors.secondary, typography.body],
   );
 
   return (
-    <View style={styles.container}>
-      <ActivityIndicator size="large" color={colors.primary} />
-      <Text style={styles.message}>{message}</Text>
+    <View style={styles.container} accessibilityRole="progressbar">
+      <Image
+        source={CARESUITE_LOADING_GIF}
+        style={styles.loader}
+        resizeMode="contain"
+        accessibilityLabel="CareSuite+ wird geladen"
+      />
+      {message ? <Text style={styles.message}>{message}</Text> : null}
     </View>
   );
 }

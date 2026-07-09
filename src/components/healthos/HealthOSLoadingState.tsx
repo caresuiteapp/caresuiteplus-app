@@ -4,6 +4,6 @@ type Props = {
   message?: string;
 };
 
-export function HealthOSLoadingState({ message = 'Wird geladen…' }: Props) {
+export function HealthOSLoadingState({ message }: Props) {
   return <LoadingState message={message} />;
 }

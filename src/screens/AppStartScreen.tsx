@@ -65,7 +65,7 @@ export function AppStartScreen() {
   if (!authReady || sessionPending) {
     return (
       <AppScreen scroll={false}>
-        <LoadingState message="CareSuite+ wird geladen…" />
+        <LoadingState />
       </AppScreen>
     );
   }
@@ -85,7 +85,7 @@ export function AppStartScreen() {
   if (entriesQuery.loading && mainEntries.length === 0) {
     return (
       <AppScreen scroll={false}>
-        <LoadingState message="CareSuite+ wird geladen…" />
+        <LoadingState />
       </AppScreen>
     );
   }
