@@ -1,14 +1,17 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
-import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
+import { Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import {
   PlatformAuditLink,
   PlatformConfirmModal,
+  PlatformDataTable,
+  PlatformFilterChip,
+  PlatformFilterChipRow,
   PlatformReadOnlyBanner,
   PlatformShellLayout,
   PlatformStatusBadge,
   PLATFORM_COLORS,
 } from '@/components/platformConsole';
-import { ErrorState, LoadingState, PremiumDataTable } from '@/components/ui';
+import { ErrorState, LoadingState } from '@/components/ui';
 import {
   assignPlatformPlanModule,
   createPlatformPlan,
@@ -27,6 +30,7 @@ import {
 } from '@/lib/platformConsole/platformOperatorDataService';
 import { formatPlatformCents, formatPlatformDate } from '@/lib/platformConsole/platformFormat';
 import { usePlatformAuth } from '@/lib/platformConsole/PlatformAuthProvider';
+import { resolvePlatformPlanRowKey } from '@/lib/platformConsole/platformRowKeys';
 import { spacing } from '@/theme';
 
 const ACCESS_STATES = ['included', 'beta_included', 'coming_soon', 'excluded'] as const;
@@ -151,29 +155,32 @@ export function PlatformPlansOperatorScreen() {
         <ErrorState title="Tarife nicht verfügbar" message={error} onRetry={() => void loadPlans()} />
       ) : (
         <>
-          <ScrollView horizontal>
-            <PremiumDataTable
+          <PlatformDataTable
               columns={[
-                { key: 'key', label: 'Code', render: (r) => String(r.plan_key) },
-                { key: 'name', label: 'Name', render: (r) => String(r.plan_name ?? '—') },
+                { key: 'key', label: 'Code', minWidth: 120, render: (r) => String(r.plan_key) },
+                { key: 'name', label: 'Name', minWidth: 160, render: (r) => String(r.plan_name ?? '—') },
                 {
                   key: 'status',
                   label: 'Status',
+                  minWidth: 100,
                   render: (r) => <PlatformStatusBadge status={String(r.status ?? 'active')} />,
                 },
                 {
                   key: 'price',
                   label: 'Preis/Monat',
+                  minWidth: 120,
                   render: (r) => formatPlatformCents(r.monthly_price_cents),
                 },
                 {
                   key: 'public',
                   label: 'Sichtbar',
+                  minWidth: 100,
                   render: (r) => (r.is_public ? 'öffentlich' : 'intern'),
                 },
                 {
                   key: 'open',
                   label: '',
+                  minWidth: 80,
                   render: (r) => (
                     <Pressable onPress={() => setSelectedKey(String(r.plan_key))}>
                       <Text style={styles.link}>Details</Text>
@@ -182,9 +189,10 @@ export function PlatformPlansOperatorScreen() {
                 },
               ]}
               data={plans}
-              keyExtractor={(r) => String(r.plan_key)}
+              keyExtractor={resolvePlatformPlanRowKey}
+              emptyTitle="Keine Tarife"
+              emptyMessage="Der Tarifkatalog ist leer."
             />
-          </ScrollView>
 
           {canWrite ? (
             <View style={styles.formPanel}>
@@ -310,13 +318,11 @@ export function PlatformPlansOperatorScreen() {
                     </View>
                   ))}
                   <TextInput style={styles.input} value={moduleKey} onChangeText={setModuleKey} placeholder="module_key" placeholderTextColor={PLATFORM_COLORS.muted} />
-                  <ScrollView horizontal contentContainerStyle={styles.chipRow}>
+                  <PlatformFilterChipRow>
                     {ACCESS_STATES.map((s) => (
-                      <Pressable key={s} style={[styles.chip, moduleState === s && styles.chipActive]} onPress={() => setModuleState(s)}>
-                        <Text style={[styles.chipText, moduleState === s && styles.chipTextActive]}>{s}</Text>
-                      </Pressable>
+                      <PlatformFilterChip key={s} label={s} active={moduleState === s} onPress={() => setModuleState(s)} />
                     ))}
-                  </ScrollView>
+                  </PlatformFilterChipRow>
                   <Pressable
                     style={styles.primaryBtn}
                     onPress={() =>
@@ -432,15 +438,4 @@ const styles = StyleSheet.create({
   hint: { color: PLATFORM_COLORS.muted, fontSize: 12 },
   auditRow: { flexDirection: 'row', marginTop: spacing.md },
   rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' },
-  chipRow: { flexDirection: 'row', gap: spacing.xs },
-  chip: {
-    borderWidth: 1,
-    borderColor: PLATFORM_COLORS.border,
-    borderRadius: 999,
-    paddingHorizontal: 10,
-    paddingVertical: 6,
-  },
-  chipActive: { borderColor: PLATFORM_COLORS.accent, backgroundColor: '#132036' },
-  chipText: { color: PLATFORM_COLORS.muted, fontSize: 11 },
-  chipTextActive: { color: PLATFORM_COLORS.accent, fontWeight: '600' },
 });
