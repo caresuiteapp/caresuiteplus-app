@@ -4,6 +4,7 @@ import {
   EMPTY_ASSIST_DASHBOARD_STATS,
   fetchAssistDashboardBundle,
 } from '@/lib/assist/assistDashboardService';
+import { withServiceQueryTimeout } from '@/lib/services/queryTimeout';
 import { subscribeToAssistOperationsChanges } from '@/lib/realtime';
 import { useAuth } from '@/lib/auth/context';
 import { useServiceTenantId } from '@/hooks/useTenantId';
@@ -30,7 +31,10 @@ export function useAssistDashboard(options?: { enabled?: boolean }) {
       if (!tenantId) {
         return Promise.resolve({ ok: false as const, error: 'Kein Mandant.' });
       }
-      return fetchAssistDashboardBundle(tenantId, profile?.roleKey);
+      return withServiceQueryTimeout(
+        fetchAssistDashboardBundle(tenantId, profile?.roleKey),
+        'Assist-Dashboard',
+      );
     },
     [tenantId, profile?.roleKey],
     { enabled: queryEnabled, live: assistOpsLive(tenantId) },

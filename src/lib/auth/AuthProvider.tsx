@@ -21,6 +21,7 @@ import {
 import { clearBusinessWelcomePending } from './businessWelcomeSession';
 import { shouldClearAuthOnNullSessionEvent } from './authStateEvents';
 import { clearOfflineDb } from '@/lib/offline/idb';
+import { withAuthBootstrapTimeout } from './authBootstrapTimeout';
 
 type AuthProviderProps = {
   children: ReactNode;
@@ -130,19 +131,32 @@ async function hydrateSupabaseSession(
   setSession: (session: AuthSession | null) => void,
   setProfileBootstrapError: (error: string | null) => void,
 ): Promise<HydrateSupabaseSessionResult> {
-  const bootstrap = await bootstrapTenantContext(supabaseSession);
-  if (bootstrap.ok) {
-    setProfileBootstrapError(null);
-    applyBootstrap(bootstrap, setUser, setProfile, setSession);
-    if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
-      void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
-      void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
-      void hydrateTenantModuleSettings(bootstrap.profile.tenantId);
+  try {
+    const bootstrap = await withAuthBootstrapTimeout(
+      bootstrapTenantContext(supabaseSession),
+      'Profil-Bootstrap',
+    );
+    if (bootstrap.ok) {
+      setProfileBootstrapError(null);
+      applyBootstrap(bootstrap, setUser, setProfile, setSession);
+      if (bootstrap.profile.roleKey && bootstrap.profile.tenantId) {
+        void fetchRuntimePermissions(bootstrap.profile.roleKey, bootstrap.profile.tenantId);
+        void hydrateTenantModulesFromSupabase(bootstrap.profile.tenantId);
+        void hydrateTenantModuleSettings(bootstrap.profile.tenantId);
+      }
+      return { ok: true };
     }
-    return { ok: true };
-  }
 
-  return { ok: false, error: bootstrap.error };
+    return { ok: false, error: bootstrap.error };
+  } catch (cause) {
+    return {
+      ok: false,
+      error:
+        cause instanceof Error
+          ? cause.message
+          : 'Benutzerprofil konnte nicht geladen werden.',
+    };
+  }
 }
 
 export function AuthProvider({ children }: AuthProviderProps) {
@@ -174,69 +188,89 @@ export function AuthProvider({ children }: AuthProviderProps) {
     let unsubscribeAuth: (() => void) | undefined;
 
     async function restoreSupabaseSession() {
-      const sessionResult = await getSession();
-      if (cancelled) return;
+      try {
+        const sessionResult = await getSession();
+        if (cancelled) return;
 
-      if (sessionResult.ok && sessionResult.data) {
-        const hydrated = await hydrateSupabaseSession(
-          sessionResult.data,
-          setUser,
-          setProfile,
-          setSession,
-          setProfileBootstrapError,
-        );
-        if (!cancelled && !hydrated.ok) {
-          applyMinimalAuthOnBootstrapFailure(sessionResult.data, hydrated.error);
+        if (sessionResult.ok && sessionResult.data) {
+          const hydrated = await hydrateSupabaseSession(
+            sessionResult.data,
+            setUser,
+            setProfile,
+            setSession,
+            setProfileBootstrapError,
+          );
+          if (!cancelled && !hydrated.ok) {
+            applyMinimalAuthOnBootstrapFailure(sessionResult.data, hydrated.error);
+          }
         }
+      } catch (cause) {
+        if (cancelled) return;
+        const sessionResult = await getSession();
+        if (!sessionResult.ok || !sessionResult.data) return;
+        applyMinimalAuthOnBootstrapFailure(
+          sessionResult.data,
+          cause instanceof Error ? cause.message : 'Sitzung konnte nicht wiederhergestellt werden.',
+        );
       }
     }
 
     async function init() {
-      const restoredPortal = await loadPortalSession();
-      if (!cancelled && restoredPortal) {
-        setPortalSession(restoredPortal);
-      }
+      try {
+        const restoredPortal = await loadPortalSession();
+        if (!cancelled && restoredPortal) {
+          setPortalSession(restoredPortal);
+        }
 
-      if (authMode === 'supabase') {
-        await restoreSupabaseSession();
+        if (authMode === 'supabase') {
+          void restoreSupabaseSession();
 
-        const handle = onAuthStateChange((event: AuthChangeEvent, supabaseSession) => {
-          if (cancelled) return;
-          if (event === 'TOKEN_REFRESHED') return;
+          const handle = onAuthStateChange((event: AuthChangeEvent, supabaseSession) => {
+            if (cancelled) return;
+            if (event === 'TOKEN_REFRESHED') return;
 
-          void (async () => {
-            if (supabaseSession) {
-              const result = await hydrateSupabaseSession(
-                supabaseSession,
-                setUser,
-                setProfile,
-                setSession,
-                setProfileBootstrapError,
-              );
-              if (!result.ok && !cancelled) {
-                applyMinimalAuthOnBootstrapFailure(supabaseSession, result.error);
+            void (async () => {
+              try {
+                if (supabaseSession) {
+                  const result = await hydrateSupabaseSession(
+                    supabaseSession,
+                    setUser,
+                    setProfile,
+                    setSession,
+                    setProfileBootstrapError,
+                  );
+                  if (!result.ok && !cancelled) {
+                    applyMinimalAuthOnBootstrapFailure(supabaseSession, result.error);
+                  }
+                  return;
+                }
+
+                if (!shouldClearAuthOnNullSessionEvent(event, signOutRequestedRef.current)) {
+                  return;
+                }
+
+                if (!cancelled) {
+                  setUser(null);
+                  setProfile(null);
+                  setSession(null);
+                  setProfileBootstrapError(null);
+                }
+              } catch (cause) {
+                if (cancelled || !supabaseSession) return;
+                applyMinimalAuthOnBootstrapFailure(
+                  supabaseSession,
+                  cause instanceof Error ? cause.message : 'Sitzung konnte nicht aktualisiert werden.',
+                );
               }
-              return;
-            }
-
-            if (!shouldClearAuthOnNullSessionEvent(event, signOutRequestedRef.current)) {
-              return;
-            }
-
-            if (!cancelled) {
-              setUser(null);
-              setProfile(null);
-              setSession(null);
-              setProfileBootstrapError(null);
-            }
-          })();
-        });
-        unsubscribeAuth = handle.unsubscribe;
-      }
-
-      if (!cancelled) {
-        setIsLoading(false);
-        setIsInitialized(true);
+            })();
+          });
+          unsubscribeAuth = handle.unsubscribe;
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoading(false);
+          setIsInitialized(true);
+        }
       }
     }
 
@@ -324,24 +358,19 @@ export function AuthProvider({ children }: AuthProviderProps) {
   ]);
 
   const signInWithSupabaseSession = useCallback(async (supabaseSession: Session) => {
-    setIsLoading(true);
-    try {
-      await clearPortalSession();
-      setPortalSession(null);
-      setProfileBootstrapError(null);
+    await clearPortalSession();
+    setPortalSession(null);
+    setProfileBootstrapError(null);
 
-      const hydrated = await hydrateSupabaseSession(
-        supabaseSession,
-        setUser,
-        setProfile,
-        setSession,
-        setProfileBootstrapError,
-      );
-      if (!hydrated.ok) {
-        applyMinimalAuthOnBootstrapFailure(supabaseSession, hydrated.error);
-      }
-    } finally {
-      setIsLoading(false);
+    const hydrated = await hydrateSupabaseSession(
+      supabaseSession,
+      setUser,
+      setProfile,
+      setSession,
+      setProfileBootstrapError,
+    );
+    if (!hydrated.ok) {
+      applyMinimalAuthOnBootstrapFailure(supabaseSession, hydrated.error);
     }
   }, [applyMinimalAuthOnBootstrapFailure]);
 

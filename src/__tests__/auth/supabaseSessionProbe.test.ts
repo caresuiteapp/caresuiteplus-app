@@ -14,6 +14,8 @@ describe('useSupabaseSessionProbe', () => {
     expect(probe).toContain('getSession');
     expect(probe).toContain('authReady');
     expect(probe).toContain('isAuthenticated');
+    expect(probe).toContain('probeExpired');
+    expect(probe).toContain('SESSION_PROBE_MAX_MS');
   });
 
   it('AppStartScreen and auth index never render landing while session is pending', () => {
