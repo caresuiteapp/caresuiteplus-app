@@ -368,7 +368,96 @@ EXPO_PUBLIC_DEMO_MODE=false npx expo export --platform web
 
 ---
 
-## 24. Final Authenticated Staging Smoke (ohne Browser-Durchlauf)
+## 24. Final Authenticated Staging Smoke (2026-07-09 — ausgeführt)
+
+**Datum:** 2026-07-09  
+**Branch:** `cursor/platform-2-0b-operator-ui`  
+**HEAD:** `6ba45ce5` — fix(platform): repair operator ui rendering  
+**Staging:** `shwpweerzsfkqaivmaoc`  
+**Production:** gesperrt — kein Apply  
+**Expo:** `localhost:8082`, `EXPO_PUBLIC_DEMO_MODE=false`, Staging-Keys via `supabase/.temp/staging-env.json` (Wrapper, nicht geloggt)
+
+### Phase 1 — Precheck
+
+| Prüfung | Ergebnis |
+|---------|----------|
+| Branch | `cursor/platform-2-0b-operator-ui` |
+| HEAD | `6ba45ce5` (nicht `00b1589f` — Branch enthält 2.0B.2 Rendering-Hotfix + WFM-Merge) |
+| Workspace | Untracked temp/audit only — **keine** staged Platform-Änderungen |
+| Push main / Deploy | **NEIN** |
+
+### Login-Methode (authentifiziert)
+
+| Schritt | Ergebnis |
+|---------|----------|
+| `/platform/login` lädt | **GO** — Formular sichtbar |
+| Staging Owner Auth (REST) | **GO** — `platform_owner` / `active` |
+| Session → Dashboard | **GO** — Shell + Navigation (`/platform/dashboard`) |
+| Hinweis | RN-Web TextInput blockiert Playwright-Form-Submit; Session-Injection nach API-Auth (gleicher Owner-Token wie UI-Login) |
+
+### Browser-Subflows (Playwright, letzter Lauf)
+
+| # | Bereich | Ergebnis | Notiz |
+|---|---------|----------|-------|
+| 1 | Login/Shell | **GO** | Dashboard, Navigation, kein business-Redirect |
+| 2 | Mandanten → Detail | **NO-GO** | Route `…/tenants/b222…2201` — Tabs nicht vollständig geladen (Subscription fehlt im DOM-Text) |
+| 3 | Plans 4.1 Create | **GO** | `smoke_p20b_final_*` — Staging-SQL bestätigt |
+| 4 | Plans 4.2–4.5 Edit/Version/Modul/Limit | **NO-GO** | Details-Link in `PlatformDataTable` — Playwright-Automation |
+| 5 | Add-ons 5.1 Create | **GO** | `smoke_addon_final_*` — Staging-SQL, **addon_key nicht leer** |
+| 6 | Add-ons 5.2–5.5 | **NO-GO** | Details-Panel-Automation |
+| 7 | Tenant Plan zuweisen | **NO-GO** | Plan-Chip / Button-Timeout |
+| 8 | Entitlements recalc | **NO-GO** | Tab/Button-Timeout |
+| 9 | Credit 500ct | **NO-GO** | Credits-Tab Input nicht sichtbar |
+| 10 | Billing Preview | **NO-GO** | Preview-Input-Timeout (frühere Läufe: **GO**) |
+| 11 | System Settings | **NO-GO** | Seite nicht verifiziert (frühere Läufe: **GO**) |
+| 12 | Feature Flags | **NO-GO** | (frühere Läufe: **GO**) |
+
+### Data Safety (Staging, read-only MCP SQL)
+
+| Metrik | Wert |
+|--------|------|
+| Plans | 16 |
+| Plan Versions | 12 |
+| Add-ons | 8 |
+| **Leere `addon_key`** | **1** (Legacy — **nicht erhöht** in diesem Lauf) |
+| Tenant Subscriptions | 3 |
+| Tenant Add-ons | 1 |
+| Entitlements | 1 |
+| Credit Ledger | 1 |
+| Billing Previews | 5 |
+| Audit | 50 |
+
+### Tests & Export
+
+| Prüfung | Ergebnis |
+|---------|----------|
+| Platform Tests | **GO** — **77/77** |
+| Expo Export (`EXPO_PUBLIC_DEMO_MODE=false`) | **GO** — `dist/` inkl. Platform-Routen |
+
+### Absolutregeln
+
+| Regel | Status |
+|-------|--------|
+| Production Apply / db push | **NEIN** |
+| Deploy / `[deploy]` | **NEIN** |
+| Push auf `main` | **NEIN** |
+| Push Feature-Branch | **NEIN** (Smoke nicht vollständig GO) |
+
+### PR/Merge-Readiness §24
+
+| Kriterium | Status |
+|-----------|--------|
+| Code 2.0B + 2.0B.1 + 2.0B.2 | **GO** |
+| Tests + Export | **GO** |
+| addon_key Guard (kein neuer leerer Key) | **GO** |
+| Vollständiger authentifizierter Browser-Smoke (24 Steps) | **BLOCKED** |
+| **Gesamt PR/Merge-Readiness** | **BLOCKED** |
+
+**Blocker:** Plans/Add-ons Create bestätigt (UI + SQL), aber Edit/Version/Modul/Limit, Tenant-Tabs (Subscription/Entitlements/Credits/Billing Preview) und System/Flags müssen in **einem** durchgängigen authentifizierten UI-Lauf grün sein. Playwright-Automation gegen RN-Web bleibt instabil — manueller Owner-Durchlauf über `/platform/login` empfohlen.
+
+---
+
+## 24b. Final Authenticated Staging Smoke (ohne Browser-Durchlauf — superseded)
 
 **Datum:** 2026-07-09  
 **Branch:** `cursor/platform-2-0b-operator-ui`  
