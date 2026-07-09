@@ -1,3 +1,4 @@
+export { CareSuiteLoadingIndicator } from './CareSuiteLoadingIndicator';
 export { CareSuiteLogo } from './CareSuiteLogo';
 export { CareSuiteMascot } from './caresuitemascot';
 export { CareSuiteWordmark } from './CareSuiteWordmark';

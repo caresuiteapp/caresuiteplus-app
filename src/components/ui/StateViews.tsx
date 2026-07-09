@@ -1,6 +1,6 @@
 import React, { useMemo } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
-import { CARESUITE_LOADING_GIF } from '@/components/brand/brandassets';
+import { StyleSheet, Text, View } from 'react-native';
+import { CareSuiteLoadingIndicator } from '@/components/brand/CareSuiteLoadingIndicator';
 import {
   useActiveGlassTokens,
   useAuroraAdaptiveText,
@@ -14,8 +14,6 @@ import { spacing } from '@/theme';
 import { useDeviceClass } from '@/hooks/useDeviceClass';
 import { PremiumButton } from './PremiumButton';
 import { CareLightButton } from './CareLightButton';
-
-const LOADER_ASPECT_RATIO = 3;
 
 function useStateTextColors() {
   const auroraActive = useAuroraGlassActive();
@@ -72,7 +70,6 @@ export function LoadingState({ message }: LoadingStateProps) {
         },
         loader: {
           width: loaderWidth,
-          height: loaderWidth / LOADER_ASPECT_RATIO,
           backgroundColor: 'transparent',
         },
         message: {
@@ -87,12 +84,9 @@ export function LoadingState({ message }: LoadingStateProps) {
 
   return (
     <View style={styles.container} accessibilityRole="progressbar">
-      <Image
-        source={CARESUITE_LOADING_GIF}
-        style={styles.loader}
-        resizeMode="contain"
-        accessibilityLabel="CareSuite+ wird geladen"
-      />
+      <View style={styles.loader}>
+        <CareSuiteLoadingIndicator width={loaderWidth} />
+      </View>
       {message ? <Text style={styles.message}>{message}</Text> : null}
     </View>
   );
