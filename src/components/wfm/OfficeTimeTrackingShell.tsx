@@ -144,5 +144,13 @@ const styles = StyleSheet.create({
   },
   content: {
     flex: 1,
+    paddingHorizontal: careSpacing.md,
+    backgroundColor: Platform.OS === 'web' ? 'rgba(250,251,252,0.92)' : 'transparent',
+    ...(Platform.OS === 'web'
+      ? {
+          overflowX: 'hidden' as const,
+          maxWidth: '100%',
+        }
+      : null),
   },
 });
