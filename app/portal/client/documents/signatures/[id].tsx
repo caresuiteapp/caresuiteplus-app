@@ -7,7 +7,7 @@ export default function ClientDocumentSignatureDetailRoute() {
     <CsDocumentRequestDetailScreen
       mode="client"
       signerRole="client"
-      signerNameDefault={profile?.displayName}
+      signerNameDefault={profile?.displayName ?? undefined}
     />
   );
 }

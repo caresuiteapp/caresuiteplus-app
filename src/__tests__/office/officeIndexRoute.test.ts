@@ -9,17 +9,17 @@ function readSrc(relativePath: string): string {
 }
 
 describe('Office index route (H3 stack-level)', () => {
-  it('app/office/index.tsx exists and exports OfficeIndexScreen', () => {
-    const routePath = path.join(root, 'app/office/index.tsx');
+  it('app/office/(tabs)/index.tsx exists and exports OfficeIndexScreen', () => {
+    const routePath = path.join(root, 'app/office/(tabs)/index.tsx');
     expect(existsSync(routePath)).toBe(true);
-    const source = readSrc('app/office/index.tsx');
+    const source = readSrc('app/office/(tabs)/index.tsx');
     expect(source).toContain('OfficeIndexScreen');
     expect(source).toContain('export default OfficeIndexScreen');
   });
 
-  it('matches Assist stack-level index pattern', () => {
-    const assist = readSrc('app/assist/index.tsx');
-    const office = readSrc('app/office/index.tsx');
+  it('matches Assist tab index pattern', () => {
+    const assist = readSrc('app/assist/(tabs)/index.tsx');
+    const office = readSrc('app/office/(tabs)/index.tsx');
     expect(assist).toContain('export default AssistIndexScreen');
     expect(office).toContain('export default OfficeIndexScreen');
   });
